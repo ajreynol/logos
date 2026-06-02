@@ -244,6 +244,313 @@ private def strConcatDrop : Term → Nat → Term
       strConcatDrop tail n
   | a, _ + 1 => a
 
+private theorem nat_zero_of_term_numeral_zero_eq (m : Nat)
+    (h : Term.Numeral (0 : native_Int) = Term.Numeral (Int.ofNat m)) :
+    m = 0 := by
+  injection h with hInt
+  exact Int.ofNat_eq_zero.mp hInt.symm
+
+private theorem nat_succ_of_term_numeral_add_one_eq (m r : Nat)
+    (h :
+      Term.Numeral (native_zplus (1 : native_Int) (Int.ofNat r)) =
+        Term.Numeral (Int.ofNat m)) :
+    m = r + 1 := by
+  injection h with hInt
+  have hCast : Int.ofNat m = Int.ofNat (r + 1) := by
+    rw [← hInt]
+    simp [native_zplus]
+    omega
+  exact Int.ofNat_inj.mp hCast
+
+private theorem str_overlap_rec_le_of_compatible_drop :
+    ∀ (a b : Term) (m n : Nat),
+      __str_overlap_rec a b = Term.Numeral (Int.ofNat m) →
+      __str_is_compatible (strConcatDrop a n) b = Term.Boolean true →
+      m <= n := by
+  intro a b m n hRec hCompat
+  cases a with
+  | Stuck =>
+      cases b <;> simp [__str_overlap_rec] at hRec
+  | Apply f x =>
+      cases f with
+      | Apply g y =>
+          cases g with
+          | UOp op =>
+              by_cases hOp : op = UserOp.str_concat
+              · subst op
+                by_cases hb : b = Term.Stuck
+                · subst b
+                  simp [__str_overlap_rec] at hRec
+                · let aCons :=
+                    Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) y) x
+                  have hDef :
+                      __str_overlap_rec aCons b =
+                        __eo_ite (__str_is_compatible aCons b)
+                          (Term.Numeral 0)
+                          (__eo_add (Term.Numeral 1)
+                            (__str_overlap_rec x b)) := by
+                    cases b <;> simp [aCons, __str_overlap_rec] at hb ⊢
+                  cases hComp : __str_is_compatible aCons b with
+                  | Boolean bv =>
+                      cases bv
+                      · cases n with
+                        | zero =>
+                            simpa [aCons, strConcatDrop, hComp] using hCompat
+                        | succ n =>
+                            have hRecArg :
+                                __str_overlap_rec x b ≠ Term.Stuck := by
+                              have hAddEq :
+                                  __eo_add (Term.Numeral 1)
+                                      (__str_overlap_rec x b) =
+                                    Term.Numeral (Int.ofNat m) := by
+                                rw [hDef, hComp] at hRec
+                                simpa [__eo_ite, native_ite, native_teq]
+                                  using hRec
+                              intro hStuck
+                              rw [hStuck] at hAddEq
+                              simp [__eo_add] at hAddEq
+                            rcases str_overlap_rec_numeral_of_ne_stuck x b
+                                hRecArg with
+                              ⟨r, hTailRec⟩
+                            have hm : m = r + 1 := by
+                              have hTerm :
+                                  Term.Numeral
+                                      (native_zplus (1 : native_Int)
+                                        (Int.ofNat r)) =
+                                    Term.Numeral (Int.ofNat m) := by
+                                rw [hDef, hComp, hTailRec] at hRec
+                                simpa [__eo_ite, __eo_add, native_ite,
+                                  native_teq] using hRec
+                              exact nat_succ_of_term_numeral_add_one_eq m r
+                                hTerm
+                            have hTailCompat :
+                                __str_is_compatible (strConcatDrop x n) b =
+                                  Term.Boolean true := by
+                              simpa [aCons, strConcatDrop] using hCompat
+                            have hrle :
+                                r <= n :=
+                              str_overlap_rec_le_of_compatible_drop x b r n
+                                hTailRec hTailCompat
+                            omega
+                      · rw [hDef, hComp] at hRec
+                        have hm0 : m = 0 :=
+                          nat_zero_of_term_numeral_zero_eq m
+                            (by
+                              simpa [__eo_ite, native_ite, native_teq]
+                                using hRec)
+                        omega
+                  | _ =>
+                      rw [hDef, hComp] at hRec
+                      simp [__eo_ite, native_ite, native_teq] at hRec
+              · cases b <;>
+                  simp [__str_overlap_rec, hOp] at hRec <;>
+                  (have hm0 : m = 0 :=
+                    nat_zero_of_term_numeral_zero_eq m (by simpa using hRec)
+                   omega)
+          | _ =>
+              cases b <;> simp [__str_overlap_rec] at hRec <;>
+                (have hm0 : m = 0 :=
+                  nat_zero_of_term_numeral_zero_eq m (by simpa using hRec)
+                 omega)
+      | _ =>
+          cases b <;> simp [__str_overlap_rec] at hRec <;>
+            (have hm0 : m = 0 :=
+              nat_zero_of_term_numeral_zero_eq m (by simpa using hRec)
+             omega)
+  | _ =>
+      cases b <;> simp [__str_overlap_rec] at hRec <;>
+        (have hm0 : m = 0 :=
+          nat_zero_of_term_numeral_zero_eq m (by simpa using hRec)
+         omega)
+termination_by a b m n _ _ => sizeOf a
+decreasing_by
+  all_goals
+    subst_vars
+    simp_wf
+    omega
+
+private theorem str_overlap_rec_compatible_drop_false_of_lt :
+    ∀ (a b : Term) (m n : Nat),
+      __str_overlap_rec a b = Term.Numeral (Int.ofNat m) →
+      n < m →
+      __str_is_compatible (strConcatDrop a n) b = Term.Boolean false := by
+  intro a b m n hRec hLt
+  cases a with
+  | Stuck =>
+      cases b <;> simp [__str_overlap_rec] at hRec
+  | Apply f x =>
+      cases f with
+      | Apply g y =>
+          cases g with
+          | UOp op =>
+              by_cases hOp : op = UserOp.str_concat
+              · subst op
+                by_cases hb : b = Term.Stuck
+                · subst b
+                  simp [__str_overlap_rec] at hRec
+                · let aCons :=
+                    Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) y) x
+                  have hDef :
+                      __str_overlap_rec aCons b =
+                        __eo_ite (__str_is_compatible aCons b)
+                          (Term.Numeral 0)
+                          (__eo_add (Term.Numeral 1)
+                            (__str_overlap_rec x b)) := by
+                    cases b <;> simp [aCons, __str_overlap_rec] at hb ⊢
+                  cases hComp : __str_is_compatible aCons b with
+                  | Boolean bv =>
+                      cases bv
+                      · cases n with
+                        | zero =>
+                            simpa [aCons, strConcatDrop] using hComp
+                        | succ n =>
+                            have hRecArg :
+                                __str_overlap_rec x b ≠ Term.Stuck := by
+                              have hAddEq :
+                                  __eo_add (Term.Numeral 1)
+                                      (__str_overlap_rec x b) =
+                                    Term.Numeral (Int.ofNat m) := by
+                                rw [hDef, hComp] at hRec
+                                simpa [__eo_ite, native_ite, native_teq]
+                                  using hRec
+                              intro hStuck
+                              rw [hStuck] at hAddEq
+                              simp [__eo_add] at hAddEq
+                            rcases str_overlap_rec_numeral_of_ne_stuck x b
+                                hRecArg with
+                              ⟨r, hTailRec⟩
+                            have hm : m = r + 1 := by
+                              have hTerm :
+                                  Term.Numeral
+                                      (native_zplus (1 : native_Int)
+                                        (Int.ofNat r)) =
+                                    Term.Numeral (Int.ofNat m) := by
+                                rw [hDef, hComp, hTailRec] at hRec
+                                simpa [__eo_ite, __eo_add, native_ite,
+                                  native_teq] using hRec
+                              exact nat_succ_of_term_numeral_add_one_eq m r
+                                hTerm
+                            have hnLt : n < r := by omega
+                            have hTailFalse :
+                                __str_is_compatible (strConcatDrop x n) b =
+                                  Term.Boolean false :=
+                              str_overlap_rec_compatible_drop_false_of_lt
+                                x b r n hTailRec hnLt
+                            simpa [aCons, strConcatDrop] using hTailFalse
+                      · rw [hDef, hComp] at hRec
+                        have hm0 : m = 0 :=
+                          nat_zero_of_term_numeral_zero_eq m
+                            (by
+                              simpa [__eo_ite, native_ite, native_teq]
+                                using hRec)
+                        omega
+                  | _ =>
+                      rw [hDef, hComp] at hRec
+                      simp [__eo_ite, native_ite, native_teq] at hRec
+              · cases b <;>
+                  simp [__str_overlap_rec, hOp] at hRec <;>
+                  (have hm0 : m = 0 :=
+                    nat_zero_of_term_numeral_zero_eq m (by simpa using hRec)
+                   omega)
+          | _ =>
+              cases b <;> simp [__str_overlap_rec] at hRec <;>
+                (have hm0 : m = 0 :=
+                  nat_zero_of_term_numeral_zero_eq m (by simpa using hRec)
+                 omega)
+      | _ =>
+          cases b <;> simp [__str_overlap_rec] at hRec <;>
+            (have hm0 : m = 0 :=
+              nat_zero_of_term_numeral_zero_eq m (by simpa using hRec)
+             omega)
+  | _ =>
+      cases b <;> simp [__str_overlap_rec] at hRec <;>
+        (have hm0 : m = 0 :=
+          nat_zero_of_term_numeral_zero_eq m (by simpa using hRec)
+         omega)
+termination_by a b m n _ _ => sizeOf a
+decreasing_by
+  all_goals
+    subst_vars
+    simp_wf
+    omega
+
+private theorem eo_list_nth_one_str_concat_cons_eq_tail_zero
+    (head tail : Term)
+    (hTailList :
+      __eo_is_list (Term.UOp UserOp.str_concat) tail = Term.Boolean true) :
+    __eo_list_nth (Term.UOp UserOp.str_concat) (mkConcat head tail)
+        (Term.Numeral 1) =
+      __eo_list_nth (Term.UOp UserOp.str_concat) tail (Term.Numeral 0) := by
+  have hConsList :
+      __eo_is_list (Term.UOp UserOp.str_concat) (mkConcat head tail) =
+        Term.Boolean true := by
+    simpa [mkConcat] using
+      eo_is_list_cons_self_true_of_tail_list
+        (Term.UOp UserOp.str_concat) head tail (by simp)
+      hTailList
+  simp [__eo_list_nth, __eo_list_nth_rec, mkConcat, hConsList,
+    hTailList, __eo_add, native_zplus]
+
+private theorem str_overlap_rec_left_ne_stuck_of_ne_stuck
+    (a b : Term) (h : __str_overlap_rec a b ≠ Term.Stuck) :
+    a ≠ Term.Stuck := by
+  intro ha
+  subst a
+  cases b <;> simp [__str_overlap_rec] at h
+
+private theorem str_overlap_rec_right_ne_stuck_of_ne_stuck
+    (a b : Term) (h : __str_overlap_rec a b ≠ Term.Stuck) :
+    b ≠ Term.Stuck := by
+  intro hb
+  subst b
+  cases a <;> simp [__str_overlap_rec] at h
+
+private theorem cprop_false_head_string_of_tailword_ne
+    (s sc : Term) (T : SmtType)
+    (hScEq : sc = concatCPropHead (Term.Boolean false) s)
+    (hscTy : __smtx_typeof (__eo_to_smt sc) = SmtType.Seq T)
+    (hTailWordNe :
+      concatCPropSHeadTailWord (Term.Boolean false) s ≠ Term.Stuck) :
+    ∃ cs : native_String, sc = Term.String cs := by
+  cases sc with
+  | String cs =>
+      exact ⟨cs, rfl⟩
+  | Binary w n =>
+      change __smtx_typeof (SmtTerm.Binary w n) = SmtType.Seq T at hscTy
+      cases hCond :
+          native_and (native_zleq 0 w)
+            (native_zeq n (native_mod_total n (native_int_pow2 w))) <;>
+        simp [__smtx_typeof, hCond, native_ite] at hscTy
+  | _ =>
+      have hBad :
+          concatCPropSHeadTailWord (Term.Boolean false) s = Term.Stuck := by
+        simp [concatCPropSHeadTailWord, eo_ite_false, __eo_len,
+          __eo_extract, __str_nary_intro, __str_flatten, ← hScEq]
+      exact False.elim (hTailWordNe hBad)
+
+private theorem cprop_true_head_string_of_tailword_ne
+    (s sc : Term) (T : SmtType)
+    (hScEq : sc = concatCPropHead (Term.Boolean true) s)
+    (hscTy : __smtx_typeof (__eo_to_smt sc) = SmtType.Seq T)
+    (hTailWordNe :
+      concatCPropSHeadTailWord (Term.Boolean true) s ≠ Term.Stuck) :
+    ∃ cs : native_String, sc = Term.String cs := by
+  cases sc with
+  | String cs =>
+      exact ⟨cs, rfl⟩
+  | Binary w n =>
+      change __smtx_typeof (SmtTerm.Binary w n) = SmtType.Seq T at hscTy
+      cases hCond :
+          native_and (native_zleq 0 w)
+            (native_zeq n (native_mod_total n (native_int_pow2 w))) <;>
+        simp [__smtx_typeof, hCond, native_ite] at hscTy
+  | _ =>
+      have hBad :
+          concatCPropSHeadTailWord (Term.Boolean true) s = Term.Stuck := by
+        simp [concatCPropSHeadTailWord, eo_ite_true, __eo_len,
+          __eo_extract, __str_nary_intro, __str_flatten, ← hScEq]
+      exact False.elim (hTailWordNe hBad)
+
 private theorem eo_prog_concat_cprop_eq_of_ne_stuck
     (rev t s tc : Term)
     (hProg :
@@ -1836,6 +2143,64 @@ private theorem native_seq_extract_suffix_nat_suffix
     rw [hExtract]
     simp
 
+private theorem native_seq_extract_length_le_nat_arg
+    (xs : List SmtValue) (i : native_Int) (n : Nat) :
+    (native_seq_extract xs i (Int.ofNat n)).length <= n := by
+  have hInt :
+      Int.ofNat (native_seq_extract xs i (Int.ofNat n)).length <=
+        Int.ofNat n := by
+    simp only [native_seq_extract]
+    split
+    · simp
+    · rename_i h
+      have hProp :
+          ¬ ((i < 0 ∨ Int.ofNat n <= 0) ∨
+              Int.ofNat xs.length <= i) := by
+        simpa [Bool.or_eq_true, decide_eq_true_eq] using h
+      have hiNonneg : 0 <= i := by
+        have hiNot : ¬ i < 0 := by
+          intro hi
+          exact hProp (Or.inl (Or.inl hi))
+        exact Int.le_of_not_gt hiNot
+      have hiLt : i < Int.ofNat xs.length := by
+        have hiNot : ¬ Int.ofNat xs.length <= i := by
+          intro hle
+          exact hProp (Or.inr hle)
+        exact Int.lt_of_not_ge hiNot
+      have hTake :
+          ((xs.drop (Int.toNat i)).take
+              (Int.toNat
+                (min (Int.ofNat n) (Int.ofNat xs.length - i)))).length <=
+            Int.toNat (min (Int.ofNat n) (Int.ofNat xs.length - i)) :=
+        List.length_take_le _ _
+      have hDiffNonneg : 0 <= Int.ofNat xs.length - i := by
+        omega
+      have hMinNonneg :
+          0 <= min (Int.ofNat n) (Int.ofNat xs.length - i) := by
+        exact (Int.le_min).2 ⟨Int.natCast_nonneg n, hDiffNonneg⟩
+      have hCast :
+          Int.ofNat
+              (Int.toNat
+                (min (Int.ofNat n) (Int.ofNat xs.length - i))) =
+            min (Int.ofNat n) (Int.ofNat xs.length - i) :=
+        Int.toNat_of_nonneg hMinNonneg
+      have hLenLe :
+          Int.ofNat
+              ((xs.drop (Int.toNat i)).take
+                (Int.toNat
+                  (min (Int.ofNat n)
+                    (Int.ofNat xs.length - i)))).length <=
+            Int.ofNat
+              (Int.toNat
+                (min (Int.ofNat n) (Int.ofNat xs.length - i))) :=
+        Int.ofNat_le.mpr hTake
+      have hMinLe :
+          min (Int.ofNat n) (Int.ofNat xs.length - i) <=
+            Int.ofNat n :=
+        Int.min_le_left _ _
+      omega
+  exact Int.ofNat_le.mp hInt
+
 private theorem cprop_reverse_end_true_eval_of_overlap
     (M : SmtModel) (hM : model_total_typed M)
     (t s sc : Term) (T : SmtType) (ss : SmtSeq) (n : Nat)
@@ -2463,6 +2828,12 @@ private theorem facts_concat_cprop_false_formula
     (M : SmtModel) (hM : model_total_typed M)
     (t s tc sc tTail sTail : Term) (T : SmtType)
     (hScEq : sc = concatCPropHead (Term.Boolean false) s)
+    (hIntroT : __str_nary_intro t = mkConcat tc tTail)
+    (hIntroS : __str_nary_intro s = mkConcat sc sTail)
+    (hTTailList :
+      __eo_is_list (Term.UOp UserOp.str_concat) tTail = Term.Boolean true)
+    (hSTailList :
+      __eo_is_list (Term.UOp UserOp.str_concat) sTail = Term.Boolean true)
     (htcTy : __smtx_typeof (__eo_to_smt tc) = SmtType.Seq T)
     (hscTy : __smtx_typeof (__eo_to_smt sc) = SmtType.Seq T)
     (htTailTy : __smtx_typeof (__eo_to_smt tTail) = SmtType.Seq T)
@@ -2503,15 +2874,59 @@ private theorem facts_concat_cprop_false_formula
   have hnPfx :
       ((native_unpack_seq ss).take (m + 1)).length <=
         (native_unpack_seq st).length := by
-    sorry
+    by_cases hleSS :
+        (native_unpack_seq ss).length <= (native_unpack_seq st).length
+    · have hTakeLeSS :
+          ((native_unpack_seq ss).take (m + 1)).length <=
+            (native_unpack_seq ss).length := by
+        simp [List.length_take]
+        exact Nat.min_le_right (m + 1) (native_unpack_seq ss).length
+      exact Nat.le_trans hTakeLeSS hleSS
+    · by_cases hGoal :
+          ((native_unpack_seq ss).take (m + 1)).length <=
+            (native_unpack_seq st).length
+      · exact hGoal
+      have hstPos : 0 < (native_unpack_seq st).length :=
+        Nat.pos_of_ne_zero htcLenNe
+      have hDropLt : (native_unpack_seq st).length - 1 < m := by
+        have hTakeLen :
+            ((native_unpack_seq ss).take (m + 1)).length =
+              min (m + 1) (native_unpack_seq ss).length := by
+          simp [List.length_take]
+        rw [hTakeLen] at hGoal
+        omega
+      have hCompatFalse :
+          __str_is_compatible
+              (strConcatDrop recS ((native_unpack_seq st).length - 1))
+              recT =
+            Term.Boolean false :=
+        str_overlap_rec_compatible_drop_false_of_lt recS recT m
+          ((native_unpack_seq st).length - 1) hRec hDropLt
+      have hCompatNotFalse :
+          __str_is_compatible
+              (strConcatDrop recS ((native_unpack_seq st).length - 1))
+              recT ≠
+            Term.Boolean false := by
+        sorry
+      exact False.elim (hCompatNotFalse hCompatFalse)
   exact cprop_false_formula_of_overlap_bounds M hM t s tc sc tTail sTail T
     st stail ss sstail (m + 1) hScEq htcTy hscTy htTailTy hsTailTy hProg
     htcEval htTailEval hscEval hsTailEval hAppend hOverlap hnPfx
 
 private theorem facts_concat_cprop_true_formula
     (M : SmtModel) (hM : model_total_typed M)
-    (t s tc sc tPrefix sPrefix : Term) (T : SmtType)
+    (t s tc sc tPrefix sPrefix tTail sTail : Term) (T : SmtType)
     (hScEq : sc = concatCPropHead (Term.Boolean true) s)
+    (hRevIntroT :
+      __eo_list_rev (Term.UOp UserOp.str_concat) (__str_nary_intro t) =
+        mkConcat tc tTail)
+    (hRevIntroS :
+      __eo_list_rev (Term.UOp UserOp.str_concat) (__str_nary_intro s) =
+        mkConcat sc sTail)
+    (hTTailList :
+      __eo_is_list (Term.UOp UserOp.str_concat) tTail = Term.Boolean true)
+    (hSTailList :
+      __eo_is_list (Term.UOp UserOp.str_concat) sTail = Term.Boolean true)
     (htcTy : __smtx_typeof (__eo_to_smt tc) = SmtType.Seq T)
     (hscTy : __smtx_typeof (__eo_to_smt sc) = SmtType.Seq T)
     (htPrefixTy : __smtx_typeof (__eo_to_smt tPrefix) = SmtType.Seq T)
@@ -2558,7 +2973,61 @@ private theorem facts_concat_cprop_true_formula
           (Int.ofNat (native_unpack_seq ss).length + -Int.ofNat (m + 1))
           (Int.ofNat (m + 1))).length <=
         (native_unpack_seq st).length := by
-    sorry
+    by_cases hleSS :
+        (native_unpack_seq ss).length <= (native_unpack_seq st).length
+    · rcases native_seq_extract_suffix_nat_suffix (native_unpack_seq ss)
+          (m + 1) with
+        ⟨pre, hSuffix⟩
+      have hEndLeSS :
+          (native_seq_extract (native_unpack_seq ss)
+              (Int.ofNat (native_unpack_seq ss).length + -Int.ofNat (m + 1))
+              (Int.ofNat (m + 1))).length <=
+            (native_unpack_seq ss).length := by
+        calc
+          (native_seq_extract (native_unpack_seq ss)
+              (Int.ofNat (native_unpack_seq ss).length + -Int.ofNat (m + 1))
+              (Int.ofNat (m + 1))).length <=
+              (pre ++
+                native_seq_extract (native_unpack_seq ss)
+                  (Int.ofNat (native_unpack_seq ss).length +
+                    -Int.ofNat (m + 1))
+                  (Int.ofNat (m + 1))).length := by
+            simp
+          _ = (native_unpack_seq ss).length := by
+            exact (congrArg List.length hSuffix).symm
+      exact Nat.le_trans hEndLeSS hleSS
+    · by_cases hGoal :
+          (native_seq_extract (native_unpack_seq ss)
+              (Int.ofNat (native_unpack_seq ss).length + -Int.ofNat (m + 1))
+              (Int.ofNat (m + 1))).length <=
+            (native_unpack_seq st).length
+      · exact hGoal
+      have hstPos : 0 < (native_unpack_seq st).length :=
+        Nat.pos_of_ne_zero htcLenNe
+      have hDropLt : (native_unpack_seq st).length - 1 < m := by
+        have hEndLeN :
+            (native_seq_extract (native_unpack_seq ss)
+                (Int.ofNat (native_unpack_seq ss).length + -Int.ofNat (m + 1))
+                (Int.ofNat (m + 1))).length <=
+              m + 1 :=
+          native_seq_extract_length_le_nat_arg (native_unpack_seq ss)
+            (Int.ofNat (native_unpack_seq ss).length + -Int.ofNat (m + 1))
+            (m + 1)
+        omega
+      have hCompatFalse :
+          __str_is_compatible
+              (strConcatDrop recS ((native_unpack_seq st).length - 1))
+              recT =
+            Term.Boolean false :=
+        str_overlap_rec_compatible_drop_false_of_lt recS recT m
+          ((native_unpack_seq st).length - 1) hRec hDropLt
+      have hCompatNotFalse :
+          __str_is_compatible
+              (strConcatDrop recS ((native_unpack_seq st).length - 1))
+              recT ≠
+            Term.Boolean false := by
+        sorry
+      exact False.elim (hCompatNotFalse hCompatFalse)
   exact cprop_true_formula_of_overlap_bounds M hM t s tc sc tPrefix
     sPrefix T stp st ssp ss (m + 1) hScEq htcTy hscTy htPrefixTy
     hsPrefixTy hProg htPrefixEval htcEval hsPrefixEval hscEval hAppend
@@ -2796,13 +3265,13 @@ private theorem step_concat_cprop_core
           (mkNot (mkEq (mkStrLen tc) (Term.Numeral 0))) (by simp)
       rcases cprop_context_true M hM t s tc hPremBool hNonzeroBool
           hProg hST with
-        ⟨U, sc, tPrefix, sPrefix, _tTail, _sTail, hScEq, _hRevIntroT,
-          _hRevIntroS, _hTTailList, _hSTailList, htcTy', hscTy, htPrefixTy,
+        ⟨U, sc, tPrefix, sPrefix, tTail, sTail, hScEq, hRevIntroT,
+          hRevIntroS, hTTailList, hSTailList, htcTy', hscTy, htPrefixTy,
           hsPrefixTy, hConcatEq⟩
       rw [hProgEq]
       exact facts_concat_cprop_true_formula M hM t s tc sc tPrefix sPrefix
-        U hScEq htcTy' hscTy htPrefixTy hsPrefixTy hProg hNonzero
-        hConcatEq
+        tTail sTail U hScEq hRevIntroT hRevIntroS hTTailList hSTailList
+        htcTy' hscTy htPrefixTy hsPrefixTy hProg hNonzero hConcatEq
     · rw [hProgEq]
       exact concatCPropFormula_has_smt_translation_true t s tc hPremBool
         hNonzeroBool hProg hResultTy
@@ -2818,12 +3287,12 @@ private theorem step_concat_cprop_core
           (mkNot (mkEq (mkStrLen tc) (Term.Numeral 0))) (by simp)
       rcases cprop_context_false M hM t s tc hPremBool hNonzeroBool
           hProg hST with
-        ⟨U, sc, tTail, sTail, hScEq, _hIntroT, _hIntroS, _hTTailList,
-          _hSTailList, htcTy', hscTy, htTailTy, hsTailTy, hConcatEq⟩
+        ⟨U, sc, tTail, sTail, hScEq, hIntroT, hIntroS, hTTailList,
+          hSTailList, htcTy', hscTy, htTailTy, hsTailTy, hConcatEq⟩
       rw [hProgEq]
       exact facts_concat_cprop_false_formula M hM t s tc sc tTail sTail
-        U hScEq htcTy' hscTy htTailTy hsTailTy hProg hNonzero
-        hConcatEq
+        U hScEq hIntroT hIntroS hTTailList hSTailList htcTy' hscTy
+        htTailTy hsTailTy hProg hNonzero hConcatEq
     · rw [hProgEq]
       exact concatCPropFormula_has_smt_translation_false t s tc hPremBool
         hNonzeroBool hProg hResultTy
