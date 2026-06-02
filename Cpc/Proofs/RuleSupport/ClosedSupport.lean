@@ -816,6 +816,49 @@ by
       have hInner := eo_and_eq_true_cases hOuter.1
       exact ⟨hInner.1, hInner.2, hOuter.2⟩
 
+theorem eo_is_closed_rec_apply_uop1_eq_true_cases
+    {op : UserOp1} {x y env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hClosed :
+      __eo_is_closed_rec (Term.Apply (Term.UOp1 op x) y) env =
+        Term.Boolean true) :
+  __eo_is_closed_rec x env = Term.Boolean true ∧
+    __eo_is_closed_rec y env = Term.Boolean true :=
+by
+  rcases hEnv with ⟨exactVars, hExact, hEquiv⟩
+  cases hExact with
+  | nil =>
+      have hOuter := eo_and_eq_true_cases
+        (by simpa [__eo_is_closed_rec] using hClosed)
+      exact ⟨hOuter.1, hOuter.2⟩
+  | cons hTail =>
+      have hOuter := eo_and_eq_true_cases
+        (by simpa [__eo_is_closed_rec] using hClosed)
+      exact ⟨hOuter.1, hOuter.2⟩
+
+theorem eo_is_closed_rec_apply_uop2_eq_true_cases
+    {op : UserOp2} {x y z env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hClosed :
+      __eo_is_closed_rec (Term.Apply (Term.UOp2 op x y) z) env =
+        Term.Boolean true) :
+  __eo_is_closed_rec x env = Term.Boolean true ∧
+    __eo_is_closed_rec y env = Term.Boolean true ∧
+      __eo_is_closed_rec z env = Term.Boolean true :=
+by
+  rcases hEnv with ⟨exactVars, hExact, hEquiv⟩
+  cases hExact with
+  | nil =>
+      have hOuter := eo_and_eq_true_cases
+        (by simpa [__eo_is_closed_rec] using hClosed)
+      have hInner := eo_and_eq_true_cases hOuter.1
+      exact ⟨hInner.1, hInner.2, hOuter.2⟩
+  | cons hTail =>
+      have hOuter := eo_and_eq_true_cases
+        (by simpa [__eo_is_closed_rec] using hClosed)
+      have hInner := eo_and_eq_true_cases hOuter.1
+      exact ⟨hInner.1, hInner.2, hOuter.2⟩
+
 theorem smtTermClosedIn_eo_to_smt_boolean
     (vars : List SmtVarKey) (b : native_Bool) :
   SmtTermClosedIn vars (__eo_to_smt (Term.Boolean b)) :=
@@ -875,10 +918,350 @@ by
   exact smtTermClosedIn_eo_to_smt_var_string
     (EoSmtVarEnvPerm.mem_of_closed_var hEnv hClosed)
 
+theorem smtTermClosedIn_eo_to_smt_var_of_closed_rec_perm
+    {env : Term} {vars : List SmtVarKey} {name T : Term}
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hClosed :
+      __eo_is_closed_rec (Term.Var name T) env =
+        Term.Boolean true) :
+  SmtTermClosedIn vars (__eo_to_smt (Term.Var name T)) :=
+by
+  cases name <;> try trivial
+  case String s =>
+    exact smtTermClosedIn_eo_to_smt_var_string_of_closed_rec_perm hEnv hClosed
+
+theorem smtTermClosedIn_eo_to_smt_uop
+    (vars : List SmtVarKey) (op : UserOp) :
+  SmtTermClosedIn vars (__eo_to_smt (Term.UOp op)) :=
+by
+  cases op <;> trivial
+
+theorem smtTermClosedIn_eo_to_smt_dtcons
+    (vars : List SmtVarKey) (s : native_String) (d : Datatype)
+    (i : native_Nat) :
+  SmtTermClosedIn vars (__eo_to_smt (Term.DtCons s d i)) :=
+by
+  change SmtTermClosedIn vars
+    (native_ite (native_reserved_datatype_name s) SmtTerm.None
+      (SmtTerm.DtCons s (__eo_to_smt_datatype d) i))
+  cases native_reserved_datatype_name s <;> trivial
+
+theorem smtTermClosedIn_eo_to_smt_dtsel
+    (vars : List SmtVarKey) (s : native_String) (d : Datatype)
+    (i j : native_Nat) :
+  SmtTermClosedIn vars (__eo_to_smt (Term.DtSel s d i j)) :=
+by
+  change SmtTermClosedIn vars
+    (native_ite (native_reserved_datatype_name s) SmtTerm.None
+      (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j))
+  cases native_reserved_datatype_name s <;> trivial
+
+theorem smtTermClosedIn_eo_to_smt_uconst
+    (vars : List SmtVarKey) (i : native_Nat) (T : Term) :
+  SmtTermClosedIn vars (__eo_to_smt (Term.UConst i T)) :=
+by
+  trivial
+
 theorem smtTermClosedIn_eo_to_smt_not
     {vars : List SmtVarKey} {x : Term}
     (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
   SmtTermClosedIn vars (__eo_to_smt (Term.Apply (Term.UOp UserOp.not) x)) :=
+by
+  exact hx
+
+theorem smtTermClosedIn_eo_to_smt_to_real
+    {vars : List SmtVarKey} {x : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp UserOp.to_real) x)) :=
+by
+  exact hx
+
+theorem smtTermClosedIn_eo_to_smt_to_int
+    {vars : List SmtVarKey} {x : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp UserOp.to_int) x)) :=
+by
+  exact hx
+
+theorem smtTermClosedIn_eo_to_smt_is_int
+    {vars : List SmtVarKey} {x : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp UserOp.is_int) x)) :=
+by
+  exact hx
+
+theorem smtTermClosedIn_eo_to_smt_abs
+    {vars : List SmtVarKey} {x : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp UserOp.abs) x)) :=
+by
+  exact hx
+
+theorem smtTermClosedIn_eo_to_smt_uneg
+    {vars : List SmtVarKey} {x : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp UserOp.__eoo_neg_2) x)) :=
+by
+  exact hx
+
+theorem smtTermClosedIn_eo_to_smt_int_pow2
+    {vars : List SmtVarKey} {x : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp UserOp.int_pow2) x)) :=
+by
+  exact hx
+
+theorem smtTermClosedIn_eo_to_smt_int_log2
+    {vars : List SmtVarKey} {x : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp UserOp.int_log2) x)) :=
+by
+  exact hx
+
+theorem smtTermClosedIn_eo_to_smt_int_ispow2
+    {vars : List SmtVarKey} {x : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp UserOp.int_ispow2) x)) :=
+by
+  exact ⟨⟨hx, trivial⟩, ⟨hx, hx⟩⟩
+
+theorem smtTermClosedIn_eo_to_smt_int_div_by_zero
+    {vars : List SmtVarKey} {x : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp UserOp._at_int_div_by_zero) x)) :=
+by
+  exact ⟨hx, trivial⟩
+
+theorem smtTermClosedIn_eo_to_smt_mod_by_zero
+    {vars : List SmtVarKey} {x : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp UserOp._at_mod_by_zero) x)) :=
+by
+  exact ⟨hx, trivial⟩
+
+theorem smtTermClosedIn_eo_to_smt_bvnot
+    {vars : List SmtVarKey} {x : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp UserOp.bvnot) x)) :=
+by
+  exact hx
+
+theorem smtTermClosedIn_eo_to_smt_bvneg
+    {vars : List SmtVarKey} {x : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp UserOp.bvneg) x)) :=
+by
+  exact hx
+
+theorem smtTermClosedIn_eo_to_smt_bvnego
+    {vars : List SmtVarKey} {x : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp UserOp.bvnego) x)) :=
+by
+  exact hx
+
+theorem smtTermClosedIn_eo_to_smt_bvredand
+    {vars : List SmtVarKey} {x : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp UserOp.bvredand) x)) :=
+by
+  exact ⟨hx, trivial⟩
+
+theorem smtTermClosedIn_eo_to_smt_bvredor
+    {vars : List SmtVarKey} {x : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp UserOp.bvredor) x)) :=
+by
+  exact ⟨hx, trivial⟩
+
+theorem smtTermClosedIn_eo_to_smt_str_len
+    {vars : List SmtVarKey} {x : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp UserOp.str_len) x)) :=
+by
+  exact hx
+
+theorem smtTermClosedIn_eo_to_smt_str_rev
+    {vars : List SmtVarKey} {x : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp UserOp.str_rev) x)) :=
+by
+  exact hx
+
+theorem smtTermClosedIn_eo_to_smt_str_to_lower
+    {vars : List SmtVarKey} {x : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp UserOp.str_to_lower) x)) :=
+by
+  exact hx
+
+theorem smtTermClosedIn_eo_to_smt_str_to_upper
+    {vars : List SmtVarKey} {x : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp UserOp.str_to_upper) x)) :=
+by
+  exact hx
+
+theorem smtTermClosedIn_eo_to_smt_str_to_code
+    {vars : List SmtVarKey} {x : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp UserOp.str_to_code) x)) :=
+by
+  exact hx
+
+theorem smtTermClosedIn_eo_to_smt_str_from_code
+    {vars : List SmtVarKey} {x : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp UserOp.str_from_code) x)) :=
+by
+  exact hx
+
+theorem smtTermClosedIn_eo_to_smt_str_is_digit
+    {vars : List SmtVarKey} {x : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp UserOp.str_is_digit) x)) :=
+by
+  exact hx
+
+theorem smtTermClosedIn_eo_to_smt_str_to_int
+    {vars : List SmtVarKey} {x : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp UserOp.str_to_int) x)) :=
+by
+  exact hx
+
+theorem smtTermClosedIn_eo_to_smt_str_from_int
+    {vars : List SmtVarKey} {x : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp UserOp.str_from_int) x)) :=
+by
+  exact hx
+
+theorem smtTermClosedIn_eo_to_smt_str_to_re
+    {vars : List SmtVarKey} {x : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp UserOp.str_to_re) x)) :=
+by
+  exact hx
+
+theorem smtTermClosedIn_eo_to_smt_re_mult
+    {vars : List SmtVarKey} {x : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp UserOp.re_mult) x)) :=
+by
+  exact hx
+
+theorem smtTermClosedIn_eo_to_smt_re_plus
+    {vars : List SmtVarKey} {x : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp UserOp.re_plus) x)) :=
+by
+  exact hx
+
+theorem smtTermClosedIn_eo_to_smt_re_opt
+    {vars : List SmtVarKey} {x : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp UserOp.re_opt) x)) :=
+by
+  exact hx
+
+theorem smtTermClosedIn_eo_to_smt_re_comp
+    {vars : List SmtVarKey} {x : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp UserOp.re_comp) x)) :=
+by
+  exact hx
+
+theorem smtTermClosedIn_eo_to_smt_seq_unit
+    {vars : List SmtVarKey} {x : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp UserOp.seq_unit) x)) :=
+by
+  exact hx
+
+theorem smtTermClosedIn_eo_to_smt_set_singleton
+    {vars : List SmtVarKey} {x : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp UserOp.set_singleton) x)) :=
+by
+  exact hx
+
+theorem smtTermClosedIn_eo_to_smt_set_choose
+    {vars : List SmtVarKey} {x : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp UserOp.set_choose) x)) :=
+by
+  exact ⟨hx, trivial⟩
+
+theorem smtTermClosedIn_eo_to_smt_set_is_empty
+    {vars : List SmtVarKey} {x : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp UserOp.set_is_empty) x)) :=
+by
+  exact ⟨hx, trivial⟩
+
+theorem smtTermClosedIn_eo_to_smt_set_is_singleton
+    {vars : List SmtVarKey} {x : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp UserOp.set_is_singleton) x)) :=
+by
+  exact ⟨hx, ⟨hx, trivial⟩⟩
+
+theorem smtTermClosedIn_eo_to_smt_qdiv_by_zero
+    {vars : List SmtVarKey} {x : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp UserOp._at_div_by_zero) x)) :=
+by
+  exact ⟨hx, trivial⟩
+
+theorem smtTermClosedIn_eo_to_smt_ubv_to_int
+    {vars : List SmtVarKey} {x : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp UserOp.ubv_to_int) x)) :=
+by
+  exact hx
+
+theorem smtTermClosedIn_eo_to_smt_sbv_to_int
+    {vars : List SmtVarKey} {x : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp UserOp.sbv_to_int) x)) :=
 by
   exact hx
 
@@ -927,6 +1310,655 @@ theorem smtTermClosedIn_eo_to_smt_eq
 by
   exact ⟨hx, hy⟩
 
+theorem smtTermClosedIn_eo_to_smt_plus
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.plus) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_neg
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.neg) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_mult
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.mult) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_lt
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.lt) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_leq
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.leq) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_gt
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.gt) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_geq
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.geq) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_div
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.div) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_mod
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.mod) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_multmult
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.multmult) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_divisible
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.divisible) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_div_total
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.div_total) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_mod_total
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.mod_total) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_multmult_total
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt
+      (Term.Apply (Term.Apply (Term.UOp UserOp.multmult_total) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_select
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.select) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_concat
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.concat) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_bvand
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvand) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_bvor
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvor) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_bvnand
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvnand) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_bvnor
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvnor) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_bvxor
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_bvxnor
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvxnor) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_bvcomp
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvcomp) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_bvadd
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvadd) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_bvmul
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvmul) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_bvudiv
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvudiv) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_bvurem
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvurem) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_bvsub
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvsub) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_bvsdiv
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvsdiv) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_bvsrem
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvsrem) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_bvsmod
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvsmod) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_bvult
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvult) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_bvule
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvule) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_bvugt
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvugt) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_bvuge
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvuge) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_bvslt
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvslt) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_bvsle
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvsle) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_bvsgt
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvsgt) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_bvsge
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvsge) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_bvshl
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvshl) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_bvlshr
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvlshr) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_bvashr
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvashr) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_bvuaddo
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvuaddo) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_bvsaddo
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvsaddo) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_bvumulo
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvumulo) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_bvsmulo
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvsmulo) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_bvusubo
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvusubo) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_bvssubo
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvssubo) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_bvsdivo
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvsdivo) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_bvultbv
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvultbv) x) y)) :=
+by
+  exact ⟨⟨hx, hy⟩, trivial, trivial⟩
+
+theorem smtTermClosedIn_eo_to_smt_bvsltbv
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvsltbv) x) y)) :=
+by
+  exact ⟨⟨hx, hy⟩, trivial, trivial⟩
+
+theorem smtTermClosedIn_eo_to_smt_str_concat
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_str_contains
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.str_contains) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_str_at
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.str_at) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_str_prefixof
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.str_prefixof) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_str_suffixof
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.str_suffixof) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_str_lt
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.str_lt) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_str_leq
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.str_leq) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_re_range
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.re_range) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_re_concat
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_re_inter
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_re_union
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_re_diff
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.re_diff) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_str_in_re
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_seq_nth
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.seq_nth) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_set_union
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.set_union) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_set_inter
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.set_inter) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_set_minus
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.set_minus) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_set_member
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.set_member) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_set_subset
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.set_subset) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_qdiv
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_qdiv_total
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
 theorem smtTermClosedIn_eo_to_smt_ite
     {vars : List SmtVarKey} {c x y : Term}
     (hc : SmtTermClosedIn vars (__eo_to_smt c))
@@ -937,6 +1969,124 @@ theorem smtTermClosedIn_eo_to_smt_ite
       (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) c) x) y)) :=
 by
   exact ⟨hc, hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_store
+    {vars : List SmtVarKey} {x y z : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y))
+    (hz : SmtTermClosedIn vars (__eo_to_smt z)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt
+      (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.store) x) y) z)) :=
+by
+  exact ⟨hx, hy, hz⟩
+
+theorem smtTermClosedIn_eo_to_smt_bvite
+    {vars : List SmtVarKey} {x y z : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y))
+    (hz : SmtTermClosedIn vars (__eo_to_smt z)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt
+      (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.bvite) x) y) z)) :=
+by
+  exact ⟨⟨hx, trivial⟩, hy, hz⟩
+
+theorem smtTermClosedIn_eo_to_smt_str_substr
+    {vars : List SmtVarKey} {x y z : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y))
+    (hz : SmtTermClosedIn vars (__eo_to_smt z)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt
+      (Term.Apply
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) x) y) z)) :=
+by
+  exact ⟨hx, hy, hz⟩
+
+theorem smtTermClosedIn_eo_to_smt_str_replace
+    {vars : List SmtVarKey} {x y z : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y))
+    (hz : SmtTermClosedIn vars (__eo_to_smt z)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt
+      (Term.Apply
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_replace) x) y) z)) :=
+by
+  exact ⟨hx, hy, hz⟩
+
+theorem smtTermClosedIn_eo_to_smt_str_indexof
+    {vars : List SmtVarKey} {x y z : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y))
+    (hz : SmtTermClosedIn vars (__eo_to_smt z)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt
+      (Term.Apply
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof) x) y) z)) :=
+by
+  exact ⟨hx, hy, hz⟩
+
+theorem smtTermClosedIn_eo_to_smt_str_update
+    {vars : List SmtVarKey} {x y z : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y))
+    (hz : SmtTermClosedIn vars (__eo_to_smt z)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt
+      (Term.Apply
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_update) x) y) z)) :=
+by
+  exact ⟨hx, hy, hz⟩
+
+theorem smtTermClosedIn_eo_to_smt_str_replace_all
+    {vars : List SmtVarKey} {x y z : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y))
+    (hz : SmtTermClosedIn vars (__eo_to_smt z)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt
+      (Term.Apply
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_replace_all) x) y) z)) :=
+by
+  exact ⟨hx, hy, hz⟩
+
+theorem smtTermClosedIn_eo_to_smt_str_replace_re
+    {vars : List SmtVarKey} {x y z : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y))
+    (hz : SmtTermClosedIn vars (__eo_to_smt z)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt
+      (Term.Apply
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_replace_re) x) y) z)) :=
+by
+  exact ⟨hx, hy, hz⟩
+
+theorem smtTermClosedIn_eo_to_smt_str_replace_re_all
+    {vars : List SmtVarKey} {x y z : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y))
+    (hz : SmtTermClosedIn vars (__eo_to_smt z)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt
+      (Term.Apply
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_replace_re_all) x) y) z)) :=
+by
+  exact ⟨hx, hy, hz⟩
+
+theorem smtTermClosedIn_eo_to_smt_str_indexof_re
+    {vars : List SmtVarKey} {x y z : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y))
+    (hz : SmtTermClosedIn vars (__eo_to_smt z)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt
+      (Term.Apply
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof_re) x) y) z)) :=
+by
+  exact ⟨hx, hy, hz⟩
 
 theorem smtTermClosedIn_eo_to_smt_not_of_closed_rec_using
     {x env : Term} {vars : List SmtVarKey}
@@ -955,6 +2105,25 @@ by
   exact smtTermClosedIn_eo_to_smt_not
     (hRec hEnv
       (eo_is_closed_rec_apply_uop_arg_eq_true hEnv hClosed))
+
+theorem smtTermClosedIn_eo_to_smt_unary_uop_of_closed_rec_using
+    {op : UserOp} {x env : Term} {vars : List SmtVarKey}
+    (hBuilder :
+      SmtTermClosedIn vars (__eo_to_smt x) ->
+        SmtTermClosedIn vars (__eo_to_smt (Term.Apply (Term.UOp op) x)))
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hRec :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec x env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt x))
+    (hClosed :
+      __eo_is_closed_rec (Term.Apply (Term.UOp op) x) env =
+        Term.Boolean true) :
+  SmtTermClosedIn vars (__eo_to_smt (Term.Apply (Term.UOp op) x)) :=
+by
+  exact hBuilder
+    (hRec hEnv (eo_is_closed_rec_apply_uop_arg_eq_true hEnv hClosed))
 
 theorem smtTermClosedIn_eo_to_smt_binary_uop_of_closed_rec_using
     {op : UserOp} {x y env : Term} {vars : List SmtVarKey}
@@ -1139,6 +2308,157 @@ by
     (hRecX hEnv hCases.1)
     (hRecY hEnv hCases.2.1)
     (hRecZ hEnv hCases.2.2)
+
+theorem smtTermClosedIn_eo_to_smt_apply_uop1_of_closed_rec_using
+    {op : UserOp1} {x y env : Term} {vars : List SmtVarKey}
+    (hBuilder :
+      SmtTermClosedIn vars (__eo_to_smt x) ->
+        SmtTermClosedIn vars (__eo_to_smt y) ->
+          SmtTermClosedIn vars (__eo_to_smt (Term.Apply (Term.UOp1 op x) y)))
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hRecX :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec x env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt x))
+    (hRecY :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec y env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt y))
+    (hClosed :
+      __eo_is_closed_rec (Term.Apply (Term.UOp1 op x) y) env =
+        Term.Boolean true) :
+  SmtTermClosedIn vars (__eo_to_smt (Term.Apply (Term.UOp1 op x) y)) :=
+by
+  have hCases := eo_is_closed_rec_apply_uop1_eq_true_cases hEnv hClosed
+  exact hBuilder (hRecX hEnv hCases.1) (hRecY hEnv hCases.2)
+
+theorem smtTermClosedIn_eo_to_smt_apply_uop2_of_closed_rec_using
+    {op : UserOp2} {x y z env : Term} {vars : List SmtVarKey}
+    (hBuilder :
+      SmtTermClosedIn vars (__eo_to_smt x) ->
+        SmtTermClosedIn vars (__eo_to_smt y) ->
+          SmtTermClosedIn vars (__eo_to_smt z) ->
+            SmtTermClosedIn vars (__eo_to_smt (Term.Apply (Term.UOp2 op x y) z)))
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hRecX :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec x env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt x))
+    (hRecY :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec y env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt y))
+    (hRecZ :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec z env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt z))
+    (hClosed :
+      __eo_is_closed_rec (Term.Apply (Term.UOp2 op x y) z) env =
+        Term.Boolean true) :
+  SmtTermClosedIn vars (__eo_to_smt (Term.Apply (Term.UOp2 op x y) z)) :=
+by
+  have hCases := eo_is_closed_rec_apply_uop2_eq_true_cases hEnv hClosed
+  exact hBuilder
+    (hRecX hEnv hCases.1)
+    (hRecY hEnv hCases.2.1)
+    (hRecZ hEnv hCases.2.2)
+
+theorem smtTermClosedIn_eo_to_smt_int_to_bv
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.int_to_bv x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_repeat
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.repeat x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_zero_extend
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.zero_extend x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_sign_extend
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.sign_extend x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_rotate_left
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.rotate_left x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_rotate_right
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.rotate_right x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_at_bit
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1._at_bit x) y)) :=
+by
+  exact ⟨⟨hx, hx, hy⟩, trivial⟩
+
+theorem smtTermClosedIn_eo_to_smt_re_exp
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.re_exp x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_extract
+    {vars : List SmtVarKey} {x y z : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y))
+    (hz : SmtTermClosedIn vars (__eo_to_smt z)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp2 UserOp2.extract x y) z)) :=
+by
+  exact ⟨hx, hy, hz⟩
+
+theorem smtTermClosedIn_eo_to_smt_re_loop
+    {vars : List SmtVarKey} {x y z : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y))
+    (hz : SmtTermClosedIn vars (__eo_to_smt z)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp2 UserOp2.re_loop x y) z)) :=
+by
+  exact ⟨hx, hy, hz⟩
 
 theorem smtTermClosedIn_eo_to_smt_purify
     {vars : List SmtVarKey} {x : Term}
