@@ -2348,6 +2348,18 @@ private theorem native_seq_extract_length_le_nat_arg
       omega
   exact Int.ofNat_le.mp hInt
 
+private theorem concat_cprop_tail_eq_drop_append_of_append_eq_of_le
+    {α : Type} (xs xtail ys ytail : List α)
+    (h : xs ++ xtail = ys ++ ytail) (hle : xs.length <= ys.length) :
+    xtail = ys.drop xs.length ++ ytail := by
+  have hYs :
+      ys = xs ++ ys.drop xs.length :=
+    concat_split_left_eq_append_drop_of_append_eq_of_le ys xs ytail xtail
+      (by simpa using h.symm) hle
+  rw [hYs] at h
+  rw [List.append_assoc] at h
+  exact List.append_cancel_left h
+
 private theorem cprop_reverse_end_true_eval_of_overlap
     (M : SmtModel) (hM : model_total_typed M)
     (t s sc : Term) (T : SmtType) (ss : SmtSeq) (n : Nat)
@@ -3061,6 +3073,22 @@ private theorem facts_concat_cprop_false_formula
       · exact hGoal
       have hstPos : 0 < (native_unpack_seq st).length :=
         Nat.pos_of_ne_zero htcLenNe
+      have hstLeSs :
+          (native_unpack_seq st).length <= (native_unpack_seq ss).length :=
+        Nat.le_of_lt (Nat.lt_of_not_ge hleSS)
+      have hStailBoundary :
+          native_unpack_seq stail =
+            (native_unpack_seq ss).drop (native_unpack_seq st).length ++
+              native_unpack_seq sstail :=
+        concat_cprop_tail_eq_drop_append_of_append_eq_of_le
+          (native_unpack_seq st) (native_unpack_seq stail)
+          (native_unpack_seq ss) (native_unpack_seq sstail)
+          hAppend hstLeSs
+      have hStailBoundaryWord :
+          native_unpack_seq stail =
+            (scWord.map SmtValue.Char).drop (native_unpack_seq st).length ++
+              native_unpack_seq sstail := by
+        simpa [hSsWord] using hStailBoundary
       have hDropLt : (native_unpack_seq st).length - 1 < m := by
         have hTakeLen :
             ((native_unpack_seq ss).take (m + 1)).length =
