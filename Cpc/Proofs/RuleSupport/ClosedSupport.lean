@@ -747,6 +747,64 @@ by
       exact (eo_and_eq_true_cases
         (by simpa [__eo_is_closed_rec] using hClosed)).2
 
+theorem eo_is_closed_rec_apply_eq_true_cases_of_not_quantifier
+    {f x env : Term} {vars : List SmtVarKey}
+    (hNotForall :
+      ∀ vs, f ≠ Term.Apply (Term.UOp UserOp.forall) vs)
+    (hNotExists :
+      ∀ vs, f ≠ Term.Apply (Term.UOp UserOp.exists) vs)
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hClosed :
+      __eo_is_closed_rec (Term.Apply f x) env =
+        Term.Boolean true) :
+  __eo_is_closed_rec f env = Term.Boolean true ∧
+    __eo_is_closed_rec x env = Term.Boolean true :=
+by
+  rcases hEnv with ⟨exactVars, hExact, hEquiv⟩
+  cases hExact with
+  | nil =>
+      cases f
+      case Apply g y =>
+        cases g
+        case UOp op =>
+          cases op
+          case «forall» =>
+            exfalso
+            exact hNotForall y rfl
+          case «exists» =>
+            exfalso
+            exact hNotExists y rfl
+          all_goals
+            exact eo_and_eq_true_cases
+              (by simpa [__eo_is_closed_rec] using hClosed)
+        all_goals
+          exact eo_and_eq_true_cases
+            (by simpa [__eo_is_closed_rec] using hClosed)
+      all_goals
+        exact eo_and_eq_true_cases
+          (by simpa [__eo_is_closed_rec] using hClosed)
+  | cons hTail =>
+      cases f
+      case Apply g y =>
+        cases g
+        case UOp op =>
+          cases op
+          case «forall» =>
+            exfalso
+            exact hNotForall y rfl
+          case «exists» =>
+            exfalso
+            exact hNotExists y rfl
+          all_goals
+            exact eo_and_eq_true_cases
+              (by simpa [__eo_is_closed_rec] using hClosed)
+        all_goals
+          exact eo_and_eq_true_cases
+            (by simpa [__eo_is_closed_rec] using hClosed)
+      all_goals
+        exact eo_and_eq_true_cases
+          (by simpa [__eo_is_closed_rec] using hClosed)
+
 theorem eo_is_closed_rec_binary_uop_eq_true_cases
     {op : UserOp} {x y env : Term} {vars : List SmtVarKey}
     (hNotForall : op ≠ UserOp.forall)
@@ -1326,6 +1384,55 @@ theorem smtTermClosedIn_eo_to_smt_set_empty
 by
   change SmtTermClosedIn vars (__eo_to_smt_set_empty (__eo_to_smt_type x))
   cases __eo_to_smt_type x <;> trivial
+
+theorem smtTermClosedIn_eo_to_smt_array_deq_diff
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.UOp2 UserOp2._at_array_deq_diff x y)) :=
+by
+  change SmtTermClosedIn vars
+    (__eo_to_smt_array_deq_diff (__eo_to_smt x)
+      (__smtx_typeof (__eo_to_smt x)) (__eo_to_smt y)
+      (__smtx_typeof (__eo_to_smt y)))
+  generalize hTx : __smtx_typeof (__eo_to_smt x) = Tx
+  cases Tx <;> try trivial
+  case Map _ _ =>
+    generalize hTy : __smtx_typeof (__eo_to_smt y) = Ty
+    cases Ty <;> trivial
+
+theorem smtTermClosedIn_eo_to_smt_at_bv
+    (vars : List SmtVarKey) (x y : Term) :
+  SmtTermClosedIn vars (__eo_to_smt (Term.UOp2 UserOp2._at_bv x y)) :=
+by
+  change SmtTermClosedIn vars
+    (__eo_to_smt__at_bv (__eo_to_smt x) (__eo_to_smt y))
+  generalize hxSmt : __eo_to_smt x = sx
+  cases sx <;> try trivial
+  case Numeral _ =>
+    generalize hySmt : __eo_to_smt y = sy
+    cases sy <;> try trivial
+    case Numeral m =>
+      cases hLe : native_zleq 0 m <;>
+        simp [__eo_to_smt__at_bv, native_ite, hLe, SmtTermClosedIn]
+
+theorem smtTermClosedIn_eo_to_smt_sets_deq_diff
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.UOp2 UserOp2._at_sets_deq_diff x y)) :=
+by
+  change SmtTermClosedIn vars
+    (__eo_to_smt_sets_deq_diff (__eo_to_smt x)
+      (__smtx_typeof (__eo_to_smt x)) (__eo_to_smt y)
+      (__smtx_typeof (__eo_to_smt y)))
+  generalize hTx : __smtx_typeof (__eo_to_smt x) = Tx
+  cases Tx <;> try trivial
+  case Set _ =>
+    generalize hTy : __smtx_typeof (__eo_to_smt y) = Ty
+    cases Ty <;> trivial
 
 theorem smtTermClosedIn_eo_to_smt_strings_deq_diff
     {vars : List SmtVarKey} {x y : Term}
@@ -2279,6 +2386,37 @@ by
     (hRec hEnv
       (eo_is_closed_rec_apply_uop_arg_eq_true hEnv hClosed))
 
+theorem smtTermClosedIn_eo_to_smt_apply_generic_of_closed_rec_using
+    {f x env : Term} {vars : List SmtVarKey}
+    (hSmt :
+      __eo_to_smt (Term.Apply f x) =
+        SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt x))
+    (hNotForall :
+      ∀ vs, f ≠ Term.Apply (Term.UOp UserOp.forall) vs)
+    (hNotExists :
+      ∀ vs, f ≠ Term.Apply (Term.UOp UserOp.exists) vs)
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hRecF :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec f env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt f))
+    (hRecX :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec x env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt x))
+    (hClosed :
+      __eo_is_closed_rec (Term.Apply f x) env =
+        Term.Boolean true) :
+  SmtTermClosedIn vars (__eo_to_smt (Term.Apply f x)) :=
+by
+  have hCases :=
+    eo_is_closed_rec_apply_eq_true_cases_of_not_quantifier
+      hNotForall hNotExists hEnv hClosed
+  rw [hSmt]
+  exact ⟨hRecF hEnv hCases.1, hRecX hEnv hCases.2⟩
+
 theorem smtTermClosedIn_eo_to_smt_unary_uop_of_closed_rec_using
     {op : UserOp} {x env : Term} {vars : List SmtVarKey}
     (hBuilder :
@@ -2658,6 +2796,292 @@ by
     (fun hx => smtTermClosedIn_eo_to_smt_purify hx)
     hEnv hRec hClosed
 
+theorem smtTermClosedIn_eo_to_smt_seq_empty_of_closed_rec_using
+    {x env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hRec :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec x env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt x))
+    (hClosed :
+      __eo_is_closed_rec (Term.UOp1 UserOp1.seq_empty x) env =
+        Term.Boolean true) :
+  SmtTermClosedIn vars (__eo_to_smt (Term.UOp1 UserOp1.seq_empty x)) :=
+by
+  exact smtTermClosedIn_eo_to_smt_uop1_of_closed_rec_using
+    (op := UserOp1.seq_empty)
+    (fun _ => smtTermClosedIn_eo_to_smt_seq_empty vars x)
+    hEnv hRec hClosed
+
+theorem smtTermClosedIn_eo_to_smt_set_empty_of_closed_rec_using
+    {x env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hRec :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec x env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt x))
+    (hClosed :
+      __eo_is_closed_rec (Term.UOp1 UserOp1.set_empty x) env =
+        Term.Boolean true) :
+  SmtTermClosedIn vars (__eo_to_smt (Term.UOp1 UserOp1.set_empty x)) :=
+by
+  exact smtTermClosedIn_eo_to_smt_uop1_of_closed_rec_using
+    (op := UserOp1.set_empty)
+    (fun _ => smtTermClosedIn_eo_to_smt_set_empty vars x)
+    hEnv hRec hClosed
+
+theorem smtTermClosedIn_eo_to_smt_int_to_bv_of_closed_rec_using
+    {x y env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hRecX :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec x env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt x))
+    (hRecY :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec y env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt y))
+    (hClosed :
+      __eo_is_closed_rec (Term.Apply (Term.UOp1 UserOp1.int_to_bv x) y)
+        env = Term.Boolean true) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.int_to_bv x) y)) :=
+by
+  exact smtTermClosedIn_eo_to_smt_apply_uop1_of_closed_rec_using
+    (op := UserOp1.int_to_bv)
+    (fun hx hy => smtTermClosedIn_eo_to_smt_int_to_bv hx hy)
+    hEnv hRecX hRecY hClosed
+
+theorem smtTermClosedIn_eo_to_smt_repeat_of_closed_rec_using
+    {x y env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hRecX :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec x env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt x))
+    (hRecY :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec y env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt y))
+    (hClosed :
+      __eo_is_closed_rec (Term.Apply (Term.UOp1 UserOp1.repeat x) y)
+        env = Term.Boolean true) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.repeat x) y)) :=
+by
+  exact smtTermClosedIn_eo_to_smt_apply_uop1_of_closed_rec_using
+    (op := UserOp1.repeat)
+    (fun hx hy => smtTermClosedIn_eo_to_smt_repeat hx hy)
+    hEnv hRecX hRecY hClosed
+
+theorem smtTermClosedIn_eo_to_smt_zero_extend_of_closed_rec_using
+    {x y env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hRecX :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec x env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt x))
+    (hRecY :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec y env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt y))
+    (hClosed :
+      __eo_is_closed_rec (Term.Apply (Term.UOp1 UserOp1.zero_extend x) y)
+        env = Term.Boolean true) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.zero_extend x) y)) :=
+by
+  exact smtTermClosedIn_eo_to_smt_apply_uop1_of_closed_rec_using
+    (op := UserOp1.zero_extend)
+    (fun hx hy => smtTermClosedIn_eo_to_smt_zero_extend hx hy)
+    hEnv hRecX hRecY hClosed
+
+theorem smtTermClosedIn_eo_to_smt_sign_extend_of_closed_rec_using
+    {x y env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hRecX :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec x env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt x))
+    (hRecY :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec y env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt y))
+    (hClosed :
+      __eo_is_closed_rec (Term.Apply (Term.UOp1 UserOp1.sign_extend x) y)
+        env = Term.Boolean true) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.sign_extend x) y)) :=
+by
+  exact smtTermClosedIn_eo_to_smt_apply_uop1_of_closed_rec_using
+    (op := UserOp1.sign_extend)
+    (fun hx hy => smtTermClosedIn_eo_to_smt_sign_extend hx hy)
+    hEnv hRecX hRecY hClosed
+
+theorem smtTermClosedIn_eo_to_smt_rotate_left_of_closed_rec_using
+    {x y env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hRecX :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec x env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt x))
+    (hRecY :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec y env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt y))
+    (hClosed :
+      __eo_is_closed_rec (Term.Apply (Term.UOp1 UserOp1.rotate_left x) y)
+        env = Term.Boolean true) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.rotate_left x) y)) :=
+by
+  exact smtTermClosedIn_eo_to_smt_apply_uop1_of_closed_rec_using
+    (op := UserOp1.rotate_left)
+    (fun hx hy => smtTermClosedIn_eo_to_smt_rotate_left hx hy)
+    hEnv hRecX hRecY hClosed
+
+theorem smtTermClosedIn_eo_to_smt_rotate_right_of_closed_rec_using
+    {x y env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hRecX :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec x env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt x))
+    (hRecY :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec y env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt y))
+    (hClosed :
+      __eo_is_closed_rec (Term.Apply (Term.UOp1 UserOp1.rotate_right x) y)
+        env = Term.Boolean true) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.rotate_right x) y)) :=
+by
+  exact smtTermClosedIn_eo_to_smt_apply_uop1_of_closed_rec_using
+    (op := UserOp1.rotate_right)
+    (fun hx hy => smtTermClosedIn_eo_to_smt_rotate_right hx hy)
+    hEnv hRecX hRecY hClosed
+
+theorem smtTermClosedIn_eo_to_smt_at_bit_of_closed_rec_using
+    {x y env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hRecX :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec x env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt x))
+    (hRecY :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec y env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt y))
+    (hClosed :
+      __eo_is_closed_rec (Term.Apply (Term.UOp1 UserOp1._at_bit x) y)
+        env = Term.Boolean true) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1._at_bit x) y)) :=
+by
+  exact smtTermClosedIn_eo_to_smt_apply_uop1_of_closed_rec_using
+    (op := UserOp1._at_bit)
+    (fun hx hy => smtTermClosedIn_eo_to_smt_at_bit hx hy)
+    hEnv hRecX hRecY hClosed
+
+theorem smtTermClosedIn_eo_to_smt_re_exp_of_closed_rec_using
+    {x y env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hRecX :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec x env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt x))
+    (hRecY :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec y env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt y))
+    (hClosed :
+      __eo_is_closed_rec (Term.Apply (Term.UOp1 UserOp1.re_exp x) y)
+        env = Term.Boolean true) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.re_exp x) y)) :=
+by
+  exact smtTermClosedIn_eo_to_smt_apply_uop1_of_closed_rec_using
+    (op := UserOp1.re_exp)
+    (fun hx hy => smtTermClosedIn_eo_to_smt_re_exp hx hy)
+    hEnv hRecX hRecY hClosed
+
+theorem smtTermClosedIn_eo_to_smt_extract_of_closed_rec_using
+    {x y z env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hRecX :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec x env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt x))
+    (hRecY :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec y env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt y))
+    (hRecZ :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec z env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt z))
+    (hClosed :
+      __eo_is_closed_rec (Term.Apply (Term.UOp2 UserOp2.extract x y) z)
+        env = Term.Boolean true) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp2 UserOp2.extract x y) z)) :=
+by
+  exact smtTermClosedIn_eo_to_smt_apply_uop2_of_closed_rec_using
+    (op := UserOp2.extract)
+    (fun hx hy hz => smtTermClosedIn_eo_to_smt_extract hx hy hz)
+    hEnv hRecX hRecY hRecZ hClosed
+
+theorem smtTermClosedIn_eo_to_smt_re_loop_of_closed_rec_using
+    {x y z env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hRecX :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec x env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt x))
+    (hRecY :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec y env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt y))
+    (hRecZ :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec z env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt z))
+    (hClosed :
+      __eo_is_closed_rec (Term.Apply (Term.UOp2 UserOp2.re_loop x y) z)
+        env = Term.Boolean true) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.UOp2 UserOp2.re_loop x y) z)) :=
+by
+  exact smtTermClosedIn_eo_to_smt_apply_uop2_of_closed_rec_using
+    (op := UserOp2.re_loop)
+    (fun hx hy hz => smtTermClosedIn_eo_to_smt_re_loop hx hy hz)
+    hEnv hRecX hRecY hRecZ hClosed
+
 theorem smtTermClosedIn_eo_to_smt_and_of_closed_rec_using
     {x y env : Term} {vars : List SmtVarKey}
     (hEnv : EoSmtVarEnvPerm env vars)
@@ -2782,6 +3206,231 @@ by
     (op := UserOp.eq) (by decide) (by decide)
     (fun hx hy => smtTermClosedIn_eo_to_smt_eq hx hy)
     hEnv hRecX hRecY hClosed
+
+theorem smtTermClosedIn_eo_to_smt_array_deq_diff_of_closed_rec_using
+    {x y env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hRecX :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec x env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt x))
+    (hRecY :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec y env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt y))
+    (hClosed :
+      __eo_is_closed_rec (Term.UOp2 UserOp2._at_array_deq_diff x y) env =
+        Term.Boolean true) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.UOp2 UserOp2._at_array_deq_diff x y)) :=
+by
+  exact smtTermClosedIn_eo_to_smt_uop2_of_closed_rec_using
+    (op := UserOp2._at_array_deq_diff)
+    (fun hx hy => smtTermClosedIn_eo_to_smt_array_deq_diff hx hy)
+    hEnv hRecX hRecY hClosed
+
+theorem smtTermClosedIn_eo_to_smt_at_bv_of_closed_rec_using
+    {x y env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hRecX :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec x env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt x))
+    (hRecY :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec y env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt y))
+    (hClosed :
+      __eo_is_closed_rec (Term.UOp2 UserOp2._at_bv x y) env =
+        Term.Boolean true) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.UOp2 UserOp2._at_bv x y)) :=
+by
+  exact smtTermClosedIn_eo_to_smt_uop2_of_closed_rec_using
+    (op := UserOp2._at_bv)
+    (fun _ _ => smtTermClosedIn_eo_to_smt_at_bv vars x y)
+    hEnv hRecX hRecY hClosed
+
+theorem smtTermClosedIn_eo_to_smt_sets_deq_diff_of_closed_rec_using
+    {x y env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hRecX :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec x env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt x))
+    (hRecY :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec y env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt y))
+    (hClosed :
+      __eo_is_closed_rec (Term.UOp2 UserOp2._at_sets_deq_diff x y) env =
+        Term.Boolean true) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.UOp2 UserOp2._at_sets_deq_diff x y)) :=
+by
+  exact smtTermClosedIn_eo_to_smt_uop2_of_closed_rec_using
+    (op := UserOp2._at_sets_deq_diff)
+    (fun hx hy => smtTermClosedIn_eo_to_smt_sets_deq_diff hx hy)
+    hEnv hRecX hRecY hClosed
+
+theorem smtTermClosedIn_eo_to_smt_strings_deq_diff_of_closed_rec_using
+    {x y env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hRecX :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec x env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt x))
+    (hRecY :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec y env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt y))
+    (hClosed :
+      __eo_is_closed_rec (Term.UOp2 UserOp2._at_strings_deq_diff x y) env =
+        Term.Boolean true) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.UOp2 UserOp2._at_strings_deq_diff x y)) :=
+by
+  exact smtTermClosedIn_eo_to_smt_uop2_of_closed_rec_using
+    (op := UserOp2._at_strings_deq_diff)
+    (fun hx hy => smtTermClosedIn_eo_to_smt_strings_deq_diff hx hy)
+    hEnv hRecX hRecY hClosed
+
+theorem smtTermClosedIn_eo_to_smt_strings_stoi_result_of_closed_rec_using
+    {x y env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hRecX :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec x env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt x))
+    (hRecY :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec y env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt y))
+    (hClosed :
+      __eo_is_closed_rec
+        (Term.Apply (Term.UOp1 UserOp1._at_strings_stoi_result x) y)
+        env = Term.Boolean true) :
+  SmtTermClosedIn vars
+    (__eo_to_smt
+      (Term.Apply (Term.UOp1 UserOp1._at_strings_stoi_result x) y)) :=
+by
+  exact smtTermClosedIn_eo_to_smt_apply_uop1_of_closed_rec_using
+    (op := UserOp1._at_strings_stoi_result)
+    (fun hx hy => smtTermClosedIn_eo_to_smt_strings_stoi_result hx hy)
+    hEnv hRecX hRecY hClosed
+
+theorem smtTermClosedIn_eo_to_smt_strings_stoi_non_digit_of_closed_rec_using
+    {x env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hRec :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec x env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt x))
+    (hClosed :
+      __eo_is_closed_rec (Term.UOp1 UserOp1._at_strings_stoi_non_digit x)
+        env = Term.Boolean true) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.UOp1 UserOp1._at_strings_stoi_non_digit x)) :=
+by
+  exact smtTermClosedIn_eo_to_smt_uop1_of_closed_rec_using
+    (op := UserOp1._at_strings_stoi_non_digit)
+    (fun hx => smtTermClosedIn_eo_to_smt_strings_stoi_non_digit hx)
+    hEnv hRec hClosed
+
+theorem smtTermClosedIn_eo_to_smt_strings_itos_result_of_closed_rec_using
+    {x y env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hRecX :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec x env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt x))
+    (hRecY :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec y env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt y))
+    (hClosed :
+      __eo_is_closed_rec
+        (Term.Apply (Term.UOp1 UserOp1._at_strings_itos_result x) y)
+        env = Term.Boolean true) :
+  SmtTermClosedIn vars
+    (__eo_to_smt
+      (Term.Apply (Term.UOp1 UserOp1._at_strings_itos_result x) y)) :=
+by
+  exact smtTermClosedIn_eo_to_smt_apply_uop1_of_closed_rec_using
+    (op := UserOp1._at_strings_itos_result)
+    (fun hx hy => smtTermClosedIn_eo_to_smt_strings_itos_result hx hy)
+    hEnv hRecX hRecY hClosed
+
+theorem smtTermClosedIn_eo_to_smt_strings_num_occur_of_closed_rec_using
+    {x y env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hRecX :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec x env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt x))
+    (hRecY :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec y env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt y))
+    (hClosed :
+      __eo_is_closed_rec
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp._at_strings_num_occur) x) y)
+        env = Term.Boolean true) :
+  SmtTermClosedIn vars
+    (__eo_to_smt
+      (Term.Apply
+        (Term.Apply (Term.UOp UserOp._at_strings_num_occur) x) y)) :=
+by
+  exact smtTermClosedIn_eo_to_smt_binary_uop_of_closed_rec_using
+    (op := UserOp._at_strings_num_occur) (by decide) (by decide)
+    (fun hx hy => smtTermClosedIn_eo_to_smt_strings_num_occur hx hy)
+    hEnv hRecX hRecY hClosed
+
+theorem smtTermClosedIn_eo_to_smt_witness_string_length_of_closed_rec_using
+    {x y z env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hRecX :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec x env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt x))
+    (hRecY :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec y env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt y))
+    (hRecZ :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnvPerm env' vars' ->
+          __eo_is_closed_rec z env' = Term.Boolean true ->
+            SmtTermClosedIn vars' (__eo_to_smt z))
+    (hClosed :
+      __eo_is_closed_rec (Term.UOp3 UserOp3._at_witness_string_length x y z)
+        env = Term.Boolean true) :
+  SmtTermClosedIn vars
+    (__eo_to_smt
+      (Term.UOp3 UserOp3._at_witness_string_length x y z)) :=
+by
+  exact smtTermClosedIn_eo_to_smt_uop3_of_closed_rec_using
+    (op := UserOp3._at_witness_string_length)
+    (fun _ hy _ => smtTermClosedIn_eo_to_smt_witness_string_length hy)
+    hEnv hRecX hRecY hRecZ hClosed
 
 theorem smtTermClosedIn_eo_to_smt_exists_nil
     {vars : List SmtVarKey} {F : SmtTerm}
