@@ -295,7 +295,7 @@ private theorem str_overlap_rec_le_of_compatible_drop :
                       cases bv
                       · cases n with
                         | zero =>
-                            simpa [aCons, strConcatDrop, hComp] using hCompat
+                            simp [aCons, strConcatDrop, hComp] at hCompat
                         | succ n =>
                             have hRecArg :
                                 __str_overlap_rec x b ≠ Term.Stuck := by
