@@ -2,6 +2,7 @@ import Cpc.Proofs.RuleSupport.SequenceSupport
 import Cpc.Proofs.RuleSupport.StrConcatSupport
 import Cpc.Proofs.RuleSupport.StringSupport
 import Cpc.Proofs.RuleSupport.NativeSeqSupport
+import Cpc.Proofs.RuleSupport.StrInReEvalSupport
 
 open Eo
 open SmtEval
@@ -286,5 +287,217 @@ theorem native_seq_contains_split_iff_of_no_overlap
     · rw [List.append_assoc]
       exact native_seq_contains_append_right T (C ++ S) D hT
     · exact native_seq_contains_append_left (T ++ C) S D hS
+
+/-! ### Bridge: `value_len` / `flatten` / `overlap_rec` term-computations
+
+The rule's side conditions are EO term-level computations on the (flattened)
+word arguments.  `__str_flatten (__str_nary_intro ·)` normalizes a word literal
+into a canonical single-character `str.++`-chain (`charChainTerm`), on which
+`__str_overlap_rec` computes the overlap "drop count" (`overlapDrop`) and
+`__str_is_compatible` computes list prefix-compatibility. -/
+
+/-- Canonical single-character `str.++` chain produced by `flatten`. -/
+def charChainTerm : native_String → Term
+  | [] => Term.String []
+  | ch :: rest =>
+      Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) (Term.String [ch]))
+        (charChainTerm rest)
+
+/-- Char-list overlap-compatibility: one is a prefix of the other. -/
+def strCompat (x y : native_String) : Bool :=
+  native_string_prefix_eq x y || native_string_prefix_eq y x
+
+/-- The "overlap drop count": leading chars dropped from `x` until a suffix is
+    compatible with `y`. -/
+def overlapDrop : native_String → native_String → Nat
+  | [], _ => 0
+  | a :: x, y => if strCompat (a :: x) y then 0 else 1 + overlapDrop x y
+
+theorem strChar_typeof (a : Nat) :
+    __eo_typeof (Term.String [a]) =
+      Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char) := by
+  rw [show __eo_typeof (Term.String [a]) = __eo_lit_type_String (Term.String [a]) from rfl]
+  simp [__eo_lit_type_String]
+
+theorem strChar_is_str (a : Nat) : __eo_is_str (Term.String [a]) = Term.Boolean true := by
+  simp [__eo_is_str, __eo_is_str_internal, native_teq, SmtEval.native_and, SmtEval.native_not]
+
+theorem strChar_eq (a b : Nat) :
+    __eo_eq (Term.String [a]) (Term.String [b]) = Term.Boolean (decide (a = b)) := by
+  simp [__eo_eq, native_teq]; rw [eq_comm]
+
+theorem charChainTerm_ne_stuck (y : native_String) : charChainTerm y ≠ Term.Stuck := by
+  cases y <;> simp [charChainTerm]
+
+theorem overlap_rec_concat (s s1 t : Term) (ht : t ≠ Term.Stuck) :
+    __str_overlap_rec (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) s) s1) t =
+      __eo_ite (__str_is_compatible (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) s) s1) t)
+        (Term.Numeral 0) (__eo_add (Term.Numeral 1) (__str_overlap_rec s1 t)) := by
+  cases t <;> simp_all [__str_overlap_rec]
+
+theorem overlap_rec_emptyfirst (t : Term) (ht : t ≠ Term.Stuck) :
+    __str_overlap_rec (Term.String []) t = Term.Numeral 0 := by
+  cases t <;> simp_all [__str_overlap_rec]
+
+/-- `is_compatible` on char-chains computes list prefix-compatibility. -/
+theorem str_is_compatible_charChain (x y : native_String) :
+    __str_is_compatible (charChainTerm x) (charChainTerm y) =
+      Term.Boolean (native_string_prefix_eq x y || native_string_prefix_eq y x) := by
+  induction x generalizing y with
+  | nil =>
+      cases y <;>
+        simp [charChainTerm, __str_is_compatible, __eo_l_1___str_is_compatible,
+          __str_is_empty, __eo_or, native_string_prefix_eq, native_teq, SmtEval.native_ite,
+          SmtEval.native_or]
+  | cons a x ih =>
+      cases y with
+      | nil =>
+          simp [charChainTerm, __str_is_compatible, __eo_l_1___str_is_compatible,
+            __str_is_empty, __eo_or, native_string_prefix_eq, native_teq, SmtEval.native_ite,
+            SmtEval.native_or]
+      | cons b y =>
+          by_cases hab : a = b
+          · subst hab
+            simp [charChainTerm, __str_is_compatible, strChar_eq, native_teq,
+              SmtEval.native_ite, ih y, native_string_prefix_eq]
+          · have hba : b ≠ a := fun h => hab h.symm
+            simp [charChainTerm, __str_is_compatible, strChar_eq, decide_eq_false hab,
+              native_teq, SmtEval.native_ite, __eo_l_1___str_is_compatible, __eo_requires,
+              strChar_typeof, __are_distinct_terms_type, __eo_and, strChar_is_str,
+              native_string_prefix_eq, SmtEval.native_and, SmtEval.native_not, hba]
+
+/-- `overlap_rec` on char-chains computes the overlap drop count. -/
+theorem str_overlap_rec_charChain (x y : native_String) :
+    __str_overlap_rec (charChainTerm x) (charChainTerm y) =
+      Term.Numeral (Int.ofNat (overlapDrop x y)) := by
+  induction x with
+  | nil => simp [charChainTerm, overlapDrop, overlap_rec_emptyfirst _ (charChainTerm_ne_stuck y)]
+  | cons a x ih =>
+      rw [show charChainTerm (a :: x) =
+            Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) (Term.String [a]))
+              (charChainTerm x) from rfl,
+        overlap_rec_concat _ _ _ (charChainTerm_ne_stuck y),
+        show (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) (Term.String [a]))
+              (charChainTerm x)) = charChainTerm (a :: x) from rfl,
+        str_is_compatible_charChain (a :: x) y,
+        show (native_string_prefix_eq (a :: x) y || native_string_prefix_eq y (a :: x)) =
+          strCompat (a :: x) y from rfl]
+      cases hbc : strCompat (a :: x) y with
+      | true => simp [__eo_ite, native_teq, SmtEval.native_ite, overlapDrop, hbc]
+      | false =>
+          simp only [overlapDrop, hbc, if_false]
+          simp [__eo_ite, native_teq, SmtEval.native_ite, ih, __eo_add, native_zplus]
+
+/-- `value_len` of a string literal is its length. -/
+theorem str_value_len_string (w : native_String) :
+    __str_value_len (Term.String w) = Term.Numeral (Int.ofNat w.length) := by
+  simp [__str_value_len, __eo_requires, __eo_is_str, __eo_is_str_internal, __eo_len,
+    native_str_len, native_teq, SmtEval.native_ite, SmtEval.native_and, SmtEval.native_not]
+
+theorem overlapDrop_le (x y : native_String) : overlapDrop x y ≤ x.length := by
+  induction x with
+  | nil => simp [overlapDrop]
+  | cons a x ih => simp only [overlapDrop, List.length_cons]; split <;> omega
+
+/-- If the overlap drop count equals the full length, no nonempty suffix of `x`
+    is compatible with `y`. -/
+theorem overlapDrop_full_no_compat :
+    ∀ (x y : native_String), overlapDrop x y = x.length →
+      ∀ k, k < x.length → strCompat (x.drop k) y = false
+  | [], y, h, k, hk => by simp at hk
+  | a :: x, y, h, k, hk => by
+      have hbc : strCompat (a :: x) y = false := by
+        rcases hbcc : strCompat (a :: x) y with _ | _
+        · rfl
+        · exfalso; simp [overlapDrop, hbcc, List.length_cons] at h
+      have hx : overlapDrop x y = x.length := by
+        have h2 := h; simp [overlapDrop, hbc, List.length_cons] at h2; omega
+      cases k with
+      | zero => simpa using hbc
+      | succ j =>
+          have hj : j < x.length := by simp only [List.length_cons] at hk; omega
+          simpa [List.drop_succ_cons] using overlapDrop_full_no_compat x y hx j hj
+
+/-- The element list of an evaluated string literal is its chars tagged as
+    `SmtValue.Char`. -/
+theorem unpack_pack_string_map (w : native_String) :
+    native_unpack_seq (native_pack_string w) = w.map SmtValue.Char := by
+  simp [native_pack_string, native_unpack_pack_seq]
+
+/-- Prefix-equality is preserved (both ways) by the injective `SmtValue.Char` tag. -/
+theorem prefix_eq_map_char (a b : native_String) :
+    native_seq_prefix_eq (a.map SmtValue.Char) (b.map SmtValue.Char) =
+      native_string_prefix_eq a b := by
+  induction a generalizing b with
+  | nil => simp [native_seq_prefix_eq, native_string_prefix_eq]
+  | cons c cs ih =>
+      cases b with
+      | nil => simp [native_seq_prefix_eq, native_string_prefix_eq]
+      | cons d ds => simp [native_seq_prefix_eq, native_string_prefix_eq, native_veq, ih]
+
+/-- The native no-overlap condition `(A)`, at the `SmtValue` level, from a full
+    overlap drop count. -/
+theorem no_compat_of_overlap_full (w w' : native_String)
+    (hov : overlapDrop w w' = w.length) :
+    ∀ k, k < (w.map SmtValue.Char).length →
+      ¬ native_seq_compat ((w.map SmtValue.Char).drop k) (w'.map SmtValue.Char) := by
+  intro k hk
+  rw [List.length_map] at hk
+  rw [← List.map_drop]
+  intro hcompat
+  have hsq := overlapDrop_full_no_compat w w' hov k hk
+  unfold strCompat at hsq
+  rw [Bool.or_eq_false_iff] at hsq
+  unfold native_seq_compat at hcompat
+  rw [prefix_eq_map_char, prefix_eq_map_char] at hcompat
+  rcases hcompat with h | h
+  · rw [hsq.1] at h; exact absurd h (by simp)
+  · rw [hsq.2] at h; exact absurd h (by simp)
+
+/-! ### Flatten structure: `flatten (nary_intro (String w))` is the char-chain -/
+
+theorem extractString_cons_zero (c : native_Char) (cs : native_String) :
+    extractString (c :: cs) 0 = [c] := by
+  have h : native_str_len (c :: cs) = Int.ofNat (cs.length + 1) := by simp [native_str_len]
+  have hge : (1:Int) ≤ native_str_len (c :: cs) - 0 := by
+    rw [h, Int.sub_zero, Int.ofNat_eq_natCast]; omega
+  unfold extractString native_str_substr
+  rw [if_neg (by simp [native_str_len, native_zplus, native_zneg])]
+  rw [show native_zplus (native_zplus 0 (native_zneg 0)) 1 = 1 from by simp [native_zplus, native_zneg]]
+  rw [Int.min_eq_left hge]
+  simp
+
+theorem substrWord_eq_charChainTerm (w : native_String) :
+    substrWord w 0 w.length = charChainTerm w := by
+  induction w with
+  | nil => rfl
+  | cons c cs ih =>
+      rw [show (c :: cs).length = cs.length + 1 from rfl, substrWord,
+        show ((0:Int) + 1) = 1 from by omega, substrWord_cons_tail c cs, ih,
+        extractString_cons_zero c cs]
+      rfl
+
+/-- `flatten (nary_intro (String w))` is exactly the canonical char-chain. -/
+theorem flatten_nary_intro_string (w : native_String) :
+    __str_flatten (__str_nary_intro (Term.String w)) = charChainTerm w := by
+  cases w with
+  | nil => rw [str_flatten_nary_intro_empty]; rfl
+  | cons c cs => rw [str_flatten_nary_intro_cons, substrWord_eq_charChainTerm]
+
+/-- The rule's `gt` side condition (`= false`) forces a full overlap drop count. -/
+theorem overlap_cond_implies_overlapDrop_full (w w' : native_String)
+    (hcond : __eo_gt (__str_value_len (Term.String w))
+        (__str_overlap_rec (__str_flatten (__str_nary_intro (Term.String w)))
+          (__str_flatten (__str_nary_intro (Term.String w')))) = Term.Boolean false) :
+    overlapDrop w w' = w.length := by
+  rw [str_value_len_string, flatten_nary_intro_string, flatten_nary_intro_string,
+    str_overlap_rec_charChain] at hcond
+  simp only [__eo_gt, native_zlt] at hcond
+  have hd : decide (Int.ofNat (overlapDrop w w') < Int.ofNat w.length) = false := by
+    injection hcond
+  have hnlt : ¬ (Int.ofNat (overlapDrop w w') < Int.ofNat w.length) := of_decide_eq_false hd
+  simp only [Int.ofNat_eq_natCast] at hnlt
+  have hle := overlapDrop_le w w'
+  omega
 
 end RuleProofs
