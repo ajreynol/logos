@@ -921,19 +921,19 @@ by
         exact cmd_step_trans_properties N hN s args premises
           (by simpa using hCmdTrans) hPremisesBool hResultTy
   | cong =>
-      exact cmd_step_facts_of_evidence_rule_properties M hM s premises hs hsStable <|
-        cmd_step_cong_properties M hM s args premises
-          (stateAssumes s) (statePushes s)
+      exact cmd_step_facts_of_rule_properties M hM s premises hs hsStable <| by
+        intro N hN _hAgree
+        exact cmd_step_cong_properties N hN s args premises
           (by simpa using hCmdTrans) hPremisesBool hResultTy
   | nary_cong =>
-      exact cmd_step_facts_of_evidence_rule_properties M hM s premises hs hsStable <|
-        cmd_step_nary_cong_properties M hM s args premises
-          (stateAssumes s) (statePushes s)
+      exact cmd_step_facts_of_rule_properties M hM s premises hs hsStable <| by
+        intro N hN _hAgree
+        exact cmd_step_nary_cong_properties N hN s args premises
           (by simpa using hCmdTrans) hPremisesBool hResultTy
   | pairwise_cong =>
-      exact cmd_step_facts_of_evidence_rule_properties M hM s premises hs hsStable <|
-        cmd_step_pairwise_cong_properties M hM s args premises
-          (stateAssumes s) (statePushes s)
+      exact cmd_step_facts_of_rule_properties M hM s premises hs hsStable <| by
+        intro N hN _hAgree
+        exact cmd_step_pairwise_cong_properties N hN s args premises
           (by simpa using hCmdTrans) hPremisesBool hResultTy
   | true_intro =>
       exact cmd_step_facts_of_rule_properties M hM s premises hs hsStable <| by

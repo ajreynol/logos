@@ -2892,7 +2892,7 @@ theorem premiseEvidence_of_localTruthInvariant
   model_agrees_on_globals M N ->
   eo_interprets N (stateAssumes s) true ->
   eo_interprets N (statePushes s) true ->
-  RulePremiseEvidence N (stateAssumes s) (statePushes s)
+  RulePremiseEvidence N
     (premiseTermList s premises) :=
 by
   intro hs hStable hN hAgree hAss hPush
@@ -2936,32 +2936,7 @@ by
   intro hFacts
   exact ⟨hFacts.true_of_context, hFacts.true_in_var_model⟩
 
-/-- Packages richer rule-level step properties into the checker facts required for a single step. -/
-theorem cmd_step_facts_of_evidence_rule_properties
-    (M : SmtModel) (hM : model_total_typed M)
-    (s : CState) (premises : CIndexList) {P : Term} :
-  checkerLocalTruthInvariant M s ->
-  checkerAssumptionStabilityInvariant M s ->
-  (hProps : EvidenceStepRuleProperties M (stateAssumes s) (statePushes s)
-    (premiseTermList s premises) P) ->
-  CmdStepFacts M s P :=
-by
-  intro hs hAssumptionsStable hProps
-  refine ⟨?_, ?_, ?_⟩
-  · intro hAss hPush
-    exact hProps.facts_of_evidence M hM (model_agrees_on_globals_refl M)
-      (premiseEvidence_of_localTruthInvariant M M s premises hs hAssumptionsStable hM
-        (model_agrees_on_globals_refl M) hAss hPush)
-  · intro N hN hAgree hAss hPush
-    exact hProps.facts_of_evidence N hN hAgree
-      (premiseEvidence_of_localTruthInvariant M N s premises hs hAssumptionsStable
-        hN hAgree hAss hPush)
-  · exact hProps.has_smt_translation
-
-/--
-Packages ordinary rule-level step properties into checker facts by
-re-instantiating the rule proof in each variable-variant model.
--/
+/-- Packages rule-level step properties into the checker facts required for a single step. -/
 theorem cmd_step_facts_of_rule_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (premises : CIndexList) {P : Term} :
@@ -2977,13 +2952,13 @@ by
   · intro hAss hPush
     have hPM := hProps M hM (model_agrees_on_globals_refl M)
     exact hPM.facts_of_true
-      (premiseTermList_true_of_localTruthInvariant_var_model
-        M s premises hs M hM (model_agrees_on_globals_refl M) hAss hPush)
+      (premiseEvidence_of_localTruthInvariant M M s premises hs hAssumptionsStable hM
+        (model_agrees_on_globals_refl M) hAss hPush)
   · intro N hN hAgree hAss hPush
     have hPN := hProps N hN hAgree
     exact hPN.facts_of_true
-      (premiseTermList_true_of_localTruthInvariant_var_model
-        M s premises hs N hN hAgree hAss hPush)
+      (premiseEvidence_of_localTruthInvariant M N s premises hs hAssumptionsStable
+        hN hAgree hAss hPush)
   · exact (hProps M hM (model_agrees_on_globals_refl M)).has_smt_translation
 
 /-- Packages rule-level step-pop properties into the checker facts required for a pop step. -/

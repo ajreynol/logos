@@ -9,12 +9,11 @@ set_option maxHeartbeats 10000000
 
 theorem cmd_step_pairwise_cong_properties
     (M : SmtModel) (hM : model_total_typed M)
-    (s : CState) (args : CArgList) (premises : CIndexList)
-    (assumes pushes : Term) :
+    (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.pairwise_cong args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->
   __eo_typeof (__eo_cmd_step_proven s CRule.pairwise_cong args premises) = Term.Bool ->
-  EvidenceStepRuleProperties M assumes pushes (premiseTermList s premises)
+  StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.pairwise_cong args premises) :=
 by
   intro hCmdTrans hPremisesBool hResultTy
@@ -86,8 +85,8 @@ by
                       hProgPairwiseCongListNN
                       hProgPairwiseCongListType
                   refine ⟨?_, ?_⟩
-                  · intro N hN _hAgree hEvidence
-                    change eo_interprets N
+                  · intro hEvidence
+                    change eo_interprets M
                       (__eo_prog_pairwise_cong
                         (Term.Apply (Term.UOp UserOp.distinct) xs)
                         (Proof.pf
@@ -95,8 +94,8 @@ by
                     rw [mk_premise_list_and_eq_premiseAndFormulaList]
                     exact
                       CongSupport.facts___eo_prog_pairwise_cong_distinct_impl
-                        N hN xs (premiseTermList s premises)
-                        hATrans hEvidence.true_here hProgPairwiseCongListBool
+                        M hM xs (premiseTermList s premises)
+                        hATrans hEvidence hProgPairwiseCongListBool
                         hProgPairwiseCongListNN
                   · change RuleProofs.eo_has_smt_translation
                       (__eo_prog_pairwise_cong
@@ -120,14 +119,14 @@ by
                       hProgPairwiseCongListNN
                       hProgPairwiseCongListType
                   refine ⟨?_, ?_⟩
-                  · intro N hN _hAgree hEvidence
-                    change eo_interprets N
+                  · intro hEvidence
+                    change eo_interprets M
                       (__eo_prog_pairwise_cong (Term.Apply f xs)
                         (Proof.pf
                           (__eo_mk_premise_list (Term.UOp UserOp.and) premises s))) true
                     rw [mk_premise_list_and_eq_premiseAndFormulaList]
                     exact CongSupport.facts___eo_prog_pairwise_cong_apply_impl
-                      N hN f xs (premiseTermList s premises)
+                      M hM f xs (premiseTermList s premises)
                       hATrans
                       hXsTrans
                       hEvidence

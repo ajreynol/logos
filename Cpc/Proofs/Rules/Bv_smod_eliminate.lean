@@ -178,8 +178,7 @@ private theorem trusted_bv_smod_eliminate_canonical_properties
                   (Term.Apply (Term.UOp UserOp._at_bvsize) x))
                 (Term.Numeral 1))))) =
       Term.Bool ->
-    StepRuleProperties M
-      [Term.Apply
+    StepRuleProperties M [Term.Apply
           (Term.Apply (Term.UOp UserOp.eq) w)
           (Term.Apply (Term.UOp UserOp._at_bvsize) x),
         Term.Apply

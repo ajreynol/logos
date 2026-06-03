@@ -9,12 +9,11 @@ set_option maxHeartbeats 10000000
 
 theorem cmd_step_nary_cong_properties
     (M : SmtModel) (hM : model_total_typed M)
-    (s : CState) (args : CArgList) (premises : CIndexList)
-    (assumes pushes : Term) :
+    (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.nary_cong args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->
   __eo_typeof (__eo_cmd_step_proven s CRule.nary_cong args premises) = Term.Bool ->
-  EvidenceStepRuleProperties M assumes pushes (premiseTermList s premises)
+  StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.nary_cong args premises) :=
 by
   intro hCmdTrans hPremisesBool hResultTy
@@ -77,12 +76,12 @@ by
               hProgNaryCongListNN
               hProgNaryCongListType
           refine ⟨?_, ?_⟩
-          · intro N hN _hAgree hEvidence
-            change eo_interprets N
+          · intro hEvidence
+            change eo_interprets M
               (__eo_prog_nary_cong a1
                 (Proof.pf (__eo_mk_premise_list (Term.UOp UserOp.and) premises s))) true
             rw [mk_premise_list_and_eq_premiseAndFormulaList]
-            exact CongSupport.facts___eo_prog_nary_cong_impl N hN a1
+            exact CongSupport.facts___eo_prog_nary_cong_impl M hM a1
               (premiseTermList s premises)
               hATrans
               hEvidence

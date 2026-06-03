@@ -53,13 +53,19 @@ Most rules only use `true_here`. Binder-sensitive congruence uses
 assumptions and pushes are known to remain true across variable-model changes.
 -/
 structure RulePremiseEvidence
-    (M : SmtModel) (assumes pushes : Term) (premises : List Term) : Prop where
+    (M : SmtModel) (premises : List Term) : Prop where
   true_here :
     AllInterpretedTrue M premises
   true_in_var_model :
     ∀ N, model_total_typed N ->
       model_agrees_on_globals M N ->
       AllInterpretedTrue N premises
+
+instance RulePremiseEvidence.instCoeFun
+    {M : SmtModel} {premises : List Term} :
+    CoeFun (RulePremiseEvidence M premises)
+      (fun _ => ∀ t, t ∈ premises -> eo_interprets M t true) where
+  coe h := h.true_here
 
 /-- Predicate asserting that every term in a list has an SMT translation. -/
 def AllHaveSmtTranslation (ts : List Term) : Prop :=
@@ -174,31 +180,18 @@ by
         __eo_requires, native_ite, native_teq, native_not, ih,
         premiseAndFormulaList_is_and_list, SmtEval.native_not]
 
-/-- Structure bundling the correctness and translation obligations for rules that only add a proven fact. -/
+/--
+Standard correctness and translation template for rules that add a proven fact.
+
+Most rules only use `RulePremiseEvidence.true_here`. Binder-sensitive rules use
+`RulePremiseEvidence.true_in_var_model` to reason under the fresh variable
+models introduced by quantified binders.
+-/
 structure StepRuleProperties
     (M : SmtModel) (premises : List Term) (P : Term) : Prop where
   facts_of_true :
-    AllInterpretedTrue M premises ->
+    RulePremiseEvidence M premises ->
     eo_interprets M P true
-  has_smt_translation :
-    RuleProofs.eo_has_smt_translation P
-
-/--
-Richer rule-correctness template for rules whose soundness depends on more
-than premise truth in the current model.
-
-The old `StepRuleProperties` remains as a compatibility template for ordinary
-rules. The checker bridge can lift ordinary rules into this shape by
-re-instantiating their old proof at each variable-variant model.
--/
-structure EvidenceStepRuleProperties
-    (M : SmtModel) (assumes pushes : Term) (premises : List Term)
-    (P : Term) : Prop where
-  facts_of_evidence :
-    ∀ N, model_total_typed N ->
-      model_agrees_on_globals M N ->
-      RulePremiseEvidence N assumes pushes premises ->
-      eo_interprets N P true
   has_smt_translation :
     RuleProofs.eo_has_smt_translation P
 

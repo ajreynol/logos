@@ -1987,8 +1987,7 @@ private theorem step_concat_csplit_core
           (__eo_prog_concat_csplit rev (Proof.pf (mkEq t s))
             (Proof.pf (mkNot (mkEq (mkStrLen u) (Term.Numeral 0))))) =
         Term.Bool) :
-    StepRuleProperties M
-      [mkEq t s, mkNot (mkEq (mkStrLen u) (Term.Numeral 0))]
+    StepRuleProperties M [mkEq t s, mkNot (mkEq (mkStrLen u) (Term.Numeral 0))]
       (__eo_prog_concat_csplit rev (Proof.pf (mkEq t s))
         (Proof.pf (mkNot (mkEq (mkStrLen u) (Term.Numeral 0)))) ) := by
   rcases eo_prog_concat_csplit_eq_of_ne_stuck rev t s u hProg with

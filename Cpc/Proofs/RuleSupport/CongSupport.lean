@@ -192,8 +192,7 @@ private theorem congStableSpine_rebase
 
 private theorem congStableSpine_of_congEvidenceSpine
     (M : SmtModel) (premises : List Term)
-    {assumes pushes : Term} :
-    RulePremiseEvidence M assumes pushes premises ->
+    RulePremiseEvidence M premises ->
     ∀ {t rhs : Term},
       CongEvidenceSpine M premises t rhs ->
       CongStableSpine M t rhs
@@ -15277,10 +15276,10 @@ private abbrev mkBinderApp (op : UserOp) (xs body : Term) : Term :=
 
 private theorem premiseEvidence_lifts_congruence_over_binders
     (M : SmtModel) (hM : model_total_typed M)
-    {assumes pushes : Term} (premises : List Term)
+    (premises : List Term)
     (op : UserOp) (xs body body' : Term)
     (hOp : op = UserOp.forall ∨ op = UserOp.exists) :
-    RulePremiseEvidence M assumes pushes premises ->
+    RulePremiseEvidence M premises ->
     mkEq body body' ∈ premises ->
     QuantifierBinderTypesWf xs ->
     RuleProofs.eo_has_bool_type (mkEq (mkBinderApp op xs body)
@@ -15415,8 +15414,7 @@ private theorem stable_lifts_congruence_over_binders
       (mkBinderApp op xs body')) true := by
   intro hBodyStable hBinderTypesWf hEqBool
   have hEvidence :
-      RulePremiseEvidence M (Term.Boolean true) (Term.Boolean true)
-        [mkEq body body'] := by
+      RulePremiseEvidence M [mkEq body body'] := by
     refine ⟨?_, ?_⟩
     · intro q hq
       simp only [List.mem_singleton] at hq
@@ -15432,10 +15430,10 @@ private theorem stable_lifts_congruence_over_binders
 
 private theorem congEvidenceSpine_quantifier_eq_true
     (M : SmtModel) (hM : model_total_typed M)
-    {assumes pushes : Term} (premises : List Term)
+    (premises : List Term)
     (op : UserOp) (xs body rhs : Term)
     (hOp : op = UserOp.forall ∨ op = UserOp.exists) :
-    RulePremiseEvidence M assumes pushes premises ->
+    RulePremiseEvidence M premises ->
     QuantifierBinderTypesWf xs ->
     RuleProofs.eo_has_bool_type
       (mkEq (Term.Apply (Term.Apply (Term.UOp op) xs) body) rhs) ->
@@ -23327,9 +23325,8 @@ private theorem mk_nary_cong_rhs_congTypeSpine_of_list :
 
 private theorem mk_nary_cong_rhs_congStableSpine_of_list
     (M : SmtModel) (hM : model_total_typed M)
-    {assumes pushes : Term} :
     ∀ (ps : List Term) (t : Term),
-      RulePremiseEvidence M assumes pushes ps ->
+      RulePremiseEvidence M ps ->
       RuleProofs.eo_has_smt_translation t ->
       __mk_nary_cong_rhs t (premiseAndFormulaList ps) ≠ Term.Stuck ->
       CongStableSpine M t (__mk_nary_cong_rhs t (premiseAndFormulaList ps)) := by
@@ -23361,10 +23358,10 @@ private theorem mk_nary_cong_rhs_congStableSpine_of_list
                               exact hEvidence.true_in_var_model N hN hAgree
                                 (mkEq lhs tail) (by simp [mkEq])
                             have hRestEvidence :
-                                RulePremiseEvidence M assumes pushes ps := by
+                                RulePremiseEvidence M ps := by
                               refine ⟨?_, ?_⟩
                               · intro q hq
-                                exact hEvidence.true_here q (by simp [hq])
+                                exact hEvidence q (by simp [hq])
                               · intro N hN hAgree q hq
                                 exact hEvidence.true_in_var_model N hN hAgree
                                   q (by simp [hq])
@@ -24268,8 +24265,8 @@ theorem typed___eo_prog_cong_impl (t : Term) (premises : List Term) :
 
 private theorem congEvidenceSpine_eq_true
     (M : SmtModel) (hM : model_total_typed M)
-    {assumes pushes : Term} (premises : List Term) (t rhs : Term) :
-  RulePremiseEvidence M assumes pushes premises ->
+    (premises : List Term) (t rhs : Term) :
+  RulePremiseEvidence M premises ->
     RuleProofs.eo_has_bool_type (mkEq t rhs) ->
     CongEvidenceSpine M premises t rhs ->
     eo_interprets M (mkEq t rhs) true := by
@@ -24316,9 +24313,9 @@ private theorem congEvidenceSpine_eq_true
 /-- Correctness for the generated EO implementation of `cong` over a premise list. -/
 theorem facts___eo_prog_cong_impl
     (M : SmtModel) (hM : model_total_typed M) (t : Term)
-    (premises : List Term) {assumes pushes : Term} :
+    (premises : List Term) :
   RuleProofs.eo_has_smt_translation t ->
-  RulePremiseEvidence M assumes pushes premises ->
+  RulePremiseEvidence M premises ->
   RuleProofs.eo_has_bool_type
     (__eo_prog_cong t (Proof.pf (premiseAndFormulaList premises))) ->
   __eo_prog_cong t (Proof.pf (premiseAndFormulaList premises)) ≠ Term.Stuck ->
@@ -24343,7 +24340,7 @@ theorem facts___eo_prog_cong_impl
     eo_mk_apply_right_ne_stuck_of_ne_stuck
       (Term.Apply (Term.UOp UserOp.eq) t) rhs hProgNN
   have hEvidenceRev :
-      RulePremiseEvidence M assumes pushes premises.reverse := by
+      RulePremiseEvidence M premises.reverse := by
     refine ⟨?_, ?_⟩
     · exact all_interpreted_true_reverse M premises hEvidence.true_here
     · intro N hN hAgree q hq
@@ -24421,9 +24418,9 @@ theorem typed___eo_prog_nary_cong_impl (t : Term) (premises : List Term) :
 /-- Correctness for the generated EO implementation of `nary_cong` over a premise list. -/
 theorem facts___eo_prog_nary_cong_impl
     (M : SmtModel) (hM : model_total_typed M) (t : Term)
-    (premises : List Term) {assumes pushes : Term} :
+    (premises : List Term) :
   RuleProofs.eo_has_smt_translation t ->
-  RulePremiseEvidence M assumes pushes premises ->
+  RulePremiseEvidence M premises ->
   RuleProofs.eo_has_bool_type
     (__eo_prog_nary_cong t (Proof.pf (premiseAndFormulaList premises))) ->
   __eo_prog_nary_cong t (Proof.pf (premiseAndFormulaList premises)) ≠
@@ -24735,10 +24732,10 @@ This is the ordinary congruence path, used when the argument itself has an SMT
 translation. Operators such as `distinct` need a separate list-aware path. -/
 theorem facts___eo_prog_pairwise_cong_apply_impl
     (M : SmtModel) (hM : model_total_typed M)
-    (f xs : Term) (premises : List Term) {assumes pushes : Term} :
+    (f xs : Term) (premises : List Term) :
   RuleProofs.eo_has_smt_translation (Term.Apply f xs) ->
   RuleProofs.eo_has_smt_translation xs ->
-  RulePremiseEvidence M assumes pushes premises ->
+  RulePremiseEvidence M premises ->
   RuleProofs.eo_has_bool_type
     (__eo_prog_pairwise_cong (Term.Apply f xs)
       (Proof.pf (premiseAndFormulaList premises))) ->
@@ -24779,7 +24776,7 @@ theorem facts___eo_prog_pairwise_cong_apply_impl
     have hPremisesBool : AllHaveBoolType premises := by
       intro p hp
       exact RuleProofs.eo_has_bool_type_of_interprets_true M p
-        (hEvidence.true_here p hp)
+        (hEvidence p hp)
     simpa [rhs] using
       mk_nary_cong_rhs_congTypeSpine_of_list premises xs
         hXsTrans hPremisesBool hRhsNN
