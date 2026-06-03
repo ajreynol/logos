@@ -2625,7 +2625,7 @@ def __str_flatten : Term -> Term
   | (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t) tail) => 
     let _v0 := (__str_flatten tail)
     let _v1 := (__eo_len t)
-    (__eo_ite (__eo_is_eq (__eo_is_neg (__eo_add (Term.Numeral 1) (__eo_neg _v1))) (Term.Boolean true)) (__eo_list_concat (Term.UOp UserOp.str_concat) (__str_flatten_word_rec (__eo_requires (__eo_is_neg _v1) (Term.Boolean false) (__iota_rec (__eo_list_repeat (Term.UOp UserOp._at__at_TypedList_cons) (Term.Numeral 0) _v1) (Term.Numeral 0))) t) _v0) (__eo_mk_apply (Term.Apply (Term.UOp UserOp.str_concat) t) _v0))
+    (__eo_ite (__eo_is_str t) (__eo_list_concat (Term.UOp UserOp.str_concat) (__str_flatten_word_rec (__eo_requires (__eo_is_neg _v1) (Term.Boolean false) (__iota_rec (__eo_list_repeat (Term.UOp UserOp._at__at_TypedList_cons) (Term.Numeral 0) _v1) (Term.Numeral 0))) t) _v0) (__eo_mk_apply (Term.Apply (Term.UOp UserOp.str_concat) t) _v0))
   | t => (__eo_requires t (__seq_empty (__eo_typeof t)) t)
 
 
