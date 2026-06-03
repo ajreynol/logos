@@ -835,6 +835,212 @@ theorem overlap_split_eval (M : SmtModel) (t c sw emp d : Term)
   rw [Bool.eq_iff_iff, Bool.or_eq_true]
   exact hsplit
 
+/-! ### Endpoint overlap lemmas for `contains` -/
+
+theorem native_seq_compat_of_compat_append_right
+    (A D R : List SmtValue)
+    (h : native_seq_compat A (D ++ R)) :
+    native_seq_compat A D := by
+  unfold native_seq_compat at h ⊢
+  rcases h with h | h
+  · rw [native_seq_prefix_eq_iff] at h
+    rcases h with ⟨r, hEq⟩
+    exact native_seq_compat_of_append_eq A r D R hEq.symm
+  · right
+    rw [native_seq_prefix_eq_iff] at h ⊢
+    rcases h with ⟨r, hEq⟩
+    refine ⟨R ++ r, ?_⟩
+    rw [hEq]
+    simp [List.append_assoc]
+
+theorem native_seq_contains_drop_left_of_no_endpoint_overlap
+    (C S D R : List SmtValue)
+    (hNo : ∀ k, k < C.length → ¬ native_seq_compat (C.drop k) D)
+    (h : native_seq_contains (C ++ S) (D ++ R) = true) :
+    native_seq_contains S (D ++ R) = true := by
+  rcases native_seq_contains_decomp_exists (C ++ S) (D ++ R) h with
+    ⟨before, after, hEq⟩
+  by_cases hStart : before.length < C.length
+  · exfalso
+    have hdropOcc :
+        (before ++ (D ++ R) ++ after).drop before.length =
+          (D ++ R) ++ after := by
+      rw [List.append_assoc]
+      exact List.drop_left
+    have hdropCS :
+        (C ++ S).drop before.length = C.drop before.length ++ S := by
+      exact List.drop_append_of_le_length (Nat.le_of_lt hStart)
+    have hAppend : C.drop before.length ++ S = (D ++ R) ++ after := by
+      rw [← hdropCS, hEq, hdropOcc]
+    have hCompatWhole :
+        native_seq_compat (C.drop before.length) (D ++ R) :=
+      native_seq_compat_of_append_eq (C.drop before.length) S (D ++ R) after
+        hAppend
+    have hCompatD : native_seq_compat (C.drop before.length) D :=
+      native_seq_compat_of_compat_append_right (C.drop before.length) D R
+        hCompatWhole
+    exact hNo before.length hStart hCompatD
+  · have hWithinS : C.length ≤ before.length := Nat.le_of_not_gt hStart
+    have hwin :=
+      native_seq_contains_drop_of_decomp before (D ++ R) after C.length hWithinS
+    have hdrop : (before ++ (D ++ R) ++ after).drop C.length = S := by
+      rw [← hEq]
+      exact List.drop_left
+    rw [hdrop] at hwin
+    exact hwin
+
+theorem native_seq_contains_reverse_iff
+    (xs pat : List SmtValue) :
+    native_seq_contains xs.reverse pat.reverse = true ↔
+      native_seq_contains xs pat = true := by
+  constructor
+  · intro h
+    rcases native_seq_contains_decomp_exists xs.reverse pat.reverse h with
+      ⟨before, after, hEq⟩
+    have hx : xs = after.reverse ++ pat ++ before.reverse := by
+      calc
+        xs = xs.reverse.reverse := by simp
+        _ = (before ++ pat.reverse ++ after).reverse := by rw [hEq]
+        _ = after.reverse ++ pat ++ before.reverse := by simp [List.append_assoc]
+    rw [hx]
+    exact native_seq_contains_of_decomp after.reverse pat before.reverse
+  · intro h
+    rcases native_seq_contains_decomp_exists xs pat h with
+      ⟨before, after, hEq⟩
+    have hx : xs.reverse = after.reverse ++ pat.reverse ++ before.reverse := by
+      calc
+        xs.reverse = (before ++ pat ++ after).reverse := by rw [hEq]
+        _ = after.reverse ++ pat.reverse ++ before.reverse := by
+          simp [List.append_assoc]
+    rw [hx]
+    exact native_seq_contains_of_decomp after.reverse pat.reverse before.reverse
+
+theorem native_seq_contains_drop_right_of_no_endpoint_overlap
+    (S C L D : List SmtValue)
+    (hNo : ∀ k, k < C.reverse.length →
+      ¬ native_seq_compat (C.reverse.drop k) D.reverse)
+    (h : native_seq_contains (S ++ C) (L ++ D) = true) :
+    native_seq_contains S (L ++ D) = true := by
+  have hRev0 :
+      native_seq_contains (S ++ C).reverse (L ++ D).reverse = true :=
+    (native_seq_contains_reverse_iff (S ++ C) (L ++ D)).2 h
+  have hRev :
+      native_seq_contains (C.reverse ++ S.reverse) (D.reverse ++ L.reverse) =
+        true := by
+    simpa [List.reverse_append, List.append_assoc] using hRev0
+  have hLeft :=
+    native_seq_contains_drop_left_of_no_endpoint_overlap
+      C.reverse S.reverse D.reverse L.reverse hNo hRev
+  have hBack :
+      native_seq_contains S.reverse (L ++ D).reverse = true := by
+    simpa [List.reverse_append] using hLeft
+  exact (native_seq_contains_reverse_iff S (L ++ D)).1 hBack
+
+theorem native_seq_contains_endpoints_iff_of_no_overlap
+    (C1 S C2 D1 T D2 : List SmtValue)
+    (hLeft : ∀ k, k < C1.length →
+      ¬ native_seq_compat (C1.drop k) D1)
+    (hRight : ∀ k, k < C2.reverse.length →
+      ¬ native_seq_compat (C2.reverse.drop k) D2.reverse) :
+    native_seq_contains (C1 ++ S ++ C2) (D1 ++ T ++ D2) = true ↔
+      native_seq_contains S (D1 ++ T ++ D2) = true := by
+  constructor
+  · intro h
+    have hLeftTrim :
+        native_seq_contains (S ++ C2) (D1 ++ (T ++ D2)) = true := by
+      have h' :
+          native_seq_contains (C1 ++ (S ++ C2)) (D1 ++ (T ++ D2)) = true := by
+        simpa [List.append_assoc] using h
+      exact native_seq_contains_drop_left_of_no_endpoint_overlap
+        C1 (S ++ C2) D1 (T ++ D2) hLeft h'
+    have hLeftTrim' :
+        native_seq_contains (S ++ C2) ((D1 ++ T) ++ D2) = true := by
+      simpa [List.append_assoc] using hLeftTrim
+    exact native_seq_contains_drop_right_of_no_endpoint_overlap
+      S C2 (D1 ++ T) D2 hRight hLeftTrim'
+  · intro h
+    have hRightAppend :
+        native_seq_contains (S ++ C2) (D1 ++ T ++ D2) = true :=
+      native_seq_contains_append_right S C2 (D1 ++ T ++ D2) h
+    have hLeftAppend :
+        native_seq_contains (C1 ++ (S ++ C2)) (D1 ++ T ++ D2) = true :=
+      native_seq_contains_append_left C1 (S ++ C2) (D1 ++ T ++ D2)
+        hRightAppend
+    simpa [List.append_assoc] using hLeftAppend
+
+/-- The endpoint-overlap `contains` rule at the model-evaluation level. -/
+theorem overlap_endpoints_contains_eval (M : SmtModel)
+    (c1 sw c2 emp d1 t d2 : Term)
+    (Sc1 Ss Sc2 Se Sd1 St Sd2 : SmtSeq)
+    (hc1 : __smtx_model_eval M (__eo_to_smt c1) = SmtValue.Seq Sc1)
+    (hsw : __smtx_model_eval M (__eo_to_smt sw) = SmtValue.Seq Ss)
+    (hc2 : __smtx_model_eval M (__eo_to_smt c2) = SmtValue.Seq Sc2)
+    (hemp : __smtx_model_eval M (__eo_to_smt emp) = SmtValue.Seq Se)
+    (hd1 : __smtx_model_eval M (__eo_to_smt d1) = SmtValue.Seq Sd1)
+    (ht : __smtx_model_eval M (__eo_to_smt t) = SmtValue.Seq St)
+    (hd2 : __smtx_model_eval M (__eo_to_smt d2) = SmtValue.Seq Sd2)
+    (hempnil : native_unpack_seq Se = [])
+    (hLeft : ∀ k, k < (native_unpack_seq Sc1).length →
+      ¬ native_seq_compat ((native_unpack_seq Sc1).drop k)
+        (native_unpack_seq Sd1))
+    (hRight : ∀ k, k < (native_unpack_seq Sc2).reverse.length →
+      ¬ native_seq_compat ((native_unpack_seq Sc2).reverse.drop k)
+        (native_unpack_seq Sd2).reverse) :
+    __smtx_model_eval M (__eo_to_smt
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_contains)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) c1)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) sw)
+              (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) c2) emp))))
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) d1)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t)
+              (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) d2) emp))))) =
+      __smtx_model_eval M (__eo_to_smt
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_contains) sw)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) d1)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t)
+              (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) d2) emp))))) := by
+  obtain ⟨sD2E, hsD2E, huD2E⟩ :=
+    strConcat_unpack_eval M d2 emp Sd2 Se hd2 hemp
+  obtain ⟨sTD2E, hsTD2E, huTD2E⟩ :=
+    strConcat_unpack_eval M t
+      (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) d2) emp)
+      St sD2E ht hsD2E
+  obtain ⟨sNeedle, hsNeedle, huNeedle⟩ :=
+    strConcat_unpack_eval M d1
+      (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t)
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) d2) emp))
+      Sd1 sTD2E hd1 hsTD2E
+  obtain ⟨sC2E, hsC2E, huC2E⟩ :=
+    strConcat_unpack_eval M c2 emp Sc2 Se hc2 hemp
+  obtain ⟨sSC2E, hsSC2E, huSC2E⟩ :=
+    strConcat_unpack_eval M sw
+      (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) c2) emp)
+      Ss sC2E hsw hsC2E
+  obtain ⟨sHay, hsHay, huHay⟩ :=
+    strConcat_unpack_eval M c1
+      (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) sw)
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) c2) emp))
+      Sc1 sSC2E hc1 hsSC2E
+  rw [strContains_eval_eq M _ _ sHay sNeedle hsHay hsNeedle]
+  rw [strContains_eval_eq M sw _ Ss sNeedle hsw hsNeedle]
+  have hHay :
+      native_unpack_seq sHay =
+        native_unpack_seq Sc1 ++ native_unpack_seq Ss ++ native_unpack_seq Sc2 := by
+    rw [huHay, huSC2E, huC2E, hempnil]
+    simp [List.append_assoc]
+  have hNeedle :
+      native_unpack_seq sNeedle =
+        native_unpack_seq Sd1 ++ native_unpack_seq St ++ native_unpack_seq Sd2 := by
+    rw [huNeedle, huTD2E, huD2E, hempnil]
+    simp [List.append_assoc]
+  rw [hHay, hNeedle]
+  congr 1
+  rw [Bool.eq_iff_iff]
+  exact native_seq_contains_endpoints_iff_of_no_overlap
+    (native_unpack_seq Sc1) (native_unpack_seq Ss) (native_unpack_seq Sc2)
+    (native_unpack_seq Sd1) (native_unpack_seq St) (native_unpack_seq Sd2)
+    hLeft hRight
+
 theorem eo_add_one_inv (R : Term) (N : Int)
     (h : __eo_add (Term.Numeral 1) R = Term.Numeral N) :
     R = Term.Numeral (N - 1) := by
@@ -2260,5 +2466,39 @@ theorem no_compat_dispatch (M : SmtModel) (hM : model_total_typed M)
     rw [hnil] at hk
     simp at hk
   · exact dispatchD (introWordView_seqUnit M ec Sc T hcTy hSc hcflatNe)
+
+/-- One-sided endpoint no-overlap condition for a left endpoint.  Unlike
+`no_compat_dispatch`, endpoint rules only need to rule out suffixes of `c`
+overlapping the leading endpoint `d`; they do not require the symmetric guard. -/
+axiom no_compat_dispatch_endpoint_left (M : SmtModel) (hM : model_total_typed M)
+    (c d : Term) (Sc Sd : SmtSeq) (T : SmtType)
+    (hcTy : __smtx_typeof (__eo_to_smt c) = SmtType.Seq T)
+    (hdTy : __smtx_typeof (__eo_to_smt d) = SmtType.Seq T)
+    (hSc : __smtx_model_eval M (__eo_to_smt c) = SmtValue.Seq Sc)
+    (hSd : __smtx_model_eval M (__eo_to_smt d) = SmtValue.Seq Sd)
+    (hgt : __eo_gt (__str_value_len c)
+        (__str_overlap_rec (__str_flatten (__str_nary_intro c))
+          (__str_flatten (__str_nary_intro d))) = Term.Boolean false) :
+    ∀ k, k < (native_unpack_seq Sc).length →
+      ¬ native_seq_compat ((native_unpack_seq Sc).drop k) (native_unpack_seq Sd)
+
+/-- One-sided endpoint no-overlap condition for a right endpoint.  The rule
+computes this guard on the reversed flattened endpoint words, which corresponds
+to suffix-overlap after reversing the evaluated sequences. -/
+axiom no_compat_dispatch_endpoint_right (M : SmtModel) (hM : model_total_typed M)
+    (c d : Term) (Sc Sd : SmtSeq) (T : SmtType)
+    (hcTy : __smtx_typeof (__eo_to_smt c) = SmtType.Seq T)
+    (hdTy : __smtx_typeof (__eo_to_smt d) = SmtType.Seq T)
+    (hSc : __smtx_model_eval M (__eo_to_smt c) = SmtValue.Seq Sc)
+    (hSd : __smtx_model_eval M (__eo_to_smt d) = SmtValue.Seq Sd)
+    (hgt : __eo_gt (__str_value_len c)
+        (__str_overlap_rec
+          (__eo_list_rev (Term.UOp UserOp.str_concat)
+            (__str_flatten (__str_nary_intro c)))
+          (__eo_list_rev (Term.UOp UserOp.str_concat)
+            (__str_flatten (__str_nary_intro d)))) = Term.Boolean false) :
+    ∀ k, k < (native_unpack_seq Sc).reverse.length →
+      ¬ native_seq_compat ((native_unpack_seq Sc).reverse.drop k)
+        (native_unpack_seq Sd).reverse
 
 end RuleProofs
