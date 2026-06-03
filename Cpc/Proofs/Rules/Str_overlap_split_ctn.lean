@@ -84,6 +84,11 @@ by
                   RuleProofs.eq_operands_have_smt_translation_of_eq_has_smt_translation _ _ hc.1
                 obtain ⟨T, hBCty, hdty⟩ := seq_binop_args_of_non_none_ret
                   (op := SmtTerm.str_contains) (typeof_str_contains_eq _ _) hLHStrans
+                obtain ⟨_htty, hCSEty⟩ := strConcat_args_of_seq_type t
+                  (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) c)
+                    (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) sw) emp)) T hBCty
+                obtain ⟨hcty, _hSEty⟩ := strConcat_args_of_seq_type c
+                  (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) sw) emp) T hCSEty
                 have hLHSbool : RuleProofs.eo_has_bool_type
                     (Term.Apply (Term.Apply (Term.UOp UserOp.str_contains)
                       (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t)
@@ -118,11 +123,11 @@ by
                 have hA : ∀ k, k < (native_unpack_seq Sc).length →
                     ¬ RuleProofs.native_seq_compat ((native_unpack_seq Sc).drop k)
                       (native_unpack_seq Sd) :=
-                  RuleProofs.no_compat_dispatch M hM c d Sc Sd hSc hSd hgt1
+                  RuleProofs.no_compat_dispatch M hM c d Sc Sd T hcty hdty hSc hSd hgt1 hgt2
                 have hB : ∀ k, k < (native_unpack_seq Sd).length →
                     ¬ RuleProofs.native_seq_compat ((native_unpack_seq Sd).drop k)
                       (native_unpack_seq Sc) :=
-                  RuleProofs.no_compat_dispatch M hM d c Sd Sc hSd hSc hgt2
+                  RuleProofs.no_compat_dispatch M hM d c Sd Sc T hdty hcty hSd hSc hgt2 hgt1
                 refine ⟨fun _ => ?_, ?_⟩
                 · refine RuleProofs.eo_interprets_eq_of_rel M _ _ hEqBool ?_
                   rw [RuleProofs.overlap_split_eval M t c sw emp d St Sc Ss Se Sd

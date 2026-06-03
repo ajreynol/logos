@@ -1130,12 +1130,17 @@ theorem eval_string (M : SmtModel) (w : native_String) :
 constant-like words `c`/`d`.  The `String`-literal case is closed via the
 committed char-chain bridge `no_compat_string`. -/
 theorem no_compat_dispatch (M : SmtModel) (hM : model_total_typed M)
-    (c d : Term) (Sc Sd : SmtSeq)
+    (c d : Term) (Sc Sd : SmtSeq) (T : SmtType)
+    (hcTy : __smtx_typeof (__eo_to_smt c) = SmtType.Seq T)
+    (hdTy : __smtx_typeof (__eo_to_smt d) = SmtType.Seq T)
     (hSc : __smtx_model_eval M (__eo_to_smt c) = SmtValue.Seq Sc)
     (hSd : __smtx_model_eval M (__eo_to_smt d) = SmtValue.Seq Sd)
     (hgt : __eo_gt (__str_value_len c)
         (__str_overlap_rec (__str_flatten (__str_nary_intro c))
-          (__str_flatten (__str_nary_intro d))) = Term.Boolean false) :
+          (__str_flatten (__str_nary_intro d))) = Term.Boolean false)
+    (hgtRev : __eo_gt (__str_value_len d)
+        (__str_overlap_rec (__str_flatten (__str_nary_intro d))
+          (__str_flatten (__str_nary_intro c))) = Term.Boolean false) :
     ∀ k, k < (native_unpack_seq Sc).length →
       ¬ native_seq_compat ((native_unpack_seq Sc).drop k) (native_unpack_seq Sd) := by
   cases c with
