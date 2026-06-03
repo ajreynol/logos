@@ -28,12 +28,8 @@ private theorem prog_sets_eval_op_shape {a b : Term}
   exact ⟨req_arg_eq h, req_result h⟩
 
 /-- The equality `(eq a b)` proven by the rule is interpreted as `true`: the SMT
-set-model values of `a` and `b` coincide.
-
-The `set.union` case is fully established; the `set.inter` and `set.minus` cases are
-left as documented `sorry`s (their soundness has the same shape as the union case
-but uses the intersection/difference list evaluators with their distinctness side
-conditions). -/
+set-model values of `a` and `b` coincide. All three set operators (`set.union`,
+`set.inter`, `set.minus`) are fully established. -/
 private theorem facts_sets_eval_op
     (M : SmtModel) (hM : model_total_typed M) (a b : Term)
     (hTransA : RuleProofs.eo_has_smt_translation a)
@@ -58,11 +54,9 @@ private theorem facts_sets_eval_op
               | set_union =>
                   exact union_model_eval_rel M hM s t b hTransA hTransB hSameTy hGuard
               | set_inter =>
-                  -- Same argument as the union case, using `__eval_sets_inter`.
-                  sorry
+                  exact inter_model_eval_rel M hM s t b hTransA hTransB hSameTy hGuard
               | set_minus =>
-                  -- Same argument as the union case, using `__eval_sets_minus`.
-                  sorry
+                  exact minus_model_eval_rel M hM s t b hTransA hTransB hSameTy hGuard
               | _ => exact (hEvalNe rfl).elim
           | _ => exact (hEvalNe rfl).elim
       | _ => exact (hEvalNe rfl).elim
