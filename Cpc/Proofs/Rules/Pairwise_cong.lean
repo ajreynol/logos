@@ -95,7 +95,7 @@ by
                     exact
                       CongSupport.facts___eo_prog_pairwise_cong_distinct_impl
                         M hM xs (premiseTermList s premises)
-                        hATrans hEvidence hProgPairwiseCongListBool
+                        hATrans hEvidence.true_here hProgPairwiseCongListBool
                         hProgPairwiseCongListNN
                   · change RuleProofs.eo_has_smt_translation
                       (__eo_prog_pairwise_cong

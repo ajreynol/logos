@@ -191,7 +191,7 @@ private theorem congStableSpine_rebase
         (stableInAnyVarModel_rebase hAgreeMN hArgStable)
 
 private theorem congStableSpine_of_congEvidenceSpine
-    (M : SmtModel) (premises : List Term)
+    (M : SmtModel) (premises : List Term) :
     RulePremiseEvidence M premises ->
     ∀ {t rhs : Term},
       CongEvidenceSpine M premises t rhs ->
@@ -23324,7 +23324,7 @@ private theorem mk_nary_cong_rhs_congTypeSpine_of_list :
                 __eo_l_1___mk_nary_cong_rhs]))
 
 private theorem mk_nary_cong_rhs_congStableSpine_of_list
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_total_typed M) :
     ∀ (ps : List Term) (t : Term),
       RulePremiseEvidence M ps ->
       RuleProofs.eo_has_smt_translation t ->
