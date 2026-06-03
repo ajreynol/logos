@@ -1893,6 +1893,205 @@ private theorem str_is_compatible_rev_seq_empty_typeof_right_ne_false
     (__seq_empty (Term.Apply (Term.UOp UserOp.Seq) U))
     (str_is_empty_seq_empty_seq_local U)
 
+private theorem str_flatten_seq_empty_seq_of_type_eq
+    (U : Term)
+    (hUType : __eo_typeof U = Term.Type) :
+    __str_flatten (__seq_empty (Term.Apply (Term.UOp UserOp.Seq) U)) =
+      __seq_empty (Term.Apply (Term.UOp UserOp.Seq) U) := by
+  by_cases hChar : U = Term.UOp UserOp.Char
+  · subst U
+    change __str_flatten (Term.String []) = Term.String []
+    change __eo_requires (Term.String [])
+      (__seq_empty (__eo_typeof (Term.String []))) (Term.String []) =
+      Term.String []
+    change __eo_requires (Term.String []) (Term.String []) (Term.String []) =
+      Term.String []
+    exact eo_requires_self_eq_of_ne_stuck (Term.String []) (Term.String [])
+      (by intro h; cases h)
+  · have hSeqEmpty :
+        __seq_empty (Term.Apply (Term.UOp UserOp.Seq) U) =
+          Term.UOp1 UserOp1.seq_empty
+            (Term.Apply (Term.UOp UserOp.Seq) U) := by
+      cases U <;> try rfl
+      case UOp op =>
+        cases op <;> try rfl
+        exact False.elim (hChar rfl)
+    rw [hSeqEmpty]
+    let empty :=
+      Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U)
+    have hEmptyNe : empty ≠ Term.Stuck := by
+      dsimp [empty]
+      intro h
+      cases h
+    have hTypeEmpty :
+        __eo_typeof empty = Term.Apply (Term.UOp UserOp.Seq) U := by
+      dsimp [empty]
+      change
+        __eo_typeof_seq_empty
+            (__eo_typeof (Term.Apply (Term.UOp UserOp.Seq) U))
+            (Term.Apply (Term.UOp UserOp.Seq) U) =
+          Term.Apply (Term.UOp UserOp.Seq) U
+      change
+        __eo_typeof_seq_empty (__eo_typeof_Seq (__eo_typeof U))
+            (Term.Apply (Term.UOp UserOp.Seq) U) =
+          Term.Apply (Term.UOp UserOp.Seq) U
+      rw [hUType]
+      rfl
+    change __str_flatten empty = empty
+    change __eo_requires empty (__seq_empty (__eo_typeof empty)) empty = empty
+    rw [hTypeEmpty]
+    have hSeqEmpty' :
+        __seq_empty (Term.Apply (Term.UOp UserOp.Seq) U) = empty := by
+      exact hSeqEmpty
+    rw [hSeqEmpty']
+    exact eo_requires_self_eq_of_ne_stuck empty empty hEmptyNe
+
+private theorem str_flatten_seq_empty_typeof_eq
+    (x : Term) (T : SmtType)
+    (hxTy : __smtx_typeof (__eo_to_smt x) = SmtType.Seq T) :
+    __str_flatten (__seq_empty (__eo_typeof x)) =
+      __seq_empty (__eo_typeof x) := by
+  have hTrans : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
+    rw [hxTy]
+    exact seq_ne_none T
+  have hTypeMatch :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation x hTrans
+  have hA : __eo_to_smt_type (__eo_typeof x) = SmtType.Seq T := by
+    rw [← hTypeMatch, hxTy]
+  rcases TranslationProofs.eo_to_smt_type_eq_seq hA with
+    ⟨U, hType, hU⟩
+  have hSeqWF :
+      __smtx_type_wf (SmtType.Seq T) = true :=
+    smt_term_seq_type_wf_of_non_none (__eo_to_smt x) hTrans hxTy
+  have hSeqComp :
+      __smtx_type_wf_component (SmtType.Seq T) = true := by
+    simpa [__smtx_type_wf] using hSeqWF
+  have hSeqRec :
+      __smtx_type_wf_rec (SmtType.Seq T) native_reflist_nil = true :=
+    (smtx_type_wf_component_parts hSeqComp).2
+  have hTParts :
+      native_inhabited_type T = true ∧
+        __smtx_type_wf_rec T native_reflist_nil = true := by
+    simpa [__smtx_type_wf_rec, native_and] using hSeqRec
+  have hTRec : __smtx_type_wf_rec T native_reflist_nil = true :=
+    hTParts.2
+  have hUType : __eo_typeof U = Term.Type :=
+    TranslationProofs.eo_typeof_type_of_smt_type_wf_rec U
+      native_reflist_nil (by
+      rw [hU]
+      exact hTRec)
+  rw [hType]
+  exact str_flatten_seq_empty_seq_of_type_eq U hUType
+
+private theorem str_flatten_str_nary_intro_non_concat_non_string_eq
+    (x : Term) (T : SmtType)
+    (hxTy : __smtx_typeof (__eo_to_smt x) = SmtType.Seq T)
+    (hNotConcat : ¬ ∃ head tail : Term, x = mkConcat head tail)
+    (hxNotString : ¬ ∃ s : native_String, x = Term.String s) :
+    __str_flatten (__str_nary_intro x) = __str_nary_intro x := by
+  have hIntroNe :
+      __str_nary_intro x ≠ Term.Stuck :=
+    str_nary_intro_ne_stuck_of_smt_type_seq x T hxTy
+  have hxNe : x ≠ Term.Stuck :=
+    term_ne_stuck_of_smt_type_seq x T hxTy
+  rcases str_nary_intro_not_str_concat_cases_eq_empty x hNotConcat
+      hIntroNe with
+    ⟨hIntroEq, hEmptyEq⟩ | ⟨hIntroEq, _hEmptyNil⟩
+  · rw [hIntroEq, str_flatten_eq_default_of_not_str_concat x hNotConcat]
+    have hReq :
+        __eo_requires x (__seq_empty (__eo_typeof x)) x = x := by
+      rw [hEmptyEq.symm]
+      exact eo_requires_self_eq_of_ne_stuck x x hxNe
+    rw [hReq]
+  · rw [hIntroEq]
+    have hIsStr : __eo_is_str x = Term.Boolean false :=
+      eo_is_str_false_of_not_string_ne_stuck x hxNotString hxNe
+    have hFlatEmpty :
+        __str_flatten (__seq_empty (__eo_typeof x)) =
+          __seq_empty (__eo_typeof x) :=
+      str_flatten_seq_empty_typeof_eq x T hxTy
+    have hEmptyNe :
+        __seq_empty (__eo_typeof x) ≠ Term.Stuck :=
+      seq_empty_typeof_ne_stuck_of_smt_type_seq x T hxTy
+    simp [__str_flatten, hIsStr, eo_ite_false, hFlatEmpty,
+      __eo_mk_apply, mkConcat]
+
+private theorem eo_list_rev_str_flatten_intro_non_concat_non_string_eq
+    (x : Term) (T : SmtType)
+    (hxTy : __smtx_typeof (__eo_to_smt x) = SmtType.Seq T)
+    (hNotConcat : ¬ ∃ head tail : Term, x = mkConcat head tail)
+    (hxNotString : ¬ ∃ s : native_String, x = Term.String s) :
+    __eo_list_rev (Term.UOp UserOp.str_concat)
+        (__str_flatten (__str_nary_intro x)) =
+      __str_flatten (__str_nary_intro x) := by
+  have hFlatIntro :
+      __str_flatten (__str_nary_intro x) = __str_nary_intro x :=
+    str_flatten_str_nary_intro_non_concat_non_string_eq x T hxTy
+      hNotConcat hxNotString
+  have hIntroNe :
+      __str_nary_intro x ≠ Term.Stuck :=
+    str_nary_intro_ne_stuck_of_smt_type_seq x T hxTy
+  have hIntroList :
+      __eo_is_list (Term.UOp UserOp.str_concat) (__str_nary_intro x) =
+        Term.Boolean true := by
+    rcases str_nary_intro_not_str_concat_cases_eq_empty x hNotConcat
+        hIntroNe with
+      ⟨hIntroEq, hEmptyEq⟩ | ⟨hIntroEq, _hEmptyNil⟩
+    · have hEmptyNil :
+          __eo_is_list_nil (Term.UOp UserOp.str_concat)
+              (__seq_empty (__eo_typeof x)) =
+            Term.Boolean true :=
+        eo_is_list_nil_str_concat_seq_empty_typeof_of_seq x T hxTy
+      rw [hIntroEq, hEmptyEq]
+      exact eo_is_list_str_concat_nil_true_of_nil_true
+        (__seq_empty (__eo_typeof x)) hEmptyNil
+    · have hEmptyNil :
+          __eo_is_list_nil (Term.UOp UserOp.str_concat)
+              (__seq_empty (__eo_typeof x)) =
+            Term.Boolean true :=
+        eo_is_list_nil_str_concat_seq_empty_typeof_of_seq x T hxTy
+      have hEmptyList :
+          __eo_is_list (Term.UOp UserOp.str_concat)
+              (__seq_empty (__eo_typeof x)) =
+            Term.Boolean true :=
+        eo_is_list_str_concat_nil_true_of_nil_true
+          (__seq_empty (__eo_typeof x)) hEmptyNil
+      rw [hIntroEq]
+      exact eo_is_list_cons_self_true_of_tail_list
+        (Term.UOp UserOp.str_concat) x (__seq_empty (__eo_typeof x))
+        (by simp) hEmptyList
+  have hRevIntroNe :
+      __eo_list_rev (Term.UOp UserOp.str_concat) (__str_nary_intro x) ≠
+        Term.Stuck := by
+    exact eo_list_rev_ne_stuck_of_is_list_true
+      (Term.UOp UserOp.str_concat) (__str_nary_intro x) hIntroList
+  rw [hFlatIntro]
+  exact eo_list_rev_str_nary_intro_eq_of_not_str_concat x hNotConcat
+    hIntroNe hRevIntroNe
+
+private theorem str_is_compatible_rev_word_flatten_intro_non_concat_non_string_ne_false
+    (x : Term) (T : SmtType) (wc : native_Char) (wcs : native_String)
+    (hxTy : __smtx_typeof (__eo_to_smt x) = SmtType.Seq T)
+    (hNotConcat : ¬ ∃ head tail : Term, x = mkConcat head tail)
+    (hxNotString : ¬ ∃ s : native_String, x = Term.String s) :
+    __str_is_compatible
+        (__eo_list_rev (Term.UOp UserOp.str_concat)
+          (RuleProofs.substrWord (wc :: wcs) 0 ((wc :: wcs).length)))
+        (__eo_list_rev (Term.UOp UserOp.str_concat)
+          (__str_flatten (__str_nary_intro x))) ≠
+      Term.Boolean false := by
+  rw [eo_list_rev_substrWord_local (wc :: wcs)]
+  rw [eo_list_rev_str_flatten_intro_non_concat_non_string_eq x T hxTy
+    hNotConcat hxNotString]
+  cases hRevWord : (wc :: wcs).reverse with
+  | nil =>
+      have hLen := congrArg List.length hRevWord
+      simp at hLen
+  | cons rc rcs =>
+      exact
+        str_is_compatible_full_word_flatten_intro_non_concat_non_string_ne_false
+          x T rc rcs hxTy hNotConcat hxNotString
+
 private theorem str_is_compatible_rev_word_flatten_non_concat_ne_false
     (x : Term) (T : SmtType) (wc : native_Char) (wcs : native_String)
     (hxTy : __smtx_typeof (__eo_to_smt x) = SmtType.Seq T)
@@ -2125,8 +2324,74 @@ private theorem str_is_compatible_rev_word_flatten_intro_ne_false_of_append_eval
                 (RuleProofs.substrWord (wc :: wcs) 0
                   ((wc :: wcs).length)) <;>
             simp [__str_is_compatible]
+      | Apply f a =>
+          cases f with
+          | Apply g head =>
+              cases g with
+              | UOp op =>
+                  by_cases hop : op = UserOp.str_concat
+                  · subst op
+                    rcases str_concat_args_of_seq_type head a T hxTy with
+                      ⟨hHeadTy, hTailTy⟩
+                    rcases mkConcat_args_eval_unpack_of_concat_eval M head a sx
+                        hxEval with
+                      ⟨sHead, sTail, hHeadEval, hTailEval, hUnpack⟩
+                    cases head with
+                    | Stuck =>
+                        exact False.elim
+                          (term_ne_stuck_of_smt_type_seq Term.Stuck T hHeadTy
+                            rfl)
+                    | _ =>
+                        sorry
+                  · exact
+                      str_is_compatible_rev_word_flatten_intro_non_concat_non_string_ne_false
+                        (Term.Apply (Term.Apply (Term.UOp op) head) a) T wc
+                        wcs hxTy
+                        (by
+                          intro h
+                          rcases h with ⟨cHead, cTail, hEq⟩
+                          simp [mkConcat] at hEq
+                          exact hop hEq.1.1)
+                        (by
+                          intro h
+                          rcases h with ⟨s, hEq⟩
+                          cases hEq)
+              | _ =>
+                  exact
+                    str_is_compatible_rev_word_flatten_intro_non_concat_non_string_ne_false
+                      _ T wc wcs hxTy
+                      (by
+                        intro h
+                        rcases h with ⟨cHead, cTail, hEq⟩
+                        cases hEq)
+                      (by
+                        intro h
+                        rcases h with ⟨s, hEq⟩
+                        cases hEq)
+          | _ =>
+              exact
+                str_is_compatible_rev_word_flatten_intro_non_concat_non_string_ne_false
+                  _ T wc wcs hxTy
+                  (by
+                    intro h
+                    rcases h with ⟨cHead, cTail, hEq⟩
+                    cases hEq)
+                  (by
+                    intro h
+                    rcases h with ⟨s, hEq⟩
+                    cases hEq)
       | _ =>
-          sorry
+          exact
+            str_is_compatible_rev_word_flatten_intro_non_concat_non_string_ne_false
+              _ T wc wcs hxTy
+              (by
+                intro h
+                rcases h with ⟨head, tail, hEq⟩
+                cases hEq)
+              (by
+                intro h
+                rcases h with ⟨s, hEq⟩
+                cases hEq)
 
 private theorem mkConcat_eval_unpack_eq
     (M : SmtModel) (x y : Term) (sxy sx sy : SmtSeq)
