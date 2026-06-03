@@ -720,6 +720,19 @@ theorem str_is_empty_eval_unpack_nil (M : SmtModel) (e : Term) (s : SmtSeq)
     simp [native_pack_string, native_pack_seq, native_unpack_seq]
   · simp at hemp
 
+/-- `__eo_mk_apply` on non-`Stuck` arguments is plain application. -/
+theorem mk_apply_eq (x y : Term) (hx : x ≠ Term.Stuck) (hy : y ≠ Term.Stuck) :
+    __eo_mk_apply x y = Term.Apply x y := by
+  cases x <;> cases y <;> simp_all [__eo_mk_apply]
+
+/-- `flatten` keeps a non-`String` head atom (e.g. a `seq_unit`) in place. -/
+theorem flatten_concat_nonstr (a rest : Term) (ha : __eo_is_str a = Term.Boolean false)
+    (hrest : __str_flatten rest ≠ Term.Stuck) :
+    __str_flatten (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) a) rest) =
+      Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) a) (__str_flatten rest) := by
+  simp only [__str_flatten, ha, eo_ite_false]
+  exact mk_apply_eq _ _ (by simp) hrest
+
 /-- The no-overlap `(A)` condition for `String`-literal arguments, from the `gt`
     side-condition (composes the committed String bridge). -/
 theorem no_compat_string (wc wd : native_String)
