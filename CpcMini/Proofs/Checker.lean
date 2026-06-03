@@ -57,7 +57,7 @@ by
     have hFacts :
         CmdStepFacts M s (__eo_cmd_step_proven s r args premises) :=
       cmd_step_proven_facts_of_invariants M hM s hNotStuck r args premises
-        hs hsTy hsTrans hCmdTrans hTy
+        hs (checkerAssumptionStabilityInvariant_any M s) hsTy hsTrans hCmdTrans hTy
     exact invoke_step_preserves_localTruthInvariant_of_contextual_true M s hNotStuck
       r args premises (__eo_cmd_step_proven s r args premises) hs rfl hProg
       hFacts.contextualTruth
@@ -139,7 +139,7 @@ by
   · have hFacts :
         CmdStepFacts M s (__eo_cmd_step_proven s r args premises) :=
       cmd_step_proven_facts_of_invariants M _hM s hNotStuck r args premises
-        hs hsTy hsTrans hCmdTrans hTy
+        hs (checkerAssumptionStabilityInvariant_any M s) hsTy hsTrans hCmdTrans hTy
     have hPTrans :
         RuleProofs.eo_has_smt_translation (__eo_cmd_step_proven s r args premises) :=
       hFacts.has_smt_translation
@@ -199,7 +199,8 @@ by
                     CmdStepFacts M cur
                       (__eo_cmd_step_pop_proven root r args A premises) :=
                   cmd_step_pop_proven_facts_of_invariants M hM root cur A r args premises
-                    hsRoot hsRootTy hsRootTrans hCurSuffix hTy
+                    hsRoot (checkerAssumptionStabilityInvariant_any M root)
+                    hsRootTy hsRootTrans hCurSuffix hTy
                 simpa [hPost] using
                   push_proven_preserves_localTruthInvariant_of_contextual_true M cur
                     (__eo_cmd_step_pop_proven root r args A premises) hTail
@@ -331,7 +332,8 @@ by
                     CmdStepFacts M cur
                       (__eo_cmd_step_pop_proven root r args A premises) :=
                   cmd_step_pop_proven_facts_of_invariants M hM root cur A r args premises
-                    hsRoot hsRootTy hsRootTrans hCurSuffix hTy
+                    hsRoot (checkerAssumptionStabilityInvariant_any M root)
+                    hsRootTy hsRootTrans hCurSuffix hTy
                 have hPTrans :
                     RuleProofs.eo_has_smt_translation (__eo_cmd_step_pop_proven root r args A premises) :=
                   hFacts.has_smt_translation
@@ -461,10 +463,12 @@ by
   | assume_push A =>
       cases s with
       | nil =>
-          change checkerLocalTruthInvariant M (__eo_push_assume_check (__eo_is_bool_type A) A CState.nil)
+          change checkerLocalTruthInvariant M
+            (__eo_push_assume_check (assumptionCheckGuard A) A CState.nil)
           exact push_assume_preserves_localTruthInvariant M CState.nil A hs
       | cons so s =>
-          change checkerLocalTruthInvariant M (__eo_push_assume_check (__eo_is_bool_type A) A (CState.cons so s))
+          change checkerLocalTruthInvariant M
+            (__eo_push_assume_check (assumptionCheckGuard A) A (CState.cons so s))
           exact push_assume_preserves_localTruthInvariant M (CState.cons so s) A hs
       | Stuck =>
           exact False.elim (hNotStuck rfl)
@@ -520,14 +524,25 @@ by
   | assume_push A =>
       cases s with
       | nil =>
-          by_cases hTy : __eo_typeof A = Term.Bool
-          · simp [__eo_invoke_cmd, push_assume_check_true, hTy, checkerShapeInvariant,
-              stateAssumptionSuffix]
-          · simp [__eo_invoke_cmd, push_assume_eq_stuck_of_typeof_ne_bool, hTy, checkerShapeInvariant]
+          by_cases hGuard : assumptionCheckGuard A = Term.Boolean true
+          · change checkerShapeInvariant
+              (__eo_push_assume_check (assumptionCheckGuard A) A CState.nil)
+            rw [push_assume_eq_cons_of_guard_true A CState.nil hGuard]
+            simp [checkerShapeInvariant, stateAssumptionSuffix]
+          · change checkerShapeInvariant
+              (__eo_push_assume_check (assumptionCheckGuard A) A CState.nil)
+            rw [push_assume_eq_stuck_of_guard_ne_true A CState.nil hGuard]
+            simp [checkerShapeInvariant]
       | cons so s =>
-          by_cases hTy : __eo_typeof A = Term.Bool
-          · simpa [__eo_invoke_cmd, push_assume_eq_cons_of_typeof_bool, push_assume_check_true, hTy, checkerShapeInvariant] using hSuffix
-          · simp [__eo_invoke_cmd, push_assume_eq_stuck_of_typeof_ne_bool, hTy, checkerShapeInvariant]
+          by_cases hGuard : assumptionCheckGuard A = Term.Boolean true
+          · change checkerShapeInvariant
+              (__eo_push_assume_check (assumptionCheckGuard A) A (CState.cons so s))
+            rw [push_assume_eq_cons_of_guard_true A (CState.cons so s) hGuard]
+            simpa [checkerShapeInvariant, stateAssumptionSuffix] using hSuffix
+          · change checkerShapeInvariant
+              (__eo_push_assume_check (assumptionCheckGuard A) A (CState.cons so s))
+            rw [push_assume_eq_stuck_of_guard_ne_true A (CState.cons so s) hGuard]
+            simp [checkerShapeInvariant]
       | Stuck =>
           exact False.elim (hNotStuck rfl)
   | check_proven proven =>
@@ -610,10 +625,12 @@ by
   | assume_push A =>
       cases s with
       | nil =>
-          change checkerTypeInvariant (__eo_push_assume_check (__eo_is_bool_type A) A CState.nil)
+          change checkerTypeInvariant
+            (__eo_push_assume_check (assumptionCheckGuard A) A CState.nil)
           exact push_assume_preserves_typeInvariant CState.nil A hs
       | cons so s =>
-          change checkerTypeInvariant (__eo_push_assume_check (__eo_is_bool_type A) A (CState.cons so s))
+          change checkerTypeInvariant
+            (__eo_push_assume_check (assumptionCheckGuard A) A (CState.cons so s))
           exact push_assume_preserves_typeInvariant (CState.cons so s) A hs
       | Stuck =>
           exact False.elim (hNotStuck rfl)
@@ -673,11 +690,13 @@ by
   | assume_push A =>
       cases s with
       | nil =>
-          change checkerTranslationInvariant (__eo_push_assume_check (__eo_is_bool_type A) A CState.nil)
+          change checkerTranslationInvariant
+            (__eo_push_assume_check (assumptionCheckGuard A) A CState.nil)
           exact push_assume_preserves_translationInvariant CState.nil A hsTrans
             (by simpa [cmdTranslationOk] using hCmdTrans)
       | cons so s =>
-          change checkerTranslationInvariant (__eo_push_assume_check (__eo_is_bool_type A) A (CState.cons so s))
+          change checkerTranslationInvariant
+            (__eo_push_assume_check (assumptionCheckGuard A) A (CState.cons so s))
           exact push_assume_preserves_translationInvariant (CState.cons so s) A hsTrans
             (by simpa [cmdTranslationOk] using hCmdTrans)
       | Stuck =>
