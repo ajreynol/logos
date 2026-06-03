@@ -3144,3 +3144,13 @@ theorem are_distinct_terms_type_model_eval_eq_false
   intro haTrans hbTrans hEqFalse hDistinct
   exact are_distinct_terms_type_model_eval_eq_false_of_type
     M hM (__eo_typeof a) a b haTrans hbTrans hEqFalse hDistinct
+
+theorem are_distinct_terms_type_model_eval_eq_false_of_any_type
+    (M : SmtModel) (hM : model_total_typed M) (T a b : Term) :
+    RuleProofs.eo_has_smt_translation a ->
+    RuleProofs.eo_has_smt_translation b ->
+    __eo_eq a b = Term.Boolean false ->
+    __are_distinct_terms_type a b T = Term.Boolean true ->
+    __smtx_model_eval_eq (__smtx_model_eval M (__eo_to_smt a))
+      (__smtx_model_eval M (__eo_to_smt b)) = SmtValue.Boolean false := by
+  exact are_distinct_terms_type_model_eval_eq_false_of_type M hM T a b
