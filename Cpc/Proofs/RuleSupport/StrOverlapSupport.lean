@@ -3,6 +3,7 @@ import Cpc.Proofs.RuleSupport.StrConcatSupport
 import Cpc.Proofs.RuleSupport.StringSupport
 import Cpc.Proofs.RuleSupport.NativeSeqSupport
 import Cpc.Proofs.RuleSupport.StrInReEvalSupport
+import Cpc.Proofs.RuleSupport.DistinctTermsSupport
 
 open Eo
 open SmtEval
@@ -46,7 +47,7 @@ theorem strConcat_unpack_eval (M : SmtModel) (x y : Term) (sx sy : SmtSeq)
   simp only [mkConcat] at h
   rw [h, hx, hy]
   refine ⟨_, rfl, ?_⟩
-  simp [native_seq_concat, native_unpack_pack_seq]
+  simp [native_seq_concat, Smtm.native_unpack_pack_seq]
 
 /-! ### Native `contains` characterization and monotonicity -/
 
@@ -422,7 +423,7 @@ theorem overlapDrop_full_no_compat :
     `SmtValue.Char`. -/
 theorem unpack_pack_string_map (w : native_String) :
     native_unpack_seq (native_pack_string w) = w.map SmtValue.Char := by
-  simp [native_pack_string, native_unpack_pack_seq]
+  simp [native_pack_string, Smtm.native_unpack_pack_seq]
 
 /-- Prefix-equality is preserved (both ways) by the injective `SmtValue.Char` tag. -/
 theorem prefix_eq_map_char (a b : native_String) :
@@ -743,6 +744,17 @@ theorem no_compat_string (wc wd : native_String)
       ¬ native_seq_compat ((wc.map SmtValue.Char).drop k) (wd.map SmtValue.Char) :=
   no_compat_of_overlap_full wc wd (overlap_cond_implies_overlapDrop_full wc wd hgt)
 
+theorem atomChainTerm_charAtoms (w : native_String) :
+    atomChainTerm (w.map (fun ch => Term.String [ch])) (Term.String []) =
+      charChainTerm w := by
+  induction w with
+  | nil => rfl
+  | cons ch rest ih =>
+      change atomChainTerm (Term.String [ch] :: rest.map (fun ch => Term.String [ch]))
+          (Term.String []) = charChainTerm (ch :: rest)
+      rw [atomChainTerm_cons]
+      simp [charChainTerm, ih]
+
 /-! ### Model-eval of the rule equation -/
 
 /-- `contains` evaluating to a Boolean forces both arguments to evaluate to
@@ -1034,7 +1046,7 @@ theorem concat_unpack (M : SmtModel) (x y : Term) (sx sy : SmtSeq)
       native_unpack_seq sxy = native_unpack_seq sx ++ native_unpack_seq sy := by
   rw [smtx_model_eval_str_concat_term_eq, hx, hy]
   simp only [__smtx_model_eval_str_concat]
-  exact ⟨_, rfl, by rw [native_unpack_pack_seq]; rfl⟩
+  exact ⟨_, rfl, by rw [Smtm.native_unpack_pack_seq]; rfl⟩
 
 /-- Top-down chain unpack: from the chain evaluating to a `Seq`, its element list is
 `xs.map val`, given each atom's element value and an empty-like terminator. -/
@@ -1065,7 +1077,16 @@ theorem chain_unpack_td (M : SmtModel) (val : Term → SmtValue) (ex : Term)
 noncomputable def seqElemVal (M : SmtModel) (a : Term) : SmtValue :=
   match a with
   | Term.Apply (Term.UOp UserOp.seq_unit) e => __smtx_model_eval M (__eo_to_smt e)
+  | Term.String [ch] => SmtValue.Char ch
   | _ => SmtValue.NotValue
+
+theorem charAtoms_unpack (M : SmtModel) (w : native_String) :
+    w.map SmtValue.Char =
+      (w.map (fun ch => Term.String [ch])).map (seqElemVal M) := by
+  induction w with
+  | nil => rfl
+  | cons ch rest ih =>
+      simp [seqElemVal, ih]
 
 theorem eval_seqUnitAtom (M : SmtModel) (e : Term) :
     ∃ sa, __smtx_model_eval M (__eo_to_smt (Term.Apply (Term.UOp UserOp.seq_unit) e)) = SmtValue.Seq sa ∧
@@ -1076,6 +1097,260 @@ theorem eval_seqUnitAtom (M : SmtModel) (e : Term) :
         (SmtSeq.empty (__smtx_typeof_value (__smtx_model_eval M (__eo_to_smt e))))) from by
         simp only [__smtx_model_eval]]
   exact ⟨_, rfl, by simp [native_unpack_seq, seqElemVal]⟩
+
+theorem eval_charAtom (M : SmtModel) (ch : native_Char) :
+    ∃ sa, __smtx_model_eval M (__eo_to_smt (Term.String [ch])) = SmtValue.Seq sa ∧
+      native_unpack_seq sa = [seqElemVal M (Term.String [ch])] := by
+  rw [show __eo_to_smt (Term.String [ch]) = SmtTerm.String [ch] from rfl]
+  simp only [__smtx_model_eval]
+  exact ⟨native_pack_string [ch], rfl, by simp [seqElemVal, native_pack_string,
+    native_pack_seq, native_unpack_seq]⟩
+
+theorem char_valid_of_charAtom_seq_type (ch : native_Char) (T : SmtType)
+    (hTy : __smtx_typeof (__eo_to_smt (Term.String [ch])) = SmtType.Seq T) :
+    native_char_valid ch = true := by
+  rw [show __eo_to_smt (Term.String [ch]) = SmtTerm.String [ch] from rfl] at hTy
+  rw [__smtx_typeof.eq_4] at hTy
+  cases hvalid : native_char_valid ch
+  · simp [native_string_valid, hvalid, native_ite] at hTy
+  · rfl
+
+theorem atom_eval_eq_of_seqElemVal_veq_true (M : SmtModel) (T : SmtType)
+    (a b : Term)
+    (haTy : __smtx_typeof (__eo_to_smt a) = SmtType.Seq T)
+    (hbTy : __smtx_typeof (__eo_to_smt b) = SmtType.Seq T)
+    (haShape : (∃ ch, a = Term.String [ch]) ∨
+      (∃ e, a = Term.Apply (Term.UOp UserOp.seq_unit) e))
+    (hbShape : (∃ ch, b = Term.String [ch]) ∨
+      (∃ e, b = Term.Apply (Term.UOp UserOp.seq_unit) e))
+    (hveq : native_veq (seqElemVal M a) (seqElemVal M b) = true) :
+    __smtx_model_eval M (__eo_to_smt a) =
+      __smtx_model_eval M (__eo_to_smt b) := by
+  rcases haShape with ⟨cha, rfl⟩ | ⟨ea, rfl⟩
+  · rcases hbShape with ⟨chb, rfl⟩ | ⟨eb, rfl⟩
+    · have hval : SmtValue.Char cha = SmtValue.Char chb := by
+        simpa [native_veq, seqElemVal] using hveq
+      injection hval with hch
+      subst hch
+      rfl
+    · have hvalid : native_char_valid cha = true :=
+        char_valid_of_charAtom_seq_type cha T haTy
+      have hval : SmtValue.Char cha = __smtx_model_eval M (__eo_to_smt eb) := by
+        simpa [native_veq, seqElemVal] using hveq
+      rw [show __eo_to_smt (Term.String [cha]) = SmtTerm.String [cha] from rfl,
+        show __eo_to_smt (Term.Apply (Term.UOp UserOp.seq_unit) eb) =
+          SmtTerm.seq_unit (__eo_to_smt eb) from rfl]
+      simp only [__smtx_model_eval]
+      rw [← hval]
+      simp [native_pack_string, native_pack_seq, __smtx_typeof_value, hvalid, native_ite]
+  · rcases hbShape with ⟨chb, rfl⟩ | ⟨eb, rfl⟩
+    · have hvalid : native_char_valid chb = true :=
+        char_valid_of_charAtom_seq_type chb T hbTy
+      have hval : __smtx_model_eval M (__eo_to_smt ea) = SmtValue.Char chb := by
+        simpa [native_veq, seqElemVal] using hveq
+      rw [show __eo_to_smt (Term.Apply (Term.UOp UserOp.seq_unit) ea) =
+          SmtTerm.seq_unit (__eo_to_smt ea) from rfl,
+        show __eo_to_smt (Term.String [chb]) = SmtTerm.String [chb] from rfl]
+      simp only [__smtx_model_eval]
+      rw [hval]
+      simp [native_pack_string, native_pack_seq, __smtx_typeof_value, hvalid, native_ite]
+    · have hval : __smtx_model_eval M (__eo_to_smt ea) =
+          __smtx_model_eval M (__eo_to_smt eb) := by
+        simpa [native_veq, seqElemVal] using hveq
+      rw [show __eo_to_smt (Term.Apply (Term.UOp UserOp.seq_unit) ea) =
+          SmtTerm.seq_unit (__eo_to_smt ea) from rfl,
+        show __eo_to_smt (Term.Apply (Term.UOp UserOp.seq_unit) eb) =
+          SmtTerm.seq_unit (__eo_to_smt eb) from rfl]
+      simp only [__smtx_model_eval]
+      rw [hval]
+
+theorem shaped_atoms_sound (M : SmtModel) (hM : model_total_typed M) (T : SmtType)
+    (xs ys : List Term)
+    (hxTy : ∀ a ∈ xs, __smtx_typeof (__eo_to_smt a) = SmtType.Seq T)
+    (hyTy : ∀ b ∈ ys, __smtx_typeof (__eo_to_smt b) = SmtType.Seq T)
+    (hxShape : ∀ a ∈ xs, (∃ ch, a = Term.String [ch]) ∨
+      (∃ e, a = Term.Apply (Term.UOp UserOp.seq_unit) e))
+    (hyShape : ∀ b ∈ ys, (∃ ch, b = Term.String [ch]) ∨
+      (∃ e, b = Term.Apply (Term.UOp UserOp.seq_unit) e)) :
+    ∀ a ∈ xs, ∀ b ∈ ys, __eo_eq a b = Term.Boolean false →
+      __are_distinct_terms_type a b (__eo_typeof a) = Term.Boolean true →
+      native_veq (seqElemVal M a) (seqElemVal M b) = false := by
+  intro a ha b hb heq hdist
+  have haTrans : RuleProofs.eo_has_smt_translation a := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hxTy a ha]
+    exact seq_ne_none T
+  have hbTrans : RuleProofs.eo_has_smt_translation b := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hyTy b hb]
+    exact seq_ne_none T
+  have hSeqFalse :=
+    are_distinct_terms_type_model_eval_eq_false M hM a b haTrans hbTrans heq hdist
+  by_cases hv : native_veq (seqElemVal M a) (seqElemVal M b) = false
+  · exact hv
+  · have hvtrue : native_veq (seqElemVal M a) (seqElemVal M b) = true := by
+      cases h : native_veq (seqElemVal M a) (seqElemVal M b) <;> simp [h] at hv ⊢
+    have hEvalEq := atom_eval_eq_of_seqElemVal_veq_true M T a b
+      (hxTy a ha) (hyTy b hb) (hxShape a ha) (hyShape b hb) hvtrue
+    exfalso
+    rw [hEvalEq, smtx_model_eval_eq_refl] at hSeqFalse
+    cases hSeqFalse
+
+structure FlatWordView (M : SmtModel) (t : Term) (S : SmtSeq) (T : SmtType) where
+  atoms : List Term
+  ex : Term
+  hflat : __str_flatten t = atomChainTerm atoms ex
+  hlen : __str_value_len t = Term.Numeral (Int.ofNat atoms.length)
+  hunp : native_unpack_seq S = atoms.map (seqElemVal M)
+  hexEmpty : __str_is_empty ex = Term.Boolean true
+  hAtomTy : ∀ a ∈ atoms, __smtx_typeof (__eo_to_smt a) = SmtType.Seq T
+  hAtomShape : ∀ a ∈ atoms, (∃ ch, a = Term.String [ch]) ∨
+    (∃ e, a = Term.Apply (Term.UOp UserOp.seq_unit) e)
+
+structure IntroWordView (M : SmtModel) (t : Term) (S : SmtSeq) (T : SmtType) where
+  atoms : List Term
+  ex : Term
+  hflat : __str_flatten (__str_nary_intro t) = atomChainTerm atoms ex
+  hlen : __str_value_len t = Term.Numeral (Int.ofNat atoms.length)
+  hunp : native_unpack_seq S = atoms.map (seqElemVal M)
+  hexEmpty : __str_is_empty ex = Term.Boolean true
+  hAtomTy : ∀ a ∈ atoms, __smtx_typeof (__eo_to_smt a) = SmtType.Seq T
+  hAtomShape : ∀ a ∈ atoms, (∃ ch, a = Term.String [ch]) ∨
+    (∃ e, a = Term.Apply (Term.UOp UserOp.seq_unit) e)
+
+theorem value_len_tail_numeral_of_concat_seqUnit (e ss : Term) (n : Int)
+    (h : __str_value_len
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat)
+          (Term.Apply (Term.UOp UserOp.seq_unit) e)) ss) = Term.Numeral n) :
+    ∃ m, __str_value_len ss = Term.Numeral m := by
+  change __eo_add (Term.Numeral 1) (__str_value_len ss) = Term.Numeral n at h
+  cases hv : __str_value_len ss with
+  | Numeral m => exact ⟨m, rfl⟩
+  | _ =>
+      rw [hv] at h
+      simp [__eo_add] at h
+
+theorem str_flatten_string_nil_of_ne_stuck (w : native_String)
+    (h : __str_flatten (Term.String w) ≠ Term.Stuck) : w = [] := by
+  cases w with
+  | nil => rfl
+  | cons ch rest =>
+      exfalso
+      apply h
+      simp [__str_flatten, __eo_requires, __seq_empty,
+        native_teq, native_ite]
+      intro hEq
+      cases hEq
+
+theorem charAtoms_type (w : native_String) (T : SmtType)
+    (hTy : __smtx_typeof (__eo_to_smt (Term.String w)) = SmtType.Seq T) :
+    ∀ a ∈ w.map (fun ch => Term.String [ch]),
+      __smtx_typeof (__eo_to_smt a) = SmtType.Seq T := by
+  have hT : T = SmtType.Char := by
+    rw [show __eo_to_smt (Term.String w) = SmtTerm.String w from rfl] at hTy
+    rw [__smtx_typeof.eq_4] at hTy
+    cases hvalid : native_string_valid w
+    · simp [hvalid, native_ite] at hTy
+    · simp [hvalid, native_ite] at hTy
+      exact hTy.symm
+  intro a ha
+  rw [hT]
+  rcases List.mem_map.1 ha with ⟨ch, _hch, rfl⟩
+  rw [show __eo_to_smt (Term.String [ch]) = SmtTerm.String [ch] from rfl]
+  rw [__smtx_typeof.eq_4]
+  have hvalid : native_char_valid ch = true := by
+    have hwvalid : native_string_valid w = true := by
+      rw [show __eo_to_smt (Term.String w) = SmtTerm.String w from rfl] at hTy
+      rw [__smtx_typeof.eq_4] at hTy
+      cases hv : native_string_valid w
+      · simp [hv, native_ite] at hTy
+      · rfl
+    unfold native_string_valid at hwvalid
+    exact List.all_eq_true.1 hwvalid ch _hch
+  simp [native_string_valid, hvalid, native_ite]
+
+theorem charAtoms_shape (w : native_String) :
+    ∀ a ∈ w.map (fun ch => Term.String [ch]),
+      (∃ ch, a = Term.String [ch]) ∨
+        (∃ e, a = Term.Apply (Term.UOp UserOp.seq_unit) e) := by
+  intro a ha
+  rcases List.mem_map.1 ha with ⟨ch, _hch, rfl⟩
+  exact Or.inl ⟨ch, rfl⟩
+
+def introWordView_string (M : SmtModel) (w : native_String) (S : SmtSeq) (T : SmtType)
+    (hTy : __smtx_typeof (__eo_to_smt (Term.String w)) = SmtType.Seq T)
+    (hEval : __smtx_model_eval M (__eo_to_smt (Term.String w)) = SmtValue.Seq S) :
+    IntroWordView M (Term.String w) S T := by
+  refine {
+    atoms := w.map (fun ch => Term.String [ch]),
+    ex := Term.String [],
+    hflat := ?_,
+    hlen := ?_,
+    hunp := ?_,
+    hexEmpty := by simp [__str_is_empty],
+    hAtomTy := charAtoms_type w T hTy,
+    hAtomShape := charAtoms_shape w
+  }
+  · rw [flatten_nary_intro_string, ← atomChainTerm_charAtoms]
+  · rw [str_value_len_string]
+    simp
+  · rw [show __eo_to_smt (Term.String w) = SmtTerm.String w from rfl] at hEval
+    simp only [__smtx_model_eval] at hEval
+    injection hEval with hS
+    rw [← hS, unpack_pack_string_map, charAtoms_unpack]
+
+theorem seqUnit_atoms_sound (M : SmtModel) (hM : model_total_typed M) (T : SmtType)
+    (xs ys : List Term)
+    (hxUnit : ∀ a ∈ xs, ∃ e, a = Term.Apply (Term.UOp UserOp.seq_unit) e)
+    (hyUnit : ∀ b ∈ ys, ∃ e, b = Term.Apply (Term.UOp UserOp.seq_unit) e)
+    (hxTy : ∀ a ∈ xs, __smtx_typeof (__eo_to_smt a) = SmtType.Seq T)
+    (hyTy : ∀ b ∈ ys, __smtx_typeof (__eo_to_smt b) = SmtType.Seq T) :
+    ∀ a ∈ xs, ∀ b ∈ ys, __eo_eq a b = Term.Boolean false →
+      __are_distinct_terms_type a b (__eo_typeof a) = Term.Boolean true →
+      native_veq (seqElemVal M a) (seqElemVal M b) = false := by
+  intro a ha b hb heq hdist
+  obtain ⟨ea, rfl⟩ := hxUnit a ha
+  obtain ⟨eb, rfl⟩ := hyUnit b hb
+  have haTrans : RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.UOp UserOp.seq_unit) ea) := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hxTy (Term.Apply (Term.UOp UserOp.seq_unit) ea) ha]
+    exact seq_ne_none T
+  have hbTrans : RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.UOp UserOp.seq_unit) eb) := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hyTy (Term.Apply (Term.UOp UserOp.seq_unit) eb) hb]
+    exact seq_ne_none T
+  have hSeqFalse :=
+    are_distinct_terms_type_model_eval_eq_false M hM
+      (Term.Apply (Term.UOp UserOp.seq_unit) ea)
+      (Term.Apply (Term.UOp UserOp.seq_unit) eb)
+      haTrans hbTrans heq hdist
+  by_cases hv : native_veq (__smtx_model_eval M (__eo_to_smt ea))
+      (__smtx_model_eval M (__eo_to_smt eb)) = false
+  · simpa [seqElemVal] using hv
+  · have hvtrue : native_veq (__smtx_model_eval M (__eo_to_smt ea))
+        (__smtx_model_eval M (__eo_to_smt eb)) = true := by
+      cases hveq : native_veq (__smtx_model_eval M (__eo_to_smt ea))
+          (__smtx_model_eval M (__eo_to_smt eb)) <;> simp [hveq] at hv ⊢
+    have hHeadEq :
+        __smtx_model_eval M (__eo_to_smt ea) =
+          __smtx_model_eval M (__eo_to_smt eb) := by
+      simpa [native_veq] using hvtrue
+    have hSeqEq :
+        __smtx_model_eval M
+            (__eo_to_smt (Term.Apply (Term.UOp UserOp.seq_unit) ea)) =
+          __smtx_model_eval M
+            (__eo_to_smt (Term.Apply (Term.UOp UserOp.seq_unit) eb)) := by
+      rw [show __eo_to_smt (Term.Apply (Term.UOp UserOp.seq_unit) ea) =
+          SmtTerm.seq_unit (__eo_to_smt ea) from rfl,
+        show __eo_to_smt (Term.Apply (Term.UOp UserOp.seq_unit) eb) =
+          SmtTerm.seq_unit (__eo_to_smt eb) from rfl]
+      simp only [__smtx_model_eval]
+      rw [hHeadEq]
+    exfalso
+    rw [hSeqEq, smtx_model_eval_eq_refl] at hSeqFalse
+    cases hSeqFalse
 
 theorem str_is_empty_seq_empty (T : Term) :
     __str_is_empty (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) T)) = Term.Boolean true := by
@@ -1104,6 +1379,261 @@ theorem seqEmpty_overlap_zero (T W : Term) (hW : W ≠ Term.Stuck) :
   | Stuck => exact absurd rfl hW
   | _ => simp [__str_overlap_rec]
 
+theorem strEmpty_compatL_chain (T' : Term) :
+    ∀ ys', __str_is_compatible (Term.String [])
+      (atomChainTerm ys' (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) T'))) =
+        Term.Boolean true := by
+  intro ys'
+  cases ys' with
+  | nil => simp [atomChainTerm, __str_is_compatible, __eo_l_1___str_is_compatible, __str_is_empty,
+            __eo_or, SmtEval.native_or]
+  | cons b ys'' =>
+      rw [atomChainTerm_cons]
+      simp [__str_is_compatible, __eo_l_1___str_is_compatible, __str_is_empty, __eo_or,
+        SmtEval.native_or]
+
+theorem strEmpty_compatR (a W : Term) :
+    __str_is_compatible (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) a) W)
+      (Term.String []) = Term.Boolean true := by
+  simp [__str_is_compatible, __eo_l_1___str_is_compatible, __str_is_empty, __eo_or,
+    SmtEval.native_or]
+
+theorem strEmpty_overlap_zero (W : Term) (hW : W ≠ Term.Stuck) :
+    __str_overlap_rec (Term.String []) W = Term.Numeral 0 := by
+  cases W with
+  | Stuck => exact absurd rfl hW
+  | _ => simp [__str_overlap_rec]
+
+theorem seqEmptyOfSeq_is_empty (U : Term) :
+    __str_is_empty (__seq_empty (Term.Apply (Term.UOp UserOp.Seq) U)) =
+      Term.Boolean true := by
+  by_cases hU : U = Term.UOp UserOp.Char
+  · subst hU
+    simp [__seq_empty, __str_is_empty]
+  · simp [__seq_empty, hU, __str_is_empty]
+
+theorem seqEmptyOfSeq_ne_stuck (U : Term) :
+    __seq_empty (Term.Apply (Term.UOp UserOp.Seq) U) ≠ Term.Stuck := by
+  by_cases hU : U = Term.UOp UserOp.Char
+  · subst hU
+    simp [__seq_empty]
+  · simp [__seq_empty, hU]
+
+theorem seqEmptyOfSeq_compatL_chain (U V : Term) :
+    ∀ ys', __str_is_compatible (__seq_empty (Term.Apply (Term.UOp UserOp.Seq) U))
+      (atomChainTerm ys' (__seq_empty (Term.Apply (Term.UOp UserOp.Seq) V))) =
+        Term.Boolean true := by
+  intro ys'
+  by_cases hU : U = Term.UOp UserOp.Char
+  · subst hU
+    by_cases hV : V = Term.UOp UserOp.Char
+    · subst hV
+      cases ys' with
+      | nil =>
+          simp [atomChainTerm, __seq_empty, __str_is_compatible,
+            __eo_l_1___str_is_compatible, __str_is_empty, __eo_or, SmtEval.native_or]
+      | cons b ys'' =>
+          rw [atomChainTerm_cons]
+          simp [__seq_empty, __str_is_compatible, __eo_l_1___str_is_compatible,
+            __str_is_empty, __eo_or, SmtEval.native_or]
+    · cases ys' with
+      | nil =>
+          simp [atomChainTerm, __seq_empty, hV, __str_is_compatible,
+            __eo_l_1___str_is_compatible, __str_is_empty, __eo_or, SmtEval.native_or]
+      | cons b ys'' =>
+          rw [atomChainTerm_cons]
+          simp [__seq_empty, hV, __str_is_compatible, __eo_l_1___str_is_compatible,
+            __str_is_empty, __eo_or, SmtEval.native_or]
+  · by_cases hV : V = Term.UOp UserOp.Char
+    · subst hV
+      cases ys' with
+      | nil =>
+          simp [atomChainTerm, __seq_empty, hU, __str_is_compatible,
+            __eo_l_1___str_is_compatible, __str_is_empty, __eo_or, SmtEval.native_or]
+      | cons b ys'' =>
+          rw [atomChainTerm_cons]
+          simp [__seq_empty, hU, __str_is_compatible, __eo_l_1___str_is_compatible,
+            __str_is_empty, __eo_or, SmtEval.native_or]
+    · cases ys' with
+      | nil =>
+          simp [atomChainTerm, __seq_empty, hU, hV, __str_is_compatible,
+            __eo_l_1___str_is_compatible, __str_is_empty, __eo_or, SmtEval.native_or]
+      | cons b ys'' =>
+          rw [atomChainTerm_cons]
+          simp [__seq_empty, hU, hV, __str_is_compatible, __eo_l_1___str_is_compatible,
+            __str_is_empty, __eo_or, SmtEval.native_or]
+
+theorem seqEmptyOfSeq_compatR (U a W : Term) :
+    __str_is_compatible (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) a) W)
+      (__seq_empty (Term.Apply (Term.UOp UserOp.Seq) U)) = Term.Boolean true := by
+  by_cases hU : U = Term.UOp UserOp.Char
+  · subst hU
+    simp [__seq_empty, __str_is_compatible, __eo_l_1___str_is_compatible,
+      __str_is_empty, __eo_or, SmtEval.native_or]
+  · simp [__seq_empty, hU, __str_is_compatible, __eo_l_1___str_is_compatible,
+      __str_is_empty, __eo_or, SmtEval.native_or]
+
+theorem seqEmptyOfSeq_overlap_zero (U W : Term) (hW : W ≠ Term.Stuck) :
+    __str_overlap_rec (__seq_empty (Term.Apply (Term.UOp UserOp.Seq) U)) W =
+      Term.Numeral 0 := by
+  by_cases hU : U = Term.UOp UserOp.Char
+  · subst hU
+    cases W with
+    | Stuck => exact absurd rfl hW
+    | _ => simp [__seq_empty, __str_overlap_rec]
+  · cases W with
+    | Stuck => exact absurd rfl hW
+    | _ => simp [__seq_empty, hU, __str_overlap_rec]
+
+theorem str_is_empty_ne_stuck {e : Term}
+    (he : __str_is_empty e = Term.Boolean true) : e ≠ Term.Stuck := by
+  intro h
+  subst h
+  simp [__str_is_empty] at he
+
+theorem str_is_empty_cases (e : Term)
+    (he : __str_is_empty e = Term.Boolean true) :
+    (∃ U, e = Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U)) ∨
+      e = Term.String [] := by
+  unfold __str_is_empty at he
+  split at he
+  · cases he
+  · next U => exact Or.inl ⟨U, rfl⟩
+  · exact Or.inr rfl
+  · cases he
+
+theorem str_is_empty_boolean_of_ne_stuck (e : Term) (he : e ≠ Term.Stuck) :
+    ∃ b, __str_is_empty e = Term.Boolean b := by
+  cases e with
+  | Stuck => exact False.elim (he rfl)
+  | UOp1 op x =>
+      cases op <;> try exact ⟨false, rfl⟩
+      case seq_empty =>
+        cases x with
+        | Apply f U =>
+            cases f with
+            | UOp op =>
+                cases op <;> exact ⟨_, rfl⟩
+            | _ => exact ⟨false, rfl⟩
+        | _ => exact ⟨false, rfl⟩
+  | String w =>
+      cases w with
+      | nil => exact ⟨true, rfl⟩
+      | cons ch rest => exact ⟨false, rfl⟩
+  | _ => exact ⟨false, rfl⟩
+
+theorem str_is_empty_compatL_chain (ex ey : Term)
+    (hex : __str_is_empty ex = Term.Boolean true) (hey : ey ≠ Term.Stuck) :
+    ∀ ys', __str_is_compatible ex (atomChainTerm ys' ey) = Term.Boolean true := by
+  intro ys'
+  rcases str_is_empty_cases ex hex with ⟨U, rfl⟩ | rfl
+  · cases ys' with
+    | nil =>
+        obtain ⟨b, hb⟩ := str_is_empty_boolean_of_ne_stuck ey hey
+        rw [show atomChainTerm [] ey = ey from rfl]
+        simp only [__str_is_compatible, __eo_l_1___str_is_compatible, __str_is_empty]
+        change __eo_or (Term.Boolean true) (__str_is_empty ey) = Term.Boolean true
+        rw [hb]
+        simp [__eo_or, SmtEval.native_or]
+    | cons b ys'' =>
+        rw [atomChainTerm_cons]
+        simp [__str_is_compatible, __eo_l_1___str_is_compatible, __str_is_empty,
+          __eo_or, SmtEval.native_or]
+  · cases ys' with
+    | nil =>
+        obtain ⟨b, hb⟩ := str_is_empty_boolean_of_ne_stuck ey hey
+        rw [show atomChainTerm [] ey = ey from rfl]
+        simp only [__str_is_compatible, __eo_l_1___str_is_compatible, __str_is_empty]
+        change __eo_or (Term.Boolean true) (__str_is_empty ey) = Term.Boolean true
+        rw [hb]
+        simp [__eo_or, SmtEval.native_or]
+    | cons b ys'' =>
+        rw [atomChainTerm_cons]
+        simp [__str_is_compatible, __eo_l_1___str_is_compatible, __str_is_empty,
+          __eo_or, SmtEval.native_or]
+
+theorem str_is_empty_compatR (ex a W : Term)
+    (hex : __str_is_empty ex = Term.Boolean true) :
+    __str_is_compatible (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) a) W) ex =
+      Term.Boolean true := by
+  rcases str_is_empty_cases ex hex with ⟨U, rfl⟩ | rfl
+  · exact seqEmpty_compatR U a W
+  · exact strEmpty_compatR a W
+
+theorem str_is_empty_overlap_zero (ex W : Term)
+    (hex : __str_is_empty ex = Term.Boolean true) (hW : W ≠ Term.Stuck) :
+    __str_overlap_rec ex W = Term.Numeral 0 := by
+  rcases str_is_empty_cases ex hex with ⟨U, rfl⟩ | rfl
+  · exact seqEmpty_overlap_zero U W hW
+  · exact strEmpty_overlap_zero W hW
+
+theorem overlap_rec_ne_stuck_args (x y : Term)
+    (h : __str_overlap_rec x y ≠ Term.Stuck) : x ≠ Term.Stuck ∧ y ≠ Term.Stuck := by
+  constructor
+  · intro hx
+    subst hx
+    simp [__str_overlap_rec] at h
+  · intro hy
+    subst hy
+    cases x <;> simp [__str_overlap_rec] at h
+
+theorem str_flatten_empty_is_empty (e : Term)
+    (he : __str_is_empty e = Term.Boolean true)
+    (hf : __str_flatten e ≠ Term.Stuck) :
+    __str_is_empty (__str_flatten e) = Term.Boolean true := by
+  rcases str_is_empty_cases e he with ⟨U, rfl⟩ | rfl
+  · change __str_is_empty
+        (__eo_requires
+          (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U))
+          (__seq_empty (__eo_typeof
+            (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U))))
+          (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U))) =
+        Term.Boolean true
+    rw [eo_requires_eq_result_of_ne_stuck
+      (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U))
+      (__seq_empty (__eo_typeof
+        (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U))))
+      (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U)) hf]
+    simp [__str_is_empty]
+  · change __str_is_empty
+        (__eo_requires (Term.String []) (__seq_empty (__eo_typeof (Term.String [])))
+          (Term.String [])) = Term.Boolean true
+    rw [eo_requires_eq_result_of_ne_stuck (Term.String [])
+      (__seq_empty (__eo_typeof (Term.String []))) (Term.String []) hf]
+    simp [__str_is_empty]
+
+theorem seqUnit_ne_seq_empty_typeof (e : Term) :
+    Term.Apply (Term.UOp UserOp.seq_unit) e ≠
+      __seq_empty (__eo_typeof (Term.Apply (Term.UOp UserOp.seq_unit) e)) := by
+  intro h
+  cases hTy : __eo_typeof (Term.Apply (Term.UOp UserOp.seq_unit) e) <;>
+    rw [hTy] at h
+  case Apply f a =>
+    cases f <;> try simp [__seq_empty] at h
+    case UOp op =>
+      cases op <;> try simp [__seq_empty] at h
+      case Seq =>
+        cases a <;> try simp [__seq_empty] at h
+        case UOp op =>
+          cases op <;> simp [__seq_empty] at h
+  all_goals
+    cases h
+
+theorem str_flatten_seqUnit_eq_stuck (e : Term) :
+    __str_flatten (Term.Apply (Term.UOp UserOp.seq_unit) e) = Term.Stuck := by
+  simp [__str_flatten, __eo_requires, native_teq, native_ite,
+    seqUnit_ne_seq_empty_typeof]
+
+theorem flatten_concat_seqUnit_tail_ne_stuck (e ss : Term)
+    (h : __str_flatten
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat)
+          (Term.Apply (Term.UOp UserOp.seq_unit) e)) ss) ≠ Term.Stuck) :
+    __str_flatten ss ≠ Term.Stuck := by
+  intro htail
+  apply h
+  simp [__str_flatten, htail, __eo_is_str, __eo_is_str_internal, native_teq,
+    SmtEval.native_and, SmtEval.native_not, __eo_mk_apply, __eo_ite, native_ite]
+
 /-- `value_len c = Numeral` forces `c` to be one of the four constant-like word forms. -/
 theorem value_len_numeral_cases (c : Term) (n : Int) (h : __str_value_len c = Term.Numeral n) :
     (∃ w, c = Term.String w) ∨
@@ -1121,10 +1651,524 @@ theorem value_len_numeral_cases (c : Term) (n : Int) (h : __str_value_len c = Te
     | _ => exfalso; rw [hs] at h; simp [__eo_requires, __eo_is_str, __eo_is_str_internal,
               native_teq, native_ite, SmtEval.native_and, SmtEval.native_not] at h
 
+theorem flatWordView_of_len_nonempty (M : SmtModel) (t : Term) (S : SmtSeq) (T : SmtType)
+    (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.Seq T)
+    (hEval : __smtx_model_eval M (__eo_to_smt t) = SmtValue.Seq S)
+    (hflatNe : __str_flatten t ≠ Term.Stuck)
+    (hlenEx : ∃ n, __str_value_len t = Term.Numeral n) :
+    Nonempty (FlatWordView M t S T) := by
+  obtain ⟨n, hlen⟩ := hlenEx
+  rcases value_len_numeral_cases t n hlen with
+      ⟨w, rfl⟩ | ⟨e, ss, rfl⟩ | ⟨U, rfl⟩ | ⟨e, rfl⟩
+  · have hw : w = [] := str_flatten_string_nil_of_ne_stuck w hflatNe
+    subst hw
+    refine ⟨{
+      atoms := [],
+      ex := Term.String [],
+      hflat := ?_,
+      hlen := ?_,
+      hunp := ?_,
+      hexEmpty := by simp [__str_is_empty],
+      hAtomTy := by simp,
+      hAtomShape := by simp
+    }⟩
+    · change __eo_requires (Term.String []) (__seq_empty (__eo_typeof (Term.String [])))
+          (Term.String []) = Term.String []
+      exact eo_requires_eq_result_of_ne_stuck (Term.String [])
+        (__seq_empty (__eo_typeof (Term.String []))) (Term.String []) hflatNe
+    · rw [str_value_len_string]
+      simp
+    · exact str_is_empty_eval_unpack_nil M (Term.String []) S (by simp [__str_is_empty]) hEval
+  · let head := Term.Apply (Term.UOp UserOp.seq_unit) e
+    obtain ⟨hHeadTy, hTailTy⟩ := strConcat_args_of_seq_type head ss T hTy
+    obtain ⟨⟨Shead, hHeadEval⟩, ⟨Stail, hTailEval⟩⟩ :=
+      strConcat_args_eval_seq_of_concat_eval_seq M head ss ⟨S, hEval⟩
+    have htailFlatNe : __str_flatten ss ≠ Term.Stuck :=
+      flatten_concat_seqUnit_tail_ne_stuck e ss hflatNe
+    have htailLenEx : ∃ m, __str_value_len ss = Term.Numeral m :=
+      value_len_tail_numeral_of_concat_seqUnit e ss n hlen
+    obtain ⟨tailView⟩ :=
+      flatWordView_of_len_nonempty M ss Stail T hTailTy hTailEval htailFlatNe htailLenEx
+    refine ⟨{
+      atoms := head :: tailView.atoms,
+      ex := tailView.ex,
+      hflat := ?_,
+      hlen := ?_,
+      hunp := ?_,
+      hexEmpty := tailView.hexEmpty,
+      hAtomTy := ?_,
+      hAtomShape := ?_
+    }⟩
+    · have hHeadNotStr : __eo_is_str head = Term.Boolean false := by
+        simp [head, __eo_is_str, __eo_is_str_internal, native_teq,
+          SmtEval.native_and, SmtEval.native_not]
+      rw [flatten_concat_nonstr head ss hHeadNotStr htailFlatNe, tailView.hflat,
+        atomChainTerm_cons]
+    · change __eo_add (Term.Numeral 1) (__str_value_len ss) =
+        Term.Numeral (Int.ofNat (head :: tailView.atoms).length)
+      rw [tailView.hlen]
+      simp [__eo_add, native_zplus]
+      exact Int.add_comm 1 (Int.ofNat tailView.atoms.length)
+    · have hHeadUnp : native_unpack_seq Shead = [seqElemVal M head] := by
+        obtain ⟨Shead', hHeadEval', hHeadUnp'⟩ := eval_seqUnitAtom M e
+        rw [hHeadEval] at hHeadEval'
+        injection hHeadEval' with hSeq
+        rw [hSeq]
+        exact hHeadUnp'
+      obtain ⟨Sxy, hxy, hunpxy⟩ := concat_unpack M head ss Shead Stail hHeadEval hTailEval
+      have hSxy : S = Sxy := by
+        rw [hEval] at hxy
+        injection hxy
+      rw [hSxy, hunpxy, hHeadUnp, tailView.hunp]
+      simp
+    · intro a ha
+      have ha' := ha
+      simp at ha'
+      rcases ha' with rfl | haTail
+      · exact hHeadTy
+      · exact tailView.hAtomTy a haTail
+    · intro a ha
+      have ha' := ha
+      simp at ha'
+      rcases ha' with rfl | haTail
+      · exact Or.inr ⟨e, rfl⟩
+      · exact tailView.hAtomShape a haTail
+  · refine ⟨{
+      atoms := [],
+      ex := __str_flatten
+        (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U)),
+      hflat := rfl,
+      hlen := by simp [__str_value_len],
+      hunp := ?_,
+      hexEmpty := ?_,
+      hAtomTy := by simp,
+      hAtomShape := by simp
+    }⟩
+    · exact str_is_empty_eval_unpack_nil M
+        (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U)) S
+        (by simp [__str_is_empty]) hEval
+    · exact str_flatten_empty_is_empty
+        (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U))
+        (by simp [__str_is_empty]) hflatNe
+  · exfalso
+    exact hflatNe (str_flatten_seqUnit_eq_stuck e)
+termination_by t
+
+noncomputable def flatWordView_of_len (M : SmtModel) (t : Term) (S : SmtSeq) (T : SmtType)
+    (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.Seq T)
+    (hEval : __smtx_model_eval M (__eo_to_smt t) = SmtValue.Seq S)
+    (hflatNe : __str_flatten t ≠ Term.Stuck)
+    (hlenEx : ∃ n, __str_value_len t = Term.Numeral n) :
+    FlatWordView M t S T :=
+  Classical.choice (flatWordView_of_len_nonempty M t S T hTy hEval hflatNe hlenEx)
+
+noncomputable def introWordView_concatSeqUnit (M : SmtModel) (e ss : Term) (S : SmtSeq) (T : SmtType)
+    (hTy : __smtx_typeof (__eo_to_smt
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat)
+          (Term.Apply (Term.UOp UserOp.seq_unit) e)) ss)) = SmtType.Seq T)
+    (hEval : __smtx_model_eval M (__eo_to_smt
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat)
+          (Term.Apply (Term.UOp UserOp.seq_unit) e)) ss)) = SmtValue.Seq S)
+    (hflatNe : __str_flatten (__str_nary_intro
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat)
+          (Term.Apply (Term.UOp UserOp.seq_unit) e)) ss)) ≠ Term.Stuck)
+    (hlenEx : ∃ n, __str_value_len
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat)
+          (Term.Apply (Term.UOp UserOp.seq_unit) e)) ss) = Term.Numeral n) :
+    IntroWordView M
+      (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat)
+        (Term.Apply (Term.UOp UserOp.seq_unit) e)) ss) S T := by
+  let t := Term.Apply (Term.Apply (Term.UOp UserOp.str_concat)
+    (Term.Apply (Term.UOp UserOp.seq_unit) e)) ss
+  have hflatNe' : __str_flatten t ≠ Term.Stuck := by
+    simpa [t] using hflatNe
+  let fv := flatWordView_of_len M t S T (by simpa [t] using hTy)
+    (by simpa [t] using hEval) hflatNe' (by simpa [t] using hlenEx)
+  exact {
+    atoms := fv.atoms,
+    ex := fv.ex,
+    hflat := by simpa [t] using fv.hflat,
+    hlen := by simpa [t] using fv.hlen,
+    hunp := fv.hunp,
+    hexEmpty := fv.hexEmpty,
+    hAtomTy := fv.hAtomTy,
+    hAtomShape := fv.hAtomShape
+  }
+
+theorem str_nary_intro_seqUnit_eq (e : Term) (heTy : __eo_typeof e ≠ Term.Stuck) :
+    __str_nary_intro (Term.Apply (Term.UOp UserOp.seq_unit) e) =
+      Term.Apply (Term.Apply (Term.UOp UserOp.str_concat)
+        (Term.Apply (Term.UOp UserOp.seq_unit) e))
+        (__seq_empty (__eo_typeof (Term.Apply (Term.UOp UserOp.seq_unit) e))) := by
+  let head := Term.Apply (Term.UOp UserOp.seq_unit) e
+  let empty := __seq_empty (__eo_typeof head)
+  have hHeadNe : head ≠ Term.Stuck := by simp [head]
+  have hEmptyNe : empty ≠ Term.Stuck := by
+    dsimp [empty, head]
+    change __seq_empty (__eo_typeof_seq_unit (__eo_typeof e)) ≠ Term.Stuck
+    cases hE : __eo_typeof e <;> simp [__eo_typeof_seq_unit, hE] at heTy ⊢
+    all_goals exact seqEmptyOfSeq_ne_stuck _
+  have hne : empty ≠ head := by
+    intro h
+    exact seqUnit_ne_seq_empty_typeof e h.symm
+  have hEq : __eo_eq head empty = Term.Boolean false := by
+    rw [eo_eq_val head empty hHeadNe hEmptyNe]
+    simp [native_teq, decide_eq_false hne]
+  change __eo_ite (__eo_eq head empty) head
+      (__eo_mk_apply (Term.Apply (Term.UOp UserOp.str_concat) head) empty) =
+    Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) head) empty
+  rw [hEq, eo_ite_false]
+  exact mk_apply_eq (Term.Apply (Term.UOp UserOp.str_concat) head) empty (by simp [head]) hEmptyNe
+
+def introWordView_seqUnit (M : SmtModel) (e : Term) (S : SmtSeq) (T : SmtType)
+    (hTy : __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp UserOp.seq_unit) e)) =
+      SmtType.Seq T)
+    (hEval : __smtx_model_eval M (__eo_to_smt (Term.Apply (Term.UOp UserOp.seq_unit) e)) =
+      SmtValue.Seq S)
+    (hflatNe : __str_flatten (__str_nary_intro
+        (Term.Apply (Term.UOp UserOp.seq_unit) e)) ≠ Term.Stuck) :
+    IntroWordView M (Term.Apply (Term.UOp UserOp.seq_unit) e) S T := by
+  let head := Term.Apply (Term.UOp UserOp.seq_unit) e
+  let empty := __seq_empty (__eo_typeof head)
+  have heTy : __eo_typeof e ≠ Term.Stuck := by
+    intro he
+    apply hflatNe
+    change __str_flatten
+        (__eo_ite (__eo_eq head (__seq_empty (__eo_typeof head))) head
+          (__eo_mk_apply (Term.Apply (Term.UOp UserOp.str_concat) head)
+            (__seq_empty (__eo_typeof head)))) = Term.Stuck
+    have hHeadTy : __eo_typeof head = Term.Stuck := by
+      change __eo_typeof_seq_unit (__eo_typeof e) = Term.Stuck
+      rw [he]
+      rfl
+    have hEqStuck : __eo_eq head Term.Stuck = Term.Stuck := by
+      dsimp [head, __eo_eq]
+    rw [hHeadTy]
+    change __str_flatten
+        (__eo_ite (__eo_eq head Term.Stuck) head
+          (__eo_mk_apply (Term.Apply (Term.UOp UserOp.str_concat) head) Term.Stuck)) =
+      Term.Stuck
+    rw [hEqStuck]
+    rfl
+  have hwhole : __str_flatten
+      (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) head) empty) ≠ Term.Stuck := by
+    rw [← str_nary_intro_seqUnit_eq e heTy]
+    simpa [head, empty] using hflatNe
+  have hEmptyFlatNe : __str_flatten empty ≠ Term.Stuck := by
+    simpa [head, empty] using flatten_concat_seqUnit_tail_ne_stuck e empty hwhole
+  refine {
+    atoms := [head],
+    ex := __str_flatten empty,
+    hflat := ?_,
+    hlen := by simp [head, __str_value_len],
+    hunp := ?_,
+    hexEmpty := ?_,
+    hAtomTy := ?_,
+    hAtomShape := ?_
+  }
+  · have hHeadNotStr : __eo_is_str head = Term.Boolean false := by
+      simp [head, __eo_is_str, __eo_is_str_internal, native_teq,
+        SmtEval.native_and, SmtEval.native_not]
+    rw [str_nary_intro_seqUnit_eq e heTy]
+    change __str_flatten (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) head) empty) =
+      atomChainTerm [head] (__str_flatten empty)
+    rw [flatten_concat_nonstr head empty hHeadNotStr hEmptyFlatNe]
+    rfl
+  · obtain ⟨Shead, hHeadEval, hHeadUnp⟩ := eval_seqUnitAtom M e
+    rw [hEval] at hHeadEval
+    injection hHeadEval with hSeq
+    rw [hSeq]
+    exact hHeadUnp
+  · have hempty : __str_is_empty empty = Term.Boolean true := by
+      dsimp [empty, head]
+      change __str_is_empty (__seq_empty (__eo_typeof_seq_unit (__eo_typeof e))) =
+        Term.Boolean true
+      cases hE : __eo_typeof e <;> simp [__eo_typeof_seq_unit, hE] at heTy ⊢
+      all_goals exact seqEmptyOfSeq_is_empty _
+    exact str_flatten_empty_is_empty empty hempty hEmptyFlatNe
+  · intro a ha
+    simp at ha
+    subst ha
+    exact hTy
+  · intro a ha
+    simp at ha
+    subst ha
+    exact Or.inr ⟨e, rfl⟩
+
+def introWordView_seqEmpty_self (M : SmtModel) (U : Term) (S : SmtSeq) (T : SmtType)
+    (hEval : __smtx_model_eval M
+        (__eo_to_smt (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U))) =
+      SmtValue.Seq S)
+    (hIntro : __str_nary_intro
+        (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U)) =
+      Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U)
+    )
+    (hflatNe : __str_flatten (__str_nary_intro
+        (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U))) ≠
+      Term.Stuck) :
+    IntroWordView M (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U)) S T := by
+  let emp := Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U)
+  have hemp : __str_is_empty emp = Term.Boolean true := by
+    simp [emp, __str_is_empty]
+  have hflatNe' : __str_flatten emp ≠ Term.Stuck := by
+    simpa [emp, hIntro] using hflatNe
+  refine {
+    atoms := [],
+    ex := __str_flatten emp,
+    hflat := ?_,
+    hlen := by simp [emp, __str_value_len],
+    hunp := ?_,
+    hexEmpty := str_flatten_empty_is_empty emp hemp hflatNe',
+    hAtomTy := by simp,
+    hAtomShape := by simp
+  }
+  · rw [hIntro]
+    rfl
+  · exact str_is_empty_eval_unpack_nil M emp S hemp (by simpa [emp] using hEval)
+
+theorem seqEmpty_typeof_eq_of_intro_flatten_ne_stuck (U : Term)
+    (hflatNe : __str_flatten (__str_nary_intro
+        (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U))) ≠
+      Term.Stuck) :
+    __eo_typeof (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U)) =
+      Term.Apply (Term.UOp UserOp.Seq) U := by
+  let emp := Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U)
+  by_cases hTyArg : __eo_typeof (Term.Apply (Term.UOp UserOp.Seq) U) = Term.Type
+  · change __eo_typeof_seq_empty (__eo_typeof (Term.Apply (Term.UOp UserOp.Seq) U))
+        (Term.Apply (Term.UOp UserOp.Seq) U) =
+      Term.Apply (Term.UOp UserOp.Seq) U
+    rw [hTyArg]
+    simp [__eo_typeof_seq_empty, __eo_disamb_type_seq_empty]
+  · have hEmpTy : __eo_typeof emp = Term.Stuck := by
+      change __eo_typeof_seq_empty (__eo_typeof (Term.Apply (Term.UOp UserOp.Seq) U))
+          (Term.Apply (Term.UOp UserOp.Seq) U) = Term.Stuck
+      cases h : __eo_typeof (Term.Apply (Term.UOp UserOp.Seq) U) <;>
+        simp [__eo_typeof_seq_empty, __eo_disamb_type_seq_empty, h] at hTyArg ⊢
+    exfalso
+    apply hflatNe
+    change __str_flatten
+        (__eo_ite (__eo_eq emp (__seq_empty (__eo_typeof emp))) emp
+          (__eo_mk_apply (Term.Apply (Term.UOp UserOp.str_concat) emp)
+            (__seq_empty (__eo_typeof emp)))) = Term.Stuck
+    have hEqStuck : __eo_eq emp Term.Stuck = Term.Stuck := by
+      dsimp [emp, __eo_eq]
+    rw [hEmpTy]
+    change __str_flatten
+        (__eo_ite (__eo_eq emp Term.Stuck) emp
+          (__eo_mk_apply (Term.Apply (Term.UOp UserOp.str_concat) emp) Term.Stuck)) =
+      Term.Stuck
+    rw [hEqStuck]
+    rfl
+
+theorem str_nary_intro_seqEmpty_eq_self_of_nonChar (U : Term)
+    (hflatNe : __str_flatten (__str_nary_intro
+        (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U))) ≠
+      Term.Stuck)
+    (hU : U ≠ Term.UOp UserOp.Char) :
+    __str_nary_intro
+        (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U)) =
+      Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U) := by
+  let emp := Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U)
+  have hTy : __eo_typeof emp = Term.Apply (Term.UOp UserOp.Seq) U := by
+    simpa [emp] using seqEmpty_typeof_eq_of_intro_flatten_ne_stuck U hflatNe
+  have hEmpty : __seq_empty (__eo_typeof emp) = emp := by
+    rw [hTy]
+    simp [emp, __seq_empty, hU]
+  have hEq : __eo_eq emp (__seq_empty (__eo_typeof emp)) = Term.Boolean true := by
+    rw [hEmpty]
+    simp [__eo_eq, native_teq]
+  change __eo_ite (__eo_eq emp (__seq_empty (__eo_typeof emp))) emp
+      (__eo_mk_apply (Term.Apply (Term.UOp UserOp.str_concat) emp)
+        (__seq_empty (__eo_typeof emp))) = emp
+  rw [hEq, eo_ite_true]
+
+theorem explicitCharEmpty_typeof :
+    __eo_typeof
+        (Term.UOp1 UserOp1.seq_empty
+          (Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char))) =
+      Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char) := by
+  change __eo_typeof_seq_empty
+      (__eo_typeof_Seq (__eo_typeof (Term.UOp UserOp.Char)))
+      (Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char)) =
+    Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char)
+  change __eo_typeof_seq_empty (__eo_typeof_Seq Term.Type)
+      (Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char)) =
+    Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char)
+  rfl
+
+theorem str_flatten_string_empty :
+    __str_flatten (Term.String []) = Term.String [] := by
+  change __eo_requires (Term.String []) (Term.String []) (Term.String []) =
+    Term.String []
+  simp [__eo_requires, native_teq, native_ite, SmtEval.native_not]
+
+theorem explicitCharEmpty_distinct_string_false_type (ch : native_Char) :
+    __are_distinct_terms_type
+        (Term.UOp1 UserOp1.seq_empty
+          (Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char)))
+        (Term.String [ch])
+        (Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char)) =
+      Term.Boolean false := by
+  simp [__are_distinct_terms_type, __eo_is_str, __eo_is_str_internal,
+    native_teq, SmtEval.native_and, SmtEval.native_not, __eo_and]
+
+theorem explicitCharEmpty_distinct_string_false (ch : native_Char) :
+    __are_distinct_terms_type
+        (Term.UOp1 UserOp1.seq_empty
+          (Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char)))
+        (Term.String [ch])
+        (__eo_typeof
+          (Term.UOp1 UserOp1.seq_empty
+            (Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char)))) =
+      Term.Boolean false := by
+  rw [explicitCharEmpty_typeof]
+  exact explicitCharEmpty_distinct_string_false_type ch
+
+theorem explicitCharEmpty_distinct_seqUnit_false_type (e : Term) :
+    __are_distinct_terms_type
+        (Term.UOp1 UserOp1.seq_empty
+          (Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char)))
+        (Term.Apply (Term.UOp UserOp.seq_unit) e)
+        (Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char)) =
+      Term.Boolean false := by
+  simp [__are_distinct_terms_type, __eo_is_str, __eo_is_str_internal,
+    native_teq, SmtEval.native_and, SmtEval.native_not, __eo_and]
+
+theorem explicitCharEmpty_distinct_seqUnit_false (e : Term) :
+    __are_distinct_terms_type
+        (Term.UOp1 UserOp1.seq_empty
+          (Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char)))
+        (Term.Apply (Term.UOp UserOp.seq_unit) e)
+        (__eo_typeof
+          (Term.UOp1 UserOp1.seq_empty
+            (Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char)))) =
+      Term.Boolean false := by
+  rw [explicitCharEmpty_typeof]
+  exact explicitCharEmpty_distinct_seqUnit_false_type e
+
+theorem str_flatten_nary_intro_explicitCharEmpty :
+    __str_flatten (__str_nary_intro
+        (Term.UOp1 UserOp1.seq_empty
+          (Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char)))) =
+      Term.Apply (Term.Apply (Term.UOp UserOp.str_concat)
+        (Term.UOp1 UserOp1.seq_empty
+          (Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char))))
+        (Term.String []) := by
+  let emp := Term.UOp1 UserOp1.seq_empty
+    (Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char))
+  have hEmpty : __seq_empty (__eo_typeof emp) = Term.String [] := by
+    rw [show __eo_typeof emp =
+      Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char) from explicitCharEmpty_typeof]
+    rfl
+  have hEq : __eo_eq emp (Term.String []) = Term.Boolean false := by
+    simp [emp, __eo_eq, native_teq]
+  change __str_flatten
+      (__eo_ite (__eo_eq emp (__seq_empty (__eo_typeof emp))) emp
+        (__eo_mk_apply (Term.Apply (Term.UOp UserOp.str_concat) emp)
+          (__seq_empty (__eo_typeof emp)))) =
+    Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) emp) (Term.String [])
+  rw [hEmpty, hEq, eo_ite_false]
+  rw [mk_apply_eq]
+  · have hEmpNotStr : __eo_is_str emp = Term.Boolean false := by
+      simp [emp, __eo_is_str, __eo_is_str_internal, native_teq,
+        SmtEval.native_and, SmtEval.native_not]
+    have hTailNe : __str_flatten (Term.String []) ≠ Term.Stuck := by
+      rw [str_flatten_string_empty]
+      simp
+    rw [flatten_concat_nonstr emp (Term.String []) hEmpNotStr hTailNe,
+      str_flatten_string_empty]
+  · simp [emp]
+  · simp
+
+theorem str_is_compatible_explicitCharEmpty_cons_stuck (a : Term) (xs : List Term)
+    (ex : Term)
+    (hShape : (∃ ch, a = Term.String [ch]) ∨
+      (∃ e, a = Term.Apply (Term.UOp UserOp.seq_unit) e)) :
+    __str_is_compatible
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat)
+          (Term.UOp1 UserOp1.seq_empty
+            (Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char))))
+          (Term.String []))
+        (atomChainTerm (a :: xs) ex) =
+      Term.Stuck := by
+  rw [atomChainTerm_cons]
+  rcases hShape with ⟨ch, rfl⟩ | ⟨e, rfl⟩
+  · simp [__str_is_compatible, __eo_l_1___str_is_compatible,
+      explicitCharEmpty_typeof, explicitCharEmpty_distinct_string_false_type,
+      __eo_eq, __eo_ite, native_teq, native_ite, __eo_requires,
+      __eo_is_str, __eo_is_str_internal, SmtEval.native_and, SmtEval.native_not]
+  · simp [__str_is_compatible, __eo_l_1___str_is_compatible,
+      explicitCharEmpty_typeof, explicitCharEmpty_distinct_seqUnit_false_type,
+      __eo_eq, __eo_ite, native_teq, native_ite, __eo_requires,
+      __eo_is_str, __eo_is_str_internal, SmtEval.native_and, SmtEval.native_not]
+
+theorem overlap_explicitCharEmpty_cons_stuck (a : Term) (xs : List Term) (ex : Term)
+    (hEx : ex ≠ Term.Stuck)
+    (hShape : (∃ ch, a = Term.String [ch]) ∨
+      (∃ e, a = Term.Apply (Term.UOp UserOp.seq_unit) e)) :
+    __str_overlap_rec
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat)
+          (Term.UOp1 UserOp1.seq_empty
+            (Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char))))
+          (Term.String []))
+        (atomChainTerm (a :: xs) ex) =
+      Term.Stuck := by
+  rw [overlap_rec_concat]
+  · rw [str_is_compatible_explicitCharEmpty_cons_stuck a xs ex hShape]
+    rfl
+  · exact atomChainTerm_ne_stuck (a :: xs) ex hEx
+
+theorem value_len_numeral_of_gt_false (c W : Term)
+    (h : __eo_gt (__str_value_len c) W = Term.Boolean false) :
+    ∃ n, __str_value_len c = Term.Numeral n := by
+  unfold __str_value_len at h ⊢
+  split at h
+  · simp [__eo_gt] at h
+  · next e ss =>
+      cases hv : __str_value_len ss with
+      | Numeral n =>
+          exact ⟨native_zplus 1 n, by simp [hv, __eo_add]⟩
+      | _ =>
+          rw [hv] at h
+          cases W <;> simp [__eo_add, __eo_gt] at h
+  · next U =>
+      exact ⟨0, rfl⟩
+  · next e =>
+      exact ⟨1, rfl⟩
+  · cases hs : c with
+    | String w =>
+        exact ⟨native_str_len w, by
+          simp [__eo_requires, __eo_is_str, __eo_is_str_internal, __eo_len, native_teq,
+            native_ite, SmtEval.native_and, SmtEval.native_not]⟩
+    | _ =>
+        exfalso
+        rw [hs] at h
+        simp [__eo_requires, __eo_is_str, __eo_is_str_internal, native_teq, native_ite,
+          SmtEval.native_and, SmtEval.native_not, __eo_gt] at h
+
 /-- A `String` literal evaluates to the packed string value. -/
 theorem eval_string (M : SmtModel) (w : native_String) :
     __smtx_model_eval M (__eo_to_smt (Term.String w)) = SmtValue.Seq (native_pack_string w) := by
   rw [show __eo_to_smt (Term.String w) = SmtTerm.String w from rfl]; simp only [__smtx_model_eval]
+
+theorem no_compat_of_introWordViews (M : SmtModel) (hM : model_total_typed M)
+    (c d : Term) (Sc Sd : SmtSeq) (T : SmtType)
+    (vc : IntroWordView M c Sc T) (vd : IntroWordView M d Sd T)
+    (hgt : __eo_gt (__str_value_len c)
+        (__str_overlap_rec (__str_flatten (__str_nary_intro c))
+          (__str_flatten (__str_nary_intro d))) = Term.Boolean false) :
+    ∀ k, k < (native_unpack_seq Sc).length →
+      ¬ native_seq_compat ((native_unpack_seq Sc).drop k) (native_unpack_seq Sd) :=
+  no_compat_of_word (seqElemVal M) c d Sc Sd vc.atoms vd.atoms vc.ex vd.ex
+    vc.hflat vd.hflat vc.hlen vc.hunp vd.hunp
+    (str_is_empty_ne_stuck vc.hexEmpty) (str_is_empty_ne_stuck vd.hexEmpty)
+    (str_is_empty_compatL_chain vc.ex vd.ex vc.hexEmpty
+      (str_is_empty_ne_stuck vd.hexEmpty))
+    (fun a W => str_is_empty_compatR vd.ex a W vd.hexEmpty)
+    (fun W hW => str_is_empty_overlap_zero vc.ex W vc.hexEmpty hW)
+    (shaped_atoms_sound M hM T vc.atoms vd.atoms vc.hAtomTy vd.hAtomTy
+      vc.hAtomShape vd.hAtomShape)
+    hgt
 
 /-- The no-overlap `(A)` condition, dispatching on the representation of the
 constant-like words `c`/`d`.  The `String`-literal case is closed via the
@@ -1138,21 +2182,83 @@ theorem no_compat_dispatch (M : SmtModel) (hM : model_total_typed M)
     (hgt : __eo_gt (__str_value_len c)
         (__str_overlap_rec (__str_flatten (__str_nary_intro c))
           (__str_flatten (__str_nary_intro d))) = Term.Boolean false)
-    (hgtRev : __eo_gt (__str_value_len d)
+  (hgtRev : __eo_gt (__str_value_len d)
         (__str_overlap_rec (__str_flatten (__str_nary_intro d))
           (__str_flatten (__str_nary_intro c))) = Term.Boolean false) :
     ∀ k, k < (native_unpack_seq Sc).length →
       ¬ native_seq_compat ((native_unpack_seq Sc).drop k) (native_unpack_seq Sd) := by
-  cases c with
-  | String wc =>
-      cases d with
-      | String wd =>
-          rw [eval_string] at hSc hSd
-          injection hSc with hSc; injection hSd with hSd
-          subst hSc; subst hSd
-          rw [unpack_pack_string_map, unpack_pack_string_map]
-          exact no_compat_string wc wd hgt
-      | _ => sorry
-  | _ => sorry
+  have hrecNe : __str_overlap_rec (__str_flatten (__str_nary_intro c))
+      (__str_flatten (__str_nary_intro d)) ≠ Term.Stuck := by
+    intro hs
+    rw [hs] at hgt
+    cases __str_value_len c <;> simp [__eo_gt] at hgt
+  have hcflatNe : __str_flatten (__str_nary_intro c) ≠ Term.Stuck :=
+    (overlap_rec_ne_stuck_args _ _ hrecNe).1
+  have hdflatNe : __str_flatten (__str_nary_intro d) ≠ Term.Stuck :=
+    (overlap_rec_ne_stuck_args _ _ hrecNe).2
+  have hlenCEx : ∃ n, __str_value_len c = Term.Numeral n :=
+    value_len_numeral_of_gt_false c
+      (__str_overlap_rec (__str_flatten (__str_nary_intro c))
+        (__str_flatten (__str_nary_intro d))) hgt
+  have hlenDEx : ∃ n, __str_value_len d = Term.Numeral n :=
+    value_len_numeral_of_gt_false d
+      (__str_overlap_rec (__str_flatten (__str_nary_intro d))
+        (__str_flatten (__str_nary_intro c))) hgtRev
+  have finish :
+      IntroWordView M c Sc T → IntroWordView M d Sd T →
+        ∀ k, k < (native_unpack_seq Sc).length →
+          ¬ native_seq_compat ((native_unpack_seq Sc).drop k) (native_unpack_seq Sd) := by
+    intro vc vd
+    exact no_compat_of_introWordViews M hM c d Sc Sd T vc vd hgt
+  have dispatchD :
+      IntroWordView M c Sc T →
+        ∀ k, k < (native_unpack_seq Sc).length →
+          ¬ native_seq_compat ((native_unpack_seq Sc).drop k) (native_unpack_seq Sd) := by
+    intro vc
+    obtain ⟨nD, hLenD⟩ := hlenDEx
+    rcases value_len_numeral_cases d nD hLenD with
+        ⟨wd, rfl⟩ | ⟨ed, ssd, rfl⟩ | ⟨Ud, rfl⟩ | ⟨ed, rfl⟩
+    · exact finish vc (introWordView_string M wd Sd T hdTy hSd)
+    · exact finish vc
+        (introWordView_concatSeqUnit M ed ssd Sd T hdTy hSd hdflatNe ⟨nD, hLenD⟩)
+    · by_cases hUd : Ud = Term.UOp UserOp.Char
+      · subst hUd
+        by_cases hAtoms : vc.atoms = []
+        · intro k hk
+          rw [vc.hunp, hAtoms] at hk
+          simp at hk
+        · exfalso
+          cases hAtomsList : vc.atoms with
+          | nil => exact hAtoms hAtomsList
+          | cons a xs =>
+              have hExNe : vc.ex ≠ Term.Stuck := str_is_empty_ne_stuck vc.hexEmpty
+              have ha : a ∈ vc.atoms := by
+                rw [hAtomsList]
+                simp
+              have hOverlap :
+                  __str_overlap_rec (__str_flatten (__str_nary_intro
+                      (Term.UOp1 UserOp1.seq_empty
+                        (Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char)))))
+                    (__str_flatten (__str_nary_intro c)) = Term.Stuck := by
+                rw [str_flatten_nary_intro_explicitCharEmpty, vc.hflat, hAtomsList]
+                exact overlap_explicitCharEmpty_cons_stuck a xs vc.ex hExNe
+                  (vc.hAtomShape a ha)
+              rw [hOverlap] at hgtRev
+              simp [__str_value_len, __eo_gt] at hgtRev
+      · have hIntro := str_nary_intro_seqEmpty_eq_self_of_nonChar Ud hdflatNe hUd
+        exact finish vc (introWordView_seqEmpty_self M Ud Sd T hSd hIntro hdflatNe)
+    · exact finish vc (introWordView_seqUnit M ed Sd T hdTy hSd hdflatNe)
+  obtain ⟨nC, hLenC⟩ := hlenCEx
+  rcases value_len_numeral_cases c nC hLenC with
+      ⟨wc, rfl⟩ | ⟨ec, ssc, rfl⟩ | ⟨Uc, rfl⟩ | ⟨ec, rfl⟩
+  · exact dispatchD (introWordView_string M wc Sc T hcTy hSc)
+  · exact dispatchD (introWordView_concatSeqUnit M ec ssc Sc T hcTy hSc hcflatNe ⟨nC, hLenC⟩)
+  · intro k hk
+    have hnil := str_is_empty_eval_unpack_nil M
+      (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) Uc)) Sc
+      (by simp [__str_is_empty]) hSc
+    rw [hnil] at hk
+    simp at hk
+  · exact dispatchD (introWordView_seqUnit M ec Sc T hcTy hSc hcflatNe)
 
 end RuleProofs
