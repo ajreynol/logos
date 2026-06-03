@@ -4053,7 +4053,7 @@ theorem cmd_step_chain_m_resolution_properties_aux
                   · intro hTrue
                     have hChainProps :=
                       chain_m_resolve_properties_of_nonstuck M hM ps pols lits
-                        hPremisesBool hTrue hPols hLits hChainNe
+                        hPremisesBool hTrue.true_here hPols hLits hChainNe
                     rw [hCmdProgEq, hProgEqCr]
                     have hSetClause :
                         OrClause (__eo_list_setof Term.or
@@ -4169,7 +4169,7 @@ theorem cmd_step_chain_resolution_properties_aux
               · intro hTrue
                 have hChainProps :=
                   chain_m_resolve_properties_of_nonstuck M hM ps pols lits
-                    hPremisesBool hTrue hPols hLits hChainNe
+                    hPremisesBool hTrue.true_here hPols hLits hChainNe
                 rw [hCmdProgEq]
                 rw [hProgEq]
                 exact from_clause_true M hM hChainProps.1 hChainProps.2.1 hChainProps.2.2
