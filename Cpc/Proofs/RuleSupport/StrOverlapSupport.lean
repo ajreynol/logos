@@ -644,4 +644,42 @@ theorem overlap_rec_atomChain (ex ey : Term)
           simp only [listOverlapDrop, hbc, if_false]
           simp [__eo_ite, native_teq, SmtEval.native_ite, ihres, __eo_add, native_zplus]
 
+/-! ### Atom → value mapping
+
+Under atom→value injectivity (distinct atoms have distinct values — from the
+resolution guard plus `are_distinct` soundness), syntactic list compatibility on
+atoms determines native value compatibility on the underlying value lists. -/
+
+theorem listPrefixEq_of_map_prefix (f : Term → SmtValue) :
+    ∀ (As Bs : List Term),
+      (∀ a ∈ As, ∀ b ∈ Bs, f a = f b → a = b) →
+      native_seq_prefix_eq (As.map f) (Bs.map f) = true → listPrefixEq As Bs = true := by
+  intro As
+  induction As with
+  | nil => intro Bs _ _; rfl
+  | cons a As ih =>
+      intro Bs hinj h
+      cases Bs with
+      | nil => simp [native_seq_prefix_eq] at h
+      | cons b Bs =>
+          simp only [List.map_cons, native_seq_prefix_eq, native_veq, Bool.and_eq_true,
+            decide_eq_true_eq] at h
+          have hab : a = b := hinj a (by simp) b (by simp) h.1
+          subst hab
+          simp only [listPrefixEq, decide_true, Bool.true_and]
+          exact ih Bs (fun a' ha' b' hb' => hinj a' (by simp [ha']) b' (by simp [hb']))
+            (by simpa using h.2)
+
+/-- Native value compatibility implies syntactic atom compatibility (so its
+    negation transfers from atoms to values). -/
+theorem native_seq_compat_to_listCompat (f : Term → SmtValue) (As Bs : List Term)
+    (hinj : ∀ a ∈ As, ∀ b ∈ Bs, f a = f b → a = b)
+    (h : native_seq_compat (As.map f) (Bs.map f)) : listCompat As Bs = true := by
+  unfold native_seq_compat at h
+  unfold listCompat
+  rcases h with h | h
+  · rw [listPrefixEq_of_map_prefix f As Bs hinj h]; simp
+  · rw [listPrefixEq_of_map_prefix f Bs As (fun b hb a ha hba => (hinj a ha b hb hba.symm).symm) h]
+    simp
+
 end RuleProofs
