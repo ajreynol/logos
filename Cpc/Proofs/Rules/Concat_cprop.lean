@@ -577,6 +577,55 @@ private theorem strConcatDrop_string_empty (n : Nat) :
     strConcatDrop (Term.String []) n = Term.String [] := by
   cases n <;> rfl
 
+private theorem take_length_sub_one_eq_dropLast {α : Type} :
+    ∀ xs : List α, xs.take (xs.length - 1) = xs.dropLast
+  | [] => rfl
+  | [_] => rfl
+  | x :: y :: xs => by
+      simpa using take_length_sub_one_eq_dropLast (y :: xs)
+
+private theorem native_str_substr_prefix_dropLast (s : native_String) :
+    native_str_substr s 0 ((s.length : Int) - 1) = s.dropLast := by
+  cases s with
+  | nil =>
+      simp [native_str_substr, native_str_len]
+  | cons c cs =>
+      cases cs with
+      | nil =>
+          simp [native_str_substr, native_str_len]
+      | cons d ds =>
+          have hIf :
+              ¬ ((↑(List.length ds) : Int) + 1 <= 0 ∨
+                  (↑(List.length ds) : Int) + 1 + 1 <= 0) := by
+            omega
+          have hMin :
+              (min (↑(List.length ds) : Int)
+                    ((↑(List.length ds) : Int) + 1) + 1).toNat =
+                ds.length + 1 := by
+            have h :
+                min (↑(List.length ds) : Int)
+                    ((↑(List.length ds) : Int) + 1) =
+                  (↑(List.length ds) : Int) := by
+              exact Int.min_eq_left (by omega)
+            rw [h]
+            simp
+          simp [native_str_substr, native_str_len, hIf, hMin]
+          simpa using take_length_sub_one_eq_dropLast (c :: d :: ds)
+
+private theorem eo_extract_prefix_dropLast (s : native_String) :
+    __eo_extract (Term.String s) (Term.Numeral 0)
+        (__eo_add (__eo_len (Term.String s)) (Term.Numeral (-2))) =
+      Term.String s.dropLast := by
+  simp only [__eo_extract, __eo_add, __eo_len, native_str_len]
+  rw [show
+      native_zplus (native_zplus (native_zplus (Int.ofNat s.length) (-2))
+          (native_zneg 0)) 1 =
+        (s.length : Int) - 1 by
+    change ((Int.ofNat s.length + (-2 : Int)) + -0 + 1) =
+      (Int.ofNat s.length : Int) - 1
+    omega]
+  exact congrArg Term.String (native_str_substr_prefix_dropLast s)
+
 private theorem eo_or_true_ne_false (b : Term) :
     __eo_or (Term.Boolean true) b ≠ Term.Boolean false := by
   cases b <;> simp [__eo_or, SmtEval.native_or]
@@ -774,7 +823,38 @@ private theorem str_is_compatible_full_word_flatten_intro_ne_false_of_append_eva
         (RuleProofs.substrWord word 0 word.length)
         (__str_flatten (__str_nary_intro x)) ≠
       Term.Boolean false := by
-  sorry
+  cases word with
+  | nil =>
+      simpa using
+        str_is_compatible_empty_left_ne_false
+          (__str_flatten (__str_nary_intro x))
+  | cons wc wcs =>
+      cases x with
+      | String str =>
+          have hStr :
+              native_unpack_seq sx = str.map SmtValue.Char :=
+            string_eval_unpack_eq M str sx hxEval
+          have hAlign' :
+              str.map SmtValue.Char ++ xTail =
+                (wc :: wcs).map SmtValue.Char ++ suffixTail := by
+            simpa [hStr] using hAlign
+          cases str with
+          | nil =>
+              rw [RuleProofs.str_flatten_nary_intro_empty]
+              simpa using
+                substrWord_compatible_ne_false_of_append_eq (wc :: wcs) []
+                  xTail suffixTail hAlign'
+          | cons c cs =>
+              rw [RuleProofs.str_flatten_nary_intro_cons c cs]
+              simpa using
+                substrWord_compatible_ne_false_of_append_eq (wc :: wcs) (c :: cs)
+                  xTail suffixTail hAlign'
+      | Stuck =>
+          cases hSub :
+              RuleProofs.substrWord (wc :: wcs) 0 ((wc :: wcs).length) <;>
+            simp [__str_nary_intro, __str_flatten, __str_is_compatible]
+      | _ =>
+          sorry
 
 private theorem mkConcat_eval_unpack_eq
     (M : SmtModel) (x y : Term) (sxy sx sy : SmtSeq)
@@ -1536,6 +1616,78 @@ private theorem cprop_context_false
   exact ⟨T, sc, tTail, sTail, rfl, hIntroT, hIntroS, hTTailList,
     hSTailList, htcTy, hscTy, htTailTy, hsTailTy, hConcatEq⟩
 
+private theorem eo_interprets_rev_cons_snoc_prefix_of_seq_with_cons_eq
+    (M : SmtModel) (hM : model_total_typed M) (head tail : Term)
+    (T : SmtType)
+    (hHeadTy : __smtx_typeof (__eo_to_smt head) = SmtType.Seq T)
+    (hTailList :
+      __eo_is_list (Term.UOp UserOp.str_concat) tail = Term.Boolean true)
+    (hTailTy : __smtx_typeof (__eo_to_smt tail) = SmtType.Seq T)
+    (hRevCons :
+      __eo_list_rev (Term.UOp UserOp.str_concat) (mkConcat head tail) ≠
+        Term.Stuck)
+    (hElimCons :
+      __str_nary_elim
+          (__eo_list_rev (Term.UOp UserOp.str_concat) (mkConcat head tail)) ≠
+        Term.Stuck) :
+    ∃ pref,
+      __smtx_typeof (__eo_to_smt pref) = SmtType.Seq T ∧
+        eo_interprets M
+          (mkEq
+            (__str_nary_elim
+              (__eo_list_rev (Term.UOp UserOp.str_concat)
+                (mkConcat head tail)))
+            (mkConcat pref head)) true ∧
+        (∀ a aTail, tail = mkConcat a aTail ->
+          pref =
+            __str_nary_elim
+              (__eo_list_rev (Term.UOp UserOp.str_concat) tail)) := by
+  by_cases hTailConcat : ∃ a aTail : Term, tail = mkConcat a aTail
+  · rcases hTailConcat with ⟨a, aTail, rfl⟩
+    have hRevTail :
+        __eo_list_rev (Term.UOp UserOp.str_concat)
+            (mkConcat a aTail) ≠ Term.Stuck :=
+      eo_list_rev_ne_stuck_of_is_list_true (Term.UOp UserOp.str_concat)
+        (mkConcat a aTail) hTailList
+    have hElimTail :
+        __str_nary_elim
+            (__eo_list_rev (Term.UOp UserOp.str_concat)
+              (mkConcat a aTail)) ≠ Term.Stuck :=
+      str_nary_elim_list_rev_str_concat_cons_ne_stuck_of_seq a aTail T
+        hTailTy hRevTail
+    let pref :=
+      __str_nary_elim
+        (__eo_list_rev (Term.UOp UserOp.str_concat) (mkConcat a aTail))
+    have hPrefixTy :
+        __smtx_typeof (__eo_to_smt pref) = SmtType.Seq T := by
+      subst pref
+      exact smt_typeof_str_nary_elim_list_rev_of_seq (mkConcat a aTail)
+        T hTailList hTailTy hRevTail hElimTail
+    have hSnoc :
+        eo_interprets M
+          (mkEq
+            (__str_nary_elim
+              (__eo_list_rev (Term.UOp UserOp.str_concat)
+                (mkConcat head (mkConcat a aTail))))
+            (mkConcat pref head)) true := by
+      subst pref
+      exact eo_interprets_rev_cons_snoc_of_seq M hM head (mkConcat a aTail)
+        T hHeadTy hTailList hTailTy hRevCons hRevTail hElimCons
+        hElimTail
+    refine ⟨pref, hPrefixTy, hSnoc, ?_⟩
+    intro b bTail _hEq
+    rfl
+  · have hNil :
+        __eo_is_list_nil (Term.UOp UserOp.str_concat) tail =
+          Term.Boolean true :=
+      eo_is_list_nil_str_concat_of_list_true_not_concat tail hTailList
+        hTailConcat
+    refine ⟨tail, hTailTy,
+      eo_interprets_rev_cons_snoc_of_list_nil_raw M hM head tail T
+        hHeadTy hNil hTailTy hRevCons, ?_⟩
+    intro a aTail hEq
+    exact False.elim (hTailConcat ⟨a, aTail, hEq⟩)
+
 private theorem cprop_context_true
     (M : SmtModel) (hM : model_total_typed M)
     (t s tc : Term)
@@ -1555,11 +1707,21 @@ private theorem cprop_context_true
         mkConcat sc sTail ∧
       __eo_is_list (Term.UOp UserOp.str_concat) tTail = Term.Boolean true ∧
       __eo_is_list (Term.UOp UserOp.str_concat) sTail = Term.Boolean true ∧
+      __smtx_typeof (__eo_to_smt tTail) = SmtType.Seq T ∧
+      __smtx_typeof (__eo_to_smt sTail) = SmtType.Seq T ∧
       __smtx_typeof (__eo_to_smt tc) = SmtType.Seq T ∧
       __smtx_typeof (__eo_to_smt sc) = SmtType.Seq T ∧
       __smtx_typeof (__eo_to_smt tPrefix) = SmtType.Seq T ∧
       __smtx_typeof (__eo_to_smt sPrefix) = SmtType.Seq T ∧
-      eo_interprets M (mkEq (mkConcat tPrefix tc) (mkConcat sPrefix sc)) true := by
+      eo_interprets M (mkEq (mkConcat tPrefix tc) (mkConcat sPrefix sc)) true ∧
+      (∀ a aTail, tTail = mkConcat a aTail ->
+        tPrefix =
+          __str_nary_elim
+            (__eo_list_rev (Term.UOp UserOp.str_concat) tTail)) ∧
+      (∀ a aTail, sTail = mkConcat a aTail ->
+        sPrefix =
+          __str_nary_elim
+            (__eo_list_rev (Term.UOp UserOp.str_concat) sTail)) := by
   rcases eo_prog_concat_cprop_eq_of_ne_stuck
       (Term.Boolean true) t s tc hProg with
     ⟨_, hHeadT⟩
@@ -1768,12 +1930,12 @@ private theorem cprop_context_true
             (mkConcat sc sTail)) ≠ Term.Stuck :=
     str_nary_elim_list_rev_str_concat_cons_ne_stuck_of_seq sc sTail T
       hConsSTy hRevConsS
-  rcases eo_interprets_rev_cons_snoc_prefix_of_seq M hM tc tTail T
+  rcases eo_interprets_rev_cons_snoc_prefix_of_seq_with_cons_eq M hM tc tTail T
       htcTy hTTailList htTailTy hRevConsT hElimConsT with
-    ⟨tPrefix, htPrefixTy, hSnocT⟩
-  rcases eo_interprets_rev_cons_snoc_prefix_of_seq M hM sc sTail T
+    ⟨tPrefix, htPrefixTy, hSnocT, hTPrefixConsEq⟩
+  rcases eo_interprets_rev_cons_snoc_prefix_of_seq_with_cons_eq M hM sc sTail T
       hscTy hSTailList hsTailTy hRevConsS hElimConsS with
-    ⟨sPrefix, hsPrefixTy, hSnocS⟩
+    ⟨sPrefix, hsPrefixTy, hSnocS, hSPrefixConsEq⟩
   have hSnocTSymm :
       eo_interprets M
         (mkEq (mkConcat tPrefix tc)
@@ -1804,8 +1966,9 @@ private theorem cprop_context_true
         (__eo_list_rev (Term.UOp UserOp.str_concat) (mkConcat sc sTail)))
       (mkConcat sPrefix sc) hLeftToRight hSnocS
   exact ⟨T, sc, tPrefix, sPrefix, tTail, sTail, rfl, hRevIntroT,
-    hRevIntroS, hTTailList, hSTailList, htcTy, hscTy, htPrefixTy,
-    hsPrefixTy, hSnocEq⟩
+    hRevIntroS, hTTailList, hSTailList, htTailTy, hsTailTy, htcTy,
+    hscTy, htPrefixTy, hsPrefixTy, hSnocEq, hTPrefixConsEq,
+    hSPrefixConsEq⟩
 
 private theorem cprop_context_true_head_type
     (t s tc : Term)
@@ -3375,6 +3538,7 @@ private theorem facts_concat_cprop_true_formula
       __eo_is_list (Term.UOp UserOp.str_concat) sTail = Term.Boolean true)
     (htcTy : __smtx_typeof (__eo_to_smt tc) = SmtType.Seq T)
     (hscTy : __smtx_typeof (__eo_to_smt sc) = SmtType.Seq T)
+    (htTailTy : __smtx_typeof (__eo_to_smt tTail) = SmtType.Seq T)
     (htPrefixTy : __smtx_typeof (__eo_to_smt tPrefix) = SmtType.Seq T)
     (hsPrefixTy : __smtx_typeof (__eo_to_smt sPrefix) = SmtType.Seq T)
     (hProg :
@@ -3384,7 +3548,17 @@ private theorem facts_concat_cprop_true_formula
     (hNonzero :
       eo_interprets M (mkNot (mkEq (mkStrLen tc) (Term.Numeral 0))) true)
     (hConcatEq :
-      eo_interprets M (mkEq (mkConcat tPrefix tc) (mkConcat sPrefix sc)) true) :
+      eo_interprets M (mkEq (mkConcat tPrefix tc) (mkConcat sPrefix sc)) true)
+    (hTPrefixConsEq :
+      ∀ a aTail, tTail = mkConcat a aTail ->
+        tPrefix =
+          __str_nary_elim
+            (__eo_list_rev (Term.UOp UserOp.str_concat) tTail))
+    (hSPrefixConsEq :
+      ∀ a aTail, sTail = mkConcat a aTail ->
+        sPrefix =
+          __str_nary_elim
+            (__eo_list_rev (Term.UOp UserOp.str_concat) sTail)) :
     eo_interprets M (concatCPropFormula (Term.Boolean true) t s tc) true := by
   rcases concat_split_append_eq_of_concat_eq M hM tPrefix tc sPrefix sc T
       htPrefixTy htcTy hsPrefixTy hscTy hConcatEq with
@@ -3424,6 +3598,71 @@ private theorem facts_concat_cprop_true_formula
   rcases cprop_flat_second_true_tail_head_of_rev_ne_stuck t tc tTail
       hRevIntroT hTTailList (by simpa [recT] using hRecTNe) with
     ⟨tSecond, tSecondTail, hTTailHead, hTSecondTailList, hFlatSecondEq⟩
+  have htTailConsTy :
+      __smtx_typeof (__eo_to_smt (mkConcat tSecond tSecondTail)) =
+        SmtType.Seq T := by
+    simpa [hTTailHead] using htTailTy
+  rcases str_concat_args_of_seq_type tSecond tSecondTail T htTailConsTy with
+    ⟨htSecondTy, htSecondTailTy⟩
+  have hTPrefixEq :
+      tPrefix =
+        __str_nary_elim
+          (__eo_list_rev (Term.UOp UserOp.str_concat)
+            (mkConcat tSecond tSecondTail)) := by
+    rw [hTPrefixConsEq tSecond tSecondTail hTTailHead, hTTailHead]
+  have hTailConsList :
+      __eo_is_list (Term.UOp UserOp.str_concat)
+          (mkConcat tSecond tSecondTail) = Term.Boolean true :=
+    eo_is_list_cons_self_true_of_tail_list (Term.UOp UserOp.str_concat)
+      tSecond tSecondTail (by decide) hTSecondTailList
+  have hRevTailCons :
+      __eo_list_rev (Term.UOp UserOp.str_concat)
+          (mkConcat tSecond tSecondTail) ≠ Term.Stuck :=
+    eo_list_rev_ne_stuck_of_is_list_true (Term.UOp UserOp.str_concat)
+      (mkConcat tSecond tSecondTail) hTailConsList
+  have hElimTailCons :
+      __str_nary_elim
+          (__eo_list_rev (Term.UOp UserOp.str_concat)
+            (mkConcat tSecond tSecondTail)) ≠ Term.Stuck :=
+    str_nary_elim_list_rev_str_concat_cons_ne_stuck_of_seq tSecond
+      tSecondTail T htTailConsTy hRevTailCons
+  rcases eo_interprets_rev_cons_snoc_prefix_of_seq M hM tSecond
+      tSecondTail T htSecondTy hTSecondTailList htSecondTailTy
+      hRevTailCons hElimTailCons with
+    ⟨tSecondPrefix, htSecondPrefixTy, hSnocSecond⟩
+  have hTPrefixSnoc :
+      eo_interprets M (mkEq tPrefix (mkConcat tSecondPrefix tSecond)) true := by
+    rw [hTPrefixEq]
+    exact hSnocSecond
+  have hTPrefixSplit :
+      ∃ stSecondPrefix stSecond,
+        __smtx_model_eval M (__eo_to_smt tSecond) = SmtValue.Seq stSecond ∧
+        native_unpack_seq stp =
+          native_unpack_seq stSecondPrefix ++ native_unpack_seq stSecond := by
+    have hPrefixValTy := smt_model_eval_preserves_type M hM
+      (__eo_to_smt tSecondPrefix) (SmtType.Seq T) htSecondPrefixTy
+      (seq_ne_none T) (type_inhabited_seq T)
+    have hSecondValTy := smt_model_eval_preserves_type M hM
+      (__eo_to_smt tSecond) (SmtType.Seq T) htSecondTy
+      (seq_ne_none T) (type_inhabited_seq T)
+    rcases seq_value_canonical hPrefixValTy with
+      ⟨stSecondPrefix, htSecondPrefixEval⟩
+    rcases seq_value_canonical hSecondValTy with
+      ⟨stSecond, htSecondEval⟩
+    refine ⟨stSecondPrefix, stSecond, htSecondEval, ?_⟩
+    have hRel := RuleProofs.eo_interprets_eq_rel M tPrefix
+      (mkConcat tSecondPrefix tSecond) hTPrefixSnoc
+    unfold RuleProofs.smt_value_rel at hRel
+    rw [htPrefixEval, smtx_model_eval_str_concat_term_eq,
+      htSecondPrefixEval, htSecondEval] at hRel
+    simp [__smtx_model_eval_str_concat, native_seq_concat] at hRel
+    have hSeqEq :=
+      (RuleProofs.smt_seq_rel_iff_eq stp
+        (native_pack_seq (__smtx_elem_typeof_seq_value stSecondPrefix)
+          (native_unpack_seq stSecondPrefix ++
+            native_unpack_seq stSecond))).mp hRel
+    rw [hSeqEq]
+    simp [native_unpack_pack_seq]
   rcases str_overlap_rec_numeral_of_ne_stuck recS recT hRecNe with
     ⟨m, hRec⟩
   have hOverlap :
@@ -3478,6 +3717,37 @@ private theorem facts_concat_cprop_true_formula
             (Int.ofNat (native_unpack_seq ss).length + -Int.ofNat (m + 1))
             (m + 1)
         omega
+      rcases hTPrefixSplit with
+        ⟨stSecondPrefix, stSecond, htSecondEval, hStpSplit⟩
+      have hstLeSs :
+          (native_unpack_seq st).length <= (native_unpack_seq ss).length :=
+        Nat.le_of_lt (Nat.lt_of_not_ge hleSS)
+      have hSsBoundary :
+          native_unpack_seq ss =
+            (native_unpack_seq ss).take
+              ((native_unpack_seq ss).length - (native_unpack_seq st).length) ++
+            native_unpack_seq st :=
+        concat_split_suffix_eq_take_append_of_append_eq_of_le
+          (native_unpack_seq ssp) (native_unpack_seq ss)
+          (native_unpack_seq stp) (native_unpack_seq st)
+          (by simpa using hAppend.symm) hstLeSs
+      have hStpBoundary :
+          native_unpack_seq stp =
+            native_unpack_seq ssp ++
+              (native_unpack_seq ss).take
+                ((native_unpack_seq ss).length -
+                  (native_unpack_seq st).length) := by
+        have hAppend' := hAppend
+        rw [hSsBoundary, ← List.append_assoc] at hAppend'
+        exact List.append_cancel_right hAppend'
+      have hSecondBoundary :
+          native_unpack_seq stSecondPrefix ++ native_unpack_seq stSecond =
+            native_unpack_seq ssp ++
+              (native_unpack_seq ss).take
+                ((native_unpack_seq ss).length -
+                  (native_unpack_seq st).length) := by
+        rw [← hStpSplit]
+        exact hStpBoundary
       have hCompatFalse :
           __str_is_compatible
               (strConcatDrop recS ((native_unpack_seq st).length - 1))
@@ -3490,7 +3760,30 @@ private theorem facts_concat_cprop_true_formula
               (strConcatDrop recS ((native_unpack_seq st).length - 1))
               recT ≠
             Term.Boolean false := by
-        sorry
+        intro hBad
+        dsimp [recS, recT] at hBad
+        simp only [concatCPropSHeadTailWord, concatCPropFlatSecond] at hBad
+        rw [show concatCPropHead (Term.Boolean true) s = Term.String scWord by
+          rw [← hScEq, hScString]] at hBad
+        simp [eo_ite_true, hFlatSecondEq] at hBad
+        rw [eo_extract_prefix_dropLast scWord] at hBad
+        cases scWord with
+        | nil =>
+            have hSsLen : (native_unpack_seq ss).length = 0 := by
+              simp [hSsWord]
+            omega
+        | cons c cs =>
+            cases cs with
+            | nil =>
+                have hSsLen : (native_unpack_seq ss).length = 1 := by
+                  simp [hSsWord]
+                omega
+            | cons d ds =>
+                rw [show (c :: d :: ds).dropLast =
+                    c :: (d :: ds).dropLast by rfl] at hBad
+                rw [RuleProofs.str_flatten_nary_intro_cons c
+                  ((d :: ds).dropLast)] at hBad
+                sorry
       exact False.elim (hCompatNotFalse hCompatFalse)
   exact cprop_true_formula_of_overlap_bounds M hM t s tc sc tPrefix
     sPrefix T stp st ssp ss (m + 1) hScEq htcTy hscTy htPrefixTy
@@ -3730,12 +4023,14 @@ private theorem step_concat_cprop_core
       rcases cprop_context_true M hM t s tc hPremBool hNonzeroBool
           hProg hST with
         ⟨U, sc, tPrefix, sPrefix, tTail, sTail, hScEq, hRevIntroT,
-          hRevIntroS, hTTailList, hSTailList, htcTy', hscTy, htPrefixTy,
-          hsPrefixTy, hConcatEq⟩
+          hRevIntroS, hTTailList, hSTailList, htTailTy, _hsTailTy,
+          htcTy', hscTy, htPrefixTy, hsPrefixTy, hConcatEq,
+          hTPrefixConsEq, hSPrefixConsEq⟩
       rw [hProgEq]
       exact facts_concat_cprop_true_formula M hM t s tc sc tPrefix sPrefix
         tTail sTail U hScEq hRevIntroT hRevIntroS hTTailList hSTailList
-        htcTy' hscTy htPrefixTy hsPrefixTy hProg hNonzero hConcatEq
+        htcTy' hscTy htTailTy htPrefixTy hsPrefixTy hProg hNonzero hConcatEq
+        hTPrefixConsEq hSPrefixConsEq
     · rw [hProgEq]
       exact concatCPropFormula_has_smt_translation_true t s tc hPremBool
         hNonzeroBool hProg hResultTy
