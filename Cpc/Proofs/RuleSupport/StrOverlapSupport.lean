@@ -882,11 +882,12 @@ global distinctness guard is needed. -/
 theorem is_compat_false_no_compat
     (val : Term → SmtValue) (exX exY : Term)
     (hExYne : exY ≠ Term.Stuck)
-    (hExX : ∀ W, W ≠ Term.Stuck → __str_is_compatible exX W = Term.Boolean true)
+    (hExX : ∀ ys', __str_is_compatible exX (atomChainTerm ys' exY) = Term.Boolean true)
     (hExY : ∀ a W, __str_is_compatible
         (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) a) W) exY = Term.Boolean true) :
     ∀ (xs ys : List Term),
-      (∀ a b, __are_distinct_terms_type a b (__eo_typeof a) = Term.Boolean true →
+      (∀ a ∈ xs, ∀ b ∈ ys, __eo_eq a b = Term.Boolean false →
+        __are_distinct_terms_type a b (__eo_typeof a) = Term.Boolean true →
         native_veq (val a) (val b) = false) →
       __str_is_compatible (atomChainTerm xs exX) (atomChainTerm ys exY) = Term.Boolean false →
       ¬ native_seq_compat (xs.map val) (ys.map val) := by
@@ -894,8 +895,7 @@ theorem is_compat_false_no_compat
   induction xs with
   | nil =>
       intro ys _ hfalse
-      rw [show atomChainTerm [] exX = exX from rfl,
-        hExX _ (atomChainTerm_ne_stuck ys exY hExYne)] at hfalse
+      rw [show atomChainTerm [] exX = exX from rfl, hExX ys] at hfalse
       simp at hfalse
   | cons a xs ih =>
       intro ys hsound hfalse
@@ -910,7 +910,8 @@ theorem is_compat_false_no_compat
           · have hba : b = a := eq_of_eo_eq a b hab
             subst hba
             rw [hab, eo_ite_true] at hfalse
-            have ihres := ih ys hsound hfalse
+            have ihres := ih ys (fun a' ha' b' hb' heq' hd' => hsound a' (List.mem_cons_of_mem _ ha')
+              b' (List.mem_cons_of_mem _ hb') heq' hd') hfalse
             intro hcompat; apply ihres
             unfold native_seq_compat at hcompat ⊢
             simp only [List.map_cons, native_seq_prefix_eq, nveq_self, Bool.true_and] at hcompat
@@ -931,7 +932,7 @@ theorem is_compat_false_no_compat
                 | true => intro _; rfl
                 | false => intro hf; simp [native_ite, native_teq] at hf
               | _ => intro hf; simp [native_ite, native_teq] at hf
-            have hvf := hsound a b hdist
+            have hvf := hsound a (by simp) b (by simp) habf hdist
             have hvf2 := nveq_symm hvf
             intro hcompat
             unfold native_seq_compat at hcompat
@@ -983,11 +984,12 @@ theorem no_compat_of_word
     (hunpc : native_unpack_seq Sc = xs.map val)
     (hunpd : native_unpack_seq Sd = ys.map val)
     (hexXne : exX ≠ Term.Stuck) (hexYne : exY ≠ Term.Stuck)
-    (hexXcompatL : ∀ W, W ≠ Term.Stuck → __str_is_compatible exX W = Term.Boolean true)
+    (hexXcompatL : ∀ ys', __str_is_compatible exX (atomChainTerm ys' exY) = Term.Boolean true)
     (hexYcompatR : ∀ a W, __str_is_compatible
         (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) a) W) exY = Term.Boolean true)
     (hexXz : ∀ W, W ≠ Term.Stuck → __str_overlap_rec exX W = Term.Numeral 0)
-    (hsound : ∀ a b, __are_distinct_terms_type a b (__eo_typeof a) = Term.Boolean true →
+    (hsound : ∀ a ∈ xs, ∀ b ∈ ys, __eo_eq a b = Term.Boolean false →
+      __are_distinct_terms_type a b (__eo_typeof a) = Term.Boolean true →
       native_veq (val a) (val b) = false)
     (hgt : __eo_gt (__str_value_len c)
         (__str_overlap_rec (__str_flatten (__str_nary_intro c))
@@ -1017,7 +1019,107 @@ theorem no_compat_of_word
   rw [hunpc, List.length_map] at hk
   rw [hunpc, hunpd, ← List.map_drop]
   exact is_compat_false_no_compat val exX exY hexYne hexXcompatL hexYcompatR
-    (xs.drop k) ys hsound (hfull k hk)
+    (xs.drop k) ys
+    (fun a' ha' b' hb' heq' hd' => hsound a' (List.mem_of_mem_drop ha') b' hb' heq' hd')
+    (hfull k hk)
+
+/-! ### seq_unit word building blocks (towards the seq_unit case of `no_compat_dispatch`) -/
+
+/-- `concat` evaluation appends the two element lists. -/
+theorem concat_unpack (M : SmtModel) (x y : Term) (sx sy : SmtSeq)
+    (hx : __smtx_model_eval M (__eo_to_smt x) = SmtValue.Seq sx)
+    (hy : __smtx_model_eval M (__eo_to_smt y) = SmtValue.Seq sy) :
+    ∃ sxy, __smtx_model_eval M (__eo_to_smt
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) x) y)) = SmtValue.Seq sxy ∧
+      native_unpack_seq sxy = native_unpack_seq sx ++ native_unpack_seq sy := by
+  rw [smtx_model_eval_str_concat_term_eq, hx, hy]
+  simp only [__smtx_model_eval_str_concat]
+  exact ⟨_, rfl, by rw [native_unpack_pack_seq]; rfl⟩
+
+/-- Top-down chain unpack: from the chain evaluating to a `Seq`, its element list is
+`xs.map val`, given each atom's element value and an empty-like terminator. -/
+theorem chain_unpack_td (M : SmtModel) (val : Term → SmtValue) (ex : Term)
+    (htermempty : __str_is_empty ex = Term.Boolean true) :
+    ∀ (xs : List Term) (sc : SmtSeq),
+      __smtx_model_eval M (__eo_to_smt (atomChainTerm xs ex)) = SmtValue.Seq sc →
+      (∀ a ∈ xs, ∀ sa, __smtx_model_eval M (__eo_to_smt a) = SmtValue.Seq sa →
+        native_unpack_seq sa = [val a]) →
+      native_unpack_seq sc = xs.map val := by
+  intro xs
+  induction xs with
+  | nil =>
+      intro sc hc _
+      rw [show atomChainTerm [] ex = ex from rfl] at hc
+      simpa using str_is_empty_eval_unpack_nil M ex sc htermempty hc
+  | cons a xs ih =>
+      intro sc hc hatoms
+      rw [atomChainTerm_cons] at hc
+      obtain ⟨⟨sa, hsa⟩, ⟨sc', hsc'⟩⟩ := strConcat_args_eval_seq_of_concat_eval_seq M a
+        (atomChainTerm xs ex) ⟨sc, hc⟩
+      obtain ⟨sxy, hsxy, hsxynil⟩ := concat_unpack M a (atomChainTerm xs ex) sa sc' hsa hsc'
+      have heq : sc = sxy := by rw [hc] at hsxy; injection hsxy
+      rw [heq, hsxynil, hatoms a (by simp) sa hsa, ih sc' hsc' (fun a' h' => hatoms a' (by simp [h']))]
+      simp
+
+/-- The element value of a `seq_unit` atom. -/
+noncomputable def seqElemVal (M : SmtModel) (a : Term) : SmtValue :=
+  match a with
+  | Term.Apply (Term.UOp UserOp.seq_unit) e => __smtx_model_eval M (__eo_to_smt e)
+  | _ => SmtValue.NotValue
+
+theorem eval_seqUnitAtom (M : SmtModel) (e : Term) :
+    ∃ sa, __smtx_model_eval M (__eo_to_smt (Term.Apply (Term.UOp UserOp.seq_unit) e)) = SmtValue.Seq sa ∧
+      native_unpack_seq sa = [seqElemVal M (Term.Apply (Term.UOp UserOp.seq_unit) e)] := by
+  rw [show __eo_to_smt (Term.Apply (Term.UOp UserOp.seq_unit) e) = SmtTerm.seq_unit (__eo_to_smt e) from rfl]
+  rw [show __smtx_model_eval M (SmtTerm.seq_unit (__eo_to_smt e)) =
+      SmtValue.Seq (SmtSeq.cons (__smtx_model_eval M (__eo_to_smt e))
+        (SmtSeq.empty (__smtx_typeof_value (__smtx_model_eval M (__eo_to_smt e))))) from by
+        simp only [__smtx_model_eval]]
+  exact ⟨_, rfl, by simp [native_unpack_seq, seqElemVal]⟩
+
+theorem str_is_empty_seq_empty (T : Term) :
+    __str_is_empty (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) T)) = Term.Boolean true := by
+  simp [__str_is_empty]
+
+theorem seqEmpty_compatL_chain (T T' : Term) :
+    ∀ ys', __str_is_compatible (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) T))
+      (atomChainTerm ys' (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) T'))) = Term.Boolean true := by
+  intro ys'
+  cases ys' with
+  | nil => simp [atomChainTerm, __str_is_compatible, __eo_l_1___str_is_compatible, __str_is_empty,
+            __eo_or, SmtEval.native_or]
+  | cons b ys'' =>
+      rw [atomChainTerm_cons]
+      simp [__str_is_compatible, __eo_l_1___str_is_compatible, __str_is_empty, __eo_or, SmtEval.native_or]
+
+theorem seqEmpty_compatR (T a W : Term) :
+    __str_is_compatible (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) a) W)
+      (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) T)) = Term.Boolean true := by
+  simp [__str_is_compatible, __eo_l_1___str_is_compatible, __str_is_empty, __eo_or, SmtEval.native_or]
+
+theorem seqEmpty_overlap_zero (T W : Term) (hW : W ≠ Term.Stuck) :
+    __str_overlap_rec (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) T)) W
+      = Term.Numeral 0 := by
+  cases W with
+  | Stuck => exact absurd rfl hW
+  | _ => simp [__str_overlap_rec]
+
+/-- `value_len c = Numeral` forces `c` to be one of the four constant-like word forms. -/
+theorem value_len_numeral_cases (c : Term) (n : Int) (h : __str_value_len c = Term.Numeral n) :
+    (∃ w, c = Term.String w) ∨
+    (∃ e ss, c = Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) (Term.Apply (Term.UOp UserOp.seq_unit) e)) ss) ∨
+    (∃ T, c = Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) T)) ∨
+    (∃ e, c = Term.Apply (Term.UOp UserOp.seq_unit) e) := by
+  unfold __str_value_len at h
+  split at h
+  · exact absurd h (by simp)
+  · next e ss => exact Or.inr (Or.inl ⟨e, ss, rfl⟩)
+  · next T => exact Or.inr (Or.inr (Or.inl ⟨T, rfl⟩))
+  · next e => exact Or.inr (Or.inr (Or.inr ⟨e, rfl⟩))
+  · cases hs : c with
+    | String w => exact Or.inl ⟨w, rfl⟩
+    | _ => exfalso; rw [hs] at h; simp [__eo_requires, __eo_is_str, __eo_is_str_internal,
+              native_teq, native_ite, SmtEval.native_and, SmtEval.native_not] at h
 
 /-- A `String` literal evaluates to the packed string value. -/
 theorem eval_string (M : SmtModel) (w : native_String) :
