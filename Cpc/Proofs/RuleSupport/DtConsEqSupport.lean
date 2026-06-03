@@ -3411,6 +3411,282 @@ private theorem ctorSpineRoot_of_dt_cons_condition
   case DtCons s d i =>
     exact ⟨Term.DtCons s d i, CtorSpineRoot.dtCons s d i⟩
 
+private theorem ctorSpineRoot_of_is_cons_app_true
+    (t : Term) :
+    __is_cons_app t = Term.Boolean true ->
+    ∃ root, CtorSpineRoot t root := by
+  cases t with
+  | UOp op =>
+      intro h
+      cases op <;>
+        simp [__is_cons_app, __eo_is_eq, __eo_is_ok, __eo_dt_selectors,
+          __eo_dt_selectors_main, native_teq, native_ite, native_not,
+          SmtEval.native_not, SmtEval.native_and] at h ⊢
+      all_goals
+        first
+        | exact ⟨Term.UOp UserOp.tuple, CtorSpineRoot.tuple⟩
+        | exact ⟨Term.UOp UserOp.tuple_unit, CtorSpineRoot.tupleUnit⟩
+        | contradiction
+  | Apply f a =>
+      intro h
+      rcases ctorSpineRoot_of_is_cons_app_true f
+          (by simpa [__is_cons_app] using h) with
+        ⟨root, hRoot⟩
+      exact ⟨root, CtorSpineRoot.app a hRoot⟩
+  | DtCons s d i =>
+      intro _h
+      exact ⟨Term.DtCons s d i, CtorSpineRoot.dtCons s d i⟩
+  | Stuck =>
+      intro h
+      simp [__is_cons_app] at h
+  | UOp1 op t =>
+      intro h
+      simp [__is_cons_app, __eo_is_eq, __eo_is_ok, __eo_dt_selectors,
+        __eo_dt_selectors_main, native_teq, native_ite, native_not,
+        SmtEval.native_not, SmtEval.native_and] at h
+  | UOp2 op t u =>
+      intro h
+      simp [__is_cons_app, __eo_is_eq, __eo_is_ok, __eo_dt_selectors,
+        __eo_dt_selectors_main, native_teq, native_ite, native_not,
+        SmtEval.native_not, SmtEval.native_and] at h
+  | UOp3 op t u v =>
+      intro h
+      simp [__is_cons_app, __eo_is_eq, __eo_is_ok, __eo_dt_selectors,
+        __eo_dt_selectors_main, native_teq, native_ite, native_not,
+        SmtEval.native_not, SmtEval.native_and] at h
+  | __eo_List =>
+      intro h
+      simp [__is_cons_app, __eo_is_eq, __eo_is_ok, __eo_dt_selectors,
+        __eo_dt_selectors_main, native_teq, native_ite, native_not,
+        SmtEval.native_not, SmtEval.native_and] at h
+  | __eo_List_nil =>
+      intro h
+      simp [__is_cons_app, __eo_is_eq, __eo_is_ok, __eo_dt_selectors,
+        __eo_dt_selectors_main, native_teq, native_ite, native_not,
+        SmtEval.native_not, SmtEval.native_and] at h
+  | __eo_List_cons =>
+      intro h
+      simp [__is_cons_app, __eo_is_eq, __eo_is_ok, __eo_dt_selectors,
+        __eo_dt_selectors_main, native_teq, native_ite, native_not,
+        SmtEval.native_not, SmtEval.native_and] at h
+  | Bool =>
+      intro h
+      simp [__is_cons_app, __eo_is_eq, __eo_is_ok, __eo_dt_selectors,
+        __eo_dt_selectors_main, native_teq, native_ite, native_not,
+        SmtEval.native_not, SmtEval.native_and] at h
+  | Boolean b =>
+      intro h
+      simp [__is_cons_app, __eo_is_eq, __eo_is_ok, __eo_dt_selectors,
+        __eo_dt_selectors_main, native_teq, native_ite, native_not,
+        SmtEval.native_not, SmtEval.native_and] at h
+  | Numeral n =>
+      intro h
+      simp [__is_cons_app, __eo_is_eq, __eo_is_ok, __eo_dt_selectors,
+        __eo_dt_selectors_main, native_teq, native_ite, native_not,
+        SmtEval.native_not, SmtEval.native_and] at h
+  | Rational q =>
+      intro h
+      simp [__is_cons_app, __eo_is_eq, __eo_is_ok, __eo_dt_selectors,
+        __eo_dt_selectors_main, native_teq, native_ite, native_not,
+        SmtEval.native_not, SmtEval.native_and] at h
+  | String str =>
+      intro h
+      simp [__is_cons_app, __eo_is_eq, __eo_is_ok, __eo_dt_selectors,
+        __eo_dt_selectors_main, native_teq, native_ite, native_not,
+        SmtEval.native_not, SmtEval.native_and] at h
+  | Binary w n =>
+      intro h
+      simp [__is_cons_app, __eo_is_eq, __eo_is_ok, __eo_dt_selectors,
+        __eo_dt_selectors_main, native_teq, native_ite, native_not,
+        SmtEval.native_not, SmtEval.native_and] at h
+  | «Type» =>
+      intro h
+      simp [__is_cons_app, __eo_is_eq, __eo_is_ok, __eo_dt_selectors,
+        __eo_dt_selectors_main, native_teq, native_ite, native_not,
+        SmtEval.native_not, SmtEval.native_and] at h
+  | FunType =>
+      intro h
+      simp [__is_cons_app, __eo_is_eq, __eo_is_ok, __eo_dt_selectors,
+        __eo_dt_selectors_main, native_teq, native_ite, native_not,
+        SmtEval.native_not, SmtEval.native_and] at h
+  | Var n T =>
+      intro h
+      simp [__is_cons_app, __eo_is_eq, __eo_is_ok, __eo_dt_selectors,
+        __eo_dt_selectors_main, native_teq, native_ite, native_not,
+        SmtEval.native_not, SmtEval.native_and] at h
+  | DatatypeType s d =>
+      intro h
+      simp [__is_cons_app, __eo_is_eq, __eo_is_ok, __eo_dt_selectors,
+        __eo_dt_selectors_main, native_teq, native_ite, native_not,
+        SmtEval.native_not, SmtEval.native_and] at h
+  | DatatypeTypeRef s =>
+      intro h
+      simp [__is_cons_app, __eo_is_eq, __eo_is_ok, __eo_dt_selectors,
+        __eo_dt_selectors_main, native_teq, native_ite, native_not,
+        SmtEval.native_not, SmtEval.native_and] at h
+  | DtcAppType T U =>
+      intro h
+      simp [__is_cons_app, __eo_is_eq, __eo_is_ok, __eo_dt_selectors,
+        __eo_dt_selectors_main, native_teq, native_ite, native_not,
+        SmtEval.native_not, SmtEval.native_and] at h
+  | DtSel s d i j =>
+      intro h
+      simp [__is_cons_app, __eo_is_eq, __eo_is_ok, __eo_dt_selectors,
+        __eo_dt_selectors_main, native_teq, native_ite, native_not,
+        SmtEval.native_not, SmtEval.native_and] at h
+  | USort n =>
+      intro h
+      simp [__is_cons_app, __eo_is_eq, __eo_is_ok, __eo_dt_selectors,
+        __eo_dt_selectors_main, native_teq, native_ite, native_not,
+        SmtEval.native_not, SmtEval.native_and] at h
+  | UConst n T =>
+      intro h
+      simp [__is_cons_app, __eo_is_eq, __eo_is_ok, __eo_dt_selectors,
+        __eo_dt_selectors_main, native_teq, native_ite, native_not,
+        SmtEval.native_not, SmtEval.native_and] at h
+termination_by sizeOf t
+decreasing_by
+  simp_wf
+  omega
+
+theorem is_cons_app_apply_model_eval_is_apply
+    (M : SmtModel) (hM : model_total_typed M)
+    (f a : Term) :
+    __is_cons_app (Term.Apply f a) = Term.Boolean true ->
+    RuleProofs.eo_has_smt_translation (Term.Apply f a) ->
+    ∃ v x,
+      __smtx_model_eval M (__eo_to_smt (Term.Apply f a)) =
+        SmtValue.Apply v x := by
+  intro hCons hTrans
+  rcases ctorSpineRoot_of_is_cons_app_true (Term.Apply f a) hCons with
+    ⟨root, hRoot⟩
+  exact ctorSpineRoot_apply_eval_is_apply M hM hRoot hTrans
+
+theorem is_cons_app_apply_eval_eq_apply_of_not_tuple
+    (M : SmtModel) (hM : model_total_typed M)
+    (f a : Term) :
+    __is_cons_app (Term.Apply f a) = Term.Boolean true ->
+    (∀ x, f ≠ Term.Apply (Term.UOp UserOp.tuple) x) ->
+    RuleProofs.eo_has_smt_translation (Term.Apply f a) ->
+    __smtx_model_eval M (__eo_to_smt (Term.Apply f a)) =
+      SmtValue.Apply
+        (__smtx_model_eval M (__eo_to_smt f))
+        (__smtx_model_eval M (__eo_to_smt a)) := by
+  intro hCons hNotTuple hTrans
+  rcases ctorSpineRoot_of_is_cons_app_true (Term.Apply f a) hCons with
+    ⟨root, hRoot⟩
+  cases hRoot with
+  | app y hPrev =>
+      rcases ctorSpineRoot_root_cases hPrev with hTuple | hRest
+      · have hPrevTuple : CtorSpineRoot f (Term.UOp UserOp.tuple) := by
+          simpa [hTuple] using hPrev
+        rcases ctorSpineRoot_tuple_apply_type_none_or_one_arg hPrevTuple with
+          hNone | hOne
+        · exact False.elim (hTrans hNone)
+        · rcases hOne with ⟨head, hF⟩
+          exact False.elim (hNotTuple head hF)
+      · rcases hRest with hUnit | hDt
+        · have hPrevUnit : CtorSpineRoot f (Term.UOp UserOp.tuple_unit) := by
+            simpa [hUnit] using hPrev
+          exact False.elim
+            (hTrans (ctorSpineRoot_tupleUnit_apply_type_none hPrevUnit))
+        · rcases hDt with ⟨s, d, i, hRootDt⟩
+          have hPrevDt : CtorSpineRoot f (Term.DtCons s d i) := by
+            simpa [hRootDt] using hPrev
+          have hDtSp : DtConsSpineRoot f s d i :=
+            dtConsSpineRoot_of_ctor_dtCons hPrevDt
+          exact dtConsSpineRoot_apply_eval_eq_apply M hM hDtSp a hTrans
+
+theorem is_cons_app_apply_head_has_smt_translation_of_not_tuple
+    (f a : Term) :
+    __is_cons_app (Term.Apply f a) = Term.Boolean true ->
+    (∀ x, f ≠ Term.Apply (Term.UOp UserOp.tuple) x) ->
+    RuleProofs.eo_has_smt_translation (Term.Apply f a) ->
+    RuleProofs.eo_has_smt_translation f := by
+  intro hCons hNotTuple hTrans
+  rcases ctorSpineRoot_of_is_cons_app_true (Term.Apply f a) hCons with
+    ⟨root, hRoot⟩
+  cases hRoot with
+  | app y hPrev =>
+      rcases ctorSpineRoot_root_cases hPrev with hTuple | hRest
+      · have hPrevTuple : CtorSpineRoot f (Term.UOp UserOp.tuple) := by
+          simpa [hTuple] using hPrev
+        rcases ctorSpineRoot_tuple_apply_type_none_or_one_arg hPrevTuple with
+          hNone | hOne
+        · exact False.elim (hTrans hNone)
+        · rcases hOne with ⟨head, hF⟩
+          exact False.elim (hNotTuple head hF)
+      · rcases hRest with hUnit | hDt
+        · have hPrevUnit : CtorSpineRoot f (Term.UOp UserOp.tuple_unit) := by
+            simpa [hUnit] using hPrev
+          exact False.elim
+            (hTrans (ctorSpineRoot_tupleUnit_apply_type_none hPrevUnit))
+        · rcases hDt with ⟨s, d, i, hRootDt⟩
+          have hPrevDt : CtorSpineRoot f (Term.DtCons s d i) := by
+            simpa [hRootDt] using hPrev
+          have hDtSp : DtConsSpineRoot f s d i :=
+            dtConsSpineRoot_of_ctor_dtCons hPrevDt
+          exact dtConsSpineRoot_head_translation_of_apply_translation
+            hDtSp a hTrans
+
+theorem is_cons_app_apply_arg_has_smt_translation
+    (f a : Term) :
+    __is_cons_app (Term.Apply f a) = Term.Boolean true ->
+    RuleProofs.eo_has_smt_translation (Term.Apply f a) ->
+    RuleProofs.eo_has_smt_translation a := by
+  intro hCons hTrans
+  rcases ctorSpineRoot_of_is_cons_app_true (Term.Apply f a) hCons with
+    ⟨root, hRoot⟩
+  cases hRoot with
+  | app y hPrev =>
+      rcases ctorSpineRoot_root_cases hPrev with hTuple | hRest
+      · have hPrevTuple : CtorSpineRoot f (Term.UOp UserOp.tuple) := by
+          simpa [hTuple] using hPrev
+        rcases ctorSpineRoot_tuple_apply_type_none_or_one_arg hPrevTuple with
+          hNone | hOne
+        · exact False.elim (hTrans hNone)
+        · rcases hOne with ⟨head, hF⟩
+          subst f
+          unfold RuleProofs.eo_has_smt_translation
+          change
+            __smtx_typeof
+                (__eo_to_smt_tuple_prepend (__eo_to_smt head)
+                  (__smtx_typeof (__eo_to_smt head)) (__eo_to_smt a)) ≠
+              SmtType.None at hTrans
+          rcases TranslationProofs.eo_to_smt_tuple_tail_type_of_non_none_from_checked
+              a head hTrans with
+            ⟨c, hTailTy⟩
+          rw [hTailTy]
+          simp
+      · rcases hRest with hUnit | hDt
+        · have hPrevUnit : CtorSpineRoot f (Term.UOp UserOp.tuple_unit) := by
+            simpa [hUnit] using hPrev
+          exact False.elim
+            (hTrans (ctorSpineRoot_tupleUnit_apply_type_none hPrevUnit))
+        · rcases hDt with ⟨s, d, i, hRootDt⟩
+          have hPrevDt : CtorSpineRoot f (Term.DtCons s d i) := by
+            simpa [hRootDt] using hPrev
+          have hDtSp : DtConsSpineRoot f s d i :=
+            dtConsSpineRoot_of_ctor_dtCons hPrevDt
+          have hTo := dtConsSpineRoot_apply_generic hDtSp a
+          have hGen : generic_apply_type (__eo_to_smt f) (__eo_to_smt a) :=
+            generic_apply_type_of_non_datatype_head
+              (dtConsSpineRoot_to_smt_ne_dt_sel hDtSp)
+              (dtConsSpineRoot_to_smt_ne_dt_tester hDtSp)
+          have hApplyNN :
+              __smtx_typeof_apply (__smtx_typeof (__eo_to_smt f))
+                  (__smtx_typeof (__eo_to_smt a)) ≠ SmtType.None := by
+            unfold RuleProofs.eo_has_smt_translation at hTrans
+            rw [hTo] at hTrans
+            unfold generic_apply_type at hGen
+            rw [hGen] at hTrans
+            exact hTrans
+          rcases typeof_apply_non_none_cases hApplyNN with
+            ⟨A, B, hHead, hArg, hANN, hBNN⟩
+          unfold RuleProofs.eo_has_smt_translation
+          rw [hArg]
+          exact hANN
+
 private theorem mk_dt_cons_eq_same_ctor_spine
     (t s : Term) :
     __mk_dt_cons_eq t s ≠ Term.Stuck ->
@@ -3962,4 +4238,3 @@ theorem dt_cons_eq_condition_rel
   exact RuleProofs.smt_value_rel_refl
     (__smtx_model_eval_eq (__smtx_model_eval M (__eo_to_smt t))
       (__smtx_model_eval M (__eo_to_smt s)))
-
