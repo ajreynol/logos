@@ -52,13 +52,18 @@ by
                 have h2 := RuleProofs.eo_requires_result_ne_stuck_of_ne_stuck _ _ _ h1
                 have h3 := RuleProofs.eo_requires_result_ne_stuck_of_ne_stuck _ _ _ h2
                 have h4 := RuleProofs.eo_requires_result_ne_stuck_of_ne_stuck _ _ _ h3
+                have h5 := RuleProofs.eo_requires_result_ne_stuck_of_ne_stuck _ _ _ h4
                 have hemp : __str_is_empty emp = Term.Boolean true :=
                   RuleProofs.eo_requires_eq_of_ne_stuck _ _ _ h1
+                have hd1LenZ : __eo_is_z (__str_value_len d1) = Term.Boolean true :=
+                  RuleProofs.eo_requires_eq_of_ne_stuck _ _ _ h2
+                have hd2LenZ : __eo_is_z (__str_value_len d2) = Term.Boolean true :=
+                  RuleProofs.eo_requires_eq_of_ne_stuck _ _ _ h3
                 have hgt1 :
                     __eo_gt (__str_value_len c1)
                         (__str_overlap_rec (__str_flatten (__str_nary_intro c1))
                           (__str_flatten (__str_nary_intro d1))) = Term.Boolean false :=
-                  RuleProofs.eo_requires_eq_of_ne_stuck _ _ _ h2
+                  RuleProofs.eo_requires_eq_of_ne_stuck _ _ _ h4
                 have hgt2 :
                     __eo_gt (__str_value_len c2)
                         (__str_overlap_rec
@@ -67,11 +72,13 @@ by
                           (__eo_list_rev (Term.UOp UserOp.str_concat)
                             (__str_flatten (__str_nary_intro d2)))) =
                       Term.Boolean false :=
-                  RuleProofs.eo_requires_eq_of_ne_stuck _ _ _ h3
+                  RuleProofs.eo_requires_eq_of_ne_stuck _ _ _ h5
                 rw [RuleProofs.eo_requires_result_eq_of_ne_stuck _ _ _ hProg,
                   RuleProofs.eo_requires_result_eq_of_ne_stuck _ _ _ h1,
                   RuleProofs.eo_requires_result_eq_of_ne_stuck _ _ _ h2,
-                  RuleProofs.eo_requires_result_eq_of_ne_stuck _ _ _ h3]
+                  RuleProofs.eo_requires_result_eq_of_ne_stuck _ _ _ h3,
+                  RuleProofs.eo_requires_result_eq_of_ne_stuck _ _ _ h4,
+                  RuleProofs.eo_requires_result_eq_of_ne_stuck _ _ _ h5]
                 have hEqBool : RuleProofs.eo_has_bool_type
                     (Term.Apply (Term.Apply (Term.UOp UserOp.eq)
                       (Term.Apply (Term.Apply (Term.UOp UserOp.str_contains)
@@ -170,13 +177,13 @@ by
                     ¬ RuleProofs.native_seq_compat ((native_unpack_seq Sc1).drop k)
                       (native_unpack_seq Sd1) := by
                   exact RuleProofs.no_compat_dispatch_endpoint_left M hM c1 d1 Sc1 Sd1 T
-                    hc1ty hd1ty hSc1 hSd1 hgt1
+                    hc1ty hd1ty hSc1 hSd1 hd1LenZ hgt1
                 have hNoRight : ∀ k, k < (native_unpack_seq Sc2).reverse.length →
                     ¬ RuleProofs.native_seq_compat
                       ((native_unpack_seq Sc2).reverse.drop k)
                       (native_unpack_seq Sd2).reverse := by
                   exact RuleProofs.no_compat_dispatch_endpoint_right M hM c2 d2 Sc2 Sd2 T
-                    hc2ty hd2ty hSc2 hSd2 hgt2
+                    hc2ty hd2ty hSc2 hSd2 hd2LenZ hgt2
                 refine ⟨fun _ => ?_, ?_⟩
                 · refine RuleProofs.eo_interprets_eq_of_rel M _ _ hEqBool ?_
                   rw [RuleProofs.overlap_endpoints_contains_eval M c1 sw c2 emp d1 t d2
