@@ -584,6 +584,13 @@ private theorem take_length_sub_one_eq_dropLast {α : Type} :
   | x :: y :: xs => by
       simpa using take_length_sub_one_eq_dropLast (y :: xs)
 
+private theorem take_dropLast_eq_take_of_le {α : Type}
+    (xs : List α) (n : Nat) (hn : n <= xs.length - 1) :
+    xs.dropLast.take n = xs.take n := by
+  rw [← take_length_sub_one_eq_dropLast xs]
+  rw [List.take_take]
+  rw [Nat.min_eq_left hn]
+
 private theorem native_str_substr_prefix_dropLast (s : native_String) :
     native_str_substr s 0 ((s.length : Int) - 1) = s.dropLast := by
   cases s with
@@ -794,6 +801,267 @@ private theorem substrWord_drop_suffix :
       rw [substrWord_cons_succ_nat_local c cs (cs.length - i) i]
       simpa using substrWord_drop_suffix cs i hi
 
+private theorem cprop_eo_requires_refl_local
+    (x z : Term) (hx : x ≠ Term.Stuck) :
+    __eo_requires x x z = z := by
+  simp [__eo_requires, native_ite, native_teq, native_not, hx]
+
+private theorem substrWord_is_list_local
+    (s : native_String) :
+    ∀ (n : Nat) (start : native_Int),
+      __eo_is_list (Term.UOp UserOp.str_concat)
+          (RuleProofs.substrWord s start n) =
+        Term.Boolean true
+  | 0, _start => by
+      simp [RuleProofs.substrWord, __eo_is_list, __eo_get_nil_rec,
+        __eo_requires, __eo_is_ok, __eo_is_list_nil,
+        __eo_is_list_nil_str_concat, __eo_eq, native_teq, native_ite,
+        native_not, SmtEval.native_not]
+  | n + 1, start => by
+      simp only [RuleProofs.substrWord, __eo_is_list, __eo_get_nil_rec]
+      rw [cprop_eo_requires_refl_local (Term.UOp UserOp.str_concat)
+        (__eo_get_nil_rec (Term.UOp UserOp.str_concat)
+          (RuleProofs.substrWord s (start + 1) n)) (by simp)]
+      change
+        __eo_is_ok
+            (__eo_get_nil_rec (Term.UOp UserOp.str_concat)
+              (RuleProofs.substrWord s (start + 1) n)) =
+          Term.Boolean true
+      have hTail := substrWord_is_list_local s n (start + 1)
+      unfold __eo_is_list at hTail
+      cases hSub : RuleProofs.substrWord s (start + 1) n <;>
+        simp [hSub] at hTail ⊢ <;>
+        exact hTail
+
+private theorem substrWord_get_nil_local
+    (s : native_String) :
+    __eo_get_nil_rec (Term.UOp UserOp.str_concat)
+        (RuleProofs.substrWord s 0 s.length) =
+      Term.String [] := by
+  induction s with
+  | nil =>
+      exact eo_get_nil_rec_str_concat_eq_of_nil_true (Term.String [])
+        (by
+          simp [__eo_is_list_nil, __eo_is_list_nil_str_concat, __eo_eq]
+          change decide (Term.String [] = Term.String []) = true
+          simp)
+  | cons c cs ih =>
+      have hTailList :
+          __eo_is_list (Term.UOp UserOp.str_concat)
+              (RuleProofs.substrWord cs 0 cs.length) =
+            Term.Boolean true :=
+        substrWord_is_list_local cs cs.length 0
+      have hCons :
+          RuleProofs.substrWord (c :: cs) 0 (c :: cs).length =
+            mkConcat (Term.String [c])
+              (RuleProofs.substrWord cs 0 cs.length) := by
+        change RuleProofs.substrWord (c :: cs) 0 (cs.length + 1) =
+          mkConcat (Term.String [c])
+            (RuleProofs.substrWord cs 0 cs.length)
+        simp only [RuleProofs.substrWord, RuleProofs.extractString_zero_cons]
+        change mkConcat (Term.String [c])
+            (RuleProofs.substrWord (c :: cs) 1 cs.length) =
+          mkConcat (Term.String [c])
+            (RuleProofs.substrWord cs 0 cs.length)
+        rw [RuleProofs.substrWord_cons_tail]
+      rw [hCons]
+      rw [eo_get_nil_rec_cons_self_eq_of_tail_list
+        (Term.UOp UserOp.str_concat) (Term.String [c])
+        (RuleProofs.substrWord cs 0 cs.length) (by decide) hTailList]
+      exact ih
+
+private theorem substrWord_append_singleton_local
+    (s : native_String) (c : native_Char) :
+    __eo_list_concat_rec
+        (RuleProofs.substrWord s 0 s.length)
+        (mkConcat (Term.String [c]) (Term.String [])) =
+      RuleProofs.substrWord (s ++ [c]) 0 (s ++ [c]).length := by
+  induction s with
+  | nil =>
+      change __eo_list_concat_rec (Term.String [])
+          (mkConcat (Term.String [c]) (Term.String [])) =
+        RuleProofs.substrWord ([c] : native_String) 0 1
+      rw [eo_list_concat_rec_str_concat_nil_eq_of_nil_true
+        (Term.String []) (mkConcat (Term.String [c]) (Term.String []))]
+      · change mkConcat (Term.String [c]) (Term.String []) =
+          RuleProofs.substrWord ([c] : native_String) 0 1
+        simp [RuleProofs.substrWord, RuleProofs.extractString_zero_cons]
+      · simp [__eo_is_list_nil, __eo_is_list_nil_str_concat, __eo_eq]
+        change decide (Term.String [] = Term.String []) = true
+        simp
+  | cons h t ih =>
+      have hTailList :
+          __eo_is_list (Term.UOp UserOp.str_concat)
+              (RuleProofs.substrWord t 0 t.length) =
+            Term.Boolean true :=
+        substrWord_is_list_local t t.length 0
+      have hZNe :
+          mkConcat (Term.String [c]) (Term.String []) ≠ Term.Stuck := by
+        intro hz
+        cases hz
+      have hTailConcatNe :
+          __eo_list_concat_rec (RuleProofs.substrWord t 0 t.length)
+              (mkConcat (Term.String [c]) (Term.String [])) ≠ Term.Stuck :=
+        eo_list_concat_rec_ne_stuck_of_list
+          (Term.UOp UserOp.str_concat)
+          (RuleProofs.substrWord t 0 t.length)
+          (mkConcat (Term.String [c]) (Term.String []))
+          hTailList hZNe
+      have hCons :
+          RuleProofs.substrWord (h :: t) 0 (h :: t).length =
+            mkConcat (Term.String [h])
+              (RuleProofs.substrWord t 0 t.length) := by
+        change RuleProofs.substrWord (h :: t) 0 (t.length + 1) =
+          mkConcat (Term.String [h])
+            (RuleProofs.substrWord t 0 t.length)
+        simp only [RuleProofs.substrWord, RuleProofs.extractString_zero_cons]
+        change mkConcat (Term.String [h])
+            (RuleProofs.substrWord (h :: t) 1 t.length) =
+          mkConcat (Term.String [h])
+            (RuleProofs.substrWord t 0 t.length)
+        rw [RuleProofs.substrWord_cons_tail]
+      rw [hCons]
+      rw [eo_list_concat_rec_str_concat_cons_eq_of_tail_ne_stuck
+        (Term.String [h]) (RuleProofs.substrWord t 0 t.length)
+        (mkConcat (Term.String [c]) (Term.String [])) hTailConcatNe]
+      rw [ih]
+      have hConsAppend :
+          RuleProofs.substrWord (h :: t ++ [c]) 0 (h :: t ++ [c]).length =
+            mkConcat (Term.String [h])
+              (RuleProofs.substrWord (t ++ [c]) 0 (t ++ [c]).length) := by
+        change RuleProofs.substrWord (h :: t ++ [c]) 0
+            ((t ++ [c]).length + 1) =
+          mkConcat (Term.String [h])
+            (RuleProofs.substrWord (t ++ [c]) 0 (t ++ [c]).length)
+        simp only [RuleProofs.substrWord]
+        have hExtract :
+            RuleProofs.extractString (h :: t ++ [c]) 0 = [h] := by
+          simpa using RuleProofs.extractString_zero_cons h (t ++ [c])
+        rw [hExtract]
+        change mkConcat (Term.String [h])
+            (RuleProofs.substrWord (h :: t ++ [c]) 1
+              (t ++ [c]).length) =
+          mkConcat (Term.String [h])
+            (RuleProofs.substrWord (t ++ [c]) 0 (t ++ [c]).length)
+        have hTailSub :
+            RuleProofs.substrWord (h :: t ++ [c]) 1
+                (t ++ [c]).length =
+              RuleProofs.substrWord (t ++ [c]) 0 (t ++ [c]).length := by
+          simpa using RuleProofs.substrWord_cons_tail h (t ++ [c])
+        rw [hTailSub]
+      exact hConsAppend.symm
+
+private theorem eo_list_rev_substrWord_local
+    (s : native_String) :
+    __eo_list_rev (Term.UOp UserOp.str_concat)
+        (RuleProofs.substrWord s 0 s.length) =
+      RuleProofs.substrWord s.reverse 0 s.reverse.length := by
+  induction s with
+  | nil =>
+      exact eo_list_rev_str_concat_nil_eq_of_nil_true (Term.String [])
+        (by
+          simp [__eo_is_list_nil, __eo_is_list_nil_str_concat, __eo_eq]
+          change decide (Term.String [] = Term.String []) = true
+          simp)
+  | cons c cs ih =>
+      let tail := RuleProofs.substrWord cs 0 cs.length
+      let nil := Term.String []
+      have hTailList :
+          __eo_is_list (Term.UOp UserOp.str_concat) tail =
+            Term.Boolean true := by
+        simpa [tail] using substrWord_is_list_local cs cs.length 0
+      have hNilList :
+          __eo_is_list (Term.UOp UserOp.str_concat) nil =
+            Term.Boolean true := by
+        simp [nil, __eo_is_list, __eo_get_nil_rec, __eo_requires,
+          __eo_is_ok, __eo_is_list_nil, __eo_is_list_nil_str_concat,
+          __eo_eq, native_teq, native_ite, native_not, SmtEval.native_not]
+      have hNilGet :
+          __eo_get_nil_rec (Term.UOp UserOp.str_concat) tail = nil := by
+        simpa [tail, nil] using substrWord_get_nil_local cs
+      have hCons :
+          RuleProofs.substrWord (c :: cs) 0 (c :: cs).length =
+            mkConcat (Term.String [c]) tail := by
+        change RuleProofs.substrWord (c :: cs) 0 (cs.length + 1) =
+          mkConcat (Term.String [c]) tail
+        simp only [tail, RuleProofs.substrWord,
+          RuleProofs.extractString_zero_cons]
+        change mkConcat (Term.String [c])
+            (RuleProofs.substrWord (c :: cs) 1 cs.length) =
+          mkConcat (Term.String [c]) tail
+        rw [RuleProofs.substrWord_cons_tail]
+      have hConsList :
+          __eo_is_list (Term.UOp UserOp.str_concat)
+              (mkConcat (Term.String [c]) tail) =
+            Term.Boolean true :=
+        eo_is_list_cons_self_true_of_tail_list
+          (Term.UOp UserOp.str_concat) (Term.String [c]) tail
+          (by decide) hTailList
+      have hRevConsNe :
+          __eo_list_rev (Term.UOp UserOp.str_concat)
+              (mkConcat (Term.String [c]) tail) ≠ Term.Stuck :=
+        eo_list_rev_ne_stuck_of_is_list_true
+          (Term.UOp UserOp.str_concat) (mkConcat (Term.String [c]) tail)
+          hConsList
+      have hRevTailNe :
+          __eo_list_rev (Term.UOp UserOp.str_concat) tail ≠ Term.Stuck :=
+        eo_list_rev_ne_stuck_of_is_list_true
+          (Term.UOp UserOp.str_concat) tail hTailList
+      have hRevTailEq :
+          __eo_list_rev (Term.UOp UserOp.str_concat) tail =
+            __eo_list_rev_rec tail nil := by
+        rw [eo_list_rev_eq_rec_of_ne_stuck
+          (Term.UOp UserOp.str_concat) tail hRevTailNe]
+        rw [hNilGet]
+      have hRevConsEq :
+          __eo_list_rev (Term.UOp UserOp.str_concat)
+              (mkConcat (Term.String [c]) tail) =
+            __eo_list_rev_rec tail (mkConcat (Term.String [c]) nil) := by
+        rw [eo_list_rev_str_concat_cons_eq_of_ne_stuck
+          (Term.String [c]) tail hRevConsNe]
+        rw [hNilGet]
+      rw [hCons]
+      rw [hRevConsEq]
+      have hNilNil :
+          __eo_is_list_nil (Term.UOp UserOp.str_concat) nil =
+            Term.Boolean true := by
+        simp [nil, __eo_is_list_nil, __eo_is_list_nil_str_concat, __eo_eq]
+        change decide (Term.String [] = Term.String []) = true
+        simp
+      rw [← eo_list_concat_rec_str_concat_nil_eq_of_nil_true nil
+        (mkConcat (Term.String [c]) nil) hNilNil]
+      rw [eo_list_rev_rec_list_concat_rec_singleton_eq tail nil
+        (Term.String [c]) nil hTailList hNilList]
+      rw [← hRevTailEq]
+      rw [ih]
+      simpa [List.reverse_cons, nil] using
+        substrWord_append_singleton_local cs.reverse c
+
+private theorem strConcatDrop_rev_substrWord_eq_rev_take
+    (s : native_String) (d : Nat) (hd : d <= s.length) :
+    strConcatDrop
+        (__eo_list_rev (Term.UOp UserOp.str_concat)
+          (RuleProofs.substrWord s 0 s.length)) d =
+      __eo_list_rev (Term.UOp UserOp.str_concat)
+        (RuleProofs.substrWord (s.take (s.length - d)) 0
+          (s.take (s.length - d)).length) := by
+  rw [eo_list_rev_substrWord_local s]
+  have hdRev : d <= s.reverse.length := by
+    simpa using hd
+  rw [strConcatDrop_substrWord s.reverse s.reverse.length d 0 hdRev]
+  have hDrop :
+      RuleProofs.substrWord s.reverse (0 + Int.ofNat d)
+          (s.reverse.length - d) =
+        RuleProofs.substrWord (s.reverse.drop d) 0
+          (s.reverse.drop d).length := by
+    simpa using substrWord_drop_suffix s.reverse d hdRev
+  rw [hDrop]
+  have hDropEq :
+      s.reverse.drop d = (s.take (s.length - d)).reverse := by
+    simpa using (List.drop_reverse (xs := s) (i := d))
+  rw [hDropEq]
+  rw [← eo_list_rev_substrWord_local (s.take (s.length - d))]
+
 private theorem native_unpack_seq_pack_string (s : native_String) :
     native_unpack_seq (native_pack_string s) =
       s.map SmtValue.Char := by
@@ -853,6 +1121,84 @@ private theorem str_is_compatible_full_word_flatten_intro_ne_false_of_append_eva
           cases hSub :
               RuleProofs.substrWord (wc :: wcs) 0 ((wc :: wcs).length) <;>
             simp [__str_nary_intro, __str_flatten, __str_is_compatible]
+      | _ =>
+          sorry
+
+private theorem str_is_compatible_rev_word_flatten_intro_ne_false_of_append_eval
+    (M : SmtModel) (hM : model_total_typed M)
+    (x : Term) (sx : SmtSeq) (word : native_String)
+    (xPrefix prefixTail : List SmtValue)
+    (hxEval : __smtx_model_eval M (__eo_to_smt x) = SmtValue.Seq sx)
+    (hAlign :
+      xPrefix ++ native_unpack_seq sx =
+        prefixTail ++ word.map SmtValue.Char) :
+    __str_is_compatible
+        (__eo_list_rev (Term.UOp UserOp.str_concat)
+          (RuleProofs.substrWord word 0 word.length))
+        (__eo_list_rev (Term.UOp UserOp.str_concat)
+          (__str_flatten (__str_nary_intro x))) ≠
+      Term.Boolean false := by
+  cases word with
+  | nil =>
+      rw [eo_list_rev_substrWord_local []]
+      simpa using
+        str_is_compatible_empty_left_ne_false
+          (__eo_list_rev (Term.UOp UserOp.str_concat)
+            (__str_flatten (__str_nary_intro x)))
+  | cons wc wcs =>
+      cases x with
+      | String str =>
+          have hStr :
+              native_unpack_seq sx = str.map SmtValue.Char :=
+            string_eval_unpack_eq M str sx hxEval
+          have hAlign' :
+              xPrefix ++ str.map SmtValue.Char =
+                prefixTail ++ (wc :: wcs).map SmtValue.Char := by
+            simpa [hStr] using hAlign
+          have hAlignRev :
+              str.reverse.map SmtValue.Char ++ xPrefix.reverse =
+                (wc :: wcs).reverse.map SmtValue.Char ++
+                  prefixTail.reverse := by
+            have hRev := congrArg List.reverse hAlign'
+            simpa [List.reverse_append, List.map_reverse] using hRev
+          rw [eo_list_rev_substrWord_local (wc :: wcs)]
+          cases str with
+          | nil =>
+              rw [RuleProofs.str_flatten_nary_intro_empty]
+              have hRevEmpty :
+                  __eo_list_rev (Term.UOp UserOp.str_concat)
+                      (Term.String []) =
+                    Term.String [] :=
+                eo_list_rev_str_concat_nil_eq_of_nil_true (Term.String [])
+                  (by
+                    simp [__eo_is_list_nil, __eo_is_list_nil_str_concat,
+                      __eo_eq]
+                    change decide (Term.String [] = Term.String []) = true
+                    simp)
+              rw [hRevEmpty]
+              exact str_is_compatible_empty_right_ne_false
+                (RuleProofs.substrWord (wc :: wcs).reverse 0
+                  (wc :: wcs).reverse.length)
+          | cons c cs =>
+              rw [RuleProofs.str_flatten_nary_intro_cons c cs]
+              rw [eo_list_rev_substrWord_local (c :: cs)]
+              simpa using
+                substrWord_compatible_ne_false_of_append_eq
+                  (wc :: wcs).reverse (c :: cs).reverse
+                  xPrefix.reverse prefixTail.reverse hAlignRev
+      | Stuck =>
+          have hRight :
+              __eo_list_rev (Term.UOp UserOp.str_concat)
+                  (__str_flatten (__str_nary_intro Term.Stuck)) =
+                Term.Stuck := by
+            simp [__str_nary_intro, __str_flatten, __eo_list_rev,
+              __eo_is_list, __eo_requires, native_teq, native_ite]
+          rw [hRight]
+          cases hLeft :
+              __eo_list_rev (Term.UOp UserOp.str_concat)
+                (RuleProofs.substrWord (wc :: wcs) 0
+                  ((wc :: wcs).length)) <;>
+            simp [__str_is_compatible]
       | _ =>
           sorry
 
@@ -3783,7 +4129,175 @@ private theorem facts_concat_cprop_true_formula
                     c :: (d :: ds).dropLast by rfl] at hBad
                 rw [RuleProofs.str_flatten_nary_intro_cons c
                   ((d :: ds).dropLast)] at hBad
-                sorry
+                let pLen :=
+                  (native_unpack_seq ss).length -
+                    (native_unpack_seq st).length
+                let pWord := (c :: d :: ds).take pLen
+                have hpLenPos : 0 < pLen := by
+                  dsimp [pLen]
+                  have hSsLen :
+                      (native_unpack_seq ss).length =
+                        (c :: d :: ds).length := by
+                    simp [hSsWord]
+                  omega
+                have hpLenLe : pLen <= (c :: d :: ds).length := by
+                  dsimp [pLen]
+                  exact Nat.le_trans (Nat.sub_le _ _)
+                    (by simp [hSsWord])
+                have hPrefixTakeMap :
+                    (native_unpack_seq ss).take pLen =
+                      pWord.map SmtValue.Char := by
+                  dsimp [pWord, pLen]
+                  rw [hSsWord]
+                  simp
+                have hSecondBoundaryWord :
+                    native_unpack_seq stSecondPrefix ++
+                        native_unpack_seq stSecond =
+                      native_unpack_seq ssp ++
+                        pWord.map SmtValue.Char := by
+                  dsimp [pLen] at hPrefixTakeMap
+                  simpa [pLen, hPrefixTakeMap] using hSecondBoundary
+                cases hpWord : (c :: d :: ds).take pLen with
+                | nil =>
+                    have hLenP : pLen = 0 := by
+                      have hLenTake :
+                          ((c :: d :: ds).take pLen).length = pLen := by
+                        rw [List.length_take]
+                        exact Nat.min_eq_left hpLenLe
+                      rw [hpWord] at hLenTake
+                      simpa using hLenTake.symm
+                    omega
+                | cons pHead pTail =>
+                  have hSecondBoundaryWordCons :
+                    native_unpack_seq stSecondPrefix ++
+                        native_unpack_seq stSecond =
+                      native_unpack_seq ssp ++
+                        (pHead :: pTail).map SmtValue.Char := by
+                    simpa [pWord, hpWord] using hSecondBoundaryWord
+                  have hSsLenWord :
+                      (native_unpack_seq ss).length =
+                        (c :: d :: ds).length := by
+                    simp [hSsWord]
+                  have hStLenLeWord :
+                      (native_unpack_seq st).length <=
+                        (c :: d :: ds).length := by
+                    rw [← hSsLenWord]
+                    exact hstLeSs
+                  have hDropLenWord :
+                      (c :: (d :: ds).dropLast).length =
+                        (c :: d :: ds).length - 1 := by
+                    simp
+                  have hDropRevLe :
+                      (native_unpack_seq st).length - 1 <=
+                        (c :: (d :: ds).dropLast).length := by
+                    omega
+                  have hKeepLen :
+                      (c :: (d :: ds).dropLast).length -
+                          ((native_unpack_seq st).length - 1) =
+                        pLen := by
+                    cases hStLen :
+                        (native_unpack_seq st).length with
+                    | zero =>
+                        omega
+                    | succ stPred =>
+                        rw [hDropLenWord]
+                        dsimp [pLen]
+                        rw [hSsLenWord, hStLen]
+                        simp
+                  have hpLenLeDrop :
+                      pLen <= (c :: d :: ds).length - 1 := by
+                    cases hStLen :
+                        (native_unpack_seq st).length with
+                    | zero =>
+                        omega
+                    | succ stPred =>
+                        dsimp [pLen]
+                        rw [hSsLenWord, hStLen]
+                        simp
+                  have hPWordLen :
+                      (pHead :: pTail).length = pLen := by
+                    have hLenTake :
+                        ((c :: d :: ds).take pLen).length = pLen := by
+                      rw [List.length_take]
+                      exact Nat.min_eq_left hpLenLe
+                    rw [hpWord] at hLenTake
+                    simpa using hLenTake
+                  have hTakePrefix :
+                      (c :: (d :: ds).dropLast).take
+                          ((c :: (d :: ds).dropLast).length -
+                            ((native_unpack_seq st).length - 1)) =
+                        pHead :: pTail := by
+                    calc
+                      (c :: (d :: ds).dropLast).take
+                          ((c :: (d :: ds).dropLast).length -
+                            ((native_unpack_seq st).length - 1)) =
+                        (c :: (d :: ds).dropLast).take pLen := by
+                          rw [hKeepLen]
+                      _ = (c :: d :: ds).take pLen := by
+                          simpa using
+                            take_dropLast_eq_take_of_le
+                              (c :: d :: ds) pLen hpLenLeDrop
+                      _ = pHead :: pTail := hpWord
+                  have hTakePrefixLen :
+                      (c :: (d :: ds).dropLast).length -
+                          ((native_unpack_seq st).length - 1) =
+                        (pHead :: pTail).length := by
+                    rw [hKeepLen, hPWordLen]
+                  have hTakePrefix' :
+                      List.take
+                          ((d :: ds).dropLast.length + 1 -
+                            ((native_unpack_seq st).length - 1))
+                          (c :: (d :: ds).dropLast) =
+                        pHead :: pTail := by
+                    simpa using hTakePrefix
+                  have hTakePrefixLen' :
+                      (d :: ds).dropLast.length + 1 -
+                          ((native_unpack_seq st).length - 1) =
+                        (pHead :: pTail).length := by
+                    simpa using hTakePrefixLen
+                  have hTakePrefix'' :
+                      List.take
+                          (ds.length + 1 -
+                            ((native_unpack_seq st).length - 1))
+                          (c :: (d :: ds).dropLast) =
+                        pHead :: pTail := by
+                    simpa using hTakePrefix'
+                  have hTakePrefixLen'' :
+                      ds.length + 1 -
+                          ((native_unpack_seq st).length - 1) =
+                        (pHead :: pTail).length := by
+                    simpa using hTakePrefixLen'
+                  have hTakePrefixCore :
+                      c :: List.take pTail.length (d :: ds).dropLast =
+                        pHead :: pTail := by
+                    have h := hTakePrefix''
+                    rw [hTakePrefixLen''] at h
+                    simpa using h
+                  have hTailLenMin :
+                      min pTail.length ds.length = pTail.length := by
+                    have hLen := congrArg List.length hTakePrefixCore
+                    simp [List.length_take] at hLen
+                    omega
+                  have hBadPrefix :
+                      __str_is_compatible
+                          (__eo_list_rev (Term.UOp UserOp.str_concat)
+                            (RuleProofs.substrWord (pHead :: pTail) 0
+                              (pHead :: pTail).length))
+                          (__eo_list_rev (Term.UOp UserOp.str_concat)
+                            (__str_flatten (__str_nary_intro tSecond))) =
+                        Term.Boolean false := by
+                    rw [strConcatDrop_rev_substrWord_eq_rev_take
+                      (c :: (d :: ds).dropLast)
+                      ((native_unpack_seq st).length - 1) hDropRevLe] at hBad
+                    simpa [hTakePrefix, hTakePrefixLen, hTakePrefix',
+                      hTakePrefixLen', hTakePrefix'', hTakePrefixLen'',
+                      hTakePrefixCore, hTailLenMin] using hBad
+                  exact
+                    (str_is_compatible_rev_word_flatten_intro_ne_false_of_append_eval
+                      M hM tSecond stSecond (pHead :: pTail)
+                      (native_unpack_seq stSecondPrefix)
+                      (native_unpack_seq ssp) htSecondEval
+                      hSecondBoundaryWordCons) hBadPrefix
       exact False.elim (hCompatNotFalse hCompatFalse)
   exact cprop_true_formula_of_overlap_bounds M hM t s tc sc tPrefix
     sPrefix T stp st ssp ss (m + 1) hScEq htcTy hscTy htPrefixTy
