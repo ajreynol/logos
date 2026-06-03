@@ -33,41 +33,6 @@ def cArgListTranslationOk : CArgList -> Prop
   | CArgList.nil => True
   | CArgList.cons a args => eoHasSmtTranslation a ∧ cArgListTranslationOk args
 
-/-- Binder lists used by quantified SMT terms must carry well-formed SMT types. -/
-def QuantifierBinderTypesWf : Term -> Prop
-  | Term.Apply (Term.Apply Term.__eo_List_cons
-      (Term.Var (Term.String _) T)) tail =>
-      __smtx_type_wf (__eo_to_smt_type T) = true ∧
-        QuantifierBinderTypesWf tail
-  | _ => True
-
-/--
-Checks the quantified subterms that can be exposed by congruence.
-
-Preserving `model_total_typed` through binder pushes additionally needs the
-translated binder types to be SMT-well-formed.
--/
-def TermQuantifierBindersWf : Term -> Prop
-  | Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body =>
-      QuantifierBinderTypesWf xs ∧ TermQuantifierBindersWf body
-  | Term.Apply (Term.Apply (Term.UOp UserOp.exists) xs) body =>
-      QuantifierBinderTypesWf xs ∧ TermQuantifierBindersWf body
-  | Term.Apply f x =>
-      TermQuantifierBindersWf f ∧ TermQuantifierBindersWf x
-  | _ => True
-
-/--
-Congruence over quantified terms needs the ordinary SMT translation fact plus
-well-formed SMT types for the binder list.
--/
-def eoCongArgOk (t : Term) : Prop :=
-  eoHasSmtTranslation t ∧ TermQuantifierBindersWf t
-
-/-- Predicate asserting that every argument in a congruence argument list is safe. -/
-def cArgListCongOk : CArgList -> Prop
-  | CArgList.nil => True
-  | CArgList.cons a args => eoCongArgOk a ∧ cArgListCongOk args
-
 /-- Predicate asserting that a checker argument list matches a translation mask. -/
 def cArgListTranslationOkMask : List ArgTranslationKind -> CArgList -> Prop
   | [], CArgList.nil => True
@@ -78,12 +43,6 @@ def cArgListTranslationOkMask : List ArgTranslationKind -> CArgList -> Prop
 /-- Predicate asserting that a checker command meets the translation side conditions used by the rule proofs. -/
 def cmdTranslationOk : CCmd -> Prop
   | CCmd.assume_push A => eoHasSmtTranslation A
-  | CCmd.step CRule.cong args _ =>
-      cArgListCongOk args
-  | CCmd.step CRule.nary_cong args _ =>
-      cArgListCongOk args
-  | CCmd.step CRule.pairwise_cong args _ =>
-      cArgListCongOk args
   | CCmd.step CRule.chain_resolution args _ =>
       cArgListTranslationOkMask [ArgTranslationKind.list, ArgTranslationKind.list] args
   | CCmd.step CRule.chain_m_resolution args _ =>
