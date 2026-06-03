@@ -1115,6 +1115,209 @@ private theorem term_ne_stuck_of_eo_is_list_true_local (f x : Term)
   subst x
   cases f <;> simp [__eo_is_list] at hList
 
+private theorem eo_list_concat_substrWord_eq_rec_of_tail_list
+    (str : native_String) (tail : Term)
+    (hTailList :
+      __eo_is_list (Term.UOp UserOp.str_concat) tail = Term.Boolean true) :
+    __eo_list_concat (Term.UOp UserOp.str_concat)
+        (RuleProofs.substrWord str 0 str.length) tail =
+      __eo_list_concat_rec (RuleProofs.substrWord str 0 str.length) tail := by
+  have hWordList :
+      __eo_is_list (Term.UOp UserOp.str_concat)
+          (RuleProofs.substrWord str 0 str.length) =
+        Term.Boolean true :=
+    substrWord_is_list_local str str.length 0
+  simp [__eo_list_concat, hWordList, hTailList, __eo_requires,
+    native_ite, native_teq, native_not]
+
+private theorem eo_list_concat_substrWord_eq_stuck_of_tail_not_list
+    (str : native_String) (tail : Term)
+    (hTailList :
+      ¬ __eo_is_list (Term.UOp UserOp.str_concat) tail =
+        Term.Boolean true) :
+    __eo_list_concat (Term.UOp UserOp.str_concat)
+        (RuleProofs.substrWord str 0 str.length) tail =
+      Term.Stuck := by
+  have hWordList :
+      __eo_is_list (Term.UOp UserOp.str_concat)
+          (RuleProofs.substrWord str 0 str.length) =
+        Term.Boolean true :=
+    substrWord_is_list_local str str.length 0
+  simp [__eo_list_concat, hWordList, hTailList, __eo_requires,
+    native_ite, native_teq, native_not]
+
+private theorem eo_list_rev_rec_list_concat_rec_substrWord_eq :
+    ∀ (str : native_String) (tail acc : Term),
+      __eo_is_list (Term.UOp UserOp.str_concat) tail = Term.Boolean true →
+      acc ≠ Term.Stuck →
+      __eo_list_rev_rec
+          (__eo_list_concat_rec
+            (RuleProofs.substrWord str 0 str.length) tail) acc =
+        __eo_list_rev_rec tail
+          (__eo_list_rev_rec
+            (RuleProofs.substrWord str 0 str.length) acc)
+  | [], tail, acc, hTailList, hAccNe => by
+      change
+        __eo_list_rev_rec (__eo_list_concat_rec (Term.String []) tail) acc =
+          __eo_list_rev_rec tail (__eo_list_rev_rec (Term.String []) acc)
+      have hNilNil :
+          __eo_is_list_nil (Term.UOp UserOp.str_concat) (Term.String []) =
+            Term.Boolean true := by
+        simp [__eo_is_list_nil, __eo_is_list_nil_str_concat, __eo_eq]
+        change decide (Term.String [] = Term.String []) = true
+        simp
+      rw [eo_list_concat_rec_str_concat_nil_eq_of_nil_true
+        (Term.String []) tail hNilNil]
+      rw [eo_list_rev_rec_str_concat_nil_eq_of_nil_true
+        (Term.String []) acc hNilNil]
+  | c :: cs, tail, acc, hTailList, hAccNe => by
+      have hTailWordList :
+          __eo_is_list (Term.UOp UserOp.str_concat)
+              (RuleProofs.substrWord cs 0 cs.length) =
+            Term.Boolean true :=
+        substrWord_is_list_local cs cs.length 0
+      have hTailNe : tail ≠ Term.Stuck :=
+        term_ne_stuck_of_eo_is_list_true_local
+          (Term.UOp UserOp.str_concat) tail hTailList
+      have hTailConcatNe :
+          __eo_list_concat_rec (RuleProofs.substrWord cs 0 cs.length)
+              tail ≠ Term.Stuck :=
+        eo_list_concat_rec_ne_stuck_of_list
+          (Term.UOp UserOp.str_concat)
+          (RuleProofs.substrWord cs 0 cs.length) tail hTailWordList hTailNe
+      have hCons :
+          RuleProofs.substrWord (c :: cs) 0 (c :: cs).length =
+            mkConcat (Term.String [c])
+              (RuleProofs.substrWord cs 0 cs.length) := by
+        change RuleProofs.substrWord (c :: cs) 0 (cs.length + 1) =
+          mkConcat (Term.String [c])
+            (RuleProofs.substrWord cs 0 cs.length)
+        simp only [RuleProofs.substrWord, RuleProofs.extractString_zero_cons]
+        change mkConcat (Term.String [c])
+            (RuleProofs.substrWord (c :: cs) 1 cs.length) =
+          mkConcat (Term.String [c])
+            (RuleProofs.substrWord cs 0 cs.length)
+        rw [RuleProofs.substrWord_cons_tail]
+      rw [hCons]
+      rw [eo_list_concat_rec_str_concat_cons_eq_of_tail_ne_stuck
+        (Term.String [c]) (RuleProofs.substrWord cs 0 cs.length) tail
+        hTailConcatNe]
+      rw [eo_list_rev_rec_cons (Term.UOp UserOp.str_concat)
+        (Term.String [c])
+        (__eo_list_concat_rec (RuleProofs.substrWord cs 0 cs.length) tail)
+        acc hAccNe]
+      have hConsAccNe :
+          mkConcat (Term.String [c]) acc ≠ Term.Stuck := by
+        intro h
+        cases h
+      rw [eo_list_rev_rec_list_concat_rec_substrWord_eq cs tail
+        (mkConcat (Term.String [c]) acc) hTailList hConsAccNe]
+      rw [eo_list_rev_rec_cons (Term.UOp UserOp.str_concat)
+        (Term.String [c]) (RuleProofs.substrWord cs 0 cs.length) acc
+        hAccNe]
+
+private theorem str_is_compatible_substrWord_rev_rec_substrWord_acc_ne_false :
+    ∀ (word str : native_String) (acc : Term)
+      (accVals suffixTail : List SmtValue),
+      str.reverse.map SmtValue.Char ++ accVals =
+        word.map SmtValue.Char ++ suffixTail →
+      (∀ (word' : native_String) (suffixTail' : List SmtValue),
+        accVals = word'.map SmtValue.Char ++ suffixTail' →
+          __str_is_compatible
+              (RuleProofs.substrWord word' 0 word'.length) acc ≠
+            Term.Boolean false) →
+      __str_is_compatible
+          (RuleProofs.substrWord word 0 word.length)
+          (__eo_list_rev_rec
+            (RuleProofs.substrWord str 0 str.length) acc) ≠
+        Term.Boolean false
+  | word, [], acc, accVals, suffixTail, hAlign, hAccCompat => by
+      change
+        __str_is_compatible (RuleProofs.substrWord word 0 word.length)
+            (__eo_list_rev_rec (Term.String []) acc) ≠
+          Term.Boolean false
+      rw [eo_list_rev_rec_str_concat_nil_eq_of_nil_true
+        (Term.String []) acc]
+      · exact hAccCompat word suffixTail (by simpa using hAlign)
+      · simp [__eo_is_list_nil, __eo_is_list_nil_str_concat, __eo_eq]
+        change decide (Term.String [] = Term.String []) = true
+        simp
+  | [], c :: cs, acc, accVals, suffixTail, hAlign, hAccCompat => by
+      exact str_is_compatible_empty_left_ne_false
+        (__eo_list_rev_rec
+          (RuleProofs.substrWord (c :: cs) 0 (c :: cs).length) acc)
+  | wc :: wcs, c :: cs, acc, accVals, suffixTail, hAlign, hAccCompat => by
+      by_cases hAccNe : acc ≠ Term.Stuck
+      · have hCons :
+            RuleProofs.substrWord (c :: cs) 0 (c :: cs).length =
+              mkConcat (Term.String [c])
+                (RuleProofs.substrWord cs 0 cs.length) := by
+          change RuleProofs.substrWord (c :: cs) 0 (cs.length + 1) =
+            mkConcat (Term.String [c])
+              (RuleProofs.substrWord cs 0 cs.length)
+          simp only [RuleProofs.substrWord, RuleProofs.extractString_zero_cons]
+          change mkConcat (Term.String [c])
+              (RuleProofs.substrWord (c :: cs) 1 cs.length) =
+            mkConcat (Term.String [c])
+              (RuleProofs.substrWord cs 0 cs.length)
+          rw [RuleProofs.substrWord_cons_tail]
+        rw [hCons]
+        rw [eo_list_rev_rec_cons (Term.UOp UserOp.str_concat)
+          (Term.String [c]) (RuleProofs.substrWord cs 0 cs.length) acc
+          hAccNe]
+        exact
+          str_is_compatible_substrWord_rev_rec_substrWord_acc_ne_false
+            (wc :: wcs) cs (mkConcat (Term.String [c]) acc)
+            ((SmtValue.Char c) :: accVals) suffixTail
+            (by
+              simpa [List.reverse_cons, List.map_append, List.append_assoc]
+                using hAlign)
+            (by
+              intro word' suffixTail' hAccAlign
+              cases word' with
+              | nil =>
+                  exact str_is_compatible_empty_left_ne_false
+                    (mkConcat (Term.String [c]) acc)
+              | cons d ds =>
+                  injection hAccAlign with hChar hTail
+                  injection hChar with hHead
+                  subst d
+                  have hLeftCons :
+                      RuleProofs.substrWord (c :: ds) 0 (c :: ds).length =
+                        mkConcat (Term.String [c])
+                          (RuleProofs.substrWord ds 0 ds.length) := by
+                    change RuleProofs.substrWord (c :: ds) 0
+                        (ds.length + 1) =
+                      mkConcat (Term.String [c])
+                        (RuleProofs.substrWord ds 0 ds.length)
+                    simp only [RuleProofs.substrWord,
+                      RuleProofs.extractString_zero_cons]
+                    change mkConcat (Term.String [c])
+                        (RuleProofs.substrWord (c :: ds) 1 ds.length) =
+                      mkConcat (Term.String [c])
+                        (RuleProofs.substrWord ds 0 ds.length)
+                    rw [RuleProofs.substrWord_cons_tail]
+                  rw [hLeftCons]
+                  simpa [__str_is_compatible, __eo_eq, native_teq,
+                    native_ite] using hAccCompat ds suffixTail' hTail)
+      · have hAcc : acc = Term.Stuck := by
+          by_cases h : acc = Term.Stuck
+          · exact h
+          · exact False.elim (hAccNe h)
+        rw [hAcc]
+        have hRight :
+            __eo_list_rev_rec
+                (RuleProofs.substrWord (c :: cs) 0 (c :: cs).length)
+                Term.Stuck =
+              Term.Stuck := by
+          cases hSub :
+              RuleProofs.substrWord (c :: cs) 0 (c :: cs).length <;>
+            simp [__eo_list_rev_rec]
+        rw [hRight]
+        cases hLeft :
+            RuleProofs.substrWord (wc :: wcs) 0 (wc :: wcs).length <;>
+          simp [__str_is_compatible]
+
 private theorem eo_list_concat_substrWord_nil_eq_of_tail_list
     (tail : Term)
     (hTailList :
@@ -2337,6 +2540,8 @@ private theorem str_is_compatible_rev_word_flatten_intro_ne_false_of_append_eval
                         hxEval with
                       ⟨sHead, sTail, hHeadEval, hTailEval, hUnpack⟩
                     cases head with
+                    | String str =>
+                        sorry
                     | Stuck =>
                         exact False.elim
                           (term_ne_stuck_of_smt_type_seq Term.Stuck T hHeadTy
