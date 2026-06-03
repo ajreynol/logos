@@ -15574,7 +15574,7 @@ private theorem typeof_exists_eq_local
     (s : native_String) (T : SmtType) (t : SmtTerm) :
     __smtx_typeof (SmtTerm.exists s T t) =
       native_ite (native_Teq (__smtx_typeof t) SmtType.Bool)
-        SmtType.Bool SmtType.None := by
+        (__smtx_typeof_guard_wf T SmtType.Bool) SmtType.None := by
   rw [__smtx_typeof.eq_135]
 
 private theorem smtx_typeof_apply_none_head (x : SmtTerm) :
@@ -15592,8 +15592,10 @@ private theorem smtx_typeof_apply_exists_head_none
     __smtx_typeof (SmtTerm.Apply (SmtTerm.exists s T f) x) =
       SmtType.None := by
   cases hTy : __smtx_typeof f <;>
+    cases hWf : __smtx_type_wf T <;>
     simp [__smtx_typeof, __smtx_typeof_apply,
-      typeof_exists_eq_local, hTy, native_ite, native_Teq]
+      typeof_exists_eq_local, hTy, native_ite, native_Teq,
+      __smtx_typeof_guard_wf, hWf]
 
 private theorem smtx_typeof_apply_forall_top_none (xs body x : Term) :
     __smtx_typeof

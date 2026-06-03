@@ -56,7 +56,7 @@ private theorem eq_true_of_requires_true_not_stuck {x B : Term} :
       SmtEval.native_not] at hReq ⊢
   all_goals assumption
 
-private theorem eo_and_eq_true_cases (x y : Term) :
+private theorem eo_and_eq_true_cases_local (x y : Term) :
     __eo_and x y = Term.Boolean true ->
     x = Term.Boolean true ∧ y = Term.Boolean true := by
   intro h
@@ -583,7 +583,7 @@ private theorem term_lists_perm_of_list_meq
       eo_get_elements_rec_eoListOfTerms, __eo_requires, native_ite,
       native_teq, native_not, SmtEval.native_not] using hMeq
   have hBoth :=
-    eo_and_eq_true_cases
+    eo_and_eq_true_cases_local
       (__eo_list_minclude_rec (eoListOfTerms xs) (eoListOfTerms ys)
         (Term.Boolean true))
       (__eo_list_minclude_rec (eoListOfTerms ys) (eoListOfTerms xs)

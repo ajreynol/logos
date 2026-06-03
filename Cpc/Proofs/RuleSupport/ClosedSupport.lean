@@ -5407,11 +5407,8 @@ theorem smtTermClosedIn_eo_to_smt_exists_cons
         (Term.Var (Term.String s) T)) vs)
       F) :=
 by
-  cases hWf : __smtx_type_wf (__eo_to_smt_type T)
-  · rw [TranslationProofs.eo_to_smt_exists_cons, hWf]
-    trivial
-  · rw [TranslationProofs.eo_to_smt_exists_cons, hWf]
-    exact hBody
+  rw [TranslationProofs.eo_to_smt_exists_cons]
+  exact hBody
 
 theorem smtTermClosedIn_eo_to_smt_exists_of_env_or_none :
     ∀ {vs : Term} {vars : List SmtVarKey} {F : SmtTerm},

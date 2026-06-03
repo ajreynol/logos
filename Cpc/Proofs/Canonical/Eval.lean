@@ -426,13 +426,10 @@ theorem model_eval_choice_nth_canonical
       | «exists» s' U body' =>
           have hTyEq :
               __smtx_typeof (SmtTerm.choice_nth s T (SmtTerm.exists s' U body') (Nat.succ n)) =
-                __smtx_typeof (SmtTerm.choice_nth s' U body' n) := by
-            rw [__smtx_typeof.eq_137, __smtx_typeof.eq_137]
-            simp [__smtx_typeof_choice_nth]
+                __smtx_typeof (SmtTerm.choice_nth s' U body' n) :=
+            choice_nth_succ_typeof_tail_of_non_none hTy
           have hTy' : term_has_non_none_type (SmtTerm.choice_nth s' U body' n) := by
-            unfold term_has_non_none_type
-            rw [← hTyEq]
-            exact hTy
+            exact choice_nth_succ_tail_non_none_of_non_none hTy
           rw [__smtx_model_eval.eq_137, smtx_model_eval_choice_nth_eq_2]
           simpa [__smtx_model_eval.eq_137, smtx_model_eval_choice_nth_eq_1,
             smtx_model_eval_choice_nth_eq_2] using
