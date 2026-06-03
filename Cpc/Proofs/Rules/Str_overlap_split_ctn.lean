@@ -113,7 +113,8 @@ by
                   (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) sw) emp) hr1
                 obtain ⟨⟨Ss, hSs⟩, ⟨Se, hSe⟩⟩ :=
                   strConcat_args_eval_seq_of_concat_eval_seq M sw emp hr2
-                have hempnil : native_unpack_seq Se = [] := by sorry
+                have hempnil : native_unpack_seq Se = [] :=
+                  RuleProofs.str_is_empty_eval_unpack_nil M emp Se hemp hSe
                 have hA : ∀ k, k < (native_unpack_seq Sc).length →
                     ¬ RuleProofs.native_seq_compat ((native_unpack_seq Sc).drop k)
                       (native_unpack_seq Sd) := by sorry

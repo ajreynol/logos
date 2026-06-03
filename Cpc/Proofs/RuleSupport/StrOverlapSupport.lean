@@ -693,6 +693,43 @@ theorem eo_and_true_split (a b : Term) (h : __eo_and a b = Term.Boolean true) :
   all_goals (simp only [__eo_requires, native_ite, native_teq] at h)
   all_goals (split at h <;> exact Term.noConfusion h)
 
+/-- An empty word evaluates to a sequence with empty underlying element list. -/
+theorem str_is_empty_eval_unpack_nil (M : SmtModel) (e : Term) (s : SmtSeq)
+    (hemp : __str_is_empty e = Term.Boolean true)
+    (hev : __smtx_model_eval M (__eo_to_smt e) = SmtValue.Seq s) :
+    native_unpack_seq s = [] := by
+  unfold __str_is_empty at hemp
+  split at hemp
+  · exact Term.noConfusion hemp
+  · rename_i U
+    rw [show __eo_to_smt (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U)) =
+        __eo_to_smt_seq_empty (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U)) from rfl] at hev
+    simp only [__eo_to_smt_type, __smtx_typeof_guard, native_ite] at hev
+    split at hev
+    · simp only [__eo_to_smt_seq_empty, __smtx_model_eval] at hev
+      exact SmtValue.noConfusion hev
+    · rw [show __eo_to_smt_seq_empty (SmtType.Seq (__eo_to_smt_type U)) =
+          SmtTerm.seq_empty (__eo_to_smt_type U) from rfl,
+        show __smtx_model_eval M (SmtTerm.seq_empty (__eo_to_smt_type U)) =
+          SmtValue.Seq (SmtSeq.empty (__eo_to_smt_type U)) from by simp only [__smtx_model_eval]] at hev
+      injection hev with hev; rw [← hev]; rfl
+  · rw [show __eo_to_smt (Term.String []) = SmtTerm.String [] from rfl,
+      show __smtx_model_eval M (SmtTerm.String []) = SmtValue.Seq (native_pack_string []) from by
+        simp only [__smtx_model_eval]] at hev
+    injection hev with hev; rw [← hev]
+    simp [native_pack_string, native_pack_seq, native_unpack_seq]
+  · simp at hemp
+
+/-- The no-overlap `(A)` condition for `String`-literal arguments, from the `gt`
+    side-condition (composes the committed String bridge). -/
+theorem no_compat_string (wc wd : native_String)
+    (hgt : __eo_gt (__str_value_len (Term.String wc))
+        (__str_overlap_rec (__str_flatten (__str_nary_intro (Term.String wc)))
+          (__str_flatten (__str_nary_intro (Term.String wd)))) = Term.Boolean false) :
+    ∀ k, k < (wc.map SmtValue.Char).length →
+      ¬ native_seq_compat ((wc.map SmtValue.Char).drop k) (wd.map SmtValue.Char) :=
+  no_compat_of_overlap_full wc wd (overlap_cond_implies_overlapDrop_full wc wd hgt)
+
 /-! ### Model-eval of the rule equation -/
 
 /-- `contains` evaluating to a Boolean forces both arguments to evaluate to
