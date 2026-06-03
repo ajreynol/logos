@@ -8,18 +8,26 @@ Reports, by transitive Lean `import` closure (restricted to the `Cpc` library):
   (3) Lines for the central proof of correctness of the checker, partitioned
       into disjoint buckets (no file double-counted):
         (a) smt-model-eval type preservation
-        (b) translation type preservation
-        (c) canonicity theorem
+        (b) canonicity theorem
+        (c) translation type preservation
         (d) non-vacuity
         (e) proofs of proof rule correctness
         (f) top-level checker correctness (the driver tying it together)
 
+These pieces form a (nearly) linear dependency chain:
+
+    definitions -> (a) -> (b) -> (c) -> (e) -> (f)
+
+with (d) non-vacuity a standalone leaf off (a). Canonicity (b) sits directly on
+the smt-model layer (a); the rule proofs (e) include the CheckerCore checker
+scaffolding they are stated against, and the top-level theorem (f) imports the
+rules, so (f) depends on (e) and nothing depends back on (f).
+
 Attribution for (3) is priority-based: the definitions from (1)+(2) are
 excluded first, then each file is owned by the earliest bucket whose import
-closure reaches it (order a -> b -> c -> d -> f -> e). So the shared
-type-preservation foundation is counted once under (a), and b/c/d/e/f report
-only their *incremental* lines. The buckets are disjoint and sum to the whole
-proof.
+closure reaches it. So the shared type-preservation foundation is counted once
+under (a), and the rest report only their *incremental* lines. The buckets are
+disjoint and sum to the whole proof.
 
 A "line of code" is a non-blank, non-comment line (Lean line comments `--` and
 nested block comments `/- ... -/` are stripped).
@@ -27,6 +35,7 @@ nested block comments `/- ... -/` are stripped).
 Usage:
   scripts/cpc-loc-summary.py            # summary (totals + per-bucket)
   scripts/cpc-loc-summary.py --files    # also list every file with its LOC
+  scripts/cpc-loc-summary.py --deps     # also print the inter-piece dependencies
 """
 
 from __future__ import annotations
@@ -39,27 +48,30 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.dirname(SCRIPT_DIR)
 
 # --- Bucket configuration -------------------------------------------------
-# Each entry is (key, title, closure_roots, file_roots). Buckets are processed
-# in this order; a file is attributed to the first bucket (after the excluded
-# definitions) that reaches it. A bucket owns the import closure of its
-# `closure_roots` plus the literal modules in `file_roots`, minus anything an
-# earlier bucket already claimed.
+# Each entry is (key, title, closure_roots, file_roots). A bucket owns the
+# import closure of its `closure_roots` plus the literal modules in
+# `file_roots`, minus anything an earlier bucket already claimed. Buckets are
+# listed here in PRIORITY (attribution) order; the report shows them in
+# DISPLAY_ORDER below.
 #
-# `file_roots` (literal, not closure) is how the top-level glue is captured
-# without swallowing the rules: Checker.lean / RuleLemmas.lean import every
-# rule, so their *closures* would absorb all of (e). We attribute just those
-# two files to (f) and let the rule leaves fall through to (e). CheckerCore's
-# closure, by contrast, is pure scaffolding (no rule leaves) so it is safe to
-# expand.
+# (f) is claimed before the (e) catch-all and uses `file_roots` (literal, not
+# closure): Checker.lean / RuleLemmas.lean import every rule, so their closures
+# would absorb all of (e). Attributing just those two files to (f) reserves the
+# top-level theorem, and everything the rules build on -- including the
+# CheckerCore scaffolding -- falls through to the (e) catch-all. The result is a
+# linear chain ... -> (e) -> (f): (f) depends on (e), nothing depends on (f).
 PROOF_BUCKETS = [
     ("a", "smt-model-eval type preservation", ["Cpc.Proofs.TypePreservation"], []),
-    ("b", "translation type preservation",    ["Cpc.Proofs.Translation"], []),
-    ("c", "canonicity theorem",               ["Cpc.Proofs.Canonical"], []),
+    ("b", "canonicity theorem",               ["Cpc.Proofs.Canonical"], []),
+    ("c", "translation type preservation",    ["Cpc.Proofs.Translation"], []),
     ("d", "non-vacuity",                       ["Cpc.Proofs.TypePreservation.Nonvacuity"], []),
-    ("f", "top-level checker correctness",     ["Cpc.Proofs.CheckerCore"],
+    ("f", "top-level checker correctness",     [],
                                                ["Cpc.Proofs.Checker", "Cpc.Proofs.RuleLemmas"]),
     ("e", "proofs of proof rule correctness",  ["Cpc.Proofs.Checker"], []),  # catch-all
 ]
+
+# Order pieces appear in the report (their natural dependency order).
+DISPLAY_ORDER = ["a", "b", "c", "d", "e", "f"]
 
 # The full central proof (everything reachable from the top-level theorem).
 CENTRAL_ROOTS = ["Cpc.Proofs.Checker"]
@@ -179,8 +191,30 @@ def print_file_list(modules, cache, indent="    "):
         print(f"{indent}{loc_of(module, cache):6d}  {module}")
 
 
+def print_dependencies(owner, imports, titles):
+    """Print the direct cross-bucket import edges (X imports from Y)."""
+    edges = {k: set() for k in DISPLAY_ORDER}
+    for module, deps in imports.items():
+        src = owner.get(module)
+        if src not in edges:
+            continue
+        for dep in deps:
+            dst = owner.get(dep)
+            if dst is not None and dst != src:
+                edges[src].add(dst)
+
+    rank = {k: i for i, k in enumerate(["def"] + DISPLAY_ORDER)}
+    print("\n(4) Dependencies between proof pieces (X imports from Y)")
+    for key in DISPLAY_ORDER:
+        deps = sorted(edges[key], key=lambda d: rank.get(d, 99))
+        shown = ", ".join("definitions" if d == "def" else f"({d})" for d in deps)
+        print(f"    ({key}) {titles[key]}")
+        print(f"         depends on: {shown or '(none)'}")
+
+
 def main() -> int:
     show_files = "--files" in sys.argv[1:]
+    show_deps = "--deps" in sys.argv[1:]
 
     imports, modules = build_graph()
     cache: dict[str, int] = {}
@@ -213,24 +247,33 @@ def main() -> int:
     print("    (definitions from (1)+(2) excluded; buckets disjoint, priority-attributed)")
 
     claimed = set(excluded)
-    results = []
+    owner = {m: "def" for m in excluded}
+    results = {}
+    titles = {}
     for key, title, closure_roots, file_roots in PROOF_BUCKETS:
         bucket_cl = closure(closure_roots, imports, modules)
         bucket_cl |= {m for m in file_roots if m in modules}
         own = bucket_cl - claimed
         claimed |= own
-        results.append((key, title, own))
+        for module in own:
+            owner[module] = key
+        results[key] = own
+        titles[key] = title
 
     proof_total = total_loc(claimed - excluded, cache)
     proof_files = len(claimed - excluded)
     print(f"    total proof files: {proof_files:4d}    total proof lines: {proof_total:7d}")
 
-    for key, title, own in results:
+    for key in DISPLAY_ORDER:
+        own = results[key]
         note = "  (standalone; not imported by the top-level theorem)" if key == "d" else ""
-        print(f"\n    ({key}) {title}{note}")
+        print(f"\n    ({key}) {titles[key]}{note}")
         print(f"        files: {len(own):4d}    lines: {total_loc(own, cache):7d}")
         if show_files:
             print_file_list(own, cache, indent="        ")
+
+    if show_deps:
+        print_dependencies(owner, imports, titles)
 
     return 0
 
