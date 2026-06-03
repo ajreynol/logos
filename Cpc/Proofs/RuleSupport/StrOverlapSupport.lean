@@ -823,4 +823,229 @@ theorem overlap_split_eval (M : SmtModel) (t c sw emp d : Term)
   rw [Bool.eq_iff_iff, Bool.or_eq_true]
   exact hsplit
 
+theorem eo_add_one_inv (R : Term) (N : Int)
+    (h : __eo_add (Term.Numeral 1) R = Term.Numeral N) :
+    R = Term.Numeral (N - 1) := by
+  cases R with
+  | Numeral m =>
+      simp only [__eo_add, native_zplus] at h; injection h with h
+      congr 1; rw [← h, Int.add_comm, Int.add_sub_cancel]
+  | _ => simp_all [__eo_add, __eo_requires, native_ite, native_teq]
+
+/-- If the overlap recursion runs to "full" on an atom chain, then every suffix of
+the chain is incompatible with `W`. -/
+theorem overlap_full_is_compat_false (ex W : Term) (hW : W ≠ Term.Stuck) :
+    ∀ (xs : List Term),
+      __str_overlap_rec (atomChainTerm xs ex) W = Term.Numeral (Int.ofNat xs.length) →
+      ∀ k, k < xs.length →
+        __str_is_compatible (atomChainTerm (xs.drop k) ex) W = Term.Boolean false := by
+  intro xs
+  induction xs with
+  | nil => intro _ k hk; simp at hk
+  | cons a xs ih =>
+      intro hov k hk
+      rw [atomChainTerm_cons, overlap_rec_concat _ _ _ hW, ← atomChainTerm_cons] at hov
+      have hcompat : __str_is_compatible (atomChainTerm (a :: xs) ex) W = Term.Boolean false := by
+        clear hk ih
+        cases hc : __str_is_compatible (atomChainTerm (a :: xs) ex) W with
+        | Boolean b =>
+            cases b with
+            | true =>
+                exfalso; rw [hc, eo_ite_true] at hov; injection hov with hov
+                rw [show (a :: xs).length = xs.length + 1 from rfl] at hov
+                simp only [native_Int, Int.ofNat_eq_natCast] at hov; omega
+            | false => rfl
+        | _ => rw [hc] at hov; simp [__eo_ite, native_teq, SmtEval.native_ite] at hov
+      have hrec : __str_overlap_rec (atomChainTerm xs ex) W = Term.Numeral (Int.ofNat xs.length) := by
+        clear hk ih
+        rw [hcompat, eo_ite_false] at hov
+        rw [eo_add_one_inv _ _ hov]; congr 1
+        rw [show (a :: xs).length = xs.length + 1 from rfl]
+        simp only [native_Int, Int.ofNat_eq_natCast]; omega
+      cases k with
+      | zero => simpa using hcompat
+      | succ j =>
+          have hj : j < xs.length := by simp only [List.length_cons] at hk; omega
+          simpa [List.drop_succ_cons] using ih hrec j hj
+
+theorem nveq_self (v : SmtValue) : native_veq v v = true := by simp [native_veq]
+
+theorem nveq_symm {v1 v2 : SmtValue} (h : native_veq v1 v2 = false) :
+    native_veq v2 v1 = false := by
+  simp only [native_veq, decide_eq_false_iff_not] at h ⊢; exact fun he => h he.symm
+
+/-- The key inversion: when `is_compatible` of two atom-chains is *Boolean false*
+(so the comparison never got `Stuck`), the underlying value lists are not
+overlap-compatible.  The distinctness facts are extracted *locally* from each
+head comparison (via `are_distinct` soundness, supplied as `hsound`), so no
+global distinctness guard is needed. -/
+theorem is_compat_false_no_compat
+    (val : Term → SmtValue) (exX exY : Term)
+    (hExYne : exY ≠ Term.Stuck)
+    (hExX : ∀ W, W ≠ Term.Stuck → __str_is_compatible exX W = Term.Boolean true)
+    (hExY : ∀ a W, __str_is_compatible
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) a) W) exY = Term.Boolean true) :
+    ∀ (xs ys : List Term),
+      (∀ a b, __are_distinct_terms_type a b (__eo_typeof a) = Term.Boolean true →
+        native_veq (val a) (val b) = false) →
+      __str_is_compatible (atomChainTerm xs exX) (atomChainTerm ys exY) = Term.Boolean false →
+      ¬ native_seq_compat (xs.map val) (ys.map val) := by
+  intro xs
+  induction xs with
+  | nil =>
+      intro ys _ hfalse
+      rw [show atomChainTerm [] exX = exX from rfl,
+        hExX _ (atomChainTerm_ne_stuck ys exY hExYne)] at hfalse
+      simp at hfalse
+  | cons a xs ih =>
+      intro ys hsound hfalse
+      cases ys with
+      | nil =>
+          rw [atomChainTerm_cons, show atomChainTerm [] exY = exY from rfl, hExY] at hfalse
+          simp at hfalse
+      | cons b ys =>
+          rw [atomChainTerm_cons, atomChainTerm_cons] at hfalse
+          simp only [__str_is_compatible] at hfalse
+          by_cases hab : __eo_eq a b = Term.Boolean true
+          · have hba : b = a := eq_of_eo_eq a b hab
+            subst hba
+            rw [hab, eo_ite_true] at hfalse
+            have ihres := ih ys hsound hfalse
+            intro hcompat; apply ihres
+            unfold native_seq_compat at hcompat ⊢
+            simp only [List.map_cons, native_seq_prefix_eq, nveq_self, Bool.true_and] at hcompat
+            exact hcompat
+          · have habf : __eo_eq a b = Term.Boolean false := by
+              cases h : __eo_eq a b with
+              | Boolean bb => cases bb with
+                | true => exact absurd h hab
+                | false => rfl
+              | _ => rw [h] at hfalse; simp [__eo_ite, native_teq, SmtEval.native_ite] at hfalse
+            rw [habf] at hfalse
+            simp only [__eo_ite, native_teq, SmtEval.native_ite,
+              __eo_l_1___str_is_compatible, __eo_requires, habf] at hfalse
+            have hdist : __are_distinct_terms_type a b (__eo_typeof a) = Term.Boolean true := by
+              revert hfalse
+              cases h : __are_distinct_terms_type a b (__eo_typeof a) with
+              | Boolean bb => cases bb with
+                | true => intro _; rfl
+                | false => intro hf; simp [native_ite, native_teq] at hf
+              | _ => intro hf; simp [native_ite, native_teq] at hf
+            have hvf := hsound a b hdist
+            have hvf2 := nveq_symm hvf
+            intro hcompat
+            unfold native_seq_compat at hcompat
+            simp only [List.map_cons, native_seq_prefix_eq, hvf, hvf2,
+              Bool.false_and] at hcompat
+            rcases hcompat with h | h <;> exact Bool.noConfusion h
+
+/-- The overlap-recursion count is bounded by the number of atoms. -/
+theorem overlap_rec_le_len (ex W : Term) (hW : W ≠ Term.Stuck)
+    (hexz : __str_overlap_rec ex W = Term.Numeral 0) :
+    ∀ (xs : List Term) (m : Int),
+      __str_overlap_rec (atomChainTerm xs ex) W = Term.Numeral m → m ≤ Int.ofNat xs.length := by
+  intro xs
+  induction xs with
+  | nil =>
+      intro m h
+      rw [show atomChainTerm [] ex = ex from rfl, hexz] at h
+      injection h with h; simp only [native_Int, List.length_nil, Int.ofNat_eq_natCast] at h ⊢; omega
+  | cons a xs ih =>
+      intro m h
+      rw [atomChainTerm_cons, overlap_rec_concat _ _ _ hW, ← atomChainTerm_cons] at h
+      cases hc : __str_is_compatible (atomChainTerm (a :: xs) ex) W with
+      | Boolean bb =>
+          cases bb with
+          | true =>
+              rw [hc, eo_ite_true] at h; injection h with h
+              simp only [native_Int] at h ⊢
+              rw [show (a :: xs).length = xs.length + 1 from rfl]
+              simp only [Int.ofNat_eq_natCast]; omega
+          | false =>
+              rw [hc, eo_ite_false] at h
+              have key : __str_overlap_rec (atomChainTerm xs ex) W = Term.Numeral (m - 1) :=
+                eo_add_one_inv _ _ h
+              have ihres := ih (m - 1) key
+              rw [show (a :: xs).length = xs.length + 1 from rfl]
+              simp only [native_Int, Int.ofNat_eq_natCast] at ihres ⊢; omega
+      | _ => rw [hc] at h; simp [__eo_ite, native_teq, SmtEval.native_ite] at h
+
+/-- Unified no-overlap `(A)` derivation from a word characterization of `c`/`d`.
+Given that `c`/`d` flatten to atom-chains with terminators `exX`/`exY`, whose
+evaluated element lists are `xs.map val`/`ys.map val`, the `gt` side-condition
+forces every nonempty suffix of `c`'s value to be incompatible with `d`'s. -/
+theorem no_compat_of_word
+    (val : Term → SmtValue) (c d : Term) (Sc Sd : SmtSeq)
+    (xs ys : List Term) (exX exY : Term)
+    (hflatc : __str_flatten (__str_nary_intro c) = atomChainTerm xs exX)
+    (hflatd : __str_flatten (__str_nary_intro d) = atomChainTerm ys exY)
+    (hlenc : __str_value_len c = Term.Numeral (Int.ofNat xs.length))
+    (hunpc : native_unpack_seq Sc = xs.map val)
+    (hunpd : native_unpack_seq Sd = ys.map val)
+    (hexXne : exX ≠ Term.Stuck) (hexYne : exY ≠ Term.Stuck)
+    (hexXcompatL : ∀ W, W ≠ Term.Stuck → __str_is_compatible exX W = Term.Boolean true)
+    (hexYcompatR : ∀ a W, __str_is_compatible
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) a) W) exY = Term.Boolean true)
+    (hexXz : ∀ W, W ≠ Term.Stuck → __str_overlap_rec exX W = Term.Numeral 0)
+    (hsound : ∀ a b, __are_distinct_terms_type a b (__eo_typeof a) = Term.Boolean true →
+      native_veq (val a) (val b) = false)
+    (hgt : __eo_gt (__str_value_len c)
+        (__str_overlap_rec (__str_flatten (__str_nary_intro c))
+          (__str_flatten (__str_nary_intro d))) = Term.Boolean false) :
+    ∀ k, k < (native_unpack_seq Sc).length →
+      ¬ native_seq_compat ((native_unpack_seq Sc).drop k) (native_unpack_seq Sd) := by
+  rw [hlenc, hflatc, hflatd] at hgt
+  have hWne : atomChainTerm ys exY ≠ Term.Stuck := atomChainTerm_ne_stuck ys exY hexYne
+  have hrec : ∃ N2, __str_overlap_rec (atomChainTerm xs exX) (atomChainTerm ys exY)
+      = Term.Numeral N2 ∧ Int.ofNat xs.length ≤ N2 := by
+    revert hgt
+    cases hb : __str_overlap_rec (atomChainTerm xs exX) (atomChainTerm ys exY) with
+    | Numeral N2 =>
+        intro hgt; refine ⟨N2, rfl, ?_⟩
+        simp only [__eo_gt, native_zlt] at hgt; injection hgt with hgt
+        have hnlt := of_decide_eq_false hgt
+        simp only [native_Int, Int.ofNat_eq_natCast] at hnlt ⊢; omega
+    | _ => intro hgt; simp [__eo_gt] at hgt
+  obtain ⟨N2, hN2eq, hN2ge⟩ := hrec
+  have hN2le := overlap_rec_le_len exX (atomChainTerm ys exY) hWne
+    (hexXz _ hWne) xs N2 hN2eq
+  have hN2 : N2 = Int.ofNat xs.length := by
+    simp only [native_Int, Int.ofNat_eq_natCast] at hN2le hN2ge ⊢; omega
+  rw [hN2] at hN2eq
+  have hfull := overlap_full_is_compat_false exX (atomChainTerm ys exY) hWne xs hN2eq
+  intro k hk
+  rw [hunpc, List.length_map] at hk
+  rw [hunpc, hunpd, ← List.map_drop]
+  exact is_compat_false_no_compat val exX exY hexYne hexXcompatL hexYcompatR
+    (xs.drop k) ys hsound (hfull k hk)
+
+/-- A `String` literal evaluates to the packed string value. -/
+theorem eval_string (M : SmtModel) (w : native_String) :
+    __smtx_model_eval M (__eo_to_smt (Term.String w)) = SmtValue.Seq (native_pack_string w) := by
+  rw [show __eo_to_smt (Term.String w) = SmtTerm.String w from rfl]; simp only [__smtx_model_eval]
+
+/-- The no-overlap `(A)` condition, dispatching on the representation of the
+constant-like words `c`/`d`.  The `String`-literal case is closed via the
+committed char-chain bridge `no_compat_string`. -/
+theorem no_compat_dispatch (M : SmtModel) (hM : model_total_typed M)
+    (c d : Term) (Sc Sd : SmtSeq)
+    (hSc : __smtx_model_eval M (__eo_to_smt c) = SmtValue.Seq Sc)
+    (hSd : __smtx_model_eval M (__eo_to_smt d) = SmtValue.Seq Sd)
+    (hgt : __eo_gt (__str_value_len c)
+        (__str_overlap_rec (__str_flatten (__str_nary_intro c))
+          (__str_flatten (__str_nary_intro d))) = Term.Boolean false) :
+    ∀ k, k < (native_unpack_seq Sc).length →
+      ¬ native_seq_compat ((native_unpack_seq Sc).drop k) (native_unpack_seq Sd) := by
+  cases c with
+  | String wc =>
+      cases d with
+      | String wd =>
+          rw [eval_string] at hSc hSd
+          injection hSc with hSc; injection hSd with hSd
+          subst hSc; subst hSd
+          rw [unpack_pack_string_map, unpack_pack_string_map]
+          exact no_compat_string wc wd hgt
+      | _ => sorry
+  | _ => sorry
+
 end RuleProofs

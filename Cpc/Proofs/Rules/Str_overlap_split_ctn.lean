@@ -117,10 +117,12 @@ by
                   RuleProofs.str_is_empty_eval_unpack_nil M emp Se hemp hSe
                 have hA : ∀ k, k < (native_unpack_seq Sc).length →
                     ¬ RuleProofs.native_seq_compat ((native_unpack_seq Sc).drop k)
-                      (native_unpack_seq Sd) := by sorry
+                      (native_unpack_seq Sd) :=
+                  RuleProofs.no_compat_dispatch M hM c d Sc Sd hSc hSd hgt1
                 have hB : ∀ k, k < (native_unpack_seq Sd).length →
                     ¬ RuleProofs.native_seq_compat ((native_unpack_seq Sd).drop k)
-                      (native_unpack_seq Sc) := by sorry
+                      (native_unpack_seq Sc) :=
+                  RuleProofs.no_compat_dispatch M hM d c Sd Sc hSd hSc hgt2
                 refine ⟨fun _ => ?_, ?_⟩
                 · refine RuleProofs.eo_interprets_eq_of_rel M _ _ hEqBool ?_
                   rw [RuleProofs.overlap_split_eval M t c sw emp d St Sc Ss Se Sd
