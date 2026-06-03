@@ -500,4 +500,148 @@ theorem overlap_cond_implies_overlapDrop_full (w w' : native_String)
   have hle := overlapDrop_le w w'
   omega
 
+/-! ### General atom-chains (handles `seq_unit` words, not just `String` literals)
+
+A flattened word is a `str.++` chain of *atoms* (each a single-element term:
+`String[ch]` for `Seq Char` literals, `seq_unit v` for general sequences),
+terminated by an "empty".  `is_compatible`/`overlap_rec` compare atoms with the
+*syntactic* `__eo_eq`; under the rule's guards (no comparison is `Stuck`), this
+matches a syntactic list prefix-compatibility on the atom list. -/
+
+/-- Syntactic list prefix on terms. -/
+def listPrefixEq : List Term → List Term → Bool
+  | [], _ => true
+  | _ :: _, [] => false
+  | a :: as, b :: bs => decide (a = b) && listPrefixEq as bs
+
+/-- Syntactic overlap-compatibility on term lists. -/
+def listCompat (x y : List Term) : Bool := listPrefixEq x y || listPrefixEq y x
+
+/-- Overlap drop count on term lists. -/
+def listOverlapDrop : List Term → List Term → Nat
+  | [], _ => 0
+  | a :: x, y => if listCompat (a :: x) y then 0 else 1 + listOverlapDrop x y
+
+theorem listOverlapDrop_le (x y : List Term) : listOverlapDrop x y ≤ x.length := by
+  induction x with
+  | nil => simp [listOverlapDrop]
+  | cons a x ih => simp only [listOverlapDrop, List.length_cons]; split <;> omega
+
+theorem listOverlapDrop_full_no_compat :
+    ∀ (x y : List Term), listOverlapDrop x y = x.length →
+      ∀ k, k < x.length → listCompat (x.drop k) y = false
+  | [], y, h, k, hk => by simp at hk
+  | a :: x, y, h, k, hk => by
+      have hbc : listCompat (a :: x) y = false := by
+        rcases hbcc : listCompat (a :: x) y with _ | _
+        · rfl
+        · exfalso; simp [listOverlapDrop, hbcc, List.length_cons] at h
+      have hx : listOverlapDrop x y = x.length := by
+        have h2 := h; simp [listOverlapDrop, hbc, List.length_cons] at h2; omega
+      cases k with
+      | zero => simpa using hbc
+      | succ j =>
+          have hj : j < x.length := by simp only [List.length_cons] at hk; omega
+          simpa [List.drop_succ_cons] using listOverlapDrop_full_no_compat x y hx j hj
+
+/-- `__eo_eq` is syntactic term equality (away from `Stuck`). -/
+theorem eo_eq_val (a b : Term) (ha : a ≠ Term.Stuck) (hb : b ≠ Term.Stuck) :
+    __eo_eq a b = Term.Boolean (native_teq b a) := by
+  unfold __eo_eq; split <;> simp_all
+
+/-- The `str.++`-chain of atoms terminated by `e`. -/
+def atomChainTerm (atoms : List Term) (e : Term) : Term :=
+  atoms.foldr (fun a acc => Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) a) acc) e
+
+theorem atomChainTerm_cons (a : Term) (xs : List Term) (e : Term) :
+    atomChainTerm (a :: xs) e =
+      Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) a) (atomChainTerm xs e) := rfl
+
+theorem atomChainTerm_ne_stuck (xs : List Term) (e : Term) (he : e ≠ Term.Stuck) :
+    atomChainTerm xs e ≠ Term.Stuck := by
+  cases xs with
+  | nil => exact he
+  | cons a xs => rw [atomChainTerm_cons]; simp
+
+/-- `is_compatible` on atom-chains computes syntactic list compatibility, under
+    the resolution guard (every atom pair is syntactically equal or provably
+    distinct — i.e. comparisons never get `Stuck`). -/
+theorem is_compatible_atomChain (ex ey : Term)
+    (hexL : ∀ Z, __str_is_compatible ex Z = Term.Boolean true)
+    (heyR : ∀ a W, __str_is_compatible
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) a) W) ey = Term.Boolean true) :
+    ∀ (xs ys : List Term),
+      (∀ a ∈ xs, a ≠ Term.Stuck) → (∀ b ∈ ys, b ≠ Term.Stuck) →
+      (∀ a ∈ xs, ∀ b ∈ ys,
+        a = b ∨ __are_distinct_terms_type a b (__eo_typeof a) = Term.Boolean true) →
+      __str_is_compatible (atomChainTerm xs ex) (atomChainTerm ys ey) =
+        Term.Boolean (listCompat xs ys) := by
+  intro xs
+  induction xs with
+  | nil =>
+      intro ys _ _ _
+      simp only [atomChainTerm, List.foldr_nil, hexL, listCompat, listPrefixEq, Bool.true_or]
+  | cons a xs ih =>
+      intro ys hxne hyne hg
+      cases ys with
+      | nil =>
+          rw [atomChainTerm_cons, show atomChainTerm [] ey = ey from rfl, heyR]
+          simp [listCompat, listPrefixEq]
+      | cons b ys =>
+          have ha : a ≠ Term.Stuck := hxne a (by simp)
+          have hb : b ≠ Term.Stuck := hyne b (by simp)
+          rw [atomChainTerm_cons, atomChainTerm_cons]
+          simp only [__str_is_compatible]
+          by_cases hab : a = b
+          · subst hab
+            rw [eo_eq_val a a ha ha]
+            have htt : native_teq a a = true := by simp [native_teq]
+            simp only [htt, __eo_ite, native_teq, SmtEval.native_ite, if_true]
+            rw [ih ys (fun a' h' => hxne a' (by simp [h'])) (fun b' h' => hyne b' (by simp [h']))
+              (fun a' ha' b' hb' => hg a' (by simp [ha']) b' (by simp [hb']))]
+            simp [listCompat, listPrefixEq]
+          · have hba : b ≠ a := fun h => hab h.symm
+            have heqab : __eo_eq a b = Term.Boolean false := by
+              rw [eo_eq_val a b ha hb]; congr 1
+              simp only [native_teq]; exact decide_eq_false hba
+            have hdist : __are_distinct_terms_type a b (__eo_typeof a) = Term.Boolean true := by
+              rcases hg a (by simp) b (by simp) with h | h
+              · exact absurd h hab
+              · exact h
+            simp [__eo_ite, __eo_l_1___str_is_compatible, __eo_requires, heqab, native_teq,
+              SmtEval.native_ite, SmtEval.native_not, hdist, listCompat, listPrefixEq, hab, hba]
+
+/-- `overlap_rec` on atom-chains computes the list overlap drop count. -/
+theorem overlap_rec_atomChain (ex ey : Term)
+    (heyne : ey ≠ Term.Stuck)
+    (hexL : ∀ Z, __str_is_compatible ex Z = Term.Boolean true)
+    (heyR : ∀ a W, __str_is_compatible
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) a) W) ey = Term.Boolean true)
+    (hexO : ∀ Z, __str_overlap_rec ex Z = Term.Numeral 0) :
+    ∀ (xs ys : List Term),
+      (∀ a ∈ xs, a ≠ Term.Stuck) → (∀ b ∈ ys, b ≠ Term.Stuck) →
+      (∀ a ∈ xs, ∀ b ∈ ys,
+        a = b ∨ __are_distinct_terms_type a b (__eo_typeof a) = Term.Boolean true) →
+      __str_overlap_rec (atomChainTerm xs ex) (atomChainTerm ys ey) =
+        Term.Numeral (Int.ofNat (listOverlapDrop xs ys)) := by
+  intro xs
+  induction xs with
+  | nil =>
+      intro ys _ _ _
+      rw [show atomChainTerm [] ex = ex from rfl, hexO]
+      simp [listOverlapDrop]
+  | cons a xs ih =>
+      intro ys hxne hyne hg
+      rw [atomChainTerm_cons,
+        overlap_rec_concat _ _ _ (atomChainTerm_ne_stuck ys ey heyne),
+        ← atomChainTerm_cons,
+        is_compatible_atomChain ex ey hexL heyR (a :: xs) ys hxne hyne hg]
+      have ihres := ih ys (fun a' h' => hxne a' (by simp [h'])) hyne
+        (fun a' ha' b' hb' => hg a' (by simp [ha']) b' hb')
+      cases hbc : listCompat (a :: xs) ys with
+      | true => simp [__eo_ite, native_teq, SmtEval.native_ite, listOverlapDrop, hbc]
+      | false =>
+          simp only [listOverlapDrop, hbc, if_false]
+          simp [__eo_ite, native_teq, SmtEval.native_ite, ihres, __eo_add, native_zplus]
+
 end RuleProofs
