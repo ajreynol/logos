@@ -343,7 +343,7 @@ by
       · intro hTrue
         exact mk_re_concat_premises_true M ps.reverse (Term.String (native_string_lit ""))
           (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String (native_string_lit "")))
-          hRevBool (all_interpreted_true_reverse M ps hTrue)
+          hRevBool (all_interpreted_true_reverse M ps hTrue.true_here)
           empty_str_in_re_has_bool_type (empty_str_in_re_true M) hProgLocal
       · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _ hResultBool
   | cons _ _ =>
