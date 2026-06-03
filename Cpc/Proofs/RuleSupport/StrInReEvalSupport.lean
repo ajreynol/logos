@@ -987,39 +987,30 @@ theorem str_flatten_nary_intro_cons
     __str_flatten (__str_nary_intro (Term.String (c :: cs))) =
       substrWord (c :: cs) 0 (c :: cs).length := by
   rw [str_nary_intro_cons c cs]
-  simp only [__str_flatten, __eo_len, native_str_len]
-  have hIsStr :
-      __eo_is_str (Term.String (c :: cs)) = Term.Boolean true := by
-    simp [__eo_is_str, __eo_is_str_internal, native_teq, native_not,
-      SmtEval.native_and]
+  have hIsStr : __eo_is_str (Term.String (c :: cs)) = Term.Boolean true := by
+    simp [__eo_is_str, __eo_is_str_internal, native_teq, SmtEval.native_and,
+      SmtEval.native_not]
+  have hCountLen :
+      native_zlt (Int.ofNat (c :: cs).length) 0 = false := by
+    change decide ((Int.ofNat (c :: cs).length : Int) < 0) = false
+    simp
+    omega
   have hReqLen :
       __eo_requires
-          (__eo_is_neg (Term.Numeral (Int.ofNat (List.length cs + 1))))
+          (Term.Boolean (native_zlt (Int.ofNat (c :: cs).length) 0))
           (Term.Boolean false)
           (__iota_rec
             (__eo_list_repeat (Term.UOp UserOp._at__at_TypedList_cons)
               (Term.Numeral 0)
-              (Term.Numeral (Int.ofNat (List.length cs + 1))))
+              (Term.Numeral (Int.ofNat (c :: cs).length)))
             (Term.Numeral 0)) =
         __iota_rec
           (__eo_list_repeat (Term.UOp UserOp._at__at_TypedList_cons)
             (Term.Numeral 0)
-            (Term.Numeral (Int.ofNat (List.length cs + 1))))
+            (Term.Numeral (Int.ofNat (c :: cs).length)))
           (Term.Numeral 0) := by
-    rw [show
-        __eo_is_neg (Term.Numeral (Int.ofNat (List.length cs + 1))) =
-          Term.Boolean false by
-        change
-          Term.Boolean (native_zlt (Int.ofNat (List.length cs + 1)) 0) =
-            Term.Boolean false
-        have hCountLen :
-            native_zlt (Int.ofNat (List.length cs + 1)) 0 = false := by
-          change decide ((Int.ofNat (List.length cs + 1) : Int) < 0) =
-            false
-          simp
-          omega
-        rw [hCountLen]]
-    exact eo_requires_true_true _
+    rw [hCountLen]
+    exact eo_requires_refl_of_ne_stuck (Term.Boolean false) _ (by simp)
   have hTail :
       __eo_requires (Term.String [])
           (__seq_empty (__eo_typeof (Term.String []))) (Term.String []) =
@@ -1027,16 +1018,12 @@ theorem str_flatten_nary_intro_cons
     change __eo_requires (Term.String []) (Term.String []) (Term.String []) =
       Term.String []
     simp [__eo_requires, native_ite, native_teq, native_not]
+  simp only [__str_flatten, __eo_len, native_str_len, __eo_is_neg]
   rw [hIsStr]
-  simp [__eo_ite, native_teq, native_ite]
-  rw [hTail]
-  rw [show ((↑(List.length cs) : native_Int) + 1) =
-      Int.ofNat (List.length cs + 1) by simp]
-  rw [hReqLen, eo_list_repeat_zero_eq, iota_zero_list_eq_range,
+  simp only [__eo_ite, native_teq, native_ite]
+  rw [hTail, hReqLen, eo_list_repeat_zero_eq, iota_zero_list_eq_range,
     str_flatten_word_rec_range_eq_substrWord]
-  exact
-    eo_list_concat_str_concat_substrWord_empty (c :: cs)
-      (List.length cs + 1) 0
+  exact eo_list_concat_str_concat_substrWord_empty (c :: cs) (c :: cs).length 0
 
 theorem str_eval_empty_eq_nullable (r : Term) :
     __str_eval_str_in_re_rec (Term.String []) r = __re_nullable r := by
