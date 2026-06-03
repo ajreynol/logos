@@ -201,8 +201,7 @@ def __eo_to_smt_tuple_update : SmtType -> SmtTerm -> SmtTerm -> SmtTerm -> SmtTe
 def __eo_to_smt_exists : Term -> SmtTerm -> SmtTerm
   | Term.__eo_List_nil, F => F
   | (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var (Term.String s) T)) vs), F =>
-    let U := __eo_to_smt_type T
-    (native_ite (__smtx_type_wf U) (SmtTerm.exists s U (__eo_to_smt_exists vs F)) SmtTerm.None)
+    SmtTerm.exists s (__eo_to_smt_type T) (__eo_to_smt_exists vs F)
   | vs, F => SmtTerm.None
 
 
