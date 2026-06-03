@@ -208,6 +208,20 @@ theorem listLookup_concat
 /-- For a union-of-singletons normal form `nf` (one on which `__set_union_to_list`
 succeeds), the model lookup of `nf`'s set value at `v` equals `listLookup` of the
 element list of `nf`. -/
+theorem model_eval_singleton (M : SmtModel) (e : Term) :
+    __smtx_model_eval M (__eo_to_smt ((Term.UOp UserOp.set_singleton).Apply e)) =
+      SmtValue.Set (SmtMap.cons (__smtx_model_eval M (__eo_to_smt e))
+        (SmtValue.Boolean true)
+        (SmtMap.default (__smtx_typeof_value (__smtx_model_eval M (__eo_to_smt e)))
+          (SmtValue.Boolean false))) := by
+  show __smtx_model_eval M (SmtTerm.set_singleton (__eo_to_smt e)) = _
+  simp [__smtx_model_eval, __smtx_model_eval_set_singleton]
+
+theorem model_eval_union_eq (M : SmtModel) (a b : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.set_union a b) =
+      __smtx_set_union (__smtx_model_eval M a) (__smtx_model_eval M b) := by
+  simp [__smtx_model_eval, __smtx_model_eval_set_union]
+
 theorem set_nf_lookup
     (M : SmtModel) (hM : model_total_typed M) :
     ∀ (nf : Term) (m : SmtMap) (v : SmtValue),
@@ -215,7 +229,126 @@ theorem set_nf_lookup
       RuleProofs.eo_has_smt_translation nf ->
       __smtx_model_eval M (__eo_to_smt nf) = SmtValue.Set m ->
       __smtx_msm_lookup m v = listLookup M (__set_union_to_list nf) v := by
-  sorry
+  intro nf
+  induction nf using __set_union_to_list.induct with
+  | case1 e t ih =>
+      intro m v hNS hTrans hEval
+      have hsutlt : __set_union_to_list t ≠ Term.Stuck := by
+        intro hSt
+        apply hNS
+        show __eo_mk_apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) e)
+            (__set_union_to_list t) = Term.Stuck
+        rw [hSt]; rfl
+      unfold RuleProofs.eo_has_smt_translation at hTrans
+      have hSU : __eo_to_smt
+          (((Term.UOp UserOp.set_union).Apply
+            ((Term.UOp UserOp.set_singleton).Apply e)).Apply t)
+          = SmtTerm.set_union
+            (__eo_to_smt ((Term.UOp UserOp.set_singleton).Apply e)) (__eo_to_smt t) := rfl
+      rw [hSU] at hTrans hEval
+      obtain ⟨A, hAse, hAt⟩ := set_binop_args_of_non_none (op := SmtTerm.set_union)
+        (typeof_set_union_eq _ _) hTrans
+      have hTransSe : RuleProofs.eo_has_smt_translation
+          ((Term.UOp UserOp.set_singleton).Apply e) := by
+        unfold RuleProofs.eo_has_smt_translation; rw [hAse]; simp
+      have hTransT : RuleProofs.eo_has_smt_translation t := by
+        unfold RuleProofs.eo_has_smt_translation; rw [hAt]; simp
+      obtain ⟨m1, hm1eval, hm1can, hm1ty, hm1def⟩ :=
+        set_value_facts M hM _ A hTransSe hAse
+      obtain ⟨mt, hmteval, hmtcan, hmtty, hmtdef⟩ := set_value_facts M hM t A hTransT hAt
+      have hm1cons : m1 = SmtMap.cons (__smtx_model_eval M (__eo_to_smt e))
+          (SmtValue.Boolean true)
+          (SmtMap.default (__smtx_typeof_value (__smtx_model_eval M (__eo_to_smt e)))
+            (SmtValue.Boolean false)) := by
+        rw [model_eval_singleton M e] at hm1eval
+        injection hm1eval with h; exact h.symm
+      have hModelU :
+          __smtx_set_union (SmtValue.Set m1) (SmtValue.Set mt) = SmtValue.Set m := by
+        rw [← hm1eval, ← hmteval, ← model_eval_union_eq]; exact hEval
+      rw [__smtx_set_union] at hModelU
+      injection hModelU with hmeq
+      rw [← hmeq, set_union_lookup m1 mt A v hm1ty hmtty hm1can hmtcan hm1def, hm1cons]
+      have hLook1 : __smtx_msm_lookup
+          (SmtMap.cons (__smtx_model_eval M (__eo_to_smt e)) (SmtValue.Boolean true)
+            (SmtMap.default
+              (__smtx_typeof_value (__smtx_model_eval M (__eo_to_smt e)))
+              (SmtValue.Boolean false))) v
+          = native_ite (native_veq (__smtx_model_eval M (__eo_to_smt e)) v)
+            (SmtValue.Boolean true) (SmtValue.Boolean false) := by
+        simp [__smtx_msm_lookup]
+      rw [hLook1]
+      have hLL : listLookup M
+          (__set_union_to_list (((Term.UOp UserOp.set_union).Apply
+            ((Term.UOp UserOp.set_singleton).Apply e)).Apply t)) v
+          = native_ite (native_veq (__smtx_model_eval M (__eo_to_smt e)) v)
+            (SmtValue.Boolean true) (listLookup M (__set_union_to_list t) v) := by
+        rw [show __set_union_to_list (((Term.UOp UserOp.set_union).Apply
+              ((Term.UOp UserOp.set_singleton).Apply e)).Apply t)
+            = __eo_mk_apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) e)
+              (__set_union_to_list t) from rfl,
+          mk_apply_of_ne_stuck (by simp) hsutlt, listLookup_cons]
+      rw [hLL, ← ih mt v hsutlt hTransT hmteval]
+      cases hvev : native_veq (__smtx_model_eval M (__eo_to_smt e)) v <;>
+        simp [native_ite, native_veq]
+  | case2 T =>
+      intro m v hNS hTrans hEval
+      unfold RuleProofs.eo_has_smt_translation at hTrans
+      by_cases hA : __eo_to_smt_type T = SmtType.None
+      · exfalso; apply hTrans
+        show __smtx_typeof (__eo_to_smt_set_empty
+          (__eo_to_smt_type ((Term.UOp UserOp.Set).Apply T))) = SmtType.None
+        have hg : __eo_to_smt_type ((Term.UOp UserOp.Set).Apply T) = SmtType.None := by
+          show __smtx_typeof_guard (__eo_to_smt_type T)
+            (SmtType.Set (__eo_to_smt_type T)) = SmtType.None
+          rw [hA]; rfl
+        rw [hg]; simp [__eo_to_smt_set_empty, __smtx_typeof]
+      · have hType : __eo_to_smt_type ((Term.UOp UserOp.Set).Apply T) =
+            SmtType.Set (__eo_to_smt_type T) :=
+          TranslationProofs.smtx_typeof_guard_of_non_none _ _ hA
+        have hEval2 : SmtValue.Set m =
+            SmtValue.Set (SmtMap.default (__eo_to_smt_type T) (SmtValue.Boolean false)) := by
+          rw [← hEval]
+          show __smtx_model_eval M (__eo_to_smt_set_empty
+            (__eo_to_smt_type ((Term.UOp UserOp.Set).Apply T))) = _
+          rw [hType]; simp [__eo_to_smt_set_empty, __smtx_model_eval]
+        injection hEval2 with hmeq
+        rw [hmeq]; rfl
+  | case3 e =>
+      intro m v hNS hTrans hEval
+      rw [model_eval_singleton M e] at hEval
+      injection hEval with hmeq
+      subst hmeq
+      have hnilne :
+          __eo_nil (Term.UOp UserOp._at__at_TypedList_cons) (__eo_typeof e) ≠ Term.Stuck := by
+        intro hSt
+        apply hNS
+        show __eo_mk_apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) e)
+            (__eo_nil (Term.UOp UserOp._at__at_TypedList_cons) (__eo_typeof e)) = Term.Stuck
+        rw [hSt]; rfl
+      have hnilform :
+          __eo_nil (Term.UOp UserOp._at__at_TypedList_cons) (__eo_typeof e) =
+            Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) (__eo_typeof e) := by
+        cases h : __eo_typeof e <;>
+          simp_all [__eo_nil, __eo_nil__at__at_TypedList_cons]
+      rw [show __set_union_to_list ((Term.UOp UserOp.set_singleton).Apply e)
+          = __eo_mk_apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) e)
+            (__eo_nil (Term.UOp UserOp._at__at_TypedList_cons) (__eo_typeof e)) from rfl,
+        hnilform, mk_apply_of_ne_stuck (by simp) (by simp),
+        listLookup_cons,
+        show listLookup M (Term.Apply (Term.UOp UserOp._at__at_TypedList_nil)
+          (__eo_typeof e)) v = SmtValue.Boolean false from rfl]
+      have hLook1 : __smtx_msm_lookup
+          (SmtMap.cons (__smtx_model_eval M (__eo_to_smt e)) (SmtValue.Boolean true)
+            (SmtMap.default
+              (__smtx_typeof_value (__smtx_model_eval M (__eo_to_smt e)))
+              (SmtValue.Boolean false))) v
+          = native_ite (native_veq (__smtx_model_eval M (__eo_to_smt e)) v)
+            (SmtValue.Boolean true) (SmtValue.Boolean false) := by
+        simp [__smtx_msm_lookup]
+      rw [hLook1]
+  | case4 g hc1 hc2 hc3 =>
+      intro m v hNS _ _
+      exact absurd (by unfold __set_union_to_list; split <;> simp_all) hNS
 
 /-! ### setof preserves membership, meq implies membership equality -/
 
@@ -506,7 +639,7 @@ theorem minclude_mem (M : SmtModel) (v : SmtValue) :
   | case1 t x => intro _ hY _ _; exact absurd hY (by simp [IsElemList])
   | case2 y x hy => intro _ _ hZ _; exact absurd hZ (by simp [IsElemList])
   | case3 y z hy hz => intro h _ _ _; rw [minclude_rec_false y z hy hz] at h; cases h
-  | case4 y x z hy ih =>
+  | case4 y x z hy v0 ih =>
       intro h hY hZ hv
       obtain ⟨hxf, hx, hz⟩ := hZ
       have hEr := erase_rec_isElemList y x hY hx
@@ -653,12 +786,397 @@ theorem listLookup_meq
     fun hh => minclude_mem M v (__eo_get_elements_rec Y) (__eo_get_elements_rec X)
       (Term.Boolean true) hYX hgeYel hgeXel hh
   rw [← getelem_mem M v X hX, ← getelem_mem M v Y hY]
-  rcases listLookup_isBool M (__eo_get_elements_rec X) v with hX1 | hX0
-  · rcases listLookup_isBool M (__eo_get_elements_rec Y) v with hY1 | hY0
-    · rw [hX1, hY1]
-    · exact absurd (hsubYX hX1) (by rw [hY0]; decide)
-  · rcases listLookup_isBool M (__eo_get_elements_rec Y) v with hY1 | hY0
-    · exact absurd (hsubXY hY1) (by rw [hX0]; decide)
-    · rw [hX0, hY0]
+  obtain ⟨bX, hbX⟩ := listLookup_isBool M (__eo_get_elements_rec X) v
+  obtain ⟨bY, hbY⟩ := listLookup_isBool M (__eo_get_elements_rec Y) v
+  rw [hbX, hbY]
+  cases bX <;> cases bY
+  · rfl
+  · exact absurd (hsubXY hbY) (by rw [hbX]; decide)
+  · exact absurd (hsubYX hbX) (by rw [hbY]; decide)
+  · rfl
+
+/-! ### Typed-cons-list machinery and the union-case assembly -/
+
+theorem set_singleton_typeof_none {x : SmtTerm} (h : __smtx_typeof x = SmtType.None) :
+    __smtx_typeof (SmtTerm.set_singleton x) = SmtType.None := by
+  rw [__smtx_typeof.eq_122, h, __smtx_typeof_guard_wf]
+  simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+    native_and, native_ite]
+
+/-- The argument of a translatable `set.singleton` is itself translatable. -/
+theorem singleton_elem_trans {e : Term}
+    (h : RuleProofs.eo_has_smt_translation ((Term.UOp UserOp.set_singleton).Apply e)) :
+    RuleProofs.eo_has_smt_translation e := by
+  unfold RuleProofs.eo_has_smt_translation at h ⊢
+  intro hNone
+  exact h (set_singleton_typeof_none hNone)
+
+/-- A `@@TypedList` with `@@cons` spine heads and non-`Stuck` elements. -/
+def IsTL : Term -> Prop
+  | Term.Apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) x) y =>
+      x ≠ Term.Stuck ∧ IsTL y
+  | Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) _ => True
+  | _ => False
+
+theorem isTL_ne_stuck {L : Term} (h : IsTL L) : L ≠ Term.Stuck := by
+  intro h0; rw [h0] at h; exact h
+
+theorem isTL_isElemList : ∀ L : Term, IsTL L -> IsElemList L := by
+  intro L
+  induction L using IsTL.induct with
+  | case1 x y ih => intro hTL; obtain ⟨hx, hy⟩ := hTL; exact ⟨by simp, hx, ih hy⟩
+  | case2 a => intro _; trivial
+  | case3 t hc1 hc2 => intro hTL; exact absurd hTL (by
+      cases t <;> simp_all [IsTL])
+
+theorem isTL_get_nil_ne_stuck : ∀ L : Term, IsTL L ->
+    __eo_get_nil_rec (Term.UOp UserOp._at__at_TypedList_cons) L ≠ Term.Stuck := by
+  intro L
+  induction L using IsTL.induct with
+  | case1 x y ih =>
+      intro hTL
+      obtain ⟨hx, hy⟩ := hTL
+      rw [show __eo_get_nil_rec (Term.UOp UserOp._at__at_TypedList_cons)
+          (((Term.UOp UserOp._at__at_TypedList_cons).Apply x).Apply y) =
+          __eo_get_nil_rec (Term.UOp UserOp._at__at_TypedList_cons) y from by
+        simp [__eo_get_nil_rec, __eo_requires, native_teq, native_ite,
+          native_not, SmtEval.native_not]]
+      exact ih hy
+  | case2 a =>
+      intro _
+      simp [__eo_get_nil_rec, __eo_is_list_nil, __eo_is_list_nil__at__at_TypedList_cons,
+        __eo_requires, native_teq, native_ite, native_not, SmtEval.native_not]
+  | case3 t hc1 hc2 => intro hTL; exact absurd hTL (by cases t <;> simp_all [IsTL])
+
+theorem isTL_is_list (L : Term) (h : IsTL L) :
+    __eo_is_list (Term.UOp UserOp._at__at_TypedList_cons) L = Term.Boolean true := by
+  have hne := isTL_get_nil_ne_stuck L h
+  have hLne : L ≠ Term.Stuck := isTL_ne_stuck h
+  rw [show __eo_is_list (Term.UOp UserOp._at__at_TypedList_cons) L =
+      __eo_is_ok (__eo_get_nil_rec (Term.UOp UserOp._at__at_TypedList_cons) L) from by
+    cases L <;> simp_all [__eo_is_list]]
+  unfold __eo_is_ok
+  simp [native_teq, native_not, SmtEval.native_not, hne]
+
+theorem req_tt (z : Term) : __eo_requires (Term.Boolean true) (Term.Boolean true) z = z := by
+  simp [__eo_requires, native_teq, native_ite, native_not, SmtEval.native_not]
+
+theorem isTL_sutl : ∀ nf : Term,
+    RuleProofs.eo_has_smt_translation nf -> __set_union_to_list nf ≠ Term.Stuck ->
+    IsTL (__set_union_to_list nf) := by
+  intro nf
+  induction nf using __set_union_to_list.induct with
+  | case1 e t ih =>
+      intro hTrans hNS
+      have hsutlt : __set_union_to_list t ≠ Term.Stuck := by
+        intro hSt; apply hNS
+        show __eo_mk_apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) e)
+            (__set_union_to_list t) = Term.Stuck
+        rw [hSt]; rfl
+      unfold RuleProofs.eo_has_smt_translation at hTrans
+      have hSU : __eo_to_smt
+          (((Term.UOp UserOp.set_union).Apply
+            ((Term.UOp UserOp.set_singleton).Apply e)).Apply t)
+          = SmtTerm.set_union
+            (__eo_to_smt ((Term.UOp UserOp.set_singleton).Apply e)) (__eo_to_smt t) := rfl
+      rw [hSU] at hTrans
+      obtain ⟨A, hAse, hAt⟩ := set_binop_args_of_non_none (op := SmtTerm.set_union)
+        (typeof_set_union_eq _ _) hTrans
+      have hTransSe : RuleProofs.eo_has_smt_translation
+          ((Term.UOp UserOp.set_singleton).Apply e) := by
+        unfold RuleProofs.eo_has_smt_translation; rw [hAse]; simp
+      have hTransT : RuleProofs.eo_has_smt_translation t := by
+        unfold RuleProofs.eo_has_smt_translation; rw [hAt]; simp
+      have he : e ≠ Term.Stuck :=
+        RuleProofs.term_ne_stuck_of_has_smt_translation e (singleton_elem_trans hTransSe)
+      rw [show __set_union_to_list (((Term.UOp UserOp.set_union).Apply
+            ((Term.UOp UserOp.set_singleton).Apply e)).Apply t)
+          = __eo_mk_apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) e)
+            (__set_union_to_list t) from rfl,
+        mk_apply_of_ne_stuck (by simp) hsutlt]
+      exact ⟨he, ih hTransT hsutlt⟩
+  | case2 T => intro _ _; trivial
+  | case3 e =>
+      intro hTrans hNS
+      have he : e ≠ Term.Stuck :=
+        RuleProofs.term_ne_stuck_of_has_smt_translation e (singleton_elem_trans hTrans)
+      have hnilne :
+          __eo_nil (Term.UOp UserOp._at__at_TypedList_cons) (__eo_typeof e) ≠ Term.Stuck := by
+        intro hSt; apply hNS
+        show __eo_mk_apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) e)
+            (__eo_nil (Term.UOp UserOp._at__at_TypedList_cons) (__eo_typeof e)) = Term.Stuck
+        rw [hSt]; rfl
+      have hnilform :
+          __eo_nil (Term.UOp UserOp._at__at_TypedList_cons) (__eo_typeof e) =
+            Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) (__eo_typeof e) := by
+        cases h : __eo_typeof e <;>
+          simp_all [__eo_nil, __eo_nil__at__at_TypedList_cons]
+      rw [show __set_union_to_list ((Term.UOp UserOp.set_singleton).Apply e)
+          = __eo_mk_apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) e)
+            (__eo_nil (Term.UOp UserOp._at__at_TypedList_cons) (__eo_typeof e)) from rfl,
+        hnilform, mk_apply_of_ne_stuck (by simp) (by simp)]
+      exact ⟨he, trivial⟩
+  | case4 g hc1 hc2 hc3 =>
+      intro _ hNS
+      exact absurd (by unfold __set_union_to_list; split <;> simp_all) hNS
+
+theorem isTL_concat_rec : ∀ L1 : Term, IsTL L1 -> ∀ L2 : Term, IsTL L2 ->
+    IsTL (__eo_list_concat_rec L1 L2) := by
+  intro L1
+  induction L1 using IsTL.induct with
+  | case1 x y ih =>
+      intro hTL L2 hL2
+      obtain ⟨hx, hy⟩ := hTL
+      have hL2ne := isTL_ne_stuck hL2
+      have hTail := ih hy L2 hL2
+      rw [concat_rec_cons (Term.UOp UserOp._at__at_TypedList_cons) x y L2 hL2ne,
+        mk_apply_of_ne_stuck (by simp) (isTL_ne_stuck hTail)]
+      exact ⟨hx, hTail⟩
+  | case2 a =>
+      intro _ L2 hL2
+      rw [show __eo_list_concat_rec (Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) a) L2
+          = L2 from by
+        cases L2 <;> first | (exact absurd rfl (isTL_ne_stuck hL2)) | rfl]
+      exact hL2
+  | case3 t hc1 hc2 => intro hTL _ _; exact absurd hTL (by cases t <;> simp_all [IsTL])
+
+theorem concat_rec_isElemList : ∀ L1 L2 : Term,
+    IsElemList L1 -> IsElemList L2 -> IsElemList (__eo_list_concat_rec L1 L2) := by
+  intro L1 L2
+  induction L1, L2 using __eo_list_concat_rec.induct with
+  | case1 z => intro hL1 _; exact absurd hL1 (by simp [IsElemList])
+  | case2 t ht => intro _ hL2; exact absurd (isElemList_ne_stuck hL2) (by simp)
+  | case3 f x y z hz ih =>
+      intro hL1 hL2
+      obtain ⟨hf, hx, hy⟩ := hL1
+      have hTail := ih hy hL2
+      rw [concat_rec_cons f x y z (isElemList_ne_stuck hL2),
+        mk_apply_of_ne_stuck (by simp) (isElemList_ne_stuck hTail)]
+      exact ⟨hf, hx, hTail⟩
+  | case4 nil z hns hzs hncons =>
+      intro hL1 hL2
+      rw [show __eo_list_concat_rec nil z = z from by
+        unfold __eo_list_concat_rec; split <;> simp_all]
+      exact hL2
+
+theorem is_list_cons_ne_stuck {L : Term}
+    (h : __eo_is_list (Term.UOp UserOp._at__at_TypedList_cons) L = Term.Boolean true) :
+    L ≠ Term.Stuck := by
+  intro h0; rw [h0] at h; simp [__eo_is_list] at h
+
+theorem concat_parts {a b : Term}
+    (h : __eo_list_concat (Term.UOp UserOp._at__at_TypedList_cons) a b ≠ Term.Stuck) :
+    __eo_is_list (Term.UOp UserOp._at__at_TypedList_cons) a = Term.Boolean true ∧
+      __eo_is_list (Term.UOp UserOp._at__at_TypedList_cons) b = Term.Boolean true ∧
+      __eo_list_concat (Term.UOp UserOp._at__at_TypedList_cons) a b =
+        __eo_list_concat_rec a b := by
+  have hOuter : __eo_list_concat (Term.UOp UserOp._at__at_TypedList_cons) a b =
+      __eo_requires (__eo_is_list (Term.UOp UserOp._at__at_TypedList_cons) a)
+        (Term.Boolean true)
+        (__eo_requires (__eo_is_list (Term.UOp UserOp._at__at_TypedList_cons) b)
+          (Term.Boolean true) (__eo_list_concat_rec a b)) := rfl
+  rw [hOuter] at h ⊢
+  have hListA := req_arg_eq h
+  have hInner := req_result h
+  rw [hInner] at h ⊢
+  exact ⟨hListA, req_arg_eq h, req_result h⟩
+
+theorem setof_parts {L : Term}
+    (h : __eo_list_setof (Term.UOp UserOp._at__at_TypedList_cons) L ≠ Term.Stuck) :
+    __eo_is_list (Term.UOp UserOp._at__at_TypedList_cons) L = Term.Boolean true ∧
+      __eo_list_setof (Term.UOp UserOp._at__at_TypedList_cons) L =
+        __eo_list_setof_rec L := by
+  have hOuter : __eo_list_setof (Term.UOp UserOp._at__at_TypedList_cons) L =
+      __eo_requires (__eo_is_list (Term.UOp UserOp._at__at_TypedList_cons) L)
+        (Term.Boolean true) (__eo_list_setof_rec L) := rfl
+  rw [hOuter] at h ⊢
+  exact ⟨req_arg_eq h, req_result h⟩
+
+/-- The `__eo_list_meq` guard being `true` forces `__eval_sets_op a` to be non-stuck,
+hence `a` is a set union/intersection/difference. -/
+theorem guard_eval_ne_stuck (a b : Term)
+    (hGuard : __eo_list_meq (Term.UOp UserOp._at__at_TypedList_cons)
+        (__eo_list_setof (Term.UOp UserOp._at__at_TypedList_cons) (__eval_sets_op a))
+        (__set_union_to_list b) = Term.Boolean true) :
+    __eval_sets_op a ≠ Term.Stuck := by
+  rw [show __eo_list_meq (Term.UOp UserOp._at__at_TypedList_cons)
+        (__eo_list_setof (Term.UOp UserOp._at__at_TypedList_cons) (__eval_sets_op a))
+        (__set_union_to_list b) =
+      __eo_and
+        (__eo_list_minclude_rec
+          (__eo_requires (__eo_is_list (Term.UOp UserOp._at__at_TypedList_cons)
+            (__eo_list_setof (Term.UOp UserOp._at__at_TypedList_cons) (__eval_sets_op a)))
+            (Term.Boolean true)
+            (__eo_get_elements_rec (__eo_list_setof (Term.UOp UserOp._at__at_TypedList_cons)
+              (__eval_sets_op a))))
+          (__eo_requires (__eo_is_list (Term.UOp UserOp._at__at_TypedList_cons)
+            (__set_union_to_list b)) (Term.Boolean true)
+            (__eo_get_elements_rec (__set_union_to_list b)))
+          (Term.Boolean true))
+        (__eo_list_minclude_rec
+          (__eo_requires (__eo_is_list (Term.UOp UserOp._at__at_TypedList_cons)
+            (__set_union_to_list b)) (Term.Boolean true)
+            (__eo_get_elements_rec (__set_union_to_list b)))
+          (__eo_requires (__eo_is_list (Term.UOp UserOp._at__at_TypedList_cons)
+            (__eo_list_setof (Term.UOp UserOp._at__at_TypedList_cons) (__eval_sets_op a)))
+            (Term.Boolean true)
+            (__eo_get_elements_rec (__eo_list_setof (Term.UOp UserOp._at__at_TypedList_cons)
+              (__eval_sets_op a))))
+          (Term.Boolean true)) from rfl] at hGuard
+  obtain ⟨hXY, _⟩ := eo_and_eq_true hGuard
+  have hreqXne :
+      __eo_requires (__eo_is_list (Term.UOp UserOp._at__at_TypedList_cons)
+        (__eo_list_setof (Term.UOp UserOp._at__at_TypedList_cons) (__eval_sets_op a)))
+        (Term.Boolean true)
+        (__eo_get_elements_rec (__eo_list_setof (Term.UOp UserOp._at__at_TypedList_cons)
+          (__eval_sets_op a))) ≠ Term.Stuck := by
+    intro h0; rw [h0] at hXY; simp [__eo_list_minclude_rec] at hXY
+  have hSetofNe := is_list_cons_ne_stuck (req_arg_eq hreqXne)
+  obtain ⟨hListEval, _⟩ := setof_parts hSetofNe
+  exact is_list_cons_ne_stuck hListEval
+
+/-- For the `set.union` case, the proven equality is sound: the operands have equal
+SMT set-model values. -/
+theorem union_model_eval_rel
+    (M : SmtModel) (hM : model_total_typed M) (s t b : Term)
+    (hTransU : RuleProofs.eo_has_smt_translation
+      ((Term.Apply (Term.Apply (Term.UOp UserOp.set_union) s) t)))
+    (hTransB : RuleProofs.eo_has_smt_translation b)
+    (hSameTy : __smtx_typeof
+        (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.set_union) s) t)) =
+      __smtx_typeof (__eo_to_smt b))
+    (hGuard : __eo_list_meq (Term.UOp UserOp._at__at_TypedList_cons)
+        (__eo_list_setof (Term.UOp UserOp._at__at_TypedList_cons)
+          (__eval_sets_op (Term.Apply (Term.Apply (Term.UOp UserOp.set_union) s) t)))
+        (__set_union_to_list b) = Term.Boolean true) :
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M
+        (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.set_union) s) t)))
+      (__smtx_model_eval M (__eo_to_smt b)) := by
+  -- Types of the operands.
+  have hTransU' := hTransU
+  unfold RuleProofs.eo_has_smt_translation at hTransU'
+  have hSU : __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.set_union) s) t)
+      = SmtTerm.set_union (__eo_to_smt s) (__eo_to_smt t) := rfl
+  rw [hSU] at hTransU'
+  obtain ⟨A, hAs, hAt⟩ := set_binop_args_of_non_none (op := SmtTerm.set_union)
+    (typeof_set_union_eq _ _) hTransU'
+  have hUTyA : __smtx_typeof
+      (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.set_union) s) t)) =
+      SmtType.Set A := by
+    rw [hSU, typeof_set_union_eq, hAs, hAt]
+    simp [__smtx_typeof_sets_op_2, native_ite, native_Teq]
+  have hBTyA : __smtx_typeof (__eo_to_smt b) = SmtType.Set A := by rw [← hSameTy, hUTyA]
+  have hTransS : RuleProofs.eo_has_smt_translation s := by
+    unfold RuleProofs.eo_has_smt_translation; rw [hAs]; simp
+  have hTransT : RuleProofs.eo_has_smt_translation t := by
+    unfold RuleProofs.eo_has_smt_translation; rw [hAt]; simp
+  obtain ⟨ms, hmseval, hmscan, hmsty, hmsdef⟩ := set_value_facts M hM s A hTransS hAs
+  obtain ⟨mt, hmteval, hmtcan, hmtty, hmtdef⟩ := set_value_facts M hM t A hTransT hAt
+  obtain ⟨mu, hmueval, hmucan, hmuty, hmudef⟩ := set_value_facts M hM _ A hTransU hUTyA
+  obtain ⟨mb, hmbeval, hmbcan, hmbty, hmbdef⟩ := set_value_facts M hM b A hTransB hBTyA
+  -- Extract from the guard that the two `meq` requirement wrappers are non-stuck.
+  have hEvalEq : __eval_sets_op (Term.Apply (Term.Apply (Term.UOp UserOp.set_union) s) t)
+      = __eo_list_concat (Term.UOp UserOp._at__at_TypedList_cons)
+        (__set_union_to_list s) (__set_union_to_list t) := rfl
+  rw [show __eo_list_meq (Term.UOp UserOp._at__at_TypedList_cons)
+        (__eo_list_setof (Term.UOp UserOp._at__at_TypedList_cons)
+          (__eval_sets_op (Term.Apply (Term.Apply (Term.UOp UserOp.set_union) s) t)))
+        (__set_union_to_list b) =
+      __eo_and
+        (__eo_list_minclude_rec
+          (__eo_requires (__eo_is_list (Term.UOp UserOp._at__at_TypedList_cons)
+            (__eo_list_setof (Term.UOp UserOp._at__at_TypedList_cons)
+              (__eval_sets_op (Term.Apply (Term.Apply (Term.UOp UserOp.set_union) s) t))))
+            (Term.Boolean true)
+            (__eo_get_elements_rec (__eo_list_setof (Term.UOp UserOp._at__at_TypedList_cons)
+              (__eval_sets_op (Term.Apply (Term.Apply (Term.UOp UserOp.set_union) s) t)))))
+          (__eo_requires (__eo_is_list (Term.UOp UserOp._at__at_TypedList_cons)
+            (__set_union_to_list b)) (Term.Boolean true)
+            (__eo_get_elements_rec (__set_union_to_list b)))
+          (Term.Boolean true))
+        (__eo_list_minclude_rec
+          (__eo_requires (__eo_is_list (Term.UOp UserOp._at__at_TypedList_cons)
+            (__set_union_to_list b)) (Term.Boolean true)
+            (__eo_get_elements_rec (__set_union_to_list b)))
+          (__eo_requires (__eo_is_list (Term.UOp UserOp._at__at_TypedList_cons)
+            (__eo_list_setof (Term.UOp UserOp._at__at_TypedList_cons)
+              (__eval_sets_op (Term.Apply (Term.Apply (Term.UOp UserOp.set_union) s) t))))
+            (Term.Boolean true)
+            (__eo_get_elements_rec (__eo_list_setof (Term.UOp UserOp._at__at_TypedList_cons)
+              (__eval_sets_op (Term.Apply (Term.Apply (Term.UOp UserOp.set_union) s) t)))))
+          (Term.Boolean true)) from rfl] at hGuard
+  obtain ⟨hXY, hYX⟩ := eo_and_eq_true hGuard
+  have hreqXne :
+      __eo_requires (__eo_is_list (Term.UOp UserOp._at__at_TypedList_cons)
+        (__eo_list_setof (Term.UOp UserOp._at__at_TypedList_cons)
+          (__eval_sets_op (Term.Apply (Term.Apply (Term.UOp UserOp.set_union) s) t))))
+        (Term.Boolean true)
+        (__eo_get_elements_rec (__eo_list_setof (Term.UOp UserOp._at__at_TypedList_cons)
+          (__eval_sets_op (Term.Apply (Term.Apply (Term.UOp UserOp.set_union) s) t))))
+        ≠ Term.Stuck := by
+    intro h0; rw [h0] at hXY; simp [__eo_list_minclude_rec] at hXY
+  have hreqYne :
+      __eo_requires (__eo_is_list (Term.UOp UserOp._at__at_TypedList_cons)
+        (__set_union_to_list b)) (Term.Boolean true)
+        (__eo_get_elements_rec (__set_union_to_list b)) ≠ Term.Stuck := by
+    intro h0; rw [h0] at hYX; simp [__eo_list_minclude_rec] at hYX
+  -- Hence the `is_list` checks hold, peeling the wrappers.
+  have hListB : __eo_is_list (Term.UOp UserOp._at__at_TypedList_cons)
+      (__set_union_to_list b) = Term.Boolean true := req_arg_eq hreqYne
+  have hsutlb : __set_union_to_list b ≠ Term.Stuck := is_list_cons_ne_stuck hListB
+  have hListX : __eo_is_list (Term.UOp UserOp._at__at_TypedList_cons)
+      (__eo_list_setof (Term.UOp UserOp._at__at_TypedList_cons)
+        (__eval_sets_op (Term.Apply (Term.Apply (Term.UOp UserOp.set_union) s) t)))
+      = Term.Boolean true := req_arg_eq hreqXne
+  have hSetofNe : __eo_list_setof (Term.UOp UserOp._at__at_TypedList_cons)
+      (__eval_sets_op (Term.Apply (Term.Apply (Term.UOp UserOp.set_union) s) t))
+      ≠ Term.Stuck := is_list_cons_ne_stuck hListX
+  obtain ⟨hListEval, hSetofEq⟩ := setof_parts hSetofNe
+  have hEvalNe : __eval_sets_op (Term.Apply (Term.Apply (Term.UOp UserOp.set_union) s) t)
+      ≠ Term.Stuck := is_list_cons_ne_stuck hListEval
+  rw [hEvalEq] at hEvalNe
+  obtain ⟨hListS, hListT, hConcatEq⟩ := concat_parts hEvalNe
+  have hsutls : __set_union_to_list s ≠ Term.Stuck := is_list_cons_ne_stuck hListS
+  have hsutlt : __set_union_to_list t ≠ Term.Stuck := is_list_cons_ne_stuck hListT
+  -- Typed-list well-formedness.
+  have hTLs := isTL_sutl s hTransS hsutls
+  have hTLt := isTL_sutl t hTransT hsutlt
+  have hTLb := isTL_sutl b hTransB hsutlb
+  have hELs := isTL_isElemList _ hTLs
+  have hELt := isTL_isElemList _ hTLt
+  have hELb := isTL_isElemList _ hTLb
+  have hELeval : IsElemList
+      (__eval_sets_op (Term.Apply (Term.Apply (Term.UOp UserOp.set_union) s) t)) := by
+    rw [hEvalEq, hConcatEq]
+    exact concat_rec_isElemList _ _ hELs hELt
+  have hELsetof : IsElemList (__eo_list_setof (Term.UOp UserOp._at__at_TypedList_cons)
+      (__eval_sets_op (Term.Apply (Term.Apply (Term.UOp UserOp.set_union) s) t))) := by
+    rw [hSetofEq]; exact setof_rec_isElemList _ hELeval
+  -- The union map equals the merge of the operand maps.
+  have hMU : __smtx_set_union (SmtValue.Set ms) (SmtValue.Set mt) = SmtValue.Set mu := by
+    rw [← hmseval, ← hmteval, ← model_eval_union_eq]; exact hmueval
+  rw [__smtx_set_union] at hMU
+  injection hMU with hmuEq
+  -- Pointwise lookup equality.
+  have hLookEq : ∀ v, __smtx_msm_lookup mu v = __smtx_msm_lookup mb v := by
+    intro v
+    have hLU : __smtx_msm_lookup mu v =
+        native_ite (native_veq (__smtx_msm_lookup ms v) (SmtValue.Boolean true))
+          (SmtValue.Boolean true) (__smtx_msm_lookup mt v) := by
+      rw [← hmuEq, set_union_lookup ms mt A v hmsty hmtty hmscan hmtcan hmsdef]
+    have hLs := set_nf_lookup M hM s ms v hsutls hTransS hmseval
+    have hLt := set_nf_lookup M hM t mt v hsutlt hTransT hmteval
+    have hLb := set_nf_lookup M hM b mb v hsutlb hTransB hmbeval
+    have hMeqV := listLookup_meq M _ _ v hELsetof hELb hGuard
+    rw [hSetofEq] at hMeqV
+    rw [listLookup_setof M v _ hELeval] at hMeqV
+    rw [hEvalEq, hConcatEq, listLookup_concat M v _ _ hELs hsutlt] at hMeqV
+    rw [hLU, hLs, hLt, hLb, ← hMeqV]
+  -- Conclude via set extensionality.
+  rw [hmueval, hmbeval]
+  exact RuleProofs.smt_value_rel_set_of_lookup_eq mu mb hmucan hmbcan
+    (by rw [set_default_leaf hmucan hmuty hmudef,
+      set_default_leaf hmbcan hmbty hmbdef]) hLookEq
 
 end SetsEvalOpSupport
