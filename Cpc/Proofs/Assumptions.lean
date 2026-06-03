@@ -57,14 +57,16 @@ def TermQuantifierBindersWf : Term -> Prop
   | _ => True
 
 /--
-Translated EO terms have well-formed quantifier binder types.
-
-This is the semantic bridge that lets congruence rules use only the ordinary
-SMT-translation side condition. It should ultimately be proved by induction on
-`__eo_to_smt`/`__smtx_typeof`.
+Congruence over quantified terms needs the ordinary SMT translation fact plus
+well-formed SMT types for the binder list.
 -/
-axiom termQuantifierBindersWf_of_eoHasSmtTranslation :
-  ∀ t, eoHasSmtTranslation t -> TermQuantifierBindersWf t
+def eoCongArgOk (t : Term) : Prop :=
+  eoHasSmtTranslation t ∧ TermQuantifierBindersWf t
+
+/-- Predicate asserting that every argument in a congruence argument list is safe. -/
+def cArgListCongOk : CArgList -> Prop
+  | CArgList.nil => True
+  | CArgList.cons a args => eoCongArgOk a ∧ cArgListCongOk args
 
 /-- Predicate asserting that a checker argument list matches a translation mask. -/
 def cArgListTranslationOkMask : List ArgTranslationKind -> CArgList -> Prop
@@ -77,11 +79,11 @@ def cArgListTranslationOkMask : List ArgTranslationKind -> CArgList -> Prop
 def cmdTranslationOk : CCmd -> Prop
   | CCmd.assume_push A => eoHasSmtTranslation A
   | CCmd.step CRule.cong args _ =>
-      cArgListTranslationOk args
+      cArgListCongOk args
   | CCmd.step CRule.nary_cong args _ =>
-      cArgListTranslationOk args
+      cArgListCongOk args
   | CCmd.step CRule.pairwise_cong args _ =>
-      cArgListTranslationOk args
+      cArgListCongOk args
   | CCmd.step CRule.chain_resolution args _ =>
       cArgListTranslationOkMask [ArgTranslationKind.list, ArgTranslationKind.list] args
   | CCmd.step CRule.chain_m_resolution args _ =>

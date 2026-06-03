@@ -1,3 +1,4 @@
+import Lean
 import Cpc.Proofs.Common
 import Cpc.Proofs.Assumptions
 
@@ -7,6 +8,20 @@ open Smtm
 
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
+
+syntax "smtx_evalChoiceNth_eq_def" : term
+
+elab "smtx_evalChoiceNth_eq_def" : term => do
+  let env ← Lean.getEnv
+  let candidates := env.constants.toList.filter (fun (name, _) =>
+    let s := name.toString
+    s.contains "__smtx_model_eval.evalChoiceNth." &&
+      !s.contains "_mutual" &&
+      s.endsWith "eq_def")
+  match candidates with
+  | [(name, _)] => return Lean.mkConst name
+  | [] => throwError "could not find evalChoiceNth equation theorem"
+  | _ => throwError "found multiple evalChoiceNth equation theorems"
 
 /--
 Two models agree on the global part of the interpretation.
@@ -310,6 +325,33 @@ theorem native_eval_tchoice_nth_eq_aux
 by
   rfl
 
+theorem smtx_model_eval_choice_nth_eq_aux
+    (M : SmtModel) (s : native_String) (T : SmtType)
+    (body : SmtTerm) (n : native_Nat) :
+  __smtx_model_eval M (SmtTerm.choice_nth s T body n) =
+    nativeEvalTChoiceNthAux M s T body n :=
+by
+  induction n generalizing M s T body with
+  | zero =>
+      rw [__smtx_model_eval.eq_def]
+      simp only
+      rw [smtx_evalChoiceNth_eq_def]
+      simp [nativeEvalTChoiceNthAux]
+  | succ n ih =>
+      rw [__smtx_model_eval.eq_def]
+      simp only
+      rw [smtx_evalChoiceNth_eq_def]
+      cases body <;> simp [nativeEvalTChoiceNthAux]
+      case «exists» s' T' body' =>
+        have ih' :=
+          ih
+            (M := native_model_push M s T
+              (native_eval_tchoice M s T (SmtTerm.exists s' T' body')))
+            (s := s') (T := T') (body := body')
+        rw [__smtx_model_eval.eq_137] at ih'
+        simpa [nativeEvalTChoiceNthAux] using
+          ih'
+
 end ChoiceNthAux
 
 /-- SMT term closedness relative to a stack of bound variables. -/
@@ -471,6 +513,54 @@ def SmtTermClosedIn (vars : List SmtVarKey) : SmtTerm -> Prop
   | SmtTerm.int_to_bv x y => SmtTermClosedIn vars x ∧ SmtTermClosedIn vars y
   | SmtTerm.ubv_to_int x => SmtTermClosedIn vars x
   | SmtTerm.sbv_to_int x => SmtTermClosedIn vars x
+
+theorem nativeEvalTChoiceNthAux_eq_of_closed_below
+    (root : SmtTerm)
+    (hRec :
+      ∀ {t : SmtTerm} {vars' : List SmtVarKey} {M' N' : SmtModel},
+        sizeOf t < sizeOf root ->
+          SmtTermClosedIn vars' t ->
+            model_agrees_on_env vars' M' N' ->
+              __smtx_model_eval M' t = __smtx_model_eval N' t) :
+    ∀ {n : native_Nat} {s : native_String} {T : SmtType}
+        {body : SmtTerm} {vars : List SmtVarKey} {M N : SmtModel},
+      sizeOf body < sizeOf root ->
+        model_agrees_on_env vars M N ->
+          SmtTermClosedIn ((s, T) :: vars) body ->
+            nativeEvalTChoiceNthAux M s T body n =
+              nativeEvalTChoiceNthAux N s T body n
+  | native_nat_zero, s, T, body, vars, M, N, hBodyLt, hAgree, hClosed =>
+      by
+        simpa [nativeEvalTChoiceNthAux] using
+          native_eval_tchoice_eq_of_body_eval_eq
+          (fun v =>
+            hRec hBodyLt hClosed
+              (model_agrees_on_env_push_same hAgree))
+  | native_nat_succ n, s, T, body, vars, M, N, hBodyLt, hAgree, hClosed =>
+      by
+        have hChoiceEq :
+            native_eval_tchoice M s T body =
+              native_eval_tchoice N s T body :=
+          native_eval_tchoice_eq_of_body_eval_eq
+            (fun v =>
+              hRec hBodyLt hClosed
+                (model_agrees_on_env_push_same hAgree))
+        cases body <;> try simp [nativeEvalTChoiceNthAux]
+        case «exists» s' T' body' =>
+          have hBody'Lt : sizeOf body' < sizeOf root := by
+            simp at hBodyLt
+            omega
+          simpa [hChoiceEq] using
+            nativeEvalTChoiceNthAux_eq_of_closed_below root hRec
+              (n := n) (s := s') (T := T') (body := body')
+              (vars := (s, T) :: vars)
+              (M := native_model_push M s T
+                (native_eval_tchoice N s T (SmtTerm.exists s' T' body')))
+              (N := native_model_push N s T
+                (native_eval_tchoice N s T (SmtTerm.exists s' T' body')))
+              hBody'Lt
+              (model_agrees_on_env_push_same hAgree)
+              hClosed
 
 theorem SmtTermClosedIn.mono
     {t : SmtTerm} {vars vars' : List SmtVarKey}
@@ -7287,11 +7377,185 @@ Remaining structural SMT evaluator invariant.
 If two models agree on all globals and on the currently bound SMT variables,
 then every SMT term closed in that environment evaluates identically in them.
 -/
-axiom smt_model_eval_eq_of_closedIn :
-  ∀ (t : SmtTerm) (vars : List SmtVarKey) (M N : SmtModel),
-    SmtTermClosedIn vars t ->
-      model_agrees_on_env vars M N ->
-        __smtx_model_eval M t = __smtx_model_eval N t
+theorem smt_model_eval_eq_of_closedIn_lt
+    (n : Nat) {t : SmtTerm} {vars : List SmtVarKey} {M N : SmtModel}
+    (hLt : sizeOf t < n)
+    (hClosed : SmtTermClosedIn vars t)
+    (hAgree : model_agrees_on_env vars M N) :
+  __smtx_model_eval M t = __smtx_model_eval N t :=
+by
+  cases n with
+  | zero =>
+      omega
+  | succ n =>
+      let hRec :
+          ∀ {u : SmtTerm} {vars' : List SmtVarKey} {M' N' : SmtModel},
+            sizeOf u < sizeOf t ->
+              SmtTermClosedIn vars' u ->
+                model_agrees_on_env vars' M' N' ->
+                  __smtx_model_eval M' u = __smtx_model_eval N' u :=
+        fun {u vars' M' N'} hULt hClosed' hAgree' =>
+          smt_model_eval_eq_of_closedIn_lt
+            n (t := u) (vars := vars') (M := M') (N := N')
+            (by omega) hClosed' hAgree'
+      let hEval :
+          ∀ {u : SmtTerm} {vars' : List SmtVarKey} {M' N' : SmtModel},
+              SmtTermClosedIn vars' u ->
+                model_agrees_on_env vars' M' N' ->
+                  sizeOf u < sizeOf t ->
+                    __smtx_model_eval M' u = __smtx_model_eval N' u :=
+        fun {u vars' M' N'} hClosed' hAgree' hULt =>
+          hRec hULt hClosed' hAgree'
+      let hEvalSame :
+          ∀ u : SmtTerm,
+              SmtTermClosedIn vars u ->
+                sizeOf u < sizeOf t ->
+                  __smtx_model_eval M u = __smtx_model_eval N u :=
+        fun u hClosed' hULt =>
+          hRec hULt hClosed' hAgree
+      cases t <;> simp [SmtTermClosedIn] at hClosed ⊢
+      case Var s T =>
+        exact smtx_model_eval_var_eq_of_env hAgree hClosed
+      case UConst s T =>
+        exact smtx_model_eval_uconst_eq_of_env hAgree
+      case Apply f x =>
+        exact smtx_model_eval_apply_eq_of_env hAgree
+          (hRec (by simp; omega) hClosed.1 hAgree)
+          (hRec (by simp; omega) hClosed.2 hAgree)
+      case «exists» s T body =>
+        exact smtx_model_eval_exists_eq_of_body_eval_eq
+          (fun v =>
+            hRec (by simp; omega) hClosed
+              (model_agrees_on_env_push_same hAgree))
+      case «forall» s T body =>
+        exact smtx_model_eval_forall_eq_of_body_eval_eq
+          (fun v =>
+            hRec (by simp; omega) hClosed
+              (model_agrees_on_env_push_same hAgree))
+      case choice_nth s T body k =>
+        rw [smtx_model_eval_choice_nth_eq_aux M s T body k,
+          smtx_model_eval_choice_nth_eq_aux N s T body k]
+        exact nativeEvalTChoiceNthAux_eq_of_closed_below
+          (SmtTerm.choice_nth s T body k) hRec
+          (by simp; omega) hAgree hClosed
+      case not x =>
+        simp [__smtx_model_eval,
+          hRec (by simp) hClosed hAgree]
+      case _at_purify x =>
+        simp [__smtx_model_eval,
+          hRec (by simp) hClosed hAgree]
+      case to_real x =>
+        simp [__smtx_model_eval,
+          hRec (by simp) hClosed hAgree]
+      case to_int x =>
+        simp [__smtx_model_eval,
+          hRec (by simp) hClosed hAgree]
+      case is_int x =>
+        simp [__smtx_model_eval,
+          hRec (by simp) hClosed hAgree]
+      case abs x =>
+        simp [__smtx_model_eval,
+          hRec (by simp) hClosed hAgree]
+      case uneg x =>
+        simp [__smtx_model_eval,
+          hRec (by simp) hClosed hAgree]
+      case int_pow2 x =>
+        simp [__smtx_model_eval,
+          hRec (by simp) hClosed hAgree]
+      case int_log2 x =>
+        simp [__smtx_model_eval,
+          hRec (by simp) hClosed hAgree]
+      case bvnot x =>
+        simp [__smtx_model_eval,
+          hRec (by simp) hClosed hAgree]
+      case bvneg x =>
+        simp [__smtx_model_eval,
+          hRec (by simp) hClosed hAgree]
+      case bvnego x =>
+        simp [__smtx_model_eval,
+          hRec (by simp) hClosed hAgree]
+      case str_len x =>
+        simp [__smtx_model_eval,
+          hRec (by simp) hClosed hAgree]
+      case str_rev x =>
+        simp [__smtx_model_eval,
+          hRec (by simp) hClosed hAgree]
+      case str_to_lower x =>
+        simp [__smtx_model_eval,
+          hRec (by simp) hClosed hAgree]
+      case str_to_upper x =>
+        simp [__smtx_model_eval,
+          hRec (by simp) hClosed hAgree]
+      case str_to_code x =>
+        simp [__smtx_model_eval,
+          hRec (by simp) hClosed hAgree]
+      case str_from_code x =>
+        simp [__smtx_model_eval,
+          hRec (by simp) hClosed hAgree]
+      case str_is_digit x =>
+        simp [__smtx_model_eval,
+          hRec (by simp) hClosed hAgree]
+      case str_to_int x =>
+        simp [__smtx_model_eval,
+          hRec (by simp) hClosed hAgree]
+      case str_from_int x =>
+        simp [__smtx_model_eval,
+          hRec (by simp) hClosed hAgree]
+      case str_to_re x =>
+        simp [__smtx_model_eval,
+          hRec (by simp) hClosed hAgree]
+      case re_mult x =>
+        simp [__smtx_model_eval,
+          hRec (by simp) hClosed hAgree]
+      case re_plus x =>
+        simp [__smtx_model_eval,
+          hRec (by simp) hClosed hAgree]
+      case re_opt x =>
+        simp [__smtx_model_eval,
+          hRec (by simp) hClosed hAgree]
+      case re_comp x =>
+        simp [__smtx_model_eval,
+          hRec (by simp) hClosed hAgree]
+      case seq_unit x =>
+        simp [__smtx_model_eval,
+          hRec (by simp) hClosed hAgree]
+      case set_singleton x =>
+        simp [__smtx_model_eval,
+          hRec (by simp) hClosed hAgree]
+      case ubv_to_int x =>
+        simp [__smtx_model_eval,
+          hRec (by simp) hClosed hAgree]
+      case sbv_to_int x =>
+        simp [__smtx_model_eval,
+          hRec (by simp) hClosed hAgree]
+      all_goals try
+        simp [__smtx_model_eval, hAgree.globals.1,
+          smtx_model_eval_apply_eq_of_globals hAgree.globals,
+          smtx_seq_nth_eq_of_globals hAgree.globals]
+      all_goals try
+        rw [hEvalSame _ hClosed.1 (by simp; omega),
+          hEvalSame _ hClosed.2 (by simp; omega)]
+      all_goals try
+        rw [hEvalSame _ hClosed.1 (by simp; omega),
+          hEvalSame _ hClosed.2.1 (by simp; omega),
+          hEvalSame _ hClosed.2.2 (by simp; omega)]
+      all_goals try
+        simp [hAgree.globals.1, hAgree.globals.2,
+          smtx_model_eval_apply_eq_of_globals hAgree.globals,
+          smtx_seq_nth_eq_of_globals hAgree.globals,
+          smtx_model_eval_dt_sel_eq_of_globals hAgree.globals]
+termination_by n
+decreasing_by
+  all_goals omega
+
+theorem smt_model_eval_eq_of_closedIn
+    (t : SmtTerm) (vars : List SmtVarKey) (M N : SmtModel)
+    (hClosed : SmtTermClosedIn vars t)
+    (hAgree : model_agrees_on_env vars M N) :
+  __smtx_model_eval M t = __smtx_model_eval N t :=
+by
+  exact smt_model_eval_eq_of_closedIn_lt
+    (sizeOf t + 1) (by omega) hClosed hAgree
 
 theorem smt_model_eval_eq_of_eo_closed_in_empty_env
     (P : Term) (hClosed : __eo_is_closed P = Term.Boolean true)
