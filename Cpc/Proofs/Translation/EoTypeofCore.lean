@@ -2473,7 +2473,10 @@ private theorem eo_to_smt_exists_ne_numeral_of_not_nil
       case __eo_List_cons =>
         cases x <;> try cases h
         case Var name T =>
-          cases name <;> cases h
+          cases name <;> try cases h
+          case String s =>
+            cases hWf : __smtx_type_wf (__eo_to_smt_type T) <;>
+              simp [__eo_to_smt_exists, native_ite, hWf] at h
 
 private theorem eo_to_smt_apply_set_insert_ne_numeral
     (xs x : Term) (n : native_Int) :

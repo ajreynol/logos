@@ -5407,7 +5407,11 @@ theorem smtTermClosedIn_eo_to_smt_exists_cons
         (Term.Var (Term.String s) T)) vs)
       F) :=
 by
-  exact hBody
+  cases hWf : __smtx_type_wf (__eo_to_smt_type T)
+  · rw [TranslationProofs.eo_to_smt_exists_cons, hWf]
+    trivial
+  · rw [TranslationProofs.eo_to_smt_exists_cons, hWf]
+    exact hBody
 
 theorem smtTermClosedIn_eo_to_smt_exists_of_env_or_none :
     ∀ {vs : Term} {vars : List SmtVarKey} {F : SmtTerm},
@@ -5489,7 +5493,13 @@ theorem smtTermClosedIn_eo_to_smt_exists_cons_term
             (Term.Var (Term.String s) T)) vs))
         body)) :=
 by
-  exact hBody
+  change
+    SmtTermClosedIn vars
+      (__eo_to_smt_exists
+        (Term.Apply (Term.Apply Term.__eo_List_cons
+          (Term.Var (Term.String s) T)) vs)
+        (__eo_to_smt body))
+  exact smtTermClosedIn_eo_to_smt_exists_cons hBody
 
 theorem smtTermClosedIn_eo_to_smt_exists_nil_term
     {vars : List SmtVarKey} {body : Term} :
@@ -5558,7 +5568,14 @@ theorem smtTermClosedIn_eo_to_smt_forall_cons_term
             (Term.Var (Term.String s) T)) vs))
         body)) :=
 by
-  exact hBody
+  change
+    SmtTermClosedIn vars
+      (SmtTerm.not
+        (__eo_to_smt_exists
+          (Term.Apply (Term.Apply Term.__eo_List_cons
+            (Term.Var (Term.String s) T)) vs)
+          (SmtTerm.not (__eo_to_smt body))))
+  exact smtTermClosedIn_eo_to_smt_exists_cons hBody
 
 theorem smtTermClosedIn_eo_to_smt_forall_term_of_rev_env :
     ∀ {vs : Term} {binderVars vars : List SmtVarKey} {body : Term},

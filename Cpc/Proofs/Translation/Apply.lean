@@ -949,7 +949,27 @@ private theorem eo_to_smt_exists_top_ne_dt_sel
       case __eo_List_cons =>
         cases v <;> try cases h
         case Var name T =>
-          cases name <;> cases h
+          cases name <;> try cases h
+          case String s' =>
+            cases hWf : __smtx_type_wf (__eo_to_smt_type T)
+            · change
+                __eo_to_smt_exists
+                    (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var (Term.String s') T)) vs)
+                    (__eo_to_smt body) =
+                  SmtTerm.DtSel s d i j at h
+              rw [eo_to_smt_exists_cons, hWf] at h
+              change SmtTerm.None = SmtTerm.DtSel s d i j at h
+              cases h
+            · change
+                __eo_to_smt_exists
+                    (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var (Term.String s') T)) vs)
+                    (__eo_to_smt body) =
+                  SmtTerm.DtSel s d i j at h
+              rw [eo_to_smt_exists_cons, hWf] at h
+              change
+                SmtTerm.exists s' (__eo_to_smt_type T) (__eo_to_smt_exists vs (__eo_to_smt body)) =
+                  SmtTerm.DtSel s d i j at h
+              cases h
 
 private theorem eo_to_smt_exists_top_ne_dt_tester
     (xs body : Term) (s : native_String) (d : SmtDatatype) (i : native_Nat) :
@@ -964,7 +984,27 @@ private theorem eo_to_smt_exists_top_ne_dt_tester
       case __eo_List_cons =>
         cases v <;> try cases h
         case Var name T =>
-          cases name <;> cases h
+          cases name <;> try cases h
+          case String s' =>
+            cases hWf : __smtx_type_wf (__eo_to_smt_type T)
+            · change
+                __eo_to_smt_exists
+                    (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var (Term.String s') T)) vs)
+                    (__eo_to_smt body) =
+                  SmtTerm.DtTester s d i at h
+              rw [eo_to_smt_exists_cons, hWf] at h
+              change SmtTerm.None = SmtTerm.DtTester s d i at h
+              cases h
+            · change
+                __eo_to_smt_exists
+                    (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var (Term.String s') T)) vs)
+                    (__eo_to_smt body) =
+                  SmtTerm.DtTester s d i at h
+              rw [eo_to_smt_exists_cons, hWf] at h
+              change
+                SmtTerm.exists s' (__eo_to_smt_type T) (__eo_to_smt_exists vs (__eo_to_smt body)) =
+                  SmtTerm.DtTester s d i at h
+              cases h
 
 private theorem eo_to_smt_exists_top_ne_dt_cons
     (xs body : Term) (s : native_String) (d : SmtDatatype) (i : native_Nat) :
@@ -979,7 +1019,27 @@ private theorem eo_to_smt_exists_top_ne_dt_cons
       case __eo_List_cons =>
         cases v <;> try cases h
         case Var name T =>
-          cases name <;> cases h
+          cases name <;> try cases h
+          case String s' =>
+            cases hWf : __smtx_type_wf (__eo_to_smt_type T)
+            · change
+                __eo_to_smt_exists
+                    (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var (Term.String s') T)) vs)
+                    (__eo_to_smt body) =
+                  SmtTerm.DtCons s d i at h
+              rw [eo_to_smt_exists_cons, hWf] at h
+              change SmtTerm.None = SmtTerm.DtCons s d i at h
+              cases h
+            · change
+                __eo_to_smt_exists
+                    (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var (Term.String s') T)) vs)
+                    (__eo_to_smt body) =
+                  SmtTerm.DtCons s d i at h
+              rw [eo_to_smt_exists_cons, hWf] at h
+              change
+                SmtTerm.exists s' (__eo_to_smt_type T) (__eo_to_smt_exists vs (__eo_to_smt body)) =
+                  SmtTerm.DtCons s d i at h
+              cases h
 
 private theorem eo_to_smt_forall_top_ne_dt_sel
     (xs body : Term) (s : native_String) (d : SmtDatatype) (i j : native_Nat) :
@@ -7966,10 +8026,11 @@ theorem eo_to_smt_exists_body_bool_of_bool
           cases hname : name
           case String s =>
             subst hname
+            cases hWf : __smtx_type_wf (__eo_to_smt_type T) <;>
+              simp [smtx_typeof_none, __eo_to_smt_exists, native_ite, hWf] at hTy
             have hExistsTy :
                 __smtx_typeof (SmtTerm.exists s (__eo_to_smt_type T) (__eo_to_smt_exists a body)) =
-                  SmtType.Bool := by
-              simpa [__eo_to_smt_exists] using hTy
+                  SmtType.Bool := hTy
             have hNN :
                 term_has_non_none_type (SmtTerm.exists s (__eo_to_smt_type T) (__eo_to_smt_exists a body)) := by
               unfold term_has_non_none_type
@@ -8023,10 +8084,11 @@ theorem eo_typeof_var_list_of_exists_bool
           cases hname : name
           case String s =>
             subst hname
+            cases hWf : __smtx_type_wf (__eo_to_smt_type T) <;>
+              simp [smtx_typeof_none, __eo_to_smt_exists, native_ite, hWf] at hTy
             have hExistsTy :
                 __smtx_typeof (SmtTerm.exists s (__eo_to_smt_type T) (__eo_to_smt_exists a body)) =
-                  SmtType.Bool := by
-              simpa [__eo_to_smt_exists] using hTy
+                  SmtType.Bool := hTy
             have hNN :
                 term_has_non_none_type (SmtTerm.exists s (__eo_to_smt_type T) (__eo_to_smt_exists a body)) := by
               unfold term_has_non_none_type
@@ -8079,17 +8141,43 @@ private theorem smtx_typeof_eo_to_smt_exists_top_bool_or_none
         case Var name T =>
           cases name
           case String s =>
-            change
-              __smtx_typeof
-                    (SmtTerm.exists s (__eo_to_smt_type T)
-                      (__eo_to_smt_exists tail (__eo_to_smt x))) =
-                  SmtType.Bool ∨
+            cases hWf : __smtx_type_wf (__eo_to_smt_type T)
+            · right
+              change
                 __smtx_typeof
-                    (SmtTerm.exists s (__eo_to_smt_type T)
-                      (__eo_to_smt_exists tail (__eo_to_smt x))) =
+                    (__eo_to_smt_exists
+                      (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var (Term.String s) T))
+                        tail)
+                      (__eo_to_smt x)) =
                   SmtType.None
-            exact smtx_typeof_exists_bool_or_none s (__eo_to_smt_type T)
-              (__eo_to_smt_exists tail (__eo_to_smt x))
+              rw [eo_to_smt_exists_cons, hWf]
+              change __smtx_typeof SmtTerm.None = SmtType.None
+              exact smtx_typeof_none
+            · change
+                __smtx_typeof
+                    (__eo_to_smt_exists
+                      (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var (Term.String s) T))
+                        tail)
+                      (__eo_to_smt x)) =
+                    SmtType.Bool ∨
+                  __smtx_typeof
+                    (__eo_to_smt_exists
+                      (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var (Term.String s) T))
+                        tail)
+                      (__eo_to_smt x)) =
+                    SmtType.None
+              rw [eo_to_smt_exists_cons, hWf]
+              change
+                __smtx_typeof
+                      (SmtTerm.exists s (__eo_to_smt_type T)
+                        (__eo_to_smt_exists tail (__eo_to_smt x))) =
+                    SmtType.Bool ∨
+                  __smtx_typeof
+                      (SmtTerm.exists s (__eo_to_smt_type T)
+                        (__eo_to_smt_exists tail (__eo_to_smt x))) =
+                    SmtType.None
+              exact smtx_typeof_exists_bool_or_none s (__eo_to_smt_type T)
+                (__eo_to_smt_exists tail (__eo_to_smt x))
           all_goals
             right
             change __smtx_typeof SmtTerm.None = SmtType.None

@@ -18,7 +18,19 @@ namespace TranslationProofs
     (s : native_String) (T vs : Term) (F : SmtTerm) :
     __eo_to_smt_exists
         (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var (Term.String s) T)) vs) F =
-      SmtTerm.exists s (__eo_to_smt_type T) (__eo_to_smt_exists vs F) := rfl
+      native_ite (__smtx_type_wf (__eo_to_smt_type T))
+        (SmtTerm.exists s (__eo_to_smt_type T) (__eo_to_smt_exists vs F))
+        SmtTerm.None := by
+  rfl
+
+/-- Simplifies `exists_cons` when the translated binder type is well formed. -/
+theorem eo_to_smt_exists_cons_of_type_wf
+    (s : native_String) (T vs : Term) (F : SmtTerm)
+    (hWf : __smtx_type_wf (__eo_to_smt_type T) = true) :
+    __eo_to_smt_exists
+        (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var (Term.String s) T)) vs) F =
+      SmtTerm.exists s (__eo_to_smt_type T) (__eo_to_smt_exists vs F) := by
+  simp [eo_to_smt_exists_cons, native_ite, hWf]
 
 /-- Simplifies EO-to-SMT translation for `quantifiers_skolemize_zero`. -/
 @[simp] theorem eo_to_smt_quantifiers_skolemize_zero
