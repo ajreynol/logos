@@ -682,4 +682,84 @@ theorem native_seq_compat_to_listCompat (f : Term → SmtValue) (As Bs : List Te
   · rw [listPrefixEq_of_map_prefix f Bs As (fun b hb a ha hba => (hinj a ha b hb hba.symm).symm) h]
     simp
 
+/-! ### Model-eval of the rule equation -/
+
+/-- `contains` evaluating to a Boolean forces both arguments to evaluate to
+    sequence values. -/
+theorem contains_args_seq_of_eval_bool (M : SmtModel) (x y : Term) (b : Bool)
+    (h : __smtx_model_eval M
+        (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.str_contains) x) y))
+      = SmtValue.Boolean b) :
+    (∃ sx, __smtx_model_eval M (__eo_to_smt x) = SmtValue.Seq sx) ∧
+      (∃ sy, __smtx_model_eval M (__eo_to_smt y) = SmtValue.Seq sy) := by
+  rw [show __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.str_contains) x) y) =
+      SmtTerm.str_contains (__eo_to_smt x) (__eo_to_smt y) from rfl] at h
+  rw [show __smtx_model_eval M (SmtTerm.str_contains (__eo_to_smt x) (__eo_to_smt y)) =
+      __smtx_model_eval_str_contains (__smtx_model_eval M (__eo_to_smt x))
+        (__smtx_model_eval M (__eo_to_smt y)) from by simp only [__smtx_model_eval]] at h
+  cases hx : __smtx_model_eval M (__eo_to_smt x) <;>
+    cases hy : __smtx_model_eval M (__eo_to_smt y) <;>
+    simp_all [__smtx_model_eval_str_contains]
+
+/-- Model-evaluation of an `or`. -/
+theorem model_eval_or_eq (M : SmtModel) (A B : Term) :
+    __smtx_model_eval M (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.or) A) B)) =
+      __smtx_model_eval_or (__smtx_model_eval M (__eo_to_smt A))
+        (__smtx_model_eval M (__eo_to_smt B)) := by
+  rw [show __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.or) A) B) =
+      SmtTerm.or (__eo_to_smt A) (__eo_to_smt B) from rfl]
+  simp only [__smtx_model_eval]
+
+/-- The rule's two sides evaluate equally, given the operands' sequence values,
+    `emp` empty, and the no-overlap conditions `(A)/(B)` on the middle/needle. -/
+theorem overlap_split_eval (M : SmtModel) (t c sw emp d : Term)
+    (St Sc Ss Se Sd : SmtSeq)
+    (ht : __smtx_model_eval M (__eo_to_smt t) = SmtValue.Seq St)
+    (hc : __smtx_model_eval M (__eo_to_smt c) = SmtValue.Seq Sc)
+    (hsw : __smtx_model_eval M (__eo_to_smt sw) = SmtValue.Seq Ss)
+    (hemp : __smtx_model_eval M (__eo_to_smt emp) = SmtValue.Seq Se)
+    (hd : __smtx_model_eval M (__eo_to_smt d) = SmtValue.Seq Sd)
+    (hempnil : native_unpack_seq Se = [])
+    (hA : ∀ k, k < (native_unpack_seq Sc).length →
+      ¬ native_seq_compat ((native_unpack_seq Sc).drop k) (native_unpack_seq Sd))
+    (hB : ∀ k, k < (native_unpack_seq Sd).length →
+      ¬ native_seq_compat ((native_unpack_seq Sd).drop k) (native_unpack_seq Sc)) :
+    __smtx_model_eval M (__eo_to_smt
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_contains)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) c)
+              (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) sw) emp)))) d)) =
+      __smtx_model_eval M (__eo_to_smt
+        (Term.Apply (Term.Apply (Term.UOp UserOp.or)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_contains) t) d))
+          (Term.Apply (Term.Apply (Term.UOp UserOp.or)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_contains) sw) d))
+            (Term.Boolean false)))) := by
+  obtain ⟨s1, hs1, hu1⟩ := strConcat_unpack_eval M sw emp Ss Se hsw hemp
+  obtain ⟨s2, hs2, hu2⟩ := strConcat_unpack_eval M c
+    (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) sw) emp) Sc s1 hc hs1
+  obtain ⟨s3, hs3, hu3⟩ := strConcat_unpack_eval M t
+    (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) c)
+      (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) sw) emp)) St s2 ht hs2
+  have hfalse : __smtx_model_eval M (__eo_to_smt (Term.Boolean false)) = SmtValue.Boolean false := by
+    rw [show __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false from rfl]
+    simp only [__smtx_model_eval]
+  rw [strContains_eval_eq M _ d s3 Sd hs3 hd]
+  rw [model_eval_or_eq, model_eval_or_eq,
+    strContains_eval_eq M t d St Sd ht hd, strContains_eval_eq M sw d Ss Sd hsw hd, hfalse]
+  simp only [__smtx_model_eval_or]
+  have hcs : native_unpack_seq s3 =
+      native_unpack_seq St ++ native_unpack_seq Sc ++ native_unpack_seq Ss := by
+    rw [hu3, hu2, hu1, hempnil]; simp [List.append_assoc]
+  rw [hcs]
+  have hsplit := native_seq_contains_split_iff_of_no_overlap
+    (native_unpack_seq St) (native_unpack_seq Sc) (native_unpack_seq Ss) (native_unpack_seq Sd) hA hB
+  congr 1
+  rw [show native_or (native_seq_contains (native_unpack_seq St) (native_unpack_seq Sd))
+        (native_or (native_seq_contains (native_unpack_seq Ss) (native_unpack_seq Sd)) false) =
+      (native_seq_contains (native_unpack_seq St) (native_unpack_seq Sd) ||
+        native_seq_contains (native_unpack_seq Ss) (native_unpack_seq Sd)) from by simp [native_or]]
+  rw [Bool.eq_iff_iff, Bool.or_eq_true]
+  exact hsplit
+
 end RuleProofs
