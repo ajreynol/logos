@@ -682,6 +682,17 @@ theorem native_seq_compat_to_listCompat (f : Term → SmtValue) (As Bs : List Te
   · rw [listPrefixEq_of_map_prefix f Bs As (fun b hb a ha hba => (hinj a ha b hb hba.symm).symm) h]
     simp
 
+/-- `__eo_eq` is syntactic term equality (when it yields `true`). -/
+theorem eq_of_eo_eq (x y : Term) (h : __eo_eq x y = Term.Boolean true) : y = x := by
+  cases x <;> cases y <;> simp_all [__eo_eq, native_teq]
+
+/-- Splitting a true `__eo_and` into its two true conjuncts. -/
+theorem eo_and_true_split (a b : Term) (h : __eo_and a b = Term.Boolean true) :
+    a = Term.Boolean true ∧ b = Term.Boolean true := by
+  cases a <;> cases b <;> simp_all [__eo_and, native_and, SmtEval.native_and]
+  all_goals (simp only [__eo_requires, native_ite, native_teq] at h)
+  all_goals (split at h <;> exact Term.noConfusion h)
+
 /-! ### Model-eval of the rule equation -/
 
 /-- `contains` evaluating to a Boolean forces both arguments to evaluate to
