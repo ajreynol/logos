@@ -242,9 +242,9 @@ by
           | nil =>
               let X := __eo_state_proven_nth s n1
               refine ⟨?_, ?_⟩
-              · intro hTrue
+              · intro hEvidence
                 exact facts___eo_prog_symm_impl M hM X
-                  (hTrue X (by simp [X, premiseTermList]))
+                  (hEvidence.true_here X (by simp [X, premiseTermList]))
                   (by simpa [X, premiseTermList, __eo_cmd_step_proven] using hProg)
               · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
                   (typed___eo_prog_symm_impl X

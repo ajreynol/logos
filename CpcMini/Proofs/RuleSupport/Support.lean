@@ -23,6 +23,70 @@ def premiseTermList (s : CState) : CIndexList -> List Term
 def AllInterpretedTrue (M : SmtModel) (ts : List Term) : Prop :=
   ∀ t ∈ ts, eo_interprets M t true
 
+/--
+Two models agree on the global part of the interpretation.
+
+Variables may vary, but user constants and native function interpretations are
+kept fixed. This is the model relation used when a binder pushes fresh variable
+assignments.
+-/
+def model_agrees_on_globals (M N : SmtModel) : Prop :=
+  (∀ s T, native_model_lookup M s T = native_model_lookup N s T) ∧
+  (∀ fid T U, native_model_fun_lookup M fid T U =
+    native_model_fun_lookup N fid T U)
+
+theorem model_agrees_on_globals_refl (M : SmtModel) :
+  model_agrees_on_globals M M :=
+by
+  exact ⟨by intro s T; rfl, by intro fid T U; rfl⟩
+
+theorem model_agrees_on_globals_trans {M N K : SmtModel} :
+  model_agrees_on_globals M N ->
+  model_agrees_on_globals N K ->
+  model_agrees_on_globals M K :=
+by
+  intro hMN hNK
+  exact
+    ⟨by
+      intro s T
+      exact (hMN.1 s T).trans (hNK.1 s T),
+    by
+      intro fid T U
+      exact (hMN.2 fid T U).trans (hNK.2 fid T U)⟩
+
+/--
+Contextual truth for a derived formula.
+
+The first field is the ordinary checker fact in the current model. The second
+field is the freshness/parametricity fact needed by binder-sensitive rules:
+the derived formula remains true in any model that only changes variables,
+provided the same assumptions and local pushes hold there.
+-/
+structure ContextualTruth
+    (M : SmtModel) (assumes pushes P : Term) : Prop where
+  true_here :
+    eo_interprets M assumes true ->
+    eo_interprets M pushes true ->
+    eo_interprets M P true
+  true_in_var_model :
+    ∀ N, model_total_typed N ->
+      model_agrees_on_globals M N ->
+      eo_interprets N assumes true ->
+      eo_interprets N pushes true ->
+      eo_interprets N P true
+
+/-- The premise evidence supplied to a rule. -/
+structure RulePremiseEvidence
+    (M : SmtModel) (premises : List Term) : Prop where
+  true_here :
+    AllInterpretedTrue M premises
+
+instance RulePremiseEvidence.instCoeFun
+    {M : SmtModel} {premises : List Term} :
+    CoeFun (RulePremiseEvidence M premises)
+      (fun _ => ∀ t, t ∈ premises -> eo_interprets M t true) where
+  coe h := h.true_here
+
 /-- Predicate asserting that every term in a list has an SMT translation. -/
 def AllHaveSmtTranslation (ts : List Term) : Prop :=
   ∀ t ∈ ts, RuleProofs.eo_has_smt_translation t
@@ -140,7 +204,7 @@ by
 structure StepRuleProperties
     (M : SmtModel) (premises : List Term) (P : Term) : Prop where
   facts_of_true :
-    AllInterpretedTrue M premises ->
+    RulePremiseEvidence M premises ->
     eo_interprets M P true
   has_smt_translation :
     RuleProofs.eo_has_smt_translation P

@@ -23,7 +23,8 @@ theorem cmd_step_proven_facts_of_invariants
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (_hNotStuck : s ≠ CState.Stuck)
     (r : CRule) (args : CArgList) (premises : CIndexList) :
-  checkerTruthInvariant M s ->
+  checkerLocalTruthInvariant M s ->
+  checkerAssumptionStabilityInvariant M s ->
   checkerTypeInvariant s ->
   checkerTranslationInvariant s ->
   cmdTranslationOk (CCmd.step r args premises) ->
@@ -31,7 +32,7 @@ theorem cmd_step_proven_facts_of_invariants
   CmdStepFacts M s (__eo_cmd_step_proven s r args premises)
 :=
 by
-  intro hs hsTy hsTrans hCmdTrans hResultTy
+  intro hs hsStable hsTy hsTrans hCmdTrans hResultTy
   have hProg : __eo_cmd_step_proven s r args premises ≠ Term.Stuck :=
     term_ne_stuck_of_typeof_bool hResultTy
   have hPremisesBool : AllHaveBoolType (premiseTermList s premises) :=
@@ -40,20 +41,24 @@ by
   | scope =>
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | contra =>
-      exact cmd_step_facts_of_rule_properties M s premises hs <|
-        cmd_step_contra_properties M hM s args premises
+      exact cmd_step_facts_of_rule_properties M hM s premises hs hsStable <| by
+        intro N hN _hAgree
+        exact cmd_step_contra_properties N hN s args premises
           (by simpa using hCmdTrans) hPremisesBool hResultTy
   | refl =>
-      exact cmd_step_facts_of_rule_properties M s premises hs <|
-        cmd_step_refl_properties M hM s args premises
+      exact cmd_step_facts_of_rule_properties M hM s premises hs hsStable <| by
+        intro N hN _hAgree
+        exact cmd_step_refl_properties N hN s args premises
           (by simpa using hCmdTrans) hPremisesBool hResultTy
   | symm =>
-      exact cmd_step_facts_of_rule_properties M s premises hs <|
-        cmd_step_symm_properties M hM s args premises
+      exact cmd_step_facts_of_rule_properties M hM s premises hs hsStable <| by
+        intro N hN _hAgree
+        exact cmd_step_symm_properties N hN s args premises
           (by simpa using hCmdTrans) hPremisesBool hResultTy
   | trans =>
-      exact cmd_step_facts_of_rule_properties M s premises hs <|
-        cmd_step_trans_properties M hM s args premises
+      exact cmd_step_facts_of_rule_properties M hM s premises hs hsStable <| by
+        intro N hN _hAgree
+        exact cmd_step_trans_properties N hN s args premises
           (by simpa using hCmdTrans) hPremisesBool hResultTy
 
 
@@ -67,7 +72,8 @@ theorem cmd_step_pop_proven_facts_of_invariants
     (M : SmtModel) (hM : model_total_typed M)
     (root tail : CState) (A : Term)
     (r : CRule) (args : CArgList) (premises : CIndexList) :
-  checkerTruthInvariant M root ->
+  checkerLocalTruthInvariant M root ->
+  checkerAssumptionStabilityInvariant M root ->
   checkerTypeInvariant root ->
   checkerTranslationInvariant root ->
   stateStepPopSuffix (CState.cons (CStateObj.assume_push A) tail) root ->
@@ -75,7 +81,7 @@ theorem cmd_step_pop_proven_facts_of_invariants
   CmdStepFacts M tail (__eo_cmd_step_pop_proven root r args A premises)
 :=
 by
-  intro hsRoot hsRootTy hsRootTrans hSuffix hResultTy
+  intro hsRoot hsRootStable hsRootTy hsRootTrans hSuffix hResultTy
   have hProg : __eo_cmd_step_pop_proven root r args A premises ≠ Term.Stuck :=
     term_ne_stuck_of_typeof_bool hResultTy
   have hsCurTy : checkerTypeInvariant (CState.cons (CStateObj.assume_push A) tail) :=
@@ -92,7 +98,7 @@ by
     premiseTermList_has_typeof_bool root premises hsRootTy
   cases r with
   | scope =>
-      exact cmd_step_pop_facts_of_rule_properties M hM root tail A premises hsRoot hSuffix <|
+      exact cmd_step_pop_facts_of_rule_properties M hM root tail A premises hsRoot hsRootStable hSuffix <|
         cmd_step_pop_scope_properties A root args premises
           hATrans hATy hPremisesTrans hPremisesTy hResultTy
   | contra =>

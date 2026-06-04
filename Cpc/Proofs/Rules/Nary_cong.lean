@@ -26,9 +26,12 @@ by
   | cons a1 args =>
       cases args with
       | nil =>
-          have hATransPair : RuleProofs.eo_has_smt_translation a1 ∧ True := by
-            simpa [cmdTranslationOk, cArgListTranslationOk] using hCmdTrans
-          have hATrans : RuleProofs.eo_has_smt_translation a1 := hATransPair.1
+          have hCmdTransArgs :
+              cArgListTranslationOk (CArgList.cons a1 CArgList.nil) := by
+            simpa [cmdTranslationOk] using hCmdTrans
+          have hATrans : RuleProofs.eo_has_smt_translation a1 := by
+            simpa [cArgListTranslationOk, eoHasSmtTranslation,
+              RuleProofs.eo_has_smt_translation] using hCmdTransArgs.1
           have hProgNaryCong :
               __eo_prog_nary_cong a1
                   (Proof.pf (__eo_mk_premise_list (Term.UOp UserOp.and) premises s)) ≠
@@ -73,7 +76,7 @@ by
               hProgNaryCongListNN
               hProgNaryCongListType
           refine ⟨?_, ?_⟩
-          · intro hTrue
+          · intro hEvidence
             change eo_interprets M
               (__eo_prog_nary_cong a1
                 (Proof.pf (__eo_mk_premise_list (Term.UOp UserOp.and) premises s))) true
@@ -81,7 +84,7 @@ by
             exact CongSupport.facts___eo_prog_nary_cong_impl M hM a1
               (premiseTermList s premises)
               hATrans
-              hTrue
+              hEvidence
               hProgNaryCongListBool
               hProgNaryCongListNN
           · change RuleProofs.eo_has_smt_translation

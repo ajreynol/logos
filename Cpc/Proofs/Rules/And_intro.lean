@@ -26,7 +26,7 @@ by
         change eo_interprets M (__eo_mk_premise_list Term.and premises s) true
         rw [mk_premise_list_and_eq_premiseAndFormulaList]
         exact premiseAndFormulaList_true_of_all_true M
-          (premiseTermList s premises) hTrue
+          (premiseTermList s premises) hTrue.true_here
       · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
           (by
             change RuleProofs.eo_has_bool_type (__eo_mk_premise_list Term.and premises s)

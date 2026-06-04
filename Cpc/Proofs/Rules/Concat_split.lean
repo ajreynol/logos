@@ -659,8 +659,7 @@ private theorem step_concat_split_core
           (__eo_prog_concat_split rev (Proof.pf (mkEq t s))
             (Proof.pf (mkNot (mkEq (mkStrLen tc) (mkStrLen sc))))) =
         Term.Bool) :
-    StepRuleProperties M
-      [mkEq t s, mkNot (mkEq (mkStrLen tc) (mkStrLen sc))]
+    StepRuleProperties M [mkEq t s, mkNot (mkEq (mkStrLen tc) (mkStrLen sc))]
       (__eo_prog_concat_split rev (Proof.pf (mkEq t s))
         (Proof.pf (mkNot (mkEq (mkStrLen tc) (mkStrLen sc))))) := by
   rcases eo_prog_concat_split_eq_of_ne_stuck rev t s tc sc hProg with

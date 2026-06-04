@@ -467,7 +467,7 @@ by
           (__eo_prog_trans (Proof.pf (__eo_mk_premise_list (Term.UOp UserOp.and) premises s))) true
         rw [mk_premise_list_and_eq_premiseAndFormulaList]
         exact facts___eo_prog_trans_impl M hM (premiseAndFormulaList (premiseTermList s premises))
-          (premiseAndFormulaList_true_of_all_true M (premiseTermList s premises) hTrue)
+          (premiseAndFormulaList_true_of_all_true M (premiseTermList s premises) hTrue.true_here)
           (by
             rw [mk_premise_list_and_eq_premiseAndFormulaList] at hProgTrans
             exact hProgTrans)

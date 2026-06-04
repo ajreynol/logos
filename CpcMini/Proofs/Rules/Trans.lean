@@ -460,9 +460,9 @@ by
           StepRuleProperties M premisesL
             (__eo_prog_trans (Proof.pf (premiseAndFormulaList premisesL))) := by
         refine ⟨?_, ?_⟩
-        · intro hTrue
+        · intro hEvidence
           exact facts___eo_prog_trans_impl M hM (premiseAndFormulaList premisesL)
-            (premiseAndFormulaList_true_of_all_true M premisesL hTrue)
+            (premiseAndFormulaList_true_of_all_true M premisesL hEvidence.true_here)
             (by
               simpa [premisesL, __eo_cmd_step_proven, mk_premise_list_and_eq_premiseAndFormulaList]
                 using hProg)

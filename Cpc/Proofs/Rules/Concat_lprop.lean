@@ -1083,8 +1083,7 @@ private theorem step_concat_lprop_core
           (__eo_prog_concat_lprop rev (Proof.pf (mkEq t s))
             (Proof.pf (mkGt (mkStrLen tc) (mkStrLen sc)))) =
         Term.Bool) :
-    StepRuleProperties M
-      [mkEq t s, mkGt (mkStrLen tc) (mkStrLen sc)]
+    StepRuleProperties M [mkEq t s, mkGt (mkStrLen tc) (mkStrLen sc)]
       (__eo_prog_concat_lprop rev (Proof.pf (mkEq t s))
         (Proof.pf (mkGt (mkStrLen tc) (mkStrLen sc)))) := by
   rcases eo_prog_concat_lprop_eq_of_ne_stuck rev t s tc sc hProg with

@@ -1268,8 +1268,7 @@ private theorem step_concat_unify_core
           (__eo_prog_concat_unify rev (Proof.pf (mkEq s t))
             (Proof.pf (mkEq (mkStrLen s1) (mkStrLen t1)))) =
         Term.Bool) :
-    StepRuleProperties M
-      [mkEq s t, mkEq (mkStrLen s1) (mkStrLen t1)]
+    StepRuleProperties M [mkEq s t, mkEq (mkStrLen s1) (mkStrLen t1)]
       (__eo_prog_concat_unify rev (Proof.pf (mkEq s t))
         (Proof.pf (mkEq (mkStrLen s1) (mkStrLen t1)))) := by
   rcases eo_prog_concat_unify_eq_of_ne_stuck rev s t s1 t1 hProg with

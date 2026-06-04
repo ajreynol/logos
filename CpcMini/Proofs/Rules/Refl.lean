@@ -103,7 +103,7 @@ by
                 simpa [cmdTranslationOk, cArgListTranslationOk] using hCmdTrans
               have hATrans : RuleProofs.eo_has_smt_translation a1 := hATransPair.1
               refine ⟨?_, ?_⟩
-              · intro _hTrue
+              · intro _hEvidence
                 exact facts___eo_prog_refl_impl M hM a1 hATrans
                   (by simpa [__eo_cmd_step_proven] using hProg)
               · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _

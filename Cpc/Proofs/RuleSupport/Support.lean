@@ -1,5 +1,6 @@
 import Cpc.Proofs.Common
 import Cpc.Proofs.Assumptions
+import Cpc.Proofs.RuleSupport.ClosedSupport
 
 open Eo
 open SmtEval
@@ -22,6 +23,49 @@ def premiseTermList (s : CState) : CIndexList -> List Term
 /-- Predicate asserting that every term in a list is interpreted as `true` by a model. -/
 def AllInterpretedTrue (M : SmtModel) (ts : List Term) : Prop :=
   ∀ t ∈ ts, eo_interprets M t true
+
+/--
+Contextual truth for a derived formula.
+
+The first field is the ordinary checker fact in the current model. The second
+field is the freshness/parametricity fact needed by binder-sensitive rules:
+the derived formula remains true in any model that only changes variables,
+provided the same assumptions and local pushes hold there.
+-/
+structure ContextualTruth
+    (M : SmtModel) (assumes pushes P : Term) : Prop where
+  true_here :
+    eo_interprets M assumes true ->
+    eo_interprets M pushes true ->
+    eo_interprets M P true
+  true_in_var_model :
+    ∀ N, model_total_typed N ->
+      model_agrees_on_globals M N ->
+      eo_interprets N assumes true ->
+      eo_interprets N pushes true ->
+      eo_interprets N P true
+
+/--
+The premise evidence supplied to a rule.
+
+Most rules only use `true_here`. Binder-sensitive congruence uses
+`true_in_var_model`: the checker constructs that field only when the ambient
+assumptions and pushes are known to remain true across variable-model changes.
+-/
+structure RulePremiseEvidence
+    (M : SmtModel) (premises : List Term) : Prop where
+  true_here :
+    AllInterpretedTrue M premises
+  true_in_var_model :
+    ∀ N, model_total_typed N ->
+      model_agrees_on_globals M N ->
+      AllInterpretedTrue N premises
+
+instance RulePremiseEvidence.instCoeFun
+    {M : SmtModel} {premises : List Term} :
+    CoeFun (RulePremiseEvidence M premises)
+      (fun _ => ∀ t, t ∈ premises -> eo_interprets M t true) where
+  coe h := h.true_here
 
 /-- Predicate asserting that every term in a list has an SMT translation. -/
 def AllHaveSmtTranslation (ts : List Term) : Prop :=
@@ -136,11 +180,17 @@ by
         __eo_requires, native_ite, native_teq, native_not, ih,
         premiseAndFormulaList_is_and_list, SmtEval.native_not]
 
-/-- Structure bundling the correctness and translation obligations for rules that only add a proven fact. -/
+/--
+Standard correctness and translation template for rules that add a proven fact.
+
+Most rules only use `RulePremiseEvidence.true_here`. Binder-sensitive rules use
+`RulePremiseEvidence.true_in_var_model` to reason under the fresh variable
+models introduced by quantified binders.
+-/
 structure StepRuleProperties
     (M : SmtModel) (premises : List Term) (P : Term) : Prop where
   facts_of_true :
-    AllInterpretedTrue M premises ->
+    RulePremiseEvidence M premises ->
     eo_interprets M P true
   has_smt_translation :
     RuleProofs.eo_has_smt_translation P

@@ -159,10 +159,10 @@ by
                   let X1 := __eo_state_proven_nth s n1
                   let X2 := __eo_state_proven_nth s n2
                   constructor
-                  · intro hTrue
+                  · intro hEvidence
                     exact facts___eo_prog_contra_impl M hM X1 X2
-                      (hTrue X1 (by simp [X1, premiseTermList]))
-                      (hTrue X2 (by simp [X2, premiseTermList]))
+                      (hEvidence.true_here X1 (by simp [X1, premiseTermList]))
+                      (hEvidence.true_here X2 (by simp [X2, premiseTermList]))
                       (by simpa [X1, X2, premiseTermList, __eo_cmd_step_proven] using hProg)
                   · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
                       (typed___eo_prog_contra_impl X1 X2

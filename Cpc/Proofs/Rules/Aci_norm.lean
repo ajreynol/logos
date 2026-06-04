@@ -112,7 +112,7 @@ private theorem eo_ite_else_eq_true_of_cond_ne_true
   · exact False.elim (hNe hThen.1)
   · exact hElse
 
-private theorem eo_and_eq_true_cases (x y : Term) :
+private theorem eo_and_eq_true_cases_local (x y : Term) :
     __eo_and x y = Term.Boolean true ->
     x = Term.Boolean true ∧ y = Term.Boolean true := by
   intro h
@@ -154,7 +154,7 @@ private theorem list_meq_left_is_list_true (f a b : Term) :
           (__eo_list_minclude_rec ys xs (Term.Boolean true)) =
         Term.Boolean true := by
     simpa [__eo_list_meq, xs, ys] using hMeq
-  have hIncl := (eo_and_eq_true_cases
+  have hIncl := (eo_and_eq_true_cases_local
     (__eo_list_minclude_rec xs ys (Term.Boolean true))
     (__eo_list_minclude_rec ys xs (Term.Boolean true)) hAnd).1
   have hXsNe : xs ≠ Term.Stuck := by
@@ -178,7 +178,7 @@ private theorem list_meq_right_is_list_true (f a b : Term) :
           (__eo_list_minclude_rec ys xs (Term.Boolean true)) =
         Term.Boolean true := by
     simpa [__eo_list_meq, xs, ys] using hMeq
-  have hIncl := (eo_and_eq_true_cases
+  have hIncl := (eo_and_eq_true_cases_local
     (__eo_list_minclude_rec xs ys (Term.Boolean true))
     (__eo_list_minclude_rec ys xs (Term.Boolean true)) hAnd).2
   have hYsNe : ys ≠ Term.Stuck := by
@@ -2453,7 +2453,7 @@ private theorem aciOr_list_meq_true_iff
     simpa [__eo_list_meq, aciOrClause_is_list_true hC,
       aciOrClause_is_list_true hD, __eo_requires, native_ite, native_teq,
       native_not, SmtEval.native_not] using hMeq
-  have hSplit := eo_and_eq_true_cases
+  have hSplit := eo_and_eq_true_cases_local
     (__eo_list_minclude_rec (__eo_get_elements_rec c)
       (__eo_get_elements_rec d) (Term.Boolean true))
     (__eo_list_minclude_rec (__eo_get_elements_rec d)
@@ -3558,7 +3558,7 @@ private theorem aciAnd_list_meq_true_iff
     simpa [__eo_list_meq, aciAndClause_is_list_true hC,
       aciAndClause_is_list_true hD, __eo_requires, native_ite, native_teq,
       native_not, SmtEval.native_not] using hMeq
-  have hSplit := eo_and_eq_true_cases
+  have hSplit := eo_and_eq_true_cases_local
     (__eo_list_minclude_rec (__eo_get_elements_rec c)
       (__eo_get_elements_rec d) (Term.Boolean true))
     (__eo_list_minclude_rec (__eo_get_elements_rec d)
@@ -8155,7 +8155,7 @@ private theorem bvAnd_list_meq_rel_eval
         Term.Boolean true := by
     simpa [__eo_list_meq, hCList, hDList, __eo_requires, native_ite,
       native_teq, native_not, SmtEval.native_not] using hMeq
-  have hSplit := eo_and_eq_true_cases
+  have hSplit := eo_and_eq_true_cases_local
     (__eo_list_minclude_rec (__eo_get_elements_rec c)
       (__eo_get_elements_rec d) (Term.Boolean true))
     (__eo_list_minclude_rec (__eo_get_elements_rec d)
@@ -12638,7 +12638,7 @@ private theorem bvOr_list_meq_rel_eval
         Term.Boolean true := by
     simpa [__eo_list_meq, hCList, hDList, __eo_requires, native_ite,
       native_teq, native_not, SmtEval.native_not] using hMeq
-  have hSplit := eo_and_eq_true_cases
+  have hSplit := eo_and_eq_true_cases_local
     (__eo_list_minclude_rec (__eo_get_elements_rec c)
       (__eo_get_elements_rec d) (Term.Boolean true))
     (__eo_list_minclude_rec (__eo_get_elements_rec d)
@@ -17801,7 +17801,7 @@ private theorem reUnion_list_meq_contains_iff
         Term.Boolean true := by
     simpa [__eo_list_meq, hCList, hDList, __eo_requires, native_ite,
       native_teq, native_not, SmtEval.native_not] using hMeq
-  have hSplit := eo_and_eq_true_cases
+  have hSplit := eo_and_eq_true_cases_local
     (__eo_list_minclude_rec (__eo_get_elements_rec c)
       (__eo_get_elements_rec d) (Term.Boolean true))
     (__eo_list_minclude_rec (__eo_get_elements_rec d)
@@ -19521,7 +19521,7 @@ private theorem reInter_list_meq_contains_iff
         Term.Boolean true := by
     simpa [__eo_list_meq, hCList, hDList, __eo_requires, native_ite,
       native_teq, native_not, SmtEval.native_not] using hMeq
-  have hSplit := eo_and_eq_true_cases
+  have hSplit := eo_and_eq_true_cases_local
     (__eo_list_minclude_rec (__eo_get_elements_rec c)
       (__eo_get_elements_rec d) (Term.Boolean true))
     (__eo_list_minclude_rec (__eo_get_elements_rec d)
@@ -20339,7 +20339,7 @@ private theorem bvXor_list_meq_rel_eval
             Term.Boolean true := by
         simpa [__eo_list_meq, hCList, hDList, __eo_requires, native_ite,
           native_teq, native_not, SmtEval.native_not] using hMeq
-      have hSplit := eo_and_eq_true_cases
+      have hSplit := eo_and_eq_true_cases_local
         (__eo_list_minclude_rec (__eo_get_elements_rec c)
           (__eo_get_elements_rec (mkBvXor x xs)) (Term.Boolean true))
         (__eo_list_minclude_rec
@@ -20452,7 +20452,7 @@ private theorem bvXor_list_meq_rel_eval
             Term.Boolean true := by
         simpa [__eo_list_meq, hCList, hDList, __eo_requires, native_ite,
           native_teq, native_not, SmtEval.native_not] using hMeq
-      have hSplit := eo_and_eq_true_cases
+      have hSplit := eo_and_eq_true_cases_local
         (__eo_list_minclude_rec (__eo_get_elements_rec c)
           (__eo_get_elements_rec nil) (Term.Boolean true))
         (__eo_list_minclude_rec (__eo_get_elements_rec nil)

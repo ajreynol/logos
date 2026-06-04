@@ -26,9 +26,12 @@ by
   | cons a1 args =>
       cases args with
       | nil =>
-          have hATransPair : RuleProofs.eo_has_smt_translation a1 ∧ True := by
-            simpa [cmdTranslationOk, cArgListTranslationOk] using hCmdTrans
-          have hATrans : RuleProofs.eo_has_smt_translation a1 := hATransPair.1
+          have hCmdTransArgs :
+              cArgListTranslationOk (CArgList.cons a1 CArgList.nil) := by
+            simpa [cmdTranslationOk] using hCmdTrans
+          have hATrans : RuleProofs.eo_has_smt_translation a1 := by
+            simpa [cArgListTranslationOk, eoHasSmtTranslation,
+              RuleProofs.eo_has_smt_translation] using hCmdTransArgs.1
           have hProgPairwiseCong :
               __eo_prog_pairwise_cong a1
                   (Proof.pf (__eo_mk_premise_list (Term.UOp UserOp.and) premises s)) ≠
@@ -82,7 +85,7 @@ by
                       hProgPairwiseCongListNN
                       hProgPairwiseCongListType
                   refine ⟨?_, ?_⟩
-                  · intro hTrue
+                  · intro hEvidence
                     change eo_interprets M
                       (__eo_prog_pairwise_cong
                         (Term.Apply (Term.UOp UserOp.distinct) xs)
@@ -92,7 +95,7 @@ by
                     exact
                       CongSupport.facts___eo_prog_pairwise_cong_distinct_impl
                         M hM xs (premiseTermList s premises)
-                        hATrans hTrue hProgPairwiseCongListBool
+                        hATrans hEvidence.true_here hProgPairwiseCongListBool
                         hProgPairwiseCongListNN
                   · change RuleProofs.eo_has_smt_translation
                       (__eo_prog_pairwise_cong
@@ -116,7 +119,7 @@ by
                       hProgPairwiseCongListNN
                       hProgPairwiseCongListType
                   refine ⟨?_, ?_⟩
-                  · intro hTrue
+                  · intro hEvidence
                     change eo_interprets M
                       (__eo_prog_pairwise_cong (Term.Apply f xs)
                         (Proof.pf
@@ -126,7 +129,7 @@ by
                       M hM f xs (premiseTermList s premises)
                       hATrans
                       hXsTrans
-                      hTrue
+                      hEvidence
                       hProgPairwiseCongListBool
                       hProgPairwiseCongListNN
                   · change RuleProofs.eo_has_smt_translation
