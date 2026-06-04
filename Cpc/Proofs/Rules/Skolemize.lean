@@ -42,9 +42,30 @@ private def IsQuantVarTerm : Term -> Prop
   | Term.Var (Term.String _) _ => True
   | _ => False
 
+private theorem quantVarTerm_ne_stuck {t : Term} :
+    IsQuantVarTerm t -> t ≠ Term.Stuck := by
+  intro h
+  cases t <;> simp [IsQuantVarTerm] at h ⊢
+
 private theorem eoListOfTerms_ne_stuck (xs : List Term) :
     eoListOfTerms xs ≠ Term.Stuck := by
   cases xs <;> simp [eoListOfTerms]
+
+private theorem eoListOfTerms_inj {xs ys : List Term} :
+    eoListOfTerms xs = eoListOfTerms ys -> xs = ys := by
+  intro h
+  induction xs generalizing ys with
+  | nil =>
+      cases ys <;> simp [eoListOfTerms] at h ⊢
+  | cons x xs ih =>
+      cases ys with
+      | nil =>
+          simp [eoListOfTerms] at h
+      | cons y ys =>
+          simp [eoListOfTerms] at h
+          rcases h with ⟨hxy, htail⟩
+          subst y
+          exact congrArg (List.cons x) (ih htail)
 
 private theorem eoListOfTerms_is_list_true (xs : List Term) :
     __eo_is_list Term.__eo_List_cons (eoListOfTerms xs) =
@@ -58,6 +79,192 @@ private theorem eoListOfTerms_is_list_true (xs : List Term) :
       simp [eoListOfTerms, __eo_is_list, __eo_get_nil_rec, __eo_requires,
         native_ite, native_teq, native_not, SmtEval.native_not]
       simpa [__eo_is_list, eoListOfTerms_ne_stuck xs] using ih
+
+private theorem eo_eq_eq_true_of_eq_local {x y : Term} :
+    x = y ->
+    x ≠ Term.Stuck ->
+    y ≠ Term.Stuck ->
+    __eo_eq x y = Term.Boolean true := by
+  intro hEq _ _
+  subst y
+  simp [__eo_eq, native_teq]
+
+private theorem eo_eq_eq_false_of_ne_local {x y : Term} :
+    x ≠ y ->
+    x ≠ Term.Stuck ->
+    y ≠ Term.Stuck ->
+    __eo_eq x y = Term.Boolean false := by
+  intro hNe _ _
+  have hNeYX : y ≠ x := by
+    intro h
+    exact hNe h.symm
+  simp [__eo_eq, native_teq, hNeYX]
+
+private theorem eo_prepend_if_false_of_ne_stuck
+    (f x res : Term) :
+    f ≠ Term.Stuck ->
+    x ≠ Term.Stuck ->
+    res ≠ Term.Stuck ->
+      __eo_prepend_if (Term.Boolean false) f x res = res := by
+  intro hf hx hRes
+  cases f <;> cases x <;> cases res <;>
+    simp [__eo_prepend_if] at hf hx hRes ⊢
+
+private theorem eo_list_erase_all_rec_eoListOfTerms_eq
+    {xs : List Term} {e : Term}
+    (hxs : ∀ t ∈ xs, t ≠ Term.Stuck)
+    (he : e ≠ Term.Stuck) :
+    __eo_list_erase_all_rec (eoListOfTerms xs) e =
+      eoListOfTerms (xs.filter fun x => x != e) := by
+  induction xs with
+  | nil =>
+      simp [eoListOfTerms, __eo_list_erase_all_rec]
+  | cons x xs ih =>
+      have hx : x ≠ Term.Stuck := hxs x (by simp)
+      have htail : ∀ t ∈ xs, t ≠ Term.Stuck := by
+        intro t ht
+        exact hxs t (by simp [ht])
+      by_cases hxe : x = e
+      · subst e
+        have hEqTerm : __eo_eq x x = Term.Boolean true :=
+          eo_eq_eq_true_of_eq_local rfl hx hx
+        have hTailEq := ih htail
+        have hTailNe :
+            eoListOfTerms (xs.filter fun y => y != x) ≠ Term.Stuck :=
+          eoListOfTerms_ne_stuck _
+        rw [show
+          __eo_list_erase_all_rec (eoListOfTerms (x :: xs)) x =
+            __eo_prepend_if (__eo_not (__eo_eq x x))
+              Term.__eo_List_cons x
+              (__eo_list_erase_all_rec (eoListOfTerms xs) x) by
+            simp [eoListOfTerms, __eo_list_erase_all_rec]]
+        rw [hEqTerm, hTailEq]
+        simp [__eo_not, native_not,
+          eo_prepend_if_false_of_ne_stuck Term.__eo_List_cons x
+            (eoListOfTerms (xs.filter fun y => y != x)) (by simp) hx hTailNe]
+      · have hEqTerm : __eo_eq e x = Term.Boolean false :=
+          eo_eq_eq_false_of_ne_local (by
+            intro h
+            exact hxe h.symm) he hx
+        have hTailEq := ih htail
+        simp [eoListOfTerms, __eo_list_erase_all_rec, __eo_prepend_if,
+          __eo_not, hEqTerm, native_not, hxe, hTailEq,
+          eoListOfTerms_ne_stuck]
+
+private def setofTermList : List Term -> List Term
+  | [] => []
+  | x :: xs => x :: (setofTermList xs).filter (fun y => y != x)
+
+private theorem setofTermList_mem {xs : List Term} {t : Term} :
+    t ∈ setofTermList xs -> t ∈ xs := by
+  induction xs with
+  | nil =>
+      simp [setofTermList]
+  | cons x xs ih =>
+      intro ht
+      simp [setofTermList] at ht
+      rcases ht with ht | ht
+      · simp [ht]
+      · simp [ih ht.1]
+
+private theorem nodup_filter_of_nodup
+    (p : Term -> Bool) {xs : List Term} :
+    List.Nodup xs -> List.Nodup (xs.filter p) := by
+  induction xs with
+  | nil =>
+      intro _
+      simp
+  | cons x xs ih =>
+      intro h
+      rcases List.nodup_cons.mp h with ⟨hxNotMem, hxs⟩
+      cases hp : p x
+      · simp [List.filter, hp, ih hxs]
+      · simp [List.filter, hp]
+        exact ⟨hxNotMem, ih hxs⟩
+
+private theorem setofTermList_nodup (xs : List Term) :
+    List.Nodup (setofTermList xs) := by
+  induction xs with
+  | nil =>
+      simp [setofTermList]
+  | cons x xs ih =>
+      rw [setofTermList]
+      rw [List.nodup_cons]
+      constructor
+      · simp
+      · exact nodup_filter_of_nodup _ ih
+
+private theorem setofTermList_eq_self_nodup
+    (xs : List Term) :
+    setofTermList xs = xs -> List.Nodup xs := by
+  induction xs with
+  | nil =>
+      intro _
+      simp
+  | cons x xs ih =>
+      intro hSet
+      have hTail :
+          (setofTermList xs).filter (fun y => y != x) = xs := by
+        simpa [setofTermList] using congrArg List.tail hSet
+      have hxNotMem : x ∉ xs := by
+        intro hxMem
+        have hxMemFilter :
+            x ∈ (setofTermList xs).filter (fun y => y != x) := by
+          simpa [hTail] using hxMem
+        simp at hxMemFilter
+      have hTailNodup : List.Nodup xs := by
+        have hFilterNodup :
+            List.Nodup ((setofTermList xs).filter (fun y => y != x)) :=
+          nodup_filter_of_nodup _ (setofTermList_nodup xs)
+        simpa [hTail] using hFilterNodup
+      rw [List.nodup_cons]
+      exact ⟨hxNotMem, hTailNodup⟩
+
+private theorem eo_list_setof_rec_eoListOfTerms_eq
+    {xs : List Term}
+    (hxs : ∀ t ∈ xs, t ≠ Term.Stuck) :
+    __eo_list_setof_rec (eoListOfTerms xs) =
+      eoListOfTerms (setofTermList xs) := by
+  induction xs with
+  | nil =>
+      simp [eoListOfTerms, setofTermList, __eo_list_setof_rec]
+  | cons x xs ih =>
+      have hx : x ≠ Term.Stuck := hxs x (by simp)
+      have htail : ∀ t ∈ xs, t ≠ Term.Stuck := by
+        intro t ht
+        exact hxs t (by simp [ht])
+      have hErase :
+          __eo_list_erase_all_rec (__eo_list_setof_rec (eoListOfTerms xs)) x =
+            eoListOfTerms ((setofTermList xs).filter (fun y => y != x)) := by
+        rw [ih htail]
+        exact eo_list_erase_all_rec_eoListOfTerms_eq
+          (xs := setofTermList xs) (e := x)
+          (by
+            intro t ht
+            exact hxs t (by
+              simp [setofTermList_mem (xs := xs) ht]))
+          hx
+      simp [eoListOfTerms, setofTermList, __eo_list_setof_rec,
+        __eo_mk_apply, hErase, eoListOfTerms_ne_stuck]
+
+private theorem eo_list_setof_eoListOfTerms_eq_self_nodup
+    {xs : List Term}
+    (hxs : ∀ t ∈ xs, IsQuantVarTerm t) :
+    __eo_list_setof Term.__eo_List_cons (eoListOfTerms xs) =
+        eoListOfTerms xs ->
+      List.Nodup xs := by
+  intro hSetof
+  have hxsNe : ∀ t ∈ xs, t ≠ Term.Stuck := by
+    intro t ht
+    exact quantVarTerm_ne_stuck (hxs t ht)
+  have hRec :
+      __eo_list_setof_rec (eoListOfTerms xs) = eoListOfTerms xs := by
+    simpa [__eo_list_setof, eoListOfTerms_is_list_true, __eo_requires,
+      native_ite, native_teq, native_not, SmtEval.native_not] using hSetof
+  have hSetofList : setofTermList xs = xs :=
+    eoListOfTerms_inj (by
+      simpa [eo_list_setof_rec_eoListOfTerms_eq hxsNe] using hRec)
+  exact setofTermList_eq_self_nodup xs hSetofList
 
 private theorem eo_list_find_rec_not_quant_var_eoListOfTerms
     (vars : List Term) (target : Term) (start : native_Int)
@@ -125,6 +332,33 @@ private theorem eo_mk_apply_of_ne_stuck
     {f x : Term} (hf : f ≠ Term.Stuck) (hx : x ≠ Term.Stuck) :
     __eo_mk_apply f x = Term.Apply f x := by
   cases f <;> cases x <;> simp [__eo_mk_apply] at hf hx ⊢
+
+private theorem eo_requires_result_eq_of_ne_stuck_local
+    (x y z : Term) :
+    __eo_requires x y z ≠ Term.Stuck ->
+      __eo_requires x y z = z := by
+  intro hReq
+  by_cases hEq : x = y
+  · subst y
+    by_cases hStuck : x = Term.Stuck
+    · subst x
+      exact False.elim <| hReq (by
+        simp [__eo_requires, native_teq, native_ite, native_not,
+          SmtEval.native_not])
+    · cases x <;> simp [__eo_requires, native_teq, native_ite,
+        native_not, SmtEval.native_not] at hStuck ⊢
+  · exact False.elim <| hReq (by
+      simp [__eo_requires, native_teq, hEq, native_ite])
+
+private theorem eo_requires_args_eq_of_ne_stuck_local
+    (x y z : Term) :
+    __eo_requires x y z ≠ Term.Stuck ->
+      x = y := by
+  intro hReq
+  by_cases hEq : x = y
+  · exact hEq
+  · exact False.elim <| hReq (by
+      simp [__eo_requires, native_teq, hEq, native_ite])
 
 private theorem mk_skolems_eoListOfTerms_numeral
     (xs : List Term) (F : Term) (i : native_Int)
@@ -451,6 +685,7 @@ private theorem skolemize_shape_of_not_stuck
       x1 =
         Term.Apply (Term.UOp UserOp.not)
           (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) G) ∧
+      __eo_list_setof Term.__eo_List_cons xs = xs ∧
       __eo_prog_skolemize (Proof.pf x1) =
         __substitute_simul (Term.Apply (Term.UOp UserOp.not) G) xs
           (__mk_skolems xs
@@ -471,7 +706,34 @@ private theorem skolemize_shape_of_not_stuck
                       | UOp qop =>
                           cases qop with
                           | «forall» =>
-                              exact ⟨xs, G, rfl, rfl⟩
+                              let result :=
+                                __substitute_simul
+                                  (Term.Apply (Term.UOp UserOp.not) G) xs
+                                  (__mk_skolems xs
+                                    (Term.Apply
+                                      (Term.Apply
+                                        (Term.UOp UserOp.forall) xs) G)
+                                    (Term.Numeral 0))
+                              have hReqNe :
+                                  __eo_requires
+                                      (__eo_list_setof
+                                        Term.__eo_List_cons xs) xs result ≠
+                                    Term.Stuck := by
+                                simpa [__eo_prog_skolemize, result] using hProg
+                              have hReqEq :
+                                  __eo_requires
+                                      (__eo_list_setof
+                                        Term.__eo_List_cons xs) xs result =
+                                    result :=
+                                eo_requires_result_eq_of_ne_stuck_local
+                                  _ _ _ hReqNe
+                              have hSetof :
+                                  __eo_list_setof
+                                      Term.__eo_List_cons xs = xs :=
+                                eo_requires_args_eq_of_ne_stuck_local
+                                  _ _ _ hReqNe
+                              refine ⟨xs, G, rfl, hSetof, ?_⟩
+                              simpa [__eo_prog_skolemize, result] using hReqEq
                           | _ =>
                               simp [__eo_prog_skolemize] at hProg
                       | _ =>
@@ -735,11 +997,14 @@ private theorem skolemize_valid_case_properties
     have hProg : __eo_prog_skolemize (Proof.pf x1) ≠ Term.Stuck :=
       term_ne_stuck_of_typeof_bool hResultTy
     rcases skolemize_shape_of_not_stuck x1 hProg with
-      ⟨xs, G, hShape, hProgEq⟩
+      ⟨xs, G, hShape, hSetof, hProgEq⟩
     subst x1
     rcases pushChoiceWitnesses_not_forall_package M xs G hX1Bool hPremTrue with
       ⟨ts, hxs, hAll, hWitnessEval, hWitnessAgree⟩
     subst xs
+    have hNoDup : List.Nodup ts :=
+      eo_list_setof_eoListOfTerms_eq_self_nodup hAll (by
+        simpa using hSetof)
     let F :=
       Term.Apply
         (Term.Apply (Term.UOp UserOp.forall) (eoListOfTerms ts)) G
