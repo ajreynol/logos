@@ -288,11 +288,10 @@ private theorem dt_wf_tail_of_nonempty_tail_wf
 /--
 Datatype-default canonicity for the generated model.
 
-The theorem keeps the historical `_assumption` name used by the downstream
-proof skeleton, but `native_inhabited_type` now uniformly carries exactly this
-canonical default witness.
+The `native_inhabited_type` witness uniformly carries exactly this canonical
+default witness for datatype types.
 -/
-theorem cpc_datatype_type_default_typed_canonical_assumption
+theorem datatype_type_default_typed_canonical_of_inhabited
     (s : native_String)
     (d : SmtDatatype)
     (_hInh : native_inhabited_type (SmtType.Datatype s d) = true)
@@ -311,7 +310,7 @@ private theorem datatype_type_default_typed_canonical_of_wf_rec_deferred
     __smtx_typeof_value (__smtx_type_default (SmtType.Datatype s d)) =
         SmtType.Datatype s d ∧
       __smtx_value_canonical (__smtx_type_default (SmtType.Datatype s d)) := by
-  exact cpc_datatype_type_default_typed_canonical_assumption s d _hInh _hRec
+  exact datatype_type_default_typed_canonical_of_inhabited s d _hInh _hRec
 
 private theorem type_default_typed_canonical_of_wf_rec_deferred_datatype :
     (T : SmtType) ->
