@@ -711,7 +711,7 @@ end RuleProofs
 
 \clearpage
 
-\section*{CpcMini Checker}
+\section*{Logos Checker}
 
 \begin{figure}[p]
 \begin{lstlisting}
@@ -829,7 +829,8 @@ def __eo_invoke_cmd_step_pop (s : CState) : CState -> CRule -> CArgList -> CInde
 
 def __eo_invoke_cmd : CState -> CCmd -> CState
   | CState.Stuck, c => CState.Stuck
-  | S, (CCmd.assume_push proven) => (__eo_push_assume_check (__eo_is_bool_type proven) proven S)
+  | S, (CCmd.assume_push proven) =>
+      (__eo_push_assume_check (__eo_and (__eo_is_bool_type proven) (__eo_is_closed proven)) proven S)
   | S, (CCmd.check_proven proven) => (__eo_invoke_cmd_check_proven S proven)
   | S, (CCmd.step r args premises) => (__eo_push_proven (__eo_cmd_step_proven S r args premises) S)
   | S, (CCmd.step_pop r args premises) => (__eo_invoke_cmd_step_pop S S r args premises)
@@ -842,7 +843,8 @@ def __eo_state_is_refutation (s : CState) : Bool :=
   (__eo_state_is_closed (__eo_invoke_cmd_check_proven s (Term.Boolean false)))
 
 def __eo_invoke_assume_list (S : CState) : Term -> CState
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.and) F) as) => (__eo_push_input_assume_check (__eo_is_bool_type F) F (__eo_invoke_assume_list S as))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.and) F) as) =>
+      (__eo_push_input_assume_check (__eo_and (__eo_is_bool_type F) (__eo_is_closed F)) F (__eo_invoke_assume_list S as))
   | (Term.Boolean true) => S
   | as => CState.Stuck
 
@@ -854,6 +856,49 @@ inductive eo_is_refutation : Term -> CCmdList -> Prop
       (__eo_checker_is_refutation F c) = true -> (eo_is_refutation F c)
 \end{lstlisting}
 \caption{Checker command execution and refutation recognition.}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+def __eo_is_closed_rec : Term -> Term -> Term
+  | Term.Stuck, _ => Term.Stuck
+  | _, Term.Stuck => Term.Stuck
+  | (Term.Var s T), Term.__eo_List_nil => (Term.Boolean false)
+  | (Term.Var s T), (Term.Apply (Term.Apply Term.__eo_List_cons x) vs) =>
+      let _v0 := (Term.Var s T)
+      (__eo_ite (__eo_eq _v0 x) (Term.Boolean true) (__eo_is_closed_rec _v0 vs))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.forall) vs) x), env =>
+      (__eo_is_closed_rec x (__eo_list_concat Term.__eo_List_cons vs env))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.exists) vs) x), env =>
+      (__eo_is_closed_rec x (__eo_list_concat Term.__eo_List_cons vs env))
+  | (Term.Apply f x), env =>
+      (__eo_and (__eo_is_closed_rec f env) (__eo_is_closed_rec x env))
+  | (Term.UOp1 u x), env => (__eo_is_closed_rec x env)
+  | (Term.UOp2 u x x2), env =>
+      (__eo_and (__eo_is_closed_rec x env) (__eo_is_closed_rec x2 env))
+  | (Term.UOp3 u x x2 x3), env =>
+      (__eo_and (__eo_and (__eo_is_closed_rec x env) (__eo_is_closed_rec x2 env))
+        (__eo_is_closed_rec x3 env))
+  | x, env => (Term.Boolean true)
+
+def __eo_is_closed : Term -> Term
+  | Term.Stuck => Term.Stuck
+  | t => (__eo_is_closed_rec t Term.__eo_List_nil)
+
+def assumptionCheckGuard (A : Term) : Term :=
+  __eo_and (__eo_is_bool_type A) (__eo_is_closed A)
+
+theorem smt_model_eval_eq_of_eo_closed
+    (P : Term) (hClosed : __eo_is_closed P = Term.Boolean true)
+    (M N : SmtModel) (hAgree : model_agrees_on_globals M N) :
+  __smtx_model_eval M (__eo_to_smt P) =
+    __smtx_model_eval N (__eo_to_smt P)
+
+theorem stableWhenTrueInAnyVarModel_of_closed
+    (P : Term) (hClosed : __eo_is_closed P = Term.Boolean true) :
+  StableWhenTrueInAnyVarModel P
+\end{lstlisting}
+\caption{The executable EO closedness check used by assumption guards, and the key theorem showing that closed formulas are stable under changes to SMT variable assignments.}
 \end{figure}
 
 \begin{figure}[p]
@@ -924,16 +969,72 @@ theorem correct___eo_is_refutation (F : Term) (pf : CCmdList) :
 \caption{Top-level checker soundness theorem.}
 \end{figure}
 
+\begin{figure}[p]
+\begin{lstlisting}
+structure ContextualTruth
+    (M : SmtModel) (assumes pushes P : Term) : Prop where
+  true_here :
+    eo_interprets M assumes true ->
+    eo_interprets M pushes true ->
+    eo_interprets M P true
+  true_in_var_model :
+    forall N, model_total_typed N ->
+      model_agrees_on_globals M N ->
+      eo_interprets N assumes true ->
+      eo_interprets N pushes true ->
+      eo_interprets N P true
+
+def checkerLocalTruthInvariant (M : SmtModel) : CState -> Prop
+  | CState.nil => True
+  | CState.cons (CStateObj.proven P) s =>
+      ContextualTruth M (stateAssumes s) (statePushes s) P ∧
+      checkerLocalTruthInvariant M s
+  | CState.cons _ s => checkerLocalTruthInvariant M s
+  | CState.Stuck => True
+
+def checkerAssumptionStabilityInvariant (M : SmtModel) : CState -> Prop
+  | CState.nil => True
+  | CState.cons (CStateObj.assume A) s =>
+      StableWhenTrueInAnyVarModel A ∧ checkerAssumptionStabilityInvariant M s
+  | CState.cons (CStateObj.assume_push A) s =>
+      StableWhenTrueInAnyVarModel A ∧ checkerAssumptionStabilityInvariant M s
+  | CState.cons (CStateObj.proven _) s =>
+      checkerAssumptionStabilityInvariant M s
+  | CState.Stuck => True
+
+def checkerShapeInvariant : CState -> Prop
+  | CState.Stuck => True
+  | s => stateAssumptionSuffix s
+
+def checkerStateInvariant (M : SmtModel) (s : CState) : Prop :=
+  checkerShapeInvariant s ∧
+  checkerLocalTruthInvariant M s ∧
+  checkerAssumptionStabilityInvariant M s ∧
+  checkerTypeInvariant s ∧
+  checkerTranslationInvariant s
+\end{lstlisting}
+\caption{The combined checker invariant now separates local contextual truth from assumption stability, while retaining the shape, type, and translation invariants.}
+\end{figure}
+
 \clearpage
 
 \section*{RuleLemmas.lean}
 
 \begin{figure}[p]
 \begin{lstlisting}
+structure RulePremiseEvidence
+    (M : SmtModel) (premises : List Term) : Prop where
+  true_here :
+    AllInterpretedTrue M premises
+  true_in_var_model :
+    forall N, model_total_typed N ->
+      model_agrees_on_globals M N ->
+      AllInterpretedTrue N premises
+
 structure StepRuleProperties
     (M : SmtModel) (premises : List Term) (P : Term) : Prop where
   facts_of_true :
-    AllInterpretedTrue M premises ->
+    RulePremiseEvidence M premises ->
     eo_interprets M P true
   has_smt_translation :
     RuleProofs.eo_has_smt_translation P
@@ -943,6 +1044,12 @@ structure CmdStepFacts (M : SmtModel) (s : CState) (P : Term) : Prop where
     eo_interprets M (stateAssumes s) true ->
     eo_interprets M (statePushes s) true ->
     eo_interprets M P true
+  true_in_var_model :
+    forall N, model_total_typed N ->
+      model_agrees_on_globals M N ->
+      eo_interprets N (stateAssumes s) true ->
+      eo_interprets N (statePushes s) true ->
+      eo_interprets N P true
   has_smt_translation :
     RuleProofs.eo_has_smt_translation P
 
@@ -950,14 +1057,15 @@ theorem cmd_step_proven_facts_of_invariants
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (_hNotStuck : s ≠ CState.Stuck)
     (r : CRule) (args : CArgList) (premises : CIndexList) :
-  checkerTruthInvariant M s ->
+  checkerLocalTruthInvariant M s ->
+  checkerAssumptionStabilityInvariant M s ->
   checkerTypeInvariant s ->
   checkerTranslationInvariant s ->
   cmdTranslationOk (CCmd.step r args premises) ->
   __eo_typeof (__eo_cmd_step_proven s r args premises) = Term.Bool ->
   CmdStepFacts M s (__eo_cmd_step_proven s r args premises)
 \end{lstlisting}
-\caption{The step-only rule-correctness theorem in \texttt{RuleLemmas.lean}; the theorem ranges over the plain \texttt{CCmd.step} rules and excludes \texttt{step\_pop}.}
+\caption{The step-only rule-correctness theorem in \texttt{RuleLemmas.lean}; plain \texttt{CCmd.step} reasoning now uses local truth plus assumption stability, and rule proofs receive contextual premise evidence that is stable across variable-model changes.}
 \end{figure}
 
 \begin{figure}[p]
@@ -971,7 +1079,7 @@ theorem cmd_step_trans_properties
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.trans args premises)
 \end{lstlisting}
-\caption{An example rule proof: the \texttt{trans} step packages semantic truth preservation and SMT translatability into \texttt{StepRuleProperties}.}
+\caption{An example rule proof: the \texttt{trans} step packages contextual premise evidence and SMT translatability into \texttt{StepRuleProperties}.}
 \end{figure}
 
 \end{document}

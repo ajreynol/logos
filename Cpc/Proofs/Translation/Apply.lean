@@ -4,7 +4,7 @@ import Cpc.Proofs.Translation.Special
 import Cpc.Proofs.Translation.Inversions
 import Cpc.Proofs.Translation.Heads
 import Cpc.Proofs.Translation.EoTypeofCore
-import Cpc.Proofs.TypePreservationFull
+import Cpc.Proofs.TypePreservation.Full
 
 open Eo
 open SmtEval

@@ -1,5 +1,4 @@
 import Cpc.Proofs.TypePreservation.Support
-import Cpc.Proofs.TypePreservation.CanonicalAssumptions
 
 open SmtEval
 open Smtm
@@ -286,6 +285,23 @@ private theorem dt_wf_tail_of_nonempty_tail_wf
     dt_wf_cons_of_wf h
   simpa [__smtx_dt_wf_rec, native_ite, hc] using h
 
+/--
+Datatype-default canonicity for the generated model.
+
+The `native_inhabited_type` witness uniformly carries exactly this canonical
+default witness for datatype types.
+-/
+theorem datatype_type_default_typed_canonical_of_inhabited
+    (s : native_String)
+    (d : SmtDatatype)
+    (_hInh : native_inhabited_type (SmtType.Datatype s d) = true)
+    (_hRec : __smtx_type_wf_rec (SmtType.Datatype s d) native_reflist_nil = true) :
+      __smtx_typeof_value (__smtx_type_default (SmtType.Datatype s d)) =
+        SmtType.Datatype s d ∧
+      __smtx_value_canonical (__smtx_type_default (SmtType.Datatype s d)) := by
+  classical
+  simpa [native_inhabited_type, __smtx_value_canonical, native_and] using _hInh
+
 private theorem datatype_type_default_typed_canonical_of_wf_rec_deferred
     (s : native_String)
     (d : SmtDatatype)
@@ -294,7 +310,7 @@ private theorem datatype_type_default_typed_canonical_of_wf_rec_deferred
     __smtx_typeof_value (__smtx_type_default (SmtType.Datatype s d)) =
         SmtType.Datatype s d ∧
       __smtx_value_canonical (__smtx_type_default (SmtType.Datatype s d)) := by
-  exact cpc_datatype_type_default_typed_canonical_assumption s d _hInh _hRec
+  exact datatype_type_default_typed_canonical_of_inhabited s d _hInh _hRec
 
 private theorem type_default_typed_canonical_of_wf_rec_deferred_datatype :
     (T : SmtType) ->
