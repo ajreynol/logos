@@ -42,6 +42,246 @@ private def IsQuantVarTerm : Term -> Prop
   | Term.Var (Term.String _) _ => True
   | _ => False
 
+private theorem eoListOfTerms_ne_stuck (xs : List Term) :
+    eoListOfTerms xs ≠ Term.Stuck := by
+  cases xs <;> simp [eoListOfTerms]
+
+private theorem eoListOfTerms_is_list_true (xs : List Term) :
+    __eo_is_list Term.__eo_List_cons (eoListOfTerms xs) =
+      Term.Boolean true := by
+  induction xs with
+  | nil =>
+      simp [eoListOfTerms, __eo_is_list, __eo_get_nil_rec, __eo_requires,
+        __eo_is_ok, __eo_is_list_nil, native_ite, native_teq, native_not,
+        SmtEval.native_not]
+  | cons _ xs ih =>
+      simp [eoListOfTerms, __eo_is_list, __eo_get_nil_rec, __eo_requires,
+        native_ite, native_teq, native_not, SmtEval.native_not]
+      simpa [__eo_is_list, eoListOfTerms_ne_stuck xs] using ih
+
+private theorem eo_list_find_rec_not_quant_var_eoListOfTerms
+    (vars : List Term) (target : Term) (start : native_Int)
+    (hTargetNe : target ≠ Term.Stuck)
+    (hTarget : ¬ IsQuantVarTerm target)
+    (hVars : ∀ t ∈ vars, IsQuantVarTerm t) :
+    __eo_list_find_rec (eoListOfTerms vars) target (Term.Numeral start) =
+      Term.Numeral (-1 : native_Int) := by
+  induction vars generalizing start with
+  | nil =>
+      simp [eoListOfTerms, __eo_list_find_rec]
+  | cons x xs ih =>
+      have hx : IsQuantVarTerm x := hVars x (by simp)
+      have htail : ∀ t ∈ xs, IsQuantVarTerm t := by
+        intro t ht
+        exact hVars t (by simp [ht])
+      cases x <;> simp [IsQuantVarTerm] at hx
+      case Var name T =>
+        cases name <;> simp at hx
+        case String s =>
+          have hne : Term.Var (Term.String s) T ≠ target := by
+            intro hEq
+            subst target
+            exact hTarget (by simp [IsQuantVarTerm])
+          have hne' : target ≠ Term.Var (Term.String s) T := hne.symm
+          have hTailEval :
+              __eo_list_find_rec (eoListOfTerms xs) target
+                  (Term.Numeral (native_zplus start 1)) =
+                Term.Numeral (-1 : native_Int) :=
+            ih (native_zplus start 1) htail
+          simp [eoListOfTerms, __eo_list_find_rec, __eo_eq,
+            native_teq, hne', __eo_ite, native_ite]
+          simpa [__eo_add, native_zplus] using hTailEval
+
+private theorem eo_list_find_not_quant_var_eoListOfTerms
+    (vars : List Term) (target : Term)
+    (hTargetNe : target ≠ Term.Stuck)
+    (hTarget : ¬ IsQuantVarTerm target)
+    (hVars : ∀ t ∈ vars, IsQuantVarTerm t) :
+    __eo_list_find Term.__eo_List_cons (eoListOfTerms vars) target =
+      Term.Numeral (-1 : native_Int) := by
+  simp [__eo_list_find, eoListOfTerms_is_list_true, __eo_requires,
+    native_ite, native_teq, native_not, SmtEval.native_not,
+    eo_list_find_rec_not_quant_var_eoListOfTerms vars target 0
+      hTargetNe hTarget hVars]
+
+private def skolemTermList (F : Term) : native_Int -> List Term -> Term
+  | _, [] => Term.__eo_List_nil
+  | i, _ :: xs =>
+      Term.Apply
+        (Term.Apply Term.__eo_List_cons
+          (Term.UOp2 UserOp2._at_quantifiers_skolemize F (Term.Numeral i)))
+        (skolemTermList F (native_zplus i 1) xs)
+
+private theorem skolemTermList_ne_stuck
+    (xs : List Term) (F : Term) (i : native_Int) :
+    skolemTermList F i xs ≠ Term.Stuck := by
+  induction xs generalizing i with
+  | nil =>
+      simp [skolemTermList]
+  | cons x xs ih =>
+      simp [skolemTermList]
+
+private theorem eo_mk_apply_of_ne_stuck
+    {f x : Term} (hf : f ≠ Term.Stuck) (hx : x ≠ Term.Stuck) :
+    __eo_mk_apply f x = Term.Apply f x := by
+  cases f <;> cases x <;> simp [__eo_mk_apply] at hf hx ⊢
+
+private theorem mk_skolems_eoListOfTerms_numeral
+    (xs : List Term) (F : Term) (i : native_Int)
+    (hF : F ≠ Term.Stuck) :
+    __mk_skolems (eoListOfTerms xs) F (Term.Numeral i) =
+      skolemTermList F i xs := by
+  induction xs generalizing i with
+  | nil =>
+      simp [eoListOfTerms, skolemTermList, __mk_skolems]
+  | cons x xs ih =>
+      have hTail : skolemTermList F (native_zplus i 1) xs ≠ Term.Stuck :=
+        skolemTermList_ne_stuck xs F (native_zplus i 1)
+      have hTailEq :
+          __mk_skolems (eoListOfTerms xs) F
+              (Term.Numeral (native_zplus i 1)) =
+            skolemTermList F (native_zplus i 1) xs :=
+        ih (native_zplus i 1)
+      simp [eoListOfTerms, skolemTermList, __mk_skolems]
+      rw [show __eo_add (Term.Numeral i) (Term.Numeral 1) =
+          Term.Numeral (native_zplus i 1) by rfl]
+      rw [hTailEq]
+      exact eo_mk_apply_of_ne_stuck (by simp) hTail
+
+private theorem contains_atomic_term_list_free_rec_nil_atom_false
+    (vars : List Term)
+    (hVars : ∀ t ∈ vars, IsQuantVarTerm t) :
+    __contains_atomic_term_list_free_rec Term.__eo_List_nil
+        (eoListOfTerms vars) Term.__eo_List_nil =
+      Term.Boolean false := by
+  have hFind :
+      __eo_list_find Term.__eo_List_cons (eoListOfTerms vars)
+          Term.__eo_List_nil =
+        Term.Numeral (-1 : native_Int) :=
+    eo_list_find_not_quant_var_eoListOfTerms
+      vars Term.__eo_List_nil (by simp) (by simp [IsQuantVarTerm]) hVars
+  rw [__contains_atomic_term_list_free_rec.eq_6]
+  rw [hFind]
+  rfl
+  all_goals simp [eoListOfTerms_ne_stuck]
+
+private theorem contains_atomic_term_list_free_rec_cons_atom_false
+    (vars : List Term)
+    (hVars : ∀ t ∈ vars, IsQuantVarTerm t) :
+    __contains_atomic_term_list_free_rec Term.__eo_List_cons
+        (eoListOfTerms vars) Term.__eo_List_nil =
+      Term.Boolean false := by
+  have hFind :
+      __eo_list_find Term.__eo_List_cons (eoListOfTerms vars)
+          Term.__eo_List_cons =
+        Term.Numeral (-1 : native_Int) :=
+    eo_list_find_not_quant_var_eoListOfTerms
+      vars Term.__eo_List_cons (by simp) (by simp [IsQuantVarTerm]) hVars
+  rw [__contains_atomic_term_list_free_rec.eq_6]
+  rw [hFind]
+  rfl
+  all_goals simp [eoListOfTerms_ne_stuck]
+
+private theorem contains_atomic_term_list_free_rec_skolem_atom_false
+    (vars : List Term) (F : Term) (i : native_Int)
+    (hVars : ∀ t ∈ vars, IsQuantVarTerm t) :
+    __contains_atomic_term_list_free_rec
+        (Term.UOp2 UserOp2._at_quantifiers_skolemize F (Term.Numeral i))
+        (eoListOfTerms vars) Term.__eo_List_nil =
+      Term.Boolean false := by
+  have hFind :
+      __eo_list_find Term.__eo_List_cons (eoListOfTerms vars)
+          (Term.UOp2 UserOp2._at_quantifiers_skolemize F (Term.Numeral i)) =
+        Term.Numeral (-1 : native_Int) :=
+    eo_list_find_not_quant_var_eoListOfTerms
+      vars
+        (Term.UOp2 UserOp2._at_quantifiers_skolemize F (Term.Numeral i))
+      (by simp) (by simp [IsQuantVarTerm]) hVars
+  rw [__contains_atomic_term_list_free_rec.eq_6]
+  rw [hFind]
+  rfl
+  all_goals simp [eoListOfTerms_ne_stuck]
+
+private theorem contains_atomic_term_list_free_rec_skolemTermList_false
+    (vars xs : List Term) (F : Term) (i : native_Int)
+    (hVars : ∀ t ∈ vars, IsQuantVarTerm t) :
+    __contains_atomic_term_list_free_rec (skolemTermList F i xs)
+        (eoListOfTerms vars) Term.__eo_List_nil =
+      Term.Boolean false := by
+  induction xs generalizing i with
+  | nil =>
+      exact contains_atomic_term_list_free_rec_nil_atom_false vars hVars
+  | cons x xs ih =>
+      have hCons :=
+        contains_atomic_term_list_free_rec_cons_atom_false vars hVars
+      have hSkolem :=
+        contains_atomic_term_list_free_rec_skolem_atom_false vars F i hVars
+      have hHead :
+          __contains_atomic_term_list_free_rec
+              (Term.Apply Term.__eo_List_cons
+                (Term.UOp2 UserOp2._at_quantifiers_skolemize F
+                  (Term.Numeral i)))
+              (eoListOfTerms vars) Term.__eo_List_nil =
+            Term.Boolean false := by
+        rw [__contains_atomic_term_list_free_rec.eq_5]
+        rw [hCons, hSkolem]
+        rfl
+        all_goals simp [eoListOfTerms_ne_stuck]
+      have hTail := ih (native_zplus i 1)
+      simp [skolemTermList]
+      rw [__contains_atomic_term_list_free_rec.eq_5]
+      rw [hHead, hTail]
+      rfl
+      all_goals simp [eoListOfTerms_ne_stuck]
+
+private theorem contains_atomic_term_list_free_rec_mk_skolems_false
+    (vars xs : List Term) (F : Term)
+    (hF : F ≠ Term.Stuck)
+    (hVars : ∀ t ∈ vars, IsQuantVarTerm t) :
+    __contains_atomic_term_list_free_rec
+        (__mk_skolems (eoListOfTerms xs) F (Term.Numeral 0))
+        (eoListOfTerms vars) Term.__eo_List_nil =
+      Term.Boolean false := by
+  rw [mk_skolems_eoListOfTerms_numeral xs F 0 hF]
+  exact contains_atomic_term_list_free_rec_skolemTermList_false
+    vars xs F 0 hVars
+
+private theorem mk_skolems_eoListOfTerms_ne_stuck
+    (xs : List Term) (F : Term) (i : native_Int)
+    (hF : F ≠ Term.Stuck) :
+    __mk_skolems (eoListOfTerms xs) F (Term.Numeral i) ≠ Term.Stuck := by
+  rw [mk_skolems_eoListOfTerms_numeral xs F i hF]
+  exact skolemTermList_ne_stuck xs F i
+
+private theorem substitute_simul_not_op_eoListOfTerms
+    (vars : List Term) (ss : Term)
+    (hss : ss ≠ Term.Stuck)
+    (hVars : ∀ t ∈ vars, IsQuantVarTerm t) :
+    __substitute_simul (Term.UOp UserOp.not) (eoListOfTerms vars) ss =
+      Term.UOp UserOp.not := by
+  have hFind :
+      __eo_list_find Term.__eo_List_cons (eoListOfTerms vars)
+          (Term.UOp UserOp.not) =
+        Term.Numeral (-1 : native_Int) :=
+    eo_list_find_not_quant_var_eoListOfTerms
+      vars (Term.UOp UserOp.not) (by simp) (by simp [IsQuantVarTerm]) hVars
+  rw [__substitute_simul.eq_6]
+  rw [hFind]
+  rfl
+  all_goals simp [eoListOfTerms_ne_stuck, hss]
+
+private theorem substitute_simul_not_apply_eoListOfTerms
+    (vars : List Term) (G ss : Term)
+    (hss : ss ≠ Term.Stuck)
+    (hVars : ∀ t ∈ vars, IsQuantVarTerm t) :
+    __substitute_simul (Term.Apply (Term.UOp UserOp.not) G)
+        (eoListOfTerms vars) ss =
+      __eo_mk_apply (Term.UOp UserOp.not)
+        (__substitute_simul G (eoListOfTerms vars) ss) := by
+  rw [__substitute_simul.eq_5] <;> try
+    simp [eoListOfTerms_ne_stuck, hss,
+      substitute_simul_not_op_eoListOfTerms vars ss hss hVars]
+
 /-- Pushes the canonical zero-index choice witness for each EO binder. -/
 private noncomputable def pushChoiceWitnesses : SmtModel -> Term -> SmtTerm -> SmtModel
   | M, Term.__eo_List_nil, _ => M
@@ -265,6 +505,15 @@ private theorem smtx_model_eval_not_not_true
       v = SmtValue.Boolean true := by
   cases v <;> simp [__smtx_model_eval_not, SmtEval.native_not]
 
+private theorem smtx_typeof_not_arg_bool
+    (t : SmtTerm) :
+    __smtx_typeof (SmtTerm.not t) = SmtType.Bool ->
+    __smtx_typeof t = SmtType.Bool := by
+  intro hTy
+  rw [typeof_not_eq] at hTy
+  cases h : __smtx_typeof t <;>
+    simp [h, native_ite, native_Teq] at hTy ⊢
+
 /-- Truth of `not (forall xs G)` is truth of the SMT existential chain for `not G`. -/
 private theorem not_forall_true_implies_exists_not_true
     (M : SmtModel) (xs G : Term)
@@ -298,6 +547,107 @@ private theorem not_forall_vars_non_nil_of_has_bool_type
   change __smtx_typeof (SmtTerm.not SmtTerm.None) = SmtType.Bool at hBool
   rw [typeof_not_eq, TranslationProofs.smtx_typeof_none] at hBool
   simp [native_ite, native_Teq] at hBool
+
+/--
+A true Boolean `not (forall xs G)` supplies the concrete zero-index choice
+witnesses that make `not G` true.
+-/
+private theorem pushChoiceWitnesses_eval_true_of_not_forall
+    (M : SmtModel) (xs G : Term)
+    (hBool :
+      RuleProofs.eo_has_bool_type
+        (Term.Apply (Term.UOp UserOp.not)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) G)))
+    (hTrue :
+      eo_interprets M
+        (Term.Apply (Term.UOp UserOp.not)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) G)) true) :
+    ∃ ts,
+      xs = eoListOfTerms ts ∧
+        (∀ t ∈ ts, IsQuantVarTerm t) ∧
+        __smtx_model_eval
+            (pushChoiceWitnesses M xs (SmtTerm.not (__eo_to_smt G)))
+            (SmtTerm.not (__eo_to_smt G)) =
+          SmtValue.Boolean true := by
+  let existsBody := __eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt G))
+  have hxs : xs ≠ Term.__eo_List_nil :=
+    not_forall_vars_non_nil_of_has_bool_type xs G hBool
+  have hExistsEval :
+      __smtx_model_eval M existsBody = SmtValue.Boolean true := by
+    simpa [existsBody] using
+      not_forall_true_implies_exists_not_true M xs G hxs hTrue
+  have hNotNotTy :
+      __smtx_typeof (SmtTerm.not (SmtTerm.not existsBody)) = SmtType.Bool := by
+    unfold RuleProofs.eo_has_bool_type at hBool
+    rw [eo_to_smt_not_forall_eq xs G hxs] at hBool
+    simpa [existsBody] using hBool
+  have hNotTy :
+      __smtx_typeof (SmtTerm.not existsBody) = SmtType.Bool :=
+    smtx_typeof_not_arg_bool (SmtTerm.not existsBody) hNotNotTy
+  have hExistsTy : __smtx_typeof existsBody = SmtType.Bool :=
+    smtx_typeof_not_arg_bool existsBody hNotTy
+  simpa [existsBody] using
+    pushChoiceWitnesses_eval_true_of_bool_exists
+      M xs (SmtTerm.not (__eo_to_smt G)) hExistsTy hExistsEval
+
+private theorem pushChoiceWitnesses_agrees_on_globals
+    (M : SmtModel) (xs : List Term) (body : SmtTerm)
+    (hxs : ∀ t ∈ xs, IsQuantVarTerm t) :
+    model_agrees_on_globals M
+      (pushChoiceWitnesses M (eoListOfTerms xs) body) := by
+  induction xs generalizing M body with
+  | nil =>
+      simpa [eoListOfTerms, pushChoiceWitnesses] using
+        model_agrees_on_globals_refl M
+  | cons x xs ih =>
+      have hx : IsQuantVarTerm x := hxs x (by simp)
+      have htail : ∀ t ∈ xs, IsQuantVarTerm t := by
+        intro t ht
+        exact hxs t (by simp [ht])
+      cases x <;> simp [IsQuantVarTerm] at hx
+      case Var name T =>
+        cases name <;> simp at hx
+        case String s =>
+          let tailBody := __eo_to_smt_exists (eoListOfTerms xs) body
+          let v :=
+            __smtx_model_eval M
+              (SmtTerm.choice_nth s (__eo_to_smt_type T) tailBody 0)
+          simpa [eoListOfTerms, pushChoiceWitnesses, tailBody, v] using
+            model_agrees_on_globals_trans
+              (model_agrees_on_globals_push M s (__eo_to_smt_type T) v)
+              (ih (M := native_model_push M s (__eo_to_smt_type T) v)
+                (body := body) htail)
+
+/--
+The witness model recovered from a true negated forall also agrees with the
+original model on globals.
+-/
+private theorem pushChoiceWitnesses_not_forall_package
+    (M : SmtModel) (xs G : Term)
+    (hBool :
+      RuleProofs.eo_has_bool_type
+        (Term.Apply (Term.UOp UserOp.not)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) G)))
+    (hTrue :
+      eo_interprets M
+        (Term.Apply (Term.UOp UserOp.not)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) G)) true) :
+    ∃ ts,
+      xs = eoListOfTerms ts ∧
+        (∀ t ∈ ts, IsQuantVarTerm t) ∧
+        __smtx_model_eval
+            (pushChoiceWitnesses M xs (SmtTerm.not (__eo_to_smt G)))
+            (SmtTerm.not (__eo_to_smt G)) =
+          SmtValue.Boolean true ∧
+        model_agrees_on_globals M
+          (pushChoiceWitnesses M xs (SmtTerm.not (__eo_to_smt G))) := by
+  rcases pushChoiceWitnesses_eval_true_of_not_forall
+      M xs G hBool hTrue with
+    ⟨ts, hxs, hAll, hEval⟩
+  subst xs
+  refine ⟨ts, rfl, hAll, hEval, ?_⟩
+  exact pushChoiceWitnesses_agrees_on_globals
+    M ts (SmtTerm.not (__eo_to_smt G)) hAll
 
 /-- Translating a generated skolem atom peels to SMT `quantifiers_skolemize`. -/
 private theorem eo_to_smt_skolem_term_eq
@@ -371,6 +721,45 @@ private theorem eo_to_smt_skolem_term_zero_cons
         (__eo_to_smt_exists tail (SmtTerm.not (__eo_to_smt G))) 0
   rfl
 
+private theorem skolemize_valid_case_properties
+    (M : SmtModel) (hM : model_total_typed M)
+    (x1 : Term)
+    (hX1Bool : RuleProofs.eo_has_bool_type x1)
+    (hResultTy :
+      __eo_typeof (__eo_prog_skolemize (Proof.pf x1)) = Term.Bool) :
+    StepRuleProperties M [x1] (__eo_prog_skolemize (Proof.pf x1)) := by
+  refine ⟨?_, ?_⟩
+  · intro hEvidence
+    have hPremTrue : eo_interprets M x1 true :=
+      hEvidence x1 (by simp)
+    have hProg : __eo_prog_skolemize (Proof.pf x1) ≠ Term.Stuck :=
+      term_ne_stuck_of_typeof_bool hResultTy
+    rcases skolemize_shape_of_not_stuck x1 hProg with
+      ⟨xs, G, hShape, hProgEq⟩
+    subst x1
+    rcases pushChoiceWitnesses_not_forall_package M xs G hX1Bool hPremTrue with
+      ⟨ts, hxs, hAll, hWitnessEval, hWitnessAgree⟩
+    subst xs
+    let F :=
+      Term.Apply
+        (Term.Apply (Term.UOp UserOp.forall) (eoListOfTerms ts)) G
+    have hFNe : F ≠ Term.Stuck := by
+      simp [F]
+    have hSkolemsNe :
+        __mk_skolems (eoListOfTerms ts) F (Term.Numeral 0) ≠
+          Term.Stuck :=
+      mk_skolems_eoListOfTerms_ne_stuck ts F 0 hFNe
+    rw [hProgEq]
+    change
+      eo_interprets M
+        (__substitute_simul (Term.Apply (Term.UOp UserOp.not) G)
+          (eoListOfTerms ts) (__mk_skolems (eoListOfTerms ts) F
+            (Term.Numeral 0))) true
+    rw [substitute_simul_not_apply_eoListOfTerms ts G
+      (__mk_skolems (eoListOfTerms ts) F (Term.Numeral 0)) hSkolemsNe hAll]
+    sorry
+  · sorry
+
 theorem cmd_step_skolemize_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
@@ -380,4 +769,31 @@ theorem cmd_step_skolemize_properties
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.skolemize args premises) :=
 by
-  sorry
+  intro _hCmdTrans hPremisesBool hResultTy
+  have hProg : __eo_cmd_step_proven s CRule.skolemize args premises ≠ Term.Stuck :=
+    term_ne_stuck_of_typeof_bool hResultTy
+  cases args with
+  | nil =>
+      cases premises with
+      | nil =>
+          change Term.Stuck ≠ Term.Stuck at hProg
+          exact False.elim (hProg rfl)
+      | cons n1 premises =>
+          cases premises with
+          | nil =>
+              have hX1Bool :
+                  RuleProofs.eo_has_bool_type (__eo_state_proven_nth s n1) :=
+                hPremisesBool (__eo_state_proven_nth s n1)
+                  (by simp [premiseTermList])
+              change StepRuleProperties M [__eo_state_proven_nth s n1]
+                (__eo_prog_skolemize
+                  (Proof.pf (__eo_state_proven_nth s n1)))
+              exact skolemize_valid_case_properties M hM
+                (__eo_state_proven_nth s n1) hX1Bool (by
+                  simpa using hResultTy)
+          | cons _ _ =>
+              change Term.Stuck ≠ Term.Stuck at hProg
+              exact False.elim (hProg rfl)
+  | cons _ _ =>
+      change Term.Stuck ≠ Term.Stuck at hProg
+      exact False.elim (hProg rfl)
