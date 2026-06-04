@@ -1,4 +1,4 @@
-import Lean
+import Cpc.Proofs.ChoiceNth
 import Cpc.Proofs.TypePreservation.Model
 
 open SmtEval
@@ -8,24 +8,6 @@ set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
 namespace Smtm
-
-syntax "smtx_model_eval_choice_nth_eq_1" : term
-syntax "smtx_model_eval_choice_nth_eq_2" : term
-
-open Lean Elab Term Meta in
-private def choiceNthEvalEqThm (idx : Nat) : TermElabM Expr := do
-  let eqTy ← inferType (mkConst ``Smtm.__smtx_model_eval.eq_137)
-  forallTelescopeReducing eqTy fun _ body => do
-    let some (_, _, rhs) := body.eq? | throwError "unexpected __smtx_model_eval.eq_136 shape"
-    let .const fnName _ := rhs.getAppFn | throwError "unexpected choice_nth evaluator shape"
-    let some eqns ← Lean.Meta.getEqnsFor? fnName | throwError "missing choice_nth evaluator equations"
-    let some eqThm := eqns[idx]? | throwError "choice_nth evaluator equation index out of bounds"
-    pure (mkConst eqThm)
-
-open Lean Elab Term Meta in
-elab_rules : term
-  | `(smtx_model_eval_choice_nth_eq_1) => choiceNthEvalEqThm 0
-  | `(smtx_model_eval_choice_nth_eq_2) => choiceNthEvalEqThm 1
 
 /-- Shows that evaluating `boolean` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_boolean
@@ -862,10 +844,10 @@ theorem typeof_value_model_eval_choice
         __smtx_typeof_value v = T ∧
           __smtx_value_canonical_bool v = true ∧
           __smtx_model_eval (native_model_push M s T v) body = SmtValue.Boolean true
-  · rw [__smtx_model_eval.eq_137, smtx_model_eval_choice_nth_eq_1]
+  · rw [smtx_model_eval_choice_nth_zero]
     simp [hSat]
     exact (Classical.choose_spec hSat).1
-  · rw [__smtx_model_eval.eq_137, smtx_model_eval_choice_nth_eq_1]
+  · rw [smtx_model_eval_choice_nth_zero]
     simp [hSat, hTyIf]
     exact (Classical.choose_spec hTy).1
 
@@ -894,10 +876,11 @@ theorem typeof_value_model_eval_choice_nth
             choice_nth_succ_typeof_tail_of_non_none ht
           have ht' : term_has_non_none_type (SmtTerm.choice_nth s' U body' n) := by
             exact choice_nth_succ_tail_non_none_of_non_none ht
-          rw [__smtx_model_eval.eq_137, smtx_model_eval_choice_nth_eq_2]
+          rw [smtx_model_eval_choice_nth_succ_exists]
           rw [hTyEq]
           simpa [__smtx_model_eval.eq_137,
-            smtx_model_eval_choice_nth_eq_1, smtx_model_eval_choice_nth_eq_2] using
+            smtx_model_eval_choice_nth_zero,
+            smtx_model_eval_choice_nth_succ_exists] using
             ih (native_model_push M s T
               (if hSat :
                   ∃ v : SmtValue,

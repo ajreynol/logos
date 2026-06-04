@@ -1,4 +1,4 @@
-import Lean
+import Cpc.Proofs.ChoiceNth
 import Cpc.Proofs.Common
 import Cpc.Proofs.Assumptions
 
@@ -8,20 +8,6 @@ open Smtm
 
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
-
-syntax "smtx_evalChoiceNth_eq_def" : term
-
-elab "smtx_evalChoiceNth_eq_def" : term => do
-  let env ← Lean.getEnv
-  let candidates := env.constants.toList.filter (fun (name, _) =>
-    let s := name.toString
-    s.contains "__smtx_model_eval.evalChoiceNth." &&
-      !s.contains "_mutual" &&
-      s.endsWith "eq_def")
-  match candidates with
-  | [(name, _)] => return Lean.mkConst name
-  | [] => throwError "could not find evalChoiceNth equation theorem"
-  | _ => throwError "found multiple evalChoiceNth equation theorems"
 
 /--
 Two models agree on the global part of the interpretation.
@@ -323,7 +309,19 @@ theorem native_eval_tchoice_nth_eq_aux
   native_eval_tchoice_nth M s T body n =
     nativeEvalTChoiceNthAux M s T body n :=
 by
-  rfl
+  induction n generalizing M s T body with
+  | zero =>
+      rw [native_eval_tchoice_nth_zero]
+      simp [nativeEvalTChoiceNthAux]
+  | succ n ih =>
+      rw [native_eval_tchoice_nth_succ]
+      cases body <;> simp [nativeEvalTChoiceNthAux]
+      case «exists» s' T' body' =>
+        simpa [nativeEvalTChoiceNthAux] using
+          ih
+            (M := native_model_push M s T
+              (native_eval_tchoice M s T (SmtTerm.exists s' T' body')))
+            (s := s') (T := T') (body := body')
 
 theorem smtx_model_eval_choice_nth_eq_aux
     (M : SmtModel) (s : native_String) (T : SmtType)
@@ -331,26 +329,10 @@ theorem smtx_model_eval_choice_nth_eq_aux
   __smtx_model_eval M (SmtTerm.choice_nth s T body n) =
     nativeEvalTChoiceNthAux M s T body n :=
 by
-  induction n generalizing M s T body with
-  | zero =>
-      rw [__smtx_model_eval.eq_def]
-      simp only
-      rw [smtx_evalChoiceNth_eq_def]
-      simp [nativeEvalTChoiceNthAux]
-  | succ n ih =>
-      rw [__smtx_model_eval.eq_def]
-      simp only
-      rw [smtx_evalChoiceNth_eq_def]
-      cases body <;> simp [nativeEvalTChoiceNthAux]
-      case «exists» s' T' body' =>
-        have ih' :=
-          ih
-            (M := native_model_push M s T
-              (native_eval_tchoice M s T (SmtTerm.exists s' T' body')))
-            (s := s') (T := T') (body := body')
-        rw [__smtx_model_eval.eq_137] at ih'
-        simpa [nativeEvalTChoiceNthAux] using
-          ih'
+  rw [__smtx_model_eval.eq_137]
+  change native_eval_tchoice_nth M s T body n =
+    nativeEvalTChoiceNthAux M s T body n
+  exact native_eval_tchoice_nth_eq_aux M s T body n
 
 end ChoiceNthAux
 

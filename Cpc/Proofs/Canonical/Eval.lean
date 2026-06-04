@@ -1,3 +1,4 @@
+import Cpc.Proofs.ChoiceNth
 import Cpc.Proofs.Canonical.Ops
 
 open SmtEval
@@ -419,7 +420,7 @@ theorem model_eval_choice_nth_canonical
   classical
   induction n generalizing M s T body with
   | zero =>
-      rw [__smtx_model_eval.eq_137, smtx_model_eval_choice_nth_eq_1]
+      rw [smtx_model_eval_choice_nth_zero]
       exact native_eval_tchoice_canonical M s T body
   | succ n ih =>
       cases body with
@@ -430,9 +431,9 @@ theorem model_eval_choice_nth_canonical
             choice_nth_succ_typeof_tail_of_non_none hTy
           have hTy' : term_has_non_none_type (SmtTerm.choice_nth s' U body' n) := by
             exact choice_nth_succ_tail_non_none_of_non_none hTy
-          rw [__smtx_model_eval.eq_137, smtx_model_eval_choice_nth_eq_2]
-          simpa [__smtx_model_eval.eq_137, smtx_model_eval_choice_nth_eq_1,
-            smtx_model_eval_choice_nth_eq_2] using
+          rw [smtx_model_eval_choice_nth_succ_exists]
+          simpa [__smtx_model_eval.eq_137, smtx_model_eval_choice_nth_zero,
+            smtx_model_eval_choice_nth_succ_exists] using
             ih (native_model_push M s T (native_eval_tchoice M s T (SmtTerm.exists s' U body')))
               s' U body' hTy'
       | _ =>
