@@ -1,5 +1,5 @@
 import Cpc.Proofs.TypePreservation.Support
-import Cpc.Proofs.TypePreservation.CanonicalAssumptions
+import Cpc.Proofs.Canonical.Assumptions
 
 open SmtEval
 open Smtm
