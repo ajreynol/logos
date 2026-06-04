@@ -3049,4 +3049,306 @@ theorem no_compat_dispatch_endpoint_right (M : SmtModel) (hM : model_total_typed
     simp at hk
   · exact dispatchD (introWordView_seqUnit M ec Sc T hcTy hSc hcflatNe)
 
+/-- Prefixes are preserved by appending extra elements on the right. -/
+theorem native_seq_prefix_eq_append_right_of_prefix
+    (pat xs rest : List SmtValue)
+    (h : native_seq_prefix_eq pat xs = true) :
+    native_seq_prefix_eq pat (xs ++ rest) = true := by
+  rw [native_seq_prefix_eq_iff] at h ⊢
+  rcases h with ⟨r, hEq⟩
+  refine ⟨r ++ rest, ?_⟩
+  rw [hEq]
+  simp [List.append_assoc]
+
+/-- Under the endpoint no-overlap condition, a prefix match in `S ++ C` was
+already a prefix match in `S`; otherwise the match would straddle the right
+endpoint. -/
+theorem native_seq_prefix_eq_of_append_right_no_endpoint_overlap
+    (S C L D : List SmtValue)
+    (hNo : ∀ k, k < C.reverse.length →
+      ¬ native_seq_compat (C.reverse.drop k) D.reverse)
+    (h : native_seq_prefix_eq (L ++ D) (S ++ C) = true) :
+    native_seq_prefix_eq (L ++ D) S = true := by
+  by_cases hLen : (L ++ D).length ≤ S.length
+  · rw [native_seq_prefix_eq_iff] at h ⊢
+    rcases h with ⟨r, hEq⟩
+    refine ⟨S.drop (L ++ D).length, ?_⟩
+    have hTake : S.take (L ++ D).length = L ++ D := by
+      calc
+        S.take (L ++ D).length = (S ++ C).take (L ++ D).length := by
+          rw [List.take_append_of_le_length hLen]
+        _ = ((L ++ D) ++ r).take (L ++ D).length := by rw [hEq]
+        _ = L ++ D := by rw [List.take_left]
+    calc
+      S = S.take (L ++ D).length ++ S.drop (L ++ D).length := by
+        rw [List.take_append_drop]
+      _ = (L ++ D) ++ S.drop (L ++ D).length := by rw [hTake]
+  · exfalso
+    have hContainsHay :
+        native_seq_contains (S ++ C) (L ++ D) = true := by
+      rw [native_seq_contains_iff_decomp]
+      rw [native_seq_prefix_eq_iff] at h
+      rcases h with ⟨r, hEq⟩
+      exact ⟨[], r, by simpa using hEq⟩
+    have hContainsS :
+        native_seq_contains S (L ++ D) = true :=
+      native_seq_contains_drop_right_of_no_endpoint_overlap S C L D hNo
+        hContainsHay
+    rcases native_seq_contains_decomp_exists S (L ++ D) hContainsS with
+      ⟨before, after, hEq⟩
+    have hPatLe : (L ++ D).length ≤ S.length := by
+      rw [hEq]
+      simp [List.length_append]
+      omega
+    exact hLen hPatLe
+
+/-- A successful bounded recursive search witnesses `contains`. -/
+theorem native_seq_contains_of_indexof_rec_ne_neg
+    (xs pat : List SmtValue) (i fuel : Nat)
+    (h : native_seq_indexof_rec xs pat i fuel ≠ -1) :
+    native_seq_contains xs pat = true := by
+  rcases native_seq_indexof_rec_bound xs pat i fuel with hNeg | hHit
+  · exact False.elim (h hNeg)
+  · rcases hHit with ⟨j, hRec, _hj⟩
+    rcases native_seq_indexof_rec_decomp xs pat i fuel (i + j) hRec with
+      ⟨_hLe, before, after, hXs, _hBeforeLen⟩
+    rw [hXs]
+    exact native_seq_contains_of_decomp before pat after
+
+/-- Appending a right endpoint that cannot participate in an endpoint overlap
+does not change the zero-start `indexof` result. -/
+theorem native_seq_indexof_append_right_of_no_endpoint_overlap
+    (S C L D : List SmtValue)
+    (hNo : ∀ k, k < C.reverse.length →
+      ¬ native_seq_compat (C.reverse.drop k) D.reverse) :
+    native_seq_indexof (S ++ C) (L ++ D) 0 =
+      native_seq_indexof S (L ++ D) 0 := by
+  let P := L ++ D
+  have hSearch :
+      ∀ (S' : List SmtValue) (i : Nat),
+        (if h : P.length ≤ (S' ++ C).length then
+            native_seq_indexof_rec (S' ++ C) P i
+              ((S' ++ C).length - P.length + 1)
+          else
+            (-1 : native_Int)) =
+        (if h : P.length ≤ S'.length then
+            native_seq_indexof_rec S' P i (S'.length - P.length + 1)
+          else
+            (-1 : native_Int)) := by
+    intro S'
+    induction S' with
+    | nil =>
+        intro i
+        by_cases hEmpty : P = []
+        · have hLenZero : P.length = 0 := by rw [hEmpty]; rfl
+          simp [hEmpty]
+          change native_seq_indexof_rec C [] i (C.length + 1) = Int.ofNat i
+          change native_seq_indexof_rec C [] i (Nat.succ C.length) = Int.ofNat i
+          unfold native_seq_indexof_rec
+          simp [native_seq_prefix_eq]
+        · have hLenNe : P.length ≠ 0 := by
+            intro hLenZero
+            exact hEmpty (List.eq_nil_of_length_eq_zero hLenZero)
+          have hPos : 0 < P.length := Nat.pos_of_ne_zero hLenNe
+          simp only [List.nil_append, List.length_nil]
+          by_cases hBounds : P.length ≤ C.length
+          · rw [dif_pos hBounds]
+            rw [dif_neg (by omega : ¬ P.length ≤ 0)]
+            by_cases hRec : native_seq_indexof_rec C P i
+                (C.length - P.length + 1) = -1
+            · exact hRec
+            · exfalso
+              have hContainsC :
+                  native_seq_contains C P = true :=
+                native_seq_contains_of_indexof_rec_ne_neg C P i
+                  (C.length - P.length + 1) hRec
+              have hContainsNil :
+                  native_seq_contains ([] : List SmtValue) P = true :=
+                native_seq_contains_drop_right_of_no_endpoint_overlap
+                  ([] : List SmtValue) C L D (by simpa [P] using hNo)
+                  (by simpa [P] using hContainsC)
+              rcases native_seq_contains_decomp_exists ([] : List SmtValue) P
+                  hContainsNil with ⟨before, after, hEq⟩
+              have hLenEq := congrArg List.length hEq
+              simp [List.length_append] at hLenEq
+              omega
+          · rw [dif_neg hBounds]
+            rw [dif_neg (by omega : ¬ P.length ≤ 0)]
+        | cons a S ih =>
+        intro i
+        by_cases hLeft : P.length ≤ ((a :: S) ++ C).length
+        · by_cases hRight : P.length ≤ (a :: S).length
+          · rw [dif_pos hLeft, dif_pos hRight]
+            unfold native_seq_indexof_rec
+            have hPref :
+                native_seq_prefix_eq P ((a :: S) ++ C) =
+                  native_seq_prefix_eq P (a :: S) := by
+              apply Bool.eq_iff_iff.mpr
+              constructor
+              · intro hp
+                exact native_seq_prefix_eq_of_append_right_no_endpoint_overlap
+                  (a :: S) C L D (by simpa [P] using hNo) (by simpa [P] using hp)
+              · intro hp
+                simpa using native_seq_prefix_eq_append_right_of_prefix P (a :: S) C hp
+            rw [hPref]
+            by_cases hp : native_seq_prefix_eq P (a :: S) = true
+            · simp [hp]
+            · simp [hp]
+              have hTail := ih (i + 1)
+              by_cases hTailLeft : P.length ≤ (S ++ C).length
+              · by_cases hTailRight : P.length ≤ S.length
+                · have hTailLeftLen : P.length ≤ S.length + C.length := by
+                    simpa [List.length_append] using hTailLeft
+                  have hTailRightLen : P.length ≤ S.length := hTailRight
+                  have hFuelLeft :
+                      S.length + C.length + 1 - P.length =
+                        S.length + C.length - P.length + 1 := by omega
+                  have hFuelRight :
+                      S.length + 1 - P.length =
+                        S.length - P.length + 1 := by omega
+                  have hTail' := hTail
+                  rw [dif_pos hTailLeft, dif_pos hTailRight] at hTail'
+                  rw [hFuelLeft, hFuelRight]
+                  simpa [P] using hTail'
+                · have hTailLeftLen : P.length ≤ S.length + C.length := by
+                    simpa [List.length_append] using hTailLeft
+                  have hRightLen : P.length ≤ S.length + 1 := by
+                    simpa using hRight
+                  have hFuelLeft :
+                      S.length + C.length + 1 - P.length =
+                        S.length + C.length - P.length + 1 := by omega
+                  have hFuelRightZero :
+                      S.length + 1 - P.length = 0 := by omega
+                  have hRightRec :
+                      native_seq_indexof_rec S P (i + 1)
+                          (S.length + 1 - P.length) =
+                        -1 := by
+                    rw [hFuelRightZero]
+                    simp [native_seq_indexof_rec]
+                  have hTail' := hTail
+                  rw [dif_pos hTailLeft, dif_neg hTailRight] at hTail'
+                  rw [hRightRec]
+                  rw [hFuelLeft]
+                  simpa [P] using hTail'
+              · have hLeftLen : P.length ≤ S.length + C.length + 1 := by
+                  simpa [List.length_append] using hLeft
+                have hRightLen : P.length ≤ S.length + 1 := by
+                  simpa using hRight
+                have hTailLeftFalseLen : ¬ P.length ≤ S.length + C.length := by
+                  intro hLen
+                  exact hTailLeft (by simpa [List.length_append] using hLen)
+                have hTailRightFalse : ¬ P.length ≤ S.length := by
+                  intro hTailRight
+                  exact hTailLeft (Nat.le_trans hTailRight (by simp))
+                have hFuelLeftZero :
+                    S.length + C.length + 1 - P.length = 0 := by omega
+                have hFuelRightZero :
+                    S.length + 1 - P.length = 0 := by omega
+                rw [hFuelLeftZero, hFuelRightZero]
+                simp [native_seq_indexof_rec]
+          · rw [dif_pos hLeft, dif_neg hRight]
+            by_cases hRec : native_seq_indexof_rec ((a :: S) ++ C) P i
+                (((a :: S) ++ C).length - P.length + 1) = -1
+            · exact hRec
+            · exfalso
+              have hContainsHay :
+                  native_seq_contains ((a :: S) ++ C) P = true :=
+                native_seq_contains_of_indexof_rec_ne_neg ((a :: S) ++ C) P i
+                  (((a :: S) ++ C).length - P.length + 1) hRec
+              have hContainsS :
+                  native_seq_contains (a :: S) P = true :=
+                native_seq_contains_drop_right_of_no_endpoint_overlap
+                  (a :: S) C L D (by simpa [P] using hNo)
+                  (by simpa [P] using hContainsHay)
+              rcases native_seq_contains_decomp_exists (a :: S) P hContainsS with
+                ⟨before, after, hEq⟩
+              have hPatLe : P.length ≤ (a :: S).length := by
+                rw [hEq]
+                simp [List.length_append]
+                omega
+              exact hRight hPatLe
+        · have hRightFalse : ¬ P.length ≤ (a :: S).length := by
+            intro hRight
+            exact hLeft (Nat.le_trans hRight (by simp))
+          rw [dif_neg hLeft, dif_neg hRightFalse]
+  unfold native_seq_indexof
+  simp
+  simpa [P] using hSearch S 0
+
+/-- Model-evaluation form of the endpoint-overlap `indexof` rule. -/
+theorem overlap_endpoints_indexof_eval (M : SmtModel)
+    (sw c emp t d : Term)
+    (Ss Sc Se St Sd : SmtSeq)
+    (hsw : __smtx_model_eval M (__eo_to_smt sw) = SmtValue.Seq Ss)
+    (hc : __smtx_model_eval M (__eo_to_smt c) = SmtValue.Seq Sc)
+    (hemp : __smtx_model_eval M (__eo_to_smt emp) = SmtValue.Seq Se)
+    (ht : __smtx_model_eval M (__eo_to_smt t) = SmtValue.Seq St)
+    (hd : __smtx_model_eval M (__eo_to_smt d) = SmtValue.Seq Sd)
+    (hempnil : native_unpack_seq Se = [])
+    (hRight : ∀ k, k < (native_unpack_seq Sc).reverse.length →
+      ¬ native_seq_compat ((native_unpack_seq Sc).reverse.drop k)
+        (native_unpack_seq Sd).reverse) :
+    __smtx_model_eval M (__eo_to_smt
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) sw)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) c) emp)))
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) d) emp)))
+          (Term.Numeral 0))) =
+      __smtx_model_eval M (__eo_to_smt
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof) sw)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) d) emp)))
+          (Term.Numeral 0))) := by
+  obtain ⟨sDE, hsDE, huDE⟩ :=
+    strConcat_unpack_eval M d emp Sd Se hd hemp
+  obtain ⟨sNeedle, hsNeedle, huNeedle⟩ :=
+    strConcat_unpack_eval M t
+      (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) d) emp)
+      St sDE ht hsDE
+  obtain ⟨sCE, hsCE, huCE⟩ :=
+    strConcat_unpack_eval M c emp Sc Se hc hemp
+  obtain ⟨sHay, hsHay, huHay⟩ :=
+    strConcat_unpack_eval M sw
+      (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) c) emp)
+      Ss sCE hsw hsCE
+  rw [show __eo_to_smt
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) sw)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) c) emp)))
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) d) emp)))
+          (Term.Numeral 0)) =
+        SmtTerm.str_indexof
+          (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) sw)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) c) emp)))
+          (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) d) emp)))
+          (SmtTerm.Numeral 0) from rfl]
+  rw [show __eo_to_smt
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof) sw)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) d) emp)))
+          (Term.Numeral 0)) =
+        SmtTerm.str_indexof (__eo_to_smt sw)
+          (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) d) emp)))
+          (SmtTerm.Numeral 0) from rfl]
+  simp only [__smtx_model_eval, hsHay, hsNeedle, hsw]
+  simp [__smtx_model_eval_str_indexof]
+  have hHay :
+      native_unpack_seq sHay =
+        native_unpack_seq Ss ++ native_unpack_seq Sc := by
+    rw [huHay, huCE, hempnil]
+    simp
+  have hNeedle :
+      native_unpack_seq sNeedle =
+        native_unpack_seq St ++ native_unpack_seq Sd := by
+    rw [huNeedle, huDE, hempnil]
+    simp
+  rw [hHay, hNeedle]
+  exact native_seq_indexof_append_right_of_no_endpoint_overlap
+    (native_unpack_seq Ss) (native_unpack_seq Sc)
+    (native_unpack_seq St) (native_unpack_seq Sd) hRight
+
 end RuleProofs
