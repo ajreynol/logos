@@ -3419,7 +3419,7 @@ def __mk_skolems : Term -> Term -> Term -> Term
 
 
 def __eo_prog_skolemize : Proof -> Term
-  | (Proof.pf (Term.Apply (Term.UOp UserOp.not) (Term.Apply (Term.Apply (Term.UOp UserOp.forall) x) G))) => (__substitute_simul (Term.Apply (Term.UOp UserOp.not) G) x (__mk_skolems x (Term.Apply (Term.Apply (Term.UOp UserOp.forall) x) G) (Term.Numeral 0)))
+  | (Proof.pf (Term.Apply (Term.UOp UserOp.not) (Term.Apply (Term.Apply (Term.UOp UserOp.forall) x) G))) => (__eo_requires (__eo_list_setof Term.__eo_List_cons x) x (__substitute_simul (Term.Apply (Term.UOp UserOp.not) G) x (__mk_skolems x (Term.Apply (Term.Apply (Term.UOp UserOp.forall) x) G) (Term.Numeral 0))))
   | _ => Term.Stuck
 
 

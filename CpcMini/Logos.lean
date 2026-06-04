@@ -312,9 +312,9 @@ def __eo_is_closed_rec : Term -> Term -> Term
     let _v0 := (Term.Var s T)
     (__eo_ite (__eo_eq _v0 x) (Term.Boolean true) (__eo_is_closed_rec _v0 vs))
   | (Term.Apply f x), env => (__eo_and (__eo_is_closed_rec f env) (__eo_is_closed_rec x env))
-  | (Term.UOp1 u x), env => (__eo_is_closed_rec x env)
-  | (Term.UOp2 u x x2), env => (__eo_and (__eo_is_closed_rec x env) (__eo_is_closed_rec x2 env))
-  | (Term.UOp3 u x x2 x3), env => (__eo_and (__eo_and (__eo_is_closed_rec x env) (__eo_is_closed_rec x2 env)) (__eo_is_closed_rec x3 env))
+  | (Term.UOp1 u x), env => (__eo_is_closed_rec x Term.__eo_List_nil)
+  | (Term.UOp2 u x x2), env => (__eo_and (__eo_is_closed_rec x Term.__eo_List_nil) (__eo_is_closed_rec x2 Term.__eo_List_nil))
+  | (Term.UOp3 u x x2 x3), env => (__eo_and (__eo_and (__eo_is_closed_rec x Term.__eo_List_nil) (__eo_is_closed_rec x2 Term.__eo_List_nil)) (__eo_is_closed_rec x3 Term.__eo_List_nil))
   | x, env => (Term.Boolean true)
 
 
