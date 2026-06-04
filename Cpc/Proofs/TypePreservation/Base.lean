@@ -637,31 +637,18 @@ theorem choice_nth_succ_typeof_tail_of_non_none
     __smtx_typeof (SmtTerm.choice_nth s T (SmtTerm.exists s' U body) n.succ) =
       __smtx_typeof (SmtTerm.choice_nth s' U body n) := by
   unfold term_has_non_none_type at ht
-  have hOuterEq :
-      native_Teq (__smtx_typeof (SmtTerm.exists s' U body)) SmtType.Bool = true := by
-    by_cases hEq :
-        native_Teq (__smtx_typeof (SmtTerm.exists s' U body)) SmtType.Bool = true
-    · exact hEq
-    · exfalso
-      have hEqFalse :
-          native_Teq (__smtx_typeof (SmtTerm.exists s' U body)) SmtType.Bool = false := by
-        cases hTest : native_Teq (__smtx_typeof (SmtTerm.exists s' U body)) SmtType.Bool <;>
-          simp [hTest] at hEq ⊢
-      apply ht
-      rw [__smtx_typeof.eq_137]
-      simp [__smtx_typeof_choice_nth, hEqFalse, native_ite]
   have hGuardNN :
       __smtx_typeof_guard_wf T (__smtx_typeof_choice_nth U body n) ≠ SmtType.None := by
     intro hNone
     apply ht
     rw [__smtx_typeof.eq_137]
-    simp [__smtx_typeof_choice_nth, hOuterEq, native_ite, hNone]
+    simp [__smtx_typeof_choice_nth, hNone]
   have hGuard :
       __smtx_typeof_guard_wf T (__smtx_typeof_choice_nth U body n) =
         __smtx_typeof_choice_nth U body n :=
     smtx_typeof_guard_wf_of_non_none T (__smtx_typeof_choice_nth U body n) hGuardNN
   rw [__smtx_typeof.eq_137, __smtx_typeof.eq_137]
-  simp [__smtx_typeof_choice_nth, hOuterEq, native_ite, hGuard]
+  simp [__smtx_typeof_choice_nth, hGuard]
 
 /-- Non-`None` typing for a guarded successor `choice_nth` descends to the tail choice. -/
 theorem choice_nth_succ_tail_non_none_of_non_none

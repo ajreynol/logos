@@ -2027,27 +2027,13 @@ private theorem choice_nth_head_type_wf_of_non_none
   | succ n =>
       cases body with
       | «exists» s' U body' =>
-          have hOuterEq :
-              native_Teq (__smtx_typeof (SmtTerm.exists s' U body')) SmtType.Bool = true := by
-            by_cases hEq :
-                native_Teq (__smtx_typeof (SmtTerm.exists s' U body')) SmtType.Bool = true
-            · exact hEq
-            · exfalso
-              have hEqFalse :
-                  native_Teq (__smtx_typeof (SmtTerm.exists s' U body')) SmtType.Bool = false := by
-                cases hTest :
-                    native_Teq (__smtx_typeof (SmtTerm.exists s' U body')) SmtType.Bool <;>
-                  simp [hTest] at hEq ⊢
-              apply hNN
-              rw [__smtx_typeof.eq_137]
-              simp [__smtx_typeof_choice_nth, hEqFalse, native_ite]
           have hGuardNN :
               __smtx_typeof_guard_wf T (__smtx_typeof_choice_nth U body' n) ≠
                 SmtType.None := by
             intro hNone
             apply hNN
             rw [__smtx_typeof.eq_137]
-            simp [__smtx_typeof_choice_nth, hOuterEq, native_ite, hNone]
+            simp [__smtx_typeof_choice_nth, hNone]
           exact
             smtx_typeof_guard_wf_wf_of_non_none
               T (__smtx_typeof_choice_nth U body' n) hGuardNN
