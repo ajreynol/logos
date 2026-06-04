@@ -50,6 +50,41 @@ theorem strConcat_unpack_eval (M : SmtModel) (x y : Term) (sx sy : SmtSeq)
   refine ⟨_, rfl, ?_⟩
   simp [native_seq_concat, Smtm.native_unpack_pack_seq]
 
+/-- Exact model-evaluation form of `str.++` on sequence-valued terms. -/
+theorem strConcat_eval_eq (M : SmtModel) (x y : Term) (sx sy : SmtSeq)
+    (hx : __smtx_model_eval M (__eo_to_smt x) = SmtValue.Seq sx)
+    (hy : __smtx_model_eval M (__eo_to_smt y) = SmtValue.Seq sy) :
+    __smtx_model_eval M
+        (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) x) y)) =
+      SmtValue.Seq
+        (native_pack_seq (__smtx_elem_typeof_seq_value sx)
+          (native_unpack_seq sx ++ native_unpack_seq sy)) := by
+  rw [show __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) x) y) =
+      SmtTerm.str_concat (__eo_to_smt x) (__eo_to_smt y) by rfl]
+  simp [__smtx_model_eval, hx, hy, __smtx_model_eval_str_concat,
+    native_seq_concat]
+
+/-- Exact model-evaluation form of `str.replace` on sequence-valued terms. -/
+theorem strReplace_eval_eq (M : SmtModel) (x pat repl : Term)
+    (sx spat srepl : SmtSeq)
+    (hx : __smtx_model_eval M (__eo_to_smt x) = SmtValue.Seq sx)
+    (hpat : __smtx_model_eval M (__eo_to_smt pat) = SmtValue.Seq spat)
+    (hrepl : __smtx_model_eval M (__eo_to_smt repl) = SmtValue.Seq srepl) :
+    __smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_replace) x)
+            pat) repl)) =
+      SmtValue.Seq
+        (native_pack_seq (__smtx_elem_typeof_seq_value sx)
+          (native_seq_replace (native_unpack_seq sx)
+            (native_unpack_seq spat) (native_unpack_seq srepl))) := by
+  rw [show __eo_to_smt
+      (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_replace) x)
+        pat) repl) =
+      SmtTerm.str_replace (__eo_to_smt x) (__eo_to_smt pat)
+        (__eo_to_smt repl) by rfl]
+  simp [__smtx_model_eval, hx, hpat, hrepl, __smtx_model_eval_str_replace]
+
 /-! ### Native `contains` characterization and monotonicity -/
 
 /-- A pattern is a prefix of itself followed by anything. -/
@@ -3274,6 +3309,600 @@ theorem native_seq_indexof_append_right_of_no_endpoint_overlap
   unfold native_seq_indexof
   simp
   simpa [P] using hSearch S 0
+
+theorem native_seq_indexof_le_len_sub_pat_of_pat_le_len
+    (xs pat : List SmtValue) (i : native_Int) :
+    pat.length ≤ xs.length →
+      native_seq_indexof xs pat i ≤
+        Int.ofNat xs.length - Int.ofNat pat.length := by
+  intro hPatLe
+  unfold native_seq_indexof
+  split
+  · have hNonneg :
+        (0 : Int) ≤ Int.ofNat xs.length - Int.ofNat pat.length := by
+      exact Int.sub_nonneg.mpr (Int.ofNat_le.mpr hPatLe)
+    exact Int.le_trans (by decide : (-1 : Int) ≤ 0) hNonneg
+  · dsimp
+    split
+    · rename_i hStart h
+      cases native_seq_indexof_rec_bound (xs.drop (Int.toNat i)) pat (Int.toNat i)
+          (xs.length - (Int.toNat i + pat.length) + 1) with
+      | inl hRec =>
+          rw [hRec]
+          have hNonneg :
+              (0 : Int) ≤ Int.ofNat xs.length - Int.ofNat pat.length := by
+            exact Int.sub_nonneg.mpr (Int.ofNat_le.mpr hPatLe)
+          exact Int.le_trans (by decide : (-1 : Int) ≤ 0) hNonneg
+      | inr hRec =>
+          rcases hRec with ⟨j, hRec, hjlt⟩
+          rw [hRec]
+          have hNat :
+              Int.toNat i + j ≤ xs.length - pat.length := by
+            omega
+          calc
+            Int.ofNat (Int.toNat i + j) ≤ Int.ofNat (xs.length - pat.length) :=
+              Int.ofNat_le.mpr hNat
+            _ = Int.ofNat xs.length - Int.ofNat pat.length :=
+              Int.ofNat_sub hPatLe
+    · have hNonneg :
+          (0 : Int) ≤ Int.ofNat xs.length - Int.ofNat pat.length := by
+        exact Int.sub_nonneg.mpr (Int.ofNat_le.mpr hPatLe)
+      exact Int.le_trans (by decide : (-1 : Int) ≤ 0) hNonneg
+
+theorem native_seq_indexof_zero_nonneg_pat_le_len
+    (xs pat : List SmtValue) :
+    0 ≤ native_seq_indexof xs pat 0 →
+      pat.length ≤ xs.length := by
+  intro hIdx
+  unfold native_seq_indexof at hIdx
+  simp only [Int.reduceLT, ↓reduceIte, Int.toNat_zero, Nat.zero_add] at hIdx
+  split at hIdx
+  · assumption
+  · have hContr : ¬ ((0 : Int) ≤ -1) := by decide
+    exact False.elim (hContr hIdx)
+
+theorem native_seq_indexof_zero_nonneg_toNat_add_pat_le_len
+    (xs pat : List SmtValue) :
+    0 ≤ native_seq_indexof xs pat 0 →
+      Int.toNat (native_seq_indexof xs pat 0) + pat.length ≤ xs.length := by
+  intro hIdxNonneg
+  have hPatLe : pat.length ≤ xs.length :=
+    native_seq_indexof_zero_nonneg_pat_le_len xs pat hIdxNonneg
+  have hIdxLe :=
+    native_seq_indexof_le_len_sub_pat_of_pat_le_len xs pat 0 hPatLe
+  rw [← Int.ofNat_le]
+  have hAdd := Int.add_le_of_le_sub_right hIdxLe
+  have hMax :
+      max (native_seq_indexof xs pat 0) 0 =
+        native_seq_indexof xs pat 0 :=
+    Int.max_eq_left hIdxNonneg
+  simpa [Int.ofNat_toNat, hMax] using hAdd
+
+theorem native_seq_indexof_rec_offset
+    (xs pat : List SmtValue) :
+    ∀ (i off fuel : Nat),
+      native_seq_indexof_rec xs pat (i + off) fuel =
+        (let r := native_seq_indexof_rec xs pat i fuel
+         if r = (-1 : Int) then (-1 : Int) else r + Int.ofNat off)
+  | i, off, 0 => by
+      simp [native_seq_indexof_rec]
+  | i, off, fuel + 1 => by
+      by_cases hPrefix : native_seq_prefix_eq pat xs = true
+      · unfold native_seq_indexof_rec
+        rw [if_pos hPrefix, if_pos hPrefix]
+        have hne : (Int.ofNat i : Int) ≠ -1 := by
+          intro h
+          have hNonneg : (0 : Int) ≤ Int.ofNat i := Int.natCast_nonneg i
+          omega
+        rw [if_neg hne]
+        simp
+      · unfold native_seq_indexof_rec
+        rw [if_neg hPrefix, if_neg hPrefix]
+        cases xs with
+        | nil =>
+            simp
+        | cons _ xs =>
+            rw [show i + off + 1 = (i + 1) + off by omega]
+            exact native_seq_indexof_rec_offset xs pat (i + 1) off fuel
+
+theorem native_seq_prefix_eq_false_of_left_endpoint_no_overlap
+    (C S D R : List SmtValue)
+    (hNo : ∀ k, k < C.length → ¬ native_seq_compat (C.drop k) D)
+    (hC : C ≠ []) :
+    native_seq_prefix_eq (D ++ R) (C ++ S) ≠ true := by
+  intro hPrefix
+  rw [native_seq_prefix_eq_iff] at hPrefix
+  rcases hPrefix with ⟨after, hEq⟩
+  have hCompatD : native_seq_compat C D :=
+    native_seq_compat_of_append_eq C S D (R ++ after) (by
+      rw [hEq]
+      simp [List.append_assoc])
+  have hLen : 0 < C.length := by
+    cases C <;> simp at hC ⊢
+  exact hNo 0 hLen hCompatD
+
+theorem native_seq_indexof_rec_append_left_skip
+    (C S D R : List SmtValue)
+    (hNo : ∀ k, k < C.length → ¬ native_seq_compat (C.drop k) D) :
+    ∀ (i fuel : Nat),
+      native_seq_indexof_rec (C ++ S) (D ++ R) i (C.length + fuel) =
+        native_seq_indexof_rec S (D ++ R) (i + C.length) fuel := by
+  induction C with
+  | nil =>
+      intro i fuel
+      simp
+  | cons a C ih =>
+      intro i fuel
+      have hNoTail : ∀ k, k < C.length → ¬ native_seq_compat (C.drop k) D := by
+        intro k hk
+        simpa [List.drop_succ_cons] using hNo (k + 1) (by simp [hk])
+      have hPrefix :
+          native_seq_prefix_eq (D ++ R) ((a :: C) ++ S) ≠ true :=
+        native_seq_prefix_eq_false_of_left_endpoint_no_overlap
+          (a :: C) S D R hNo (by simp)
+      conv =>
+        lhs
+        rw [show (a :: C).length + fuel = C.length + fuel + 1 by
+          simp [Nat.add_assoc]
+          omega]
+        unfold native_seq_indexof_rec
+      rw [if_neg hPrefix]
+      simpa [Nat.add_assoc, Nat.add_left_comm, Nat.add_comm]
+        using ih hNoTail (i + 1) fuel
+
+theorem native_seq_indexof_append_left_of_no_endpoint_overlap
+    (C S D R : List SmtValue)
+    (hNo : ∀ k, k < C.length → ¬ native_seq_compat (C.drop k) D) :
+    native_seq_indexof (C ++ S) (D ++ R) 0 =
+      if native_seq_indexof S (D ++ R) 0 < 0 then
+        (-1 : Int)
+      else
+        Int.ofNat (C.length + Int.toNat (native_seq_indexof S (D ++ R) 0)) := by
+  let P := D ++ R
+  by_cases hSneg : native_seq_indexof S P 0 < 0
+  · have hSidx : native_seq_indexof S P 0 = -1 := by
+      rcases native_seq_indexof_eq_neg_one_or_ge S P 0 with h | h
+      · exact h
+      · exact False.elim ((Int.not_lt.mpr h) hSneg)
+    have hNoContains : native_seq_contains (C ++ S) P = false := by
+      apply Bool.eq_false_iff.mpr
+      intro hContains
+      have hContainsS :
+          native_seq_contains S P = true :=
+        native_seq_contains_drop_left_of_no_endpoint_overlap C S D R hNo
+          (by simpa [P] using hContains)
+      have hSnonneg : 0 ≤ native_seq_indexof S P 0 := by
+        unfold native_seq_contains at hContainsS
+        exact of_decide_eq_true hContainsS
+      rw [hSidx] at hSnonneg
+      have hBad : ¬ (0 ≤ (-1 : Int)) := by decide
+      exact False.elim (hBad hSnonneg)
+    rw [if_pos hSneg]
+    rcases native_seq_indexof_eq_neg_one_or_ge (C ++ S) P 0 with h | h
+    · simpa [P] using h
+    · exfalso
+      have hContains : native_seq_contains (C ++ S) P = true := by
+        unfold native_seq_contains
+        exact decide_eq_true h
+      rw [hNoContains] at hContains
+      cases hContains
+  · have hSnonneg : 0 ≤ native_seq_indexof S P 0 := Int.le_of_not_gt hSneg
+    have hPatLe : P.length ≤ S.length :=
+      native_seq_indexof_zero_nonneg_pat_le_len S P hSnonneg
+    have hTotalLe : P.length ≤ (C ++ S).length := by
+      simp [List.length_append]
+      omega
+    have hSidxRec :
+        native_seq_indexof S P 0 =
+          native_seq_indexof_rec S P 0 (S.length - P.length + 1) := by
+      unfold native_seq_indexof
+      simp only [Int.reduceLT, ↓reduceIte, Int.toNat_zero, Nat.zero_add]
+      rw [dif_pos hPatLe]
+      simp
+    have hTotalIdxRec :
+        native_seq_indexof (C ++ S) P 0 =
+          native_seq_indexof_rec (C ++ S) P 0 ((C ++ S).length - P.length + 1) := by
+      unfold native_seq_indexof
+      simp only [Int.reduceLT, ↓reduceIte, Int.toNat_zero, Nat.zero_add]
+      rw [dif_pos hTotalLe]
+      simp
+    rw [if_neg hSneg]
+    rw [hTotalIdxRec]
+    have hFuel :
+        (C ++ S).length - P.length + 1 =
+          C.length + (S.length - P.length + 1) := by
+      rw [List.length_append]
+      omega
+    rw [hFuel]
+    rw [native_seq_indexof_rec_append_left_skip C S D R hNo 0
+      (S.length - P.length + 1)]
+    rw [native_seq_indexof_rec_offset S P 0 C.length
+      (S.length - P.length + 1)]
+    have hRecNe :
+        native_seq_indexof_rec S P 0 (S.length - P.length + 1) ≠ (-1 : Int) := by
+      intro hRec
+      rw [hSidxRec, hRec] at hSnonneg
+      have hBad : ¬ (0 ≤ (-1 : Int)) := by decide
+      exact False.elim (hBad hSnonneg)
+    rw [if_neg hRecNe]
+    have hCast :
+        Int.ofNat (Int.toNat (native_seq_indexof S P 0)) =
+          native_seq_indexof S P 0 :=
+      Int.toNat_of_nonneg hSnonneg
+    rw [hSidxRec] at hCast
+    rw [← hCast]
+    rw [hSidxRec]
+    exact Int.add_comm _ _
+
+theorem native_seq_replace_append_right_of_no_endpoint_overlap
+    (S C L D repl : List SmtValue)
+    (hNo : ∀ k, k < C.reverse.length →
+      ¬ native_seq_compat (C.reverse.drop k) D.reverse) :
+    native_seq_replace (S ++ C) (L ++ D) repl =
+      native_seq_replace S (L ++ D) repl ++ C := by
+  by_cases hPnil : L ++ D = []
+  · have hCnil : C = [] := by
+      cases hC : C with
+      | nil => rfl
+      | cons x xs =>
+          exfalso
+          have hLen : 0 < (x :: xs).reverse.length := by simp
+          have hCompat :
+              native_seq_compat ((x :: xs).reverse.drop 0) D.reverse := by
+            have hDnil : D = [] := by
+              have hParts : L = [] ∧ D = [] := by simpa using hPnil
+              exact hParts.2
+            subst D
+            unfold native_seq_compat
+            right
+            simp [native_seq_prefix_eq]
+          have hLenC : 0 < C.reverse.length := by simpa [hC] using hLen
+          have hCompatC :
+              native_seq_compat (C.reverse.drop 0) D.reverse := by
+            simpa [hC] using hCompat
+          exact hNo 0 hLenC hCompatC
+    subst C
+    simp [native_seq_replace, hPnil]
+  · cases hPat : L ++ D with
+    | nil => exact False.elim (hPnil hPat)
+    | cons p ps =>
+        have hIdx :
+            native_seq_indexof (S ++ C) (L ++ D) 0 =
+              native_seq_indexof S (L ++ D) 0 :=
+            native_seq_indexof_append_right_of_no_endpoint_overlap S C L D hNo
+        have hIdxPat :
+            native_seq_indexof (S ++ C) (p :: ps) 0 =
+              native_seq_indexof S (p :: ps) 0 := by
+          simpa [hPat] using hIdx
+        by_cases hNeg : native_seq_indexof S (L ++ D) 0 < 0
+        · have hNegPat : native_seq_indexof S (p :: ps) 0 < 0 := by
+            simpa [hPat] using hNeg
+          simp [native_seq_replace, hIdxPat, hNegPat]
+        · have hNonneg : 0 ≤ native_seq_indexof S (L ++ D) 0 :=
+            Int.le_of_not_gt hNeg
+          have hBound :
+              Int.toNat (native_seq_indexof S (L ++ D) 0) + (L ++ D).length ≤
+                S.length :=
+            native_seq_indexof_zero_nonneg_toNat_add_pat_le_len
+              S (L ++ D) hNonneg
+          have hBoundPat :
+              Int.toNat (native_seq_indexof S (p :: ps) 0) + (p :: ps).length ≤
+                S.length := by
+            simpa [hPat] using hBound
+          have hTake :
+              Int.toNat (native_seq_indexof S (L ++ D) 0) ≤ S.length := by
+            omega
+          have hTakePat :
+              Int.toNat (native_seq_indexof S (p :: ps) 0) ≤ S.length := by
+            simpa [hPat] using hTake
+          have hNegPat : ¬ native_seq_indexof S (p :: ps) 0 < 0 := by
+            simpa [hPat] using hNeg
+          have hBoundPs :
+              Int.toNat (native_seq_indexof S (p :: ps) 0) +
+                  (ps.length + 1) ≤ S.length := by
+            simpa using hBoundPat
+          simp [native_seq_replace, hIdxPat, hNegPat]
+          rw [List.take_append_of_le_length hTakePat]
+          rw [List.drop_append_of_le_length hBoundPs]
+
+theorem native_seq_replace_append_left_of_no_endpoint_overlap
+    (C S D R repl : List SmtValue)
+    (hNo : ∀ k, k < C.length → ¬ native_seq_compat (C.drop k) D) :
+    native_seq_replace (C ++ S) (D ++ R) repl =
+      C ++ native_seq_replace S (D ++ R) repl := by
+  by_cases hPnil : D ++ R = []
+  · have hCnil : C = [] := by
+      cases hC : C with
+      | nil => rfl
+      | cons x xs =>
+          exfalso
+          have hLen : 0 < (x :: xs).length := by simp
+          have hCompat : native_seq_compat ((x :: xs).drop 0) D := by
+            have hDnil : D = [] := by
+              have hParts : D = [] ∧ R = [] := by simpa using hPnil
+              exact hParts.1
+            subst D
+            unfold native_seq_compat
+            right
+            simp [native_seq_prefix_eq]
+          have hLenC : 0 < C.length := by simpa [hC] using hLen
+          have hCompatC : native_seq_compat (C.drop 0) D := by
+            simpa [hC] using hCompat
+          exact hNo 0 hLenC hCompatC
+    subst C
+    simp [native_seq_replace, hPnil]
+  · cases hPat : D ++ R with
+    | nil => exact False.elim (hPnil hPat)
+    | cons p ps =>
+        have hIdx :=
+          native_seq_indexof_append_left_of_no_endpoint_overlap C S D R hNo
+        by_cases hNeg : native_seq_indexof S (D ++ R) 0 < 0
+        · have hIdxNeg :
+              native_seq_indexof (C ++ S) (D ++ R) 0 = -1 := by
+            simpa [hNeg] using hIdx
+          have hIdxNegPat :
+              native_seq_indexof (C ++ S) (p :: ps) 0 = -1 := by
+            simpa [hPat] using hIdxNeg
+          have hNegPat : native_seq_indexof S (p :: ps) 0 < 0 := by
+            simpa [hPat] using hNeg
+          simp [native_seq_replace, hIdxNegPat, hNegPat]
+        · have hSnonneg : 0 ≤ native_seq_indexof S (D ++ R) 0 :=
+            Int.le_of_not_gt hNeg
+          have hIdxOffset :
+              native_seq_indexof (C ++ S) (D ++ R) 0 =
+                Int.ofNat
+                  (C.length + Int.toNat (native_seq_indexof S (D ++ R) 0)) := by
+            simpa [hNeg] using hIdx
+          have hBound :
+              Int.toNat (native_seq_indexof S (D ++ R) 0) + (D ++ R).length ≤
+                S.length :=
+            native_seq_indexof_zero_nonneg_toNat_add_pat_le_len
+              S (D ++ R) hSnonneg
+          have hBoundPat :
+              Int.toNat (native_seq_indexof S (p :: ps) 0) + (p :: ps).length ≤
+                S.length := by
+            simpa [hPat] using hBound
+          have hTake :
+              Int.toNat (native_seq_indexof S (D ++ R) 0) ≤ S.length := by
+            omega
+          have hTakePat :
+              Int.toNat (native_seq_indexof S (p :: ps) 0) ≤ S.length := by
+            simpa [hPat] using hTake
+          have hIdxOffsetPat :
+              native_seq_indexof (C ++ S) (p :: ps) 0 =
+                Int.ofNat
+                  (C.length + Int.toNat (native_seq_indexof S (p :: ps) 0)) := by
+            simpa [hPat] using hIdxOffset
+          have hNegPat : ¬ native_seq_indexof S (p :: ps) 0 < 0 := by
+            simpa [hPat] using hNeg
+          have hTotalNonneg :
+              ¬ Int.ofNat
+                (C.length + Int.toNat (native_seq_indexof S (p :: ps) 0)) < 0 := by
+            exact Int.not_lt_of_ge (Int.natCast_nonneg _)
+          have hToNatCast :
+              Int.toNat
+                  (Int.ofNat
+                    (C.length + Int.toNat (native_seq_indexof S (p :: ps) 0))) =
+                C.length + Int.toNat (native_seq_indexof S (p :: ps) 0) := by
+            simpa [Int.ofNat_eq_natCast] using
+              Int.toNat_natCast
+                (C.length + Int.toNat (native_seq_indexof S (p :: ps) 0))
+          unfold native_seq_replace
+          simp only
+          rw [hIdxOffsetPat]
+          rw [if_neg hTotalNonneg]
+          rw [hToNatCast]
+          rw [if_neg hNegPat]
+          rw [List.take_append]
+          rw [List.drop_append]
+          have hDropC :
+              List.drop
+                  (C.length + Int.toNat (native_seq_indexof S (p :: ps) 0) +
+                    (p :: ps).length) C = [] := by
+            apply List.drop_eq_nil_of_le
+            omega
+          rw [hDropC]
+          have hTakeC :
+              List.take
+                  (C.length + Int.toNat (native_seq_indexof S (p :: ps) 0)) C =
+                C := by
+            rw [List.take_of_length_le]
+            omega
+          rw [hTakeC]
+          have hSubTake :
+              C.length + Int.toNat (native_seq_indexof S (p :: ps) 0) -
+                  C.length =
+                Int.toNat (native_seq_indexof S (p :: ps) 0) := by
+            omega
+          have hSubDrop :
+              C.length + Int.toNat (native_seq_indexof S (p :: ps) 0) +
+                  (p :: ps).length - C.length =
+                Int.toNat (native_seq_indexof S (p :: ps) 0) +
+                  (p :: ps).length := by
+            omega
+          rw [hSubTake, hSubDrop]
+          simp [List.append_assoc]
+
+theorem native_seq_replace_endpoints_of_no_overlap
+    (C1 S C2 D1 T D2 repl : List SmtValue)
+    (hLeft : ∀ k, k < C1.length →
+      ¬ native_seq_compat (C1.drop k) D1)
+    (hRight : ∀ k, k < C2.reverse.length →
+      ¬ native_seq_compat (C2.reverse.drop k) D2.reverse) :
+    native_seq_replace (C1 ++ S ++ C2) (D1 ++ T ++ D2) repl =
+      C1 ++ native_seq_replace S (D1 ++ T ++ D2) repl ++ C2 := by
+  have hRightRepl :=
+    native_seq_replace_append_right_of_no_endpoint_overlap
+      (C1 ++ S) C2 (D1 ++ T) D2 repl hRight
+  have hLeftRepl :=
+    native_seq_replace_append_left_of_no_endpoint_overlap
+      C1 S D1 (T ++ D2) repl hLeft
+  calc
+    native_seq_replace (C1 ++ S ++ C2) (D1 ++ T ++ D2) repl
+        = native_seq_replace ((C1 ++ S) ++ C2) ((D1 ++ T) ++ D2) repl := by
+            simp [List.append_assoc]
+    _ = native_seq_replace (C1 ++ S) ((D1 ++ T) ++ D2) repl ++ C2 := by
+            rw [hRightRepl]
+    _ = (C1 ++ native_seq_replace S (D1 ++ (T ++ D2)) repl) ++ C2 := by
+            rw [show ((D1 ++ T) ++ D2) = D1 ++ (T ++ D2) by
+              simp [List.append_assoc]]
+            exact congrArg (fun x => x ++ C2) hLeftRepl
+    _ = C1 ++ native_seq_replace S (D1 ++ T ++ D2) repl ++ C2 := by
+            simp [List.append_assoc]
+
+/-- Model-evaluation form of the endpoint-overlap `replace` rule. -/
+theorem overlap_endpoints_replace_eval (M : SmtModel)
+    (c1 sw c2 emp d1 t d2 r : Term)
+    (Sc1 Ss Sc2 Se Sd1 St Sd2 Sr : SmtSeq) (T : SmtType)
+    (hc1 : __smtx_model_eval M (__eo_to_smt c1) = SmtValue.Seq Sc1)
+    (hsw : __smtx_model_eval M (__eo_to_smt sw) = SmtValue.Seq Ss)
+    (hc2 : __smtx_model_eval M (__eo_to_smt c2) = SmtValue.Seq Sc2)
+    (hemp : __smtx_model_eval M (__eo_to_smt emp) = SmtValue.Seq Se)
+    (hd1 : __smtx_model_eval M (__eo_to_smt d1) = SmtValue.Seq Sd1)
+    (ht : __smtx_model_eval M (__eo_to_smt t) = SmtValue.Seq St)
+    (hd2 : __smtx_model_eval M (__eo_to_smt d2) = SmtValue.Seq Sd2)
+    (hr : __smtx_model_eval M (__eo_to_smt r) = SmtValue.Seq Sr)
+    (hempnil : native_unpack_seq Se = [])
+    (hSc1Elem : __smtx_elem_typeof_seq_value Sc1 = T)
+    (hSsElem : __smtx_elem_typeof_seq_value Ss = T)
+    (hLeft : ∀ k, k < (native_unpack_seq Sc1).length →
+      ¬ native_seq_compat ((native_unpack_seq Sc1).drop k)
+        (native_unpack_seq Sd1))
+      (hRight : ∀ k, k < (native_unpack_seq Sc2).reverse.length →
+        ¬ native_seq_compat ((native_unpack_seq Sc2).reverse.drop k)
+          (native_unpack_seq Sd2).reverse) :
+      __smtx_model_eval M (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_replace)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) c1)
+              (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) sw)
+                (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) c2) emp))))
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) d1)
+              (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t)
+                (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) d2) emp))))
+            r)) =
+        __smtx_model_eval M (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) c1)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat)
+              (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_replace) sw)
+                (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) d1)
+                  (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t)
+                    (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) d2) emp))))
+                r))
+              (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) c2) emp)))) := by
+  let c2emp : Term :=
+    Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) c2) emp
+  let swc2emp : Term :=
+    Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) sw) c2emp
+  let hay : Term :=
+    Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) c1) swc2emp
+  let d2emp : Term :=
+    Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) d2) emp
+  let td2emp : Term :=
+    Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t) d2emp
+  let needle : Term :=
+    Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) d1) td2emp
+  let replSw : Term :=
+    Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_replace) sw)
+      needle) r
+  let rhsTail : Term :=
+    Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) replSw) c2emp
+  let sD2E :=
+    native_pack_seq (__smtx_elem_typeof_seq_value Sd2)
+      (native_unpack_seq Sd2 ++ native_unpack_seq Se)
+  have hsD2E :
+      __smtx_model_eval M (__eo_to_smt d2emp) = SmtValue.Seq sD2E := by
+    dsimp [d2emp, sD2E]
+    rw [strConcat_eval_eq M d2 emp Sd2 Se hd2 hemp]
+  let sTD2E :=
+    native_pack_seq (__smtx_elem_typeof_seq_value St)
+      (native_unpack_seq St ++ native_unpack_seq sD2E)
+  have hsTD2E :
+      __smtx_model_eval M (__eo_to_smt td2emp) = SmtValue.Seq sTD2E := by
+    dsimp [td2emp, sTD2E]
+    rw [strConcat_eval_eq M t d2emp St sD2E ht hsD2E]
+  let sNeedle :=
+    native_pack_seq (__smtx_elem_typeof_seq_value Sd1)
+      (native_unpack_seq Sd1 ++ native_unpack_seq sTD2E)
+  have hsNeedle :
+      __smtx_model_eval M (__eo_to_smt needle) = SmtValue.Seq sNeedle := by
+    dsimp [needle, sNeedle]
+    rw [strConcat_eval_eq M d1 td2emp Sd1 sTD2E hd1 hsTD2E]
+  let sC2E :=
+    native_pack_seq (__smtx_elem_typeof_seq_value Sc2)
+      (native_unpack_seq Sc2 ++ native_unpack_seq Se)
+  have hsC2E :
+      __smtx_model_eval M (__eo_to_smt c2emp) = SmtValue.Seq sC2E := by
+    dsimp [c2emp, sC2E]
+    rw [strConcat_eval_eq M c2 emp Sc2 Se hc2 hemp]
+  let sSWC2E :=
+    native_pack_seq (__smtx_elem_typeof_seq_value Ss)
+      (native_unpack_seq Ss ++ native_unpack_seq sC2E)
+  have hsSWC2E :
+      __smtx_model_eval M (__eo_to_smt swc2emp) = SmtValue.Seq sSWC2E := by
+    dsimp [swc2emp, sSWC2E]
+    rw [strConcat_eval_eq M sw c2emp Ss sC2E hsw hsC2E]
+  let sHay :=
+    native_pack_seq (__smtx_elem_typeof_seq_value Sc1)
+      (native_unpack_seq Sc1 ++ native_unpack_seq sSWC2E)
+  have hsHay :
+      __smtx_model_eval M (__eo_to_smt hay) = SmtValue.Seq sHay := by
+    dsimp [hay, sHay]
+    rw [strConcat_eval_eq M c1 swc2emp Sc1 sSWC2E hc1 hsSWC2E]
+  let sRepl :=
+    native_pack_seq (__smtx_elem_typeof_seq_value Ss)
+      (native_seq_replace (native_unpack_seq Ss)
+        (native_unpack_seq sNeedle) (native_unpack_seq Sr))
+  have hsRepl :
+      __smtx_model_eval M (__eo_to_smt replSw) = SmtValue.Seq sRepl := by
+    dsimp [replSw, sRepl]
+    rw [strReplace_eval_eq M sw needle r Ss sNeedle Sr hsw hsNeedle hr]
+  let sRhsTail :=
+    native_pack_seq (__smtx_elem_typeof_seq_value sRepl)
+      (native_unpack_seq sRepl ++ native_unpack_seq sC2E)
+  have hsRhsTail :
+      __smtx_model_eval M (__eo_to_smt rhsTail) = SmtValue.Seq sRhsTail := by
+    dsimp [rhsTail, sRhsTail]
+    rw [strConcat_eval_eq M replSw c2emp sRepl sC2E hsRepl hsC2E]
+  let sRhs :=
+    native_pack_seq (__smtx_elem_typeof_seq_value Sc1)
+      (native_unpack_seq Sc1 ++ native_unpack_seq sRhsTail)
+  have hsRhs :
+      __smtx_model_eval M
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) c1)
+              rhsTail)) = SmtValue.Seq sRhs := by
+    dsimp [rhsTail, sRhs]
+    rw [strConcat_eval_eq M c1 rhsTail Sc1 sRhsTail hc1 hsRhsTail]
+  have hList :=
+    native_seq_replace_endpoints_of_no_overlap
+      (native_unpack_seq Sc1) (native_unpack_seq Ss) (native_unpack_seq Sc2)
+      (native_unpack_seq Sd1) (native_unpack_seq St) (native_unpack_seq Sd2)
+      (native_unpack_seq Sr) hLeft hRight
+  have hList' :
+      native_seq_replace
+          (native_unpack_seq Sc1 ++
+            (native_unpack_seq Ss ++ native_unpack_seq Sc2))
+          (native_unpack_seq Sd1 ++
+            (native_unpack_seq St ++ native_unpack_seq Sd2))
+          (native_unpack_seq Sr) =
+        native_unpack_seq Sc1 ++
+          (native_seq_replace (native_unpack_seq Ss)
+            (native_unpack_seq Sd1 ++
+              (native_unpack_seq St ++ native_unpack_seq Sd2))
+            (native_unpack_seq Sr) ++ native_unpack_seq Sc2) := by
+    simpa [List.append_assoc] using hList
+  change
+      __smtx_model_eval M
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_replace)
+              hay) needle) r)) =
+        __smtx_model_eval M
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) c1) rhsTail))
+  rw [strReplace_eval_eq M hay needle r sHay sNeedle Sr hsHay hsNeedle hr]
+  rw [hsRhs]
+  dsimp [sHay, sSWC2E, sC2E, sNeedle, sTD2E, sD2E, sRepl, sRhsTail, sRhs]
+  simp [Smtm.native_unpack_pack_seq, elem_typeof_pack_seq, hempnil, hList']
 
 /-- Model-evaluation form of the endpoint-overlap `indexof` rule. -/
 theorem overlap_endpoints_indexof_eval (M : SmtModel)
