@@ -26,7 +26,7 @@ inductive ArgTranslationKind where
 def argTranslationOkMasked : ArgTranslationKind -> Term -> Prop
   | ArgTranslationKind.term, t => eoHasSmtTranslation t
   | ArgTranslationKind.list, t => EoListAllHaveSmtTranslation t
-  | ArgTranslationKind.type, _ => True
+  | ArgTranslationKind.type, t => __smtx_type_wf (__eo_to_smt_type t) = true
 
 /-- Predicate asserting that every argument in a checker argument list is translation-safe. -/
 def cArgListTranslationOk : CArgList -> Prop
