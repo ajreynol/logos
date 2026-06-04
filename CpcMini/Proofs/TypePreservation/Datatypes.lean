@@ -710,11 +710,11 @@ private theorem term_result_datatype_components_wf_of_non_none
       rw [typeof_eq_eq]
       exact result_datatype_components_wf_typeof_eq (__smtx_typeof t1) (__smtx_typeof t2)
     case «exists» s T body =>
-      cases h : __smtx_typeof body <;>
-        simp [__smtx_typeof, result_datatype_components_wf, native_ite, native_Teq, h]
+      rw [exists_term_typeof_of_non_none hxNN]
+      simp [result_datatype_components_wf]
     case «forall» s T body =>
-      cases h : __smtx_typeof body <;>
-        simp [__smtx_typeof, result_datatype_components_wf, native_ite, native_Teq, h]
+      rw [forall_term_typeof_of_non_none hxNN]
+      simp [result_datatype_components_wf]
     case choice_nth s T body n =>
       induction n generalizing s T body with
       | zero =>
@@ -736,12 +736,10 @@ private theorem term_result_datatype_components_wf_of_non_none
                       (SmtTerm.choice_nth s T
                         (SmtTerm.exists s' U body') (Nat.succ n)) =
                     __smtx_typeof (SmtTerm.choice_nth s' U body' n) := by
-                simp [__smtx_typeof, __smtx_typeof_choice_nth]
+                exact choice_nth_succ_typeof_tail_of_non_none hxNN
               have hNN' : term_has_non_none_type
                   (SmtTerm.choice_nth s' U body' n) := by
-                unfold term_has_non_none_type at hxNN ⊢
-                rw [← hTyEq]
-                exact hxNN
+                exact choice_nth_succ_tail_non_none_of_non_none hxNN
               simpa [hTyEq] using ih s' U body' hNN'
           | _ =>
               exfalso

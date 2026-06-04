@@ -443,12 +443,11 @@ by
 /-- Packages the properties required for the `trans` checker step. -/
 theorem cmd_step_trans_properties
     (M : SmtModel) (hM : model_total_typed M)
-    (s : CState) (args : CArgList) (premises : CIndexList)
-    (assumes pushes : Term) :
+    (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.trans args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->
   __eo_typeof (__eo_cmd_step_proven s CRule.trans args premises) = Term.Bool ->
-  StepRuleProperties M assumes pushes (premiseTermList s premises)
+  StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.trans args premises) :=
 by
   intro _hCmdTrans hPremises hResultTy
@@ -458,12 +457,12 @@ by
   | nil =>
       let premisesL := premiseTermList s premises
       have hProps :
-          StepRuleProperties M assumes pushes premisesL
+          StepRuleProperties M premisesL
             (__eo_prog_trans (Proof.pf (premiseAndFormulaList premisesL))) := by
         refine ⟨?_, ?_⟩
-        · intro N hN _hAgree hEvidence
-          exact facts___eo_prog_trans_impl N hN (premiseAndFormulaList premisesL)
-            (premiseAndFormulaList_true_of_all_true N premisesL hEvidence.true_here)
+        · intro hEvidence
+          exact facts___eo_prog_trans_impl M hM (premiseAndFormulaList premisesL)
+            (premiseAndFormulaList_true_of_all_true M premisesL hEvidence.true_here)
             (by
               simpa [premisesL, __eo_cmd_step_proven, mk_premise_list_and_eq_premiseAndFormulaList]
                 using hProg)

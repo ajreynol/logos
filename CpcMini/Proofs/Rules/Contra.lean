@@ -134,12 +134,11 @@ by
 /-- Packages the properties required for the `contra` checker step. -/
 theorem cmd_step_contra_properties
     (M : SmtModel) (hM : model_total_typed M)
-    (s : CState) (args : CArgList) (premises : CIndexList)
-    (assumes pushes : Term) :
+    (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.contra args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->
   __eo_typeof (__eo_cmd_step_proven s CRule.contra args premises) = Term.Bool ->
-  StepRuleProperties M assumes pushes (premiseTermList s premises)
+  StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.contra args premises) :=
 by
   intro _hCmdTrans hPremisesBool hResultTy
@@ -160,8 +159,8 @@ by
                   let X1 := __eo_state_proven_nth s n1
                   let X2 := __eo_state_proven_nth s n2
                   constructor
-                  · intro N hN _hAgree hEvidence
-                    exact facts___eo_prog_contra_impl N hN X1 X2
+                  · intro hEvidence
+                    exact facts___eo_prog_contra_impl M hM X1 X2
                       (hEvidence.true_here X1 (by simp [X1, premiseTermList]))
                       (hEvidence.true_here X2 (by simp [X2, premiseTermList]))
                       (by simpa [X1, X2, premiseTermList, __eo_cmd_step_proven] using hProg)

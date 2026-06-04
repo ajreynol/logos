@@ -75,22 +75,17 @@ structure ContextualTruth
       eo_interprets N pushes true ->
       eo_interprets N P true
 
-/--
-The premise evidence supplied to a rule.
-
-Most rules only use `true_here`. Congruence under binders should use
-`true_in_var_model` for the pushed model introduced by the binder.
--/
+/-- The premise evidence supplied to a rule. -/
 structure RulePremiseEvidence
-    (M : SmtModel) (assumes pushes : Term) (premises : List Term) : Prop where
+    (M : SmtModel) (premises : List Term) : Prop where
   true_here :
     AllInterpretedTrue M premises
-  true_in_var_model :
-    ∀ N, model_total_typed N ->
-      model_agrees_on_globals M N ->
-      eo_interprets N assumes true ->
-      eo_interprets N pushes true ->
-      AllInterpretedTrue N premises
+
+instance RulePremiseEvidence.instCoeFun
+    {M : SmtModel} {premises : List Term} :
+    CoeFun (RulePremiseEvidence M premises)
+      (fun _ => ∀ t, t ∈ premises -> eo_interprets M t true) where
+  coe h := h.true_here
 
 /-- Predicate asserting that every term in a list has an SMT translation. -/
 def AllHaveSmtTranslation (ts : List Term) : Prop :=
@@ -207,13 +202,10 @@ by
 
 /-- Structure bundling the correctness and translation obligations for rules that only add a proven fact. -/
 structure StepRuleProperties
-    (M : SmtModel) (assumes pushes : Term) (premises : List Term)
-    (P : Term) : Prop where
-  facts_of_evidence :
-    ∀ N, model_total_typed N ->
-      model_agrees_on_globals M N ->
-      RulePremiseEvidence N assumes pushes premises ->
-      eo_interprets N P true
+    (M : SmtModel) (premises : List Term) (P : Term) : Prop where
+  facts_of_true :
+    RulePremiseEvidence M premises ->
+    eo_interprets M P true
   has_smt_translation :
     RuleProofs.eo_has_smt_translation P
 
