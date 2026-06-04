@@ -610,6 +610,16 @@ by
     (by intro s' T' hMem; exact List.Mem.tail _ hMem)
     hClosed
 
+theorem SmtTermClosedIn.weaken_empty
+    {t : SmtTerm} {vars : List SmtVarKey}
+    (hClosed : SmtTermClosedIn [] t) :
+  SmtTermClosedIn vars t :=
+by
+  exact SmtTermClosedIn.mono
+    (t := t) (vars := []) (vars' := vars)
+    (by intro _ _ hMem; cases hMem)
+    hClosed
+
 theorem eo_and_eq_true_cases {a b : Term} :
   __eo_and a b = Term.Boolean true ->
     a = Term.Boolean true ∧ b = Term.Boolean true :=
@@ -974,7 +984,7 @@ theorem eo_is_closed_rec_uop1_eq_true
     (hClosed :
       __eo_is_closed_rec (Term.UOp1 op x) env =
         Term.Boolean true) :
-  __eo_is_closed_rec x env = Term.Boolean true :=
+  __eo_is_closed_rec x Term.__eo_List_nil = Term.Boolean true :=
 by
   rcases hEnv with ⟨exactVars, hExact, hEquiv⟩
   cases hExact with
@@ -989,8 +999,8 @@ theorem eo_is_closed_rec_uop2_eq_true_cases
     (hClosed :
       __eo_is_closed_rec (Term.UOp2 op x y) env =
         Term.Boolean true) :
-  __eo_is_closed_rec x env = Term.Boolean true ∧
-    __eo_is_closed_rec y env = Term.Boolean true :=
+  __eo_is_closed_rec x Term.__eo_List_nil = Term.Boolean true ∧
+    __eo_is_closed_rec y Term.__eo_List_nil = Term.Boolean true :=
 by
   rcases hEnv with ⟨exactVars, hExact, hEquiv⟩
   cases hExact with
@@ -1007,9 +1017,9 @@ theorem eo_is_closed_rec_uop3_eq_true_cases
     (hClosed :
       __eo_is_closed_rec (Term.UOp3 op x y z) env =
         Term.Boolean true) :
-  __eo_is_closed_rec x env = Term.Boolean true ∧
-    __eo_is_closed_rec y env = Term.Boolean true ∧
-      __eo_is_closed_rec z env = Term.Boolean true :=
+  __eo_is_closed_rec x Term.__eo_List_nil = Term.Boolean true ∧
+    __eo_is_closed_rec y Term.__eo_List_nil = Term.Boolean true ∧
+      __eo_is_closed_rec z Term.__eo_List_nil = Term.Boolean true :=
 by
   rcases hEnv with ⟨exactVars, hExact, hEquiv⟩
   cases hExact with
@@ -1030,7 +1040,7 @@ theorem eo_is_closed_rec_apply_uop1_eq_true_cases
     (hClosed :
       __eo_is_closed_rec (Term.Apply (Term.UOp1 op x) y) env =
         Term.Boolean true) :
-  __eo_is_closed_rec x env = Term.Boolean true ∧
+  __eo_is_closed_rec x Term.__eo_List_nil = Term.Boolean true ∧
     __eo_is_closed_rec y env = Term.Boolean true :=
 by
   rcases hEnv with ⟨exactVars, hExact, hEquiv⟩
@@ -1050,8 +1060,8 @@ theorem eo_is_closed_rec_apply_uop2_eq_true_cases
     (hClosed :
       __eo_is_closed_rec (Term.Apply (Term.UOp2 op x y) z) env =
         Term.Boolean true) :
-  __eo_is_closed_rec x env = Term.Boolean true ∧
-    __eo_is_closed_rec y env = Term.Boolean true ∧
+  __eo_is_closed_rec x Term.__eo_List_nil = Term.Boolean true ∧
+    __eo_is_closed_rec y Term.__eo_List_nil = Term.Boolean true ∧
       __eo_is_closed_rec z env = Term.Boolean true :=
 by
   rcases hEnv with ⟨exactVars, hExact, hEquiv⟩
@@ -1074,7 +1084,7 @@ theorem eo_is_closed_rec_apply_apply_uop1_eq_true_cases
       __eo_is_closed_rec
         (Term.Apply (Term.Apply (Term.UOp1 op x) y) z) env =
         Term.Boolean true) :
-  __eo_is_closed_rec x env = Term.Boolean true ∧
+  __eo_is_closed_rec x Term.__eo_List_nil = Term.Boolean true ∧
     __eo_is_closed_rec y env = Term.Boolean true ∧
       __eo_is_closed_rec z env = Term.Boolean true :=
 by
@@ -3494,7 +3504,10 @@ theorem smtTermClosedIn_eo_to_smt_uop1_of_closed_rec_using
   SmtTermClosedIn vars (__eo_to_smt (Term.UOp1 op x)) :=
 by
   exact hBuilder
-    (hRec hEnv (eo_is_closed_rec_uop1_eq_true hEnv hClosed))
+    (SmtTermClosedIn.weaken_empty
+      (hRec (env' := Term.__eo_List_nil) (vars' := [])
+        (EoSmtVarEnvPerm.of_exact EoSmtVarEnv.nil)
+        (eo_is_closed_rec_uop1_eq_true hEnv hClosed)))
 
 theorem smtTermClosedIn_eo_to_smt_uop2_of_closed_rec_using
     {op : UserOp2} {x y env : Term} {vars : List SmtVarKey}
@@ -3519,7 +3532,13 @@ theorem smtTermClosedIn_eo_to_smt_uop2_of_closed_rec_using
   SmtTermClosedIn vars (__eo_to_smt (Term.UOp2 op x y)) :=
 by
   have hCases := eo_is_closed_rec_uop2_eq_true_cases hEnv hClosed
-  exact hBuilder (hRecX hEnv hCases.1) (hRecY hEnv hCases.2)
+  exact hBuilder
+    (SmtTermClosedIn.weaken_empty
+      (hRecX (env' := Term.__eo_List_nil) (vars' := [])
+        (EoSmtVarEnvPerm.of_exact EoSmtVarEnv.nil) hCases.1))
+    (SmtTermClosedIn.weaken_empty
+      (hRecY (env' := Term.__eo_List_nil) (vars' := [])
+        (EoSmtVarEnvPerm.of_exact EoSmtVarEnv.nil) hCases.2))
 
 theorem smtTermClosedIn_eo_to_smt_uop3_of_closed_rec_using
     {op : UserOp3} {x y z env : Term} {vars : List SmtVarKey}
@@ -3551,9 +3570,15 @@ theorem smtTermClosedIn_eo_to_smt_uop3_of_closed_rec_using
 by
   have hCases := eo_is_closed_rec_uop3_eq_true_cases hEnv hClosed
   exact hBuilder
-    (hRecX hEnv hCases.1)
-    (hRecY hEnv hCases.2.1)
-    (hRecZ hEnv hCases.2.2)
+    (SmtTermClosedIn.weaken_empty
+      (hRecX (env' := Term.__eo_List_nil) (vars' := [])
+        (EoSmtVarEnvPerm.of_exact EoSmtVarEnv.nil) hCases.1))
+    (SmtTermClosedIn.weaken_empty
+      (hRecY (env' := Term.__eo_List_nil) (vars' := [])
+        (EoSmtVarEnvPerm.of_exact EoSmtVarEnv.nil) hCases.2.1))
+    (SmtTermClosedIn.weaken_empty
+      (hRecZ (env' := Term.__eo_List_nil) (vars' := [])
+        (EoSmtVarEnvPerm.of_exact EoSmtVarEnv.nil) hCases.2.2))
 
 theorem smtTermClosedIn_eo_to_smt_apply_uop1_of_closed_rec_using
     {op : UserOp1} {x y env : Term} {vars : List SmtVarKey}
@@ -3578,7 +3603,11 @@ theorem smtTermClosedIn_eo_to_smt_apply_uop1_of_closed_rec_using
   SmtTermClosedIn vars (__eo_to_smt (Term.Apply (Term.UOp1 op x) y)) :=
 by
   have hCases := eo_is_closed_rec_apply_uop1_eq_true_cases hEnv hClosed
-  exact hBuilder (hRecX hEnv hCases.1) (hRecY hEnv hCases.2)
+  exact hBuilder
+    (SmtTermClosedIn.weaken_empty
+      (hRecX (env' := Term.__eo_List_nil) (vars' := [])
+        (EoSmtVarEnvPerm.of_exact EoSmtVarEnv.nil) hCases.1))
+    (hRecY hEnv hCases.2)
 
 theorem smtTermClosedIn_eo_to_smt_apply_uop2_of_closed_rec_using
     {op : UserOp2} {x y z env : Term} {vars : List SmtVarKey}
@@ -3610,8 +3639,12 @@ theorem smtTermClosedIn_eo_to_smt_apply_uop2_of_closed_rec_using
 by
   have hCases := eo_is_closed_rec_apply_uop2_eq_true_cases hEnv hClosed
   exact hBuilder
-    (hRecX hEnv hCases.1)
-    (hRecY hEnv hCases.2.1)
+    (SmtTermClosedIn.weaken_empty
+      (hRecX (env' := Term.__eo_List_nil) (vars' := [])
+        (EoSmtVarEnvPerm.of_exact EoSmtVarEnv.nil) hCases.1))
+    (SmtTermClosedIn.weaken_empty
+      (hRecY (env' := Term.__eo_List_nil) (vars' := [])
+        (EoSmtVarEnvPerm.of_exact EoSmtVarEnv.nil) hCases.2.1))
     (hRecZ hEnv hCases.2.2)
 
 theorem smtTermClosedIn_eo_to_smt_apply_apply_uop1_of_closed_rec_using
@@ -3649,7 +3682,9 @@ by
   have hCases :=
     eo_is_closed_rec_apply_apply_uop1_eq_true_cases hEnv hClosed
   exact hBuilder
-    (hRecX hEnv hCases.1)
+    (SmtTermClosedIn.weaken_empty
+      (hRecX (env' := Term.__eo_List_nil) (vars' := [])
+        (EoSmtVarEnvPerm.of_exact EoSmtVarEnv.nil) hCases.1))
     (hRecY hEnv hCases.2.1)
     (hRecZ hEnv hCases.2.2)
 
