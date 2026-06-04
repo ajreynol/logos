@@ -608,22 +608,6 @@ macro_rules
               Classical.choose hTy
             else
               SmtValue.NotValue)
-  | `(native_eval_tchoice_nth $M $s $T $body $n) => do
-      let evalChoiceId := Lean.mkIdent `native_eval_tchoice
-      let pushId := Lean.mkIdent `native_model_push
-      `(by
-          classical
-          let rec evalChoiceNth (M' : SmtModel)
-              (s' : native_String) (T' : SmtType) (body' : SmtTerm) : native_Nat -> SmtValue
-            | native_nat_zero =>
-                $evalChoiceId M' s' T' body'
-            | native_nat_succ n' =>
-                let v := $evalChoiceId M' s' T' body'
-                match body' with
-                | SmtTerm.exists s'' T'' body'' =>
-                    evalChoiceNth ($pushId M' s' T' v) s'' T'' body'' n'
-                | _ => SmtValue.NotValue
-          exact evalChoiceNth $M $s $T $body $n)
   | `(native_eval_map_diff_msm $m1 $m2) => do
       let lookupId := Lean.mkIdent `__smtx_msm_lookup
       let typeofMapValueId := Lean.mkIdent `__smtx_typeof_map_value
@@ -2275,6 +2259,24 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.Var s T) => (native_model_var_lookup M s T)
   | (SmtTerm.UConst s T) => (native_model_lookup M s T)
   | x1 => SmtValue.NotValue
+termination_by t => 2 * sizeOf t + 1
+where
+  native_eval_tchoice_nth (M' : SmtModel)
+      (s' : native_String) (T' : SmtType) (body' : SmtTerm) : native_Nat -> SmtValue
+    | native_nat_zero =>
+        native_eval_tchoice M' s' T' body'
+    | native_nat_succ n' =>
+        let v := native_eval_tchoice M' s' T' body'
+        match body' with
+        | SmtTerm.exists s'' T'' body'' =>
+            native_eval_tchoice_nth (native_model_push M' s' T' v) s'' T'' body'' n'
+        | _ => SmtValue.NotValue
+  termination_by n' =>
+    2 * sizeOf (SmtTerm.choice_nth s' T' body' n')
+
+noncomputable abbrev native_eval_tchoice_nth :
+    SmtModel -> native_String -> SmtType -> SmtTerm -> native_Nat -> SmtValue :=
+  __smtx_model_eval.native_eval_tchoice_nth
 
 
 
