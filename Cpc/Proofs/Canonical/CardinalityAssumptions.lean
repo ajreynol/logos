@@ -1,4 +1,4 @@
-import Cpc.Proofs.Canonical.Assumptions
+import Cpc.Proofs.TypePreservation.Predicates
 
 /-!
 Canonical/cardinality and freshness witnesses used by datatype cardinality

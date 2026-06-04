@@ -1,5 +1,4 @@
 import Cpc.Proofs.TypePreservation.Support
-import Cpc.Proofs.Canonical.Assumptions
 
 open SmtEval
 open Smtm
@@ -285,6 +284,24 @@ private theorem dt_wf_tail_of_nonempty_tail_wf
   have hc : __smtx_dt_cons_wf_rec c refs = true :=
     dt_wf_cons_of_wf h
   simpa [__smtx_dt_wf_rec, native_ite, hc] using h
+
+/--
+Datatype-default canonicity for the generated model.
+
+The theorem keeps the historical `_assumption` name used by the downstream
+proof skeleton, but `native_inhabited_type` now uniformly carries exactly this
+canonical default witness.
+-/
+theorem cpc_datatype_type_default_typed_canonical_assumption
+    (s : native_String)
+    (d : SmtDatatype)
+    (_hInh : native_inhabited_type (SmtType.Datatype s d) = true)
+    (_hRec : __smtx_type_wf_rec (SmtType.Datatype s d) native_reflist_nil = true) :
+      __smtx_typeof_value (__smtx_type_default (SmtType.Datatype s d)) =
+        SmtType.Datatype s d ∧
+      __smtx_value_canonical (__smtx_type_default (SmtType.Datatype s d)) := by
+  classical
+  simpa [native_inhabited_type, __smtx_value_canonical, native_and] using _hInh
 
 private theorem datatype_type_default_typed_canonical_of_wf_rec_deferred
     (s : native_String)
