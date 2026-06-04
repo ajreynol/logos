@@ -4894,6 +4894,13 @@ theorem eo_to_smt_typeof_matches_translation
   intro hNonNone
   exact (eo_to_smt_typeof_matches_translation_and_valid t hNonNone).1
 
+theorem eo_type_valid_typeof_of_smt_translation
+    (t : Term) :
+    __smtx_typeof (__eo_to_smt t) ≠ SmtType.None ->
+    eo_type_valid (__eo_typeof t) := by
+  intro hNonNone
+  exact (eo_to_smt_typeof_matches_translation_and_valid t hNonNone).2
+
 theorem eo_to_smt_typed_list_elem_type_of_non_none
     (xs : Term) :
     __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None ->

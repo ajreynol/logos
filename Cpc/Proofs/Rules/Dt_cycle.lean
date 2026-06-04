@@ -1,5 +1,6 @@
 import Cpc.Proofs.RuleSupport.DtConsEqSupport
 import Cpc.Proofs.RuleSupport.SequenceSupport
+import Cpc.Proofs.Translation.Full
 
 open Eo
 open SmtEval
@@ -13,74 +14,6 @@ private theorem eo_to_smt_eq_eq (x y : Term) :
       SmtTerm.eq (__eo_to_smt x) (__eo_to_smt y) := by
   rfl
 
-private inductive SmtValueProperSubterm : SmtValue -> SmtValue -> Prop where
-  | app_fun_self {f a : SmtValue} :
-      SmtValueProperSubterm f (SmtValue.Apply f a)
-  | app_fun {v f a : SmtValue} :
-      SmtValueProperSubterm v f ->
-      SmtValueProperSubterm v (SmtValue.Apply f a)
-  | app_arg {f a : SmtValue} :
-      SmtValueProperSubterm a (SmtValue.Apply f a)
-  | app_arg_sub {v f a : SmtValue} :
-      SmtValueProperSubterm v a ->
-      SmtValueProperSubterm v (SmtValue.Apply f a)
-
-private theorem smtValueProperSubterm_size_lt
-    {v w : SmtValue} :
-    SmtValueProperSubterm v w -> sizeOf v < sizeOf w := by
-  intro h
-  induction h with
-  | app_fun_self =>
-      rename_i f a
-      rw [show sizeOf (SmtValue.Apply f a) = 1 + sizeOf f + sizeOf a by rfl]
-      omega
-  | app_fun h ih =>
-      rename_i v f a
-      rw [show sizeOf (SmtValue.Apply f a) = 1 + sizeOf f + sizeOf a by rfl]
-      omega
-  | app_arg =>
-      rename_i f a
-      rw [show sizeOf (SmtValue.Apply f a) = 1 + sizeOf f + sizeOf a by rfl]
-      omega
-  | app_arg_sub h ih =>
-      rename_i v f a
-      rw [show sizeOf (SmtValue.Apply f a) = 1 + sizeOf f + sizeOf a by rfl]
-      omega
-
-private theorem smtValueProperSubterm_ne
-    {v w : SmtValue} :
-    SmtValueProperSubterm v w -> v ≠ w := by
-  intro h hEq
-  have hLt := smtValueProperSubterm_size_lt h
-  subst w
-  omega
-
-private theorem smtValueProperSubterm_trans
-    {u v w : SmtValue} :
-    SmtValueProperSubterm u v ->
-    SmtValueProperSubterm v w ->
-    SmtValueProperSubterm u w := by
-  intro hUV hVW
-  induction hVW with
-  | app_fun_self =>
-      exact SmtValueProperSubterm.app_fun hUV
-  | app_fun h ih =>
-      exact SmtValueProperSubterm.app_fun (ih hUV)
-  | app_arg =>
-      exact SmtValueProperSubterm.app_arg_sub hUV
-  | app_arg_sub h ih =>
-      exact SmtValueProperSubterm.app_arg_sub (ih hUV)
-
-private theorem smtValueProperSubterm_parent_ne_reglan
-    {v w : SmtValue} :
-    SmtValueProperSubterm v w -> ∀ r, w ≠ SmtValue.RegLan r := by
-  intro h r
-  induction h with
-  | app_fun_self => simp
-  | app_fun => simp
-  | app_arg => simp
-  | app_arg_sub => simp
-
 private theorem smtx_model_eval_eq_false_of_ne_not_reglan_pair
     {v w : SmtValue}
     (hNe : v ≠ w)
@@ -89,16 +22,6 @@ private theorem smtx_model_eval_eq_false_of_ne_not_reglan_pair
   cases v <;> cases w <;>
     simp [__smtx_model_eval_eq, native_veq] at hNe hReg ⊢
   all_goals exact hNe
-
-private theorem smtx_model_eval_eq_false_of_proper_subterm
-    {v w : SmtValue}
-    (hSub : SmtValueProperSubterm v w) :
-    __smtx_model_eval_eq v w = SmtValue.Boolean false := by
-  exact smtx_model_eval_eq_false_of_ne_not_reglan_pair
-    (smtValueProperSubterm_ne hSub)
-    (by
-      rintro ⟨r1, r2, hV, hW⟩
-      exact smtValueProperSubterm_parent_ne_reglan hSub r2 hW)
 
 private theorem smtx_model_eval_eq_false_of_type_ne
     {v w : SmtValue} {T U : SmtType}
@@ -176,6 +99,36 @@ private theorem eval_types_of_eq_has_bool_type
     ⟨smt_model_eval_type_of_non_none M hM (__eo_to_smt s) hSNN,
       smt_model_eval_type_of_non_none M hM (__eo_to_smt t) hTNN,
       hTyEq, hSNN⟩
+
+private theorem generic_apply_fun_eval_proper
+    (M : SmtModel) (hM : model_total_typed M) (f a : Term) :
+    __is_cons_app (Term.Apply f a) = Term.Boolean true ->
+    (∀ x, f ≠ Term.Apply (Term.UOp UserOp.tuple) x) ->
+    RuleProofs.eo_has_smt_translation (Term.Apply f a) ->
+    SmtValueProperSubterm
+      (__smtx_model_eval M (__eo_to_smt f))
+      (__smtx_model_eval M (__eo_to_smt (Term.Apply f a))) := by
+  intro hCons hNotTuple hAppNN
+  have hEval :=
+    is_cons_app_apply_eval_eq_apply_of_not_tuple
+      M hM f a hCons hNotTuple hAppNN
+  rw [hEval]
+  exact SmtValueProperSubterm.app_fun_self
+
+private theorem generic_apply_arg_eval_proper
+    (M : SmtModel) (hM : model_total_typed M) (f a : Term) :
+    __is_cons_app (Term.Apply f a) = Term.Boolean true ->
+    (∀ x, f ≠ Term.Apply (Term.UOp UserOp.tuple) x) ->
+    RuleProofs.eo_has_smt_translation (Term.Apply f a) ->
+    SmtValueProperSubterm
+      (__smtx_model_eval M (__eo_to_smt a))
+      (__smtx_model_eval M (__eo_to_smt (Term.Apply f a))) := by
+  intro hCons hNotTuple hAppNN
+  have hEval :=
+    is_cons_app_apply_eval_eq_apply_of_not_tuple
+      M hM f a hCons hNotTuple hAppNN
+  rw [hEval]
+  exact SmtValueProperSubterm.app_arg
 
 private theorem generic_apply_fun_eval_eq_false
     (M : SmtModel) (hM : model_total_typed M) (f a : Term) :
@@ -325,6 +278,49 @@ private theorem tuple_apply_tail_eval_eq_false
       (__smtx_typeof (__eo_to_smt head)) c hEq
   exact False.elim (hTyNe hTyEq)
 
+private theorem smt_type_ne_fun_self
+    (A B : SmtType) :
+    B ≠ SmtType.FunType A B := by
+  intro h
+  have hSize := congrArg sizeOf h
+  simp at hSize
+
+private theorem smt_type_ne_dtc_app_self
+    (A B : SmtType) :
+    B ≠ SmtType.DtcAppType A B := by
+  intro h
+  have hSize := congrArg sizeOf h
+  simp at hSize
+
+private theorem smt_apply_head_type_ne_result
+    {F X : SmtTerm}
+    (hGen : generic_apply_type F X)
+    (hNN : __smtx_typeof (SmtTerm.Apply F X) ≠ SmtType.None) :
+    __smtx_typeof F ≠ __smtx_typeof (SmtTerm.Apply F X) := by
+  intro hEq
+  have hApplyNN :
+      __smtx_typeof_apply (__smtx_typeof F) (__smtx_typeof X) ≠
+        SmtType.None := by
+    rw [← hGen]
+    exact hNN
+  rcases typeof_apply_non_none_cases hApplyNN with
+    ⟨A, B, hHead, hX, hA, _hB⟩
+  have hApplyTy :
+      __smtx_typeof (SmtTerm.Apply F X) = B := by
+    rw [hGen]
+    rcases hHead with hHead | hHead
+    · rw [hHead, hX]
+      simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite,
+        native_Teq, hA]
+    · rw [hHead, hX]
+      simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite,
+        native_Teq, hA]
+  have hFB : __smtx_typeof F = B :=
+    hEq.trans hApplyTy
+  rcases hHead with hHead | hHead
+  · exact smt_type_ne_fun_self A B (hFB.symm.trans hHead)
+  · exact smt_type_ne_dtc_app_self A B (hFB.symm.trans hHead)
+
 private inductive CtorSpineRoot : Term -> Term -> Prop where
   | tuple :
       CtorSpineRoot (Term.UOp UserOp.tuple) (Term.UOp UserOp.tuple)
@@ -345,8 +341,377 @@ private inductive DtCyclePath : Term -> Term -> Prop where
   | app_arg_self {f a : Term} :
       DtCyclePath a (Term.Apply f a)
   | app_arg_sub {s f a : Term} :
+      __is_cons_app a = Term.Boolean true ->
       DtCyclePath s a ->
       DtCyclePath s (Term.Apply f a)
+
+private inductive DtCycleTupleTailPath : Term -> Term -> Prop where
+  | tuple_tail {head tail : Term} :
+      DtCycleTupleTailPath tail
+        (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) head) tail)
+  | tuple_tail_sub {s head tail : Term} :
+      __is_cons_app tail = Term.Boolean true ->
+      DtCyclePath s tail ->
+      DtCycleTupleTailPath s
+        (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) head) tail)
+  | app_fun {s f a : Term} :
+      DtCycleTupleTailPath s f ->
+      DtCycleTupleTailPath s (Term.Apply f a)
+  | app_arg {s f a : Term} :
+      __is_cons_app a = Term.Boolean true ->
+      DtCycleTupleTailPath s a ->
+      DtCycleTupleTailPath s (Term.Apply f a)
+
+private theorem tuple_uop_type_none :
+    __smtx_typeof (__eo_to_smt (Term.UOp UserOp.tuple)) = SmtType.None := by
+  native_decide
+
+private theorem tuple_apply_head_has_smt_translation
+    (head tail : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) head) tail) ->
+    RuleProofs.eo_has_smt_translation head := by
+  intro hTrans
+  change
+    __smtx_typeof
+        (__eo_to_smt_tuple_prepend (__eo_to_smt head)
+          (__smtx_typeof (__eo_to_smt head)) (__eo_to_smt tail)) ≠
+      SmtType.None at hTrans
+  rcases TranslationProofs.eo_to_smt_tuple_tail_type_of_non_none_from_checked
+      tail head hTrans with
+    ⟨c, hTailTy⟩
+  unfold RuleProofs.eo_has_smt_translation
+  exact TranslationProofs.smtx_tuple_prepend_head_non_none_of_tail_tuple_type
+    (__eo_to_smt tail) (__eo_to_smt head)
+    (__smtx_typeof (__eo_to_smt head)) c hTailTy hTrans
+
+private theorem tuple_apply_tail_has_smt_translation
+    (head tail : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) head) tail) ->
+    RuleProofs.eo_has_smt_translation tail := by
+  intro hTrans
+  change
+    __smtx_typeof
+        (__eo_to_smt_tuple_prepend (__eo_to_smt head)
+          (__smtx_typeof (__eo_to_smt head)) (__eo_to_smt tail)) ≠
+      SmtType.None at hTrans
+  rcases TranslationProofs.eo_to_smt_tuple_tail_type_of_non_none_from_checked
+      tail head hTrans with
+    ⟨c, hTailTy⟩
+  unfold RuleProofs.eo_has_smt_translation
+  rw [hTailTy]
+  simp
+
+private theorem dt_cycle_path_eval_proper_or_tuple_tail
+    (M : SmtModel) (hM : model_total_typed M) {s t : Term}
+    (hPath : DtCyclePath s t) :
+    __is_cons_app t = Term.Boolean true ->
+    RuleProofs.eo_has_smt_translation s ->
+    RuleProofs.eo_has_smt_translation t ->
+    SmtValueProperSubterm
+      (__smtx_model_eval M (__eo_to_smt s))
+      (__smtx_model_eval M (__eo_to_smt t)) ∨
+      DtCycleTupleTailPath s t := by
+  have hMain :
+      ∀ n, ∀ {s t : Term},
+        sizeOf t = n ->
+        DtCyclePath s t ->
+        __is_cons_app t = Term.Boolean true ->
+        RuleProofs.eo_has_smt_translation s ->
+        RuleProofs.eo_has_smt_translation t ->
+        SmtValueProperSubterm
+          (__smtx_model_eval M (__eo_to_smt s))
+          (__smtx_model_eval M (__eo_to_smt t)) ∨
+          DtCycleTupleTailPath s t := by
+    intro n
+    induction n using Nat.strongRecOn with
+    | ind n ih =>
+        intro s t hSize hPath hCons hSTrans hTrans
+        induction hPath with
+        | app_fun_self =>
+            rename_i f a
+            by_cases hTuple : ∃ head, f = Term.Apply (Term.UOp UserOp.tuple) head
+            · rcases hTuple with ⟨head, rfl⟩
+              exact False.elim (hSTrans (tuple_apply_partial_type_none head))
+            · left
+              exact generic_apply_fun_eval_proper M hM f a hCons
+                (by
+                  intro head hHead
+                  exact hTuple ⟨head, hHead⟩)
+                hTrans
+        | app_arg_self =>
+            rename_i f a
+            by_cases hTuple : ∃ head, f = Term.Apply (Term.UOp UserOp.tuple) head
+            · rcases hTuple with ⟨head, rfl⟩
+              right
+              exact DtCycleTupleTailPath.tuple_tail
+            · left
+              exact generic_apply_arg_eval_proper M hM f a hCons
+                (by
+                  intro head hHead
+                  exact hTuple ⟨head, hHead⟩)
+                hTrans
+        | app_fun_sub hSub _ihSub =>
+            rename_i s f a
+            by_cases hTuple : ∃ head, f = Term.Apply (Term.UOp UserOp.tuple) head
+            · rcases hTuple with ⟨head, rfl⟩
+              cases hSub with
+              | app_fun_self =>
+                  exact False.elim (hSTrans tuple_uop_type_none)
+              | app_fun_sub hBad =>
+                  cases hBad
+              | app_arg_self =>
+                  left
+                  exact tuple_apply_head_model_eval_proper M hM _ a hTrans
+              | app_arg_sub hHeadCons hHeadSub =>
+                  have hHeadTrans := tuple_apply_head_has_smt_translation head a hTrans
+                  have hHeadSize : sizeOf head < n := by
+                    rw [← hSize]
+                    simp
+                    omega
+                  rcases ih _ hHeadSize rfl hHeadSub hHeadCons
+                      hSTrans hHeadTrans with
+                    hProper | hTail
+                  · left
+                    exact smtValueProperSubterm_trans hProper
+                      (tuple_apply_head_model_eval_proper M hM head a hTrans)
+                  · right
+                    exact DtCycleTupleTailPath.app_fun
+                      (DtCycleTupleTailPath.app_arg hHeadCons hTail)
+            · have hFCons : __is_cons_app f = Term.Boolean true := by
+                  simpa [__is_cons_app] using hCons
+              have hFTrans :=
+                is_cons_app_apply_head_has_smt_translation_of_not_tuple
+                  f a hCons
+                  (by
+                    intro head hHead
+                    exact hTuple ⟨head, hHead⟩)
+                  hTrans
+              have hFSize : sizeOf f < n := by
+                rw [← hSize]
+                simp
+                omega
+              rcases ih _ hFSize rfl hSub hFCons hSTrans hFTrans with
+                hProper | hTail
+              · left
+                exact smtValueProperSubterm_trans hProper
+                  (generic_apply_fun_eval_proper M hM f a hCons
+                    (by
+                      intro head hHead
+                      exact hTuple ⟨head, hHead⟩)
+                    hTrans)
+              · right
+                exact DtCycleTupleTailPath.app_fun hTail
+        | app_arg_sub hArgCons hSub _ihSub =>
+            rename_i s f a
+            by_cases hTuple : ∃ head, f = Term.Apply (Term.UOp UserOp.tuple) head
+            · rcases hTuple with ⟨head, rfl⟩
+              right
+              exact DtCycleTupleTailPath.tuple_tail_sub hArgCons hSub
+            · have hATrans :=
+                is_cons_app_apply_arg_has_smt_translation f a hCons hTrans
+              have hASize : sizeOf a < n := by
+                rw [← hSize]
+                simp
+                omega
+              rcases ih _ hASize rfl hSub hArgCons hSTrans hATrans with
+                hProper | hTail
+              · left
+                exact smtValueProperSubterm_trans hProper
+                  (generic_apply_arg_eval_proper M hM f a hCons
+                    (by
+                      intro head hHead
+                      exact hTuple ⟨head, hHead⟩)
+                    hTrans)
+              · right
+                exact DtCycleTupleTailPath.app_arg hArgCons hTail
+  exact hMain (sizeOf t) rfl hPath
+
+private theorem dt_cycle_tuple_tail_path_eval_size_lt
+    (M : SmtModel) (hM : model_total_typed M) {s t : Term} :
+    DtCycleTupleTailPath s t ->
+    __is_cons_app t = Term.Boolean true ->
+    RuleProofs.eo_has_smt_translation s ->
+    RuleProofs.eo_has_smt_translation t ->
+    sizeOf (__smtx_model_eval M (__eo_to_smt s)) <
+      sizeOf (__smtx_model_eval M (__eo_to_smt t)) := by
+  have hMain :
+      ∀ n, ∀ {s t : Term},
+        sizeOf t = n ->
+        DtCycleTupleTailPath s t ->
+        __is_cons_app t = Term.Boolean true ->
+        RuleProofs.eo_has_smt_translation s ->
+        RuleProofs.eo_has_smt_translation t ->
+        sizeOf (__smtx_model_eval M (__eo_to_smt s)) <
+          sizeOf (__smtx_model_eval M (__eo_to_smt t)) := by
+    intro n
+    induction n using Nat.strongRecOn with
+    | ind n ih =>
+        intro s t hSize hPath hCons hSTrans hTrans
+        induction hPath with
+        | tuple_tail =>
+            rename_i head tail
+            exact tuple_apply_tail_model_eval_size_lt M hM head tail hTrans
+        | tuple_tail_sub hTailCons hSub =>
+            rename_i s head tail
+            have hTailTrans := tuple_apply_tail_has_smt_translation head tail hTrans
+            have hTailFullSize :=
+              tuple_apply_tail_model_eval_size_lt M hM head tail hTrans
+            rcases dt_cycle_path_eval_proper_or_tuple_tail M hM hSub
+                hTailCons hSTrans hTailTrans with
+              hProper | hTailPath
+            · have hSTailSize := smtValueProperSubterm_size_lt hProper
+              omega
+            · have hTailSize : sizeOf tail < n := by
+                rw [← hSize]
+                simp
+                omega
+              have hSTailSize :=
+                ih _ hTailSize rfl hTailPath hTailCons hSTrans hTailTrans
+              omega
+        | app_fun hTail _ihTail =>
+            rename_i s f a
+            by_cases hTuple : ∃ head, f = Term.Apply (Term.UOp UserOp.tuple) head
+            · rcases hTuple with ⟨head, rfl⟩
+              cases hTail with
+              | app_fun hPrev =>
+                  cases hPrev
+              | app_arg hHeadCons hHeadTail =>
+                  have hHeadTrans := tuple_apply_head_has_smt_translation head a hTrans
+                  have hHeadSize : sizeOf head < n := by
+                    rw [← hSize]
+                    simp
+                    omega
+                  have hSHeadSize :=
+                    ih _ hHeadSize rfl hHeadTail hHeadCons hSTrans hHeadTrans
+                  have hHeadFullSize :=
+                    smtValueProperSubterm_size_lt
+                      (tuple_apply_head_model_eval_proper M hM head a hTrans)
+                  omega
+            · have hNotTuple :
+                  ∀ head, f ≠ Term.Apply (Term.UOp UserOp.tuple) head := by
+                intro head hHead
+                exact hTuple ⟨head, hHead⟩
+              have hFCons : __is_cons_app f = Term.Boolean true := by
+                simpa [__is_cons_app] using hCons
+              have hFTrans :=
+                is_cons_app_apply_head_has_smt_translation_of_not_tuple
+                  f a hCons hNotTuple hTrans
+              have hFSize : sizeOf f < n := by
+                rw [← hSize]
+                simp
+                omega
+              have hSFSize :=
+                ih _ hFSize rfl hTail hFCons hSTrans hFTrans
+              have hEval :=
+                is_cons_app_apply_eval_eq_apply_of_not_tuple
+                  M hM f a hCons hNotTuple hTrans
+              rw [hEval]
+              simp
+              omega
+        | app_arg hArgCons hTail _ihTail =>
+            rename_i s f a
+            by_cases hTuple : ∃ head, f = Term.Apply (Term.UOp UserOp.tuple) head
+            · rcases hTuple with ⟨head, rfl⟩
+              have hATrans := tuple_apply_tail_has_smt_translation head a hTrans
+              have hAFullSize :=
+                tuple_apply_tail_model_eval_size_lt M hM head a hTrans
+              have hASize : sizeOf a < n := by
+                rw [← hSize]
+                simp
+                omega
+              have hSASize :=
+                ih _ hASize rfl hTail hArgCons hSTrans hATrans
+              omega
+            · have hNotTuple :
+                  ∀ head, f ≠ Term.Apply (Term.UOp UserOp.tuple) head := by
+                intro head hHead
+                exact hTuple ⟨head, hHead⟩
+              have hATrans :=
+                is_cons_app_apply_arg_has_smt_translation f a hCons hTrans
+              have hASize : sizeOf a < n := by
+                rw [← hSize]
+                simp
+                omega
+              have hSASize :=
+                ih _ hASize rfl hTail hArgCons hSTrans hATrans
+              have hEval :=
+                is_cons_app_apply_eval_eq_apply_of_not_tuple
+                  M hM f a hCons hNotTuple hTrans
+              rw [hEval]
+              simp
+              omega
+  exact hMain (sizeOf t) rfl
+
+private theorem dt_cycle_tuple_tail_path_eval_ne_reglan
+    (M : SmtModel) (hM : model_total_typed M) {s t : Term} :
+    DtCycleTupleTailPath s t ->
+    __is_cons_app t = Term.Boolean true ->
+    RuleProofs.eo_has_smt_translation t ->
+    ∀ r, __smtx_model_eval M (__eo_to_smt t) ≠ SmtValue.RegLan r := by
+  intro hPath hCons hTrans r
+  induction hPath with
+  | tuple_tail =>
+      rename_i head tail
+      exact tuple_apply_model_eval_ne_reglan M hM head tail hTrans r
+  | tuple_tail_sub hTailCons hSub =>
+      rename_i s head tail
+      exact tuple_apply_model_eval_ne_reglan M hM head tail hTrans r
+  | app_fun hTail _ihTail =>
+      rename_i s f a
+      by_cases hTuple : ∃ head, f = Term.Apply (Term.UOp UserOp.tuple) head
+      · rcases hTuple with ⟨head, rfl⟩
+        exact tuple_apply_model_eval_ne_reglan M hM head a hTrans r
+      · have hNotTuple :
+            ∀ head, f ≠ Term.Apply (Term.UOp UserOp.tuple) head := by
+          intro head hHead
+          exact hTuple ⟨head, hHead⟩
+        have hEval :=
+          is_cons_app_apply_eval_eq_apply_of_not_tuple
+            M hM f a hCons hNotTuple hTrans
+        rw [hEval]
+        simp
+  | app_arg hArgCons hTail _ihTail =>
+      rename_i s f a
+      by_cases hTuple : ∃ head, f = Term.Apply (Term.UOp UserOp.tuple) head
+      · rcases hTuple with ⟨head, rfl⟩
+        exact tuple_apply_model_eval_ne_reglan M hM head a hTrans r
+      · have hNotTuple :
+            ∀ head, f ≠ Term.Apply (Term.UOp UserOp.tuple) head := by
+          intro head hHead
+          exact hTuple ⟨head, hHead⟩
+        have hEval :=
+          is_cons_app_apply_eval_eq_apply_of_not_tuple
+            M hM f a hCons hNotTuple hTrans
+        rw [hEval]
+        simp
+
+private theorem dt_cycle_tuple_tail_path_eval_false
+    (M : SmtModel) (hM : model_total_typed M) {s t : Term} :
+    DtCycleTupleTailPath s t ->
+    __is_cons_app t = Term.Boolean true ->
+    RuleProofs.eo_has_bool_type (Term.Apply (Term.Apply Term.eq s) t) ->
+    RuleProofs.eo_has_smt_translation t ->
+    __smtx_model_eval M
+        (__eo_to_smt (Term.Apply (Term.Apply Term.eq s) t)) =
+      SmtValue.Boolean false := by
+  intro hPath hCons hBool hTrans
+  rcases eval_types_of_eq_has_bool_type M hM s t hBool with
+    ⟨_hSEvalTy, _hTEvalTy, _hTyEq, hSTrans⟩
+  have hSize :=
+    dt_cycle_tuple_tail_path_eval_size_lt M hM hPath hCons hSTrans hTrans
+  rw [eo_to_smt_eq_eq, __smtx_model_eval.eq_134]
+  exact smtx_model_eval_eq_false_of_ne_not_reglan_pair
+    (by
+      intro hEq
+      have hSizeEq := congrArg sizeOf hEq
+      omega)
+    (by
+      rintro ⟨r1, r2, _hSReg, hTReg⟩
+      exact
+        dt_cycle_tuple_tail_path_eval_ne_reglan M hM hPath hCons hTrans
+          r2 hTReg)
 
 private theorem eo_eq_self_of_ne_stuck
     {t : Term} (hT : t ≠ Term.Stuck) :
@@ -468,7 +833,7 @@ private theorem dt_find_cycle_path_or_eq_of_true
                 hArgEq' | hArgPath
               · rw [hArgEq'.1]
                 exact DtCyclePath.app_arg_self
-              · exact DtCyclePath.app_arg_sub hArgPath.2
+              · exact DtCyclePath.app_arg_sub hArgPath.1 hArgPath.2
             · rcases dt_find_cycle_path_or_eq_of_true
                 f s (Term.Boolean true) rec hFunTrue with
                 hFunEq | hFunPath
@@ -703,41 +1068,19 @@ private theorem dt_cycle_inner_eval_false
   intro hBool hCycle
   rcases dt_find_cycle_cons_path_of_false_rec t s hCycle with
     ⟨hCons, hPath⟩
-  cases t with
-  | Apply =>
-      rename_i f a
-      match hPath with
-      | DtCyclePath.app_fun_self =>
-          by_cases hTuple :
-              ∃ head, s = Term.Apply (Term.UOp UserOp.tuple) head
-          · rcases hTuple with ⟨head, rfl⟩
-            rcases RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
-                (Term.Apply (Term.UOp UserOp.tuple) head)
-                (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) head) a)
-                hBool with
-              ⟨_hTyEq, hPrefixNN⟩
-            exact False.elim (hPrefixNN (tuple_apply_partial_type_none head))
-          · exact generic_apply_fun_eval_eq_false M hM s a hCons
-              (by
-                intro head hHead
-                exact hTuple ⟨head, hHead⟩)
-              hBool
-      | DtCyclePath.app_fun_sub hSub =>
-          sorry
-      | DtCyclePath.app_arg_self =>
-          by_cases hTuple :
-              ∃ head, f = Term.Apply (Term.UOp UserOp.tuple) head
-          · rcases hTuple with ⟨head, rfl⟩
-            exact tuple_apply_tail_eval_eq_false M hM head s hBool
-          · exact generic_apply_arg_eval_eq_false M hM f s hCons
-              (by
-                intro head hHead
-                exact hTuple ⟨head, hHead⟩)
-              hBool
-      | DtCyclePath.app_arg_sub hSub =>
-          sorry
-  | _ =>
-      cases hPath
+  rcases eval_types_of_eq_has_bool_type M hM s t hBool with
+    ⟨_hSEvalTy, _hTEvalTy, hTyEq, hSNN⟩
+  have hSTrans : RuleProofs.eo_has_smt_translation s := hSNN
+  have hTTrans : RuleProofs.eo_has_smt_translation t := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [← hTyEq]
+    exact hSNN
+  rcases dt_cycle_path_eval_proper_or_tuple_tail
+      M hM hPath hCons hSTrans hTTrans with
+    hProper | hTail
+  · rw [eo_to_smt_eq_eq, __smtx_model_eval.eq_134]
+    exact smtx_model_eval_eq_false_of_proper_subterm hProper
+  · exact dt_cycle_tuple_tail_path_eval_false M hM hTail hCons hBool hTTrans
 
 theorem cmd_step_dt_cycle_properties
     (M : SmtModel) (hM : model_total_typed M)

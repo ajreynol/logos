@@ -8727,7 +8727,7 @@ private theorem smtx_dt_substitute_tuple_of_eo_datatype_valid_rec
 
 end
 
-private theorem smtx_type_substitute_top_apply_tuple_of_eo_valid
+theorem smtx_type_substitute_top_apply_tuple_of_eo_valid
     (base : SmtDatatype) {T : Term}
     (hValid : eo_type_valid T) :
     smtx_type_substitute_top_apply (native_string_lit "@Tuple") base (__eo_to_smt_type T) =
