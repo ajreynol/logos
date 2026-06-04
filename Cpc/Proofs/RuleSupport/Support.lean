@@ -1,6 +1,6 @@
 import Cpc.Proofs.Common
 import Cpc.Proofs.Assumptions
-import Cpc.Proofs.RuleSupport.ClosedSupport
+import Cpc.Proofs.Closed.Support
 
 open Eo
 open SmtEval

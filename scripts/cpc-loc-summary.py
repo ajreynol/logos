@@ -11,17 +11,20 @@ Reports, by transitive Lean `import` closure (restricted to the `Cpc` library):
         (b) canonicity theorem
         (c) translation type preservation
         (d) non-vacuity
-        (e) proofs of proof rule correctness
-        (f) top-level checker correctness (the driver tying it together)
+        (e) closedness/evaluation invariance
+        (f) proofs of proof rule correctness
+        (g) top-level checker correctness (the driver tying it together)
 
 These pieces form a (nearly) linear dependency chain:
 
-    definitions -> (a) -> (b) -> (c) -> (e) -> (f)
+    definitions -> (a) -> (b) -> (c) -> (e) -> (f) -> (g)
 
 with (d) non-vacuity a standalone leaf off (a). Canonicity (b) sits directly on
-the smt-model layer (a); the rule proofs (e) include the CheckerCore checker
-scaffolding they are stated against, and the top-level theorem (f) imports the
-rules, so (f) depends on (e) and nothing depends back on (f).
+the smt-model layer (a); closedness/evaluation invariance (e) is the general
+model-stability result used by checker/rule support; the rule proofs (f)
+include the CheckerCore checker scaffolding they are stated against, and the
+top-level theorem (g) imports the rules, so (g) depends on (f) and nothing
+depends back on (g).
 
 Attribution for (3) is priority-based: the definitions from (1)+(2) are
 excluded first, then each file is owned by the earliest bucket whose import
@@ -54,24 +57,25 @@ REPO_ROOT = os.path.dirname(SCRIPT_DIR)
 # listed here in PRIORITY (attribution) order; the report shows them in
 # DISPLAY_ORDER below.
 #
-# (f) is claimed before the (e) catch-all and uses `file_roots` (literal, not
+# (g) is claimed before the (f) catch-all and uses `file_roots` (literal, not
 # closure): Checker.lean / RuleLemmas.lean import every rule, so their closures
-# would absorb all of (e). Attributing just those two files to (f) reserves the
+# would absorb all of (f). Attributing just those two files to (g) reserves the
 # top-level theorem, and everything the rules build on -- including the
-# CheckerCore scaffolding -- falls through to the (e) catch-all. The result is a
-# linear chain ... -> (e) -> (f): (f) depends on (e), nothing depends on (f).
+# CheckerCore scaffolding -- falls through to the (f) catch-all. The result is a
+# linear chain ... -> (f) -> (g): (g) depends on (f), nothing depends on (g).
 PROOF_BUCKETS = [
     ("a", "smt-model-eval type preservation", ["Cpc.Proofs.TypePreservation"], []),
     ("b", "canonicity theorem",               ["Cpc.Proofs.Canonical"], []),
     ("c", "translation type preservation",    ["Cpc.Proofs.Translation"], []),
     ("d", "non-vacuity",                       ["Cpc.Proofs.TypePreservation.Nonvacuity"], []),
-    ("f", "top-level checker correctness",     [],
+    ("e", "closedness/evaluation invariance",  ["Cpc.Proofs.Closed.Support"], []),
+    ("g", "top-level checker correctness",     [],
                                                ["Cpc.Proofs.Checker", "Cpc.Proofs.RuleLemmas"]),
-    ("e", "proofs of proof rule correctness",  ["Cpc.Proofs.Checker"], []),  # catch-all
+    ("f", "proofs of proof rule correctness",  ["Cpc.Proofs.Checker"], []),  # catch-all
 ]
 
 # Order pieces appear in the report (their natural dependency order).
-DISPLAY_ORDER = ["a", "b", "c", "d", "e", "f"]
+DISPLAY_ORDER = ["a", "b", "c", "d", "e", "f", "g"]
 
 # The full central proof (everything reachable from the top-level theorem).
 CENTRAL_ROOTS = ["Cpc.Proofs.Checker"]
