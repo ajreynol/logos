@@ -230,12 +230,53 @@ theorem cmd_step_symm_properties
                 exact facts___eo_prog_symm_impl M hM X
                   (hTrue X (by simp [X, premiseTermList]))
                   hProgSymm
-              · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
+              · exact eoHasSmtTranslation.of_has_bool_type
                   (by
                     change RuleProofs.eo_has_bool_type (__eo_prog_symm (Proof.pf X))
                     exact typed___eo_prog_symm_impl X
                       (hPremisesBool X (by simp [X, premiseTermList]))
                       hProgSymm)
+                  (by
+                    have hXClosed := (hPremisesBool.trans X
+                      (by simp [X, premiseTermList])).indices_closed
+                    change eoUOpIndicesClosed (__eo_prog_symm (Proof.pf X))
+                    unfold X at hXClosed ⊢
+                    cases hXShape : __eo_state_proven_nth s n1 with
+                    | Apply f arg =>
+                        rw [hXShape] at hXClosed
+                        cases f with
+                        | Apply g t1 =>
+                            cases g with
+                            | UOp op =>
+                                cases op <;> simp [__eo_prog_symm, __mk_symm, eoUOpIndicesClosed]
+                                case eq =>
+                                  simp [eoUOpIndicesClosed] at hXClosed
+                                  simp [__eo_prog_symm, __mk_symm, eoUOpIndicesClosed, hXClosed]
+                            | _ =>
+                                simp [__eo_prog_symm, __mk_symm, eoUOpIndicesClosed]
+                        | UOp op =>
+                            cases op <;> simp [__eo_prog_symm, __mk_symm, eoUOpIndicesClosed]
+                            case not =>
+                              cases arg with
+                              | Apply f' t2 =>
+                                  cases f' with
+                                  | Apply g t1 =>
+                                      cases g with
+                                      | UOp op' =>
+                                          cases op' <;> simp [__eo_prog_symm, __mk_symm, eoUOpIndicesClosed]
+                                          case eq =>
+                                            simp [eoUOpIndicesClosed] at hXClosed
+                                            simp [__eo_prog_symm, __mk_symm, eoUOpIndicesClosed, hXClosed]
+                                      | _ =>
+                                          simp [__eo_prog_symm, __mk_symm, eoUOpIndicesClosed]
+                                  | _ =>
+                                      simp [__eo_prog_symm, __mk_symm, eoUOpIndicesClosed]
+                              | _ =>
+                                  simp [__eo_prog_symm, __mk_symm, eoUOpIndicesClosed]
+                        | _ =>
+                            simp [__eo_prog_symm, __mk_symm, eoUOpIndicesClosed]
+                    | _ =>
+                        simp [__eo_prog_symm, __mk_symm, eoUOpIndicesClosed])
           | cons _ _ =>
               change Term.Stuck ≠ Term.Stuck at hProg
               exact False.elim (hProg rfl)

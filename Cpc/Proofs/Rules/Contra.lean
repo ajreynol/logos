@@ -172,13 +172,31 @@ theorem cmd_step_contra_properties
                       (hTrue X1 (by simp [X1, premiseTermList]))
                       (hTrue X2 (by simp [X2, premiseTermList]))
                       hProgContra
-                  · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
+                  · exact eoHasSmtTranslation.of_has_bool_type
                       (by
                         change RuleProofs.eo_has_bool_type (__eo_prog_contra (Proof.pf X1) (Proof.pf X2))
                         exact typed___eo_prog_contra_impl X1 X2
                           (hPremisesBool X1 (by simp [X1, premiseTermList]))
                           (hPremisesBool X2 (by simp [X2, premiseTermList]))
                           hProgContra)
+                      (by
+                        change eoUOpIndicesClosed (__eo_prog_contra (Proof.pf X1) (Proof.pf X2))
+                        cases X2 with
+                        | Apply f F =>
+                            cases f with
+                            | UOp op =>
+                                cases op <;> simp [__eo_prog_contra, eoUOpIndicesClosed]
+                                case not =>
+                                  simpa [__eo_prog_contra] using
+                                    (eoUOpIndicesClosed.requires
+                                      (x := __eo_eq X1 F)
+                                      (y := Term.Boolean true)
+                                      (z := Term.Boolean false)
+                                      (by simp [eoUOpIndicesClosed]))
+                            | _ =>
+                                simp [__eo_prog_contra, eoUOpIndicesClosed]
+                        | _ =>
+                            simp [__eo_prog_contra, eoUOpIndicesClosed])
               | cons _ _ =>
                   change Term.Stuck ≠ Term.Stuck at hProg
                   exact False.elim (hProg rfl)

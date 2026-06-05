@@ -200,7 +200,7 @@ by
                       (hTrue X1 (by simp [X1, premiseTermList]))
                       (hTrue X2 (by simp [X2, premiseTermList]))
                       hProgEqResolve
-                  · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
+                  · exact eoHasSmtTranslation.of_has_bool_type
                       (by
                         change RuleProofs.eo_has_bool_type
                           (__eo_prog_eq_resolve (Proof.pf X1) (Proof.pf X2))
@@ -208,6 +208,33 @@ by
                           (hPremisesBool X1 (by simp [X1, premiseTermList]))
                           (hPremisesBool X2 (by simp [X2, premiseTermList]))
                           hProgEqResolve)
+                      (by
+                        have hX2Closed := (hPremisesBool.trans X2
+                          (by simp [X2, premiseTermList])).indices_closed
+                        change eoUOpIndicesClosed
+                          (__eo_prog_eq_resolve (Proof.pf X1) (Proof.pf X2))
+                        unfold X2 at hX2Closed ⊢
+                        cases hX2Shape : __eo_state_proven_nth s n2 with
+                        | Apply f F2 =>
+                            rw [hX2Shape] at hX2Closed
+                            cases f with
+                            | Apply g F1' =>
+                                cases g with
+                                | UOp op =>
+                                    cases op <;> simp [__eo_prog_eq_resolve, eoUOpIndicesClosed]
+                                    case eq =>
+                                      have hF2Closed : eoUOpIndicesClosed F2 := hX2Closed.2
+                                      simpa [__eo_prog_eq_resolve] using
+                                        (eoUOpIndicesClosed.requires
+                                          (x := __eo_eq X1 F1')
+                                          (y := Term.Boolean true)
+                                          hF2Closed)
+                                | _ =>
+                                    simp [__eo_prog_eq_resolve, eoUOpIndicesClosed]
+                            | _ =>
+                                simp [__eo_prog_eq_resolve, eoUOpIndicesClosed]
+                        | _ =>
+                            simp [__eo_prog_eq_resolve, eoUOpIndicesClosed])
               | cons _ _ =>
                   change Term.Stuck ≠ Term.Stuck at hProg
                   exact False.elim (hProg rfl)

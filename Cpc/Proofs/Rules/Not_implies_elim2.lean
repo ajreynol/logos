@@ -145,13 +145,46 @@ by
                 exact facts___eo_prog_not_implies_elim2_impl M X1
                   (hTrue X1 (by simp [X1, premiseTermList]))
                   hProgNotImplies
-              · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
+              · exact eoHasSmtTranslation.of_has_bool_type
                   (by
                     change RuleProofs.eo_has_bool_type
                       (__eo_prog_not_implies_elim2 (Proof.pf X1))
                     exact typed___eo_prog_not_implies_elim2_impl X1
                       (hPremisesBool X1 (by simp [X1, premiseTermList]))
                       hProgNotImplies)
+                  (by
+                    have hX1Closed := (hPremisesBool.trans X1
+                      (by simp [X1, premiseTermList])).indices_closed
+                    change eoUOpIndicesClosed (__eo_prog_not_implies_elim2 (Proof.pf X1))
+                    unfold X1 at hX1Closed ⊢
+                    cases hX1Shape : __eo_state_proven_nth s n1 with
+                    | Apply f inner =>
+                        rw [hX1Shape] at hX1Closed
+                        cases f with
+                        | UOp op =>
+                            cases op <;> simp [__eo_prog_not_implies_elim2, eoUOpIndicesClosed]
+                            case not =>
+                              cases inner with
+                              | Apply f' F2 =>
+                                  cases f' with
+                                  | Apply g F1 =>
+                                      cases g with
+                                      | UOp op' =>
+                                          cases op' <;> simp [__eo_prog_not_implies_elim2, eoUOpIndicesClosed]
+                                          case imp =>
+                                            simp [eoUOpIndicesClosed] at hX1Closed
+                                            simp [__eo_prog_not_implies_elim2, eoUOpIndicesClosed,
+                                              hX1Closed.2]
+                                      | _ =>
+                                          simp [__eo_prog_not_implies_elim2, eoUOpIndicesClosed]
+                                  | _ =>
+                                      simp [__eo_prog_not_implies_elim2, eoUOpIndicesClosed]
+                              | _ =>
+                                  simp [__eo_prog_not_implies_elim2, eoUOpIndicesClosed]
+                        | _ =>
+                            simp [__eo_prog_not_implies_elim2, eoUOpIndicesClosed]
+                    | _ =>
+                        simp [__eo_prog_not_implies_elim2, eoUOpIndicesClosed])
           | cons _ _ =>
               change Term.Stuck ≠ Term.Stuck at hProg
               exact False.elim (hProg rfl)

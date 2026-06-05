@@ -34,8 +34,10 @@ by
                 intro hFs
                 subst hFs
                 simp [__eo_prog_cnf_or_pos] at hProg
-              have hFsTrans : RuleProofs.eo_has_smt_translation Fs := by
+              have hFsTrans0 : eoHasSmtTranslation Fs := by
                 simpa [cmdTranslationOk, cArgListTranslationOk] using hCmdTrans
+              have hFsTrans : RuleProofs.eo_has_smt_translation Fs :=
+                hFsTrans0.to_ruleProofs
               have hFsTypeof : __eo_typeof Fs = Term.Bool := by
                 have hTyData := hResultTy
                 simp [__eo_prog_cnf_or_pos] at hTyData
@@ -58,8 +60,13 @@ by
               refine ⟨?_, ?_⟩
               · intro _hTrue
                 exact hResultTrue
-              · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
+              · exact eoHasSmtTranslation.of_has_bool_type
                   (RuleProofs.eo_has_bool_type_of_interprets_true M _ hResultTrue)
+                  (by
+                    change eoUOpIndicesClosed (__eo_prog_cnf_or_pos Fs)
+                    have hFsClosed : eoUOpIndicesClosed Fs := hFsTrans0.indices_closed
+                    cases Fs <;>
+                      simpa [__eo_prog_cnf_or_pos, eoUOpIndicesClosed] using hFsClosed)
           | cons _ _ =>
               change Term.Stuck ≠ Term.Stuck at hProg
               exact False.elim (hProg rfl)

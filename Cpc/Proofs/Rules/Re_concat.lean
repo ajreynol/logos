@@ -76,8 +76,21 @@ private theorem all_have_bool_type_reverse
     (ps : List Term) :
     AllHaveBoolType ps ->
     AllHaveBoolType ps.reverse := by
-  intro h t ht
-  exact h t (by simpa using List.mem_reverse.mp ht)
+  intro h
+  exact AllHaveBoolType.reverse h
+
+private theorem str_in_re_concat_indices_closed
+    (s r accS accR : Term) :
+    eoUOpIndicesClosed (mkStrInRe s r) ->
+    eoUOpIndicesClosed (mkStrInRe accS accR) ->
+    eoUOpIndicesClosed (mkStrInRe (mkStrConcat s accS) (mkReConcat r accR)) := by
+  intro hSR hAcc
+  simp [mkStrInRe, mkStrConcat, mkReConcat, eoUOpIndicesClosed] at hSR hAcc ⊢
+  exact ⟨⟨hSR.1, hAcc.1⟩, hSR.2, hAcc.2⟩
+
+private theorem empty_str_in_re_indices_closed :
+    eoUOpIndicesClosed emptyStrInRe := by
+  simp [emptyStrInRe, mkStrInRe, eoUOpIndicesClosed]
 
 private theorem str_in_re_concat_has_bool_type
     (s r accS accR : Term) :
@@ -243,8 +256,7 @@ private theorem mk_re_concat_premises_has_bool_type :
             (mkStrInRe (mkStrConcat s accS) (mkReConcat r accR)) :=
         str_in_re_concat_has_bool_type s r accS accR hPBool hAccBool
       have hTailBool : AllHaveBoolType ps := by
-        intro q hq
-        exact hQsBool q (by simp [hq])
+        exact hQsBool.tail
       have hTailNe :
           __mk_re_concat (premiseAndFormulaList ps)
               (mkStrInRe (mkStrConcat s accS) (mkReConcat r accR)) ≠ Term.Stuck := by
@@ -254,6 +266,36 @@ private theorem mk_re_concat_premises_has_bool_type :
         mk_re_concat_premises_has_bool_type ps
           (mkStrConcat s accS) (mkReConcat r accR)
           hTailBool hNewBool hTailNe
+
+private theorem mk_re_concat_premises_indices_closed :
+    ∀ (qs : List Term) (accS accR : Term),
+      AllHaveBoolType qs ->
+      eoUOpIndicesClosed (mkStrInRe accS accR) ->
+      __mk_re_concat (premiseAndFormulaList qs) (mkStrInRe accS accR) ≠ Term.Stuck ->
+      eoUOpIndicesClosed
+        (__mk_re_concat (premiseAndFormulaList qs) (mkStrInRe accS accR))
+  | [], accS, accR, _hQsBool, hAccClosed, _hNe => by
+      simpa [premiseAndFormulaList, mkStrInRe, __mk_re_concat] using hAccClosed
+  | p :: ps, accS, accR, hQsBool, hAccClosed, hNe => by
+      rcases mk_re_concat_cons_shape p ps accS accR hNe with ⟨s, r, hp, hEq⟩
+      have hPClosed : eoUOpIndicesClosed (mkStrInRe s r) := by
+        have h := (hQsBool.trans p (by simp)).indices_closed
+        simpa [hp] using h
+      have hNewClosed :
+          eoUOpIndicesClosed
+            (mkStrInRe (mkStrConcat s accS) (mkReConcat r accR)) :=
+        str_in_re_concat_indices_closed s r accS accR hPClosed hAccClosed
+      have hTailBool : AllHaveBoolType ps := by
+        exact hQsBool.tail
+      have hTailNe :
+          __mk_re_concat (premiseAndFormulaList ps)
+              (mkStrInRe (mkStrConcat s accS) (mkReConcat r accR)) ≠ Term.Stuck := by
+        intro hStuck
+        exact hNe (by rw [hEq, hStuck])
+      simpa [hEq] using
+        mk_re_concat_premises_indices_closed ps
+          (mkStrConcat s accS) (mkReConcat r accR)
+          hTailBool hNewClosed hTailNe
 
 private theorem mk_re_concat_premises_true
     (M : SmtModel) :
@@ -283,8 +325,7 @@ private theorem mk_re_concat_premises_true
           eo_interprets M (mkStrInRe (mkStrConcat s accS) (mkReConcat r accR)) true :=
         facts_str_in_re_concat M s r accS accR hPBool hAccBool hPTrue hAccTrue
       have hTailBool : AllHaveBoolType ps := by
-        intro q hq
-        exact hQsBool q (by simp [hq])
+        exact hQsBool.tail
       have hTailTrue : AllInterpretedTrue M ps := by
         intro q hq
         exact hQsTrue q (by simp [hq])
@@ -345,7 +386,11 @@ by
           (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String (native_string_lit "")))
           hRevBool (all_interpreted_true_reverse M ps hTrue.true_here)
           empty_str_in_re_has_bool_type (empty_str_in_re_true M) hProgLocal
-      · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _ hResultBool
+      · exact eoHasSmtTranslation.of_has_bool_type hResultBool
+          (mk_re_concat_premises_indices_closed ps.reverse
+            (Term.String (native_string_lit ""))
+            (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String (native_string_lit "")))
+            hRevBool empty_str_in_re_indices_closed hProgLocal)
   | cons _ _ =>
       change Term.Stuck ≠ Term.Stuck at hProg
       exact False.elim (hProg rfl)

@@ -2763,14 +2763,30 @@ by
   intro premises
   induction premises with
   | nil =>
-      intro hsTy hsTrans t ht
-      cases ht
+      intro hsTy hsTrans
+      exact
+        { bool := by
+            intro t ht
+            cases ht
+          trans := by
+            intro t ht
+            cases ht }
   | cons n premises ih =>
-      intro hsTy hsTrans t ht
-      simp [premiseTermList] at ht
-      rcases ht with rfl | ht
-      · exact checkerEntry_has_bool_type_at hsTy hsTrans n
-      · exact ih hsTy hsTrans t ht
+      intro hsTy hsTrans
+      have hTail := ih hsTy hsTrans
+      exact
+        { bool := by
+            intro t ht
+            simp [premiseTermList] at ht
+            rcases ht with rfl | ht
+            · exact checkerEntry_has_bool_type_at hsTy hsTrans n
+            · exact hTail t ht
+          trans := by
+            intro t ht
+            simp [premiseTermList] at ht
+            rcases ht with rfl | ht
+            · exact checkerTranslationInvariant_at hsTrans n
+            · exact hTail.trans t ht }
 
 /-- Lemma about `premiseTermList_has_smt_translation`. -/
 theorem premiseTermList_has_smt_translation (s : CState) :

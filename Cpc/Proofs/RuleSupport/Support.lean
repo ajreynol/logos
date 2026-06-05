@@ -77,6 +77,16 @@ theorem eoHasSmtTranslation.to_ruleProofs {t : Term}
     RuleProofs.eo_has_smt_translation t := by
   simpa [RuleProofs.eo_has_smt_translation] using h.typeof_ne_none
 
+instance eoHasSmtTranslation.instCoeRuleProofs {t : Term} :
+    Coe (eoHasSmtTranslation t) (RuleProofs.eo_has_smt_translation t) where
+  coe h := h.to_ruleProofs
+
+instance eoHasSmtTranslation.instCoeTermNonNone {t : Term} :
+    Coe (eoHasSmtTranslation t) (term_has_non_none_type (__eo_to_smt t)) where
+  coe h := by
+    simpa [RuleProofs.eo_has_smt_translation, term_has_non_none_type]
+      using h.to_ruleProofs
+
 /-- Builds the strengthened SMT-translation predicate from the legacy translation fact. -/
 theorem eoHasSmtTranslation.of_ruleProofs {t : Term}
     (hTrans : RuleProofs.eo_has_smt_translation t)
@@ -124,9 +134,63 @@ theorem eoUOpIndicesClosed.uop3 {op : UserOp3} {x y z : Term}
     eoUOpIndicesClosed (Term.UOp3 op x y z) := by
   exact ⟨hxClosed, hyClosed, hzClosed, hx, hy, hz⟩
 
+/-- Closure of indexed-operator payloads is preserved by guarded returns. -/
+theorem eoUOpIndicesClosed.requires {x y z : Term}
+    (hz : eoUOpIndicesClosed z) :
+    eoUOpIndicesClosed (__eo_requires x y z) := by
+  unfold __eo_requires
+  by_cases hxy : native_teq x y
+  · by_cases hx : native_teq x Term.Stuck
+    · simp [native_ite, hxy, hx, native_not, eoUOpIndicesClosed]
+    · simp [native_ite, hxy, hx, native_not, hz]
+  · simp [native_ite, hxy, eoUOpIndicesClosed]
+
 /-- Predicate asserting that every term in a list has translated SMT Boolean type. -/
-def AllHaveBoolType (ts : List Term) : Prop :=
-  ∀ t ∈ ts, RuleProofs.eo_has_bool_type t
+structure AllHaveBoolType (ts : List Term) : Prop where
+  bool : ∀ t ∈ ts, RuleProofs.eo_has_bool_type t
+  trans : AllHaveSmtTranslation ts
+
+instance AllHaveBoolType.instCoeFun {ts : List Term} :
+    CoeFun (AllHaveBoolType ts)
+      (fun _ => ∀ t, t ∈ ts -> RuleProofs.eo_has_bool_type t) where
+  coe h := h.bool
+
+instance RulePremiseEvidence.instCoeAllInterpretedTrue
+    {M : SmtModel} {premises : List Term} :
+    Coe (RulePremiseEvidence M premises) (AllInterpretedTrue M premises) where
+  coe h := h.true_here
+
+/-- Drops the head of a list-wide SMT-translation predicate. -/
+theorem AllHaveSmtTranslation.tail {p : Term} {ps : List Term}
+    (h : AllHaveSmtTranslation (p :: ps)) :
+    AllHaveSmtTranslation ps := by
+  intro t ht
+  exact h t (by simp [ht])
+
+/-- Drops the head of a list-wide Boolean-type predicate. -/
+theorem AllHaveBoolType.tail {p : Term} {ps : List Term}
+    (h : AllHaveBoolType (p :: ps)) :
+    AllHaveBoolType ps :=
+  { bool := by
+      intro t ht
+      exact h.bool t (by simp [ht])
+    trans := h.trans.tail }
+
+/-- Reverses a list-wide SMT-translation predicate. -/
+theorem AllHaveSmtTranslation.reverse {ps : List Term}
+    (h : AllHaveSmtTranslation ps) :
+    AllHaveSmtTranslation ps.reverse := by
+  intro t ht
+  exact h t (by simpa [List.mem_reverse] using ht)
+
+/-- Reverses a list-wide Boolean-type predicate. -/
+theorem AllHaveBoolType.reverse {ps : List Term}
+    (h : AllHaveBoolType ps) :
+    AllHaveBoolType ps.reverse :=
+  { bool := by
+      intro t ht
+      exact h.bool t (by simpa [List.mem_reverse] using ht)
+    trans := AllHaveSmtTranslation.reverse h.trans }
 
 /-- Predicate asserting that every term in a list has EO type `Bool`. -/
 def AllTypeofBool (ts : List Term) : Prop :=
@@ -175,8 +239,13 @@ by
       apply RuleProofs.eo_has_bool_type_and_of_bool_args
       · exact hPremises p (by simp)
       · apply ih
-        intro t ht
-        exact hPremises t (by simp [ht])
+        exact
+          { bool := by
+              intro t ht
+              exact hPremises t (by simp [ht])
+            trans := by
+              intro t ht
+              exact hPremises.trans t (by simp [ht]) }
 
 /-- Shows that conjunctions built from translatable premises have closed indexed-operator payloads. -/
 theorem premiseAndFormulaList_indices_closed :
@@ -201,13 +270,12 @@ by
 theorem premiseAndFormulaList_has_smt_translation :
   ∀ premises : List Term,
     AllHaveBoolType premises ->
-    AllHaveSmtTranslation premises ->
     eoHasSmtTranslation (premiseAndFormulaList premises) :=
 by
-  intro premises hPremisesBool hPremisesTrans
+  intro premises hPremisesBool
   exact eoHasSmtTranslation.of_has_bool_type
     (premiseAndFormulaList_has_bool_type premises hPremisesBool)
-    (premiseAndFormulaList_indices_closed premises hPremisesTrans)
+    (premiseAndFormulaList_indices_closed premises hPremisesBool.trans)
 
 /-- Shows that `premiseAndFormulaList` is recognized as an `and`-list by `__eo_is_list`. -/
 theorem premiseAndFormulaList_is_and_list :
