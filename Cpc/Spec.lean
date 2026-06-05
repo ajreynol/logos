@@ -16,6 +16,51 @@ noncomputable section
 def native_reserved_datatype_name (s : native_String) : native_Bool :=
   native_string_prefix_eq (native_string_lit "@") s
 
+def native_eo_to_smt_term_mem (x : Term) : List Term -> native_Bool
+  | [] => false
+  | y :: ys => native_or (decide (x = y)) (native_eo_to_smt_term_mem x ys)
+
+def native_eo_to_smt_term_list : Term -> Option (List Term)
+  | Term.__eo_List_nil => some []
+  | Term.Apply (Term.Apply Term.__eo_List_cons x) xs =>
+    match native_eo_to_smt_term_list xs with
+    | some ys => some (x :: ys)
+    | none => none
+  | _ => none
+
+def native_eo_to_smt_closed_rec : Term -> List Term -> native_Bool
+  | Term.Stuck, _ => false
+  | Term.Var x T, env => native_eo_to_smt_term_mem (Term.Var x T) env
+  | Term.Apply (Term.Apply (Term.UOp UserOp.forall) vs) x, env =>
+    match native_eo_to_smt_term_list vs with
+    | some xs => native_eo_to_smt_closed_rec x (xs ++ env)
+    | none => false
+  | Term.Apply (Term.Apply (Term.UOp UserOp.exists) vs) x, env =>
+    match native_eo_to_smt_term_list vs with
+    | some xs => native_eo_to_smt_closed_rec x (xs ++ env)
+    | none => false
+  | Term.Apply f x, env =>
+    native_and (native_eo_to_smt_closed_rec f env) (native_eo_to_smt_closed_rec x env)
+  | _, _ => true
+
+def native_eo_to_smt_closed (x : Term) : native_Bool :=
+  native_eo_to_smt_closed_rec x []
+
+def native_eo_to_smt_index_closed (x : Term) : native_Bool :=
+  native_eo_to_smt_closed x
+
+def native_eo_to_smt_guard_index (x : Term) (body : SmtTerm) : SmtTerm :=
+  native_ite (native_eo_to_smt_index_closed x) body SmtTerm.None
+
+def native_eo_to_smt_guard_indices2 (x y : Term) (body : SmtTerm) : SmtTerm :=
+  native_ite (native_and (native_eo_to_smt_index_closed x) (native_eo_to_smt_index_closed y)) body SmtTerm.None
+
+def native_eo_to_smt_guard_indices3 (x y z : Term) (body : SmtTerm) : SmtTerm :=
+  native_ite
+    (native_and (native_and (native_eo_to_smt_index_closed x) (native_eo_to_smt_index_closed y)) (native_eo_to_smt_index_closed z))
+    body
+    SmtTerm.None
+
 mutual
 
 def __eo_to_smt_distinct_pairs (s : SmtTerm) : Term -> SmtTerm
