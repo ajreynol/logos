@@ -5,9 +5,39 @@ import Cpc.SmtModel
 open Eo
 open Smtm
 
-/-- Predicate asserting that translating an EO term yields a non-`None` SMT term. -/
+/-- Predicate asserting that every payload of every indexed EO operator is closed standalone. -/
+def eoUOpIndicesClosed : Term -> Prop
+  | Term.UOp1 _ x =>
+      __eo_is_closed x = Term.Boolean true ∧
+        eoUOpIndicesClosed x
+  | Term.UOp2 _ x y =>
+      __eo_is_closed x = Term.Boolean true ∧
+        __eo_is_closed y = Term.Boolean true ∧
+          eoUOpIndicesClosed x ∧ eoUOpIndicesClosed y
+  | Term.UOp3 _ x y z =>
+      __eo_is_closed x = Term.Boolean true ∧
+        __eo_is_closed y = Term.Boolean true ∧
+          __eo_is_closed z = Term.Boolean true ∧
+            eoUOpIndicesClosed x ∧ eoUOpIndicesClosed y ∧ eoUOpIndicesClosed z
+  | Term.Apply f x =>
+      eoUOpIndicesClosed f ∧ eoUOpIndicesClosed x
+  | _ => True
+
+/--
+Predicate asserting that translating an EO term yields a non-`None` SMT term
+and that all indexed EO operator payloads occurring in it are closed standalone.
+-/
 def eoHasSmtTranslation (t : Term) : Prop :=
-  __smtx_typeof (__eo_to_smt t) ≠ SmtType.None
+  __smtx_typeof (__eo_to_smt t) ≠ SmtType.None ∧ eoUOpIndicesClosed t
+
+theorem eoHasSmtTranslation.typeof_ne_none {t : Term} :
+    eoHasSmtTranslation t ->
+      __smtx_typeof (__eo_to_smt t) ≠ SmtType.None :=
+  And.left
+
+theorem eoHasSmtTranslation.indices_closed {t : Term} :
+    eoHasSmtTranslation t -> eoUOpIndicesClosed t :=
+  And.right
 
 /-- Predicate asserting that every element of an EO list has an SMT translation. -/
 def EoListAllHaveSmtTranslation : Term -> Prop
