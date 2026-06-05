@@ -562,6 +562,15 @@ theorem nativeEvalTChoiceNthAux_eq_of_closed_below
               (model_agrees_on_env_push_same hAgree)
               hClosed
 
+theorem SmtTermClosedIn.guard_closed
+    {vars : List SmtVarKey} (x : Term) {body : SmtTerm}
+    (hBody : SmtTermClosedIn vars body) :
+    SmtTermClosedIn vars (native_eo_to_smt_guard_closed x body) :=
+by
+  cases hx : native_eo_to_smt_closed x
+  · simp [native_eo_to_smt_guard_closed, native_ite, hx, SmtTermClosedIn]
+  · simpa [native_eo_to_smt_guard_closed, native_ite, hx] using hBody
+
 theorem SmtTermClosedIn.mono
     {t : SmtTerm} {vars vars' : List SmtVarKey}
     (hSub : ∀ s T, (s, T) ∈ vars -> (s, T) ∈ vars')
@@ -1538,6 +1547,8 @@ theorem smtTermClosedIn_eo_to_smt_array_deq_diff
   SmtTermClosedIn vars
     (__eo_to_smt (Term.UOp2 UserOp2._at_array_deq_diff x y)) :=
 by
+  apply SmtTermClosedIn.guard_closed (x := x)
+  apply SmtTermClosedIn.guard_closed (x := y)
   change SmtTermClosedIn vars
     (__eo_to_smt_array_deq_diff (__eo_to_smt x)
       (__smtx_typeof (__eo_to_smt x)) (__eo_to_smt y)
@@ -1570,6 +1581,8 @@ theorem smtTermClosedIn_eo_to_smt_sets_deq_diff
   SmtTermClosedIn vars
     (__eo_to_smt (Term.UOp2 UserOp2._at_sets_deq_diff x y)) :=
 by
+  apply SmtTermClosedIn.guard_closed (x := x)
+  apply SmtTermClosedIn.guard_closed (x := y)
   change SmtTermClosedIn vars
     (__eo_to_smt_sets_deq_diff (__eo_to_smt x)
       (__smtx_typeof (__eo_to_smt x)) (__eo_to_smt y)
@@ -1587,6 +1600,8 @@ theorem smtTermClosedIn_eo_to_smt_strings_deq_diff
   SmtTermClosedIn vars
     (__eo_to_smt (Term.UOp2 UserOp2._at_strings_deq_diff x y)) :=
 by
+  apply SmtTermClosedIn.guard_closed (x := x)
+  apply SmtTermClosedIn.guard_closed (x := y)
   change SmtTermClosedIn vars
     (SmtTerm.choice_nth (native_string_lit "@x") SmtType.Int
       (SmtTerm.not (SmtTerm.eq
@@ -1617,6 +1632,7 @@ theorem smtTermClosedIn_eo_to_smt_strings_stoi_result
     (__eo_to_smt
       (Term.Apply (Term.UOp1 UserOp1._at_strings_stoi_result x) y)) :=
 by
+  apply SmtTermClosedIn.guard_closed (x := x)
   change SmtTermClosedIn vars
     (SmtTerm.str_to_int
       (SmtTerm.str_substr (__eo_to_smt x)
@@ -1629,6 +1645,7 @@ theorem smtTermClosedIn_eo_to_smt_strings_stoi_non_digit
   SmtTermClosedIn vars
     (__eo_to_smt (Term.UOp1 UserOp1._at_strings_stoi_non_digit x)) :=
 by
+  apply SmtTermClosedIn.guard_closed (x := x)
   change SmtTermClosedIn vars
     (SmtTerm.str_indexof_re (__eo_to_smt x)
       (SmtTerm.re_comp
@@ -1645,6 +1662,7 @@ theorem smtTermClosedIn_eo_to_smt_strings_itos_result
     (__eo_to_smt
       (Term.Apply (Term.UOp1 UserOp1._at_strings_itos_result x) y)) :=
 by
+  apply SmtTermClosedIn.guard_closed (x := x)
   change SmtTermClosedIn vars
     (SmtTerm.mod (__eo_to_smt x)
       (SmtTerm.multmult (SmtTerm.Numeral 10) (__eo_to_smt y)))
@@ -1674,6 +1692,8 @@ theorem smtTermClosedIn_eo_to_smt_witness_string_length
     (__eo_to_smt
       (Term.UOp3 UserOp3._at_witness_string_length x y z)) :=
 by
+  apply SmtTermClosedIn.guard_closed (x := y)
+  apply SmtTermClosedIn.guard_closed (x := z)
   change SmtTermClosedIn vars
     (native_ite (native_Teq (__smtx_typeof (__eo_to_smt z)) SmtType.Int)
       (SmtTerm.choice_nth (native_string_lit "@x") (__eo_to_smt_type x)
@@ -1822,6 +1842,8 @@ theorem smtTermClosedIn_eo_to_smt_quantifiers_skolemize_forall
       (Term.UOp2 UserOp2._at_quantifiers_skolemize
         (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body) idx)) :=
 by
+  apply SmtTermClosedIn.guard_closed
+    (x := Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body)
   change SmtTermClosedIn vars
     (native_ite (__eo_to_smt_nat_is_valid idx)
       (__eo_to_smt_quantifiers_skolemize
@@ -3750,6 +3772,7 @@ theorem smtTermClosedIn_eo_to_smt_purify
     (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
   SmtTermClosedIn vars (__eo_to_smt (Term.UOp1 UserOp1._at_purify x)) :=
 by
+  apply SmtTermClosedIn.guard_closed (x := x)
   exact hx
 
 theorem smtTermClosedIn_eo_to_smt_purify_of_closed_rec_using
@@ -4670,6 +4693,8 @@ by
   exact smtTermClosedIn_eo_to_smt_uop3_of_closed_rec_using
     (op := UserOp3._at_re_unfold_pos_component)
     (fun hx hy _ => by
+      apply SmtTermClosedIn.guard_closed (x := x)
+      apply SmtTermClosedIn.guard_closed (x := y)
       change SmtTermClosedIn vars
         (native_ite (__eo_to_smt_nat_is_valid z)
           (__eo_to_smt_re_unfold_pos_component (__eo_to_smt x)

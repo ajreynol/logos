@@ -31,16 +31,34 @@ theorem eo_to_smt_typeof_matches_translation_array_deq_diff
   intro hNonNone
   change
     __smtx_typeof
-        (__eo_to_smt_array_deq_diff
-          (__eo_to_smt x1) (__smtx_typeof (__eo_to_smt x1))
-          (__eo_to_smt x2) (__smtx_typeof (__eo_to_smt x2))) ≠
+        (native_eo_to_smt_guard_closed x1
+          (native_eo_to_smt_guard_closed x2
+            (__eo_to_smt_array_deq_diff
+              (__eo_to_smt x1) (__smtx_typeof (__eo_to_smt x1))
+              (__eo_to_smt x2) (__smtx_typeof (__eo_to_smt x2))))) ≠
       SmtType.None at hNonNone
   change
     __smtx_typeof
-        (__eo_to_smt_array_deq_diff
-          (__eo_to_smt x1) (__smtx_typeof (__eo_to_smt x1))
-          (__eo_to_smt x2) (__smtx_typeof (__eo_to_smt x2))) =
+        (native_eo_to_smt_guard_closed x1
+          (native_eo_to_smt_guard_closed x2
+            (__eo_to_smt_array_deq_diff
+              (__eo_to_smt x1) (__smtx_typeof (__eo_to_smt x1))
+              (__eo_to_smt x2) (__smtx_typeof (__eo_to_smt x2))))) =
       __eo_to_smt_type (__eo_typeof (Term._at_array_deq_diff x1 x2))
+  have hx1Closed : native_eo_to_smt_closed x1 = true := by
+    cases h : native_eo_to_smt_closed x1
+    · exfalso
+      apply hNonNone
+      simp [native_eo_to_smt_guard_closed, native_ite, h, smtx_typeof_none]
+    · rfl
+  simp [native_eo_to_smt_guard_closed, native_ite, hx1Closed] at hNonNone ⊢
+  have hx2Closed : native_eo_to_smt_closed x2 = true := by
+    cases h : native_eo_to_smt_closed x2
+    · exfalso
+      apply hNonNone
+      simp [native_eo_to_smt_guard_closed, native_ite, h, smtx_typeof_none]
+    · rfl
+  simp [native_eo_to_smt_guard_closed, native_ite, hx2Closed] at hNonNone ⊢
   cases hx1Smt : __smtx_typeof (__eo_to_smt x1) <;>
     cases hx2Smt : __smtx_typeof (__eo_to_smt x2) <;>
     simp [__eo_to_smt_array_deq_diff, hx1Smt, hx2Smt, smtx_typeof_none] at hNonNone ⊢
@@ -112,17 +130,35 @@ theorem eo_to_smt_typeof_matches_translation_sets_deq_diff
   intro hNonNone
   change
     __smtx_typeof
-        (__eo_to_smt_sets_deq_diff
-          (__eo_to_smt x1) (__smtx_typeof (__eo_to_smt x1))
-          (__eo_to_smt x2) (__smtx_typeof (__eo_to_smt x2))) =
+        (native_eo_to_smt_guard_closed x1
+          (native_eo_to_smt_guard_closed x2
+            (__eo_to_smt_sets_deq_diff
+              (__eo_to_smt x1) (__smtx_typeof (__eo_to_smt x1))
+              (__eo_to_smt x2) (__smtx_typeof (__eo_to_smt x2))))) =
       __eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2))
   change
     __smtx_typeof
-        (__eo_to_smt_sets_deq_diff
-          (__eo_to_smt x1) (__smtx_typeof (__eo_to_smt x1))
-          (__eo_to_smt x2) (__smtx_typeof (__eo_to_smt x2))) ≠
+        (native_eo_to_smt_guard_closed x1
+          (native_eo_to_smt_guard_closed x2
+            (__eo_to_smt_sets_deq_diff
+              (__eo_to_smt x1) (__smtx_typeof (__eo_to_smt x1))
+              (__eo_to_smt x2) (__smtx_typeof (__eo_to_smt x2))))) ≠
       SmtType.None
     at hNonNone
+  have hx1Closed : native_eo_to_smt_closed x1 = true := by
+    cases h : native_eo_to_smt_closed x1
+    · exfalso
+      apply hNonNone
+      simp [native_eo_to_smt_guard_closed, native_ite, h, smtx_typeof_none]
+    · rfl
+  simp [native_eo_to_smt_guard_closed, native_ite, hx1Closed] at hNonNone ⊢
+  have hx2Closed : native_eo_to_smt_closed x2 = true := by
+    cases h : native_eo_to_smt_closed x2
+    · exfalso
+      apply hNonNone
+      simp [native_eo_to_smt_guard_closed, native_ite, h, smtx_typeof_none]
+    · rfl
+  simp [native_eo_to_smt_guard_closed, native_ite, hx2Closed] at hNonNone ⊢
   cases hx1Smt : __smtx_typeof (__eo_to_smt x1) <;>
     cases hx2Smt : __smtx_typeof (__eo_to_smt x2) <;>
     simp [__eo_to_smt_sets_deq_diff, hx1Smt, hx2Smt, smtx_typeof_none] at hNonNone ⊢
@@ -168,11 +204,25 @@ theorem eo_to_smt_typeof_matches_translation_sets_deq_diff
 /-- Simplifies EO-to-SMT translation for `typeof_matches_translation_purify`. -/
 theorem eo_to_smt_typeof_matches_translation_purify
     (x : Term)
-    (hx : __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x)) :
+    (hx : __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x))
+    (hNonNone : __smtx_typeof (__eo_to_smt (Term._at_purify x)) ≠ SmtType.None) :
     __smtx_typeof (__eo_to_smt (Term._at_purify x)) =
       __eo_to_smt_type (__eo_typeof (Term._at_purify x)) := by
-  change __smtx_typeof (SmtTerm._at_purify (__eo_to_smt x)) =
+  change __smtx_typeof
+      (native_eo_to_smt_guard_closed x
+        (SmtTerm._at_purify (__eo_to_smt x))) =
     __eo_to_smt_type (__eo_typeof (Term._at_purify x))
+  change __smtx_typeof
+      (native_eo_to_smt_guard_closed x
+        (SmtTerm._at_purify (__eo_to_smt x))) ≠
+    SmtType.None at hNonNone
+  have hxClosed : native_eo_to_smt_closed x = true := by
+    cases h : native_eo_to_smt_closed x
+    · exfalso
+      apply hNonNone
+      simp [native_eo_to_smt_guard_closed, native_ite, h, smtx_typeof_none]
+    · rfl
+  simp [native_eo_to_smt_guard_closed, native_ite, hxClosed] at hNonNone ⊢
   simp [__smtx_typeof]
   rw [hx]
   exact (eo_to_smt_type_typeof_purify x).symm

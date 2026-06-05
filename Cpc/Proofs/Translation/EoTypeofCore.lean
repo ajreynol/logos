@@ -2211,6 +2211,15 @@ private theorem eo_to_smt_set_empty_ne_numeral
   intro h
   cases T <;> simp [__eo_to_smt_set_empty] at h
 
+private theorem native_eo_to_smt_guard_closed_ne_numeral
+    (x : Term) (body : SmtTerm) (n : native_Int) :
+    body ≠ SmtTerm.Numeral n ->
+    native_eo_to_smt_guard_closed x body ≠ SmtTerm.Numeral n := by
+  intro hBody h
+  cases hc : native_eo_to_smt_closed x <;>
+    simp [native_eo_to_smt_guard_closed, native_ite, hc] at h
+  exact hBody h
+
 private theorem eo_to_smt_map_diff_guard_ne_numeral
     (T : SmtType) (a b : SmtTerm) (n : native_Int) :
     native_ite (native_Teq T SmtType.None) SmtTerm.None
@@ -2308,17 +2317,31 @@ private theorem eo_to_smt_quantifier_term_ne_numeral
       case UOp op =>
         cases op <;> try cases h
         case «forall» =>
-          change native_ite (__eo_to_smt_nat_is_valid y)
-              (__eo_to_smt_quantifiers_skolemize
-                (__eo_to_smt_exists vars (SmtTerm.not (__eo_to_smt body)))
-                (__eo_to_smt_nat y))
-              SmtTerm.None =
+          change native_eo_to_smt_guard_closed
+              (Term.Apply (Term.Apply (Term.UOp UserOp.forall) vars) body)
+              (native_ite (__eo_to_smt_nat_is_valid y)
+                (__eo_to_smt_quantifiers_skolemize
+                  (__eo_to_smt_exists vars (SmtTerm.not (__eo_to_smt body)))
+                  (__eo_to_smt_nat y))
+                SmtTerm.None) =
             SmtTerm.Numeral n at h
-          cases hz : __eo_to_smt_nat_is_valid y <;>
-            simp [native_ite, hz] at h
-          exact False.elim (eo_to_smt_quantifiers_skolemize_ne_numeral
-            (__eo_to_smt_exists vars (SmtTerm.not (__eo_to_smt body)))
-            (__eo_to_smt_nat y) n h)
+          exact False.elim
+            (native_eo_to_smt_guard_closed_ne_numeral
+              (Term.Apply (Term.Apply (Term.UOp UserOp.forall) vars) body)
+              (native_ite (__eo_to_smt_nat_is_valid y)
+                (__eo_to_smt_quantifiers_skolemize
+                  (__eo_to_smt_exists vars (SmtTerm.not (__eo_to_smt body)))
+                  (__eo_to_smt_nat y))
+                SmtTerm.None)
+              n
+              (by
+                intro hBody
+                cases hz : __eo_to_smt_nat_is_valid y <;>
+                  simp [native_ite, hz] at hBody
+                exact eo_to_smt_quantifiers_skolemize_ne_numeral
+                  (__eo_to_smt_exists vars (SmtTerm.not (__eo_to_smt body)))
+                  (__eo_to_smt_nat y) n hBody)
+              h)
 
 private theorem eo_to_smt_distinct_ne_numeral
     (xs : Term) (n : native_Int) :
@@ -2539,6 +2562,19 @@ private theorem eo_to_smt_apply_ne_numeral
         simp [native_ite, hw] at h
   case UOp1 op idx =>
     cases op <;> try cases h
+    case _at_strings_stoi_result =>
+      exact False.elim
+        (native_eo_to_smt_guard_closed_ne_numeral idx
+          (SmtTerm.str_to_int
+            (SmtTerm.str_substr (__eo_to_smt idx) (SmtTerm.Numeral 0)
+              (__eo_to_smt x)))
+          n (by intro hBody; cases hBody) h)
+    case _at_strings_itos_result =>
+      exact False.elim
+        (native_eo_to_smt_guard_closed_ne_numeral idx
+          (SmtTerm.mod (__eo_to_smt idx)
+            (SmtTerm.multmult (SmtTerm.Numeral 10) (__eo_to_smt x)))
+          n (by intro hBody; cases hBody) h)
     case tuple_select =>
       exact False.elim (eo_to_smt_tuple_select_ne_numeral
       (__smtx_typeof (__eo_to_smt x)) (__eo_to_smt idx) (__eo_to_smt x) n h)
@@ -2583,23 +2619,91 @@ theorem eo_to_smt_eq_numeral
       rfl
   | UOp op => cases op <;> cases h
   | UOp1 op x =>
-      cases op <;> try cases h
-      · exact False.elim (eo_to_smt_seq_empty_ne_numeral (__eo_to_smt_type x) n h)
-      · exact False.elim (eo_to_smt_set_empty_ne_numeral (__eo_to_smt_type x) n h)
+    cases op <;> try cases h
+    case _at_purify =>
+      exact False.elim
+        (native_eo_to_smt_guard_closed_ne_numeral x
+          (SmtTerm._at_purify (__eo_to_smt x)) n
+          (by intro hBody; cases hBody) h)
+    case seq_empty =>
+      exact False.elim (eo_to_smt_seq_empty_ne_numeral (__eo_to_smt_type x) n h)
+    case _at_strings_stoi_non_digit =>
+      exact False.elim
+        (native_eo_to_smt_guard_closed_ne_numeral x
+          (SmtTerm.str_indexof_re (__eo_to_smt x)
+            (SmtTerm.re_comp
+              (SmtTerm.re_range (SmtTerm.String (native_string_lit "0"))
+                (SmtTerm.String (native_string_lit "9"))))
+            (SmtTerm.Numeral 0))
+          n (by intro hBody; cases hBody) h)
+    case set_empty =>
+      exact False.elim (eo_to_smt_set_empty_ne_numeral (__eo_to_smt_type x) n h)
   | UOp2 op x y =>
-      cases op <;> try cases h
-      case _at_array_deq_diff =>
-        exact False.elim
-          (eo_to_smt_array_deq_diff_ne_numeral
-            (__eo_to_smt x) (__eo_to_smt y) n h)
-      case _at_sets_deq_diff =>
-        exact False.elim
-          (eo_to_smt_sets_deq_diff_ne_numeral
-            (__eo_to_smt x) (__eo_to_smt y) n h)
-      case _at_bv =>
-        exact False.elim (eo_to_smt_at_bv_ne_numeral (__eo_to_smt x) (__eo_to_smt y) n h)
-      case _at_quantifiers_skolemize =>
-        exact False.elim (eo_to_smt_quantifier_term_ne_numeral x y n h)
+    cases op <;> try cases h
+    case _at_array_deq_diff =>
+      exact False.elim
+        (native_eo_to_smt_guard_closed_ne_numeral x
+          (native_eo_to_smt_guard_closed y
+            (__eo_to_smt_array_deq_diff
+              (__eo_to_smt x) (__smtx_typeof (__eo_to_smt x))
+              (__eo_to_smt y) (__smtx_typeof (__eo_to_smt y))))
+          n
+          (native_eo_to_smt_guard_closed_ne_numeral y
+            (__eo_to_smt_array_deq_diff
+              (__eo_to_smt x) (__smtx_typeof (__eo_to_smt x))
+              (__eo_to_smt y) (__smtx_typeof (__eo_to_smt y)))
+            n
+            (eo_to_smt_array_deq_diff_ne_numeral
+              (__eo_to_smt x) (__eo_to_smt y) n))
+          h)
+    case _at_strings_deq_diff =>
+      exact False.elim
+        (native_eo_to_smt_guard_closed_ne_numeral x
+          (native_eo_to_smt_guard_closed y
+            (SmtTerm.choice_nth (native_string_lit "@x") SmtType.Int
+              (SmtTerm.not
+                (SmtTerm.eq
+                  (SmtTerm.str_substr (__eo_to_smt x)
+                    (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
+                    (SmtTerm.Numeral 1))
+                  (SmtTerm.str_substr (__eo_to_smt y)
+                    (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
+                    (SmtTerm.Numeral 1))))
+              native_nat_zero))
+          n
+          (native_eo_to_smt_guard_closed_ne_numeral y
+            (SmtTerm.choice_nth (native_string_lit "@x") SmtType.Int
+              (SmtTerm.not
+                (SmtTerm.eq
+                  (SmtTerm.str_substr (__eo_to_smt x)
+                    (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
+                    (SmtTerm.Numeral 1))
+                  (SmtTerm.str_substr (__eo_to_smt y)
+                    (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
+                    (SmtTerm.Numeral 1))))
+              native_nat_zero)
+            n (by intro hBody; cases hBody))
+          h)
+    case _at_sets_deq_diff =>
+      exact False.elim
+        (native_eo_to_smt_guard_closed_ne_numeral x
+          (native_eo_to_smt_guard_closed y
+            (__eo_to_smt_sets_deq_diff
+              (__eo_to_smt x) (__smtx_typeof (__eo_to_smt x))
+              (__eo_to_smt y) (__smtx_typeof (__eo_to_smt y))))
+          n
+          (native_eo_to_smt_guard_closed_ne_numeral y
+            (__eo_to_smt_sets_deq_diff
+              (__eo_to_smt x) (__smtx_typeof (__eo_to_smt x))
+              (__eo_to_smt y) (__smtx_typeof (__eo_to_smt y)))
+            n
+            (eo_to_smt_sets_deq_diff_ne_numeral
+              (__eo_to_smt x) (__eo_to_smt y) n))
+          h)
+    case _at_bv =>
+      exact False.elim (eo_to_smt_at_bv_ne_numeral (__eo_to_smt x) (__eo_to_smt y) n h)
+    case _at_quantifiers_skolemize =>
+      exact False.elim (eo_to_smt_quantifier_term_ne_numeral x y n h)
   | Var name T => cases name <;> cases h
   | DtCons s d i =>
       change native_ite (native_reserved_datatype_name s) SmtTerm.None
@@ -2616,27 +2720,76 @@ theorem eo_to_smt_eq_numeral
   | UOp3 op x y z =>
       cases op
       case _at_re_unfold_pos_component =>
-        change native_ite (__eo_to_smt_nat_is_valid z)
-            (__eo_to_smt_re_unfold_pos_component (__eo_to_smt x) (__eo_to_smt y)
-              (__eo_to_smt_nat z))
-            SmtTerm.None =
+        change native_eo_to_smt_guard_closed x
+            (native_eo_to_smt_guard_closed y
+              (native_ite (__eo_to_smt_nat_is_valid z)
+                (__eo_to_smt_re_unfold_pos_component (__eo_to_smt x) (__eo_to_smt y)
+                  (__eo_to_smt_nat z))
+                SmtTerm.None)) =
           SmtTerm.Numeral n at h
-        cases hz : __eo_to_smt_nat_is_valid z <;>
-          simp [native_ite, hz] at h
-        exact False.elim (eo_to_smt_re_unfold_pos_component_ne_numeral
-          (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt_nat z) n h)
+        exact False.elim
+          (native_eo_to_smt_guard_closed_ne_numeral x
+            (native_eo_to_smt_guard_closed y
+              (native_ite (__eo_to_smt_nat_is_valid z)
+                (__eo_to_smt_re_unfold_pos_component (__eo_to_smt x) (__eo_to_smt y)
+                  (__eo_to_smt_nat z))
+                SmtTerm.None))
+            n
+            (native_eo_to_smt_guard_closed_ne_numeral y
+              (native_ite (__eo_to_smt_nat_is_valid z)
+                (__eo_to_smt_re_unfold_pos_component (__eo_to_smt x) (__eo_to_smt y)
+                  (__eo_to_smt_nat z))
+                SmtTerm.None)
+              n
+              (by
+                intro hBody
+                cases hz : __eo_to_smt_nat_is_valid z <;>
+                  simp [native_ite, hz] at hBody
+                exact eo_to_smt_re_unfold_pos_component_ne_numeral
+                  (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt_nat z) n hBody))
+            h)
       case _at_witness_string_length =>
-        change native_ite
-            (native_Teq (__smtx_typeof (__eo_to_smt z)) SmtType.Int)
-            (SmtTerm.choice_nth (native_string_lit "@x") (__eo_to_smt_type x)
-              (SmtTerm.eq
-                (SmtTerm.str_len (SmtTerm.Var (native_string_lit "@x") (__eo_to_smt_type x)))
-                (__eo_to_smt y))
-              native_nat_zero)
-            SmtTerm.None =
+        change native_eo_to_smt_guard_closed y
+            (native_eo_to_smt_guard_closed z
+              (native_ite
+                (native_Teq (__smtx_typeof (__eo_to_smt z)) SmtType.Int)
+                (SmtTerm.choice_nth (native_string_lit "@x") (__eo_to_smt_type x)
+                  (SmtTerm.eq
+                    (SmtTerm.str_len
+                      (SmtTerm.Var (native_string_lit "@x") (__eo_to_smt_type x)))
+                    (__eo_to_smt y))
+                  native_nat_zero)
+                SmtTerm.None)) =
           SmtTerm.Numeral n at h
-        cases hz : native_Teq (__smtx_typeof (__eo_to_smt z)) SmtType.Int <;>
-          simp [native_ite, hz] at h
+        exact False.elim
+          (native_eo_to_smt_guard_closed_ne_numeral y
+            (native_eo_to_smt_guard_closed z
+              (native_ite
+                (native_Teq (__smtx_typeof (__eo_to_smt z)) SmtType.Int)
+                (SmtTerm.choice_nth (native_string_lit "@x") (__eo_to_smt_type x)
+                  (SmtTerm.eq
+                    (SmtTerm.str_len
+                      (SmtTerm.Var (native_string_lit "@x") (__eo_to_smt_type x)))
+                    (__eo_to_smt y))
+                  native_nat_zero)
+                SmtTerm.None))
+            n
+            (native_eo_to_smt_guard_closed_ne_numeral z
+              (native_ite
+                (native_Teq (__smtx_typeof (__eo_to_smt z)) SmtType.Int)
+                (SmtTerm.choice_nth (native_string_lit "@x") (__eo_to_smt_type x)
+                  (SmtTerm.eq
+                    (SmtTerm.str_len
+                      (SmtTerm.Var (native_string_lit "@x") (__eo_to_smt_type x)))
+                    (__eo_to_smt y))
+                  native_nat_zero)
+                SmtTerm.None)
+              n
+              (by
+                intro hBody
+                cases hz : native_Teq (__smtx_typeof (__eo_to_smt z)) SmtType.Int <;>
+                  simp [native_ite, hz] at hBody))
+            h)
   | Apply f x => exact False.elim (eo_to_smt_apply_ne_numeral f x n h)
   | _ => cases h
 
