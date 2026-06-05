@@ -27,17 +27,16 @@ def native_eo_to_smt_uop_indices_safe : Term -> native_Bool
 def NativeEoToSmtUOpIndicesSafe (x : Term) : Prop :=
   native_eo_to_smt_uop_indices_safe x = true
 
-/-
-Central theorem to prove here:
+/--
+If a term translates to a well-typed SMT term, then every indexed EO operator
+occurrence in it has standalone-closed immediate indices.
 
-  theorem eo_to_smt_well_typed_implies_uop_indices_safe
-      (t : Term) :
-      __smtx_typeof (__eo_to_smt t) ≠ SmtType.None ->
-      NativeEoToSmtUOpIndicesSafe t
-
-`NativeEoToSmtUOpIndicesSafe` says every indexed EO operator occurrence has
-standalone-closed immediate indices. The guarded branches in `__eo_to_smt`
-discharge the opaque term-index cases; the numeric-index branches are intended
-to be discharged from the SMT typing rules that require their indices to
-translate to `SmtTerm.Numeral`.
+The guarded branches in `__eo_to_smt` should discharge the opaque term-index
+cases; the numeric-index branches are intended to be discharged from the SMT
+typing rules that require their indices to translate to `SmtTerm.Numeral`.
 -/
+theorem eo_to_smt_well_typed_implies_uop_indices_safe
+    (t : Term) :
+    __smtx_typeof (__eo_to_smt t) ≠ SmtType.None ->
+    NativeEoToSmtUOpIndicesSafe t := by
+  sorry
