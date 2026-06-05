@@ -69,7 +69,13 @@ instance RulePremiseEvidence.instCoeFun
 
 /-- Predicate asserting that every term in a list has an SMT translation. -/
 def AllHaveSmtTranslation (ts : List Term) : Prop :=
-  ∀ t ∈ ts, RuleProofs.eo_has_smt_translation t
+  ∀ t ∈ ts, eoHasSmtTranslation t
+
+/-- Projects the strengthened SMT-translation predicate to the legacy one-factor predicate. -/
+theorem eoHasSmtTranslation.to_ruleProofs {t : Term}
+    (h : eoHasSmtTranslation t) :
+    RuleProofs.eo_has_smt_translation t := by
+  simpa [RuleProofs.eo_has_smt_translation] using h.typeof_ne_none
 
 /-- Predicate asserting that every term in a list has translated SMT Boolean type. -/
 def AllHaveBoolType (ts : List Term) : Prop :=
@@ -193,7 +199,7 @@ structure StepRuleProperties
     RulePremiseEvidence M premises ->
     eo_interprets M P true
   has_smt_translation :
-    RuleProofs.eo_has_smt_translation P
+    eoHasSmtTranslation P
 
 /-- Predicate packaging the correctness and translation obligations for rules that also pop assumptions. -/
 def StepPopRuleProperties
@@ -203,4 +209,4 @@ def StepPopRuleProperties
     (forall (M : SmtModel), model_total_typed M ->
       ((eo_interprets M x1 true) -> eo_interprets M x2 true) ->
       eo_interprets M P true) ∧
-    RuleProofs.eo_has_smt_translation P
+    eoHasSmtTranslation P

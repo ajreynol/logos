@@ -185,7 +185,7 @@ by
       cmd_step_proven_facts_of_invariants M _hM s hNotStuck r args premises
         hs hsStable hsTy hsTrans hCmdTrans hTy
     have hPTrans :
-        RuleProofs.eo_has_smt_translation (__eo_cmd_step_proven s r args premises) :=
+        eoHasSmtTranslation (__eo_cmd_step_proven s r args premises) :=
       hFacts.has_smt_translation
     have hPost :
           __eo_invoke_cmd s (CCmd.step r args premises) =
@@ -380,7 +380,7 @@ by
                   cmd_step_pop_proven_facts_of_invariants M hM root cur A r args premises
                     hsRoot hsRootStable hsRootTy hsRootTrans hCurSuffix hTy
                 have hPTrans :
-                    RuleProofs.eo_has_smt_translation (__eo_cmd_step_pop_proven root r args A premises) :=
+                    eoHasSmtTranslation (__eo_cmd_step_pop_proven root r args A premises) :=
                   hFacts.has_smt_translation
                 have hPush :
                     checkerTranslationInvariant
@@ -820,7 +820,7 @@ by
                       simp [__eo_invoke_cmd, __eo_push_proven_check, hEq, checkerTranslationInvariant]
                   | true =>
                       simpa [__eo_invoke_cmd, __eo_push_proven_check, hEq, checkerTranslationInvariant] using
-                        (show RuleProofs.eo_has_smt_translation F ∧ checkerTranslationInvariant s from ⟨hHead, hTail⟩)
+                        (show eoHasSmtTranslation F ∧ checkerTranslationInvariant s from ⟨hHead, hTail⟩)
               | _ =>
                   simp [__eo_invoke_cmd, __eo_push_proven_check, hEq, checkerTranslationInvariant]
   | step r args premises =>

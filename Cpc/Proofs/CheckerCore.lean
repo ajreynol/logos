@@ -72,9 +72,11 @@ private theorem eo_to_smt_imp_eq (A B : Term) :
 
 /-- Lemma about `eo_has_smt_translation_true`. -/
 private theorem eo_has_smt_translation_true :
-    RuleProofs.eo_has_smt_translation (Term.Boolean true) := by
-  rw [RuleProofs.eo_has_smt_translation, eo_to_smt_true_eq, __smtx_typeof.eq_1]
-  decide
+    eoHasSmtTranslation (Term.Boolean true) := by
+  constructor
+  · rw [eo_to_smt_true_eq, __smtx_typeof.eq_1]
+    decide
+  · simp [eoUOpIndicesClosed]
 
 /-- Characterizes EO interpretation in terms of the translated SMT interpretation. -/
 theorem eo_interprets_iff_smt_interprets (M : SmtModel) (t : Term) (b : Bool) :
@@ -781,11 +783,11 @@ by
 def checkerTranslationInvariant : CState -> Prop
   | CState.nil => True
   | CState.cons (CStateObj.assume A) s =>
-      RuleProofs.eo_has_smt_translation A ∧ checkerTranslationInvariant s
+      eoHasSmtTranslation A ∧ checkerTranslationInvariant s
   | CState.cons (CStateObj.assume_push A) s =>
-      RuleProofs.eo_has_smt_translation A ∧ checkerTranslationInvariant s
+      eoHasSmtTranslation A ∧ checkerTranslationInvariant s
   | CState.cons (CStateObj.proven P) s =>
-      RuleProofs.eo_has_smt_translation P ∧ checkerTranslationInvariant s
+      eoHasSmtTranslation P ∧ checkerTranslationInvariant s
   | CState.Stuck => True
 
 /-- Describes `checkerTranslationInvariant` on the stuck state. -/
@@ -942,7 +944,7 @@ by
 theorem checkerTranslationInvariant_head_assume
     (A : Term) (s : CState) :
   checkerTranslationInvariant (CState.cons (CStateObj.assume A) s) ->
-  RuleProofs.eo_has_smt_translation A :=
+  eoHasSmtTranslation A :=
 by
   intro hs
   exact hs.1
@@ -951,7 +953,7 @@ by
 theorem checkerTranslationInvariant_head_assume_push
     (A : Term) (s : CState) :
   checkerTranslationInvariant (CState.cons (CStateObj.assume_push A) s) ->
-  RuleProofs.eo_has_smt_translation A :=
+  eoHasSmtTranslation A :=
 by
   intro hs
   exact hs.1
@@ -960,7 +962,7 @@ by
 theorem checkerTranslationInvariant_head_proven
     (P : Term) (s : CState) :
   checkerTranslationInvariant (CState.cons (CStateObj.proven P) s) ->
-  RuleProofs.eo_has_smt_translation P :=
+  eoHasSmtTranslation P :=
 by
   intro hs
   exact hs.1
@@ -970,7 +972,7 @@ theorem checkerTranslationInvariant_at :
   forall {s : CState},
     checkerTranslationInvariant s ->
     forall n : native_Int,
-      RuleProofs.eo_has_smt_translation (__eo_state_proven_nth s n)
+      eoHasSmtTranslation (__eo_state_proven_nth s n)
 :=
 by
   intro s hs
@@ -1015,7 +1017,7 @@ by
   intro s hsTy hsTrans n
   rcases checkerTypeInvariant_at hsTy n with ⟨_hNe, hTy⟩
   have hTrans : RuleProofs.eo_has_smt_translation (__eo_state_proven_nth s n) :=
-    checkerTranslationInvariant_at hsTrans n
+    (checkerTranslationInvariant_at hsTrans n).to_ruleProofs
   exact RuleProofs.eo_typeof_bool_implies_has_bool_type
     (__eo_state_proven_nth s n) hTrans hTy
 
@@ -1499,7 +1501,7 @@ by
         rw [push_input_assume_eq_cons_of_guard_true A
           (__eo_invoke_assume_list CState.nil rest) hGuard]
         simpa [checkerTranslationInvariant] using
-          (show RuleProofs.eo_has_smt_translation A ∧
+          (show eoHasSmtTranslation A ∧
               checkerTranslationInvariant (__eo_invoke_assume_list CState.nil rest) from
             ⟨hA, ih⟩)
       · change checkerTranslationInvariant
@@ -1603,14 +1605,14 @@ by
 theorem push_assume_preserves_translationInvariant
     (s : CState) (A : Term) :
   checkerTranslationInvariant s ->
-  RuleProofs.eo_has_smt_translation A ->
+  eoHasSmtTranslation A ->
   checkerTranslationInvariant (__eo_push_assume_check (assumptionCheckGuard A) A s) :=
 by
   intro hs hA
   by_cases hGuard : assumptionCheckGuard A = Term.Boolean true
   · simpa [push_assume_eq_cons_of_guard_true, hGuard,
       checkerTranslationInvariant] using
-      (show RuleProofs.eo_has_smt_translation A ∧ checkerTranslationInvariant s from ⟨hA, hs⟩)
+      (show eoHasSmtTranslation A ∧ checkerTranslationInvariant s from ⟨hA, hs⟩)
   · simpa [push_assume_eq_stuck_of_guard_ne_true, hGuard] using
       checkerTranslationInvariant_stuck
 
@@ -1630,13 +1632,13 @@ by
 theorem push_proven_preserves_translationInvariant
     (s : CState) (P : Term) :
   checkerTranslationInvariant s ->
-  RuleProofs.eo_has_smt_translation P ->
+  eoHasSmtTranslation P ->
   checkerTranslationInvariant (__eo_push_proven P s) :=
 by
   intro hs hP
   by_cases hTy : __eo_typeof P = Term.Bool
   · simpa [push_proven_eq_cons_of_typeof_bool, hTy, checkerTranslationInvariant] using
-      (show RuleProofs.eo_has_smt_translation P ∧ checkerTranslationInvariant s from ⟨hP, hs⟩)
+      (show eoHasSmtTranslation P ∧ checkerTranslationInvariant s from ⟨hP, hs⟩)
   · simpa [push_proven_eq_stuck_of_typeof_ne_bool, hTy] using checkerTranslationInvariant_stuck
 
 /-- Shows that `push_proven` preserves `localTruthInvariant_of_contextual_true`. -/
@@ -2925,7 +2927,7 @@ structure CmdStepFacts (M : SmtModel) (s : CState) (P : Term) : Prop where
       eo_interprets N (statePushes s) true ->
       eo_interprets N P true
   has_smt_translation :
-    RuleProofs.eo_has_smt_translation P
+    eoHasSmtTranslation P
 
 /-- Converts command-step facts into the local invariant payload for `push_proven`. -/
 theorem CmdStepFacts.contextualTruth
