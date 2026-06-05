@@ -77,6 +77,53 @@ theorem eoHasSmtTranslation.to_ruleProofs {t : Term}
     RuleProofs.eo_has_smt_translation t := by
   simpa [RuleProofs.eo_has_smt_translation] using h.typeof_ne_none
 
+/-- Builds the strengthened SMT-translation predicate from the legacy translation fact. -/
+theorem eoHasSmtTranslation.of_ruleProofs {t : Term}
+    (hTrans : RuleProofs.eo_has_smt_translation t)
+    (hIndicesClosed : eoUOpIndicesClosed t) :
+    eoHasSmtTranslation t := by
+  exact ⟨by simpa [RuleProofs.eo_has_smt_translation] using hTrans, hIndicesClosed⟩
+
+/-- Builds the strengthened SMT-translation predicate from Boolean SMT type. -/
+theorem eoHasSmtTranslation.of_has_bool_type {t : Term}
+    (hBool : RuleProofs.eo_has_bool_type t)
+    (hIndicesClosed : eoUOpIndicesClosed t) :
+    eoHasSmtTranslation t := by
+  exact eoHasSmtTranslation.of_ruleProofs
+    (RuleProofs.eo_has_smt_translation_of_has_bool_type t hBool)
+    hIndicesClosed
+
+/-- Closure of indexed-operator payloads is preserved by application. -/
+theorem eoUOpIndicesClosed.apply {f x : Term}
+    (hf : eoUOpIndicesClosed f) (hx : eoUOpIndicesClosed x) :
+    eoUOpIndicesClosed (Term.Apply f x) := by
+  exact ⟨hf, hx⟩
+
+/-- Builds the indexed-operator closure fact for unary indexed operators. -/
+theorem eoUOpIndicesClosed.uop1 {op : UserOp1} {x : Term}
+    (hClosed : __eo_is_closed x = Term.Boolean true)
+    (hx : eoUOpIndicesClosed x) :
+    eoUOpIndicesClosed (Term.UOp1 op x) := by
+  exact ⟨hClosed, hx⟩
+
+/-- Builds the indexed-operator closure fact for binary indexed operators. -/
+theorem eoUOpIndicesClosed.uop2 {op : UserOp2} {x y : Term}
+    (hxClosed : __eo_is_closed x = Term.Boolean true)
+    (hyClosed : __eo_is_closed y = Term.Boolean true)
+    (hx : eoUOpIndicesClosed x) (hy : eoUOpIndicesClosed y) :
+    eoUOpIndicesClosed (Term.UOp2 op x y) := by
+  exact ⟨hxClosed, hyClosed, hx, hy⟩
+
+/-- Builds the indexed-operator closure fact for ternary indexed operators. -/
+theorem eoUOpIndicesClosed.uop3 {op : UserOp3} {x y z : Term}
+    (hxClosed : __eo_is_closed x = Term.Boolean true)
+    (hyClosed : __eo_is_closed y = Term.Boolean true)
+    (hzClosed : __eo_is_closed z = Term.Boolean true)
+    (hx : eoUOpIndicesClosed x) (hy : eoUOpIndicesClosed y)
+    (hz : eoUOpIndicesClosed z) :
+    eoUOpIndicesClosed (Term.UOp3 op x y z) := by
+  exact ⟨hxClosed, hyClosed, hzClosed, hx, hy, hz⟩
+
 /-- Predicate asserting that every term in a list has translated SMT Boolean type. -/
 def AllHaveBoolType (ts : List Term) : Prop :=
   ∀ t ∈ ts, RuleProofs.eo_has_bool_type t
@@ -130,6 +177,37 @@ by
       · apply ih
         intro t ht
         exact hPremises t (by simp [ht])
+
+/-- Shows that conjunctions built from translatable premises have closed indexed-operator payloads. -/
+theorem premiseAndFormulaList_indices_closed :
+  ∀ premises : List Term,
+    AllHaveSmtTranslation premises ->
+    eoUOpIndicesClosed (premiseAndFormulaList premises) :=
+by
+  intro premises hPremises
+  induction premises with
+  | nil =>
+      simp [premiseAndFormulaList, eoUOpIndicesClosed]
+  | cons p premises ih =>
+      exact
+        eoUOpIndicesClosed.apply
+          (eoUOpIndicesClosed.apply (by simp [eoUOpIndicesClosed])
+            ((hPremises p (by simp)).indices_closed))
+          (ih (by
+            intro t ht
+            exact hPremises t (by simp [ht])))
+
+/-- Shows that conjunctions built from Boolean, translatable premises are translatable. -/
+theorem premiseAndFormulaList_has_smt_translation :
+  ∀ premises : List Term,
+    AllHaveBoolType premises ->
+    AllHaveSmtTranslation premises ->
+    eoHasSmtTranslation (premiseAndFormulaList premises) :=
+by
+  intro premises hPremisesBool hPremisesTrans
+  exact eoHasSmtTranslation.of_has_bool_type
+    (premiseAndFormulaList_has_bool_type premises hPremisesBool)
+    (premiseAndFormulaList_indices_closed premises hPremisesTrans)
 
 /-- Shows that `premiseAndFormulaList` is recognized as an `and`-list by `__eo_is_list`. -/
 theorem premiseAndFormulaList_is_and_list :

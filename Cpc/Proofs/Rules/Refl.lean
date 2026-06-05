@@ -111,17 +111,32 @@ by
       | nil =>
           cases premises with
           | nil =>
-              have hATransPair : RuleProofs.eo_has_smt_translation a1 ∧ True := by
+              have hATransPair : eoHasSmtTranslation a1 ∧ True := by
                 simpa [cmdTranslationOk, cArgListTranslationOk] using hCmdTrans
-              have hATrans : RuleProofs.eo_has_smt_translation a1 := hATransPair.1
+              have hATrans : RuleProofs.eo_has_smt_translation a1 :=
+                hATransPair.1.to_ruleProofs
               have hProgRefl : __eo_prog_refl a1 ≠ Term.Stuck := by
                 change __eo_prog_refl a1 ≠ Term.Stuck at hProg
                 exact hProg
+              have hANotStuck : a1 ≠ Term.Stuck := by
+                intro hStuck
+                subst hStuck
+                change __smtx_typeof (__eo_to_smt Term.Stuck) ≠ SmtType.None at hATrans
+                rw [eo_to_smt_stuck_eq, TranslationProofs.smtx_typeof_none] at hATrans
+                exact hATrans rfl
+              have hProgIndicesClosed : eoUOpIndicesClosed (__eo_prog_refl a1) := by
+                rw [eo_prog_refl_eq_of_ne_stuck a1 hANotStuck]
+                exact
+                  eoUOpIndicesClosed.apply
+                    (eoUOpIndicesClosed.apply (by simp [eoUOpIndicesClosed])
+                      hATransPair.1.indices_closed)
+                    hATransPair.1.indices_closed
               refine ⟨?_, ?_⟩
               · intro _hTrue
                 exact facts___eo_prog_refl_impl M hM a1 hATrans hProgRefl
-              · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
+              · exact eoHasSmtTranslation.of_has_bool_type
                   (typed___eo_prog_refl_impl a1 hATrans hProgRefl)
+                  hProgIndicesClosed
           | cons _ _ =>
               change Term.Stuck ≠ Term.Stuck at hProg
               exact False.elim (hProg rfl)

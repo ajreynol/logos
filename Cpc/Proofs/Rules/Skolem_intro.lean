@@ -85,20 +85,36 @@ by
               | UOp1 op x1 =>
                   cases op with
                   | _at_purify =>
-                      have hATransPair : RuleProofs.eo_has_smt_translation (Term._at_purify x1) ∧ True := by
+                      have hATransPair : eoHasSmtTranslation (Term._at_purify x1) ∧ True := by
                         simpa [cmdTranslationOk, cArgListTranslationOk] using hCmdTrans
+                      have hATrans : RuleProofs.eo_has_smt_translation (Term._at_purify x1) :=
+                        hATransPair.1.to_ruleProofs
                       have hXTrans : RuleProofs.eo_has_smt_translation x1 := by
                         simpa [RuleProofs.eo_has_smt_translation,
                           smtx_typeof_eo_to_smt_purify_eq] using
-                          hATransPair.1
+                          hATrans
                       have hProgIntro : __eo_prog_skolem_intro (Term._at_purify x1) ≠ Term.Stuck := by
                         change __eo_prog_skolem_intro (Term._at_purify x1) ≠ Term.Stuck at hProg
                         exact hProg
+                      have hPurifyIndicesClosed :
+                          eoUOpIndicesClosed (Term._at_purify x1) :=
+                        hATransPair.1.indices_closed
+                      have hXIndicesClosed : eoUOpIndicesClosed x1 :=
+                        hPurifyIndicesClosed.2
+                      have hProgIndicesClosed :
+                          eoUOpIndicesClosed (__eo_prog_skolem_intro (Term._at_purify x1)) := by
+                        rw [eo_prog_skolem_intro_purify_eq x1]
+                        exact
+                          eoUOpIndicesClosed.apply
+                            (eoUOpIndicesClosed.apply (by simp [eoUOpIndicesClosed])
+                              hPurifyIndicesClosed)
+                            hXIndicesClosed
                       refine ⟨?_, ?_⟩
                       · intro _hTrue
                         exact facts___eo_prog_skolem_intro_impl M hM x1 hXTrans hProgIntro
-                      · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
+                      · exact eoHasSmtTranslation.of_has_bool_type
                           (typed___eo_prog_skolem_intro_impl x1 hXTrans hProgIntro)
+                          hProgIndicesClosed
                   | _ =>
                       change Term.Stuck ≠ Term.Stuck at hProg
                       exact False.elim (hProg rfl)

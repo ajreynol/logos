@@ -622,6 +622,8 @@ by
     term_ne_stuck_of_typeof_bool hResultTy
   have hPremisesBool : AllHaveBoolType (premiseTermList s premises) :=
     premiseTermList_has_bool_type s premises hsTy hsTrans
+  have hPremisesTrans : AllHaveSmtTranslation (premiseTermList s premises) :=
+    premiseTermList_has_smt_translation s premises hsTrans
   cases r with
   | scope =>
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
@@ -694,7 +696,7 @@ by
       exact cmd_step_facts_of_rule_properties M hM s premises hs hsStable <| by
         intro N hN _hAgree
         exact cmd_step_and_intro_properties N hN s args premises
-          (by simpa using hCmdTrans) hPremisesBool hResultTy
+          (by simpa using hCmdTrans) hPremisesTrans hPremisesBool hResultTy
   | not_or_elim =>
       exact cmd_step_facts_of_rule_properties M hM s premises hs hsStable <| by
         intro N hN _hAgree
@@ -4789,4 +4791,3 @@ by
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | distinct_card_conflict =>
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
-
