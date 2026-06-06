@@ -13042,6 +13042,22 @@ private theorem smtx_apply_head_non_none_of_non_none
   · rw [hHead]
     simp
 
+theorem smtx_apply_arg_non_none_of_non_special_non_none
+    (f x : SmtTerm)
+    (hSel : ∀ s d i j, f ≠ SmtTerm.DtSel s d i j)
+    (hTester : ∀ s d i, f ≠ SmtTerm.DtTester s d i)
+    (hNN : __smtx_typeof (SmtTerm.Apply f x) ≠ SmtType.None) :
+    __smtx_typeof x ≠ SmtType.None :=
+  smtx_apply_arg_non_none_of_non_none f x hSel hTester hNN
+
+theorem smtx_apply_head_non_none_of_non_special_non_none
+    (f x : SmtTerm)
+    (hSel : ∀ s d i j, f ≠ SmtTerm.DtSel s d i j)
+    (hTester : ∀ s d i, f ≠ SmtTerm.DtTester s d i)
+    (hNN : __smtx_typeof (SmtTerm.Apply f x) ≠ SmtType.None) :
+    __smtx_typeof f ≠ SmtType.None :=
+  smtx_apply_head_non_none_of_non_none f x hSel hTester hNN
+
 private theorem eo_to_smt_updater_rec_ne_dt_sel
     (s : native_String) (d : SmtDatatype) (i j n : native_Nat) (t u acc : SmtTerm)
     (hAccSel : ∀ s d i j, acc ≠ SmtTerm.DtSel s d i j)
