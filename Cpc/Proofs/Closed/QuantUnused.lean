@@ -257,6 +257,25 @@ private theorem term_ne_stuck_of_eo_to_smt_type_bool
     exact hTy
   exact TranslationProofs.smtx_typeof_none_ne_bool hNone
 
+private theorem eo_to_smt_type_eq_of_top_valid_local
+    {T U : Term}
+    (hValid : eo_type_valid T)
+    (hEq : __eo_to_smt_type T = __eo_to_smt_type U) :
+    T = U := by
+  cases T
+  case UOp op =>
+    cases op
+    case RegLan =>
+      have hUReg : __eo_to_smt_type U = SmtType.RegLan := by
+        simpa [__eo_to_smt_type] using hEq.symm
+      exact (TranslationProofs.eo_to_smt_type_eq_reglan hUReg).symm
+    all_goals
+      exact TranslationProofs.eo_to_smt_type_eq_of_valid_rec
+        (by simpa [eo_type_valid] using hValid) hEq
+  all_goals
+    exact TranslationProofs.eo_to_smt_type_eq_of_valid_rec
+      (by simpa [eo_type_valid] using hValid) hEq
+
 private theorem native_model_push_same
     (M : SmtModel) (s : native_String) (T : SmtType) (v w : SmtValue) :
     native_model_push (native_model_push M s T v) s T w =
@@ -325,6 +344,583 @@ private theorem native_model_push_comm
             exact hNe h.symm
           simp [h21]
         · simp [h1, h2]
+
+private theorem model_agrees_on_globals_symm
+    {M N : SmtModel}
+    (hAgree : model_agrees_on_globals M N) :
+    model_agrees_on_globals N M := by
+  exact
+    ⟨by
+      intro s T
+      exact (hAgree.1 s T).symm,
+    by
+      intro fid T U
+      exact (hAgree.2 fid T U).symm⟩
+
+private theorem smt_model_key_ne_of_smt_var_key_ne
+    {s1 s2 : native_String} {T1 T2 : SmtType}
+    (hNe : (s1, T1) ≠ (s2, T2)) :
+    ({ isVar := true, name := s1, ty := T1 } : SmtModelKey) ≠
+      { isVar := true, name := s2, ty := T2 } := by
+  intro hKey
+  cases hKey
+  exact hNe rfl
+
+private theorem smtx_model_eval_var_eq_push_of_ne
+    (M : SmtModel) (s0 s : native_String) (T0 T : SmtType)
+    (v : SmtValue)
+    (hNe : (s, T) ≠ (s0, T0)) :
+    __smtx_model_eval (native_model_push M s0 T0 v) (SmtTerm.Var s T) =
+      __smtx_model_eval M (SmtTerm.Var s T) := by
+  have hKey :
+      ({ isVar := true, name := s, ty := T } : SmtModelKey) ≠
+        { isVar := true, name := s0, ty := T0 } :=
+    smt_model_key_ne_of_smt_var_key_ne hNe
+  simp [__smtx_model_eval, native_model_var_lookup, native_model_push, hKey]
+
+private def SmtTermAvoidsVar
+    (s0 : native_String) (T0 : SmtType) : SmtTerm -> Prop
+  | SmtTerm.None => True
+  | SmtTerm.Boolean _ => True
+  | SmtTerm.Numeral _ => True
+  | SmtTerm.Rational _ => True
+  | SmtTerm.String _ => True
+  | SmtTerm.Binary _ _ => True
+  | SmtTerm.Apply f x =>
+      SmtTermAvoidsVar s0 T0 f ∧ SmtTermAvoidsVar s0 T0 x
+  | SmtTerm.Var s T => (s, T) ≠ (s0, T0)
+  | SmtTerm.ite c t e =>
+      SmtTermAvoidsVar s0 T0 c ∧ SmtTermAvoidsVar s0 T0 t ∧
+        SmtTermAvoidsVar s0 T0 e
+  | SmtTerm.eq x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.exists s T body =>
+      (s, T) = (s0, T0) ∨ SmtTermAvoidsVar s0 T0 body
+  | SmtTerm.forall s T body =>
+      (s, T) = (s0, T0) ∨ SmtTermAvoidsVar s0 T0 body
+  | SmtTerm.choice_nth s T body _ =>
+      (s, T) = (s0, T0) ∨ SmtTermAvoidsVar s0 T0 body
+  | SmtTerm.map_diff x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.DtCons _ _ _ => True
+  | SmtTerm.DtSel _ _ _ _ => True
+  | SmtTerm.DtTester _ _ _ => True
+  | SmtTerm.UConst _ _ => True
+  | SmtTerm.not x => SmtTermAvoidsVar s0 T0 x
+  | SmtTerm.or x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.and x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.imp x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.xor x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm._at_purify x => SmtTermAvoidsVar s0 T0 x
+  | SmtTerm.plus x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.neg x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.mult x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.lt x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.leq x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.gt x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.geq x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.to_real x => SmtTermAvoidsVar s0 T0 x
+  | SmtTerm.to_int x => SmtTermAvoidsVar s0 T0 x
+  | SmtTerm.is_int x => SmtTermAvoidsVar s0 T0 x
+  | SmtTerm.abs x => SmtTermAvoidsVar s0 T0 x
+  | SmtTerm.uneg x => SmtTermAvoidsVar s0 T0 x
+  | SmtTerm.div x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.mod x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.multmult x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.divisible x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.int_pow2 x => SmtTermAvoidsVar s0 T0 x
+  | SmtTerm.int_log2 x => SmtTermAvoidsVar s0 T0 x
+  | SmtTerm.div_total x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.mod_total x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.multmult_total x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.select x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.store x y z =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y ∧
+        SmtTermAvoidsVar s0 T0 z
+  | SmtTerm.concat x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.extract x y z =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y ∧
+        SmtTermAvoidsVar s0 T0 z
+  | SmtTerm.repeat x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.bvnot x => SmtTermAvoidsVar s0 T0 x
+  | SmtTerm.bvand x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.bvor x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.bvnand x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.bvnor x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.bvxor x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.bvxnor x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.bvcomp x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.bvneg x => SmtTermAvoidsVar s0 T0 x
+  | SmtTerm.bvadd x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.bvmul x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.bvudiv x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.bvurem x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.bvsub x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.bvsdiv x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.bvsrem x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.bvsmod x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.bvult x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.bvule x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.bvugt x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.bvuge x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.bvslt x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.bvsle x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.bvsgt x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.bvsge x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.bvshl x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.bvlshr x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.bvashr x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.zero_extend x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.sign_extend x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.rotate_left x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.rotate_right x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.bvuaddo x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.bvnego x => SmtTermAvoidsVar s0 T0 x
+  | SmtTerm.bvsaddo x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.bvumulo x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.bvsmulo x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.bvusubo x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.bvssubo x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.bvsdivo x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.seq_empty _ => True
+  | SmtTerm.str_len x => SmtTermAvoidsVar s0 T0 x
+  | SmtTerm.str_concat x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.str_substr x y z =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y ∧
+        SmtTermAvoidsVar s0 T0 z
+  | SmtTerm.str_contains x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.str_replace x y z =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y ∧
+        SmtTermAvoidsVar s0 T0 z
+  | SmtTerm.str_indexof x y z =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y ∧
+        SmtTermAvoidsVar s0 T0 z
+  | SmtTerm.str_at x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.str_prefixof x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.str_suffixof x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.str_rev x => SmtTermAvoidsVar s0 T0 x
+  | SmtTerm.str_update x y z =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y ∧
+        SmtTermAvoidsVar s0 T0 z
+  | SmtTerm.str_to_lower x => SmtTermAvoidsVar s0 T0 x
+  | SmtTerm.str_to_upper x => SmtTermAvoidsVar s0 T0 x
+  | SmtTerm.str_to_code x => SmtTermAvoidsVar s0 T0 x
+  | SmtTerm.str_from_code x => SmtTermAvoidsVar s0 T0 x
+  | SmtTerm.str_is_digit x => SmtTermAvoidsVar s0 T0 x
+  | SmtTerm.str_to_int x => SmtTermAvoidsVar s0 T0 x
+  | SmtTerm.str_from_int x => SmtTermAvoidsVar s0 T0 x
+  | SmtTerm.str_lt x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.str_leq x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.str_replace_all x y z =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y ∧
+        SmtTermAvoidsVar s0 T0 z
+  | SmtTerm.str_replace_re x y z =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y ∧
+        SmtTermAvoidsVar s0 T0 z
+  | SmtTerm.str_replace_re_all x y z =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y ∧
+        SmtTermAvoidsVar s0 T0 z
+  | SmtTerm.str_indexof_re x y z =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y ∧
+        SmtTermAvoidsVar s0 T0 z
+  | SmtTerm.re_allchar => True
+  | SmtTerm.re_none => True
+  | SmtTerm.re_all => True
+  | SmtTerm.str_to_re x => SmtTermAvoidsVar s0 T0 x
+  | SmtTerm.re_mult x => SmtTermAvoidsVar s0 T0 x
+  | SmtTerm.re_plus x => SmtTermAvoidsVar s0 T0 x
+  | SmtTerm.re_exp x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.re_opt x => SmtTermAvoidsVar s0 T0 x
+  | SmtTerm.re_comp x => SmtTermAvoidsVar s0 T0 x
+  | SmtTerm.re_range x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.re_concat x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.re_inter x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.re_union x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.re_diff x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.re_loop x y z =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y ∧
+        SmtTermAvoidsVar s0 T0 z
+  | SmtTerm.str_in_re x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.seq_unit x => SmtTermAvoidsVar s0 T0 x
+  | SmtTerm.seq_nth x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.set_empty _ => True
+  | SmtTerm.set_singleton x => SmtTermAvoidsVar s0 T0 x
+  | SmtTerm.set_union x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.set_inter x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.set_minus x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.set_member x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.set_subset x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.qdiv x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.qdiv_total x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.int_to_bv x y =>
+      SmtTermAvoidsVar s0 T0 x ∧ SmtTermAvoidsVar s0 T0 y
+  | SmtTerm.ubv_to_int x => SmtTermAvoidsVar s0 T0 x
+  | SmtTerm.sbv_to_int x => SmtTermAvoidsVar s0 T0 x
+
+private theorem nativeEvalTChoiceNthAux_eq_push_of_avoids_below
+    (root : SmtTerm)
+    (hRec :
+      ∀ {t : SmtTerm} {M' : SmtModel} {s0 : native_String}
+          {T0 : SmtType} {v' : SmtValue},
+        sizeOf t < sizeOf root ->
+          SmtTermAvoidsVar s0 T0 t ->
+            __smtx_model_eval (native_model_push M' s0 T0 v') t =
+              __smtx_model_eval M' t) :
+    ∀ {n : native_Nat} {s : native_String} {T : SmtType}
+        {body : SmtTerm} {M : SmtModel} {s0 : native_String}
+        {T0 : SmtType} {v : SmtValue},
+      sizeOf body < sizeOf root ->
+        ((s, T) = (s0, T0) ∨ SmtTermAvoidsVar s0 T0 body) ->
+          nativeEvalTChoiceNthAux (native_model_push M s0 T0 v) s T body n =
+            nativeEvalTChoiceNthAux M s T body n
+  | native_nat_zero, s, T, body, M, s0, T0, v, hBodyLt, hAvoid =>
+      by
+        simp [nativeEvalTChoiceNthAux]
+        exact native_eval_tchoice_eq_of_body_eval_eq (fun w =>
+          by
+            rcases hAvoid with hShadow | hAvoidBody
+            · cases hShadow
+              simpa [native_model_push_same]
+            · by_cases hShadow : (s, T) = (s0, T0)
+              · cases hShadow
+                simpa [native_model_push_same]
+              · have hKey :
+                    ({ isVar := true, name := s0, ty := T0 } : SmtModelKey) ≠
+                      { isVar := true, name := s, ty := T } := by
+                  exact smt_model_key_ne_of_smt_var_key_ne
+                    (by intro h; exact hShadow h.symm)
+                have hEval :=
+                  hRec (t := body) (M' := native_model_push M s T w)
+                    (s0 := s0) (T0 := T0) (v' := v)
+                    hBodyLt hAvoidBody
+                simpa [native_model_push_comm M s0 s T0 T v w hKey]
+                  using hEval)
+  | native_nat_succ n, s, T, body, M, s0, T0, v, hBodyLt, hAvoid =>
+      by
+        have hChoiceEq :
+            native_eval_tchoice (native_model_push M s0 T0 v) s T body =
+              native_eval_tchoice M s T body := by
+          simpa [nativeEvalTChoiceNthAux] using
+            nativeEvalTChoiceNthAux_eq_push_of_avoids_below root hRec
+              (n := native_nat_zero) (s := s) (T := T) (body := body)
+              (M := M) (s0 := s0) (T0 := T0) (v := v)
+              hBodyLt hAvoid
+        rcases hAvoid with hShadow | hAvoidBody
+        · cases hShadow
+          cases body <;> simp [nativeEvalTChoiceNthAux,
+            native_model_push_same] at *
+          rename_i s' T' body'
+          exact congrArg
+            (fun q =>
+              nativeEvalTChoiceNthAux (native_model_push M s T q)
+                s' T' body' n)
+            hChoiceEq
+        · by_cases hShadow : (s, T) = (s0, T0)
+          · cases hShadow
+            cases body <;> simp [nativeEvalTChoiceNthAux,
+              native_model_push_same] at *
+            rename_i s' T' body'
+            exact congrArg
+              (fun q =>
+                nativeEvalTChoiceNthAux (native_model_push M s T q)
+                  s' T' body' n)
+              hChoiceEq
+          · have hKey :
+                ({ isVar := true, name := s0, ty := T0 } : SmtModelKey) ≠
+                  { isVar := true, name := s, ty := T } := by
+              exact smt_model_key_ne_of_smt_var_key_ne
+                (by intro h; exact hShadow h.symm)
+            cases body <;> simp [nativeEvalTChoiceNthAux, hChoiceEq]
+            rename_i s' T' body'
+            have hBody'Lt : sizeOf body' < sizeOf root := by
+              simp at hBodyLt
+              omega
+            have hAvoid' :
+                (s', T') = (s0, T0) ∨ SmtTermAvoidsVar s0 T0 body' := by
+              simpa [SmtTermAvoidsVar] using hAvoidBody
+            have hEval :=
+              nativeEvalTChoiceNthAux_eq_push_of_avoids_below root hRec
+                (n := n) (s := s') (T := T') (body := body')
+                (M := native_model_push M s T
+                  (native_eval_tchoice M s T (SmtTerm.exists s' T' body')))
+                (s0 := s0) (T0 := T0) (v := v)
+                hBody'Lt hAvoid'
+            simpa [nativeEvalTChoiceNthAux, hChoiceEq,
+              native_model_push_comm M s0 s T0 T v
+                (native_eval_tchoice M s T (SmtTerm.exists s' T' body'))
+                hKey] using hEval
+
+private theorem smtx_model_eval_eq_push_of_avoids_lt
+    (n : Nat) {t : SmtTerm} {M : SmtModel} {s0 : native_String}
+    {T0 : SmtType} {v : SmtValue}
+    (hLt : sizeOf t < n)
+    (hAvoid : SmtTermAvoidsVar s0 T0 t) :
+    __smtx_model_eval (native_model_push M s0 T0 v) t =
+      __smtx_model_eval M t := by
+  cases n with
+  | zero =>
+      omega
+  | succ n =>
+      let hAgree : model_agrees_on_env [] (native_model_push M s0 T0 v) M :=
+        model_agrees_on_env_nil_of_globals
+          (model_agrees_on_globals_symm
+            (model_agrees_on_globals_push M s0 T0 v))
+      let hRec :
+          ∀ {u : SmtTerm} {M' : SmtModel} {s' : native_String}
+              {T' : SmtType} {v' : SmtValue},
+            sizeOf u < sizeOf t ->
+              SmtTermAvoidsVar s' T' u ->
+                __smtx_model_eval (native_model_push M' s' T' v') u =
+                  __smtx_model_eval M' u :=
+        fun {u M' s' T' v'} hULt hAvoid' =>
+          smtx_model_eval_eq_push_of_avoids_lt
+            n (t := u) (M := M') (s0 := s') (T0 := T') (v := v')
+            (by omega) hAvoid'
+      let hEvalSame :
+          ∀ u : SmtTerm,
+              SmtTermAvoidsVar s0 T0 u ->
+                sizeOf u < sizeOf t ->
+                  __smtx_model_eval (native_model_push M s0 T0 v) u =
+                    __smtx_model_eval M u :=
+        fun u hAvoid' hULt =>
+          hRec hULt hAvoid'
+      cases t <;> simp [SmtTermAvoidsVar] at hAvoid ⊢
+      case Var s T =>
+        have hPair : (s, T) ≠ (s0, T0) := by
+          intro hEq
+          injection hEq with hs hT
+          exact hAvoid hs hT
+        exact smtx_model_eval_var_eq_push_of_ne M s0 s T0 T v hPair
+      case UConst s T =>
+        exact smtx_model_eval_uconst_eq_of_env hAgree
+      case Apply f x =>
+        exact smtx_model_eval_apply_eq_of_env hAgree
+          (hRec (by simp; omega) hAvoid.1)
+          (hRec (by simp; omega) hAvoid.2)
+      case «exists» s T body =>
+        exact smtx_model_eval_exists_eq_of_body_eval_eq (fun w =>
+          by
+            rcases hAvoid with hShadow | hAvoidBody
+            · rcases hShadow with ⟨hs, hT⟩
+              cases hs
+              cases hT
+              simpa [native_model_push_same]
+            · by_cases hShadow : (s, T) = (s0, T0)
+              · cases hShadow
+                simpa [native_model_push_same]
+              · have hKey :
+                    ({ isVar := true, name := s0, ty := T0 } : SmtModelKey) ≠
+                      { isVar := true, name := s, ty := T } := by
+                  exact smt_model_key_ne_of_smt_var_key_ne
+                    (by intro h; exact hShadow h.symm)
+                have hEval :=
+                  hRec (u := body) (M' := native_model_push M s T w)
+                    (s' := s0) (T' := T0) (v' := v)
+                    (by simp; omega) hAvoidBody
+                simpa [native_model_push_comm M s0 s T0 T v w hKey]
+                  using hEval)
+      case «forall» s T body =>
+        exact smtx_model_eval_forall_eq_of_body_eval_eq (fun w =>
+          by
+            rcases hAvoid with hShadow | hAvoidBody
+            · rcases hShadow with ⟨hs, hT⟩
+              cases hs
+              cases hT
+              simpa [native_model_push_same]
+            · by_cases hShadow : (s, T) = (s0, T0)
+              · cases hShadow
+                simpa [native_model_push_same]
+              · have hKey :
+                    ({ isVar := true, name := s0, ty := T0 } : SmtModelKey) ≠
+                      { isVar := true, name := s, ty := T } := by
+                  exact smt_model_key_ne_of_smt_var_key_ne
+                    (by intro h; exact hShadow h.symm)
+                have hEval :=
+                  hRec (u := body) (M' := native_model_push M s T w)
+                    (s' := s0) (T' := T0) (v' := v)
+                    (by simp; omega) hAvoidBody
+                simpa [native_model_push_comm M s0 s T0 T v w hKey]
+                  using hEval)
+      case choice_nth s T body k =>
+        rw [smtx_model_eval_choice_nth_eq_aux
+            (native_model_push M s0 T0 v) s T body k,
+          smtx_model_eval_choice_nth_eq_aux M s T body k]
+        exact nativeEvalTChoiceNthAux_eq_push_of_avoids_below
+          (SmtTerm.choice_nth s T body k) hRec
+          (by simp; omega)
+          (by
+            rcases hAvoid with hShadow | hAvoidBody
+            · rcases hShadow with ⟨hs, hT⟩
+              exact Or.inl (by cases hs; cases hT; rfl)
+            · exact Or.inr hAvoidBody)
+      case not x =>
+        simp [__smtx_model_eval, hRec (by simp) hAvoid]
+      case _at_purify x =>
+        simp [__smtx_model_eval, hRec (by simp) hAvoid]
+      case to_real x =>
+        simp [__smtx_model_eval, hRec (by simp) hAvoid]
+      case to_int x =>
+        simp [__smtx_model_eval, hRec (by simp) hAvoid]
+      case is_int x =>
+        simp [__smtx_model_eval, hRec (by simp) hAvoid]
+      case abs x =>
+        simp [__smtx_model_eval, hRec (by simp) hAvoid]
+      case uneg x =>
+        simp [__smtx_model_eval, hRec (by simp) hAvoid]
+      case int_pow2 x =>
+        simp [__smtx_model_eval, hRec (by simp) hAvoid]
+      case int_log2 x =>
+        simp [__smtx_model_eval, hRec (by simp) hAvoid]
+      case bvnot x =>
+        simp [__smtx_model_eval, hRec (by simp) hAvoid]
+      case bvneg x =>
+        simp [__smtx_model_eval, hRec (by simp) hAvoid]
+      case bvnego x =>
+        simp [__smtx_model_eval, hRec (by simp) hAvoid]
+      case str_len x =>
+        simp [__smtx_model_eval, hRec (by simp) hAvoid]
+      case str_rev x =>
+        simp [__smtx_model_eval, hRec (by simp) hAvoid]
+      case str_to_lower x =>
+        simp [__smtx_model_eval, hRec (by simp) hAvoid]
+      case str_to_upper x =>
+        simp [__smtx_model_eval, hRec (by simp) hAvoid]
+      case str_to_code x =>
+        simp [__smtx_model_eval, hRec (by simp) hAvoid]
+      case str_from_code x =>
+        simp [__smtx_model_eval, hRec (by simp) hAvoid]
+      case str_is_digit x =>
+        simp [__smtx_model_eval, hRec (by simp) hAvoid]
+      case str_to_int x =>
+        simp [__smtx_model_eval, hRec (by simp) hAvoid]
+      case str_from_int x =>
+        simp [__smtx_model_eval, hRec (by simp) hAvoid]
+      case str_to_re x =>
+        simp [__smtx_model_eval, hRec (by simp) hAvoid]
+      case re_mult x =>
+        simp [__smtx_model_eval, hRec (by simp) hAvoid]
+      case re_plus x =>
+        simp [__smtx_model_eval, hRec (by simp) hAvoid]
+      case re_opt x =>
+        simp [__smtx_model_eval, hRec (by simp) hAvoid]
+      case re_comp x =>
+        simp [__smtx_model_eval, hRec (by simp) hAvoid]
+      case seq_unit x =>
+        simp [__smtx_model_eval, hRec (by simp) hAvoid]
+      case set_singleton x =>
+        simp [__smtx_model_eval, hRec (by simp) hAvoid]
+      case ubv_to_int x =>
+        simp [__smtx_model_eval, hRec (by simp) hAvoid]
+      case sbv_to_int x =>
+        simp [__smtx_model_eval, hRec (by simp) hAvoid]
+      all_goals try
+        simp [__smtx_model_eval, hAgree.globals.1,
+          smtx_model_eval_apply_eq_of_globals hAgree.globals,
+          smtx_seq_nth_eq_of_globals hAgree.globals]
+      all_goals try
+        rw [hEvalSame _ hAvoid.1 (by simp; omega),
+          hEvalSame _ hAvoid.2 (by simp; omega)]
+      all_goals try
+        rw [hEvalSame _ hAvoid.1 (by simp; omega),
+          hEvalSame _ hAvoid.2.1 (by simp; omega),
+          hEvalSame _ hAvoid.2.2 (by simp; omega)]
+      all_goals try
+        simp [hAgree.globals.1, hAgree.globals.2,
+          smtx_model_eval_apply_eq_of_globals hAgree.globals,
+          smtx_seq_nth_eq_of_globals hAgree.globals,
+          smtx_model_eval_dt_sel_eq_of_globals hAgree.globals]
+termination_by n
+decreasing_by
+  all_goals omega
+
+private theorem smtx_model_eval_eq_push_of_avoids
+    {t : SmtTerm} {M : SmtModel} {s0 : native_String} {T0 : SmtType}
+    {v : SmtValue}
+    (hAvoid : SmtTermAvoidsVar s0 T0 t) :
+    __smtx_model_eval (native_model_push M s0 T0 v) t =
+      __smtx_model_eval M t := by
+  exact smtx_model_eval_eq_push_of_avoids_lt
+    (sizeOf t + 1) (by omega) hAvoid
 
 private theorem smtx_typeof_not_arg_bool
     (t : SmtTerm) :
@@ -3299,6 +3895,79 @@ private theorem smtTermClosedIn_of_native_eo_to_smt_closed_safe
     (by simpa [native_eo_to_smt_closed] using hClosed)
     hSafe
 
+private theorem smtTermAvoidsVar_of_closedIn_not_mem
+    {t : SmtTerm} {vars : List SmtVarKey}
+    {s0 : native_String} {T0 : SmtType}
+    (hClosed : SmtTermClosedIn vars t)
+    (hNotMem : (s0, T0) ∉ vars) :
+    SmtTermAvoidsVar s0 T0 t := by
+  let rec go (t : SmtTerm) {vars : List SmtVarKey}
+      (hClosed : SmtTermClosedIn vars t)
+      (hNotMem : (s0, T0) ∉ vars) :
+      SmtTermAvoidsVar s0 T0 t := by
+    cases t <;> simp [SmtTermClosedIn, SmtTermAvoidsVar] at hClosed ⊢
+    case Var s T =>
+      intro hs hT
+      apply hNotMem
+      cases hs
+      cases hT
+      exact hClosed
+    case «exists» s T body =>
+      by_cases hShadow : (s, T) = (s0, T0)
+      · left
+        injection hShadow with hs hT
+        exact ⟨hs, hT⟩
+      · right
+        exact go body hClosed (by
+          intro hMem
+          cases hMem with
+          | head =>
+              exact hShadow rfl
+          | tail _ hTail =>
+              exact hNotMem hTail)
+    case «forall» s T body =>
+      by_cases hShadow : (s, T) = (s0, T0)
+      · left
+        injection hShadow with hs hT
+        exact ⟨hs, hT⟩
+      · right
+        exact go body hClosed (by
+          intro hMem
+          cases hMem with
+          | head =>
+              exact hShadow rfl
+          | tail _ hTail =>
+              exact hNotMem hTail)
+    case choice_nth s T body k =>
+      by_cases hShadow : (s, T) = (s0, T0)
+      · left
+        injection hShadow with hs hT
+        exact ⟨hs, hT⟩
+      · right
+        exact go body hClosed (by
+          intro hMem
+          cases hMem with
+          | head =>
+              exact hShadow rfl
+          | tail _ hTail =>
+              exact hNotMem hTail)
+    all_goals try exact go _ hClosed hNotMem
+    all_goals try exact ⟨go _ hClosed.1 hNotMem,
+      go _ hClosed.2 hNotMem⟩
+    all_goals try exact ⟨go _ hClosed.1 hNotMem,
+      go _ hClosed.2.1 hNotMem,
+      go _ hClosed.2.2 hNotMem⟩
+  exact go t hClosed hNotMem
+
+private theorem smtTermAvoidsVar_of_native_eo_to_smt_closed_safe
+    (t : Term) (s0 : native_String) (T0 : SmtType)
+    (hClosed : native_eo_to_smt_closed t = true)
+    (hSafe : NativeEoToSmtUOpIndicesSafe t) :
+    SmtTermAvoidsVar s0 T0 (__eo_to_smt t) := by
+  exact smtTermAvoidsVar_of_closedIn_not_mem
+    (smtTermClosedIn_of_native_eo_to_smt_closed_safe t hClosed hSafe)
+    (by intro h; cases h)
+
 private theorem smtx_model_eval_eq_push_of_native_closed_safe
     (M : SmtModel) (F : Term) (s : native_String) (T : SmtType)
     (v : SmtValue)
@@ -3312,6 +3981,33 @@ private theorem smtx_model_eval_eq_push_of_native_closed_safe
     (smt_model_eval_eq_of_eo_smt_closed
       (P := F) (M := M) (N := native_model_push M s T v)
       hSmtClosed (model_agrees_on_globals_push M s T v)).symm
+
+private theorem contains_atomic_term_apply_false_parts
+    {f a x : Term}
+    (hx : x ≠ Term.Stuck)
+    (h :
+      __contains_atomic_term (Term.Apply f a) x =
+        Term.Boolean false) :
+    __contains_atomic_term f x = Term.Boolean false ∧
+      __contains_atomic_term a x = Term.Boolean false := by
+  rw [__contains_atomic_term.eq_3 x f a hx] at h
+  cases hf : __contains_atomic_term f x <;>
+    simp [__eo_ite, hf, native_ite, native_teq] at h
+  case Boolean b =>
+    cases b
+    · simp at h ⊢
+      exact h
+    · simp at h
+
+private theorem smtTermAvoidsVar_of_contains_atomic_term_false
+    (F : Term) (s : native_String) (T : Term)
+    (hTValid : eo_type_valid T)
+    (hNoOccur :
+      __contains_atomic_term F (Term.Var (Term.String s) T) =
+        Term.Boolean false)
+    (hSafe : NativeEoToSmtUOpIndicesSafe F) :
+    SmtTermAvoidsVar s (__eo_to_smt_type T) (__eo_to_smt F) := by
+  sorry
 
 /--
 If `contains_atomic_term` says an EO body does not mention a binder variable,
@@ -3334,7 +4030,9 @@ theorem smtx_model_eval_eq_push_of_contains_atomic_term_false
         (native_model_push M s (__eo_to_smt_type T) v)
         (__eo_to_smt F) =
       __smtx_model_eval M (__eo_to_smt F) := by
-  sorry
+  exact smtx_model_eval_eq_push_of_avoids
+    (smtTermAvoidsVar_of_contains_atomic_term_false
+      F s T hTValid hNoOccur hSafe)
 
 private def native_contains_atomic_term_bool_safe : Term -> native_Bool
   | Term.Stuck => false
