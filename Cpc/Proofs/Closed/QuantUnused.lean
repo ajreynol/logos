@@ -92,6 +92,160 @@ private theorem uop_indices_safe_apply_right {f x : Term}
     simpa [NativeEoToSmtUOpIndicesSafe,
       native_eo_to_smt_uop_indices_safe] using h)
 
+private theorem uop_indices_safe_uop1_closed {op : UserOp1} {x : Term}
+    (h : NativeEoToSmtUOpIndicesSafe (Term.UOp1 op x)) :
+    native_eo_to_smt_closed x = true := by
+  exact native_and_left_eq_true (by
+    simpa [NativeEoToSmtUOpIndicesSafe,
+      native_eo_to_smt_uop_indices_safe] using h)
+
+private theorem uop_indices_safe_uop1_safe {op : UserOp1} {x : Term}
+    (h : NativeEoToSmtUOpIndicesSafe (Term.UOp1 op x)) :
+    NativeEoToSmtUOpIndicesSafe x := by
+  exact native_and_right_eq_true (by
+    simpa [NativeEoToSmtUOpIndicesSafe,
+      native_eo_to_smt_uop_indices_safe] using h)
+
+private theorem uop_indices_safe_uop2_closed_left {op : UserOp2}
+    {x y : Term}
+    (h : NativeEoToSmtUOpIndicesSafe (Term.UOp2 op x y)) :
+    native_eo_to_smt_closed x = true := by
+  have hClosedBoth :
+      native_and (native_eo_to_smt_closed x) (native_eo_to_smt_closed y) =
+        true :=
+    native_and_left_eq_true (by
+      simpa [NativeEoToSmtUOpIndicesSafe,
+        native_eo_to_smt_uop_indices_safe] using h)
+  exact native_and_left_eq_true hClosedBoth
+
+private theorem uop_indices_safe_uop2_closed_right {op : UserOp2}
+    {x y : Term}
+    (h : NativeEoToSmtUOpIndicesSafe (Term.UOp2 op x y)) :
+    native_eo_to_smt_closed y = true := by
+  have hClosedBoth :
+      native_and (native_eo_to_smt_closed x) (native_eo_to_smt_closed y) =
+        true :=
+    native_and_left_eq_true (by
+      simpa [NativeEoToSmtUOpIndicesSafe,
+        native_eo_to_smt_uop_indices_safe] using h)
+  exact native_and_right_eq_true hClosedBoth
+
+private theorem uop_indices_safe_uop2_safe_left {op : UserOp2}
+    {x y : Term}
+    (h : NativeEoToSmtUOpIndicesSafe (Term.UOp2 op x y)) :
+    NativeEoToSmtUOpIndicesSafe x := by
+  have hSafeBoth :
+      native_and (native_eo_to_smt_uop_indices_safe x)
+          (native_eo_to_smt_uop_indices_safe y) =
+        true :=
+    native_and_right_eq_true (by
+      simpa [NativeEoToSmtUOpIndicesSafe,
+        native_eo_to_smt_uop_indices_safe] using h)
+  exact native_and_left_eq_true hSafeBoth
+
+private theorem uop_indices_safe_uop2_safe_right {op : UserOp2}
+    {x y : Term}
+    (h : NativeEoToSmtUOpIndicesSafe (Term.UOp2 op x y)) :
+    NativeEoToSmtUOpIndicesSafe y := by
+  have hSafeBoth :
+      native_and (native_eo_to_smt_uop_indices_safe x)
+          (native_eo_to_smt_uop_indices_safe y) =
+        true :=
+    native_and_right_eq_true (by
+      simpa [NativeEoToSmtUOpIndicesSafe,
+        native_eo_to_smt_uop_indices_safe] using h)
+  exact native_and_right_eq_true hSafeBoth
+
+private theorem uop_indices_safe_uop3_closed_left {op : UserOp3}
+    {x y z : Term}
+    (h : NativeEoToSmtUOpIndicesSafe (Term.UOp3 op x y z)) :
+    native_eo_to_smt_closed x = true := by
+  have hClosedAll :
+      native_and
+          (native_and (native_eo_to_smt_closed x)
+            (native_eo_to_smt_closed y))
+          (native_eo_to_smt_closed z) =
+        true :=
+    native_and_left_eq_true (by
+      simpa [NativeEoToSmtUOpIndicesSafe,
+        native_eo_to_smt_uop_indices_safe] using h)
+  exact native_and_left_eq_true (native_and_left_eq_true hClosedAll)
+
+private theorem uop_indices_safe_uop3_closed_middle {op : UserOp3}
+    {x y z : Term}
+    (h : NativeEoToSmtUOpIndicesSafe (Term.UOp3 op x y z)) :
+    native_eo_to_smt_closed y = true := by
+  have hClosedAll :
+      native_and
+          (native_and (native_eo_to_smt_closed x)
+            (native_eo_to_smt_closed y))
+          (native_eo_to_smt_closed z) =
+        true :=
+    native_and_left_eq_true (by
+      simpa [NativeEoToSmtUOpIndicesSafe,
+        native_eo_to_smt_uop_indices_safe] using h)
+  exact native_and_right_eq_true (native_and_left_eq_true hClosedAll)
+
+private theorem uop_indices_safe_uop3_closed_right {op : UserOp3}
+    {x y z : Term}
+    (h : NativeEoToSmtUOpIndicesSafe (Term.UOp3 op x y z)) :
+    native_eo_to_smt_closed z = true := by
+  have hClosedAll :
+      native_and
+          (native_and (native_eo_to_smt_closed x)
+            (native_eo_to_smt_closed y))
+          (native_eo_to_smt_closed z) =
+        true :=
+    native_and_left_eq_true (by
+      simpa [NativeEoToSmtUOpIndicesSafe,
+        native_eo_to_smt_uop_indices_safe] using h)
+  exact native_and_right_eq_true hClosedAll
+
+private theorem uop_indices_safe_uop3_safe_left {op : UserOp3}
+    {x y z : Term}
+    (h : NativeEoToSmtUOpIndicesSafe (Term.UOp3 op x y z)) :
+    NativeEoToSmtUOpIndicesSafe x := by
+  have hSafeAll :
+      native_and
+          (native_and (native_eo_to_smt_uop_indices_safe x)
+            (native_eo_to_smt_uop_indices_safe y))
+          (native_eo_to_smt_uop_indices_safe z) =
+        true :=
+    native_and_right_eq_true (by
+      simpa [NativeEoToSmtUOpIndicesSafe,
+        native_eo_to_smt_uop_indices_safe] using h)
+  exact native_and_left_eq_true (native_and_left_eq_true hSafeAll)
+
+private theorem uop_indices_safe_uop3_safe_middle {op : UserOp3}
+    {x y z : Term}
+    (h : NativeEoToSmtUOpIndicesSafe (Term.UOp3 op x y z)) :
+    NativeEoToSmtUOpIndicesSafe y := by
+  have hSafeAll :
+      native_and
+          (native_and (native_eo_to_smt_uop_indices_safe x)
+            (native_eo_to_smt_uop_indices_safe y))
+          (native_eo_to_smt_uop_indices_safe z) =
+        true :=
+    native_and_right_eq_true (by
+      simpa [NativeEoToSmtUOpIndicesSafe,
+        native_eo_to_smt_uop_indices_safe] using h)
+  exact native_and_right_eq_true (native_and_left_eq_true hSafeAll)
+
+private theorem uop_indices_safe_uop3_safe_right {op : UserOp3}
+    {x y z : Term}
+    (h : NativeEoToSmtUOpIndicesSafe (Term.UOp3 op x y z)) :
+    NativeEoToSmtUOpIndicesSafe z := by
+  have hSafeAll :
+      native_and
+          (native_and (native_eo_to_smt_uop_indices_safe x)
+            (native_eo_to_smt_uop_indices_safe y))
+          (native_eo_to_smt_uop_indices_safe z) =
+        true :=
+    native_and_right_eq_true (by
+      simpa [NativeEoToSmtUOpIndicesSafe,
+        native_eo_to_smt_uop_indices_safe] using h)
+  exact native_and_right_eq_true hSafeAll
+
 private theorem term_ne_stuck_of_eo_to_smt_type_bool
     {t : Term}
     (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.Bool) :
@@ -1554,6 +1708,45 @@ private theorem eoListOfTerms_concat
   simp [__eo_list_concat, __eo_requires, eoListOfTerms_is_list,
     native_ite, native_teq, native_not, eoListOfTerms_concat_rec]
 
+private theorem EoSmtVarEnv_eoListOfTerms_no_stuck :
+    ∀ {env : List Term} {vars : List SmtVarKey},
+      EoSmtVarEnv (eoListOfTerms env) vars ->
+        ∀ x, x ∈ env -> x ≠ Term.Stuck
+  | [], vars, _hEnv => by
+      intro x hx
+      simp at hx
+  | x :: xs, vars, hEnv => by
+      change
+        EoSmtVarEnv
+          (Term.Apply (Term.Apply Term.__eo_List_cons x) (eoListOfTerms xs))
+          vars at hEnv
+      cases hEnv with
+      | cons hTail =>
+          intro z hz
+          cases hz with
+          | head =>
+              simp
+          | tail _ hzTail =>
+              exact EoSmtVarEnv_eoListOfTerms_no_stuck hTail z hzTail
+
+private theorem EoSmtVarEnvPerm_eoListOfTerms_no_stuck
+    {env : List Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnvPerm (eoListOfTerms env) vars) :
+    ∀ x, x ∈ env -> x ≠ Term.Stuck := by
+  rcases hEnv with ⟨exactVars, hExact, _hEquiv⟩
+  exact EoSmtVarEnv_eoListOfTerms_no_stuck hExact
+
+private theorem EoSmtVarEnvPerm_eoListOfTerms_concat_rev
+    {xs env : List Term} {binderVars vars : List SmtVarKey}
+    (hVs : EoSmtVarEnv (eoListOfTerms xs) binderVars)
+    (hEnv : EoSmtVarEnvPerm (eoListOfTerms env) vars) :
+    EoSmtVarEnvPerm (eoListOfTerms (xs ++ env))
+      (binderVars.reverse ++ vars) := by
+  simpa [eoListOfTerms_concat] using
+    EoSmtVarEnvPerm.concat_rev
+      (vs := eoListOfTerms xs) (env := eoListOfTerms env)
+      hVs hEnv
+
 private theorem eo_is_closed_rec_var_eoListOfTerms_of_mem :
     ∀ {s T : Term} {env : List Term},
       (∀ x, x ∈ env -> x ≠ Term.Stuck) ->
@@ -1583,6 +1776,617 @@ private theorem eo_is_closed_rec_var_eoListOfTerms_of_mem :
             hEq, hEq', native_ite, native_teq] using
             eo_is_closed_rec_var_eoListOfTerms_of_mem hysNoStuck hTail
 
+private theorem smtTermClosedIn_weaken_nil
+    {vars : List SmtVarKey} {t : SmtTerm}
+    (h : SmtTermClosedIn [] t) :
+    SmtTermClosedIn vars t := by
+  exact SmtTermClosedIn.mono
+    (t := t) (vars := []) (vars' := vars)
+    (by intro s T hMem; cases hMem)
+    h
+
+private theorem smtTermClosedIn_eo_to_smt_set_insert_native_using
+    (root : Term)
+    (hRec :
+      ∀ {u : Term} {env' : List Term} {vars' : List SmtVarKey},
+        sizeOf u < sizeOf root ->
+          EoSmtVarEnvPerm (eoListOfTerms env') vars' ->
+            native_eo_to_smt_closed_rec u env' = true ->
+              NativeEoToSmtUOpIndicesSafe u ->
+                SmtTermClosedIn vars' (__eo_to_smt u)) :
+    ∀ {xs : Term} {base : SmtTerm} {env : List Term}
+        {vars : List SmtVarKey},
+      sizeOf xs < sizeOf root ->
+        EoSmtVarEnvPerm (eoListOfTerms env) vars ->
+          native_eo_to_smt_closed_rec xs env = true ->
+            NativeEoToSmtUOpIndicesSafe xs ->
+              SmtTermClosedIn vars base ->
+                SmtTermClosedIn vars (__eo_to_smt_set_insert xs base)
+  | Term.__eo_List_nil, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
+      hBase =>
+      by
+        simpa [__eo_to_smt_set_insert] using hBase
+  | Term.Apply f tail, base, env, vars, hLt, hEnv, hClosed, hSafe, hBase =>
+      by
+        cases f <;> try trivial
+        case Apply g head =>
+          cases g <;> try trivial
+          case __eo_List_cons =>
+            have hOuter :
+                native_and
+                    (native_eo_to_smt_closed_rec
+                      (Term.Apply Term.__eo_List_cons head) env)
+                    (native_eo_to_smt_closed_rec tail env) =
+                  true := by
+              simpa [native_eo_to_smt_closed_rec] using hClosed
+            have hInner :
+                native_and
+                    (native_eo_to_smt_closed_rec Term.__eo_List_cons env)
+                    (native_eo_to_smt_closed_rec head env) =
+                  true := by
+              simpa [native_eo_to_smt_closed_rec] using
+                native_and_left_eq_true hOuter
+            have hHeadClosed :
+                native_eo_to_smt_closed_rec head env = true :=
+              native_and_right_eq_true hInner
+            have hTailClosed :
+                native_eo_to_smt_closed_rec tail env = true :=
+              native_and_right_eq_true hOuter
+            have hHeadSafe :
+                NativeEoToSmtUOpIndicesSafe head :=
+              uop_indices_safe_apply_right
+                (uop_indices_safe_apply_left hSafe)
+            have hTailSafe :
+                NativeEoToSmtUOpIndicesSafe tail :=
+              uop_indices_safe_apply_right hSafe
+            have hHeadLt : sizeOf head < sizeOf root := by
+              simp at hLt
+              omega
+            have hTailLt : sizeOf tail < sizeOf root := by
+              simp at hLt
+              omega
+            change SmtTermClosedIn vars
+              (SmtTerm.set_union
+                (SmtTerm.set_singleton (__eo_to_smt head))
+                (__eo_to_smt_set_insert tail base))
+            exact
+              ⟨hRec hHeadLt hEnv hHeadClosed hHeadSafe,
+                smtTermClosedIn_eo_to_smt_set_insert_native_using root hRec
+                  hTailLt hEnv hTailClosed hTailSafe hBase⟩
+  | Term.UOp _, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
+      _hBase => by trivial
+  | Term.UOp1 _ _, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
+      _hBase => by trivial
+  | Term.UOp2 _ _ _, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
+      _hBase => by trivial
+  | Term.UOp3 _ _ _ _, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
+      _hBase => by trivial
+  | Term.__eo_List, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
+      _hBase => by trivial
+  | Term.__eo_List_cons, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
+      _hBase => by trivial
+  | Term.Bool, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
+      _hBase => by trivial
+  | Term.Boolean _, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
+      _hBase => by trivial
+  | Term.Numeral _, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
+      _hBase => by trivial
+  | Term.Rational _, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
+      _hBase => by trivial
+  | Term.String _, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
+      _hBase => by trivial
+  | Term.Binary _ _, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
+      _hBase => by trivial
+  | Term.Type, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
+      _hBase => by trivial
+  | Term.Stuck, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
+      _hBase => by trivial
+  | Term.FunType, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
+      _hBase => by trivial
+  | Term.Var _ _, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
+      _hBase => by trivial
+  | Term.DatatypeType _ _, base, env, vars, _hLt, _hEnv, _hClosed,
+      _hSafe, _hBase => by trivial
+  | Term.DatatypeTypeRef _, base, env, vars, _hLt, _hEnv, _hClosed,
+      _hSafe, _hBase => by trivial
+  | Term.DtcAppType _ _, base, env, vars, _hLt, _hEnv, _hClosed,
+      _hSafe, _hBase => by trivial
+  | Term.DtCons _ _ _, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
+      _hBase => by trivial
+  | Term.DtSel _ _ _ _, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
+      _hBase => by trivial
+  | Term.USort _, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
+      _hBase => by trivial
+  | Term.UConst _ _, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
+      _hBase => by trivial
+
+private theorem smtTermClosedIn_eo_to_smt_set_insert_apply_native_using
+    (root : Term)
+    (hRec :
+      ∀ {u : Term} {env' : List Term} {vars' : List SmtVarKey},
+        sizeOf u < sizeOf root ->
+          EoSmtVarEnvPerm (eoListOfTerms env') vars' ->
+            native_eo_to_smt_closed_rec u env' = true ->
+              NativeEoToSmtUOpIndicesSafe u ->
+                SmtTermClosedIn vars' (__eo_to_smt u))
+    {xs x : Term} {env : List Term} {vars : List SmtVarKey}
+    (hXsLt : sizeOf xs < sizeOf root)
+    (hEnv : EoSmtVarEnvPerm (eoListOfTerms env) vars)
+    (hClosed : native_eo_to_smt_closed_rec xs env = true)
+    (hSafe : NativeEoToSmtUOpIndicesSafe xs)
+    (hBase : SmtTermClosedIn vars (__eo_to_smt x)) :
+    SmtTermClosedIn vars
+      (__eo_to_smt
+        (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) x)) := by
+  cases xs
+  case __eo_List_nil =>
+    trivial
+  all_goals
+    change SmtTermClosedIn vars
+      (__eo_to_smt_set_insert _ (__eo_to_smt x))
+    exact smtTermClosedIn_eo_to_smt_set_insert_native_using
+      root hRec hXsLt hEnv hClosed hSafe hBase
+
+private theorem smtTermClosedIn_of_native_eo_to_smt_closed_rec_safe_lt
+    (n : Nat) {t : Term} {env : List Term} {vars : List SmtVarKey}
+    (hLt : sizeOf t < n)
+    (hEnv : EoSmtVarEnvPerm (eoListOfTerms env) vars)
+    (hClosed : native_eo_to_smt_closed_rec t env = true)
+    (hSafe : NativeEoToSmtUOpIndicesSafe t) :
+    SmtTermClosedIn vars (__eo_to_smt t) := by
+  cases n with
+  | zero =>
+      omega
+  | succ n =>
+      let hRec :
+          ∀ {u : Term} {env' : List Term} {vars' : List SmtVarKey},
+            sizeOf u < sizeOf t ->
+              EoSmtVarEnvPerm (eoListOfTerms env') vars' ->
+                native_eo_to_smt_closed_rec u env' = true ->
+                  NativeEoToSmtUOpIndicesSafe u ->
+                    SmtTermClosedIn vars' (__eo_to_smt u) :=
+        fun {u} {env'} {vars'} hULt hEnv' hClosed' hSafe' =>
+          smtTermClosedIn_of_native_eo_to_smt_closed_rec_safe_lt
+            n (t := u) (env := env') (vars := vars')
+            (by omega) hEnv' hClosed' hSafe'
+      cases t
+      case Stuck =>
+        simp [native_eo_to_smt_closed_rec] at hClosed
+      case Var name T =>
+        cases name <;> try trivial
+        case String s =>
+          have hNoStuck :=
+            EoSmtVarEnvPerm_eoListOfTerms_no_stuck hEnv
+          have hEoClosed :
+              __eo_is_closed_rec (Term.Var (Term.String s) T)
+                  (eoListOfTerms env) =
+                Term.Boolean true :=
+            eo_is_closed_rec_var_eoListOfTerms_of_mem hNoStuck
+              (by simpa [native_eo_to_smt_closed_rec] using hClosed)
+          exact smtTermClosedIn_eo_to_smt_var_of_closed_rec_perm
+            hEnv hEoClosed
+      case UOp op =>
+        exact smtTermClosedIn_eo_to_smt_uop vars op
+      case UOp1 op x =>
+        have hxClosed0 :
+            SmtTermClosedIn [] (__eo_to_smt x) :=
+          hRec (u := x) (env' := []) (vars' := [])
+            (by simp; omega)
+            (by
+              simpa [eoListOfTerms] using
+                EoSmtVarEnvPerm.of_exact EoSmtVarEnv.nil)
+            (by
+              simpa [native_eo_to_smt_closed] using
+                uop_indices_safe_uop1_closed hSafe)
+            (uop_indices_safe_uop1_safe hSafe)
+        have hxClosed : SmtTermClosedIn vars (__eo_to_smt x) :=
+          smtTermClosedIn_weaken_nil hxClosed0
+        cases op <;> try trivial
+        case _at_purify =>
+          exact smtTermClosedIn_eo_to_smt_purify hxClosed
+        case seq_empty =>
+          exact smtTermClosedIn_eo_to_smt_seq_empty vars x
+        case _at_strings_stoi_non_digit =>
+          exact smtTermClosedIn_eo_to_smt_strings_stoi_non_digit hxClosed
+        case set_empty =>
+          exact smtTermClosedIn_eo_to_smt_set_empty vars x
+      case UOp2 op x y =>
+        have hxClosed0 :
+            SmtTermClosedIn [] (__eo_to_smt x) :=
+          hRec (u := x) (env' := []) (vars' := [])
+            (by simp; omega)
+            (by
+              simpa [eoListOfTerms] using
+                EoSmtVarEnvPerm.of_exact EoSmtVarEnv.nil)
+            (by
+              simpa [native_eo_to_smt_closed] using
+                uop_indices_safe_uop2_closed_left hSafe)
+            (uop_indices_safe_uop2_safe_left hSafe)
+        have hyClosed0 :
+            SmtTermClosedIn [] (__eo_to_smt y) :=
+          hRec (u := y) (env' := []) (vars' := [])
+            (by simp; omega)
+            (by
+              simpa [eoListOfTerms] using
+                EoSmtVarEnvPerm.of_exact EoSmtVarEnv.nil)
+            (by
+              simpa [native_eo_to_smt_closed] using
+                uop_indices_safe_uop2_closed_right hSafe)
+            (uop_indices_safe_uop2_safe_right hSafe)
+        have hxClosed : SmtTermClosedIn vars (__eo_to_smt x) :=
+          smtTermClosedIn_weaken_nil hxClosed0
+        have hyClosed : SmtTermClosedIn vars (__eo_to_smt y) :=
+          smtTermClosedIn_weaken_nil hyClosed0
+        cases op <;> try trivial
+        case _at_array_deq_diff =>
+          exact smtTermClosedIn_eo_to_smt_array_deq_diff hxClosed hyClosed
+        case _at_bv =>
+          exact smtTermClosedIn_eo_to_smt_at_bv vars x y
+        case _at_strings_deq_diff =>
+          exact smtTermClosedIn_eo_to_smt_strings_deq_diff hxClosed hyClosed
+        case _at_sets_deq_diff =>
+          exact smtTermClosedIn_eo_to_smt_sets_deq_diff hxClosed hyClosed
+        case _at_quantifiers_skolemize =>
+          cases x <;> try trivial
+          case Apply f body =>
+            cases f <;> try trivial
+            case Apply g xs =>
+              cases g <;> try trivial
+              case UOp q =>
+                cases q <;> try trivial
+                case «forall» =>
+                  exact
+                    smtTermClosedIn_eo_to_smt_quantifiers_skolemize_forall
+                      hxClosed
+      case UOp3 op x y z =>
+        have hxClosed0 :
+            SmtTermClosedIn [] (__eo_to_smt x) :=
+          hRec (u := x) (env' := []) (vars' := [])
+            (by simp; omega)
+            (by
+              simpa [eoListOfTerms] using
+                EoSmtVarEnvPerm.of_exact EoSmtVarEnv.nil)
+            (by
+              simpa [native_eo_to_smt_closed] using
+                uop_indices_safe_uop3_closed_left hSafe)
+            (uop_indices_safe_uop3_safe_left hSafe)
+        have hyClosed0 :
+            SmtTermClosedIn [] (__eo_to_smt y) :=
+          hRec (u := y) (env' := []) (vars' := [])
+            (by simp; omega)
+            (by
+              simpa [eoListOfTerms] using
+                EoSmtVarEnvPerm.of_exact EoSmtVarEnv.nil)
+            (by
+              simpa [native_eo_to_smt_closed] using
+                uop_indices_safe_uop3_closed_middle hSafe)
+            (uop_indices_safe_uop3_safe_middle hSafe)
+        have hzClosed0 :
+            SmtTermClosedIn [] (__eo_to_smt z) :=
+          hRec (u := z) (env' := []) (vars' := [])
+            (by simp; omega)
+            (by
+              simpa [eoListOfTerms] using
+                EoSmtVarEnvPerm.of_exact EoSmtVarEnv.nil)
+            (by
+              simpa [native_eo_to_smt_closed] using
+                uop_indices_safe_uop3_closed_right hSafe)
+            (uop_indices_safe_uop3_safe_right hSafe)
+        have hxClosed : SmtTermClosedIn vars (__eo_to_smt x) :=
+          smtTermClosedIn_weaken_nil hxClosed0
+        have hyClosed : SmtTermClosedIn vars (__eo_to_smt y) :=
+          smtTermClosedIn_weaken_nil hyClosed0
+        have hzClosed : SmtTermClosedIn vars (__eo_to_smt z) :=
+          smtTermClosedIn_weaken_nil hzClosed0
+        cases op
+        case _at_re_unfold_pos_component =>
+          apply SmtTermClosedIn.guard_closed (x := x)
+          apply SmtTermClosedIn.guard_closed (x := y)
+          change SmtTermClosedIn vars
+            (native_ite (__eo_to_smt_nat_is_valid z)
+              (__eo_to_smt_re_unfold_pos_component
+                (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt_nat z))
+              SmtTerm.None)
+          cases __eo_to_smt_nat_is_valid z
+          · simp [native_ite, SmtTermClosedIn]
+          · simpa [native_ite] using
+              smtTermClosedIn_eo_to_smt_re_unfold_pos_component
+                hxClosed hyClosed (__eo_to_smt_nat z)
+        case _at_witness_string_length =>
+          exact smtTermClosedIn_eo_to_smt_witness_string_length hyClosed
+      case Apply f x =>
+        cases f
+        case Apply g y =>
+          cases g
+          case UOp op =>
+            by_cases hForall : op = UserOp.forall
+            · subst op
+              cases hList : native_eo_to_smt_term_list y with
+              | none =>
+                  simp [native_eo_to_smt_closed_rec, hList] at hClosed
+              | some xs =>
+                  have hyEq :
+                      y = eoListOfTerms xs :=
+                    native_eo_to_smt_term_list_eq_eoListOfTerms hList
+                  subst y
+                  exact smtTermClosedIn_eo_to_smt_forall_term_of_env_or_none
+                    (vs := eoListOfTerms xs) (body := x) (vars := vars)
+                    (by
+                      intro binderVars hVs
+                      exact hRec (u := x) (env' := xs ++ env)
+                        (by simp; omega)
+                        (EoSmtVarEnvPerm_eoListOfTerms_concat_rev
+                          hVs hEnv)
+                        (by
+                          simpa [native_eo_to_smt_closed_rec, hList]
+                            using hClosed)
+                        (uop_indices_safe_apply_right hSafe))
+            · by_cases hExists : op = UserOp.exists
+              · subst op
+                cases hList : native_eo_to_smt_term_list y with
+                | none =>
+                    simp [native_eo_to_smt_closed_rec, hList] at hClosed
+                | some xs =>
+                    have hyEq :
+                        y = eoListOfTerms xs :=
+                      native_eo_to_smt_term_list_eq_eoListOfTerms hList
+                    subst y
+                    exact smtTermClosedIn_eo_to_smt_exists_term_of_env_or_none
+                      (vs := eoListOfTerms xs) (body := x) (vars := vars)
+                      (by
+                        intro binderVars hVs
+                        exact hRec (u := x) (env' := xs ++ env)
+                          (by simp; omega)
+                          (EoSmtVarEnvPerm_eoListOfTerms_concat_rev
+                            hVs hEnv)
+                          (by
+                            simpa [native_eo_to_smt_closed_rec, hList]
+                              using hClosed)
+                          (uop_indices_safe_apply_right hSafe))
+              ·
+                have hClosedSplit :
+                    native_and
+                        (native_eo_to_smt_closed_rec
+                          (Term.Apply (Term.UOp op) y) env)
+                        (native_eo_to_smt_closed_rec x env) =
+                      true := by
+                  cases op <;>
+                    simp [native_eo_to_smt_closed_rec] at hClosed hForall hExists ⊢ <;>
+                      assumption
+                have hfClosedNative :
+                    native_eo_to_smt_closed_rec
+                      (Term.Apply (Term.UOp op) y) env =
+                      true :=
+                  native_and_left_eq_true hClosedSplit
+                have hxClosedNative :
+                    native_eo_to_smt_closed_rec x env = true :=
+                  native_and_right_eq_true hClosedSplit
+                have hInnerSplit :
+                    native_and
+                        (native_eo_to_smt_closed_rec (Term.UOp op) env)
+                        (native_eo_to_smt_closed_rec y env) =
+                      true := by
+                  simpa [native_eo_to_smt_closed_rec] using hfClosedNative
+                have hyClosedNative :
+                    native_eo_to_smt_closed_rec y env = true :=
+                  native_and_right_eq_true hInnerSplit
+                have hfSafe :
+                    NativeEoToSmtUOpIndicesSafe
+                      (Term.Apply (Term.UOp op) y) :=
+                  uop_indices_safe_apply_left hSafe
+                have hySafe : NativeEoToSmtUOpIndicesSafe y :=
+                  uop_indices_safe_apply_right hfSafe
+                have hxSafe : NativeEoToSmtUOpIndicesSafe x :=
+                  uop_indices_safe_apply_right hSafe
+                have hfClosedSmt :
+                    SmtTermClosedIn vars
+                      (__eo_to_smt (Term.Apply (Term.UOp op) y)) :=
+                  hRec (u := Term.Apply (Term.UOp op) y)
+                    (by simp; omega) hEnv hfClosedNative hfSafe
+                have hyClosedSmt :
+                    SmtTermClosedIn vars (__eo_to_smt y) :=
+                  hRec (u := y) (by simp; omega) hEnv
+                    hyClosedNative hySafe
+                have hxClosedSmt :
+                    SmtTermClosedIn vars (__eo_to_smt x) :=
+                  hRec (u := x) (by simp; omega) hEnv
+                    hxClosedNative hxSafe
+                cases op <;>
+                  first
+                  | contradiction
+                  | exact smtTermClosedIn_eo_to_smt_or
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_and
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_imp
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_xor
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_eq
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_plus
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_neg
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_mult
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_lt
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_leq
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_gt
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_geq
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_div
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_mod
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_multmult
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_divisible
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_div_total
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_mod_total
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_multmult_total
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_select
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_concat
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_bvand
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_bvor
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_bvnand
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_bvnor
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_bvxor
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_bvxnor
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_bvcomp
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_bvadd
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_bvmul
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_bvudiv
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_bvurem
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_bvsub
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_bvsdiv
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_bvsrem
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_bvsmod
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_bvult
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_bvule
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_bvugt
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_bvuge
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_bvslt
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_bvsle
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_bvsgt
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_bvsge
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_bvshl
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_bvlshr
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_bvashr
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_bvuaddo
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_bvsaddo
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_bvumulo
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_bvsmulo
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_bvusubo
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_bvssubo
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_bvsdivo
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_bvultbv
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_bvsltbv
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_from_bools
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_str_concat
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_str_contains
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_str_at
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_str_prefixof
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_str_suffixof
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_str_lt
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_str_leq
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_re_range
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_re_concat
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_re_inter
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_re_union
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_re_diff
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_str_in_re
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_seq_nth
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_strings_num_occur
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_tuple
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_set_union
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_set_inter
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_set_minus
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_set_member
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_set_subset
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_qdiv
+                      hyClosedSmt hxClosedSmt
+                  | exact smtTermClosedIn_eo_to_smt_qdiv_total
+                      hyClosedSmt hxClosedSmt
+                  | exact
+                      smtTermClosedIn_eo_to_smt_set_insert_apply_native_using
+                        (Term.Apply
+                          (Term.Apply (Term.UOp UserOp.set_insert) y)
+                          x)
+                        (fun {u} {env'} {vars'} hULt hEnv' hClosed'
+                            hSafe' =>
+                          hRec (u := u) hULt hEnv' hClosed' hSafe')
+                        (by simp; omega) hEnv hyClosedNative hySafe
+                        hxClosedSmt
+                  | (
+                      change SmtTermClosedIn vars
+                        (SmtTerm.Apply
+                          (__eo_to_smt (Term.Apply (Term.UOp _) y))
+                          (__eo_to_smt x))
+                      exact ⟨hfClosedSmt, hxClosedSmt⟩)
+          all_goals
+            sorry
+        all_goals
+          sorry
+      case DtCons s d i =>
+        exact smtTermClosedIn_eo_to_smt_dtcons vars s d i
+      case DtSel s d i j =>
+        exact smtTermClosedIn_eo_to_smt_dtsel vars s d i j
+      case UConst i T =>
+        exact smtTermClosedIn_eo_to_smt_uconst vars i T
+      all_goals
+        change True
+        trivial
+termination_by n
+decreasing_by
+  all_goals omega
+
 /--
 Bridge from the native standalone-closed checker to SMT closedness.
 
@@ -1597,7 +2401,14 @@ private theorem smtTermClosedIn_of_native_eo_to_smt_closed_safe
     (hClosed : native_eo_to_smt_closed t = true)
     (hSafe : NativeEoToSmtUOpIndicesSafe t) :
     SmtTermClosedIn [] (__eo_to_smt t) := by
-  sorry
+  exact smtTermClosedIn_of_native_eo_to_smt_closed_rec_safe_lt
+    (sizeOf t + 1) (t := t) (env := []) (vars := [])
+    (by omega)
+    (by
+      simpa [eoListOfTerms] using
+        EoSmtVarEnvPerm.of_exact EoSmtVarEnv.nil)
+    (by simpa [native_eo_to_smt_closed] using hClosed)
+    hSafe
 
 private theorem smtx_model_eval_eq_push_of_native_closed_safe
     (M : SmtModel) (F : Term) (s : native_String) (T : SmtType)
