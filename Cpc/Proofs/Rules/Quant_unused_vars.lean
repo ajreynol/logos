@@ -37,6 +37,24 @@ private theorem requires_same_eq_body
   simp [__eo_requires, native_ite, native_teq, hx, native_not,
     SmtEval.native_not]
 
+private theorem eq_true_of_requires_true_not_stuck {x B : Term} :
+    __eo_requires x (Term.Boolean true) B ≠ Term.Stuck ->
+    x = Term.Boolean true := by
+  intro hReq
+  cases x <;> cases B <;>
+    simp [__eo_requires, native_ite, native_teq, native_not,
+      SmtEval.native_not] at hReq ⊢
+  all_goals assumption
+
+private theorem quant_head_shape_of_or_eq_true {Q : Term} :
+    __eo_or (__eo_eq Q (Term.UOp UserOp.forall))
+      (__eo_eq Q (Term.UOp UserOp.exists)) = Term.Boolean true ->
+    Q = Term.UOp UserOp.forall ∨ Q = Term.UOp UserOp.exists := by
+  intro h
+  cases Q <;> simp [__eo_or, __eo_eq, native_teq, native_or] at h ⊢
+  case UOp op =>
+    cases op <;> simp at h ⊢
+
 private theorem quant_unused_vars_shape_of_not_stuck
     (a1 : Term) :
     __eo_prog_quant_unused_vars a1 ≠ Term.Stuck ->
@@ -44,7 +62,8 @@ private theorem quant_unused_vars_shape_of_not_stuck
       a1 = quantUnusedVarsFormula Q x F G ∧
       __eo_prog_quant_unused_vars a1 =
         quantUnusedVarsFormula Q x F G ∧
-      __mk_quant Q (__mk_quant_unused_vars_rec x F) F = G := by
+      __mk_quant Q (__mk_quant_unused_vars_rec x F) F = G ∧
+      (Q = Term.UOp UserOp.forall ∨ Q = Term.UOp UserOp.exists) := by
   intro hProg
   cases a1 with
   | Apply lhs G =>
@@ -58,6 +77,55 @@ private theorem quant_unused_vars_shape_of_not_stuck
                   | Apply qHead F =>
                       cases qHead with
                       | Apply Q x =>
+                          have hOuterReq :
+                              __eo_requires
+                                  (__eo_or
+                                    (__eo_eq Q (Term.UOp UserOp.forall))
+                                    (__eo_eq Q (Term.UOp UserOp.exists)))
+                                  (Term.Boolean true)
+                                  (__eo_requires
+                                    (__mk_quant Q
+                                      (__mk_quant_unused_vars_rec x F) F)
+                                    G
+                                    (quantUnusedVarsFormula Q x F G)) ≠
+                                Term.Stuck := by
+                            simpa [quantUnusedVarsFormula, qeq, qquant,
+                              __eo_prog_quant_unused_vars] using hProg
+                          have hQEq :
+                              __eo_or
+                                  (__eo_eq Q (Term.UOp UserOp.forall))
+                                  (__eo_eq Q (Term.UOp UserOp.exists)) =
+                                Term.Boolean true :=
+                            eq_true_of_requires_true_not_stuck hOuterReq
+                          have hQShape :
+                              Q = Term.UOp UserOp.forall ∨
+                                Q = Term.UOp UserOp.exists :=
+                            quant_head_shape_of_or_eq_true hQEq
+                          have hQNe :
+                              __eo_or
+                                  (__eo_eq Q (Term.UOp UserOp.forall))
+                                  (__eo_eq Q (Term.UOp UserOp.exists)) ≠
+                                Term.Stuck := by
+                            rw [hQEq]
+                            intro h
+                            cases h
+                          have hOuterEq :
+                              __eo_requires
+                                  (__eo_or
+                                    (__eo_eq Q (Term.UOp UserOp.forall))
+                                    (__eo_eq Q (Term.UOp UserOp.exists)))
+                                  (Term.Boolean true)
+                                  (__eo_requires
+                                    (__mk_quant Q
+                                      (__mk_quant_unused_vars_rec x F) F)
+                                    G
+                                    (quantUnusedVarsFormula Q x F G)) =
+                                __eo_requires
+                                  (__mk_quant Q
+                                    (__mk_quant_unused_vars_rec x F) F)
+                                  G
+                                  (quantUnusedVarsFormula Q x F G) :=
+                            requires_same_eq_body hQEq hQNe
                           have hReq :
                               __eo_requires
                                   (__mk_quant Q
@@ -65,8 +133,9 @@ private theorem quant_unused_vars_shape_of_not_stuck
                                   G
                                   (quantUnusedVarsFormula Q x F G) ≠
                                 Term.Stuck := by
-                            simpa [quantUnusedVarsFormula, qeq, qquant,
-                              __eo_prog_quant_unused_vars] using hProg
+                            intro hStuck
+                            apply hOuterReq
+                            rw [hOuterEq, hStuck]
                           have hMkEq :
                               __mk_quant Q
                                   (__mk_quant_unused_vars_rec x F) F =
@@ -83,12 +152,13 @@ private theorem quant_unused_vars_shape_of_not_stuck
                             simp [hStuck, __eo_requires, native_ite,
                               native_teq, native_not,
                               SmtEval.native_not] at hReq
-                          refine ⟨Q, x, F, G, rfl, ?_, hMkEq⟩
+                          refine ⟨Q, x, F, G, rfl, ?_, hMkEq, hQShape⟩
                           change __eo_prog_quant_unused_vars
                               (quantUnusedVarsFormula Q x F G) =
                             quantUnusedVarsFormula Q x F G
-                          simpa [quantUnusedVarsFormula, qeq, qquant,
+                          simp [quantUnusedVarsFormula, qeq, qquant,
                             __eo_prog_quant_unused_vars,
+                            requires_same_eq_body hQEq hQNe,
                             requires_same_eq_body hMkEq hMkNe]
                       | _ =>
                           simp [__eo_prog_quant_unused_vars] at hProg
@@ -106,6 +176,8 @@ private theorem quant_unused_vars_shape_of_not_stuck
 private theorem smtx_model_eval_quant_unused_vars_mk
     (M : SmtModel) (hM : model_total_typed M)
     (Q x F : Term)
+    (hQ :
+      Q = Term.UOp UserOp.forall ∨ Q = Term.UOp UserOp.exists)
     (hBool :
       RuleProofs.eo_has_bool_type
         (quantUnusedVarsFormula Q x F
@@ -151,7 +223,7 @@ by
                 change __eo_prog_quant_unused_vars a1 ≠ Term.Stuck at hProg
                 simpa using hProg
               rcases quant_unused_vars_shape_of_not_stuck a1 hProgQuant with
-                ⟨Q, x, F, G, ha1, hProgEq, hMkEq⟩
+                ⟨Q, x, F, G, ha1, hProgEq, hMkEq, hQShape⟩
               have hTransFormula :
                   RuleProofs.eo_has_smt_translation
                     (quantUnusedVarsFormula Q x F G) := by
@@ -198,7 +270,7 @@ by
                 · rw [← hMkEq]
                   have hEval :=
                     smtx_model_eval_quant_unused_vars_mk
-                      M hM Q x F hMkFormulaBool hMkSafeFormula
+                      M hM Q x F hQShape hMkFormulaBool hMkSafeFormula
                   rw [hEval]
                   exact RuleProofs.smt_value_rel_refl
                     (__smtx_model_eval M

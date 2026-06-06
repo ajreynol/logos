@@ -3463,7 +3463,7 @@ def __mk_quant : Term -> Term -> Term -> Term
 
 
 def __eo_prog_quant_unused_vars : Term -> Term
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply Q x) F)) G) => (__eo_requires (__mk_quant Q (__mk_quant_unused_vars_rec x F) F) G (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply Q x) F)) G))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply Q x) F)) G) => (__eo_requires (__eo_or (__eo_eq Q (Term.UOp UserOp.forall)) (__eo_eq Q (Term.UOp UserOp.exists))) (Term.Boolean true) (__eo_requires (__mk_quant Q (__mk_quant_unused_vars_rec x F) F) G (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply Q x) F)) G)))
   | _ => Term.Stuck
 
 
