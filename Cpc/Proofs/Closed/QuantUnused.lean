@@ -379,6 +379,43 @@ private theorem smtExistsOfBinders_cons_congr
   have hPropEq : P = Q := propext hPQ
   simp [smtExistsOfBinders, __smtx_model_eval, P, Q, hPropEq]
 
+private theorem smtExistsOfBinders_cons_congr_typed
+    (M : SmtModel) (b : QuantBinder) (t u : SmtTerm) :
+    (∀ v : SmtValue,
+      __smtx_typeof_value v = b.2 ->
+      __smtx_value_canonical_bool v = true ->
+        __smtx_model_eval (native_model_push M b.1 b.2 v) t =
+          __smtx_model_eval (native_model_push M b.1 b.2 v) u) ->
+    __smtx_model_eval M (smtExistsOfBinders [b] t) =
+      __smtx_model_eval M (smtExistsOfBinders [b] u) := by
+  rcases b with ⟨s, T⟩
+  intro hEval
+  classical
+  let P : Prop :=
+    ∃ v : SmtValue,
+      __smtx_typeof_value v = T ∧
+        __smtx_value_canonical_bool v = true ∧
+        __smtx_model_eval (native_model_push M s T v) t =
+          SmtValue.Boolean true
+  let Q : Prop :=
+    ∃ v : SmtValue,
+      __smtx_typeof_value v = T ∧
+        __smtx_value_canonical_bool v = true ∧
+        __smtx_model_eval (native_model_push M s T v) u =
+          SmtValue.Boolean true
+  have hPQ : P ↔ Q := by
+    constructor
+    · intro hSat
+      rcases hSat with ⟨v, hv, hCan, hT⟩
+      exact ⟨v, hv, hCan, by
+        simpa [hEval v hv hCan] using hT⟩
+    · intro hSat
+      rcases hSat with ⟨v, hv, hCan, hU⟩
+      exact ⟨v, hv, hCan, by
+        simpa [hEval v hv hCan] using hU⟩
+  have hPropEq : P = Q := propext hPQ
+  simp [smtExistsOfBinders, __smtx_model_eval, P, Q, hPropEq]
+
 private theorem smtExistsOfBinders_swap
     (M : SmtModel) (b1 b2 : QuantBinder) (tail : List QuantBinder)
     (body : SmtTerm) :
@@ -658,6 +695,33 @@ private theorem smtExistsOfBinders_unused_head
     (smtExistsOfBinders bs body) hWF hBodyTy
     (fun v =>
       smtExistsOfBinders_eval_eq_push_of_body_inv s T body hInv bs M v)
+
+private theorem smtExistsOfBinders_binder_wf_of_mem
+    (body : SmtTerm) :
+    ∀ {bs : List QuantBinder} {b : QuantBinder},
+      b ∈ bs ->
+      __smtx_typeof (smtExistsOfBinders bs body) = SmtType.Bool ->
+      __smtx_type_wf b.2 = true
+  | [], b, hMem, _hTy => by
+      simp at hMem
+  | c :: cs, b, hMem, hTy => by
+      simp at hMem
+      rcases hMem with hEq | hMem
+      · subst b
+        exact smtExistsOfBinders_head_wf_of_cons_bool c cs body hTy
+      · exact smtExistsOfBinders_binder_wf_of_mem body hMem
+          (smtExistsOfBinders_tail_bool_of_cons_bool c cs body hTy)
+
+private theorem smtExistsOfBinders_quantTermBinder_wf_of_mem
+    {xs : List Term} {body : SmtTerm} {t : Term}
+    (ht : t ∈ xs)
+    (hTy :
+      __smtx_typeof (smtExistsOfBinders (xs.map quantTermBinder) body) =
+        SmtType.Bool) :
+    __smtx_type_wf (quantTermBinder t).2 = true :=
+  smtExistsOfBinders_binder_wf_of_mem body
+    (b := quantTermBinder t) (bs := xs.map quantTermBinder)
+    (List.mem_map_of_mem (f := quantTermBinder) ht) hTy
 
 private theorem native_eo_to_smt_term_mem_append_right
     (x : Term) :
@@ -1197,6 +1261,28 @@ private theorem quantUnusedVarsList_no_stuck
       · simp [quantUnusedVarsList, hC] at hu
         exact ih hxsTail u hu
 
+private theorem quantUnusedVarsList_all
+    {xs : List Term} {F : Term}
+    (hxs : ∀ t ∈ xs, IsQuantVarTerm t) :
+    ∀ t ∈ quantUnusedVarsList xs F, IsQuantVarTerm t := by
+  induction xs with
+  | nil =>
+      intro t ht
+      simp [quantUnusedVarsList] at ht
+  | cons x xs ih =>
+      intro t ht
+      have hTail : ∀ u ∈ xs, IsQuantVarTerm u := by
+        intro u hu
+        exact hxs u (by simp [hu])
+      by_cases hC : __contains_atomic_term F x = Term.Boolean true
+      · simp [quantUnusedVarsList, hC] at ht
+        rcases ht with ht | ht
+        · subst t
+          exact hxs x (by simp)
+        · exact ih hTail t (List.mem_of_mem_erase ht)
+      · simp [quantUnusedVarsList, hC] at ht
+        exact ih hTail t ht
+
 private theorem mk_quant_unused_vars_rec_eoListOfTerms_eq :
     ∀ {xs : List Term} {F : Term},
       F ≠ Term.Stuck ->
@@ -1234,6 +1320,183 @@ private theorem mk_quant_unused_vars_rec_eoListOfTerms_eq :
       · simp [eoListOfTerms, quantUnusedVarsList,
           __mk_quant_unused_vars_rec, hCx, hRec, __eo_ite,
           native_ite, native_teq]
+
+private theorem mk_quant_uop_nil_eq
+    (op : UserOp) (F : Term) :
+    __mk_quant (Term.UOp op) Term.__eo_List_nil F = F := by
+  cases F <;> simp [__mk_quant]
+
+private theorem mk_quant_uop_cons_eoListOfTerms_eq
+    (op : UserOp) (x : Term) (xs : List Term) (F : Term)
+    (hF : F ≠ Term.Stuck) :
+    __mk_quant (Term.UOp op) (eoListOfTerms (x :: xs)) F =
+      Term.Apply (Term.Apply (Term.UOp op) (eoListOfTerms (x :: xs))) F := by
+  cases F <;> simp [eoListOfTerms, __mk_quant] at hF ⊢
+
+private theorem eo_to_smt_mk_quant_exists_eoListOfTerms
+    (xs : List Term) (F : Term)
+    (hF : F ≠ Term.Stuck)
+    (hxs : ∀ t ∈ xs, IsQuantVarTerm t) :
+    __eo_to_smt
+        (__mk_quant (Term.UOp UserOp.exists) (eoListOfTerms xs) F) =
+      smtExistsOfBinders (xs.map quantTermBinder) (__eo_to_smt F) := by
+  cases xs with
+  | nil =>
+      change
+        __eo_to_smt
+            (__mk_quant (Term.UOp UserOp.exists) Term.__eo_List_nil F) =
+          smtExistsOfBinders ([] : List QuantBinder) (__eo_to_smt F)
+      rw [mk_quant_uop_nil_eq]
+      simp [smtExistsOfBinders]
+  | cons x xs =>
+      have hAll : ∀ t ∈ x :: xs, IsQuantVarTerm t := hxs
+      have hxNonNil :
+          eoListOfTerms (x :: xs) ≠ Term.__eo_List_nil := by
+        simp [eoListOfTerms]
+      rw [mk_quant_uop_cons_eoListOfTerms_eq UserOp.exists x xs F hF]
+      rw [eo_to_smt_exists_quant_eq (eoListOfTerms (x :: xs)) F hxNonNil]
+      exact eo_to_smt_exists_eoListOfTerms_binders (x :: xs)
+        (__eo_to_smt F) hAll
+
+private theorem smtx_model_eval_mk_quant_forall_eoListOfTerms
+    (M : SmtModel) (hM : model_total_typed M)
+    (F : Term)
+    (hF : F ≠ Term.Stuck)
+    (hBodyBool : __smtx_typeof (__eo_to_smt F) = SmtType.Bool)
+    (xs : List Term)
+    (hxs : ∀ t ∈ xs, IsQuantVarTerm t) :
+    __smtx_model_eval M
+        (__eo_to_smt
+          (__mk_quant (Term.UOp UserOp.forall) (eoListOfTerms xs) F)) =
+      __smtx_model_eval M
+        (SmtTerm.not
+          (smtExistsOfBinders (xs.map quantTermBinder)
+            (SmtTerm.not (__eo_to_smt F)))) := by
+  cases xs with
+  | nil =>
+      change
+        __smtx_model_eval M
+            (__eo_to_smt
+              (__mk_quant (Term.UOp UserOp.forall) Term.__eo_List_nil F)) =
+          __smtx_model_eval M
+            (SmtTerm.not
+              (smtExistsOfBinders ([] : List QuantBinder)
+                (SmtTerm.not (__eo_to_smt F))))
+      rw [mk_quant_uop_nil_eq]
+      simp [smtExistsOfBinders]
+      exact (smtx_model_eval_not_not_of_bool M hM (__eo_to_smt F)
+        hBodyBool).symm
+  | cons x xs =>
+      have hAll : ∀ t ∈ x :: xs, IsQuantVarTerm t := hxs
+      have hxNonNil :
+          eoListOfTerms (x :: xs) ≠ Term.__eo_List_nil := by
+        simp [eoListOfTerms]
+      rw [mk_quant_uop_cons_eoListOfTerms_eq UserOp.forall x xs F hF]
+      rw [eo_to_smt_forall_eq (eoListOfTerms (x :: xs)) F hxNonNil]
+      rw [eo_to_smt_exists_eoListOfTerms_binders (x :: xs)
+        (SmtTerm.not (__eo_to_smt F)) hAll]
+
+private theorem smtExistsOfBinders_quantUnusedVarsList_eval :
+    ∀ (xs : List Term) (M : SmtModel),
+      model_total_typed M ->
+      (F : Term) ->
+      (body : SmtTerm) ->
+      (∀ t ∈ xs, IsQuantVarTerm t) ->
+      __smtx_typeof (smtExistsOfBinders (xs.map quantTermBinder) body) =
+        SmtType.Bool ->
+      (∀ t ∈ xs,
+        __contains_atomic_term F t = Term.Boolean true ∨
+          __contains_atomic_term F t = Term.Boolean false) ->
+      (∀ (M0 : SmtModel) (t : Term) (v : SmtValue),
+        t ∈ xs ->
+        IsQuantVarTerm t ->
+        __contains_atomic_term F t = Term.Boolean false ->
+        __smtx_model_eval
+            (native_model_push M0 (quantTermBinder t).1
+              (quantTermBinder t).2 v)
+            body =
+          __smtx_model_eval M0 body) ->
+      __smtx_model_eval M
+          (smtExistsOfBinders (xs.map quantTermBinder) body) =
+        __smtx_model_eval M
+          (smtExistsOfBinders
+            ((quantUnusedVarsList xs F).map quantTermBinder) body)
+  | [], M, _hM, F, body, _hxs, _hTy, _hContains, _hInv => by
+      simp [quantUnusedVarsList]
+  | x :: xs, M, hM, F, body, hxs, hTy, hContains, hInv => by
+      have hx : IsQuantVarTerm x := hxs x (by simp)
+      have hxsTail : ∀ t ∈ xs, IsQuantVarTerm t := by
+        intro t ht
+        exact hxs t (by simp [ht])
+      have hTyTail :
+          __smtx_typeof
+              (smtExistsOfBinders (xs.map quantTermBinder) body) =
+            SmtType.Bool :=
+        smtExistsOfBinders_tail_bool_of_cons_bool
+          (quantTermBinder x) (xs.map quantTermBinder) body hTy
+      have hContainsTail :
+          ∀ t ∈ xs,
+            __contains_atomic_term F t = Term.Boolean true ∨
+              __contains_atomic_term F t = Term.Boolean false := by
+        intro t ht
+        exact hContains t (by simp [ht])
+      have hInvTail :
+          ∀ (M0 : SmtModel) (t : Term) (v : SmtValue),
+            t ∈ xs ->
+            IsQuantVarTerm t ->
+            __contains_atomic_term F t = Term.Boolean false ->
+            __smtx_model_eval
+                (native_model_push M0 (quantTermBinder t).1
+                  (quantTermBinder t).2 v)
+                body =
+              __smtx_model_eval M0 body := by
+        intro M0 t v ht hQt hNo
+        exact hInv M0 t v (by simp [ht]) hQt hNo
+      rcases hContains x (by simp) with hCx | hCx
+      · have hWF :
+            __smtx_type_wf (quantTermBinder x).2 = true :=
+          smtExistsOfBinders_head_wf_of_cons_bool
+            (quantTermBinder x) (xs.map quantTermBinder) body hTy
+        have hLift :
+            __smtx_model_eval M
+                (smtExistsOfBinders
+                  (quantTermBinder x :: xs.map quantTermBinder) body) =
+              __smtx_model_eval M
+                (smtExistsOfBinders
+                  (quantTermBinder x ::
+                    (quantUnusedVarsList xs F).map quantTermBinder) body) := by
+          exact smtExistsOfBinders_cons_congr_typed M
+            (quantTermBinder x)
+            (smtExistsOfBinders (xs.map quantTermBinder) body)
+            (smtExistsOfBinders
+              ((quantUnusedVarsList xs F).map quantTermBinder) body)
+            (fun v hvTy hvCanon => by
+              have hvCanon' : __smtx_value_canonical v := by
+                simpa [Smtm.__smtx_value_canonical] using hvCanon
+              exact
+                smtExistsOfBinders_quantUnusedVarsList_eval xs
+                  (native_model_push M (quantTermBinder x).1
+                    (quantTermBinder x).2 v)
+                  (model_total_typed_push hM (quantTermBinder x).1
+                    (quantTermBinder x).2 v hWF hvTy hvCanon')
+                  F body hxsTail hTyTail hContainsTail hInvTail)
+        have hErase :=
+          smtExistsOfBinders_duplicate_erase_term M x
+            (quantUnusedVarsList xs F) body
+        simpa [quantUnusedVarsList, hCx] using hLift.trans hErase
+      · have hDrop :
+            __smtx_model_eval M
+                (smtExistsOfBinders
+                  (quantTermBinder x :: xs.map quantTermBinder) body) =
+              __smtx_model_eval M
+                (smtExistsOfBinders (xs.map quantTermBinder) body) := by
+          exact smtExistsOfBinders_unused_head M hM
+            (quantTermBinder x) (xs.map quantTermBinder) body hTy
+            (fun M0 v => hInv M0 x v (by simp) hx hCx)
+        have hTail :=
+          smtExistsOfBinders_quantUnusedVarsList_eval xs M hM F body
+            hxsTail hTyTail hContainsTail hInvTail
+        simpa [quantUnusedVarsList, hCx] using hDrop.trans hTail
 
 private theorem eoListOfTerms_concat_rec :
     ∀ xs ys : List Term,
@@ -1362,7 +1625,7 @@ occurrence of the binder because every UOp index is standalone closed.
 theorem smtx_model_eval_eq_push_of_contains_atomic_term_false
     (M : SmtModel) (F : Term) (s : native_String) (T : Term)
     (v : SmtValue)
-    (hTWF : smtx_type_field_wf_rec (__eo_to_smt_type T) native_reflist_nil)
+    (hTValid : eo_type_valid T)
     (hNoOccur :
       __contains_atomic_term F (Term.Var (Term.String s) T) =
         Term.Boolean false)
@@ -1371,6 +1634,15 @@ theorem smtx_model_eval_eq_push_of_contains_atomic_term_false
         (native_model_push M s (__eo_to_smt_type T) v)
         (__eo_to_smt F) =
       __smtx_model_eval M (__eo_to_smt F) := by
+  sorry
+
+private theorem contains_atomic_term_quant_var_bool
+    (F x : Term)
+    (hBodyBool : __smtx_typeof (__eo_to_smt F) = SmtType.Bool)
+    (hx : IsQuantVarTerm x)
+    (hSafe : NativeEoToSmtUOpIndicesSafe F) :
+    __contains_atomic_term F x = Term.Boolean true ∨
+      __contains_atomic_term F x = Term.Boolean false := by
   sorry
 
 /--
@@ -1437,10 +1709,128 @@ theorem smtx_model_eval_quant_unused_vars_mk_core
       exact _root_.smtx_typeof_not_arg_bool _ hNotBody
     have hFNeStuck : F ≠ Term.Stuck :=
       term_ne_stuck_of_eo_to_smt_type_bool hBodyBool
-    -- Remaining work: induct over `xs`, using `hBodyBool`, the
-    -- `contains_atomic_term` absence theorem for dropped binders, and the
-    -- duplicate-erasure lemma for retained binders.
-    sorry
+    have hInnerBindersBool :
+        __smtx_typeof
+            (smtExistsOfBinders (xs.map quantTermBinder)
+              (SmtTerm.not (__eo_to_smt F))) =
+          SmtType.Bool := by
+      rw [← eo_to_smt_exists_eoListOfTerms_binders xs
+        (SmtTerm.not (__eo_to_smt F)) hxsAll]
+      exact hInnerBool
+    have hContains :
+        ∀ t ∈ xs,
+          __contains_atomic_term F t = Term.Boolean true ∨
+            __contains_atomic_term F t = Term.Boolean false := by
+      intro t ht
+      exact contains_atomic_term_quant_var_bool F t hBodyBool
+        (hxsAll t ht) hSafeF
+    have hMkRec :
+        __mk_quant_unused_vars_rec (eoListOfTerms xs) F =
+          eoListOfTerms (quantUnusedVarsList xs F) :=
+      mk_quant_unused_vars_rec_eoListOfTerms_eq hFNeStuck
+        hxsNonStuck hContains
+    have hUnusedAll :
+        ∀ t ∈ quantUnusedVarsList xs F, IsQuantVarTerm t :=
+      quantUnusedVarsList_all hxsAll
+    have hxNonNil : eoListOfTerms xs ≠ Term.__eo_List_nil := by
+      intro hNil
+      cases xs with
+      | nil =>
+          exact hxsNonempty rfl
+      | cons x xs =>
+          simp [eoListOfTerms] at hNil
+    have hOrigEq :
+        __eo_to_smt
+            (Term.Apply
+              (Term.Apply (Term.UOp UserOp.forall) (eoListOfTerms xs)) F) =
+          SmtTerm.not
+            (smtExistsOfBinders (xs.map quantTermBinder)
+              (SmtTerm.not (__eo_to_smt F))) := by
+      rw [eo_to_smt_forall_eq (eoListOfTerms xs) F hxNonNil]
+      rw [eo_to_smt_exists_eoListOfTerms_binders xs
+        (SmtTerm.not (__eo_to_smt F)) hxsAll]
+    have hInvForall :
+        ∀ (M0 : SmtModel) (t : Term) (v : SmtValue),
+          t ∈ xs ->
+          IsQuantVarTerm t ->
+          __contains_atomic_term F t = Term.Boolean false ->
+          __smtx_model_eval
+              (native_model_push M0 (quantTermBinder t).1
+                (quantTermBinder t).2 v)
+              (SmtTerm.not (__eo_to_smt F)) =
+            __smtx_model_eval M0 (SmtTerm.not (__eo_to_smt F)) := by
+      intro M0 t v ht hQt hNo
+      have hWF :
+          __smtx_type_wf (quantTermBinder t).2 = true :=
+        smtExistsOfBinders_quantTermBinder_wf_of_mem
+          (xs := xs) (body := SmtTerm.not (__eo_to_smt F))
+          ht hInnerBindersBool
+      cases t <;> simp [IsQuantVarTerm] at hQt
+      case Var name T =>
+        cases name <;> simp at hQt
+        case String s =>
+          have hValid : eo_type_valid T :=
+            eo_type_valid_of_smt_wf T (by
+              simpa [quantTermBinder] using hWF)
+          have hInvF :=
+            smtx_model_eval_eq_push_of_contains_atomic_term_false
+              M0 F s T v hValid (by simpa using hNo) hSafeF
+          exact smtx_model_eval_not_congr
+            (native_model_push M0 s (__eo_to_smt_type T) v)
+            M0 (__eo_to_smt F) hInvF
+    have hListEval :=
+      smtExistsOfBinders_quantUnusedVarsList_eval xs M hM F
+        (SmtTerm.not (__eo_to_smt F)) hxsAll hInnerBindersBool
+        hContains hInvForall
+    have hOuterEval :
+        __smtx_model_eval M
+            (SmtTerm.not
+              (smtExistsOfBinders (xs.map quantTermBinder)
+                (SmtTerm.not (__eo_to_smt F)))) =
+          __smtx_model_eval M
+            (SmtTerm.not
+              (smtExistsOfBinders
+                ((quantUnusedVarsList xs F).map quantTermBinder)
+                (SmtTerm.not (__eo_to_smt F)))) :=
+      smtx_model_eval_not_congr_term M
+        (smtExistsOfBinders (xs.map quantTermBinder)
+          (SmtTerm.not (__eo_to_smt F)))
+        (smtExistsOfBinders
+          ((quantUnusedVarsList xs F).map quantTermBinder)
+          (SmtTerm.not (__eo_to_smt F)))
+        hListEval
+    have hMkEval :=
+      smtx_model_eval_mk_quant_forall_eoListOfTerms M hM F hFNeStuck hBodyBool
+        (quantUnusedVarsList xs F) hUnusedAll
+    calc
+      __smtx_model_eval M
+          (__eo_to_smt
+            (Term.Apply
+              (Term.Apply (Term.UOp UserOp.forall) (eoListOfTerms xs)) F)) =
+        __smtx_model_eval M
+          (SmtTerm.not
+            (smtExistsOfBinders (xs.map quantTermBinder)
+              (SmtTerm.not (__eo_to_smt F)))) := by
+          rw [hOrigEq]
+      _ =
+        __smtx_model_eval M
+          (SmtTerm.not
+            (smtExistsOfBinders
+              ((quantUnusedVarsList xs F).map quantTermBinder)
+              (SmtTerm.not (__eo_to_smt F)))) :=
+          hOuterEval
+      _ =
+        __smtx_model_eval M
+          (__eo_to_smt
+            (__mk_quant (Term.UOp UserOp.forall)
+              (eoListOfTerms (quantUnusedVarsList xs F)) F)) :=
+          hMkEval.symm
+      _ =
+        __smtx_model_eval M
+          (__eo_to_smt
+            (__mk_quant (Term.UOp UserOp.forall)
+              (__mk_quant_unused_vars_rec (eoListOfTerms xs) F) F)) := by
+          rw [hMkRec]
   · subst Q
     have hInnerBool :
         __smtx_typeof
@@ -1455,6 +1845,95 @@ theorem smtx_model_eval_quant_unused_vars_mk_core
         (eoListOfTerms xs) (__eo_to_smt F) hInnerBool
     have hFNeStuck : F ≠ Term.Stuck :=
       term_ne_stuck_of_eo_to_smt_type_bool hBodyBool
-    -- Same list induction as the `forall` branch, without the outer
-    -- negation encoding.
-    sorry
+    have hInnerBindersBool :
+        __smtx_typeof
+            (smtExistsOfBinders (xs.map quantTermBinder) (__eo_to_smt F)) =
+          SmtType.Bool := by
+      rw [← eo_to_smt_exists_eoListOfTerms_binders xs
+        (__eo_to_smt F) hxsAll]
+      exact hInnerBool
+    have hContains :
+        ∀ t ∈ xs,
+          __contains_atomic_term F t = Term.Boolean true ∨
+            __contains_atomic_term F t = Term.Boolean false := by
+      intro t ht
+      exact contains_atomic_term_quant_var_bool F t hBodyBool
+        (hxsAll t ht) hSafeF
+    have hMkRec :
+        __mk_quant_unused_vars_rec (eoListOfTerms xs) F =
+          eoListOfTerms (quantUnusedVarsList xs F) :=
+      mk_quant_unused_vars_rec_eoListOfTerms_eq hFNeStuck
+        hxsNonStuck hContains
+    have hUnusedAll :
+        ∀ t ∈ quantUnusedVarsList xs F, IsQuantVarTerm t :=
+      quantUnusedVarsList_all hxsAll
+    have hxNonNil : eoListOfTerms xs ≠ Term.__eo_List_nil := by
+      intro hNil
+      cases xs with
+      | nil =>
+          exact hxsNonempty rfl
+      | cons x xs =>
+          simp [eoListOfTerms] at hNil
+    have hOrigEq :
+        __eo_to_smt
+            (Term.Apply
+              (Term.Apply (Term.UOp UserOp.exists) (eoListOfTerms xs)) F) =
+          smtExistsOfBinders (xs.map quantTermBinder) (__eo_to_smt F) := by
+      rw [eo_to_smt_exists_quant_eq (eoListOfTerms xs) F hxNonNil]
+      rw [eo_to_smt_exists_eoListOfTerms_binders xs
+        (__eo_to_smt F) hxsAll]
+    have hInvExists :
+        ∀ (M0 : SmtModel) (t : Term) (v : SmtValue),
+          t ∈ xs ->
+          IsQuantVarTerm t ->
+          __contains_atomic_term F t = Term.Boolean false ->
+          __smtx_model_eval
+              (native_model_push M0 (quantTermBinder t).1
+                (quantTermBinder t).2 v)
+              (__eo_to_smt F) =
+            __smtx_model_eval M0 (__eo_to_smt F) := by
+      intro M0 t v ht hQt hNo
+      have hWF :
+          __smtx_type_wf (quantTermBinder t).2 = true :=
+        smtExistsOfBinders_quantTermBinder_wf_of_mem
+          (xs := xs) (body := __eo_to_smt F) ht hInnerBindersBool
+      cases t <;> simp [IsQuantVarTerm] at hQt
+      case Var name T =>
+        cases name <;> simp at hQt
+        case String s =>
+          have hValid : eo_type_valid T :=
+            eo_type_valid_of_smt_wf T (by
+              simpa [quantTermBinder] using hWF)
+          exact
+            smtx_model_eval_eq_push_of_contains_atomic_term_false
+              M0 F s T v hValid (by simpa using hNo) hSafeF
+    have hListEval :=
+      smtExistsOfBinders_quantUnusedVarsList_eval xs M hM F
+        (__eo_to_smt F) hxsAll hInnerBindersBool hContains hInvExists
+    calc
+      __smtx_model_eval M
+          (__eo_to_smt
+            (Term.Apply
+              (Term.Apply (Term.UOp UserOp.exists) (eoListOfTerms xs)) F)) =
+        __smtx_model_eval M
+          (smtExistsOfBinders (xs.map quantTermBinder) (__eo_to_smt F)) := by
+          rw [hOrigEq]
+      _ =
+        __smtx_model_eval M
+          (smtExistsOfBinders
+            ((quantUnusedVarsList xs F).map quantTermBinder)
+            (__eo_to_smt F)) :=
+          hListEval
+      _ =
+        __smtx_model_eval M
+          (__eo_to_smt
+            (__mk_quant (Term.UOp UserOp.exists)
+              (eoListOfTerms (quantUnusedVarsList xs F)) F)) := by
+          rw [eo_to_smt_mk_quant_exists_eoListOfTerms
+            (quantUnusedVarsList xs F) F hFNeStuck hUnusedAll]
+      _ =
+        __smtx_model_eval M
+          (__eo_to_smt
+            (__mk_quant (Term.UOp UserOp.exists)
+              (__mk_quant_unused_vars_rec (eoListOfTerms xs) F) F)) := by
+          rw [hMkRec]
