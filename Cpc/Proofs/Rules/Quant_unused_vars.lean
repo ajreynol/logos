@@ -1,5 +1,5 @@
 import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.Closed.UOpIndices
+import Cpc.Proofs.Closed.QuantUnused
 
 open Eo
 open SmtEval
@@ -190,7 +190,8 @@ private theorem smtx_model_eval_quant_unused_vars_mk
       __smtx_model_eval M
         (__eo_to_smt
           (__mk_quant Q (__mk_quant_unused_vars_rec x F) F)) := by
-  sorry
+  simpa [quantUnusedVarsFormula, qeq, qquant] using
+    smtx_model_eval_quant_unused_vars_mk_core M hM Q x F hQ hBool hSafe
 
 theorem cmd_step_quant_unused_vars_properties
     (M : SmtModel) (hM : model_total_typed M)

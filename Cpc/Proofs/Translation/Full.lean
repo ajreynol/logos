@@ -2298,6 +2298,17 @@ private theorem eo_to_smt_exists_bool_of_quantifiers_skolemize_non_none
               simp [__eo_to_smt_quantifiers_skolemize, __eo_to_smt_exists] at hNN ⊢
             exact hNoneNN smtx_typeof_none
 
+/-- Public wrapper for the skolemization inversion used by closed-index proofs. -/
+theorem smtx_typeof_eo_to_smt_exists_bool_of_quantifiers_skolemize_non_none
+    (xs : Term) (body : SmtTerm) (n : native_Nat)
+    (hBodyNoExists : ∀ s T F, body ≠ SmtTerm.exists s T F) :
+    __smtx_typeof
+        (__eo_to_smt_quantifiers_skolemize (__eo_to_smt_exists xs body) n) ≠
+      SmtType.None ->
+    __smtx_typeof (__eo_to_smt_exists xs body) = SmtType.Bool :=
+  eo_to_smt_exists_bool_of_quantifiers_skolemize_non_none xs body n
+    hBodyNoExists
+
 /-- Computes the selected binder type for quantifier skolemization. -/
 private theorem eo_to_smt_quantifiers_skolemize_type_of_non_none
     (xs : Term) (body : SmtTerm) (n : native_Nat)

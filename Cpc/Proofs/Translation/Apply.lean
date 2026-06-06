@@ -8280,6 +8280,15 @@ private theorem re_unfold_pos_component_args_of_non_none
         unfold term_has_non_none_type at hNN
         exact hNN smtx_typeof_none
 
+/-- Public wrapper for the regex-unfold argument inversion. -/
+theorem smtx_typeof_re_unfold_pos_component_args_of_non_none
+    (s r : SmtTerm)
+    (n : native_Nat)
+    (hNN : term_has_non_none_type (__eo_to_smt_re_unfold_pos_component s r n)) :
+    __smtx_typeof s = SmtType.Seq SmtType.Char ∧
+      __smtx_typeof r = SmtType.RegLan :=
+  re_unfold_pos_component_args_of_non_none s r n hNN
+
 /-- Lemma about `smt_type_ne_set_self`. -/
 private theorem smt_type_ne_set_self
     (T : SmtType) :
