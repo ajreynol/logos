@@ -3999,6 +3999,135 @@ private theorem contains_atomic_term_apply_false_parts
       exact h
     · simp at h
 
+private def appTreeVars : Term -> List Term
+  | Term.Var (Term.String s) T => [Term.Var (Term.String s) T]
+  | Term.Apply f a => appTreeVars f ++ appTreeVars a
+  | _ => []
+
+private def appTreeSmtVars : Term -> List SmtVarKey
+  | Term.Var (Term.String s) T => [(s, __eo_to_smt_type T)]
+  | Term.Apply f a => appTreeSmtVars f ++ appTreeSmtVars a
+  | _ => []
+
+private theorem EoSmtVarEnv_appTreeVars_lt
+    (n : Nat) :
+    ∀ t : Term,
+      sizeOf t < n ->
+        EoSmtVarEnv (eoListOfTerms (appTreeVars t)) (appTreeSmtVars t) := by
+  cases n with
+  | zero =>
+      intro t hLt
+      omega
+  | succ n =>
+      intro t hLt
+      cases t
+      case Apply f a =>
+        change EoSmtVarEnv
+          (eoListOfTerms (appTreeVars f ++ appTreeVars a))
+          (appTreeSmtVars f ++ appTreeSmtVars a)
+        rw [← eoListOfTerms_concat]
+        exact EoSmtVarEnv.concat
+          (EoSmtVarEnv_appTreeVars_lt n f (by simp at hLt; omega))
+          (EoSmtVarEnv_appTreeVars_lt n a (by simp at hLt; omega))
+      case Var name T =>
+        cases name
+        case String s =>
+          simp [appTreeVars, appTreeSmtVars, eoListOfTerms]
+          exact EoSmtVarEnv.cons EoSmtVarEnv.nil
+        all_goals
+          simp [appTreeVars, appTreeSmtVars, eoListOfTerms]
+          exact EoSmtVarEnv.nil
+      all_goals
+        simp [appTreeVars, appTreeSmtVars, eoListOfTerms]
+        exact EoSmtVarEnv.nil
+
+private theorem EoSmtVarEnv_appTreeVars
+    (t : Term) :
+    EoSmtVarEnv (eoListOfTerms (appTreeVars t)) (appTreeSmtVars t) := by
+  exact EoSmtVarEnv_appTreeVars_lt (sizeOf t + 1) t (by omega)
+
+private theorem native_eo_to_smt_term_mem_of_mem :
+    ∀ {x : Term} {env : List Term},
+      x ∈ env -> native_eo_to_smt_term_mem x env = true
+  | _, [], h => by
+      simp at h
+  | x, y :: ys, h => by
+      cases h with
+      | head =>
+          simp [native_eo_to_smt_term_mem, native_or]
+      | tail _ hTail =>
+          by_cases hxy : x = y
+          · simp [native_eo_to_smt_term_mem, hxy, native_or]
+          · simp [native_eo_to_smt_term_mem, hxy, native_or,
+              native_eo_to_smt_term_mem_of_mem hTail]
+
+private theorem appTreeSmtVars_not_mem_of_contains_atomic_term_false_lt
+    (n : Nat) :
+    ∀ (F : Term) (s : native_String) (T : Term),
+      sizeOf F < n ->
+        eo_type_valid T ->
+        __contains_atomic_term F (Term.Var (Term.String s) T) =
+          Term.Boolean false ->
+          (s, __eo_to_smt_type T) ∉ appTreeSmtVars F := by
+  cases n with
+  | zero =>
+      intro F s T hLt _hTValid _hNoOccur
+      omega
+  | succ n =>
+      intro F s T hLt hTValid hNoOccur
+      cases F
+      case Var name U =>
+        cases name
+        case String s' =>
+          intro hMem
+          simp [appTreeSmtVars] at hMem
+          rcases hMem with ⟨hs, hTy⟩
+          have hTermTy : T = U :=
+            eo_to_smt_type_eq_of_top_valid_local hTValid (by simpa [hTy])
+          subst s'
+          subst U
+          have hImpossible :
+              Term.Boolean true = Term.Boolean false := by
+            simpa [__contains_atomic_term, __eo_eq, native_teq]
+              using hNoOccur
+          cases hImpossible
+        all_goals
+          simp [appTreeSmtVars]
+      case Apply f a =>
+        have hx :
+            Term.Var (Term.String s) T ≠ Term.Stuck :=
+          quantVarTerm_ne_stuck (by simp [IsQuantVarTerm])
+        rcases contains_atomic_term_apply_false_parts hx hNoOccur with
+          ⟨hfNo, haNo⟩
+        intro hMem
+        have hMem' :
+            (s, __eo_to_smt_type T) ∈
+              appTreeSmtVars f ++ appTreeSmtVars a := by
+          simpa [appTreeSmtVars] using hMem
+        rcases List.mem_append.1 hMem' with hMem | hMem
+        · exact appTreeSmtVars_not_mem_of_contains_atomic_term_false_lt
+            n f s T (by simp at hLt; omega) hTValid hfNo hMem
+        · exact appTreeSmtVars_not_mem_of_contains_atomic_term_false_lt
+            n a s T (by simp at hLt; omega) hTValid haNo hMem
+      all_goals
+        simp [appTreeSmtVars]
+
+private theorem appTreeSmtVars_not_mem_of_contains_atomic_term_false
+    (F : Term) (s : native_String) (T : Term)
+    (hTValid : eo_type_valid T)
+    (hNoOccur :
+      __contains_atomic_term F (Term.Var (Term.String s) T) =
+        Term.Boolean false) :
+    (s, __eo_to_smt_type T) ∉ appTreeSmtVars F := by
+  exact appTreeSmtVars_not_mem_of_contains_atomic_term_false_lt
+    (sizeOf F + 1) F s T (by omega) hTValid hNoOccur
+
+private theorem smtTermClosedIn_appTreeVars_of_uop_indices_safe
+    (F : Term)
+    (hSafe : NativeEoToSmtUOpIndicesSafe F) :
+    SmtTermClosedIn (appTreeSmtVars F) (__eo_to_smt F) := by
+  sorry
+
 private theorem smtTermAvoidsVar_of_contains_atomic_term_false
     (F : Term) (s : native_String) (T : Term)
     (hTValid : eo_type_valid T)
@@ -4007,7 +4136,10 @@ private theorem smtTermAvoidsVar_of_contains_atomic_term_false
         Term.Boolean false)
     (hSafe : NativeEoToSmtUOpIndicesSafe F) :
     SmtTermAvoidsVar s (__eo_to_smt_type T) (__eo_to_smt F) := by
-  sorry
+  exact smtTermAvoidsVar_of_closedIn_not_mem
+    (smtTermClosedIn_appTreeVars_of_uop_indices_safe F hSafe)
+    (appTreeSmtVars_not_mem_of_contains_atomic_term_false
+      F s T hTValid hNoOccur)
 
 /--
 If `contains_atomic_term` says an EO body does not mention a binder variable,
