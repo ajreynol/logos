@@ -5014,42 +5014,65 @@ private theorem contains_atomic_term_nonapply_quant_var_bool
   · exact Or.inl (eo_eq_eq_true_of_eq_local hEq hFNe hxNe)
   · exact Or.inr (eo_eq_eq_false_of_ne_local hEq hFNe hxNe)
 
-private theorem contains_atomic_term_quant_var_bool_total
-    (F x : Term)
-    (hx : IsQuantVarTerm x) :
-    __contains_atomic_term F x = Term.Boolean true ∨
-      __contains_atomic_term F x = Term.Boolean false := by
-  cases F
-  case Stuck =>
-      right
-      change Term.Boolean false = Term.Boolean false
-      rfl
-  case Apply f a =>
-      have hxNe : x ≠ Term.Stuck := quantVarTerm_ne_stuck hx
-      have hf :=
-        contains_atomic_term_quant_var_bool_total f x hx
-      have ha :=
-        contains_atomic_term_quant_var_bool_total a x hx
-      rcases hf with hf | hf
-      · exact Or.inl (contains_atomic_term_apply_bool_left hxNe hf)
-      · rcases ha with ha | ha
-        · exact Or.inl (contains_atomic_term_apply_bool_right hxNe hf ha)
-        · exact Or.inr (contains_atomic_term_apply_bool_false hxNe hf ha)
-  all_goals
-    exact contains_atomic_term_nonapply_quant_var_bool
-      (by intro h; cases h)
-      (by intro f a h; cases h)
-      hx
-termination_by sizeOf F
+private theorem mk_quant_arg_ne_stuck_of_ne_stuck
+    {Q x F : Term}
+    (h : __mk_quant Q x F ≠ Term.Stuck) :
+    x ≠ Term.Stuck := by
+  intro hx
+  subst x
+  exact h (by
+    cases Q <;> simp [__mk_quant])
 
-private theorem contains_atomic_term_quant_var_bool
-    (F x : Term)
-    (hBodyBool : __smtx_typeof (__eo_to_smt F) = SmtType.Bool)
-    (hx : IsQuantVarTerm x)
-    (hSafe : NativeEoToSmtUOpIndicesSafe F) :
-    __contains_atomic_term F x = Term.Boolean true ∨
-      __contains_atomic_term F x = Term.Boolean false := by
-  exact contains_atomic_term_quant_var_bool_total F x hx
+private theorem mk_quant_unused_vars_rec_contains_bool_of_ne_stuck :
+    ∀ {xs : List Term} {F : Term},
+      __mk_quant_unused_vars_rec (eoListOfTerms xs) F ≠ Term.Stuck ->
+      ∀ t ∈ xs,
+        __contains_atomic_term F t = Term.Boolean true ∨
+          __contains_atomic_term F t = Term.Boolean false
+  | [], F, _h, t, ht => by
+      simp at ht
+  | x :: xs, F, h, t, ht => by
+      have hTail :
+          __mk_quant_unused_vars_rec (eoListOfTerms xs) F ≠ Term.Stuck := by
+        intro hTailStuck
+        by_cases hFStuck : F = Term.Stuck
+        · subst F
+          simp [eoListOfTerms, __mk_quant_unused_vars_rec] at h
+        · by_cases hcTrue :
+              __contains_atomic_term F x = Term.Boolean true
+          · simp [eoListOfTerms, __mk_quant_unused_vars_rec,
+              hcTrue, hTailStuck, __eo_ite, native_ite,
+              native_teq, __eo_mk_apply, __eo_list_erase,
+              __eo_requires, __eo_is_list] at h
+          · by_cases hcFalse :
+                __contains_atomic_term F x = Term.Boolean false
+            · simp [eoListOfTerms, __mk_quant_unused_vars_rec,
+                hcFalse, hTailStuck, __eo_ite,
+                native_ite, native_teq] at h
+            · simp [eoListOfTerms, __mk_quant_unused_vars_rec,
+                hcTrue, hcFalse, __eo_ite, native_ite,
+                native_teq] at h
+      have hxContains :
+          __contains_atomic_term F x = Term.Boolean true ∨
+            __contains_atomic_term F x = Term.Boolean false := by
+        by_cases hcTrue :
+            __contains_atomic_term F x = Term.Boolean true
+        · exact Or.inl hcTrue
+        · by_cases hcFalse :
+              __contains_atomic_term F x = Term.Boolean false
+          · exact Or.inr hcFalse
+          · exfalso
+            by_cases hFStuck : F = Term.Stuck
+            · subst F
+              simp [eoListOfTerms, __mk_quant_unused_vars_rec] at h
+            · simp [eoListOfTerms, __mk_quant_unused_vars_rec,
+                hcTrue, hcFalse, __eo_ite, native_ite,
+                native_teq] at h
+      rcases List.mem_cons.mp ht with hEq | hTailMem
+      · subst t
+        exact hxContains
+      · exact mk_quant_unused_vars_rec_contains_bool_of_ne_stuck
+          hTail t hTailMem
 
 /--
 Semantic core for `quant_unused_vars`: rebuilding the quantifier with
@@ -5084,7 +5107,25 @@ theorem smtx_model_eval_quant_unused_vars_mk_core
   rcases RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
       (Term.Apply (Term.Apply Q x) F)
       (__mk_quant Q (__mk_quant_unused_vars_rec x F) F) hBool with
-    ⟨_hSameTy, hLhsNN⟩
+    ⟨hSameTy, hLhsNN⟩
+  have hRhsNN :
+      __smtx_typeof
+          (__eo_to_smt
+            (__mk_quant Q (__mk_quant_unused_vars_rec x F) F)) ≠
+        SmtType.None := by
+    intro hNone
+    exact hLhsNN (by
+      rw [hSameTy, hNone])
+  have hMkQuantNeStuck :
+      __mk_quant Q (__mk_quant_unused_vars_rec x F) F ≠ Term.Stuck := by
+    intro hStuck
+    rw [hStuck] at hRhsNN
+    exact hRhsNN (by
+      change __smtx_typeof SmtTerm.None = SmtType.None
+      exact TranslationProofs.smtx_typeof_none)
+  have hRecNeStuck :
+      __mk_quant_unused_vars_rec x F ≠ Term.Stuck :=
+    mk_quant_arg_ne_stuck_of_ne_stuck hMkQuantNeStuck
   rcases quant_uop_binders_as_eoList_of_non_none Q x F hQ hLhsNN with
     ⟨xs, hxEq, hxsNonempty, hxsAll⟩
   subst x
@@ -5128,8 +5169,8 @@ theorem smtx_model_eval_quant_unused_vars_mk_core
           __contains_atomic_term F t = Term.Boolean true ∨
             __contains_atomic_term F t = Term.Boolean false := by
       intro t ht
-      exact contains_atomic_term_quant_var_bool F t hBodyBool
-        (hxsAll t ht) hSafeF
+      exact mk_quant_unused_vars_rec_contains_bool_of_ne_stuck
+        hRecNeStuck t ht
     have hMkRec :
         __mk_quant_unused_vars_rec (eoListOfTerms xs) F =
           eoListOfTerms (quantUnusedVarsList xs F) :=
@@ -5263,8 +5304,8 @@ theorem smtx_model_eval_quant_unused_vars_mk_core
           __contains_atomic_term F t = Term.Boolean true ∨
             __contains_atomic_term F t = Term.Boolean false := by
       intro t ht
-      exact contains_atomic_term_quant_var_bool F t hBodyBool
-        (hxsAll t ht) hSafeF
+      exact mk_quant_unused_vars_rec_contains_bool_of_ne_stuck
+        hRecNeStuck t ht
     have hMkRec :
         __mk_quant_unused_vars_rec (eoListOfTerms xs) F =
           eoListOfTerms (quantUnusedVarsList xs F) :=
