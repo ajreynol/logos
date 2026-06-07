@@ -48,8 +48,9 @@ def native_eo_to_smt_closed (x : Term) : native_Bool :=
 
 mutual
 
-def __eo_to_smt_guard_closed (t : SmtTerm) (s : SmtTerm) : SmtTerm :=
-  (native_ite (native_eo_to_smt_closed t) s SmtTerm.None)
+def __eo_to_smt_guard_closed : Term -> SmtTerm -> SmtTerm
+  | t, s => (native_ite (native_eo_to_smt_closed t) s SmtTerm.None)
+
 
 def __eo_to_smt_distinct_pairs (s : SmtTerm) : Term -> SmtTerm
   | (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) x) xs) => (SmtTerm.and (SmtTerm.not (SmtTerm.eq s (__eo_to_smt x))) (__eo_to_smt_distinct_pairs s xs))
@@ -118,7 +119,7 @@ def __eo_to_smt_sets_deq_diff (a : SmtTerm) : SmtType -> SmtTerm -> SmtType -> S
 
 
 def __eo_to_smt_quantifiers_skolemize : SmtTerm -> native_Nat -> SmtTerm
-  | (SmtTerm.forall s T F), n => (SmtTerm.choice_nth s T (SmtTerm.not F) n)
+  | (SmtTerm.not (SmtTerm.exists s T F)), n => (SmtTerm.choice_nth s T F n)
   | F, t => SmtTerm.None
 
 
