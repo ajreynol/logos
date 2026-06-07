@@ -285,6 +285,29 @@ private theorem native_eo_to_smt_uop_indices_safe_of_generic_apply_non_none
         (smtx_apply_arg_non_none_of_non_special_non_none
           (__eo_to_smt f) (__eo_to_smt x) hSel hTester h))
 
+private theorem native_eo_to_smt_uop_indices_safe_of_eo_generic_apply_non_none
+    {f x : Term}
+    (ihf :
+      __smtx_typeof (__eo_to_smt f) ≠ SmtType.None ->
+        native_eo_to_smt_uop_indices_safe f = true)
+    (ihx :
+      __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
+        native_eo_to_smt_uop_indices_safe x = true)
+    (hTranslate :
+      __eo_to_smt (Term.Apply f x) =
+        SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt x))
+    (h :
+      __smtx_typeof (__eo_to_smt (Term.Apply f x)) ≠
+        SmtType.None) :
+    native_eo_to_smt_uop_indices_safe (Term.Apply f x) = true := by
+  have hApply :
+      __smtx_typeof
+          (SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt x)) ≠
+        SmtType.None := by
+    simpa [hTranslate] using h
+  exact native_eo_to_smt_uop_indices_safe_of_generic_apply_non_none
+    (f := f) (x := x) ihf ihx hApply
+
 private theorem native_eo_to_smt_uop_indices_safe_uop1_of_smt_numeral
     {op : UserOp1} {x : Term} {n : native_Int}
     (hx : __eo_to_smt x = SmtTerm.Numeral n) :
@@ -566,6 +589,420 @@ private theorem native_eo_to_smt_uop_indices_safe_of_smt_type_wf
   native_eo_to_smt_uop_indices_safe_of_type_valid
     (eo_type_valid_of_smt_wf T hWf)
 
+private theorem native_eo_to_smt_uop_indices_safe_of_typed_list_elem_type_non_none
+    (root : Term)
+    (ih :
+      ∀ x : Term,
+        sizeOf x < sizeOf root ->
+        __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
+          native_eo_to_smt_uop_indices_safe x = true) :
+    ∀ xs : Term,
+      sizeOf xs < sizeOf root ->
+      __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None ->
+        native_eo_to_smt_uop_indices_safe xs = true := by
+  let rec go : ∀ xs : Term,
+      sizeOf xs < sizeOf root ->
+      __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None ->
+        native_eo_to_smt_uop_indices_safe xs = true
+    | xs, hLt, h => by
+        cases xs
+        case Apply f tail =>
+          cases f
+          case UOp op =>
+            cases op
+            case _at__at_TypedList_nil =>
+              have hWf : __smtx_type_wf (__eo_to_smt_type tail) = true := by
+                by_cases hWf : __smtx_type_wf (__eo_to_smt_type tail) = true
+                · exact hWf
+                · exfalso
+                  apply h
+                  simp [__eo_to_smt_typed_list_elem_type, native_ite, hWf]
+              rcases native_eo_to_smt_uop_indices_safe_of_smt_type_wf
+                  (T := tail) hWf with
+                ⟨_tailClosed, tailSafe⟩
+              exact native_eo_to_smt_uop_indices_safe_apply_intro
+                (by simp [native_eo_to_smt_uop_indices_safe]) tailSafe
+            all_goals
+              exfalso
+              apply h
+              simp [__eo_to_smt_typed_list_elem_type]
+          case Apply g head =>
+            cases g
+            case UOp op =>
+              cases op
+              case _at__at_TypedList_cons =>
+                let headTy := __smtx_typeof (__eo_to_smt head)
+                let tailTy := __eo_to_smt_typed_list_elem_type tail
+                have hGuard : native_Teq headTy tailTy = true := by
+                  by_cases hGuard : native_Teq headTy tailTy = true
+                  · exact hGuard
+                  · exfalso
+                    apply h
+                    simp [__eo_to_smt_typed_list_elem_type, headTy, tailTy,
+                      native_ite, hGuard]
+                have hHeadTyNN : headTy ≠ SmtType.None := by
+                  change
+                    (native_ite (native_Teq headTy tailTy) headTy
+                        SmtType.None) ≠
+                      SmtType.None at h
+                  rw [hGuard] at h
+                  exact h
+                have hTailTyNN : tailTy ≠ SmtType.None := by
+                  intro hTailNone
+                  have hHeadEqTail : headTy = tailTy := by
+                    simpa [native_Teq] using hGuard
+                  exact hHeadTyNN (by rw [hHeadEqTail, hTailNone])
+                have hHeadLt : sizeOf head < sizeOf root := by
+                  simp at hLt
+                  omega
+                have hTailLt : sizeOf tail < sizeOf root := by
+                  simp at hLt
+                  omega
+                exact native_eo_to_smt_uop_indices_safe_apply_intro
+                  (native_eo_to_smt_uop_indices_safe_apply_intro
+                    (by simp [native_eo_to_smt_uop_indices_safe])
+                    (ih head hHeadLt (by simpa [headTy] using hHeadTyNN)))
+                  (go tail hTailLt (by simpa [tailTy] using hTailTyNN))
+              all_goals
+                exfalso
+                apply h
+                simp [__eo_to_smt_typed_list_elem_type]
+            all_goals
+              exfalso
+              apply h
+              simp [__eo_to_smt_typed_list_elem_type]
+          all_goals
+            exfalso
+            apply h
+            simp [__eo_to_smt_typed_list_elem_type]
+        all_goals
+          exfalso
+          apply h
+          simp [__eo_to_smt_typed_list_elem_type]
+  exact go
+
+private theorem native_eo_to_smt_uop_indices_safe_of_apply_distinct_non_none
+    {xs : Term}
+    (root : Term)
+    (ih :
+      ∀ x : Term,
+        sizeOf x < sizeOf root ->
+        __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
+          native_eo_to_smt_uop_indices_safe x = true)
+    (hLt : sizeOf xs < sizeOf root)
+    (h :
+      __smtx_typeof
+          (__eo_to_smt (Term.Apply (Term.UOp UserOp.distinct) xs)) ≠
+        SmtType.None) :
+    native_eo_to_smt_uop_indices_safe
+      (Term.Apply (Term.UOp UserOp.distinct) xs) = true := by
+  change
+    __smtx_typeof
+        (native_ite
+          (native_Teq (__eo_to_smt_typed_list_elem_type xs) SmtType.None)
+          SmtTerm.None (__eo_to_smt_distinct xs)) ≠
+      SmtType.None at h
+  have hElemNN : __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None := by
+    intro hElemNone
+    apply h
+    simp [native_ite, hElemNone, native_Teq,
+      TranslationProofs.smtx_typeof_none]
+  exact native_eo_to_smt_uop_indices_safe_apply_intro
+    (by simp [native_eo_to_smt_uop_indices_safe])
+    (native_eo_to_smt_uop_indices_safe_of_typed_list_elem_type_non_none
+      root ih xs hLt hElemNN)
+
+private theorem smtx_typeof_not_arg_bool_of_non_none
+    {t : SmtTerm}
+    (h : __smtx_typeof (SmtTerm.not t) ≠ SmtType.None) :
+    __smtx_typeof t = SmtType.Bool := by
+  have hNotBool : __smtx_typeof (SmtTerm.not t) = SmtType.Bool := by
+    rw [typeof_not_eq]
+    by_cases hArg : native_Teq (__smtx_typeof t) SmtType.Bool = true
+    · simp [native_ite, hArg]
+    · exfalso
+      apply h
+      rw [typeof_not_eq]
+      simp [native_ite, hArg, TranslationProofs.smtx_typeof_none]
+  exact smtx_typeof_not_arg_bool t hNotBool
+
+private theorem native_eo_to_smt_uop_indices_safe_of_var_list_exists_bool
+    (root : Term) :
+    ∀ xs body,
+      sizeOf xs < sizeOf root ->
+      __smtx_typeof (__eo_to_smt_exists xs body) = SmtType.Bool ->
+        native_eo_to_smt_uop_indices_safe xs = true := by
+  let rec go : ∀ xs body,
+      sizeOf xs < sizeOf root ->
+      __smtx_typeof (__eo_to_smt_exists xs body) = SmtType.Bool ->
+        native_eo_to_smt_uop_indices_safe xs = true
+    | xs, body, hLt, hBool => by
+        cases xs
+        case __eo_List_nil =>
+          simp [native_eo_to_smt_uop_indices_safe]
+        case Apply f tail =>
+          cases f
+          case Apply g head =>
+            cases g
+            case __eo_List_cons =>
+              cases head
+              case Var name T =>
+                cases name
+                case String s =>
+                  have hExistsTy :
+                      __smtx_typeof
+                          (SmtTerm.exists s (__eo_to_smt_type T)
+                            (__eo_to_smt_exists tail body)) =
+                        SmtType.Bool := by
+                    simpa [__eo_to_smt_exists] using hBool
+                  have hExistsNN :
+                      term_has_non_none_type
+                        (SmtTerm.exists s (__eo_to_smt_type T)
+                          (__eo_to_smt_exists tail body)) := by
+                    unfold term_has_non_none_type
+                    rw [hExistsTy]
+                    simp
+                  have hTailBool :
+                      __smtx_typeof (__eo_to_smt_exists tail body) =
+                        SmtType.Bool := by
+                    simpa using exists_body_bool_of_non_none hExistsNN
+                  have hTailLt : sizeOf tail < sizeOf root := by
+                    simp at hLt
+                    omega
+                  exact native_eo_to_smt_uop_indices_safe_apply_intro
+                    (native_eo_to_smt_uop_indices_safe_apply_intro
+                      (by simp [native_eo_to_smt_uop_indices_safe])
+                      (by simp [native_eo_to_smt_uop_indices_safe]))
+                    (go tail body hTailLt hTailBool)
+                all_goals
+                  exfalso
+                  have hNone := hBool
+                  simp [__eo_to_smt_exists,
+                    TranslationProofs.smtx_typeof_none] at hNone
+              all_goals
+                exfalso
+                have hNone := hBool
+                simp [__eo_to_smt_exists,
+                  TranslationProofs.smtx_typeof_none] at hNone
+            all_goals
+              exfalso
+              have hNone := hBool
+              simp [__eo_to_smt_exists,
+                TranslationProofs.smtx_typeof_none] at hNone
+          all_goals
+            exfalso
+            have hNone := hBool
+            simp [__eo_to_smt_exists,
+              TranslationProofs.smtx_typeof_none] at hNone
+        all_goals
+          exfalso
+          have hNone := hBool
+          simp [__eo_to_smt_exists,
+            TranslationProofs.smtx_typeof_none] at hNone
+  exact go
+
+private theorem native_eo_to_smt_uop_indices_safe_of_apply_exists_non_none
+    {xs F : Term}
+    (root : Term)
+    (ih :
+      ∀ x : Term,
+        sizeOf x < sizeOf root ->
+        __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
+          native_eo_to_smt_uop_indices_safe x = true)
+    (hXsLt : sizeOf xs < sizeOf root)
+    (hFLt : sizeOf F < sizeOf root)
+    (h :
+      __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.exists) xs) F)) ≠
+        SmtType.None) :
+    native_eo_to_smt_uop_indices_safe
+      (Term.Apply (Term.Apply (Term.UOp UserOp.exists) xs) F) = true := by
+  cases xs
+  case __eo_List_nil =>
+    exfalso
+    apply h
+    change __smtx_typeof SmtTerm.None = SmtType.None
+    exact TranslationProofs.smtx_typeof_none
+  case Apply f tail =>
+    cases f
+    case Apply g head =>
+      cases g
+      case __eo_List_cons =>
+        cases head
+        case Var name T =>
+          cases name
+          case String s =>
+            have hChain :
+                __smtx_typeof
+                    (__eo_to_smt_exists
+                      (Term.Apply
+                        (Term.Apply Term.__eo_List_cons
+                          (Term.Var (Term.String s) T)) tail)
+                      (__eo_to_smt F)) =
+                  SmtType.Bool := by
+              have hExistsNN :
+                  term_has_non_none_type
+                    (SmtTerm.exists s (__eo_to_smt_type T)
+                      (__eo_to_smt_exists tail (__eo_to_smt F))) := by
+                unfold term_has_non_none_type
+                change
+                  __smtx_typeof
+                      (SmtTerm.exists s (__eo_to_smt_type T)
+                        (__eo_to_smt_exists tail (__eo_to_smt F))) ≠
+                    SmtType.None at h
+                exact h
+              simpa [__eo_to_smt_exists] using
+                exists_term_typeof_of_non_none hExistsNN
+            have hFBool :
+                __smtx_typeof (__eo_to_smt F) = SmtType.Bool :=
+              eo_to_smt_exists_body_bool_of_bool
+                (Term.Apply
+                  (Term.Apply Term.__eo_List_cons
+                    (Term.Var (Term.String s) T)) tail)
+                (__eo_to_smt F) hChain
+            have hFNN : __smtx_typeof (__eo_to_smt F) ≠ SmtType.None := by
+              rw [hFBool]
+              simp
+            exact native_eo_to_smt_uop_indices_safe_apply_intro
+              (native_eo_to_smt_uop_indices_safe_apply_intro
+                (by simp [native_eo_to_smt_uop_indices_safe])
+                (native_eo_to_smt_uop_indices_safe_of_var_list_exists_bool
+                  root
+                  (Term.Apply
+                    (Term.Apply Term.__eo_List_cons
+                      (Term.Var (Term.String s) T)) tail)
+                  (__eo_to_smt F) hXsLt hChain))
+              (ih F hFLt hFNN)
+          all_goals
+            exfalso
+            apply h
+            change __smtx_typeof SmtTerm.None = SmtType.None
+            exact TranslationProofs.smtx_typeof_none
+        all_goals
+          exfalso
+          apply h
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact TranslationProofs.smtx_typeof_none
+      all_goals
+        exfalso
+        apply h
+        change __smtx_typeof SmtTerm.None = SmtType.None
+        exact TranslationProofs.smtx_typeof_none
+    all_goals
+      exfalso
+      apply h
+      change __smtx_typeof SmtTerm.None = SmtType.None
+      exact TranslationProofs.smtx_typeof_none
+  all_goals
+    exfalso
+    apply h
+    change __smtx_typeof SmtTerm.None = SmtType.None
+    exact TranslationProofs.smtx_typeof_none
+
+private theorem native_eo_to_smt_uop_indices_safe_of_apply_forall_non_none
+    {xs F : Term}
+    (root : Term)
+    (ih :
+      ∀ x : Term,
+        sizeOf x < sizeOf root ->
+        __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
+          native_eo_to_smt_uop_indices_safe x = true)
+    (hXsLt : sizeOf xs < sizeOf root)
+    (hFLt : sizeOf F < sizeOf root)
+    (h :
+      __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F)) ≠
+        SmtType.None) :
+    native_eo_to_smt_uop_indices_safe
+      (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F) = true := by
+  cases xs
+  case __eo_List_nil =>
+    exfalso
+    apply h
+    change __smtx_typeof SmtTerm.None = SmtType.None
+    exact TranslationProofs.smtx_typeof_none
+  case Apply f tail =>
+    cases f
+    case Apply g head =>
+      cases g
+      case __eo_List_cons =>
+        cases head
+        case Var name T =>
+          cases name
+          case String s =>
+            have hChain :
+                __smtx_typeof
+                    (__eo_to_smt_exists
+                      (Term.Apply
+                        (Term.Apply Term.__eo_List_cons
+                          (Term.Var (Term.String s) T)) tail)
+                      (SmtTerm.not (__eo_to_smt F))) =
+                  SmtType.Bool := by
+              apply smtx_typeof_not_arg_bool_of_non_none
+              change
+                __smtx_typeof
+                    (SmtTerm.not
+                      (SmtTerm.exists s (__eo_to_smt_type T)
+                        (__eo_to_smt_exists tail
+                          (SmtTerm.not (__eo_to_smt F))))) ≠
+                  SmtType.None at h
+              simpa [__eo_to_smt_exists] using h
+            have hNotF :
+                __smtx_typeof (SmtTerm.not (__eo_to_smt F)) =
+                  SmtType.Bool :=
+              eo_to_smt_exists_body_bool_of_bool
+                (Term.Apply
+                  (Term.Apply Term.__eo_List_cons
+                    (Term.Var (Term.String s) T)) tail)
+                (SmtTerm.not (__eo_to_smt F)) hChain
+            have hFBool : __smtx_typeof (__eo_to_smt F) = SmtType.Bool :=
+              smtx_typeof_not_arg_bool (__eo_to_smt F) hNotF
+            have hFNN : __smtx_typeof (__eo_to_smt F) ≠ SmtType.None := by
+              rw [hFBool]
+              simp
+            exact native_eo_to_smt_uop_indices_safe_apply_intro
+              (native_eo_to_smt_uop_indices_safe_apply_intro
+                (by simp [native_eo_to_smt_uop_indices_safe])
+                (native_eo_to_smt_uop_indices_safe_of_var_list_exists_bool
+                  root
+                  (Term.Apply
+                    (Term.Apply Term.__eo_List_cons
+                      (Term.Var (Term.String s) T)) tail)
+                  (SmtTerm.not (__eo_to_smt F)) hXsLt hChain))
+              (ih F hFLt hFNN)
+          all_goals
+            exfalso
+            apply h
+            change __smtx_typeof (SmtTerm.not SmtTerm.None) = SmtType.None
+            rw [typeof_not_eq, TranslationProofs.smtx_typeof_none]
+            simp [native_ite, native_Teq]
+        all_goals
+          exfalso
+          apply h
+          change __smtx_typeof (SmtTerm.not SmtTerm.None) = SmtType.None
+          rw [typeof_not_eq, TranslationProofs.smtx_typeof_none]
+          simp [native_ite, native_Teq]
+      all_goals
+        exfalso
+        apply h
+        change __smtx_typeof (SmtTerm.not SmtTerm.None) = SmtType.None
+        rw [typeof_not_eq, TranslationProofs.smtx_typeof_none]
+        simp [native_ite, native_Teq]
+    all_goals
+      exfalso
+      apply h
+      change __smtx_typeof (SmtTerm.not SmtTerm.None) = SmtType.None
+      rw [typeof_not_eq, TranslationProofs.smtx_typeof_none]
+      simp [native_ite, native_Teq]
+  all_goals
+    exfalso
+    apply h
+    change __smtx_typeof (SmtTerm.not SmtTerm.None) = SmtType.None
+    rw [typeof_not_eq, TranslationProofs.smtx_typeof_none]
+    simp [native_ite, native_Teq]
+
 private theorem native_eo_to_smt_uop_indices_safe_of_seq_empty_non_none
     {T : Term}
     (h :
@@ -817,6 +1254,251 @@ private theorem native_eo_to_smt_uop_indices_safe_of_apply_int_to_bv_non_none
     (native_eo_to_smt_uop_indices_safe_uop1_of_smt_numeral
       (op := UserOp1.int_to_bv) hIdx)
     (ihx (smt_typeof_non_none_of_eq_non_none hxTy (by simp)))
+
+private theorem smt_re_exp_args_of_non_none
+    {a x : SmtTerm}
+    (h : __smtx_typeof (SmtTerm.re_exp a x) ≠ SmtType.None) :
+    ∃ n : native_Int,
+      a = SmtTerm.Numeral n ∧ __smtx_typeof x = SmtType.RegLan := by
+  rw [typeof_re_exp_eq] at h
+  cases a <;> simp [__smtx_typeof_re_exp] at h
+  case Numeral n =>
+    cases hx : __smtx_typeof x <;> simp [hx] at h
+    by_cases hn : native_zleq 0 n = true
+    · exact ⟨n, rfl, rfl⟩
+    · exfalso
+      cases hz : native_zleq 0 n <;> simp [hz] at hn h
+      exact h rfl
+
+private theorem native_eo_to_smt_uop_indices_safe_of_apply_re_exp_non_none
+    {idx x : Term}
+    (ihx :
+      __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
+        native_eo_to_smt_uop_indices_safe x = true)
+    (h :
+      __smtx_typeof
+          (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.re_exp idx) x)) ≠
+        SmtType.None) :
+    native_eo_to_smt_uop_indices_safe
+      (Term.Apply (Term.UOp1 UserOp1.re_exp idx) x) = true := by
+  change __smtx_typeof
+      (SmtTerm.re_exp (__eo_to_smt idx) (__eo_to_smt x)) ≠
+    SmtType.None at h
+  rcases smt_re_exp_args_of_non_none h with ⟨n, hIdx, hxTy⟩
+  exact native_eo_to_smt_uop_indices_safe_apply_intro
+    (native_eo_to_smt_uop_indices_safe_uop1_of_smt_numeral
+      (op := UserOp1.re_exp) hIdx)
+    (ihx (smt_typeof_non_none_of_eq_non_none hxTy (by simp)))
+
+private theorem native_eo_to_smt_uop_indices_safe_of_apply_at_bit_non_none
+    {idx x : Term}
+    (ihx :
+      __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
+        native_eo_to_smt_uop_indices_safe x = true)
+    (h :
+      __smtx_typeof
+          (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1._at_bit idx) x)) ≠
+        SmtType.None) :
+    native_eo_to_smt_uop_indices_safe
+      (Term.Apply (Term.UOp1 UserOp1._at_bit idx) x) = true := by
+  change
+    __smtx_typeof
+        (SmtTerm.eq
+          (SmtTerm.extract (__eo_to_smt idx) (__eo_to_smt idx)
+            (__eo_to_smt x))
+          (SmtTerm.Binary 1 1)) ≠
+      SmtType.None at h
+  have hEqNN :
+      __smtx_typeof_eq
+          (__smtx_typeof
+            (SmtTerm.extract (__eo_to_smt idx) (__eo_to_smt idx)
+              (__eo_to_smt x)))
+          (__smtx_typeof (SmtTerm.Binary 1 1)) ≠
+        SmtType.None := by
+    simpa [typeof_eq_eq] using h
+  have hEqArgs := smtx_typeof_eq_non_none hEqNN
+  have hExtNN :
+      term_has_non_none_type
+        (SmtTerm.extract (__eo_to_smt idx) (__eo_to_smt idx)
+          (__eo_to_smt x)) := by
+    unfold term_has_non_none_type
+    exact hEqArgs.2
+  rcases extract_args_of_non_none hExtNN with
+    ⟨i, _j, w, hIdx, _hIdx', hxTy, _hj0, _hji, _hiw⟩
+  exact native_eo_to_smt_uop_indices_safe_apply_intro
+    (native_eo_to_smt_uop_indices_safe_uop1_of_smt_numeral
+      (op := UserOp1._at_bit) hIdx)
+    (ihx (smt_typeof_non_none_of_eq_non_none hxTy (by simp)))
+
+private theorem native_eo_to_smt_uop_indices_safe_of_guarded_uop1_apply_non_none
+    {op : UserOp1} {idx x : Term} {body : SmtTerm}
+    (ihIdx :
+      __smtx_typeof (__eo_to_smt idx) ≠ SmtType.None ->
+        native_eo_to_smt_uop_indices_safe idx = true)
+    (ihx :
+      __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
+        native_eo_to_smt_uop_indices_safe x = true)
+    (hBodyArgs :
+      __smtx_typeof body ≠ SmtType.None ->
+        __smtx_typeof (__eo_to_smt idx) ≠ SmtType.None ∧
+          __smtx_typeof (__eo_to_smt x) ≠ SmtType.None)
+    (h :
+      __smtx_typeof (native_eo_to_smt_guard_closed idx body) ≠
+        SmtType.None) :
+    native_eo_to_smt_uop_indices_safe
+      (Term.Apply (Term.UOp1 op idx) x) = true := by
+  have hIdxClosed :
+      native_eo_to_smt_closed idx = true :=
+    native_eo_to_smt_closed_of_guard_type_non_none h
+  have hBody :
+      __smtx_typeof body ≠ SmtType.None :=
+    guard_body_type_non_none_of_guard_type_non_none h
+  rcases hBodyArgs hBody with ⟨hIdxNN, hxNN⟩
+  exact native_eo_to_smt_uop_indices_safe_apply_intro
+    (native_eo_to_smt_uop_indices_safe_uop1_intro
+      hIdxClosed (ihIdx hIdxNN))
+    (ihx hxNN)
+
+private theorem native_eo_to_smt_strings_stoi_result_args_non_none
+    {idx x : Term}
+    (h :
+      __smtx_typeof
+          (SmtTerm.str_to_int
+            (SmtTerm.str_substr (__eo_to_smt idx) (SmtTerm.Numeral 0)
+              (__eo_to_smt x))) ≠
+        SmtType.None) :
+    __smtx_typeof (__eo_to_smt idx) ≠ SmtType.None ∧
+      __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
+  let sub :=
+    SmtTerm.str_substr (__eo_to_smt idx) (SmtTerm.Numeral 0)
+      (__eo_to_smt x)
+  have hSubSeq :
+      __smtx_typeof sub = SmtType.Seq SmtType.Char :=
+    seq_char_arg_of_non_none (op := SmtTerm.str_to_int)
+      (typeof_str_to_int_eq sub) (by
+        unfold term_has_non_none_type
+        simpa [sub] using h)
+  have hSubNN : term_has_non_none_type sub := by
+    unfold term_has_non_none_type
+    rw [hSubSeq]
+    simp
+  rcases str_substr_args_of_non_none hSubNN with
+    ⟨T, hIdxSeq, _hStart, hxInt⟩
+  exact
+    ⟨smt_typeof_non_none_of_eq_non_none hIdxSeq (by simp),
+      smt_typeof_non_none_of_eq_non_none hxInt (by simp)⟩
+
+private theorem native_eo_to_smt_strings_itos_result_args_non_none
+    {idx x : Term}
+    (h :
+      __smtx_typeof
+          (SmtTerm.mod (__eo_to_smt idx)
+            (SmtTerm.multmult (SmtTerm.Numeral 10) (__eo_to_smt x))) ≠
+        SmtType.None) :
+    __smtx_typeof (__eo_to_smt idx) ≠ SmtType.None ∧
+      __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
+  have hModNN :
+      term_has_non_none_type
+        (SmtTerm.mod (__eo_to_smt idx)
+          (SmtTerm.multmult (SmtTerm.Numeral 10) (__eo_to_smt x))) := by
+    unfold term_has_non_none_type
+    exact h
+  have hArgs :=
+    int_binop_args_of_non_none (op := SmtTerm.mod) (R := SmtType.Int)
+      (typeof_mod_eq (__eo_to_smt idx)
+        (SmtTerm.multmult (SmtTerm.Numeral 10) (__eo_to_smt x)))
+      hModNN
+  have hMulNN :
+      term_has_non_none_type
+        (SmtTerm.multmult (SmtTerm.Numeral 10) (__eo_to_smt x)) := by
+    unfold term_has_non_none_type
+    rw [hArgs.2]
+    simp
+  have hMulArgs :=
+    int_binop_args_of_non_none (op := SmtTerm.multmult) (R := SmtType.Int)
+      (typeof_multmult_eq (SmtTerm.Numeral 10) (__eo_to_smt x))
+      hMulNN
+  exact
+    ⟨smt_typeof_non_none_of_eq_non_none hArgs.1 (by simp),
+      smt_typeof_non_none_of_eq_non_none hMulArgs.2 (by simp)⟩
+
+private theorem native_eo_to_smt_uop_indices_safe_of_apply_is_non_none
+    {idx x : Term}
+    (ihx :
+      __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
+        native_eo_to_smt_uop_indices_safe x = true)
+    (h :
+      __smtx_typeof
+          (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.is idx) x)) ≠
+        SmtType.None) :
+    native_eo_to_smt_uop_indices_safe
+      (Term.Apply (Term.UOp1 UserOp1.is idx) x) = true := by
+  change
+    __smtx_typeof
+        (SmtTerm.Apply (__eo_to_smt_tester (__eo_to_smt idx))
+          (__eo_to_smt x)) ≠
+      SmtType.None at h
+  cases hIdx : __eo_to_smt idx
+  case DtCons s d i =>
+    have hApplyNN :
+        term_has_non_none_type
+          (SmtTerm.Apply (SmtTerm.DtTester s d i) (__eo_to_smt x)) := by
+      unfold term_has_non_none_type
+      simpa [__eo_to_smt_tester, hIdx] using h
+    have hxTy :
+        __smtx_typeof (__eo_to_smt x) = SmtType.Datatype s d :=
+      dt_tester_arg_datatype_of_non_none hApplyNN
+    exact native_eo_to_smt_uop_indices_safe_apply_intro
+      (native_eo_to_smt_uop_indices_safe_uop1_intro
+        (native_eo_to_smt_closed_of_dt_cons_translation hIdx)
+        (native_eo_to_smt_uop_indices_safe_of_dt_cons_translation hIdx))
+      (ihx (smt_typeof_non_none_of_eq_non_none hxTy (by simp)))
+  all_goals
+    exfalso
+    apply h
+    simp [__eo_to_smt_tester, hIdx, typeof_apply_none_eq]
+
+private theorem native_eo_to_smt_uop_indices_safe_of_apply_tuple_select_non_none
+    {idx x : Term}
+    (ihx :
+      __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
+        native_eo_to_smt_uop_indices_safe x = true)
+    (h :
+      __smtx_typeof
+          (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.tuple_select idx) x)) ≠
+        SmtType.None) :
+    native_eo_to_smt_uop_indices_safe
+      (Term.Apply (Term.UOp1 UserOp1.tuple_select idx) x) = true := by
+  change
+    __smtx_typeof
+        (__eo_to_smt_tuple_select (__smtx_typeof (__eo_to_smt x))
+          (__eo_to_smt idx) (__eo_to_smt x)) ≠
+      SmtType.None at h
+  cases hxTy : __smtx_typeof (__eo_to_smt x)
+  case Datatype s d =>
+    cases hIdx : __eo_to_smt idx
+    case Numeral n =>
+      by_cases hGuard :
+          native_and (native_streq s (native_string_lit "@Tuple"))
+              (native_zleq 0 n) =
+            true
+      · exact native_eo_to_smt_uop_indices_safe_apply_intro
+          (native_eo_to_smt_uop_indices_safe_uop1_of_smt_numeral
+            (op := UserOp1.tuple_select) hIdx)
+          (ihx (smt_typeof_non_none_of_eq_non_none hxTy (by simp)))
+      · exfalso
+        apply h
+        simp [__eo_to_smt_tuple_select, hxTy, hIdx, native_ite, hGuard]
+    all_goals
+      exfalso
+      apply h
+      simp [__eo_to_smt_tuple_select, hxTy, hIdx,
+        TranslationProofs.smtx_typeof_none]
+  all_goals
+    exfalso
+    apply h
+    simp [__eo_to_smt_tuple_select, hxTy,
+      TranslationProofs.smtx_typeof_none]
 
 private theorem native_eo_to_smt_uop_indices_safe_of_guarded_uop2_non_none
     {op : UserOp2} {x y : Term} {body : SmtTerm}
@@ -1418,7 +2100,353 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
               (fun hx => go x hx) (fun hy => go y hy)
               (fun hz => go z hz) h
         case Apply f x =>
-          sorry
+          by_cases hfDistinct : f = Term.UOp UserOp.distinct
+          · subst f
+            simpa [NativeEoToSmtUOpIndicesSafe,
+              native_eo_to_smt_uop_indices_safe] using
+              native_eo_to_smt_uop_indices_safe_of_apply_distinct_non_none
+                (xs := x) (Term.Apply (Term.UOp UserOp.distinct) x)
+                (fun y _hyLt hy => go y hy) (by simp) h
+          by_cases hfExists :
+              ∃ xs, f = Term.Apply (Term.UOp UserOp.exists) xs
+          · rcases hfExists with ⟨xs, rfl⟩
+            simpa [NativeEoToSmtUOpIndicesSafe,
+              native_eo_to_smt_uop_indices_safe] using
+              native_eo_to_smt_uop_indices_safe_of_apply_exists_non_none
+                (xs := xs) (F := x)
+                (Term.Apply (Term.Apply (Term.UOp UserOp.exists) xs) x)
+                (fun y _hyLt hy => go y hy) (by simp; omega)
+                (by simp; omega) h
+          by_cases hfForall :
+              ∃ xs, f = Term.Apply (Term.UOp UserOp.forall) xs
+          · rcases hfForall with ⟨xs, rfl⟩
+            simpa [NativeEoToSmtUOpIndicesSafe,
+              native_eo_to_smt_uop_indices_safe] using
+              native_eo_to_smt_uop_indices_safe_of_apply_forall_non_none
+                (xs := xs) (F := x)
+                (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) x)
+                (fun y _hyLt hy => go y hy) (by simp; omega)
+                (by simp; omega) h
+          cases f with
+          | UOp1 op idx =>
+            cases op with
+            | «repeat» =>
+              simpa [NativeEoToSmtUOpIndicesSafe,
+                native_eo_to_smt_uop_indices_safe] using
+                native_eo_to_smt_uop_indices_safe_of_apply_repeat_non_none
+                  (idx := idx) (x := x) (fun hx => go x hx) h
+            | zero_extend =>
+              simpa [NativeEoToSmtUOpIndicesSafe,
+                native_eo_to_smt_uop_indices_safe] using
+                native_eo_to_smt_uop_indices_safe_of_apply_zero_extend_non_none
+                  (idx := idx) (x := x) (fun hx => go x hx) h
+            | sign_extend =>
+              simpa [NativeEoToSmtUOpIndicesSafe,
+                native_eo_to_smt_uop_indices_safe] using
+                native_eo_to_smt_uop_indices_safe_of_apply_sign_extend_non_none
+                  (idx := idx) (x := x) (fun hx => go x hx) h
+            | rotate_left =>
+              simpa [NativeEoToSmtUOpIndicesSafe,
+                native_eo_to_smt_uop_indices_safe] using
+                native_eo_to_smt_uop_indices_safe_of_apply_rotate_left_non_none
+                  (idx := idx) (x := x) (fun hx => go x hx) h
+            | rotate_right =>
+              simpa [NativeEoToSmtUOpIndicesSafe,
+                native_eo_to_smt_uop_indices_safe] using
+                native_eo_to_smt_uop_indices_safe_of_apply_rotate_right_non_none
+                  (idx := idx) (x := x) (fun hx => go x hx) h
+            | _at_bit =>
+              simpa [NativeEoToSmtUOpIndicesSafe,
+                native_eo_to_smt_uop_indices_safe] using
+                native_eo_to_smt_uop_indices_safe_of_apply_at_bit_non_none
+                  (idx := idx) (x := x) (fun hx => go x hx) h
+            | re_exp =>
+              simpa [NativeEoToSmtUOpIndicesSafe,
+                native_eo_to_smt_uop_indices_safe] using
+                native_eo_to_smt_uop_indices_safe_of_apply_re_exp_non_none
+                  (idx := idx) (x := x) (fun hx => go x hx) h
+            | _at_strings_stoi_result =>
+              change
+                __smtx_typeof
+                    (native_eo_to_smt_guard_closed idx
+                      (SmtTerm.str_to_int
+                        (SmtTerm.str_substr (__eo_to_smt idx)
+                          (SmtTerm.Numeral 0) (__eo_to_smt x)))) ≠
+                  SmtType.None at h
+              simpa [NativeEoToSmtUOpIndicesSafe,
+                native_eo_to_smt_uop_indices_safe] using
+                native_eo_to_smt_uop_indices_safe_of_guarded_uop1_apply_non_none
+                  (op := UserOp1._at_strings_stoi_result)
+                  (idx := idx) (x := x)
+                  (body :=
+                    SmtTerm.str_to_int
+                      (SmtTerm.str_substr (__eo_to_smt idx)
+                        (SmtTerm.Numeral 0) (__eo_to_smt x)))
+                  (fun hidx => go idx hidx) (fun hx => go x hx)
+                  native_eo_to_smt_strings_stoi_result_args_non_none h
+            | _at_strings_itos_result =>
+              change
+                __smtx_typeof
+                    (native_eo_to_smt_guard_closed idx
+                      (SmtTerm.mod (__eo_to_smt idx)
+                        (SmtTerm.multmult (SmtTerm.Numeral 10)
+                          (__eo_to_smt x)))) ≠
+                  SmtType.None at h
+              simpa [NativeEoToSmtUOpIndicesSafe,
+                native_eo_to_smt_uop_indices_safe] using
+                native_eo_to_smt_uop_indices_safe_of_guarded_uop1_apply_non_none
+                  (op := UserOp1._at_strings_itos_result)
+                  (idx := idx) (x := x)
+                  (body :=
+                    SmtTerm.mod (__eo_to_smt idx)
+                      (SmtTerm.multmult (SmtTerm.Numeral 10)
+                        (__eo_to_smt x)))
+                  (fun hidx => go idx hidx) (fun hx => go x hx)
+                  native_eo_to_smt_strings_itos_result_args_non_none h
+            | int_to_bv =>
+              simpa [NativeEoToSmtUOpIndicesSafe,
+                native_eo_to_smt_uop_indices_safe] using
+                native_eo_to_smt_uop_indices_safe_of_apply_int_to_bv_non_none
+                  (idx := idx) (x := x) (fun hx => go x hx) h
+            | _at_purify =>
+              change
+                __smtx_typeof
+                    (SmtTerm.Apply
+                      (__eo_to_smt (Term.UOp1 UserOp1._at_purify idx))
+                      (__eo_to_smt x)) ≠
+                  SmtType.None at h
+              simpa [NativeEoToSmtUOpIndicesSafe] using
+                native_eo_to_smt_uop_indices_safe_of_generic_apply_non_none
+                  (f := Term.UOp1 UserOp1._at_purify idx) (x := x)
+                  (fun hf => by
+                    simpa [NativeEoToSmtUOpIndicesSafe] using
+                      go (Term.UOp1 UserOp1._at_purify idx) hf)
+                  (fun hx => by
+                    simpa [NativeEoToSmtUOpIndicesSafe] using go x hx)
+                  h
+            | seq_empty =>
+              change
+                __smtx_typeof
+                    (SmtTerm.Apply
+                      (__eo_to_smt (Term.UOp1 UserOp1.seq_empty idx))
+                      (__eo_to_smt x)) ≠
+                  SmtType.None at h
+              simpa [NativeEoToSmtUOpIndicesSafe] using
+                native_eo_to_smt_uop_indices_safe_of_generic_apply_non_none
+                  (f := Term.UOp1 UserOp1.seq_empty idx) (x := x)
+                  (fun hf => by
+                    simpa [NativeEoToSmtUOpIndicesSafe] using
+                      go (Term.UOp1 UserOp1.seq_empty idx) hf)
+                  (fun hx => by
+                    simpa [NativeEoToSmtUOpIndicesSafe] using go x hx)
+                  h
+            | _at_strings_stoi_non_digit =>
+              change
+                __smtx_typeof
+                    (SmtTerm.Apply
+                      (__eo_to_smt
+                        (Term.UOp1 UserOp1._at_strings_stoi_non_digit idx))
+                      (__eo_to_smt x)) ≠
+                  SmtType.None at h
+              simpa [NativeEoToSmtUOpIndicesSafe] using
+                native_eo_to_smt_uop_indices_safe_of_generic_apply_non_none
+                  (f := Term.UOp1 UserOp1._at_strings_stoi_non_digit idx)
+                  (x := x)
+                  (fun hf => by
+                    simpa [NativeEoToSmtUOpIndicesSafe] using
+                      go (Term.UOp1 UserOp1._at_strings_stoi_non_digit idx) hf)
+                  (fun hx => by
+                    simpa [NativeEoToSmtUOpIndicesSafe] using go x hx)
+                  h
+            | _at_strings_replace_all_result =>
+              change
+                __smtx_typeof
+                    (SmtTerm.Apply
+                      (__eo_to_smt
+                        (Term.UOp1 UserOp1._at_strings_replace_all_result idx))
+                      (__eo_to_smt x)) ≠
+                  SmtType.None at h
+              simpa [NativeEoToSmtUOpIndicesSafe] using
+                native_eo_to_smt_uop_indices_safe_of_generic_apply_non_none
+                  (f := Term.UOp1 UserOp1._at_strings_replace_all_result idx)
+                  (x := x)
+                  (fun hf => by
+                    simpa [NativeEoToSmtUOpIndicesSafe] using
+                      go (Term.UOp1 UserOp1._at_strings_replace_all_result idx) hf)
+                  (fun hx => by
+                    simpa [NativeEoToSmtUOpIndicesSafe] using go x hx)
+                  h
+            | is =>
+              simpa [NativeEoToSmtUOpIndicesSafe,
+                native_eo_to_smt_uop_indices_safe] using
+                native_eo_to_smt_uop_indices_safe_of_apply_is_non_none
+                  (idx := idx) (x := x) (fun hx => go x hx) h
+            | update =>
+              change
+                __smtx_typeof
+                    (SmtTerm.Apply
+                      (__eo_to_smt (Term.UOp1 UserOp1.update idx))
+                      (__eo_to_smt x)) ≠
+                  SmtType.None at h
+              simpa [NativeEoToSmtUOpIndicesSafe] using
+                native_eo_to_smt_uop_indices_safe_of_generic_apply_non_none
+                  (f := Term.UOp1 UserOp1.update idx) (x := x)
+                  (fun hf => by
+                    simpa [NativeEoToSmtUOpIndicesSafe] using
+                      go (Term.UOp1 UserOp1.update idx) hf)
+                  (fun hx => by
+                    simpa [NativeEoToSmtUOpIndicesSafe] using go x hx)
+                  h
+            | tuple_select =>
+              simpa [NativeEoToSmtUOpIndicesSafe,
+                native_eo_to_smt_uop_indices_safe] using
+                native_eo_to_smt_uop_indices_safe_of_apply_tuple_select_non_none
+                  (idx := idx) (x := x) (fun hx => go x hx) h
+            | tuple_update =>
+              change
+                __smtx_typeof
+                    (SmtTerm.Apply
+                      (__eo_to_smt (Term.UOp1 UserOp1.tuple_update idx))
+                      (__eo_to_smt x)) ≠
+                  SmtType.None at h
+              simpa [NativeEoToSmtUOpIndicesSafe] using
+                native_eo_to_smt_uop_indices_safe_of_generic_apply_non_none
+                  (f := Term.UOp1 UserOp1.tuple_update idx) (x := x)
+                  (fun hf => by
+                    simpa [NativeEoToSmtUOpIndicesSafe] using
+                      go (Term.UOp1 UserOp1.tuple_update idx) hf)
+                  (fun hx => by
+                    simpa [NativeEoToSmtUOpIndicesSafe] using go x hx)
+                  h
+            | set_empty =>
+              change
+                __smtx_typeof
+                    (SmtTerm.Apply
+                      (__eo_to_smt (Term.UOp1 UserOp1.set_empty idx))
+                      (__eo_to_smt x)) ≠
+                  SmtType.None at h
+              simpa [NativeEoToSmtUOpIndicesSafe] using
+                native_eo_to_smt_uop_indices_safe_of_generic_apply_non_none
+                  (f := Term.UOp1 UserOp1.set_empty idx) (x := x)
+                  (fun hf => by
+                    simpa [NativeEoToSmtUOpIndicesSafe] using
+                      go (Term.UOp1 UserOp1.set_empty idx) hf)
+                  (fun hx => by
+                    simpa [NativeEoToSmtUOpIndicesSafe] using go x hx)
+                  h
+          | UOp2 op idx1 idx2 =>
+            cases op with
+            | extract =>
+              simpa [NativeEoToSmtUOpIndicesSafe,
+                native_eo_to_smt_uop_indices_safe] using
+                native_eo_to_smt_uop_indices_safe_of_apply_extract_non_none
+                  (hi := idx1) (lo := idx2) (x := x)
+                  (fun hx => go x hx) h
+            | re_loop =>
+              simpa [NativeEoToSmtUOpIndicesSafe,
+                native_eo_to_smt_uop_indices_safe] using
+                native_eo_to_smt_uop_indices_safe_of_apply_re_loop_non_none
+                  (lo := idx1) (hi := idx2) (x := x)
+                  (fun hx => go x hx) h
+            | _at_array_deq_diff =>
+              simpa [NativeEoToSmtUOpIndicesSafe] using
+                native_eo_to_smt_uop_indices_safe_of_eo_generic_apply_non_none
+                  (f := Term.UOp2 UserOp2._at_array_deq_diff idx1 idx2)
+                  (x := x)
+                  (fun hf => by
+                    simpa [NativeEoToSmtUOpIndicesSafe] using
+                      go (Term.UOp2 UserOp2._at_array_deq_diff idx1 idx2) hf)
+                  (fun hx => by
+                    simpa [NativeEoToSmtUOpIndicesSafe] using go x hx)
+                  (by rfl) h
+            | _at_bv =>
+              simpa [NativeEoToSmtUOpIndicesSafe] using
+                native_eo_to_smt_uop_indices_safe_of_eo_generic_apply_non_none
+                  (f := Term.UOp2 UserOp2._at_bv idx1 idx2) (x := x)
+                  (fun hf => by
+                    simpa [NativeEoToSmtUOpIndicesSafe] using
+                      go (Term.UOp2 UserOp2._at_bv idx1 idx2) hf)
+                  (fun hx => by
+                    simpa [NativeEoToSmtUOpIndicesSafe] using go x hx)
+                  (by rfl) h
+            | _at_strings_deq_diff =>
+              simpa [NativeEoToSmtUOpIndicesSafe] using
+                native_eo_to_smt_uop_indices_safe_of_eo_generic_apply_non_none
+                  (f := Term.UOp2 UserOp2._at_strings_deq_diff idx1 idx2)
+                  (x := x)
+                  (fun hf => by
+                    simpa [NativeEoToSmtUOpIndicesSafe] using
+                      go (Term.UOp2 UserOp2._at_strings_deq_diff idx1 idx2) hf)
+                  (fun hx => by
+                    simpa [NativeEoToSmtUOpIndicesSafe] using go x hx)
+                  (by rfl) h
+            | _at_strings_num_occur_re =>
+              simpa [NativeEoToSmtUOpIndicesSafe] using
+                native_eo_to_smt_uop_indices_safe_of_eo_generic_apply_non_none
+                  (f := Term.UOp2 UserOp2._at_strings_num_occur_re idx1 idx2)
+                  (x := x)
+                  (fun hf => by
+                    simpa [NativeEoToSmtUOpIndicesSafe] using
+                      go (Term.UOp2 UserOp2._at_strings_num_occur_re idx1 idx2) hf)
+                  (fun hx => by
+                    simpa [NativeEoToSmtUOpIndicesSafe] using go x hx)
+                  (by rfl) h
+            | _at_strings_occur_index_re =>
+              simpa [NativeEoToSmtUOpIndicesSafe] using
+                native_eo_to_smt_uop_indices_safe_of_eo_generic_apply_non_none
+                  (f := Term.UOp2 UserOp2._at_strings_occur_index_re idx1 idx2)
+                  (x := x)
+                  (fun hf => by
+                    simpa [NativeEoToSmtUOpIndicesSafe] using
+                      go (Term.UOp2 UserOp2._at_strings_occur_index_re idx1 idx2) hf)
+                  (fun hx => by
+                    simpa [NativeEoToSmtUOpIndicesSafe] using go x hx)
+                  (by rfl) h
+            | _at_sets_deq_diff =>
+              simpa [NativeEoToSmtUOpIndicesSafe] using
+                native_eo_to_smt_uop_indices_safe_of_eo_generic_apply_non_none
+                  (f := Term.UOp2 UserOp2._at_sets_deq_diff idx1 idx2)
+                  (x := x)
+                  (fun hf => by
+                    simpa [NativeEoToSmtUOpIndicesSafe] using
+                      go (Term.UOp2 UserOp2._at_sets_deq_diff idx1 idx2) hf)
+                  (fun hx => by
+                    simpa [NativeEoToSmtUOpIndicesSafe] using go x hx)
+                  (by rfl) h
+            | _at_quantifiers_skolemize =>
+              simpa [NativeEoToSmtUOpIndicesSafe] using
+                native_eo_to_smt_uop_indices_safe_of_eo_generic_apply_non_none
+                  (f := Term.UOp2 UserOp2._at_quantifiers_skolemize idx1 idx2)
+                  (x := x)
+                  (fun hf => by
+                    simpa [NativeEoToSmtUOpIndicesSafe] using
+                      go (Term.UOp2 UserOp2._at_quantifiers_skolemize idx1 idx2) hf)
+                  (fun hx => by
+                    simpa [NativeEoToSmtUOpIndicesSafe] using go x hx)
+                  (by rfl) h
+            | _at_const =>
+              simpa [NativeEoToSmtUOpIndicesSafe] using
+                native_eo_to_smt_uop_indices_safe_of_eo_generic_apply_non_none
+                  (f := Term.UOp2 UserOp2._at_const idx1 idx2) (x := x)
+                  (fun hf => by
+                    simpa [NativeEoToSmtUOpIndicesSafe] using
+                      go (Term.UOp2 UserOp2._at_const idx1 idx2) hf)
+                  (fun hx => by
+                    simpa [NativeEoToSmtUOpIndicesSafe] using go x hx)
+                  (by rfl) h
+          | UOp3 op idx1 idx2 idx3 =>
+            simpa [NativeEoToSmtUOpIndicesSafe] using
+              native_eo_to_smt_uop_indices_safe_of_eo_generic_apply_non_none
+                (f := Term.UOp3 op idx1 idx2 idx3) (x := x)
+                (fun hf => by
+                  simpa [NativeEoToSmtUOpIndicesSafe] using
+                    go (Term.UOp3 op idx1 idx2 idx3) hf)
+                (fun hx => by
+                  simpa [NativeEoToSmtUOpIndicesSafe] using go x hx)
+                (by rfl) h
+          | UOp op => sorry
+          | Apply g y => sorry
+          | _ => sorry
         all_goals
           trivial
   exact go t
