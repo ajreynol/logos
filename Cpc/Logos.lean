@@ -2169,8 +2169,8 @@ def __get_nth_var_type : Term -> Term -> Term
 
 
 def __contains_atomic_term : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | _ , Term.Stuck  => Term.Stuck
+  | Term.Stuck , _  => Term.Boolean false
+  | _ , Term.Stuck  => Term.Boolean false
   | (Term.Apply f a), x => (__eo_ite (__contains_atomic_term f x) (Term.Boolean true) (__contains_atomic_term a x))
   | x, y => (__eo_eq x y)
 

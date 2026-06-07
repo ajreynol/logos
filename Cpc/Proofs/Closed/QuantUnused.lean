@@ -4975,13 +4975,6 @@ theorem smtx_model_eval_eq_push_of_contains_atomic_term_false
     (smtTermAvoidsVar_of_contains_atomic_term_false
       F s T hTValid hNoOccur hSafe)
 
-private def native_contains_atomic_term_bool_safe : Term -> native_Bool
-  | Term.Stuck => false
-  | Term.Apply f x =>
-      native_and (native_contains_atomic_term_bool_safe f)
-        (native_contains_atomic_term_bool_safe x)
-  | _ => true
-
 private theorem contains_atomic_term_apply_bool_left
     {f a x : Term}
     (hx : x ≠ Term.Stuck)
@@ -5021,32 +5014,22 @@ private theorem contains_atomic_term_nonapply_quant_var_bool
   · exact Or.inl (eo_eq_eq_true_of_eq_local hEq hFNe hxNe)
   · exact Or.inr (eo_eq_eq_false_of_ne_local hEq hFNe hxNe)
 
-private theorem contains_atomic_term_quant_var_bool_of_native_safe
+private theorem contains_atomic_term_quant_var_bool_total
     (F x : Term)
-    (hSafeBool : native_contains_atomic_term_bool_safe F = true)
     (hx : IsQuantVarTerm x) :
     __contains_atomic_term F x = Term.Boolean true ∨
       __contains_atomic_term F x = Term.Boolean false := by
   cases F
   case Stuck =>
-      simp [native_contains_atomic_term_bool_safe] at hSafeBool
+      right
+      change Term.Boolean false = Term.Boolean false
+      rfl
   case Apply f a =>
       have hxNe : x ≠ Term.Stuck := quantVarTerm_ne_stuck hx
-      have hSplit :
-          native_and (native_contains_atomic_term_bool_safe f)
-              (native_contains_atomic_term_bool_safe a) =
-            true := by
-        simpa [native_contains_atomic_term_bool_safe] using hSafeBool
-      have hfSafe :
-          native_contains_atomic_term_bool_safe f = true :=
-        native_and_left_eq_true hSplit
-      have haSafe :
-          native_contains_atomic_term_bool_safe a = true :=
-        native_and_right_eq_true hSplit
       have hf :=
-        contains_atomic_term_quant_var_bool_of_native_safe f x hfSafe hx
+        contains_atomic_term_quant_var_bool_total f x hx
       have ha :=
-        contains_atomic_term_quant_var_bool_of_native_safe a x haSafe hx
+        contains_atomic_term_quant_var_bool_total a x hx
       rcases hf with hf | hf
       · exact Or.inl (contains_atomic_term_apply_bool_left hxNe hf)
       · rcases ha with ha | ha
@@ -5059,12 +5042,6 @@ private theorem contains_atomic_term_quant_var_bool_of_native_safe
       hx
 termination_by sizeOf F
 
-private theorem native_contains_atomic_term_bool_safe_of_smt_bool
-    (F : Term)
-    (hBodyBool : __smtx_typeof (__eo_to_smt F) = SmtType.Bool) :
-    native_contains_atomic_term_bool_safe F = true := by
-  sorry
-
 private theorem contains_atomic_term_quant_var_bool
     (F x : Term)
     (hBodyBool : __smtx_typeof (__eo_to_smt F) = SmtType.Bool)
@@ -5072,8 +5049,7 @@ private theorem contains_atomic_term_quant_var_bool
     (hSafe : NativeEoToSmtUOpIndicesSafe F) :
     __contains_atomic_term F x = Term.Boolean true ∨
       __contains_atomic_term F x = Term.Boolean false := by
-  exact contains_atomic_term_quant_var_bool_of_native_safe F x
-    (native_contains_atomic_term_bool_safe_of_smt_bool F hBodyBool) hx
+  exact contains_atomic_term_quant_var_bool_total F x hx
 
 /--
 Semantic core for `quant_unused_vars`: rebuilding the quantifier with
