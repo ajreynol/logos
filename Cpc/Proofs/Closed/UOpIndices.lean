@@ -2666,41 +2666,41 @@ private theorem native_eo_to_smt_uop_indices_safe_of_skolemize_forall_non_none
       true := by
   change
     __smtx_typeof
-        (native_eo_to_smt_guard_closed
-          (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F)
-          (native_ite (__eo_to_smt_nat_is_valid idx)
+        (native_ite (__eo_to_smt_nat_is_valid idx)
+          (native_eo_to_smt_guard_closed
+            (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F)
             (__eo_to_smt_quantifiers_skolemize
               (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt F)))
-              (__eo_to_smt_nat idx))
-            SmtTerm.None)) ≠
+              (__eo_to_smt_nat idx)))
+          SmtTerm.None) ≠
       SmtType.None at h
+  have hIdxValid : __eo_to_smt_nat_is_valid idx = true := by
+    cases hIdx : __eo_to_smt_nat_is_valid idx
+    · exfalso
+      apply h
+      simp [native_ite, hIdx, TranslationProofs.smtx_typeof_none]
+    · rfl
+  have hGuardNN :
+      __smtx_typeof
+          (native_eo_to_smt_guard_closed
+            (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F)
+            (__eo_to_smt_quantifiers_skolemize
+              (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt F)))
+              (__eo_to_smt_nat idx))) ≠
+        SmtType.None := by
+    simpa [native_ite, hIdxValid] using h
   have hForallClosed :
       native_eo_to_smt_closed
           (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F) =
         true :=
-    native_eo_to_smt_closed_of_guard_type_non_none h
-  have hGuardBody :
-      __smtx_typeof
-          (native_ite (__eo_to_smt_nat_is_valid idx)
-            (__eo_to_smt_quantifiers_skolemize
-              (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt F)))
-              (__eo_to_smt_nat idx))
-            SmtTerm.None) ≠
-        SmtType.None :=
-    guard_body_type_non_none_of_guard_type_non_none h
-  have hIdxValid : __eo_to_smt_nat_is_valid idx = true := by
-    cases hIdx : __eo_to_smt_nat_is_valid idx
-    · exfalso
-      apply hGuardBody
-      simp [native_ite, hIdx, TranslationProofs.smtx_typeof_none]
-    · rfl
+    native_eo_to_smt_closed_of_guard_type_non_none hGuardNN
   have hSkolNN :
       __smtx_typeof
           (__eo_to_smt_quantifiers_skolemize
             (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt F)))
             (__eo_to_smt_nat idx)) ≠
         SmtType.None := by
-    simpa [native_ite, hIdxValid] using hGuardBody
+    exact guard_body_type_non_none_of_guard_type_non_none hGuardNN
   have hBodyNoExists :
       ∀ s T body, SmtTerm.not (__eo_to_smt F) ≠ SmtTerm.exists s T body := by
     intro s T body hEq

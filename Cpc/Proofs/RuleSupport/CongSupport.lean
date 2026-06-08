@@ -16695,11 +16695,16 @@ private theorem eo_to_smt_quant_skolemize_top_ne_dt_sel
         case «forall» =>
           change
             native_ite (__eo_to_smt_nat_is_valid idx)
-                (__eo_to_smt_quantifiers_skolemize
-                  (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
-                  (__eo_to_smt_nat idx))
+                (native_eo_to_smt_guard_closed
+                  (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body)
+                  (__eo_to_smt_quantifiers_skolemize
+                    (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
+                    (__eo_to_smt_nat idx)))
                 SmtTerm.None =
               SmtTerm.DtSel s d i j at h
+          unfold native_ite at h
+          split at h <;> try cases h
+          unfold native_eo_to_smt_guard_closed at h
           unfold native_ite at h
           split at h <;> try cases h
           exact
@@ -16723,11 +16728,16 @@ private theorem eo_to_smt_quant_skolemize_top_ne_dt_tester
         case «forall» =>
           change
             native_ite (__eo_to_smt_nat_is_valid idx)
-                (__eo_to_smt_quantifiers_skolemize
-                  (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
-                  (__eo_to_smt_nat idx))
+                (native_eo_to_smt_guard_closed
+                  (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body)
+                  (__eo_to_smt_quantifiers_skolemize
+                    (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
+                    (__eo_to_smt_nat idx)))
                 SmtTerm.None =
               SmtTerm.DtTester s d i at h
+          unfold native_ite at h
+          split at h <;> try cases h
+          unfold native_eo_to_smt_guard_closed at h
           unfold native_ite at h
           split at h <;> try cases h
           exact
