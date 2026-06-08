@@ -7,7 +7,7 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option maxHeartbeats 10000000
+set_option maxHeartbeats 0
 
 namespace TranslationProofs
 
@@ -37,31 +37,38 @@ abbrev __eo_reserved_datatype_name : native_String -> native_Bool :=
 
 /-- Simplifies EO-to-SMT translation for `boolean`. -/
 @[simp] theorem eo_to_smt_boolean (b : native_Bool) :
-    __eo_to_smt (Term.Boolean b) = SmtTerm.Boolean b := rfl
+    __eo_to_smt (Term.Boolean b) = SmtTerm.Boolean b := by
+  rw [__eo_to_smt.eq_def]
 
 /-- Simplifies EO-to-SMT translation for `re_allchar`. -/
 @[simp] theorem eo_to_smt_re_allchar :
-    __eo_to_smt (Term.UOp UserOp.re_allchar) = SmtTerm.re_allchar := rfl
+    __eo_to_smt (Term.UOp UserOp.re_allchar) = SmtTerm.re_allchar := by
+  rw [__eo_to_smt.eq_def]
 
 /-- Simplifies EO-to-SMT translation for `re_none`. -/
 @[simp] theorem eo_to_smt_re_none :
-    __eo_to_smt (Term.UOp UserOp.re_none) = SmtTerm.re_none := rfl
+    __eo_to_smt (Term.UOp UserOp.re_none) = SmtTerm.re_none := by
+  rw [__eo_to_smt.eq_def]
 
 /-- Simplifies EO-to-SMT translation for `re_all`. -/
 @[simp] theorem eo_to_smt_re_all :
-    __eo_to_smt (Term.UOp UserOp.re_all) = SmtTerm.re_all := rfl
+    __eo_to_smt (Term.UOp UserOp.re_all) = SmtTerm.re_all := by
+  rw [__eo_to_smt.eq_def]
 
 /-- Simplifies EO-to-SMT translation for `var`. -/
 @[simp] theorem eo_to_smt_var (s : native_String) (T : Term) :
-    __eo_to_smt (Term.Var (Term.String s) T) = SmtTerm.Var s (__eo_to_smt_type T) := rfl
+    __eo_to_smt (Term.Var (Term.String s) T) = SmtTerm.Var s (__eo_to_smt_type T) := by
+  rw [__eo_to_smt.eq_def]
 
 /-- Simplifies EO-to-SMT translation for `uconst`. -/
 @[simp] theorem eo_to_smt_uconst (i : native_Nat) (T : Term) :
-    __eo_to_smt (Term.UConst i T) = SmtTerm.UConst (native_uconst_id i) (__eo_to_smt_type T) := rfl
+    __eo_to_smt (Term.UConst i T) = SmtTerm.UConst (native_uconst_id i) (__eo_to_smt_type T) := by
+  rw [__eo_to_smt.eq_def]
 
 /-- Simplifies EO-to-SMT translation for `set_empty`. -/
 @[simp] theorem eo_to_smt_set_empty (T : Term) :
-    __eo_to_smt (Term.set_empty T) = __eo_to_smt_set_empty (__eo_to_smt_type T) := rfl
+    __eo_to_smt (Term.set_empty T) = __eo_to_smt_set_empty (__eo_to_smt_type T) := by
+  rw [__eo_to_smt.eq_def]
 
 /-- Simplifies EO-to-SMT type translation for `bool`. -/
 @[simp] theorem eo_to_smt_type_bool :
