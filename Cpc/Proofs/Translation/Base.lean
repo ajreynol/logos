@@ -9,6 +9,10 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
+/-- Proof-local compatibility name for the EO-to-SMT closedness guard. -/
+def native_eo_to_smt_guard_closed (x : Term) (body : SmtTerm) : SmtTerm :=
+  native_ite (native_eo_to_smt_closed x) body SmtTerm.None
+
 namespace TranslationProofs
 
 /-- Proof-local compatibility name for the reserved datatype-name guard. -/

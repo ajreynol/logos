@@ -930,21 +930,27 @@ private theorem eo_to_smt_quant_skolemize_ne_dt_sel
     (s : native_String) (d : SmtDatatype) (i j : native_Nat) :
     __eo_to_smt_quantifiers_skolemize body n ≠ SmtTerm.DtSel s d i j := by
   intro h
-  cases body <;> cases h
+  cases body <;> try cases h
+  case not body =>
+    cases body <;> cases h
 
 private theorem eo_to_smt_quant_skolemize_ne_dt_tester
     (body : SmtTerm) (n : native_Nat)
     (s : native_String) (d : SmtDatatype) (i : native_Nat) :
     __eo_to_smt_quantifiers_skolemize body n ≠ SmtTerm.DtTester s d i := by
   intro h
-  cases body <;> cases h
+  cases body <;> try cases h
+  case not body =>
+    cases body <;> cases h
 
 private theorem eo_to_smt_quant_skolemize_ne_dt_cons
     (body : SmtTerm) (n : native_Nat)
     (s : native_String) (d : SmtDatatype) (i : native_Nat) :
     __eo_to_smt_quantifiers_skolemize body n ≠ SmtTerm.DtCons s d i := by
   intro h
-  cases body <;> cases h
+  cases body <;> try cases h
+  case not body =>
+    cases body <;> cases h
 
 private theorem eo_to_smt_set_insert_top_ne_dt_sel
     (xs x : Term) (s : native_String) (d : SmtDatatype) (i j : native_Nat) :
@@ -1049,80 +1055,49 @@ private theorem eo_to_smt_quant_skolemize_top_ne_dt_sel
     (q idx : Term) (s : native_String) (d : SmtDatatype) (i j : native_Nat) :
     __eo_to_smt (Term._at_quantifiers_skolemize q idx) ≠ SmtTerm.DtSel s d i j := by
   intro h
-  cases q <;> try cases h
-  case Apply f body =>
-    cases f <;> try cases h
-    case Apply g xs =>
-      cases g <;> try cases h
-      case UOp op =>
-        cases op <;> try cases h
-        case «forall» =>
-          change native_eo_to_smt_guard_closed
-              (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body)
-              (native_ite (__eo_to_smt_nat_is_valid idx)
-                (__eo_to_smt_quantifiers_skolemize
-                  (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body))) (__eo_to_smt_nat idx))
-                SmtTerm.None) =
-            SmtTerm.DtSel s d i j at h
-          have hBody :=
-            native_eo_to_smt_guard_closed_eq_of_ne_none h
-              (by intro hNone; cases hNone)
-          unfold native_ite at h
-          unfold native_ite at hBody
-          split at hBody <;> try cases hBody
-          exact eo_to_smt_quant_skolemize_ne_dt_sel _ _ _ _ _ _ hBody
+  change native_eo_to_smt_guard_closed q
+      (native_ite (__eo_to_smt_nat_is_valid idx)
+        (__eo_to_smt_quantifiers_skolemize (__eo_to_smt q) (__eo_to_smt_nat idx))
+        SmtTerm.None) =
+    SmtTerm.DtSel s d i j at h
+  have hBody :=
+    native_eo_to_smt_guard_closed_eq_of_ne_none h
+      (by intro hNone; cases hNone)
+  unfold native_ite at hBody
+  split at hBody <;> try cases hBody
+  exact eo_to_smt_quant_skolemize_ne_dt_sel _ _ _ _ _ _ hBody
 
 private theorem eo_to_smt_quant_skolemize_top_ne_dt_tester
     (q idx : Term) (s : native_String) (d : SmtDatatype) (i : native_Nat) :
     __eo_to_smt (Term._at_quantifiers_skolemize q idx) ≠ SmtTerm.DtTester s d i := by
   intro h
-  cases q <;> try cases h
-  case Apply f body =>
-    cases f <;> try cases h
-    case Apply g xs =>
-      cases g <;> try cases h
-      case UOp op =>
-        cases op <;> try cases h
-        case «forall» =>
-          change native_eo_to_smt_guard_closed
-              (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body)
-              (native_ite (__eo_to_smt_nat_is_valid idx)
-                (__eo_to_smt_quantifiers_skolemize
-                  (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body))) (__eo_to_smt_nat idx))
-                SmtTerm.None) =
-            SmtTerm.DtTester s d i at h
-          have hBody :=
-            native_eo_to_smt_guard_closed_eq_of_ne_none h
-              (by intro hNone; cases hNone)
-          unfold native_ite at hBody
-          split at hBody <;> try cases hBody
-          exact eo_to_smt_quant_skolemize_ne_dt_tester _ _ _ _ _ hBody
+  change native_eo_to_smt_guard_closed q
+      (native_ite (__eo_to_smt_nat_is_valid idx)
+        (__eo_to_smt_quantifiers_skolemize (__eo_to_smt q) (__eo_to_smt_nat idx))
+        SmtTerm.None) =
+    SmtTerm.DtTester s d i at h
+  have hBody :=
+    native_eo_to_smt_guard_closed_eq_of_ne_none h
+      (by intro hNone; cases hNone)
+  unfold native_ite at hBody
+  split at hBody <;> try cases hBody
+  exact eo_to_smt_quant_skolemize_ne_dt_tester _ _ _ _ _ hBody
 
 private theorem eo_to_smt_quant_skolemize_top_ne_dt_cons
     (q idx : Term) (s : native_String) (d : SmtDatatype) (i : native_Nat) :
     __eo_to_smt (Term._at_quantifiers_skolemize q idx) ≠ SmtTerm.DtCons s d i := by
   intro h
-  cases q <;> try cases h
-  case Apply f body =>
-    cases f <;> try cases h
-    case Apply g xs =>
-      cases g <;> try cases h
-      case UOp op =>
-        cases op <;> try cases h
-        case «forall» =>
-          change native_eo_to_smt_guard_closed
-              (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body)
-              (native_ite (__eo_to_smt_nat_is_valid idx)
-                (__eo_to_smt_quantifiers_skolemize
-                  (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body))) (__eo_to_smt_nat idx))
-                SmtTerm.None) =
-            SmtTerm.DtCons s d i at h
-          have hBody :=
-            native_eo_to_smt_guard_closed_eq_of_ne_none h
-              (by intro hNone; cases hNone)
-          unfold native_ite at hBody
-          split at hBody <;> try cases hBody
-          exact eo_to_smt_quant_skolemize_ne_dt_cons _ _ _ _ _ hBody
+  change native_eo_to_smt_guard_closed q
+      (native_ite (__eo_to_smt_nat_is_valid idx)
+        (__eo_to_smt_quantifiers_skolemize (__eo_to_smt q) (__eo_to_smt_nat idx))
+        SmtTerm.None) =
+    SmtTerm.DtCons s d i at h
+  have hBody :=
+    native_eo_to_smt_guard_closed_eq_of_ne_none h
+      (by intro hNone; cases hNone)
+  unfold native_ite at hBody
+  split at hBody <;> try cases hBody
+  exact eo_to_smt_quant_skolemize_ne_dt_cons _ _ _ _ _ hBody
 
 theorem eo_to_smt_apply_ne_dt_sel
     (f x : Term) (s : native_String) (d : SmtDatatype) (i j : native_Nat) :
@@ -1875,8 +1850,16 @@ private theorem eo_to_smt_quantifiers_skolemize_fun_like_arg_field_wf
         __smtx_typeof (__eo_to_smt_quantifiers_skolemize body n) = SmtType.DtcAppType A B) :
     smtx_type_field_wf_rec A native_reflist_nil := by
   cases body with
-  | «exists» s T body' =>
-      exact choice_nth_fun_like_arg_field_wf_any s T body' n hHead
+  | not body =>
+      cases body with
+      | «exists» s T body' =>
+          exact choice_nth_fun_like_arg_field_wf_any s T body' n
+            (by simpa [__eo_to_smt_quantifiers_skolemize] using hHead)
+      | _ =>
+          exfalso
+          rcases hHead with hHead | hHead
+          · simp [__eo_to_smt_quantifiers_skolemize] at hHead
+          · simp [__eo_to_smt_quantifiers_skolemize] at hHead
   | _ =>
       exfalso
       rcases hHead with hHead | hHead
@@ -1905,14 +1888,6 @@ private theorem eo_to_smt_none_not_fun_like
   rw [hNone] at hHead
   exact smtx_typeof_none_not_fun_like hHead
 
-private theorem eo_to_smt_quant_skolemize_top_non_forall_none
-    {op : UserOp} (h : op ≠ UserOp.forall) (xs body idx : Term) :
-    __eo_to_smt
-        (Term._at_quantifiers_skolemize
-          (Term.Apply (Term.Apply (Term.UOp op) xs) body) idx) =
-      SmtTerm.None := by
-  cases op <;> first | rfl | exact False.elim (h rfl)
-
 /--
 Top-level `_at_quantifiers_skolemize` only produces a function-like SMT term
 through the inner skolemization helper, whose arguments are already known to be
@@ -1926,89 +1901,55 @@ private theorem eo_to_smt_quantifiers_skolemize_top_fun_like_arg_field_wf
         __smtx_typeof (__eo_to_smt (Term._at_quantifiers_skolemize q idx)) =
           SmtType.DtcAppType A B) :
     smtx_type_field_wf_rec A native_reflist_nil := by
-  cases q
-  case Apply f body =>
-    cases f
-    case Apply g xs =>
-      cases g
-      case UOp op =>
-        by_cases hForall : op = UserOp.forall
-        · subst op
-          have hHead' :
-              __smtx_typeof
-                  (native_ite (__eo_to_smt_nat_is_valid idx)
-                    (__eo_to_smt_quantifiers_skolemize
-                      (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
-                      (__eo_to_smt_nat idx))
-                    SmtTerm.None) =
-                    SmtType.FunType A B ∨
-                __smtx_typeof
-                  (native_ite (__eo_to_smt_nat_is_valid idx)
-                    (__eo_to_smt_quantifiers_skolemize
-                      (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
-                      (__eo_to_smt_nat idx))
-                    SmtTerm.None) =
-                    SmtType.DtcAppType A B := by
-            change
-              __smtx_typeof
-                  (native_eo_to_smt_guard_closed
-                    (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body)
-                    (native_ite (__eo_to_smt_nat_is_valid idx)
-                      (__eo_to_smt_quantifiers_skolemize
-                        (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
-                        (__eo_to_smt_nat idx))
-                      SmtTerm.None)) =
-                    SmtType.FunType A B ∨
-                __smtx_typeof
-                  (native_eo_to_smt_guard_closed
-                    (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body)
-                    (native_ite (__eo_to_smt_nat_is_valid idx)
-                      (__eo_to_smt_quantifiers_skolemize
-                        (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
-                        (__eo_to_smt_nat idx))
-                      SmtTerm.None)) =
-                    SmtType.DtcAppType A B at hHead
-            have hNN :
-                __smtx_typeof
-                    (native_eo_to_smt_guard_closed
-                      (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body)
-                      (native_ite (__eo_to_smt_nat_is_valid idx)
-                        (__eo_to_smt_quantifiers_skolemize
-                          (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
-                          (__eo_to_smt_nat idx))
-                        SmtTerm.None)) ≠ SmtType.None := by
-              intro hNone
-              rcases hHead with hHead | hHead <;> rw [hNone] at hHead <;>
-                cases hHead
-            have hEq :=
-              smtx_typeof_guard_closed_eq_of_non_none
-                (x := Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body)
-                (body := native_ite (__eo_to_smt_nat_is_valid idx)
-                  (__eo_to_smt_quantifiers_skolemize
-                    (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
-                    (__eo_to_smt_nat idx))
-                  SmtTerm.None)
-                hNN
-            rcases hHead with hHead | hHead
-            · exact Or.inl (by simpa [hEq] using hHead)
-            · exact Or.inr (by simpa [hEq] using hHead)
-          unfold native_ite at hHead'
-          split at hHead'
-          · exact
-              eo_to_smt_quantifiers_skolemize_fun_like_arg_field_wf
-                (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
-                (__eo_to_smt_nat idx) hHead'
-          · exact False.elim (smtx_typeof_none_not_fun_like hHead')
-        · exact False.elim
-            (eo_to_smt_none_not_fun_like
-              (eo_to_smt_quant_skolemize_top_non_forall_none hForall xs body idx)
-              hHead)
-      all_goals
-        exact False.elim (eo_to_smt_none_not_fun_like (by rfl) hHead)
-    all_goals
-      exact False.elim (eo_to_smt_none_not_fun_like (by rfl) hHead)
-  all_goals
-    exact False.elim (eo_to_smt_none_not_fun_like (by rfl) hHead)
+  have hHead' :
+      __smtx_typeof
+          (native_ite (__eo_to_smt_nat_is_valid idx)
+            (__eo_to_smt_quantifiers_skolemize (__eo_to_smt q) (__eo_to_smt_nat idx))
+            SmtTerm.None) =
+            SmtType.FunType A B ∨
+        __smtx_typeof
+          (native_ite (__eo_to_smt_nat_is_valid idx)
+            (__eo_to_smt_quantifiers_skolemize (__eo_to_smt q) (__eo_to_smt_nat idx))
+            SmtTerm.None) =
+            SmtType.DtcAppType A B := by
+    change
+      __smtx_typeof
+          (native_eo_to_smt_guard_closed q
+            (native_ite (__eo_to_smt_nat_is_valid idx)
+              (__eo_to_smt_quantifiers_skolemize (__eo_to_smt q) (__eo_to_smt_nat idx))
+              SmtTerm.None)) =
+            SmtType.FunType A B ∨
+        __smtx_typeof
+          (native_eo_to_smt_guard_closed q
+            (native_ite (__eo_to_smt_nat_is_valid idx)
+              (__eo_to_smt_quantifiers_skolemize (__eo_to_smt q) (__eo_to_smt_nat idx))
+              SmtTerm.None)) =
+            SmtType.DtcAppType A B at hHead
+    have hNN :
+        __smtx_typeof
+            (native_eo_to_smt_guard_closed q
+              (native_ite (__eo_to_smt_nat_is_valid idx)
+                (__eo_to_smt_quantifiers_skolemize (__eo_to_smt q) (__eo_to_smt_nat idx))
+                SmtTerm.None)) ≠ SmtType.None := by
+      intro hNone
+      rcases hHead with hHead | hHead <;> rw [hNone] at hHead <;>
+        cases hHead
+    have hEq :=
+      smtx_typeof_guard_closed_eq_of_non_none
+        (x := q)
+        (body := native_ite (__eo_to_smt_nat_is_valid idx)
+          (__eo_to_smt_quantifiers_skolemize (__eo_to_smt q) (__eo_to_smt_nat idx))
+          SmtTerm.None)
+        hNN
+    rcases hHead with hHead | hHead
+    · exact Or.inl (by simpa [hEq] using hHead)
+    · exact Or.inr (by simpa [hEq] using hHead)
+  unfold native_ite at hHead'
+  split at hHead'
+  · exact
+      eo_to_smt_quantifiers_skolemize_fun_like_arg_field_wf
+        (__eo_to_smt q) (__eo_to_smt_nat idx) hHead'
+  · exact False.elim (smtx_typeof_none_not_fun_like hHead')
 
 private theorem smtx_seq_component_field_wf_rec_of_non_none_type_apply
     (x : SmtTerm) (T : SmtType)
@@ -8158,10 +8099,9 @@ private theorem typeof_apply_re_unfold_top_eq_none
   cases ht : native_eo_to_smt_closed t <;>
     simp [native_eo_to_smt_guard_closed, native_ite, ht, typeof_apply_none_eq]
   cases hr : native_eo_to_smt_closed r <;>
-    simp [native_eo_to_smt_guard_closed, native_ite, hr, typeof_apply_none_eq]
+    simp [typeof_apply_none_eq]
   cases hValid : __eo_to_smt_nat_is_valid idx <;>
-    simp [native_ite, typeof_apply_none_eq,
-      typeof_apply_re_unfold_pos_component_head_eq_none]
+    simp [typeof_apply_none_eq, typeof_apply_re_unfold_pos_component_head_eq_none]
 
 /-- Extracts the top-level string and regex types from the base regex-unfold component. -/
 private theorem re_unfold_pos_component_zero_args_of_non_none

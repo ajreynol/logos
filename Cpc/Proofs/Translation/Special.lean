@@ -56,9 +56,9 @@ theorem eo_to_smt_typeof_matches_translation_array_deq_diff
     cases h : native_eo_to_smt_closed x2
     · exfalso
       apply hNonNone
-      simp [native_eo_to_smt_guard_closed, native_ite, h, smtx_typeof_none]
+      simp [h, smtx_typeof_none]
     · rfl
-  simp [native_eo_to_smt_guard_closed, native_ite, hx2Closed] at hNonNone ⊢
+  simp [hx2Closed] at hNonNone ⊢
   cases hx1Smt : __smtx_typeof (__eo_to_smt x1) <;>
     cases hx2Smt : __smtx_typeof (__eo_to_smt x2) <;>
     simp [__eo_to_smt_array_deq_diff, hx1Smt, hx2Smt, smtx_typeof_none] at hNonNone ⊢
@@ -156,9 +156,9 @@ theorem eo_to_smt_typeof_matches_translation_sets_deq_diff
     cases h : native_eo_to_smt_closed x2
     · exfalso
       apply hNonNone
-      simp [native_eo_to_smt_guard_closed, native_ite, h, smtx_typeof_none]
+      simp [h, smtx_typeof_none]
     · rfl
-  simp [native_eo_to_smt_guard_closed, native_ite, hx2Closed] at hNonNone ⊢
+  simp [hx2Closed] at hNonNone ⊢
   cases hx1Smt : __smtx_typeof (__eo_to_smt x1) <;>
     cases hx2Smt : __smtx_typeof (__eo_to_smt x2) <;>
     simp [__eo_to_smt_sets_deq_diff, hx1Smt, hx2Smt, smtx_typeof_none] at hNonNone ⊢

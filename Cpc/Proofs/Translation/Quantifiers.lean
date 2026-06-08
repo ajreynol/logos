@@ -33,7 +33,7 @@ theorem eo_to_smt_exists_cons_of_type_wf
 /-- Simplifies EO-to-SMT translation for `quantifiers_skolemize_zero`. -/
 @[simp] theorem eo_to_smt_quantifiers_skolemize_zero
     (s : native_String) (T : SmtType) (F : SmtTerm) :
-    __eo_to_smt_quantifiers_skolemize (SmtTerm.exists s T F) 0 =
+    __eo_to_smt_quantifiers_skolemize (SmtTerm.not (SmtTerm.exists s T F)) 0 =
       SmtTerm.choice_nth s T F 0 := by
   simp [__eo_to_smt_quantifiers_skolemize]
 
