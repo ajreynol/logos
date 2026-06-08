@@ -1838,21 +1838,23 @@ theorem smtTermClosedIn_eo_to_smt_quantifiers_skolemize_forall
         (__eo_to_smt
           (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body))) :
   SmtTermClosedIn vars
-    (__eo_to_smt
-      (Term.UOp2 UserOp2._at_quantifiers_skolemize
-        (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body) idx)) :=
+            (__eo_to_smt
+              (Term.UOp2 UserOp2._at_quantifiers_skolemize
+                (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body) idx)) :=
 by
-  apply SmtTermClosedIn.guard_closed
-    (x := Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body)
   change SmtTermClosedIn vars
     (native_ite (__eo_to_smt_nat_is_valid idx)
-      (__eo_to_smt_quantifiers_skolemize
-        (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
-        (__eo_to_smt_nat idx))
+      (native_eo_to_smt_guard_closed
+        (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body)
+        (__eo_to_smt_quantifiers_skolemize
+          (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
+          (__eo_to_smt_nat idx)))
       SmtTerm.None)
   cases __eo_to_smt_nat_is_valid idx
   · simp [native_ite, SmtTermClosedIn]
   · simp [native_ite]
+    apply SmtTermClosedIn.guard_closed
+      (x := Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body)
     cases xs
     case __eo_List_nil =>
       simp [__eo_to_smt_exists, __eo_to_smt_quantifiers_skolemize,

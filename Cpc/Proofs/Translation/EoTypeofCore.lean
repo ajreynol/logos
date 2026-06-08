@@ -2290,8 +2290,6 @@ private theorem eo_to_smt_quantifiers_skolemize_ne_numeral
     __eo_to_smt_quantifiers_skolemize t k ≠ SmtTerm.Numeral n := by
   intro h
   cases t <;> simp [__eo_to_smt_quantifiers_skolemize] at h
-  case not t =>
-    cases t <;> simp at h
 
 private theorem eo_to_smt_re_unfold_pos_component_ne_numeral
     (s r : SmtTerm) (k : native_Nat) (n : native_Int) :
@@ -2311,24 +2309,36 @@ private theorem eo_to_smt_quantifier_term_ne_numeral
     __eo_to_smt (Term.UOp2 UserOp2._at_quantifiers_skolemize x y) ≠
       SmtTerm.Numeral n := by
   intro h
-  change native_eo_to_smt_guard_closed x
-      (native_ite (__eo_to_smt_nat_is_valid y)
-        (__eo_to_smt_quantifiers_skolemize (__eo_to_smt x) (__eo_to_smt_nat y))
-        SmtTerm.None) =
-    SmtTerm.Numeral n at h
-  exact False.elim
-    (native_eo_to_smt_guard_closed_ne_numeral x
-      (native_ite (__eo_to_smt_nat_is_valid y)
-        (__eo_to_smt_quantifiers_skolemize (__eo_to_smt x) (__eo_to_smt_nat y))
-        SmtTerm.None)
-      n
-      (by
-        intro hBody
-        cases hz : __eo_to_smt_nat_is_valid y <;>
-          simp [native_ite, hz] at hBody
-        exact eo_to_smt_quantifiers_skolemize_ne_numeral
-          (__eo_to_smt x) (__eo_to_smt_nat y) n hBody)
-      h)
+  cases x <;> try cases h
+  case Apply f body =>
+    cases f <;> try cases h
+    case Apply g xs =>
+      cases g <;> try cases h
+      case UOp op =>
+        cases op <;> try cases h
+        case «forall» =>
+          change native_ite (__eo_to_smt_nat_is_valid y)
+              (native_eo_to_smt_guard_closed
+                (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body)
+                (__eo_to_smt_quantifiers_skolemize
+                  (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
+                  (__eo_to_smt_nat y)))
+              SmtTerm.None =
+            SmtTerm.Numeral n at h
+          cases hz : __eo_to_smt_nat_is_valid y
+          · simp [native_ite, hz] at h
+          · simp [native_ite, hz] at h
+            exact False.elim
+              (native_eo_to_smt_guard_closed_ne_numeral
+                (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body)
+                (__eo_to_smt_quantifiers_skolemize
+                  (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
+                  (__eo_to_smt_nat y))
+                n
+                (eo_to_smt_quantifiers_skolemize_ne_numeral
+                  (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
+                  (__eo_to_smt_nat y) n)
+                h)
 
 private theorem eo_to_smt_distinct_ne_numeral
     (xs : Term) (n : native_Int) :
