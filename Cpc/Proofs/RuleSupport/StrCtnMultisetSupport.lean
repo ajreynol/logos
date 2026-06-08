@@ -1369,12 +1369,10 @@ theorem str_multiset_subset_strict_done_cons_eq
     __str_is_multiset_subset_strict_done xs
         (Term.Apply
           (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) s) rest) =
-      __eo_ite (__eo_is_z (__str_value_len s))
-        (__eo_ite
-          (__eo_and (__eo_gt (__str_value_len s) (Term.Numeral 0))
-            (__are_distinct_terms_list_rec s xs (__eo_typeof s)))
-          (Term.Boolean true)
-          (__str_is_multiset_subset_strict_done xs rest))
+      __eo_ite
+        (__eo_and (__eo_is_eq (__str_value_len s) (Term.Numeral 1))
+          (__are_distinct_terms_list_rec s xs (__eo_typeof s)))
+        (Term.Boolean true)
         (__str_is_multiset_subset_strict_done xs rest) := by
   cases xs <;> first | exact absurd rfl hxs | rfl
 
@@ -1402,12 +1400,10 @@ theorem str_is_multiset_subset_strict_done_count_lt
       obtain ⟨hsAtom, hsTy, hRestAtoms⟩ := hAtoms
       rw [str_multiset_subset_strict_done_cons_eq xs s rest
         (SetsEvalOpSupport.isTL_ne_stuck hXsTL)] at hDone
-      change __eo_ite (__eo_is_z (__str_value_len s))
-          (__eo_ite
-            (__eo_and (__eo_gt (__str_value_len s) (Term.Numeral 0))
-              (__are_distinct_terms_list_rec s xs (__eo_typeof s)))
-            (Term.Boolean true)
-            (__str_is_multiset_subset_strict_done xs rest))
+      change __eo_ite
+          (__eo_and (__eo_is_eq (__str_value_len s) (Term.Numeral 1))
+            (__are_distinct_terms_list_rec s xs (__eo_typeof s)))
+          (Term.Boolean true)
           (__str_is_multiset_subset_strict_done xs rest) =
         Term.Boolean true at hDone
       let finishRec
@@ -1422,21 +1418,19 @@ theorem str_is_multiset_subset_strict_done_count_lt
         refine ⟨v, ?_⟩
         simp [eoListSeqValueCount]
         omega
-      rcases eo_ite_true_cases_local hDone with ⟨_hZ, hInner⟩ | ⟨_hNZ, hRec⟩
-      · rcases eo_ite_true_cases_local hInner with ⟨hAnd, _⟩ | ⟨_hAndFalse, hRec⟩
-        · obtain ⟨_hGt, hDistinct⟩ := eo_and_true_split _ _ hAnd
-          let v := seqElemVal M s
-          have hXsZero :
-              eoListSeqValueCount M v xs = 0 :=
-            noAtomOverlapList_distinct_zero M hM T xs hXsTL hNoXs
-              s hsAtom hsTy hDistinct
-          have hsOne : seqTermValueCount M v s = 1 :=
-            atomTypedList_cons_count_pos M T s hsAtom
-          refine ⟨v, ?_⟩
-          rw [hXsZero]
-          simp [eoListSeqValueCount, hsOne]
-          omega
-        · exact finishRec hRec
+      rcases eo_ite_true_cases_local hDone with ⟨hAnd, _⟩ | ⟨_hAndFalse, hRec⟩
+      · obtain ⟨_hLen1, hDistinct⟩ := eo_and_true_split _ _ hAnd
+        let v := seqElemVal M s
+        have hXsZero :
+            eoListSeqValueCount M v xs = 0 :=
+          noAtomOverlapList_distinct_zero M hM T xs hXsTL hNoXs
+            s hsAtom hsTy hDistinct
+        have hsOne : seqTermValueCount M v s = 1 :=
+          atomTypedList_cons_count_pos M T s hsAtom
+        refine ⟨v, ?_⟩
+        rw [hXsZero]
+        simp [eoListSeqValueCount, hsOne]
+        omega
       · exact finishRec hRec
   | case2 U =>
       rw [str_multiset_subset_strict_done_nil_eq xs U
