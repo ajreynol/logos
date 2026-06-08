@@ -46,8 +46,7 @@ def native_eo_to_smt_closed_rec : Term -> List Term -> native_Bool
 def native_eo_to_smt_closed (x : Term) : native_Bool :=
   native_eo_to_smt_closed_rec x []
 
-def native_eo_to_smt_guard_closed (x : Term) (body : SmtTerm) : SmtTerm :=
-  native_ite (native_eo_to_smt_closed x) body SmtTerm.None
+
 
 mutual
 
