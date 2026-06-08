@@ -2974,7 +2974,7 @@ def __eo_prog_string_decompose : Term -> Proof -> Proof -> Term
 def __eo_prog_exists_string_length : Term -> Term -> Term -> Term
   | _ , Term.Stuck , _  => Term.Stuck
   | _ , _ , Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.UOp UserOp.Seq) U), n, id => (__eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int))) (Term.Boolean true) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.UOp UserOp.str_len) (Term.UOp3 UserOp3._at_witness_string_length (Term.Apply (Term.UOp UserOp.Seq) U) n id))) n))
+  | (Term.Apply (Term.UOp UserOp.Seq) U), n, id => (__eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int))) (Term.Boolean true) (__eo_requires (__eo_is_z id) (Term.Boolean true) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.UOp UserOp.str_len) (Term.UOp3 UserOp3._at_witness_string_length (Term.Apply (Term.UOp UserOp.Seq) U) n id))) n)))
   | _, _, _ => Term.Stuck
 
 
@@ -3172,10 +3172,7 @@ def __str_multiset_overapprox : Term -> Term
 def __str_is_multiset_subset_strict_done : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
-  | xs, (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) s) nr) => 
-    let _v0 := (__str_is_multiset_subset_strict_done xs nr)
-    let _v1 := (__str_value_len s)
-    (__eo_ite (__eo_is_z _v1) (__eo_ite (__eo_and (__eo_gt _v1 (Term.Numeral 0)) (__are_distinct_terms_list_rec s xs (__eo_typeof s))) (Term.Boolean true) _v0) _v0)
+  | xs, (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) s) nr) => (__eo_ite (__eo_and (__eo_is_eq (__str_value_len s) (Term.Numeral 1)) (__are_distinct_terms_list_rec s xs (__eo_typeof s))) (Term.Boolean true) (__str_is_multiset_subset_strict_done xs nr))
   | xs, nr => (Term.Boolean false)
 
 
