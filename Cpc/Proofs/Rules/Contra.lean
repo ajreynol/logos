@@ -49,6 +49,7 @@ theorem typed___eo_prog_contra_impl (x1 x2 : Term) :
                 rw [hContraFalse]
                 unfold RuleProofs.eo_has_bool_type
                 rw [show __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false by
+                  unfold __eo_to_smt
                   rfl]
                 rw [__smtx_typeof.eq_1]
               · have hEqNe : __eo_eq x1 a ≠ Term.Boolean true :=
