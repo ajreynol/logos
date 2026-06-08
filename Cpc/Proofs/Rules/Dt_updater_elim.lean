@@ -14,6 +14,18 @@ set_option maxHeartbeats 10000000
 attribute [local simp] native_ite native_teq native_not native_and
 set_option linter.unnecessarySimpa false
 
+private theorem eo_to_smt_purify_ne_dt_sel_local
+    (z : Term) (s : native_String) (d : SmtDatatype)
+    (i j : native_Nat) :
+    __eo_to_smt (Term.UOp1 UserOp1._at_purify z) ≠
+      SmtTerm.DtSel s d i j := by
+  intro h
+  change
+    native_eo_to_smt_guard_closed z (SmtTerm._at_purify (__eo_to_smt z)) =
+      SmtTerm.DtSel s d i j at h
+  cases hz : native_eo_to_smt_closed z <;>
+    simp [native_eo_to_smt_guard_closed, native_ite, hz] at h
+
 private theorem eo_requires_eq_of_ne_stuck_local
     (T U V : Term) :
     __eo_requires T U V ≠ Term.Stuck ->
@@ -1429,9 +1441,8 @@ private theorem dt_updater_elim_update_rel
             hsTuple)
     · rcases hPurify with ⟨z0, hSelEq, _hz0⟩
       subst sel
-      change SmtTerm._at_purify (__eo_to_smt z0) =
-        SmtTerm.DtSel s d i j at hSelSmt
-      cases hSelSmt
+      exact False.elim
+        (eo_to_smt_purify_ne_dt_sel_local z0 s d i j hSelSmt)
   · exfalso
     apply hLhsNN
     change
