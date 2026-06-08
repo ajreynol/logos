@@ -31,14 +31,6 @@ def native_eo_to_smt_term_list : Term -> Option (List Term)
 def native_eo_to_smt_closed_rec : Term -> List Term -> native_Bool
   | Term.Stuck, _ => false
   | Term.Var x T, env => native_eo_to_smt_term_mem (Term.Var x T) env
-  | Term.Apply (Term.Apply (Term.UOp UserOp.forall) vs) x, env =>
-    match native_eo_to_smt_term_list vs with
-    | some xs => native_eo_to_smt_closed_rec x (xs ++ env)
-    | none => false
-  | Term.Apply (Term.Apply (Term.UOp UserOp.exists) vs) x, env =>
-    match native_eo_to_smt_term_list vs with
-    | some xs => native_eo_to_smt_closed_rec x (xs ++ env)
-    | none => false
   | Term.Apply f x, env =>
     native_and (native_eo_to_smt_closed_rec f env) (native_eo_to_smt_closed_rec x env)
   | _, _ => true
