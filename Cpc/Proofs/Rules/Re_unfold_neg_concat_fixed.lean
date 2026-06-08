@@ -1,5 +1,5 @@
 import Cpc.Proofs.RuleSupport.StrInReEvalSupport
-import Cpc.Proofs.Rules.Re_unfold_neg
+import Cpc.Proofs.RuleSupport.ReUnfoldNegSupport
 import Cpc.Proofs.Rules.String_eager_reduction
 
 open Eo
@@ -11,6 +11,21 @@ set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 namespace RuleProofs
+
+open ReUnfoldNegSupport
+
+private abbrev mkNot := ReUnfoldNegSupport.mkNot
+private abbrev mkAnd := ReUnfoldNegSupport.mkAnd
+private abbrev mkOr := ReUnfoldNegSupport.mkOr
+private abbrev mkEq := ReUnfoldNegSupport.mkEq
+private abbrev mkLt := ReUnfoldNegSupport.mkLt
+private abbrev mkLeq := ReUnfoldNegSupport.mkLeq
+private abbrev mkNeg := ReUnfoldNegSupport.mkNeg
+private abbrev mkStrLen := ReUnfoldNegSupport.mkStrLen
+private abbrev mkSubstr := ReUnfoldNegSupport.mkSubstr
+private abbrev mkStrInRe := ReUnfoldNegSupport.mkStrInRe
+private abbrev mkReMult := ReUnfoldNegSupport.mkReMult
+private abbrev mkReConcat := ReUnfoldNegSupport.mkReConcat
 
 abbrev reConcatNil : Term :=
   Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
@@ -1534,16 +1549,18 @@ by
                     ⟨t, r, hp, hProgEq⟩
                   have hpBool :
                       RuleProofs.eo_has_bool_type
-                        (RuleProofs.mkNot (RuleProofs.mkStrInRe t r)) := by
+                        (RuleProofs.ReUnfoldNegSupport.mkNot
+                          (RuleProofs.ReUnfoldNegSupport.mkStrInRe t r)) := by
                     have h := hPremisesBool p (by simp [p, premiseTermList])
                     simpa [hp] using h
                   have hInnerBool :
                       RuleProofs.eo_has_bool_type
-                        (RuleProofs.mkStrInRe t r) :=
+                        (RuleProofs.ReUnfoldNegSupport.mkStrInRe t r) :=
                     RuleProofs.eo_has_bool_type_not_arg
-                      (RuleProofs.mkStrInRe t r) hpBool
+                      (RuleProofs.ReUnfoldNegSupport.mkStrInRe t r) hpBool
                   have hArgs :=
-                    RuleProofs.str_in_re_args_of_bool_type t r hInnerBool
+                    RuleProofs.ReUnfoldNegSupport.str_in_re_args_of_bool_type
+                      t r hInnerBool
                   have hMkNe :
                       __mk_re_unfold_neg_concat_fixed t
                           (__eo_ite rev
@@ -1590,8 +1607,11 @@ by
                                   have hNormEq :
                                       __eo_list_rev
                                           (Term.UOp UserOp.re_concat) r =
-                                        RuleProofs.mkReConcat r1 r2 := by
-                                    simpa [r2, RuleProofs.mkReConcat] using
+                                        RuleProofs.ReUnfoldNegSupport.mkReConcat
+                                          r1 r2 := by
+                                    simpa [r2,
+                                      RuleProofs.ReUnfoldNegSupport.mkReConcat]
+                                      using
                                       hNorm
                                   have hListR :
                                       __eo_is_list
@@ -1611,7 +1631,8 @@ by
                                   have hNormTyConcat :
                                       __smtx_typeof
                                           (__eo_to_smt
-                                            (RuleProofs.mkReConcat r1 r2)) =
+                                            (RuleProofs.ReUnfoldNegSupport.mkReConcat
+                                              r1 r2)) =
                                         SmtType.RegLan := by
                                     simpa [hNormEq] using hNormTy
                                   have hRArgs :
@@ -1619,7 +1640,7 @@ by
                                           SmtType.RegLan ∧
                                         __smtx_typeof (__eo_to_smt r2) =
                                           SmtType.RegLan :=
-                                    RuleProofs.smtx_typeof_re_concat_args_of_reglan
+                                    RuleProofs.ReUnfoldNegSupport.smtx_typeof_re_concat_args_of_reglan
                                       r1 r2 hNormTyConcat
                                   have hRevRev :
                                       __eo_list_rev
@@ -1633,14 +1654,16 @@ by
                                   have hConsRev :
                                       __eo_list_rev
                                           (Term.UOp UserOp.re_concat)
-                                          (RuleProofs.mkReConcat r1 r2) ≠
+                                          (RuleProofs.ReUnfoldNegSupport.mkReConcat
+                                            r1 r2) ≠
                                         Term.Stuck := by
                                     simpa [hNormEq] using hRevRev
                                   have hR2List :
                                       __eo_is_list
                                           (Term.UOp UserOp.re_concat) r2 =
                                         Term.Boolean true := by
-                                    simpa [RuleProofs.mkReConcat] using
+                                    simpa [RuleProofs.ReUnfoldNegSupport.mkReConcat]
+                                      using
                                       eo_list_rev_cons_tail_list_of_ne_stuck
                                         (Term.UOp UserOp.re_concat) r1 r2
                                         hConsRev
@@ -1678,16 +1701,19 @@ by
                                                 (Term.UOp UserOp.re_concat)
                                                 r2))) =
                                         SmtType.RegLan :=
-                                    RuleProofs.reConcat_singleton_elim_has_reglan_type
+                                    RuleProofs.ReUnfoldNegSupport.reConcat_singleton_elim_has_reglan_type
                                       (__eo_list_rev
                                         (Term.UOp UserOp.re_concat) r2)
                                       hRevR2List hRevR2Ty
                                   have hMkNormNe :
                                       __mk_re_unfold_neg_concat_fixed t
-                                          (RuleProofs.mkReConcat r1 r2)
+                                          (RuleProofs.ReUnfoldNegSupport.mkReConcat
+                                            r1 r2)
                                           (Term.Boolean true) ≠
                                         Term.Stuck := by
-                                    simpa [r2, RuleProofs.mkReConcat] using
+                                    simpa [r2,
+                                      RuleProofs.ReUnfoldNegSupport.mkReConcat]
+                                      using
                                       hMkTrueNe
                                   have hFixedNe :
                                       __str_fixed_len_re r1 ≠ Term.Stuck :=
@@ -1713,7 +1739,8 @@ by
                                       hArgs.1 hRArgs.1 hTailTy hiTy
                                   have hFormulaEq :
                                       __mk_re_unfold_neg_concat_fixed t
-                                          (RuleProofs.mkReConcat r1 r2)
+                                          (RuleProofs.ReUnfoldNegSupport.mkReConcat
+                                            r1 r2)
                                           (Term.Boolean true) =
                                         RuleProofs.reUnfoldNegConcatFixedTrueFormula
                                           t r1 r2 (Term.Numeral i) :=
@@ -1724,8 +1751,9 @@ by
                                   · intro hTrue
                                     have hPremM :
                                         eo_interprets M
-                                          (RuleProofs.mkNot
-                                            (RuleProofs.mkStrInRe t r))
+                                          (RuleProofs.ReUnfoldNegSupport.mkNot
+                                            (RuleProofs.ReUnfoldNegSupport.mkStrInRe
+                                              t r))
                                           true := by
                                       have h :=
                                         hTrue.true_here p (by simp [p])
@@ -1792,17 +1820,21 @@ by
                                           SmtType.RegLan ∧
                                         __smtx_typeof (__eo_to_smt r2) =
                                           SmtType.RegLan :=
-                                    RuleProofs.smtx_typeof_re_concat_args_of_reglan
+                                      RuleProofs.ReUnfoldNegSupport.smtx_typeof_re_concat_args_of_reglan
                                       r1 r2
                                       (by
-                                        simpa [r2, RuleProofs.mkReConcat]
+                                        simpa [r2,
+                                          RuleProofs.ReUnfoldNegSupport.mkReConcat]
                                           using hArgs.2)
                                   have hMkConcatNe :
                                       __mk_re_unfold_neg_concat_fixed t
-                                          (RuleProofs.mkReConcat r1 r2)
+                                          (RuleProofs.ReUnfoldNegSupport.mkReConcat
+                                            r1 r2)
                                           (Term.Boolean false) ≠
                                         Term.Stuck := by
-                                    simpa [r2, RuleProofs.mkReConcat] using
+                                    simpa [r2,
+                                      RuleProofs.ReUnfoldNegSupport.mkReConcat]
+                                      using
                                       hMkFalseNe
                                   have hFixedNe :
                                       __str_fixed_len_re r1 ≠ Term.Stuck :=
@@ -1822,7 +1854,7 @@ by
                                       __eo_is_list
                                           (Term.UOp UserOp.re_concat) r2 =
                                         Term.Boolean true :=
-                                    RuleProofs.reConcat_singleton_elim_list_of_ne_stuck
+                                    RuleProofs.ReUnfoldNegSupport.reConcat_singleton_elim_list_of_ne_stuck
                                       r2 hSingletonNe
                                   have hTailTy :
                                       __smtx_typeof
@@ -1831,7 +1863,7 @@ by
                                               (Term.UOp UserOp.re_concat)
                                               r2)) =
                                         SmtType.RegLan :=
-                                    RuleProofs.reConcat_singleton_elim_has_reglan_type
+                                    RuleProofs.ReUnfoldNegSupport.reConcat_singleton_elim_has_reglan_type
                                       r2 hList hRArgs.2
                                   have hiTy :
                                       __smtx_typeof
@@ -1849,7 +1881,8 @@ by
                                       hArgs.1 hRArgs.1 hTailTy hiTy
                                   have hFormulaEq :
                                       __mk_re_unfold_neg_concat_fixed t
-                                          (RuleProofs.mkReConcat r1 r2)
+                                          (RuleProofs.ReUnfoldNegSupport.mkReConcat
+                                            r1 r2)
                                           (Term.Boolean false) =
                                         RuleProofs.reUnfoldNegConcatFixedFalseFormula
                                           t r1 r2 (Term.Numeral i) :=
@@ -1860,13 +1893,16 @@ by
                                   · intro hTrue
                                     have hPremM :
                                         eo_interprets M
-                                          (RuleProofs.mkNot
-                                            (RuleProofs.mkStrInRe t
-                                              (RuleProofs.mkReConcat r1 r2)))
+                                          (RuleProofs.ReUnfoldNegSupport.mkNot
+                                            (RuleProofs.ReUnfoldNegSupport.mkStrInRe
+                                              t
+                                              (RuleProofs.ReUnfoldNegSupport.mkReConcat
+                                                r1 r2)))
                                           true := by
                                       have h :=
                                         hTrue.true_here p (by simp [p])
-                                      simpa [hp, r2, RuleProofs.mkReConcat]
+                                      simpa [hp, r2,
+                                        RuleProofs.ReUnfoldNegSupport.mkReConcat]
                                         using h
                                     have hEval :=
                                       RuleProofs.re_unfold_neg_concat_fixed_false_eval_true
@@ -1881,7 +1917,8 @@ by
                                       apply RuleProofs.eo_interprets_of_bool_eval
                                         M _ true hResultBool
                                       exact hEval
-                                    simpa [hProgEq, r2, RuleProofs.mkReConcat,
+                                    simpa [hProgEq, r2,
+                                      RuleProofs.ReUnfoldNegSupport.mkReConcat,
                                       hFormulaEq, __eo_ite, native_ite,
                                       native_teq] using hInterp
                                   · exact
@@ -1889,7 +1926,7 @@ by
                                         _
                                         (by
                                           simpa [hProgEq, r2,
-                                            RuleProofs.mkReConcat,
+                                            RuleProofs.ReUnfoldNegSupport.mkReConcat,
                                             hFormulaEq, __eo_ite,
                                             native_ite, native_teq] using
                                             hResultBool)
