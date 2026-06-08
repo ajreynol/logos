@@ -13,6 +13,52 @@ namespace CongSupport
 
 attribute [local simp] native_streq native_and native_ite
 
+private theorem native_eo_to_smt_guard_closed_eq_body_of_non_none
+    {x : Term} {body : SmtTerm}
+    (hNN :
+      __smtx_typeof (native_eo_to_smt_guard_closed x body) ≠
+        SmtType.None) :
+    native_eo_to_smt_guard_closed x body = body := by
+  cases hx : native_eo_to_smt_closed x
+  · exfalso
+    apply hNN
+    simp [native_eo_to_smt_guard_closed, native_ite, hx,
+      TranslationProofs.smtx_typeof_none]
+  · simp [native_eo_to_smt_guard_closed, native_ite, hx]
+
+private theorem smtx_typeof_body_non_none_of_guard_closed
+    {x : Term} {body : SmtTerm}
+    (hNN :
+      __smtx_typeof (native_eo_to_smt_guard_closed x body) ≠
+        SmtType.None) :
+    __smtx_typeof body ≠ SmtType.None := by
+  intro hBody
+  have hEq := native_eo_to_smt_guard_closed_eq_body_of_non_none hNN
+  apply hNN
+  rw [hEq, hBody]
+
+private theorem native_eo_to_smt_guard_closed_ne_dt_sel
+    (x : Term) (body : SmtTerm)
+    (hBody : ∀ s d i j, body ≠ SmtTerm.DtSel s d i j) :
+    ∀ s d i j, native_eo_to_smt_guard_closed x body ≠
+      SmtTerm.DtSel s d i j := by
+  intro s d i j h
+  cases hx : native_eo_to_smt_closed x
+  · simp [native_eo_to_smt_guard_closed, native_ite, hx] at h
+  · exact hBody s d i j (by
+      simpa [native_eo_to_smt_guard_closed, native_ite, hx] using h)
+
+private theorem native_eo_to_smt_guard_closed_ne_dt_tester
+    (x : Term) (body : SmtTerm)
+    (hBody : ∀ s d i, body ≠ SmtTerm.DtTester s d i) :
+    ∀ s d i, native_eo_to_smt_guard_closed x body ≠
+      SmtTerm.DtTester s d i := by
+  intro s d i h
+  cases hx : native_eo_to_smt_closed x
+  · simp [native_eo_to_smt_guard_closed, native_ite, hx] at h
+  · exact hBody s d i (by
+      simpa [native_eo_to_smt_guard_closed, native_ite, hx] using h)
+
 private abbrev mkEq (x y : Term) : Term :=
   Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) y
 
@@ -13553,6 +13599,75 @@ private theorem strings_stoi_result_args_non_reg_of_non_none
       hIReg⟩
   exact ⟨S, I, hA, hB, hSNN, hINN, hSReg, hIReg⟩
 
+private theorem eo_to_smt_strings_stoi_result_eq_of_non_none
+    {x₁ x₂ : Term}
+    (hNN :
+      __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply (Term._at_strings_stoi_result x₁) x₂)) ≠
+        SmtType.None) :
+    __eo_to_smt (Term.Apply (Term._at_strings_stoi_result x₁) x₂) =
+      stringsStoiResultTerm (__eo_to_smt x₁) (__eo_to_smt x₂) := by
+  change
+    native_eo_to_smt_guard_closed x₁
+        (stringsStoiResultTerm (__eo_to_smt x₁) (__eo_to_smt x₂)) =
+      stringsStoiResultTerm (__eo_to_smt x₁) (__eo_to_smt x₂)
+  exact native_eo_to_smt_guard_closed_eq_body_of_non_none (by
+    simpa [stringsStoiResultTerm] using hNN)
+
+private theorem eo_to_smt_strings_stoi_result_non_none_of_arg_type_eq
+    {x₁ x₂ y₂ : Term}
+    (hNN :
+      __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply (Term._at_strings_stoi_result x₁) x₂)) ≠
+        SmtType.None)
+    (hArgTy :
+      __smtx_typeof (__eo_to_smt x₂) =
+        __smtx_typeof (__eo_to_smt y₂)) :
+    __smtx_typeof
+        (__eo_to_smt
+          (Term.Apply (Term._at_strings_stoi_result x₁) y₂)) ≠
+      SmtType.None := by
+  change
+    __smtx_typeof
+        (native_eo_to_smt_guard_closed x₁
+          (stringsStoiResultTerm (__eo_to_smt x₁) (__eo_to_smt x₂))) ≠
+      SmtType.None at hNN
+  have hClosed : native_eo_to_smt_closed x₁ = true := by
+    cases h : native_eo_to_smt_closed x₁
+    · exfalso
+      apply hNN
+      simp [native_eo_to_smt_guard_closed, native_ite, h,
+        TranslationProofs.smtx_typeof_none]
+    · rfl
+  have hBodyNN :
+      __smtx_typeof
+          (stringsStoiResultTerm (__eo_to_smt x₁) (__eo_to_smt x₂)) ≠
+        SmtType.None :=
+    smtx_typeof_body_non_none_of_guard_closed hNN
+  have hBodyTy :
+      __smtx_typeof
+          (stringsStoiResultTerm (__eo_to_smt x₁) (__eo_to_smt x₂)) =
+        __smtx_typeof
+          (stringsStoiResultTerm (__eo_to_smt x₁) (__eo_to_smt y₂)) := by
+    rw [stringsStoiResultTerm, stringsStoiResultTerm, typeof_str_to_int_eq,
+      typeof_str_to_int_eq, typeof_str_substr_eq, typeof_str_substr_eq,
+      hArgTy]
+  have hBodyYNN :
+      __smtx_typeof
+          (stringsStoiResultTerm (__eo_to_smt x₁) (__eo_to_smt y₂)) ≠
+        SmtType.None := by
+    intro hNone
+    apply hBodyNN
+    rw [hBodyTy, hNone]
+  change
+    __smtx_typeof
+        (native_eo_to_smt_guard_closed x₁
+          (stringsStoiResultTerm (__eo_to_smt x₁) (__eo_to_smt y₂))) ≠
+      SmtType.None
+  simpa [native_eo_to_smt_guard_closed, native_ite, hClosed] using hBodyYNN
+
 private theorem congTrueSpine_strings_stoi_result_eq_true
     (M : SmtModel) (hM : model_total_typed M) (x₁ x₂ rhs : Term) :
     RuleProofs.eo_has_bool_type
@@ -13582,7 +13697,8 @@ private theorem congTrueSpine_strings_stoi_result_eq_true
                   SmtType.None := by
               rw [← show
                 __eo_to_smt (Term.Apply (Term._at_strings_stoi_result x₁) x₂) =
-                  stringsStoiResultTerm (__eo_to_smt x₁) (__eo_to_smt x₂) by rfl]
+                  stringsStoiResultTerm (__eo_to_smt x₁) (__eo_to_smt x₂) by
+                    exact eo_to_smt_strings_stoi_result_eq_of_non_none hTypes.2]
               exact hTypes.2
             rcases strings_stoi_result_args_non_reg_of_non_none
                 (__eo_to_smt x₁) (__eo_to_smt x₂) hxOpNN with
@@ -13602,10 +13718,14 @@ private theorem congTrueSpine_strings_stoi_result_eq_true
                     (__eo_to_smt (Term.Apply (Term._at_strings_stoi_result x₁) y₂)) := by
               rw [show
                   __eo_to_smt (Term.Apply (Term._at_strings_stoi_result x₁) x₂) =
-                    stringsStoiResultTerm (__eo_to_smt x₁) (__eo_to_smt x₂) by rfl,
+                    stringsStoiResultTerm (__eo_to_smt x₁) (__eo_to_smt x₂) by
+                      exact eo_to_smt_strings_stoi_result_eq_of_non_none hTypes.2,
                 show
                   __eo_to_smt (Term.Apply (Term._at_strings_stoi_result x₁) y₂) =
-                    stringsStoiResultTerm (__eo_to_smt x₁) (__eo_to_smt y₂) by rfl]
+                    stringsStoiResultTerm (__eo_to_smt x₁) (__eo_to_smt y₂) by
+                      exact eo_to_smt_strings_stoi_result_eq_of_non_none (by
+                        rw [← hTypes.1]
+                        exact hTypes.2)]
               rw [stringsStoiResultTerm, stringsStoiResultTerm,
                 __smtx_model_eval.eq_95, __smtx_model_eval.eq_95,
                 __smtx_model_eval.eq_81, __smtx_model_eval.eq_81,
@@ -13642,10 +13762,14 @@ private theorem congTypeSpine_strings_stoi_result_eq_has_bool_type
                   (__eo_to_smt (Term.Apply (Term._at_strings_stoi_result x₁) y₂)) := by
             rw [show
                 __eo_to_smt (Term.Apply (Term._at_strings_stoi_result x₁) x₂) =
-                  stringsStoiResultTerm (__eo_to_smt x₁) (__eo_to_smt x₂) by rfl,
+                  stringsStoiResultTerm (__eo_to_smt x₁) (__eo_to_smt x₂) by
+                    exact eo_to_smt_strings_stoi_result_eq_of_non_none hTrans,
               show
                 __eo_to_smt (Term.Apply (Term._at_strings_stoi_result x₁) y₂) =
-                  stringsStoiResultTerm (__eo_to_smt x₁) (__eo_to_smt y₂) by rfl]
+                  stringsStoiResultTerm (__eo_to_smt x₁) (__eo_to_smt y₂) by
+                    exact eo_to_smt_strings_stoi_result_eq_of_non_none
+                      (eo_to_smt_strings_stoi_result_non_none_of_arg_type_eq
+                        hTrans hArgTy)]
             rw [stringsStoiResultTerm, stringsStoiResultTerm, typeof_str_to_int_eq,
               typeof_str_to_int_eq, typeof_str_substr_eq, typeof_str_substr_eq,
               hArgTy]
@@ -13685,6 +13809,74 @@ private theorem strings_itos_result_args_non_reg_of_non_none
     ⟨_D, B, _hTen, hB, _hDNN, hBNN, _hDReg, hBReg⟩
   exact ⟨A, B, hA, hB, hANN, hBNN, hAReg, hBReg⟩
 
+private theorem eo_to_smt_strings_itos_result_eq_of_non_none
+    {x₁ x₂ : Term}
+    (hNN :
+      __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply (Term._at_strings_itos_result x₁) x₂)) ≠
+        SmtType.None) :
+    __eo_to_smt (Term.Apply (Term._at_strings_itos_result x₁) x₂) =
+      stringsItosResultTerm (__eo_to_smt x₁) (__eo_to_smt x₂) := by
+  change
+    native_eo_to_smt_guard_closed x₁
+        (stringsItosResultTerm (__eo_to_smt x₁) (__eo_to_smt x₂)) =
+      stringsItosResultTerm (__eo_to_smt x₁) (__eo_to_smt x₂)
+  exact native_eo_to_smt_guard_closed_eq_body_of_non_none (by
+    simpa [stringsItosResultTerm] using hNN)
+
+private theorem eo_to_smt_strings_itos_result_non_none_of_arg_type_eq
+    {x₁ x₂ y₂ : Term}
+    (hNN :
+      __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply (Term._at_strings_itos_result x₁) x₂)) ≠
+        SmtType.None)
+    (hArgTy :
+      __smtx_typeof (__eo_to_smt x₂) =
+        __smtx_typeof (__eo_to_smt y₂)) :
+    __smtx_typeof
+        (__eo_to_smt
+          (Term.Apply (Term._at_strings_itos_result x₁) y₂)) ≠
+      SmtType.None := by
+  change
+    __smtx_typeof
+        (native_eo_to_smt_guard_closed x₁
+          (stringsItosResultTerm (__eo_to_smt x₁) (__eo_to_smt x₂))) ≠
+      SmtType.None at hNN
+  have hClosed : native_eo_to_smt_closed x₁ = true := by
+    cases h : native_eo_to_smt_closed x₁
+    · exfalso
+      apply hNN
+      simp [native_eo_to_smt_guard_closed, native_ite, h,
+        TranslationProofs.smtx_typeof_none]
+    · rfl
+  have hBodyNN :
+      __smtx_typeof
+          (stringsItosResultTerm (__eo_to_smt x₁) (__eo_to_smt x₂)) ≠
+        SmtType.None :=
+    smtx_typeof_body_non_none_of_guard_closed hNN
+  have hBodyTy :
+      __smtx_typeof
+          (stringsItosResultTerm (__eo_to_smt x₁) (__eo_to_smt x₂)) =
+        __smtx_typeof
+          (stringsItosResultTerm (__eo_to_smt x₁) (__eo_to_smt y₂)) := by
+    rw [stringsItosResultTerm, stringsItosResultTerm, typeof_mod_eq,
+      typeof_mod_eq, typeof_multmult_eq, typeof_multmult_eq, hArgTy]
+  have hBodyYNN :
+      __smtx_typeof
+          (stringsItosResultTerm (__eo_to_smt x₁) (__eo_to_smt y₂)) ≠
+        SmtType.None := by
+    intro hNone
+    apply hBodyNN
+    rw [hBodyTy, hNone]
+  change
+    __smtx_typeof
+        (native_eo_to_smt_guard_closed x₁
+          (stringsItosResultTerm (__eo_to_smt x₁) (__eo_to_smt y₂))) ≠
+      SmtType.None
+  simpa [native_eo_to_smt_guard_closed, native_ite, hClosed] using hBodyYNN
+
 private theorem congTrueSpine_strings_itos_result_eq_true
     (M : SmtModel) (hM : model_total_typed M) (x₁ x₂ rhs : Term) :
     RuleProofs.eo_has_bool_type
@@ -13714,7 +13906,8 @@ private theorem congTrueSpine_strings_itos_result_eq_true
                   SmtType.None := by
               rw [← show
                 __eo_to_smt (Term.Apply (Term._at_strings_itos_result x₁) x₂) =
-                  stringsItosResultTerm (__eo_to_smt x₁) (__eo_to_smt x₂) by rfl]
+                  stringsItosResultTerm (__eo_to_smt x₁) (__eo_to_smt x₂) by
+                    exact eo_to_smt_strings_itos_result_eq_of_non_none hTypes.2]
               exact hTypes.2
             rcases strings_itos_result_args_non_reg_of_non_none
                 (__eo_to_smt x₁) (__eo_to_smt x₂) hxOpNN with
@@ -13734,10 +13927,14 @@ private theorem congTrueSpine_strings_itos_result_eq_true
                     (__eo_to_smt (Term.Apply (Term._at_strings_itos_result x₁) y₂)) := by
               rw [show
                   __eo_to_smt (Term.Apply (Term._at_strings_itos_result x₁) x₂) =
-                    stringsItosResultTerm (__eo_to_smt x₁) (__eo_to_smt x₂) by rfl,
+                    stringsItosResultTerm (__eo_to_smt x₁) (__eo_to_smt x₂) by
+                      exact eo_to_smt_strings_itos_result_eq_of_non_none hTypes.2,
                 show
                   __eo_to_smt (Term.Apply (Term._at_strings_itos_result x₁) y₂) =
-                    stringsItosResultTerm (__eo_to_smt x₁) (__eo_to_smt y₂) by rfl]
+                    stringsItosResultTerm (__eo_to_smt x₁) (__eo_to_smt y₂) by
+                      exact eo_to_smt_strings_itos_result_eq_of_non_none (by
+                        rw [← hTypes.1]
+                        exact hTypes.2)]
               rw [stringsItosResultTerm, stringsItosResultTerm,
                 __smtx_model_eval.eq_25, __smtx_model_eval.eq_25,
                 __smtx_model_eval.eq_26, __smtx_model_eval.eq_26,
@@ -13774,10 +13971,14 @@ private theorem congTypeSpine_strings_itos_result_eq_has_bool_type
                   (__eo_to_smt (Term.Apply (Term._at_strings_itos_result x₁) y₂)) := by
             rw [show
                 __eo_to_smt (Term.Apply (Term._at_strings_itos_result x₁) x₂) =
-                  stringsItosResultTerm (__eo_to_smt x₁) (__eo_to_smt x₂) by rfl,
+                  stringsItosResultTerm (__eo_to_smt x₁) (__eo_to_smt x₂) by
+                    exact eo_to_smt_strings_itos_result_eq_of_non_none hTrans,
               show
                 __eo_to_smt (Term.Apply (Term._at_strings_itos_result x₁) y₂) =
-                  stringsItosResultTerm (__eo_to_smt x₁) (__eo_to_smt y₂) by rfl]
+                  stringsItosResultTerm (__eo_to_smt x₁) (__eo_to_smt y₂) by
+                    exact eo_to_smt_strings_itos_result_eq_of_non_none
+                      (eo_to_smt_strings_itos_result_non_none_of_arg_type_eq
+                        hTrans hArgTy)]
             rw [stringsItosResultTerm, stringsItosResultTerm, typeof_mod_eq,
               typeof_mod_eq, typeof_multmult_eq, typeof_multmult_eq, hArgTy]
           exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type
@@ -16552,13 +16753,26 @@ private theorem eo_to_smt_array_deq_diff_ne_dt_sel
         SmtTerm.DtSel s d i j := by
   intro s d i j h
   change
-    __eo_to_smt_array_deq_diff (__eo_to_smt a)
-        (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt b)
-        (__smtx_typeof (__eo_to_smt b)) =
+    native_eo_to_smt_guard_closed a
+        (native_eo_to_smt_guard_closed b
+          (__eo_to_smt_array_deq_diff (__eo_to_smt a)
+            (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt b)
+            (__smtx_typeof (__eo_to_smt b)))) =
       SmtTerm.DtSel s d i j at h
-  exact eo_to_smt_array_deq_diff_ne_dt_sel_term
-    (__eo_to_smt a) (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt b)
-    (__smtx_typeof (__eo_to_smt b)) s d i j h
+  exact
+    native_eo_to_smt_guard_closed_ne_dt_sel a
+      (native_eo_to_smt_guard_closed b
+        (__eo_to_smt_array_deq_diff (__eo_to_smt a)
+          (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt b)
+          (__smtx_typeof (__eo_to_smt b))))
+      (native_eo_to_smt_guard_closed_ne_dt_sel b
+        (__eo_to_smt_array_deq_diff (__eo_to_smt a)
+          (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt b)
+          (__smtx_typeof (__eo_to_smt b)))
+        (eo_to_smt_array_deq_diff_ne_dt_sel_term
+          (__eo_to_smt a) (__smtx_typeof (__eo_to_smt a))
+          (__eo_to_smt b) (__smtx_typeof (__eo_to_smt b))))
+      s d i j h
 
 private theorem eo_to_smt_array_deq_diff_ne_dt_tester
     (a b : Term) :
@@ -16567,13 +16781,26 @@ private theorem eo_to_smt_array_deq_diff_ne_dt_tester
         SmtTerm.DtTester s d i := by
   intro s d i h
   change
-    __eo_to_smt_array_deq_diff (__eo_to_smt a)
-        (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt b)
-        (__smtx_typeof (__eo_to_smt b)) =
+    native_eo_to_smt_guard_closed a
+        (native_eo_to_smt_guard_closed b
+          (__eo_to_smt_array_deq_diff (__eo_to_smt a)
+            (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt b)
+            (__smtx_typeof (__eo_to_smt b)))) =
       SmtTerm.DtTester s d i at h
-  exact eo_to_smt_array_deq_diff_ne_dt_tester_term
-    (__eo_to_smt a) (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt b)
-    (__smtx_typeof (__eo_to_smt b)) s d i h
+  exact
+    native_eo_to_smt_guard_closed_ne_dt_tester a
+      (native_eo_to_smt_guard_closed b
+        (__eo_to_smt_array_deq_diff (__eo_to_smt a)
+          (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt b)
+          (__smtx_typeof (__eo_to_smt b))))
+      (native_eo_to_smt_guard_closed_ne_dt_tester b
+        (__eo_to_smt_array_deq_diff (__eo_to_smt a)
+          (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt b)
+          (__smtx_typeof (__eo_to_smt b)))
+        (eo_to_smt_array_deq_diff_ne_dt_tester_term
+          (__eo_to_smt a) (__smtx_typeof (__eo_to_smt a))
+          (__eo_to_smt b) (__smtx_typeof (__eo_to_smt b))))
+      s d i h
 
 private theorem eo_to_smt_sets_deq_diff_ne_dt_sel
     (a b : Term) :
@@ -16582,13 +16809,26 @@ private theorem eo_to_smt_sets_deq_diff_ne_dt_sel
         SmtTerm.DtSel s d i j := by
   intro s d i j h
   change
-    __eo_to_smt_sets_deq_diff (__eo_to_smt a)
-        (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt b)
-        (__smtx_typeof (__eo_to_smt b)) =
+    native_eo_to_smt_guard_closed a
+        (native_eo_to_smt_guard_closed b
+          (__eo_to_smt_sets_deq_diff (__eo_to_smt a)
+            (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt b)
+            (__smtx_typeof (__eo_to_smt b)))) =
       SmtTerm.DtSel s d i j at h
-  exact eo_to_smt_sets_deq_diff_ne_dt_sel_term
-    (__eo_to_smt a) (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt b)
-    (__smtx_typeof (__eo_to_smt b)) s d i j h
+  exact
+    native_eo_to_smt_guard_closed_ne_dt_sel a
+      (native_eo_to_smt_guard_closed b
+        (__eo_to_smt_sets_deq_diff (__eo_to_smt a)
+          (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt b)
+          (__smtx_typeof (__eo_to_smt b))))
+      (native_eo_to_smt_guard_closed_ne_dt_sel b
+        (__eo_to_smt_sets_deq_diff (__eo_to_smt a)
+          (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt b)
+          (__smtx_typeof (__eo_to_smt b)))
+        (eo_to_smt_sets_deq_diff_ne_dt_sel_term
+          (__eo_to_smt a) (__smtx_typeof (__eo_to_smt a))
+          (__eo_to_smt b) (__smtx_typeof (__eo_to_smt b))))
+      s d i j h
 
 private theorem eo_to_smt_sets_deq_diff_ne_dt_tester
     (a b : Term) :
@@ -16597,13 +16837,26 @@ private theorem eo_to_smt_sets_deq_diff_ne_dt_tester
         SmtTerm.DtTester s d i := by
   intro s d i h
   change
-    __eo_to_smt_sets_deq_diff (__eo_to_smt a)
-        (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt b)
-        (__smtx_typeof (__eo_to_smt b)) =
+    native_eo_to_smt_guard_closed a
+        (native_eo_to_smt_guard_closed b
+          (__eo_to_smt_sets_deq_diff (__eo_to_smt a)
+            (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt b)
+            (__smtx_typeof (__eo_to_smt b)))) =
       SmtTerm.DtTester s d i at h
-  exact eo_to_smt_sets_deq_diff_ne_dt_tester_term
-    (__eo_to_smt a) (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt b)
-    (__smtx_typeof (__eo_to_smt b)) s d i h
+  exact
+    native_eo_to_smt_guard_closed_ne_dt_tester a
+      (native_eo_to_smt_guard_closed b
+        (__eo_to_smt_sets_deq_diff (__eo_to_smt a)
+          (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt b)
+          (__smtx_typeof (__eo_to_smt b))))
+      (native_eo_to_smt_guard_closed_ne_dt_tester b
+        (__eo_to_smt_sets_deq_diff (__eo_to_smt a)
+          (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt b)
+          (__smtx_typeof (__eo_to_smt b)))
+        (eo_to_smt_sets_deq_diff_ne_dt_tester_term
+          (__eo_to_smt a) (__smtx_typeof (__eo_to_smt a))
+          (__eo_to_smt b) (__smtx_typeof (__eo_to_smt b))))
+      s d i h
 
 private theorem eo_to_smt_at_bv_ne_dt_sel
     (a b : SmtTerm) :
@@ -16634,16 +16887,39 @@ private theorem eo_to_smt_strings_deq_diff_ne_dt_sel
         SmtTerm.DtSel s d i j := by
   intro s d i j h
   change
-    SmtTerm.choice_nth (native_string_lit "@x") SmtType.Int
-        (SmtTerm.not
-          (SmtTerm.eq
-            (SmtTerm.str_substr (__eo_to_smt a)
-              (SmtTerm.Var (native_string_lit "@x") SmtType.Int) (SmtTerm.Numeral 1))
-            (SmtTerm.str_substr (__eo_to_smt b)
-              (SmtTerm.Var (native_string_lit "@x") SmtType.Int) (SmtTerm.Numeral 1))))
-        native_nat_zero =
+    native_eo_to_smt_guard_closed a
+        (native_eo_to_smt_guard_closed b
+          (SmtTerm.choice_nth (native_string_lit "@x") SmtType.Int
+            (SmtTerm.not
+              (SmtTerm.eq
+                (SmtTerm.str_substr (__eo_to_smt a)
+                  (SmtTerm.Var (native_string_lit "@x") SmtType.Int) (SmtTerm.Numeral 1))
+                (SmtTerm.str_substr (__eo_to_smt b)
+                  (SmtTerm.Var (native_string_lit "@x") SmtType.Int) (SmtTerm.Numeral 1))))
+            native_nat_zero)) =
       SmtTerm.DtSel s d i j at h
-  cases h
+  exact
+    native_eo_to_smt_guard_closed_ne_dt_sel a
+      (native_eo_to_smt_guard_closed b
+        (SmtTerm.choice_nth (native_string_lit "@x") SmtType.Int
+          (SmtTerm.not
+            (SmtTerm.eq
+              (SmtTerm.str_substr (__eo_to_smt a)
+                (SmtTerm.Var (native_string_lit "@x") SmtType.Int) (SmtTerm.Numeral 1))
+              (SmtTerm.str_substr (__eo_to_smt b)
+                (SmtTerm.Var (native_string_lit "@x") SmtType.Int) (SmtTerm.Numeral 1))))
+          native_nat_zero))
+      (native_eo_to_smt_guard_closed_ne_dt_sel b
+        (SmtTerm.choice_nth (native_string_lit "@x") SmtType.Int
+          (SmtTerm.not
+            (SmtTerm.eq
+              (SmtTerm.str_substr (__eo_to_smt a)
+                (SmtTerm.Var (native_string_lit "@x") SmtType.Int) (SmtTerm.Numeral 1))
+              (SmtTerm.str_substr (__eo_to_smt b)
+                (SmtTerm.Var (native_string_lit "@x") SmtType.Int) (SmtTerm.Numeral 1))))
+          native_nat_zero)
+        (by intro s d i j hChoice; cases hChoice))
+      s d i j h
 
 private theorem eo_to_smt_strings_deq_diff_ne_dt_tester
     (a b : Term) :
@@ -16652,16 +16928,115 @@ private theorem eo_to_smt_strings_deq_diff_ne_dt_tester
         SmtTerm.DtTester s d i := by
   intro s d i h
   change
-    SmtTerm.choice_nth (native_string_lit "@x") SmtType.Int
-        (SmtTerm.not
-          (SmtTerm.eq
-            (SmtTerm.str_substr (__eo_to_smt a)
-              (SmtTerm.Var (native_string_lit "@x") SmtType.Int) (SmtTerm.Numeral 1))
-            (SmtTerm.str_substr (__eo_to_smt b)
-              (SmtTerm.Var (native_string_lit "@x") SmtType.Int) (SmtTerm.Numeral 1))))
-        native_nat_zero =
+    native_eo_to_smt_guard_closed a
+        (native_eo_to_smt_guard_closed b
+          (SmtTerm.choice_nth (native_string_lit "@x") SmtType.Int
+            (SmtTerm.not
+              (SmtTerm.eq
+                (SmtTerm.str_substr (__eo_to_smt a)
+                  (SmtTerm.Var (native_string_lit "@x") SmtType.Int) (SmtTerm.Numeral 1))
+                (SmtTerm.str_substr (__eo_to_smt b)
+                  (SmtTerm.Var (native_string_lit "@x") SmtType.Int) (SmtTerm.Numeral 1))))
+            native_nat_zero)) =
       SmtTerm.DtTester s d i at h
-  cases h
+  exact
+    native_eo_to_smt_guard_closed_ne_dt_tester a
+      (native_eo_to_smt_guard_closed b
+        (SmtTerm.choice_nth (native_string_lit "@x") SmtType.Int
+          (SmtTerm.not
+            (SmtTerm.eq
+              (SmtTerm.str_substr (__eo_to_smt a)
+                (SmtTerm.Var (native_string_lit "@x") SmtType.Int) (SmtTerm.Numeral 1))
+              (SmtTerm.str_substr (__eo_to_smt b)
+                (SmtTerm.Var (native_string_lit "@x") SmtType.Int) (SmtTerm.Numeral 1))))
+          native_nat_zero))
+      (native_eo_to_smt_guard_closed_ne_dt_tester b
+        (SmtTerm.choice_nth (native_string_lit "@x") SmtType.Int
+          (SmtTerm.not
+            (SmtTerm.eq
+              (SmtTerm.str_substr (__eo_to_smt a)
+                (SmtTerm.Var (native_string_lit "@x") SmtType.Int) (SmtTerm.Numeral 1))
+              (SmtTerm.str_substr (__eo_to_smt b)
+                (SmtTerm.Var (native_string_lit "@x") SmtType.Int) (SmtTerm.Numeral 1))))
+          native_nat_zero)
+        (by intro s d i hChoice; cases hChoice))
+      s d i h
+
+private theorem eo_to_smt_purify_ne_dt_sel
+    (z : Term) :
+    ∀ s d i j,
+      __eo_to_smt (Term.UOp1 UserOp1._at_purify z) ≠
+        SmtTerm.DtSel s d i j := by
+  intro s d i j h
+  change
+    native_eo_to_smt_guard_closed z
+        (SmtTerm._at_purify (__eo_to_smt z)) =
+      SmtTerm.DtSel s d i j at h
+  exact
+    native_eo_to_smt_guard_closed_ne_dt_sel z
+      (SmtTerm._at_purify (__eo_to_smt z))
+      (by intro s d i j hPurify; cases hPurify) s d i j h
+
+private theorem eo_to_smt_purify_ne_dt_tester
+    (z : Term) :
+    ∀ s d i,
+      __eo_to_smt (Term.UOp1 UserOp1._at_purify z) ≠
+        SmtTerm.DtTester s d i := by
+  intro s d i h
+  change
+    native_eo_to_smt_guard_closed z
+        (SmtTerm._at_purify (__eo_to_smt z)) =
+      SmtTerm.DtTester s d i at h
+  exact
+    native_eo_to_smt_guard_closed_ne_dt_tester z
+      (SmtTerm._at_purify (__eo_to_smt z))
+      (by intro s d i hPurify; cases hPurify) s d i h
+
+private theorem eo_to_smt_strings_stoi_non_digit_ne_dt_sel
+    (z : Term) :
+    ∀ s d i j,
+      __eo_to_smt (Term.UOp1 UserOp1._at_strings_stoi_non_digit z) ≠
+        SmtTerm.DtSel s d i j := by
+  intro s d i j h
+  change
+    native_eo_to_smt_guard_closed z
+        (SmtTerm.str_indexof_re (__eo_to_smt z)
+          (SmtTerm.re_comp
+            (SmtTerm.re_range (SmtTerm.String (native_string_lit "0"))
+              (SmtTerm.String (native_string_lit "9"))))
+          (SmtTerm.Numeral 0)) =
+      SmtTerm.DtSel s d i j at h
+  exact
+    native_eo_to_smt_guard_closed_ne_dt_sel z
+      (SmtTerm.str_indexof_re (__eo_to_smt z)
+        (SmtTerm.re_comp
+          (SmtTerm.re_range (SmtTerm.String (native_string_lit "0"))
+            (SmtTerm.String (native_string_lit "9"))))
+        (SmtTerm.Numeral 0))
+      (by intro s d i j hIdx; cases hIdx) s d i j h
+
+private theorem eo_to_smt_strings_stoi_non_digit_ne_dt_tester
+    (z : Term) :
+    ∀ s d i,
+      __eo_to_smt (Term.UOp1 UserOp1._at_strings_stoi_non_digit z) ≠
+        SmtTerm.DtTester s d i := by
+  intro s d i h
+  change
+    native_eo_to_smt_guard_closed z
+        (SmtTerm.str_indexof_re (__eo_to_smt z)
+          (SmtTerm.re_comp
+            (SmtTerm.re_range (SmtTerm.String (native_string_lit "0"))
+              (SmtTerm.String (native_string_lit "9"))))
+          (SmtTerm.Numeral 0)) =
+      SmtTerm.DtTester s d i at h
+  exact
+    native_eo_to_smt_guard_closed_ne_dt_tester z
+      (SmtTerm.str_indexof_re (__eo_to_smt z)
+        (SmtTerm.re_comp
+          (SmtTerm.re_range (SmtTerm.String (native_string_lit "0"))
+            (SmtTerm.String (native_string_lit "9"))))
+        (SmtTerm.Numeral 0))
+      (by intro s d i hIdx; cases hIdx) s d i h
 
 private theorem eo_to_smt_quant_skolemize_ne_dt_sel
     (body : SmtTerm) (n : native_Nat) :
@@ -16783,16 +17158,33 @@ private theorem eo_to_smt_re_unfold_top_ne_dt_sel
         SmtTerm.DtSel s d i j := by
   intro s d i j h
   change
-    native_ite (__eo_to_smt_nat_is_valid idx)
-        (__eo_to_smt_re_unfold_pos_component
-          (__eo_to_smt str) (__eo_to_smt re) (__eo_to_smt_nat idx))
-        SmtTerm.None =
+    native_eo_to_smt_guard_closed str
+        (native_eo_to_smt_guard_closed re
+          (native_ite (__eo_to_smt_nat_is_valid idx)
+            (__eo_to_smt_re_unfold_pos_component
+              (__eo_to_smt str) (__eo_to_smt re) (__eo_to_smt_nat idx))
+            SmtTerm.None)) =
       SmtTerm.DtSel s d i j at h
-  unfold native_ite at h
-  split at h <;> try cases h
   exact
-    eo_to_smt_re_unfold_ne_dt_sel
-      (__eo_to_smt str) (__eo_to_smt re) (__eo_to_smt_nat idx)
+    native_eo_to_smt_guard_closed_ne_dt_sel str
+      (native_eo_to_smt_guard_closed re
+        (native_ite (__eo_to_smt_nat_is_valid idx)
+          (__eo_to_smt_re_unfold_pos_component
+            (__eo_to_smt str) (__eo_to_smt re) (__eo_to_smt_nat idx))
+          SmtTerm.None))
+      (native_eo_to_smt_guard_closed_ne_dt_sel re
+        (native_ite (__eo_to_smt_nat_is_valid idx)
+          (__eo_to_smt_re_unfold_pos_component
+            (__eo_to_smt str) (__eo_to_smt re) (__eo_to_smt_nat idx))
+          SmtTerm.None)
+        (by
+          intro s d i j hIte
+          unfold native_ite at hIte
+          split at hIte <;> try cases hIte
+          exact
+            eo_to_smt_re_unfold_ne_dt_sel
+              (__eo_to_smt str) (__eo_to_smt re) (__eo_to_smt_nat idx)
+              s d i j hIte))
       s d i j h
 
 private theorem eo_to_smt_re_unfold_top_ne_dt_tester
@@ -16803,17 +17195,34 @@ private theorem eo_to_smt_re_unfold_top_ne_dt_tester
         SmtTerm.DtTester s d i := by
   intro s d i h
   change
-    native_ite (__eo_to_smt_nat_is_valid idx)
-        (__eo_to_smt_re_unfold_pos_component
-          (__eo_to_smt str) (__eo_to_smt re) (__eo_to_smt_nat idx))
-        SmtTerm.None =
+    native_eo_to_smt_guard_closed str
+        (native_eo_to_smt_guard_closed re
+          (native_ite (__eo_to_smt_nat_is_valid idx)
+            (__eo_to_smt_re_unfold_pos_component
+              (__eo_to_smt str) (__eo_to_smt re) (__eo_to_smt_nat idx))
+            SmtTerm.None)) =
       SmtTerm.DtTester s d i at h
-  unfold native_ite at h
-  split at h <;> try cases h
   exact
-      eo_to_smt_re_unfold_ne_dt_tester
-        (__eo_to_smt str) (__eo_to_smt re) (__eo_to_smt_nat idx)
-        s d i h
+    native_eo_to_smt_guard_closed_ne_dt_tester str
+      (native_eo_to_smt_guard_closed re
+        (native_ite (__eo_to_smt_nat_is_valid idx)
+          (__eo_to_smt_re_unfold_pos_component
+            (__eo_to_smt str) (__eo_to_smt re) (__eo_to_smt_nat idx))
+          SmtTerm.None))
+      (native_eo_to_smt_guard_closed_ne_dt_tester re
+        (native_ite (__eo_to_smt_nat_is_valid idx)
+          (__eo_to_smt_re_unfold_pos_component
+            (__eo_to_smt str) (__eo_to_smt re) (__eo_to_smt_nat idx))
+          SmtTerm.None)
+        (by
+          intro s d i hIte
+          unfold native_ite at hIte
+          split at hIte <;> try cases hIte
+          exact
+            eo_to_smt_re_unfold_ne_dt_tester
+              (__eo_to_smt str) (__eo_to_smt re) (__eo_to_smt_nat idx)
+              s d i hIte))
+      s d i h
 
 private theorem eo_to_smt_witness_string_length_ne_dt_sel
     (T len id : Term) :
@@ -16823,15 +17232,39 @@ private theorem eo_to_smt_witness_string_length_ne_dt_sel
         SmtTerm.DtSel s d i j := by
   intro s d i j h
   change
-    native_ite (native_Teq (__smtx_typeof (__eo_to_smt id)) SmtType.Int)
-        (SmtTerm.choice_nth (native_string_lit "@x") (__eo_to_smt_type T)
-          (SmtTerm.eq
-            (SmtTerm.str_len (SmtTerm.Var (native_string_lit "@x") (__eo_to_smt_type T)))
-            (__eo_to_smt len)) native_nat_zero)
-        SmtTerm.None =
+    native_eo_to_smt_guard_closed len
+        (native_eo_to_smt_guard_closed id
+          (native_ite (native_Teq (__smtx_typeof (__eo_to_smt id)) SmtType.Int)
+            (SmtTerm.choice_nth (native_string_lit "@x") (__eo_to_smt_type T)
+              (SmtTerm.eq
+                (SmtTerm.str_len
+                  (SmtTerm.Var (native_string_lit "@x") (__eo_to_smt_type T)))
+                (__eo_to_smt len)) native_nat_zero)
+            SmtTerm.None)) =
       SmtTerm.DtSel s d i j at h
-  unfold native_ite at h
-  split at h <;> cases h
+  exact
+    native_eo_to_smt_guard_closed_ne_dt_sel len
+      (native_eo_to_smt_guard_closed id
+        (native_ite (native_Teq (__smtx_typeof (__eo_to_smt id)) SmtType.Int)
+          (SmtTerm.choice_nth (native_string_lit "@x") (__eo_to_smt_type T)
+            (SmtTerm.eq
+              (SmtTerm.str_len
+                (SmtTerm.Var (native_string_lit "@x") (__eo_to_smt_type T)))
+              (__eo_to_smt len)) native_nat_zero)
+          SmtTerm.None))
+      (native_eo_to_smt_guard_closed_ne_dt_sel id
+        (native_ite (native_Teq (__smtx_typeof (__eo_to_smt id)) SmtType.Int)
+          (SmtTerm.choice_nth (native_string_lit "@x") (__eo_to_smt_type T)
+            (SmtTerm.eq
+              (SmtTerm.str_len
+                (SmtTerm.Var (native_string_lit "@x") (__eo_to_smt_type T)))
+              (__eo_to_smt len)) native_nat_zero)
+          SmtTerm.None)
+        (by
+          intro s d i j hIte
+          unfold native_ite at hIte
+          split at hIte <;> cases hIte))
+      s d i j h
 
 private theorem eo_to_smt_witness_string_length_ne_dt_tester
     (T len id : Term) :
@@ -16841,15 +17274,39 @@ private theorem eo_to_smt_witness_string_length_ne_dt_tester
         SmtTerm.DtTester s d i := by
   intro s d i h
   change
-    native_ite (native_Teq (__smtx_typeof (__eo_to_smt id)) SmtType.Int)
-        (SmtTerm.choice_nth (native_string_lit "@x") (__eo_to_smt_type T)
-          (SmtTerm.eq
-            (SmtTerm.str_len (SmtTerm.Var (native_string_lit "@x") (__eo_to_smt_type T)))
-            (__eo_to_smt len)) native_nat_zero)
-        SmtTerm.None =
+    native_eo_to_smt_guard_closed len
+        (native_eo_to_smt_guard_closed id
+          (native_ite (native_Teq (__smtx_typeof (__eo_to_smt id)) SmtType.Int)
+            (SmtTerm.choice_nth (native_string_lit "@x") (__eo_to_smt_type T)
+              (SmtTerm.eq
+                (SmtTerm.str_len
+                  (SmtTerm.Var (native_string_lit "@x") (__eo_to_smt_type T)))
+                (__eo_to_smt len)) native_nat_zero)
+            SmtTerm.None)) =
       SmtTerm.DtTester s d i at h
-  unfold native_ite at h
-  split at h <;> cases h
+  exact
+    native_eo_to_smt_guard_closed_ne_dt_tester len
+      (native_eo_to_smt_guard_closed id
+        (native_ite (native_Teq (__smtx_typeof (__eo_to_smt id)) SmtType.Int)
+          (SmtTerm.choice_nth (native_string_lit "@x") (__eo_to_smt_type T)
+            (SmtTerm.eq
+              (SmtTerm.str_len
+                (SmtTerm.Var (native_string_lit "@x") (__eo_to_smt_type T)))
+              (__eo_to_smt len)) native_nat_zero)
+          SmtTerm.None))
+      (native_eo_to_smt_guard_closed_ne_dt_tester id
+        (native_ite (native_Teq (__smtx_typeof (__eo_to_smt id)) SmtType.Int)
+          (SmtTerm.choice_nth (native_string_lit "@x") (__eo_to_smt_type T)
+            (SmtTerm.eq
+              (SmtTerm.str_len
+                (SmtTerm.Var (native_string_lit "@x") (__eo_to_smt_type T)))
+              (__eo_to_smt len)) native_nat_zero)
+          SmtTerm.None)
+        (by
+          intro s d i hIte
+          unfold native_ite at hIte
+          split at hIte <;> cases hIte))
+      s d i h
 
 private theorem uop_apply_typeof_none_of_not_unary_smt_translation
     (op : UserOp) (x : Term) :
@@ -17178,9 +17635,10 @@ private theorem uop1_apply_typeof_none_of_arg_none
   case _at_strings_stoi_result =>
     change
       __smtx_typeof
-        (SmtTerm.str_to_int
-          (SmtTerm.str_substr (__eo_to_smt idx) (SmtTerm.Numeral 0)
-            (__eo_to_smt x))) = SmtType.None
+        (native_eo_to_smt_guard_closed idx
+          (SmtTerm.str_to_int
+            (SmtTerm.str_substr (__eo_to_smt idx) (SmtTerm.Numeral 0)
+              (__eo_to_smt x)))) = SmtType.None
     have hSub :
         __smtx_typeof
           (SmtTerm.str_substr (__eo_to_smt idx) (SmtTerm.Numeral 0)
@@ -17188,13 +17646,22 @@ private theorem uop1_apply_typeof_none_of_arg_none
       rw [typeof_str_substr_eq, hx]
       cases __smtx_typeof (__eo_to_smt idx) <;>
         simp [__smtx_typeof_str_substr, __smtx_typeof]
-    rw [typeof_str_to_int_eq, hSub]
-    rfl
+    have hBody :
+        __smtx_typeof
+          (SmtTerm.str_to_int
+            (SmtTerm.str_substr (__eo_to_smt idx) (SmtTerm.Numeral 0)
+              (__eo_to_smt x))) = SmtType.None := by
+      rw [typeof_str_to_int_eq, hSub]
+      rfl
+    cases hClosed : native_eo_to_smt_closed idx <;>
+      simp [native_eo_to_smt_guard_closed, native_ite, hClosed,
+        hBody, TranslationProofs.smtx_typeof_none]
   case _at_strings_itos_result =>
     change
       __smtx_typeof
-        (SmtTerm.mod (__eo_to_smt idx)
-          (SmtTerm.multmult (SmtTerm.Numeral 10) (__eo_to_smt x))) =
+        (native_eo_to_smt_guard_closed idx
+          (SmtTerm.mod (__eo_to_smt idx)
+            (SmtTerm.multmult (SmtTerm.Numeral 10) (__eo_to_smt x)))) =
         SmtType.None
     have hMul :
         __smtx_typeof
@@ -17202,8 +17669,16 @@ private theorem uop1_apply_typeof_none_of_arg_none
           SmtType.None := by
       rw [typeof_multmult_eq, hx]
       simp [__smtx_typeof, native_ite, native_Teq]
-    rw [typeof_mod_eq, hMul]
-    simp [native_ite, native_Teq]
+    have hBody :
+        __smtx_typeof
+          (SmtTerm.mod (__eo_to_smt idx)
+            (SmtTerm.multmult (SmtTerm.Numeral 10) (__eo_to_smt x))) =
+        SmtType.None := by
+      rw [typeof_mod_eq, hMul]
+      simp [native_ite, native_Teq]
+    cases hClosed : native_eo_to_smt_closed idx <;>
+      simp [native_eo_to_smt_guard_closed, native_ite, hClosed,
+        hBody, TranslationProofs.smtx_typeof_none]
   case is =>
     change
       __smtx_typeof
@@ -19088,31 +19563,11 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                           (Term.UOp1 UserOp1._at_purify z) x y
                           (by intro a; rfl)
                           (generic_apply_type_of_non_datatype_head
-                            (by
-                              intro s d i j h
-                              change
-                                SmtTerm._at_purify (__eo_to_smt z) =
-                                  SmtTerm.DtSel s d i j at h
-                              cases h)
-                            (by
-                              intro s d i h
-                              change
-                                SmtTerm._at_purify (__eo_to_smt z) =
-                                  SmtTerm.DtTester s d i at h
-                              cases h))
+                            (eo_to_smt_purify_ne_dt_sel z)
+                            (eo_to_smt_purify_ne_dt_tester z))
                           (generic_apply_type_of_non_datatype_head
-                            (by
-                              intro s d i j h
-                              change
-                                SmtTerm._at_purify (__eo_to_smt z) =
-                                  SmtTerm.DtSel s d i j at h
-                              cases h)
-                            (by
-                              intro s d i h
-                              change
-                                SmtTerm._at_purify (__eo_to_smt z) =
-                                  SmtTerm.DtTester s d i at h
-                              cases h))
+                            (eo_to_smt_purify_ne_dt_sel z)
+                            (eo_to_smt_purify_ne_dt_tester z))
                           hTrans hArg
               | Term.UOp1 UserOp1._at_strings_stoi_non_digit z =>
                   cases hFn with
@@ -19123,47 +19578,11 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                           x y
                           (by intro a; rfl)
                           (generic_apply_type_of_non_datatype_head
-                            (by
-                              intro s d i j h
-                              change
-                                SmtTerm.str_indexof_re (__eo_to_smt z)
-                                    (SmtTerm.re_comp
-                                      (SmtTerm.re_range (SmtTerm.String (native_string_lit "0"))
-                                        (SmtTerm.String (native_string_lit "9"))))
-                                    (SmtTerm.Numeral 0) =
-                                  SmtTerm.DtSel s d i j at h
-                              cases h)
-                            (by
-                              intro s d i h
-                              change
-                                SmtTerm.str_indexof_re (__eo_to_smt z)
-                                    (SmtTerm.re_comp
-                                      (SmtTerm.re_range (SmtTerm.String (native_string_lit "0"))
-                                        (SmtTerm.String (native_string_lit "9"))))
-                                    (SmtTerm.Numeral 0) =
-                                  SmtTerm.DtTester s d i at h
-                              cases h))
+                            (eo_to_smt_strings_stoi_non_digit_ne_dt_sel z)
+                            (eo_to_smt_strings_stoi_non_digit_ne_dt_tester z))
                           (generic_apply_type_of_non_datatype_head
-                            (by
-                              intro s d i j h
-                              change
-                                SmtTerm.str_indexof_re (__eo_to_smt z)
-                                    (SmtTerm.re_comp
-                                      (SmtTerm.re_range (SmtTerm.String (native_string_lit "0"))
-                                        (SmtTerm.String (native_string_lit "9"))))
-                                    (SmtTerm.Numeral 0) =
-                                  SmtTerm.DtSel s d i j at h
-                              cases h)
-                            (by
-                              intro s d i h
-                              change
-                                SmtTerm.str_indexof_re (__eo_to_smt z)
-                                    (SmtTerm.re_comp
-                                      (SmtTerm.re_range (SmtTerm.String (native_string_lit "0"))
-                                        (SmtTerm.String (native_string_lit "9"))))
-                                    (SmtTerm.Numeral 0) =
-                                  SmtTerm.DtTester s d i at h
-                              cases h))
+                            (eo_to_smt_strings_stoi_non_digit_ne_dt_sel z)
+                            (eo_to_smt_strings_stoi_non_digit_ne_dt_tester z))
                           hTrans hArg
               | Term.UOp2 UserOp2._at_array_deq_diff q idx =>
                   cases hFn with
@@ -21882,44 +22301,14 @@ private theorem congTrueSpine_eq_true
                           M hM (Term.UOp1 UserOp1._at_purify z) x y
                           (by intro a; rfl)
                           (generic_apply_type_of_non_datatype_head
-                            (by
-                              intro s d i j h
-                              change
-                                SmtTerm._at_purify (__eo_to_smt z) =
-                                  SmtTerm.DtSel s d i j at h
-                              cases h)
-                            (by
-                              intro s d i h
-                              change
-                                SmtTerm._at_purify (__eo_to_smt z) =
-                                  SmtTerm.DtTester s d i at h
-                              cases h))
+                            (eo_to_smt_purify_ne_dt_sel z)
+                            (eo_to_smt_purify_ne_dt_tester z))
                           (generic_apply_eval_of_non_datatype_head
-                            (by
-                              intro s d i j h
-                              change
-                                SmtTerm._at_purify (__eo_to_smt z) =
-                                  SmtTerm.DtSel s d i j at h
-                              cases h)
-                            (by
-                              intro s d i h
-                              change
-                                SmtTerm._at_purify (__eo_to_smt z) =
-                                  SmtTerm.DtTester s d i at h
-                              cases h))
+                            (eo_to_smt_purify_ne_dt_sel z)
+                            (eo_to_smt_purify_ne_dt_tester z))
                           (generic_apply_eval_of_non_datatype_head
-                            (by
-                              intro s d i j h
-                              change
-                                SmtTerm._at_purify (__eo_to_smt z) =
-                                  SmtTerm.DtSel s d i j at h
-                              cases h)
-                            (by
-                              intro s d i h
-                              change
-                                SmtTerm._at_purify (__eo_to_smt z) =
-                                  SmtTerm.DtTester s d i at h
-                              cases h))
+                            (eo_to_smt_purify_ne_dt_sel z)
+                            (eo_to_smt_purify_ne_dt_tester z))
                           hEqBool hArg
               | Term.UOp1 UserOp1._at_strings_stoi_non_digit z =>
                   cases hFn with
@@ -21931,68 +22320,14 @@ private theorem congTrueSpine_eq_true
                           x y
                           (by intro a; rfl)
                           (generic_apply_type_of_non_datatype_head
-                            (by
-                              intro s d i j h
-                              change
-                                SmtTerm.str_indexof_re (__eo_to_smt z)
-                                    (SmtTerm.re_comp
-                                      (SmtTerm.re_range (SmtTerm.String (native_string_lit "0"))
-                                        (SmtTerm.String (native_string_lit "9"))))
-                                    (SmtTerm.Numeral 0) =
-                                  SmtTerm.DtSel s d i j at h
-                              cases h)
-                            (by
-                              intro s d i h
-                              change
-                                SmtTerm.str_indexof_re (__eo_to_smt z)
-                                    (SmtTerm.re_comp
-                                      (SmtTerm.re_range (SmtTerm.String (native_string_lit "0"))
-                                        (SmtTerm.String (native_string_lit "9"))))
-                                    (SmtTerm.Numeral 0) =
-                                  SmtTerm.DtTester s d i at h
-                              cases h))
+                            (eo_to_smt_strings_stoi_non_digit_ne_dt_sel z)
+                            (eo_to_smt_strings_stoi_non_digit_ne_dt_tester z))
                           (generic_apply_eval_of_non_datatype_head
-                            (by
-                              intro s d i j h
-                              change
-                                SmtTerm.str_indexof_re (__eo_to_smt z)
-                                    (SmtTerm.re_comp
-                                      (SmtTerm.re_range (SmtTerm.String (native_string_lit "0"))
-                                        (SmtTerm.String (native_string_lit "9"))))
-                                    (SmtTerm.Numeral 0) =
-                                  SmtTerm.DtSel s d i j at h
-                              cases h)
-                            (by
-                              intro s d i h
-                              change
-                                SmtTerm.str_indexof_re (__eo_to_smt z)
-                                    (SmtTerm.re_comp
-                                      (SmtTerm.re_range (SmtTerm.String (native_string_lit "0"))
-                                        (SmtTerm.String (native_string_lit "9"))))
-                                    (SmtTerm.Numeral 0) =
-                                  SmtTerm.DtTester s d i at h
-                              cases h))
+                            (eo_to_smt_strings_stoi_non_digit_ne_dt_sel z)
+                            (eo_to_smt_strings_stoi_non_digit_ne_dt_tester z))
                           (generic_apply_eval_of_non_datatype_head
-                            (by
-                              intro s d i j h
-                              change
-                                SmtTerm.str_indexof_re (__eo_to_smt z)
-                                    (SmtTerm.re_comp
-                                      (SmtTerm.re_range (SmtTerm.String (native_string_lit "0"))
-                                        (SmtTerm.String (native_string_lit "9"))))
-                                    (SmtTerm.Numeral 0) =
-                                  SmtTerm.DtSel s d i j at h
-                              cases h)
-                            (by
-                              intro s d i h
-                              change
-                                SmtTerm.str_indexof_re (__eo_to_smt z)
-                                    (SmtTerm.re_comp
-                                      (SmtTerm.re_range (SmtTerm.String (native_string_lit "0"))
-                                        (SmtTerm.String (native_string_lit "9"))))
-                                    (SmtTerm.Numeral 0) =
-                                  SmtTerm.DtTester s d i at h
-                              cases h))
+                            (eo_to_smt_strings_stoi_non_digit_ne_dt_sel z)
+                            (eo_to_smt_strings_stoi_non_digit_ne_dt_tester z))
                           hEqBool hArg
               | Term.UOp2 UserOp2._at_array_deq_diff q idx =>
                   cases hFn with
