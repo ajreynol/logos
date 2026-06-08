@@ -30,11 +30,11 @@ theorem eo_to_smt_exists_cons_of_type_wf
       SmtTerm.exists s (__eo_to_smt_type T) (__eo_to_smt_exists vs F) := by
   exact eo_to_smt_exists_cons s T vs F
 
-/-- Simplifies EO-to-SMT translation for `quantifiers_skolemize_zero`. -/
-@[simp] theorem eo_to_smt_quantifiers_skolemize_zero
+/-- Simplifies EO-to-SMT translation for `qs_choice_zero`. -/
+@[simp] theorem eo_to_smt_qs_choice_zero
     (s : native_String) (T : SmtType) (F : SmtTerm) :
-    __eo_to_smt_quantifiers_skolemize (SmtTerm.exists s T F) 0 =
+    __eo_to_smt_qs_choice (SmtTerm.not (SmtTerm.exists s T F)) 0 =
       SmtTerm.choice_nth s T F 0 := by
-  simp [__eo_to_smt_quantifiers_skolemize]
+  rfl
 
 end TranslationProofs

@@ -84,29 +84,29 @@ private theorem native_eo_to_smt_uop_indices_safe_uop3_intro
 private theorem native_eo_to_smt_closed_of_guard_type_non_none
     {x : Term} {body : SmtTerm}
     (h :
-      __smtx_typeof (native_eo_to_smt_guard_closed x body) ≠
+      __smtx_typeof (__eo_to_smt_guard_closed x body) ≠
         SmtType.None) :
     native_eo_to_smt_closed x = true := by
   cases hx : native_eo_to_smt_closed x
   · exfalso
     apply h
-    simp [native_eo_to_smt_guard_closed, native_ite, hx,
+    simp [__eo_to_smt_guard_closed, native_ite, hx,
       TranslationProofs.smtx_typeof_none]
   · rfl
 
 private theorem guard_body_type_non_none_of_guard_type_non_none
     {x : Term} {body : SmtTerm}
     (h :
-      __smtx_typeof (native_eo_to_smt_guard_closed x body) ≠
+      __smtx_typeof (__eo_to_smt_guard_closed x body) ≠
         SmtType.None) :
     __smtx_typeof body ≠ SmtType.None := by
   intro hBody
   cases hx : native_eo_to_smt_closed x
   · exact h (by
-      simp [native_eo_to_smt_guard_closed, native_ite, hx,
+      simp [__eo_to_smt_guard_closed, native_ite, hx,
         TranslationProofs.smtx_typeof_none])
   · exact h (by
-      simpa [native_eo_to_smt_guard_closed, native_ite, hx] using hBody)
+      simpa [__eo_to_smt_guard_closed, native_ite, hx] using hBody)
 
 private theorem native_eo_to_smt_closed_of_nat_valid
     {x : Term}
@@ -907,12 +907,15 @@ private theorem native_eo_to_smt_closed_of_dt_sel_translation
   · rcases hPurify with ⟨z, hx, _hz⟩
     subst x
     exfalso
+    conv at h =>
+      lhs
+      unfold __eo_to_smt
     change
-      native_eo_to_smt_guard_closed z
+      __eo_to_smt_guard_closed z
           (SmtTerm._at_purify (__eo_to_smt z)) =
         SmtTerm.DtSel s d i j at h
     cases hzClosed : native_eo_to_smt_closed z <;>
-      simp [native_eo_to_smt_guard_closed, native_ite, hzClosed] at h
+      simp [__eo_to_smt_guard_closed, native_ite, hzClosed] at h
 
 private theorem native_eo_to_smt_uop_indices_safe_of_dt_sel_translation
     {x : Term} {s : native_String} {d : SmtDatatype}
@@ -926,12 +929,15 @@ private theorem native_eo_to_smt_uop_indices_safe_of_dt_sel_translation
   · rcases hPurify with ⟨z, hx, _hz⟩
     subst x
     exfalso
+    conv at h =>
+      lhs
+      unfold __eo_to_smt
     change
-      native_eo_to_smt_guard_closed z
+      __eo_to_smt_guard_closed z
           (SmtTerm._at_purify (__eo_to_smt z)) =
         SmtTerm.DtSel s d i j at h
     cases hzClosed : native_eo_to_smt_closed z <;>
-      simp [native_eo_to_smt_guard_closed, native_ite, hzClosed] at h
+      simp [__eo_to_smt_guard_closed, native_ite, hzClosed] at h
 
 private theorem native_eo_to_smt_closed_of_dt_cons_translation
     {x : Term} {s : native_String} {d : SmtDatatype} {i : native_Nat}
@@ -1149,6 +1155,10 @@ private theorem native_eo_to_smt_uop_indices_safe_of_apply_apply_update_non_none
           (__eo_to_smt_updater (__eo_to_smt idx)
             (__eo_to_smt y) (__eo_to_smt x)) ≠
         SmtType.None := by
+    conv at h =>
+      lhs
+      arg 1
+      unfold __eo_to_smt
     simpa using h
   rcases smt_updater_args_non_none hBody with
     ⟨⟨s, d, i, j, hIdx⟩, hYNN, hXNN⟩
@@ -1186,6 +1196,10 @@ private theorem native_eo_to_smt_uop_indices_safe_of_apply_apply_tuple_update_no
             (__smtx_typeof (__eo_to_smt y)) (__eo_to_smt idx)
             (__eo_to_smt y) (__eo_to_smt x)) ≠
         SmtType.None := by
+    conv at h =>
+      lhs
+      arg 1
+      unfold __eo_to_smt
     simpa using h
   rcases smt_tuple_update_args_non_none hBody with
     ⟨⟨n, hIdx⟩, hYNN, hXNN⟩
@@ -1515,6 +1529,9 @@ private theorem native_eo_to_smt_uop_indices_safe_of_typed_list_elem_type_non_no
                     simp [__eo_to_smt_typed_list_elem_type, headTy, tailTy,
                       native_ite, hGuard]
                 have hHeadTyNN : headTy ≠ SmtType.None := by
+                  conv at h =>
+                    lhs
+                    unfold __eo_to_smt_typed_list_elem_type
                   change
                     (native_ite (native_Teq headTy tailTy) headTy
                         SmtType.None) ≠
@@ -1657,9 +1674,17 @@ private theorem native_eo_to_smt_uop_indices_safe_of_apply_apply_set_insert_non_
     case __eo_List_nil =>
       exfalso
       exact h (by
+        conv =>
+          lhs
+          arg 1
+          unfold __eo_to_smt
         change __smtx_typeof SmtTerm.None = SmtType.None
         exact smtx_typeof_none)
     all_goals
+      conv at h =>
+        lhs
+        arg 1
+        unfold __eo_to_smt
       change
         __smtx_typeof (__eo_to_smt_set_insert _ (__eo_to_smt x)) ≠
           SmtType.None at h
@@ -1709,6 +1734,10 @@ private theorem native_eo_to_smt_uop_indices_safe_of_apply_distinct_non_none
         SmtType.None) :
     native_eo_to_smt_uop_indices_safe
       (Term.Apply (Term.UOp UserOp.distinct) xs) = true := by
+  conv at h =>
+    lhs
+    arg 1
+    unfold __eo_to_smt
   change
     __smtx_typeof
         (native_ite
@@ -1835,6 +1864,10 @@ private theorem native_eo_to_smt_uop_indices_safe_of_apply_exists_non_none
   case __eo_List_nil =>
     exfalso
     apply h
+    conv =>
+      lhs
+      arg 1
+      unfold __eo_to_smt
     change __smtx_typeof SmtTerm.None = SmtType.None
     exact TranslationProofs.smtx_typeof_none
   case Apply f tail =>
@@ -1859,6 +1892,10 @@ private theorem native_eo_to_smt_uop_indices_safe_of_apply_exists_non_none
                     (SmtTerm.exists s (__eo_to_smt_type T)
                       (__eo_to_smt_exists tail (__eo_to_smt F))) := by
                 unfold term_has_non_none_type
+                conv at h =>
+                  lhs
+                  arg 1
+                  unfold __eo_to_smt
                 change
                   __smtx_typeof
                       (SmtTerm.exists s (__eo_to_smt_type T)
@@ -1890,26 +1927,46 @@ private theorem native_eo_to_smt_uop_indices_safe_of_apply_exists_non_none
           all_goals
             exfalso
             apply h
+            conv =>
+              lhs
+              arg 1
+              unfold __eo_to_smt
             change __smtx_typeof SmtTerm.None = SmtType.None
             exact TranslationProofs.smtx_typeof_none
         all_goals
           exfalso
           apply h
+          conv =>
+            lhs
+            arg 1
+            unfold __eo_to_smt
           change __smtx_typeof SmtTerm.None = SmtType.None
           exact TranslationProofs.smtx_typeof_none
       all_goals
         exfalso
         apply h
+        conv =>
+          lhs
+          arg 1
+          unfold __eo_to_smt
         change __smtx_typeof SmtTerm.None = SmtType.None
         exact TranslationProofs.smtx_typeof_none
     all_goals
       exfalso
       apply h
+      conv =>
+        lhs
+        arg 1
+        unfold __eo_to_smt
       change __smtx_typeof SmtTerm.None = SmtType.None
       exact TranslationProofs.smtx_typeof_none
   all_goals
     exfalso
     apply h
+    conv =>
+      lhs
+      arg 1
+      unfold __eo_to_smt
     change __smtx_typeof SmtTerm.None = SmtType.None
     exact TranslationProofs.smtx_typeof_none
 
@@ -1934,6 +1991,10 @@ private theorem native_eo_to_smt_uop_indices_safe_of_apply_forall_non_none
   case __eo_List_nil =>
     exfalso
     apply h
+    conv =>
+      lhs
+      arg 1
+      unfold __eo_to_smt
     change __smtx_typeof SmtTerm.None = SmtType.None
     exact TranslationProofs.smtx_typeof_none
   case Apply f tail =>
@@ -1954,6 +2015,10 @@ private theorem native_eo_to_smt_uop_indices_safe_of_apply_forall_non_none
                       (SmtTerm.not (__eo_to_smt F))) =
                   SmtType.Bool := by
               apply smtx_typeof_not_arg_bool_of_non_none
+              conv at h =>
+                lhs
+                arg 1
+                unfold __eo_to_smt
               change
                 __smtx_typeof
                     (SmtTerm.not
@@ -1988,30 +2053,50 @@ private theorem native_eo_to_smt_uop_indices_safe_of_apply_forall_non_none
           all_goals
             exfalso
             apply h
+            conv =>
+              lhs
+              arg 1
+              unfold __eo_to_smt
             change __smtx_typeof (SmtTerm.not SmtTerm.None) = SmtType.None
             rw [typeof_not_eq, TranslationProofs.smtx_typeof_none]
             simp [native_ite, native_Teq]
         all_goals
           exfalso
           apply h
+          conv =>
+            lhs
+            arg 1
+            unfold __eo_to_smt
           change __smtx_typeof (SmtTerm.not SmtTerm.None) = SmtType.None
           rw [typeof_not_eq, TranslationProofs.smtx_typeof_none]
           simp [native_ite, native_Teq]
       all_goals
         exfalso
         apply h
+        conv =>
+          lhs
+          arg 1
+          unfold __eo_to_smt
         change __smtx_typeof (SmtTerm.not SmtTerm.None) = SmtType.None
         rw [typeof_not_eq, TranslationProofs.smtx_typeof_none]
         simp [native_ite, native_Teq]
     all_goals
       exfalso
       apply h
+      conv =>
+        lhs
+        arg 1
+        unfold __eo_to_smt
       change __smtx_typeof (SmtTerm.not SmtTerm.None) = SmtType.None
       rw [typeof_not_eq, TranslationProofs.smtx_typeof_none]
       simp [native_ite, native_Teq]
   all_goals
     exfalso
     apply h
+    conv =>
+      lhs
+      arg 1
+      unfold __eo_to_smt
     change __smtx_typeof (SmtTerm.not SmtTerm.None) = SmtType.None
     rw [typeof_not_eq, TranslationProofs.smtx_typeof_none]
     simp [native_ite, native_Teq]
@@ -2081,6 +2166,10 @@ private theorem native_eo_to_smt_uop_indices_safe_of_uop1_non_none
         native_eo_to_smt_uop_indices_safe x = true)
     (h : __smtx_typeof (__eo_to_smt (Term.UOp1 op x)) ≠ SmtType.None) :
     native_eo_to_smt_uop_indices_safe (Term.UOp1 op x) = true := by
+  conv at h =>
+    lhs
+    arg 1
+    unfold __eo_to_smt
   cases op
   case _at_purify =>
     have hxClosed :
@@ -2141,6 +2230,10 @@ private theorem native_eo_to_smt_uop_indices_safe_of_apply_repeat_non_none
         SmtType.None) :
     native_eo_to_smt_uop_indices_safe
       (Term.Apply (Term.UOp1 UserOp1.repeat idx) x) = true := by
+  conv at h =>
+    lhs
+    arg 1
+    unfold __eo_to_smt
   change __smtx_typeof
       (SmtTerm.repeat (__eo_to_smt idx) (__eo_to_smt x)) ≠
     SmtType.None at h
@@ -2164,6 +2257,10 @@ private theorem native_eo_to_smt_uop_indices_safe_of_apply_zero_extend_non_none
         SmtType.None) :
     native_eo_to_smt_uop_indices_safe
       (Term.Apply (Term.UOp1 UserOp1.zero_extend idx) x) = true := by
+  conv at h =>
+    lhs
+    arg 1
+    unfold __eo_to_smt
   change __smtx_typeof
       (SmtTerm.zero_extend (__eo_to_smt idx) (__eo_to_smt x)) ≠
     SmtType.None at h
@@ -2187,6 +2284,10 @@ private theorem native_eo_to_smt_uop_indices_safe_of_apply_sign_extend_non_none
         SmtType.None) :
     native_eo_to_smt_uop_indices_safe
       (Term.Apply (Term.UOp1 UserOp1.sign_extend idx) x) = true := by
+  conv at h =>
+    lhs
+    arg 1
+    unfold __eo_to_smt
   change __smtx_typeof
       (SmtTerm.sign_extend (__eo_to_smt idx) (__eo_to_smt x)) ≠
     SmtType.None at h
@@ -2210,6 +2311,10 @@ private theorem native_eo_to_smt_uop_indices_safe_of_apply_rotate_left_non_none
         SmtType.None) :
     native_eo_to_smt_uop_indices_safe
       (Term.Apply (Term.UOp1 UserOp1.rotate_left idx) x) = true := by
+  conv at h =>
+    lhs
+    arg 1
+    unfold __eo_to_smt
   change __smtx_typeof
       (SmtTerm.rotate_left (__eo_to_smt idx) (__eo_to_smt x)) ≠
     SmtType.None at h
@@ -2233,6 +2338,10 @@ private theorem native_eo_to_smt_uop_indices_safe_of_apply_rotate_right_non_none
         SmtType.None) :
     native_eo_to_smt_uop_indices_safe
       (Term.Apply (Term.UOp1 UserOp1.rotate_right idx) x) = true := by
+  conv at h =>
+    lhs
+    arg 1
+    unfold __eo_to_smt
   change __smtx_typeof
       (SmtTerm.rotate_right (__eo_to_smt idx) (__eo_to_smt x)) ≠
     SmtType.None at h
@@ -2256,6 +2365,10 @@ private theorem native_eo_to_smt_uop_indices_safe_of_apply_int_to_bv_non_none
         SmtType.None) :
     native_eo_to_smt_uop_indices_safe
       (Term.Apply (Term.UOp1 UserOp1.int_to_bv idx) x) = true := by
+  conv at h =>
+    lhs
+    arg 1
+    unfold __eo_to_smt
   change __smtx_typeof
       (SmtTerm.int_to_bv (__eo_to_smt idx) (__eo_to_smt x)) ≠
     SmtType.None at h
@@ -2294,6 +2407,10 @@ private theorem native_eo_to_smt_uop_indices_safe_of_apply_re_exp_non_none
         SmtType.None) :
     native_eo_to_smt_uop_indices_safe
       (Term.Apply (Term.UOp1 UserOp1.re_exp idx) x) = true := by
+  conv at h =>
+    lhs
+    arg 1
+    unfold __eo_to_smt
   change __smtx_typeof
       (SmtTerm.re_exp (__eo_to_smt idx) (__eo_to_smt x)) ≠
     SmtType.None at h
@@ -2314,6 +2431,10 @@ private theorem native_eo_to_smt_uop_indices_safe_of_apply_at_bit_non_none
         SmtType.None) :
     native_eo_to_smt_uop_indices_safe
       (Term.Apply (Term.UOp1 UserOp1._at_bit idx) x) = true := by
+  conv at h =>
+    lhs
+    arg 1
+    unfold __eo_to_smt
   change
     __smtx_typeof
         (SmtTerm.eq
@@ -2356,7 +2477,7 @@ private theorem native_eo_to_smt_uop_indices_safe_of_guarded_uop1_apply_non_none
         __smtx_typeof (__eo_to_smt idx) ≠ SmtType.None ∧
           __smtx_typeof (__eo_to_smt x) ≠ SmtType.None)
     (h :
-      __smtx_typeof (native_eo_to_smt_guard_closed idx body) ≠
+      __smtx_typeof (__eo_to_smt_guard_closed idx body) ≠
         SmtType.None) :
     native_eo_to_smt_uop_indices_safe
       (Term.Apply (Term.UOp1 op idx) x) = true := by
@@ -2446,6 +2567,10 @@ private theorem native_eo_to_smt_uop_indices_safe_of_apply_is_non_none
         SmtType.None) :
     native_eo_to_smt_uop_indices_safe
       (Term.Apply (Term.UOp1 UserOp1.is idx) x) = true := by
+  conv at h =>
+    lhs
+    arg 1
+    unfold __eo_to_smt
   change
     __smtx_typeof
         (SmtTerm.Apply (__eo_to_smt_tester (__eo_to_smt idx))
@@ -2482,6 +2607,10 @@ private theorem native_eo_to_smt_uop_indices_safe_of_apply_tuple_select_non_none
         SmtType.None) :
     native_eo_to_smt_uop_indices_safe
       (Term.Apply (Term.UOp1 UserOp1.tuple_select idx) x) = true := by
+  conv at h =>
+    lhs
+    arg 1
+    unfold __eo_to_smt
   change
     __smtx_typeof
         (__eo_to_smt_tuple_select (__smtx_typeof (__eo_to_smt x))
@@ -2527,15 +2656,15 @@ private theorem native_eo_to_smt_uop_indices_safe_of_guarded_uop2_non_none
           __smtx_typeof (__eo_to_smt y) ≠ SmtType.None)
     (h :
       __smtx_typeof
-          (native_eo_to_smt_guard_closed x
-            (native_eo_to_smt_guard_closed y body)) ≠
+          (__eo_to_smt_guard_closed x
+            (__eo_to_smt_guard_closed y body)) ≠
         SmtType.None) :
     native_eo_to_smt_uop_indices_safe (Term.UOp2 op x y) = true := by
   have hxClosed :
       native_eo_to_smt_closed x = true :=
     native_eo_to_smt_closed_of_guard_type_non_none h
   have hInner :
-      __smtx_typeof (native_eo_to_smt_guard_closed y body) ≠
+      __smtx_typeof (__eo_to_smt_guard_closed y body) ≠
         SmtType.None :=
     guard_body_type_non_none_of_guard_type_non_none h
   have hyClosed :
@@ -2664,13 +2793,17 @@ private theorem native_eo_to_smt_uop_indices_safe_of_skolemize_forall_non_none
       (Term.UOp2 UserOp2._at_quantifiers_skolemize
         (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F) idx) =
       true := by
+  conv at h =>
+    lhs
+    arg 1
+    unfold __eo_to_smt
   change
     __smtx_typeof
-        (native_eo_to_smt_guard_closed
+        (__eo_to_smt_guard_closed
           (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F)
           (native_ite (__eo_to_smt_nat_is_valid idx)
             (__eo_to_smt_quantifiers_skolemize
-              (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt F)))
+              (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F)
               (__eo_to_smt_nat idx))
             SmtTerm.None)) ≠
       SmtType.None at h
@@ -2683,7 +2816,7 @@ private theorem native_eo_to_smt_uop_indices_safe_of_skolemize_forall_non_none
       __smtx_typeof
           (native_ite (__eo_to_smt_nat_is_valid idx)
             (__eo_to_smt_quantifiers_skolemize
-              (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt F)))
+              (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F)
               (__eo_to_smt_nat idx))
             SmtTerm.None) ≠
         SmtType.None :=
@@ -2697,10 +2830,29 @@ private theorem native_eo_to_smt_uop_indices_safe_of_skolemize_forall_non_none
   have hSkolNN :
       __smtx_typeof
           (__eo_to_smt_quantifiers_skolemize
-            (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt F)))
+            (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F)
             (__eo_to_smt_nat idx)) ≠
         SmtType.None := by
     simpa [native_ite, hIdxValid] using hGuardBody
+  have hQsNN :
+      __smtx_typeof
+          (__eo_to_smt_qs_choice
+            (SmtTerm.not
+              (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt F))))
+            (__eo_to_smt_nat idx)) ≠
+        SmtType.None := by
+    cases xs
+    case __eo_List_nil =>
+      exfalso
+      apply hSkolNN
+      unfold __eo_to_smt_quantifiers_skolemize
+      unfold __eo_to_smt
+      unfold __eo_to_smt_qs_choice
+      exact TranslationProofs.smtx_typeof_none
+    all_goals
+      unfold __eo_to_smt_quantifiers_skolemize at hSkolNN
+      unfold __eo_to_smt at hSkolNN
+      exact hSkolNN
   have hBodyNoExists :
       ∀ s T body, SmtTerm.not (__eo_to_smt F) ≠ SmtTerm.exists s T body := by
     intro s T body hEq
@@ -2711,7 +2863,7 @@ private theorem native_eo_to_smt_uop_indices_safe_of_skolemize_forall_non_none
         SmtType.Bool :=
     smtx_typeof_eo_to_smt_exists_bool_of_quantifiers_skolemize_non_none
       xs (SmtTerm.not (__eo_to_smt F)) (__eo_to_smt_nat idx)
-      hBodyNoExists hSkolNN
+      hBodyNoExists hQsNN
   have hForallNN :
       __smtx_typeof
           (__eo_to_smt
@@ -2721,9 +2873,18 @@ private theorem native_eo_to_smt_uop_indices_safe_of_skolemize_forall_non_none
     case __eo_List_nil =>
       exfalso
       apply hSkolNN
-      simp [__eo_to_smt_exists, __eo_to_smt_quantifiers_skolemize,
-        TranslationProofs.smtx_typeof_none]
+      unfold __eo_to_smt_quantifiers_skolemize
+      conv =>
+        lhs
+        arg 1
+        unfold __eo_to_smt
+      unfold __eo_to_smt_qs_choice
+      exact TranslationProofs.smtx_typeof_none
     all_goals
+      conv =>
+        lhs
+        arg 1
+        unfold __eo_to_smt
       change
         __smtx_typeof
             (SmtTerm.not
@@ -2749,10 +2910,14 @@ private theorem native_eo_to_smt_uop_indices_safe_of_uop2_non_none
     native_eo_to_smt_uop_indices_safe (Term.UOp2 op x y) = true := by
   cases op
   case _at_array_deq_diff =>
+    conv at h =>
+      lhs
+      arg 1
+      unfold __eo_to_smt
     change
       __smtx_typeof
-          (native_eo_to_smt_guard_closed x
-            (native_eo_to_smt_guard_closed y
+          (__eo_to_smt_guard_closed x
+            (__eo_to_smt_guard_closed y
               (__eo_to_smt_array_deq_diff (__eo_to_smt x)
                 (__smtx_typeof (__eo_to_smt x)) (__eo_to_smt y)
                 (__smtx_typeof (__eo_to_smt y))))) ≠
@@ -2761,6 +2926,10 @@ private theorem native_eo_to_smt_uop_indices_safe_of_uop2_non_none
       (op := UserOp2._at_array_deq_diff) ihx ihy
       native_eo_to_smt_array_deq_diff_args_non_none h
   case _at_bv =>
+    conv at h =>
+      lhs
+      arg 1
+      unfold __eo_to_smt
     rcases eo_to_smt_at_bv_of_non_none
         (a := __eo_to_smt x) (b := __eo_to_smt y) (by simpa using h) with
       ⟨n, w, hxNum, hyNum, _hw, _hTy⟩
@@ -2770,10 +2939,14 @@ private theorem native_eo_to_smt_uop_indices_safe_of_uop2_non_none
       (native_eo_to_smt_uop_indices_safe_of_smt_numeral hxNum)
       (native_eo_to_smt_uop_indices_safe_of_smt_numeral hyNum)
   case _at_strings_deq_diff =>
+    conv at h =>
+      lhs
+      arg 1
+      unfold __eo_to_smt
     change
       __smtx_typeof
-          (native_eo_to_smt_guard_closed x
-            (native_eo_to_smt_guard_closed y
+          (__eo_to_smt_guard_closed x
+            (__eo_to_smt_guard_closed y
               (SmtTerm.choice_nth (native_string_lit "@x") SmtType.Int
                 (SmtTerm.not
                   (SmtTerm.eq
@@ -2789,10 +2962,14 @@ private theorem native_eo_to_smt_uop_indices_safe_of_uop2_non_none
       (op := UserOp2._at_strings_deq_diff) ihx ihy
       native_eo_to_smt_strings_deq_diff_args_non_none h
   case _at_sets_deq_diff =>
+    conv at h =>
+      lhs
+      arg 1
+      unfold __eo_to_smt
     change
       __smtx_typeof
-          (native_eo_to_smt_guard_closed x
-            (native_eo_to_smt_guard_closed y
+          (__eo_to_smt_guard_closed x
+            (__eo_to_smt_guard_closed y
               (__eo_to_smt_sets_deq_diff (__eo_to_smt x)
                 (__smtx_typeof (__eo_to_smt x)) (__eo_to_smt y)
                 (__smtx_typeof (__eo_to_smt y))))) ≠
@@ -2815,46 +2992,82 @@ private theorem native_eo_to_smt_uop_indices_safe_of_uop2_non_none
           all_goals
             exfalso
             apply h
-            change __smtx_typeof SmtTerm.None = SmtType.None
-            exact TranslationProofs.smtx_typeof_none
+            conv =>
+              lhs
+              arg 1
+              unfold __eo_to_smt
+            simp [__eo_to_smt_guard_closed, __eo_to_smt_quantifiers_skolemize,
+              native_ite, TranslationProofs.smtx_typeof_none]
         all_goals
           exfalso
           apply h
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact TranslationProofs.smtx_typeof_none
+          conv =>
+            lhs
+            arg 1
+            unfold __eo_to_smt
+          simp [__eo_to_smt_guard_closed, __eo_to_smt_quantifiers_skolemize,
+            native_ite, TranslationProofs.smtx_typeof_none]
       all_goals
         exfalso
         apply h
-        change __smtx_typeof SmtTerm.None = SmtType.None
-        exact TranslationProofs.smtx_typeof_none
+        conv =>
+          lhs
+          arg 1
+          unfold __eo_to_smt
+        simp [__eo_to_smt_guard_closed, __eo_to_smt_quantifiers_skolemize,
+          native_ite, TranslationProofs.smtx_typeof_none]
     all_goals
       exfalso
       apply h
-      change __smtx_typeof SmtTerm.None = SmtType.None
-      exact TranslationProofs.smtx_typeof_none
+      conv =>
+        lhs
+        arg 1
+        unfold __eo_to_smt
+      simp [__eo_to_smt_guard_closed, __eo_to_smt_quantifiers_skolemize,
+        native_ite, TranslationProofs.smtx_typeof_none]
   case extract =>
     exfalso
     apply h
+    conv =>
+      lhs
+      arg 1
+      unfold __eo_to_smt
     change __smtx_typeof SmtTerm.None = SmtType.None
     exact TranslationProofs.smtx_typeof_none
   case re_loop =>
     exfalso
     apply h
+    conv =>
+      lhs
+      arg 1
+      unfold __eo_to_smt
     change __smtx_typeof SmtTerm.None = SmtType.None
     exact TranslationProofs.smtx_typeof_none
   case _at_strings_num_occur_re =>
     exfalso
     apply h
+    conv =>
+      lhs
+      arg 1
+      unfold __eo_to_smt
     change __smtx_typeof SmtTerm.None = SmtType.None
     exact TranslationProofs.smtx_typeof_none
   case _at_strings_occur_index_re =>
     exfalso
     apply h
+    conv =>
+      lhs
+      arg 1
+      unfold __eo_to_smt
     change __smtx_typeof SmtTerm.None = SmtType.None
     exact TranslationProofs.smtx_typeof_none
   case _at_const =>
     exfalso
     apply h
+    conv =>
+      lhs
+      arg 1
+      unfold __eo_to_smt
     change __smtx_typeof SmtTerm.None = SmtType.None
     exact TranslationProofs.smtx_typeof_none
 
@@ -2869,6 +3082,10 @@ private theorem native_eo_to_smt_uop_indices_safe_of_apply_extract_non_none
         SmtType.None) :
     native_eo_to_smt_uop_indices_safe
       (Term.Apply (Term.UOp2 UserOp2.extract hi lo) x) = true := by
+  conv at h =>
+    lhs
+    arg 1
+    unfold __eo_to_smt
   change __smtx_typeof
       (SmtTerm.extract (__eo_to_smt hi) (__eo_to_smt lo) (__eo_to_smt x)) ≠
     SmtType.None at h
@@ -2919,6 +3136,10 @@ private theorem native_eo_to_smt_uop_indices_safe_of_apply_re_loop_non_none
         SmtType.None) :
     native_eo_to_smt_uop_indices_safe
       (Term.Apply (Term.UOp2 UserOp2.re_loop lo hi) x) = true := by
+  conv at h =>
+    lhs
+    arg 1
+    unfold __eo_to_smt
   change __smtx_typeof
       (SmtTerm.re_loop (__eo_to_smt lo) (__eo_to_smt hi) (__eo_to_smt x)) ≠
     SmtType.None at h
@@ -2944,10 +3165,14 @@ private theorem native_eo_to_smt_uop_indices_safe_of_uop3_non_none
     native_eo_to_smt_uop_indices_safe (Term.UOp3 op x y z) = true := by
   cases op
   case _at_re_unfold_pos_component =>
+    conv at h =>
+      lhs
+      arg 1
+      unfold __eo_to_smt
     change
       __smtx_typeof
-          (native_eo_to_smt_guard_closed x
-            (native_eo_to_smt_guard_closed y
+          (__eo_to_smt_guard_closed x
+            (__eo_to_smt_guard_closed y
               (native_ite (__eo_to_smt_nat_is_valid z)
                 (__eo_to_smt_re_unfold_pos_component (__eo_to_smt x)
                   (__eo_to_smt y) (__eo_to_smt_nat z))
@@ -2958,7 +3183,7 @@ private theorem native_eo_to_smt_uop_indices_safe_of_uop3_non_none
       native_eo_to_smt_closed_of_guard_type_non_none h
     have hInner :
         __smtx_typeof
-            (native_eo_to_smt_guard_closed y
+            (__eo_to_smt_guard_closed y
               (native_ite (__eo_to_smt_nat_is_valid z)
                 (__eo_to_smt_re_unfold_pos_component (__eo_to_smt x)
                   (__eo_to_smt y) (__eo_to_smt_nat z))
@@ -3002,10 +3227,14 @@ private theorem native_eo_to_smt_uop_indices_safe_of_uop3_non_none
       SmtTerm.eq
         (SmtTerm.str_len (SmtTerm.Var (native_string_lit "@x") ST))
         (__eo_to_smt y)
+    conv at h =>
+      lhs
+      arg 1
+      unfold __eo_to_smt
     change
       __smtx_typeof
-          (native_eo_to_smt_guard_closed y
-            (native_eo_to_smt_guard_closed z
+          (__eo_to_smt_guard_closed y
+            (__eo_to_smt_guard_closed z
               (native_ite (native_Teq (__smtx_typeof (__eo_to_smt z)) SmtType.Int)
                 (SmtTerm.choice_nth (native_string_lit "@x") ST body native_nat_zero)
                 SmtTerm.None))) ≠
@@ -3015,7 +3244,7 @@ private theorem native_eo_to_smt_uop_indices_safe_of_uop3_non_none
       native_eo_to_smt_closed_of_guard_type_non_none h
     have hInner :
         __smtx_typeof
-            (native_eo_to_smt_guard_closed z
+            (__eo_to_smt_guard_closed z
               (native_ite (native_Teq (__smtx_typeof (__eo_to_smt z)) SmtType.Int)
                 (SmtTerm.choice_nth (native_string_lit "@x") ST body native_nat_zero)
                 SmtTerm.None)) ≠
@@ -3212,9 +3441,14 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                 native_eo_to_smt_uop_indices_safe_of_apply_re_exp_non_none
                   (idx := idx) (x := x) (fun hx => go x hx) h
             | _at_strings_stoi_result =>
+              conv at h =>
+                arg 1
+                lhs
+                arg 1
+                unfold __eo_to_smt
               change
                 __smtx_typeof
-                    (native_eo_to_smt_guard_closed idx
+                    (__eo_to_smt_guard_closed idx
                       (SmtTerm.str_to_int
                         (SmtTerm.str_substr (__eo_to_smt idx)
                           (SmtTerm.Numeral 0) (__eo_to_smt x)))) ≠
@@ -3231,9 +3465,14 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                   (fun hidx => go idx hidx) (fun hx => go x hx)
                   native_eo_to_smt_strings_stoi_result_args_non_none h
             | _at_strings_itos_result =>
+              conv at h =>
+                arg 1
+                lhs
+                arg 1
+                unfold __eo_to_smt
               change
                 __smtx_typeof
-                    (native_eo_to_smt_guard_closed idx
+                    (__eo_to_smt_guard_closed idx
                       (SmtTerm.mod (__eo_to_smt idx)
                         (SmtTerm.multmult (SmtTerm.Numeral 10)
                           (__eo_to_smt x)))) ≠
@@ -3255,6 +3494,11 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                 native_eo_to_smt_uop_indices_safe_of_apply_int_to_bv_non_none
                   (idx := idx) (x := x) (fun hx => go x hx) h
             | _at_purify =>
+              conv at h =>
+                arg 1
+                lhs
+                arg 1
+                unfold __eo_to_smt
               change
                 __smtx_typeof
                     (SmtTerm.Apply
@@ -3271,6 +3515,11 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                     simpa [NativeEoToSmtUOpIndicesSafe] using go x hx)
                   h
             | seq_empty =>
+              conv at h =>
+                arg 1
+                lhs
+                arg 1
+                unfold __eo_to_smt
               change
                 __smtx_typeof
                     (SmtTerm.Apply
@@ -3287,6 +3536,11 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                     simpa [NativeEoToSmtUOpIndicesSafe] using go x hx)
                   h
             | _at_strings_stoi_non_digit =>
+              conv at h =>
+                arg 1
+                lhs
+                arg 1
+                unfold __eo_to_smt
               change
                 __smtx_typeof
                     (SmtTerm.Apply
@@ -3305,6 +3559,11 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                     simpa [NativeEoToSmtUOpIndicesSafe] using go x hx)
                   h
             | _at_strings_replace_all_result =>
+              conv at h =>
+                arg 1
+                lhs
+                arg 1
+                unfold __eo_to_smt
               change
                 __smtx_typeof
                     (SmtTerm.Apply
@@ -3328,6 +3587,11 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                 native_eo_to_smt_uop_indices_safe_of_apply_is_non_none
                   (idx := idx) (x := x) (fun hx => go x hx) h
             | update =>
+              conv at h =>
+                arg 1
+                lhs
+                arg 1
+                unfold __eo_to_smt
               change
                 __smtx_typeof
                     (SmtTerm.Apply
@@ -3349,6 +3613,11 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                 native_eo_to_smt_uop_indices_safe_of_apply_tuple_select_non_none
                   (idx := idx) (x := x) (fun hx => go x hx) h
             | tuple_update =>
+              conv at h =>
+                arg 1
+                lhs
+                arg 1
+                unfold __eo_to_smt
               change
                 __smtx_typeof
                     (SmtTerm.Apply
@@ -3365,6 +3634,11 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                     simpa [NativeEoToSmtUOpIndicesSafe] using go x hx)
                   h
             | set_empty =>
+              conv at h =>
+                arg 1
+                lhs
+                arg 1
+                unfold __eo_to_smt
               change
                 __smtx_typeof
                     (SmtTerm.Apply
@@ -3404,7 +3678,12 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                       go (Term.UOp2 UserOp2._at_array_deq_diff idx1 idx2) hf)
                   (fun hx => by
                     simpa [NativeEoToSmtUOpIndicesSafe] using go x hx)
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt
+
+                    all_goals rfl) h
             | _at_bv =>
               simpa [NativeEoToSmtUOpIndicesSafe] using
                 native_eo_to_smt_uop_indices_safe_of_eo_generic_apply_non_none
@@ -3414,7 +3693,12 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                       go (Term.UOp2 UserOp2._at_bv idx1 idx2) hf)
                   (fun hx => by
                     simpa [NativeEoToSmtUOpIndicesSafe] using go x hx)
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt
+
+                    all_goals rfl) h
             | _at_strings_deq_diff =>
               simpa [NativeEoToSmtUOpIndicesSafe] using
                 native_eo_to_smt_uop_indices_safe_of_eo_generic_apply_non_none
@@ -3425,7 +3709,12 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                       go (Term.UOp2 UserOp2._at_strings_deq_diff idx1 idx2) hf)
                   (fun hx => by
                     simpa [NativeEoToSmtUOpIndicesSafe] using go x hx)
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt
+
+                    all_goals rfl) h
             | _at_strings_num_occur_re =>
               simpa [NativeEoToSmtUOpIndicesSafe] using
                 native_eo_to_smt_uop_indices_safe_of_eo_generic_apply_non_none
@@ -3436,7 +3725,12 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                       go (Term.UOp2 UserOp2._at_strings_num_occur_re idx1 idx2) hf)
                   (fun hx => by
                     simpa [NativeEoToSmtUOpIndicesSafe] using go x hx)
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt
+
+                    all_goals rfl) h
             | _at_strings_occur_index_re =>
               simpa [NativeEoToSmtUOpIndicesSafe] using
                 native_eo_to_smt_uop_indices_safe_of_eo_generic_apply_non_none
@@ -3447,7 +3741,12 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                       go (Term.UOp2 UserOp2._at_strings_occur_index_re idx1 idx2) hf)
                   (fun hx => by
                     simpa [NativeEoToSmtUOpIndicesSafe] using go x hx)
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt
+
+                    all_goals rfl) h
             | _at_sets_deq_diff =>
               simpa [NativeEoToSmtUOpIndicesSafe] using
                 native_eo_to_smt_uop_indices_safe_of_eo_generic_apply_non_none
@@ -3458,7 +3757,12 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                       go (Term.UOp2 UserOp2._at_sets_deq_diff idx1 idx2) hf)
                   (fun hx => by
                     simpa [NativeEoToSmtUOpIndicesSafe] using go x hx)
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt
+
+                    all_goals rfl) h
             | _at_quantifiers_skolemize =>
               simpa [NativeEoToSmtUOpIndicesSafe] using
                 native_eo_to_smt_uop_indices_safe_of_eo_generic_apply_non_none
@@ -3469,7 +3773,12 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                       go (Term.UOp2 UserOp2._at_quantifiers_skolemize idx1 idx2) hf)
                   (fun hx => by
                     simpa [NativeEoToSmtUOpIndicesSafe] using go x hx)
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt
+
+                    all_goals rfl) h
             | _at_const =>
               simpa [NativeEoToSmtUOpIndicesSafe] using
                 native_eo_to_smt_uop_indices_safe_of_eo_generic_apply_non_none
@@ -3479,7 +3788,12 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                       go (Term.UOp2 UserOp2._at_const idx1 idx2) hf)
                   (fun hx => by
                     simpa [NativeEoToSmtUOpIndicesSafe] using go x hx)
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt
+
+                    all_goals rfl) h
           | UOp3 op idx1 idx2 idx3 =>
             simpa [NativeEoToSmtUOpIndicesSafe] using
               native_eo_to_smt_uop_indices_safe_of_eo_generic_apply_non_none
@@ -3489,7 +3803,12 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                     go (Term.UOp3 op idx1 idx2 idx3) hf)
                 (fun hx => by
                   simpa [NativeEoToSmtUOpIndicesSafe] using go x hx)
-                (by rfl) h
+                (by
+                  conv =>
+                    lhs
+                    unfold __eo_to_smt
+
+                  all_goals rfl) h
           | UOp op =>
             by_cases hopDistinct : op = UserOp.distinct
             · subst op
@@ -3498,14 +3817,15 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
             all_goals
               first
               | exact False.elim (hopDistinct rfl)
-              | exact generic _ (by simp [native_eo_to_smt_uop_indices_safe])
-                  (by rfl) h
               | exact directUOpBody UserOp.not
                   (SmtTerm.not (__eo_to_smt x))
                   (fun hBody => by
                     exact smt_typeof_non_none_of_eq_non_none
                       (smtx_typeof_not_arg_bool_of_non_none hBody) (by simp))
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | exact directUOpBody UserOp.to_real
                   (SmtTerm.to_real (__eo_to_smt x))
                   (fun hBody => by
@@ -3514,7 +3834,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                         exact hBody) with hArg | hArg
                     · exact smt_typeof_non_none_of_eq_non_none hArg (by simp)
                     · exact smt_typeof_non_none_of_eq_non_none hArg (by simp))
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | exact directUOpBody UserOp.to_int
                   (SmtTerm.to_int (__eo_to_smt x))
                   (fun hBody => by
@@ -3524,7 +3847,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                           unfold term_has_non_none_type
                           exact hBody))
                       (by simp))
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | exact directUOpBody UserOp.is_int
                   (SmtTerm.is_int (__eo_to_smt x))
                   (fun hBody => by
@@ -3534,7 +3860,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                           unfold term_has_non_none_type
                           exact hBody))
                       (by simp))
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | exact directUOpBody UserOp.abs
                   (SmtTerm.abs (__eo_to_smt x))
                   (fun hBody => by
@@ -3543,7 +3872,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                         unfold term_has_non_none_type
                         exact hBody))
                       (by simp))
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | exact directUOpBody UserOp.__eoo_neg_2
                   (SmtTerm.uneg (__eo_to_smt x))
                   (fun hBody => by
@@ -3553,7 +3885,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                           exact hBody) with hArg | hArg
                     · exact smt_typeof_non_none_of_eq_non_none hArg (by simp)
                     · exact smt_typeof_non_none_of_eq_non_none hArg (by simp))
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | exact directUOpBody UserOp.int_pow2
                   (SmtTerm.int_pow2 (__eo_to_smt x))
                   (fun hBody => by
@@ -3563,7 +3898,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                           unfold term_has_non_none_type
                           exact hBody))
                       (by simp))
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | exact directUOpBody UserOp.int_log2
                   (SmtTerm.int_log2 (__eo_to_smt x))
                   (fun hBody => by
@@ -3573,7 +3911,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                           unfold term_has_non_none_type
                           exact hBody))
                       (by simp))
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | exact directUOpBody UserOp._at_int_div_by_zero
                   (SmtTerm.div (__eo_to_smt x) (SmtTerm.Numeral 0))
                   (fun hBody => by
@@ -3584,7 +3925,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                         unfold term_has_non_none_type
                         exact hBody)
                     exact smt_typeof_non_none_of_eq_non_none hArgs.1 (by simp))
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | exact directUOpBody UserOp._at_mod_by_zero
                   (SmtTerm.mod (__eo_to_smt x) (SmtTerm.Numeral 0))
                   (fun hBody => by
@@ -3595,7 +3939,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                         unfold term_has_non_none_type
                         exact hBody)
                     exact smt_typeof_non_none_of_eq_non_none hArgs.1 (by simp))
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | exact directUOpBody UserOp.bvnot
                   (SmtTerm.bvnot (__eo_to_smt x))
                   (fun hBody => by
@@ -3604,7 +3951,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                           unfold term_has_non_none_type
                           exact hBody) with ⟨w, hArg⟩
                     exact smt_typeof_non_none_of_eq_non_none hArg (by simp))
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | exact directUOpBody UserOp.bvneg
                   (SmtTerm.bvneg (__eo_to_smt x))
                   (fun hBody => by
@@ -3613,7 +3963,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                           unfold term_has_non_none_type
                           exact hBody) with ⟨w, hArg⟩
                     exact smt_typeof_non_none_of_eq_non_none hArg (by simp))
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | exact directUOpBody UserOp.bvnego
                   (SmtTerm.bvnego (__eo_to_smt x))
                   (fun hBody => by
@@ -3622,7 +3975,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                           unfold term_has_non_none_type
                           exact hBody) with ⟨w, hArg⟩
                     exact smt_typeof_non_none_of_eq_non_none hArg (by simp))
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | exact directUOpBody UserOp.str_len
                   (SmtTerm.str_len (__eo_to_smt x))
                   (fun hBody => by
@@ -3632,7 +3988,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                           unfold term_has_non_none_type
                           exact hBody) with ⟨T, hArg⟩
                     exact smt_typeof_non_none_of_eq_non_none hArg (by simp))
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | exact directUOpBody UserOp.str_rev
                   (SmtTerm.str_rev (__eo_to_smt x))
                   (fun hBody => by
@@ -3641,7 +4000,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                           unfold term_has_non_none_type
                           exact hBody) with ⟨T, hArg⟩
                     exact smt_typeof_non_none_of_eq_non_none hArg (by simp))
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | exact directUOpBody UserOp.str_to_lower
                   (SmtTerm.str_to_lower (__eo_to_smt x))
                   (fun hBody => by
@@ -3651,7 +4013,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                           unfold term_has_non_none_type
                           exact hBody))
                       (by simp))
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | exact directUOpBody UserOp.str_to_upper
                   (SmtTerm.str_to_upper (__eo_to_smt x))
                   (fun hBody => by
@@ -3661,7 +4026,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                           unfold term_has_non_none_type
                           exact hBody))
                       (by simp))
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | exact directUOpBody UserOp.str_to_code
                   (SmtTerm.str_to_code (__eo_to_smt x))
                   (fun hBody => by
@@ -3671,7 +4039,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                           unfold term_has_non_none_type
                           exact hBody))
                       (by simp))
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | exact directUOpBody UserOp.str_from_code
                   (SmtTerm.str_from_code (__eo_to_smt x))
                   (fun hBody => by
@@ -3682,7 +4053,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                           unfold term_has_non_none_type
                           exact hBody))
                       (by simp))
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | exact directUOpBody UserOp.str_is_digit
                   (SmtTerm.str_is_digit (__eo_to_smt x))
                   (fun hBody => by
@@ -3692,7 +4066,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                           unfold term_has_non_none_type
                           exact hBody))
                       (by simp))
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | exact directUOpBody UserOp.str_to_int
                   (SmtTerm.str_to_int (__eo_to_smt x))
                   (fun hBody => by
@@ -3702,7 +4079,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                           unfold term_has_non_none_type
                           exact hBody))
                       (by simp))
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | exact directUOpBody UserOp.str_from_int
                   (SmtTerm.str_from_int (__eo_to_smt x))
                   (fun hBody => by
@@ -3713,7 +4093,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                           unfold term_has_non_none_type
                           exact hBody))
                       (by simp))
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | exact directUOpBody UserOp.str_to_re
                   (SmtTerm.str_to_re (__eo_to_smt x))
                   (fun hBody => by
@@ -3723,7 +4106,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                           unfold term_has_non_none_type
                           exact hBody))
                       (by simp))
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | exact directUOpBody UserOp.re_mult
                   (SmtTerm.re_mult (__eo_to_smt x))
                   (fun hBody => by
@@ -3733,7 +4119,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                           unfold term_has_non_none_type
                           exact hBody))
                       (by simp))
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | exact directUOpBody UserOp.re_plus
                   (SmtTerm.re_plus (__eo_to_smt x))
                   (fun hBody => by
@@ -3743,7 +4132,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                           unfold term_has_non_none_type
                           exact hBody))
                       (by simp))
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | exact directUOpBody UserOp.re_opt
                   (SmtTerm.re_opt (__eo_to_smt x))
                   (fun hBody => by
@@ -3753,7 +4145,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                           unfold term_has_non_none_type
                           exact hBody))
                       (by simp))
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | exact directUOpBody UserOp.re_comp
                   (SmtTerm.re_comp (__eo_to_smt x))
                   (fun hBody => by
@@ -3763,7 +4158,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                           unfold term_has_non_none_type
                           exact hBody))
                       (by simp))
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | exact directUOpBody UserOp.seq_unit
                   (SmtTerm.seq_unit (__eo_to_smt x))
                   (fun hBody => by
@@ -3773,7 +4171,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                         (SmtType.Seq (__smtx_typeof (__eo_to_smt x)))
                         (by simpa [__smtx_typeof] using hBody)
                     exact type_wf_non_none (seq_type_wf_component_of_wf hWf))
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | exact directUOpBody UserOp.set_singleton
                   (SmtTerm.set_singleton (__eo_to_smt x))
                   (fun hBody => by
@@ -3783,7 +4184,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                         (SmtType.Set (__smtx_typeof (__eo_to_smt x)))
                         (by simpa [__smtx_typeof] using hBody)
                     exact type_wf_non_none (set_type_wf_component_of_wf hWf))
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | exact directUOpBody UserOp._at_div_by_zero
                   (SmtTerm.qdiv (__eo_to_smt x)
                     (SmtTerm.Rational (native_mk_rational 0 1)))
@@ -3797,7 +4201,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                           exact hBody) with hArgs | hArgs
                     · exact smt_typeof_non_none_of_eq_non_none hArgs.1 (by simp)
                     · exact smt_typeof_non_none_of_eq_non_none hArgs.1 (by simp))
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | exact directUOpBody UserOp.ubv_to_int
                   (SmtTerm.ubv_to_int (__eo_to_smt x))
                   (fun hBody => by
@@ -3806,7 +4213,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                           unfold term_has_non_none_type
                           exact hBody) with ⟨w, hArg⟩
                     exact smt_typeof_non_none_of_eq_non_none hArg (by simp))
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | exact directUOpBody UserOp.sbv_to_int
                   (SmtTerm.sbv_to_int (__eo_to_smt x))
                   (fun hBody => by
@@ -3815,7 +4225,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                           unfold term_has_non_none_type
                           exact hBody) with ⟨w, hArg⟩
                     exact smt_typeof_non_none_of_eq_non_none hArg (by simp))
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | exact directUOpBody UserOp.int_ispow2
                   (SmtTerm.and
                     (SmtTerm.geq (__eo_to_smt x) (SmtTerm.Numeral 0))
@@ -3845,7 +4258,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                     rcases hGeqArgs with hInt | hReal
                     · exact smt_typeof_non_none_of_eq_non_none hInt.1 (by simp)
                     · exact smt_typeof_non_none_of_eq_non_none hReal.1 (by simp))
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | exact directUOpBody UserOp._at_bvsize
                   (let w :=
                     __smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))
@@ -3856,7 +4272,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                     rcases smtx_bv_sizeof_term_non_none
                         (__eo_to_smt x) hBody with ⟨w, hArg⟩
                     exact smt_typeof_non_none_of_eq_non_none hArg (by simp))
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | exact directUOpBody UserOp.bvredand
                   (SmtTerm.bvcomp (__eo_to_smt x)
                     (SmtTerm.bvnot
@@ -3870,7 +4289,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                           unfold term_has_non_none_type
                           exact hBody) with ⟨w, hArg, _hOther⟩
                     exact smt_typeof_non_none_of_eq_non_none hArg (by simp))
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | exact directUOpBody UserOp.bvredor
                   (SmtTerm.bvnot
                     (SmtTerm.bvcomp (__eo_to_smt x)
@@ -3896,7 +4318,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                         (by simp [cmp, __smtx_typeof]) hCmpNN with
                       ⟨w, hArg, _hOther⟩
                     exact smt_typeof_non_none_of_eq_non_none hArg (by simp))
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | exact directUOpBody UserOp.set_choose
                   (SmtTerm.map_diff (__eo_to_smt x)
                     (SmtTerm.set_empty
@@ -3916,7 +4341,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                       exact smt_typeof_non_none_of_eq_non_none hArg (by simp)
                     · rcases hSet with ⟨A, hArg, _hEmpty, _hRet⟩
                       exact smt_typeof_non_none_of_eq_non_none hArg (by simp))
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | exact directUOpBody UserOp.set_is_empty
                   (SmtTerm.eq (__eo_to_smt x)
                     (SmtTerm.set_empty (__smtx_typeof (__eo_to_smt x))))
@@ -3930,7 +4358,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                           SmtType.None := by
                       simpa [typeof_eq_eq] using hBody
                     exact (smtx_typeof_eq_non_none hEqNN).2)
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | exact directUOpBody UserOp.set_is_singleton
                   (SmtTerm.eq (__eo_to_smt x)
                     (SmtTerm.set_singleton
@@ -3951,7 +4382,15 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                           SmtType.None := by
                       simpa [diff, typeof_eq_eq] using hBody
                     exact (smtx_typeof_eq_non_none hEqNN).2)
-                  (by rfl) h
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
+              | exact generic _ (by simp [native_eo_to_smt_uop_indices_safe])
+                  (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
           | Apply g y =>
             have genericNested :
                 __eo_to_smt (Term.Apply (Term.Apply g y) x) =
@@ -4098,7 +4537,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                             (by simp),
                           smt_typeof_non_none_of_eq_non_none hArgs.2
                             (by simp)⟩)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.and
                     (SmtTerm.and (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => by
@@ -4113,7 +4555,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                             (by simp),
                           smt_typeof_non_none_of_eq_non_none hArgs.2
                             (by simp)⟩)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.imp
                     (SmtTerm.imp (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => by
@@ -4128,7 +4573,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                             (by simp),
                           smt_typeof_non_none_of_eq_non_none hArgs.2
                             (by simp)⟩)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.xor
                     (SmtTerm.xor (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => by
@@ -4143,7 +4591,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                             (by simp),
                           smt_typeof_non_none_of_eq_non_none hArgs.2
                             (by simp)⟩)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.eq
                     (SmtTerm.eq (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => by
@@ -4157,7 +4608,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                       exact ⟨hEqArgs.2, by
                         rw [← hEqArgs.1]
                         exact hEqArgs.2⟩)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.plus
                     (SmtTerm.plus (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => by
@@ -4176,7 +4630,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                               (by simp),
                             smt_typeof_non_none_of_eq_non_none hArgs.2
                               (by simp)⟩)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.neg
                     (SmtTerm.neg (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => by
@@ -4195,7 +4652,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                               (by simp),
                             smt_typeof_non_none_of_eq_non_none hArgs.2
                               (by simp)⟩)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.mult
                     (SmtTerm.mult (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => by
@@ -4214,7 +4674,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                               (by simp),
                             smt_typeof_non_none_of_eq_non_none hArgs.2
                               (by simp)⟩)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.lt
                     (SmtTerm.lt (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => by
@@ -4234,7 +4697,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                               (by simp),
                             smt_typeof_non_none_of_eq_non_none hArgs.2
                               (by simp)⟩)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.leq
                     (SmtTerm.leq (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => by
@@ -4254,7 +4720,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                               (by simp),
                             smt_typeof_non_none_of_eq_non_none hArgs.2
                               (by simp)⟩)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.gt
                     (SmtTerm.gt (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => by
@@ -4274,7 +4743,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                               (by simp),
                             smt_typeof_non_none_of_eq_non_none hArgs.2
                               (by simp)⟩)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.geq
                     (SmtTerm.geq (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => by
@@ -4294,7 +4766,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                               (by simp),
                             smt_typeof_non_none_of_eq_non_none hArgs.2
                               (by simp)⟩)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.div
                     (SmtTerm.div (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => by
@@ -4309,7 +4784,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                             (by simp),
                           smt_typeof_non_none_of_eq_non_none hArgs.2
                             (by simp)⟩)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.mod
                     (SmtTerm.mod (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => by
@@ -4324,7 +4802,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                             (by simp),
                           smt_typeof_non_none_of_eq_non_none hArgs.2
                             (by simp)⟩)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.multmult
                     (SmtTerm.multmult (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => by
@@ -4339,7 +4820,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                             (by simp),
                           smt_typeof_non_none_of_eq_non_none hArgs.2
                             (by simp)⟩)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.divisible
                     (SmtTerm.divisible (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => by
@@ -4354,7 +4838,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                             (by simp),
                           smt_typeof_non_none_of_eq_non_none hArgs.2
                             (by simp)⟩)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.div_total
                     (SmtTerm.div_total (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => by
@@ -4369,7 +4856,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                             (by simp),
                           smt_typeof_non_none_of_eq_non_none hArgs.2
                             (by simp)⟩)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.mod_total
                     (SmtTerm.mod_total (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => by
@@ -4384,7 +4874,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                             (by simp),
                           smt_typeof_non_none_of_eq_non_none hArgs.2
                             (by simp)⟩)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.multmult_total
                     (SmtTerm.multmult_total (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => by
@@ -4399,81 +4892,189 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                             (by simp),
                           smt_typeof_non_none_of_eq_non_none hArgs.2
                             (by simp)⟩)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.select
                     (SmtTerm.select (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => smt_select_args_non_none hBody)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.concat
                     (SmtTerm.concat (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => smt_bv_concat_args_non_none hBody)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact bvBinaryUOpBody UserOp.bvand SmtTerm.bvand
-                    (by simp [__smtx_typeof]) (by rfl) h
+                    (by simp [__smtx_typeof]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact bvBinaryUOpBody UserOp.bvor SmtTerm.bvor
-                    (by simp [__smtx_typeof]) (by rfl) h
+                    (by simp [__smtx_typeof]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact bvBinaryUOpBody UserOp.bvnand SmtTerm.bvnand
-                    (by simp [__smtx_typeof]) (by rfl) h
+                    (by simp [__smtx_typeof]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact bvBinaryUOpBody UserOp.bvnor SmtTerm.bvnor
-                    (by simp [__smtx_typeof]) (by rfl) h
+                    (by simp [__smtx_typeof]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact bvBinaryUOpBody UserOp.bvxor SmtTerm.bvxor
-                    (by simp [__smtx_typeof]) (by rfl) h
+                    (by simp [__smtx_typeof]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact bvBinaryUOpBody UserOp.bvxnor SmtTerm.bvxnor
-                    (by simp [__smtx_typeof]) (by rfl) h
+                    (by simp [__smtx_typeof]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact bvBinaryRetUOpBody UserOp.bvcomp SmtTerm.bvcomp
-                    (SmtType.BitVec 1) (by simp [__smtx_typeof]) (by rfl) h
+                    (SmtType.BitVec 1) (by simp [__smtx_typeof]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact bvBinaryUOpBody UserOp.bvadd SmtTerm.bvadd
-                    (by simp [__smtx_typeof]) (by rfl) h
+                    (by simp [__smtx_typeof]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact bvBinaryUOpBody UserOp.bvmul SmtTerm.bvmul
-                    (by simp [__smtx_typeof]) (by rfl) h
+                    (by simp [__smtx_typeof]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact bvBinaryUOpBody UserOp.bvudiv SmtTerm.bvudiv
-                    (by simp [__smtx_typeof]) (by rfl) h
+                    (by simp [__smtx_typeof]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact bvBinaryUOpBody UserOp.bvurem SmtTerm.bvurem
-                    (by simp [__smtx_typeof]) (by rfl) h
+                    (by simp [__smtx_typeof]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact bvBinaryUOpBody UserOp.bvsub SmtTerm.bvsub
-                    (by simp [__smtx_typeof]) (by rfl) h
+                    (by simp [__smtx_typeof]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact bvBinaryUOpBody UserOp.bvsdiv SmtTerm.bvsdiv
-                    (by simp [__smtx_typeof]) (by rfl) h
+                    (by simp [__smtx_typeof]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact bvBinaryUOpBody UserOp.bvsrem SmtTerm.bvsrem
-                    (by simp [__smtx_typeof]) (by rfl) h
+                    (by simp [__smtx_typeof]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact bvBinaryUOpBody UserOp.bvsmod SmtTerm.bvsmod
-                    (by simp [__smtx_typeof]) (by rfl) h
+                    (by simp [__smtx_typeof]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact bvBinaryRetUOpBody UserOp.bvult SmtTerm.bvult
-                    SmtType.Bool (by simp [__smtx_typeof]) (by rfl) h
+                    SmtType.Bool (by simp [__smtx_typeof]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact bvBinaryRetUOpBody UserOp.bvule SmtTerm.bvule
-                    SmtType.Bool (by simp [__smtx_typeof]) (by rfl) h
+                    SmtType.Bool (by simp [__smtx_typeof]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact bvBinaryRetUOpBody UserOp.bvugt SmtTerm.bvugt
-                    SmtType.Bool (by simp [__smtx_typeof]) (by rfl) h
+                    SmtType.Bool (by simp [__smtx_typeof]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact bvBinaryRetUOpBody UserOp.bvuge SmtTerm.bvuge
-                    SmtType.Bool (by simp [__smtx_typeof]) (by rfl) h
+                    SmtType.Bool (by simp [__smtx_typeof]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact bvBinaryRetUOpBody UserOp.bvslt SmtTerm.bvslt
-                    SmtType.Bool (by simp [__smtx_typeof]) (by rfl) h
+                    SmtType.Bool (by simp [__smtx_typeof]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact bvBinaryRetUOpBody UserOp.bvsle SmtTerm.bvsle
-                    SmtType.Bool (by simp [__smtx_typeof]) (by rfl) h
+                    SmtType.Bool (by simp [__smtx_typeof]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact bvBinaryRetUOpBody UserOp.bvsgt SmtTerm.bvsgt
-                    SmtType.Bool (by simp [__smtx_typeof]) (by rfl) h
+                    SmtType.Bool (by simp [__smtx_typeof]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact bvBinaryRetUOpBody UserOp.bvsge SmtTerm.bvsge
-                    SmtType.Bool (by simp [__smtx_typeof]) (by rfl) h
+                    SmtType.Bool (by simp [__smtx_typeof]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact bvBinaryUOpBody UserOp.bvshl SmtTerm.bvshl
-                    (by simp [__smtx_typeof]) (by rfl) h
+                    (by simp [__smtx_typeof]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact bvBinaryUOpBody UserOp.bvlshr SmtTerm.bvlshr
-                    (by simp [__smtx_typeof]) (by rfl) h
+                    (by simp [__smtx_typeof]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact bvBinaryUOpBody UserOp.bvashr SmtTerm.bvashr
-                    (by simp [__smtx_typeof]) (by rfl) h
+                    (by simp [__smtx_typeof]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact bvBinaryRetUOpBody UserOp.bvuaddo SmtTerm.bvuaddo
-                    SmtType.Bool (by simp [__smtx_typeof]) (by rfl) h
+                    SmtType.Bool (by simp [__smtx_typeof]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact bvBinaryRetUOpBody UserOp.bvsaddo SmtTerm.bvsaddo
-                    SmtType.Bool (by simp [__smtx_typeof]) (by rfl) h
+                    SmtType.Bool (by simp [__smtx_typeof]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact bvBinaryRetUOpBody UserOp.bvumulo SmtTerm.bvumulo
-                    SmtType.Bool (by simp [__smtx_typeof]) (by rfl) h
+                    SmtType.Bool (by simp [__smtx_typeof]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact bvBinaryRetUOpBody UserOp.bvsmulo SmtTerm.bvsmulo
-                    SmtType.Bool (by simp [__smtx_typeof]) (by rfl) h
+                    SmtType.Bool (by simp [__smtx_typeof]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact bvBinaryRetUOpBody UserOp.bvusubo SmtTerm.bvusubo
-                    SmtType.Bool (by simp [__smtx_typeof]) (by rfl) h
+                    SmtType.Bool (by simp [__smtx_typeof]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact bvBinaryRetUOpBody UserOp.bvssubo SmtTerm.bvssubo
-                    SmtType.Bool (by simp [__smtx_typeof]) (by rfl) h
+                    SmtType.Bool (by simp [__smtx_typeof]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact bvBinaryRetUOpBody UserOp.bvsdivo SmtTerm.bvsdivo
-                    SmtType.Bool (by simp [__smtx_typeof]) (by rfl) h
+                    SmtType.Bool (by simp [__smtx_typeof]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.bvultbv
                     (SmtTerm.ite
                       (SmtTerm.bvult (__eo_to_smt y) (__eo_to_smt x))
@@ -4481,7 +5082,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                     (fun hBody => smt_bv_cmp_to_bv1_args_non_none
                       (cmp := SmtTerm.bvult) (by simp [__smtx_typeof])
                       hBody)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.bvsltbv
                     (SmtTerm.ite
                       (SmtTerm.bvslt (__eo_to_smt y) (__eo_to_smt x))
@@ -4489,32 +5093,47 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                     (fun hBody => smt_bv_cmp_to_bv1_args_non_none
                       (cmp := SmtTerm.bvslt) (by simp [__smtx_typeof])
                       hBody)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp._at_from_bools
                     (SmtTerm.concat
                       (SmtTerm.ite (__eo_to_smt y) (SmtTerm.Binary 1 1)
                         (SmtTerm.Binary 1 0))
                       (__eo_to_smt x))
                     (fun hBody => smt_from_bools_args_non_none hBody)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.str_concat
                     (SmtTerm.str_concat (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => smt_seq_binop_args_non_none
                       (op := SmtTerm.str_concat)
                       (typeof_str_concat_eq (__eo_to_smt y) (__eo_to_smt x))
                       hBody)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.str_contains
                     (SmtTerm.str_contains (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => smt_seq_binop_ret_args_non_none
                       (op := SmtTerm.str_contains) (ret := SmtType.Bool)
                       (typeof_str_contains_eq (__eo_to_smt y) (__eo_to_smt x))
                       hBody)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.str_at
                     (SmtTerm.str_at (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => smt_str_at_args_non_none hBody)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.str_prefixof
                     (SmtTerm.str_prefixof (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => smt_seq_char_binop_args_non_none
@@ -4522,7 +5141,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                       (typeof_str_prefixof_eq (__eo_to_smt y)
                         (__eo_to_smt x))
                       hBody)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.str_suffixof
                     (SmtTerm.str_suffixof (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => smt_seq_char_binop_args_non_none
@@ -4530,113 +5152,164 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                       (typeof_str_suffixof_eq (__eo_to_smt y)
                         (__eo_to_smt x))
                       hBody)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.str_lt
                     (SmtTerm.str_lt (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => smt_seq_char_binop_args_non_none
                       (op := SmtTerm.str_lt) (ret := SmtType.Bool)
                       (typeof_str_lt_eq (__eo_to_smt y) (__eo_to_smt x))
                       hBody)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.str_leq
                     (SmtTerm.str_leq (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => smt_seq_char_binop_args_non_none
                       (op := SmtTerm.str_leq) (ret := SmtType.Bool)
                       (typeof_str_leq_eq (__eo_to_smt y) (__eo_to_smt x))
                       hBody)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.re_range
                     (SmtTerm.re_range (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => smt_seq_char_binop_args_non_none
                       (op := SmtTerm.re_range) (ret := SmtType.RegLan)
                       (typeof_re_range_eq (__eo_to_smt y) (__eo_to_smt x))
                       hBody)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.re_concat
                     (SmtTerm.re_concat (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => smt_reglan_binop_args_non_none
                       (op := SmtTerm.re_concat)
                       (typeof_re_concat_eq (__eo_to_smt y) (__eo_to_smt x))
                       hBody)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.re_inter
                     (SmtTerm.re_inter (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => smt_reglan_binop_args_non_none
                       (op := SmtTerm.re_inter)
                       (typeof_re_inter_eq (__eo_to_smt y) (__eo_to_smt x))
                       hBody)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.re_union
                     (SmtTerm.re_union (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => smt_reglan_binop_args_non_none
                       (op := SmtTerm.re_union)
                       (typeof_re_union_eq (__eo_to_smt y) (__eo_to_smt x))
                       hBody)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.re_diff
                     (SmtTerm.re_diff (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => smt_reglan_binop_args_non_none
                       (op := SmtTerm.re_diff)
                       (typeof_re_diff_eq (__eo_to_smt y) (__eo_to_smt x))
                       hBody)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.str_in_re
                     (SmtTerm.str_in_re (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => smt_seq_char_reglan_args_non_none
                       (op := SmtTerm.str_in_re) (ret := SmtType.Bool)
                       (typeof_str_in_re_eq (__eo_to_smt y) (__eo_to_smt x))
                       hBody)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.seq_nth
                     (SmtTerm.seq_nth (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => smt_seq_nth_args_non_none hBody)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.set_union
                     (SmtTerm.set_union (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => smt_set_binop_args_non_none
                       (op := SmtTerm.set_union)
                       (typeof_set_union_eq (__eo_to_smt y) (__eo_to_smt x))
                       hBody)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.set_inter
                     (SmtTerm.set_inter (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => smt_set_binop_args_non_none
                       (op := SmtTerm.set_inter)
                       (typeof_set_inter_eq (__eo_to_smt y) (__eo_to_smt x))
                       hBody)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.set_minus
                     (SmtTerm.set_minus (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => smt_set_binop_args_non_none
                       (op := SmtTerm.set_minus)
                       (typeof_set_minus_eq (__eo_to_smt y) (__eo_to_smt x))
                       hBody)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.set_member
                     (SmtTerm.set_member (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => smt_set_member_args_non_none hBody)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.set_subset
                     (SmtTerm.set_subset (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => smt_set_binop_ret_args_non_none
                       (op := SmtTerm.set_subset) (ret := SmtType.Bool)
                       (typeof_set_subset_eq (__eo_to_smt y) (__eo_to_smt x))
                       hBody)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.qdiv
                     (SmtTerm.qdiv (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => smt_arith_binop_ret_args_non_none
                       (op := SmtTerm.qdiv) (ret := SmtType.Real)
                       (typeof_qdiv_eq (__eo_to_smt y) (__eo_to_smt x))
                       hBody)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.qdiv_total
                     (SmtTerm.qdiv_total (__eo_to_smt y) (__eo_to_smt x))
                     (fun hBody => smt_arith_binop_ret_args_non_none
                       (op := SmtTerm.qdiv_total) (ret := SmtType.Real)
                       (typeof_qdiv_total_eq (__eo_to_smt y) (__eo_to_smt x))
                       hBody)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp._at_strings_num_occur
                     (SmtTerm.div
                       (SmtTerm.neg (SmtTerm.str_len (__eo_to_smt y))
@@ -4646,12 +5319,18 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                             (SmtTerm.seq_empty (SmtType.Seq SmtType.Char)))))
                       (SmtTerm.str_len (__eo_to_smt x)))
                     (fun hBody => smt_strings_num_occur_args_non_none hBody)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | exact binaryUOpBody UserOp.tuple
                     (__eo_to_smt_tuple_prepend (__eo_to_smt y)
                       (__smtx_typeof (__eo_to_smt y)) (__eo_to_smt x))
                     (fun hBody => smt_tuple_prepend_args_non_none hBody)
-                    (by rfl) h
+                    (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                 | simpa [NativeEoToSmtUOpIndicesSafe,
                     native_eo_to_smt_uop_indices_safe] using
                     native_eo_to_smt_uop_indices_safe_of_apply_apply_set_insert_non_none
@@ -4661,7 +5340,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                       (by simp; omega)
                       (by simp; omega)
                       h
-                | exact genericNested (by rfl) h
+                | exact genericNested (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
             | Apply k z =>
               cases k with
               | UOp op =>
@@ -4674,14 +5356,20 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                       (fun hz => by
                         simpa [NativeEoToSmtUOpIndicesSafe] using go z hz)
                       (fun hBody => smt_ite_args_non_none hBody)
-                      (by rfl) h
+                      (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                   | exact ternaryUOpBody UserOp.store z
                       (SmtTerm.store (__eo_to_smt z) (__eo_to_smt y)
                         (__eo_to_smt x))
                       (fun hz => by
                         simpa [NativeEoToSmtUOpIndicesSafe] using go z hz)
                       (fun hBody => smt_store_args_non_none hBody)
-                      (by rfl) h
+                      (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                   | exact ternaryUOpBody UserOp.bvite z
                       (SmtTerm.ite
                         (SmtTerm.eq (__eo_to_smt z) (SmtTerm.Binary 1 1))
@@ -4689,14 +5377,20 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                       (fun hz => by
                         simpa [NativeEoToSmtUOpIndicesSafe] using go z hz)
                       (fun hBody => smt_bvite_args_non_none hBody)
-                      (by rfl) h
+                      (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                   | exact ternaryUOpBody UserOp.str_substr z
                       (SmtTerm.str_substr (__eo_to_smt z) (__eo_to_smt y)
                         (__eo_to_smt x))
                       (fun hz => by
                         simpa [NativeEoToSmtUOpIndicesSafe] using go z hz)
                       (fun hBody => smt_str_substr_args_non_none hBody)
-                      (by rfl) h
+                      (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                   | exact ternaryUOpBody UserOp.str_replace z
                       (SmtTerm.str_replace (__eo_to_smt z) (__eo_to_smt y)
                         (__eo_to_smt x))
@@ -4707,21 +5401,30 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                         (typeof_str_replace_eq (__eo_to_smt z)
                           (__eo_to_smt y) (__eo_to_smt x))
                         hBody)
-                      (by rfl) h
+                      (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                   | exact ternaryUOpBody UserOp.str_indexof z
                       (SmtTerm.str_indexof (__eo_to_smt z) (__eo_to_smt y)
                         (__eo_to_smt x))
                       (fun hz => by
                         simpa [NativeEoToSmtUOpIndicesSafe] using go z hz)
                       (fun hBody => smt_str_indexof_args_non_none hBody)
-                      (by rfl) h
+                      (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                   | exact ternaryUOpBody UserOp.str_update z
                       (SmtTerm.str_update (__eo_to_smt z) (__eo_to_smt y)
                         (__eo_to_smt x))
                       (fun hz => by
                         simpa [NativeEoToSmtUOpIndicesSafe] using go z hz)
                       (fun hBody => smt_str_update_args_non_none hBody)
-                      (by rfl) h
+                      (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                   | exact ternaryUOpBody UserOp.str_replace_all z
                       (SmtTerm.str_replace_all (__eo_to_smt z)
                         (__eo_to_smt y) (__eo_to_smt x))
@@ -4732,7 +5435,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                         (typeof_str_replace_all_eq (__eo_to_smt z)
                           (__eo_to_smt y) (__eo_to_smt x))
                         hBody)
-                      (by rfl) h
+                      (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                   | exact ternaryUOpBody UserOp.str_replace_re z
                       (SmtTerm.str_replace_re (__eo_to_smt z)
                         (__eo_to_smt y) (__eo_to_smt x))
@@ -4743,7 +5449,10 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                         (typeof_str_replace_re_eq (__eo_to_smt z)
                           (__eo_to_smt y) (__eo_to_smt x))
                         hBody)
-                      (by rfl) h
+                      (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                   | exact ternaryUOpBody UserOp.str_replace_re_all z
                       (SmtTerm.str_replace_re_all (__eo_to_smt z)
                         (__eo_to_smt y) (__eo_to_smt x))
@@ -4754,57 +5463,129 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                         (typeof_str_replace_re_all_eq (__eo_to_smt z)
                           (__eo_to_smt y) (__eo_to_smt x))
                         hBody)
-                      (by rfl) h
+                      (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
                   | exact ternaryUOpBody UserOp.str_indexof_re z
                       (SmtTerm.str_indexof_re (__eo_to_smt z)
                         (__eo_to_smt y) (__eo_to_smt x))
                       (fun hz => by
                         simpa [NativeEoToSmtUOpIndicesSafe] using go z hz)
                       (fun hBody => smt_str_indexof_re_args_non_none hBody)
-                      (by rfl) h
-                  | exact genericNested (by rfl) h
+                      (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
+                  | exact genericNested (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
               | _ =>
-                exact genericNested (by rfl) h
+                exact genericNested (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
             | __eo_List =>
-              exact genericNested (by rfl) h
+              exact genericNested (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
             | __eo_List_nil =>
-              exact genericNested (by rfl) h
+              exact genericNested (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
             | __eo_List_cons =>
-              exact genericNested (by rfl) h
+              exact genericNested (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
             | Bool =>
-              exact genericNested (by rfl) h
+              exact genericNested (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
             | Boolean b =>
-              exact genericNested (by rfl) h
+              exact genericNested (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
             | Numeral n =>
-              exact genericNested (by rfl) h
+              exact genericNested (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
             | Rational r =>
-              exact genericNested (by rfl) h
+              exact genericNested (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
             | String s =>
-              exact genericNested (by rfl) h
+              exact genericNested (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
             | Binary w n =>
-              exact genericNested (by rfl) h
+              exact genericNested (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
             | «Type» =>
-              exact genericNested (by rfl) h
+              exact genericNested (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
             | Stuck =>
-              exact genericNested (by rfl) h
+              exact genericNested (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
             | FunType =>
-              exact genericNested (by rfl) h
+              exact genericNested (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
             | Var name T =>
-              exact genericNested (by rfl) h
+              exact genericNested (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
             | DatatypeType s d =>
-              exact genericNested (by rfl) h
+              exact genericNested (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
             | DatatypeTypeRef s =>
-              exact genericNested (by rfl) h
+              exact genericNested (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
             | DtcAppType T U =>
-              exact genericNested (by rfl) h
+              exact genericNested (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
             | DtCons s d i =>
-              exact genericNested (by rfl) h
+              exact genericNested (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
             | DtSel s d i j =>
-              exact genericNested (by rfl) h
+              exact genericNested (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
             | USort i =>
-              exact genericNested (by rfl) h
+              exact genericNested (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
             | UConst i T =>
-              exact genericNested (by rfl) h
+              exact genericNested (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
             | UOp1 op idx =>
               cases op
               all_goals
@@ -4823,57 +5604,126 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                       (fun ht => by
                         simpa [NativeEoToSmtUOpIndicesSafe] using go x ht)
                       h
-                | exact genericNested (by rfl) h
+                | exact genericNested (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
             | UOp2 op idx1 idx2 =>
               cases op
               all_goals
                 first
-                | exact genericNested (by rfl) h
+                | exact genericNested (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
             | UOp3 op idx1 idx2 idx3 =>
               cases op
               all_goals
                 first
-                | exact genericNested (by rfl) h
+                | exact genericNested (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
           | __eo_List =>
-            exact generic Term.__eo_List (by simp [native_eo_to_smt_uop_indices_safe]) (by rfl) h
+            exact generic Term.__eo_List (by simp [native_eo_to_smt_uop_indices_safe]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
           | __eo_List_nil =>
-            exact generic Term.__eo_List_nil (by simp [native_eo_to_smt_uop_indices_safe]) (by rfl) h
+            exact generic Term.__eo_List_nil (by simp [native_eo_to_smt_uop_indices_safe]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
           | __eo_List_cons =>
-            exact generic Term.__eo_List_cons (by simp [native_eo_to_smt_uop_indices_safe]) (by rfl) h
+            exact generic Term.__eo_List_cons (by simp [native_eo_to_smt_uop_indices_safe]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
           | Bool =>
-            exact generic Term.Bool (by simp [native_eo_to_smt_uop_indices_safe]) (by rfl) h
+            exact generic Term.Bool (by simp [native_eo_to_smt_uop_indices_safe]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
           | Boolean b =>
-            exact generic (Term.Boolean b) (by simp [native_eo_to_smt_uop_indices_safe]) (by rfl) h
+            exact generic (Term.Boolean b) (by simp [native_eo_to_smt_uop_indices_safe]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
           | Numeral n =>
-            exact generic (Term.Numeral n) (by simp [native_eo_to_smt_uop_indices_safe]) (by rfl) h
+            exact generic (Term.Numeral n) (by simp [native_eo_to_smt_uop_indices_safe]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
           | Rational r =>
-            exact generic (Term.Rational r) (by simp [native_eo_to_smt_uop_indices_safe]) (by rfl) h
+            exact generic (Term.Rational r) (by simp [native_eo_to_smt_uop_indices_safe]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
           | String s =>
-            exact generic (Term.String s) (by simp [native_eo_to_smt_uop_indices_safe]) (by rfl) h
+            exact generic (Term.String s) (by simp [native_eo_to_smt_uop_indices_safe]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
           | Binary w n =>
-            exact generic (Term.Binary w n) (by simp [native_eo_to_smt_uop_indices_safe]) (by rfl) h
+            exact generic (Term.Binary w n) (by simp [native_eo_to_smt_uop_indices_safe]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
           | «Type» =>
-            exact generic Term.Type (by simp [native_eo_to_smt_uop_indices_safe]) (by rfl) h
+            exact generic Term.Type (by simp [native_eo_to_smt_uop_indices_safe]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
           | Stuck =>
-            exact generic Term.Stuck (by simp [native_eo_to_smt_uop_indices_safe]) (by rfl) h
+            exact generic Term.Stuck (by simp [native_eo_to_smt_uop_indices_safe]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
           | FunType =>
-            exact generic Term.FunType (by simp [native_eo_to_smt_uop_indices_safe]) (by rfl) h
+            exact generic Term.FunType (by simp [native_eo_to_smt_uop_indices_safe]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
           | Var name T =>
-            exact generic (Term.Var name T) (by simp [native_eo_to_smt_uop_indices_safe]) (by rfl) h
+            exact generic (Term.Var name T) (by simp [native_eo_to_smt_uop_indices_safe]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
           | DatatypeType s d =>
-            exact generic (Term.DatatypeType s d) (by simp [native_eo_to_smt_uop_indices_safe]) (by rfl) h
+            exact generic (Term.DatatypeType s d) (by simp [native_eo_to_smt_uop_indices_safe]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
           | DatatypeTypeRef s =>
-            exact generic (Term.DatatypeTypeRef s) (by simp [native_eo_to_smt_uop_indices_safe]) (by rfl) h
+            exact generic (Term.DatatypeTypeRef s) (by simp [native_eo_to_smt_uop_indices_safe]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
           | DtcAppType T U =>
-            exact generic (Term.DtcAppType T U) (by simp [native_eo_to_smt_uop_indices_safe]) (by rfl) h
+            exact generic (Term.DtcAppType T U) (by simp [native_eo_to_smt_uop_indices_safe]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
           | DtCons s d i =>
-            exact generic (Term.DtCons s d i) (by simp [native_eo_to_smt_uop_indices_safe]) (by rfl) h
+            exact generic (Term.DtCons s d i) (by simp [native_eo_to_smt_uop_indices_safe]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
           | DtSel s d i j =>
-            exact generic (Term.DtSel s d i j) (by simp [native_eo_to_smt_uop_indices_safe]) (by rfl) h
+            exact generic (Term.DtSel s d i j) (by simp [native_eo_to_smt_uop_indices_safe]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
           | USort i =>
-            exact generic (Term.USort i) (by simp [native_eo_to_smt_uop_indices_safe]) (by rfl) h
+            exact generic (Term.USort i) (by simp [native_eo_to_smt_uop_indices_safe]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
           | UConst i T =>
-            exact generic (Term.UConst i T) (by simp [native_eo_to_smt_uop_indices_safe]) (by rfl) h
+            exact generic (Term.UConst i T) (by simp [native_eo_to_smt_uop_indices_safe]) (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt) h
         all_goals
           trivial
   exact go t

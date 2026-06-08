@@ -17,21 +17,27 @@ namespace TranslationProofs
 /-- Simplifies EO-to-SMT translation for `term_tuple_unit`. -/
 @[simp] theorem eo_to_smt_term_tuple_unit :
     __eo_to_smt (Term.UOp UserOp.tuple_unit) =
-      SmtTerm.DtCons (native_string_lit "@Tuple") (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) 0 := rfl
+      SmtTerm.DtCons (native_string_lit "@Tuple") (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) 0 := by
+  unfold __eo_to_smt
+  rfl
 
 /-- Simplifies EO-to-SMT translation for `term_dt_cons`. -/
 @[simp] theorem eo_to_smt_term_dt_cons
     (s : native_String) (d : Datatype) (i : native_Nat) :
     __eo_to_smt (Term.DtCons s d i) =
       native_ite (__eo_reserved_datatype_name s) SmtTerm.None
-        (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) := rfl
+        (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) := by
+  unfold __eo_to_smt
+  rfl
 
 /-- Simplifies EO-to-SMT translation for `term_dt_sel`. -/
 @[simp] theorem eo_to_smt_term_dt_sel
     (s : native_String) (d : Datatype) (i j : native_Nat) :
     __eo_to_smt (Term.DtSel s d i j) =
       native_ite (__eo_reserved_datatype_name s) SmtTerm.None
-        (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j) := rfl
+        (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j) := by
+  unfold __eo_to_smt
+  rfl
 
 /-- Simplifies EO-to-SMT translation for `datatype_cons_unit`. -/
 @[simp] theorem eo_to_smt_datatype_cons_unit :

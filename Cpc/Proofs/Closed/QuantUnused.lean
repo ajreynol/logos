@@ -253,7 +253,9 @@ private theorem term_ne_stuck_of_eo_to_smt_type_bool
   intro hStuck
   subst t
   have hNone : __smtx_typeof SmtTerm.None = SmtType.Bool := by
-    rw [show __eo_to_smt Term.Stuck = SmtTerm.None by rfl] at hTy
+    rw [show __eo_to_smt Term.Stuck = SmtTerm.None by
+      unfold __eo_to_smt
+      rfl] at hTy
     exact hTy
   exact TranslationProofs.smtx_typeof_none_ne_bool hNone
 
@@ -1814,13 +1816,25 @@ private theorem eo_to_smt_forall_eq (x F : Term)
     (hx : x ≠ Term.__eo_List_nil) :
     __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.forall) x) F) =
       SmtTerm.not (__eo_to_smt_exists x (SmtTerm.not (__eo_to_smt F))) := by
-  cases x <;> first | rfl | exact False.elim (hx rfl)
+  cases x
+  case __eo_List_nil =>
+    exact False.elim (hx rfl)
+  all_goals
+    conv =>
+      lhs
+      unfold __eo_to_smt
 
 private theorem eo_to_smt_exists_quant_eq (x F : Term)
     (hx : x ≠ Term.__eo_List_nil) :
     __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.exists) x) F) =
       __eo_to_smt_exists x (__eo_to_smt F) := by
-  cases x <;> first | rfl | exact False.elim (hx rfl)
+  cases x
+  case __eo_List_nil =>
+    exact False.elim (hx rfl)
+  all_goals
+    conv =>
+      lhs
+      unfold __eo_to_smt
 
 private theorem quant_uop_non_nil_of_non_none
     (Q x F : Term)
@@ -1834,10 +1848,12 @@ private theorem quant_uop_non_nil_of_non_none
   rcases hQ with hQ | hQ
   · subst Q
     apply hNN
+    unfold __eo_to_smt
     change __smtx_typeof SmtTerm.None = SmtType.None
     simp [TranslationProofs.smtx_typeof_none]
   · subst Q
     apply hNN
+    unfold __eo_to_smt
     change __smtx_typeof SmtTerm.None = SmtType.None
     simp [TranslationProofs.smtx_typeof_none]
 
@@ -2404,9 +2420,9 @@ private theorem smtTermClosedIn_eo_to_smt_set_insert_native_using
         simpa [__eo_to_smt_set_insert] using hBase
   | Term.Apply f tail, base, env, vars, hLt, hEnv, hClosed, hSafe, hBase =>
       by
-        cases f <;> try trivial
+        cases f <;> try (unfold __eo_to_smt_set_insert; trivial)
         case Apply g head =>
-          cases g <;> try trivial
+          cases g <;> try (unfold __eo_to_smt_set_insert; trivial)
           case __eo_List_cons =>
             have hOuter :
                 native_and
@@ -2441,6 +2457,7 @@ private theorem smtTermClosedIn_eo_to_smt_set_insert_native_using
             have hTailLt : sizeOf tail < sizeOf root := by
               simp at hLt
               omega
+            unfold __eo_to_smt_set_insert
             change SmtTermClosedIn vars
               (SmtTerm.set_union
                 (SmtTerm.set_singleton (__eo_to_smt head))
@@ -2450,51 +2467,97 @@ private theorem smtTermClosedIn_eo_to_smt_set_insert_native_using
                 smtTermClosedIn_eo_to_smt_set_insert_native_using root hRec
                   hTailLt hEnv hTailClosed hTailSafe hBase⟩
   | Term.UOp _, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
-      _hBase => by trivial
+      _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
   | Term.UOp1 _ _, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
-      _hBase => by trivial
+      _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
   | Term.UOp2 _ _ _, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
-      _hBase => by trivial
+      _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
   | Term.UOp3 _ _ _ _, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
-      _hBase => by trivial
+      _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
   | Term.__eo_List, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
-      _hBase => by trivial
+      _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
   | Term.__eo_List_cons, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
-      _hBase => by trivial
+      _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
   | Term.Bool, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
-      _hBase => by trivial
+      _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
   | Term.Boolean _, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
-      _hBase => by trivial
+      _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
   | Term.Numeral _, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
-      _hBase => by trivial
+      _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
   | Term.Rational _, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
-      _hBase => by trivial
+      _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
   | Term.String _, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
-      _hBase => by trivial
+      _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
   | Term.Binary _ _, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
-      _hBase => by trivial
+      _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
   | Term.Type, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
-      _hBase => by trivial
+      _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
   | Term.Stuck, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
-      _hBase => by trivial
+      _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
   | Term.FunType, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
-      _hBase => by trivial
+      _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
   | Term.Var _ _, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
-      _hBase => by trivial
+      _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
   | Term.DatatypeType _ _, base, env, vars, _hLt, _hEnv, _hClosed,
-      _hSafe, _hBase => by trivial
+      _hSafe, _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
   | Term.DatatypeTypeRef _, base, env, vars, _hLt, _hEnv, _hClosed,
-      _hSafe, _hBase => by trivial
+      _hSafe, _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
   | Term.DtcAppType _ _, base, env, vars, _hLt, _hEnv, _hClosed,
-      _hSafe, _hBase => by trivial
+      _hSafe, _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
   | Term.DtCons _ _ _, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
-      _hBase => by trivial
+      _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
   | Term.DtSel _ _ _ _, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
-      _hBase => by trivial
+      _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
   | Term.USort _, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
-      _hBase => by trivial
+      _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
   | Term.UConst _ _, base, env, vars, _hLt, _hEnv, _hClosed, _hSafe,
-      _hBase => by trivial
+      _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
 
 private theorem smtTermClosedIn_eo_to_smt_set_insert_apply_native_using
     (root : Term)
@@ -2514,6 +2577,7 @@ private theorem smtTermClosedIn_eo_to_smt_set_insert_apply_native_using
     SmtTermClosedIn vars
       (__eo_to_smt
         (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) x)) := by
+  unfold __eo_to_smt
   cases xs
   case __eo_List_nil =>
     trivial
@@ -2542,13 +2606,13 @@ private theorem smtTermClosedIn_eo_to_smt_distinct_pairs_native_using
                 SmtTermClosedIn vars (__eo_to_smt_distinct_pairs s xs)
   | Term.Apply f tail, s, env, vars, hs, hLt, hEnv, hClosed, hSafe =>
       by
-        cases f <;> try trivial
+        cases f <;> try (unfold __eo_to_smt_distinct_pairs; trivial)
         case UOp op =>
-          cases op <;> trivial
+          cases op <;> unfold __eo_to_smt_distinct_pairs <;> trivial
         case Apply g head =>
-          cases g <;> try trivial
+          cases g <;> try (unfold __eo_to_smt_distinct_pairs; trivial)
           case UOp op =>
-            cases op <;> try trivial
+            cases op <;> try (unfold __eo_to_smt_distinct_pairs; trivial)
             case _at__at_TypedList_cons =>
               have hOuter :
                   native_and
@@ -2587,6 +2651,7 @@ private theorem smtTermClosedIn_eo_to_smt_distinct_pairs_native_using
               have hTailLt : sizeOf tail < sizeOf root := by
                 simp at hLt
                 omega
+              unfold __eo_to_smt_distinct_pairs
               change SmtTermClosedIn vars
                 (SmtTerm.and
                   (SmtTerm.not (SmtTerm.eq s (__eo_to_smt head)))
@@ -2596,60 +2661,84 @@ private theorem smtTermClosedIn_eo_to_smt_distinct_pairs_native_using
                   smtTermClosedIn_eo_to_smt_distinct_pairs_native_using
                     root hRec hs hTailLt hEnv hTailClosed hTailSafe⟩
   | Term.UOp _, s, env, vars, hs, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct_pairs
       trivial
   | Term.UOp1 _ _, s, env, vars, hs, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct_pairs
       trivial
   | Term.UOp2 _ _ _, s, env, vars, hs, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct_pairs
       trivial
   | Term.UOp3 _ _ _ _, s, env, vars, hs, _hLt, _hEnv, _hClosed,
       _hSafe => by
+      unfold __eo_to_smt_distinct_pairs
       trivial
   | Term.__eo_List, s, env, vars, hs, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct_pairs
       trivial
   | Term.__eo_List_nil, s, env, vars, hs, _hLt, _hEnv, _hClosed,
       _hSafe => by
+      unfold __eo_to_smt_distinct_pairs
       trivial
   | Term.__eo_List_cons, s, env, vars, hs, _hLt, _hEnv, _hClosed,
       _hSafe => by
+      unfold __eo_to_smt_distinct_pairs
       trivial
   | Term.Bool, s, env, vars, hs, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct_pairs
       trivial
   | Term.Boolean _, s, env, vars, hs, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct_pairs
       trivial
   | Term.Numeral _, s, env, vars, hs, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct_pairs
       trivial
   | Term.Rational _, s, env, vars, hs, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct_pairs
       trivial
   | Term.String _, s, env, vars, hs, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct_pairs
       trivial
   | Term.Binary _ _, s, env, vars, hs, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct_pairs
       trivial
   | Term.Type, s, env, vars, hs, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct_pairs
       trivial
   | Term.Stuck, s, env, vars, hs, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct_pairs
       trivial
   | Term.FunType, s, env, vars, hs, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct_pairs
       trivial
   | Term.Var _ _, s, env, vars, hs, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct_pairs
       trivial
   | Term.DatatypeType _ _, s, env, vars, hs, _hLt, _hEnv, _hClosed,
       _hSafe => by
+      unfold __eo_to_smt_distinct_pairs
       trivial
   | Term.DatatypeTypeRef _, s, env, vars, hs, _hLt, _hEnv, _hClosed,
       _hSafe => by
+      unfold __eo_to_smt_distinct_pairs
       trivial
   | Term.DtcAppType _ _, s, env, vars, hs, _hLt, _hEnv, _hClosed,
       _hSafe => by
+      unfold __eo_to_smt_distinct_pairs
       trivial
   | Term.DtCons _ _ _, s, env, vars, hs, _hLt, _hEnv, _hClosed,
       _hSafe => by
+      unfold __eo_to_smt_distinct_pairs
       trivial
   | Term.DtSel _ _ _ _, s, env, vars, hs, _hLt, _hEnv, _hClosed,
       _hSafe => by
+      unfold __eo_to_smt_distinct_pairs
       trivial
   | Term.USort _, s, env, vars, hs, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct_pairs
       trivial
   | Term.UConst _ _, s, env, vars, hs, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct_pairs
       trivial
 
 private theorem smtTermClosedIn_eo_to_smt_distinct_native_using
@@ -2669,13 +2758,13 @@ private theorem smtTermClosedIn_eo_to_smt_distinct_native_using
               SmtTermClosedIn vars (__eo_to_smt_distinct xs)
   | Term.Apply f tail, env, vars, hLt, hEnv, hClosed, hSafe =>
       by
-        cases f <;> try trivial
+        cases f <;> try (unfold __eo_to_smt_distinct; trivial)
         case UOp op =>
-          cases op <;> trivial
+          cases op <;> unfold __eo_to_smt_distinct <;> trivial
         case Apply g head =>
-          cases g <;> try trivial
+          cases g <;> try (unfold __eo_to_smt_distinct; trivial)
           case UOp op =>
-            cases op <;> try trivial
+            cases op <;> try (unfold __eo_to_smt_distinct; trivial)
             case _at__at_TypedList_cons =>
               have hOuter :
                   native_and
@@ -2717,6 +2806,7 @@ private theorem smtTermClosedIn_eo_to_smt_distinct_native_using
               have hHead :
                   SmtTermClosedIn vars (__eo_to_smt head) :=
                 hRec hHeadLt hEnv hHeadClosed hHeadSafe
+              unfold __eo_to_smt_distinct
               change SmtTermClosedIn vars
                 (SmtTerm.and
                   (__eo_to_smt_distinct_pairs (__eo_to_smt head) tail)
@@ -2726,43 +2816,77 @@ private theorem smtTermClosedIn_eo_to_smt_distinct_native_using
                     root hRec hHead hTailLt hEnv hTailClosed hTailSafe,
                   smtTermClosedIn_eo_to_smt_distinct_native_using
                     root hRec hTailLt hEnv hTailClosed hTailSafe⟩
-  | Term.UOp _, env, vars, _hLt, _hEnv, _hClosed, _hSafe => by trivial
+  | Term.UOp _, env, vars, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct
+      trivial
   | Term.UOp1 _ _, env, vars, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct
       trivial
   | Term.UOp2 _ _ _, env, vars, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct
       trivial
   | Term.UOp3 _ _ _ _, env, vars, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct
       trivial
-  | Term.__eo_List, env, vars, _hLt, _hEnv, _hClosed, _hSafe => by trivial
+  | Term.__eo_List, env, vars, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct
+      trivial
   | Term.__eo_List_nil, env, vars, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct
       trivial
   | Term.__eo_List_cons, env, vars, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct
       trivial
-  | Term.Bool, env, vars, _hLt, _hEnv, _hClosed, _hSafe => by trivial
+  | Term.Bool, env, vars, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct
+      trivial
   | Term.Boolean _, env, vars, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct
       trivial
-  | Term.Numeral _, env, vars, _hLt, _hEnv, _hClosed, _hSafe => by trivial
+  | Term.Numeral _, env, vars, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct
+      trivial
   | Term.Rational _, env, vars, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct
       trivial
-  | Term.String _, env, vars, _hLt, _hEnv, _hClosed, _hSafe => by trivial
+  | Term.String _, env, vars, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct
+      trivial
   | Term.Binary _ _, env, vars, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct
       trivial
-  | Term.Type, env, vars, _hLt, _hEnv, _hClosed, _hSafe => by trivial
-  | Term.Stuck, env, vars, _hLt, _hEnv, _hClosed, _hSafe => by trivial
-  | Term.FunType, env, vars, _hLt, _hEnv, _hClosed, _hSafe => by trivial
-  | Term.Var _ _, env, vars, _hLt, _hEnv, _hClosed, _hSafe => by trivial
+  | Term.Type, env, vars, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct
+      trivial
+  | Term.Stuck, env, vars, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct
+      trivial
+  | Term.FunType, env, vars, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct
+      trivial
+  | Term.Var _ _, env, vars, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct
+      trivial
   | Term.DatatypeType _ _, env, vars, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct
       trivial
   | Term.DatatypeTypeRef _, env, vars, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct
       trivial
   | Term.DtcAppType _ _, env, vars, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct
       trivial
   | Term.DtCons _ _ _, env, vars, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct
       trivial
   | Term.DtSel _ _ _ _, env, vars, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct
       trivial
-  | Term.USort _, env, vars, _hLt, _hEnv, _hClosed, _hSafe => by trivial
+  | Term.USort _, env, vars, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct
+      trivial
   | Term.UConst _ _, env, vars, _hLt, _hEnv, _hClosed, _hSafe => by
+      unfold __eo_to_smt_distinct
       trivial
 
 private theorem smtTermClosedIn_eo_to_smt_distinct_apply_native_using
@@ -2781,6 +2905,7 @@ private theorem smtTermClosedIn_eo_to_smt_distinct_apply_native_using
     (hSafe : NativeEoToSmtUOpIndicesSafe xs) :
     SmtTermClosedIn vars
       (__eo_to_smt (Term.Apply (Term.UOp UserOp.distinct) xs)) := by
+  unfold __eo_to_smt
   change SmtTermClosedIn vars
     (native_ite
       (native_Teq (__eo_to_smt_typed_list_elem_type xs) SmtType.None)
@@ -2953,7 +3078,10 @@ private theorem smtTermClosedIn_eo_to_smt_apply_uop_native_using
           hRec (u := u) hULt hEnv' hClosed' hSafe')
         (by simp <;> try omega) (by simp <;> try omega) hEnv
         (by simpa [native_eo_to_smt_closed_rec] using hClosed)
-        hSafe (by rfl)
+        hSafe (by
+          conv =>
+            lhs
+            unfold __eo_to_smt)
 
 private theorem smtTermClosedIn_eo_to_smt_apply_uop1_native_using
     {op : UserOp1} {idx x : Term} {env : List Term}
@@ -3036,7 +3164,10 @@ private theorem smtTermClosedIn_eo_to_smt_apply_uop1_native_using
           hRec (u := u) hULt hEnv' hClosed' hSafe')
         (by simp <;> try omega) (by simp <;> try omega) hEnv
         (by simpa [native_eo_to_smt_closed_rec] using hClosed)
-        hSafe (by rfl)
+        hSafe (by
+          conv =>
+            lhs
+            unfold __eo_to_smt)
 
 private theorem smtTermClosedIn_eo_to_smt_apply_uop2_native_using
     {op : UserOp2} {idx1 idx2 x : Term} {env : List Term}
@@ -3118,7 +3249,10 @@ private theorem smtTermClosedIn_eo_to_smt_apply_uop2_native_using
           hRec (u := u) hULt hEnv' hClosed' hSafe')
         (by simp <;> try omega) (by simp <;> try omega) hEnv
         (by simpa [native_eo_to_smt_closed_rec] using hClosed)
-        hSafe (by rfl)
+        hSafe (by
+          conv =>
+            lhs
+            unfold __eo_to_smt)
 
 private theorem native_eo_to_smt_closed_rec_apply_apply_uop_split
     {op : UserOp} {z y : Term} {env : List Term}
@@ -3160,7 +3294,7 @@ private theorem smtTermClosedIn_of_native_eo_to_smt_closed_rec_safe_lt
       case Stuck =>
         simp [native_eo_to_smt_closed_rec] at hClosed
       case Var name T =>
-        cases name <;> try trivial
+        cases name <;> try (unfold __eo_to_smt; trivial)
         case String s =>
           have hNoStuck :=
             EoSmtVarEnvPerm_eoListOfTerms_no_stuck hEnv
@@ -3188,7 +3322,7 @@ private theorem smtTermClosedIn_of_native_eo_to_smt_closed_rec_safe_lt
             (uop_indices_safe_uop1_safe hSafe)
         have hxClosed : SmtTermClosedIn vars (__eo_to_smt x) :=
           smtTermClosedIn_weaken_nil hxClosed0
-        cases op <;> try trivial
+        cases op <;> try (unfold __eo_to_smt; trivial)
         case _at_purify =>
           exact smtTermClosedIn_eo_to_smt_purify hxClosed
         case seq_empty =>
@@ -3224,7 +3358,7 @@ private theorem smtTermClosedIn_of_native_eo_to_smt_closed_rec_safe_lt
           smtTermClosedIn_weaken_nil hxClosed0
         have hyClosed : SmtTermClosedIn vars (__eo_to_smt y) :=
           smtTermClosedIn_weaken_nil hyClosed0
-        cases op <;> try trivial
+        cases op <;> try (unfold __eo_to_smt; trivial)
         case _at_array_deq_diff =>
           exact smtTermClosedIn_eo_to_smt_array_deq_diff hxClosed hyClosed
         case _at_bv =>
@@ -3234,17 +3368,34 @@ private theorem smtTermClosedIn_of_native_eo_to_smt_closed_rec_safe_lt
         case _at_sets_deq_diff =>
           exact smtTermClosedIn_eo_to_smt_sets_deq_diff hxClosed hyClosed
         case _at_quantifiers_skolemize =>
-          cases x <;> try trivial
-          case Apply f body =>
-            cases f <;> try trivial
-            case Apply g xs =>
-              cases g <;> try trivial
-              case UOp q =>
-                cases q <;> try trivial
-                case «forall» =>
-                  exact
-                    smtTermClosedIn_eo_to_smt_quantifiers_skolemize_forall
-                      hxClosed
+          unfold __eo_to_smt
+          apply SmtTermClosedIn.guard_closed (x := x)
+          change SmtTermClosedIn vars
+            (native_ite (__eo_to_smt_nat_is_valid y)
+              (__eo_to_smt_quantifiers_skolemize x (__eo_to_smt_nat y))
+              SmtTerm.None)
+          cases __eo_to_smt_nat_is_valid y
+          · simp [native_ite, SmtTermClosedIn]
+          · simp [native_ite]
+            cases x
+            case Apply f body =>
+              cases f
+              case Apply g xs =>
+                cases g
+                case UOp q =>
+                  cases q
+                  case «forall» =>
+                    simpa [__eo_to_smt_quantifiers_skolemize] using
+                      smtTermClosedIn_eo_to_smt_qs_choice hxClosed
+                        (__eo_to_smt_nat y)
+                  all_goals
+                    simp [__eo_to_smt_quantifiers_skolemize, SmtTermClosedIn]
+                all_goals
+                  simp [__eo_to_smt_quantifiers_skolemize, SmtTermClosedIn]
+              all_goals
+                simp [__eo_to_smt_quantifiers_skolemize, SmtTermClosedIn]
+            all_goals
+              simp [__eo_to_smt_quantifiers_skolemize, SmtTermClosedIn]
       case UOp3 op x y z =>
         have hxClosed0 :
             SmtTermClosedIn [] (__eo_to_smt x) :=
@@ -3287,6 +3438,7 @@ private theorem smtTermClosedIn_of_native_eo_to_smt_closed_rec_safe_lt
           smtTermClosedIn_weaken_nil hzClosed0
         cases op
         case _at_re_unfold_pos_component =>
+          unfold __eo_to_smt
           apply SmtTermClosedIn.guard_closed (x := x)
           apply SmtTermClosedIn.guard_closed (x := y)
           change SmtTermClosedIn vars
@@ -3571,12 +3723,19 @@ private theorem smtTermClosedIn_of_native_eo_to_smt_closed_rec_safe_lt
                           hRec (u := u) hULt hEnv' hClosed' hSafe')
                         (by simp; omega) hEnv hyClosedNative hySafe
                         hxClosedSmt
-                  | (
-                      change SmtTermClosedIn vars
-                        (SmtTerm.Apply
-                          (__eo_to_smt (Term.Apply (Term.UOp _) y))
-                          (__eo_to_smt x))
-                      exact ⟨hfClosedSmt, hxClosedSmt⟩)
+                  | exact
+                      smtTermClosedIn_eo_to_smt_apply_generic_native_using
+                        (Term.Apply (Term.Apply (Term.UOp _) y) x)
+                        (fun {u} {env'} {vars'} hULt hEnv' hClosed'
+                            hSafe' =>
+                          hRec (u := u) hULt hEnv' hClosed' hSafe')
+                        (by simp; omega) (by simp; omega) hEnv
+                        (by
+                          simpa [native_eo_to_smt_closed_rec] using hClosed)
+                        hSafe (by
+                          conv =>
+                            lhs
+                            unfold __eo_to_smt)
           case UOp1 op a =>
             have hClosedSplit :
                 native_and
@@ -3651,7 +3810,10 @@ private theorem smtTermClosedIn_of_native_eo_to_smt_closed_rec_safe_lt
                   (by simp; omega) (by simp; omega) hEnv
                   (by
                     simpa [native_eo_to_smt_closed_rec] using hClosed)
-                  hSafe (by rfl)
+                  hSafe (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt)
           case Apply h z =>
             cases h
             case UOp op =>
@@ -3802,13 +3964,20 @@ private theorem smtTermClosedIn_of_native_eo_to_smt_closed_rec_safe_lt
                   (fun hz hy hx =>
                     smtTermClosedIn_eo_to_smt_str_indexof_re hz hy hx)
               all_goals
-                change SmtTermClosedIn vars
-                  (SmtTerm.Apply
-                    (__eo_to_smt
-                      (Term.Apply
-                        (Term.Apply (Term.UOp _) z) y))
-                    (__eo_to_smt x))
-                exact ⟨hfClosedSmt, hxClosedSmt⟩
+                exact
+                  smtTermClosedIn_eo_to_smt_apply_generic_native_using
+                    (Term.Apply
+                      (Term.Apply (Term.Apply (Term.UOp _) z) y) x)
+                    (fun {u} {env'} {vars'} hULt hEnv' hClosed'
+                        hSafe' =>
+                      hRec (u := u) hULt hEnv' hClosed' hSafe')
+                    (by simp; omega) (by simp; omega) hEnv
+                    (by
+                      simpa [native_eo_to_smt_closed_rec] using hClosed)
+                    hSafe (by
+                      conv =>
+                        lhs
+                        unfold __eo_to_smt)
             all_goals
               exact
                 smtTermClosedIn_eo_to_smt_apply_generic_native_using
@@ -3819,7 +3988,10 @@ private theorem smtTermClosedIn_of_native_eo_to_smt_closed_rec_safe_lt
                   (by simp; omega) (by simp; omega) hEnv
                   (by
                     simpa [native_eo_to_smt_closed_rec] using hClosed)
-                  hSafe (by rfl)
+                  hSafe (by
+                    conv =>
+                      lhs
+                      unfold __eo_to_smt)
           all_goals
             exact
               smtTermClosedIn_eo_to_smt_apply_generic_native_using
@@ -3830,7 +4002,10 @@ private theorem smtTermClosedIn_of_native_eo_to_smt_closed_rec_safe_lt
                 (by simp; omega) (by simp; omega) hEnv
                 (by
                   simpa [native_eo_to_smt_closed_rec] using hClosed)
-                hSafe (by rfl)
+                hSafe (by
+                  conv =>
+                    lhs
+                    unfold __eo_to_smt)
         case UOp op =>
           exact
             smtTermClosedIn_eo_to_smt_apply_uop_native_using
@@ -3858,7 +4033,10 @@ private theorem smtTermClosedIn_of_native_eo_to_smt_closed_rec_safe_lt
               (by simp <;> try omega) (by simp <;> try omega) hEnv
               (by
                 simpa [native_eo_to_smt_closed_rec] using hClosed)
-              hSafe (by rfl)
+              hSafe (by
+                conv =>
+                  lhs
+                  unfold __eo_to_smt)
       case DtCons s d i =>
         exact smtTermClosedIn_eo_to_smt_dtcons vars s d i
       case DtSel s d i j =>
@@ -3866,7 +4044,7 @@ private theorem smtTermClosedIn_of_native_eo_to_smt_closed_rec_safe_lt
       case UConst i T =>
         exact smtTermClosedIn_eo_to_smt_uconst vars i T
       all_goals
-        change True
+        unfold __eo_to_smt
         trivial
 termination_by n
 decreasing_by
@@ -4086,9 +4264,9 @@ private theorem smtTermClosedIn_eo_to_smt_set_insert_appTree_using
   | Term.__eo_List_nil, base, vars, _hLt, _hSafe, _hSub, hBase => by
       simpa [__eo_to_smt_set_insert] using hBase
   | Term.Apply f tail, base, vars, hLt, hSafe, hSub, hBase => by
-      cases f <;> try trivial
+      cases f <;> try (unfold __eo_to_smt_set_insert; trivial)
       case Apply g head =>
-        cases g <;> try trivial
+        cases g <;> try (unfold __eo_to_smt_set_insert; trivial)
         case __eo_List_cons =>
           have hHeadLt : sizeOf head < sizeOf root := by
             simp at hLt
@@ -4117,34 +4295,81 @@ private theorem smtTermClosedIn_eo_to_smt_set_insert_appTree_using
                 apply hSub
                 simp [appTreeSmtVars, hMem])
               hBase
+          unfold __eo_to_smt_set_insert
           change SmtTermClosedIn vars
             (SmtTerm.set_union
               (SmtTerm.set_singleton (__eo_to_smt head))
               (__eo_to_smt_set_insert tail base))
           exact ⟨hHeadClosed, hTailClosed⟩
-  | Term.UOp _, base, vars, _hLt, _hSafe, _hSub, _hBase => by trivial
-  | Term.UOp1 _ _, base, vars, _hLt, _hSafe, _hSub, _hBase => by trivial
-  | Term.UOp2 _ _ _, base, vars, _hLt, _hSafe, _hSub, _hBase => by trivial
-  | Term.UOp3 _ _ _ _, base, vars, _hLt, _hSafe, _hSub, _hBase => by trivial
-  | Term.__eo_List, base, vars, _hLt, _hSafe, _hSub, _hBase => by trivial
-  | Term.__eo_List_cons, base, vars, _hLt, _hSafe, _hSub, _hBase => by trivial
-  | Term.Bool, base, vars, _hLt, _hSafe, _hSub, _hBase => by trivial
-  | Term.Boolean _, base, vars, _hLt, _hSafe, _hSub, _hBase => by trivial
-  | Term.Numeral _, base, vars, _hLt, _hSafe, _hSub, _hBase => by trivial
-  | Term.Rational _, base, vars, _hLt, _hSafe, _hSub, _hBase => by trivial
-  | Term.String _, base, vars, _hLt, _hSafe, _hSub, _hBase => by trivial
-  | Term.Binary _ _, base, vars, _hLt, _hSafe, _hSub, _hBase => by trivial
-  | Term.Type, base, vars, _hLt, _hSafe, _hSub, _hBase => by trivial
-  | Term.Stuck, base, vars, _hLt, _hSafe, _hSub, _hBase => by trivial
-  | Term.FunType, base, vars, _hLt, _hSafe, _hSub, _hBase => by trivial
-  | Term.Var _ _, base, vars, _hLt, _hSafe, _hSub, _hBase => by trivial
-  | Term.DatatypeType _ _, base, vars, _hLt, _hSafe, _hSub, _hBase => by trivial
-  | Term.DatatypeTypeRef _, base, vars, _hLt, _hSafe, _hSub, _hBase => by trivial
-  | Term.DtcAppType _ _, base, vars, _hLt, _hSafe, _hSub, _hBase => by trivial
-  | Term.DtCons _ _ _, base, vars, _hLt, _hSafe, _hSub, _hBase => by trivial
-  | Term.DtSel _ _ _ _, base, vars, _hLt, _hSafe, _hSub, _hBase => by trivial
-  | Term.USort _, base, vars, _hLt, _hSafe, _hSub, _hBase => by trivial
-  | Term.UConst _ _, base, vars, _hLt, _hSafe, _hSub, _hBase => by trivial
+  | Term.UOp _, base, vars, _hLt, _hSafe, _hSub, _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
+  | Term.UOp1 _ _, base, vars, _hLt, _hSafe, _hSub, _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
+  | Term.UOp2 _ _ _, base, vars, _hLt, _hSafe, _hSub, _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
+  | Term.UOp3 _ _ _ _, base, vars, _hLt, _hSafe, _hSub, _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
+  | Term.__eo_List, base, vars, _hLt, _hSafe, _hSub, _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
+  | Term.__eo_List_cons, base, vars, _hLt, _hSafe, _hSub, _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
+  | Term.Bool, base, vars, _hLt, _hSafe, _hSub, _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
+  | Term.Boolean _, base, vars, _hLt, _hSafe, _hSub, _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
+  | Term.Numeral _, base, vars, _hLt, _hSafe, _hSub, _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
+  | Term.Rational _, base, vars, _hLt, _hSafe, _hSub, _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
+  | Term.String _, base, vars, _hLt, _hSafe, _hSub, _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
+  | Term.Binary _ _, base, vars, _hLt, _hSafe, _hSub, _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
+  | Term.Type, base, vars, _hLt, _hSafe, _hSub, _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
+  | Term.Stuck, base, vars, _hLt, _hSafe, _hSub, _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
+  | Term.FunType, base, vars, _hLt, _hSafe, _hSub, _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
+  | Term.Var _ _, base, vars, _hLt, _hSafe, _hSub, _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
+  | Term.DatatypeType _ _, base, vars, _hLt, _hSafe, _hSub, _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
+  | Term.DatatypeTypeRef _, base, vars, _hLt, _hSafe, _hSub, _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
+  | Term.DtcAppType _ _, base, vars, _hLt, _hSafe, _hSub, _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
+  | Term.DtCons _ _ _, base, vars, _hLt, _hSafe, _hSub, _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
+  | Term.DtSel _ _ _ _, base, vars, _hLt, _hSafe, _hSub, _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
+  | Term.USort _, base, vars, _hLt, _hSafe, _hSub, _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
+  | Term.UConst _ _, base, vars, _hLt, _hSafe, _hSub, _hBase => by
+      unfold __eo_to_smt_set_insert
+      trivial
 
 private theorem smtTermClosedIn_eo_to_smt_distinct_pairs_appTree_using
     (root : Term)
@@ -4161,13 +4386,13 @@ private theorem smtTermClosedIn_eo_to_smt_distinct_pairs_appTree_using
             (∀ key, key ∈ appTreeSmtVars xs -> key ∈ vars) ->
               SmtTermClosedIn vars (__eo_to_smt_distinct_pairs s xs)
   | Term.Apply f tail, s, vars, hLt, hs, hSafe, hSub => by
-      cases f <;> try trivial
+      cases f <;> try (unfold __eo_to_smt_distinct_pairs; trivial)
       case UOp op =>
-        cases op <;> trivial
+        cases op <;> unfold __eo_to_smt_distinct_pairs <;> trivial
       case Apply g head =>
-        cases g <;> try trivial
+        cases g <;> try (unfold __eo_to_smt_distinct_pairs; trivial)
         case UOp op =>
-          cases op <;> try trivial
+          cases op <;> try (unfold __eo_to_smt_distinct_pairs; trivial)
           case _at__at_TypedList_cons =>
             have hHeadLt : sizeOf head < sizeOf root := by
               simp at hLt
@@ -4195,35 +4420,84 @@ private theorem smtTermClosedIn_eo_to_smt_distinct_pairs_appTree_using
                   intro key hMem
                   apply hSub
                   simp [appTreeSmtVars, hMem])
+            unfold __eo_to_smt_distinct_pairs
             change SmtTermClosedIn vars
               (SmtTerm.and
                 (SmtTerm.not (SmtTerm.eq s (__eo_to_smt head)))
                 (__eo_to_smt_distinct_pairs s tail))
             exact ⟨⟨hs, hHeadClosed⟩, hTailClosed⟩
-  | Term.UOp _, s, vars, _hLt, _hs, _hSafe, _hSub => by trivial
-  | Term.UOp1 _ _, s, vars, _hLt, _hs, _hSafe, _hSub => by trivial
-  | Term.UOp2 _ _ _, s, vars, _hLt, _hs, _hSafe, _hSub => by trivial
-  | Term.UOp3 _ _ _ _, s, vars, _hLt, _hs, _hSafe, _hSub => by trivial
-  | Term.__eo_List, s, vars, _hLt, _hs, _hSafe, _hSub => by trivial
-  | Term.__eo_List_nil, s, vars, _hLt, _hs, _hSafe, _hSub => by trivial
-  | Term.__eo_List_cons, s, vars, _hLt, _hs, _hSafe, _hSub => by trivial
-  | Term.Bool, s, vars, _hLt, _hs, _hSafe, _hSub => by trivial
-  | Term.Boolean _, s, vars, _hLt, _hs, _hSafe, _hSub => by trivial
-  | Term.Numeral _, s, vars, _hLt, _hs, _hSafe, _hSub => by trivial
-  | Term.Rational _, s, vars, _hLt, _hs, _hSafe, _hSub => by trivial
-  | Term.String _, s, vars, _hLt, _hs, _hSafe, _hSub => by trivial
-  | Term.Binary _ _, s, vars, _hLt, _hs, _hSafe, _hSub => by trivial
-  | Term.Type, s, vars, _hLt, _hs, _hSafe, _hSub => by trivial
-  | Term.Stuck, s, vars, _hLt, _hs, _hSafe, _hSub => by trivial
-  | Term.FunType, s, vars, _hLt, _hs, _hSafe, _hSub => by trivial
-  | Term.Var _ _, s, vars, _hLt, _hs, _hSafe, _hSub => by trivial
-  | Term.DatatypeType _ _, s, vars, _hLt, _hs, _hSafe, _hSub => by trivial
-  | Term.DatatypeTypeRef _, s, vars, _hLt, _hs, _hSafe, _hSub => by trivial
-  | Term.DtcAppType _ _, s, vars, _hLt, _hs, _hSafe, _hSub => by trivial
-  | Term.DtCons _ _ _, s, vars, _hLt, _hs, _hSafe, _hSub => by trivial
-  | Term.DtSel _ _ _ _, s, vars, _hLt, _hs, _hSafe, _hSub => by trivial
-  | Term.USort _, s, vars, _hLt, _hs, _hSafe, _hSub => by trivial
-  | Term.UConst _ _, s, vars, _hLt, _hs, _hSafe, _hSub => by trivial
+  | Term.UOp _, s, vars, _hLt, _hs, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct_pairs
+      trivial
+  | Term.UOp1 _ _, s, vars, _hLt, _hs, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct_pairs
+      trivial
+  | Term.UOp2 _ _ _, s, vars, _hLt, _hs, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct_pairs
+      trivial
+  | Term.UOp3 _ _ _ _, s, vars, _hLt, _hs, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct_pairs
+      trivial
+  | Term.__eo_List, s, vars, _hLt, _hs, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct_pairs
+      trivial
+  | Term.__eo_List_nil, s, vars, _hLt, _hs, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct_pairs
+      trivial
+  | Term.__eo_List_cons, s, vars, _hLt, _hs, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct_pairs
+      trivial
+  | Term.Bool, s, vars, _hLt, _hs, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct_pairs
+      trivial
+  | Term.Boolean _, s, vars, _hLt, _hs, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct_pairs
+      trivial
+  | Term.Numeral _, s, vars, _hLt, _hs, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct_pairs
+      trivial
+  | Term.Rational _, s, vars, _hLt, _hs, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct_pairs
+      trivial
+  | Term.String _, s, vars, _hLt, _hs, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct_pairs
+      trivial
+  | Term.Binary _ _, s, vars, _hLt, _hs, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct_pairs
+      trivial
+  | Term.Type, s, vars, _hLt, _hs, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct_pairs
+      trivial
+  | Term.Stuck, s, vars, _hLt, _hs, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct_pairs
+      trivial
+  | Term.FunType, s, vars, _hLt, _hs, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct_pairs
+      trivial
+  | Term.Var _ _, s, vars, _hLt, _hs, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct_pairs
+      trivial
+  | Term.DatatypeType _ _, s, vars, _hLt, _hs, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct_pairs
+      trivial
+  | Term.DatatypeTypeRef _, s, vars, _hLt, _hs, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct_pairs
+      trivial
+  | Term.DtcAppType _ _, s, vars, _hLt, _hs, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct_pairs
+      trivial
+  | Term.DtCons _ _ _, s, vars, _hLt, _hs, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct_pairs
+      trivial
+  | Term.DtSel _ _ _ _, s, vars, _hLt, _hs, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct_pairs
+      trivial
+  | Term.USort _, s, vars, _hLt, _hs, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct_pairs
+      trivial
+  | Term.UConst _ _, s, vars, _hLt, _hs, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct_pairs
+      trivial
 
 private theorem smtTermClosedIn_eo_to_smt_distinct_appTree_using
     (root : Term)
@@ -4239,13 +4513,13 @@ private theorem smtTermClosedIn_eo_to_smt_distinct_appTree_using
           (∀ key, key ∈ appTreeSmtVars xs -> key ∈ vars) ->
             SmtTermClosedIn vars (__eo_to_smt_distinct xs)
   | Term.Apply f tail, vars, hLt, hSafe, hSub => by
-      cases f <;> try trivial
+      cases f <;> try (unfold __eo_to_smt_distinct; trivial)
       case UOp op =>
-        cases op <;> trivial
+        cases op <;> unfold __eo_to_smt_distinct <;> trivial
       case Apply g head =>
-        cases g <;> try trivial
+        cases g <;> try (unfold __eo_to_smt_distinct; trivial)
         case UOp op =>
-          cases op <;> try trivial
+          cases op <;> try (unfold __eo_to_smt_distinct; trivial)
           case _at__at_TypedList_cons =>
             have hHeadLt : sizeOf head < sizeOf root := by
               simp at hLt
@@ -4281,35 +4555,84 @@ private theorem smtTermClosedIn_eo_to_smt_distinct_appTree_using
                   intro key hMem
                   apply hSub
                   simp [appTreeSmtVars, hMem])
+            unfold __eo_to_smt_distinct
             change SmtTermClosedIn vars
               (SmtTerm.and
                 (__eo_to_smt_distinct_pairs (__eo_to_smt head) tail)
                 (__eo_to_smt_distinct tail))
             exact ⟨hPairsClosed, hTailClosed⟩
-  | Term.UOp _, vars, _hLt, _hSafe, _hSub => by trivial
-  | Term.UOp1 _ _, vars, _hLt, _hSafe, _hSub => by trivial
-  | Term.UOp2 _ _ _, vars, _hLt, _hSafe, _hSub => by trivial
-  | Term.UOp3 _ _ _ _, vars, _hLt, _hSafe, _hSub => by trivial
-  | Term.__eo_List, vars, _hLt, _hSafe, _hSub => by trivial
-  | Term.__eo_List_nil, vars, _hLt, _hSafe, _hSub => by trivial
-  | Term.__eo_List_cons, vars, _hLt, _hSafe, _hSub => by trivial
-  | Term.Bool, vars, _hLt, _hSafe, _hSub => by trivial
-  | Term.Boolean _, vars, _hLt, _hSafe, _hSub => by trivial
-  | Term.Numeral _, vars, _hLt, _hSafe, _hSub => by trivial
-  | Term.Rational _, vars, _hLt, _hSafe, _hSub => by trivial
-  | Term.String _, vars, _hLt, _hSafe, _hSub => by trivial
-  | Term.Binary _ _, vars, _hLt, _hSafe, _hSub => by trivial
-  | Term.Type, vars, _hLt, _hSafe, _hSub => by trivial
-  | Term.Stuck, vars, _hLt, _hSafe, _hSub => by trivial
-  | Term.FunType, vars, _hLt, _hSafe, _hSub => by trivial
-  | Term.Var _ _, vars, _hLt, _hSafe, _hSub => by trivial
-  | Term.DatatypeType _ _, vars, _hLt, _hSafe, _hSub => by trivial
-  | Term.DatatypeTypeRef _, vars, _hLt, _hSafe, _hSub => by trivial
-  | Term.DtcAppType _ _, vars, _hLt, _hSafe, _hSub => by trivial
-  | Term.DtCons _ _ _, vars, _hLt, _hSafe, _hSub => by trivial
-  | Term.DtSel _ _ _ _, vars, _hLt, _hSafe, _hSub => by trivial
-  | Term.USort _, vars, _hLt, _hSafe, _hSub => by trivial
-  | Term.UConst _ _, vars, _hLt, _hSafe, _hSub => by trivial
+  | Term.UOp _, vars, _hLt, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct
+      trivial
+  | Term.UOp1 _ _, vars, _hLt, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct
+      trivial
+  | Term.UOp2 _ _ _, vars, _hLt, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct
+      trivial
+  | Term.UOp3 _ _ _ _, vars, _hLt, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct
+      trivial
+  | Term.__eo_List, vars, _hLt, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct
+      trivial
+  | Term.__eo_List_nil, vars, _hLt, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct
+      trivial
+  | Term.__eo_List_cons, vars, _hLt, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct
+      trivial
+  | Term.Bool, vars, _hLt, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct
+      trivial
+  | Term.Boolean _, vars, _hLt, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct
+      trivial
+  | Term.Numeral _, vars, _hLt, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct
+      trivial
+  | Term.Rational _, vars, _hLt, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct
+      trivial
+  | Term.String _, vars, _hLt, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct
+      trivial
+  | Term.Binary _ _, vars, _hLt, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct
+      trivial
+  | Term.Type, vars, _hLt, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct
+      trivial
+  | Term.Stuck, vars, _hLt, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct
+      trivial
+  | Term.FunType, vars, _hLt, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct
+      trivial
+  | Term.Var _ _, vars, _hLt, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct
+      trivial
+  | Term.DatatypeType _ _, vars, _hLt, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct
+      trivial
+  | Term.DatatypeTypeRef _, vars, _hLt, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct
+      trivial
+  | Term.DtcAppType _ _, vars, _hLt, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct
+      trivial
+  | Term.DtCons _ _ _, vars, _hLt, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct
+      trivial
+  | Term.DtSel _ _ _ _, vars, _hLt, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct
+      trivial
+  | Term.USort _, vars, _hLt, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct
+      trivial
+  | Term.UConst _ _, vars, _hLt, _hSafe, _hSub => by
+      unfold __eo_to_smt_distinct
+      trivial
 
 private theorem appTreeSmtVars_not_mem_of_contains_atomic_term_false_lt
     (n : Nat) :
@@ -4396,13 +4719,16 @@ private theorem smtTermClosedIn_appTreeVars_of_uop_indices_safe_lt
             n u (vars := vars') (by omega) hSafe' hSub'
       cases F
       case Stuck =>
+        unfold __eo_to_smt
         trivial
       case Var name T =>
         cases name
         case String s =>
+          unfold __eo_to_smt
           change (s, __eo_to_smt_type T) ∈ vars
           exact hSub (s, __eo_to_smt_type T) (by simp [appTreeSmtVars])
         all_goals
+          unfold __eo_to_smt
           trivial
       case Apply f x =>
         have hfSafe : NativeEoToSmtUOpIndicesSafe f :=
@@ -4425,6 +4751,7 @@ private theorem smtTermClosedIn_appTreeVars_of_uop_indices_safe_lt
           case not =>
             exact smtTermClosedIn_eo_to_smt_not hxClosed
           case distinct =>
+            unfold __eo_to_smt
             change SmtTermClosedIn vars
               (native_ite
                 (native_Teq (__eo_to_smt_typed_list_elem_type x)
@@ -4521,6 +4848,7 @@ private theorem smtTermClosedIn_appTreeVars_of_uop_indices_safe_lt
           case sbv_to_int =>
             exact smtTermClosedIn_eo_to_smt_sbv_to_int hxClosed
           all_goals
+            unfold __eo_to_smt
             change SmtTermClosedIn vars
               (SmtTerm.Apply (__eo_to_smt (Term.UOp _)) (__eo_to_smt x))
             exact ⟨hfClosed, hxClosed⟩
@@ -4559,6 +4887,7 @@ private theorem smtTermClosedIn_appTreeVars_of_uop_indices_safe_lt
           case int_to_bv =>
             exact smtTermClosedIn_eo_to_smt_int_to_bv hIdxClosed hxClosed
           all_goals
+            unfold __eo_to_smt
             change SmtTermClosedIn vars
               (SmtTerm.Apply (__eo_to_smt (Term.UOp1 _ idx))
                 (__eo_to_smt x))
@@ -4583,6 +4912,7 @@ private theorem smtTermClosedIn_appTreeVars_of_uop_indices_safe_lt
             exact smtTermClosedIn_eo_to_smt_re_loop
               hIdx1Closed hIdx2Closed hxClosed
           all_goals
+            unfold __eo_to_smt
             change SmtTermClosedIn vars
               (SmtTerm.Apply (__eo_to_smt (Term.UOp2 _ idx1 idx2))
                 (__eo_to_smt x))
@@ -4765,15 +5095,20 @@ private theorem smtTermClosedIn_appTreeVars_of_uop_indices_safe_lt
             case set_insert =>
               by_cases hyNil : y = Term.__eo_List_nil
               · subst y
+                unfold __eo_to_smt
                 trivial
               have hSetTranslate :
                   __eo_to_smt
                       (Term.Apply
                         (Term.Apply (Term.UOp UserOp.set_insert) y) x) =
                     __eo_to_smt_set_insert y (__eo_to_smt x) := by
-                cases y <;> try rfl
+                cases y
                 case __eo_List_nil =>
                   contradiction
+                all_goals
+                  conv =>
+                    lhs
+                    unfold __eo_to_smt
               rw [hSetTranslate]
               exact smtTermClosedIn_eo_to_smt_set_insert_appTree_using
                 (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) y) x)
@@ -4816,6 +5151,7 @@ private theorem smtTermClosedIn_appTreeVars_of_uop_indices_safe_lt
                       exact List.mem_append.2 (Or.inr hMem))
                     hxClosed)
             all_goals
+              unfold __eo_to_smt
               change SmtTermClosedIn vars
                 (SmtTerm.Apply
                   (__eo_to_smt (Term.Apply (Term.UOp _) y))
@@ -4837,6 +5173,7 @@ private theorem smtTermClosedIn_appTreeVars_of_uop_indices_safe_lt
               exact smtTermClosedIn_eo_to_smt_tuple_update
                 hIdxClosed hyClosed hxClosed
             all_goals
+              unfold __eo_to_smt
               change SmtTermClosedIn vars
                 (SmtTerm.Apply
                   (__eo_to_smt (Term.Apply (Term.UOp1 _ idx) y))
@@ -4889,6 +5226,7 @@ private theorem smtTermClosedIn_appTreeVars_of_uop_indices_safe_lt
                 exact smtTermClosedIn_eo_to_smt_str_indexof_re
                   hzClosed hyClosed hxClosed
               all_goals
+                unfold __eo_to_smt
                 change SmtTermClosedIn vars
                   (SmtTerm.Apply
                     (__eo_to_smt
@@ -4896,17 +5234,20 @@ private theorem smtTermClosedIn_appTreeVars_of_uop_indices_safe_lt
                     (__eo_to_smt x))
                 exact ⟨hfClosed, hxClosed⟩
             all_goals
+              unfold __eo_to_smt
               change SmtTermClosedIn vars
                 (SmtTerm.Apply
                   (__eo_to_smt (Term.Apply (Term.Apply _ z) y))
                   (__eo_to_smt x))
               exact ⟨hfClosed, hxClosed⟩
           all_goals
+            unfold __eo_to_smt
             change SmtTermClosedIn vars
               (SmtTerm.Apply (__eo_to_smt (Term.Apply _ y))
                 (__eo_to_smt x))
             exact ⟨hfClosed, hxClosed⟩
         all_goals
+          unfold __eo_to_smt
           change SmtTermClosedIn vars
             (SmtTerm.Apply (__eo_to_smt _) (__eo_to_smt x))
           exact ⟨hfClosed, hxClosed⟩
@@ -5121,6 +5462,7 @@ theorem smtx_model_eval_quant_unused_vars_mk_core
     intro hStuck
     rw [hStuck] at hRhsNN
     exact hRhsNN (by
+      unfold __eo_to_smt
       change __smtx_typeof SmtTerm.None = SmtType.None
       exact TranslationProofs.smtx_typeof_none)
   have hRecNeStuck :
