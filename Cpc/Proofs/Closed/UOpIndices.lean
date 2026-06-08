@@ -1231,8 +1231,7 @@ private theorem native_eo_to_smt_uop_indices_safe_of_type_valid_rec :
       have hTc' := native_eo_to_smt_closed_rec_nil_of_closed hTc
       have hUc' := native_eo_to_smt_closed_rec_nil_of_closed hUc
       simp [native_eo_to_smt_closed, native_eo_to_smt_closed_rec,
-        native_eo_to_smt_uop_indices_safe, hTc', hUc', hTs, hUs,
-        native_and]
+        native_eo_to_smt_uop_indices_safe]
   | refs, Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral n), h => by
       simp [native_eo_to_smt_closed, native_eo_to_smt_closed_rec,
         native_eo_to_smt_uop_indices_safe, native_and]
@@ -1736,7 +1735,7 @@ private theorem smtx_typeof_not_arg_bool_of_non_none
     · exfalso
       apply h
       rw [typeof_not_eq]
-      simp [native_ite, hArg, TranslationProofs.smtx_typeof_none]
+      simp [native_ite, hArg]
   exact smtx_typeof_not_arg_bool t hNotBool
 
 private theorem native_eo_to_smt_uop_indices_safe_of_var_list_exists_bool
@@ -3893,7 +3892,7 @@ theorem eo_to_smt_well_typed_implies_uop_indices_safe
                       simp
                     rcases bv_binop_ret_args_of_non_none
                         (op := SmtTerm.bvcomp) (ret := SmtType.BitVec 1)
-                        (by simp [cmp, __smtx_typeof]) hCmpNN with
+                        (by simp [__smtx_typeof]) hCmpNN with
                       ⟨w, hArg, _hOther⟩
                     exact smt_typeof_non_none_of_eq_non_none hArg (by simp))
                   (by rfl) h
