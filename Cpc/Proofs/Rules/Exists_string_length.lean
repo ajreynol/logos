@@ -84,6 +84,7 @@ private theorem witness_string_length_id_int
 private theorem prog_exists_string_length_id_int
     {U id : Term} {k : native_Int}
     (hgt : native_zlt (-1 : native_Int) k = true)
+    (hIdIsZ : __eo_is_z id = Term.Boolean true)
     (hTy : __eo_typeof (__eo_prog_exists_string_length
       (Term.Apply (Term.UOp UserOp.Seq) U) (Term.Numeral k) id) = Term.Bool) :
     __eo_typeof id = Term.UOp UserOp.Int := by
@@ -95,7 +96,7 @@ private theorem prog_exists_string_length_id_int
   have hBodyTy :
       __eo_typeof (eslFormula U (Term.Numeral k) id) = Term.Bool := by
     simpa [eslFormula, __eo_prog_exists_string_length, __eo_requires, __eo_gt,
-      native_ite, native_teq, hgt, hIdNe] using hTy
+      native_ite, native_teq, SmtEval.native_not, hgt, hIdIsZ, hIdNe] using hTy
   change
       __eo_typeof_eq
         (__eo_typeof
@@ -122,15 +123,23 @@ private theorem eo_gt_numeral_neg_one_eq_true {n : Term} :
   case Numeral k =>
     exact ⟨k, rfl, by simpa [__eo_gt] using h⟩
 
+private theorem eo_is_z_eq_true {t : Term} :
+    __eo_is_z t = Term.Boolean true ->
+    ∃ k : native_Int, t = Term.Numeral k := by
+  intro h
+  cases t <;> simp [__eo_is_z, __eo_is_z_internal, native_teq,
+    native_and, SmtEval.native_not] at h ⊢
+
 private theorem prog_exists_string_length_eq_formula
     {U id : Term} {k : native_Int}
     (hgt : native_zlt (-1 : native_Int) k = true)
+    (hIdIsZ : __eo_is_z id = Term.Boolean true)
     (hIdNe : id ≠ Term.Stuck) :
     __eo_prog_exists_string_length
       (Term.Apply (Term.UOp UserOp.Seq) U) (Term.Numeral k) id =
       eslFormula U (Term.Numeral k) id := by
   simp [eslFormula, __eo_prog_exists_string_length, __eo_requires, __eo_gt,
-    native_ite, native_teq, SmtEval.native_not, hgt]
+    native_ite, native_teq, SmtEval.native_not, hgt, hIdIsZ]
 
 private theorem exists_string_length_first_arg_seq
     {s : CState} {a n id : Term}
@@ -270,6 +279,7 @@ private theorem eslSmtBody_true_imp_str_len
 private theorem eslFormula_has_bool_type
     (U id : Term) (A : SmtType) (k : native_Int)
     (hIdTy : __smtx_typeof (__eo_to_smt id) = SmtType.Int)
+    (hIdClosed : native_eo_to_smt_closed id = true)
     (hSeqTy : __eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U) =
       SmtType.Seq A)
     (hSeqWF : __smtx_type_wf (SmtType.Seq A) = true) :
@@ -286,18 +296,23 @@ private theorem eslFormula_has_bool_type
   let wit : Term :=
     Term.UOp3 UserOp3._at_witness_string_length
       (Term.Apply (Term.UOp UserOp.Seq) U) (Term.Numeral k) id
+  have hNumClosed : native_eo_to_smt_closed (Term.Numeral k) = true := by
+    simp [native_eo_to_smt_closed, native_eo_to_smt_closed_rec]
   have hWitTy : __smtx_typeof (__eo_to_smt wit) = SmtType.Seq A := by
     change
       __smtx_typeof
-        (native_ite (native_Teq (__smtx_typeof (__eo_to_smt id)) SmtType.Int)
-          (SmtTerm.choice_nth (native_string_lit "@x")
-            (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U))
-            (SmtTerm.eq
-              (SmtTerm.str_len (SmtTerm.Var (native_string_lit "@x")
-                (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U))))
-              (SmtTerm.Numeral k)) native_nat_zero)
-          SmtTerm.None) = SmtType.Seq A
-    simpa [hIdTy, hSeqTy, native_Teq, native_ite, eslSmtBody] using hChoiceTy
+        (native_eo_to_smt_guard_closed (Term.Numeral k)
+          (native_eo_to_smt_guard_closed id
+            (native_ite (native_Teq (__smtx_typeof (__eo_to_smt id)) SmtType.Int)
+              (SmtTerm.choice_nth (native_string_lit "@x")
+                (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U))
+                (SmtTerm.eq
+                  (SmtTerm.str_len (SmtTerm.Var (native_string_lit "@x")
+                    (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U))))
+                  (SmtTerm.Numeral k)) native_nat_zero)
+              SmtTerm.None))) = SmtType.Seq A
+    simpa [native_eo_to_smt_guard_closed, hNumClosed, hIdClosed, hIdTy,
+      hSeqTy, native_Teq, native_ite, eslSmtBody] using hChoiceTy
   have hLenTy :
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp UserOp.str_len) wit)) =
         SmtType.Int := by
@@ -318,6 +333,7 @@ private theorem eslFormula_has_bool_type
 private theorem eslFormula_true
     (M : SmtModel) (U id : Term) (A : SmtType) (k : native_Int)
     (hIdTy : __smtx_typeof (__eo_to_smt id) = SmtType.Int)
+    (hIdClosed : native_eo_to_smt_closed id = true)
     (hSeqTy : __eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U) =
       SmtType.Seq A)
     (hSeqWF : __smtx_type_wf (SmtType.Seq A) = true)
@@ -378,30 +394,39 @@ private theorem eslFormula_true
               (SmtTerm.Var (native_string_lit "@x") (SmtType.Seq A)))
             (SmtTerm.Numeral k))) = SmtValue.Numeral k := by
     simpa [eslSmtBody] using hChoiceLen
+  have hSeqTyRaw :
+      __smtx_typeof_guard (__eo_to_smt_type U) (SmtType.Seq (__eo_to_smt_type U)) =
+        SmtType.Seq A := by
+    simpa [__eo_to_smt_type] using hSeqTy
   have hBool : RuleProofs.eo_has_bool_type (eslFormula U (Term.Numeral k) id) :=
-    eslFormula_has_bool_type U id A k hIdTy hSeqTy hSeqWF
+    eslFormula_has_bool_type U id A k hIdTy hIdClosed hSeqTy hSeqWF
   have hEval :
       __smtx_model_eval M (__eo_to_smt (eslFormula U (Term.Numeral k) id)) =
         SmtValue.Boolean true := by
     unfold eslFormula
+    have hNumClosed : native_eo_to_smt_closed (Term.Numeral k) = true := by
+      simp [native_eo_to_smt_closed, native_eo_to_smt_closed_rec]
     change
       __smtx_model_eval M
         (SmtTerm.eq
           (SmtTerm.str_len
-            (native_ite
-              (native_Teq (__smtx_typeof (__eo_to_smt id)) SmtType.Int)
-              (SmtTerm.choice_nth (native_string_lit "@x")
-                (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U))
-                (SmtTerm.eq
-                  (SmtTerm.str_len
-                    (SmtTerm.Var (native_string_lit "@x")
-                      (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U))))
-                  (SmtTerm.Numeral k)) native_nat_zero)
-              SmtTerm.None))
+            (native_eo_to_smt_guard_closed (Term.Numeral k)
+              (native_eo_to_smt_guard_closed id
+                (native_ite
+                  (native_Teq (__smtx_typeof (__eo_to_smt id)) SmtType.Int)
+                  (SmtTerm.choice_nth (native_string_lit "@x")
+                    (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U))
+                    (SmtTerm.eq
+                      (SmtTerm.str_len
+                        (SmtTerm.Var (native_string_lit "@x")
+                          (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U))))
+                      (SmtTerm.Numeral k)) native_nat_zero)
+                  SmtTerm.None))))
           (SmtTerm.Numeral k)) = SmtValue.Boolean true
+    simp [native_eo_to_smt_guard_closed, hNumClosed, hIdClosed]
     rw [__smtx_model_eval.eq_134, __smtx_model_eval.eq_79,
       __smtx_model_eval.eq_2]
-    simp [hIdTy, hSeqTy, native_Teq, native_ite,
+    simp [hIdTy, hSeqTyRaw, native_Teq, native_ite,
       smtx_model_eval_choice_nth_eq_aux, nativeEvalTChoiceNthAux,
       hChoiceLen', __smtx_model_eval_eq, native_veq]
   exact RuleProofs.eo_interprets_of_bool_eval M _ true hBool hEval
@@ -484,12 +509,16 @@ by
                             (Term.Apply (Term.UOp UserOp.Seq) U) n id =
                         __eo_requires
                             (__eo_gt n (Term.Numeral (-1 : native_Int)))
-                            (Term.Boolean true) (eslFormula U n id) := by
+                            (Term.Boolean true)
+                            (__eo_requires (__eo_is_z id) (Term.Boolean true)
+                              (eslFormula U n id)) := by
                         simp [eslFormula, __eo_prog_exists_string_length]
                       have hReqNe :
                           __eo_requires
                             (__eo_gt n (Term.Numeral (-1 : native_Int)))
-                            (Term.Boolean true) (eslFormula U n id) ≠
+                            (Term.Boolean true)
+                            (__eo_requires (__eo_is_z id) (Term.Boolean true)
+                              (eslFormula U n id)) ≠
                             Term.Stuck := by
                         intro hStuck
                         exact hProg' (by simpa [hReqEq] using hStuck)
@@ -499,6 +528,20 @@ by
                         eo_requires_cond_eq_of_non_stuck hReqNe
                       rcases eo_gt_numeral_neg_one_eq_true hGtTrue with
                         ⟨k, rfl, hkGt⟩
+                      have hIdReqNe :
+                          __eo_requires (__eo_is_z id) (Term.Boolean true)
+                            (eslFormula U (Term.Numeral k) id) ≠ Term.Stuck := by
+                        intro hStuck
+                        exact hReqNe (by
+                          rw [hStuck]
+                          simp [__eo_requires, __eo_gt, native_ite,
+                            native_teq, SmtEval.native_not, hkGt])
+                      have hIdIsZ :
+                          __eo_is_z id = Term.Boolean true :=
+                        eo_requires_cond_eq_of_non_stuck hIdReqNe
+                      have hIdClosed : native_eo_to_smt_closed id = true := by
+                        rcases eo_is_z_eq_true hIdIsZ with ⟨i, rfl⟩
+                        simp [native_eo_to_smt_closed, native_eo_to_smt_closed_rec]
                       have hIdNe : id ≠ Term.Stuck := hIdNe0
                       have hResultTy' :
                           __eo_typeof (__eo_prog_exists_string_length
@@ -509,7 +552,7 @@ by
                             (Term.Numeral k) id) = Term.Bool at hResultTy
                         exact hResultTy
                       have hIdEoInt : __eo_typeof id = Term.UOp UserOp.Int :=
-                        prog_exists_string_length_id_int hkGt hResultTy'
+                        prog_exists_string_length_id_int hkGt hIdIsZ hResultTy'
                       have hIdSmtInt :
                           __smtx_typeof (__eo_to_smt id) = SmtType.Int := by
                         have hRaw :=
@@ -531,7 +574,7 @@ by
                             (Term.Apply (Term.UOp UserOp.Seq) U)
                             (Term.Numeral k) id =
                             eslFormula U (Term.Numeral k) id :=
-                        prog_exists_string_length_eq_formula hkGt hIdNe
+                        prog_exists_string_length_eq_formula hkGt hIdIsZ hIdNe
                       refine ⟨?_, ?_⟩
                       · intro _hPremises
                         change eo_interprets M
@@ -540,7 +583,7 @@ by
                             (Term.Numeral k) id) true
                         rw [hFormulaEq]
                         exact eslFormula_true M U id A k hIdSmtInt
-                          hSeqTy hSeqWF' hkGt
+                          hIdClosed hSeqTy hSeqWF' hkGt
                       · change RuleProofs.eo_has_smt_translation
                           (__eo_prog_exists_string_length
                             (Term.Apply (Term.UOp UserOp.Seq) U)
@@ -548,4 +591,4 @@ by
                         rw [hFormulaEq]
                         exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
                           (eslFormula_has_bool_type U id A k hIdSmtInt
-                            hSeqTy hSeqWF')
+                            hIdClosed hSeqTy hSeqWF')
