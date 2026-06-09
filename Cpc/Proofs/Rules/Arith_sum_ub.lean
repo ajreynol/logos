@@ -2029,7 +2029,7 @@ by
                   refine ⟨?_, ?_⟩
                   · intro hPremisesTrue
                     have hPremisesTrueList : AllInterpretedTrue M (rel :: psTail) := by
-                      simpa [ps, hPs, rel] using hPremisesTrue
+                      simpa [ps, hPs, rel] using hPremisesTrue.true_here
                     change eo_interprets M
                       (__eo_prog_arith_sum_ub
                         (Proof.pf (__eo_mk_premise_list (Term.UOp UserOp.and) premises s))) true
