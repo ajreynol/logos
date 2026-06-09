@@ -56,6 +56,9 @@ def cmdTranslationOk : CCmd -> Prop
   | CCmd.step CRule.exists_string_length args _ =>
       cArgListTranslationOkMask [ArgTranslationKind.type, ArgTranslationKind.term,
         ArgTranslationKind.term] args
+  | CCmd.step CRule.re_eq_elim (CArgList.cons a CArgList.nil) _ =>
+      eoHasSmtTranslation a ∧ __eo_is_closed a = Term.Boolean true
+  | CCmd.step CRule.re_eq_elim _ _ => False
   | CCmd.step CRule.sets_eq_singleton_emp args _ =>
       cArgListTranslationOkMask [ArgTranslationKind.term, ArgTranslationKind.term,
         ArgTranslationKind.type] args
