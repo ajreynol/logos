@@ -2974,7 +2974,7 @@ def __eo_prog_string_decompose : Term -> Proof -> Proof -> Term
 def __eo_prog_exists_string_length : Term -> Term -> Term -> Term
   | _ , Term.Stuck , _  => Term.Stuck
   | _ , _ , Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.UOp UserOp.Seq) U), n, id => (__eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int))) (Term.Boolean true) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.UOp UserOp.str_len) (Term.UOp3 UserOp3._at_witness_string_length (Term.Apply (Term.UOp UserOp.Seq) U) n id))) n))
+  | (Term.Apply (Term.UOp UserOp.Seq) U), n, id => (__eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int))) (Term.Boolean true) (__eo_requires (__eo_is_z id) (Term.Boolean true) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.UOp UserOp.str_len) (Term.UOp3 UserOp3._at_witness_string_length (Term.Apply (Term.UOp UserOp.Seq) U) n id))) n)))
   | _, _, _ => Term.Stuck
 
 
@@ -3172,7 +3172,7 @@ def __str_multiset_overapprox : Term -> Term
 def __str_is_multiset_subset_strict_done : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
-  | xs, (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) s) nr) => (__eo_ite (__are_distinct_terms_list_rec s xs (__eo_typeof s)) (Term.Boolean true) (__str_is_multiset_subset_strict_done xs nr))
+  | xs, (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) s) nr) => (__eo_ite (__eo_and (__eo_is_eq (__str_value_len s) (Term.Numeral 1)) (__are_distinct_terms_list_rec s xs (__eo_typeof s))) (Term.Boolean true) (__str_is_multiset_subset_strict_done xs nr))
   | xs, nr => (Term.Boolean false)
 
 
@@ -3419,7 +3419,7 @@ def __mk_skolems : Term -> Term -> Term -> Term
 
 
 def __eo_prog_skolemize : Proof -> Term
-  | (Proof.pf (Term.Apply (Term.UOp UserOp.not) (Term.Apply (Term.Apply (Term.UOp UserOp.forall) x) G))) => (__substitute_simul (Term.Apply (Term.UOp UserOp.not) G) x (__mk_skolems x (Term.Apply (Term.Apply (Term.UOp UserOp.forall) x) G) (Term.Numeral 0)))
+  | (Proof.pf (Term.Apply (Term.UOp UserOp.not) (Term.Apply (Term.Apply (Term.UOp UserOp.forall) x) G))) => (__eo_requires (__eo_list_setof Term.__eo_List_cons x) x (__substitute_simul (Term.Apply (Term.UOp UserOp.not) G) x (__mk_skolems x (Term.Apply (Term.Apply (Term.UOp UserOp.forall) x) G) (Term.Numeral 0))))
   | _ => Term.Stuck
 
 
@@ -3463,7 +3463,7 @@ def __mk_quant : Term -> Term -> Term -> Term
 
 
 def __eo_prog_quant_unused_vars : Term -> Term
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply Q x) F)) G) => (__eo_requires (__mk_quant Q (__mk_quant_unused_vars_rec x F) F) G (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply Q x) F)) G))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply Q x) F)) G) => (__eo_requires (__eo_or (__eo_eq Q (Term.UOp UserOp.forall)) (__eo_eq Q (Term.UOp UserOp.exists))) (Term.Boolean true) (__eo_requires (__mk_quant Q (__mk_quant_unused_vars_rec x F) F) G (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply Q x) F)) G)))
   | _ => Term.Stuck
 
 

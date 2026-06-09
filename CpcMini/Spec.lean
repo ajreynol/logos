@@ -16,6 +16,8 @@ noncomputable section
 def native_reserved_datatype_name (s : native_String) : native_Bool :=
   native_string_prefix_eq (native_string_lit "@") s
 
+
+
 mutual
 
 def __eo_to_smt_datatype_cons : DatatypeCons -> SmtDatatypeCons

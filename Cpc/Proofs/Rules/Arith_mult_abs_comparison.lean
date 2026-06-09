@@ -45,7 +45,7 @@ by
             (Proof.pf (__eo_mk_premise_list (Term.UOp UserOp.and) premises s))) true
         rw [hMk]
         exact ArithMultSupport.facts_arith_mult_abs_comparison M hM ps
-          hPremisesTrue hResultTyPs
+          hPremisesTrue.true_here hResultTyPs
       · change RuleProofs.eo_has_smt_translation
           (__eo_prog_arith_mult_abs_comparison
             (Proof.pf (__eo_mk_premise_list (Term.UOp UserOp.and) premises s)))
