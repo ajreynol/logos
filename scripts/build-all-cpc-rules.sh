@@ -9,13 +9,21 @@ Usage: scripts/build-all-cpc-rules.sh [options]
 Build every CPC proof rule under Cpc/Proofs/Rules and show Lake's verbose
 build progress.
 
+All rules are built in a single `lake build` invocation, so Lake already
+compiles them in parallel across all cores. This Lake version has no -j/--jobs
+flag, so -jN here instead caps Lean's program-wide thread pool via
+LEAN_NUM_THREADS (use it to limit, not raise, parallelism). Omit it for all
+cores.
+
 Options:
+  -jN, --jobs N  Set LEAN_NUM_THREADS=N for this build.
   --clean        Run `lake clean` before building all rules.
   --clean-only   Run `lake clean` and exit without building.
   -h, --help     Show this help.
 
 Examples:
   scripts/build-all-cpc-rules.sh
+  scripts/build-all-cpc-rules.sh -j12
   scripts/build-all-cpc-rules.sh --clean
   scripts/build-all-cpc-rules.sh --clean-only
 USAGE
@@ -31,16 +39,28 @@ repo_root="$(cd "${script_dir}/.." && pwd)"
 
 do_clean=false
 build=true
+jobs=""
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --clean) do_clean=true ;;
     --clean-only) do_clean=true; build=false ;;
+    -j) jobs="${2:-}"; shift ;;
+    -j*) jobs="${1#-j}" ;;
+    --jobs) jobs="${2:-}"; shift ;;
+    --jobs=*) jobs="${1#--jobs=}" ;;
     -h|--help) usage; exit 0 ;;
     *) usage >&2; die "unknown argument: $1" ;;
   esac
   shift
 done
+
+if [ -n "${jobs}" ]; then
+  case "${jobs}" in
+    *[!0-9]*|'') die "invalid job count: ${jobs}" ;;
+  esac
+  export LEAN_NUM_THREADS="${jobs}"
+fi
 
 rules_dir="${repo_root}/Cpc/Proofs/Rules"
 [ -d "${rules_dir}" ] || die "rules directory not found: ${rules_dir}"
