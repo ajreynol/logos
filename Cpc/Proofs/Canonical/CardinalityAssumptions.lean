@@ -1589,9 +1589,8 @@ private theorem smt_type_simple_large_context_infinite :
   | SmtType.Set T, hCtx => by
       simpa [__smtx_is_finite_type] using
         smt_type_simple_large_context_infinite (T := T) hCtx
-  | SmtType.Seq T, hCtx => by
-      simpa [__smtx_is_finite_type] using
-        smt_type_simple_large_context_infinite (T := T) hCtx
+  | SmtType.Seq _T, _hCtx => by
+      simp [__smtx_is_finite_type]
   | SmtType.Map K V, hCtx => by
       rcases hCtx with hValueLarge | hKeyLarge
       · have hVInf : __smtx_is_finite_type V = false :=
@@ -3803,6 +3802,69 @@ theorem cpc_nonunit_typed_canonical_nondefault_value
       simp [__smtx_type_wf_rec] at _hRec
 termination_by sizeOf A
 
+private def smt_seq_repeat (T : SmtType) (x : SmtValue) : Nat -> SmtSeq
+  | 0 => SmtSeq.empty T
+  | Nat.succ n => SmtSeq.cons x (smt_seq_repeat T x n)
+
+private theorem smt_seq_repeat_typeof
+    (T : SmtType) (x : SmtValue) (hx : __smtx_typeof_value x = T) :
+    ∀ n : Nat,
+      __smtx_typeof_seq_value (smt_seq_repeat T x n) = SmtType.Seq T
+  | 0 => by
+      simp [smt_seq_repeat, __smtx_typeof_seq_value]
+  | Nat.succ n => by
+      simp [smt_seq_repeat, __smtx_typeof_seq_value,
+        smt_seq_repeat_typeof T x hx n, hx, native_ite, native_Teq]
+
+private theorem smt_seq_repeat_canonical
+    (T : SmtType) (x : SmtValue) (hx : __smtx_value_canonical_bool x = true) :
+    ∀ n : Nat,
+      __smtx_seq_canonical (smt_seq_repeat T x n) = true
+  | 0 => by
+      simp [smt_seq_repeat, __smtx_seq_canonical]
+  | Nat.succ n => by
+      simp [smt_seq_repeat, __smtx_seq_canonical, native_and, hx,
+        smt_seq_repeat_canonical T x hx n]
+
+private theorem smt_seq_repeat_size_ge
+    (T : SmtType) (x : SmtValue) :
+    ∀ n : Nat, n ≤ sizeOf (smt_seq_repeat T x n)
+  | 0 => Nat.zero_le _
+  | Nat.succ n => by
+      have hRec := smt_seq_repeat_size_ge T x n
+      rw [show smt_seq_repeat T x (Nat.succ n) =
+        SmtSeq.cons x (smt_seq_repeat T x n) by rfl]
+      rw [show sizeOf (SmtSeq.cons x (smt_seq_repeat T x n)) =
+        1 + sizeOf x + sizeOf (smt_seq_repeat T x n) by rfl]
+      omega
+
+/--
+A sequence type over any inhabited element type has typed canonical values of
+arbitrarily large size: repeat the default element.
+-/
+private theorem seq_inhabited_large_witness
+    (T : SmtType)
+    (hInh : native_inhabited_type T = true)
+    (minSize : Nat) :
+    ∃ i : SmtValue,
+      __smtx_typeof_value i = SmtType.Seq T ∧
+        __smtx_value_canonical_bool i = true ∧
+          minSize ≤ sizeOf i := by
+  have hDef := type_default_typed_canonical_of_native_inhabited hInh
+  refine
+    ⟨SmtValue.Seq (smt_seq_repeat T (__smtx_type_default T) minSize),
+      ?_, ?_, ?_⟩
+  · simpa [__smtx_typeof_value] using
+      smt_seq_repeat_typeof T (__smtx_type_default T) hDef.1 minSize
+  · simpa [__smtx_value_canonical_bool] using
+      smt_seq_repeat_canonical T (__smtx_type_default T) hDef.2 minSize
+  · rw [show
+      sizeOf
+          (SmtValue.Seq (smt_seq_repeat T (__smtx_type_default T) minSize)) =
+        1 + sizeOf (smt_seq_repeat T (__smtx_type_default T) minSize) by rfl]
+    have := smt_seq_repeat_size_ge T (__smtx_type_default T) minSize
+    omega
+
 /--
 Fresh value assumption for well-formed infinite SMT types.
 
@@ -3983,24 +4045,12 @@ theorem cpc_fresh_typed_canonical_value_for_infinite_type_assumption
           native_inhabited_type T = true ∧
             __smtx_type_wf_rec T native_reflist_nil = true := by
         simpa [__smtx_type_wf_rec, native_and] using _hRec
-      have hTInfinite : __smtx_is_finite_type T = false := by
-        simpa [__smtx_is_finite_type] using _hInfinite
-      rcases cpc_fresh_typed_canonical_value_for_infinite_type_assumption
-          T hRecParts.1 hRecParts.2 hTInfinite (smt_seq_heads avoid) with
-        ⟨x, hxTy, hxCan, hxFresh⟩
-      refine ⟨SmtValue.Seq (SmtSeq.cons x (SmtSeq.empty T)), ?_, ?_, ?_⟩
-      · simp [__smtx_typeof_value, __smtx_typeof_seq_value,
-          hxTy, native_ite, native_Teq]
-      · simp [__smtx_value_canonical_bool, __smtx_seq_canonical,
-          hxCan, native_and]
-      · intro j hj
-        exact native_veq_eq_false_of_ne (by
-          intro hEq
-          subst j
-          have hxMem : x ∈ smt_seq_heads avoid :=
-            smt_seq_head_mem_of_mem x (SmtSeq.empty T) hj
-          have hxFalse := hxFresh x hxMem
-          simp [native_veq] at hxFalse)
+      rcases seq_inhabited_large_witness T hRecParts.1
+          (smt_value_size_bound avoid) with
+        ⟨i, hiTy, hiCan, hiSize⟩
+      refine ⟨i, hiTy, hiCan, ?_⟩
+      intro j hj
+      exact native_veq_false_of_mem_and_size_bound hj hiSize
   | Char =>
       simp [__smtx_is_finite_type] at _hInfinite
   | Datatype s d =>
