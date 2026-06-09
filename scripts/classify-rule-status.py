@@ -40,6 +40,7 @@ IGNORED_PROOF_GAP_FILES = frozenset(
         Path("Cpc/Proofs/Canonical/Order.lean"),
     )
 )
+STATUS_CATEGORIES = ("Proven", "Unproven", "OutOfScope")
 
 
 @dataclass(frozen=True)
@@ -743,6 +744,29 @@ def load_rule_filter(path: Path) -> frozenset[str]:
     return frozenset(rules)
 
 
+def summarize_statuses(statuses: list[RuleStatus]) -> dict[str, int]:
+    counts = {status: 0 for status in STATUS_CATEGORIES}
+    seen: set[str] = set()
+
+    for entry in statuses:
+        if entry.rule in seen:
+            continue
+        seen.add(entry.rule)
+        counts[entry.status] = counts.get(entry.status, 0) + 1
+
+    counts["Total"] = len(seen)
+    return counts
+
+
+def print_summary(statuses: list[RuleStatus]) -> None:
+    counts = summarize_statuses(statuses)
+    print()
+    print("summary")
+    for status in STATUS_CATEGORIES:
+        print(f"{status}\t{counts[status]}")
+    print(f"Total\t{counts['Total']}")
+
+
 def classify_file(
     path: Path,
     root: Path,
@@ -835,6 +859,11 @@ def parse_args() -> argparse.Namespace:
             "Only print rules named in this file. The file should contain one rule "
             "name per line; blank lines and lines beginning with # are ignored."
         ),
+    )
+    parser.add_argument(
+        "--no-summary",
+        action="store_true",
+        help="Omit the summary block in TSV output mode",
     )
     parser.add_argument(
         "-proven",
@@ -938,6 +967,9 @@ def main() -> int:
 
     for entry in statuses:
         print(f"{entry.rule}\t{entry.status}")
+
+    if not args.no_summary:
+        print_summary(statuses)
 
     return 0
 
