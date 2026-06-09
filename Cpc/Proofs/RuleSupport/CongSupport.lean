@@ -16,6 +16,10 @@ attribute [local simp] native_streq native_and native_ite
 private abbrev mkEq (x y : Term) : Term :=
   Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) y
 
+private def eqPremise? : Term -> Option (Term × Term)
+  | Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) y => some (x, y)
+  | _ => none
+
 private theorem eo_mk_apply_eq_of_ne_stuck (f x : Term) :
     f ≠ Term.Stuck ->
     x ≠ Term.Stuck ->
@@ -36,6 +40,23 @@ private theorem eo_mk_apply_right_ne_stuck_of_ne_stuck (f x : Term) :
   intro h hX
   subst hX
   cases f <;> simp [__eo_mk_apply] at h
+
+private theorem eo_requires_arg_eq_of_ne_stuck {x y z : Term} :
+    __eo_requires x y z ≠ Term.Stuck -> x = y := by
+  intro h
+  unfold __eo_requires at h
+  by_cases hxy : native_teq x y = true
+  · simpa [native_teq] using hxy
+  · simp [hxy, native_ite] at h
+
+private theorem eo_requires_result_ne_stuck_of_ne_stuck {x y z : Term} :
+    __eo_requires x y z ≠ Term.Stuck ->
+    z ≠ Term.Stuck := by
+  intro h hz
+  have hxy : x = y := eo_requires_arg_eq_of_ne_stuck h
+  subst y
+  subst z
+  simp [__eo_requires, native_ite, native_not, native_teq] at h
 
 private theorem eq_of_eo_eq_true (x y : Term) :
     __eo_eq x y = Term.Boolean true ->
@@ -4604,6 +4625,119 @@ private theorem smt_apply_head_non_none_of_apply_non_none
     ⟨A, B, hHead, _hX, _hA, _hB⟩
   exact smt_type_ne_none_of_apply_head hHead
 
+private theorem smt_term_ne_dt_sel_of_non_none_type
+    {F : SmtTerm}
+    (hF : __smtx_typeof F ≠ SmtType.None) :
+    ∀ s d i j, F ≠ SmtTerm.DtSel s d i j := by
+  intro s d i j h
+  subst h
+  exact hF (by simp)
+
+private theorem smt_term_ne_dt_tester_of_non_none_type
+    {F : SmtTerm}
+    (hF : __smtx_typeof F ≠ SmtType.None) :
+    ∀ s d i, F ≠ SmtTerm.DtTester s d i := by
+  intro s d i h
+  subst h
+  exact hF (by simp)
+
+private theorem generic_apply_type_of_has_smt_translation
+    (f x : Term)
+    (hF : RuleProofs.eo_has_smt_translation f) :
+    generic_apply_type (__eo_to_smt f) (__eo_to_smt x) :=
+  generic_apply_type_of_non_datatype_head
+    (smt_term_ne_dt_sel_of_non_none_type hF)
+    (smt_term_ne_dt_tester_of_non_none_type hF)
+
+private theorem generic_apply_eval_of_has_smt_translation
+    (f x : Term)
+    (hF : RuleProofs.eo_has_smt_translation f) :
+    generic_apply_eval (__eo_to_smt f) (__eo_to_smt x) :=
+  generic_apply_eval_of_non_datatype_head
+    (smt_term_ne_dt_sel_of_non_none_type hF)
+    (smt_term_ne_dt_tester_of_non_none_type hF)
+
+private theorem eo_typeof_apply_arg_stuck (F : Term) :
+    __eo_typeof_apply F Term.Stuck = Term.Stuck := by
+  cases F <;> rfl
+
+private theorem eo_typeof_apply_dtc_eq_of_arg_ne_stuck
+    (T U X : Term)
+    (hX : X ≠ Term.Stuck) :
+    __eo_typeof_apply (Term.DtcAppType T U) X =
+      __eo_requires T X U := by
+  cases X <;> simp [__eo_typeof_apply] at hX ⊢
+
+private theorem eo_typeof_apply_fun_eq_of_arg_ne_stuck
+    (T U X : Term)
+    (hX : X ≠ Term.Stuck) :
+    __eo_typeof_apply (Term.Apply (Term.Apply Term.FunType T) U) X =
+      __eo_requires T X U := by
+  cases X <;> simp [__eo_typeof_apply] at hX ⊢
+
+private theorem smtx_typeof_apply_non_none_of_eo_typeof_apply_non_stuck
+    (F X : Term)
+    (hFValid : TranslationProofs.eo_type_valid F)
+    (hApp : __eo_typeof_apply F X ≠ Term.Stuck) :
+    __smtx_typeof_apply (__eo_to_smt_type F) (__eo_to_smt_type X) ≠
+      SmtType.None := by
+  cases F with
+  | DtcAppType T U =>
+      have hXNN : X ≠ Term.Stuck := by
+        intro hX
+        subst X
+        exact hApp (eo_typeof_apply_arg_stuck _)
+      rw [eo_typeof_apply_dtc_eq_of_arg_ne_stuck T U X hXNN] at hApp
+      have hAppReq : __eo_requires T X U ≠ Term.Stuck := hApp
+      have hX : T = X := eo_requires_arg_eq_of_ne_stuck hAppReq
+      subst X
+      have hValid : TranslationProofs.eo_type_valid_rec [] (Term.DtcAppType T U) := by
+        simpa [TranslationProofs.eo_type_valid] using hFValid
+      rcases (by simpa [TranslationProofs.eo_type_valid_rec] using hValid :
+        TranslationProofs.eo_type_valid_rec [] T ∧
+          TranslationProofs.eo_type_valid_rec [] U) with ⟨hT, hU⟩
+      have hTNN : __eo_to_smt_type T ≠ SmtType.None :=
+        TranslationProofs.eo_type_valid_rec_non_none hT
+      have hUNN : __eo_to_smt_type U ≠ SmtType.None :=
+        TranslationProofs.eo_type_valid_rec_non_none hU
+      simp [__eo_to_smt_type, __smtx_typeof_apply, __smtx_typeof_guard,
+        native_ite, native_Teq, hTNN, hUNN]
+  | Apply f U =>
+      cases f with
+      | Apply f' T =>
+          cases f' with
+          | FunType =>
+              have hXNN : X ≠ Term.Stuck := by
+                intro hX
+                subst X
+                exact hApp (eo_typeof_apply_arg_stuck _)
+              rw [eo_typeof_apply_fun_eq_of_arg_ne_stuck T U X hXNN] at hApp
+              have hAppReq : __eo_requires T X U ≠ Term.Stuck := hApp
+              have hX : T = X := eo_requires_arg_eq_of_ne_stuck hAppReq
+              subst X
+              have hValid :
+                  TranslationProofs.eo_type_valid_rec []
+                    (Term.Apply (Term.Apply Term.FunType T) U) := by
+                simpa [TranslationProofs.eo_type_valid] using hFValid
+              rcases (by
+                  simpa [TranslationProofs.eo_type_valid_rec] using hValid :
+                    TranslationProofs.eo_type_valid_rec [] T ∧
+                      TranslationProofs.eo_type_valid_rec [] U) with
+                ⟨hT, hU⟩
+              have hTNN : __eo_to_smt_type T ≠ SmtType.None :=
+                TranslationProofs.eo_type_valid_rec_non_none hT
+              have hUNN : __eo_to_smt_type U ≠ SmtType.None :=
+                TranslationProofs.eo_type_valid_rec_non_none hU
+              simp [TranslationProofs.eo_to_smt_type_fun,
+                __smtx_typeof_apply, __smtx_typeof_guard, native_ite,
+                native_Teq, hTNN, hUNN]
+          | _ =>
+              exact False.elim (hApp (by cases X <;> simp [__eo_typeof_apply]))
+      | _ =>
+          exact False.elim (hApp (by cases X <;> simp [__eo_typeof_apply]))
+  | _ =>
+      exact False.elim (hApp (by cases X <;> simp [__eo_typeof_apply]))
+
 private theorem smt_apply_type_none_of_arg_none
     (f x : SmtTerm) :
     __smtx_typeof x = SmtType.None ->
@@ -4974,6 +5108,221 @@ private theorem eo_to_smt_apply_generic_of_has_smt_translation
           simp [__smtx_typeof, __smtx_typeof_apply,
             TranslationProofs.smtx_typeof_none]
 
+private theorem eo_typeof_apply_eq_of_has_smt_translation
+    (f x : Term)
+    (hTransF : RuleProofs.eo_has_smt_translation f) :
+    __eo_typeof (Term.Apply f x) =
+      __eo_typeof_apply (__eo_typeof f) (__eo_typeof x) := by
+  cases f <;> try rfl
+  case __eo_List_cons =>
+    exfalso
+    apply hTransF
+    change __smtx_typeof SmtTerm.None = SmtType.None
+    exact TranslationProofs.smtx_typeof_none
+  case UOp op =>
+    cases op <;> try rfl
+    all_goals
+      exfalso
+      apply hTransF
+      change __smtx_typeof SmtTerm.None = SmtType.None
+      exact TranslationProofs.smtx_typeof_none
+  case UOp1 op i =>
+    cases op <;> try rfl
+    all_goals
+      exfalso
+      apply hTransF
+      change __smtx_typeof SmtTerm.None = SmtType.None
+      exact TranslationProofs.smtx_typeof_none
+  case UOp2 op i j =>
+    cases op <;> try rfl
+    all_goals
+      exfalso
+      apply hTransF
+      change __smtx_typeof SmtTerm.None = SmtType.None
+      exact TranslationProofs.smtx_typeof_none
+  case Apply f a =>
+    cases f <;> try rfl
+    case UOp op =>
+      cases op <;> try rfl
+      all_goals
+        exfalso
+        apply hTransF
+        change __smtx_typeof (SmtTerm.Apply SmtTerm.None (__eo_to_smt a)) =
+          SmtType.None
+        simp [__smtx_typeof, __smtx_typeof_apply,
+          TranslationProofs.smtx_typeof_none]
+    case UOp1 op i =>
+      cases op <;> try rfl
+      all_goals
+        exfalso
+        apply hTransF
+        change __smtx_typeof (SmtTerm.Apply SmtTerm.None (__eo_to_smt a)) =
+          SmtType.None
+        simp [__smtx_typeof, __smtx_typeof_apply,
+          TranslationProofs.smtx_typeof_none]
+    case FunType =>
+      exfalso
+      apply hTransF
+      change __smtx_typeof (SmtTerm.Apply SmtTerm.None (__eo_to_smt a)) =
+        SmtType.None
+      simp [__smtx_typeof, __smtx_typeof_apply,
+        TranslationProofs.smtx_typeof_none]
+    case Apply f' b =>
+      cases f' <;> try rfl
+      case UOp op =>
+        cases op <;> try rfl
+        all_goals
+          exfalso
+          apply hTransF
+          change
+            __smtx_typeof
+              (SmtTerm.Apply (SmtTerm.Apply SmtTerm.None (__eo_to_smt b))
+                (__eo_to_smt a)) = SmtType.None
+          simp [__smtx_typeof, __smtx_typeof_apply,
+            TranslationProofs.smtx_typeof_none]
+
+private theorem eo_has_smt_translation_apply_of_head_arg_translation_and_type
+    (f x : Term)
+    (hF : RuleProofs.eo_has_smt_translation f)
+    (hX : RuleProofs.eo_has_smt_translation x)
+    (hTy : __eo_typeof (Term.Apply f x) ≠ Term.Stuck) :
+    RuleProofs.eo_has_smt_translation (Term.Apply f x) := by
+  unfold RuleProofs.eo_has_smt_translation
+  rw [eo_to_smt_apply_generic_of_has_smt_translation f x hF]
+  have hGeneric : generic_apply_type (__eo_to_smt f) (__eo_to_smt x) :=
+    generic_apply_type_of_has_smt_translation f x hF
+  unfold generic_apply_type at hGeneric
+  rw [hGeneric]
+  have hFMatch :
+      __smtx_typeof (__eo_to_smt f) = __eo_to_smt_type (__eo_typeof f) :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation f hF
+  have hXMatch :
+      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x) :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation x hX
+  rw [hFMatch, hXMatch]
+  have hEoApply :
+      __eo_typeof_apply (__eo_typeof f) (__eo_typeof x) ≠ Term.Stuck := by
+    have hEq := eo_typeof_apply_eq_of_has_smt_translation f x hF
+    rwa [← hEq]
+  have hFValid :
+      TranslationProofs.eo_type_valid (__eo_typeof f) :=
+    TranslationProofs.eo_type_valid_typeof_of_smt_translation f hF
+  exact smtx_typeof_apply_non_none_of_eo_typeof_apply_non_stuck
+    (__eo_typeof f) (__eo_typeof x) hFValid hEoApply
+
+private theorem eq_typeof_bool_left_ne_stuck (x y : Term) :
+    __eo_typeof (mkEq x y) = Term.Bool ->
+    __eo_typeof x ≠ Term.Stuck := by
+  intro h
+  change __eo_typeof_eq (__eo_typeof x) (__eo_typeof y) = Term.Bool at h
+  cases hx : __eo_typeof x <;>
+    cases hy : __eo_typeof y <;>
+      simp [__eo_typeof_eq, hx, hy] at h ⊢
+
+private theorem eq_typeof_bool_right_ne_stuck (x y : Term) :
+    __eo_typeof (mkEq x y) = Term.Bool ->
+    __eo_typeof y ≠ Term.Stuck := by
+  intro h
+  change __eo_typeof_eq (__eo_typeof x) (__eo_typeof y) = Term.Bool at h
+  cases hx : __eo_typeof x <;>
+    cases hy : __eo_typeof y <;>
+      simp [__eo_typeof_eq, hx, hy] at h ⊢
+
+private inductive HoAppSpine (base : Term) : Term -> Prop where
+  | base : HoAppSpine base base
+  | app {f x : Term} :
+      HoAppSpine base f ->
+      HoAppSpine base (Term.Apply f x)
+
+private theorem eo_typeof_apply_head_ne_stuck {F X : Term} :
+    __eo_typeof_apply F X ≠ Term.Stuck ->
+    F ≠ Term.Stuck := by
+  intro h hF
+  subst F
+  cases X <;> simp [__eo_typeof_apply] at h
+
+private theorem hoAppSpine_raw_uop_none_false
+    (base : Term) (op : UserOp) :
+    (__smtx_typeof (__eo_to_smt (Term.UOp op)) = SmtType.None) ->
+    RuleProofs.eo_has_smt_translation base ->
+    HoAppSpine base (Term.UOp op) ->
+    False := by
+  intro hNone hBase hSpine
+  cases hSpine with
+  | base =>
+      exact hBase hNone
+
+private theorem hoAppSpine_raw_funtype_false
+    (base : Term) :
+    RuleProofs.eo_has_smt_translation base ->
+    HoAppSpine base Term.FunType ->
+    False := by
+  intro hBase hSpine
+  cases hSpine with
+  | base =>
+      exact hBase (by
+        change __smtx_typeof SmtTerm.None = SmtType.None
+        exact TranslationProofs.smtx_typeof_none)
+
+private theorem hoAppSpine_partial_uop_false
+    (base : Term) (op : UserOp) (x : Term) :
+    (__smtx_typeof (__eo_to_smt (Term.UOp op)) = SmtType.None) ->
+    (__smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp op) x)) =
+      SmtType.None) ->
+    RuleProofs.eo_has_smt_translation base ->
+    HoAppSpine base (Term.Apply (Term.UOp op) x) ->
+    False := by
+  intro hRawNone hNone hBase hSpine
+  cases hSpine with
+  | base =>
+      exact hBase hNone
+  | app hPrev =>
+      exact hoAppSpine_raw_uop_none_false base op hRawNone hBase hPrev
+
+private theorem hoAppSpine_typeof_apply_eq
+    (base f x : Term)
+    (hBase : RuleProofs.eo_has_smt_translation base)
+    (hSpine : HoAppSpine base f) :
+    __eo_typeof (Term.Apply f x) =
+      __eo_typeof_apply (__eo_typeof f) (__eo_typeof x) := by
+  induction hSpine generalizing x with
+  | base =>
+      exact eo_typeof_apply_eq_of_has_smt_translation base x hBase
+  | app hPrev ih =>
+      rename_i p y
+      cases p <;> try rfl
+      case UOp op =>
+        cases op <;> try rfl
+        all_goals
+          exact False.elim (hoAppSpine_raw_uop_none_false base _ (by
+            change __smtx_typeof SmtTerm.None = SmtType.None
+            exact TranslationProofs.smtx_typeof_none) hBase hPrev)
+      case UOp1 op idx =>
+        cases op <;> try rfl
+        all_goals
+          exact False.elim (by
+            cases hPrev with
+            | base =>
+                exact hBase (by
+                  change __smtx_typeof SmtTerm.None = SmtType.None
+                  exact TranslationProofs.smtx_typeof_none))
+      case FunType =>
+        exact False.elim (hoAppSpine_raw_funtype_false base hBase hPrev)
+      case Apply p₁ p₂ =>
+        cases p₁ <;> try rfl
+        case UOp op =>
+          cases op <;> try rfl
+          all_goals
+            exact False.elim (hoAppSpine_partial_uop_false base _ p₂ (by
+              change __smtx_typeof SmtTerm.None = SmtType.None
+              exact TranslationProofs.smtx_typeof_none) (by
+              change
+                __smtx_typeof
+                    (SmtTerm.Apply SmtTerm.None (__eo_to_smt p₂)) =
+                  SmtType.None
+              simp [__smtx_typeof, __smtx_typeof_apply,
+                TranslationProofs.smtx_typeof_none]) hBase hPrev)
+
 private theorem eo_apply_apply_head_has_translation_of_generic_apply_translation
     (f z x : Term)
     (hToSmt :
@@ -5022,6 +5371,344 @@ private theorem congTypeSpine_generic_apply_eq_has_bool_type
       unfold generic_apply_type at hGenF hGenG
       rw [hGenF, hGenG, hFnTypes.1, hArgTypes.1])
     hTrans
+
+private theorem ho_cong_app_eq_has_bool_type_of_type
+    (f g x y : Term)
+    (hFn : RuleProofs.eo_has_bool_type (mkEq f g))
+    (hArg : RuleProofs.eo_has_bool_type (mkEq x y))
+    (hTy :
+      __eo_typeof (mkEq (Term.Apply f x) (Term.Apply g y)) = Term.Bool) :
+    RuleProofs.eo_has_bool_type
+      (mkEq (Term.Apply f x) (Term.Apply g y)) := by
+  have hFnTypes :=
+    RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type f g hFn
+  have hFTrans : RuleProofs.eo_has_smt_translation f := hFnTypes.2
+  have hGTrans : RuleProofs.eo_has_smt_translation g := by
+    intro hNone
+    exact hFnTypes.2 (hFnTypes.1.trans hNone)
+  have hArgTypes :=
+    RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type x y hArg
+  have hXTrans : RuleProofs.eo_has_smt_translation x := hArgTypes.2
+  have hLeftTy : __eo_typeof (Term.Apply f x) ≠ Term.Stuck :=
+    eq_typeof_bool_left_ne_stuck (Term.Apply f x) (Term.Apply g y) hTy
+  have hLeftTrans :
+      RuleProofs.eo_has_smt_translation (Term.Apply f x) :=
+    eo_has_smt_translation_apply_of_head_arg_translation_and_type
+      f x hFTrans hXTrans hLeftTy
+  exact
+    congTypeSpine_generic_apply_eq_has_bool_type
+      f g x y hLeftTrans
+      (eo_to_smt_apply_generic_of_has_smt_translation f x hFTrans)
+      (eo_to_smt_apply_generic_of_has_smt_translation g y hGTrans)
+      (generic_apply_type_of_has_smt_translation f x hFTrans)
+      (generic_apply_type_of_has_smt_translation g y hGTrans)
+      hFn hArg
+
+private inductive HoCongTypeSpine (f g : Term) : Term -> Term -> Prop where
+  | base :
+      RuleProofs.eo_has_bool_type (mkEq f g) ->
+      HoCongTypeSpine f g f g
+  | app {l r x y : Term} :
+      HoCongTypeSpine f g l r ->
+      RuleProofs.eo_has_bool_type (mkEq x y) ->
+      HoCongTypeSpine f g (Term.Apply l x) (Term.Apply r y)
+
+private theorem hoCongTypeSpine_base_bool
+    {f g l r : Term} :
+    HoCongTypeSpine f g l r ->
+    RuleProofs.eo_has_bool_type (mkEq f g)
+  | HoCongTypeSpine.base h => h
+  | HoCongTypeSpine.app h _ => hoCongTypeSpine_base_bool h
+
+private theorem hoCongTypeSpine_left_appSpine
+    {f g l r : Term} :
+    HoCongTypeSpine f g l r ->
+    HoAppSpine f l
+  | HoCongTypeSpine.base _ => HoAppSpine.base
+  | HoCongTypeSpine.app h _ =>
+      HoAppSpine.app (hoCongTypeSpine_left_appSpine h)
+
+private theorem hoCongTypeSpine_left_translation_of_type
+    {f g l r : Term}
+    (hSpine : HoCongTypeSpine f g l r) :
+    __eo_typeof l ≠ Term.Stuck ->
+    RuleProofs.eo_has_smt_translation l := by
+  intro hTy
+  induction hSpine with
+  | base hBase =>
+      exact
+        (RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+          f g hBase).2
+  | app hRec hArg ih =>
+      rename_i l r x y
+      have hBaseBool : RuleProofs.eo_has_bool_type (mkEq f g) :=
+        hoCongTypeSpine_base_bool hRec
+      have hBaseTrans : RuleProofs.eo_has_smt_translation f :=
+        (RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+          f g hBaseBool).2
+      have hApplyEq :=
+        hoAppSpine_typeof_apply_eq f l x hBaseTrans
+          (hoCongTypeSpine_left_appSpine hRec)
+      have hApplyTy :
+          __eo_typeof_apply (__eo_typeof l) (__eo_typeof x) ≠
+            Term.Stuck := by
+        rwa [← hApplyEq]
+      have hHeadTy : __eo_typeof l ≠ Term.Stuck :=
+        eo_typeof_apply_head_ne_stuck hApplyTy
+      have hLTrans : RuleProofs.eo_has_smt_translation l := ih hHeadTy
+      have hXTrans : RuleProofs.eo_has_smt_translation x :=
+        (RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+          x y hArg).2
+      exact eo_has_smt_translation_apply_of_head_arg_translation_and_type
+        l x hLTrans hXTrans hTy
+
+private theorem hoCongTypeSpine_smt_type_eq_of_left_translation
+    {f g l r : Term}
+    (hSpine : HoCongTypeSpine f g l r) :
+    RuleProofs.eo_has_smt_translation l ->
+    __smtx_typeof (__eo_to_smt l) = __smtx_typeof (__eo_to_smt r) := by
+  intro hLTrans
+  induction hSpine with
+  | base hBase =>
+      exact
+        (RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+          f g hBase).1
+  | app hRec hArg ih =>
+      rename_i l r x y
+      have hTyL : __eo_typeof (Term.Apply l x) ≠ Term.Stuck :=
+        TranslationProofs.eo_type_valid_not_stuck
+          (TranslationProofs.eo_type_valid_typeof_of_smt_translation
+            (Term.Apply l x) hLTrans)
+      have hBaseBool : RuleProofs.eo_has_bool_type (mkEq f g) :=
+        hoCongTypeSpine_base_bool hRec
+      have hBaseTrans : RuleProofs.eo_has_smt_translation f :=
+        (RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+          f g hBaseBool).2
+      have hApplyEq :=
+        hoAppSpine_typeof_apply_eq f l x hBaseTrans
+          (hoCongTypeSpine_left_appSpine hRec)
+      have hApplyTy :
+          __eo_typeof_apply (__eo_typeof l) (__eo_typeof x) ≠
+            Term.Stuck := by
+        rwa [← hApplyEq]
+      have hHeadTy : __eo_typeof l ≠ Term.Stuck :=
+        eo_typeof_apply_head_ne_stuck hApplyTy
+      have hPrevLTrans :
+          RuleProofs.eo_has_smt_translation l :=
+        hoCongTypeSpine_left_translation_of_type hRec hHeadTy
+      have hPrevTyEq := ih hPrevLTrans
+      have hPrevRTrans :
+          RuleProofs.eo_has_smt_translation r := by
+        intro hNone
+        exact hPrevLTrans (hPrevTyEq.trans hNone)
+      have hArgTypes :=
+        RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type x y hArg
+      rw [eo_to_smt_apply_generic_of_has_smt_translation l x hPrevLTrans,
+        eo_to_smt_apply_generic_of_has_smt_translation r y hPrevRTrans]
+      have hGenL : generic_apply_type (__eo_to_smt l) (__eo_to_smt x) :=
+        generic_apply_type_of_has_smt_translation l x hPrevLTrans
+      have hGenR : generic_apply_type (__eo_to_smt r) (__eo_to_smt y) :=
+        generic_apply_type_of_has_smt_translation r y hPrevRTrans
+      unfold generic_apply_type at hGenL hGenR
+      rw [hGenL, hGenR, hPrevTyEq, hArgTypes.1]
+
+private theorem hoCongTypeSpine_eq_has_bool_type
+    {f g l r : Term}
+    (hSpine : HoCongTypeSpine f g l r) :
+    __eo_typeof (mkEq l r) = Term.Bool ->
+    RuleProofs.eo_has_bool_type (mkEq l r) := by
+  intro hTy
+  have hLeftTy : __eo_typeof l ≠ Term.Stuck :=
+    eq_typeof_bool_left_ne_stuck l r hTy
+  have hLeftTrans :
+      RuleProofs.eo_has_smt_translation l :=
+    hoCongTypeSpine_left_translation_of_type hSpine hLeftTy
+  exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type l r
+    (hoCongTypeSpine_smt_type_eq_of_left_translation hSpine hLeftTrans)
+    hLeftTrans
+
+private theorem mk_ho_cong_step_eq_of_ne_stuck
+    (l r x y tail : Term) :
+    __mk_ho_cong l r
+        (Term.Apply (Term.Apply (Term.UOp UserOp.and) (mkEq x y)) tail) ≠
+      Term.Stuck ->
+    __mk_ho_cong l r
+        (Term.Apply (Term.Apply (Term.UOp UserOp.and) (mkEq x y)) tail) =
+      __mk_ho_cong (Term.Apply l x) (Term.Apply r y) tail := by
+  intro hProg
+  cases l <;> cases r <;>
+    simp [__mk_ho_cong] at hProg ⊢
+
+private theorem mk_ho_cong_step_ne_stuck_of_ne_stuck
+    (l r x y tail : Term) :
+    __mk_ho_cong l r
+        (Term.Apply (Term.Apply (Term.UOp UserOp.and) (mkEq x y)) tail) ≠
+      Term.Stuck ->
+    __mk_ho_cong (Term.Apply l x) (Term.Apply r y) tail ≠ Term.Stuck := by
+  intro hProg
+  rw [← mk_ho_cong_step_eq_of_ne_stuck l r x y tail hProg]
+  exact hProg
+
+private theorem mk_ho_cong_bad_head_stuck
+    (l r a tail : Term)
+    (hBad : ∀ x y, a ≠ mkEq x y) :
+    __mk_ho_cong l r
+        (Term.Apply (Term.Apply (Term.UOp UserOp.and) a) tail) =
+      Term.Stuck := by
+  cases hEq : eqPremise? a with
+  | some xy =>
+      rcases xy with ⟨x, y⟩
+      simp [eqPremise?] at hEq
+  | none =>
+      cases a with
+      | Apply pf y =>
+          cases pf with
+          | Apply pg x =>
+              cases pg with
+              | UOp op =>
+                  cases op
+                  case eq =>
+                    simp [eqPremise?] at hEq
+                  all_goals
+                    cases l <;> cases r <;> rfl
+              | _ =>
+                  cases l <;> cases r <;> rfl
+          | _ =>
+              cases l <;> cases r <;> rfl
+      | _ =>
+          cases l <;> cases r <;> rfl
+
+private theorem mk_ho_cong_type_spine_of_list
+    (f g : Term) :
+    ∀ (ps : List Term) (l r : Term),
+      HoCongTypeSpine f g l r ->
+      AllHaveBoolType ps ->
+      __mk_ho_cong l r (premiseAndFormulaList ps) ≠ Term.Stuck ->
+      ∃ L R,
+        __mk_ho_cong l r (premiseAndFormulaList ps) = mkEq L R ∧
+          HoCongTypeSpine f g L R := by
+  intro ps
+  induction ps with
+  | nil =>
+      intro l r hSpine _hBool hProg
+      refine ⟨l, r, ?_, hSpine⟩
+      cases l <;> cases r <;>
+        simp [premiseAndFormulaList, __mk_ho_cong] at hProg ⊢
+  | cons p ps ih =>
+      intro l r hSpine hBool hProg
+      cases p with
+      | Apply pf tail =>
+          cases pf with
+          | Apply pg lhs =>
+              cases pg with
+              | UOp op =>
+                  cases op
+                  case eq =>
+                    have hArgBool :
+                        RuleProofs.eo_has_bool_type (mkEq lhs tail) := by
+                      simpa [premiseAndFormulaList, mkEq] using
+                        hBool (mkEq lhs tail) (by simp [mkEq])
+                    have hRestBool : AllHaveBoolType ps := by
+                      intro q hq
+                      exact hBool q (by simp [hq])
+                    have hRecNN :
+                        __mk_ho_cong (Term.Apply l lhs)
+                            (Term.Apply r tail) (premiseAndFormulaList ps) ≠
+                          Term.Stuck :=
+                      mk_ho_cong_step_ne_stuck_of_ne_stuck l r lhs tail
+                        (premiseAndFormulaList ps) (by
+                          simpa [premiseAndFormulaList, mkEq] using hProg)
+                    rcases ih (Term.Apply l lhs) (Term.Apply r tail)
+                        (HoCongTypeSpine.app hSpine hArgBool)
+                        hRestBool hRecNN with
+                      ⟨L, R, hEq, hOutSpine⟩
+                    refine ⟨L, R, ?_, hOutSpine⟩
+                    have hStep :=
+                      mk_ho_cong_step_eq_of_ne_stuck l r lhs tail
+                        (premiseAndFormulaList ps) (by
+                          simpa [premiseAndFormulaList, mkEq] using hProg)
+                    simpa [premiseAndFormulaList, mkEq, hStep] using hEq
+                  all_goals
+                    exact False.elim (hProg (by
+                      simp [premiseAndFormulaList,
+                        mk_ho_cong_bad_head_stuck, mkEq]))
+              | _ =>
+                  exact False.elim (hProg (by
+                    simp [premiseAndFormulaList,
+                      mk_ho_cong_bad_head_stuck, mkEq]))
+          | _ =>
+              exact False.elim (hProg (by
+                simp [premiseAndFormulaList,
+                  mk_ho_cong_bad_head_stuck, mkEq]))
+      | _ =>
+          exact False.elim (hProg (by
+            simp [premiseAndFormulaList,
+              mk_ho_cong_bad_head_stuck, mkEq]))
+
+/-- Typing for the generated EO implementation of `ho_cong`. -/
+theorem typed___eo_prog_ho_cong_impl (premises : List Term) :
+  AllHaveBoolType premises ->
+  __eo_prog_ho_cong (Proof.pf (premiseAndFormulaList premises)) ≠
+    Term.Stuck ->
+  __eo_typeof (__eo_prog_ho_cong
+    (Proof.pf (premiseAndFormulaList premises))) = Term.Bool ->
+  RuleProofs.eo_has_bool_type
+    (__eo_prog_ho_cong (Proof.pf (premiseAndFormulaList premises))) := by
+  intro hPremisesBool hProg hProgType
+  cases premises with
+  | nil =>
+      exact False.elim (hProg (by simp [premiseAndFormulaList, __eo_prog_ho_cong]))
+  | cons p ps =>
+      cases p with
+      | Apply pf g =>
+          cases pf with
+          | Apply pg f =>
+              cases pg with
+              | UOp op =>
+                  cases op
+                  case eq =>
+                    have hBaseBool :
+                        RuleProofs.eo_has_bool_type (mkEq f g) := by
+                      simpa [premiseAndFormulaList, mkEq] using
+                        hPremisesBool (mkEq f g) (by simp [mkEq])
+                    have hRestBool : AllHaveBoolType ps := by
+                      intro q hq
+                      exact hPremisesBool q (by simp [hq])
+                    have hMkNN :
+                        __mk_ho_cong f g (premiseAndFormulaList ps) ≠
+                          Term.Stuck := by
+                      simpa [premiseAndFormulaList, __eo_prog_ho_cong, mkEq]
+                        using hProg
+                    rcases mk_ho_cong_type_spine_of_list f g ps f g
+                        (HoCongTypeSpine.base hBaseBool) hRestBool hMkNN with
+                      ⟨L, R, hEq, hSpine⟩
+                    have hEqTy : __eo_typeof (mkEq L R) = Term.Bool := by
+                      have hProgType' := hProgType
+                      simp [premiseAndFormulaList, __eo_prog_ho_cong, mkEq,
+                        hEq] at hProgType'
+                      exact hProgType'
+                    have hBool : RuleProofs.eo_has_bool_type (mkEq L R) :=
+                      hoCongTypeSpine_eq_has_bool_type hSpine hEqTy
+                    have hProgEq :
+                        __eo_prog_ho_cong
+                            (Proof.pf
+                              (premiseAndFormulaList (mkEq f g :: ps))) =
+                          mkEq L R := by
+                      simp [premiseAndFormulaList, __eo_prog_ho_cong, mkEq,
+                        hEq]
+                    rwa [hProgEq]
+                  all_goals
+                    exact False.elim (hProg (by
+                      simp [premiseAndFormulaList, __eo_prog_ho_cong]))
+              | _ =>
+                  exact False.elim (hProg (by
+                    simp [premiseAndFormulaList, __eo_prog_ho_cong]))
+          | _ =>
+              exact False.elim (hProg (by
+                simp [premiseAndFormulaList, __eo_prog_ho_cong]))
+      | _ =>
+          exact False.elim (hProg (by
+            simp [premiseAndFormulaList, __eo_prog_ho_cong]))
 
 private theorem congTrueSpine_generic_apply_eq_true
     (M : SmtModel) (hM : model_total_typed M)
@@ -5073,6 +5760,226 @@ private theorem congTrueSpine_generic_apply_eq_true
     exact smt_value_rel_model_eval_apply_of_rel_core M hM
       (__eo_to_smt f) (__eo_to_smt g) (__eo_to_smt x) (__eo_to_smt y)
       hAppNN hFnTypes.1 hArgTypes.1 hFnRel hArgRel
+
+private inductive HoCongTrueSpine
+    (M : SmtModel) (f g : Term) : Term -> Term -> Prop where
+  | base :
+      eo_interprets M (mkEq f g) true ->
+      HoCongTrueSpine M f g f g
+  | app {l r x y : Term} :
+      HoCongTrueSpine M f g l r ->
+      eo_interprets M (mkEq x y) true ->
+      HoCongTrueSpine M f g (Term.Apply l x) (Term.Apply r y)
+
+private theorem hoCongTypeSpine_of_hoCongTrueSpine
+    {M : SmtModel} {f g l r : Term} :
+    HoCongTrueSpine M f g l r ->
+      HoCongTypeSpine f g l r
+  | HoCongTrueSpine.base hBase =>
+      HoCongTypeSpine.base
+        (RuleProofs.eo_has_bool_type_of_interprets_true M _ hBase)
+  | HoCongTrueSpine.app hRec hArg =>
+      HoCongTypeSpine.app
+        (hoCongTypeSpine_of_hoCongTrueSpine hRec)
+        (RuleProofs.eo_has_bool_type_of_interprets_true M _ hArg)
+
+private theorem hoCongTrueSpine_eq_true
+    (M : SmtModel) (hM : model_total_typed M)
+    {f g l r : Term}
+    (hSpine : HoCongTrueSpine M f g l r) :
+    RuleProofs.eo_has_bool_type (mkEq l r) ->
+    eo_interprets M (mkEq l r) true := by
+  intro hEqBool
+  revert hEqBool
+  induction hSpine with
+  | base hBase =>
+      intro _hEqBool
+      exact hBase
+  | app hPrev hArg ih =>
+      rename_i l r x y
+      intro hEqBool
+      have hPrevTypeSpine :
+          HoCongTypeSpine f g l r :=
+        hoCongTypeSpine_of_hoCongTrueSpine hPrev
+      have hFinalLeftTrans :
+          RuleProofs.eo_has_smt_translation (Term.Apply l x) :=
+        (RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+          (Term.Apply l x) (Term.Apply r y) hEqBool).2
+      have hFinalLeftTy : __eo_typeof (Term.Apply l x) ≠ Term.Stuck :=
+        TranslationProofs.eo_type_valid_not_stuck
+          (TranslationProofs.eo_type_valid_typeof_of_smt_translation
+            (Term.Apply l x) hFinalLeftTrans)
+      have hBaseBool : RuleProofs.eo_has_bool_type (mkEq f g) :=
+        hoCongTypeSpine_base_bool hPrevTypeSpine
+      have hBaseTrans : RuleProofs.eo_has_smt_translation f :=
+        (RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+          f g hBaseBool).2
+      have hApplyEq :=
+        hoAppSpine_typeof_apply_eq f l x hBaseTrans
+          (hoCongTypeSpine_left_appSpine hPrevTypeSpine)
+      have hApplyTy :
+          __eo_typeof_apply (__eo_typeof l) (__eo_typeof x) ≠
+            Term.Stuck := by
+        rwa [← hApplyEq]
+      have hHeadTy : __eo_typeof l ≠ Term.Stuck :=
+        eo_typeof_apply_head_ne_stuck hApplyTy
+      have hPrevLTrans :
+          RuleProofs.eo_has_smt_translation l :=
+        hoCongTypeSpine_left_translation_of_type hPrevTypeSpine hHeadTy
+      have hPrevTyEq :
+          __smtx_typeof (__eo_to_smt l) = __smtx_typeof (__eo_to_smt r) :=
+        hoCongTypeSpine_smt_type_eq_of_left_translation
+          hPrevTypeSpine hPrevLTrans
+      have hPrevBool : RuleProofs.eo_has_bool_type (mkEq l r) :=
+        RuleProofs.eo_has_bool_type_eq_of_same_smt_type l r
+          hPrevTyEq hPrevLTrans
+      have hPrevTrue : eo_interprets M (mkEq l r) true :=
+        ih hPrevBool
+      have hPrevRTrans : RuleProofs.eo_has_smt_translation r := by
+        intro hNone
+        exact hPrevLTrans (hPrevTyEq.trans hNone)
+      exact congTrueSpine_generic_apply_eq_true M hM l r x y hEqBool
+        (eo_to_smt_apply_generic_of_has_smt_translation l x hPrevLTrans)
+        (eo_to_smt_apply_generic_of_has_smt_translation r y hPrevRTrans)
+        (generic_apply_type_of_has_smt_translation l x hPrevLTrans)
+        (generic_apply_eval_of_has_smt_translation l x hPrevLTrans)
+        (generic_apply_eval_of_has_smt_translation r y hPrevRTrans)
+        hPrevTrue hArg
+
+private theorem mk_ho_cong_true_spine_of_list
+    (M : SmtModel) (f g : Term) :
+    ∀ (ps : List Term) (l r : Term),
+      HoCongTrueSpine M f g l r ->
+      AllInterpretedTrue M ps ->
+      __mk_ho_cong l r (premiseAndFormulaList ps) ≠ Term.Stuck ->
+      ∃ L R,
+        __mk_ho_cong l r (premiseAndFormulaList ps) = mkEq L R ∧
+          HoCongTrueSpine M f g L R := by
+  intro ps
+  induction ps with
+  | nil =>
+      intro l r hSpine _hTrue hProg
+      refine ⟨l, r, ?_, hSpine⟩
+      cases l <;> cases r <;>
+        simp [premiseAndFormulaList, __mk_ho_cong] at hProg ⊢
+  | cons p ps ih =>
+      intro l r hSpine hTrue hProg
+      cases p with
+      | Apply pf tail =>
+          cases pf with
+          | Apply pg lhs =>
+              cases pg with
+              | UOp op =>
+                  cases op
+                  case eq =>
+                    have hArgTrue :
+                        eo_interprets M (mkEq lhs tail) true := by
+                      simpa [premiseAndFormulaList, mkEq] using
+                        hTrue (mkEq lhs tail) (by simp [mkEq])
+                    have hRestTrue : AllInterpretedTrue M ps := by
+                      intro q hq
+                      exact hTrue q (by simp [hq])
+                    have hRecNN :
+                        __mk_ho_cong (Term.Apply l lhs)
+                            (Term.Apply r tail) (premiseAndFormulaList ps) ≠
+                          Term.Stuck :=
+                      mk_ho_cong_step_ne_stuck_of_ne_stuck l r lhs tail
+                        (premiseAndFormulaList ps) (by
+                          simpa [premiseAndFormulaList, mkEq] using hProg)
+                    rcases ih (Term.Apply l lhs) (Term.Apply r tail)
+                        (HoCongTrueSpine.app hSpine hArgTrue)
+                        hRestTrue hRecNN with
+                      ⟨L, R, hEq, hOutSpine⟩
+                    refine ⟨L, R, ?_, hOutSpine⟩
+                    have hStep :=
+                      mk_ho_cong_step_eq_of_ne_stuck l r lhs tail
+                        (premiseAndFormulaList ps) (by
+                          simpa [premiseAndFormulaList, mkEq] using hProg)
+                    simpa [premiseAndFormulaList, mkEq, hStep] using hEq
+                  all_goals
+                    exact False.elim (hProg (by
+                      simp [premiseAndFormulaList,
+                        mk_ho_cong_bad_head_stuck, mkEq]))
+              | _ =>
+                  exact False.elim (hProg (by
+                    simp [premiseAndFormulaList,
+                      mk_ho_cong_bad_head_stuck, mkEq]))
+          | _ =>
+              exact False.elim (hProg (by
+                simp [premiseAndFormulaList,
+                  mk_ho_cong_bad_head_stuck, mkEq]))
+      | _ =>
+          exact False.elim (hProg (by
+            simp [premiseAndFormulaList,
+              mk_ho_cong_bad_head_stuck, mkEq]))
+
+/-- Correctness for the generated EO implementation of `ho_cong`. -/
+theorem facts___eo_prog_ho_cong_impl
+    (M : SmtModel) (hM : model_total_typed M)
+    (premises : List Term) :
+  RulePremiseEvidence M premises ->
+  RuleProofs.eo_has_bool_type
+    (__eo_prog_ho_cong (Proof.pf (premiseAndFormulaList premises))) ->
+  __eo_prog_ho_cong (Proof.pf (premiseAndFormulaList premises)) ≠
+    Term.Stuck ->
+  __eo_typeof (__eo_prog_ho_cong
+    (Proof.pf (premiseAndFormulaList premises))) = Term.Bool ->
+  eo_interprets M
+    (__eo_prog_ho_cong (Proof.pf (premiseAndFormulaList premises))) true := by
+  intro hEvidence hProgBool hProg _hProgType
+  cases premises with
+  | nil =>
+      exact False.elim (hProg (by simp [premiseAndFormulaList, __eo_prog_ho_cong]))
+  | cons p ps =>
+      cases p with
+      | Apply pf g =>
+          cases pf with
+          | Apply pg f =>
+              cases pg with
+              | UOp op =>
+                  cases op
+                  case eq =>
+                    have hBaseTrue :
+                        eo_interprets M (mkEq f g) true := by
+                      simpa [premiseAndFormulaList, mkEq] using
+                        hEvidence.true_here (mkEq f g) (by simp [mkEq])
+                    have hRestTrue : AllInterpretedTrue M ps := by
+                      intro q hq
+                      exact hEvidence.true_here q (by simp [hq])
+                    have hMkNN :
+                        __mk_ho_cong f g (premiseAndFormulaList ps) ≠
+                          Term.Stuck := by
+                      simpa [premiseAndFormulaList, __eo_prog_ho_cong, mkEq]
+                        using hProg
+                    rcases mk_ho_cong_true_spine_of_list M f g ps f g
+                        (HoCongTrueSpine.base hBaseTrue) hRestTrue hMkNN with
+                      ⟨L, R, hEq, hSpine⟩
+                    have hEqBool : RuleProofs.eo_has_bool_type (mkEq L R) := by
+                      have hProgBool' := hProgBool
+                      simpa [premiseAndFormulaList, __eo_prog_ho_cong, mkEq,
+                        hEq] using hProgBool'
+                    have hEqTrue : eo_interprets M (mkEq L R) true :=
+                      hoCongTrueSpine_eq_true M hM hSpine hEqBool
+                    have hProgEq :
+                        __eo_prog_ho_cong
+                            (Proof.pf
+                              (premiseAndFormulaList (mkEq f g :: ps))) =
+                          mkEq L R := by
+                      simp [premiseAndFormulaList, __eo_prog_ho_cong, mkEq,
+                        hEq]
+                    rwa [hProgEq]
+                  all_goals
+                    exact False.elim (hProg (by
+                      simp [premiseAndFormulaList, __eo_prog_ho_cong]))
+              | _ =>
+                  exact False.elim (hProg (by
+                    simp [premiseAndFormulaList, __eo_prog_ho_cong]))
+          | _ =>
+              exact False.elim (hProg (by
+                simp [premiseAndFormulaList, __eo_prog_ho_cong]))
+      | _ =>
+          exact False.elim (hProg (by
+            simp [premiseAndFormulaList, __eo_prog_ho_cong]))
 
 private theorem congTypeSpine_same_generic_head_apply_eq_has_bool_type
     (f x y : Term)
