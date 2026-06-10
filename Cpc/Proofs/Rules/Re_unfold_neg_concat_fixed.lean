@@ -7,7 +7,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 namespace RuleProofs
@@ -83,7 +82,7 @@ theorem eo_is_list_re_concat_nil_true_of_nil_true (nil : Term)
     __eo_is_list (Term.UOp UserOp.re_concat) nil = Term.Boolean true := by
   have hNilEq := reConcat_nil_eq_empty_of_is_list_nil_true hNil
   subst nil
-  simp [reConcatNil, __eo_is_list, __eo_get_nil_rec, __eo_is_list_nil,
+  simp [__eo_is_list, __eo_get_nil_rec, __eo_is_list_nil,
     __eo_is_ok, __eo_requires, native_ite, native_teq, native_not,
     SmtEval.native_not]
 
@@ -693,9 +692,7 @@ theorem re_unfold_neg_concat_fixed_false_eq_formula
       hTail (by decide)
   simp [__mk_re_unfold_neg_concat_fixed,
     reUnfoldNegConcatFixedFalseFormula, mkOr, mkNot, mkStrInRe, mkSubstr,
-    mkNeg, mkStrLen, mkReConcat, hFixed, __eo_mk_apply, htNe, hr1Ne,
-    hTailNe, __eo_ite, native_ite, native_teq, Term.or, Term.not,
-    Term.str_in_re, Term.str_substr, Term.str_len]
+    mkNeg, mkStrLen, mkReConcat, hFixed, __eo_mk_apply, __eo_ite, native_ite, native_teq]
 
 theorem re_unfold_neg_concat_fixed_true_eq_formula
     (t r1 r2 : Term) (n : native_Int)
@@ -725,9 +722,7 @@ theorem re_unfold_neg_concat_fixed_true_eq_formula
       hTail (by decide)
   simp [__mk_re_unfold_neg_concat_fixed,
     reUnfoldNegConcatFixedTrueFormula, mkOr, mkNot, mkStrInRe, mkSubstr,
-    mkNeg, mkStrLen, mkReConcat, hFixed, __eo_mk_apply, htNe, hr1Ne,
-    hTailNe, __eo_ite, native_ite, native_teq, Term.or, Term.not,
-    Term.str_in_re, Term.str_substr, Term.str_len]
+    mkNeg, mkStrLen, mkReConcat, hFixed, __eo_mk_apply, __eo_ite, native_ite, native_teq]
 
 theorem re_unfold_neg_concat_fixed_false_fixed_ne_of_ne_stuck
     (t r1 r2 : Term) :
@@ -736,7 +731,7 @@ theorem re_unfold_neg_concat_fixed_false_fixed_ne_of_ne_stuck
     __str_fixed_len_re r1 ≠ Term.Stuck := by
   intro h hFixed
   cases t <;>
-    simp [__mk_re_unfold_neg_concat_fixed, mkReConcat, hFixed,
+    simp [__mk_re_unfold_neg_concat_fixed, hFixed,
       __eo_mk_apply, __eo_ite, native_ite, native_teq] at h
 
 theorem re_unfold_neg_concat_fixed_true_fixed_ne_of_ne_stuck
@@ -746,7 +741,7 @@ theorem re_unfold_neg_concat_fixed_true_fixed_ne_of_ne_stuck
     __str_fixed_len_re r1 ≠ Term.Stuck := by
   intro h hFixed
   cases t <;>
-    simp [__mk_re_unfold_neg_concat_fixed, mkReConcat, hFixed,
+    simp [__mk_re_unfold_neg_concat_fixed, hFixed,
       __eo_mk_apply, __eo_ite, native_ite, native_teq] at h
 
 theorem re_unfold_neg_concat_fixed_false_singleton_ne_of_ne_stuck
@@ -1025,15 +1020,13 @@ theorem re_unfold_neg_concat_fixed_false_eval_true
       rw [hNo] at hWhole
       cases hWhole
     · simp [__smtx_model_eval, __smtx_model_eval_or,
-        __smtx_model_eval_not, hLenEval', hNegEval', hLeftSubEval',
-        hNegEval'', hRightSubEval', hRightSubEval'', hLeftInEval',
-        hRightInEval', hLeftInEvalSeq, hRightInEvalSeq,
+        __smtx_model_eval_not, hLenEval', hLeftSubEval',
+        hNegEval'', hRightSubEval', hLeftInEvalSeq, hRightInEvalSeq,
         hLeft, bool_eq_false_of_not_true hRight, SmtEval.native_or,
         SmtEval.native_not]
   · simp [__smtx_model_eval, __smtx_model_eval_or,
-      __smtx_model_eval_not, hLenEval', hNegEval', hLeftSubEval',
-      hNegEval'', hRightSubEval', hRightSubEval'', hLeftInEval',
-      hRightInEval', hLeftInEvalSeq, hRightInEvalSeq,
+      __smtx_model_eval_not, hLenEval', hLeftSubEval',
+      hNegEval'', hRightSubEval', hLeftInEvalSeq, hRightInEvalSeq,
       bool_eq_false_of_not_true hLeft, SmtEval.native_or,
       SmtEval.native_not]
 
@@ -1399,8 +1392,7 @@ theorem re_unfold_neg_concat_fixed_true_eval_true
       have hEmptyMem :
           native_str_in_re ([] : native_String)
             (native_str_to_re ([] : native_String)) = true := by
-        simp [native_str_in_re, native_str_to_re, native_re_of_list,
-          nativeListInRe, native_re_nullable, native_string_valid]
+        simp [native_str_in_re, native_str_to_re, native_re_of_list, native_re_nullable, native_string_valid]
       have hSuffixSingleton :
           native_str_in_re suffixStr
             (native_re_concat rv1 (native_str_to_re ([] : native_String))) =
@@ -1442,16 +1434,14 @@ theorem re_unfold_neg_concat_fixed_true_eval_true
       rw [hNo] at hWholeConcat
       cases hWholeConcat
     · simp [__smtx_model_eval, __smtx_model_eval_or,
-        __smtx_model_eval_not, hLenEval', hNegEval', hNegEval'',
-        hSuffixSubEval', hSuffixSubEval'', hPrefixSubEval',
-        hPrefixSubEval'', hSuffixInEval', hPrefixInEval',
+        __smtx_model_eval_not, hLenEval', hNegEval'',
+        hSuffixSubEval', hPrefixSubEval',
         hSuffixInEvalSeq, hPrefixInEvalSeq, hSuffix,
         bool_eq_false_of_not_true hPrefix, SmtEval.native_or,
         SmtEval.native_not]
   · simp [__smtx_model_eval, __smtx_model_eval_or,
-      __smtx_model_eval_not, hLenEval', hNegEval', hNegEval'',
-      hSuffixSubEval', hSuffixSubEval'', hPrefixSubEval',
-      hPrefixSubEval'', hSuffixInEval', hPrefixInEval',
+      __smtx_model_eval_not, hLenEval', hNegEval'',
+      hSuffixSubEval', hPrefixSubEval',
       hSuffixInEvalSeq, hPrefixInEvalSeq,
       bool_eq_false_of_not_true hSuffix, SmtEval.native_or,
       SmtEval.native_not]
@@ -1473,7 +1463,7 @@ private theorem re_unfold_neg_concat_fixed_nonstuck_shape
         cases f with
         | UOp op =>
             cases op <;>
-              try (simp [__eo_prog_re_unfold_neg_concat_fixed] at h)
+              try (simp at h)
             case not =>
               cases inner with
               | Apply f2 r =>
@@ -1482,19 +1472,19 @@ private theorem re_unfold_neg_concat_fixed_nonstuck_shape
                       cases op2 with
                       | UOp op3 =>
                           cases op3 <;>
-                            try (simp [__eo_prog_re_unfold_neg_concat_fixed] at h)
+                            try (simp at h)
                           case str_in_re =>
                             exact ⟨t, r, rfl, rfl⟩
                       | _ =>
-                          simp [__eo_prog_re_unfold_neg_concat_fixed] at h
+                          simp at h
                   | _ =>
-                      simp [__eo_prog_re_unfold_neg_concat_fixed] at h
+                      simp at h
               | _ =>
-                  simp [__eo_prog_re_unfold_neg_concat_fixed] at h
+                  simp at h
         | _ =>
-            simp [__eo_prog_re_unfold_neg_concat_fixed] at h
+            simp at h
     | _ =>
-        simp [__eo_prog_re_unfold_neg_concat_fixed] at h
+        simp at h
 
 end RuleProofs
 
@@ -1787,20 +1777,16 @@ by
                                 · cases t <;> cases op <;>
                                     first
                                     | exact False.elim (hop rfl)
-                                    | simp [__mk_re_unfold_neg_concat_fixed,
-                                        __eo_ite, native_ite, native_teq] at hMkTrueNe
+                                    | simp [__mk_re_unfold_neg_concat_fixed] at hMkTrueNe
                             | _ =>
                                 cases t <;>
-                                  simp [__mk_re_unfold_neg_concat_fixed,
-                                    __eo_ite, native_ite, native_teq] at hMkTrueNe
+                                  simp [__mk_re_unfold_neg_concat_fixed] at hMkTrueNe
                         | _ =>
                             cases t <;>
-                              simp [__mk_re_unfold_neg_concat_fixed,
-                                __eo_ite, native_ite, native_teq] at hMkTrueNe
+                              simp [__mk_re_unfold_neg_concat_fixed] at hMkTrueNe
                     | _ =>
                         cases t <;>
-                          simp [__mk_re_unfold_neg_concat_fixed, __eo_ite,
-                            native_ite, native_teq] at hMkTrueNe
+                          simp [__mk_re_unfold_neg_concat_fixed] at hMkTrueNe
                   · subst rev
                     have hMkFalseNe :
                         __mk_re_unfold_neg_concat_fixed t r
@@ -1933,17 +1919,13 @@ by
                                 · cases t <;> cases op <;>
                                     first
                                     | exact False.elim (hop rfl)
-                                    | simp [__mk_re_unfold_neg_concat_fixed,
-                                        __eo_ite, native_ite, native_teq] at hMkFalseNe
+                                    | simp [__mk_re_unfold_neg_concat_fixed] at hMkFalseNe
                             | _ =>
                                 cases t <;>
-                                  simp [__mk_re_unfold_neg_concat_fixed,
-                                    __eo_ite, native_ite, native_teq] at hMkFalseNe
+                                  simp [__mk_re_unfold_neg_concat_fixed] at hMkFalseNe
                         | _ =>
                             cases t <;>
-                              simp [__mk_re_unfold_neg_concat_fixed,
-                                __eo_ite, native_ite, native_teq] at hMkFalseNe
+                              simp [__mk_re_unfold_neg_concat_fixed] at hMkFalseNe
                     | _ =>
                         cases t <;>
-                          simp [__mk_re_unfold_neg_concat_fixed, __eo_ite,
-                            native_ite, native_teq] at hMkFalseNe
+                          simp [__mk_re_unfold_neg_concat_fixed] at hMkFalseNe

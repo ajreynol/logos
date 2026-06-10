@@ -384,13 +384,13 @@ theorem str_is_compatible_charChain (x y : native_String) :
   | nil =>
       cases y <;>
         simp [charChainTerm, __str_is_compatible, __eo_l_1___str_is_compatible,
-          __str_is_empty, __eo_or, native_string_prefix_eq, native_teq, SmtEval.native_ite,
+          __str_is_empty, __eo_or, native_string_prefix_eq,
           SmtEval.native_or]
   | cons a x ih =>
       cases y with
       | nil =>
           simp [charChainTerm, __str_is_compatible, __eo_l_1___str_is_compatible,
-            __str_is_empty, __eo_or, native_string_prefix_eq, native_teq, SmtEval.native_ite,
+            __str_is_empty, __eo_or, native_string_prefix_eq,
             SmtEval.native_or]
       | cons b y =>
           by_cases hab : a = b
@@ -422,7 +422,7 @@ theorem str_overlap_rec_charChain (x y : native_String) :
       cases hbc : strCompat (a :: x) y with
       | true => simp [__eo_ite, native_teq, SmtEval.native_ite, overlapDrop, hbc]
       | false =>
-          simp only [overlapDrop, hbc, if_false]
+          simp only [overlapDrop, hbc]
           simp [__eo_ite, native_teq, SmtEval.native_ite, ih, __eo_add, native_zplus]
 
 /-- `value_len` of a string literal is its length. -/
@@ -640,7 +640,7 @@ theorem is_compatible_atomChain (ex ey : Term)
           · subst hab
             rw [eo_eq_val a a ha ha]
             have htt : native_teq a a = true := by simp [native_teq]
-            simp only [htt, __eo_ite, native_teq, SmtEval.native_ite, if_true]
+            simp only [__eo_ite, native_teq, SmtEval.native_ite]
             rw [ih ys (fun a' h' => hxne a' (by simp [h'])) (fun b' h' => hyne b' (by simp [h']))
               (fun a' ha' b' hb' => hg a' (by simp [ha']) b' (by simp [hb']))]
             simp [listCompat, listPrefixEq]
@@ -685,7 +685,7 @@ theorem overlap_rec_atomChain (ex ey : Term)
       cases hbc : listCompat (a :: xs) ys with
       | true => simp [__eo_ite, native_teq, SmtEval.native_ite, listOverlapDrop, hbc]
       | false =>
-          simp only [listOverlapDrop, hbc, if_false]
+          simp only [listOverlapDrop, hbc]
           simp [__eo_ite, native_teq, SmtEval.native_ite, ihres, __eo_add, native_zplus]
 
 /-! ### Atom → value mapping
@@ -1091,7 +1091,7 @@ theorem eo_add_one_inv (R : Term) (N : Int)
   | Numeral m =>
       simp only [__eo_add, native_zplus] at h; injection h with h
       congr 1; rw [← h, Int.add_comm, Int.add_sub_cancel]
-  | _ => simp_all [__eo_add, __eo_requires, native_ite, native_teq]
+  | _ => simp_all [__eo_add]
 
 /-- If the overlap recursion runs to "full" on an atom chain, then every suffix of
 the chain is incompatible with `W`. -/
@@ -1191,8 +1191,8 @@ theorem is_compat_false_no_compat
               cases h : __are_distinct_terms_type a b (__eo_typeof a) with
               | Boolean bb => cases bb with
                 | true => intro _; rfl
-                | false => intro hf; simp [native_ite, native_teq] at hf
-              | _ => intro hf; simp [native_ite, native_teq] at hf
+                | false => intro hf; simp at hf
+              | _ => intro hf; simp at hf
             have hvf := hsound a (by simp) b (by simp) habf hdist
             have hvf2 := nveq_symm hvf
             intro hcompat
@@ -1229,7 +1229,7 @@ theorem overlap_rec_le_len (ex W : Term) (hW : W ≠ Term.Stuck)
                 eo_add_one_inv _ _ h
               have ihres := ih (m - 1) key
               rw [show (a :: xs).length = xs.length + 1 from rfl]
-              simp only [native_Int, Int.ofNat_eq_natCast] at ihres ⊢; omega
+              simp only [Int.ofNat_eq_natCast] at ihres ⊢; omega
       | _ => rw [hc] at h; simp [__eo_ite, native_teq, SmtEval.native_ite] at h
 
 /-- Unified no-overlap `(A)` derivation from a word characterization of `c`/`d`.
@@ -1968,11 +1968,11 @@ theorem seqUnit_ne_seq_empty_typeof (e : Term) :
   case Apply f a =>
     cases f <;> try simp [__seq_empty] at h
     case UOp op =>
-      cases op <;> try simp [__seq_empty] at h
+      cases op <;> try simp at h
       case Seq =>
-        cases a <;> try simp [__seq_empty] at h
+        cases a <;> try simp at h
         case UOp op =>
-          cases op <;> simp [__seq_empty] at h
+          cases op <;> simp at h
   all_goals
     cases h
 
@@ -2273,7 +2273,7 @@ def introWordView_seqEmpty_self (M : SmtModel) (U : Term) (S : SmtSeq) (T : SmtT
     atoms := [],
     ex := __str_flatten emp,
     hflat := ?_,
-    hlen := by simp [emp, __str_value_len],
+    hlen := by simp [__str_value_len],
     hunp := ?_,
     hexEmpty := str_flatten_empty_is_empty emp hemp hflatNe',
     hAtomTy := by simp,
@@ -2300,7 +2300,7 @@ theorem seqEmpty_typeof_eq_of_intro_flatten_ne_stuck (U : Term)
       change __eo_typeof_seq_empty (__eo_typeof (Term.Apply (Term.UOp UserOp.Seq) U))
           (Term.Apply (Term.UOp UserOp.Seq) U) = Term.Stuck
       cases h : __eo_typeof (Term.Apply (Term.UOp UserOp.Seq) U) <;>
-        simp [__eo_typeof_seq_empty, __eo_disamb_type_seq_empty, h] at hTyArg ⊢
+        simp [__eo_typeof_seq_empty, h] at hTyArg ⊢
     exfalso
     apply hflatNe
     change __str_flatten
@@ -2476,12 +2476,10 @@ theorem str_is_compatible_explicitCharEmpty_cons_stuck (a : Term) (xs : List Ter
   rcases hShape with ⟨ch, rfl⟩ | ⟨e, rfl⟩
   · simp [__str_is_compatible, __eo_l_1___str_is_compatible,
       explicitCharEmpty_typeof, explicitCharEmpty_distinct_string_false_type,
-      __eo_eq, __eo_ite, native_teq, native_ite, __eo_requires,
-      __eo_is_str, __eo_is_str_internal, SmtEval.native_and, SmtEval.native_not]
+      __eo_eq, __eo_ite, native_teq, native_ite, __eo_requires]
   · simp [__str_is_compatible, __eo_l_1___str_is_compatible,
       explicitCharEmpty_typeof, explicitCharEmpty_distinct_seqUnit_false_type,
-      __eo_eq, __eo_ite, native_teq, native_ite, __eo_requires,
-      __eo_is_str, __eo_is_str_internal, SmtEval.native_and, SmtEval.native_not]
+      __eo_eq, __eo_ite, native_teq, native_ite, __eo_requires]
 
 theorem overlap_explicitCharEmpty_cons_stuck (a : Term) (xs : List Term) (ex : Term)
     (hEx : ex ≠ Term.Stuck)
@@ -2635,7 +2633,7 @@ theorem value_len_numeral_of_gt_false (c W : Term)
   · next e ss =>
       cases hv : __str_value_len ss with
       | Numeral n =>
-          exact ⟨native_zplus 1 n, by simp [hv, __eo_add]⟩
+          exact ⟨native_zplus 1 n, by simp [__eo_add]⟩
       | _ =>
           rw [hv] at h
           cases W <;> simp [__eo_add, __eo_gt] at h
@@ -3556,7 +3554,7 @@ theorem native_seq_replace_append_right_of_no_endpoint_overlap
             unfold native_seq_compat
             right
             simp [native_seq_prefix_eq]
-          have hLenC : 0 < C.reverse.length := by simpa [hC] using hLen
+          have hLenC : 0 < C.reverse.length := by simp [hC]
           have hCompatC :
               native_seq_compat (C.reverse.drop 0) D.reverse := by
             simpa [hC] using hCompat
@@ -3625,7 +3623,7 @@ theorem native_seq_replace_append_left_of_no_endpoint_overlap
             unfold native_seq_compat
             right
             simp [native_seq_prefix_eq]
-          have hLenC : 0 < C.length := by simpa [hC] using hLen
+          have hLenC : 0 < C.length := by simp [hC]
           have hCompatC : native_seq_compat (C.drop 0) D := by
             simpa [hC] using hCompat
           exact hNo 0 hLenC hCompatC
