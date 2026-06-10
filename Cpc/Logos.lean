@@ -424,6 +424,27 @@ def __eo_list_concat : Term -> Term -> Term -> Term
   | f, a, b => (__eo_requires (__eo_is_list f a) (Term.Boolean true) (__eo_requires (__eo_is_list f b) (Term.Boolean true) (__eo_list_concat_rec a b)))
 
 
+def __eo_is_closed_rec : Term -> Term -> Term
+  | Term.Stuck , _  => Term.Stuck
+  | _ , Term.Stuck  => Term.Stuck
+  | (Term.Var s T), Term.__eo_List_nil => (Term.Boolean false)
+  | (Term.Var s T), (Term.Apply (Term.Apply Term.__eo_List_cons x) vs) =>
+    let _v0 := (Term.Var s T)
+    (__eo_ite (__eo_eq _v0 x) (Term.Boolean true) (__eo_is_closed_rec _v0 vs))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.forall) vs) x), env => (__eo_is_closed_rec x (__eo_list_concat Term.__eo_List_cons vs env))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.exists) vs) x), env => (__eo_is_closed_rec x (__eo_list_concat Term.__eo_List_cons vs env))
+  | (Term.Apply f x), env => (__eo_and (__eo_is_closed_rec f env) (__eo_is_closed_rec x env))
+  | (Term.UOp1 u x), env => (__eo_is_closed_rec x env)
+  | (Term.UOp2 u x x2), env => (__eo_and (__eo_is_closed_rec x env) (__eo_is_closed_rec x2 env))
+  | (Term.UOp3 u x x2 x3), env => (__eo_and (__eo_and (__eo_is_closed_rec x env) (__eo_is_closed_rec x2 env)) (__eo_is_closed_rec x3 env))
+  | x, env => (Term.Boolean true)
+
+
+def __eo_is_closed : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | t => (__eo_is_closed_rec t Term.__eo_List_nil)
+
+
 def __eo_list_nth_rec : Term -> Term -> Term
   | _ , Term.Stuck  => Term.Stuck
   | (Term.Apply (Term.Apply f x) y), (Term.Numeral 0) => x
@@ -1065,9 +1086,9 @@ def __eo_prog_arrays_read_over_write_1 : Term -> Term
 
 
 def __eo_prog_arrays_ext : Proof -> Term
-  | (Proof.pf (Term.Apply (Term.UOp UserOp.not) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) a) b))) => 
+  | (Proof.pf (Term.Apply (Term.UOp UserOp.not) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) a) b))) =>
     let _v0 := (Term.UOp2 UserOp2._at_array_deq_diff a b)
-    (Term.Apply (Term.UOp UserOp.not) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.UOp UserOp.select) a) _v0)) (Term.Apply (Term.Apply (Term.UOp UserOp.select) b) _v0)))
+    (__eo_requires (__eo_and (__eo_is_closed a) (__eo_is_closed b)) (Term.Boolean true) (Term.Apply (Term.UOp UserOp.not) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.UOp UserOp.select) a) _v0)) (Term.Apply (Term.Apply (Term.UOp UserOp.select) b) _v0))))
   | _ => Term.Stuck
 
 
@@ -8655,27 +8676,6 @@ def __eo_typeof : Term -> Term
   | (Term.UOp2 UserOp2._at_const __eo_x1 __eo_x2) => (__eo_typeof__at_const (__eo_typeof __eo_x1) (__eo_typeof __eo_x2) __eo_x2)
   | (Term.Apply __eo_f __eo_x) => (__eo_typeof_apply (__eo_typeof __eo_f) (__eo_typeof __eo_x))
   | _ => Term.Stuck
-
-
-def __eo_is_closed_rec : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | _ , Term.Stuck  => Term.Stuck
-  | (Term.Var s T), Term.__eo_List_nil => (Term.Boolean false)
-  | (Term.Var s T), (Term.Apply (Term.Apply Term.__eo_List_cons x) vs) => 
-    let _v0 := (Term.Var s T)
-    (__eo_ite (__eo_eq _v0 x) (Term.Boolean true) (__eo_is_closed_rec _v0 vs))
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.forall) vs) x), env => (__eo_is_closed_rec x (__eo_list_concat Term.__eo_List_cons vs env))
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.exists) vs) x), env => (__eo_is_closed_rec x (__eo_list_concat Term.__eo_List_cons vs env))
-  | (Term.Apply f x), env => (__eo_and (__eo_is_closed_rec f env) (__eo_is_closed_rec x env))
-  | (Term.UOp1 u x), env => (__eo_is_closed_rec x env)
-  | (Term.UOp2 u x x2), env => (__eo_and (__eo_is_closed_rec x env) (__eo_is_closed_rec x2 env))
-  | (Term.UOp3 u x x2 x3), env => (__eo_and (__eo_and (__eo_is_closed_rec x env) (__eo_is_closed_rec x2 env)) (__eo_is_closed_rec x3 env))
-  | x, env => (Term.Boolean true)
-
-
-def __eo_is_closed : Term -> Term
-  | Term.Stuck  => Term.Stuck
-  | t => (__eo_is_closed_rec t Term.__eo_List_nil)
 
 
 def __eo_is_list_nil__at__at_TypedList_cons : Term -> Term
