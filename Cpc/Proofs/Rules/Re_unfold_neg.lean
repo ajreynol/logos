@@ -7,7 +7,6 @@ open Smtm
 
 set_option linter.unusedVariables false
 set_option linter.unnecessarySimpa false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 namespace RuleProofs
@@ -631,11 +630,11 @@ theorem reConcat_nil_eval_empty_of_is_list_nil_true
       SmtValue.RegLan (native_str_to_re ([] : native_String)) := by
   cases nil <;> try simp [__eo_is_list_nil] at hNil
   case Apply f x =>
-    cases f <;> try simp [__eo_is_list_nil] at hNil
+    cases f <;> try simp at hNil
     case UOp op =>
-      cases op <;> try simp [__eo_is_list_nil] at hNil
+      cases op <;> try simp at hNil
       case str_to_re =>
-        cases x <;> try simp [__eo_is_list_nil] at hNil
+        cases x <;> try simp at hNil
         case String s =>
           cases s with
           | nil =>
@@ -646,7 +645,7 @@ theorem reConcat_nil_eval_empty_of_is_list_nil_true
                 native_str_to_re, native_re_of_list, native_pack_string,
                 native_unpack_string, native_pack_seq, native_unpack_seq]
           | cons c cs =>
-              simp [__eo_is_list_nil] at hNil
+              simp at hNil
 
 private theorem reConcat_smt_value_rel_right_empty_eval
     (M : SmtModel) (x id : Term) (r : native_RegLan) :
@@ -666,7 +665,7 @@ private theorem reConcat_smt_value_rel_right_empty_eval
   simp only [__smtx_model_eval, __smtx_model_eval_re_concat, hxEval, hIdEval]
   cases r <;>
     simp [__smtx_model_eval_eq, native_re_concat, native_re_mk_concat,
-      native_str_to_re, native_re_of_list, native_string_lit_empty]
+      native_str_to_re, native_re_of_list]
 
 private theorem reConcat_is_list_nil_boolean_of_ne_stuck (t : Term) :
     t ≠ Term.Stuck ->
@@ -1330,15 +1329,13 @@ private theorem re_unfold_neg_star_body_eval_true
   · simp [__smtx_model_eval,
       __smtx_model_eval_or, __smtx_model_eval_not, __smtx_model_eval_leq,
       __smtx_model_eval_lt, hIdxEval', hLenEval',
-      hNegEval'', hLeftSubEval'', hRightSubEval'', hLeftInEval'',
-      hRightInEval'', hLeftInEvalSeq, hRightInEvalSeq, hLe0,
+      hNegEval'', hLeftSubEval'', hRightSubEval'', hLeftInEvalSeq, hRightInEvalSeq, hLe0,
       SmtEval.native_or, SmtEval.native_not]
   · by_cases hPast : native_zlt len i = true
     · simp [__smtx_model_eval,
         __smtx_model_eval_or, __smtx_model_eval_not, __smtx_model_eval_leq,
         __smtx_model_eval_lt, hIdxEval', hLenEval',
-        hNegEval'', hLeftSubEval'', hRightSubEval'', hLeftInEval'',
-        hRightInEval'', hLeftInEvalSeq, hRightInEvalSeq,
+        hNegEval'', hLeftSubEval'', hRightSubEval'', hLeftInEvalSeq, hRightInEvalSeq,
         bool_eq_false_of_not_true hLe0, hPast, SmtEval.native_or,
         SmtEval.native_not]
     · by_cases hLeft : native_str_in_re leftStr rv = true
@@ -1361,7 +1358,7 @@ private theorem re_unfold_neg_star_body_eval_true
             __smtx_model_eval_or, __smtx_model_eval_not,
             __smtx_model_eval_leq, __smtx_model_eval_lt, hIdxEval',
             hLenEval', hNegEval'', hLeftSubEval'',
-            hRightSubEval'', hLeftInEval'', hRightInEval'',
+            hRightSubEval'',
             hLeftInEvalSeq, hRightInEvalSeq,
             bool_eq_false_of_not_true hLe0,
             bool_eq_false_of_not_true hPast, hLeft,
@@ -1371,7 +1368,7 @@ private theorem re_unfold_neg_star_body_eval_true
           __smtx_model_eval_or, __smtx_model_eval_not,
           __smtx_model_eval_leq, __smtx_model_eval_lt, hIdxEval',
           hLenEval', hNegEval'', hLeftSubEval'',
-          hRightSubEval'', hLeftInEval'', hRightInEval'',
+          hRightSubEval'',
           hLeftInEvalSeq, hRightInEvalSeq,
           bool_eq_false_of_not_true hLe0,
           bool_eq_false_of_not_true hPast, bool_eq_false_of_not_true hLeft,
@@ -1592,14 +1589,12 @@ theorem re_unfold_neg_concat_body_eval_true
   by_cases hLt0 : native_zlt i 0 = true
   · simp [__smtx_model_eval,
       __smtx_model_eval_or, __smtx_model_eval_not, __smtx_model_eval_lt,
-      hIdxEval', hLenEval', hNegEval'', hLeftSubEval'', hRightSubEval'',
-      hLeftInEval'', hRightInEval'', hLeftInEvalSeq, hRightInEvalSeq,
+      hIdxEval', hLenEval', hNegEval'', hLeftSubEval'', hRightSubEval'', hLeftInEvalSeq, hRightInEvalSeq,
       hLt0, SmtEval.native_or, SmtEval.native_not]
   · by_cases hPast : native_zlt len i = true
     · simp [__smtx_model_eval,
         __smtx_model_eval_or, __smtx_model_eval_not, __smtx_model_eval_lt,
-        hIdxEval', hLenEval', hNegEval'', hLeftSubEval'', hRightSubEval'',
-        hLeftInEval'', hRightInEval'', hLeftInEvalSeq, hRightInEvalSeq,
+        hIdxEval', hLenEval', hNegEval'', hLeftSubEval'', hRightSubEval'', hLeftInEvalSeq, hRightInEvalSeq,
         bool_eq_false_of_not_true hLt0, hPast, SmtEval.native_or,
         SmtEval.native_not]
     · by_cases hLeft : native_str_in_re leftStr rv1 = true
@@ -1625,8 +1620,7 @@ theorem re_unfold_neg_concat_body_eval_true
         · simp [__smtx_model_eval,
             __smtx_model_eval_or, __smtx_model_eval_not,
             __smtx_model_eval_lt, hIdxEval', hLenEval', hNegEval'',
-            hLeftSubEval'', hRightSubEval'', hLeftInEval'',
-            hRightInEval'', hLeftInEvalSeq, hRightInEvalSeq,
+            hLeftSubEval'', hRightSubEval'', hLeftInEvalSeq, hRightInEvalSeq,
             bool_eq_false_of_not_true hLt0,
             bool_eq_false_of_not_true hPast, hLeft,
             bool_eq_false_of_not_true hRight, SmtEval.native_or,
@@ -1634,8 +1628,7 @@ theorem re_unfold_neg_concat_body_eval_true
       · simp [__smtx_model_eval,
           __smtx_model_eval_or, __smtx_model_eval_not,
           __smtx_model_eval_lt, hIdxEval', hLenEval', hNegEval'',
-          hLeftSubEval'', hRightSubEval'', hLeftInEval'',
-          hRightInEval'', hLeftInEvalSeq, hRightInEvalSeq,
+          hLeftSubEval'', hRightSubEval'', hLeftInEvalSeq, hRightInEvalSeq,
           bool_eq_false_of_not_true hLt0,
           bool_eq_false_of_not_true hPast, bool_eq_false_of_not_true hLeft,
           SmtEval.native_or, SmtEval.native_not]
@@ -1890,12 +1883,12 @@ private theorem re_unfold_neg_nonstuck_shape (p : Term) :
                     cases op2 with
                     | UOp op3 =>
                         cases op3 <;>
-                          try (simp [__eo_prog_re_unfold_neg] at h)
+                          try (simp at h)
                         case str_in_re =>
                           exact ⟨t, r, rfl, rfl⟩
-                    | _ => simp [__eo_prog_re_unfold_neg] at h
-                | _ => simp [__eo_prog_re_unfold_neg] at h
-            | _ => simp [__eo_prog_re_unfold_neg] at h
+                    | _ => simp at h
+                | _ => simp at h
+            | _ => simp at h
       | _ => simp [__eo_prog_re_unfold_neg] at h
   | _ => simp [__eo_prog_re_unfold_neg] at h
 

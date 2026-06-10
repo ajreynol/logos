@@ -8,7 +8,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
 
@@ -195,7 +194,7 @@ private theorem str_indexof_re_eval_match_regex_model_eval
         (SmtTerm.re_concat SmtTerm.re_all
           (SmtTerm.str_to_re (SmtTerm.String [])))) =
     SmtValue.RegLan (native_re_concat rv native_re_all)
-  simp [str_indexof_re_eval_match_regex, __smtx_model_eval,
+  simp [__smtx_model_eval,
     __smtx_model_eval_re_concat, __smtx_model_eval_str_to_re, hREval,
     native_unpack_string_pack_string, native_re_concat, native_str_to_re,
     native_re_of_list, native_re_mk_concat]
@@ -855,7 +854,7 @@ private theorem str_indexof_re_eval_idx_term_eq
           str_indexof_re_eval_match_regex_typeof r hRTy
         rw [hRs] at hMatchTy
         change __smtx_typeof SmtTerm.None = SmtType.RegLan at hMatchTy
-        simp [__smtx_typeof] at hMatchTy
+        simp at hMatchTy
       have hStep :
           __str_first_match_rec (Term.String []) r
               (str_indexof_re_eval_match_regex r) (Term.Numeral 0) =
@@ -924,7 +923,7 @@ private theorem str_indexof_re_eval_idx_term_eq
                 (str_indexof_re_eval_match_regex r) (Term.Numeral 0)) =
             Term.Numeral 0
           rw [hStep]
-          simp [hTestTrue, second, thenTerm, hSecondNe, __eo_ite,
+          simp [hTestTrue, second, thenTerm, __eo_ite,
             native_ite, native_teq, __eo_mk_apply, __pair_first]
   | cons c cs =>
       have hIdxNe :
@@ -976,11 +975,11 @@ private theorem str_indexof_re_eval_idx_term_eq
         rw [hFirstEq0]
         cases hFind : native_re_find_idx_aux rv (c :: cs) 0 with
         | none =>
-            simp [hFind, str_indexof_re_eval_no_match_pair, __pair_first]
+            simp [str_indexof_re_eval_no_match_pair, __pair_first]
         | some p =>
             cases p with
             | mk idx len =>
-                simp [hFind, str_indexof_re_eval_match_pair, __pair_first]
+                simp [str_indexof_re_eval_match_pair, __pair_first]
       change __pair_first
           (__str_first_match_rec
             (__str_flatten (__str_nary_intro (Term.String (c :: cs)))) r
@@ -1029,7 +1028,7 @@ private theorem str_indexof_re_eval_tail_search_side_aux_model_eval
             simp at h
           simp [str_indexof_re_eval_tail_search_side,
             hIdxEq, hFind, __eo_eq, __eo_ite, __eo_add, native_ite,
-            native_teq, hIdxNe]
+            native_teq]
           change __smtx_model_eval M
               (SmtTerm.Numeral (offset + Int.ofNat idx)) =
             SmtValue.Numeral (offset + Int.ofNat idx)
@@ -1060,13 +1059,13 @@ private theorem str_indexof_re_eval_tail_search_side_model_eval_of_aux
   rw [native_re_find_idx_aux_offset rv tail (Int.toNat offset)]
   cases hFind : native_re_find_idx_aux rv tail 0 with
   | none =>
-      simp [hFind]
+      simp
   | some p =>
       cases p with
       | mk idx len =>
           have hOffsetEq : (Int.toNat offset : Int) = offset :=
             Int.toNat_of_nonneg hOffsetNonneg
-          simp [hFind, hOffsetEq]
+          simp [hOffsetEq]
 
 private theorem str_indexof_re_eval_tail_search_side_model_eval
     (M : SmtModel) (hM : model_total_typed M)
@@ -1182,8 +1181,8 @@ private theorem str_indexof_re_eval_concrete_side_model_eval
   by_cases hNeg : ni < 0
   · have hNegBool : native_zlt ni 0 = true := by
       simp [native_zlt, hNeg]
-    simp [str_indexof_re_eval_side, str_indexof_re_eval_match_regex,
-      __eo_len, __eo_extract, __eo_gt, __eo_is_neg, __eo_or, __eo_ite,
+    simp [str_indexof_re_eval_side,
+      __eo_len, __eo_gt, __eo_is_neg, __eo_or, __eo_ite,
       native_ite, native_teq, native_or, hNegBool, native_str_indexof_re, hNeg]
     change __smtx_model_eval M (SmtTerm.Numeral (-1)) = SmtValue.Numeral (-1)
     rw [__smtx_model_eval.eq_2]
@@ -1202,8 +1201,8 @@ private theorem str_indexof_re_eval_concrete_side_model_eval
         change Int.ofNat (Int.toNat ni) <= Int.ofNat str.length at hLe
         rw [hNiEq] at hLe
         omega
-      simp [str_indexof_re_eval_side, str_indexof_re_eval_match_regex,
-        __eo_len, __eo_extract, __eo_gt, __eo_is_neg, __eo_or, __eo_ite,
+      simp [str_indexof_re_eval_side,
+        __eo_len, __eo_gt, __eo_is_neg, __eo_or, __eo_ite,
         native_ite, native_teq, native_or, hGtBool, hNegBool,
         native_str_indexof_re, hNeg, hStartNotLe]
       change __smtx_model_eval M (SmtTerm.Numeral (-1)) = SmtValue.Numeral (-1)
@@ -1308,13 +1307,13 @@ private theorem str_indexof_re_eval_side_model_eval
       simpa [str_indexof_re_eval_side, str_indexof_re_eval_match_regex,
         side, lenTerm, tail, matchTerm, idxTerm] using hSideEval.symm
       | (change side ≠ Term.Stuck at hSideNe
-         simp [lenTerm, tail, matchTerm, idxTerm, side, __eo_len, __eo_extract,
-           __eo_gt, __eo_is_neg, __eo_or, __eo_ite, __eo_requires, native_ite,
-           native_teq, native_not, SmtEval.native_not] at hSideNe)
+         simp [lenTerm, side, __eo_len,
+           __eo_gt, __eo_is_neg, __eo_or, native_ite,
+           native_teq] at hSideNe)
   | (change side ≠ Term.Stuck at hSideNe
-     simp [lenTerm, tail, matchTerm, idxTerm, side, __eo_len, __eo_extract,
-       __eo_gt, __eo_is_neg, __eo_or, __eo_ite, __eo_requires, native_ite,
-       native_teq, native_not, SmtEval.native_not] at hSideNe)
+     simp [lenTerm, side, __eo_len,
+       __eo_gt, __eo_is_neg, __eo_or, native_ite,
+       native_teq] at hSideNe)
 
 private theorem str_indexof_re_eval_valid_properties
     (M : SmtModel) (hM : model_total_typed M)

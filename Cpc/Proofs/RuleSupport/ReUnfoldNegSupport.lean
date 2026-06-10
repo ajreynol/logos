@@ -6,7 +6,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 namespace RuleProofs
@@ -136,7 +135,7 @@ theorem smtx_typeof_str_len_of_seq_char (s : Term)
     __smtx_typeof (__eo_to_smt (mkStrLen s)) = SmtType.Int := by
   change __smtx_typeof (SmtTerm.str_len (__eo_to_smt s)) = SmtType.Int
   rw [typeof_str_len_eq]
-  simp [hs, __smtx_typeof_seq_op_1_ret, native_ite, native_Teq]
+  simp [hs, __smtx_typeof_seq_op_1_ret]
 
 theorem smtx_typeof_substr_of_seq_char (s i n : Term)
     (hs : __smtx_typeof (__eo_to_smt s) = SmtType.Seq SmtType.Char)
@@ -148,7 +147,7 @@ theorem smtx_typeof_substr_of_seq_char (s i n : Term)
       (SmtTerm.str_substr (__eo_to_smt s) (__eo_to_smt i) (__eo_to_smt n)) =
     SmtType.Seq SmtType.Char
   rw [typeof_str_substr_eq]
-  simp [__smtx_typeof_str_substr, hs, hi, hn, native_ite, native_Teq]
+  simp [__smtx_typeof_str_substr, hs, hi, hn]
 
 theorem smtx_typeof_neg_of_int (x y : Term)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Int)
@@ -233,13 +232,13 @@ theorem reConcat_nil_eval_empty_of_is_list_nil_true
       __eo_is_list_nil (Term.UOp UserOp.re_concat) nil = Term.Boolean true) :
     __smtx_model_eval M (__eo_to_smt nil) =
       SmtValue.RegLan (native_str_to_re ([] : native_String)) := by
-  cases nil <;> try simp [__eo_is_list_nil] at hNil
+  cases nil <;> try (simp only [__eo_is_list_nil] at hNil; cases hNil)
   case Apply f x =>
-    cases f <;> try simp [__eo_is_list_nil] at hNil
+    cases f <;> try (simp only [__eo_is_list_nil] at hNil; cases hNil)
     case UOp op =>
-      cases op <;> try simp [__eo_is_list_nil] at hNil
+      cases op <;> try (simp only [__eo_is_list_nil] at hNil; cases hNil)
       case str_to_re =>
-        cases x <;> try simp [__eo_is_list_nil] at hNil
+        cases x <;> try (simp only [__eo_is_list_nil] at hNil; cases hNil)
         case String s =>
           cases s with
           | nil =>
@@ -250,7 +249,8 @@ theorem reConcat_nil_eval_empty_of_is_list_nil_true
                 native_str_to_re, native_re_of_list, native_pack_string,
                 native_unpack_string, native_pack_seq, native_unpack_seq]
           | cons _ _ =>
-              simp [__eo_is_list_nil] at hNil
+              simp only [__eo_is_list_nil] at hNil
+              cases hNil
 
 private theorem reConcat_smt_value_rel_right_empty_eval
     (M : SmtModel) (x id : Term) (r : native_RegLan) :
@@ -270,7 +270,7 @@ private theorem reConcat_smt_value_rel_right_empty_eval
   simp only [__smtx_model_eval, __smtx_model_eval_re_concat, hxEval, hIdEval]
   cases r <;>
     simp [__smtx_model_eval_eq, native_re_concat, native_re_mk_concat,
-      native_str_to_re, native_re_of_list, native_string_lit_empty]
+      native_str_to_re, native_re_of_list]
 
 private theorem reConcat_is_list_nil_boolean_of_ne_stuck (t : Term) :
     t ≠ Term.Stuck ->

@@ -6,7 +6,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 namespace RuleProofs
@@ -57,8 +56,7 @@ private theorem replace_re_all_nonempty_re_eval
             (SmtTerm.re_comp (SmtTerm.str_to_re (SmtTerm.String [])))
             SmtTerm.re_all)) =
       SmtType.RegLan
-    simp [__smtx_typeof, hRTy, native_ite, native_Teq, native_string_valid,
-      type_result_seq_components_wf]
+    simp [__smtx_typeof, hRTy, native_ite, native_Teq, native_string_valid]
   · change __smtx_model_eval M
         (SmtTerm.re_inter (__eo_to_smt r)
           (SmtTerm.re_inter
@@ -85,7 +83,7 @@ private theorem native_str_in_re_deriv_eq_cons
       native_str_in_re (c :: ys) r := by
   have hCons : native_string_valid (c :: ys) = true :=
     native_string_valid_cons hc hys
-  simp [native_str_in_re, hys, hCons, RuleProofs.nativeListInRe]
+  simp [native_str_in_re, hys, hCons]
 
 private theorem native_re_prefix_match_len_go_shift :
     ∀ (xs : native_String) (r : native_RegLan) (n : Nat),
@@ -100,12 +98,12 @@ private theorem native_re_prefix_match_len_go_shift :
       rw [Smtm.native_re_prefix_match_len?.go.eq_2,
         Smtm.native_re_prefix_match_len?.eq_1,
         Smtm.native_re_prefix_match_len?.go.eq_2]
-      cases hNull : native_re_nullable r <;> simp [hNull]
-      cases hc : native_char_valid c <;> simp [hc]
+      cases hNull : native_re_nullable r <;> simp
+      cases hc : native_char_valid c <;> simp
       rw [native_re_prefix_match_len_go_shift cs (native_re_deriv c r) (n + 1)]
       rw [native_re_prefix_match_len_go_shift cs (native_re_deriv c r) 1]
       cases native_re_prefix_match_len? (native_re_deriv c r) cs <;>
-        simp [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm]
+        simp [Nat.add_comm, Nat.add_left_comm]
 
 private theorem native_re_prefix_match_len_eq_positive_of_not_nullable
     (r : native_RegLan) (xs : native_String)
@@ -356,7 +354,7 @@ private theorem str_eval_replace_re_all_rec_properties
           rw [Eo.__str_eval_replace_re_all_rec.eq_5
             (Term.String []) r t (Term.Numeral (Int.ofNat skip))
             (by simp) hRNe hTNe (by simp)]
-          simp [substrWord, __eo_eq, __eo_ite, native_ite, native_teq]
+          simp [__eo_eq, __eo_ite, native_ite, native_teq]
         rw [hRawEq]
         constructor
         · simp [__eo_is_list, __eo_get_nil_rec, __eo_requires, __eo_is_list_nil,
@@ -386,7 +384,7 @@ private theorem str_eval_replace_re_all_rec_properties
           rw [Eo.__str_eval_replace_re_all_rec.eq_5
             (Term.String acc) r t (Term.Numeral (Int.ofNat skip))
             (by simp) hRNe hTNe (by simp)]
-          simp [substrWord, hEqFalse, __eo_ite, native_ite, native_teq]
+          simp [hEqFalse, __eo_ite, native_ite, native_teq]
         rw [hRawEq]
         constructor
         · simp [__eo_is_list, __eo_get_nil_rec, __eo_requires, __eo_is_list_nil,
@@ -400,7 +398,7 @@ private theorem str_eval_replace_re_all_rec_properties
             simpa [native_string_valid, List.all_eq_true] using hAccValid
           have hAccList : List.all acc native_char_valid = true := by
             simpa [native_string_valid] using hAccValid
-          simp only [__smtx_typeof, native_string_valid, List.all_eq_true]
+          simp only [__smtx_typeof, native_string_valid]
           rw [hAccList]
           simp [__smtx_typeof_seq_op_2, native_ite, native_Teq]
         · rw [str_concat_string_eval M acc []]
@@ -510,7 +508,7 @@ private theorem str_eval_replace_re_all_rec_properties
               have hCondNe : cond ≠ Term.Stuck := by
                 intro hCond
                 have hv1 : v1 = Term.Stuck := by
-                  simp [v1, hCond, __eo_ite, native_ite, native_teq]
+                  simp [v1, hCond, native_ite, native_teq]
                 have hEq : __eo_eq v1 (Term.Numeral (-1 : native_Int)) = Term.Stuck := by
                   simp [hv1, __eo_eq]
                 have hStuck :
@@ -541,7 +539,7 @@ private theorem str_eval_replace_re_all_rec_properties
                     rw [hCondEq, hPrefixPositive, hPref]
                     simp
                   have hv1 : v1 = Term.Numeral (-1 : native_Int) := by
-                    simp [v1, hCondFalse, __eo_ite, native_ite, native_teq]
+                    simp [v1, hCondFalse, native_ite, native_teq]
                   have hEqTrue :
                       __eo_eq v1 (Term.Numeral (-1 : native_Int)) =
                         Term.Boolean true := by
@@ -609,7 +607,7 @@ private theorem str_eval_replace_re_all_rec_properties
                       have hSmallNe : small ≠ Term.Stuck := by
                         intro hSmall
                         have hv1 : v1 = Term.Stuck := by
-                          simp [v1, hCondTrue, hSmall, __eo_ite, native_ite, native_teq]
+                          simp [v1, hCondTrue, hSmall, native_ite, native_teq]
                         have hEq : __eo_eq v1 (Term.Numeral (-1 : native_Int)) = Term.Stuck := by
                           simp [hv1, __eo_eq]
                         have hStuck :
@@ -637,7 +635,7 @@ private theorem str_eval_replace_re_all_rec_properties
                         simpa [small, word, substrWord, extractString_zero_cons,
                           substrWord_cons_tail, hGo] using hSmallEval
                       have hv1 : v1 = Term.Numeral (Int.ofNat (n + 1)) := by
-                        simp [v1, hCondTrue, hSmallEq, __eo_ite, native_ite,
+                        simp [v1, hCondTrue, hSmallEq, native_ite,
                           native_teq]
                       have hEqFalse :
                           __eo_eq v1 (Term.Numeral (-1 : native_Int)) =
@@ -651,7 +649,7 @@ private theorem str_eval_replace_re_all_rec_properties
                           simpa [Int.ofNat_eq_natCast, Int.natCast_succ] using hNe'
                         have hNeNat : (-1 : Int) ≠ (n : Int) + 1 := by
                           simpa [Int.ofNat_eq_natCast] using hNe''
-                        simp [hv1, __eo_eq, native_teq, hNe, hNe', hNe'',
+                        simp [hv1, __eo_eq, native_teq,
                           hNeNat]
                       have hSkip :
                           __eo_add v1 (Term.Numeral (-1 : native_Int)) =
@@ -808,8 +806,7 @@ private theorem list_singleton_elim_arg_ne_stuck_of_ne_stuck
     a ≠ Term.Stuck := by
   intro hA
   subst a
-  cases f <;> simp [__eo_list_singleton_elim, __eo_is_list, __eo_get_nil_rec,
-    __eo_is_ok, __eo_requires, native_ite, native_teq, SmtEval.native_not] at hNe
+  cases f <;> simp [__eo_list_singleton_elim, __eo_is_list, __eo_requires, native_ite, native_teq] at hNe
 
 private theorem term_ne_stuck_of_smt_seq_type_local
     {t : Term} {T : SmtType}
@@ -818,7 +815,7 @@ private theorem term_ne_stuck_of_smt_seq_type_local
   intro h
   subst t
   change __smtx_typeof SmtTerm.None = SmtType.Seq T at hTy
-  simp [__smtx_typeof] at hTy
+  simp at hTy
 
 private theorem strConcat_singleton_elim_rel
     (M : SmtModel) (hM : model_total_typed M) (c : Term) (T : SmtType) :
@@ -1025,8 +1022,8 @@ private theorem str_replace_re_all_eval_valid_properties
         SmtType.Seq SmtType.Char
       have hStrAll : ∀ x ∈ str, native_char_valid x = true := by
         simpa [native_string_valid, List.all_eq_true] using hStrValid
-      simp [__smtx_typeof, hRTy, hTTy, hStrValid, native_string_valid, native_ite,
-        native_Teq, type_result_seq_components_wf, hStrAll]
+      simp [__smtx_typeof, hRTy, hTTy, native_string_valid, native_ite,
+        native_Teq]
       exact hStrAll
     have hSameTy :=
       (RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type lhs' side

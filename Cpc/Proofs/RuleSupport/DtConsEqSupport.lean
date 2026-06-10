@@ -2776,7 +2776,7 @@ private theorem eo_ite_true_eq_false
   intro h
   cases c <;> simp [__eo_ite, native_ite, native_teq] at h
   case Boolean b =>
-    cases b <;> simp [__eo_ite, native_ite, native_teq] at h
+    cases b <;> simp at h
     exact ⟨rfl, h⟩
 
 private theorem eo_ite_eq_true_cases (c t e : Term) :
@@ -2813,7 +2813,9 @@ private theorem dt_distinct_terms_false_same_root
         intro g y h
         exact hsApply ⟨g, y, h⟩
       have hHead : __dt_distinct_terms f s = Term.Boolean false := by
-        cases s <;> try simpa [__dt_distinct_terms] using hDistinct
+        cases s <;> try (simp [__dt_distinct_terms] at hDistinct ⊢; exact hDistinct)
+        case Stuck =>
+          simp [__dt_distinct_terms] at hDistinct
         case Apply g y =>
           exact False.elim (hsNotApply g y rfl)
       rcases dt_distinct_terms_false_same_root f s hHead with
@@ -2825,7 +2827,7 @@ private theorem dt_distinct_terms_false_same_root
     by_cases hsApply : ∃ g y, s = Term.Apply g y
     · rcases hsApply with ⟨g, y, rfl⟩
       have hHead : __dt_distinct_terms t g = Term.Boolean false := by
-        cases t <;> try simpa [__dt_distinct_terms] using hDistinct
+        cases t <;> try simpa only [__dt_distinct_terms] using hDistinct
         case Apply f x =>
           exact False.elim (htNotApply f x rfl)
       rcases dt_distinct_terms_false_same_root t g hHead with
@@ -2846,7 +2848,8 @@ private theorem dt_distinct_terms_false_same_root
               | exact False.elim (htNotApply _ _ rfl)
               | exact False.elim (hsNotApply _ _ rfl))
         all_goals
-          simpa [dtConsDistinctBaseGuard, __dt_distinct_terms] using hDistinct
+          simp [__dt_distinct_terms] at hDistinct
+          try exact hDistinct
       rcases dtConsDistinct_base_info_false hBase with
         ⟨htGuard, _hsGuard, hEq⟩
       subst s
@@ -2894,7 +2897,8 @@ private theorem dt_distinct_terms_roots_of_nonapply_pair
           | exact False.elim (htNotApply _ _ rfl)
           | exact False.elim (hcNotApply _ _ rfl))
     all_goals
-      simpa [dtConsDistinctBaseGuard, __dt_distinct_terms] using hDistinct
+      simp [__dt_distinct_terms] at hDistinct
+      try exact hDistinct
   rcases dtConsDistinct_base_info hBase with ⟨htGuard, hcGuard⟩
   exact ⟨t, c, dtConsDistinct_base_guard_root t htGuard,
     dtConsDistinct_base_guard_root c hcGuard⟩
@@ -2908,7 +2912,9 @@ private theorem dt_distinct_terms_roots_of_right_nonapply
   by_cases htApply : ∃ f x, t = Term.Apply f x
   · rcases htApply with ⟨f, a, rfl⟩
     have hHead : __dt_distinct_terms f c = Term.Boolean true := by
-      cases c <;> try simpa [__dt_distinct_terms] using hDistinct
+      cases c <;> try (simp [__dt_distinct_terms] at hDistinct ⊢; exact hDistinct)
+      case Stuck =>
+        simp [__dt_distinct_terms] at hDistinct
       case Apply g y =>
         exact False.elim (hcNotApply g y rfl)
     rcases dt_distinct_terms_roots_of_right_nonapply
@@ -3074,7 +3080,7 @@ private theorem dt_distinct_terms_roots_of_left_nonapply
   by_cases htApply : ∃ f x, t = Term.Apply f x
   · rcases htApply with ⟨f, a, rfl⟩
     have hHead : __dt_distinct_terms c f = Term.Boolean true := by
-      cases c <;> try simpa [__dt_distinct_terms] using hDistinct
+      cases c <;> try simpa only [__dt_distinct_terms] using hDistinct
       case Apply g y =>
         exact False.elim (hcNotApply g y rfl)
     rcases dt_distinct_terms_roots_of_left_nonapply
