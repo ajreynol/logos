@@ -4,13 +4,21 @@ set -euo pipefail
 
 usage() {
   cat <<'USAGE'
-Usage: scripts/build-cpc-rule.sh <rule>
+Usage: scripts/build-cpc-rule.sh [-jN] <rule>
 
 Build a single CPC proof rule and show Lake's verbose build progress.
 
+Lake already builds a rule's dependencies in parallel across all cores. This
+Lake version has no -j/--jobs flag, so -jN here instead caps Lean's program-wide
+thread pool via LEAN_NUM_THREADS (use it to limit, not raise, parallelism).
+Omit it to use all cores.
+
+Options:
+  -jN, --jobs N   Set LEAN_NUM_THREADS=N for this build.
+
 Examples:
   scripts/build-cpc-rule.sh str_in_re_eval
-  scripts/build-cpc-rule.sh str.in_re.eval
+  scripts/build-cpc-rule.sh -j8 str.in_re.eval
   scripts/build-cpc-rule.sh Str_in_re_eval
   scripts/build-cpc-rule.sh Cpc.Proofs.Rules.Str_in_re_eval
   scripts/build-cpc-rule.sh Cpc/Proofs/Rules/Str_in_re_eval.lean
@@ -25,12 +33,33 @@ die() {
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${script_dir}/.." && pwd)"
 
-if [ "$#" -ne 1 ]; then
+jobs=""
+args=()
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    -h|--help) usage; exit 0 ;;
+    -j) jobs="${2:-}"; shift ;;
+    -j*) jobs="${1#-j}" ;;
+    --jobs) jobs="${2:-}"; shift ;;
+    --jobs=*) jobs="${1#--jobs=}" ;;
+    *) args+=("$1") ;;
+  esac
+  shift
+done
+
+if [ -n "${jobs}" ]; then
+  case "${jobs}" in
+    *[!0-9]*|'') die "invalid job count: ${jobs}" ;;
+  esac
+  export LEAN_NUM_THREADS="${jobs}"
+fi
+
+if [ "${#args[@]}" -ne 1 ]; then
   usage >&2
   exit 2
 fi
 
-input="${1#+}"
+input="${args[0]#+}"
 module=""
 rel_file=""
 
@@ -65,7 +94,7 @@ else
 fi
 
 if [ ! -f "${repo_root}/${rel_file}" ]; then
-  echo "error: unknown CPC rule: ${1}" >&2
+  echo "error: unknown CPC rule: ${args[0]}" >&2
   echo "expected file: ${rel_file}" >&2
 
   needle="$(basename "${input%.lean}")"

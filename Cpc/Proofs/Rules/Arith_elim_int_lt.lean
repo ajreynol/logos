@@ -1,4 +1,4 @@
-import Cpc.Proofs.RuleSupport.Support
+import Cpc.Proofs.RuleSupport.ArithSimpleSupport
 
 open Eo
 open SmtEval
@@ -16,4 +16,48 @@ theorem cmd_step_arith_elim_int_lt_properties
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.arith_elim_int_lt args premises) :=
 by
-  sorry
+  intro hCmdTrans _hPremisesBool hResultTy
+  have hProg : __eo_cmd_step_proven s CRule.arith_elim_int_lt args premises ≠ Term.Stuck :=
+    term_ne_stuck_of_typeof_bool hResultTy
+  cases args with
+  | nil =>
+      change Term.Stuck ≠ Term.Stuck at hProg
+      exact False.elim (hProg rfl)
+  | cons a1 args =>
+      cases args with
+      | nil =>
+          change Term.Stuck ≠ Term.Stuck at hProg
+          exact False.elim (hProg rfl)
+      | cons a2 args =>
+          cases args with
+          | cons _ _ =>
+              change Term.Stuck ≠ Term.Stuck at hProg
+              exact False.elim (hProg rfl)
+          | nil =>
+              cases premises with
+              | cons _ _ =>
+                  change Term.Stuck ≠ Term.Stuck at hProg
+                  exact False.elim (hProg rfl)
+              | nil =>
+                  let T1 := a1
+                  let S1 := a2
+                  have hArgsTrans :
+                      cArgListTranslationOk
+                        (CArgList.cons T1 (CArgList.cons S1 CArgList.nil)) := by
+                    simpa [cmdTranslationOk] using hCmdTrans
+                  have hT1Trans : RuleProofs.eo_has_smt_translation T1 := by
+                    simpa [cArgListTranslationOk] using hArgsTrans.1
+                  have hS1Trans : RuleProofs.eo_has_smt_translation S1 := by
+                    simpa [cArgListTranslationOk] using hArgsTrans.2
+                  change __eo_typeof (__eo_prog_arith_elim_int_lt T1 S1) = Term.Bool at hResultTy
+                  refine ⟨?_, ?_⟩
+                  · intro _hTrue
+                    change eo_interprets M (__eo_prog_arith_elim_int_lt T1 S1) true
+                    exact ArithSimpleSupport.facts_arith_elim_int_lt
+                      M hM T1 S1 hT1Trans hS1Trans hResultTy
+                  · change RuleProofs.eo_has_smt_translation
+                      (__eo_prog_arith_elim_int_lt T1 S1)
+                    exact RuleProofs.eo_has_smt_translation_of_has_bool_type
+                      (__eo_prog_arith_elim_int_lt T1 S1)
+                      (ArithSimpleSupport.typed_arith_elim_int_lt
+                        T1 S1 hT1Trans hS1Trans hResultTy)

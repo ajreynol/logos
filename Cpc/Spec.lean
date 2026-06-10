@@ -47,7 +47,6 @@ def native_eo_to_smt_closed (x : Term) : native_Bool :=
   native_eo_to_smt_closed_rec x []
 
 
-
 mutual
 
 def __eo_to_smt_guard_closed : Term -> SmtTerm -> SmtTerm

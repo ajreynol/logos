@@ -32,6 +32,22 @@ private theorem eo_requires_cond_eq_of_non_stuck {x y z : Term}
       cases hTeq : native_teq x y <;> simp_all
     simp [native_ite, hxyFalse] at h
 
+private theorem eo_requires_result_eq_of_non_stuck {x y z : Term}
+    (h : __eo_requires x y z ≠ Term.Stuck) :
+    __eo_requires x y z = z := by
+  unfold __eo_requires at h ⊢
+  by_cases hxy : native_teq x y = true
+  · by_cases hx : native_teq x Term.Stuck = true
+    · simp [native_ite, hxy, hx, SmtEval.native_not] at h
+    · simp [native_ite, hxy, hx, SmtEval.native_not]
+  · simp [native_ite, hxy] at h
+
+private theorem eo_requires_result_ne_stuck_of_non_stuck {x y z : Term}
+    (h : __eo_requires x y z ≠ Term.Stuck) :
+    z ≠ Term.Stuck := by
+  intro hz
+  exact h (by rw [eo_requires_result_eq_of_non_stuck h, hz])
+
 private theorem typeof_eq_args_same {A B : Term}
     (h : __eo_typeof_eq A B = Term.Bool) :
     A = B := by
@@ -93,6 +109,24 @@ private theorem prog_exists_string_length_id_int
     subst id
     have hNo : __eo_typeof Term.Stuck ≠ Term.Bool := by native_decide
     exact hNo hTy
+  have hProgNe :
+      __eo_prog_exists_string_length
+        (Term.Apply (Term.UOp UserOp.Seq) U) (Term.Numeral k) id ≠
+        Term.Stuck :=
+    term_ne_stuck_of_typeof_bool hTy
+  have hOuterReqNe :
+      __eo_requires
+        (__eo_gt (Term.Numeral k) (Term.Numeral (-1 : native_Int)))
+        (Term.Boolean true)
+        (__eo_requires (__eo_is_z id) (Term.Boolean true)
+          (eslFormula U (Term.Numeral k) id)) ≠ Term.Stuck := by
+    simpa [eslFormula, __eo_prog_exists_string_length, hIdNe] using hProgNe
+  have hInnerReqNe :
+      __eo_requires (__eo_is_z id) (Term.Boolean true)
+        (eslFormula U (Term.Numeral k) id) ≠ Term.Stuck :=
+    eo_requires_result_ne_stuck_of_non_stuck hOuterReqNe
+  have hIdIsZ : __eo_is_z id = Term.Boolean true := by
+    exact eo_requires_cond_eq_of_non_stuck hInnerReqNe
   have hBodyTy :
       __eo_typeof (eslFormula U (Term.Numeral k) id) = Term.Bool := by
     simpa [eslFormula, __eo_prog_exists_string_length, __eo_requires, __eo_gt,

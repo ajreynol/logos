@@ -6,7 +6,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
 
@@ -2705,6 +2704,45 @@ private theorem reConcat_list_concat_rec_rel_eval
               RuleProofs.smt_value_rel_refl (SmtValue.RegLan rz)
           exact ⟨hZList, hZWF,
             RuleProofs.smt_value_rel_symm _ _ hLeftRel⟩
+
+theorem reConcat_list_concat_rec_eval_rel
+    (M : SmtModel) (a b : Term) (ra rb : native_RegLan)
+    (hAList :
+      __eo_is_list (Term.UOp UserOp.re_concat) a = Term.Boolean true)
+    (hBList :
+      __eo_is_list (Term.UOp UserOp.re_concat) b = Term.Boolean true)
+    (hATy : __smtx_typeof (__eo_to_smt a) = SmtType.RegLan)
+    (hBTy : __smtx_typeof (__eo_to_smt b) = SmtType.RegLan)
+    (hAEval : __smtx_model_eval M (__eo_to_smt a) = SmtValue.RegLan ra)
+    (hBEval : __smtx_model_eval M (__eo_to_smt b) = SmtValue.RegLan rb) :
+    ∃ r,
+      __smtx_model_eval M
+          (__eo_to_smt (__eo_list_concat_rec a b)) =
+        SmtValue.RegLan r ∧
+      __smtx_typeof
+          (__eo_to_smt (__eo_list_concat_rec a b)) =
+        SmtType.RegLan ∧
+      RuleProofs.smt_value_rel (SmtValue.RegLan r)
+        (SmtValue.RegLan (native_re_concat ra rb)) := by
+  have hAWF : ReConcatListWF M a :=
+    reConcatListWF_of_type_eval M a ra hATy hAEval
+  have hBWF : ReConcatListWF M b :=
+    reConcatListWF_of_type_eval M b rb hBTy hBEval
+  have hConcat :=
+    reConcat_list_concat_rec_rel_eval M a b hAList hBList hAWF hBWF
+  rcases reConcatListWF_eval hConcat.2.1 with ⟨r, hRecEval⟩
+  have hMkEval :
+      __smtx_model_eval M (__eo_to_smt (mkReConcat a b)) =
+        SmtValue.RegLan (native_re_concat ra rb) := by
+    change __smtx_model_eval M
+        (SmtTerm.re_concat (__eo_to_smt a) (__eo_to_smt b)) =
+      SmtValue.RegLan (native_re_concat ra rb)
+    simp [__smtx_model_eval, __smtx_model_eval_re_concat, hAEval, hBEval]
+  have hRel :
+      RuleProofs.smt_value_rel (SmtValue.RegLan r)
+        (SmtValue.RegLan (native_re_concat ra rb)) := by
+    simpa [hRecEval, hMkEval] using hConcat.2.2
+  exact ⟨r, hRecEval, reConcatListWF_type hConcat.2.1, hRel⟩
 
 private theorem reConcat_list_concat_eval_rel
     (M : SmtModel) (a b : Term) (ra rb : native_RegLan)

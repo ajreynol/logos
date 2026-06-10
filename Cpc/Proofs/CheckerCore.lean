@@ -488,7 +488,7 @@ theorem push_assume_eq_stuck_of_guard_ne_true (A : Term) (s : CState) :
 by
   intro hGuard
   cases hCheck : assumptionCheckGuard A <;>
-    simp [__eo_push_assume_check, hCheck]
+    simp [__eo_push_assume_check]
   case Boolean b =>
     cases b <;> simp [hCheck] at hGuard ⊢
 
@@ -520,7 +520,7 @@ by
     simp [__eo_push_assume_check, hCheck, stateOk] at hOk
   case Boolean b =>
     cases b
-    · simp [__eo_push_assume_check, hCheck, stateOk] at hOk
+    · simp [stateOk] at hOk
     · simpa [__eo_push_assume_check, hCheck, stateOk] using hOk
 
 /-- Derives the successful combined guard from `stateOk`. -/
@@ -532,7 +532,7 @@ by
   cases hCheck : assumptionCheckGuard A <;>
     simp [__eo_push_assume_check, hCheck, stateOk] at hOk
   case Boolean b =>
-    cases b <;> simp [hCheck, stateOk] at hOk ⊢
+    cases b <;> simp [stateOk] at hOk ⊢
 
 /-- Derives `push_assume_typeof_bool` from `stateOk`. -/
 theorem push_assume_typeof_bool_of_stateOk (A : Term) (s : CState) :
@@ -595,7 +595,7 @@ theorem push_input_assume_eq_stuck_of_guard_ne_true (A : Term) (s : CState) :
 by
   intro hGuard
   cases hCheck : assumptionCheckGuard A <;>
-    simp [__eo_push_input_assume_check, hCheck]
+    simp [__eo_push_input_assume_check]
   case Boolean b =>
     cases b <;> simp [hCheck] at hGuard ⊢
 
@@ -619,7 +619,7 @@ by
     simp [__eo_push_input_assume_check, hCheck, stateOk] at hOk
   case Boolean b =>
     cases b
-    · simp [__eo_push_input_assume_check, hCheck, stateOk] at hOk
+    · simp [stateOk] at hOk
     · simpa [__eo_push_input_assume_check, hCheck, stateOk] using hOk
 
 /-- Derives the successful combined guard from `stateOk`. -/
@@ -631,7 +631,7 @@ by
   cases hCheck : assumptionCheckGuard A <;>
     simp [__eo_push_input_assume_check, hCheck, stateOk] at hOk
   case Boolean b =>
-    cases b <;> simp [hCheck, stateOk] at hOk ⊢
+    cases b <;> simp [stateOk] at hOk ⊢
 
 /-- Derives `push_input_assume_typeof_bool` from `stateOk`. -/
 theorem push_input_assume_typeof_bool_of_stateOk (A : Term) (s : CState) :

@@ -1008,7 +1008,7 @@ private theorem eo_ite_stuck_stuck (c : Term) :
     cases native_teq c (Term.Boolean false) <;>
     simp [native_ite]
 
-private theorem str_fixed_len_re_numeral_or_stuck :
+theorem str_fixed_len_re_numeral_or_stuck :
     (r : Term) ->
       (∃ n : native_Int, __str_fixed_len_re r = Term.Numeral n) ∨
         __str_fixed_len_re r = Term.Stuck
@@ -1082,7 +1082,7 @@ private theorem str_fixed_len_re_numeral_or_stuck :
   | Term.UConst _ _ => by right; rfl
 termination_by r => sizeOf r
 
-private theorem str_fixed_len_re_numeral_of_ne_stuck
+theorem str_fixed_len_re_numeral_of_ne_stuck
     (r : Term)
     (h : __str_fixed_len_re r ≠ Term.Stuck) :
     ∃ n : native_Int, __str_fixed_len_re r = Term.Numeral n := by
@@ -1090,7 +1090,7 @@ private theorem str_fixed_len_re_numeral_of_ne_stuck
   · exact hNum
   · exact False.elim (h hStuck)
 
-private theorem str_fixed_len_re_sound (M : SmtModel) :
+theorem str_fixed_len_re_sound (M : SmtModel) :
     (r : Term) -> (str : native_String) -> (rr : native_RegLan) ->
       (n : native_Int) ->
       __str_fixed_len_re r = Term.Numeral n ->
