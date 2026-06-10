@@ -199,6 +199,80 @@ theorem set_empty_map_default_leaf (A : SmtType) :
       SmtMap.default A (SmtValue.Boolean false) := by
   rfl
 
+theorem set_map_lookup_eq_default_of_not_typed_canonical :
+    ∀ {m : SmtMap} {A B : SmtType} {v : SmtValue},
+      __smtx_typeof_map_value m = SmtType.Map A B ->
+        __smtx_map_canonical m = true ->
+          ¬ (__smtx_typeof_value v = A ∧
+              __smtx_value_canonical_bool v = true) ->
+            __smtx_msm_lookup m v = __smtx_msm_get_default m
+  | SmtMap.default T e, A, B, v, _hTy, _hCan, _hNot => by
+      simp [__smtx_msm_lookup, __smtx_msm_get_default]
+  | SmtMap.cons i e m, A, B, v, hTy, hCan, hNot => by
+      have hmTy : __smtx_typeof_map_value m = SmtType.Map A B := by
+        by_cases hEqTy :
+            native_Teq
+              (SmtType.Map (__smtx_typeof_value i) (__smtx_typeof_value e))
+              (__smtx_typeof_map_value m)
+        · simpa [__smtx_typeof_map_value, native_ite, hEqTy] using hTy
+        · simp [__smtx_typeof_map_value, native_ite, hEqTy] at hTy
+      have hEqTy' :
+          SmtType.Map (__smtx_typeof_value i) (__smtx_typeof_value e) =
+            __smtx_typeof_map_value m := by
+        by_cases hEqTy :
+            native_Teq
+              (SmtType.Map (__smtx_typeof_value i) (__smtx_typeof_value e))
+              (__smtx_typeof_map_value m)
+        · simpa [native_Teq] using hEqTy
+        · simp [__smtx_typeof_map_value, native_ite, hEqTy] at hTy
+      have hHead :
+          SmtType.Map (__smtx_typeof_value i) (__smtx_typeof_value e) =
+            SmtType.Map A B := hEqTy'.trans hmTy
+      have hiTy : __smtx_typeof_value i = A := by
+        cases hHead
+        rfl
+      have hiCan : __smtx_value_canonical_bool i = true := by
+        have hParts := hCan
+        simp [__smtx_map_canonical, SmtEval.native_and] at hParts
+        exact hParts.1.1.1.1
+      have hmCan : __smtx_map_canonical m = true := by
+        have hParts := hCan
+        simp [__smtx_map_canonical, SmtEval.native_and] at hParts
+        exact hParts.1.1.2
+      by_cases hivTrue : native_veq i v = true
+      · have hiv : i = v := Smtm.eq_of_native_veq_true hivTrue
+        subst v
+        exact False.elim (hNot ⟨hiTy, hiCan⟩)
+      · have hivFalse : native_veq i v = false := by
+          cases hBool : native_veq i v <;> simp [hBool] at hivTrue ⊢
+        have hRec :=
+          set_map_lookup_eq_default_of_not_typed_canonical hmTy hmCan hNot
+        simpa [__smtx_msm_lookup, __smtx_msm_get_default, native_ite,
+          hivFalse] using hRec
+
+theorem set_map_lookup_bool_ite_true_false
+    {m : SmtMap} {A : SmtType} (v : SmtValue)
+    (hmTy : __smtx_typeof_map_value m = SmtType.Map A SmtType.Bool)
+    (hmCan : __smtx_map_canonical m = true)
+    (hmDef : __smtx_msm_get_default m = SmtValue.Boolean false) :
+    native_ite
+        (native_veq (__smtx_msm_lookup m v) (SmtValue.Boolean true))
+        (SmtValue.Boolean true) (SmtValue.Boolean false) =
+      __smtx_msm_lookup m v := by
+  by_cases hv :
+      __smtx_typeof_value v = A ∧ __smtx_value_canonical_bool v = true
+  · have hLookupTy :
+        __smtx_typeof_value (__smtx_msm_lookup m v) = SmtType.Bool :=
+      Smtm.map_lookup_typed hmTy hv.1
+    rcases bool_value_canonical hLookupTy with ⟨b, hLookup⟩
+    rw [hLookup]
+    cases b <;> simp [native_ite, native_veq]
+  · have hLookupDefault :
+        __smtx_msm_lookup m v = __smtx_msm_get_default m :=
+      set_map_lookup_eq_default_of_not_typed_canonical hmTy hmCan hv
+    rw [hLookupDefault, hmDef]
+    simp [native_ite, native_veq]
+
 theorem set_eval_eq_empty_of_premise
     (M : SmtModel) (hM : model_total_typed M) (x T : Term)
     (hXTy : __smtx_typeof (__eo_to_smt x) = SmtType.Set (__eo_to_smt_type T))
@@ -793,6 +867,1217 @@ theorem prog_sets_member_emp_info
       exfalso
       apply hProg
       simp [__eo_prog_sets_member_emp, hx, hy]
+
+theorem eo_typeof_set_inter_bool_info
+    {x y rhs : Term}
+    (hTy : __eo_typeof (mkEq (mkSetInter x y) rhs) = Term.Bool) :
+    ∃ T : Term,
+      __eo_typeof x = Term.Apply (Term.UOp UserOp.Set) T ∧
+        __eo_typeof y = Term.Apply (Term.UOp UserOp.Set) T ∧
+          __eo_typeof rhs = Term.Apply (Term.UOp UserOp.Set) T := by
+  have hEqTy :
+      __eo_typeof_eq
+        (__eo_typeof_set_union (__eo_typeof x) (__eo_typeof y))
+        (__eo_typeof rhs) = Term.Bool := by
+    simpa [mkEq, mkSetInter] using hTy
+  rcases SetsMemberSupport.eo_typeof_eq_eq_bool_info hEqTy with
+    ⟨hSame, hInterNS⟩
+  rcases eo_typeof_set_union_ne_stuck_info hInterNS with
+    ⟨T, hxTy, hyTy, hInterTy⟩
+  exact ⟨T, hxTy, hyTy, by rw [← hSame, hInterTy]⟩
+
+theorem eo_typeof_set_minus_bool_info
+    {x y rhs : Term}
+    (hTy : __eo_typeof (mkEq (mkSetMinus x y) rhs) = Term.Bool) :
+    ∃ T : Term,
+      __eo_typeof x = Term.Apply (Term.UOp UserOp.Set) T ∧
+        __eo_typeof y = Term.Apply (Term.UOp UserOp.Set) T ∧
+          __eo_typeof rhs = Term.Apply (Term.UOp UserOp.Set) T := by
+  have hEqTy :
+      __eo_typeof_eq
+        (__eo_typeof_set_union (__eo_typeof x) (__eo_typeof y))
+        (__eo_typeof rhs) = Term.Bool := by
+    simpa [mkEq, mkSetMinus] using hTy
+  rcases SetsMemberSupport.eo_typeof_eq_eq_bool_info hEqTy with
+    ⟨hSame, hMinusNS⟩
+  rcases eo_typeof_set_union_ne_stuck_info hMinusNS with
+    ⟨T, hxTy, hyTy, hMinusTy⟩
+  exact ⟨T, hxTy, hyTy, by rw [← hSame, hMinusTy]⟩
+
+theorem typed_set_inter_eq_right
+    (x y rhs : Term)
+    (hxTrans : RuleProofs.eo_has_smt_translation x)
+    (hyTrans : RuleProofs.eo_has_smt_translation y)
+    (hrhsTrans : RuleProofs.eo_has_smt_translation rhs)
+    (hTy : __eo_typeof (mkEq (mkSetInter x y) rhs) = Term.Bool) :
+    RuleProofs.eo_has_bool_type (mkEq (mkSetInter x y) rhs) := by
+  rcases eo_typeof_set_inter_bool_info (x := x) (y := y) (rhs := rhs) hTy with
+    ⟨T, hxTy, hyTy, hrhsTy⟩
+  rcases set_smt_types_of_eo_set_types hxTrans hyTrans hxTy hyTy with
+    ⟨hxSmtTy, hySmtTy, _hTNonNone⟩
+  rcases set_smt_types_of_eo_set_types hxTrans hrhsTrans hxTy hrhsTy with
+    ⟨_hxSmtTy', hrhsSmtTy, _⟩
+  have hSetWf : __smtx_type_wf (SmtType.Set (__eo_to_smt_type T)) = true :=
+    Smtm.smt_term_set_type_wf_of_non_none
+      (__eo_to_smt y)
+      (by
+        unfold term_has_non_none_type
+        rw [hySmtTy]
+        simp)
+      hySmtTy
+  unfold RuleProofs.eo_has_bool_type
+  change
+    __smtx_typeof
+        (SmtTerm.eq (SmtTerm.set_inter (__eo_to_smt x) (__eo_to_smt y))
+          (__eo_to_smt rhs)) = SmtType.Bool
+  rw [typeof_eq_eq, typeof_set_inter_eq]
+  simp [__smtx_typeof_sets_op_2, __smtx_typeof_eq, native_ite, native_Teq,
+    __smtx_typeof_guard, hxSmtTy, hySmtTy, hrhsSmtTy, hSetWf]
+
+theorem typed_set_minus_eq_right
+    (x y rhs : Term)
+    (hxTrans : RuleProofs.eo_has_smt_translation x)
+    (hyTrans : RuleProofs.eo_has_smt_translation y)
+    (hrhsTrans : RuleProofs.eo_has_smt_translation rhs)
+    (hTy : __eo_typeof (mkEq (mkSetMinus x y) rhs) = Term.Bool) :
+    RuleProofs.eo_has_bool_type (mkEq (mkSetMinus x y) rhs) := by
+  rcases eo_typeof_set_minus_bool_info (x := x) (y := y) (rhs := rhs) hTy with
+    ⟨T, hxTy, hyTy, hrhsTy⟩
+  rcases set_smt_types_of_eo_set_types hxTrans hyTrans hxTy hyTy with
+    ⟨hxSmtTy, hySmtTy, _hTNonNone⟩
+  rcases set_smt_types_of_eo_set_types hxTrans hrhsTrans hxTy hrhsTy with
+    ⟨_hxSmtTy', hrhsSmtTy, _⟩
+  have hSetWf : __smtx_type_wf (SmtType.Set (__eo_to_smt_type T)) = true :=
+    Smtm.smt_term_set_type_wf_of_non_none
+      (__eo_to_smt y)
+      (by
+        unfold term_has_non_none_type
+        rw [hySmtTy]
+        simp)
+      hySmtTy
+  unfold RuleProofs.eo_has_bool_type
+  change
+    __smtx_typeof
+        (SmtTerm.eq (SmtTerm.set_minus (__eo_to_smt x) (__eo_to_smt y))
+          (__eo_to_smt rhs)) = SmtType.Bool
+  rw [typeof_eq_eq, typeof_set_minus_eq]
+  simp [__smtx_typeof_sets_op_2, __smtx_typeof_eq, native_ite, native_Teq,
+    __smtx_typeof_guard, hxSmtTy, hySmtTy, hrhsSmtTy, hSetWf]
+
+theorem set_inter_empty_left_rel_of_premise_bool
+    (M : SmtModel) (hM : model_total_typed M)
+    (x y T : Term)
+    (hxTrans : RuleProofs.eo_has_smt_translation x)
+    (hyTrans : RuleProofs.eo_has_smt_translation y)
+    (hTypeWf :
+      __smtx_type_wf
+        (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Set) T)) = true)
+    (hPremBool : RuleProofs.eo_has_bool_type (mkEq x (mkSetEmpty T)))
+    (hFormulaTy : __eo_typeof (mkEq (mkSetInter x y) x) = Term.Bool)
+    (hPrem : eo_interprets M (mkEq x (mkSetEmpty T)) true) :
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M (__eo_to_smt (mkSetInter x y)))
+      (__smtx_model_eval M (__eo_to_smt x)) := by
+  rcases eo_typeof_set_inter_bool_info (x := x) (y := y) (rhs := x)
+      hFormulaTy with
+    ⟨U, hxTy, hyTy, _hxTy'⟩
+  rcases set_smt_types_of_eo_set_types hxTrans hyTrans hxTy hyTy with
+    ⟨hXSmtTyU, hYSmtTyU, _hUNonNone⟩
+  have hEmptyTy :
+      __smtx_typeof (__eo_to_smt (mkSetEmpty T)) =
+        SmtType.Set (__eo_to_smt_type T) :=
+    smt_typeof_mkSetEmpty_of_set_type_wf T hTypeWf
+  rcases RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+      x (mkSetEmpty T) hPremBool with
+    ⟨hXEmptyTy, _hXNonNone⟩
+  have hXSmtTyT :
+      __smtx_typeof (__eo_to_smt x) = SmtType.Set (__eo_to_smt_type T) :=
+    hXEmptyTy.trans hEmptyTy
+  have hElemTy : __eo_to_smt_type U = __eo_to_smt_type T := by
+    rw [hXSmtTyT] at hXSmtTyU
+    injection hXSmtTyU with hEq
+    exact hEq.symm
+  have hYSmtTyT :
+      __smtx_typeof (__eo_to_smt y) = SmtType.Set (__eo_to_smt_type T) := by
+    simpa [hElemTy] using hYSmtTyU
+  have hSetNonNone :
+      __eo_to_smt_type (Term.Apply (Term.UOp UserOp.Set) T) ≠
+        SmtType.None :=
+    Smtm.type_wf_non_none hTypeWf
+  have hTNonNone : __eo_to_smt_type T ≠ SmtType.None :=
+    eo_to_smt_type_set_component_non_none T hSetNonNone
+  have hXEval := set_eval_eq_empty_of_premise M hM x T hXSmtTyT
+    hTNonNone hPrem
+  rcases set_value_facts M hM y (__eo_to_smt_type T) hyTrans hYSmtTyT with
+    ⟨my, hYEval, _hYCan, _hYTy, _hYDef⟩
+  change RuleProofs.smt_value_rel
+    (__smtx_model_eval M
+      (SmtTerm.set_inter (__eo_to_smt x) (__eo_to_smt y)))
+    (__smtx_model_eval M (__eo_to_smt x))
+  rw [model_eval_inter_eq M (__eo_to_smt x) (__eo_to_smt y), hXEval,
+    hYEval]
+  change RuleProofs.smt_value_rel
+    (__smtx_set_inter
+      (SmtValue.Set
+        (SmtMap.default (__eo_to_smt_type T) (SmtValue.Boolean false)))
+      (SmtValue.Set my))
+    (SmtValue.Set
+      (SmtMap.default (__eo_to_smt_type T) (SmtValue.Boolean false)))
+  simp [__smtx_set_inter, __smtx_mss_op_internal, __smtx_index_typeof_map,
+    __smtx_typeof_map_value, __smtx_typeof_value]
+  exact RuleProofs.smt_value_rel_refl
+    (SmtValue.Set
+      (SmtMap.default (__eo_to_smt_type T) (SmtValue.Boolean false)))
+
+theorem set_minus_empty_left_rel_of_premise_bool
+    (M : SmtModel) (hM : model_total_typed M)
+    (x y T : Term)
+    (hxTrans : RuleProofs.eo_has_smt_translation x)
+    (hyTrans : RuleProofs.eo_has_smt_translation y)
+    (hTypeWf :
+      __smtx_type_wf
+        (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Set) T)) = true)
+    (hPremBool : RuleProofs.eo_has_bool_type (mkEq x (mkSetEmpty T)))
+    (hFormulaTy : __eo_typeof (mkEq (mkSetMinus x y) x) = Term.Bool)
+    (hPrem : eo_interprets M (mkEq x (mkSetEmpty T)) true) :
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M (__eo_to_smt (mkSetMinus x y)))
+      (__smtx_model_eval M (__eo_to_smt x)) := by
+  rcases eo_typeof_set_minus_bool_info (x := x) (y := y) (rhs := x)
+      hFormulaTy with
+    ⟨U, hxTy, hyTy, _hxTy'⟩
+  rcases set_smt_types_of_eo_set_types hxTrans hyTrans hxTy hyTy with
+    ⟨hXSmtTyU, hYSmtTyU, _hUNonNone⟩
+  have hEmptyTy :
+      __smtx_typeof (__eo_to_smt (mkSetEmpty T)) =
+        SmtType.Set (__eo_to_smt_type T) :=
+    smt_typeof_mkSetEmpty_of_set_type_wf T hTypeWf
+  rcases RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+      x (mkSetEmpty T) hPremBool with
+    ⟨hXEmptyTy, _hXNonNone⟩
+  have hXSmtTyT :
+      __smtx_typeof (__eo_to_smt x) = SmtType.Set (__eo_to_smt_type T) :=
+    hXEmptyTy.trans hEmptyTy
+  have hElemTy : __eo_to_smt_type U = __eo_to_smt_type T := by
+    rw [hXSmtTyT] at hXSmtTyU
+    injection hXSmtTyU with hEq
+    exact hEq.symm
+  have hYSmtTyT :
+      __smtx_typeof (__eo_to_smt y) = SmtType.Set (__eo_to_smt_type T) := by
+    simpa [hElemTy] using hYSmtTyU
+  have hSetNonNone :
+      __eo_to_smt_type (Term.Apply (Term.UOp UserOp.Set) T) ≠
+        SmtType.None :=
+    Smtm.type_wf_non_none hTypeWf
+  have hTNonNone : __eo_to_smt_type T ≠ SmtType.None :=
+    eo_to_smt_type_set_component_non_none T hSetNonNone
+  have hXEval := set_eval_eq_empty_of_premise M hM x T hXSmtTyT
+    hTNonNone hPrem
+  rcases set_value_facts M hM y (__eo_to_smt_type T) hyTrans hYSmtTyT with
+    ⟨my, hYEval, _hYCan, _hYTy, _hYDef⟩
+  change RuleProofs.smt_value_rel
+    (__smtx_model_eval M
+      (SmtTerm.set_minus (__eo_to_smt x) (__eo_to_smt y)))
+    (__smtx_model_eval M (__eo_to_smt x))
+  rw [model_eval_minus_eq M (__eo_to_smt x) (__eo_to_smt y), hXEval,
+    hYEval]
+  change RuleProofs.smt_value_rel
+    (__smtx_set_minus
+      (SmtValue.Set
+        (SmtMap.default (__eo_to_smt_type T) (SmtValue.Boolean false)))
+      (SmtValue.Set my))
+    (SmtValue.Set
+      (SmtMap.default (__eo_to_smt_type T) (SmtValue.Boolean false)))
+  simp [__smtx_set_minus, __smtx_mss_op_internal, __smtx_index_typeof_map,
+    __smtx_typeof_map_value, __smtx_typeof_value]
+  exact RuleProofs.smt_value_rel_refl
+    (SmtValue.Set
+      (SmtMap.default (__eo_to_smt_type T) (SmtValue.Boolean false)))
+
+theorem set_union_empty_right_rel_of_premise_bool
+    (M : SmtModel) (hM : model_total_typed M)
+    (x y T : Term)
+    (hxTrans : RuleProofs.eo_has_smt_translation x)
+    (hyTrans : RuleProofs.eo_has_smt_translation y)
+    (hTypeWf :
+      __smtx_type_wf
+        (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Set) T)) = true)
+    (hPremBool : RuleProofs.eo_has_bool_type (mkEq y (mkSetEmpty T)))
+    (hFormulaTy : __eo_typeof (mkEq (mkSetUnion x y) x) = Term.Bool)
+    (hPrem : eo_interprets M (mkEq y (mkSetEmpty T)) true) :
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M (__eo_to_smt (mkSetUnion x y)))
+      (__smtx_model_eval M (__eo_to_smt x)) := by
+  rcases eo_typeof_set_union_bool_info (x := x) (y := y) (rhs := x)
+      hFormulaTy with
+    ⟨U, hxTy, hyTy, _hxTy'⟩
+  rcases set_smt_types_of_eo_set_types hxTrans hyTrans hxTy hyTy with
+    ⟨hXSmtTyU, hYSmtTyU, _hUNonNone⟩
+  have hEmptyTy :
+      __smtx_typeof (__eo_to_smt (mkSetEmpty T)) =
+        SmtType.Set (__eo_to_smt_type T) :=
+    smt_typeof_mkSetEmpty_of_set_type_wf T hTypeWf
+  rcases RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+      y (mkSetEmpty T) hPremBool with
+    ⟨hYEmptyTy, _hYNonNone⟩
+  have hYSmtTyT :
+      __smtx_typeof (__eo_to_smt y) = SmtType.Set (__eo_to_smt_type T) :=
+    hYEmptyTy.trans hEmptyTy
+  have hElemTy : __eo_to_smt_type U = __eo_to_smt_type T := by
+    rw [hYSmtTyT] at hYSmtTyU
+    injection hYSmtTyU with hEq
+    exact hEq.symm
+  have hXSmtTyT :
+      __smtx_typeof (__eo_to_smt x) = SmtType.Set (__eo_to_smt_type T) := by
+    simpa [hElemTy] using hXSmtTyU
+  have hSetNonNone :
+      __eo_to_smt_type (Term.Apply (Term.UOp UserOp.Set) T) ≠
+        SmtType.None :=
+    Smtm.type_wf_non_none hTypeWf
+  have hTNonNone : __eo_to_smt_type T ≠ SmtType.None :=
+    eo_to_smt_type_set_component_non_none T hSetNonNone
+  have hYEval := set_eval_eq_empty_of_premise M hM y T hYSmtTyT
+    hTNonNone hPrem
+  rcases set_value_facts M hM x (__eo_to_smt_type T) hxTrans hXSmtTyT with
+    ⟨mx, hXEval, hMxCan, hMxTy, hMxDef⟩
+  let empty :=
+    SmtMap.default (__eo_to_smt_type T) (SmtValue.Boolean false)
+  let acc :=
+    SmtMap.default (__smtx_index_typeof_map (__smtx_typeof_map_value mx))
+      (SmtValue.Boolean false)
+  let res := __smtx_mss_op_internal false mx acc empty
+  have hEmptyTyMap :
+      __smtx_typeof_map_value empty =
+        SmtType.Map (__eo_to_smt_type T) SmtType.Bool := by
+    dsimp [empty]
+    simp [__smtx_typeof_map_value, __smtx_typeof_value]
+  have hEmptyCan : __smtx_map_canonical empty = true := by
+    dsimp [empty]
+    exact set_empty_map_canonical' (__eo_to_smt_type T)
+  have hEmptyDef : __smtx_msm_get_default empty = SmtValue.Boolean false := by
+    dsimp [empty]
+    simp [__smtx_msm_get_default]
+  have hAccTy :
+      __smtx_typeof_map_value acc =
+        SmtType.Map (__eo_to_smt_type T) SmtType.Bool := by
+    dsimp [acc]
+    rw [hMxTy]
+    simp [__smtx_index_typeof_map, __smtx_typeof_map_value,
+      __smtx_typeof_value]
+  have hResCan : __smtx_map_canonical res = true := by
+    dsimp [res]
+    exact Smtm.mss_op_internal_canonical false hMxCan hEmptyCan
+  have hResTy :
+      __smtx_typeof_map_value res =
+        SmtType.Map (__eo_to_smt_type T) SmtType.Bool := by
+    dsimp [res]
+    exact Smtm.mss_op_internal_typed false hMxTy hAccTy hEmptyTyMap
+  have hResDef : __smtx_msm_get_default res = SmtValue.Boolean false := by
+    dsimp [res]
+    rw [Smtm.mss_op_internal_get_default]
+    exact hEmptyDef
+  have hLeaf : smt_map_default_leaf res = smt_map_default_leaf mx := by
+    rw [set_default_leaf hResCan hResTy hResDef,
+      set_default_leaf hMxCan hMxTy hMxDef]
+  have hLookup :
+      ∀ v : SmtValue,
+        __smtx_msm_lookup res v = __smtx_msm_lookup mx v := by
+    intro v
+    dsimp [res, acc]
+    rw [set_union_lookup mx empty (__eo_to_smt_type T) v hMxTy
+      hEmptyTyMap hMxCan hEmptyCan hMxDef]
+    simpa [empty, __smtx_msm_lookup] using
+      set_map_lookup_bool_ite_true_false
+        (m := mx) (A := __eo_to_smt_type T) v hMxTy hMxCan hMxDef
+  change RuleProofs.smt_value_rel
+    (__smtx_model_eval M
+      (SmtTerm.set_union (__eo_to_smt x) (__eo_to_smt y)))
+    (__smtx_model_eval M (__eo_to_smt x))
+  rw [model_eval_union_eq M (__eo_to_smt x) (__eo_to_smt y), hXEval,
+    hYEval]
+  change RuleProofs.smt_value_rel (SmtValue.Set res) (SmtValue.Set mx)
+  exact RuleProofs.smt_value_rel_set_of_lookup_eq res mx hResCan hMxCan
+    hLeaf hLookup
+
+theorem set_inter_empty_right_rel_of_premise_bool
+    (M : SmtModel) (hM : model_total_typed M)
+    (x y T : Term)
+    (hxTrans : RuleProofs.eo_has_smt_translation x)
+    (hyTrans : RuleProofs.eo_has_smt_translation y)
+    (hTypeWf :
+      __smtx_type_wf
+        (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Set) T)) = true)
+    (hPremBool : RuleProofs.eo_has_bool_type (mkEq y (mkSetEmpty T)))
+    (hFormulaTy : __eo_typeof (mkEq (mkSetInter x y) y) = Term.Bool)
+    (hPrem : eo_interprets M (mkEq y (mkSetEmpty T)) true) :
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M (__eo_to_smt (mkSetInter x y)))
+      (__smtx_model_eval M (__eo_to_smt y)) := by
+  rcases eo_typeof_set_inter_bool_info (x := x) (y := y) (rhs := y)
+      hFormulaTy with
+    ⟨U, hxTy, hyTy, _hyTy'⟩
+  rcases set_smt_types_of_eo_set_types hxTrans hyTrans hxTy hyTy with
+    ⟨hXSmtTyU, hYSmtTyU, _hUNonNone⟩
+  have hEmptyTy :
+      __smtx_typeof (__eo_to_smt (mkSetEmpty T)) =
+        SmtType.Set (__eo_to_smt_type T) :=
+    smt_typeof_mkSetEmpty_of_set_type_wf T hTypeWf
+  rcases RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+      y (mkSetEmpty T) hPremBool with
+    ⟨hYEmptyTy, _hYNonNone⟩
+  have hYSmtTyT :
+      __smtx_typeof (__eo_to_smt y) = SmtType.Set (__eo_to_smt_type T) :=
+    hYEmptyTy.trans hEmptyTy
+  have hElemTy : __eo_to_smt_type U = __eo_to_smt_type T := by
+    rw [hYSmtTyT] at hYSmtTyU
+    injection hYSmtTyU with hEq
+    exact hEq.symm
+  have hXSmtTyT :
+      __smtx_typeof (__eo_to_smt x) = SmtType.Set (__eo_to_smt_type T) := by
+    simpa [hElemTy] using hXSmtTyU
+  have hSetNonNone :
+      __eo_to_smt_type (Term.Apply (Term.UOp UserOp.Set) T) ≠
+        SmtType.None :=
+    Smtm.type_wf_non_none hTypeWf
+  have hTNonNone : __eo_to_smt_type T ≠ SmtType.None :=
+    eo_to_smt_type_set_component_non_none T hSetNonNone
+  have hYEval := set_eval_eq_empty_of_premise M hM y T hYSmtTyT
+    hTNonNone hPrem
+  rcases set_value_facts M hM x (__eo_to_smt_type T) hxTrans hXSmtTyT with
+    ⟨mx, hXEval, hMxCan, hMxTy, hMxDef⟩
+  let empty :=
+    SmtMap.default (__eo_to_smt_type T) (SmtValue.Boolean false)
+  let acc :=
+    SmtMap.default (__smtx_index_typeof_map (__smtx_typeof_map_value mx))
+      (SmtValue.Boolean false)
+  let res := __smtx_mss_op_internal true mx empty acc
+  have hEmptyTyMap :
+      __smtx_typeof_map_value empty =
+        SmtType.Map (__eo_to_smt_type T) SmtType.Bool := by
+    dsimp [empty]
+    simp [__smtx_typeof_map_value, __smtx_typeof_value]
+  have hEmptyCan : __smtx_map_canonical empty = true := by
+    dsimp [empty]
+    exact set_empty_map_canonical' (__eo_to_smt_type T)
+  have hEmptyDef : __smtx_msm_get_default empty = SmtValue.Boolean false := by
+    dsimp [empty]
+    simp [__smtx_msm_get_default]
+  have hAccTy :
+      __smtx_typeof_map_value acc =
+        SmtType.Map (__eo_to_smt_type T) SmtType.Bool := by
+    dsimp [acc]
+    rw [hMxTy]
+    simp [__smtx_index_typeof_map, __smtx_typeof_map_value,
+      __smtx_typeof_value]
+  have hAccCan : __smtx_map_canonical acc = true := by
+    dsimp [acc]
+    exact set_empty_map_canonical'
+      (__smtx_index_typeof_map (__smtx_typeof_map_value mx))
+  have hAccDef : __smtx_msm_get_default acc = SmtValue.Boolean false := by
+    dsimp [acc]
+    simp [__smtx_msm_get_default]
+  have hResCan : __smtx_map_canonical res = true := by
+    dsimp [res]
+    exact Smtm.mss_op_internal_canonical true hMxCan hAccCan
+  have hResTy :
+      __smtx_typeof_map_value res =
+        SmtType.Map (__eo_to_smt_type T) SmtType.Bool := by
+    dsimp [res]
+    exact Smtm.mss_op_internal_typed true hMxTy hEmptyTyMap hAccTy
+  have hResDef : __smtx_msm_get_default res = SmtValue.Boolean false := by
+    dsimp [res]
+    rw [Smtm.mss_op_internal_get_default]
+    exact hAccDef
+  have hLeaf : smt_map_default_leaf res = smt_map_default_leaf empty := by
+    rw [set_default_leaf hResCan hResTy hResDef]
+    dsimp [empty]
+    rfl
+  have hLookup :
+      ∀ v : SmtValue,
+        __smtx_msm_lookup res v = __smtx_msm_lookup empty v := by
+    intro v
+    dsimp [res, acc]
+    rw [set_inter_lookup mx empty (__eo_to_smt_type T) v hMxTy
+      hEmptyTyMap hMxCan hMxDef]
+    simp [empty, __smtx_msm_lookup, native_veq, native_ite,
+      SmtEval.native_and]
+  change RuleProofs.smt_value_rel
+    (__smtx_model_eval M
+      (SmtTerm.set_inter (__eo_to_smt x) (__eo_to_smt y)))
+    (__smtx_model_eval M (__eo_to_smt y))
+  rw [model_eval_inter_eq M (__eo_to_smt x) (__eo_to_smt y), hXEval,
+    hYEval]
+  change RuleProofs.smt_value_rel (SmtValue.Set res) (SmtValue.Set empty)
+  exact RuleProofs.smt_value_rel_set_of_lookup_eq res empty hResCan hEmptyCan
+    hLeaf hLookup
+
+theorem set_minus_empty_right_rel_of_premise_bool
+    (M : SmtModel) (hM : model_total_typed M)
+    (x y T : Term)
+    (hxTrans : RuleProofs.eo_has_smt_translation x)
+    (hyTrans : RuleProofs.eo_has_smt_translation y)
+    (hTypeWf :
+      __smtx_type_wf
+        (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Set) T)) = true)
+    (hPremBool : RuleProofs.eo_has_bool_type (mkEq y (mkSetEmpty T)))
+    (hFormulaTy : __eo_typeof (mkEq (mkSetMinus x y) x) = Term.Bool)
+    (hPrem : eo_interprets M (mkEq y (mkSetEmpty T)) true) :
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M (__eo_to_smt (mkSetMinus x y)))
+      (__smtx_model_eval M (__eo_to_smt x)) := by
+  rcases eo_typeof_set_minus_bool_info (x := x) (y := y) (rhs := x)
+      hFormulaTy with
+    ⟨U, hxTy, hyTy, _hxTy'⟩
+  rcases set_smt_types_of_eo_set_types hxTrans hyTrans hxTy hyTy with
+    ⟨hXSmtTyU, hYSmtTyU, _hUNonNone⟩
+  have hEmptyTy :
+      __smtx_typeof (__eo_to_smt (mkSetEmpty T)) =
+        SmtType.Set (__eo_to_smt_type T) :=
+    smt_typeof_mkSetEmpty_of_set_type_wf T hTypeWf
+  rcases RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+      y (mkSetEmpty T) hPremBool with
+    ⟨hYEmptyTy, _hYNonNone⟩
+  have hYSmtTyT :
+      __smtx_typeof (__eo_to_smt y) = SmtType.Set (__eo_to_smt_type T) :=
+    hYEmptyTy.trans hEmptyTy
+  have hElemTy : __eo_to_smt_type U = __eo_to_smt_type T := by
+    rw [hYSmtTyT] at hYSmtTyU
+    injection hYSmtTyU with hEq
+    exact hEq.symm
+  have hXSmtTyT :
+      __smtx_typeof (__eo_to_smt x) = SmtType.Set (__eo_to_smt_type T) := by
+    simpa [hElemTy] using hXSmtTyU
+  have hSetNonNone :
+      __eo_to_smt_type (Term.Apply (Term.UOp UserOp.Set) T) ≠
+        SmtType.None :=
+    Smtm.type_wf_non_none hTypeWf
+  have hTNonNone : __eo_to_smt_type T ≠ SmtType.None :=
+    eo_to_smt_type_set_component_non_none T hSetNonNone
+  have hYEval := set_eval_eq_empty_of_premise M hM y T hYSmtTyT
+    hTNonNone hPrem
+  rcases set_value_facts M hM x (__eo_to_smt_type T) hxTrans hXSmtTyT with
+    ⟨mx, hXEval, hMxCan, hMxTy, hMxDef⟩
+  let empty :=
+    SmtMap.default (__eo_to_smt_type T) (SmtValue.Boolean false)
+  let acc :=
+    SmtMap.default (__smtx_index_typeof_map (__smtx_typeof_map_value mx))
+      (SmtValue.Boolean false)
+  let res := __smtx_mss_op_internal false mx empty acc
+  have hEmptyTyMap :
+      __smtx_typeof_map_value empty =
+        SmtType.Map (__eo_to_smt_type T) SmtType.Bool := by
+    dsimp [empty]
+    simp [__smtx_typeof_map_value, __smtx_typeof_value]
+  have hEmptyCan : __smtx_map_canonical empty = true := by
+    dsimp [empty]
+    exact set_empty_map_canonical' (__eo_to_smt_type T)
+  have hEmptyDef : __smtx_msm_get_default empty = SmtValue.Boolean false := by
+    dsimp [empty]
+    simp [__smtx_msm_get_default]
+  have hAccTy :
+      __smtx_typeof_map_value acc =
+        SmtType.Map (__eo_to_smt_type T) SmtType.Bool := by
+    dsimp [acc]
+    rw [hMxTy]
+    simp [__smtx_index_typeof_map, __smtx_typeof_map_value,
+      __smtx_typeof_value]
+  have hAccCan : __smtx_map_canonical acc = true := by
+    dsimp [acc]
+    exact set_empty_map_canonical'
+      (__smtx_index_typeof_map (__smtx_typeof_map_value mx))
+  have hAccDef : __smtx_msm_get_default acc = SmtValue.Boolean false := by
+    dsimp [acc]
+    simp [__smtx_msm_get_default]
+  have hResCan : __smtx_map_canonical res = true := by
+    dsimp [res]
+    exact Smtm.mss_op_internal_canonical false hMxCan hAccCan
+  have hResTy :
+      __smtx_typeof_map_value res =
+        SmtType.Map (__eo_to_smt_type T) SmtType.Bool := by
+    dsimp [res]
+    exact Smtm.mss_op_internal_typed false hMxTy hEmptyTyMap hAccTy
+  have hResDef : __smtx_msm_get_default res = SmtValue.Boolean false := by
+    dsimp [res]
+    rw [Smtm.mss_op_internal_get_default]
+    exact hAccDef
+  have hLeaf : smt_map_default_leaf res = smt_map_default_leaf mx := by
+    rw [set_default_leaf hResCan hResTy hResDef,
+      set_default_leaf hMxCan hMxTy hMxDef]
+  have hLookup :
+      ∀ v : SmtValue,
+        __smtx_msm_lookup res v = __smtx_msm_lookup mx v := by
+    intro v
+    dsimp [res, acc]
+    rw [set_minus_lookup mx empty (__eo_to_smt_type T) v hMxTy
+      hEmptyTyMap hMxCan hMxDef]
+    have hFalseTrue :
+        native_veq (SmtValue.Boolean false) (SmtValue.Boolean true) =
+          false := by
+      simp [native_veq]
+    rw [show __smtx_msm_lookup empty v = SmtValue.Boolean false by
+      simp [empty, __smtx_msm_lookup], hFalseTrue]
+    simpa [native_not, native_and, SmtEval.native_and] using
+      set_map_lookup_bool_ite_true_false
+        (m := mx) (A := __eo_to_smt_type T) v hMxTy hMxCan hMxDef
+  change RuleProofs.smt_value_rel
+    (__smtx_model_eval M
+      (SmtTerm.set_minus (__eo_to_smt x) (__eo_to_smt y)))
+    (__smtx_model_eval M (__eo_to_smt x))
+  rw [model_eval_minus_eq M (__eo_to_smt x) (__eo_to_smt y), hXEval,
+    hYEval]
+  change RuleProofs.smt_value_rel (SmtValue.Set res) (SmtValue.Set mx)
+  exact RuleProofs.smt_value_rel_set_of_lookup_eq res mx hResCan hMxCan
+    hLeaf hLookup
+
+theorem prog_sets_inter_emp1_info
+    (x y ty P : Term)
+    (hProg :
+      __eo_prog_sets_inter_emp1 x y ty (Proof.pf P) ≠ Term.Stuck) :
+    ∃ T x0 T0 : Term,
+      ty = Term.Apply (Term.UOp UserOp.Set) T ∧
+        P = mkEq x0 (mkSetEmpty T0) ∧
+          x0 = x ∧
+            T0 = T ∧
+              __eo_prog_sets_inter_emp1 x y ty (Proof.pf P) =
+                mkEq (mkSetInter x y) x := by
+  by_cases hx : x = Term.Stuck
+  · subst x
+    simp [__eo_prog_sets_inter_emp1] at hProg
+  by_cases hy : y = Term.Stuck
+  · subst y
+    simp [__eo_prog_sets_inter_emp1, hx] at hProg
+  cases ty with
+  | Apply f T =>
+      cases f with
+      | UOp op =>
+          by_cases hSet : op = UserOp.Set
+          · subst op
+            cases P with
+            | Apply pf rhs =>
+                cases pf with
+                | Apply pg x0 =>
+                    cases pg with
+                    | UOp eqOp =>
+                        by_cases hEq : eqOp = UserOp.eq
+                        · subst eqOp
+                          cases rhs with
+                          | UOp1 emptyOp setTy =>
+                              by_cases hEmpty : emptyOp = UserOp1.set_empty
+                              · subst emptyOp
+                                cases setTy with
+                                | Apply setF T0 =>
+                                    cases setF with
+                                    | UOp setOp =>
+                                        by_cases hSetTy : setOp = UserOp.Set
+                                        · subst setOp
+                                          let B := mkEq (mkSetInter x y) x
+                                          have hReq :
+                                              __eo_requires
+                                                  (__eo_and (__eo_eq x x0)
+                                                    (__eo_eq T T0))
+                                                  (Term.Boolean true) B ≠
+                                                Term.Stuck := by
+                                            simpa [B, __eo_prog_sets_inter_emp1,
+                                              hx, hy, mkEq, mkSetInter,
+                                              mkSetEmpty] using hProg
+                                          have hEqs :
+                                              x0 = x ∧ T0 = T :=
+                                            RuleProofs.eqs_of_requires_and_eq_true_not_stuck
+                                              x T x0 T0 B hReq
+                                          have hUnfold :
+                                              __eo_prog_sets_inter_emp1 x y
+                                                  (Term.Apply
+                                                    (Term.UOp UserOp.Set) T)
+                                                  (Proof.pf
+                                                    (mkEq x0 (mkSetEmpty T0))) =
+                                                __eo_requires
+                                                  (__eo_and (__eo_eq x x0)
+                                                    (__eo_eq T T0))
+                                                  (Term.Boolean true) B := by
+                                            simp [B, __eo_prog_sets_inter_emp1,
+                                              hx, hy, mkEq, mkSetInter,
+                                              mkSetEmpty]
+                                          refine ⟨T, x0, T0, rfl, rfl,
+                                            hEqs.1, hEqs.2, ?_⟩
+                                          change
+                                            __eo_prog_sets_inter_emp1 x y
+                                                (Term.Apply
+                                                  (Term.UOp UserOp.Set) T)
+                                                (Proof.pf
+                                                  (mkEq x0 (mkSetEmpty T0))) =
+                                              mkEq (mkSetInter x y) x
+                                          rw [hUnfold, SetsEvalOpSupport.req_result hReq]
+                                        · exfalso
+                                          apply hProg
+                                          simp [__eo_prog_sets_inter_emp1, hx,
+                                            hy, hSetTy, mkEq, mkSetEmpty]
+                                    | _ =>
+                                        exfalso
+                                        apply hProg
+                                        simp [__eo_prog_sets_inter_emp1, hx,
+                                          hy, mkEq, mkSetEmpty]
+                                | _ =>
+                                    exfalso
+                                    apply hProg
+                                    simp [__eo_prog_sets_inter_emp1, hx, hy,
+                                      mkEq, mkSetEmpty]
+                              · exfalso
+                                apply hProg
+                                simp [__eo_prog_sets_inter_emp1, hx, hy,
+                                  hEmpty, mkEq, mkSetEmpty]
+                          | _ =>
+                              exfalso
+                              apply hProg
+                              simp [__eo_prog_sets_inter_emp1, hx, hy, mkEq,
+                                mkSetEmpty]
+                        · exfalso
+                          apply hProg
+                          simp [__eo_prog_sets_inter_emp1, hx, hy, hEq, mkEq,
+                            mkSetEmpty]
+                    | _ =>
+                        exfalso
+                        apply hProg
+                        simp [__eo_prog_sets_inter_emp1, hx, hy, mkEq,
+                          mkSetEmpty]
+                | _ =>
+                    exfalso
+                    apply hProg
+                    simp [__eo_prog_sets_inter_emp1, hx, hy, mkEq, mkSetEmpty]
+            | _ =>
+                exfalso
+                apply hProg
+                simp [__eo_prog_sets_inter_emp1, hx, hy, mkEq, mkSetEmpty]
+          · exfalso
+            apply hProg
+            simp [__eo_prog_sets_inter_emp1, hx, hy, hSet]
+      | _ =>
+          exfalso
+          apply hProg
+          simp [__eo_prog_sets_inter_emp1, hx, hy]
+  | _ =>
+      exfalso
+      apply hProg
+      simp [__eo_prog_sets_inter_emp1, hx, hy]
+
+theorem prog_sets_minus_emp1_info
+    (x y ty P : Term)
+    (hProg :
+      __eo_prog_sets_minus_emp1 x y ty (Proof.pf P) ≠ Term.Stuck) :
+    ∃ T x0 T0 : Term,
+      ty = Term.Apply (Term.UOp UserOp.Set) T ∧
+        P = mkEq x0 (mkSetEmpty T0) ∧
+          x0 = x ∧
+            T0 = T ∧
+              __eo_prog_sets_minus_emp1 x y ty (Proof.pf P) =
+                mkEq (mkSetMinus x y) x := by
+  by_cases hx : x = Term.Stuck
+  · subst x
+    simp [__eo_prog_sets_minus_emp1] at hProg
+  by_cases hy : y = Term.Stuck
+  · subst y
+    simp [__eo_prog_sets_minus_emp1, hx] at hProg
+  cases ty with
+  | Apply f T =>
+      cases f with
+      | UOp op =>
+          by_cases hSet : op = UserOp.Set
+          · subst op
+            cases P with
+            | Apply pf rhs =>
+                cases pf with
+                | Apply pg x0 =>
+                    cases pg with
+                    | UOp eqOp =>
+                        by_cases hEq : eqOp = UserOp.eq
+                        · subst eqOp
+                          cases rhs with
+                          | UOp1 emptyOp setTy =>
+                              by_cases hEmpty : emptyOp = UserOp1.set_empty
+                              · subst emptyOp
+                                cases setTy with
+                                | Apply setF T0 =>
+                                    cases setF with
+                                    | UOp setOp =>
+                                        by_cases hSetTy : setOp = UserOp.Set
+                                        · subst setOp
+                                          let B := mkEq (mkSetMinus x y) x
+                                          have hReq :
+                                              __eo_requires
+                                                  (__eo_and (__eo_eq x x0)
+                                                    (__eo_eq T T0))
+                                                  (Term.Boolean true) B ≠
+                                                Term.Stuck := by
+                                            simpa [B, __eo_prog_sets_minus_emp1,
+                                              hx, hy, mkEq, mkSetMinus,
+                                              mkSetEmpty] using hProg
+                                          have hEqs :
+                                              x0 = x ∧ T0 = T :=
+                                            RuleProofs.eqs_of_requires_and_eq_true_not_stuck
+                                              x T x0 T0 B hReq
+                                          have hUnfold :
+                                              __eo_prog_sets_minus_emp1 x y
+                                                  (Term.Apply
+                                                    (Term.UOp UserOp.Set) T)
+                                                  (Proof.pf
+                                                    (mkEq x0 (mkSetEmpty T0))) =
+                                                __eo_requires
+                                                  (__eo_and (__eo_eq x x0)
+                                                    (__eo_eq T T0))
+                                                  (Term.Boolean true) B := by
+                                            simp [B, __eo_prog_sets_minus_emp1,
+                                              hx, hy, mkEq, mkSetMinus,
+                                              mkSetEmpty]
+                                          refine ⟨T, x0, T0, rfl, rfl,
+                                            hEqs.1, hEqs.2, ?_⟩
+                                          change
+                                            __eo_prog_sets_minus_emp1 x y
+                                                (Term.Apply
+                                                  (Term.UOp UserOp.Set) T)
+                                                (Proof.pf
+                                                  (mkEq x0 (mkSetEmpty T0))) =
+                                              mkEq (mkSetMinus x y) x
+                                          rw [hUnfold, SetsEvalOpSupport.req_result hReq]
+                                        · exfalso
+                                          apply hProg
+                                          simp [__eo_prog_sets_minus_emp1, hx,
+                                            hy, hSetTy, mkEq, mkSetEmpty]
+                                    | _ =>
+                                        exfalso
+                                        apply hProg
+                                        simp [__eo_prog_sets_minus_emp1, hx,
+                                          hy, mkEq, mkSetEmpty]
+                                | _ =>
+                                    exfalso
+                                    apply hProg
+                                    simp [__eo_prog_sets_minus_emp1, hx, hy,
+                                      mkEq, mkSetEmpty]
+                              · exfalso
+                                apply hProg
+                                simp [__eo_prog_sets_minus_emp1, hx, hy,
+                                  hEmpty, mkEq, mkSetEmpty]
+                          | _ =>
+                              exfalso
+                              apply hProg
+                              simp [__eo_prog_sets_minus_emp1, hx, hy, mkEq,
+                                mkSetEmpty]
+                        · exfalso
+                          apply hProg
+                          simp [__eo_prog_sets_minus_emp1, hx, hy, hEq, mkEq,
+                            mkSetEmpty]
+                    | _ =>
+                        exfalso
+                        apply hProg
+                        simp [__eo_prog_sets_minus_emp1, hx, hy, mkEq,
+                          mkSetEmpty]
+                | _ =>
+                    exfalso
+                    apply hProg
+                    simp [__eo_prog_sets_minus_emp1, hx, hy, mkEq, mkSetEmpty]
+            | _ =>
+                exfalso
+                apply hProg
+                simp [__eo_prog_sets_minus_emp1, hx, hy, mkEq, mkSetEmpty]
+          · exfalso
+            apply hProg
+            simp [__eo_prog_sets_minus_emp1, hx, hy, hSet]
+      | _ =>
+          exfalso
+          apply hProg
+          simp [__eo_prog_sets_minus_emp1, hx, hy]
+  | _ =>
+      exfalso
+      apply hProg
+      simp [__eo_prog_sets_minus_emp1, hx, hy]
+
+theorem prog_sets_union_emp2_info
+    (x y ty P : Term)
+    (hProg :
+      __eo_prog_sets_union_emp2 x y ty (Proof.pf P) ≠ Term.Stuck) :
+    ∃ T y0 T0 : Term,
+      ty = Term.Apply (Term.UOp UserOp.Set) T ∧
+        P = mkEq y0 (mkSetEmpty T0) ∧
+          y0 = y ∧
+            T0 = T ∧
+              __eo_prog_sets_union_emp2 x y ty (Proof.pf P) =
+                mkEq (mkSetUnion x y) x := by
+  by_cases hx : x = Term.Stuck
+  · subst x
+    simp [__eo_prog_sets_union_emp2] at hProg
+  by_cases hy : y = Term.Stuck
+  · subst y
+    simp [__eo_prog_sets_union_emp2, hx] at hProg
+  cases ty with
+  | Apply f T =>
+      cases f with
+      | UOp op =>
+          by_cases hSet : op = UserOp.Set
+          · subst op
+            cases P with
+            | Apply pf rhs =>
+                cases pf with
+                | Apply pg y0 =>
+                    cases pg with
+                    | UOp eqOp =>
+                        by_cases hEq : eqOp = UserOp.eq
+                        · subst eqOp
+                          cases rhs with
+                          | UOp1 emptyOp setTy =>
+                              by_cases hEmpty : emptyOp = UserOp1.set_empty
+                              · subst emptyOp
+                                cases setTy with
+                                | Apply setF T0 =>
+                                    cases setF with
+                                    | UOp setOp =>
+                                        by_cases hSetTy : setOp = UserOp.Set
+                                        · subst setOp
+                                          let B := mkEq (mkSetUnion x y) x
+                                          have hReq :
+                                              __eo_requires
+                                                  (__eo_and (__eo_eq y y0)
+                                                    (__eo_eq T T0))
+                                                  (Term.Boolean true) B ≠
+                                                Term.Stuck := by
+                                            simpa [B, __eo_prog_sets_union_emp2,
+                                              hx, hy, mkEq, mkSetUnion,
+                                              mkSetEmpty] using hProg
+                                          have hEqs :
+                                              y0 = y ∧ T0 = T :=
+                                            RuleProofs.eqs_of_requires_and_eq_true_not_stuck
+                                              y T y0 T0 B hReq
+                                          have hUnfold :
+                                              __eo_prog_sets_union_emp2 x y
+                                                  (Term.Apply
+                                                    (Term.UOp UserOp.Set) T)
+                                                  (Proof.pf
+                                                    (mkEq y0 (mkSetEmpty T0))) =
+                                                __eo_requires
+                                                  (__eo_and (__eo_eq y y0)
+                                                    (__eo_eq T T0))
+                                                  (Term.Boolean true) B := by
+                                            simp [B, __eo_prog_sets_union_emp2,
+                                              hx, hy, mkEq, mkSetUnion,
+                                              mkSetEmpty]
+                                          refine ⟨T, y0, T0, rfl, rfl,
+                                            hEqs.1, hEqs.2, ?_⟩
+                                          change
+                                            __eo_prog_sets_union_emp2 x y
+                                                (Term.Apply
+                                                  (Term.UOp UserOp.Set) T)
+                                                (Proof.pf
+                                                  (mkEq y0 (mkSetEmpty T0))) =
+                                              mkEq (mkSetUnion x y) x
+                                          rw [hUnfold, SetsEvalOpSupport.req_result hReq]
+                                        · exfalso
+                                          apply hProg
+                                          simp [__eo_prog_sets_union_emp2, hx,
+                                            hy, hSetTy, mkEq, mkSetEmpty]
+                                    | _ =>
+                                        exfalso
+                                        apply hProg
+                                        simp [__eo_prog_sets_union_emp2, hx,
+                                          hy, mkEq, mkSetEmpty]
+                                | _ =>
+                                    exfalso
+                                    apply hProg
+                                    simp [__eo_prog_sets_union_emp2, hx, hy,
+                                      mkEq, mkSetEmpty]
+                              · exfalso
+                                apply hProg
+                                simp [__eo_prog_sets_union_emp2, hx, hy,
+                                  hEmpty, mkEq, mkSetEmpty]
+                          | _ =>
+                              exfalso
+                              apply hProg
+                              simp [__eo_prog_sets_union_emp2, hx, hy, mkEq,
+                                mkSetEmpty]
+                        · exfalso
+                          apply hProg
+                          simp [__eo_prog_sets_union_emp2, hx, hy, hEq, mkEq,
+                            mkSetEmpty]
+                    | _ =>
+                        exfalso
+                        apply hProg
+                        simp [__eo_prog_sets_union_emp2, hx, hy, mkEq,
+                          mkSetEmpty]
+                | _ =>
+                    exfalso
+                    apply hProg
+                    simp [__eo_prog_sets_union_emp2, hx, hy, mkEq, mkSetEmpty]
+            | _ =>
+                exfalso
+                apply hProg
+                simp [__eo_prog_sets_union_emp2, hx, hy, mkEq, mkSetEmpty]
+          · exfalso
+            apply hProg
+            simp [__eo_prog_sets_union_emp2, hx, hy, hSet]
+      | _ =>
+          exfalso
+          apply hProg
+          simp [__eo_prog_sets_union_emp2, hx, hy]
+  | _ =>
+      exfalso
+      apply hProg
+      simp [__eo_prog_sets_union_emp2, hx, hy]
+
+theorem prog_sets_inter_emp2_info
+    (x y ty P : Term)
+    (hProg :
+      __eo_prog_sets_inter_emp2 x y ty (Proof.pf P) ≠ Term.Stuck) :
+    ∃ T y0 T0 : Term,
+      ty = Term.Apply (Term.UOp UserOp.Set) T ∧
+        P = mkEq y0 (mkSetEmpty T0) ∧
+          y0 = y ∧
+            T0 = T ∧
+              __eo_prog_sets_inter_emp2 x y ty (Proof.pf P) =
+                mkEq (mkSetInter x y) y := by
+  by_cases hx : x = Term.Stuck
+  · subst x
+    simp [__eo_prog_sets_inter_emp2] at hProg
+  by_cases hy : y = Term.Stuck
+  · subst y
+    simp [__eo_prog_sets_inter_emp2, hx] at hProg
+  cases ty with
+  | Apply f T =>
+      cases f with
+      | UOp op =>
+          by_cases hSet : op = UserOp.Set
+          · subst op
+            cases P with
+            | Apply pf rhs =>
+                cases pf with
+                | Apply pg y0 =>
+                    cases pg with
+                    | UOp eqOp =>
+                        by_cases hEq : eqOp = UserOp.eq
+                        · subst eqOp
+                          cases rhs with
+                          | UOp1 emptyOp setTy =>
+                              by_cases hEmpty : emptyOp = UserOp1.set_empty
+                              · subst emptyOp
+                                cases setTy with
+                                | Apply setF T0 =>
+                                    cases setF with
+                                    | UOp setOp =>
+                                        by_cases hSetTy : setOp = UserOp.Set
+                                        · subst setOp
+                                          let B := mkEq (mkSetInter x y) y
+                                          have hReq :
+                                              __eo_requires
+                                                  (__eo_and (__eo_eq y y0)
+                                                    (__eo_eq T T0))
+                                                  (Term.Boolean true) B ≠
+                                                Term.Stuck := by
+                                            simpa [B, __eo_prog_sets_inter_emp2,
+                                              hx, hy, mkEq, mkSetInter,
+                                              mkSetEmpty] using hProg
+                                          have hEqs :
+                                              y0 = y ∧ T0 = T :=
+                                            RuleProofs.eqs_of_requires_and_eq_true_not_stuck
+                                              y T y0 T0 B hReq
+                                          have hUnfold :
+                                              __eo_prog_sets_inter_emp2 x y
+                                                  (Term.Apply
+                                                    (Term.UOp UserOp.Set) T)
+                                                  (Proof.pf
+                                                    (mkEq y0 (mkSetEmpty T0))) =
+                                                __eo_requires
+                                                  (__eo_and (__eo_eq y y0)
+                                                    (__eo_eq T T0))
+                                                  (Term.Boolean true) B := by
+                                            simp [B, __eo_prog_sets_inter_emp2,
+                                              hx, hy, mkEq, mkSetInter,
+                                              mkSetEmpty]
+                                          refine ⟨T, y0, T0, rfl, rfl,
+                                            hEqs.1, hEqs.2, ?_⟩
+                                          change
+                                            __eo_prog_sets_inter_emp2 x y
+                                                (Term.Apply
+                                                  (Term.UOp UserOp.Set) T)
+                                                (Proof.pf
+                                                  (mkEq y0 (mkSetEmpty T0))) =
+                                              mkEq (mkSetInter x y) y
+                                          rw [hUnfold, SetsEvalOpSupport.req_result hReq]
+                                        · exfalso
+                                          apply hProg
+                                          simp [__eo_prog_sets_inter_emp2, hx,
+                                            hy, hSetTy, mkEq, mkSetEmpty]
+                                    | _ =>
+                                        exfalso
+                                        apply hProg
+                                        simp [__eo_prog_sets_inter_emp2, hx,
+                                          hy, mkEq, mkSetEmpty]
+                                | _ =>
+                                    exfalso
+                                    apply hProg
+                                    simp [__eo_prog_sets_inter_emp2, hx, hy,
+                                      mkEq, mkSetEmpty]
+                              · exfalso
+                                apply hProg
+                                simp [__eo_prog_sets_inter_emp2, hx, hy,
+                                  hEmpty, mkEq, mkSetEmpty]
+                          | _ =>
+                              exfalso
+                              apply hProg
+                              simp [__eo_prog_sets_inter_emp2, hx, hy, mkEq,
+                                mkSetEmpty]
+                        · exfalso
+                          apply hProg
+                          simp [__eo_prog_sets_inter_emp2, hx, hy, hEq, mkEq,
+                            mkSetEmpty]
+                    | _ =>
+                        exfalso
+                        apply hProg
+                        simp [__eo_prog_sets_inter_emp2, hx, hy, mkEq,
+                          mkSetEmpty]
+                | _ =>
+                    exfalso
+                    apply hProg
+                    simp [__eo_prog_sets_inter_emp2, hx, hy, mkEq, mkSetEmpty]
+            | _ =>
+                exfalso
+                apply hProg
+                simp [__eo_prog_sets_inter_emp2, hx, hy, mkEq, mkSetEmpty]
+          · exfalso
+            apply hProg
+            simp [__eo_prog_sets_inter_emp2, hx, hy, hSet]
+      | _ =>
+          exfalso
+          apply hProg
+          simp [__eo_prog_sets_inter_emp2, hx, hy]
+  | _ =>
+      exfalso
+      apply hProg
+      simp [__eo_prog_sets_inter_emp2, hx, hy]
+
+theorem prog_sets_minus_emp2_info
+    (x y ty P : Term)
+    (hProg :
+      __eo_prog_sets_minus_emp2 x y ty (Proof.pf P) ≠ Term.Stuck) :
+    ∃ T y0 T0 : Term,
+      ty = Term.Apply (Term.UOp UserOp.Set) T ∧
+        P = mkEq y0 (mkSetEmpty T0) ∧
+          y0 = y ∧
+            T0 = T ∧
+              __eo_prog_sets_minus_emp2 x y ty (Proof.pf P) =
+                mkEq (mkSetMinus x y) x := by
+  by_cases hx : x = Term.Stuck
+  · subst x
+    simp [__eo_prog_sets_minus_emp2] at hProg
+  by_cases hy : y = Term.Stuck
+  · subst y
+    simp [__eo_prog_sets_minus_emp2, hx] at hProg
+  cases ty with
+  | Apply f T =>
+      cases f with
+      | UOp op =>
+          by_cases hSet : op = UserOp.Set
+          · subst op
+            cases P with
+            | Apply pf rhs =>
+                cases pf with
+                | Apply pg y0 =>
+                    cases pg with
+                    | UOp eqOp =>
+                        by_cases hEq : eqOp = UserOp.eq
+                        · subst eqOp
+                          cases rhs with
+                          | UOp1 emptyOp setTy =>
+                              by_cases hEmpty : emptyOp = UserOp1.set_empty
+                              · subst emptyOp
+                                cases setTy with
+                                | Apply setF T0 =>
+                                    cases setF with
+                                    | UOp setOp =>
+                                        by_cases hSetTy : setOp = UserOp.Set
+                                        · subst setOp
+                                          let B := mkEq (mkSetMinus x y) x
+                                          have hReq :
+                                              __eo_requires
+                                                  (__eo_and (__eo_eq y y0)
+                                                    (__eo_eq T T0))
+                                                  (Term.Boolean true) B ≠
+                                                Term.Stuck := by
+                                            simpa [B, __eo_prog_sets_minus_emp2,
+                                              hx, hy, mkEq, mkSetMinus,
+                                              mkSetEmpty] using hProg
+                                          have hEqs :
+                                              y0 = y ∧ T0 = T :=
+                                            RuleProofs.eqs_of_requires_and_eq_true_not_stuck
+                                              y T y0 T0 B hReq
+                                          have hUnfold :
+                                              __eo_prog_sets_minus_emp2 x y
+                                                  (Term.Apply
+                                                    (Term.UOp UserOp.Set) T)
+                                                  (Proof.pf
+                                                    (mkEq y0 (mkSetEmpty T0))) =
+                                                __eo_requires
+                                                  (__eo_and (__eo_eq y y0)
+                                                    (__eo_eq T T0))
+                                                  (Term.Boolean true) B := by
+                                            simp [B, __eo_prog_sets_minus_emp2,
+                                              hx, hy, mkEq, mkSetMinus,
+                                              mkSetEmpty]
+                                          refine ⟨T, y0, T0, rfl, rfl,
+                                            hEqs.1, hEqs.2, ?_⟩
+                                          change
+                                            __eo_prog_sets_minus_emp2 x y
+                                                (Term.Apply
+                                                  (Term.UOp UserOp.Set) T)
+                                                (Proof.pf
+                                                  (mkEq y0 (mkSetEmpty T0))) =
+                                              mkEq (mkSetMinus x y) x
+                                          rw [hUnfold, SetsEvalOpSupport.req_result hReq]
+                                        · exfalso
+                                          apply hProg
+                                          simp [__eo_prog_sets_minus_emp2, hx,
+                                            hy, hSetTy, mkEq, mkSetEmpty]
+                                    | _ =>
+                                        exfalso
+                                        apply hProg
+                                        simp [__eo_prog_sets_minus_emp2, hx,
+                                          hy, mkEq, mkSetEmpty]
+                                | _ =>
+                                    exfalso
+                                    apply hProg
+                                    simp [__eo_prog_sets_minus_emp2, hx, hy,
+                                      mkEq, mkSetEmpty]
+                              · exfalso
+                                apply hProg
+                                simp [__eo_prog_sets_minus_emp2, hx, hy,
+                                  hEmpty, mkEq, mkSetEmpty]
+                          | _ =>
+                              exfalso
+                              apply hProg
+                              simp [__eo_prog_sets_minus_emp2, hx, hy, mkEq,
+                                mkSetEmpty]
+                        · exfalso
+                          apply hProg
+                          simp [__eo_prog_sets_minus_emp2, hx, hy, hEq, mkEq,
+                            mkSetEmpty]
+                    | _ =>
+                        exfalso
+                        apply hProg
+                        simp [__eo_prog_sets_minus_emp2, hx, hy, mkEq,
+                          mkSetEmpty]
+                | _ =>
+                    exfalso
+                    apply hProg
+                    simp [__eo_prog_sets_minus_emp2, hx, hy, mkEq, mkSetEmpty]
+            | _ =>
+                exfalso
+                apply hProg
+                simp [__eo_prog_sets_minus_emp2, hx, hy, mkEq, mkSetEmpty]
+          · exfalso
+            apply hProg
+            simp [__eo_prog_sets_minus_emp2, hx, hy, hSet]
+      | _ =>
+          exfalso
+          apply hProg
+          simp [__eo_prog_sets_minus_emp2, hx, hy]
+  | _ =>
+      exfalso
+      apply hProg
+      simp [__eo_prog_sets_minus_emp2, hx, hy]
 
 theorem typed_set_minus_self_eq_empty
     (x T : Term)
