@@ -192,7 +192,7 @@ theorem listLookup_concat
       rw [concat_rec_cons f x y z hL2, mk_apply_of_ne_stuck (by simp) hTail,
         listLookup_cons, ih hb hL2, listLookup_cons]
       cases h : native_veq (__smtx_model_eval M (__eo_to_smt x)) v <;>
-        simp [native_ite, native_veq, h]
+        simp [native_ite, native_veq]
   | case4 nil z hns hzs hncons =>
       intro hL1 hL2
       have hEq : __eo_list_concat_rec nil z = z := by
@@ -312,7 +312,7 @@ theorem set_nf_lookup
           show __smtx_typeof_guard (__eo_to_smt_type T)
             (SmtType.Set (__eo_to_smt_type T)) = SmtType.None
           rw [hA]; rfl
-        rw [hg]; simp [__eo_to_smt_set_empty, __smtx_typeof]
+        rw [hg]; simp [__eo_to_smt_set_empty]
       · have hType : __eo_to_smt_type ((Term.UOp UserOp.Set).Apply T) =
             SmtType.Set (__eo_to_smt_type T) :=
           TranslationProofs.smtx_typeof_guard_of_non_none _ _ hA
@@ -1212,7 +1212,7 @@ theorem eo_ite_then_eq_true {g X : Term}
   · rw [hg] at h
     simp only [native_ite] at h
     cases hg2 : native_teq g (Term.Boolean false) <;> rw [hg2] at h <;>
-      simp [native_ite] at h
+      simp at h
   · rw [hg] at h
     simp only [native_ite] at h
     exact ⟨by simpa [native_teq] using hg, h⟩
@@ -1417,7 +1417,7 @@ theorem listLookup_eval_minus (M : SmtModel) (hM : model_total_typed M) :
         · have hva : v = __smtx_model_eval M (__eo_to_smt a) :=
             (eq_of_native_veq_true hav).symm
           subst hva
-          rw [hihv, hmem]; simp [native_ite, native_veq, native_veq_self, native_and, native_not]
+          rw [hihv, hmem]; simp [native_ite, native_veq, native_and, native_not]
       · -- not found: keep
         rw [eo_ite_true] at hNe ⊢
         have hDist := req_arg_eq hNe
@@ -1434,7 +1434,7 @@ theorem listLookup_eval_minus (M : SmtModel) (hM : model_total_typed M) :
         · have hva : v = __smtx_model_eval M (__eo_to_smt a) :=
             (eq_of_native_veq_true hav).symm
           subst hva
-          rw [hnonmem]; simp [native_ite, native_veq, native_veq_self, native_and, native_not]
+          rw [hnonmem]; simp [native_ite, native_veq, native_and, native_not]
   | case2 T =>
       intro hLsTLT L_t hLtTLT hNe v
       have hLtNe := isTL_ne_stuck (isTLT_isTL L_t hLtTLT)

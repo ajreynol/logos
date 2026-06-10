@@ -6,7 +6,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 private abbrev concatCPropNormalize (rev x : Term) : Term :=
@@ -1490,7 +1489,7 @@ private theorem eo_list_concat_substrWord_cons_eq
         __eo_list_concat (Term.UOp UserOp.str_concat)
             (RuleProofs.substrWord (c :: cs) 0 (c :: cs).length) tail =
           Term.Stuck := by
-      simp [__eo_list_concat, hConsList, hTailList, __eo_requires,
+      simp [__eo_list_concat, hTailList, __eo_requires,
         native_ite, native_teq, native_not]
     have hRight :
         __eo_list_concat (Term.UOp UserOp.str_concat)
@@ -2123,7 +2122,7 @@ private theorem str_is_empty_seq_empty_seq_local (U : Term) :
       Term.Boolean true := by
   cases U <;> simp [__seq_empty, __str_is_empty]
   case UOp op =>
-    cases op <;> simp [__seq_empty, __str_is_empty]
+    cases op <;> simp
 
 private theorem eo_list_rev_seq_empty_seq_eq (U : Term) :
     __eo_list_rev (Term.UOp UserOp.str_concat)
@@ -2132,13 +2131,12 @@ private theorem eo_list_rev_seq_empty_seq_eq (U : Term) :
   cases U <;>
     simp [__seq_empty, __eo_list_rev, __eo_is_list, __eo_get_nil_rec,
       __eo_requires, native_teq, native_ite, native_not,
-      __eo_is_ok, __eo_eq, SmtEval.native_not,
+      __eo_is_ok, SmtEval.native_not,
       __eo_is_list_nil, __eo_is_list_nil_str_concat, __eo_list_rev_rec]
   case UOp op =>
     cases op <;>
-      simp [__seq_empty, __eo_list_rev, __eo_is_list, __eo_get_nil_rec,
-        __eo_requires, native_teq, native_ite, native_not,
-        __eo_is_ok, __eo_eq, SmtEval.native_not,
+      simp [__eo_get_nil_rec,
+        __eo_requires, native_teq, native_ite, native_not, __eo_eq, SmtEval.native_not,
         __eo_is_list_nil, __eo_is_list_nil_str_concat, __eo_list_rev_rec]
 
 private theorem str_is_compatible_rev_seq_empty_typeof_right_ne_false
@@ -2378,8 +2376,8 @@ private theorem str_is_compatible_rev_word_flatten_non_concat_ne_false
     have hRevStuck :
         __eo_list_rev (Term.UOp UserOp.str_concat) Term.Stuck =
           Term.Stuck := by
-      simp [__eo_list_rev, __eo_is_list, __eo_get_nil_rec, __eo_requires,
-        native_teq, native_ite, native_not]
+      simp [__eo_list_rev, __eo_is_list, __eo_requires,
+        native_teq, native_ite]
     rw [hRevStuck]
     cases hLeft :
         __eo_list_rev (Term.UOp UserOp.str_concat)
@@ -2636,9 +2634,9 @@ private theorem str_is_compatible_rev_rec_flatten_ne_false_of_append_eval
                                   (__str_flatten a) =
                                 mkConcat head (__str_flatten a) := by
                               cases hTail : __str_flatten a <;>
-                                simp [__eo_mk_apply, mkConcat, hTail] at hTailStuck
+                                simp [hTail] at hTailStuck
                               all_goals
-                                simp [__eo_mk_apply, mkConcat, hTail]
+                                simp [__eo_mk_apply, mkConcat]
                             rw [hApply]
                             rw [eo_list_rev_rec_cons
                               (Term.UOp UserOp.str_concat) head

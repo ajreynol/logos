@@ -781,7 +781,7 @@ private theorem dt_find_cycle_nonapply_eq_of_true
       exact hNotApply f a hApp
     rw [__eo_l_1___dt_find_cycle.eq_6 c s isC rec hC hS hIsC hNoApp hRec] at h
     exfalso
-    simpa [__eo_ite, native_ite, native_teq] using h
+    simp [__eo_ite, native_ite, native_teq] at h
 
 private theorem dt_find_cycle_path_or_eq_of_true
     (c s isC rec : Term) :
@@ -849,7 +849,7 @@ private theorem dt_find_cycle_path_or_eq_of_true
           rw [__eo_l_1___dt_find_cycle.eq_6
               (Term.Apply f a) s isC rec hC hS hIsC hNoApp hRec] at h
           exfalso
-          simpa [__eo_ite, native_ite, native_teq] using h
+          simp at h
   | _ =>
       intro h
       left

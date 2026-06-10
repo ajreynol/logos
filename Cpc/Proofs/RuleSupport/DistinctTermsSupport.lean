@@ -9,7 +9,6 @@ open Smtm
 open SetsMemberSupport
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
 
@@ -79,20 +78,19 @@ private theorem eo_or_true {a b : Term} :
     simp [__eo_or, native_or, __eo_requires, native_teq, native_ite,
       SmtEval.native_not] at h ⊢
   case Boolean.Boolean x y =>
-    cases x <;> cases y <;> simp [native_or] at h ⊢
+    cases x <;> cases y <;> simp at h ⊢
   case Binary.Binary w₁ n₁ w₂ n₂ =>
     by_cases hw : w₁ = w₂
     · subst w₂
-      simp [native_teq] at h
-    · simp [native_teq, hw] at h
+      simp at h
+    · simp [hw] at h
 
 private theorem map_native_ssm_char_char :
     ∀ s : native_String,
       List.map (native_ssm_char_of_value ∘ SmtValue.Char) s = s
   | [] => rfl
   | _ :: cs => by
-      simp [Function.comp_def, native_ssm_char_of_value,
-        map_native_ssm_char_char cs]
+      simp [Function.comp_def, native_ssm_char_of_value]
 
 private theorem are_distinct_int_true {a b : Term} :
     __are_distinct_terms_type a b (Term.UOp UserOp.Int) = Term.Boolean true ->
@@ -762,20 +760,20 @@ private theorem seq_is_non_empty_shape {t : Term} :
   intro h
   cases t <;> simp [__seq_is_non_empty] at h
   case Apply f x =>
-    cases f <;> try simp [__seq_is_non_empty] at h
+    cases f <;> try simp at h
     case UOp op =>
-      cases op <;> simp [__seq_is_non_empty] at h
+      cases op <;> simp at h
       exact Or.inl ⟨x, rfl⟩
     case Apply g y =>
-      cases g <;> try simp [__seq_is_non_empty] at h
+      cases g <;> try simp at h
       case UOp op =>
-        cases op <;> try simp [__seq_is_non_empty] at h
+        cases op <;> try simp at h
         case str_concat =>
-          cases y <;> try simp [__seq_is_non_empty] at h
+          cases y <;> try simp at h
           case Apply u e =>
-            cases u <;> try simp [__seq_is_non_empty] at h
+            cases u <;> try simp at h
             case UOp op =>
-              cases op <;> simp [__seq_is_non_empty] at h
+              cases op <;> simp at h
               exact Or.inr ⟨e, x, rfl⟩
 
 private theorem native_pack_seq_ne_empty_of_length_pos
@@ -821,7 +819,7 @@ private theorem seq_is_non_empty_model_eval
           SmtValue.Seq (native_pack_seq (__smtx_typeof_value v) [v]) := by
       change __smtx_model_eval M (SmtTerm.seq_unit (__eo_to_smt e)) =
         SmtValue.Seq (native_pack_seq (__smtx_typeof_value v) [v])
-      simp [__smtx_model_eval, unit, v, native_pack_seq]
+      simp [__smtx_model_eval, v, native_pack_seq]
     have hConcatNN :
         __smtx_typeof (__eo_to_smt (mkConcat unit ts)) ≠ SmtType.None := by
       simpa [unit, mkConcat] using hTrans
@@ -1622,7 +1620,7 @@ private theorem set_is_not_subset_lookup_witness
               RuleProofs.eo_has_smt_translation e₂ :=
             set_singleton_arg_translation_of_translation e₂ hUnionArgs.1
           have hHeadEqFalseEval :=
-            hHeadSound e₁ e₂ (by simp [head₂]; omega) he₁Trans he₂Trans
+            hHeadSound e₁ e₂ (by simp; omega) he₁Trans he₂Trans
               hHeadEqFalse hHeadDistinct
           have hRecMeasure :
               sizeOf (Term.Apply (Term.UOp UserOp.set_singleton) e₁) +
@@ -2498,7 +2496,7 @@ private theorem dt_distinct_terms_base_info_of_non_apply {c d : Term} :
   all_goals
     try
       (rw [__dt_distinct_terms.eq_def] at hDistinct
-       simp [__dt_distinct_terms] at hDistinct)
+       simp at hDistinct)
   all_goals
     exact dt_distinct_terms_base_info
       (by simpa [dtDistinctBaseGuard] using hDistinct)
@@ -2852,8 +2850,7 @@ private theorem dt_distinct_terms_model_eval_eq_false_of_head_sound
               __dt_distinct_terms (Term.UOp UserOp.tuple)
                   (Term.UOp UserOp.tuple) = Term.Boolean true at hTupleRootDistinct
             simp [__dt_distinct_terms, __eo_requires, __eo_and, __eo_ite,
-              __eo_is_eq, __eo_is_ok, __eo_dt_selectors,
-              __eo_dt_selectors_main, __eo_not, __eo_eq, native_ite,
+              __eo_is_eq, __eo_not, __eo_eq, native_ite,
               native_teq, native_and, native_not, SmtEval.native_and,
               SmtEval.native_not] at hTupleRootDistinct
           · have hHeadEvalFalse :

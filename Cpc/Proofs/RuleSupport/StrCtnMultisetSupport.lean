@@ -1586,7 +1586,7 @@ theorem scratch_value_len_numeral_nonneg :
         SmtEval.native_ite, SmtEval.native_and, SmtEval.native_not] at h
       case String w =>
         rw [← h]
-        exact Int.ofNat_nonneg _
+        exact Int.natCast_nonneg _
 
 theorem scratch_string_nil_of_len_zero (w : native_String)
     (h : __str_value_len (Term.String w) = Term.Numeral 0) :
@@ -1597,7 +1597,7 @@ theorem scratch_string_nil_of_len_zero (w : native_String)
       simp [str_value_len_string] at h
       exfalso
       have hpos : (0 : Int) < Int.ofNat rest.length + 1 :=
-        Int.add_pos_of_nonneg_of_pos (Int.ofNat_nonneg _)
+        Int.add_pos_of_nonneg_of_pos (Int.natCast_nonneg _)
           (show (0 : Int) < 1 by decide)
       change (0 : Int) < ↑rest.length + 1 at hpos
       rw [h] at hpos
@@ -1615,7 +1615,7 @@ theorem scratch_string_singleton_of_len_one (w : native_String)
           simp [str_value_len_string] at h
           exfalso
           have hpos : (1 : Int) < Int.ofNat rest.length + 1 + 1 := by
-            have hnonneg : (0 : Int) ≤ Int.ofNat rest.length := Int.ofNat_nonneg _
+            have hnonneg : (0 : Int) ≤ Int.ofNat rest.length := Int.natCast_nonneg _
             omega
           change (1 : Int) < ↑rest.length + 1 + 1 at hpos
           rw [h] at hpos
@@ -1772,7 +1772,7 @@ theorem scratch_seq_concat_empty_head_guard
         Term.Boolean true := by
       rcases eo_ite_true_cases_local hDistinct with ⟨hInner, _⟩ | ⟨_hInnerFalse, hEmptyNonempty⟩
       · exact hInner
-      · simp [Term.seq_empty, __seq_is_non_empty] at hEmptyNonempty
+      · simp [__seq_is_non_empty] at hEmptyNonempty
     obtain ⟨hElemEqFalse, _hElemDistinct⟩ :=
       eo_ite_eq_false_guard_true_local hInner
     have hHeadEqFalse :
@@ -1823,7 +1823,7 @@ theorem scratch_eo_requires_true_result_of_ne_stuck (c r : Term)
     __eo_requires c (Term.Boolean true) r = r := by
   cases c <;> simp [__eo_requires, native_teq, native_ite, native_not] at h ⊢
   case Boolean b =>
-    cases b <;> simp [__eo_requires, native_teq, native_ite, native_not] at h ⊢
+    cases b <;> simp at h ⊢
 
 theorem scratch_str_concat_type_left_seq_of_ne_stuck (A B : Term)
     (h :
@@ -1851,8 +1851,7 @@ theorem scratch_str_concat_type_left_seq_char_tail_eq_char (A : Term)
   cases A <;> simp [__eo_typeof_str_concat, __eo_requires, __eo_eq,
     native_teq, native_ite] at h
   case UOp op =>
-    cases op <;> simp [__eo_typeof_str_concat, __eo_requires, __eo_eq,
-      native_teq, native_ite] at h ⊢
+    cases op <;> simp at h ⊢
 
 theorem scratch_are_distinct_terms_type_seq_eq_seq_distinct
     {a b U : Term} (hU : U ≠ Term.UOp UserOp.Char) :
@@ -1864,8 +1863,7 @@ theorem scratch_are_distinct_terms_type_seq_eq_seq_distinct
     simp [__are_distinct_terms_type.eq_def, __seq_distinct_terms.eq_def]
   by_cases hb : b = Term.Stuck
   · subst b
-    simp [__are_distinct_terms_type.eq_def, __seq_distinct_terms.eq_def,
-      ha]
+    simp [__are_distinct_terms_type.eq_def, __seq_distinct_terms.eq_def]
   rw [__are_distinct_terms_type.eq_def]
   split <;> simp_all
 
@@ -1880,7 +1878,7 @@ theorem scratch_concat_seqUnit_char_distinct_false
       Term.Boolean true) :
     False := by
   cases x <;> simp [__are_distinct_terms_type.eq_def, __eo_and,
-    __eo_is_str, __eo_is_str_internal, native_teq, native_ite,
+    __eo_is_str, __eo_is_str_internal, native_teq,
     native_and, native_not, SmtEval.native_and, SmtEval.native_not] at h
 
 theorem scratch_concat_singleton_head_guard

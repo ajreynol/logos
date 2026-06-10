@@ -993,8 +993,7 @@ private theorem eo_or_eq_true_cases_local (x y : Term) :
         intro hEq
         cases hEq
         exact hW rfl
-      simp [__eo_requires, hNumNe, native_ite, native_teq,
-        native_not, SmtEval.native_not] at h
+      simp [__eo_requires, hNumNe, native_ite, native_teq] at h
 
 private theorem quant_merge_shape_of_not_stuck
     (x1 : Term) :
@@ -1085,7 +1084,7 @@ private theorem quant_merge_shape_of_not_stuck
                                 intro hG
                                 exact hMkNe (hMk'.trans hG)
                               simp [qeq, qterm, __eo_prog_quant_merge_prenex,
-                                hGuard', hMkRaw, hMkNeRaw, hGNe,
+                                hGuard', hMkRaw, hGNe,
                                 __eo_requires, native_ite,
                                 native_teq, native_not, SmtEval.native_not]
                             · simpa [v0, qterm] using hMk
@@ -1131,7 +1130,7 @@ private theorem quant_merge_shape_of_not_stuck
                                 intro hG
                                 exact hMkNe (hMk'.trans hG)
                               simp [qeq, qterm, __eo_prog_quant_merge_prenex,
-                                hGuard', hMkRaw, hMkNeRaw, hGNe,
+                                hGuard', hMkRaw, hGNe,
                                 __eo_requires, native_ite,
                                 native_teq, native_not, SmtEval.native_not]
                             · simpa [v0, qterm] using hMk

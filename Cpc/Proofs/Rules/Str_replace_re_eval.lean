@@ -8,7 +8,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 namespace RuleProofs
@@ -123,7 +122,7 @@ private theorem native_re_prefix_match_go_isSome_iff_exists
       rcases hParts with ⟨hc, hcs⟩
       rw [Smtm.native_re_prefix_match_len?.go.eq_2]
       cases hNull : native_re_nullable r
-      · simp [hNull, hc]
+      · simp [hc]
         constructor
         · intro h
           rcases (ih (native_re_deriv c r) (n + 1) hcs).1 h with
@@ -147,7 +146,7 @@ private theorem native_re_prefix_match_go_isSome_iff_exists
                 simpa [RuleProofs.nativeListInRe] using hIn
               exact (ih (native_re_deriv c r) (n + 1) hcs).2
                 ⟨ds, post, by rfl, hTailIn⟩
-      · simp [hNull]
+      · simp
         refine Exists.intro [] ?_
         constructor
         · exact ⟨c :: cs, by simp⟩
@@ -234,7 +233,7 @@ theorem replace_re_search_re_eval
           (SmtTerm.re_concat SmtTerm.re_all
             (SmtTerm.str_to_re (SmtTerm.String [])))) =
       SmtType.RegLan
-    simp [__smtx_typeof, hRTy, native_ite, type_result_seq_components_wf,
+    simp [__smtx_typeof, hRTy, native_ite,
       native_Teq, native_string_valid]
   · change __smtx_model_eval M
         (SmtTerm.re_concat (__eo_to_smt r)
@@ -245,8 +244,8 @@ theorem replace_re_search_re_eval
       __smtx_model_eval_str_to_re, hREval,
       RuleProofs.native_unpack_string_pack_string, native_re_concat,
       native_re_all, native_re_mk_concat]
-    cases rv <;> simp [native_re_concat, native_re_all, native_str_to_re,
-      native_re_of_list, native_re_mk_concat]
+    cases rv <;> simp [native_str_to_re,
+      native_re_of_list]
 
 theorem str_first_match_rec_smallest_eq_go
     (M : SmtModel) (hM : model_total_typed M) :
@@ -902,7 +901,7 @@ private theorem str_eval_replace_re_pair_eval
         (Term.Numeral (Int.ofNat idx))
         (Term.Numeral (Int.ofNat (idx + len)))
         hNotNoMatch (by simp) hRNe hTNe]
-  simp [replace_re_match_pair, __str_eval_replace_re, __eo_add, native_zplus,
+  simp [__eo_add, native_zplus,
     __eo_mk_apply, __eo_extract, __eo_len, native_str_len, native_zneg]
   have hPrefixArg : ((↑idx : Int) + -1 + 1) = (↑idx : Int) := by
     omega
