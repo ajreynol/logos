@@ -2557,6 +2557,14 @@ private theorem eo_to_smt_apply_ne_numeral
       case tuple =>
         exact False.elim (eo_to_smt_tuple_prepend_ne_numeral
           (__eo_to_smt y) (__smtx_typeof (__eo_to_smt y)) (__eo_to_smt x) n h)
+      case _at_array_deq_diff =>
+        exact False.elim
+          (eo_to_smt_array_deq_diff_ne_numeral
+            (__eo_to_smt y) (__eo_to_smt x) n h)
+      case _at_sets_deq_diff =>
+        exact False.elim
+          (eo_to_smt_sets_deq_diff_ne_numeral
+            (__eo_to_smt y) (__eo_to_smt x) n h)
     case UOp1 op idx =>
       cases op <;> try cases h
       case update =>
@@ -2588,14 +2596,6 @@ theorem eo_to_smt_eq_numeral
       · exact False.elim (eo_to_smt_set_empty_ne_numeral (__eo_to_smt_type x) n h)
   | UOp2 op x y =>
       cases op <;> try cases h
-      case _at_array_deq_diff =>
-        exact False.elim
-          (eo_to_smt_array_deq_diff_ne_numeral
-            (__eo_to_smt x) (__eo_to_smt y) n h)
-      case _at_sets_deq_diff =>
-        exact False.elim
-          (eo_to_smt_sets_deq_diff_ne_numeral
-            (__eo_to_smt x) (__eo_to_smt y) n h)
       case _at_bv =>
         exact False.elim (eo_to_smt_at_bv_ne_numeral (__eo_to_smt x) (__eo_to_smt y) n h)
       case _at_quantifiers_skolemize =>
@@ -3182,21 +3182,12 @@ private theorem eo_to_smt_type_substitute_field
   | Term.UOp2 UserOp2._at_bv x y => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
   | Term.UOp2 UserOp2.re_loop x y => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
   | Term.UOp1 UserOp1._at_purify x => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
-  | Term.UOp2 UserOp2._at_array_deq_diff x y => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
   | Term.UOp1 UserOp1.seq_empty T => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
-  | Term.UOp1 UserOp1._at_strings_replace_all_result x => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
   | Term.UOp1 UserOp1.set_empty T => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
-  | Term.UOp2 UserOp2._at_sets_deq_diff x y => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
   | Term.UOp2 UserOp2._at_quantifiers_skolemize x y => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
   | Term.UOp2 UserOp2._at_const x y => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
   | Term.UOp3 UserOp3._at_re_unfold_pos_component x y z => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
   | Term.UOp3 UserOp3._at_witness_string_length x y z => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
-  | Term.UOp2 UserOp2._at_strings_deq_diff x y => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
-  | Term.UOp1 UserOp1._at_strings_stoi_result x => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
-  | Term.UOp1 UserOp1._at_strings_stoi_non_digit x => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
-  | Term.UOp1 UserOp1._at_strings_itos_result x => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
-  | Term.UOp2 UserOp2._at_strings_num_occur_re x y => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
-  | Term.UOp2 UserOp2._at_strings_occur_index_re x y => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
 
 private theorem eo_to_smt_datatype_cons_substitute
     (sub : native_String) (d0 : Datatype) :
@@ -4122,7 +4113,7 @@ theorem eo_to_smt_type_typeof_apply_str_from_int_of_int
 theorem eo_to_smt_type_typeof_apply_at_strings_stoi_non_digit_of_seq_char
     (x : Term)
     (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char)) :
-    __eo_to_smt_type (__eo_typeof (Term.UOp1 UserOp1._at_strings_stoi_non_digit x)) =
+    __eo_to_smt_type (__eo_typeof (Term._at_strings_stoi_non_digit x)) =
       SmtType.Int := by
   change __eo_to_smt_type (__eo_typeof_str_to_code (__eo_typeof x)) = SmtType.Int
   rw [hx]

@@ -1106,6 +1106,12 @@ theorem eo_to_smt_apply_ne_dt_sel
         exact eo_to_smt_exists_top_ne_dt_sel _ _ _ _ _ _ h
       case tuple =>
         exact eo_to_smt_tuple_ne_dt_sel x y s d i j h
+      case _at_array_deq_diff =>
+        exact eo_to_smt_array_deq_diff_ne_dt_sel
+          (__eo_to_smt y) (__eo_to_smt x) s d i j h
+      case _at_sets_deq_diff =>
+        exact eo_to_smt_sets_deq_diff_ne_dt_sel
+          (__eo_to_smt y) (__eo_to_smt x) s d i j h
     case Apply k z =>
       cases k <;> try cases h
       case UOp op =>
@@ -1152,6 +1158,12 @@ theorem eo_to_smt_apply_ne_dt_tester
         exact eo_to_smt_exists_top_ne_dt_tester _ _ _ _ _ h
       case tuple =>
         exact eo_to_smt_tuple_ne_dt_tester x y s d i h
+      case _at_array_deq_diff =>
+        exact eo_to_smt_array_deq_diff_ne_dt_tester
+          (__eo_to_smt y) (__eo_to_smt x) s d i h
+      case _at_sets_deq_diff =>
+        exact eo_to_smt_sets_deq_diff_ne_dt_tester
+          (__eo_to_smt y) (__eo_to_smt x) s d i h
     case Apply k z =>
       cases k <;> try cases h
       case UOp op =>
@@ -1198,6 +1210,12 @@ private theorem eo_to_smt_apply_ne_dt_cons
         exact eo_to_smt_exists_top_ne_dt_cons _ _ _ _ _ h
       case tuple =>
         exact eo_to_smt_tuple_ne_dt_cons x y s d i h
+      case _at_array_deq_diff =>
+        exact eo_to_smt_array_deq_diff_ne_dt_cons
+          (__eo_to_smt y) (__eo_to_smt x) s d i h
+      case _at_sets_deq_diff =>
+        exact eo_to_smt_sets_deq_diff_ne_dt_cons
+          (__eo_to_smt y) (__eo_to_smt x) s d i h
     case Apply k z =>
       cases k <;> try cases h
       case UOp op =>
@@ -4525,9 +4543,9 @@ private theorem eo_to_smt_array_deq_diff_fun_like_domains_field_wf
     (y z : Term)
     (hNN :
       term_has_non_none_type
-        (__eo_to_smt (Term.UOp2 UserOp2._at_array_deq_diff y z))) :
+        (__eo_to_smt (Term._at_array_deq_diff y z))) :
     smtx_type_fun_like_domains_field_wf
-      (__smtx_typeof (__eo_to_smt (Term.UOp2 UserOp2._at_array_deq_diff y z))) := by
+      (__smtx_typeof (__eo_to_smt (Term._at_array_deq_diff y z))) := by
   change
     smtx_type_fun_like_domains_field_wf
       (__smtx_typeof
@@ -4554,9 +4572,9 @@ private theorem eo_to_smt_sets_deq_diff_fun_like_domains_field_wf
     (y z : Term)
     (hNN :
       term_has_non_none_type
-        (__eo_to_smt (Term.UOp2 UserOp2._at_sets_deq_diff y z))) :
+        (__eo_to_smt (Term._at_sets_deq_diff y z))) :
     smtx_type_fun_like_domains_field_wf
-      (__smtx_typeof (__eo_to_smt (Term.UOp2 UserOp2._at_sets_deq_diff y z))) := by
+      (__smtx_typeof (__eo_to_smt (Term._at_sets_deq_diff y z))) := by
   change
     smtx_type_fun_like_domains_field_wf
       (__smtx_typeof
@@ -6621,10 +6639,10 @@ private theorem eo_to_smt_typeof_matches_translation_apply_at_strings_num_occur
       __eo_to_smt_type
           (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_num_occur) y) x)) =
         SmtType.Int := by
-    change __eo_to_smt_type (__eo_typeof__at_strings_num_occur (__eo_typeof y) (__eo_typeof x)) =
+    change __eo_to_smt_type (__eo_typeof__at_strings_deq_diff (__eo_typeof y) (__eo_typeof x)) =
       SmtType.Int
     rw [hYU, hXU]
-    simpa [__eo_typeof__at_strings_num_occur] using
+    simpa [__eo_typeof__at_strings_deq_diff] using
       congrArg __eo_to_smt_type
         (eo_requires_eo_eq_self_of_non_stuck U (Term.UOp UserOp.Int) hUNS)
   exact hSmt.trans hEo.symm
@@ -6681,12 +6699,6 @@ theorem eo_to_smt_eq_dt_cons_cases
     exact (eo_to_smt_apply_ne_dt_cons f x s d i hy).elim
   case UOp2 op q idx =>
     cases op <;> try (exfalso; cases hy)
-    case _at_array_deq_diff =>
-      exact (eo_to_smt_array_deq_diff_ne_dt_cons
-        (__eo_to_smt q) (__eo_to_smt idx) s d i hy).elim
-    case _at_sets_deq_diff =>
-      exact (eo_to_smt_sets_deq_diff_ne_dt_cons
-        (__eo_to_smt q) (__eo_to_smt idx) s d i hy).elim
     case _at_bv =>
       exact (eo_to_smt_at_bv_ne_dt_cons _ _ _ _ _ hy).elim
     case _at_quantifiers_skolemize =>
@@ -7537,12 +7549,6 @@ theorem eo_to_smt_eq_dt_sel_cases
     cases name <;> cases hy
   case UOp2 op q idx =>
     cases op <;> try (exfalso; cases hy)
-    case _at_array_deq_diff =>
-      exact (eo_to_smt_array_deq_diff_ne_dt_sel
-        (__eo_to_smt q) (__eo_to_smt idx) s d i j hy).elim
-    case _at_sets_deq_diff =>
-      exact (eo_to_smt_sets_deq_diff_ne_dt_sel
-        (__eo_to_smt q) (__eo_to_smt idx) s d i j hy).elim
     case _at_bv =>
       exact (eo_to_smt_at_bv_ne_dt_sel _ _ _ _ _ _ hy).elim
     case _at_quantifiers_skolemize =>
@@ -7606,12 +7612,6 @@ theorem eo_to_smt_ne_dt_tester
     cases name <;> cases hy
   case UOp2 op q idx =>
     cases op <;> try (exfalso; cases hy)
-    case _at_array_deq_diff =>
-      exact (eo_to_smt_array_deq_diff_ne_dt_tester
-        (__eo_to_smt q) (__eo_to_smt idx) s d i hy).elim
-    case _at_sets_deq_diff =>
-      exact (eo_to_smt_sets_deq_diff_ne_dt_tester
-        (__eo_to_smt q) (__eo_to_smt idx) s d i hy).elim
     case _at_bv =>
       exact (eo_to_smt_at_bv_ne_dt_tester _ _ _ _ _ hy).elim
     case _at_quantifiers_skolemize =>
@@ -11182,6 +11182,37 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
   case _at_strings_num_occur =>
     exact eo_to_smt_typeof_matches_translation_apply_at_strings_num_occur
       x y ihY ihX hNonNone
+  case _at_array_deq_diff =>
+    exact eo_to_smt_typeof_matches_translation_array_deq_diff y x
+      ihY (fun hNN => (ihYAll hNN).2) ihX (fun hNN => (ihXAll hNN).2)
+      hNonNone
+  case _at_strings_deq_diff =>
+    exact (eo_to_smt_typeof_matches_translation_apply_at_strings_deq_diff
+      x y ihY ihX hNonNone).1
+  case _at_strings_stoi_result =>
+    exact eo_to_smt_typeof_matches_translation_apply_at_strings_stoi_result
+      x y ihY ihX hNonNone
+  case _at_strings_itos_result =>
+    exact eo_to_smt_typeof_matches_translation_apply_at_strings_itos_result
+      x y ihY ihX hNonNone
+  case _at_strings_num_occur_re =>
+    exact False.elim (hNonNone (by
+      change
+        __smtx_typeof
+            (SmtTerm.Apply (SmtTerm.Apply SmtTerm.None (__eo_to_smt y)) (__eo_to_smt x)) =
+          SmtType.None
+      exact typeof_apply_apply_none_head_eq (__eo_to_smt y) (__eo_to_smt x)))
+  case _at_strings_replace_all_result =>
+    exact False.elim (hNonNone (by
+      change
+        __smtx_typeof
+            (SmtTerm.Apply (SmtTerm.Apply SmtTerm.None (__eo_to_smt y)) (__eo_to_smt x)) =
+          SmtType.None
+      exact typeof_apply_apply_none_head_eq (__eo_to_smt y) (__eo_to_smt x)))
+  case _at_sets_deq_diff =>
+    exact eo_to_smt_typeof_matches_translation_sets_deq_diff y x
+      ihY (fun hNN => (ihYAll hNN).2) ihX (fun hNN => (ihXAll hNN).2)
+      hNonNone
   case tuple =>
     exact eo_to_smt_typeof_matches_translation_apply_tuple
       x y ihYAll ihXAll hNonNone
@@ -13409,6 +13440,16 @@ private theorem eo_to_smt_typeof_matches_translation_apply_binary_application_he
         (by intro s d i h; cases h)
         (by rfl)
         hNonNone
+    case _at_strings_occur_index_re =>
+      exact False.elim (hNonNone (by
+        change
+          __smtx_typeof
+              (SmtTerm.Apply
+                (SmtTerm.Apply (SmtTerm.Apply SmtTerm.None (__eo_to_smt z)) (__eo_to_smt y))
+                (__eo_to_smt x)) =
+            SmtType.None
+        exact typeof_apply_apply_apply_none_head_eq
+          (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x)))
     case or =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
         UserOp.or z y x ihFAll ihXAll
@@ -14531,17 +14572,6 @@ theorem eo_to_smt_typeof_matches_translation_apply
       exact eo_to_smt_typeof_matches_translation_apply_at_bit x y ihX hNonNone
     case int_to_bv =>
       exact eo_to_smt_typeof_matches_translation_apply_int_to_bv x y ihX hNonNone
-    case _at_strings_stoi_result =>
-      exact eo_to_smt_typeof_matches_translation_apply_at_strings_stoi_result
-        x y (ihUOp1Arg UserOp1._at_strings_stoi_result y rfl) ihX hNonNone
-    case _at_strings_itos_result =>
-      exact eo_to_smt_typeof_matches_translation_apply_at_strings_itos_result
-        x y (ihUOp1Arg UserOp1._at_strings_itos_result y rfl) ihX hNonNone
-    case _at_strings_replace_all_result =>
-      exfalso
-      apply hNonNone
-      change __smtx_typeof (SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) = SmtType.None
-      exact typeof_apply_none_eq (__eo_to_smt x)
     case update =>
       exfalso
       apply hNonNone
@@ -14552,20 +14582,6 @@ theorem eo_to_smt_typeof_matches_translation_apply
       apply hNonNone
       change __smtx_typeof (SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) = SmtType.None
       exact typeof_apply_none_eq (__eo_to_smt x)
-    case _at_strings_stoi_non_digit =>
-      exfalso
-      apply hNonNone
-      change
-        __smtx_typeof
-            (SmtTerm.Apply
-              (SmtTerm.str_indexof_re (__eo_to_smt y)
-                (SmtTerm.re_comp
-                  (SmtTerm.re_range (SmtTerm.String (native_string_lit "0"))
-                    (SmtTerm.String (native_string_lit "9"))))
-                (SmtTerm.Numeral 0))
-              (__eo_to_smt x)) =
-          SmtType.None
-      exact typeof_apply_str_indexof_re_head_eq_none _ _ _ _
     case is =>
       exact eo_to_smt_typeof_matches_translation_apply_is x y
         (ihUOp1Arg UserOp1.is y rfl) ihX hNonNone
@@ -14589,28 +14605,6 @@ theorem eo_to_smt_typeof_matches_translation_apply
       exact typeof_apply_eo_to_smt_set_empty_eq_none (__eo_to_smt_type y) (__eo_to_smt x)
   case UOp2 op y z =>
     cases op
-    case _at_array_deq_diff =>
-      have hGeneric :
-          generic_apply_type
-            (__eo_to_smt (Term.UOp2 UserOp2._at_array_deq_diff y z))
-            (__eo_to_smt x) := by
-        exact generic_apply_type_of_non_special_head _ _
-          (by
-            intro s d i j h
-            rcases eo_to_smt_eq_dt_sel_cases
-                (Term.UOp2 UserOp2._at_array_deq_diff y z) s d i j h with
-              ⟨d0, hd, hTerm, hReserved⟩ | ⟨w, hTerm, hw⟩
-            · cases hTerm
-            · cases hTerm)
-          (by
-            intro s d i h
-            exact eo_to_smt_ne_dt_tester
-              (Term.UOp2 UserOp2._at_array_deq_diff y z) s d i h)
-      exact
-        eo_to_smt_typeof_matches_translation_apply_generic_from_ih_of_head_field_wf_of_non_none
-          (Term.UOp2 UserOp2._at_array_deq_diff y z) x ihF ihX
-          hGeneric (by rfl) (by rfl)
-          (eo_to_smt_array_deq_diff_fun_like_domains_field_wf y z) hNonNone
     case extract =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_extract x z y ihX hNonNone
     case _at_bv =>
@@ -14624,55 +14618,6 @@ theorem eo_to_smt_typeof_matches_translation_apply
       exact typeof_apply_eo_to_smt_at_bv_eq_none (__eo_to_smt y) (__eo_to_smt z) (__eo_to_smt x)
     case re_loop =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_re_loop x z y ihX hNonNone
-    case _at_strings_deq_diff =>
-      exfalso
-      apply hNonNone
-      change
-        __smtx_typeof
-            (SmtTerm.Apply
-              (SmtTerm.choice_nth (native_string_lit "@x") SmtType.Int
-                (SmtTerm.not
-                  (SmtTerm.eq
-                    (SmtTerm.str_substr (__eo_to_smt y)
-                      (SmtTerm.Var (native_string_lit "@x") SmtType.Int) (SmtTerm.Numeral 1))
-                    (SmtTerm.str_substr (__eo_to_smt z)
-                      (SmtTerm.Var (native_string_lit "@x") SmtType.Int) (SmtTerm.Numeral 1))))
-                native_nat_zero)
-              (__eo_to_smt x)) =
-          SmtType.None
-      exact typeof_apply_choice_nth_int_eq_none _ _
-    case _at_strings_num_occur_re =>
-      exfalso
-      apply hNonNone
-      change __smtx_typeof (SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) = SmtType.None
-      exact typeof_apply_none_eq (__eo_to_smt x)
-    case _at_strings_occur_index_re =>
-      exfalso
-      apply hNonNone
-      change __smtx_typeof (SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) = SmtType.None
-      exact typeof_apply_none_eq (__eo_to_smt x)
-    case _at_sets_deq_diff =>
-      have hGeneric :
-          generic_apply_type
-            (__eo_to_smt (Term.UOp2 UserOp2._at_sets_deq_diff y z))
-            (__eo_to_smt x) := by
-        exact generic_apply_type_of_non_special_head _ _
-          (by
-            intro s d i j h
-            rcases eo_to_smt_eq_dt_sel_cases
-                (Term.UOp2 UserOp2._at_sets_deq_diff y z) s d i j h with
-              ⟨d0, hd, hTerm, hReserved⟩ | ⟨w, hTerm, hw⟩
-            · cases hTerm
-            · cases hTerm)
-          (by
-            intro s d i h
-            exact eo_to_smt_ne_dt_tester
-              (Term.UOp2 UserOp2._at_sets_deq_diff y z) s d i h)
-      exact
-        eo_to_smt_typeof_matches_translation_apply_generic_from_ih_of_head_field_wf_of_non_none
-          (Term.UOp2 UserOp2._at_sets_deq_diff y z) x ihF ihX
-          hGeneric (by rfl) (by rfl)
-          (eo_to_smt_sets_deq_diff_fun_like_domains_field_wf y z) hNonNone
     case _at_const =>
       exfalso
       apply hNonNone
@@ -15555,6 +15500,39 @@ theorem eo_to_smt_typeof_matches_translation_apply
         rw [hTranslate, typeof_str_to_int_eq (__eo_to_smt x)]
         simp [hArg, native_ite, native_Teq]
       exact hSmt.trans (eo_to_smt_type_typeof_apply_str_to_int_of_seq_char x hxEo).symm
+    case _at_strings_stoi_non_digit =>
+      let digits :=
+        SmtTerm.re_range (SmtTerm.String (native_string_lit "0"))
+          (SmtTerm.String (native_string_lit "9"))
+      let nonDigit := SmtTerm.re_comp digits
+      have hTranslate :
+          __eo_to_smt (Term._at_strings_stoi_non_digit x) =
+            SmtTerm.str_indexof_re (__eo_to_smt x) nonDigit (SmtTerm.Numeral 0) := by
+        rfl
+      have hApplyNN :
+          term_has_non_none_type
+            (SmtTerm.str_indexof_re (__eo_to_smt x) nonDigit (SmtTerm.Numeral 0)) := by
+        unfold term_has_non_none_type
+        rw [← hTranslate]
+        exact hNonNone
+      have hArgs := str_indexof_re_args_of_non_none hApplyNN
+      have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
+        rw [hArgs.1]
+        simp
+      have hXTyped := ihX hXNonNone
+      have hxSmt : __eo_to_smt_type (__eo_typeof x) = SmtType.Seq SmtType.Char := by
+        rw [← hXTyped]
+        exact hArgs.1
+      have hxEo : __eo_typeof x = Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char) :=
+        eo_to_smt_type_eq_seq_char hxSmt
+      have hSmt :
+          __smtx_typeof (__eo_to_smt (Term._at_strings_stoi_non_digit x)) =
+            SmtType.Int := by
+        rw [hTranslate]
+        exact smtx_typeof_str_indexof_re_of_non_none
+          (__eo_to_smt x) nonDigit (SmtTerm.Numeral 0) hApplyNN
+      exact hSmt.trans
+        (eo_to_smt_type_typeof_apply_at_strings_stoi_non_digit_of_seq_char x hxEo).symm
     case str_from_int =>
       have hTranslate :
           __eo_to_smt (Term.Apply (Term.UOp UserOp.str_from_int) x) =

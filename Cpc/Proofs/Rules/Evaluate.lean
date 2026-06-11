@@ -927,22 +927,12 @@ private theorem run_evaluate_sound_core
       run_evaluate_sound_of_eq_self M _ rfl
   | Term.UOp1 _ _ =>
       run_evaluate_sound_of_eq_self M _ rfl
-  | Term.UOp2 UserOp2._at_array_deq_diff _ _ =>
-      run_evaluate_sound_of_eq_self M _ rfl
   | Term.UOp2 UserOp2.extract _ _ =>
       run_evaluate_sound_of_eq_self M _ rfl
   | Term.UOp2 UserOp2._at_bv n m =>
       run_evaluate_sound_uop2_at_bv_core M hM
         n m (fun A _hA => run_evaluate_sound_core M hM A)
   | Term.UOp2 UserOp2.re_loop _ _ =>
-      run_evaluate_sound_of_eq_self M _ rfl
-  | Term.UOp2 UserOp2._at_strings_deq_diff _ _ =>
-      run_evaluate_sound_of_eq_self M _ rfl
-  | Term.UOp2 UserOp2._at_strings_num_occur_re _ _ =>
-      run_evaluate_sound_of_eq_self M _ rfl
-  | Term.UOp2 UserOp2._at_strings_occur_index_re _ _ =>
-      run_evaluate_sound_of_eq_self M _ rfl
-  | Term.UOp2 UserOp2._at_sets_deq_diff _ _ =>
       run_evaluate_sound_of_eq_self M _ rfl
   | Term.UOp2 UserOp2._at_quantifiers_skolemize _ _ =>
       run_evaluate_sound_of_eq_self M _ rfl
