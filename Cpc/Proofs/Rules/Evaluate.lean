@@ -2570,6 +2570,14 @@ private theorem run_evaluate_sound_active_apply_core
               exact run_evaluate_sound_apply_bvor_core M hM y x rec hATrans hEvalTy
           | UserOp.bvxor =>
               exact run_evaluate_sound_apply_bvxor_core M hM y x rec hATrans hEvalTy
+          | UserOp.bvnand =>
+              exact False.elim (hActive rfl)
+          | UserOp.bvnor =>
+              exact False.elim (hActive rfl)
+          | UserOp.bvxnor =>
+              exact False.elim (hActive rfl)
+          | UserOp.bvcomp =>
+              exact False.elim (hActive rfl)
           | _ =>
               sorry
       | Apply h z =>
