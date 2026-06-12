@@ -18775,8 +18775,8 @@ private theorem typeof_apply_re_unfold_top_eq_none
             SmtTerm.None)
           (__eo_to_smt x)) =
       SmtType.None
-  cases hValid : __eo_to_smt_nat_is_valid idx <;>
-    simp [native_ite, hValid, TranslationProofs.typeof_apply_none_eq,
+  cases __eo_to_smt_nat_is_valid idx <;>
+    simp [native_ite, TranslationProofs.typeof_apply_none_eq,
       typeof_apply_re_unfold_pos_component_head_eq_none]
 
 private theorem eo_to_smt_witness_string_length_ne_dt_sel
