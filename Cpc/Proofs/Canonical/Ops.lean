@@ -1032,6 +1032,13 @@ theorem model_eval_str_indexof_re_canonical
   cases v1 <;> cases v2 <;> cases v3 <;>
     simp [__smtx_model_eval_str_indexof_re, value_canonical_notValue, value_canonical_numeral]
 
+theorem model_eval_str_indexof_re_split_canonical
+    (v1 v2 v3 : SmtValue) :
+    __smtx_value_canonical (__smtx_model_eval_str_indexof_re_split v1 v2 v3) := by
+  cases v1 <;> cases v2 <;> cases v3 <;>
+    simp [__smtx_model_eval_str_indexof_re_split, value_canonical_notValue,
+      value_canonical_numeral]
+
 theorem model_eval_str_to_code_canonical
     (v : SmtValue) :
     __smtx_value_canonical (__smtx_model_eval_str_to_code v) := by

@@ -754,6 +754,10 @@ theorem model_eval_canonical_of_supported
       simpa [__smtx_model_eval] using
         model_eval_str_indexof_re_canonical
           (__smtx_model_eval M _) (__smtx_model_eval M _) (__smtx_model_eval M _)
+  case str_indexof_re_split ht1 hs1 ht2 hs2 ht3 hs3 ih1 ih2 ih3 =>
+      simpa [__smtx_model_eval] using
+        model_eval_str_indexof_re_split_canonical
+          (__smtx_model_eval M _) (__smtx_model_eval M _) (__smtx_model_eval M _)
   case str_to_code ht hs ih =>
       simpa [__smtx_model_eval] using
         model_eval_str_to_code_canonical (__smtx_model_eval M _)

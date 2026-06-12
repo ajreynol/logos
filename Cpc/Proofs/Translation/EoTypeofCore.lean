@@ -2574,16 +2574,6 @@ private theorem eo_to_smt_apply_ne_numeral
         exact False.elim (eo_to_smt_tuple_update_ne_numeral
           (__smtx_typeof (__eo_to_smt y)) (__eo_to_smt idx)
           (__eo_to_smt y) (__eo_to_smt x) n h)
-      case _at_re_unfold_pos_component =>
-        change native_ite (__eo_to_smt_nat_is_valid idx)
-            (__eo_to_smt_re_unfold_pos_component (__eo_to_smt y) (__eo_to_smt x)
-              (__eo_to_smt_nat idx))
-            SmtTerm.None =
-          SmtTerm.Numeral n at h
-        cases hidx : __eo_to_smt_nat_is_valid idx <;>
-          simp [native_ite, hidx] at h
-        exact False.elim (eo_to_smt_re_unfold_pos_component_ne_numeral
-          (__eo_to_smt y) (__eo_to_smt x) (__eo_to_smt_nat idx) n h)
     case Apply g2 z =>
       cases g2 <;> try cases h
       case UOp op =>
@@ -2625,6 +2615,16 @@ theorem eo_to_smt_eq_numeral
         simp [native_ite, hs] at h
   | UOp3 op x y z =>
       cases op
+      case _at_re_unfold_pos_component =>
+        change native_ite (__eo_to_smt_nat_is_valid x)
+            (__eo_to_smt_re_unfold_pos_component (__eo_to_smt x) (__eo_to_smt y)
+              (__eo_to_smt_nat z))
+            SmtTerm.None =
+          SmtTerm.Numeral n at h
+        cases hx : __eo_to_smt_nat_is_valid x <;>
+          simp [native_ite, hx] at h
+        exact False.elim (eo_to_smt_re_unfold_pos_component_ne_numeral
+          (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt_nat z) n h)
       case _at_witness_string_length =>
         change native_ite
             (native_Teq (__smtx_typeof (__eo_to_smt z)) SmtType.Int)
@@ -3178,7 +3178,6 @@ private theorem eo_to_smt_type_substitute_field
   | Term.UOp1 UserOp1.tuple_select x => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
   | Term.UOp1 UserOp1.tuple_update x => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
   | Term.UOp1 UserOp1.int_to_bv x => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
-  | Term.UOp1 UserOp1._at_re_unfold_pos_component x => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
   | Term.UOp2 UserOp2.extract x y => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
   | Term.UOp2 UserOp2._at_bv x y => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
   | Term.UOp2 UserOp2.re_loop x y => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
@@ -3187,6 +3186,7 @@ private theorem eo_to_smt_type_substitute_field
   | Term.UOp1 UserOp1.set_empty T => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
   | Term.UOp2 UserOp2._at_quantifiers_skolemize x y => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
   | Term.UOp2 UserOp2._at_const x y => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
+  | Term.UOp3 UserOp3._at_re_unfold_pos_component x y z => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
   | Term.UOp3 UserOp3._at_witness_string_length x y z => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
 
 private theorem eo_to_smt_datatype_cons_substitute
@@ -4846,7 +4846,7 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_re_unfold_pos_component_of_seq_c
       SmtType.Seq SmtType.Char := by
   change
     __eo_to_smt_type
-        (__eo_typeof__at_re_unfold_pos_component (__eo_typeof x) (__eo_typeof z) (__eo_typeof y)) =
+        (__eo_typeof__at_re_unfold_pos_component (__eo_typeof z) (__eo_typeof y) (__eo_typeof x)) =
       SmtType.Seq SmtType.Char
   rw [hx, hz, hy]
   rfl
