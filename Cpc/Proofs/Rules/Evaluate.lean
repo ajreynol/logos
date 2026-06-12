@@ -153,6 +153,18 @@ private theorem smt_value_rel_model_eval_or_of_rel
     cases b₁ <;> cases b₂ <;> cases b₃ <;> cases b₄ <;>
       simp [native_or] at hAC hBD ⊢
 
+private theorem smt_value_rel_model_eval_imp_of_rel
+    (a b c d : SmtValue) :
+    RuleProofs.smt_value_rel a c ->
+    RuleProofs.smt_value_rel b d ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval_imp a b) (__smtx_model_eval_imp c d) := by
+  intro hAC hBD
+  unfold __smtx_model_eval_imp
+  exact smt_value_rel_model_eval_or_of_rel
+    (__smtx_model_eval_not a) b (__smtx_model_eval_not c) d
+    (smt_value_rel_model_eval_not_of_rel a c hAC) hBD
+
 private theorem has_bool_type_not_of_has_translation
     (b : Term) :
     RuleProofs.eo_has_smt_translation (Term.Apply (Term.UOp UserOp.not) b) ->
@@ -207,6 +219,60 @@ private theorem has_bool_type_or_of_has_translation
   cases hA : __smtx_typeof (__eo_to_smt a) <;>
     cases hB : __smtx_typeof (__eo_to_smt b) <;>
       simp [hA, hB, native_ite, native_Teq] at hTrans' ⊢
+
+private theorem has_bool_type_imp_of_has_translation
+    (a b : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.imp) a) b) ->
+    RuleProofs.eo_has_bool_type
+      (Term.Apply (Term.Apply (Term.UOp UserOp.imp) a) b) := by
+  intro hTrans
+  have hTrans' :
+      __smtx_typeof (SmtTerm.imp (__eo_to_smt a) (__eo_to_smt b)) ≠
+        SmtType.None := by
+    simpa [RuleProofs.eo_has_smt_translation] using hTrans
+  unfold RuleProofs.eo_has_bool_type
+  change __smtx_typeof (SmtTerm.imp (__eo_to_smt a) (__eo_to_smt b)) =
+    SmtType.Bool
+  rw [typeof_imp_eq]
+  rw [typeof_imp_eq] at hTrans'
+  cases hA : __smtx_typeof (__eo_to_smt a) <;>
+    cases hB : __smtx_typeof (__eo_to_smt b) <;>
+      simp [hA, hB, native_ite, native_Teq] at hTrans' ⊢
+
+private theorem has_bool_type_imp_left
+    (a b : Term) :
+    RuleProofs.eo_has_bool_type
+      (Term.Apply (Term.Apply (Term.UOp UserOp.imp) a) b) ->
+    RuleProofs.eo_has_bool_type a := by
+  intro hTy
+  unfold RuleProofs.eo_has_bool_type at hTy ⊢
+  change __smtx_typeof (SmtTerm.imp (__eo_to_smt a) (__eo_to_smt b)) =
+    SmtType.Bool at hTy
+  have hNN : term_has_non_none_type
+      (SmtTerm.imp (__eo_to_smt a) (__eo_to_smt b)) := by
+    unfold term_has_non_none_type
+    rw [hTy]
+    simp
+  exact (bool_binop_args_bool_of_non_none (op := SmtTerm.imp)
+    (typeof_imp_eq (__eo_to_smt a) (__eo_to_smt b)) hNN).1
+
+private theorem has_bool_type_imp_right
+    (a b : Term) :
+    RuleProofs.eo_has_bool_type
+      (Term.Apply (Term.Apply (Term.UOp UserOp.imp) a) b) ->
+    RuleProofs.eo_has_bool_type b := by
+  intro hTy
+  unfold RuleProofs.eo_has_bool_type at hTy ⊢
+  change __smtx_typeof (SmtTerm.imp (__eo_to_smt a) (__eo_to_smt b)) =
+    SmtType.Bool at hTy
+  have hNN : term_has_non_none_type
+      (SmtTerm.imp (__eo_to_smt a) (__eo_to_smt b)) := by
+    unfold term_has_non_none_type
+    rw [hTy]
+    simp
+  exact (bool_binop_args_bool_of_non_none (op := SmtTerm.imp)
+    (typeof_imp_eq (__eo_to_smt a) (__eo_to_smt b)) hNN).2
 
 private theorem has_bool_type_or_left
     (a b : Term) :
@@ -783,6 +849,192 @@ private theorem run_evaluate_sound_apply_or_core
         hARelBool hBRelBool
     simpa [__eo_or, __smtx_model_eval, __smtx_model_eval_or] using hRelOr
 
+private theorem run_evaluate_sound_apply_imp_core
+    (M : SmtModel) (hM : model_total_typed M)
+    (a b : Term)
+    (rec :
+      ∀ A : Term,
+        sizeOf A <
+            sizeOf (Term.Apply (Term.Apply (Term.UOp UserOp.imp) a) b) ->
+          RunEvaluateSoundGoal M A) :
+  RunEvaluateSoundGoal M
+    (Term.Apply (Term.Apply (Term.UOp UserOp.imp) a) b) := by
+  intro hATrans hEvalTy
+  have hImpBool :
+      RuleProofs.eo_has_bool_type
+        (Term.Apply (Term.Apply (Term.UOp UserOp.imp) a) b) :=
+    has_bool_type_imp_of_has_translation a b hATrans
+  have hABool : RuleProofs.eo_has_bool_type a :=
+    has_bool_type_imp_left a b hImpBool
+  have hBBool : RuleProofs.eo_has_bool_type b :=
+    has_bool_type_imp_right a b hImpBool
+  have hATransA : RuleProofs.eo_has_smt_translation a :=
+    RuleProofs.eo_has_smt_translation_of_has_bool_type a hABool
+  have hBTrans : RuleProofs.eo_has_smt_translation b :=
+    RuleProofs.eo_has_smt_translation_of_has_bool_type b hBBool
+  have hAMatch :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation a hATransA
+  have hBMatch :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation b hBTrans
+  have hAEoBool : __eo_typeof a = Term.Bool :=
+    TranslationProofs.eo_to_smt_type_eq_bool (hAMatch.symm.trans hABool)
+  have hBEoBool : __eo_typeof b = Term.Bool :=
+    TranslationProofs.eo_to_smt_type_eq_bool (hBMatch.symm.trans hBBool)
+  have hImpEoBool :
+      __eo_typeof
+        (Term.Apply (Term.Apply (Term.UOp UserOp.imp) a) b) =
+        Term.Bool := by
+    change __eo_typeof_or (__eo_typeof a) (__eo_typeof b) = Term.Bool
+    rw [hAEoBool, hBEoBool]
+    rfl
+  have hRunImpNe :
+      __eo_or (__eo_not (__run_evaluate a)) (__run_evaluate b) ≠
+        Term.Stuck := by
+    intro hStuck
+    change
+      __eo_typeof
+          (__eo_mk_apply
+            (Term.Apply (Term.UOp UserOp.eq)
+              (Term.Apply (Term.Apply (Term.UOp UserOp.imp) a) b))
+            (__eo_or (__eo_not (__run_evaluate a)) (__run_evaluate b))) =
+        Term.Bool at hEvalTy
+    rw [hStuck] at hEvalTy
+    change Term.Stuck = Term.Bool at hEvalTy
+    cases hEvalTy
+  have hMkNe :
+      __eo_mk_apply
+          (Term.Apply (Term.UOp UserOp.eq)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.imp) a) b))
+          (__eo_or (__eo_not (__run_evaluate a)) (__run_evaluate b)) ≠
+        Term.Stuck := by
+    intro hMk
+    cases hRun :
+        __eo_or (__eo_not (__run_evaluate a)) (__run_evaluate b) <;>
+      simp [__eo_mk_apply, hRun] at hMk hRunImpNe
+  have hEvalEqTy :
+      __eo_typeof
+          (Term.Apply
+            (Term.Apply (Term.UOp UserOp.eq)
+              (Term.Apply (Term.Apply (Term.UOp UserOp.imp) a) b))
+            (__eo_or (__eo_not (__run_evaluate a)) (__run_evaluate b))) =
+        Term.Bool := by
+    change
+      __eo_typeof
+          (__eo_mk_apply
+            (Term.Apply (Term.UOp UserOp.eq)
+              (Term.Apply (Term.Apply (Term.UOp UserOp.imp) a) b))
+            (__eo_or (__eo_not (__run_evaluate a)) (__run_evaluate b))) =
+        Term.Bool at hEvalTy
+    rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
+    exact hEvalTy
+  have hRunImpEoBool :
+      __eo_typeof
+          (__eo_or (__eo_not (__run_evaluate a)) (__run_evaluate b)) =
+        Term.Bool := by
+    have hEq :=
+      evaluate_apply_eq_typeof_bool_operands_eq
+        (Term.Apply (Term.Apply (Term.UOp UserOp.imp) a) b)
+        (__eo_or (__eo_not (__run_evaluate a)) (__run_evaluate b))
+        hEvalEqTy
+    exact hEq.symm.trans hImpEoBool
+  rcases eo_or_args_boolean_of_typeof_bool
+      (__eo_not (__run_evaluate a)) (__run_evaluate b)
+      hRunImpEoBool with
+    ⟨runNotA, runB, hRunNotA, hRunB⟩
+  have hRunNotAEoBool : __eo_typeof (__eo_not (__run_evaluate a)) = Term.Bool := by
+    rw [hRunNotA]
+    rfl
+  rcases eo_not_arg_boolean_of_typeof_bool
+      (__run_evaluate a) hRunNotAEoBool with
+    ⟨runA, hRunA⟩
+  have hRunAEoBool : __eo_typeof (__run_evaluate a) = Term.Bool := by
+    rw [hRunA]
+    rfl
+  have hRunBEoBool : __eo_typeof (__run_evaluate b) = Term.Bool := by
+    rw [hRunB]
+    rfl
+  have hAProgTy : __eo_typeof (__eo_prog_evaluate a) = Term.Bool :=
+    eo_prog_evaluate_typeof_bool_of_typeof_bool_and_run_typeof_bool a
+      (RuleProofs.term_ne_stuck_of_has_smt_translation a hATransA)
+      hAEoBool hRunAEoBool
+  have hBProgTy : __eo_typeof (__eo_prog_evaluate b) = Term.Bool :=
+    eo_prog_evaluate_typeof_bool_of_typeof_bool_and_run_typeof_bool b
+      (RuleProofs.term_ne_stuck_of_has_smt_translation b hBTrans)
+      hBEoBool hRunBEoBool
+  rcases run_evaluate_rec_apply_apply_arg M (Term.UOp UserOp.imp) a b rec
+      hATransA hAProgTy with
+    ⟨_hASameTy, hARel⟩
+  rcases run_evaluate_rec_apply_arg M
+      (Term.Apply (Term.UOp UserOp.imp) a) b rec hBTrans hBProgTy with
+    ⟨_hBSameTy, hBRel⟩
+  change
+    __smtx_typeof (SmtTerm.imp (__eo_to_smt a) (__eo_to_smt b)) =
+        __smtx_typeof
+          (__eo_to_smt
+            (__eo_or (__eo_not (__run_evaluate a)) (__run_evaluate b))) ∧
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M (SmtTerm.imp (__eo_to_smt a) (__eo_to_smt b)))
+        (__smtx_model_eval M
+          (__eo_to_smt
+            (__eo_or (__eo_not (__run_evaluate a)) (__run_evaluate b))))
+  rw [hRunA, hRunB]
+  constructor
+  · change
+      __smtx_typeof (SmtTerm.imp (__eo_to_smt a) (__eo_to_smt b)) =
+        __smtx_typeof (SmtTerm.Boolean (native_or (native_not runA) runB))
+    have hATy : __smtx_typeof (__eo_to_smt a) = SmtType.Bool := by
+      simpa [RuleProofs.eo_has_bool_type] using hABool
+    have hBTy : __smtx_typeof (__eo_to_smt b) = SmtType.Bool := by
+      simpa [RuleProofs.eo_has_bool_type] using hBBool
+    rw [typeof_imp_eq, hATy, hBTy, __smtx_typeof.eq_1]
+    simp [native_ite, native_Teq]
+  · have hARelBool :
+        RuleProofs.smt_value_rel
+          (__smtx_model_eval M (__eo_to_smt a))
+          (__smtx_model_eval M (SmtTerm.Boolean runA)) := by
+      simpa [hRunA] using hARel
+    have hBRelBool :
+        RuleProofs.smt_value_rel
+          (__smtx_model_eval M (__eo_to_smt b))
+          (__smtx_model_eval M (SmtTerm.Boolean runB)) := by
+      simpa [hRunB] using hBRel
+    have hARelValue :
+        RuleProofs.smt_value_rel
+          (__smtx_model_eval M (__eo_to_smt a))
+          (SmtValue.Boolean runA) := by
+      simpa [__smtx_model_eval] using hARelBool
+    have hBRelValue :
+        RuleProofs.smt_value_rel
+          (__smtx_model_eval M (__eo_to_smt b))
+          (SmtValue.Boolean runB) := by
+      simpa [__smtx_model_eval] using hBRelBool
+    have hRelImp :=
+      smt_value_rel_model_eval_imp_of_rel
+        (__smtx_model_eval M (__eo_to_smt a))
+        (__smtx_model_eval M (__eo_to_smt b))
+        (SmtValue.Boolean runA)
+        (SmtValue.Boolean runB)
+        hARelValue hBRelValue
+    rw [show
+        __smtx_model_eval M
+            (SmtTerm.imp (__eo_to_smt a) (__eo_to_smt b)) =
+          __smtx_model_eval_imp
+            (__smtx_model_eval M (__eo_to_smt a))
+            (__smtx_model_eval M (__eo_to_smt b)) by
+      simp [__smtx_model_eval]]
+    rw [show
+        __eo_to_smt
+            (__eo_or (__eo_not (Term.Boolean runA)) (Term.Boolean runB)) =
+          SmtTerm.Boolean (native_or (native_not runA) runB) by
+      rfl]
+    rw [show
+        __smtx_model_eval M
+            (SmtTerm.Boolean (native_or (native_not runA) runB)) =
+          SmtValue.Boolean (native_or (native_not runA) runB) by
+      simp [__smtx_model_eval]]
+    simpa [__smtx_model_eval_imp, __smtx_model_eval_not, __smtx_model_eval_or]
+      using hRelImp
+
 private theorem run_evaluate_sound_active_apply_core
     (M : SmtModel) (hM : model_total_typed M)
     (f x : Term)
@@ -810,11 +1062,15 @@ private theorem run_evaluate_sound_active_apply_core
   | Apply g y =>
       cases g with
       | UOp op =>
-          cases op <;> first
-            | exact False.elim (hActive rfl)
-            | exact run_evaluate_sound_apply_and_core M hM y x rec hATrans hEvalTy
-            | exact run_evaluate_sound_apply_or_core M hM y x rec hATrans hEvalTy
-            | sorry
+          match op with
+          | UserOp.and =>
+              exact run_evaluate_sound_apply_and_core M hM y x rec hATrans hEvalTy
+          | UserOp.or =>
+              exact run_evaluate_sound_apply_or_core M hM y x rec hATrans hEvalTy
+          | UserOp.imp =>
+              exact run_evaluate_sound_apply_imp_core M hM y x rec hATrans hEvalTy
+          | _ =>
+              sorry
       | Apply h z =>
           cases h with
           | UOp op =>
