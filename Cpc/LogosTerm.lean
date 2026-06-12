@@ -58,6 +58,7 @@ inductive UserOp : Type where
   | Array : UserOp
   | select : UserOp
   | store : UserOp
+  | _at_array_deq_diff : UserOp
   | _at_bvsize : UserOp
   | concat : UserOp
   | bvnot : UserOp
@@ -143,8 +144,15 @@ inductive UserOp : Type where
   | str_in_re : UserOp
   | seq_unit : UserOp
   | seq_nth : UserOp
+  | _at_strings_deq_diff : UserOp
+  | _at_strings_stoi_result : UserOp
+  | _at_strings_stoi_non_digit : UserOp
+  | _at_strings_itos_result : UserOp
   | _at_strings_num_occur : UserOp
+  | _at_strings_num_occur_re : UserOp
   | _at_strings_occur_index : UserOp
+  | _at_strings_occur_index_re : UserOp
+  | _at_strings_replace_all_result : UserOp
   | UnitTuple : UserOp
   | Tuple : UserOp
   | tuple_unit : UserOp
@@ -160,6 +168,7 @@ inductive UserOp : Type where
   | set_is_empty : UserOp
   | set_is_singleton : UserOp
   | set_insert : UserOp
+  | _at_sets_deq_diff : UserOp
   | qdiv : UserOp
   | qdiv_total : UserOp
   | _at_div_by_zero : UserOp
@@ -189,10 +198,6 @@ inductive UserOp1 : Type where
   | _at_bit : UserOp1
   | seq_empty : UserOp1
   | re_exp : UserOp1
-  | _at_strings_stoi_result : UserOp1
-  | _at_strings_stoi_non_digit : UserOp1
-  | _at_strings_itos_result : UserOp1
-  | _at_strings_replace_all_result : UserOp1
   | is : UserOp1
   | update : UserOp1
   | tuple_select : UserOp1
@@ -206,14 +211,9 @@ deriving Repr, DecidableEq, Inhabited, Ord
 User operators with two indices.
 -/
 inductive UserOp2 : Type where
-  | _at_array_deq_diff : UserOp2
   | extract : UserOp2
   | _at_bv : UserOp2
   | re_loop : UserOp2
-  | _at_strings_deq_diff : UserOp2
-  | _at_strings_num_occur_re : UserOp2
-  | _at_strings_occur_index_re : UserOp2
-  | _at_sets_deq_diff : UserOp2
   | _at_quantifiers_skolemize : UserOp2
   | _at_const : UserOp2
 

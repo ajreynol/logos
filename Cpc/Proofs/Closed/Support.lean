@@ -1536,7 +1536,7 @@ theorem smtTermClosedIn_eo_to_smt_array_deq_diff
     (hx : SmtTermClosedIn vars (__eo_to_smt x))
     (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
   SmtTermClosedIn vars
-    (__eo_to_smt (Term.UOp2 UserOp2._at_array_deq_diff x y)) :=
+    (__eo_to_smt (Term._at_array_deq_diff x y)) :=
 by
   change SmtTermClosedIn vars
     (__eo_to_smt_array_deq_diff (__eo_to_smt x)
@@ -1568,7 +1568,7 @@ theorem smtTermClosedIn_eo_to_smt_sets_deq_diff
     (hx : SmtTermClosedIn vars (__eo_to_smt x))
     (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
   SmtTermClosedIn vars
-    (__eo_to_smt (Term.UOp2 UserOp2._at_sets_deq_diff x y)) :=
+    (__eo_to_smt (Term._at_sets_deq_diff x y)) :=
 by
   change SmtTermClosedIn vars
     (__eo_to_smt_sets_deq_diff (__eo_to_smt x)
@@ -1585,7 +1585,7 @@ theorem smtTermClosedIn_eo_to_smt_strings_deq_diff
     (hx : SmtTermClosedIn vars (__eo_to_smt x))
     (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
   SmtTermClosedIn vars
-    (__eo_to_smt (Term.UOp2 UserOp2._at_strings_deq_diff x y)) :=
+    (__eo_to_smt (Term._at_strings_deq_diff x y)) :=
 by
   change SmtTermClosedIn vars
     (SmtTerm.choice_nth (native_string_lit "@x") SmtType.Int
@@ -1615,7 +1615,7 @@ theorem smtTermClosedIn_eo_to_smt_strings_stoi_result
     (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
   SmtTermClosedIn vars
     (__eo_to_smt
-      (Term.Apply (Term.UOp1 UserOp1._at_strings_stoi_result x) y)) :=
+      (Term.Apply (Term._at_strings_stoi_result x) y)) :=
 by
   change SmtTermClosedIn vars
     (SmtTerm.str_to_int
@@ -1627,7 +1627,7 @@ theorem smtTermClosedIn_eo_to_smt_strings_stoi_non_digit
     {vars : List SmtVarKey} {x : Term}
     (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
   SmtTermClosedIn vars
-    (__eo_to_smt (Term.UOp1 UserOp1._at_strings_stoi_non_digit x)) :=
+    (__eo_to_smt (Term._at_strings_stoi_non_digit x)) :=
 by
   change SmtTermClosedIn vars
     (SmtTerm.str_indexof_re (__eo_to_smt x)
@@ -1643,7 +1643,7 @@ theorem smtTermClosedIn_eo_to_smt_strings_itos_result
     (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
   SmtTermClosedIn vars
     (__eo_to_smt
-      (Term.Apply (Term.UOp1 UserOp1._at_strings_itos_result x) y)) :=
+      (Term.Apply (Term._at_strings_itos_result x) y)) :=
 by
   change SmtTermClosedIn vars
     (SmtTerm.mod (__eo_to_smt x)
@@ -4430,13 +4430,13 @@ theorem smtTermClosedIn_eo_to_smt_array_deq_diff_of_closed_rec_using
           __eo_is_closed_rec y env' = Term.Boolean true ->
             SmtTermClosedIn vars' (__eo_to_smt y))
     (hClosed :
-      __eo_is_closed_rec (Term.UOp2 UserOp2._at_array_deq_diff x y) env =
+      __eo_is_closed_rec (Term._at_array_deq_diff x y) env =
         Term.Boolean true) :
   SmtTermClosedIn vars
-    (__eo_to_smt (Term.UOp2 UserOp2._at_array_deq_diff x y)) :=
+    (__eo_to_smt (Term._at_array_deq_diff x y)) :=
 by
-  exact smtTermClosedIn_eo_to_smt_uop2_of_closed_rec_using
-    (op := UserOp2._at_array_deq_diff)
+  exact smtTermClosedIn_eo_to_smt_binary_uop_of_closed_rec_using
+    (op := UserOp._at_array_deq_diff) (by decide) (by decide)
     (fun hx hy => smtTermClosedIn_eo_to_smt_array_deq_diff hx hy)
     hEnv hRecX hRecY hClosed
 
@@ -4478,13 +4478,13 @@ theorem smtTermClosedIn_eo_to_smt_sets_deq_diff_of_closed_rec_using
           __eo_is_closed_rec y env' = Term.Boolean true ->
             SmtTermClosedIn vars' (__eo_to_smt y))
     (hClosed :
-      __eo_is_closed_rec (Term.UOp2 UserOp2._at_sets_deq_diff x y) env =
+      __eo_is_closed_rec (Term._at_sets_deq_diff x y) env =
         Term.Boolean true) :
   SmtTermClosedIn vars
-    (__eo_to_smt (Term.UOp2 UserOp2._at_sets_deq_diff x y)) :=
+    (__eo_to_smt (Term._at_sets_deq_diff x y)) :=
 by
-  exact smtTermClosedIn_eo_to_smt_uop2_of_closed_rec_using
-    (op := UserOp2._at_sets_deq_diff)
+  exact smtTermClosedIn_eo_to_smt_binary_uop_of_closed_rec_using
+    (op := UserOp._at_sets_deq_diff) (by decide) (by decide)
     (fun hx hy => smtTermClosedIn_eo_to_smt_sets_deq_diff hx hy)
     hEnv hRecX hRecY hClosed
 
@@ -4502,13 +4502,13 @@ theorem smtTermClosedIn_eo_to_smt_strings_deq_diff_of_closed_rec_using
           __eo_is_closed_rec y env' = Term.Boolean true ->
             SmtTermClosedIn vars' (__eo_to_smt y))
     (hClosed :
-      __eo_is_closed_rec (Term.UOp2 UserOp2._at_strings_deq_diff x y) env =
+      __eo_is_closed_rec (Term._at_strings_deq_diff x y) env =
         Term.Boolean true) :
   SmtTermClosedIn vars
-    (__eo_to_smt (Term.UOp2 UserOp2._at_strings_deq_diff x y)) :=
+    (__eo_to_smt (Term._at_strings_deq_diff x y)) :=
 by
-  exact smtTermClosedIn_eo_to_smt_uop2_of_closed_rec_using
-    (op := UserOp2._at_strings_deq_diff)
+  exact smtTermClosedIn_eo_to_smt_binary_uop_of_closed_rec_using
+    (op := UserOp._at_strings_deq_diff) (by decide) (by decide)
     (fun hx hy => smtTermClosedIn_eo_to_smt_strings_deq_diff hx hy)
     hEnv hRecX hRecY hClosed
 
@@ -4527,14 +4527,14 @@ theorem smtTermClosedIn_eo_to_smt_strings_stoi_result_of_closed_rec_using
             SmtTermClosedIn vars' (__eo_to_smt y))
     (hClosed :
       __eo_is_closed_rec
-        (Term.Apply (Term.UOp1 UserOp1._at_strings_stoi_result x) y)
+        (Term.Apply (Term._at_strings_stoi_result x) y)
         env = Term.Boolean true) :
   SmtTermClosedIn vars
     (__eo_to_smt
-      (Term.Apply (Term.UOp1 UserOp1._at_strings_stoi_result x) y)) :=
+      (Term.Apply (Term._at_strings_stoi_result x) y)) :=
 by
-  exact smtTermClosedIn_eo_to_smt_apply_uop1_of_closed_rec_using
-    (op := UserOp1._at_strings_stoi_result)
+  exact smtTermClosedIn_eo_to_smt_binary_uop_of_closed_rec_using
+    (op := UserOp._at_strings_stoi_result) (by decide) (by decide)
     (fun hx hy => smtTermClosedIn_eo_to_smt_strings_stoi_result hx hy)
     hEnv hRecX hRecY hClosed
 
@@ -4547,13 +4547,13 @@ theorem smtTermClosedIn_eo_to_smt_strings_stoi_non_digit_of_closed_rec_using
           __eo_is_closed_rec x env' = Term.Boolean true ->
             SmtTermClosedIn vars' (__eo_to_smt x))
     (hClosed :
-      __eo_is_closed_rec (Term.UOp1 UserOp1._at_strings_stoi_non_digit x)
+      __eo_is_closed_rec (Term._at_strings_stoi_non_digit x)
         env = Term.Boolean true) :
   SmtTermClosedIn vars
-    (__eo_to_smt (Term.UOp1 UserOp1._at_strings_stoi_non_digit x)) :=
+    (__eo_to_smt (Term._at_strings_stoi_non_digit x)) :=
 by
-  exact smtTermClosedIn_eo_to_smt_uop1_of_closed_rec_using
-    (op := UserOp1._at_strings_stoi_non_digit)
+  exact smtTermClosedIn_eo_to_smt_unary_uop_of_closed_rec_using
+    (op := UserOp._at_strings_stoi_non_digit)
     (fun hx => smtTermClosedIn_eo_to_smt_strings_stoi_non_digit hx)
     hEnv hRec hClosed
 
@@ -4572,14 +4572,14 @@ theorem smtTermClosedIn_eo_to_smt_strings_itos_result_of_closed_rec_using
             SmtTermClosedIn vars' (__eo_to_smt y))
     (hClosed :
       __eo_is_closed_rec
-        (Term.Apply (Term.UOp1 UserOp1._at_strings_itos_result x) y)
+        (Term.Apply (Term._at_strings_itos_result x) y)
         env = Term.Boolean true) :
   SmtTermClosedIn vars
     (__eo_to_smt
-      (Term.Apply (Term.UOp1 UserOp1._at_strings_itos_result x) y)) :=
+      (Term.Apply (Term._at_strings_itos_result x) y)) :=
 by
-  exact smtTermClosedIn_eo_to_smt_apply_uop1_of_closed_rec_using
-    (op := UserOp1._at_strings_itos_result)
+  exact smtTermClosedIn_eo_to_smt_binary_uop_of_closed_rec_using
+    (op := UserOp._at_strings_itos_result) (by decide) (by decide)
     (fun hx hy => smtTermClosedIn_eo_to_smt_strings_itos_result hx hy)
     hEnv hRecX hRecY hClosed
 
@@ -4733,9 +4733,6 @@ by
   case seq_empty =>
     exact smtTermClosedIn_eo_to_smt_seq_empty_of_closed_rec_using
       hEnv hRec hClosed
-  case _at_strings_stoi_non_digit =>
-    exact smtTermClosedIn_eo_to_smt_strings_stoi_non_digit_of_closed_rec_using
-      hEnv hRec hClosed
   case set_empty =>
     exact smtTermClosedIn_eo_to_smt_set_empty_of_closed_rec_using
       hEnv hRec hClosed
@@ -4754,20 +4751,8 @@ theorem smtTermClosedIn_eo_to_smt_uop2_any_of_closed_rec_using
   SmtTermClosedIn vars (__eo_to_smt (Term.UOp2 op x y)) :=
 by
   cases op <;> try trivial
-  case _at_array_deq_diff =>
-    exact smtTermClosedIn_eo_to_smt_array_deq_diff_of_closed_rec_using
-      hEnv (fun hEnv' hClosed' => hRec hEnv' hClosed')
-      (fun hEnv' hClosed' => hRec hEnv' hClosed') hClosed
   case _at_bv =>
     exact smtTermClosedIn_eo_to_smt_at_bv_of_closed_rec_using
-      hEnv (fun hEnv' hClosed' => hRec hEnv' hClosed')
-      (fun hEnv' hClosed' => hRec hEnv' hClosed') hClosed
-  case _at_strings_deq_diff =>
-    exact smtTermClosedIn_eo_to_smt_strings_deq_diff_of_closed_rec_using
-      hEnv (fun hEnv' hClosed' => hRec hEnv' hClosed')
-      (fun hEnv' hClosed' => hRec hEnv' hClosed') hClosed
-  case _at_sets_deq_diff =>
-    exact smtTermClosedIn_eo_to_smt_sets_deq_diff_of_closed_rec_using
       hEnv (fun hEnv' hClosed' => hRec hEnv' hClosed')
       (fun hEnv' hClosed' => hRec hEnv' hClosed') hClosed
   case _at_quantifiers_skolemize =>
@@ -4949,6 +4934,11 @@ by
       (op := UserOp.str_to_int)
       (fun hx => smtTermClosedIn_eo_to_smt_str_to_int hx)
       hEnv (fun hEnv' hClosed' => hRec hEnv' hClosed') hClosed
+  case _at_strings_stoi_non_digit =>
+    exact smtTermClosedIn_eo_to_smt_unary_uop_of_closed_rec_using
+      (op := UserOp._at_strings_stoi_non_digit)
+      (fun hx => smtTermClosedIn_eo_to_smt_strings_stoi_non_digit hx)
+      hEnv (fun hEnv' hClosed' => hRec hEnv' hClosed') hClosed
   case str_from_int =>
     exact smtTermClosedIn_eo_to_smt_unary_uop_of_closed_rec_using
       (op := UserOp.str_from_int)
@@ -5069,14 +5059,6 @@ by
       (fun hEnv' hClosed' => hRec hEnv' hClosed') hClosed
   case re_exp =>
     exact smtTermClosedIn_eo_to_smt_re_exp_of_closed_rec_using
-      hEnv (fun hEnv' hClosed' => hRec hEnv' hClosed')
-      (fun hEnv' hClosed' => hRec hEnv' hClosed') hClosed
-  case _at_strings_stoi_result =>
-    exact smtTermClosedIn_eo_to_smt_strings_stoi_result_of_closed_rec_using
-      hEnv (fun hEnv' hClosed' => hRec hEnv' hClosed')
-      (fun hEnv' hClosed' => hRec hEnv' hClosed') hClosed
-  case _at_strings_itos_result =>
-    exact smtTermClosedIn_eo_to_smt_strings_itos_result_of_closed_rec_using
       hEnv (fun hEnv' hClosed' => hRec hEnv' hClosed')
       (fun hEnv' hClosed' => hRec hEnv' hClosed') hClosed
   case «is» =>
@@ -5931,6 +5913,26 @@ by
     exact smtTermClosedIn_eo_to_smt_strings_num_occur_of_closed_rec_using
       hEnv (fun hEnv' hClosed' => hRec hEnv' hClosed')
       (fun hEnv' hClosed' => hRec hEnv' hClosed') hClosed
+  case _at_array_deq_diff =>
+    exact smtTermClosedIn_eo_to_smt_array_deq_diff_of_closed_rec_using
+      hEnv (fun hEnv' hClosed' => hRec hEnv' hClosed')
+      (fun hEnv' hClosed' => hRec hEnv' hClosed') hClosed
+  case _at_strings_deq_diff =>
+    exact smtTermClosedIn_eo_to_smt_strings_deq_diff_of_closed_rec_using
+      hEnv (fun hEnv' hClosed' => hRec hEnv' hClosed')
+      (fun hEnv' hClosed' => hRec hEnv' hClosed') hClosed
+  case _at_strings_stoi_result =>
+    exact smtTermClosedIn_eo_to_smt_strings_stoi_result_of_closed_rec_using
+      hEnv (fun hEnv' hClosed' => hRec hEnv' hClosed')
+      (fun hEnv' hClosed' => hRec hEnv' hClosed') hClosed
+  case _at_strings_itos_result =>
+    exact smtTermClosedIn_eo_to_smt_strings_itos_result_of_closed_rec_using
+      hEnv (fun hEnv' hClosed' => hRec hEnv' hClosed')
+      (fun hEnv' hClosed' => hRec hEnv' hClosed') hClosed
+  case _at_sets_deq_diff =>
+    exact smtTermClosedIn_eo_to_smt_sets_deq_diff_of_closed_rec_using
+      hEnv (fun hEnv' hClosed' => hRec hEnv' hClosed')
+      (fun hEnv' hClosed' => hRec hEnv' hClosed') hClosed
   case tuple =>
     exact smtTermClosedIn_eo_to_smt_tuple_of_closed_rec_using
       hEnv (fun hEnv' hClosed' => hRec hEnv' hClosed')
@@ -6034,9 +6036,6 @@ by
   case seq_empty =>
     exact smtTermClosedIn_eo_to_smt_seq_empty_of_closed_rec_using
       hEnv (fun hEnv' hClosed' => hRec hXLt hEnv' hClosed') hClosed
-  case _at_strings_stoi_non_digit =>
-    exact smtTermClosedIn_eo_to_smt_strings_stoi_non_digit_of_closed_rec_using
-      hEnv (fun hEnv' hClosed' => hRec hXLt hEnv' hClosed') hClosed
   case set_empty =>
     exact smtTermClosedIn_eo_to_smt_set_empty_of_closed_rec_using
       hEnv (fun hEnv' hClosed' => hRec hXLt hEnv' hClosed') hClosed
@@ -6062,20 +6061,8 @@ by
     simp
     omega
   cases op <;> try trivial
-  case _at_array_deq_diff =>
-    exact smtTermClosedIn_eo_to_smt_array_deq_diff_of_closed_rec_using
-      hEnv (fun hEnv' hClosed' => hRec hXLt hEnv' hClosed')
-      (fun hEnv' hClosed' => hRec hYLt hEnv' hClosed') hClosed
   case _at_bv =>
     exact smtTermClosedIn_eo_to_smt_at_bv_of_closed_rec_using
-      hEnv (fun hEnv' hClosed' => hRec hXLt hEnv' hClosed')
-      (fun hEnv' hClosed' => hRec hYLt hEnv' hClosed') hClosed
-  case _at_strings_deq_diff =>
-    exact smtTermClosedIn_eo_to_smt_strings_deq_diff_of_closed_rec_using
-      hEnv (fun hEnv' hClosed' => hRec hXLt hEnv' hClosed')
-      (fun hEnv' hClosed' => hRec hYLt hEnv' hClosed') hClosed
-  case _at_sets_deq_diff =>
-    exact smtTermClosedIn_eo_to_smt_sets_deq_diff_of_closed_rec_using
       hEnv (fun hEnv' hClosed' => hRec hXLt hEnv' hClosed')
       (fun hEnv' hClosed' => hRec hYLt hEnv' hClosed') hClosed
   case _at_quantifiers_skolemize =>
@@ -6308,6 +6295,11 @@ by
       (op := UserOp.str_to_int)
       (fun hx => smtTermClosedIn_eo_to_smt_str_to_int hx)
       hEnv recX hClosed
+  case _at_strings_stoi_non_digit =>
+    exact smtTermClosedIn_eo_to_smt_unary_uop_of_closed_rec_using
+      (op := UserOp._at_strings_stoi_non_digit)
+      (fun hx => smtTermClosedIn_eo_to_smt_strings_stoi_non_digit hx)
+      hEnv recX hClosed
   case str_from_int =>
     exact smtTermClosedIn_eo_to_smt_unary_uop_of_closed_rec_using
       (op := UserOp.str_from_int)
@@ -6430,14 +6422,6 @@ by
       (fun hEnv' hClosed' => hRec hYLt hEnv' hClosed') hClosed
   case re_exp =>
     exact smtTermClosedIn_eo_to_smt_re_exp_of_closed_rec_using
-      hEnv (fun hEnv' hClosed' => hRec hXLt hEnv' hClosed')
-      (fun hEnv' hClosed' => hRec hYLt hEnv' hClosed') hClosed
-  case _at_strings_stoi_result =>
-    exact smtTermClosedIn_eo_to_smt_strings_stoi_result_of_closed_rec_using
-      hEnv (fun hEnv' hClosed' => hRec hXLt hEnv' hClosed')
-      (fun hEnv' hClosed' => hRec hYLt hEnv' hClosed') hClosed
-  case _at_strings_itos_result =>
-    exact smtTermClosedIn_eo_to_smt_strings_itos_result_of_closed_rec_using
       hEnv (fun hEnv' hClosed' => hRec hXLt hEnv' hClosed')
       (fun hEnv' hClosed' => hRec hYLt hEnv' hClosed') hClosed
   case «is» =>
@@ -6959,6 +6943,21 @@ by
       (fun hx hy => smtTermClosedIn_eo_to_smt_seq_nth hx hy)
   case _at_strings_num_occur =>
     exact smtTermClosedIn_eo_to_smt_strings_num_occur_of_closed_rec_using
+      hEnv recX recY hClosed
+  case _at_array_deq_diff =>
+    exact smtTermClosedIn_eo_to_smt_array_deq_diff_of_closed_rec_using
+      hEnv recX recY hClosed
+  case _at_strings_deq_diff =>
+    exact smtTermClosedIn_eo_to_smt_strings_deq_diff_of_closed_rec_using
+      hEnv recX recY hClosed
+  case _at_strings_stoi_result =>
+    exact smtTermClosedIn_eo_to_smt_strings_stoi_result_of_closed_rec_using
+      hEnv recX recY hClosed
+  case _at_strings_itos_result =>
+    exact smtTermClosedIn_eo_to_smt_strings_itos_result_of_closed_rec_using
+      hEnv recX recY hClosed
+  case _at_sets_deq_diff =>
+    exact smtTermClosedIn_eo_to_smt_sets_deq_diff_of_closed_rec_using
       hEnv recX recY hClosed
   case tuple =>
     exact smtTermClosedIn_eo_to_smt_tuple_of_closed_rec_using

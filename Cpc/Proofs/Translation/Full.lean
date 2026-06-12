@@ -341,6 +341,126 @@ private theorem eo_type_valid_of_smt_type_eq_of_field_wf_full
     (eo_type_valid_of_smt_field_wf_rec native_reflist_nil (by
       simpa [hEq] using hA))
 
+private theorem eo_type_valid_of_array_deq_diff_non_none_full
+    (x1 x2 : Term)
+    (hEq :
+      __smtx_typeof (__eo_to_smt (Term._at_array_deq_diff x1 x2)) =
+        __eo_to_smt_type (__eo_typeof (Term._at_array_deq_diff x1 x2)))
+    (hNonNone :
+      __smtx_typeof (__eo_to_smt (Term._at_array_deq_diff x1 x2)) ≠
+        SmtType.None) :
+    eo_type_valid (__eo_typeof (Term._at_array_deq_diff x1 x2)) := by
+  change
+    __smtx_typeof
+        (__eo_to_smt_array_deq_diff (__eo_to_smt x1)
+          (__smtx_typeof (__eo_to_smt x1)) (__eo_to_smt x2)
+          (__smtx_typeof (__eo_to_smt x2))) ≠
+      SmtType.None at hNonNone
+  cases hx1Smt : __smtx_typeof (__eo_to_smt x1) <;>
+    cases hx2Smt : __smtx_typeof (__eo_to_smt x2) <;>
+    simp [__eo_to_smt_array_deq_diff, hx1Smt, hx2Smt, smtx_typeof_none]
+      at hNonNone
+  case Map.Map A B A' B' =>
+    have hMapNN :
+        term_has_non_none_type (SmtTerm.map_diff (__eo_to_smt x1) (__eo_to_smt x2)) := by
+      unfold term_has_non_none_type
+      exact hNonNone
+    rcases map_diff_args_of_non_none hMapNN with
+      ⟨A, B, hx1Ty, _hx2Ty, hDiffTy⟩ |
+      ⟨A, hx1Ty, _hx2Ty, hDiffTy⟩
+    · have hAField :
+          smtx_type_field_wf_rec A native_reflist_nil :=
+        smtx_type_field_wf_rec_of_type_wf_rec
+          (smt_map_components_wf_rec_of_non_none_type
+            (__eo_to_smt x1) A B hx1Ty).1
+      have hEoA :
+          __eo_to_smt_type (__eo_typeof (Term._at_array_deq_diff x1 x2)) = A := by
+        rw [← hEq]
+        change
+          __smtx_typeof
+              (__eo_to_smt_array_deq_diff (__eo_to_smt x1)
+                (__smtx_typeof (__eo_to_smt x1)) (__eo_to_smt x2)
+                (__smtx_typeof (__eo_to_smt x2))) =
+            A
+        simpa [__eo_to_smt_array_deq_diff, hx1Smt, hx2Smt] using hDiffTy
+      exact eo_type_valid_of_smt_type_eq_of_field_wf_full hEoA hAField
+    · have hAField :
+          smtx_type_field_wf_rec A native_reflist_nil :=
+        smtx_type_field_wf_rec_of_type_wf_rec
+          (smt_set_component_wf_rec_of_non_none_type
+            (__eo_to_smt x1) A hx1Ty)
+      have hEoA :
+          __eo_to_smt_type (__eo_typeof (Term._at_array_deq_diff x1 x2)) = A := by
+        rw [← hEq]
+        change
+          __smtx_typeof
+              (__eo_to_smt_array_deq_diff (__eo_to_smt x1)
+                (__smtx_typeof (__eo_to_smt x1)) (__eo_to_smt x2)
+                (__smtx_typeof (__eo_to_smt x2))) =
+            A
+        simpa [__eo_to_smt_array_deq_diff, hx1Smt, hx2Smt] using hDiffTy
+      exact eo_type_valid_of_smt_type_eq_of_field_wf_full hEoA hAField
+
+private theorem eo_type_valid_of_sets_deq_diff_non_none_full
+    (x1 x2 : Term)
+    (hEq :
+      __smtx_typeof (__eo_to_smt (Term._at_sets_deq_diff x1 x2)) =
+        __eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2)))
+    (hNonNone :
+      __smtx_typeof (__eo_to_smt (Term._at_sets_deq_diff x1 x2)) ≠
+        SmtType.None) :
+    eo_type_valid (__eo_typeof (Term._at_sets_deq_diff x1 x2)) := by
+  change
+    __smtx_typeof
+        (__eo_to_smt_sets_deq_diff (__eo_to_smt x1)
+          (__smtx_typeof (__eo_to_smt x1)) (__eo_to_smt x2)
+          (__smtx_typeof (__eo_to_smt x2))) ≠
+      SmtType.None at hNonNone
+  cases hx1Smt : __smtx_typeof (__eo_to_smt x1) <;>
+    cases hx2Smt : __smtx_typeof (__eo_to_smt x2) <;>
+    simp [__eo_to_smt_sets_deq_diff, hx1Smt, hx2Smt, smtx_typeof_none]
+      at hNonNone
+  case Set.Set A A' =>
+    have hMapNN :
+        term_has_non_none_type (SmtTerm.map_diff (__eo_to_smt x1) (__eo_to_smt x2)) := by
+      unfold term_has_non_none_type
+      exact hNonNone
+    rcases map_diff_args_of_non_none hMapNN with
+      ⟨A, B, hx1Ty, _hx2Ty, hDiffTy⟩ |
+      ⟨A, hx1Ty, _hx2Ty, hDiffTy⟩
+    · have hAField :
+          smtx_type_field_wf_rec A native_reflist_nil :=
+        smtx_type_field_wf_rec_of_type_wf_rec
+          (smt_map_components_wf_rec_of_non_none_type
+            (__eo_to_smt x1) A B hx1Ty).1
+      have hEoA :
+          __eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2)) = A := by
+        rw [← hEq]
+        change
+          __smtx_typeof
+              (__eo_to_smt_sets_deq_diff (__eo_to_smt x1)
+                (__smtx_typeof (__eo_to_smt x1)) (__eo_to_smt x2)
+                (__smtx_typeof (__eo_to_smt x2))) =
+            A
+        simpa [__eo_to_smt_sets_deq_diff, hx1Smt, hx2Smt] using hDiffTy
+      exact eo_type_valid_of_smt_type_eq_of_field_wf_full hEoA hAField
+    · have hAField :
+          smtx_type_field_wf_rec A native_reflist_nil :=
+        smtx_type_field_wf_rec_of_type_wf_rec
+          (smt_set_component_wf_rec_of_non_none_type
+            (__eo_to_smt x1) A hx1Ty)
+      have hEoA :
+          __eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2)) = A := by
+        rw [← hEq]
+        change
+          __smtx_typeof
+              (__eo_to_smt_sets_deq_diff (__eo_to_smt x1)
+                (__smtx_typeof (__eo_to_smt x1)) (__eo_to_smt x2)
+                (__smtx_typeof (__eo_to_smt x2))) =
+            A
+        simpa [__eo_to_smt_sets_deq_diff, hx1Smt, hx2Smt] using hDiffTy
+      exact eo_type_valid_of_smt_type_eq_of_field_wf_full hEoA hAField
+
 private theorem eo_typeof_tuple_select_of_non_stuck_full
     (i T : Term)
     (hi : i ≠ Term.Stuck)
@@ -1576,7 +1696,8 @@ private theorem eo_to_smt_apply_apply_apply_uop_generic_full
     (hStrReplaceRe : op ≠ UserOp.str_replace_re)
     (hStrReplaceReAll : op ≠ UserOp.str_replace_re_all)
     (hStrIndexofRe : op ≠ UserOp.str_indexof_re)
-    (hStringsOccurIndex : op ≠ UserOp._at_strings_occur_index) :
+    (hStringsOccurIndex : op ≠ UserOp._at_strings_occur_index)
+    (hStringsOccurIndexRe : op ≠ UserOp._at_strings_occur_index_re) :
       __eo_to_smt
           (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) z) y) x) =
         SmtTerm.Apply
@@ -1597,6 +1718,7 @@ private theorem eo_to_smt_apply_apply_apply_uop_generic_full
       | exact False.elim (hStrReplaceReAll rfl)
       | exact False.elim (hStrIndexofRe rfl)
       | exact False.elim (hStringsOccurIndex rfl)
+      | exact False.elim (hStringsOccurIndexRe rfl)
 
 private theorem eo_typeof_apply_apply_apply_uop_generic_full
     (op : UserOp) (z y x : Term)
@@ -1611,7 +1733,8 @@ private theorem eo_typeof_apply_apply_apply_uop_generic_full
     (hStrReplaceRe : op ≠ UserOp.str_replace_re)
     (hStrReplaceReAll : op ≠ UserOp.str_replace_re_all)
     (hStrIndexofRe : op ≠ UserOp.str_indexof_re)
-    (hStringsOccurIndex : op ≠ UserOp._at_strings_occur_index) :
+    (hStringsOccurIndex : op ≠ UserOp._at_strings_occur_index)
+    (hStringsOccurIndexRe : op ≠ UserOp._at_strings_occur_index_re) :
       __eo_typeof
           (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) z) y) x) =
         __eo_typeof_apply
@@ -1632,6 +1755,7 @@ private theorem eo_typeof_apply_apply_apply_uop_generic_full
       | exact False.elim (hStrReplaceReAll rfl)
       | exact False.elim (hStrIndexofRe rfl)
       | exact False.elim (hStringsOccurIndex rfl)
+      | exact False.elim (hStringsOccurIndexRe rfl)
 
 private theorem eo_type_valid_of_generic_apply_typeof_apply_eq_dtcapp_full
     {f x A B : Term}
@@ -3208,19 +3332,6 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                       SmtType.None
                   exact typeof_apply_eo_to_smt_seq_empty_eq_none
                     (__eo_to_smt_type y) (__eo_to_smt x)))
-              case _at_strings_stoi_non_digit =>
-                exact False.elim (hNonNone (by
-                  change
-                    __smtx_typeof
-                        (SmtTerm.Apply
-                          (SmtTerm.str_indexof_re (__eo_to_smt y)
-                            (SmtTerm.re_comp
-                              (SmtTerm.re_range (SmtTerm.String (native_string_lit "0"))
-                                (SmtTerm.String (native_string_lit "9"))))
-                            (SmtTerm.Numeral 0))
-                          (__eo_to_smt x)) =
-                      SmtType.None
-                  exact typeof_apply_str_indexof_re_head_eq_none _ _ _ _))
               case tuple_select =>
                 exact eo_type_valid_of_tuple_select_eq_dtcapp_full
                   (go x) hTermNN hTy
@@ -3276,29 +3387,6 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                     native_teq, native_not] at hTy hTypeNN ⊢
             case UOp2 op y z =>
               cases op <;> dsimp [__eo_typeof] at hTy hTypeNN
-              case _at_array_deq_diff =>
-                exact eo_type_valid_of_generic_apply_eq_dtcapp_full
-                  (f := Term.UOp2 UserOp2._at_array_deq_diff y z)
-                  (x := x) (A := a) (B := b)
-                  (go (Term.UOp2 UserOp2._at_array_deq_diff y z))
-                  (by
-                    intro s d i j h
-                    rcases eo_to_smt_eq_dt_sel_cases
-                        (Term.UOp2 UserOp2._at_array_deq_diff y z) s d i j h with
-                      ⟨d0, hd, hTerm, hReserved⟩ | ⟨q, hTerm, hq⟩
-                    · cases hTerm
-                    · cases hTerm)
-                  (by
-                    intro s d i h
-                    exact eo_to_smt_ne_dt_tester
-                      (Term.UOp2 UserOp2._at_array_deq_diff y z) s d i h)
-                  rfl rfl hTermNN (by
-                    change
-                      __eo_typeof_apply
-                          (__eo_typeof (Term.UOp2 UserOp2._at_array_deq_diff y z))
-                          (__eo_typeof x) =
-                        Term.DtcAppType a b
-                    exact hTy)
               case extract =>
                 exact False.elim (false_of_eq_eo_dtcapp_type_of_no_smt_dtcapp_full
                   (t := SmtTerm.extract (__eo_to_smt y) (__eo_to_smt z)
@@ -3341,49 +3429,6 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                     (__eo_to_smt y) (__eo_to_smt z) (__eo_to_smt x)))
               case re_loop =>
                 exact False.elim (false_of_typeof_re_loop_eq_dtcapp_full hTy)
-              case _at_strings_deq_diff =>
-                exact False.elim (hNonNone (by
-                  change
-                    __smtx_typeof
-                        (SmtTerm.Apply
-                          (SmtTerm.choice_nth (native_string_lit "@x") SmtType.Int
-                            (SmtTerm.not
-                              (SmtTerm.eq
-                                (SmtTerm.str_substr (__eo_to_smt y)
-                                  (SmtTerm.Var (native_string_lit "@x") SmtType.Int) (SmtTerm.Numeral 1))
-                                (SmtTerm.str_substr (__eo_to_smt z)
-                                  (SmtTerm.Var (native_string_lit "@x") SmtType.Int) (SmtTerm.Numeral 1))))
-                            native_nat_zero)
-                          (__eo_to_smt x)) =
-                      SmtType.None
-                  exact typeof_apply_choice_nth_int_eq_none _ _))
-              case _at_strings_num_occur_re =>
-                exact false_of_typeof_apply_none_non_none_full (__eo_to_smt x) hNonNone
-              case _at_strings_occur_index_re =>
-                exact false_of_typeof_apply_none_non_none_full (__eo_to_smt x) hNonNone
-              case _at_sets_deq_diff =>
-                exact eo_type_valid_of_generic_apply_eq_dtcapp_full
-                  (f := Term.UOp2 UserOp2._at_sets_deq_diff y z)
-                  (x := x) (A := a) (B := b)
-                  (go (Term.UOp2 UserOp2._at_sets_deq_diff y z))
-                  (by
-                    intro s d i j h
-                    rcases eo_to_smt_eq_dt_sel_cases
-                        (Term.UOp2 UserOp2._at_sets_deq_diff y z) s d i j h with
-                      ⟨d0, hd, hTerm, hReserved⟩ | ⟨q, hTerm, hq⟩
-                    · cases hTerm
-                    · cases hTerm)
-                  (by
-                    intro s d i h
-                    exact eo_to_smt_ne_dt_tester
-                      (Term.UOp2 UserOp2._at_sets_deq_diff y z) s d i h)
-                  rfl rfl hTermNN (by
-                    change
-                      __eo_typeof_apply
-                          (__eo_typeof (Term.UOp2 UserOp2._at_sets_deq_diff y z))
-                          (__eo_typeof x) =
-                        Term.DtcAppType a b
-                    exact hTy)
               case _at_quantifiers_skolemize =>
                 exact eo_type_valid_of_generic_apply_eq_dtcapp_full
                   (f := Term.UOp2 UserOp2._at_quantifiers_skolemize y z)
@@ -3488,6 +3533,49 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                   exact False.elim (false_of_typeof_plus_eq_dtcapp_full hTy)
                 case mult =>
                   exact False.elim (false_of_typeof_plus_eq_dtcapp_full hTy)
+                case _at_array_deq_diff =>
+                  have hEq :=
+                    eo_to_smt_typeof_matches_translation_array_deq_diff y x
+                      (fun h => (go y h).1) (fun h => (go y h).2)
+                      (fun h => (go x h).1) (fun h => (go x h).2) hNonNone
+                  have hValid :=
+                    eo_type_valid_of_array_deq_diff_non_none_full y x hEq hNonNone
+                  change
+                    eo_type_valid
+                      (__eo_typeof__at_array_deq_diff (__eo_typeof y) (__eo_typeof x))
+                    at hValid
+                  rw [hTy] at hValid
+                  exact hValid
+                case _at_strings_deq_diff =>
+                  have hValid :=
+                    (eo_to_smt_typeof_matches_translation_apply_at_strings_deq_diff
+                      x y (fun h => (go y h).1) (fun h => (go x h).1)
+                      hNonNone).2
+                  change
+                    eo_type_valid
+                      (__eo_typeof__at_strings_deq_diff (__eo_typeof y) (__eo_typeof x))
+                    at hValid
+                  rw [hTy] at hValid
+                  exact hValid
+                case _at_strings_stoi_result =>
+                  exact False.elim
+                    (false_of_typeof_strings_stoi_result_eq_dtcapp_full hTy)
+                case _at_strings_itos_result =>
+                  exact False.elim
+                    (false_of_typeof_strings_itos_result_eq_dtcapp_full hTy)
+                case _at_sets_deq_diff =>
+                  have hEq :=
+                    eo_to_smt_typeof_matches_translation_sets_deq_diff y x
+                      (fun h => (go y h).1) (fun h => (go y h).2)
+                      (fun h => (go x h).1) (fun h => (go x h).2) hNonNone
+                  have hValid :=
+                    eo_type_valid_of_sets_deq_diff_non_none_full y x hEq hNonNone
+                  change
+                    eo_type_valid
+                      (__eo_typeof__at_sets_deq_diff (__eo_typeof y) (__eo_typeof x))
+                    at hValid
+                  rw [hTy] at hValid
+                  exact hValid
                 all_goals first
                   | exact False.elim
                       (hNonNone
@@ -3509,7 +3597,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                         __eo_typeof_str_contains, __eo_typeof_str_at,
                         __eo_typeof_str_lt, __eo_typeof_re_range,
                         __eo_typeof_re_concat, __eo_typeof_str_in_re,
-                        __eo_typeof__at_strings_num_occur, __eo_typeof_tuple,
+                        __eo_typeof__at_strings_deq_diff, __eo_typeof_tuple,
                         __eo_typeof_set_union, __eo_typeof_set_member,
                         __eo_typeof_set_subset, __eo_typeof_set_insert,
                         __eo_typeof_qdiv, __eo_typeof_forall,
@@ -3552,7 +3640,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                       __eo_typeof_str_concat, __eo_typeof_str_contains,
                       __eo_typeof_str_at, __eo_typeof_str_lt,
                       __eo_typeof_re_range, __eo_typeof_re_concat,
-                      __eo_typeof_str_in_re, __eo_typeof__at_strings_num_occur,
+                      __eo_typeof_str_in_re, __eo_typeof__at_strings_deq_diff,
                       __eo_typeof_tuple, __eo_typeof_set_union,
                       __eo_typeof_set_member, __eo_typeof_set_subset,
                       __eo_typeof_set_insert, __eo_typeof_qdiv,
@@ -3655,55 +3743,6 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                       change
                         __eo_typeof
                             (Term.Apply (Term.Apply (Term.UOp1 UserOp1.re_exp z) y) x) =
-                          Term.DtcAppType a b
-                      exact hTy)
-                case _at_strings_stoi_result =>
-                  exact eo_type_valid_of_nested_generic_apply_eq_dtcapp_full
-                    (g := Term.UOp1 UserOp1._at_strings_stoi_result z) (y := y) (x := x)
-                    (A := a) (B := b)
-                    (go (Term.Apply (Term.UOp1 UserOp1._at_strings_stoi_result z) y))
-                    (by rfl) (by rfl) hTermNN (by
-                      change
-                        __eo_typeof
-                            (Term.Apply
-                              (Term.Apply (Term.UOp1 UserOp1._at_strings_stoi_result z) y) x) =
-                          Term.DtcAppType a b
-                      exact hTy)
-                case _at_strings_stoi_non_digit =>
-                  exact eo_type_valid_of_nested_generic_apply_eq_dtcapp_full
-                    (g := Term.UOp1 UserOp1._at_strings_stoi_non_digit z) (y := y) (x := x)
-                    (A := a) (B := b)
-                    (go (Term.Apply (Term.UOp1 UserOp1._at_strings_stoi_non_digit z) y))
-                    (by rfl) (by rfl) hTermNN (by
-                      change
-                        __eo_typeof
-                            (Term.Apply
-                              (Term.Apply (Term.UOp1 UserOp1._at_strings_stoi_non_digit z) y) x) =
-                          Term.DtcAppType a b
-                      exact hTy)
-                case _at_strings_itos_result =>
-                  exact eo_type_valid_of_nested_generic_apply_eq_dtcapp_full
-                    (g := Term.UOp1 UserOp1._at_strings_itos_result z) (y := y) (x := x)
-                    (A := a) (B := b)
-                    (go (Term.Apply (Term.UOp1 UserOp1._at_strings_itos_result z) y))
-                    (by rfl) (by rfl) hTermNN (by
-                      change
-                        __eo_typeof
-                            (Term.Apply
-                              (Term.Apply (Term.UOp1 UserOp1._at_strings_itos_result z) y) x) =
-                          Term.DtcAppType a b
-                      exact hTy)
-                case _at_strings_replace_all_result =>
-                  exact eo_type_valid_of_nested_generic_apply_eq_dtcapp_full
-                    (g := Term.UOp1 UserOp1._at_strings_replace_all_result z) (y := y) (x := x)
-                    (A := a) (B := b)
-                    (go (Term.Apply (Term.UOp1 UserOp1._at_strings_replace_all_result z) y))
-                    (by rfl) (by rfl) hTermNN (by
-                      change
-                        __eo_typeof
-                            (Term.Apply
-                              (Term.Apply
-                                (Term.UOp1 UserOp1._at_strings_replace_all_result z) y) x) =
                           Term.DtcAppType a b
                       exact hTy)
                 case «is» =>
@@ -4091,6 +4130,16 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                               (__eo_typeof y) (__eo_typeof x) =
                             Term.DtcAppType a b
                         exact hTy))
+                  by_cases hStringsOccurIndexRe :
+                      op = UserOp._at_strings_occur_index_re
+                  · subst op
+                    exact False.elim
+                      (false_of_typeof_str_indexof_re_eq_dtcapp_full (by
+                        change
+                          __eo_typeof_str_indexof_re (__eo_typeof z)
+                              (__eo_typeof y) (__eo_typeof x) =
+                            Term.DtcAppType a b
+                        exact hTy))
                   exact eo_type_valid_of_nested_generic_apply_eq_dtcapp_full
                     (g := Term.Apply (Term.UOp op) z) (y := y) (x := x)
                     (A := a) (B := b)
@@ -4098,11 +4147,11 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                     (eo_to_smt_apply_apply_apply_uop_generic_full op z y x
                       hIte hStore hBvite hStrSubstr hStrReplace hStrIndexof
                       hStrUpdate hStrReplaceAll hStrReplaceRe hStrReplaceReAll
-                      hStrIndexofRe hStringsOccurIndex)
+                      hStrIndexofRe hStringsOccurIndex hStringsOccurIndexRe)
                     (eo_typeof_apply_apply_apply_uop_generic_full op z y x
                       hIte hStore hBvite hStrSubstr hStrReplace hStrIndexof
                       hStrUpdate hStrReplaceAll hStrReplaceRe hStrReplaceReAll
-                      hStrIndexofRe hStringsOccurIndex)
+                      hStrIndexofRe hStringsOccurIndex hStringsOccurIndexRe)
                     hTermNN hTy
                 ·
                   exact eo_type_valid_of_nested_generic_apply_eq_dtcapp_full
@@ -4475,64 +4524,6 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
             exact False.elim (hNotStuck hTy)
           all_goals
             simpa [hTy] using hxAll.2
-      | Term.UOp2 UserOp2._at_array_deq_diff x1 x2, hNonNone => by
-            have hEq :=
-              eo_to_smt_typeof_matches_translation_array_deq_diff x1 x2
-                (fun h => (go x1 h).1) (fun h => (go x1 h).2)
-                (fun h => (go x2 h).1) (fun h => (go x2 h).2) hNonNone
-            refine ⟨hEq, ?_⟩
-            change
-              __smtx_typeof
-                  (__eo_to_smt_array_deq_diff (__eo_to_smt x1)
-                    (__smtx_typeof (__eo_to_smt x1)) (__eo_to_smt x2)
-                    (__smtx_typeof (__eo_to_smt x2))) ≠
-                SmtType.None at hNonNone
-            cases hx1Smt : __smtx_typeof (__eo_to_smt x1) <;>
-              cases hx2Smt : __smtx_typeof (__eo_to_smt x2) <;>
-              simp [__eo_to_smt_array_deq_diff, hx1Smt, hx2Smt, smtx_typeof_none]
-                at hNonNone
-            case Map.Map A B A' B' =>
-              have hMapNN :
-                  term_has_non_none_type (SmtTerm.map_diff (__eo_to_smt x1) (__eo_to_smt x2)) := by
-                unfold term_has_non_none_type
-                exact hNonNone
-              rcases map_diff_args_of_non_none hMapNN with
-                ⟨A, B, hx1Ty, _hx2Ty, hDiffTy⟩ |
-                ⟨A, hx1Ty, _hx2Ty, hDiffTy⟩
-              · have hAField :
-                    smtx_type_field_wf_rec A native_reflist_nil :=
-                  smtx_type_field_wf_rec_of_type_wf_rec
-                    (smt_map_components_wf_rec_of_non_none_type
-                      (__eo_to_smt x1) A B hx1Ty).1
-                have hEoA :
-                    __eo_to_smt_type
-                        (__eo_typeof (Term._at_array_deq_diff x1 x2)) = A := by
-                  rw [← hEq]
-                  change
-                    __smtx_typeof
-                        (__eo_to_smt_array_deq_diff (__eo_to_smt x1)
-                          (__smtx_typeof (__eo_to_smt x1)) (__eo_to_smt x2)
-                          (__smtx_typeof (__eo_to_smt x2))) =
-                      A
-                  simpa [__eo_to_smt_array_deq_diff, hx1Smt, hx2Smt] using hDiffTy
-                exact eo_type_valid_of_smt_type_eq_of_field_wf_full hEoA hAField
-              · have hAField :
-                    smtx_type_field_wf_rec A native_reflist_nil :=
-                  smtx_type_field_wf_rec_of_type_wf_rec
-                    (smt_set_component_wf_rec_of_non_none_type
-                      (__eo_to_smt x1) A hx1Ty)
-                have hEoA :
-                    __eo_to_smt_type
-                        (__eo_typeof (Term._at_array_deq_diff x1 x2)) = A := by
-                  rw [← hEq]
-                  change
-                    __smtx_typeof
-                        (__eo_to_smt_array_deq_diff (__eo_to_smt x1)
-                          (__smtx_typeof (__eo_to_smt x1)) (__eo_to_smt x2)
-                          (__smtx_typeof (__eo_to_smt x2))) =
-                      A
-                  simpa [__eo_to_smt_array_deq_diff, hx1Smt, hx2Smt] using hDiffTy
-                exact eo_type_valid_of_smt_type_eq_of_field_wf_full hEoA hAField
       | Term.UOp1 UserOp1.seq_empty T, hNonNone => by
             change __smtx_typeof (__eo_to_smt_seq_empty (__eo_to_smt_type T)) ≠
               SmtType.None at hNonNone
@@ -4585,64 +4576,6 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                   simpa [hTy, __eo_to_smt_set_empty] using hSmt
                 exact eo_type_valid_of_smt_wf (__eo_typeof (Term.set_empty T))
                   (by simpa [hEoSet] using hSetWF)
-      | Term.UOp2 UserOp2._at_sets_deq_diff x1 x2, hNonNone => by
-            have hEq :=
-              eo_to_smt_typeof_matches_translation_sets_deq_diff x1 x2
-                (fun h => (go x1 h).1) (fun h => (go x1 h).2)
-                (fun h => (go x2 h).1) (fun h => (go x2 h).2) hNonNone
-            refine ⟨hEq, ?_⟩
-            change
-              __smtx_typeof
-                  (__eo_to_smt_sets_deq_diff (__eo_to_smt x1)
-                    (__smtx_typeof (__eo_to_smt x1)) (__eo_to_smt x2)
-                    (__smtx_typeof (__eo_to_smt x2))) ≠
-                SmtType.None at hNonNone
-            cases hx1Smt : __smtx_typeof (__eo_to_smt x1) <;>
-              cases hx2Smt : __smtx_typeof (__eo_to_smt x2) <;>
-              simp [__eo_to_smt_sets_deq_diff, hx1Smt, hx2Smt, smtx_typeof_none]
-                at hNonNone
-            case Set.Set A A' =>
-              have hMapNN :
-                  term_has_non_none_type (SmtTerm.map_diff (__eo_to_smt x1) (__eo_to_smt x2)) := by
-                unfold term_has_non_none_type
-                exact hNonNone
-              rcases map_diff_args_of_non_none hMapNN with
-                ⟨A, B, hx1Ty, _hx2Ty, hDiffTy⟩ |
-                ⟨A, hx1Ty, _hx2Ty, hDiffTy⟩
-              · have hAField :
-                    smtx_type_field_wf_rec A native_reflist_nil :=
-                  smtx_type_field_wf_rec_of_type_wf_rec
-                    (smt_map_components_wf_rec_of_non_none_type
-                      (__eo_to_smt x1) A B hx1Ty).1
-                have hEoA :
-                    __eo_to_smt_type
-                        (__eo_typeof (Term._at_sets_deq_diff x1 x2)) = A := by
-                  rw [← hEq]
-                  change
-                    __smtx_typeof
-                        (__eo_to_smt_sets_deq_diff (__eo_to_smt x1)
-                          (__smtx_typeof (__eo_to_smt x1)) (__eo_to_smt x2)
-                          (__smtx_typeof (__eo_to_smt x2))) =
-                      A
-                  simpa [__eo_to_smt_sets_deq_diff, hx1Smt, hx2Smt] using hDiffTy
-                exact eo_type_valid_of_smt_type_eq_of_field_wf_full hEoA hAField
-              · have hAField :
-                    smtx_type_field_wf_rec A native_reflist_nil :=
-                  smtx_type_field_wf_rec_of_type_wf_rec
-                    (smt_set_component_wf_rec_of_non_none_type
-                      (__eo_to_smt x1) A hx1Ty)
-                have hEoA :
-                    __eo_to_smt_type
-                        (__eo_typeof (Term._at_sets_deq_diff x1 x2)) = A := by
-                  rw [← hEq]
-                  change
-                    __smtx_typeof
-                        (__eo_to_smt_sets_deq_diff (__eo_to_smt x1)
-                          (__smtx_typeof (__eo_to_smt x1)) (__eo_to_smt x2)
-                          (__smtx_typeof (__eo_to_smt x2))) =
-                      A
-                  simpa [__eo_to_smt_sets_deq_diff, hx1Smt, hx2Smt] using hDiffTy
-                exact eo_type_valid_of_smt_type_eq_of_field_wf_full hEoA hAField
       | Term.UOp2 UserOp2._at_quantifiers_skolemize q idx, hNonNone => by
           cases q with
           | Apply qf body =>
@@ -5014,49 +4947,6 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
           exact eo_typeof_at_witness_string_length_of_non_stuck_full T hTNonStuck
         rw [hTypeEq]
         exact hTValid
-    | Term.UOp2 UserOp2._at_strings_deq_diff x y, hNonNone => by
-          exact
-            eo_to_smt_typeof_matches_translation_apply_at_strings_deq_diff
-            y x (fun h => (go x h).1) (fun h => (go y h).1) hNonNone
-    | Term.UOp1 UserOp1._at_strings_stoi_result x, hNonNone => by
-        exact false_of_smtx_typeof_none_non_none_full hNonNone
-    | Term.UOp1 UserOp1._at_strings_stoi_non_digit x, hNonNone => by
-        let regex :=
-          SmtTerm.re_comp (SmtTerm.re_range (SmtTerm.String (native_string_lit "0"))
-            (SmtTerm.String (native_string_lit "9")))
-        have hTranslate :
-            __eo_to_smt (Term._at_strings_stoi_non_digit x) =
-              SmtTerm.str_indexof_re (__eo_to_smt x) regex (SmtTerm.Numeral 0) := by
-          rfl
-        have hApplyNN :
-            term_has_non_none_type
-              (SmtTerm.str_indexof_re (__eo_to_smt x) regex (SmtTerm.Numeral 0)) := by
-          unfold term_has_non_none_type
-          rw [← hTranslate]
-          exact hNonNone
-        have hArgs := str_indexof_re_args_of_non_none hApplyNN
-        have hSmt :
-            __smtx_typeof (__eo_to_smt (Term._at_strings_stoi_non_digit x)) =
-              SmtType.Int := by
-          rw [hTranslate, typeof_str_indexof_re_eq]
-          simp [hArgs.1, hArgs.2.1, hArgs.2.2, native_Teq, native_ite]
-        have hEo :
-            __eo_to_smt_type (__eo_typeof (Term._at_strings_stoi_non_digit x)) =
-              SmtType.Int := by
-          exact eo_to_smt_type_typeof_apply_at_strings_stoi_non_digit_of_seq_char x
-            (eo_typeof_eq_seq_char_of_smt_seq_char_from_ih x
-              (fun h => (go x h).1) hArgs.1)
-        refine ⟨hSmt.trans hEo.symm, ?_⟩
-        rw [eo_to_smt_type_eq_int hEo]
-        simp [eo_type_valid, eo_type_valid_rec]
-    | Term.UOp1 UserOp1._at_strings_itos_result x, hNonNone => by
-        exact false_of_smtx_typeof_none_non_none_full hNonNone
-    | Term.UOp2 UserOp2._at_strings_num_occur_re x y, hNonNone => by
-        exact false_of_smtx_typeof_none_non_none_full hNonNone
-    | Term.UOp2 UserOp2._at_strings_occur_index_re x y, hNonNone => by
-        exact false_of_smtx_typeof_none_non_none_full hNonNone
-    | Term.UOp1 UserOp1._at_strings_replace_all_result x, hNonNone => by
-        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp2 UserOp2._at_const v T, hNonNone => by
         exact false_of_smtx_typeof_none_non_none_full hNonNone
   exact go t

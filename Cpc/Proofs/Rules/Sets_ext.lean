@@ -61,8 +61,8 @@ private theorem sets_ext_set_types_of_result_bool
     ∃ T : Term,
       __eo_typeof a = Term.Apply Term.Set T ∧
         __eo_typeof b = Term.Apply Term.Set T ∧
-        __eo_typeof (Term.UOp2 UserOp2._at_sets_deq_diff a b) = T := by
-  let idx := Term.UOp2 UserOp2._at_sets_deq_diff a b
+        __eo_typeof (Term._at_sets_deq_diff a b) = T := by
+  let idx := Term._at_sets_deq_diff a b
   let lhs := Term.Apply (Term.Apply Term.set_member idx) a
   let rhs := Term.Apply (Term.Apply Term.set_member idx) b
   have hNot :
@@ -138,11 +138,11 @@ private theorem sets_ext_smt_set_types
       let A := __eo_to_smt_type T
       __eo_typeof a = Term.Apply Term.Set T ∧
         __eo_typeof b = Term.Apply Term.Set T ∧
-        __eo_typeof (Term.UOp2 UserOp2._at_sets_deq_diff a b) = T ∧
+        __eo_typeof (Term._at_sets_deq_diff a b) = T ∧
         __smtx_typeof (__eo_to_smt a) = SmtType.Set A ∧
         __smtx_typeof (__eo_to_smt b) = SmtType.Set A ∧
-        __smtx_typeof (__eo_to_smt (Term.UOp2 UserOp2._at_sets_deq_diff a b)) = A ∧
-        __eo_to_smt (Term.UOp2 UserOp2._at_sets_deq_diff a b) =
+        __smtx_typeof (__eo_to_smt (Term._at_sets_deq_diff a b)) = A ∧
+        __eo_to_smt (Term._at_sets_deq_diff a b) =
           SmtTerm.map_diff (__eo_to_smt a) (__eo_to_smt b) ∧
         A ≠ SmtType.None ∧
         RuleProofs.eo_has_smt_translation a ∧ RuleProofs.eo_has_smt_translation b := by
@@ -179,7 +179,7 @@ private theorem sets_ext_smt_set_types
         SmtType.Set (__eo_to_smt_type T) :=
     hSmtBRaw.trans hSetTy
   have hIdxSmtTerm :
-      __eo_to_smt (Term.UOp2 UserOp2._at_sets_deq_diff a b) =
+      __eo_to_smt (Term._at_sets_deq_diff a b) =
         SmtTerm.map_diff (__eo_to_smt a) (__eo_to_smt b) := by
     change
       __eo_to_smt_sets_deq_diff (__eo_to_smt a)
@@ -188,7 +188,7 @@ private theorem sets_ext_smt_set_types
         SmtTerm.map_diff (__eo_to_smt a) (__eo_to_smt b)
     simp [__eo_to_smt_sets_deq_diff, hSmtA, hSmtB]
   have hIdxSmtTy :
-      __smtx_typeof (__eo_to_smt (Term.UOp2 UserOp2._at_sets_deq_diff a b)) =
+      __smtx_typeof (__eo_to_smt (Term._at_sets_deq_diff a b)) =
         __eo_to_smt_type T := by
     rw [hIdxSmtTerm, Smtm.typeof_map_diff_eq]
     simp [__smtx_typeof_map_diff, hSmtA, hSmtB, native_ite, native_Teq]
@@ -242,7 +242,7 @@ private theorem typed___eo_prog_sets_ext_impl
   rcases sets_ext_smt_set_types a b hPremBool hResultTy with
     ⟨T, hATy, hBTy, hIdxTy, hSmtA, hSmtB, hIdxSmtTy, hIdxSmtTerm,
       hTNonNone, _hATrans, _hBTrans⟩
-  let idx := Term.UOp2 UserOp2._at_sets_deq_diff a b
+  let idx := Term._at_sets_deq_diff a b
   let lhs := Term.Apply (Term.Apply Term.set_member idx) a
   let rhs := Term.Apply (Term.Apply Term.set_member idx) b
   have hLhsTy : __smtx_typeof (__eo_to_smt lhs) = SmtType.Bool := by
@@ -281,7 +281,7 @@ private theorem facts___eo_prog_sets_ext_impl
   rcases sets_ext_smt_set_types a b hPremBool hResultTy with
     ⟨T, hATy, hBTy, hIdxTy, hSmtA, hSmtB, hIdxSmtTy, hIdxSmtTerm,
       hTNonNone, hATrans, hBTrans⟩
-  let idx := Term.UOp2 UserOp2._at_sets_deq_diff a b
+  let idx := Term._at_sets_deq_diff a b
   let lhs := Term.Apply (Term.Apply Term.set_member idx) a
   let rhs := Term.Apply (Term.Apply Term.set_member idx) b
   have hProgBool :

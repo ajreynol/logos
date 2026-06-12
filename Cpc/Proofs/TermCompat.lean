@@ -105,7 +105,8 @@ abbrev _at_bit := Term.UOp1 UserOp1._at_bit
 abbrev _at_from_bools := Term.UOp UserOp._at_from_bools
 abbrev _at_bv := Term.UOp2 UserOp2._at_bv
 abbrev _at_purify := Term.UOp1 UserOp1._at_purify
-abbrev _at_array_deq_diff := Term.UOp2 UserOp2._at_array_deq_diff
+abbrev _at_array_deq_diff (x y : Term) :=
+  Term.Apply (Term.Apply (Term.UOp UserOp._at_array_deq_diff) x) y
 abbrev RegLan := Term.UOp UserOp.RegLan
 abbrev str_len := Term.UOp UserOp.str_len
 abbrev str_concat := Term.UOp UserOp.str_concat
@@ -151,16 +152,23 @@ abbrev seq_empty := Term.UOp1 UserOp1.seq_empty
 abbrev seq_unit := Term.UOp UserOp.seq_unit
 abbrev seq_nth := Term.UOp UserOp.seq_nth
 abbrev _at_re_unfold_pos_component := Term.UOp3 UserOp3._at_re_unfold_pos_component
-abbrev _at_strings_deq_diff := Term.UOp2 UserOp2._at_strings_deq_diff
-abbrev _at_strings_stoi_result := Term.UOp1 UserOp1._at_strings_stoi_result
-abbrev _at_strings_stoi_non_digit := Term.UOp1 UserOp1._at_strings_stoi_non_digit
-abbrev _at_strings_itos_result := Term.UOp1 UserOp1._at_strings_itos_result
+abbrev _at_strings_deq_diff (x y : Term) :=
+  Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_deq_diff) x) y
+abbrev _at_strings_stoi_result (x : Term) :=
+  Term.Apply (Term.UOp UserOp._at_strings_stoi_result) x
+abbrev _at_strings_stoi_non_digit (x : Term) :=
+  Term.Apply (Term.UOp UserOp._at_strings_stoi_non_digit) x
+abbrev _at_strings_itos_result (x : Term) :=
+  Term.Apply (Term.UOp UserOp._at_strings_itos_result) x
 abbrev _at_strings_num_occur := Term.UOp UserOp._at_strings_num_occur
-abbrev _at_strings_num_occur_re := Term.UOp2 UserOp2._at_strings_num_occur_re
+abbrev _at_strings_num_occur_re (x y : Term) :=
+  Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_num_occur_re) x) y
 abbrev _at_strings_occur_index := Term.UOp UserOp._at_strings_occur_index
-abbrev _at_strings_occur_index_re := Term.UOp2 UserOp2._at_strings_occur_index_re
+abbrev _at_strings_occur_index_re (x y : Term) :=
+  Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_occur_index_re) x) y
 abbrev _at_witness_string_length := Term.UOp3 UserOp3._at_witness_string_length
-abbrev _at_strings_replace_all_result := Term.UOp1 UserOp1._at_strings_replace_all_result
+abbrev _at_strings_replace_all_result (x : Term) :=
+  Term.Apply (Term.UOp UserOp._at_strings_replace_all_result) x
 abbrev is := Term.UOp1 UserOp1.is
 abbrev update := Term.UOp1 UserOp1.update
 abbrev UnitTuple := Term.UOp UserOp.UnitTuple
@@ -184,7 +192,8 @@ abbrev set_insert := Term.UOp UserOp.set_insert
 abbrev qdiv := Term.UOp UserOp.qdiv
 abbrev qdiv_total := Term.UOp UserOp.qdiv_total
 abbrev _at_div_by_zero := Term.UOp UserOp._at_div_by_zero
-abbrev _at_sets_deq_diff := Term.UOp2 UserOp2._at_sets_deq_diff
+abbrev _at_sets_deq_diff (x y : Term) :=
+  Term.Apply (Term.Apply (Term.UOp UserOp._at_sets_deq_diff) x) y
 abbrev _at__at_Monomial := Term.UOp UserOp._at__at_Monomial
 abbrev _at__at_mon := Term.UOp UserOp._at__at_mon
 abbrev _at__at_Polynomial := Term.UOp UserOp._at__at_Polynomial

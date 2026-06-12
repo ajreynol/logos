@@ -2514,15 +2514,9 @@ theorem eo_typeof_type_of_smt_type_wf_rec :
       simp [__eo_to_smt_type, __smtx_type_wf_rec] at hWF
   | Term._at_purify x, refs, hWF => by
       simp [__eo_to_smt_type, __smtx_type_wf_rec] at hWF
-  | Term._at_array_deq_diff x y, refs, hWF => by
-      simp [__eo_to_smt_type, __smtx_type_wf_rec] at hWF
   | Term.seq_empty T, refs, hWF => by
       simp [__eo_to_smt_type, __smtx_type_wf_rec] at hWF
-  | Term._at_strings_replace_all_result x, refs, hWF => by
-      simp [__eo_to_smt_type, __smtx_type_wf_rec] at hWF
   | Term.set_empty T, refs, hWF => by
-      simp [__eo_to_smt_type, __smtx_type_wf_rec] at hWF
-  | Term._at_sets_deq_diff x y, refs, hWF => by
       simp [__eo_to_smt_type, __smtx_type_wf_rec] at hWF
   | Term._at_quantifiers_skolemize q idx, refs, hWF => by
       simp [__eo_to_smt_type, __smtx_type_wf_rec] at hWF

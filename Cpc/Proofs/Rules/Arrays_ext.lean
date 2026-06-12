@@ -45,8 +45,8 @@ private theorem arrays_ext_array_types_of_result_bool
     ∃ I E : Term,
       __eo_typeof a = Term.Apply (Term.Apply Term.Array I) E ∧
         __eo_typeof b = Term.Apply (Term.Apply Term.Array I) E ∧
-        __eo_typeof (Term.UOp2 UserOp2._at_array_deq_diff a b) = I := by
-  let idx := Term.UOp2 UserOp2._at_array_deq_diff a b
+        __eo_typeof (Term._at_array_deq_diff a b) = I := by
+  let idx := Term._at_array_deq_diff a b
   let lhs := Term.Apply (Term.Apply Term.select a) idx
   let rhs := Term.Apply (Term.Apply Term.select b) idx
   have hNot :
@@ -123,11 +123,11 @@ private theorem arrays_ext_smt_array_types
       let B := __eo_to_smt_type E
       __eo_typeof a = Term.Apply (Term.Apply Term.Array I) E ∧
         __eo_typeof b = Term.Apply (Term.Apply Term.Array I) E ∧
-        __eo_typeof (Term.UOp2 UserOp2._at_array_deq_diff a b) = I ∧
+        __eo_typeof (Term._at_array_deq_diff a b) = I ∧
         __smtx_typeof (__eo_to_smt a) = SmtType.Map A B ∧
         __smtx_typeof (__eo_to_smt b) = SmtType.Map A B ∧
-        __smtx_typeof (__eo_to_smt (Term.UOp2 UserOp2._at_array_deq_diff a b)) = A ∧
-        __eo_to_smt (Term.UOp2 UserOp2._at_array_deq_diff a b) =
+        __smtx_typeof (__eo_to_smt (Term._at_array_deq_diff a b)) = A ∧
+        __eo_to_smt (Term._at_array_deq_diff a b) =
           SmtTerm.map_diff (__eo_to_smt a) (__eo_to_smt b) ∧
         A ≠ SmtType.None ∧ B ≠ SmtType.None ∧
         RuleProofs.eo_has_smt_translation a ∧ RuleProofs.eo_has_smt_translation b := by
@@ -163,7 +163,7 @@ private theorem arrays_ext_smt_array_types
         SmtType.Map (__eo_to_smt_type I) (__eo_to_smt_type E) :=
     hSmtBRaw.trans hArrayTy
   have hIdxSmtTerm :
-      __eo_to_smt (Term.UOp2 UserOp2._at_array_deq_diff a b) =
+      __eo_to_smt (Term._at_array_deq_diff a b) =
         SmtTerm.map_diff (__eo_to_smt a) (__eo_to_smt b) := by
     change
       __eo_to_smt_array_deq_diff (__eo_to_smt a)
@@ -172,7 +172,7 @@ private theorem arrays_ext_smt_array_types
         SmtTerm.map_diff (__eo_to_smt a) (__eo_to_smt b)
     simp [__eo_to_smt_array_deq_diff, hSmtA, hSmtB]
   have hIdxSmtTy :
-      __smtx_typeof (__eo_to_smt (Term.UOp2 UserOp2._at_array_deq_diff a b)) =
+      __smtx_typeof (__eo_to_smt (Term._at_array_deq_diff a b)) =
         __eo_to_smt_type I := by
     rw [hIdxSmtTerm, Smtm.typeof_map_diff_eq]
     simp [__smtx_typeof_map_diff, hSmtA, hSmtB, native_ite, native_Teq,
@@ -233,7 +233,7 @@ private theorem typed___eo_prog_arrays_ext_impl
   rcases arrays_ext_smt_array_types a b hPremBool hResultTy with
     ⟨I, E, hATy, hBTy, hIdxTy, hSmtA, hSmtB, hIdxSmtTy, hIdxSmtTerm,
       hINonNone, hENonNone, _hATrans, _hBTrans⟩
-  let idx := Term.UOp2 UserOp2._at_array_deq_diff a b
+  let idx := Term._at_array_deq_diff a b
   let lhs := Term.Apply (Term.Apply Term.select a) idx
   let rhs := Term.Apply (Term.Apply Term.select b) idx
   have hLhsTy : __smtx_typeof (__eo_to_smt lhs) = __eo_to_smt_type E := by
@@ -265,7 +265,7 @@ private theorem facts___eo_prog_arrays_ext_impl
   rcases arrays_ext_smt_array_types a b hPremBool hResultTy with
     ⟨I, E, hATy, hBTy, hIdxTy, hSmtA, hSmtB, hIdxSmtTy, hIdxSmtTerm,
       hINonNone, hENonNone, hATrans, hBTrans⟩
-  let idx := Term.UOp2 UserOp2._at_array_deq_diff a b
+  let idx := Term._at_array_deq_diff a b
   let lhs := Term.Apply (Term.Apply Term.select a) idx
   let rhs := Term.Apply (Term.Apply Term.select b) idx
   have hProgBool :
