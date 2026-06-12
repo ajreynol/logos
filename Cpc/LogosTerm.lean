@@ -142,6 +142,7 @@ inductive UserOp : Type where
   | re_union : UserOp
   | re_diff : UserOp
   | str_in_re : UserOp
+  | str_indexof_re_split : UserOp
   | seq_unit : UserOp
   | seq_nth : UserOp
   | _at_strings_deq_diff : UserOp
@@ -198,6 +199,7 @@ inductive UserOp1 : Type where
   | _at_bit : UserOp1
   | seq_empty : UserOp1
   | re_exp : UserOp1
+  | _at_re_unfold_pos_component : UserOp1
   | is : UserOp1
   | update : UserOp1
   | tuple_select : UserOp1
@@ -223,7 +225,6 @@ deriving Repr, DecidableEq, Inhabited, Ord
 User operators with three indices.
 -/
 inductive UserOp3 : Type where
-  | _at_re_unfold_pos_component : UserOp3
   | _at_witness_string_length : UserOp3
 
 deriving Repr, DecidableEq, Inhabited, Ord

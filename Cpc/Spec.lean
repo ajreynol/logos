@@ -358,9 +358,10 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.Apply (Term.Apply (Term.UOp UserOp.re_diff) x1) x2) => (SmtTerm.re_diff (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply (Term.UOp2 UserOp2.re_loop x1 x2) x3) => (SmtTerm.re_loop (__eo_to_smt x1) (__eo_to_smt x2) (__eo_to_smt x3))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) x1) x2) => (SmtTerm.str_in_re (__eo_to_smt x1) (__eo_to_smt x2))
+  | (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof_re_split) x1) x2) x3) => (SmtTerm.str_indexof_re_split (__eo_to_smt x1) (__eo_to_smt x2) (__eo_to_smt x3))
   | (Term.Apply (Term.UOp UserOp.seq_unit) x1) => (SmtTerm.seq_unit (__eo_to_smt x1))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.seq_nth) x1) x2) => (SmtTerm.seq_nth (__eo_to_smt x1) (__eo_to_smt x2))
-  | (Term.UOp3 UserOp3._at_re_unfold_pos_component x1 x2 x3) => (native_ite (__eo_to_smt_nat_is_valid x3) (__eo_to_smt_re_unfold_pos_component (__eo_to_smt x1) (__eo_to_smt x2) (__eo_to_smt_nat x3)) SmtTerm.None)
+  | (Term.Apply (Term.Apply (Term.UOp1 UserOp1._at_re_unfold_pos_component x1) x2) x3) => (native_ite (__eo_to_smt_nat_is_valid x1) (__eo_to_smt_re_unfold_pos_component (__eo_to_smt x2) (__eo_to_smt x3) (__eo_to_smt_nat x1)) SmtTerm.None)
   | (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_deq_diff) x1) x2) => 
     let _v0 := (SmtTerm.Numeral 1)
     let _v2 := (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
