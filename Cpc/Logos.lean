@@ -3045,16 +3045,17 @@ def __mk_re_unfold_pos_star : Term -> Term -> Term -> Term
   | _ , Term.Stuck , _  => Term.Stuck
   | t, r, (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) k1) (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) k2) (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) k3) (Term.String []))))) M) => 
     let _v0 := (Term.Apply (Term.UOp UserOp.eq) t)
-    (Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply _v0 (Term.String []))) (Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) t) r)) (Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply _v0 (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) k1) (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) k2) (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) k3) (Term.String [])))))) M)) (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply (Term.UOp UserOp.not) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) k1) (Term.String [])))) (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply (Term.UOp UserOp.not) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) k3) (Term.String [])))) (Term.Boolean true))))) (Term.Boolean false))))
+    (Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply _v0 (Term.String []))) (Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) t) r)) (Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply _v0 (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) k1) (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) k2) (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) k3) (Term.String [])))))) M)) (Term.Boolean false))))
   | _, _, _ => Term.Stuck
 
 
 def __mk_re_unfold_pos : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | t, (Term.Apply (Term.UOp UserOp.re_mult) r1) => 
-    let _v0 := (Term.Apply (Term.UOp UserOp.re_concat) r1)
-    let _v1 := (Term.Apply _v0 (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) (Term.Apply (Term.UOp UserOp.re_mult) r1)) (Term.Apply _v0 (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])))))
-    (__mk_re_unfold_pos_star t r1 (__re_unfold_pos_concat_rec t _v1 _v1 (Term.Numeral 0)))
+    let _v0 := (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))
+    let _v1 := (Term.Apply (Term.UOp UserOp.re_concat) (Term.Apply (Term.Apply (Term.UOp UserOp.re_diff) r1) _v0))
+    let _v2 := (Term.Apply _v1 (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) (Term.Apply (Term.UOp UserOp.re_mult) r1)) (Term.Apply _v1 _v0)))
+    (__mk_re_unfold_pos_star t r1 (__re_unfold_pos_concat_rec t _v2 _v2 (Term.Numeral 0)))
   | t, (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) r1) r2) => 
     let _v0 := (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) r1) r2)
     let _v1 := (__re_unfold_pos_concat_rec t _v0 _v0 (Term.Numeral 0))
