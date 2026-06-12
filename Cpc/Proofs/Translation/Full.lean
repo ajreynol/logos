@@ -2782,8 +2782,6 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
         exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp1 UserOp1.re_exp x, hNonNone => by
         exact false_of_smtx_typeof_none_non_none_full hNonNone
-    | Term.UOp1 UserOp1._at_re_unfold_pos_component x, hNonNone => by
-        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp1 UserOp1.is x, hNonNone => by
         exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp1 UserOp1.update x, hNonNone => by
@@ -3768,8 +3766,6 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                             (Term.Apply (Term.Apply (Term.UOp1 UserOp1.re_exp z) y) x) =
                           Term.DtcAppType a b
                       exact hTy)
-                case _at_re_unfold_pos_component =>
-                  exact False.elim (false_of_typeof_re_unfold_pos_component_eq_dtcapp_full hTy)
                 case «is» =>
                   exact eo_type_valid_of_nested_generic_apply_eq_dtcapp_full
                     (g := Term.UOp1 UserOp1.is z) (y := y) (x := x)
@@ -4892,6 +4888,13 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
           simp [native_ite, smtx_typeof_none, smtx_typeof_dt_sel_head_none]
     | Term.USort i, hNonNone => by
         exact false_of_smtx_typeof_none_non_none_full hNonNone
+    | Term.UOp3 UserOp3._at_re_unfold_pos_component str re idx, hNonNone => by
+        exact
+          eo_to_smt_typeof_matches_translation_apply_apply_apply_re_unfold_pos_component
+            idx re str
+            (fun h => (go str h).1)
+            (fun h => (go re h).1)
+            hNonNone
     | Term.UOp3 UserOp3._at_witness_string_length T len id, hNonNone => by
         have hEq :=
           eo_to_smt_typeof_matches_translation_apply_apply_apply_at_witness_string_length

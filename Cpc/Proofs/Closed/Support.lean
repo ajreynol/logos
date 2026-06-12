@@ -4591,19 +4591,18 @@ theorem smtTermClosedIn_eo_to_smt_re_unfold_pos_component_of_closed_rec_using
     (__eo_to_smt
       (Term._at_re_unfold_pos_component x y z)) :=
 by
-  exact smtTermClosedIn_eo_to_smt_apply_apply_uop1_of_closed_rec_using
-    (op := UserOp1._at_re_unfold_pos_component)
-    (x := z) (y := x) (z := y)
-    (fun hIdx hx hy => by
+  exact smtTermClosedIn_eo_to_smt_uop3_of_closed_rec_using
+    (op := UserOp3._at_re_unfold_pos_component)
+    (fun hx hy hz => by
       change SmtTermClosedIn vars
-        (native_ite (__eo_to_smt_nat_is_valid z)
+        (native_ite (__eo_to_smt_nat_is_valid x)
           (__eo_to_smt_re_unfold_pos_component (__eo_to_smt x)
             (__eo_to_smt y) (__eo_to_smt_nat z))
           SmtTerm.None)
-      cases __eo_to_smt_nat_is_valid z <;> try trivial
+      cases __eo_to_smt_nat_is_valid x <;> try trivial
       exact smtTermClosedIn_eo_to_smt_re_unfold_pos_component
         hx hy (__eo_to_smt_nat z))
-    hEnv hRecZ hRecX hRecY hClosed
+    hEnv hRecX hRecY hRecZ hClosed
 
 theorem smtTermClosedIn_eo_to_smt_quantifiers_skolemize_forall_of_closed_rec_using
     {xs body idx env : Term} {vars : List SmtVarKey}
@@ -5060,12 +5059,6 @@ by
       (fun hEnv' hClosed' => hRec hEnv' hClosed') hClosed
   case tuple_update =>
     exact smtTermClosedIn_eo_to_smt_tuple_update_of_closed_rec_using
-      hEnv (fun hEnv' hClosed' => hRec hEnv' hClosed')
-      (fun hEnv' hClosed' => hRec hEnv' hClosed')
-      (fun hEnv' hClosed' => hRec hEnv' hClosed') hClosed
-  case _at_re_unfold_pos_component =>
-    exact smtTermClosedIn_eo_to_smt_re_unfold_pos_component_of_closed_rec_using
-      (x := y) (y := z) (z := x)
       hEnv (fun hEnv' hClosed' => hRec hEnv' hClosed')
       (fun hEnv' hClosed' => hRec hEnv' hClosed')
       (fun hEnv' hClosed' => hRec hEnv' hClosed') hClosed
@@ -6448,12 +6441,6 @@ by
       hEnv (fun hEnv' hClosed' => hRec hXLt hEnv' hClosed')
       (fun hEnv' hClosed' => hRec hYLt hEnv' hClosed')
       (fun hEnv' hClosed' => hRec hZLt hEnv' hClosed') hClosed
-  case _at_re_unfold_pos_component =>
-    exact smtTermClosedIn_eo_to_smt_re_unfold_pos_component_of_closed_rec_using
-      (x := y) (y := z) (z := x)
-      hEnv (fun hEnv' hClosed' => hRec hYLt hEnv' hClosed')
-      (fun hEnv' hClosed' => hRec hZLt hEnv' hClosed')
-      (fun hEnv' hClosed' => hRec hXLt hEnv' hClosed') hClosed
   all_goals
     exact smtTermClosedIn_eo_to_smt_apply_generic_below
       (by rfl)
