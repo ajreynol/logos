@@ -9,20 +9,6 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
-syntax "smtx_evalChoiceNth_eq_def" : term
-
-elab "smtx_evalChoiceNth_eq_def" : term => do
-  let env ← Lean.getEnv
-  let candidates := env.constants.toList.filter (fun (name, _) =>
-    let s := name.toString
-    s.contains "__smtx_model_eval.evalChoiceNth." &&
-      !s.contains "_mutual" &&
-      s.endsWith "eq_def")
-  match candidates with
-  | [(name, _)] => return Lean.mkConst name
-  | [] => throwError "could not find evalChoiceNth equation theorem"
-  | _ => throwError "found multiple evalChoiceNth equation theorems"
-
 /--
 Two models agree on the global part of the interpretation.
 
@@ -348,7 +334,8 @@ by
             (M := native_model_push M s T
               (native_eval_tchoice M s T (SmtTerm.exists s' T' body')))
             (s := s') (T := T') (body := body')
-        rw [__smtx_model_eval.eq_137] at ih'
+        rw [__smtx_model_eval.eq_def] at ih'
+        simp only at ih'
         simpa [nativeEvalTChoiceNthAux] using
           ih'
 
@@ -481,6 +468,8 @@ def SmtTermClosedIn (vars : List SmtVarKey) : SmtTerm -> Prop
   | SmtTerm.str_replace_re_all x y z =>
       SmtTermClosedIn vars x ∧ SmtTermClosedIn vars y ∧ SmtTermClosedIn vars z
   | SmtTerm.str_indexof_re x y z =>
+      SmtTermClosedIn vars x ∧ SmtTermClosedIn vars y ∧ SmtTermClosedIn vars z
+  | SmtTerm.str_indexof_re_split x y z =>
       SmtTermClosedIn vars x ∧ SmtTermClosedIn vars y ∧ SmtTermClosedIn vars z
   | SmtTerm.re_allchar => True
   | SmtTerm.re_none => True
@@ -1707,102 +1696,24 @@ by
         simp [__eo_to_smt_re_unfold_pos_component, SmtTermClosedIn]
       case re_concat r1 r2 =>
         exact
-          ⟨SmtTermClosedIn.weaken_cons hs,
-            SmtTermClosedIn.weaken_cons hr.1,
-            SmtTermClosedIn.weaken_cons hs,
-            SmtTermClosedIn.weaken_cons hr.2⟩
+          ⟨hs, hr.1, hr.2⟩
   | succ n ih =>
       cases r <;> try
         simp [__eo_to_smt_re_unfold_pos_component, SmtTermClosedIn]
       case re_concat r1 r2 =>
-        have hZero :
+        let split := SmtTerm.str_indexof_re_split s r1 r2
+        have hSplit :
             SmtTermClosedIn vars
-              (__eo_to_smt_re_unfold_pos_component s
-                (SmtTerm.re_concat r1 r2) native_nat_zero) :=
-        by
-          simp only [__eo_to_smt_re_unfold_pos_component]
-          change SmtTermClosedIn vars
-            (SmtTerm.choice_nth (native_string_lit "@x")
-              (SmtType.Seq SmtType.Char)
-              (SmtTerm.and
-                (SmtTerm.eq s
-                  (SmtTerm.str_concat
-                    (SmtTerm.Var (native_string_lit "@x")
-                      (SmtType.Seq SmtType.Char))
-                    (SmtTerm.str_substr s
-                      (SmtTerm.str_len
-                        (SmtTerm.Var (native_string_lit "@x")
-                          (SmtType.Seq SmtType.Char)))
-                      (SmtTerm.neg (SmtTerm.str_len s)
-                        (SmtTerm.str_len
-                          (SmtTerm.Var (native_string_lit "@x")
-                            (SmtType.Seq SmtType.Char)))))))
-                (SmtTerm.and
-                  (SmtTerm.str_in_re
-                    (SmtTerm.Var (native_string_lit "@x")
-                      (SmtType.Seq SmtType.Char))
-                    r1)
-                  (SmtTerm.str_in_re
-                    (SmtTerm.str_substr s
-                      (SmtTerm.str_len
-                        (SmtTerm.Var (native_string_lit "@x")
-                          (SmtType.Seq SmtType.Char)))
-                      (SmtTerm.neg (SmtTerm.str_len s)
-                        (SmtTerm.str_len
-                          (SmtTerm.Var (native_string_lit "@x")
-                            (SmtType.Seq SmtType.Char)))))
-                    r2)))
-              native_nat_zero)
-          have hs' :
-              SmtTermClosedIn
-                ((native_string_lit "@x", SmtType.Seq SmtType.Char) :: vars)
-                s :=
-            SmtTermClosedIn.weaken_cons hs
-          have hr1' :
-              SmtTermClosedIn
-                ((native_string_lit "@x", SmtType.Seq SmtType.Char) :: vars)
-                r1 :=
-            SmtTermClosedIn.weaken_cons hr.1
-          have hr2' :
-              SmtTermClosedIn
-                ((native_string_lit "@x", SmtType.Seq SmtType.Char) :: vars)
-                r2 :=
-            SmtTermClosedIn.weaken_cons hr.2
-          have hx :
-              SmtTermClosedIn
-                ((native_string_lit "@x", SmtType.Seq SmtType.Char) :: vars)
-                (SmtTerm.Var (native_string_lit "@x")
-                  (SmtType.Seq SmtType.Char)) :=
-            List.Mem.head _
-          have hSuffix :
-              SmtTermClosedIn
-                ((native_string_lit "@x", SmtType.Seq SmtType.Char) :: vars)
-                (SmtTerm.str_substr s
-                  (SmtTerm.str_len
-                    (SmtTerm.Var (native_string_lit "@x")
-                      (SmtType.Seq SmtType.Char)))
-                  (SmtTerm.neg (SmtTerm.str_len s)
-                    (SmtTerm.str_len
-                      (SmtTerm.Var (native_string_lit "@x")
-                        (SmtType.Seq SmtType.Char))))) :=
-            ⟨hs', hx, ⟨hs', hx⟩⟩
-          exact
-            ⟨⟨hs', ⟨hx, hSuffix⟩⟩,
-              ⟨⟨hx, hr1'⟩, ⟨hSuffix, hr2'⟩⟩⟩
+              split :=
+          ⟨hs, hr.1, hr.2⟩
         have hSuffix :
             SmtTermClosedIn vars
               (SmtTerm.str_substr s
-                (SmtTerm.str_len
-                  (__eo_to_smt_re_unfold_pos_component s
-                    (SmtTerm.re_concat r1 r2) native_nat_zero))
-                (SmtTerm.neg (SmtTerm.str_len s)
-                  (SmtTerm.str_len
-                    (__eo_to_smt_re_unfold_pos_component s
-                      (SmtTerm.re_concat r1 r2) native_nat_zero)))) :=
-          ⟨hs, hZero, ⟨hs, hZero⟩⟩
-        exact ih
-          (by simpa [__eo_to_smt_re_unfold_pos_component] using hSuffix)
-          hr.2
+                split
+                (SmtTerm.neg (SmtTerm.str_len s) split)) :=
+          ⟨hs, hSplit, ⟨hs, hSplit⟩⟩
+        simpa [__eo_to_smt_re_unfold_pos_component, split] using
+          ih hSuffix hr.2
 
 theorem smtTermClosedIn_eo_to_smt_quantifiers_skolemize
     {vars : List SmtVarKey} {F : SmtTerm}
@@ -3303,6 +3214,19 @@ theorem smtTermClosedIn_eo_to_smt_str_indexof_re
 by
   exact ⟨hx, hy, hz⟩
 
+theorem smtTermClosedIn_eo_to_smt_str_indexof_re_split
+    {vars : List SmtVarKey} {x y z : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y))
+    (hz : SmtTermClosedIn vars (__eo_to_smt z)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt
+      (Term.Apply
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof_re_split) x) y)
+        z)) :=
+by
+  exact ⟨hx, hy, hz⟩
+
 theorem smtTermClosedIn_eo_to_smt_not_of_closed_rec_using
     {x env : Term} {vars : List SmtVarKey}
     (hEnv : EoSmtVarEnvPerm env vars)
@@ -4661,15 +4585,16 @@ theorem smtTermClosedIn_eo_to_smt_re_unfold_pos_component_of_closed_rec_using
             SmtTermClosedIn vars' (__eo_to_smt z))
     (hClosed :
       __eo_is_closed_rec
-        (Term.UOp3 UserOp3._at_re_unfold_pos_component x y z) env =
+        (Term._at_re_unfold_pos_component x y z) env =
         Term.Boolean true) :
   SmtTermClosedIn vars
     (__eo_to_smt
-      (Term.UOp3 UserOp3._at_re_unfold_pos_component x y z)) :=
+      (Term._at_re_unfold_pos_component x y z)) :=
 by
-  exact smtTermClosedIn_eo_to_smt_uop3_of_closed_rec_using
-    (op := UserOp3._at_re_unfold_pos_component)
-    (fun hx hy _ => by
+  exact smtTermClosedIn_eo_to_smt_apply_apply_uop1_of_closed_rec_using
+    (op := UserOp1._at_re_unfold_pos_component)
+    (x := z) (y := x) (z := y)
+    (fun hIdx hx hy => by
       change SmtTermClosedIn vars
         (native_ite (__eo_to_smt_nat_is_valid z)
           (__eo_to_smt_re_unfold_pos_component (__eo_to_smt x)
@@ -4678,7 +4603,7 @@ by
       cases __eo_to_smt_nat_is_valid z <;> try trivial
       exact smtTermClosedIn_eo_to_smt_re_unfold_pos_component
         hx hy (__eo_to_smt_nat z))
-    hEnv hRecX hRecY hRecZ hClosed
+    hEnv hRecZ hRecX hRecY hClosed
 
 theorem smtTermClosedIn_eo_to_smt_quantifiers_skolemize_forall_of_closed_rec_using
     {xs body idx env : Term} {vars : List SmtVarKey}
@@ -4785,11 +4710,6 @@ theorem smtTermClosedIn_eo_to_smt_uop3_any_of_closed_rec_using
   SmtTermClosedIn vars (__eo_to_smt (Term.UOp3 op x y z)) :=
 by
   cases op
-  case _at_re_unfold_pos_component =>
-    exact smtTermClosedIn_eo_to_smt_re_unfold_pos_component_of_closed_rec_using
-      hEnv (fun hEnv' hClosed' => hRec hEnv' hClosed')
-      (fun hEnv' hClosed' => hRec hEnv' hClosed')
-      (fun hEnv' hClosed' => hRec hEnv' hClosed') hClosed
   case _at_witness_string_length =>
     exact smtTermClosedIn_eo_to_smt_witness_string_length_of_closed_rec_using
       hEnv (fun hEnv' hClosed' => hRec hEnv' hClosed')
@@ -5143,6 +5063,12 @@ by
       hEnv (fun hEnv' hClosed' => hRec hEnv' hClosed')
       (fun hEnv' hClosed' => hRec hEnv' hClosed')
       (fun hEnv' hClosed' => hRec hEnv' hClosed') hClosed
+  case _at_re_unfold_pos_component =>
+    exact smtTermClosedIn_eo_to_smt_re_unfold_pos_component_of_closed_rec_using
+      (x := y) (y := z) (z := x)
+      hEnv (fun hEnv' hClosed' => hRec hEnv' hClosed')
+      (fun hEnv' hClosed' => hRec hEnv' hClosed')
+      (fun hEnv' hClosed' => hRec hEnv' hClosed') hClosed
   all_goals
     exact smtTermClosedIn_eo_to_smt_apply_generic_of_closed_rec_using
       (by rfl)
@@ -5242,6 +5168,13 @@ by
     exact smtTermClosedIn_eo_to_smt_ternary_uop_of_closed_rec_using
       (op := UserOp.str_indexof_re) (by decide) (by decide)
       (fun hx hy hz => smtTermClosedIn_eo_to_smt_str_indexof_re hx hy hz)
+      hEnv (fun hEnv' hClosed' => hRec hEnv' hClosed')
+      (fun hEnv' hClosed' => hRec hEnv' hClosed')
+      (fun hEnv' hClosed' => hRec hEnv' hClosed') hClosed
+  case str_indexof_re_split =>
+    exact smtTermClosedIn_eo_to_smt_ternary_uop_of_closed_rec_using
+      (op := UserOp.str_indexof_re_split) (by decide) (by decide)
+      (fun hx hy hz => smtTermClosedIn_eo_to_smt_str_indexof_re_split hx hy hz)
       hEnv (fun hEnv' hClosed' => hRec hEnv' hClosed')
       (fun hEnv' hClosed' => hRec hEnv' hClosed')
       (fun hEnv' hClosed' => hRec hEnv' hClosed') hClosed
@@ -6105,11 +6038,6 @@ by
     simp
     omega
   cases op
-  case _at_re_unfold_pos_component =>
-    exact smtTermClosedIn_eo_to_smt_re_unfold_pos_component_of_closed_rec_using
-      hEnv (fun hEnv' hClosed' => hRec hXLt hEnv' hClosed')
-      (fun hEnv' hClosed' => hRec hYLt hEnv' hClosed')
-      (fun hEnv' hClosed' => hRec hZLt hEnv' hClosed') hClosed
   case _at_witness_string_length =>
     exact smtTermClosedIn_eo_to_smt_witness_string_length_of_closed_rec_using
       hEnv (fun hEnv' hClosed' => hRec hXLt hEnv' hClosed')
@@ -6520,6 +6448,12 @@ by
       hEnv (fun hEnv' hClosed' => hRec hXLt hEnv' hClosed')
       (fun hEnv' hClosed' => hRec hYLt hEnv' hClosed')
       (fun hEnv' hClosed' => hRec hZLt hEnv' hClosed') hClosed
+  case _at_re_unfold_pos_component =>
+    exact smtTermClosedIn_eo_to_smt_re_unfold_pos_component_of_closed_rec_using
+      (x := y) (y := z) (z := x)
+      hEnv (fun hEnv' hClosed' => hRec hYLt hEnv' hClosed')
+      (fun hEnv' hClosed' => hRec hZLt hEnv' hClosed')
+      (fun hEnv' hClosed' => hRec hXLt hEnv' hClosed') hClosed
   all_goals
     exact smtTermClosedIn_eo_to_smt_apply_generic_below
       (by rfl)
@@ -6630,6 +6564,13 @@ by
     exact smtTermClosedIn_eo_to_smt_ternary_uop_of_closed_rec_using
       (op := UserOp.str_indexof_re) (by decide) (by decide)
       (fun hx hy hz => smtTermClosedIn_eo_to_smt_str_indexof_re hx hy hz)
+      hEnv (fun hEnv' hClosed' => hRec hXLt hEnv' hClosed')
+      (fun hEnv' hClosed' => hRec hYLt hEnv' hClosed')
+      (fun hEnv' hClosed' => hRec hZLt hEnv' hClosed') hClosed
+  case str_indexof_re_split =>
+    exact smtTermClosedIn_eo_to_smt_ternary_uop_of_closed_rec_using
+      (op := UserOp.str_indexof_re_split) (by decide) (by decide)
+      (fun hx hy hz => smtTermClosedIn_eo_to_smt_str_indexof_re_split hx hy hz)
       hEnv (fun hEnv' hClosed' => hRec hXLt hEnv' hClosed')
       (fun hEnv' hClosed' => hRec hYLt hEnv' hClosed')
       (fun hEnv' hClosed' => hRec hZLt hEnv' hClosed') hClosed

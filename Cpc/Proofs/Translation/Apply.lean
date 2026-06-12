@@ -12084,6 +12084,64 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_str_index
       (eo_typeof_eq_int_of_smt_int_from_ih x ihX hArgs.2.2)
   exact hSmt.trans hEo.symm
 
+/-- `str_indexof_re_split`, using local IHs to recover EO argument types. -/
+private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_str_indexof_re_split_from_ih
+    (x y z : Term)
+    (ihZ :
+      __smtx_typeof (__eo_to_smt z) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt z) = __eo_to_smt_type (__eo_typeof z))
+    (ihY :
+      __smtx_typeof (__eo_to_smt y) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt y) = __eo_to_smt_type (__eo_typeof y))
+    (ihX :
+      __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x))
+    (hNonNone :
+      __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof_re_split) z) y) x)) ≠
+        SmtType.None) :
+    __smtx_typeof
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof_re_split) z) y) x)) =
+      __eo_to_smt_type
+        (__eo_typeof
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof_re_split) z) y) x)) := by
+  have hTranslate :
+      __eo_to_smt
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof_re_split) z) y) x) =
+        SmtTerm.str_indexof_re_split (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x) := by
+    rfl
+  have hApplyNN :
+      term_has_non_none_type
+        (SmtTerm.str_indexof_re_split (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x)) := by
+    unfold term_has_non_none_type
+    rw [← hTranslate]
+    exact hNonNone
+  have hArgs := str_indexof_re_split_args_of_non_none hApplyNN
+  have hSmt :
+      __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof_re_split) z) y) x)) =
+        SmtType.Int := by
+    rw [hTranslate,
+      typeof_str_indexof_re_split_eq (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x)]
+    simp [native_ite, native_Teq, hArgs.1, hArgs.2.1, hArgs.2.2]
+  have hEo :
+      __eo_to_smt_type
+          (__eo_typeof
+            (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof_re_split) z) y) x)) =
+        SmtType.Int := by
+    change
+      __eo_to_smt_type
+          (__eo_typeof_str_indexof_re_split (__eo_typeof z) (__eo_typeof y) (__eo_typeof x)) =
+        SmtType.Int
+    rw [eo_typeof_eq_seq_char_of_smt_seq_char_from_ih z ihZ hArgs.1,
+      eo_typeof_eq_reglan_of_smt_reglan_from_ih y ihY hArgs.2.1,
+      eo_typeof_eq_reglan_of_smt_reglan_from_ih x ihX hArgs.2.2]
+    rfl
+  exact hSmt.trans hEo.symm
+
 /-- Ternary `store`, using local IHs to recover the EO array shape. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_store_from_ih
     (x y z : Term)
@@ -13398,6 +13456,9 @@ private theorem eo_to_smt_typeof_matches_translation_apply_binary_application_he
         hNonNone
     case str_indexof_re =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_str_indexof_re_from_ih
+        x y z ihZ ihY ihX hNonNone
+    case str_indexof_re_split =>
+      exact eo_to_smt_typeof_matches_translation_apply_apply_apply_str_indexof_re_split_from_ih
         x y z ihZ ihY ihX hNonNone
     case store =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_store_from_ih
