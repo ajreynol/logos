@@ -8264,9 +8264,9 @@ def __eo_typeof_str_in_re : Term -> Term -> Term
   | _, _ => Term.Stuck
 
 
-def __eo_typeof_str_indexof_re_split : Term -> Term -> Term
-  | (Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char)), (Term.UOp UserOp.RegLan) => (Term.UOp UserOp.RegLan)
-  | _, _ => Term.Stuck
+def __eo_typeof_str_indexof_re_split : Term -> Term -> Term -> Term
+  | (Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char)), (Term.UOp UserOp.RegLan), (Term.UOp UserOp.RegLan) => (Term.UOp UserOp.Int)
+  | _, _, _ => Term.Stuck
 
 
 def __eo_typeof_seq_unit : Term -> Term
@@ -8599,7 +8599,7 @@ def __eo_typeof : Term -> Term
   | (Term.Apply (Term.Apply (Term.UOp UserOp.re_diff) __eo_x1) __eo_x2) => (__eo_typeof_re_concat (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
   | (Term.Apply (Term.UOp2 UserOp2.re_loop __eo_x1 __eo_x2) __eo_x3) => (__eo_typeof_re_loop (__eo_typeof __eo_x1) (__eo_typeof __eo_x2) (__eo_typeof __eo_x3))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) __eo_x1) __eo_x2) => (__eo_typeof_str_in_re (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof_re_split) __eo_x1) __eo_x2) => (__eo_typeof_str_indexof_re_split (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
+  | (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof_re_split) __eo_x1) __eo_x2) __eo_x3) => (__eo_typeof_str_indexof_re_split (__eo_typeof __eo_x1) (__eo_typeof __eo_x2) (__eo_typeof __eo_x3))
   | (Term.Apply (Term.UOp UserOp.seq_unit) __eo_x1) => (__eo_typeof_seq_unit (__eo_typeof __eo_x1))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.seq_nth) __eo_x1) __eo_x2) => (__eo_typeof_seq_nth (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
   | (Term.Apply (Term.Apply (Term.UOp1 UserOp1._at_re_unfold_pos_component __eo_x1) __eo_x2) __eo_x3) => (__eo_typeof__at_re_unfold_pos_component (__eo_typeof __eo_x1) (__eo_typeof __eo_x2) (__eo_typeof __eo_x3))
