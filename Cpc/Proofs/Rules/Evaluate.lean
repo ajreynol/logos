@@ -1,4 +1,5 @@
 import Cpc.Proofs.RuleSupport.Support
+import Cpc.Proofs.RuleSupport.StrInReEvalSupport
 
 open Eo
 open SmtEval
@@ -7,7 +8,7 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
-private theorem eo_mk_apply_eq_apply_of_ne_stuck (f x : Term) :
+private theorem evaluate_eo_mk_apply_eq_apply_of_ne_stuck (f x : Term) :
     __eo_mk_apply f x ≠ Term.Stuck ->
     __eo_mk_apply f x = Term.Apply f x := by
   intro h
@@ -29,7 +30,7 @@ private theorem eo_prog_evaluate_eq_of_ne_stuck (A : Term) :
   all_goals
     first
     | contradiction
-    | exact eo_mk_apply_eq_apply_of_ne_stuck _ _ hProg
+    | exact evaluate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hProg
 
 private theorem eo_prog_evaluate_eq_of_term_and_run_ne_stuck (A : Term) :
     A ≠ Term.Stuck ->
@@ -242,6 +243,51 @@ private theorem eo_str_to_upper_result_arg_typeof_seq_char
     apply eo_typeof_apply_str_to_upper_eq_seq_char_arg
     simpa [__eo_is_str, __eo_is_str_internal, __eo_ite, __eo_mk_apply,
       native_ite, native_teq, native_and, native_not] using h
+
+private theorem eo_typeof_seq_char_of_smt_type_seq_char
+    (t : Term)
+    (hTrans : RuleProofs.eo_has_smt_translation t)
+    (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.Seq SmtType.Char) :
+    __eo_typeof t =
+      Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char) := by
+  have hMatch :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation t hTrans
+  exact TranslationProofs.eo_to_smt_type_eq_seq_char
+    (hMatch.symm.trans hTy)
+
+private theorem eo_typeof_seq_of_smt_type_seq
+    (t : Term)
+    (hTrans : RuleProofs.eo_has_smt_translation t)
+    {T : SmtType}
+    (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.Seq T) :
+    ∃ U : Term,
+      __eo_typeof t = Term.Apply (Term.UOp UserOp.Seq) U ∧
+        __eo_to_smt_type U = T := by
+  have hMatch :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation t hTrans
+  exact TranslationProofs.eo_to_smt_type_eq_seq (hMatch.symm.trans hTy)
+
+private theorem eo_typeof_str_rev_eq_seq_arg
+    {T U : Term} :
+    __eo_typeof_str_rev T = Term.Apply (Term.UOp UserOp.Seq) U ->
+    T = Term.Apply (Term.UOp UserOp.Seq) U := by
+  intro h
+  cases T <;> simp [__eo_typeof_str_rev] at h ⊢
+  case Apply f x =>
+    cases f <;> simp at h ⊢
+    case UOp op =>
+      cases op <;> simp at h ⊢
+      assumption
+
+private theorem eo_typeof_apply_str_rev_eq_seq_arg
+    (t U : Term) :
+    __eo_typeof (Term.Apply (Term.UOp UserOp.str_rev) t) =
+      Term.Apply (Term.UOp UserOp.Seq) U ->
+    __eo_typeof t = Term.Apply (Term.UOp UserOp.Seq) U := by
+  intro h
+  change __eo_typeof_str_rev (__eo_typeof t) =
+      Term.Apply (Term.UOp UserOp.Seq) U at h
+  exact eo_typeof_str_rev_eq_seq_arg h
 
 private theorem native_char_valid_lt
     {c : native_Char} (hc : native_char_valid c = true) :
@@ -529,6 +575,527 @@ private theorem str_case_conv_rec_flatten_upper_singleton
   rw [str_flatten_nary_intro_singleton c]
   exact str_case_conv_rec_upper_singleton hc
 
+private def strCharChain : native_String -> Term
+  | [] => Term.String []
+  | c :: cs =>
+      Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) (Term.String [c]))
+        (strCharChain cs)
+
+private theorem native_string_valid_cons_parts_local
+    {c : native_Char} {cs : native_String}
+    (h : native_string_valid (c :: cs) = true) :
+    native_char_valid c = true ∧ native_string_valid cs = true := by
+  simp [native_string_valid] at h
+  constructor
+  · exact h.1
+  · rw [native_string_valid, List.all_eq_true]
+    intro x hx
+    exact h.2 x hx
+
+private theorem str_case_conv_lower_head_singleton
+    {c : native_Char}
+    (hc : native_char_valid c = true) :
+    __eo_to_str
+        (__eo_add (__eo_to_z (Term.String [c]))
+          (__eo_ite
+            (__eo_and
+              (__eo_gt (Term.Numeral 91) (__eo_to_z (Term.String [c])))
+              (__eo_gt (__eo_to_z (Term.String [c])) (Term.Numeral 64)))
+            (Term.Numeral 32) (Term.Numeral 0))) =
+      Term.String [native_char_to_lower c] := by
+  cases hRange : ((decide (65 ≤ c)) && (decide (c ≤ 90)))
+  · have hGuardFalse :
+        __eo_and (__eo_gt (Term.Numeral 91) (Term.Numeral (c : Int)))
+          (__eo_gt (Term.Numeral (c : Int)) (Term.Numeral 64)) =
+        Term.Boolean false := by
+      rw [str_case_lower_guard_singleton c, hRange]
+    have hCast : (c : Int) + 0 = (c : Int) := by rw [Int.add_zero]
+    rw [eo_to_z_singleton hc]
+    rw [hGuardFalse]
+    change __eo_to_str (Term.Numeral ((c : Int) + 0)) =
+      Term.String [native_char_to_lower c]
+    rw [hCast, eo_to_str_of_valid_nat hc]
+    unfold native_char_to_lower
+    rw [hRange]
+    rfl
+  · have h90 : c ≤ 90 := by
+      cases h65d : decide (65 ≤ c) <;> cases h90d : decide (c ≤ 90) <;>
+        simp [h65d, h90d] at hRange
+      exact of_decide_eq_true h90d
+    have hGuardTrue :
+        __eo_and (__eo_gt (Term.Numeral 91) (Term.Numeral (c : Int)))
+          (__eo_gt (Term.Numeral (c : Int)) (Term.Numeral 64)) =
+        Term.Boolean true := by
+      rw [str_case_lower_guard_singleton c, hRange]
+    have hValidLower : native_char_valid (c + 32) = true := by
+      change decide (c + 32 < 196608) = true
+      exact decide_eq_true
+        (Nat.lt_of_le_of_lt (Nat.add_le_add_right h90 32) (by decide))
+    have hCast : (c : Int) + 32 = ((c + 32 : Nat) : Int) := by
+      rw [Int.natCast_add]
+      rfl
+    rw [eo_to_z_singleton hc]
+    rw [hGuardTrue]
+    change __eo_to_str (Term.Numeral ((c : Int) + 32)) =
+      Term.String [native_char_to_lower c]
+    rw [hCast, eo_to_str_of_valid_nat hValidLower]
+    unfold native_char_to_lower
+    rw [hRange]
+    rfl
+
+private theorem str_case_conv_upper_head_singleton
+    {c : native_Char}
+    (hc : native_char_valid c = true) :
+    __eo_to_str
+        (__eo_add (__eo_to_z (Term.String [c]))
+          (__eo_ite
+            (__eo_and
+              (__eo_gt (Term.Numeral 123) (__eo_to_z (Term.String [c])))
+              (__eo_gt (__eo_to_z (Term.String [c])) (Term.Numeral 96)))
+            (Term.Numeral (-32 : native_Int)) (Term.Numeral 0))) =
+      Term.String [native_char_to_upper c] := by
+  cases hRange : ((decide (97 ≤ c)) && (decide (c ≤ 122)))
+  · have hGuardFalse :
+        __eo_and (__eo_gt (Term.Numeral 123) (Term.Numeral (c : Int)))
+          (__eo_gt (Term.Numeral (c : Int)) (Term.Numeral 96)) =
+        Term.Boolean false := by
+      rw [str_case_upper_guard_singleton c, hRange]
+    have hCast : (c : Int) + 0 = (c : Int) := by rw [Int.add_zero]
+    rw [eo_to_z_singleton hc]
+    rw [hGuardFalse]
+    change __eo_to_str (Term.Numeral ((c : Int) + 0)) =
+      Term.String [native_char_to_upper c]
+    rw [hCast, eo_to_str_of_valid_nat hc]
+    unfold native_char_to_upper
+    rw [hRange]
+    rfl
+  · have h97 : 97 ≤ c := by
+      cases h97d : decide (97 ≤ c) <;> cases h122d : decide (c ≤ 122) <;>
+        simp [h97d, h122d] at hRange
+      exact of_decide_eq_true h97d
+    have h32 : 32 ≤ c := Nat.le_trans (by decide) h97
+    have hGuardTrue :
+        __eo_and (__eo_gt (Term.Numeral 123) (Term.Numeral (c : Int)))
+          (__eo_gt (Term.Numeral (c : Int)) (Term.Numeral 96)) =
+        Term.Boolean true := by
+      rw [str_case_upper_guard_singleton c, hRange]
+    have hValidUpper : native_char_valid (c - 32) = true := by
+      change decide (c - 32 < 196608) = true
+      exact decide_eq_true
+        (Nat.lt_of_le_of_lt (Nat.sub_le c 32) (native_char_valid_lt hc))
+    have hCast : (c : Int) + (-32 : Int) = ((c - 32 : Nat) : Int) := by
+      rw [Int.ofNat_sub h32]
+      rfl
+    rw [eo_to_z_singleton hc]
+    rw [hGuardTrue]
+    change __eo_to_str (Term.Numeral ((c : Int) + (-32 : Int))) =
+      Term.String [native_char_to_upper c]
+    rw [hCast, eo_to_str_of_valid_nat hValidUpper]
+    unfold native_char_to_upper
+    rw [hRange]
+    rfl
+
+private theorem str_case_conv_rec_lower_char_chain :
+    ∀ s : native_String,
+      native_string_valid s = true ->
+        __str_case_conv_rec (strCharChain s) (Term.Boolean true) =
+          Term.String (native_str_to_lower s)
+  | [], _hs => by
+      rfl
+  | c :: cs, hs => by
+      rcases native_string_valid_cons_parts_local hs with ⟨hc, hcs⟩
+      have hTail := str_case_conv_rec_lower_char_chain cs hcs
+      unfold strCharChain
+      unfold __str_case_conv_rec
+      dsimp
+      rw [str_case_conv_lower_head_singleton hc, hTail]
+      rfl
+
+private theorem str_case_conv_rec_upper_char_chain :
+    ∀ s : native_String,
+      native_string_valid s = true ->
+        __str_case_conv_rec (strCharChain s) (Term.Boolean false) =
+          Term.String (native_str_to_upper s)
+  | [], _hs => by
+      rfl
+  | c :: cs, hs => by
+      rcases native_string_valid_cons_parts_local hs with ⟨hc, hcs⟩
+      have hTail := str_case_conv_rec_upper_char_chain cs hcs
+      unfold strCharChain
+      unfold __str_case_conv_rec
+      dsimp
+      rw [str_case_conv_upper_head_singleton hc, hTail]
+      rfl
+
+private theorem substrWord_zero_eq_strCharChain :
+    ∀ s : native_String,
+      RuleProofs.substrWord s 0 s.length = strCharChain s
+  | [] => by
+      rfl
+  | c :: cs => by
+      rw [show (c :: cs).length = cs.length + 1 from rfl]
+      change
+        Term.Apply
+            (Term.Apply (Term.UOp UserOp.str_concat)
+              (Term.String (RuleProofs.extractString (c :: cs) 0)))
+            (RuleProofs.substrWord (c :: cs) (0 + 1) cs.length) =
+          Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) (Term.String [c]))
+            (strCharChain cs)
+      rw [RuleProofs.extractString_zero_cons c cs]
+      rw [show (0 : native_Int) + 1 = 1 by rfl]
+      rw [RuleProofs.substrWord_cons_tail c cs]
+      rw [substrWord_zero_eq_strCharChain cs]
+
+private theorem str_flatten_nary_intro_string_char_chain
+    (s : native_String) :
+    __str_flatten (__str_nary_intro (Term.String s)) = strCharChain s := by
+  cases s with
+  | nil =>
+      rw [RuleProofs.str_flatten_nary_intro_empty]
+      rfl
+  | cons c cs =>
+      rw [RuleProofs.str_flatten_nary_intro_cons c cs]
+      exact substrWord_zero_eq_strCharChain (c :: cs)
+
+private theorem strCharChain_get_nil :
+    ∀ s : native_String,
+      __eo_get_nil_rec (Term.UOp UserOp.str_concat)
+        (strCharChain s) = Term.String []
+  | [] => by
+      simp [strCharChain, __eo_get_nil_rec, __eo_is_list_nil,
+        __eo_is_list_nil_str_concat, __eo_eq, __eo_requires,
+        native_ite, native_teq, native_not]
+  | _c :: cs => by
+      simp [strCharChain, __eo_get_nil_rec, __eo_requires,
+        native_ite, native_teq, native_not]
+      exact strCharChain_get_nil cs
+
+private theorem strCharChain_ne_stuck :
+    ∀ s : native_String, strCharChain s ≠ Term.Stuck
+  | [] => by
+      intro h
+      cases h
+  | _ :: _ => by
+      intro h
+      cases h
+
+private theorem strCharChain_is_list :
+    ∀ s : native_String,
+      __eo_is_list (Term.UOp UserOp.str_concat)
+        (strCharChain s) = Term.Boolean true
+  | [] => by
+      change
+        __eo_is_ok
+            (__eo_get_nil_rec (Term.UOp UserOp.str_concat) (Term.String [])) =
+          Term.Boolean true
+      rw [show __eo_get_nil_rec (Term.UOp UserOp.str_concat)
+          (Term.String []) = Term.String [] by
+        exact strCharChain_get_nil []]
+      exact eo_is_ok_true_of_ne_stuck _ (by intro h; cases h)
+  | c :: cs => by
+      change
+        __eo_is_ok
+            (__eo_get_nil_rec (Term.UOp UserOp.str_concat)
+              (Term.Apply
+                (Term.Apply (Term.UOp UserOp.str_concat) (Term.String [c]))
+                (strCharChain cs))) =
+          Term.Boolean true
+      rw [show __eo_get_nil_rec (Term.UOp UserOp.str_concat)
+          (Term.Apply
+            (Term.Apply (Term.UOp UserOp.str_concat) (Term.String [c]))
+            (strCharChain cs)) = Term.String [] by
+        exact strCharChain_get_nil (c :: cs)]
+      exact eo_is_ok_true_of_ne_stuck _ (by intro h; cases h)
+
+private theorem eo_list_rev_rec_strCharChain :
+    ∀ s t : native_String,
+      __eo_list_rev_rec (strCharChain s) (strCharChain t) =
+        strCharChain (s.reverse ++ t)
+  | [], t => by
+      cases t <;> rfl
+  | c :: cs, t => by
+      rw [show strCharChain (c :: cs) =
+        Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) (Term.String [c]))
+          (strCharChain cs) by
+        rfl]
+      rw [eo_list_rev_rec_cons (Term.UOp UserOp.str_concat)
+        (Term.String [c]) (strCharChain cs) (strCharChain t)
+        (strCharChain_ne_stuck t)]
+      rw [show
+        Term.Apply (Term.Apply (Term.UOp UserOp.str_concat)
+            (Term.String [c])) (strCharChain t) =
+          strCharChain (c :: t) by
+        rfl]
+      rw [eo_list_rev_rec_strCharChain cs (c :: t)]
+      simp [List.reverse_cons, List.append_assoc]
+
+private theorem eo_list_rev_strCharChain :
+    ∀ s : native_String,
+      __eo_list_rev (Term.UOp UserOp.str_concat) (strCharChain s) =
+        strCharChain s.reverse
+  | s => by
+      change
+        __eo_requires
+          (__eo_is_list (Term.UOp UserOp.str_concat) (strCharChain s))
+          (Term.Boolean true)
+          (__eo_list_rev_rec (strCharChain s)
+            (__eo_get_nil_rec (Term.UOp UserOp.str_concat)
+              (strCharChain s))) =
+        strCharChain s.reverse
+      rw [strCharChain_is_list s]
+      simp [__eo_requires, native_ite, native_teq, native_not]
+      rw [strCharChain_get_nil s]
+      simpa [strCharChain, List.append_nil] using
+        eo_list_rev_rec_strCharChain s []
+
+private theorem str_collect_strCharChain :
+    ∀ s : native_String,
+      __str_collect (strCharChain s) =
+        match s with
+        | [] => Term.String []
+        | _ =>
+            Term.Apply
+              (Term.Apply (Term.UOp UserOp.str_concat) (Term.String s))
+              (Term.String [])
+  | [] => by
+      change
+        __eo_requires (Term.String [])
+          (__seq_empty (__eo_typeof (Term.String []))) (Term.String []) =
+        Term.String []
+      change __eo_requires (Term.String []) (Term.String []) (Term.String []) =
+        Term.String []
+      exact eo_requires_self_eq_of_ne_stuck _ _
+        (by intro h; cases h)
+  | c :: cs => by
+      have hLen :
+          __eo_is_eq (__eo_len (Term.String [c])) (Term.Numeral 1) =
+            Term.Boolean true := by
+        rfl
+      cases cs with
+      | nil =>
+          change
+            __eo_ite
+                (__eo_is_eq (__eo_len (Term.String [c])) (Term.Numeral 1))
+                (__str_collect_merge (Term.String [c])
+                  (__str_collect (Term.String [])))
+                (__eo_mk_apply
+                  (Term.Apply (Term.UOp UserOp.str_concat) (Term.String [c]))
+                  (__str_collect (Term.String []))) =
+              Term.Apply
+                (Term.Apply (Term.UOp UserOp.str_concat) (Term.String [c]))
+                (Term.String [])
+          rw [hLen, eo_ite_true]
+          have hCollectEmpty :
+              __str_collect (Term.String []) = Term.String [] := by
+            change
+              __eo_requires (Term.String [])
+                (__seq_empty (__eo_typeof (Term.String []))) (Term.String []) =
+              Term.String []
+            change
+              __eo_requires (Term.String []) (Term.String []) (Term.String []) =
+              Term.String []
+            exact eo_requires_self_eq_of_ne_stuck _ _
+              (by intro h; cases h)
+          rw [hCollectEmpty]
+          rfl
+      | cons d ds =>
+          change
+            __eo_ite
+                (__eo_is_eq (__eo_len (Term.String [c])) (Term.Numeral 1))
+                (__str_collect_merge (Term.String [c])
+                  (__str_collect (strCharChain (d :: ds))))
+                (__eo_mk_apply
+                  (Term.Apply (Term.UOp UserOp.str_concat) (Term.String [c]))
+                  (__str_collect (strCharChain (d :: ds)))) =
+              Term.Apply
+                (Term.Apply (Term.UOp UserOp.str_concat)
+                  (Term.String (c :: d :: ds)))
+                (Term.String [])
+          rw [hLen, eo_ite_true]
+          rw [str_collect_strCharChain (d :: ds)]
+          change
+            __eo_ite (__eo_is_str (Term.String (d :: ds)))
+                (__eo_mk_apply
+                  (__eo_mk_apply (Term.UOp UserOp.str_concat)
+                    (__eo_concat (Term.String [c]) (Term.String (d :: ds))))
+                  (Term.String []))
+                (Term.Apply
+                  (Term.Apply (Term.UOp UserOp.str_concat) (Term.String [c]))
+                  (Term.Apply
+                    (Term.Apply (Term.UOp UserOp.str_concat)
+                      (Term.String (d :: ds)))
+                    (Term.String []))) =
+              Term.Apply
+                (Term.Apply (Term.UOp UserOp.str_concat)
+                  (Term.String (c :: d :: ds)))
+                (Term.String [])
+          rw [show __eo_is_str (Term.String (d :: ds)) = Term.Boolean true by
+            rfl]
+          rw [eo_ite_true]
+          rfl
+
+private theorem str_collect_elim_strCharChain :
+    ∀ s : native_String,
+      __str_nary_elim (__str_collect (strCharChain s)) =
+        Term.String s
+  | [] => by
+      rw [str_collect_strCharChain []]
+      change
+        __eo_requires (Term.String [])
+          (__seq_empty (__eo_typeof (Term.String []))) (Term.String []) =
+        Term.String []
+      change __eo_requires (Term.String []) (Term.String []) (Term.String []) =
+        Term.String []
+      exact eo_requires_self_eq_of_ne_stuck _ _
+        (by intro h; cases h)
+  | c :: cs => by
+      rw [str_collect_strCharChain (c :: cs)]
+      change
+        __eo_ite
+            (__eo_eq (Term.String [])
+              (__seq_empty (__eo_typeof (Term.String (c :: cs)))))
+            (Term.String (c :: cs))
+            (Term.Apply
+              (Term.Apply (Term.UOp UserOp.str_concat)
+                (Term.String (c :: cs)))
+              (Term.String [])) =
+          Term.String (c :: cs)
+      have hEq :
+          __eo_eq (Term.String [])
+              (__seq_empty (__eo_typeof (Term.String (c :: cs)))) =
+            Term.Boolean true := by
+        rfl
+      rw [hEq, eo_ite_true]
+
+private theorem str_rev_string_char_chain :
+    ∀ s : native_String,
+      __str_nary_elim
+          (__str_collect
+            (__eo_list_rev (Term.UOp UserOp.str_concat)
+              (strCharChain s))) =
+        Term.String s.reverse
+  | s => by
+      rw [eo_list_rev_strCharChain s]
+      exact str_collect_elim_strCharChain s.reverse
+
+private theorem eo_is_str_false_of_not_string
+    (t : Term)
+    (hNotString : ∀ s : native_String, t ≠ Term.String s) :
+    __eo_is_str t = Term.Boolean false := by
+  cases t <;>
+    simp [__eo_is_str, __eo_is_str_internal, native_teq, native_and,
+      native_not] at hNotString ⊢
+
+private theorem str_rev_result_string
+    {s : native_String} :
+    __eo_ite (__eo_is_str (Term.String s))
+        (__str_nary_elim
+          (__str_collect
+            (__eo_list_rev (Term.UOp UserOp.str_concat)
+              (__str_flatten (__str_nary_intro (Term.String s))))))
+        (__eo_mk_apply (Term.UOp UserOp.str_rev) (Term.String s)) =
+      Term.String s.reverse := by
+  have hIsStr :
+      __eo_is_str (Term.String s) = Term.Boolean true := by
+    rfl
+  rw [hIsStr, eo_ite_true]
+  rw [str_flatten_nary_intro_string_char_chain]
+  exact str_rev_string_char_chain s
+
+private theorem str_rev_result_non_string
+    {t : Term}
+    (hNotString : ∀ s : native_String, t ≠ Term.String s)
+    (hTNe : t ≠ Term.Stuck) :
+    __eo_ite (__eo_is_str t)
+        (__str_nary_elim
+          (__str_collect
+            (__eo_list_rev (Term.UOp UserOp.str_concat)
+              (__str_flatten (__str_nary_intro t)))))
+        (__eo_mk_apply (Term.UOp UserOp.str_rev) t) =
+      Term.Apply (Term.UOp UserOp.str_rev) t := by
+  rw [eo_is_str_false_of_not_string t hNotString, eo_ite_false]
+  exact eo_mk_apply_eq_apply_of_args_ne_stuck _ _
+    (by intro h; cases h) hTNe
+
+private theorem eo_str_rev_result_arg_typeof_seq
+    (t U : Term) :
+    __eo_typeof
+        (__eo_ite (__eo_is_str t)
+          (__str_nary_elim
+            (__str_collect
+              (__eo_list_rev (Term.UOp UserOp.str_concat)
+                (__str_flatten (__str_nary_intro t)))))
+          (__eo_mk_apply (Term.UOp UserOp.str_rev) t)) =
+      Term.Apply (Term.UOp UserOp.Seq) U ->
+    __eo_typeof t = Term.Apply (Term.UOp UserOp.Seq) U := by
+  intro h
+  cases t
+  case String s =>
+    rw [str_rev_result_string] at h
+    exact h
+  all_goals
+    apply eo_typeof_apply_str_rev_eq_seq_arg
+    simpa [__eo_is_str, __eo_is_str_internal, __eo_ite, __eo_mk_apply,
+      native_ite, native_teq, native_and, native_not] using h
+
+private theorem str_to_lower_result_string
+    {s : native_String}
+    (hValid : native_string_valid s = true) :
+    __eo_ite (__eo_is_str (Term.String s))
+        (__str_case_conv_rec (__str_flatten (__str_nary_intro (Term.String s)))
+          (Term.Boolean true))
+        (__eo_mk_apply (Term.UOp UserOp.str_to_lower) (Term.String s)) =
+      Term.String (native_str_to_lower s) := by
+  have hIsStr :
+      __eo_is_str (Term.String s) = Term.Boolean true := by
+    simp [__eo_is_str, __eo_is_str_internal, native_teq, native_and,
+      native_not]
+  rw [hIsStr, eo_ite_true]
+  rw [str_flatten_nary_intro_string_char_chain]
+  exact str_case_conv_rec_lower_char_chain s hValid
+
+private theorem str_to_upper_result_string
+    {s : native_String}
+    (hValid : native_string_valid s = true) :
+    __eo_ite (__eo_is_str (Term.String s))
+        (__str_case_conv_rec (__str_flatten (__str_nary_intro (Term.String s)))
+          (Term.Boolean false))
+        (__eo_mk_apply (Term.UOp UserOp.str_to_upper) (Term.String s)) =
+      Term.String (native_str_to_upper s) := by
+  have hIsStr :
+      __eo_is_str (Term.String s) = Term.Boolean true := by
+    simp [__eo_is_str, __eo_is_str_internal, native_teq, native_and,
+      native_not]
+  rw [hIsStr, eo_ite_true]
+  rw [str_flatten_nary_intro_string_char_chain]
+  exact str_case_conv_rec_upper_char_chain s hValid
+
+private theorem str_to_lower_result_non_string
+    {t : Term}
+    (hNotString : ∀ s : native_String, t ≠ Term.String s)
+    (hTNe : t ≠ Term.Stuck) :
+    __eo_ite (__eo_is_str t)
+        (__str_case_conv_rec (__str_flatten (__str_nary_intro t))
+          (Term.Boolean true))
+        (__eo_mk_apply (Term.UOp UserOp.str_to_lower) t) =
+      Term.Apply (Term.UOp UserOp.str_to_lower) t := by
+  rw [eo_is_str_false_of_not_string t hNotString, eo_ite_false]
+  exact eo_mk_apply_eq_apply_of_args_ne_stuck _ _
+    (by intro h; cases h) hTNe
+
+private theorem str_to_upper_result_non_string
+    {t : Term}
+    (hNotString : ∀ s : native_String, t ≠ Term.String s)
+    (hTNe : t ≠ Term.Stuck) :
+    __eo_ite (__eo_is_str t)
+        (__str_case_conv_rec (__str_flatten (__str_nary_intro t))
+          (Term.Boolean false))
+        (__eo_mk_apply (Term.UOp UserOp.str_to_upper) t) =
+      Term.Apply (Term.UOp UserOp.str_to_upper) t := by
+  rw [eo_is_str_false_of_not_string t hNotString, eo_ite_false]
+  exact eo_mk_apply_eq_apply_of_args_ne_stuck _ _
+    (by intro h; cases h) hTNe
+
 private theorem smt_value_rel_model_eval_not_of_rel
     (a b : SmtValue) :
     RuleProofs.smt_value_rel a b ->
@@ -565,6 +1132,20 @@ private theorem smt_value_rel_model_eval_str_to_upper_of_rel
       ∃ r1 r2, a = SmtValue.RegLan r1 ∧ b = SmtValue.RegLan r2
   · rcases hReg with ⟨r1, r2, rfl, rfl⟩
     simp [__smtx_model_eval_str_to_upper, RuleProofs.smt_value_rel_refl]
+  · have hEq := (RuleProofs.smt_value_rel_iff_eq a b hReg).mp hRel
+    subst b
+    exact RuleProofs.smt_value_rel_refl _
+
+private theorem smt_value_rel_model_eval_str_rev_of_rel
+    (a b : SmtValue) :
+    RuleProofs.smt_value_rel a b ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval_str_rev a) (__smtx_model_eval_str_rev b) := by
+  intro hRel
+  by_cases hReg :
+      ∃ r1 r2, a = SmtValue.RegLan r1 ∧ b = SmtValue.RegLan r2
+  · rcases hReg with ⟨r1, r2, rfl, rfl⟩
+    simp [__smtx_model_eval_str_rev, RuleProofs.smt_value_rel_refl]
   · have hEq := (RuleProofs.smt_value_rel_iff_eq a b hReg).mp hRel
     subst b
     exact RuleProofs.smt_value_rel_refl _
@@ -1967,6 +2548,29 @@ private theorem native_string_valid_of_string_type
   cases hValid : native_string_valid str <;>
     simp [__smtx_typeof, native_ite, hValid] at hTy ⊢
 
+private theorem smt_string_seq_type_inv
+    {str : native_String} {T : SmtType}
+    (hTy : __smtx_typeof (__eo_to_smt (Term.String str)) =
+      SmtType.Seq T) :
+    native_string_valid str = true ∧ T = SmtType.Char := by
+  change __smtx_typeof (SmtTerm.String str) = SmtType.Seq T at hTy
+  rw [__smtx_typeof.eq_4] at hTy
+  cases hValid : native_string_valid str
+  · simp [native_ite, hValid] at hTy
+  · simp [native_ite, hValid] at hTy
+    constructor
+    · rfl
+    · cases hTy
+      rfl
+
+private theorem native_string_valid_reverse_local
+    {str : native_String}
+    (hValid : native_string_valid str = true) :
+    native_string_valid str.reverse = true := by
+  rw [native_string_valid, List.all_eq_true] at hValid ⊢
+  intro c hc
+  exact hValid c (by simpa using List.mem_reverse.mp hc)
+
 private theorem native_string_valid_append_local
     {xs ys : native_String}
     (hxs : native_string_valid xs = true)
@@ -2556,7 +3160,7 @@ private theorem run_evaluate_sound_apply_not_core
               (Term.Apply (Term.UOp UserOp.not) b))
             (__eo_not (__run_evaluate b))) =
         Term.Bool at hEvalTy
-    rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
+    rw [evaluate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
     exact hEvalTy
   have hRunNotEoBool : __eo_typeof (__eo_not (__run_evaluate b)) = Term.Bool := by
     have hEq :=
@@ -2687,7 +3291,7 @@ private theorem run_evaluate_sound_apply_bvnot_core
               (Term.Apply (Term.UOp UserOp.bvnot) b))
             (__eo_not (__run_evaluate b))) =
         Term.Bool at hEvalTy
-    rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
+    rw [evaluate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
     exact hEvalTy
   have hRunNotEoBv :
       __eo_typeof (__eo_not (__run_evaluate b)) =
@@ -2869,7 +3473,7 @@ private theorem run_evaluate_sound_apply_bvneg_core
               (Term.Apply (Term.UOp UserOp.bvneg) b))
             (__eo_neg (__run_evaluate b))) =
         Term.Bool at hEvalTy
-    rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
+    rw [evaluate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
     exact hEvalTy
   have hRunNegEoBv :
       __eo_typeof (__eo_neg (__run_evaluate b)) =
@@ -3040,7 +3644,7 @@ private theorem run_evaluate_sound_apply_uneg_core
                 (Term.Apply (Term.UOp UserOp.__eoo_neg_2) b))
               (__eo_neg (__run_evaluate b))) =
           Term.Bool at hEvalTy
-      rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
+      rw [evaluate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
       exact hEvalTy
     have hRunNegEoInt :
         __eo_typeof (__eo_neg (__run_evaluate b)) =
@@ -3160,7 +3764,7 @@ private theorem run_evaluate_sound_apply_uneg_core
                 (Term.Apply (Term.UOp UserOp.__eoo_neg_2) b))
               (__eo_neg (__run_evaluate b))) =
           Term.Bool at hEvalTy
-      rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
+      rw [evaluate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
       exact hEvalTy
     have hRunNegEoReal :
         __eo_typeof (__eo_neg (__run_evaluate b)) =
@@ -3305,7 +3909,7 @@ private theorem run_evaluate_sound_apply_abs_core
             (__eo_ite (__eo_is_neg (__run_evaluate b))
               (__eo_neg (__run_evaluate b)) (__run_evaluate b))) =
         Term.Bool at hEvalTy
-    rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
+    rw [evaluate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
     exact hEvalTy
   have hRunAbsEoInt :
       __eo_typeof
@@ -3472,7 +4076,7 @@ private theorem run_evaluate_sound_apply_int_pow2_core
               (Term.Apply (Term.UOp UserOp.int_pow2) b))
             runPow) =
         Term.Bool at hEvalTy
-    rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
+    rw [evaluate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
     exact hEvalTy
   have hRunPowEoInt :
       __eo_typeof runPow = Term.UOp UserOp.Int := by
@@ -3675,7 +4279,7 @@ private theorem run_evaluate_sound_apply_int_ispow2_core
               (Term.Apply (Term.UOp UserOp.int_ispow2) b))
             runIspow) =
         Term.Bool at hEvalTy
-    rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
+    rw [evaluate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
     exact hEvalTy
   have hRunIspowEoBool :
       __eo_typeof runIspow = Term.Bool := by
@@ -3958,7 +4562,7 @@ private theorem run_evaluate_sound_apply_bvand_core
               (Term.Apply (Term.Apply (Term.UOp UserOp.bvand) a) b))
             (__eo_and (__run_evaluate a) (__run_evaluate b))) =
         Term.Bool at hEvalTy
-    rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
+    rw [evaluate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
     exact hEvalTy
   have hRunAndEoBv :
       __eo_typeof (__eo_and (__run_evaluate a) (__run_evaluate b)) =
@@ -4211,7 +4815,7 @@ private theorem run_evaluate_sound_apply_bvor_core
               (Term.Apply (Term.Apply (Term.UOp UserOp.bvor) a) b))
             (__eo_or (__run_evaluate a) (__run_evaluate b))) =
         Term.Bool at hEvalTy
-    rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
+    rw [evaluate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
     exact hEvalTy
   have hRunOrEoBv :
       __eo_typeof (__eo_or (__run_evaluate a) (__run_evaluate b)) =
@@ -4464,7 +5068,7 @@ private theorem run_evaluate_sound_apply_bvxor_core
               (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) a) b))
             (__eo_xor (__run_evaluate a) (__run_evaluate b))) =
         Term.Bool at hEvalTy
-    rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
+    rw [evaluate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
     exact hEvalTy
   have hRunXorEoBv :
       __eo_typeof (__eo_xor (__run_evaluate a) (__run_evaluate b)) =
@@ -4717,7 +5321,7 @@ private theorem run_evaluate_sound_apply_bvadd_core
               (Term.Apply (Term.Apply (Term.UOp UserOp.bvadd) a) b))
             (__eo_add (__run_evaluate a) (__run_evaluate b))) =
         Term.Bool at hEvalTy
-    rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
+    rw [evaluate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
     exact hEvalTy
   have hRunAddEoBv :
       __eo_typeof (__eo_add (__run_evaluate a) (__run_evaluate b)) =
@@ -4970,7 +5574,7 @@ private theorem run_evaluate_sound_apply_bvmul_core
               (Term.Apply (Term.Apply (Term.UOp UserOp.bvmul) a) b))
             (__eo_mul (__run_evaluate a) (__run_evaluate b))) =
         Term.Bool at hEvalTy
-    rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
+    rw [evaluate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
     exact hEvalTy
   have hRunMulEoBv :
       __eo_typeof (__eo_mul (__run_evaluate a) (__run_evaluate b)) =
@@ -5229,7 +5833,7 @@ private theorem run_evaluate_sound_apply_bvsub_core
             (__eo_add (__run_evaluate a)
               (__eo_neg (__run_evaluate b)))) =
         Term.Bool at hEvalTy
-    rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
+    rw [evaluate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
     exact hEvalTy
   have hRunSubEoBv :
       __eo_typeof
@@ -5497,7 +6101,7 @@ private theorem run_evaluate_sound_apply_plus_core
                 (Term.Apply (Term.Apply (Term.UOp UserOp.plus) a) b))
               (__eo_add (__run_evaluate a) (__run_evaluate b))) =
           Term.Bool at hEvalTy
-      rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
+      rw [evaluate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
       exact hEvalTy
     have hRunAddEoInt :
         __eo_typeof (__eo_add (__run_evaluate a) (__run_evaluate b)) =
@@ -5661,7 +6265,7 @@ private theorem run_evaluate_sound_apply_plus_core
                 (Term.Apply (Term.Apply (Term.UOp UserOp.plus) a) b))
               (__eo_add (__run_evaluate a) (__run_evaluate b))) =
           Term.Bool at hEvalTy
-      rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
+      rw [evaluate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
       exact hEvalTy
     have hRunAddEoReal :
         __eo_typeof (__eo_add (__run_evaluate a) (__run_evaluate b)) =
@@ -5846,7 +6450,7 @@ private theorem run_evaluate_sound_apply_mult_core
                 (Term.Apply (Term.Apply (Term.UOp UserOp.mult) a) b))
               (__eo_mul (__run_evaluate a) (__run_evaluate b))) =
           Term.Bool at hEvalTy
-      rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
+      rw [evaluate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
       exact hEvalTy
     have hRunMulEoInt :
         __eo_typeof (__eo_mul (__run_evaluate a) (__run_evaluate b)) =
@@ -6010,7 +6614,7 @@ private theorem run_evaluate_sound_apply_mult_core
                 (Term.Apply (Term.Apply (Term.UOp UserOp.mult) a) b))
               (__eo_mul (__run_evaluate a) (__run_evaluate b))) =
           Term.Bool at hEvalTy
-      rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
+      rw [evaluate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
       exact hEvalTy
     have hRunMulEoReal :
         __eo_typeof (__eo_mul (__run_evaluate a) (__run_evaluate b)) =
@@ -6201,7 +6805,7 @@ private theorem run_evaluate_sound_apply_neg_core
               (__eo_add (__run_evaluate a)
                 (__eo_neg (__run_evaluate b)))) =
           Term.Bool at hEvalTy
-      rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
+      rw [evaluate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
       exact hEvalTy
     have hRunSubEoInt :
         __eo_typeof
@@ -6387,7 +6991,7 @@ private theorem run_evaluate_sound_apply_neg_core
               (__eo_add (__run_evaluate a)
                 (__eo_neg (__run_evaluate b)))) =
           Term.Bool at hEvalTy
-      rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
+      rw [evaluate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
       exact hEvalTy
     have hRunSubEoReal :
         __eo_typeof
@@ -6588,7 +7192,7 @@ private theorem run_evaluate_sound_apply_div_core
               (Term.Apply (Term.Apply (Term.UOp UserOp.div) a) b))
             (__eo_zdiv (__run_evaluate a) (__run_evaluate b))) =
         Term.Bool at hEvalTy
-    rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
+    rw [evaluate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
     exact hEvalTy
   have hRunDivEoInt :
       __eo_typeof (__eo_zdiv (__run_evaluate a) (__run_evaluate b)) =
@@ -6806,7 +7410,7 @@ private theorem run_evaluate_sound_apply_mod_core
               (Term.Apply (Term.Apply (Term.UOp UserOp.mod) a) b))
             (__eo_zmod (__run_evaluate a) (__run_evaluate b))) =
         Term.Bool at hEvalTy
-    rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
+    rw [evaluate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
     exact hEvalTy
   have hRunModEoInt :
       __eo_typeof (__eo_zmod (__run_evaluate a) (__run_evaluate b)) =
@@ -7028,7 +7632,7 @@ private theorem run_evaluate_sound_apply_div_total_core
               (Term.Apply (Term.Apply (Term.UOp UserOp.div_total) a) b))
             runDivTotal) =
         Term.Bool at hEvalTy
-    rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
+    rw [evaluate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
     exact hEvalTy
   have hRunDivTotalEoInt :
       __eo_typeof runDivTotal = Term.UOp UserOp.Int := by
@@ -7309,7 +7913,7 @@ private theorem run_evaluate_sound_apply_mod_total_core
               (Term.Apply (Term.Apply (Term.UOp UserOp.mod_total) a) b))
             runModTotal) =
         Term.Bool at hEvalTy
-    rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
+    rw [evaluate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
     exact hEvalTy
   have hRunModTotalEoInt :
       __eo_typeof runModTotal = Term.UOp UserOp.Int := by
@@ -7595,7 +8199,7 @@ private theorem run_evaluate_sound_apply_and_core
               (Term.Apply (Term.Apply (Term.UOp UserOp.and) a) b))
             (__eo_and (__run_evaluate a) (__run_evaluate b))) =
         Term.Bool at hEvalTy
-    rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
+    rw [evaluate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
     exact hEvalTy
   have hRunAndEoBool :
       __eo_typeof (__eo_and (__run_evaluate a) (__run_evaluate b)) =
@@ -7740,7 +8344,7 @@ private theorem run_evaluate_sound_apply_or_core
               (Term.Apply (Term.Apply (Term.UOp UserOp.or) a) b))
             (__eo_or (__run_evaluate a) (__run_evaluate b))) =
         Term.Bool at hEvalTy
-    rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
+    rw [evaluate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
     exact hEvalTy
   have hRunOrEoBool :
       __eo_typeof (__eo_or (__run_evaluate a) (__run_evaluate b)) =
@@ -7885,7 +8489,7 @@ private theorem run_evaluate_sound_apply_xor_core
               (Term.Apply (Term.Apply (Term.UOp UserOp.xor) a) b))
             (__eo_xor (__run_evaluate a) (__run_evaluate b))) =
         Term.Bool at hEvalTy
-    rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
+    rw [evaluate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
     exact hEvalTy
   have hRunXorEoBool :
       __eo_typeof (__eo_xor (__run_evaluate a) (__run_evaluate b)) =
@@ -8064,7 +8668,7 @@ private theorem run_evaluate_sound_apply_imp_core
               (Term.Apply (Term.Apply (Term.UOp UserOp.imp) a) b))
             (__eo_or (__eo_not (__run_evaluate a)) (__run_evaluate b))) =
         Term.Bool at hEvalTy
-    rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
+    rw [evaluate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
     exact hEvalTy
   have hRunImpEoBool :
       __eo_typeof
@@ -8249,7 +8853,7 @@ private theorem run_evaluate_sound_apply_str_concat_core
               (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) a) b))
             (__eo_concat (__run_evaluate a) (__run_evaluate b))) =
         Term.Bool at hEvalTy
-    rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
+    rw [evaluate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
     exact hEvalTy
   have hRunConcatEoSeq :
       __eo_typeof (__eo_concat (__run_evaluate a) (__run_evaluate b)) =
@@ -8420,6 +9024,655 @@ private theorem run_evaluate_sound_apply_str_concat_core
       elem_typeof_pack_seq_local, List.map_append,
       RuleProofs.smtx_model_eval_eq_refl]
 
+private theorem run_evaluate_sound_apply_str_to_lower_core
+    (M : SmtModel) (hM : model_total_typed M)
+    (b : Term)
+    (rec :
+      ∀ A : Term,
+        sizeOf A < sizeOf (Term.Apply (Term.UOp UserOp.str_to_lower) b) ->
+          RunEvaluateSoundGoal M A) :
+  RunEvaluateSoundGoal M (Term.Apply (Term.UOp UserOp.str_to_lower) b) := by
+  intro hATrans hEvalTy
+  have hLowerNN :
+      term_has_non_none_type (SmtTerm.str_to_lower (__eo_to_smt b)) := by
+    unfold term_has_non_none_type
+    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+  have hBTyChar :
+      __smtx_typeof (__eo_to_smt b) = SmtType.Seq SmtType.Char :=
+    seq_char_arg_of_non_none (op := SmtTerm.str_to_lower)
+      (typeof_str_to_lower_eq (__eo_to_smt b)) hLowerNN
+  have hBTrans : RuleProofs.eo_has_smt_translation b := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hBTyChar]
+    simp
+  have hBEoSeqChar :
+      __eo_typeof b =
+        Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char) :=
+    eo_typeof_seq_char_of_smt_type_seq_char b hBTrans hBTyChar
+  have hLowerEoSeqChar :
+      __eo_typeof (Term.Apply (Term.UOp UserOp.str_to_lower) b) =
+        Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char) := by
+    change __eo_typeof_str_to_lower (__eo_typeof b) =
+      Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char)
+    rw [hBEoSeqChar]
+    rfl
+  let runArg := __run_evaluate b
+  let runLower :=
+    __eo_ite (__eo_is_str runArg)
+      (__str_case_conv_rec (__str_flatten (__str_nary_intro runArg))
+        (Term.Boolean true))
+      (__eo_mk_apply (Term.UOp UserOp.str_to_lower) runArg)
+  have hRunLowerNe : runLower ≠ Term.Stuck := by
+    intro hStuck
+    change
+      __eo_typeof
+          (__eo_mk_apply
+            (Term.Apply (Term.UOp UserOp.eq)
+              (Term.Apply (Term.UOp UserOp.str_to_lower) b))
+            runLower) =
+        Term.Bool at hEvalTy
+    rw [hStuck] at hEvalTy
+    change Term.Stuck = Term.Bool at hEvalTy
+    cases hEvalTy
+  have hMkNe :
+      __eo_mk_apply
+          (Term.Apply (Term.UOp UserOp.eq)
+            (Term.Apply (Term.UOp UserOp.str_to_lower) b))
+          runLower ≠
+        Term.Stuck := by
+    intro hMk
+    cases hRun : runLower <;>
+      simp [__eo_mk_apply, hRun] at hMk hRunLowerNe
+  have hEvalEqTy :
+      __eo_typeof
+          (Term.Apply
+            (Term.Apply (Term.UOp UserOp.eq)
+              (Term.Apply (Term.UOp UserOp.str_to_lower) b))
+            runLower) =
+        Term.Bool := by
+    change
+      __eo_typeof
+          (__eo_mk_apply
+            (Term.Apply (Term.UOp UserOp.eq)
+              (Term.Apply (Term.UOp UserOp.str_to_lower) b))
+            runLower) =
+        Term.Bool at hEvalTy
+    rw [evaluate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
+    exact hEvalTy
+  have hRunLowerEoSeqChar :
+      __eo_typeof runLower =
+        Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char) := by
+    have hEq :=
+      evaluate_apply_eq_typeof_bool_operands_eq
+        (Term.Apply (Term.UOp UserOp.str_to_lower) b) runLower hEvalEqTy
+    exact hEq.symm.trans hLowerEoSeqChar
+  have hRunBEoSeqChar :
+      __eo_typeof runArg =
+        Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char) :=
+    eo_str_to_lower_result_arg_typeof_seq_char runArg hRunLowerEoSeqChar
+  have hSeqCharNe :
+      Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char) ≠
+        Term.Stuck := by
+    intro h
+    cases h
+  have hBProgTy : __eo_typeof (__eo_prog_evaluate b) = Term.Bool :=
+    eo_prog_evaluate_typeof_bool_of_same_type_and_run_typeof b
+      (Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char))
+      (RuleProofs.term_ne_stuck_of_has_smt_translation b hBTrans)
+      hSeqCharNe hBEoSeqChar hRunBEoSeqChar
+  rcases run_evaluate_rec_apply_arg M (Term.UOp UserOp.str_to_lower) b rec
+      hBTrans hBProgTy with
+    ⟨hSameTy, hRel⟩
+  have hSameTyRun :
+      __smtx_typeof (__eo_to_smt b) =
+        __smtx_typeof (__eo_to_smt runArg) := by
+    simpa [runArg] using hSameTy
+  have hRelRun :
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M (__eo_to_smt b))
+        (__smtx_model_eval M (__eo_to_smt runArg)) := by
+    simpa [runArg] using hRel
+  change
+    __smtx_typeof (SmtTerm.str_to_lower (__eo_to_smt b)) =
+        __smtx_typeof (__eo_to_smt runLower) ∧
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M (SmtTerm.str_to_lower (__eo_to_smt b)))
+        (__smtx_model_eval M (__eo_to_smt runLower))
+  by_cases hString : ∃ s : native_String, runArg = Term.String s
+  · rcases hString with ⟨s, hs⟩
+    have hRunStringTy :
+        __smtx_typeof (__eo_to_smt (Term.String s)) =
+          SmtType.Seq SmtType.Char := by
+      rw [← hs]
+      exact hSameTyRun.symm.trans hBTyChar
+    have hValid : native_string_valid s = true :=
+      native_string_valid_of_string_type hRunStringTy
+    have hRunLowerString :
+        runLower = Term.String (native_str_to_lower s) := by
+      dsimp [runLower]
+      rw [hs]
+      exact str_to_lower_result_string hValid
+    rw [hRunLowerString]
+    constructor
+    · change
+        __smtx_typeof (SmtTerm.str_to_lower (__eo_to_smt b)) =
+          __smtx_typeof (SmtTerm.String (native_str_to_lower s))
+      rw [typeof_str_to_lower_eq]
+      simp [__smtx_typeof, hBTyChar, native_ite, native_Teq,
+        native_str_to_lower_valid hValid]
+    · have hRelString :
+          RuleProofs.smt_value_rel
+            (__smtx_model_eval M (__eo_to_smt b))
+            (__smtx_model_eval M (__eo_to_smt (Term.String s))) := by
+        rw [← hs]
+        exact hRelRun
+      have hRelLower :=
+        smt_value_rel_model_eval_str_to_lower_of_rel
+          (__smtx_model_eval M (__eo_to_smt b))
+          (__smtx_model_eval M (__eo_to_smt (Term.String s)))
+          hRelString
+      have hEvalLowerB :
+          __smtx_model_eval M (SmtTerm.str_to_lower (__eo_to_smt b)) =
+            __smtx_model_eval_str_to_lower
+              (__smtx_model_eval M (__eo_to_smt b)) := by
+        rw [__smtx_model_eval.eq_90]
+      have hEvalString :
+          __smtx_model_eval M (__eo_to_smt (Term.String s)) =
+            SmtValue.Seq (native_pack_string s) := by
+        rw [show __eo_to_smt (Term.String s) = SmtTerm.String s by rfl]
+        rw [__smtx_model_eval.eq_4]
+      have hEvalLowerString :
+          __smtx_model_eval M
+              (__eo_to_smt (Term.String (native_str_to_lower s))) =
+            __smtx_model_eval_str_to_lower
+              (__smtx_model_eval M (__eo_to_smt (Term.String s))) := by
+        rw [hEvalString]
+        rw [show __eo_to_smt (Term.String (native_str_to_lower s)) =
+          SmtTerm.String (native_str_to_lower s) by rfl]
+        rw [__smtx_model_eval.eq_4]
+        simp [__smtx_model_eval_str_to_lower,
+          RuleProofs.native_unpack_string_pack_string]
+      rw [hEvalLowerB, hEvalLowerString]
+      exact hRelLower
+  · have hNotString : ∀ s : native_String, runArg ≠ Term.String s := by
+      intro s hs
+      exact hString ⟨s, hs⟩
+    have hRunArgNe : runArg ≠ Term.Stuck := by
+      intro hStuck
+      rw [hStuck] at hRunBEoSeqChar
+      change Term.Stuck =
+        Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char) at hRunBEoSeqChar
+      cases hRunBEoSeqChar
+    have hRunLowerApply :
+        runLower = Term.Apply (Term.UOp UserOp.str_to_lower) runArg := by
+      dsimp [runLower]
+      exact str_to_lower_result_non_string hNotString hRunArgNe
+    rw [hRunLowerApply]
+    constructor
+    · change
+        __smtx_typeof (SmtTerm.str_to_lower (__eo_to_smt b)) =
+          __smtx_typeof (SmtTerm.str_to_lower (__eo_to_smt runArg))
+      have hRunTyChar :
+          __smtx_typeof (__eo_to_smt runArg) =
+            SmtType.Seq SmtType.Char :=
+        hSameTyRun.symm.trans hBTyChar
+      rw [typeof_str_to_lower_eq, typeof_str_to_lower_eq]
+      simp [hBTyChar, hRunTyChar, native_ite, native_Teq]
+    · have hRelLower :=
+        smt_value_rel_model_eval_str_to_lower_of_rel
+          (__smtx_model_eval M (__eo_to_smt b))
+          (__smtx_model_eval M (__eo_to_smt runArg))
+          hRelRun
+      have hEvalLowerB :
+          __smtx_model_eval M (SmtTerm.str_to_lower (__eo_to_smt b)) =
+            __smtx_model_eval_str_to_lower
+              (__smtx_model_eval M (__eo_to_smt b)) := by
+        rw [__smtx_model_eval.eq_90]
+      have hEvalLowerRun :
+          __smtx_model_eval M
+              (__eo_to_smt
+                (Term.Apply (Term.UOp UserOp.str_to_lower) runArg)) =
+            __smtx_model_eval_str_to_lower
+              (__smtx_model_eval M (__eo_to_smt runArg)) := by
+        change
+          __smtx_model_eval M (SmtTerm.str_to_lower (__eo_to_smt runArg)) =
+            __smtx_model_eval_str_to_lower
+              (__smtx_model_eval M (__eo_to_smt runArg))
+        rw [__smtx_model_eval.eq_90]
+      rw [hEvalLowerB, hEvalLowerRun]
+      exact hRelLower
+
+private theorem run_evaluate_sound_apply_str_to_upper_core
+    (M : SmtModel) (hM : model_total_typed M)
+    (b : Term)
+    (rec :
+      ∀ A : Term,
+        sizeOf A < sizeOf (Term.Apply (Term.UOp UserOp.str_to_upper) b) ->
+          RunEvaluateSoundGoal M A) :
+  RunEvaluateSoundGoal M (Term.Apply (Term.UOp UserOp.str_to_upper) b) := by
+  intro hATrans hEvalTy
+  have hUpperNN :
+      term_has_non_none_type (SmtTerm.str_to_upper (__eo_to_smt b)) := by
+    unfold term_has_non_none_type
+    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+  have hBTyChar :
+      __smtx_typeof (__eo_to_smt b) = SmtType.Seq SmtType.Char :=
+    seq_char_arg_of_non_none (op := SmtTerm.str_to_upper)
+      (typeof_str_to_upper_eq (__eo_to_smt b)) hUpperNN
+  have hBTrans : RuleProofs.eo_has_smt_translation b := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hBTyChar]
+    simp
+  have hBEoSeqChar :
+      __eo_typeof b =
+        Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char) :=
+    eo_typeof_seq_char_of_smt_type_seq_char b hBTrans hBTyChar
+  have hUpperEoSeqChar :
+      __eo_typeof (Term.Apply (Term.UOp UserOp.str_to_upper) b) =
+        Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char) := by
+    change __eo_typeof_str_to_lower (__eo_typeof b) =
+      Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char)
+    rw [hBEoSeqChar]
+    rfl
+  let runArg := __run_evaluate b
+  let runUpper :=
+    __eo_ite (__eo_is_str runArg)
+      (__str_case_conv_rec (__str_flatten (__str_nary_intro runArg))
+        (Term.Boolean false))
+      (__eo_mk_apply (Term.UOp UserOp.str_to_upper) runArg)
+  have hRunUpperNe : runUpper ≠ Term.Stuck := by
+    intro hStuck
+    change
+      __eo_typeof
+          (__eo_mk_apply
+            (Term.Apply (Term.UOp UserOp.eq)
+              (Term.Apply (Term.UOp UserOp.str_to_upper) b))
+            runUpper) =
+        Term.Bool at hEvalTy
+    rw [hStuck] at hEvalTy
+    change Term.Stuck = Term.Bool at hEvalTy
+    cases hEvalTy
+  have hMkNe :
+      __eo_mk_apply
+          (Term.Apply (Term.UOp UserOp.eq)
+            (Term.Apply (Term.UOp UserOp.str_to_upper) b))
+          runUpper ≠
+        Term.Stuck := by
+    intro hMk
+    cases hRun : runUpper <;>
+      simp [__eo_mk_apply, hRun] at hMk hRunUpperNe
+  have hEvalEqTy :
+      __eo_typeof
+          (Term.Apply
+            (Term.Apply (Term.UOp UserOp.eq)
+              (Term.Apply (Term.UOp UserOp.str_to_upper) b))
+            runUpper) =
+        Term.Bool := by
+    change
+      __eo_typeof
+          (__eo_mk_apply
+            (Term.Apply (Term.UOp UserOp.eq)
+              (Term.Apply (Term.UOp UserOp.str_to_upper) b))
+            runUpper) =
+        Term.Bool at hEvalTy
+    rw [evaluate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
+    exact hEvalTy
+  have hRunUpperEoSeqChar :
+      __eo_typeof runUpper =
+        Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char) := by
+    have hEq :=
+      evaluate_apply_eq_typeof_bool_operands_eq
+        (Term.Apply (Term.UOp UserOp.str_to_upper) b) runUpper hEvalEqTy
+    exact hEq.symm.trans hUpperEoSeqChar
+  have hRunBEoSeqChar :
+      __eo_typeof runArg =
+        Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char) :=
+    eo_str_to_upper_result_arg_typeof_seq_char runArg hRunUpperEoSeqChar
+  have hSeqCharNe :
+      Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char) ≠
+        Term.Stuck := by
+    intro h
+    cases h
+  have hBProgTy : __eo_typeof (__eo_prog_evaluate b) = Term.Bool :=
+    eo_prog_evaluate_typeof_bool_of_same_type_and_run_typeof b
+      (Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char))
+      (RuleProofs.term_ne_stuck_of_has_smt_translation b hBTrans)
+      hSeqCharNe hBEoSeqChar hRunBEoSeqChar
+  rcases run_evaluate_rec_apply_arg M (Term.UOp UserOp.str_to_upper) b rec
+      hBTrans hBProgTy with
+    ⟨hSameTy, hRel⟩
+  have hSameTyRun :
+      __smtx_typeof (__eo_to_smt b) =
+        __smtx_typeof (__eo_to_smt runArg) := by
+    simpa [runArg] using hSameTy
+  have hRelRun :
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M (__eo_to_smt b))
+        (__smtx_model_eval M (__eo_to_smt runArg)) := by
+    simpa [runArg] using hRel
+  change
+    __smtx_typeof (SmtTerm.str_to_upper (__eo_to_smt b)) =
+        __smtx_typeof (__eo_to_smt runUpper) ∧
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M (SmtTerm.str_to_upper (__eo_to_smt b)))
+        (__smtx_model_eval M (__eo_to_smt runUpper))
+  by_cases hString : ∃ s : native_String, runArg = Term.String s
+  · rcases hString with ⟨s, hs⟩
+    have hRunStringTy :
+        __smtx_typeof (__eo_to_smt (Term.String s)) =
+          SmtType.Seq SmtType.Char := by
+      rw [← hs]
+      exact hSameTyRun.symm.trans hBTyChar
+    have hValid : native_string_valid s = true :=
+      native_string_valid_of_string_type hRunStringTy
+    have hRunUpperString :
+        runUpper = Term.String (native_str_to_upper s) := by
+      dsimp [runUpper]
+      rw [hs]
+      exact str_to_upper_result_string hValid
+    rw [hRunUpperString]
+    constructor
+    · change
+        __smtx_typeof (SmtTerm.str_to_upper (__eo_to_smt b)) =
+          __smtx_typeof (SmtTerm.String (native_str_to_upper s))
+      rw [typeof_str_to_upper_eq]
+      simp [__smtx_typeof, hBTyChar, native_ite, native_Teq,
+        native_str_to_upper_valid hValid]
+    · have hRelString :
+          RuleProofs.smt_value_rel
+            (__smtx_model_eval M (__eo_to_smt b))
+            (__smtx_model_eval M (__eo_to_smt (Term.String s))) := by
+        rw [← hs]
+        exact hRelRun
+      have hRelUpper :=
+        smt_value_rel_model_eval_str_to_upper_of_rel
+          (__smtx_model_eval M (__eo_to_smt b))
+          (__smtx_model_eval M (__eo_to_smt (Term.String s)))
+          hRelString
+      have hEvalUpperB :
+          __smtx_model_eval M (SmtTerm.str_to_upper (__eo_to_smt b)) =
+            __smtx_model_eval_str_to_upper
+              (__smtx_model_eval M (__eo_to_smt b)) := by
+        rw [__smtx_model_eval.eq_91]
+      have hEvalString :
+          __smtx_model_eval M (__eo_to_smt (Term.String s)) =
+            SmtValue.Seq (native_pack_string s) := by
+        rw [show __eo_to_smt (Term.String s) = SmtTerm.String s by rfl]
+        rw [__smtx_model_eval.eq_4]
+      have hEvalUpperString :
+          __smtx_model_eval M
+              (__eo_to_smt (Term.String (native_str_to_upper s))) =
+            __smtx_model_eval_str_to_upper
+              (__smtx_model_eval M (__eo_to_smt (Term.String s))) := by
+        rw [hEvalString]
+        rw [show __eo_to_smt (Term.String (native_str_to_upper s)) =
+          SmtTerm.String (native_str_to_upper s) by rfl]
+        rw [__smtx_model_eval.eq_4]
+        simp [__smtx_model_eval_str_to_upper,
+          RuleProofs.native_unpack_string_pack_string]
+      rw [hEvalUpperB, hEvalUpperString]
+      exact hRelUpper
+  · have hNotString : ∀ s : native_String, runArg ≠ Term.String s := by
+      intro s hs
+      exact hString ⟨s, hs⟩
+    have hRunArgNe : runArg ≠ Term.Stuck := by
+      intro hStuck
+      rw [hStuck] at hRunBEoSeqChar
+      change Term.Stuck =
+        Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char) at hRunBEoSeqChar
+      cases hRunBEoSeqChar
+    have hRunUpperApply :
+        runUpper = Term.Apply (Term.UOp UserOp.str_to_upper) runArg := by
+      dsimp [runUpper]
+      exact str_to_upper_result_non_string hNotString hRunArgNe
+    rw [hRunUpperApply]
+    constructor
+    · change
+        __smtx_typeof (SmtTerm.str_to_upper (__eo_to_smt b)) =
+          __smtx_typeof (SmtTerm.str_to_upper (__eo_to_smt runArg))
+      have hRunTyChar :
+          __smtx_typeof (__eo_to_smt runArg) =
+            SmtType.Seq SmtType.Char :=
+        hSameTyRun.symm.trans hBTyChar
+      rw [typeof_str_to_upper_eq, typeof_str_to_upper_eq]
+      simp [hBTyChar, hRunTyChar, native_ite, native_Teq]
+    · have hRelUpper :=
+        smt_value_rel_model_eval_str_to_upper_of_rel
+          (__smtx_model_eval M (__eo_to_smt b))
+          (__smtx_model_eval M (__eo_to_smt runArg))
+          hRelRun
+      have hEvalUpperB :
+          __smtx_model_eval M (SmtTerm.str_to_upper (__eo_to_smt b)) =
+            __smtx_model_eval_str_to_upper
+              (__smtx_model_eval M (__eo_to_smt b)) := by
+        rw [__smtx_model_eval.eq_91]
+      have hEvalUpperRun :
+          __smtx_model_eval M
+              (__eo_to_smt
+                (Term.Apply (Term.UOp UserOp.str_to_upper) runArg)) =
+            __smtx_model_eval_str_to_upper
+              (__smtx_model_eval M (__eo_to_smt runArg)) := by
+        change
+          __smtx_model_eval M (SmtTerm.str_to_upper (__eo_to_smt runArg)) =
+            __smtx_model_eval_str_to_upper
+              (__smtx_model_eval M (__eo_to_smt runArg))
+        rw [__smtx_model_eval.eq_91]
+      rw [hEvalUpperB, hEvalUpperRun]
+      exact hRelUpper
+
+private theorem run_evaluate_sound_apply_str_rev_core
+    (M : SmtModel) (hM : model_total_typed M)
+    (b : Term)
+    (rec :
+      ∀ A : Term,
+        sizeOf A < sizeOf (Term.Apply (Term.UOp UserOp.str_rev) b) ->
+          RunEvaluateSoundGoal M A) :
+  RunEvaluateSoundGoal M (Term.Apply (Term.UOp UserOp.str_rev) b) := by
+  intro hATrans hEvalTy
+  have hRevNN :
+      term_has_non_none_type (SmtTerm.str_rev (__eo_to_smt b)) := by
+    unfold term_has_non_none_type
+    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+  rcases seq_arg_of_non_none (op := SmtTerm.str_rev)
+      (typeof_str_rev_eq (__eo_to_smt b)) hRevNN with
+    ⟨T, hBTySeq⟩
+  have hBTrans : RuleProofs.eo_has_smt_translation b := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hBTySeq]
+    simp
+  rcases eo_typeof_seq_of_smt_type_seq b hBTrans hBTySeq with
+    ⟨U, hBEoSeq, hUSmt⟩
+  have hRevEoSeq :
+      __eo_typeof (Term.Apply (Term.UOp UserOp.str_rev) b) =
+        Term.Apply (Term.UOp UserOp.Seq) U := by
+    change __eo_typeof_str_rev (__eo_typeof b) =
+      Term.Apply (Term.UOp UserOp.Seq) U
+    rw [hBEoSeq]
+    rfl
+  let runArg := __run_evaluate b
+  let runRev :=
+    __eo_ite (__eo_is_str runArg)
+      (__str_nary_elim
+        (__str_collect
+          (__eo_list_rev (Term.UOp UserOp.str_concat)
+            (__str_flatten (__str_nary_intro runArg)))))
+      (__eo_mk_apply (Term.UOp UserOp.str_rev) runArg)
+  have hRunRevNe : runRev ≠ Term.Stuck := by
+    intro hStuck
+    change
+      __eo_typeof
+          (__eo_mk_apply
+            (Term.Apply (Term.UOp UserOp.eq)
+              (Term.Apply (Term.UOp UserOp.str_rev) b))
+            runRev) =
+        Term.Bool at hEvalTy
+    rw [hStuck] at hEvalTy
+    change Term.Stuck = Term.Bool at hEvalTy
+    cases hEvalTy
+  have hMkNe :
+      __eo_mk_apply
+          (Term.Apply (Term.UOp UserOp.eq)
+            (Term.Apply (Term.UOp UserOp.str_rev) b))
+          runRev ≠
+        Term.Stuck := by
+    intro hMk
+    cases hRun : runRev <;>
+      simp [__eo_mk_apply, hRun] at hMk hRunRevNe
+  have hEvalEqTy :
+      __eo_typeof
+          (Term.Apply
+            (Term.Apply (Term.UOp UserOp.eq)
+              (Term.Apply (Term.UOp UserOp.str_rev) b))
+            runRev) =
+        Term.Bool := by
+    change
+      __eo_typeof
+          (__eo_mk_apply
+            (Term.Apply (Term.UOp UserOp.eq)
+              (Term.Apply (Term.UOp UserOp.str_rev) b))
+            runRev) =
+        Term.Bool at hEvalTy
+    rw [evaluate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
+    exact hEvalTy
+  have hRunRevEoSeq :
+      __eo_typeof runRev =
+        Term.Apply (Term.UOp UserOp.Seq) U := by
+    have hEq :=
+      evaluate_apply_eq_typeof_bool_operands_eq
+        (Term.Apply (Term.UOp UserOp.str_rev) b) runRev hEvalEqTy
+    exact hEq.symm.trans hRevEoSeq
+  have hRunBEoSeq :
+      __eo_typeof runArg = Term.Apply (Term.UOp UserOp.Seq) U :=
+    eo_str_rev_result_arg_typeof_seq runArg U hRunRevEoSeq
+  have hSeqNe :
+      Term.Apply (Term.UOp UserOp.Seq) U ≠ Term.Stuck := by
+    intro h
+    cases h
+  have hBProgTy : __eo_typeof (__eo_prog_evaluate b) = Term.Bool :=
+    eo_prog_evaluate_typeof_bool_of_same_type_and_run_typeof b
+      (Term.Apply (Term.UOp UserOp.Seq) U)
+      (RuleProofs.term_ne_stuck_of_has_smt_translation b hBTrans)
+      hSeqNe hBEoSeq hRunBEoSeq
+  rcases run_evaluate_rec_apply_arg M (Term.UOp UserOp.str_rev) b rec
+      hBTrans hBProgTy with
+    ⟨hSameTy, hRel⟩
+  have hSameTyRun :
+      __smtx_typeof (__eo_to_smt b) =
+        __smtx_typeof (__eo_to_smt runArg) := by
+    simpa [runArg] using hSameTy
+  have hRelRun :
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M (__eo_to_smt b))
+        (__smtx_model_eval M (__eo_to_smt runArg)) := by
+    simpa [runArg] using hRel
+  change
+    __smtx_typeof (SmtTerm.str_rev (__eo_to_smt b)) =
+        __smtx_typeof (__eo_to_smt runRev) ∧
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M (SmtTerm.str_rev (__eo_to_smt b)))
+        (__smtx_model_eval M (__eo_to_smt runRev))
+  by_cases hString : ∃ s : native_String, runArg = Term.String s
+  · rcases hString with ⟨s, hs⟩
+    have hRunStringTy :
+        __smtx_typeof (__eo_to_smt (Term.String s)) =
+          SmtType.Seq T := by
+      rw [← hs]
+      exact hSameTyRun.symm.trans hBTySeq
+    rcases smt_string_seq_type_inv hRunStringTy with ⟨hValid, hTChar⟩
+    subst T
+    have hRunRevString :
+        runRev = Term.String s.reverse := by
+      dsimp [runRev]
+      rw [hs]
+      exact str_rev_result_string
+    rw [hRunRevString]
+    constructor
+    · change
+        __smtx_typeof (SmtTerm.str_rev (__eo_to_smt b)) =
+          __smtx_typeof (SmtTerm.String s.reverse)
+      rw [typeof_str_rev_eq]
+      simp [__smtx_typeof_seq_op_1, hBTySeq, hTChar, __smtx_typeof,
+        native_ite, native_string_valid_reverse_local hValid]
+    · have hRelString :
+          RuleProofs.smt_value_rel
+            (__smtx_model_eval M (__eo_to_smt b))
+            (__smtx_model_eval M (__eo_to_smt (Term.String s))) := by
+        rw [← hs]
+        exact hRelRun
+      have hRelRev :=
+        smt_value_rel_model_eval_str_rev_of_rel
+          (__smtx_model_eval M (__eo_to_smt b))
+          (__smtx_model_eval M (__eo_to_smt (Term.String s)))
+          hRelString
+      have hEvalRevB :
+          __smtx_model_eval M (SmtTerm.str_rev (__eo_to_smt b)) =
+            __smtx_model_eval_str_rev
+              (__smtx_model_eval M (__eo_to_smt b)) := by
+        rw [__smtx_model_eval.eq_88]
+      have hEvalString :
+          __smtx_model_eval M (__eo_to_smt (Term.String s)) =
+            SmtValue.Seq (native_pack_string s) := by
+        rw [show __eo_to_smt (Term.String s) = SmtTerm.String s by rfl]
+        rw [__smtx_model_eval.eq_4]
+      have hEvalRevString :
+          __smtx_model_eval M (__eo_to_smt (Term.String s.reverse)) =
+            __smtx_model_eval_str_rev
+              (__smtx_model_eval M (__eo_to_smt (Term.String s))) := by
+        rw [hEvalString]
+        rw [show __eo_to_smt (Term.String s.reverse) =
+          SmtTerm.String s.reverse by rfl]
+        rw [__smtx_model_eval.eq_4]
+        simp [__smtx_model_eval_str_rev, native_pack_string,
+          native_unpack_pack_seq_local, elem_typeof_pack_seq_local,
+          native_seq_rev]
+      rw [hEvalRevB, hEvalRevString]
+      exact hRelRev
+  · have hNotString : ∀ s : native_String, runArg ≠ Term.String s := by
+      intro s hs
+      exact hString ⟨s, hs⟩
+    have hRunArgNe : runArg ≠ Term.Stuck := by
+      intro hStuck
+      rw [hStuck] at hRunBEoSeq
+      change Term.Stuck = Term.Apply (Term.UOp UserOp.Seq) U at hRunBEoSeq
+      cases hRunBEoSeq
+    have hRunRevApply :
+        runRev = Term.Apply (Term.UOp UserOp.str_rev) runArg := by
+      dsimp [runRev]
+      exact str_rev_result_non_string hNotString hRunArgNe
+    rw [hRunRevApply]
+    constructor
+    · change
+        __smtx_typeof (SmtTerm.str_rev (__eo_to_smt b)) =
+          __smtx_typeof (SmtTerm.str_rev (__eo_to_smt runArg))
+      have hRunTySeq :
+          __smtx_typeof (__eo_to_smt runArg) = SmtType.Seq T :=
+        hSameTyRun.symm.trans hBTySeq
+      rw [typeof_str_rev_eq, typeof_str_rev_eq]
+      simp [__smtx_typeof_seq_op_1, hBTySeq, hRunTySeq]
+    · have hRelRev :=
+        smt_value_rel_model_eval_str_rev_of_rel
+          (__smtx_model_eval M (__eo_to_smt b))
+          (__smtx_model_eval M (__eo_to_smt runArg))
+          hRelRun
+      have hEvalRevB :
+          __smtx_model_eval M (SmtTerm.str_rev (__eo_to_smt b)) =
+            __smtx_model_eval_str_rev
+              (__smtx_model_eval M (__eo_to_smt b)) := by
+        rw [__smtx_model_eval.eq_88]
+      have hEvalRevRun :
+          __smtx_model_eval M
+              (__eo_to_smt
+                (Term.Apply (Term.UOp UserOp.str_rev) runArg)) =
+            __smtx_model_eval_str_rev
+              (__smtx_model_eval M (__eo_to_smt runArg)) := by
+        change
+          __smtx_model_eval M (SmtTerm.str_rev (__eo_to_smt runArg)) =
+            __smtx_model_eval_str_rev
+              (__smtx_model_eval M (__eo_to_smt runArg))
+        rw [__smtx_model_eval.eq_88]
+      rw [hEvalRevB, hEvalRevRun]
+      exact hRelRev
+
 private theorem run_evaluate_sound_apply_ite_core
     (M : SmtModel) (hM : model_total_typed M)
     (c t e : Term)
@@ -8512,7 +9765,7 @@ private theorem run_evaluate_sound_apply_ite_core
           (__eo_mk_apply
             (Term.Apply (Term.UOp UserOp.eq) whole) runIte) =
         Term.Bool at hEvalTy
-    rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
+    rw [evaluate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
     exact hEvalTy
   have hRunIteEoType :
       __eo_typeof runIte = __eo_typeof whole := by
@@ -8664,6 +9917,12 @@ private theorem run_evaluate_sound_active_apply_core
           exact run_evaluate_sound_apply_int_ispow2_core M hM x rec hATrans hEvalTy
       | UserOp._at_bvsize =>
           exact run_evaluate_sound_apply_at_bvsize_core M hM x rec hATrans hEvalTy
+      | UserOp.str_to_lower =>
+          exact run_evaluate_sound_apply_str_to_lower_core M hM x rec hATrans hEvalTy
+      | UserOp.str_to_upper =>
+          exact run_evaluate_sound_apply_str_to_upper_core M hM x rec hATrans hEvalTy
+      | UserOp.str_rev =>
+          exact run_evaluate_sound_apply_str_rev_core M hM x rec hATrans hEvalTy
       | UserOp.bvnego =>
           exact False.elim (hActive rfl)
       | UserOp.bvredand =>
