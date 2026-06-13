@@ -2563,6 +2563,168 @@ private theorem eo_zero_extend_literal_arg_binary_of_typeof_bitvec
       Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w) at h
     cases h
 
+private theorem term_apply_ne_stuck (f x : Term) :
+    Term.Apply f x ≠ Term.Stuck := by
+  intro h
+  cases h
+
+private theorem bv_list_repeat_rec_binary_ne_stuck
+    (w n : native_Int) :
+    ∀ k : native_Nat,
+      __eo_list_repeat_rec (Term.UOp UserOp.concat) (Term.Binary w n) k ≠
+        Term.Stuck := by
+  intro k
+  induction k with
+  | zero =>
+      change Term.Binary 0 0 ≠ Term.Stuck
+      intro h
+      cases h
+  | succ k ih =>
+      change
+        __eo_mk_apply
+            (Term.Apply (Term.UOp UserOp.concat) (Term.Binary w n))
+            (__eo_list_repeat_rec (Term.UOp UserOp.concat)
+              (Term.Binary w n) k) ≠
+          Term.Stuck
+      rw [eo_mk_apply_eq_apply_of_args_ne_stuck _ _
+        (term_apply_ne_stuck _ _) ih]
+      exact term_apply_ne_stuck _ _
+
+private theorem bv_list_repeat_rec_binary_succ_eq
+    (w n : native_Int) (k : native_Nat) :
+    __eo_list_repeat_rec (Term.UOp UserOp.concat) (Term.Binary w n)
+        (Nat.succ k) =
+      Term.Apply
+        (Term.Apply (Term.UOp UserOp.concat) (Term.Binary w n))
+        (__eo_list_repeat_rec (Term.UOp UserOp.concat) (Term.Binary w n)
+          k) := by
+  change
+    __eo_mk_apply
+        (Term.Apply (Term.UOp UserOp.concat) (Term.Binary w n))
+        (__eo_list_repeat_rec (Term.UOp UserOp.concat) (Term.Binary w n)
+          k) =
+      Term.Apply
+        (Term.Apply (Term.UOp UserOp.concat) (Term.Binary w n))
+        (__eo_list_repeat_rec (Term.UOp UserOp.concat) (Term.Binary w n)
+          k)
+  exact eo_mk_apply_eq_apply_of_args_ne_stuck _ _
+    (term_apply_ne_stuck _ _)
+    (bv_list_repeat_rec_binary_ne_stuck w n k)
+
+private theorem bv_eval_concat_list_repeat_rec_binary
+    (w n : native_Int)
+    (hWNonneg : native_zleq 0 w = true) :
+    ∀ k : native_Nat,
+      ∃ m : native_Int,
+        __bv_eval_concat
+            (__eo_list_repeat_rec (Term.UOp UserOp.concat)
+              (Term.Binary w n) k) =
+          Term.Binary (native_zmult (native_nat_to_int k) w) m ∧
+        __smtx_model_eval_repeat_rec k (SmtValue.Binary w n) =
+          SmtValue.Binary (native_zmult (native_nat_to_int k) w) m
+  | Nat.zero => by
+      refine ⟨0, ?_, ?_⟩
+      · change Term.Binary 0 0 =
+          Term.Binary (native_zmult (native_nat_to_int 0) w) 0
+        simp [SmtEval.native_zmult, SmtEval.native_nat_to_int]
+      · simp [__smtx_model_eval_repeat_rec, SmtEval.native_zmult,
+          SmtEval.native_nat_to_int]
+  | Nat.succ k => by
+      rcases bv_eval_concat_list_repeat_rec_binary w n hWNonneg k with
+        ⟨m, hTerm, hEval⟩
+      let recW := native_zmult (native_nat_to_int k) w
+      let newW := native_zmult (native_nat_to_int (Nat.succ k)) w
+      let newM :=
+        native_mod_total (native_binary_concat w n recW m)
+          (native_int_pow2 newW)
+      have hWidthEq :
+          native_zplus w recW = newW := by
+        have hWidthEqInt : w + ↑k * w = (↑k + 1) * w := by
+          calc
+            w + ↑k * w = 1 * w + ↑k * w := by simp
+            _ = (1 + ↑k) * w := by rw [Int.add_mul]
+            _ = (↑k + 1) * w := by simp [Int.add_comm]
+        simpa [recW, newW, SmtEval.native_zplus, SmtEval.native_zmult,
+          SmtEval.native_nat_to_int] using hWidthEqInt
+      have hWidthNonneg :
+          native_zleq 0 (native_zplus w recW) = true := by
+        have hw : 0 <= w := by
+          simpa [SmtEval.native_zleq] using hWNonneg
+        have hk : 0 <= native_nat_to_int k := by
+          simp [SmtEval.native_nat_to_int]
+        have hRecW : 0 <= recW := by
+          simpa [recW, SmtEval.native_zmult] using Int.mul_nonneg hk hw
+        have hAdd : 0 <= w + recW := Int.add_nonneg hw hRecW
+        simpa [SmtEval.native_zleq, SmtEval.native_zplus] using hAdd
+      refine ⟨newM, ?_, ?_⟩
+      · rw [bv_list_repeat_rec_binary_succ_eq]
+        change
+          __eo_concat (Term.Binary w n)
+              (__bv_eval_concat
+                (__eo_list_repeat_rec (Term.UOp UserOp.concat)
+                  (Term.Binary w n) k)) =
+            Term.Binary newW newM
+        rw [hTerm]
+        change
+          __eo_mk_binary (native_zplus w recW)
+              (native_binary_concat w n recW m) =
+            Term.Binary newW newM
+        have hMk :
+            __eo_mk_binary (native_zplus w recW)
+                (native_binary_concat w n recW m) =
+              Term.Binary (native_zplus w recW)
+                (native_mod_total (native_binary_concat w n recW m)
+                  (native_int_pow2 (native_zplus w recW))) := by
+          simp [__eo_mk_binary, hWidthNonneg, native_ite]
+        rw [hMk]
+        exact congrArg
+          (fun z =>
+            Term.Binary z
+              (native_mod_total (native_binary_concat w n recW m)
+                (native_int_pow2 z)))
+          hWidthEq
+      · rw [__smtx_model_eval_repeat_rec, hEval, __smtx_model_eval_concat]
+        exact congrArg
+          (fun z =>
+            SmtValue.Binary z
+              (native_mod_total (native_binary_concat w n recW m)
+                (native_int_pow2 z)))
+          hWidthEq
+
+private theorem bv_eval_concat_list_repeat_binary_eval
+    (M : SmtModel) (i w n : native_Int)
+    (hi0 : native_zleq 0 i = true)
+    (hWNonneg : native_zleq 0 w = true) :
+    __smtx_model_eval M
+        (__eo_to_smt
+          (__bv_eval_concat
+            (__eo_list_repeat (Term.UOp UserOp.concat)
+              (Term.Binary w n) (Term.Numeral i)))) =
+      __smtx_model_eval_repeat_rec (native_int_to_nat i)
+        (SmtValue.Binary w n) := by
+  have hiNonneg : 0 <= i := by
+    simpa [SmtEval.native_zleq] using hi0
+  have hiNotNeg : native_zlt i 0 = false := by
+    simp [SmtEval.native_zlt]
+    omega
+  have hList :
+      __eo_list_repeat (Term.UOp UserOp.concat) (Term.Binary w n)
+          (Term.Numeral i) =
+        __eo_list_repeat_rec (Term.UOp UserOp.concat) (Term.Binary w n)
+          (native_int_to_nat i) := by
+    simp [__eo_list_repeat, native_ite, hiNotNeg]
+  rcases bv_eval_concat_list_repeat_rec_binary w n hWNonneg
+      (native_int_to_nat i) with
+    ⟨m, hTerm, hEval⟩
+  rw [hList, hTerm, hEval]
+  change
+    __smtx_model_eval M
+        (SmtTerm.Binary
+          (native_zmult (native_nat_to_int (native_int_to_nat i)) w) m) =
+      SmtValue.Binary
+        (native_zmult (native_nat_to_int (native_int_to_nat i)) w) m
+  rw [__smtx_model_eval.eq_5]
+
 private theorem eo_concat_args_string_of_typeof_seq
     (x y T : Term) :
     __eo_typeof (__eo_concat x y) =
