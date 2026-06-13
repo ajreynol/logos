@@ -2616,12 +2616,12 @@ theorem eo_to_smt_eq_numeral
   | UOp3 op x y z =>
       cases op
       case _at_re_unfold_pos_component =>
-        change native_ite (__eo_to_smt_nat_is_valid x)
+        change native_ite (__eo_to_smt_nat_is_valid z)
             (__eo_to_smt_re_unfold_pos_component (__eo_to_smt x) (__eo_to_smt y)
               (__eo_to_smt_nat z))
             SmtTerm.None =
           SmtTerm.Numeral n at h
-        cases hx : __eo_to_smt_nat_is_valid x <;>
+        cases hx : __eo_to_smt_nat_is_valid z <;>
           simp [native_ite, hx] at h
         exact False.elim (eo_to_smt_re_unfold_pos_component_ne_numeral
           (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt_nat z) n h)

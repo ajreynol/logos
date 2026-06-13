@@ -6713,7 +6713,7 @@ theorem eo_to_smt_eq_dt_cons_cases
     cases op
     case _at_re_unfold_pos_component =>
       exfalso
-      change native_ite (__eo_to_smt_nat_is_valid t)
+      change native_ite (__eo_to_smt_nat_is_valid idx)
           (__eo_to_smt_re_unfold_pos_component (__eo_to_smt t) (__eo_to_smt r)
             (__eo_to_smt_nat idx))
           SmtTerm.None =
@@ -7564,7 +7564,7 @@ theorem eo_to_smt_eq_dt_sel_cases
     cases op
     case _at_re_unfold_pos_component =>
       exfalso
-      change native_ite (__eo_to_smt_nat_is_valid t)
+      change native_ite (__eo_to_smt_nat_is_valid idx)
           (__eo_to_smt_re_unfold_pos_component (__eo_to_smt t) (__eo_to_smt r)
             (__eo_to_smt_nat idx))
           SmtTerm.None =
@@ -7628,7 +7628,7 @@ theorem eo_to_smt_ne_dt_tester
     cases op
     case _at_re_unfold_pos_component =>
       exfalso
-      change native_ite (__eo_to_smt_nat_is_valid t)
+      change native_ite (__eo_to_smt_nat_is_valid idx)
           (__eo_to_smt_re_unfold_pos_component (__eo_to_smt t) (__eo_to_smt r)
             (__eo_to_smt_nat idx))
           SmtTerm.None =
@@ -7810,13 +7810,13 @@ private theorem typeof_apply_re_unfold_top_eq_none
   change
     __smtx_typeof
         (SmtTerm.Apply
-          (native_ite (__eo_to_smt_nat_is_valid t)
+          (native_ite (__eo_to_smt_nat_is_valid idx)
             (__eo_to_smt_re_unfold_pos_component (__eo_to_smt t) (__eo_to_smt r)
               (__eo_to_smt_nat idx))
             SmtTerm.None)
           (__eo_to_smt x)) =
       SmtType.None
-  cases hValid : __eo_to_smt_nat_is_valid t <;>
+  cases hValid : __eo_to_smt_nat_is_valid idx <;>
     simp [native_ite, typeof_apply_none_eq,
       typeof_apply_re_unfold_pos_component_head_eq_none]
 
@@ -12445,54 +12445,66 @@ theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_re_unfold_pos_com
       __eo_to_smt_type
         (__eo_typeof (Term._at_re_unfold_pos_component z y x)) ∧
       eo_type_valid (__eo_typeof (Term._at_re_unfold_pos_component z y x)) := by
-  cases z with
-  | Numeral n =>
-      have hTranslate :
-          __eo_to_smt (Term._at_re_unfold_pos_component (Term.Numeral n) y x) =
-            native_ite (__eo_to_smt_nat_is_valid (Term.Numeral n))
-              (__eo_to_smt_re_unfold_pos_component
-                (__eo_to_smt (Term.Numeral n)) (__eo_to_smt y) (__eo_to_smt_nat x))
-              SmtTerm.None := by
-        rfl
-      cases hValid : __eo_to_smt_nat_is_valid (Term.Numeral n)
-      · exfalso
-        rw [hTranslate] at hNonNone
-        simp [native_ite, hValid] at hNonNone
-      · have hValidTrue :
-            __eo_to_smt_nat_is_valid (Term.Numeral n) = true := hValid
-        have hTranslateComp :
-            __eo_to_smt (Term._at_re_unfold_pos_component (Term.Numeral n) y x) =
-              __eo_to_smt_re_unfold_pos_component
-                (__eo_to_smt (Term.Numeral n)) (__eo_to_smt y) (__eo_to_smt_nat x) := by
-          rw [hTranslate]
-          rw [hValidTrue]
-          simp [native_ite]
-        have hCompNN :
-            term_has_non_none_type
-              (__eo_to_smt_re_unfold_pos_component
-                (__eo_to_smt (Term.Numeral n)) (__eo_to_smt y) (__eo_to_smt_nat x)) := by
-          unfold term_has_non_none_type
-          rw [← hTranslateComp]
-          exact hNonNone
-        have hArgs :=
-          re_unfold_pos_component_args_of_non_none
-            (__eo_to_smt (Term.Numeral n)) (__eo_to_smt y) (__eo_to_smt_nat x) hCompNN
-        have hInt : __smtx_typeof (__eo_to_smt (Term.Numeral n)) = SmtType.Int := by
-          change __smtx_typeof (SmtTerm.Numeral n) = SmtType.Int
-          rw [__smtx_typeof.eq_2]
-        have hBad : SmtType.Int = SmtType.Seq SmtType.Char := hInt.symm.trans hArgs.1
-        cases hBad
-  | _ =>
-      exfalso
-      apply hNonNone
-      change
+  have hTranslate :
+      __eo_to_smt (Term._at_re_unfold_pos_component z y x) =
+        native_ite (__eo_to_smt_nat_is_valid x)
+          (__eo_to_smt_re_unfold_pos_component
+            (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt_nat x))
+          SmtTerm.None := by
+    rfl
+  cases hValid : __eo_to_smt_nat_is_valid x
+  · exfalso
+    apply hNonNone
+    rw [hTranslate, hValid]
+    simp [native_ite]
+  · have hCompNN :
+        term_has_non_none_type
+          (__eo_to_smt_re_unfold_pos_component
+            (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt_nat x)) := by
+      unfold term_has_non_none_type
+      have hNN := hNonNone
+      rw [hTranslate, hValid] at hNN
+      simpa [native_ite] using hNN
+    have hArgs :=
+      re_unfold_pos_component_args_of_non_none
+        (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt_nat x) hCompNN
+    have hSmt :
         __smtx_typeof
-          (native_ite (__eo_to_smt_nat_is_valid _)
-            (__eo_to_smt_re_unfold_pos_component
-              (__eo_to_smt _) (__eo_to_smt y) (__eo_to_smt_nat x))
-            SmtTerm.None) =
-        SmtType.None
-      simp [__eo_to_smt_nat_is_valid, native_ite]
+            (__eo_to_smt (Term._at_re_unfold_pos_component z y x)) =
+          SmtType.Seq SmtType.Char := by
+      rw [hTranslate, hValid]
+      simp [native_ite]
+      exact smtx_typeof_re_unfold_pos_component_of_non_none
+        (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt_nat x)
+        (by
+          unfold term_has_non_none_type at hCompNN
+          exact hCompNN)
+    have hXInt : __eo_typeof x = Term.UOp UserOp.Int := by
+      cases x <;> simp [__eo_to_smt_nat_is_valid] at hValid
+      case Numeral n => rfl
+    have hZEo : __eo_typeof z =
+        Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char) :=
+      eo_typeof_eq_seq_char_of_smt_seq_char_from_ih z ihZ hArgs.1
+    have hYEo : __eo_typeof y = Term.UOp UserOp.RegLan :=
+      eo_typeof_eq_reglan_of_smt_reglan_from_ih y ihY hArgs.2
+    have hEo :
+        __eo_to_smt_type
+            (__eo_typeof (Term._at_re_unfold_pos_component z y x)) =
+          SmtType.Seq SmtType.Char :=
+      eo_to_smt_type_typeof_apply_apply_apply_re_unfold_pos_component_of_seq_char_reglan_int
+        x y z hZEo hYEo hXInt
+    refine ⟨hSmt.trans hEo.symm, ?_⟩
+    have hType :
+        __eo_typeof (Term._at_re_unfold_pos_component z y x) =
+          Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char) := by
+      change
+        __eo_typeof__at_re_unfold_pos_component
+          (__eo_typeof z) (__eo_typeof y) (__eo_typeof x) =
+          Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char)
+      rw [hZEo, hYEo, hXInt]
+      rfl
+    rw [hType]
+    simp [eo_type_valid, eo_type_valid_rec]
 
 /-- Closes attempts to apply a binary head already known to have SMT type `Bool`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_bool_head_applied

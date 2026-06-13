@@ -4595,11 +4595,11 @@ by
     (op := UserOp3._at_re_unfold_pos_component)
     (fun hx hy hz => by
       change SmtTermClosedIn vars
-        (native_ite (__eo_to_smt_nat_is_valid x)
+        (native_ite (__eo_to_smt_nat_is_valid z)
           (__eo_to_smt_re_unfold_pos_component (__eo_to_smt x)
             (__eo_to_smt y) (__eo_to_smt_nat z))
           SmtTerm.None)
-      cases __eo_to_smt_nat_is_valid x <;> try trivial
+      cases __eo_to_smt_nat_is_valid z <;> try trivial
       exact smtTermClosedIn_eo_to_smt_re_unfold_pos_component
         hx hy (__eo_to_smt_nat z))
     hEnv hRecX hRecY hRecZ hClosed
@@ -4709,6 +4709,11 @@ theorem smtTermClosedIn_eo_to_smt_uop3_any_of_closed_rec_using
   SmtTermClosedIn vars (__eo_to_smt (Term.UOp3 op x y z)) :=
 by
   cases op
+  case _at_re_unfold_pos_component =>
+    exact smtTermClosedIn_eo_to_smt_re_unfold_pos_component_of_closed_rec_using
+      hEnv (fun hEnv' hClosed' => hRec hEnv' hClosed')
+      (fun hEnv' hClosed' => hRec hEnv' hClosed')
+      (fun hEnv' hClosed' => hRec hEnv' hClosed') hClosed
   case _at_witness_string_length =>
     exact smtTermClosedIn_eo_to_smt_witness_string_length_of_closed_rec_using
       hEnv (fun hEnv' hClosed' => hRec hEnv' hClosed')
@@ -6031,6 +6036,11 @@ by
     simp
     omega
   cases op
+  case _at_re_unfold_pos_component =>
+    exact smtTermClosedIn_eo_to_smt_re_unfold_pos_component_of_closed_rec_using
+      hEnv (fun hEnv' hClosed' => hRec hXLt hEnv' hClosed')
+      (fun hEnv' hClosed' => hRec hYLt hEnv' hClosed')
+      (fun hEnv' hClosed' => hRec hZLt hEnv' hClosed') hClosed
   case _at_witness_string_length =>
     exact smtTermClosedIn_eo_to_smt_witness_string_length_of_closed_rec_using
       hEnv (fun hEnv' hClosed' => hRec hXLt hEnv' hClosed')

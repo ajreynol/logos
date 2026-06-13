@@ -5416,18 +5416,6 @@ private theorem smt_re_unfold_pos_component_type_none_of_re_none
     rw [hr] at hArgs
     cases hArgs.2
 
-private theorem eo_to_smt_re_unfold_partial_type_none
-    (idx x : Term) :
-    __smtx_typeof
-        (__eo_to_smt
-          (Term.Apply
-            (Term.UOp1 UserOp1._at_re_unfold_pos_component idx) x)) =
-      SmtType.None := by
-  change
-    __smtx_typeof (SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) =
-      SmtType.None
-  simp [__smtx_typeof, __smtx_typeof_apply]
-
 private theorem eo_to_smt_set_insert_type_none_of_arg_none :
     ∀ xs a,
       __smtx_typeof a = SmtType.None ->
@@ -18141,18 +18129,6 @@ private theorem eo_apply_apply_arg_has_translation_of_has_translation
           ⟨_A, B, _hzA, hxB, _hANN, hBNN, _hAReg, _hBReg⟩
         rw [hx] at hxB
         exact hBNN hxB.symm
-      case _at_re_unfold_pos_component =>
-        change
-          __smtx_typeof
-            (native_ite (__eo_to_smt_nat_is_valid idx)
-              (__eo_to_smt_re_unfold_pos_component
-                (__eo_to_smt z) (__eo_to_smt x) (__eo_to_smt_nat idx))
-              SmtTerm.None) ≠ SmtType.None at hTrans
-        cases hValid : __eo_to_smt_nat_is_valid idx <;>
-          simp [native_ite, hValid] at hTrans
-        exact hTrans
-          (smt_re_unfold_pos_component_type_none_of_re_none
-            (__eo_to_smt z) (__eo_to_smt x) (__eo_to_smt_nat idx) hx)
       all_goals
         exact hTrans
           (eo_apply_apply_generic_type_none_of_arg_none _ _ _ (by rfl) hx)
@@ -20325,9 +20301,6 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
         (by intro a b; rfl)
         (by intro a b; rw [__smtx_typeof.eq_59])
         x₁ x₂ rhs hTrans hSpine
-  | Term.Apply (Term.UOp1 UserOp1._at_re_unfold_pos_component i) x =>
-      have hNone := eo_to_smt_re_unfold_partial_type_none i x
-      exact False.elim (hTrans hNone)
   | Term.Apply (Term.UOp1 UserOp1._at_bit i) x =>
       exact congTypeSpine_typecongr_indexed_unop_eq_has_bool_type
         UserOp1._at_bit i
@@ -20936,9 +20909,6 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                         typeof_eq_eq, typeof_extract_eq,
                         typeof_extract_eq, h])
                     x (Term.Apply g y) hTrans hApp
-              | Term.UOp1 UserOp1._at_re_unfold_pos_component i =>
-                  exact False.elim
-                    (hTrans (eo_to_smt_re_unfold_partial_type_none i x))
               | Term.UOp1 UserOp1.int_to_bv w =>
                   exact congTypeSpine_typecongr_indexed_unop_eq_has_bool_type
                     UserOp1.int_to_bv w
@@ -21097,11 +21067,7 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                             (eo_to_smt_quant_skolemize_top_ne_dt_sel q idx)
                             (eo_to_smt_quant_skolemize_top_ne_dt_tester q idx))
                           hTrans hArg
-              | Term.Apply
-                  (Term.Apply
-                    (Term.UOp1 UserOp1._at_re_unfold_pos_component idx)
-                    str)
-                  re =>
+              | Term.UOp3 UserOp3._at_re_unfold_pos_component str re idx =>
                   exact False.elim (hTrans (by
                     change
                       __smtx_typeof
@@ -22716,13 +22682,6 @@ private theorem congTrueSpine_eq_true
       exact congTrueSpine_bvredand_eq_true M hM x rhs hEqBool hSpine
   | Term.Apply (Term.UOp UserOp.bvredor) x =>
       exact congTrueSpine_bvredor_eq_true M hM x rhs hEqBool hSpine
-  | Term.Apply (Term.UOp1 UserOp1._at_re_unfold_pos_component i) x =>
-      have hTypes :=
-        RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
-          (Term.Apply (Term.UOp1 UserOp1._at_re_unfold_pos_component i) x)
-          rhs hEqBool
-      exact False.elim
-        (hTypes.2 (eo_to_smt_re_unfold_partial_type_none i x))
   | Term.Apply (Term.UOp1 UserOp1._at_bit i) x =>
       exact congTrueSpine_non_reg_indexed_unop_eq_true M hM
         UserOp1._at_bit i
@@ -23675,14 +23634,6 @@ private theorem congTrueSpine_eq_true
                       rw [bvBitTerm, smtx_model_eval_eq_term_eq,
                         __smtx_model_eval.eq_36, __smtx_model_eval.eq_5])
                     x (Term.Apply g y) hEqBool hApp
-              | Term.UOp1 UserOp1._at_re_unfold_pos_component i =>
-                  have hTypes :=
-                    RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
-                      (Term.Apply
-                        (Term.UOp1 UserOp1._at_re_unfold_pos_component i) x)
-                      (Term.Apply g y) hEqBool
-                  exact False.elim
-                    (hTypes.2 (eo_to_smt_re_unfold_partial_type_none i x))
               | Term.UOp1 UserOp1.int_to_bv w =>
                   exact congTrueSpine_non_reg_indexed_unop_eq_true M hM
                     UserOp1.int_to_bv w
@@ -23870,11 +23821,7 @@ private theorem congTrueSpine_eq_true
                             (eo_to_smt_quant_skolemize_top_ne_dt_sel q idx)
                             (eo_to_smt_quant_skolemize_top_ne_dt_tester q idx))
                           hEqBool hArg
-              | Term.Apply
-                  (Term.Apply
-                    (Term.UOp1 UserOp1._at_re_unfold_pos_component idx)
-                    str)
-                  re =>
+              | Term.UOp3 UserOp3._at_re_unfold_pos_component str re idx =>
                   have hTypes :=
                     RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
                       (Term.Apply
