@@ -15481,8 +15481,8 @@ private theorem congTrueSpine_strings_num_occur_eq_true
     (by
       intro a b
       rw [stringsNumOccurTerm, stringsNumOccurEval, __smtx_model_eval.eq_24,
-        __smtx_model_eval.eq_13, __smtx_model_eval.eq_79,
-        __smtx_model_eval.eq_79, __smtx_model_eval.eq_79,
+        __smtx_model_eval.eq_13, smtx_eval_str_len_term_eq,
+        smtx_eval_str_len_term_eq, smtx_eval_str_len_term_eq,
         __smtx_model_eval.eq_99, __smtx_model_eval.eq_78])
     x₁ x₂ rhs
 
@@ -22297,7 +22297,7 @@ private theorem congTrueSpine_eq_true
         SmtTerm.str_len SmtType.Int __smtx_model_eval_str_len
         (by intro a; rfl)
         (by intro a; exact typeof_str_len_eq a)
-        (by intro a; rw [__smtx_model_eval.eq_79])
+        (by intro a; rw [smtx_eval_str_len_term_eq])
         x rhs hEqBool hSpine
   | Term.Apply (Term.UOp UserOp.str_rev) x =>
       exact congTrueSpine_seq_unop_eq_true M hM UserOp.str_rev
@@ -22328,7 +22328,7 @@ private theorem congTrueSpine_eq_true
         __smtx_model_eval_str_to_code
         (by intro a; rfl)
         (by intro a; exact typeof_str_to_code_eq a)
-        (by intro a; rw [__smtx_model_eval.eq_92])
+        (by intro a; rw [smtx_eval_str_to_code_term_eq])
         x rhs hEqBool hSpine
   | Term.Apply (Term.UOp UserOp.str_from_code) x =>
       exact congTrueSpine_non_reg_unop_eq_true M hM
@@ -23176,7 +23176,7 @@ private theorem congTrueSpine_eq_true
                           __smtx_model_eval_str_len
                           (by intro a; rfl)
                           (by intro a; exact typeof_str_len_eq a)
-                          (by intro a; rw [__smtx_model_eval.eq_79])
+                          (by intro a; rw [smtx_eval_str_len_term_eq])
                           x (Term.Apply g y) hEqBool hApp
                       case str_rev =>
                         exact congTrueSpine_seq_unop_eq_true M hM
@@ -23210,7 +23210,7 @@ private theorem congTrueSpine_eq_true
                           __smtx_model_eval_str_to_code
                           (by intro a; rfl)
                           (by intro a; exact typeof_str_to_code_eq a)
-                          (by intro a; rw [__smtx_model_eval.eq_92])
+                          (by intro a; rw [smtx_eval_str_to_code_term_eq])
                           x (Term.Apply g y) hEqBool hApp
                       case str_from_code =>
                         exact congTrueSpine_non_reg_unop_eq_true M hM

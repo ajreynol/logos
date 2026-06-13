@@ -5263,8 +5263,8 @@ private theorem cprop_length_ne_zero_of_not_len_eq_eval
     __smtx_model_eval M
         (SmtTerm.eq (SmtTerm.str_len (__eo_to_smt u)) (SmtTerm.Numeral 0)) =
       SmtValue.Boolean false at hEval
-  rw [__smtx_model_eval.eq_134] at hEval
-  rw [__smtx_model_eval.eq_79] at hEval
+  rw [smtx_eval_eq_term_eq] at hEval
+  rw [smtx_eval_str_len_term_eq] at hEval
   simp [huEval, __smtx_model_eval_str_len, __smtx_model_eval_eq,
     __smtx_model_eval, native_seq_len, native_veq] at hEval
   intro hLen

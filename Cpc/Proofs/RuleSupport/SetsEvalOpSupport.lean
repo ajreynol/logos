@@ -810,7 +810,7 @@ theorem listLookup_meq
 
 theorem set_singleton_typeof_none {x : SmtTerm} (h : __smtx_typeof x = SmtType.None) :
     __smtx_typeof (SmtTerm.set_singleton x) = SmtType.None := by
-  rw [__smtx_typeof.eq_122, h, __smtx_typeof_guard_wf]
+  rw [smtx_typeof_set_singleton_term_eq, h, __smtx_typeof_guard_wf]
   simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
     native_and, native_ite]
 

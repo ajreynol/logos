@@ -84,7 +84,7 @@ private theorem smt_typeof_set_empty_of_set_arg
   have hSetWf :
       __smtx_type_wf (SmtType.Set (__eo_to_smt_type T)) = true :=
     Smtm.smt_term_set_type_wf_of_non_none (__eo_to_smt x) hXTrans hXSet'
-  rw [__smtx_typeof.eq_121, hXSet']
+  rw [smtx_typeof_set_empty_term_eq, hXSet']
   simp [__eo_to_smt_set_elem_type, __smtx_typeof_guard_wf, hSetWf,
     native_ite]
 
@@ -156,7 +156,7 @@ private theorem smt_typeof_set_singleton_choose_of_set_arg
     by
       rw [hMapDiff]
       simp [__smtx_typeof_guard_wf, hSetWf, native_ite]
-  rw [__smtx_typeof.eq_122, hSingletonGuard, hMapDiff, hXSet]
+  rw [smtx_typeof_set_singleton_term_eq, hSingletonGuard, hMapDiff, hXSet]
 
 private theorem set_is_singleton_rhs_same_translation (x : Term) :
     __eo_to_smt (Term.Apply (Term.UOp UserOp.set_is_singleton) x) =

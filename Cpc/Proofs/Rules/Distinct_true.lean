@@ -147,7 +147,7 @@ private theorem distinct_pairs_eval_true_of_guard_rec
                           (SmtTerm.not
                             (SmtTerm.eq (__eo_to_smt t) (__eo_to_smt x))) =
                         SmtValue.Boolean true := by
-                    rw [__smtx_model_eval.eq_6, __smtx_model_eval.eq_134,
+                    rw [__smtx_model_eval.eq_6, smtx_eval_eq_term_eq,
                       hEvalEqFalse]
                     simp [__smtx_model_eval_not, SmtEval.native_not]
                   have hTailEval :

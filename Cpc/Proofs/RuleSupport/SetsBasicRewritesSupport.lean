@@ -403,7 +403,7 @@ theorem smt_typeof_mkSetEmpty_of_set_type_wf
           (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Set) T))) =
       SmtType.Set (__eo_to_smt_type T)
   rw [hSetTy]
-  simp [__eo_to_smt_set_empty, __smtx_typeof.eq_121,
+  simp [__eo_to_smt_set_empty, smtx_typeof_set_empty_term_eq,
     __smtx_typeof_guard_wf, hSetWf, native_ite]
 
 theorem set_union_empty_left_rel_of_premise_bool

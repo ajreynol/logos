@@ -56,7 +56,7 @@ private theorem eval_eo_str_len_of_seq
       SmtValue.Numeral (native_seq_len (native_unpack_seq ss)) := by
   change __smtx_model_eval M (SmtTerm.str_len (__eo_to_smt s)) =
     SmtValue.Numeral (native_seq_len (native_unpack_seq ss))
-  rw [__smtx_model_eval.eq_79, hEvalS]
+  rw [smtx_eval_str_len_term_eq, hEvalS]
   rfl
 
 /-- Evaluates the translated EO numeral `0`. -/

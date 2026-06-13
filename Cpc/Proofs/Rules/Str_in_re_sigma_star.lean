@@ -456,8 +456,8 @@ private theorem smtx_model_eval_str_in_re_sigma_star_rec
                         SmtValue.Boolean
                           (decide ((((native_unpack_string ss).length : Int) %
                             (Int.ofNat (n + 0))) = 0))
-                    rw [__smtx_model_eval.eq_134, __smtx_model_eval.eq_25,
-                      __smtx_model_eval.eq_79, __smtx_model_eval.eq_2,
+                    rw [smtx_eval_eq_term_eq, __smtx_model_eval.eq_25,
+                      smtx_eval_str_len_term_eq, __smtx_model_eval.eq_2,
                       __smtx_model_eval.eq_2, hSEval]
                     have hnInt : (Int.ofNat n) ≠ 0 := by
                       intro hZero

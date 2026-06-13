@@ -112,6 +112,13 @@ theorem smtx_eval_str_len_term_eq
       __smtx_model_eval_str_len (__smtx_model_eval M x) := by
   rw [__smtx_model_eval.eq_def] <;> simp only
 
+/-- Stable rewrite for evaluating SMT empty sequence terms. -/
+theorem smtx_eval_seq_empty_term_eq
+    (M : SmtModel) (T : SmtType) :
+    __smtx_model_eval M (SmtTerm.seq_empty T) =
+      SmtValue.Seq (SmtSeq.empty T) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
 /-- Stable rewrite for evaluating SMT sequence singleton terms. -/
 theorem smtx_eval_seq_unit_term_eq
     (M : SmtModel) (x : SmtTerm) :
@@ -121,11 +128,33 @@ theorem smtx_eval_seq_unit_term_eq
           (SmtSeq.empty (__smtx_typeof_value (__smtx_model_eval M x)))) := by
   rw [__smtx_model_eval.eq_def] <;> simp only
 
+/-- Stable rewrite for evaluating SMT string-code terms. -/
+theorem smtx_eval_str_to_code_term_eq
+    (M : SmtModel) (x : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.str_to_code x) =
+      __smtx_model_eval_str_to_code (__smtx_model_eval M x) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+/-- Stable rewrite for evaluating SMT empty set terms. -/
+theorem smtx_eval_set_empty_term_eq
+    (M : SmtModel) (T : SmtType) :
+    __smtx_model_eval M (SmtTerm.set_empty T) =
+      SmtValue.Set (SmtMap.default T (SmtValue.Boolean false)) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
 /-- Stable rewrite for evaluating SMT set singleton terms. -/
 theorem smtx_eval_set_singleton_term_eq
     (M : SmtModel) (x : SmtTerm) :
     __smtx_model_eval M (SmtTerm.set_singleton x) =
       __smtx_model_eval_set_singleton (__smtx_model_eval M x) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+/-- Stable rewrite for evaluating SMT set union terms. -/
+theorem smtx_eval_set_union_term_eq
+    (M : SmtModel) (x y : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.set_union x y) =
+      __smtx_model_eval_set_union
+        (__smtx_model_eval M x) (__smtx_model_eval M y) := by
   rw [__smtx_model_eval.eq_def] <;> simp only
 
 /-- Stable rewrite for evaluating SMT total rational division terms. -/
