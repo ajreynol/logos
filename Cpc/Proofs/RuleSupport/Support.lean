@@ -9,6 +9,238 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
+/-- Stable rewrite for evaluating SMT equality terms. -/
+theorem smtx_eval_eq_term_eq
+    (M : SmtModel) (x y : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.eq x y) =
+      __smtx_model_eval_eq (__smtx_model_eval M x) (__smtx_model_eval M y) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+/-- Stable rewrite for evaluating SMT if-then-else terms. -/
+theorem smtx_eval_ite_term_eq
+    (M : SmtModel) (c t e : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.ite c t e) =
+      __smtx_model_eval_ite
+        (__smtx_model_eval M c) (__smtx_model_eval M t)
+        (__smtx_model_eval M e) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+/-- Stable rewrite for evaluating SMT negation terms. -/
+theorem smtx_eval_not_term_eq
+    (M : SmtModel) (x : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.not x) =
+      __smtx_model_eval_not (__smtx_model_eval M x) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+/-- Stable rewrite for evaluating SMT conjunction terms. -/
+theorem smtx_eval_and_term_eq
+    (M : SmtModel) (x y : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.and x y) =
+      __smtx_model_eval_and (__smtx_model_eval M x) (__smtx_model_eval M y) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+/-- Stable rewrite for evaluating SMT disjunction terms. -/
+theorem smtx_eval_or_term_eq
+    (M : SmtModel) (x y : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.or x y) =
+      __smtx_model_eval_or (__smtx_model_eval M x) (__smtx_model_eval M y) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+/-- Stable rewrite for evaluating SMT implication terms. -/
+theorem smtx_eval_imp_term_eq
+    (M : SmtModel) (x y : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.imp x y) =
+      __smtx_model_eval_imp (__smtx_model_eval M x) (__smtx_model_eval M y) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+/-- Stable rewrite for evaluating SMT unsigned bit-vector-to-int terms. -/
+theorem smtx_eval_ubv_to_int_term_eq
+    (M : SmtModel) (x : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.ubv_to_int x) =
+      __smtx_model_eval_ubv_to_int (__smtx_model_eval M x) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+/-- Stable rewrite for evaluating SMT signed bit-vector-to-int terms. -/
+theorem smtx_eval_sbv_to_int_term_eq
+    (M : SmtModel) (x : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.sbv_to_int x) =
+      __smtx_model_eval_sbv_to_int (__smtx_model_eval M x) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+/-- Stable rewrite for evaluating SMT int-to-bit-vector terms. -/
+theorem smtx_eval_int_to_bv_term_eq
+    (M : SmtModel) (w x : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.int_to_bv w x) =
+      __smtx_model_eval_int_to_bv
+        (__smtx_model_eval M w) (__smtx_model_eval M x) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+/-- Stable rewrite for evaluating SMT extraction terms. -/
+theorem smtx_eval_extract_term_eq
+    (M : SmtModel) (hi lo x : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.extract hi lo x) =
+      __smtx_model_eval_extract
+        (__smtx_model_eval M hi) (__smtx_model_eval M lo)
+        (__smtx_model_eval M x) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+/-- Stable rewrite for evaluating SMT arithmetic `to_real` terms. -/
+theorem smtx_eval_to_real_term_eq
+    (M : SmtModel) (x : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.to_real x) =
+      __smtx_model_eval_to_real (__smtx_model_eval M x) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+/-- Stable rewrite for evaluating SMT arithmetic `to_int` terms. -/
+theorem smtx_eval_to_int_term_eq
+    (M : SmtModel) (x : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.to_int x) =
+      __smtx_model_eval_to_int (__smtx_model_eval M x) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+/-- Stable rewrite for evaluating SMT arithmetic `is_int` terms. -/
+theorem smtx_eval_is_int_term_eq
+    (M : SmtModel) (x : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.is_int x) =
+      __smtx_model_eval_is_int (__smtx_model_eval M x) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+/-- Stable rewrite for evaluating SMT string/sequence length terms. -/
+theorem smtx_eval_str_len_term_eq
+    (M : SmtModel) (x : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.str_len x) =
+      __smtx_model_eval_str_len (__smtx_model_eval M x) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+/-- Stable rewrite for evaluating SMT sequence singleton terms. -/
+theorem smtx_eval_seq_unit_term_eq
+    (M : SmtModel) (x : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.seq_unit x) =
+      SmtValue.Seq
+        (SmtSeq.cons (__smtx_model_eval M x)
+          (SmtSeq.empty (__smtx_typeof_value (__smtx_model_eval M x)))) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+/-- Stable rewrite for evaluating SMT set singleton terms. -/
+theorem smtx_eval_set_singleton_term_eq
+    (M : SmtModel) (x : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.set_singleton x) =
+      __smtx_model_eval_set_singleton (__smtx_model_eval M x) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+/-- Stable rewrite for evaluating SMT total rational division terms. -/
+theorem smtx_eval_qdiv_total_term_eq
+    (M : SmtModel) (x y : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.qdiv_total x y) =
+      __smtx_model_eval_qdiv_total
+        (__smtx_model_eval M x) (__smtx_model_eval M y) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+/-- Stable rewrite for evaluating SMT rational division terms. -/
+theorem smtx_eval_qdiv_term_eq
+    (M : SmtModel) (x y : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.qdiv x y) =
+      (let yr := __smtx_model_eval_to_real (__smtx_model_eval M y)
+       let xr := __smtx_model_eval_to_real (__smtx_model_eval M x)
+       __smtx_model_eval_ite
+        (__smtx_model_eval_eq yr
+          (SmtValue.Rational (native_mk_rational 0 1)))
+        (__smtx_model_eval_apply M
+          (native_model_lookup M native_qdiv_by_zero_id
+            (SmtType.FunType SmtType.Real SmtType.Real))
+          xr)
+        (__smtx_model_eval_qdiv_total xr yr)) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+/-- Stable rewrite for evaluating SMT choice witnesses. -/
+noncomputable def smtx_eval_choice_nth_term_eq
+    (M : SmtModel) (s : native_String) (T : SmtType)
+    (body : SmtTerm) (n : native_Nat) :
+    __smtx_model_eval M (SmtTerm.choice_nth s T body n) =
+      native_eval_tchoice_nth M s T body n := by
+  rfl
+
+/-- Stable rewrite for evaluating SMT variables. -/
+theorem smtx_eval_var_term_eq
+    (M : SmtModel) (s : native_String) (T : SmtType) :
+    __smtx_model_eval M (SmtTerm.Var s T) =
+      native_model_var_lookup M s T := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+/-- Stable rewrite for typing SMT choice witnesses. -/
+theorem smtx_typeof_choice_nth_term_eq
+    (s : native_String) (T : SmtType) (body : SmtTerm) (n : native_Nat) :
+    __smtx_typeof (SmtTerm.choice_nth s T body n) =
+      __smtx_typeof_choice_nth T body n := by
+  rw [__smtx_typeof.eq_def] <;> simp only
+
+/-- Stable rewrite for typing SMT existential terms. -/
+theorem smtx_typeof_exists_term_eq
+    (s : native_String) (T : SmtType) (body : SmtTerm) :
+    __smtx_typeof (SmtTerm.exists s T body) =
+      native_ite (native_Teq (__smtx_typeof body) SmtType.Bool)
+        (__smtx_typeof_guard_wf T SmtType.Bool) SmtType.None := by
+  rw [__smtx_typeof.eq_def] <;> simp only
+
+/-- Stable rewrite for typing SMT universal terms. -/
+theorem smtx_typeof_forall_term_eq
+    (s : native_String) (T : SmtType) (body : SmtTerm) :
+    __smtx_typeof (SmtTerm.forall s T body) =
+      native_ite (native_Teq (__smtx_typeof body) SmtType.Bool)
+        (__smtx_typeof_guard_wf T SmtType.Bool) SmtType.None := by
+  rw [__smtx_typeof.eq_def] <;> simp only
+
+/-- Stable rewrite for typing SMT empty sequence terms. -/
+theorem smtx_typeof_seq_empty_term_eq
+    (T : SmtType) :
+    __smtx_typeof (SmtTerm.seq_empty T) =
+      __smtx_typeof_guard_wf (SmtType.Seq T) (SmtType.Seq T) := by
+  rw [__smtx_typeof.eq_def] <;> simp only
+
+/-- Stable rewrite for typing SMT sequence singleton terms. -/
+theorem smtx_typeof_seq_unit_term_eq
+    (x : SmtTerm) :
+    __smtx_typeof (SmtTerm.seq_unit x) =
+      __smtx_typeof_guard_wf
+        (SmtType.Seq (__smtx_typeof x)) (SmtType.Seq (__smtx_typeof x)) := by
+  rw [__smtx_typeof.eq_def] <;> simp only
+
+/-- Stable rewrite for typing SMT empty set terms. -/
+theorem smtx_typeof_set_empty_term_eq
+    (T : SmtType) :
+    __smtx_typeof (SmtTerm.set_empty T) =
+      __smtx_typeof_guard_wf (SmtType.Set T) (SmtType.Set T) := by
+  rw [__smtx_typeof.eq_def] <;> simp only
+
+/-- Stable rewrite for typing SMT set singleton terms. -/
+theorem smtx_typeof_set_singleton_term_eq
+    (x : SmtTerm) :
+    __smtx_typeof (SmtTerm.set_singleton x) =
+      __smtx_typeof_guard_wf
+        (SmtType.Set (__smtx_typeof x)) (SmtType.Set (__smtx_typeof x)) := by
+  rw [__smtx_typeof.eq_def] <;> simp only
+
+/-- Stable rewrite for typing SMT variables. -/
+theorem smtx_typeof_var_term_eq
+    (s : native_String) (T : SmtType) :
+    __smtx_typeof (SmtTerm.Var s T) =
+      __smtx_typeof_guard_wf T T := by
+  rw [__smtx_typeof.eq_def] <;> simp only
+
+/-- Stable rewrite for typing SMT unsigned bit-vector-to-int terms. -/
+theorem smtx_typeof_ubv_to_int_term_eq
+    (x : SmtTerm) :
+    __smtx_typeof (SmtTerm.ubv_to_int x) =
+      __smtx_typeof_bv_op_1_ret (__smtx_typeof x) SmtType.Int := by
+  rw [__smtx_typeof.eq_def] <;> simp only
+
+/-- Stable rewrite for typing SMT int-to-bit-vector terms. -/
+theorem smtx_typeof_int_to_bv_term_eq
+    (w x : SmtTerm) :
+    __smtx_typeof (SmtTerm.int_to_bv w x) =
+      __smtx_typeof_int_to_bv w (__smtx_typeof x) := by
+  rw [__smtx_typeof.eq_def] <;> simp only
+
 /-- Builds the right-associated conjunction of a list of premise terms, using `true` as the empty case. -/
 def premiseAndFormulaList : List Term -> Term
   | [] => Term.Boolean true

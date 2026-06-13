@@ -375,7 +375,7 @@ private theorem ubvBitAddend_eval
         (SmtTerm.Numeral (native_int_pow2 (native_nat_to_int start)))
         (SmtTerm.Numeral 0)) =
       SmtValue.Numeral (if n.toNat.testBit start then (2 ^ start : Int) else 0)
-  rw [__smtx_model_eval.eq_133, __smtx_model_eval.eq_134,
+  rw [smtx_eval_ite_term_eq, smtx_eval_eq_term_eq,
     __smtx_model_eval.eq_36, __smtx_model_eval.eq_2,
     __smtx_model_eval.eq_2, hEvalB, __smtx_model_eval.eq_5,
     __smtx_model_eval.eq_2]
@@ -619,7 +619,7 @@ private theorem ubv_to_int_expansion_eval_rel
         SmtValue.Numeral n := by
     change __smtx_model_eval M (SmtTerm.ubv_to_int (__eo_to_smt b)) =
       SmtValue.Numeral n
-    rw [__smtx_model_eval.eq_131, hEvalB]
+    rw [smtx_eval_ubv_to_int_term_eq, hEvalB]
     rfl
   rw [hEvalExpanded, hEvalOrig]
   exact RuleProofs.smt_value_rel_refl _
@@ -734,7 +734,7 @@ by
               rcases
                   bv_unop_ret_arg_of_non_none
                     (op := SmtTerm.ubv_to_int) (ret := SmtType.Int)
-                    (by rw [__smtx_typeof.eq_131]) hUbvNN with
+                    (by rw [smtx_typeof_ubv_to_int_term_eq]) hUbvNN with
                 ⟨w, hbTy⟩
               have hRelExpanded :
                   RuleProofs.smt_value_rel

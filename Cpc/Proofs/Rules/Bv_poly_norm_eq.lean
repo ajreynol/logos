@@ -927,7 +927,7 @@ private theorem facts___eo_prog_bv_poly_norm_eq_impl_shape
             (SmtValue.Binary (native_nat_to_int w) nxb2)) := by
     rw [show __eo_to_smt eqX =
       SmtTerm.eq (__eo_to_smt xb1) (__eo_to_smt xb2) by rfl]
-    rw [__smtx_model_eval.eq_134, hXb1Eval, hXb2Eval]
+    rw [smtx_eval_eq_term_eq, hXb1Eval, hXb2Eval]
     rfl
   have hEqYEval :
       __smtx_model_eval M (__eo_to_smt eqY) =
@@ -936,7 +936,7 @@ private theorem facts___eo_prog_bv_poly_norm_eq_impl_shape
             (SmtValue.Binary (native_nat_to_int w) nyb2)) := by
     rw [show __eo_to_smt eqY =
       SmtTerm.eq (__eo_to_smt yb1) (__eo_to_smt yb2) by rfl]
-    rw [__smtx_model_eval.eq_134, hYb1Eval, hYb2Eval]
+    rw [smtx_eval_eq_term_eq, hYb1Eval, hYb2Eval]
     rfl
   have hEqBool :
       native_veq (SmtValue.Binary (native_nat_to_int w) nxb1)

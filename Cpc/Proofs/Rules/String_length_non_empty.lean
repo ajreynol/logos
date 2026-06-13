@@ -390,7 +390,7 @@ private theorem facts___eo_prog_string_length_non_empty_impl
                                               (Term.Apply Term.eq (Term.Apply Term.str_len s))
                                               (Term.Numeral 0))) =
                                         SmtValue.Boolean false := by
-                                    rw [eo_to_smt_eq_eq, __smtx_model_eval.eq_134]
+                                    rw [eo_to_smt_eq_eq, smtx_eval_eq_term_eq]
                                     rw [hEvalLen]
                                     rw [eval_eo_zero M]
                                     unfold __smtx_model_eval_eq native_veq

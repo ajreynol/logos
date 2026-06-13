@@ -237,7 +237,7 @@ private theorem eslSmtBody_type (A : SmtType) (k : native_Int)
   have hVarTy :
       __smtx_typeof (SmtTerm.Var (native_string_lit "@x") (SmtType.Seq A)) =
         SmtType.Seq A := by
-    rw [__smtx_typeof.eq_143]
+    rw [smtx_typeof_var_term_eq]
     simp [__smtx_typeof_guard_wf, hWF, native_ite]
   rw [eslSmtBody, typeof_eq_eq, typeof_str_len_eq, __smtx_typeof.eq_2,
     hVarTy]
@@ -253,8 +253,8 @@ private theorem eslSmtBody_eval_default_seq
           (native_pack_seq A (List.replicate (native_int_to_nat k)
             (__smtx_type_default A)))))
       (eslSmtBody A k) = SmtValue.Boolean true := by
-  rw [eslSmtBody, __smtx_model_eval.eq_134, __smtx_model_eval.eq_79,
-    __smtx_model_eval.eq_143, __smtx_model_eval.eq_2]
+  rw [eslSmtBody, smtx_eval_eq_term_eq, smtx_eval_str_len_term_eq,
+    smtx_eval_var_term_eq, __smtx_model_eval.eq_2]
   simp [native_model_var_lookup, native_model_push, __smtx_model_eval_str_len,
     Smtm.native_unpack_pack_seq, __smtx_model_eval_eq, native_seq_len,
     native_int_to_nat, SmtEval.native_int_to_nat, Int.toNat_of_nonneg hkNonneg,
@@ -294,8 +294,8 @@ private theorem eslSmtBody_true_imp_str_len
         (native_model_push M (native_string_lit "@x") (SmtType.Seq A) v)
         (eslSmtBody A k) = SmtValue.Boolean true) :
     __smtx_model_eval_str_len v = SmtValue.Numeral k := by
-  rw [eslSmtBody, __smtx_model_eval.eq_134, __smtx_model_eval.eq_79,
-    __smtx_model_eval.eq_143, __smtx_model_eval.eq_2] at hBody
+  rw [eslSmtBody, smtx_eval_eq_term_eq, smtx_eval_str_len_term_eq,
+    smtx_eval_var_term_eq, __smtx_model_eval.eq_2] at hBody
   simp [native_model_var_lookup, native_model_push] at hBody
   cases hLen : __smtx_model_eval_str_len v <;>
     simp [hLen, __smtx_model_eval_eq, native_veq] at hBody ⊢ <;>
@@ -314,7 +314,7 @@ private theorem eslFormula_has_bool_type
       __smtx_typeof
         (SmtTerm.choice_nth (native_string_lit "@x") (SmtType.Seq A)
           (eslSmtBody A k) native_nat_zero) = SmtType.Seq A := by
-    rw [__smtx_typeof.eq_137]
+    rw [smtx_typeof_choice_nth_term_eq]
     simp [__smtx_typeof_choice_nth, hBodyTy, __smtx_typeof_guard_wf,
       hSeqWF, native_Teq, native_ite]
   let wit : Term :=
@@ -433,7 +433,7 @@ private theorem eslFormula_true
                   (SmtTerm.Numeral k)) native_nat_zero)
               SmtTerm.None))
           (SmtTerm.Numeral k)) = SmtValue.Boolean true
-    rw [__smtx_model_eval.eq_134, __smtx_model_eval.eq_79,
+    rw [smtx_eval_eq_term_eq, smtx_eval_str_len_term_eq,
       __smtx_model_eval.eq_2]
     simp [hIdTy, hSeqTy, native_Teq, native_ite,
       smtx_model_eval_choice_nth_eq_aux, nativeEvalTChoiceNthAux,

@@ -127,7 +127,7 @@ private theorem facts___eo_prog_ite_true_cond_impl
         SmtTerm.ite (__eo_to_smt (Term.Boolean true)) (__eo_to_smt x1)
           (__eo_to_smt y1) by
         rfl]
-    rw [__smtx_model_eval.eq_133, hTrueEval]
+    rw [smtx_eval_ite_term_eq, hTrueEval]
     simpa [__smtx_model_eval_ite] using
       RuleProofs.smt_value_rel_refl (__smtx_model_eval M (__eo_to_smt x1))
 

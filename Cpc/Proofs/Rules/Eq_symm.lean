@@ -163,7 +163,7 @@ private theorem facts___eo_prog_eq_symm_impl
     rw [show __eo_to_smt (Term.Apply (Term.Apply Term.eq s1) t1) =
         SmtTerm.eq (__eo_to_smt s1) (__eo_to_smt t1) by
         rfl]
-    rw [__smtx_model_eval.eq_134, __smtx_model_eval.eq_134]
+    rw [smtx_eval_eq_term_eq, smtx_eval_eq_term_eq]
     exact smt_value_rel_eq_eval_symm
       (__smtx_model_eval M (__eo_to_smt t1))
       (__smtx_model_eval M (__eo_to_smt s1))
