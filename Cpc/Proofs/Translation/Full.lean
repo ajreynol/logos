@@ -4884,55 +4884,36 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
             (__eo_to_smt len)
         have hTranslate :
             __eo_to_smt (Term.UOp3 UserOp3._at_witness_string_length T len id) =
-              native_ite (native_Teq (__smtx_typeof (__eo_to_smt id)) SmtType.Int)
-                (SmtTerm.choice_nth (native_string_lit "@x") ST body native_nat_zero) SmtTerm.None := by
+              native_ite (__eo_to_smt_nat_is_valid len)
+                (native_ite (__eo_to_smt_nat_is_valid id)
+                  (SmtTerm.choice_nth (native_string_lit "@x") ST body native_nat_zero)
+                  SmtTerm.None)
+                SmtTerm.None := by
           rfl
-        have hIdIntSmt : __smtx_typeof (__eo_to_smt id) = SmtType.Int := by
-          cases hTest : native_Teq (__smtx_typeof (__eo_to_smt id)) SmtType.Int
+        have hLenValid : __eo_to_smt_nat_is_valid len = true := by
+          cases hTest : __eo_to_smt_nat_is_valid len
           · exfalso
             apply hNonNone
             rw [hTranslate]
             simp [hTest, native_ite]
-          · simpa [native_Teq] using hTest
+          · rfl
+        have hIdValid : __eo_to_smt_nat_is_valid id = true := by
+          cases hTest : __eo_to_smt_nat_is_valid id
+          · exfalso
+            apply hNonNone
+            rw [hTranslate]
+            simp [hLenValid, hTest, native_ite]
+          · rfl
         have hIdInt : __eo_typeof id = Term.UOp UserOp.Int :=
-          eo_typeof_eq_int_of_smt_int_from_ih id (fun h => (go id h).1)
-            hIdIntSmt
+          eo_typeof_eq_int_of_nat_is_valid id hIdValid
+        have hLenInt : __eo_typeof len = Term.UOp UserOp.Int :=
+          eo_typeof_eq_int_of_nat_is_valid len hLenValid
         have hChoiceNN :
             term_has_non_none_type (SmtTerm.choice_nth (native_string_lit "@x") ST body 0) := by
           unfold term_has_non_none_type
           have hTermNN' := hNonNone
           rw [hTranslate] at hTermNN'
-          simpa [hIdIntSmt, native_Teq, native_ite] using hTermNN'
-        have hBodyBool : __smtx_typeof body = SmtType.Bool :=
-          choice_nth_body_bool_of_non_none hChoiceNN
-        have hEqNN :
-            __smtx_typeof_eq
-                (__smtx_typeof (SmtTerm.str_len (SmtTerm.Var (native_string_lit "@x") ST)))
-                (__smtx_typeof (__eo_to_smt len)) ≠
-              SmtType.None := by
-          have hBodyNN : __smtx_typeof body ≠ SmtType.None := by
-            rw [hBodyBool]
-            simp
-          simpa [body, typeof_eq_eq] using hBodyNN
-        have hEqArgs := smtx_typeof_eq_non_none hEqNN
-        have hStrLenNN :
-            term_has_non_none_type (SmtTerm.str_len (SmtTerm.Var (native_string_lit "@x") ST)) := by
-          unfold term_has_non_none_type
-          exact hEqArgs.2
-        rcases seq_arg_of_non_none_ret (op := SmtTerm.str_len)
-            (typeof_str_len_eq (SmtTerm.Var (native_string_lit "@x") ST)) hStrLenNN with
-          ⟨A, hVarSeq⟩
-        have hStrLenTy :
-            __smtx_typeof (SmtTerm.str_len (SmtTerm.Var (native_string_lit "@x") ST)) =
-              SmtType.Int := by
-          rw [typeof_str_len_eq (SmtTerm.Var (native_string_lit "@x") ST), hVarSeq]
-          simp [__smtx_typeof_seq_op_1_ret]
-        have hLenIntSmt : __smtx_typeof (__eo_to_smt len) = SmtType.Int := by
-          rw [← hEqArgs.1]
-          exact hStrLenTy
-        have hLenInt : __eo_typeof len = Term.UOp UserOp.Int :=
-          eo_typeof_eq_int_of_smt_int_from_ih len (fun h => (go len h).1)
-            hLenIntSmt
+          simpa [hLenValid, hIdValid, native_ite] using hTermNN'
         have hChoiceGuard :
             __smtx_typeof (SmtTerm.choice_nth (native_string_lit "@x") ST body 0) =
               __smtx_typeof_guard_wf ST ST :=

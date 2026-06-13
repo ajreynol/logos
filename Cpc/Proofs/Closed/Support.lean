@@ -1664,15 +1664,18 @@ theorem smtTermClosedIn_eo_to_smt_witness_string_length
       (Term.UOp3 UserOp3._at_witness_string_length x y z)) :=
 by
   change SmtTermClosedIn vars
-    (native_ite (native_Teq (__smtx_typeof (__eo_to_smt z)) SmtType.Int)
-      (SmtTerm.choice_nth (native_string_lit "@x") (__eo_to_smt_type x)
-        (SmtTerm.eq
-          (SmtTerm.str_len
-            (SmtTerm.Var (native_string_lit "@x") (__eo_to_smt_type x)))
-          (__eo_to_smt y))
-        native_nat_zero)
+    (native_ite (__eo_to_smt_nat_is_valid y)
+      (native_ite (__eo_to_smt_nat_is_valid z)
+        (SmtTerm.choice_nth (native_string_lit "@x") (__eo_to_smt_type x)
+          (SmtTerm.eq
+            (SmtTerm.str_len
+              (SmtTerm.Var (native_string_lit "@x") (__eo_to_smt_type x)))
+            (__eo_to_smt y))
+          native_nat_zero)
+        SmtTerm.None)
       SmtTerm.None)
-  cases native_Teq (__smtx_typeof (__eo_to_smt z)) SmtType.Int <;> try trivial
+  cases __eo_to_smt_nat_is_valid y <;> try trivial
+  cases __eo_to_smt_nat_is_valid z <;> try trivial
   have hy' :
       SmtTermClosedIn
         ((native_string_lit "@x", __eo_to_smt_type x) :: vars)

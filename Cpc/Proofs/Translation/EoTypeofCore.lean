@@ -2627,16 +2627,21 @@ theorem eo_to_smt_eq_numeral
           (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt_nat z) n h)
       case _at_witness_string_length =>
         change native_ite
-            (native_Teq (__smtx_typeof (__eo_to_smt z)) SmtType.Int)
-            (SmtTerm.choice_nth (native_string_lit "@x") (__eo_to_smt_type x)
-              (SmtTerm.eq
-                (SmtTerm.str_len (SmtTerm.Var (native_string_lit "@x") (__eo_to_smt_type x)))
-                (__eo_to_smt y))
-              native_nat_zero)
+            (__eo_to_smt_nat_is_valid y)
+            (native_ite
+              (__eo_to_smt_nat_is_valid z)
+              (SmtTerm.choice_nth (native_string_lit "@x") (__eo_to_smt_type x)
+                (SmtTerm.eq
+                  (SmtTerm.str_len (SmtTerm.Var (native_string_lit "@x") (__eo_to_smt_type x)))
+                  (__eo_to_smt y))
+                native_nat_zero)
+              SmtTerm.None)
             SmtTerm.None =
           SmtTerm.Numeral n at h
-        cases hz : native_Teq (__smtx_typeof (__eo_to_smt z)) SmtType.Int <;>
-          simp [native_ite, hz] at h
+        cases hy : __eo_to_smt_nat_is_valid y <;>
+          simp [native_ite, hy] at h
+        cases hz : __eo_to_smt_nat_is_valid z <;>
+          simp [hz] at h
   | Apply f x => exact False.elim (eo_to_smt_apply_ne_numeral f x n h)
   | _ => cases h
 
@@ -2681,6 +2686,16 @@ theorem eo_to_smt_type_typeof_numeral
     __eo_to_smt_type (__eo_typeof (Term.Numeral n)) = SmtType.Int := by
   change __eo_to_smt_type (Term.UOp UserOp.Int) = SmtType.Int
   rfl
+
+/-- Valid EO nat arguments are numerals, hence EO integers. -/
+theorem eo_typeof_eq_int_of_nat_is_valid
+    (t : Term)
+    (h : __eo_to_smt_nat_is_valid t = true) :
+    __eo_typeof t = Term.UOp UserOp.Int := by
+  cases t <;> simp [__eo_to_smt_nat_is_valid] at h
+  case Numeral n =>
+    change __eo_lit_type_Numeral (Term.Numeral n) = Term.UOp UserOp.Int
+    rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_rational`. -/
 theorem eo_to_smt_type_typeof_rational
