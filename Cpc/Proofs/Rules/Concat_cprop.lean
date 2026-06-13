@@ -52,7 +52,7 @@ private abbrev concatCPropPrefix (rev t s : Term) : Term :=
 
 private abbrev concatCPropSuffix (rev t s tc : Term) : Term :=
   let pfx := concatCPropPrefix rev t s
-  Term.UOp1 UserOp1._at_purify
+  __eo_mk_apply (Term.UOp UserOp._at_purify)
     (__eo_mk_apply
       (__eo_mk_apply (Term.Apply (Term.UOp UserOp.str_substr) tc)
         (__eo_mk_apply (Term.UOp UserOp.str_len) pfx))
@@ -72,7 +72,7 @@ private abbrev concatCPropReverseSuffix (rev t s tc : Term) : Term :=
             (__eo_mk_apply (Term.UOp UserOp.str_len) sHead))
           k))
       k
-  Term.UOp1 UserOp1._at_purify
+  __eo_mk_apply (Term.UOp UserOp._at_purify)
     (__eo_mk_apply
       (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) tc)
         (Term.Numeral 0))
@@ -3769,7 +3769,7 @@ private theorem cprop_suffix_false_seq_type
         (Term.Apply (Term.UOp UserOp.str_len) pfx)) (by simp) (by simp)
   have hSuffixEq :
       concatCPropSuffix (Term.Boolean false) t s tc =
-        Term.UOp1 UserOp1._at_purify
+        Term.Apply (Term.UOp UserOp._at_purify)
           (Term.Apply
             (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) tc)
               (Term.Apply (Term.UOp UserOp.str_len) pfx))
@@ -3779,6 +3779,16 @@ private theorem cprop_suffix_false_seq_type
               (Term.Apply (Term.UOp UserOp.str_len) pfx))) := by
     dsimp [concatCPropSuffix, pfx]
     rw [hOuterEq]
+    exact cprop_mk_apply_eq_apply_of_args_ne_stuck
+      (Term.UOp UserOp._at_purify)
+      (Term.Apply
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) tc)
+          (Term.Apply (Term.UOp UserOp.str_len) pfx))
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp.neg)
+            (Term.Apply (Term.UOp UserOp.str_len) tc))
+          (Term.Apply (Term.UOp UserOp.str_len) pfx)))
+      (by simp) (by simp)
   have hLenTcTy :
       __smtx_typeof (SmtTerm.str_len (__eo_to_smt tc)) = SmtType.Int :=
     smtx_typeof_str_len_seq (__eo_to_smt tc) T htcTy
@@ -4655,7 +4665,7 @@ private theorem cprop_reverse_suffix_true_seq_type
         (Term.Apply (Term.UOp UserOp.str_len) endPart)) (by simp) (by simp)
   have hSuffixEq :
       concatCPropReverseSuffix (Term.Boolean true) t s tc =
-        Term.UOp1 UserOp1._at_purify
+        Term.Apply (Term.UOp UserOp._at_purify)
           (Term.Apply
             (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) tc)
               (Term.Numeral 0))
@@ -4664,7 +4674,7 @@ private theorem cprop_reverse_suffix_true_seq_type
                 (Term.Apply (Term.UOp UserOp.str_len) tc))
               (Term.Apply (Term.UOp UserOp.str_len) endPart))) := by
     change
-      Term.UOp1 UserOp1._at_purify
+      __eo_mk_apply (Term.UOp UserOp._at_purify)
         (__eo_mk_apply
           (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) tc)
             (Term.Numeral 0))
@@ -4672,7 +4682,7 @@ private theorem cprop_reverse_suffix_true_seq_type
             (Term.Apply (Term.UOp UserOp.neg)
               (Term.Apply (Term.UOp UserOp.str_len) tc))
             (__eo_mk_apply (Term.UOp UserOp.str_len) endPart))) =
-        Term.UOp1 UserOp1._at_purify
+        Term.Apply (Term.UOp UserOp._at_purify)
           (Term.Apply
             (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) tc)
               (Term.Numeral 0))
@@ -4681,6 +4691,16 @@ private theorem cprop_reverse_suffix_true_seq_type
                 (Term.Apply (Term.UOp UserOp.str_len) tc))
               (Term.Apply (Term.UOp UserOp.str_len) endPart)))
     rw [hOuterEq]
+    exact cprop_mk_apply_eq_apply_of_args_ne_stuck
+      (Term.UOp UserOp._at_purify)
+      (Term.Apply
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) tc)
+          (Term.Numeral 0))
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp.neg)
+            (Term.Apply (Term.UOp UserOp.str_len) tc))
+          (Term.Apply (Term.UOp UserOp.str_len) endPart)))
+      (by simp) (by simp)
   have hZeroTy : __smtx_typeof (SmtTerm.Numeral 0) = SmtType.Int := by
     rw [__smtx_typeof.eq_2]
   have hLenTcTy :
@@ -4793,7 +4813,7 @@ private theorem cprop_suffix_false_eval_of_prefix_eval
         (Term.Apply (Term.UOp UserOp.str_len) pfx)) (by simp) (by simp)
   have hSuffixEq :
       concatCPropSuffix (Term.Boolean false) t s tc =
-        Term.UOp1 UserOp1._at_purify
+        Term.Apply (Term.UOp UserOp._at_purify)
           (Term.Apply
             (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) tc)
               (Term.Apply (Term.UOp UserOp.str_len) pfx))
@@ -4803,6 +4823,16 @@ private theorem cprop_suffix_false_eval_of_prefix_eval
               (Term.Apply (Term.UOp UserOp.str_len) pfx))) := by
     dsimp [concatCPropSuffix, pfx]
     rw [hOuterEq]
+    exact cprop_mk_apply_eq_apply_of_args_ne_stuck
+      (Term.UOp UserOp._at_purify)
+      (Term.Apply
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) tc)
+          (Term.Apply (Term.UOp UserOp.str_len) pfx))
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp.neg)
+            (Term.Apply (Term.UOp UserOp.str_len) tc))
+          (Term.Apply (Term.UOp UserOp.str_len) pfx)))
+      (by simp) (by simp)
   have htcValTy := smt_model_eval_preserves_type M hM (__eo_to_smt tc)
     (SmtType.Seq T) htcTy (seq_ne_none T) (type_inhabited_seq T)
   have hstTy : __smtx_typeof_seq_value st = SmtType.Seq T := by
@@ -5170,7 +5200,7 @@ private theorem cprop_reverse_suffix_true_eval_of_end_eval
         (Term.Apply (Term.UOp UserOp.str_len) endPart)) (by simp) (by simp)
   have hSuffixEq :
       concatCPropReverseSuffix (Term.Boolean true) t s tc =
-        Term.UOp1 UserOp1._at_purify
+        Term.Apply (Term.UOp UserOp._at_purify)
           (Term.Apply
             (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) tc)
               (Term.Numeral 0))
@@ -5179,7 +5209,7 @@ private theorem cprop_reverse_suffix_true_eval_of_end_eval
                 (Term.Apply (Term.UOp UserOp.str_len) tc))
               (Term.Apply (Term.UOp UserOp.str_len) endPart))) := by
     change
-      Term.UOp1 UserOp1._at_purify
+      __eo_mk_apply (Term.UOp UserOp._at_purify)
         (__eo_mk_apply
           (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) tc)
             (Term.Numeral 0))
@@ -5187,7 +5217,7 @@ private theorem cprop_reverse_suffix_true_eval_of_end_eval
             (Term.Apply (Term.UOp UserOp.neg)
               (Term.Apply (Term.UOp UserOp.str_len) tc))
             (__eo_mk_apply (Term.UOp UserOp.str_len) endPart))) =
-        Term.UOp1 UserOp1._at_purify
+        Term.Apply (Term.UOp UserOp._at_purify)
           (Term.Apply
             (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) tc)
               (Term.Numeral 0))
@@ -5196,6 +5226,16 @@ private theorem cprop_reverse_suffix_true_eval_of_end_eval
                 (Term.Apply (Term.UOp UserOp.str_len) tc))
               (Term.Apply (Term.UOp UserOp.str_len) endPart)))
     rw [hOuterEq]
+    exact cprop_mk_apply_eq_apply_of_args_ne_stuck
+      (Term.UOp UserOp._at_purify)
+      (Term.Apply
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) tc)
+          (Term.Numeral 0))
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp.neg)
+            (Term.Apply (Term.UOp UserOp.str_len) tc))
+          (Term.Apply (Term.UOp UserOp.str_len) endPart)))
+      (by simp) (by simp)
   have htcValTy := smt_model_eval_preserves_type M hM (__eo_to_smt tc)
     (SmtType.Seq T) htcTy (seq_ne_none T) (type_inhabited_seq T)
   have hstTy : __smtx_typeof_seq_value st = SmtType.Seq T := by

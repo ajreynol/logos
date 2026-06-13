@@ -48,7 +48,7 @@ abbrev concatSplitRaw (tHead sHead rev : Term) : Term :=
   __str_unify_split tHead sHead rev
 
 abbrev concatSplitTerm (tHead sHead rev : Term) : Term :=
-  Term.UOp1 UserOp1._at_purify (concatSplitRaw tHead sHead rev)
+  __eo_mk_apply (Term.UOp UserOp._at_purify) (concatSplitRaw tHead sHead rev)
 
 abbrev concatSplitRawFalseBody (tHead sHead : Term) : Term :=
   let lt := mkStrLen tHead
@@ -1016,7 +1016,7 @@ theorem concatSplitFormula_false_eq_plain
     seq_empty_typeof_ne_stuck_of_smt_type_seq split T hSplitTy
   have hSplitNe' :
       concatSplitTerm tHead sHead (Term.Boolean false) ≠ Term.Stuck := by
-    simp
+    simpa [split] using hSplitNe
   have hEmptySplitNe' :
       __seq_empty
           (__eo_typeof (concatSplitTerm tHead sHead (Term.Boolean false))) ≠
@@ -1078,7 +1078,7 @@ theorem concatSplitFormula_true_eq_plain
     seq_empty_typeof_ne_stuck_of_smt_type_seq split T hSplitTy
   have hSplitNe' :
       concatSplitTerm tHead sHead (Term.Boolean true) ≠ Term.Stuck := by
-    simp
+    simpa [split] using hSplitNe
   have hEmptySplitNe' :
       __seq_empty
           (__eo_typeof (concatSplitTerm tHead sHead (Term.Boolean true))) ≠
@@ -2311,4 +2311,3 @@ theorem eval_mkConcat_right_nested
   rw [haEval, hbEval, hcEval]
   simp [__smtx_model_eval_str_concat, native_seq_concat,
     native_unpack_pack_seq,haElem, List.append_assoc]
-

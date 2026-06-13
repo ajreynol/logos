@@ -18256,6 +18256,7 @@ private theorem eo_to_smt_apply_var_non_string_none_head
 private def uopHasUnarySmtTranslation : UserOp -> Bool
   | UserOp.not
   | UserOp.distinct
+  | UserOp._at_purify
   | UserOp.to_real
   | UserOp.to_int
   | UserOp.is_int
@@ -18838,6 +18839,9 @@ private theorem uop_apply_typeof_none_of_arg_none
         rfl
       case distinct =>
         exact False.elim (hDistinct rfl)
+      case _at_purify =>
+        change __smtx_typeof (SmtTerm._at_purify (__eo_to_smt x)) = SmtType.None
+        simpa [__smtx_typeof] using hx
       case to_real =>
         change __smtx_typeof (SmtTerm.to_real (__eo_to_smt x)) = SmtType.None
         rw [typeof_to_real_eq, hx]
@@ -21000,12 +21004,12 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                     (no_translation_of_eo_apply_none_head
                       (f := Term.UOp2 UserOp2._at_const i j) (x := x)
                       (by rfl) hTrans)
-              | Term.UOp1 UserOp1._at_purify z =>
+              | Term.Apply (Term.UOp UserOp._at_purify) z =>
                   cases hFn with
                   | refl _ =>
                       exact
                         congTypeSpine_same_generic_head_apply_eq_has_bool_type
-                          (Term.UOp1 UserOp1._at_purify z) x y
+                          (Term.Apply (Term.UOp UserOp._at_purify) z) x y
                           (by intro a; rfl)
                           (generic_apply_type_of_non_datatype_head
                             (by
@@ -23732,12 +23736,12 @@ private theorem congTrueSpine_eq_true
                     (no_bool_eq_left_of_eo_apply_none_head
                       (f := Term.UOp2 UserOp2._at_const i j) (x := x)
                       (rhs := Term.Apply g y) (by rfl) hEqBool)
-              | Term.UOp1 UserOp1._at_purify z =>
+              | Term.Apply (Term.UOp UserOp._at_purify) z =>
                   cases hFn with
                   | refl _ =>
                       exact
                         congTrueSpine_same_generic_head_apply_eq_true
-                          M hM (Term.UOp1 UserOp1._at_purify z) x y
+                          M hM (Term.Apply (Term.UOp UserOp._at_purify) z) x y
                           (by intro a; rfl)
                           (generic_apply_type_of_non_datatype_head
                             (by

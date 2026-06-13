@@ -3181,7 +3181,6 @@ private theorem eo_to_smt_type_substitute_field
   | Term.UOp2 UserOp2.extract x y => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
   | Term.UOp2 UserOp2._at_bv x y => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
   | Term.UOp2 UserOp2.re_loop x y => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
-  | Term.UOp1 UserOp1._at_purify x => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
   | Term.UOp1 UserOp1.seq_empty T => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
   | Term.UOp1 UserOp1.set_empty T => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
   | Term.UOp2 UserOp2._at_quantifiers_skolemize x y => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
@@ -3823,7 +3822,7 @@ theorem eo_to_smt_typeof_matches_translation_set_empty
 /-- Simplifies EO-to-SMT type translation for `typeof_purify`. -/
 theorem eo_to_smt_type_typeof_purify
     (x : Term) :
-    __eo_to_smt_type (__eo_typeof (Term.UOp1 UserOp1._at_purify x)) =
+    __eo_to_smt_type (__eo_typeof (Term._at_purify x)) =
       __eo_to_smt_type (__eo_typeof x) := by
   change __eo_to_smt_type (__eo_typeof__at_purify (__eo_typeof x)) =
       __eo_to_smt_type (__eo_typeof x)

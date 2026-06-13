@@ -14594,8 +14594,6 @@ theorem eo_to_smt_typeof_matches_translation_apply
       (ihApplyArgAll f y rfl) ihXAll hNonNone
   case UOp1 op y =>
     cases op
-    case _at_purify =>
-      exact eo_to_smt_typeof_matches_translation_apply_purify x y ihFAll ihXAll hNonNone
     case «repeat» =>
       exact eo_to_smt_typeof_matches_translation_apply_repeat x y ihX hNonNone
     case zero_extend =>
@@ -14743,6 +14741,13 @@ theorem eo_to_smt_typeof_matches_translation_apply
     cases op
     case distinct =>
       exact False.elim (hNotDistinct rfl)
+    case _at_purify =>
+      have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
+        intro hNone
+        apply hNonNone
+        change __smtx_typeof (SmtTerm._at_purify (__eo_to_smt x)) = SmtType.None
+        simpa [__smtx_typeof] using hNone
+      exact eo_to_smt_typeof_matches_translation_purify x (ihX hXNonNone)
     case not =>
       have hTranslate :
           __eo_to_smt (Term.Apply (Term.UOp UserOp.not) x) =
