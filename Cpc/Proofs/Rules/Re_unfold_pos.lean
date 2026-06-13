@@ -3053,20 +3053,22 @@ theorem re_unfold_pos_star_eq_formula_of_ne_stuck (t r : Term) :
     apply hMkNe
     subst t
     simp [__mk_re_unfold_pos]
+  have hrNe : r ≠ Term.Stuck := by
+    intro hr
+    apply hMkNe
+    subst r
+    cases t <;>
+      simp [__mk_re_unfold_pos, mkReMult, __mk_re_unfold_pos_star]
   have hRecEq := re_unfold_pos_star_factor_rec_eq t r htNe
   cases t <;> try exact False.elim (htNe rfl)
   all_goals
-    cases r <;>
-      first
-      | exact False.elim (by
-          apply hMkNe
-          simp [__mk_re_unfold_pos, mkReMult, hRecEq,
-            __mk_re_unfold_pos_star])
-      | simp [__mk_re_unfold_pos, mkReMult, hRecEq,
-          __mk_re_unfold_pos_star, reUnfoldPosStarFormula,
-          reUnfoldPosStarFirst, reUnfoldPosStarGuard,
-          reUnfoldPosStarComponent, mkOr, mkEq, mkStrInRe, mkAnd,
-          mkStrConcat]
+    cases r <;> try exact False.elim (hrNe rfl)
+    all_goals
+      simp [__mk_re_unfold_pos, mkReMult, hRecEq,
+        __mk_re_unfold_pos_star, reUnfoldPosStarFormula,
+        reUnfoldPosStarFirst, reUnfoldPosStarGuard,
+        reUnfoldPosStarComponent, mkOr, mkEq, mkStrInRe, mkAnd,
+        mkStrConcat]
 
 theorem smtx_typeof_re_unfold_pos_star_factor_of_reglan (r : Term)
     (hr : __smtx_typeof (__eo_to_smt r) = SmtType.RegLan) :
@@ -3112,6 +3114,370 @@ theorem smtx_typeof_re_unfold_pos_star_factor_of_reglan (r : Term)
       (mkReConcat (mkReMult r)
         (mkReConcat (mkReDiff r (mkStrToRe (Term.String [])))
           (mkStrToRe (Term.String [])))) hDiff hMiddle
+
+theorem re_unfold_pos_star_formula_has_bool_type
+    (t r : Term)
+    (htTy : __smtx_typeof (__eo_to_smt t) = SmtType.Seq SmtType.Char)
+    (hrTy : __smtx_typeof (__eo_to_smt r) = SmtType.RegLan)
+    (hMkNe : __mk_re_unfold_pos t (mkReMult r) ≠ Term.Stuck) :
+    RuleProofs.eo_has_bool_type (reUnfoldPosStarFormula t r) := by
+  let factor := reUnfoldPosStarFactor r
+  have hFactorTy :
+      __smtx_typeof (__eo_to_smt factor) = SmtType.RegLan := by
+    simpa [factor] using smtx_typeof_re_unfold_pos_star_factor_of_reglan r hrTy
+  have hRecNe :
+      __re_unfold_pos_concat_rec t factor factor (Term.Numeral 0) ≠
+        Term.Stuck := by
+    simpa [factor] using re_unfold_pos_star_rec_ne_of_mk_ne t r hMkNe
+  rcases re_unfold_pos_concat_rec_types t factor factor 0 (__eo_to_smt t)
+      (by simpa [factor] using re_unfold_pos_initial_component t factor)
+      htTy hFactorTy hRecNe with
+    ⟨first, guard, hRecEq, hFirstTy, hGuardBool⟩
+  have htNe : t ≠ Term.Stuck := term_ne_stuck_of_smt_type_seq_char t htTy
+  have hRecEqExact :
+      __re_unfold_pos_concat_rec t factor factor (Term.Numeral 0) =
+        Term.Apply
+          (Term.Apply (Term.UOp UserOp._at__at_pair)
+            (reUnfoldPosStarFirst t r))
+          (reUnfoldPosStarGuard t r) := by
+    simpa [factor] using re_unfold_pos_star_factor_rec_eq t r htNe
+  have hRecEqExactIdx :
+      __re_unfold_pos_concat_rec t factor factor (idxTerm 0) =
+        Term.Apply
+          (Term.Apply (Term.UOp UserOp._at__at_pair)
+            (reUnfoldPosStarFirst t r))
+          (reUnfoldPosStarGuard t r) := by
+    simpa [idxTerm] using hRecEqExact
+  rw [hRecEqExactIdx] at hRecEq
+  cases hRecEq
+  have hEqEmpty : RuleProofs.eo_has_bool_type (mkEq t (Term.String [])) :=
+    RuleProofs.eo_has_bool_type_eq_of_same_smt_type t (Term.String [])
+      (by rw [htTy, smtx_typeof_empty_string])
+      (by rw [htTy]; simp)
+  have hIn : RuleProofs.eo_has_bool_type (mkStrInRe t r) :=
+    smtx_typeof_str_in_re_of_seq_reglan t r htTy hrTy
+  have hEqFirst :
+      RuleProofs.eo_has_bool_type (mkEq t (reUnfoldPosStarFirst t r)) :=
+    RuleProofs.eo_has_bool_type_eq_of_same_smt_type t
+      (reUnfoldPosStarFirst t r)
+      (by rw [htTy, hFirstTy])
+      (by rw [htTy]; simp)
+  have hAnd :
+      RuleProofs.eo_has_bool_type
+        (mkAnd (mkEq t (reUnfoldPosStarFirst t r))
+          (reUnfoldPosStarGuard t r)) :=
+    RuleProofs.eo_has_bool_type_and_of_bool_args _ _ hEqFirst hGuardBool
+  have hTail :
+      RuleProofs.eo_has_bool_type
+        (mkOr
+          (mkAnd (mkEq t (reUnfoldPosStarFirst t r))
+            (reUnfoldPosStarGuard t r))
+          (Term.Boolean false)) :=
+    RuleProofs.eo_has_bool_type_or_of_bool_args _ _
+      hAnd RuleProofs.eo_has_bool_type_false
+  have hMiddle :
+      RuleProofs.eo_has_bool_type
+        (mkOr (mkStrInRe t r)
+          (mkOr
+            (mkAnd (mkEq t (reUnfoldPosStarFirst t r))
+              (reUnfoldPosStarGuard t r))
+            (Term.Boolean false))) :=
+    RuleProofs.eo_has_bool_type_or_of_bool_args _ _ hIn hTail
+  exact RuleProofs.eo_has_bool_type_or_of_bool_args _ _ hEqEmpty hMiddle
+
+theorem re_unfold_pos_star_interprets_true_and_bool
+    (M : SmtModel) (hM : model_total_typed M)
+    (t r : Term)
+    (htTy : __smtx_typeof (__eo_to_smt t) = SmtType.Seq SmtType.Char)
+    (hrTy : __smtx_typeof (__eo_to_smt r) = SmtType.RegLan)
+    (hPrem : eo_interprets M (mkStrInRe t (mkReMult r)) true)
+    (hMkNe : __mk_re_unfold_pos t (mkReMult r) ≠ Term.Stuck) :
+    eo_interprets M (__mk_re_unfold_pos t (mkReMult r)) true ∧
+    RuleProofs.eo_has_bool_type (__mk_re_unfold_pos t (mkReMult r)) := by
+  let factor := reUnfoldPosStarFactor r
+  rcases str_in_re_re_mult_native_true M hM t r htTy hrTy hPrem with
+    ⟨ss, rv, htEval, hrEval, hStarMem⟩
+  have hFormulaEq :
+      __mk_re_unfold_pos t (mkReMult r) = reUnfoldPosStarFormula t r :=
+    re_unfold_pos_star_eq_formula_of_ne_stuck t r hMkNe
+  have hFactorTy :
+      __smtx_typeof (__eo_to_smt factor) = SmtType.RegLan := by
+    simpa [factor] using smtx_typeof_re_unfold_pos_star_factor_of_reglan r hrTy
+  have hRecNe :
+      __re_unfold_pos_concat_rec t factor factor (Term.Numeral 0) ≠
+        Term.Stuck := by
+    simpa [factor] using re_unfold_pos_star_rec_ne_of_mk_ne t r hMkNe
+  rcases re_unfold_pos_concat_rec_types t factor factor 0 (__eo_to_smt t)
+      (by simpa [factor] using re_unfold_pos_initial_component t factor)
+      htTy hFactorTy hRecNe with
+    ⟨first, guard, hRecTyEq, hFirstTy, hGuardBool⟩
+  have htNe : t ≠ Term.Stuck := term_ne_stuck_of_smt_type_seq_char t htTy
+  have hRecEqExact :
+      __re_unfold_pos_concat_rec t factor factor (idxTerm 0) =
+        Term.Apply
+          (Term.Apply (Term.UOp UserOp._at__at_pair)
+            (reUnfoldPosStarFirst t r))
+          (reUnfoldPosStarGuard t r) := by
+    simpa [factor, idxTerm] using re_unfold_pos_star_factor_rec_eq t r htNe
+  rw [hRecEqExact] at hRecTyEq
+  cases hRecTyEq
+  have hEqEmpty : RuleProofs.eo_has_bool_type (mkEq t (Term.String [])) :=
+    RuleProofs.eo_has_bool_type_eq_of_same_smt_type t (Term.String [])
+      (by rw [htTy, smtx_typeof_empty_string])
+      (by rw [htTy]; simp)
+  have hIn : RuleProofs.eo_has_bool_type (mkStrInRe t r) :=
+    smtx_typeof_str_in_re_of_seq_reglan t r htTy hrTy
+  have hEqFirst :
+      RuleProofs.eo_has_bool_type (mkEq t (reUnfoldPosStarFirst t r)) :=
+    RuleProofs.eo_has_bool_type_eq_of_same_smt_type t
+      (reUnfoldPosStarFirst t r)
+      (by rw [htTy, hFirstTy])
+      (by rw [htTy]; simp)
+  have hAnd :
+      RuleProofs.eo_has_bool_type
+        (mkAnd (mkEq t (reUnfoldPosStarFirst t r))
+          (reUnfoldPosStarGuard t r)) :=
+    RuleProofs.eo_has_bool_type_and_of_bool_args _ _ hEqFirst hGuardBool
+  have hTail :
+      RuleProofs.eo_has_bool_type
+        (mkOr
+          (mkAnd (mkEq t (reUnfoldPosStarFirst t r))
+            (reUnfoldPosStarGuard t r))
+          (Term.Boolean false)) :=
+    RuleProofs.eo_has_bool_type_or_of_bool_args _ _
+      hAnd RuleProofs.eo_has_bool_type_false
+  have hMiddle :
+      RuleProofs.eo_has_bool_type
+        (mkOr (mkStrInRe t r)
+          (mkOr
+            (mkAnd (mkEq t (reUnfoldPosStarFirst t r))
+              (reUnfoldPosStarGuard t r))
+            (Term.Boolean false))) :=
+    RuleProofs.eo_has_bool_type_or_of_bool_args _ _ hIn hTail
+  have hFormulaBool :
+      RuleProofs.eo_has_bool_type (reUnfoldPosStarFormula t r) :=
+    RuleProofs.eo_has_bool_type_or_of_bool_args _ _ hEqEmpty hMiddle
+  have hSeqTy :
+      __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char :=
+    seq_value_type_of_eval_seq M hM (__eo_to_smt t) ss htTy htEval
+  have hFormulaInterp :
+      eo_interprets M (reUnfoldPosStarFormula t r) true := by
+    by_cases hEmpty : native_unpack_string ss = ([] : native_String)
+    · have hSsEmpty : ss = native_pack_string ([] : native_String) := by
+        calc
+          ss = native_pack_string (native_unpack_string ss) := by
+            exact (native_pack_string_unpack_string_of_typeof_seq_char
+              ss hSeqTy).symm
+          _ = native_pack_string ([] : native_String) := by rw [hEmpty]
+      have hEqEmptyEval :
+          __smtx_model_eval M (__eo_to_smt (mkEq t (Term.String []))) =
+            SmtValue.Boolean true := by
+        change __smtx_model_eval M
+            (SmtTerm.eq (__eo_to_smt t) (SmtTerm.String [])) =
+          SmtValue.Boolean true
+        simp [__smtx_model_eval, __smtx_model_eval_eq, htEval, hSsEmpty,
+          native_pack_string, native_pack_seq, native_veq]
+      have hEqEmptyInterp :
+          eo_interprets M (mkEq t (Term.String [])) true :=
+        RuleProofs.eo_interprets_of_bool_eval M _ true hEqEmpty hEqEmptyEval
+      have hOuter :=
+        RuleProofs.eo_interprets_or_left_intro M hM
+          (mkEq t (Term.String []))
+          (mkOr (mkStrInRe t r)
+            (mkOr
+              (mkAnd (mkEq t (reUnfoldPosStarFirst t r))
+                (reUnfoldPosStarGuard t r))
+              (Term.Boolean false)))
+          hEqEmptyInterp hMiddle
+      simpa [reUnfoldPosStarFormula, mkOr] using hOuter
+    · by_cases hBase : native_str_in_re (native_unpack_string ss) rv = true
+      · have hInEval :
+            __smtx_model_eval M (__eo_to_smt (mkStrInRe t r)) =
+              SmtValue.Boolean true := by
+          change __smtx_model_eval M
+              (SmtTerm.str_in_re (__eo_to_smt t) (__eo_to_smt r)) =
+            SmtValue.Boolean true
+          simp [__smtx_model_eval, __smtx_model_eval_str_in_re,
+            htEval, hrEval, hBase]
+        have hInInterp : eo_interprets M (mkStrInRe t r) true :=
+          RuleProofs.eo_interprets_of_bool_eval M _ true hIn hInEval
+        have hMiddleInterp :=
+          RuleProofs.eo_interprets_or_left_intro M hM
+            (mkStrInRe t r)
+            (mkOr
+              (mkAnd (mkEq t (reUnfoldPosStarFirst t r))
+                (reUnfoldPosStarGuard t r))
+              (Term.Boolean false))
+            hInInterp hTail
+        have hOuter :=
+          RuleProofs.eo_interprets_or_right_intro M hM
+            (mkEq t (Term.String []))
+            (mkOr (mkStrInRe t r)
+              (mkOr
+                (mkAnd (mkEq t (reUnfoldPosStarFirst t r))
+                  (reUnfoldPosStarGuard t r))
+                (Term.Boolean false)))
+            hEqEmpty hMiddleInterp
+        simpa [reUnfoldPosStarFormula, mkOr] using hOuter
+      · have hFactorMem :
+            native_str_in_re (native_unpack_string ss)
+              (native_re_concat (native_re_diff rv (native_str_to_re []))
+                (native_re_concat (native_re_mult rv)
+                  (native_re_concat
+                    (native_re_diff rv (native_str_to_re []))
+                    (native_str_to_re [])))) = true :=
+          native_str_in_re_re_mult_middle_factor
+            (native_unpack_string ss) rv hStarMem hEmpty hBase
+        have hEmptyStringEval :
+            __smtx_model_eval M (__eo_to_smt (Term.String [])) =
+              SmtValue.Seq (native_pack_string ([] : native_String)) := by
+          change __smtx_model_eval M (SmtTerm.String []) =
+            SmtValue.Seq (native_pack_string ([] : native_String))
+          simp [__smtx_model_eval, native_pack_string, native_pack_seq]
+        have hEpsEval :
+            __smtx_model_eval M
+                (__eo_to_smt (mkStrToRe (Term.String []))) =
+              SmtValue.RegLan (native_str_to_re ([] : native_String)) := by
+          have hRaw :=
+            eval_str_to_re_of_seq M (Term.String [])
+              (native_pack_string ([] : native_String)) hEmptyStringEval
+          simpa [native_pack_string, native_unpack_string,
+            native_unpack_seq_pack_seq] using hRaw
+        have hDiffEval :
+            __smtx_model_eval M
+                (__eo_to_smt
+                  (mkReDiff r (mkStrToRe (Term.String [])))) =
+              SmtValue.RegLan
+                (native_re_diff rv (native_str_to_re ([] : native_String))) :=
+          eval_re_diff_of_reglan M r (mkStrToRe (Term.String []))
+            rv (native_str_to_re ([] : native_String)) hrEval hEpsEval
+        have hStarEval :
+            __smtx_model_eval M (__eo_to_smt (mkReMult r)) =
+              SmtValue.RegLan (native_re_mult rv) :=
+          eval_re_mult_of_reglan M r rv hrEval
+        have hTailEval :
+            __smtx_model_eval M
+                (__eo_to_smt
+                  (mkReConcat
+                    (mkReDiff r (mkStrToRe (Term.String [])))
+                    (mkStrToRe (Term.String [])))) =
+              SmtValue.RegLan
+                (native_re_concat
+                  (native_re_diff rv (native_str_to_re ([] : native_String)))
+                  (native_str_to_re ([] : native_String))) :=
+          eval_re_concat_of_reglan M
+            (mkReDiff r (mkStrToRe (Term.String [])))
+            (mkStrToRe (Term.String []))
+            (native_re_diff rv (native_str_to_re ([] : native_String)))
+            (native_str_to_re ([] : native_String)) hDiffEval hEpsEval
+        have hMiddleEval :
+            __smtx_model_eval M
+                (__eo_to_smt
+                  (mkReConcat (mkReMult r)
+                    (mkReConcat
+                      (mkReDiff r (mkStrToRe (Term.String [])))
+                      (mkStrToRe (Term.String []))))) =
+              SmtValue.RegLan
+                (native_re_concat (native_re_mult rv)
+                  (native_re_concat
+                    (native_re_diff rv (native_str_to_re ([] : native_String)))
+                    (native_str_to_re ([] : native_String)))) :=
+          eval_re_concat_of_reglan M (mkReMult r)
+            (mkReConcat
+              (mkReDiff r (mkStrToRe (Term.String [])))
+              (mkStrToRe (Term.String [])))
+            (native_re_mult rv)
+            (native_re_concat
+              (native_re_diff rv (native_str_to_re ([] : native_String)))
+              (native_str_to_re ([] : native_String)))
+            hStarEval hTailEval
+        have hFactorEval :
+            __smtx_model_eval M (__eo_to_smt factor) =
+              SmtValue.RegLan
+                (native_re_concat
+                  (native_re_diff rv (native_str_to_re ([] : native_String)))
+                  (native_re_concat (native_re_mult rv)
+                    (native_re_concat
+                      (native_re_diff rv (native_str_to_re ([] : native_String)))
+                      (native_str_to_re ([] : native_String))))) := by
+          simpa [factor, reUnfoldPosStarFactor] using
+            eval_re_concat_of_reglan M
+              (mkReDiff r (mkStrToRe (Term.String [])))
+              (mkReConcat (mkReMult r)
+                (mkReConcat
+                  (mkReDiff r (mkStrToRe (Term.String [])))
+                  (mkStrToRe (Term.String []))))
+              (native_re_diff rv (native_str_to_re ([] : native_String)))
+              (native_re_concat (native_re_mult rv)
+                (native_re_concat
+                  (native_re_diff rv (native_str_to_re ([] : native_String)))
+                  (native_str_to_re ([] : native_String))))
+              hDiffEval hMiddleEval
+        rcases re_unfold_pos_concat_rec_eval_true M hM t factor factor 0
+            (__eo_to_smt t) ss
+            (native_re_concat
+              (native_re_diff rv (native_str_to_re ([] : native_String)))
+              (native_re_concat (native_re_mult rv)
+                (native_re_concat
+                  (native_re_diff rv (native_str_to_re ([] : native_String)))
+                  (native_str_to_re ([] : native_String)))))
+            (by simpa [factor] using re_unfold_pos_initial_component t factor)
+            htTy htEval hFactorTy hFactorEval hFactorMem hRecNe with
+          ⟨firstEval, guardEval, hRecEvalEq, hFirstEval, _hFirstTyEval,
+            hGuardEval, _hGuardBoolEval⟩
+        rw [hRecEqExact] at hRecEvalEq
+        cases hRecEvalEq
+        have hEqFirstEval :
+            __smtx_model_eval M
+                (__eo_to_smt (mkEq t (reUnfoldPosStarFirst t r))) =
+              SmtValue.Boolean true := by
+          change __smtx_model_eval M
+              (SmtTerm.eq (__eo_to_smt t)
+                (__eo_to_smt (reUnfoldPosStarFirst t r))) =
+            SmtValue.Boolean true
+          simp [__smtx_model_eval, __smtx_model_eval_eq, htEval,
+            hFirstEval, native_veq]
+        have hEqFirstInterp :
+            eo_interprets M (mkEq t (reUnfoldPosStarFirst t r)) true :=
+          RuleProofs.eo_interprets_of_bool_eval M _ true
+            hEqFirst hEqFirstEval
+        have hGuardInterp :
+            eo_interprets M (reUnfoldPosStarGuard t r) true :=
+          RuleProofs.eo_interprets_of_bool_eval M _ true
+            hGuardBool hGuardEval
+        have hAndInterp :
+            eo_interprets M
+              (mkAnd (mkEq t (reUnfoldPosStarFirst t r))
+                (reUnfoldPosStarGuard t r)) true :=
+          RuleProofs.eo_interprets_and_intro M _ _
+            hEqFirstInterp hGuardInterp
+        have hTailInterp :=
+          RuleProofs.eo_interprets_or_left_intro M hM
+            (mkAnd (mkEq t (reUnfoldPosStarFirst t r))
+              (reUnfoldPosStarGuard t r))
+            (Term.Boolean false) hAndInterp
+            RuleProofs.eo_has_bool_type_false
+        have hMiddleInterp :=
+          RuleProofs.eo_interprets_or_right_intro M hM
+            (mkStrInRe t r)
+            (mkOr
+              (mkAnd (mkEq t (reUnfoldPosStarFirst t r))
+                (reUnfoldPosStarGuard t r))
+              (Term.Boolean false))
+            hIn hTailInterp
+        have hOuter :=
+          RuleProofs.eo_interprets_or_right_intro M hM
+            (mkEq t (Term.String []))
+            (mkOr (mkStrInRe t r)
+              (mkOr
+                (mkAnd (mkEq t (reUnfoldPosStarFirst t r))
+                  (reUnfoldPosStarGuard t r))
+                (Term.Boolean false)))
+            hEqEmpty hMiddleInterp
+        simpa [reUnfoldPosStarFormula, mkOr] using hOuter
+  constructor
+  · simpa [hFormulaEq] using hFormulaInterp
+  · simpa [hFormulaEq] using hFormulaBool
 
 theorem re_unfold_pos_concat_eval_true_and_bool
     (M : SmtModel) (hM : model_total_typed M)
@@ -3453,4 +3819,164 @@ theorem cmd_step_re_unfold_pos_properties
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.re_unfold_pos args premises) :=
 by
-  sorry
+  intro _hCmdTrans hPremisesBool hResultTy
+  have hProg :
+      __eo_cmd_step_proven s CRule.re_unfold_pos args premises ≠
+        Term.Stuck :=
+    term_ne_stuck_of_typeof_bool hResultTy
+  cases args with
+  | nil =>
+      cases premises with
+      | nil =>
+          change Term.Stuck ≠ Term.Stuck at hProg
+          exact False.elim (hProg rfl)
+      | cons n premises =>
+          cases premises with
+          | nil =>
+              let p := __eo_state_proven_nth s n
+              change StepRuleProperties M [p]
+                (__eo_prog_re_unfold_pos (Proof.pf p))
+              have hProgLocal :
+                  __eo_prog_re_unfold_pos (Proof.pf p) ≠ Term.Stuck := by
+                change __eo_prog_re_unfold_pos
+                    (Proof.pf (__eo_state_proven_nth s n)) ≠
+                  Term.Stuck at hProg
+                simpa [p] using hProg
+              rcases
+                RuleProofs.ReUnfoldPosSupport.re_unfold_pos_nonstuck_shape
+                  p hProgLocal with
+                ⟨t, r, hp, hProgEq⟩
+              have hpBool :
+                  RuleProofs.eo_has_bool_type
+                    (RuleProofs.ReUnfoldNegSupport.mkStrInRe t r) := by
+                have h := hPremisesBool p (by simp [p, premiseTermList])
+                simpa [hp] using h
+              have hArgs :=
+                RuleProofs.ReUnfoldNegSupport.str_in_re_args_of_bool_type
+                  t r hpBool
+              have hMkNe : __mk_re_unfold_pos t r ≠ Term.Stuck := by
+                intro hStuck
+                apply hProgLocal
+                rw [hProgEq, hStuck]
+              cases r with
+              | Apply f rArg =>
+                  cases f with
+                  | UOp op =>
+                      by_cases hop : op = UserOp.re_mult
+                      · subst op
+                        let r1 := rArg
+                        have hr1 :
+                            __smtx_typeof (__eo_to_smt r1) =
+                              SmtType.RegLan :=
+                          RuleProofs.ReUnfoldNegSupport.smtx_typeof_re_mult_arg_of_reglan
+                            r1 hArgs.2
+                        have hStarFormulaEq :
+                            __mk_re_unfold_pos t
+                                (RuleProofs.ReUnfoldNegSupport.mkReMult r1) =
+                              RuleProofs.ReUnfoldPosSupport.reUnfoldPosStarFormula t r1 :=
+                          RuleProofs.ReUnfoldPosSupport.re_unfold_pos_star_eq_formula_of_ne_stuck
+                              t r1 hMkNe
+                        have hStarFormulaBool :
+                            RuleProofs.eo_has_bool_type
+                              (RuleProofs.ReUnfoldPosSupport.reUnfoldPosStarFormula t r1) :=
+                          RuleProofs.ReUnfoldPosSupport.re_unfold_pos_star_formula_has_bool_type
+                            t r1 hArgs.1 hr1 hMkNe
+                        have hResultBool :
+                            RuleProofs.eo_has_bool_type
+                              (__mk_re_unfold_pos t
+                                (RuleProofs.ReUnfoldNegSupport.mkReMult r1)) :=
+                          by
+                            simpa [hStarFormulaEq] using hStarFormulaBool
+                        refine ⟨?_, ?_⟩
+                        · intro hTrue
+                          have hPremM :
+                              eo_interprets M
+                                (RuleProofs.ReUnfoldNegSupport.mkStrInRe t
+                                  (RuleProofs.ReUnfoldNegSupport.mkReMult r1))
+                                true := by
+                            have h := hTrue.true_here p (by simp [p])
+                            simpa [hp, r1,
+                              RuleProofs.ReUnfoldNegSupport.mkReMult] using h
+                          have hStar :=
+                            RuleProofs.ReUnfoldPosSupport.re_unfold_pos_star_interprets_true_and_bool
+                              M hM t r1 hArgs.1 hr1 hPremM hMkNe
+                          simpa [hProgEq, r1,
+                            RuleProofs.ReUnfoldNegSupport.mkReMult] using
+                            hStar.1
+                        · exact
+                            RuleProofs.eo_has_smt_translation_of_has_bool_type _
+                              (by
+                                simpa [hProgEq, r1,
+                                  RuleProofs.ReUnfoldNegSupport.mkReMult]
+                                  using hResultBool)
+                      · cases t <;> cases op <;>
+                          first
+                          | exact False.elim (hop rfl)
+                          | simp [__mk_re_unfold_pos] at hMkNe
+                  | Apply fHead r1 =>
+                      cases fHead with
+                      | UOp op =>
+                          by_cases hop : op = UserOp.re_concat
+                          · subst op
+                            let r2 := rArg
+                            have hRArgs :
+                                __smtx_typeof (__eo_to_smt r1) =
+                                    SmtType.RegLan ∧
+                                  __smtx_typeof (__eo_to_smt r2) =
+                                    SmtType.RegLan :=
+                              RuleProofs.ReUnfoldNegSupport.smtx_typeof_re_concat_args_of_reglan
+                                r1 r2 hArgs.2
+                            have hResultBool :
+                                RuleProofs.eo_has_bool_type
+                                  (__mk_re_unfold_pos t
+                                    (RuleProofs.ReUnfoldNegSupport.mkReConcat
+                                      r1 r2)) :=
+                              RuleProofs.ReUnfoldPosSupport.re_unfold_pos_concat_has_bool_type
+                                t r1 r2 hArgs.1 hRArgs.1 hRArgs.2 hMkNe
+                            refine ⟨?_, ?_⟩
+                            · intro hTrue
+                              have hPremM :
+                                  eo_interprets M
+                                    (RuleProofs.ReUnfoldNegSupport.mkStrInRe t
+                                      (RuleProofs.ReUnfoldNegSupport.mkReConcat
+                                        r1 r2))
+                                    true := by
+                                have h := hTrue.true_here p (by simp [p])
+                                simpa [hp, r2,
+                                  RuleProofs.ReUnfoldNegSupport.mkReConcat]
+                                  using h
+                              have hEvalBool :=
+                                RuleProofs.ReUnfoldPosSupport.re_unfold_pos_concat_eval_true_and_bool
+                                  M hM t r1 r2 hArgs.1 hRArgs.1 hRArgs.2
+                                  hPremM hMkNe
+                              have hInterp :
+                                  eo_interprets M
+                                    (__mk_re_unfold_pos t
+                                      (RuleProofs.ReUnfoldNegSupport.mkReConcat
+                                        r1 r2)) true := by
+                                apply RuleProofs.eo_interprets_of_bool_eval
+                                  M _ true hEvalBool.2
+                                exact hEvalBool.1
+                              simpa [hProgEq, r2,
+                                RuleProofs.ReUnfoldNegSupport.mkReConcat]
+                                using hInterp
+                            · exact
+                                RuleProofs.eo_has_smt_translation_of_has_bool_type _
+                                  (by
+                                    simpa [hProgEq, r2,
+                                      RuleProofs.ReUnfoldNegSupport.mkReConcat]
+                                      using hResultBool)
+                          · cases t <;> cases op <;>
+                              first
+                              | exact False.elim (hop rfl)
+                              | simp [__mk_re_unfold_pos] at hMkNe
+                      | _ => cases t <;> simp [__mk_re_unfold_pos] at hMkNe
+                  | _ => cases t <;> simp [__mk_re_unfold_pos] at hMkNe
+              | _ =>
+                  cases t <;> simp [__mk_re_unfold_pos] at hMkNe
+          | cons _ _ =>
+              change Term.Stuck ≠ Term.Stuck at hProg
+              exact False.elim (hProg rfl)
+  | cons _ _ =>
+      change Term.Stuck ≠ Term.Stuck at hProg
+      exact False.elim (hProg rfl)
