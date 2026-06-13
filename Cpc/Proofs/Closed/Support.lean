@@ -3672,7 +3672,7 @@ by
 theorem smtTermClosedIn_eo_to_smt_purify
     {vars : List SmtVarKey} {x : Term}
     (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
-  SmtTermClosedIn vars (__eo_to_smt (Term.UOp1 UserOp1._at_purify x)) :=
+  SmtTermClosedIn vars (__eo_to_smt (Term._at_purify x)) :=
 by
   exact hx
 
@@ -3685,12 +3685,12 @@ theorem smtTermClosedIn_eo_to_smt_purify_of_closed_rec_using
           __eo_is_closed_rec x env' = Term.Boolean true ->
             SmtTermClosedIn vars' (__eo_to_smt x))
     (hClosed :
-      __eo_is_closed_rec (Term.UOp1 UserOp1._at_purify x) env =
+      __eo_is_closed_rec (Term._at_purify x) env =
         Term.Boolean true) :
-  SmtTermClosedIn vars (__eo_to_smt (Term.UOp1 UserOp1._at_purify x)) :=
+  SmtTermClosedIn vars (__eo_to_smt (Term._at_purify x)) :=
 by
-  exact smtTermClosedIn_eo_to_smt_uop1_of_closed_rec_using
-    (op := UserOp1._at_purify)
+  exact smtTermClosedIn_eo_to_smt_unary_uop_of_closed_rec_using
+    (op := UserOp._at_purify)
     (fun hx => smtTermClosedIn_eo_to_smt_purify hx)
     hEnv hRec hClosed
 
@@ -4651,9 +4651,6 @@ theorem smtTermClosedIn_eo_to_smt_uop1_any_of_closed_rec_using
   SmtTermClosedIn vars (__eo_to_smt (Term.UOp1 op x)) :=
 by
   cases op <;> try trivial
-  case _at_purify =>
-    exact smtTermClosedIn_eo_to_smt_purify_of_closed_rec_using
-      hEnv hRec hClosed
   case seq_empty =>
     exact smtTermClosedIn_eo_to_smt_seq_empty_of_closed_rec_using
       hEnv hRec hClosed
@@ -4740,6 +4737,9 @@ by
   case distinct =>
     exact smtTermClosedIn_eo_to_smt_distinct_of_closed_rec_using
       hEnv hRec hClosed
+  case _at_purify =>
+    exact smtTermClosedIn_eo_to_smt_purify_of_closed_rec_using
+      hEnv (fun hEnv' hClosed' => hRec hEnv' hClosed') hClosed
   case to_real =>
     exact smtTermClosedIn_eo_to_smt_unary_uop_of_closed_rec_using
       (op := UserOp.to_real)
@@ -5961,9 +5961,6 @@ by
     simp
     omega
   cases op <;> try trivial
-  case _at_purify =>
-    exact smtTermClosedIn_eo_to_smt_purify_of_closed_rec_using
-      hEnv (fun hEnv' hClosed' => hRec hXLt hEnv' hClosed') hClosed
   case seq_empty =>
     exact smtTermClosedIn_eo_to_smt_seq_empty_of_closed_rec_using
       hEnv (fun hEnv' hClosed' => hRec hXLt hEnv' hClosed') hClosed
@@ -6108,6 +6105,9 @@ by
       hEnv recX hClosed
   case distinct =>
     exact smtTermClosedIn_eo_to_smt_distinct_below hEnv hRec hClosed
+  case _at_purify =>
+    exact smtTermClosedIn_eo_to_smt_purify_of_closed_rec_using
+      hEnv recX hClosed
   case to_real =>
     exact smtTermClosedIn_eo_to_smt_unary_uop_of_closed_rec_using
       (op := UserOp.to_real)
