@@ -31,6 +31,7 @@ inductive UserOp : Type where
   | xor : UserOp
   | eq : UserOp
   | distinct : UserOp
+  | _at_purify : UserOp
   | plus : UserOp
   | neg : UserOp
   | mult : UserOp
@@ -190,7 +191,6 @@ deriving Repr, DecidableEq, Inhabited, Ord
 User operators with one index.
 -/
 inductive UserOp1 : Type where
-  | _at_purify : UserOp1
   | repeat : UserOp1
   | zero_extend : UserOp1
   | sign_extend : UserOp1

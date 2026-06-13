@@ -219,7 +219,7 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.Apply (Term.Apply (Term.UOp UserOp.xor) x1) x2) => (SmtTerm.xor (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x1) x2) => (SmtTerm.eq (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply (Term.UOp UserOp.distinct) x1) => (native_ite (native_Teq (__eo_to_smt_typed_list_elem_type x1) SmtType.None) SmtTerm.None (__eo_to_smt_distinct x1))
-  | (Term.UOp1 UserOp1._at_purify x1) => (SmtTerm._at_purify (__eo_to_smt x1))
+  | (Term.Apply (Term.UOp UserOp._at_purify) x1) => (SmtTerm._at_purify (__eo_to_smt x1))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.plus) x1) x2) => (SmtTerm.plus (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.neg) x1) x2) => (SmtTerm.neg (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.mult) x1) x2) => (SmtTerm.mult (__eo_to_smt x1) (__eo_to_smt x2))
