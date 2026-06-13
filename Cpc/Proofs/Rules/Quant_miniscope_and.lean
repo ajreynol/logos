@@ -119,7 +119,7 @@ private theorem smtx_type_wf_of_exists_cons_bool
             (SmtTerm.exists s (__eo_to_smt_type T)
               (__eo_to_smt_exists xs body)) = SmtType.Bool := by
       simpa [__eo_to_smt_exists] using hTy
-    rw [__smtx_typeof.eq_135, hTail] at hExists
+    rw [smtx_typeof_exists_term_eq, hTail] at hExists
     simp [native_ite, native_Teq, hNone] at hExists
   exact smtx_typeof_guard_wf_wf_of_non_none
     (__eo_to_smt_type T) SmtType.Bool hGuardNN
@@ -158,7 +158,7 @@ private theorem smtx_typeof_eo_to_smt_exists_same_binders
                         __smtx_typeof
                           (SmtTerm.exists s (__eo_to_smt_type T)
                             (__eo_to_smt_exists a body')) = SmtType.Bool
-                      rw [__smtx_typeof.eq_135, hTail']
+                      rw [smtx_typeof_exists_term_eq, hTail']
                       simp [native_ite, native_Teq, __smtx_typeof_guard_wf, hWF]
                   | _ =>
                       simp [__eo_to_smt_exists] at hTy

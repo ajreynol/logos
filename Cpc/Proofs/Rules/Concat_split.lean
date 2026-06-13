@@ -133,8 +133,8 @@ private theorem concat_split_lengths_ne_of_not_len_eq
         (SmtTerm.eq (SmtTerm.str_len (__eo_to_smt x))
           (SmtTerm.str_len (__eo_to_smt y))) =
       SmtValue.Boolean false at hEval
-  rw [__smtx_model_eval.eq_134] at hEval
-  rw [__smtx_model_eval.eq_79, __smtx_model_eval.eq_79] at hEval
+  rw [smtx_eval_eq_term_eq] at hEval
+  rw [smtx_eval_str_len_term_eq, smtx_eval_str_len_term_eq] at hEval
   simp [hxEval, hyEval, __smtx_model_eval_str_len,
     __smtx_model_eval_eq, native_seq_len, native_veq] at hEval
   exact ⟨sx, sy, hxEval, hyEval, by
@@ -163,8 +163,8 @@ private theorem concat_split_lengths_ne_of_not_len_eq_eval
         (SmtTerm.eq (SmtTerm.str_len (__eo_to_smt x))
           (SmtTerm.str_len (__eo_to_smt y))) =
       SmtValue.Boolean false at hEval
-  rw [__smtx_model_eval.eq_134] at hEval
-  rw [__smtx_model_eval.eq_79, __smtx_model_eval.eq_79] at hEval
+  rw [smtx_eval_eq_term_eq] at hEval
+  rw [smtx_eval_str_len_term_eq, smtx_eval_str_len_term_eq] at hEval
   simp [hxEval, hyEval, __smtx_model_eval_str_len,
     __smtx_model_eval_eq, native_seq_len, native_veq] at hEval
   intro hLen

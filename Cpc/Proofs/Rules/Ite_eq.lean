@@ -92,7 +92,7 @@ private theorem eo_interprets_ite_eq_then_true
         rw [show __eo_to_smt
             (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) C) T) E) =
             SmtTerm.ite (__eo_to_smt C) (__eo_to_smt T) (__eo_to_smt E) by rfl]
-        rw [__smtx_model_eval.eq_133, hCEval]
+        rw [smtx_eval_ite_term_eq, hCEval]
         simpa [__smtx_model_eval_ite] using
           RuleProofs.smt_value_rel_refl (__smtx_model_eval M (__eo_to_smt T))
 
@@ -119,7 +119,7 @@ private theorem eo_interprets_ite_eq_else_true
         rw [show __eo_to_smt
             (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) C) T) E) =
             SmtTerm.ite (__eo_to_smt C) (__eo_to_smt T) (__eo_to_smt E) by rfl]
-        rw [__smtx_model_eval.eq_133, hCEval]
+        rw [smtx_eval_ite_term_eq, hCEval]
         simpa [__smtx_model_eval_ite] using
           RuleProofs.smt_value_rel_refl (__smtx_model_eval M (__eo_to_smt E))
 

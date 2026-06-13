@@ -73,7 +73,7 @@ private theorem distinct_pairs_true_not_mem
                       SmtValue.Boolean true at h
                   rw [__smtx_model_eval.eq_8] at h
                   rcases smt_eval_and_eq_true h with ⟨hHead, hTail⟩
-                  rw [__smtx_model_eval.eq_6, __smtx_model_eval.eq_134] at hHead
+                  rw [__smtx_model_eval.eq_6, smtx_eval_eq_term_eq] at hHead
                   have hEqFalse :
                       __smtx_model_eval_eq
                           (__smtx_model_eval M s)

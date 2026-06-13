@@ -152,6 +152,19 @@ theorem type_result_seq_components_wf_str_indexof_re
     by_cases hV : V = SmtType.Int <;>
     simp [hT, hU, hV, type_result_seq_components_wf]
 
+theorem type_result_seq_components_wf_str_indexof_re_split
+    (T U V : SmtType) :
+    type_result_seq_components_wf
+      (if T = SmtType.Seq SmtType.Char then
+        if U = SmtType.RegLan then
+          if V = SmtType.RegLan then SmtType.Int else SmtType.None
+        else SmtType.None
+      else SmtType.None) := by
+  by_cases hT : T = SmtType.Seq SmtType.Char <;>
+    by_cases hU : U = SmtType.RegLan <;>
+    by_cases hV : V = SmtType.RegLan <;>
+    simp [hT, hU, hV, type_result_seq_components_wf]
+
 theorem type_result_seq_components_wf_re_exp
     (n : SmtTerm) (T : SmtType) :
     type_result_seq_components_wf (__smtx_typeof_re_exp n T) := by
@@ -332,11 +345,11 @@ theorem smt_term_result_seq_components_wf_of_non_none
         unfold term_has_non_none_type at hxNN
         intro hNone
         apply hxNN
-        rw [__smtx_typeof.eq_135]
+        rw [smtx_typeof_exists_term_eq]
         simp [hEq, native_ite, hNone]
       have hGuard : __smtx_typeof_guard_wf T SmtType.Bool = SmtType.Bool :=
         smtx_typeof_guard_wf_of_non_none T SmtType.Bool hGuardNN
-      rw [__smtx_typeof.eq_135]
+      rw [smtx_typeof_exists_term_eq]
       simp [hEq, native_ite, hGuard, type_result_seq_components_wf]
     case «forall» s T body =>
       have hBody : __smtx_typeof body = SmtType.Bool :=
@@ -347,11 +360,11 @@ theorem smt_term_result_seq_components_wf_of_non_none
         unfold term_has_non_none_type at hxNN
         intro hNone
         apply hxNN
-        rw [__smtx_typeof.eq_136]
+        rw [smtx_typeof_forall_term_eq]
         simp [hEq, native_ite, hNone]
       have hGuard : __smtx_typeof_guard_wf T SmtType.Bool = SmtType.Bool :=
         smtx_typeof_guard_wf_of_non_none T SmtType.Bool hGuardNN
-      rw [__smtx_typeof.eq_136]
+      rw [smtx_typeof_forall_term_eq]
       simp [hEq, native_ite, hGuard, type_result_seq_components_wf]
     case seq_empty T =>
       have hGuardNN : __smtx_typeof_guard_wf (SmtType.Seq T) (SmtType.Seq T) ≠
@@ -360,7 +373,7 @@ theorem smt_term_result_seq_components_wf_of_non_none
         simpa [__smtx_typeof] using hxNN
       have hWf : __smtx_type_wf (SmtType.Seq T) = true :=
         smtx_typeof_guard_wf_wf_of_non_none (SmtType.Seq T) (SmtType.Seq T) hGuardNN
-      rw [__smtx_typeof.eq_78,
+      rw [smtx_typeof_seq_empty_term_eq,
         smtx_typeof_guard_wf_of_non_none (SmtType.Seq T) (SmtType.Seq T) hGuardNN]
       exact hWf
     case set_empty T =>
@@ -370,7 +383,7 @@ theorem smt_term_result_seq_components_wf_of_non_none
         simpa [__smtx_typeof] using hxNN
       have hWf : __smtx_type_wf (SmtType.Set T) = true :=
         smtx_typeof_guard_wf_wf_of_non_none (SmtType.Set T) (SmtType.Set T) hGuardNN
-      rw [__smtx_typeof.eq_121,
+      rw [smtx_typeof_set_empty_term_eq,
         smtx_typeof_guard_wf_of_non_none (SmtType.Set T) (SmtType.Set T) hGuardNN]
       exact hWf
     case seq_unit t =>
@@ -383,7 +396,7 @@ theorem smt_term_result_seq_components_wf_of_non_none
       have hWf : __smtx_type_wf (SmtType.Seq (__smtx_typeof t)) = true :=
         smtx_typeof_guard_wf_wf_of_non_none (SmtType.Seq (__smtx_typeof t))
           (SmtType.Seq (__smtx_typeof t)) hGuardNN
-      rw [__smtx_typeof.eq_119,
+      rw [smtx_typeof_seq_unit_term_eq,
         smtx_typeof_guard_wf_of_non_none (SmtType.Seq (__smtx_typeof t))
           (SmtType.Seq (__smtx_typeof t)) hGuardNN]
       exact hWf
@@ -397,7 +410,7 @@ theorem smt_term_result_seq_components_wf_of_non_none
       have hWf : __smtx_type_wf (SmtType.Set (__smtx_typeof t)) = true :=
         smtx_typeof_guard_wf_wf_of_non_none (SmtType.Set (__smtx_typeof t))
           (SmtType.Set (__smtx_typeof t)) hGuardNN
-      rw [__smtx_typeof.eq_122,
+      rw [smtx_typeof_set_singleton_term_eq,
         smtx_typeof_guard_wf_of_non_none (SmtType.Set (__smtx_typeof t))
           (SmtType.Set (__smtx_typeof t)) hGuardNN]
       exact hWf
@@ -584,7 +597,7 @@ theorem smt_term_result_seq_components_wf_of_non_none
           | _ =>
               exfalso
               unfold term_has_non_none_type at hxNN
-              rw [__smtx_typeof.eq_137] at hxNN
+              rw [smtx_typeof_choice_nth_term_eq] at hxNN
               simp [__smtx_typeof_choice_nth] at hxNN
     case DtCons s d i =>
       let raw :=
@@ -704,6 +717,7 @@ theorem smt_term_result_seq_components_wf_of_non_none
         type_result_seq_components_wf_seq_op_2_ret,
         type_result_seq_components_wf_str_indexof,
         type_result_seq_components_wf_str_indexof_re,
+        type_result_seq_components_wf_str_indexof_re_split,
         type_result_seq_components_wf_re_exp,
         type_result_seq_components_wf_re_loop,
         type_result_seq_components_wf_set_member,

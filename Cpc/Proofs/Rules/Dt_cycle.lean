@@ -150,7 +150,7 @@ private theorem generic_apply_fun_eval_eq_false
   have hEval :=
     is_cons_app_apply_eval_eq_apply_of_not_tuple
       M hM f a hCons hNotTuple hAppNN
-  rw [eo_to_smt_eq_eq, __smtx_model_eval.eq_134]
+  rw [eo_to_smt_eq_eq, smtx_eval_eq_term_eq]
   rw [hEval]
   exact smtx_model_eval_eq_false_of_proper_subterm
     SmtValueProperSubterm.app_fun_self
@@ -175,7 +175,7 @@ private theorem generic_apply_arg_eval_eq_false
   have hEval :=
     is_cons_app_apply_eval_eq_apply_of_not_tuple
       M hM f a hCons hNotTuple hAppNN
-  rw [eo_to_smt_eq_eq, __smtx_model_eval.eq_134]
+  rw [eo_to_smt_eq_eq, smtx_eval_eq_term_eq]
   rw [hEval]
   exact smtx_model_eval_eq_false_of_proper_subterm
     SmtValueProperSubterm.app_arg
@@ -701,7 +701,7 @@ private theorem dt_cycle_tuple_tail_path_eval_false
     ⟨_hSEvalTy, _hTEvalTy, _hTyEq, hSTrans⟩
   have hSize :=
     dt_cycle_tuple_tail_path_eval_size_lt M hM hPath hCons hSTrans hTrans
-  rw [eo_to_smt_eq_eq, __smtx_model_eval.eq_134]
+  rw [eo_to_smt_eq_eq, smtx_eval_eq_term_eq]
   exact smtx_model_eval_eq_false_of_ne_not_reglan_pair
     (by
       intro hEq
@@ -1078,7 +1078,7 @@ private theorem dt_cycle_inner_eval_false
   rcases dt_cycle_path_eval_proper_or_tuple_tail
       M hM hPath hCons hSTrans hTTrans with
     hProper | hTail
-  · rw [eo_to_smt_eq_eq, __smtx_model_eval.eq_134]
+  · rw [eo_to_smt_eq_eq, smtx_eval_eq_term_eq]
     exact smtx_model_eval_eq_false_of_proper_subterm hProper
   · exact dt_cycle_tuple_tail_path_eval_false M hM hTail hCons hBool hTTrans
 

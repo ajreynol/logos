@@ -855,7 +855,7 @@ private theorem str_len_eval_decomp
   refine ⟨T, ss, hSTy, hSEval, ?_⟩
   rw [show __eo_to_smt (Term.Apply (Term.UOp UserOp.str_len) s) =
         SmtTerm.str_len (__eo_to_smt s) by rfl] at hEval
-  rw [__smtx_model_eval.eq_79, hSEval] at hEval
+  rw [smtx_eval_str_len_term_eq, hSEval] at hEval
   simpa [__smtx_model_eval_str_len, native_seq_len] using hEval.symm
 
 private theorem native_unpack_pack_seq
@@ -1271,7 +1271,7 @@ private theorem str_len_int_eval_of_seq_eval
   intro hSEval
   change __smtx_model_eval M (SmtTerm.str_len (__eo_to_smt s)) =
     SmtValue.Numeral (Int.ofNat (native_unpack_seq ss).length)
-  rw [__smtx_model_eval.eq_79, hSEval]
+  rw [smtx_eval_str_len_term_eq, hSEval]
   simp [__smtx_model_eval_str_len, native_seq_len]
 
 private theorem eo_requires_true

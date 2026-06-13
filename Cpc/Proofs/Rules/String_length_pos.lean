@@ -126,7 +126,7 @@ private theorem eval_eo_str_len_of_seq
   unfold slpLen
   change __smtx_model_eval M (SmtTerm.str_len (__eo_to_smt s)) =
     SmtValue.Numeral (native_seq_len (native_unpack_seq ss))
-  rw [__smtx_model_eval.eq_79, hEvalS]
+  rw [smtx_eval_str_len_term_eq, hEvalS]
   rfl
 
 private theorem typeof_eo_zero :
@@ -300,7 +300,7 @@ private theorem slpFormula_true
           __smtx_model_eval M
               (SmtTerm.eq (__eo_to_smt (slpLen x)) (__eo_to_smt (Term.Numeral 0))) =
             SmtValue.Boolean true
-        rw [__smtx_model_eval.eq_134, hLenEval, eval_eo_zero M]
+        rw [smtx_eval_eq_term_eq, hLenEval, eval_eo_zero M]
         simp [__smtx_model_eval_eq, native_veq]
       have hEqLenTrue :
           eo_interprets M (slpEq (slpLen x) (Term.Numeral 0)) true :=

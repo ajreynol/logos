@@ -453,6 +453,13 @@ private theorem smtx_model_eval_seq_eq_true_iff {s1 s2 : SmtSeq} :
       s1 = s2 := by
   simp [__smtx_model_eval_eq, native_veq]
 
+/-- Stable rewrite for evaluating SMT equality terms. -/
+private theorem smtx_model_eval_eq_term_eq
+    (M : SmtModel) (x y : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.eq x y) =
+      __smtx_model_eval_eq (__smtx_model_eval M x) (__smtx_model_eval M y) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
 /-- Establishes an equality relating `smtx_model_eval` and `refl_aux`. -/
 private theorem smtx_model_eval_eq_refl_aux
     (v : SmtValue) :
@@ -740,7 +747,7 @@ theorem eo_interprets_eq_rel (M : SmtModel) (x y : Term) :
   rw [eo_to_smt_eq_eq x y] at hEq
   cases hEq with
   | intro_true _ hEval =>
-      rw [__smtx_model_eval.eq_134] at hEval
+      rw [smtx_model_eval_eq_term_eq] at hEval
       exact hEval
 
 /-- Derives `eo_interprets_eq` from `rel`. -/
@@ -771,7 +778,7 @@ theorem eo_interprets_eq_of_rel (M : SmtModel) (x y : Term) :
       (smt_value_rel_iff_model_eval_eq_true
         (__smtx_model_eval M (__eo_to_smt x))
         (__smtx_model_eval M (__eo_to_smt y))).mp hRel
-    rw [__smtx_model_eval.eq_134]
+    rw [smtx_model_eval_eq_term_eq]
     exact hEvalEq
 
 /-- Establishes an equality relating `eo_interprets` and `trans`. -/

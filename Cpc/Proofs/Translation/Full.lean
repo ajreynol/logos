@@ -646,6 +646,26 @@ private theorem false_of_typeof_str_indexof_re_eq_dtcapp_full
   repeat (first | split at hTy)
   all_goals cases hTy
 
+private theorem false_of_typeof_str_indexof_re_split_eq_dtcapp_full
+    {z y x A B : Term}
+    (hTy :
+      __eo_typeof_str_indexof_re_split (__eo_typeof z) (__eo_typeof y) (__eo_typeof x) =
+        Term.DtcAppType A B) :
+    False := by
+  unfold __eo_typeof_str_indexof_re_split at hTy
+  repeat (first | split at hTy)
+  all_goals cases hTy
+
+private theorem false_of_typeof_re_unfold_pos_component_eq_dtcapp_full
+    {z y x A B : Term}
+    (hTy :
+      __eo_typeof__at_re_unfold_pos_component (__eo_typeof z) (__eo_typeof y) (__eo_typeof x) =
+        Term.DtcAppType A B) :
+    False := by
+  unfold __eo_typeof__at_re_unfold_pos_component at hTy
+  repeat (first | split at hTy)
+  all_goals cases hTy
+
 private theorem eo_type_valid_of_requires_eq_dtcapp_full
     {T V U A B : Term}
     (hU : eo_type_valid U)
@@ -1696,6 +1716,7 @@ private theorem eo_to_smt_apply_apply_apply_uop_generic_full
     (hStrReplaceRe : op ≠ UserOp.str_replace_re)
     (hStrReplaceReAll : op ≠ UserOp.str_replace_re_all)
     (hStrIndexofRe : op ≠ UserOp.str_indexof_re)
+    (hStrIndexofReSplit : op ≠ UserOp.str_indexof_re_split)
     (hStringsOccurIndex : op ≠ UserOp._at_strings_occur_index)
     (hStringsOccurIndexRe : op ≠ UserOp._at_strings_occur_index_re) :
       __eo_to_smt
@@ -1717,6 +1738,7 @@ private theorem eo_to_smt_apply_apply_apply_uop_generic_full
       | exact False.elim (hStrReplaceRe rfl)
       | exact False.elim (hStrReplaceReAll rfl)
       | exact False.elim (hStrIndexofRe rfl)
+      | exact False.elim (hStrIndexofReSplit rfl)
       | exact False.elim (hStringsOccurIndex rfl)
       | exact False.elim (hStringsOccurIndexRe rfl)
 
@@ -1733,6 +1755,7 @@ private theorem eo_typeof_apply_apply_apply_uop_generic_full
     (hStrReplaceRe : op ≠ UserOp.str_replace_re)
     (hStrReplaceReAll : op ≠ UserOp.str_replace_re_all)
     (hStrIndexofRe : op ≠ UserOp.str_indexof_re)
+    (hStrIndexofReSplit : op ≠ UserOp.str_indexof_re_split)
     (hStringsOccurIndex : op ≠ UserOp._at_strings_occur_index)
     (hStringsOccurIndexRe : op ≠ UserOp._at_strings_occur_index_re) :
       __eo_typeof
@@ -1754,6 +1777,7 @@ private theorem eo_typeof_apply_apply_apply_uop_generic_full
       | exact False.elim (hStrReplaceRe rfl)
       | exact False.elim (hStrReplaceReAll rfl)
       | exact False.elim (hStrIndexofRe rfl)
+      | exact False.elim (hStrIndexofReSplit rfl)
       | exact False.elim (hStringsOccurIndex rfl)
       | exact False.elim (hStringsOccurIndexRe rfl)
 
@@ -1942,8 +1966,7 @@ private theorem smtx_typeof_choice_nth_succ_eq_skolemize_of_non_none
     exfalso
     unfold term_has_non_none_type at hNN
     apply hNN
-    rw [__smtx_typeof.eq_137]
-    simp [__smtx_typeof_choice_nth]
+    simp [__smtx_typeof, __smtx_typeof_choice_nth]
 
 /-- Non-`None` successor `choice_nth` typing transfers to body skolemization. -/
 private theorem quantifiers_skolemize_non_none_of_choice_nth_succ_non_none
@@ -2156,16 +2179,14 @@ private theorem choice_nth_head_type_wf_of_non_none
                 SmtType.None := by
             intro hNone
             apply hNN
-            rw [__smtx_typeof.eq_137]
-            simp [__smtx_typeof_choice_nth, hNone]
+            simp [__smtx_typeof, __smtx_typeof_choice_nth, hNone]
           exact
             smtx_typeof_guard_wf_wf_of_non_none
               T (__smtx_typeof_choice_nth U body' n) hGuardNN
       | _ =>
           exfalso
           apply hNN
-          rw [__smtx_typeof.eq_137]
-          simp [__smtx_typeof_choice_nth]
+          simp [__smtx_typeof, __smtx_typeof_choice_nth]
 
 private theorem type_wf_of_quantifiers_skolemize_cons_non_none
     (s : native_String) (T a : Term) (body : SmtTerm) (n : native_Nat)
@@ -2242,7 +2263,7 @@ private theorem smtx_typeof_eo_to_smt_exists_cons_bool_of_tail_bool
     __smtx_typeof
         (SmtTerm.exists s (__eo_to_smt_type T) (__eo_to_smt_exists a body)) =
       SmtType.Bool
-  rw [__smtx_typeof.eq_135]
+  rw [__smtx_typeof.eq_def] <;> simp only
   simp [hTailBool, native_ite, native_Teq, __smtx_typeof_guard_wf, hWf]
 
 /-- Any well-typed skolemized choice forces the enclosing existential chain to be Boolean. -/
@@ -3225,6 +3246,20 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
             cases f <;> try dsimp [__eo_typeof] at hTy <;> try cases hTy
             case UOp op =>
               cases op <;> dsimp [__eo_typeof] at hTy hTypeNN
+              case _at_purify =>
+                have hxNN : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
+                  intro hNone
+                  apply hNonNone
+                  change __smtx_typeof (SmtTerm._at_purify (__eo_to_smt x)) =
+                    SmtType.None
+                  simpa [__smtx_typeof] using hNone
+                have hxValid := (go x hxNN).2
+                cases hxTy : __eo_typeof x <;>
+                  simp [__eo_typeof__at_purify, hxTy] at hTy hTypeNN ⊢
+                all_goals try cases hTy
+                all_goals
+                  subst_vars
+                  simpa [eo_type_valid, eo_type_valid_rec, hxTy] using hxValid
               all_goals first
                 | exact eo_type_valid_of_generic_apply_eq_dtcapp_full
                     (f := Term.UOp op) (x := x) (A := a) (B := b)
@@ -3308,21 +3343,6 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                   all_goals try cases hTy
             case UOp1 op y =>
               cases op <;> dsimp [__eo_typeof] at hTy hTypeNN
-              case _at_purify =>
-                exact eo_type_valid_of_generic_apply_eq_dtcapp_full
-                  (f := Term.UOp1 UserOp1._at_purify y) (x := x) (A := a) (B := b)
-                  (go (Term.UOp1 UserOp1._at_purify y))
-                  (by
-                    intro s d i j h
-                    exact eo_to_smt_uop1_ne_dt_sel_full UserOp1._at_purify y s d i j h)
-                  (by
-                    intro s d i h
-                    exact eo_to_smt_uop1_ne_dt_tester_full UserOp1._at_purify y s d i h)
-                  rfl rfl hTermNN (by
-                    change
-                      __eo_typeof (Term.Apply (Term.UOp1 UserOp1._at_purify y) x) =
-                        Term.DtcAppType a b
-                    exact hTy)
               case seq_empty =>
                 exact False.elim (hNonNone (by
                   change
@@ -3651,12 +3671,6 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                      all_goals cases hTy)
               case UOp1 op z =>
                 cases op <;> dsimp [__eo_typeof] at hTy hTypeNN
-                case _at_purify =>
-                  exact eo_type_valid_of_nested_generic_apply_eq_dtcapp_full
-                    (g := Term.UOp1 UserOp1._at_purify z) (y := y) (x := x)
-                    (A := a) (B := b)
-                    (go (Term.Apply (Term.UOp1 UserOp1._at_purify z) y))
-                    (by rfl) (by rfl) hTermNN hTy
                 case «repeat» =>
                   exact eo_type_valid_of_nested_generic_apply_eq_dtcapp_full
                     (g := Term.UOp1 UserOp1.repeat z) (y := y) (x := x)
@@ -4120,6 +4134,16 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                               (__eo_typeof y) (__eo_typeof x) =
                             Term.DtcAppType a b
                         exact hTy))
+                  by_cases hStrIndexofReSplit :
+                      op = UserOp.str_indexof_re_split
+                  · subst op
+                    exact False.elim
+                      (false_of_typeof_str_indexof_re_split_eq_dtcapp_full (by
+                        change
+                          __eo_typeof_str_indexof_re_split (__eo_typeof z)
+                              (__eo_typeof y) (__eo_typeof x) =
+                            Term.DtcAppType a b
+                        exact hTy))
                   by_cases hStringsOccurIndex :
                       op = UserOp._at_strings_occur_index
                   · subst op
@@ -4147,11 +4171,13 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                     (eo_to_smt_apply_apply_apply_uop_generic_full op z y x
                       hIte hStore hBvite hStrSubstr hStrReplace hStrIndexof
                       hStrUpdate hStrReplaceAll hStrReplaceRe hStrReplaceReAll
-                      hStrIndexofRe hStringsOccurIndex hStringsOccurIndexRe)
+                      hStrIndexofRe hStrIndexofReSplit hStringsOccurIndex
+                      hStringsOccurIndexRe)
                     (eo_typeof_apply_apply_apply_uop_generic_full op z y x
                       hIte hStore hBvite hStrSubstr hStrReplace hStrIndexof
                       hStrUpdate hStrReplaceAll hStrReplaceRe hStrReplaceReAll
-                      hStrIndexofRe hStringsOccurIndex hStringsOccurIndexRe)
+                      hStrIndexofRe hStrIndexofReSplit hStringsOccurIndex
+                      hStringsOccurIndexRe)
                     hTermNN hTy
                 ·
                   exact eo_type_valid_of_nested_generic_apply_eq_dtcapp_full
@@ -4508,22 +4534,6 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
             rw [hTy] at hTypeNN
             simp [eo_type_valid, eo_type_valid_rec, __eo_to_smt_type, native_ite,
               native_Teq] at hTypeNN ⊢
-      | Term.UOp1 UserOp1._at_purify x, hNonNone => by
-          have hx : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
-            intro hNone
-            apply hNonNone
-            change __smtx_typeof (SmtTerm._at_purify (__eo_to_smt x)) = SmtType.None
-            simpa [__smtx_typeof] using hNone
-          have hxAll := go x hx
-          refine ⟨eo_to_smt_typeof_matches_translation_purify x hxAll.1, ?_⟩
-          have hNotStuck : __eo_typeof x ≠ Term.Stuck :=
-            eo_type_valid_not_stuck hxAll.2
-          change eo_type_valid (__eo_typeof__at_purify (__eo_typeof x))
-          cases hTy : __eo_typeof x <;> simp [__eo_typeof__at_purify] at hNotStuck ⊢
-          case Stuck =>
-            exact False.elim (hNotStuck hTy)
-          all_goals
-            simpa [hTy] using hxAll.2
       | Term.UOp1 UserOp1.seq_empty T, hNonNone => by
             change __smtx_typeof (__eo_to_smt_seq_empty (__eo_to_smt_type T)) ≠
               SmtType.None at hNonNone
@@ -4855,10 +4865,13 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
           simp [native_ite, smtx_typeof_none, smtx_typeof_dt_sel_head_none]
     | Term.USort i, hNonNone => by
         exact false_of_smtx_typeof_none_non_none_full hNonNone
-    | Term.UOp3 UserOp3._at_re_unfold_pos_component x y z, hNonNone => by
-          exact
-            eo_to_smt_typeof_matches_translation_apply_apply_apply_re_unfold_pos_component
-              z y x (fun h => (go x h).1) (fun h => (go y h).1) hNonNone
+    | Term.UOp3 UserOp3._at_re_unfold_pos_component str re idx, hNonNone => by
+        exact
+          eo_to_smt_typeof_matches_translation_apply_apply_apply_re_unfold_pos_component
+            idx re str
+            (fun h => (go str h).1)
+            (fun h => (go re h).1)
+            hNonNone
     | Term.UOp3 UserOp3._at_witness_string_length T len id, hNonNone => by
         have hEq :=
           eo_to_smt_typeof_matches_translation_apply_apply_apply_at_witness_string_length
@@ -4871,55 +4884,36 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
             (__eo_to_smt len)
         have hTranslate :
             __eo_to_smt (Term.UOp3 UserOp3._at_witness_string_length T len id) =
-              native_ite (native_Teq (__smtx_typeof (__eo_to_smt id)) SmtType.Int)
-                (SmtTerm.choice_nth (native_string_lit "@x") ST body native_nat_zero) SmtTerm.None := by
+              native_ite (__eo_to_smt_nat_is_valid len)
+                (native_ite (__eo_to_smt_nat_is_valid id)
+                  (SmtTerm.choice_nth (native_string_lit "@x") ST body native_nat_zero)
+                  SmtTerm.None)
+                SmtTerm.None := by
           rfl
-        have hIdIntSmt : __smtx_typeof (__eo_to_smt id) = SmtType.Int := by
-          cases hTest : native_Teq (__smtx_typeof (__eo_to_smt id)) SmtType.Int
+        have hLenValid : __eo_to_smt_nat_is_valid len = true := by
+          cases hTest : __eo_to_smt_nat_is_valid len
           · exfalso
             apply hNonNone
             rw [hTranslate]
             simp [hTest, native_ite]
-          · simpa [native_Teq] using hTest
+          · rfl
+        have hIdValid : __eo_to_smt_nat_is_valid id = true := by
+          cases hTest : __eo_to_smt_nat_is_valid id
+          · exfalso
+            apply hNonNone
+            rw [hTranslate]
+            simp [hLenValid, hTest, native_ite]
+          · rfl
         have hIdInt : __eo_typeof id = Term.UOp UserOp.Int :=
-          eo_typeof_eq_int_of_smt_int_from_ih id (fun h => (go id h).1)
-            hIdIntSmt
+          eo_typeof_eq_int_of_nat_is_valid id hIdValid
+        have hLenInt : __eo_typeof len = Term.UOp UserOp.Int :=
+          eo_typeof_eq_int_of_nat_is_valid len hLenValid
         have hChoiceNN :
             term_has_non_none_type (SmtTerm.choice_nth (native_string_lit "@x") ST body 0) := by
           unfold term_has_non_none_type
           have hTermNN' := hNonNone
           rw [hTranslate] at hTermNN'
-          simpa [hIdIntSmt, native_Teq, native_ite] using hTermNN'
-        have hBodyBool : __smtx_typeof body = SmtType.Bool :=
-          choice_nth_body_bool_of_non_none hChoiceNN
-        have hEqNN :
-            __smtx_typeof_eq
-                (__smtx_typeof (SmtTerm.str_len (SmtTerm.Var (native_string_lit "@x") ST)))
-                (__smtx_typeof (__eo_to_smt len)) ≠
-              SmtType.None := by
-          have hBodyNN : __smtx_typeof body ≠ SmtType.None := by
-            rw [hBodyBool]
-            simp
-          simpa [body, typeof_eq_eq] using hBodyNN
-        have hEqArgs := smtx_typeof_eq_non_none hEqNN
-        have hStrLenNN :
-            term_has_non_none_type (SmtTerm.str_len (SmtTerm.Var (native_string_lit "@x") ST)) := by
-          unfold term_has_non_none_type
-          exact hEqArgs.2
-        rcases seq_arg_of_non_none_ret (op := SmtTerm.str_len)
-            (typeof_str_len_eq (SmtTerm.Var (native_string_lit "@x") ST)) hStrLenNN with
-          ⟨A, hVarSeq⟩
-        have hStrLenTy :
-            __smtx_typeof (SmtTerm.str_len (SmtTerm.Var (native_string_lit "@x") ST)) =
-              SmtType.Int := by
-          rw [typeof_str_len_eq (SmtTerm.Var (native_string_lit "@x") ST), hVarSeq]
-          simp [__smtx_typeof_seq_op_1_ret]
-        have hLenIntSmt : __smtx_typeof (__eo_to_smt len) = SmtType.Int := by
-          rw [← hEqArgs.1]
-          exact hStrLenTy
-        have hLenInt : __eo_typeof len = Term.UOp UserOp.Int :=
-          eo_typeof_eq_int_of_smt_int_from_ih len (fun h => (go len h).1)
-            hLenIntSmt
+          simpa [hLenValid, hIdValid, native_ite] using hTermNN'
         have hChoiceGuard :
             __smtx_typeof (SmtTerm.choice_nth (native_string_lit "@x") ST body 0) =
               __smtx_typeof_guard_wf ST ST :=

@@ -406,7 +406,7 @@ theorem smt_typeof_mkSetEmpty_of_set_type_wf
           (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Set) T))) =
       SmtType.Set (__eo_to_smt_type T)
   rw [hSetTy]
-  simp [__eo_to_smt_set_empty, __smtx_typeof.eq_121,
+  simp [__eo_to_smt_set_empty, smtx_typeof_set_empty_term_eq,
     __smtx_typeof_guard_wf, hSetWf, native_ite]
 
 theorem set_union_empty_left_rel_of_premise_bool
@@ -834,7 +834,7 @@ theorem typed_set_eq_singleton
         SmtType.Set (__eo_to_smt_type T) := by
     change __smtx_typeof (SmtTerm.set_singleton (__eo_to_smt y)) =
       SmtType.Set (__eo_to_smt_type T)
-    rw [__smtx_typeof.eq_122, hYSmtTy]
+    rw [smtx_typeof_set_singleton_term_eq, hYSmtTy]
     simp [__smtx_typeof_guard_wf, hSetWf, native_ite]
   exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type x (mkSetSingleton y)
     (by rw [hXSmtTy, hSingletonTy])
@@ -898,7 +898,7 @@ theorem set_eq_singleton_emp_rel_of_premise_bool
         (__smtx_model_eval M (__eo_to_smt x))
         (__smtx_model_eval M (SmtTerm.set_singleton (__eo_to_smt y))) =
       SmtValue.Boolean false
-    rw [hXEval, __smtx_model_eval.eq_122]
+    rw [hXEval, smtx_eval_set_singleton_term_eq]
     exact set_empty_value_set_singleton_value_model_eval_eq_false
       (__eo_to_smt_type T) (__smtx_model_eval M (__eo_to_smt y))
   change
@@ -912,7 +912,7 @@ theorem set_eq_singleton_emp_rel_of_premise_bool
         (SmtTerm.eq (__eo_to_smt x) (__eo_to_smt (mkSetSingleton y))))
       (__smtx_model_eval M (SmtTerm.Boolean false)) =
         SmtValue.Boolean true
-  rw [__smtx_model_eval.eq_134, __smtx_model_eval.eq_1, hInnerFalse]
+  rw [smtx_eval_eq_term_eq, __smtx_model_eval.eq_1, hInnerFalse]
   exact RuleProofs.smtx_model_eval_eq_refl (SmtValue.Boolean false)
 
 theorem facts_set_eq_singleton_emp_false

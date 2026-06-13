@@ -334,7 +334,7 @@ private theorem facts___eo_prog_arrays_ext_impl
   have hEqEvalFalse :
       __smtx_model_eval M (__eo_to_smt (Term.Apply (Term.Apply Term.eq lhs) rhs)) =
         SmtValue.Boolean false := by
-    rw [RuleProofs.eo_to_smt_eq_eq, __smtx_model_eval.eq_134]
+    rw [RuleProofs.eo_to_smt_eq_eq, smtx_eval_eq_term_eq]
     simpa [lhs, rhs, idx, RuleProofs.eo_to_smt_select_eq, hIdxSmtTerm,
       __smtx_model_eval, __smtx_model_eval_select, __smtx_model_eval_map_diff,
       hEvalA, hEvalB] using hSelectEqFalse

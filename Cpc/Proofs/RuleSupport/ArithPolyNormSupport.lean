@@ -3492,7 +3492,7 @@ private theorem arith_poly_norm_atom_denote_real_of_qdiv_rational
     simp [__smtx_model_eval]
   rw [hAtom1]
   unfold arith_poly_norm_atom_denote_real
-  rw [eo_to_smt_qdiv_eq, __smtx_model_eval.eq_128, hEvalQ, hEval1]
+  rw [eo_to_smt_qdiv_eq, smtx_eval_qdiv_term_eq, hEvalQ, hEval1]
   simp [__smtx_model_eval_to_real, __smtx_model_eval_qdiv_total, __smtx_model_eval_ite,
     __smtx_model_eval_eq, native_veq, hZero]
 

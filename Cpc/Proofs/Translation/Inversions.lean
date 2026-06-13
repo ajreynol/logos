@@ -2512,8 +2512,6 @@ theorem eo_typeof_type_of_smt_type_wf_rec :
   | Term.USort i, refs, hWF => rfl
   | Term.UConst i T, refs, hWF => by
       simp [__eo_to_smt_type, __smtx_type_wf_rec] at hWF
-  | Term._at_purify x, refs, hWF => by
-      simp [__eo_to_smt_type, __smtx_type_wf_rec] at hWF
   | Term.seq_empty T, refs, hWF => by
       simp [__eo_to_smt_type, __smtx_type_wf_rec] at hWF
   | Term.set_empty T, refs, hWF => by

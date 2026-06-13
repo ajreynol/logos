@@ -324,7 +324,7 @@ private theorem set_singleton_set_singleton_model_eval_eq_false_of_head
       (__smtx_model_eval M (SmtTerm.set_singleton (__eo_to_smt e₁)))
       (__smtx_model_eval M (SmtTerm.set_singleton (__eo_to_smt e₂))) =
     SmtValue.Boolean false
-  rw [__smtx_model_eval.eq_122, __smtx_model_eval.eq_122]
+  rw [smtx_eval_set_singleton_term_eq, smtx_eval_set_singleton_term_eq]
   exact set_singleton_value_model_eval_eq_false_of_elem hHeadEqFalse
 
 private theorem set_singleton_set_empty_model_eval_eq_false
@@ -362,12 +362,12 @@ private theorem set_singleton_set_empty_model_eval_eq_false
         (__eo_to_smt_set_empty
           (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Set) U)))) =
     SmtValue.Boolean false
-  rw [hTy, __smtx_model_eval.eq_122]
+  rw [hTy, smtx_eval_set_singleton_term_eq]
   change __smtx_model_eval_eq
       (__smtx_model_eval_set_singleton (__smtx_model_eval M (__eo_to_smt e)))
       (__smtx_model_eval M (SmtTerm.set_empty T)) =
     SmtValue.Boolean false
-  rw [__smtx_model_eval.eq_121]
+  rw [smtx_eval_set_empty_term_eq]
   exact set_singleton_value_set_empty_value_model_eval_eq_false
     (__smtx_model_eval M (__eo_to_smt e)) T
 
@@ -406,12 +406,12 @@ private theorem set_empty_set_singleton_model_eval_eq_false
           (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Set) U))))
       (__smtx_model_eval M (SmtTerm.set_singleton (__eo_to_smt e))) =
     SmtValue.Boolean false
-  rw [hTy, __smtx_model_eval.eq_122]
+  rw [hTy, smtx_eval_set_singleton_term_eq]
   change __smtx_model_eval_eq
       (__smtx_model_eval M (SmtTerm.set_empty T))
       (__smtx_model_eval_set_singleton (__smtx_model_eval M (__eo_to_smt e))) =
     SmtValue.Boolean false
-  rw [__smtx_model_eval.eq_121]
+  rw [smtx_eval_set_empty_term_eq]
   exact set_empty_value_set_singleton_value_model_eval_eq_false T
     (__smtx_model_eval M (__eo_to_smt e))
 
@@ -466,13 +466,13 @@ private theorem set_singleton_set_singleton_lookup_witness_of_head
       SmtValue.Set
         (SmtMap.cons v₁ (SmtValue.Boolean true)
           (SmtMap.default (__smtx_typeof_value v₁) (SmtValue.Boolean false)))
-    rw [__smtx_model_eval.eq_122]
+    rw [smtx_eval_set_singleton_term_eq]
     rfl
   · change __smtx_model_eval M (SmtTerm.set_singleton (__eo_to_smt e₂)) =
       SmtValue.Set
         (SmtMap.cons v₂ (SmtValue.Boolean true)
           (SmtMap.default (__smtx_typeof_value v₂) (SmtValue.Boolean false)))
-    rw [__smtx_model_eval.eq_122]
+    rw [smtx_eval_set_singleton_term_eq]
     rfl
   · simp [__smtx_msm_lookup, native_veq, native_ite]
   · simp [__smtx_msm_lookup, hVeq, native_ite]
@@ -518,7 +518,7 @@ private theorem set_singleton_set_empty_lookup_witness
       SmtValue.Set
         (SmtMap.cons v (SmtValue.Boolean true)
           (SmtMap.default (__smtx_typeof_value v) (SmtValue.Boolean false)))
-    rw [__smtx_model_eval.eq_122]
+    rw [smtx_eval_set_singleton_term_eq]
     rfl
   · change __smtx_model_eval M
         (__eo_to_smt_set_empty
@@ -527,7 +527,7 @@ private theorem set_singleton_set_empty_lookup_witness
     rw [hTy]
     change __smtx_model_eval M (SmtTerm.set_empty T) =
       SmtValue.Set (SmtMap.default T (SmtValue.Boolean false))
-    rw [__smtx_model_eval.eq_121]
+    rw [smtx_eval_set_empty_term_eq]
   · simp [__smtx_msm_lookup, native_veq, native_ite]
   · simp [__smtx_msm_lookup]
 
@@ -745,7 +745,7 @@ private theorem set_union_eval_maps
         (SmtMap.default (__smtx_index_typeof_map (__smtx_typeof_map_value mx))
           (SmtValue.Boolean false))
         my)
-  rw [__smtx_model_eval.eq_123]
+  rw [smtx_eval_set_union_term_eq]
   simp [__smtx_model_eval_set_union, __smtx_set_union, hxEval, hyEval]
 
 private theorem seq_is_non_empty_shape {t : Term} :
@@ -1666,7 +1666,7 @@ private theorem set_is_not_subset_lookup_witness
                   (SmtMap.cons v₁ (SmtValue.Boolean true)
                     (SmtMap.default (__smtx_typeof_value v₁)
                       (SmtValue.Boolean false)))
-              rw [__smtx_model_eval.eq_122]
+              rw [smtx_eval_set_singleton_term_eq]
               rfl
             rw [hEvalSing] at hActual
             injection hActual with h
@@ -1687,7 +1687,7 @@ private theorem set_is_not_subset_lookup_witness
                   (SmtMap.cons v₂ (SmtValue.Boolean true)
                     (SmtMap.default (__smtx_typeof_value v₂)
                       (SmtValue.Boolean false)))
-              rw [__smtx_model_eval.eq_122]
+              rw [smtx_eval_set_singleton_term_eq]
               rfl
             rw [hEvalHead₂] at hActual
             injection hActual with h

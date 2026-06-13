@@ -104,7 +104,7 @@ abbrev bvredor := Term.UOp UserOp.bvredor
 abbrev _at_bit := Term.UOp1 UserOp1._at_bit
 abbrev _at_from_bools := Term.UOp UserOp._at_from_bools
 abbrev _at_bv := Term.UOp2 UserOp2._at_bv
-abbrev _at_purify := Term.UOp1 UserOp1._at_purify
+abbrev _at_purify (x : Term) := Term.Apply (Term.UOp UserOp._at_purify) x
 abbrev _at_array_deq_diff (x y : Term) :=
   Term.Apply (Term.Apply (Term.UOp UserOp._at_array_deq_diff) x) y
 abbrev RegLan := Term.UOp UserOp.RegLan
@@ -151,7 +151,8 @@ abbrev str_in_re := Term.UOp UserOp.str_in_re
 abbrev seq_empty := Term.UOp1 UserOp1.seq_empty
 abbrev seq_unit := Term.UOp UserOp.seq_unit
 abbrev seq_nth := Term.UOp UserOp.seq_nth
-abbrev _at_re_unfold_pos_component := Term.UOp3 UserOp3._at_re_unfold_pos_component
+abbrev _at_re_unfold_pos_component (t r i : Term) : Term :=
+  Term.UOp3 UserOp3._at_re_unfold_pos_component t r i
 abbrev _at_strings_deq_diff (x y : Term) :=
   Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_deq_diff) x) y
 abbrev _at_strings_stoi_result (x : Term) :=

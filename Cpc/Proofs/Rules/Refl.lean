@@ -18,6 +18,12 @@ private theorem eo_to_smt_eq_eq (x y : Term) :
       SmtTerm.eq (__eo_to_smt x) (__eo_to_smt y) := by
   rfl
 
+private theorem smtx_model_eval_eq_term_eq
+    (M : SmtModel) (x y : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.eq x y) =
+      __smtx_model_eval_eq (__smtx_model_eval M x) (__smtx_model_eval M y) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
 /-- Expands `__eo_prog_refl` on non-stuck inputs. -/
 private theorem eo_prog_refl_eq_of_ne_stuck (x : Term) :
     x ≠ Term.Stuck ->
@@ -41,7 +47,7 @@ by
   · rw [eo_prog_refl_eq_of_ne_stuck x1 hStuck]
     unfold RuleProofs.eo_has_bool_type
     rw [eo_to_smt_eq_eq x1 x1]
-    rw [__smtx_typeof.eq_134]
+    rw [typeof_eq_eq]
     exact RuleProofs.smtx_typeof_eq_refl (__smtx_typeof (__eo_to_smt x1)) hTrans
 
 namespace RuleProofs
@@ -62,9 +68,9 @@ theorem correct___eo_prog_refl_of_smt_translation (M : SmtModel) (x1 : Term) :
   rw [eo_prog_refl_eq_of_ne_stuck x1 hNotEqStuck, eo_to_smt_eq_eq x1 x1]
   refine smt_interprets.intro_true M
       (SmtTerm.eq (__eo_to_smt x1) (__eo_to_smt x1)) ?_ ?_
-  · rw [__smtx_typeof.eq_134]
+  · rw [typeof_eq_eq]
     exact smtx_typeof_eq_refl (__smtx_typeof (__eo_to_smt x1)) hTy
-  · rw [__smtx_model_eval.eq_134]
+  · rw [smtx_model_eval_eq_term_eq]
     exact smtx_model_eval_eq_refl (__smtx_model_eval M (__eo_to_smt x1))
 
 end RuleProofs

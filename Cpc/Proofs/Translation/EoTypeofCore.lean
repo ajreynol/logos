@@ -2621,22 +2621,27 @@ theorem eo_to_smt_eq_numeral
               (__eo_to_smt_nat z))
             SmtTerm.None =
           SmtTerm.Numeral n at h
-        cases hz : __eo_to_smt_nat_is_valid z <;>
-          simp [native_ite, hz] at h
+        cases hx : __eo_to_smt_nat_is_valid z <;>
+          simp [native_ite, hx] at h
         exact False.elim (eo_to_smt_re_unfold_pos_component_ne_numeral
           (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt_nat z) n h)
       case _at_witness_string_length =>
         change native_ite
-            (native_Teq (__smtx_typeof (__eo_to_smt z)) SmtType.Int)
-            (SmtTerm.choice_nth (native_string_lit "@x") (__eo_to_smt_type x)
-              (SmtTerm.eq
-                (SmtTerm.str_len (SmtTerm.Var (native_string_lit "@x") (__eo_to_smt_type x)))
-                (__eo_to_smt y))
-              native_nat_zero)
+            (__eo_to_smt_nat_is_valid y)
+            (native_ite
+              (__eo_to_smt_nat_is_valid z)
+              (SmtTerm.choice_nth (native_string_lit "@x") (__eo_to_smt_type x)
+                (SmtTerm.eq
+                  (SmtTerm.str_len (SmtTerm.Var (native_string_lit "@x") (__eo_to_smt_type x)))
+                  (__eo_to_smt y))
+                native_nat_zero)
+              SmtTerm.None)
             SmtTerm.None =
           SmtTerm.Numeral n at h
-        cases hz : native_Teq (__smtx_typeof (__eo_to_smt z)) SmtType.Int <;>
-          simp [native_ite, hz] at h
+        cases hy : __eo_to_smt_nat_is_valid y <;>
+          simp [native_ite, hy] at h
+        cases hz : __eo_to_smt_nat_is_valid z <;>
+          simp [hz] at h
   | Apply f x => exact False.elim (eo_to_smt_apply_ne_numeral f x n h)
   | _ => cases h
 
@@ -2681,6 +2686,16 @@ theorem eo_to_smt_type_typeof_numeral
     __eo_to_smt_type (__eo_typeof (Term.Numeral n)) = SmtType.Int := by
   change __eo_to_smt_type (Term.UOp UserOp.Int) = SmtType.Int
   rfl
+
+/-- Valid EO nat arguments are numerals, hence EO integers. -/
+theorem eo_typeof_eq_int_of_nat_is_valid
+    (t : Term)
+    (h : __eo_to_smt_nat_is_valid t = true) :
+    __eo_typeof t = Term.UOp UserOp.Int := by
+  cases t <;> simp [__eo_to_smt_nat_is_valid] at h
+  case Numeral n =>
+    change __eo_lit_type_Numeral (Term.Numeral n) = Term.UOp UserOp.Int
+    rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_rational`. -/
 theorem eo_to_smt_type_typeof_rational
@@ -3181,7 +3196,6 @@ private theorem eo_to_smt_type_substitute_field
   | Term.UOp2 UserOp2.extract x y => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
   | Term.UOp2 UserOp2._at_bv x y => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
   | Term.UOp2 UserOp2.re_loop x y => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
-  | Term.UOp1 UserOp1._at_purify x => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
   | Term.UOp1 UserOp1.seq_empty T => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
   | Term.UOp1 UserOp1.set_empty T => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
   | Term.UOp2 UserOp2._at_quantifiers_skolemize x y => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq]
@@ -3823,7 +3837,7 @@ theorem eo_to_smt_typeof_matches_translation_set_empty
 /-- Simplifies EO-to-SMT type translation for `typeof_purify`. -/
 theorem eo_to_smt_type_typeof_purify
     (x : Term) :
-    __eo_to_smt_type (__eo_typeof (Term.UOp1 UserOp1._at_purify x)) =
+    __eo_to_smt_type (__eo_typeof (Term._at_purify x)) =
       __eo_to_smt_type (__eo_typeof x) := by
   change __eo_to_smt_type (__eo_typeof__at_purify (__eo_typeof x)) =
       __eo_to_smt_type (__eo_typeof x)
@@ -4842,13 +4856,13 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_re_unfold_pos_component_of_seq_c
     (hx : __eo_typeof x = Term.UOp UserOp.Int) :
     __eo_to_smt_type
         (__eo_typeof
-          (Term.UOp3 UserOp3._at_re_unfold_pos_component z y x)) =
+          (Term._at_re_unfold_pos_component z y x)) =
       SmtType.Seq SmtType.Char := by
   change
     __eo_to_smt_type
         (__eo_typeof__at_re_unfold_pos_component (__eo_typeof z) (__eo_typeof y) (__eo_typeof x)) =
       SmtType.Seq SmtType.Char
-  rw [hz, hy, hx]
+  rw [hx, hz, hy]
   rfl
 
 /-- Stronger EO-side helper for `typeof_apply_apply_apply_re_loop`. -/

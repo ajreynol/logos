@@ -223,6 +223,24 @@ def native_str_indexof_re : native_String -> native_RegLan -> native_Int -> nati
           | none => -1
         else
           -1
+/-- Searches for the smallest split point of `s` into a prefix matching `r1` and a
+suffix matching `r2`.  `pre` is the prefix consumed so far (i.e. `s` with `suf`
+dropped) and `i` its length; recursion is structural on the remaining suffix. -/
+def native_str_indexof_re_split_aux (r1 r2 : native_RegLan) :
+    native_String -> native_String -> native_Nat -> native_Int
+  | pre, suf, i =>
+      if native_str_in_re pre r1 && native_str_in_re suf r2 then
+        Int.ofNat i
+      else
+        match suf with
+        | [] => -1
+        | c :: cs => native_str_indexof_re_split_aux r1 r2 (pre ++ [c]) cs (i + 1)
+def native_str_indexof_re_split : native_String -> native_RegLan -> native_RegLan -> native_Int
+  | s, r1, r2 =>
+      if native_string_valid s then
+        native_str_indexof_re_split_aux r1 r2 [] s 0
+      else
+        -1
 def native_str_replace_re : native_String -> native_RegLan -> native_String -> native_String
   | s, r, replacement =>
       match native_re_find_idx_from r s 0 with
@@ -418,6 +436,7 @@ inductive SmtTerm : Type where
   | re_diff : SmtTerm -> SmtTerm -> SmtTerm
   | re_loop : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
   | str_in_re : SmtTerm -> SmtTerm -> SmtTerm
+  | str_indexof_re_split : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
   | seq_unit : SmtTerm -> SmtTerm
   | seq_nth : SmtTerm -> SmtTerm -> SmtTerm
   | set_empty : SmtType -> SmtTerm
@@ -1480,6 +1499,11 @@ def __smtx_model_eval_str_in_re : SmtValue -> SmtValue -> SmtValue
   | t1, t2 => SmtValue.NotValue
 
 
+def __smtx_model_eval_str_indexof_re_split : SmtValue -> SmtValue -> SmtValue -> SmtValue
+  | (SmtValue.Seq x1), (SmtValue.RegLan x2), (SmtValue.RegLan x3) => (SmtValue.Numeral (native_str_indexof_re_split (native_unpack_string x1) x2 x3))
+  | t1, t2, t3 => SmtValue.NotValue
+
+
 def __smtx_model_eval_set_singleton (x1 : SmtValue) : SmtValue :=
   (SmtValue.Set (SmtMap.cons x1 (SmtValue.Boolean true) (SmtMap.default (__smtx_typeof_value x1) (SmtValue.Boolean false))))
 
@@ -1849,6 +1873,7 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.re_diff x1 x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.RegLan) (native_ite (native_Teq (__smtx_typeof x2) SmtType.RegLan) SmtType.RegLan SmtType.None) SmtType.None)
   | (SmtTerm.re_loop x1 x2 x3) => (__smtx_typeof_re_loop x1 x2 (__smtx_typeof x3))
   | (SmtTerm.str_in_re x1 x2) => (native_ite (native_Teq (__smtx_typeof x1) (SmtType.Seq SmtType.Char)) (native_ite (native_Teq (__smtx_typeof x2) SmtType.RegLan) SmtType.Bool SmtType.None) SmtType.None)
+  | (SmtTerm.str_indexof_re_split x1 x2 x3) => (native_ite (native_Teq (__smtx_typeof x1) (SmtType.Seq SmtType.Char)) (native_ite (native_Teq (__smtx_typeof x2) SmtType.RegLan) (native_ite (native_Teq (__smtx_typeof x3) SmtType.RegLan) SmtType.Int SmtType.None) SmtType.None) SmtType.None)
   | (SmtTerm.seq_unit x1) => 
     let _v0 := (SmtType.Seq (__smtx_typeof x1))
     (__smtx_typeof_guard_wf _v0 _v0)
@@ -2242,6 +2267,7 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.re_diff x1 x2) => (__smtx_model_eval_re_diff (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.re_loop x1 x2 x3) => (__smtx_model_eval_re_loop (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
   | (SmtTerm.str_in_re x1 x2) => (__smtx_model_eval_str_in_re (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.str_indexof_re_split x1 x2 x3) => (__smtx_model_eval_str_indexof_re_split (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
   | (SmtTerm.seq_unit x1) => 
     let _v0 := (__smtx_model_eval M x1)
     (SmtValue.Seq (SmtSeq.cons _v0 (SmtSeq.empty (__smtx_typeof_value _v0))))

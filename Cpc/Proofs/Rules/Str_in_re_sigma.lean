@@ -209,7 +209,7 @@ private theorem smtx_model_eval_str_in_re_sigma_rec
                           SmtValue.Boolean
                             (nativeListInRe (native_unpack_string ss)
                               (nativeSigmaState n false SmtRegLan.epsilon))
-                      rw [__smtx_model_eval.eq_18, __smtx_model_eval.eq_79,
+                      rw [__smtx_model_eval.eq_18, smtx_eval_str_len_term_eq,
                         __smtx_model_eval.eq_2, hSEval]
                       simp [__smtx_model_eval_geq, __smtx_model_eval_leq,
                         __smtx_model_eval_str_len, native_seq_len, native_zleq,
@@ -223,7 +223,7 @@ private theorem smtx_model_eval_str_in_re_sigma_rec
                           SmtValue.Boolean
                             (nativeListInRe (native_unpack_string ss)
                               (nativeSigmaState n true SmtRegLan.epsilon))
-                      rw [__smtx_model_eval.eq_134, __smtx_model_eval.eq_79,
+                      rw [smtx_eval_eq_term_eq, smtx_eval_str_len_term_eq,
                         __smtx_model_eval.eq_2, hSEval]
                       simp [__smtx_model_eval_eq, __smtx_model_eval_str_len,
                         native_veq, native_seq_len,
