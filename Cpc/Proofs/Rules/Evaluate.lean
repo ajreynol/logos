@@ -2576,6 +2576,526 @@ private theorem eo_zero_extend_literal_arg_binary_of_typeof_bitvec
       Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w) at h
     cases h
 
+private def eo_eval_sign_extend_rhs (x n : Term) : Term :=
+  let bw := __bv_bitwidth (__eo_typeof x)
+  let low := __eo_to_z (__eo_extract x (Term.Numeral 0)
+    (__eo_add bw (Term.Numeral (-2 : native_Int))))
+  let msb := __eo_add bw (Term.Numeral (-1 : native_Int))
+  __eo_to_bin (__eo_add bw n)
+    (__eo_ite (__eo_eq (__eo_extract x msb msb) (Term.Binary 1 1))
+      (__eo_add
+        (__eo_neg
+          (__eo_ite (__eo_is_z msb)
+            (__eo_ite (__eo_is_neg msb) (Term.Numeral 0)
+              (__eo_pow (Term.Numeral 2) msb))
+            (__eo_mk_apply (Term.UOp UserOp.int_pow2) msb)))
+        low)
+      low)
+
+private def eo_sign_extend_low_payload
+    (w n : native_Int) : native_Int :=
+  if native_zlt (native_zplus w (native_zneg 2)) 0 then
+    0
+  else
+    native_mod_total n
+      (native_int_pow2 (native_zplus w (native_zneg 1)))
+
+private def eo_sign_extend_msb_set
+    (w n : native_Int) : native_Bool :=
+  if native_zlt (native_zplus w (native_zneg 1)) 0 then
+    false
+  else
+    native_zeq
+      (native_mod_total
+        (native_div_total n
+          (native_int_pow2 (native_zplus w (native_zneg 1))))
+        2) 1
+
+private def eo_sign_extend_payload (w n : native_Int) : native_Int :=
+  if eo_sign_extend_msb_set w n then
+    native_zplus
+      (native_zneg
+        (native_int_pow2 (native_zplus w (native_zneg 1))))
+      (eo_sign_extend_low_payload w n)
+  else
+    eo_sign_extend_low_payload w n
+
+private theorem eo_to_bin_literal_width_of_typeof_bitvec
+    (y : Term) (wi w : native_Int) :
+    __eo_typeof (__eo_to_bin (Term.Numeral wi) y) =
+      Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w) ->
+    w = wi := by
+  cases y <;> intro h <;>
+    simp [__eo_to_bin, __eo_mk_binary, native_ite] at h
+  case Numeral n =>
+    cases hLe : native_zleq wi 4294967296 <;> simp [hLe] at h
+    · change Term.Stuck =
+        Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w) at h
+      cases h
+    · cases hNonneg : native_zleq 0 wi <;> simp [hNonneg] at h
+      · change Term.Stuck =
+          Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w) at h
+        cases h
+      · cases h
+        rfl
+  case Binary wb nb =>
+    cases hLe : native_zleq wi 4294967296 <;> simp [hLe] at h
+    · change Term.Stuck =
+        Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w) at h
+      cases h
+    · cases hNonneg : native_zleq 0 wi <;> simp [hNonneg] at h
+      · change Term.Stuck =
+          Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w) at h
+        cases h
+      · cases h
+        rfl
+  all_goals
+    change Term.Stuck =
+      Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w) at h
+    cases h
+
+private theorem eo_to_bin_numeral_eq_of_typeof_bitvec
+    (p wi w : native_Int) :
+    __eo_typeof (__eo_to_bin (Term.Numeral wi) (Term.Numeral p)) =
+      Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w) ->
+    __eo_to_bin (Term.Numeral wi) (Term.Numeral p) =
+      Term.Binary wi
+        (native_mod_total p (native_int_pow2 wi)) := by
+  intro h
+  change
+    __eo_typeof
+        (native_ite (native_zleq wi 4294967296)
+          (__eo_mk_binary wi p) Term.Stuck) =
+      Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w) at h
+  cases hLe : native_zleq wi 4294967296
+  · simp [hLe, native_ite] at h
+    change Term.Stuck =
+      Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w) at h
+    cases h
+  · simp [hLe, native_ite, __eo_mk_binary] at h
+    cases hNonneg : native_zleq 0 wi
+    · simp [hNonneg] at h
+      change Term.Stuck =
+        Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w) at h
+      cases h
+    · simp [hNonneg] at h
+      simp [__eo_to_bin, __eo_mk_binary, hLe, hNonneg, native_ite]
+
+private theorem eo_eval_sign_extend_rhs_binary_of_typeof_bitvec
+    (x : Term) (i w : native_Int) :
+    __eo_typeof (eo_eval_sign_extend_rhs x (Term.Numeral i)) =
+      Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w) ->
+    ∃ wx : native_Int, ∃ nx : native_Int,
+      x = Term.Binary wx nx ∧ w = native_zplus wx i := by
+  cases x <;> intro h
+  case Binary wx nx =>
+    change
+      __eo_typeof
+          (__eo_to_bin (Term.Numeral (native_zplus wx i)) _) =
+        Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w) at h
+    have hW :=
+      eo_to_bin_literal_width_of_typeof_bitvec _
+        (native_zplus wx i) w h
+    exact ⟨wx, nx, rfl, hW⟩
+  all_goals
+    dsimp [eo_eval_sign_extend_rhs] at h
+    simp only [__eo_extract, __eo_eq, __eo_ite, __eo_to_bin,
+      __eo_to_z] at h
+    first
+    | change Term.Stuck =
+        Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w) at h
+      cases h
+    | have hTrue :
+          native_teq Term.Stuck (Term.Boolean true) = false := by
+        native_decide
+      have hFalse :
+          native_teq Term.Stuck (Term.Boolean false) = false := by
+        native_decide
+      rw [hTrue, hFalse] at h
+      simp [native_ite] at h
+      change Term.Stuck =
+        Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w) at h
+      cases h
+
+private theorem eo_sign_extend_low_payload_eq
+    (w n : native_Int) :
+    __eo_to_z
+        (__eo_extract (Term.Binary w n) (Term.Numeral 0)
+          (Term.Numeral (native_zplus w (native_zneg 2)))) =
+      Term.Numeral (eo_sign_extend_low_payload w n) := by
+  by_cases hNeg :
+      native_zlt (native_zplus w (native_zneg 2)) 0 = true
+  · have hNegPrime : native_zlt (w + -2) 0 = true := by
+      simpa [native_zplus, SmtEval.native_zplus, native_zneg,
+        SmtEval.native_zneg] using hNeg
+    simp [__eo_extract, __eo_to_z, eo_sign_extend_low_payload,
+      hNegPrime, native_ite, native_or, native_zplus,
+      SmtEval.native_zplus, native_zneg, SmtEval.native_zneg]
+  · have hNegFalse :
+        native_zlt (native_zplus w (native_zneg 2)) 0 = false := by
+      cases h : native_zlt (native_zplus w (native_zneg 2)) 0 <;>
+        simp [h] at hNeg ⊢
+    have hNegPrime : native_zlt (w + -2) 0 = false := by
+      simpa [native_zplus, SmtEval.native_zplus, native_zneg,
+        SmtEval.native_zneg] using hNegFalse
+    have hGe : 0 <= w + -2 := by
+      simpa [native_zlt, SmtEval.native_zlt] using hNegPrime
+    have hNonnegPred : 0 <= w + -2 + 1 :=
+      Int.add_nonneg hGe (by decide)
+    have hPowArg : w + -2 + 1 = w + -1 := by
+      rw [Int.add_assoc]
+      have hConst : (-2 : native_Int) + 1 = -1 := by
+        native_decide
+      rw [hConst]
+    have hLe : native_zleq 0 (w + -1) = true := by
+      have hTmp : native_zleq 0 (w + -2 + 1) = true := by
+        simpa [native_zleq, SmtEval.native_zleq] using hNonnegPred
+      simpa [hPowArg] using hTmp
+    have hDiv : native_div_total n (native_int_pow2 0) = n := by
+      simp [native_div_total, native_int_pow2, native_zexp_total]
+    have hZlt00 : native_zlt 0 0 = false := by
+      native_decide
+    simp [__eo_extract, __eo_to_z, __eo_mk_binary,
+      eo_sign_extend_low_payload, hNegPrime, hLe, hDiv, hPowArg,
+      hZlt00, native_binary_extract, native_ite, native_or,
+      native_zplus, SmtEval.native_zplus, native_zneg,
+      SmtEval.native_zneg]
+
+private theorem eo_sign_extend_msb_eq
+    (w n : native_Int) :
+    __eo_eq
+        (__eo_extract (Term.Binary w n)
+          (Term.Numeral (native_zplus w (native_zneg 1)))
+          (Term.Numeral (native_zplus w (native_zneg 1))))
+        (Term.Binary 1 1) =
+      Term.Boolean (eo_sign_extend_msb_set w n) := by
+  by_cases hNeg :
+      native_zlt (native_zplus w (native_zneg 1)) 0 = true
+  · have hNegPrime : native_zlt (w + -1) 0 = true := by
+      simpa [native_zplus, SmtEval.native_zplus, native_zneg,
+        SmtEval.native_zneg] using hNeg
+    simp [__eo_extract, __eo_eq, eo_sign_extend_msb_set,
+      hNegPrime, native_ite, native_or, native_teq,
+      native_zplus, SmtEval.native_zplus, native_zneg,
+      SmtEval.native_zneg]
+  · have hNegFalse :
+        native_zlt (native_zplus w (native_zneg 1)) 0 = false := by
+      cases h : native_zlt (native_zplus w (native_zneg 1)) 0 <;>
+        simp [h] at hNeg ⊢
+    have hNegPrime : native_zlt (w + -1) 0 = false := by
+      simpa [native_zplus, SmtEval.native_zplus, native_zneg,
+        SmtEval.native_zneg] using hNegFalse
+    have hDelta : w + -1 + -(w + -1) = 0 :=
+      Int.add_right_neg (w + -1)
+    have hWidth : w + -1 + -(w + -1) + 1 = 1 := by
+      rw [hDelta]
+      rfl
+    have hLe1 : native_zleq 0 (1 : native_Int) = true := by
+      native_decide
+    have hPow1 : native_int_pow2 (1 : native_Int) = 2 := by
+      native_decide
+    have hZlt00 : native_zlt 0 0 = false := by
+      native_decide
+    simp [__eo_extract, __eo_eq, __eo_mk_binary,
+      eo_sign_extend_msb_set, hNegPrime, hDelta,
+      hLe1, hPow1, hZlt00, native_binary_extract,
+      native_ite, native_or, native_teq, native_zeq,
+      SmtEval.native_zeq, native_zplus, SmtEval.native_zplus,
+      native_zneg, SmtEval.native_zneg]
+    constructor <;> intro h <;> exact h.symm
+
+private theorem eo_int_pow2_literal_eq (k : native_Int) :
+    __eo_ite (__eo_is_z (Term.Numeral k))
+      (__eo_ite (__eo_is_neg (Term.Numeral k)) (Term.Numeral 0)
+        (__eo_pow (Term.Numeral 2) (Term.Numeral k)))
+      (__eo_mk_apply (Term.UOp UserOp.int_pow2) (Term.Numeral k)) =
+    Term.Numeral (native_int_pow2 k) := by
+  by_cases hk : k < 0
+  · have hlt : native_zlt k 0 = true := by
+      simpa [native_zlt, SmtEval.native_zlt] using hk
+    simp [__eo_ite, __eo_is_z, __eo_is_z_internal, __eo_is_neg,
+      native_ite, native_teq, native_and, native_not,
+      hlt, native_int_pow2, native_zexp_total, hk]
+  · have hlt : native_zlt k 0 = false := by
+      simpa [native_zlt, SmtEval.native_zlt] using hk
+    simp [__eo_ite, __eo_is_z, __eo_is_z_internal, __eo_is_neg,
+      __eo_pow, native_ite, native_teq, native_and, native_not,
+      hlt, native_int_pow2, native_zexp_total, hk]
+
+private theorem eo_eval_sign_extend_rhs_binary_to_bin
+    (w n i : native_Int) :
+    eo_eval_sign_extend_rhs (Term.Binary w n) (Term.Numeral i) =
+      __eo_to_bin (Term.Numeral (native_zplus w i))
+        (Term.Numeral (eo_sign_extend_payload w n)) := by
+  dsimp [eo_eval_sign_extend_rhs]
+  change
+    __eo_to_bin (Term.Numeral (native_zplus w i))
+      (__eo_ite
+        (__eo_eq
+          (__eo_extract (Term.Binary w n)
+            (Term.Numeral (native_zplus w (native_zneg 1)))
+            (Term.Numeral (native_zplus w (native_zneg 1))))
+          (Term.Binary 1 1))
+        (__eo_add
+          (__eo_neg
+            (__eo_ite
+              (__eo_is_z
+                (Term.Numeral (native_zplus w (native_zneg 1))))
+              (__eo_ite
+                (__eo_is_neg
+                  (Term.Numeral (native_zplus w (native_zneg 1))))
+                (Term.Numeral 0)
+                (__eo_pow (Term.Numeral 2)
+                  (Term.Numeral (native_zplus w (native_zneg 1)))))
+              (__eo_mk_apply (Term.UOp UserOp.int_pow2)
+                (Term.Numeral (native_zplus w (native_zneg 1))))))
+          (__eo_to_z
+            (__eo_extract (Term.Binary w n) (Term.Numeral 0)
+              (Term.Numeral (native_zplus w (native_zneg 2))))))
+        (__eo_to_z
+          (__eo_extract (Term.Binary w n) (Term.Numeral 0)
+            (Term.Numeral (native_zplus w (native_zneg 2)))))) =
+      _
+  rw [eo_sign_extend_msb_eq, eo_sign_extend_low_payload_eq,
+    eo_int_pow2_literal_eq]
+  cases hMsb : eo_sign_extend_msb_set w n
+  · simp [eo_sign_extend_payload, hMsb, __eo_ite, native_ite,
+      native_teq]
+  · simp [eo_sign_extend_payload, hMsb, __eo_ite, __eo_add,
+      __eo_neg, native_ite, native_teq]
+
+private theorem native_int_pow2_succ_pred
+    {w : native_Int} (hwpos : 0 < w) :
+    native_int_pow2 w = 2 * native_int_pow2 (w - 1) := by
+  have hw0 : 0 <= w := Int.le_of_lt hwpos
+  have hw1 : 1 <= w := (Int.add_one_le_iff).mpr hwpos
+  have hwp0 : 0 <= w - 1 := Int.sub_nonneg.mpr hw1
+  have hnotW : ¬ w < 0 := Int.not_lt_of_ge hw0
+  have hnotP : ¬ w - 1 < 0 := Int.not_lt_of_ge hwp0
+  have hNat : w.toNat = (w - 1).toNat + 1 := by
+    apply Int.ofNat_inj.mp
+    rw [Int.natCast_add, Int.natCast_one]
+    rw [Int.toNat_of_nonneg hw0, Int.toNat_of_nonneg hwp0]
+    omega
+  rw [native_int_pow2, native_int_pow2, native_zexp_total,
+    native_zexp_total]
+  simp [hnotW, hnotP]
+  rw [hNat]
+  have hSub : (w - 1).toNat + 1 - 1 = (w - 1).toNat :=
+    Nat.add_sub_cancel (w - 1).toNat 1
+  rw [hSub]
+  rw [← Nat.succ_eq_add_one]
+  rw [Int.pow_succ]
+  rw [Int.mul_comm]
+
+private theorem eo_sign_extend_low_payload_eq_mod_of_pos
+    {w n : native_Int} (hwpos : 0 < w) :
+    eo_sign_extend_low_payload w n =
+      native_mod_total n
+        (native_int_pow2 (native_zplus w (native_zneg 1))) := by
+  by_cases hNeg :
+      native_zlt (native_zplus w (native_zneg 2)) 0 = true
+  · have hlt : w + -2 < 0 := by
+      simpa [native_zlt, SmtEval.native_zlt, native_zplus,
+        SmtEval.native_zplus, native_zneg, SmtEval.native_zneg] using
+        hNeg
+    have hwEq : w = 1 := by
+      have hlt2 : w < 2 := by
+        have h := Int.add_lt_add_right hlt 2
+        have hLeft : w + -2 + 2 = w := by
+          rw [Int.add_assoc]
+          have hc : (-2 : Int) + 2 = 0 := by
+            native_decide
+          rw [hc, Int.add_zero]
+        have hRight : (0 : Int) + 2 = 2 := by
+          rfl
+        simpa [hLeft, hRight] using h
+      have hle1 : w <= 1 := Int.le_of_lt_add_one hlt2
+      have hge1 : 1 <= w := (Int.add_one_le_iff).mpr hwpos
+      exact Int.le_antisymm hle1 hge1
+    subst w
+    simp [eo_sign_extend_low_payload, native_zplus,
+      SmtEval.native_zplus, native_zneg, SmtEval.native_zneg,
+      native_zlt, SmtEval.native_zlt, native_int_pow2,
+      native_zexp_total, native_mod_total]
+  · have hNegFalse :
+        native_zlt (native_zplus w (native_zneg 2)) 0 = false := by
+      cases h : native_zlt (native_zplus w (native_zneg 2)) 0 <;>
+        simp [h] at hNeg ⊢
+    simp [eo_sign_extend_low_payload, hNegFalse]
+
+private theorem sign_payload_eq_uts_core
+    {w n : native_Int}
+    (hw0 : native_zleq 0 w = true)
+    (hCanon :
+      native_zeq n
+          (native_mod_total n (native_int_pow2 w)) =
+        true) :
+    (if native_zeq
+          (native_mod_total
+            (native_div_total n (native_int_pow2 (w - 1))) 2)
+          1 then
+        native_zplus (native_zneg (native_int_pow2 (w - 1)))
+          (native_mod_total n (native_int_pow2 (w - 1)))
+      else
+        native_mod_total n (native_int_pow2 (w - 1))) =
+      native_binary_uts w n := by
+  by_cases hwpos : 0 < w
+  · let p := native_int_pow2 (w - 1)
+    let q := native_div_total n p
+    let r := native_mod_total n p
+    have hpPos : 0 < p := by
+      have hw1 : 1 <= w := (Int.add_one_le_iff).mpr hwpos
+      have hwp0 : 0 <= w - 1 := Int.sub_nonneg.mpr hw1
+      have hnot : ¬ w - 1 < 0 := Int.not_lt_of_ge hwp0
+      simp [p, native_int_pow2, native_zexp_total, hnot]
+      exact Int.pow_pos (by decide)
+    have hRange := bitvec_payload_range_of_canonical hw0 hCanon
+    have hPow : native_int_pow2 w = 2 * p := by
+      simpa [p] using native_int_pow2_succ_pred (w := w) hwpos
+    have hqNonneg : 0 <= q :=
+      Int.ediv_nonneg hRange.1 (Int.le_of_lt hpPos)
+    have hqLt2 : q < 2 := by
+      have hlt : n < 2 * p := by
+        simpa [hPow] using hRange.2
+      exact Int.ediv_lt_of_lt_mul hpPos hlt
+    have hqCases : q = 0 ∨ q = 1 := by
+      by_cases hq0 : q = 0
+      · exact Or.inl hq0
+      · have hqPos : 0 < q := by
+          rcases Int.lt_or_eq_of_le hqNonneg with hlt | heq
+          · exact hlt
+          · exact False.elim (hq0 heq.symm)
+        have hqGe1 : 1 <= q := (Int.add_one_le_iff).mpr hqPos
+        have hqLe1 : q <= 1 := Int.le_of_lt_add_one hqLt2
+        exact Or.inr (Int.le_antisymm hqLe1 hqGe1)
+    have hDivMod : p * q + r = n := by
+      simpa [q, r, p, native_div_total, native_mod_total] using
+        Int.mul_ediv_add_emod n p
+    have hNMod : native_mod_total n p = r := by
+      rfl
+    rcases hqCases with hq | hq
+    · have hSign : native_zeq (native_mod_total q 2) 1 = false := by
+        simp [hq, native_zeq, native_mod_total]
+      have hnEq : n = r := by
+        rw [hq] at hDivMod
+        simp at hDivMod
+        exact hDivMod.symm
+      have hCond :
+          native_zeq
+              (native_mod_total
+                (native_div_total n (native_int_pow2 (w - 1))) 2)
+              1 =
+            false := by
+        simpa [q, p] using hSign
+      rw [hCond]
+      change native_mod_total n p = native_binary_uts w n
+      rw [native_binary_uts]
+      change native_mod_total n p =
+        native_zplus (native_zmult 2 (native_mod_total n p))
+          (native_zneg n)
+      rw [hnEq] at hNMod
+      rw [hnEq, hNMod]
+      simp [native_zplus, native_zmult, native_zneg]
+      rw [Int.two_mul]
+      rw [Int.add_assoc]
+      rw [Int.add_right_neg]
+      rw [Int.add_zero]
+    · have hSign : native_zeq (native_mod_total q 2) 1 = true := by
+        simp [hq, native_zeq, native_mod_total]
+      have hnEq : n = p + r := by
+        rw [hq] at hDivMod
+        simp at hDivMod
+        exact hDivMod.symm
+      have hCond :
+          native_zeq
+              (native_mod_total
+                (native_div_total n (native_int_pow2 (w - 1))) 2)
+              1 =
+            true := by
+        simpa [q, p] using hSign
+      rw [hCond]
+      change
+        native_zplus (native_zneg p) (native_mod_total n p) =
+          native_binary_uts w n
+      rw [native_binary_uts]
+      change
+        native_zplus (native_zneg p) (native_mod_total n p) =
+          native_zplus (native_zmult 2 (native_mod_total n p))
+            (native_zneg n)
+      rw [hnEq] at hNMod
+      rw [hnEq, hNMod]
+      simp [native_zplus, native_zmult, native_zneg]
+      rw [Int.two_mul]
+      rw [Int.neg_add]
+      rw [Int.add_assoc]
+      rw [show r + (-p + -r) = -p by
+        calc
+          r + (-p + -r) = r + (-r + -p) := by
+            rw [Int.add_comm (-p) (-r)]
+          _ = r + -r + -p := by
+            rw [← Int.add_assoc]
+          _ = 0 + -p := by
+            rw [Int.add_right_neg]
+          _ = -p := by
+            rw [Int.zero_add]]
+      rw [Int.add_comm]
+  · have hw : 0 <= w := by
+      simpa [native_zleq, SmtEval.native_zleq] using hw0
+    have hwEq : w = 0 :=
+      Int.le_antisymm (Int.le_of_not_gt hwpos) hw
+    subst w
+    have hRange := bitvec_payload_range_of_canonical hw0 hCanon
+    have hPow0 : native_int_pow2 0 = 1 := by
+      native_decide
+    have hnEq : n = 0 := by
+      have hlt : n < 1 := by
+        simpa [hPow0] using hRange.2
+      exact Int.le_antisymm (Int.le_of_lt_add_one hlt) hRange.1
+    subst n
+    native_decide
+
+private theorem eo_sign_extend_payload_eq_uts
+    {w n : native_Int}
+    (hw0 : native_zleq 0 w = true)
+    (hCanon :
+      native_zeq n
+          (native_mod_total n (native_int_pow2 w)) =
+        true) :
+    eo_sign_extend_payload w n = native_binary_uts w n := by
+  by_cases hwpos : 0 < w
+  · have hLow :=
+      eo_sign_extend_low_payload_eq_mod_of_pos
+        (w := w) (n := n) hwpos
+    have hMsbNeg :
+        native_zlt (native_zplus w (native_zneg 1)) 0 = false := by
+      have hw1 : 1 <= w := (Int.add_one_le_iff).mpr hwpos
+      have hwp0Sub : 0 <= w - 1 := Int.sub_nonneg.mpr hw1
+      have hwp0 : 0 <= w + -1 := by
+        simpa [Int.sub_eq_add_neg] using hwp0Sub
+      simpa [native_zlt, SmtEval.native_zlt, native_zplus,
+        SmtEval.native_zplus, native_zneg, SmtEval.native_zneg] using
+        Int.not_lt_of_ge hwp0
+    rw [eo_sign_extend_payload, eo_sign_extend_msb_set, hMsbNeg,
+      hLow]
+    simpa [native_zplus, SmtEval.native_zplus, native_zneg,
+      SmtEval.native_zneg, Int.sub_eq_add_neg] using
+      sign_payload_eq_uts_core (w := w) (n := n) hw0 hCanon
+  · have hw : 0 <= w := by
+      simpa [native_zleq, SmtEval.native_zleq] using hw0
+    have hwEq : w = 0 :=
+      Int.le_antisymm (Int.le_of_not_gt hwpos) hw
+    subst w
+    have hRange := bitvec_payload_range_of_canonical hw0 hCanon
+    have hPow0 : native_int_pow2 0 = 1 := by
+      native_decide
+    have hnEq : n = 0 := by
+      have hlt : n < 1 := by
+        simpa [hPow0] using hRange.2
+      exact Int.le_antisymm (Int.le_of_lt_add_one hlt) hRange.1
+    subst n
+    native_decide
+
 private theorem term_apply_ne_stuck (f x : Term) :
     Term.Apply f x ≠ Term.Stuck := by
   intro h
@@ -5475,6 +5995,280 @@ private theorem run_evaluate_sound_apply_zero_extend_core
       rw [__smtx_model_eval.eq_5]]
     rw [hWidthComm]
     rw [← hPayloadEq]
+    exact RuleProofs.smt_value_rel_refl _
+
+private theorem run_evaluate_sound_apply_sign_extend_core
+    (M : SmtModel) (hM : model_total_typed M)
+    (n x : Term)
+    (rec :
+      ∀ A : Term,
+        sizeOf A <
+            sizeOf (Term.Apply (Term.UOp1 UserOp1.sign_extend n) x) ->
+          RunEvaluateSoundGoal M A) :
+  RunEvaluateSoundGoal M
+    (Term.Apply (Term.UOp1 UserOp1.sign_extend n) x) := by
+  intro hATrans hEvalTy
+  have hSignNN :
+      term_has_non_none_type
+        (SmtTerm.sign_extend (__eo_to_smt n) (__eo_to_smt x)) := by
+    unfold term_has_non_none_type
+    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+  rcases sign_extend_args_of_non_none hSignNN with
+    ⟨i, w, hnSmt, hxSmtTy, hi0⟩
+  have hnTerm : n = Term.Numeral i :=
+    TranslationProofs.eo_to_smt_eq_numeral n i hnSmt
+  subst n
+  have hXTrans : RuleProofs.eo_has_smt_translation x := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hxSmtTy]
+    simp
+  have hXMatch :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation x hXTrans
+  have hXEoBv :
+      __eo_typeof x =
+        Term.Apply (Term.UOp UserOp.BitVec)
+          (Term.Numeral (native_nat_to_int w)) :=
+    TranslationProofs.eo_to_smt_type_eq_bitvec
+      (hXMatch.symm.trans hxSmtTy)
+  have hSignEoType :
+      __eo_typeof
+          (Term.Apply (Term.UOp1 UserOp1.sign_extend (Term.Numeral i)) x) =
+        Term.Apply (Term.UOp UserOp.BitVec)
+          (Term.Numeral (native_zplus (native_nat_to_int w) i)) := by
+    change
+      __eo_typeof_zero_extend (Term.UOp UserOp.Int) (Term.Numeral i)
+          (__eo_typeof x) =
+        Term.Apply (Term.UOp UserOp.BitVec)
+          (Term.Numeral (native_zplus (native_nat_to_int w) i))
+    rw [hXEoBv]
+    rfl
+  let runSign :=
+    eo_eval_sign_extend_rhs (__run_evaluate x) (Term.Numeral i)
+  have hRunSignNe : runSign ≠ Term.Stuck := by
+    intro hStuck
+    change
+      __eo_typeof
+          (__eo_mk_apply
+            (Term.Apply (Term.UOp UserOp.eq)
+              (Term.Apply (Term.UOp1 UserOp1.sign_extend (Term.Numeral i)) x))
+            runSign) =
+        Term.Bool at hEvalTy
+    rw [hStuck] at hEvalTy
+    change Term.Stuck = Term.Bool at hEvalTy
+    cases hEvalTy
+  have hMkNe :
+      __eo_mk_apply
+          (Term.Apply (Term.UOp UserOp.eq)
+            (Term.Apply (Term.UOp1 UserOp1.sign_extend (Term.Numeral i)) x))
+          runSign ≠
+        Term.Stuck := by
+    intro hMk
+    cases hRun : runSign <;>
+      simp [__eo_mk_apply, hRun] at hMk hRunSignNe
+  have hEvalEqTy :
+      __eo_typeof
+          (Term.Apply
+            (Term.Apply (Term.UOp UserOp.eq)
+              (Term.Apply (Term.UOp1 UserOp1.sign_extend (Term.Numeral i)) x))
+            runSign) =
+        Term.Bool := by
+    change
+      __eo_typeof
+          (__eo_mk_apply
+            (Term.Apply (Term.UOp UserOp.eq)
+              (Term.Apply (Term.UOp1 UserOp1.sign_extend (Term.Numeral i)) x))
+            runSign) =
+        Term.Bool at hEvalTy
+    rw [evaluate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
+    exact hEvalTy
+  have hRunSignEoBv :
+      __eo_typeof runSign =
+        Term.Apply (Term.UOp UserOp.BitVec)
+          (Term.Numeral (native_zplus (native_nat_to_int w) i)) := by
+    have hEq :=
+      evaluate_apply_eq_typeof_bool_operands_eq
+        (Term.Apply (Term.UOp1 UserOp1.sign_extend (Term.Numeral i)) x)
+        runSign hEvalEqTy
+    exact hEq.symm.trans hSignEoType
+  rcases eo_eval_sign_extend_rhs_binary_of_typeof_bitvec
+      (__run_evaluate x) i (native_zplus (native_nat_to_int w) i)
+      hRunSignEoBv with
+    ⟨runW, runN, hRunX, hWidthEq⟩
+  have hRunW : runW = native_nat_to_int w := by
+    have hAdd :
+        native_nat_to_int w + i = runW + i := by
+      simpa [native_zplus, SmtEval.native_zplus] using hWidthEq
+    have hAddLeft : i + native_nat_to_int w = i + runW := by
+      simpa [Int.add_comm] using hAdd
+    exact (Int.add_left_cancel hAddLeft).symm
+  subst runW
+  have hRunXEoBv :
+      __eo_typeof (__run_evaluate x) =
+        Term.Apply (Term.UOp UserOp.BitVec)
+          (Term.Numeral (native_nat_to_int w)) := by
+    rw [hRunX]
+    rfl
+  have hBvTypeNe :
+      Term.Apply (Term.UOp UserOp.BitVec)
+          (Term.Numeral (native_nat_to_int w)) ≠
+        Term.Stuck := by
+    intro h
+    cases h
+  have hXProgTy : __eo_typeof (__eo_prog_evaluate x) = Term.Bool :=
+    eo_prog_evaluate_typeof_bool_of_same_type_and_run_typeof x
+      (Term.Apply (Term.UOp UserOp.BitVec)
+        (Term.Numeral (native_nat_to_int w)))
+      (RuleProofs.term_ne_stuck_of_has_smt_translation x hXTrans)
+      hBvTypeNe hXEoBv hRunXEoBv
+  rcases run_evaluate_rec_apply_arg M
+      (Term.UOp1 UserOp1.sign_extend (Term.Numeral i)) x rec
+      hXTrans hXProgTy with
+    ⟨_hXSameTy, hXRel⟩
+  have hi : 0 <= i := by
+    simpa [SmtEval.native_zleq] using hi0
+  have hwNonneg : native_zleq 0 (native_nat_to_int w) = true := by
+    simp [native_zleq, SmtEval.native_zleq, native_nat_to_int,
+      SmtEval.native_nat_to_int]
+  have hw : 0 <= native_nat_to_int w := by
+    simpa [SmtEval.native_zleq] using hwNonneg
+  have hWidthNonneg :
+      native_zleq 0 (native_zplus (native_nat_to_int w) i) = true := by
+    have hAdd : 0 <= native_nat_to_int w + i := Int.add_nonneg hw hi
+    simpa [SmtEval.native_zleq, SmtEval.native_zplus] using hAdd
+  have hWidthComm :
+      native_zplus i (native_nat_to_int w) =
+        native_zplus (native_nat_to_int w) i := by
+    simp [SmtEval.native_zplus, Int.add_comm]
+  have hXRelValue :
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M (__eo_to_smt x))
+        (SmtValue.Binary (native_nat_to_int w) runN) := by
+    rw [hRunX] at hXRel
+    rw [show
+        __eo_to_smt (Term.Binary (native_nat_to_int w) runN) =
+          SmtTerm.Binary (native_nat_to_int w) runN by
+      rfl] at hXRel
+    rw [__smtx_model_eval.eq_5] at hXRel
+    exact hXRel
+  have hXEval :
+      __smtx_model_eval M (__eo_to_smt x) =
+        SmtValue.Binary (native_nat_to_int w) runN :=
+    smt_value_rel_binary_eq
+      (__smtx_model_eval M (__eo_to_smt x))
+      (native_nat_to_int w) runN hXRelValue
+  have hXEvalValueTy :
+      __smtx_typeof_value
+          (__smtx_model_eval M (__eo_to_smt x)) =
+        SmtType.BitVec w := by
+    simpa [hxSmtTy] using
+      smt_model_eval_preserves_type_of_non_none M hM
+        (__eo_to_smt x) (by
+          unfold term_has_non_none_type
+          rw [hxSmtTy]
+          simp)
+  have hCanonOrig :
+      native_zeq runN
+          (native_mod_total runN
+            (native_int_pow2 (native_nat_to_int w))) =
+        true :=
+    bitvec_payload_canonical (by simpa [hXEval] using hXEvalValueTy)
+  have hPayloadEq :
+      eo_sign_extend_payload (native_nat_to_int w) runN =
+        native_binary_uts (native_nat_to_int w) runN :=
+    eo_sign_extend_payload_eq_uts hwNonneg hCanonOrig
+  have hRunSignToBin :
+      runSign =
+        __eo_to_bin
+          (Term.Numeral (native_zplus (native_nat_to_int w) i))
+          (Term.Numeral
+            (eo_sign_extend_payload (native_nat_to_int w) runN)) := by
+    simpa [runSign, hRunX] using
+      eo_eval_sign_extend_rhs_binary_to_bin
+        (native_nat_to_int w) runN i
+  have hRunSignToBinTy :
+      __eo_typeof
+          (__eo_to_bin
+            (Term.Numeral (native_zplus (native_nat_to_int w) i))
+            (Term.Numeral
+              (eo_sign_extend_payload (native_nat_to_int w) runN))) =
+        Term.Apply (Term.UOp UserOp.BitVec)
+          (Term.Numeral (native_zplus (native_nat_to_int w) i)) := by
+    rw [← hRunSignToBin]
+    exact hRunSignEoBv
+  have hRunSignEq' :
+      runSign =
+        Term.Binary (native_zplus (native_nat_to_int w) i)
+          (native_mod_total
+            (native_binary_uts (native_nat_to_int w) runN)
+            (native_int_pow2
+              (native_zplus (native_nat_to_int w) i))) := by
+    have hToBin :=
+      eo_to_bin_numeral_eq_of_typeof_bitvec
+        (eo_sign_extend_payload (native_nat_to_int w) runN)
+        (native_zplus (native_nat_to_int w) i)
+        (native_zplus (native_nat_to_int w) i)
+        hRunSignToBinTy
+    rw [hRunSignToBin]
+    rw [hToBin]
+    rw [hPayloadEq]
+  change
+    __smtx_typeof
+        (SmtTerm.sign_extend (SmtTerm.Numeral i) (__eo_to_smt x)) =
+        __smtx_typeof (__eo_to_smt runSign) ∧
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M
+          (SmtTerm.sign_extend (SmtTerm.Numeral i) (__eo_to_smt x)))
+        (__smtx_model_eval M (__eo_to_smt runSign))
+  rw [hRunSignEq']
+  constructor
+  · rw [typeof_sign_extend_eq, hxSmtTy]
+    simp [__smtx_typeof_sign_extend, native_ite, hi0]
+    change
+      SmtType.BitVec
+          (native_int_to_nat (native_zplus i (native_nat_to_int w))) =
+        __smtx_typeof
+          (SmtTerm.Binary (native_zplus (native_nat_to_int w) i)
+            (native_mod_total
+              (native_binary_uts (native_nat_to_int w) runN)
+              (native_int_pow2
+                (native_zplus (native_nat_to_int w) i))))
+    rw [smtx_typeof_binary_mod_of_nonneg _ _ hWidthNonneg]
+    rw [hWidthComm]
+  · rw [show
+        __smtx_model_eval M
+            (SmtTerm.sign_extend (SmtTerm.Numeral i) (__eo_to_smt x)) =
+          __smtx_model_eval_sign_extend
+            (SmtValue.Numeral i)
+            (__smtx_model_eval M (__eo_to_smt x)) by
+      rw [__smtx_model_eval.eq_67, __smtx_model_eval.eq_2]]
+    rw [hXEval]
+    change
+      RuleProofs.smt_value_rel
+        (SmtValue.Binary (native_zplus i (native_nat_to_int w))
+          (native_mod_total
+            (native_binary_uts (native_nat_to_int w) runN)
+            (native_int_pow2
+              (native_zplus i (native_nat_to_int w)))))
+        (__smtx_model_eval M
+          (SmtTerm.Binary (native_zplus (native_nat_to_int w) i)
+            (native_mod_total
+              (native_binary_uts (native_nat_to_int w) runN)
+              (native_int_pow2
+                (native_zplus (native_nat_to_int w) i)))))
+    rw [show
+        __smtx_model_eval M
+            (SmtTerm.Binary (native_zplus (native_nat_to_int w) i)
+              (native_mod_total
+                (native_binary_uts (native_nat_to_int w) runN)
+                (native_int_pow2
+                  (native_zplus (native_nat_to_int w) i)))) =
+          SmtValue.Binary (native_zplus (native_nat_to_int w) i)
+            (native_mod_total
+              (native_binary_uts (native_nat_to_int w) runN)
+              (native_int_pow2
+                (native_zplus (native_nat_to_int w) i))) by
+      rw [__smtx_model_eval.eq_5]]
+    rw [hWidthComm]
     exact RuleProofs.smt_value_rel_refl _
 
 private theorem run_evaluate_sound_apply_repeat_core
@@ -11204,6 +11998,9 @@ private theorem run_evaluate_sound_active_apply_core
           hATrans hEvalTy
       case zero_extend =>
         exact run_evaluate_sound_apply_zero_extend_core M hM a x rec
+          hATrans hEvalTy
+      case sign_extend =>
+        exact run_evaluate_sound_apply_sign_extend_core M hM a x rec
           hATrans hEvalTy
       all_goals
         first
