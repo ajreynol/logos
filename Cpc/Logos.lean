@@ -208,7 +208,7 @@ def __eo_extract : Term -> Term -> Term -> Term
   | (Term.String s1), (Term.Numeral n2), (Term.Numeral n3) => (Term.String (native_str_substr s1 n2 (native_zplus (native_zplus n3 (native_zneg n2)) 1)))
   | (Term.Binary w n1), (Term.Numeral n2), (Term.Numeral n3) => 
     let _v0 := (native_zplus n3 (native_zneg n2))
-    (native_ite (native_or (native_zlt n2 0) (native_zlt _v0 0)) (Term.Binary 0 0) (__eo_mk_binary (native_zplus _v0 1) (native_binary_extract w n1 n2 n3)))
+    (native_ite (native_or (native_zlt n2 0) (native_zlt _v0 0)) (Term.Binary 0 0) (__eo_mk_binary (native_zplus _v0 1) (native_binary_extract w n1 n3 n2)))
   | _, _, _ => Term.Stuck
 
 
