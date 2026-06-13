@@ -18799,14 +18799,17 @@ private theorem eo_to_smt_witness_string_length_ne_dt_sel
         SmtTerm.DtSel s d i j := by
   intro s d i j h
   change
-    native_ite (native_Teq (__smtx_typeof (__eo_to_smt id)) SmtType.Int)
+    native_ite (__eo_to_smt_nat_is_valid len)
+      (native_ite (__eo_to_smt_nat_is_valid id)
         (SmtTerm.choice_nth (native_string_lit "@x") (__eo_to_smt_type T)
           (SmtTerm.eq
             (SmtTerm.str_len (SmtTerm.Var (native_string_lit "@x") (__eo_to_smt_type T)))
             (__eo_to_smt len)) native_nat_zero)
+        SmtTerm.None)
         SmtTerm.None =
       SmtTerm.DtSel s d i j at h
   unfold native_ite at h
+  split at h <;> try cases h
   split at h <;> cases h
 
 private theorem eo_to_smt_witness_string_length_ne_dt_tester
@@ -18817,14 +18820,17 @@ private theorem eo_to_smt_witness_string_length_ne_dt_tester
         SmtTerm.DtTester s d i := by
   intro s d i h
   change
-    native_ite (native_Teq (__smtx_typeof (__eo_to_smt id)) SmtType.Int)
+    native_ite (__eo_to_smt_nat_is_valid len)
+      (native_ite (__eo_to_smt_nat_is_valid id)
         (SmtTerm.choice_nth (native_string_lit "@x") (__eo_to_smt_type T)
           (SmtTerm.eq
             (SmtTerm.str_len (SmtTerm.Var (native_string_lit "@x") (__eo_to_smt_type T)))
             (__eo_to_smt len)) native_nat_zero)
+        SmtTerm.None)
         SmtTerm.None =
       SmtTerm.DtTester s d i at h
   unfold native_ite at h
+  split at h <;> try cases h
   split at h <;> cases h
 
 private theorem uop_apply_typeof_none_of_not_unary_smt_translation
