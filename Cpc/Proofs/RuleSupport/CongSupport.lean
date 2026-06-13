@@ -3904,6 +3904,41 @@ private theorem congTypeSpine_typecongr_unop_eq_has_bool_type
     hOpTy
     hTrans
 
+private theorem congTypeSpine_purify_eq_has_bool_type
+    (x rhs : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.UOp UserOp._at_purify) x) ->
+    CongTypeSpine (Term.Apply (Term.UOp UserOp._at_purify) x) rhs ->
+    RuleProofs.eo_has_bool_type
+      (mkEq (Term.Apply (Term.UOp UserOp._at_purify) x) rhs) :=
+  congTypeSpine_typecongr_unop_eq_has_bool_type
+    UserOp._at_purify SmtTerm._at_purify
+    (by intro a; rfl)
+    (by
+      intro a b h
+      simpa [__smtx_typeof] using h)
+    x rhs
+
+private theorem congTrueSpine_purify_eq_true
+    (M : SmtModel) (x rhs : Term) :
+    RuleProofs.eo_has_bool_type
+      (mkEq (Term.Apply (Term.UOp UserOp._at_purify) x) rhs) ->
+    CongTrueSpine M (Term.Apply (Term.UOp UserOp._at_purify) x) rhs ->
+    eo_interprets M
+      (mkEq (Term.Apply (Term.UOp UserOp._at_purify) x) rhs) true := by
+  intro hEqBool hSpine
+  rcases congTrueSpine_unary_uop_inv M UserOp._at_purify x rhs hSpine with
+    ⟨y, hRhs, hArg⟩
+  subst hRhs
+  apply RuleProofs.eo_interprets_eq_of_rel M
+  · exact hEqBool
+  · have hArgRel := smt_value_rel_of_eq_true_or_same M x y hArg
+    change
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M (SmtTerm._at_purify (__eo_to_smt x)))
+        (__smtx_model_eval M (SmtTerm._at_purify (__eo_to_smt y)))
+    simpa [__smtx_model_eval, __smtx_model_eval__at_purify] using hArgRel
+
 private theorem congTypeSpine_typecongr_eotype_unop_eq_has_bool_type
     (eoOp : UserOp)
     (hTypeCong :
@@ -20411,6 +20446,9 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                       case not =>
                         exact congTypeSpine_not_eq_has_bool_type
                           x (Term.Apply g y) hTrans hApp
+                      case _at_purify =>
+                        exact congTypeSpine_purify_eq_has_bool_type
+                          x (Term.Apply g y) hTrans hApp
                       case to_real =>
                         exact congTypeSpine_to_real_eq_has_bool_type
                           x (Term.Apply g y) hTrans hApp
@@ -21004,40 +21042,6 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                     (no_translation_of_eo_apply_none_head
                       (f := Term.UOp2 UserOp2._at_const i j) (x := x)
                       (by rfl) hTrans)
-              | Term.Apply (Term.UOp UserOp._at_purify) z =>
-                  cases hFn with
-                  | refl _ =>
-                      exact
-                        congTypeSpine_same_generic_head_apply_eq_has_bool_type
-                          (Term.Apply (Term.UOp UserOp._at_purify) z) x y
-                          (by intro a; rfl)
-                          (generic_apply_type_of_non_datatype_head
-                            (by
-                              intro s d i j h
-                              change
-                                SmtTerm._at_purify (__eo_to_smt z) =
-                                  SmtTerm.DtSel s d i j at h
-                              cases h)
-                            (by
-                              intro s d i h
-                              change
-                                SmtTerm._at_purify (__eo_to_smt z) =
-                                  SmtTerm.DtTester s d i at h
-                              cases h))
-                          (generic_apply_type_of_non_datatype_head
-                            (by
-                              intro s d i j h
-                              change
-                                SmtTerm._at_purify (__eo_to_smt z) =
-                                  SmtTerm.DtSel s d i j at h
-                              cases h)
-                            (by
-                              intro s d i h
-                              change
-                                SmtTerm._at_purify (__eo_to_smt z) =
-                                  SmtTerm.DtTester s d i at h
-                              cases h))
-                          hTrans hArg
               | Term.UOp2 UserOp2._at_bv n w =>
                   cases hFn with
                   | refl _ =>
@@ -23141,6 +23145,9 @@ private theorem congTrueSpine_eq_true
                       case not =>
                         exact congTrueSpine_not_eq_true M hM
                           x (Term.Apply g y) hEqBool hApp
+                      case _at_purify =>
+                        exact congTrueSpine_purify_eq_true M
+                          x (Term.Apply g y) hEqBool hApp
                       case to_real =>
                         exact congTrueSpine_to_real_eq_true M hM
                           x (Term.Apply g y) hEqBool hApp
@@ -23736,53 +23743,6 @@ private theorem congTrueSpine_eq_true
                     (no_bool_eq_left_of_eo_apply_none_head
                       (f := Term.UOp2 UserOp2._at_const i j) (x := x)
                       (rhs := Term.Apply g y) (by rfl) hEqBool)
-              | Term.Apply (Term.UOp UserOp._at_purify) z =>
-                  cases hFn with
-                  | refl _ =>
-                      exact
-                        congTrueSpine_same_generic_head_apply_eq_true
-                          M hM (Term.Apply (Term.UOp UserOp._at_purify) z) x y
-                          (by intro a; rfl)
-                          (generic_apply_type_of_non_datatype_head
-                            (by
-                              intro s d i j h
-                              change
-                                SmtTerm._at_purify (__eo_to_smt z) =
-                                  SmtTerm.DtSel s d i j at h
-                              cases h)
-                            (by
-                              intro s d i h
-                              change
-                                SmtTerm._at_purify (__eo_to_smt z) =
-                                  SmtTerm.DtTester s d i at h
-                              cases h))
-                          (generic_apply_eval_of_non_datatype_head
-                            (by
-                              intro s d i j h
-                              change
-                                SmtTerm._at_purify (__eo_to_smt z) =
-                                  SmtTerm.DtSel s d i j at h
-                              cases h)
-                            (by
-                              intro s d i h
-                              change
-                                SmtTerm._at_purify (__eo_to_smt z) =
-                                  SmtTerm.DtTester s d i at h
-                              cases h))
-                          (generic_apply_eval_of_non_datatype_head
-                            (by
-                              intro s d i j h
-                              change
-                                SmtTerm._at_purify (__eo_to_smt z) =
-                                  SmtTerm.DtSel s d i j at h
-                              cases h)
-                            (by
-                              intro s d i h
-                              change
-                                SmtTerm._at_purify (__eo_to_smt z) =
-                                  SmtTerm.DtTester s d i at h
-                              cases h))
-                          hEqBool hArg
               | Term.UOp2 UserOp2._at_bv n w =>
                   cases hFn with
                   | refl _ =>
