@@ -3246,6 +3246,20 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
             cases f <;> try dsimp [__eo_typeof] at hTy <;> try cases hTy
             case UOp op =>
               cases op <;> dsimp [__eo_typeof] at hTy hTypeNN
+              case _at_purify =>
+                have hxNN : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
+                  intro hNone
+                  apply hNonNone
+                  change __smtx_typeof (SmtTerm._at_purify (__eo_to_smt x)) =
+                    SmtType.None
+                  simpa [__smtx_typeof] using hNone
+                have hxValid := (go x hxNN).2
+                cases hxTy : __eo_typeof x <;>
+                  simp [__eo_typeof__at_purify, hxTy] at hTy hTypeNN ⊢
+                all_goals try cases hTy
+                all_goals
+                  subst_vars
+                  simpa [eo_type_valid, eo_type_valid_rec, hxTy] using hxValid
               all_goals first
                 | exact eo_type_valid_of_generic_apply_eq_dtcapp_full
                     (f := Term.UOp op) (x := x) (A := a) (B := b)
@@ -3329,21 +3343,6 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                   all_goals try cases hTy
             case UOp1 op y =>
               cases op <;> dsimp [__eo_typeof] at hTy hTypeNN
-              case _at_purify =>
-                exact eo_type_valid_of_generic_apply_eq_dtcapp_full
-                  (f := Term.UOp1 UserOp1._at_purify y) (x := x) (A := a) (B := b)
-                  (go (Term.UOp1 UserOp1._at_purify y))
-                  (by
-                    intro s d i j h
-                    exact eo_to_smt_uop1_ne_dt_sel_full UserOp1._at_purify y s d i j h)
-                  (by
-                    intro s d i h
-                    exact eo_to_smt_uop1_ne_dt_tester_full UserOp1._at_purify y s d i h)
-                  rfl rfl hTermNN (by
-                    change
-                      __eo_typeof (Term.Apply (Term.UOp1 UserOp1._at_purify y) x) =
-                        Term.DtcAppType a b
-                    exact hTy)
               case seq_empty =>
                 exact False.elim (hNonNone (by
                   change
@@ -3672,12 +3671,6 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                      all_goals cases hTy)
               case UOp1 op z =>
                 cases op <;> dsimp [__eo_typeof] at hTy hTypeNN
-                case _at_purify =>
-                  exact eo_type_valid_of_nested_generic_apply_eq_dtcapp_full
-                    (g := Term.UOp1 UserOp1._at_purify z) (y := y) (x := x)
-                    (A := a) (B := b)
-                    (go (Term.Apply (Term.UOp1 UserOp1._at_purify z) y))
-                    (by rfl) (by rfl) hTermNN hTy
                 case «repeat» =>
                   exact eo_type_valid_of_nested_generic_apply_eq_dtcapp_full
                     (g := Term.UOp1 UserOp1.repeat z) (y := y) (x := x)
@@ -4541,22 +4534,6 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
             rw [hTy] at hTypeNN
             simp [eo_type_valid, eo_type_valid_rec, __eo_to_smt_type, native_ite,
               native_Teq] at hTypeNN ⊢
-      | Term.UOp1 UserOp1._at_purify x, hNonNone => by
-          have hx : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
-            intro hNone
-            apply hNonNone
-            change __smtx_typeof (SmtTerm._at_purify (__eo_to_smt x)) = SmtType.None
-            simpa [__smtx_typeof] using hNone
-          have hxAll := go x hx
-          refine ⟨eo_to_smt_typeof_matches_translation_purify x hxAll.1, ?_⟩
-          have hNotStuck : __eo_typeof x ≠ Term.Stuck :=
-            eo_type_valid_not_stuck hxAll.2
-          change eo_type_valid (__eo_typeof__at_purify (__eo_typeof x))
-          cases hTy : __eo_typeof x <;> simp [__eo_typeof__at_purify] at hNotStuck ⊢
-          case Stuck =>
-            exact False.elim (hNotStuck hTy)
-          all_goals
-            simpa [hTy] using hxAll.2
       | Term.UOp1 UserOp1.seq_empty T, hNonNone => by
             change __smtx_typeof (__eo_to_smt_seq_empty (__eo_to_smt_type T)) ≠
               SmtType.None at hNonNone

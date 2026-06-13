@@ -17,7 +17,7 @@ private abbrev sdMinus (x y : Term) : Term :=
   Term.Apply (Term.Apply (Term.UOp UserOp.neg) x) y
 
 private abbrev sdPurify (x : Term) : Term :=
-  Term.UOp1 UserOp1._at_purify x
+  Term.Apply (Term.UOp UserOp._at_purify) x
 
 private abbrev sdConcat (x y : Term) : Term :=
   Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) x) y

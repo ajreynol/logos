@@ -649,7 +649,7 @@ private theorem concatLPropFormula_false_eq_plain
     seq_empty_typeof_ne_stuck_of_smt_type_seq split T hSplitTy
   have hSplitNe' :
       concatSplitTerm tHead sHead (Term.Boolean false) ≠ Term.Stuck := by
-    simp
+    simpa [split] using hSplitNe
   have hEmptySplitNe' :
       __seq_empty
           (__eo_typeof (concatSplitTerm tHead sHead (Term.Boolean false))) ≠
@@ -705,7 +705,7 @@ private theorem concatLPropFormula_true_eq_plain
     seq_empty_typeof_ne_stuck_of_smt_type_seq split T hSplitTy
   have hSplitNe' :
       concatSplitTerm tHead sHead (Term.Boolean true) ≠ Term.Stuck := by
-    simp
+    simpa [split] using hSplitNe
   have hEmptySplitNe' :
       __seq_empty
           (__eo_typeof (concatSplitTerm tHead sHead (Term.Boolean true))) ≠

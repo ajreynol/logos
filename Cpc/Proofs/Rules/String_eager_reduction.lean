@@ -1407,7 +1407,7 @@ private theorem string_eager_reduction_has_bool_type
                 (by simpa [term_has_non_none_type] using hATrans) with
               ⟨T, hyTy, hxTy⟩
             let pre :=
-              Term.UOp1 UserOp1._at_purify
+              Term.Apply (Term.UOp UserOp._at_purify)
                 (Term.Apply
                   (Term.Apply
                     (Term.Apply (Term.UOp UserOp.str_substr) y)
@@ -1434,7 +1434,7 @@ private theorem string_eager_reduction_has_bool_type
             have hNilNe' :
                 __eo_nil (Term.UOp UserOp.str_concat)
                     (__eo_typeof
-                      (Term.UOp1 UserOp1._at_purify
+                      (Term.Apply (Term.UOp UserOp._at_purify)
                         (Term.Apply
                           (Term.Apply
                             (Term.Apply (Term.UOp UserOp.str_substr) y)
@@ -1450,7 +1450,7 @@ private theorem string_eager_reduction_has_bool_type
                     (__eo_to_smt
                       (__eo_nil (Term.UOp UserOp.str_concat)
                         (__eo_typeof
-                          (Term.UOp1 UserOp1._at_purify
+                          (Term.Apply (Term.UOp UserOp._at_purify)
                             (Term.Apply
                               (Term.Apply
                                 (Term.Apply (Term.UOp UserOp.str_substr) y)
@@ -1499,7 +1499,7 @@ private theorem string_eager_reduction_has_bool_type
                           (__eo_to_smt
                             (__eo_nil (Term.UOp UserOp.str_concat)
                               (__eo_typeof
-                                (Term.UOp1 UserOp1._at_purify
+                                (Term.Apply (Term.UOp UserOp._at_purify)
                                   (Term.Apply
                                     (Term.Apply
                                       (Term.Apply (Term.UOp UserOp.str_substr) y)
@@ -1911,7 +1911,7 @@ private theorem string_eager_reduction_true
         case str_contains =>
           let condEo := Term.Apply (Term.Apply (Term.UOp UserOp.str_contains) y) x
           let pre :=
-            Term.UOp1 UserOp1._at_purify
+            Term.Apply (Term.UOp UserOp._at_purify)
               (Term.Apply
                 (Term.Apply
                   (Term.Apply (Term.UOp UserOp.str_substr) y)
@@ -1929,7 +1929,7 @@ private theorem string_eager_reduction_true
                   (Term.Apply (Term.UOp UserOp.str_len) x))
                 (Term.Numeral 0))
           let suffix :=
-            Term.UOp1 UserOp1._at_purify
+            Term.Apply (Term.UOp UserOp._at_purify)
               (Term.Apply
                 (Term.Apply
                   (Term.Apply (Term.UOp UserOp.str_substr) y) start)

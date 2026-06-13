@@ -32,11 +32,11 @@ private abbrev concatCSplitLenMinusOne (u : Term) : Term :=
   mkNeg (mkStrLen u) (Term.Numeral 1)
 
 private abbrev concatCSplitPrefix (u : Term) : Term :=
-  Term.UOp1 UserOp1._at_purify
+  Term.Apply (Term.UOp UserOp._at_purify)
     (mkSubstr u (Term.Numeral 0) (concatCSplitLenMinusOne u))
 
 private abbrev concatCSplitSuffix (u : Term) : Term :=
-  Term.UOp1 UserOp1._at_purify
+  Term.Apply (Term.UOp UserOp._at_purify)
     (mkSubstr u (Term.Numeral 1) (concatCSplitLenMinusOne u))
 
 private abbrev concatCSplitFormula (rev u sc : Term) : Term :=
