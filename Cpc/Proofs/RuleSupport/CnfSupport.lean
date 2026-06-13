@@ -401,7 +401,7 @@ theorem eo_interprets_eq_true_of_true_true (M : SmtModel) (A B : Term) :
           · rw [typeof_eq_eq]
             exact (RuleProofs.smtx_typeof_eq_bool_iff _ _).mpr
               ⟨by rw [hATy, hBTy], by rw [hATy]; simp⟩
-          · rw [__smtx_model_eval.eq_134, hAEval, hBEval]
+          · rw [smtx_eval_eq_term_eq, hAEval, hBEval]
             simp [__smtx_model_eval_eq, native_veq]
 
 /-- Boolean equality is true when both sides are false. -/
@@ -421,7 +421,7 @@ theorem eo_interprets_eq_true_of_false_false (M : SmtModel) (A B : Term) :
           · rw [typeof_eq_eq]
             exact (RuleProofs.smtx_typeof_eq_bool_iff _ _).mpr
               ⟨by rw [hATy, hBTy], by rw [hATy]; simp⟩
-          · rw [__smtx_model_eval.eq_134, hAEval, hBEval]
+          · rw [smtx_eval_eq_term_eq, hAEval, hBEval]
             simp [__smtx_model_eval_eq, native_veq]
 
 /-- Boolean equality is false for true/false operands. -/
@@ -441,7 +441,7 @@ theorem eo_interprets_eq_false_of_true_false (M : SmtModel) (A B : Term) :
           · rw [typeof_eq_eq]
             exact (RuleProofs.smtx_typeof_eq_bool_iff _ _).mpr
               ⟨by rw [hATy, hBTy], by rw [hATy]; simp⟩
-          · rw [__smtx_model_eval.eq_134, hAEval, hBEval]
+          · rw [smtx_eval_eq_term_eq, hAEval, hBEval]
             simp [__smtx_model_eval_eq, native_veq]
 
 /-- Boolean equality is false for false/true operands. -/
@@ -461,7 +461,7 @@ theorem eo_interprets_eq_false_of_false_true (M : SmtModel) (A B : Term) :
           · rw [typeof_eq_eq]
             exact (RuleProofs.smtx_typeof_eq_bool_iff _ _).mpr
               ⟨by rw [hATy, hBTy], by rw [hATy]; simp⟩
-          · rw [__smtx_model_eval.eq_134, hAEval, hBEval]
+          · rw [smtx_eval_eq_term_eq, hAEval, hBEval]
             simp [__smtx_model_eval_eq, native_veq]
 
 /-- Boolean XOR is true for true/false operands. -/
@@ -566,7 +566,7 @@ theorem eo_interprets_ite_true_of_cond_true
           · rw [typeof_ite_eq]
             simp [__smtx_typeof_ite, hCTy, hTTy, hETyFromBool,
               native_Teq, native_ite]
-          · rw [__smtx_model_eval.eq_133, hCEval, hTEval]
+          · rw [smtx_eval_ite_term_eq, hCEval, hTEval]
             simp [__smtx_model_eval_ite]
 
 /-- A false condition and true else-branch make a Boolean `ite` true. -/
@@ -591,7 +591,7 @@ theorem eo_interprets_ite_true_of_cond_false
           · rw [typeof_ite_eq]
             simp [__smtx_typeof_ite, hCTy, hTTyFromBool, hETy,
               native_Teq, native_ite]
-          · rw [__smtx_model_eval.eq_133, hCEval, hEEval]
+          · rw [smtx_eval_ite_term_eq, hCEval, hEEval]
             simp [__smtx_model_eval_ite]
 
 /-- A true condition and false then-branch make a Boolean `ite` false. -/
@@ -616,7 +616,7 @@ theorem eo_interprets_ite_false_of_cond_true
           · rw [typeof_ite_eq]
             simp [__smtx_typeof_ite, hCTy, hTTy, hETyFromBool,
               native_Teq, native_ite]
-          · rw [__smtx_model_eval.eq_133, hCEval, hTEval]
+          · rw [smtx_eval_ite_term_eq, hCEval, hTEval]
             simp [__smtx_model_eval_ite]
 
 /-- A false condition and false else-branch make a Boolean `ite` false. -/
@@ -641,7 +641,7 @@ theorem eo_interprets_ite_false_of_cond_false
           · rw [typeof_ite_eq]
             simp [__smtx_typeof_ite, hCTy, hTTyFromBool, hETy,
               native_Teq, native_ite]
-          · rw [__smtx_model_eval.eq_133, hCEval, hEEval]
+          · rw [smtx_eval_ite_term_eq, hCEval, hEEval]
             simp [__smtx_model_eval_ite]
 
 /-- A right-associated two-literal clause is true when its first literal is true. -/

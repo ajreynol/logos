@@ -380,6 +380,15 @@ inductive supported_preservation_term : SmtTerm -> Prop
       (hs3 : supported_preservation_term t3) :
       supported_preservation_term
         (SmtTerm.str_indexof_re t1 t2 t3)
+  | str_indexof_re_split {t1 t2 t3 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2)
+      (ht3 : term_has_non_none_type t3)
+      (hs3 : supported_preservation_term t3) :
+      supported_preservation_term
+        (SmtTerm.str_indexof_re_split t1 t2 t3)
   | str_to_code {t : SmtTerm}
       (ht : term_has_non_none_type t)
       (hs : supported_preservation_term t) :

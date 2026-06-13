@@ -49,7 +49,7 @@ private theorem smt_eval_not_eq_bool
       __smtx_model_eval M
         (SmtTerm.not (SmtTerm.eq s t)) =
         SmtValue.Boolean b := by
-  rw [__smtx_model_eval.eq_6, __smtx_model_eval.eq_134]
+  rw [__smtx_model_eval.eq_6, smtx_eval_eq_term_eq]
   rcases smt_eval_eq_bool (__smtx_model_eval M s) (__smtx_model_eval M t) with
     ⟨b, hEq⟩
   rw [hEq]

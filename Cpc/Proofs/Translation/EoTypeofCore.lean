@@ -2621,8 +2621,8 @@ theorem eo_to_smt_eq_numeral
               (__eo_to_smt_nat z))
             SmtTerm.None =
           SmtTerm.Numeral n at h
-        cases hz : __eo_to_smt_nat_is_valid z <;>
-          simp [native_ite, hz] at h
+        cases hx : __eo_to_smt_nat_is_valid z <;>
+          simp [native_ite, hx] at h
         exact False.elim (eo_to_smt_re_unfold_pos_component_ne_numeral
           (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt_nat z) n h)
       case _at_witness_string_length =>
@@ -4842,13 +4842,13 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_re_unfold_pos_component_of_seq_c
     (hx : __eo_typeof x = Term.UOp UserOp.Int) :
     __eo_to_smt_type
         (__eo_typeof
-          (Term.UOp3 UserOp3._at_re_unfold_pos_component z y x)) =
+          (Term._at_re_unfold_pos_component z y x)) =
       SmtType.Seq SmtType.Char := by
   change
     __eo_to_smt_type
         (__eo_typeof__at_re_unfold_pos_component (__eo_typeof z) (__eo_typeof y) (__eo_typeof x)) =
       SmtType.Seq SmtType.Char
-  rw [hz, hy, hx]
+  rw [hx, hz, hy]
   rfl
 
 /-- Stronger EO-side helper for `typeof_apply_apply_apply_re_loop`. -/

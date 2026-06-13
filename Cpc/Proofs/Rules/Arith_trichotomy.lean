@@ -422,7 +422,7 @@ private theorem int_eq_eval_of_eq_false
   rw [RuleProofs.eo_interprets_iff_smt_interprets, eo_to_smt_eq_eq] at h
   cases h with
   | intro_false _ hEval =>
-      rw [__smtx_model_eval.eq_134, ha, hb] at hEval
+      rw [smtx_eval_eq_term_eq, ha, hb] at hEval
       simp [__smtx_model_eval_eq, native_veq] at hEval
       have hEqFalse : native_zeq n m = false := by
         simp [native_zeq, SmtEval.native_zeq, hEval]
@@ -481,7 +481,7 @@ private theorem real_eq_eval_of_eq_false
   rw [RuleProofs.eo_interprets_iff_smt_interprets, eo_to_smt_eq_eq] at h
   cases h with
   | intro_false _ hEval =>
-      rw [__smtx_model_eval.eq_134, ha, hb] at hEval
+      rw [smtx_eval_eq_term_eq, ha, hb] at hEval
       simp [__smtx_model_eval_eq, native_veq] at hEval
       have hEqFalse : native_qeq q r = false := by
         simp [native_qeq, SmtEval.native_qeq, hEval]
@@ -535,7 +535,7 @@ private theorem int_eq_false_of_eval
   rw [RuleProofs.eo_interprets_iff_smt_interprets, eo_to_smt_eq_eq] at h
   cases h with
   | intro_false _ hEval =>
-      rw [__smtx_model_eval.eq_134, ha, hb] at hEval
+      rw [smtx_eval_eq_term_eq, ha, hb] at hEval
       simp [__smtx_model_eval_eq, native_veq] at hEval
       simp [native_zeq, SmtEval.native_zeq, hEval]
 
@@ -575,7 +575,7 @@ private theorem real_eq_false_of_eval
   rw [RuleProofs.eo_interprets_iff_smt_interprets, eo_to_smt_eq_eq] at h
   cases h with
   | intro_false _ hEval =>
-      rw [__smtx_model_eval.eq_134, ha, hb] at hEval
+      rw [smtx_eval_eq_term_eq, ha, hb] at hEval
       simp [__smtx_model_eval_eq, native_veq] at hEval
       simp [native_qeq, SmtEval.native_qeq, hEval]
 
@@ -752,7 +752,7 @@ private theorem eq_true_of_lt_false_gt_false
     have hGtB := int_gt_false_of_eval M a b ha hb hGtFalse
     apply RuleProofs.eo_interprets_of_bool_eval M
     · exact hEqBool
-    · rw [eo_to_smt_eq_eq, __smtx_model_eval.eq_134, ha, hb]
+    · rw [eo_to_smt_eq_eq, smtx_eval_eq_term_eq, ha, hb]
       have hEqVal : n = m := by
         simpa [native_zeq, SmtEval.native_zeq] using
           native_zeq_of_not_lt_not_gt hLtB hGtB
@@ -763,7 +763,7 @@ private theorem eq_true_of_lt_false_gt_false
     have hGtB := real_gt_false_of_eval M a b ha hb hGtFalse
     apply RuleProofs.eo_interprets_of_bool_eval M
     · exact hEqBool
-    · rw [eo_to_smt_eq_eq, __smtx_model_eval.eq_134, ha, hb]
+    · rw [eo_to_smt_eq_eq, smtx_eval_eq_term_eq, ha, hb]
       have hEqVal : q = r := by
         simpa [native_qeq, SmtEval.native_qeq] using
           native_qeq_of_not_lt_not_gt hLtB hGtB

@@ -2255,7 +2255,7 @@ theorem concat_split_nonempty_tail
     change
       __smtx_model_eval M (SmtTerm.eq (__eo_to_smt split) (__eo_to_smt empty)) =
         SmtValue.Boolean false
-    rw [__smtx_model_eval.eq_134]
+    rw [smtx_eval_eq_term_eq]
     rw [hSplitEval, hEmptyEval]
     simp [__smtx_model_eval_eq, native_veq, hValNe]
   have hEqFalse : eo_interprets M (mkEq split empty) false :=

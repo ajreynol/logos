@@ -130,7 +130,7 @@ private theorem facts___eo_prog_ite_else_true_impl
           (SmtTerm.or (__eo_to_smt x1) (SmtTerm.Boolean false)) by
         rfl]
     simp only [__smtx_model_eval.eq_1, __smtx_model_eval.eq_6,
-      __smtx_model_eval.eq_7, __smtx_model_eval.eq_133, hEvalC1, hEvalX1]
+      __smtx_model_eval.eq_7, smtx_eval_ite_term_eq, hEvalC1, hEvalX1]
     cases bc <;> cases bx <;>
       simp [RuleProofs.smt_value_rel, __smtx_model_eval_eq, __smtx_model_eval_ite,
         __smtx_model_eval_or, __smtx_model_eval_not, native_veq,

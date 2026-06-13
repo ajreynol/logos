@@ -890,7 +890,7 @@ private theorem eval_eq_geq_leq_and_rel
           (SmtTerm.and (SmtTerm.leq (__eo_to_smt t) (__eo_to_smt s))
             (SmtTerm.Boolean true)) by
       rfl]
-    rw [__smtx_model_eval.eq_134, __smtx_model_eval.eq_8,
+    rw [smtx_eval_eq_term_eq, __smtx_model_eval.eq_8,
       __smtx_model_eval.eq_18, __smtx_model_eval.eq_8,
       __smtx_model_eval.eq_16, __smtx_model_eval.eq_1]
     rw [hEvalT, hEvalS]
@@ -922,7 +922,7 @@ private theorem eval_eq_geq_leq_and_rel
           (SmtTerm.and (SmtTerm.leq (__eo_to_smt t) (__eo_to_smt s))
             (SmtTerm.Boolean true)) by
       rfl]
-    rw [__smtx_model_eval.eq_134, __smtx_model_eval.eq_8,
+    rw [smtx_eval_eq_term_eq, __smtx_model_eval.eq_8,
       __smtx_model_eval.eq_18, __smtx_model_eval.eq_8,
       __smtx_model_eval.eq_16, __smtx_model_eval.eq_1]
     rw [hEvalT, hEvalS]
@@ -2624,7 +2624,7 @@ private theorem eval_qdiv_total_real_zero_rel
       t Term.Real (__eo_to_smt t) rfl hTTrans hTReal
   rcases smt_eval_real_of_type M hM t hSmtT with ⟨q, hEvalT⟩
   unfold RuleProofs.smt_value_rel
-  rw [eo_to_smt_qdiv_total_eq, __smtx_model_eval.eq_129]
+  rw [eo_to_smt_qdiv_total_eq, smtx_eval_qdiv_total_term_eq]
   rw [hEvalT, rational_smt_eval M (native_mk_rational 0 1)]
   rw [show __smtx_model_eval_qdiv_total (SmtValue.Rational q)
       (SmtValue.Rational (native_mk_rational 0 1)) =
@@ -2649,7 +2649,7 @@ private theorem eval_qdiv_total_int_zero_rel
       t Term.Int (__eo_to_smt t) rfl hTTrans hTInt
   rcases smt_eval_int_of_type M hM t hSmtT with ⟨n, hEvalT⟩
   unfold RuleProofs.smt_value_rel
-  rw [eo_to_smt_qdiv_total_eq, __smtx_model_eval.eq_129]
+  rw [eo_to_smt_qdiv_total_eq, smtx_eval_qdiv_total_term_eq]
   rw [hEvalT, numeral_smt_eval M 0,
     rational_smt_eval M (native_mk_rational 0 1)]
   rw [show __smtx_model_eval_qdiv_total (SmtValue.Numeral n) (SmtValue.Numeral 0) =
@@ -2906,7 +2906,7 @@ private theorem eval_min_lt1_rel
             (__eo_to_smt t) (__eo_to_smt s))
           (__eo_to_smt t) by rfl]
     rw [show __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true by rfl]
-    rw [__smtx_model_eval.eq_16, __smtx_model_eval.eq_133,
+    rw [__smtx_model_eval.eq_16, smtx_eval_ite_term_eq,
       __smtx_model_eval.eq_15, __smtx_model_eval.eq_1]
     rw [hEvalT, hEvalS]
     cases hLt : native_zlt nt ns
@@ -2931,7 +2931,7 @@ private theorem eval_min_lt1_rel
             (__eo_to_smt t) (__eo_to_smt s))
           (__eo_to_smt t) by rfl]
     rw [show __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true by rfl]
-    rw [__smtx_model_eval.eq_16, __smtx_model_eval.eq_133,
+    rw [__smtx_model_eval.eq_16, smtx_eval_ite_term_eq,
       __smtx_model_eval.eq_15, __smtx_model_eval.eq_1]
     rw [hEvalT, hEvalS]
     cases hLt : native_qlt qt qs
@@ -3105,7 +3105,7 @@ private theorem eval_min_lt2_rel
             (__eo_to_smt t) (__eo_to_smt s))
           (__eo_to_smt s) by rfl]
     rw [show __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true by rfl]
-    rw [__smtx_model_eval.eq_16, __smtx_model_eval.eq_133,
+    rw [__smtx_model_eval.eq_16, smtx_eval_ite_term_eq,
       __smtx_model_eval.eq_15, __smtx_model_eval.eq_1]
     rw [hEvalT, hEvalS]
     cases hLt : native_zlt nt ns
@@ -3130,7 +3130,7 @@ private theorem eval_min_lt2_rel
             (__eo_to_smt t) (__eo_to_smt s))
           (__eo_to_smt s) by rfl]
     rw [show __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true by rfl]
-    rw [__smtx_model_eval.eq_16, __smtx_model_eval.eq_133,
+    rw [__smtx_model_eval.eq_16, smtx_eval_ite_term_eq,
       __smtx_model_eval.eq_15, __smtx_model_eval.eq_1]
     rw [hEvalT, hEvalS]
     cases hLt : native_qlt qt qs
@@ -3374,7 +3374,7 @@ private theorem eval_max_geq1_rel
             (__eo_to_smt t) (__eo_to_smt s))
           (__eo_to_smt t) by rfl]
     rw [show __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true by rfl]
-    rw [__smtx_model_eval.eq_18, __smtx_model_eval.eq_133,
+    rw [__smtx_model_eval.eq_18, smtx_eval_ite_term_eq,
       __smtx_model_eval.eq_18, __smtx_model_eval.eq_1]
     rw [hEvalT, hEvalS]
     cases hGeq : native_zleq ns nt
@@ -3399,7 +3399,7 @@ private theorem eval_max_geq1_rel
             (__eo_to_smt t) (__eo_to_smt s))
           (__eo_to_smt t) by rfl]
     rw [show __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true by rfl]
-    rw [__smtx_model_eval.eq_18, __smtx_model_eval.eq_133,
+    rw [__smtx_model_eval.eq_18, smtx_eval_ite_term_eq,
       __smtx_model_eval.eq_18, __smtx_model_eval.eq_1]
     rw [hEvalT, hEvalS]
     cases hGeq : native_qleq qs qt
@@ -3437,7 +3437,7 @@ private theorem eval_max_geq2_rel
             (__eo_to_smt t) (__eo_to_smt s))
           (__eo_to_smt s) by rfl]
     rw [show __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true by rfl]
-    rw [__smtx_model_eval.eq_18, __smtx_model_eval.eq_133,
+    rw [__smtx_model_eval.eq_18, smtx_eval_ite_term_eq,
       __smtx_model_eval.eq_18, __smtx_model_eval.eq_1]
     rw [hEvalT, hEvalS]
     cases hGeq : native_zleq ns nt
@@ -3461,7 +3461,7 @@ private theorem eval_max_geq2_rel
             (__eo_to_smt t) (__eo_to_smt s))
           (__eo_to_smt s) by rfl]
     rw [show __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true by rfl]
-    rw [__smtx_model_eval.eq_18, __smtx_model_eval.eq_133,
+    rw [__smtx_model_eval.eq_18, smtx_eval_ite_term_eq,
       __smtx_model_eval.eq_18, __smtx_model_eval.eq_1]
     rw [hEvalT, hEvalS]
     cases hGeq : native_qleq qs qt

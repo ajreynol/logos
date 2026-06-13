@@ -142,6 +142,7 @@ inductive UserOp : Type where
   | re_union : UserOp
   | re_diff : UserOp
   | str_in_re : UserOp
+  | str_indexof_re_split : UserOp
   | seq_unit : UserOp
   | seq_nth : UserOp
   | _at_strings_deq_diff : UserOp

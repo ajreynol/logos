@@ -133,7 +133,7 @@ private theorem facts___eo_prog_bool_dual_impl_eq_impl
     rw [show __eo_to_smt (Term.Apply (Term.Apply Term.eq t1) s1) =
       SmtTerm.eq (__eo_to_smt t1) (__eo_to_smt s1) by rfl]
     simp only [__smtx_model_eval.eq_1, __smtx_model_eval.eq_8, __smtx_model_eval.eq_9,
-      __smtx_model_eval.eq_134, hEvalT1, hEvalS1]
+      smtx_eval_eq_term_eq, hEvalT1, hEvalS1]
     cases bt <;> cases bs <;>
       simp [RuleProofs.smt_value_rel, __smtx_model_eval_eq, __smtx_model_eval_and,
         __smtx_model_eval_imp, __smtx_model_eval_or, __smtx_model_eval_not, native_veq,

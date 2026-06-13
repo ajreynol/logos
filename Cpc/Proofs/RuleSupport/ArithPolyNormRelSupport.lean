@@ -1318,7 +1318,7 @@ theorem arith_rel_eval_bools_of_diff_type
       simp [__smtx_model_eval_lt, q, native_to_real_sub_lt_zero_eq]
     · rw [eo_to_smt_leq_eq, __smtx_model_eval.eq_16, hEval1, hEval2]
       simp [__smtx_model_eval_leq, q, native_to_real_sub_leq_zero_eq]
-    · rw [eo_to_smt_eq_eq, __smtx_model_eval.eq_134, hEval1, hEval2]
+    · rw [eo_to_smt_eq_eq, smtx_eval_eq_term_eq, hEval1, hEval2]
       simp [__smtx_model_eval_eq, native_veq, native_zeq, q, native_to_real_sub_eq_zero_eq]
     · rw [eo_to_smt_gt_eq, __smtx_model_eval.eq_17, hEval1, hEval2]
       simp [__smtx_model_eval_gt, __smtx_model_eval_lt, q, native_to_real_sub_gt_zero_eq]
@@ -1347,7 +1347,7 @@ theorem arith_rel_eval_bools_of_diff_type
       simp [__smtx_model_eval_lt, q, native_qsub_lt_zero_eq]
     · rw [eo_to_smt_leq_eq, __smtx_model_eval.eq_16, hEval1, hEval2]
       simp [__smtx_model_eval_leq, q, native_qsub_leq_zero_eq]
-    · rw [eo_to_smt_eq_eq, __smtx_model_eval.eq_134, hEval1, hEval2]
+    · rw [eo_to_smt_eq_eq, smtx_eval_eq_term_eq, hEval1, hEval2]
       simp only [__smtx_model_eval_eq, native_veq]
       rw [show decide (SmtValue.Rational q1 = SmtValue.Rational q2) = native_qeq q1 q2 by
         simp [native_qeq]]

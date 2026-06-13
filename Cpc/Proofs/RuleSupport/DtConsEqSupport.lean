@@ -4265,7 +4265,7 @@ private theorem eval_eo_eq_is_boolean (M : SmtModel) (x y : Term) :
     ∃ b : Bool,
       __smtx_model_eval M (__eo_to_smt (Term.Apply (Term.Apply Term.eq x) y)) =
         SmtValue.Boolean b := by
-  rw [eo_to_smt_eq_eq, __smtx_model_eval.eq_134]
+  rw [eo_to_smt_eq_eq, smtx_eval_eq_term_eq]
   exact model_eval_eq_is_boolean
     (__smtx_model_eval M (__eo_to_smt x))
     (__smtx_model_eval M (__eo_to_smt y))
@@ -4568,7 +4568,7 @@ private theorem mk_dt_cons_eq_eval_eq
           (__smtx_model_eval M (__eo_to_smt a))
           (__smtx_model_eval M (__eo_to_smt b)) =
             SmtValue.Boolean b1 := by
-      simpa [eo_to_smt_eq_eq, __smtx_model_eval.eq_134] using hEqABEval
+      simpa [eo_to_smt_eq_eq, smtx_eval_eq_term_eq] using hEqABEval
     rw [hTupleEval, hHeadEval]
   · rename_i f a g b hNotTuple
     subst_vars
@@ -4628,7 +4628,7 @@ private theorem mk_dt_cons_eq_eval_eq
           (__smtx_model_eval M (__eo_to_smt a))
           (__smtx_model_eval M (__eo_to_smt b)) =
             SmtValue.Boolean br := by
-      simpa [eo_to_smt_eq_eq, __smtx_model_eval.eq_134] using hEqABEval
+      simpa [eo_to_smt_eq_eq, smtx_eval_eq_term_eq] using hEqABEval
     have hRightEvalBool :
         ∃ br' : Bool, __smtx_model_eval M (__eo_to_smt right) = SmtValue.Boolean br' := by
       refine ⟨br, ?_⟩
@@ -4677,7 +4677,7 @@ theorem dt_cons_eq_condition_rel
         __smtx_model_eval M (__eo_to_smt (__mk_dt_cons_eq t s)) :=
     singleton_elim_eval_eq M hList hMkEvalBool
   rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
-  rw [hCondEval, hMkEval, eo_to_smt_eq_eq, __smtx_model_eval.eq_134]
+  rw [hCondEval, hMkEval, eo_to_smt_eq_eq, smtx_eval_eq_term_eq]
   exact RuleProofs.smt_value_rel_refl
     (__smtx_model_eval_eq (__smtx_model_eval M (__eo_to_smt t))
       (__smtx_model_eval M (__eo_to_smt s)))

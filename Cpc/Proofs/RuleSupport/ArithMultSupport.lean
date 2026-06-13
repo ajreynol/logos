@@ -1092,7 +1092,7 @@ private theorem eval_eq_of_denotes
       injection h
     rw [show __eo_to_smt (relTerm (Term.UOp UserOp.eq) a b) =
         SmtTerm.eq (__eo_to_smt a) (__eo_to_smt b) by rfl]
-    rw [__smtx_model_eval.eq_134, hEvalA, hEvalB]
+    rw [smtx_eval_eq_term_eq, hEvalA, hEvalB]
     simp [__smtx_model_eval_eq, native_veq, native_zeq, hqa, hqb,
       native_to_real_qeq_eq]
   · rcases smt_eval_real_of_type M hM a hTy.1 with ⟨ra, hEvalA⟩
@@ -1113,7 +1113,7 @@ private theorem eval_eq_of_denotes
       injection h
     rw [show __eo_to_smt (relTerm (Term.UOp UserOp.eq) a b) =
         SmtTerm.eq (__eo_to_smt a) (__eo_to_smt b) by rfl]
-    rw [__smtx_model_eval.eq_134, hEvalA, hEvalB]
+    rw [smtx_eval_eq_term_eq, hEvalA, hEvalB]
     simp [__smtx_model_eval_eq, native_veq, native_qeq, hqa, hqb]
 
 private theorem eval_gt_of_denotes
@@ -2309,7 +2309,7 @@ private theorem abs_eq_factor
     rw [show __eo_to_smt
         (relTerm (Term.UOp UserOp.eq) (absTerm t) (absTerm u)) =
         SmtTerm.eq (__eo_to_smt (absTerm t)) (__eo_to_smt (absTerm u)) by rfl]
-    rw [__smtx_model_eval.eq_134, htAbs, huAbs]
+    rw [smtx_eval_eq_term_eq, htAbs, huAbs]
     simp [__smtx_model_eval_eq, native_veq, native_zeq]
   have hEqBool := bool_of_true_eval hTrue hRelEval
   exact ⟨nt, nu, hTy.1, htEval, MultListEval.singleton M t nt hTy.1 htEval,
@@ -2379,7 +2379,7 @@ private theorem abs_factor_nonzero
         SmtValue.Boolean (native_zeq nt 0) := by
     rw [show __eo_to_smt (relTerm (Term.UOp UserOp.eq) t z) =
         SmtTerm.eq (__eo_to_smt t) (__eo_to_smt z) by rfl]
-    rw [__smtx_model_eval.eq_134, htEval, hzEval]
+    rw [smtx_eval_eq_term_eq, htEval, hzEval]
     simp [__smtx_model_eval_eq, native_veq, native_zeq]
   have hEqFalseBool := bool_of_false_eval hEqFalse hEqEval
   exact natAbs_pos_of_native_zeq_zero_false nt hEqFalseBool
@@ -2485,7 +2485,7 @@ private theorem AbsCmpAcc.final_true
         rw [show __eo_to_smt
             (relTerm (Term.UOp UserOp.eq) (absTerm a) (absTerm b)) =
             SmtTerm.eq (__eo_to_smt (absTerm a)) (__eo_to_smt (absTerm b)) by rfl]
-        rw [__smtx_model_eval.eq_134, hAbsA, hAbsB]
+        rw [smtx_eval_eq_term_eq, hAbsA, hAbsB]
         simp [__smtx_model_eval_eq, native_veq, hIntAbsEq])
 
 private theorem mk_rel_eq_relTerm_gt

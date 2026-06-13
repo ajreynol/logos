@@ -32,7 +32,7 @@ private theorem model_eval_eq_false_of_eo_eq_false
   rw [RuleProofs.eo_interprets_iff_smt_interprets, eo_to_smt_eq_eq] at h
   cases h with
   | intro_false _ hEval =>
-      rw [__smtx_model_eval.eq_134] at hEval
+      rw [smtx_eval_eq_term_eq] at hEval
       exact hEval
 
 private theorem model_eval_eq_false_of_not_eq_true

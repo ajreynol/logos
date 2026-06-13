@@ -327,7 +327,7 @@ private theorem intToBvBit_eval
           (SmtTerm.mod_total (__eo_to_smt n) (SmtTerm.Numeral p))
           (SmtTerm.Numeral half))
         (SmtTerm.Binary 1 1) (SmtTerm.Binary 1 0) by rfl]
-  rw [__smtx_model_eval.eq_133, __smtx_model_eval.eq_18,
+  rw [smtx_eval_ite_term_eq, __smtx_model_eval.eq_18,
     __smtx_model_eval.eq_31, __smtx_model_eval.eq_2,
     __smtx_model_eval.eq_2, __smtx_model_eval.eq_5,
     __smtx_model_eval.eq_5]
@@ -640,7 +640,7 @@ private theorem intToBvExpanded_eval_rel
       __eo_to_smt
           (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral i)) n) =
         SmtTerm.int_to_bv (SmtTerm.Numeral i) (__eo_to_smt n) by rfl]
-    rw [__smtx_model_eval.eq_130, __smtx_model_eval.eq_2]
+    rw [smtx_eval_int_to_bv_term_eq, __smtx_model_eval.eq_2]
     rw [hnEval]
     rfl
   rw [hExpandedEval, hIntToBvEval]

@@ -222,7 +222,7 @@ private theorem typeof_exists_eq_local (s : native_String) (T : SmtType)
     __smtx_typeof (SmtTerm.exists s T t) =
       native_ite (native_Teq (__smtx_typeof t) SmtType.Bool)
         (__smtx_typeof_guard_wf T SmtType.Bool) SmtType.None := by
-  rw [__smtx_typeof.eq_135]
+  rw [smtx_typeof_exists_term_eq]
 
 private theorem smtx_typeof_not_bool_of_arg_bool (t : SmtTerm) :
     __smtx_typeof t = SmtType.Bool ->

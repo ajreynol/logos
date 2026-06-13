@@ -132,6 +132,19 @@ private theorem tp_result_seq_components_wf_str_indexof_re
     by_cases hV : V = SmtType.Int <;>
     simp [hT, hU, hV, tp_result_seq_components_wf]
 
+private theorem tp_result_seq_components_wf_str_indexof_re_split
+    (T U V : SmtType) :
+    tp_result_seq_components_wf
+      (if T = SmtType.Seq SmtType.Char then
+        if U = SmtType.RegLan then
+          if V = SmtType.RegLan then SmtType.Int else SmtType.None
+        else SmtType.None
+      else SmtType.None) := by
+  by_cases hT : T = SmtType.Seq SmtType.Char <;>
+    by_cases hU : U = SmtType.RegLan <;>
+    by_cases hV : V = SmtType.RegLan <;>
+    simp [hT, hU, hV, tp_result_seq_components_wf]
+
 private theorem tp_result_seq_components_wf_re_exp
     (n : SmtTerm) (T : SmtType) :
     tp_result_seq_components_wf (__smtx_typeof_re_exp n T) := by
@@ -308,9 +321,9 @@ private theorem tp_smt_term_result_seq_components_wf_of_non_none
         simpa [__smtx_typeof] using hxNN
       have hWf : __smtx_type_wf (SmtType.Seq T) = true :=
         smtx_typeof_guard_wf_wf_of_non_none (SmtType.Seq T) (SmtType.Seq T) hGuardNN
-      rw [__smtx_typeof.eq_78,
-        smtx_typeof_guard_wf_of_non_none (SmtType.Seq T) (SmtType.Seq T) hGuardNN]
-      exact hWf
+      simpa [__smtx_typeof,
+        smtx_typeof_guard_wf_of_non_none (SmtType.Seq T) (SmtType.Seq T) hGuardNN] using
+        hWf
     case set_empty T =>
       have hGuardNN : __smtx_typeof_guard_wf (SmtType.Set T) (SmtType.Set T) ≠
           SmtType.None := by
@@ -318,9 +331,9 @@ private theorem tp_smt_term_result_seq_components_wf_of_non_none
         simpa [__smtx_typeof] using hxNN
       have hWf : __smtx_type_wf (SmtType.Set T) = true :=
         smtx_typeof_guard_wf_wf_of_non_none (SmtType.Set T) (SmtType.Set T) hGuardNN
-      rw [__smtx_typeof.eq_121,
-        smtx_typeof_guard_wf_of_non_none (SmtType.Set T) (SmtType.Set T) hGuardNN]
-      exact hWf
+      simpa [__smtx_typeof,
+        smtx_typeof_guard_wf_of_non_none (SmtType.Set T) (SmtType.Set T) hGuardNN] using
+        hWf
     case seq_unit t =>
       have hGuardNN :
           __smtx_typeof_guard_wf
@@ -331,10 +344,10 @@ private theorem tp_smt_term_result_seq_components_wf_of_non_none
       have hWf : __smtx_type_wf (SmtType.Seq (__smtx_typeof t)) = true :=
         smtx_typeof_guard_wf_wf_of_non_none (SmtType.Seq (__smtx_typeof t))
           (SmtType.Seq (__smtx_typeof t)) hGuardNN
-      rw [__smtx_typeof.eq_119,
+      simpa [__smtx_typeof,
         smtx_typeof_guard_wf_of_non_none (SmtType.Seq (__smtx_typeof t))
-          (SmtType.Seq (__smtx_typeof t)) hGuardNN]
-      exact hWf
+          (SmtType.Seq (__smtx_typeof t)) hGuardNN] using
+        hWf
     case set_singleton t =>
       have hGuardNN :
           __smtx_typeof_guard_wf
@@ -345,10 +358,10 @@ private theorem tp_smt_term_result_seq_components_wf_of_non_none
       have hWf : __smtx_type_wf (SmtType.Set (__smtx_typeof t)) = true :=
         smtx_typeof_guard_wf_wf_of_non_none (SmtType.Set (__smtx_typeof t))
           (SmtType.Set (__smtx_typeof t)) hGuardNN
-      rw [__smtx_typeof.eq_122,
+      simpa [__smtx_typeof,
         smtx_typeof_guard_wf_of_non_none (SmtType.Set (__smtx_typeof t))
-          (SmtType.Set (__smtx_typeof t)) hGuardNN]
-      exact hWf
+          (SmtType.Set (__smtx_typeof t)) hGuardNN] using
+        hWf
     case «exists» s T body =>
       have hBody : __smtx_typeof body = SmtType.Bool :=
         exists_body_bool_of_non_none hxNN
@@ -358,11 +371,11 @@ private theorem tp_smt_term_result_seq_components_wf_of_non_none
         unfold term_has_non_none_type at hxNN
         intro hNone
         apply hxNN
-        rw [__smtx_typeof.eq_135]
+        rw [__smtx_typeof.eq_def] <;> simp only
         simp [hEq, native_ite, hNone]
       have hGuard : __smtx_typeof_guard_wf T SmtType.Bool = SmtType.Bool :=
         smtx_typeof_guard_wf_of_non_none T SmtType.Bool hGuardNN
-      rw [__smtx_typeof.eq_135]
+      rw [__smtx_typeof.eq_def] <;> simp only
       simp [hEq, native_ite, hGuard, tp_result_seq_components_wf]
     case «forall» s T body =>
       have hBody : __smtx_typeof body = SmtType.Bool :=
@@ -373,11 +386,11 @@ private theorem tp_smt_term_result_seq_components_wf_of_non_none
         unfold term_has_non_none_type at hxNN
         intro hNone
         apply hxNN
-        rw [__smtx_typeof.eq_136]
+        rw [__smtx_typeof.eq_def] <;> simp only
         simp [hEq, native_ite, hNone]
       have hGuard : __smtx_typeof_guard_wf T SmtType.Bool = SmtType.Bool :=
         smtx_typeof_guard_wf_of_non_none T SmtType.Bool hGuardNN
-      rw [__smtx_typeof.eq_136]
+      rw [__smtx_typeof.eq_def] <;> simp only
       simp [hEq, native_ite, hGuard, tp_result_seq_components_wf]
     case str_concat x y =>
       rcases seq_binop_args_of_non_none (op := SmtTerm.str_concat)
@@ -562,8 +575,7 @@ private theorem tp_smt_term_result_seq_components_wf_of_non_none
           | _ =>
               exfalso
               unfold term_has_non_none_type at hxNN
-              rw [__smtx_typeof.eq_137] at hxNN
-              simp [__smtx_typeof_choice_nth] at hxNN
+              simp [__smtx_typeof, __smtx_typeof_choice_nth] at hxNN
     case DtCons s d i =>
       let raw :=
         __smtx_typeof_dt_cons_rec (SmtType.Datatype s d)
@@ -682,6 +694,7 @@ private theorem tp_smt_term_result_seq_components_wf_of_non_none
         tp_result_seq_components_wf_seq_op_2_ret,
         tp_result_seq_components_wf_str_indexof,
         tp_result_seq_components_wf_str_indexof_re,
+        tp_result_seq_components_wf_str_indexof_re_split,
         tp_result_seq_components_wf_re_exp,
         tp_result_seq_components_wf_re_loop,
         tp_result_seq_components_wf_set_member,
@@ -1131,6 +1144,11 @@ private theorem supported_type_preservation
         (supported_type_preservation M hM _ ht3 hs3)
   | str_indexof_re ht1 hs1 ht2 hs2 ht3 hs3 =>
       exact typeof_value_model_eval_str_indexof_re M _ _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+        (supported_type_preservation M hM _ ht3 hs3)
+  | str_indexof_re_split ht1 hs1 ht2 hs2 ht3 hs3 =>
+      exact typeof_value_model_eval_str_indexof_re_split M _ _ _ ht
         (supported_type_preservation M hM _ ht1 hs1)
         (supported_type_preservation M hM _ ht2 hs2)
         (supported_type_preservation M hM _ ht3 hs3)
@@ -1736,18 +1754,37 @@ theorem dt_sel_wrong_map_type_wf_of_non_none
     type_wf_of_inhabited_and_wf_rec hM1InhBool hM1Rec
 
 /-- Builds support for `seq_unit` directly from support of its argument and a non-`None` typing judgment. -/
+private theorem seq_unit_arg_non_none_of_non_none
+    {t : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.seq_unit t)) :
+    term_has_non_none_type t := by
+  unfold term_has_non_none_type at ht ⊢
+  by_cases hNone : __smtx_typeof t = SmtType.None
+  · exfalso
+    apply ht
+    simp [__smtx_typeof, hNone, __smtx_typeof_guard_wf,
+      __smtx_type_wf, __smtx_type_wf_rec, native_and, native_ite]
+  · exact hNone
+
+private theorem set_singleton_arg_non_none_of_non_none
+    {t : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.set_singleton t)) :
+    term_has_non_none_type t := by
+  unfold term_has_non_none_type at ht ⊢
+  by_cases hNone : __smtx_typeof t = SmtType.None
+  · exfalso
+    apply ht
+    simp [__smtx_typeof, hNone, __smtx_typeof_guard_wf,
+      __smtx_type_wf, __smtx_type_wf_rec, native_and, native_ite]
+  · exact hNone
+
 theorem supported_seq_unit_of_non_none
     {t : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.seq_unit t))
     (hs : supported_preservation_term t) :
     supported_preservation_term (SmtTerm.seq_unit t) := by
-  have htArg : term_has_non_none_type t := by
-    unfold term_has_non_none_type at ht ⊢
-    by_cases hNone : __smtx_typeof t = SmtType.None
-    · rw [__smtx_typeof.eq_119, hNone] at ht
-      simp [__smtx_typeof_guard_wf, __smtx_type_wf, __smtx_type_wf_rec,
-        native_and, native_ite] at ht
-    · exact hNone
+  have htArg : term_has_non_none_type t :=
+    seq_unit_arg_non_none_of_non_none ht
   exact supported_preservation_term.seq_unit htArg hs
 
 /-- Builds support for `set_singleton` directly from support of its argument and a non-`None` typing judgment. -/
@@ -1756,13 +1793,8 @@ theorem supported_set_singleton_of_non_none
     (ht : term_has_non_none_type (SmtTerm.set_singleton t))
     (hs : supported_preservation_term t) :
     supported_preservation_term (SmtTerm.set_singleton t) := by
-  have htArg : term_has_non_none_type t := by
-    unfold term_has_non_none_type at ht ⊢
-    by_cases hNone : __smtx_typeof t = SmtType.None
-    · rw [__smtx_typeof.eq_122, hNone] at ht
-      simp [__smtx_typeof_guard_wf, __smtx_type_wf, __smtx_type_wf_rec,
-        native_and, native_ite] at ht
-    · exact hNone
+  have htArg : term_has_non_none_type t :=
+    set_singleton_arg_non_none_of_non_none ht
   exact supported_preservation_term.set_singleton htArg hs
 
 /-- Builds support for `seq_nth` directly from support of its arguments and a non-`None` typing judgment. -/
@@ -2121,7 +2153,7 @@ private theorem choice_type_has_no_none_components_of_non_none
       | _ =>
           exfalso
           apply ht
-          rw [__smtx_typeof.eq_137]
+          rw [__smtx_typeof.eq_def] <;> simp only
           simp [__smtx_typeof_choice_nth]
 
 private theorem supported_apply_term_of_non_none
@@ -2299,7 +2331,7 @@ private theorem seq_unit_type_has_no_none_components_of_non_none
     (ht : term_has_non_none_type (SmtTerm.seq_unit t))
     (hTy : type_has_no_none_components (__smtx_typeof t)) :
     type_has_no_none_components (__smtx_typeof (SmtTerm.seq_unit t)) := by
-  rw [__smtx_typeof.eq_119]
+  rw [__smtx_typeof.eq_def] <;> simp only
   have hGuard :
       __smtx_typeof_guard_wf (SmtType.Seq (__smtx_typeof t))
           (SmtType.Seq (__smtx_typeof t)) =
@@ -2307,8 +2339,7 @@ private theorem seq_unit_type_has_no_none_components_of_non_none
     smtx_typeof_guard_wf_of_non_none (SmtType.Seq (__smtx_typeof t))
       (SmtType.Seq (__smtx_typeof t)) (by
         unfold term_has_non_none_type at ht
-        rw [__smtx_typeof.eq_119] at ht
-        exact ht)
+        simpa [__smtx_typeof] using ht)
   rw [hGuard]
   simpa [type_has_no_none_components] using hTy
 
@@ -2317,7 +2348,7 @@ private theorem set_singleton_type_has_no_none_components_of_non_none
     (ht : term_has_non_none_type (SmtTerm.set_singleton t))
     (hTy : type_has_no_none_components (__smtx_typeof t)) :
     type_has_no_none_components (__smtx_typeof (SmtTerm.set_singleton t)) := by
-  rw [__smtx_typeof.eq_122]
+  rw [__smtx_typeof.eq_def] <;> simp only
   have hGuard :
       __smtx_typeof_guard_wf (SmtType.Set (__smtx_typeof t))
           (SmtType.Set (__smtx_typeof t)) =
@@ -2325,8 +2356,7 @@ private theorem set_singleton_type_has_no_none_components_of_non_none
     smtx_typeof_guard_wf_of_non_none (SmtType.Set (__smtx_typeof t))
       (SmtType.Set (__smtx_typeof t)) (by
         unfold term_has_non_none_type at ht
-        rw [__smtx_typeof.eq_122] at ht
-        exact ht)
+        simpa [__smtx_typeof] using ht)
   rw [hGuard]
   simpa [type_has_no_none_components] using hTy
 
@@ -3107,6 +3137,14 @@ private theorem str_indexof_re_type_has_no_none_components_of_non_none
   rw [typeof_str_indexof_re_eq]
   simp [native_ite, native_Teq, hArgs.1, hArgs.2.1, hArgs.2.2, type_has_no_none_components]
 
+private theorem str_indexof_re_split_type_has_no_none_components_of_non_none
+    {t1 t2 t3 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.str_indexof_re_split t1 t2 t3)) :
+    type_has_no_none_components (__smtx_typeof (SmtTerm.str_indexof_re_split t1 t2 t3)) := by
+  have hArgs := str_indexof_re_split_args_of_non_none ht
+  rw [typeof_str_indexof_re_split_eq]
+  simp [native_ite, native_Teq, hArgs.1, hArgs.2.1, hArgs.2.2, type_has_no_none_components]
+
 private theorem re_exp_type_has_no_none_components_of_non_none
     {n : native_Int}
     {t : SmtTerm}
@@ -3652,6 +3690,8 @@ theorem term_type_has_no_none_components_of_non_none :
           (typeof_str_replace_re_all_eq t1 t2 t3) ht
     | SmtTerm.str_indexof_re _ _ _ =>
         exact str_indexof_re_type_has_no_none_components_of_non_none ht
+    | SmtTerm.str_indexof_re_split _ _ _ =>
+        exact str_indexof_re_split_type_has_no_none_components_of_non_none ht
     | SmtTerm.re_allchar =>
         simp [__smtx_typeof, type_has_no_none_components]
     | SmtTerm.re_none =>
@@ -3708,13 +3748,8 @@ theorem term_type_has_no_none_components_of_non_none :
         exact seq_char_reglan_ret_type_has_no_none_components_of_non_none
           (typeof_str_in_re_eq t1 t2) ht (by simp [type_has_no_none_components])
     | SmtTerm.seq_unit t1 =>
-        have ht1 : term_has_non_none_type t1 := by
-          unfold term_has_non_none_type at ht ⊢
-          by_cases hNone : __smtx_typeof t1 = SmtType.None
-          · rw [__smtx_typeof.eq_119, hNone] at ht
-            simp [__smtx_typeof_guard_wf, __smtx_type_wf, __smtx_type_wf_rec,
-              native_and, native_ite] at ht
-          · exact hNone
+        have ht1 : term_has_non_none_type t1 :=
+          seq_unit_arg_non_none_of_non_none ht
         exact seq_unit_type_has_no_none_components_of_non_none ht (go t1 ht1)
     | SmtTerm.seq_nth t1 t2 =>
         have ht1 : term_has_non_none_type t1 := by
@@ -3724,13 +3759,8 @@ theorem term_type_has_no_none_components_of_non_none :
     | SmtTerm.set_empty _ =>
         exact set_empty_type_has_no_none_components_of_non_none ht
     | SmtTerm.set_singleton t1 =>
-        have ht1 : term_has_non_none_type t1 := by
-          unfold term_has_non_none_type at ht ⊢
-          by_cases hNone : __smtx_typeof t1 = SmtType.None
-          · rw [__smtx_typeof.eq_122, hNone] at ht
-            simp [__smtx_typeof_guard_wf, __smtx_type_wf, __smtx_type_wf_rec,
-              native_and, native_ite] at ht
-          · exact hNone
+        have ht1 : term_has_non_none_type t1 :=
+          set_singleton_arg_non_none_of_non_none ht
         exact set_singleton_type_has_no_none_components_of_non_none ht (go t1 ht1)
     | SmtTerm.set_union t1 t2 =>
         have ht1 : term_has_non_none_type t1 := by
@@ -3773,12 +3803,12 @@ theorem term_type_has_no_none_components_of_non_none :
         exact bv_unop_ret_type_has_no_none_components_of_non_none
           (show __smtx_typeof (SmtTerm.ubv_to_int t1) =
               __smtx_typeof_bv_op_1_ret (__smtx_typeof t1) SmtType.Int by
-            rw [__smtx_typeof.eq_131]) ht (by simp [type_has_no_none_components])
+            rw [__smtx_typeof.eq_def] <;> simp only) ht (by simp [type_has_no_none_components])
     | SmtTerm.sbv_to_int t1 =>
         exact bv_unop_ret_type_has_no_none_components_of_non_none
           (show __smtx_typeof (SmtTerm.sbv_to_int t1) =
               __smtx_typeof_bv_op_1_ret (__smtx_typeof t1) SmtType.Int by
-            rw [__smtx_typeof.eq_132]) ht (by simp [type_has_no_none_components])
+            rw [__smtx_typeof.eq_def] <;> simp only) ht (by simp [type_has_no_none_components])
   exact go
 
 /-- Every non-`None` SMT term lies in the supported preservation fragment. -/
@@ -4044,47 +4074,47 @@ theorem supported_preservation_term_of_non_none :
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
         exact supported_preservation_term.repeat ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.bvnot t1 =>
-        rcases bv_unop_arg_of_non_none (op := SmtTerm.bvnot) (by rw [__smtx_typeof.eq_38]) ht with ⟨w, hArg⟩
+        rcases bv_unop_arg_of_non_none (op := SmtTerm.bvnot) (by rw [__smtx_typeof.eq_def] <;> simp only) ht with ⟨w, hArg⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq hArg (by simp)
         exact supported_preservation_term.bvnot ht1 (go t1 ht1)
     | SmtTerm.bvand t1 t2 =>
         rcases bv_binop_args_of_non_none (show __smtx_typeof (SmtTerm.bvand t1 t2) =
-            __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by rw [__smtx_typeof.eq_39]) ht with
+            __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by rw [__smtx_typeof.eq_def] <;> simp only) ht with
           ⟨w, h1, h2⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
         exact supported_preservation_term.bvand ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.bvor t1 t2 =>
         rcases bv_binop_args_of_non_none (show __smtx_typeof (SmtTerm.bvor t1 t2) =
-            __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by rw [__smtx_typeof.eq_40]) ht with
+            __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by rw [__smtx_typeof.eq_def] <;> simp only) ht with
           ⟨w, h1, h2⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
         exact supported_preservation_term.bvor ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.bvnand t1 t2 =>
         rcases bv_binop_args_of_non_none (show __smtx_typeof (SmtTerm.bvnand t1 t2) =
-            __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by rw [__smtx_typeof.eq_41]) ht with
+            __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by rw [__smtx_typeof.eq_def] <;> simp only) ht with
           ⟨w, h1, h2⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
         exact supported_preservation_term.bvnand ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.bvnor t1 t2 =>
         rcases bv_binop_args_of_non_none (show __smtx_typeof (SmtTerm.bvnor t1 t2) =
-            __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by rw [__smtx_typeof.eq_42]) ht with
+            __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by rw [__smtx_typeof.eq_def] <;> simp only) ht with
           ⟨w, h1, h2⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
         exact supported_preservation_term.bvnor ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.bvxor t1 t2 =>
         rcases bv_binop_args_of_non_none (show __smtx_typeof (SmtTerm.bvxor t1 t2) =
-            __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by rw [__smtx_typeof.eq_43]) ht with
+            __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by rw [__smtx_typeof.eq_def] <;> simp only) ht with
           ⟨w, h1, h2⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
         exact supported_preservation_term.bvxor ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.bvxnor t1 t2 =>
         rcases bv_binop_args_of_non_none (show __smtx_typeof (SmtTerm.bvxnor t1 t2) =
-            __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by rw [__smtx_typeof.eq_44]) ht with
+            __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by rw [__smtx_typeof.eq_def] <;> simp only) ht with
           ⟨w, h1, h2⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
@@ -4097,61 +4127,61 @@ theorem supported_preservation_term_of_non_none :
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
         exact supported_preservation_term.bvcomp ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.bvneg t1 =>
-        rcases bv_unop_arg_of_non_none (op := SmtTerm.bvneg) (by rw [__smtx_typeof.eq_46]) ht with ⟨w, hArg⟩
+        rcases bv_unop_arg_of_non_none (op := SmtTerm.bvneg) (by rw [__smtx_typeof.eq_def] <;> simp only) ht with ⟨w, hArg⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq hArg (by simp)
         exact supported_preservation_term.bvneg ht1 (go t1 ht1)
     | SmtTerm.bvadd t1 t2 =>
         rcases bv_binop_args_of_non_none (show __smtx_typeof (SmtTerm.bvadd t1 t2) =
-            __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by rw [__smtx_typeof.eq_47]) ht with
+            __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by rw [__smtx_typeof.eq_def] <;> simp only) ht with
           ⟨w, h1, h2⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
         exact supported_preservation_term.bvadd ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.bvmul t1 t2 =>
         rcases bv_binop_args_of_non_none (show __smtx_typeof (SmtTerm.bvmul t1 t2) =
-            __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by rw [__smtx_typeof.eq_48]) ht with
+            __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by rw [__smtx_typeof.eq_def] <;> simp only) ht with
           ⟨w, h1, h2⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
         exact supported_preservation_term.bvmul ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.bvudiv t1 t2 =>
         rcases bv_binop_args_of_non_none (show __smtx_typeof (SmtTerm.bvudiv t1 t2) =
-            __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by rw [__smtx_typeof.eq_49]) ht with
+            __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by rw [__smtx_typeof.eq_def] <;> simp only) ht with
           ⟨w, h1, h2⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
         exact supported_preservation_term.bvudiv ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.bvurem t1 t2 =>
         rcases bv_binop_args_of_non_none (show __smtx_typeof (SmtTerm.bvurem t1 t2) =
-            __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by rw [__smtx_typeof.eq_50]) ht with
+            __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by rw [__smtx_typeof.eq_def] <;> simp only) ht with
           ⟨w, h1, h2⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
         exact supported_preservation_term.bvurem ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.bvsub t1 t2 =>
         rcases bv_binop_args_of_non_none (show __smtx_typeof (SmtTerm.bvsub t1 t2) =
-            __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by rw [__smtx_typeof.eq_51]) ht with
+            __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by rw [__smtx_typeof.eq_def] <;> simp only) ht with
           ⟨w, h1, h2⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
         exact supported_preservation_term.bvsub ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.bvsdiv t1 t2 =>
         rcases bv_binop_args_of_non_none (show __smtx_typeof (SmtTerm.bvsdiv t1 t2) =
-            __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by rw [__smtx_typeof.eq_52]) ht with
+            __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by rw [__smtx_typeof.eq_def] <;> simp only) ht with
           ⟨w, h1, h2⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
         exact supported_preservation_term.bvsdiv ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.bvsrem t1 t2 =>
         rcases bv_binop_args_of_non_none (show __smtx_typeof (SmtTerm.bvsrem t1 t2) =
-            __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by rw [__smtx_typeof.eq_53]) ht with
+            __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by rw [__smtx_typeof.eq_def] <;> simp only) ht with
           ⟨w, h1, h2⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
         exact supported_preservation_term.bvsrem ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.bvsmod t1 t2 =>
         rcases bv_binop_args_of_non_none (show __smtx_typeof (SmtTerm.bvsmod t1 t2) =
-            __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by rw [__smtx_typeof.eq_54]) ht with
+            __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by rw [__smtx_typeof.eq_def] <;> simp only) ht with
           ⟨w, h1, h2⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
@@ -4214,21 +4244,21 @@ theorem supported_preservation_term_of_non_none :
         exact supported_preservation_term.bvsge ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.bvshl t1 t2 =>
         rcases bv_binop_args_of_non_none (show __smtx_typeof (SmtTerm.bvshl t1 t2) =
-            __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by rw [__smtx_typeof.eq_63]) ht with
+            __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by rw [__smtx_typeof.eq_def] <;> simp only) ht with
           ⟨w, h1, h2⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
         exact supported_preservation_term.bvshl ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.bvlshr t1 t2 =>
         rcases bv_binop_args_of_non_none (show __smtx_typeof (SmtTerm.bvlshr t1 t2) =
-            __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by rw [__smtx_typeof.eq_64]) ht with
+            __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by rw [__smtx_typeof.eq_def] <;> simp only) ht with
           ⟨w, h1, h2⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
         exact supported_preservation_term.bvlshr ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.bvashr t1 t2 =>
         rcases bv_binop_args_of_non_none (show __smtx_typeof (SmtTerm.bvashr t1 t2) =
-            __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by rw [__smtx_typeof.eq_65]) ht with
+            __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by rw [__smtx_typeof.eq_def] <;> simp only) ht with
           ⟨w, h1, h2⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
@@ -4269,7 +4299,7 @@ theorem supported_preservation_term_of_non_none :
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
         exact supported_preservation_term.bvuaddo ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.bvnego t1 =>
-        rcases bv_unop_ret_arg_of_non_none (op := SmtTerm.bvnego) (by rw [__smtx_typeof.eq_71]) ht with ⟨w, hArg⟩
+        rcases bv_unop_ret_arg_of_non_none (op := SmtTerm.bvnego) (by rw [__smtx_typeof.eq_def] <;> simp only) ht with ⟨w, hArg⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq hArg (by simp)
         exact supported_preservation_term.bvnego ht1 (go t1 ht1)
     | SmtTerm.bvsaddo t1 t2 =>
@@ -4446,6 +4476,12 @@ theorem supported_preservation_term_of_non_none :
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq hArgs.2.1 (by simp)
         have ht3 : term_has_non_none_type t3 := term_has_non_none_of_type_eq hArgs.2.2 (by simp)
         exact supported_preservation_term.str_indexof_re ht1 (go t1 ht1) ht2 (go t2 ht2) ht3 (go t3 ht3)
+    | SmtTerm.str_indexof_re_split t1 t2 t3 =>
+        have hArgs := str_indexof_re_split_args_of_non_none ht
+        have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq hArgs.1 (by simp)
+        have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq hArgs.2.1 (by simp)
+        have ht3 : term_has_non_none_type t3 := term_has_non_none_of_type_eq hArgs.2.2 (by simp)
+        exact supported_preservation_term.str_indexof_re_split ht1 (go t1 ht1) ht2 (go t2 ht2) ht3 (go t3 ht3)
     | SmtTerm.re_allchar =>
         exact supported_preservation_term.re_allchar
     | SmtTerm.re_none =>
@@ -4528,13 +4564,8 @@ theorem supported_preservation_term_of_non_none :
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq hArgs.2 (by simp)
         exact supported_preservation_term.str_in_re ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.seq_unit t1 =>
-        have ht1 : term_has_non_none_type t1 := by
-          unfold term_has_non_none_type at ht ⊢
-          by_cases hNone : __smtx_typeof t1 = SmtType.None
-          · rw [__smtx_typeof.eq_119, hNone] at ht
-            simp [__smtx_typeof_guard_wf, __smtx_type_wf, __smtx_type_wf_rec,
-              native_and, native_ite] at ht
-          · exact hNone
+        have ht1 : term_has_non_none_type t1 :=
+          seq_unit_arg_non_none_of_non_none ht
         exact supported_seq_unit_of_non_none ht (go t1 ht1)
     | SmtTerm.seq_nth t1 t2 =>
         rcases seq_nth_args_of_non_none ht with ⟨T, h1, h2⟩
@@ -4545,13 +4576,8 @@ theorem supported_preservation_term_of_non_none :
     | SmtTerm.set_empty _ =>
         exact supported_set_empty_of_non_none ht
     | SmtTerm.set_singleton t1 =>
-        have ht1 : term_has_non_none_type t1 := by
-          unfold term_has_non_none_type at ht ⊢
-          by_cases hNone : __smtx_typeof t1 = SmtType.None
-          · rw [__smtx_typeof.eq_122, hNone] at ht
-            simp [__smtx_typeof_guard_wf, __smtx_type_wf, __smtx_type_wf_rec,
-              native_and, native_ite] at ht
-          · exact hNone
+        have ht1 : term_has_non_none_type t1 :=
+          set_singleton_arg_non_none_of_non_none ht
         exact supported_set_singleton_of_non_none ht (go t1 ht1)
     | SmtTerm.set_union t1 t2 =>
         rcases set_binop_args_of_non_none (op := SmtTerm.set_union) (typeof_set_union_eq t1 t2) ht with
@@ -4610,11 +4636,11 @@ theorem supported_preservation_term_of_non_none :
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
         exact supported_preservation_term.int_to_bv ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.ubv_to_int t1 =>
-        rcases bv_unop_ret_arg_of_non_none (op := SmtTerm.ubv_to_int) (by rw [__smtx_typeof.eq_131]) ht with ⟨w, hArg⟩
+        rcases bv_unop_ret_arg_of_non_none (op := SmtTerm.ubv_to_int) (by rw [__smtx_typeof.eq_def] <;> simp only) ht with ⟨w, hArg⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq hArg (by simp)
         exact supported_preservation_term.ubv_to_int ht1 (go t1 ht1)
     | SmtTerm.sbv_to_int t1 =>
-        rcases bv_unop_ret_arg_of_non_none (op := SmtTerm.sbv_to_int) (by rw [__smtx_typeof.eq_132]) ht with ⟨w, hArg⟩
+        rcases bv_unop_ret_arg_of_non_none (op := SmtTerm.sbv_to_int) (by rw [__smtx_typeof.eq_def] <;> simp only) ht with ⟨w, hArg⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq hArg (by simp)
         exact supported_preservation_term.sbv_to_int ht1 (go t1 ht1)
   exact go

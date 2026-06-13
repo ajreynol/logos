@@ -309,7 +309,7 @@ private theorem smtValueNonzero_of_not_eq_zero
             (__eo_to_smt t) (by simp [term_has_non_none_type, hTType])
         rcases int_value_canonical hEvalTy with ⟨n, hn⟩
         rw [hn]
-        rw [__smtx_model_eval.eq_6, __smtx_model_eval.eq_134, __smtx_model_eval.eq_2,
+        rw [__smtx_model_eval.eq_6, smtx_eval_eq_term_eq, __smtx_model_eval.eq_2,
           hn] at hEval
         simp [smtValueNonzero, __smtx_model_eval_not, __smtx_model_eval_eq,
           native_veq, SmtEval.native_not] at hEval ⊢
@@ -346,7 +346,7 @@ private theorem smtValueNonzero_of_not_eq_zero
             (__eo_to_smt t) (by simp [term_has_non_none_type, hTType])
         rcases real_value_canonical hEvalTy with ⟨q, hqv⟩
         rw [hqv]
-        rw [__smtx_model_eval.eq_6, __smtx_model_eval.eq_134, __smtx_model_eval.eq_3,
+        rw [__smtx_model_eval.eq_6, smtx_eval_eq_term_eq, __smtx_model_eval.eq_3,
           hqv] at hEval
         simp [smtValueNonzero, __smtx_model_eval_not, __smtx_model_eval_eq,
           native_veq, SmtEval.native_not, native_mk_rational_zero] at hEval ⊢

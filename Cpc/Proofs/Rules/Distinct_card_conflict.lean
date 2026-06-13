@@ -73,7 +73,7 @@ private theorem distinct_pairs_true_not_mem
                       SmtValue.Boolean true at h
                   rw [__smtx_model_eval.eq_8] at h
                   rcases smt_eval_and_eq_true h with ⟨hHead, hTail⟩
-                  rw [__smtx_model_eval.eq_6, __smtx_model_eval.eq_134] at hHead
+                  rw [__smtx_model_eval.eq_6, smtx_eval_eq_term_eq] at hHead
                   have hEqFalse :
                       __smtx_model_eval_eq
                           (__smtx_model_eval M s)
@@ -1091,7 +1091,7 @@ private theorem distinct_card_conflict_cardinality_sound
         change __smtx_model_eval M
           (SmtTerm.eq (__eo_to_smt distinctTerm) (SmtTerm.Boolean false)) =
             SmtValue.Boolean true
-        rw [__smtx_model_eval.eq_134, hDistinctEval, __smtx_model_eval.eq_1]
+        rw [smtx_eval_eq_term_eq, hDistinctEval, __smtx_model_eval.eq_1]
         exact RuleProofs.smtx_model_eval_eq_refl (SmtValue.Boolean false)
       exact RuleProofs.eo_interprets_of_bool_eval M
         (Term.Apply
