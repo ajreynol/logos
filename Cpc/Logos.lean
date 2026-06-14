@@ -3489,7 +3489,7 @@ def __eo_l_1___get_unused_vars : Term -> Term -> Term
 def __get_unused_vars : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.Apply Q x) F), (Term.Apply (Term.Apply __eo_lv_Q_2 y) __eo_lv_F_2) => (__eo_ite (__eo_and (__eo_eq Q __eo_lv_Q_2) (__eo_eq F __eo_lv_F_2)) (__eo_list_diff Term.__eo_List_cons (__eo_list_setof Term.__eo_List_cons x) y) (__eo_l_1___get_unused_vars (Term.Apply (Term.Apply Q x) F) (Term.Apply (Term.Apply __eo_lv_Q_2 y) __eo_lv_F_2)))
+  | (Term.Apply (Term.Apply Q x) F), (Term.Apply (Term.Apply __eo_lv_Q_2 y) __eo_lv_F_2) => (__eo_ite (__eo_and (__eo_eq Q __eo_lv_Q_2) (__eo_eq F __eo_lv_F_2)) (__eo_requires (__eo_list_minclude Term.__eo_List_cons x y) (Term.Boolean true) (__eo_list_diff Term.__eo_List_cons (__eo_list_setof Term.__eo_List_cons x) y)) (__eo_l_1___get_unused_vars (Term.Apply (Term.Apply Q x) F) (Term.Apply (Term.Apply __eo_lv_Q_2 y) __eo_lv_F_2)))
   | __eo_dv_1, __eo_dv_2 => (__eo_l_1___get_unused_vars __eo_dv_1 __eo_dv_2)
 
 
