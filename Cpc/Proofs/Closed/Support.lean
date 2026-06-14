@@ -2691,36 +2691,37 @@ theorem smtTermClosedIn_eo_to_smt_set_insert_rec_of_closed_rec_using :
             SmtTermClosedIn vars base ->
               SmtTermClosedIn vars (__eo_to_smt_set_insert xs base)
   | Term.__eo_List_nil, base, env, vars, hEnv, hRec, hClosed, hBase =>
-      by
-        simpa [__eo_to_smt_set_insert] using hBase
+      by trivial
   | Term.Apply f tail, base, env, vars, hEnv, hRec, hClosed, hBase =>
       by
         cases f <;> try trivial
+        case UOp op =>
+          cases op <;> try trivial
+          case _at__at_TypedList_nil =>
+            cases hTy :
+                native_Teq (__smtx_typeof base)
+                  (SmtType.Set (__eo_to_smt_type tail))
+            · simp [__eo_to_smt_set_insert, hTy, native_ite]
+              change True
+              trivial
+            · simpa [__eo_to_smt_set_insert, hTy, native_ite] using hBase
         case Apply g head =>
           cases g <;> try trivial
-          case __eo_List_cons =>
-            have hOuter :=
-              eo_is_closed_rec_apply_eq_true_cases_of_not_quantifier
-                (f := Term.Apply Term.__eo_List_cons head)
-                (x := tail)
-                (fun vs h => by cases h)
-                (fun vs h => by cases h)
-                hEnv hClosed
-            have hInner :=
-              eo_is_closed_rec_apply_eq_true_cases_of_not_quantifier
-                (f := Term.__eo_List_cons)
-                (x := head)
-                (fun vs h => by cases h)
-                (fun vs h => by cases h)
-                hEnv hOuter.1
-            change SmtTermClosedIn vars
-              (SmtTerm.set_union
-                (SmtTerm.set_singleton (__eo_to_smt head))
-                (__eo_to_smt_set_insert tail base))
-            exact
-              ⟨hRec hEnv hInner.2,
-                smtTermClosedIn_eo_to_smt_set_insert_rec_of_closed_rec_using
-                  hEnv hRec hOuter.2 hBase⟩
+          case UOp op =>
+            cases op <;> try trivial
+            case _at__at_TypedList_cons =>
+              have hCases :=
+                eo_is_closed_rec_binary_uop_eq_true_cases
+                  (op := UserOp._at__at_TypedList_cons)
+                  (by decide) (by decide) hEnv hClosed
+              change SmtTermClosedIn vars
+                (SmtTerm.set_union
+                  (SmtTerm.set_singleton (__eo_to_smt head))
+                  (__eo_to_smt_set_insert tail base))
+              exact
+                ⟨hRec hEnv hCases.1,
+                  smtTermClosedIn_eo_to_smt_set_insert_rec_of_closed_rec_using
+                    hEnv hRec hCases.2 hBase⟩
   | Term.UOp _, base, env, vars, hEnv, hRec, hClosed, hBase => by trivial
   | Term.UOp1 _ _, base, env, vars, hEnv, hRec, hClosed, hBase => by trivial
   | Term.UOp2 _ _ _, base, env, vars, hEnv, hRec, hClosed, hBase => by trivial
@@ -2875,42 +2876,43 @@ theorem smtTermClosedIn_eo_to_smt_set_insert_rec_below
             SmtTermClosedIn vars base ->
               SmtTermClosedIn vars (__eo_to_smt_set_insert xs base)
   | Term.__eo_List_nil, base, env, vars, hLt, hEnv, hClosed, hBase =>
-      by
-        simpa [__eo_to_smt_set_insert] using hBase
+      by trivial
   | Term.Apply f tail, base, env, vars, hLt, hEnv, hClosed, hBase =>
       by
         cases f <;> try trivial
+        case UOp op =>
+          cases op <;> try trivial
+          case _at__at_TypedList_nil =>
+            cases hTy :
+                native_Teq (__smtx_typeof base)
+                  (SmtType.Set (__eo_to_smt_type tail))
+            · simp [__eo_to_smt_set_insert, hTy, native_ite]
+              change True
+              trivial
+            · simpa [__eo_to_smt_set_insert, hTy, native_ite] using hBase
         case Apply g head =>
           cases g <;> try trivial
-          case __eo_List_cons =>
-            have hOuter :=
-              eo_is_closed_rec_apply_eq_true_cases_of_not_quantifier
-                (f := Term.Apply Term.__eo_List_cons head)
-                (x := tail)
-                (fun vs h => by cases h)
-                (fun vs h => by cases h)
-                hEnv hClosed
-            have hInner :=
-              eo_is_closed_rec_apply_eq_true_cases_of_not_quantifier
-                (f := Term.__eo_List_cons)
-                (x := head)
-                (fun vs h => by cases h)
-                (fun vs h => by cases h)
-                hEnv hOuter.1
-            have hHeadLt : sizeOf head < sizeOf root := by
-              simp at hLt
-              omega
-            have hTailLt : sizeOf tail < sizeOf root := by
-              simp at hLt
-              omega
-            change SmtTermClosedIn vars
-              (SmtTerm.set_union
-                (SmtTerm.set_singleton (__eo_to_smt head))
-                (__eo_to_smt_set_insert tail base))
-            exact
-              ⟨hRec hHeadLt hEnv hInner.2,
-                smtTermClosedIn_eo_to_smt_set_insert_rec_below root hRec
-                  hTailLt hEnv hOuter.2 hBase⟩
+          case UOp op =>
+            cases op <;> try trivial
+            case _at__at_TypedList_cons =>
+              have hCases :=
+                eo_is_closed_rec_binary_uop_eq_true_cases
+                  (op := UserOp._at__at_TypedList_cons)
+                  (by decide) (by decide) hEnv hClosed
+              have hHeadLt : sizeOf head < sizeOf root := by
+                simp at hLt
+                omega
+              have hTailLt : sizeOf tail < sizeOf root := by
+                simp at hLt
+                omega
+              change SmtTermClosedIn vars
+                (SmtTerm.set_union
+                  (SmtTerm.set_singleton (__eo_to_smt head))
+                  (__eo_to_smt_set_insert tail base))
+              exact
+                ⟨hRec hHeadLt hEnv hCases.1,
+                  smtTermClosedIn_eo_to_smt_set_insert_rec_below root hRec
+                    hTailLt hEnv hCases.2 hBase⟩
   | Term.UOp _, base, env, vars, hLt, hEnv, hClosed, hBase => by trivial
   | Term.UOp1 _ _, base, env, vars, hLt, hEnv, hClosed, hBase => by trivial
   | Term.UOp2 _ _ _, base, env, vars, hLt, hEnv, hClosed, hBase => by trivial
@@ -3773,8 +3775,18 @@ by
       (op := UserOp.set_insert) (by decide) (by decide)
       hEnv hClosed
   cases xs
-  case __eo_List_nil =>
-    trivial
+  case Apply f arg =>
+    cases f
+    case UOp op =>
+      cases op
+      case _at__at_TypedList_nil =>
+        trivial
+      all_goals
+        exact smtTermClosedIn_eo_to_smt_set_insert_rec_of_closed_rec_using
+          hEnv hRec hCases.1 (hRec hEnv hCases.2)
+    all_goals
+      exact smtTermClosedIn_eo_to_smt_set_insert_rec_of_closed_rec_using
+        hEnv hRec hCases.1 (hRec hEnv hCases.2)
   all_goals
     exact smtTermClosedIn_eo_to_smt_set_insert_rec_of_closed_rec_using
       hEnv hRec hCases.1 (hRec hEnv hCases.2)
@@ -6612,8 +6624,22 @@ by
       (op := UserOp.set_insert) (by decide) (by decide)
       hEnv hClosed
   cases xs
-  case __eo_List_nil =>
-    trivial
+  case Apply f arg =>
+    cases f
+    case UOp op =>
+      cases op
+      case _at__at_TypedList_nil =>
+        trivial
+      all_goals
+        exact smtTermClosedIn_eo_to_smt_set_insert_rec_below
+          _ hRec
+          hXsLt hEnv hCases.1
+          (hRec hXLt hEnv hCases.2)
+    all_goals
+      exact smtTermClosedIn_eo_to_smt_set_insert_rec_below
+        _ hRec
+        hXsLt hEnv hCases.1
+        (hRec hXLt hEnv hCases.2)
   all_goals
     exact smtTermClosedIn_eo_to_smt_set_insert_rec_below
       _ hRec

@@ -71,8 +71,12 @@ def __eo_to_smt_set_empty : SmtType -> SmtTerm
 
 
 def __eo_to_smt_set_insert : Term -> SmtTerm -> SmtTerm
-  | (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) t1) t2), t3 => (SmtTerm.set_union (SmtTerm.set_singleton (__eo_to_smt t1)) (__eo_to_smt_set_insert t2 t3))
-  | (Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) T), t3 => t3
+  | (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) t1) t2), t3 =>
+    (SmtTerm.set_union (SmtTerm.set_singleton (__eo_to_smt t1))
+      (__eo_to_smt_set_insert t2 t3))
+  | (Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) T), t3 =>
+    let _v0 := __eo_to_smt_type T
+    native_ite (native_Teq (__smtx_typeof t3) (SmtType.Set _v0)) t3 SmtTerm.None
   | t2, t3 => SmtTerm.None
 
 

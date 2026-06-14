@@ -2445,18 +2445,22 @@ private theorem eo_to_smt_tuple_prepend_ne_numeral
     eo_to_smt_tuple_prepend_of_type_ne_numeral
       (__smtx_typeof tail) head headTy tail n h
 
-private theorem eo_to_smt_set_insert_ne_numeral_of_not_nil
+private theorem eo_to_smt_set_insert_ne_numeral_of_not_typed_nil
     (xs : Term) (base : SmtTerm) (n : native_Int)
-    (hxs : xs ≠ Term.__eo_List_nil) :
+    (hxs : ∀ T, xs ≠ Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) T) :
     __eo_to_smt_set_insert xs base ≠ SmtTerm.Numeral n := by
   intro h
   cases xs <;> try cases h
-  case __eo_List_nil =>
-    exact False.elim (hxs rfl)
   case Apply f a =>
     cases f <;> try cases h
+    case UOp op =>
+      cases op <;> try cases h
+      case _at__at_TypedList_nil =>
+        exact False.elim (hxs a rfl)
     case Apply g x =>
-      cases g <;> cases h
+      cases g <;> try cases h
+      case UOp op =>
+        cases op <;> cases h
 
 private theorem eo_to_smt_exists_ne_numeral_of_not_nil
     (xs : Term) (body : SmtTerm) (n : native_Int)
@@ -2480,13 +2484,15 @@ private theorem eo_to_smt_apply_set_insert_ne_numeral
     __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) x) ≠
       SmtTerm.Numeral n := by
   intro h
-  cases xs
-  case __eo_List_nil =>
-    change SmtTerm.None = SmtTerm.Numeral n at h
-    cases h
-  all_goals
-    exact False.elim (eo_to_smt_set_insert_ne_numeral_of_not_nil _ (__eo_to_smt x) n
-      (by intro hnil; cases hnil) h)
+  cases xs <;> try cases h
+  case Apply f a =>
+    cases f <;> try cases h
+    case UOp op =>
+      cases op <;> cases h
+    case Apply g head =>
+      cases g <;> try cases h
+      case UOp op =>
+        cases op <;> cases h
 
 private theorem eo_to_smt_apply_forall_ne_numeral
     (xs body : Term) (n : native_Int) :

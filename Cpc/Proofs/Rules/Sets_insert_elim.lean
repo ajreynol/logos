@@ -55,7 +55,10 @@ private theorem eo_mk_apply_eq_of_ne_stuck
 
 private theorem eo_to_smt_set_eval_insert_eq_of_ne_stuck
     (es s : Term)
-    (hEval : __set_eval_insert es s ≠ Term.Stuck) :
+    (hEval : __set_eval_insert es s ≠ Term.Stuck)
+    (hInsertNonNone :
+      __smtx_typeof (__eo_to_smt_set_insert es (__eo_to_smt s)) ≠
+        SmtType.None) :
     __eo_to_smt (__set_eval_insert es s) =
       __eo_to_smt_set_insert es (__eo_to_smt s) := by
   induction es, s using __set_eval_insert.induct with
@@ -68,21 +71,44 @@ private theorem eo_to_smt_set_eval_insert_eq_of_ne_stuck
         simp [__set_eval_insert, __eo_mk_apply, hTail]
       rw [show
           __set_eval_insert
-              (Term.Apply (Term.Apply Term.__eo_List_cons x) xs) t =
+              (Term.Apply
+                (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) x) xs) t =
             __eo_mk_apply
               (Term.Apply Term.set_union
                 (Term.Apply Term.set_singleton x))
               (__set_eval_insert xs t) by
           simp [__set_eval_insert]]
       rw [eo_mk_apply_eq_of_ne_stuck (by simp) hTail]
+      have hTailInsertNonNone :
+          __smtx_typeof (__eo_to_smt_set_insert xs (__eo_to_smt t)) ≠
+            SmtType.None := by
+        have hWholeNN :
+            term_has_non_none_type
+              (SmtTerm.set_union (SmtTerm.set_singleton (__eo_to_smt x))
+                (__eo_to_smt_set_insert xs (__eo_to_smt t))) := by
+          unfold term_has_non_none_type
+          simpa [__eo_to_smt_set_insert] using hInsertNonNone
+        rcases set_binop_args_of_non_none (op := SmtTerm.set_union)
+            (typeof_set_union_eq (SmtTerm.set_singleton (__eo_to_smt x))
+              (__eo_to_smt_set_insert xs (__eo_to_smt t))) hWholeNN with
+          ⟨A, _hHead, hTailTy⟩
+        rw [hTailTy]
+        intro h
+        cases h
       change
         SmtTerm.set_union (SmtTerm.set_singleton (__eo_to_smt x))
           (__eo_to_smt (__set_eval_insert xs t)) =
           SmtTerm.set_union (SmtTerm.set_singleton (__eo_to_smt x))
             (__eo_to_smt_set_insert xs (__eo_to_smt t))
-      rw [ih hTail]
-  | case3 t =>
-      simp [__set_eval_insert, __eo_to_smt_set_insert]
+      rw [ih hTail hTailInsertNonNone]
+  | case3 T t =>
+      cases hTy :
+          native_Teq (__smtx_typeof (__eo_to_smt t))
+            (SmtType.Set (__eo_to_smt_type T))
+      · exfalso
+        apply hInsertNonNone
+        simp [__eo_to_smt_set_insert, hTy, native_ite]
+      · simp [__set_eval_insert, __eo_to_smt_set_insert, hTy, native_ite]
   | case4 es s =>
       simp [__set_eval_insert] at hEval
 
@@ -93,10 +119,14 @@ private theorem eo_to_smt_set_insert_top_eq_of_non_none
     __eo_to_smt (setInsertTerm es s) =
       __eo_to_smt_set_insert es (__eo_to_smt s) := by
   cases es <;> try rfl
-  case __eo_List_nil =>
-    exact False.elim (hNonNone (by
-      change __smtx_typeof SmtTerm.None = SmtType.None
-      exact TranslationProofs.smtx_typeof_none))
+  case Apply f arg =>
+    cases f <;> try rfl
+    case UOp op =>
+      cases op <;> try rfl
+      case _at__at_TypedList_nil =>
+        exact False.elim (hNonNone (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact TranslationProofs.smtx_typeof_none))
 
 private theorem typed___eo_prog_sets_insert_elim_impl
     (es s t : Term)
@@ -159,10 +189,15 @@ private theorem facts___eo_prog_sets_insert_elim_impl
   have hLhsSmt :
       __eo_to_smt lhs = __eo_to_smt_set_insert es (__eo_to_smt s) :=
     eo_to_smt_set_insert_top_eq_of_non_none es s hLhsNonNone
+  have hInsertNonNone :
+      __smtx_typeof (__eo_to_smt_set_insert es (__eo_to_smt s)) ≠
+        SmtType.None := by
+    rw [← hLhsSmt]
+    exact hLhsNonNone
   have hEvalSmt :
       __eo_to_smt evaluated =
         __eo_to_smt_set_insert es (__eo_to_smt s) :=
-    eo_to_smt_set_eval_insert_eq_of_ne_stuck es s hEvalNe
+    eo_to_smt_set_eval_insert_eq_of_ne_stuck es s hEvalNe hInsertNonNone
   have hSmtEq : __eo_to_smt lhs = __eo_to_smt t := by
     rw [hLhsSmt, ← hEvalSmt, hEvalEq]
   have hRel :
