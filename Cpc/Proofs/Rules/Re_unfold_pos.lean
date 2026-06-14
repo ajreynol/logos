@@ -87,7 +87,7 @@ theorem re_unfold_pos_initial_component (t r : Term) :
   have hNat : native_int_to_nat (Int.ofNat j) = j := by
     simp [native_int_to_nat, SmtEval.native_int_to_nat]
   unfold native_ite
-  simp only [idxTerm, __eo_to_smt_nat_is_valid, __eo_to_smt_nat, Nat.zero_add]
+  simp only [__eo_to_smt_nat_is_valid, __eo_to_smt_nat, Nat.zero_add]
   rw [hValid, hNat]
   simp
 
@@ -620,7 +620,7 @@ private theorem native_str_in_re_re_mult_middle_factor
       native_str_in_re ([] : native_String)
         (native_str_to_re ([] : native_String)) = true := by
     simp [native_str_in_re, native_string_valid, native_str_to_re,
-      native_re_of_list, nativeListInRe, native_re_nullable]
+      native_re_of_list, native_re_nullable]
   have hLastConcat :
       native_str_in_re (last ++ ([] : native_String))
         (native_re_concat
@@ -1268,7 +1268,7 @@ private theorem term_ne_stuck_of_smt_type_seq_char (t : Term) :
   intro hTy hStuck
   subst t
   change __smtx_typeof SmtTerm.None = SmtType.Seq SmtType.Char at hTy
-  simp [__smtx_typeof] at hTy
+  simp at hTy
 
 private theorem eo_mk_apply_ne_stuck_of_ne_stuck (f x : Term) :
     f ≠ Term.Stuck ->
@@ -1758,8 +1758,7 @@ private theorem re_unfold_pos_concat_rec_eval_true
                       hTailGuardEval, hTailGuardBool⟩
                     · simp_all [__re_unfold_pos_concat_rec, idxTerm, __eo_add,
                         SmtEval.native_zplus, __pair_first, __pair_second,
-                        hConcatAppEq, hFinalEq, __eo_mk_apply, mkStrConcat,
-                        mkStrToRe]
+                        __eo_mk_apply, mkStrToRe]
                     · have hConcatEvalFirst :=
                         eval_str_concat_of_seq M s1 tailFirst s1Seq rightSeq
                           hs1Eval hTailFirstEval
@@ -1914,7 +1913,7 @@ private theorem re_unfold_pos_concat_rec_eval_true
                       hGuardBool⟩
                     · simp_all [__re_unfold_pos_concat_rec, idxTerm, __eo_add,
                         SmtEval.native_zplus, __pair_first, __pair_second,
-                        hFinalEq, __eo_mk_apply, mkStrToRe]
+                        __eo_mk_apply, mkStrToRe]
                       constructor
                       · simpa [comp, mkAtReUnfoldPosComponent] using hConcatAppEq
                       · simpa [comp, mkAtReUnfoldPosComponent, mkStrInRe] using
@@ -2247,8 +2246,7 @@ private theorem re_unfold_pos_concat_rec_types
                     refine ⟨first, tailGuard, ?_, hFirstTy, hTailGuardBool⟩
                     · simp_all [__re_unfold_pos_concat_rec, idxTerm, __eo_add,
                         SmtEval.native_zplus, __pair_first, __pair_second,
-                        hConcatAppEq, hFinalEq, __eo_mk_apply, mkStrConcat,
-                        mkStrToRe]
+                        __eo_mk_apply, mkStrToRe]
                   · have hComponent0 := hComponent 0
                     let comp :=
                       mkAtReUnfoldPosComponent t ro (idxTerm idx)
@@ -2343,7 +2341,7 @@ private theorem re_unfold_pos_concat_rec_types
                     refine ⟨first, guard, ?_, hFirstTy, hGuardBool⟩
                     · simp_all [__re_unfold_pos_concat_rec, idxTerm, __eo_add,
                         SmtEval.native_zplus, __pair_first, __pair_second,
-                        hFinalEq, __eo_mk_apply, mkStrToRe]
+                        __eo_mk_apply, mkStrToRe]
                       constructor
                       · simpa [comp, mkAtReUnfoldPosComponent] using hConcatAppEq
                       · simpa [comp, mkAtReUnfoldPosComponent, mkStrInRe] using
@@ -2491,9 +2489,8 @@ theorem re_unfold_pos_concat_rec_ne_of_mk_ne (t r1 r2 : Term) :
       (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) r1) r2) =
     Term.Stuck
   cases t <;>
-    simp [__mk_re_unfold_pos, mkReConcat, hRec, __pair_first,
-      __pair_second, __eo_eq, __eo_ite, __eo_mk_apply, native_ite,
-      native_teq]
+    simp [__mk_re_unfold_pos, hRec, __pair_second, __eo_eq, __eo_ite,
+      native_ite, native_teq]
 
 theorem re_unfold_pos_star_rec_ne_of_mk_ne (t r : Term) :
     __mk_re_unfold_pos t (mkReMult r) ≠ Term.Stuck ->
@@ -2504,9 +2501,7 @@ theorem re_unfold_pos_star_rec_ne_of_mk_ne (t r : Term) :
   change __mk_re_unfold_pos t (Term.Apply (Term.UOp UserOp.re_mult) r) =
     Term.Stuck
   cases t <;> cases r <;>
-    simp [__mk_re_unfold_pos, mkReMult, reUnfoldPosStarFactor,
-      mkReConcat, mkReDiff, mkStrToRe, hRec, __mk_re_unfold_pos_star,
-      native_ite, native_teq]
+    simp [__mk_re_unfold_pos, hRec, __mk_re_unfold_pos_star]
 
 theorem re_unfold_pos_star_factor_rec_eq (t r : Term)
     (htNe : t ≠ Term.Stuck) :
@@ -2540,7 +2535,7 @@ theorem re_unfold_pos_star_eq_formula_of_ne_stuck (t r : Term) :
     apply hMkNe
     subst r
     cases t <;>
-      simp [__mk_re_unfold_pos, mkReMult, __mk_re_unfold_pos_star]
+      simp [__mk_re_unfold_pos, __mk_re_unfold_pos_star]
   have hRecEq := re_unfold_pos_star_factor_rec_eq t r htNe
   cases t <;> try exact False.elim (htNe rfl)
   all_goals
@@ -3020,7 +3015,7 @@ theorem re_unfold_pos_concat_eval_true_and_bool
     change __smtx_model_eval M
         (SmtTerm.and (__eo_to_smt eqTerm) (__eo_to_smt guard)) =
       SmtValue.Boolean true
-    simp [andTerm, mkAnd, __smtx_model_eval, __smtx_model_eval_and,
+    simp [__smtx_model_eval, __smtx_model_eval_and,
       hEqEval, hGuardEval, SmtEval.native_and]
   have hFirstNe : first ≠ Term.Stuck :=
     term_ne_stuck_of_smt_type_seq_char first hFirstTy
@@ -3068,8 +3063,8 @@ theorem re_unfold_pos_concat_eval_true_and_bool
       __mk_re_unfold_pos t (mkReConcat r1 r2) =
         __eo_ite (__eo_eq guard (Term.Boolean true)) eqTerm andTerm := by
     cases t <;>
-      simp_all [__mk_re_unfold_pos, mkReConcat, re, hRecEq0, __pair_first,
-        __pair_second, hEqAppEq, hAndAppEq, eqTerm, andTerm, mkEq, mkAnd]
+      simp_all [__mk_re_unfold_pos, mkReConcat, re, __pair_first,
+        __pair_second, eqTerm, andTerm, mkEq, mkAnd]
   by_cases hGuardSyn : guard = Term.Boolean true
   · subst guard
     have hFinal :
@@ -3221,8 +3216,8 @@ theorem re_unfold_pos_concat_has_bool_type
       __mk_re_unfold_pos t (mkReConcat r1 r2) =
         __eo_ite (__eo_eq guard (Term.Boolean true)) eqTerm andTerm := by
     cases t <;>
-      simp_all [__mk_re_unfold_pos, mkReConcat, re, hRecEq0, __pair_first,
-        __pair_second, hEqAppEq, hAndAppEq, eqTerm, andTerm, mkEq, mkAnd]
+      simp_all [__mk_re_unfold_pos, mkReConcat, re, __pair_first,
+        __pair_second, eqTerm, andTerm, mkEq, mkAnd]
   by_cases hGuardSyn : guard = Term.Boolean true
   · subst guard
     have hFinal :
