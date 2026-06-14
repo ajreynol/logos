@@ -1087,14 +1087,6 @@ def __seq_empty : Term -> Term
   | T => (Term.UOp1 UserOp1.seq_empty T)
 
 
-def __str_nary_intro : Term -> Term
-  | Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t) ss) => (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t) ss)
-  | t => 
-    let _v0 := (__seq_empty (__eo_typeof t))
-    (__eo_ite (__eo_eq t _v0) t (__eo_mk_apply (Term.Apply (Term.UOp UserOp.str_concat) t) _v0))
-
-
 def __eo_disamb_type_set_empty : Term -> Term
   | (Term.Apply (Term.UOp UserOp.Set) T) => (Term.Apply (Term.UOp UserOp.Set) T)
   | _ => Term.Stuck
@@ -2398,6 +2390,14 @@ def __str_unify_split : Term -> Term -> Term -> Term
     let _v1 := (Term.Apply (Term.UOp UserOp.str_len) s)
     (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) (Term.Apply (Term.Apply (Term.UOp UserOp.geq) _v0) _v1)) (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) t) _v1) (Term.Apply (Term.Apply (Term.UOp UserOp.neg) _v0) _v1))) (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) s) _v0) (Term.Apply (Term.Apply (Term.UOp UserOp.neg) _v1) _v0)))
   | _, _, _ => Term.Stuck
+
+
+def __str_nary_intro : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t) ss) => (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t) ss)
+  | t => 
+    let _v0 := (__seq_empty (__eo_typeof t))
+    (__eo_ite (__eo_eq t _v0) t (__eo_mk_apply (Term.Apply (Term.UOp UserOp.str_concat) t) _v0))
 
 
 def __re_nary_intro : Term -> Term
