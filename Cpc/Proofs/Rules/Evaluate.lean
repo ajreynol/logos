@@ -5244,6 +5244,28 @@ private theorem eo_len_seq_arg_of_nonstuck
           (native_zeq n (native_mod_total n (native_int_pow2 w))) <;>
       simp [native_ite, hValid] at hTy
 
+private theorem eo_extract_same_seq_int_args_of_nonstuck
+    (x n : Term) {T : SmtType}
+    (hxTy : __smtx_typeof (__eo_to_smt x) = SmtType.Seq T)
+    (_hnTy : __smtx_typeof (__eo_to_smt n) = SmtType.Int)
+    (hExt : __eo_extract x n n ≠ Term.Stuck) :
+    ∃ str : native_String, ∃ i : native_Int,
+      x = Term.String str ∧ n = Term.Numeral i ∧
+        native_string_valid str = true ∧ T = SmtType.Char := by
+  cases x <;> simp [__eo_extract] at hExt
+  case String str =>
+    cases n <;> simp at hExt
+    case Numeral i =>
+      rcases smt_string_seq_type_inv hxTy with ⟨hValid, hT⟩
+      exact ⟨str, i, rfl, rfl, hValid, hT⟩
+  case Binary w nval =>
+    change __smtx_typeof (SmtTerm.Binary w nval) = SmtType.Seq T at hxTy
+    rw [__smtx_typeof.eq_5] at hxTy
+    cases hValid :
+        native_and (native_zleq 0 w)
+          (native_zeq nval (native_mod_total nval (native_int_pow2 w))) <;>
+      simp [native_ite, hValid] at hxTy
+
 private theorem str_to_code_result_string
     {str : native_String}
     (hValid : native_string_valid str = true) :
@@ -5295,6 +5317,20 @@ private theorem native_string_valid_append_local
   rcases List.mem_append.mp hc with hc | hc
   · exact hxs c hc
   · exact hys c hc
+
+private theorem native_string_valid_substr_local
+    {str : native_String} (i n : native_Int)
+    (hValid : native_string_valid str = true) :
+    native_string_valid (native_str_substr str i n) = true := by
+  unfold native_str_substr
+  by_cases hGuard :
+      (decide (i < 0) || decide (n ≤ 0) ||
+          decide (i ≥ native_str_len str)) = true
+  · simp [hGuard, native_string_valid]
+  ·
+    simp [hGuard]
+    exact native_string_valid_take _
+      (native_string_valid_drop (Int.toNat i) hValid)
 
 private theorem eo_eq_true_eq_local
     (x y : Term) :
@@ -5483,6 +5519,29 @@ private theorem elem_typeof_pack_seq_local (T : SmtType) :
   | _ :: xs => by
       simp [native_pack_seq, __smtx_elem_typeof_seq_value,
         elem_typeof_pack_seq_local T xs]
+
+private theorem native_seq_extract_pack_string_one
+    (s : native_String) (i : native_Int) :
+    native_pack_seq SmtType.Char
+        (native_seq_extract (native_unpack_seq (native_pack_string s)) i 1) =
+      native_pack_string (native_str_substr s i 1) := by
+  simp only [native_pack_string, native_seq_extract, native_str_substr,
+    native_str_len, native_unpack_pack_seq_local]
+  by_cases h : i < 0 ∨ ↑s.length ≤ i
+  · simp [h]
+  · simp [h]
+
+private theorem eo_extract_string_same_index
+    (s : native_String) (i : native_Int) :
+    __eo_extract (Term.String s) (Term.Numeral i) (Term.Numeral i) =
+      Term.String (native_str_substr s i 1) := by
+  simp [__eo_extract]
+  have h :
+      native_zplus (native_zplus i (native_zneg i)) 1 = (1 : native_Int) := by
+    change (i + -i) + 1 = (1 : native_Int)
+    rw [Int.add_right_neg]
+    rfl
+  rw [h]
 
 private theorem smt_value_rel_seq_right_local
     {v : SmtValue} {s : SmtSeq} :
@@ -16906,6 +16965,164 @@ private theorem run_evaluate_sound_apply_str_concat_core
       elem_typeof_pack_seq_local, List.map_append,
       RuleProofs.smtx_model_eval_eq_refl]
 
+private theorem run_evaluate_sound_apply_str_at_core
+    (M : SmtModel) (hM : model_total_typed M)
+    (a b : Term)
+    (rec :
+      ∀ A : Term,
+        sizeOf A <
+            sizeOf (Term.Apply (Term.Apply (Term.UOp UserOp.str_at) a) b) ->
+          RunEvaluateSoundGoal M A) :
+  RunEvaluateSoundGoal M
+    (Term.Apply (Term.Apply (Term.UOp UserOp.str_at) a) b) := by
+  intro hATrans hEvalTy
+  have hAtNN :
+      term_has_non_none_type
+        (SmtTerm.str_at (__eo_to_smt a) (__eo_to_smt b)) := by
+    unfold term_has_non_none_type
+    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+  rcases str_at_args_of_non_none hAtNN with ⟨T, hATy, hBTy⟩
+  have hATransA : RuleProofs.eo_has_smt_translation a := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hATy]
+    simp
+  have hBTrans : RuleProofs.eo_has_smt_translation b := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hBTy]
+    simp
+  have hAProgTy : __eo_typeof (__eo_prog_evaluate a) = Term.Bool :=
+    eo_prog_evaluate_typeof_bool_of_smt_type_seq a T hATransA hATy
+  have hBProgTy : __eo_typeof (__eo_prog_evaluate b) = Term.Bool :=
+    eo_prog_evaluate_typeof_bool_of_smt_type_int b hBTrans hBTy
+  let runA := __run_evaluate a
+  let runB := __run_evaluate b
+  let runAt := __eo_extract runA runB runB
+  have hRunAtNe : runAt ≠ Term.Stuck := by
+    intro hStuck
+    change
+      __eo_typeof
+          (__eo_mk_apply
+            (Term.Apply (Term.UOp UserOp.eq)
+              (Term.Apply (Term.Apply (Term.UOp UserOp.str_at) a) b))
+            runAt) =
+        Term.Bool at hEvalTy
+    rw [hStuck] at hEvalTy
+    change Term.Stuck = Term.Bool at hEvalTy
+    cases hEvalTy
+  rcases run_evaluate_rec_apply_apply_arg M
+      (Term.UOp UserOp.str_at) a b rec hATransA hAProgTy with
+    ⟨hASameTy, hARel⟩
+  rcases run_evaluate_rec_apply_arg M
+      (Term.Apply (Term.UOp UserOp.str_at) a) b rec
+      hBTrans hBProgTy with
+    ⟨hBSameTy, hBRel⟩
+  have hRunATy :
+      __smtx_typeof (__eo_to_smt runA) = SmtType.Seq T := by
+    simpa [runA] using hASameTy.symm.trans hATy
+  have hRunBTy :
+      __smtx_typeof (__eo_to_smt runB) = SmtType.Int := by
+    simpa [runB] using hBSameTy.symm.trans hBTy
+  rcases eo_extract_same_seq_int_args_of_nonstuck runA runB
+      hRunATy hRunBTy (by simpa [runAt] using hRunAtNe) with
+    ⟨str, i, hRunA, hRunB, hValid, hTChar⟩
+  subst T
+  have hRunAtEq :
+      runAt = Term.String (native_str_substr str i 1) := by
+    dsimp [runAt]
+    rw [hRunA, hRunB]
+    exact eo_extract_string_same_index str i
+  have hSubValid :
+      native_string_valid (native_str_substr str i 1) = true :=
+    native_string_valid_substr_local i 1 hValid
+  change
+    __smtx_typeof (SmtTerm.str_at (__eo_to_smt a) (__eo_to_smt b)) =
+        __smtx_typeof (__eo_to_smt runAt) ∧
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M
+          (SmtTerm.str_at (__eo_to_smt a) (__eo_to_smt b)))
+        (__smtx_model_eval M (__eo_to_smt runAt))
+  rw [hRunAtEq]
+  constructor
+  · change
+      __smtx_typeof (SmtTerm.str_at (__eo_to_smt a) (__eo_to_smt b)) =
+        __smtx_typeof (SmtTerm.String (native_str_substr str i 1))
+    rw [typeof_str_at_eq]
+    simp [__smtx_typeof_str_at, __smtx_typeof, hATy, hBTy,
+      hSubValid, native_ite]
+  · have hStrEval :
+        __smtx_model_eval M (__eo_to_smt (Term.String str)) =
+          SmtValue.Seq (native_pack_string str) := by
+      rw [show __eo_to_smt (Term.String str) = SmtTerm.String str by rfl]
+      rw [__smtx_model_eval.eq_4]
+    have hIdxEval :
+        __smtx_model_eval M (__eo_to_smt (Term.Numeral i)) =
+          SmtValue.Numeral i := by
+      rw [show __eo_to_smt (Term.Numeral i) = SmtTerm.Numeral i by rfl]
+      rw [__smtx_model_eval.eq_2]
+    have hARelRun :
+        RuleProofs.smt_value_rel
+          (__smtx_model_eval M (__eo_to_smt a))
+          (__smtx_model_eval M (__eo_to_smt runA)) := by
+      simpa [runA] using hARel
+    have hBRelRun :
+        RuleProofs.smt_value_rel
+          (__smtx_model_eval M (__eo_to_smt b))
+          (__smtx_model_eval M (__eo_to_smt runB)) := by
+      simpa [runB] using hBRel
+    have hARelString :
+        RuleProofs.smt_value_rel
+          (__smtx_model_eval M (__eo_to_smt a))
+          (__smtx_model_eval M (__eo_to_smt (Term.String str))) := by
+      simpa [hRunA] using hARelRun
+    have hBRelNumeralTerm :
+        RuleProofs.smt_value_rel
+          (__smtx_model_eval M (__eo_to_smt b))
+          (__smtx_model_eval M (__eo_to_smt (Term.Numeral i))) := by
+      simpa [hRunB] using hBRelRun
+    have hARelSeq :
+        RuleProofs.smt_value_rel
+          (__smtx_model_eval M (__eo_to_smt a))
+          (SmtValue.Seq (native_pack_string str)) := by
+      simpa [hStrEval] using hARelString
+    have hBRelNumeral :
+        RuleProofs.smt_value_rel
+          (__smtx_model_eval M (__eo_to_smt b))
+          (SmtValue.Numeral i) := by
+      simpa [hIdxEval] using hBRelNumeralTerm
+    rcases smt_value_rel_seq_right_local hARelSeq with
+      ⟨strEval, hAEval, hASeqRel⟩
+    have hASeqEq :
+        strEval = native_pack_string str :=
+      (RuleProofs.smt_seq_rel_iff_eq _ _).1 hASeqRel
+    have hBEval :
+        __smtx_model_eval M (__eo_to_smt b) = SmtValue.Numeral i :=
+      smt_value_rel_numeral_eq _ i hBRelNumeral
+    have hSubEval :
+        __smtx_model_eval M
+            (__eo_to_smt (Term.String (native_str_substr str i 1))) =
+          SmtValue.Seq (native_pack_string (native_str_substr str i 1)) := by
+      rw [show
+          __eo_to_smt (Term.String (native_str_substr str i 1)) =
+            SmtTerm.String (native_str_substr str i 1) by
+        rfl]
+      rw [__smtx_model_eval.eq_4]
+    unfold RuleProofs.smt_value_rel
+    rw [show
+        __smtx_model_eval M
+            (SmtTerm.str_at (__eo_to_smt a) (__eo_to_smt b)) =
+          __smtx_model_eval_str_at
+            (__smtx_model_eval M (__eo_to_smt a))
+            (__smtx_model_eval M (__eo_to_smt b)) by
+      simp [__smtx_model_eval]]
+    rw [hAEval, hASeqEq, hBEval, hSubEval]
+    simp only [__smtx_model_eval_str_at, __smtx_model_eval_str_substr]
+    rw [show
+        __smtx_elem_typeof_seq_value (native_pack_string str) =
+          SmtType.Char by
+      simp [native_pack_string, elem_typeof_pack_seq_local]]
+    rw [native_seq_extract_pack_string_one]
+    exact RuleProofs.smtx_model_eval_eq_refl _
+
 private theorem run_evaluate_sound_apply_str_len_core
     (M : SmtModel) (hM : model_total_typed M)
     (b : Term)
@@ -19034,6 +19251,8 @@ private theorem run_evaluate_sound_active_apply_core
               exact run_evaluate_sound_apply_xor_core M hM y x rec hATrans hEvalTy
           | UserOp.str_concat =>
               exact run_evaluate_sound_apply_str_concat_core M hM y x rec hATrans hEvalTy
+          | UserOp.str_at =>
+              exact run_evaluate_sound_apply_str_at_core M hM y x rec hATrans hEvalTy
           | UserOp.plus =>
               exact run_evaluate_sound_apply_plus_core M hM y x rec hATrans hEvalTy
           | UserOp.neg =>
