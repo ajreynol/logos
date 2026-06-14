@@ -3397,8 +3397,8 @@ def __eo_prog_sets_eval_op : Term -> Term
 
 def __set_eval_insert : Term -> Term -> Term
   | _ , Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.Apply Term.__eo_List_cons x) xs), t => (__eo_mk_apply (Term.Apply (Term.UOp UserOp.set_union) (Term.Apply (Term.UOp UserOp.set_singleton) x)) (__set_eval_insert xs t))
-  | Term.__eo_List_nil, t => t
+  | (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) x) xs), t => (__eo_mk_apply (Term.Apply (Term.UOp UserOp.set_union) (Term.Apply (Term.UOp UserOp.set_singleton) x)) (__set_eval_insert xs t))
+  | (Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) T), t => t
   | _, _ => Term.Stuck
 
 
@@ -8386,7 +8386,7 @@ def __eo_typeof_set_is_empty : Term -> Term
 
 
 def __eo_typeof_set_insert : Term -> Term -> Term
-  | Term.__eo_List, (Term.Apply (Term.UOp UserOp.Set) T) => (Term.Apply (Term.UOp UserOp.Set) T)
+  | (Term.Apply (Term.UOp UserOp._at__at_TypedList) T), (Term.Apply (Term.UOp UserOp.Set) __eo_lv_T_2) => (__eo_requires (__eo_eq T __eo_lv_T_2) (Term.Boolean true) (Term.Apply (Term.UOp UserOp.Set) T))
   | _, _ => Term.Stuck
 
 
