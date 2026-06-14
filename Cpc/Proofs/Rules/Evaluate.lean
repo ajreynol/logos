@@ -394,6 +394,255 @@ private theorem native_str_from_code_invalid
     rw [hGuard]
     rfl
 
+private def eo_eval_str_from_code_rhs (n : Term) : Term :=
+  let _v0 := __run_evaluate n
+  __eo_ite
+    (__eo_ite (__eo_is_z _v0)
+      (__eo_ite
+        (__eo_ite (__eo_eq (Term.Numeral 196608) _v0)
+          (Term.Boolean true) (__eo_gt (Term.Numeral 196608) _v0))
+        (__eo_not (__eo_is_neg _v0)) (Term.Boolean false))
+      (Term.Boolean false))
+    (__eo_to_str n) (Term.String [])
+
+private theorem eo_eval_str_from_code_rhs_numeral_valid
+    {n : native_Int}
+    (h0 : 0 ≤ n)
+    (hlt : n < 196608) :
+    eo_eval_str_from_code_rhs (Term.Numeral n) =
+      Term.String (native_str_from_code n) := by
+  have hNotNeg : native_zlt n 0 = false := by
+    rw [show native_zlt n 0 = decide (n < 0) by rfl]
+    exact decide_eq_false (Int.not_lt.mpr h0)
+  have hLt : native_zlt n 196608 = true := by
+    rw [show native_zlt n 196608 = decide (n < 196608) by rfl]
+    exact decide_eq_true hlt
+  have hNonneg : native_zleq 0 n = true := by
+    rw [show native_zleq 0 n = decide (0 ≤ n) by rfl]
+    exact decide_eq_true h0
+  have hNe : n ≠ 196608 := by
+    intro hEq
+    have hSelf : (196608 : Int) < 196608 := by
+      simpa [hEq] using hlt
+    have hNotSelf : ¬ (196608 : Int) < 196608 := by
+      decide
+    exact hNotSelf hSelf
+  have hNeSymm : (196608 : Int) ≠ n := by
+    intro hEq
+    exact hNe hEq.symm
+  dsimp [eo_eval_str_from_code_rhs]
+  rw [show __run_evaluate (Term.Numeral n) = Term.Numeral n by rfl]
+  simp [__eo_ite, native_ite, native_teq, __eo_is_z, __eo_eq, __eo_gt,
+    __eo_to_str, __eo_is_neg, __eo_not, __eo_is_z_internal,
+    native_and, native_not, hNotNeg, hLt, hNonneg, hNe]
+
+private theorem eo_eval_str_from_code_rhs_numeral_invalid_guard
+    {n : native_Int}
+    (hBad : ¬ (0 ≤ n ∧ n ≤ 196608)) :
+    eo_eval_str_from_code_rhs (Term.Numeral n) = Term.String [] := by
+  by_cases h0 : 0 ≤ n
+  · have hNotNeg : native_zlt n 0 = false := by
+      rw [show native_zlt n 0 = decide (n < 0) by rfl]
+      exact decide_eq_false (Int.not_lt.mpr h0)
+    have hGt : native_zlt n 196608 = false := by
+      rw [show native_zlt n 196608 = decide (n < 196608) by rfl]
+      exact decide_eq_false (by
+        intro hlt
+        exact hBad ⟨h0, Int.le_of_lt hlt⟩)
+    have hEq : native_zeq 196608 n = false := by
+      rw [show native_zeq 196608 n = decide ((196608 : Int) = n) by rfl]
+      exact decide_eq_false (by
+        intro hEq
+        have hnle : n ≤ 196608 := by
+          rw [← hEq]
+          exact Int.le_refl 196608
+        exact hBad ⟨h0, hnle⟩)
+    have hNe : n ≠ 196608 := by
+      intro hn
+      exact hBad ⟨h0, by rw [hn]; exact Int.le_refl 196608⟩
+    have hNeSymm : (196608 : Int) ≠ n := by
+      intro hn
+      exact hNe hn.symm
+    dsimp [eo_eval_str_from_code_rhs]
+    rw [show __run_evaluate (Term.Numeral n) = Term.Numeral n by rfl]
+    simp [__eo_ite, native_ite, native_teq, __eo_is_z, __eo_eq, __eo_gt,
+      __eo_is_z_internal, native_and, native_not, hGt, hNe]
+  · have hNeg : native_zlt n 0 = true := by
+      rw [show native_zlt n 0 = decide (n < 0) by rfl]
+      exact decide_eq_true (Int.lt_of_not_ge h0)
+    have hLt : native_zlt n 196608 = true := by
+      rw [show native_zlt n 196608 = decide (n < 196608) by rfl]
+      exact decide_eq_true (by
+        exact Int.lt_trans (Int.lt_of_not_ge h0) (by decide))
+    have hNe : n ≠ 196608 := by
+      intro hn
+      exact h0 (by rw [hn]; decide)
+    have hNeSymm : (196608 : Int) ≠ n := by
+      intro hn
+      exact hNe hn.symm
+    dsimp [eo_eval_str_from_code_rhs]
+    rw [show __run_evaluate (Term.Numeral n) = Term.Numeral n by rfl]
+    simp [__eo_ite, native_ite, native_teq, __eo_is_z, __eo_eq, __eo_gt,
+      __eo_is_neg, __eo_not, __eo_is_z_internal, native_and, native_not,
+      hNeg, hLt, hNe]
+
+private theorem eo_eval_str_from_code_rhs_run_numeral_invalid_guard
+    {x : Term} {n : native_Int}
+    (hRun : __run_evaluate x = Term.Numeral n)
+    (hBad : ¬ (0 ≤ n ∧ n ≤ 196608)) :
+    eo_eval_str_from_code_rhs x = Term.String [] := by
+  by_cases h0 : 0 ≤ n
+  · have hNotNeg : native_zlt n 0 = false := by
+      rw [show native_zlt n 0 = decide (n < 0) by rfl]
+      exact decide_eq_false (Int.not_lt.mpr h0)
+    have hGt : native_zlt n 196608 = false := by
+      rw [show native_zlt n 196608 = decide (n < 196608) by rfl]
+      exact decide_eq_false (by
+        intro hlt
+        exact hBad ⟨h0, Int.le_of_lt hlt⟩)
+    have hEq : native_zeq 196608 n = false := by
+      rw [show native_zeq 196608 n = decide ((196608 : Int) = n) by rfl]
+      exact decide_eq_false (by
+        intro hEq
+        have hnle : n ≤ 196608 := by
+          rw [← hEq]
+          exact Int.le_refl 196608
+        exact hBad ⟨h0, hnle⟩)
+    have hNe : n ≠ 196608 := by
+      intro hn
+      exact hBad ⟨h0, by rw [hn]; exact Int.le_refl 196608⟩
+    have hNeSymm : (196608 : Int) ≠ n := by
+      intro hn
+      exact hNe hn.symm
+    dsimp [eo_eval_str_from_code_rhs]
+    rw [hRun]
+    simp [__eo_ite, native_ite, native_teq, __eo_is_z, __eo_eq, __eo_gt,
+      __eo_is_z_internal, native_and, native_not, hGt, hNe]
+  · have hNeg : native_zlt n 0 = true := by
+      rw [show native_zlt n 0 = decide (n < 0) by rfl]
+      exact decide_eq_true (Int.lt_of_not_ge h0)
+    have hLt : native_zlt n 196608 = true := by
+      rw [show native_zlt n 196608 = decide (n < 196608) by rfl]
+      exact decide_eq_true (Int.lt_trans (Int.lt_of_not_ge h0) (by decide))
+    have hNe : (196608 : Int) ≠ n := by
+      intro hn
+      exact h0 (by rw [← hn]; decide)
+    dsimp [eo_eval_str_from_code_rhs]
+    rw [hRun]
+    simp [__eo_ite, native_ite, native_teq, __eo_is_z, __eo_eq, __eo_gt,
+      __eo_is_neg, __eo_not, __eo_is_z_internal, native_and, native_not,
+      hNeg, hLt]
+
+private theorem eo_eval_str_from_code_rhs_run_numeral_valid
+    {x : Term} {n : native_Int}
+    (hRun : __run_evaluate x = Term.Numeral n)
+    (hXEoInt : __eo_typeof x = Term.UOp UserOp.Int)
+    (hRunFromNe : eo_eval_str_from_code_rhs x ≠ Term.Stuck)
+    (h0 : 0 ≤ n)
+    (hlt : n < 196608) :
+    eo_eval_str_from_code_rhs x =
+      Term.String (native_str_from_code n) := by
+  have hNotNeg : native_zlt n 0 = false := by
+    rw [show native_zlt n 0 = decide (n < 0) by rfl]
+    exact decide_eq_false (Int.not_lt.mpr h0)
+  have hLt : native_zlt n 196608 = true := by
+    rw [show native_zlt n 196608 = decide (n < 196608) by rfl]
+    exact decide_eq_true hlt
+  have hNonneg : native_zleq 0 n = true := by
+    rw [show native_zleq 0 n = decide (0 ≤ n) by rfl]
+    exact decide_eq_true h0
+  have hNe : n ≠ 196608 := by
+    intro hEq
+    have hSelf : (196608 : Int) < 196608 := by
+      simpa [hEq] using hlt
+    exact (by decide : ¬ (196608 : Int) < 196608) hSelf
+  have hNeSymm : (196608 : Int) ≠ n := by
+    intro hEq
+    exact hNe hEq.symm
+  cases x
+  case Numeral m =>
+    change Term.Numeral m = Term.Numeral n at hRun
+    cases hRun
+    exact eo_eval_str_from_code_rhs_numeral_valid h0 hlt
+  case String s =>
+    change
+      Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char) =
+        Term.UOp UserOp.Int at hXEoInt
+    cases hXEoInt
+  all_goals
+    exfalso
+    apply hRunFromNe
+    dsimp [eo_eval_str_from_code_rhs]
+    rw [hRun]
+    simp [__eo_ite, native_ite, native_teq, __eo_is_z, __eo_eq, __eo_gt,
+      __eo_is_neg, __eo_not, __eo_is_z_internal, native_and, native_not,
+      __eo_to_str, hNotNeg, hLt, hNe]
+
+private theorem eo_eval_str_from_code_rhs_run_numeral_eq_max_false
+    {x : Term}
+    (hRun : __run_evaluate x = Term.Numeral 196608)
+    (hXEoInt : __eo_typeof x = Term.UOp UserOp.Int)
+    (hRunFromNe : eo_eval_str_from_code_rhs x ≠ Term.Stuck) :
+    False := by
+  have hNotNeg : native_zlt (196608 : Int) 0 = false := by
+    rw [show native_zlt (196608 : Int) 0 =
+      decide ((196608 : Int) < 0) by rfl]
+    exact decide_eq_false (by decide)
+  have hLtFalse : native_zlt (196608 : Int) 196608 = false := by
+    rw [show native_zlt (196608 : Int) 196608 =
+      decide ((196608 : Int) < 196608) by rfl]
+    exact decide_eq_false (by decide)
+  have hNonneg : native_zleq 0 (196608 : Int) = true := by
+    rw [show native_zleq 0 (196608 : Int) =
+      decide (0 ≤ (196608 : Int)) by rfl]
+    exact decide_eq_true (by decide)
+  cases x
+  case Numeral m =>
+    change Term.Numeral m = Term.Numeral 196608 at hRun
+    cases hRun
+    apply hRunFromNe
+    dsimp [eo_eval_str_from_code_rhs]
+    rw [show __run_evaluate (Term.Numeral (196608 : Int)) =
+      Term.Numeral 196608 by rfl]
+    simp [__eo_ite, native_ite, native_teq, __eo_is_z, __eo_eq,
+      __eo_is_neg, __eo_not, __eo_is_z_internal, native_and, native_not,
+      __eo_to_str, hNotNeg, hLtFalse, hNonneg]
+  case String s =>
+    change
+      Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char) =
+        Term.UOp UserOp.Int at hXEoInt
+    cases hXEoInt
+  all_goals
+    apply hRunFromNe
+    dsimp [eo_eval_str_from_code_rhs]
+    rw [hRun]
+    simp [__eo_ite, native_ite, native_teq, __eo_is_z, __eo_eq,
+      __eo_is_neg, __eo_not, __eo_is_z_internal, native_and, native_not,
+      __eo_to_str, hNotNeg]
+
+private theorem eo_eval_str_from_code_rhs_run_numeral_eq
+    {x : Term} {n : native_Int}
+    (hRun : __run_evaluate x = Term.Numeral n)
+    (hXEoInt : __eo_typeof x = Term.UOp UserOp.Int)
+    (hRunFromNe : eo_eval_str_from_code_rhs x ≠ Term.Stuck) :
+    eo_eval_str_from_code_rhs x =
+      Term.String (native_str_from_code n) := by
+  by_cases hGuard : 0 ≤ n ∧ n ≤ 196608
+  · rcases hGuard with ⟨h0, hnLe⟩
+    by_cases hlt : n < 196608
+    · exact eo_eval_str_from_code_rhs_run_numeral_valid
+        hRun hXEoInt hRunFromNe h0 hlt
+    · have hGe : (196608 : Int) ≤ n := Int.le_of_not_gt hlt
+      have hEq : n = 196608 := Int.le_antisymm hnLe hGe
+      subst n
+      exact False.elim
+        (eo_eval_str_from_code_rhs_run_numeral_eq_max_false
+          hRun hXEoInt hRunFromNe)
+  · rw [eo_eval_str_from_code_rhs_run_numeral_invalid_guard hRun hGuard]
+    rw [native_str_from_code_invalid (by
+      intro hStrict
+      exact hGuard ⟨hStrict.1, Int.le_of_lt hStrict.2⟩)]
+
 private theorem str_case_lower_guard_singleton
     (c : native_Char) :
     __eo_and
