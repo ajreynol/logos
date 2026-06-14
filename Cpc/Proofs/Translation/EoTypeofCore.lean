@@ -2488,7 +2488,26 @@ private theorem eo_to_smt_apply_set_insert_ne_numeral
   case Apply f a =>
     cases f <;> try cases h
     case UOp op =>
-      cases op <;> cases h
+      cases op <;> try cases h
+      case _at__at_TypedList_nil =>
+        cases hTy :
+            native_Teq (__smtx_typeof (__eo_to_smt x))
+              (SmtType.Set (__eo_to_smt_type a))
+        · change
+            __eo_to_smt_set_insert
+                (Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) a)
+                (__eo_to_smt x) =
+              SmtTerm.Numeral n at h
+          simp [__eo_to_smt_set_insert, hTy, native_ite] at h
+        · change
+            __eo_to_smt_set_insert
+                (Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) a)
+                (__eo_to_smt x) =
+              SmtTerm.Numeral n at h
+          simp [__eo_to_smt_set_insert, hTy, native_ite] at h
+          change __eo_to_smt x = SmtTerm.Numeral n at h
+          rw [h] at hTy
+          simp [__smtx_typeof, native_Teq] at hTy
     case Apply g head =>
       cases g <;> try cases h
       case UOp op =>

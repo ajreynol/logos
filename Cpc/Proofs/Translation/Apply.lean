@@ -903,6 +903,86 @@ private theorem eo_to_smt_quant_skolemize_ne_dt_cons
   intro h
   cases body <;> cases h
 
+private theorem smt_type_eq_of_native_Teq_true
+    {A B : SmtType} (h : native_Teq A B = true) : A = B := by
+  simpa [native_Teq] using h
+
+private theorem smtx_typeof_dt_cons_rec_datatype_ne_set
+    (s : native_String) (base : SmtDatatype) :
+    ∀ (d : SmtDatatype) (i : native_Nat) (A : SmtType),
+      __smtx_typeof_dt_cons_rec (SmtType.Datatype s base) d i ≠ SmtType.Set A
+  | SmtDatatype.null, i, A => by
+      cases i <;> simp [__smtx_typeof_dt_cons_rec]
+  | SmtDatatype.sum c d, native_nat_zero, A => by
+      cases c <;> simp [__smtx_typeof_dt_cons_rec]
+  | SmtDatatype.sum c d, native_nat_succ n, A => by
+      simpa [__smtx_typeof_dt_cons_rec] using
+        smtx_typeof_dt_cons_rec_datatype_ne_set s base d n A
+
+private theorem smtx_typeof_dt_cons_ne_set
+    (s : native_String) (d : SmtDatatype) (i : native_Nat) (A : SmtType) :
+    __smtx_typeof (SmtTerm.DtCons s d i) ≠ SmtType.Set A := by
+  intro h
+  rw [Smtm.typeof_dt_cons_eq] at h
+  cases hWf : __smtx_type_wf (SmtType.Datatype s d) <;>
+    simp [__smtx_typeof_guard_wf, hWf, native_ite] at h
+  exact smtx_typeof_dt_cons_rec_datatype_ne_set
+    s d (__smtx_dt_substitute s d d) i A h
+
+private theorem eo_to_smt_set_insert_typed_nil_ne_dt_sel
+    (T x : Term) (s : native_String) (d : SmtDatatype) (i j : native_Nat) :
+    __eo_to_smt_set_insert
+        (Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) T)
+        (__eo_to_smt x) ≠
+      SmtTerm.DtSel s d i j := by
+  intro h
+  cases hTy :
+      native_Teq (__smtx_typeof (__eo_to_smt x))
+        (SmtType.Set (__eo_to_smt_type T))
+  · simp [__eo_to_smt_set_insert, hTy, native_ite] at h
+  · have hEq := smt_type_eq_of_native_Teq_true hTy
+    simp [__eo_to_smt_set_insert, hTy, native_ite] at h
+    rw [h] at hEq
+    have hNone : __smtx_typeof (SmtTerm.DtSel s d i j) = SmtType.None := by
+      rw [__smtx_typeof.eq_def]
+    rw [hNone] at hEq
+    cases hEq
+
+private theorem eo_to_smt_set_insert_typed_nil_ne_dt_tester
+    (T x : Term) (s : native_String) (d : SmtDatatype) (i : native_Nat) :
+    __eo_to_smt_set_insert
+        (Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) T)
+        (__eo_to_smt x) ≠
+      SmtTerm.DtTester s d i := by
+  intro h
+  cases hTy :
+      native_Teq (__smtx_typeof (__eo_to_smt x))
+        (SmtType.Set (__eo_to_smt_type T))
+  · simp [__eo_to_smt_set_insert, hTy, native_ite] at h
+  · have hEq := smt_type_eq_of_native_Teq_true hTy
+    simp [__eo_to_smt_set_insert, hTy, native_ite] at h
+    rw [h] at hEq
+    have hNone : __smtx_typeof (SmtTerm.DtTester s d i) = SmtType.None := by
+      rw [__smtx_typeof.eq_def]
+    rw [hNone] at hEq
+    cases hEq
+
+private theorem eo_to_smt_set_insert_typed_nil_ne_dt_cons
+    (T x : Term) (s : native_String) (d : SmtDatatype) (i : native_Nat) :
+    __eo_to_smt_set_insert
+        (Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) T)
+        (__eo_to_smt x) ≠
+      SmtTerm.DtCons s d i := by
+  intro h
+  cases hTy :
+      native_Teq (__smtx_typeof (__eo_to_smt x))
+        (SmtType.Set (__eo_to_smt_type T))
+  · simp [__eo_to_smt_set_insert, hTy, native_ite] at h
+  · have hEq := smt_type_eq_of_native_Teq_true hTy
+    simp [__eo_to_smt_set_insert, hTy, native_ite] at h
+    rw [h] at hEq
+    exact smtx_typeof_dt_cons_ne_set s d i (__eo_to_smt_type T) hEq
+
 private theorem eo_to_smt_set_insert_top_ne_dt_sel
     (xs x : Term) (s : native_String) (d : SmtDatatype) (i j : native_Nat) :
     __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) x) ≠
@@ -912,7 +992,15 @@ private theorem eo_to_smt_set_insert_top_ne_dt_sel
   case Apply f tail =>
     cases f <;> try cases h
     case UOp op =>
-      cases op <;> cases h
+      cases op <;> try cases h
+      case _at__at_TypedList_nil =>
+        exact eo_to_smt_set_insert_typed_nil_ne_dt_sel tail x s d i j (by
+          change
+            __eo_to_smt_set_insert
+                (Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) tail)
+                (__eo_to_smt x) =
+              SmtTerm.DtSel s d i j at h
+          exact h)
     case Apply g head =>
       cases g <;> try cases h
       case UOp op =>
@@ -927,7 +1015,15 @@ private theorem eo_to_smt_set_insert_top_ne_dt_tester
   case Apply f tail =>
     cases f <;> try cases h
     case UOp op =>
-      cases op <;> cases h
+      cases op <;> try cases h
+      case _at__at_TypedList_nil =>
+        exact eo_to_smt_set_insert_typed_nil_ne_dt_tester tail x s d i (by
+          change
+            __eo_to_smt_set_insert
+                (Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) tail)
+                (__eo_to_smt x) =
+              SmtTerm.DtTester s d i at h
+          exact h)
     case Apply g head =>
       cases g <;> try cases h
       case UOp op =>
@@ -942,7 +1038,15 @@ private theorem eo_to_smt_set_insert_top_ne_dt_cons
   case Apply f tail =>
     cases f <;> try cases h
     case UOp op =>
-      cases op <;> cases h
+      cases op <;> try cases h
+      case _at__at_TypedList_nil =>
+        exact eo_to_smt_set_insert_typed_nil_ne_dt_cons tail x s d i (by
+          change
+            __eo_to_smt_set_insert
+                (Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) tail)
+                (__eo_to_smt x) =
+              SmtTerm.DtCons s d i at h
+          exact h)
     case Apply g head =>
       cases g <;> try cases h
       case UOp op =>

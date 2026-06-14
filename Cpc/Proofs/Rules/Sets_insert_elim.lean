@@ -118,15 +118,7 @@ private theorem eo_to_smt_set_insert_top_eq_of_non_none
       __smtx_typeof (__eo_to_smt (setInsertTerm es s)) ≠ SmtType.None) :
     __eo_to_smt (setInsertTerm es s) =
       __eo_to_smt_set_insert es (__eo_to_smt s) := by
-  cases es <;> try rfl
-  case Apply f arg =>
-    cases f <;> try rfl
-    case UOp op =>
-      cases op <;> try rfl
-      case _at__at_TypedList_nil =>
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact TranslationProofs.smtx_typeof_none))
+  rfl
 
 private theorem typed___eo_prog_sets_insert_elim_impl
     (es s t : Term)

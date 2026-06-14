@@ -3780,7 +3780,8 @@ by
     case UOp op =>
       cases op
       case _at__at_TypedList_nil =>
-        trivial
+        exact smtTermClosedIn_eo_to_smt_set_insert_rec_of_closed_rec_using
+          hEnv hRec hCases.1 (hRec hEnv hCases.2)
       all_goals
         exact smtTermClosedIn_eo_to_smt_set_insert_rec_of_closed_rec_using
           hEnv hRec hCases.1 (hRec hEnv hCases.2)
@@ -6629,7 +6630,10 @@ by
     case UOp op =>
       cases op
       case _at__at_TypedList_nil =>
-        trivial
+        exact smtTermClosedIn_eo_to_smt_set_insert_rec_below
+          _ hRec
+          hXsLt hEnv hCases.1
+          (hRec hXLt hEnv hCases.2)
       all_goals
         exact smtTermClosedIn_eo_to_smt_set_insert_rec_below
           _ hRec
