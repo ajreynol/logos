@@ -1294,6 +1294,63 @@ private theorem str_rev_string_char_chain :
       rw [eo_list_rev_strCharChain s]
       exact str_collect_elim_strCharChain s.reverse
 
+private theorem str_leq_eval_rec_strCharChain :
+    ∀ s t : native_String,
+      native_string_valid s = true ->
+      native_string_valid t = true ->
+        __str_leq_eval_rec (strCharChain s) (strCharChain t) =
+          Term.Boolean (native_or (decide (s = t)) (native_str_lt s t))
+  | [], [], _hs, _ht => by
+      rfl
+  | [], _d :: _ds, _hs, _ht => by
+      rfl
+  | _c :: _cs, [], _hs, _ht => by
+      rfl
+  | c :: cs, d :: ds, hs, ht => by
+      rcases native_string_valid_cons_parts_local hs with ⟨hc, hcs⟩
+      rcases native_string_valid_cons_parts_local ht with ⟨hd, hds⟩
+      have hTail := str_leq_eval_rec_strCharChain cs ds hcs hds
+      rw [show strCharChain (c :: cs) =
+        Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) (Term.String [c]))
+          (strCharChain cs) by
+        rfl]
+      rw [show strCharChain (d :: ds) =
+        Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) (Term.String [d]))
+          (strCharChain ds) by
+        rfl]
+      unfold __str_leq_eval_rec
+      rw [eo_to_z_singleton hc, eo_to_z_singleton hd]
+      by_cases hcd : c = d
+      · subst d
+        simp [__eo_eq, native_teq, native_ite, native_or, native_str_lt,
+          hTail]
+      · have hdcNe : ¬ d = c := by
+          intro h
+          exact hcd h.symm
+        have hNeList : c :: cs ≠ d :: ds := by
+          intro h
+          exact hcd (List.cons.inj h).1
+        by_cases hlt : c < d
+        · have hltInt : (c : Int) < (d : Int) := Int.ofNat_lt.mpr hlt
+          simp [__eo_eq, __eo_gt, native_teq, native_ite, native_or,
+            native_str_lt, List.cons_lt_cons_iff, hcd, hdcNe, hNeList,
+            hlt]
+          change decide ((c : Int) < (d : Int)) = true
+          exact decide_eq_true hltInt
+        · have hdc : d < c := by
+            rcases Nat.lt_trichotomy c d with h | h | h
+            · exact False.elim (hlt h)
+            · exact False.elim (hcd h)
+            · exact h
+          have hnotInt : ¬ (c : Int) < (d : Int) := by
+            intro hInt
+            exact hlt (Int.ofNat_lt.mp hInt)
+          simp [__eo_eq, __eo_gt, native_teq, native_ite, native_or,
+            native_str_lt, List.cons_lt_cons_iff, hcd, hdcNe, hNeList,
+            hlt]
+          change decide ((c : Int) < (d : Int)) = false
+          exact decide_eq_false hnotInt
+
 private theorem eo_is_str_false_of_not_string
     (t : Term)
     (hNotString : ∀ s : native_String, t ≠ Term.String s) :
@@ -1332,6 +1389,55 @@ private theorem str_rev_result_non_string
   rw [eo_is_str_false_of_not_string t hNotString, eo_ite_false]
   exact eo_mk_apply_eq_apply_of_args_ne_stuck _ _
     (by intro h; cases h) hTNe
+
+private theorem str_leq_result_strings
+    {s t : native_String}
+    (hs : native_string_valid s = true)
+    (ht : native_string_valid t = true) :
+    __eo_ite
+        (__eo_and (__eo_is_str (Term.String s))
+          (__eo_is_str (Term.String t)))
+        (__str_leq_eval_rec
+          (__str_flatten (__str_nary_intro (Term.String s)))
+          (__str_flatten (__str_nary_intro (Term.String t))))
+        (__eo_mk_apply
+          (__eo_mk_apply (Term.UOp UserOp.str_leq) (Term.String s))
+          (Term.String t)) =
+      Term.Boolean (native_or (decide (s = t)) (native_str_lt s t)) := by
+  have hGuard :
+      __eo_and (__eo_is_str (Term.String s))
+          (__eo_is_str (Term.String t)) =
+        Term.Boolean true := by
+    simp [__eo_is_str, __eo_is_str_internal, __eo_and, native_teq,
+      native_and, native_not]
+  rw [hGuard, eo_ite_true]
+  rw [str_flatten_nary_intro_string_char_chain s]
+  rw [str_flatten_nary_intro_string_char_chain t]
+  exact str_leq_eval_rec_strCharChain s t hs ht
+
+private theorem str_leq_result_non_strings
+    {s t : Term}
+    (hNotBoth :
+      ¬ ∃ sx sy : native_String, s = Term.String sx ∧ t = Term.String sy)
+    (hsNe : s ≠ Term.Stuck)
+    (htNe : t ≠ Term.Stuck) :
+    __eo_ite (__eo_and (__eo_is_str s) (__eo_is_str t))
+        (__str_leq_eval_rec (__str_flatten (__str_nary_intro s))
+          (__str_flatten (__str_nary_intro t)))
+        (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.str_leq) s) t) =
+      Term.Apply (Term.Apply (Term.UOp UserOp.str_leq) s) t := by
+  have hGuard :
+      __eo_and (__eo_is_str s) (__eo_is_str t) =
+        Term.Boolean false := by
+    cases s <;> cases t <;>
+      simp [__eo_is_str, __eo_is_str_internal, __eo_and, native_teq,
+        native_and, native_not] at hNotBoth hsNe htNe ⊢
+  rw [hGuard, eo_ite_false]
+  rw [eo_mk_apply_eq_apply_of_args_ne_stuck
+    (Term.UOp UserOp.str_leq) s (by intro h; cases h) hsNe]
+  exact eo_mk_apply_eq_apply_of_args_ne_stuck
+    (Term.Apply (Term.UOp UserOp.str_leq) s) t
+    (by intro h; cases h) htNe
 
 private theorem eo_str_rev_result_arg_typeof_seq
     (t U : Term) :
@@ -1465,6 +1571,32 @@ private theorem smt_value_rel_model_eval_str_rev_of_rel
   · have hEq := (RuleProofs.smt_value_rel_iff_eq a b hReg).mp hRel
     subst b
     exact RuleProofs.smt_value_rel_refl _
+
+private theorem smt_value_rel_model_eval_str_leq_of_rel
+    (a b c d : SmtValue) :
+    RuleProofs.smt_value_rel a c ->
+    RuleProofs.smt_value_rel b d ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval_str_leq a b)
+      (__smtx_model_eval_str_leq c d) := by
+  intro hRelA hRelB
+  by_cases hRegA :
+      ∃ r1 r2, a = SmtValue.RegLan r1 ∧ c = SmtValue.RegLan r2
+  · rcases hRegA with ⟨r1, r2, rfl, rfl⟩
+    cases b <;> cases d <;>
+      simp [__smtx_model_eval_str_leq, __smtx_model_eval_str_lt,
+        __smtx_model_eval_or, RuleProofs.smt_value_rel_refl]
+  · have hAEq := (RuleProofs.smt_value_rel_iff_eq a c hRegA).mp hRelA
+    subst c
+    by_cases hRegB :
+        ∃ r1 r2, b = SmtValue.RegLan r1 ∧ d = SmtValue.RegLan r2
+    · rcases hRegB with ⟨r1, r2, rfl, rfl⟩
+      cases a <;>
+        simp [__smtx_model_eval_str_leq, __smtx_model_eval_str_lt,
+          __smtx_model_eval_or, RuleProofs.smt_value_rel_refl]
+    · have hBEq := (RuleProofs.smt_value_rel_iff_eq b d hRegB).mp hRelB
+      subst d
+      exact RuleProofs.smt_value_rel_refl _
 
 private theorem smt_value_rel_model_eval_str_len_of_rel
     (a b : SmtValue) :
@@ -6259,6 +6391,25 @@ private theorem native_pack_string_injective :
   intro s t h
   have hUnpack := congrArg native_unpack_string h
   simpa [RuleProofs.native_unpack_string_pack_string] using hUnpack
+
+private theorem smtx_model_eval_str_leq_pack_string
+    (s t : native_String) :
+    __smtx_model_eval_str_leq
+        (SmtValue.Seq (native_pack_string s))
+        (SmtValue.Seq (native_pack_string t)) =
+      SmtValue.Boolean (native_or (decide (s = t)) (native_str_lt s t)) := by
+  unfold __smtx_model_eval_str_leq
+  simp only [__smtx_model_eval_str_lt,
+    RuleProofs.native_unpack_string_pack_string]
+  by_cases hEq : s = t
+  · subst t
+    simp [__smtx_model_eval_eq, __smtx_model_eval_or, native_veq,
+      native_or]
+  · have hPackNe : native_pack_string s ≠ native_pack_string t := by
+      intro hPack
+      exact hEq (native_pack_string_injective hPack)
+    simp [__smtx_model_eval_eq, __smtx_model_eval_or, native_veq,
+      native_or, hEq, hPackNe]
 
 private theorem native_seq_prefix_eq_map_char
     (a b : native_String) :
@@ -20616,6 +20767,243 @@ private theorem run_evaluate_sound_apply_str_contains_core
     rw [native_seq_contains_pack_string]
     exact RuleProofs.smtx_model_eval_eq_refl _
 
+private theorem run_evaluate_sound_apply_str_leq_core
+    (M : SmtModel) (hM : model_total_typed M)
+    (a b : Term)
+    (rec :
+      ∀ A : Term,
+        sizeOf A <
+            sizeOf (Term.Apply (Term.Apply (Term.UOp UserOp.str_leq) a) b) ->
+          RunEvaluateSoundGoal M A) :
+  RunEvaluateSoundGoal M
+    (Term.Apply (Term.Apply (Term.UOp UserOp.str_leq) a) b) := by
+  intro hATrans hEvalTy
+  have hLeqNN :
+      term_has_non_none_type
+        (SmtTerm.str_leq (__eo_to_smt a) (__eo_to_smt b)) := by
+    unfold term_has_non_none_type
+    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+  rcases seq_char_binop_args_of_non_none (op := SmtTerm.str_leq)
+      (typeof_str_leq_eq (__eo_to_smt a) (__eo_to_smt b))
+      hLeqNN with
+    ⟨hATyChar, hBTyChar⟩
+  have hATransA : RuleProofs.eo_has_smt_translation a := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hATyChar]
+    simp
+  have hBTrans : RuleProofs.eo_has_smt_translation b := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hBTyChar]
+    simp
+  have hAProgTy : __eo_typeof (__eo_prog_evaluate a) = Term.Bool :=
+    eo_prog_evaluate_typeof_bool_of_smt_type_seq a SmtType.Char
+      hATransA hATyChar
+  have hBProgTy : __eo_typeof (__eo_prog_evaluate b) = Term.Bool :=
+    eo_prog_evaluate_typeof_bool_of_smt_type_seq b SmtType.Char
+      hBTrans hBTyChar
+  let runA := __run_evaluate a
+  let runB := __run_evaluate b
+  let runLeq :=
+    __eo_ite (__eo_and (__eo_is_str runA) (__eo_is_str runB))
+      (__str_leq_eval_rec (__str_flatten (__str_nary_intro runA))
+        (__str_flatten (__str_nary_intro runB)))
+      (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.str_leq) runA)
+        runB)
+  have hRunLeqNe : runLeq ≠ Term.Stuck := by
+    intro hStuck
+    change
+      __eo_typeof
+          (__eo_mk_apply
+            (Term.Apply (Term.UOp UserOp.eq)
+              (Term.Apply (Term.Apply (Term.UOp UserOp.str_leq) a) b))
+            runLeq) =
+        Term.Bool at hEvalTy
+    rw [hStuck] at hEvalTy
+    change Term.Stuck = Term.Bool at hEvalTy
+    cases hEvalTy
+  rcases run_evaluate_rec_apply_apply_arg M
+      (Term.UOp UserOp.str_leq) a b rec hATransA hAProgTy with
+    ⟨hASameTy, hARel⟩
+  rcases run_evaluate_rec_apply_arg M
+      (Term.Apply (Term.UOp UserOp.str_leq) a) b rec
+      hBTrans hBProgTy with
+    ⟨hBSameTy, hBRel⟩
+  have hRunATy :
+      __smtx_typeof (__eo_to_smt runA) =
+        SmtType.Seq SmtType.Char := by
+    simpa [runA] using hASameTy.symm.trans hATyChar
+  have hRunBTy :
+      __smtx_typeof (__eo_to_smt runB) =
+        SmtType.Seq SmtType.Char := by
+    simpa [runB] using hBSameTy.symm.trans hBTyChar
+  have hRunANe : runA ≠ Term.Stuck := by
+    intro hStuck
+    rw [hStuck] at hRunATy
+    rw [show __eo_to_smt Term.Stuck = SmtTerm.None by rfl] at hRunATy
+    rw [show __smtx_typeof SmtTerm.None = SmtType.None by
+      rw [__smtx_typeof.eq_def]] at hRunATy
+    cases hRunATy
+  have hRunBNe : runB ≠ Term.Stuck := by
+    intro hStuck
+    rw [hStuck] at hRunBTy
+    rw [show __eo_to_smt Term.Stuck = SmtTerm.None by rfl] at hRunBTy
+    rw [show __smtx_typeof SmtTerm.None = SmtType.None by
+      rw [__smtx_typeof.eq_def]] at hRunBTy
+    cases hRunBTy
+  have hARelRun :
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M (__eo_to_smt a))
+        (__smtx_model_eval M (__eo_to_smt runA)) := by
+    simpa [runA] using hARel
+  have hBRelRun :
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M (__eo_to_smt b))
+        (__smtx_model_eval M (__eo_to_smt runB)) := by
+    simpa [runB] using hBRel
+  change
+    __smtx_typeof (SmtTerm.str_leq (__eo_to_smt a) (__eo_to_smt b)) =
+        __smtx_typeof (__eo_to_smt runLeq) ∧
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M
+          (SmtTerm.str_leq (__eo_to_smt a) (__eo_to_smt b)))
+        (__smtx_model_eval M (__eo_to_smt runLeq))
+  by_cases hStrings :
+      ∃ sx sy : native_String,
+        runA = Term.String sx ∧ runB = Term.String sy
+  · rcases hStrings with ⟨sx, sy, hRunA, hRunB⟩
+    have hRunStringATy :
+        __smtx_typeof (__eo_to_smt (Term.String sx)) =
+          SmtType.Seq SmtType.Char := by
+      rw [← hRunA]
+      exact hRunATy
+    have hRunStringBTy :
+        __smtx_typeof (__eo_to_smt (Term.String sy)) =
+          SmtType.Seq SmtType.Char := by
+      rw [← hRunB]
+      exact hRunBTy
+    have hSxValid : native_string_valid sx = true :=
+      native_string_valid_of_string_type hRunStringATy
+    have hSyValid : native_string_valid sy = true :=
+      native_string_valid_of_string_type hRunStringBTy
+    let leqBool := native_or (decide (sx = sy)) (native_str_lt sx sy)
+    have hRunLeqEq :
+        runLeq = Term.Boolean leqBool := by
+      dsimp [runLeq, leqBool]
+      rw [hRunA, hRunB]
+      exact str_leq_result_strings hSxValid hSyValid
+    rw [hRunLeqEq]
+    constructor
+    · change
+        __smtx_typeof (SmtTerm.str_leq (__eo_to_smt a) (__eo_to_smt b)) =
+          __smtx_typeof (SmtTerm.Boolean leqBool)
+      rw [typeof_str_leq_eq]
+      simp [__smtx_typeof, hATyChar, hBTyChar, native_Teq,
+        native_ite]
+    · have hSxEval :
+          __smtx_model_eval M (__eo_to_smt (Term.String sx)) =
+            SmtValue.Seq (native_pack_string sx) := by
+        rw [show __eo_to_smt (Term.String sx) = SmtTerm.String sx by rfl]
+        rw [__smtx_model_eval.eq_4]
+      have hSyEval :
+          __smtx_model_eval M (__eo_to_smt (Term.String sy)) =
+            SmtValue.Seq (native_pack_string sy) := by
+        rw [show __eo_to_smt (Term.String sy) = SmtTerm.String sy by rfl]
+        rw [__smtx_model_eval.eq_4]
+      have hARelString :
+          RuleProofs.smt_value_rel
+            (__smtx_model_eval M (__eo_to_smt a))
+            (__smtx_model_eval M (__eo_to_smt (Term.String sx))) := by
+        simpa [hRunA] using hARelRun
+      have hBRelString :
+          RuleProofs.smt_value_rel
+            (__smtx_model_eval M (__eo_to_smt b))
+            (__smtx_model_eval M (__eo_to_smt (Term.String sy))) := by
+        simpa [hRunB] using hBRelRun
+      have hARelSeq :
+          RuleProofs.smt_value_rel
+            (__smtx_model_eval M (__eo_to_smt a))
+            (SmtValue.Seq (native_pack_string sx)) := by
+        simpa [hSxEval] using hARelString
+      have hBRelSeq :
+          RuleProofs.smt_value_rel
+            (__smtx_model_eval M (__eo_to_smt b))
+            (SmtValue.Seq (native_pack_string sy)) := by
+        simpa [hSyEval] using hBRelString
+      rcases smt_value_rel_seq_right_local hARelSeq with
+        ⟨sxEval, hAEval, hASeqRel⟩
+      rcases smt_value_rel_seq_right_local hBRelSeq with
+        ⟨syEval, hBEval, hBSeqRel⟩
+      have hASeqEq :
+          sxEval = native_pack_string sx :=
+        (RuleProofs.smt_seq_rel_iff_eq _ _).1 hASeqRel
+      have hBSeqEq :
+          syEval = native_pack_string sy :=
+        (RuleProofs.smt_seq_rel_iff_eq _ _).1 hBSeqRel
+      unfold RuleProofs.smt_value_rel
+      rw [show
+          __smtx_model_eval M
+              (SmtTerm.str_leq (__eo_to_smt a) (__eo_to_smt b)) =
+            __smtx_model_eval_str_leq
+              (__smtx_model_eval M (__eo_to_smt a))
+              (__smtx_model_eval M (__eo_to_smt b)) by
+        simp [__smtx_model_eval]]
+      rw [hAEval, hBEval, hASeqEq, hBSeqEq]
+      rw [show
+          __smtx_model_eval M (__eo_to_smt (Term.Boolean leqBool)) =
+            SmtValue.Boolean leqBool by
+        rw [show __eo_to_smt (Term.Boolean leqBool) =
+          SmtTerm.Boolean leqBool by
+          rfl]
+        rw [__smtx_model_eval.eq_1]]
+      dsimp [leqBool]
+      rw [smtx_model_eval_str_leq_pack_string sx sy]
+      exact RuleProofs.smtx_model_eval_eq_refl _
+  · have hRunLeqEq :
+        runLeq =
+          Term.Apply (Term.Apply (Term.UOp UserOp.str_leq) runA) runB := by
+      dsimp [runLeq]
+      exact str_leq_result_non_strings hStrings hRunANe hRunBNe
+    rw [hRunLeqEq]
+    constructor
+    · change
+        __smtx_typeof (SmtTerm.str_leq (__eo_to_smt a) (__eo_to_smt b)) =
+          __smtx_typeof (SmtTerm.str_leq (__eo_to_smt runA)
+            (__eo_to_smt runB))
+      rw [typeof_str_leq_eq, typeof_str_leq_eq]
+      simp [hATyChar, hBTyChar, hRunATy, hRunBTy, native_Teq,
+        native_ite]
+    · have hRelLeq :=
+        smt_value_rel_model_eval_str_leq_of_rel
+          (__smtx_model_eval M (__eo_to_smt a))
+          (__smtx_model_eval M (__eo_to_smt b))
+          (__smtx_model_eval M (__eo_to_smt runA))
+          (__smtx_model_eval M (__eo_to_smt runB))
+          hARelRun hBRelRun
+      have hEvalLeqAB :
+          __smtx_model_eval M
+              (SmtTerm.str_leq (__eo_to_smt a) (__eo_to_smt b)) =
+            __smtx_model_eval_str_leq
+              (__smtx_model_eval M (__eo_to_smt a))
+              (__smtx_model_eval M (__eo_to_smt b)) := by
+        simp [__smtx_model_eval]
+      have hEvalLeqRun :
+          __smtx_model_eval M
+              (__eo_to_smt
+                (Term.Apply
+                  (Term.Apply (Term.UOp UserOp.str_leq) runA) runB)) =
+            __smtx_model_eval_str_leq
+              (__smtx_model_eval M (__eo_to_smt runA))
+              (__smtx_model_eval M (__eo_to_smt runB)) := by
+        change
+          __smtx_model_eval M
+              (SmtTerm.str_leq (__eo_to_smt runA) (__eo_to_smt runB)) =
+            __smtx_model_eval_str_leq
+              (__smtx_model_eval M (__eo_to_smt runA))
+              (__smtx_model_eval M (__eo_to_smt runB))
+        simp [__smtx_model_eval]
+      rw [hEvalLeqAB, hEvalLeqRun]
+      exact hRelLeq
+
 private theorem run_evaluate_sound_apply_str_substr_core
     (M : SmtModel) (hM : model_total_typed M)
     (s n m : Term)
@@ -22971,6 +23359,9 @@ private theorem run_evaluate_sound_active_apply_core
                 hATrans hEvalTy
           | UserOp.str_contains =>
               exact run_evaluate_sound_apply_str_contains_core M hM y x rec
+                hATrans hEvalTy
+          | UserOp.str_leq =>
+              exact run_evaluate_sound_apply_str_leq_core M hM y x rec
                 hATrans hEvalTy
           | UserOp.plus =>
               exact run_evaluate_sound_apply_plus_core M hM y x rec hATrans hEvalTy
