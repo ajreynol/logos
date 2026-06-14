@@ -1185,6 +1185,20 @@ private theorem smt_value_rel_model_eval_str_rev_of_rel
     subst b
     exact RuleProofs.smt_value_rel_refl _
 
+private theorem smt_value_rel_model_eval_str_len_of_rel
+    (a b : SmtValue) :
+    RuleProofs.smt_value_rel a b ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval_str_len a) (__smtx_model_eval_str_len b) := by
+  intro hRel
+  by_cases hReg :
+      ∃ r1 r2, a = SmtValue.RegLan r1 ∧ b = SmtValue.RegLan r2
+  · rcases hReg with ⟨r1, r2, rfl, rfl⟩
+    simp [__smtx_model_eval_str_len, RuleProofs.smt_value_rel_refl]
+  · have hEq := (RuleProofs.smt_value_rel_iff_eq a b hReg).mp hRel
+    subst b
+    exact RuleProofs.smt_value_rel_refl _
+
 private theorem smt_value_rel_model_eval_str_to_code_of_rel
     (a b : SmtValue) :
     RuleProofs.smt_value_rel a b ->
@@ -1195,6 +1209,20 @@ private theorem smt_value_rel_model_eval_str_to_code_of_rel
       ∃ r1 r2, a = SmtValue.RegLan r1 ∧ b = SmtValue.RegLan r2
   · rcases hReg with ⟨r1, r2, rfl, rfl⟩
     simp [__smtx_model_eval_str_to_code, RuleProofs.smt_value_rel_refl]
+  · have hEq := (RuleProofs.smt_value_rel_iff_eq a b hReg).mp hRel
+    subst b
+    exact RuleProofs.smt_value_rel_refl _
+
+private theorem smt_value_rel_model_eval_str_from_code_of_rel
+    (a b : SmtValue) :
+    RuleProofs.smt_value_rel a b ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval_str_from_code a) (__smtx_model_eval_str_from_code b) := by
+  intro hRel
+  by_cases hReg :
+      ∃ r1 r2, a = SmtValue.RegLan r1 ∧ b = SmtValue.RegLan r2
+  · rcases hReg with ⟨r1, r2, rfl, rfl⟩
+    simp [__smtx_model_eval_str_from_code, RuleProofs.smt_value_rel_refl]
   · have hEq := (RuleProofs.smt_value_rel_iff_eq a b hReg).mp hRel
     subst b
     exact RuleProofs.smt_value_rel_refl _
@@ -2791,6 +2819,21 @@ private def eo_eval_sign_extend_rhs (x n : Term) : Term :=
         low)
       low)
 
+private def eo_signed_bv_value (x : Term) : Term :=
+  let bw := __bv_bitwidth (__eo_typeof x)
+  let low := __eo_to_z (__eo_extract x (Term.Numeral 0)
+    (__eo_add bw (Term.Numeral (-2 : native_Int))))
+  let msb := __eo_add bw (Term.Numeral (-1 : native_Int))
+  __eo_ite (__eo_eq (__eo_extract x msb msb) (Term.Binary 1 1))
+    (__eo_add
+      (__eo_neg
+        (__eo_ite (__eo_is_z msb)
+          (__eo_ite (__eo_is_neg msb) (Term.Numeral 0)
+            (__eo_pow (Term.Numeral 2) msb))
+          (__eo_mk_apply (Term.UOp UserOp.int_pow2) msb)))
+      low)
+    low
+
 private def eo_sign_extend_low_payload
     (w n : native_Int) : native_Int :=
   if native_zlt (native_zplus w (native_zneg 2)) 0 then
@@ -3411,6 +3454,58 @@ private theorem eo_sign_extend_payload_eq_uts
       exact Int.le_antisymm (Int.le_of_lt_add_one hlt) hRange.1
     subst n
     native_decide
+
+private theorem eo_signed_bv_value_binary_eq_uts
+    {w n : native_Int}
+    (hw0 : native_zleq 0 w = true)
+    (hCanon :
+      native_zeq n
+          (native_mod_total n (native_int_pow2 w)) =
+        true) :
+    eo_signed_bv_value (Term.Binary w n) =
+      Term.Numeral (native_binary_uts w n) := by
+  dsimp [eo_signed_bv_value]
+  change
+    __eo_ite
+        (__eo_eq
+          (__eo_extract (Term.Binary w n)
+            (Term.Numeral (native_zplus w (native_zneg 1)))
+            (Term.Numeral (native_zplus w (native_zneg 1))))
+          (Term.Binary 1 1))
+        (__eo_add
+          (__eo_neg
+            (__eo_ite
+              (__eo_is_z
+                (Term.Numeral (native_zplus w (native_zneg 1))))
+              (__eo_ite
+                (__eo_is_neg
+                  (Term.Numeral (native_zplus w (native_zneg 1))))
+                (Term.Numeral 0)
+                (__eo_pow (Term.Numeral 2)
+                  (Term.Numeral (native_zplus w (native_zneg 1)))))
+              (__eo_mk_apply (Term.UOp UserOp.int_pow2)
+                (Term.Numeral (native_zplus w (native_zneg 1))))))
+          (__eo_to_z
+            (__eo_extract (Term.Binary w n) (Term.Numeral 0)
+              (Term.Numeral (native_zplus w (native_zneg 2))))))
+        (__eo_to_z
+          (__eo_extract (Term.Binary w n) (Term.Numeral 0)
+            (Term.Numeral (native_zplus w (native_zneg 2))))) =
+      Term.Numeral (native_binary_uts w n)
+  rw [eo_sign_extend_msb_eq, eo_sign_extend_low_payload_eq,
+    eo_int_pow2_literal_eq]
+  cases hMsb : eo_sign_extend_msb_set w n
+  · rw [eo_ite_false]
+    exact congrArg Term.Numeral
+      (by
+        simpa [eo_sign_extend_payload, hMsb] using
+          eo_sign_extend_payload_eq_uts
+            (w := w) (n := n) hw0 hCanon)
+  · rw [eo_ite_true]
+    simp [__eo_add, __eo_neg]
+    simpa [eo_sign_extend_payload, hMsb] using
+      eo_sign_extend_payload_eq_uts
+        (w := w) (n := n) hw0 hCanon
 
 private theorem sbv_to_int_payload_eq_uts_core
     {w n : native_Int}
