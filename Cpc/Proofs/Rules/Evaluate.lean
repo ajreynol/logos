@@ -5502,6 +5502,72 @@ private theorem eo_eq_numeral_zero_true_eq
   cases x <;> intro h <;> simp [__eo_eq, native_teq] at h ⊢
   exact h.symm
 
+private theorem eo_eq_rational_zero_true_eq
+    (x : Term) :
+    __eo_eq x (Term.Rational (native_mk_rational 0 1)) =
+        Term.Boolean true ->
+    x = Term.Rational (native_mk_rational 0 1) := by
+  cases x <;> intro h <;> simp [__eo_eq, native_teq] at h ⊢
+  case Rational q =>
+    exact h.symm
+
+private theorem eo_to_q_shape
+    (x : Term) :
+    __eo_to_q x = Term.Stuck ∨
+      ∃ q : native_Rat, __eo_to_q x = Term.Rational q := by
+  cases x <;> simp [__eo_to_q]
+
+private theorem native_to_real_zero_eq
+    {n : native_Int} :
+    native_to_real n = native_mk_rational 0 1 ->
+    n = 0 := by
+  intro h
+  have h' :
+      ((n : Rat) / (1 : Rat)) = ((0 : Rat) / (1 : Rat)) := by
+    simpa [native_to_real, native_mk_rational] using h
+  rw [rat_div_one_intCast n, rat_zero_div_one] at h'
+  exact Rat.intCast_inj.mp h'
+
+private theorem native_mk_rational_zero_den
+    (n : native_Int) :
+    native_mk_rational n 0 = native_mk_rational 0 1 := by
+  unfold native_mk_rational
+  change ((n : Rat) / (0 : Rat)) = ((0 : Rat) / (1 : Rat))
+  rw [rat_zero_div_one]
+  rw [Rat.div_def, Rat.inv_zero, Rat.mul_zero]
+
+private theorem native_qdiv_total_zero
+    (q : native_Rat) :
+    native_qdiv_total q (native_mk_rational 0 1) =
+      native_mk_rational 0 1 := by
+  unfold native_qdiv_total
+  rw [native_mk_rational_zero]
+  change q / (0 : Rat) = (0 : Rat)
+  rw [Rat.div_def, Rat.inv_zero, Rat.mul_zero]
+
+private theorem native_qeq_false_ne
+    {q1 q2 : native_Rat} :
+    native_qeq q1 q2 = false ->
+    q1 ≠ q2 := by
+  intro h hEq
+  unfold native_qeq at h
+  simp [hEq] at h
+
+private theorem native_to_real_qdiv_total_eval
+    (n1 n2 : native_Int) :
+    native_qdiv_total (native_to_real n1) (native_to_real n2) =
+      native_mk_rational n1 n2 := by
+  rw [native_qdiv_total, native_to_real, native_to_real, native_mk_rational,
+    native_mk_rational, native_mk_rational]
+  rw [Rat.div_def]
+  have hInv :
+      ((↑n2 / ↑(1 : Int) : Rat)⁻¹) =
+        ((↑(1 : Int) / ↑n2 : Rat)) := by
+    simpa [Rat.divInt_eq_div] using (Rat.inv_divInt n2 1)
+  rw [hInv]
+  simpa [Rat.divInt_eq_div, Int.mul_one, Int.one_mul] using
+    (Rat.divInt_mul_divInt n1 1 (d₁ := 1) (d₂ := n2))
+
 private theorem eo_ite_guard_cases_of_ne_stuck
     (c x y : Term) :
     __eo_ite c x y ≠ Term.Stuck ->
@@ -5514,6 +5580,86 @@ private theorem eo_ite_guard_cases_of_ne_stuck
     · right
       simpa [native_teq] using hFalse
     · simp [__eo_ite, hTrue, hFalse, native_ite] at h
+
+private theorem eo_qdiv_total_to_q_args_shape_of_typeof_real
+    (x y : Term) :
+    __eo_ite
+        (__eo_eq (__eo_to_q y) (Term.Rational (native_mk_rational 0 1)))
+        (Term.Rational (native_mk_rational 0 1))
+        (__eo_qdiv (__eo_to_q x) (__eo_to_q y)) ≠ Term.Stuck ->
+    __eo_typeof
+        (__eo_ite
+          (__eo_eq (__eo_to_q y) (Term.Rational (native_mk_rational 0 1)))
+          (Term.Rational (native_mk_rational 0 1))
+          (__eo_qdiv (__eo_to_q x) (__eo_to_q y))) =
+      Term.UOp UserOp.Real ->
+    ∃ qy : native_Rat, __eo_to_q y = Term.Rational qy ∧
+      (qy = native_mk_rational 0 1 ∨
+        ∃ qx : native_Rat, __eo_to_q x = Term.Rational qx ∧
+          native_qeq (native_mk_rational 0 1) qy = false) := by
+  intro hNe hTy
+  rcases eo_ite_guard_cases_of_ne_stuck
+      (__eo_eq (__eo_to_q y) (Term.Rational (native_mk_rational 0 1)))
+      (Term.Rational (native_mk_rational 0 1))
+      (__eo_qdiv (__eo_to_q x) (__eo_to_q y)) hNe with
+    hGuard | hGuard
+  · have hY :
+        __eo_to_q y = Term.Rational (native_mk_rational 0 1) :=
+      eo_eq_rational_zero_true_eq (__eo_to_q y) hGuard
+    exact ⟨native_mk_rational 0 1, hY, Or.inl rfl⟩
+  · have hQDivTy :
+        __eo_typeof (__eo_qdiv (__eo_to_q x) (__eo_to_q y)) =
+          Term.UOp UserOp.Real := by
+      rw [hGuard] at hTy
+      simpa [__eo_ite] using hTy
+    rcases eo_to_q_shape y with hYStuck | ⟨qy, hY⟩
+    · rw [hYStuck] at hGuard
+      simp [__eo_eq] at hGuard
+    · by_cases hQEq :
+          native_qeq (native_mk_rational 0 1) qy = true
+      · rcases eo_to_q_shape x with hXStuck | ⟨qx, hX⟩
+        · rw [hXStuck, hY] at hQDivTy
+          simp [__eo_qdiv] at hQDivTy
+          cases hQDivTy
+        · rw [hX, hY] at hQDivTy
+          simp [__eo_qdiv, hQEq, native_ite] at hQDivTy
+          cases hQDivTy
+      · have hQEqFalse :
+            native_qeq (native_mk_rational 0 1) qy = false := by
+          cases hQ : native_qeq (native_mk_rational 0 1) qy <;>
+            simp [hQ] at hQEq ⊢
+        rcases eo_to_q_shape x with hXStuck | ⟨qx, hX⟩
+        · rw [hXStuck, hY] at hQDivTy
+          simp [__eo_qdiv] at hQDivTy
+          cases hQDivTy
+        · exact ⟨qy, hY, Or.inr ⟨qx, hX, hQEqFalse⟩⟩
+
+private theorem eo_qdiv_to_q_args_shape_of_nonstuck
+    (x y : Term) :
+    __eo_qdiv (__eo_to_q x) (__eo_to_q y) ≠ Term.Stuck ->
+    ∃ qx qy : native_Rat,
+      __eo_to_q x = Term.Rational qx ∧
+      __eo_to_q y = Term.Rational qy ∧
+      native_qeq (native_mk_rational 0 1) qy = false := by
+  intro hNe
+  rcases eo_to_q_shape y with hYStuck | ⟨qy, hY⟩
+  · rw [hYStuck] at hNe
+    simp [__eo_qdiv] at hNe
+  · by_cases hQEq :
+        native_qeq (native_mk_rational 0 1) qy = true
+    · rcases eo_to_q_shape x with hXStuck | ⟨qx, hX⟩
+      · rw [hXStuck, hY] at hNe
+        simp [__eo_qdiv] at hNe
+      · rw [hX, hY] at hNe
+        simp [__eo_qdiv, hQEq, native_ite] at hNe
+    · have hQEqFalse :
+          native_qeq (native_mk_rational 0 1) qy = false := by
+        cases hQ : native_qeq (native_mk_rational 0 1) qy <;>
+          simp [hQ] at hQEq ⊢
+      rcases eo_to_q_shape x with hXStuck | ⟨qx, hX⟩
+      · rw [hXStuck, hY] at hNe
+        simp [__eo_qdiv] at hNe
+      · exact ⟨qx, qy, hX, hY, hQEqFalse⟩
 
 private theorem eo_div_total_args_shape_of_typeof_int
     (x y : Term) :
@@ -14366,6 +14512,923 @@ private theorem run_evaluate_sound_apply_mod_core
     rw [__smtx_model_eval.eq_2]
     exact RuleProofs.smt_value_rel_refl _
 
+private theorem run_evaluate_sound_apply_qdiv_core
+    (M : SmtModel) (hM : model_total_typed M)
+    (a b : Term)
+    (rec :
+      ∀ A : Term,
+        sizeOf A <
+            sizeOf (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) a) b) ->
+          RunEvaluateSoundGoal M A) :
+  RunEvaluateSoundGoal M
+    (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) a) b) := by
+  intro hATrans hEvalTy
+  have hQDivNN :
+      term_has_non_none_type
+        (SmtTerm.qdiv (__eo_to_smt a) (__eo_to_smt b)) := by
+    unfold term_has_non_none_type
+    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+  let runQDiv :=
+    __eo_qdiv (__eo_to_q (__run_evaluate a))
+      (__eo_to_q (__run_evaluate b))
+  have hRunQDivNe : runQDiv ≠ Term.Stuck := by
+    intro hStuck
+    change
+      __eo_typeof
+          (__eo_mk_apply
+            (Term.Apply (Term.UOp UserOp.eq)
+              (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) a) b))
+            runQDiv) =
+        Term.Bool at hEvalTy
+    rw [hStuck] at hEvalTy
+    change Term.Stuck = Term.Bool at hEvalTy
+    cases hEvalTy
+  rcases eo_qdiv_to_q_args_shape_of_nonstuck
+      (__run_evaluate a) (__run_evaluate b)
+      (by simpa [runQDiv] using hRunQDivNe) with
+    ⟨qNum, qDen, hRunAToQ, hRunBToQ, hNZ⟩
+  rcases arith_binop_ret_args_of_non_none
+      (op := SmtTerm.qdiv) (R := SmtType.Real)
+      (typeof_qdiv_eq (__eo_to_smt a) (__eo_to_smt b))
+      hQDivNN with hArgsInt | hArgsReal
+  · rcases hArgsInt with ⟨hATyInt, hBTyInt⟩
+    have hATransA : RuleProofs.eo_has_smt_translation a := by
+      unfold RuleProofs.eo_has_smt_translation
+      rw [hATyInt]
+      simp
+    have hBTrans : RuleProofs.eo_has_smt_translation b := by
+      unfold RuleProofs.eo_has_smt_translation
+      rw [hBTyInt]
+      simp
+    have hAProgTy : __eo_typeof (__eo_prog_evaluate a) = Term.Bool :=
+      eo_prog_evaluate_typeof_bool_of_smt_type_int a hATransA hATyInt
+    have hBProgTy : __eo_typeof (__eo_prog_evaluate b) = Term.Bool :=
+      eo_prog_evaluate_typeof_bool_of_smt_type_int b hBTrans hBTyInt
+    rcases run_evaluate_rec_apply_apply_arg M
+        (Term.UOp UserOp.qdiv) a b rec hATransA hAProgTy with
+      ⟨hASameTy, hARel⟩
+    rcases run_evaluate_rec_apply_arg M
+        (Term.Apply (Term.UOp UserOp.qdiv) a) b rec hBTrans hBProgTy with
+      ⟨hBSameTy, hBRel⟩
+    have hRunASmtTy :
+        __smtx_typeof (__eo_to_smt (__run_evaluate a)) = SmtType.Int := by
+      rw [← hASameTy]
+      exact hATyInt
+    have hRunBSmtTy :
+        __smtx_typeof (__eo_to_smt (__run_evaluate b)) = SmtType.Int := by
+      rw [← hBSameTy]
+      exact hBTyInt
+    have hRunAToQNe : __eo_to_q (__run_evaluate a) ≠ Term.Stuck := by
+      rw [hRunAToQ]
+      intro h
+      cases h
+    have hRunBToQNe : __eo_to_q (__run_evaluate b) ≠ Term.Stuck := by
+      rw [hRunBToQ]
+      intro h
+      cases h
+    rcases eo_to_q_int_arg_of_nonstuck
+        (__run_evaluate a) hRunASmtTy hRunAToQNe with
+      ⟨runA, hRunA⟩
+    rcases eo_to_q_int_arg_of_nonstuck
+        (__run_evaluate b) hRunBSmtTy hRunBToQNe with
+      ⟨runB, hRunB⟩
+    have hNumEq : native_to_real runA = qNum := by
+      rw [hRunA] at hRunAToQ
+      simpa [__eo_to_q] using hRunAToQ
+    have hDenEq : native_to_real runB = qDen := by
+      rw [hRunB] at hRunBToQ
+      simpa [__eo_to_q] using hRunBToQ
+    subst qNum
+    subst qDen
+    have hZeroNe :
+        native_mk_rational 0 1 ≠ native_to_real runB :=
+      native_qeq_false_ne hNZ
+    have hRunBZeroNe :
+        native_to_real runB ≠ native_mk_rational 0 1 := by
+      intro h
+      exact hZeroNe h.symm
+    have hTermNe :
+        Term.Rational (native_mk_rational 0 1) ≠
+          Term.Rational (native_to_real runB) := by
+      intro hTerm
+      injection hTerm with hRat
+      exact hZeroNe hRat
+    change
+      __smtx_typeof (SmtTerm.qdiv (__eo_to_smt a) (__eo_to_smt b)) =
+          __smtx_typeof
+            (__eo_to_smt
+              (__eo_qdiv (__eo_to_q (__run_evaluate a))
+                (__eo_to_q (__run_evaluate b)))) ∧
+        RuleProofs.smt_value_rel
+          (__smtx_model_eval M
+            (SmtTerm.qdiv (__eo_to_smt a) (__eo_to_smt b)))
+          (__smtx_model_eval M
+            (__eo_to_smt
+              (__eo_qdiv (__eo_to_q (__run_evaluate a))
+                (__eo_to_q (__run_evaluate b)))))
+    rw [hRunA, hRunB]
+    constructor
+    · rw [show
+          __eo_to_smt
+              (__eo_qdiv (__eo_to_q (Term.Numeral runA))
+                (__eo_to_q (Term.Numeral runB))) =
+            SmtTerm.Rational (native_mk_rational runA runB) by
+        simp [__eo_to_q, __eo_qdiv, native_ite, hNZ,
+          native_to_real_qdiv_total_eval]
+        rfl]
+      change
+        __smtx_typeof (SmtTerm.qdiv (__eo_to_smt a) (__eo_to_smt b)) =
+          __smtx_typeof (SmtTerm.Rational (native_mk_rational runA runB))
+      rw [typeof_qdiv_eq, hATyInt, hBTyInt]
+      rw [__smtx_typeof.eq_3]
+      simp [__smtx_typeof_arith_overload_op_2_ret]
+    · have hARelValue :
+          RuleProofs.smt_value_rel
+            (__smtx_model_eval M (__eo_to_smt a))
+            (SmtValue.Numeral runA) := by
+        rw [hRunA] at hARel
+        rw [show __eo_to_smt (Term.Numeral runA) =
+            SmtTerm.Numeral runA by
+          rfl] at hARel
+        rw [__smtx_model_eval.eq_2] at hARel
+        exact hARel
+      have hBRelValue :
+          RuleProofs.smt_value_rel
+            (__smtx_model_eval M (__eo_to_smt b))
+            (SmtValue.Numeral runB) := by
+        rw [hRunB] at hBRel
+        rw [show __eo_to_smt (Term.Numeral runB) =
+            SmtTerm.Numeral runB by
+          rfl] at hBRel
+        rw [__smtx_model_eval.eq_2] at hBRel
+        exact hBRel
+      have hAEval :
+          __smtx_model_eval M (__eo_to_smt a) =
+            SmtValue.Numeral runA :=
+        smt_value_rel_numeral_eq
+          (__smtx_model_eval M (__eo_to_smt a)) runA hARelValue
+      have hBEval :
+          __smtx_model_eval M (__eo_to_smt b) =
+            SmtValue.Numeral runB :=
+        smt_value_rel_numeral_eq
+          (__smtx_model_eval M (__eo_to_smt b)) runB hBRelValue
+      rw [show
+          __smtx_model_eval M
+              (SmtTerm.qdiv (__eo_to_smt a) (__eo_to_smt b)) =
+            let _v0 := __smtx_model_eval_to_real
+              (__smtx_model_eval M (__eo_to_smt b))
+            let _v1 := __smtx_model_eval_to_real
+              (__smtx_model_eval M (__eo_to_smt a))
+            __smtx_model_eval_ite
+              (__smtx_model_eval_eq _v0
+                (SmtValue.Rational (native_mk_rational 0 1)))
+              (__smtx_model_eval_apply M
+                (native_model_lookup M native_qdiv_by_zero_id
+                  (SmtType.FunType SmtType.Real SmtType.Real)) _v1)
+              (__smtx_model_eval_qdiv_total _v1 _v0) by
+        rw [__smtx_model_eval.eq_def] <;> simp only]
+      rw [hAEval, hBEval]
+      rw [show
+          __eo_to_smt
+              (__eo_qdiv (__eo_to_q (Term.Numeral runA))
+                (__eo_to_q (Term.Numeral runB))) =
+            SmtTerm.Rational (native_mk_rational runA runB) by
+        simp [__eo_to_q, __eo_qdiv, native_ite, hNZ,
+          native_to_real_qdiv_total_eval]
+        rfl]
+      rw [__smtx_model_eval.eq_3]
+      simp [__smtx_model_eval_to_real, __smtx_model_eval_eq,
+        __smtx_model_eval_ite, __smtx_model_eval_qdiv_total, native_veq,
+        hRunBZeroNe, native_to_real_qdiv_total_eval]
+      exact RuleProofs.smt_value_rel_refl _
+  · rcases hArgsReal with ⟨hATyReal, hBTyReal⟩
+    have hATransA : RuleProofs.eo_has_smt_translation a := by
+      unfold RuleProofs.eo_has_smt_translation
+      rw [hATyReal]
+      simp
+    have hBTrans : RuleProofs.eo_has_smt_translation b := by
+      unfold RuleProofs.eo_has_smt_translation
+      rw [hBTyReal]
+      simp
+    have hAProgTy : __eo_typeof (__eo_prog_evaluate a) = Term.Bool :=
+      eo_prog_evaluate_typeof_bool_of_smt_type_real a hATransA hATyReal
+    have hBProgTy : __eo_typeof (__eo_prog_evaluate b) = Term.Bool :=
+      eo_prog_evaluate_typeof_bool_of_smt_type_real b hBTrans hBTyReal
+    rcases run_evaluate_rec_apply_apply_arg M
+        (Term.UOp UserOp.qdiv) a b rec hATransA hAProgTy with
+      ⟨hASameTy, hARel⟩
+    rcases run_evaluate_rec_apply_arg M
+        (Term.Apply (Term.UOp UserOp.qdiv) a) b rec hBTrans hBProgTy with
+      ⟨hBSameTy, hBRel⟩
+    have hRunASmtTy :
+        __smtx_typeof (__eo_to_smt (__run_evaluate a)) = SmtType.Real := by
+      rw [← hASameTy]
+      exact hATyReal
+    have hRunBSmtTy :
+        __smtx_typeof (__eo_to_smt (__run_evaluate b)) = SmtType.Real := by
+      rw [← hBSameTy]
+      exact hBTyReal
+    have hRunAToQNe : __eo_to_q (__run_evaluate a) ≠ Term.Stuck := by
+      rw [hRunAToQ]
+      intro h
+      cases h
+    have hRunBToQNe : __eo_to_q (__run_evaluate b) ≠ Term.Stuck := by
+      rw [hRunBToQ]
+      intro h
+      cases h
+    rcases eo_to_q_real_arg_of_nonstuck
+        (__run_evaluate a) hRunASmtTy hRunAToQNe with
+      ⟨runA, hRunA⟩
+    rcases eo_to_q_real_arg_of_nonstuck
+        (__run_evaluate b) hRunBSmtTy hRunBToQNe with
+      ⟨runB, hRunB⟩
+    have hNumEq : runA = qNum := by
+      rw [hRunA] at hRunAToQ
+      simpa [__eo_to_q] using hRunAToQ
+    have hDenEq : runB = qDen := by
+      rw [hRunB] at hRunBToQ
+      simpa [__eo_to_q] using hRunBToQ
+    subst qNum
+    subst qDen
+    have hZeroNe :
+        native_mk_rational 0 1 ≠ runB :=
+      native_qeq_false_ne hNZ
+    have hRunBZeroNe :
+        runB ≠ native_mk_rational 0 1 := by
+      intro h
+      exact hZeroNe h.symm
+    have hTermNe :
+        Term.Rational (native_mk_rational 0 1) ≠
+          Term.Rational runB := by
+      intro hTerm
+      injection hTerm with hRat
+      exact hZeroNe hRat
+    change
+      __smtx_typeof (SmtTerm.qdiv (__eo_to_smt a) (__eo_to_smt b)) =
+          __smtx_typeof
+            (__eo_to_smt
+              (__eo_qdiv (__eo_to_q (__run_evaluate a))
+                (__eo_to_q (__run_evaluate b)))) ∧
+        RuleProofs.smt_value_rel
+          (__smtx_model_eval M
+            (SmtTerm.qdiv (__eo_to_smt a) (__eo_to_smt b)))
+          (__smtx_model_eval M
+            (__eo_to_smt
+              (__eo_qdiv (__eo_to_q (__run_evaluate a))
+                (__eo_to_q (__run_evaluate b)))))
+    rw [hRunA, hRunB]
+    constructor
+    · rw [show
+          __eo_to_smt
+              (__eo_qdiv (__eo_to_q (Term.Rational runA))
+                (__eo_to_q (Term.Rational runB))) =
+            SmtTerm.Rational (native_qdiv_total runA runB) by
+        simp [__eo_to_q, __eo_qdiv, native_ite, hNZ]
+        rfl]
+      change
+        __smtx_typeof (SmtTerm.qdiv (__eo_to_smt a) (__eo_to_smt b)) =
+          __smtx_typeof (SmtTerm.Rational (native_qdiv_total runA runB))
+      rw [typeof_qdiv_eq, hATyReal, hBTyReal]
+      rw [__smtx_typeof.eq_3]
+      simp [__smtx_typeof_arith_overload_op_2_ret]
+    · have hARelValue :
+          RuleProofs.smt_value_rel
+            (__smtx_model_eval M (__eo_to_smt a))
+            (SmtValue.Rational runA) := by
+        rw [hRunA] at hARel
+        rw [show __eo_to_smt (Term.Rational runA) =
+            SmtTerm.Rational runA by
+          rfl] at hARel
+        rw [__smtx_model_eval.eq_3] at hARel
+        exact hARel
+      have hBRelValue :
+          RuleProofs.smt_value_rel
+            (__smtx_model_eval M (__eo_to_smt b))
+            (SmtValue.Rational runB) := by
+        rw [hRunB] at hBRel
+        rw [show __eo_to_smt (Term.Rational runB) =
+            SmtTerm.Rational runB by
+          rfl] at hBRel
+        rw [__smtx_model_eval.eq_3] at hBRel
+        exact hBRel
+      have hAEval :
+          __smtx_model_eval M (__eo_to_smt a) =
+            SmtValue.Rational runA :=
+        smt_value_rel_rational_eq
+          (__smtx_model_eval M (__eo_to_smt a)) runA hARelValue
+      have hBEval :
+          __smtx_model_eval M (__eo_to_smt b) =
+            SmtValue.Rational runB :=
+        smt_value_rel_rational_eq
+          (__smtx_model_eval M (__eo_to_smt b)) runB hBRelValue
+      rw [show
+          __smtx_model_eval M
+              (SmtTerm.qdiv (__eo_to_smt a) (__eo_to_smt b)) =
+            let _v0 := __smtx_model_eval_to_real
+              (__smtx_model_eval M (__eo_to_smt b))
+            let _v1 := __smtx_model_eval_to_real
+              (__smtx_model_eval M (__eo_to_smt a))
+            __smtx_model_eval_ite
+              (__smtx_model_eval_eq _v0
+                (SmtValue.Rational (native_mk_rational 0 1)))
+              (__smtx_model_eval_apply M
+                (native_model_lookup M native_qdiv_by_zero_id
+                  (SmtType.FunType SmtType.Real SmtType.Real)) _v1)
+              (__smtx_model_eval_qdiv_total _v1 _v0) by
+        rw [__smtx_model_eval.eq_def] <;> simp only]
+      rw [hAEval, hBEval]
+      rw [show
+          __eo_to_smt
+              (__eo_qdiv (__eo_to_q (Term.Rational runA))
+                (__eo_to_q (Term.Rational runB))) =
+            SmtTerm.Rational (native_qdiv_total runA runB) by
+        simp [__eo_to_q, __eo_qdiv, native_ite, hNZ]
+        rfl]
+      rw [__smtx_model_eval.eq_3]
+      simp [__smtx_model_eval_to_real, __smtx_model_eval_eq,
+        __smtx_model_eval_ite, __smtx_model_eval_qdiv_total, native_veq,
+        hRunBZeroNe]
+      exact RuleProofs.smt_value_rel_refl _
+
+private theorem run_evaluate_sound_apply_qdiv_total_core
+    (M : SmtModel) (hM : model_total_typed M)
+    (a b : Term)
+    (rec :
+      ∀ A : Term,
+        sizeOf A <
+            sizeOf (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) a) b) ->
+          RunEvaluateSoundGoal M A) :
+  RunEvaluateSoundGoal M
+    (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) a) b) := by
+  intro hATrans hEvalTy
+  have hQDivTotalNN :
+      term_has_non_none_type
+        (SmtTerm.qdiv_total (__eo_to_smt a) (__eo_to_smt b)) := by
+    unfold term_has_non_none_type
+    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+  let runBToQ := __eo_to_q (__run_evaluate b)
+  let runQDivTotal :=
+    __eo_ite (__eo_eq runBToQ (Term.Rational (native_mk_rational 0 1)))
+      (Term.Rational (native_mk_rational 0 1))
+      (__eo_qdiv (__eo_to_q (__run_evaluate a)) runBToQ)
+  have hRunQDivTotalNe : runQDivTotal ≠ Term.Stuck := by
+    intro hStuck
+    change
+      __eo_typeof
+          (__eo_mk_apply
+            (Term.Apply (Term.UOp UserOp.eq)
+              (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) a) b))
+            runQDivTotal) =
+        Term.Bool at hEvalTy
+    rw [hStuck] at hEvalTy
+    change Term.Stuck = Term.Bool at hEvalTy
+    cases hEvalTy
+  have hMkNe :
+      __eo_mk_apply
+          (Term.Apply (Term.UOp UserOp.eq)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) a) b))
+          runQDivTotal ≠ Term.Stuck := by
+    intro hMk
+    cases hRun : runQDivTotal <;>
+      simp [__eo_mk_apply, hRun] at hMk hRunQDivTotalNe
+  have hEvalEqTy :
+      __eo_typeof
+          (Term.Apply
+            (Term.Apply (Term.UOp UserOp.eq)
+              (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) a) b))
+            runQDivTotal) =
+        Term.Bool := by
+    change
+      __eo_typeof
+          (__eo_mk_apply
+            (Term.Apply (Term.UOp UserOp.eq)
+              (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) a) b))
+            runQDivTotal) =
+        Term.Bool at hEvalTy
+    rw [evaluate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
+    exact hEvalTy
+  rcases arith_binop_ret_args_of_non_none
+      (op := SmtTerm.qdiv_total) (R := SmtType.Real)
+      (typeof_qdiv_total_eq (__eo_to_smt a) (__eo_to_smt b))
+      hQDivTotalNN with hArgsInt | hArgsReal
+  · rcases hArgsInt with ⟨hATyInt, hBTyInt⟩
+    have hATransA : RuleProofs.eo_has_smt_translation a := by
+      unfold RuleProofs.eo_has_smt_translation
+      rw [hATyInt]
+      simp
+    have hBTrans : RuleProofs.eo_has_smt_translation b := by
+      unfold RuleProofs.eo_has_smt_translation
+      rw [hBTyInt]
+      simp
+    have hAMatch :=
+      TranslationProofs.eo_to_smt_typeof_matches_translation a hATransA
+    have hBMatch :=
+      TranslationProofs.eo_to_smt_typeof_matches_translation b hBTrans
+    have hAEoInt : __eo_typeof a = Term.UOp UserOp.Int :=
+      TranslationProofs.eo_to_smt_type_eq_int (hAMatch.symm.trans hATyInt)
+    have hBEoInt : __eo_typeof b = Term.UOp UserOp.Int :=
+      TranslationProofs.eo_to_smt_type_eq_int (hBMatch.symm.trans hBTyInt)
+    have hQDivTotalEoType :
+        __eo_typeof
+          (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) a) b) =
+          Term.UOp UserOp.Real := by
+      change __eo_typeof_qdiv (__eo_typeof a) (__eo_typeof b) =
+        Term.UOp UserOp.Real
+      rw [hAEoInt, hBEoInt]
+      simp [__eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type,
+        native_ite, native_teq, native_not, SmtEval.native_not]
+    have hRunQDivTotalEoReal :
+        __eo_typeof runQDivTotal = Term.UOp UserOp.Real := by
+      have hEq :=
+        evaluate_apply_eq_typeof_bool_operands_eq
+          (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) a) b)
+          runQDivTotal hEvalEqTy
+      exact hEq.symm.trans hQDivTotalEoType
+    rcases eo_qdiv_total_to_q_args_shape_of_typeof_real
+        (__run_evaluate a) (__run_evaluate b)
+        (by simpa [runQDivTotal, runBToQ] using hRunQDivTotalNe)
+        (by simpa [runQDivTotal, runBToQ] using hRunQDivTotalEoReal) with
+      ⟨qDen, hRunBToQ, hRunBShape⟩
+    have hBProgTy : __eo_typeof (__eo_prog_evaluate b) = Term.Bool :=
+      eo_prog_evaluate_typeof_bool_of_smt_type_int b hBTrans hBTyInt
+    rcases run_evaluate_rec_apply_arg M
+        (Term.Apply (Term.UOp UserOp.qdiv_total) a) b rec hBTrans hBProgTy with
+      ⟨hBSameTy, hBRel⟩
+    have hRunBSmtTy :
+        __smtx_typeof (__eo_to_smt (__run_evaluate b)) = SmtType.Int := by
+      rw [← hBSameTy]
+      exact hBTyInt
+    have hRunBToQNe : __eo_to_q (__run_evaluate b) ≠ Term.Stuck := by
+      rw [hRunBToQ]
+      intro h
+      cases h
+    rcases eo_to_q_int_arg_of_nonstuck
+        (__run_evaluate b) hRunBSmtTy hRunBToQNe with
+      ⟨runB, hRunB⟩
+    have hBRelValue :
+        RuleProofs.smt_value_rel
+          (__smtx_model_eval M (__eo_to_smt b))
+          (SmtValue.Numeral runB) := by
+      rw [hRunB] at hBRel
+      rw [show __eo_to_smt (Term.Numeral runB) =
+          SmtTerm.Numeral runB by
+        rfl] at hBRel
+      rw [__smtx_model_eval.eq_2] at hBRel
+      exact hBRel
+    have hBEval :
+        __smtx_model_eval M (__eo_to_smt b) =
+          SmtValue.Numeral runB :=
+      smt_value_rel_numeral_eq
+        (__smtx_model_eval M (__eo_to_smt b)) runB hBRelValue
+    change
+      __smtx_typeof
+          (SmtTerm.qdiv_total (__eo_to_smt a) (__eo_to_smt b)) =
+          __smtx_typeof
+            (__eo_to_smt
+              (__eo_ite
+                (__eo_eq (__eo_to_q (__run_evaluate b))
+                  (Term.Rational (native_mk_rational 0 1)))
+                (Term.Rational (native_mk_rational 0 1))
+                (__eo_qdiv (__eo_to_q (__run_evaluate a))
+                  (__eo_to_q (__run_evaluate b))))) ∧
+        RuleProofs.smt_value_rel
+          (__smtx_model_eval M
+            (SmtTerm.qdiv_total (__eo_to_smt a) (__eo_to_smt b)))
+          (__smtx_model_eval M
+            (__eo_to_smt
+              (__eo_ite
+                (__eo_eq (__eo_to_q (__run_evaluate b))
+                  (Term.Rational (native_mk_rational 0 1)))
+                (Term.Rational (native_mk_rational 0 1))
+                (__eo_qdiv (__eo_to_q (__run_evaluate a))
+                  (__eo_to_q (__run_evaluate b))))))
+    rw [hRunB]
+    cases hRunBShape with
+    | inl hDenZero =>
+        have hRunBZero : runB = 0 := by
+          rw [hRunB, hDenZero] at hRunBToQ
+          have hToReal :
+              native_to_real runB = native_mk_rational 0 1 := by
+            simpa [__eo_to_q] using hRunBToQ
+          exact native_to_real_zero_eq hToReal
+        subst runB
+        constructor
+        · rw [show
+              __eo_to_smt
+                  (__eo_ite
+                    (__eo_eq (__eo_to_q (Term.Numeral 0))
+                      (Term.Rational (native_mk_rational 0 1)))
+                    (Term.Rational (native_mk_rational 0 1))
+                    (__eo_qdiv (__eo_to_q (__run_evaluate a))
+                      (__eo_to_q (Term.Numeral 0)))) =
+                SmtTerm.Rational (native_mk_rational 0 1) by
+            simp [__eo_to_q, __eo_eq, __eo_ite, native_teq, native_ite,
+              native_to_real, native_mk_rational, rat_zero_div_one]
+            rfl]
+          change
+            __smtx_typeof
+                (SmtTerm.qdiv_total (__eo_to_smt a) (__eo_to_smt b)) =
+              __smtx_typeof (SmtTerm.Rational (native_mk_rational 0 1))
+          rw [typeof_qdiv_total_eq, hATyInt, hBTyInt]
+          rw [__smtx_typeof.eq_3]
+          simp [__smtx_typeof_arith_overload_op_2_ret]
+        · have hAEvalValueTy :
+              __smtx_typeof_value
+                  (__smtx_model_eval M (__eo_to_smt a)) =
+                SmtType.Int := by
+            simpa [hATyInt] using
+              smt_model_eval_preserves_type_of_non_none M hM
+                (__eo_to_smt a) (by
+                  unfold term_has_non_none_type
+                  rw [hATyInt]
+                  simp)
+          rcases int_value_canonical hAEvalValueTy with
+            ⟨evalA, hAEval⟩
+          rw [show
+              __smtx_model_eval M
+                  (SmtTerm.qdiv_total (__eo_to_smt a) (__eo_to_smt b)) =
+                __smtx_model_eval_qdiv_total
+                  (__smtx_model_eval M (__eo_to_smt a))
+                  (__smtx_model_eval M (__eo_to_smt b)) by
+            rw [__smtx_model_eval.eq_def] <;> simp only]
+          rw [hAEval, hBEval]
+          rw [show
+              __eo_to_smt
+                  (__eo_ite
+                    (__eo_eq (__eo_to_q (Term.Numeral 0))
+                      (Term.Rational (native_mk_rational 0 1)))
+                    (Term.Rational (native_mk_rational 0 1))
+                    (__eo_qdiv (__eo_to_q (__run_evaluate a))
+                      (__eo_to_q (Term.Numeral 0)))) =
+                SmtTerm.Rational (native_mk_rational 0 1) by
+            simp [__eo_to_q, __eo_eq, __eo_ite, native_teq, native_ite,
+              native_to_real, native_mk_rational, rat_zero_div_one]
+            rfl]
+          change
+            RuleProofs.smt_value_rel
+              (SmtValue.Rational (native_mk_rational evalA 0))
+              (__smtx_model_eval M
+                (SmtTerm.Rational (native_mk_rational 0 1)))
+          rw [native_mk_rational_zero_den, __smtx_model_eval.eq_3]
+          exact RuleProofs.smt_value_rel_refl _
+    | inr hDenNonzero =>
+        rcases hDenNonzero with ⟨qNum, hRunAToQ, hNZ⟩
+        have hDenEq : native_to_real runB = qDen := by
+          rw [hRunB] at hRunBToQ
+          simpa [__eo_to_q] using hRunBToQ
+        subst qDen
+        have hAProgTy : __eo_typeof (__eo_prog_evaluate a) = Term.Bool :=
+          eo_prog_evaluate_typeof_bool_of_smt_type_int a hATransA hATyInt
+        rcases run_evaluate_rec_apply_apply_arg M
+            (Term.UOp UserOp.qdiv_total) a b rec hATransA hAProgTy with
+          ⟨hASameTy, hARel⟩
+        have hRunASmtTy :
+            __smtx_typeof (__eo_to_smt (__run_evaluate a)) = SmtType.Int := by
+          rw [← hASameTy]
+          exact hATyInt
+        have hRunAToQNe : __eo_to_q (__run_evaluate a) ≠ Term.Stuck := by
+          rw [hRunAToQ]
+          intro h
+          cases h
+        rcases eo_to_q_int_arg_of_nonstuck
+            (__run_evaluate a) hRunASmtTy hRunAToQNe with
+          ⟨runA, hRunA⟩
+        have hNumEq : native_to_real runA = qNum := by
+          rw [hRunA] at hRunAToQ
+          simpa [__eo_to_q] using hRunAToQ
+        subst qNum
+        have hZeroNe :
+            native_mk_rational 0 1 ≠ native_to_real runB :=
+          native_qeq_false_ne hNZ
+        have hTermNe :
+            Term.Rational (native_mk_rational 0 1) ≠
+              Term.Rational (native_to_real runB) := by
+          intro hTerm
+          injection hTerm with hRat
+          exact hZeroNe hRat
+        rw [hRunA]
+        constructor
+        · rw [show
+              __eo_to_smt
+                  (__eo_ite
+                    (__eo_eq (__eo_to_q (Term.Numeral runB))
+                      (Term.Rational (native_mk_rational 0 1)))
+                    (Term.Rational (native_mk_rational 0 1))
+                    (__eo_qdiv (__eo_to_q (Term.Numeral runA))
+                      (__eo_to_q (Term.Numeral runB)))) =
+                SmtTerm.Rational (native_mk_rational runA runB) by
+            simp [__eo_to_q, __eo_eq, __eo_ite, __eo_qdiv, native_ite,
+              native_teq, hTermNe, hNZ, native_to_real_qdiv_total_eval]
+            rfl]
+          change
+            __smtx_typeof
+                (SmtTerm.qdiv_total (__eo_to_smt a) (__eo_to_smt b)) =
+              __smtx_typeof (SmtTerm.Rational (native_mk_rational runA runB))
+          rw [typeof_qdiv_total_eq, hATyInt, hBTyInt]
+          rw [__smtx_typeof.eq_3]
+          simp [__smtx_typeof_arith_overload_op_2_ret]
+        · have hARelValue :
+              RuleProofs.smt_value_rel
+                (__smtx_model_eval M (__eo_to_smt a))
+                (SmtValue.Numeral runA) := by
+            rw [hRunA] at hARel
+            rw [show __eo_to_smt (Term.Numeral runA) =
+                SmtTerm.Numeral runA by
+              rfl] at hARel
+            rw [__smtx_model_eval.eq_2] at hARel
+            exact hARel
+          have hAEval :
+              __smtx_model_eval M (__eo_to_smt a) =
+                SmtValue.Numeral runA :=
+            smt_value_rel_numeral_eq
+              (__smtx_model_eval M (__eo_to_smt a)) runA hARelValue
+          rw [show
+              __smtx_model_eval M
+                  (SmtTerm.qdiv_total (__eo_to_smt a) (__eo_to_smt b)) =
+                __smtx_model_eval_qdiv_total
+                  (__smtx_model_eval M (__eo_to_smt a))
+                  (__smtx_model_eval M (__eo_to_smt b)) by
+            rw [__smtx_model_eval.eq_def] <;> simp only]
+          rw [hAEval, hBEval]
+          rw [show
+              __eo_to_smt
+                  (__eo_ite
+                    (__eo_eq (__eo_to_q (Term.Numeral runB))
+                      (Term.Rational (native_mk_rational 0 1)))
+                    (Term.Rational (native_mk_rational 0 1))
+                    (__eo_qdiv (__eo_to_q (Term.Numeral runA))
+                      (__eo_to_q (Term.Numeral runB)))) =
+                SmtTerm.Rational (native_mk_rational runA runB) by
+            simp [__eo_to_q, __eo_eq, __eo_ite, __eo_qdiv, native_ite,
+              native_teq, hTermNe, hNZ, native_to_real_qdiv_total_eval]
+            rfl]
+          change
+            RuleProofs.smt_value_rel
+              (SmtValue.Rational (native_mk_rational runA runB))
+              (__smtx_model_eval M
+                (SmtTerm.Rational (native_mk_rational runA runB)))
+          rw [__smtx_model_eval.eq_3]
+          exact RuleProofs.smt_value_rel_refl _
+  · rcases hArgsReal with ⟨hATyReal, hBTyReal⟩
+    have hATransA : RuleProofs.eo_has_smt_translation a := by
+      unfold RuleProofs.eo_has_smt_translation
+      rw [hATyReal]
+      simp
+    have hBTrans : RuleProofs.eo_has_smt_translation b := by
+      unfold RuleProofs.eo_has_smt_translation
+      rw [hBTyReal]
+      simp
+    have hAMatch :=
+      TranslationProofs.eo_to_smt_typeof_matches_translation a hATransA
+    have hBMatch :=
+      TranslationProofs.eo_to_smt_typeof_matches_translation b hBTrans
+    have hAEoReal : __eo_typeof a = Term.UOp UserOp.Real :=
+      TranslationProofs.eo_to_smt_type_eq_real (hAMatch.symm.trans hATyReal)
+    have hBEoReal : __eo_typeof b = Term.UOp UserOp.Real :=
+      TranslationProofs.eo_to_smt_type_eq_real (hBMatch.symm.trans hBTyReal)
+    have hQDivTotalEoType :
+        __eo_typeof
+          (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) a) b) =
+          Term.UOp UserOp.Real := by
+      change __eo_typeof_qdiv (__eo_typeof a) (__eo_typeof b) =
+        Term.UOp UserOp.Real
+      rw [hAEoReal, hBEoReal]
+      simp [__eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type,
+        native_ite, native_teq, native_not, SmtEval.native_not]
+    have hRunQDivTotalEoReal :
+        __eo_typeof runQDivTotal = Term.UOp UserOp.Real := by
+      have hEq :=
+        evaluate_apply_eq_typeof_bool_operands_eq
+          (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) a) b)
+          runQDivTotal hEvalEqTy
+      exact hEq.symm.trans hQDivTotalEoType
+    rcases eo_qdiv_total_to_q_args_shape_of_typeof_real
+        (__run_evaluate a) (__run_evaluate b)
+        (by simpa [runQDivTotal, runBToQ] using hRunQDivTotalNe)
+        (by simpa [runQDivTotal, runBToQ] using hRunQDivTotalEoReal) with
+      ⟨qDen, hRunBToQ, hRunBShape⟩
+    have hBProgTy : __eo_typeof (__eo_prog_evaluate b) = Term.Bool :=
+      eo_prog_evaluate_typeof_bool_of_smt_type_real b hBTrans hBTyReal
+    rcases run_evaluate_rec_apply_arg M
+        (Term.Apply (Term.UOp UserOp.qdiv_total) a) b rec hBTrans hBProgTy with
+      ⟨hBSameTy, hBRel⟩
+    have hRunBSmtTy :
+        __smtx_typeof (__eo_to_smt (__run_evaluate b)) = SmtType.Real := by
+      rw [← hBSameTy]
+      exact hBTyReal
+    have hRunBToQNe : __eo_to_q (__run_evaluate b) ≠ Term.Stuck := by
+      rw [hRunBToQ]
+      intro h
+      cases h
+    rcases eo_to_q_real_arg_of_nonstuck
+        (__run_evaluate b) hRunBSmtTy hRunBToQNe with
+      ⟨runB, hRunB⟩
+    have hBRelValue :
+        RuleProofs.smt_value_rel
+          (__smtx_model_eval M (__eo_to_smt b))
+          (SmtValue.Rational runB) := by
+      rw [hRunB] at hBRel
+      rw [show __eo_to_smt (Term.Rational runB) =
+          SmtTerm.Rational runB by
+        rfl] at hBRel
+      rw [__smtx_model_eval.eq_3] at hBRel
+      exact hBRel
+    have hBEval :
+        __smtx_model_eval M (__eo_to_smt b) =
+          SmtValue.Rational runB :=
+      smt_value_rel_rational_eq
+        (__smtx_model_eval M (__eo_to_smt b)) runB hBRelValue
+    change
+      __smtx_typeof
+          (SmtTerm.qdiv_total (__eo_to_smt a) (__eo_to_smt b)) =
+          __smtx_typeof
+            (__eo_to_smt
+              (__eo_ite
+                (__eo_eq (__eo_to_q (__run_evaluate b))
+                  (Term.Rational (native_mk_rational 0 1)))
+                (Term.Rational (native_mk_rational 0 1))
+                (__eo_qdiv (__eo_to_q (__run_evaluate a))
+                  (__eo_to_q (__run_evaluate b))))) ∧
+        RuleProofs.smt_value_rel
+          (__smtx_model_eval M
+            (SmtTerm.qdiv_total (__eo_to_smt a) (__eo_to_smt b)))
+          (__smtx_model_eval M
+            (__eo_to_smt
+              (__eo_ite
+                (__eo_eq (__eo_to_q (__run_evaluate b))
+                  (Term.Rational (native_mk_rational 0 1)))
+                (Term.Rational (native_mk_rational 0 1))
+                (__eo_qdiv (__eo_to_q (__run_evaluate a))
+                  (__eo_to_q (__run_evaluate b))))))
+    rw [hRunB]
+    cases hRunBShape with
+    | inl hDenZero =>
+        have hRunBZero : runB = native_mk_rational 0 1 := by
+          rw [hRunB] at hRunBToQ
+          simpa [__eo_to_q] using hRunBToQ.trans
+            (congrArg Term.Rational hDenZero)
+        subst runB
+        constructor
+        · rw [show
+              __eo_to_smt
+                  (__eo_ite
+                    (__eo_eq (__eo_to_q
+                        (Term.Rational (native_mk_rational 0 1)))
+                      (Term.Rational (native_mk_rational 0 1)))
+                    (Term.Rational (native_mk_rational 0 1))
+                    (__eo_qdiv (__eo_to_q (__run_evaluate a))
+                      (__eo_to_q
+                        (Term.Rational (native_mk_rational 0 1))))) =
+                SmtTerm.Rational (native_mk_rational 0 1) by
+            simp [__eo_to_q, __eo_eq, __eo_ite, native_teq, native_ite]
+            rfl]
+          change
+            __smtx_typeof
+                (SmtTerm.qdiv_total (__eo_to_smt a) (__eo_to_smt b)) =
+              __smtx_typeof (SmtTerm.Rational (native_mk_rational 0 1))
+          rw [typeof_qdiv_total_eq, hATyReal, hBTyReal]
+          rw [__smtx_typeof.eq_3]
+          simp [__smtx_typeof_arith_overload_op_2_ret]
+        · have hAEvalValueTy :
+              __smtx_typeof_value
+                  (__smtx_model_eval M (__eo_to_smt a)) =
+                SmtType.Real := by
+            simpa [hATyReal] using
+              smt_model_eval_preserves_type_of_non_none M hM
+                (__eo_to_smt a) (by
+                  unfold term_has_non_none_type
+                  rw [hATyReal]
+                  simp)
+          rcases real_value_canonical hAEvalValueTy with
+            ⟨evalA, hAEval⟩
+          rw [show
+              __smtx_model_eval M
+                  (SmtTerm.qdiv_total (__eo_to_smt a) (__eo_to_smt b)) =
+                __smtx_model_eval_qdiv_total
+                  (__smtx_model_eval M (__eo_to_smt a))
+                  (__smtx_model_eval M (__eo_to_smt b)) by
+            rw [__smtx_model_eval.eq_def] <;> simp only]
+          rw [hAEval, hBEval]
+          rw [show
+              __eo_to_smt
+                  (__eo_ite
+                    (__eo_eq (__eo_to_q
+                        (Term.Rational (native_mk_rational 0 1)))
+                      (Term.Rational (native_mk_rational 0 1)))
+                    (Term.Rational (native_mk_rational 0 1))
+                    (__eo_qdiv (__eo_to_q (__run_evaluate a))
+                      (__eo_to_q
+                        (Term.Rational (native_mk_rational 0 1))))) =
+                SmtTerm.Rational (native_mk_rational 0 1) by
+            simp [__eo_to_q, __eo_eq, __eo_ite, native_teq, native_ite]
+            rfl]
+          change
+            RuleProofs.smt_value_rel
+              (SmtValue.Rational
+                (native_qdiv_total evalA (native_mk_rational 0 1)))
+              (__smtx_model_eval M
+                (SmtTerm.Rational (native_mk_rational 0 1)))
+          rw [native_qdiv_total_zero, __smtx_model_eval.eq_3]
+          exact RuleProofs.smt_value_rel_refl _
+    | inr hDenNonzero =>
+        rcases hDenNonzero with ⟨qNum, hRunAToQ, hNZ⟩
+        have hDenEq : runB = qDen := by
+          rw [hRunB] at hRunBToQ
+          simpa [__eo_to_q] using hRunBToQ
+        subst qDen
+        have hAProgTy : __eo_typeof (__eo_prog_evaluate a) = Term.Bool :=
+          eo_prog_evaluate_typeof_bool_of_smt_type_real a hATransA hATyReal
+        rcases run_evaluate_rec_apply_apply_arg M
+            (Term.UOp UserOp.qdiv_total) a b rec hATransA hAProgTy with
+          ⟨hASameTy, hARel⟩
+        have hRunASmtTy :
+            __smtx_typeof (__eo_to_smt (__run_evaluate a)) = SmtType.Real := by
+          rw [← hASameTy]
+          exact hATyReal
+        have hRunAToQNe : __eo_to_q (__run_evaluate a) ≠ Term.Stuck := by
+          rw [hRunAToQ]
+          intro h
+          cases h
+        rcases eo_to_q_real_arg_of_nonstuck
+            (__run_evaluate a) hRunASmtTy hRunAToQNe with
+          ⟨runA, hRunA⟩
+        have hNumEq : runA = qNum := by
+          rw [hRunA] at hRunAToQ
+          simpa [__eo_to_q] using hRunAToQ
+        subst qNum
+        have hZeroNe :
+            native_mk_rational 0 1 ≠ runB :=
+          native_qeq_false_ne hNZ
+        have hTermNe :
+            Term.Rational (native_mk_rational 0 1) ≠
+              Term.Rational runB := by
+          intro hTerm
+          injection hTerm with hRat
+          exact hZeroNe hRat
+        rw [hRunA]
+        constructor
+        · rw [show
+              __eo_to_smt
+                  (__eo_ite
+                    (__eo_eq (__eo_to_q (Term.Rational runB))
+                      (Term.Rational (native_mk_rational 0 1)))
+                    (Term.Rational (native_mk_rational 0 1))
+                    (__eo_qdiv (__eo_to_q (Term.Rational runA))
+                      (__eo_to_q (Term.Rational runB)))) =
+                SmtTerm.Rational (native_qdiv_total runA runB) by
+            simp [__eo_to_q, __eo_eq, __eo_ite, __eo_qdiv, native_ite,
+              native_teq, hTermNe, hNZ]
+            rfl]
+          change
+            __smtx_typeof
+                (SmtTerm.qdiv_total (__eo_to_smt a) (__eo_to_smt b)) =
+              __smtx_typeof (SmtTerm.Rational (native_qdiv_total runA runB))
+          rw [typeof_qdiv_total_eq, hATyReal, hBTyReal]
+          rw [__smtx_typeof.eq_3]
+          simp [__smtx_typeof_arith_overload_op_2_ret]
+        · have hARelValue :
+              RuleProofs.smt_value_rel
+                (__smtx_model_eval M (__eo_to_smt a))
+                (SmtValue.Rational runA) := by
+            rw [hRunA] at hARel
+            rw [show __eo_to_smt (Term.Rational runA) =
+                SmtTerm.Rational runA by
+              rfl] at hARel
+            rw [__smtx_model_eval.eq_3] at hARel
+            exact hARel
+          have hAEval :
+              __smtx_model_eval M (__eo_to_smt a) =
+                SmtValue.Rational runA :=
+            smt_value_rel_rational_eq
+              (__smtx_model_eval M (__eo_to_smt a)) runA hARelValue
+          rw [show
+              __smtx_model_eval M
+                  (SmtTerm.qdiv_total (__eo_to_smt a) (__eo_to_smt b)) =
+                __smtx_model_eval_qdiv_total
+                  (__smtx_model_eval M (__eo_to_smt a))
+                  (__smtx_model_eval M (__eo_to_smt b)) by
+            rw [__smtx_model_eval.eq_def] <;> simp only]
+          rw [hAEval, hBEval]
+          rw [show
+              __eo_to_smt
+                  (__eo_ite
+                    (__eo_eq (__eo_to_q (Term.Rational runB))
+                      (Term.Rational (native_mk_rational 0 1)))
+                    (Term.Rational (native_mk_rational 0 1))
+                    (__eo_qdiv (__eo_to_q (Term.Rational runA))
+                      (__eo_to_q (Term.Rational runB)))) =
+                SmtTerm.Rational (native_qdiv_total runA runB) by
+            simp [__eo_to_q, __eo_eq, __eo_ite, __eo_qdiv, native_ite,
+              native_teq, hTermNe, hNZ]
+            rfl]
+          change
+            RuleProofs.smt_value_rel
+              (SmtValue.Rational (native_qdiv_total runA runB))
+              (__smtx_model_eval M
+                (SmtTerm.Rational (native_qdiv_total runA runB)))
+          rw [__smtx_model_eval.eq_3]
+          exact RuleProofs.smt_value_rel_refl _
+
 private theorem run_evaluate_sound_apply_div_total_core
     (M : SmtModel) (hM : model_total_typed M)
     (a b : Term)
@@ -17989,6 +19052,10 @@ private theorem run_evaluate_sound_active_apply_core
               exact run_evaluate_sound_apply_div_core M hM y x rec hATrans hEvalTy
           | UserOp.mod =>
               exact run_evaluate_sound_apply_mod_core M hM y x rec hATrans hEvalTy
+          | UserOp.qdiv =>
+              exact run_evaluate_sound_apply_qdiv_core M hM y x rec hATrans hEvalTy
+          | UserOp.qdiv_total =>
+              exact run_evaluate_sound_apply_qdiv_total_core M hM y x rec hATrans hEvalTy
           | UserOp.div_total =>
               exact run_evaluate_sound_apply_div_total_core M hM y x rec hATrans hEvalTy
           | UserOp.mod_total =>
