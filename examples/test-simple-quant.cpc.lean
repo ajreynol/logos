@@ -1,6 +1,6 @@
 import Cpc.Logos
 open Eo
-def t1 := (Term.UConst 1 (Term.UOp UserOp.Int))
+def t1 := (Term.Var (Term.String (SmtEval.native_string_lit "@u.1")) (Term.UOp UserOp.Int))
 def t2 := (Term.Apply Term.FunType (Term.UOp UserOp.Int))
 def t3 := (Term.Apply t2 Term.Bool)
 def t4 := (Term.UConst 2 t3)

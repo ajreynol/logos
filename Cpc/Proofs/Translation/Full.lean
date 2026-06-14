@@ -3024,6 +3024,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
               (fun g z y h hNN => by
                 subst f
                 exact go z hNN)
+              (fun term _ hNN => go term hNN)
               hNotDistinct hNonNone
           refine ⟨hEq, ?_⟩
           have hTermNN :
