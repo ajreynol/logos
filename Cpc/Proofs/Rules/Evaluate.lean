@@ -3580,6 +3580,30 @@ private theorem eo_add_args_numeral_of_typeof_int
     change Term.Stuck = Term.UOp UserOp.Int at h
     cases h
 
+private theorem eo_add_int_args_numeral_of_nonstuck
+    (x y : Term)
+    (hxTy : __smtx_typeof (__eo_to_smt x) = SmtType.Int)
+    (_hyTy : __smtx_typeof (__eo_to_smt y) = SmtType.Int) :
+    __eo_add x y ≠ Term.Stuck ->
+      ∃ nx ny : native_Int, x = Term.Numeral nx ∧ y = Term.Numeral ny := by
+  intro hNe
+  cases x <;> cases y <;> simp only [__eo_add] at hNe
+  case Numeral.Numeral nx ny =>
+    exact ⟨nx, ny, rfl, rfl⟩
+  case Rational.Rational rx _ry =>
+    change __smtx_typeof (SmtTerm.Rational rx) = SmtType.Int at hxTy
+    rw [__smtx_typeof.eq_3] at hxTy
+    cases hxTy
+  case Binary.Binary wx nx _wy _ny =>
+    change __smtx_typeof (SmtTerm.Binary wx nx) = SmtType.Int at hxTy
+    rw [__smtx_typeof.eq_5] at hxTy
+    cases hValid :
+        native_and (native_zleq 0 wx)
+          (native_zeq nx (native_mod_total nx (native_int_pow2 wx))) <;>
+      simp [native_ite, hValid] at hxTy
+  all_goals
+    contradiction
+
 private theorem eo_add_args_rational_of_typeof_real
     (x y : Term) :
     __eo_typeof (__eo_add x y) = Term.UOp UserOp.Real ->
@@ -3908,6 +3932,44 @@ private theorem eo_is_neg_arg_arith_of_nonstuck
     exact Or.inr ⟨q, rfl⟩
   all_goals
     simp only [__eo_is_neg] at h
+    contradiction
+
+private theorem eo_is_neg_int_arg_numeral_of_nonstuck
+    (x : Term)
+    (hxTy : __smtx_typeof (__eo_to_smt x) = SmtType.Int) :
+    __eo_is_neg x ≠ Term.Stuck ->
+      ∃ n : native_Int, x = Term.Numeral n := by
+  intro hNe
+  rcases eo_is_neg_arg_arith_of_nonstuck x hNe with
+    ⟨n, hn⟩ | ⟨q, hq⟩
+  · exact ⟨n, hn⟩
+  · subst x
+    change __smtx_typeof (SmtTerm.Rational q) = SmtType.Int at hxTy
+    rw [__smtx_typeof.eq_3] at hxTy
+    cases hxTy
+
+private theorem eo_gt_int_args_numeral_of_nonstuck
+    (x y : Term)
+    (hxTy : __smtx_typeof (__eo_to_smt x) = SmtType.Int)
+    (hyTy : __smtx_typeof (__eo_to_smt y) = SmtType.Int) :
+    __eo_gt x y ≠ Term.Stuck ->
+      ∃ nx ny : native_Int, x = Term.Numeral nx ∧ y = Term.Numeral ny := by
+  intro hNe
+  cases x <;> cases y <;> simp only [__eo_gt] at hNe
+  case Numeral.Numeral nx ny =>
+    exact ⟨nx, ny, rfl, rfl⟩
+  case Rational.Rational qx qy =>
+    change __smtx_typeof (SmtTerm.Rational qx) = SmtType.Int at hxTy
+    rw [__smtx_typeof.eq_3] at hxTy
+    cases hxTy
+  case Binary.Binary wx nx wy ny =>
+    change __smtx_typeof (SmtTerm.Binary wx nx) = SmtType.Int at hxTy
+    rw [__smtx_typeof.eq_5] at hxTy
+    cases hValid :
+        native_and (native_zleq 0 wx)
+          (native_zeq nx (native_mod_total nx (native_int_pow2 wx))) <;>
+      simp [native_ite, hValid] at hxTy
+  all_goals
     contradiction
 
 private theorem native_zsub_lt_zero_eq_eval
@@ -8180,6 +8242,19 @@ private theorem eo_ite_selected_type_of_typeof
     exfalso
     change Term.Stuck = T at h
     exact hT h.symm
+
+private theorem eo_ite_selected_nonstuck_of_nonstuck
+    (c t e : Term) :
+    __eo_ite c t e ≠ Term.Stuck ->
+      ∃ b : Bool, c = Term.Boolean b ∧
+        (if b then t ≠ Term.Stuck else e ≠ Term.Stuck) := by
+  cases c <;> intro h <;> simp [__eo_ite, native_ite, native_teq] at h
+  case Boolean b =>
+    cases b
+    · exact ⟨false, rfl, h⟩
+    · exact ⟨true, rfl, h⟩
+  all_goals
+    contradiction
 
 private theorem eo_typeof_str_concat_args_of_seq_char
     (x y : Term)
