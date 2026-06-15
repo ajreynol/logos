@@ -1087,14 +1087,6 @@ def __seq_empty : Term -> Term
   | T => (Term.UOp1 UserOp1.seq_empty T)
 
 
-def __str_nary_intro : Term -> Term
-  | Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t) ss) => (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t) ss)
-  | t => 
-    let _v0 := (__seq_empty (__eo_typeof t))
-    (__eo_ite (__eo_eq t _v0) t (__eo_mk_apply (Term.Apply (Term.UOp UserOp.str_concat) t) _v0))
-
-
 def __eo_disamb_type_set_empty : Term -> Term
   | (Term.Apply (Term.UOp UserOp.Set) T) => (Term.Apply (Term.UOp UserOp.Set) T)
   | _ => Term.Stuck
@@ -1994,6 +1986,13 @@ def __bv_mk_bitblast_step_ite : Term -> Term -> Term -> Term
   | _, _, _ => Term.Stuck
 
 
+def __bv_const_to_bitlist_rec : Term -> Term -> Term
+  | Term.Stuck , _  => Term.Stuck
+  | c, (Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) (Term.UOp UserOp.Int)) => (Term.Binary 0 0)
+  | c, (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) i) xs) => (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp._at_from_bools) (__eo_eq (__eo_extract c i i) (Term.Binary 1 1))) (__bv_const_to_bitlist_rec c xs))
+  | _, _ => Term.Stuck
+
+
 def __bv_mk_bitblast_step_shl_rec_step : Term -> Term -> Term -> Term -> Term
   | _ , Term.Stuck , _ , _  => Term.Stuck
   | _ , _ , Term.Stuck , _  => Term.Stuck
@@ -2128,11 +2127,10 @@ def __bv_mk_bitwise_slicing_rec : Term -> Term -> Term -> Term -> Term -> Term -
   | Term.Stuck , _ , _ , _ , _ , _ , _  => Term.Stuck
   | _ , Term.Stuck , _ , _ , _ , _ , _  => Term.Stuck
   | _ , _ , Term.Stuck , _ , _ , _ , _  => Term.Stuck
-  | _ , _ , _ , Term.Stuck , _ , _ , _  => Term.Stuck
   | _ , _ , _ , _ , Term.Stuck , _ , _  => Term.Stuck
   | _ , _ , _ , _ , _ , Term.Stuck , _  => Term.Stuck
   | _ , _ , _ , _ , _ , _ , Term.Stuck  => Term.Stuck
-  | f, c, a, bs, bn, start, (Term.Numeral (-1 : native_Int)) => 
+  | f, c, a, (Term.Binary 0 0), bn, start, __eo_end => 
     let _v0 := (Term.UOp2 UserOp2.extract start (Term.Numeral 0))
     let _v1 := (Term.Apply _v0 c)
     (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.concat) (__eo_mk_apply (Term.Apply f _v1) (__eo_mk_apply (Term.Apply f (Term.Apply _v0 a)) (__eo_nil f (__eo_typeof _v1))))) (Term.Binary 0 0))
@@ -2142,6 +2140,21 @@ def __bv_mk_bitwise_slicing_rec : Term -> Term -> Term -> Term -> Term -> Term -
     let _v2 := (__eo_mk_apply _v1 c)
     (__eo_ite (__eo_eq b bn) (__bv_mk_bitwise_slicing_rec f c a bs b start _v0) (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.concat) (__eo_mk_apply (__eo_mk_apply f _v2) (__eo_mk_apply (__eo_mk_apply f (__eo_mk_apply _v1 a)) (__eo_nil f (__eo_typeof _v2))))) (__bv_mk_bitwise_slicing_rec f c a bs b __eo_end _v0)))
   | _, _, _, _, _, _, _ => Term.Stuck
+
+
+def __bv_mk_bitwise_slicing : Term -> Term
+  | (Term.Apply (Term.Apply f a1) a2) => 
+    let _v0 := (Term.Apply (Term.Apply f a1) a2)
+    let _v1 := (__bv_get_first_const_child _v0)
+    let _v2 := (__eo_len _v1)
+    let _v3 := (__eo_add _v2 (Term.Numeral (-1 : native_Int)))
+    (__eo_list_singleton_elim (Term.UOp UserOp.concat) (__eo_requires (__eo_or (__eo_or (__eo_eq f (Term.UOp UserOp.bvand)) (__eo_eq f (Term.UOp UserOp.bvor))) (__eo_eq f (Term.UOp UserOp.bvxor))) (Term.Boolean true) (__bv_mk_bitwise_slicing_rec f _v1 (__eo_list_singleton_elim f (__eo_list_erase f _v0 _v1)) (__eo_list_rev (Term.UOp UserOp._at_from_bools) (__bv_const_to_bitlist_rec _v1 (__eo_requires (__eo_is_neg _v2) (Term.Boolean false) (__iota_rec (__eo_list_repeat (Term.UOp UserOp._at__at_TypedList_cons) (Term.Numeral 0) _v2) (Term.Numeral 0))))) (__eo_eq (__eo_extract _v1 _v3 _v3) (Term.Binary 1 1)) _v3 _v3)))
+  | _ => Term.Stuck
+
+
+def __eo_prog_bv_bitwise_slicing : Term -> Term
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.eq) a) b) => (__eo_requires (__bv_mk_bitwise_slicing a) b (Term.Apply (Term.Apply (Term.UOp UserOp.eq) a) b))
+  | _ => Term.Stuck
 
 
 def __eo_prog_bv_poly_norm : Term -> Term
@@ -2168,60 +2181,43 @@ def __get_nth_var_type : Term -> Term -> Term
   | _, _ => Term.Stuck
 
 
-def __contains_atomic_term : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | _ , Term.Stuck  => Term.Stuck
-  | (Term.Apply f a), x => (__eo_ite (__contains_atomic_term f x) (Term.Boolean true) (__contains_atomic_term a x))
-  | x, y => (__eo_eq x y)
-
-
-def __contains_atomic_term_list : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | _ , Term.Stuck  => Term.Stuck
-  | (Term.Apply f a), xs => (__eo_ite (__contains_atomic_term_list f xs) (Term.Boolean true) (__contains_atomic_term_list a xs))
-  | x, xs => (__eo_not (__eo_is_neg (__eo_list_find Term.__eo_List_cons xs x)))
-
-
 def __contains_atomic_term_list_free_rec : Term -> Term -> Term -> Term
   | Term.Stuck , _ , _  => Term.Stuck
   | _ , Term.Stuck , _  => Term.Stuck
   | _ , _ , Term.Stuck  => Term.Stuck
   | (Term.Apply (Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons x) ys)) a), xs, bvs => (__contains_atomic_term_list_free_rec a xs (__eo_list_concat Term.__eo_List_cons (Term.Apply (Term.Apply Term.__eo_List_cons x) ys) bvs))
   | (Term.Apply f a), xs, bvs => (__eo_ite (__contains_atomic_term_list_free_rec f xs bvs) (Term.Boolean true) (__contains_atomic_term_list_free_rec a xs bvs))
-  | x, xs, bvs => (__eo_ite (__eo_is_neg (__eo_list_find Term.__eo_List_cons xs x)) (Term.Boolean false) (__eo_is_neg (__eo_list_find Term.__eo_List_cons bvs x)))
+  | (Term.Var s T), xs, bvs => 
+    let _v0 := (Term.Var s T)
+    (__eo_ite (__eo_is_neg (__eo_list_find Term.__eo_List_cons xs _v0)) (Term.Boolean false) (__eo_is_neg (__eo_list_find Term.__eo_List_cons bvs _v0)))
+  | (Term.UOp2 UserOp2._at_quantifiers_skolemize F n), xs, bvs => (__contains_atomic_term_list_free_rec F xs bvs)
+  | (Term.UOp3 UserOp3._at_re_unfold_pos_component s r n), xs, bvs => (__eo_ite (__contains_atomic_term_list_free_rec s xs bvs) (Term.Boolean true) (__contains_atomic_term_list_free_rec r xs bvs))
+  | x, xs, bvs => (Term.Boolean false)
 
 
-def __substitute_simul : Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _  => Term.Stuck
-  | _ , Term.Stuck , _  => Term.Stuck
-  | _ , _ , Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)) a), xs, ss => 
+def __substitute_simul_rec : Term -> Term -> Term -> Term -> Term
+  | Term.Stuck , _ , _ , _  => Term.Stuck
+  | _ , Term.Stuck , _ , _  => Term.Stuck
+  | _ , _ , Term.Stuck , _  => Term.Stuck
+  | _ , _ , _ , Term.Stuck  => Term.Stuck
+  | isr, (Term.Apply (Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)) a), xs, ss => 
     let _v0 := (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
-    (__eo_requires (__contains_atomic_term_list_free_rec ss _v0 Term.__eo_List_nil) (Term.Boolean false) (__eo_mk_apply (Term.Apply q _v0) (__substitute_simul a (__eo_list_concat Term.__eo_List_cons _v0 xs) (__eo_list_concat Term.__eo_List_cons _v0 ss))))
-  | (Term.Apply f a), xs, ss => (__eo_mk_apply (__substitute_simul f xs ss) (__substitute_simul a xs ss))
-  | x, xs, ss => 
-    let _v0 := (__eo_list_find Term.__eo_List_cons xs x)
-    (__eo_ite (__eo_is_neg _v0) x (__assoc_nil_nth Term.__eo_List_cons ss _v0))
+    (__eo_requires (__contains_atomic_term_list_free_rec ss _v0 Term.__eo_List_nil) (Term.Boolean false) (__eo_ite isr (__eo_mk_apply (__eo_mk_apply q (__substitute_simul_rec isr _v0 xs ss)) (__substitute_simul_rec isr a xs ss)) (__eo_mk_apply (Term.Apply q _v0) (__substitute_simul_rec isr a (__eo_list_concat Term.__eo_List_cons _v0 xs) (__eo_list_concat Term.__eo_List_cons _v0 ss)))))
+  | isr, (Term.Apply f a), xs, ss => (__eo_mk_apply (__substitute_simul_rec isr f xs ss) (__substitute_simul_rec isr a xs ss))
+  | isr, (Term.Var s S), xs, ss => 
+    let _v0 := (Term.Var s S)
+    let _v1 := (__eo_list_find Term.__eo_List_cons xs _v0)
+    (__eo_ite (__eo_is_neg _v1) _v0 (__assoc_nil_nth Term.__eo_List_cons ss _v1))
+  | isr, x, xs, ss => x
 
 
-def __substitute : Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _  => Term.Stuck
-  | _ , Term.Stuck , _  => Term.Stuck
-  | _ , _ , Term.Stuck  => Term.Stuck
-  | x, y, z => (__substitute_simul z (Term.Apply (Term.Apply Term.__eo_List_cons x) Term.__eo_List_nil) (Term.Apply (Term.Apply Term.__eo_List_cons y) Term.__eo_List_nil))
-
-
-def __rename_simul : Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _  => Term.Stuck
-  | _ , Term.Stuck , _  => Term.Stuck
-  | _ , _ , Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)) a), xs, ss => 
-    let _v0 := (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
-    (__eo_requires (__contains_atomic_term_list_free_rec ss _v0 Term.__eo_List_nil) (Term.Boolean false) (__eo_mk_apply (__eo_mk_apply q (__rename_simul _v0 xs ss)) (__rename_simul a xs ss)))
-  | (Term.Apply f a), xs, ss => (__eo_mk_apply (__rename_simul f xs ss) (__rename_simul a xs ss))
-  | x, xs, ss => 
-    let _v0 := (__eo_list_find Term.__eo_List_cons xs x)
-    (__eo_ite (__eo_is_neg _v0) x (__assoc_nil_nth Term.__eo_List_cons ss _v0))
+def __is_closed_rec : Term -> Term -> Term
+  | Term.Stuck , _  => Term.Stuck
+  | _ , Term.Stuck  => Term.Stuck
+  | (Term.Apply (Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)) a), xs => (__eo_and (__is_closed_rec q xs) (__is_closed_rec a (__eo_list_concat Term.__eo_List_cons (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) xs)))
+  | (Term.Apply f a), xs => (__eo_and (__is_closed_rec f xs) (__is_closed_rec a xs))
+  | (Term.Var s S), xs => (__eo_not (__eo_is_neg (__eo_list_find Term.__eo_List_cons xs (Term.Var s S))))
+  | x, xs => (Term.Boolean true)
 
 
 def __str_is_empty : Term -> Term
@@ -2401,6 +2397,14 @@ def __str_unify_split : Term -> Term -> Term -> Term
     let _v1 := (Term.Apply (Term.UOp UserOp.str_len) s)
     (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) (Term.Apply (Term.Apply (Term.UOp UserOp.geq) _v0) _v1)) (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) t) _v1) (Term.Apply (Term.Apply (Term.UOp UserOp.neg) _v0) _v1))) (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) s) _v0) (Term.Apply (Term.Apply (Term.UOp UserOp.neg) _v1) _v0)))
   | _, _, _ => Term.Stuck
+
+
+def __str_nary_intro : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t) ss) => (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t) ss)
+  | t => 
+    let _v0 := (__seq_empty (__eo_typeof t))
+    (__eo_ite (__eo_eq t _v0) t (__eo_mk_apply (Term.Apply (Term.UOp UserOp.str_concat) t) _v0))
 
 
 def __re_nary_intro : Term -> Term
@@ -3400,8 +3404,8 @@ def __eo_prog_sets_eval_op : Term -> Term
 
 def __set_eval_insert : Term -> Term -> Term
   | _ , Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.Apply Term.__eo_List_cons x) xs), t => (__eo_mk_apply (Term.Apply (Term.UOp UserOp.set_union) (Term.Apply (Term.UOp UserOp.set_singleton) x)) (__set_eval_insert xs t))
-  | Term.__eo_List_nil, t => t
+  | (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) x) xs), t => (__eo_mk_apply (Term.Apply (Term.UOp UserOp.set_union) (Term.Apply (Term.UOp UserOp.set_singleton) x)) (__set_eval_insert xs t))
+  | (Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) T), t => t
   | _, _ => Term.Stuck
 
 
@@ -3442,7 +3446,7 @@ def __eo_prog_int_to_bv_elim : Term -> Term
 
 def __eo_prog_instantiate : Term -> Proof -> Term
   | Term.Stuck , _  => Term.Stuck
-  | ts, (Proof.pf (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F)) => (__substitute_simul F xs ts)
+  | ts, (Proof.pf (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F)) => (__substitute_simul_rec (Term.Boolean false) F xs ts)
   | _, _ => Term.Stuck
 
 
@@ -3455,7 +3459,9 @@ def __mk_skolems : Term -> Term -> Term -> Term
 
 
 def __eo_prog_skolemize : Proof -> Term
-  | (Proof.pf (Term.Apply (Term.UOp UserOp.not) (Term.Apply (Term.Apply (Term.UOp UserOp.forall) x) G))) => (__eo_requires (__eo_list_setof Term.__eo_List_cons x) x (__substitute_simul (Term.Apply (Term.UOp UserOp.not) G) x (__mk_skolems x (Term.Apply (Term.Apply (Term.UOp UserOp.forall) x) G) (Term.Numeral 0))))
+  | (Proof.pf (Term.Apply (Term.UOp UserOp.not) (Term.Apply (Term.Apply (Term.UOp UserOp.forall) x) G))) => 
+    let _v0 := (Term.Apply (Term.Apply (Term.UOp UserOp.forall) x) G)
+    (__eo_requires (__is_closed_rec _v0 Term.__eo_List_nil) (Term.Boolean true) (__eo_requires (__eo_list_setof Term.__eo_List_cons x) x (__substitute_simul_rec (Term.Boolean false) (Term.Apply (Term.UOp UserOp.not) G) x (__mk_skolems x _v0 (Term.Numeral 0)))))
   | _ => Term.Stuck
 
 
@@ -3468,7 +3474,7 @@ def __eo_prog_alpha_equiv : Term -> Term -> Term -> Term
   | Term.Stuck , _ , _  => Term.Stuck
   | _ , Term.Stuck , _  => Term.Stuck
   | _ , _ , Term.Stuck  => Term.Stuck
-  | t, vs, ts => (__eo_requires (__is_var_list vs) (Term.Boolean true) (__eo_requires (__is_var_list ts) (Term.Boolean true) (__eo_requires (__contains_atomic_term_list_free_rec t vs Term.__eo_List_nil) (Term.Boolean false) (__eo_requires (__contains_atomic_term_list t ts) (Term.Boolean false) (__eo_mk_apply (Term.Apply (Term.UOp UserOp.eq) t) (__rename_simul t vs ts))))))
+  | t, vs, ts => (__eo_requires (__is_var_list vs) (Term.Boolean true) (__eo_requires (__is_var_list ts) (Term.Boolean true) (__eo_requires (__contains_atomic_term_list_free_rec t vs Term.__eo_List_nil) (Term.Boolean false) (__eo_requires (__contains_atomic_term_list_free_rec t ts Term.__eo_List_nil) (Term.Boolean false) (__eo_mk_apply (Term.Apply (Term.UOp UserOp.eq) t) (__substitute_simul_rec (Term.Boolean true) t vs ts))))))
 
 
 def __eo_prog_quant_var_reordering : Term -> Term
@@ -3481,25 +3487,25 @@ def __eo_prog_exists_elim : Term -> Term
   | _ => Term.Stuck
 
 
-def __mk_quant_unused_vars_rec : Term -> Term -> Term
+def __eo_l_1___get_unused_vars : Term -> Term -> Term
   | _ , Term.Stuck  => Term.Stuck
-  | Term.__eo_List_nil, F => Term.__eo_List_nil
-  | (Term.Apply (Term.Apply Term.__eo_List_cons x) xs), F => 
-    let _v0 := (__mk_quant_unused_vars_rec xs F)
-    (__eo_ite (__contains_atomic_term F x) (__eo_mk_apply (Term.Apply Term.__eo_List_cons x) (__eo_list_erase Term.__eo_List_cons _v0 x)) _v0)
+  | (Term.Apply (Term.Apply Q x) F), __eo_lv_F_2 => (__eo_requires (__eo_eq F __eo_lv_F_2) (Term.Boolean true) (__eo_list_setof Term.__eo_List_cons x))
   | _, _ => Term.Stuck
 
 
-def __mk_quant : Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _  => Term.Stuck
-  | _ , Term.Stuck , _  => Term.Stuck
-  | _ , _ , Term.Stuck  => Term.Stuck
-  | Q, Term.__eo_List_nil, F => F
-  | Q, x, F => (Term.Apply (Term.Apply Q x) F)
+def __get_unused_vars : Term -> Term -> Term
+  | Term.Stuck , _  => Term.Stuck
+  | _ , Term.Stuck  => Term.Stuck
+  | (Term.Apply (Term.Apply Q x) F), (Term.Apply (Term.Apply __eo_lv_Q_2 y) __eo_lv_F_2) => 
+    let _v0 := (__eo_list_setof Term.__eo_List_cons x)
+    (__eo_ite (__eo_and (__eo_eq Q __eo_lv_Q_2) (__eo_eq F __eo_lv_F_2)) (__eo_requires (__eo_list_minclude Term.__eo_List_cons _v0 y) (Term.Boolean true) (__eo_list_diff Term.__eo_List_cons _v0 y)) (__eo_l_1___get_unused_vars (Term.Apply (Term.Apply Q x) F) (Term.Apply (Term.Apply __eo_lv_Q_2 y) __eo_lv_F_2)))
+  | __eo_dv_1, __eo_dv_2 => (__eo_l_1___get_unused_vars __eo_dv_1 __eo_dv_2)
 
 
 def __eo_prog_quant_unused_vars : Term -> Term
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply Q x) F)) G) => (__eo_requires (__eo_or (__eo_eq Q (Term.UOp UserOp.forall)) (__eo_eq Q (Term.UOp UserOp.exists))) (Term.Boolean true) (__eo_requires (__mk_quant Q (__mk_quant_unused_vars_rec x F) F) G (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply Q x) F)) G)))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply Q x) F)) G) => 
+    let _v0 := (Term.Apply (Term.Apply Q x) F)
+    (__eo_requires (__eo_or (__eo_eq Q (Term.UOp UserOp.forall)) (__eo_eq Q (Term.UOp UserOp.exists))) (Term.Boolean true) (__eo_requires (__contains_atomic_term_list_free_rec G (__get_unused_vars _v0 G) Term.__eo_List_nil) (Term.Boolean false) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) _v0) G)))
   | _ => Term.Stuck
 
 
@@ -3551,7 +3557,8 @@ def __eo_l_2___is_quant_miniscope_or : Term -> Term -> Term -> Term
   | _ , _ , Term.Stuck  => Term.Stuck
   | (Term.Apply (Term.Apply Term.__eo_List_cons x) xs), (Term.Apply (Term.Apply (Term.UOp UserOp.or) f) fs), (Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply (Term.Apply (Term.UOp UserOp.forall) (Term.Apply (Term.Apply Term.__eo_List_cons __eo_lv_x_2) ys)) __eo_lv_f_2)) gs) => 
     let _v0 := (Term.Apply (Term.Apply (Term.UOp UserOp.or) f) fs)
-    (__eo_ite (__eo_and (__eo_eq x __eo_lv_x_2) (__eo_eq f __eo_lv_f_2)) (__eo_requires (__contains_atomic_term gs x) (Term.Boolean false) (__is_quant_miniscope_or xs _v0 (Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply (Term.Apply (Term.UOp UserOp.forall) ys) f)) gs))) (__eo_l_3___is_quant_miniscope_or (Term.Apply (Term.Apply Term.__eo_List_cons x) xs) _v0 (Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply (Term.Apply (Term.UOp UserOp.forall) (Term.Apply (Term.Apply Term.__eo_List_cons __eo_lv_x_2) ys)) __eo_lv_f_2)) gs)))
+    let _v1 := (Term.Apply Term.__eo_List_cons x)
+    (__eo_ite (__eo_and (__eo_eq x __eo_lv_x_2) (__eo_eq f __eo_lv_f_2)) (__eo_requires (__contains_atomic_term_list_free_rec gs (Term.Apply _v1 Term.__eo_List_nil) Term.__eo_List_nil) (Term.Boolean false) (__is_quant_miniscope_or xs _v0 (Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply (Term.Apply (Term.UOp UserOp.forall) ys) f)) gs))) (__eo_l_3___is_quant_miniscope_or (Term.Apply _v1 xs) _v0 (Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply (Term.Apply (Term.UOp UserOp.forall) (Term.Apply (Term.Apply Term.__eo_List_cons __eo_lv_x_2) ys)) __eo_lv_f_2)) gs)))
   | __eo_dv_1, __eo_dv_2, __eo_dv_3 => (__eo_l_3___is_quant_miniscope_or __eo_dv_1 __eo_dv_2 __eo_dv_3)
 
 
@@ -3559,7 +3566,7 @@ def __eo_l_1___is_quant_miniscope_or : Term -> Term -> Term -> Term
   | Term.Stuck , _ , _  => Term.Stuck
   | _ , Term.Stuck , _  => Term.Stuck
   | _ , _ , Term.Stuck  => Term.Stuck
-  | x, (Term.Apply (Term.Apply (Term.UOp UserOp.or) f) fs), (Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply (Term.Apply (Term.UOp UserOp.forall) Term.__eo_List_nil) __eo_lv_f_2)) gs) => (__eo_ite (__eo_eq f __eo_lv_f_2) (__eo_requires (__contains_atomic_term_list f x) (Term.Boolean false) (__is_quant_miniscope_or x fs gs)) (__eo_l_2___is_quant_miniscope_or x (Term.Apply (Term.Apply (Term.UOp UserOp.or) f) fs) (Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply (Term.Apply (Term.UOp UserOp.forall) Term.__eo_List_nil) __eo_lv_f_2)) gs)))
+  | x, (Term.Apply (Term.Apply (Term.UOp UserOp.or) f) fs), (Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply (Term.Apply (Term.UOp UserOp.forall) Term.__eo_List_nil) __eo_lv_f_2)) gs) => (__eo_ite (__eo_eq f __eo_lv_f_2) (__eo_requires (__contains_atomic_term_list_free_rec f x Term.__eo_List_nil) (Term.Boolean false) (__is_quant_miniscope_or x fs gs)) (__eo_l_2___is_quant_miniscope_or x (Term.Apply (Term.Apply (Term.UOp UserOp.or) f) fs) (Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply (Term.Apply (Term.UOp UserOp.forall) Term.__eo_List_nil) __eo_lv_f_2)) gs)))
   | __eo_dv_1, __eo_dv_2, __eo_dv_3 => (__eo_l_2___is_quant_miniscope_or __eo_dv_1 __eo_dv_2 __eo_dv_3)
 
 
@@ -3567,7 +3574,7 @@ def __is_quant_miniscope_or : Term -> Term -> Term -> Term
   | Term.Stuck , _ , _  => Term.Stuck
   | _ , Term.Stuck , _  => Term.Stuck
   | _ , _ , Term.Stuck  => Term.Stuck
-  | x, (Term.Apply (Term.Apply (Term.UOp UserOp.or) f) fs), (Term.Apply (Term.Apply (Term.UOp UserOp.or) __eo_lv_f_2) gs) => (__eo_ite (__eo_eq f __eo_lv_f_2) (__eo_requires (__contains_atomic_term_list f x) (Term.Boolean false) (__is_quant_miniscope_or x fs gs)) (__eo_l_1___is_quant_miniscope_or x (Term.Apply (Term.Apply (Term.UOp UserOp.or) f) fs) (Term.Apply (Term.Apply (Term.UOp UserOp.or) __eo_lv_f_2) gs)))
+  | x, (Term.Apply (Term.Apply (Term.UOp UserOp.or) f) fs), (Term.Apply (Term.Apply (Term.UOp UserOp.or) __eo_lv_f_2) gs) => (__eo_ite (__eo_eq f __eo_lv_f_2) (__eo_requires (__contains_atomic_term_list_free_rec f x Term.__eo_List_nil) (Term.Boolean false) (__is_quant_miniscope_or x fs gs)) (__eo_l_1___is_quant_miniscope_or x (Term.Apply (Term.Apply (Term.UOp UserOp.or) f) fs) (Term.Apply (Term.Apply (Term.UOp UserOp.or) __eo_lv_f_2) gs)))
   | __eo_dv_1, __eo_dv_2, __eo_dv_3 => (__eo_l_1___is_quant_miniscope_or __eo_dv_1 __eo_dv_2 __eo_dv_3)
 
 
@@ -3580,20 +3587,24 @@ def __eo_prog_quant_miniscope_ite : Term -> Term
   | (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.UOp UserOp.forall) x) (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) A) F1) F2))) (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) __eo_lv_A_2) (Term.Apply (Term.Apply (Term.UOp UserOp.forall) __eo_lv_x_2) __eo_lv_F1_2)) (Term.Apply (Term.Apply (Term.UOp UserOp.forall) __eo_lv_x_3) __eo_lv_F2_2))) => 
     let _v0 := (Term.Apply (Term.UOp UserOp.forall) x)
     let _v1 := (Term.Apply (Term.UOp UserOp.ite) A)
-    (__eo_requires (__eo_and (__eo_and (__eo_and (__eo_and (__eo_eq A __eo_lv_A_2) (__eo_eq x __eo_lv_x_2)) (__eo_eq F1 __eo_lv_F1_2)) (__eo_eq x __eo_lv_x_3)) (__eo_eq F2 __eo_lv_F2_2)) (Term.Boolean true) (__eo_requires (__contains_atomic_term_list A x) (Term.Boolean false) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply _v0 (Term.Apply (Term.Apply _v1 F1) F2))) (Term.Apply (Term.Apply _v1 (Term.Apply _v0 F1)) (Term.Apply _v0 F2)))))
+    (__eo_requires (__eo_and (__eo_and (__eo_and (__eo_and (__eo_eq A __eo_lv_A_2) (__eo_eq x __eo_lv_x_2)) (__eo_eq F1 __eo_lv_F1_2)) (__eo_eq x __eo_lv_x_3)) (__eo_eq F2 __eo_lv_F2_2)) (Term.Boolean true) (__eo_requires (__contains_atomic_term_list_free_rec A x Term.__eo_List_nil) (Term.Boolean false) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply _v0 (Term.Apply (Term.Apply _v1 F1) F2))) (Term.Apply (Term.Apply _v1 (Term.Apply _v0 F1)) (Term.Apply _v0 F2)))))
   | _ => Term.Stuck
 
 
 def __eo_l_1___mk_quant_var_elim_eq : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
-  | x, (Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply (Term.UOp UserOp.not) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) __eo_lv_x_2) t))) F) => (__eo_requires (__eo_eq x __eo_lv_x_2) (Term.Boolean true) (__eo_requires (__contains_atomic_term t x) (Term.Boolean false) (__substitute x t (__eo_list_singleton_elim (Term.UOp UserOp.or) F))))
+  | x, (Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply (Term.UOp UserOp.not) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) __eo_lv_x_2) t))) F) => 
+    let _v0 := (Term.Apply (Term.Apply Term.__eo_List_cons x) Term.__eo_List_nil)
+    (__eo_requires (__eo_eq x __eo_lv_x_2) (Term.Boolean true) (__eo_requires (__contains_atomic_term_list_free_rec t _v0 Term.__eo_List_nil) (Term.Boolean false) (__substitute_simul_rec (Term.Boolean false) (__eo_list_singleton_elim (Term.UOp UserOp.or) F) _v0 (Term.Apply (Term.Apply Term.__eo_List_cons t) Term.__eo_List_nil))))
   | _, _ => Term.Stuck
 
 
 def __mk_quant_var_elim_eq : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
-  | x, (Term.Apply (Term.UOp UserOp.not) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) __eo_lv_x_2) t)) => (__eo_ite (__eo_eq x __eo_lv_x_2) (__eo_requires (__contains_atomic_term t x) (Term.Boolean false) (__substitute x t (Term.Boolean false))) (__eo_l_1___mk_quant_var_elim_eq x (Term.Apply (Term.UOp UserOp.not) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) __eo_lv_x_2) t))))
+  | x, (Term.Apply (Term.UOp UserOp.not) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) __eo_lv_x_2) t)) => 
+    let _v0 := (Term.Apply (Term.Apply Term.__eo_List_cons x) Term.__eo_List_nil)
+    (__eo_ite (__eo_eq x __eo_lv_x_2) (__eo_requires (__contains_atomic_term_list_free_rec t _v0 Term.__eo_List_nil) (Term.Boolean false) (__substitute_simul_rec (Term.Boolean false) (Term.Boolean false) _v0 (Term.Apply (Term.Apply Term.__eo_List_cons t) Term.__eo_List_nil))) (__eo_l_1___mk_quant_var_elim_eq x (Term.Apply (Term.UOp UserOp.not) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) __eo_lv_x_2) t))))
   | __eo_dv_1, __eo_dv_2 => (__eo_l_1___mk_quant_var_elim_eq __eo_dv_1 __eo_dv_2)
 
 
@@ -3607,9 +3618,9 @@ def __eo_l_1___is_quant_dt_split_conj : Term -> Term -> Term -> Term -> Term -> 
   | _ , Term.Stuck , _ , _ , _  => Term.Stuck
   | _ , _ , _ , Term.Stuck , _  => Term.Stuck
   | _ , _ , _ , _ , Term.Stuck  => Term.Stuck
-  | x, c, Term.__eo_List_nil, F, (Term.Apply (Term.Apply (Term.UOp UserOp.forall) (Term.Apply (Term.Apply Term.__eo_List_cons y) zs)) G) => (__eo_requires (__contains_atomic_term zs y) (Term.Boolean false) (__is_quant_dt_split_conj x (Term.Apply c y) Term.__eo_List_nil F (Term.Apply (Term.Apply (Term.UOp UserOp.forall) zs) G)))
+  | x, c, Term.__eo_List_nil, F, (Term.Apply (Term.Apply (Term.UOp UserOp.forall) (Term.Apply (Term.Apply Term.__eo_List_cons y) zs)) G) => (__eo_requires (__contains_atomic_term_list_free_rec zs (Term.Apply (Term.Apply Term.__eo_List_cons y) Term.__eo_List_nil) Term.__eo_List_nil) (Term.Boolean false) (__is_quant_dt_split_conj x (Term.Apply c y) Term.__eo_List_nil F (Term.Apply (Term.Apply (Term.UOp UserOp.forall) zs) G)))
   | x, c, Term.__eo_List_nil, F, (Term.Apply (Term.Apply (Term.UOp UserOp.forall) Term.__eo_List_nil) G) => (__is_quant_dt_split_conj x c Term.__eo_List_nil F G)
-  | x, cx, Term.__eo_List_nil, F, G => (__eo_eq (__substitute x cx F) G)
+  | x, cx, Term.__eo_List_nil, F, G => (__eo_eq (__substitute_simul_rec (Term.Boolean false) F (Term.Apply (Term.Apply Term.__eo_List_cons x) Term.__eo_List_nil) (Term.Apply (Term.Apply Term.__eo_List_cons cx) Term.__eo_List_nil)) G)
   | _, _, _, _, _ => Term.Stuck
 
 
@@ -3619,7 +3630,9 @@ def __is_quant_dt_split_conj : Term -> Term -> Term -> Term -> Term -> Term
   | _ , _ , Term.Stuck , _ , _  => Term.Stuck
   | _ , _ , _ , Term.Stuck , _  => Term.Stuck
   | _ , _ , _ , _ , Term.Stuck  => Term.Stuck
-  | x, c, (Term.Apply (Term.Apply Term.__eo_List_cons y) ys), F, (Term.Apply (Term.Apply (Term.UOp UserOp.forall) (Term.Apply (Term.Apply Term.__eo_List_cons __eo_lv_y_2) zs)) G) => (__eo_ite (__eo_eq y __eo_lv_y_2) (__eo_requires (__contains_atomic_term zs y) (Term.Boolean false) (__is_quant_dt_split_conj x c ys F (Term.Apply (Term.Apply (Term.UOp UserOp.forall) zs) G))) (__eo_l_1___is_quant_dt_split_conj x c (Term.Apply (Term.Apply Term.__eo_List_cons y) ys) F (Term.Apply (Term.Apply (Term.UOp UserOp.forall) (Term.Apply (Term.Apply Term.__eo_List_cons __eo_lv_y_2) zs)) G)))
+  | x, c, (Term.Apply (Term.Apply Term.__eo_List_cons y) ys), F, (Term.Apply (Term.Apply (Term.UOp UserOp.forall) (Term.Apply (Term.Apply Term.__eo_List_cons __eo_lv_y_2) zs)) G) => 
+    let _v0 := (Term.Apply Term.__eo_List_cons y)
+    (__eo_ite (__eo_eq y __eo_lv_y_2) (__eo_requires (__contains_atomic_term_list_free_rec zs (Term.Apply _v0 Term.__eo_List_nil) Term.__eo_List_nil) (Term.Boolean false) (__is_quant_dt_split_conj x c ys F (Term.Apply (Term.Apply (Term.UOp UserOp.forall) zs) G))) (__eo_l_1___is_quant_dt_split_conj x c (Term.Apply _v0 ys) F (Term.Apply (Term.Apply (Term.UOp UserOp.forall) (Term.Apply (Term.Apply Term.__eo_List_cons __eo_lv_y_2) zs)) G)))
   | __eo_dv_1, __eo_dv_2, __eo_dv_3, __eo_dv_4, __eo_dv_5 => (__eo_l_1___is_quant_dt_split_conj __eo_dv_1 __eo_dv_2 __eo_dv_3 __eo_dv_4 __eo_dv_5)
 
 
@@ -8380,7 +8393,7 @@ def __eo_typeof_set_is_empty : Term -> Term
 
 
 def __eo_typeof_set_insert : Term -> Term -> Term
-  | Term.__eo_List, (Term.Apply (Term.UOp UserOp.Set) T) => (Term.Apply (Term.UOp UserOp.Set) T)
+  | (Term.Apply (Term.UOp UserOp._at__at_TypedList) T), (Term.Apply (Term.UOp UserOp.Set) __eo_lv_T_2) => (__eo_requires (__eo_eq T __eo_lv_T_2) (Term.Boolean true) (Term.Apply (Term.UOp UserOp.Set) T))
   | _, _ => Term.Stuck
 
 
@@ -8763,20 +8776,6 @@ partial def __bv_div_mod_impl : Term -> Term -> Term -> Term -> Term
   | zero, a2, __eo_lv_zero_2, sz => (__eo_ite (__eo_eq zero __eo_lv_zero_2) (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) zero) zero) (__eo_l_1___bv_div_mod_impl zero a2 __eo_lv_zero_2 sz))
 
 
-partial def __eo_l_1___bv_const_to_bitlist_rec : Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _  => Term.Stuck
-  | _ , Term.Stuck , _  => Term.Stuck
-  | _ , _ , Term.Stuck  => Term.Stuck
-  | c, i, n => (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp._at_from_bools) (__eo_eq (__eo_extract c i i) (Term.Binary 1 1))) (__bv_const_to_bitlist_rec c (__eo_add i (Term.Numeral 1)) n))
-
-
-partial def __bv_const_to_bitlist_rec : Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _  => Term.Stuck
-  | _ , Term.Stuck , _  => Term.Stuck
-  | _ , _ , Term.Stuck  => Term.Stuck
-  | c, n, __eo_lv_n_2 => (__eo_ite (__eo_eq n __eo_lv_n_2) (Term.Binary 0 0) (__eo_l_1___bv_const_to_bitlist_rec c n __eo_lv_n_2))
-
-
 partial def __bv_mk_bitblast_step_var_rec : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
@@ -8818,41 +8817,31 @@ partial def __bv_mk_bitblast_step : Term -> Term
     let _v3 := (__eo_is_z _v0)
     let _v4 := (__eo_ite _v3 (__eo_ite _v2 (Term.Numeral 0) (__eo_log (Term.Numeral 2) _v0)) (__eo_mk_apply (Term.UOp UserOp.int_log2) _v0))
     let _v5 := (__eo_to_bin _v0 _v0)
-    (__bv_bitblast_apply_ite (__bv_bitblast_ult a2 (__bv_const_to_bitlist_rec _v5 (Term.Numeral 0) (__eo_len _v5)) (Term.Boolean false)) (__bv_mk_bitblast_step_shr_rec a1 a2 (Term.Numeral 0) (__eo_ite (__eo_ite _v3 (__eo_ite _v2 (Term.Boolean false) (__eo_eq _v0 (__eo_pow (Term.Numeral 2) _v4))) (__eo_mk_apply (Term.UOp UserOp.int_ispow2) _v0)) _v4 (__eo_add _v4 (Term.Numeral 1))) _v1) (__eo_list_repeat (Term.UOp UserOp._at_from_bools) _v1 _v0))
+    let _v6 := (__eo_len _v5)
+    (__bv_bitblast_apply_ite (__bv_bitblast_ult a2 (__bv_const_to_bitlist_rec _v5 (__eo_requires (__eo_is_neg _v6) (Term.Boolean false) (__iota_rec (__eo_list_repeat (Term.UOp UserOp._at__at_TypedList_cons) (Term.Numeral 0) _v6) (Term.Numeral 0)))) (Term.Boolean false)) (__bv_mk_bitblast_step_shr_rec a1 a2 (Term.Numeral 0) (__eo_ite (__eo_ite _v3 (__eo_ite _v2 (Term.Boolean false) (__eo_eq _v0 (__eo_pow (Term.Numeral 2) _v4))) (__eo_mk_apply (Term.UOp UserOp.int_ispow2) _v0)) _v4 (__eo_add _v4 (Term.Numeral 1))) _v1) (__eo_list_repeat (Term.UOp UserOp._at_from_bools) _v1 _v0))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.bvlshr) a1) a2) => 
     let _v0 := (__bv_bitwidth (__eo_typeof a1))
     let _v1 := (__eo_is_neg _v0)
     let _v2 := (__eo_is_z _v0)
     let _v3 := (__eo_ite _v2 (__eo_ite _v1 (Term.Numeral 0) (__eo_log (Term.Numeral 2) _v0)) (__eo_mk_apply (Term.UOp UserOp.int_log2) _v0))
     let _v4 := (__eo_to_bin _v0 _v0)
-    (__bv_bitblast_apply_ite (__bv_bitblast_ult a2 (__bv_const_to_bitlist_rec _v4 (Term.Numeral 0) (__eo_len _v4)) (Term.Boolean false)) (__bv_mk_bitblast_step_shr_rec a1 a2 (Term.Numeral 0) (__eo_ite (__eo_ite _v2 (__eo_ite _v1 (Term.Boolean false) (__eo_eq _v0 (__eo_pow (Term.Numeral 2) _v3))) (__eo_mk_apply (Term.UOp UserOp.int_ispow2) _v0)) _v3 (__eo_add _v3 (Term.Numeral 1))) (Term.Boolean false)) (__eo_list_repeat (Term.UOp UserOp._at_from_bools) (Term.Boolean false) _v0))
+    let _v5 := (__eo_len _v4)
+    (__bv_bitblast_apply_ite (__bv_bitblast_ult a2 (__bv_const_to_bitlist_rec _v4 (__eo_requires (__eo_is_neg _v5) (Term.Boolean false) (__iota_rec (__eo_list_repeat (Term.UOp UserOp._at__at_TypedList_cons) (Term.Numeral 0) _v5) (Term.Numeral 0)))) (Term.Boolean false)) (__bv_mk_bitblast_step_shr_rec a1 a2 (Term.Numeral 0) (__eo_ite (__eo_ite _v2 (__eo_ite _v1 (Term.Boolean false) (__eo_eq _v0 (__eo_pow (Term.Numeral 2) _v3))) (__eo_mk_apply (Term.UOp UserOp.int_ispow2) _v0)) _v3 (__eo_add _v3 (Term.Numeral 1))) (Term.Boolean false)) (__eo_list_repeat (Term.UOp UserOp._at_from_bools) (Term.Boolean false) _v0))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.bvshl) a1) a2) => 
     let _v0 := (__bv_bitwidth (__eo_typeof a1))
     let _v1 := (__eo_is_neg _v0)
     let _v2 := (__eo_is_z _v0)
     let _v3 := (__eo_ite _v2 (__eo_ite _v1 (Term.Numeral 0) (__eo_log (Term.Numeral 2) _v0)) (__eo_mk_apply (Term.UOp UserOp.int_log2) _v0))
     let _v4 := (__eo_to_bin _v0 _v0)
-    (__bv_bitblast_apply_ite (__bv_bitblast_ult a2 (__bv_const_to_bitlist_rec _v4 (Term.Numeral 0) (__eo_len _v4)) (Term.Boolean false)) (__bv_mk_bitblast_step_shl_rec a1 a2 (Term.Numeral 0) (__eo_ite (__eo_ite _v2 (__eo_ite _v1 (Term.Boolean false) (__eo_eq _v0 (__eo_pow (Term.Numeral 2) _v3))) (__eo_mk_apply (Term.UOp UserOp.int_ispow2) _v0)) _v3 (__eo_add _v3 (Term.Numeral 1)))) (__eo_list_repeat (Term.UOp UserOp._at_from_bools) (Term.Boolean false) _v0))
+    let _v5 := (__eo_len _v4)
+    (__bv_bitblast_apply_ite (__bv_bitblast_ult a2 (__bv_const_to_bitlist_rec _v4 (__eo_requires (__eo_is_neg _v5) (Term.Boolean false) (__iota_rec (__eo_list_repeat (Term.UOp UserOp._at__at_TypedList_cons) (Term.Numeral 0) _v5) (Term.Numeral 0)))) (Term.Boolean false)) (__bv_mk_bitblast_step_shl_rec a1 a2 (Term.Numeral 0) (__eo_ite (__eo_ite _v2 (__eo_ite _v1 (Term.Boolean false) (__eo_eq _v0 (__eo_pow (Term.Numeral 2) _v3))) (__eo_mk_apply (Term.UOp UserOp.int_ispow2) _v0)) _v3 (__eo_add _v3 (Term.Numeral 1)))) (__eo_list_repeat (Term.UOp UserOp._at_from_bools) (Term.Boolean false) _v0))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.bvcomp) a1) a2) => (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp._at_from_bools) (__eo_list_singleton_elim (Term.UOp UserOp.and) (__bv_mk_bitblast_step_eq_rec a1 a2))) (Term.Binary 0 0))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.bvultbv) a1) a2) => (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp._at_from_bools) (__bv_bitblast_ult a1 a2 (Term.Boolean false))) (Term.Binary 0 0))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.bvsltbv) a1) a2) => (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp._at_from_bools) (__bv_bitblast_slt_impl (__eo_list_rev (Term.UOp UserOp._at_from_bools) a1) (__eo_list_rev (Term.UOp UserOp._at_from_bools) a2) (Term.Boolean false))) (Term.Binary 0 0))
   | (Term.Apply (Term.UOp1 UserOp1.sign_extend n) a1) => (__bv_bitblast_concat a1 (__eo_list_repeat (Term.UOp UserOp._at_from_bools) (__bv_bitblast_head (__eo_list_rev (Term.UOp UserOp._at_from_bools) a1)) n))
-  | a1 => (__eo_ite (__eo_is_bin a1) (__bv_const_to_bitlist_rec a1 (Term.Numeral 0) (__eo_len a1)) (__eo_list_rev (Term.UOp UserOp._at_from_bools) (__bv_mk_bitblast_step_var_rec a1 (__eo_add (__bv_bitwidth (__eo_typeof a1)) (Term.Numeral (-1 : native_Int))))))
-
-
-partial def __bv_mk_bitwise_slicing : Term -> Term
-  | (Term.Apply (Term.Apply f a1) a2) => 
-    let _v0 := (Term.Apply (Term.Apply f a1) a2)
-    let _v1 := (__bv_get_first_const_child _v0)
-    let _v2 := (__eo_len _v1)
-    let _v3 := (__eo_add _v2 (Term.Numeral (-1 : native_Int)))
-    (__eo_list_singleton_elim (Term.UOp UserOp.concat) (__eo_requires (__eo_or (__eo_or (__eo_eq f (Term.UOp UserOp.bvand)) (__eo_eq f (Term.UOp UserOp.bvor))) (__eo_eq f (Term.UOp UserOp.bvxor))) (Term.Boolean true) (__bv_mk_bitwise_slicing_rec f _v1 (__eo_list_singleton_elim f (__eo_list_erase f _v0 _v1)) (__eo_list_rev (Term.UOp UserOp._at_from_bools) (__bv_const_to_bitlist_rec _v1 (Term.Numeral 0) _v2)) (__eo_eq (__eo_extract _v1 _v3 _v3) (Term.Binary 1 1)) _v3 _v3)))
-  | _ => Term.Stuck
-
-
-partial def __eo_prog_bv_bitwise_slicing : Term -> Term
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.eq) a) b) => (__eo_requires (__bv_mk_bitwise_slicing a) b (Term.Apply (Term.Apply (Term.UOp UserOp.eq) a) b))
-  | _ => Term.Stuck
+  | a1 => 
+    let _v0 := (__eo_len a1)
+    (__eo_ite (__eo_is_bin a1) (__bv_const_to_bitlist_rec a1 (__eo_requires (__eo_is_neg _v0) (Term.Boolean false) (__iota_rec (__eo_list_repeat (Term.UOp UserOp._at__at_TypedList_cons) (Term.Numeral 0) _v0) (Term.Numeral 0)))) (__eo_list_rev (Term.UOp UserOp._at_from_bools) (__bv_mk_bitblast_step_var_rec a1 (__eo_add (__bv_bitwidth (__eo_typeof a1)) (Term.Numeral (-1 : native_Int))))))
 
 
 partial def __eo_prog_bv_bitblast_step : Term -> Term
