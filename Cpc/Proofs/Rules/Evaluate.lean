@@ -5331,6 +5331,39 @@ private theorem smtx_model_eval_bvsle_binary_eq_uts
     (w := w) (n1 := n2) (n2 := n1) hw0 hCanon2 hCanon1]
   rw [native_teq_term_numeral_comm]
 
+private def eo_eval_bvashr_rhs (a b : Term) : Term :=
+  let runAmt := __eo_to_z (__run_evaluate b)
+  let runA := __run_evaluate a
+  let powAmt :=
+    __eo_ite (__eo_is_z runAmt)
+      (__eo_ite (__eo_is_neg runAmt) (Term.Numeral 0)
+        (__eo_pow (Term.Numeral 2) runAmt))
+      (__eo_mk_apply (Term.UOp UserOp.int_pow2) runAmt)
+  __eo_to_bin (__bv_bitwidth (__eo_typeof a))
+    (__eo_zdiv (eo_signed_bv_value runA) powAmt)
+
+private theorem smtx_model_eval_bvashr_binary_eq_signed_div
+    {w n s : native_Int}
+    (hw0 : native_zleq 0 w = true)
+    (hCanon :
+      native_zeq n
+          (native_mod_total n (native_int_pow2 w)) =
+        true)
+    (hShiftCanon :
+      native_zeq s
+          (native_mod_total s (native_int_pow2 w)) =
+        true) :
+    __smtx_model_eval_bvashr (SmtValue.Binary w n) (SmtValue.Binary w s) =
+      SmtValue.Binary w
+        (native_mod_total
+          (native_div_total (native_binary_uts w n)
+            (native_int_pow2 s))
+          (native_int_pow2 w)) := by
+  -- This is the arithmetic heart of arithmetic right shift:
+  -- the evaluator computes signed floor-division by `2^s`, while
+  -- the SMT model defines `bvashr` through `bvlshr`/`bvnot`.
+  sorry
+
 private theorem sbv_to_int_payload_eq_uts_core
     {w n : native_Int}
     (hw0 : native_zleq 0 w = true)
@@ -16807,6 +16840,341 @@ private theorem run_evaluate_sound_apply_bvlshr_core
           native_ite, native_teq]
     exact False.elim (hRunShiftNe hRunShiftStuck)
 
+private theorem run_evaluate_sound_apply_bvashr_core
+    (M : SmtModel) (hM : model_total_typed M)
+    (a b : Term)
+    (rec :
+      ∀ A : Term,
+        sizeOf A <
+            sizeOf (Term.Apply (Term.Apply (Term.UOp UserOp.bvashr) a) b) ->
+          RunEvaluateSoundGoal M A) :
+  RunEvaluateSoundGoal M
+    (Term.Apply (Term.Apply (Term.UOp UserOp.bvashr) a) b) := by
+  intro hATrans hEvalTy
+  have hBvAshrNN :
+      term_has_non_none_type
+        (SmtTerm.bvashr (__eo_to_smt a) (__eo_to_smt b)) := by
+    unfold term_has_non_none_type
+    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+  rcases bv_binop_args_of_non_none
+      (op := SmtTerm.bvashr) (t1 := __eo_to_smt a) (t2 := __eo_to_smt b)
+      (by rw [__smtx_typeof.eq_def] <;> simp only) hBvAshrNN with
+    ⟨w, hATy, hBTy⟩
+  have hATransA : RuleProofs.eo_has_smt_translation a := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hATy]
+    simp
+  have hBTrans : RuleProofs.eo_has_smt_translation b := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hBTy]
+    simp
+  have hAMatch :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation a hATransA
+  have hBMatch :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation b hBTrans
+  have hAEoBv :
+      __eo_typeof a =
+        Term.Apply (Term.UOp UserOp.BitVec)
+          (Term.Numeral (native_nat_to_int w)) :=
+    TranslationProofs.eo_to_smt_type_eq_bitvec (hAMatch.symm.trans hATy)
+  have hBEoBv :
+      __eo_typeof b =
+        Term.Apply (Term.UOp UserOp.BitVec)
+          (Term.Numeral (native_nat_to_int w)) :=
+    TranslationProofs.eo_to_smt_type_eq_bitvec (hBMatch.symm.trans hBTy)
+  have hBvAshrEoType :
+      __eo_typeof
+        (Term.Apply (Term.Apply (Term.UOp UserOp.bvashr) a) b) =
+        Term.Apply (Term.UOp UserOp.BitVec)
+          (Term.Numeral (native_nat_to_int w)) := by
+    change __eo_typeof_bvand (__eo_typeof a) (__eo_typeof b) =
+      Term.Apply (Term.UOp UserOp.BitVec)
+        (Term.Numeral (native_nat_to_int w))
+    rw [hAEoBv, hBEoBv]
+    simp [__eo_typeof_bvand, __eo_requires, __eo_eq, native_ite,
+      native_teq, native_not]
+  let runShift := eo_eval_bvashr_rhs a b
+  have hRunShiftNe : runShift ≠ Term.Stuck := by
+    intro hStuck
+    change
+      __eo_typeof
+          (__eo_mk_apply
+            (Term.Apply (Term.UOp UserOp.eq)
+              (Term.Apply (Term.Apply (Term.UOp UserOp.bvashr) a) b))
+            runShift) =
+        Term.Bool at hEvalTy
+    rw [hStuck] at hEvalTy
+    change Term.Stuck = Term.Bool at hEvalTy
+    cases hEvalTy
+  have hMkNe :
+      __eo_mk_apply
+          (Term.Apply (Term.UOp UserOp.eq)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.bvashr) a) b))
+          runShift ≠
+        Term.Stuck := by
+    intro hMk
+    cases hRun : runShift <;>
+      simp [__eo_mk_apply, hRun] at hMk hRunShiftNe
+  have hEvalEqTy :
+      __eo_typeof
+          (Term.Apply
+            (Term.Apply (Term.UOp UserOp.eq)
+              (Term.Apply (Term.Apply (Term.UOp UserOp.bvashr) a) b))
+            runShift) =
+        Term.Bool := by
+    change
+      __eo_typeof
+          (__eo_mk_apply
+            (Term.Apply (Term.UOp UserOp.eq)
+              (Term.Apply (Term.Apply (Term.UOp UserOp.bvashr) a) b))
+            runShift) =
+        Term.Bool at hEvalTy
+    rw [evaluate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNe] at hEvalTy
+    exact hEvalTy
+  have hRunShiftEoBv :
+      __eo_typeof runShift =
+        Term.Apply (Term.UOp UserOp.BitVec)
+          (Term.Numeral (native_nat_to_int w)) := by
+    have hEq :=
+      evaluate_apply_eq_typeof_bool_operands_eq
+        (Term.Apply (Term.Apply (Term.UOp UserOp.bvashr) a) b)
+        runShift hEvalEqTy
+    exact hEq.symm.trans hBvAshrEoType
+  have hAProgTy : __eo_typeof (__eo_prog_evaluate a) = Term.Bool :=
+    eo_prog_evaluate_typeof_bool_of_smt_type_bitvec a w hATransA hATy
+  have hBProgTy : __eo_typeof (__eo_prog_evaluate b) = Term.Bool :=
+    eo_prog_evaluate_typeof_bool_of_smt_type_bitvec b w hBTrans hBTy
+  rcases run_evaluate_rec_apply_apply_arg M
+      (Term.UOp UserOp.bvashr) a b rec hATransA hAProgTy with
+    ⟨hASameTy, hARel⟩
+  rcases run_evaluate_rec_apply_arg M
+      (Term.Apply (Term.UOp UserOp.bvashr) a) b rec hBTrans hBProgTy with
+    ⟨hBSameTy, hBRel⟩
+  have hRunASmtTy :
+      __smtx_typeof (__eo_to_smt (__run_evaluate a)) = SmtType.BitVec w := by
+    rw [← hASameTy]
+    exact hATy
+  have hRunBSmtTy :
+      __smtx_typeof (__eo_to_smt (__run_evaluate b)) = SmtType.BitVec w := by
+    rw [← hBSameTy]
+    exact hBTy
+  change
+    __smtx_typeof (SmtTerm.bvashr (__eo_to_smt a) (__eo_to_smt b)) =
+        __smtx_typeof (__eo_to_smt runShift) ∧
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M
+          (SmtTerm.bvashr (__eo_to_smt a) (__eo_to_smt b)))
+        (__smtx_model_eval M (__eo_to_smt runShift))
+  cases hRunB : __run_evaluate b
+  case Binary runWB runB =>
+    rw [hRunB] at hRunBSmtTy
+    change __smtx_typeof (SmtTerm.Binary runWB runB) =
+      SmtType.BitVec w at hRunBSmtTy
+    rcases smtx_typeof_binary_eq_bitvec_parts hRunBSmtTy with
+      ⟨hRunWBNonneg, hRunBCanon, hRunWBNat⟩
+    have hRunWBEq : runWB = native_nat_to_int w :=
+      native_nat_to_int_of_int_to_nat_eq hRunWBNonneg hRunWBNat
+    subst runWB
+    have hBRelValue :
+        RuleProofs.smt_value_rel
+          (__smtx_model_eval M (__eo_to_smt b))
+          (SmtValue.Binary (native_nat_to_int w) runB) := by
+      rw [hRunB] at hBRel
+      rw [show
+          __eo_to_smt (Term.Binary (native_nat_to_int w) runB) =
+            SmtTerm.Binary (native_nat_to_int w) runB by
+        rfl] at hBRel
+      rw [__smtx_model_eval.eq_5] at hBRel
+      exact hBRel
+    have hBEval :
+        __smtx_model_eval M (__eo_to_smt b) =
+          SmtValue.Binary (native_nat_to_int w) runB :=
+      smt_value_rel_binary_eq
+        (__smtx_model_eval M (__eo_to_smt b))
+        (native_nat_to_int w) runB hBRelValue
+    have hRunBRange :=
+      Smtm.bitvec_payload_range_of_canonical hRunWBNonneg hRunBCanon
+    have hPowZeroFalse :
+        native_zeq 0 (native_int_pow2 runB) = false := by
+      have hPowPos : 0 < native_int_pow2 runB :=
+        native_int_pow2_pos_of_nonneg hRunBRange.1
+      simp [native_zeq, SmtEval.native_zeq]
+      exact Int.ne_of_lt hPowPos
+    cases hRunA : __run_evaluate a
+    case Binary runWA runA =>
+      rw [hRunA] at hRunASmtTy
+      change __smtx_typeof (SmtTerm.Binary runWA runA) =
+        SmtType.BitVec w at hRunASmtTy
+      rcases smtx_typeof_binary_eq_bitvec_parts hRunASmtTy with
+        ⟨hRunWANonneg, hRunACanon, hRunWANat⟩
+      have hRunWAEq : runWA = native_nat_to_int w :=
+        native_nat_to_int_of_int_to_nat_eq hRunWANonneg hRunWANat
+      subst runWA
+      have hPowAmt :
+          __eo_ite (__eo_is_z (Term.Numeral runB))
+              (__eo_ite (__eo_is_neg (Term.Numeral runB)) (Term.Numeral 0)
+                (__eo_pow (Term.Numeral 2) (Term.Numeral runB)))
+              (__eo_mk_apply (Term.UOp UserOp.int_pow2)
+                (Term.Numeral runB)) =
+            Term.Numeral (native_int_pow2 runB) :=
+        eo_int_pow2_literal_eq runB
+      have hDivTy :
+          __eo_typeof
+              (__eo_to_bin (Term.Numeral (native_nat_to_int w))
+                (Term.Numeral
+                  (native_div_total
+                    (native_binary_uts (native_nat_to_int w) runA)
+                    (native_int_pow2 runB)))) =
+            Term.Apply (Term.UOp UserOp.BitVec)
+              (Term.Numeral (native_nat_to_int w)) := by
+        dsimp [runShift, eo_eval_bvashr_rhs] at hRunShiftEoBv
+        rw [hRunA, hRunB] at hRunShiftEoBv
+        rw [eo_signed_bv_value_binary_eq_uts
+          (w := native_nat_to_int w) (n := runA)
+          hRunWANonneg hRunACanon] at hRunShiftEoBv
+        rw [hPowAmt] at hRunShiftEoBv
+        simpa [hAEoBv, __bv_bitwidth, __eo_to_z, __eo_zdiv,
+          hPowZeroFalse] using hRunShiftEoBv
+      have hRunShiftEq :
+          runShift =
+            Term.Binary (native_nat_to_int w)
+              (native_mod_total
+                (native_div_total
+                  (native_binary_uts (native_nat_to_int w) runA)
+                  (native_int_pow2 runB))
+                (native_int_pow2 (native_nat_to_int w))) := by
+        have hToBin :=
+          eo_to_bin_numeral_eq_of_typeof_bitvec
+            (native_div_total
+              (native_binary_uts (native_nat_to_int w) runA)
+              (native_int_pow2 runB))
+            (native_nat_to_int w) (native_nat_to_int w) hDivTy
+        dsimp [runShift, eo_eval_bvashr_rhs]
+        rw [hRunA, hRunB]
+        rw [eo_signed_bv_value_binary_eq_uts
+          (w := native_nat_to_int w) (n := runA)
+          hRunWANonneg hRunACanon]
+        rw [hPowAmt]
+        simpa [hAEoBv, __bv_bitwidth, __eo_to_z, __eo_zdiv,
+          hPowZeroFalse] using hToBin
+      rw [hRunShiftEq]
+      constructor
+      · rw [show
+            __smtx_typeof
+                (SmtTerm.bvashr (__eo_to_smt a) (__eo_to_smt b)) =
+              __smtx_typeof_bv_op_2
+                (__smtx_typeof (__eo_to_smt a))
+                (__smtx_typeof (__eo_to_smt b)) by
+          rw [__smtx_typeof.eq_def] <;> simp only]
+        rw [hATy, hBTy]
+        simp [__smtx_typeof_bv_op_2, native_ite, native_nateq]
+        change SmtType.BitVec w =
+          __smtx_typeof
+            (SmtTerm.Binary (native_nat_to_int w)
+              (native_mod_total
+                (native_div_total
+                  (native_binary_uts (native_nat_to_int w) runA)
+                  (native_int_pow2 runB))
+                (native_int_pow2 (native_nat_to_int w))))
+        rw [smtx_typeof_binary_mod_nat_to_int]
+      · have hARelValue :
+            RuleProofs.smt_value_rel
+              (__smtx_model_eval M (__eo_to_smt a))
+              (SmtValue.Binary (native_nat_to_int w) runA) := by
+          rw [hRunA] at hARel
+          rw [show
+              __eo_to_smt (Term.Binary (native_nat_to_int w) runA) =
+                SmtTerm.Binary (native_nat_to_int w) runA by
+            rfl] at hARel
+          rw [__smtx_model_eval.eq_5] at hARel
+          exact hARel
+        have hAEval :
+            __smtx_model_eval M (__eo_to_smt a) =
+              SmtValue.Binary (native_nat_to_int w) runA :=
+          smt_value_rel_binary_eq
+            (__smtx_model_eval M (__eo_to_smt a))
+            (native_nat_to_int w) runA hARelValue
+        rw [show
+            __smtx_model_eval M
+                (SmtTerm.bvashr (__eo_to_smt a) (__eo_to_smt b)) =
+              __smtx_model_eval_bvashr
+                (__smtx_model_eval M (__eo_to_smt a))
+                (__smtx_model_eval M (__eo_to_smt b)) by
+          rw [__smtx_model_eval.eq_def] <;> simp only]
+        rw [hAEval, hBEval]
+        rw [smtx_model_eval_bvashr_binary_eq_signed_div
+          hRunWANonneg hRunACanon hRunBCanon]
+        change
+          RuleProofs.smt_value_rel
+            (SmtValue.Binary (native_nat_to_int w)
+              (native_mod_total
+                (native_div_total
+                  (native_binary_uts (native_nat_to_int w) runA)
+                  (native_int_pow2 runB))
+                (native_int_pow2 (native_nat_to_int w))))
+            (__smtx_model_eval M
+              (SmtTerm.Binary (native_nat_to_int w)
+                (native_mod_total
+                  (native_div_total
+                    (native_binary_uts (native_nat_to_int w) runA)
+                    (native_int_pow2 runB))
+                  (native_int_pow2 (native_nat_to_int w)))))
+        rw [__smtx_model_eval.eq_5]
+        exact RuleProofs.smt_value_rel_refl _
+    case Numeral runN =>
+      rw [hRunA] at hRunASmtTy
+      change __smtx_typeof (SmtTerm.Numeral runN) = SmtType.BitVec w
+        at hRunASmtTy
+      rw [__smtx_typeof.eq_2] at hRunASmtTy
+      cases hRunASmtTy
+    case Rational runQ =>
+      rw [hRunA] at hRunASmtTy
+      change __smtx_typeof (SmtTerm.Rational runQ) = SmtType.BitVec w
+        at hRunASmtTy
+      rw [__smtx_typeof.eq_3] at hRunASmtTy
+      cases hRunASmtTy
+    case String runS =>
+      rw [hRunA] at hRunASmtTy
+      change __smtx_typeof (SmtTerm.String runS) = SmtType.BitVec w
+        at hRunASmtTy
+      rw [__smtx_typeof.eq_4] at hRunASmtTy
+      cases hValid : native_string_valid runS <;>
+        simp [native_ite, hValid] at hRunASmtTy
+    all_goals
+      have hRunShiftStuck : runShift = Term.Stuck := by
+        dsimp [runShift, eo_eval_bvashr_rhs]
+        rw [hRunA, hRunB]
+        simp [hAEoBv, __bv_bitwidth, __eo_to_z, __eo_zdiv,
+          __eo_to_bin, __eo_is_z, __eo_is_z_internal, __eo_is_neg,
+          native_ite, native_teq]
+      exact False.elim (hRunShiftNe hRunShiftStuck)
+  case Numeral runN =>
+    rw [hRunB] at hRunBSmtTy
+    change __smtx_typeof (SmtTerm.Numeral runN) = SmtType.BitVec w
+      at hRunBSmtTy
+    rw [__smtx_typeof.eq_2] at hRunBSmtTy
+    cases hRunBSmtTy
+  case Rational runQ =>
+    rw [hRunB] at hRunBSmtTy
+    change __smtx_typeof (SmtTerm.Rational runQ) = SmtType.BitVec w
+      at hRunBSmtTy
+    rw [__smtx_typeof.eq_3] at hRunBSmtTy
+    cases hRunBSmtTy
+  case String runS =>
+    rw [hRunB] at hRunBSmtTy
+    change __smtx_typeof (SmtTerm.String runS) = SmtType.BitVec w
+      at hRunBSmtTy
+    rw [__smtx_typeof.eq_4] at hRunBSmtTy
+    cases hValid : native_string_valid runS <;>
+      simp [native_ite, hValid] at hRunBSmtTy
+  all_goals
+    have hRunShiftStuck : runShift = Term.Stuck := by
+      dsimp [runShift, eo_eval_bvashr_rhs]
+      rw [hRunB]
+      simp [hAEoBv, __bv_bitwidth, __eo_to_z, __eo_zdiv,
+        native_ite, native_teq]
+    exact False.elim (hRunShiftNe hRunShiftStuck)
+
 private theorem run_evaluate_sound_apply_bvsub_core
     (M : SmtModel) (hM : model_total_typed M)
     (a b : Term)
@@ -26067,8 +26435,7 @@ private theorem run_evaluate_sound_active_apply_core
           | UserOp.bvlshr =>
               exact run_evaluate_sound_apply_bvlshr_core M hM y x rec hATrans hEvalTy
           | UserOp.bvashr =>
-              -- Remaining active binary bit-vector evaluator kernel.
-              sorry
+              exact run_evaluate_sound_apply_bvashr_core M hM y x rec hATrans hEvalTy
           | UserOp.bvsgt =>
               exact run_evaluate_sound_apply_bvsgt_core M hM y x rec hATrans hEvalTy
           | UserOp.bvslt =>
