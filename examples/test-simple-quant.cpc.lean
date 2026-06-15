@@ -1,9 +1,9 @@
 import Cpc.Logos
 open Eo
-def t1 := (Term.Var (Term.String (SmtEval.native_string_lit "@u.1")) (Term.UOp UserOp.Int))
+def t1 := (Term.Var (Term.String (SmtEval.native_string_lit "x")) (Term.UOp UserOp.Int))
 def t2 := (Term.Apply Term.FunType (Term.UOp UserOp.Int))
 def t3 := (Term.Apply t2 Term.Bool)
-def t4 := (Term.UConst 2 t3)
+def t4 := (Term.UConst 1 t3)
 def t5 := (Term.Apply t4 t1)
 def t6 := (Term.Apply Term.__eo_List_cons t1)
 def t7 := (Term.Apply t6 Term.__eo_List_nil)
