@@ -676,6 +676,69 @@ private theorem eo_eval_str_from_code_rhs_run_numeral_eq_of_active
   · exact hString
   · exact False.elim (hActive hSelf)
 
+private def eo_eval_str_from_int_rhs (n : Term) : Term :=
+  let _v0 := __run_evaluate n
+  let _v1 := __eo_add (__eo_log (Term.Numeral 10) _v0) (Term.Numeral 1)
+  __eo_ite (__eo_is_z _v0)
+    (__eo_ite (__eo_is_neg _v0) (Term.String [])
+      (__str_from_int_eval_rec
+        (__eo_requires (__eo_is_neg _v1) (Term.Boolean false)
+          (__iota_rec
+            (__eo_list_repeat (Term.UOp UserOp._at__at_TypedList_cons)
+              (Term.Numeral 0) _v1)
+            (Term.Numeral 0)))
+        _v0 (Term.String [])))
+    (__eo_mk_apply (Term.UOp UserOp.str_from_int) _v0)
+
+private theorem eo_eval_str_from_int_rhs_run_numeral_neg
+    {x : Term} {n : native_Int}
+    (hRun : __run_evaluate x = Term.Numeral n)
+    (hNeg : n < 0) :
+    eo_eval_str_from_int_rhs x = Term.String (native_str_from_int n) := by
+  have hNegBool : native_zlt n 0 = true := by
+    rw [show native_zlt n 0 = decide (n < 0) by rfl]
+    exact decide_eq_true hNeg
+  have hNative : native_str_from_int n = [] := by
+    unfold native_str_from_int
+    rw [if_pos hNeg]
+    simp [native_string_lit]
+  dsimp [eo_eval_str_from_int_rhs]
+  rw [hRun]
+  simp [__eo_is_z, __eo_is_z_internal, __eo_is_neg, __eo_ite,
+    native_ite, native_teq, native_and, native_not, hNegBool, hNative]
+
+private theorem eo_eval_str_from_int_rhs_run_numeral_nonneg
+    {x : Term} {n : native_Int}
+    (hRun : __run_evaluate x = Term.Numeral n)
+    (hNonneg : 0 ≤ n) :
+    eo_eval_str_from_int_rhs x = Term.String (native_str_from_int n) := by
+  -- This is the remaining decimal-rendering kernel: the generated evaluator
+  -- computes digits with repeated division by 10, and the SMT model uses
+  -- Lean's `toString` for the same nonnegative integer.
+  sorry
+
+private theorem eo_eval_str_from_int_rhs_run_numeral
+    {x : Term} {n : native_Int}
+    (hRun : __run_evaluate x = Term.Numeral n) :
+    eo_eval_str_from_int_rhs x = Term.String (native_str_from_int n) := by
+  by_cases hNeg : n < 0
+  · exact eo_eval_str_from_int_rhs_run_numeral_neg hRun hNeg
+  · exact eo_eval_str_from_int_rhs_run_numeral_nonneg hRun
+      (Int.le_of_not_gt hNeg)
+
+private theorem eo_eval_str_from_int_rhs_run_non_numeral
+    {x t : Term}
+    (hRun : __run_evaluate x = t)
+    (hNotNumeral : ∀ n : native_Int, t ≠ Term.Numeral n)
+    (hTNe : t ≠ Term.Stuck) :
+    eo_eval_str_from_int_rhs x =
+      Term.Apply (Term.UOp UserOp.str_from_int) t := by
+  dsimp [eo_eval_str_from_int_rhs]
+  rw [hRun]
+  cases t <;>
+    simp [__eo_is_z, __eo_is_z_internal, __eo_ite, __eo_mk_apply,
+      native_ite, native_teq, native_and, native_not] at hNotNumeral hTNe ⊢
+
 private theorem str_case_lower_guard_singleton
     (c : native_Char) :
     __eo_and
@@ -25786,6 +25849,153 @@ private theorem run_evaluate_sound_apply_str_from_code_core
     simp [__eo_ite, native_ite, native_teq, __eo_is_z,
       __eo_is_z_internal, native_and, native_not]
 
+private theorem run_evaluate_sound_apply_str_from_int_core
+    (M : SmtModel) (hM : model_total_typed M)
+    (x : Term)
+    (rec :
+      ∀ A : Term,
+        sizeOf A < sizeOf (Term.Apply (Term.UOp UserOp.str_from_int) x) ->
+          RunEvaluateSoundGoal M A) :
+  RunEvaluateSoundGoal M (Term.Apply (Term.UOp UserOp.str_from_int) x) := by
+  intro hATrans hEvalTy
+  have hFromNN :
+      term_has_non_none_type (SmtTerm.str_from_int (__eo_to_smt x)) := by
+    unfold term_has_non_none_type
+    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+  have hxSmtTy : __smtx_typeof (__eo_to_smt x) = SmtType.Int :=
+    int_arg_of_non_none_ret (op := SmtTerm.str_from_int)
+      (typeof_str_from_int_eq (__eo_to_smt x)) hFromNN
+  have hXTrans : RuleProofs.eo_has_smt_translation x := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hxSmtTy]
+    simp
+  let runFrom := eo_eval_str_from_int_rhs x
+  have hRunFromNe : runFrom ≠ Term.Stuck := by
+    intro hStuck
+    change
+      __eo_typeof
+          (__eo_mk_apply
+            (Term.Apply (Term.UOp UserOp.eq)
+              (Term.Apply (Term.UOp UserOp.str_from_int) x))
+            runFrom) =
+        Term.Bool at hEvalTy
+    rw [hStuck] at hEvalTy
+    change Term.Stuck = Term.Bool at hEvalTy
+    cases hEvalTy
+  have hXProgTy : __eo_typeof (__eo_prog_evaluate x) = Term.Bool :=
+    eo_prog_evaluate_typeof_bool_of_smt_type_int x hXTrans hxSmtTy
+  rcases run_evaluate_rec_apply_arg M
+      (Term.UOp UserOp.str_from_int) x rec hXTrans hXProgTy with
+    ⟨hXSameTy, hXRel⟩
+  have hRunXSmtTy :
+      __smtx_typeof (__eo_to_smt (__run_evaluate x)) = SmtType.Int := by
+    rw [← hXSameTy]
+    exact hxSmtTy
+  change
+    __smtx_typeof (SmtTerm.str_from_int (__eo_to_smt x)) =
+        __smtx_typeof (__eo_to_smt runFrom) ∧
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M
+          (SmtTerm.str_from_int (__eo_to_smt x)))
+        (__smtx_model_eval M (__eo_to_smt runFrom))
+  cases hRunX : __run_evaluate x
+  case Numeral runN =>
+    have hRunFromString :
+        runFrom = Term.String (native_str_from_int runN) := by
+      simpa [runFrom] using
+        eo_eval_str_from_int_rhs_run_numeral (x := x) (n := runN) hRunX
+    rw [hRunFromString]
+    constructor
+    · change
+        __smtx_typeof (SmtTerm.str_from_int (__eo_to_smt x)) =
+          __smtx_typeof (SmtTerm.String (native_str_from_int runN))
+      rw [typeof_str_from_int_eq, hxSmtTy]
+      simp [__smtx_typeof, native_ite, native_Teq,
+        native_str_from_int_valid]
+    · have hXRelValue :
+          RuleProofs.smt_value_rel
+            (__smtx_model_eval M (__eo_to_smt x))
+            (SmtValue.Numeral runN) := by
+        rw [hRunX] at hXRel
+        rw [show __eo_to_smt (Term.Numeral runN) =
+            SmtTerm.Numeral runN by
+          rfl] at hXRel
+        rw [__smtx_model_eval.eq_2] at hXRel
+        exact hXRel
+      have hXEval :
+          __smtx_model_eval M (__eo_to_smt x) =
+            SmtValue.Numeral runN :=
+        smt_value_rel_numeral_eq
+          (__smtx_model_eval M (__eo_to_smt x)) runN hXRelValue
+      rw [show
+          __smtx_model_eval M
+              (SmtTerm.str_from_int (__eo_to_smt x)) =
+            __smtx_model_eval_str_from_int
+              (__smtx_model_eval M (__eo_to_smt x)) by
+        rw [__smtx_model_eval.eq_96]]
+      rw [show
+          __eo_to_smt (Term.String (native_str_from_int runN)) =
+            SmtTerm.String (native_str_from_int runN) by
+        rfl]
+      rw [hXEval]
+      change
+        RuleProofs.smt_value_rel
+          (SmtValue.Seq (native_pack_string (native_str_from_int runN)))
+          (__smtx_model_eval M
+            (SmtTerm.String (native_str_from_int runN)))
+      rw [__smtx_model_eval.eq_4]
+      exact RuleProofs.smt_value_rel_refl _
+  all_goals
+    have hRunXNe : __run_evaluate x ≠ Term.Stuck := by
+      intro hStuck
+      rw [hStuck] at hRunXSmtTy
+      change __smtx_typeof SmtTerm.None = SmtType.Int at hRunXSmtTy
+      simp at hRunXSmtTy
+    have hNotNumeral :
+        ∀ n : native_Int, __run_evaluate x ≠ Term.Numeral n := by
+      intro n hNum
+      rw [hRunX] at hNum
+      cases hNum
+    have hRunFromApply :
+        runFrom =
+          Term.Apply (Term.UOp UserOp.str_from_int) (__run_evaluate x) := by
+      simpa [runFrom] using
+        eo_eval_str_from_int_rhs_run_non_numeral
+          (x := x) (t := __run_evaluate x) rfl hNotNumeral hRunXNe
+    rw [hRunFromApply]
+    constructor
+    · change
+        __smtx_typeof (SmtTerm.str_from_int (__eo_to_smt x)) =
+          __smtx_typeof
+            (SmtTerm.str_from_int (__eo_to_smt (__run_evaluate x)))
+      rw [typeof_str_from_int_eq, typeof_str_from_int_eq]
+      simp [hxSmtTy, hRunXSmtTy, native_ite, native_Teq]
+    · have hRelFrom :=
+        smt_value_rel_model_eval_str_from_int_of_rel
+          (__smtx_model_eval M (__eo_to_smt x))
+          (__smtx_model_eval M (__eo_to_smt (__run_evaluate x)))
+          hXRel
+      rw [show
+          __smtx_model_eval M
+              (SmtTerm.str_from_int (__eo_to_smt x)) =
+            __smtx_model_eval_str_from_int
+              (__smtx_model_eval M (__eo_to_smt x)) by
+        rw [__smtx_model_eval.eq_96]]
+      rw [show
+          __smtx_model_eval M
+              (__eo_to_smt
+                (Term.Apply (Term.UOp UserOp.str_from_int)
+                  (__run_evaluate x))) =
+            __smtx_model_eval_str_from_int
+              (__smtx_model_eval M (__eo_to_smt (__run_evaluate x))) by
+        change
+          __smtx_model_eval M
+              (SmtTerm.str_from_int (__eo_to_smt (__run_evaluate x))) =
+            __smtx_model_eval_str_from_int
+              (__smtx_model_eval M (__eo_to_smt (__run_evaluate x)))
+        rw [__smtx_model_eval.eq_96]]
+      exact hRelFrom
+
 private theorem run_evaluate_sound_apply_ubv_to_int_core
     (M : SmtModel) (hM : model_total_typed M)
     (x : Term)
@@ -26865,9 +27075,8 @@ private theorem run_evaluate_sound_active_apply_core
       | UserOp.sbv_to_int =>
           exact run_evaluate_sound_apply_sbv_to_int_core M hM x rec hATrans hEvalTy
       | UserOp.str_from_int =>
-          -- Remaining active unary evaluator kernel.
-          -- `__run_evaluate` lowers this through `__str_from_int_eval_rec`.
-          sorry
+          exact run_evaluate_sound_apply_str_from_int_core M hM x rec
+            hATrans hEvalTy
       | UserOp.bvnego =>
           exact False.elim (hActive rfl)
       | UserOp.bvredand =>
