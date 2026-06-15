@@ -35,6 +35,10 @@ private theorem eo_to_smt_forall_eq (x F : Term)
   unfold qforall qterm
   cases x <;> first | rfl | exact False.elim (hx rfl)
 
+private theorem smtx_typeof_none_ne_bool :
+    __smtx_typeof SmtTerm.None ≠ SmtType.Bool :=
+  TranslationProofs.smtx_typeof_none_ne_bool
+
 private theorem smtx_typeof_not_arg_of_bool
     (t : SmtTerm) :
     __smtx_typeof (SmtTerm.not t) = SmtType.Bool ->
@@ -51,6 +55,184 @@ private theorem smtx_typeof_not_bool_of_arg_bool
   intro hTy
   rw [typeof_not_eq]
   simp [hTy, native_ite, native_Teq]
+
+private theorem smtx_typeof_not_arg_of_non_none
+    (t : SmtTerm) :
+    __smtx_typeof (SmtTerm.not t) ≠ SmtType.None ->
+    __smtx_typeof t = SmtType.Bool := by
+  intro hNN
+  cases h : __smtx_typeof t <;>
+    simp [typeof_not_eq, h, native_ite, native_Teq] at hNN ⊢
+
+private theorem qexists_non_nil_of_non_none
+    (x F : Term) :
+    __smtx_typeof (__eo_to_smt (qexists x F)) ≠ SmtType.None ->
+    x ≠ Term.__eo_List_nil := by
+  intro hNN hx
+  subst x
+  apply hNN
+  unfold qexists qterm
+  change __smtx_typeof SmtTerm.None = SmtType.None
+  exact TranslationProofs.smtx_typeof_none
+
+private theorem qforall_non_nil_of_non_none
+    (x F : Term) :
+    __smtx_typeof (__eo_to_smt (qforall x F)) ≠ SmtType.None ->
+    x ≠ Term.__eo_List_nil := by
+  intro hNN hx
+  subst x
+  apply hNN
+  unfold qforall qterm
+  change __smtx_typeof SmtTerm.None = SmtType.None
+  exact TranslationProofs.smtx_typeof_none
+
+private theorem smtx_typeof_eo_to_smt_exists_bool_of_non_nil_non_none
+    (xs : Term) (body : SmtTerm)
+    (hNN : __smtx_typeof (__eo_to_smt_exists xs body) ≠ SmtType.None)
+    (hNonNil : xs ≠ Term.__eo_List_nil) :
+    __smtx_typeof (__eo_to_smt_exists xs body) = SmtType.Bool := by
+  induction xs, body using __eo_to_smt_exists.induct with
+  | case1 F =>
+      exact False.elim (hNonNil rfl)
+  | case2 s T xs F ih =>
+      change
+        __smtx_typeof
+            (SmtTerm.exists s (__eo_to_smt_type T)
+              (__eo_to_smt_exists xs F)) =
+          SmtType.Bool
+      rw [smtx_typeof_exists_term_eq]
+      by_cases hTail :
+          __smtx_typeof (__eo_to_smt_exists xs F) = SmtType.Bool
+      · simp [hTail, native_ite, native_Teq]
+        by_cases hGuard :
+            __smtx_typeof_guard_wf (__eo_to_smt_type T) SmtType.Bool =
+              SmtType.None
+        · have hNone :
+              __smtx_typeof
+                  (SmtTerm.exists s (__eo_to_smt_type T)
+                    (__eo_to_smt_exists xs F)) =
+                SmtType.None := by
+            rw [smtx_typeof_exists_term_eq]
+            simp [hTail, hGuard, native_ite, native_Teq]
+          exact False.elim (hNN hNone)
+        · exact smtx_typeof_guard_wf_of_non_none
+            (__eo_to_smt_type T) SmtType.Bool hGuard
+      · have hNone :
+            __smtx_typeof
+                (SmtTerm.exists s (__eo_to_smt_type T)
+                  (__eo_to_smt_exists xs F)) =
+              SmtType.None := by
+          rw [smtx_typeof_exists_term_eq]
+          cases hTy : __smtx_typeof (__eo_to_smt_exists xs F) <;>
+            simp [native_ite, native_Teq]
+          · exact False.elim (hTail hTy)
+        exact False.elim (hNN hNone)
+  | case3 xs F hNotNil hNotConsVar =>
+      have hNone :
+          __smtx_typeof (__eo_to_smt_exists xs F) = SmtType.None := by
+        cases xs with
+        | Apply f a =>
+            cases f with
+            | Apply g y =>
+                cases g with
+                | __eo_List_cons =>
+                    cases y with
+                    | Var name T =>
+                        cases name with
+                        | String s =>
+                            exact False.elim (hNotConsVar s T a rfl)
+                        | _ =>
+                            simp [__eo_to_smt_exists,
+                              TranslationProofs.smtx_typeof_none]
+                    | _ =>
+                        simp [__eo_to_smt_exists,
+                          TranslationProofs.smtx_typeof_none]
+                | _ =>
+                    simp [__eo_to_smt_exists,
+                      TranslationProofs.smtx_typeof_none]
+            | _ =>
+                simp [__eo_to_smt_exists,
+                  TranslationProofs.smtx_typeof_none]
+        | __eo_List_nil =>
+            exact False.elim (hNotNil rfl)
+        | _ =>
+            simp [__eo_to_smt_exists,
+              TranslationProofs.smtx_typeof_none]
+      exact False.elim (hNN hNone)
+
+private theorem qexists_typeof_bool_of_non_none
+    (x F : Term) :
+    __smtx_typeof (__eo_to_smt (qexists x F)) ≠ SmtType.None ->
+    __smtx_typeof (__eo_to_smt (qexists x F)) = SmtType.Bool := by
+  intro hNN
+  have hx : x ≠ Term.__eo_List_nil :=
+    qexists_non_nil_of_non_none x F hNN
+  rw [eo_to_smt_exists_eq x F hx] at hNN ⊢
+  exact smtx_typeof_eo_to_smt_exists_bool_of_non_nil_non_none
+    x (__eo_to_smt F) hNN hx
+
+private theorem qforall_typeof_bool_of_non_none
+    (x F : Term) :
+    __smtx_typeof (__eo_to_smt (qforall x F)) ≠ SmtType.None ->
+    __smtx_typeof (__eo_to_smt (qforall x F)) = SmtType.Bool := by
+  intro hNN
+  have hx : x ≠ Term.__eo_List_nil :=
+    qforall_non_nil_of_non_none x F hNN
+  rw [eo_to_smt_forall_eq x F hx] at hNN ⊢
+  exact smtx_typeof_not_bool_of_arg_bool _
+    (smtx_typeof_not_arg_of_non_none _ hNN)
+
+private theorem qterm_typeof_bool_of_quant_non_none
+    (Q x F : Term)
+    (hQ : Q = Term.UOp UserOp.forall ∨ Q = Term.UOp UserOp.exists)
+    (hNN : __smtx_typeof (__eo_to_smt (qterm Q x F)) ≠ SmtType.None) :
+    __smtx_typeof (__eo_to_smt (qterm Q x F)) = SmtType.Bool := by
+  rcases hQ with hForall | hExists
+  · subst Q
+    exact qforall_typeof_bool_of_non_none x F hNN
+  · subst Q
+    exact qexists_typeof_bool_of_non_none x F hNN
+
+private theorem qexists_body_typeof_bool_of_typeof_bool
+    (x F : Term) :
+    __smtx_typeof (__eo_to_smt (qexists x F)) = SmtType.Bool ->
+    __smtx_typeof (__eo_to_smt F) = SmtType.Bool := by
+  intro hTy
+  have hx : x ≠ Term.__eo_List_nil :=
+    qexists_non_nil_of_non_none x F (by rw [hTy]; simp)
+  rw [eo_to_smt_exists_eq x F hx] at hTy
+  exact TranslationProofs.eo_to_smt_exists_body_bool_of_bool
+    x (__eo_to_smt F) hTy
+
+private theorem qforall_body_typeof_bool_of_typeof_bool
+    (x F : Term) :
+    __smtx_typeof (__eo_to_smt (qforall x F)) = SmtType.Bool ->
+    __smtx_typeof (__eo_to_smt F) = SmtType.Bool := by
+  intro hTy
+  have hx : x ≠ Term.__eo_List_nil :=
+    qforall_non_nil_of_non_none x F (by rw [hTy]; simp)
+  have hExists :
+      __smtx_typeof
+          (__eo_to_smt_exists x (SmtTerm.not (__eo_to_smt F))) =
+        SmtType.Bool := by
+    rw [eo_to_smt_forall_eq x F hx] at hTy
+    exact smtx_typeof_not_arg_of_bool _ hTy
+  have hNotBody :
+      __smtx_typeof (SmtTerm.not (__eo_to_smt F)) = SmtType.Bool :=
+    TranslationProofs.eo_to_smt_exists_body_bool_of_bool
+      x (SmtTerm.not (__eo_to_smt F)) hExists
+  exact smtx_typeof_not_arg_of_bool _ hNotBody
+
+private theorem qterm_body_typeof_bool_of_quant_typeof_bool
+    (Q x F : Term)
+    (hQ : Q = Term.UOp UserOp.forall ∨ Q = Term.UOp UserOp.exists)
+    (hTy : __smtx_typeof (__eo_to_smt (qterm Q x F)) = SmtType.Bool) :
+    __smtx_typeof (__eo_to_smt F) = SmtType.Bool := by
+  rcases hQ with hForall | hExists
+  · subst Q
+    exact qforall_body_typeof_bool_of_typeof_bool x F hTy
+  · subst Q
+    exact qexists_body_typeof_bool_of_typeof_bool x F hTy
 
 private theorem smtx_model_eval_exists_eq_of_body_constant_bool
     (M : SmtModel) (s : native_String) (T : SmtType) (body : SmtTerm)
@@ -550,6 +732,150 @@ private theorem eo_and_eq_true_cases_local (x y : Term) :
         exact hW rfl
       simp [hW] at h
 
+private theorem eo_ite_true_branch_eq_false_cases
+    (c d : Term) :
+    __eo_ite c (Term.Boolean true) d = Term.Boolean false ->
+    c = Term.Boolean false ∧ d = Term.Boolean false := by
+  intro h
+  cases c <;> simp [__eo_ite, native_ite, native_teq] at h ⊢
+  case Boolean b =>
+    cases b <;> simp at h ⊢
+    exact h
+
+private theorem eo_ite_false_branch_eq_false_cases
+    (c d : Term) :
+    __eo_ite c (Term.Boolean false) d = Term.Boolean false ->
+    c = Term.Boolean true ∨
+      (c = Term.Boolean false ∧ d = Term.Boolean false) := by
+  intro h
+  cases c <;> simp [__eo_ite, native_ite, native_teq] at h ⊢
+  case Boolean b =>
+    cases b <;> simp at h ⊢
+    exact h
+
+private structure scannerModelRel
+    (xs bvs : Term) (M N : SmtModel) : Prop where
+  globals : model_agrees_on_globals M N
+  vars_eq :
+    ∀ (s : native_String) (T : Term),
+      __eo_ite
+          (__eo_is_neg (__eo_list_find Term.__eo_List_cons xs
+            (Term.Var (Term.String s) T)))
+          (Term.Boolean false)
+          (__eo_is_neg (__eo_list_find Term.__eo_List_cons bvs
+            (Term.Var (Term.String s) T))) =
+        Term.Boolean false ->
+      native_model_var_lookup M s (__eo_to_smt_type T) =
+        native_model_var_lookup N s (__eo_to_smt_type T)
+
+private theorem scannerModelRel_refl
+    (xs bvs : Term) (M : SmtModel) :
+    scannerModelRel xs bvs M M := by
+  exact ⟨model_agrees_on_globals_refl M, by intro s T _; rfl⟩
+
+private theorem eo_is_neg_list_find_nil_var
+    (s : native_String) (T : Term) :
+    __eo_is_neg
+        (__eo_list_find Term.__eo_List_cons Term.__eo_List_nil
+          (Term.Var (Term.String s) T)) =
+      Term.Boolean true := by
+  simp [__eo_list_find, __eo_is_list, __eo_get_nil_rec,
+    __eo_requires, __eo_is_ok, __eo_is_list_nil, __eo_list_find_rec,
+    __eo_is_neg, native_ite, native_teq, native_not,
+    SmtEval.native_not]
+  native_decide
+
+private theorem scannerModelRel_push_nil_of_xs_hit
+    (xs : Term) (M : SmtModel) (s : native_String) (T : Term)
+    (v : SmtValue)
+    (hHit :
+      ∀ T',
+        __eo_to_smt_type T' = __eo_to_smt_type T ->
+          __eo_is_neg (__eo_list_find Term.__eo_List_cons xs
+            (Term.Var (Term.String s) T')) = Term.Boolean false) :
+    scannerModelRel xs Term.__eo_List_nil M
+      (native_model_push M s (__eo_to_smt_type T) v) := by
+  refine ⟨?_, ?_⟩
+  · exact
+      ⟨by
+        intro s' U
+        simp [native_model_lookup, native_model_key, native_model_push],
+      by
+        intro fid U V
+        simp [native_model_fun_lookup, native_model_key, native_model_push]⟩
+  · intro s' T' hAllowed
+    by_cases hKey :
+        ({ isVar := true, name := s', ty := __eo_to_smt_type T' } :
+          SmtModelKey) =
+          { isVar := true, name := s, ty := __eo_to_smt_type T }
+    · have hAllowedSame :
+          __eo_ite
+              (__eo_is_neg (__eo_list_find Term.__eo_List_cons xs
+                (Term.Var (Term.String s') T')))
+              (Term.Boolean false)
+              (__eo_is_neg
+                (__eo_list_find Term.__eo_List_cons Term.__eo_List_nil
+                  (Term.Var (Term.String s') T'))) =
+            Term.Boolean false := by
+        exact hAllowed
+      have hName : s' = s := congrArg SmtModelKey.name hKey
+      have hTy : __eo_to_smt_type T' = __eo_to_smt_type T :=
+        congrArg SmtModelKey.ty hKey
+      subst s'
+      rw [hHit T' hTy, eo_is_neg_list_find_nil_var] at hAllowedSame
+      simp [__eo_ite, native_ite, native_teq] at hAllowedSame
+    · simpa [native_model_var_lookup, native_model_push, hKey]
+
+private theorem smtx_model_eval_none_eq (M : SmtModel) :
+    __smtx_model_eval M SmtTerm.None = SmtValue.NotValue := by
+  simp [__smtx_model_eval]
+
+private theorem smtx_model_eval_var_eq
+    (M : SmtModel) (s : native_String) (T : SmtType) :
+    __smtx_model_eval M (SmtTerm.Var s T) =
+      native_model_var_lookup M s T := by
+  simp [__smtx_model_eval]
+
+private theorem smtx_model_eval_var_eq_of_scannerModelRel
+    (xs bvs : Term) (M N : SmtModel)
+    (hRel : scannerModelRel xs bvs M N)
+    (s : native_String) (T : Term)
+    (hScan :
+      __contains_atomic_term_list_free_rec
+          (Term.Var (Term.String s) T) xs bvs =
+        Term.Boolean false) :
+    __smtx_model_eval M (__eo_to_smt (Term.Var (Term.String s) T)) =
+      __smtx_model_eval N (__eo_to_smt (Term.Var (Term.String s) T)) := by
+  rw [TranslationProofs.eo_to_smt_var, smtx_model_eval_var_eq,
+    smtx_model_eval_var_eq]
+  have hXs : xs ≠ Term.Stuck := by
+    intro h
+    subst xs
+    cases bvs <;> simp [__contains_atomic_term_list_free_rec] at hScan
+  have hBvs : bvs ≠ Term.Stuck := by
+    intro h
+    subst bvs
+    cases xs <;> simp [__contains_atomic_term_list_free_rec] at hScan
+  rw [Eo.__contains_atomic_term_list_free_rec.eq_6 xs bvs
+    (Term.String s) T hXs hBvs] at hScan
+  exact hRel.vars_eq s T hScan
+
+private theorem smtx_model_eval_uconst_eq
+    (M : SmtModel) (s : native_String) (T : SmtType) :
+    __smtx_model_eval M (SmtTerm.UConst s T) =
+      native_model_lookup M s T := by
+  simp [__smtx_model_eval]
+
+private theorem smtx_model_eval_uconst_eq_of_scannerModelRel
+    (xs bvs : Term) (M N : SmtModel)
+    (hRel : scannerModelRel xs bvs M N)
+    (i : native_Nat) (T : Term) :
+    __smtx_model_eval M (__eo_to_smt (Term.UConst i T)) =
+      __smtx_model_eval N (__eo_to_smt (Term.UConst i T)) := by
+  rw [TranslationProofs.eo_to_smt_uconst, smtx_model_eval_uconst_eq,
+    smtx_model_eval_uconst_eq]
+  exact hRel.globals.1 (native_uconst_id i) (__eo_to_smt_type T)
+
 private theorem contains_atomic_term_list_free_rec_vars_ne_stuck_of_false
     {t xs bvs : Term} :
     __contains_atomic_term_list_free_rec t xs bvs = Term.Boolean false ->
@@ -858,12 +1184,36 @@ private theorem quant_unused_eval
     hSame | hQuant
   · rcases hSame with ⟨hG, hUnused⟩
     subst G
+    rcases RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+        (qterm Q x F) F hBool with
+      ⟨hSameTy, hQuantNN⟩
+    have hQuantTy :
+        __smtx_typeof (__eo_to_smt (qterm Q x F)) = SmtType.Bool :=
+      qterm_typeof_bool_of_quant_non_none Q x F hQ hQuantNN
+    have hBodyTy :
+        __smtx_typeof (__eo_to_smt F) = SmtType.Bool :=
+      qterm_body_typeof_bool_of_quant_typeof_bool Q x F hQ hQuantTy
+    rcases smt_model_eval_bool_is_boolean M hM (__eo_to_smt F) hBodyTy with
+      ⟨b, hBodyEval⟩
     -- Remaining bridge: `hNoFree` must yield constancy of `F` under every
     -- binder in `x`, then `qforall`/`qexists` can be dropped with the lemmas
     -- above.
     sorry
   · rcases hQuant with ⟨y, hG, hInclude, hUnused⟩
     subst G
+    rcases RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+        (qterm Q x F) (qterm Q y F) hBool with
+      ⟨hSameTy, hQuantNN⟩
+    have hLeftTy :
+        __smtx_typeof (__eo_to_smt (qterm Q x F)) = SmtType.Bool :=
+      qterm_typeof_bool_of_quant_non_none Q x F hQ hQuantNN
+    have hBodyTy :
+        __smtx_typeof (__eo_to_smt F) = SmtType.Bool :=
+      qterm_body_typeof_bool_of_quant_typeof_bool Q x F hQ hLeftTy
+    have hRightTy :
+        __smtx_typeof (__eo_to_smt (qterm Q y F)) = SmtType.Bool := by
+      rw [← hSameTy]
+      exact hLeftTy
     -- Remaining bridge: `hNoFree` must yield constancy under the binders in
     -- `diff (setof x) y`, allowing the quantifier over `x` to be reduced to
     -- the quantifier over `y`.
