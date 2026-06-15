@@ -24320,6 +24320,19 @@ private theorem smt_model_eval_eo_to_smt_numeral_term
     SmtValue.Numeral i
   rw [__smtx_model_eval.eq_2]
 
+private theorem smt_typeof_str_indexof_eq_typeof_numeral_of_arg_types
+    (s pat n : Term) (T : SmtType) (i : native_Int)
+    (hSTySeq : __smtx_typeof (__eo_to_smt s) = SmtType.Seq T)
+    (hPatTySeq : __smtx_typeof (__eo_to_smt pat) = SmtType.Seq T)
+    (hNTy : __smtx_typeof (__eo_to_smt n) = SmtType.Int) :
+    __smtx_typeof
+        (SmtTerm.str_indexof (__eo_to_smt s) (__eo_to_smt pat)
+          (__eo_to_smt n)) =
+      __smtx_typeof (SmtTerm.Numeral i) := by
+  rw [typeof_str_indexof_eq]
+  simp [__smtx_typeof_str_indexof, __smtx_typeof, hSTySeq,
+    hPatTySeq, hNTy, native_Teq, native_ite]
+
 private theorem smt_value_rel_model_eval_str_indexof_to_numeral_of_runs
     (M : SmtModel)
     (s pat n runS runPat runN : Term) (i : native_Int) :
@@ -24360,7 +24373,7 @@ private theorem smt_value_rel_model_eval_str_indexof_to_numeral_of_runs
           (__smtx_model_eval M (__eo_to_smt s))
           (__smtx_model_eval M (__eo_to_smt pat))
           (__smtx_model_eval M (__eo_to_smt n)) by
-    simp [__smtx_model_eval]]
+    rw [__smtx_model_eval.eq_99]]
   rw [hRunEval] at hRel
   exact hRel
 
@@ -24510,14 +24523,9 @@ private theorem run_evaluate_sound_apply_str_indexof_core
       simp [__eo_is_neg, __eo_ite, native_ite, native_teq, hLt]
     rw [hRunIndexEq]
     constructor
-    · change
-        __smtx_typeof
-            (SmtTerm.str_indexof (__eo_to_smt s) (__eo_to_smt pat)
-              (__eo_to_smt n)) =
-          __smtx_typeof (SmtTerm.Numeral (-1 : native_Int))
-      rw [typeof_str_indexof_eq]
-      simp [__smtx_typeof_str_indexof, __smtx_typeof, hSTySeq,
-        hPatTySeq, hNTy, native_Teq, native_ite]
+    · exact
+        smt_typeof_str_indexof_eq_typeof_numeral_of_arg_types
+          s pat n T (-1 : native_Int) hSTySeq hPatTySeq hNTy
     · rcases smt_model_eval_seq_of_type_local M hM (__eo_to_smt runS) T
           hRunSTy with
         ⟨sSeq, hRunSEval⟩
@@ -24565,7 +24573,7 @@ private theorem run_evaluate_sound_apply_str_indexof_core
       intro hStuck
       apply hGtNe
       rw [hRunN, hStuck]
-      rfl
+      simp [__eo_gt]
     rcases eo_len_seq_arg_of_nonstuck runS hRunSTy
         (by simpa [runLen] using hRunLenNe) with
       ⟨str, hRunS, hStrValid, hTChar⟩
@@ -24593,14 +24601,10 @@ private theorem run_evaluate_sound_apply_str_indexof_core
           native_teq, hLt, hGtLt]
       rw [hRunIndexEq]
       constructor
-      · change
-          __smtx_typeof
-              (SmtTerm.str_indexof (__eo_to_smt s) (__eo_to_smt pat)
-                (__eo_to_smt n)) =
-            __smtx_typeof (SmtTerm.Numeral (-1 : native_Int))
-        rw [typeof_str_indexof_eq]
-        simp [__smtx_typeof_str_indexof, __smtx_typeof, hSTySeq,
-          hPatTySeq, hNTy, native_Teq, native_ite]
+      · exact
+          smt_typeof_str_indexof_eq_typeof_numeral_of_arg_types
+            s pat n SmtType.Char (-1 : native_Int) (by simpa using hSTySeq)
+            (by simpa using hPatTySeq) hNTy
       · have hRunSEval :
             __smtx_model_eval M (__eo_to_smt runS) =
               SmtValue.Seq (native_pack_string str) := by
@@ -24665,13 +24669,13 @@ private theorem run_evaluate_sound_apply_str_indexof_core
         intro hStuck
         apply hFindNegNe
         rw [hStuck]
-        rfl
+        simp [__eo_is_neg]
       have hExtractNe : __eo_extract runS n runLen ≠ Term.Stuck := by
         intro hStuck
         apply hRunFindNe
         dsimp [runFind]
         rw [hStuck]
-        rfl
+        simp [__eo_to_str, __eo_find]
       rcases eo_extract_seq_args_of_nonstuck runS n runLen hRunSTy
           (by simpa using hExtractNe) with
         ⟨str', start, stop, hRunS', hNShape, hRunLenShape,
@@ -24729,15 +24733,10 @@ private theorem run_evaluate_sound_apply_str_indexof_core
           str patStr n i hNShapeI
       rw [hRunIndexEq]
       constructor
-      · change
-          __smtx_typeof
-              (SmtTerm.str_indexof (__eo_to_smt s) (__eo_to_smt pat)
-                (__eo_to_smt n)) =
-            __smtx_typeof
-              (SmtTerm.Numeral (native_str_indexof str patStr i))
-        rw [typeof_str_indexof_eq]
-        simp [__smtx_typeof_str_indexof, __smtx_typeof, hSTySeq,
-          hPatTySeq, hNTy, native_Teq, native_ite]
+      · exact
+          smt_typeof_str_indexof_eq_typeof_numeral_of_arg_types
+            s pat n SmtType.Char (native_str_indexof str patStr i)
+            (by simpa using hSTySeq) (by simpa using hPatTySeq) hNTy
       · have hRunSEval :
             __smtx_model_eval M (__eo_to_smt runS) =
               SmtValue.Seq (native_pack_string str) := by
