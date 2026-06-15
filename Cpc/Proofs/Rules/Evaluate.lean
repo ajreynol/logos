@@ -5342,6 +5342,382 @@ private def eo_eval_bvashr_rhs (a b : Term) : Term :=
   __eo_to_bin (__bv_bitwidth (__eo_typeof a))
     (__eo_zdiv (eo_signed_bv_value runA) powAmt)
 
+private theorem native_mod_two_eq_zero_of_ne_one
+    (x : native_Int)
+    (hNeOne :
+      native_zeq (native_mod_total x 2) 1 = false) :
+    native_mod_total x 2 = 0 := by
+  let r := native_mod_total x 2
+  have hrNonneg : 0 <= r := by
+    simpa [r, native_mod_total] using
+      Int.emod_nonneg x (by decide : (2 : Int) ≠ 0)
+  have hrLt : r < 2 := by
+    simpa [r, native_mod_total] using
+      Int.emod_lt_of_pos x (by decide : 0 < (2 : Int))
+  have hrNeOne : r ≠ 1 := by
+    intro h
+    have hTrue : native_zeq r 1 = true := by
+      simp [native_zeq, SmtEval.native_zeq, h]
+    rw [show native_zeq r 1 =
+        native_zeq (native_mod_total x 2) 1 by rfl] at hTrue
+    rw [hTrue] at hNeOne
+    cases hNeOne
+  have hrLeOne : r <= 1 := Int.le_of_lt_add_one hrLt
+  rcases Int.lt_or_eq_of_le hrLeOne with hrLtOne | hrEqOne
+  · have hrLeZero : r <= 0 := Int.le_of_lt_add_one hrLtOne
+    exact Int.le_antisymm hrLeZero hrNonneg
+  · exact False.elim (hrNeOne hrEqOne)
+
+private theorem native_mod_two_eq_one_of_eq_one
+    (x : native_Int)
+    (hOne :
+      native_zeq (native_mod_total x 2) 1 = true) :
+    native_mod_total x 2 = 1 := by
+  simpa [native_zeq, SmtEval.native_zeq] using hOne
+
+private theorem native_veq_bvashr_msb_zero_of_false
+    (w n : native_Int)
+    (hSign : smt_bv_msb_set w n = false) :
+    native_veq
+        (SmtValue.Binary 1
+          (native_mod_total
+            (native_div_total n (native_int_pow2 (w - 1))) 2))
+        (SmtValue.Binary 1 0) =
+      true := by
+  have hZero :=
+    native_mod_two_eq_zero_of_ne_one
+      (native_div_total n (native_int_pow2 (w - 1))) hSign
+  rw [hZero]
+  simp [native_veq]
+
+private theorem native_veq_bvashr_msb_zero_of_true
+    (w n : native_Int)
+    (hSign : smt_bv_msb_set w n = true) :
+    native_veq
+        (SmtValue.Binary 1
+          (native_mod_total
+            (native_div_total n (native_int_pow2 (w - 1))) 2))
+        (SmtValue.Binary 1 0) =
+      false := by
+  have hOne :=
+    native_mod_two_eq_one_of_eq_one
+      (native_div_total n (native_int_pow2 (w - 1))) hSign
+  rw [hOne]
+  simp [native_veq]
+
+private theorem smtx_model_eval_bvashr_binary_eq_lshr_of_msb_false
+    {w n s : native_Int}
+    (hSign : smt_bv_msb_set w n = false) :
+    __smtx_model_eval_bvashr (SmtValue.Binary w n) (SmtValue.Binary w s) =
+      SmtValue.Binary w
+        (native_mod_total
+          (native_div_total n (native_int_pow2 s))
+          (native_int_pow2 w)) := by
+  have hArg :
+      native_zplus w (native_zneg 1) = w - 1 := by
+    change w + -1 = w - 1
+    rw [Int.sub_eq_add_neg]
+  have hWidth :
+      native_zplus
+          (native_zplus (w - 1) 1)
+          (native_zneg (w - 1)) =
+        1 := by
+    change (w - 1) + 1 + -(w - 1) = 1
+    calc
+      (w - 1) + 1 + -(w - 1) = w + -(w - 1) := by
+        have hSub : (w - 1) + 1 = w := by
+          rw [Int.sub_eq_add_neg]
+          rw [Int.add_assoc]
+          have hConst : (-1 : Int) + 1 = 0 := by native_decide
+          rw [hConst, Int.add_zero]
+        rw [hSub]
+      _ = 1 := by
+        rw [Int.sub_eq_add_neg]
+        change w + -(w + -1) = 1
+        rw [Int.neg_add, Int.neg_neg]
+        rw [← Int.add_assoc]
+        rw [Int.add_right_neg, Int.zero_add]
+  have hPow1 : native_int_pow2 1 = 2 := by
+    native_decide
+  have hMsbZero :=
+    native_veq_bvashr_msb_zero_of_false w n hSign
+  simp [__smtx_model_eval_bvashr, __smtx_model_eval__,
+    __smtx_model_eval_extract, __smtx_model_eval_eq,
+    __smtx_model_eval_ite, __smtx_model_eval_bvlshr,
+    __smtx_bv_sizeof_value, native_binary_extract, hArg, hWidth,
+    hPow1, hMsbZero]
+
+private theorem smtx_model_eval_bvashr_binary_eq_not_lshr_not_of_msb_true
+    {w n s : native_Int}
+    (hSign : smt_bv_msb_set w n = true) :
+    __smtx_model_eval_bvashr (SmtValue.Binary w n) (SmtValue.Binary w s) =
+      SmtValue.Binary w
+        (native_mod_total
+          (native_binary_not w
+            (native_mod_total
+              (native_div_total
+                (native_mod_total (native_binary_not w n)
+                  (native_int_pow2 w))
+                (native_int_pow2 s))
+              (native_int_pow2 w)))
+          (native_int_pow2 w)) := by
+  have hArg :
+      native_zplus w (native_zneg 1) = w - 1 := by
+    change w + -1 = w - 1
+    rw [Int.sub_eq_add_neg]
+  have hWidth :
+      native_zplus
+          (native_zplus (w - 1) 1)
+          (native_zneg (w - 1)) =
+        1 := by
+    change (w - 1) + 1 + -(w - 1) = 1
+    calc
+      (w - 1) + 1 + -(w - 1) = w + -(w - 1) := by
+        have hSub : (w - 1) + 1 = w := by
+          rw [Int.sub_eq_add_neg]
+          rw [Int.add_assoc]
+          have hConst : (-1 : Int) + 1 = 0 := by native_decide
+          rw [hConst, Int.add_zero]
+        rw [hSub]
+      _ = 1 := by
+        rw [Int.sub_eq_add_neg]
+        change w + -(w + -1) = 1
+        rw [Int.neg_add, Int.neg_neg]
+        rw [← Int.add_assoc]
+        rw [Int.add_right_neg, Int.zero_add]
+  have hPow1 : native_int_pow2 1 = 2 := by
+    native_decide
+  have hMsbOne :=
+    native_veq_bvashr_msb_zero_of_true w n hSign
+  simp [__smtx_model_eval_bvashr, __smtx_model_eval__,
+    __smtx_model_eval_extract, __smtx_model_eval_eq,
+    __smtx_model_eval_ite, __smtx_model_eval_bvlshr,
+    __smtx_model_eval_bvnot, __smtx_bv_sizeof_value,
+    native_binary_extract, hArg, hWidth, hPow1, hMsbOne]
+
+private theorem native_binary_uts_eq_self_of_msb_false
+    {w n : native_Int}
+    (hw0 : native_zleq 0 w = true)
+    (hCanon :
+      native_zeq n
+          (native_mod_total n (native_int_pow2 w)) =
+        true)
+    (hSign : smt_bv_msb_set w n = false) :
+    native_binary_uts w n = n := by
+  by_cases hwpos : 0 < w
+  · let p := native_int_pow2 (w - 1)
+    have hN : n = native_mod_total n p := by
+      simpa [smt_bv_msb_set, p, Int.sub_eq_add_neg] using
+        smt_bv_msb_false_eq_mod_of_pos
+          (w := w) (n := n) hwpos hw0 hCanon hSign
+    rw [native_binary_uts]
+    change native_zplus
+        (native_zmult 2
+          (native_mod_total n
+            (native_int_pow2 (native_zplus w (native_zneg 1)))))
+        (native_zneg n) = n
+    have hpEq :
+        native_int_pow2 (native_zplus w (native_zneg 1)) = p := by
+      simp [p, native_zplus, SmtEval.native_zplus, native_zneg,
+        SmtEval.native_zneg, Int.sub_eq_add_neg]
+    rw [hpEq]
+    rw [← hN]
+    simp [native_zplus, native_zmult, native_zneg]
+    rw [Int.two_mul, Int.add_assoc, Int.add_right_neg, Int.add_zero]
+  · have hw : 0 <= w := by
+      simpa [native_zleq, SmtEval.native_zleq] using hw0
+    have hwEq : w = 0 :=
+      Int.le_antisymm (Int.le_of_not_gt hwpos) hw
+    subst w
+    have hRange := bitvec_payload_range_of_canonical hw0 hCanon
+    have hPow0 : native_int_pow2 0 = 1 := by
+      native_decide
+    have hnEq : n = 0 := by
+      have hlt : n < 1 := by
+        simpa [hPow0] using hRange.2
+      exact Int.le_antisymm (Int.le_of_lt_add_one hlt) hRange.1
+    subst n
+    native_decide
+
+private theorem native_binary_not_eq_pow_sub_succ
+    (w n : native_Int) :
+    native_binary_not w n =
+      native_int_pow2 w - (n + 1) := by
+  simp [native_binary_not, native_zplus, native_zneg,
+    Int.sub_eq_add_neg]
+
+private theorem native_binary_not_range_of_canonical
+    {w n : native_Int}
+    (hw0 : native_zleq 0 w = true)
+    (hCanon :
+      native_zeq n
+          (native_mod_total n (native_int_pow2 w)) =
+        true) :
+    0 <= native_binary_not w n ∧
+      native_binary_not w n < native_int_pow2 w := by
+  have hRange := bitvec_payload_range_of_canonical hw0 hCanon
+  have hRaw := native_binary_not_eq_pow_sub_succ w n
+  constructor
+  · rw [hRaw]
+    exact Int.sub_nonneg.mpr (Int.add_one_le_of_lt hRange.2)
+  · rw [hRaw]
+    exact Int.sub_lt_self _ (Int.lt_add_one_of_le hRange.1)
+
+private theorem native_binary_not_mod_self_of_canonical
+    {w n : native_Int}
+    (hw0 : native_zleq 0 w = true)
+    (hCanon :
+      native_zeq n
+          (native_mod_total n (native_int_pow2 w)) =
+        true) :
+    native_mod_total (native_binary_not w n) (native_int_pow2 w) =
+      native_binary_not w n := by
+  have hRange := native_binary_not_range_of_canonical
+    (w := w) (n := n) hw0 hCanon
+  simpa [native_mod_total] using
+    Int.emod_eq_of_lt hRange.1 hRange.2
+
+private theorem smt_bv_msb_true_width_pos
+    {w n : native_Int}
+    (hw0 : native_zleq 0 w = true)
+    (hCanon :
+      native_zeq n
+          (native_mod_total n (native_int_pow2 w)) =
+        true)
+    (hSign : smt_bv_msb_set w n = true) :
+    0 < w := by
+  by_contra hwpos
+  have hw : 0 <= w := by
+    simpa [native_zleq, SmtEval.native_zleq] using hw0
+  have hwEq : w = 0 :=
+    Int.le_antisymm (Int.le_of_not_gt hwpos) hw
+  subst w
+  have hRange := bitvec_payload_range_of_canonical hw0 hCanon
+  have hPow0 : native_int_pow2 0 = 1 := by
+    native_decide
+  have hnEq : n = 0 := by
+    have hlt : n < 1 := by
+      simpa [hPow0] using hRange.2
+    exact Int.le_antisymm (Int.le_of_lt_add_one hlt) hRange.1
+  subst n
+  native_decide at hSign
+
+private theorem native_binary_uts_eq_sub_pow_of_msb_true
+    {w n : native_Int}
+    (hw0 : native_zleq 0 w = true)
+    (hCanon :
+      native_zeq n
+          (native_mod_total n (native_int_pow2 w)) =
+        true)
+    (hSign : smt_bv_msb_set w n = true) :
+    native_binary_uts w n = n - native_int_pow2 w := by
+  have hwpos :=
+    smt_bv_msb_true_width_pos
+      (w := w) (n := n) hw0 hCanon hSign
+  let p := native_int_pow2 (w - 1)
+  let r := native_mod_total n p
+  have hN : n = p + r := by
+    simpa [smt_bv_msb_set, p, r, Int.sub_eq_add_neg] using
+      smt_bv_msb_true_eq_pow_add_mod_of_pos
+        (w := w) (n := n) hwpos hw0 hCanon hSign
+  have hPow : native_int_pow2 w = 2 * p := by
+    simpa [p] using native_int_pow2_succ_pred (w := w) hwpos
+  have hpEq :
+      native_int_pow2 (native_zplus w (native_zneg 1)) = p := by
+    simp [p, native_zplus, SmtEval.native_zplus, native_zneg,
+      SmtEval.native_zneg, Int.sub_eq_add_neg]
+  rw [native_binary_uts]
+  change
+    native_zplus
+        (native_zmult 2
+          (native_mod_total n
+            (native_int_pow2 (native_zplus w (native_zneg 1)))))
+        (native_zneg n) =
+      n - native_int_pow2 w
+  rw [hpEq]
+  change 2 * r + -n = n - native_int_pow2 w
+  rw [hN, hPow]
+  change 2 * r + -(p + r) = p + r - 2 * p
+  calc
+    2 * r + -(p + r) = r + -p := by
+      rw [Int.two_mul, Int.neg_add]
+      calc
+        r + r + (-p + -r) = r + r + (-r + -p) := by
+          rw [Int.add_comm (-p) (-r)]
+        _ = r + r + -r + -p := by
+          rw [← Int.add_assoc]
+        _ = r + -p := by
+          rw [show r + r + -r = r by
+            rw [Int.add_assoc, Int.add_right_neg, Int.add_zero]]
+    _ = p + r - 2 * p := by
+      rw [Int.two_mul]
+      change r + -p = p + r - (p + p)
+      rw [Int.sub_eq_add_neg, Int.neg_add]
+      symm
+      calc
+        p + r + (-p + -p) = p + r + -p + -p := by
+          rw [← Int.add_assoc]
+        _ = r + -p := by
+          rw [show p + r + -p = r by
+            calc
+              p + r + -p = p + (r + -p) := by rw [Int.add_assoc]
+              _ = p + (-p + r) := by rw [Int.add_comm r (-p)]
+              _ = p + -p + r := by rw [← Int.add_assoc]
+              _ = r := by rw [Int.add_right_neg, Int.zero_add]]
+        _ = r + -p := rfl
+
+private theorem native_bvashr_negative_payload_eq_signed_div
+    {w n s : native_Int}
+    (hw0 : native_zleq 0 w = true)
+    (hCanon :
+      native_zeq n
+          (native_mod_total n (native_int_pow2 w)) =
+        true)
+    (hShiftCanon :
+      native_zeq s
+          (native_mod_total s (native_int_pow2 w)) =
+        true)
+    (hSign : smt_bv_msb_set w n = true) :
+    native_mod_total
+        (native_binary_not w
+          (native_mod_total
+            (native_div_total
+              (native_mod_total (native_binary_not w n)
+                (native_int_pow2 w))
+              (native_int_pow2 s))
+            (native_int_pow2 w)))
+        (native_int_pow2 w) =
+      native_mod_total
+        (native_div_total (native_binary_uts w n)
+          (native_int_pow2 s))
+        (native_int_pow2 w) := by
+  -- Negative branch: `bvashr` is `not (lshr (not n) s)`.
+  -- This remains the native integer identity connecting that encoding
+  -- to signed floor-division by `2^s`.
+  sorry
+
+private theorem smtx_model_eval_bvashr_binary_eq_signed_div_of_msb_true
+    {w n s : native_Int}
+    (hw0 : native_zleq 0 w = true)
+    (hCanon :
+      native_zeq n
+          (native_mod_total n (native_int_pow2 w)) =
+        true)
+    (hShiftCanon :
+      native_zeq s
+          (native_mod_total s (native_int_pow2 w)) =
+        true)
+    (hSign : smt_bv_msb_set w n = true) :
+    __smtx_model_eval_bvashr (SmtValue.Binary w n) (SmtValue.Binary w s) =
+      SmtValue.Binary w
+        (native_mod_total
+          (native_div_total (native_binary_uts w n)
+            (native_int_pow2 s))
+          (native_int_pow2 w)) := by
+  rw [smtx_model_eval_bvashr_binary_eq_not_lshr_not_of_msb_true hSign]
+  rw [native_bvashr_negative_payload_eq_signed_div
+    hw0 hCanon hShiftCanon hSign]
+
 private theorem smtx_model_eval_bvashr_binary_eq_signed_div
     {w n s : native_Int}
     (hw0 : native_zleq 0 w = true)
@@ -5359,10 +5735,14 @@ private theorem smtx_model_eval_bvashr_binary_eq_signed_div
           (native_div_total (native_binary_uts w n)
             (native_int_pow2 s))
           (native_int_pow2 w)) := by
-  -- This is the arithmetic heart of arithmetic right shift:
-  -- the evaluator computes signed floor-division by `2^s`, while
-  -- the SMT model defines `bvashr` through `bvlshr`/`bvnot`.
-  sorry
+  by_cases hSignFalse : smt_bv_msb_set w n = false
+  · rw [smtx_model_eval_bvashr_binary_eq_lshr_of_msb_false hSignFalse]
+    rw [native_binary_uts_eq_self_of_msb_false hw0 hCanon hSignFalse]
+  · have hSignTrue : smt_bv_msb_set w n = true := by
+      cases hSign : smt_bv_msb_set w n <;>
+        simp [hSign] at hSignFalse ⊢
+    exact smtx_model_eval_bvashr_binary_eq_signed_div_of_msb_true
+      hw0 hCanon hShiftCanon hSignTrue
 
 private theorem sbv_to_int_payload_eq_uts_core
     {w n : native_Int}
