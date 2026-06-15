@@ -24312,6 +24312,58 @@ private theorem run_evaluate_sound_apply_str_contains_core
     rw [native_seq_contains_pack_string]
     exact RuleProofs.smtx_model_eval_eq_refl _
 
+private theorem smt_model_eval_eo_to_smt_numeral_term
+    (M : SmtModel) (i : native_Int) :
+    __smtx_model_eval M (__eo_to_smt (Term.Numeral i)) =
+      SmtValue.Numeral i := by
+  change __smtx_model_eval M (SmtTerm.Numeral i) =
+    SmtValue.Numeral i
+  rw [__smtx_model_eval.eq_2]
+
+private theorem smt_value_rel_model_eval_str_indexof_to_numeral_of_runs
+    (M : SmtModel)
+    (s pat n runS runPat runN : Term) (i : native_Int) :
+    RuleProofs.smt_value_rel
+        (__smtx_model_eval M (__eo_to_smt s))
+        (__smtx_model_eval M (__eo_to_smt runS)) ->
+    RuleProofs.smt_value_rel
+        (__smtx_model_eval M (__eo_to_smt pat))
+        (__smtx_model_eval M (__eo_to_smt runPat)) ->
+    RuleProofs.smt_value_rel
+        (__smtx_model_eval M (__eo_to_smt n))
+        (__smtx_model_eval M (__eo_to_smt runN)) ->
+    __smtx_model_eval_str_indexof
+        (__smtx_model_eval M (__eo_to_smt runS))
+        (__smtx_model_eval M (__eo_to_smt runPat))
+        (__smtx_model_eval M (__eo_to_smt runN)) =
+      SmtValue.Numeral i ->
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M
+          (SmtTerm.str_indexof (__eo_to_smt s) (__eo_to_smt pat)
+            (__eo_to_smt n)))
+        (SmtValue.Numeral i) := by
+  intro hSRel hPatRel hNRel hRunEval
+  have hRel :=
+    smt_value_rel_model_eval_str_indexof_of_rel
+      (__smtx_model_eval M (__eo_to_smt s))
+      (__smtx_model_eval M (__eo_to_smt pat))
+      (__smtx_model_eval M (__eo_to_smt n))
+      (__smtx_model_eval M (__eo_to_smt runS))
+      (__smtx_model_eval M (__eo_to_smt runPat))
+      (__smtx_model_eval M (__eo_to_smt runN))
+      hSRel hPatRel hNRel
+  rw [show
+      __smtx_model_eval M
+          (SmtTerm.str_indexof (__eo_to_smt s) (__eo_to_smt pat)
+            (__eo_to_smt n)) =
+        __smtx_model_eval_str_indexof
+          (__smtx_model_eval M (__eo_to_smt s))
+          (__smtx_model_eval M (__eo_to_smt pat))
+          (__smtx_model_eval M (__eo_to_smt n)) by
+    simp [__smtx_model_eval]]
+  rw [hRunEval] at hRel
+  exact hRel
+
 private theorem run_evaluate_sound_apply_str_indexof_core
     (M : SmtModel) (hM : model_total_typed M)
     (s pat n : Term)
@@ -24437,24 +24489,6 @@ private theorem run_evaluate_sound_apply_str_indexof_core
         (__smtx_model_eval M (__eo_to_smt n))
         (__smtx_model_eval M (__eo_to_smt runN)) := by
     simpa [runN] using hNRel
-  have hRelIndex :
-      RuleProofs.smt_value_rel
-        (__smtx_model_eval_str_indexof
-          (__smtx_model_eval M (__eo_to_smt s))
-          (__smtx_model_eval M (__eo_to_smt pat))
-          (__smtx_model_eval M (__eo_to_smt n)))
-        (__smtx_model_eval_str_indexof
-          (__smtx_model_eval M (__eo_to_smt runS))
-          (__smtx_model_eval M (__eo_to_smt runPat))
-          (__smtx_model_eval M (__eo_to_smt runN))) :=
-    smt_value_rel_model_eval_str_indexof_of_rel
-      (__smtx_model_eval M (__eo_to_smt s))
-      (__smtx_model_eval M (__eo_to_smt pat))
-      (__smtx_model_eval M (__eo_to_smt n))
-      (__smtx_model_eval M (__eo_to_smt runS))
-      (__smtx_model_eval M (__eo_to_smt runPat))
-      (__smtx_model_eval M (__eo_to_smt runN))
-      hSRelRun hPatRelRun hNRelRun
   change
     __smtx_typeof
         (SmtTerm.str_indexof (__eo_to_smt s) (__eo_to_smt pat)
@@ -24500,22 +24534,13 @@ private theorem run_evaluate_sound_apply_str_indexof_core
         simp [__smtx_model_eval_str_indexof,
           native_seq_indexof_neg_local _ _ hiNeg]
       rw [show
-          __smtx_model_eval M
-              (SmtTerm.str_indexof (__eo_to_smt s) (__eo_to_smt pat)
-                (__eo_to_smt n)) =
-            __smtx_model_eval_str_indexof
-              (__smtx_model_eval M (__eo_to_smt s))
-              (__smtx_model_eval M (__eo_to_smt pat))
-              (__smtx_model_eval M (__eo_to_smt n)) by
-        simp [__smtx_model_eval]]
-      rw [show
           __smtx_model_eval M (__eo_to_smt (Term.Numeral (-1 : native_Int))) =
             SmtValue.Numeral (-1 : native_Int) by
-        change __smtx_model_eval M (SmtTerm.Numeral (-1 : native_Int)) =
-          SmtValue.Numeral (-1 : native_Int)
-        rw [__smtx_model_eval.eq_2]]
-      rw [hEvalRunIndex] at hRelIndex
-      exact hRelIndex
+        exact smt_model_eval_eo_to_smt_numeral_term M (-1 : native_Int)]
+      exact
+        smt_value_rel_model_eval_str_indexof_to_numeral_of_runs
+          M s pat n runS runPat runN (-1 : native_Int)
+          hSRelRun hPatRelRun hNRelRun hEvalRunIndex
   · have hRunNNegFalse : __eo_is_neg runN = Term.Boolean false := by
       have hLt : native_zlt i 0 = false := by
         rw [show native_zlt i 0 = decide (i < 0) by rfl]
@@ -24606,22 +24631,13 @@ private theorem run_evaluate_sound_apply_str_indexof_core
             native_seq_indexof_gt_len_local _ _ hSeqLen]
         rw [show
             __smtx_model_eval M
-                (SmtTerm.str_indexof (__eo_to_smt s) (__eo_to_smt pat)
-                  (__eo_to_smt n)) =
-              __smtx_model_eval_str_indexof
-                (__smtx_model_eval M (__eo_to_smt s))
-                (__smtx_model_eval M (__eo_to_smt pat))
-                (__smtx_model_eval M (__eo_to_smt n)) by
-          simp [__smtx_model_eval]]
-        rw [show
-            __smtx_model_eval M
                 (__eo_to_smt (Term.Numeral (-1 : native_Int))) =
               SmtValue.Numeral (-1 : native_Int) by
-          change __smtx_model_eval M (SmtTerm.Numeral (-1 : native_Int)) =
-            SmtValue.Numeral (-1 : native_Int)
-          rw [__smtx_model_eval.eq_2]]
-        rw [hEvalRunIndex] at hRelIndex
-        exact hRelIndex
+          exact smt_model_eval_eo_to_smt_numeral_term M (-1 : native_Int)]
+        exact
+          smt_value_rel_model_eval_str_indexof_to_numeral_of_runs
+            M s pat n runS runPat runN (-1 : native_Int)
+            hSRelRun hPatRelRun hNRelRun hEvalRunIndex
     · have hGtFalse : __eo_gt runN runLen = Term.Boolean false := by
         have hGtLt : native_zlt (native_str_len str) i = false := by
           rw [show
@@ -24746,25 +24762,16 @@ private theorem run_evaluate_sound_apply_str_indexof_core
           exact smtx_model_eval_str_indexof_pack_string str patStr i
         rw [show
             __smtx_model_eval M
-                (SmtTerm.str_indexof (__eo_to_smt s) (__eo_to_smt pat)
-                  (__eo_to_smt n)) =
-              __smtx_model_eval_str_indexof
-                (__smtx_model_eval M (__eo_to_smt s))
-                (__smtx_model_eval M (__eo_to_smt pat))
-                (__smtx_model_eval M (__eo_to_smt n)) by
-          simp [__smtx_model_eval]]
-        rw [show
-            __smtx_model_eval M
                 (__eo_to_smt
                   (Term.Numeral (native_str_indexof str patStr i))) =
               SmtValue.Numeral (native_str_indexof str patStr i) by
-          change
-            __smtx_model_eval M
-                (SmtTerm.Numeral (native_str_indexof str patStr i)) =
-              SmtValue.Numeral (native_str_indexof str patStr i)
-          rw [__smtx_model_eval.eq_2]]
-        rw [hEvalRunIndex] at hRelIndex
-        exact hRelIndex
+          exact smt_model_eval_eo_to_smt_numeral_term M
+            (native_str_indexof str patStr i)]
+        exact
+          smt_value_rel_model_eval_str_indexof_to_numeral_of_runs
+            M s pat n runS runPat runN
+            (native_str_indexof str patStr i)
+            hSRelRun hPatRelRun hNRelRun hEvalRunIndex
 
 private theorem run_evaluate_sound_apply_str_leq_core
     (M : SmtModel) (hM : model_total_typed M)
