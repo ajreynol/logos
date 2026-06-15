@@ -9761,6 +9761,12 @@ private theorem eo_or_bool_args_of_bool
           native_or bx byv = b := by
   cases x <;> cases y <;> intro h <;>
     simp [__eo_or, __eo_requires, native_ite, native_teq] at h
+  case Binary.Binary wx nx wy ny =>
+    exfalso
+    by_cases hEq : wx = wy
+    · subst wy
+      simp [native_not] at h
+    · simp [hEq] at h
   case Boolean.Boolean bx byv =>
     cases h
     exact ⟨bx, byv, rfl, rfl, rfl⟩
@@ -9790,10 +9796,12 @@ private theorem str_update_result_strings_in_bounds
             (Term.Numeral (-1 : native_Int))) =
         Term.String (s.take idx) by
     simp [__eo_add, __eo_extract, native_zplus, native_zneg]
+    change native_str_substr s 0
+        ((Int.ofNat idx : native_Int) + (-1 : native_Int) + 1) =
+      s.take idx
     rw [show (Int.ofNat idx + (-1 : native_Int) + 1) =
         Int.ofNat idx by omega]
-    exact congrArg Term.String
-      (native_str_substr_prefix_take_local s idx)]
+    exact native_str_substr_prefix_take_local s idx]
   rw [show
       __eo_extract (Term.String repl) (Term.Numeral 0)
           (__eo_add
@@ -9803,13 +9811,19 @@ private theorem str_update_result_strings_in_bounds
         Term.String (repl.take (s.length - idx)) by
     simp [__eo_add, __eo_neg, __eo_len, __eo_extract, native_zplus,
       native_zneg, native_str_len]
+    change native_str_substr repl 0
+        (-(Int.ofNat idx : native_Int) + Int.ofNat s.length +
+          (-1 : native_Int) + 1) =
+      repl.take (s.length - idx)
     rw [show
         -Int.ofNat idx + Int.ofNat s.length + (-1 : native_Int) + 1 =
           Int.ofNat (s.length - idx) by
-      rw [Int.ofNat_sub hIdxLe]
-      omega]
-    exact congrArg Term.String
-      (native_str_substr_prefix_take_local repl (s.length - idx))]
+      calc
+        -Int.ofNat idx + Int.ofNat s.length + (-1 : native_Int) + 1 =
+            Int.ofNat s.length - Int.ofNat idx := by omega
+        _ = Int.ofNat (s.length - idx) :=
+            (Int.ofNat_sub hIdxLe).symm]
+    exact native_str_substr_prefix_take_local repl (s.length - idx)]
   rw [show
       __eo_extract (Term.String s)
           (__eo_add (Term.Numeral (Int.ofNat idx))
@@ -9818,13 +9832,18 @@ private theorem str_update_result_strings_in_bounds
         Term.String (s.drop (idx + repl.length)) by
     simp [__eo_add, __eo_len, __eo_extract, native_zplus, native_zneg,
       native_str_len]
+    change native_str_substr s
+        ((Int.ofNat idx : native_Int) + Int.ofNat repl.length)
+        (Int.ofNat s.length -
+            ((Int.ofNat idx : native_Int) + Int.ofNat repl.length) + 1) =
+      s.drop (idx + repl.length)
     rw [show
         Int.ofNat idx + Int.ofNat repl.length =
           Int.ofNat (idx + repl.length) by
       simp]
-    exact congrArg Term.String
-      (by simpa [native_str_len] using
-        native_str_substr_suffix_drop_local s (idx + repl.length))]
+    exact by
+      simpa [native_str_len] using
+        native_str_substr_suffix_drop_local s (idx + repl.length)]
   simp [__eo_concat, native_str_concat, List.append_assoc]
 
 private theorem str_update_result_strings
@@ -9852,7 +9871,8 @@ private theorem str_update_result_strings
       rw [show native_zlt i 0 = decide (i < 0) by rfl]
       exact decide_eq_true hiNeg
     simp [native_seq_update_string_result, __eo_gt, __eo_or, __eo_ite,
-      native_ite, native_teq, hLt, hiNeg]
+      __eo_len, native_or, native_ite, native_teq, native_str_len,
+      hLt, hiNeg]
   · have hLt : native_zlt i 0 = false := by
       rw [show native_zlt i 0 = decide (i < 0) by rfl]
       exact decide_eq_false hiNeg
@@ -9862,10 +9882,21 @@ private theorem str_update_result_strings
           rw [show native_zlt (native_str_len s) i =
               decide (native_str_len s < i) by rfl]
           simpa [native_str_len] using decide_eq_true hLenLt
-        simp [native_seq_update_string_result, __eo_len, __eo_gt,
-          __eo_or, __eo_ite, native_ite, native_teq, hLt, hGt, hiNeg,
-          hLenLe]
-      · have hiEq : i = Int.ofNat s.length := by omega
+        have hResultEq : native_seq_update_string_result s i repl = s := by
+          unfold native_seq_update_string_result
+          have hGuard :
+              (decide (i < 0) ||
+                decide (Int.ofNat s.length ≤ i)) = true := by
+            rw [show decide (i < 0) = false by
+              exact decide_eq_false hiNeg]
+            rw [show decide (Int.ofNat s.length ≤ i) = true by
+              exact decide_eq_true hLenLe]
+            rfl
+          rw [if_pos hGuard]
+        simp [hResultEq, __eo_len, __eo_gt, __eo_or, __eo_ite,
+          native_or, native_ite, native_teq, hLt, hGt]
+      · have hiEq : i = Int.ofNat s.length := by
+          exact Int.le_antisymm (Int.le_of_not_gt hLenLt) hLenLe
         subst i
         have hGt : native_zlt (native_str_len s) (Int.ofNat s.length) =
             false := by
@@ -9874,16 +9905,21 @@ private theorem str_update_result_strings
           simp [native_str_len]
         rw [str_update_result_strings_in_bounds s repl s.length
           (Nat.le_refl _)]
+        have hDrop : s.drop (s.length + repl.length) = [] :=
+          List.drop_eq_nil_of_le (Nat.le_add_right _ _)
         simp [native_seq_update_string_result, __eo_len, __eo_gt,
-          __eo_or, __eo_ite, native_ite, native_teq, native_str_len,
-          hGt]
-    · have hiNonneg : 0 ≤ i := by omega
+          __eo_or, __eo_ite, native_or, native_ite, native_teq,
+          native_str_len, hDrop]
+    · have hiNonneg : 0 ≤ i := Int.le_of_not_gt hiNeg
       let idx := Int.toNat i
       have hiEq : i = Int.ofNat idx :=
         (Int.toNat_of_nonneg hiNonneg).symm
       have hIdxLt : idx < s.length := by
         rw [hiEq] at hLenLe
-        exact Int.ofNat_lt.mp (lt_of_not_ge hLenLe)
+        by_cases hLt : idx < s.length
+        · exact hLt
+        · exfalso
+          exact hLenLe (Int.ofNat_le.mpr (Nat.le_of_not_gt hLt))
       have hLtIdx : native_zlt (Int.ofNat idx) 0 = false := by
         rw [show native_zlt (Int.ofNat idx) 0 =
             decide ((Int.ofNat idx : native_Int) < 0) by rfl]
@@ -9893,19 +9929,61 @@ private theorem str_update_result_strings
         rw [show native_zlt (native_str_len s) (Int.ofNat idx) =
             decide (native_str_len s < (Int.ofNat idx : native_Int)) by
           rfl]
+        apply decide_eq_false
         rw [native_str_len]
-        exact decide_eq_false (by omega)
+        intro hBad
+        have hBadNat : s.length < idx := Int.ofNat_lt.mp hBad
+        exact (Nat.lt_irrefl idx) (Nat.lt_trans hIdxLt hBadNat)
+      have hIdxNonneg : ¬((Int.ofNat idx : native_Int) < 0) := by
+        exact Int.not_lt_of_ge (Int.natCast_nonneg idx)
+      have hLenNotLeIdx :
+          ¬Int.ofNat s.length ≤ (Int.ofNat idx : native_Int) := by
+        intro hLe
+        exact (Nat.not_le_of_gt hIdxLt) (Int.ofNat_le.mp hLe)
       have hGuardFalseIdx :
           (decide ((Int.ofNat idx : native_Int) < 0) ||
             decide (Int.ofNat s.length ≤ (Int.ofNat idx : native_Int))) =
               false := by
-        simp [hIdxLt]
+        rw [show decide ((Int.ofNat idx : native_Int) < 0) = false by
+          exact decide_eq_false hIdxNonneg]
+        rw [show decide (Int.ofNat s.length ≤
+            (Int.ofNat idx : native_Int)) = false by
+          exact decide_eq_false hLenNotLeIdx]
+        rfl
       rw [hiEq]
       rw [str_update_result_strings_in_bounds s repl idx
         (Nat.le_of_lt hIdxLt)]
+      have hIdxLe : idx ≤ s.length := Nat.le_of_lt hIdxLt
+      have hLenNotLtIdx : ¬s.length < idx := by
+        intro hBad
+        exact (Nat.lt_irrefl idx) (Nat.lt_trans hIdxLt hBad)
       simp [native_seq_update_string_result, __eo_len, __eo_gt,
-        __eo_or, __eo_ite, native_ite, native_teq, native_str_len,
-        hLtIdx, hGtIdx, hGuardFalseIdx]
+        __eo_or, __eo_ite, native_zlt, native_or, native_ite, native_teq,
+        native_str_len, hLenNotLtIdx]
+      let body :=
+        s.take idx ++
+          (repl.take (s.length - idx) ++ s.drop (idx + repl.length))
+      change
+        (if (Int.ofNat idx : native_Int) < 0 then Term.String s
+          else Term.String body) =
+        Term.String
+          (if (Int.ofNat idx : native_Int) < 0 ∨ s.length ≤ idx then
+            s
+          else body)
+      by_cases hNegIdx : (Int.ofNat idx : native_Int) < 0
+      · exact False.elim (hIdxNonneg hNegIdx)
+      · have hLenLeIdxFalse : ¬s.length ≤ idx :=
+          Nat.not_le_of_gt hIdxLt
+        rw [if_neg hNegIdx]
+        rw [show
+            (if (Int.ofNat idx : native_Int) < 0 ∨ s.length ≤ idx then
+              s
+            else body) = body by
+          rw [if_neg]
+          intro hGuard
+          cases hGuard with
+          | inl hBad => exact hNegIdx hBad
+          | inr hBad => exact hLenLeIdxFalse hBad]
 
 private theorem str_update_run_repl_string_of_body_nonstuck
     (s : native_String) (runRepl : Term) (i : native_Int)
@@ -9943,7 +10021,7 @@ private theorem str_update_run_repl_string_of_body_nonstuck
   all_goals
     exfalso
     apply hBody
-    simp [__eo_extract, __eo_concat, __eo_add, __eo_neg, __eo_len,
+    simp [__eo_extract, __eo_concat, __eo_add, __eo_len,
       native_zplus, native_zneg, native_str_len]
 
 private theorem eo_extract_string_same_index
