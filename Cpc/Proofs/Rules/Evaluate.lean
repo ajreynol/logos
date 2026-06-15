@@ -9128,6 +9128,24 @@ private theorem str_indexof_result_strings
             Term.Numeral (native_str_indexof s pat i)
         rw [hSuffix]
 
+private theorem str_indexof_result_strings_of_index_numeral
+    (s pat : native_String) (n : Term) (i : native_Int)
+    (hn : n = Term.Numeral i) :
+    let runLen := __eo_len (Term.String s)
+    let runFind :=
+      __eo_find
+        (__eo_to_str (__eo_extract (Term.String s) n runLen))
+        (__eo_to_str (Term.String pat))
+    __eo_ite (__eo_is_neg (Term.Numeral i))
+      (Term.Numeral (-1 : native_Int))
+      (__eo_ite (__eo_gt (Term.Numeral i) runLen)
+        (Term.Numeral (-1 : native_Int))
+        (__eo_ite (__eo_is_neg runFind) runFind
+          (__eo_add n runFind))) =
+      Term.Numeral (native_str_indexof s pat i) := by
+  subst n
+  exact str_indexof_result_strings s pat i
+
 private theorem native_seq_replace_pack_string
     (s pat repl : native_String) :
     native_pack_seq SmtType.Char
@@ -9759,6 +9777,31 @@ private theorem smt_value_rel_seq_right_local
       __smtx_model_eval_eq, native_veq] at hRel ⊢
   case Seq s' =>
     exact hRel
+
+private theorem smtx_model_eval_str_indexof_pack_string_of_rel
+    (a b c : SmtValue) (s pat : native_String) (i : native_Int) :
+    RuleProofs.smt_value_rel a
+        (SmtValue.Seq (native_pack_string s)) ->
+    RuleProofs.smt_value_rel b
+        (SmtValue.Seq (native_pack_string pat)) ->
+    RuleProofs.smt_value_rel c (SmtValue.Numeral i) ->
+      __smtx_model_eval_str_indexof a b c =
+        SmtValue.Numeral (native_str_indexof s pat i) := by
+  intro hA hB hC
+  rcases smt_value_rel_seq_right_local hA with
+    ⟨aSeq, hAEq, hASeqRel⟩
+  rcases smt_value_rel_seq_right_local hB with
+    ⟨bSeq, hBEq, hBSeqRel⟩
+  have hASeqEq :
+      aSeq = native_pack_string s :=
+    (RuleProofs.smt_seq_rel_iff_eq _ _).1 hASeqRel
+  have hBSeqEq :
+      bSeq = native_pack_string pat :=
+    (RuleProofs.smt_seq_rel_iff_eq _ _).1 hBSeqRel
+  have hCEq : c = SmtValue.Numeral i :=
+    smt_value_rel_numeral_eq c i hC
+  rw [hAEq, hASeqEq, hBEq, hBSeqEq, hCEq]
+  exact smtx_model_eval_str_indexof_pack_string s pat i
 
 private theorem eo_eq_numeral_zero_true_eq
     (x : Term) :
