@@ -234,6 +234,59 @@ private theorem qterm_body_typeof_bool_of_quant_typeof_bool
   · subst Q
     exact qexists_body_typeof_bool_of_typeof_bool x F hTy
 
+private theorem smtx_typeof_eo_to_smt_list_cons_none
+    (x ys : Term) :
+    __smtx_typeof
+        (__eo_to_smt
+          (Term.Apply (Term.Apply Term.__eo_List_cons x) ys)) =
+      SmtType.None := by
+  change
+    __smtx_typeof
+        (SmtTerm.Apply
+          (SmtTerm.Apply SmtTerm.None (__eo_to_smt x))
+          (__eo_to_smt ys)) =
+      SmtType.None
+  exact TranslationProofs.typeof_apply_apply_none_head_eq
+    (__eo_to_smt x) (__eo_to_smt ys)
+
+private theorem smtx_typeof_apply_none_head (x : SmtTerm) :
+    __smtx_typeof (SmtTerm.Apply SmtTerm.None x) =
+      SmtType.None := by
+  rw [__smtx_typeof.eq_def] <;> simp only
+  simp [__smtx_typeof_apply]
+
+private theorem smtx_typeof_apply_head_none_of_non_datatype_head
+    (f x : SmtTerm)
+    (hSel : ∀ s d i j, f ≠ SmtTerm.DtSel s d i j)
+    (hTester : ∀ s d i, f ≠ SmtTerm.DtTester s d i)
+    (hf : __smtx_typeof f = SmtType.None) :
+    __smtx_typeof (SmtTerm.Apply f x) = SmtType.None := by
+  have hGeneric : generic_apply_type f x :=
+    generic_apply_type_of_non_datatype_head hSel hTester
+  rw [hGeneric, hf]
+  simp [__smtx_typeof_apply]
+
+private theorem smtx_typeof_apply_not_head_none (f x : SmtTerm) :
+    __smtx_typeof (SmtTerm.Apply (SmtTerm.not f) x) =
+      SmtType.None := by
+  rw [__smtx_typeof.eq_def] <;> simp only
+  rw [typeof_not_eq]
+  cases hTy : __smtx_typeof f <;>
+    simp [__smtx_typeof_apply, native_ite, native_Teq]
+
+private theorem smtx_typeof_apply_purify_head_none
+    (f x : SmtTerm)
+    (hf : __smtx_typeof f = SmtType.None) :
+    __smtx_typeof (SmtTerm.Apply (SmtTerm._at_purify f) x) =
+      SmtType.None := by
+  apply smtx_typeof_apply_head_none_of_non_datatype_head
+  · intro s d i j h
+    cases h
+  · intro s d i h
+    cases h
+  · rw [__smtx_typeof.eq_def] <;> simp only
+    exact hf
+
 private theorem smtx_model_eval_exists_eq_of_body_constant_bool
     (M : SmtModel) (s : native_String) (T : SmtType) (body : SmtTerm)
     (b : Bool)
@@ -1598,6 +1651,22 @@ private theorem scannerModelRel_refl
     scannerModelRel xs bvs M M := by
   exact ⟨model_agrees_on_globals_refl M, by intro s T _; rfl⟩
 
+private theorem scannerModelRel_push_same
+    (xs bvs : Term) (M N : SmtModel)
+    (s : native_String) (T : SmtType) (v : SmtValue)
+    (hRel : scannerModelRel xs bvs M N) :
+    scannerModelRel xs bvs
+      (native_model_push M s T v) (native_model_push N s T v) := by
+  refine ⟨model_agrees_on_globals_push₂ hRel.globals, ?_⟩
+  intro s' T' hAllowed
+  by_cases hKey :
+      ({ isVar := true, name := s', ty := __eo_to_smt_type T' } :
+        SmtModelKey) =
+        { isVar := true, name := s, ty := T }
+  · simpa [native_model_var_lookup, native_model_push, hKey]
+  · simpa [native_model_var_lookup, native_model_push, hKey]
+      using hRel.vars_eq s' T' hAllowed
+
 private theorem eo_is_neg_list_find_nil_var
     (s : native_String) (T : Term) :
     __eo_is_neg
@@ -2144,6 +2213,121 @@ private theorem eo_list_concat_nil_eq_of_var_list
   simpa [__eo_list_concat, hXsList, hNilList, __eo_requires, native_ite,
     native_teq, native_not, SmtEval.native_not] using hRec
 
+private theorem eo_var_list_concat_rec
+    {xs ys : Term} (hXsVar : eo_var_list xs) (hYsVar : eo_var_list ys) :
+    eo_var_list (__eo_list_concat_rec xs ys) := by
+  rcases eo_smt_var_env_of_var_list hXsVar with ⟨xsVars, hXsEnv⟩
+  rcases eo_smt_var_env_of_var_list hYsVar with ⟨ysVars, hYsEnv⟩
+  exact eo_var_list_of_env (EoSmtVarEnv.concat_rec hXsEnv hYsEnv)
+
+private theorem eo_var_list_concat
+    {xs ys : Term} (hXsVar : eo_var_list xs) (hYsVar : eo_var_list ys) :
+    eo_var_list (__eo_list_concat Term.__eo_List_cons xs ys) := by
+  rcases eo_smt_var_env_of_var_list hXsVar with ⟨xsVars, hXsEnv⟩
+  rcases eo_smt_var_env_of_var_list hYsVar with ⟨ysVars, hYsEnv⟩
+  exact eo_var_list_of_env (EoSmtVarEnv.concat hXsEnv hYsEnv)
+
+private theorem eo_var_list_mem_concat_rec_iff
+    {xs ys z : Term} (hXsVar : eo_var_list xs)
+    (hYsVar : eo_var_list ys) :
+    eo_var_list_mem z (__eo_list_concat_rec xs ys) ↔
+      eo_var_list_mem z xs ∨ eo_var_list_mem z ys := by
+  induction xs using __eo_list_setof_rec.induct with
+  | case1 =>
+      exact False.elim hXsVar
+  | case2 f x tail ih =>
+      cases f <;> try exact False.elim hXsVar
+      case __eo_List_cons =>
+        cases x <;> try exact False.elim hXsVar
+        case Var name T =>
+          cases name <;> try exact False.elim hXsVar
+          case String s =>
+            have hTailVar : eo_var_list tail := hXsVar
+            have hConcatTailVar :
+                eo_var_list (__eo_list_concat_rec tail ys) :=
+              eo_var_list_concat_rec hTailVar hYsVar
+            have hConcatTailNe :
+                __eo_list_concat_rec tail ys ≠ Term.Stuck :=
+              eo_var_list_ne_stuck hConcatTailVar
+            have hCons :
+                __eo_list_concat_rec
+                    (Term.Apply (Term.Apply Term.__eo_List_cons
+                      (Term.Var (Term.String s) T)) tail) ys =
+                  Term.Apply
+                    (Term.Apply Term.__eo_List_cons
+                      (Term.Var (Term.String s) T))
+                    (__eo_list_concat_rec tail ys) := by
+              have hYsNe : ys ≠ Term.Stuck := eo_var_list_ne_stuck hYsVar
+              rw [eo_list_concat_rec_cons_left_of_suffix_ne
+                Term.__eo_List_cons (Term.Var (Term.String s) T)
+                tail ys hYsNe]
+              exact eo_mk_apply_of_ne_stuck_local
+                (by intro h; cases h) hConcatTailNe
+            rw [hCons]
+            have hTailIff :=
+              ih hTailVar
+            simp [eo_var_list_mem, hTailIff, or_assoc]
+  | case3 nil _hNilNe hNotApplyApply =>
+      cases nil with
+      | __eo_List_nil =>
+          have hYsNe : ys ≠ Term.Stuck := eo_var_list_ne_stuck hYsVar
+          rw [eo_list_concat_rec_nil_left_of_ne hYsNe]
+          simp [eo_var_list_mem]
+      | Apply f a =>
+          cases f with
+          | Apply g x =>
+              exact False.elim (hNotApplyApply g x a rfl)
+          | _ =>
+              exact False.elim hXsVar
+      | _ =>
+          exact False.elim hXsVar
+
+private theorem eo_var_list_mem_concat_iff
+    {xs ys z : Term} (hXsVar : eo_var_list xs)
+    (hYsVar : eo_var_list ys) :
+    eo_var_list_mem z (__eo_list_concat Term.__eo_List_cons xs ys) ↔
+      eo_var_list_mem z xs ∨ eo_var_list_mem z ys := by
+  have hXsList : __eo_is_list Term.__eo_List_cons xs = Term.Boolean true :=
+    eo_var_list_is_list hXsVar
+  have hYsList : __eo_is_list Term.__eo_List_cons ys = Term.Boolean true :=
+    eo_var_list_is_list hYsVar
+  simpa [__eo_list_concat, hXsList, hYsList, __eo_requires, native_ite,
+    native_teq, native_not, SmtEval.native_not] using
+    (eo_var_list_mem_concat_rec_iff
+      (xs := xs) (ys := ys) (z := z) hXsVar hYsVar)
+
+private theorem eo_var_list_mem_concat_rec_cons_comm
+    (s : native_String) (T tail bvs z : Term)
+    (hTailVar : eo_var_list tail) (hBvsVar : eo_var_list bvs) :
+    eo_var_list_mem z
+        (__eo_list_concat_rec
+          (Term.Apply (Term.Apply Term.__eo_List_cons
+            (Term.Var (Term.String s) T)) tail) bvs) ↔
+      eo_var_list_mem z
+        (__eo_list_concat_rec tail
+          (Term.Apply (Term.Apply Term.__eo_List_cons
+            (Term.Var (Term.String s) T)) bvs)) := by
+  have hConsTailVar :
+      eo_var_list
+        (Term.Apply (Term.Apply Term.__eo_List_cons
+          (Term.Var (Term.String s) T)) tail) := by
+    simpa [eo_var_list] using hTailVar
+  have hConsBvsVar :
+      eo_var_list
+        (Term.Apply (Term.Apply Term.__eo_List_cons
+          (Term.Var (Term.String s) T)) bvs) := by
+    simpa [eo_var_list] using hBvsVar
+  rw [eo_var_list_mem_concat_rec_iff
+        (xs := Term.Apply (Term.Apply Term.__eo_List_cons
+          (Term.Var (Term.String s) T)) tail)
+        (ys := bvs) (z := z) hConsTailVar hBvsVar,
+      eo_var_list_mem_concat_rec_iff
+        (xs := tail)
+        (ys := Term.Apply (Term.Apply Term.__eo_List_cons
+          (Term.Var (Term.String s) T)) bvs) (z := z)
+        hTailVar hConsBvsVar]
+  simp [eo_var_list_mem, or_left_comm, or_comm]
+
 private theorem eo_is_neg_list_find_rec_false_of_var_list_mem
     {xs z : Term} (hVarList : eo_var_list xs) (hz : z ≠ Term.Stuck)
     (hMem : eo_var_list_mem z xs) :
@@ -2356,6 +2540,144 @@ private theorem eo_is_neg_list_find_true_of_var_list_not_mem
       hVarList hz hNotMem 0 hZero
   simpa [__eo_list_find, hList, __eo_requires, native_ite,
     native_teq, native_not, SmtEval.native_not] using hFindRec
+
+private theorem eo_var_list_mem_of_eo_is_neg_list_find_false
+    {xs z : Term} (hVarList : eo_var_list xs) (hz : z ≠ Term.Stuck)
+    (hFind :
+      __eo_is_neg (__eo_list_find Term.__eo_List_cons xs z) =
+        Term.Boolean false) :
+    eo_var_list_mem z xs := by
+  have hList : __eo_is_list Term.__eo_List_cons xs = Term.Boolean true :=
+    eo_var_list_is_list hVarList
+  have hZero : native_zlt (0 : native_Int) 0 = false := by
+    native_decide
+  have hFindRec :
+      __eo_is_neg (__eo_list_find_rec xs z (Term.Numeral 0)) =
+        Term.Boolean false := by
+    simpa [__eo_list_find, hList, __eo_requires, native_ite,
+      native_teq, native_not, SmtEval.native_not] using hFind
+  exact eo_var_list_mem_of_eo_is_neg_list_find_rec_false
+    hVarList hz 0 hZero hFindRec
+
+private theorem scannerModelRel_bvs_of_mem_iff
+    {xs bvs1 bvs2 : Term} {M N : SmtModel}
+    (hBvs1 : eo_var_list bvs1) (hBvs2 : eo_var_list bvs2)
+    (hMemIff :
+      ∀ (s : native_String) (T : Term),
+        eo_var_list_mem (Term.Var (Term.String s) T) bvs2 ↔
+          eo_var_list_mem (Term.Var (Term.String s) T) bvs1)
+    (hRel : scannerModelRel xs bvs1 M N) :
+    scannerModelRel xs bvs2 M N := by
+  refine ⟨hRel.globals, ?_⟩
+  intro s T hAllowed
+  apply hRel.vars_eq s T
+  rcases eo_ite_false_branch_eq_false_cases
+      (__eo_is_neg (__eo_list_find Term.__eo_List_cons xs
+        (Term.Var (Term.String s) T)))
+      (__eo_is_neg (__eo_list_find Term.__eo_List_cons bvs2
+        (Term.Var (Term.String s) T))) hAllowed with
+    hXsMiss | ⟨hXsHit, hBvs2Hit⟩
+  · simp [__eo_ite, hXsMiss, native_ite, native_teq]
+  · have hMem2 :
+        eo_var_list_mem (Term.Var (Term.String s) T) bvs2 :=
+      eo_var_list_mem_of_eo_is_neg_list_find_false
+        hBvs2 (term_var_string_ne_stuck s T) hBvs2Hit
+    have hMem1 :
+        eo_var_list_mem (Term.Var (Term.String s) T) bvs1 :=
+      (hMemIff s T).1 hMem2
+    have hBvs1Hit :
+        __eo_is_neg (__eo_list_find Term.__eo_List_cons bvs1
+          (Term.Var (Term.String s) T)) =
+          Term.Boolean false :=
+      eo_is_neg_list_find_false_of_var_list_mem
+        hBvs1 (term_var_string_ne_stuck s T) hMem1
+    simp [__eo_ite, hXsHit, hBvs1Hit, native_ite, native_teq]
+
+private theorem scannerModelRel_concat_rec_cons_comm
+    (xs tail bvs : Term) (M N : SmtModel)
+    (s : native_String) (T : Term)
+    (hTailVar : eo_var_list tail) (hBvsVar : eo_var_list bvs)
+    (hRel :
+      scannerModelRel xs
+        (__eo_list_concat_rec
+          (Term.Apply (Term.Apply Term.__eo_List_cons
+            (Term.Var (Term.String s) T)) tail) bvs) M N) :
+    scannerModelRel xs
+      (__eo_list_concat_rec tail
+        (Term.Apply (Term.Apply Term.__eo_List_cons
+          (Term.Var (Term.String s) T)) bvs)) M N := by
+  have hConsTailVar :
+      eo_var_list
+        (Term.Apply (Term.Apply Term.__eo_List_cons
+          (Term.Var (Term.String s) T)) tail) := by
+    simpa [eo_var_list] using hTailVar
+  have hConsBvsVar :
+      eo_var_list
+        (Term.Apply (Term.Apply Term.__eo_List_cons
+          (Term.Var (Term.String s) T)) bvs) := by
+    simpa [eo_var_list] using hBvsVar
+  have hLeftVar :
+      eo_var_list
+        (__eo_list_concat_rec
+          (Term.Apply (Term.Apply Term.__eo_List_cons
+            (Term.Var (Term.String s) T)) tail) bvs) :=
+    eo_var_list_concat_rec hConsTailVar hBvsVar
+  have hRightVar :
+      eo_var_list
+        (__eo_list_concat_rec tail
+          (Term.Apply (Term.Apply Term.__eo_List_cons
+            (Term.Var (Term.String s) T)) bvs)) :=
+    eo_var_list_concat_rec hTailVar hConsBvsVar
+  exact scannerModelRel_bvs_of_mem_iff
+    hLeftVar hRightVar
+    (fun s' T' =>
+      (eo_var_list_mem_concat_rec_cons_comm
+        s T tail bvs (Term.Var (Term.String s') T')
+        hTailVar hBvsVar).symm)
+    hRel
+
+private theorem scannerModelRel_concat_rec_cons_comm_symm
+    (xs tail bvs : Term) (M N : SmtModel)
+    (s : native_String) (T : Term)
+    (hTailVar : eo_var_list tail) (hBvsVar : eo_var_list bvs)
+    (hRel :
+      scannerModelRel xs
+        (__eo_list_concat_rec tail
+          (Term.Apply (Term.Apply Term.__eo_List_cons
+            (Term.Var (Term.String s) T)) bvs)) M N) :
+    scannerModelRel xs
+      (__eo_list_concat_rec
+        (Term.Apply (Term.Apply Term.__eo_List_cons
+          (Term.Var (Term.String s) T)) tail) bvs) M N := by
+  have hConsTailVar :
+      eo_var_list
+        (Term.Apply (Term.Apply Term.__eo_List_cons
+          (Term.Var (Term.String s) T)) tail) := by
+    simpa [eo_var_list] using hTailVar
+  have hConsBvsVar :
+      eo_var_list
+        (Term.Apply (Term.Apply Term.__eo_List_cons
+          (Term.Var (Term.String s) T)) bvs) := by
+    simpa [eo_var_list] using hBvsVar
+  have hLeftVar :
+      eo_var_list
+        (__eo_list_concat_rec
+          (Term.Apply (Term.Apply Term.__eo_List_cons
+            (Term.Var (Term.String s) T)) tail) bvs) :=
+    eo_var_list_concat_rec hConsTailVar hBvsVar
+  have hRightVar :
+      eo_var_list
+        (__eo_list_concat_rec tail
+          (Term.Apply (Term.Apply Term.__eo_List_cons
+            (Term.Var (Term.String s) T)) bvs)) :=
+    eo_var_list_concat_rec hTailVar hConsBvsVar
+  exact scannerModelRel_bvs_of_mem_iff
+    hRightVar hLeftVar
+    (fun s' T' =>
+      eo_var_list_mem_concat_rec_cons_comm
+        s T tail bvs (Term.Var (Term.String s') T')
+        hTailVar hBvsVar)
+    hRel
 
 private theorem eo_var_list_mem_erase_all_rec_of_ne
     {xs z e : Term} (hVarList : eo_var_list xs)
@@ -4293,6 +4615,58 @@ private theorem scannerModelRel_push_same_cons_var
     simpa [native_model_var_lookup, native_model_push, hKey]
       using hRel.vars_eq s' T' hOldAllowed
 
+private theorem smtx_model_eval_eo_to_smt_exists_eq_of_scanner_body
+    (body : SmtTerm) {binders : Term} {vars : List SmtVarKey}
+    (hBinders : EoSmtVarEnv binders vars) :
+    ∀ {xs bvs : Term} {M N : SmtModel},
+      eo_var_list bvs ->
+        scannerModelRel xs bvs M N ->
+          (∀ M' N' : SmtModel,
+            scannerModelRel xs (__eo_list_concat_rec binders bvs) M' N' ->
+              __smtx_model_eval M' body =
+                __smtx_model_eval N' body) ->
+            __smtx_model_eval M (__eo_to_smt_exists binders body) =
+              __smtx_model_eval N (__eo_to_smt_exists binders body) := by
+  induction hBinders with
+  | nil =>
+      intro xs bvs M N hBvsVar hRel hBody
+      have hBvsNe : bvs ≠ Term.Stuck := eo_var_list_ne_stuck hBvsVar
+      have hRelBody :
+          scannerModelRel xs (__eo_list_concat_rec Term.__eo_List_nil bvs)
+            M N := by
+        simpa [eo_list_concat_rec_nil_left_of_ne hBvsNe] using hRel
+      simpa [__eo_to_smt_exists] using hBody M N hRelBody
+  | cons hTail ih =>
+      intro xs bvs M N hBvsVar hRel hBody
+      rename_i s T tail varsTail
+      have hTailVar : eo_var_list tail := eo_var_list_of_env hTail
+      have hConsBvsVar :
+          eo_var_list
+            (Term.Apply (Term.Apply Term.__eo_List_cons
+              (Term.Var (Term.String s) T)) bvs) := by
+        simpa [eo_var_list] using hBvsVar
+      change
+        __smtx_model_eval M
+            (SmtTerm.exists s (__eo_to_smt_type T)
+              (__eo_to_smt_exists tail body)) =
+          __smtx_model_eval N
+            (SmtTerm.exists s (__eo_to_smt_type T)
+              (__eo_to_smt_exists tail body))
+      exact smtx_model_eval_exists_eq_of_body_eval_eq
+        (fun v =>
+          ih (xs := xs)
+            (bvs := Term.Apply (Term.Apply Term.__eo_List_cons
+              (Term.Var (Term.String s) T)) bvs)
+            (M := native_model_push M s (__eo_to_smt_type T) v)
+            (N := native_model_push N s (__eo_to_smt_type T) v)
+            hConsBvsVar
+            (scannerModelRel_push_same_cons_var
+              xs bvs M N s T v hBvsVar hRel)
+            (fun M' N' hRelTail =>
+              hBody M' N'
+                (scannerModelRel_concat_rec_cons_comm_symm
+                  xs tail bvs M' N' s T hTailVar hBvsVar hRelTail)))
+
 private theorem body_constant_on_eo_binders_of_scanner_eval_aux
     (body : SmtTerm) (xs bvs binders : Term) {vars : List SmtVarKey}
     (hBinders : EoSmtVarEnv binders vars)
@@ -4547,6 +4921,7 @@ private theorem contains_atomic_term_list_free_rec_vars_ne_stuck_of_false
 
 private theorem smtx_model_eval_eq_of_contains_atomic_false
     (t xs bvs : Term) :
+    eo_var_list bvs ->
     (∀ M N : SmtModel,
       scannerModelRel xs bvs M N ->
       __contains_atomic_term_list_free_rec t xs bvs =
@@ -4556,19 +4931,161 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
         __smtx_model_eval N (__eo_to_smt t)) := by
   induction t, xs, bvs using Eo.__contains_atomic_term_list_free_rec.induct with
   | case1 xs bvs =>
-      intro M N hRel hScan hNN
+      intro hBvsVar M N hRel hScan hNN
       simp [__contains_atomic_term_list_free_rec] at hScan
   | case2 t bvs ht =>
-      intro M N hRel hScan hNN
+      intro hBvsVar M N hRel hScan hNN
       simp [__contains_atomic_term_list_free_rec] at hScan
   | case3 t xs ht hxs =>
-      intro M N hRel hScan hNN
+      intro hBvsVar M N hRel hScan hNN
       simp [__contains_atomic_term_list_free_rec] at hScan
   | case4 q x ys a xs bvs hXs hBvs ih =>
-      intro M N hRel hScan hNN
-      sorry
+      intro hBvsVar M N hRel hScan hNN
+      let binders :=
+        Term.Apply (Term.Apply Term.__eo_List_cons x) ys
+      have hBindersNonNil : binders ≠ Term.__eo_List_nil := by
+        dsimp [binders]
+        intro h
+        cases h
+      have hScanBody :
+          __contains_atomic_term_list_free_rec a xs
+              (__eo_list_concat Term.__eo_List_cons binders bvs) =
+            Term.Boolean false := by
+        simpa [binders, __contains_atomic_term_list_free_rec] using hScan
+      by_cases hQ :
+          q = Term.UOp UserOp.forall ∨ q = Term.UOp UserOp.exists
+      · have hQuantNN :
+            __smtx_typeof (__eo_to_smt (qterm q binders a)) ≠
+              SmtType.None := by
+          simpa [qterm, binders] using hNN
+        have hQuantTy :
+            __smtx_typeof (__eo_to_smt (qterm q binders a)) =
+              SmtType.Bool :=
+          qterm_typeof_bool_of_quant_non_none q binders a hQ hQuantNN
+        have hBodyTy :
+            __smtx_typeof (__eo_to_smt a) = SmtType.Bool :=
+          qterm_body_typeof_bool_of_quant_typeof_bool
+            q binders a hQ hQuantTy
+        have hBodyNN :
+            __smtx_typeof (__eo_to_smt a) ≠ SmtType.None := by
+          rw [hBodyTy]
+          simp
+        rcases qterm_binder_env_of_quant_typeof_bool
+            q binders a hQ hQuantTy with
+          ⟨binderVars, hBinders⟩
+        have hBindersVar : eo_var_list binders :=
+          eo_var_list_of_env hBinders
+        have hBvsList :
+            __eo_is_list Term.__eo_List_cons bvs = Term.Boolean true :=
+          eo_var_list_is_list hBvsVar
+        have hBindersList :
+            __eo_is_list Term.__eo_List_cons binders =
+              Term.Boolean true :=
+          eo_var_list_is_list hBindersVar
+        have hConcatEq :
+            __eo_list_concat Term.__eo_List_cons binders bvs =
+              __eo_list_concat_rec binders bvs := by
+          simp [__eo_list_concat, hBindersList, hBvsList,
+            __eo_requires, native_ite, native_teq, native_not,
+            SmtEval.native_not]
+        have hAllBvsVarTop :
+            eo_var_list
+              (__eo_list_concat Term.__eo_List_cons binders bvs) :=
+          eo_var_list_concat hBindersVar hBvsVar
+        have hBodyEval :
+            ∀ M' N' : SmtModel,
+              scannerModelRel xs (__eo_list_concat_rec binders bvs)
+                M' N' ->
+                __smtx_model_eval M' (__eo_to_smt a) =
+                  __smtx_model_eval N' (__eo_to_smt a) := by
+          intro M' N' hRel'
+          have hRelTop :
+              scannerModelRel xs
+                  (__eo_list_concat Term.__eo_List_cons binders bvs)
+                  M' N' := by
+            simpa [hConcatEq] using hRel'
+          exact ih hAllBvsVarTop M' N' hRelTop hScanBody hBodyNN
+        rcases hQ with hForall | hExists
+        · subst q
+          have hExistsEval :
+              __smtx_model_eval M
+                  (__eo_to_smt_exists binders
+                    (SmtTerm.not (__eo_to_smt a))) =
+                __smtx_model_eval N
+                  (__eo_to_smt_exists binders
+                    (SmtTerm.not (__eo_to_smt a))) :=
+            smtx_model_eval_eo_to_smt_exists_eq_of_scanner_body
+              (SmtTerm.not (__eo_to_smt a)) hBinders
+              hBvsVar hRel
+              (fun M' N' hRel' =>
+                smtx_model_eval_not_eq_of_eval_eq
+                  (hBodyEval M' N' hRel'))
+          have hForallEval :
+              __smtx_model_eval M
+                  (SmtTerm.not
+                    (__eo_to_smt_exists binders
+                      (SmtTerm.not (__eo_to_smt a)))) =
+                __smtx_model_eval N
+                  (SmtTerm.not
+                    (__eo_to_smt_exists binders
+                      (SmtTerm.not (__eo_to_smt a)))) :=
+            smtx_model_eval_not_eq_of_eval_eq hExistsEval
+          change
+            __smtx_model_eval M
+                (__eo_to_smt
+                  (qforall binders a)) =
+              __smtx_model_eval N
+                (__eo_to_smt
+                  (qforall binders a))
+          rw [eo_to_smt_forall_eq binders a hBindersNonNil]
+          exact hForallEval
+        · subst q
+          have hExistsEval :
+              __smtx_model_eval M
+                  (__eo_to_smt_exists binders (__eo_to_smt a)) =
+                __smtx_model_eval N
+                  (__eo_to_smt_exists binders (__eo_to_smt a)) :=
+            smtx_model_eval_eo_to_smt_exists_eq_of_scanner_body
+              (__eo_to_smt a) hBinders hBvsVar hRel hBodyEval
+          change
+            __smtx_model_eval M
+                (__eo_to_smt
+                  (qexists binders a)) =
+              __smtx_model_eval N
+                (__eo_to_smt
+                  (qexists binders a))
+          rw [eo_to_smt_exists_eq binders a hBindersNonNil]
+          exact hExistsEval
+      · by_cases hNotOp : q = Term.UOp UserOp.not
+        · subst q
+          exfalso
+          apply hNN
+          change
+            __smtx_typeof
+                (SmtTerm.Apply
+                  (SmtTerm.not (__eo_to_smt binders))
+                  (__eo_to_smt a)) =
+              SmtType.None
+          exact smtx_typeof_apply_not_head_none
+            (__eo_to_smt binders) (__eo_to_smt a)
+        · by_cases hPurifyOp : q = Term.UOp UserOp._at_purify
+          · subst q
+            exfalso
+            apply hNN
+            change
+              __smtx_typeof
+                  (SmtTerm.Apply
+                    (SmtTerm._at_purify (__eo_to_smt binders))
+                    (__eo_to_smt a)) =
+                SmtType.None
+            exact smtx_typeof_apply_purify_head_none
+              (__eo_to_smt binders) (__eo_to_smt a)
+              (by
+                dsimp [binders]
+                exact smtx_typeof_eo_to_smt_list_cons_none x ys)
+          · sorry
   | case5 f a xs bvs hXs hBvs hNotQuant ihF ihA =>
-      intro M N hRel hScan hNN
+      intro hBvsVar M N hRel hScan hNN
       have hScan' :
           __eo_ite (__contains_atomic_term_list_free_rec f xs bvs)
               (Term.Boolean true)
@@ -4581,7 +5098,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
         ⟨hFScan, hAScan⟩
       sorry
   | case6 name T xs bvs hXs hBvs =>
-      intro M N hRel hScan hNN
+      intro hBvsVar M N hRel hScan hNN
       cases name with
       | String s =>
           exact smtx_model_eval_var_eq_of_scannerModelRel
@@ -4590,10 +5107,10 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
           exfalso
           exact hNN TranslationProofs.smtx_typeof_none
   | case7 F n xs bvs hXs hBvs ih =>
-      intro M N hRel hScan hNN
+      intro hBvsVar M N hRel hScan hNN
       sorry
   | case8 s r n xs bvs hXs hBvs ihS ihR =>
-      intro M N hRel hScan hNN
+      intro hBvsVar M N hRel hScan hNN
       have hScan' :
           __eo_ite (__contains_atomic_term_list_free_rec s xs bvs)
               (Term.Boolean true)
@@ -4607,7 +5124,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
       sorry
   | case9 x xs bvs hx hXs hBvs hNotQuant hNotApp hNotVar
       hNotSkolem hNotReUnfold =>
-      intro M N hRel hScan hNN
+      intro hBvsVar M N hRel hScan hNN
       cases x with
       | UOp op =>
           exact smtx_model_eval_eq_of_closed_nil_scannerModelRel hRel
@@ -5061,7 +5578,7 @@ private theorem quant_unused_eval
           exact
             smtx_model_eval_eq_of_contains_atomic_false F
               (__eo_list_setof Term.__eo_List_cons x)
-              Term.__eo_List_nil M' N' hRel hScanSetof
+              Term.__eo_List_nil (by trivial) M' N' hRel hScanSetof
               (by rw [hBodyTy]; simp))
     rcases hQ with hForall | hExists
     · subst Q
@@ -5150,7 +5667,7 @@ private theorem quant_unused_eval
       intro M' N' hRel
       exact
         smtx_model_eval_eq_of_contains_atomic_false F unused y
-          M' N' hRel hScanBodyY
+          hYVarList M' N' hRel hScanBodyY
           (by rw [hBodyTy]; simp)
     have hExistsTyForX :
         ∃ body : SmtTerm,
