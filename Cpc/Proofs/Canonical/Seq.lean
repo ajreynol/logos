@@ -233,7 +233,8 @@ theorem seq_canonical_pack_unpack_update
     rcases hv with hv | hv | hv
     · exact seq_unpack_values_canonical hs v
         (List.mem_of_mem_take hv)
-    · exact seq_unpack_values_canonical hrepl v hv
+    · exact seq_unpack_values_canonical hrepl v
+        (List.mem_of_mem_take hv)
     · exact seq_unpack_values_canonical hs v
         (List.mem_of_mem_drop hv)
   · simp at hv
