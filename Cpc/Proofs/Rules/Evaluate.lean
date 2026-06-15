@@ -1659,6 +1659,20 @@ private theorem smt_value_rel_model_eval_str_to_code_of_rel
     subst b
     exact RuleProofs.smt_value_rel_refl _
 
+private theorem smt_value_rel_model_eval_str_to_int_of_rel
+    (a b : SmtValue) :
+    RuleProofs.smt_value_rel a b ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval_str_to_int a) (__smtx_model_eval_str_to_int b) := by
+  intro hRel
+  by_cases hReg :
+      ∃ r1 r2, a = SmtValue.RegLan r1 ∧ b = SmtValue.RegLan r2
+  · rcases hReg with ⟨r1, r2, rfl, rfl⟩
+    simp [__smtx_model_eval_str_to_int, RuleProofs.smt_value_rel_refl]
+  · have hEq := (RuleProofs.smt_value_rel_iff_eq a b hReg).mp hRel
+    subst b
+    exact RuleProofs.smt_value_rel_refl _
+
 private theorem smt_value_rel_model_eval_str_from_code_of_rel
     (a b : SmtValue) :
     RuleProofs.smt_value_rel a b ->
@@ -6252,6 +6266,309 @@ private theorem str_to_code_result_string
           by_cases hLen : (1 : Int) = Int.ofNat ds.length + 1 + 1
           · exact False.elim (hLenNe hLen)
           · rfl
+
+private def native_str_to_int_rev_acc :
+    native_String -> native_Int -> native_Int -> native_Int
+  | [], _e, n => n
+  | c :: cs, e, n =>
+      let d := native_zplus (c : native_Int) (-48 : native_Int)
+      match native_and (native_zlt d 10) (native_not (native_zlt d 0)) with
+      | true =>
+          native_str_to_int_rev_acc cs (native_zmult e 10)
+            (native_zplus (native_zmult d e) n)
+      | false => -1
+
+private def native_decimal_digits_lsb : native_String -> native_Nat
+  | [] => 0
+  | c :: cs => (c - 48) + 10 * native_decimal_digits_lsb cs
+
+private theorem str_to_int_guard_eq_digit (c : native_Char) :
+    native_and
+        (native_zlt (native_zplus (c : native_Int) (-48 : native_Int)) 10)
+        (native_not
+          (native_zlt (native_zplus (c : native_Int) (-48 : native_Int)) 0)) =
+      native_char_is_digit c := by
+  unfold native_char_is_digit native_zplus native_zlt native_not native_and
+  by_cases h48 : 48 ≤ c
+  · by_cases h57 : c ≤ 57
+    · have h48i : (48 : Int) ≤ (c : Int) := Int.ofNat_le.mpr h48
+      have h57i : (c : Int) ≤ (57 : Int) := Int.ofNat_le.mpr h57
+      have hLt : (c : Int) + (-48 : Int) < 10 := by omega
+      have hNotNeg : ¬(c : Int) + (-48 : Int) < 0 := by omega
+      simp [h48, h57, hLt, hNotNeg]
+    · have h57lt : 57 < c := Nat.lt_of_not_ge h57
+      have h57lti : (57 : Int) < (c : Int) := Int.ofNat_lt.mpr h57lt
+      have hNotLt : ¬(c : Int) + (-48 : Int) < 10 := by omega
+      simp [h48, h57, hNotLt]
+  · have h48lt : c < 48 := Nat.lt_of_not_ge h48
+    have h48lti : (c : Int) < (48 : Int) := Int.ofNat_lt.mpr h48lt
+    have hNeg : (c : Int) + (-48 : Int) < 0 := by omega
+    simp [h48, hNeg]
+
+private theorem str_to_int_eval_rec_strCharChain :
+    ∀ (xs : native_String) (e n : native_Int),
+      native_string_valid xs = true ->
+        __str_to_int_eval_rec (strCharChain xs)
+            (Term.Numeral e) (Term.Numeral n) =
+          Term.Numeral (native_str_to_int_rev_acc xs e n)
+  | [], _e, _n, _hValid => by
+      rfl
+  | c :: cs, e, n, hValid => by
+      rcases native_string_valid_cons_parts_local hValid with
+        ⟨hcValid, hcsValid⟩
+      unfold strCharChain
+      unfold __str_to_int_eval_rec
+      rw [eo_to_z_singleton hcValid]
+      dsimp [__eo_add, __eo_mul]
+      let d := native_zplus (c : native_Int) (-48 : native_Int)
+      have hGuardTerm :
+          __eo_and (__eo_gt (Term.Numeral 10) (Term.Numeral d))
+              (__eo_not (__eo_is_neg (Term.Numeral d))) =
+            Term.Boolean
+              (native_and (native_zlt d 10) (native_not (native_zlt d 0))) := by
+        simp [__eo_gt, __eo_is_neg, __eo_not, __eo_and, d]
+      rw [hGuardTerm]
+      cases hGuard :
+          native_and (native_zlt d 10) (native_not (native_zlt d 0))
+      · simp [eo_ite_false, native_str_to_int_rev_acc, d, hGuard]
+      · rw [eo_ite_true]
+        simp [native_str_to_int_rev_acc, d, hGuard]
+        exact str_to_int_eval_rec_strCharChain cs
+          (native_zmult e 10)
+          (native_zplus (native_zmult d e) n) hcsValid
+
+private theorem native_str_to_int_rev_acc_all_digits :
+    ∀ (xs : native_String) (e n : native_Int),
+      xs.all native_char_is_digit = true ->
+        native_str_to_int_rev_acc xs e n =
+          native_zplus n
+            (native_zmult e (Int.ofNat (native_decimal_digits_lsb xs)))
+  | [], e, n, _hDigits => by
+      simp [native_str_to_int_rev_acc, native_decimal_digits_lsb,
+        native_zplus, native_zmult]
+  | c :: cs, e, n, hDigits => by
+      have hDigitParts :
+          native_char_is_digit c = true ∧
+            cs.all native_char_is_digit = true := by
+        simpa using hDigits
+      have hDigit : native_char_is_digit c = true := hDigitParts.1
+      have hTailDigits : cs.all native_char_is_digit = true := hDigitParts.2
+      have hGuard :
+          native_and
+              (native_zlt
+                (native_zplus (c : native_Int) (-48 : native_Int)) 10)
+              (native_not
+                (native_zlt
+                  (native_zplus (c : native_Int) (-48 : native_Int)) 0)) =
+            true :=
+        (str_to_int_guard_eq_digit c).trans hDigit
+      simp [native_str_to_int_rev_acc, hGuard]
+      have hTail :=
+        native_str_to_int_rev_acc_all_digits cs
+          (native_zmult e 10)
+          (native_zplus
+            (native_zmult
+              (native_zplus (c : native_Int) (-48 : native_Int)) e) n)
+          hTailDigits
+      rw [hTail]
+      unfold native_decimal_digits_lsb native_zplus native_zmult
+      have hRange : 48 ≤ c ∧ c ≤ 57 := by
+        unfold native_char_is_digit at hDigit
+        simpa using hDigit
+      have hCast :
+          ((c - 48 : Nat) : Int) = (c : Int) + (-48 : Int) := by
+        rw [Int.ofNat_sub hRange.1]
+        rfl
+      rw [Int.natCast_add, Int.natCast_mul]
+      rw [hCast]
+      cases cs <;>
+        simp [native_decimal_digits_lsb, Int.mul_add,
+          Int.add_assoc, Int.add_comm, Int.add_left_comm, Int.mul_assoc,
+          Int.mul_comm, Int.mul_left_comm]
+
+private theorem native_str_to_int_rev_acc_not_all_digits :
+    ∀ (xs : native_String) (e n : native_Int),
+      xs.all native_char_is_digit ≠ true ->
+        native_str_to_int_rev_acc xs e n = (-1 : native_Int)
+  | [], _e, _n, hDigits => by
+      simp at hDigits
+  | c :: cs, e, n, hDigits => by
+      by_cases hDigit : native_char_is_digit c = true
+      · have hTailNot : cs.all native_char_is_digit ≠ true := by
+          intro hTail
+          apply hDigits
+          simp [hDigit, hTail]
+        have hGuard :
+            native_and
+                (native_zlt
+                  (native_zplus (c : native_Int) (-48 : native_Int)) 10)
+                (native_not
+                  (native_zlt
+                    (native_zplus (c : native_Int) (-48 : native_Int)) 0)) =
+              true :=
+          (str_to_int_guard_eq_digit c).trans hDigit
+        simp [native_str_to_int_rev_acc, hGuard]
+        exact native_str_to_int_rev_acc_not_all_digits cs
+          (native_zmult e 10)
+          (native_zplus
+            (native_zmult
+              (native_zplus (c : native_Int) (-48 : native_Int)) e) n)
+          hTailNot
+      · have hGuard := str_to_int_guard_eq_digit c
+        have hGuardFalse :
+            native_and
+                (native_zlt
+                  (native_zplus (c : native_Int) (-48 : native_Int)) 10)
+                (native_not
+                  (native_zlt
+                    (native_zplus (c : native_Int) (-48 : native_Int)) 0)) =
+              false := by
+          rw [hGuard]
+          cases h : native_char_is_digit c <;> simp [h] at hDigit ⊢
+        simp [native_str_to_int_rev_acc, hGuardFalse]
+
+private theorem native_decimal_digits_lsb_append_singleton :
+    ∀ (xs : native_String) (c : native_Char),
+      native_decimal_digits_lsb (xs ++ [c]) =
+        native_decimal_digits_lsb xs + (c - 48) * 10 ^ xs.length
+  | [], c => by
+      simp [native_decimal_digits_lsb]
+  | x :: xs, c => by
+      rw [show (x :: xs) ++ [c] = x :: (xs ++ [c]) by rfl]
+      change
+        (x - 48) + 10 * native_decimal_digits_lsb (xs ++ [c]) =
+          (x - 48) + 10 * native_decimal_digits_lsb xs +
+            (c - 48) * 10 ^ (xs.length + 1)
+      rw [native_decimal_digits_lsb_append_singleton xs c]
+      simp [Nat.pow_succ, Nat.mul_add,
+        Nat.add_assoc, Nat.add_comm, Nat.add_left_comm, Nat.mul_assoc,
+        Nat.mul_comm]
+
+private theorem native_decimal_digits_to_nat_foldl_acc :
+    ∀ (xs : native_String) (acc : native_Nat),
+      xs.foldl (fun acc c => 10 * acc + (c - 48)) acc =
+        acc * 10 ^ xs.length + native_decimal_digits_to_nat xs
+  | [], acc => by
+      simp [native_decimal_digits_to_nat]
+  | c :: cs, acc => by
+      rw [show
+          (c :: cs).foldl (fun acc c => 10 * acc + (c - 48)) acc =
+            cs.foldl (fun acc c => 10 * acc + (c - 48))
+              (10 * acc + (c - 48)) by
+        rfl]
+      rw [native_decimal_digits_to_nat_foldl_acc cs
+        (10 * acc + (c - 48))]
+      rw [show native_decimal_digits_to_nat (c :: cs) =
+          (c :: cs).foldl (fun acc c => 10 * acc + (c - 48)) 0 by
+        rfl]
+      rw [show
+          (c :: cs).foldl (fun acc c => 10 * acc + (c - 48)) 0 =
+            cs.foldl (fun acc c => 10 * acc + (c - 48)) (c - 48) by
+        simp]
+      rw [native_decimal_digits_to_nat_foldl_acc cs (c - 48)]
+      simp [Nat.pow_succ, Nat.mul_add, Nat.add_assoc, Nat.mul_assoc,
+        Nat.mul_comm]
+
+private theorem native_decimal_digits_to_nat_cons
+    (c : native_Char) (cs : native_String) :
+    native_decimal_digits_to_nat (c :: cs) =
+      (c - 48) * 10 ^ cs.length + native_decimal_digits_to_nat cs := by
+  rw [show native_decimal_digits_to_nat (c :: cs) =
+      (c :: cs).foldl (fun acc c => 10 * acc + (c - 48)) 0 by
+    rfl]
+  rw [show
+      (c :: cs).foldl (fun acc c => 10 * acc + (c - 48)) 0 =
+        cs.foldl (fun acc c => 10 * acc + (c - 48)) (c - 48) by
+    simp]
+  exact native_decimal_digits_to_nat_foldl_acc cs (c - 48)
+
+private theorem native_decimal_digits_lsb_reverse_eq :
+    ∀ s : native_String,
+      native_decimal_digits_lsb s.reverse = native_decimal_digits_to_nat s
+  | [] => by
+      rfl
+  | c :: cs => by
+      rw [List.reverse_cons]
+      rw [native_decimal_digits_lsb_append_singleton cs.reverse c]
+      rw [native_decimal_digits_lsb_reverse_eq cs]
+      rw [native_decimal_digits_to_nat_cons c cs]
+      simp [List.length_reverse, Nat.add_comm]
+
+private theorem list_all_reverse_eq {α : Type} (p : α -> Bool) :
+    ∀ xs : List α, xs.reverse.all p = xs.all p
+  | [] => by
+      rfl
+  | x :: xs => by
+      rw [List.reverse_cons, List.all_append]
+      rw [list_all_reverse_eq p xs]
+      cases hp : p x <;> cases hx : xs.all p <;> simp [hp, hx]
+
+private theorem str_to_int_result_string
+    {str : native_String}
+    (hValid : native_string_valid str = true) :
+    __eo_ite (__eo_is_str (Term.String str))
+        (__eo_ite (__eo_eq (Term.String str) (Term.String []))
+          (Term.Numeral (-1 : native_Int))
+          (__str_to_int_eval_rec
+            (__eo_list_rev (Term.UOp UserOp.str_concat)
+              (__str_flatten (__str_nary_intro (Term.String str))))
+            (Term.Numeral 1) (Term.Numeral 0)))
+        (__eo_mk_apply (Term.UOp UserOp.str_to_int) (Term.String str)) =
+      Term.Numeral (native_str_to_int str) := by
+  have hIsStr :
+      __eo_is_str (Term.String str) = Term.Boolean true := by
+    simp [__eo_is_str, __eo_is_str_internal, native_teq, native_and,
+      native_not]
+  rw [hIsStr, eo_ite_true]
+  cases str with
+  | nil =>
+      simp [__eo_eq, __eo_ite, native_teq, native_ite, native_str_to_int]
+  | cons c cs =>
+      rw [show __eo_eq (Term.String (c :: cs)) (Term.String []) =
+          Term.Boolean false by
+        simp [__eo_eq, native_teq]]
+      rw [eo_ite_false]
+      rw [str_flatten_nary_intro_string_char_chain]
+      rw [eo_list_rev_strCharChain]
+      have hRevValid :
+          native_string_valid (c :: cs).reverse = true := by
+        unfold native_string_valid at hValid ⊢
+        rw [list_all_reverse_eq native_char_valid, hValid]
+      rw [str_to_int_eval_rec_strCharChain (c :: cs).reverse 1 0
+        hRevValid]
+      by_cases hDigits : (c :: cs).all native_char_is_digit = true
+      · have hRevDigits :
+            (c :: cs).reverse.all native_char_is_digit = true := by
+          rw [list_all_reverse_eq native_char_is_digit, hDigits]
+        rw [native_str_to_int_rev_acc_all_digits (c :: cs).reverse 1 0
+          hRevDigits]
+        rw [native_decimal_digits_lsb_reverse_eq (c :: cs)]
+        simp [native_str_to_int, hDigits, native_zplus, native_zmult]
+      · have hRevDigits :
+            (c :: cs).reverse.all native_char_is_digit ≠ true := by
+          intro hRev
+          apply hDigits
+          rwa [list_all_reverse_eq native_char_is_digit] at hRev
+        rw [native_str_to_int_rev_acc_not_all_digits (c :: cs).reverse 1 0
+          hRevDigits]
+        simp [native_str_to_int, hDigits]
+
+private theorem str_to_int_result_non_string
+    {t : Term}
+    (hNotString : ∀ s : native_String, t ≠ Term.String s)
+    (hTNe : t ≠ Term.Stuck) :
+    __eo_ite (__eo_is_str t)
+        (__eo_ite (__eo_eq t (Term.String []))
+          (Term.Numeral (-1 : native_Int))
+          (__str_to_int_eval_rec
+            (__eo_list_rev (Term.UOp UserOp.str_concat)
+              (__str_flatten (__str_nary_intro t)))
+            (Term.Numeral 1) (Term.Numeral 0)))
+        (__eo_mk_apply (Term.UOp UserOp.str_to_int) t) =
+      Term.Apply (Term.UOp UserOp.str_to_int) t := by
+  rw [eo_is_str_false_of_not_string t hNotString, eo_ite_false]
+  exact eo_mk_apply_eq_apply_of_args_ne_stuck _ _
+    (by intro h; cases h) hTNe
 
 private theorem native_string_valid_reverse_local
     {str : native_String}
@@ -22081,6 +22398,164 @@ private theorem run_evaluate_sound_apply_str_to_code_core
     rw [hEvalCodeB, hEvalCodeString]
     exact hRelCode
 
+private theorem run_evaluate_sound_apply_str_to_int_core
+    (M : SmtModel) (hM : model_total_typed M)
+    (b : Term)
+    (rec :
+      ∀ A : Term,
+        sizeOf A < sizeOf (Term.Apply (Term.UOp UserOp.str_to_int) b) ->
+          RunEvaluateSoundGoal M A) :
+  RunEvaluateSoundGoal M (Term.Apply (Term.UOp UserOp.str_to_int) b) := by
+  intro hATrans _hEvalTy
+  have hIntNN :
+      term_has_non_none_type (SmtTerm.str_to_int (__eo_to_smt b)) := by
+    unfold term_has_non_none_type
+    simpa [RuleProofs.eo_has_smt_translation] using hATrans
+  have hBTyChar :
+      __smtx_typeof (__eo_to_smt b) = SmtType.Seq SmtType.Char :=
+    seq_char_arg_of_non_none (op := SmtTerm.str_to_int)
+      (typeof_str_to_int_eq (__eo_to_smt b)) hIntNN
+  have hBTrans : RuleProofs.eo_has_smt_translation b := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hBTyChar]
+    simp
+  have hBProgTy : __eo_typeof (__eo_prog_evaluate b) = Term.Bool :=
+    eo_prog_evaluate_typeof_bool_of_smt_type_seq b SmtType.Char
+      hBTrans hBTyChar
+  let runArg := __run_evaluate b
+  let runInt :=
+    __eo_ite (__eo_is_str runArg)
+      (__eo_ite (__eo_eq runArg (Term.String []))
+        (Term.Numeral (-1 : native_Int))
+        (__str_to_int_eval_rec
+          (__eo_list_rev (Term.UOp UserOp.str_concat)
+            (__str_flatten (__str_nary_intro runArg)))
+          (Term.Numeral 1) (Term.Numeral 0)))
+      (__eo_mk_apply (Term.UOp UserOp.str_to_int) runArg)
+  rcases run_evaluate_rec_apply_arg M (Term.UOp UserOp.str_to_int) b rec
+      hBTrans hBProgTy with
+    ⟨hSameTy, hRel⟩
+  have hSameTyRun :
+      __smtx_typeof (__eo_to_smt b) =
+        __smtx_typeof (__eo_to_smt runArg) := by
+    simpa [runArg] using hSameTy
+  have hRunTyChar :
+      __smtx_typeof (__eo_to_smt runArg) =
+        SmtType.Seq SmtType.Char :=
+    hSameTyRun.symm.trans hBTyChar
+  have hRelRun :
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M (__eo_to_smt b))
+        (__smtx_model_eval M (__eo_to_smt runArg)) := by
+    simpa [runArg] using hRel
+  have hRunTrans : RuleProofs.eo_has_smt_translation runArg := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hRunTyChar]
+    simp
+  have hRunArgNe : runArg ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_has_smt_translation runArg hRunTrans
+  change
+    __smtx_typeof (SmtTerm.str_to_int (__eo_to_smt b)) =
+        __smtx_typeof (__eo_to_smt runInt) ∧
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M (SmtTerm.str_to_int (__eo_to_smt b)))
+        (__smtx_model_eval M (__eo_to_smt runInt))
+  by_cases hString : ∃ s : native_String, runArg = Term.String s
+  · rcases hString with ⟨s, hs⟩
+    have hRunStringTy :
+        __smtx_typeof (__eo_to_smt (Term.String s)) =
+          SmtType.Seq SmtType.Char := by
+      rw [← hs]
+      exact hRunTyChar
+    have hValid : native_string_valid s = true :=
+      native_string_valid_of_string_type hRunStringTy
+    have hRunIntString :
+        runInt = Term.Numeral (native_str_to_int s) := by
+      dsimp [runInt]
+      rw [hs]
+      exact str_to_int_result_string hValid
+    rw [hRunIntString]
+    constructor
+    · change
+        __smtx_typeof (SmtTerm.str_to_int (__eo_to_smt b)) =
+          __smtx_typeof (SmtTerm.Numeral (native_str_to_int s))
+      rw [typeof_str_to_int_eq]
+      rw [__smtx_typeof.eq_2]
+      simp [hBTyChar, native_Teq, native_ite]
+    · have hRelString :
+          RuleProofs.smt_value_rel
+            (__smtx_model_eval M (__eo_to_smt b))
+            (__smtx_model_eval M (__eo_to_smt (Term.String s))) := by
+        rw [← hs]
+        exact hRelRun
+      have hRelInt :=
+        smt_value_rel_model_eval_str_to_int_of_rel
+          (__smtx_model_eval M (__eo_to_smt b))
+          (__smtx_model_eval M (__eo_to_smt (Term.String s)))
+          hRelString
+      have hEvalIntB :
+          __smtx_model_eval M (SmtTerm.str_to_int (__eo_to_smt b)) =
+            __smtx_model_eval_str_to_int
+              (__smtx_model_eval M (__eo_to_smt b)) := by
+        rw [__smtx_model_eval.eq_95]
+      have hEvalString :
+          __smtx_model_eval M (__eo_to_smt (Term.String s)) =
+            SmtValue.Seq (native_pack_string s) := by
+        rw [show __eo_to_smt (Term.String s) = SmtTerm.String s by rfl]
+        rw [__smtx_model_eval.eq_4]
+      have hEvalIntString :
+          __smtx_model_eval M
+              (__eo_to_smt (Term.Numeral (native_str_to_int s))) =
+            __smtx_model_eval_str_to_int
+              (__smtx_model_eval M (__eo_to_smt (Term.String s))) := by
+        rw [hEvalString]
+        change
+          __smtx_model_eval M (SmtTerm.Numeral (native_str_to_int s)) =
+            __smtx_model_eval_str_to_int
+              (SmtValue.Seq (native_pack_string s))
+        rw [__smtx_model_eval.eq_2]
+        simp [__smtx_model_eval_str_to_int,
+          RuleProofs.native_unpack_string_pack_string]
+      rw [hEvalIntB, hEvalIntString]
+      exact hRelInt
+  · have hNotString : ∀ s : native_String, runArg ≠ Term.String s := by
+      intro s hs
+      exact hString ⟨s, hs⟩
+    have hRunIntApply :
+        runInt = Term.Apply (Term.UOp UserOp.str_to_int) runArg := by
+      dsimp [runInt]
+      exact str_to_int_result_non_string hNotString hRunArgNe
+    rw [hRunIntApply]
+    constructor
+    · change
+        __smtx_typeof (SmtTerm.str_to_int (__eo_to_smt b)) =
+          __smtx_typeof (SmtTerm.str_to_int (__eo_to_smt runArg))
+      rw [typeof_str_to_int_eq, typeof_str_to_int_eq]
+      simp [hBTyChar, hRunTyChar, native_ite, native_Teq]
+    · have hRelInt :=
+        smt_value_rel_model_eval_str_to_int_of_rel
+          (__smtx_model_eval M (__eo_to_smt b))
+          (__smtx_model_eval M (__eo_to_smt runArg))
+          hRelRun
+      have hEvalIntB :
+          __smtx_model_eval M (SmtTerm.str_to_int (__eo_to_smt b)) =
+            __smtx_model_eval_str_to_int
+              (__smtx_model_eval M (__eo_to_smt b)) := by
+        rw [__smtx_model_eval.eq_95]
+      have hEvalIntRun :
+          __smtx_model_eval M
+              (__eo_to_smt
+                (Term.Apply (Term.UOp UserOp.str_to_int) runArg)) =
+            __smtx_model_eval_str_to_int
+              (__smtx_model_eval M (__eo_to_smt runArg)) := by
+        change
+          __smtx_model_eval M (SmtTerm.str_to_int (__eo_to_smt runArg)) =
+            __smtx_model_eval_str_to_int
+              (__smtx_model_eval M (__eo_to_smt runArg))
+        rw [__smtx_model_eval.eq_95]
+      rw [hEvalIntB, hEvalIntRun]
+      exact hRelInt
+
 private theorem run_evaluate_sound_apply_str_to_lower_core
     (M : SmtModel) (hM : model_total_typed M)
     (b : Term)
@@ -23918,6 +24393,8 @@ private theorem run_evaluate_sound_active_apply_core
           exact run_evaluate_sound_apply_str_rev_core M hM x rec hATrans hEvalTy
       | UserOp.str_to_code =>
           exact run_evaluate_sound_apply_str_to_code_core M hM x rec hATrans hEvalTy
+      | UserOp.str_to_int =>
+          exact run_evaluate_sound_apply_str_to_int_core M hM x rec hATrans hEvalTy
       | UserOp.str_from_code =>
           exact run_evaluate_sound_apply_str_from_code_core M hM x rec hActive
             hATrans hEvalTy
