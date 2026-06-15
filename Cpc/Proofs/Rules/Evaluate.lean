@@ -24312,6 +24312,460 @@ private theorem run_evaluate_sound_apply_str_contains_core
     rw [native_seq_contains_pack_string]
     exact RuleProofs.smtx_model_eval_eq_refl _
 
+private theorem run_evaluate_sound_apply_str_indexof_core
+    (M : SmtModel) (hM : model_total_typed M)
+    (s pat n : Term)
+    (rec :
+      ∀ A : Term,
+        sizeOf A <
+            sizeOf
+              (Term.Apply
+                (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof) s) pat)
+                n) ->
+          RunEvaluateSoundGoal M A) :
+  RunEvaluateSoundGoal M
+    (Term.Apply
+      (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof) s) pat)
+      n) := by
+  intro hATrans hEvalTy
+  let whole :=
+    Term.Apply
+      (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof) s) pat)
+      n
+  have hIndexNN :
+      term_has_non_none_type
+        (SmtTerm.str_indexof (__eo_to_smt s) (__eo_to_smt pat)
+          (__eo_to_smt n)) := by
+    unfold term_has_non_none_type
+    simpa [RuleProofs.eo_has_smt_translation, whole] using hATrans
+  rcases str_indexof_args_of_non_none hIndexNN with
+    ⟨T, hSTySeq, hPatTySeq, hNTy⟩
+  have hSTrans : RuleProofs.eo_has_smt_translation s := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hSTySeq]
+    simp
+  have hPatTrans : RuleProofs.eo_has_smt_translation pat := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hPatTySeq]
+    simp
+  have hNTrans : RuleProofs.eo_has_smt_translation n := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hNTy]
+    simp
+  have hSProgTy : __eo_typeof (__eo_prog_evaluate s) = Term.Bool :=
+    eo_prog_evaluate_typeof_bool_of_smt_type_seq s T hSTrans hSTySeq
+  have hPatProgTy : __eo_typeof (__eo_prog_evaluate pat) = Term.Bool :=
+    eo_prog_evaluate_typeof_bool_of_smt_type_seq pat T hPatTrans
+      hPatTySeq
+  have hNProgTy : __eo_typeof (__eo_prog_evaluate n) = Term.Bool :=
+    eo_prog_evaluate_typeof_bool_of_smt_type_int n hNTrans hNTy
+  let runS := __run_evaluate s
+  let runPat := __run_evaluate pat
+  let runN := __run_evaluate n
+  let runLen := __eo_len runS
+  let runFind :=
+    __eo_find
+      (__eo_to_str (__eo_extract runS n runLen))
+      (__eo_to_str runPat)
+  let runInner :=
+    __eo_ite (__eo_is_neg runFind) runFind (__eo_add n runFind)
+  let runRest :=
+    __eo_ite (__eo_gt runN runLen)
+      (Term.Numeral (-1 : native_Int)) runInner
+  let runIndex :=
+    __eo_ite (__eo_is_neg runN)
+      (Term.Numeral (-1 : native_Int)) runRest
+  have hRunIndexNe : runIndex ≠ Term.Stuck := by
+    intro hStuck
+    change
+      __eo_typeof
+          (__eo_mk_apply
+            (Term.Apply (Term.UOp UserOp.eq) whole)
+            runIndex) =
+        Term.Bool at hEvalTy
+    rw [hStuck] at hEvalTy
+    change Term.Stuck = Term.Bool at hEvalTy
+    cases hEvalTy
+  rcases (run_evaluate_rec_apply_apply_apply_arg1 M
+      (Term.UOp UserOp.str_indexof) s pat n rec) hSTrans hSProgTy with
+    ⟨hSSameTy, hSRel⟩
+  rcases (run_evaluate_rec_apply_apply_apply_arg2 M
+      (Term.UOp UserOp.str_indexof) s pat n rec) hPatTrans
+      hPatProgTy with
+    ⟨hPatSameTy, hPatRel⟩
+  rcases (run_evaluate_rec_apply_apply_apply_arg3 M
+      (Term.UOp UserOp.str_indexof) s pat n rec) hNTrans hNProgTy with
+    ⟨hNSameTy, hNRel⟩
+  have hRunSTy :
+      __smtx_typeof (__eo_to_smt runS) = SmtType.Seq T := by
+    simpa [runS] using hSSameTy.symm.trans hSTySeq
+  have hRunPatTy :
+      __smtx_typeof (__eo_to_smt runPat) = SmtType.Seq T := by
+    simpa [runPat] using hPatSameTy.symm.trans hPatTySeq
+  have hRunNTy :
+      __smtx_typeof (__eo_to_smt runN) = SmtType.Int := by
+    simpa [runN] using hNSameTy.symm.trans hNTy
+  rcases eo_ite_selected_nonstuck_of_nonstuck
+      (__eo_is_neg runN) (Term.Numeral (-1 : native_Int)) runRest
+      hRunIndexNe with
+    ⟨bTop, hRunNNegBool, hTopSelected⟩
+  have hRunNNegNe : __eo_is_neg runN ≠ Term.Stuck := by
+    intro hStuck
+    rw [hStuck] at hRunNNegBool
+    cases hRunNNegBool
+  rcases eo_is_neg_int_arg_numeral_of_nonstuck runN hRunNTy
+      hRunNNegNe with
+    ⟨i, hRunN⟩
+  have hRunNEval :
+      __smtx_model_eval M (__eo_to_smt runN) = SmtValue.Numeral i := by
+    rw [hRunN]
+    change __smtx_model_eval M (SmtTerm.Numeral i) =
+      SmtValue.Numeral i
+    rw [__smtx_model_eval.eq_2]
+  have hSRelRun :
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M (__eo_to_smt s))
+        (__smtx_model_eval M (__eo_to_smt runS)) := by
+    simpa [runS] using hSRel
+  have hPatRelRun :
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M (__eo_to_smt pat))
+        (__smtx_model_eval M (__eo_to_smt runPat)) := by
+    simpa [runPat] using hPatRel
+  have hNRelRun :
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M (__eo_to_smt n))
+        (__smtx_model_eval M (__eo_to_smt runN)) := by
+    simpa [runN] using hNRel
+  have hRelIndex :
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval_str_indexof
+          (__smtx_model_eval M (__eo_to_smt s))
+          (__smtx_model_eval M (__eo_to_smt pat))
+          (__smtx_model_eval M (__eo_to_smt n)))
+        (__smtx_model_eval_str_indexof
+          (__smtx_model_eval M (__eo_to_smt runS))
+          (__smtx_model_eval M (__eo_to_smt runPat))
+          (__smtx_model_eval M (__eo_to_smt runN))) :=
+    smt_value_rel_model_eval_str_indexof_of_rel
+      (__smtx_model_eval M (__eo_to_smt s))
+      (__smtx_model_eval M (__eo_to_smt pat))
+      (__smtx_model_eval M (__eo_to_smt n))
+      (__smtx_model_eval M (__eo_to_smt runS))
+      (__smtx_model_eval M (__eo_to_smt runPat))
+      (__smtx_model_eval M (__eo_to_smt runN))
+      hSRelRun hPatRelRun hNRelRun
+  change
+    __smtx_typeof
+        (SmtTerm.str_indexof (__eo_to_smt s) (__eo_to_smt pat)
+          (__eo_to_smt n)) =
+        __smtx_typeof (__eo_to_smt runIndex) ∧
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M
+          (SmtTerm.str_indexof (__eo_to_smt s) (__eo_to_smt pat)
+            (__eo_to_smt n)))
+        (__smtx_model_eval M (__eo_to_smt runIndex))
+  by_cases hiNeg : i < 0
+  · have hRunIndexEq :
+        runIndex = Term.Numeral (-1 : native_Int) := by
+      have hLt : native_zlt i 0 = true := by
+        rw [show native_zlt i 0 = decide (i < 0) by rfl]
+        exact decide_eq_true hiNeg
+      dsimp [runIndex]
+      rw [hRunN]
+      simp [__eo_is_neg, __eo_ite, native_ite, native_teq, hLt]
+    rw [hRunIndexEq]
+    constructor
+    · change
+        __smtx_typeof
+            (SmtTerm.str_indexof (__eo_to_smt s) (__eo_to_smt pat)
+              (__eo_to_smt n)) =
+          __smtx_typeof (SmtTerm.Numeral (-1 : native_Int))
+      rw [typeof_str_indexof_eq]
+      simp [__smtx_typeof_str_indexof, __smtx_typeof, hSTySeq,
+        hPatTySeq, hNTy, native_Teq, native_ite]
+    · rcases smt_model_eval_seq_of_type_local M hM (__eo_to_smt runS) T
+          hRunSTy with
+        ⟨sSeq, hRunSEval⟩
+      rcases smt_model_eval_seq_of_type_local M hM (__eo_to_smt runPat) T
+          hRunPatTy with
+        ⟨patSeq, hRunPatEval⟩
+      have hEvalRunIndex :
+          __smtx_model_eval_str_indexof
+              (__smtx_model_eval M (__eo_to_smt runS))
+              (__smtx_model_eval M (__eo_to_smt runPat))
+              (__smtx_model_eval M (__eo_to_smt runN)) =
+            SmtValue.Numeral (-1 : native_Int) := by
+        rw [hRunSEval, hRunPatEval, hRunNEval]
+        simp [__smtx_model_eval_str_indexof,
+          native_seq_indexof_neg_local _ _ hiNeg]
+      rw [show
+          __smtx_model_eval M
+              (SmtTerm.str_indexof (__eo_to_smt s) (__eo_to_smt pat)
+                (__eo_to_smt n)) =
+            __smtx_model_eval_str_indexof
+              (__smtx_model_eval M (__eo_to_smt s))
+              (__smtx_model_eval M (__eo_to_smt pat))
+              (__smtx_model_eval M (__eo_to_smt n)) by
+        simp [__smtx_model_eval]]
+      rw [show
+          __smtx_model_eval M (__eo_to_smt (Term.Numeral (-1 : native_Int))) =
+            SmtValue.Numeral (-1 : native_Int) by
+        change __smtx_model_eval M (SmtTerm.Numeral (-1 : native_Int)) =
+          SmtValue.Numeral (-1 : native_Int)
+        rw [__smtx_model_eval.eq_2]]
+      rw [hEvalRunIndex] at hRelIndex
+      exact hRelIndex
+  · have hRunNNegFalse : __eo_is_neg runN = Term.Boolean false := by
+      have hLt : native_zlt i 0 = false := by
+        rw [show native_zlt i 0 = decide (i < 0) by rfl]
+        exact decide_eq_false hiNeg
+      rw [hRunN]
+      simp [__eo_is_neg, hLt]
+    have hbTop : bTop = false := by
+      rw [hRunNNegFalse] at hRunNNegBool
+      cases hRunNNegBool
+      rfl
+    have hRunRestNe : runRest ≠ Term.Stuck := by
+      simpa [hbTop] using hTopSelected
+    rcases eo_ite_selected_nonstuck_of_nonstuck
+        (__eo_gt runN runLen) (Term.Numeral (-1 : native_Int)) runInner
+        hRunRestNe with
+      ⟨bGt, hGtBool, hGtSelected⟩
+    have hGtNe : __eo_gt runN runLen ≠ Term.Stuck := by
+      intro hStuck
+      rw [hStuck] at hGtBool
+      cases hGtBool
+    have hRunLenNe : runLen ≠ Term.Stuck := by
+      intro hStuck
+      apply hGtNe
+      rw [hRunN, hStuck]
+      rfl
+    rcases eo_len_seq_arg_of_nonstuck runS hRunSTy
+        (by simpa [runLen] using hRunLenNe) with
+      ⟨str, hRunS, hStrValid, hTChar⟩
+    subst T
+    have hRunLenEq :
+        runLen = Term.Numeral (native_str_len str) := by
+      dsimp [runLen]
+      rw [hRunS]
+      rfl
+    by_cases hGt : native_str_len str < i
+    · have hRunIndexEq :
+          runIndex = Term.Numeral (-1 : native_Int) := by
+        have hLt : native_zlt i 0 = false := by
+          rw [show native_zlt i 0 = decide (i < 0) by rfl]
+          exact decide_eq_false hiNeg
+        have hGtLt : native_zlt (native_str_len str) i = true := by
+          rw [show
+              native_zlt (native_str_len str) i =
+                decide (native_str_len str < i) by
+            rfl]
+          exact decide_eq_true hGt
+        dsimp [runIndex, runRest, runLen]
+        rw [hRunN, hRunS]
+        simp [__eo_is_neg, __eo_gt, __eo_len, __eo_ite, native_ite,
+          native_teq, hLt, hGtLt]
+      rw [hRunIndexEq]
+      constructor
+      · change
+          __smtx_typeof
+              (SmtTerm.str_indexof (__eo_to_smt s) (__eo_to_smt pat)
+                (__eo_to_smt n)) =
+            __smtx_typeof (SmtTerm.Numeral (-1 : native_Int))
+        rw [typeof_str_indexof_eq]
+        simp [__smtx_typeof_str_indexof, __smtx_typeof, hSTySeq,
+          hPatTySeq, hNTy, native_Teq, native_ite]
+      · have hRunSEval :
+            __smtx_model_eval M (__eo_to_smt runS) =
+              SmtValue.Seq (native_pack_string str) := by
+          rw [hRunS]
+          change __smtx_model_eval M (SmtTerm.String str) =
+            SmtValue.Seq (native_pack_string str)
+          rw [__smtx_model_eval.eq_4]
+        have hRunPatTyChar :
+            __smtx_typeof (__eo_to_smt runPat) =
+              SmtType.Seq SmtType.Char := by
+          simpa using hRunPatTy
+        rcases smt_model_eval_seq_of_type_local M hM (__eo_to_smt runPat)
+            SmtType.Char hRunPatTyChar with
+          ⟨patSeq, hRunPatEval⟩
+        have hSeqLen :
+            Int.ofNat
+                (native_unpack_seq (native_pack_string str)).length < i := by
+          simpa [native_pack_string, native_unpack_pack_seq_local,
+            native_str_len] using hGt
+        have hEvalRunIndex :
+            __smtx_model_eval_str_indexof
+                (__smtx_model_eval M (__eo_to_smt runS))
+                (__smtx_model_eval M (__eo_to_smt runPat))
+                (__smtx_model_eval M (__eo_to_smt runN)) =
+              SmtValue.Numeral (-1 : native_Int) := by
+          rw [hRunSEval, hRunPatEval, hRunNEval]
+          simp [__smtx_model_eval_str_indexof,
+            native_seq_indexof_gt_len_local _ _ hSeqLen]
+        rw [show
+            __smtx_model_eval M
+                (SmtTerm.str_indexof (__eo_to_smt s) (__eo_to_smt pat)
+                  (__eo_to_smt n)) =
+              __smtx_model_eval_str_indexof
+                (__smtx_model_eval M (__eo_to_smt s))
+                (__smtx_model_eval M (__eo_to_smt pat))
+                (__smtx_model_eval M (__eo_to_smt n)) by
+          simp [__smtx_model_eval]]
+        rw [show
+            __smtx_model_eval M
+                (__eo_to_smt (Term.Numeral (-1 : native_Int))) =
+              SmtValue.Numeral (-1 : native_Int) by
+          change __smtx_model_eval M (SmtTerm.Numeral (-1 : native_Int)) =
+            SmtValue.Numeral (-1 : native_Int)
+          rw [__smtx_model_eval.eq_2]]
+        rw [hEvalRunIndex] at hRelIndex
+        exact hRelIndex
+    · have hGtFalse : __eo_gt runN runLen = Term.Boolean false := by
+        have hGtLt : native_zlt (native_str_len str) i = false := by
+          rw [show
+              native_zlt (native_str_len str) i =
+                decide (native_str_len str < i) by
+            rfl]
+          exact decide_eq_false hGt
+        rw [hRunN, hRunLenEq]
+        simp [__eo_gt, hGtLt]
+      have hbGt : bGt = false := by
+        rw [hGtFalse] at hGtBool
+        cases hGtBool
+        rfl
+      have hRunInnerNe : runInner ≠ Term.Stuck := by
+        simpa [hbGt] using hGtSelected
+      rcases eo_ite_selected_nonstuck_of_nonstuck
+          (__eo_is_neg runFind) runFind (__eo_add n runFind)
+          hRunInnerNe with
+        ⟨_bFind, hFindNegBool, _hFindSelected⟩
+      have hFindNegNe : __eo_is_neg runFind ≠ Term.Stuck := by
+        intro hStuck
+        rw [hStuck] at hFindNegBool
+        cases hFindNegBool
+      have hRunFindNe : runFind ≠ Term.Stuck := by
+        intro hStuck
+        apply hFindNegNe
+        rw [hStuck]
+        rfl
+      have hExtractNe : __eo_extract runS n runLen ≠ Term.Stuck := by
+        intro hStuck
+        apply hRunFindNe
+        dsimp [runFind]
+        rw [hStuck]
+        rfl
+      rcases eo_extract_seq_args_of_nonstuck runS n runLen hRunSTy
+          (by simpa using hExtractNe) with
+        ⟨str', start, stop, hRunS', hNShape, hRunLenShape,
+          _hStrValid', _hTChar'⟩
+      have hStrEq : str' = str := by
+        rw [hRunS] at hRunS'
+        cases hRunS'
+        rfl
+      subst str'
+      have hStartEq : start = i := by
+        dsimp [runN] at hRunN
+        rw [hNShape] at hRunN
+        change Term.Numeral start = Term.Numeral i at hRunN
+        cases hRunN
+        rfl
+      have hNShapeI : n = Term.Numeral i := by
+        rw [hNShape, hStartEq]
+      have hStopEq : stop = native_str_len str := by
+        rw [hRunLenEq] at hRunLenShape
+        cases hRunLenShape
+        rfl
+      let suffixLen :=
+        native_zplus
+          (native_zplus (native_str_len str) (native_zneg i)) 1
+      let suffix := native_str_substr str i suffixLen
+      have hSuffixValid : native_string_valid suffix = true :=
+        native_string_valid_substr_local i suffixLen hStrValid
+      have hExtractEq :
+          __eo_extract runS n runLen = Term.String suffix := by
+        dsimp [suffix, suffixLen, runLen]
+        rw [hRunS, hNShapeI]
+        rfl
+      have hExtractTy :
+          __smtx_typeof
+              (__eo_to_smt (__eo_extract runS n runLen)) =
+            SmtType.Seq SmtType.Char := by
+        rw [hExtractEq]
+        change __smtx_typeof (SmtTerm.String suffix) =
+          SmtType.Seq SmtType.Char
+        simp [__smtx_typeof, hSuffixValid, native_ite]
+      have hRunPatTyChar :
+          __smtx_typeof (__eo_to_smt runPat) =
+            SmtType.Seq SmtType.Char := by
+        simpa using hRunPatTy
+      rcases eo_find_to_str_seq_args_of_nonstuck
+          (__eo_extract runS n runLen) runPat hExtractTy
+          hRunPatTyChar (by simpa [runFind] using hRunFindNe) with
+        ⟨_suffix, patStr, _hExtractString, hRunPat,
+          _hSuffixValid, _hPatValid, _hTChar⟩
+      have hRunIndexEq :
+          runIndex = Term.Numeral (native_str_indexof str patStr i) := by
+        dsimp [runIndex, runRest, runInner, runFind, runLen]
+        rw [hRunS, hRunPat, hRunN]
+        exact str_indexof_result_strings_of_index_numeral
+          str patStr n i hNShapeI
+      rw [hRunIndexEq]
+      constructor
+      · change
+          __smtx_typeof
+              (SmtTerm.str_indexof (__eo_to_smt s) (__eo_to_smt pat)
+                (__eo_to_smt n)) =
+            __smtx_typeof
+              (SmtTerm.Numeral (native_str_indexof str patStr i))
+        rw [typeof_str_indexof_eq]
+        simp [__smtx_typeof_str_indexof, __smtx_typeof, hSTySeq,
+          hPatTySeq, hNTy, native_Teq, native_ite]
+      · have hRunSEval :
+            __smtx_model_eval M (__eo_to_smt runS) =
+              SmtValue.Seq (native_pack_string str) := by
+          rw [hRunS]
+          change __smtx_model_eval M (SmtTerm.String str) =
+            SmtValue.Seq (native_pack_string str)
+          rw [__smtx_model_eval.eq_4]
+        have hRunPatEval :
+            __smtx_model_eval M (__eo_to_smt runPat) =
+              SmtValue.Seq (native_pack_string patStr) := by
+          rw [hRunPat]
+          change __smtx_model_eval M (SmtTerm.String patStr) =
+            SmtValue.Seq (native_pack_string patStr)
+          rw [__smtx_model_eval.eq_4]
+        have hEvalRunIndex :
+            __smtx_model_eval_str_indexof
+                (__smtx_model_eval M (__eo_to_smt runS))
+                (__smtx_model_eval M (__eo_to_smt runPat))
+                (__smtx_model_eval M (__eo_to_smt runN)) =
+              SmtValue.Numeral (native_str_indexof str patStr i) := by
+          rw [hRunSEval, hRunPatEval, hRunNEval]
+          exact smtx_model_eval_str_indexof_pack_string str patStr i
+        rw [show
+            __smtx_model_eval M
+                (SmtTerm.str_indexof (__eo_to_smt s) (__eo_to_smt pat)
+                  (__eo_to_smt n)) =
+              __smtx_model_eval_str_indexof
+                (__smtx_model_eval M (__eo_to_smt s))
+                (__smtx_model_eval M (__eo_to_smt pat))
+                (__smtx_model_eval M (__eo_to_smt n)) by
+          simp [__smtx_model_eval]]
+        rw [show
+            __smtx_model_eval M
+                (__eo_to_smt
+                  (Term.Numeral (native_str_indexof str patStr i))) =
+              SmtValue.Numeral (native_str_indexof str patStr i) by
+          change
+            __smtx_model_eval M
+                (SmtTerm.Numeral (native_str_indexof str patStr i)) =
+              SmtValue.Numeral (native_str_indexof str patStr i)
+          rw [__smtx_model_eval.eq_2]]
+        rw [hEvalRunIndex] at hRelIndex
+        exact hRelIndex
+
 private theorem run_evaluate_sound_apply_str_leq_core
     (M : SmtModel) (hM : model_total_typed M)
     (a b : Term)
@@ -27827,9 +28281,12 @@ private theorem run_evaluate_sound_active_apply_core
               | UserOp.str_replace_all =>
                   exact run_evaluate_sound_apply_str_replace_all_core M hM z y x rec
                     hActive hATrans hEvalTy
+              | UserOp.str_indexof =>
+                  exact run_evaluate_sound_apply_str_indexof_core M hM z y x rec
+                    hATrans hEvalTy
               | _ =>
                   -- Remaining active ternary string kernels include
-                  -- `str_indexof` and `str_update`.
+                  -- `str_update`.
                   first
                     | exact False.elim (hActive rfl)
                     | sorry
