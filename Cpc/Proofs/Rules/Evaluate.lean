@@ -25945,6 +25945,10 @@ private theorem run_evaluate_sound_active_apply_core
           exact run_evaluate_sound_apply_ubv_to_int_core M hM x rec hATrans hEvalTy
       | UserOp.sbv_to_int =>
           exact run_evaluate_sound_apply_sbv_to_int_core M hM x rec hATrans hEvalTy
+      | UserOp.str_from_int =>
+          -- Remaining active unary evaluator kernel.
+          -- `__run_evaluate` lowers this through `__str_from_int_eval_rec`.
+          sorry
       | UserOp.bvnego =>
           exact False.elim (hActive rfl)
       | UserOp.bvredand =>
@@ -25952,9 +25956,7 @@ private theorem run_evaluate_sound_active_apply_core
       | UserOp.bvredor =>
           exact False.elim (hActive rfl)
       | _ =>
-          first
-            | exact False.elim (hActive rfl)
-            | sorry
+          exact False.elim (hActive rfl)
   | UOp1 op a =>
       cases op
       case «repeat» =>
@@ -26064,6 +26066,9 @@ private theorem run_evaluate_sound_active_apply_core
               exact run_evaluate_sound_apply_bvshl_core M hM y x rec hATrans hEvalTy
           | UserOp.bvlshr =>
               exact run_evaluate_sound_apply_bvlshr_core M hM y x rec hATrans hEvalTy
+          | UserOp.bvashr =>
+              -- Remaining active binary bit-vector evaluator kernel.
+              sorry
           | UserOp.bvsgt =>
               exact run_evaluate_sound_apply_bvsgt_core M hM y x rec hATrans hEvalTy
           | UserOp.bvslt =>
@@ -26103,7 +26108,7 @@ private theorem run_evaluate_sound_active_apply_core
           | UserOp.bvsltbv =>
               exact False.elim (hActive rfl)
           | _ =>
-              sorry
+              exact False.elim (hActive rfl)
       | Apply h z =>
           cases h with
           | UOp op =>
@@ -26121,6 +26126,8 @@ private theorem run_evaluate_sound_active_apply_core
                   exact run_evaluate_sound_apply_str_replace_all_core M hM z y x rec
                     hActive hATrans hEvalTy
               | _ =>
+                  -- Remaining active ternary string kernels include
+                  -- `str_indexof` and `str_update`.
                   first
                     | exact False.elim (hActive rfl)
                     | sorry
