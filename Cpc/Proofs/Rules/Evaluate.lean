@@ -5666,6 +5666,101 @@ private theorem native_binary_uts_eq_sub_pow_of_msb_true
               _ = r := by rw [Int.add_right_neg, Int.zero_add]]
         _ = r + -p := rfl
 
+private theorem native_int_pow2_ge_one_of_nonneg
+    {s : native_Int} (hs0 : 0 <= s) :
+    1 <= native_int_pow2 s := by
+  have hpos := native_int_pow2_pos_of_nonneg hs0
+  exact (Int.add_one_le_iff).mpr hpos
+
+private theorem native_neg_succ_div_pow2_eq_neg_div_succ
+    {m s : native_Int}
+    (hm0 : 0 <= m)
+    (hs0 : 0 <= s) :
+    native_div_total (-(m + 1)) (native_int_pow2 s) =
+      -(native_div_total m (native_int_pow2 s) + 1) := by
+  let d := native_int_pow2 s
+  let q := native_div_total m d
+  let r := native_mod_total m d
+  have hdPos : 0 < d := by
+    dsimp [d]
+    exact native_int_pow2_pos_of_nonneg hs0
+  have hdNe : d ≠ 0 := Int.ne_of_gt hdPos
+  have hDivMod : d * q + r = m := by
+    simpa [q, r, d, native_div_total, native_mod_total] using
+      Int.mul_ediv_add_emod m d
+  have hr0 : 0 <= r := by
+    simpa [r, native_mod_total] using
+      Int.emod_nonneg m hdNe
+  have hrlt : r < d := by
+    simpa [r, native_mod_total] using
+      Int.emod_lt_of_pos m hdPos
+  have hUpper :
+      native_div_total (-(m + 1)) d <= -(q + 1) := by
+    rw [native_div_total]
+    rw [(Int.ediv_le_iff_le_mul (k := d)
+      (x := -(m + 1)) (y := -(q + 1)) hdPos)]
+    have hEq : m + 1 = d * q + (r + 1) := by
+      rw [← hDivMod]
+      rw [← Int.add_assoc]
+    calc
+      -(m + 1) = -(d * q + (r + 1)) := by rw [hEq]
+      _ = -(d * q) + -(r + 1) := by rw [Int.neg_add]
+      _ < -(d * q) := by
+        have hr1pos : 0 < r + 1 := Int.lt_add_one_of_le hr0
+        have hneg : -(r + 1) < 0 := by
+          have h := Int.neg_lt_neg hr1pos
+          simpa using h
+        have h := Int.add_lt_add_left hneg (-(d * q))
+        simpa using h
+      _ = -(q + 1) * d + d := by
+        calc
+          -(d * q) = -(q * d) := by rw [Int.mul_comm d q]
+          _ = -q * d := by rw [Int.neg_mul_eq_neg_mul]
+          _ = (-(q + 1) + 1) * d := by
+            have hCoeff : -(q + 1) + 1 = -q := by
+              rw [Int.neg_add]
+              change -q + -1 + 1 = -q
+              rw [Int.add_assoc]
+              have hConst : (-1 : Int) + 1 = 0 := by native_decide
+              rw [hConst, Int.add_zero]
+            rw [hCoeff]
+          _ = -(q + 1) * d + 1 * d := by rw [Int.add_mul]
+          _ = -(q + 1) * d + d := by rw [Int.one_mul]
+  have hLower :
+      -(q + 1) <= native_div_total (-(m + 1)) d := by
+    rw [native_div_total]
+    apply Int.le_of_not_gt
+    intro hLt
+    have hLtMul :=
+      (Int.ediv_lt_iff_lt_mul (a := -(m + 1))
+        (b := -(q + 1)) (c := d) hdPos).mp hLt
+    have hNot : ¬ -(m + 1) < -(q + 1) * d := by
+      intro h
+      have hLe : m + 1 <= (q + 1) * d := by
+        have hEq : m + 1 = d * q + (r + 1) := by
+          rw [← hDivMod]
+          rw [← Int.add_assoc]
+        have hr1le : r + 1 <= d := (Int.add_one_le_iff).mpr hrlt
+        have hStep : d * q + (r + 1) <= d * q + d :=
+          Int.add_le_add_left hr1le (d * q)
+        have hRight : d * q + d = (q + 1) * d := by
+          calc
+            d * q + d = q * d + d := by rw [Int.mul_comm d q]
+            _ = q * d + 1 * d := by rw [Int.one_mul]
+            _ = (q + 1) * d := by rw [Int.add_mul]
+        rw [hEq]
+        rw [← hRight]
+        exact hStep
+      have hNegLe : -((q + 1) * d) <= -(m + 1) :=
+        Int.neg_le_neg hLe
+      have hNegMul : -((q + 1) * d) = -(q + 1) * d := by
+        rw [Int.neg_mul_eq_neg_mul]
+      rw [hNegMul] at hNegLe
+      exact (Int.not_lt_of_ge hNegLe) h
+    exact hNot hLtMul
+  change native_div_total (-(m + 1)) d = -(native_div_total m d + 1)
+  exact Int.le_antisymm hUpper hLower
+
 private theorem native_bvashr_negative_payload_eq_signed_div
     {w n s : native_Int}
     (hw0 : native_zleq 0 w = true)
@@ -5691,10 +5786,86 @@ private theorem native_bvashr_negative_payload_eq_signed_div
         (native_div_total (native_binary_uts w n)
           (native_int_pow2 s))
         (native_int_pow2 w) := by
-  -- Negative branch: `bvashr` is `not (lshr (not n) s)`.
-  -- This remains the native integer identity connecting that encoding
-  -- to signed floor-division by `2^s`.
-  sorry
+  have hWNonneg : 0 <= w := by
+    simpa [native_zleq, SmtEval.native_zleq] using hw0
+  have hShiftRange :=
+    bitvec_payload_range_of_canonical hw0 hShiftCanon
+  have hs0 : 0 <= s := hShiftRange.1
+  let P := native_int_pow2 w
+  let d := native_int_pow2 s
+  let m := native_binary_not w n
+  have hPPos : 0 < P := by
+    dsimp [P]
+    exact native_int_pow2_pos_of_nonneg hWNonneg
+  have hdPos : 0 < d := by
+    dsimp [d]
+    exact native_int_pow2_pos_of_nonneg hs0
+  have hdGeOne : 1 <= d := (Int.add_one_le_iff).mpr hdPos
+  have hMRange :
+      0 <= m ∧ m < P := by
+    simpa [m, P] using
+      native_binary_not_range_of_canonical
+        (w := w) (n := n) hw0 hCanon
+  have hNotMod :
+      native_mod_total (native_binary_not w n) P =
+        native_binary_not w n := by
+    simpa [P] using
+      native_binary_not_mod_self_of_canonical
+        (w := w) (n := n) hw0 hCanon
+  let q := native_div_total m d
+  have hQRange : 0 <= q ∧ q < P := by
+    constructor
+    · dsimp [q, native_div_total]
+      exact Int.ediv_nonneg hMRange.1 (Int.le_of_lt hdPos)
+    · have hPLePD : P <= P * d := by
+        have hMul := Int.mul_le_mul_of_nonneg_left hdGeOne
+          (Int.le_of_lt hPPos)
+        simpa [Int.mul_one] using hMul
+      have hMLtPD : m < P * d :=
+        lt_of_lt_of_le hMRange.2 hPLePD
+      dsimp [q, native_div_total]
+      exact Int.ediv_lt_of_lt_mul hdPos hMLtPD
+  have hQMod :
+      native_mod_total q P = q := by
+    simpa [native_mod_total] using
+      Int.emod_eq_of_lt hQRange.1 hQRange.2
+  have hSignedArg :
+      native_binary_uts w n = -(m + 1) := by
+    have hUts :=
+      native_binary_uts_eq_sub_pow_of_msb_true
+        (w := w) (n := n) hw0 hCanon hSign
+    have hMRaw : m = P - (n + 1) := by
+      dsimp [m, P]
+      exact native_binary_not_eq_pow_sub_succ w n
+    rw [hUts, hMRaw]
+    dsimp [P]
+    omega
+  have hNegDiv :
+      native_div_total (-(m + 1)) d = -(q + 1) := by
+    dsimp [q, d]
+    exact native_neg_succ_div_pow2_eq_neg_div_succ
+      (m := m) (s := s) hMRange.1 hs0
+  rw [hNotMod]
+  change
+    native_mod_total
+        (native_binary_not w
+          (native_mod_total (native_div_total m d) P))
+        P =
+      native_mod_total
+        (native_div_total (native_binary_uts w n) d) P
+  rw [show native_div_total m d = q by rfl]
+  rw [hQMod]
+  rw [hSignedArg, hNegDiv]
+  rw [native_binary_not_eq_pow_sub_succ w q]
+  change
+    native_mod_total (P - (q + 1)) P =
+      native_mod_total (-(q + 1)) P
+  rw [native_mod_total, native_mod_total]
+  rw [Int.emod_eq_emod_iff_emod_sub_eq_zero]
+  have hDiff : P - (q + 1) - (-(q + 1)) = P := by
+    omega
+  rw [hDiff]
+  simp
 
 private theorem smtx_model_eval_bvashr_binary_eq_signed_div_of_msb_true
     {w n s : native_Int}
