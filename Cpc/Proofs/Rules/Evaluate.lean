@@ -9639,7 +9639,8 @@ private def native_seq_update_string_result
     s
   else
     let idx := Int.toNat i
-    s.take idx ++ repl ++ s.drop (idx + repl.length)
+    s.take idx ++ repl.take (s.length - idx) ++
+      s.drop (idx + repl.length)
 
 private theorem native_string_valid_seq_update_string_result
     (s repl : native_String) (i : native_Int)
@@ -9654,7 +9655,8 @@ private theorem native_string_valid_seq_update_string_result
   · rw [if_neg hGuard]
     exact native_string_valid_append
       (native_string_valid_append
-        (native_string_valid_take (Int.toNat i) hs) hrepl)
+        (native_string_valid_take (Int.toNat i) hs)
+        (native_string_valid_take (s.length - Int.toNat i) hrepl))
       (native_string_valid_drop (Int.toNat i + repl.length) hs)
 
 private theorem native_seq_update_pack_string
@@ -9692,6 +9694,257 @@ private theorem smtx_model_eval_str_update_pack_string
       SmtType.Char by
     simp [native_pack_string, elem_typeof_pack_seq_local]]
   rw [native_seq_update_pack_string]
+
+private theorem smt_typeof_str_update_eq_typeof_string_of_arg_types
+    (s n repl : Term) (T : SmtType) (result : native_String)
+    (hSTySeq : __smtx_typeof (__eo_to_smt s) = SmtType.Seq T)
+    (hNTy : __smtx_typeof (__eo_to_smt n) = SmtType.Int)
+    (hReplTySeq : __smtx_typeof (__eo_to_smt repl) = SmtType.Seq T)
+    (hResultValid : native_string_valid result = true) :
+    __smtx_typeof
+        (SmtTerm.str_update (__eo_to_smt s) (__eo_to_smt n)
+          (__eo_to_smt repl)) =
+      __smtx_typeof (SmtTerm.String result) := by
+  rw [typeof_str_update_eq]
+  simp [__smtx_typeof_str_update, __smtx_typeof, hSTySeq, hNTy,
+    hReplTySeq, native_Teq, native_ite, hResultValid]
+
+private theorem smt_value_rel_model_eval_str_update_to_string_of_runs
+    (M : SmtModel)
+    (s n repl runS runN runRepl : Term) (result : native_String) :
+    RuleProofs.smt_value_rel
+        (__smtx_model_eval M (__eo_to_smt s))
+        (__smtx_model_eval M (__eo_to_smt runS)) ->
+    RuleProofs.smt_value_rel
+        (__smtx_model_eval M (__eo_to_smt n))
+        (__smtx_model_eval M (__eo_to_smt runN)) ->
+    RuleProofs.smt_value_rel
+        (__smtx_model_eval M (__eo_to_smt repl))
+        (__smtx_model_eval M (__eo_to_smt runRepl)) ->
+    __smtx_model_eval_str_update
+        (__smtx_model_eval M (__eo_to_smt runS))
+        (__smtx_model_eval M (__eo_to_smt runN))
+        (__smtx_model_eval M (__eo_to_smt runRepl)) =
+      SmtValue.Seq (native_pack_string result) ->
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M
+          (SmtTerm.str_update (__eo_to_smt s) (__eo_to_smt n)
+            (__eo_to_smt repl)))
+        (SmtValue.Seq (native_pack_string result)) := by
+  intro hSRel hNRel hReplRel hRunEval
+  have hRel :=
+    smt_value_rel_model_eval_str_update_of_rel
+      (__smtx_model_eval M (__eo_to_smt s))
+      (__smtx_model_eval M (__eo_to_smt n))
+      (__smtx_model_eval M (__eo_to_smt repl))
+      (__smtx_model_eval M (__eo_to_smt runS))
+      (__smtx_model_eval M (__eo_to_smt runN))
+      (__smtx_model_eval M (__eo_to_smt runRepl))
+      hSRel hNRel hReplRel
+  rw [show
+      __smtx_model_eval M
+          (SmtTerm.str_update (__eo_to_smt s) (__eo_to_smt n)
+            (__eo_to_smt repl)) =
+        __smtx_model_eval_str_update
+          (__smtx_model_eval M (__eo_to_smt s))
+          (__smtx_model_eval M (__eo_to_smt n))
+          (__smtx_model_eval M (__eo_to_smt repl)) by
+    rw [__smtx_model_eval.eq_89]]
+  rw [hRunEval] at hRel
+  exact hRel
+
+private theorem eo_or_bool_args_of_bool
+    (x y : Term) (b : Bool) :
+    __eo_or x y = Term.Boolean b ->
+      ∃ bx, ∃ byv,
+        x = Term.Boolean bx ∧ y = Term.Boolean byv ∧
+          native_or bx byv = b := by
+  cases x <;> cases y <;> intro h <;>
+    simp [__eo_or, __eo_requires, native_ite, native_teq] at h
+  case Boolean.Boolean bx byv =>
+    cases h
+    exact ⟨bx, byv, rfl, rfl, rfl⟩
+
+private theorem str_update_result_strings_in_bounds
+    (s repl : native_String) (idx : Nat) (hIdxLe : idx ≤ s.length) :
+    __eo_concat
+        (__eo_concat
+          (__eo_extract (Term.String s) (Term.Numeral 0)
+            (__eo_add (Term.Numeral (Int.ofNat idx))
+              (Term.Numeral (-1 : native_Int))))
+          (__eo_extract (Term.String repl) (Term.Numeral 0)
+            (__eo_add
+              (__eo_add (__eo_neg (Term.Numeral (Int.ofNat idx)))
+                (__eo_len (Term.String s)))
+              (Term.Numeral (-1 : native_Int)))))
+        (__eo_extract (Term.String s)
+          (__eo_add (Term.Numeral (Int.ofNat idx))
+            (__eo_len (Term.String repl)))
+          (__eo_len (Term.String s))) =
+      Term.String
+        (s.take idx ++ repl.take (s.length - idx) ++
+          s.drop (idx + repl.length)) := by
+  rw [show
+      __eo_extract (Term.String s) (Term.Numeral 0)
+          (__eo_add (Term.Numeral (Int.ofNat idx))
+            (Term.Numeral (-1 : native_Int))) =
+        Term.String (s.take idx) by
+    simp [__eo_add, __eo_extract, native_zplus, native_zneg]
+    rw [show (Int.ofNat idx + (-1 : native_Int) + 1) =
+        Int.ofNat idx by omega]
+    exact congrArg Term.String
+      (native_str_substr_prefix_take_local s idx)]
+  rw [show
+      __eo_extract (Term.String repl) (Term.Numeral 0)
+          (__eo_add
+            (__eo_add (__eo_neg (Term.Numeral (Int.ofNat idx)))
+              (__eo_len (Term.String s)))
+            (Term.Numeral (-1 : native_Int))) =
+        Term.String (repl.take (s.length - idx)) by
+    simp [__eo_add, __eo_neg, __eo_len, __eo_extract, native_zplus,
+      native_zneg, native_str_len]
+    rw [show
+        -Int.ofNat idx + Int.ofNat s.length + (-1 : native_Int) + 1 =
+          Int.ofNat (s.length - idx) by
+      rw [Int.ofNat_sub hIdxLe]
+      omega]
+    exact congrArg Term.String
+      (native_str_substr_prefix_take_local repl (s.length - idx))]
+  rw [show
+      __eo_extract (Term.String s)
+          (__eo_add (Term.Numeral (Int.ofNat idx))
+            (__eo_len (Term.String repl)))
+          (__eo_len (Term.String s)) =
+        Term.String (s.drop (idx + repl.length)) by
+    simp [__eo_add, __eo_len, __eo_extract, native_zplus, native_zneg,
+      native_str_len]
+    rw [show
+        Int.ofNat idx + Int.ofNat repl.length =
+          Int.ofNat (idx + repl.length) by
+      simp]
+    exact congrArg Term.String
+      (by simpa [native_str_len] using
+        native_str_substr_suffix_drop_local s (idx + repl.length))]
+  simp [__eo_concat, native_str_concat, List.append_assoc]
+
+private theorem str_update_result_strings
+    (s repl : native_String) (i : native_Int) :
+    let runLen := __eo_len (Term.String s)
+    let runRepl := Term.String repl
+    __eo_ite
+        (__eo_or (__eo_gt (Term.Numeral 0) (Term.Numeral i))
+          (__eo_gt (Term.Numeral i) runLen))
+        (Term.String s)
+        (__eo_concat
+          (__eo_concat
+            (__eo_extract (Term.String s) (Term.Numeral 0)
+              (__eo_add (Term.Numeral i)
+                (Term.Numeral (-1 : native_Int))))
+            (__eo_extract runRepl (Term.Numeral 0)
+              (__eo_add (__eo_add (__eo_neg (Term.Numeral i)) runLen)
+                (Term.Numeral (-1 : native_Int)))))
+          (__eo_extract (Term.String s)
+            (__eo_add (Term.Numeral i) (__eo_len runRepl)) runLen)) =
+      Term.String (native_seq_update_string_result s i repl) := by
+  dsimp
+  by_cases hiNeg : i < 0
+  · have hLt : native_zlt i 0 = true := by
+      rw [show native_zlt i 0 = decide (i < 0) by rfl]
+      exact decide_eq_true hiNeg
+    simp [native_seq_update_string_result, __eo_gt, __eo_or, __eo_ite,
+      native_ite, native_teq, hLt, hiNeg]
+  · have hLt : native_zlt i 0 = false := by
+      rw [show native_zlt i 0 = decide (i < 0) by rfl]
+      exact decide_eq_false hiNeg
+    by_cases hLenLe : Int.ofNat s.length ≤ i
+    · by_cases hLenLt : Int.ofNat s.length < i
+      · have hGt : native_zlt (native_str_len s) i = true := by
+          rw [show native_zlt (native_str_len s) i =
+              decide (native_str_len s < i) by rfl]
+          simpa [native_str_len] using decide_eq_true hLenLt
+        simp [native_seq_update_string_result, __eo_len, __eo_gt,
+          __eo_or, __eo_ite, native_ite, native_teq, hLt, hGt, hiNeg,
+          hLenLe]
+      · have hiEq : i = Int.ofNat s.length := by omega
+        subst i
+        have hGt : native_zlt (native_str_len s) (Int.ofNat s.length) =
+            false := by
+          rw [show native_zlt (native_str_len s) (Int.ofNat s.length) =
+              decide (native_str_len s < Int.ofNat s.length) by rfl]
+          simp [native_str_len]
+        rw [str_update_result_strings_in_bounds s repl s.length
+          (Nat.le_refl _)]
+        simp [native_seq_update_string_result, __eo_len, __eo_gt,
+          __eo_or, __eo_ite, native_ite, native_teq, native_str_len,
+          hGt]
+    · have hiNonneg : 0 ≤ i := by omega
+      let idx := Int.toNat i
+      have hiEq : i = Int.ofNat idx :=
+        (Int.toNat_of_nonneg hiNonneg).symm
+      have hIdxLt : idx < s.length := by
+        rw [hiEq] at hLenLe
+        exact Int.ofNat_lt.mp (lt_of_not_ge hLenLe)
+      have hLtIdx : native_zlt (Int.ofNat idx) 0 = false := by
+        rw [show native_zlt (Int.ofNat idx) 0 =
+            decide ((Int.ofNat idx : native_Int) < 0) by rfl]
+        simp
+      have hGtIdx :
+          native_zlt (native_str_len s) (Int.ofNat idx) = false := by
+        rw [show native_zlt (native_str_len s) (Int.ofNat idx) =
+            decide (native_str_len s < (Int.ofNat idx : native_Int)) by
+          rfl]
+        rw [native_str_len]
+        exact decide_eq_false (by omega)
+      have hGuardFalseIdx :
+          (decide ((Int.ofNat idx : native_Int) < 0) ||
+            decide (Int.ofNat s.length ≤ (Int.ofNat idx : native_Int))) =
+              false := by
+        simp [hIdxLt]
+      rw [hiEq]
+      rw [str_update_result_strings_in_bounds s repl idx
+        (Nat.le_of_lt hIdxLt)]
+      simp [native_seq_update_string_result, __eo_len, __eo_gt,
+        __eo_or, __eo_ite, native_ite, native_teq, native_str_len,
+        hLtIdx, hGtIdx, hGuardFalseIdx]
+
+private theorem str_update_run_repl_string_of_body_nonstuck
+    (s : native_String) (runRepl : Term) (i : native_Int)
+    (hRunReplTy :
+      __smtx_typeof (__eo_to_smt runRepl) =
+        SmtType.Seq SmtType.Char)
+    (hBody :
+      __eo_concat
+          (__eo_concat
+            (__eo_extract (Term.String s) (Term.Numeral 0)
+              (__eo_add (Term.Numeral i)
+                (Term.Numeral (-1 : native_Int))))
+            (__eo_extract runRepl (Term.Numeral 0)
+              (__eo_add
+                (__eo_add (__eo_neg (Term.Numeral i))
+                  (__eo_len (Term.String s)))
+                (Term.Numeral (-1 : native_Int)))))
+          (__eo_extract (Term.String s)
+            (__eo_add (Term.Numeral i) (__eo_len runRepl))
+            (__eo_len (Term.String s))) ≠ Term.Stuck) :
+      ∃ repl : native_String,
+        runRepl = Term.String repl ∧ native_string_valid repl = true := by
+  cases runRepl
+  case String repl =>
+    exact ⟨repl, rfl, native_string_valid_of_string_type hRunReplTy⟩
+  case Binary w n =>
+    exfalso
+    change __smtx_typeof (SmtTerm.Binary w n) =
+      SmtType.Seq SmtType.Char at hRunReplTy
+    rw [__smtx_typeof.eq_5] at hRunReplTy
+    cases hValid :
+        native_and (native_zleq 0 w)
+          (native_zeq n (native_mod_total n (native_int_pow2 w))) <;>
+      simp [native_ite, hValid] at hRunReplTy
+  all_goals
+    exfalso
+    apply hBody
+    simp [__eo_extract, __eo_concat, __eo_add, __eo_neg, __eo_len,
+      native_zplus, native_zneg, native_str_len]
 
 private theorem eo_extract_string_same_index
     (s : native_String) (i : native_Int) :
@@ -24772,6 +25025,347 @@ private theorem run_evaluate_sound_apply_str_indexof_core
             (native_str_indexof str patStr i)
             hSRelRun hPatRelRun hNRelRun hEvalRunIndex
 
+private theorem run_evaluate_sound_apply_str_update_core
+    (M : SmtModel) (hM : model_total_typed M)
+    (s n repl : Term)
+    (rec :
+      ∀ A : Term,
+        sizeOf A <
+            sizeOf
+              (Term.Apply
+                (Term.Apply (Term.Apply (Term.UOp UserOp.str_update) s) n)
+                repl) ->
+          RunEvaluateSoundGoal M A) :
+  RunEvaluateSoundGoal M
+    (Term.Apply
+      (Term.Apply (Term.Apply (Term.UOp UserOp.str_update) s) n)
+      repl) := by
+  intro hATrans hEvalTy
+  let whole :=
+    Term.Apply
+      (Term.Apply (Term.Apply (Term.UOp UserOp.str_update) s) n)
+      repl
+  have hUpdateNN :
+      term_has_non_none_type
+        (SmtTerm.str_update (__eo_to_smt s) (__eo_to_smt n)
+          (__eo_to_smt repl)) := by
+    unfold term_has_non_none_type
+    simpa [RuleProofs.eo_has_smt_translation, whole] using hATrans
+  rcases str_update_args_of_non_none hUpdateNN with
+    ⟨T, hSTySeq, hNTy, hReplTySeq⟩
+  have hSTrans : RuleProofs.eo_has_smt_translation s := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hSTySeq]
+    simp
+  have hNTrans : RuleProofs.eo_has_smt_translation n := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hNTy]
+    simp
+  have hReplTrans : RuleProofs.eo_has_smt_translation repl := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hReplTySeq]
+    simp
+  have hSProgTy : __eo_typeof (__eo_prog_evaluate s) = Term.Bool :=
+    eo_prog_evaluate_typeof_bool_of_smt_type_seq s T hSTrans hSTySeq
+  have hNProgTy : __eo_typeof (__eo_prog_evaluate n) = Term.Bool :=
+    eo_prog_evaluate_typeof_bool_of_smt_type_int n hNTrans hNTy
+  have hReplProgTy : __eo_typeof (__eo_prog_evaluate repl) = Term.Bool :=
+    eo_prog_evaluate_typeof_bool_of_smt_type_seq repl T hReplTrans
+      hReplTySeq
+  let runS := __run_evaluate s
+  let runLen := __eo_len runS
+  let runRepl := __run_evaluate repl
+  let runN := __run_evaluate n
+  let runGuard :=
+    __eo_or (__eo_gt (Term.Numeral 0) runN) (__eo_gt runN runLen)
+  let runBody :=
+    __eo_concat
+      (__eo_concat
+        (__eo_extract runS (Term.Numeral 0)
+          (__eo_add runN (Term.Numeral (-1 : native_Int))))
+        (__eo_extract runRepl (Term.Numeral 0)
+          (__eo_add (__eo_add (__eo_neg runN) runLen)
+            (Term.Numeral (-1 : native_Int)))))
+      (__eo_extract runS (__eo_add runN (__eo_len runRepl)) runLen)
+  let runUpdate := __eo_ite runGuard runS runBody
+  have hRunUpdateNe : runUpdate ≠ Term.Stuck := by
+    intro hStuck
+    change
+      __eo_typeof
+          (__eo_mk_apply
+            (Term.Apply (Term.UOp UserOp.eq) whole) runUpdate) =
+        Term.Bool at hEvalTy
+    rw [hStuck] at hEvalTy
+    change Term.Stuck = Term.Bool at hEvalTy
+    cases hEvalTy
+  rcases (run_evaluate_rec_apply_apply_apply_arg1 M
+      (Term.UOp UserOp.str_update) s n repl rec) hSTrans hSProgTy with
+    ⟨hSSameTy, hSRel⟩
+  rcases (run_evaluate_rec_apply_apply_apply_arg2 M
+      (Term.UOp UserOp.str_update) s n repl rec) hNTrans hNProgTy with
+    ⟨hNSameTy, hNRel⟩
+  rcases (run_evaluate_rec_apply_apply_apply_arg3 M
+      (Term.UOp UserOp.str_update) s n repl rec) hReplTrans
+      hReplProgTy with
+    ⟨hReplSameTy, hReplRel⟩
+  have hRunSTy :
+      __smtx_typeof (__eo_to_smt runS) = SmtType.Seq T := by
+    simpa [runS] using hSSameTy.symm.trans hSTySeq
+  have hRunNTy :
+      __smtx_typeof (__eo_to_smt runN) = SmtType.Int := by
+    simpa [runN] using hNSameTy.symm.trans hNTy
+  have hRunReplTy :
+      __smtx_typeof (__eo_to_smt runRepl) = SmtType.Seq T := by
+    simpa [runRepl] using hReplSameTy.symm.trans hReplTySeq
+  rcases eo_ite_selected_nonstuck_of_nonstuck runGuard runS runBody
+      hRunUpdateNe with
+    ⟨bGuard, hGuardBool, hSelected⟩
+  rcases eo_or_bool_args_of_bool
+      (__eo_gt (Term.Numeral 0) runN) (__eo_gt runN runLen)
+      bGuard hGuardBool with
+    ⟨bNeg, bGtLen, hNegBool, hGtLenBool, _hGuardOr⟩
+  have hNegGtNe : __eo_gt (Term.Numeral 0) runN ≠ Term.Stuck := by
+    intro hStuck
+    rw [hStuck] at hNegBool
+    cases hNegBool
+  rcases eo_gt_int_args_numeral_of_nonstuck (Term.Numeral 0) runN
+      (by
+        change __smtx_typeof (SmtTerm.Numeral 0) = SmtType.Int
+        rw [__smtx_typeof.eq_2])
+      hRunNTy hNegGtNe with
+    ⟨zero, i, hZero, hRunN⟩
+  cases hZero
+  have hRunNEval :
+      __smtx_model_eval M (__eo_to_smt runN) = SmtValue.Numeral i := by
+    rw [hRunN]
+    change __smtx_model_eval M (SmtTerm.Numeral i) =
+      SmtValue.Numeral i
+    rw [__smtx_model_eval.eq_2]
+  have hGtLenNe : __eo_gt runN runLen ≠ Term.Stuck := by
+    intro hStuck
+    rw [hStuck] at hGtLenBool
+    cases hGtLenBool
+  have hRunLenNe : runLen ≠ Term.Stuck := by
+    intro hStuck
+    apply hGtLenNe
+    rw [hRunN, hStuck]
+    simp [__eo_gt]
+  rcases eo_len_seq_arg_of_nonstuck runS hRunSTy
+      (by simpa [runLen] using hRunLenNe) with
+    ⟨str, hRunS, hStrValid, hTChar⟩
+  subst T
+  have hRunLenEq :
+      runLen = Term.Numeral (native_str_len str) := by
+    dsimp [runLen]
+    rw [hRunS]
+    rfl
+  have hRunReplTyChar :
+      __smtx_typeof (__eo_to_smt runRepl) =
+        SmtType.Seq SmtType.Char := by
+    simpa using hRunReplTy
+  have hRunSEval :
+      __smtx_model_eval M (__eo_to_smt runS) =
+        SmtValue.Seq (native_pack_string str) := by
+    rw [hRunS]
+    change __smtx_model_eval M (SmtTerm.String str) =
+      SmtValue.Seq (native_pack_string str)
+    rw [__smtx_model_eval.eq_4]
+  have hSRelRun :
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M (__eo_to_smt s))
+        (__smtx_model_eval M (__eo_to_smt runS)) := by
+    simpa [runS] using hSRel
+  have hNRelRun :
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M (__eo_to_smt n))
+        (__smtx_model_eval M (__eo_to_smt runN)) := by
+    simpa [runN] using hNRel
+  have hReplRelRun :
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M (__eo_to_smt repl))
+        (__smtx_model_eval M (__eo_to_smt runRepl)) := by
+    simpa [runRepl] using hReplRel
+  change
+    __smtx_typeof
+        (SmtTerm.str_update (__eo_to_smt s) (__eo_to_smt n)
+          (__eo_to_smt repl)) =
+        __smtx_typeof (__eo_to_smt runUpdate) ∧
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M
+          (SmtTerm.str_update (__eo_to_smt s) (__eo_to_smt n)
+            (__eo_to_smt repl)))
+        (__smtx_model_eval M (__eo_to_smt runUpdate))
+  by_cases hiNeg : i < 0
+  · have hRunUpdateEq : runUpdate = Term.String str := by
+      have hLt : native_zlt i 0 = true := by
+        rw [show native_zlt i 0 = decide (i < 0) by rfl]
+        exact decide_eq_true hiNeg
+      dsimp [runUpdate, runGuard, runBody, runLen]
+      rw [hRunN, hRunS]
+      simp [__eo_len, __eo_gt, __eo_or, __eo_ite, native_ite,
+        native_teq, hLt]
+    rw [hRunUpdateEq]
+    constructor
+    · exact
+        smt_typeof_str_update_eq_typeof_string_of_arg_types
+          s n repl SmtType.Char str (by simpa using hSTySeq) hNTy
+          (by simpa using hReplTySeq) hStrValid
+    · rcases smt_model_eval_seq_of_type_local M hM (__eo_to_smt runRepl)
+          SmtType.Char hRunReplTyChar with
+        ⟨replSeq, hRunReplEval⟩
+      have hEvalRunUpdate :
+          __smtx_model_eval_str_update
+              (__smtx_model_eval M (__eo_to_smt runS))
+              (__smtx_model_eval M (__eo_to_smt runN))
+              (__smtx_model_eval M (__eo_to_smt runRepl)) =
+            SmtValue.Seq (native_pack_string str) := by
+        rw [hRunSEval, hRunNEval, hRunReplEval]
+        simp [__smtx_model_eval_str_update, native_seq_update,
+          native_pack_string, native_unpack_pack_seq_local,
+          elem_typeof_pack_seq_local, hiNeg]
+      rw [show
+          __smtx_model_eval M (__eo_to_smt (Term.String str)) =
+            SmtValue.Seq (native_pack_string str) by
+        change __smtx_model_eval M (SmtTerm.String str) =
+          SmtValue.Seq (native_pack_string str)
+        rw [__smtx_model_eval.eq_4]]
+      exact
+        smt_value_rel_model_eval_str_update_to_string_of_runs
+          M s n repl runS runN runRepl str
+          hSRelRun hNRelRun hReplRelRun hEvalRunUpdate
+  · by_cases hLenLt : native_str_len str < i
+    · have hRunUpdateEq : runUpdate = Term.String str := by
+        have hLt : native_zlt i 0 = false := by
+          rw [show native_zlt i 0 = decide (i < 0) by rfl]
+          exact decide_eq_false hiNeg
+        have hGtLt : native_zlt (native_str_len str) i = true := by
+          rw [show native_zlt (native_str_len str) i =
+              decide (native_str_len str < i) by rfl]
+          exact decide_eq_true hLenLt
+        dsimp [runUpdate, runGuard, runBody, runLen]
+        rw [hRunN, hRunS]
+        simp [__eo_len, __eo_gt, __eo_or, __eo_ite, native_ite,
+          native_teq, hLt, hGtLt]
+      rw [hRunUpdateEq]
+      constructor
+      · exact
+          smt_typeof_str_update_eq_typeof_string_of_arg_types
+            s n repl SmtType.Char str (by simpa using hSTySeq) hNTy
+            (by simpa using hReplTySeq) hStrValid
+      · rcases smt_model_eval_seq_of_type_local M hM
+            (__eo_to_smt runRepl) SmtType.Char hRunReplTyChar with
+          ⟨replSeq, hRunReplEval⟩
+        have hLenLe : Int.ofNat str.length ≤ i := by
+          rw [native_str_len] at hLenLt
+          exact le_of_lt hLenLt
+        have hEvalRunUpdate :
+            __smtx_model_eval_str_update
+                (__smtx_model_eval M (__eo_to_smt runS))
+                (__smtx_model_eval M (__eo_to_smt runN))
+                (__smtx_model_eval M (__eo_to_smt runRepl)) =
+              SmtValue.Seq (native_pack_string str) := by
+          rw [hRunSEval, hRunNEval, hRunReplEval]
+          simp [__smtx_model_eval_str_update, native_seq_update,
+            native_pack_string, native_unpack_pack_seq_local,
+            elem_typeof_pack_seq_local, hiNeg, hLenLe]
+        rw [show
+            __smtx_model_eval M (__eo_to_smt (Term.String str)) =
+              SmtValue.Seq (native_pack_string str) by
+          change __smtx_model_eval M (SmtTerm.String str) =
+            SmtValue.Seq (native_pack_string str)
+          rw [__smtx_model_eval.eq_4]]
+        exact
+          smt_value_rel_model_eval_str_update_to_string_of_runs
+            M s n repl runS runN runRepl str
+            hSRelRun hNRelRun hReplRelRun hEvalRunUpdate
+    · have hNegFalse :
+          __eo_gt (Term.Numeral 0) runN = Term.Boolean false := by
+        have hLt : native_zlt i 0 = false := by
+          rw [show native_zlt i 0 = decide (i < 0) by rfl]
+          exact decide_eq_false hiNeg
+        rw [hRunN]
+        simp [__eo_gt, hLt]
+      have hLenGtFalse :
+          __eo_gt runN runLen = Term.Boolean false := by
+        have hGtLt : native_zlt (native_str_len str) i = false := by
+          rw [show native_zlt (native_str_len str) i =
+              decide (native_str_len str < i) by rfl]
+          exact decide_eq_false hLenLt
+        rw [hRunN, hRunLenEq]
+        simp [__eo_gt, hGtLt]
+      have hGuardFalse : runGuard = Term.Boolean false := by
+        dsimp [runGuard]
+        rw [hNegFalse, hLenGtFalse]
+        simp [__eo_or, native_or]
+      have hbGuard : bGuard = false := by
+        rw [hGuardFalse] at hGuardBool
+        cases hGuardBool
+        rfl
+      have hBodyNe : runBody ≠ Term.Stuck := by
+        simpa [hbGuard] using hSelected
+      rcases str_update_run_repl_string_of_body_nonstuck str runRepl i
+          hRunReplTyChar
+          (by
+            simpa [runBody, runLen, hRunS, hRunN, __eo_len] using hBodyNe) with
+        ⟨replStr, hRunRepl, hReplValid⟩
+      have hRunReplEval :
+          __smtx_model_eval M (__eo_to_smt runRepl) =
+            SmtValue.Seq (native_pack_string replStr) := by
+        rw [hRunRepl]
+        change __smtx_model_eval M (SmtTerm.String replStr) =
+          SmtValue.Seq (native_pack_string replStr)
+        rw [__smtx_model_eval.eq_4]
+      have hRunUpdateEq :
+          runUpdate =
+            Term.String (native_seq_update_string_result str i replStr) := by
+        dsimp [runUpdate, runGuard, runBody, runLen]
+        rw [hRunS, hRunN, hRunRepl]
+        exact str_update_result_strings str replStr i
+      rw [hRunUpdateEq]
+      constructor
+      · have hResultValid :
+            native_string_valid
+                (native_seq_update_string_result str i replStr) = true :=
+          native_string_valid_seq_update_string_result str replStr i
+            hStrValid hReplValid
+        exact
+          smt_typeof_str_update_eq_typeof_string_of_arg_types
+            s n repl SmtType.Char
+            (native_seq_update_string_result str i replStr)
+            (by simpa using hSTySeq) hNTy
+            (by simpa using hReplTySeq) hResultValid
+      · have hEvalRunUpdate :
+            __smtx_model_eval_str_update
+                (__smtx_model_eval M (__eo_to_smt runS))
+                (__smtx_model_eval M (__eo_to_smt runN))
+                (__smtx_model_eval M (__eo_to_smt runRepl)) =
+              SmtValue.Seq
+                (native_pack_string
+                  (native_seq_update_string_result str i replStr)) := by
+          rw [hRunSEval, hRunNEval, hRunReplEval]
+          exact smtx_model_eval_str_update_pack_string str replStr i
+        rw [show
+            __smtx_model_eval M
+                (__eo_to_smt
+                  (Term.String
+                    (native_seq_update_string_result str i replStr))) =
+              SmtValue.Seq
+                (native_pack_string
+                  (native_seq_update_string_result str i replStr)) by
+          change
+            __smtx_model_eval M
+                (SmtTerm.String
+                  (native_seq_update_string_result str i replStr)) =
+              SmtValue.Seq
+                (native_pack_string
+                  (native_seq_update_string_result str i replStr))
+          rw [__smtx_model_eval.eq_4]]
+        exact
+          smt_value_rel_model_eval_str_update_to_string_of_runs
+            M s n repl runS runN runRepl
+            (native_seq_update_string_result str i replStr)
+            hSRelRun hNRelRun hReplRelRun hEvalRunUpdate
+
 private theorem run_evaluate_sound_apply_str_leq_core
     (M : SmtModel) (hM : model_total_typed M)
     (a b : Term)
@@ -28290,12 +28884,11 @@ private theorem run_evaluate_sound_active_apply_core
               | UserOp.str_indexof =>
                   exact run_evaluate_sound_apply_str_indexof_core M hM z y x rec
                     hATrans hEvalTy
+              | UserOp.str_update =>
+                  exact run_evaluate_sound_apply_str_update_core M hM z y x rec
+                    hATrans hEvalTy
               | _ =>
-                  -- Remaining active ternary string kernels include
-                  -- `str_update`.
-                  first
-                    | exact False.elim (hActive rfl)
-                    | sorry
+                  exact False.elim (hActive rfl)
           | _ =>
               exact False.elim (hActive rfl)
       | _ =>
