@@ -9639,7 +9639,7 @@ private def native_seq_update_string_result
     s
   else
     let idx := Int.toNat i
-    s.take idx ++ repl ++ s.drop (idx + 1)
+    s.take idx ++ repl ++ s.drop (idx + repl.length)
 
 private theorem native_string_valid_seq_update_string_result
     (s repl : native_String) (i : native_Int)
@@ -9655,7 +9655,7 @@ private theorem native_string_valid_seq_update_string_result
     exact native_string_valid_append
       (native_string_valid_append
         (native_string_valid_take (Int.toNat i) hs) hrepl)
-      (native_string_valid_drop (Int.toNat i + 1) hs)
+      (native_string_valid_drop (Int.toNat i + repl.length) hs)
 
 private theorem native_seq_update_pack_string
     (s : native_String) (i : native_Int) (repl : native_String) :
