@@ -473,6 +473,182 @@ private theorem smtx_typeof_multmult_total_first_arg_none
   rw [typeof_multmult_total_eq, hx]
   rfl
 
+private theorem smtx_typeof_qdiv_first_arg_none
+    (x y : SmtTerm) :
+    __smtx_typeof x = SmtType.None ->
+    __smtx_typeof (SmtTerm.qdiv x y) = SmtType.None := by
+  intro hx
+  rw [typeof_qdiv_eq, hx]
+  rfl
+
+private theorem smtx_typeof_qdiv_total_first_arg_none
+    (x y : SmtTerm) :
+    __smtx_typeof x = SmtType.None ->
+    __smtx_typeof (SmtTerm.qdiv_total x y) = SmtType.None := by
+  intro hx
+  rw [typeof_qdiv_total_eq, hx]
+  rfl
+
+private theorem smtx_typeof_select_first_arg_none
+    (x y : SmtTerm) :
+    __smtx_typeof x = SmtType.None ->
+    __smtx_typeof (SmtTerm.select x y) = SmtType.None := by
+  intro hx
+  rw [typeof_select_eq, hx]
+  rfl
+
+private theorem smtx_typeof_concat_first_arg_none
+    (x y : SmtTerm) :
+    __smtx_typeof x = SmtType.None ->
+    __smtx_typeof (SmtTerm.concat x y) = SmtType.None := by
+  intro hx
+  rw [typeof_concat_eq, hx]
+  rfl
+
+private theorem smtx_typeof_str_concat_first_arg_none
+    (x y : SmtTerm) :
+    __smtx_typeof x = SmtType.None ->
+    __smtx_typeof (SmtTerm.str_concat x y) = SmtType.None := by
+  intro hx
+  rw [typeof_str_concat_eq, hx]
+  rfl
+
+private theorem smtx_typeof_str_contains_first_arg_none
+    (x y : SmtTerm) :
+    __smtx_typeof x = SmtType.None ->
+    __smtx_typeof (SmtTerm.str_contains x y) = SmtType.None := by
+  intro hx
+  rw [typeof_str_contains_eq, hx]
+  rfl
+
+private theorem smtx_typeof_str_at_first_arg_none
+    (x y : SmtTerm) :
+    __smtx_typeof x = SmtType.None ->
+    __smtx_typeof (SmtTerm.str_at x y) = SmtType.None := by
+  intro hx
+  rw [typeof_str_at_eq, hx]
+  rfl
+
+private theorem smtx_typeof_str_prefixof_first_arg_none
+    (x y : SmtTerm) :
+    __smtx_typeof x = SmtType.None ->
+    __smtx_typeof (SmtTerm.str_prefixof x y) = SmtType.None := by
+  intro hx
+  rw [typeof_str_prefixof_eq, hx]
+  rfl
+
+private theorem smtx_typeof_str_suffixof_first_arg_none
+    (x y : SmtTerm) :
+    __smtx_typeof x = SmtType.None ->
+    __smtx_typeof (SmtTerm.str_suffixof x y) = SmtType.None := by
+  intro hx
+  rw [typeof_str_suffixof_eq, hx]
+  rfl
+
+private theorem smtx_typeof_str_lt_first_arg_none
+    (x y : SmtTerm) :
+    __smtx_typeof x = SmtType.None ->
+    __smtx_typeof (SmtTerm.str_lt x y) = SmtType.None := by
+  intro hx
+  rw [typeof_str_lt_eq, hx]
+  rfl
+
+private theorem smtx_typeof_str_leq_first_arg_none
+    (x y : SmtTerm) :
+    __smtx_typeof x = SmtType.None ->
+    __smtx_typeof (SmtTerm.str_leq x y) = SmtType.None := by
+  intro hx
+  rw [typeof_str_leq_eq, hx]
+  rfl
+
+private theorem smtx_typeof_re_range_first_arg_none
+    (x y : SmtTerm) :
+    __smtx_typeof x = SmtType.None ->
+    __smtx_typeof (SmtTerm.re_range x y) = SmtType.None := by
+  intro hx
+  rw [typeof_re_range_eq, hx]
+  rfl
+
+private theorem smtx_typeof_re_concat_first_arg_none
+    (x y : SmtTerm) :
+    __smtx_typeof x = SmtType.None ->
+    __smtx_typeof (SmtTerm.re_concat x y) = SmtType.None := by
+  intro hx
+  rw [typeof_re_concat_eq, hx]
+  rfl
+
+private theorem smtx_typeof_re_inter_first_arg_none
+    (x y : SmtTerm) :
+    __smtx_typeof x = SmtType.None ->
+    __smtx_typeof (SmtTerm.re_inter x y) = SmtType.None := by
+  intro hx
+  rw [typeof_re_inter_eq, hx]
+  rfl
+
+private theorem smtx_typeof_re_union_first_arg_none
+    (x y : SmtTerm) :
+    __smtx_typeof x = SmtType.None ->
+    __smtx_typeof (SmtTerm.re_union x y) = SmtType.None := by
+  intro hx
+  rw [typeof_re_union_eq, hx]
+  rfl
+
+private theorem smtx_typeof_re_diff_first_arg_none
+    (x y : SmtTerm) :
+    __smtx_typeof x = SmtType.None ->
+    __smtx_typeof (SmtTerm.re_diff x y) = SmtType.None := by
+  intro hx
+  rw [typeof_re_diff_eq, hx]
+  rfl
+
+private theorem smtx_typeof_str_in_re_first_arg_none
+    (x y : SmtTerm) :
+    __smtx_typeof x = SmtType.None ->
+    __smtx_typeof (SmtTerm.str_in_re x y) = SmtType.None := by
+  intro hx
+  rw [typeof_str_in_re_eq, hx]
+  rfl
+
+private theorem smtx_typeof_seq_nth_first_arg_none
+    (x y : SmtTerm) :
+    __smtx_typeof x = SmtType.None ->
+    __smtx_typeof (SmtTerm.seq_nth x y) = SmtType.None := by
+  intro hx
+  rw [typeof_seq_nth_eq, hx]
+  rfl
+
+private theorem smtx_typeof_set_union_first_arg_none
+    (x y : SmtTerm) :
+    __smtx_typeof x = SmtType.None ->
+    __smtx_typeof (SmtTerm.set_union x y) = SmtType.None := by
+  intro hx
+  rw [typeof_set_union_eq, hx]
+  rfl
+
+private theorem smtx_typeof_set_inter_first_arg_none
+    (x y : SmtTerm) :
+    __smtx_typeof x = SmtType.None ->
+    __smtx_typeof (SmtTerm.set_inter x y) = SmtType.None := by
+  intro hx
+  rw [typeof_set_inter_eq, hx]
+  rfl
+
+private theorem smtx_typeof_set_minus_first_arg_none
+    (x y : SmtTerm) :
+    __smtx_typeof x = SmtType.None ->
+    __smtx_typeof (SmtTerm.set_minus x y) = SmtType.None := by
+  intro hx
+  rw [typeof_set_minus_eq, hx]
+  rfl
+
+private theorem smtx_typeof_set_subset_first_arg_none
+    (x y : SmtTerm) :
+    __smtx_typeof x = SmtType.None ->
+    __smtx_typeof (SmtTerm.set_subset x y) = SmtType.None := by
+  intro hx
+  rw [typeof_set_subset_eq, hx]
+  rfl
+
 private theorem smtx_typeof_apply_not_head_none (f x : SmtTerm) :
     __smtx_typeof (SmtTerm.Apply (SmtTerm.not f) x) =
       SmtType.None := by
@@ -5509,7 +5685,264 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                           SmtType.None
                       exact smtx_typeof_multmult_total_first_arg_none
                         (__eo_to_smt binders) (__eo_to_smt a) hBindersNone
-                  · sorry
+                  · by_cases hRatOp :
+                      q = Term.UOp UserOp.qdiv ∨
+                        q = Term.UOp UserOp.qdiv_total
+                    · rcases hRatOp with hQdiv | hQdivTotal
+                      · subst q
+                        exfalso
+                        apply hNN
+                        change
+                          __smtx_typeof
+                              (SmtTerm.qdiv (__eo_to_smt binders)
+                                (__eo_to_smt a)) =
+                            SmtType.None
+                        exact smtx_typeof_qdiv_first_arg_none
+                          (__eo_to_smt binders) (__eo_to_smt a) hBindersNone
+                      · subst q
+                        exfalso
+                        apply hNN
+                        change
+                          __smtx_typeof
+                              (SmtTerm.qdiv_total (__eo_to_smt binders)
+                                (__eo_to_smt a)) =
+                            SmtType.None
+                        exact smtx_typeof_qdiv_total_first_arg_none
+                          (__eo_to_smt binders) (__eo_to_smt a) hBindersNone
+                    · by_cases hArrayBvOp :
+                        q = Term.UOp UserOp.select ∨
+                          q = Term.UOp UserOp.concat
+                      · rcases hArrayBvOp with hSelect | hConcat
+                        · subst q
+                          exfalso
+                          apply hNN
+                          change
+                            __smtx_typeof
+                                (SmtTerm.select (__eo_to_smt binders)
+                                  (__eo_to_smt a)) =
+                              SmtType.None
+                          exact smtx_typeof_select_first_arg_none
+                            (__eo_to_smt binders) (__eo_to_smt a) hBindersNone
+                        · subst q
+                          exfalso
+                          apply hNN
+                          change
+                            __smtx_typeof
+                                (SmtTerm.concat (__eo_to_smt binders)
+                                  (__eo_to_smt a)) =
+                              SmtType.None
+                          exact smtx_typeof_concat_first_arg_none
+                            (__eo_to_smt binders) (__eo_to_smt a) hBindersNone
+                      · by_cases hStringOp :
+                          q = Term.UOp UserOp.str_concat ∨
+                            q = Term.UOp UserOp.str_contains ∨
+                            q = Term.UOp UserOp.str_at ∨
+                            q = Term.UOp UserOp.str_prefixof ∨
+                            q = Term.UOp UserOp.str_suffixof ∨
+                            q = Term.UOp UserOp.str_lt ∨
+                            q = Term.UOp UserOp.str_leq
+                        · rcases hStringOp with
+                            hStrConcat | hStrContains | hStrAt |
+                            hStrPrefixof | hStrSuffixof | hStrLt | hStrLeq
+                          · subst q
+                            exfalso
+                            apply hNN
+                            change
+                              __smtx_typeof
+                                  (SmtTerm.str_concat (__eo_to_smt binders)
+                                    (__eo_to_smt a)) =
+                                SmtType.None
+                            exact smtx_typeof_str_concat_first_arg_none
+                              (__eo_to_smt binders) (__eo_to_smt a) hBindersNone
+                          · subst q
+                            exfalso
+                            apply hNN
+                            change
+                              __smtx_typeof
+                                  (SmtTerm.str_contains (__eo_to_smt binders)
+                                    (__eo_to_smt a)) =
+                                SmtType.None
+                            exact smtx_typeof_str_contains_first_arg_none
+                              (__eo_to_smt binders) (__eo_to_smt a) hBindersNone
+                          · subst q
+                            exfalso
+                            apply hNN
+                            change
+                              __smtx_typeof
+                                  (SmtTerm.str_at (__eo_to_smt binders)
+                                    (__eo_to_smt a)) =
+                                SmtType.None
+                            exact smtx_typeof_str_at_first_arg_none
+                              (__eo_to_smt binders) (__eo_to_smt a) hBindersNone
+                          · subst q
+                            exfalso
+                            apply hNN
+                            change
+                              __smtx_typeof
+                                  (SmtTerm.str_prefixof (__eo_to_smt binders)
+                                    (__eo_to_smt a)) =
+                                SmtType.None
+                            exact smtx_typeof_str_prefixof_first_arg_none
+                              (__eo_to_smt binders) (__eo_to_smt a) hBindersNone
+                          · subst q
+                            exfalso
+                            apply hNN
+                            change
+                              __smtx_typeof
+                                  (SmtTerm.str_suffixof (__eo_to_smt binders)
+                                    (__eo_to_smt a)) =
+                                SmtType.None
+                            exact smtx_typeof_str_suffixof_first_arg_none
+                              (__eo_to_smt binders) (__eo_to_smt a) hBindersNone
+                          · subst q
+                            exfalso
+                            apply hNN
+                            change
+                              __smtx_typeof
+                                  (SmtTerm.str_lt (__eo_to_smt binders)
+                                    (__eo_to_smt a)) =
+                                SmtType.None
+                            exact smtx_typeof_str_lt_first_arg_none
+                              (__eo_to_smt binders) (__eo_to_smt a) hBindersNone
+                          · subst q
+                            exfalso
+                            apply hNN
+                            change
+                              __smtx_typeof
+                                  (SmtTerm.str_leq (__eo_to_smt binders)
+                                    (__eo_to_smt a)) =
+                                SmtType.None
+                            exact smtx_typeof_str_leq_first_arg_none
+                              (__eo_to_smt binders) (__eo_to_smt a) hBindersNone
+                        · by_cases hRegexSeqOp :
+                            q = Term.UOp UserOp.re_range ∨
+                              q = Term.UOp UserOp.re_concat ∨
+                              q = Term.UOp UserOp.re_inter ∨
+                              q = Term.UOp UserOp.re_union ∨
+                              q = Term.UOp UserOp.re_diff ∨
+                              q = Term.UOp UserOp.str_in_re ∨
+                              q = Term.UOp UserOp.seq_nth
+                          · rcases hRegexSeqOp with
+                              hReRange | hReConcat | hReInter |
+                              hReUnion | hReDiff | hStrInRe | hSeqNth
+                            · subst q
+                              exfalso
+                              apply hNN
+                              change
+                                __smtx_typeof
+                                    (SmtTerm.re_range (__eo_to_smt binders)
+                                      (__eo_to_smt a)) =
+                                  SmtType.None
+                              exact smtx_typeof_re_range_first_arg_none
+                                (__eo_to_smt binders) (__eo_to_smt a) hBindersNone
+                            · subst q
+                              exfalso
+                              apply hNN
+                              change
+                                __smtx_typeof
+                                    (SmtTerm.re_concat (__eo_to_smt binders)
+                                      (__eo_to_smt a)) =
+                                  SmtType.None
+                              exact smtx_typeof_re_concat_first_arg_none
+                                (__eo_to_smt binders) (__eo_to_smt a) hBindersNone
+                            · subst q
+                              exfalso
+                              apply hNN
+                              change
+                                __smtx_typeof
+                                    (SmtTerm.re_inter (__eo_to_smt binders)
+                                      (__eo_to_smt a)) =
+                                  SmtType.None
+                              exact smtx_typeof_re_inter_first_arg_none
+                                (__eo_to_smt binders) (__eo_to_smt a) hBindersNone
+                            · subst q
+                              exfalso
+                              apply hNN
+                              change
+                                __smtx_typeof
+                                    (SmtTerm.re_union (__eo_to_smt binders)
+                                      (__eo_to_smt a)) =
+                                  SmtType.None
+                              exact smtx_typeof_re_union_first_arg_none
+                                (__eo_to_smt binders) (__eo_to_smt a) hBindersNone
+                            · subst q
+                              exfalso
+                              apply hNN
+                              change
+                                __smtx_typeof
+                                    (SmtTerm.re_diff (__eo_to_smt binders)
+                                      (__eo_to_smt a)) =
+                                  SmtType.None
+                              exact smtx_typeof_re_diff_first_arg_none
+                                (__eo_to_smt binders) (__eo_to_smt a) hBindersNone
+                            · subst q
+                              exfalso
+                              apply hNN
+                              change
+                                __smtx_typeof
+                                    (SmtTerm.str_in_re (__eo_to_smt binders)
+                                      (__eo_to_smt a)) =
+                                  SmtType.None
+                              exact smtx_typeof_str_in_re_first_arg_none
+                                (__eo_to_smt binders) (__eo_to_smt a) hBindersNone
+                            · subst q
+                              exfalso
+                              apply hNN
+                              change
+                                __smtx_typeof
+                                    (SmtTerm.seq_nth (__eo_to_smt binders)
+                                      (__eo_to_smt a)) =
+                                  SmtType.None
+                              exact smtx_typeof_seq_nth_first_arg_none
+                                (__eo_to_smt binders) (__eo_to_smt a) hBindersNone
+                          · by_cases hSetOp :
+                              q = Term.UOp UserOp.set_union ∨
+                                q = Term.UOp UserOp.set_inter ∨
+                                q = Term.UOp UserOp.set_minus ∨
+                                q = Term.UOp UserOp.set_subset
+                            · rcases hSetOp with
+                                hSetUnion | hSetInter | hSetMinus | hSetSubset
+                              · subst q
+                                exfalso
+                                apply hNN
+                                change
+                                  __smtx_typeof
+                                      (SmtTerm.set_union (__eo_to_smt binders)
+                                        (__eo_to_smt a)) =
+                                    SmtType.None
+                                exact smtx_typeof_set_union_first_arg_none
+                                  (__eo_to_smt binders) (__eo_to_smt a) hBindersNone
+                              · subst q
+                                exfalso
+                                apply hNN
+                                change
+                                  __smtx_typeof
+                                      (SmtTerm.set_inter (__eo_to_smt binders)
+                                        (__eo_to_smt a)) =
+                                    SmtType.None
+                                exact smtx_typeof_set_inter_first_arg_none
+                                  (__eo_to_smt binders) (__eo_to_smt a) hBindersNone
+                              · subst q
+                                exfalso
+                                apply hNN
+                                change
+                                  __smtx_typeof
+                                      (SmtTerm.set_minus (__eo_to_smt binders)
+                                        (__eo_to_smt a)) =
+                                    SmtType.None
+                                exact smtx_typeof_set_minus_first_arg_none
+                                  (__eo_to_smt binders) (__eo_to_smt a) hBindersNone
+                              · subst q
+                                exfalso
+                                apply hNN
+                                change
+                                  __smtx_typeof
+                                      (SmtTerm.set_subset (__eo_to_smt binders)
+                                        (__eo_to_smt a)) =
+                                    SmtType.None
+                                exact smtx_typeof_set_subset_first_arg_none
+                                  (__eo_to_smt binders) (__eo_to_smt a) hBindersNone
+                            · sorry
   | case5 f a xs bvs hXs hBvs hNotQuant ihF ihA =>
       intro hBvsVar M N hRel hScan hNN
       have hScan' :
