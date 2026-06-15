@@ -1684,6 +1684,53 @@ private theorem eo_var_list_ne_stuck {xs : Term}
   subst xs
   exact hVarList
 
+private theorem eo_get_elements_rec_eq_self_of_var_list
+    {xs : Term} (hVarList : eo_var_list xs) :
+    __eo_get_elements_rec xs = xs := by
+  induction xs using __eo_get_elements_rec.induct with
+  | case1 =>
+      exact False.elim hVarList
+  | case2 f x y ih =>
+      cases f <;> try exact False.elim hVarList
+      case __eo_List_cons =>
+        cases x <;> try exact False.elim hVarList
+        case Var name T =>
+          cases name <;> try exact False.elim hVarList
+          case String s =>
+            have hTailVar : eo_var_list y := hVarList
+            have hRec : __eo_get_elements_rec y = y := ih hTailVar
+            have hTailNe : y ≠ Term.Stuck :=
+              eo_var_list_ne_stuck hTailVar
+            simpa [__eo_get_elements_rec, hRec] using
+              eo_mk_apply_of_ne_stuck_local (by simp) hTailNe
+  | case3 nil _hNilNe hNotApplyApply =>
+      cases nil with
+      | __eo_List_nil =>
+          rfl
+      | Apply f a =>
+          cases f with
+          | Apply g x =>
+              exact False.elim (hNotApplyApply g x a rfl)
+          | _ =>
+              exact False.elim hVarList
+      | _ =>
+          exact False.elim hVarList
+
+private theorem eo_list_minclude_eq_rec_of_var_lists
+    {xs ys : Term} (hXsVar : eo_var_list xs) (hYsVar : eo_var_list ys) :
+    __eo_list_minclude Term.__eo_List_cons xs ys =
+      __eo_list_minclude_rec xs ys (Term.Boolean true) := by
+  have hXsList : __eo_is_list Term.__eo_List_cons xs = Term.Boolean true :=
+    eo_var_list_is_list hXsVar
+  have hYsList : __eo_is_list Term.__eo_List_cons ys = Term.Boolean true :=
+    eo_var_list_is_list hYsVar
+  have hGetXs : __eo_get_elements_rec xs = xs :=
+    eo_get_elements_rec_eq_self_of_var_list hXsVar
+  have hGetYs : __eo_get_elements_rec ys = ys :=
+    eo_get_elements_rec_eq_self_of_var_list hYsVar
+  simp [__eo_list_minclude, hXsList, hYsList, hGetXs, hGetYs,
+    __eo_requires, native_ite, native_teq, native_not, SmtEval.native_not]
+
 private theorem eo_var_list_erase_all_rec
     {xs : Term} (hVarList : eo_var_list xs) {z : Term}
     (hz : z ≠ Term.Stuck) :
@@ -2611,6 +2658,282 @@ private theorem eo_var_list_not_mem_of_erase_rec_eq_self
               exact False.elim hVarList
       | _ =>
           exact False.elim hVarList
+
+private theorem eo_var_list_mem_of_mem_erase_rec
+    {xs z e : Term} (hVarList : eo_var_list xs)
+    (hz : z ≠ Term.Stuck) (he : e ≠ Term.Stuck)
+    (hMem : eo_var_list_mem z (__eo_list_erase_rec xs e)) :
+    eo_var_list_mem z xs := by
+  induction xs, e using __eo_list_erase_rec.induct with
+  | case1 e =>
+      exact False.elim hVarList
+  | case2 xs hEStuck =>
+      exact False.elim (he rfl)
+  | case3 f x y e hENotStuck ih =>
+      cases f <;> try exact False.elim hVarList
+      case __eo_List_cons =>
+        cases x <;> try exact False.elim hVarList
+        case Var name T =>
+          cases name <;> try exact False.elim hVarList
+          case String s =>
+            have hTailVar : eo_var_list y := hVarList
+            let head := Term.Var (Term.String s) T
+            have hHeadNe : head ≠ Term.Stuck :=
+              term_var_string_ne_stuck s T
+            by_cases hHeadEqE : head = e
+            · have hEqTerm : __eo_eq head e = Term.Boolean true := by
+                rw [hHeadEqE]
+                exact eo_eq_true_of_eq_ne_stuck he
+              have hTailMem : eo_var_list_mem z y := by
+                simpa [head, eo_var_list_mem, __eo_list_erase_rec,
+                  hEqTerm, __eo_ite, native_ite, native_teq] using hMem
+              exact Or.inr hTailMem
+            · have hEqTerm : __eo_eq head e = Term.Boolean false :=
+                eo_eq_false_of_ne_nonstuck hHeadEqE hHeadNe he
+              have hEraseTailVar :
+                  eo_var_list (__eo_list_erase_rec y e) :=
+                eo_var_list_erase_rec hTailVar he
+              have hEraseTailNe :
+                  __eo_list_erase_rec y e ≠ Term.Stuck :=
+                eo_var_list_ne_stuck hEraseTailVar
+              have hMemCons :
+                  head = z ∨
+                    eo_var_list_mem z (__eo_list_erase_rec y e) := by
+                simpa [head, eo_var_list_mem, __eo_list_erase_rec,
+                  hEqTerm, __eo_ite, __eo_mk_apply, hEraseTailNe,
+                  native_ite, native_teq] using hMem
+              rcases hMemCons with hHead | hTail
+              · exact Or.inl hHead
+              · exact Or.inr (ih hTailVar he hTail)
+  | case4 nil e hNil hE hNotApply =>
+      cases nil with
+      | __eo_List_nil =>
+          have hFalse : False := by
+            cases e <;> simp [__eo_list_erase_rec, eo_var_list_mem] at hMem he
+          exact False.elim hFalse
+      | Apply f a =>
+          cases f with
+          | Apply g x =>
+              exact False.elim (hNotApply g x a rfl)
+          | _ =>
+              exact False.elim hVarList
+      | _ =>
+          exact False.elim hVarList
+
+private theorem eo_var_list_erase_rec_eq_self_of_not_mem
+    {xs e : Term} (hVarList : eo_var_list xs)
+    (he : e ≠ Term.Stuck)
+    (hNotMem : ¬ eo_var_list_mem e xs) :
+    __eo_list_erase_rec xs e = xs := by
+  induction xs, e using __eo_list_erase_rec.induct with
+  | case1 e =>
+      exact False.elim hVarList
+  | case2 xs hEStuck =>
+      exact False.elim (he rfl)
+  | case3 f x y e hENotStuck ih =>
+      cases f <;> try exact False.elim hVarList
+      case __eo_List_cons =>
+        cases x <;> try exact False.elim hVarList
+        case Var name T =>
+          cases name <;> try exact False.elim hVarList
+          case String s =>
+            have hTailVar : eo_var_list y := hVarList
+            let head := Term.Var (Term.String s) T
+            have hHeadNe : head ≠ Term.Stuck :=
+              term_var_string_ne_stuck s T
+            have hHeadNotE : head ≠ e := by
+              intro hEq
+              exact hNotMem (Or.inl hEq)
+            have hTailNotMem : ¬ eo_var_list_mem e y := by
+              intro hTail
+              exact hNotMem (Or.inr hTail)
+            have hEqTerm : __eo_eq head e = Term.Boolean false :=
+              eo_eq_false_of_ne_nonstuck hHeadNotE hHeadNe he
+            have hTailEq : __eo_list_erase_rec y e = y :=
+              ih hTailVar he hTailNotMem
+            have hTailNe : y ≠ Term.Stuck :=
+              eo_var_list_ne_stuck hTailVar
+            simpa [head, __eo_list_erase_rec, hEqTerm, __eo_ite,
+              hTailEq, native_ite, native_teq] using
+              eo_mk_apply_of_ne_stuck_local (by simp) hTailNe
+  | case4 nil e hNil hE hNotApply =>
+      cases nil with
+      | __eo_List_nil =>
+          cases e <;>
+            first | exact False.elim (he rfl) | rfl
+      | Apply f a =>
+          cases f with
+          | Apply g x =>
+              exact False.elim (hNotApply g x a rfl)
+          | _ =>
+              exact False.elim hVarList
+      | _ =>
+          exact False.elim hVarList
+
+private theorem eo_var_list_mem_of_erase_rec_changed
+    {xs e : Term} (hVarList : eo_var_list xs)
+    (he : e ≠ Term.Stuck)
+    (hChanged : __eo_list_erase_rec xs e ≠ xs) :
+    eo_var_list_mem e xs := by
+  by_cases hMem : eo_var_list_mem e xs
+  · exact hMem
+  · exact False.elim
+      (hChanged
+        (eo_var_list_erase_rec_eq_self_of_not_mem hVarList he hMem))
+
+private theorem eo_list_minclude_rec_cons_true_eq
+    {xs e tail : Term} (hXsVar : eo_var_list xs) :
+    __eo_list_minclude_rec xs
+        (Term.Apply (Term.Apply Term.__eo_List_cons e) tail)
+        (Term.Boolean true) =
+      __eo_list_minclude_rec (__eo_list_erase_rec xs e) tail
+        (__eo_not (__eo_eq (__eo_list_erase_rec xs e) xs)) := by
+  have hXsNe : xs ≠ Term.Stuck := eo_var_list_ne_stuck hXsVar
+  cases xs <;> first | exact False.elim (hXsNe rfl) | rfl
+
+private theorem eo_list_minclude_rec_false_of_var_lists
+    {xs ys : Term} (hXsVar : eo_var_list xs) (hYsVar : eo_var_list ys) :
+    __eo_list_minclude_rec xs ys (Term.Boolean false) =
+      Term.Boolean false := by
+  have hXsNe : xs ≠ Term.Stuck := eo_var_list_ne_stuck hXsVar
+  have hYsNe : ys ≠ Term.Stuck := eo_var_list_ne_stuck hYsVar
+  cases xs <;> cases ys <;>
+    first
+    | exact False.elim (hXsNe rfl)
+    | exact False.elim (hYsNe rfl)
+    | rfl
+
+private theorem eo_var_list_mem_head_of_minclude_rec_cons
+    {xs e tail : Term} (hXsVar : eo_var_list xs)
+    (hTailVar : eo_var_list tail) (he : e ≠ Term.Stuck)
+    (hIncl :
+      __eo_list_minclude_rec xs
+          (Term.Apply (Term.Apply Term.__eo_List_cons e) tail)
+          (Term.Boolean true) =
+        Term.Boolean true) :
+    eo_var_list_mem e xs := by
+  by_cases hMem : eo_var_list_mem e xs
+  · exact hMem
+  rw [eo_list_minclude_rec_cons_true_eq hXsVar] at hIncl
+  have hEraseEq : __eo_list_erase_rec xs e = xs :=
+    eo_var_list_erase_rec_eq_self_of_not_mem hXsVar he hMem
+  rw [hEraseEq] at hIncl
+  have hXsNe : xs ≠ Term.Stuck := eo_var_list_ne_stuck hXsVar
+  have hEqTerm : __eo_eq xs xs = Term.Boolean true :=
+    eo_eq_true_of_eq_ne_stuck hXsNe
+  have hFalse :
+      __eo_list_minclude_rec xs tail (Term.Boolean false) =
+        Term.Boolean false :=
+    eo_list_minclude_rec_false_of_var_lists hXsVar hTailVar
+  simpa [hEqTerm, __eo_not, hFalse, SmtEval.native_not] using hIncl
+
+private theorem eo_var_list_mem_of_minclude_rec
+    {xs ys z : Term} (hXsVar : eo_var_list xs)
+    (hYsVar : eo_var_list ys) (hz : z ≠ Term.Stuck)
+    (hIncl :
+      __eo_list_minclude_rec xs ys (Term.Boolean true) =
+        Term.Boolean true)
+    (hMem : eo_var_list_mem z ys) :
+    eo_var_list_mem z xs := by
+  induction ys using __eo_list_setof_rec.induct generalizing xs with
+  | case1 =>
+      exact False.elim hYsVar
+  | case2 f x y ih =>
+      cases f <;> try exact False.elim hYsVar
+      case __eo_List_cons =>
+        cases x <;> try exact False.elim hYsVar
+        case Var name T =>
+          cases name <;> try exact False.elim hYsVar
+          case String s =>
+            let head := Term.Var (Term.String s) T
+            have hTailVar : eo_var_list y := hYsVar
+            have hHeadNe : head ≠ Term.Stuck :=
+              term_var_string_ne_stuck s T
+            have hHeadMemXs :
+                eo_var_list_mem head xs :=
+              eo_var_list_mem_head_of_minclude_rec_cons
+                hXsVar hTailVar hHeadNe (by
+                  simpa [head] using hIncl)
+            rcases hMem with hHead | hTail
+            · subst z
+              exact hHeadMemXs
+            · rw [eo_list_minclude_rec_cons_true_eq hXsVar] at hIncl
+              have hEraseVar :
+                  eo_var_list (__eo_list_erase_rec xs head) :=
+                eo_var_list_erase_rec hXsVar hHeadNe
+              have hEraseNe :
+                  __eo_list_erase_rec xs head ≠ Term.Stuck :=
+                eo_var_list_ne_stuck hEraseVar
+              have hXsNe : xs ≠ Term.Stuck :=
+                eo_var_list_ne_stuck hXsVar
+              have hChanged :
+                  __eo_list_erase_rec xs head ≠ xs := by
+                intro hEq
+                exact
+                  (eo_var_list_not_mem_of_erase_rec_eq_self
+                    hXsVar hHeadNe hEq) hHeadMemXs
+              have hEqTerm :
+                  __eo_eq (__eo_list_erase_rec xs head) xs =
+                    Term.Boolean false :=
+                eo_eq_false_of_ne_nonstuck hChanged hEraseNe hXsNe
+              have hFlag :
+                  __eo_not
+                      (__eo_eq (__eo_list_erase_rec xs head) xs) =
+                    Term.Boolean true := by
+                simp [__eo_not, hEqTerm, SmtEval.native_not]
+              have hTailIncl :
+                  __eo_list_minclude_rec (__eo_list_erase_rec xs head) y
+                      (Term.Boolean true) =
+                    Term.Boolean true := by
+                simpa [head, hFlag] using hIncl
+              have hTailMemErase :
+                  eo_var_list_mem z (__eo_list_erase_rec xs head) :=
+                ih hEraseVar hTailVar hTailIncl hTail
+              exact
+                eo_var_list_mem_of_mem_erase_rec hXsVar hz hHeadNe
+                  hTailMemErase
+  | case3 nil _hNilNe hNotApplyApply =>
+      cases nil with
+      | __eo_List_nil =>
+          exact False.elim hMem
+      | Apply f a =>
+          cases f with
+          | Apply g x =>
+              exact False.elim (hNotApplyApply g x a rfl)
+          | _ =>
+              exact False.elim hYsVar
+      | _ =>
+          exact False.elim hYsVar
+
+private theorem eo_var_list_mem_of_minclude
+    {xs ys z : Term} (hXsVar : eo_var_list xs)
+    (hYsVar : eo_var_list ys) (hz : z ≠ Term.Stuck)
+    (hIncl :
+      __eo_list_minclude Term.__eo_List_cons xs ys =
+        Term.Boolean true)
+    (hMem : eo_var_list_mem z ys) :
+    eo_var_list_mem z xs := by
+  have hInclRec :
+      __eo_list_minclude_rec xs ys (Term.Boolean true) =
+        Term.Boolean true := by
+    simpa [eo_list_minclude_eq_rec_of_var_lists hXsVar hYsVar]
+      using hIncl
+  exact eo_var_list_mem_of_minclude_rec hXsVar hYsVar hz hInclRec hMem
+
+private theorem eo_var_list_mem_left_of_minclude_setof
+    {x y z : Term} (hXVar : eo_var_list x) (hYVar : eo_var_list y)
+    (hz : z ≠ Term.Stuck)
+    (hIncl :
+      __eo_list_minclude Term.__eo_List_cons
+          (__eo_list_setof Term.__eo_List_cons x) y =
+        Term.Boolean true)
+    (hMemY : eo_var_list_mem z y) :
+    eo_var_list_mem z x := by
+  have hMemSetof :
+      eo_var_list_mem z (__eo_list_setof Term.__eo_List_cons x) :=
+    eo_var_list_mem_of_minclude
+      (eo_var_list_setof hXVar) hYVar hz hIncl hMemY
+  exact eo_var_list_mem_of_mem_setof hXVar hz hMemSetof
 
 private theorem eo_var_list_not_mem_erase_all_rec_self
     {xs e : Term} (hVarList : eo_var_list xs)
