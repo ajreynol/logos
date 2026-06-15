@@ -15,6 +15,478 @@ private def qterm (Q x F : Term) : Term :=
 private def qeq (A B : Term) : Term :=
   Term.Apply (Term.Apply (Term.UOp UserOp.eq) A) B
 
+private def qexists (x F : Term) : Term :=
+  qterm (Term.UOp UserOp.exists) x F
+
+private def qforall (x F : Term) : Term :=
+  qterm (Term.UOp UserOp.forall) x F
+
+private theorem eo_to_smt_exists_eq (x F : Term)
+    (hx : x ≠ Term.__eo_List_nil) :
+    __eo_to_smt (qexists x F) =
+      __eo_to_smt_exists x (__eo_to_smt F) := by
+  unfold qexists qterm
+  cases x <;> first | rfl | exact False.elim (hx rfl)
+
+private theorem eo_to_smt_forall_eq (x F : Term)
+    (hx : x ≠ Term.__eo_List_nil) :
+    __eo_to_smt (qforall x F) =
+      SmtTerm.not (__eo_to_smt_exists x (SmtTerm.not (__eo_to_smt F))) := by
+  unfold qforall qterm
+  cases x <;> first | rfl | exact False.elim (hx rfl)
+
+private theorem smtx_typeof_not_arg_of_bool
+    (t : SmtTerm) :
+    __smtx_typeof (SmtTerm.not t) = SmtType.Bool ->
+    __smtx_typeof t = SmtType.Bool := by
+  intro hTy
+  rw [typeof_not_eq] at hTy
+  cases h : __smtx_typeof t <;>
+    simp [h, native_ite, native_Teq] at hTy ⊢
+
+private theorem smtx_typeof_not_bool_of_arg_bool
+    (t : SmtTerm) :
+    __smtx_typeof t = SmtType.Bool ->
+    __smtx_typeof (SmtTerm.not t) = SmtType.Bool := by
+  intro hTy
+  rw [typeof_not_eq]
+  simp [hTy, native_ite, native_Teq]
+
+private theorem smtx_model_eval_exists_eq_of_body_constant_bool
+    (M : SmtModel) (s : native_String) (T : SmtType) (body : SmtTerm)
+    (b : Bool)
+    (hDefTy : __smtx_typeof_value (__smtx_type_default T) = T)
+    (hDefCan : __smtx_value_canonical_bool (__smtx_type_default T) = true)
+    (hBody : __smtx_model_eval M body = SmtValue.Boolean b)
+    (hConst : ∀ v : SmtValue,
+      __smtx_typeof_value v = T ->
+      __smtx_value_canonical_bool v = true ->
+      __smtx_model_eval (native_model_push M s T v) body =
+        __smtx_model_eval M body) :
+    __smtx_model_eval M (SmtTerm.exists s T body) = SmtValue.Boolean b := by
+  cases b
+  · have hNoSat :
+        ¬ ∃ v : SmtValue,
+          __smtx_typeof_value v = T ∧
+            __smtx_value_canonical_bool v = true ∧
+            __smtx_model_eval (native_model_push M s T v) body =
+              SmtValue.Boolean true := by
+      intro hSat
+      rcases hSat with ⟨v, hvTy, hvCan, hvEval⟩
+      have hEval := hConst v hvTy hvCan
+      rw [hBody] at hEval
+      rw [hEval] at hvEval
+      cases hvEval
+    simp [__smtx_model_eval, hNoSat]
+  · have hSat :
+        ∃ v : SmtValue,
+          __smtx_typeof_value v = T ∧
+            __smtx_value_canonical_bool v = true ∧
+            __smtx_model_eval (native_model_push M s T v) body =
+              SmtValue.Boolean true := by
+      refine ⟨__smtx_type_default T, hDefTy, hDefCan, ?_⟩
+      rw [hConst (__smtx_type_default T) hDefTy hDefCan, hBody]
+    simp [__smtx_model_eval, hSat]
+
+private theorem smtx_model_eval_forall_eq_of_body_constant_bool
+    (M : SmtModel) (s : native_String) (T : SmtType) (body : SmtTerm)
+    (b : Bool)
+    (hDefTy : __smtx_typeof_value (__smtx_type_default T) = T)
+    (hDefCan : __smtx_value_canonical_bool (__smtx_type_default T) = true)
+    (hBody : __smtx_model_eval M body = SmtValue.Boolean b)
+    (hConst : ∀ v : SmtValue,
+      __smtx_typeof_value v = T ->
+      __smtx_value_canonical_bool v = true ->
+      __smtx_model_eval (native_model_push M s T v) body =
+        __smtx_model_eval M body) :
+    __smtx_model_eval M (SmtTerm.forall s T body) = SmtValue.Boolean b := by
+  cases b
+  · have hNotAll :
+        ¬ ∀ v : SmtValue,
+          __smtx_typeof_value v = T ->
+            __smtx_value_canonical_bool v = true ->
+            __smtx_model_eval (native_model_push M s T v) body =
+              SmtValue.Boolean true := by
+      intro hAll
+      have hEval := hAll (__smtx_type_default T) hDefTy hDefCan
+      rw [hConst (__smtx_type_default T) hDefTy hDefCan, hBody] at hEval
+      cases hEval
+    simp [__smtx_model_eval, hNotAll]
+  · have hAll :
+        ∀ v : SmtValue,
+          __smtx_typeof_value v = T ->
+            __smtx_value_canonical_bool v = true ->
+            __smtx_model_eval (native_model_push M s T v) body =
+              SmtValue.Boolean true := by
+      intro v hvTy hvCan
+      rw [hConst v hvTy hvCan, hBody]
+    simp [__smtx_model_eval]
+    exact hAll
+
+private theorem native_inhabited_type_of_type_wf
+    (T : SmtType)
+    (hWF : __smtx_type_wf T = true) :
+    native_inhabited_type T = true := by
+  cases T <;>
+    simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+      native_inhabited_type, __smtx_type_default, __smtx_typeof_value,
+      __smtx_value_canonical_bool, native_and] at hWF ⊢
+  all_goals first | exact hWF.1 | assumption
+
+private theorem smtx_type_default_typed_canonical_bool_of_wf
+    (T : SmtType)
+    (hWF : __smtx_type_wf T = true) :
+    __smtx_typeof_value (__smtx_type_default T) = T ∧
+      __smtx_value_canonical_bool (__smtx_type_default T) = true := by
+  have hDef :=
+    Smtm.type_default_typed_canonical_of_native_inhabited_type T
+      (native_inhabited_type_of_type_wf T hWF)
+  exact ⟨hDef.1, by simpa [__smtx_value_canonical] using hDef.2⟩
+
+private theorem smtx_model_eval_exists_eq_of_body_constant_bool_of_wf
+    (M : SmtModel) (s : native_String) (T : SmtType) (body : SmtTerm)
+    (b : Bool)
+    (hWF : __smtx_type_wf T = true)
+    (hBody : __smtx_model_eval M body = SmtValue.Boolean b)
+    (hConst : ∀ v : SmtValue,
+      __smtx_typeof_value v = T ->
+      __smtx_value_canonical_bool v = true ->
+      __smtx_model_eval (native_model_push M s T v) body =
+        __smtx_model_eval M body) :
+    __smtx_model_eval M (SmtTerm.exists s T body) = SmtValue.Boolean b := by
+  rcases smtx_type_default_typed_canonical_bool_of_wf T hWF with
+    ⟨hDefTy, hDefCan⟩
+  exact smtx_model_eval_exists_eq_of_body_constant_bool
+    M s T body b hDefTy hDefCan hBody hConst
+
+private theorem smtx_model_eval_forall_eq_of_body_constant_bool_of_wf
+    (M : SmtModel) (s : native_String) (T : SmtType) (body : SmtTerm)
+    (b : Bool)
+    (hWF : __smtx_type_wf T = true)
+    (hBody : __smtx_model_eval M body = SmtValue.Boolean b)
+    (hConst : ∀ v : SmtValue,
+      __smtx_typeof_value v = T ->
+      __smtx_value_canonical_bool v = true ->
+      __smtx_model_eval (native_model_push M s T v) body =
+        __smtx_model_eval M body) :
+    __smtx_model_eval M (SmtTerm.forall s T body) = SmtValue.Boolean b := by
+  rcases smtx_type_default_typed_canonical_bool_of_wf T hWF with
+    ⟨hDefTy, hDefCan⟩
+  exact smtx_model_eval_forall_eq_of_body_constant_bool
+    M s T body b hDefTy hDefCan hBody hConst
+
+private theorem native_model_push_shadow
+    (M : SmtModel) (s1 s2 : native_String) (T1 T2 : SmtType)
+    (v1 v2 : SmtValue)
+    (hEq :
+      ({ isVar := true, name := s1, ty := T1 } : SmtModelKey) =
+        { isVar := true, name := s2, ty := T2 }) :
+    native_model_push (native_model_push M s1 T1 v1) s2 T2 v2 =
+      native_model_push M s2 T2 v2 := by
+  cases M with
+  | mk values nativeFuns =>
+      change
+        SmtModel.mk
+            (fun k =>
+              if k = ({ isVar := true, name := s2, ty := T2 } : SmtModelKey) then v2
+              else
+                (if k = ({ isVar := true, name := s1, ty := T1 } : SmtModelKey) then v1
+                else values k))
+            nativeFuns =
+          SmtModel.mk
+            (fun k =>
+              if k = ({ isVar := true, name := s2, ty := T2 } : SmtModelKey) then v2
+              else values k)
+            nativeFuns
+      congr
+      funext k
+      by_cases h2 : k = ({ isVar := true, name := s2, ty := T2 } : SmtModelKey)
+      · simp [h2]
+      · have h1 : k ≠ ({ isVar := true, name := s1, ty := T1 } : SmtModelKey) := by
+          intro hk
+          exact h2 (by simpa [hEq] using hk)
+        simp [h1, h2]
+
+private theorem native_model_push_comm
+    (M : SmtModel) (s1 s2 : native_String) (T1 T2 : SmtType)
+    (v1 v2 : SmtValue)
+    (hNe :
+      ({ isVar := true, name := s1, ty := T1 } : SmtModelKey) ≠
+        { isVar := true, name := s2, ty := T2 }) :
+    native_model_push (native_model_push M s1 T1 v1) s2 T2 v2 =
+      native_model_push (native_model_push M s2 T2 v2) s1 T1 v1 := by
+  cases M with
+  | mk values nativeFuns =>
+      change
+        SmtModel.mk
+            (fun k =>
+              if k = ({ isVar := true, name := s2, ty := T2 } : SmtModelKey) then v2
+              else
+                (if k = ({ isVar := true, name := s1, ty := T1 } : SmtModelKey) then v1
+                else values k))
+            nativeFuns =
+          SmtModel.mk
+            (fun k =>
+              if k = ({ isVar := true, name := s1, ty := T1 } : SmtModelKey) then v1
+              else
+                (if k = ({ isVar := true, name := s2, ty := T2 } : SmtModelKey) then v2
+                else values k))
+            nativeFuns
+      congr
+      funext k
+      by_cases h1 : k = ({ isVar := true, name := s1, ty := T1 } : SmtModelKey)
+      · subst k
+        by_cases h2 :
+            ({ isVar := true, name := s1, ty := T1 } : SmtModelKey) =
+              { isVar := true, name := s2, ty := T2 }
+        · exact False.elim (hNe h2)
+        · simp [h2]
+      · by_cases h2 : k = ({ isVar := true, name := s2, ty := T2 } : SmtModelKey)
+        · subst k
+          have h21 :
+              ¬ ({ isVar := true, name := s2, ty := T2 } : SmtModelKey) =
+                { isVar := true, name := s1, ty := T1 } := by
+            intro h
+            exact hNe h.symm
+          simp [h21]
+        · simp [h1, h2]
+
+private theorem smtx_model_eval_eo_to_smt_exists_eq_of_model_push_const
+    (xs : Term) (body : SmtTerm)
+    (s : native_String) (T : SmtType) (v : SmtValue)
+    (hConst : ∀ M : SmtModel,
+      __smtx_model_eval (native_model_push M s T v) body =
+        __smtx_model_eval M body) :
+    ∀ M : SmtModel,
+      __smtx_model_eval (native_model_push M s T v)
+          (__eo_to_smt_exists xs body) =
+        __smtx_model_eval M (__eo_to_smt_exists xs body) := by
+  revert s T v
+  induction xs, body using __eo_to_smt_exists.induct with
+  | case1 F =>
+      intro s T v hConst M
+      simpa [__eo_to_smt_exists] using hConst M
+  | case2 s' Ueo a F ih =>
+      intro s T v hConst M
+      let U := __eo_to_smt_type Ueo
+      change
+        __smtx_model_eval (native_model_push M s T v)
+            (SmtTerm.exists s' U (__eo_to_smt_exists a F)) =
+          __smtx_model_eval M
+            (SmtTerm.exists s' U (__eo_to_smt_exists a F))
+      refine smtx_model_eval_exists_eq_of_body_eval_eq ?_
+      intro w
+      by_cases hKey :
+          ({ isVar := true, name := s, ty := T } : SmtModelKey) =
+            { isVar := true, name := s', ty := U }
+      · rw [native_model_push_shadow M s s' T U v w hKey]
+      · rw [native_model_push_comm M s s' T U v w hKey]
+        exact ih s T v hConst (native_model_push M s' U w)
+  | case3 xs F hNotNil hNotConsVar =>
+      intro s T v hConst M
+      cases xs with
+      | Apply f a =>
+          cases f with
+          | Apply g y =>
+              cases g with
+              | __eo_List_cons =>
+                  cases y with
+                  | Var name Ueo =>
+                      cases name with
+                      | String s' =>
+                          exact False.elim (hNotConsVar s' Ueo a rfl)
+                      | _ =>
+                          simp [__eo_to_smt_exists, __smtx_model_eval]
+                  | _ =>
+                      simp [__eo_to_smt_exists, __smtx_model_eval]
+              | _ =>
+                  simp [__eo_to_smt_exists, __smtx_model_eval]
+          | _ =>
+              simp [__eo_to_smt_exists, __smtx_model_eval]
+      | __eo_List_nil =>
+          exact False.elim (hNotNil rfl)
+      | _ =>
+          simp [__eo_to_smt_exists, __smtx_model_eval]
+
+private theorem smtx_typeof_exists_tail_bool_of_cons_bool
+    (s : native_String) (T xs : Term) (body : SmtTerm) :
+    __smtx_typeof
+        (__eo_to_smt_exists
+          (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var (Term.String s) T)) xs)
+          body) = SmtType.Bool ->
+    __smtx_typeof (__eo_to_smt_exists xs body) = SmtType.Bool := by
+  intro hTy
+  have hExists :
+      __smtx_typeof
+          (SmtTerm.exists s (__eo_to_smt_type T)
+            (__eo_to_smt_exists xs body)) = SmtType.Bool := by
+    simpa [__eo_to_smt_exists] using hTy
+  have hNN :
+      term_has_non_none_type
+        (SmtTerm.exists s (__eo_to_smt_type T)
+          (__eo_to_smt_exists xs body)) := by
+    unfold term_has_non_none_type
+    rw [hExists]
+    simp
+  exact exists_body_bool_of_non_none hNN
+
+private theorem smtx_type_wf_of_exists_cons_bool
+    (s : native_String) (T xs : Term) (body : SmtTerm) :
+    __smtx_typeof
+        (__eo_to_smt_exists
+          (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var (Term.String s) T)) xs)
+          body) = SmtType.Bool ->
+    __smtx_type_wf (__eo_to_smt_type T) = true := by
+  intro hTy
+  have hTail :
+      __smtx_typeof (__eo_to_smt_exists xs body) = SmtType.Bool :=
+    smtx_typeof_exists_tail_bool_of_cons_bool s T xs body hTy
+  have hGuardNN :
+      __smtx_typeof_guard_wf (__eo_to_smt_type T) SmtType.Bool ≠ SmtType.None := by
+    intro hNone
+    have hExists :
+        __smtx_typeof
+            (SmtTerm.exists s (__eo_to_smt_type T)
+              (__eo_to_smt_exists xs body)) = SmtType.Bool := by
+      simpa [__eo_to_smt_exists] using hTy
+    rw [smtx_typeof_exists_term_eq, hTail] at hExists
+    simp [native_ite, native_Teq, hNone] at hExists
+  exact smtx_typeof_guard_wf_wf_of_non_none
+    (__eo_to_smt_type T) SmtType.Bool hGuardNN
+
+private theorem smtx_model_eval_eo_to_smt_exists_eq_of_body_constant_bool
+    (xs : Term) (body : SmtTerm) (M : SmtModel) (b : Bool)
+    (hTy : __smtx_typeof (__eo_to_smt_exists xs body) = SmtType.Bool)
+    (hBody : __smtx_model_eval M body = SmtValue.Boolean b)
+    (hConst : ∀ (M : SmtModel) (s : native_String) (T : Term)
+      (v : SmtValue),
+      __smtx_typeof_value v = __eo_to_smt_type T ->
+      __smtx_value_canonical_bool v = true ->
+      __smtx_model_eval (native_model_push M s (__eo_to_smt_type T) v) body =
+        __smtx_model_eval M body) :
+    __smtx_model_eval M (__eo_to_smt_exists xs body) =
+      SmtValue.Boolean b := by
+  revert hTy hConst M b
+  induction xs, body using __eo_to_smt_exists.induct with
+  | case1 F =>
+      intro M b hTy hBody hConst
+      simpa [__eo_to_smt_exists] using hBody
+  | case2 s T xs F ih =>
+      intro M b hTy hBody hConst
+      have hTailTy :
+          __smtx_typeof (__eo_to_smt_exists xs F) = SmtType.Bool :=
+        smtx_typeof_exists_tail_bool_of_cons_bool s T xs F hTy
+      have hWF :
+          __smtx_type_wf (__eo_to_smt_type T) = true :=
+        smtx_type_wf_of_exists_cons_bool s T xs F hTy
+      have hTailEval :
+          __smtx_model_eval M (__eo_to_smt_exists xs F) =
+            SmtValue.Boolean b :=
+        ih M b hTailTy hBody hConst
+      change
+        __smtx_model_eval M
+            (SmtTerm.exists s (__eo_to_smt_type T)
+              (__eo_to_smt_exists xs F)) =
+          SmtValue.Boolean b
+      refine smtx_model_eval_exists_eq_of_body_constant_bool_of_wf
+        M s (__eo_to_smt_type T) (__eo_to_smt_exists xs F) b hWF
+        hTailEval ?_
+      intro v hvTy hvCan
+      exact smtx_model_eval_eo_to_smt_exists_eq_of_model_push_const
+        xs F s (__eo_to_smt_type T) v
+        (fun M' => hConst M' s T v hvTy hvCan) M
+  | case3 xs F hNotNil hNotConsVar =>
+      intro M b hTy hBody hConst
+      cases xs with
+      | Apply f a =>
+          cases f with
+          | Apply g y =>
+              cases g with
+              | __eo_List_cons =>
+                  cases y with
+                  | Var name T =>
+                      cases name with
+                      | String s =>
+                          exact False.elim (hNotConsVar s T a rfl)
+                      | _ =>
+                          simp [__eo_to_smt_exists] at hTy
+                  | _ =>
+                      simp [__eo_to_smt_exists] at hTy
+              | _ =>
+                  simp [__eo_to_smt_exists] at hTy
+          | _ =>
+              simp [__eo_to_smt_exists] at hTy
+      | __eo_List_nil =>
+          exact False.elim (hNotNil rfl)
+      | _ =>
+          simp [__eo_to_smt_exists] at hTy
+
+private theorem smtx_model_eval_qexists_eq_of_body_constant_bool
+    (x F : Term) (M : SmtModel) (b : Bool)
+    (hx : x ≠ Term.__eo_List_nil)
+    (hTy : __smtx_typeof (__eo_to_smt (qexists x F)) = SmtType.Bool)
+    (hBody : __smtx_model_eval M (__eo_to_smt F) = SmtValue.Boolean b)
+    (hConst : ∀ (M : SmtModel) (s : native_String) (T : Term)
+      (v : SmtValue),
+      __smtx_typeof_value v = __eo_to_smt_type T ->
+      __smtx_value_canonical_bool v = true ->
+      __smtx_model_eval (native_model_push M s (__eo_to_smt_type T) v)
+          (__eo_to_smt F) =
+        __smtx_model_eval M (__eo_to_smt F)) :
+    __smtx_model_eval M (__eo_to_smt (qexists x F)) =
+      SmtValue.Boolean b := by
+  rw [eo_to_smt_exists_eq x F hx] at hTy ⊢
+  exact smtx_model_eval_eo_to_smt_exists_eq_of_body_constant_bool
+    x (__eo_to_smt F) M b hTy hBody hConst
+
+private theorem smtx_model_eval_qforall_eq_of_body_constant_bool
+    (x F : Term) (M : SmtModel) (b : Bool)
+    (hx : x ≠ Term.__eo_List_nil)
+    (hTy : __smtx_typeof (__eo_to_smt (qforall x F)) = SmtType.Bool)
+    (hBody : __smtx_model_eval M (__eo_to_smt F) = SmtValue.Boolean b)
+    (hConst : ∀ (M : SmtModel) (s : native_String) (T : Term)
+      (v : SmtValue),
+      __smtx_typeof_value v = __eo_to_smt_type T ->
+      __smtx_value_canonical_bool v = true ->
+      __smtx_model_eval (native_model_push M s (__eo_to_smt_type T) v)
+          (__eo_to_smt F) =
+        __smtx_model_eval M (__eo_to_smt F)) :
+    __smtx_model_eval M (__eo_to_smt (qforall x F)) =
+      SmtValue.Boolean b := by
+  have hExistsTy :
+      __smtx_typeof (__eo_to_smt_exists x (SmtTerm.not (__eo_to_smt F))) =
+        SmtType.Bool := by
+    have hTy' := hTy
+    rw [eo_to_smt_forall_eq x F hx] at hTy'
+    exact smtx_typeof_not_arg_of_bool _ hTy'
+  have hNotBody :
+      __smtx_model_eval M (SmtTerm.not (__eo_to_smt F)) =
+        SmtValue.Boolean (SmtEval.native_not b) := by
+    cases b <;>
+      simp [__smtx_model_eval, hBody, __smtx_model_eval_not,
+        SmtEval.native_not]
+  have hNotConst :
+      ∀ (M : SmtModel) (s : native_String) (T : Term) (v : SmtValue),
+        __smtx_typeof_value v = __eo_to_smt_type T ->
+        __smtx_value_canonical_bool v = true ->
+        __smtx_model_eval (native_model_push M s (__eo_to_smt_type T) v)
+            (SmtTerm.not (__eo_to_smt F)) =
+          __smtx_model_eval M (SmtTerm.not (__eo_to_smt F)) := by
+    intro M' s T v hvTy hvCan
+    rw [__smtx_model_eval.eq_6, __smtx_model_eval.eq_6]
+    rw [hConst M' s T v hvTy hvCan]
+  have hExistsEval :
+      __smtx_model_eval M
+          (__eo_to_smt_exists x (SmtTerm.not (__eo_to_smt F))) =
+        SmtValue.Boolean (SmtEval.native_not b) :=
+    smtx_model_eval_eo_to_smt_exists_eq_of_body_constant_bool
+      x (SmtTerm.not (__eo_to_smt F)) M (SmtEval.native_not b)
+      hExistsTy hNotBody hNotConst
+  rw [eo_to_smt_forall_eq x F hx]
+  cases b <;>
+    simp [__smtx_model_eval, hExistsEval, __smtx_model_eval_not,
+      SmtEval.native_not]
+
 private theorem eq_of_requires_ne_stuck {x y B : Term} :
     __eo_requires x y B ≠ Term.Stuck ->
     x = y := by
@@ -368,6 +840,35 @@ private theorem quant_unused_vars_has_smt_translation
   rw [hProgEq]
   simpa [hA] using hTransA
 
+private theorem quant_unused_eval
+    (M : SmtModel) (hM : model_total_typed M)
+    (Q x F G : Term)
+    (hQ : Q = Term.UOp UserOp.forall ∨ Q = Term.UOp UserOp.exists)
+    (hNoFree :
+      __contains_atomic_term_list_free_rec G
+        (__get_unused_vars (qterm Q x F) G) Term.__eo_List_nil =
+          Term.Boolean false)
+    (hBool : RuleProofs.eo_has_bool_type (qeq (qterm Q x F) G)) :
+    __smtx_model_eval M (__eo_to_smt (qterm Q x F)) =
+      __smtx_model_eval M (__eo_to_smt G) := by
+  have hGetNe :
+      __get_unused_vars (qterm Q x F) G ≠ Term.Stuck :=
+    get_unused_vars_ne_stuck_of_contains_false hNoFree
+  rcases get_unused_vars_shape_of_not_stuck Q x F G hGetNe with
+    hSame | hQuant
+  · rcases hSame with ⟨hG, hUnused⟩
+    subst G
+    -- Remaining bridge: `hNoFree` must yield constancy of `F` under every
+    -- binder in `x`, then `qforall`/`qexists` can be dropped with the lemmas
+    -- above.
+    sorry
+  · rcases hQuant with ⟨y, hG, hInclude, hUnused⟩
+    subst G
+    -- Remaining bridge: `hNoFree` must yield constancy under the binders in
+    -- `diff (setof x) y`, allowing the quantifier over `x` to be reduced to
+    -- the quantifier over `y`.
+    sorry
+
 theorem cmd_step_quant_unused_vars_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
@@ -406,7 +907,39 @@ by
                 change __eo_typeof (__eo_prog_quant_unused_vars a1) = Term.Bool
                   at hResultTy
                 exact hResultTy
+              have hProgQuant :
+                  __eo_prog_quant_unused_vars a1 ≠ Term.Stuck := by
+                exact term_ne_stuck_of_typeof_bool hProgTy
+              rcases quant_unused_shape_of_not_stuck a1 hProgQuant with
+                ⟨Q, x, F, G, hA1, hQ, hNoFree, hProgEq⟩
+              have hTransFormula :
+                  RuleProofs.eo_has_smt_translation
+                    (qeq (qterm Q x F) G) := by
+                simpa [hA1] using hTransA1
+              have hFormulaType :
+                  __eo_typeof (qeq (qterm Q x F) G) = Term.Bool := by
+                rw [hProgEq] at hProgTy
+                exact hProgTy
+              have hFormulaBool :
+                  RuleProofs.eo_has_bool_type
+                    (qeq (qterm Q x F) G) :=
+                RuleProofs.eo_typeof_bool_implies_has_bool_type
+                  (qeq (qterm Q x F) G) hTransFormula hFormulaType
               refine ⟨?_, ?_⟩
-              · sorry
-              · simpa [premiseTermList] using
-                  quant_unused_vars_has_smt_translation a1 hTransA1 hProgTy
+              · intro _hTrue
+                change eo_interprets M
+                  (__eo_prog_quant_unused_vars a1) true
+                rw [hProgEq]
+                apply RuleProofs.eo_interprets_eq_of_rel M
+                  (qterm Q x F) G
+                · exact hFormulaBool
+                · have hEvalEq :=
+                    quant_unused_eval M hM Q x F G hQ hNoFree hFormulaBool
+                  rw [hEvalEq]
+                  exact RuleProofs.smt_value_rel_refl
+                    (__smtx_model_eval M (__eo_to_smt G))
+              · change RuleProofs.eo_has_smt_translation
+                  (__eo_prog_quant_unused_vars a1)
+                rw [hProgEq]
+                exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
+                  hFormulaBool
