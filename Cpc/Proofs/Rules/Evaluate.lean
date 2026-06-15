@@ -7228,6 +7228,30 @@ private theorem native_seq_prefix_eq_map_char
           simp [native_seq_prefix_eq, native_string_prefix_eq, native_veq,
             ih]
 
+private theorem native_string_prefix_eq_length_le
+    (pat s : native_String)
+    (hPrefix : native_string_prefix_eq pat s = true) :
+    pat.length ≤ s.length := by
+  induction pat generalizing s with
+  | nil =>
+      simp
+  | cons p ps ih =>
+      cases s with
+      | nil =>
+          simp [native_string_prefix_eq] at hPrefix
+      | cons c cs =>
+          have hTail :
+              native_string_prefix_eq ps cs = true := by
+            by_cases hpc : p = c
+            · subst c
+              simpa [native_string_prefix_eq] using hPrefix
+            · have hcp : c ≠ p := by
+                intro h
+                exact hpc h.symm
+              simp [native_string_prefix_eq, hpc] at hPrefix
+          have hLe := ih cs hTail
+          simp [hLe]
+
 private theorem native_str_indexof_rec_past_end_nonempty
     (s pat : native_String) (i len fuel : Nat)
     (hLen : s.length ≤ i) (hPat : pat ≠ []) :
@@ -7385,6 +7409,24 @@ private theorem native_str_indexof_gt_len
   rw [if_neg hNotNeg]
   dsimp
   rw [if_neg hBound]
+
+private theorem native_str_indexof_zero_of_prefix
+    (s pat : native_String)
+    (hPrefix : native_string_prefix_eq pat s = true) :
+    native_str_indexof s pat 0 = 0 := by
+  cases pat with
+  | nil =>
+      simp [native_str_indexof, native_str_indexof_rec,
+        native_string_prefix_eq, native_str_len]
+  | cons p ps =>
+      have hPatLe : (p :: ps).length ≤ s.length :=
+        native_string_prefix_eq_length_le (p :: ps) s hPrefix
+      have hPatLe' : ps.length + 1 ≤ s.length := by
+        simpa using hPatLe
+      unfold native_str_indexof
+      simp [native_str_len, hPatLe']
+      unfold native_str_indexof_rec
+      simp [hPrefix]
 
 private theorem native_seq_contains_pack_string
     (s t : native_String) :
@@ -7618,6 +7660,25 @@ private def native_str_replace_all_eval_result
     (s pat repl : native_String) : native_String :=
   native_str_replace_all_eval_aux (s.length + 1) pat repl s
 
+private theorem native_str_replace_all_eval_result_nil
+    (s repl : native_String) :
+    native_str_replace_all_eval_result s [] repl = s := by
+  unfold native_str_replace_all_eval_result
+  cases s <;>
+    simp [native_str_replace_all_eval_aux]
+
+private theorem native_str_replace_all_eval_aux_prefix_cons
+    (fuel : Nat) (s repl : native_String) (p : native_Char)
+    (ps : native_String)
+    (hPrefix : native_string_prefix_eq (p :: ps) s = true) :
+    native_str_replace_all_eval_aux (fuel + 1) (p :: ps) repl s =
+      repl ++
+        native_str_replace_all_eval_aux fuel (p :: ps) repl
+          (s.drop (ps.length + 1)) := by
+  have hIdx : native_str_indexof s (p :: ps) 0 = 0 :=
+    native_str_indexof_zero_of_prefix s (p :: ps) hPrefix
+  simp [native_str_replace_all_eval_aux, hIdx]
+
 private theorem native_seq_replace_all_aux_map_char
     (fuel : Nat) (s pat repl : native_String) :
     native_seq_replace_all_aux fuel (pat.map SmtValue.Char)
@@ -7705,6 +7766,78 @@ private theorem smtx_model_eval_str_replace_all_pack_string
       SmtType.Char by
     simp [native_pack_string, elem_typeof_pack_seq_local]]
   rw [native_seq_replace_all_pack_string]
+
+private theorem smtx_model_eval_str_replace_all_pack_string_nil
+    (s repl : native_String) :
+    __smtx_model_eval_str_replace_all
+        (SmtValue.Seq (native_pack_string s))
+        (SmtValue.Seq (native_pack_string []))
+        (SmtValue.Seq (native_pack_string repl)) =
+      SmtValue.Seq (native_pack_string s) := by
+  rw [smtx_model_eval_str_replace_all_pack_string]
+  rw [native_str_replace_all_eval_result_nil]
+
+private def native_seq_update_string_result
+    (s : native_String) (i : native_Int) (repl : native_String) :
+    native_String :=
+  let len : native_Int := Int.ofNat s.length
+  if i < 0 || len <= i then
+    s
+  else
+    let idx := Int.toNat i
+    s.take idx ++ repl ++ s.drop (idx + 1)
+
+private theorem native_string_valid_seq_update_string_result
+    (s repl : native_String) (i : native_Int)
+    (hs : native_string_valid s = true)
+    (hrepl : native_string_valid repl = true) :
+    native_string_valid (native_seq_update_string_result s i repl) = true := by
+  unfold native_seq_update_string_result
+  by_cases hGuard :
+      (decide (i < 0) || decide (Int.ofNat s.length ≤ i)) = true
+  · rw [if_pos hGuard]
+    exact hs
+  · rw [if_neg hGuard]
+    exact native_string_valid_append
+      (native_string_valid_append
+        (native_string_valid_take (Int.toNat i) hs) hrepl)
+      (native_string_valid_drop (Int.toNat i + 1) hs)
+
+private theorem native_seq_update_pack_string
+    (s : native_String) (i : native_Int) (repl : native_String) :
+    native_pack_seq SmtType.Char
+        (native_seq_update
+          (native_unpack_seq (native_pack_string s)) i
+          (native_unpack_seq (native_pack_string repl))) =
+      native_pack_string (native_seq_update_string_result s i repl) := by
+  rw [show native_unpack_seq (native_pack_string s) =
+      s.map SmtValue.Char by
+    simp [native_pack_string, native_unpack_pack_seq_local]]
+  rw [show native_unpack_seq (native_pack_string repl) =
+      repl.map SmtValue.Char by
+    simp [native_pack_string, native_unpack_pack_seq_local]]
+  unfold native_seq_update native_seq_update_string_result
+  simp only [List.length_map]
+  by_cases hGuard :
+      (decide (i < 0) || decide (Int.ofNat s.length ≤ i)) = true
+  · rw [if_pos hGuard, if_pos hGuard]
+    simp [native_pack_string]
+  · rw [if_neg hGuard, if_neg hGuard]
+    simp [native_pack_string, List.map_append]
+
+private theorem smtx_model_eval_str_update_pack_string
+    (s repl : native_String) (i : native_Int) :
+    __smtx_model_eval_str_update
+        (SmtValue.Seq (native_pack_string s))
+        (SmtValue.Numeral i)
+        (SmtValue.Seq (native_pack_string repl)) =
+      SmtValue.Seq
+        (native_pack_string (native_seq_update_string_result s i repl)) := by
+  simp only [__smtx_model_eval_str_update]
+  rw [show __smtx_elem_typeof_seq_value (native_pack_string s) =
+      SmtType.Char by
+    simp [native_pack_string, elem_typeof_pack_seq_local]]
+  rw [native_seq_update_pack_string]
 
 private theorem eo_extract_string_same_index
     (s : native_String) (i : native_Int) :
