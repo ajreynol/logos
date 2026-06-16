@@ -594,6 +594,52 @@ private theorem rec_inv (M : SmtModel) (W : Nat) (cn : Int) (a : Term) (an : Int
     · rw [eo_ite_true]
       exact hMs
 
+private theorem eo_requires_arg_eq_of_ne_stuck {x y z : Term} :
+    __eo_requires x y z ≠ Term.Stuck -> x = y := by
+  intro hReq
+  by_cases hxy : x = y
+  · exact hxy
+  · have hStuck : __eo_requires x y z = Term.Stuck := by
+      simp [__eo_requires, native_teq, native_ite, hxy]
+    exact False.elim (hReq hStuck)
+
+private theorem eo_requires_left_ne_stuck_of_ne_stuck {x y z : Term} :
+    __eo_requires x y z ≠ Term.Stuck -> x ≠ Term.Stuck := by
+  intro hReq hx
+  have hStuck : __eo_requires x y z = Term.Stuck := by
+    subst x
+    simp [__eo_requires, native_teq, native_ite, native_not, SmtEval.native_not]
+  exact hReq hStuck
+
+-- Shape of a non-stuck `bv_bitwise_slicing` program: it must be an equality.
+private theorem bv_bitwise_slicing_shape_of_ne_stuck (A : Term) :
+    __eo_prog_bv_bitwise_slicing A ≠ Term.Stuck ->
+    ∃ lhs rhs, A = Term.Apply (Term.Apply (Term.UOp UserOp.eq) lhs) rhs := by
+  intro h
+  by_cases hShape :
+      ∃ lhs rhs, A = Term.Apply (Term.Apply (Term.UOp UserOp.eq) lhs) rhs
+  · exact hShape
+  · have hStuck : __eo_prog_bv_bitwise_slicing A = Term.Stuck := by
+      rw [__eo_prog_bv_bitwise_slicing.eq_2]
+      intro lhs rhs hEq
+      exact hShape ⟨lhs, rhs, hEq⟩
+    exact False.elim (h hStuck)
+
+/-- The soundness core of the wrapper: the sliced form `__bv_mk_bitwise_slicing lhs`
+evaluates to the same bitvector value as `lhs`.  This is where `rec_inv` is connected
+to the rule's surface syntax (extracting the constant operand via
+`__bv_get_first_const_child`, the other operand via `__eo_list_erase`, the bit list as an
+`FB` list of length `W`, and discharging canonicity / the `≤ 2^32` bound from the fact
+that the result is non-stuck).  TODO. -/
+private theorem bv_bitwise_slicing_eval_rel (M : SmtModel) (hM : model_total_typed M)
+    (lhs : Term)
+    (hExpandedNe : __bv_mk_bitwise_slicing lhs ≠ Term.Stuck)
+    (hRepNN : term_has_non_none_type (__eo_to_smt lhs)) :
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M (__eo_to_smt (__bv_mk_bitwise_slicing lhs)))
+      (__smtx_model_eval M (__eo_to_smt lhs)) := by
+  sorry
+
 theorem cmd_step_bv_bitwise_slicing_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
@@ -603,4 +649,89 @@ theorem cmd_step_bv_bitwise_slicing_properties
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.bv_bitwise_slicing args premises) :=
 by
-  sorry
+  intro hCmdTrans _hPremBool hResultTy
+  have hProgNe :
+      __eo_cmd_step_proven s CRule.bv_bitwise_slicing args premises ≠ Term.Stuck :=
+    term_ne_stuck_of_typeof_bool hResultTy
+  cases args with
+  | nil =>
+      change Term.Stuck ≠ Term.Stuck at hProgNe
+      exact False.elim (hProgNe rfl)
+  | cons A argsTail =>
+      cases argsTail with
+      | cons A2 argsRest =>
+          change Term.Stuck ≠ Term.Stuck at hProgNe
+          exact False.elim (hProgNe rfl)
+      | nil =>
+          cases premises with
+          | cons n rest =>
+              change Term.Stuck ≠ Term.Stuck at hProgNe
+              exact False.elim (hProgNe rfl)
+          | nil =>
+              have hATrans : RuleProofs.eo_has_smt_translation A := by
+                simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation,
+                  cmdTranslationOk, cArgListTranslationOk] using hCmdTrans.1
+              change StepRuleProperties M [] (__eo_prog_bv_bitwise_slicing A)
+              change __eo_typeof (__eo_prog_bv_bitwise_slicing A) = Term.Bool
+                at hResultTy
+              have hProgNe' : __eo_prog_bv_bitwise_slicing A ≠ Term.Stuck := by
+                simpa using hProgNe
+              rcases bv_bitwise_slicing_shape_of_ne_stuck A hProgNe' with
+                ⟨lhs, rhs, hShape⟩
+              subst A
+              let expanded := __bv_mk_bitwise_slicing lhs
+              let orig :=
+                Term.Apply (Term.Apply (Term.UOp UserOp.eq) lhs) rhs
+              have hReqNe :
+                  __eo_requires expanded rhs orig ≠ Term.Stuck := by
+                simpa [__eo_prog_bv_bitwise_slicing, expanded, orig] using
+                  hProgNe'
+              have hExpandedEq : expanded = rhs :=
+                eo_requires_arg_eq_of_ne_stuck hReqNe
+              have hExpandedNe : expanded ≠ Term.Stuck :=
+                eo_requires_left_ne_stuck_of_ne_stuck hReqNe
+              have hRhsNe : rhs ≠ Term.Stuck := by
+                rw [← hExpandedEq]; exact hExpandedNe
+              have hProgEq :
+                  __eo_prog_bv_bitwise_slicing
+                      (Term.Apply (Term.Apply (Term.UOp UserOp.eq) lhs) rhs) =
+                    orig := by
+                rw [__eo_prog_bv_bitwise_slicing.eq_1]
+                change __eo_requires expanded rhs orig = orig
+                simp [__eo_requires, hExpandedEq, hRhsNe, native_ite,
+                  native_teq, native_not, SmtEval.native_not]
+              have hOrigTy : __eo_typeof orig = Term.Bool := by
+                simpa [hProgEq, orig] using hResultTy
+              have hOrigBool : RuleProofs.eo_has_bool_type orig :=
+                RuleProofs.eo_typeof_bool_implies_has_bool_type
+                  orig hATrans hOrigTy
+              rcases
+                  RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                    lhs rhs hOrigBool with
+                ⟨_hSameTy, hRepNN⟩
+              have hRelExpanded :
+                  RuleProofs.smt_value_rel
+                    (__smtx_model_eval M (__eo_to_smt expanded))
+                    (__smtx_model_eval M (__eo_to_smt lhs)) := by
+                simpa [expanded] using
+                  bv_bitwise_slicing_eval_rel M hM lhs hExpandedNe hRepNN
+              have hRel :
+                  RuleProofs.smt_value_rel
+                    (__smtx_model_eval M (__eo_to_smt lhs))
+                    (__smtx_model_eval M (__eo_to_smt rhs)) := by
+                rw [← hExpandedEq]
+                exact RuleProofs.smt_value_rel_symm _ _ hRelExpanded
+              have hFact :
+                  eo_interprets M (__eo_prog_bv_bitwise_slicing orig) true := by
+                rw [hProgEq]
+                exact RuleProofs.eo_interprets_eq_of_rel
+                  M lhs rhs hOrigBool hRel
+              exact
+                { facts_of_true := by
+                    intro _premisesTrue
+                    simpa [orig] using hFact
+                  has_smt_translation := by
+                    rw [hProgEq]
+                    exact
+                      RuleProofs.eo_has_smt_translation_of_has_bool_type
+                        orig hOrigBool }
