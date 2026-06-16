@@ -7278,6 +7278,16 @@ private theorem body_ne_stuck_of_requires_ne_stuck {x y B : Term} :
       cases h : native_teq x y <;> simp [h] at hEq ⊢
     simp [hEqFalse, native_ite] at hReq
 
+private theorem condition_true_of_requires_true_false_eq_false {c : Term} :
+    __eo_requires c (Term.Boolean true) (Term.Boolean false) =
+      Term.Boolean false ->
+    c = Term.Boolean true := by
+  intro hReq
+  cases c <;> simp [__eo_requires, native_ite, native_teq,
+    native_not, SmtEval.native_not] at hReq ⊢
+  case Boolean b =>
+    cases b <;> simp at hReq ⊢
+
 private theorem eo_or_eq_true_cases_local (x y : Term) :
     __eo_or x y = Term.Boolean true ->
     x = Term.Boolean true ∨ y = Term.Boolean true := by
@@ -14712,49 +14722,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
       | _ =>
           exfalso
           exact hNN TranslationProofs.smtx_typeof_none
-  | case7 F n xs bvs hXs hBvs ih =>
-      intro hBvsVar M N hRel hScan hNN
-      by_cases hForall : ∃ binders body, F = qforall binders body
-      · rcases hForall with ⟨binders, body, rfl⟩
-        cases hNat : __eo_to_smt_nat_is_valid n
-        · rw [eo_to_smt_quantifiers_skolemize_invalid_nat_none
-            binders body n hNat]
-          simp [__smtx_model_eval]
-        · by_cases hExistsShape :
-            ∃ s T F,
-              __eo_to_smt_exists binders
-                  (SmtTerm.not (__eo_to_smt body)) =
-                SmtTerm.exists s T F
-          · sorry
-          · rw [eo_to_smt_quantifiers_skolemize_forall_non_exists_none
-              binders body n hNat hExistsShape]
-            simp [__smtx_model_eval]
-      · rw [eo_to_smt_quantifiers_skolemize_non_forall_none F n hForall]
-        simp [__smtx_model_eval]
-  | case8 s r n xs bvs hXs hBvs ihS ihR =>
-      intro hBvsVar M N hRel hScan hNN
-      have hScan' :
-          __eo_ite (__contains_atomic_term_list_free_rec s xs bvs)
-              (Term.Boolean true)
-              (__contains_atomic_term_list_free_rec r xs bvs) =
-            Term.Boolean false := by
-        simpa [__contains_atomic_term_list_free_rec] using hScan
-      rcases eo_ite_true_branch_eq_false_cases
-          (__contains_atomic_term_list_free_rec s xs bvs)
-          (__contains_atomic_term_list_free_rec r xs bvs) hScan' with
-        ⟨hSScan, hRScan⟩
-      cases hNat : __eo_to_smt_nat_is_valid n
-      · rw [eo_to_smt_re_unfold_pos_component_invalid_nat_none
-          s r n hNat]
-        simp [__smtx_model_eval]
-      · by_cases hConcat :
-          ∃ r1 r2, __eo_to_smt r = SmtTerm.re_concat r1 r2
-        · sorry
-        · rw [eo_to_smt_re_unfold_pos_component_non_concat_none
-            s r n hNat hConcat]
-          simp [__smtx_model_eval]
-  | case9 x xs bvs hx hXs hBvs hNotQuant hNotApp hNotVar
-      hNotSkolem hNotReUnfold =>
+  | case7 x xs bvs hx hXs hBvs hNotQuant hNotApp hNotVar =>
       intro hBvsVar M N hRel hScan hNN
       cases x with
       | UOp op =>
@@ -14777,16 +14745,71 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
             exact smtx_model_eval_eq_of_closed_nil_scannerModelRel hRel
               (smtTermClosedIn_eo_to_smt_uop2_at_bv_nil a b)
           case _at_quantifiers_skolemize =>
-            exfalso
-            exact hNotSkolem a b rfl
+            have hReq :
+                __eo_requires
+                    (__is_closed_rec
+                      (Term.UOp2 UserOp2._at_quantifiers_skolemize a b)
+                      Term.__eo_List_nil)
+                    (Term.Boolean true) (Term.Boolean false) =
+                  Term.Boolean false := by
+              simpa [__contains_atomic_term_list_free_rec] using hScan
+            have hClosedA :
+                __is_closed_rec a Term.__eo_List_nil =
+                  Term.Boolean true := by
+              have hClosedMarker :=
+                condition_true_of_requires_true_false_eq_false hReq
+              simpa [__is_closed_rec] using hClosedMarker
+            by_cases hForall : ∃ binders body, a = qforall binders body
+            · rcases hForall with ⟨binders, body, rfl⟩
+              cases hNat : __eo_to_smt_nat_is_valid b
+              · rw [eo_to_smt_quantifiers_skolemize_invalid_nat_none
+                  binders body b hNat]
+                simp [__smtx_model_eval]
+              · by_cases hExistsShape :
+                  ∃ s T F,
+                    __eo_to_smt_exists binders
+                        (SmtTerm.not (__eo_to_smt body)) =
+                      SmtTerm.exists s T F
+                · sorry
+                · rw [eo_to_smt_quantifiers_skolemize_forall_non_exists_none
+                    binders body b hNat hExistsShape]
+                  simp [__smtx_model_eval]
+            · rw [eo_to_smt_quantifiers_skolemize_non_forall_none
+                a b hForall]
+              simp [__smtx_model_eval]
           all_goals
             exact smtx_model_eval_eq_of_closed_nil_scannerModelRel hRel
               (by change SmtTermClosedIn [] SmtTerm.None; trivial)
       | UOp3 op a b c =>
           cases op
           case _at_re_unfold_pos_component =>
-            exfalso
-            exact hNotReUnfold a b c rfl
+            have hReq :
+                __eo_requires
+                    (__is_closed_rec
+                      (Term.UOp3 UserOp3._at_re_unfold_pos_component a b c)
+                      Term.__eo_List_nil)
+                    (Term.Boolean true) (Term.Boolean false) =
+                  Term.Boolean false := by
+              simpa [__contains_atomic_term_list_free_rec] using hScan
+            have hClosedAB :
+                __eo_and (__is_closed_rec a Term.__eo_List_nil)
+                    (__is_closed_rec b Term.__eo_List_nil) =
+                  Term.Boolean true := by
+              have hClosedMarker :=
+                condition_true_of_requires_true_false_eq_false hReq
+              simpa [__is_closed_rec] using hClosedMarker
+            rcases eo_and_eq_true_cases hClosedAB with
+              ⟨hClosedA, hClosedB⟩
+            cases hNat : __eo_to_smt_nat_is_valid c
+            · rw [eo_to_smt_re_unfold_pos_component_invalid_nat_none
+                a b c hNat]
+              simp [__smtx_model_eval]
+            · by_cases hConcat :
+                ∃ r1 r2, __eo_to_smt b = SmtTerm.re_concat r1 r2
+              · sorry
+              · rw [eo_to_smt_re_unfold_pos_component_non_concat_none
+                  a b c hNat hConcat]
+                simp [__smtx_model_eval]
           case _at_witness_string_length =>
             exact smtx_model_eval_eq_of_closed_nil_scannerModelRel hRel
               (smtTermClosedIn_eo_to_smt_uop3_witness_string_length_nil
