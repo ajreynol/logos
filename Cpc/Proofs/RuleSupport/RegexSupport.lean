@@ -324,6 +324,61 @@ theorem native_str_in_re_re_inter
       (native_str_in_re str r && native_str_in_re str s) := by
   simp [native_re_inter, native_str_in_re_mk_inter]
 
+theorem nativeListInRe_mk_comp :
+    ∀ (xs : List native_Char) (r : native_RegLan),
+      native_re_nullable
+          (xs.foldl (fun acc c => native_re_deriv c acc)
+            (native_re_mk_comp r)) =
+        Bool.not
+          (native_re_nullable
+            (xs.foldl (fun acc c => native_re_deriv c acc) r))
+  | [], r => by
+      cases r <;> simp [native_re_mk_comp, native_re_nullable]
+  | c :: cs, r => by
+      have h := nativeListInRe_mk_comp cs (native_re_deriv c r)
+      cases r <;> simp [native_re_mk_comp, native_re_deriv] at h ⊢
+      case comp r =>
+        have hComp := nativeListInRe_mk_comp cs (native_re_deriv c r)
+        have hComp' :
+            native_re_nullable
+                (List.foldl (fun acc c => native_re_deriv c acc)
+                  (match native_re_deriv c r with
+                  | SmtRegLan.comp r => r
+                  | r => SmtRegLan.comp r)
+                  cs) =
+              Bool.not
+                (native_re_nullable
+                    (List.foldl (fun acc c => native_re_deriv c acc)
+                      (native_re_deriv c r) cs)) := by
+          simpa [native_re_mk_comp] using hComp
+        cases hA :
+            native_re_nullable
+              (List.foldl (fun acc c => native_re_deriv c acc)
+                (native_re_deriv c r) cs) <;>
+          cases hB :
+            native_re_nullable
+              (List.foldl (fun acc c => native_re_deriv c acc)
+                (match native_re_deriv c r with
+                | SmtRegLan.comp r => r
+                | r => SmtRegLan.comp r)
+                cs) <;>
+          simp [hA, hB] at hComp' ⊢ <;> assumption
+      all_goals exact h
+
+theorem native_str_in_re_re_comp
+    (str : native_String) (r : native_RegLan) :
+    native_str_in_re str (native_re_comp r) =
+      (native_string_valid str && Bool.not (native_str_in_re str r)) := by
+  cases hValid : native_string_valid str <;>
+    simp [native_str_in_re, native_re_comp, hValid,
+      nativeListInRe_mk_comp]
+
+theorem native_str_in_re_mk_comp
+    (str : native_String) (r : native_RegLan) :
+    native_str_in_re str (native_re_mk_comp r) =
+      (native_string_valid str && Bool.not (native_str_in_re str r)) := by
+  simpa [native_re_comp] using native_str_in_re_re_comp str r
+
 theorem native_str_in_re_re_concat_intro
     (s1 s2 : native_String) (r1 r2 : native_RegLan) :
     native_str_in_re s1 r1 = true ->
