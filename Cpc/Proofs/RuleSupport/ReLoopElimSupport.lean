@@ -11,7 +11,7 @@ private def nativeRePow : native_Nat -> native_RegLan -> native_RegLan
   | 0, _ => SmtRegLan.epsilon
   | Nat.succ n, r => native_re_concat r (nativeRePow n r)
 
-private def nativeReExpRec : native_Nat -> native_RegLan -> native_RegLan
+def nativeReExpRec : native_Nat -> native_RegLan -> native_RegLan
   | 0, _ => SmtRegLan.epsilon
   | Nat.succ n, r => native_re_concat (nativeReExpRec n r) r
 
@@ -30,11 +30,11 @@ private theorem model_eval_re_exp_rec_reglan_eq :
         __smtx_model_eval_re_concat]
 
 
-private theorem native_re_concat_right_epsilon (r : native_RegLan) :
+theorem native_re_concat_right_epsilon (r : native_RegLan) :
     native_re_concat r SmtRegLan.epsilon = r := by
   cases r <;> simp [native_re_concat, native_re_mk_concat]
 
-private theorem native_re_concat_left_epsilon (r : native_RegLan) :
+theorem native_re_concat_left_epsilon (r : native_RegLan) :
     native_re_concat SmtRegLan.epsilon r = r := by
   cases r <;> simp [native_re_concat, native_re_mk_concat]
 
@@ -590,7 +590,7 @@ private theorem nativeRePow_exp_ext :
           native_str_in_re str (nativeReExpRec (Nat.succ n) r) := by
             exact nativeReExpRec_shift_ext n r str hValid
 
-private def nativeRangeRight : native_Nat -> native_Nat -> native_RegLan -> native_RegLan
+def nativeRangeRight : native_Nat -> native_Nat -> native_RegLan -> native_RegLan
   | start, 0, r => nativeReExpRec start r
   | start, Nat.succ n, r =>
       native_re_union (nativeReExpRec start r)
@@ -716,7 +716,7 @@ private theorem nativeRangeRight_append_last_ext :
                 (fun s hs => ih (Nat.succ start) r s hs)
                 hValid
 
-private def nativeReLoopRec :
+def nativeReLoopRec :
     native_Nat -> native_Int -> native_Int -> native_RegLan -> native_RegLan
   | 0, lo, _hi, r => nativeReExpRec (native_int_to_nat lo) r
   | Nat.succ n, lo, hi, r =>
@@ -724,7 +724,7 @@ private def nativeReLoopRec :
         (nativeReLoopRec n lo (native_zplus hi (native_zneg 1)) r)
         (nativeReExpRec (native_int_to_nat hi) r)
 
-private theorem model_eval_re_loop_rec_reglan_eq :
+theorem model_eval_re_loop_rec_reglan_eq :
     ∀ n lo hi r,
       __smtx_model_eval_re_loop_rec n (SmtValue.Numeral lo)
           (SmtValue.Numeral hi) (SmtValue.RegLan r) =
@@ -758,7 +758,7 @@ private theorem native_int_to_nat_add_nat
       rw [Int.toNat_of_nonneg hlo]
     _ = ↑(Int.toNat lo + n) := by simp
 
-private theorem nativeReLoopRec_range_ext :
+theorem nativeReLoopRec_range_ext :
     ∀ len lo r str,
       0 ≤ lo ->
       native_string_valid str = true ->
