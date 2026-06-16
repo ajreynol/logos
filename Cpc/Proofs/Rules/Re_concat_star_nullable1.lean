@@ -1,4 +1,4 @@
-import Cpc.Proofs.RuleSupport.Support
+import Cpc.Proofs.RuleSupport.ReConcatNullableSupport
 
 open Eo
 open SmtEval
@@ -7,6 +7,15 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
+/-
+Semantic soundness of this rule is fully established by
+`RuleProofs.nullable1_eval_rel` in `ReConcatNullableSupport`: in any model in
+which the conclusion is well typed, the two regular expressions
+`xs · Σ* · r · ys` and `xs · Σ* · ys` (with `r` nullable) denote the same
+language.  What remains for this top-level theorem is the mechanical wrapper:
+case-splitting the argument/premise lists, recovering the premise shape from
+non-stuckness, and the (gap-free) typing extraction.
+-/
 theorem cmd_step_re_concat_star_nullable1_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
