@@ -8359,9 +8359,10 @@ def __eo_typeof_re_mult : Term -> Term
   | _ => Term.Stuck
 
 
-def __eo_typeof_re_exp : Term -> Term -> Term
-  | (Term.UOp UserOp.Int), (Term.UOp UserOp.RegLan) => (Term.UOp UserOp.RegLan)
-  | _, _ => Term.Stuck
+def __eo_typeof_re_exp : Term -> Term -> Term -> Term
+  | _ , Term.Stuck , _  => Term.Stuck
+  | (Term.UOp UserOp.Int), i, (Term.UOp UserOp.RegLan) => (__eo_requires (__eo_is_z i) (Term.Boolean true) (Term.UOp UserOp.RegLan))
+  | _, _, _ => Term.Stuck
 
 
 def __eo_typeof_re_range : Term -> Term -> Term
@@ -8374,9 +8375,11 @@ def __eo_typeof_re_concat : Term -> Term -> Term
   | _, _ => Term.Stuck
 
 
-def __eo_typeof_re_loop : Term -> Term -> Term -> Term
-  | (Term.UOp UserOp.Int), (Term.UOp UserOp.Int), (Term.UOp UserOp.RegLan) => (Term.UOp UserOp.RegLan)
-  | _, _, _ => Term.Stuck
+def __eo_typeof_re_loop : Term -> Term -> Term -> Term -> Term -> Term
+  | _ , Term.Stuck , _ , _ , _  => Term.Stuck
+  | _ , _ , _ , Term.Stuck , _  => Term.Stuck
+  | (Term.UOp UserOp.Int), l, (Term.UOp UserOp.Int), h, (Term.UOp UserOp.RegLan) => (__eo_requires (__eo_is_z l) (Term.Boolean true) (__eo_requires (__eo_is_z h) (Term.Boolean true) (Term.UOp UserOp.RegLan)))
+  | _, _, _, _, _ => Term.Stuck
 
 
 def __eo_typeof_str_in_re : Term -> Term -> Term
@@ -8709,7 +8712,7 @@ def __eo_typeof : Term -> Term
   | (Term.Apply (Term.UOp UserOp.str_to_re) __eo_x1) => (__eo_typeof_str_to_re (__eo_typeof __eo_x1))
   | (Term.Apply (Term.UOp UserOp.re_mult) __eo_x1) => (__eo_typeof_re_mult (__eo_typeof __eo_x1))
   | (Term.Apply (Term.UOp UserOp.re_plus) __eo_x1) => (__eo_typeof_re_mult (__eo_typeof __eo_x1))
-  | (Term.Apply (Term.UOp1 UserOp1.re_exp __eo_x1) __eo_x2) => (__eo_typeof_re_exp (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
+  | (Term.Apply (Term.UOp1 UserOp1.re_exp __eo_x1) __eo_x2) => (__eo_typeof_re_exp (__eo_typeof __eo_x1) __eo_x1 (__eo_typeof __eo_x2))
   | (Term.Apply (Term.UOp UserOp.re_opt) __eo_x1) => (__eo_typeof_re_mult (__eo_typeof __eo_x1))
   | (Term.Apply (Term.UOp UserOp.re_comp) __eo_x1) => (__eo_typeof_re_mult (__eo_typeof __eo_x1))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.re_range) __eo_x1) __eo_x2) => (__eo_typeof_re_range (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
@@ -8717,7 +8720,7 @@ def __eo_typeof : Term -> Term
   | (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) __eo_x1) __eo_x2) => (__eo_typeof_re_concat (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) __eo_x1) __eo_x2) => (__eo_typeof_re_concat (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.re_diff) __eo_x1) __eo_x2) => (__eo_typeof_re_concat (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
-  | (Term.Apply (Term.UOp2 UserOp2.re_loop __eo_x1 __eo_x2) __eo_x3) => (__eo_typeof_re_loop (__eo_typeof __eo_x1) (__eo_typeof __eo_x2) (__eo_typeof __eo_x3))
+  | (Term.Apply (Term.UOp2 UserOp2.re_loop __eo_x1 __eo_x2) __eo_x3) => (__eo_typeof_re_loop (__eo_typeof __eo_x1) __eo_x1 (__eo_typeof __eo_x2) __eo_x2 (__eo_typeof __eo_x3))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) __eo_x1) __eo_x2) => (__eo_typeof_str_in_re (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
   | (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof_re_split) __eo_x1) __eo_x2) __eo_x3) => (__eo_typeof_str_indexof_re_split (__eo_typeof __eo_x1) (__eo_typeof __eo_x2) (__eo_typeof __eo_x3))
   | (Term.Apply (Term.UOp UserOp.seq_unit) __eo_x1) => (__eo_typeof_seq_unit (__eo_typeof __eo_x1))
