@@ -928,14 +928,17 @@ private theorem native_str_from_code_invalid
 
 private def eo_eval_str_from_code_rhs (n : Term) : Term :=
   let _v0 := __run_evaluate n
-  __eo_ite
-    (__eo_ite (__eo_is_z _v0)
+  let _v1 := __eo_is_z _v0
+  __eo_ite _v1
+    (__eo_ite
+      (__eo_ite _v1
       (__eo_ite
         (__eo_ite (__eo_eq (Term.Numeral 196608) _v0)
           (Term.Boolean true) (__eo_gt (Term.Numeral 196608) _v0))
         (__eo_not (__eo_is_neg _v0)) (Term.Boolean false))
       (Term.Boolean false))
-    (__eo_to_str n) (Term.Apply (Term.UOp UserOp.str_from_code) n)
+      (__eo_to_str n) (Term.String []))
+    (Term.Apply (Term.UOp UserOp.str_from_code) n)
 
 private theorem eo_eval_str_from_code_rhs_numeral_valid
     {n : native_Int}
@@ -972,7 +975,11 @@ private theorem eo_eval_str_from_code_rhs_numeral_invalid_guard
     {n : native_Int}
     (hBad : ¬ (0 ≤ n ∧ n ≤ 196608)) :
     eo_eval_str_from_code_rhs (Term.Numeral n) =
-      Term.Apply (Term.UOp UserOp.str_from_code) (Term.Numeral n) := by
+      Term.String (native_str_from_code n) := by
+  have hBadLt : ¬ (0 ≤ n ∧ n < 196608) := by
+    intro h
+    exact hBad ⟨h.1, Int.le_of_lt h.2⟩
+  rw [native_str_from_code_invalid hBadLt]
   by_cases h0 : 0 ≤ n
   · have hNotNeg : native_zlt n 0 = false := by
       rw [show native_zlt n 0 = decide (n < 0) by rfl]
@@ -1024,7 +1031,11 @@ private theorem eo_eval_str_from_code_rhs_run_numeral_invalid_guard
     (hRun : __run_evaluate x = Term.Numeral n)
     (hBad : ¬ (0 ≤ n ∧ n ≤ 196608)) :
     eo_eval_str_from_code_rhs x =
-      Term.Apply (Term.UOp UserOp.str_from_code) x := by
+      Term.String (native_str_from_code n) := by
+  have hBadLt : ¬ (0 ≤ n ∧ n < 196608) := by
+    intro h
+    exact hBad ⟨h.1, Int.le_of_lt h.2⟩
+  rw [native_str_from_code_invalid hBadLt]
   by_cases h0 : 0 ≤ n
   · have hNotNeg : native_zlt n 0 = false := by
       rw [show native_zlt n 0 = decide (n < 0) by rfl]
@@ -1160,13 +1171,11 @@ private theorem eo_eval_str_from_code_rhs_run_numeral_eq
     (hXEoInt : __eo_typeof x = Term.UOp UserOp.Int)
     (hRunFromNe : eo_eval_str_from_code_rhs x ≠ Term.Stuck) :
     eo_eval_str_from_code_rhs x =
-      Term.String (native_str_from_code n) ∨
-    eo_eval_str_from_code_rhs x =
-      Term.Apply (Term.UOp UserOp.str_from_code) x := by
+      Term.String (native_str_from_code n) := by
   by_cases hGuard : 0 ≤ n ∧ n ≤ 196608
   · rcases hGuard with ⟨h0, hnLe⟩
     by_cases hlt : n < 196608
-    · exact Or.inl (eo_eval_str_from_code_rhs_run_numeral_valid
+    · exact eo_eval_str_from_code_rhs_run_numeral_valid
         hRun hXEoInt hRunFromNe h0 hlt)
     · have hGe : (196608 : Int) ≤ n := Int.le_of_not_gt hlt
       have hEq : n = 196608 := Int.le_antisymm hnLe hGe
@@ -1174,8 +1183,7 @@ private theorem eo_eval_str_from_code_rhs_run_numeral_eq
       exact False.elim
         (eo_eval_str_from_code_rhs_run_numeral_eq_max_false
           hRun hXEoInt hRunFromNe)
-  · exact Or.inr
-      (eo_eval_str_from_code_rhs_run_numeral_invalid_guard hRun hGuard)
+  · exact eo_eval_str_from_code_rhs_run_numeral_invalid_guard hRun hGuard
 
 private theorem eo_eval_str_from_code_rhs_run_numeral_eq_of_active
     {x : Term} {n : native_Int}
@@ -1187,10 +1195,8 @@ private theorem eo_eval_str_from_code_rhs_run_numeral_eq_of_active
         Term.Apply (Term.UOp UserOp.str_from_code) x) :
     eo_eval_str_from_code_rhs x =
       Term.String (native_str_from_code n) := by
-  rcases eo_eval_str_from_code_rhs_run_numeral_eq
-      hRun hXEoInt hRunFromNe with hString | hSelf
-  · exact hString
-  · exact False.elim (hActive hSelf)
+  exact eo_eval_str_from_code_rhs_run_numeral_eq
+    hRun hXEoInt hRunFromNe
 
 private def eo_eval_str_from_int_rhs (n : Term) : Term :=
   let _v0 := __run_evaluate n
