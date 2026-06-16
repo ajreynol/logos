@@ -527,8 +527,8 @@ import Cpc.Proofs.Rules.Re_plus_elim
 import Cpc.Proofs.Rules.Re_repeat_elim
 import Cpc.Proofs.Rules.Re_concat_star_swap
 import Cpc.Proofs.Rules.Re_concat_star_repeat
-import Cpc.Proofs.Rules.Re_concat_star_nullable1
-import Cpc.Proofs.Rules.Re_concat_star_nullable2
+import Cpc.Proofs.Rules.Re_concat_star_subsume1
+import Cpc.Proofs.Rules.Re_concat_star_subsume2
 import Cpc.Proofs.Rules.Re_concat_merge
 import Cpc.Proofs.Rules.Re_union_all
 import Cpc.Proofs.Rules.Re_union_const_elim
@@ -543,7 +543,6 @@ import Cpc.Proofs.Rules.Re_range_non_singleton_2
 import Cpc.Proofs.Rules.Re_star_union_char
 import Cpc.Proofs.Rules.Re_star_union_drop_emp
 import Cpc.Proofs.Rules.Re_loop_neg
-import Cpc.Proofs.Rules.Re_loop_star
 import Cpc.Proofs.Rules.Re_inter_cstring
 import Cpc.Proofs.Rules.Re_inter_cstring_neg
 import Cpc.Proofs.Rules.Str_substr_len_include
@@ -3256,15 +3255,15 @@ by
         intro N hN _hAgree
         exact cmd_step_re_concat_star_repeat_properties N hN s args premises
           (by simpa using hCmdTrans) hPremisesBool hResultTy
-  | re_concat_star_nullable1 =>
+  | re_concat_star_subsume1 =>
       exact cmd_step_facts_of_rule_properties M hM s premises hs hsStable <| by
         intro N hN _hAgree
-        exact cmd_step_re_concat_star_nullable1_properties N hN s args premises
+        exact cmd_step_re_concat_star_subsume1_properties N hN s args premises
           (by simpa using hCmdTrans) hPremisesBool hResultTy
-  | re_concat_star_nullable2 =>
+  | re_concat_star_subsume2 =>
       exact cmd_step_facts_of_rule_properties M hM s premises hs hsStable <| by
         intro N hN _hAgree
-        exact cmd_step_re_concat_star_nullable2_properties N hN s args premises
+        exact cmd_step_re_concat_star_subsume2_properties N hN s args premises
           (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_concat_merge =>
       exact cmd_step_facts_of_rule_properties M hM s premises hs hsStable <| by
@@ -3335,11 +3334,6 @@ by
       exact cmd_step_facts_of_rule_properties M hM s premises hs hsStable <| by
         intro N hN _hAgree
         exact cmd_step_re_loop_neg_properties N hN s args premises
-          (by simpa using hCmdTrans) hPremisesBool hResultTy
-  | re_loop_star =>
-      exact cmd_step_facts_of_rule_properties M hM s premises hs hsStable <| by
-        intro N hN _hAgree
-        exact cmd_step_re_loop_star_properties N hN s args premises
           (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_inter_cstring =>
       exact cmd_step_facts_of_rule_properties M hM s premises hs hsStable <| by
@@ -4669,9 +4663,9 @@ by
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_concat_star_repeat =>
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
-  | re_concat_star_nullable1 =>
+  | re_concat_star_subsume1 =>
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
-  | re_concat_star_nullable2 =>
+  | re_concat_star_subsume2 =>
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_concat_merge =>
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
@@ -4700,8 +4694,6 @@ by
   | re_star_union_drop_emp =>
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_loop_neg =>
-      cases args <;> cases premises <;> exact False.elim (hProg rfl)
-  | re_loop_star =>
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_inter_cstring =>
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
