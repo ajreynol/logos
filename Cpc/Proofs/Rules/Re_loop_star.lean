@@ -279,3 +279,78 @@ theorem re_loop_star_canonical_true
     exact RuleProofs.re_loop_star_smt_value_rel lo hi rv hge1 hle
   -- Conclude the equality holds in the model.
   exact RuleProofs.eo_interprets_eq_of_rel M _ _ hBool hRel
+
+/--
+Soundness wrapper for `re_loop_star`.
+
+The mathematical content (`re_loop_star_canonical_true`, `prog_form`) is fully
+proved.  The single remaining `sorry` is the well-typedness of the conclusion
+(`eo_has_bool_type`, equivalently that it has an SMT translation).  This is *not*
+derivable from the stated hypotheses: EO `re.loop` typing only requires the
+bounds to be `Int`-typed, whereas SMT `re.loop` requires them to be syntactic
+`Numeral`s.  For a non-numeral `Int` bound such as `1 + 1`, `__eo_typeof` of the
+conclusion is `Bool` while `__smtx_typeof (__eo_to_smt ·)` is `None`, so the
+`has_smt_translation` field is unprovable as stated.  Resolving this requires a
+framework decision (e.g. making `__eo_typeof_re_loop` require `Numeral` bounds),
+so it is deferred.
+-/
+theorem cmd_step_re_loop_star_properties
+    (M : SmtModel) (hM : model_total_typed M)
+    (s : CState) (args : CArgList) (premises : CIndexList) :
+  cmdTranslationOk (CCmd.step CRule.re_loop_star args premises) ->
+  AllHaveBoolType (premiseTermList s premises) ->
+  __eo_typeof (__eo_cmd_step_proven s CRule.re_loop_star args premises) = Term.Bool ->
+  StepRuleProperties M (premiseTermList s premises)
+    (__eo_cmd_step_proven s CRule.re_loop_star args premises) :=
+by
+  intro hCmdTrans _hPremisesBool hResultTy
+  have hProg : __eo_cmd_step_proven s CRule.re_loop_star args premises ≠ Term.Stuck :=
+    term_ne_stuck_of_typeof_bool hResultTy
+  cases args with
+  | nil => change Term.Stuck ≠ Term.Stuck at hProg; exact False.elim (hProg rfl)
+  | cons a1 args =>
+    cases args with
+    | nil => change Term.Stuck ≠ Term.Stuck at hProg; exact False.elim (hProg rfl)
+    | cons a2 args =>
+      cases args with
+      | nil => change Term.Stuck ≠ Term.Stuck at hProg; exact False.elim (hProg rfl)
+      | cons a3 args =>
+        cases args with
+        | cons _ _ => change Term.Stuck ≠ Term.Stuck at hProg; exact False.elim (hProg rfl)
+        | nil =>
+          cases premises with
+          | nil => change Term.Stuck ≠ Term.Stuck at hProg; exact False.elim (hProg rfl)
+          | cons n1 premises =>
+            cases premises with
+            | nil => change Term.Stuck ≠ Term.Stuck at hProg; exact False.elim (hProg rfl)
+            | cons n2 premises =>
+              cases premises with
+              | cons _ _ => change Term.Stuck ≠ Term.Stuck at hProg; exact False.elim (hProg rfl)
+              | nil =>
+                show StepRuleProperties M
+                    [__eo_state_proven_nth s n1, __eo_state_proven_nth s n2]
+                    (__eo_prog_re_loop_star a1 a2 a3
+                      (Proof.pf (__eo_state_proven_nth s n1))
+                      (Proof.pf (__eo_state_proven_nth s n2)))
+                generalize hP1 : __eo_state_proven_nth s n1 = P1
+                generalize hP2 : __eo_state_proven_nth s n2 = P2
+                have hProgNe :
+                    __eo_prog_re_loop_star a1 a2 a3 (Proof.pf P1) (Proof.pf P2) ≠
+                      Term.Stuck := by
+                  rw [← hP1, ← hP2]
+                  exact hProg
+                obtain ⟨hf1, hf2, hProgEq⟩ := prog_form a1 a2 a3 P1 P2 hProgNe
+                -- Deferred: well-typedness of the conclusion (needs numeral bounds).
+                have hbt : RuleProofs.eo_has_bool_type (mkConcl a1 a2 a3) := by
+                  sorry
+                rw [hProgEq]
+                refine ⟨?_, ?_⟩
+                · intro hEv
+                  have h1t : eo_interprets M (mkGeqEq a2 a1) true := by
+                    have h := hEv.true_here P1 (by simp)
+                    rwa [hf1] at h
+                  have h2t : eo_interprets M (mkGeq1Eq a2) true := by
+                    have h := hEv.true_here P2 (by simp)
+                    rwa [hf2] at h
+                  exact re_loop_star_canonical_true M hM a1 a2 a3 hbt h1t h2t
+                · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _ hbt

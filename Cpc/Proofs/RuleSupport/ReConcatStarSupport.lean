@@ -232,6 +232,86 @@ theorem nativeReLoopRec_mk_star_ext
           Bool.or_eq_true]
         exact Or.inr hMem
 
+/-! ## Nullable absorption: `Σ* · r₁ · t = Σ* · t` for nullable `r₁`
+
+`Σ* = re.* re.allchar = native_re_all` accepts every *valid* string, and the
+`smt_value_rel` on `RegLan` only quantifies over valid strings, so the absorption
+holds at the `native_str_in_re` level even though it can fail at the raw
+`nativeListInRe` level (a `comp`-style `r₁` can match invalid characters). -/
+
+theorem native_str_in_re_all_concat_nullable_absorb
+    (r1 t : native_RegLan) (hNull : native_re_nullable r1 = true)
+    (s : native_String) (hValid : native_string_valid s = true) :
+    native_str_in_re s
+        (native_re_mk_concat native_re_all (native_re_mk_concat r1 t)) =
+      native_str_in_re s (native_re_mk_concat native_re_all t) := by
+  rw [native_str_in_re_eq_nativeListInRe s _ hValid,
+    native_str_in_re_eq_nativeListInRe s _ hValid]
+  have hsValid : s.all native_char_valid = true := by
+    simpa [native_string_valid] using hValid
+  apply Bool.eq_iff_iff.mpr
+  constructor
+  · intro h
+    rcases (nativeListInRe_mk_concat_true_iff_exists_append s native_re_all
+        (native_re_mk_concat r1 t)).1 h with ⟨u, w, hUW, hU, hW⟩
+    rcases (nativeListInRe_mk_concat_true_iff_exists_append w r1 t).1 hW with
+      ⟨v, z, hVZ, hV, hZ⟩
+    have hsplit : u ++ (v ++ z) = s := by rw [hVZ, hUW]
+    have huvValid : (u ++ v).all native_char_valid = true := by
+      have := hsValid
+      rw [← hsplit, List.all_append, List.all_append] at this
+      rw [List.all_append]
+      simp only [Bool.and_eq_true] at this ⊢
+      exact ⟨this.1, this.2.1⟩
+    apply (nativeListInRe_mk_concat_true_iff_exists_append s native_re_all t).2
+    refine ⟨u ++ v, z, ?_, ?_, hZ⟩
+    · rw [List.append_assoc, hVZ, hUW]
+    · exact (nativeListInRe_re_all_true_iff (u ++ v)).2 huvValid
+  · intro h
+    rcases (nativeListInRe_mk_concat_true_iff_exists_append s native_re_all t).1 h with
+      ⟨u, z, hUZ, hU, hZ⟩
+    apply (nativeListInRe_mk_concat_true_iff_exists_append s native_re_all
+      (native_re_mk_concat r1 t)).2
+    refine ⟨u, z, hUZ, hU, ?_⟩
+    apply (nativeListInRe_mk_concat_true_iff_exists_append z r1 t).2
+    refine ⟨[], z, by simp, ?_, hZ⟩
+    simpa [nativeListInRe] using hNull
+
+/-- Left variant: `r₁ · (Σ* · t) = Σ* · t` for nullable `r₁` (over valid strings). -/
+theorem native_str_in_re_nullable_concat_all_absorb
+    (r1 t : native_RegLan) (hNull : native_re_nullable r1 = true)
+    (s : native_String) (hValid : native_string_valid s = true) :
+    native_str_in_re s
+        (native_re_mk_concat r1 (native_re_mk_concat native_re_all t)) =
+      native_str_in_re s (native_re_mk_concat native_re_all t) := by
+  rw [native_str_in_re_eq_nativeListInRe s _ hValid,
+    native_str_in_re_eq_nativeListInRe s _ hValid]
+  have hsValid : s.all native_char_valid = true := by
+    simpa [native_string_valid] using hValid
+  apply Bool.eq_iff_iff.mpr
+  constructor
+  · intro h
+    rcases (nativeListInRe_mk_concat_true_iff_exists_append s r1
+        (native_re_mk_concat native_re_all t)).1 h with ⟨v, w, hVW, hV, hW⟩
+    rcases (nativeListInRe_mk_concat_true_iff_exists_append w native_re_all t).1 hW with
+      ⟨a, b, hAB, hA, hB⟩
+    have hsplit : v ++ (a ++ b) = s := by rw [hAB, hVW]
+    have hvaValid : (v ++ a).all native_char_valid = true := by
+      have := hsValid
+      rw [← hsplit, List.all_append, List.all_append] at this
+      rw [List.all_append]
+      simp only [Bool.and_eq_true] at this ⊢
+      exact ⟨this.1, this.2.1⟩
+    apply (nativeListInRe_mk_concat_true_iff_exists_append s native_re_all t).2
+    refine ⟨v ++ a, b, ?_, ?_, hB⟩
+    · rw [List.append_assoc, hAB, hVW]
+    · exact (nativeListInRe_re_all_true_iff (v ++ a)).2 hvaValid
+  · intro h
+    apply (nativeListInRe_mk_concat_true_iff_exists_append s r1
+      (native_re_mk_concat native_re_all t)).2
+    refine ⟨[], s, by simp, ?_, h⟩
+    simpa [nativeListInRe] using hNull
+
 /-! ## Bridge to `smt_value_rel` -/
 
 /-- Build a `RegLan` semantic equality from extensional membership equality. -/
