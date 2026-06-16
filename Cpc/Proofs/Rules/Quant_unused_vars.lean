@@ -10732,6 +10732,49 @@ private theorem smtx_model_eval_eq_of_closed_nil_scannerModelRel
   exact smt_model_eval_eq_of_closedIn t [] M N hClosed
     (model_agrees_on_env_nil_of_globals hRel.globals)
 
+private theorem model_agrees_on_env_of_scannerModelRel_bvs
+    {xs bvs : Term} {vars : List SmtVarKey} {M N : SmtModel}
+    (hXsVar : eo_var_list xs)
+    (hBvsEnv : EoSmtVarEnv bvs vars)
+    (hRel : scannerModelRel xs bvs M N) :
+    model_agrees_on_env vars M N := by
+  refine ⟨hRel.globals, ?_⟩
+  intro s T hMem
+  rcases eo_smt_var_env_var_list_mem_of_mem hBvsEnv hMem with
+    ⟨s', Tm, hKey, hTermMem⟩
+  have hs : s = s' := congrArg Prod.fst hKey
+  have hT : T = __eo_to_smt_type Tm := congrArg Prod.snd hKey
+  subst s
+  subst T
+  have hBvsVar : eo_var_list bvs :=
+    eo_var_list_of_env hBvsEnv
+  have hBvsHit :
+      __eo_is_neg
+          (__eo_list_find Term.__eo_List_cons bvs
+            (Term.Var (Term.String s') Tm)) =
+        Term.Boolean false :=
+    eo_is_neg_list_find_false_of_var_list_mem
+      hBvsVar (term_var_string_ne_stuck s' Tm) hTermMem
+  exact hRel.vars_eq s' Tm (by
+    by_cases hXsMem :
+        eo_var_list_mem (Term.Var (Term.String s') Tm) xs
+    · have hXsHit :
+          __eo_is_neg
+              (__eo_list_find Term.__eo_List_cons xs
+                (Term.Var (Term.String s') Tm)) =
+            Term.Boolean false :=
+        eo_is_neg_list_find_false_of_var_list_mem
+          hXsVar (term_var_string_ne_stuck s' Tm) hXsMem
+      simp [__eo_ite, hXsHit, hBvsHit, native_ite, native_teq]
+    · have hXsMiss :
+          __eo_is_neg
+              (__eo_list_find Term.__eo_List_cons xs
+                (Term.Var (Term.String s') Tm)) =
+            Term.Boolean true :=
+        eo_is_neg_list_find_true_of_var_list_not_mem
+          hXsVar (term_var_string_ne_stuck s' Tm) hXsMem
+      simp [__eo_ite, hXsMiss, hBvsHit, native_ite, native_teq])
+
 private theorem smtx_model_eval_apply_eq_of_eval_eq_of_globals
     {M N : SmtModel} (hAgree : model_agrees_on_globals M N)
     (f a : SmtTerm) :
