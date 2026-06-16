@@ -125,6 +125,164 @@ private theorem bvxor_payload (w : Nat) (cn an : Int)
     rw [e1, bv_toInt_emod, BitVec.toNat_xor,
         ofInt_toNat_canonical w cn hc0 hc1, ofInt_toNat_canonical w an ha0 ha1]
 
+/- ===== Value-level eval lemmas ===== -/
+
+private theorem eval_num (M : SmtModel) (n : Int) :
+    __smtx_model_eval M (__eo_to_smt (Term.Numeral n)) = SmtValue.Numeral n := by
+  show __smtx_model_eval M (SmtTerm.Numeral n) = SmtValue.Numeral n
+  simp only [__smtx_model_eval]
+
+private theorem eval_bin (M : SmtModel) (w n : Int) :
+    __smtx_model_eval M (__eo_to_smt (Term.Binary w n)) = SmtValue.Binary w n := by
+  show __smtx_model_eval M (SmtTerm.Binary w n) = SmtValue.Binary w n
+  simp only [__smtx_model_eval]
+
+private theorem eval_extract (M : SmtModel) (X : Term) (hi lo w xn : Int)
+    (hX : __smtx_model_eval M (__eo_to_smt X) = SmtValue.Binary w xn) :
+    __smtx_model_eval M
+        (__eo_to_smt (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral hi)
+          (Term.Numeral lo)) X))
+      = __smtx_model_eval_extract (SmtValue.Numeral hi) (SmtValue.Numeral lo)
+          (SmtValue.Binary w xn) := by
+  have ht : __eo_to_smt (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral hi)
+        (Term.Numeral lo)) X)
+      = SmtTerm.extract (SmtTerm.Numeral hi) (SmtTerm.Numeral lo) (__eo_to_smt X) := rfl
+  rw [ht]; simp only [__smtx_model_eval]; rw [hX]
+
+private theorem eval_concat (M : SmtModel) (X Y : Term) (w1 n1 w2 n2 : Int)
+    (hX : __smtx_model_eval M (__eo_to_smt X) = SmtValue.Binary w1 n1)
+    (hY : __smtx_model_eval M (__eo_to_smt Y) = SmtValue.Binary w2 n2) :
+    __smtx_model_eval M
+        (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.concat) X) Y))
+      = __smtx_model_eval_concat (SmtValue.Binary w1 n1) (SmtValue.Binary w2 n2) := by
+  have ht : __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.concat) X) Y)
+      = SmtTerm.concat (__eo_to_smt X) (__eo_to_smt Y) := rfl
+  rw [ht]; simp only [__smtx_model_eval]; rw [hX, hY]
+
+private theorem eval_bvand (M : SmtModel) (X Y : Term) (w1 n1 w2 n2 : Int)
+    (hX : __smtx_model_eval M (__eo_to_smt X) = SmtValue.Binary w1 n1)
+    (hY : __smtx_model_eval M (__eo_to_smt Y) = SmtValue.Binary w2 n2) :
+    __smtx_model_eval M
+        (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvand) X) Y))
+      = __smtx_model_eval_bvand (SmtValue.Binary w1 n1) (SmtValue.Binary w2 n2) := by
+  have ht : __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvand) X) Y)
+      = SmtTerm.bvand (__eo_to_smt X) (__eo_to_smt Y) := rfl
+  rw [ht]; simp only [__smtx_model_eval]; rw [hX, hY]
+
+/- ===== Arithmetic computations on values ===== -/
+
+private theorem nat_split_mod (D k m : Nat) (hkm : k ≤ m) :
+    D % 2^m = ((D / 2^k) % 2^(m-k)) * 2^k + D % 2^k := by
+  have hpow : (2:Nat)^m = 2^k * 2^(m-k) := by rw [← Nat.pow_add]; congr 1; omega
+  rw [hpow, Nat.mod_mul, Nat.add_comm, Nat.mul_comm]
+
+-- extract value, payload/width as casts of Nat ops.
+private theorem extract_valN (W : Nat) (Xn : Int) (hi lo : Nat)
+    (hX0 : 0 ≤ Xn) (hlo : lo ≤ hi + 1) :
+    __smtx_model_eval_extract (SmtValue.Numeral ↑hi) (SmtValue.Numeral ↑lo)
+        (SmtValue.Binary ↑W Xn)
+      = SmtValue.Binary ↑(hi + 1 - lo) ↑((Xn.toNat / 2^lo) % 2^(hi + 1 - lo)) := by
+  obtain ⟨N, rfl⟩ : ∃ N : Nat, Xn = (↑N : Int) := ⟨Xn.toNat, (Int.toNat_of_nonneg hX0).symm⟩
+  simp only [__smtx_model_eval_extract, native_zplus, native_zneg,
+    native_mod_total, native_binary_extract, native_div_total, Int.toNat_natCast]
+  have hw : (↑hi + 1 + -↑lo : Int) = ↑(hi + 1 - lo) := by omega
+  rw [hw, natpow2_eq lo, natpow2_eq (hi + 1 - lo),
+      show ((2:Int)^lo) = ((2^lo:Nat):Int) from by norm_cast,
+      show ((2:Int)^(hi+1-lo)) = ((2^(hi+1-lo):Nat):Int) from by norm_cast]
+  norm_cast
+
+private theorem bvand_valN (W : Nat) (cn an : Int)
+    (hc0 : 0 ≤ cn) (hc1 : cn < 2^W) (ha0 : 0 ≤ an) (ha1 : an < 2^W) :
+    __smtx_model_eval_bvand (SmtValue.Binary ↑W cn) (SmtValue.Binary ↑W an)
+      = SmtValue.Binary ↑W ↑(cn.toNat &&& an.toNat) := by
+  simp only [__smtx_model_eval_bvand]
+  rw [bvand_payload W cn an hc0 hc1 ha0 ha1]
+
+private theorem concat_valN (w1 p1 w2 p2 : Nat) :
+    __smtx_model_eval_concat (SmtValue.Binary ↑w1 ↑p1) (SmtValue.Binary ↑w2 ↑p2)
+      = SmtValue.Binary ↑(w1 + w2) ↑((p1 * 2^w2 + p2) % 2^(w1 + w2)) := by
+  simp only [__smtx_model_eval_concat, native_zplus, native_mod_total,
+    native_binary_concat, native_zmult]
+  have hw : (↑w1 + ↑w2 : Int) = ↑(w1 + w2) := by norm_cast
+  rw [hw, natpow2_eq w2, natpow2_eq (w1 + w2),
+      show ((2:Int)^w2) = ((2^w2:Nat):Int) from by norm_cast,
+      show ((2:Int)^(w1+w2)) = ((2^(w1+w2):Nat):Int) from by norm_cast]
+  norm_cast
+
+private theorem natCast_mod_lt (x m : Nat) : ((x % 2^m : Nat) : Int) < (2:Int)^m := by
+  have h : x % 2^m < 2^m := Nat.mod_lt _ (Nat.two_pow_pos m)
+  exact_mod_cast h
+
+-- bvand of two equal-range slices, in closed Nat form.
+private theorem slice_bvand (W : Nat) (cn an : Int)
+    (hc0 : 0 ≤ cn) (ha0 : 0 ≤ an) (hi lo : Nat) (hlo : lo ≤ hi + 1) :
+    __smtx_model_eval_bvand
+        (__smtx_model_eval_extract (SmtValue.Numeral ↑hi) (SmtValue.Numeral ↑lo)
+          (SmtValue.Binary ↑W cn))
+        (__smtx_model_eval_extract (SmtValue.Numeral ↑hi) (SmtValue.Numeral ↑lo)
+          (SmtValue.Binary ↑W an))
+      = SmtValue.Binary ↑(hi + 1 - lo)
+          ↑(((cn.toNat &&& an.toNat) / 2^lo) % 2^(hi + 1 - lo)) := by
+  rw [extract_valN W cn hi lo hc0 hlo, extract_valN W an hi lo ha0 hlo,
+      bvand_valN (hi + 1 - lo) _ _ (Int.natCast_nonneg _) (natCast_mod_lt _ _)
+        (Int.natCast_nonneg _) (natCast_mod_lt _ _)]
+  congr 2
+  rw [Int.toNat_natCast, Int.toNat_natCast,
+      ← op_mod2pow Nat.testBit_and (by decide), ← op_div2pow Nat.testBit_and]
+
+-- The value-level split: bvand over [s:0] = concat of bvand over [s:k] and [k-1:0].
+private theorem concat_split_bvand (W : Nat) (cn an : Int)
+    (hc0 : 0 ≤ cn) (ha0 : 0 ≤ an) (s k : Nat) (hk1 : 1 ≤ k) (hks : k ≤ s + 1) :
+    __smtx_model_eval_bvand
+        (__smtx_model_eval_extract (SmtValue.Numeral ↑s) (SmtValue.Numeral (0:Int))
+          (SmtValue.Binary ↑W cn))
+        (__smtx_model_eval_extract (SmtValue.Numeral ↑s) (SmtValue.Numeral (0:Int))
+          (SmtValue.Binary ↑W an))
+      = __smtx_model_eval_concat
+          (__smtx_model_eval_bvand
+            (__smtx_model_eval_extract (SmtValue.Numeral ↑s) (SmtValue.Numeral ↑k)
+              (SmtValue.Binary ↑W cn))
+            (__smtx_model_eval_extract (SmtValue.Numeral ↑s) (SmtValue.Numeral ↑k)
+              (SmtValue.Binary ↑W an)))
+          (__smtx_model_eval_bvand
+            (__smtx_model_eval_extract (SmtValue.Numeral ↑(k-1)) (SmtValue.Numeral (0:Int))
+              (SmtValue.Binary ↑W cn))
+            (__smtx_model_eval_extract (SmtValue.Numeral ↑(k-1)) (SmtValue.Numeral (0:Int))
+              (SmtValue.Binary ↑W an))) := by
+  have e0 : ((0:Int)) = ((0:Nat):Int) := by norm_cast
+  rw [e0, slice_bvand W cn an hc0 ha0 s 0 (by omega),
+      slice_bvand W cn an hc0 ha0 s k (by omega),
+      slice_bvand W cn an hc0 ha0 (k-1) 0 (by omega)]
+  simp only [Nat.sub_zero, Nat.pow_zero, Nat.div_one]
+  rw [Nat.sub_add_cancel hk1, concat_valN (s + 1 - k) _ k _, Nat.sub_add_cancel hks]
+  congr 1
+  norm_cast
+  rw [← nat_split_mod (cn.toNat &&& an.toNat) k (s + 1) hks, Nat.mod_mod]
+
+-- AND with the all-ones mask of width m is the identity on m-bit values.
+private theorem bvand_nil (m : Nat) (pa : Int) (h0 : 0 ≤ pa) (h1 : pa < 2^m) :
+    __smtx_model_eval_bvand (SmtValue.Binary ↑m pa) (SmtValue.Binary ↑m ↑(2^m - 1))
+      = SmtValue.Binary ↑m pa := by
+  have hpos : (1:Int) ≤ (2:Int)^m := by
+    have : (1:Nat) ≤ 2^m := Nat.one_le_two_pow
+    exact_mod_cast this
+  have h2 : (2:Int)^m = ((2^m : Nat) : Int) := by norm_cast
+  rw [bvand_valN m pa _ h0 h1 (by omega) (by omega)]
+  congr 1
+  have htoNat : ((2:Int)^m - 1).toNat = 2^m - 1 := by rw [h2]; omega
+  rw [htoNat]
+  have hpaN : pa.toNat < 2^m := by omega
+  have hx : pa.toNat &&& (2^m - 1) = pa.toNat := by
+    apply Nat.eq_of_testBit_eq; intro i
+    rw [Nat.testBit_and, Nat.testBit_two_pow_sub_one]
+    by_cases hi : i < m
+    · simp [hi]
+    · have hge : 2^m ≤ 2^i := Nat.pow_le_pow_right (by omega) (by omega)
+      rw [Nat.testBit_lt_two_pow (by omega : pa.toNat < 2^i)]
+      simp
+  rw [hx, Int.toNat_of_nonneg h0]
+
+
 theorem cmd_step_bv_bitwise_slicing_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
