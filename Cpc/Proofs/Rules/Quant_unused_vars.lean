@@ -3088,6 +3088,161 @@ private theorem smtx_typeof_bvsdivo_first_arg_none
   rw [hx]
   rfl
 
+private theorem smtx_typeof_bvuaddo_second_arg_none
+    (x y : SmtTerm) :
+    __smtx_typeof y = SmtType.None ->
+    __smtx_typeof (SmtTerm.bvuaddo x y) = SmtType.None := by
+  intro hy
+  rw [__smtx_typeof.eq_def] <;> simp only
+  rw [hy]
+  exact smtx_typeof_bv_op_2_ret_type_second_none
+    (__smtx_typeof x) SmtType.Bool
+
+private theorem smtx_typeof_bvsaddo_second_arg_none
+    (x y : SmtTerm) :
+    __smtx_typeof y = SmtType.None ->
+    __smtx_typeof (SmtTerm.bvsaddo x y) = SmtType.None := by
+  intro hy
+  rw [__smtx_typeof.eq_def] <;> simp only
+  rw [hy]
+  exact smtx_typeof_bv_op_2_ret_type_second_none
+    (__smtx_typeof x) SmtType.Bool
+
+private theorem smtx_typeof_bvumulo_second_arg_none
+    (x y : SmtTerm) :
+    __smtx_typeof y = SmtType.None ->
+    __smtx_typeof (SmtTerm.bvumulo x y) = SmtType.None := by
+  intro hy
+  rw [__smtx_typeof.eq_def] <;> simp only
+  rw [hy]
+  exact smtx_typeof_bv_op_2_ret_type_second_none
+    (__smtx_typeof x) SmtType.Bool
+
+private theorem smtx_typeof_bvsmulo_second_arg_none
+    (x y : SmtTerm) :
+    __smtx_typeof y = SmtType.None ->
+    __smtx_typeof (SmtTerm.bvsmulo x y) = SmtType.None := by
+  intro hy
+  rw [__smtx_typeof.eq_def] <;> simp only
+  rw [hy]
+  exact smtx_typeof_bv_op_2_ret_type_second_none
+    (__smtx_typeof x) SmtType.Bool
+
+private theorem smtx_typeof_bvusubo_second_arg_none
+    (x y : SmtTerm) :
+    __smtx_typeof y = SmtType.None ->
+    __smtx_typeof (SmtTerm.bvusubo x y) = SmtType.None := by
+  intro hy
+  rw [__smtx_typeof.eq_def] <;> simp only
+  rw [hy]
+  exact smtx_typeof_bv_op_2_ret_type_second_none
+    (__smtx_typeof x) SmtType.Bool
+
+private theorem smtx_typeof_bvssubo_second_arg_none
+    (x y : SmtTerm) :
+    __smtx_typeof y = SmtType.None ->
+    __smtx_typeof (SmtTerm.bvssubo x y) = SmtType.None := by
+  intro hy
+  rw [__smtx_typeof.eq_def] <;> simp only
+  rw [hy]
+  exact smtx_typeof_bv_op_2_ret_type_second_none
+    (__smtx_typeof x) SmtType.Bool
+
+private theorem smtx_typeof_bvsdivo_second_arg_none
+    (x y : SmtTerm) :
+    __smtx_typeof y = SmtType.None ->
+    __smtx_typeof (SmtTerm.bvsdivo x y) = SmtType.None := by
+  intro hy
+  rw [__smtx_typeof.eq_def] <;> simp only
+  rw [hy]
+  exact smtx_typeof_bv_op_2_ret_type_second_none
+    (__smtx_typeof x) SmtType.Bool
+
+private theorem smtx_typeof_eo_to_smt_apply_apply_bv_overflow_second_head_none
+    (q binders a : Term)
+    (hOverflow :
+      ∃ z : Term,
+        q = Term.Apply (Term.UOp UserOp.bvuaddo) z ∨
+          q = Term.Apply (Term.UOp UserOp.bvsaddo) z ∨
+          q = Term.Apply (Term.UOp UserOp.bvumulo) z ∨
+          q = Term.Apply (Term.UOp UserOp.bvsmulo) z ∨
+          q = Term.Apply (Term.UOp UserOp.bvusubo) z ∨
+          q = Term.Apply (Term.UOp UserOp.bvssubo) z ∨
+          q = Term.Apply (Term.UOp UserOp.bvsdivo) z)
+    (hBindersNone :
+      __smtx_typeof (__eo_to_smt binders) = SmtType.None) :
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply q binders) a)) =
+      SmtType.None := by
+  have hApplyHeadNone :
+      ∀ head : SmtTerm,
+        (∀ s d i j, head ≠ SmtTerm.DtSel s d i j) ->
+        (∀ s d i, head ≠ SmtTerm.DtTester s d i) ->
+        __smtx_typeof head = SmtType.None ->
+        __smtx_typeof (SmtTerm.Apply head (__eo_to_smt a)) =
+          SmtType.None := by
+    intro head hSel hTester hHead
+    exact smtx_typeof_apply_head_none_of_non_datatype_head
+      head (__eo_to_smt a) hSel hTester hHead
+  rcases hOverflow with
+    ⟨z, hBvuaddo | hBvsaddo | hBvumulo | hBvsmulo |
+      hBvusubo | hBvssubo | hBvsdivo⟩
+  · subst q
+    change __smtx_typeof
+        (SmtTerm.Apply (SmtTerm.bvuaddo (__eo_to_smt z)
+          (__eo_to_smt binders)) (__eo_to_smt a)) = SmtType.None
+    exact hApplyHeadNone _ (by intro s d i j h; cases h)
+      (by intro s d i h; cases h)
+      (smtx_typeof_bvuaddo_second_arg_none
+        (__eo_to_smt z) (__eo_to_smt binders) hBindersNone)
+  · subst q
+    change __smtx_typeof
+        (SmtTerm.Apply (SmtTerm.bvsaddo (__eo_to_smt z)
+          (__eo_to_smt binders)) (__eo_to_smt a)) = SmtType.None
+    exact hApplyHeadNone _ (by intro s d i j h; cases h)
+      (by intro s d i h; cases h)
+      (smtx_typeof_bvsaddo_second_arg_none
+        (__eo_to_smt z) (__eo_to_smt binders) hBindersNone)
+  · subst q
+    change __smtx_typeof
+        (SmtTerm.Apply (SmtTerm.bvumulo (__eo_to_smt z)
+          (__eo_to_smt binders)) (__eo_to_smt a)) = SmtType.None
+    exact hApplyHeadNone _ (by intro s d i j h; cases h)
+      (by intro s d i h; cases h)
+      (smtx_typeof_bvumulo_second_arg_none
+        (__eo_to_smt z) (__eo_to_smt binders) hBindersNone)
+  · subst q
+    change __smtx_typeof
+        (SmtTerm.Apply (SmtTerm.bvsmulo (__eo_to_smt z)
+          (__eo_to_smt binders)) (__eo_to_smt a)) = SmtType.None
+    exact hApplyHeadNone _ (by intro s d i j h; cases h)
+      (by intro s d i h; cases h)
+      (smtx_typeof_bvsmulo_second_arg_none
+        (__eo_to_smt z) (__eo_to_smt binders) hBindersNone)
+  · subst q
+    change __smtx_typeof
+        (SmtTerm.Apply (SmtTerm.bvusubo (__eo_to_smt z)
+          (__eo_to_smt binders)) (__eo_to_smt a)) = SmtType.None
+    exact hApplyHeadNone _ (by intro s d i j h; cases h)
+      (by intro s d i h; cases h)
+      (smtx_typeof_bvusubo_second_arg_none
+        (__eo_to_smt z) (__eo_to_smt binders) hBindersNone)
+  · subst q
+    change __smtx_typeof
+        (SmtTerm.Apply (SmtTerm.bvssubo (__eo_to_smt z)
+          (__eo_to_smt binders)) (__eo_to_smt a)) = SmtType.None
+    exact hApplyHeadNone _ (by intro s d i j h; cases h)
+      (by intro s d i h; cases h)
+      (smtx_typeof_bvssubo_second_arg_none
+        (__eo_to_smt z) (__eo_to_smt binders) hBindersNone)
+  · subst q
+    change __smtx_typeof
+        (SmtTerm.Apply (SmtTerm.bvsdivo (__eo_to_smt z)
+          (__eo_to_smt binders)) (__eo_to_smt a)) = SmtType.None
+    exact hApplyHeadNone _ (by intro s d i j h; cases h)
+      (by intro s d i h; cases h)
+      (smtx_typeof_bvsdivo_second_arg_none
+        (__eo_to_smt z) (__eo_to_smt binders) hBindersNone)
+
 private theorem smtx_typeof_eo_to_smt_apply_apply_bv_overflow_head_none
     (q binders a : Term)
     (hOverflow :
@@ -3194,6 +3349,52 @@ private theorem smtx_typeof_eo_to_smt_apply_apply_bv_pred_to_bv_head_none
     exact smtx_typeof_bvslt_first_arg_none
       (__eo_to_smt binders) (__eo_to_smt a) hBindersNone
 
+private theorem smtx_typeof_eo_to_smt_apply_apply_bv_pred_to_bv_second_head_none
+    (q binders a : Term)
+    (hPredToBv :
+      ∃ z : Term,
+        q = Term.Apply (Term.UOp UserOp.bvultbv) z ∨
+          q = Term.Apply (Term.UOp UserOp.bvsltbv) z)
+    (hBindersNone :
+      __smtx_typeof (__eo_to_smt binders) = SmtType.None) :
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply q binders) a)) =
+      SmtType.None := by
+  rcases hPredToBv with ⟨z, hBvultbv | hBvsltbv⟩
+  · subst q
+    change
+      __smtx_typeof
+          (SmtTerm.Apply
+            (SmtTerm.ite
+              (SmtTerm.bvult (__eo_to_smt z) (__eo_to_smt binders))
+              (SmtTerm.Binary 1 1) (SmtTerm.Binary 1 0))
+            (__eo_to_smt a)) =
+        SmtType.None
+    apply smtx_typeof_apply_head_none_of_non_datatype_head
+    · intro s d i j h
+      cases h
+    · intro s d i h
+      cases h
+    · apply smtx_typeof_ite_first_arg_none
+      exact smtx_typeof_bvult_second_arg_none
+        (__eo_to_smt z) (__eo_to_smt binders) hBindersNone
+  · subst q
+    change
+      __smtx_typeof
+          (SmtTerm.Apply
+            (SmtTerm.ite
+              (SmtTerm.bvslt (__eo_to_smt z) (__eo_to_smt binders))
+              (SmtTerm.Binary 1 1) (SmtTerm.Binary 1 0))
+            (__eo_to_smt a)) =
+        SmtType.None
+    apply smtx_typeof_apply_head_none_of_non_datatype_head
+    · intro s d i j h
+      cases h
+    · intro s d i h
+      cases h
+    · apply smtx_typeof_ite_first_arg_none
+      exact smtx_typeof_bvslt_second_arg_none
+        (__eo_to_smt z) (__eo_to_smt binders) hBindersNone
+
 private theorem smtx_typeof_eo_to_smt_apply_apply_distinct_head_none
     (binders a : Term)
     (hElem : __eo_to_smt_typed_list_elem_type binders = SmtType.None) :
@@ -3266,6 +3467,35 @@ private theorem smtx_typeof_eo_to_smt_apply_apply_from_bools_head_none
     (__eo_to_smt binders) (SmtTerm.Binary 1 1) (SmtTerm.Binary 1 0)
     hBindersNone
 
+private theorem smtx_typeof_eo_to_smt_apply_apply_from_bools_second_head_none
+    (q binders a : Term)
+    (hFromBools :
+      ∃ z : Term, q = Term.Apply (Term.UOp UserOp._at_from_bools) z)
+    (hBindersNone :
+      __smtx_typeof (__eo_to_smt binders) = SmtType.None) :
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply q binders) a)) =
+      SmtType.None := by
+  rcases hFromBools with ⟨z, hFromBools⟩
+  subst q
+  change
+    __smtx_typeof
+        (SmtTerm.Apply
+          (SmtTerm.concat
+            (SmtTerm.ite (__eo_to_smt z) (SmtTerm.Binary 1 1)
+              (SmtTerm.Binary 1 0))
+            (__eo_to_smt binders))
+          (__eo_to_smt a)) =
+      SmtType.None
+  apply smtx_typeof_apply_head_none_of_non_datatype_head
+  · intro s d i j h
+    cases h
+  · intro s d i h
+    cases h
+  · exact smtx_typeof_concat_second_arg_none
+      (SmtTerm.ite (__eo_to_smt z) (SmtTerm.Binary 1 1)
+        (SmtTerm.Binary 1 0))
+      (__eo_to_smt binders) hBindersNone
+
 private theorem smtx_typeof_eo_to_smt_apply_apply_list_set_insert_head_none
     (x ys a : Term) :
     __smtx_typeof
@@ -3282,6 +3512,259 @@ private theorem smtx_typeof_eo_to_smt_apply_apply_list_set_insert_head_none
           (__eo_to_smt a)) =
       SmtType.None
   simp [__eo_to_smt_set_insert]
+
+private theorem smtx_typeof_eo_to_smt_set_insert_arg_none :
+    ∀ xs a,
+      __smtx_typeof a = SmtType.None ->
+      __smtx_typeof (__eo_to_smt_set_insert xs a) = SmtType.None := by
+  intro xs a ha
+  cases xs <;> try simp [__eo_to_smt_set_insert]
+  case Apply f tail =>
+    cases f <;> try simp [__eo_to_smt_set_insert]
+    case UOp op =>
+      cases op <;> simp [__eo_to_smt_set_insert, ha, native_ite, native_Teq]
+    case Apply f' head =>
+      cases f' <;> try simp [__eo_to_smt_set_insert]
+      case UOp op =>
+        cases op <;> try simp [__eo_to_smt_set_insert]
+        have hTail :
+            __smtx_typeof (__eo_to_smt_set_insert tail a) =
+              SmtType.None :=
+          smtx_typeof_eo_to_smt_set_insert_arg_none tail a ha
+        change
+          __smtx_typeof
+              (SmtTerm.set_union
+                (SmtTerm.set_singleton (__eo_to_smt head))
+                (__eo_to_smt_set_insert tail a)) =
+            SmtType.None
+        exact
+          smtx_typeof_set_union_second_arg_none
+            (SmtTerm.set_singleton (__eo_to_smt head))
+            (__eo_to_smt_set_insert tail a) hTail
+termination_by xs a _ => xs
+
+private theorem eo_to_smt_set_insert_ne_dt_sel_of_base
+    (xs : Term) (base : SmtTerm)
+    (hBase : ∀ s d i j, base ≠ SmtTerm.DtSel s d i j)
+    (s : native_String) (d : SmtDatatype) (i j : native_Nat) :
+    __eo_to_smt_set_insert xs base ≠ SmtTerm.DtSel s d i j := by
+  intro h
+  cases xs <;> try cases h
+  case Apply f tail =>
+    cases f <;> try cases h
+    case UOp op =>
+      cases op <;> try cases h
+      case _at__at_TypedList_nil =>
+        cases hTy :
+            native_Teq (__smtx_typeof base)
+              (SmtType.Set (__eo_to_smt_type tail)) <;>
+          simp [__eo_to_smt_set_insert, hTy, native_ite] at h
+        exact hBase s d i j h
+    case Apply f' head =>
+      cases f' <;> try cases h
+      case UOp op =>
+        cases op <;> cases h
+
+private theorem eo_to_smt_set_insert_ne_dt_tester_of_base
+    (xs : Term) (base : SmtTerm)
+    (hBase : ∀ s d i, base ≠ SmtTerm.DtTester s d i)
+    (s : native_String) (d : SmtDatatype) (i : native_Nat) :
+    __eo_to_smt_set_insert xs base ≠ SmtTerm.DtTester s d i := by
+  intro h
+  cases xs <;> try cases h
+  case Apply f tail =>
+    cases f <;> try cases h
+    case UOp op =>
+      cases op <;> try cases h
+      case _at__at_TypedList_nil =>
+        cases hTy :
+            native_Teq (__smtx_typeof base)
+              (SmtType.Set (__eo_to_smt_type tail)) <;>
+          simp [__eo_to_smt_set_insert, hTy, native_ite] at h
+        exact hBase s d i h
+    case Apply f' head =>
+      cases f' <;> try cases h
+      case UOp op =>
+        cases op <;> cases h
+
+private theorem smtx_typeof_eo_to_smt_apply_apply_set_insert_second_head_none
+    (q binders a : Term)
+    (hSetInsert :
+      ∃ w : Term, q = Term.Apply (Term.UOp UserOp.set_insert) w)
+    (hBindersNone :
+      __smtx_typeof (__eo_to_smt binders) = SmtType.None)
+    (hBindersSel :
+      ∀ s d i j, __eo_to_smt binders ≠ SmtTerm.DtSel s d i j)
+    (hBindersTester :
+      ∀ s d i, __eo_to_smt binders ≠ SmtTerm.DtTester s d i) :
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply q binders) a)) =
+      SmtType.None := by
+  rcases hSetInsert with ⟨w, rfl⟩
+  change
+    __smtx_typeof
+        (SmtTerm.Apply
+          (__eo_to_smt_set_insert w (__eo_to_smt binders))
+          (__eo_to_smt a)) =
+      SmtType.None
+  apply smtx_typeof_apply_head_none_of_non_datatype_head
+  · intro s d i j h
+    exact
+      eo_to_smt_set_insert_ne_dt_sel_of_base
+        w (__eo_to_smt binders) hBindersSel s d i j h
+  · intro s d i h
+    exact
+      eo_to_smt_set_insert_ne_dt_tester_of_base
+        w (__eo_to_smt binders) hBindersTester s d i h
+  · exact
+      smtx_typeof_eo_to_smt_set_insert_arg_none
+        w (__eo_to_smt binders) hBindersNone
+
+private theorem smtx_typeof_eo_to_smt_exists_body_none :
+    ∀ xs body,
+      __smtx_typeof body = SmtType.None ->
+      __smtx_typeof (__eo_to_smt_exists xs body) = SmtType.None := by
+  intro xs body hBody
+  cases xs <;> try simp [__eo_to_smt_exists]
+  case __eo_List_nil =>
+    exact hBody
+  case Apply f tail =>
+    cases f <;> try simp [__eo_to_smt_exists]
+    case Apply f' head =>
+      cases f' <;> try simp [__eo_to_smt_exists]
+      case __eo_List_cons =>
+        cases head <;> try simp [__eo_to_smt_exists]
+        case Var name T =>
+          cases name <;> try simp [__eo_to_smt_exists]
+          case String s =>
+            have hTail :
+                __smtx_typeof (__eo_to_smt_exists tail body) =
+                  SmtType.None :=
+              smtx_typeof_eo_to_smt_exists_body_none tail body hBody
+            change
+              __smtx_typeof
+                  (SmtTerm.exists s (__eo_to_smt_type T)
+                    (__eo_to_smt_exists tail body)) =
+                SmtType.None
+            rw [smtx_typeof_exists_term_eq, hTail]
+            rfl
+termination_by xs body _ => xs
+
+private theorem eo_to_smt_exists_ne_dt_sel_of_body
+    (xs : Term) (body : SmtTerm)
+    (hBody : ∀ s d i j, body ≠ SmtTerm.DtSel s d i j)
+    (s : native_String) (d : SmtDatatype) (i j : native_Nat) :
+    __eo_to_smt_exists xs body ≠ SmtTerm.DtSel s d i j := by
+  intro h
+  cases xs
+  case __eo_List_nil =>
+    simp [__eo_to_smt_exists] at h
+    exact hBody s d i j h
+  case Apply f tail =>
+    cases f
+    case Apply f' head =>
+      cases f'
+      case __eo_List_cons =>
+        cases head
+        case Var name T =>
+          cases name <;> simp [__eo_to_smt_exists] at h
+        all_goals simp [__eo_to_smt_exists] at h
+      all_goals simp [__eo_to_smt_exists] at h
+    all_goals simp [__eo_to_smt_exists] at h
+  all_goals simp [__eo_to_smt_exists] at h
+
+private theorem eo_to_smt_exists_ne_dt_tester_of_body
+    (xs : Term) (body : SmtTerm)
+    (hBody : ∀ s d i, body ≠ SmtTerm.DtTester s d i)
+    (s : native_String) (d : SmtDatatype) (i : native_Nat) :
+    __eo_to_smt_exists xs body ≠ SmtTerm.DtTester s d i := by
+  intro h
+  cases xs
+  case __eo_List_nil =>
+    simp [__eo_to_smt_exists] at h
+    exact hBody s d i h
+  case Apply f tail =>
+    cases f
+    case Apply f' head =>
+      cases f'
+      case __eo_List_cons =>
+        cases head
+        case Var name T =>
+          cases name <;> simp [__eo_to_smt_exists] at h
+        all_goals simp [__eo_to_smt_exists] at h
+      all_goals simp [__eo_to_smt_exists] at h
+    all_goals simp [__eo_to_smt_exists] at h
+  all_goals simp [__eo_to_smt_exists] at h
+
+private theorem smtx_typeof_eo_to_smt_apply_apply_quant_second_head_none
+    (q binders a : Term)
+    (hQuant :
+      ∃ w : Term,
+        q = Term.Apply (Term.UOp UserOp.forall) w ∨
+          q = Term.Apply (Term.UOp UserOp.exists) w)
+    (hBindersNone :
+      __smtx_typeof (__eo_to_smt binders) = SmtType.None)
+    (hBindersSel :
+      ∀ s d i j, __eo_to_smt binders ≠ SmtTerm.DtSel s d i j)
+    (hBindersTester :
+      ∀ s d i, __eo_to_smt binders ≠ SmtTerm.DtTester s d i) :
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply q binders) a)) =
+      SmtType.None := by
+  rcases hQuant with ⟨w, hForall | hExists⟩
+  · subst q
+    by_cases hNil : w = Term.__eo_List_nil
+    · subst w
+      change
+        __smtx_typeof (SmtTerm.Apply SmtTerm.None (__eo_to_smt a)) =
+          SmtType.None
+      exact smtx_typeof_apply_none_head (__eo_to_smt a)
+    · change
+        __smtx_typeof
+            (SmtTerm.Apply
+              (__eo_to_smt (qforall w binders)) (__eo_to_smt a)) =
+          SmtType.None
+      rw [eo_to_smt_forall_eq w binders hNil]
+      apply smtx_typeof_apply_head_none_of_non_datatype_head
+      · intro s d i j h
+        cases h
+      · intro s d i h
+        cases h
+      · rw [typeof_not_eq]
+        have hExistsNone :
+            __smtx_typeof
+                (__eo_to_smt_exists w
+                  (SmtTerm.not (__eo_to_smt binders))) =
+              SmtType.None :=
+          smtx_typeof_eo_to_smt_exists_body_none w
+            (SmtTerm.not (__eo_to_smt binders))
+            (by rw [typeof_not_eq, hBindersNone]
+                simp [native_ite, native_Teq])
+        rw [hExistsNone]
+        simp [native_ite, native_Teq]
+  · subst q
+    by_cases hNil : w = Term.__eo_List_nil
+    · subst w
+      change
+        __smtx_typeof (SmtTerm.Apply SmtTerm.None (__eo_to_smt a)) =
+          SmtType.None
+      exact smtx_typeof_apply_none_head (__eo_to_smt a)
+    · change
+        __smtx_typeof
+            (SmtTerm.Apply
+              (__eo_to_smt (qexists w binders)) (__eo_to_smt a)) =
+          SmtType.None
+      rw [eo_to_smt_exists_eq w binders hNil]
+      apply smtx_typeof_apply_head_none_of_non_datatype_head
+      · intro s d i j h
+        exact
+          eo_to_smt_exists_ne_dt_sel_of_body
+            w (__eo_to_smt binders) hBindersSel s d i j h
+      · intro s d i h
+        exact
+          eo_to_smt_exists_ne_dt_tester_of_body
+            w (__eo_to_smt binders) hBindersTester s d i h
+      · exact
+          smtx_typeof_eo_to_smt_exists_body_none
+            w (__eo_to_smt binders) hBindersNone
 
 private theorem smtx_typeof_eo_to_smt_apply_apply_deq_diff_head_none
     (q binders a : Term)
@@ -3312,6 +3795,42 @@ private theorem smtx_typeof_eo_to_smt_apply_apply_deq_diff_head_none
     rw [hBindersNone]
     simp [__eo_to_smt_sets_deq_diff]
 
+private theorem smtx_typeof_eo_to_smt_apply_apply_deq_diff_second_head_none
+    (q binders a : Term)
+    (hDiff :
+      ∃ z : Term,
+        q = Term.Apply (Term.UOp UserOp._at_array_deq_diff) z ∨
+          q = Term.Apply (Term.UOp UserOp._at_sets_deq_diff) z)
+    (hBindersNone :
+      __smtx_typeof (__eo_to_smt binders) = SmtType.None) :
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply q binders) a)) =
+      SmtType.None := by
+  rcases hDiff with ⟨z, hArrayDiff | hSetDiff⟩
+  · subst q
+    change
+      __smtx_typeof
+          (SmtTerm.Apply
+            (__eo_to_smt_array_deq_diff (__eo_to_smt z)
+              (__smtx_typeof (__eo_to_smt z)) (__eo_to_smt binders)
+              (__smtx_typeof (__eo_to_smt binders)))
+            (__eo_to_smt a)) =
+        SmtType.None
+    rw [hBindersNone]
+    cases __smtx_typeof (__eo_to_smt z) <;>
+      simp [__eo_to_smt_array_deq_diff, smtx_typeof_apply_none_head]
+  · subst q
+    change
+      __smtx_typeof
+          (SmtTerm.Apply
+            (__eo_to_smt_sets_deq_diff (__eo_to_smt z)
+              (__smtx_typeof (__eo_to_smt z)) (__eo_to_smt binders)
+              (__smtx_typeof (__eo_to_smt binders)))
+            (__eo_to_smt a)) =
+        SmtType.None
+    rw [hBindersNone]
+    cases __smtx_typeof (__eo_to_smt z) <;>
+      simp [__eo_to_smt_sets_deq_diff, smtx_typeof_apply_none_head]
+
 private theorem smtx_typeof_str_substr_first_arg_none
     (x y z : SmtTerm) :
     __smtx_typeof x = SmtType.None ->
@@ -3319,6 +3838,15 @@ private theorem smtx_typeof_str_substr_first_arg_none
   intro hx
   rw [typeof_str_substr_eq, hx]
   rfl
+
+private theorem smtx_typeof_str_substr_third_arg_none
+    (x y z : SmtTerm) :
+    __smtx_typeof z = SmtType.None ->
+    __smtx_typeof (SmtTerm.str_substr x y z) = SmtType.None := by
+  intro hz
+  rw [typeof_str_substr_eq, hz]
+  cases __smtx_typeof x <;> cases __smtx_typeof y <;>
+    simp [__smtx_typeof_str_substr]
 
 private theorem smtx_typeof_not_arg_none
     (x : SmtTerm) :
@@ -3336,6 +3864,266 @@ private theorem smtx_typeof_choice_nth_body_none
   intro hBody
   rw [smtx_typeof_choice_nth_term_eq]
   simp [__smtx_typeof_choice_nth, hBody, native_ite, native_Teq]
+
+private theorem smtx_typeof_choice_nth_succ_eq_skolemize_of_non_none
+    (s : native_String) (T : SmtType) (body : SmtTerm) (n : native_Nat)
+    (hNN : term_has_non_none_type (SmtTerm.choice_nth s T body n.succ)) :
+    __smtx_typeof (SmtTerm.choice_nth s T body n.succ) =
+      __smtx_typeof (__eo_to_smt_quantifiers_skolemize body n) := by
+  cases body
+  case «exists» s' U body' =>
+    simpa [__eo_to_smt_quantifiers_skolemize] using
+      choice_nth_succ_typeof_tail_of_non_none hNN
+  all_goals
+    exfalso
+    unfold term_has_non_none_type at hNN
+    apply hNN
+    simp [__smtx_typeof, __smtx_typeof_choice_nth]
+
+private theorem quantifiers_skolemize_non_none_of_choice_nth_succ_non_none
+    (s : native_String) (T : SmtType) (body : SmtTerm) (n : native_Nat)
+    (hNN : __smtx_typeof (SmtTerm.choice_nth s T body n.succ) ≠ SmtType.None) :
+    __smtx_typeof (__eo_to_smt_quantifiers_skolemize body n) ≠ SmtType.None := by
+  have hTermNN : term_has_non_none_type (SmtTerm.choice_nth s T body n.succ) := by
+    unfold term_has_non_none_type
+    exact hNN
+  have hEq :=
+    smtx_typeof_choice_nth_succ_eq_skolemize_of_non_none
+      (s := s) (T := T) (body := body) (n := n) hTermNN
+  intro hNone
+  apply hNN
+  rw [hEq, hNone]
+
+private theorem choice_nth_head_type_wf_of_non_none
+    (s : native_String) (T : SmtType) (body : SmtTerm) (n : native_Nat)
+    (hNN : __smtx_typeof (SmtTerm.choice_nth s T body n) ≠ SmtType.None) :
+    __smtx_type_wf T = true := by
+  cases n with
+  | zero =>
+      have hTermNN : term_has_non_none_type (SmtTerm.choice_nth s T body 0) := by
+        unfold term_has_non_none_type
+        exact hNN
+      have hGuardTy :
+          __smtx_typeof (SmtTerm.choice_nth s T body 0) =
+            __smtx_typeof_guard_wf T T :=
+        choice_term_guard_type_of_non_none hTermNN
+      have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
+        intro hNone
+        apply hNN
+        rw [hGuardTy, hNone]
+      exact smtx_typeof_guard_wf_wf_of_non_none T T hGuardNN
+  | succ n =>
+      cases body with
+      | «exists» s' U body' =>
+          have hGuardNN :
+              __smtx_typeof_guard_wf T (__smtx_typeof_choice_nth U body' n) ≠
+                SmtType.None := by
+            intro hNone
+            apply hNN
+            simp [__smtx_typeof, __smtx_typeof_choice_nth, hNone]
+          exact
+            smtx_typeof_guard_wf_wf_of_non_none
+              T (__smtx_typeof_choice_nth U body' n) hGuardNN
+      | _ =>
+          exfalso
+          apply hNN
+          simp [__smtx_typeof, __smtx_typeof_choice_nth]
+
+private theorem type_wf_of_quantifiers_skolemize_cons_non_none
+    (s : native_String) (T a : Term) (body : SmtTerm) (n : native_Nat)
+    (hNN :
+      __smtx_typeof
+          (__eo_to_smt_quantifiers_skolemize
+            (__eo_to_smt_exists
+              (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var (Term.String s) T)) a)
+              body) n) ≠
+        SmtType.None) :
+    __smtx_type_wf (__eo_to_smt_type T) = true := by
+  have hChoiceNN :
+      __smtx_typeof
+          (SmtTerm.choice_nth s (__eo_to_smt_type T)
+            (__eo_to_smt_exists a body) n) ≠
+        SmtType.None := by
+    intro hChoiceNone
+    apply hNN
+    change
+      __smtx_typeof
+          (__eo_to_smt_quantifiers_skolemize
+            (__eo_to_smt_exists
+              (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var (Term.String s) T)) a)
+              body) n) =
+        SmtType.None
+    rw [TranslationProofs.eo_to_smt_exists_cons]
+    exact hChoiceNone
+  exact choice_nth_head_type_wf_of_non_none
+    (s := s) (T := __eo_to_smt_type T)
+    (body := __eo_to_smt_exists a body) (n := n) hChoiceNN
+
+private theorem choice_nth_non_none_of_quantifiers_skolemize_cons_non_none
+    (s : native_String) (T a : Term) (body : SmtTerm) (n : native_Nat)
+    (hNN :
+      __smtx_typeof
+          (__eo_to_smt_quantifiers_skolemize
+            (__eo_to_smt_exists
+              (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var (Term.String s) T)) a)
+              body) n) ≠
+        SmtType.None) :
+    __smtx_typeof
+        (SmtTerm.choice_nth s (__eo_to_smt_type T)
+          (__eo_to_smt_exists a body) n) ≠
+      SmtType.None := by
+  intro hChoiceNone
+  apply hNN
+  change
+    __smtx_typeof
+        (__eo_to_smt_quantifiers_skolemize
+          (__eo_to_smt_exists
+            (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var (Term.String s) T)) a)
+            body) n) =
+      SmtType.None
+  rw [TranslationProofs.eo_to_smt_exists_cons]
+  exact hChoiceNone
+
+private theorem smtx_typeof_eo_to_smt_exists_cons_bool_of_tail_bool
+    (s : native_String) (T a : Term) (body : SmtTerm)
+    (hWf : __smtx_type_wf (__eo_to_smt_type T) = true)
+    (hTailBool : __smtx_typeof (__eo_to_smt_exists a body) = SmtType.Bool) :
+    __smtx_typeof
+        (__eo_to_smt_exists
+          (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var (Term.String s) T)) a)
+          body) =
+      SmtType.Bool := by
+  rw [TranslationProofs.eo_to_smt_exists_cons]
+  rw [smtx_typeof_exists_term_eq]
+  simp [hTailBool, native_ite, native_Teq, __smtx_typeof_guard_wf, hWf]
+
+private theorem eo_to_smt_exists_bool_of_quantifiers_skolemize_non_none
+    (xs : Term) (body : SmtTerm) (n : native_Nat)
+    (hBodyNoExists : ∀ s T F, body ≠ SmtTerm.exists s T F) :
+    __smtx_typeof (__eo_to_smt_quantifiers_skolemize
+      (__eo_to_smt_exists xs body) n) ≠ SmtType.None ->
+    __smtx_typeof (__eo_to_smt_exists xs body) = SmtType.Bool := by
+  induction n generalizing xs body with
+  | zero =>
+      intro hNN
+      cases xs with
+      | Apply f a =>
+          cases f with
+          | Apply g y =>
+              cases g with
+              | __eo_List_cons =>
+                  cases y with
+                  | Var name T =>
+                      cases name with
+                      | String s =>
+                          have hChoiceNN :
+                              term_has_non_none_type
+                                (SmtTerm.choice_nth s (__eo_to_smt_type T)
+                                  (__eo_to_smt_exists a body) 0) := by
+                            unfold term_has_non_none_type
+                            exact choice_nth_non_none_of_quantifiers_skolemize_cons_non_none
+                              (s := s) (T := T) (a := a) (body := body) (n := 0) hNN
+                          have hBodyBool :
+                              __smtx_typeof (__eo_to_smt_exists a body) =
+                                SmtType.Bool :=
+                            TranslationProofs.choice_nth_body_bool_of_non_none
+                              hChoiceNN
+                          have hWf :=
+                            type_wf_of_quantifiers_skolemize_cons_non_none
+                              (s := s) (T := T) (a := a) (body := body) (n := 0) hNN
+                          exact smtx_typeof_eo_to_smt_exists_cons_bool_of_tail_bool
+                            (s := s) (T := T) (a := a) (body := body) hWf hBodyBool
+                      | _ =>
+                          exfalso
+                          apply hNN
+                          simp [__eo_to_smt_quantifiers_skolemize,
+                            __eo_to_smt_exists]
+                  | _ =>
+                      exfalso
+                      apply hNN
+                      simp [__eo_to_smt_quantifiers_skolemize,
+                        __eo_to_smt_exists]
+              | _ =>
+                  exfalso
+                  apply hNN
+                  simp [__eo_to_smt_quantifiers_skolemize,
+                    __eo_to_smt_exists]
+          | _ =>
+              exfalso
+              apply hNN
+              simp [__eo_to_smt_quantifiers_skolemize, __eo_to_smt_exists]
+      | _ =>
+          exfalso
+          apply hNN
+          simp [__eo_to_smt_quantifiers_skolemize, __eo_to_smt_exists]
+  | succ n ih =>
+      intro hNN
+      cases xs with
+      | Apply f a =>
+          cases f with
+          | Apply g y =>
+              cases g with
+              | __eo_List_cons =>
+                  cases y with
+                  | Var name T =>
+                      cases name with
+                      | String s =>
+                          have hTailNN :
+                              __smtx_typeof
+                                  (__eo_to_smt_quantifiers_skolemize
+                                    (__eo_to_smt_exists a body) n) ≠
+                                SmtType.None := by
+                            have hChoiceSucc :
+                                __smtx_typeof
+                                    (SmtTerm.choice_nth s (__eo_to_smt_type T)
+                                      (__eo_to_smt_exists a body) n.succ) ≠
+                                  SmtType.None :=
+                              choice_nth_non_none_of_quantifiers_skolemize_cons_non_none
+                                (s := s) (T := T) (a := a) (body := body)
+                                (n := n.succ) hNN
+                            exact
+                              quantifiers_skolemize_non_none_of_choice_nth_succ_non_none
+                                (s := s) (T := __eo_to_smt_type T)
+                                (body := __eo_to_smt_exists a body)
+                                (n := n) hChoiceSucc
+                          have hTailBool :
+                              __smtx_typeof (__eo_to_smt_exists a body) =
+                                SmtType.Bool :=
+                            ih a body hBodyNoExists hTailNN
+                          have hWf :=
+                            type_wf_of_quantifiers_skolemize_cons_non_none
+                              (s := s) (T := T) (a := a) (body := body)
+                              (n := n.succ) hNN
+                          exact smtx_typeof_eo_to_smt_exists_cons_bool_of_tail_bool
+                            (s := s) (T := T) (a := a) (body := body) hWf
+                            hTailBool
+                      | _ =>
+                          exfalso
+                          apply hNN
+                          simp [__eo_to_smt_quantifiers_skolemize,
+                            __eo_to_smt_exists]
+                  | _ =>
+                      exfalso
+                      apply hNN
+                      simp [__eo_to_smt_quantifiers_skolemize,
+                        __eo_to_smt_exists]
+              | _ =>
+                  exfalso
+                  apply hNN
+                  simp [__eo_to_smt_quantifiers_skolemize,
+                    __eo_to_smt_exists]
+          | _ =>
+              exfalso
+              apply hNN
+              simp [__eo_to_smt_quantifiers_skolemize, __eo_to_smt_exists]
+      | _ =>
+          exfalso
+          cases body
+          case «exists» s T F =>
+            exact hBodyNoExists s T F rfl
+          all_goals
+            apply hNN
+            simp [__eo_to_smt_quantifiers_skolemize, __eo_to_smt_exists]
 
 private theorem smtx_typeof_eo_to_smt_apply_apply_strings_deq_diff_head_none
     (binders a : Term)
@@ -3365,6 +4153,42 @@ private theorem smtx_typeof_eo_to_smt_apply_apply_strings_deq_diff_head_none
   apply smtx_typeof_eq_first_arg_none
   apply smtx_typeof_str_substr_first_arg_none
   exact hBindersNone
+
+private theorem smtx_typeof_eo_to_smt_apply_apply_strings_deq_diff_second_head_none
+    (q binders a : Term)
+    (hStringsDeqDiff :
+      ∃ z : Term, q = Term.Apply (Term.UOp UserOp._at_strings_deq_diff) z)
+    (hBindersNone :
+      __smtx_typeof (__eo_to_smt binders) = SmtType.None) :
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply q binders) a)) =
+      SmtType.None := by
+  rcases hStringsDeqDiff with ⟨z, hStringsDeqDiff⟩
+  subst q
+  change
+    __smtx_typeof
+        (SmtTerm.Apply
+          (SmtTerm.choice_nth (native_string_lit "@x") SmtType.Int
+            (SmtTerm.not
+              (SmtTerm.eq
+                (SmtTerm.str_substr (__eo_to_smt z)
+                  (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
+                  (SmtTerm.Numeral 1))
+                (SmtTerm.str_substr (__eo_to_smt binders)
+                  (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
+                  (SmtTerm.Numeral 1))))
+            native_nat_zero)
+          (__eo_to_smt a)) =
+      SmtType.None
+  apply smtx_typeof_apply_head_none_of_non_datatype_head
+  · intro s d i j h
+    cases h
+  · intro s d i h
+    cases h
+  · apply smtx_typeof_choice_nth_body_none
+    apply smtx_typeof_not_arg_none
+    apply smtx_typeof_eq_second_arg_none
+    apply smtx_typeof_str_substr_first_arg_none
+    exact hBindersNone
 
 private theorem smtx_typeof_str_to_int_arg_none
     (x : SmtTerm) :
@@ -3429,6 +4253,114 @@ private theorem smtx_typeof_eo_to_smt_apply_apply_string_result_head_none
     apply smtx_typeof_str_len_arg_none
     exact hBindersNone
 
+private theorem smtx_typeof_eo_to_smt_apply_apply_string_result_second_head_none
+    (q binders a : Term)
+    (hStringResult :
+      ∃ z : Term,
+        q = Term.Apply (Term.UOp UserOp._at_strings_stoi_result) z ∨
+          q = Term.Apply (Term.UOp UserOp._at_strings_itos_result) z ∨
+          q = Term.Apply (Term.UOp UserOp._at_strings_num_occur) z)
+    (hBindersNone :
+      __smtx_typeof (__eo_to_smt binders) = SmtType.None) :
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply q binders) a)) =
+      SmtType.None := by
+  rcases hStringResult with ⟨z, hStoi | hItos | hNumOccur⟩
+  · subst q
+    change
+      __smtx_typeof
+          (SmtTerm.Apply
+            (SmtTerm.str_to_int
+              (SmtTerm.str_substr (__eo_to_smt z)
+                (SmtTerm.Numeral 0) (__eo_to_smt binders)))
+            (__eo_to_smt a)) =
+        SmtType.None
+    apply smtx_typeof_apply_head_none_of_non_datatype_head
+    · intro s d i j h
+      cases h
+    · intro s d i h
+      cases h
+    · apply smtx_typeof_str_to_int_arg_none
+      apply smtx_typeof_str_substr_third_arg_none
+      exact hBindersNone
+  · subst q
+    change
+      __smtx_typeof
+          (SmtTerm.Apply
+            (SmtTerm.mod (__eo_to_smt z)
+              (SmtTerm.multmult (SmtTerm.Numeral 10)
+                (__eo_to_smt binders)))
+            (__eo_to_smt a)) =
+        SmtType.None
+    apply smtx_typeof_apply_head_none_of_non_datatype_head
+    · intro s d i j h
+      cases h
+    · intro s d i h
+      cases h
+    · apply smtx_typeof_mod_second_arg_none
+      apply smtx_typeof_multmult_second_arg_none
+      exact hBindersNone
+  · subst q
+    change
+      __smtx_typeof
+          (SmtTerm.Apply
+            (SmtTerm.div
+              (SmtTerm.neg (SmtTerm.str_len (__eo_to_smt z))
+                (SmtTerm.str_len
+                  (SmtTerm.str_replace_all (__eo_to_smt z)
+                    (__eo_to_smt binders)
+                    (SmtTerm.seq_empty (SmtType.Seq SmtType.Char)))))
+              (SmtTerm.str_len (__eo_to_smt binders)))
+            (__eo_to_smt a)) =
+        SmtType.None
+    apply smtx_typeof_apply_head_none_of_non_datatype_head
+    · intro s d i j h
+      cases h
+    · intro s d i h
+      cases h
+    · apply smtx_typeof_div_second_arg_none
+      apply smtx_typeof_str_len_arg_none
+      exact hBindersNone
+
+private theorem smtx_typeof_eo_to_smt_apply_apply_misc_second_head_none
+    (q binders a : Term)
+    (hMisc :
+      ∃ z : Term,
+        q = Term.Apply (Term.UOp UserOp._at_from_bools) z ∨
+          q = Term.Apply (Term.UOp UserOp._at_array_deq_diff) z ∨
+          q = Term.Apply (Term.UOp UserOp._at_sets_deq_diff) z ∨
+          q = Term.Apply (Term.UOp UserOp._at_strings_deq_diff) z ∨
+          q = Term.Apply (Term.UOp UserOp._at_strings_stoi_result) z ∨
+          q = Term.Apply (Term.UOp UserOp._at_strings_itos_result) z ∨
+          q = Term.Apply (Term.UOp UserOp._at_strings_num_occur) z)
+    (hBindersNone :
+      __smtx_typeof (__eo_to_smt binders) = SmtType.None) :
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply q binders) a)) =
+      SmtType.None := by
+  rcases hMisc with
+    ⟨z, hFromBools | hArrayDiff | hSetDiff | hStringsDeqDiff |
+      hStoi | hItos | hNumOccur⟩
+  · exact
+      smtx_typeof_eo_to_smt_apply_apply_from_bools_second_head_none
+        q binders a ⟨z, hFromBools⟩ hBindersNone
+  · exact
+      smtx_typeof_eo_to_smt_apply_apply_deq_diff_second_head_none
+        q binders a ⟨z, Or.inl hArrayDiff⟩ hBindersNone
+  · exact
+      smtx_typeof_eo_to_smt_apply_apply_deq_diff_second_head_none
+        q binders a ⟨z, Or.inr hSetDiff⟩ hBindersNone
+  · exact
+      smtx_typeof_eo_to_smt_apply_apply_strings_deq_diff_second_head_none
+        q binders a ⟨z, hStringsDeqDiff⟩ hBindersNone
+  · exact
+      smtx_typeof_eo_to_smt_apply_apply_string_result_second_head_none
+        q binders a ⟨z, Or.inl hStoi⟩ hBindersNone
+  · exact
+      smtx_typeof_eo_to_smt_apply_apply_string_result_second_head_none
+        q binders a ⟨z, Or.inr (Or.inl hItos)⟩ hBindersNone
+  · exact
+      smtx_typeof_eo_to_smt_apply_apply_string_result_second_head_none
+        q binders a ⟨z, Or.inr (Or.inr hNumOccur)⟩ hBindersNone
+
 private theorem smtx_typeof_ite_second_arg_none
     (c t e : SmtTerm) :
     __smtx_typeof t = SmtType.None ->
@@ -3445,6 +4377,15 @@ private theorem smtx_typeof_ite_cond_none
   intro hc
   rw [typeof_ite_eq, hc]
   rfl
+
+private theorem smtx_typeof_ite_third_arg_none
+    (c t e : SmtTerm) :
+    __smtx_typeof e = SmtType.None ->
+    __smtx_typeof (SmtTerm.ite c t e) = SmtType.None := by
+  intro he
+  rw [typeof_ite_eq, he]
+  cases __smtx_typeof c <;> cases __smtx_typeof t <;>
+    simp [__smtx_typeof_ite, native_ite, native_Teq]
 
 private theorem smtx_typeof_str_substr_second_arg_none
     (x y z : SmtTerm) :
@@ -3479,6 +4420,30 @@ private theorem smtx_typeof_store_second_arg_none
   | _ =>
       simp [__smtx_typeof_store]
 
+private theorem smtx_typeof_store_third_arg_none
+    (x y z : SmtTerm) :
+    __smtx_typeof z = SmtType.None ->
+    __smtx_typeof (SmtTerm.store x y z) = SmtType.None := by
+  intro hz
+  rw [typeof_store_eq, hz]
+  cases hX : __smtx_typeof x with
+  | Map A B =>
+      by_cases hB : B = SmtType.None
+      · have hxNN : term_has_non_none_type x := by
+          unfold term_has_non_none_type
+          rw [hX]
+          simp
+        have hNoNone := term_type_has_no_none_components_of_non_none x hxNN
+        have hNoNoneAB :
+            type_has_no_none_components A ∧
+              type_has_no_none_components B := by
+          simpa [hX, type_has_no_none_components] using hNoNone
+        exact False.elim
+          ((type_has_no_none_components_non_none hNoNoneAB.2) hB)
+      · simp [__smtx_typeof_store, native_ite, native_Teq, hB]
+  | _ =>
+      simp [__smtx_typeof_store]
+
 private theorem smtx_typeof_str_replace_second_arg_none
     (x y z : SmtTerm) :
     __smtx_typeof y = SmtType.None ->
@@ -3486,6 +4451,15 @@ private theorem smtx_typeof_str_replace_second_arg_none
   intro hy
   rw [typeof_str_replace_eq, hy]
   cases __smtx_typeof x <;> cases __smtx_typeof z <;>
+    simp [__smtx_typeof_seq_op_3]
+
+private theorem smtx_typeof_str_replace_third_arg_none
+    (x y z : SmtTerm) :
+    __smtx_typeof z = SmtType.None ->
+    __smtx_typeof (SmtTerm.str_replace x y z) = SmtType.None := by
+  intro hz
+  rw [typeof_str_replace_eq, hz]
+  cases __smtx_typeof x <;> cases __smtx_typeof y <;>
     simp [__smtx_typeof_seq_op_3]
 
 private theorem smtx_typeof_str_indexof_second_arg_none
@@ -3497,6 +4471,15 @@ private theorem smtx_typeof_str_indexof_second_arg_none
   cases __smtx_typeof x <;> cases __smtx_typeof z <;>
     simp [__smtx_typeof_str_indexof]
 
+private theorem smtx_typeof_str_indexof_third_arg_none
+    (x y z : SmtTerm) :
+    __smtx_typeof z = SmtType.None ->
+    __smtx_typeof (SmtTerm.str_indexof x y z) = SmtType.None := by
+  intro hz
+  rw [typeof_str_indexof_eq, hz]
+  cases __smtx_typeof x <;> cases __smtx_typeof y <;>
+    simp [__smtx_typeof_str_indexof]
+
 private theorem smtx_typeof_str_update_second_arg_none
     (x y z : SmtTerm) :
     __smtx_typeof y = SmtType.None ->
@@ -3504,6 +4487,15 @@ private theorem smtx_typeof_str_update_second_arg_none
   intro hy
   rw [typeof_str_update_eq, hy]
   cases __smtx_typeof x <;> cases __smtx_typeof z <;>
+    simp [__smtx_typeof_str_update]
+
+private theorem smtx_typeof_str_update_third_arg_none
+    (x y z : SmtTerm) :
+    __smtx_typeof z = SmtType.None ->
+    __smtx_typeof (SmtTerm.str_update x y z) = SmtType.None := by
+  intro hz
+  rw [typeof_str_update_eq, hz]
+  cases __smtx_typeof x <;> cases __smtx_typeof y <;>
     simp [__smtx_typeof_str_update]
 
 private theorem smtx_typeof_str_replace_all_second_arg_none
@@ -3515,6 +4507,15 @@ private theorem smtx_typeof_str_replace_all_second_arg_none
   cases __smtx_typeof x <;> cases __smtx_typeof z <;>
     simp [__smtx_typeof_seq_op_3]
 
+private theorem smtx_typeof_str_replace_all_third_arg_none
+    (x y z : SmtTerm) :
+    __smtx_typeof z = SmtType.None ->
+    __smtx_typeof (SmtTerm.str_replace_all x y z) = SmtType.None := by
+  intro hz
+  rw [typeof_str_replace_all_eq, hz]
+  cases __smtx_typeof x <;> cases __smtx_typeof y <;>
+    simp [__smtx_typeof_seq_op_3]
+
 private theorem smtx_typeof_str_replace_re_second_arg_none
     (x y z : SmtTerm) :
     __smtx_typeof y = SmtType.None ->
@@ -3522,6 +4523,15 @@ private theorem smtx_typeof_str_replace_re_second_arg_none
   intro hy
   rw [typeof_str_replace_re_eq, hy]
   cases __smtx_typeof x <;> cases __smtx_typeof z <;>
+    simp [native_ite, native_Teq]
+
+private theorem smtx_typeof_str_replace_re_third_arg_none
+    (x y z : SmtTerm) :
+    __smtx_typeof z = SmtType.None ->
+    __smtx_typeof (SmtTerm.str_replace_re x y z) = SmtType.None := by
+  intro hz
+  rw [typeof_str_replace_re_eq, hz]
+  cases __smtx_typeof x <;> cases __smtx_typeof y <;>
     simp [native_ite, native_Teq]
 
 private theorem smtx_typeof_str_replace_re_all_second_arg_none
@@ -3534,6 +4544,16 @@ private theorem smtx_typeof_str_replace_re_all_second_arg_none
   cases __smtx_typeof x <;> cases __smtx_typeof z <;>
     simp [native_ite, native_Teq]
 
+private theorem smtx_typeof_str_replace_re_all_third_arg_none
+    (x y z : SmtTerm) :
+    __smtx_typeof z = SmtType.None ->
+    __smtx_typeof (SmtTerm.str_replace_re_all x y z) =
+      SmtType.None := by
+  intro hz
+  rw [typeof_str_replace_re_all_eq, hz]
+  cases __smtx_typeof x <;> cases __smtx_typeof y <;>
+    simp [native_ite, native_Teq]
+
 private theorem smtx_typeof_str_indexof_re_second_arg_none
     (x y z : SmtTerm) :
     __smtx_typeof y = SmtType.None ->
@@ -3542,6 +4562,16 @@ private theorem smtx_typeof_str_indexof_re_second_arg_none
   intro hy
   rw [typeof_str_indexof_re_eq, hy]
   cases __smtx_typeof x <;> cases __smtx_typeof z <;>
+    simp [native_ite, native_Teq]
+
+private theorem smtx_typeof_str_indexof_re_third_arg_none
+    (x y z : SmtTerm) :
+    __smtx_typeof z = SmtType.None ->
+    __smtx_typeof (SmtTerm.str_indexof_re x y z) =
+      SmtType.None := by
+  intro hz
+  rw [typeof_str_indexof_re_eq, hz]
+  cases __smtx_typeof x <;> cases __smtx_typeof y <;>
     simp [native_ite, native_Teq]
 
 private theorem smtx_typeof_str_indexof_re_first_arg_none
@@ -3575,6 +4605,16 @@ private theorem smtx_typeof_str_indexof_re_split_second_arg_none
   intro hy
   rw [typeof_str_indexof_re_split_eq, hy]
   cases __smtx_typeof x <;> cases __smtx_typeof z <;>
+    simp [native_ite, native_Teq]
+
+private theorem smtx_typeof_str_indexof_re_split_third_arg_none
+    (x y z : SmtTerm) :
+    __smtx_typeof z = SmtType.None ->
+    __smtx_typeof (SmtTerm.str_indexof_re_split x y z) =
+      SmtType.None := by
+  intro hz
+  rw [typeof_str_indexof_re_split_eq, hz]
+  cases __smtx_typeof x <;> cases __smtx_typeof y <;>
     simp [native_ite, native_Teq]
 
 private theorem smtx_typeof_eo_to_smt_apply_apply_ternary_middle_head_none
@@ -3711,6 +4751,226 @@ private theorem smtx_typeof_eo_to_smt_apply_apply_ternary_middle_head_none
       (__eo_to_smt z) (__eo_to_smt binders) (__eo_to_smt a)
       hBindersNone
 
+private theorem smtx_typeof_eo_to_smt_apply_apply_ternary_last_head_none
+    (q binders a : Term)
+    (hTernary :
+      ∃ x y : Term,
+          q = Term.Apply (Term.Apply (Term.UOp UserOp.ite) x) y ∨
+          q = Term.Apply (Term.Apply (Term.UOp UserOp.bvite) x) y ∨
+          q = Term.Apply (Term.Apply (Term.UOp UserOp.store) x) y ∨
+          q = Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) x) y ∨
+          q = Term.Apply (Term.Apply (Term.UOp UserOp.str_replace) x) y ∨
+          q = Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof) x) y ∨
+          q = Term.Apply (Term.Apply (Term.UOp UserOp.str_update) x) y ∨
+          q = Term.Apply (Term.Apply (Term.UOp UserOp.str_replace_all) x) y ∨
+          q = Term.Apply (Term.Apply (Term.UOp UserOp.str_replace_re) x) y ∨
+          q = Term.Apply
+            (Term.Apply (Term.UOp UserOp.str_replace_re_all) x) y ∨
+          q = Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof_re) x) y ∨
+          q = Term.Apply
+            (Term.Apply (Term.UOp UserOp.str_indexof_re_split) x) y)
+    (hBindersNone :
+      __smtx_typeof (__eo_to_smt binders) = SmtType.None) :
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply q binders) a)) =
+      SmtType.None := by
+  rcases hTernary with
+    ⟨x, y, hIte | hBvite | hStore | hSubstr | hReplace | hIndexof |
+      hUpdate | hReplaceAll | hReplaceRe | hReplaceReAll | hIndexofRe |
+      hIndexofReSplit⟩
+  · subst q
+    change
+      __smtx_typeof
+          (SmtTerm.Apply
+            (SmtTerm.ite (__eo_to_smt x) (__eo_to_smt y)
+              (__eo_to_smt binders))
+            (__eo_to_smt a)) =
+        SmtType.None
+    apply smtx_typeof_apply_head_none_of_non_datatype_head
+    · intro s d i j h
+      cases h
+    · intro s d i h
+      cases h
+    · exact smtx_typeof_ite_third_arg_none
+        (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt binders)
+        hBindersNone
+  · subst q
+    change
+      __smtx_typeof
+          (SmtTerm.Apply
+            (SmtTerm.ite
+              (SmtTerm.eq (__eo_to_smt x) (SmtTerm.Binary 1 1))
+              (__eo_to_smt y) (__eo_to_smt binders))
+            (__eo_to_smt a)) =
+        SmtType.None
+    apply smtx_typeof_apply_head_none_of_non_datatype_head
+    · intro s d i j h
+      cases h
+    · intro s d i h
+      cases h
+    · exact smtx_typeof_ite_third_arg_none
+        (SmtTerm.eq (__eo_to_smt x) (SmtTerm.Binary 1 1))
+        (__eo_to_smt y) (__eo_to_smt binders) hBindersNone
+  · subst q
+    change
+      __smtx_typeof
+          (SmtTerm.Apply
+            (SmtTerm.store (__eo_to_smt x) (__eo_to_smt y)
+              (__eo_to_smt binders))
+            (__eo_to_smt a)) =
+        SmtType.None
+    apply smtx_typeof_apply_head_none_of_non_datatype_head
+    · intro s d i j h
+      cases h
+    · intro s d i h
+      cases h
+    · exact smtx_typeof_store_third_arg_none
+        (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt binders)
+        hBindersNone
+  · subst q
+    change
+      __smtx_typeof
+          (SmtTerm.Apply
+            (SmtTerm.str_substr (__eo_to_smt x) (__eo_to_smt y)
+              (__eo_to_smt binders))
+            (__eo_to_smt a)) =
+        SmtType.None
+    apply smtx_typeof_apply_head_none_of_non_datatype_head
+    · intro s d i j h
+      cases h
+    · intro s d i h
+      cases h
+    · exact smtx_typeof_str_substr_third_arg_none
+        (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt binders)
+        hBindersNone
+  · subst q
+    change
+      __smtx_typeof
+          (SmtTerm.Apply
+            (SmtTerm.str_replace (__eo_to_smt x) (__eo_to_smt y)
+              (__eo_to_smt binders))
+            (__eo_to_smt a)) =
+        SmtType.None
+    apply smtx_typeof_apply_head_none_of_non_datatype_head
+    · intro s d i j h
+      cases h
+    · intro s d i h
+      cases h
+    · exact smtx_typeof_str_replace_third_arg_none
+        (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt binders)
+        hBindersNone
+  · subst q
+    change
+      __smtx_typeof
+          (SmtTerm.Apply
+            (SmtTerm.str_indexof (__eo_to_smt x) (__eo_to_smt y)
+              (__eo_to_smt binders))
+            (__eo_to_smt a)) =
+        SmtType.None
+    apply smtx_typeof_apply_head_none_of_non_datatype_head
+    · intro s d i j h
+      cases h
+    · intro s d i h
+      cases h
+    · exact smtx_typeof_str_indexof_third_arg_none
+        (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt binders)
+        hBindersNone
+  · subst q
+    change
+      __smtx_typeof
+          (SmtTerm.Apply
+            (SmtTerm.str_update (__eo_to_smt x) (__eo_to_smt y)
+              (__eo_to_smt binders))
+            (__eo_to_smt a)) =
+        SmtType.None
+    apply smtx_typeof_apply_head_none_of_non_datatype_head
+    · intro s d i j h
+      cases h
+    · intro s d i h
+      cases h
+    · exact smtx_typeof_str_update_third_arg_none
+        (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt binders)
+        hBindersNone
+  · subst q
+    change
+      __smtx_typeof
+          (SmtTerm.Apply
+            (SmtTerm.str_replace_all (__eo_to_smt x) (__eo_to_smt y)
+              (__eo_to_smt binders))
+            (__eo_to_smt a)) =
+        SmtType.None
+    apply smtx_typeof_apply_head_none_of_non_datatype_head
+    · intro s d i j h
+      cases h
+    · intro s d i h
+      cases h
+    · exact smtx_typeof_str_replace_all_third_arg_none
+        (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt binders)
+        hBindersNone
+  · subst q
+    change
+      __smtx_typeof
+          (SmtTerm.Apply
+            (SmtTerm.str_replace_re (__eo_to_smt x) (__eo_to_smt y)
+              (__eo_to_smt binders))
+            (__eo_to_smt a)) =
+        SmtType.None
+    apply smtx_typeof_apply_head_none_of_non_datatype_head
+    · intro s d i j h
+      cases h
+    · intro s d i h
+      cases h
+    · exact smtx_typeof_str_replace_re_third_arg_none
+        (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt binders)
+        hBindersNone
+  · subst q
+    change
+      __smtx_typeof
+          (SmtTerm.Apply
+            (SmtTerm.str_replace_re_all (__eo_to_smt x) (__eo_to_smt y)
+              (__eo_to_smt binders))
+            (__eo_to_smt a)) =
+        SmtType.None
+    apply smtx_typeof_apply_head_none_of_non_datatype_head
+    · intro s d i j h
+      cases h
+    · intro s d i h
+      cases h
+    · exact smtx_typeof_str_replace_re_all_third_arg_none
+        (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt binders)
+        hBindersNone
+  · subst q
+    change
+      __smtx_typeof
+          (SmtTerm.Apply
+            (SmtTerm.str_indexof_re (__eo_to_smt x) (__eo_to_smt y)
+              (__eo_to_smt binders))
+            (__eo_to_smt a)) =
+        SmtType.None
+    apply smtx_typeof_apply_head_none_of_non_datatype_head
+    · intro s d i j h
+      cases h
+    · intro s d i h
+      cases h
+    · exact smtx_typeof_str_indexof_re_third_arg_none
+        (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt binders)
+        hBindersNone
+  · subst q
+    change
+      __smtx_typeof
+          (SmtTerm.Apply
+            (SmtTerm.str_indexof_re_split (__eo_to_smt x)
+              (__eo_to_smt y) (__eo_to_smt binders))
+            (__eo_to_smt a)) =
+        SmtType.None
+    apply smtx_typeof_apply_head_none_of_non_datatype_head
+    · intro s d i j h
+      cases h
+    · intro s d i h
+      cases h
+    · exact smtx_typeof_str_indexof_re_split_third_arg_none
+        (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt binders)
+        hBindersNone
+
 private theorem smtx_typeof_repeat_second_arg_none
     (n x : SmtTerm) :
     __smtx_typeof x = SmtType.None ->
@@ -3805,6 +5065,213 @@ private theorem smtx_typeof_eo_to_smt_updater_arg_none
               (native_nat_to_int (__smtx_dt_num_sels d n)) <;>
           simp [hCmp] at hLt ⊢
       simp [hLtFalse, native_ite, TranslationProofs.smtx_typeof_none]
+
+private theorem eo_to_smt_updater_ne_dt_sel_local
+    (sel t u : SmtTerm) (s : native_String) (d : SmtDatatype)
+    (i j : native_Nat) :
+    __eo_to_smt_updater sel t u ≠ SmtTerm.DtSel s d i j := by
+  intro h
+  cases sel <;> try cases h
+  case DtSel s' d' i' j' =>
+    cases hIdx :
+        native_zlt (native_nat_to_int j')
+          (native_nat_to_int (__smtx_dt_num_sels d' i')) <;>
+      simp [__eo_to_smt_updater, native_ite, hIdx] at h
+
+private theorem eo_to_smt_updater_ne_dt_tester_local
+    (sel t u : SmtTerm) (s : native_String) (d : SmtDatatype)
+    (i : native_Nat) :
+    __eo_to_smt_updater sel t u ≠ SmtTerm.DtTester s d i := by
+  intro h
+  cases sel <;> try cases h
+  case DtSel s' d' i' j' =>
+    cases hIdx :
+        native_zlt (native_nat_to_int j')
+          (native_nat_to_int (__smtx_dt_num_sels d' i')) <;>
+      simp [__eo_to_smt_updater, native_ite, hIdx] at h
+
+private theorem smtx_typeof_eo_to_smt_updater_update_arg_none
+    (sel t u : SmtTerm) :
+    __smtx_typeof u = SmtType.None ->
+    __smtx_typeof (__eo_to_smt_updater sel t u) = SmtType.None := by
+  intro hu
+  by_cases hNone :
+      __smtx_typeof (__eo_to_smt_updater sel t u) = SmtType.None
+  · exact hNone
+  · exfalso
+    by_cases hSel : ∃ s d i j, sel = SmtTerm.DtSel s d i j
+    · rcases hSel with ⟨s, d, i, j, rfl⟩
+      by_cases hIdx :
+          native_zlt (native_nat_to_int j)
+            (native_nat_to_int (__smtx_dt_num_sels d i)) = true
+      · have hIteNN :
+            term_has_non_none_type
+              (SmtTerm.ite
+                (SmtTerm.Apply (SmtTerm.DtTester s d i) t)
+                (__eo_to_smt_updater_rec (SmtTerm.DtSel s d i j)
+                  (__smtx_dt_num_sels d i) t u (SmtTerm.DtCons s d i))
+                t) := by
+          unfold term_has_non_none_type
+          simpa [__eo_to_smt_updater, native_ite, hIdx] using hNone
+        rcases ite_args_of_non_none hIteNN with
+          ⟨T, _hCond, hThen, _hElse, hTNN⟩
+        have hRecNN :
+            __smtx_typeof
+                (__eo_to_smt_updater_rec (SmtTerm.DtSel s d i j)
+                  (__smtx_dt_num_sels d i) t u
+                  (SmtTerm.DtCons s d i)) ≠ SmtType.None := by
+          rw [hThen]
+          exact hTNN
+        have huNN :
+            __smtx_typeof u ≠ SmtType.None :=
+          TranslationProofs.eo_to_smt_updater_rec_update_arg_non_none_of_non_none
+            s d i j (__smtx_dt_num_sels d i) t u
+            (SmtTerm.DtCons s d i)
+            (by intro s0 d0 i0 j0 h; cases h)
+            (by intro s0 d0 i0 h; cases h)
+            hIdx hRecNN
+        exact huNN hu
+      · apply hNone
+        have hIdxFalse :
+            native_zlt (native_nat_to_int j)
+                (native_nat_to_int (__smtx_dt_num_sels d i)) =
+              false := by
+          cases hCmp :
+              native_zlt (native_nat_to_int j)
+                (native_nat_to_int (__smtx_dt_num_sels d i)) <;>
+            simp [hCmp] at hIdx ⊢
+        simp [__eo_to_smt_updater, native_ite, hIdxFalse,
+          TranslationProofs.smtx_typeof_none]
+    · apply hNone
+      cases sel <;>
+        simp [__eo_to_smt_updater, TranslationProofs.smtx_typeof_none]
+          at hSel ⊢
+
+private theorem smtx_typeof_eo_to_smt_tuple_update_update_arg_none
+    (T : SmtType) (idx t u : SmtTerm) :
+    __smtx_typeof u = SmtType.None ->
+    __smtx_typeof (__eo_to_smt_tuple_update T idx t u) = SmtType.None := by
+  intro hu
+  by_cases hTuple :
+      ∃ s d n, T = SmtType.Datatype s d ∧ idx = SmtTerm.Numeral n
+  · rcases hTuple with ⟨s, d, n, rfl, rfl⟩
+    change
+      __smtx_typeof
+          (native_ite
+            (native_and (native_streq s (native_string_lit "@Tuple"))
+              (native_zleq 0 n))
+            (__eo_to_smt_updater
+              (SmtTerm.DtSel (native_string_lit "@Tuple") d
+                native_nat_zero (native_int_to_nat n)) t u)
+            SmtTerm.None) =
+        SmtType.None
+    by_cases hGuard :
+        native_and (native_streq s (native_string_lit "@Tuple"))
+          (native_zleq 0 n) = true
+    · simp [hGuard, native_ite]
+      exact
+        smtx_typeof_eo_to_smt_updater_update_arg_none
+          (SmtTerm.DtSel (native_string_lit "@Tuple") d
+            native_nat_zero (native_int_to_nat n)) t u hu
+    · have hGuardFalse :
+          native_and (native_streq s (native_string_lit "@Tuple"))
+              (native_zleq 0 n) =
+            false := by
+        cases hCmp :
+            native_and (native_streq s (native_string_lit "@Tuple"))
+              (native_zleq 0 n) <;>
+          simp [hCmp] at hGuard ⊢
+      simp [hGuardFalse, native_ite, TranslationProofs.smtx_typeof_none]
+  · cases T <;> cases idx <;>
+      simp [__eo_to_smt_tuple_update, TranslationProofs.smtx_typeof_none]
+        at hTuple ⊢
+
+private theorem eo_to_smt_tuple_update_ne_dt_sel_local
+    (T : SmtType) (idx t u : SmtTerm) (s : native_String)
+    (d : SmtDatatype) (i j : native_Nat) :
+    __eo_to_smt_tuple_update T idx t u ≠ SmtTerm.DtSel s d i j := by
+  intro h
+  simp [__eo_to_smt_tuple_update] at h
+  split at h <;> try cases h
+  case h_1 =>
+    unfold native_ite at h
+    split at h
+    · exact eo_to_smt_updater_ne_dt_sel_local _ _ _ _ _ _ _ h
+    · cases h
+
+private theorem eo_to_smt_tuple_update_ne_dt_tester_local
+    (T : SmtType) (idx t u : SmtTerm) (s : native_String)
+    (d : SmtDatatype) (i : native_Nat) :
+    __eo_to_smt_tuple_update T idx t u ≠ SmtTerm.DtTester s d i := by
+  intro h
+  simp [__eo_to_smt_tuple_update] at h
+  split at h <;> try cases h
+  case h_1 =>
+    unfold native_ite at h
+    split at h
+    · exact eo_to_smt_updater_ne_dt_tester_local _ _ _ _ _ _ h
+    · cases h
+
+private theorem smtx_typeof_eo_to_smt_apply_apply_uop1_update_second_head_none
+    (idx z binders a : Term)
+    (hBindersNone :
+      __smtx_typeof (__eo_to_smt binders) = SmtType.None) :
+    __smtx_typeof
+        (__eo_to_smt
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.UOp1 UserOp1.update idx) z) binders) a)) =
+      SmtType.None := by
+  change
+    __smtx_typeof
+        (SmtTerm.Apply
+          (__eo_to_smt_updater (__eo_to_smt idx) (__eo_to_smt z)
+            (__eo_to_smt binders))
+          (__eo_to_smt a)) =
+      SmtType.None
+  apply smtx_typeof_apply_head_none_of_non_datatype_head
+  · intro s d i j h
+    exact eo_to_smt_updater_ne_dt_sel_local _ _ _ s d i j h
+  · intro s d i h
+    exact eo_to_smt_updater_ne_dt_tester_local _ _ _ s d i h
+  · exact
+      smtx_typeof_eo_to_smt_updater_update_arg_none
+        (__eo_to_smt idx) (__eo_to_smt z) (__eo_to_smt binders)
+        hBindersNone
+
+private theorem smtx_typeof_eo_to_smt_apply_apply_uop1_tuple_update_second_head_none
+    (idx z binders a : Term)
+    (hBindersNone :
+      __smtx_typeof (__eo_to_smt binders) = SmtType.None) :
+    __smtx_typeof
+        (__eo_to_smt
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.UOp1 UserOp1.tuple_update idx) z) binders)
+            a)) =
+      SmtType.None := by
+  change
+    __smtx_typeof
+        (SmtTerm.Apply
+          (__eo_to_smt_tuple_update (__smtx_typeof (__eo_to_smt z))
+            (__eo_to_smt idx) (__eo_to_smt z) (__eo_to_smt binders))
+          (__eo_to_smt a)) =
+      SmtType.None
+  apply smtx_typeof_apply_head_none_of_non_datatype_head
+  · intro s d i j h
+    exact
+      eo_to_smt_tuple_update_ne_dt_sel_local
+        (__smtx_typeof (__eo_to_smt z)) (__eo_to_smt idx)
+        (__eo_to_smt z) (__eo_to_smt binders) s d i j h
+  · intro s d i h
+    exact
+      eo_to_smt_tuple_update_ne_dt_tester_local
+        (__smtx_typeof (__eo_to_smt z)) (__eo_to_smt idx)
+        (__eo_to_smt z) (__eo_to_smt binders) s d i h
+  · exact
+      smtx_typeof_eo_to_smt_tuple_update_update_arg_none
+        (__smtx_typeof (__eo_to_smt z)) (__eo_to_smt idx)
+        (__eo_to_smt z) (__eo_to_smt binders) hBindersNone
 
 private theorem smtx_typeof_eo_to_smt_apply_apply_indexed_unary_head_none
     (q binders a : Term)
@@ -4177,6 +5644,50 @@ private theorem smtx_typeof_eo_to_smt_tuple_prepend_head_none
   | _ =>
       simp [__eo_to_smt_tuple_prepend_of_type,
         TranslationProofs.smtx_typeof_none]
+
+private theorem smtx_typeof_eo_to_smt_tuple_prepend_tail_none
+    (head : SmtTerm) (headTy : SmtType) (tail : SmtTerm) :
+    __smtx_typeof tail = SmtType.None ->
+    __smtx_typeof
+        (__eo_to_smt_tuple_prepend head headTy tail) =
+      SmtType.None := by
+  intro hTail
+  unfold __eo_to_smt_tuple_prepend
+  rw [hTail]
+  simp [__eo_to_smt_tuple_prepend_of_type,
+    TranslationProofs.smtx_typeof_none]
+
+private theorem smtx_typeof_eo_to_smt_apply_apply_tuple_second_head_none
+    (q binders a : Term)
+    (hTuple :
+      ∃ w : Term, q = Term.Apply (Term.UOp UserOp.tuple) w)
+    (hBindersNone :
+      __smtx_typeof (__eo_to_smt binders) = SmtType.None) :
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply q binders) a)) =
+      SmtType.None := by
+  rcases hTuple with ⟨w, rfl⟩
+  change
+    __smtx_typeof
+        (SmtTerm.Apply
+          (__eo_to_smt_tuple_prepend (__eo_to_smt w)
+            (__smtx_typeof (__eo_to_smt w)) (__eo_to_smt binders))
+          (__eo_to_smt a)) =
+      SmtType.None
+  apply smtx_typeof_apply_head_none_of_non_datatype_head
+  · intro s d i j h
+    exact
+      TranslationProofs.eo_to_smt_tuple_prepend_ne_dt_sel
+        (__eo_to_smt w) (__smtx_typeof (__eo_to_smt w))
+        (__eo_to_smt binders) s d i j h
+  · intro s d i h
+    exact
+      TranslationProofs.eo_to_smt_tuple_prepend_ne_dt_tester
+        (__eo_to_smt w) (__smtx_typeof (__eo_to_smt w))
+        (__eo_to_smt binders) s d i h
+  · exact
+      smtx_typeof_eo_to_smt_tuple_prepend_tail_none
+        (__eo_to_smt w) (__smtx_typeof (__eo_to_smt w))
+        (__eo_to_smt binders) hBindersNone
 
 private theorem smtx_typeof_eo_to_smt_apply_apply_unary_arith_head_none
     (q binders a : Term)
@@ -8739,6 +10250,181 @@ private theorem smtx_model_eval_eo_to_smt_exists_eq_of_scanner_body
                 (scannerModelRel_concat_rec_cons_comm_symm
                   xs tail bvs M' N' s T hTailVar hBvsVar hRelTail)))
 
+private theorem nativeEvalTChoiceNthAux_eq_of_scanner_body_cons
+    (body : SmtTerm) (s : native_String) (T tail : Term)
+    {varsTail : List SmtVarKey}
+    (hTail : EoSmtVarEnv tail varsTail)
+    (hBodyNoExists : ∀ s T F, body ≠ SmtTerm.exists s T F) :
+    ∀ (n : native_Nat) {xs bvs : Term} {M N : SmtModel},
+      eo_var_list bvs ->
+        scannerModelRel xs bvs M N ->
+          (∀ M' N' : SmtModel,
+            scannerModelRel xs
+                (__eo_list_concat_rec
+                  (Term.Apply (Term.Apply Term.__eo_List_cons
+                    (Term.Var (Term.String s) T)) tail)
+                  bvs)
+                M' N' ->
+              __smtx_model_eval M' body =
+                __smtx_model_eval N' body) ->
+            nativeEvalTChoiceNthAux M s (__eo_to_smt_type T)
+                (__eo_to_smt_exists tail body) n =
+              nativeEvalTChoiceNthAux N s (__eo_to_smt_type T)
+                (__eo_to_smt_exists tail body) n := by
+  intro n
+  induction n generalizing s T tail varsTail with
+  | zero =>
+      intro xs bvs M N hBvsVar hRel hBody
+      have hTailVar : eo_var_list tail := eo_var_list_of_env hTail
+      have hConsBvsVar :
+          eo_var_list
+            (Term.Apply (Term.Apply Term.__eo_List_cons
+              (Term.Var (Term.String s) T)) bvs) := by
+        simpa [eo_var_list] using hBvsVar
+      simp [nativeEvalTChoiceNthAux]
+      exact native_eval_tchoice_eq_of_body_eval_eq
+        (fun v =>
+          smtx_model_eval_eo_to_smt_exists_eq_of_scanner_body
+            body hTail hConsBvsVar
+            (scannerModelRel_push_same_cons_var
+              xs bvs M N s T v hBvsVar hRel)
+            (fun M' N' hRelTail =>
+              hBody M' N'
+                (scannerModelRel_concat_rec_cons_comm_symm
+                  xs tail bvs M' N' s T hTailVar hBvsVar hRelTail)))
+  | succ n ih =>
+      intro xs bvs M N hBvsVar hRel hBody
+      have hTailVar : eo_var_list tail := eo_var_list_of_env hTail
+      have hConsBvsVar :
+          eo_var_list
+            (Term.Apply (Term.Apply Term.__eo_List_cons
+              (Term.Var (Term.String s) T)) bvs) := by
+        simpa [eo_var_list] using hBvsVar
+      have hChoiceEq :
+          native_eval_tchoice M s (__eo_to_smt_type T)
+              (__eo_to_smt_exists tail body) =
+            native_eval_tchoice N s (__eo_to_smt_type T)
+              (__eo_to_smt_exists tail body) :=
+        native_eval_tchoice_eq_of_body_eval_eq
+          (fun v =>
+            smtx_model_eval_eo_to_smt_exists_eq_of_scanner_body
+              body hTail hConsBvsVar
+              (scannerModelRel_push_same_cons_var
+                xs bvs M N s T v hBvsVar hRel)
+              (fun M' N' hRelTail =>
+                hBody M' N'
+                  (scannerModelRel_concat_rec_cons_comm_symm
+                    xs tail bvs M' N' s T hTailVar hBvsVar hRelTail)))
+      cases hTail with
+      | nil =>
+          cases body <;>
+            simp [__eo_to_smt_exists, nativeEvalTChoiceNthAux]
+          case «exists» s' T' body' =>
+            exact False.elim (hBodyNoExists s' T' body' rfl)
+      | cons hTailTail =>
+          rename_i s' T' tail' varsTail'
+          have hRelPush :
+              scannerModelRel xs
+                (Term.Apply (Term.Apply Term.__eo_List_cons
+                  (Term.Var (Term.String s) T)) bvs)
+                (native_model_push M s (__eo_to_smt_type T)
+                  (native_eval_tchoice N s (__eo_to_smt_type T)
+                    (SmtTerm.exists s' (__eo_to_smt_type T')
+                      (__eo_to_smt_exists tail' body))))
+                (native_model_push N s (__eo_to_smt_type T)
+                  (native_eval_tchoice N s (__eo_to_smt_type T)
+                    (SmtTerm.exists s' (__eo_to_smt_type T')
+                      (__eo_to_smt_exists tail' body)))) :=
+            scannerModelRel_push_same_cons_var
+              xs bvs M N s T
+              (native_eval_tchoice N s (__eo_to_smt_type T)
+                (SmtTerm.exists s' (__eo_to_smt_type T')
+                  (__eo_to_smt_exists tail' body)))
+              hBvsVar hRel
+          have hTailEval :=
+            ih (s := s') (T := T') (tail := tail')
+              (varsTail := varsTail') hTailTail
+              (xs := xs)
+              (bvs := Term.Apply (Term.Apply Term.__eo_List_cons
+                (Term.Var (Term.String s) T)) bvs)
+              (M := native_model_push M s (__eo_to_smt_type T)
+                (native_eval_tchoice N s (__eo_to_smt_type T)
+                  (SmtTerm.exists s' (__eo_to_smt_type T')
+                    (__eo_to_smt_exists tail' body))))
+              (N := native_model_push N s (__eo_to_smt_type T)
+                (native_eval_tchoice N s (__eo_to_smt_type T)
+                  (SmtTerm.exists s' (__eo_to_smt_type T')
+                    (__eo_to_smt_exists tail' body))))
+              hConsBvsVar hRelPush
+              (fun M' N' hRelTail =>
+                hBody M' N'
+                  (scannerModelRel_concat_rec_cons_comm_symm
+                    xs
+                    (Term.Apply (Term.Apply Term.__eo_List_cons
+                      (Term.Var (Term.String s') T')) tail')
+                    bvs M' N' s T hTailVar hBvsVar hRelTail))
+          change
+            nativeEvalTChoiceNthAux
+                (native_model_push M s (__eo_to_smt_type T)
+                  (native_eval_tchoice M s (__eo_to_smt_type T)
+                    (__eo_to_smt_exists
+                      (Term.Apply (Term.Apply Term.__eo_List_cons
+                        (Term.Var (Term.String s') T')) tail')
+                      body)))
+                s' (__eo_to_smt_type T') (__eo_to_smt_exists tail' body) n =
+              nativeEvalTChoiceNthAux
+                (native_model_push N s (__eo_to_smt_type T)
+                  (native_eval_tchoice N s (__eo_to_smt_type T)
+                    (__eo_to_smt_exists
+                      (Term.Apply (Term.Apply Term.__eo_List_cons
+                        (Term.Var (Term.String s') T')) tail')
+                      body)))
+                s' (__eo_to_smt_type T') (__eo_to_smt_exists tail' body) n
+          rw [hChoiceEq]
+          exact hTailEval
+
+private theorem smtx_model_eval_eo_to_smt_quantifiers_skolemize_eq_of_scanner_body
+    (body : SmtTerm) {binders : Term} {vars : List SmtVarKey}
+    (hBinders : EoSmtVarEnv binders vars)
+    (hBodyNoExists : ∀ s T F, body ≠ SmtTerm.exists s T F) :
+    ∀ (n : native_Nat) {xs bvs : Term} {M N : SmtModel},
+      eo_var_list bvs ->
+        scannerModelRel xs bvs M N ->
+          (∀ M' N' : SmtModel,
+            scannerModelRel xs (__eo_list_concat_rec binders bvs)
+              M' N' ->
+              __smtx_model_eval M' body =
+                __smtx_model_eval N' body) ->
+            __smtx_model_eval M
+                (__eo_to_smt_quantifiers_skolemize
+                  (__eo_to_smt_exists binders body) n) =
+              __smtx_model_eval N
+                (__eo_to_smt_quantifiers_skolemize
+                  (__eo_to_smt_exists binders body) n) := by
+  intro n xs bvs M N hBvsVar hRel hBody
+  cases hBinders with
+  | nil =>
+      cases body <;>
+        simp [__eo_to_smt_exists, __eo_to_smt_quantifiers_skolemize,
+          __smtx_model_eval]
+      case «exists» s T body =>
+        exact False.elim (hBodyNoExists s T body rfl)
+  | cons hTail =>
+      rename_i s T tail varsTail
+      change
+        __smtx_model_eval M
+            (SmtTerm.choice_nth s (__eo_to_smt_type T)
+              (__eo_to_smt_exists tail body) n) =
+          __smtx_model_eval N
+            (SmtTerm.choice_nth s (__eo_to_smt_type T)
+              (__eo_to_smt_exists tail body) n)
+      rw [smtx_model_eval_choice_nth_eq_aux M s (__eo_to_smt_type T)
+          (__eo_to_smt_exists tail body) n,
+        smtx_model_eval_choice_nth_eq_aux N s (__eo_to_smt_type T)
+          (__eo_to_smt_exists tail body) n]
+      exact nativeEvalTChoiceNthAux_eq_of_scanner_body_cons
+        body s T tail hTail hBodyNoExists n hBvsVar hRel hBody
+
 private theorem body_constant_on_eo_binders_of_scanner_eval_aux
     (body : SmtTerm) (xs bvs binders : Term) {vars : List SmtVarKey}
     (hBinders : EoSmtVarEnv binders vars)
@@ -11046,20 +12732,195 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                         binders a
                                                                                                         hBinaryBvCompareApplyOp
                                                                                                         hBindersNone
-                                                                                                  · sorry
+                                                                                                  · by_cases
+                                                                                                      hBinaryBvOverflowApplyOp :
+                                                                                                      ∃ w : Term,
+                                                                                                        Term.Apply (Term.UOp op) z =
+                                                                                                            Term.Apply (Term.UOp UserOp.bvuaddo) w ∨
+                                                                                                          Term.Apply (Term.UOp op) z =
+                                                                                                            Term.Apply (Term.UOp UserOp.bvsaddo) w ∨
+                                                                                                          Term.Apply (Term.UOp op) z =
+                                                                                                            Term.Apply (Term.UOp UserOp.bvumulo) w ∨
+                                                                                                          Term.Apply (Term.UOp op) z =
+                                                                                                            Term.Apply (Term.UOp UserOp.bvsmulo) w ∨
+                                                                                                          Term.Apply (Term.UOp op) z =
+                                                                                                            Term.Apply (Term.UOp UserOp.bvusubo) w ∨
+                                                                                                          Term.Apply (Term.UOp op) z =
+                                                                                                            Term.Apply (Term.UOp UserOp.bvssubo) w ∨
+                                                                                                          Term.Apply (Term.UOp op) z =
+                                                                                                            Term.Apply (Term.UOp UserOp.bvsdivo) w
+                                                                                                    · exfalso
+                                                                                                      apply hNN
+                                                                                                      exact
+                                                                                                        smtx_typeof_eo_to_smt_apply_apply_bv_overflow_second_head_none
+                                                                                                          (Term.Apply (Term.UOp op) z)
+                                                                                                          binders a
+                                                                                                          hBinaryBvOverflowApplyOp
+                                                                                                          hBindersNone
+                                                                                                    · by_cases
+                                                                                                        hBinaryBvPredToBvApplyOp :
+                                                                                                        ∃ w : Term,
+                                                                                                          Term.Apply (Term.UOp op) z =
+                                                                                                              Term.Apply (Term.UOp UserOp.bvultbv) w ∨
+                                                                                                            Term.Apply (Term.UOp op) z =
+                                                                                                              Term.Apply (Term.UOp UserOp.bvsltbv) w
+                                                                                                      · exfalso
+                                                                                                        apply hNN
+                                                                                                        exact
+                                                                                                          smtx_typeof_eo_to_smt_apply_apply_bv_pred_to_bv_second_head_none
+                                                                                                            (Term.Apply (Term.UOp op) z)
+                                                                                                            binders a
+                                                                                                            hBinaryBvPredToBvApplyOp
+                                                                                                            hBindersNone
+                                                                                                      · by_cases
+                                                                                                          hMiscSecondApplyOp :
+                                                                                                          ∃ w : Term,
+                                                                                                            Term.Apply (Term.UOp op) z =
+                                                                                                                Term.Apply
+                                                                                                                  (Term.UOp
+                                                                                                                    UserOp._at_from_bools)
+                                                                                                                  w ∨
+                                                                                                              Term.Apply (Term.UOp op) z =
+                                                                                                                Term.Apply
+                                                                                                                  (Term.UOp
+                                                                                                                    UserOp._at_array_deq_diff)
+                                                                                                                  w ∨
+                                                                                                              Term.Apply (Term.UOp op) z =
+                                                                                                                Term.Apply
+                                                                                                                  (Term.UOp
+                                                                                                                    UserOp._at_sets_deq_diff)
+                                                                                                                  w ∨
+                                                                                                              Term.Apply (Term.UOp op) z =
+                                                                                                                Term.Apply
+                                                                                                                  (Term.UOp
+                                                                                                                    UserOp._at_strings_deq_diff)
+                                                                                                                  w ∨
+                                                                                                              Term.Apply (Term.UOp op) z =
+                                                                                                                Term.Apply
+                                                                                                                  (Term.UOp
+                                                                                                                    UserOp._at_strings_stoi_result)
+                                                                                                                  w ∨
+                                                                                                              Term.Apply (Term.UOp op) z =
+                                                                                                                Term.Apply
+                                                                                                                  (Term.UOp
+                                                                                                                    UserOp._at_strings_itos_result)
+                                                                                                                  w ∨
+                                                                                                              Term.Apply (Term.UOp op) z =
+                                                                                                                Term.Apply
+                                                                                                                  (Term.UOp
+                                                                                                                    UserOp._at_strings_num_occur)
+                                                                                                                  w
+                                                                                                        · exfalso
+                                                                                                          apply hNN
+                                                                                                          exact
+                                                                                                            smtx_typeof_eo_to_smt_apply_apply_misc_second_head_none
+                                                                                                              (Term.Apply (Term.UOp op) z)
+                                                                                                              binders a
+                                                                                                              hMiscSecondApplyOp
+                                                                                                              hBindersNone
+                                                                                                        · by_cases
+                                                                                                            hTupleSecondApplyOp :
+                                                                                                            ∃ w : Term,
+                                                                                                              Term.Apply (Term.UOp op) z =
+                                                                                                                Term.Apply
+                                                                                                                  (Term.UOp UserOp.tuple)
+                                                                                                                  w
+                                                                                                          · exfalso
+                                                                                                            apply hNN
+                                                                                                            exact
+                                                                                                              smtx_typeof_eo_to_smt_apply_apply_tuple_second_head_none
+                                                                                                                (Term.Apply (Term.UOp op) z)
+                                                                                                                binders a
+                                                                                                                hTupleSecondApplyOp
+                                                                                                                hBindersNone
+                                                                                                          · by_cases
+                                                                                                              hSetInsertSecondApplyOp :
+                                                                                                              ∃ w : Term,
+                                                                                                                Term.Apply (Term.UOp op) z =
+                                                                                                                  Term.Apply
+                                                                                                                    (Term.UOp
+                                                                                                                      UserOp.set_insert)
+                                                                                                                    w
+                                                                                                            · exfalso
+                                                                                                              apply hNN
+                                                                                                              exact
+                                                                                                                smtx_typeof_eo_to_smt_apply_apply_set_insert_second_head_none
+                                                                                                                  (Term.Apply (Term.UOp op) z)
+                                                                                                                  binders a
+                                                                                                                  hSetInsertSecondApplyOp
+                                                                                                                  hBindersNone
+                                                                                                                  (by
+                                                                                                                    dsimp [binders]
+                                                                                                                    intro s d i j h
+                                                                                                                    cases h)
+                                                                                                                  (by
+                                                                                                                    dsimp [binders]
+                                                                                                                    intro s d i h
+                                                                                                                    cases h)
+                                                                                                            · by_cases
+                                                                                                                hQuantSecondApplyOp :
+                                                                                                                ∃ w : Term,
+                                                                                                                  Term.Apply (Term.UOp op) z =
+                                                                                                                      Term.Apply
+                                                                                                                        (Term.UOp
+                                                                                                                          UserOp.forall)
+                                                                                                                        w ∨
+                                                                                                                    Term.Apply (Term.UOp op) z =
+                                                                                                                      Term.Apply
+                                                                                                                        (Term.UOp
+                                                                                                                          UserOp.exists)
+                                                                                                                        w
+                                                                                                              · exfalso
+                                                                                                                apply hNN
+                                                                                                                exact
+                                                                                                                  smtx_typeof_eo_to_smt_apply_apply_quant_second_head_none
+                                                                                                                    (Term.Apply (Term.UOp op) z)
+                                                                                                                    binders a
+                                                                                                                    hQuantSecondApplyOp
+                                                                                                                    hBindersNone
+                                                                                                                    (by
+                                                                                                                      dsimp [binders]
+                                                                                                                      intro s d i j h
+                                                                                                                      cases h)
+                                                                                                                    (by
+                                                                                                                      dsimp [binders]
+                                                                                                                      intro s d i h
+                                                                                                                      cases h)
+                                                                                                              · exfalso
+                                                                                                                apply hNN
+                                                                                                                exact
+                                                                                                                  smtx_typeof_eo_to_smt_apply_apply_generic_head_none
+                                                                                                                    (Term.Apply (Term.UOp op) z)
+                                                                                                                    binders a
+                                                                                                                    (by
+                                                                                                                      cases op <;>
+                                                                                                                        first
+                                                                                                                        | rfl
+                                                                                                                        | simp_all)
+                                                                                                                    hBindersNone
                                                                                       | UOp1 op idx =>
                                                                                           by_cases
                                                                                             hUpdate :
                                                                                             op =
                                                                                               UserOp1.update
                                                                                           · subst op
-                                                                                            sorry
+                                                                                            exfalso
+                                                                                            apply hNN
+                                                                                            exact
+                                                                                              smtx_typeof_eo_to_smt_apply_apply_uop1_update_second_head_none
+                                                                                                idx z binders a
+                                                                                                hBindersNone
                                                                                           · by_cases
                                                                                               hTupleUpdate :
                                                                                               op =
                                                                                                 UserOp1.tuple_update
                                                                                             · subst op
-                                                                                              sorry
+                                                                                              exfalso
+                                                                                              apply hNN
+                                                                                              exact
+                                                                                                smtx_typeof_eo_to_smt_apply_apply_uop1_tuple_update_second_head_none
+                                                                                                  idx z binders a
+                                                                                                  hBindersNone
                                                                                             · cases op <;>
                                                                                                 first
                                                                                                 | contradiction
@@ -11072,7 +12933,191 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                         rfl)
                                                                                                       hBindersNone
                                                                                       | Apply g y =>
-                                                                                          sorry
+                                                                                          by_cases
+                                                                                            hTernaryLastOp :
+                                                                                            ∃ u v : Term,
+                                                                                              Term.Apply
+                                                                                                    (Term.Apply g y)
+                                                                                                    z =
+                                                                                                  Term.Apply
+                                                                                                    (Term.Apply
+                                                                                                      (Term.UOp
+                                                                                                        UserOp.ite)
+                                                                                                      u)
+                                                                                                    v ∨
+                                                                                                Term.Apply
+                                                                                                      (Term.Apply g y)
+                                                                                                      z =
+                                                                                                    Term.Apply
+                                                                                                      (Term.Apply
+                                                                                                        (Term.UOp
+                                                                                                          UserOp.bvite)
+                                                                                                        u)
+                                                                                                      v ∨
+                                                                                                  Term.Apply
+                                                                                                        (Term.Apply g y)
+                                                                                                        z =
+                                                                                                      Term.Apply
+                                                                                                        (Term.Apply
+                                                                                                          (Term.UOp
+                                                                                                            UserOp.store)
+                                                                                                          u)
+                                                                                                        v ∨
+                                                                                                    Term.Apply
+                                                                                                          (Term.Apply g y)
+                                                                                                          z =
+                                                                                                        Term.Apply
+                                                                                                          (Term.Apply
+                                                                                                            (Term.UOp
+                                                                                                              UserOp.str_substr)
+                                                                                                            u)
+                                                                                                          v ∨
+                                                                                                      Term.Apply
+                                                                                                            (Term.Apply g y)
+                                                                                                            z =
+                                                                                                          Term.Apply
+                                                                                                            (Term.Apply
+                                                                                                              (Term.UOp
+                                                                                                                UserOp.str_replace)
+                                                                                                              u)
+                                                                                                            v ∨
+                                                                                                        Term.Apply
+                                                                                                              (Term.Apply g y)
+                                                                                                              z =
+                                                                                                            Term.Apply
+                                                                                                              (Term.Apply
+                                                                                                                (Term.UOp
+                                                                                                                  UserOp.str_indexof)
+                                                                                                                u)
+                                                                                                              v ∨
+                                                                                                          Term.Apply
+                                                                                                                (Term.Apply g y)
+                                                                                                                z =
+                                                                                                              Term.Apply
+                                                                                                                (Term.Apply
+                                                                                                                  (Term.UOp
+                                                                                                                    UserOp.str_update)
+                                                                                                                  u)
+                                                                                                                v ∨
+                                                                                                            Term.Apply
+                                                                                                                  (Term.Apply g y)
+                                                                                                                  z =
+                                                                                                                Term.Apply
+                                                                                                                  (Term.Apply
+                                                                                                                    (Term.UOp
+                                                                                                                      UserOp.str_replace_all)
+                                                                                                                    u)
+                                                                                                                  v ∨
+                                                                                                              Term.Apply
+                                                                                                                    (Term.Apply g y)
+                                                                                                                    z =
+                                                                                                                  Term.Apply
+                                                                                                                    (Term.Apply
+                                                                                                                      (Term.UOp
+                                                                                                                        UserOp.str_replace_re)
+                                                                                                                      u)
+                                                                                                                    v ∨
+                                                                                                                Term.Apply
+                                                                                                                      (Term.Apply g y)
+                                                                                                                      z =
+                                                                                                                    Term.Apply
+                                                                                                                      (Term.Apply
+                                                                                                                        (Term.UOp
+                                                                                                                          UserOp.str_replace_re_all)
+                                                                                                                        u)
+                                                                                                                      v ∨
+                                                                                                                  Term.Apply
+                                                                                                                        (Term.Apply g y)
+                                                                                                                        z =
+                                                                                                                      Term.Apply
+                                                                                                                        (Term.Apply
+                                                                                                                          (Term.UOp
+                                                                                                                            UserOp.str_indexof_re)
+                                                                                                                          u)
+                                                                                                                        v ∨
+                                                                                                                    Term.Apply
+                                                                                                                          (Term.Apply g y)
+                                                                                                                          z =
+                                                                                                                        Term.Apply
+                                                                                                                          (Term.Apply
+                                                                                                                            (Term.UOp
+                                                                                                                              UserOp.str_indexof_re_split)
+                                                                                                                            u)
+                                                                                                                          v
+                                                                                          · exfalso
+                                                                                            apply hNN
+                                                                                            exact
+                                                                                              smtx_typeof_eo_to_smt_apply_apply_ternary_last_head_none
+                                                                                                (Term.Apply
+                                                                                                  (Term.Apply g y)
+                                                                                                  z)
+                                                                                                binders a
+                                                                                                hTernaryLastOp
+                                                                                                hBindersNone
+                                                                                          · exfalso
+                                                                                            apply hNN
+                                                                                            exact
+                                                                                              smtx_typeof_eo_to_smt_apply_apply_generic_head_none
+                                                                                                (Term.Apply
+                                                                                                  (Term.Apply g y)
+                                                                                                  z)
+                                                                                                binders a
+                                                                                                (by
+                                                                                                  cases g with
+                                                                                                  | UOp op =>
+                                                                                                      cases op
+                                                                                                      case ite =>
+                                                                                                        exfalso
+                                                                                                        apply hTernaryLastOp
+                                                                                                        exact ⟨y, z, by simp⟩
+                                                                                                      case bvite =>
+                                                                                                        exfalso
+                                                                                                        apply hTernaryLastOp
+                                                                                                        exact ⟨y, z, by simp⟩
+                                                                                                      case store =>
+                                                                                                        exfalso
+                                                                                                        apply hTernaryLastOp
+                                                                                                        exact ⟨y, z, by simp⟩
+                                                                                                      case str_substr =>
+                                                                                                        exfalso
+                                                                                                        apply hTernaryLastOp
+                                                                                                        exact ⟨y, z, by simp⟩
+                                                                                                      case str_replace =>
+                                                                                                        exfalso
+                                                                                                        apply hTernaryLastOp
+                                                                                                        exact ⟨y, z, by simp⟩
+                                                                                                      case str_indexof =>
+                                                                                                        exfalso
+                                                                                                        apply hTernaryLastOp
+                                                                                                        exact ⟨y, z, by simp⟩
+                                                                                                      case str_update =>
+                                                                                                        exfalso
+                                                                                                        apply hTernaryLastOp
+                                                                                                        exact ⟨y, z, by simp⟩
+                                                                                                      case str_replace_all =>
+                                                                                                        exfalso
+                                                                                                        apply hTernaryLastOp
+                                                                                                        exact ⟨y, z, by simp⟩
+                                                                                                      case str_replace_re =>
+                                                                                                        exfalso
+                                                                                                        apply hTernaryLastOp
+                                                                                                        exact ⟨y, z, by simp⟩
+                                                                                                      case str_replace_re_all =>
+                                                                                                        exfalso
+                                                                                                        apply hTernaryLastOp
+                                                                                                        exact ⟨y, z, by simp⟩
+                                                                                                      case str_indexof_re =>
+                                                                                                        exfalso
+                                                                                                        apply hTernaryLastOp
+                                                                                                        exact ⟨y, z, by simp⟩
+                                                                                                      case str_indexof_re_split =>
+                                                                                                        exfalso
+                                                                                                        apply hTernaryLastOp
+                                                                                                        exact ⟨y, z, by simp⟩
+                                                                                                      all_goals rfl
+                                                                                                  | _ =>
+                                                                                                      rfl)
+                                                                                                hBindersNone
                                                                                       | _ =>
                                                                                           exfalso
                                                                                           apply hNN
