@@ -5869,9 +5869,9 @@ private theorem eo_to_smt_typeof_matches_translation_apply_re_exp
   have hEo :
       __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp1 UserOp1.re_exp y) x)) =
         SmtType.RegLan := by
-    change __eo_to_smt_type (__eo_typeof_re_exp (__eo_typeof y) (__eo_typeof x)) =
+    change __eo_to_smt_type (__eo_typeof_re_exp (__eo_typeof y) y (__eo_typeof x)) =
       SmtType.RegLan
-    rw [hYEo, hXEo]
+    rw [hYTerm, hXEo]
     rfl
   exact hSmt.trans hEo.symm
 
@@ -12553,9 +12553,9 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_re_loop
                 SmtType.RegLan := by
             change
               __eo_to_smt_type
-                  (__eo_typeof_re_loop (__eo_typeof z) (__eo_typeof y) (__eo_typeof x)) =
+                  (__eo_typeof_re_loop (__eo_typeof z) z (__eo_typeof y) y (__eo_typeof x)) =
                 SmtType.RegLan
-            rw [hZEo, hYEo, hXEo]
+            rw [hZTerm, hYTerm, hXEo]
             rfl
           exact hSmt.trans hEo.symm
       | _ =>

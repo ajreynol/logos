@@ -4892,15 +4892,18 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_re_unfold_pos_component_of_seq_c
 
 /-- Stronger EO-side helper for `typeof_apply_apply_apply_re_loop`. -/
 theorem eo_to_smt_type_typeof_apply_apply_apply_re_loop_of_int_int_reglan
-    (x y z : Term)
-    (hz : __eo_typeof z = Term.UOp UserOp.Int)
-    (hy : __eo_typeof y = Term.UOp UserOp.Int)
+    (x : Term) (n1 n2 : Int)
     (hx : __eo_typeof x = Term.UOp UserOp.RegLan) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp2 UserOp2.re_loop z y) x)) =
+    __eo_to_smt_type
+        (__eo_typeof
+          (Term.Apply (Term.UOp2 UserOp2.re_loop (Term.Numeral n1) (Term.Numeral n2)) x)) =
       SmtType.RegLan := by
-  change __eo_to_smt_type (__eo_typeof_re_loop (__eo_typeof z) (__eo_typeof y) (__eo_typeof x)) =
-    SmtType.RegLan
-  rw [hz, hy, hx]
+  change
+    __eo_to_smt_type
+        (__eo_typeof_re_loop (__eo_typeof (Term.Numeral n1)) (Term.Numeral n1)
+          (__eo_typeof (Term.Numeral n2)) (Term.Numeral n2) (__eo_typeof x)) =
+      SmtType.RegLan
+  rw [hx]
   rfl
 
 /-- Stronger EO-side helper for `typeof_apply_apply_apply_at_witness_string_length`. -/
