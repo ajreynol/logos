@@ -1285,8 +1285,9 @@ theorem list_typed_update
   · rw [if_neg h]
     simpa [List.append_assoc] using
       (list_typed_append
-        (list_typed_append (list_typed_take (Int.toNat i) hxs) hys)
-        (list_typed_drop (Int.toNat i + 1) hxs))
+        (list_typed_append (list_typed_take (Int.toNat i) hxs)
+          (list_typed_take (xs.length - Int.toNat i) hys))
+        (list_typed_drop (Int.toNat i + ys.length) hxs))
 
 /-- Derives `elem_typeof_seq_value` from `typeof_seq_value`. -/
 theorem elem_typeof_seq_value_of_typeof_seq_value :
