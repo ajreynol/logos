@@ -437,10 +437,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
 private theorem eo_prog_evaluate_typeof_bool_of_has_smt_translation
     (t : Term)
     (hTrans : RuleProofs.eo_has_smt_translation t)
-    (hRunNe : __run_evaluate t ≠ Term.Stuck := by
-      intro _hRunStuck
-      exact (by
-        sorry)) :
+    (hRunNe : __run_evaluate t ≠ Term.Stuck) :
     __eo_typeof (__eo_prog_evaluate t) = Term.Bool :=
   eo_prog_evaluate_typeof_bool_of_run_typeof_eq t hTrans
     (run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
@@ -450,10 +447,7 @@ private theorem eo_prog_evaluate_typeof_bool_of_smt_type_int
     (t : Term)
     (hTrans : RuleProofs.eo_has_smt_translation t)
     (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.Int)
-    (hRunNe : __run_evaluate t ≠ Term.Stuck := by
-      intro _hRunStuck
-      exact (by
-        sorry)) :
+    (hRunNe : __run_evaluate t ≠ Term.Stuck) :
     __eo_typeof (__eo_prog_evaluate t) = Term.Bool := by
   exact eo_prog_evaluate_typeof_bool_of_has_smt_translation t hTrans hRunNe
 
@@ -461,10 +455,7 @@ private theorem eo_prog_evaluate_typeof_bool_of_smt_type_bitvec
     (t : Term) (w : native_Nat)
     (hTrans : RuleProofs.eo_has_smt_translation t)
     (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.BitVec w)
-    (hRunNe : __run_evaluate t ≠ Term.Stuck := by
-      intro _hRunStuck
-      exact (by
-        sorry)) :
+    (hRunNe : __run_evaluate t ≠ Term.Stuck) :
     __eo_typeof (__eo_prog_evaluate t) = Term.Bool := by
   exact eo_prog_evaluate_typeof_bool_of_has_smt_translation t hTrans hRunNe
 
@@ -472,10 +463,7 @@ private theorem eo_prog_evaluate_typeof_bool_of_smt_type_real
     (t : Term)
     (hTrans : RuleProofs.eo_has_smt_translation t)
     (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.Real)
-    (hRunNe : __run_evaluate t ≠ Term.Stuck := by
-      intro _hRunStuck
-      exact (by
-        sorry)) :
+    (hRunNe : __run_evaluate t ≠ Term.Stuck) :
     __eo_typeof (__eo_prog_evaluate t) = Term.Bool := by
   exact eo_prog_evaluate_typeof_bool_of_has_smt_translation t hTrans hRunNe
 
@@ -483,10 +471,7 @@ private theorem eo_prog_evaluate_typeof_bool_of_smt_type_seq
     (t : Term) (T : SmtType)
     (hTrans : RuleProofs.eo_has_smt_translation t)
     (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.Seq T)
-    (hRunNe : __run_evaluate t ≠ Term.Stuck := by
-      intro _hRunStuck
-      exact (by
-        sorry)) :
+    (hRunNe : __run_evaluate t ≠ Term.Stuck) :
     __eo_typeof (__eo_prog_evaluate t) = Term.Bool := by
   exact eo_prog_evaluate_typeof_bool_of_has_smt_translation t hTrans hRunNe
 
