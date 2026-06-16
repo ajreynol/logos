@@ -46,6 +46,24 @@ theorem mk_apply_ne_stuck_eq {a w : Term} (ha : a ≠ Term.Stuck) (hw : w ≠ Te
     __eo_mk_apply a w = Term.Apply a w := by
   cases a <;> cases w <;> simp_all [__eo_mk_apply]
 
+theorem mk_apply_left_stuck (b : Term) : __eo_mk_apply Term.Stuck b = Term.Stuck := rfl
+
+theorem mk_apply_right_stuck (a : Term) : __eo_mk_apply a Term.Stuck = Term.Stuck := by
+  cases a <;> rfl
+
+theorem mk_apply_eq_apply_eq_of_ne_stuck {x y : Term}
+    (hx : x ≠ Term.Stuck) (hy : y ≠ Term.Stuck) :
+    __eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.eq) x) y =
+      Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) y := by
+  rw [mk_apply_ne_stuck_eq (by simp) hx, mk_apply_ne_stuck_eq (by simp) hy]
+
+theorem term_ne_stuck_of_eval_reglan (M : SmtModel) (t : Term) (r : native_RegLan)
+    (h : __smtx_model_eval M (__eo_to_smt t) = SmtValue.RegLan r) : t ≠ Term.Stuck := by
+  intro hStuck
+  subst hStuck
+  change __smtx_model_eval M SmtTerm.None = SmtValue.RegLan r at h
+  simp [__smtx_model_eval] at h
+
 theorem list_concat_rec_cons (f x y z : Term) (hz : z ≠ Term.Stuck) :
     __eo_list_concat_rec (Term.Apply (Term.Apply f x) y) z =
       __eo_mk_apply (Term.Apply f x) (__eo_list_concat_rec y z) := by
