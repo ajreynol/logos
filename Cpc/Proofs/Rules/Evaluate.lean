@@ -202,6 +202,55 @@ private theorem eo_prog_evaluate_typeof_bool_of_smt_type_seq
     __eo_typeof (__eo_prog_evaluate t) = Term.Bool := by
   sorry
 
+private theorem smtx_model_eval_eq_false_of_not_smt_value_rel
+    (a b : SmtValue) :
+    ¬ RuleProofs.smt_value_rel a b ->
+    __smtx_model_eval_eq a b = SmtValue.Boolean false := by
+  intro h
+  rcases bool_value_canonical (typeof_value_model_eval_eq_value a b) with
+    ⟨q, hEq⟩
+  rw [hEq]
+  cases q with
+  | false => rfl
+  | true =>
+      exact False.elim (h hEq)
+
+private theorem smt_value_rel_model_eval_eq_congr
+    (a b c d : SmtValue) :
+    RuleProofs.smt_value_rel a c ->
+    RuleProofs.smt_value_rel b d ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval_eq a b) (__smtx_model_eval_eq c d) := by
+  intro hac hbd
+  have hIff :
+      RuleProofs.smt_value_rel a b ↔
+        RuleProofs.smt_value_rel c d := by
+    constructor
+    · intro hab
+      exact RuleProofs.smt_value_rel_trans c a d
+        (RuleProofs.smt_value_rel_symm a c hac)
+        (RuleProofs.smt_value_rel_trans a b d hab hbd)
+    · intro hcd
+      exact RuleProofs.smt_value_rel_trans a c b hac
+        (RuleProofs.smt_value_rel_trans c d b hcd
+          (RuleProofs.smt_value_rel_symm b d hbd))
+  by_cases hab : RuleProofs.smt_value_rel a b
+  · have hcd : RuleProofs.smt_value_rel c d := hIff.mp hab
+    unfold RuleProofs.smt_value_rel at hab hcd ⊢
+    rw [hab, hcd]
+    simp [__smtx_model_eval_eq, native_veq]
+  · have hncd : ¬ RuleProofs.smt_value_rel c d := by
+      intro hcd
+      exact hab (hIff.mpr hcd)
+    have habFalse :
+        __smtx_model_eval_eq a b = SmtValue.Boolean false :=
+      smtx_model_eval_eq_false_of_not_smt_value_rel a b hab
+    have hcdFalse :
+        __smtx_model_eval_eq c d = SmtValue.Boolean false :=
+      smtx_model_eval_eq_false_of_not_smt_value_rel c d hncd
+    rw [habFalse, hcdFalse]
+    simp [RuleProofs.smt_value_rel, __smtx_model_eval_eq, native_veq]
+
 private theorem eo_typeof_str_to_lower_eq_seq_char_arg
     {T : Term} :
     __eo_typeof_str_to_lower T =
