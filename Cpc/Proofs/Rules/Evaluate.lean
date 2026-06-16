@@ -23,6 +23,84 @@ private theorem eo_mk_apply_eq_apply_of_args_ne_stuck (f x : Term) :
   intro hf hx
   cases f <;> cases x <;> simp [__eo_mk_apply] at hf hx ⊢
 
+private theorem eo_to_z_arg_ne_stuck {t : Term} :
+    __eo_to_z t ≠ Term.Stuck -> t ≠ Term.Stuck := by
+  intro h ht
+  rw [ht] at h
+  simp [__eo_to_z] at h
+
+private theorem eo_to_q_arg_ne_stuck {t : Term} :
+    __eo_to_q t ≠ Term.Stuck -> t ≠ Term.Stuck := by
+  intro h ht
+  rw [ht] at h
+  simp [__eo_to_q] at h
+
+private theorem eo_eq_left_ne_stuck {a b : Term} :
+    __eo_eq a b ≠ Term.Stuck -> a ≠ Term.Stuck := by
+  intro h ha
+  rw [ha] at h
+  cases b <;> simp [__eo_eq] at h
+
+private theorem eo_eq_right_ne_stuck {a b : Term} :
+    __eo_eq a b ≠ Term.Stuck -> b ≠ Term.Stuck := by
+  intro h hb
+  rw [hb] at h
+  cases a <;> simp [__eo_eq] at h
+
+private theorem eo_ite_cond_ne_stuck {c t e : Term} :
+    __eo_ite c t e ≠ Term.Stuck -> c ≠ Term.Stuck := by
+  intro h hc
+  rw [hc] at h
+  simp [__eo_ite, native_ite, native_teq] at h
+
+private theorem eo_gt_left_ne_stuck {a b : Term} :
+    __eo_gt a b ≠ Term.Stuck -> a ≠ Term.Stuck := by
+  intro h ha
+  rw [ha] at h
+  cases b <;> simp [__eo_gt] at h
+
+private theorem eo_gt_right_ne_stuck {a b : Term} :
+    __eo_gt a b ≠ Term.Stuck -> b ≠ Term.Stuck := by
+  intro h hb
+  rw [hb] at h
+  cases a <;> simp [__eo_gt] at h
+
+private theorem eo_or_left_ne_stuck {a b : Term} :
+    __eo_or a b ≠ Term.Stuck -> a ≠ Term.Stuck := by
+  intro h ha
+  rw [ha] at h
+  cases b <;> simp [__eo_or] at h
+
+private theorem eo_or_right_ne_stuck {a b : Term} :
+    __eo_or a b ≠ Term.Stuck -> b ≠ Term.Stuck := by
+  intro h hb
+  rw [hb] at h
+  cases a <;> simp [__eo_or] at h
+
+private theorem eo_add_left_ne_stuck {a b : Term} :
+    __eo_add a b ≠ Term.Stuck -> a ≠ Term.Stuck := by
+  intro h ha
+  rw [ha] at h
+  cases b <;> simp [__eo_add] at h
+
+private theorem eo_add_right_ne_stuck {a b : Term} :
+    __eo_add a b ≠ Term.Stuck -> b ≠ Term.Stuck := by
+  intro h hb
+  rw [hb] at h
+  cases a <;> simp [__eo_add] at h
+
+private theorem eo_neg_arg_ne_stuck {t : Term} :
+    __eo_neg t ≠ Term.Stuck -> t ≠ Term.Stuck := by
+  intro h ht
+  rw [ht] at h
+  simp [__eo_neg] at h
+
+private theorem eo_is_neg_arg_ne_stuck {t : Term} :
+    __eo_is_neg t ≠ Term.Stuck -> t ≠ Term.Stuck := by
+  intro h ht
+  rw [ht] at h
+  simp [__eo_is_neg] at h
+
 private theorem eo_prog_evaluate_eq_of_ne_stuck (A : Term) :
     __eo_prog_evaluate A ≠ Term.Stuck ->
     __eo_prog_evaluate A =
@@ -194,39 +272,139 @@ private theorem eo_typeof_eq_self_bool_of_has_smt_translation
     | simp [__eo_typeof_eq, __eo_requires, __eo_eq, native_ite,
         native_teq, native_not]
 
+private theorem eo_to_smt_type_eq_of_top_valid
+    {T U : Term}
+    (hValid : TranslationProofs.eo_type_valid T)
+    (hEq : __eo_to_smt_type T = __eo_to_smt_type U) :
+    T = U := by
+  cases T
+  case UOp op =>
+    cases op
+    case RegLan =>
+      have hUReg : __eo_to_smt_type U = SmtType.RegLan := by
+        simpa [__eo_to_smt_type] using hEq.symm
+      exact (TranslationProofs.eo_to_smt_type_eq_reglan hUReg).symm
+    all_goals
+      exact TranslationProofs.eo_to_smt_type_eq_of_valid_rec
+        (by simpa [TranslationProofs.eo_type_valid] using hValid) hEq
+  all_goals
+    exact TranslationProofs.eo_to_smt_type_eq_of_valid_rec
+      (by simpa [TranslationProofs.eo_type_valid] using hValid) hEq
+
+private theorem run_evaluate_typeof_eq_of_same_smt_type
+    (t : Term)
+    (hTrans : RuleProofs.eo_has_smt_translation t)
+    (hSame :
+      __smtx_typeof (__eo_to_smt t) =
+        __smtx_typeof (__eo_to_smt (__run_evaluate t))) :
+    __eo_typeof (__run_evaluate t) = __eo_typeof t := by
+  have hRunTrans :
+      RuleProofs.eo_has_smt_translation (__run_evaluate t) := by
+    intro hNone
+    exact hTrans (hSame.trans hNone)
+  have hOrigMatch :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation t hTrans
+  have hRunMatch :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation
+      (__run_evaluate t) hRunTrans
+  have hOrigValid :=
+    TranslationProofs.eo_type_valid_typeof_of_smt_translation t hTrans
+  have hEqType :
+      __eo_to_smt_type (__eo_typeof t) =
+        __eo_to_smt_type (__eo_typeof (__run_evaluate t)) := by
+    rw [← hOrigMatch, hSame, hRunMatch]
+  exact (eo_to_smt_type_eq_of_top_valid hOrigValid hEqType).symm
+
+private theorem eo_prog_evaluate_typeof_bool_of_run_typeof_eq
+    (t : Term)
+    (hTrans : RuleProofs.eo_has_smt_translation t)
+    (hRunTy : __eo_typeof (__run_evaluate t) = __eo_typeof t) :
+    __eo_typeof (__eo_prog_evaluate t) = Term.Bool := by
+  have hTNe : t ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_has_smt_translation t hTrans
+  have hMatch :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation t hTrans
+  have hTypeNN : __eo_to_smt_type (__eo_typeof t) ≠ SmtType.None := by
+    intro hNone
+    exact hTrans (hMatch.trans hNone)
+  have hTypeNe : __eo_typeof t ≠ Term.Stuck :=
+    TranslationProofs.eo_term_ne_stuck_of_smt_type_non_none
+      (__eo_typeof t) hTypeNN
+  exact eo_prog_evaluate_typeof_bool_of_same_type_and_run_typeof t
+    (__eo_typeof t) hTNe hTypeNe rfl hRunTy
+
+private theorem eo_prog_evaluate_typeof_bool_of_same_smt_type
+    (t : Term)
+    (hTrans : RuleProofs.eo_has_smt_translation t)
+    (hSame :
+      __smtx_typeof (__eo_to_smt t) =
+        __smtx_typeof (__eo_to_smt (__run_evaluate t))) :
+    __eo_typeof (__eo_prog_evaluate t) = Term.Bool :=
+  eo_prog_evaluate_typeof_bool_of_run_typeof_eq t hTrans
+    (run_evaluate_typeof_eq_of_same_smt_type t hTrans hSame)
+
+private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
+    (t : Term)
+    (hTrans : RuleProofs.eo_has_smt_translation t)
+    (hRunNe : __run_evaluate t ≠ Term.Stuck) :
+    __eo_typeof (__run_evaluate t) = __eo_typeof t := by
+  sorry
+
 private theorem eo_prog_evaluate_typeof_bool_of_has_smt_translation
     (t : Term)
-    (hTrans : RuleProofs.eo_has_smt_translation t) :
-    __eo_typeof (__eo_prog_evaluate t) = Term.Bool := by
-  sorry
+    (hTrans : RuleProofs.eo_has_smt_translation t)
+    (hRunNe : __run_evaluate t ≠ Term.Stuck := by
+      intro _hRunStuck
+      exact (by
+        sorry)) :
+    __eo_typeof (__eo_prog_evaluate t) = Term.Bool :=
+  eo_prog_evaluate_typeof_bool_of_run_typeof_eq t hTrans
+    (run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
+      t hTrans hRunNe)
 
 private theorem eo_prog_evaluate_typeof_bool_of_smt_type_int
     (t : Term)
     (hTrans : RuleProofs.eo_has_smt_translation t)
-    (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.Int) :
+    (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.Int)
+    (hRunNe : __run_evaluate t ≠ Term.Stuck := by
+      intro _hRunStuck
+      exact (by
+        sorry)) :
     __eo_typeof (__eo_prog_evaluate t) = Term.Bool := by
-  exact eo_prog_evaluate_typeof_bool_of_has_smt_translation t hTrans
+  exact eo_prog_evaluate_typeof_bool_of_has_smt_translation t hTrans hRunNe
 
 private theorem eo_prog_evaluate_typeof_bool_of_smt_type_bitvec
     (t : Term) (w : native_Nat)
     (hTrans : RuleProofs.eo_has_smt_translation t)
-    (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.BitVec w) :
+    (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.BitVec w)
+    (hRunNe : __run_evaluate t ≠ Term.Stuck := by
+      intro _hRunStuck
+      exact (by
+        sorry)) :
     __eo_typeof (__eo_prog_evaluate t) = Term.Bool := by
-  exact eo_prog_evaluate_typeof_bool_of_has_smt_translation t hTrans
+  exact eo_prog_evaluate_typeof_bool_of_has_smt_translation t hTrans hRunNe
 
 private theorem eo_prog_evaluate_typeof_bool_of_smt_type_real
     (t : Term)
     (hTrans : RuleProofs.eo_has_smt_translation t)
-    (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.Real) :
+    (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.Real)
+    (hRunNe : __run_evaluate t ≠ Term.Stuck := by
+      intro _hRunStuck
+      exact (by
+        sorry)) :
     __eo_typeof (__eo_prog_evaluate t) = Term.Bool := by
-  exact eo_prog_evaluate_typeof_bool_of_has_smt_translation t hTrans
+  exact eo_prog_evaluate_typeof_bool_of_has_smt_translation t hTrans hRunNe
 
 private theorem eo_prog_evaluate_typeof_bool_of_smt_type_seq
     (t : Term) (T : SmtType)
     (hTrans : RuleProofs.eo_has_smt_translation t)
-    (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.Seq T) :
+    (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.Seq T)
+    (hRunNe : __run_evaluate t ≠ Term.Stuck := by
+      intro _hRunStuck
+      exact (by
+        sorry)) :
     __eo_typeof (__eo_prog_evaluate t) = Term.Bool := by
-  exact eo_prog_evaluate_typeof_bool_of_has_smt_translation t hTrans
+  exact eo_prog_evaluate_typeof_bool_of_has_smt_translation t hTrans hRunNe
 
 private theorem smtx_model_eval_eq_false_of_not_smt_value_rel
     (a b : SmtValue) :
@@ -5653,6 +5831,21 @@ private theorem eo_signed_bv_value_eq_stuck_of_not_binary
   all_goals
     simp [eo_signed_bv_value, __eo_extract, __eo_eq, __eo_ite,
       native_ite, native_teq] at hNotBinary ⊢
+
+private theorem eo_signed_bv_value_arg_ne_stuck {x : Term} :
+    eo_signed_bv_value x ≠ Term.Stuck -> x ≠ Term.Stuck := by
+  intro h hx
+  have hNotBinary : ¬ ∃ w n : native_Int, x = Term.Binary w n := by
+    intro hBin
+    rcases hBin with ⟨w, n, hEq⟩
+    rw [hEq] at hx
+    cases hx
+  have hNotString : ¬ ∃ s : native_String, x = Term.String s := by
+    intro hStr
+    rcases hStr with ⟨s, hEq⟩
+    rw [hEq] at hx
+    cases hx
+  exact h (eo_signed_bv_value_eq_stuck_of_not_binary x hNotBinary hNotString)
 
 private def smt_bv_msb_set (w n : native_Int) : native_Bool :=
   native_zeq
@@ -15200,8 +15393,16 @@ private theorem run_evaluate_sound_apply_bvudiv_core
         (Term.Apply (Term.Apply (Term.UOp UserOp.bvudiv) a) b)
         runDiv hEvalEqTy
     exact hEq.symm.trans hBvUdivEoType
+  have hRunBNe : __run_evaluate b ≠ Term.Stuck := by
+    have hCondNe :
+        __eo_eq (__eo_to_z runBTerm) (Term.Numeral 0) ≠ Term.Stuck :=
+      eo_ite_cond_ne_stuck (by simpa [runDiv] using hRunDivNe)
+    have hToZNe : __eo_to_z runBTerm ≠ Term.Stuck :=
+      eo_eq_left_ne_stuck hCondNe
+    simpa [runBTerm] using eo_to_z_arg_ne_stuck hToZNe
   have hBProgTy : __eo_typeof (__eo_prog_evaluate b) = Term.Bool :=
     eo_prog_evaluate_typeof_bool_of_smt_type_bitvec b w hBTrans hBTy
+      hRunBNe
   rcases run_evaluate_rec_apply_arg M
       (Term.Apply (Term.UOp UserOp.bvudiv) a) b rec hBTrans hBProgTy with
     ⟨hBSameTy, hBRel⟩
@@ -15553,8 +15754,16 @@ private theorem run_evaluate_sound_apply_bvurem_core
         (Term.Apply (Term.Apply (Term.UOp UserOp.bvurem) a) b)
         runRem hEvalEqTy
     exact hEq.symm.trans hBvUremEoType
+  have hRunBNe : __run_evaluate b ≠ Term.Stuck := by
+    have hCondNe :
+        __eo_eq (__eo_to_z runBTerm) (Term.Numeral 0) ≠ Term.Stuck :=
+      eo_ite_cond_ne_stuck (by simpa [runRem] using hRunRemNe)
+    have hToZNe : __eo_to_z runBTerm ≠ Term.Stuck :=
+      eo_eq_left_ne_stuck hCondNe
+    simpa [runBTerm] using eo_to_z_arg_ne_stuck hToZNe
   have hBProgTy : __eo_typeof (__eo_prog_evaluate b) = Term.Bool :=
     eo_prog_evaluate_typeof_bool_of_smt_type_bitvec b w hBTrans hBTy
+      hRunBNe
   rcases run_evaluate_rec_apply_arg M
       (Term.Apply (Term.UOp UserOp.bvurem) a) b rec hBTrans hBProgTy with
     ⟨hBSameTy, hBRel⟩
@@ -15899,10 +16108,20 @@ private theorem run_evaluate_sound_apply_bvult_core
         (Term.Apply (Term.Apply (Term.UOp UserOp.bvult) a) b)
         runCmp hEvalEqTy
     exact hEq.symm.trans hBvUltEoType
+  have hRunBNe : __run_evaluate b ≠ Term.Stuck := by
+    have hToZNe : __eo_to_z (__run_evaluate b) ≠ Term.Stuck :=
+      eo_gt_left_ne_stuck (by simpa [runCmp] using hRunCmpNe)
+    exact eo_to_z_arg_ne_stuck hToZNe
+  have hRunANe : __run_evaluate a ≠ Term.Stuck := by
+    have hToZNe : __eo_to_z (__run_evaluate a) ≠ Term.Stuck :=
+      eo_gt_right_ne_stuck (by simpa [runCmp] using hRunCmpNe)
+    exact eo_to_z_arg_ne_stuck hToZNe
   have hAProgTy : __eo_typeof (__eo_prog_evaluate a) = Term.Bool :=
     eo_prog_evaluate_typeof_bool_of_smt_type_bitvec a w hATransA hATy
+      hRunANe
   have hBProgTy : __eo_typeof (__eo_prog_evaluate b) = Term.Bool :=
     eo_prog_evaluate_typeof_bool_of_smt_type_bitvec b w hBTrans hBTy
+      hRunBNe
   rcases run_evaluate_rec_apply_apply_arg M
       (Term.UOp UserOp.bvult) a b rec hATransA hAProgTy with
     ⟨hASameTy, hARel⟩
@@ -16324,10 +16543,22 @@ private theorem run_evaluate_sound_apply_bvuge_core
         (Term.Apply (Term.Apply (Term.UOp UserOp.bvuge) a) b)
         runCmp hEvalEqTy
     exact hEq.symm.trans hBvUgeEoType
+  have hRunANe : __run_evaluate a ≠ Term.Stuck := by
+    have hGtNe :
+        __eo_gt (__run_evaluate a) (__run_evaluate b) ≠ Term.Stuck :=
+      eo_or_left_ne_stuck (by simpa [runCmp] using hRunCmpNe)
+    exact eo_gt_left_ne_stuck hGtNe
+  have hRunBNe : __run_evaluate b ≠ Term.Stuck := by
+    have hGtNe :
+        __eo_gt (__run_evaluate a) (__run_evaluate b) ≠ Term.Stuck :=
+      eo_or_left_ne_stuck (by simpa [runCmp] using hRunCmpNe)
+    exact eo_gt_right_ne_stuck hGtNe
   have hAProgTy : __eo_typeof (__eo_prog_evaluate a) = Term.Bool :=
     eo_prog_evaluate_typeof_bool_of_smt_type_bitvec a w hATransA hATy
+      hRunANe
   have hBProgTy : __eo_typeof (__eo_prog_evaluate b) = Term.Bool :=
     eo_prog_evaluate_typeof_bool_of_smt_type_bitvec b w hBTrans hBTy
+      hRunBNe
   rcases run_evaluate_rec_apply_apply_arg M
       (Term.UOp UserOp.bvuge) a b rec hATransA hAProgTy with
     ⟨hASameTy, hARel⟩
@@ -16588,10 +16819,22 @@ private theorem run_evaluate_sound_apply_bvule_core
         (Term.Apply (Term.Apply (Term.UOp UserOp.bvule) a) b)
         runCmp hEvalEqTy
     exact hEq.symm.trans hBvUleEoType
+  have hRunBNe : __run_evaluate b ≠ Term.Stuck := by
+    have hGtNe :
+        __eo_gt (__run_evaluate b) (__run_evaluate a) ≠ Term.Stuck :=
+      eo_or_left_ne_stuck (by simpa [runCmp] using hRunCmpNe)
+    exact eo_gt_left_ne_stuck hGtNe
+  have hRunANe : __run_evaluate a ≠ Term.Stuck := by
+    have hGtNe :
+        __eo_gt (__run_evaluate b) (__run_evaluate a) ≠ Term.Stuck :=
+      eo_or_left_ne_stuck (by simpa [runCmp] using hRunCmpNe)
+    exact eo_gt_right_ne_stuck hGtNe
   have hAProgTy : __eo_typeof (__eo_prog_evaluate a) = Term.Bool :=
     eo_prog_evaluate_typeof_bool_of_smt_type_bitvec a w hATransA hATy
+      hRunANe
   have hBProgTy : __eo_typeof (__eo_prog_evaluate b) = Term.Bool :=
     eo_prog_evaluate_typeof_bool_of_smt_type_bitvec b w hBTrans hBTy
+      hRunBNe
   rcases run_evaluate_rec_apply_apply_arg M
       (Term.UOp UserOp.bvule) a b rec hATransA hAProgTy with
     ⟨hASameTy, hARel⟩
@@ -16845,10 +17088,22 @@ private theorem run_evaluate_sound_apply_bvsgt_core
         (Term.Apply (Term.Apply (Term.UOp UserOp.bvsgt) a) b)
         runCmp hEvalEqTy
     exact hEq.symm.trans hBvSgtEoType
+  have hRunANe : __run_evaluate a ≠ Term.Stuck := by
+    have hSignedNe :
+        eo_signed_bv_value (__run_evaluate a) ≠ Term.Stuck :=
+      eo_gt_left_ne_stuck (by simpa [runCmp] using hRunCmpNe)
+    exact eo_signed_bv_value_arg_ne_stuck hSignedNe
+  have hRunBNe : __run_evaluate b ≠ Term.Stuck := by
+    have hSignedNe :
+        eo_signed_bv_value (__run_evaluate b) ≠ Term.Stuck :=
+      eo_gt_right_ne_stuck (by simpa [runCmp] using hRunCmpNe)
+    exact eo_signed_bv_value_arg_ne_stuck hSignedNe
   have hAProgTy : __eo_typeof (__eo_prog_evaluate a) = Term.Bool :=
     eo_prog_evaluate_typeof_bool_of_smt_type_bitvec a w hATransA hATy
+      hRunANe
   have hBProgTy : __eo_typeof (__eo_prog_evaluate b) = Term.Bool :=
     eo_prog_evaluate_typeof_bool_of_smt_type_bitvec b w hBTrans hBTy
+      hRunBNe
   rcases run_evaluate_rec_apply_apply_arg M
       (Term.UOp UserOp.bvsgt) a b rec hATransA hAProgTy with
     ⟨hASameTy, hARel⟩
@@ -17358,10 +17613,30 @@ private theorem run_evaluate_sound_apply_bvsge_core
         (Term.Apply (Term.Apply (Term.UOp UserOp.bvsge) a) b)
         runCmp hEvalEqTy
     exact hEq.symm.trans hBvSgeEoType
+  have hRunANe : __run_evaluate a ≠ Term.Stuck := by
+    have hGtNe :
+        __eo_gt (eo_signed_bv_value (__run_evaluate a))
+          (eo_signed_bv_value (__run_evaluate b)) ≠ Term.Stuck :=
+      eo_or_left_ne_stuck (by simpa [runCmp] using hRunCmpNe)
+    have hSignedNe :
+        eo_signed_bv_value (__run_evaluate a) ≠ Term.Stuck :=
+      eo_gt_left_ne_stuck hGtNe
+    exact eo_signed_bv_value_arg_ne_stuck hSignedNe
+  have hRunBNe : __run_evaluate b ≠ Term.Stuck := by
+    have hGtNe :
+        __eo_gt (eo_signed_bv_value (__run_evaluate a))
+          (eo_signed_bv_value (__run_evaluate b)) ≠ Term.Stuck :=
+      eo_or_left_ne_stuck (by simpa [runCmp] using hRunCmpNe)
+    have hSignedNe :
+        eo_signed_bv_value (__run_evaluate b) ≠ Term.Stuck :=
+      eo_gt_right_ne_stuck hGtNe
+    exact eo_signed_bv_value_arg_ne_stuck hSignedNe
   have hAProgTy : __eo_typeof (__eo_prog_evaluate a) = Term.Bool :=
     eo_prog_evaluate_typeof_bool_of_smt_type_bitvec a w hATransA hATy
+      hRunANe
   have hBProgTy : __eo_typeof (__eo_prog_evaluate b) = Term.Bool :=
     eo_prog_evaluate_typeof_bool_of_smt_type_bitvec b w hBTrans hBTy
+      hRunBNe
   rcases run_evaluate_rec_apply_apply_arg M
       (Term.UOp UserOp.bvsge) a b rec hATransA hAProgTy with
     ⟨hASameTy, hARel⟩
@@ -17672,10 +17947,30 @@ private theorem run_evaluate_sound_apply_bvsle_core
         (Term.Apply (Term.Apply (Term.UOp UserOp.bvsle) a) b)
         runCmp hEvalEqTy
     exact hEq.symm.trans hBvSleEoType
+  have hRunBNe : __run_evaluate b ≠ Term.Stuck := by
+    have hGtNe :
+        __eo_gt (eo_signed_bv_value (__run_evaluate b))
+          (eo_signed_bv_value (__run_evaluate a)) ≠ Term.Stuck :=
+      eo_or_left_ne_stuck (by simpa [runCmp] using hRunCmpNe)
+    have hSignedNe :
+        eo_signed_bv_value (__run_evaluate b) ≠ Term.Stuck :=
+      eo_gt_left_ne_stuck hGtNe
+    exact eo_signed_bv_value_arg_ne_stuck hSignedNe
+  have hRunANe : __run_evaluate a ≠ Term.Stuck := by
+    have hGtNe :
+        __eo_gt (eo_signed_bv_value (__run_evaluate b))
+          (eo_signed_bv_value (__run_evaluate a)) ≠ Term.Stuck :=
+      eo_or_left_ne_stuck (by simpa [runCmp] using hRunCmpNe)
+    have hSignedNe :
+        eo_signed_bv_value (__run_evaluate a) ≠ Term.Stuck :=
+      eo_gt_right_ne_stuck hGtNe
+    exact eo_signed_bv_value_arg_ne_stuck hSignedNe
   have hAProgTy : __eo_typeof (__eo_prog_evaluate a) = Term.Bool :=
     eo_prog_evaluate_typeof_bool_of_smt_type_bitvec a w hATransA hATy
+      hRunANe
   have hBProgTy : __eo_typeof (__eo_prog_evaluate b) = Term.Bool :=
     eo_prog_evaluate_typeof_bool_of_smt_type_bitvec b w hBTrans hBTy
+      hRunBNe
   rcases run_evaluate_rec_apply_apply_arg M
       (Term.UOp UserOp.bvsle) a b rec hATransA hAProgTy with
     ⟨hASameTy, hARel⟩
@@ -17998,20 +18293,18 @@ private theorem run_evaluate_sound_apply_bvshl_core
         (Term.Apply (Term.Apply (Term.UOp UserOp.bvshl) a) b)
         runShift hEvalEqTy
     exact hEq.symm.trans hBvShlEoType
-  have hAProgTy : __eo_typeof (__eo_prog_evaluate a) = Term.Bool :=
-    eo_prog_evaluate_typeof_bool_of_smt_type_bitvec a w hATransA hATy
+  have hRunBNe : __run_evaluate b ≠ Term.Stuck := by
+    have hCondNe : __eo_gt runAmt widthTerm ≠ Term.Stuck :=
+      eo_ite_cond_ne_stuck hRunShiftNe
+    have hRunAmtNe : runAmt ≠ Term.Stuck :=
+      eo_gt_left_ne_stuck hCondNe
+    simpa [runAmt] using eo_to_z_arg_ne_stuck hRunAmtNe
   have hBProgTy : __eo_typeof (__eo_prog_evaluate b) = Term.Bool :=
     eo_prog_evaluate_typeof_bool_of_smt_type_bitvec b w hBTrans hBTy
-  rcases run_evaluate_rec_apply_apply_arg M
-      (Term.UOp UserOp.bvshl) a b rec hATransA hAProgTy with
-    ⟨hASameTy, hARel⟩
+      hRunBNe
   rcases run_evaluate_rec_apply_arg M
       (Term.Apply (Term.UOp UserOp.bvshl) a) b rec hBTrans hBProgTy with
     ⟨hBSameTy, hBRel⟩
-  have hRunASmtTy :
-      __smtx_typeof (__eo_to_smt (__run_evaluate a)) = SmtType.BitVec w := by
-    rw [← hASameTy]
-    exact hATy
   have hRunBSmtTy :
       __smtx_typeof (__eo_to_smt (__run_evaluate b)) = SmtType.BitVec w := by
     rw [← hBSameTy]
@@ -18126,6 +18419,24 @@ private theorem run_evaluate_sound_apply_bvshl_core
     · have hGtFalse :
           native_zlt (native_nat_to_int w) runB = false := by
         cases h : native_zlt (native_nat_to_int w) runB <;> simp [h] at hGt ⊢
+      have hRunANe : __run_evaluate a ≠ Term.Stuck := by
+        intro hRunAStuck
+        have hRunShiftStuck : runShift = Term.Stuck := by
+          dsimp [runShift, runAmt, widthTerm, powAmt]
+          rw [hRunAStuck, hRunB]
+          simp [hAEoBv, __bv_bitwidth, __eo_to_z, __eo_gt, __eo_ite,
+            __eo_mul, __eo_to_bin, native_ite, native_teq, hGtFalse]
+        exact hRunShiftNe hRunShiftStuck
+      have hAProgTy : __eo_typeof (__eo_prog_evaluate a) = Term.Bool :=
+        eo_prog_evaluate_typeof_bool_of_smt_type_bitvec a w hATransA hATy
+          hRunANe
+      rcases run_evaluate_rec_apply_apply_arg M
+          (Term.UOp UserOp.bvshl) a b rec hATransA hAProgTy with
+        ⟨hASameTy, hARel⟩
+      have hRunASmtTy :
+          __smtx_typeof (__eo_to_smt (__run_evaluate a)) = SmtType.BitVec w := by
+        rw [← hASameTy]
+        exact hATy
       cases hRunA : __run_evaluate a
       case neg.Binary runWA runA =>
         rw [hRunA] at hRunASmtTy
@@ -18388,20 +18699,18 @@ private theorem run_evaluate_sound_apply_bvlshr_core
         (Term.Apply (Term.Apply (Term.UOp UserOp.bvlshr) a) b)
         runShift hEvalEqTy
     exact hEq.symm.trans hBvLshrEoType
-  have hAProgTy : __eo_typeof (__eo_prog_evaluate a) = Term.Bool :=
-    eo_prog_evaluate_typeof_bool_of_smt_type_bitvec a w hATransA hATy
+  have hRunBNe : __run_evaluate b ≠ Term.Stuck := by
+    have hCondNe : __eo_gt runAmt widthTerm ≠ Term.Stuck :=
+      eo_ite_cond_ne_stuck hRunShiftNe
+    have hRunAmtNe : runAmt ≠ Term.Stuck :=
+      eo_gt_left_ne_stuck hCondNe
+    simpa [runAmt] using eo_to_z_arg_ne_stuck hRunAmtNe
   have hBProgTy : __eo_typeof (__eo_prog_evaluate b) = Term.Bool :=
     eo_prog_evaluate_typeof_bool_of_smt_type_bitvec b w hBTrans hBTy
-  rcases run_evaluate_rec_apply_apply_arg M
-      (Term.UOp UserOp.bvlshr) a b rec hATransA hAProgTy with
-    ⟨hASameTy, hARel⟩
+      hRunBNe
   rcases run_evaluate_rec_apply_arg M
       (Term.Apply (Term.UOp UserOp.bvlshr) a) b rec hBTrans hBProgTy with
     ⟨hBSameTy, hBRel⟩
-  have hRunASmtTy :
-      __smtx_typeof (__eo_to_smt (__run_evaluate a)) = SmtType.BitVec w := by
-    rw [← hASameTy]
-    exact hATy
   have hRunBSmtTy :
       __smtx_typeof (__eo_to_smt (__run_evaluate b)) = SmtType.BitVec w := by
     rw [← hBSameTy]
@@ -18517,6 +18826,24 @@ private theorem run_evaluate_sound_apply_bvlshr_core
     · have hGtFalse :
           native_zlt (native_nat_to_int w) runB = false := by
         cases h : native_zlt (native_nat_to_int w) runB <;> simp [h] at hGt ⊢
+      have hRunANe : __run_evaluate a ≠ Term.Stuck := by
+        intro hRunAStuck
+        have hRunShiftStuck : runShift = Term.Stuck := by
+          dsimp [runShift, runAmt, widthTerm, powAmt]
+          rw [hRunAStuck, hRunB]
+          simp [hAEoBv, __bv_bitwidth, __eo_to_z, __eo_gt, __eo_ite,
+            __eo_zdiv, __eo_to_bin, native_ite, native_teq, hGtFalse]
+        exact hRunShiftNe hRunShiftStuck
+      have hAProgTy : __eo_typeof (__eo_prog_evaluate a) = Term.Bool :=
+        eo_prog_evaluate_typeof_bool_of_smt_type_bitvec a w hATransA hATy
+          hRunANe
+      rcases run_evaluate_rec_apply_apply_arg M
+          (Term.UOp UserOp.bvlshr) a b rec hATransA hAProgTy with
+        ⟨hASameTy, hARel⟩
+      have hRunASmtTy :
+          __smtx_typeof (__eo_to_smt (__run_evaluate a)) = SmtType.BitVec w := by
+        rw [← hASameTy]
+        exact hATy
       have hRunBRange :=
         Smtm.bitvec_payload_range_of_canonical hRunWBNonneg hRunBCanon
       have hPowZeroFalse :
@@ -18776,10 +19103,35 @@ private theorem run_evaluate_sound_apply_bvashr_core
         (Term.Apply (Term.Apply (Term.UOp UserOp.bvashr) a) b)
         runShift hEvalEqTy
     exact hEq.symm.trans hBvAshrEoType
+  have hRunANe : __run_evaluate a ≠ Term.Stuck := by
+    intro hRunAStuck
+    have hSignedStuck :
+        eo_signed_bv_value (__run_evaluate a) = Term.Stuck := by
+      rw [hRunAStuck]
+      simp [eo_signed_bv_value, __eo_extract, __eo_eq, __eo_ite,
+        native_ite, native_teq]
+    have hRunShiftStuck : runShift = Term.Stuck := by
+      dsimp [runShift, eo_eval_bvashr_rhs]
+      rw [hSignedStuck]
+      simp [hAEoBv, __bv_bitwidth, __eo_to_z, __eo_zdiv,
+        __eo_to_bin, __eo_is_z, __eo_is_z_internal, __eo_is_neg,
+        __eo_mk_apply, native_ite, native_teq]
+    exact hRunShiftNe hRunShiftStuck
+  have hRunBNe : __run_evaluate b ≠ Term.Stuck := by
+    intro hRunBStuck
+    have hRunShiftStuck : runShift = Term.Stuck := by
+      dsimp [runShift, eo_eval_bvashr_rhs]
+      rw [hRunBStuck]
+      simp [hAEoBv, __bv_bitwidth, __eo_to_z, __eo_zdiv,
+        __eo_to_bin, __eo_is_z, __eo_is_z_internal, __eo_is_neg,
+        __eo_mk_apply, native_ite, native_teq]
+    exact hRunShiftNe hRunShiftStuck
   have hAProgTy : __eo_typeof (__eo_prog_evaluate a) = Term.Bool :=
     eo_prog_evaluate_typeof_bool_of_smt_type_bitvec a w hATransA hATy
+      hRunANe
   have hBProgTy : __eo_typeof (__eo_prog_evaluate b) = Term.Bool :=
     eo_prog_evaluate_typeof_bool_of_smt_type_bitvec b w hBTrans hBTy
+      hRunBNe
   rcases run_evaluate_rec_apply_apply_arg M
       (Term.UOp UserOp.bvashr) a b rec hATransA hAProgTy with
     ⟨hASameTy, hARel⟩
