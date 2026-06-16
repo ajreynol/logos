@@ -6168,21 +6168,25 @@ private theorem smt_bv_msb_true_width_pos
         true)
     (hSign : smt_bv_msb_set w n = true) :
     0 < w := by
-  by_contra hwpos
-  have hw : 0 <= w := by
-    simpa [native_zleq, SmtEval.native_zleq] using hw0
-  have hwEq : w = 0 :=
-    Int.le_antisymm (Int.le_of_not_gt hwpos) hw
-  subst w
-  have hRange := bitvec_payload_range_of_canonical hw0 hCanon
-  have hPow0 : native_int_pow2 0 = 1 := by
-    native_decide
-  have hnEq : n = 0 := by
-    have hlt : n < 1 := by
-      simpa [hPow0] using hRange.2
-    exact Int.le_antisymm (Int.le_of_lt_add_one hlt) hRange.1
-  subst n
-  native_decide at hSign
+  by_cases hwpos : 0 < w
+  · exact hwpos
+  · have hw : 0 <= w := by
+      simpa [native_zleq, SmtEval.native_zleq] using hw0
+    have hwEq : w = 0 :=
+      Int.le_antisymm (Int.le_of_not_gt hwpos) hw
+    subst w
+    have hRange := bitvec_payload_range_of_canonical hw0 hCanon
+    have hPow0 : native_int_pow2 0 = 1 := by
+      native_decide
+    have hnEq : n = 0 := by
+      have hlt : n < 1 := by
+        simpa [hPow0] using hRange.2
+      exact Int.le_antisymm (Int.le_of_lt_add_one hlt) hRange.1
+    subst n
+    have hSignFalse : smt_bv_msb_set 0 0 = false := by
+      native_decide
+    rw [hSignFalse] at hSign
+    cases hSign
 
 private theorem native_binary_uts_eq_sub_pow_of_msb_true
     {w n : native_Int}
@@ -6343,6 +6347,16 @@ private theorem native_neg_succ_div_pow2_eq_neg_div_succ
   change native_div_total (-(m + 1)) d = -(native_div_total m d + 1)
   exact Int.le_antisymm hUpper hLower
 
+private theorem int_sub_eq_neg_sub_succ_add_one
+    (n p : native_Int) :
+    n - p = -(p - (n + 1) + 1) := by
+  grind
+
+private theorem int_sub_sub_neg_succ_eq
+    (p q : native_Int) :
+    p - (q + 1) - (-(q + 1)) = p := by
+  grind
+
 private theorem native_bvashr_negative_payload_eq_signed_div
     {w n s : native_Int}
     (hw0 : native_zleq 0 w = true)
@@ -6404,7 +6418,7 @@ private theorem native_bvashr_negative_payload_eq_signed_div
           (Int.le_of_lt hPPos)
         simpa [Int.mul_one] using hMul
       have hMLtPD : m < P * d :=
-        lt_of_lt_of_le hMRange.2 hPLePD
+        Int.lt_of_lt_of_le hMRange.2 hPLePD
       dsimp [q, native_div_total]
       exact Int.ediv_lt_of_lt_mul hdPos hMLtPD
   have hQMod :
@@ -6421,7 +6435,7 @@ private theorem native_bvashr_negative_payload_eq_signed_div
       exact native_binary_not_eq_pow_sub_succ w n
     rw [hUts, hMRaw]
     dsimp [P]
-    omega
+    exact int_sub_eq_neg_sub_succ_add_one n (native_int_pow2 w)
   have hNegDiv :
       native_div_total (-(m + 1)) d = -(q + 1) := by
     dsimp [q, d]
@@ -6445,7 +6459,7 @@ private theorem native_bvashr_negative_payload_eq_signed_div
   rw [native_mod_total, native_mod_total]
   rw [Int.emod_eq_emod_iff_emod_sub_eq_zero]
   have hDiff : P - (q + 1) - (-(q + 1)) = P := by
-    omega
+    exact int_sub_sub_neg_succ_eq P q
   rw [hDiff]
   simp
 
@@ -9695,11 +9709,44 @@ private theorem smtx_model_eval_str_update_pack_string
     simp [native_pack_string, elem_typeof_pack_seq_local]]
   rw [native_seq_update_pack_string]
 
+private theorem native_seq_update_eq_self_of_neg
+    (xs ys : List SmtValue) (i : native_Int)
+    (hi : i < 0) :
+    native_seq_update xs i ys = xs := by
+  unfold native_seq_update
+  have hDecNeg : decide (i < 0) = true := decide_eq_true hi
+  change
+    (if (decide (i < 0) || decide (Int.ofNat xs.length <= i)) = true then
+        xs
+      else
+        List.take (Int.toNat i) xs ++
+          List.take (xs.length - Int.toNat i) ys ++
+            List.drop (Int.toNat i + ys.length) xs) =
+      xs
+  rw [if_pos (by rw [hDecNeg]; simp)]
+
+private theorem native_seq_update_eq_self_of_len_le
+    (xs ys : List SmtValue) (i : native_Int)
+    (hLen : Int.ofNat xs.length <= i) :
+    native_seq_update xs i ys = xs := by
+  unfold native_seq_update
+  have hDecLen :
+      decide (Int.ofNat xs.length <= i) = true := decide_eq_true hLen
+  change
+    (if (decide (i < 0) || decide (Int.ofNat xs.length <= i)) = true then
+        xs
+      else
+        List.take (Int.toNat i) xs ++
+          List.take (xs.length - Int.toNat i) ys ++
+            List.drop (Int.toNat i + ys.length) xs) =
+      xs
+  rw [if_pos (by rw [hDecLen]; simp)]
+
 private theorem smt_typeof_str_update_eq_typeof_string_of_arg_types
-    (s n repl : Term) (T : SmtType) (result : native_String)
-    (hSTySeq : __smtx_typeof (__eo_to_smt s) = SmtType.Seq T)
+    (s n repl : Term) (result : native_String)
+    (hSTySeq : __smtx_typeof (__eo_to_smt s) = SmtType.Seq SmtType.Char)
     (hNTy : __smtx_typeof (__eo_to_smt n) = SmtType.Int)
-    (hReplTySeq : __smtx_typeof (__eo_to_smt repl) = SmtType.Seq T)
+    (hReplTySeq : __smtx_typeof (__eo_to_smt repl) = SmtType.Seq SmtType.Char)
     (hResultValid : native_string_valid result = true) :
     __smtx_typeof
         (SmtTerm.str_update (__eo_to_smt s) (__eo_to_smt n)
@@ -18552,6 +18599,7 @@ private theorem run_evaluate_sound_apply_bvashr_core
         rw [eo_signed_bv_value_binary_eq_uts
           (w := native_nat_to_int w) (n := runA)
           hRunWANonneg hRunACanon] at hRunShiftEoBv
+        simp [__eo_to_z] at hRunShiftEoBv
         rw [hPowAmt] at hRunShiftEoBv
         simpa [hAEoBv, __bv_bitwidth, __eo_to_z, __eo_zdiv,
           hPowZeroFalse] using hRunShiftEoBv
@@ -18574,6 +18622,7 @@ private theorem run_evaluate_sound_apply_bvashr_core
         rw [eo_signed_bv_value_binary_eq_uts
           (w := native_nat_to_int w) (n := runA)
           hRunWANonneg hRunACanon]
+        simp [__eo_to_z]
         rw [hPowAmt]
         simpa [hAEoBv, __bv_bitwidth, __eo_to_z, __eo_zdiv,
           hPowZeroFalse] using hToBin
@@ -18661,9 +18710,17 @@ private theorem run_evaluate_sound_apply_bvashr_core
       cases hValid : native_string_valid runS <;>
         simp [native_ite, hValid] at hRunASmtTy
     all_goals
+      have hSignedStuck :
+          eo_signed_bv_value (__run_evaluate a) = Term.Stuck := by
+        rw [hRunA]
+        apply eo_signed_bv_value_eq_stuck_of_not_binary
+        · rintro ⟨w, n, hEq⟩
+          cases hEq
+        · rintro ⟨s, hEq⟩
+          cases hEq
       have hRunShiftStuck : runShift = Term.Stuck := by
         dsimp [runShift, eo_eval_bvashr_rhs]
-        rw [hRunA, hRunB]
+        rw [hRunB, hSignedStuck]
         simp [hAEoBv, __bv_bitwidth, __eo_to_z, __eo_zdiv,
           __eo_to_bin, __eo_is_z, __eo_is_z_internal, __eo_is_neg,
           native_ite, native_teq]
@@ -18692,7 +18749,8 @@ private theorem run_evaluate_sound_apply_bvashr_core
       dsimp [runShift, eo_eval_bvashr_rhs]
       rw [hRunB]
       simp [hAEoBv, __bv_bitwidth, __eo_to_z, __eo_zdiv,
-        native_ite, native_teq]
+        __eo_to_bin, __eo_is_z, __eo_is_z_internal, __eo_is_neg,
+        __eo_mk_apply, native_ite, native_teq]
     exact False.elim (hRunShiftNe hRunShiftStuck)
 
 private theorem run_evaluate_sound_apply_bvsub_core
@@ -24704,7 +24762,7 @@ private theorem smt_value_rel_model_eval_str_indexof_to_numeral_of_runs
           (__smtx_model_eval M (__eo_to_smt s))
           (__smtx_model_eval M (__eo_to_smt pat))
           (__smtx_model_eval M (__eo_to_smt n)) by
-    rw [__smtx_model_eval.eq_99]]
+    rw [__smtx_model_eval.eq_def] <;> simp only]
   rw [hRunEval] at hRel
   exact hRel
 
@@ -25281,12 +25339,12 @@ private theorem run_evaluate_sound_apply_str_update_core
       dsimp [runUpdate, runGuard, runBody, runLen]
       rw [hRunN, hRunS]
       simp [__eo_len, __eo_gt, __eo_or, __eo_ite, native_ite,
-        native_teq, hLt]
+        native_teq, native_or, hLt]
     rw [hRunUpdateEq]
     constructor
     · exact
         smt_typeof_str_update_eq_typeof_string_of_arg_types
-          s n repl SmtType.Char str (by simpa using hSTySeq) hNTy
+          s n repl str (by simpa using hSTySeq) hNTy
           (by simpa using hReplTySeq) hStrValid
     · rcases smt_model_eval_seq_of_type_local M hM (__eo_to_smt runRepl)
           SmtType.Char hRunReplTyChar with
@@ -25298,9 +25356,17 @@ private theorem run_evaluate_sound_apply_str_update_core
               (__smtx_model_eval M (__eo_to_smt runRepl)) =
             SmtValue.Seq (native_pack_string str) := by
         rw [hRunSEval, hRunNEval, hRunReplEval]
-        simp [__smtx_model_eval_str_update, native_seq_update,
-          native_pack_string, native_unpack_pack_seq_local,
-          elem_typeof_pack_seq_local, hiNeg]
+        change
+          SmtValue.Seq
+              (native_pack_seq (__smtx_elem_typeof_seq_value
+                  (native_pack_string str))
+                (native_seq_update
+                  (native_unpack_seq (native_pack_string str)) i
+                  (native_unpack_seq replSeq))) =
+            SmtValue.Seq (native_pack_string str)
+        rw [native_seq_update_eq_self_of_neg _ _ _ hiNeg]
+        simp [native_pack_string, native_unpack_pack_seq_local,
+          elem_typeof_pack_seq_local]
       rw [show
           __smtx_model_eval M (__eo_to_smt (Term.String str)) =
             SmtValue.Seq (native_pack_string str) by
@@ -25323,19 +25389,19 @@ private theorem run_evaluate_sound_apply_str_update_core
         dsimp [runUpdate, runGuard, runBody, runLen]
         rw [hRunN, hRunS]
         simp [__eo_len, __eo_gt, __eo_or, __eo_ite, native_ite,
-          native_teq, hLt, hGtLt]
+          native_teq, native_or, hLt, hGtLt]
       rw [hRunUpdateEq]
       constructor
       · exact
           smt_typeof_str_update_eq_typeof_string_of_arg_types
-            s n repl SmtType.Char str (by simpa using hSTySeq) hNTy
+            s n repl str (by simpa using hSTySeq) hNTy
             (by simpa using hReplTySeq) hStrValid
       · rcases smt_model_eval_seq_of_type_local M hM
             (__eo_to_smt runRepl) SmtType.Char hRunReplTyChar with
           ⟨replSeq, hRunReplEval⟩
         have hLenLe : Int.ofNat str.length ≤ i := by
           rw [native_str_len] at hLenLt
-          exact le_of_lt hLenLt
+          exact Int.le_of_lt hLenLt
         have hEvalRunUpdate :
             __smtx_model_eval_str_update
                 (__smtx_model_eval M (__eo_to_smt runS))
@@ -25343,9 +25409,22 @@ private theorem run_evaluate_sound_apply_str_update_core
                 (__smtx_model_eval M (__eo_to_smt runRepl)) =
               SmtValue.Seq (native_pack_string str) := by
           rw [hRunSEval, hRunNEval, hRunReplEval]
-          simp [__smtx_model_eval_str_update, native_seq_update,
-            native_pack_string, native_unpack_pack_seq_local,
-            elem_typeof_pack_seq_local, hiNeg, hLenLe]
+          change
+            SmtValue.Seq
+                (native_pack_seq (__smtx_elem_typeof_seq_value
+                    (native_pack_string str))
+                  (native_seq_update
+                    (native_unpack_seq (native_pack_string str)) i
+                    (native_unpack_seq replSeq))) =
+              SmtValue.Seq (native_pack_string str)
+          have hUnpackLen :
+              Int.ofNat (native_unpack_seq (native_pack_string str)).length <=
+                i := by
+            simpa [native_pack_string, native_unpack_pack_seq_local,
+              List.length_map] using hLenLe
+          rw [native_seq_update_eq_self_of_len_le _ _ _ hUnpackLen]
+          simp [native_pack_string, native_unpack_pack_seq_local,
+            elem_typeof_pack_seq_local]
         rw [show
             __smtx_model_eval M (__eo_to_smt (Term.String str)) =
               SmtValue.Seq (native_pack_string str) by
@@ -25408,7 +25487,7 @@ private theorem run_evaluate_sound_apply_str_update_core
             hStrValid hReplValid
         exact
           smt_typeof_str_update_eq_typeof_string_of_arg_types
-            s n repl SmtType.Char
+            s n repl
             (native_seq_update_string_result str i replStr)
             (by simpa using hSTySeq) hNTy
             (by simpa using hReplTySeq) hResultValid
@@ -28737,61 +28816,53 @@ private theorem run_evaluate_sound_active_apply_core
   intro hActive hATrans hEvalTy
   cases f with
   | UOp op =>
-      match op with
-      | UserOp.not =>
+      cases op <;> try exact False.elim (hActive rfl)
+      case not =>
           exact run_evaluate_sound_apply_not_core M hM x rec hATrans hEvalTy
-      | UserOp.bvnot =>
+      case bvnot =>
           exact run_evaluate_sound_apply_bvnot_core M hM x rec hATrans hEvalTy
-      | UserOp.bvneg =>
+      case bvneg =>
           exact run_evaluate_sound_apply_bvneg_core M hM x rec hATrans hEvalTy
-      | UserOp.to_real =>
+      case to_real =>
           exact run_evaluate_sound_apply_to_real_core M hM x rec hATrans hEvalTy
-      | UserOp.to_int =>
+      case to_int =>
           exact run_evaluate_sound_apply_to_int_core M hM x rec hATrans hEvalTy
-      | UserOp.is_int =>
+      case is_int =>
           exact run_evaluate_sound_apply_is_int_core M hM x rec hATrans hEvalTy
-      | UserOp.__eoo_neg_2 =>
+      case __eoo_neg_2 =>
           exact run_evaluate_sound_apply_uneg_core M hM x rec hATrans hEvalTy
-      | UserOp.abs =>
+      case abs =>
           exact run_evaluate_sound_apply_abs_core M hM x rec hATrans hEvalTy
-      | UserOp.int_log2 =>
+      case int_log2 =>
           exact run_evaluate_sound_apply_int_log2_core M hM x rec hATrans hEvalTy
-      | UserOp.int_pow2 =>
+      case int_pow2 =>
           exact run_evaluate_sound_apply_int_pow2_core M hM x rec hATrans hEvalTy
-      | UserOp.int_ispow2 =>
+      case int_ispow2 =>
           exact run_evaluate_sound_apply_int_ispow2_core M hM x rec hATrans hEvalTy
-      | UserOp._at_bvsize =>
+      case _at_bvsize =>
           exact run_evaluate_sound_apply_at_bvsize_core M hM x rec hATrans hEvalTy
-      | UserOp.str_len =>
+      case str_len =>
           exact run_evaluate_sound_apply_str_len_core M hM x rec hATrans hEvalTy
-      | UserOp.str_to_lower =>
+      case str_to_lower =>
           exact run_evaluate_sound_apply_str_to_lower_core M hM x rec hATrans hEvalTy
-      | UserOp.str_to_upper =>
+      case str_to_upper =>
           exact run_evaluate_sound_apply_str_to_upper_core M hM x rec hATrans hEvalTy
-      | UserOp.str_rev =>
+      case str_rev =>
           exact run_evaluate_sound_apply_str_rev_core M hM x rec hATrans hEvalTy
-      | UserOp.str_to_code =>
+      case str_to_code =>
           exact run_evaluate_sound_apply_str_to_code_core M hM x rec hATrans hEvalTy
-      | UserOp.str_to_int =>
+      case str_to_int =>
           exact run_evaluate_sound_apply_str_to_int_core M hM x rec hATrans hEvalTy
-      | UserOp.str_from_code =>
+      case str_from_code =>
           exact run_evaluate_sound_apply_str_from_code_core M hM x rec hActive
             hATrans hEvalTy
-      | UserOp.ubv_to_int =>
+      case ubv_to_int =>
           exact run_evaluate_sound_apply_ubv_to_int_core M hM x rec hATrans hEvalTy
-      | UserOp.sbv_to_int =>
+      case sbv_to_int =>
           exact run_evaluate_sound_apply_sbv_to_int_core M hM x rec hATrans hEvalTy
-      | UserOp.str_from_int =>
+      case str_from_int =>
           exact run_evaluate_sound_apply_str_from_int_core M hM x rec
             hATrans hEvalTy
-      | UserOp.bvnego =>
-          exact False.elim (hActive rfl)
-      | UserOp.bvredand =>
-          exact False.elim (hActive rfl)
-      | UserOp.bvredor =>
-          exact False.elim (hActive rfl)
-      | _ =>
-          exact False.elim (hActive rfl)
   | UOp1 op a =>
       cases op
       case «repeat» =>
@@ -28818,155 +28889,121 @@ private theorem run_evaluate_sound_active_apply_core
   | Apply g y =>
       cases g with
       | UOp op =>
-          match op with
-          | UserOp.and =>
+          cases op <;> try exact False.elim (hActive rfl)
+          case eq =>
+              sorry
+          case and =>
               exact run_evaluate_sound_apply_and_core M hM y x rec hATrans hEvalTy
-          | UserOp.or =>
+          case or =>
               exact run_evaluate_sound_apply_or_core M hM y x rec hATrans hEvalTy
-          | UserOp.imp =>
+          case imp =>
               exact run_evaluate_sound_apply_imp_core M hM y x rec hATrans hEvalTy
-          | UserOp.xor =>
+          case xor =>
               exact run_evaluate_sound_apply_xor_core M hM y x rec hATrans hEvalTy
-          | UserOp.str_concat =>
+          case str_concat =>
               exact run_evaluate_sound_apply_str_concat_core M hM y x rec hATrans hEvalTy
-          | UserOp.str_at =>
+          case str_at =>
               exact run_evaluate_sound_apply_str_at_core M hM y x rec hATrans hEvalTy
-          | UserOp.str_prefixof =>
+          case str_prefixof =>
               exact run_evaluate_sound_apply_str_prefixof_core M hM y x rec
                 hATrans hEvalTy
-          | UserOp.str_suffixof =>
+          case str_suffixof =>
               exact run_evaluate_sound_apply_str_suffixof_core M hM y x rec
                 hATrans hEvalTy
-          | UserOp.str_contains =>
+          case str_contains =>
               exact run_evaluate_sound_apply_str_contains_core M hM y x rec
                 hATrans hEvalTy
-          | UserOp.str_leq =>
+          case str_leq =>
               exact run_evaluate_sound_apply_str_leq_core M hM y x rec
                 hATrans hEvalTy
-          | UserOp.plus =>
+          case plus =>
               exact run_evaluate_sound_apply_plus_core M hM y x rec hATrans hEvalTy
-          | UserOp.neg =>
+          case neg =>
               exact run_evaluate_sound_apply_neg_core M hM y x rec hATrans hEvalTy
-          | UserOp.mult =>
+          case mult =>
               exact run_evaluate_sound_apply_mult_core M hM y x rec hATrans hEvalTy
-          | UserOp.lt =>
+          case lt =>
               exact run_evaluate_sound_apply_lt_core M hM y x rec hATrans hEvalTy
-          | UserOp.leq =>
+          case leq =>
               exact run_evaluate_sound_apply_leq_core M hM y x rec hATrans hEvalTy
-          | UserOp.gt =>
+          case gt =>
               exact run_evaluate_sound_apply_gt_core M hM y x rec hATrans hEvalTy
-          | UserOp.geq =>
+          case geq =>
               exact run_evaluate_sound_apply_geq_core M hM y x rec hATrans hEvalTy
-          | UserOp.div =>
+          case div =>
               exact run_evaluate_sound_apply_div_core M hM y x rec hATrans hEvalTy
-          | UserOp.mod =>
+          case mod =>
               exact run_evaluate_sound_apply_mod_core M hM y x rec hATrans hEvalTy
-          | UserOp.qdiv =>
+          case qdiv =>
               exact run_evaluate_sound_apply_qdiv_core M hM y x rec hATrans hEvalTy
-          | UserOp.qdiv_total =>
+          case qdiv_total =>
               exact run_evaluate_sound_apply_qdiv_total_core M hM y x rec hATrans hEvalTy
-          | UserOp.div_total =>
+          case div_total =>
               exact run_evaluate_sound_apply_div_total_core M hM y x rec hATrans hEvalTy
-          | UserOp.mod_total =>
+          case mod_total =>
               exact run_evaluate_sound_apply_mod_total_core M hM y x rec hATrans hEvalTy
-          | UserOp.bvand =>
+          case bvand =>
               exact run_evaluate_sound_apply_bvand_core M hM y x rec hATrans hEvalTy
-          | UserOp.bvor =>
+          case bvor =>
               exact run_evaluate_sound_apply_bvor_core M hM y x rec hATrans hEvalTy
-          | UserOp.bvxor =>
+          case bvxor =>
               exact run_evaluate_sound_apply_bvxor_core M hM y x rec hATrans hEvalTy
-          | UserOp.concat =>
+          case concat =>
               exact run_evaluate_sound_apply_concat_core M hM y x rec hATrans hEvalTy
-          | UserOp.bvadd =>
+          case bvadd =>
               exact run_evaluate_sound_apply_bvadd_core M hM y x rec hATrans hEvalTy
-          | UserOp.bvmul =>
+          case bvmul =>
               exact run_evaluate_sound_apply_bvmul_core M hM y x rec hATrans hEvalTy
-          | UserOp.bvsub =>
+          case bvsub =>
               exact run_evaluate_sound_apply_bvsub_core M hM y x rec hATrans hEvalTy
-          | UserOp.bvudiv =>
+          case bvudiv =>
               exact run_evaluate_sound_apply_bvudiv_core M hM y x rec hATrans hEvalTy
-          | UserOp.bvurem =>
+          case bvurem =>
               exact run_evaluate_sound_apply_bvurem_core M hM y x rec hATrans hEvalTy
-          | UserOp.bvult =>
+          case bvult =>
               exact run_evaluate_sound_apply_bvult_core M hM y x rec hATrans hEvalTy
-          | UserOp.bvule =>
+          case bvule =>
               exact run_evaluate_sound_apply_bvule_core M hM y x rec hATrans hEvalTy
-          | UserOp.bvsle =>
+          case bvsle =>
               exact run_evaluate_sound_apply_bvsle_core M hM y x rec hATrans hEvalTy
-          | UserOp.bvugt =>
+          case bvugt =>
               exact run_evaluate_sound_apply_bvugt_core M hM y x rec hATrans hEvalTy
-          | UserOp.bvuge =>
+          case bvuge =>
               exact run_evaluate_sound_apply_bvuge_core M hM y x rec hATrans hEvalTy
-          | UserOp.bvshl =>
+          case bvshl =>
               exact run_evaluate_sound_apply_bvshl_core M hM y x rec hATrans hEvalTy
-          | UserOp.bvlshr =>
+          case bvlshr =>
               exact run_evaluate_sound_apply_bvlshr_core M hM y x rec hATrans hEvalTy
-          | UserOp.bvashr =>
+          case bvashr =>
               exact run_evaluate_sound_apply_bvashr_core M hM y x rec hATrans hEvalTy
-          | UserOp.bvsgt =>
+          case bvsgt =>
               exact run_evaluate_sound_apply_bvsgt_core M hM y x rec hATrans hEvalTy
-          | UserOp.bvslt =>
+          case bvslt =>
               exact run_evaluate_sound_apply_bvslt_core M hM y x rec hATrans hEvalTy
-          | UserOp.bvsge =>
+          case bvsge =>
               exact run_evaluate_sound_apply_bvsge_core M hM y x rec hATrans hEvalTy
-          | UserOp.bvsdiv =>
-              exact False.elim (hActive rfl)
-          | UserOp.bvsrem =>
-              exact False.elim (hActive rfl)
-          | UserOp.bvsmod =>
-              exact False.elim (hActive rfl)
-          | UserOp.bvnand =>
-              exact False.elim (hActive rfl)
-          | UserOp.bvnor =>
-              exact False.elim (hActive rfl)
-          | UserOp.bvxnor =>
-              exact False.elim (hActive rfl)
-          | UserOp.bvcomp =>
-              exact False.elim (hActive rfl)
-          | UserOp.bvuaddo =>
-              exact False.elim (hActive rfl)
-          | UserOp.bvsaddo =>
-              exact False.elim (hActive rfl)
-          | UserOp.bvumulo =>
-              exact False.elim (hActive rfl)
-          | UserOp.bvsmulo =>
-              exact False.elim (hActive rfl)
-          | UserOp.bvusubo =>
-              exact False.elim (hActive rfl)
-          | UserOp.bvssubo =>
-              exact False.elim (hActive rfl)
-          | UserOp.bvsdivo =>
-              exact False.elim (hActive rfl)
-          | UserOp.bvultbv =>
-              exact False.elim (hActive rfl)
-          | UserOp.bvsltbv =>
-              exact False.elim (hActive rfl)
-          | _ =>
-              exact False.elim (hActive rfl)
       | Apply h z =>
           cases h with
           | UOp op =>
-              match op with
-              | UserOp.ite =>
+              cases op <;> try exact False.elim (hActive rfl)
+              case ite =>
                   exact run_evaluate_sound_apply_ite_core M hM z y x rec
                     hATrans hEvalTy
-              | UserOp.str_substr =>
+              case str_substr =>
                   exact run_evaluate_sound_apply_str_substr_core M hM z y x rec
                     hATrans hEvalTy
-              | UserOp.str_replace =>
+              case str_replace =>
                   exact run_evaluate_sound_apply_str_replace_core M hM z y x rec
                     hATrans hEvalTy
-              | UserOp.str_replace_all =>
+              case str_replace_all =>
                   exact run_evaluate_sound_apply_str_replace_all_core M hM z y x rec
                     hActive hATrans hEvalTy
-              | UserOp.str_indexof =>
+              case str_indexof =>
                   exact run_evaluate_sound_apply_str_indexof_core M hM z y x rec
                     hATrans hEvalTy
-              | UserOp.str_update =>
+              case str_update =>
                   exact run_evaluate_sound_apply_str_update_core M hM z y x rec
                     hATrans hEvalTy
-              | _ =>
-                  exact False.elim (hActive rfl)
           | _ =>
               exact False.elim (hActive rfl)
       | _ =>
