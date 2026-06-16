@@ -10867,6 +10867,40 @@ private theorem smtTermClosedIn_eo_to_smt_uop3_witness_string_length_nil
       (__eo_to_smt (Term.UOp3 UserOp3._at_witness_string_length a b c)) :=
   smtTermClosedIn_eo_to_smt_uop3_witness_string_length [] a b c
 
+private theorem eo_is_closed_rec_nil_of_eo_to_smt_nat_is_valid
+    {n : Term} :
+    __eo_to_smt_nat_is_valid n = true ->
+    __eo_is_closed_rec n Term.__eo_List_nil = Term.Boolean true := by
+  intro hNat
+  cases n <;> simp [__eo_to_smt_nat_is_valid] at hNat
+  case Numeral m =>
+    rfl
+
+private theorem smtTermClosedIn_eo_to_smt_of_nat_valid
+    (vars : List SmtVarKey) {n : Term} :
+    __eo_to_smt_nat_is_valid n = true ->
+    SmtTermClosedIn vars (__eo_to_smt n) := by
+  intro hNat
+  cases n <;> simp [__eo_to_smt_nat_is_valid] at hNat
+  case Numeral m =>
+    exact smtTermClosedIn_eo_to_smt_numeral vars m
+
+private theorem smtTermClosedIn_eo_to_smt_uop3_re_unfold_pos_component
+    {vars : List SmtVarKey} {a b c : Term}
+    (ha : SmtTermClosedIn vars (__eo_to_smt a))
+    (hb : SmtTermClosedIn vars (__eo_to_smt b)) :
+    SmtTermClosedIn vars
+      (__eo_to_smt
+        (Term.UOp3 UserOp3._at_re_unfold_pos_component a b c)) := by
+  change SmtTermClosedIn vars
+    (native_ite (__eo_to_smt_nat_is_valid c)
+      (__eo_to_smt_re_unfold_pos_component
+        (__eo_to_smt a) (__eo_to_smt b) (__eo_to_smt_nat c))
+      SmtTerm.None)
+  cases __eo_to_smt_nat_is_valid c <;> try trivial
+  exact smtTermClosedIn_eo_to_smt_re_unfold_pos_component
+    ha hb (__eo_to_smt_nat c)
+
 private theorem re_unfold_pos_component_args_of_non_none
     (s r : SmtTerm) (n : native_Nat)
     (hNN :
@@ -10949,6 +10983,23 @@ private theorem contains_atomic_term_list_free_rec_vars_ne_stuck_of_false
   subst xs
   cases t <;> cases bvs <;>
     simp [__contains_atomic_term_list_free_rec] at h
+
+private theorem contains_atomic_term_list_free_rec_apply_false_cases
+    {f a xs bvs : Term} :
+    __contains_atomic_term_list_free_rec (Term.Apply f a) xs bvs =
+      Term.Boolean false ->
+    __contains_atomic_term_list_free_rec f xs bvs = Term.Boolean false ∧
+      __contains_atomic_term_list_free_rec a xs bvs = Term.Boolean false := by
+  intro hScan
+  have hScan' :
+      __eo_ite (__contains_atomic_term_list_free_rec f xs bvs)
+          (Term.Boolean true)
+          (__contains_atomic_term_list_free_rec a xs bvs) =
+        Term.Boolean false := by
+    simpa [__contains_atomic_term_list_free_rec] using hScan
+  exact eo_ite_true_branch_eq_false_cases
+    (__contains_atomic_term_list_free_rec f xs bvs)
+    (__contains_atomic_term_list_free_rec a xs bvs) hScan'
 
 private theorem smtx_model_eval_eq_of_contains_atomic_false
     (t xs bvs : Term) :
@@ -13411,15 +13462,8 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                           hBindersNone
   | case5 f a xs bvs hXs hBvs hNotQuant ihF ihA =>
       intro hBvsVar M N hRel hScan hNN
-      have hScan' :
-          __eo_ite (__contains_atomic_term_list_free_rec f xs bvs)
-              (Term.Boolean true)
-              (__contains_atomic_term_list_free_rec a xs bvs) =
-            Term.Boolean false := by
-        simpa [__contains_atomic_term_list_free_rec] using hScan
-      rcases eo_ite_true_branch_eq_false_cases
-          (__contains_atomic_term_list_free_rec f xs bvs)
-          (__contains_atomic_term_list_free_rec a xs bvs) hScan' with
+      rcases contains_atomic_term_list_free_rec_apply_false_cases
+          hScan with
         ⟨hFScan, hAScan⟩
       by_cases hWholeNone :
           __eo_to_smt (Term.Apply f a) = SmtTerm.None
