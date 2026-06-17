@@ -2369,6 +2369,117 @@ private theorem str_replace_all_result_strings_cons
   simpa [__eo_len, native_str_len] using
     str_eval_replace_all_rec_strCharChain_cons p ps repl s 0
 
+private theorem run_evaluate_typeof_eq_str_replace_all
+    (b y x : Term) :
+    __eo_typeof
+        (__run_evaluate
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.UOp UserOp.str_replace_all) b) y) x)) =
+      __eo_typeof
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply (Term.UOp UserOp.str_replace_all) b) y) x) := by
+  cases b
+  case String sb =>
+    cases y
+    case String sy =>
+      cases x
+      case String sx =>
+        cases sy with
+        | nil =>
+          change
+            __eo_typeof
+                (__eo_ite
+                  (__eo_and
+                    (__eo_and (__eo_is_str (Term.String sb))
+                      (__eo_is_str (Term.String [])))
+                    (__eo_is_str (Term.String sx)))
+                  (__eo_ite (__eo_eq (Term.String []) (Term.String []))
+                    (Term.String sb)
+                    (__str_eval_replace_all_rec
+                      (__str_flatten (__str_nary_intro (Term.String sb)))
+                      (__str_flatten (__str_nary_intro (Term.String [])))
+                      (Term.String sx) (Term.Numeral 0)
+                      (__eo_len (Term.String []))))
+                  (Term.Apply
+                    (Term.Apply
+                      (Term.Apply (Term.UOp UserOp.str_replace_all)
+                        (Term.String sb))
+                      (Term.String []))
+                    (Term.String sx))) =
+              __eo_typeof
+                (Term.Apply
+                  (Term.Apply
+                    (Term.Apply (Term.UOp UserOp.str_replace_all)
+                      (Term.String sb))
+                    (Term.String []))
+                  (Term.String sx))
+          conv =>
+            lhs
+            rw [str_replace_all_result_strings_empty sb sx]
+          change
+            Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char) =
+              __eo_typeof_str_replace
+                (Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char))
+                (Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char))
+                (Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char))
+          simp [__eo_typeof_str_replace, __eo_requires, __eo_and, __eo_eq,
+            native_and, native_ite, native_teq, native_not]
+        | cons p ps =>
+          change
+            __eo_typeof
+                (__eo_ite
+                  (__eo_and
+                    (__eo_and (__eo_is_str (Term.String sb))
+                      (__eo_is_str (Term.String (p :: ps))))
+                    (__eo_is_str (Term.String sx)))
+                  (__eo_ite (__eo_eq (Term.String (p :: ps))
+                      (Term.String []))
+                    (Term.String sb)
+                    (__str_eval_replace_all_rec
+                      (__str_flatten (__str_nary_intro (Term.String sb)))
+                      (__str_flatten
+                        (__str_nary_intro (Term.String (p :: ps))))
+                      (Term.String sx) (Term.Numeral 0)
+                      (__eo_len (Term.String (p :: ps)))))
+                  (Term.Apply
+                    (Term.Apply
+                      (Term.Apply (Term.UOp UserOp.str_replace_all)
+                        (Term.String sb))
+                      (Term.String (p :: ps)))
+                    (Term.String sx))) =
+              __eo_typeof
+                (Term.Apply
+                  (Term.Apply
+                    (Term.Apply (Term.UOp UserOp.str_replace_all)
+                      (Term.String sb))
+                    (Term.String (p :: ps)))
+                  (Term.String sx))
+          conv =>
+            lhs
+            rw [str_replace_all_result_strings_cons sb sx p ps]
+          change
+            Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char) =
+              __eo_typeof_str_replace
+                (Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char))
+                (Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char))
+                (Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char))
+          simp [__eo_typeof_str_replace, __eo_requires, __eo_and, __eo_eq,
+            native_and, native_ite, native_teq, native_not]
+      all_goals
+        simp [__run_evaluate, __eo_is_str, __eo_is_str_internal,
+          __eo_and, __eo_ite, __eo_eq, __eo_typeof_str_replace,
+          __eo_requires, native_and, native_ite, native_teq, native_not]
+    all_goals
+      simp [__run_evaluate, __eo_is_str, __eo_is_str_internal,
+        __eo_and, __eo_ite, __eo_eq, __eo_typeof_str_replace,
+        __eo_requires, native_and, native_ite, native_teq, native_not]
+  all_goals
+    simp [__run_evaluate, __eo_is_str, __eo_is_str_internal,
+      __eo_and, __eo_ite, __eo_eq, __eo_typeof_str_replace,
+      __eo_requires, native_and, native_ite, native_teq, native_not]
+
 private theorem native_string_valid_replace_all_chain
     (pat repl : native_String) :
     ∀ (s : native_String) (skip : Nat),
@@ -12943,6 +13054,374 @@ private theorem eo_not_is_neg_find_typeof_bool_of_ne_stuck
   cases x <;> cases y <;>
     simp [__eo_find, __eo_is_neg, __eo_not] at hNe ⊢
 
+private theorem eo_find_typeof_int_of_ne_stuck
+    (x y : Term)
+    (hNe : __eo_find x y ≠ Term.Stuck) :
+    __eo_typeof (__eo_find x y) = Term.UOp UserOp.Int := by
+  cases x <;> cases y <;>
+    simp [__eo_find] at hNe ⊢
+  case String.String =>
+    rfl
+
+private theorem eo_seq_type_eq_of_same_smt_elem
+    {U V : Term} {T : SmtType}
+    (hValid :
+      TranslationProofs.eo_type_valid (Term.Apply (Term.UOp UserOp.Seq) U))
+    (hU : __eo_to_smt_type U = T)
+    (hV : __eo_to_smt_type V = T) :
+    Term.Apply (Term.UOp UserOp.Seq) U =
+      Term.Apply (Term.UOp UserOp.Seq) V := by
+  apply eo_to_smt_type_eq_of_top_valid hValid
+  simp [__eo_to_smt_type, hU, hV]
+
+private theorem eo_str_replace_body_source_ne_stuck_of_ne_stuck
+    (s pat repl : Term)
+    (hNe :
+      (let idx := __eo_find (__eo_to_str s) (__eo_to_str pat)
+       __eo_ite (__eo_is_neg idx) s
+        (__eo_concat
+          (__eo_concat
+            (__eo_extract s (Term.Numeral 0)
+              (__eo_add idx (Term.Numeral (-1 : native_Int))))
+            repl)
+          (__eo_extract s (__eo_add idx (__eo_len pat)) (__eo_len s)))) ≠
+        Term.Stuck) :
+    s ≠ Term.Stuck := by
+  let idx := __eo_find (__eo_to_str s) (__eo_to_str pat)
+  let left :=
+    __eo_extract s (Term.Numeral 0)
+      (__eo_add idx (Term.Numeral (-1 : native_Int)))
+  let inner := __eo_concat left repl
+  let right := __eo_extract s (__eo_add idx (__eo_len pat)) (__eo_len s)
+  let body := __eo_ite (__eo_is_neg idx) s (__eo_concat inner right)
+  change body ≠ Term.Stuck at hNe
+  rcases eo_ite_selected_nonstuck_of_nonstuck
+      (__eo_is_neg idx) s (__eo_concat inner right) hNe with
+    ⟨selected, _hCond, hSelectedNe⟩
+  cases selected
+  · have hTailNe : __eo_concat inner right ≠ Term.Stuck := by
+      simpa using hSelectedNe
+    have hInnerNe : inner ≠ Term.Stuck :=
+      eo_concat_left_ne_stuck (by simpa [inner, right] using hTailNe)
+    have hLeftNe : left ≠ Term.Stuck :=
+      eo_concat_left_ne_stuck (by simpa [left, inner] using hInnerNe)
+    exact eo_extract_target_ne_stuck (by simpa [left] using hLeftNe)
+  · simpa using hSelectedNe
+
+private theorem eo_str_replace_body_typeof_seq_of_args_seq_and_ne_stuck
+    (s pat repl U : Term)
+    (hS : __eo_typeof s = Term.Apply (Term.UOp UserOp.Seq) U)
+    (hRepl :
+      repl ≠ Term.Stuck ->
+        __eo_typeof repl = Term.Apply (Term.UOp UserOp.Seq) U)
+    (hNe :
+      (let idx := __eo_find (__eo_to_str s) (__eo_to_str pat)
+       __eo_ite (__eo_is_neg idx) s
+        (__eo_concat
+          (__eo_concat
+            (__eo_extract s (Term.Numeral 0)
+              (__eo_add idx (Term.Numeral (-1 : native_Int))))
+            repl)
+          (__eo_extract s (__eo_add idx (__eo_len pat)) (__eo_len s)))) ≠
+        Term.Stuck) :
+    __eo_typeof
+      (let idx := __eo_find (__eo_to_str s) (__eo_to_str pat)
+       __eo_ite (__eo_is_neg idx) s
+        (__eo_concat
+          (__eo_concat
+            (__eo_extract s (Term.Numeral 0)
+              (__eo_add idx (Term.Numeral (-1 : native_Int))))
+            repl)
+          (__eo_extract s (__eo_add idx (__eo_len pat)) (__eo_len s)))) =
+      Term.Apply (Term.UOp UserOp.Seq) U := by
+  let idx := __eo_find (__eo_to_str s) (__eo_to_str pat)
+  let left :=
+    __eo_extract s (Term.Numeral 0)
+      (__eo_add idx (Term.Numeral (-1 : native_Int)))
+  let inner := __eo_concat left repl
+  let right := __eo_extract s (__eo_add idx (__eo_len pat)) (__eo_len s)
+  let body := __eo_ite (__eo_is_neg idx) s (__eo_concat inner right)
+  have hSeqNe :
+      Term.Apply (Term.UOp UserOp.Seq) U ≠ Term.Stuck := by
+    intro h
+    cases h
+  change __eo_typeof body = Term.Apply (Term.UOp UserOp.Seq) U
+  change body ≠ Term.Stuck at hNe
+  rcases eo_ite_selected_nonstuck_of_nonstuck
+      (__eo_is_neg idx) s (__eo_concat inner right) hNe with
+    ⟨selected, hCond, hSelectedNe⟩
+  cases selected
+  · dsimp [body]
+    rw [hCond]
+    change __eo_typeof (__eo_concat inner right) =
+      Term.Apply (Term.UOp UserOp.Seq) U
+    have hTailNe : __eo_concat inner right ≠ Term.Stuck := by
+      simpa using hSelectedNe
+    have hInnerNe : inner ≠ Term.Stuck :=
+      eo_concat_left_ne_stuck (by simpa [inner, right] using hTailNe)
+    have hLeftNe : left ≠ Term.Stuck :=
+      eo_concat_left_ne_stuck (by simpa [left, inner] using hInnerNe)
+    have hReplNe : repl ≠ Term.Stuck :=
+      eo_concat_right_ne_stuck (by simpa [left, inner] using hInnerNe)
+    have hRightNe : right ≠ Term.Stuck :=
+      eo_concat_right_ne_stuck (by simpa [inner, right] using hTailNe)
+    have hLeftTy :
+        __eo_typeof left = Term.Apply (Term.UOp UserOp.Seq) U :=
+      eo_extract_typeof_seq_of_target_seq_and_ne_stuck
+        s (Term.Numeral 0)
+        (__eo_add idx (Term.Numeral (-1 : native_Int))) U hS
+        (by simpa [left] using hLeftNe)
+    have hInnerTy :
+        __eo_typeof inner = Term.Apply (Term.UOp UserOp.Seq) U :=
+      eo_concat_typeof_seq_of_args_seq_and_ne_stuck
+        left repl U hLeftTy (hRepl hReplNe) hInnerNe
+    have hRightTy :
+        __eo_typeof right = Term.Apply (Term.UOp UserOp.Seq) U :=
+      eo_extract_typeof_seq_of_target_seq_and_ne_stuck
+        s (__eo_add idx (__eo_len pat)) (__eo_len s) U hS
+        (by simpa [right] using hRightNe)
+    exact
+      eo_concat_typeof_seq_of_args_seq_and_ne_stuck
+        inner right U hInnerTy hRightTy hTailNe
+  · dsimp [body]
+    rw [hCond]
+    change __eo_typeof s = Term.Apply (Term.UOp UserOp.Seq) U
+    exact hS
+
+private theorem eo_str_indexof_body_typeof_int_of_start_int_and_ne_stuck
+    (s pat start runStart : Term)
+    (hStart : __eo_typeof start = Term.UOp UserOp.Int)
+    (hNe :
+      (let lenS := __eo_len s
+       let find :=
+        __eo_find (__eo_to_str (__eo_extract s start lenS))
+          (__eo_to_str pat)
+       __eo_ite (__eo_is_neg runStart) (Term.Numeral (-1 : native_Int))
+        (__eo_ite (__eo_gt runStart lenS) (Term.Numeral (-1 : native_Int))
+          (__eo_ite (__eo_is_neg find) find (__eo_add start find)))) ≠
+        Term.Stuck) :
+    __eo_typeof
+      (let lenS := __eo_len s
+       let find :=
+        __eo_find (__eo_to_str (__eo_extract s start lenS))
+          (__eo_to_str pat)
+       __eo_ite (__eo_is_neg runStart) (Term.Numeral (-1 : native_Int))
+        (__eo_ite (__eo_gt runStart lenS) (Term.Numeral (-1 : native_Int))
+          (__eo_ite (__eo_is_neg find) find (__eo_add start find)))) =
+      Term.UOp UserOp.Int := by
+  let lenS := __eo_len s
+  let find :=
+    __eo_find (__eo_to_str (__eo_extract s start lenS)) (__eo_to_str pat)
+  let inner := __eo_ite (__eo_is_neg find) find (__eo_add start find)
+  let rest :=
+    __eo_ite (__eo_gt runStart lenS) (Term.Numeral (-1 : native_Int))
+      inner
+  let body :=
+    __eo_ite (__eo_is_neg runStart) (Term.Numeral (-1 : native_Int))
+      rest
+  change __eo_typeof body = Term.UOp UserOp.Int
+  change body ≠ Term.Stuck at hNe
+  rcases eo_ite_selected_nonstuck_of_nonstuck
+      (__eo_is_neg runStart) (Term.Numeral (-1 : native_Int)) rest hNe with
+    ⟨topSelected, hTopCond, hTopSelectedNe⟩
+  cases topSelected
+  · dsimp [body]
+    rw [hTopCond]
+    change __eo_typeof rest = Term.UOp UserOp.Int
+    have hRestNe : rest ≠ Term.Stuck := by
+      simpa using hTopSelectedNe
+    change
+      __eo_ite (__eo_gt runStart lenS) (Term.Numeral (-1 : native_Int))
+        inner ≠ Term.Stuck at hRestNe
+    rcases eo_ite_selected_nonstuck_of_nonstuck
+        (__eo_gt runStart lenS) (Term.Numeral (-1 : native_Int)) inner
+        hRestNe with
+      ⟨gtSelected, hGtCond, hGtSelectedNe⟩
+    cases gtSelected
+    · dsimp [rest]
+      rw [hGtCond]
+      change __eo_typeof inner = Term.UOp UserOp.Int
+      have hInnerNe : inner ≠ Term.Stuck := by
+        simpa using hGtSelectedNe
+      change __eo_ite (__eo_is_neg find) find (__eo_add start find) ≠
+        Term.Stuck at hInnerNe
+      rcases eo_ite_selected_nonstuck_of_nonstuck
+          (__eo_is_neg find) find (__eo_add start find) hInnerNe with
+        ⟨findSelected, hFindCond, hFindSelectedNe⟩
+      cases findSelected
+      · dsimp [inner]
+        rw [hFindCond]
+        change __eo_typeof (__eo_add start find) = Term.UOp UserOp.Int
+        have hAddNe : __eo_add start find ≠ Term.Stuck := by
+          simpa using hFindSelectedNe
+        have hFindNegNe : __eo_is_neg find ≠ Term.Stuck := by
+          rw [hFindCond]
+          simp
+        have hFindNe : find ≠ Term.Stuck :=
+          eo_is_neg_arg_ne_stuck hFindNegNe
+        have hFindTy : __eo_typeof find = Term.UOp UserOp.Int :=
+          eo_find_typeof_int_of_ne_stuck
+            (__eo_to_str (__eo_extract s start lenS)) (__eo_to_str pat)
+            (by simpa [find] using hFindNe)
+        exact eo_add_typeof_int_of_args_int start find hStart hFindTy hAddNe
+      · dsimp [inner]
+        rw [hFindCond]
+        change __eo_typeof find = Term.UOp UserOp.Int
+        have hFindNe : find ≠ Term.Stuck := by
+          simpa using hFindSelectedNe
+        exact
+          eo_find_typeof_int_of_ne_stuck
+            (__eo_to_str (__eo_extract s start lenS)) (__eo_to_str pat)
+            (by simpa [find] using hFindNe)
+    · dsimp [rest]
+      rw [hGtCond]
+      change __eo_typeof (Term.Numeral (-1 : native_Int)) =
+        Term.UOp UserOp.Int
+      rfl
+  · dsimp [body]
+    rw [hTopCond]
+    change __eo_typeof (Term.Numeral (-1 : native_Int)) =
+      Term.UOp UserOp.Int
+    rfl
+
+private theorem eo_str_update_body_source_ne_stuck_of_ne_stuck
+    (s n repl : Term)
+    (hNe :
+      (let lenS := __eo_len s
+       __eo_ite (__eo_or (__eo_gt (Term.Numeral 0) n) (__eo_gt n lenS)) s
+        (__eo_concat
+          (__eo_concat
+            (__eo_extract s (Term.Numeral 0)
+              (__eo_add n (Term.Numeral (-1 : native_Int))))
+            (__eo_extract repl (Term.Numeral 0)
+              (__eo_add (__eo_add (__eo_neg n) lenS)
+                (Term.Numeral (-1 : native_Int)))))
+          (__eo_extract s (__eo_add n (__eo_len repl)) lenS))) ≠
+        Term.Stuck) :
+    s ≠ Term.Stuck := by
+  let lenS := __eo_len s
+  let left :=
+    __eo_extract s (Term.Numeral 0)
+      (__eo_add n (Term.Numeral (-1 : native_Int)))
+  let middle :=
+    __eo_extract repl (Term.Numeral 0)
+      (__eo_add (__eo_add (__eo_neg n) lenS)
+        (Term.Numeral (-1 : native_Int)))
+  let inner := __eo_concat left middle
+  let right := __eo_extract s (__eo_add n (__eo_len repl)) lenS
+  let body :=
+    __eo_ite (__eo_or (__eo_gt (Term.Numeral 0) n) (__eo_gt n lenS)) s
+      (__eo_concat inner right)
+  change body ≠ Term.Stuck at hNe
+  rcases eo_ite_selected_nonstuck_of_nonstuck
+      (__eo_or (__eo_gt (Term.Numeral 0) n) (__eo_gt n lenS)) s
+      (__eo_concat inner right) hNe with
+    ⟨selected, _hCond, hSelectedNe⟩
+  cases selected
+  · have hTailNe : __eo_concat inner right ≠ Term.Stuck := by
+      simpa using hSelectedNe
+    have hInnerNe : inner ≠ Term.Stuck :=
+      eo_concat_left_ne_stuck (by simpa [inner, right] using hTailNe)
+    have hLeftNe : left ≠ Term.Stuck :=
+      eo_concat_left_ne_stuck (by simpa [left, inner] using hInnerNe)
+    exact eo_extract_target_ne_stuck (by simpa [left] using hLeftNe)
+  · simpa using hSelectedNe
+
+private theorem eo_str_update_body_typeof_seq_of_args_seq_and_ne_stuck
+    (s n repl U : Term)
+    (hS : __eo_typeof s = Term.Apply (Term.UOp UserOp.Seq) U)
+    (hRepl :
+      repl ≠ Term.Stuck ->
+        __eo_typeof repl = Term.Apply (Term.UOp UserOp.Seq) U)
+    (hNe :
+      (let lenS := __eo_len s
+       __eo_ite (__eo_or (__eo_gt (Term.Numeral 0) n) (__eo_gt n lenS)) s
+        (__eo_concat
+          (__eo_concat
+            (__eo_extract s (Term.Numeral 0)
+              (__eo_add n (Term.Numeral (-1 : native_Int))))
+            (__eo_extract repl (Term.Numeral 0)
+              (__eo_add (__eo_add (__eo_neg n) lenS)
+                (Term.Numeral (-1 : native_Int)))))
+          (__eo_extract s (__eo_add n (__eo_len repl)) lenS))) ≠
+        Term.Stuck) :
+    __eo_typeof
+      (let lenS := __eo_len s
+       __eo_ite (__eo_or (__eo_gt (Term.Numeral 0) n) (__eo_gt n lenS)) s
+        (__eo_concat
+          (__eo_concat
+            (__eo_extract s (Term.Numeral 0)
+              (__eo_add n (Term.Numeral (-1 : native_Int))))
+            (__eo_extract repl (Term.Numeral 0)
+              (__eo_add (__eo_add (__eo_neg n) lenS)
+                (Term.Numeral (-1 : native_Int)))))
+          (__eo_extract s (__eo_add n (__eo_len repl)) lenS))) =
+      Term.Apply (Term.UOp UserOp.Seq) U := by
+  let lenS := __eo_len s
+  let left :=
+    __eo_extract s (Term.Numeral 0)
+      (__eo_add n (Term.Numeral (-1 : native_Int)))
+  let middle :=
+    __eo_extract repl (Term.Numeral 0)
+      (__eo_add (__eo_add (__eo_neg n) lenS)
+        (Term.Numeral (-1 : native_Int)))
+  let inner := __eo_concat left middle
+  let right := __eo_extract s (__eo_add n (__eo_len repl)) lenS
+  let body :=
+    __eo_ite (__eo_or (__eo_gt (Term.Numeral 0) n) (__eo_gt n lenS)) s
+      (__eo_concat inner right)
+  change __eo_typeof body = Term.Apply (Term.UOp UserOp.Seq) U
+  change body ≠ Term.Stuck at hNe
+  rcases eo_ite_selected_nonstuck_of_nonstuck
+      (__eo_or (__eo_gt (Term.Numeral 0) n) (__eo_gt n lenS)) s
+      (__eo_concat inner right) hNe with
+    ⟨selected, hCond, hSelectedNe⟩
+  cases selected
+  · dsimp [body]
+    rw [hCond]
+    change __eo_typeof (__eo_concat inner right) =
+      Term.Apply (Term.UOp UserOp.Seq) U
+    have hTailNe : __eo_concat inner right ≠ Term.Stuck := by
+      simpa using hSelectedNe
+    have hInnerNe : inner ≠ Term.Stuck :=
+      eo_concat_left_ne_stuck (by simpa [inner, right] using hTailNe)
+    have hLeftNe : left ≠ Term.Stuck :=
+      eo_concat_left_ne_stuck (by simpa [left, inner] using hInnerNe)
+    have hMiddleNe : middle ≠ Term.Stuck :=
+      eo_concat_right_ne_stuck (by simpa [left, inner] using hInnerNe)
+    have hReplNe : repl ≠ Term.Stuck :=
+      eo_extract_target_ne_stuck (by simpa [middle] using hMiddleNe)
+    have hRightNe : right ≠ Term.Stuck :=
+      eo_concat_right_ne_stuck (by simpa [inner, right] using hTailNe)
+    have hLeftTy :
+        __eo_typeof left = Term.Apply (Term.UOp UserOp.Seq) U :=
+      eo_extract_typeof_seq_of_target_seq_and_ne_stuck
+        s (Term.Numeral 0) (__eo_add n (Term.Numeral (-1 : native_Int)))
+        U hS (by simpa [left] using hLeftNe)
+    have hMiddleTy :
+        __eo_typeof middle = Term.Apply (Term.UOp UserOp.Seq) U :=
+      eo_extract_typeof_seq_of_target_seq_and_ne_stuck
+        repl (Term.Numeral 0)
+        (__eo_add (__eo_add (__eo_neg n) lenS)
+          (Term.Numeral (-1 : native_Int)))
+        U (hRepl hReplNe) (by simpa [middle] using hMiddleNe)
+    have hInnerTy :
+        __eo_typeof inner = Term.Apply (Term.UOp UserOp.Seq) U :=
+      eo_concat_typeof_seq_of_args_seq_and_ne_stuck
+        left middle U hLeftTy hMiddleTy hInnerNe
+    have hRightTy :
+        __eo_typeof right = Term.Apply (Term.UOp UserOp.Seq) U :=
+      eo_extract_typeof_seq_of_target_seq_and_ne_stuck
+        s (__eo_add n (__eo_len repl)) lenS U hS
+        (by simpa [right] using hRightNe)
+    exact
+      eo_concat_typeof_seq_of_args_seq_and_ne_stuck
+        inner right U hInnerTy hRightTy hTailNe
+  · dsimp [body]
+    rw [hCond]
+    change __eo_typeof s = Term.Apply (Term.UOp UserOp.Seq) U
+    exact hS
+
 private theorem str_leq_eval_rec_typeof_bool_of_ne_stuck :
     ∀ x y : Term,
       __str_leq_eval_rec x y ≠ Term.Stuck ->
@@ -13097,15 +13576,23 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
             apply hRunNe
             simp [__run_evaluate, __eo_to_bin, hBound, native_ite]
           · change
+              __eo_typeof
+                  (__eo_to_bin (Term.Numeral width)
+                    (Term.Numeral value)) =
+                __eo_typeof__at_bv
+                  (__eo_typeof (Term.Numeral value))
+                  (__eo_typeof (Term.Numeral width))
+                  (Term.Numeral width)
+            simp [__eo_to_bin, hBound, native_ite, __eo_mk_binary,
+              hWidthNonneg]
+            change
               __eo_lit_type_Binary
                   (Term.Binary width
                     (native_mod_total value (native_int_pow2 width))) =
-                __eo_typeof__at_bv
-                  (__eo_typeof (Term.Numeral value))
-                  (__eo_typeof (Term.Numeral width)) (Term.Numeral width)
-            simp [__run_evaluate, __eo_to_bin, __eo_mk_binary,
-              __eo_lit_type_Binary, __eo_len, __eo_typeof__at_bv,
-              hWidthNonneg, hBound, native_ite]
+                __eo_typeof__at_bv (Term.UOp UserOp.Int)
+                  (Term.UOp UserOp.Int) (Term.Numeral width)
+            simp [__eo_lit_type_Binary, __eo_len, __eo_typeof__at_bv,
+              __eo_mk_apply]
         | _ =>
           exact False.elim (hRun rfl)
     | Apply f x =>
@@ -17729,6 +18216,13 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                     apply eo_to_smt_type_eq_of_top_valid hYSeqValid
                     simp [__eo_to_smt_type, hUYSmt, hUXSmt]
                   cases hSeqEq
+                  have hUNe : UY ≠ Term.Stuck := by
+                    intro hStuck
+                    subst UY
+                    simpa [TranslationProofs.eo_type_valid,
+                      TranslationProofs.eo_type_valid_rec] using hYSeqValid
+                  have hUEq : __eo_eq UY UY = Term.Boolean true := by
+                    cases UY <;> simp [__eo_eq, native_teq] at hUNe ⊢
                   have hYPres :=
                     run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       y hYTrans hRunYNe
@@ -17758,8 +18252,8 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       __eo_typeof_str_concat (__eo_typeof y)
                         (__eo_typeof x)
                   rw [hRunBodyTy, hYEoSeq, hXEoSeq]
-                  simp [__eo_typeof_str_concat, __eo_requires, __eo_eq,
-                    native_ite, native_teq, native_not]
+                  simp [__eo_typeof_str_concat, __eo_requires,
+                    hUEq, native_ite, native_teq, native_not]
                 | str_at =>
                   have hAtNN :
                       term_has_non_none_type
@@ -17817,6 +18311,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       __eo_typeof_str_at (__eo_typeof y)
                         (__eo_typeof x)
                   rw [hRunBodyTy, hYEoSeq, hXEoInt]
+                  rfl
                 | str_prefixof =>
                   have hPrefixNN :
                       term_has_non_none_type
@@ -17973,10 +18468,15 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       Term.Apply (Term.UOp UserOp.Seq) UY =
                         Term.Apply (Term.UOp UserOp.Seq) UX := by
                     apply eo_to_smt_type_eq_of_top_valid hYSeqValid
-                    change SmtType.Seq (__eo_to_smt_type UY) =
-                      SmtType.Seq (__eo_to_smt_type UX)
-                    rw [hUYSmt, hUXSmt]
+                    simp [__eo_to_smt_type, hUYSmt, hUXSmt]
                   cases hSeqEq
+                  have hUNe : UY ≠ Term.Stuck := by
+                    intro hStuck
+                    subst UY
+                    simpa [TranslationProofs.eo_type_valid,
+                      TranslationProofs.eo_type_valid_rec] using hYSeqValid
+                  have hUEq : __eo_eq UY UY = Term.Boolean true := by
+                    cases UY <;> simp [__eo_eq, native_teq] at hUNe ⊢
                   have hRunContainsNe :
                       __eo_not
                           (__eo_is_neg
@@ -18003,7 +18503,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                         (__eo_typeof x)
                   rw [hRunBodyTy, hYEoSeq, hXEoSeq]
                   simp [__eo_typeof_str_contains, __eo_requires,
-                    __eo_eq, native_ite, native_teq, native_not]
+                    hUEq, native_ite, native_teq, native_not]
                 | str_leq =>
                   have hLeqNN :
                       term_has_non_none_type
@@ -18113,6 +18613,568 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   rfl
                 | _ =>
                   exact False.elim (hRun rfl)
+            | Apply a b =>
+              cases a with
+              | UOp op =>
+                cases op with
+                | ite =>
+                  have hIteNN :
+                      term_has_non_none_type
+                        (SmtTerm.ite (__eo_to_smt b) (__eo_to_smt y)
+                          (__eo_to_smt x)) := by
+                    unfold term_has_non_none_type
+                    simpa [RuleProofs.eo_has_smt_translation] using hTrans
+                  rcases ite_args_of_non_none hIteNN with
+                    ⟨T, hBTyBool, hYTy, hXTy, hTNN⟩
+                  have hBTrans : RuleProofs.eo_has_smt_translation b := by
+                    unfold RuleProofs.eo_has_smt_translation
+                    rw [hBTyBool]
+                    simp
+                  have hYTrans : RuleProofs.eo_has_smt_translation y := by
+                    unfold RuleProofs.eo_has_smt_translation
+                    rw [hYTy]
+                    exact hTNN
+                  have hXTrans : RuleProofs.eo_has_smt_translation x := by
+                    unfold RuleProofs.eo_has_smt_translation
+                    rw [hXTy]
+                    exact hTNN
+                  have hBMatch :=
+                    TranslationProofs.eo_to_smt_typeof_matches_translation
+                      b hBTrans
+                  have hYMatch :=
+                    TranslationProofs.eo_to_smt_typeof_matches_translation
+                      y hYTrans
+                  have hXMatch :=
+                    TranslationProofs.eo_to_smt_typeof_matches_translation
+                      x hXTrans
+                  have hBEoBool : __eo_typeof b = Term.Bool :=
+                    TranslationProofs.eo_to_smt_type_eq_bool
+                      (hBMatch.symm.trans hBTyBool)
+                  have hYEoValid :=
+                    TranslationProofs.eo_type_valid_typeof_of_smt_translation
+                      y hYTrans
+                  have hYEoEq : __eo_typeof y = __eo_typeof x := by
+                    have hEoSmt :
+                        __eo_to_smt_type (__eo_typeof y) =
+                          __eo_to_smt_type (__eo_typeof x) := by
+                      rw [← hYMatch, ← hXMatch, hYTy, hXTy]
+                    exact eo_to_smt_type_eq_of_top_valid hYEoValid hEoSmt
+                  have hYTypeNe : __eo_typeof y ≠ Term.Stuck := by
+                    have hYTypeSmtNN :
+                        __eo_to_smt_type (__eo_typeof y) ≠ SmtType.None := by
+                      rw [← hYMatch, hYTy]
+                      exact hTNN
+                    exact
+                      TranslationProofs.eo_term_ne_stuck_of_smt_type_non_none
+                        (__eo_typeof y) hYTypeSmtNN
+                  have hOrigIteTy :
+                      __eo_typeof_ite (__eo_typeof b) (__eo_typeof y)
+                          (__eo_typeof x) =
+                        __eo_typeof y := by
+                    rw [hBEoBool, ← hYEoEq]
+                    exact
+                      eo_typeof_ite_bool_same_of_ne_stuck
+                        (__eo_typeof y) hYTypeNe
+                  have hRunIteNe :
+                      __eo_ite (__run_evaluate b) (__run_evaluate y)
+                          (__run_evaluate x) ≠
+                        Term.Stuck := by
+                    simpa [__run_evaluate] using hRunNe
+                  rcases eo_ite_selected_nonstuck_of_nonstuck
+                      (__run_evaluate b) (__run_evaluate y)
+                      (__run_evaluate x) hRunIteNe with
+                    ⟨runCond, hRunCond, hSelectedNe⟩
+                  change
+                    __eo_typeof
+                        (__eo_ite (__run_evaluate b) (__run_evaluate y)
+                          (__run_evaluate x)) =
+                      __eo_typeof_ite (__eo_typeof b) (__eo_typeof y)
+                        (__eo_typeof x)
+                  cases runCond
+                  · rw [hRunCond]
+                    change
+                      __eo_typeof (__run_evaluate x) =
+                        __eo_typeof_ite (__eo_typeof b) (__eo_typeof y)
+                          (__eo_typeof x)
+                    have hRunXNe : __run_evaluate x ≠ Term.Stuck := by
+                      simpa using hSelectedNe
+                    have hXPres :=
+                      run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
+                        x hXTrans hRunXNe
+                    exact hXPres.trans (hYEoEq.symm.trans hOrigIteTy.symm)
+                  · rw [hRunCond]
+                    change
+                      __eo_typeof (__run_evaluate y) =
+                        __eo_typeof_ite (__eo_typeof b) (__eo_typeof y)
+                          (__eo_typeof x)
+                    have hRunYNe : __run_evaluate y ≠ Term.Stuck := by
+                      simpa using hSelectedNe
+                    have hYPres :=
+                      run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
+                        y hYTrans hRunYNe
+                    exact hYPres.trans hOrigIteTy.symm
+                  | str_substr =>
+                    have hSubstrNN :
+                        term_has_non_none_type
+                          (SmtTerm.str_substr (__eo_to_smt b)
+                            (__eo_to_smt y) (__eo_to_smt x)) := by
+                      unfold term_has_non_none_type
+                      simpa [RuleProofs.eo_has_smt_translation] using hTrans
+                    rcases str_substr_args_of_non_none hSubstrNN with
+                      ⟨T, hBTySeq, hYTyInt, hXTyInt⟩
+                    have hBTrans : RuleProofs.eo_has_smt_translation b := by
+                      unfold RuleProofs.eo_has_smt_translation
+                      rw [hBTySeq]
+                      simp
+                    have hYTrans : RuleProofs.eo_has_smt_translation y := by
+                      unfold RuleProofs.eo_has_smt_translation
+                      rw [hYTyInt]
+                      simp
+                    have hXTrans : RuleProofs.eo_has_smt_translation x := by
+                      unfold RuleProofs.eo_has_smt_translation
+                      rw [hXTyInt]
+                      simp
+                    rcases eo_typeof_seq_of_smt_type_seq b hBTrans
+                        hBTySeq with
+                      ⟨U, hBEoSeq, _hUSmt⟩
+                    have hYMatch :=
+                      TranslationProofs.eo_to_smt_typeof_matches_translation
+                        y hYTrans
+                    have hXMatch :=
+                      TranslationProofs.eo_to_smt_typeof_matches_translation
+                        x hXTrans
+                    have hYEoInt : __eo_typeof y = Term.UOp UserOp.Int :=
+                      TranslationProofs.eo_to_smt_type_eq_int
+                        (hYMatch.symm.trans hYTyInt)
+                    have hXEoInt : __eo_typeof x = Term.UOp UserOp.Int :=
+                      TranslationProofs.eo_to_smt_type_eq_int
+                        (hXMatch.symm.trans hXTyInt)
+                    have hRunSubstrNe :
+                        (let runY := __run_evaluate y
+                         __eo_extract (__run_evaluate b) runY
+                          (__eo_add (__eo_add runY (__run_evaluate x))
+                            (Term.Numeral (-1 : native_Int)))) ≠
+                          Term.Stuck := by
+                      simpa [__run_evaluate] using hRunNe
+                    have hRunBNe : __run_evaluate b ≠ Term.Stuck :=
+                      eo_extract_target_ne_stuck
+                        (by simpa using hRunSubstrNe)
+                    have hBPres :=
+                      run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
+                        b hBTrans hRunBNe
+                    have hRunBSeq :
+                        __eo_typeof (__run_evaluate b) =
+                          Term.Apply (Term.UOp UserOp.Seq) U :=
+                      hBPres.trans hBEoSeq
+                    have hRunBodyTy :
+                        __eo_typeof
+                            (let runY := __run_evaluate y
+                             __eo_extract (__run_evaluate b) runY
+                              (__eo_add (__eo_add runY (__run_evaluate x))
+                                (Term.Numeral (-1 : native_Int)))) =
+                          Term.Apply (Term.UOp UserOp.Seq) U :=
+                      eo_extract_typeof_seq_of_target_seq_and_ne_stuck
+                        (__run_evaluate b) (__run_evaluate y)
+                        (__eo_add
+                          (__eo_add (__run_evaluate y) (__run_evaluate x))
+                          (Term.Numeral (-1 : native_Int)))
+                        U hRunBSeq
+                        (by simpa using hRunSubstrNe)
+                    change
+                      __eo_typeof
+                          (let runY := __run_evaluate y
+                           __eo_extract (__run_evaluate b) runY
+                            (__eo_add (__eo_add runY (__run_evaluate x))
+                              (Term.Numeral (-1 : native_Int)))) =
+                        __eo_typeof_str_substr (__eo_typeof b)
+                          (__eo_typeof y) (__eo_typeof x)
+                    rw [hRunBodyTy, hBEoSeq, hYEoInt, hXEoInt]
+                    rfl
+                | str_replace =>
+                  have hReplaceNN :
+                      term_has_non_none_type
+                        (SmtTerm.str_replace (__eo_to_smt b)
+                          (__eo_to_smt y) (__eo_to_smt x)) := by
+                    unfold term_has_non_none_type
+                    simpa [RuleProofs.eo_has_smt_translation] using hTrans
+                  rcases seq_triop_args_of_non_none
+                      (op := SmtTerm.str_replace)
+                      (typeof_str_replace_eq (__eo_to_smt b)
+                        (__eo_to_smt y) (__eo_to_smt x)) hReplaceNN with
+                    ⟨T, hBTySeq, hYTySeq, hXTySeq⟩
+                  have hBTrans : RuleProofs.eo_has_smt_translation b := by
+                    unfold RuleProofs.eo_has_smt_translation
+                    rw [hBTySeq]
+                    simp
+                  have hYTrans : RuleProofs.eo_has_smt_translation y := by
+                    unfold RuleProofs.eo_has_smt_translation
+                    rw [hYTySeq]
+                    simp
+                  have hXTrans : RuleProofs.eo_has_smt_translation x := by
+                    unfold RuleProofs.eo_has_smt_translation
+                    rw [hXTySeq]
+                    simp
+                  rcases eo_typeof_seq_of_smt_type_seq b hBTrans
+                      hBTySeq with
+                    ⟨U, hBEoSeq, hUSmt⟩
+                  rcases eo_typeof_seq_of_smt_type_seq y hYTrans
+                      hYTySeq with
+                    ⟨UY, hYEoSeq, hUYSmt⟩
+                  rcases eo_typeof_seq_of_smt_type_seq x hXTrans
+                      hXTySeq with
+                    ⟨UX, hXEoSeq, hUXSmt⟩
+                  have hBValid :=
+                    TranslationProofs.eo_type_valid_typeof_of_smt_translation
+                      b hBTrans
+                  have hBSeqValid :
+                      TranslationProofs.eo_type_valid
+                        (Term.Apply (Term.UOp UserOp.Seq) U) := by
+                    simpa [hBEoSeq] using hBValid
+                  have hSeqYEq :
+                      Term.Apply (Term.UOp UserOp.Seq) U =
+                        Term.Apply (Term.UOp UserOp.Seq) UY :=
+                    eo_seq_type_eq_of_same_smt_elem hBSeqValid hUSmt hUYSmt
+                  cases hSeqYEq
+                  have hSeqXEq :
+                      Term.Apply (Term.UOp UserOp.Seq) U =
+                        Term.Apply (Term.UOp UserOp.Seq) UX :=
+                    eo_seq_type_eq_of_same_smt_elem hBSeqValid hUSmt hUXSmt
+                  cases hSeqXEq
+                  have hUNe : U ≠ Term.Stuck := by
+                    intro hStuck
+                    subst U
+                    simpa [TranslationProofs.eo_type_valid,
+                      TranslationProofs.eo_type_valid_rec] using hBSeqValid
+                  have hUEq : __eo_eq U U = Term.Boolean true := by
+                    cases U <;> simp [__eo_eq, native_teq] at hUNe ⊢
+                  have hRunReplaceNe :
+                      (let runB := __run_evaluate b
+                       let runY := __run_evaluate y
+                       let idx := __eo_find (__eo_to_str runB) (__eo_to_str runY)
+                       __eo_ite (__eo_is_neg idx) runB
+                        (__eo_concat
+                          (__eo_concat
+                            (__eo_extract runB (Term.Numeral 0)
+                              (__eo_add idx (Term.Numeral (-1 : native_Int))))
+                            (__run_evaluate x))
+                          (__eo_extract runB
+                            (__eo_add idx (__eo_len runY)) (__eo_len runB)))) ≠
+                        Term.Stuck := by
+                    simpa [__run_evaluate] using hRunNe
+                  have hRunBNe : __run_evaluate b ≠ Term.Stuck :=
+                    eo_str_replace_body_source_ne_stuck_of_ne_stuck
+                      (__run_evaluate b) (__run_evaluate y)
+                      (__run_evaluate x) (by simpa using hRunReplaceNe)
+                  have hBPres :=
+                    run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
+                      b hBTrans hRunBNe
+                  have hRunBSeq :
+                      __eo_typeof (__run_evaluate b) =
+                        Term.Apply (Term.UOp UserOp.Seq) U :=
+                    hBPres.trans hBEoSeq
+                  have hRunXSeqOfNe :
+                      __run_evaluate x ≠ Term.Stuck ->
+                        __eo_typeof (__run_evaluate x) =
+                          Term.Apply (Term.UOp UserOp.Seq) U := by
+                    intro hRunXNe
+                    have hXPres :=
+                      run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
+                        x hXTrans hRunXNe
+                    exact hXPres.trans hXEoSeq
+                  have hRunBodyTy :
+                      __eo_typeof
+                        (let runB := __run_evaluate b
+                         let runY := __run_evaluate y
+                         let idx :=
+                          __eo_find (__eo_to_str runB) (__eo_to_str runY)
+                         __eo_ite (__eo_is_neg idx) runB
+                          (__eo_concat
+                            (__eo_concat
+                              (__eo_extract runB (Term.Numeral 0)
+                                (__eo_add idx
+                                  (Term.Numeral (-1 : native_Int))))
+                              (__run_evaluate x))
+                            (__eo_extract runB
+                              (__eo_add idx (__eo_len runY))
+                              (__eo_len runB)))) =
+                        Term.Apply (Term.UOp UserOp.Seq) U :=
+                    eo_str_replace_body_typeof_seq_of_args_seq_and_ne_stuck
+                      (__run_evaluate b) (__run_evaluate y)
+                      (__run_evaluate x) U hRunBSeq hRunXSeqOfNe
+                      (by simpa using hRunReplaceNe)
+                  change
+                    __eo_typeof
+                      (let runB := __run_evaluate b
+                       let runY := __run_evaluate y
+                       let idx :=
+                        __eo_find (__eo_to_str runB) (__eo_to_str runY)
+                       __eo_ite (__eo_is_neg idx) runB
+                        (__eo_concat
+                          (__eo_concat
+                            (__eo_extract runB (Term.Numeral 0)
+                              (__eo_add idx
+                                (Term.Numeral (-1 : native_Int))))
+                            (__run_evaluate x))
+                          (__eo_extract runB
+                            (__eo_add idx (__eo_len runY))
+                            (__eo_len runB)))) =
+                      __eo_typeof_str_replace (__eo_typeof b)
+                        (__eo_typeof y) (__eo_typeof x)
+                  rw [hRunBodyTy, hBEoSeq, hYEoSeq, hXEoSeq]
+                  simp [__eo_typeof_str_replace, __eo_requires, __eo_and,
+                    hUEq, native_ite, native_teq, native_and, native_not]
+                | str_indexof =>
+                  have hIndexNN :
+                      term_has_non_none_type
+                        (SmtTerm.str_indexof (__eo_to_smt b)
+                          (__eo_to_smt y) (__eo_to_smt x)) := by
+                    unfold term_has_non_none_type
+                    simpa [RuleProofs.eo_has_smt_translation] using hTrans
+                  rcases str_indexof_args_of_non_none hIndexNN with
+                    ⟨T, hBTySeq, hYTySeq, hXTyInt⟩
+                  have hBTrans : RuleProofs.eo_has_smt_translation b := by
+                    unfold RuleProofs.eo_has_smt_translation
+                    rw [hBTySeq]
+                    simp
+                  have hYTrans : RuleProofs.eo_has_smt_translation y := by
+                    unfold RuleProofs.eo_has_smt_translation
+                    rw [hYTySeq]
+                    simp
+                  have hXTrans : RuleProofs.eo_has_smt_translation x := by
+                    unfold RuleProofs.eo_has_smt_translation
+                    rw [hXTyInt]
+                    simp
+                  rcases eo_typeof_seq_of_smt_type_seq b hBTrans
+                      hBTySeq with
+                    ⟨U, hBEoSeq, hUSmt⟩
+                  rcases eo_typeof_seq_of_smt_type_seq y hYTrans
+                      hYTySeq with
+                    ⟨UY, hYEoSeq, hUYSmt⟩
+                  have hBValid :=
+                    TranslationProofs.eo_type_valid_typeof_of_smt_translation
+                      b hBTrans
+                  have hBSeqValid :
+                      TranslationProofs.eo_type_valid
+                        (Term.Apply (Term.UOp UserOp.Seq) U) := by
+                    simpa [hBEoSeq] using hBValid
+                  have hSeqYEq :
+                      Term.Apply (Term.UOp UserOp.Seq) U =
+                        Term.Apply (Term.UOp UserOp.Seq) UY :=
+                    eo_seq_type_eq_of_same_smt_elem hBSeqValid hUSmt hUYSmt
+                  cases hSeqYEq
+                  have hUNe : U ≠ Term.Stuck := by
+                    intro hStuck
+                    subst U
+                    simpa [TranslationProofs.eo_type_valid,
+                      TranslationProofs.eo_type_valid_rec] using hBSeqValid
+                  have hUEq : __eo_eq U U = Term.Boolean true := by
+                    cases U <;> simp [__eo_eq, native_teq] at hUNe ⊢
+                  have hXMatch :=
+                    TranslationProofs.eo_to_smt_typeof_matches_translation
+                      x hXTrans
+                  have hXEoInt : __eo_typeof x = Term.UOp UserOp.Int :=
+                    TranslationProofs.eo_to_smt_type_eq_int
+                      (hXMatch.symm.trans hXTyInt)
+                  have hRunIndexNe :
+                      (let lenS := __eo_len (__run_evaluate b)
+                       let find :=
+                        __eo_find
+                          (__eo_to_str
+                            (__eo_extract (__run_evaluate b) x lenS))
+                          (__eo_to_str (__run_evaluate y))
+                       __eo_ite (__eo_is_neg (__run_evaluate x))
+                        (Term.Numeral (-1 : native_Int))
+                        (__eo_ite (__eo_gt (__run_evaluate x) lenS)
+                          (Term.Numeral (-1 : native_Int))
+                          (__eo_ite (__eo_is_neg find) find
+                            (__eo_add x find)))) ≠ Term.Stuck := by
+                    simpa [__run_evaluate] using hRunNe
+                  have hRunBodyTy :
+                      __eo_typeof
+                        (let lenS := __eo_len (__run_evaluate b)
+                         let find :=
+                          __eo_find
+                            (__eo_to_str
+                              (__eo_extract (__run_evaluate b) x lenS))
+                            (__eo_to_str (__run_evaluate y))
+                         __eo_ite (__eo_is_neg (__run_evaluate x))
+                          (Term.Numeral (-1 : native_Int))
+                          (__eo_ite (__eo_gt (__run_evaluate x) lenS)
+                            (Term.Numeral (-1 : native_Int))
+                            (__eo_ite (__eo_is_neg find) find
+                              (__eo_add x find)))) =
+                        Term.UOp UserOp.Int :=
+                    eo_str_indexof_body_typeof_int_of_start_int_and_ne_stuck
+                      (__run_evaluate b) (__run_evaluate y) x
+                      (__run_evaluate x) hXEoInt hRunIndexNe
+                  change
+                    __eo_typeof
+                        (let lenS := __eo_len (__run_evaluate b)
+                         let find :=
+                          __eo_find
+                            (__eo_to_str
+                              (__eo_extract (__run_evaluate b) x lenS))
+                            (__eo_to_str (__run_evaluate y))
+                         __eo_ite (__eo_is_neg (__run_evaluate x))
+                          (Term.Numeral (-1 : native_Int))
+                          (__eo_ite (__eo_gt (__run_evaluate x) lenS)
+                            (Term.Numeral (-1 : native_Int))
+                            (__eo_ite (__eo_is_neg find) find
+                              (__eo_add x find)))) =
+                      __eo_typeof_str_indexof (__eo_typeof b)
+                        (__eo_typeof y) (__eo_typeof x)
+                  rw [hRunBodyTy, hBEoSeq, hYEoSeq, hXEoInt]
+                  simp [__eo_typeof_str_indexof, __eo_requires, hUEq,
+                    native_ite, native_teq, native_not]
+                | str_update =>
+                  have hUpdateNN :
+                      term_has_non_none_type
+                        (SmtTerm.str_update (__eo_to_smt b)
+                          (__eo_to_smt y) (__eo_to_smt x)) := by
+                    unfold term_has_non_none_type
+                    simpa [RuleProofs.eo_has_smt_translation] using hTrans
+                  rcases str_update_args_of_non_none hUpdateNN with
+                    ⟨T, hBTySeq, hYTyInt, hXTySeq⟩
+                  have hBTrans : RuleProofs.eo_has_smt_translation b := by
+                    unfold RuleProofs.eo_has_smt_translation
+                    rw [hBTySeq]
+                    simp
+                  have hYTrans : RuleProofs.eo_has_smt_translation y := by
+                    unfold RuleProofs.eo_has_smt_translation
+                    rw [hYTyInt]
+                    simp
+                  have hXTrans : RuleProofs.eo_has_smt_translation x := by
+                    unfold RuleProofs.eo_has_smt_translation
+                    rw [hXTySeq]
+                    simp
+                  rcases eo_typeof_seq_of_smt_type_seq b hBTrans
+                      hBTySeq with
+                    ⟨U, hBEoSeq, hUSmt⟩
+                  rcases eo_typeof_seq_of_smt_type_seq x hXTrans
+                      hXTySeq with
+                    ⟨UX, hXEoSeq, hUXSmt⟩
+                  have hBValid :=
+                    TranslationProofs.eo_type_valid_typeof_of_smt_translation
+                      b hBTrans
+                  have hBSeqValid :
+                      TranslationProofs.eo_type_valid
+                        (Term.Apply (Term.UOp UserOp.Seq) U) := by
+                    simpa [hBEoSeq] using hBValid
+                  have hSeqXEq :
+                      Term.Apply (Term.UOp UserOp.Seq) U =
+                        Term.Apply (Term.UOp UserOp.Seq) UX :=
+                    eo_seq_type_eq_of_same_smt_elem hBSeqValid hUSmt hUXSmt
+                  cases hSeqXEq
+                  have hUNe : U ≠ Term.Stuck := by
+                    intro hStuck
+                    subst U
+                    simpa [TranslationProofs.eo_type_valid,
+                      TranslationProofs.eo_type_valid_rec] using hBSeqValid
+                  have hUEq : __eo_eq U U = Term.Boolean true := by
+                    cases U <;> simp [__eo_eq, native_teq] at hUNe ⊢
+                  have hYMatch :=
+                    TranslationProofs.eo_to_smt_typeof_matches_translation
+                      y hYTrans
+                  have hYEoInt : __eo_typeof y = Term.UOp UserOp.Int :=
+                    TranslationProofs.eo_to_smt_type_eq_int
+                      (hYMatch.symm.trans hYTyInt)
+                  have hRunUpdateNe :
+                      (let runB := __run_evaluate b
+                       let lenS := __eo_len runB
+                       let runX := __run_evaluate x
+                       let runY := __run_evaluate y
+                       __eo_ite
+                        (__eo_or (__eo_gt (Term.Numeral 0) runY)
+                          (__eo_gt runY lenS))
+                        runB
+                        (__eo_concat
+                          (__eo_concat
+                            (__eo_extract runB (Term.Numeral 0)
+                              (__eo_add runY
+                                (Term.Numeral (-1 : native_Int))))
+                            (__eo_extract runX (Term.Numeral 0)
+                              (__eo_add (__eo_add (__eo_neg runY) lenS)
+                                (Term.Numeral (-1 : native_Int)))))
+                          (__eo_extract runB
+                            (__eo_add runY (__eo_len runX)) lenS))) ≠
+                        Term.Stuck := by
+                    simpa [__run_evaluate] using hRunNe
+                  have hRunBNe : __run_evaluate b ≠ Term.Stuck :=
+                    eo_str_update_body_source_ne_stuck_of_ne_stuck
+                      (__run_evaluate b) (__run_evaluate y)
+                      (__run_evaluate x) (by simpa using hRunUpdateNe)
+                  have hBPres :=
+                    run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
+                      b hBTrans hRunBNe
+                  have hRunBSeq :
+                      __eo_typeof (__run_evaluate b) =
+                        Term.Apply (Term.UOp UserOp.Seq) U :=
+                    hBPres.trans hBEoSeq
+                  have hRunXSeqOfNe :
+                      __run_evaluate x ≠ Term.Stuck ->
+                        __eo_typeof (__run_evaluate x) =
+                          Term.Apply (Term.UOp UserOp.Seq) U := by
+                    intro hRunXNe
+                    have hXPres :=
+                      run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
+                        x hXTrans hRunXNe
+                    exact hXPres.trans hXEoSeq
+                  have hRunBodyTy :
+                      __eo_typeof
+                        (let runB := __run_evaluate b
+                         let lenS := __eo_len runB
+                         let runX := __run_evaluate x
+                         let runY := __run_evaluate y
+                         __eo_ite
+                          (__eo_or (__eo_gt (Term.Numeral 0) runY)
+                            (__eo_gt runY lenS))
+                          runB
+                          (__eo_concat
+                            (__eo_concat
+                              (__eo_extract runB (Term.Numeral 0)
+                                (__eo_add runY
+                                  (Term.Numeral (-1 : native_Int))))
+                              (__eo_extract runX (Term.Numeral 0)
+                                (__eo_add (__eo_add (__eo_neg runY) lenS)
+                                  (Term.Numeral (-1 : native_Int)))))
+                            (__eo_extract runB
+                              (__eo_add runY (__eo_len runX)) lenS))) =
+                        Term.Apply (Term.UOp UserOp.Seq) U :=
+                    eo_str_update_body_typeof_seq_of_args_seq_and_ne_stuck
+                      (__run_evaluate b) (__run_evaluate y)
+                      (__run_evaluate x) U hRunBSeq hRunXSeqOfNe
+                      (by simpa using hRunUpdateNe)
+                  change
+                    __eo_typeof
+                      (let runB := __run_evaluate b
+                       let lenS := __eo_len runB
+                       let runX := __run_evaluate x
+                       let runY := __run_evaluate y
+                       __eo_ite
+                        (__eo_or (__eo_gt (Term.Numeral 0) runY)
+                          (__eo_gt runY lenS))
+                        runB
+                        (__eo_concat
+                          (__eo_concat
+                            (__eo_extract runB (Term.Numeral 0)
+                              (__eo_add runY
+                                (Term.Numeral (-1 : native_Int))))
+                            (__eo_extract runX (Term.Numeral 0)
+                              (__eo_add (__eo_add (__eo_neg runY) lenS)
+                                (Term.Numeral (-1 : native_Int)))))
+                          (__eo_extract runB
+                            (__eo_add runY (__eo_len runX)) lenS))) =
+                      __eo_typeof_str_update (__eo_typeof b)
+                        (__eo_typeof y) (__eo_typeof x)
+                  rw [hRunBodyTy, hBEoSeq, hYEoInt, hXEoSeq]
+                  simp [__eo_typeof_str_update, __eo_requires, hUEq,
+                    native_ite, native_teq, native_not]
+                | str_replace_all =>
+                  exact run_evaluate_typeof_eq_str_replace_all b y x
+                | _ =>
+                  exact False.elim (hRun rfl)
+              | _ =>
+                exact False.elim (hRun rfl)
             | _ =>
                 exact False.elim (hRun rfl)
         | UOp1 op n =>
@@ -18174,10 +19236,33 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                 eo_repeat_typeof_bitvec_of_arg_bitvec_and_ne_stuck
                   (__run_evaluate x) i (native_nat_to_int w)
                   hi1 hRunXBv hRunRepeatNe
-              simpa [__run_evaluate, __eo_is_z, __eo_is_z_internal,
-                __eo_is_neg, __eo_not, __eo_and, __eo_ite, native_ite,
-                native_teq, native_and, native_not, SmtEval.native_not,
-                hiNotNeg, hXEoBv] using hRunBodyTy
+              change
+                __eo_typeof
+                    (__eo_ite
+                      (__eo_and (__eo_is_z (Term.Numeral i))
+                        (__eo_not (__eo_is_neg (Term.Numeral i))))
+                      (__bv_eval_concat
+                        (__eo_list_repeat (Term.UOp UserOp.concat)
+                          (__run_evaluate x) (Term.Numeral i)))
+                      (__eo_mk_apply
+                        (Term.UOp1 UserOp1.repeat (Term.Numeral i))
+                        (__run_evaluate x))) =
+                  __eo_typeof
+                    (Term.Apply
+                      (Term.UOp1 UserOp1.repeat (Term.Numeral i)) x)
+              simp [__eo_is_z, __eo_is_z_internal, __eo_is_neg,
+                __eo_not, __eo_and, native_ite, native_teq, native_and,
+                native_not, SmtEval.native_not, hiNotNeg]
+              change
+                __eo_typeof
+                    (__bv_eval_concat
+                      (__eo_list_repeat (Term.UOp UserOp.concat)
+                        (__run_evaluate x) (Term.Numeral i))) =
+                  __eo_typeof_repeat (Term.UOp UserOp.Int)
+                    (Term.Numeral i) (__eo_typeof x)
+              rw [hXEoBv]
+              simpa [__eo_typeof_repeat, __eo_mul, __eo_mk_apply] using
+                hRunBodyTy
             | zero_extend =>
               have hZeroNN :
                   term_has_non_none_type
@@ -18235,8 +19320,19 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                 eo_to_bin_typeof_bitvec_of_width_numeral_and_ne_stuck
                   (native_zplus (native_nat_to_int w) i)
                   (__eo_to_z (__run_evaluate x)) hRunZeroNe'
-              simpa [__run_evaluate, hXEoBv, hRunXBv, __bv_bitwidth,
-                __eo_add] using hRunBodyTy
+              change
+                __eo_typeof
+                    (__eo_to_bin
+                      (__eo_add
+                        (__bv_bitwidth
+                          (__eo_typeof (__run_evaluate x)))
+                        (Term.Numeral i))
+                      (__eo_to_z (__run_evaluate x))) =
+                  __eo_typeof_zero_extend (Term.UOp UserOp.Int)
+                    (Term.Numeral i) (__eo_typeof x)
+              rw [hRunXBv, hXEoBv]
+              simpa [__bv_bitwidth, __eo_typeof_zero_extend, __eo_add,
+                __eo_mk_apply] using hRunBodyTy
             | sign_extend =>
               have hSignNN :
                   term_has_non_none_type
@@ -18263,7 +19359,9 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
               have hRunXNe : __run_evaluate x ≠ Term.Stuck := by
                 intro hStuck
                 apply hRunSignNe
-                simp [eo_eval_sign_extend_rhs, hStuck, __bv_bitwidth,
+                rw [hStuck]
+                have hTy : __eo_typeof Term.Stuck = Term.Stuck := rfl
+                simp [eo_eval_sign_extend_rhs, hTy, __bv_bitwidth,
                   __eo_add, __eo_to_bin]
               have hXPres :=
                 run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
@@ -18334,9 +19432,16 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                         (native_zplus (native_nat_to_int w) i)) :=
                 eo_to_bin_typeof_bitvec_of_width_numeral_and_ne_stuck
                   (native_zplus (native_nat_to_int w) i) _ hRunSignNe'
-              simpa [__run_evaluate, eo_eval_sign_extend_rhs, hXEoBv,
-                hRunXBv, __bv_bitwidth, __eo_add,
-                __eo_typeof_zero_extend, __eo_mk_apply] using hRunBodyTy
+              change
+                __eo_typeof
+                    (eo_eval_sign_extend_rhs (__run_evaluate x)
+                      (Term.Numeral i)) =
+                  __eo_typeof_zero_extend (Term.UOp UserOp.Int)
+                    (Term.Numeral i) (__eo_typeof x)
+              rw [hXEoBv]
+              simpa [eo_eval_sign_extend_rhs, hRunXBv, __bv_bitwidth,
+                __eo_add, __eo_typeof_zero_extend, __eo_mk_apply] using
+                hRunBodyTy
             | int_to_bv =>
               have hIntToBvNN :
                   term_has_non_none_type
@@ -18371,8 +19476,14 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       (Term.Numeral i) :=
                 eo_to_bin_typeof_bitvec_of_width_numeral_and_ne_stuck
                   i (__run_evaluate x) hRunToBvNe
-              simpa [__run_evaluate, hXEoInt, __eo_typeof_int_to_bv]
-                using hRunBodyTy
+              change
+                __eo_typeof
+                    (__eo_to_bin (Term.Numeral i)
+                      (__run_evaluate x)) =
+                  __eo_typeof_int_to_bv (Term.UOp UserOp.Int)
+                    (Term.Numeral i) (__eo_typeof x)
+              rw [hXEoInt]
+              simpa [__eo_typeof_int_to_bv] using hRunBodyTy
             | _ =>
               exact False.elim (hRun rfl)
         | UOp2 op hi lo =>
@@ -18429,12 +19540,19 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   native_zlt 0 (j + 1) = true := by
                 have h : 0 < j + 1 := Int.lt_add_one_of_le hjNonneg
                 simpa [native_zlt, SmtEval.native_zlt] using h
-              simpa [__run_evaluate, hXEoBv, __eo_typeof_extract,
-                __eo_add, __eo_neg, __eo_gt, __eo_requires,
-                __eo_mk_apply, hLowSuccPos, hiw, native_ite,
-                native_teq, native_not, native_zplus,
-                SmtEval.native_zplus, native_zneg,
-                SmtEval.native_zneg] using hRunBodyTy
+              change
+                __eo_typeof
+                    (__eo_extract (__run_evaluate x)
+                      (Term.Numeral j) (Term.Numeral i)) =
+                  __eo_typeof_extract (Term.UOp UserOp.Int)
+                    (Term.Numeral i) (Term.UOp UserOp.Int)
+                    (Term.Numeral j) (__eo_typeof x)
+              rw [hXEoBv]
+              simpa [__eo_typeof_extract, __eo_add, __eo_neg, __eo_gt,
+                __eo_requires, __eo_mk_apply, hLowSuccPos, hiw,
+                native_ite, native_teq, native_not, native_zplus,
+                SmtEval.native_zplus, native_zneg, SmtEval.native_zneg]
+                using hRunBodyTy
             | _ =>
               exact False.elim (hRun rfl)
         | _ =>
