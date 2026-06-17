@@ -721,6 +721,23 @@ theorem EoSmtVarEnv.concat :
           native_ite, native_teq]
           using EoSmtVarEnv.concat_rec hVs hEnv
 
+theorem EoSmtVarEnv.concat_nil_left_eq
+    {env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars) :
+  __eo_list_concat Term.__eo_List_cons Term.__eo_List_nil env = env :=
+by
+  cases hEnv with
+  | nil =>
+      simp [__eo_list_concat, __eo_requires, native_ite, native_teq,
+        native_not, __eo_is_list, __eo_is_ok, __eo_get_nil_rec,
+        __eo_is_list_nil, __eo_list_concat_rec]
+  | cons hTail =>
+      rename_i s T env vars
+      have hNilList := EoSmtVarEnv.nil.is_list
+      have hEnvList := (EoSmtVarEnv.cons (s := s) (T := T) hTail).is_list
+      simp [__eo_list_concat, __eo_requires, hNilList, hEnvList,
+        native_ite, native_teq, native_not, __eo_list_concat_rec]
+
 theorem EoSmtVarEnv.mem_of_closed_var :
     ∀ {env : Term} {vars : List SmtVarKey} {s : native_String} {T : Term},
       EoSmtVarEnv env vars ->
@@ -820,6 +837,700 @@ by
   exact SmtVarEnvEquiv.append
     (SmtVarEnvEquiv.reverse binderVars)
     hEquiv
+
+/-- Exact EO-term membership in an EO variable environment. -/
+def EoSmtVarEnvTermMem (z : Term) : Term -> Prop
+  | Term.__eo_List_nil => False
+  | Term.Apply (Term.Apply Term.__eo_List_cons x) xs =>
+      x = z ∨ EoSmtVarEnvTermMem z xs
+  | _ => False
+
+theorem termVar_ne_stuck (name T : Term) :
+    Term.Var name T ≠ Term.Stuck := by
+  intro h
+  cases h
+
+theorem termVarString_ne_stuck (s : native_String) (T : Term) :
+    Term.Var (Term.String s) T ≠ Term.Stuck :=
+  termVar_ne_stuck (Term.String s) T
+
+theorem eoNot_eq_true_eq_false {x : Term} :
+    __eo_not x = Term.Boolean true ->
+    x = Term.Boolean false := by
+  intro h
+  cases x <;> simp [__eo_not] at h
+  case Boolean b =>
+    cases b <;> simp [SmtEval.native_not] at h ⊢
+
+theorem eoEq_true_of_eq_ne_stuck
+    {x : Term} (hx : x ≠ Term.Stuck) :
+    __eo_eq x x = Term.Boolean true := by
+  simp [__eo_eq, native_teq]
+
+theorem eoEq_false_of_ne_nonstuck
+    {x y : Term} (hNe : x ≠ y)
+    (hx : x ≠ Term.Stuck) (hy : y ≠ Term.Stuck) :
+    __eo_eq x y = Term.Boolean false := by
+  simp [__eo_eq, native_teq, eq_comm, hNe]
+
+theorem nativeZlt_plus_one_nonneg
+    {n : native_Int}
+    (hN : native_zlt n 0 = false) :
+    native_zlt (native_zplus n 1) 0 = false := by
+  simp [native_zlt, native_zplus] at hN ⊢
+  omega
+
+theorem EoSmtVarEnv.termMem_of_findRec_false
+    {env : Term} {vars : List SmtVarKey} {z : Term}
+    (hEnv : EoSmtVarEnv env vars) (hz : z ≠ Term.Stuck) :
+    ∀ n : native_Int,
+      native_zlt n 0 = false ->
+        __eo_is_neg
+            (__eo_list_find_rec env z (Term.Numeral n)) =
+          Term.Boolean false ->
+        EoSmtVarEnvTermMem z env := by
+  induction hEnv with
+  | nil =>
+      intro n hN hFind
+      have hNeg : native_zlt (-1 : native_Int) 0 = true := by
+        native_decide
+      simp [__eo_list_find_rec, __eo_is_neg, hNeg] at hFind
+  | cons hTail ih =>
+      rename_i s T tail varsTail
+      intro n hN hFind
+      have hHeadNe :
+          Term.Var (Term.String s) T ≠ Term.Stuck :=
+        termVarString_ne_stuck s T
+      by_cases hEq : Term.Var (Term.String s) T = z
+      · exact Or.inl hEq
+      · have hEqTerm :
+            __eo_eq (Term.Var (Term.String s) T) z =
+              Term.Boolean false :=
+          eoEq_false_of_ne_nonstuck hEq hHeadNe hz
+        have hTailFind :
+            __eo_is_neg
+                (__eo_list_find_rec tail z
+                  (Term.Numeral (native_zplus n 1))) =
+              Term.Boolean false := by
+          simpa [__eo_list_find_rec, hEqTerm, __eo_ite,
+            native_ite, native_teq] using hFind
+        have hN' :
+            native_zlt (native_zplus n 1) 0 = false :=
+          nativeZlt_plus_one_nonneg hN
+        exact Or.inr (ih (native_zplus n 1) hN' hTailFind)
+
+theorem EoSmtVarEnv.termMem_of_find_false
+    {env : Term} {vars : List SmtVarKey} {z : Term}
+    (hEnv : EoSmtVarEnv env vars) (hz : z ≠ Term.Stuck)
+    (hFind :
+      __eo_is_neg (__eo_list_find Term.__eo_List_cons env z) =
+        Term.Boolean false) :
+    EoSmtVarEnvTermMem z env := by
+  have hList : __eo_is_list Term.__eo_List_cons env = Term.Boolean true :=
+    hEnv.is_list
+  have hZero : native_zlt (0 : native_Int) 0 = false := by
+    native_decide
+  have hFindRec :
+      __eo_is_neg (__eo_list_find_rec env z (Term.Numeral 0)) =
+        Term.Boolean false := by
+    simpa [__eo_list_find, hList, __eo_requires, native_ite,
+      native_teq, native_not, SmtEval.native_not] using hFind
+  exact hEnv.termMem_of_findRec_false hz 0 hZero hFindRec
+
+theorem EoSmtVarEnv.eo_is_closed_rec_var_of_termMem
+    {env : Term} {vars : List SmtVarKey}
+    {name T : Term}
+    (hEnv : EoSmtVarEnv env vars)
+    (hMem : EoSmtVarEnvTermMem (Term.Var name T) env) :
+    __eo_is_closed_rec (Term.Var name T) env =
+      Term.Boolean true := by
+  induction hEnv with
+  | nil =>
+      exact False.elim hMem
+  | cons hTail ih =>
+      rename_i s0 T0 tail varsTail
+      by_cases hEq :
+          Term.Var (Term.String s0) T0 =
+            Term.Var name T
+      · simpa [__eo_is_closed_rec, __eo_ite, __eo_eq, hEq,
+          native_ite, native_teq]
+      · have hTailMem :
+            EoSmtVarEnvTermMem (Term.Var name T) tail := by
+          rcases hMem with hHead | hTailMem
+          · exact False.elim (hEq hHead)
+          · exact hTailMem
+        have hTailClosed := ih hTailMem
+        simpa [__eo_is_closed_rec, __eo_ite, __eo_eq, hEq,
+          native_ite, native_teq] using hTailClosed
+
+theorem EoSmtVarEnv.eo_is_closed_rec_var_of_is_closed_rec
+    {env : Term} {vars : List SmtVarKey}
+    {name T : Term}
+    (hEnv : EoSmtVarEnv env vars)
+    (hClosed :
+      __is_closed_rec (Term.Var name T) env =
+        Term.Boolean true) :
+    __eo_is_closed_rec (Term.Var name T) env =
+      Term.Boolean true := by
+  have hClosedFind :
+      __eo_not
+          (__eo_is_neg
+            (__eo_list_find Term.__eo_List_cons env
+              (Term.Var name T))) =
+        Term.Boolean true := by
+    cases hEnv with
+    | nil =>
+        simpa [__is_closed_rec] using hClosed
+    | cons hTail =>
+        simpa [__is_closed_rec] using hClosed
+  have hFind :
+      __eo_is_neg
+          (__eo_list_find Term.__eo_List_cons env
+            (Term.Var name T)) =
+        Term.Boolean false :=
+    eoNot_eq_true_eq_false hClosedFind
+  have hMem :
+      EoSmtVarEnvTermMem (Term.Var name T) env :=
+    hEnv.termMem_of_find_false (termVar_ne_stuck name T) hFind
+  exact hEnv.eo_is_closed_rec_var_of_termMem hMem
+
+theorem EoSmtVarEnvPerm.eo_is_closed_rec_var_of_is_closed_rec
+    {env : Term} {vars : List SmtVarKey}
+    {name T : Term}
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hClosed :
+      __is_closed_rec (Term.Var name T) env =
+        Term.Boolean true) :
+    __eo_is_closed_rec (Term.Var name T) env =
+      Term.Boolean true := by
+  rcases hEnv with ⟨exactVars, hExact, _hEquiv⟩
+  exact hExact.eo_is_closed_rec_var_of_is_closed_rec hClosed
+
+theorem eo_is_closed_rec_var_of_is_closed_rec_perm
+    {env : Term} {vars : List SmtVarKey}
+    {name T : Term}
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hClosed :
+      __is_closed_rec (Term.Var name T) env =
+      Term.Boolean true) :
+    __eo_is_closed_rec (Term.Var name T) env =
+      Term.Boolean true := by
+  exact hEnv.eo_is_closed_rec_var_of_is_closed_rec hClosed
+
+theorem smtx_typeof_guard_left_non_none
+    {T U : SmtType}
+    (h : __smtx_typeof_guard T U ≠ SmtType.None) :
+    T ≠ SmtType.None := by
+  intro hNone
+  subst T
+  simp [__smtx_typeof_guard, native_ite, native_Teq] at h
+
+theorem smtx_typeof_guard_right_non_none
+    {T U : SmtType}
+    (h : __smtx_typeof_guard T U ≠ SmtType.None) :
+    U ≠ SmtType.None := by
+  intro hNone
+  subst U
+  cases T <;> simp [__smtx_typeof_guard, native_ite, native_Teq] at h
+
+theorem nativeIte_smtType_value_non_none
+    {b : native_Bool} {T : SmtType}
+    (h : native_ite b T SmtType.None ≠ SmtType.None) :
+    T ≠ SmtType.None := by
+  intro hNone
+  subst T
+  cases b <;> simp [native_ite] at h
+
+theorem smtx_type_wf_component_non_none
+    {T : SmtType}
+    (h : __smtx_type_wf_component T = true) :
+    T ≠ SmtType.None := by
+  intro hNone
+  subst T
+  simp [__smtx_type_wf_component, __smtx_type_wf_rec, native_and] at h
+
+theorem eo_to_smt_type_tuple_left_non_none
+    {T U : SmtType}
+    (h : __eo_to_smt_type_tuple T U ≠ SmtType.None) :
+    T ≠ SmtType.None := by
+  intro hNone
+  subst T
+  cases U <;>
+    simp [__eo_to_smt_type_tuple, __smtx_type_wf_component,
+      __smtx_type_wf_rec, native_and, native_ite] at h
+  case Datatype s d =>
+    cases d with
+    | null =>
+        simp [__eo_to_smt_type_tuple] at h
+    | sum c dTail =>
+      cases dTail with
+      | null =>
+        simp [__eo_to_smt_type_tuple, __smtx_type_wf_component,
+          __smtx_type_wf_rec, native_and, native_ite] at h
+      | sum cTail dTail' =>
+        simp [__eo_to_smt_type_tuple, __smtx_type_wf_component,
+          __smtx_type_wf_rec, native_and, native_ite] at h
+
+theorem eo_to_smt_type_tuple_right_non_none
+    {T U : SmtType}
+    (h : __eo_to_smt_type_tuple T U ≠ SmtType.None) :
+    U ≠ SmtType.None := by
+  intro hNone
+  subst U
+  simp [__eo_to_smt_type_tuple] at h
+
+theorem eo_is_closed_rec_of_eo_to_smt_nat_is_valid
+    {n env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hNat : __eo_to_smt_nat_is_valid n = true) :
+    __eo_is_closed_rec n env = Term.Boolean true := by
+  cases n <;> simp [__eo_to_smt_nat_is_valid] at hNat
+  case Numeral m =>
+    rcases hEnv with ⟨_exactVars, hExact, _hEquiv⟩
+    cases hExact <;> simp [__eo_is_closed_rec]
+
+theorem eo_is_closed_rec_of_eo_to_smt_type_non_none
+    {T env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hTy : __eo_to_smt_type T ≠ SmtType.None) :
+    __eo_is_closed_rec T env = Term.Boolean true := by
+  let rec go :
+      (fuel : Nat) -> ∀ {T env : Term} {vars : List SmtVarKey},
+        sizeOf T < fuel ->
+        EoSmtVarEnvPerm env vars ->
+        __eo_to_smt_type T ≠ SmtType.None ->
+        __eo_is_closed_rec T env = Term.Boolean true
+    | 0, T, env, vars, hSize, hEnv, hTy => by
+        omega
+    | fuel + 1, T, env, vars, hSize, hEnv, hTy => by
+        cases T with
+        | Apply f x =>
+            cases f with
+            | UOp op =>
+                cases op <;> try
+                  (exfalso
+                   simpa [__eo_to_smt_type] using hTy)
+                case BitVec =>
+                  cases x <;> try
+                    (exfalso
+                     simpa [__eo_to_smt_type] using hTy)
+                  case Numeral n =>
+                    rcases hEnv with ⟨_exactVars, hExact, _hEquiv⟩
+                    cases hExact <;> simp [__eo_is_closed_rec, __eo_and, native_and]
+                case Seq =>
+                  have hXTy : __eo_to_smt_type x ≠ SmtType.None :=
+                    smtx_typeof_guard_left_non_none
+                      (by simpa [__eo_to_smt_type] using hTy)
+                  have hXSize : sizeOf x < fuel := by
+                    simp at hSize
+                    omega
+                  have hXClosed := go fuel hXSize hEnv hXTy
+                  rcases hEnv with ⟨_exactVars, hExact, _hEquiv⟩
+                  cases hExact <;>
+                    simp [__eo_is_closed_rec, __eo_and, native_and, hXClosed]
+                case Set =>
+                  have hXTy : __eo_to_smt_type x ≠ SmtType.None :=
+                    smtx_typeof_guard_left_non_none
+                      (by simpa [__eo_to_smt_type] using hTy)
+                  have hXSize : sizeOf x < fuel := by
+                    simp at hSize
+                    omega
+                  have hXClosed := go fuel hXSize hEnv hXTy
+                  rcases hEnv with ⟨_exactVars, hExact, _hEquiv⟩
+                  cases hExact <;>
+                    simp [__eo_is_closed_rec, __eo_and, native_and, hXClosed]
+            | Apply g y =>
+                cases g with
+                | FunType =>
+                    have hType :
+                        __smtx_typeof_guard (__eo_to_smt_type y)
+                            (__smtx_typeof_guard (__eo_to_smt_type x)
+                              (SmtType.FunType (__eo_to_smt_type y)
+                                (__eo_to_smt_type x))) ≠ SmtType.None := by
+                      simpa [__eo_to_smt_type] using hTy
+                    have hYTy : __eo_to_smt_type y ≠ SmtType.None :=
+                      smtx_typeof_guard_left_non_none hType
+                    have hInnerTy :
+                        __smtx_typeof_guard (__eo_to_smt_type x)
+                            (SmtType.FunType (__eo_to_smt_type y)
+                              (__eo_to_smt_type x)) ≠ SmtType.None :=
+                      smtx_typeof_guard_right_non_none hType
+                    have hXTy : __eo_to_smt_type x ≠ SmtType.None :=
+                      smtx_typeof_guard_left_non_none hInnerTy
+                    have hYSize : sizeOf y < fuel := by
+                      simp at hSize
+                      omega
+                    have hXSize : sizeOf x < fuel := by
+                      simp at hSize
+                      omega
+                    have hYClosed := go fuel hYSize hEnv hYTy
+                    have hXClosed := go fuel hXSize hEnv hXTy
+                    rcases hEnv with ⟨_exactVars, hExact, _hEquiv⟩
+                    cases hExact <;>
+                      simp [__eo_is_closed_rec, __eo_and, native_and, hYClosed, hXClosed]
+                | UOp op =>
+                    cases op <;> try
+                      (exfalso
+                       simpa [__eo_to_smt_type] using hTy)
+                    case Array =>
+                      have hType :
+                          __smtx_typeof_guard (__eo_to_smt_type y)
+                              (__smtx_typeof_guard (__eo_to_smt_type x)
+                                (SmtType.Map (__eo_to_smt_type y)
+                                  (__eo_to_smt_type x))) ≠ SmtType.None := by
+                        simpa [__eo_to_smt_type] using hTy
+                      have hYTy : __eo_to_smt_type y ≠ SmtType.None :=
+                        smtx_typeof_guard_left_non_none hType
+                      have hInnerTy :
+                          __smtx_typeof_guard (__eo_to_smt_type x)
+                              (SmtType.Map (__eo_to_smt_type y)
+                                (__eo_to_smt_type x)) ≠ SmtType.None :=
+                        smtx_typeof_guard_right_non_none hType
+                      have hXTy : __eo_to_smt_type x ≠ SmtType.None :=
+                        smtx_typeof_guard_left_non_none hInnerTy
+                      have hYSize : sizeOf y < fuel := by
+                        simp at hSize
+                        omega
+                      have hXSize : sizeOf x < fuel := by
+                        simp at hSize
+                        omega
+                      have hYClosed := go fuel hYSize hEnv hYTy
+                      have hXClosed := go fuel hXSize hEnv hXTy
+                      rcases hEnv with ⟨_exactVars, hExact, _hEquiv⟩
+                      cases hExact <;>
+                        simp [__eo_is_closed_rec, __eo_and, native_and, hYClosed, hXClosed]
+                    case Tuple =>
+                      let raw :=
+                        __eo_to_smt_type_tuple (__eo_to_smt_type y)
+                          (__eo_to_smt_type x)
+                      have hRawTy : raw ≠ SmtType.None :=
+                        nativeIte_smtType_value_non_none
+                          (by
+                            simpa [__eo_to_smt_type, raw] using hTy)
+                      have hYTy : __eo_to_smt_type y ≠ SmtType.None :=
+                        eo_to_smt_type_tuple_left_non_none hRawTy
+                      have hXTy : __eo_to_smt_type x ≠ SmtType.None :=
+                        eo_to_smt_type_tuple_right_non_none hRawTy
+                      have hYSize : sizeOf y < fuel := by
+                        simp at hSize
+                        omega
+                      have hXSize : sizeOf x < fuel := by
+                        simp at hSize
+                        omega
+                      have hYClosed := go fuel hYSize hEnv hYTy
+                      have hXClosed := go fuel hXSize hEnv hXTy
+                      rcases hEnv with ⟨_exactVars, hExact, _hEquiv⟩
+                      cases hExact <;>
+                        simp [__eo_is_closed_rec, __eo_and, native_and, hYClosed, hXClosed]
+                | _ =>
+                    exfalso
+                    simpa [__eo_to_smt_type] using hTy
+            | _ =>
+                exfalso
+                simpa [__eo_to_smt_type] using hTy
+        | UOp op =>
+            cases op <;> try
+              (exfalso
+               simpa [__eo_to_smt_type] using hTy)
+            all_goals
+              rcases hEnv with ⟨_exactVars, hExact, _hEquiv⟩
+              cases hExact <;> simp [__eo_is_closed_rec]
+        | Bool =>
+            rcases hEnv with ⟨_exactVars, hExact, _hEquiv⟩
+            cases hExact <;> simp [__eo_is_closed_rec]
+        | DatatypeType s d =>
+            rcases hEnv with ⟨_exactVars, hExact, _hEquiv⟩
+            cases hExact <;> simp [__eo_is_closed_rec]
+        | DatatypeTypeRef s =>
+            rcases hEnv with ⟨_exactVars, hExact, _hEquiv⟩
+            cases hExact <;> simp [__eo_is_closed_rec]
+        | DtcAppType T U =>
+            rcases hEnv with ⟨_exactVars, hExact, _hEquiv⟩
+            cases hExact <;> simp [__eo_is_closed_rec]
+        | USort i =>
+            rcases hEnv with ⟨_exactVars, hExact, _hEquiv⟩
+            cases hExact <;> simp [__eo_is_closed_rec]
+        | _ =>
+            exfalso
+            simpa [__eo_to_smt_type] using hTy
+  have hSize : sizeOf T < sizeOf T + 1 := by
+    omega
+  exact go (sizeOf T + 1) hSize hEnv hTy
+
+theorem is_closed_rec_apply_nil_quantifier_body_of_is_closed_rec
+    {op : UserOp} {body env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hClosed :
+      __is_closed_rec
+        (Term.Apply (Term.Apply (Term.UOp op) Term.__eo_List_nil) body)
+        env = Term.Boolean true) :
+  __is_closed_rec body env = Term.Boolean true :=
+by
+  rcases hEnv with ⟨_exactVars, hExact, _hEquiv⟩
+  cases hExact with
+  | nil =>
+      have hClosed' :
+          __eo_and
+              (__is_closed_rec
+                (Term.Apply (Term.UOp op) Term.__eo_List_nil)
+                Term.__eo_List_nil)
+              (__is_closed_rec body Term.__eo_List_nil) =
+            Term.Boolean true := by
+        rw [Eo.__is_closed_rec.eq_def] at hClosed
+        simpa using hClosed
+      exact (eo_and_eq_true_cases hClosed').2
+  | cons hTail =>
+      rename_i s T env vars
+      let e :=
+        Term.Apply (Term.Apply Term.__eo_List_cons
+          (Term.Var (Term.String s) T)) env
+      have hClosed' :
+          __eo_and
+              (__is_closed_rec
+                (Term.Apply (Term.UOp op) Term.__eo_List_nil) e)
+              (__is_closed_rec body e) =
+            Term.Boolean true := by
+        rw [Eo.__is_closed_rec.eq_def] at hClosed
+        simpa [e] using hClosed
+      exact (eo_and_eq_true_cases hClosed').2
+
+theorem is_closed_rec_binder_body_of_is_closed_rec
+    {q v vs body env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hClosed :
+      __is_closed_rec
+        (Term.Apply (Term.Apply q
+          (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)) body) env =
+        Term.Boolean true) :
+  __is_closed_rec body
+    (__eo_list_concat Term.__eo_List_cons
+      (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) env) =
+    Term.Boolean true :=
+by
+  rcases hEnv with ⟨_exactVars, hExact, _hEquiv⟩
+  cases hExact with
+  | nil =>
+      have hClosed' :
+          __eo_and (__is_closed_rec q Term.__eo_List_nil)
+              (__is_closed_rec body
+                (__eo_list_concat Term.__eo_List_cons
+                  (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
+                  Term.__eo_List_nil)) =
+            Term.Boolean true := by
+        rw [Eo.__is_closed_rec.eq_def] at hClosed
+        simpa using hClosed
+      exact (eo_and_eq_true_cases hClosed').2
+  | cons hTail =>
+      rename_i s T env vars
+      let e :=
+        Term.Apply (Term.Apply Term.__eo_List_cons
+          (Term.Var (Term.String s) T)) env
+      have hClosed' :
+          __eo_and (__is_closed_rec q e)
+              (__is_closed_rec body
+                (__eo_list_concat Term.__eo_List_cons
+                  (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) e)) =
+            Term.Boolean true := by
+        rw [Eo.__is_closed_rec.eq_def] at hClosed
+        simpa [e] using hClosed
+      exact (eo_and_eq_true_cases hClosed').2
+
+theorem eo_is_closed_rec_forall_of_body_closed
+    {vs body env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hBody :
+      __eo_is_closed_rec body
+        (__eo_list_concat Term.__eo_List_cons vs env) =
+        Term.Boolean true) :
+  __eo_is_closed_rec
+    (Term.Apply (Term.Apply (Term.UOp UserOp.forall) vs) body) env =
+    Term.Boolean true :=
+by
+  rcases hEnv with ⟨_exactVars, hExact, _hEquiv⟩
+  cases hExact with
+  | nil =>
+      rw [Eo.__eo_is_closed_rec.eq_def]
+      simpa using hBody
+  | cons hTail =>
+      rename_i s T env vars
+      let e :=
+        Term.Apply (Term.Apply Term.__eo_List_cons
+          (Term.Var (Term.String s) T)) env
+      rw [Eo.__eo_is_closed_rec.eq_def]
+      simpa [e] using hBody
+
+theorem eo_is_closed_rec_exists_of_body_closed
+    {vs body env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hBody :
+      __eo_is_closed_rec body
+        (__eo_list_concat Term.__eo_List_cons vs env) =
+        Term.Boolean true) :
+  __eo_is_closed_rec
+    (Term.Apply (Term.Apply (Term.UOp UserOp.exists) vs) body) env =
+    Term.Boolean true :=
+by
+  rcases hEnv with ⟨_exactVars, hExact, _hEquiv⟩
+  cases hExact with
+  | nil =>
+      rw [Eo.__eo_is_closed_rec.eq_def]
+      simpa using hBody
+  | cons hTail =>
+      rename_i s T env vars
+      let e :=
+        Term.Apply (Term.Apply Term.__eo_List_cons
+          (Term.Var (Term.String s) T)) env
+      rw [Eo.__eo_is_closed_rec.eq_def]
+      simpa [e] using hBody
+
+theorem eo_is_closed_rec_forall_of_is_closed_rec_using
+    {vs body env : Term} {binderVars vars : List SmtVarKey}
+    (hVs : EoSmtVarEnv vs binderVars)
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hBody :
+      __is_closed_rec body (__eo_list_concat Term.__eo_List_cons vs env) =
+        Term.Boolean true ->
+      __eo_is_closed_rec body (__eo_list_concat Term.__eo_List_cons vs env) =
+        Term.Boolean true)
+    (hClosed :
+      __is_closed_rec
+        (Term.Apply (Term.Apply (Term.UOp UserOp.forall) vs) body) env =
+        Term.Boolean true) :
+  __eo_is_closed_rec
+    (Term.Apply (Term.Apply (Term.UOp UserOp.forall) vs) body) env =
+    Term.Boolean true :=
+by
+  cases hVs with
+  | nil =>
+      have hBodyClosedEnv :
+          __is_closed_rec body env = Term.Boolean true :=
+        is_closed_rec_apply_nil_quantifier_body_of_is_closed_rec
+          (op := UserOp.forall) hEnv hClosed
+      have hBodyClosed :
+          __is_closed_rec body
+              (__eo_list_concat Term.__eo_List_cons Term.__eo_List_nil env) =
+            Term.Boolean true := by
+        rcases hEnv with ⟨_exactVars, hExact, _hEquiv⟩
+        simpa [EoSmtVarEnv.concat_nil_left_eq hExact] using hBodyClosedEnv
+      exact eo_is_closed_rec_forall_of_body_closed hEnv (hBody hBodyClosed)
+  | cons hTail =>
+      rename_i s T tail tailVars
+      let qs :=
+        Term.Apply (Term.Apply Term.__eo_List_cons
+          (Term.Var (Term.String s) T)) tail
+      have hBodyClosed :
+          __is_closed_rec body (__eo_list_concat Term.__eo_List_cons qs env) =
+            Term.Boolean true :=
+        is_closed_rec_binder_body_of_is_closed_rec
+          (q := Term.UOp UserOp.forall)
+          (v := Term.Var (Term.String s) T)
+          (vs := tail) hEnv (by simpa [qs] using hClosed)
+      exact eo_is_closed_rec_forall_of_body_closed hEnv (hBody hBodyClosed)
+
+theorem eo_is_closed_rec_exists_of_is_closed_rec_using
+    {vs body env : Term} {binderVars vars : List SmtVarKey}
+    (hVs : EoSmtVarEnv vs binderVars)
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hBody :
+      __is_closed_rec body (__eo_list_concat Term.__eo_List_cons vs env) =
+        Term.Boolean true ->
+      __eo_is_closed_rec body (__eo_list_concat Term.__eo_List_cons vs env) =
+        Term.Boolean true)
+    (hClosed :
+      __is_closed_rec
+        (Term.Apply (Term.Apply (Term.UOp UserOp.exists) vs) body) env =
+        Term.Boolean true) :
+  __eo_is_closed_rec
+    (Term.Apply (Term.Apply (Term.UOp UserOp.exists) vs) body) env =
+    Term.Boolean true :=
+by
+  cases hVs with
+  | nil =>
+      have hBodyClosedEnv :
+          __is_closed_rec body env = Term.Boolean true :=
+        is_closed_rec_apply_nil_quantifier_body_of_is_closed_rec
+          (op := UserOp.exists) hEnv hClosed
+      have hBodyClosed :
+          __is_closed_rec body
+              (__eo_list_concat Term.__eo_List_cons Term.__eo_List_nil env) =
+            Term.Boolean true := by
+        rcases hEnv with ⟨_exactVars, hExact, _hEquiv⟩
+        simpa [EoSmtVarEnv.concat_nil_left_eq hExact] using hBodyClosedEnv
+      exact eo_is_closed_rec_exists_of_body_closed hEnv (hBody hBodyClosed)
+  | cons hTail =>
+      rename_i s T tail tailVars
+      let qs :=
+        Term.Apply (Term.Apply Term.__eo_List_cons
+          (Term.Var (Term.String s) T)) tail
+      have hBodyClosed :
+          __is_closed_rec body (__eo_list_concat Term.__eo_List_cons qs env) =
+            Term.Boolean true :=
+        is_closed_rec_binder_body_of_is_closed_rec
+          (q := Term.UOp UserOp.exists)
+          (v := Term.Var (Term.String s) T)
+          (vs := tail) hEnv (by simpa [qs] using hClosed)
+      exact eo_is_closed_rec_exists_of_body_closed hEnv (hBody hBodyClosed)
+
+theorem eo_is_closed_rec_quantifiers_skolemize_of_is_closed_rec_using
+    {F n env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hF :
+      __is_closed_rec F env = Term.Boolean true ->
+      __eo_is_closed_rec F env = Term.Boolean true)
+    (hN : __eo_to_smt_nat_is_valid n = true)
+    (hClosed :
+      __is_closed_rec
+        (Term.UOp2 UserOp2._at_quantifiers_skolemize F n) env =
+        Term.Boolean true) :
+  __eo_is_closed_rec
+    (Term.UOp2 UserOp2._at_quantifiers_skolemize F n) env =
+    Term.Boolean true :=
+by
+  have hFClosed : __is_closed_rec F env = Term.Boolean true := by
+    rcases hEnv with ⟨_exactVars, hExact, _hEquiv⟩
+    cases hExact <;>
+      rw [Eo.__is_closed_rec.eq_def] at hClosed <;>
+      simpa using hClosed
+  have hFEo := hF hFClosed
+  have hNEo := eo_is_closed_rec_of_eo_to_smt_nat_is_valid hEnv hN
+  rcases hEnv with ⟨_exactVars, hExact, _hEquiv⟩
+  cases hExact <;>
+    rw [Eo.__eo_is_closed_rec.eq_def] <;>
+    simp [__eo_and, native_and, hFEo, hNEo]
+
+theorem eo_is_closed_rec_re_unfold_pos_component_of_is_closed_rec_using
+    {s r n env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hS :
+      __is_closed_rec s env = Term.Boolean true ->
+      __eo_is_closed_rec s env = Term.Boolean true)
+    (hR :
+      __is_closed_rec r env = Term.Boolean true ->
+      __eo_is_closed_rec r env = Term.Boolean true)
+    (hN : __eo_to_smt_nat_is_valid n = true)
+    (hClosed :
+      __is_closed_rec
+        (Term.UOp3 UserOp3._at_re_unfold_pos_component s r n) env =
+        Term.Boolean true) :
+  __eo_is_closed_rec
+    (Term.UOp3 UserOp3._at_re_unfold_pos_component s r n) env =
+    Term.Boolean true :=
+by
+  have hSR :
+      __eo_and (__is_closed_rec s env) (__is_closed_rec r env) =
+        Term.Boolean true := by
+    rcases hEnv with ⟨_exactVars, hExact, _hEquiv⟩
+    cases hExact <;>
+      rw [Eo.__is_closed_rec.eq_def] at hClosed <;>
+      simpa using hClosed
+  rcases eo_and_eq_true_cases hSR with ⟨hSClosed, hRClosed⟩
+  have hSEo := hS hSClosed
+  have hREo := hR hRClosed
+  have hNEo := eo_is_closed_rec_of_eo_to_smt_nat_is_valid hEnv hN
+  rcases hEnv with ⟨_exactVars, hExact, _hEquiv⟩
+  cases hExact <;>
+    rw [Eo.__eo_is_closed_rec.eq_def] <;>
+    simp [__eo_and, native_and, hSEo, hREo, hNEo]
 
 theorem eo_is_closed_rec_apply_uop_arg_eq_true
     {op : UserOp} {x env : Term} {vars : List SmtVarKey}
