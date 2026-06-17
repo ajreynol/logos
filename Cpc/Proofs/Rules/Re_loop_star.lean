@@ -280,19 +280,60 @@ theorem re_loop_star_canonical_true
   -- Conclude the equality holds in the model.
   exact RuleProofs.eo_interprets_eq_of_rel M _ _ hBool hRel
 
+/-- Well-typedness of the conclusion, given non-negative literal bounds and a
+`RegLan`-typed regex argument.  This is the rule-independent SMT computation: the
+EO→SMT bridge sends the `RegLan` argument across, and `re.loop`/`re.*` over
+non-negative numeral bounds is `RegLan`-typed, so the `eq` is `Bool`-typed. -/
+theorem loop_has_bool_type_of_bounds (a1 a2 a3 : Term) (lo hi : Int)
+    (h1 : a1 = Term.Numeral lo) (h2 : a2 = Term.Numeral hi)
+    (hlo : native_zleq 0 lo = true) (hhi : native_zleq 0 hi = true)
+    (hA3Ty : __eo_typeof a3 = Term.UOp UserOp.RegLan)
+    (hA3Trans : eoHasSmtTranslation a3) :
+    RuleProofs.eo_has_bool_type (mkConcl a1 a2 a3) := by
+  have hA3SmtTy : __smtx_typeof (__eo_to_smt a3) = SmtType.RegLan := by
+    have h := TranslationProofs.eo_to_smt_typeof_matches_translation a3 hA3Trans
+    rw [hA3Ty] at h; exact h
+  subst h1 h2
+  have hMultTy :
+      __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp UserOp.re_mult) a3)) =
+        SmtType.RegLan := by
+    change __smtx_typeof (SmtTerm.re_mult (__eo_to_smt a3)) = SmtType.RegLan
+    rw [typeof_re_mult_eq]; simp [hA3SmtTy, native_ite, native_Teq]
+  have hLoopTy :
+      __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply (Term.UOp2 UserOp2.re_loop (Term.Numeral lo) (Term.Numeral hi))
+              (Term.Apply (Term.UOp UserOp.re_mult) a3))) =
+        SmtType.RegLan := by
+    change __smtx_typeof
+        (SmtTerm.re_loop (SmtTerm.Numeral lo) (SmtTerm.Numeral hi)
+          (SmtTerm.re_mult (__eo_to_smt a3))) = SmtType.RegLan
+    rw [typeof_re_loop_eq]
+    have hM : __smtx_typeof (SmtTerm.re_mult (__eo_to_smt a3)) = SmtType.RegLan := hMultTy
+    rw [hM]
+    simp [__smtx_typeof_re_loop, hlo, hhi, native_ite]
+  exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type
+    (Term.Apply (Term.UOp2 UserOp2.re_loop (Term.Numeral lo) (Term.Numeral hi))
+      (Term.Apply (Term.UOp UserOp.re_mult) a3))
+    (Term.Apply (Term.UOp UserOp.re_mult) a3)
+    (by rw [hLoopTy, hMultTy]) (by rw [hLoopTy]; decide)
+
 /--
 Soundness wrapper for `re_loop_star`.
 
-The mathematical content (`re_loop_star_canonical_true`, `prog_form`) is fully
-proved.  The single remaining `sorry` is the well-typedness of the conclusion
-(`eo_has_bool_type`, equivalently that it has an SMT translation).  This is *not*
-derivable from the stated hypotheses: EO `re.loop` typing only requires the
-bounds to be `Int`-typed, whereas SMT `re.loop` requires them to be syntactic
-`Numeral`s.  For a non-numeral `Int` bound such as `1 + 1`, `__eo_typeof` of the
-conclusion is `Bool` while `__smtx_typeof (__eo_to_smt ·)` is `None`, so the
-`has_smt_translation` field is unprovable as stated.  Resolving this requires a
-framework decision (e.g. making `__eo_typeof_re_loop` require `Numeral` bounds),
-so it is deferred.
+The mathematical content (`re_loop_star_canonical_true`, `prog_form`) and the
+SMT well-typedness computation (`loop_has_bool_type_of_bounds`) are fully proved.
+
+The single remaining `sorry` is `hBounds`: that `__eo_typeof (mkConcl …) = Bool`
+forces both `re.loop` bounds to be *non-negative* integer literals (and the body
+`RegLan`).  Commit #275 made `__eo_typeof_re_loop` require integer *literals*
+(`__eo_is_z`), which closed the old non-numeral-bound gap (`1 + 1`).  A residual
+*sign* gap remains: SMT `__smtx_typeof_re_loop` requires `native_zleq 0` on each
+bound, but `__eo_is_z` accepts negatives (verified: for `re.loop[-1,5]`,
+`__eo_typeof` is `Bool` yet `__smtx_typeof (__eo_to_smt ·)` is `None`).  Once the
+regenerated `__eo_typeof_re_loop` additionally requires non-negative bounds,
+`hBounds` follows by inversion on `__eo_typeof_re_loop` and the rest of the proof
+goes through unchanged.
 -/
 theorem cmd_step_re_loop_star_properties
     (M : SmtModel) (hM : model_total_typed M)
@@ -327,6 +368,34 @@ by
               cases premises with
               | cons _ _ => change Term.Stuck ≠ Term.Stuck at hProg; exact False.elim (hProg rfl)
               | nil =>
+                -- Argument SMT-translation of the regex body, from the command side condition.
+                have hCArgs :
+                    cArgListTranslationOk
+                      (CArgList.cons a1 (CArgList.cons a2 (CArgList.cons a3 CArgList.nil))) :=
+                  hCmdTrans
+                have hA3Trans : eoHasSmtTranslation a3 := hCArgs.2.2.1
+                -- The conclusion is `Bool`-typed.
+                have hConclTy : __eo_typeof (mkConcl a1 a2 a3) = Term.Bool := by
+                  have hPNe :
+                      __eo_prog_re_loop_star a1 a2 a3
+                          (Proof.pf (__eo_state_proven_nth s n1))
+                          (Proof.pf (__eo_state_proven_nth s n2)) ≠ Term.Stuck := hProg
+                  rw [← (prog_form a1 a2 a3 (__eo_state_proven_nth s n1)
+                        (__eo_state_proven_nth s n2) hPNe).2.2]
+                  exact hResultTy
+                -- Well-typedness of the conclusion.  The bounds are non-negative integer
+                -- literals and the body is `RegLan`; see the header note on `hBounds`.
+                have hbt : RuleProofs.eo_has_bool_type (mkConcl a1 a2 a3) := by
+                  have hBounds :
+                      ∃ lo hi : Int,
+                        a1 = Term.Numeral lo ∧ a2 = Term.Numeral hi ∧
+                        native_zleq 0 lo = true ∧ native_zleq 0 hi = true ∧
+                        __eo_typeof a3 = Term.UOp UserOp.RegLan := by
+                    -- Follows from `hConclTy` by inversion on `__eo_typeof_re_loop`
+                    -- once the type rule requires non-negative literal bounds.
+                    sorry
+                  obtain ⟨lo, hi, h1, h2, hlo, hhi, hA3Ty⟩ := hBounds
+                  exact loop_has_bool_type_of_bounds a1 a2 a3 lo hi h1 h2 hlo hhi hA3Ty hA3Trans
                 show StepRuleProperties M
                     [__eo_state_proven_nth s n1, __eo_state_proven_nth s n2]
                     (__eo_prog_re_loop_star a1 a2 a3
@@ -340,9 +409,6 @@ by
                   rw [← hP1, ← hP2]
                   exact hProg
                 obtain ⟨hf1, hf2, hProgEq⟩ := prog_form a1 a2 a3 P1 P2 hProgNe
-                -- Deferred: well-typedness of the conclusion (needs numeral bounds).
-                have hbt : RuleProofs.eo_has_bool_type (mkConcl a1 a2 a3) := by
-                  sorry
                 rw [hProgEq]
                 refine ⟨?_, ?_⟩
                 · intro hEv
