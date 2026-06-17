@@ -5854,7 +5854,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_re_exp
         SmtType.RegLan := by
     rw [hTranslate]
     exact re_exp_typeof_of_non_none hApplyNN
-  rcases re_exp_args_of_non_none hApplyNN with ⟨⟨n, hYNum, _hn⟩, hXRegLan⟩
+  rcases re_exp_args_of_non_none hApplyNN with ⟨⟨n, hYNum, hn⟩, hXRegLan⟩
   have hYInt : __smtx_typeof (__eo_to_smt y) = SmtType.Int := by
     rw [hYNum]
     unfold __smtx_typeof
@@ -5871,8 +5871,16 @@ private theorem eo_to_smt_typeof_matches_translation_apply_re_exp
         SmtType.RegLan := by
     change __eo_to_smt_type (__eo_typeof_re_exp (__eo_typeof y) y (__eo_typeof x)) =
       SmtType.RegLan
+    have hnGt : native_zlt (-1 : native_Int) n = true :=
+      native_zlt_neg_one_of_zleq_zero hn
     rw [hYTerm, hXEo]
-    rfl
+    change
+      __eo_to_smt_type
+          (__eo_typeof_re_exp (Term.UOp UserOp.Int) (Term.Numeral n)
+            (Term.UOp UserOp.RegLan)) =
+        SmtType.RegLan
+    simp [__eo_typeof_re_exp, __eo_gt, __eo_requires, native_teq, native_not,
+      native_ite, hnGt]
   exact hSmt.trans hEo.symm
 
 /-- Proof for the opaque `_at_strings_stoi_result` application. -/
@@ -12555,8 +12563,19 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_re_loop
               __eo_to_smt_type
                   (__eo_typeof_re_loop (__eo_typeof z) z (__eo_typeof y) y (__eo_typeof x)) =
                 SmtType.RegLan
+            have hn1Gt : native_zlt (-1 : native_Int) n1 = true :=
+              native_zlt_neg_one_of_zleq_zero hn1
+            have hn2Gt : native_zlt (-1 : native_Int) n2 = true :=
+              native_zlt_neg_one_of_zleq_zero hn2
             rw [hZTerm, hYTerm, hXEo]
-            rfl
+            change
+              __eo_to_smt_type
+                  (__eo_typeof_re_loop (Term.UOp UserOp.Int) (Term.Numeral n1)
+                    (Term.UOp UserOp.Int) (Term.Numeral n2)
+                    (Term.UOp UserOp.RegLan)) =
+                SmtType.RegLan
+            simp [__eo_typeof_re_loop, __eo_gt, __eo_requires, native_teq,
+              native_not, native_ite, hn1Gt, hn2Gt]
           exact hSmt.trans hEo.symm
       | _ =>
           exfalso
