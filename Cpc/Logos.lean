@@ -8201,13 +8201,13 @@ def __eo_typeof_concat : Term -> Term -> Term
 def __eo_typeof_extract : Term -> Term -> Term -> Term -> Term -> Term
   | _ , Term.Stuck , _ , _ , _  => Term.Stuck
   | _ , _ , _ , Term.Stuck , _  => Term.Stuck
-  | (Term.UOp UserOp.Int), h, (Term.UOp UserOp.Int), l, (Term.Apply (Term.UOp UserOp.BitVec) n) => (__eo_mk_apply (Term.UOp UserOp.BitVec) (__eo_requires (__eo_gt (__eo_add l (Term.Numeral 1)) (Term.Numeral 0)) (Term.Boolean true) (__eo_requires (__eo_gt n h) (Term.Boolean true) (__eo_add (__eo_add h (__eo_neg l)) (Term.Numeral 1)))))
+  | (Term.UOp UserOp.Int), h, (Term.UOp UserOp.Int), l, (Term.Apply (Term.UOp UserOp.BitVec) n) => (__eo_mk_apply (Term.UOp UserOp.BitVec) (__eo_requires (__eo_gt l (Term.Numeral (-1 : native_Int))) (Term.Boolean true) (__eo_requires (__eo_gt n h) (Term.Boolean true) (__eo_add (__eo_add h (__eo_neg l)) (Term.Numeral 1)))))
   | _, _, _, _, _ => Term.Stuck
 
 
 def __eo_typeof_repeat : Term -> Term -> Term -> Term
   | _ , Term.Stuck , _  => Term.Stuck
-  | (Term.UOp UserOp.Int), i, (Term.Apply (Term.UOp UserOp.BitVec) n) => (__eo_mk_apply (Term.UOp UserOp.BitVec) (__eo_mul i n))
+  | (Term.UOp UserOp.Int), i, (Term.Apply (Term.UOp UserOp.BitVec) n) => (__eo_requires (__eo_gt i (Term.Numeral (-1 : native_Int))) (Term.Boolean true) (__eo_mk_apply (Term.UOp UserOp.BitVec) (__eo_mul i n)))
   | _, _, _ => Term.Stuck
 
 
@@ -8233,13 +8233,14 @@ def __eo_typeof_bvult : Term -> Term -> Term
 
 def __eo_typeof_zero_extend : Term -> Term -> Term -> Term
   | _ , Term.Stuck , _  => Term.Stuck
-  | (Term.UOp UserOp.Int), i, (Term.Apply (Term.UOp UserOp.BitVec) m) => (__eo_mk_apply (Term.UOp UserOp.BitVec) (__eo_add m i))
+  | (Term.UOp UserOp.Int), i, (Term.Apply (Term.UOp UserOp.BitVec) m) => (__eo_requires (__eo_gt i (Term.Numeral (-1 : native_Int))) (Term.Boolean true) (__eo_mk_apply (Term.UOp UserOp.BitVec) (__eo_add m i)))
   | _, _, _ => Term.Stuck
 
 
-def __eo_typeof_rotate_left : Term -> Term -> Term
-  | (Term.UOp UserOp.Int), (Term.Apply (Term.UOp UserOp.BitVec) m) => (Term.Apply (Term.UOp UserOp.BitVec) m)
-  | _, _ => Term.Stuck
+def __eo_typeof_rotate_left : Term -> Term -> Term -> Term
+  | _ , Term.Stuck , _  => Term.Stuck
+  | (Term.UOp UserOp.Int), i, (Term.Apply (Term.UOp UserOp.BitVec) m) => (__eo_requires (__eo_gt i (Term.Numeral (-1 : native_Int))) (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) m))
+  | _, _, _ => Term.Stuck
 
 
 def __eo_typeof_bvite : Term -> Term -> Term -> Term
@@ -8556,7 +8557,7 @@ def __eo_typeof__at_quantifiers_skolemize : Term -> Term -> Term -> Term -> Term
 
 def __eo_typeof_int_to_bv : Term -> Term -> Term -> Term
   | _ , Term.Stuck , _  => Term.Stuck
-  | (Term.UOp UserOp.Int), w, (Term.UOp UserOp.Int) => (Term.Apply (Term.UOp UserOp.BitVec) w)
+  | (Term.UOp UserOp.Int), w, (Term.UOp UserOp.Int) => (__eo_requires (__eo_gt w (Term.Numeral (-1 : native_Int))) (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) w))
   | _, _, _ => Term.Stuck
 
 
@@ -8674,8 +8675,8 @@ def __eo_typeof : Term -> Term
   | (Term.Apply (Term.Apply (Term.UOp UserOp.bvashr) __eo_x1) __eo_x2) => (__eo_typeof_bvand (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
   | (Term.Apply (Term.UOp1 UserOp1.zero_extend __eo_x1) __eo_x2) => (__eo_typeof_zero_extend (__eo_typeof __eo_x1) __eo_x1 (__eo_typeof __eo_x2))
   | (Term.Apply (Term.UOp1 UserOp1.sign_extend __eo_x1) __eo_x2) => (__eo_typeof_zero_extend (__eo_typeof __eo_x1) __eo_x1 (__eo_typeof __eo_x2))
-  | (Term.Apply (Term.UOp1 UserOp1.rotate_left __eo_x1) __eo_x2) => (__eo_typeof_rotate_left (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
-  | (Term.Apply (Term.UOp1 UserOp1.rotate_right __eo_x1) __eo_x2) => (__eo_typeof_rotate_left (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
+  | (Term.Apply (Term.UOp1 UserOp1.rotate_left __eo_x1) __eo_x2) => (__eo_typeof_rotate_left (__eo_typeof __eo_x1) __eo_x1 (__eo_typeof __eo_x2))
+  | (Term.Apply (Term.UOp1 UserOp1.rotate_right __eo_x1) __eo_x2) => (__eo_typeof_rotate_left (__eo_typeof __eo_x1) __eo_x1 (__eo_typeof __eo_x2))
   | (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.bvite) __eo_x1) __eo_x2) __eo_x3) => (__eo_typeof_bvite (__eo_typeof __eo_x1) (__eo_typeof __eo_x2) (__eo_typeof __eo_x3))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.bvuaddo) __eo_x1) __eo_x2) => (__eo_typeof_bvult (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
   | (Term.Apply (Term.UOp UserOp.bvnego) __eo_x1) => (__eo_typeof_bvnego (__eo_typeof __eo_x1))
