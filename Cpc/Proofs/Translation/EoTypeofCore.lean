@@ -4891,17 +4891,41 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_re_unfold_pos_component_of_seq_c
   rfl
 
 /-- Stronger EO-side helper for `typeof_apply_apply_apply_re_loop`. -/
+theorem native_zlt_neg_one_of_zleq_zero {n : native_Int}
+    (hn : native_zleq 0 n = true) :
+    native_zlt (-1 : native_Int) n = true := by
+  have hn' : (0 : Int) <= n := by
+    simpa [native_zleq] using hn
+  have hlt : (-1 : Int) < n := by
+    omega
+  simpa [native_zlt] using hlt
+
 theorem eo_to_smt_type_typeof_apply_apply_apply_re_loop_of_int_int_reglan
-    (x y z : Term)
-    (hz : __eo_typeof z = Term.UOp UserOp.Int)
-    (hy : __eo_typeof y = Term.UOp UserOp.Int)
+    (x : Term) (n1 n2 : Int)
+    (hn1 : native_zleq 0 n1 = true)
+    (hn2 : native_zleq 0 n2 = true)
     (hx : __eo_typeof x = Term.UOp UserOp.RegLan) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp2 UserOp2.re_loop z y) x)) =
+    __eo_to_smt_type
+        (__eo_typeof
+          (Term.Apply (Term.UOp2 UserOp2.re_loop (Term.Numeral n1) (Term.Numeral n2)) x)) =
       SmtType.RegLan := by
-  change __eo_to_smt_type (__eo_typeof_re_loop (__eo_typeof z) (__eo_typeof y) (__eo_typeof x)) =
-    SmtType.RegLan
-  rw [hz, hy, hx]
-  rfl
+  change
+    __eo_to_smt_type
+        (__eo_typeof_re_loop (__eo_typeof (Term.Numeral n1)) (Term.Numeral n1)
+          (__eo_typeof (Term.Numeral n2)) (Term.Numeral n2) (__eo_typeof x)) =
+      SmtType.RegLan
+  have hn1Gt : native_zlt (-1 : native_Int) n1 = true :=
+    native_zlt_neg_one_of_zleq_zero hn1
+  have hn2Gt : native_zlt (-1 : native_Int) n2 = true :=
+    native_zlt_neg_one_of_zleq_zero hn2
+  rw [hx]
+  change
+    __eo_to_smt_type
+        (__eo_typeof_re_loop (Term.UOp UserOp.Int) (Term.Numeral n1)
+          (Term.UOp UserOp.Int) (Term.Numeral n2) (Term.UOp UserOp.RegLan)) =
+      SmtType.RegLan
+  simp [__eo_typeof_re_loop, __eo_gt, __eo_requires, native_teq, native_not,
+    hn1Gt, hn2Gt]
 
 /-- Stronger EO-side helper for `typeof_apply_apply_apply_at_witness_string_length`. -/
 theorem eo_to_smt_type_typeof_apply_apply_apply_at_witness_string_length_of_type_int_int
@@ -5382,9 +5406,13 @@ theorem eo_to_smt_type_typeof_apply_apply_repeat_of_int_bitvec_type
     (hy : __eo_typeof y = Term.UOp UserOp.Int)
     (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) n) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp1 UserOp1.repeat y) x)) =
-      __eo_to_smt_type (__eo_mk_apply (Term.UOp UserOp.BitVec) (__eo_mul y n)) := by
+      __eo_to_smt_type
+        (__eo_requires (__eo_gt y (Term.Numeral (-1 : native_Int))) (Term.Boolean true)
+          (__eo_mk_apply (Term.UOp UserOp.BitVec) (__eo_mul y n))) := by
   change __eo_to_smt_type (__eo_typeof_repeat (__eo_typeof y) y (__eo_typeof x)) =
-    __eo_to_smt_type (__eo_mk_apply (Term.UOp UserOp.BitVec) (__eo_mul y n))
+    __eo_to_smt_type
+      (__eo_requires (__eo_gt y (Term.Numeral (-1 : native_Int))) (Term.Boolean true)
+        (__eo_mk_apply (Term.UOp UserOp.BitVec) (__eo_mul y n)))
   rw [hy, hx]
   apply congrArg __eo_to_smt_type
   cases y with
@@ -5397,19 +5425,16 @@ theorem eo_to_smt_type_typeof_apply_apply_zero_extend_of_int_bitvec_type
     (hy : __eo_typeof y = Term.UOp UserOp.Int)
     (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) n) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp1 UserOp1.zero_extend y) x)) =
-      __eo_to_smt_type (__eo_mk_apply (Term.UOp UserOp.BitVec) (__eo_add n y)) := by
+      __eo_to_smt_type
+        (__eo_requires (__eo_gt y (Term.Numeral (-1 : native_Int))) (Term.Boolean true)
+          (__eo_mk_apply (Term.UOp UserOp.BitVec) (__eo_add n y))) := by
   change __eo_to_smt_type (__eo_typeof_zero_extend (__eo_typeof y) y (__eo_typeof x)) =
-    __eo_to_smt_type (__eo_mk_apply (Term.UOp UserOp.BitVec) (__eo_add n y))
+    __eo_to_smt_type
+      (__eo_requires (__eo_gt y (Term.Numeral (-1 : native_Int))) (Term.Boolean true)
+        (__eo_mk_apply (Term.UOp UserOp.BitVec) (__eo_add n y)))
   rw [hy, hx]
   apply congrArg __eo_to_smt_type
-  cases y with
-  | Stuck =>
-      have hStuckTy : __eo_typeof Term.Stuck = Term.Stuck := by
-        rfl
-      rw [hStuckTy] at hy
-      cases hy
-  | _ =>
-      rfl
+  cases y <;> rfl
 
 /-- Stronger EO-side helper for `typeof_apply_apply_sign_extend`. -/
 theorem eo_to_smt_type_typeof_apply_apply_sign_extend_of_int_bitvec_type
@@ -5417,19 +5442,16 @@ theorem eo_to_smt_type_typeof_apply_apply_sign_extend_of_int_bitvec_type
     (hy : __eo_typeof y = Term.UOp UserOp.Int)
     (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) n) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp1 UserOp1.sign_extend y) x)) =
-      __eo_to_smt_type (__eo_mk_apply (Term.UOp UserOp.BitVec) (__eo_add n y)) := by
+      __eo_to_smt_type
+        (__eo_requires (__eo_gt y (Term.Numeral (-1 : native_Int))) (Term.Boolean true)
+          (__eo_mk_apply (Term.UOp UserOp.BitVec) (__eo_add n y))) := by
   change __eo_to_smt_type (__eo_typeof_zero_extend (__eo_typeof y) y (__eo_typeof x)) =
-    __eo_to_smt_type (__eo_mk_apply (Term.UOp UserOp.BitVec) (__eo_add n y))
+    __eo_to_smt_type
+      (__eo_requires (__eo_gt y (Term.Numeral (-1 : native_Int))) (Term.Boolean true)
+        (__eo_mk_apply (Term.UOp UserOp.BitVec) (__eo_add n y)))
   rw [hy, hx]
   apply congrArg __eo_to_smt_type
-  cases y with
-  | Stuck =>
-      have hStuckTy : __eo_typeof Term.Stuck = Term.Stuck := by
-        rfl
-      rw [hStuckTy] at hy
-      cases hy
-  | _ =>
-      rfl
+  cases y <;> rfl
 
 /-- Stronger EO-side helper for `typeof_apply_apply_rotate_left`. -/
 theorem eo_to_smt_type_typeof_apply_apply_rotate_left_of_int_bitvec_type
@@ -5437,11 +5459,16 @@ theorem eo_to_smt_type_typeof_apply_apply_rotate_left_of_int_bitvec_type
     (hy : __eo_typeof y = Term.UOp UserOp.Int)
     (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) n) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp1 UserOp1.rotate_left y) x)) =
-      __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) n) := by
-  change __eo_to_smt_type (__eo_typeof_rotate_left (__eo_typeof y) (__eo_typeof x)) =
-    __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) n)
+      __eo_to_smt_type
+        (__eo_requires (__eo_gt y (Term.Numeral (-1 : native_Int))) (Term.Boolean true)
+          (Term.Apply (Term.UOp UserOp.BitVec) n)) := by
+  change __eo_to_smt_type (__eo_typeof_rotate_left (__eo_typeof y) y (__eo_typeof x)) =
+    __eo_to_smt_type
+      (__eo_requires (__eo_gt y (Term.Numeral (-1 : native_Int))) (Term.Boolean true)
+        (Term.Apply (Term.UOp UserOp.BitVec) n))
   rw [hy, hx]
-  rfl
+  apply congrArg __eo_to_smt_type
+  cases y <;> rfl
 
 /-- Stronger EO-side helper for `typeof_apply_apply_rotate_right`. -/
 theorem eo_to_smt_type_typeof_apply_apply_rotate_right_of_int_bitvec_type
@@ -5449,11 +5476,16 @@ theorem eo_to_smt_type_typeof_apply_apply_rotate_right_of_int_bitvec_type
     (hy : __eo_typeof y = Term.UOp UserOp.Int)
     (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) n) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp1 UserOp1.rotate_right y) x)) =
-      __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) n) := by
-  change __eo_to_smt_type (__eo_typeof_rotate_left (__eo_typeof y) (__eo_typeof x)) =
-    __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) n)
+      __eo_to_smt_type
+        (__eo_requires (__eo_gt y (Term.Numeral (-1 : native_Int))) (Term.Boolean true)
+          (Term.Apply (Term.UOp UserOp.BitVec) n)) := by
+  change __eo_to_smt_type (__eo_typeof_rotate_left (__eo_typeof y) y (__eo_typeof x)) =
+    __eo_to_smt_type
+      (__eo_requires (__eo_gt y (Term.Numeral (-1 : native_Int))) (Term.Boolean true)
+        (Term.Apply (Term.UOp UserOp.BitVec) n))
   rw [hy, hx]
-  rfl
+  apply congrArg __eo_to_smt_type
+  cases y <;> rfl
 
 /-- Stronger EO-side helper for `typeof_apply_apply_int_to_bv`. -/
 theorem eo_to_smt_type_typeof_apply_apply_int_to_bv_of_int_int
@@ -5461,19 +5493,16 @@ theorem eo_to_smt_type_typeof_apply_apply_int_to_bv_of_int_int
     (hy : __eo_typeof y = Term.UOp UserOp.Int)
     (hx : __eo_typeof x = Term.UOp UserOp.Int) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp1 UserOp1.int_to_bv y) x)) =
-      __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) y) := by
+      __eo_to_smt_type
+        (__eo_requires (__eo_gt y (Term.Numeral (-1 : native_Int))) (Term.Boolean true)
+          (Term.Apply (Term.UOp UserOp.BitVec) y)) := by
   change __eo_to_smt_type (__eo_typeof_int_to_bv (__eo_typeof y) y (__eo_typeof x)) =
-    __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) y)
+    __eo_to_smt_type
+      (__eo_requires (__eo_gt y (Term.Numeral (-1 : native_Int))) (Term.Boolean true)
+        (Term.Apply (Term.UOp UserOp.BitVec) y))
   rw [hy, hx]
   apply congrArg __eo_to_smt_type
-  cases y with
-  | Stuck =>
-      have hStuckTy : __eo_typeof Term.Stuck = Term.Stuck := by
-        rfl
-      rw [hStuckTy] at hy
-      cases hy
-  | _ =>
-      rfl
+  cases y <;> rfl
 
 /-- Stronger EO-side helper for `typeof_apply_apply_apply_extract`. -/
 theorem eo_to_smt_type_typeof_apply_apply_apply_extract_of_int_int_bitvec_type
@@ -5485,14 +5514,14 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_extract_of_int_int_bitvec_type
       __eo_to_smt_type
         (__eo_mk_apply
           (Term.UOp UserOp.BitVec)
-          (__eo_requires (__eo_gt (__eo_add z (Term.Numeral 1)) (Term.Numeral 0)) (Term.Boolean true)
+          (__eo_requires (__eo_gt z (Term.Numeral (-1 : native_Int))) (Term.Boolean true)
             (__eo_requires (__eo_gt n y) (Term.Boolean true)
               (__eo_add (__eo_add y (__eo_neg z)) (Term.Numeral 1))))) := by
   change __eo_to_smt_type (__eo_typeof_extract (__eo_typeof y) y (__eo_typeof z) z (__eo_typeof x)) =
     __eo_to_smt_type
       (__eo_mk_apply
         (Term.UOp UserOp.BitVec)
-        (__eo_requires (__eo_gt (__eo_add z (Term.Numeral 1)) (Term.Numeral 0)) (Term.Boolean true)
+        (__eo_requires (__eo_gt z (Term.Numeral (-1 : native_Int))) (Term.Boolean true)
           (__eo_requires (__eo_gt n y) (Term.Boolean true)
             (__eo_add (__eo_add y (__eo_neg z)) (Term.Numeral 1)))))
   rw [hy, hz, hx]
@@ -5505,11 +5534,6 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_extract_of_int_int_bitvec_type
       cases hy
   | _ =>
       cases z with
-      | Stuck =>
-          have hStuckTy : __eo_typeof Term.Stuck = Term.Stuck := by
-            rfl
-          rw [hStuckTy] at hz
-          cases hz
       | _ =>
           rfl
 

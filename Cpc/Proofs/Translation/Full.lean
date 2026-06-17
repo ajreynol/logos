@@ -1069,24 +1069,27 @@ private theorem eo_mk_apply_ne_dtcapp_full
   intro h
   cases f <;> cases x <;> simp [__eo_mk_apply] at h
 
+private theorem eo_apply_ne_dtcapp_full
+    (f x A B : Term) :
+    Term.Apply f x ≠ Term.DtcAppType A B := by
+  intro h
+  cases h
+
 private theorem false_of_typeof_re_loop_eq_dtcapp_full
     {y z x A B : Term}
     (hTy :
-      __eo_typeof_re_loop (__eo_typeof y) (__eo_typeof z) (__eo_typeof x) =
+      __eo_typeof_re_loop (__eo_typeof y) y (__eo_typeof z) z (__eo_typeof x) =
         Term.DtcAppType A B) :
     False := by
-  cases hy : __eo_typeof y <;> simp [__eo_typeof_re_loop, hy] at hTy
-  case UOp opY =>
-    cases opY <;> try cases hTy
-    case Int =>
-      cases hz : __eo_typeof z <;> simp [hz] at hTy
-      case UOp opZ =>
-        cases opZ <;> try cases hTy
-        case Int =>
-          cases hx : __eo_typeof x <;>
-            simp [hx] at hTy
-          case UOp opX =>
-            cases opX <;> cases hTy
+  unfold __eo_typeof_re_loop at hTy
+  repeat (first | split at hTy)
+  all_goals
+    first
+      | cases hTy
+      | exact false_of_requires_eq_dtcapp_of_payload_ne_full
+          (fun h =>
+            false_of_requires_eq_dtcapp_of_payload_ne_full (by intro hh; cases hh) h)
+          hTy
 
 private theorem false_of_typeof_repeat_eq_dtcapp_full
     {y x A B : Term}
@@ -1094,21 +1097,14 @@ private theorem false_of_typeof_repeat_eq_dtcapp_full
       __eo_typeof_repeat (__eo_typeof y) y (__eo_typeof x) =
         Term.DtcAppType A B) :
     False := by
-  generalize hT : __eo_typeof y = T at hTy
-  generalize hX : __eo_typeof x = X at hTy
-  cases y <;> simp [__eo_typeof_repeat] at hTy
+  unfold __eo_typeof_repeat at hTy
+  repeat (first | split at hTy)
   all_goals
-    cases T <;> try cases hTy
-    case UOp op =>
-      cases op <;> try cases hTy
-      case Int =>
-        cases X <;> try cases hTy
-        case Apply f n =>
-          cases f <;> try cases hTy
-          case UOp op' =>
-            cases op' <;> try cases hTy
-            all_goals
-              exact eo_mk_apply_ne_dtcapp_full _ _ A B hTy
+    first
+      | cases hTy
+      | exact false_of_requires_eq_dtcapp_of_payload_ne_full
+          (eo_mk_apply_ne_dtcapp_full _ _ A B)
+          hTy
 
 private theorem false_of_typeof_zero_extend_eq_dtcapp_full
     {y x A B : Term}
@@ -1116,37 +1112,29 @@ private theorem false_of_typeof_zero_extend_eq_dtcapp_full
       __eo_typeof_zero_extend (__eo_typeof y) y (__eo_typeof x) =
         Term.DtcAppType A B) :
     False := by
-  generalize hT : __eo_typeof y = T at hTy
-  generalize hX : __eo_typeof x = X at hTy
-  cases y <;> simp [__eo_typeof_zero_extend] at hTy
+  unfold __eo_typeof_zero_extend at hTy
+  repeat (first | split at hTy)
   all_goals
-    cases T <;> try cases hTy
-    case UOp op =>
-      cases op <;> try cases hTy
-      case Int =>
-        cases X <;> try cases hTy
-        case Apply f m =>
-          cases f <;> try cases hTy
-          case UOp op' =>
-            cases op' <;> try cases hTy
-            all_goals
-              exact eo_mk_apply_ne_dtcapp_full _ _ A B hTy
+    first
+      | cases hTy
+      | exact false_of_requires_eq_dtcapp_of_payload_ne_full
+          (eo_mk_apply_ne_dtcapp_full _ _ A B)
+          hTy
 
 private theorem false_of_typeof_rotate_left_eq_dtcapp_full
     {y x A B : Term}
     (hTy :
-      __eo_typeof_rotate_left (__eo_typeof y) (__eo_typeof x) =
+      __eo_typeof_rotate_left (__eo_typeof y) y (__eo_typeof x) =
         Term.DtcAppType A B) :
     False := by
-  cases hy : __eo_typeof y <;> simp [__eo_typeof_rotate_left, hy] at hTy
-  case UOp op =>
-    cases op <;> try cases hTy
-    case Int =>
-      cases hx : __eo_typeof x <;> simp [hx] at hTy
-      case Apply f m =>
-        cases f <;> try cases hTy
-        case UOp op' =>
-          cases op' <;> cases hTy
+  unfold __eo_typeof_rotate_left at hTy
+  repeat (first | split at hTy)
+  all_goals
+    first
+      | cases hTy
+      | exact false_of_requires_eq_dtcapp_of_payload_ne_full
+          (eo_apply_ne_dtcapp_full _ _ A B)
+          hTy
 
 private theorem false_of_typeof_at_bit2_eq_dtcapp_full
     {y x A B : Term}
@@ -1167,16 +1155,15 @@ private theorem false_of_typeof_at_bit2_eq_dtcapp_full
 private theorem false_of_typeof_re_exp_eq_dtcapp_full
     {y x A B : Term}
     (hTy :
-      __eo_typeof_re_exp (__eo_typeof y) (__eo_typeof x) =
+      __eo_typeof_re_exp (__eo_typeof y) y (__eo_typeof x) =
         Term.DtcAppType A B) :
     False := by
-  cases hy : __eo_typeof y <;> simp [__eo_typeof_re_exp, hy] at hTy
-  case UOp op =>
-    cases op <;> try cases hTy
-    case Int =>
-      cases hx : __eo_typeof x <;> simp [hx] at hTy
-      case UOp op' =>
-        cases op' <;> cases hTy
+  unfold __eo_typeof_re_exp at hTy
+  repeat (first | split at hTy)
+  all_goals
+    first
+      | cases hTy
+      | exact false_of_requires_eq_dtcapp_of_payload_ne_full (by intro hh; cases hh) hTy
 
 private theorem false_of_typeof_strings_stoi_result_eq_dtcapp_full
     {y x A B : Term}
@@ -1240,17 +1227,14 @@ private theorem false_of_typeof_int_to_bv_eq_dtcapp_full
       __eo_typeof_int_to_bv (__eo_typeof y) y (__eo_typeof x) =
         Term.DtcAppType A B) :
     False := by
-  generalize hT : __eo_typeof y = T at hTy
-  generalize hX : __eo_typeof x = X at hTy
-  cases y <;> simp [__eo_typeof_int_to_bv] at hTy
+  unfold __eo_typeof_int_to_bv at hTy
+  repeat (first | split at hTy)
   all_goals
-    cases T <;> try cases hTy
-    case UOp op =>
-      cases op <;> try cases hTy
-      case Int =>
-        cases X <;> try cases hTy
-        case UOp op' =>
-          cases op' <;> cases hTy
+    first
+      | cases hTy
+      | exact false_of_requires_eq_dtcapp_of_payload_ne_full
+          (eo_apply_ne_dtcapp_full _ _ A B)
+          hTy
 
 private theorem eo_type_valid_of_set_choose_eq_dtcapp_full
     {x A B : Term}
