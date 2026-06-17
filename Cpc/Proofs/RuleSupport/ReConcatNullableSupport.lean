@@ -280,6 +280,109 @@ abbrev tSigma : Term :=
 abbrev tReConcat (p q : Term) : Term :=
   Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) p) q
 
+/-! ## Typing facts threaded through `re_concat` list operations -/
+
+/-- A non-stuck `__eo_typeof_re_concat` forces both type arguments to be `RegLan`. -/
+theorem typeof_re_concat_args_reglan (T U : Term)
+    (h : __eo_typeof_re_concat T U ≠ Term.Stuck) :
+    T = Term.UOp UserOp.RegLan ∧ U = Term.UOp UserOp.RegLan := by
+  cases T with
+  | UOp opT =>
+      cases opT <;> cases U with
+      | UOp opU => cases opU <;> simp [__eo_typeof_re_concat] at h ⊢
+      | _ => simp [__eo_typeof_re_concat] at h
+  | _ => cases U <;> simp [__eo_typeof_re_concat] at h
+
+/-- Term-level inversion: a non-stuck `re_concat` application has `RegLan` arguments. -/
+theorem eo_typeof_re_concat_term_args (p q : Term)
+    (h : __eo_typeof (tReConcat p q) ≠ Term.Stuck) :
+    __eo_typeof p = Term.UOp UserOp.RegLan ∧ __eo_typeof q = Term.UOp UserOp.RegLan := by
+  have h' : __eo_typeof_re_concat (__eo_typeof p) (__eo_typeof q) ≠ Term.Stuck := h
+  exact typeof_re_concat_args_reglan _ _ h'
+
+/-- If the type of a `re_concat` list-concatenation is non-stuck, so is the type of the
+right-hand tail. -/
+theorem list_concat_rec_tail_typeof_ne_stuck :
+    ∀ (a z : Term),
+      __eo_is_list (Term.UOp UserOp.re_concat) a = Term.Boolean true ->
+      __eo_typeof (__eo_list_concat_rec a z) ≠ Term.Stuck ->
+      __eo_typeof z ≠ Term.Stuck := by
+  intro a z
+  induction a, z using __eo_list_concat_rec.induct with
+  | case1 z => intro hList _; simp [__eo_is_list] at hList
+  | case2 t ht => intro _ hNe; exact absurd (by cases t <;> rfl) hNe
+  | case3 f x y z hz ih =>
+      intro hList hNe
+      have hf := eo_is_list_cons_head_eq_of_true (Term.UOp UserOp.re_concat) f x y hList
+      subst f
+      have hTailList :=
+        eo_is_list_tail_true_of_cons_self (Term.UOp UserOp.re_concat) x y hList
+      rw [list_concat_rec_cons (Term.UOp UserOp.re_concat) x y z hz] at hNe
+      by_cases hTailNe : __eo_list_concat_rec y z = Term.Stuck
+      · rw [hTailNe, mk_apply_right_stuck] at hNe
+        exact absurd rfl hNe
+      · rw [mk_apply_ne_stuck_eq (by simp) hTailNe] at hNe
+        have hInv := eo_typeof_re_concat_term_args x (__eo_list_concat_rec y z) hNe
+        have hTailTyNe : __eo_typeof (__eo_list_concat_rec y z) ≠ Term.Stuck := by
+          rw [hInv.2]; decide
+        exact ih hTailList hTailTyNe
+  | case4 nil z hns hzs hncons =>
+      intro hList hNe
+      have hEq : __eo_list_concat_rec nil z = z := by
+        unfold __eo_list_concat_rec; split <;> simp_all
+      rw [hEq] at hNe
+      exact hNe
+
+/-- SMT type of a `re_concat` list-concatenation: if the list translates (non-`None`) and the
+right tail is `RegLan`-typed, the whole concatenation is `RegLan`-typed. -/
+theorem reConcat_list_concat_rec_smt_typeof_reglan :
+    ∀ (a z : Term),
+      __eo_is_list (Term.UOp UserOp.re_concat) a = Term.Boolean true ->
+      __smtx_typeof (__eo_to_smt a) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt z) = SmtType.RegLan ->
+      __smtx_typeof (__eo_to_smt (__eo_list_concat_rec a z)) = SmtType.RegLan := by
+  intro a z
+  induction a, z using __eo_list_concat_rec.induct with
+  | case1 z => intro hList _ _; simp [__eo_is_list] at hList
+  | case2 t ht =>
+      intro _ _ hzReglan
+      cases t <;> exact hzReglan
+  | case3 f x y z hz ih =>
+      intro hList hNN hzReglan
+      have hf := eo_is_list_cons_head_eq_of_true (Term.UOp UserOp.re_concat) f x y hList
+      subst f
+      have hTailList :=
+        eo_is_list_tail_true_of_cons_self (Term.UOp UserOp.re_concat) x y hList
+      have hConsReg :
+          __smtx_typeof (__eo_to_smt (ReUnfoldNegSupport.mkReConcat x y)) = SmtType.RegLan := by
+        have hNN' :
+            __smtx_typeof (SmtTerm.re_concat (__eo_to_smt x) (__eo_to_smt y)) ≠ SmtType.None :=
+          hNN
+        change __smtx_typeof (SmtTerm.re_concat (__eo_to_smt x) (__eo_to_smt y)) = SmtType.RegLan
+        rw [typeof_re_concat_eq] at hNN' ⊢
+        cases hb1 : native_Teq (__smtx_typeof (__eo_to_smt x)) SmtType.RegLan <;>
+          cases hb2 : native_Teq (__smtx_typeof (__eo_to_smt y)) SmtType.RegLan <;>
+          simp only [hb1, hb2, native_ite] at hNN' ⊢ <;>
+          first | rfl | exact absurd rfl hNN'
+      obtain ⟨hxReg, hyReg⟩ :=
+        ReUnfoldNegSupport.smtx_typeof_re_concat_args_of_reglan x y hConsReg
+      have hLYne : __eo_list_concat_rec y z ≠ Term.Stuck :=
+        list_concat_rec_ne_stuck y z hTailList hz
+      have hYNN : __smtx_typeof (__eo_to_smt y) ≠ SmtType.None := by
+        rw [hyReg]; decide
+      have ihRes : __smtx_typeof (__eo_to_smt (__eo_list_concat_rec y z)) = SmtType.RegLan :=
+        ih hTailList hYNN hzReglan
+      rw [list_concat_rec_cons (Term.UOp UserOp.re_concat) x y z hz,
+          mk_apply_ne_stuck_eq (by simp) hLYne]
+      exact ReUnfoldNegSupport.smtx_typeof_re_concat_of_reglan x (__eo_list_concat_rec y z)
+        hxReg ihRes
+  | case4 nil z hns hzs hncons =>
+      intro hList hNN hzReglan
+      have hEq : __eo_list_concat_rec nil z = z := by
+        unfold __eo_list_concat_rec; split <;> simp_all
+      rw [hEq]
+      exact hzReglan
+
 /-- The semantic equality underlying `re_concat_star_nullable1`. -/
 theorem nullable1_eval_rel (M : SmtModel)
     (xs1 r1 ys1 : Term) (r1v ys1v : native_RegLan)
