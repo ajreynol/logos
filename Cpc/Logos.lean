@@ -3498,7 +3498,7 @@ def __seq_eval : Term -> Term
     let _v0 := (__str_nary_intro t)
     let _v1 := (__eo_add n (Term.Numeral 1))
     (__str_nary_elim (__eo_ite (__eo_is_neg _v1) (Term.UOp1 UserOp1.seq_empty (__eo_typeof _v0)) (__seq_subsequence_rec n _v1 _v0)))
-  | (Term.Apply (Term.UOp UserOp.str_rev) t) => (__eo_requires (__eo_is_z (__str_value_len t)) (Term.Boolean true) (__str_nary_elim (__eo_list_rev (Term.UOp UserOp.str_concat) (__str_nary_intro t))))
+  | (Term.Apply (Term.UOp UserOp.str_rev) t) => (__eo_requires (__eo_ite (__eo_is_str t) (Term.Boolean false) (__eo_is_z (__str_value_len t))) (Term.Boolean true) (__str_nary_elim (__eo_list_rev (Term.UOp UserOp.str_concat) (__str_nary_intro t))))
   | t => t
 
 
