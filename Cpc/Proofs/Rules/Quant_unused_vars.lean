@@ -10885,6 +10885,68 @@ private theorem smtTermClosedIn_eo_to_smt_of_nat_valid
   case Numeral m =>
     exact smtTermClosedIn_eo_to_smt_numeral vars m
 
+private theorem eo_not_eq_true_eq_false {x : Term} :
+    __eo_not x = Term.Boolean true ->
+    x = Term.Boolean false := by
+  intro h
+  cases x <;> simp [__eo_not] at h
+  case Boolean b =>
+    cases b <;> simp [SmtEval.native_not] at h ⊢
+
+private theorem eo_var_list_of_env_perm
+    {env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnvPerm env vars) :
+    eo_var_list env := by
+  rcases hEnv with ⟨exactVars, hExact, _hEquiv⟩
+  exact eo_var_list_of_env hExact
+
+private theorem eo_smt_var_env_perm_mem_of_var_list_mem
+    {env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnvPerm env vars)
+    {s : native_String} {T : Term}
+    (hMem : eo_var_list_mem (Term.Var (Term.String s) T) env) :
+    (s, __eo_to_smt_type T) ∈ vars := by
+  rcases hEnv with ⟨exactVars, hExact, hEquiv⟩
+  exact (hEquiv (s, __eo_to_smt_type T)).1
+    (eo_smt_var_env_mem_of_var_list_mem hExact hMem)
+
+private theorem smtTermClosedIn_eo_to_smt_var_string_of_is_closed_rec_perm
+    {env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnvPerm env vars)
+    {s : native_String} {T : Term}
+    (hClosed :
+      __is_closed_rec (Term.Var (Term.String s) T) env =
+        Term.Boolean true) :
+    SmtTermClosedIn vars
+      (__eo_to_smt (Term.Var (Term.String s) T)) := by
+  have hFind :
+      __eo_is_neg
+          (__eo_list_find Term.__eo_List_cons env
+            (Term.Var (Term.String s) T)) =
+        Term.Boolean false :=
+    eo_not_eq_true_eq_false (by
+      simpa [__is_closed_rec] using hClosed)
+  have hMem :
+      eo_var_list_mem (Term.Var (Term.String s) T) env :=
+    eo_var_list_mem_of_eo_is_neg_list_find_false
+      (eo_var_list_of_env_perm hEnv)
+      (term_var_string_ne_stuck s T) hFind
+  exact smtTermClosedIn_eo_to_smt_var_string
+    (eo_smt_var_env_perm_mem_of_var_list_mem hEnv hMem)
+
+private theorem smtTermClosedIn_eo_to_smt_var_of_is_closed_rec_perm
+    {env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnvPerm env vars)
+    {name T : Term}
+    (hClosed :
+      __is_closed_rec (Term.Var name T) env =
+        Term.Boolean true) :
+    SmtTermClosedIn vars (__eo_to_smt (Term.Var name T)) := by
+  cases name <;> try trivial
+  case String s =>
+    exact smtTermClosedIn_eo_to_smt_var_string_of_is_closed_rec_perm
+      hEnv hClosed
+
 private theorem smtTermClosedIn_eo_to_smt_uop3_re_unfold_pos_component
     {vars : List SmtVarKey} {a b c : Term}
     (ha : SmtTermClosedIn vars (__eo_to_smt a))
