@@ -188,7 +188,7 @@ theorem loop_star_types (a1 a2 a3 : Term)
         (rw [h1] at hLoopNN
          unfold term_has_non_none_type at hLoopNN
          rw [typeof_re_loop_eq] at hLoopNN
-         simp [__smtx_typeof_re_loop, h1] at hLoopNN)
+         simp [__smtx_typeof_re_loop] at hLoopNN)
 
 /-- The premise `geq x y = true` forces the numeral values to satisfy `b ≤ a`. -/
 theorem zleq_of_geq_premise (M : SmtModel) (x y : Term) (a b : Int)
@@ -280,6 +280,49 @@ theorem re_loop_star_canonical_true
   -- Conclude the equality holds in the model.
   exact RuleProofs.eo_interprets_eq_of_rel M _ _ hBool hRel
 
+/-- `__eo_gt t (-1) = true` forces `t` to be a non-negative integer literal. -/
+theorem gt_neg_one_nonneg (t : Term)
+    (h : __eo_gt t (Term.Numeral (-1 : native_Int)) = Term.Boolean true) :
+    ∃ n : Int, t = Term.Numeral n ∧ native_zleq 0 n = true := by
+  cases t
+  case Numeral n =>
+    refine ⟨n, rfl, ?_⟩
+    have he : __eo_gt (Term.Numeral n) (Term.Numeral (-1 : native_Int))
+        = Term.Boolean (native_zlt (-1 : native_Int) n) := rfl
+    rw [he] at h
+    have hb : native_zlt (-1 : native_Int) n = true := (Term.Boolean.injEq _ _).mp h
+    have h1 : (-1 : Int) < n := by
+      simp only [native_zlt] at hb; exact of_decide_eq_true hb
+    have h0 : (0 : Int) ≤ n := by omega
+    show native_zleq 0 n = true
+    simpa [native_zleq] using h0
+  all_goals simp [__eo_gt] at h
+
+/-- `__eo_typeof_re_mult X = RegLan` forces `X = RegLan`. -/
+theorem typeof_re_mult_arg_reglan (X : Term)
+    (h : __eo_typeof_re_mult X = Term.UOp UserOp.RegLan) :
+    X = Term.UOp UserOp.RegLan := by
+  cases X with
+  | UOp op => cases op <;> first | rfl | simp [__eo_typeof_re_mult] at h
+  | _ => simp [__eo_typeof_re_mult] at h
+
+/-- Inversion of the `re.loop` type rule: a non-stuck result forces the two
+bounds to satisfy `> -1` and the body type to be `RegLan`. -/
+theorem typeof_re_loop_inv (T1 l T2 h T3 : Term)
+    (hNe : __eo_typeof_re_loop T1 l T2 h T3 ≠ Term.Stuck) :
+    __eo_gt l (Term.Numeral (-1 : native_Int)) = Term.Boolean true ∧
+    __eo_gt h (Term.Numeral (-1 : native_Int)) = Term.Boolean true ∧
+    T3 = Term.UOp UserOp.RegLan := by
+  unfold __eo_typeof_re_loop at hNe
+  split at hNe
+  · exact absurd rfl hNe
+  · exact absurd rfl hNe
+  · refine ⟨eo_requires_arg_eq_of_ne_stuck hNe, ?_, rfl⟩
+    have hReqInner := eo_requires_eq_result_of_ne_stuck _ _ _ hNe
+    rw [hReqInner] at hNe
+    exact eo_requires_arg_eq_of_ne_stuck hNe
+  · exact absurd rfl hNe
+
 /-- Well-typedness of the conclusion, given non-negative literal bounds and a
 `RegLan`-typed regex argument.  This is the rule-independent SMT computation: the
 EO→SMT bridge sends the `RegLan` argument across, and `re.loop`/`re.*` over
@@ -321,19 +364,15 @@ theorem loop_has_bool_type_of_bounds (a1 a2 a3 : Term) (lo hi : Int)
 /--
 Soundness wrapper for `re_loop_star`.
 
-The mathematical content (`re_loop_star_canonical_true`, `prog_form`) and the
-SMT well-typedness computation (`loop_has_bool_type_of_bounds`) are fully proved.
+Fully proved.  The conclusion `re.loop[m,n](r*) = r*` is well typed (`hbt`,
+via `loop_has_bool_type_of_bounds`) and semantically valid
+(`re_loop_star_canonical_true`).
 
-The single remaining `sorry` is `hBounds`: that `__eo_typeof (mkConcl …) = Bool`
-forces both `re.loop` bounds to be *non-negative* integer literals (and the body
-`RegLan`).  Commit #275 made `__eo_typeof_re_loop` require integer *literals*
-(`__eo_is_z`), which closed the old non-numeral-bound gap (`1 + 1`).  A residual
-*sign* gap remains: SMT `__smtx_typeof_re_loop` requires `native_zleq 0` on each
-bound, but `__eo_is_z` accepts negatives (verified: for `re.loop[-1,5]`,
-`__eo_typeof` is `Bool` yet `__smtx_typeof (__eo_to_smt ·)` is `None`).  Once the
-regenerated `__eo_typeof_re_loop` additionally requires non-negative bounds,
-`hBounds` follows by inversion on `__eo_typeof_re_loop` and the rest of the proof
-goes through unchanged.
+Well-typedness relies on the `re.loop` type rule requiring both bounds to be
+*non-negative* integer literals: SMT `__smtx_typeof_re_loop` needs `native_zleq 0`
+on each bound, so `__eo_typeof_re_loop` enforces `__eo_gt · (-1)` on both `l` and
+`h`.  From `__eo_typeof (mkConcl …) = Bool`, `hBounds` inverts that rule to recover
+`a1 = Numeral lo`, `a2 = Numeral hi` with `lo, hi ≥ 0` and a `RegLan` body.
 -/
 theorem cmd_step_re_loop_star_properties
     (M : SmtModel) (hM : model_total_typed M)
@@ -391,9 +430,30 @@ by
                         a1 = Term.Numeral lo ∧ a2 = Term.Numeral hi ∧
                         native_zleq 0 lo = true ∧ native_zleq 0 hi = true ∧
                         __eo_typeof a3 = Term.UOp UserOp.RegLan := by
-                    -- Follows from `hConclTy` by inversion on `__eo_typeof_re_loop`
-                    -- once the type rule requires non-negative literal bounds.
-                    sorry
+                    -- Invert `__eo_typeof_re_loop` from `__eo_typeof (mkConcl …) = Bool`.
+                    have hLhsNe :
+                        __eo_typeof_re_loop (__eo_typeof a1) a1 (__eo_typeof a2) a2
+                            (__eo_typeof (Term.Apply (Term.UOp UserOp.re_mult) a3)) ≠
+                          Term.Stuck := by
+                      intro hS
+                      have h := hConclTy
+                      change __eo_typeof_eq
+                          (__eo_typeof_re_loop (__eo_typeof a1) a1 (__eo_typeof a2) a2
+                            (__eo_typeof (Term.Apply (Term.UOp UserOp.re_mult) a3)))
+                          (__eo_typeof (Term.Apply (Term.UOp UserOp.re_mult) a3)) =
+                        Term.Bool at h
+                      rw [hS] at h
+                      simp [__eo_typeof_eq] at h
+                    obtain ⟨hg1, hg2, hT3eq⟩ :=
+                      typeof_re_loop_inv (__eo_typeof a1) a1 (__eo_typeof a2) a2
+                        (__eo_typeof (Term.Apply (Term.UOp UserOp.re_mult) a3)) hLhsNe
+                    obtain ⟨lo, h1, hlo⟩ := gt_neg_one_nonneg a1 hg1
+                    obtain ⟨hi, h2, hhi⟩ := gt_neg_one_nonneg a2 hg2
+                    refine ⟨lo, hi, h1, h2, hlo, hhi, ?_⟩
+                    -- `__eo_typeof (re_mult a3) = RegLan` ⟹ `__eo_typeof a3 = RegLan`.
+                    have hMultArg :
+                        __eo_typeof_re_mult (__eo_typeof a3) = Term.UOp UserOp.RegLan := hT3eq
+                    exact typeof_re_mult_arg_reglan (__eo_typeof a3) hMultArg
                   obtain ⟨lo, hi, h1, h2, hlo, hhi, hA3Ty⟩ := hBounds
                   exact loop_has_bool_type_of_bounds a1 a2 a3 lo hi h1 h2 hlo hhi hA3Ty hA3Trans
                 show StepRuleProperties M
