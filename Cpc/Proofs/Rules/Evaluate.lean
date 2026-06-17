@@ -621,11 +621,26 @@ private theorem eo_eq_typeof_bool_of_ne_stuck_early
     __eo_typeof (__eo_eq x y) = Term.Bool := by
   cases x <;> cases y <;> simp [__eo_eq] at hNe ⊢
 
+private theorem eo_apply_eq_typeof_bool_of_same_nonstuck_type_early
+    (x y : Term)
+    (hTy : __eo_typeof x = __eo_typeof y)
+    (hTyNe : __eo_typeof x ≠ Term.Stuck) :
+    __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) y) =
+      Term.Bool := by
+  change __eo_typeof_eq (__eo_typeof x) (__eo_typeof y) = Term.Bool
+  rw [← hTy]
+  cases hX : __eo_typeof x <;>
+    first
+    | exact False.elim (hTyNe hX)
+    | simp [__eo_typeof_eq, __eo_requires, __eo_eq, native_ite,
+        native_teq, native_not]
+
 private theorem run_evaluate_apply_eq_typeof_bool_of_run_typeof_eq
     (y x : Term)
     (hTy :
       __eo_typeof (__run_evaluate y) =
         __eo_typeof (__run_evaluate x))
+    (hTyNe : __eo_typeof (__run_evaluate y) ≠ Term.Stuck)
     (hNe :
       __run_evaluate
           (Term.Apply (Term.Apply (Term.UOp UserOp.eq) y) x) ≠
@@ -634,12 +649,26 @@ private theorem run_evaluate_apply_eq_typeof_bool_of_run_typeof_eq
         (__run_evaluate
           (Term.Apply (Term.Apply (Term.UOp UserOp.eq) y) x)) =
       Term.Bool := by
-  have hEqNe :
-      __eo_eq (__run_evaluate y) (__run_evaluate x) ≠ Term.Stuck := by
-    simpa [__run_evaluate] using hNe
-  simpa [__run_evaluate] using
-    eo_eq_typeof_bool_of_ne_stuck_early
-      (__run_evaluate y) (__run_evaluate x) hEqNe
+  have hFallback :
+      __eo_typeof
+          (Term.Apply (Term.Apply (Term.UOp UserOp.eq)
+            (__run_evaluate y)) (__run_evaluate x)) =
+        Term.Bool :=
+    eo_apply_eq_typeof_bool_of_same_nonstuck_type_early
+      (__run_evaluate y) (__run_evaluate x) hTy hTyNe
+  cases hy : __run_evaluate y <;> cases hx : __run_evaluate x <;>
+    simp [__run_evaluate, hy, hx, __eo_eq, __eo_ite, __eo_and,
+      __eo_is_q, __eo_is_q_internal, __eo_is_z, __eo_is_z_internal,
+      __eo_is_bin, __eo_is_bin_internal, __eo_is_str,
+      __eo_is_str_internal, __eo_is_bool, __eo_is_bool_internal,
+      __eo_mk_apply, native_ite, native_and, native_not, native_teq]
+      at hTy hTyNe hNe hFallback ⊢
+  all_goals
+    first
+    | exact hFallback
+    | rfl
+    | cases hTy
+    | contradiction
 
 private theorem smt_value_rel_model_eval_eo_to_smt_eq_refl
     (M : SmtModel) (y x : Term) :
@@ -3645,13 +3674,11 @@ private theorem eo_or_typeof_bool_of_args_bool
     (hNe : __eo_or x y ≠ Term.Stuck) :
     __eo_typeof (__eo_or x y) = Term.Bool := by
   cases x <;> cases y <;> simp [__eo_or] at hX hY hNe ⊢
-  case Boolean.Boolean bx byv =>
-    rfl
   all_goals
     first
+    | contradiction
     | cases hX
     | cases hY
-    | contradiction
 
 private theorem eo_and_typeof_bool_of_args_bool
     (x y : Term)
@@ -3660,13 +3687,11 @@ private theorem eo_and_typeof_bool_of_args_bool
     (hNe : __eo_and x y ≠ Term.Stuck) :
     __eo_typeof (__eo_and x y) = Term.Bool := by
   cases x <;> cases y <;> simp [__eo_and] at hX hY hNe ⊢
-  case Boolean.Boolean bx byv =>
-    rfl
   all_goals
     first
+    | contradiction
     | cases hX
     | cases hY
-    | contradiction
 
 private theorem eo_xor_typeof_bool_of_args_bool
     (x y : Term)
@@ -3675,13 +3700,11 @@ private theorem eo_xor_typeof_bool_of_args_bool
     (hNe : __eo_xor x y ≠ Term.Stuck) :
     __eo_typeof (__eo_xor x y) = Term.Bool := by
   cases x <;> cases y <;> simp [__eo_xor] at hX hY hNe ⊢
-  case Boolean.Boolean bx byv =>
-    rfl
   all_goals
     first
+    | contradiction
     | cases hX
     | cases hY
-    | contradiction
 
 private theorem eo_not_typeof_bool_of_arg_bool
     (x : Term)
@@ -3689,12 +3712,10 @@ private theorem eo_not_typeof_bool_of_arg_bool
     (hNe : __eo_not x ≠ Term.Stuck) :
     __eo_typeof (__eo_not x) = Term.Bool := by
   cases x <;> simp [__eo_not] at hX hNe ⊢
-  case Boolean b =>
-    rfl
   all_goals
     first
-    | cases hX
     | contradiction
+    | cases hX
 
 private theorem eo_not_arg_binary_of_typeof_bitvec
     (t : Term) (w : native_Int) :
@@ -4173,6 +4194,7 @@ private theorem eo_add_typeof_int_of_args_int
     rfl
   all_goals
     first
+    | contradiction
     | cases hX
     | cases hY
     | contradiction
@@ -4270,6 +4292,7 @@ private theorem eo_add_typeof_real_of_args_real
     rfl
   all_goals
     first
+    | contradiction
     | cases hX
     | cases hY
     | contradiction
@@ -4594,12 +4617,10 @@ private theorem eo_is_neg_typeof_bool_of_arg_int
     (hNe : __eo_is_neg x ≠ Term.Stuck) :
     __eo_typeof (__eo_is_neg x) = Term.Bool := by
   cases x <;> simp [__eo_is_neg] at hX hNe ⊢
-  case Numeral n =>
-    rfl
   all_goals
     first
-    | cases hX
     | contradiction
+    | cases hX
 
 private theorem eo_is_neg_typeof_bool_of_arg_real
     (x : Term)
@@ -4607,12 +4628,10 @@ private theorem eo_is_neg_typeof_bool_of_arg_real
     (hNe : __eo_is_neg x ≠ Term.Stuck) :
     __eo_typeof (__eo_is_neg x) = Term.Bool := by
   cases x <;> simp [__eo_is_neg] at hX hNe ⊢
-  case Rational q =>
-    rfl
   all_goals
     first
-    | cases hX
     | contradiction
+    | cases hX
 
 private theorem eo_is_neg_arg_arith_of_nonstuck
     (x : Term) :
@@ -11879,12 +11898,11 @@ private theorem eo_str_rev_body_typeof_seq
     simp [__eo_is_str, __eo_is_str_internal, __eo_ite,
       __eo_mk_apply, native_ite, native_teq, native_and, native_not]
       at hTy hNe ⊢
-    first
-    | change __eo_typeof_str_rev (__eo_typeof _) =
-        Term.Apply (Term.UOp UserOp.Seq) U
-      rw [hTy]
-      rfl
-    | cases hTy
+  all_goals
+    change __eo_typeof_str_rev (__eo_typeof _) =
+      Term.Apply (Term.UOp UserOp.Seq) U
+    rw [hTy]
+    rfl
 
 private theorem eo_eval_str_from_int_rhs_typeof_seq_char
     (x : Term)
@@ -12072,8 +12090,8 @@ private theorem eo_to_q_typeof_real_of_arg_int
   all_goals
     first
     | rfl
-    | cases hX
     | contradiction
+    | cases hX
 
 private theorem eo_to_q_typeof_real_of_arg_real
     (x : Term)
@@ -12084,8 +12102,8 @@ private theorem eo_to_q_typeof_real_of_arg_real
   all_goals
     first
     | rfl
-    | cases hX
     | contradiction
+    | cases hX
 
 private theorem eo_eq_typeof_bool_of_args_real
     (x y : Term)
@@ -12095,9 +12113,10 @@ private theorem eo_eq_typeof_bool_of_args_real
   cases x <;> cases y <;> simp [__eo_eq] at hX hY ⊢
   all_goals
     first
+    | contradiction
     | rfl
-    | cases hX
     | cases hY
+    | cases hX
 
 private theorem eo_ite_typeof_of_branches_same
     (c t e T : Term)
@@ -12371,9 +12390,9 @@ private theorem eo_div_total_body_typeof_int_of_right_int
         __eo_typeof (__eo_zdiv x y) = Term.UOp UserOp.Int :=
       eo_zdiv_typeof_int_of_right_int_and_ne_stuck x y hY hSel
     rw [hCond]
-    simpa [__eo_ite] using hDivTy
+    simpa [__eo_ite, native_ite, native_teq] using hDivTy
   · rw [hCond]
-    simp [__eo_ite]
+    rfl
 
 private theorem eo_mod_total_body_typeof_int_of_args_int
     (x y : Term)
@@ -12395,9 +12414,9 @@ private theorem eo_mod_total_body_typeof_int_of_args_int
         __eo_typeof (__eo_zmod x y) = Term.UOp UserOp.Int :=
       eo_zmod_typeof_int_of_right_int_and_ne_stuck x y hY hSel
     rw [hCond]
-    simpa [__eo_ite] using hModTy
+    simpa [__eo_ite, native_ite, native_teq] using hModTy
   · rw [hCond]
-    simpa [__eo_ite] using hX
+    simpa [__eo_ite, native_ite, native_teq] using hX
 
 private theorem eo_qdiv_total_body_typeof_real_of_ne_stuck
     (x y : Term)
@@ -12422,9 +12441,9 @@ private theorem eo_qdiv_total_body_typeof_real_of_ne_stuck
         __eo_typeof (__eo_qdiv x y) = Term.UOp UserOp.Real :=
       eo_qdiv_typeof_real_of_ne_stuck x y hSel
     rw [hCond]
-    simpa [__eo_ite] using hQDivTy
+    simpa [__eo_ite, native_ite, native_teq] using hQDivTy
   · rw [hCond]
-    simp [__eo_ite]
+    rfl
 
 private theorem eo_mod_total_left_ne_stuck {x y : Term} :
     __eo_ite (__eo_eq y (Term.Numeral 0)) x (__eo_zmod x y) ≠
@@ -12441,18 +12460,18 @@ private theorem eo_and_typeof_bitvec_of_args_bitvec
         Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w))
     (hY :
       __eo_typeof y =
-        Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w)) :
+        Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w))
+    (hNe : __eo_and x y ≠ Term.Stuck) :
     __eo_typeof (__eo_and x y) =
       Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w) := by
-  cases x <;> cases y <;> simp [__eo_and] at hX hY ⊢
+  cases x <;> cases y <;> simp [__eo_and] at hX hY hNe ⊢
   case Binary.Binary wx nx wy ny =>
     cases hX
     cases hY
-    simp [__eo_requires, __eo_eq, native_ite, native_teq, native_not]
+    simp [__eo_requires, native_ite, native_teq, native_not] at hNe ⊢
+    rfl
   all_goals
-    first
-    | cases hX
-    | cases hY
+    contradiction
 
 private theorem eo_or_typeof_bitvec_of_args_bitvec
     (x y : Term) (w : native_Int)
@@ -12461,18 +12480,18 @@ private theorem eo_or_typeof_bitvec_of_args_bitvec
         Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w))
     (hY :
       __eo_typeof y =
-        Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w)) :
+        Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w))
+    (hNe : __eo_or x y ≠ Term.Stuck) :
     __eo_typeof (__eo_or x y) =
       Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w) := by
-  cases x <;> cases y <;> simp [__eo_or] at hX hY ⊢
+  cases x <;> cases y <;> simp [__eo_or] at hX hY hNe ⊢
   case Binary.Binary wx nx wy ny =>
     cases hX
     cases hY
-    simp [__eo_requires, __eo_eq, native_ite, native_teq, native_not]
+    simp [__eo_requires, native_ite, native_teq, native_not] at hNe ⊢
+    rfl
   all_goals
-    first
-    | cases hX
-    | cases hY
+    contradiction
 
 private theorem eo_xor_typeof_bitvec_of_args_bitvec
     (x y : Term) (w : native_Int)
@@ -12481,18 +12500,18 @@ private theorem eo_xor_typeof_bitvec_of_args_bitvec
         Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w))
     (hY :
       __eo_typeof y =
-        Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w)) :
+        Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w))
+    (hNe : __eo_xor x y ≠ Term.Stuck) :
     __eo_typeof (__eo_xor x y) =
       Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w) := by
-  cases x <;> cases y <;> simp [__eo_xor] at hX hY ⊢
+  cases x <;> cases y <;> simp [__eo_xor] at hX hY hNe ⊢
   case Binary.Binary wx nx wy ny =>
     cases hX
     cases hY
-    simp [__eo_requires, __eo_eq, native_ite, native_teq, native_not]
+    simp [__eo_requires, native_ite, native_teq, native_not] at hNe ⊢
+    rfl
   all_goals
-    first
-    | cases hX
-    | cases hY
+    contradiction
 
 private theorem eo_add_typeof_bitvec_of_args_bitvec
     (x y : Term) (w : native_Int)
@@ -12501,18 +12520,18 @@ private theorem eo_add_typeof_bitvec_of_args_bitvec
         Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w))
     (hY :
       __eo_typeof y =
-        Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w)) :
+        Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w))
+    (hNe : __eo_add x y ≠ Term.Stuck) :
     __eo_typeof (__eo_add x y) =
       Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w) := by
-  cases x <;> cases y <;> simp [__eo_add] at hX hY ⊢
+  cases x <;> cases y <;> simp [__eo_add] at hX hY hNe ⊢
   case Binary.Binary wx nx wy ny =>
     cases hX
     cases hY
-    simp [__eo_requires, __eo_eq, native_ite, native_teq, native_not]
+    simp [__eo_requires, native_ite, native_teq, native_not] at hNe ⊢
+    rfl
   all_goals
-    first
-    | cases hX
-    | cases hY
+    contradiction
 
 private theorem eo_mul_typeof_bitvec_of_args_bitvec
     (x y : Term) (w : native_Int)
@@ -12521,32 +12540,33 @@ private theorem eo_mul_typeof_bitvec_of_args_bitvec
         Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w))
     (hY :
       __eo_typeof y =
-        Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w)) :
+        Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w))
+    (hNe : __eo_mul x y ≠ Term.Stuck) :
     __eo_typeof (__eo_mul x y) =
       Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w) := by
-  cases x <;> cases y <;> simp [__eo_mul] at hX hY ⊢
+  cases x <;> cases y <;> simp [__eo_mul] at hX hY hNe ⊢
   case Binary.Binary wx nx wy ny =>
     cases hX
     cases hY
-    simp [__eo_requires, __eo_eq, native_ite, native_teq, native_not]
+    simp [__eo_requires, native_ite, native_teq, native_not] at hNe ⊢
+    rfl
   all_goals
-    first
-    | cases hX
-    | cases hY
+    contradiction
 
 private theorem eo_neg_typeof_bitvec_of_arg_bitvec
     (x : Term) (w : native_Int)
     (hX :
       __eo_typeof x =
-        Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w)) :
+        Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w))
+    (hNe : __eo_neg x ≠ Term.Stuck) :
     __eo_typeof (__eo_neg x) =
       Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w) := by
-  cases x <;> simp [__eo_neg] at hX ⊢
+  cases x <;> simp [__eo_neg] at hX hNe ⊢
   case Binary wx nx =>
     cases hX
     rfl
   all_goals
-    cases hX
+    contradiction
 
 private theorem eo_zdiv_typeof_bitvec_of_args_bitvec_and_ne_stuck
     (x y : Term) (w : native_Int)
@@ -12566,6 +12586,8 @@ private theorem eo_zdiv_typeof_bitvec_of_args_bitvec_and_ne_stuck
     cases hZero : native_zeq 0 ny <;>
       simp [__eo_requires, __eo_eq, hZero, native_ite, native_teq,
         native_not] at hNe ⊢
+    all_goals
+      rfl
   all_goals
     first
     | cases hX
@@ -12589,6 +12611,8 @@ private theorem eo_zmod_typeof_bitvec_of_args_bitvec_and_ne_stuck
     cases hZero : native_zeq 0 ny <;>
       simp [__eo_requires, __eo_eq, hZero, native_ite, native_teq,
         native_not] at hNe ⊢
+    all_goals
+      rfl
   all_goals
     first
     | cases hX
@@ -12612,6 +12636,10 @@ private theorem eo_concat_typeof_bitvec_of_args_bitvec_and_ne_stuck
     cases hY
     cases hWidth : native_zleq 0 (native_zplus wx wy) <;>
       simp [__eo_mk_binary, hWidth, native_ite] at hNe ⊢
+    all_goals
+      first
+      | rfl
+      | contradiction
   all_goals
     first
     | cases hX
@@ -12629,9 +12657,11 @@ private theorem eo_gt_typeof_bool_of_ne_stuck
     __eo_typeof (__eo_gt x y) = Term.Bool := by
   cases x <;> cases y <;> simp [__eo_gt] at hNe ⊢
   case Binary.Binary wx nx wy ny =>
-    cases hReq : native_teq (Term.Numeral wx) (Term.Numeral wy) <;>
-      simp [__eo_requires, hReq, native_ite, native_teq, native_not]
-        at hNe ⊢
+    by_cases hWidth : wx = wy
+    · subst wy
+      simp [__eo_requires, native_ite, native_teq, native_not] at hNe ⊢
+    · simp [__eo_requires, native_ite, native_teq, native_not, hWidth]
+        at hNe
 
 private theorem eo_to_bin_typeof_bitvec_of_width_numeral_and_ne_stuck
     (w : native_Int) (n : Term)
@@ -12643,10 +12673,18 @@ private theorem eo_to_bin_typeof_bitvec_of_width_numeral_and_ne_stuck
     cases hBound : native_zleq w 4294967296 <;>
       cases hWidth : native_zleq 0 w <;>
       simp [__eo_mk_binary, hBound, hWidth, native_ite] at hNe ⊢
+    all_goals
+      first
+      | rfl
+      | contradiction
   case Binary wn n =>
     cases hBound : native_zleq w 4294967296 <;>
       cases hWidth : native_zleq 0 w <;>
       simp [__eo_mk_binary, hBound, hWidth, native_ite] at hNe ⊢
+    all_goals
+      first
+      | rfl
+      | contradiction
 
 private theorem eo_ite_to_bin_typeof_bitvec_of_width_numeral_and_ne_stuck
     (c n m : Term) (w : native_Int)
@@ -12777,27 +12815,28 @@ private theorem eo_repeat_typeof_bitvec_of_arg_bitvec_and_ne_stuck
     cases hX
     have hList :
         __eo_list_repeat (Term.UOp UserOp.concat)
-            (Term.Binary wx nx) (Term.Numeral i) =
+            (Term.Binary w nx) (Term.Numeral i) =
           __eo_list_repeat_rec (Term.UOp UserOp.concat)
-            (Term.Binary wx nx) (native_int_to_nat i) := by
+            (Term.Binary w nx) (native_int_to_nat i) := by
       simp [__eo_list_repeat, native_ite, hiNotNeg]
-    cases hWxNonneg : native_zleq 0 wx
+    cases hWxNonneg : native_zleq 0 w
     · have hStuck :=
         bv_eval_concat_list_repeat_rec_binary_stuck_of_neg
-          wx nx hWxNonneg (native_int_to_nat i) hNatNeZero
+          w nx hWxNonneg (native_int_to_nat i) hNatNeZero
       exact False.elim (hNe (by rw [hList, hStuck]))
     · rcases bv_eval_concat_list_repeat_rec_binary
-        wx nx hWxNonneg (native_int_to_nat i) with
+        w nx hWxNonneg (native_int_to_nat i) with
         ⟨m, hTerm, _hEval, _hCanon⟩
       rw [hList, hTerm]
       change
         __eo_typeof
             (Term.Binary
-              (native_zmult (native_nat_to_int (native_int_to_nat i)) wx)
+              (native_zmult (native_nat_to_int (native_int_to_nat i)) w)
               m) =
           Term.Apply (Term.UOp UserOp.BitVec)
-            (Term.Numeral (native_zmult i wx))
+            (Term.Numeral (native_zmult i w))
       simp [hIntNat]
+      rfl
   · have hList (hxNe : x ≠ Term.Stuck) :
         __eo_list_repeat (Term.UOp UserOp.concat) x
             (Term.Numeral i) =
@@ -12856,10 +12895,13 @@ private theorem eo_extract_typeof_bitvec_of_arg_bitvec_and_ne_stuck
       simpa [native_zleq, SmtEval.native_zleq, native_zplus,
         SmtEval.native_zplus, native_zneg, SmtEval.native_zneg,
         Int.add_assoc] using hNonneg
-    simp [hjNotNeg, hDeltaNotNeg, native_ite, __eo_mk_binary,
+    simp [hjNotNeg, hDeltaNotNeg, native_or, native_ite, __eo_mk_binary,
       hWidthNonneg]
+    rfl
   all_goals
-    contradiction
+    first
+    | contradiction
+    | cases hX
 
 private theorem eo_concat_typeof_seq_of_args_seq_and_ne_stuck
     (x y U : Term)
@@ -12907,8 +12949,8 @@ private theorem str_leq_eval_rec_typeof_bool_of_ne_stuck :
         __eo_typeof (__str_leq_eval_rec x y) = Term.Bool
   | Term.Stuck, _, hNe => by
       exact False.elim (hNe rfl)
-  | _, Term.Stuck, hNe => by
-      exact False.elim (hNe rfl)
+  | x, Term.Stuck, hNe => by
+      cases x <;> simp [__str_leq_eval_rec] at hNe
   | Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) s1) s2,
       Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t1) t2,
       hNe => by
@@ -12933,52 +12975,52 @@ private theorem str_leq_eval_rec_typeof_bool_of_ne_stuck :
         change __str_leq_eval_rec s2 t2 ≠ Term.Stuck at hSel
         simpa [__eo_ite] using
           str_leq_eval_rec_typeof_bool_of_ne_stuck s2 t2 hSel
-  | Term.String [], _, _hNe => by
-      rfl
-  | Term.String (_ :: _), _, _hNe => by
-      rfl
-  | Term.Apply (Term.Apply (Term.UOp UserOp.eq) s1) s2, y, _hNe => by
-      rfl
-  | Term.Apply (Term.Apply (Term.UOp UserOp.not) s1) s2, y, _hNe => by
-      rfl
-  | Term.Apply (Term.Apply (Term.UOp UserOp.and) s1) s2, y, _hNe => by
-      rfl
-  | Term.Apply (Term.Apply (Term.UOp UserOp.or) s1) s2, y, _hNe => by
-      rfl
-  | Term.Apply (Term.Apply (Term.UOp UserOp.xor) s1) s2, y, _hNe => by
-      rfl
-  | Term.Apply (Term.Apply (Term.UOp UserOp.imp) s1) s2, y, _hNe => by
-      rfl
-  | Term.Apply (Term.Apply (Term.UOp UserOp.plus) s1) s2, y, _hNe => by
-      rfl
-  | Term.Apply (Term.Apply (Term.UOp UserOp.mult) s1) s2, y, _hNe => by
-      rfl
-  | Term.Apply (Term.Apply (Term.UOp UserOp.neg) s1) s2, y, _hNe => by
-      rfl
-  | Term.Apply (Term.Apply (Term.UOp UserOp.div) s1) s2, y, _hNe => by
-      rfl
-  | Term.Apply (Term.Apply (Term.UOp UserOp.mod) s1) s2, y, _hNe => by
-      rfl
-  | Term.Apply (Term.Apply (Term.UOp UserOp.divisible) s1) s2, y, _hNe => by
-      rfl
-  | Term.Apply (Term.Apply (Term.UOp UserOp.lt) s1) s2, y, _hNe => by
-      rfl
-  | Term.Apply (Term.Apply (Term.UOp UserOp.gt) s1) s2, y, _hNe => by
-      rfl
-  | Term.Apply (Term.Apply (Term.UOp UserOp.leq) s1) s2, y, _hNe => by
-      rfl
-  | Term.Apply (Term.Apply (Term.UOp UserOp.geq) s1) s2, y, _hNe => by
-      rfl
-  | Term.Apply (Term.Apply (Term.UOp UserOp.str_leq) s1) s2, y, _hNe => by
-      rfl
-  | Term.Apply (Term.Apply (Term.UOp UserOp.str_lt) s1) s2, y, _hNe => by
-      rfl
-  | Term.Apply (Term.Apply (Term.UOp op) s1) s2, y, _hNe => by
-      cases op <;> rfl
-  | Term.Apply f x, y, _hNe => by
-      rfl
-  | x, y, _hNe => by
-      rfl
+  | Term.String s, y, hNe => by
+      cases s <;> cases y <;>
+        simp [__str_leq_eval_rec] at hNe ⊢ <;> rfl
+  | x, y, hNe => by
+      cases x
+      case String s =>
+        cases s <;> cases y <;>
+          simp [__str_leq_eval_rec] at hNe ⊢ <;> rfl
+      case Apply f a =>
+        cases y <;> simp [__str_leq_eval_rec] at hNe ⊢ <;> try rfl
+        rename_i g b
+        cases f <;> cases g <;>
+          try (simp [__str_leq_eval_rec] at hNe ⊢ <;> rfl)
+        rename_i f1 s1 g1 t1
+        cases f1 <;> cases g1 <;>
+          try (simp [__str_leq_eval_rec] at hNe ⊢ <;> rfl)
+        rename_i op1 op2
+        by_cases hOp1 : op1 = UserOp.str_concat
+        · subst op1
+          by_cases hOp2 : op2 = UserOp.str_concat
+          · subst op2
+            change
+              __eo_typeof
+                  (__eo_ite (__eo_eq s1 t1)
+                    (__str_leq_eval_rec a b)
+                    (__eo_gt (__eo_to_z t1) (__eo_to_z s1))) =
+                Term.Bool
+            rcases eo_ite_selected_nonstuck_of_nonstuck
+                (__eo_eq s1 t1) (__str_leq_eval_rec a b)
+                (__eo_gt (__eo_to_z t1) (__eo_to_z s1)) hNe with
+              ⟨b', hCond, hSel⟩
+            cases b'
+            · rw [hCond]
+              change __eo_gt (__eo_to_z t1) (__eo_to_z s1) ≠ Term.Stuck
+                at hSel
+              simpa [__eo_ite] using
+                eo_gt_typeof_bool_of_ne_stuck
+                  (__eo_to_z t1) (__eo_to_z s1) hSel
+            · rw [hCond]
+              change __str_leq_eval_rec a b ≠ Term.Stuck at hSel
+              simpa [__eo_ite] using
+                str_leq_eval_rec_typeof_bool_of_ne_stuck a b hSel
+          · simp [__str_leq_eval_rec, hOp2] at hNe ⊢ <;> try rfl
+        · simp [__str_leq_eval_rec, hOp1] at hNe ⊢ <;> try rfl
+      all_goals
+        cases y <;> simp [__str_leq_eval_rec] at hNe ⊢ <;> try rfl
 
 private theorem eo_str_leq_body_typeof_bool_of_seq_char_args_and_ne_stuck
     (x y : Term)
@@ -13000,17 +13042,25 @@ private theorem eo_str_leq_body_typeof_bool_of_seq_char_args_and_ne_stuck
             (__str_flatten (__str_nary_intro y)))
           (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.str_leq) x)
             y)) = Term.Bool := by
+  have hFallback :
+      __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.str_leq) x) y) =
+        Term.Bool := by
+    change __eo_typeof_str_lt (__eo_typeof x) (__eo_typeof y) = Term.Bool
+    rw [hX, hY]
+    rfl
   cases x <;> cases y <;>
     simp [__eo_is_str, __eo_is_str_internal, __eo_and, __eo_ite,
       __eo_mk_apply, __eo_typeof_str_lt, native_and, native_not,
-      native_ite, native_teq] at hX hY hNe ⊢
+      native_ite, native_teq] at hX hY hNe hFallback ⊢
   case String.String sx sy =>
     exact str_leq_eval_rec_typeof_bool_of_ne_stuck
       (__str_flatten (__str_nary_intro (Term.String sx)))
       (__str_flatten (__str_nary_intro (Term.String sy))) hNe
   all_goals
     first
+    | exact hFallback
     | rfl
+    | contradiction
     | cases hX
     | cases hY
 
@@ -13023,7 +13073,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
   · rw [hRun]
   · cases t with
     | UOp2 op n m =>
-        cases op <;> try exact False.elim (hRun rfl)
+        cases op
         case _at_bv =>
           have hTranslate :
               __eo_to_smt (Term.UOp2 UserOp2._at_bv n m) =
@@ -13048,11 +13098,13 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
             simp [__run_evaluate, __eo_to_bin, hBound, native_ite]
           · simp [__run_evaluate, __eo_to_bin, __eo_mk_binary,
               hWidthNonneg, hBound, native_ite]
+        all_goals
+          exact False.elim (hRun rfl)
     | Apply f x =>
-        cases f with
-        | UOp op =>
-            cases op <;> try exact False.elim (hRun rfl)
-            case not =>
+        cases f <;> try exact False.elim (hRun rfl)
+        case UOp op =>
+          cases op
+          case not =>
               have hNotBool :
                   RuleProofs.eo_has_bool_type
                     (Term.Apply (Term.UOp UserOp.not) x) :=
@@ -14296,10 +14348,12 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   __eo_typeof_str_rev (__eo_typeof x)
               rw [hRunBodyTy, hXEoSeq]
               rfl
-        | Apply g y =>
-            cases g with
-            | UOp op =>
-                cases op <;> try exact False.elim (hRun rfl)
+          all_goals
+            exact False.elim (hRun rfl)
+        case Apply g y =>
+          cases g with
+          | UOp op =>
+                cases op
                 case eq =>
                   rcases eq_operands_same_smt_type_of_eq_has_smt_translation
                       y x hTrans with
@@ -14369,6 +14423,22 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                         hYPres
                       _ = __eo_typeof x := hYEoEq
                       _ = __eo_typeof (__run_evaluate x) := hXPres.symm
+                  have hYTypeNe : __eo_typeof y ≠ Term.Stuck := by
+                    have hYMatch :=
+                      TranslationProofs.eo_to_smt_typeof_matches_translation
+                        y hYTrans
+                    have hYTypeNN :
+                        __eo_to_smt_type (__eo_typeof y) ≠
+                          SmtType.None := by
+                      intro hNone
+                      exact hYTrans (hYMatch.trans hNone)
+                    exact
+                      TranslationProofs.eo_term_ne_stuck_of_smt_type_non_none
+                        (__eo_typeof y) hYTypeNN
+                  have hRunYTypeNe :
+                      __eo_typeof (__run_evaluate y) ≠ Term.Stuck := by
+                    rw [hYPres]
+                    exact hYTypeNe
                   have hRunBodyTy :
                       __eo_typeof
                           (__run_evaluate
@@ -14376,7 +14446,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                               (Term.Apply (Term.UOp UserOp.eq) y) x)) =
                         Term.Bool :=
                     run_evaluate_apply_eq_typeof_bool_of_run_typeof_eq
-                      y x hRunTyEq hRunEqNe
+                      y x hRunTyEq hRunYTypeNe hRunEqNe
                   have hOrigTy :
                       __eo_typeof_eq (__eo_typeof y) (__eo_typeof x) =
                         Term.Bool := by
@@ -15915,26 +15985,26 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                         __eo_typeof (__run_evaluate y) =
                           Term.UOp UserOp.Int :=
                       hYPres.trans hYEoInt
-	                    have hRunXInt :
-	                        __eo_typeof (__run_evaluate x) =
-	                          Term.UOp UserOp.Int :=
-	                      hXPres.trans hXEoInt
-	                    have hRunToQYNe :
-	                        __eo_to_q (__run_evaluate y) ≠ Term.Stuck :=
-	                      eo_qdiv_left_ne_stuck hRunQDivNe
-	                    have hRunToQXNe :
-	                        __eo_to_q (__run_evaluate x) ≠ Term.Stuck :=
-	                      eo_qdiv_right_ne_stuck hRunQDivNe
-	                    have hRunToQYReal :
-	                        __eo_typeof (__eo_to_q (__run_evaluate y)) =
-	                          Term.UOp UserOp.Real :=
-	                      eo_to_q_typeof_real_of_arg_int
-	                        (__run_evaluate y) hRunYInt hRunToQYNe
-	                    have hRunToQXReal :
-	                        __eo_typeof (__eo_to_q (__run_evaluate x)) =
-	                          Term.UOp UserOp.Real :=
-	                      eo_to_q_typeof_real_of_arg_int
-	                        (__run_evaluate x) hRunXInt hRunToQXNe
+                    have hRunXInt :
+                        __eo_typeof (__run_evaluate x) =
+                          Term.UOp UserOp.Int :=
+                      hXPres.trans hXEoInt
+                    have hRunToQYNe :
+                        __eo_to_q (__run_evaluate y) ≠ Term.Stuck :=
+                      eo_qdiv_left_ne_stuck hRunQDivNe
+                    have hRunToQXNe :
+                        __eo_to_q (__run_evaluate x) ≠ Term.Stuck :=
+                      eo_qdiv_right_ne_stuck hRunQDivNe
+                    have hRunToQYReal :
+                        __eo_typeof (__eo_to_q (__run_evaluate y)) =
+                          Term.UOp UserOp.Real :=
+                      eo_to_q_typeof_real_of_arg_int
+                        (__run_evaluate y) hRunYInt hRunToQYNe
+                    have hRunToQXReal :
+                        __eo_typeof (__eo_to_q (__run_evaluate x)) =
+                          Term.UOp UserOp.Real :=
+                      eo_to_q_typeof_real_of_arg_int
+                        (__run_evaluate x) hRunXInt hRunToQXNe
                     have hRunBodyTy :
                         __eo_typeof
                             (__eo_qdiv
@@ -15986,26 +16056,26 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                         __eo_typeof (__run_evaluate y) =
                           Term.UOp UserOp.Real :=
                       hYPres.trans hYEoReal
-	                    have hRunXReal :
-	                        __eo_typeof (__run_evaluate x) =
-	                          Term.UOp UserOp.Real :=
-	                      hXPres.trans hXEoReal
-	                    have hRunToQYNe :
-	                        __eo_to_q (__run_evaluate y) ≠ Term.Stuck :=
-	                      eo_qdiv_left_ne_stuck hRunQDivNe
-	                    have hRunToQXNe :
-	                        __eo_to_q (__run_evaluate x) ≠ Term.Stuck :=
-	                      eo_qdiv_right_ne_stuck hRunQDivNe
-	                    have hRunToQYReal :
-	                        __eo_typeof (__eo_to_q (__run_evaluate y)) =
-	                          Term.UOp UserOp.Real :=
-	                      eo_to_q_typeof_real_of_arg_real
-	                        (__run_evaluate y) hRunYReal hRunToQYNe
-	                    have hRunToQXReal :
-	                        __eo_typeof (__eo_to_q (__run_evaluate x)) =
-	                          Term.UOp UserOp.Real :=
-	                      eo_to_q_typeof_real_of_arg_real
-	                        (__run_evaluate x) hRunXReal hRunToQXNe
+                    have hRunXReal :
+                        __eo_typeof (__run_evaluate x) =
+                          Term.UOp UserOp.Real :=
+                      hXPres.trans hXEoReal
+                    have hRunToQYNe :
+                        __eo_to_q (__run_evaluate y) ≠ Term.Stuck :=
+                      eo_qdiv_left_ne_stuck hRunQDivNe
+                    have hRunToQXNe :
+                        __eo_to_q (__run_evaluate x) ≠ Term.Stuck :=
+                      eo_qdiv_right_ne_stuck hRunQDivNe
+                    have hRunToQYReal :
+                        __eo_typeof (__eo_to_q (__run_evaluate y)) =
+                          Term.UOp UserOp.Real :=
+                      eo_to_q_typeof_real_of_arg_real
+                        (__run_evaluate y) hRunYReal hRunToQYNe
+                    have hRunToQXReal :
+                        __eo_typeof (__eo_to_q (__run_evaluate x)) =
+                          Term.UOp UserOp.Real :=
+                      eo_to_q_typeof_real_of_arg_real
+                        (__run_evaluate x) hRunXReal hRunToQXNe
                     have hRunBodyTy :
                         __eo_typeof
                             (__eo_qdiv
@@ -16392,7 +16462,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                           (Term.Numeral (native_nat_to_int w)) :=
                     eo_and_typeof_bitvec_of_args_bitvec
                       (__run_evaluate y) (__run_evaluate x)
-                      (native_nat_to_int w) hRunYBv hRunXBv
+                      (native_nat_to_int w) hRunYBv hRunXBv hRunAndNe
                   change
                     __eo_typeof
                         (__eo_and (__run_evaluate y)
@@ -16471,7 +16541,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                           (Term.Numeral (native_nat_to_int w)) :=
                     eo_or_typeof_bitvec_of_args_bitvec
                       (__run_evaluate y) (__run_evaluate x)
-                      (native_nat_to_int w) hRunYBv hRunXBv
+                      (native_nat_to_int w) hRunYBv hRunXBv hRunOrNe
                   change
                     __eo_typeof
                         (__eo_or (__run_evaluate y)
@@ -16550,7 +16620,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                           (Term.Numeral (native_nat_to_int w)) :=
                     eo_xor_typeof_bitvec_of_args_bitvec
                       (__run_evaluate y) (__run_evaluate x)
-                      (native_nat_to_int w) hRunYBv hRunXBv
+                      (native_nat_to_int w) hRunYBv hRunXBv hRunXorNe
                   change
                     __eo_typeof
                         (__eo_xor (__run_evaluate y)
@@ -16707,7 +16777,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                           (Term.Numeral (native_nat_to_int w)) :=
                     eo_add_typeof_bitvec_of_args_bitvec
                       (__run_evaluate y) (__run_evaluate x)
-                      (native_nat_to_int w) hRunYBv hRunXBv
+                      (native_nat_to_int w) hRunYBv hRunXBv hRunAddNe
                   change
                     __eo_typeof
                         (__eo_add (__run_evaluate y)
@@ -16786,7 +16856,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                           (Term.Numeral (native_nat_to_int w)) :=
                     eo_mul_typeof_bitvec_of_args_bitvec
                       (__run_evaluate y) (__run_evaluate x)
-                      (native_nat_to_int w) hRunYBv hRunXBv
+                      (native_nat_to_int w) hRunYBv hRunXBv hRunMulNe
                   change
                     __eo_typeof
                         (__eo_mul (__run_evaluate y)
@@ -16867,7 +16937,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                           (Term.Numeral (native_nat_to_int w)) :=
                     eo_neg_typeof_bitvec_of_arg_bitvec
                       (__run_evaluate x) (native_nat_to_int w)
-                      hRunXBv
+                      hRunXBv hRunNegXNe
                   have hRunBodyTy :
                       __eo_typeof
                           (__eo_add (__run_evaluate y)
@@ -16877,6 +16947,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                     eo_add_typeof_bitvec_of_args_bitvec
                       (__run_evaluate y) (__eo_neg (__run_evaluate x))
                       (native_nat_to_int w) hRunYBv hRunNegXBv
+                      hRunSubNe
                   change
                     __eo_typeof
                         (__eo_add (__run_evaluate y)
@@ -17190,9 +17261,9 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       __eo_typeof (__eo_or (__eo_gt rx ry)
                           (__eo_eq ry rx)) =
                         Term.Bool :=
-	                    eo_or_typeof_bool_of_args_bool
-	                      (__eo_gt rx ry) (__eo_eq ry rx) hGtTy hEqTy
-	                      hRunOrNe
+                    eo_or_typeof_bool_of_args_bool
+                      (__eo_gt rx ry) (__eo_eq ry rx) hGtTy hEqTy
+                      hRunOrNe
                   rcases bv_binop_ret_args_of_non_none
                       (op := SmtTerm.bvule) (ret := SmtType.Bool)
                       (by rw [__smtx_typeof.eq_56]) hBvUleNN with
@@ -17233,9 +17304,9 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       __eo_typeof (__eo_or (__eo_gt ry rx)
                           (__eo_eq ry rx)) =
                         Term.Bool :=
-	                    eo_or_typeof_bool_of_args_bool
-	                      (__eo_gt ry rx) (__eo_eq ry rx) hGtTy hEqTy
-	                      hRunOrNe
+                    eo_or_typeof_bool_of_args_bool
+                      (__eo_gt ry rx) (__eo_eq ry rx) hGtTy hEqTy
+                      hRunOrNe
                   rcases bv_binop_ret_args_of_non_none
                       (op := SmtTerm.bvuge) (ret := SmtType.Bool)
                       (by rw [__smtx_typeof.eq_58]) hBvUgeNN with
@@ -17320,8 +17391,8 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                               (Term.Apply (Term.UOp UserOp.bvsle) y) x)) =
                         Term.Bool := by
                     change __eo_typeof (__eo_or _ _) = Term.Bool
-	                    exact eo_or_typeof_bool_of_args_bool _ _ hGtTy hEqTy
-	                      hRunOrNe
+                    exact eo_or_typeof_bool_of_args_bool _ _ hGtTy hEqTy
+                      hRunOrNe
                   rcases bv_binop_ret_args_of_non_none
                       (op := SmtTerm.bvsle) (ret := SmtType.Bool)
                       (by rw [__smtx_typeof.eq_def] <;> simp only)
@@ -17409,8 +17480,8 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                               (Term.Apply (Term.UOp UserOp.bvsge) y) x)) =
                         Term.Bool := by
                     change __eo_typeof (__eo_or _ _) = Term.Bool
-	                    exact eo_or_typeof_bool_of_args_bool _ _ hGtTy hEqTy
-	                      hRunOrNe
+                    exact eo_or_typeof_bool_of_args_bool _ _ hGtTy hEqTy
+                      hRunOrNe
                   rcases bv_binop_ret_args_of_non_none
                       (op := SmtTerm.bvsge) (ret := SmtType.Bool)
                       (by rw [__smtx_typeof.eq_def] <;> simp only)
@@ -18036,7 +18107,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
             | _ =>
                 exact False.elim (hRun rfl)
         | UOp1 op n =>
-            cases op <;> try exact False.elim (hRun rfl)
+            cases op
             case «repeat» =>
               have hRepeatNN :
                   term_has_non_none_type
@@ -18291,8 +18362,10 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                 eo_to_bin_typeof_bitvec_of_width_numeral_and_ne_stuck
                   i (__run_evaluate x) hRunToBvNe
               simpa [__run_evaluate, hXEoInt] using hRunBodyTy
+            all_goals
+              exact False.elim (hRun rfl)
         | UOp2 op hi lo =>
-            cases op <;> try exact False.elim (hRun rfl)
+            cases op
             case extract =>
               have hExtNN :
                   term_has_non_none_type
@@ -18351,6 +18424,8 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                 native_teq, native_not, native_zplus,
                 SmtEval.native_zplus, native_zneg,
                 SmtEval.native_zneg] using hRunBodyTy
+            all_goals
+              exact False.elim (hRun rfl)
         | _ =>
             exact False.elim (hRun rfl)
     | _ =>
