@@ -8373,7 +8373,7 @@ def __eo_typeof_re_mult : Term -> Term
 
 def __eo_typeof_re_exp : Term -> Term -> Term -> Term
   | _ , Term.Stuck , _  => Term.Stuck
-  | (Term.UOp UserOp.Int), i, (Term.UOp UserOp.RegLan) => (__eo_requires (__eo_is_z i) (Term.Boolean true) (Term.UOp UserOp.RegLan))
+  | (Term.UOp UserOp.Int), i, (Term.UOp UserOp.RegLan) => (__eo_requires (__eo_gt i (Term.Numeral (-1 : native_Int))) (Term.Boolean true) (Term.UOp UserOp.RegLan))
   | _, _, _ => Term.Stuck
 
 
@@ -8390,7 +8390,7 @@ def __eo_typeof_re_concat : Term -> Term -> Term
 def __eo_typeof_re_loop : Term -> Term -> Term -> Term -> Term -> Term
   | _ , Term.Stuck , _ , _ , _  => Term.Stuck
   | _ , _ , _ , Term.Stuck , _  => Term.Stuck
-  | (Term.UOp UserOp.Int), l, (Term.UOp UserOp.Int), h, (Term.UOp UserOp.RegLan) => (__eo_requires (__eo_is_z l) (Term.Boolean true) (__eo_requires (__eo_is_z h) (Term.Boolean true) (Term.UOp UserOp.RegLan)))
+  | (Term.UOp UserOp.Int), l, (Term.UOp UserOp.Int), h, (Term.UOp UserOp.RegLan) => (__eo_requires (__eo_gt l (Term.Numeral (-1 : native_Int))) (Term.Boolean true) (__eo_requires (__eo_gt h (Term.Numeral (-1 : native_Int))) (Term.Boolean true) (Term.UOp UserOp.RegLan)))
   | _, _, _, _, _ => Term.Stuck
 
 

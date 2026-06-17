@@ -4891,8 +4891,19 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_re_unfold_pos_component_of_seq_c
   rfl
 
 /-- Stronger EO-side helper for `typeof_apply_apply_apply_re_loop`. -/
+theorem native_zlt_neg_one_of_zleq_zero {n : native_Int}
+    (hn : native_zleq 0 n = true) :
+    native_zlt (-1 : native_Int) n = true := by
+  have hn' : (0 : Int) <= n := by
+    simpa [native_zleq] using hn
+  have hlt : (-1 : Int) < n := by
+    omega
+  simpa [native_zlt] using hlt
+
 theorem eo_to_smt_type_typeof_apply_apply_apply_re_loop_of_int_int_reglan
     (x : Term) (n1 n2 : Int)
+    (hn1 : native_zleq 0 n1 = true)
+    (hn2 : native_zleq 0 n2 = true)
     (hx : __eo_typeof x = Term.UOp UserOp.RegLan) :
     __eo_to_smt_type
         (__eo_typeof
@@ -4903,8 +4914,18 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_re_loop_of_int_int_reglan
         (__eo_typeof_re_loop (__eo_typeof (Term.Numeral n1)) (Term.Numeral n1)
           (__eo_typeof (Term.Numeral n2)) (Term.Numeral n2) (__eo_typeof x)) =
       SmtType.RegLan
+  have hn1Gt : native_zlt (-1 : native_Int) n1 = true :=
+    native_zlt_neg_one_of_zleq_zero hn1
+  have hn2Gt : native_zlt (-1 : native_Int) n2 = true :=
+    native_zlt_neg_one_of_zleq_zero hn2
   rw [hx]
-  rfl
+  change
+    __eo_to_smt_type
+        (__eo_typeof_re_loop (Term.UOp UserOp.Int) (Term.Numeral n1)
+          (Term.UOp UserOp.Int) (Term.Numeral n2) (Term.UOp UserOp.RegLan)) =
+      SmtType.RegLan
+  simp [__eo_typeof_re_loop, __eo_gt, __eo_requires, native_teq, native_not,
+    hn1Gt, hn2Gt]
 
 /-- Stronger EO-side helper for `typeof_apply_apply_apply_at_witness_string_length`. -/
 theorem eo_to_smt_type_typeof_apply_apply_apply_at_witness_string_length_of_type_int_int
