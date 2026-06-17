@@ -6129,12 +6129,16 @@ private theorem eo_to_smt_typeof_matches_translation_apply_repeat
         (__eo_typeof_repeat (Term.UOp UserOp.Int) (Term.Numeral i) (__eo_typeof x)) =
       SmtType.BitVec (native_int_to_nat (native_zmult i (native_nat_to_int w)))
     rw [hXEo]
-    change __eo_to_smt_type
-        (__eo_mk_apply (Term.UOp UserOp.BitVec)
-          (__eo_mul (Term.Numeral i) (Term.Numeral (native_nat_to_int w)))) =
-      SmtType.BitVec (native_int_to_nat (native_zmult i (native_nat_to_int w)))
-    exact apply_eo_to_smt_type_bitvec_int_of_nonneg _
-      (native_zleq_zero_zmult_nat_of_one_le i w hi)
+    have hIGtNegOne : native_zlt (-1 : native_Int) i = true := by
+      have hi' : (1 : Int) ≤ i := by
+        simpa [native_zleq] using hi
+      have hlt : (-1 : Int) < i := by
+        omega
+      simpa [native_zlt] using hlt
+    simpa [__eo_typeof_repeat, __eo_requires, __eo_gt, __eo_mul,
+      __eo_mk_apply, native_ite, native_teq, native_not, hIGtNegOne] using
+        apply_eo_to_smt_type_bitvec_int_of_nonneg _
+          (native_zleq_zero_zmult_nat_of_one_le i w hi)
   exact hSmt.trans hEo.symm
 
 /-- Simplifies EO-to-SMT translation for `zero_extend`. -/
@@ -6177,13 +6181,13 @@ private theorem eo_to_smt_typeof_matches_translation_apply_zero_extend
         (__eo_typeof_zero_extend (Term.UOp UserOp.Int) (Term.Numeral i) (__eo_typeof x)) =
       SmtType.BitVec (native_int_to_nat (native_zplus i (native_nat_to_int w)))
     rw [hXEo]
-    change __eo_to_smt_type
-        (Term.Apply (Term.UOp UserOp.BitVec)
-          (Term.Numeral (native_zplus (native_nat_to_int w) i))) =
-      SmtType.BitVec (native_int_to_nat (native_zplus i (native_nat_to_int w)))
-    rw [native_zplus_nat_comm i w]
-    exact apply_eo_to_smt_type_bitvec_int_of_nonneg _
-      (native_zleq_zero_zplus_nat_right_of_nonneg i w hi)
+    have hIGtNegOne : native_zlt (-1 : native_Int) i = true :=
+      native_zlt_neg_one_of_zleq_zero (n := i) hi
+    simpa [__eo_typeof_zero_extend, __eo_requires, __eo_gt, __eo_add,
+      __eo_mk_apply, native_ite, native_teq, native_not, hIGtNegOne,
+      native_zplus_nat_comm i w] using
+        apply_eo_to_smt_type_bitvec_int_of_nonneg _
+          (native_zleq_zero_zplus_nat_right_of_nonneg i w hi)
   exact hSmt.trans hEo.symm
 
 /-- Simplifies EO-to-SMT translation for `sign_extend`. -/
@@ -6226,13 +6230,13 @@ private theorem eo_to_smt_typeof_matches_translation_apply_sign_extend
         (__eo_typeof_zero_extend (Term.UOp UserOp.Int) (Term.Numeral i) (__eo_typeof x)) =
       SmtType.BitVec (native_int_to_nat (native_zplus i (native_nat_to_int w)))
     rw [hXEo]
-    change __eo_to_smt_type
-        (Term.Apply (Term.UOp UserOp.BitVec)
-          (Term.Numeral (native_zplus (native_nat_to_int w) i))) =
-      SmtType.BitVec (native_int_to_nat (native_zplus i (native_nat_to_int w)))
-    rw [native_zplus_nat_comm i w]
-    exact apply_eo_to_smt_type_bitvec_int_of_nonneg _
-      (native_zleq_zero_zplus_nat_right_of_nonneg i w hi)
+    have hIGtNegOne : native_zlt (-1 : native_Int) i = true :=
+      native_zlt_neg_one_of_zleq_zero (n := i) hi
+    simpa [__eo_typeof_zero_extend, __eo_requires, __eo_gt, __eo_add,
+      __eo_mk_apply, native_ite, native_teq, native_not, hIGtNegOne,
+      native_zplus_nat_comm i w] using
+        apply_eo_to_smt_type_bitvec_int_of_nonneg _
+          (native_zleq_zero_zplus_nat_right_of_nonneg i w hi)
   exact hSmt.trans hEo.symm
 
 /-- Simplifies EO-to-SMT translation for `rotate_left`. -/
@@ -6272,10 +6276,14 @@ private theorem eo_to_smt_typeof_matches_translation_apply_rotate_left
         SmtType.BitVec w := by
     rw [hYTerm]
     change __eo_to_smt_type
-        (__eo_typeof_rotate_left (Term.UOp UserOp.Int) (__eo_typeof x)) =
+        (__eo_typeof_rotate_left (Term.UOp UserOp.Int) (Term.Numeral i) (__eo_typeof x)) =
       SmtType.BitVec w
     rw [hXEo]
-    exact apply_eo_to_smt_type_bitvec_nat w
+    have hIGtNegOne : native_zlt (-1 : native_Int) i = true :=
+      native_zlt_neg_one_of_zleq_zero (n := i) hi
+    simpa [__eo_typeof_rotate_left, __eo_requires, __eo_gt, native_ite,
+      native_teq, native_not, hIGtNegOne] using
+        apply_eo_to_smt_type_bitvec_nat w
   exact hSmt.trans hEo.symm
 
 /-- Simplifies EO-to-SMT translation for `rotate_right`. -/
@@ -6315,10 +6323,14 @@ private theorem eo_to_smt_typeof_matches_translation_apply_rotate_right
         SmtType.BitVec w := by
     rw [hYTerm]
     change __eo_to_smt_type
-        (__eo_typeof_rotate_left (Term.UOp UserOp.Int) (__eo_typeof x)) =
+        (__eo_typeof_rotate_left (Term.UOp UserOp.Int) (Term.Numeral i) (__eo_typeof x)) =
       SmtType.BitVec w
     rw [hXEo]
-    exact apply_eo_to_smt_type_bitvec_nat w
+    have hIGtNegOne : native_zlt (-1 : native_Int) i = true :=
+      native_zlt_neg_one_of_zleq_zero (n := i) hi
+    simpa [__eo_typeof_rotate_left, __eo_requires, __eo_gt, native_ite,
+      native_teq, native_not, hIGtNegOne] using
+        apply_eo_to_smt_type_bitvec_nat w
   exact hSmt.trans hEo.symm
 
 /-- Simplifies EO-to-SMT translation for `int_to_bv`. -/
@@ -6359,7 +6371,11 @@ private theorem eo_to_smt_typeof_matches_translation_apply_int_to_bv
         (__eo_typeof_int_to_bv (Term.UOp UserOp.Int) (Term.Numeral i) (__eo_typeof x)) =
       SmtType.BitVec (native_int_to_nat i)
     rw [hXEo]
-    exact apply_eo_to_smt_type_bitvec_int_of_nonneg i hi
+    have hIGtNegOne : native_zlt (-1 : native_Int) i = true :=
+      native_zlt_neg_one_of_zleq_zero (n := i) hi
+    simpa [__eo_typeof_int_to_bv, __eo_requires, __eo_gt, native_ite,
+      native_teq, native_not, hIGtNegOne] using
+        apply_eo_to_smt_type_bitvec_int_of_nonneg i hi
   exact hSmt.trans hEo.symm
 
 /-- Simplifies EO-to-SMT translation for `_at_bit`. -/
@@ -11826,17 +11842,6 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_bvite_fro
     eo_to_smt_typeof_matches_translation_apply_apply_apply_bvite_from_valid_ih
       x y z ihZ ihY ihX hNonNone
 
-private theorem native_zlt_zero_succ_of_zleq_zero
-    (j : native_Int)
-    (hj0 : native_zleq 0 j = true) :
-    native_zlt 0 (native_zplus j 1) = true := by
-  have hj0' : (0 : Int) ≤ j := by
-    apply of_decide_eq_true
-    simpa [native_zleq, SmtEval.native_zleq] using hj0
-  have hlt : (0 : Int) < j + 1 := by
-    omega
-  simpa [native_zlt, SmtEval.native_zlt, native_zplus, SmtEval.native_zplus] using hlt
-
 private theorem native_zleq_zero_extract_width
     (i j : native_Int)
     (hji : native_zleq j i = true) :
@@ -11903,9 +11908,9 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_extract
         (by rw [hZTerm]; rfl)
         (by rw [hYTerm]; rfl)
         hXEo
-    have hLoSucc :
-        native_zlt 0 (native_zplus j 1) = true :=
-      native_zlt_zero_succ_of_zleq_zero j hj0
+    have hLoGtNegOne :
+        native_zlt (-1 : native_Int) j = true :=
+      native_zlt_neg_one_of_zleq_zero (n := j) hj0
     have hWidthNonneg :
         native_zleq 0 (native_zplus (native_zplus i (native_zneg j)) 1) = true :=
       native_zleq_zero_extract_width i j hji
@@ -11913,7 +11918,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_extract
     rw [hZTerm, hYTerm]
     simp [__eo_mk_apply, __eo_requires, __eo_gt,
       __eo_add, __eo_neg, native_ite, native_teq, native_not,
-      hLoSucc, hiw, hWidthNonneg]
+      hLoGtNegOne, hiw, hWidthNonneg]
   exact hSmt.trans hEo.symm
 
 /-- Proof for `_at_witness_string_length`. -/
