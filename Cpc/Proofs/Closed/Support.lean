@@ -1859,6 +1859,17 @@ by
   case String s =>
     exact smtTermClosedIn_eo_to_smt_var_string_of_closed_rec_perm hEnv hClosed
 
+theorem smtTermClosedIn_eo_to_smt_var_of_is_closed_rec_perm
+    {env : Term} {vars : List SmtVarKey} {name T : Term}
+    (hEnv : EoSmtVarEnvPerm env vars)
+    (hClosed :
+      __is_closed_rec (Term.Var name T) env =
+        Term.Boolean true) :
+  SmtTermClosedIn vars (__eo_to_smt (Term.Var name T)) :=
+by
+  exact smtTermClosedIn_eo_to_smt_var_of_closed_rec_perm hEnv
+    (eo_is_closed_rec_var_of_is_closed_rec_perm hEnv hClosed)
+
 theorem smtTermClosedIn_eo_to_smt_uop
     (vars : List SmtVarKey) (op : UserOp) :
   SmtTermClosedIn vars (__eo_to_smt (Term.UOp op)) :=

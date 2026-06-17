@@ -2105,6 +2105,52 @@ private theorem smtx_typeof_set_choose_arg_none
   rw [typeof_map_diff_eq, hx]
   simp [__smtx_typeof_map_diff]
 
+private theorem smtx_typeof_eo_to_smt_array_deq_diff_first_arg_none
+    (x y : SmtTerm) :
+    __smtx_typeof x = SmtType.None ->
+    __smtx_typeof
+        (__eo_to_smt_array_deq_diff x (__smtx_typeof x) y
+          (__smtx_typeof y)) =
+      SmtType.None := by
+  intro hx
+  rw [hx]
+  simp [__eo_to_smt_array_deq_diff]
+
+private theorem smtx_typeof_eo_to_smt_array_deq_diff_second_arg_none
+    (x y : SmtTerm) :
+    __smtx_typeof y = SmtType.None ->
+    __smtx_typeof
+        (__eo_to_smt_array_deq_diff x (__smtx_typeof x) y
+          (__smtx_typeof y)) =
+      SmtType.None := by
+  intro hy
+  rw [hy]
+  cases __smtx_typeof x <;>
+    simp [__eo_to_smt_array_deq_diff]
+
+private theorem smtx_typeof_eo_to_smt_sets_deq_diff_first_arg_none
+    (x y : SmtTerm) :
+    __smtx_typeof x = SmtType.None ->
+    __smtx_typeof
+        (__eo_to_smt_sets_deq_diff x (__smtx_typeof x) y
+          (__smtx_typeof y)) =
+      SmtType.None := by
+  intro hx
+  rw [hx]
+  simp [__eo_to_smt_sets_deq_diff]
+
+private theorem smtx_typeof_eo_to_smt_sets_deq_diff_second_arg_none
+    (x y : SmtTerm) :
+    __smtx_typeof y = SmtType.None ->
+    __smtx_typeof
+        (__eo_to_smt_sets_deq_diff x (__smtx_typeof x) y
+          (__smtx_typeof y)) =
+      SmtType.None := by
+  intro hy
+  rw [hy]
+  cases __smtx_typeof x <;>
+    simp [__eo_to_smt_sets_deq_diff]
+
 private theorem smtx_typeof_apply_set_choose_head_none
     (x y : SmtTerm) :
     __smtx_typeof x = SmtType.None ->
@@ -10788,6 +10834,66 @@ private theorem smtx_model_eval_apply_eq_of_eval_eq_of_globals
       smtx_model_eval_apply_eq_of_globals hAgree,
       smtx_model_eval_dt_sel_eq_of_globals hAgree]
 
+private theorem smtx_model_eval_map_diff_term_eq
+    (M : SmtModel) (x y : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.map_diff x y) =
+      __smtx_model_eval_map_diff (__smtx_model_eval M x)
+        (__smtx_model_eval M y) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+private theorem smtx_model_eval_push_same_var
+    (M : SmtModel) (s : native_String) (T : SmtType) (v : SmtValue) :
+    __smtx_model_eval (native_model_push M s T v) (SmtTerm.Var s T) =
+      v := by
+  simp [__smtx_model_eval, native_model_var_lookup, native_model_push]
+
+private theorem smtx_model_eval_strings_deq_diff_body_eq_of_eval_eq
+    {M N : SmtModel} {x y idx : SmtTerm}
+    (hx : __smtx_model_eval M x = __smtx_model_eval N x)
+    (hy : __smtx_model_eval M y = __smtx_model_eval N y)
+    (hidx : __smtx_model_eval M idx = __smtx_model_eval N idx) :
+    __smtx_model_eval M
+        (SmtTerm.not
+          (SmtTerm.eq
+            (SmtTerm.str_substr x idx (SmtTerm.Numeral 1))
+            (SmtTerm.str_substr y idx (SmtTerm.Numeral 1)))) =
+      __smtx_model_eval N
+        (SmtTerm.not
+          (SmtTerm.eq
+            (SmtTerm.str_substr x idx (SmtTerm.Numeral 1))
+            (SmtTerm.str_substr y idx (SmtTerm.Numeral 1)))) := by
+  simpa [__smtx_model_eval, hx, hy, hidx]
+
+private theorem smtx_model_eval_eo_to_smt_array_deq_diff_eq_of_eval_eq
+    {M N : SmtModel} (x y : SmtTerm) :
+    __smtx_model_eval M x = __smtx_model_eval N x ->
+    __smtx_model_eval M y = __smtx_model_eval N y ->
+      __smtx_model_eval M
+          (__eo_to_smt_array_deq_diff x (__smtx_typeof x) y
+            (__smtx_typeof y)) =
+        __smtx_model_eval N
+          (__eo_to_smt_array_deq_diff x (__smtx_typeof x) y
+            (__smtx_typeof y)) := by
+  intro hx hy
+  cases hXTy : __smtx_typeof x <;> cases hYTy : __smtx_typeof y <;>
+    simp [__eo_to_smt_array_deq_diff, smtx_model_eval_map_diff_term_eq,
+      __smtx_model_eval, hXTy, hYTy, hx, hy]
+
+private theorem smtx_model_eval_eo_to_smt_sets_deq_diff_eq_of_eval_eq
+    {M N : SmtModel} (x y : SmtTerm) :
+    __smtx_model_eval M x = __smtx_model_eval N x ->
+    __smtx_model_eval M y = __smtx_model_eval N y ->
+      __smtx_model_eval M
+          (__eo_to_smt_sets_deq_diff x (__smtx_typeof x) y
+            (__smtx_typeof y)) =
+        __smtx_model_eval N
+          (__eo_to_smt_sets_deq_diff x (__smtx_typeof x) y
+            (__smtx_typeof y)) := by
+  intro hx hy
+  cases hXTy : __smtx_typeof x <;> cases hYTy : __smtx_typeof y <;>
+    simp [__eo_to_smt_sets_deq_diff, smtx_model_eval_map_diff_term_eq,
+      __smtx_model_eval, hXTy, hYTy, hx, hy]
+
 private theorem smtTermClosedIn_repeat_index_of_non_none
     (vars : List SmtVarKey) (idx x : Term)
     (hNN :
@@ -11441,9 +11547,8 @@ private theorem eo_is_closed_rec_nil_of_eo_to_smt_nat_is_valid
     __eo_to_smt_nat_is_valid n = true ->
     __eo_is_closed_rec n Term.__eo_List_nil = Term.Boolean true := by
   intro hNat
-  cases n <;> simp [__eo_to_smt_nat_is_valid] at hNat
-  case Numeral m =>
-    rfl
+  exact eo_is_closed_rec_of_eo_to_smt_nat_is_valid
+    (hEnv := EoSmtVarEnvPerm.of_exact EoSmtVarEnv.nil) hNat
 
 private theorem smtTermClosedIn_eo_to_smt_of_nat_valid
     (vars : List SmtVarKey) {n : Term} :
@@ -11478,43 +11583,6 @@ private theorem eo_smt_var_env_perm_mem_of_var_list_mem
   rcases hEnv with ⟨exactVars, hExact, hEquiv⟩
   exact (hEquiv (s, __eo_to_smt_type T)).1
     (eo_smt_var_env_mem_of_var_list_mem hExact hMem)
-
-private theorem smtTermClosedIn_eo_to_smt_var_string_of_is_closed_rec_perm
-    {env : Term} {vars : List SmtVarKey}
-    (hEnv : EoSmtVarEnvPerm env vars)
-    {s : native_String} {T : Term}
-    (hClosed :
-      __is_closed_rec (Term.Var (Term.String s) T) env =
-        Term.Boolean true) :
-    SmtTermClosedIn vars
-      (__eo_to_smt (Term.Var (Term.String s) T)) := by
-  have hFind :
-      __eo_is_neg
-          (__eo_list_find Term.__eo_List_cons env
-            (Term.Var (Term.String s) T)) =
-        Term.Boolean false :=
-    eo_not_eq_true_eq_false (by
-      simpa [__is_closed_rec] using hClosed)
-  have hMem :
-      eo_var_list_mem (Term.Var (Term.String s) T) env :=
-    eo_var_list_mem_of_eo_is_neg_list_find_false
-      (eo_var_list_of_env_perm hEnv)
-      (term_var_string_ne_stuck s T) hFind
-  exact smtTermClosedIn_eo_to_smt_var_string
-    (eo_smt_var_env_perm_mem_of_var_list_mem hEnv hMem)
-
-private theorem smtTermClosedIn_eo_to_smt_var_of_is_closed_rec_perm
-    {env : Term} {vars : List SmtVarKey}
-    (hEnv : EoSmtVarEnvPerm env vars)
-    {name T : Term}
-    (hClosed :
-      __is_closed_rec (Term.Var name T) env =
-        Term.Boolean true) :
-    SmtTermClosedIn vars (__eo_to_smt (Term.Var name T)) := by
-  cases name <;> try trivial
-  case String s =>
-    exact smtTermClosedIn_eo_to_smt_var_string_of_is_closed_rec_perm
-      hEnv hClosed
 
 private theorem smtTermClosedIn_eo_to_smt_uop3_re_unfold_pos_component
     {vars : List SmtVarKey} {a b c : Term}
@@ -11669,8 +11737,23 @@ private theorem contains_atomic_term_list_free_rec_uop_apply_false_cases
         intro q x ys h
         cases h)
 
+private theorem contains_atomic_term_list_free_rec_uop1_apply_false_cases
+    {op : UserOp1} {idx a xs bvs : Term} :
+    __contains_atomic_term_list_free_rec
+        (Term.Apply (Term.UOp1 op idx) a) xs bvs =
+      Term.Boolean false ->
+    __contains_atomic_term_list_free_rec (Term.UOp1 op idx) xs bvs =
+        Term.Boolean false ∧
+      __contains_atomic_term_list_free_rec a xs bvs = Term.Boolean false := by
+  exact
+    contains_atomic_term_list_free_rec_apply_false_cases
+      (by
+        intro q x ys h
+        cases h)
+
 private theorem smtx_model_eval_eo_to_smt_set_insert_eq_of_contains_atomic_false
-    (list base xs bvs : Term) (M N : SmtModel)
+    (root list base xs bvs : Term) (M N : SmtModel)
+    (hListRoot : sizeOf list < sizeOf root)
     (hRel : scannerModelRel xs bvs M N)
     (hListScan :
       __contains_atomic_term_list_free_rec list xs bvs =
@@ -11683,6 +11766,7 @@ private theorem smtx_model_eval_eo_to_smt_set_insert_eq_of_contains_atomic_false
         __smtx_model_eval N (__eo_to_smt base))
     (hRec :
       ∀ z : Term,
+        sizeOf z < sizeOf root ->
         __contains_atomic_term_list_free_rec z xs bvs =
           Term.Boolean false ->
         __smtx_typeof (__eo_to_smt z) ≠ SmtType.None ->
@@ -11695,6 +11779,7 @@ private theorem smtx_model_eval_eo_to_smt_set_insert_eq_of_contains_atomic_false
       __smtx_model_eval N
         (__eo_to_smt_set_insert list (__eo_to_smt base)) := by
   let rec go (list : Term) (M N : SmtModel)
+      (hListRoot : sizeOf list < sizeOf root)
       (hRel : scannerModelRel xs bvs M N)
       (hListScan :
         __contains_atomic_term_list_free_rec list xs bvs =
@@ -11798,15 +11883,23 @@ private theorem smtx_model_eval_eo_to_smt_set_insert_eq_of_contains_atomic_false
                   hHeadApplyScan with
               ⟨_hConsScan, hHeadScan⟩
             have hHeadEval :
-                __smtx_model_eval M (__eo_to_smt head) =
+            __smtx_model_eval M (__eo_to_smt head) =
                   __smtx_model_eval N (__eo_to_smt head) :=
-              hRec head hHeadScan hHeadNN M N hRel
+              hRec head
+                (by
+                  simp at hListRoot
+                  omega)
+                hHeadScan hHeadNN M N hRel
             have hTailEval :
                 __smtx_model_eval M
                     (__eo_to_smt_set_insert tail (__eo_to_smt base)) =
                   __smtx_model_eval N
                     (__eo_to_smt_set_insert tail (__eo_to_smt base)) :=
-              go tail M N hRel hTailScan hTailNN hBaseEval
+              go tail M N
+                (by
+                  simp at hListRoot
+                  omega)
+                hRel hTailScan hTailNN hBaseEval
             change
               __smtx_model_eval M
                   (SmtTerm.set_union
@@ -11818,7 +11911,7 @@ private theorem smtx_model_eval_eo_to_smt_set_insert_eq_of_contains_atomic_false
                     (__eo_to_smt_set_insert tail (__eo_to_smt base)))
             simpa [__smtx_model_eval, hHeadEval, hTailEval]
   termination_by list
-  exact go list M N hRel hListScan hWholeNN hBaseEval
+  exact go list M N hListRoot hRel hListScan hWholeNN hBaseEval
 
 private theorem smtx_model_eval_eq_of_remaining_direct_binary_apply
     (f a xs bvs : Term) (M N : SmtModel)
@@ -11831,6 +11924,7 @@ private theorem smtx_model_eval_eq_of_remaining_direct_binary_apply
         SmtType.None)
     (hRec :
       ∀ z : Term,
+        sizeOf z < sizeOf (Term.Apply f a) ->
         __contains_atomic_term_list_free_rec z xs bvs =
           Term.Boolean false ->
         __smtx_typeof (__eo_to_smt z) ≠ SmtType.None ->
@@ -11848,6 +11942,7 @@ private theorem smtx_model_eval_eq_of_remaining_direct_binary_apply
       __smtx_model_eval N (__eo_to_smt (Term.Apply f a)) := by
   have hBinaryDirect
       (z : Term) (mk : SmtTerm -> SmtTerm -> SmtTerm)
+      (hZLt : sizeOf z < sizeOf (Term.Apply f a))
       (hWholeNN :
         __smtx_typeof (mk (__eo_to_smt z) (__eo_to_smt a)) ≠
           SmtType.None)
@@ -11883,7 +11978,8 @@ private theorem smtx_model_eval_eq_of_remaining_direct_binary_apply
         __smtx_typeof (__eo_to_smt a) ≠ SmtType.None := by
       intro hArgNone
       exact hWholeNN (hSecond hArgNone)
-    exact hEval (hRec z hZScan hZNN M N hRel) (hARec hANN M N hRel)
+    exact hEval (hRec z hZLt hZScan hZNN M N hRel)
+      (hARec hANN M N hRel)
   have hBinaryCase
       (op : UserOp) (z : Term)
       (mk : SmtTerm -> SmtTerm -> SmtTerm)
@@ -11911,12 +12007,17 @@ private theorem smtx_model_eval_eq_of_remaining_direct_binary_apply
       __smtx_model_eval M (__eo_to_smt (Term.Apply f a)) =
         __smtx_model_eval N (__eo_to_smt (Term.Apply f a)) := by
     subst f
+    have hZLt :
+        sizeOf z <
+          sizeOf (Term.Apply (Term.Apply (Term.UOp op) z) a) := by
+      simp
+      omega
     rcases contains_atomic_term_list_free_rec_uop_apply_false_cases
         hFScan with
       ⟨_hHeadScan, hZScan⟩
     rw [hToSmt]
     exact
-      hBinaryDirect z mk
+      hBinaryDirect z mk hZLt
         (by
           intro hNone
           apply hNN
@@ -11939,8 +12040,13 @@ private theorem smtx_model_eval_eq_of_remaining_direct_binary_apply
           (SmtTerm.bvsrem (__eo_to_smt z) (__eo_to_smt a)) =
         __smtx_model_eval N
           (SmtTerm.bvsrem (__eo_to_smt z) (__eo_to_smt a))
+    have hZLt :
+        sizeOf z <
+          sizeOf (Term.Apply (Term.Apply (Term.UOp UserOp.bvsrem) z) a) := by
+      simp
+      omega
     exact
-      hBinaryDirect z SmtTerm.bvsrem
+      hBinaryDirect z SmtTerm.bvsrem hZLt
         (by
           intro hNone
           apply hNN
@@ -11973,8 +12079,13 @@ private theorem smtx_model_eval_eq_of_remaining_direct_binary_apply
             (SmtTerm.bvsmod (__eo_to_smt z) (__eo_to_smt a)) =
           __smtx_model_eval N
             (SmtTerm.bvsmod (__eo_to_smt z) (__eo_to_smt a))
+      have hZLt :
+          sizeOf z <
+            sizeOf (Term.Apply (Term.Apply (Term.UOp UserOp.bvsmod) z) a) := by
+        simp
+        omega
       exact
-        hBinaryDirect z SmtTerm.bvsmod
+        hBinaryDirect z SmtTerm.bvsmod hZLt
           (by
             intro hNone
             apply hNN
@@ -12007,8 +12118,13 @@ private theorem smtx_model_eval_eq_of_remaining_direct_binary_apply
               (SmtTerm.bvshl (__eo_to_smt z) (__eo_to_smt a)) =
             __smtx_model_eval N
               (SmtTerm.bvshl (__eo_to_smt z) (__eo_to_smt a))
+        have hZLt :
+            sizeOf z <
+              sizeOf (Term.Apply (Term.Apply (Term.UOp UserOp.bvshl) z) a) := by
+          simp
+          omega
         exact
-          hBinaryDirect z SmtTerm.bvshl
+          hBinaryDirect z SmtTerm.bvshl hZLt
             (by
               intro hNone
               apply hNN
@@ -12041,8 +12157,13 @@ private theorem smtx_model_eval_eq_of_remaining_direct_binary_apply
                 (SmtTerm.bvlshr (__eo_to_smt z) (__eo_to_smt a)) =
               __smtx_model_eval N
                 (SmtTerm.bvlshr (__eo_to_smt z) (__eo_to_smt a))
+          have hZLt :
+              sizeOf z <
+                sizeOf (Term.Apply (Term.Apply (Term.UOp UserOp.bvlshr) z) a) := by
+            simp
+            omega
           exact
-            hBinaryDirect z SmtTerm.bvlshr
+            hBinaryDirect z SmtTerm.bvlshr hZLt
               (by
                 intro hNone
                 apply hNN
@@ -12076,8 +12197,13 @@ private theorem smtx_model_eval_eq_of_remaining_direct_binary_apply
                   (SmtTerm.bvashr (__eo_to_smt z) (__eo_to_smt a)) =
                 __smtx_model_eval N
                   (SmtTerm.bvashr (__eo_to_smt z) (__eo_to_smt a))
+            have hZLt :
+                sizeOf z <
+                  sizeOf (Term.Apply (Term.Apply (Term.UOp UserOp.bvashr) z) a) := by
+              simp
+              omega
             exact
-              hBinaryDirect z SmtTerm.bvashr
+              hBinaryDirect z SmtTerm.bvashr hZLt
                 (by
                   intro hNone
                   apply hNN
@@ -12478,7 +12604,10 @@ private theorem smtx_model_eval_eq_of_remaining_direct_binary_apply
                               (__eo_to_smt z) (__eo_to_smt a))
                             (by
                               intro hZEval hAEval
-                              simpa [__smtx_model_eval, hZEval, hAEval])
+                              simpa [__smtx_model_eval, hZEval, hAEval] using
+                                smtx_seq_nth_eq_of_globals hRel.globals
+                                  (__smtx_model_eval N (__eo_to_smt z))
+                                  (__smtx_model_eval N (__eo_to_smt a)))
                     · by_cases hFSet :
                         ∃ z,
                           f = Term.Apply (Term.UOp UserOp.set_union) z ∨
@@ -12624,23 +12753,22 @@ private theorem smtx_model_eval_eq_of_remaining_direct_binary_apply
                                     hFArrayDeqDiff rfl
                                     (by
                                       intro hArgNone
-                                      rw [hArgNone]
-                                      simp [__eo_to_smt_array_deq_diff])
+                                      exact
+                                        smtx_typeof_eo_to_smt_array_deq_diff_first_arg_none
+                                          (__eo_to_smt z) (__eo_to_smt a)
+                                          hArgNone)
                                     (by
                                       intro hArgNone
-                                      rw [hArgNone]
-                                      cases __smtx_typeof
-                                          (__eo_to_smt z) <;>
-                                        simp [__eo_to_smt_array_deq_diff])
+                                      exact
+                                        smtx_typeof_eo_to_smt_array_deq_diff_second_arg_none
+                                          (__eo_to_smt z) (__eo_to_smt a)
+                                          hArgNone)
                                     (by
                                       intro hZEval hAEval
-                                      cases __smtx_typeof
-                                          (__eo_to_smt z) <;>
-                                        cases __smtx_typeof
-                                          (__eo_to_smt a) <;>
-                                        simpa [__eo_to_smt_array_deq_diff,
-                                          __smtx_model_eval, hZEval,
-                                          hAEval])
+                                      exact
+                                        smtx_model_eval_eo_to_smt_array_deq_diff_eq_of_eval_eq
+                                          (__eo_to_smt z) (__eo_to_smt a)
+                                          hZEval hAEval)
                               · exact
                                   hBinaryCase
                                     UserOp._at_sets_deq_diff z
@@ -12651,23 +12779,22 @@ private theorem smtx_model_eval_eq_of_remaining_direct_binary_apply
                                     hFSetsDeqDiff rfl
                                     (by
                                       intro hArgNone
-                                      rw [hArgNone]
-                                      simp [__eo_to_smt_sets_deq_diff])
+                                      exact
+                                        smtx_typeof_eo_to_smt_sets_deq_diff_first_arg_none
+                                          (__eo_to_smt z) (__eo_to_smt a)
+                                          hArgNone)
                                     (by
                                       intro hArgNone
-                                      rw [hArgNone]
-                                      cases __smtx_typeof
-                                          (__eo_to_smt z) <;>
-                                        simp [__eo_to_smt_sets_deq_diff])
+                                      exact
+                                        smtx_typeof_eo_to_smt_sets_deq_diff_second_arg_none
+                                          (__eo_to_smt z) (__eo_to_smt a)
+                                          hArgNone)
                                     (by
                                       intro hZEval hAEval
-                                      cases __smtx_typeof
-                                          (__eo_to_smt z) <;>
-                                        cases __smtx_typeof
-                                          (__eo_to_smt a) <;>
-                                        simpa [__eo_to_smt_sets_deq_diff,
-                                          __smtx_model_eval, hZEval,
-                                          hAEval])
+                                      exact
+                                        smtx_model_eval_eo_to_smt_sets_deq_diff_eq_of_eval_eq
+                                          (__eo_to_smt z) (__eo_to_smt a)
+                                          hZEval hAEval)
                             · by_cases hFStringResult :
                                 ∃ z,
                                   f =
@@ -12735,6 +12862,9 @@ private theorem smtx_model_eval_eq_of_remaining_direct_binary_apply
                                           hRel.globals.1 native_mod_by_zero_id
                                             (SmtType.FunType SmtType.Int
                                               SmtType.Int),
+                                          hRel.globals.1 native_div_by_zero_id
+                                            (SmtType.FunType SmtType.Int
+                                              SmtType.Int),
                                           smtx_model_eval_apply_eq_of_globals
                                             hRel.globals])
                                 · exact
@@ -12791,6 +12921,16 @@ private theorem smtx_model_eval_eq_of_remaining_direct_binary_apply
                                     exact
                                       smtx_typeof_eo_to_smt_apply_apply_strings_deq_diff_head_none
                                         z a hArgNone
+                                  have hZLt :
+                                      sizeOf z <
+                                        sizeOf
+                                          (Term.Apply
+                                            (Term.Apply
+                                              (Term.UOp
+                                                UserOp._at_strings_deq_diff)
+                                              z) a) := by
+                                    simp
+                                    omega
                                   have hANN :
                                       __smtx_typeof (__eo_to_smt a) ≠
                                         SmtType.None := by
@@ -12886,7 +13026,7 @@ private theorem smtx_model_eval_eq_of_remaining_direct_binary_apply
                                             (native_string_lit "@x")
                                             SmtType.Int v)
                                           (__eo_to_smt z) :=
-                                    hRec z hZScan hZNN
+                                    hRec z hZLt hZScan hZNN
                                       (native_model_push M
                                         (native_string_lit "@x")
                                         SmtType.Int v)
@@ -12913,9 +13053,47 @@ private theorem smtx_model_eval_eq_of_remaining_direct_binary_apply
                                         (native_string_lit "@x")
                                         SmtType.Int v)
                                       hRelPush
-                                  simpa [__smtx_model_eval, hZEval, hAEval,
-                                    native_model_var_lookup,
-                                    native_model_push]
+                                  have hVarM :
+                                      __smtx_model_eval
+                                          (native_model_push M
+                                            (native_string_lit "@x")
+                                            SmtType.Int v)
+                                          (SmtTerm.Var
+                                            (native_string_lit "@x")
+                                            SmtType.Int) =
+                                        v :=
+                                    smtx_model_eval_push_same_var M
+                                      (native_string_lit "@x") SmtType.Int v
+                                  have hVarN :
+                                      __smtx_model_eval
+                                          (native_model_push N
+                                            (native_string_lit "@x")
+                                            SmtType.Int v)
+                                          (SmtTerm.Var
+                                            (native_string_lit "@x")
+                                            SmtType.Int) =
+                                        v :=
+                                    smtx_model_eval_push_same_var N
+                                      (native_string_lit "@x") SmtType.Int v
+                                  have hVar :
+                                      __smtx_model_eval
+                                          (native_model_push M
+                                            (native_string_lit "@x")
+                                            SmtType.Int v)
+                                          (SmtTerm.Var
+                                            (native_string_lit "@x")
+                                            SmtType.Int) =
+                                        __smtx_model_eval
+                                          (native_model_push N
+                                            (native_string_lit "@x")
+                                            SmtType.Int v)
+                                          (SmtTerm.Var
+                                            (native_string_lit "@x")
+                                            SmtType.Int) := by
+                                    rw [hVarM, hVarN]
+                                  exact
+                                    smtx_model_eval_strings_deq_diff_body_eq_of_eval_eq
+                                      hZEval hAEval hVar
                                 · by_cases hFSetInsert :
                                     ∃ z,
                                       f =
@@ -12957,7 +13135,15 @@ private theorem smtx_model_eval_eq_of_remaining_direct_binary_apply
                                             (__eo_to_smt a))
                                     exact
                                       smtx_model_eval_eo_to_smt_set_insert_eq_of_contains_atomic_false
-                                        z a xs bvs M N hRel hZScan
+                                        (Term.Apply
+                                          (Term.Apply
+                                            (Term.UOp UserOp.set_insert) z)
+                                          a)
+                                        z a xs bvs M N
+                                        (by
+                                          simp
+                                          omega)
+                                        hRel hZScan
                                         hInsertNN
                                         (hARec hANN M N hRel) hRec
                                   · sorry
@@ -17532,7 +17718,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                       ⟨idx, z, hFUpdate⟩
                                                                                                                     subst f
                                                                                                                     rcases
-                                                                                                                        contains_atomic_term_list_free_rec_uop_apply_false_cases
+                                                                                                                        contains_atomic_term_list_free_rec_uop1_apply_false_cases
                                                                                                                           hFScan with
                                                                                                                       ⟨_hUpdateHeadScan, hZScan⟩
                                                                                                                     have hZNN :
@@ -17618,7 +17804,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                         ⟨idx, z, hFTupleUpdate⟩
                                                                                                                       subst f
                                                                                                                       rcases
-                                                                                                                          contains_atomic_term_list_free_rec_uop_apply_false_cases
+                                                                                                                          contains_atomic_term_list_free_rec_uop1_apply_false_cases
                                                                                                                             hFScan with
                                                                                                                         ⟨_hTupleUpdateHeadScan, hZScan⟩
                                                                                                                       have hZNN :
@@ -20213,7 +20399,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                                                                                                   (__eo_to_smt z)
                                                                                                                                                                                                   (__eo_to_smt a))
                                                                                                                                                                                           simpa [__smtx_model_eval, hZEval, hAEval]
-                                                                                                                                                                                        · exact smtx_model_eval_eq_of_remaining_direct_binary_apply f a xs bvs M N hRel hFScan hNN (fun z hZScan hZNN M' N' hRel' => smtx_model_eval_eq_of_contains_atomic_false z xs bvs hBvsVar M' N' hRel' hZScan hZNN) (fun hANN M' N' hRel' => ihA hBvsVar M' N' hRel' hAScan hANN)
+                                                                                                                                                                                        · exact smtx_model_eval_eq_of_remaining_direct_binary_apply f a xs bvs M N hRel hFScan hNN (fun z hZLt hZScan hZNN M' N' hRel' => smtx_model_eval_eq_of_contains_atomic_false z xs bvs hBvsVar M' N' hRel' hZScan hZNN) (fun hANN M' N' hRel' => ihA hBvsVar M' N' hRel' hAScan hANN)
   | case6 name T xs bvs hXs hBvs =>
       intro hBvsVar M N hRel hScan hNN
       cases name with
