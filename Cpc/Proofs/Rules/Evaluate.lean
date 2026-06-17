@@ -13073,8 +13073,8 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
   · rw [hRun]
   · cases t with
     | UOp2 op n m =>
-        cases op
-        case _at_bv =>
+        cases op with
+        | _at_bv =>
           have hTranslate :
               __eo_to_smt (Term.UOp2 UserOp2._at_bv n m) =
                 __eo_to_smt__at_bv (__eo_to_smt n) (__eo_to_smt m) := by
@@ -13096,15 +13096,23 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
           · exfalso
             apply hRunNe
             simp [__run_evaluate, __eo_to_bin, hBound, native_ite]
-          · simp [__run_evaluate, __eo_to_bin, __eo_mk_binary,
+          · change
+              __eo_lit_type_Binary
+                  (Term.Binary width
+                    (native_mod_total value (native_int_pow2 width))) =
+                __eo_typeof__at_bv
+                  (__eo_typeof (Term.Numeral value))
+                  (__eo_typeof (Term.Numeral width)) (Term.Numeral width)
+            simp [__run_evaluate, __eo_to_bin, __eo_mk_binary,
+              __eo_lit_type_Binary, __eo_len, __eo_typeof__at_bv,
               hWidthNonneg, hBound, native_ite]
-        all_goals
+        | _ =>
           exact False.elim (hRun rfl)
     | Apply f x =>
-        cases f <;> try exact False.elim (hRun rfl)
-        case UOp op =>
-          cases op
-          case not =>
+        cases f with
+        | UOp op =>
+          cases op with
+          | not =>
               have hNotBool :
                   RuleProofs.eo_has_bool_type
                     (Term.Apply (Term.UOp UserOp.not) x) :=
@@ -13129,15 +13137,14 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
               have hRunXBool : __eo_typeof (__run_evaluate x) = Term.Bool :=
                 hXPres.trans hXEoBool
               cases hRunX : __run_evaluate x <;>
-                simp [__run_evaluate, hRunX, __eo_not] at
-                  hRunNotNe hRunXBool ⊢
+                simp [__run_evaluate, hRunX, __eo_not] at hRunNotNe hRunXBool ⊢
               all_goals
                 first
                 | change Term.Bool = __eo_typeof_not (__eo_typeof x)
                   rw [hXEoBool]
                   rfl
                 | cases hRunXBool
-            case bvnot =>
+          | bvnot =>
               have hBvNotNN :
                   term_has_non_none_type
                     (SmtTerm.bvnot (__eo_to_smt x)) := by
@@ -13174,15 +13181,14 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       (Term.Numeral (native_nat_to_int w)) :=
                 hXPres.trans hXEoBv
               cases hRunX : __run_evaluate x <;>
-                simp [__run_evaluate, hRunX, __eo_not] at
-                  hRunNotNe hRunXBv ⊢
+                simp [__run_evaluate, hRunX, __eo_not] at hRunNotNe hRunXBv ⊢
               all_goals
                 cases hRunXBv
                 change __eo_lit_type_Binary _ =
                   __eo_typeof_bvnot (__eo_typeof x)
                 simp [__eo_lit_type_Binary, __eo_len, __eo_mk_apply,
                   __eo_typeof_bvnot, hXEoBv]
-            case bvneg =>
+          | bvneg =>
               have hBvNegNN :
                   term_has_non_none_type
                     (SmtTerm.bvneg (__eo_to_smt x)) := by
@@ -13219,8 +13225,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       (Term.Numeral (native_nat_to_int w)) :=
                 hXPres.trans hXEoBv
               cases hRunX : __run_evaluate x <;>
-                simp [__run_evaluate, hRunX, __eo_neg] at
-                  hRunNegNe hRunXBv ⊢
+                simp [__run_evaluate, hRunX, __eo_neg] at hRunNegNe hRunXBv ⊢
               all_goals
                 try cases hRunXBv
                 try
@@ -13228,7 +13233,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                     __eo_typeof_bvnot (__eo_typeof x)
                   simp [__eo_lit_type_Binary, __eo_len, __eo_mk_apply,
                     __eo_typeof_bvnot, hXEoBv]
-            case to_real =>
+          | to_real =>
               have hToRealNN :
                   term_has_non_none_type
                     (SmtTerm.to_real (__eo_to_smt x)) := by
@@ -13259,8 +13264,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                     __eo_typeof (__run_evaluate x) = Term.UOp UserOp.Int :=
                   hXPres.trans hXEoInt
                 cases hRunX : __run_evaluate x <;>
-                  simp [__run_evaluate, hRunX, __eo_to_q] at
-                    hRunToQNe hRunXEoInt ⊢
+                  simp [__run_evaluate, hRunX, __eo_to_q] at hRunToQNe hRunXEoInt ⊢
                 all_goals
                   first
                   | change Term.UOp UserOp.Real =
@@ -13287,8 +13291,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                     __eo_typeof (__run_evaluate x) = Term.UOp UserOp.Real :=
                   hXPres.trans hXEoReal
                 cases hRunX : __run_evaluate x <;>
-                  simp [__run_evaluate, hRunX, __eo_to_q] at
-                    hRunToQNe hRunXEoReal ⊢
+                  simp [__run_evaluate, hRunX, __eo_to_q] at hRunToQNe hRunXEoReal ⊢
                 all_goals
                   first
                   | change Term.UOp UserOp.Int =
@@ -13298,7 +13301,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       __eo_typeof_to_real (__eo_typeof x)
                     rw [hXEoReal]
                     rfl
-            case to_int =>
+          | to_int =>
               have hToIntNN :
                   term_has_non_none_type
                     (SmtTerm.to_int (__eo_to_smt x)) := by
@@ -13330,8 +13333,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   __eo_typeof (__run_evaluate x) = Term.UOp UserOp.Real :=
                 hXPres.trans hXEoReal
               cases hRunX : __run_evaluate x <;>
-                simp [__run_evaluate, hRunX, __eo_to_z] at
-                  hRunToZNe hRunXEoReal ⊢
+                simp [__run_evaluate, hRunX, __eo_to_z] at hRunToZNe hRunXEoReal ⊢
               all_goals
                 first
                 | change Term.UOp UserOp.Int =
@@ -13349,7 +13351,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                     __eo_typeof_to_int (__eo_typeof x)
                   rw [hXEoReal]
                   rfl
-            case is_int =>
+          | is_int =>
               have hIsIntNN :
                   term_has_non_none_type
                     (SmtTerm.is_int (__eo_to_smt x)) := by
@@ -13385,8 +13387,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   __eo_typeof (__run_evaluate x) = Term.UOp UserOp.Real :=
                 hXPres.trans hXEoReal
               cases hRunX : __run_evaluate x <;>
-                simp [__run_evaluate, hRunX, __eo_to_q] at
-                  hRunToQNe hRunXEoReal ⊢
+                simp [__run_evaluate, hRunX, __eo_to_q] at hRunToQNe hRunXEoReal ⊢
               all_goals
                 first
                 | change Term.UOp UserOp.Int =
@@ -13396,7 +13397,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                     __eo_typeof_is_int (__eo_typeof x)
                   rw [hXEoReal]
                   rfl
-            case __eoo_neg_2 =>
+          | __eoo_neg_2 =>
               have hUnegNN :
                   term_has_non_none_type
                     (SmtTerm.uneg (__eo_to_smt x)) := by
@@ -13429,8 +13430,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       Term.UOp UserOp.Int :=
                   hXPres.trans hXEoInt
                 cases hRunX : __run_evaluate x <;>
-                  simp [__run_evaluate, hRunX, __eo_neg] at
-                    hRunNegNe hRunXEoInt ⊢
+                  simp [__run_evaluate, hRunX, __eo_neg] at hRunNegNe hRunXEoInt ⊢
                 all_goals
                   first
                   | change Term.UOp UserOp.Real =
@@ -13464,8 +13464,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       Term.UOp UserOp.Real :=
                   hXPres.trans hXEoReal
                 cases hRunX : __run_evaluate x <;>
-                  simp [__run_evaluate, hRunX, __eo_neg] at
-                    hRunNegNe hRunXEoReal ⊢
+                  simp [__run_evaluate, hRunX, __eo_neg] at hRunNegNe hRunXEoReal ⊢
                 all_goals
                   first
                   | change Term.UOp UserOp.Int =
@@ -13481,7 +13480,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                     simp [__eo_typeof_abs, __eo_requires,
                       __is_arith_type, native_ite, native_teq,
                       native_not, SmtEval.native_not]
-            case abs =>
+          | abs =>
               have hAbsNN :
                   term_has_non_none_type
                     (SmtTerm.abs (__eo_to_smt x)) := by
@@ -13518,8 +13517,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                 hXPres.trans hXEoInt
               cases hRunX : __run_evaluate x <;>
                 simp [__run_evaluate, hRunX, __eo_is_neg, __eo_ite,
-                  __eo_neg, native_ite, native_teq] at
-                  hRunAbsNe hRunXEoInt ⊢
+                  __eo_neg, native_ite, native_teq] at hRunAbsNe hRunXEoInt ⊢
               all_goals
                 first
                 | change Term.UOp UserOp.Real =
@@ -13539,7 +13537,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                     simp [__eo_typeof_abs, __eo_requires,
                       __is_arith_type, native_ite, native_teq,
                       native_not, SmtEval.native_not]
-            case int_pow2 =>
+          | int_pow2 =>
               have hPowNN :
                   term_has_non_none_type
                     (SmtTerm.int_pow2 (__eo_to_smt x)) := by
@@ -13593,7 +13591,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   __eo_typeof_int_pow2 (__eo_typeof x)
               rw [hRunBodyTy, hXEoInt]
               rfl
-            case int_log2 =>
+          | int_log2 =>
               have hLogNN :
                   term_has_non_none_type
                     (SmtTerm.int_log2 (__eo_to_smt x)) := by
@@ -13647,7 +13645,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   __eo_typeof_int_pow2 (__eo_typeof x)
               rw [hRunBodyTy, hXEoInt]
               rfl
-            case int_ispow2 =>
+          | int_ispow2 =>
               let geqTerm :=
                 SmtTerm.geq (__eo_to_smt x) (SmtTerm.Numeral 0)
               let eqTerm :=
@@ -13690,8 +13688,8 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                 intro hStuck
                 apply hRunNe
                 simp [__run_evaluate, hStuck, __eo_is_z,
-                  __eo_is_z_internal, __eo_ite, native_ite, native_teq,
-                  native_not, native_and]
+                  __eo_is_z_internal, __eo_ite, __eo_mk_apply,
+                  native_ite, native_teq, native_not, native_and]
               have hXPres :=
                 run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   x hXTrans hRunXNe
@@ -13742,7 +13740,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   __eo_typeof_int_ispow2 (__eo_typeof x)
               rw [hRunBodyTy, hXEoInt]
               rfl
-            case _at_bvsize =>
+          | _at_bvsize =>
               have hBvsizeNN :
                   term_has_non_none_type
                     (let _v0 := __smtx_bv_sizeof_type
@@ -13782,7 +13780,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                     (Term.Numeral (native_nat_to_int w)) =
                   Term.UOp UserOp.Int
               rfl
-            case str_len =>
+          | str_len =>
               have hLenNN :
                   term_has_non_none_type
                     (SmtTerm.str_len (__eo_to_smt x)) := by
@@ -13809,7 +13807,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   __eo_typeof_str_len (__eo_typeof x)
               rw [hRunLenTy, hXEoSeq]
               rfl
-            case ubv_to_int =>
+          | ubv_to_int =>
               have hUbvNN :
                   term_has_non_none_type
                     (SmtTerm.ubv_to_int (__eo_to_smt x)) := by
@@ -13844,7 +13842,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   __eo_typeof__at_bvsize (__eo_typeof x)
               rw [hRunToZTy, hXEoBv]
               rfl
-            case sbv_to_int =>
+          | sbv_to_int =>
               have hSbvNN :
                   term_has_non_none_type
                     (SmtTerm.sbv_to_int (__eo_to_smt x)) := by
@@ -13918,7 +13916,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                     __eo_typeof__at_bvsize (__eo_typeof x)
                 rw [hRunBodyTy, hXEoBv]
                 rfl
-            case str_to_code =>
+          | str_to_code =>
               have hCodeNN :
                   term_has_non_none_type
                     (SmtTerm.str_to_code (__eo_to_smt x)) := by
@@ -13985,7 +13983,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   __eo_typeof_str_to_code (__eo_typeof x)
               rw [hRunBodyTy, hXEoSeqChar]
               rfl
-            case str_to_int =>
+          | str_to_int =>
               have hIntNN :
                   term_has_non_none_type
                     (SmtTerm.str_to_int (__eo_to_smt x)) := by
@@ -14063,7 +14061,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   __eo_typeof_str_to_code (__eo_typeof x)
               rw [hRunBodyTy, hXEoSeqChar]
               rfl
-            case str_from_int =>
+          | str_from_int =>
               have hFromNN :
                   term_has_non_none_type
                     (SmtTerm.str_from_int (__eo_to_smt x)) := by
@@ -14110,7 +14108,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   __eo_typeof_str_from_code (__eo_typeof x)
               rw [hRunBodyTy, hXEoInt]
               rfl
-            case str_from_code =>
+          | str_from_code =>
               have hFromNN :
                   term_has_non_none_type
                     (SmtTerm.str_from_code (__eo_to_smt x)) := by
@@ -14150,7 +14148,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   __eo_typeof_str_from_code (__eo_typeof x)
               rw [hRunBodyTy, hXEoInt]
               rfl
-            case str_to_lower =>
+          | str_to_lower =>
               have hLowerNN :
                   term_has_non_none_type
                     (SmtTerm.str_to_lower (__eo_to_smt x)) := by
@@ -14217,7 +14215,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   __eo_typeof_str_to_lower (__eo_typeof x)
               rw [hRunBodyTy, hXEoSeqChar]
               rfl
-            case str_to_upper =>
+          | str_to_upper =>
               have hUpperNN :
                   term_has_non_none_type
                     (SmtTerm.str_to_upper (__eo_to_smt x)) := by
@@ -14284,7 +14282,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   __eo_typeof_str_to_lower (__eo_typeof x)
               rw [hRunBodyTy, hXEoSeqChar]
               rfl
-            case str_rev =>
+          | str_rev =>
               have hRevNN :
                   term_has_non_none_type
                     (SmtTerm.str_rev (__eo_to_smt x)) := by
@@ -14348,13 +14346,13 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   __eo_typeof_str_rev (__eo_typeof x)
               rw [hRunBodyTy, hXEoSeq]
               rfl
-          all_goals
+          | _ =>
             exact False.elim (hRun rfl)
-        case Apply g y =>
+        | Apply g y =>
           cases g with
           | UOp op =>
-                cases op
-                case eq =>
+                cases op with
+                | eq =>
                   rcases eq_operands_same_smt_type_of_eq_has_smt_translation
                       y x hTrans with
                     ⟨hYXTy, hYNonNone⟩
@@ -14465,8 +14463,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                             (Term.Apply (Term.UOp UserOp.eq) y) x)) =
                       __eo_typeof_eq (__eo_typeof y) (__eo_typeof x)
                   rw [hRunBodyTy, hOrigTy]
-                  rfl
-                case and =>
+                | and =>
                   have hAndBool :
                       RuleProofs.eo_has_bool_type
                         (Term.Apply
@@ -14529,7 +14526,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       __eo_typeof_or (__eo_typeof y) (__eo_typeof x)
                   rw [hRunBodyTy, hYEoBool, hXEoBool]
                   rfl
-                case or =>
+                | or =>
                   have hOrBool :
                       RuleProofs.eo_has_bool_type
                         (Term.Apply
@@ -14592,7 +14589,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       __eo_typeof_or (__eo_typeof y) (__eo_typeof x)
                   rw [hRunBodyTy, hYEoBool, hXEoBool]
                   rfl
-                case xor =>
+                | xor =>
                   have hXorBool :
                       RuleProofs.eo_has_bool_type
                         (Term.Apply
@@ -14655,7 +14652,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       __eo_typeof_or (__eo_typeof y) (__eo_typeof x)
                   rw [hRunBodyTy, hYEoBool, hXEoBool]
                   rfl
-                case imp =>
+                | imp =>
                   have hImpBool :
                       RuleProofs.eo_has_bool_type
                         (Term.Apply
@@ -14727,7 +14724,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       __eo_typeof_or (__eo_typeof y) (__eo_typeof x)
                   rw [hRunBodyTy, hYEoBool, hXEoBool]
                   rfl
-                case plus =>
+                | plus =>
                   have hPlusNN :
                       term_has_non_none_type
                         (SmtTerm.plus (__eo_to_smt y)
@@ -14852,7 +14849,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                     simp [__eo_typeof_plus, __eo_requires, __eo_eq,
                       __is_arith_type, native_ite, native_teq,
                       native_not, SmtEval.native_not]
-                case mult =>
+                | mult =>
                   have hMultNN :
                       term_has_non_none_type
                         (SmtTerm.mult (__eo_to_smt y)
@@ -14977,7 +14974,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                     simp [__eo_typeof_plus, __eo_requires, __eo_eq,
                       __is_arith_type, native_ite, native_teq,
                       native_not, SmtEval.native_not]
-                case neg =>
+                | neg =>
                   have hNegNN :
                       term_has_non_none_type
                         (SmtTerm.neg (__eo_to_smt y)
@@ -15118,7 +15115,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                     simp [__eo_typeof_plus, __eo_requires, __eo_eq,
                       __is_arith_type, native_ite, native_teq,
                       native_not, SmtEval.native_not]
-                case lt =>
+                | lt =>
                   have hLtNN :
                       term_has_non_none_type
                         (SmtTerm.lt (__eo_to_smt y)
@@ -15287,7 +15284,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                     simp [__eo_typeof_lt, __eo_requires, __eo_eq,
                       __is_arith_type, native_ite, native_teq,
                       native_not, SmtEval.native_not]
-                case gt =>
+                | gt =>
                   have hGtNN :
                       term_has_non_none_type
                         (SmtTerm.gt (__eo_to_smt y)
@@ -15456,7 +15453,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                     simp [__eo_typeof_lt, __eo_requires, __eo_eq,
                       __is_arith_type, native_ite, native_teq,
                       native_not, SmtEval.native_not]
-                case leq =>
+                | leq =>
                   have hLeqNN :
                       term_has_non_none_type
                         (SmtTerm.leq (__eo_to_smt y)
@@ -15621,7 +15618,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                     simp [__eo_typeof_lt, __eo_requires, __eo_eq,
                       __is_arith_type, native_ite, native_teq,
                       native_not, SmtEval.native_not]
-                case geq =>
+                | geq =>
                   have hGeqNN :
                       term_has_non_none_type
                         (SmtTerm.geq (__eo_to_smt y)
@@ -15786,7 +15783,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                     simp [__eo_typeof_lt, __eo_requires, __eo_eq,
                       __is_arith_type, native_ite, native_teq,
                       native_not, SmtEval.native_not]
-                case div =>
+                | div =>
                   have hDivNN :
                       term_has_non_none_type
                         (SmtTerm.div (__eo_to_smt y)
@@ -15856,7 +15853,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       __eo_typeof_div (__eo_typeof y) (__eo_typeof x)
                   rw [hRunBodyTy, hYEoInt, hXEoInt]
                   rfl
-                case mod =>
+                | mod =>
                   have hModNN :
                       term_has_non_none_type
                         (SmtTerm.mod (__eo_to_smt y)
@@ -15926,7 +15923,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       __eo_typeof_div (__eo_typeof y) (__eo_typeof x)
                   rw [hRunBodyTy, hYEoInt, hXEoInt]
                   rfl
-                case qdiv =>
+                | qdiv =>
                   have hQDivNN :
                       term_has_non_none_type
                         (SmtTerm.qdiv (__eo_to_smt y)
@@ -16096,7 +16093,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                     simp [__eo_typeof_qdiv, __eo_requires, __eo_eq,
                       __is_arith_type, native_ite, native_teq,
                       native_not, SmtEval.native_not]
-                case qdiv_total =>
+                | qdiv_total =>
                   have hQDivTotalNN :
                       term_has_non_none_type
                         (SmtTerm.qdiv_total (__eo_to_smt y)
@@ -16225,7 +16222,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                     simp [__eo_typeof_qdiv, __eo_requires, __eo_eq,
                       __is_arith_type, native_ite, native_teq,
                       native_not, SmtEval.native_not]
-                case div_total =>
+                | div_total =>
                   have hDivTotalNN :
                       term_has_non_none_type
                         (SmtTerm.div_total (__eo_to_smt y)
@@ -16304,7 +16301,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       __eo_typeof_div (__eo_typeof y) (__eo_typeof x)
                   rw [hRunBodyTy, hYEoInt, hXEoInt]
                   rfl
-                case mod_total =>
+                | mod_total =>
                   have hModTotalNN :
                       term_has_non_none_type
                         (SmtTerm.mod_total (__eo_to_smt y)
@@ -16392,7 +16389,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       __eo_typeof_div (__eo_typeof y) (__eo_typeof x)
                   rw [hRunBodyTy, hYEoInt, hXEoInt]
                   rfl
-                case bvand =>
+                | bvand =>
                   have hBvAndNN :
                       term_has_non_none_type
                         (SmtTerm.bvand (__eo_to_smt y)
@@ -16471,7 +16468,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   rw [hRunBodyTy, hYEoBv, hXEoBv]
                   simp [__eo_typeof_bvand, __eo_requires, __eo_eq,
                     native_ite, native_teq, native_not]
-                case bvor =>
+                | bvor =>
                   have hBvOrNN :
                       term_has_non_none_type
                         (SmtTerm.bvor (__eo_to_smt y)
@@ -16550,7 +16547,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   rw [hRunBodyTy, hYEoBv, hXEoBv]
                   simp [__eo_typeof_bvand, __eo_requires, __eo_eq,
                     native_ite, native_teq, native_not]
-                case bvxor =>
+                | bvxor =>
                   have hBvXorNN :
                       term_has_non_none_type
                         (SmtTerm.bvxor (__eo_to_smt y)
@@ -16629,7 +16626,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   rw [hRunBodyTy, hYEoBv, hXEoBv]
                   simp [__eo_typeof_bvand, __eo_requires, __eo_eq,
                     native_ite, native_teq, native_not]
-                case concat =>
+                | concat =>
                   have hConcatNN :
                       term_has_non_none_type
                         (SmtTerm.concat (__eo_to_smt y)
@@ -16707,7 +16704,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       __eo_typeof_concat (__eo_typeof y) (__eo_typeof x)
                   rw [hRunBodyTy, hYEoBv, hXEoBv]
                   simp [__eo_typeof_concat, __eo_add, __eo_mk_apply]
-                case bvadd =>
+                | bvadd =>
                   have hBvAddNN :
                       term_has_non_none_type
                         (SmtTerm.bvadd (__eo_to_smt y)
@@ -16786,7 +16783,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   rw [hRunBodyTy, hYEoBv, hXEoBv]
                   simp [__eo_typeof_bvand, __eo_requires, __eo_eq,
                     native_ite, native_teq, native_not]
-                case bvmul =>
+                | bvmul =>
                   have hBvMulNN :
                       term_has_non_none_type
                         (SmtTerm.bvmul (__eo_to_smt y)
@@ -16865,7 +16862,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   rw [hRunBodyTy, hYEoBv, hXEoBv]
                   simp [__eo_typeof_bvand, __eo_requires, __eo_eq,
                     native_ite, native_teq, native_not]
-                case bvsub =>
+                | bvsub =>
                   have hBvSubNN :
                       term_has_non_none_type
                         (SmtTerm.bvsub (__eo_to_smt y)
@@ -16956,7 +16953,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   rw [hRunBodyTy, hYEoBv, hXEoBv]
                   simp [__eo_typeof_bvand, __eo_requires, __eo_eq,
                     native_ite, native_teq, native_not]
-                case bvudiv =>
+                | bvudiv =>
                   have hBvUdivNN :
                       term_has_non_none_type
                         (SmtTerm.bvudiv (__eo_to_smt y)
@@ -16994,6 +16991,13 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                               (Term.Apply (Term.UOp UserOp.bvudiv) y) x)) =
                         Term.Apply (Term.UOp UserOp.BitVec)
                           (Term.Numeral (native_nat_to_int w)) := by
+                    change
+                      __eo_typeof
+                          (__eo_ite
+                            (__eo_eq (__eo_to_z (__run_evaluate x))
+                              (Term.Numeral 0)) _ _) =
+                        Term.Apply (Term.UOp UserOp.BitVec)
+                          (Term.Numeral (native_nat_to_int w))
                     rcases eo_ite_selected_nonstuck_of_nonstuck
                         _ _ _ hRunDivNe with
                       ⟨b, hCond, hSel⟩
@@ -17062,7 +17066,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                             (Term.Apply (Term.UOp UserOp.bvudiv) y) x)) =
                       __eo_typeof_bvand (__eo_typeof y) (__eo_typeof x)
                   rw [hRunBodyTy, hRhsTy]
-                case bvurem =>
+                | bvurem =>
                   have hBvUremNN :
                       term_has_non_none_type
                         (SmtTerm.bvurem (__eo_to_smt y)
@@ -17100,6 +17104,13 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                               (Term.Apply (Term.UOp UserOp.bvurem) y) x)) =
                         Term.Apply (Term.UOp UserOp.BitVec)
                           (Term.Numeral (native_nat_to_int w)) := by
+                    change
+                      __eo_typeof
+                          (__eo_ite
+                            (__eo_eq (__eo_to_z (__run_evaluate x))
+                              (Term.Numeral 0)) _ _) =
+                        Term.Apply (Term.UOp UserOp.BitVec)
+                          (Term.Numeral (native_nat_to_int w))
                     rcases eo_ite_selected_nonstuck_of_nonstuck
                         _ _ _ hRunRemNe with
                       ⟨b, hCond, hSel⟩
@@ -17164,7 +17175,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                             (Term.Apply (Term.UOp UserOp.bvurem) y) x)) =
                       __eo_typeof_bvand (__eo_typeof y) (__eo_typeof x)
                   rw [hRunBodyTy, hRhsTy]
-                case bvult =>
+                | bvult =>
                   have hBvUltNN :
                       term_has_non_none_type
                         (SmtTerm.bvult (__eo_to_smt y)
@@ -17200,7 +17211,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                           (__eo_to_z (__run_evaluate y))) =
                       __eo_typeof_bvult (__eo_typeof y) (__eo_typeof x)
                   rw [hRunBodyTy, hRhsTy]
-                case bvugt =>
+                | bvugt =>
                   have hBvUgtNN :
                       term_has_non_none_type
                         (SmtTerm.bvugt (__eo_to_smt y)
@@ -17236,7 +17247,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                           (__eo_to_z (__run_evaluate x))) =
                       __eo_typeof_bvult (__eo_typeof y) (__eo_typeof x)
                   rw [hRunBodyTy, hRhsTy]
-                case bvule =>
+                | bvule =>
                   have hBvUleNN :
                       term_has_non_none_type
                         (SmtTerm.bvule (__eo_to_smt y)
@@ -17279,7 +17290,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                         (__eo_or (__eo_gt rx ry) (__eo_eq ry rx)) =
                       __eo_typeof_bvult (__eo_typeof y) (__eo_typeof x)
                   rw [hRunBodyTy, hRhsTy]
-                case bvuge =>
+                | bvuge =>
                   have hBvUgeNN :
                       term_has_non_none_type
                         (SmtTerm.bvuge (__eo_to_smt y)
@@ -17322,7 +17333,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                         (__eo_or (__eo_gt ry rx) (__eo_eq ry rx)) =
                       __eo_typeof_bvult (__eo_typeof y) (__eo_typeof x)
                   rw [hRunBodyTy, hRhsTy]
-                case bvslt =>
+                | bvslt =>
                   have hBvSltNN :
                       term_has_non_none_type
                         (SmtTerm.bvslt (__eo_to_smt y)
@@ -17362,7 +17373,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                             (Term.Apply (Term.UOp UserOp.bvslt) y) x)) =
                       __eo_typeof_bvult (__eo_typeof y) (__eo_typeof x)
                   rw [hRunBodyTy, hRhsTy]
-                case bvsle =>
+                | bvsle =>
                   have hBvSleNN :
                       term_has_non_none_type
                         (SmtTerm.bvsle (__eo_to_smt y)
@@ -17411,7 +17422,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                             (Term.Apply (Term.UOp UserOp.bvsle) y) x)) =
                       __eo_typeof_bvult (__eo_typeof y) (__eo_typeof x)
                   rw [hRunBodyTy, hRhsTy]
-                case bvsgt =>
+                | bvsgt =>
                   have hBvSgtNN :
                       term_has_non_none_type
                         (SmtTerm.bvsgt (__eo_to_smt y)
@@ -17451,7 +17462,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                             (Term.Apply (Term.UOp UserOp.bvsgt) y) x)) =
                       __eo_typeof_bvult (__eo_typeof y) (__eo_typeof x)
                   rw [hRunBodyTy, hRhsTy]
-                case bvsge =>
+                | bvsge =>
                   have hBvSgeNN :
                       term_has_non_none_type
                         (SmtTerm.bvsge (__eo_to_smt y)
@@ -17500,7 +17511,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                             (Term.Apply (Term.UOp UserOp.bvsge) y) x)) =
                       __eo_typeof_bvult (__eo_typeof y) (__eo_typeof x)
                   rw [hRunBodyTy, hRhsTy]
-                case bvshl =>
+                | bvshl =>
                   have hBvShlNN :
                       term_has_non_none_type
                         (SmtTerm.bvshl (__eo_to_smt y)
@@ -17558,7 +17569,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                             (Term.Apply (Term.UOp UserOp.bvshl) y) x)) =
                       __eo_typeof_bvand (__eo_typeof y) (__eo_typeof x)
                   rw [hRunBodyTy, hRhsTy]
-                case bvlshr =>
+                | bvlshr =>
                   have hBvLshrNN :
                       term_has_non_none_type
                         (SmtTerm.bvlshr (__eo_to_smt y)
@@ -17616,7 +17627,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                             (Term.Apply (Term.UOp UserOp.bvlshr) y) x)) =
                       __eo_typeof_bvand (__eo_typeof y) (__eo_typeof x)
                   rw [hRunBodyTy, hRhsTy]
-                case bvashr =>
+                | bvashr =>
                   have hBvAshrNN :
                       term_has_non_none_type
                         (SmtTerm.bvashr (__eo_to_smt y)
@@ -17671,7 +17682,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                             (Term.Apply (Term.UOp UserOp.bvashr) y) x)) =
                       __eo_typeof_bvand (__eo_typeof y) (__eo_typeof x)
                   rw [hRunBodyTy, hRhsTy]
-                case str_concat =>
+                | str_concat =>
                   have hConcatNN :
                       term_has_non_none_type
                         (SmtTerm.str_concat (__eo_to_smt y)
@@ -17716,9 +17727,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       Term.Apply (Term.UOp UserOp.Seq) UY =
                         Term.Apply (Term.UOp UserOp.Seq) UX := by
                     apply eo_to_smt_type_eq_of_top_valid hYSeqValid
-                    change SmtType.Seq (__eo_to_smt_type UY) =
-                      SmtType.Seq (__eo_to_smt_type UX)
-                    rw [hUYSmt, hUXSmt]
+                    simp [__eo_to_smt_type, hUYSmt, hUXSmt]
                   cases hSeqEq
                   have hYPres :=
                     run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
@@ -17751,7 +17760,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   rw [hRunBodyTy, hYEoSeq, hXEoSeq]
                   simp [__eo_typeof_str_concat, __eo_requires, __eo_eq,
                     native_ite, native_teq, native_not]
-                case str_at =>
+                | str_at =>
                   have hAtNN :
                       term_has_non_none_type
                         (SmtTerm.str_at (__eo_to_smt y)
@@ -17808,7 +17817,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       __eo_typeof_str_at (__eo_typeof y)
                         (__eo_typeof x)
                   rw [hRunBodyTy, hYEoSeq, hXEoInt]
-                case str_prefixof =>
+                | str_prefixof =>
                   have hPrefixNN :
                       term_has_non_none_type
                         (SmtTerm.str_prefixof (__eo_to_smt y)
@@ -17863,7 +17872,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   rw [hRunBodyTy, hYEoChar, hXEoChar]
                   simp [__eo_typeof_str_contains, __eo_requires,
                     __eo_eq, native_ite, native_teq, native_not]
-                case str_suffixof =>
+                | str_suffixof =>
                   have hSuffixNN :
                       term_has_non_none_type
                         (SmtTerm.str_suffixof (__eo_to_smt y)
@@ -17927,7 +17936,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   rw [hRunBodyTy, hYEoChar, hXEoChar]
                   simp [__eo_typeof_str_contains, __eo_requires,
                     __eo_eq, native_ite, native_teq, native_not]
-                case str_contains =>
+                | str_contains =>
                   have hContainsNN :
                       term_has_non_none_type
                         (SmtTerm.str_contains (__eo_to_smt y)
@@ -17995,7 +18004,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   rw [hRunBodyTy, hYEoSeq, hXEoSeq]
                   simp [__eo_typeof_str_contains, __eo_requires,
                     __eo_eq, native_ite, native_teq, native_not]
-                case str_leq =>
+                | str_leq =>
                   have hLeqNN :
                       term_has_non_none_type
                         (SmtTerm.str_leq (__eo_to_smt y)
@@ -18102,13 +18111,13 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       __eo_typeof_str_lt (__eo_typeof y) (__eo_typeof x)
                   rw [hRunBodyTy, hYEoChar, hXEoChar]
                   rfl
-                all_goals
+                | _ =>
                   exact False.elim (hRun rfl)
             | _ =>
                 exact False.elim (hRun rfl)
         | UOp1 op n =>
-            cases op
-            case «repeat» =>
+            cases op with
+            | «repeat» =>
               have hRepeatNN :
                   term_has_non_none_type
                     (SmtTerm.repeat (__eo_to_smt n) (__eo_to_smt x)) := by
@@ -18169,7 +18178,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                 __eo_is_neg, __eo_not, __eo_and, __eo_ite, native_ite,
                 native_teq, native_and, native_not, SmtEval.native_not,
                 hiNotNeg, hXEoBv] using hRunBodyTy
-            case zero_extend =>
+            | zero_extend =>
               have hZeroNN :
                   term_has_non_none_type
                     (SmtTerm.zero_extend (__eo_to_smt n)
@@ -18228,7 +18237,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   (__eo_to_z (__run_evaluate x)) hRunZeroNe'
               simpa [__run_evaluate, hXEoBv, hRunXBv, __bv_bitwidth,
                 __eo_add] using hRunBodyTy
-            case sign_extend =>
+            | sign_extend =>
               have hSignNN :
                   term_has_non_none_type
                     (SmtTerm.sign_extend (__eo_to_smt n)
@@ -18326,8 +18335,9 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                 eo_to_bin_typeof_bitvec_of_width_numeral_and_ne_stuck
                   (native_zplus (native_nat_to_int w) i) _ hRunSignNe'
               simpa [__run_evaluate, eo_eval_sign_extend_rhs, hXEoBv,
-                hRunXBv, __bv_bitwidth, __eo_add] using hRunBodyTy
-            case int_to_bv =>
+                hRunXBv, __bv_bitwidth, __eo_add,
+                __eo_typeof_zero_extend, __eo_mk_apply] using hRunBodyTy
+            | int_to_bv =>
               have hIntToBvNN :
                   term_has_non_none_type
                     (SmtTerm.int_to_bv (__eo_to_smt n)
@@ -18361,12 +18371,13 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       (Term.Numeral i) :=
                 eo_to_bin_typeof_bitvec_of_width_numeral_and_ne_stuck
                   i (__run_evaluate x) hRunToBvNe
-              simpa [__run_evaluate, hXEoInt] using hRunBodyTy
-            all_goals
+              simpa [__run_evaluate, hXEoInt, __eo_typeof_int_to_bv]
+                using hRunBodyTy
+            | _ =>
               exact False.elim (hRun rfl)
         | UOp2 op hi lo =>
-            cases op
-            case extract =>
+            cases op with
+            | extract =>
               have hExtNN :
                   term_has_non_none_type
                     (SmtTerm.extract (__eo_to_smt hi)
@@ -18424,7 +18435,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                 native_teq, native_not, native_zplus,
                 SmtEval.native_zplus, native_zneg,
                 SmtEval.native_zneg] using hRunBodyTy
-            all_goals
+            | _ =>
               exact False.elim (hRun rfl)
         | _ =>
             exact False.elim (hRun rfl)
