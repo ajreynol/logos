@@ -5134,9 +5134,275 @@ private theorem smtx_typeof_eo_to_smt_apply_apply_ternary_last_head_none
       cases h
     · intro s d i h
       cases h
-    · exact smtx_typeof_str_indexof_re_split_third_arg_none
-        (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt binders)
-        hBindersNone
+  · exact smtx_typeof_str_indexof_re_split_third_arg_none
+      (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt binders)
+      hBindersNone
+
+private theorem smtx_ternary_args_non_none_ite
+    (c t e : SmtTerm) :
+    __smtx_typeof (SmtTerm.ite c t e) ≠ SmtType.None ->
+      __smtx_typeof c ≠ SmtType.None ∧
+        __smtx_typeof t ≠ SmtType.None ∧
+        __smtx_typeof e ≠ SmtType.None := by
+  intro hNN
+  have hTerm : term_has_non_none_type (SmtTerm.ite c t e) := by
+    unfold term_has_non_none_type
+    exact hNN
+  rcases ite_args_of_non_none hTerm with ⟨T, hc, ht, he, hTNN⟩
+  exact
+    ⟨by rw [hc]; simp,
+      by
+        constructor
+        · rw [ht]
+          exact hTNN
+        · rw [he]
+          exact hTNN⟩
+
+private theorem smtx_ternary_args_non_none_bvite
+    (c t e : SmtTerm) :
+    __smtx_typeof
+        (SmtTerm.ite (SmtTerm.eq c (SmtTerm.Binary 1 1)) t e) ≠
+        SmtType.None ->
+      __smtx_typeof c ≠ SmtType.None ∧
+        __smtx_typeof t ≠ SmtType.None ∧
+        __smtx_typeof e ≠ SmtType.None := by
+  intro hNN
+  have hTerm :
+      term_has_non_none_type
+        (SmtTerm.ite (SmtTerm.eq c (SmtTerm.Binary 1 1)) t e) := by
+    unfold term_has_non_none_type
+    exact hNN
+  rcases ite_args_of_non_none hTerm with ⟨T, hCond, ht, he, hTNN⟩
+  have hCondNN :
+      __smtx_typeof (SmtTerm.eq c (SmtTerm.Binary 1 1)) ≠
+        SmtType.None := by
+    rw [hCond]
+    simp
+  exact
+    ⟨by
+        intro hc
+        exact hCondNN
+          (smtx_typeof_eq_first_arg_none c (SmtTerm.Binary 1 1) hc),
+      by
+        constructor
+        · rw [ht]
+          exact hTNN
+        · rw [he]
+          exact hTNN⟩
+
+private theorem smtx_ternary_args_non_none_store
+    (x y z : SmtTerm) :
+    __smtx_typeof (SmtTerm.store x y z) ≠ SmtType.None ->
+      __smtx_typeof x ≠ SmtType.None ∧
+        __smtx_typeof y ≠ SmtType.None ∧
+        __smtx_typeof z ≠ SmtType.None := by
+  intro hNN
+  have hTerm : term_has_non_none_type (SmtTerm.store x y z) := by
+    unfold term_has_non_none_type
+    exact hNN
+  rcases store_args_of_non_none hTerm with ⟨A, B, hx, _hy, _hz⟩
+  exact
+    ⟨by rw [hx]; simp,
+      by
+        constructor
+        · intro hy
+          exact hNN (smtx_typeof_store_second_arg_none x y z hy)
+        · intro hz
+          exact hNN (smtx_typeof_store_third_arg_none x y z hz)⟩
+
+private theorem smtx_ternary_args_non_none_str_substr
+    (x y z : SmtTerm) :
+    __smtx_typeof (SmtTerm.str_substr x y z) ≠ SmtType.None ->
+      __smtx_typeof x ≠ SmtType.None ∧
+        __smtx_typeof y ≠ SmtType.None ∧
+        __smtx_typeof z ≠ SmtType.None := by
+  intro hNN
+  have hTerm : term_has_non_none_type (SmtTerm.str_substr x y z) := by
+    unfold term_has_non_none_type
+    exact hNN
+  rcases str_substr_args_of_non_none hTerm with ⟨T, hx, hy, hz⟩
+  exact
+    ⟨by rw [hx]; simp,
+      by
+        constructor
+        · rw [hy]
+          simp
+        · rw [hz]
+          simp⟩
+
+private theorem smtx_ternary_args_non_none_str_replace
+    (x y z : SmtTerm) :
+    __smtx_typeof (SmtTerm.str_replace x y z) ≠ SmtType.None ->
+      __smtx_typeof x ≠ SmtType.None ∧
+        __smtx_typeof y ≠ SmtType.None ∧
+        __smtx_typeof z ≠ SmtType.None := by
+  intro hNN
+  have hTerm : term_has_non_none_type (SmtTerm.str_replace x y z) := by
+    unfold term_has_non_none_type
+    exact hNN
+  rcases
+      seq_triop_args_of_non_none (op := SmtTerm.str_replace)
+        (typeof_str_replace_eq x y z) hTerm with
+    ⟨T, hx, hy, hz⟩
+  exact
+    ⟨by rw [hx]; simp,
+      by
+        constructor
+        · rw [hy]
+          simp
+        · rw [hz]
+          simp⟩
+
+private theorem smtx_ternary_args_non_none_str_indexof
+    (x y z : SmtTerm) :
+    __smtx_typeof (SmtTerm.str_indexof x y z) ≠ SmtType.None ->
+      __smtx_typeof x ≠ SmtType.None ∧
+        __smtx_typeof y ≠ SmtType.None ∧
+        __smtx_typeof z ≠ SmtType.None := by
+  intro hNN
+  have hTerm : term_has_non_none_type (SmtTerm.str_indexof x y z) := by
+    unfold term_has_non_none_type
+    exact hNN
+  rcases str_indexof_args_of_non_none hTerm with ⟨T, hx, hy, hz⟩
+  exact
+    ⟨by rw [hx]; simp,
+      by
+        constructor
+        · rw [hy]
+          simp
+        · rw [hz]
+          simp⟩
+
+private theorem smtx_ternary_args_non_none_str_update
+    (x y z : SmtTerm) :
+    __smtx_typeof (SmtTerm.str_update x y z) ≠ SmtType.None ->
+      __smtx_typeof x ≠ SmtType.None ∧
+        __smtx_typeof y ≠ SmtType.None ∧
+        __smtx_typeof z ≠ SmtType.None := by
+  intro hNN
+  have hTerm : term_has_non_none_type (SmtTerm.str_update x y z) := by
+    unfold term_has_non_none_type
+    exact hNN
+  rcases str_update_args_of_non_none hTerm with ⟨T, hx, hy, hz⟩
+  exact
+    ⟨by rw [hx]; simp,
+      by
+        constructor
+        · rw [hy]
+          simp
+        · rw [hz]
+          simp⟩
+
+private theorem smtx_ternary_args_non_none_str_replace_all
+    (x y z : SmtTerm) :
+    __smtx_typeof (SmtTerm.str_replace_all x y z) ≠ SmtType.None ->
+      __smtx_typeof x ≠ SmtType.None ∧
+        __smtx_typeof y ≠ SmtType.None ∧
+        __smtx_typeof z ≠ SmtType.None := by
+  intro hNN
+  have hTerm : term_has_non_none_type (SmtTerm.str_replace_all x y z) := by
+    unfold term_has_non_none_type
+    exact hNN
+  rcases
+      seq_triop_args_of_non_none (op := SmtTerm.str_replace_all)
+        (typeof_str_replace_all_eq x y z) hTerm with
+    ⟨T, hx, hy, hz⟩
+  exact
+    ⟨by rw [hx]; simp,
+      by
+        constructor
+        · rw [hy]
+          simp
+        · rw [hz]
+          simp⟩
+
+private theorem smtx_ternary_args_non_none_str_replace_re
+    (x y z : SmtTerm) :
+    __smtx_typeof (SmtTerm.str_replace_re x y z) ≠ SmtType.None ->
+      __smtx_typeof x ≠ SmtType.None ∧
+        __smtx_typeof y ≠ SmtType.None ∧
+        __smtx_typeof z ≠ SmtType.None := by
+  intro hNN
+  have hTerm : term_has_non_none_type (SmtTerm.str_replace_re x y z) := by
+    unfold term_has_non_none_type
+    exact hNN
+  have hArgs :=
+    str_replace_re_args_of_non_none (op := SmtTerm.str_replace_re)
+      (typeof_str_replace_re_eq x y z) hTerm
+  exact
+    ⟨by rw [hArgs.1]; simp,
+      by
+        constructor
+        · rw [hArgs.2.1]
+          simp
+        · rw [hArgs.2.2]
+          simp⟩
+
+private theorem smtx_ternary_args_non_none_str_replace_re_all
+    (x y z : SmtTerm) :
+    __smtx_typeof (SmtTerm.str_replace_re_all x y z) ≠
+        SmtType.None ->
+      __smtx_typeof x ≠ SmtType.None ∧
+        __smtx_typeof y ≠ SmtType.None ∧
+        __smtx_typeof z ≠ SmtType.None := by
+  intro hNN
+  have hTerm :
+      term_has_non_none_type (SmtTerm.str_replace_re_all x y z) := by
+    unfold term_has_non_none_type
+    exact hNN
+  have hArgs :=
+    str_replace_re_args_of_non_none (op := SmtTerm.str_replace_re_all)
+      (typeof_str_replace_re_all_eq x y z) hTerm
+  exact
+    ⟨by rw [hArgs.1]; simp,
+      by
+        constructor
+        · rw [hArgs.2.1]
+          simp
+        · rw [hArgs.2.2]
+          simp⟩
+
+private theorem smtx_ternary_args_non_none_str_indexof_re
+    (x y z : SmtTerm) :
+    __smtx_typeof (SmtTerm.str_indexof_re x y z) ≠ SmtType.None ->
+      __smtx_typeof x ≠ SmtType.None ∧
+        __smtx_typeof y ≠ SmtType.None ∧
+        __smtx_typeof z ≠ SmtType.None := by
+  intro hNN
+  have hTerm : term_has_non_none_type (SmtTerm.str_indexof_re x y z) := by
+    unfold term_has_non_none_type
+    exact hNN
+  have hArgs := str_indexof_re_args_of_non_none hTerm
+  exact
+    ⟨by rw [hArgs.1]; simp,
+      by
+        constructor
+        · rw [hArgs.2.1]
+          simp
+        · rw [hArgs.2.2]
+          simp⟩
+
+private theorem smtx_ternary_args_non_none_str_indexof_re_split
+    (x y z : SmtTerm) :
+    __smtx_typeof (SmtTerm.str_indexof_re_split x y z) ≠
+        SmtType.None ->
+      __smtx_typeof x ≠ SmtType.None ∧
+        __smtx_typeof y ≠ SmtType.None ∧
+        __smtx_typeof z ≠ SmtType.None := by
+  intro hNN
+  have hTerm :
+      term_has_non_none_type (SmtTerm.str_indexof_re_split x y z) := by
+    unfold term_has_non_none_type
+    exact hNN
+  have hArgs := str_indexof_re_split_args_of_non_none hTerm
+  exact
+    ⟨by rw [hArgs.1]; simp,
+      by
+        constructor
+        · rw [hArgs.2.1]
+          simp
+        · rw [hArgs.2.2]
+          simp⟩
 
 private theorem smtx_typeof_repeat_second_arg_none
     (n x : SmtTerm) :
@@ -11913,6 +12179,249 @@ private theorem smtx_model_eval_eo_to_smt_set_insert_eq_of_contains_atomic_false
   termination_by list
   exact go list M N hListRoot hRel hListScan hWholeNN hBaseEval
 
+private theorem typed_list_cons_type_parts
+    (x xs : Term)
+    (hNN :
+      __eo_to_smt_typed_list_elem_type
+          (Term.Apply
+            (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) x) xs) ≠
+        SmtType.None) :
+    __smtx_typeof (__eo_to_smt x) = __eo_to_smt_typed_list_elem_type xs ∧
+      __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ∧
+      __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None ∧
+      __eo_to_smt_typed_list_elem_type
+          (Term.Apply
+            (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) x) xs) =
+        __smtx_typeof (__eo_to_smt x) := by
+  let headTy := __smtx_typeof (__eo_to_smt x)
+  let tailTy := __eo_to_smt_typed_list_elem_type xs
+  have hEqBool : native_Teq headTy tailTy = true := by
+    cases hEq : native_Teq headTy tailTy <;>
+      simp [__eo_to_smt_typed_list_elem_type, headTy, tailTy, native_ite, hEq]
+        at hNN ⊢
+  have hHeadTail : headTy = tailTy := by
+    simpa [native_Teq] using hEqBool
+  have hHeadNN : headTy ≠ SmtType.None := by
+    intro hHeadNone
+    apply hNN
+    simp [__eo_to_smt_typed_list_elem_type, headTy, native_ite, hHeadNone]
+  have hTailNN : tailTy ≠ SmtType.None := by
+    rw [← hHeadTail]
+    exact hHeadNN
+  have hConsEq :
+      __eo_to_smt_typed_list_elem_type
+          (Term.Apply
+            (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) x) xs) =
+        headTy := by
+    simp [__eo_to_smt_typed_list_elem_type, headTy, tailTy, native_ite,
+      hEqBool]
+  exact ⟨hHeadTail, hHeadNN, hTailNN, hConsEq⟩
+
+private theorem smtx_model_eval_eo_to_smt_distinct_pairs_eq_of_contains_atomic_false
+    (root list xs bvs : Term) (s : SmtTerm) (M N : SmtModel)
+    (hListRoot : sizeOf list < sizeOf root)
+    (hRel : scannerModelRel xs bvs M N)
+    (hListScan :
+      __contains_atomic_term_list_free_rec list xs bvs =
+        Term.Boolean false)
+    (hElemNN : __eo_to_smt_typed_list_elem_type list ≠ SmtType.None)
+    (hSEval : __smtx_model_eval M s = __smtx_model_eval N s)
+    (hRec :
+      ∀ z : Term,
+        sizeOf z < sizeOf root ->
+        __contains_atomic_term_list_free_rec z xs bvs =
+          Term.Boolean false ->
+        __smtx_typeof (__eo_to_smt z) ≠ SmtType.None ->
+        ∀ M' N' : SmtModel,
+          scannerModelRel xs bvs M' N' ->
+          __smtx_model_eval M' (__eo_to_smt z) =
+            __smtx_model_eval N' (__eo_to_smt z)) :
+    __smtx_model_eval M (__eo_to_smt_distinct_pairs s list) =
+      __smtx_model_eval N (__eo_to_smt_distinct_pairs s list) := by
+  let rec go (list : Term) (M N : SmtModel)
+      (hListRoot : sizeOf list < sizeOf root)
+      (hRel : scannerModelRel xs bvs M N)
+      (hListScan :
+        __contains_atomic_term_list_free_rec list xs bvs =
+          Term.Boolean false)
+      (hElemNN : __eo_to_smt_typed_list_elem_type list ≠ SmtType.None)
+      (hSEval : __smtx_model_eval M s = __smtx_model_eval N s) :
+      __smtx_model_eval M (__eo_to_smt_distinct_pairs s list) =
+        __smtx_model_eval N (__eo_to_smt_distinct_pairs s list) := by
+    cases list <;> try
+      exact False.elim (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+    case Apply f tail =>
+      cases f <;> try
+        exact False.elim (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+      case UOp op =>
+        cases op <;> try
+          exact False.elim (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+        case _at__at_TypedList_nil =>
+          simpa [__eo_to_smt_distinct_pairs]
+      case Apply g head =>
+        cases g <;> try
+          exact False.elim (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+        case UOp op =>
+          cases op <;> try
+            exact False.elim (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+          case _at__at_TypedList_cons =>
+            rcases typed_list_cons_type_parts head tail hElemNN with
+              ⟨_hHeadTail, hHeadNN, hTailElemNN, _hConsEq⟩
+            have hConsNotBinder :
+                ∀ q x ys : Term,
+                  Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) head ≠
+                    Term.Apply q
+                      (Term.Apply (Term.Apply Term.__eo_List_cons x) ys) := by
+              intro q x ys h
+              cases h
+              exact hHeadNN (smtx_typeof_eo_to_smt_list_cons_none x ys)
+            rcases
+                contains_atomic_term_list_free_rec_apply_false_cases
+                  hConsNotBinder hListScan with
+              ⟨hHeadApplyScan, hTailScan⟩
+            rcases
+                contains_atomic_term_list_free_rec_uop_apply_false_cases
+                  hHeadApplyScan with
+              ⟨_hConsScan, hHeadScan⟩
+            have hHeadEval :
+                __smtx_model_eval M (__eo_to_smt head) =
+                  __smtx_model_eval N (__eo_to_smt head) :=
+              hRec head
+                (by
+                  simp at hListRoot
+                  omega)
+                hHeadScan hHeadNN M N hRel
+            have hTailEval :
+                __smtx_model_eval M
+                    (__eo_to_smt_distinct_pairs s tail) =
+                  __smtx_model_eval N
+                    (__eo_to_smt_distinct_pairs s tail) :=
+              go tail M N
+                (by
+                  simp at hListRoot
+                  omega)
+                hRel hTailScan hTailElemNN hSEval
+            change
+              __smtx_model_eval M
+                  (SmtTerm.and
+                    (SmtTerm.not (SmtTerm.eq s (__eo_to_smt head)))
+                    (__eo_to_smt_distinct_pairs s tail)) =
+                __smtx_model_eval N
+                  (SmtTerm.and
+                    (SmtTerm.not (SmtTerm.eq s (__eo_to_smt head)))
+                    (__eo_to_smt_distinct_pairs s tail))
+            exact
+              smtx_model_eval_and_eq_of_eval_eq
+                (smtx_model_eval_not_eq_of_eval_eq
+                  (smtx_model_eval_eq_eq_of_eval_eq hSEval hHeadEval))
+                hTailEval
+  termination_by list
+  exact go list M N hListRoot hRel hListScan hElemNN hSEval
+
+private theorem smtx_model_eval_eo_to_smt_distinct_eq_of_contains_atomic_false
+    (root list xs bvs : Term) (M N : SmtModel)
+    (hListRoot : sizeOf list < sizeOf root)
+    (hRel : scannerModelRel xs bvs M N)
+    (hListScan :
+      __contains_atomic_term_list_free_rec list xs bvs =
+        Term.Boolean false)
+    (hElemNN : __eo_to_smt_typed_list_elem_type list ≠ SmtType.None)
+    (hRec :
+      ∀ z : Term,
+        sizeOf z < sizeOf root ->
+        __contains_atomic_term_list_free_rec z xs bvs =
+          Term.Boolean false ->
+        __smtx_typeof (__eo_to_smt z) ≠ SmtType.None ->
+        ∀ M' N' : SmtModel,
+          scannerModelRel xs bvs M' N' ->
+          __smtx_model_eval M' (__eo_to_smt z) =
+            __smtx_model_eval N' (__eo_to_smt z)) :
+    __smtx_model_eval M (__eo_to_smt_distinct list) =
+      __smtx_model_eval N (__eo_to_smt_distinct list) := by
+  let rec go (list : Term) (M N : SmtModel)
+      (hListRoot : sizeOf list < sizeOf root)
+      (hRel : scannerModelRel xs bvs M N)
+      (hListScan :
+        __contains_atomic_term_list_free_rec list xs bvs =
+          Term.Boolean false)
+      (hElemNN : __eo_to_smt_typed_list_elem_type list ≠ SmtType.None) :
+      __smtx_model_eval M (__eo_to_smt_distinct list) =
+        __smtx_model_eval N (__eo_to_smt_distinct list) := by
+    cases list <;> try
+      exact False.elim (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+    case Apply f tail =>
+      cases f <;> try
+        exact False.elim (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+      case UOp op =>
+        cases op <;> try
+          exact False.elim (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+        case _at__at_TypedList_nil =>
+          simpa [__eo_to_smt_distinct]
+      case Apply g head =>
+        cases g <;> try
+          exact False.elim (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+        case UOp op =>
+          cases op <;> try
+            exact False.elim (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+          case _at__at_TypedList_cons =>
+            rcases typed_list_cons_type_parts head tail hElemNN with
+              ⟨_hHeadTail, hHeadNN, hTailElemNN, _hConsEq⟩
+            have hConsNotBinder :
+                ∀ q x ys : Term,
+                  Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) head ≠
+                    Term.Apply q
+                      (Term.Apply (Term.Apply Term.__eo_List_cons x) ys) := by
+              intro q x ys h
+              cases h
+              exact hHeadNN (smtx_typeof_eo_to_smt_list_cons_none x ys)
+            rcases
+                contains_atomic_term_list_free_rec_apply_false_cases
+                  hConsNotBinder hListScan with
+              ⟨hHeadApplyScan, hTailScan⟩
+            rcases
+                contains_atomic_term_list_free_rec_uop_apply_false_cases
+                  hHeadApplyScan with
+              ⟨_hConsScan, hHeadScan⟩
+            have hHeadEval :
+                __smtx_model_eval M (__eo_to_smt head) =
+                  __smtx_model_eval N (__eo_to_smt head) :=
+              hRec head
+                (by
+                  simp at hListRoot
+                  omega)
+                hHeadScan hHeadNN M N hRel
+            have hPairsEval :
+                __smtx_model_eval M
+                    (__eo_to_smt_distinct_pairs (__eo_to_smt head) tail) =
+                  __smtx_model_eval N
+                    (__eo_to_smt_distinct_pairs (__eo_to_smt head) tail) :=
+              smtx_model_eval_eo_to_smt_distinct_pairs_eq_of_contains_atomic_false
+                root tail xs bvs (__eo_to_smt head) M N
+                (by
+                  simp at hListRoot
+                  omega)
+                hRel hTailScan hTailElemNN hHeadEval hRec
+            have hTailEval :
+                __smtx_model_eval M (__eo_to_smt_distinct tail) =
+                  __smtx_model_eval N (__eo_to_smt_distinct tail) :=
+              go tail M N
+                (by
+                  simp at hListRoot
+                  omega)
+                hRel hTailScan hTailElemNN
+            change
+              __smtx_model_eval M
+                  (SmtTerm.and
+                    (__eo_to_smt_distinct_pairs (__eo_to_smt head) tail)
+                    (__eo_to_smt_distinct tail)) =
+                __smtx_model_eval N
+                  (SmtTerm.and
+                    (__eo_to_smt_distinct_pairs (__eo_to_smt head) tail)
+                    (__eo_to_smt_distinct tail))
+            exact smtx_model_eval_and_eq_of_eval_eq hPairsEval hTailEval
+  termination_by list
+  exact go list M N hListRoot hRel hListScan hElemNN
+
 private theorem smtx_model_eval_eq_of_remaining_direct_binary_apply
     (f a xs bvs : Term) (M N : SmtModel)
     (hRel : scannerModelRel xs bvs M N)
@@ -11937,7 +12446,85 @@ private theorem smtx_model_eval_eq_of_remaining_direct_binary_apply
         ∀ M' N' : SmtModel,
           scannerModelRel xs bvs M' N' ->
           __smtx_model_eval M' (__eo_to_smt a) =
-            __smtx_model_eval N' (__eo_to_smt a)) :
+            __smtx_model_eval N' (__eo_to_smt a))
+    (hFallback :
+      (¬ ∃ z, f = Term.Apply (Term.UOp UserOp.bvsrem) z) ->
+      (¬ ∃ z, f = Term.Apply (Term.UOp UserOp.bvsmod) z) ->
+      (¬ ∃ z, f = Term.Apply (Term.UOp UserOp.bvshl) z) ->
+      (¬ ∃ z, f = Term.Apply (Term.UOp UserOp.bvlshr) z) ->
+      (¬ ∃ z, f = Term.Apply (Term.UOp UserOp.bvashr) z) ->
+      (¬ ∃ z,
+        f = Term.Apply (Term.UOp UserOp.bvult) z ∨
+          f = Term.Apply (Term.UOp UserOp.bvule) z ∨
+          f = Term.Apply (Term.UOp UserOp.bvugt) z ∨
+          f = Term.Apply (Term.UOp UserOp.bvuge) z ∨
+          f = Term.Apply (Term.UOp UserOp.bvslt) z ∨
+          f = Term.Apply (Term.UOp UserOp.bvsle) z ∨
+          f = Term.Apply (Term.UOp UserOp.bvsgt) z ∨
+          f = Term.Apply (Term.UOp UserOp.bvsge) z) ->
+      (¬ ∃ z,
+        f = Term.Apply (Term.UOp UserOp.bvuaddo) z ∨
+          f = Term.Apply (Term.UOp UserOp.bvsaddo) z ∨
+          f = Term.Apply (Term.UOp UserOp.bvumulo) z ∨
+          f = Term.Apply (Term.UOp UserOp.bvsmulo) z ∨
+          f = Term.Apply (Term.UOp UserOp.bvusubo) z ∨
+          f = Term.Apply (Term.UOp UserOp.bvssubo) z ∨
+          f = Term.Apply (Term.UOp UserOp.bvsdivo) z) ->
+      (¬ ∃ z,
+        f = Term.Apply (Term.UOp UserOp.bvultbv) z ∨
+          f = Term.Apply (Term.UOp UserOp.bvsltbv) z) ->
+      (¬ ∃ z,
+        f = Term.Apply (Term.UOp UserOp.str_concat) z ∨
+          f = Term.Apply (Term.UOp UserOp.str_contains) z ∨
+          f = Term.Apply (Term.UOp UserOp.str_at) z ∨
+          f = Term.Apply (Term.UOp UserOp.str_prefixof) z ∨
+          f = Term.Apply (Term.UOp UserOp.str_suffixof) z ∨
+          f = Term.Apply (Term.UOp UserOp.str_lt) z ∨
+          f = Term.Apply (Term.UOp UserOp.str_leq) z) ->
+      (¬ ∃ z,
+        f = Term.Apply (Term.UOp UserOp.re_range) z ∨
+          f = Term.Apply (Term.UOp UserOp.re_concat) z ∨
+          f = Term.Apply (Term.UOp UserOp.re_inter) z ∨
+          f = Term.Apply (Term.UOp UserOp.re_union) z ∨
+          f = Term.Apply (Term.UOp UserOp.re_diff) z ∨
+          f = Term.Apply (Term.UOp UserOp.str_in_re) z ∨
+          f = Term.Apply (Term.UOp UserOp.seq_nth) z) ->
+      (¬ ∃ z,
+        f = Term.Apply (Term.UOp UserOp.set_union) z ∨
+          f = Term.Apply (Term.UOp UserOp.set_inter) z ∨
+          f = Term.Apply (Term.UOp UserOp.set_minus) z ∨
+          f = Term.Apply (Term.UOp UserOp.set_member) z ∨
+          f = Term.Apply (Term.UOp UserOp.set_subset) z) ->
+      (¬ ∃ z,
+        f = Term.Apply (Term.UOp UserOp.qdiv) z ∨
+          f = Term.Apply (Term.UOp UserOp.qdiv_total) z) ->
+      (¬ ∃ z, f = Term.Apply (Term.UOp UserOp._at_from_bools) z) ->
+      (¬ ∃ z,
+        f = Term.Apply (Term.UOp UserOp._at_array_deq_diff) z ∨
+          f = Term.Apply (Term.UOp UserOp._at_sets_deq_diff) z) ->
+      (¬ ∃ z,
+        f = Term.Apply (Term.UOp UserOp._at_strings_stoi_result) z ∨
+          f = Term.Apply (Term.UOp UserOp._at_strings_itos_result) z ∨
+          f = Term.Apply (Term.UOp UserOp._at_strings_num_occur) z) ->
+      (¬ ∃ z, f = Term.Apply (Term.UOp UserOp._at_strings_deq_diff) z) ->
+      (¬ ∃ z, f = Term.Apply (Term.UOp UserOp.set_insert) z) ->
+      (¬ ∃ y z,
+        f = Term.Apply (Term.Apply (Term.UOp UserOp.ite) y) z ∨
+          f = Term.Apply (Term.Apply (Term.UOp UserOp.bvite) y) z ∨
+          f = Term.Apply (Term.Apply (Term.UOp UserOp.store) y) z ∨
+          f = Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) y) z ∨
+          f = Term.Apply (Term.Apply (Term.UOp UserOp.str_replace) y) z ∨
+          f = Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof) y) z ∨
+          f = Term.Apply (Term.Apply (Term.UOp UserOp.str_update) y) z ∨
+          f = Term.Apply (Term.Apply (Term.UOp UserOp.str_replace_all) y) z ∨
+          f = Term.Apply (Term.Apply (Term.UOp UserOp.str_replace_re) y) z ∨
+          f =
+            Term.Apply (Term.Apply (Term.UOp UserOp.str_replace_re_all) y) z ∨
+          f = Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof_re) y) z ∨
+          f =
+            Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof_re_split) y) z) ->
+      __smtx_model_eval M (__eo_to_smt (Term.Apply f a)) =
+        __smtx_model_eval N (__eo_to_smt (Term.Apply f a))) :
     __smtx_model_eval M (__eo_to_smt (Term.Apply f a)) =
       __smtx_model_eval N (__eo_to_smt (Term.Apply f a)) := by
   have hBinaryDirect
@@ -12024,6 +12611,75 @@ private theorem smtx_model_eval_eq_of_remaining_direct_binary_apply
           rw [hToSmt]
           exact hNone)
         hZScan hFirst hSecond hEval
+  have hTernaryCase
+      (op : UserOp) (y z : Term)
+      (mk : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm)
+      (hF : f = Term.Apply (Term.Apply (Term.UOp op) y) z)
+      (hToSmt :
+        __eo_to_smt
+            (Term.Apply
+              (Term.Apply (Term.Apply (Term.UOp op) y) z) a) =
+          mk (__eo_to_smt y) (__eo_to_smt z) (__eo_to_smt a))
+      (hArgsNN :
+        __smtx_typeof
+            (mk (__eo_to_smt y) (__eo_to_smt z) (__eo_to_smt a)) ≠
+            SmtType.None ->
+          __smtx_typeof (__eo_to_smt y) ≠ SmtType.None ∧
+            __smtx_typeof (__eo_to_smt z) ≠ SmtType.None ∧
+            __smtx_typeof (__eo_to_smt a) ≠ SmtType.None)
+      (hEval :
+        __smtx_model_eval M (__eo_to_smt y) =
+            __smtx_model_eval N (__eo_to_smt y) ->
+          __smtx_model_eval M (__eo_to_smt z) =
+            __smtx_model_eval N (__eo_to_smt z) ->
+          __smtx_model_eval M (__eo_to_smt a) =
+            __smtx_model_eval N (__eo_to_smt a) ->
+          __smtx_model_eval M
+              (mk (__eo_to_smt y) (__eo_to_smt z) (__eo_to_smt a)) =
+            __smtx_model_eval N
+              (mk (__eo_to_smt y) (__eo_to_smt z) (__eo_to_smt a))) :
+      __smtx_model_eval M (__eo_to_smt (Term.Apply f a)) =
+        __smtx_model_eval N (__eo_to_smt (Term.Apply f a)) := by
+    subst f
+    have hWholeNN :
+        __smtx_typeof
+            (mk (__eo_to_smt y) (__eo_to_smt z) (__eo_to_smt a)) ≠
+          SmtType.None := by
+      intro hNone
+      apply hNN
+      rw [hToSmt]
+      exact hNone
+    rcases hArgsNN hWholeNN with ⟨hYNN, hZNN, hANN⟩
+    have hOuterNotBinder :
+        ∀ q x ys : Term,
+          Term.Apply (Term.UOp op) y ≠
+            Term.Apply q
+              (Term.Apply (Term.Apply Term.__eo_List_cons x) ys) := by
+      intro q x ys h
+      cases h
+      exact hYNN (smtx_typeof_eo_to_smt_list_cons_none x ys)
+    rcases
+        contains_atomic_term_list_free_rec_apply_false_cases
+          hOuterNotBinder hFScan with
+      ⟨hHeadScan, hZScan⟩
+    rcases
+        contains_atomic_term_list_free_rec_uop_apply_false_cases
+          hHeadScan with
+      ⟨_hOpScan, hYScan⟩
+    rw [hToSmt]
+    exact
+      hEval
+        (hRec y
+          (by
+            simp
+            omega)
+          hYScan hYNN M N hRel)
+        (hRec z
+          (by
+            simp
+            omega)
+          hZScan hZNN M N hRel)
+        (hARec hANN M N hRel)
   by_cases hFBvsrem :
       ∃ z,
         f =
@@ -13146,7 +13802,218 @@ private theorem smtx_model_eval_eq_of_remaining_direct_binary_apply
                                         hRel hZScan
                                         hInsertNN
                                         (hARec hANN M N hRel) hRec
-                                  · sorry
+                                  · by_cases hFTernary :
+                                      ∃ y z,
+                                        f =
+                                            Term.Apply
+                                              (Term.Apply
+                                                (Term.UOp UserOp.ite) y) z ∨
+                                          f =
+                                            Term.Apply
+                                              (Term.Apply
+                                                (Term.UOp UserOp.bvite) y) z ∨
+                                          f =
+                                            Term.Apply
+                                              (Term.Apply
+                                                (Term.UOp UserOp.store) y) z ∨
+                                          f =
+                                            Term.Apply
+                                              (Term.Apply
+                                                (Term.UOp UserOp.str_substr) y) z ∨
+                                          f =
+                                            Term.Apply
+                                              (Term.Apply
+                                                (Term.UOp UserOp.str_replace) y) z ∨
+                                          f =
+                                            Term.Apply
+                                              (Term.Apply
+                                                (Term.UOp UserOp.str_indexof) y) z ∨
+                                          f =
+                                            Term.Apply
+                                              (Term.Apply
+                                                (Term.UOp UserOp.str_update) y) z ∨
+                                          f =
+                                            Term.Apply
+                                              (Term.Apply
+                                                (Term.UOp UserOp.str_replace_all) y) z ∨
+                                          f =
+                                            Term.Apply
+                                              (Term.Apply
+                                                (Term.UOp UserOp.str_replace_re) y) z ∨
+                                          f =
+                                            Term.Apply
+                                              (Term.Apply
+                                                (Term.UOp
+                                                  UserOp.str_replace_re_all) y) z ∨
+                                          f =
+                                            Term.Apply
+                                              (Term.Apply
+                                                (Term.UOp UserOp.str_indexof_re) y) z ∨
+                                          f =
+                                            Term.Apply
+                                              (Term.Apply
+                                                (Term.UOp
+                                                  UserOp.str_indexof_re_split) y) z
+                                    · rcases hFTernary with
+                                        ⟨y, z,
+                                          hFIte | hFBvite | hFStore |
+                                          hFSubstr | hFReplace | hFIndexof |
+                                          hFUpdate | hFReplaceAll |
+                                          hFReplaceRe | hFReplaceReAll |
+                                          hFIndexofRe |
+                                          hFIndexofReSplit⟩
+                                      · exact
+                                          hTernaryCase UserOp.ite y z
+                                            SmtTerm.ite hFIte rfl
+                                            (smtx_ternary_args_non_none_ite
+                                              (__eo_to_smt y)
+                                              (__eo_to_smt z)
+                                              (__eo_to_smt a))
+                                            (by
+                                              intro hYEval hZEval hAEval
+                                              simpa [__smtx_model_eval,
+                                                hYEval, hZEval, hAEval])
+                                      · exact
+                                          hTernaryCase UserOp.bvite y z
+                                            (fun x y z =>
+                                              SmtTerm.ite
+                                                (SmtTerm.eq x
+                                                  (SmtTerm.Binary 1 1))
+                                                y z)
+                                            hFBvite rfl
+                                            (smtx_ternary_args_non_none_bvite
+                                              (__eo_to_smt y)
+                                              (__eo_to_smt z)
+                                              (__eo_to_smt a))
+                                            (by
+                                              intro hYEval hZEval hAEval
+                                              simpa [__smtx_model_eval,
+                                                hYEval, hZEval, hAEval])
+                                      · exact
+                                          hTernaryCase UserOp.store y z
+                                            SmtTerm.store hFStore rfl
+                                            (smtx_ternary_args_non_none_store
+                                              (__eo_to_smt y)
+                                              (__eo_to_smt z)
+                                              (__eo_to_smt a))
+                                            (by
+                                              intro hYEval hZEval hAEval
+                                              simpa [__smtx_model_eval,
+                                                hYEval, hZEval, hAEval])
+                                      · exact
+                                          hTernaryCase UserOp.str_substr y z
+                                            SmtTerm.str_substr hFSubstr rfl
+                                            (smtx_ternary_args_non_none_str_substr
+                                              (__eo_to_smt y)
+                                              (__eo_to_smt z)
+                                              (__eo_to_smt a))
+                                            (by
+                                              intro hYEval hZEval hAEval
+                                              simpa [__smtx_model_eval,
+                                                hYEval, hZEval, hAEval])
+                                      · exact
+                                          hTernaryCase UserOp.str_replace y z
+                                            SmtTerm.str_replace hFReplace rfl
+                                            (smtx_ternary_args_non_none_str_replace
+                                              (__eo_to_smt y)
+                                              (__eo_to_smt z)
+                                              (__eo_to_smt a))
+                                            (by
+                                              intro hYEval hZEval hAEval
+                                              simpa [__smtx_model_eval,
+                                                hYEval, hZEval, hAEval])
+                                      · exact
+                                          hTernaryCase UserOp.str_indexof y z
+                                            SmtTerm.str_indexof hFIndexof rfl
+                                            (smtx_ternary_args_non_none_str_indexof
+                                              (__eo_to_smt y)
+                                              (__eo_to_smt z)
+                                              (__eo_to_smt a))
+                                            (by
+                                              intro hYEval hZEval hAEval
+                                              simpa [__smtx_model_eval,
+                                                hYEval, hZEval, hAEval])
+                                      · exact
+                                          hTernaryCase UserOp.str_update y z
+                                            SmtTerm.str_update hFUpdate rfl
+                                            (smtx_ternary_args_non_none_str_update
+                                              (__eo_to_smt y)
+                                              (__eo_to_smt z)
+                                              (__eo_to_smt a))
+                                            (by
+                                              intro hYEval hZEval hAEval
+                                              simpa [__smtx_model_eval,
+                                                hYEval, hZEval, hAEval])
+                                      · exact
+                                          hTernaryCase UserOp.str_replace_all y z
+                                            SmtTerm.str_replace_all
+                                            hFReplaceAll rfl
+                                            (smtx_ternary_args_non_none_str_replace_all
+                                              (__eo_to_smt y)
+                                              (__eo_to_smt z)
+                                              (__eo_to_smt a))
+                                            (by
+                                              intro hYEval hZEval hAEval
+                                              simpa [__smtx_model_eval,
+                                                hYEval, hZEval, hAEval])
+                                      · exact
+                                          hTernaryCase UserOp.str_replace_re y z
+                                            SmtTerm.str_replace_re
+                                            hFReplaceRe rfl
+                                            (smtx_ternary_args_non_none_str_replace_re
+                                              (__eo_to_smt y)
+                                              (__eo_to_smt z)
+                                              (__eo_to_smt a))
+                                            (by
+                                              intro hYEval hZEval hAEval
+                                              simpa [__smtx_model_eval,
+                                                hYEval, hZEval, hAEval])
+                                      · exact
+                                          hTernaryCase
+                                            UserOp.str_replace_re_all y z
+                                            SmtTerm.str_replace_re_all
+                                            hFReplaceReAll rfl
+                                            (smtx_ternary_args_non_none_str_replace_re_all
+                                              (__eo_to_smt y)
+                                              (__eo_to_smt z)
+                                              (__eo_to_smt a))
+                                            (by
+                                              intro hYEval hZEval hAEval
+                                              simpa [__smtx_model_eval,
+                                                hYEval, hZEval, hAEval])
+                                      · exact
+                                          hTernaryCase UserOp.str_indexof_re y z
+                                            SmtTerm.str_indexof_re
+                                            hFIndexofRe rfl
+                                            (smtx_ternary_args_non_none_str_indexof_re
+                                              (__eo_to_smt y)
+                                              (__eo_to_smt z)
+                                              (__eo_to_smt a))
+                                            (by
+                                              intro hYEval hZEval hAEval
+                                              simpa [__smtx_model_eval,
+                                                hYEval, hZEval, hAEval])
+                                      · exact
+                                          hTernaryCase
+                                            UserOp.str_indexof_re_split y z
+                                            SmtTerm.str_indexof_re_split
+                                            hFIndexofReSplit rfl
+                                            (smtx_ternary_args_non_none_str_indexof_re_split
+                                              (__eo_to_smt y)
+                                              (__eo_to_smt z)
+                                              (__eo_to_smt a))
+                                            (by
+                                              intro hYEval hZEval hAEval
+                                              simpa [__smtx_model_eval,
+                                                hYEval, hZEval, hAEval])
+                                    · exact
+                                        hFallback hFBvsrem hFBvsmod hFBvshl
+                                          hFBvlshr hFBvashr hFCompare
+                                          hFOverflow hFPredToBv hFString
+                                          hFRegexSeq hFSet hFQdiv
+                                          hFFromBools hFDeqDiff
+                                          hFStringResult hFStringsDeqDiff
+                                          hFSetInsert hFTernary
 
 private theorem smtx_model_eval_eq_of_contains_atomic_false
     (t xs bvs : Term) :
@@ -20399,7 +21266,89 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                                                                                                   (__eo_to_smt z)
                                                                                                                                                                                                   (__eo_to_smt a))
                                                                                                                                                                                           simpa [__smtx_model_eval, hZEval, hAEval]
-                                                                                                                                                                                        · exact smtx_model_eval_eq_of_remaining_direct_binary_apply f a xs bvs M N hRel hFScan hNN (fun z hZLt hZScan hZNN M' N' hRel' => smtx_model_eval_eq_of_contains_atomic_false z xs bvs hBvsVar M' N' hRel' hZScan hZNN) (fun hANN M' N' hRel' => ihA hBvsVar M' N' hRel' hAScan hANN)
+                                                                                                                                                                                        · exact
+                                                                                                                                                                                            smtx_model_eval_eq_of_remaining_direct_binary_apply
+                                                                                                                                                                                              f a xs bvs M N hRel hFScan hNN
+                                                                                                                                                                                              (fun z _hZLt hZScan hZNN M' N' hRel' =>
+                                                                                                                                                                                                smtx_model_eval_eq_of_contains_atomic_false
+                                                                                                                                                                                                  z xs bvs hBvsVar M' N'
+                                                                                                                                                                                                  hRel' hZScan hZNN)
+                                                                                                                                                                                              (fun hANN M' N' hRel' =>
+                                                                                                                                                                                                ihA hBvsVar M' N' hRel'
+                                                                                                                                                                                                  hAScan hANN)
+                                                                                                                                                                                              (fun _hFBvsrem _hFBvsmod _hFBvshl
+                                                                                                                                                                                                  _hFBvlshr _hFBvashr _hFCompare
+                                                                                                                                                                                                  _hFOverflow _hFPredToBv _hFString
+                                                                                                                                                                                                  _hFRegexSeq _hFSet _hFQdiv
+                                                                                                                                                                                                  _hFFromBools _hFDeqDiff
+                                                                                                                                                                                                  _hFStringResult _hFStringsDeqDiff
+                                                                                                                                                                                                  _hFSetInsert _hFTernary => by
+                                                                                                                                                                                                by_cases hFDistinct :
+                                                                                                                                                                                                    f =
+                                                                                                                                                                                                      Term.UOp
+                                                                                                                                                                                                        UserOp.distinct
+                                                                                                                                                                                                · subst f
+                                                                                                                                                                                                  have hElemNN :
+                                                                                                                                                                                                      __eo_to_smt_typed_list_elem_type a ≠
+                                                                                                                                                                                                        SmtType.None := by
+                                                                                                                                                                                                    intro hElemNone
+                                                                                                                                                                                                    apply hNN
+                                                                                                                                                                                                    change
+                                                                                                                                                                                                      __smtx_typeof
+                                                                                                                                                                                                          (native_ite
+                                                                                                                                                                                                            (native_Teq
+                                                                                                                                                                                                              (__eo_to_smt_typed_list_elem_type a)
+                                                                                                                                                                                                              SmtType.None)
+                                                                                                                                                                                                            SmtTerm.None
+                                                                                                                                                                                                            (__eo_to_smt_distinct a)) =
+                                                                                                                                                                                                        SmtType.None
+                                                                                                                                                                                                    rw [hElemNone]
+                                                                                                                                                                                                    simp [native_ite, native_Teq,
+                                                                                                                                                                                                      TranslationProofs.smtx_typeof_none]
+                                                                                                                                                                                                  have hGuard :
+                                                                                                                                                                                                      native_Teq
+                                                                                                                                                                                                          (__eo_to_smt_typed_list_elem_type a)
+                                                                                                                                                                                                          SmtType.None =
+                                                                                                                                                                                                        false := by
+                                                                                                                                                                                                    cases hElem :
+                                                                                                                                                                                                        __eo_to_smt_typed_list_elem_type a <;>
+                                                                                                                                                                                                      simp [hElem] at hElemNN ⊢
+                                                                                                                                                                                                  change
+                                                                                                                                                                                                    __smtx_model_eval M
+                                                                                                                                                                                                        (native_ite
+                                                                                                                                                                                                          (native_Teq
+                                                                                                                                                                                                            (__eo_to_smt_typed_list_elem_type a)
+                                                                                                                                                                                                            SmtType.None)
+                                                                                                                                                                                                          SmtTerm.None
+                                                                                                                                                                                                          (__eo_to_smt_distinct a)) =
+                                                                                                                                                                                                      __smtx_model_eval N
+                                                                                                                                                                                                        (native_ite
+                                                                                                                                                                                                          (native_Teq
+                                                                                                                                                                                                            (__eo_to_smt_typed_list_elem_type a)
+                                                                                                                                                                                                            SmtType.None)
+                                                                                                                                                                                                          SmtTerm.None
+                                                                                                                                                                                                          (__eo_to_smt_distinct a))
+                                                                                                                                                                                                  rw [hGuard]
+                                                                                                                                                                                                  simp [native_ite]
+                                                                                                                                                                                                  exact
+                                                                                                                                                                                                    smtx_model_eval_eo_to_smt_distinct_eq_of_contains_atomic_false
+                                                                                                                                                                                                      (Term.Apply
+                                                                                                                                                                                                        (Term.UOp
+                                                                                                                                                                                                          UserOp.distinct)
+                                                                                                                                                                                                        a)
+                                                                                                                                                                                                      a xs bvs M N
+                                                                                                                                                                                                      (by
+                                                                                                                                                                                                        simp
+                                                                                                                                                                                                        omega)
+                                                                                                                                                                                                      hRel hAScan hElemNN
+                                                                                                                                                                                                      (fun z _hZLt hZScan hZNN M' N' hRel' =>
+                                                                                                                                                                                                        smtx_model_eval_eq_of_contains_atomic_false
+                                                                                                                                                                                                          z xs bvs hBvsVar M' N'
+                                                                                                                                                                                                          hRel' hZScan hZNN)
+                                                                                                                                                                                                · exfalso
+                                                                                                                                                                                                  clear hBvsVar hRel hScan hFScan hAScan ihF ihA M N
+                                                                                                                                                                                                  cases f <;>
+                                                                                                                                                                                                    simp_all only [__eo_to_smt])
   | case6 name T xs bvs hXs hBvs =>
       intro hBvsVar M N hRel hScan hNN
       cases name with
