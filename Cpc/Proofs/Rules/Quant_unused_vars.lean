@@ -11632,6 +11632,1104 @@ private theorem contains_atomic_term_list_free_rec_apply_false_cases
     (__contains_atomic_term_list_free_rec f xs bvs)
     (__contains_atomic_term_list_free_rec a xs bvs) hScan'
 
+private theorem smtx_model_eval_eq_of_remaining_direct_binary_apply
+    (f a xs bvs : Term) (M N : SmtModel)
+    (hRel : scannerModelRel xs bvs M N)
+    (hFScan :
+      __contains_atomic_term_list_free_rec f xs bvs =
+        Term.Boolean false)
+    (hNN :
+      __smtx_typeof (__eo_to_smt (Term.Apply f a)) ≠
+        SmtType.None)
+    (hRec :
+      ∀ z : Term,
+        __contains_atomic_term_list_free_rec z xs bvs =
+          Term.Boolean false ->
+        __smtx_typeof (__eo_to_smt z) ≠ SmtType.None ->
+        ∀ M' N' : SmtModel,
+          scannerModelRel xs bvs M' N' ->
+          __smtx_model_eval M' (__eo_to_smt z) =
+            __smtx_model_eval N' (__eo_to_smt z))
+    (hARec :
+      __smtx_typeof (__eo_to_smt a) ≠ SmtType.None ->
+        ∀ M' N' : SmtModel,
+          scannerModelRel xs bvs M' N' ->
+          __smtx_model_eval M' (__eo_to_smt a) =
+            __smtx_model_eval N' (__eo_to_smt a)) :
+    __smtx_model_eval M (__eo_to_smt (Term.Apply f a)) =
+      __smtx_model_eval N (__eo_to_smt (Term.Apply f a)) := by
+  have hBinaryDirect
+      (z : Term) (mk : SmtTerm -> SmtTerm -> SmtTerm)
+      (hWholeNN :
+        __smtx_typeof (mk (__eo_to_smt z) (__eo_to_smt a)) ≠
+          SmtType.None)
+      (hZScan :
+        __contains_atomic_term_list_free_rec z xs bvs =
+          Term.Boolean false)
+      (hFirst :
+        __smtx_typeof (__eo_to_smt z) = SmtType.None ->
+          __smtx_typeof (mk (__eo_to_smt z) (__eo_to_smt a)) =
+            SmtType.None)
+      (hSecond :
+        __smtx_typeof (__eo_to_smt a) = SmtType.None ->
+          __smtx_typeof (mk (__eo_to_smt z) (__eo_to_smt a)) =
+            SmtType.None)
+      (hEval :
+        __smtx_model_eval M (__eo_to_smt z) =
+            __smtx_model_eval N (__eo_to_smt z) ->
+          __smtx_model_eval M (__eo_to_smt a) =
+            __smtx_model_eval N (__eo_to_smt a) ->
+          __smtx_model_eval M
+              (mk (__eo_to_smt z) (__eo_to_smt a)) =
+            __smtx_model_eval N
+              (mk (__eo_to_smt z) (__eo_to_smt a))) :
+      __smtx_model_eval M
+          (mk (__eo_to_smt z) (__eo_to_smt a)) =
+        __smtx_model_eval N
+          (mk (__eo_to_smt z) (__eo_to_smt a)) := by
+    have hZNN :
+        __smtx_typeof (__eo_to_smt z) ≠ SmtType.None := by
+      intro hArgNone
+      exact hWholeNN (hFirst hArgNone)
+    have hANN :
+        __smtx_typeof (__eo_to_smt a) ≠ SmtType.None := by
+      intro hArgNone
+      exact hWholeNN (hSecond hArgNone)
+    exact hEval (hRec z hZScan hZNN M N hRel) (hARec hANN M N hRel)
+  have hBinaryCase
+      (op : UserOp) (z : Term)
+      (mk : SmtTerm -> SmtTerm -> SmtTerm)
+      (hF : f = Term.Apply (Term.UOp op) z)
+      (hToSmt :
+        __eo_to_smt (Term.Apply (Term.Apply (Term.UOp op) z) a) =
+          mk (__eo_to_smt z) (__eo_to_smt a))
+      (hFirst :
+        __smtx_typeof (__eo_to_smt z) = SmtType.None ->
+          __smtx_typeof (mk (__eo_to_smt z) (__eo_to_smt a)) =
+            SmtType.None)
+      (hSecond :
+        __smtx_typeof (__eo_to_smt a) = SmtType.None ->
+          __smtx_typeof (mk (__eo_to_smt z) (__eo_to_smt a)) =
+            SmtType.None)
+      (hEval :
+        __smtx_model_eval M (__eo_to_smt z) =
+            __smtx_model_eval N (__eo_to_smt z) ->
+          __smtx_model_eval M (__eo_to_smt a) =
+            __smtx_model_eval N (__eo_to_smt a) ->
+          __smtx_model_eval M
+              (mk (__eo_to_smt z) (__eo_to_smt a)) =
+            __smtx_model_eval N
+              (mk (__eo_to_smt z) (__eo_to_smt a))) :
+      __smtx_model_eval M (__eo_to_smt (Term.Apply f a)) =
+        __smtx_model_eval N (__eo_to_smt (Term.Apply f a)) := by
+    subst f
+    rcases contains_atomic_term_list_free_rec_apply_false_cases
+        hFScan with
+      ⟨_hHeadScan, hZScan⟩
+    rw [hToSmt]
+    exact
+      hBinaryDirect z mk
+        (by
+          intro hNone
+          apply hNN
+          rw [hToSmt]
+          exact hNone)
+        hZScan hFirst hSecond hEval
+  by_cases hFBvsrem :
+      ∃ z,
+        f =
+          Term.Apply
+            (Term.UOp UserOp.bvsrem)
+            z
+  · rcases hFBvsrem with ⟨z, hFBvsrem⟩
+    subst f
+    rcases contains_atomic_term_list_free_rec_apply_false_cases
+        hFScan with
+      ⟨_hBvsremHeadScan, hZScan⟩
+    change
+      __smtx_model_eval M
+          (SmtTerm.bvsrem (__eo_to_smt z) (__eo_to_smt a)) =
+        __smtx_model_eval N
+          (SmtTerm.bvsrem (__eo_to_smt z) (__eo_to_smt a))
+    exact
+      hBinaryDirect z SmtTerm.bvsrem
+        (by
+          intro hNone
+          apply hNN
+          change
+            __smtx_typeof
+                (SmtTerm.bvsrem (__eo_to_smt z) (__eo_to_smt a)) =
+              SmtType.None
+          exact hNone)
+        hZScan
+        (smtx_typeof_bvsrem_first_arg_none
+          (__eo_to_smt z) (__eo_to_smt a))
+        (smtx_typeof_bvsrem_second_arg_none
+          (__eo_to_smt z) (__eo_to_smt a))
+        (by
+          intro hZEval hAEval
+          simpa [__smtx_model_eval, hZEval, hAEval])
+  · by_cases hFBvsmod :
+      ∃ z,
+        f =
+          Term.Apply
+            (Term.UOp UserOp.bvsmod)
+            z
+    · rcases hFBvsmod with ⟨z, hFBvsmod⟩
+      subst f
+      rcases contains_atomic_term_list_free_rec_apply_false_cases
+          hFScan with
+        ⟨_hBvsmodHeadScan, hZScan⟩
+      change
+        __smtx_model_eval M
+            (SmtTerm.bvsmod (__eo_to_smt z) (__eo_to_smt a)) =
+          __smtx_model_eval N
+            (SmtTerm.bvsmod (__eo_to_smt z) (__eo_to_smt a))
+      exact
+        hBinaryDirect z SmtTerm.bvsmod
+          (by
+            intro hNone
+            apply hNN
+            change
+              __smtx_typeof
+                  (SmtTerm.bvsmod (__eo_to_smt z) (__eo_to_smt a)) =
+                SmtType.None
+            exact hNone)
+          hZScan
+          (smtx_typeof_bvsmod_first_arg_none
+            (__eo_to_smt z) (__eo_to_smt a))
+          (smtx_typeof_bvsmod_second_arg_none
+            (__eo_to_smt z) (__eo_to_smt a))
+          (by
+            intro hZEval hAEval
+            simpa [__smtx_model_eval, hZEval, hAEval])
+    · by_cases hFBvshl :
+        ∃ z,
+          f =
+            Term.Apply
+              (Term.UOp UserOp.bvshl)
+              z
+      · rcases hFBvshl with ⟨z, hFBvshl⟩
+        subst f
+        rcases contains_atomic_term_list_free_rec_apply_false_cases
+            hFScan with
+          ⟨_hBvshlHeadScan, hZScan⟩
+        change
+          __smtx_model_eval M
+              (SmtTerm.bvshl (__eo_to_smt z) (__eo_to_smt a)) =
+            __smtx_model_eval N
+              (SmtTerm.bvshl (__eo_to_smt z) (__eo_to_smt a))
+        exact
+          hBinaryDirect z SmtTerm.bvshl
+            (by
+              intro hNone
+              apply hNN
+              change
+                __smtx_typeof
+                    (SmtTerm.bvshl (__eo_to_smt z) (__eo_to_smt a)) =
+                  SmtType.None
+              exact hNone)
+            hZScan
+            (smtx_typeof_bvshl_first_arg_none
+              (__eo_to_smt z) (__eo_to_smt a))
+            (smtx_typeof_bvshl_second_arg_none
+              (__eo_to_smt z) (__eo_to_smt a))
+            (by
+              intro hZEval hAEval
+              simpa [__smtx_model_eval, hZEval, hAEval])
+      · by_cases hFBvlshr :
+          ∃ z,
+            f =
+              Term.Apply
+                (Term.UOp UserOp.bvlshr)
+                z
+        · rcases hFBvlshr with ⟨z, hFBvlshr⟩
+          subst f
+          rcases contains_atomic_term_list_free_rec_apply_false_cases
+              hFScan with
+            ⟨_hBvlshrHeadScan, hZScan⟩
+          change
+            __smtx_model_eval M
+                (SmtTerm.bvlshr (__eo_to_smt z) (__eo_to_smt a)) =
+              __smtx_model_eval N
+                (SmtTerm.bvlshr (__eo_to_smt z) (__eo_to_smt a))
+          exact
+            hBinaryDirect z SmtTerm.bvlshr
+              (by
+                intro hNone
+                apply hNN
+                change
+                  __smtx_typeof
+                      (SmtTerm.bvlshr (__eo_to_smt z)
+                        (__eo_to_smt a)) =
+                    SmtType.None
+                exact hNone)
+              hZScan
+              (smtx_typeof_bvlshr_first_arg_none
+                (__eo_to_smt z) (__eo_to_smt a))
+              (smtx_typeof_bvlshr_second_arg_none
+                (__eo_to_smt z) (__eo_to_smt a))
+              (by
+                intro hZEval hAEval
+                simpa [__smtx_model_eval, hZEval, hAEval])
+        · by_cases hFBvashr :
+            ∃ z,
+              f =
+                Term.Apply
+                  (Term.UOp UserOp.bvashr)
+                  z
+          · rcases hFBvashr with ⟨z, hFBvashr⟩
+            subst f
+            rcases contains_atomic_term_list_free_rec_apply_false_cases
+                hFScan with
+              ⟨_hBvashrHeadScan, hZScan⟩
+            change
+              __smtx_model_eval M
+                  (SmtTerm.bvashr (__eo_to_smt z) (__eo_to_smt a)) =
+                __smtx_model_eval N
+                  (SmtTerm.bvashr (__eo_to_smt z) (__eo_to_smt a))
+            exact
+              hBinaryDirect z SmtTerm.bvashr
+                (by
+                  intro hNone
+                  apply hNN
+                  change
+                    __smtx_typeof
+                        (SmtTerm.bvashr (__eo_to_smt z)
+                          (__eo_to_smt a)) =
+                      SmtType.None
+                  exact hNone)
+                hZScan
+                (smtx_typeof_bvashr_first_arg_none
+                  (__eo_to_smt z) (__eo_to_smt a))
+                (smtx_typeof_bvashr_second_arg_none
+                  (__eo_to_smt z) (__eo_to_smt a))
+                (by
+                  intro hZEval hAEval
+                  simpa [__smtx_model_eval, hZEval, hAEval])
+          · by_cases hFCompare :
+              ∃ z,
+                f = Term.Apply (Term.UOp UserOp.bvult) z ∨
+                  f = Term.Apply (Term.UOp UserOp.bvule) z ∨
+                  f = Term.Apply (Term.UOp UserOp.bvugt) z ∨
+                  f = Term.Apply (Term.UOp UserOp.bvuge) z ∨
+                  f = Term.Apply (Term.UOp UserOp.bvslt) z ∨
+                  f = Term.Apply (Term.UOp UserOp.bvsle) z ∨
+                  f = Term.Apply (Term.UOp UserOp.bvsgt) z ∨
+                  f = Term.Apply (Term.UOp UserOp.bvsge) z
+            · rcases hFCompare with
+                ⟨z, hFBvult | hFBvule | hFBvugt | hFBvuge |
+                  hFBvslt | hFBvsle | hFBvsgt | hFBvsge⟩
+              · exact
+                  hBinaryCase UserOp.bvult z SmtTerm.bvult
+                    hFBvult rfl
+                    (smtx_typeof_bvult_first_arg_none
+                      (__eo_to_smt z) (__eo_to_smt a))
+                    (smtx_typeof_bvult_second_arg_none
+                      (__eo_to_smt z) (__eo_to_smt a))
+                    (by
+                      intro hZEval hAEval
+                      simpa [__smtx_model_eval, hZEval, hAEval])
+              · exact
+                  hBinaryCase UserOp.bvule z SmtTerm.bvule
+                    hFBvule rfl
+                    (smtx_typeof_bvule_first_arg_none
+                      (__eo_to_smt z) (__eo_to_smt a))
+                    (smtx_typeof_bvule_second_arg_none
+                      (__eo_to_smt z) (__eo_to_smt a))
+                    (by
+                      intro hZEval hAEval
+                      simpa [__smtx_model_eval, hZEval, hAEval])
+              · exact
+                  hBinaryCase UserOp.bvugt z SmtTerm.bvugt
+                    hFBvugt rfl
+                    (smtx_typeof_bvugt_first_arg_none
+                      (__eo_to_smt z) (__eo_to_smt a))
+                    (smtx_typeof_bvugt_second_arg_none
+                      (__eo_to_smt z) (__eo_to_smt a))
+                    (by
+                      intro hZEval hAEval
+                      simpa [__smtx_model_eval, hZEval, hAEval])
+              · exact
+                  hBinaryCase UserOp.bvuge z SmtTerm.bvuge
+                    hFBvuge rfl
+                    (smtx_typeof_bvuge_first_arg_none
+                      (__eo_to_smt z) (__eo_to_smt a))
+                    (smtx_typeof_bvuge_second_arg_none
+                      (__eo_to_smt z) (__eo_to_smt a))
+                    (by
+                      intro hZEval hAEval
+                      simpa [__smtx_model_eval, hZEval, hAEval])
+              · exact
+                  hBinaryCase UserOp.bvslt z SmtTerm.bvslt
+                    hFBvslt rfl
+                    (smtx_typeof_bvslt_first_arg_none
+                      (__eo_to_smt z) (__eo_to_smt a))
+                    (smtx_typeof_bvslt_second_arg_none
+                      (__eo_to_smt z) (__eo_to_smt a))
+                    (by
+                      intro hZEval hAEval
+                      simpa [__smtx_model_eval, hZEval, hAEval])
+              · exact
+                  hBinaryCase UserOp.bvsle z SmtTerm.bvsle
+                    hFBvsle rfl
+                    (smtx_typeof_bvsle_first_arg_none
+                      (__eo_to_smt z) (__eo_to_smt a))
+                    (smtx_typeof_bvsle_second_arg_none
+                      (__eo_to_smt z) (__eo_to_smt a))
+                    (by
+                      intro hZEval hAEval
+                      simpa [__smtx_model_eval, hZEval, hAEval])
+              · exact
+                  hBinaryCase UserOp.bvsgt z SmtTerm.bvsgt
+                    hFBvsgt rfl
+                    (smtx_typeof_bvsgt_first_arg_none
+                      (__eo_to_smt z) (__eo_to_smt a))
+                    (smtx_typeof_bvsgt_second_arg_none
+                      (__eo_to_smt z) (__eo_to_smt a))
+                    (by
+                      intro hZEval hAEval
+                      simpa [__smtx_model_eval, hZEval, hAEval])
+              · exact
+                  hBinaryCase UserOp.bvsge z SmtTerm.bvsge
+                    hFBvsge rfl
+                    (smtx_typeof_bvsge_first_arg_none
+                      (__eo_to_smt z) (__eo_to_smt a))
+                    (smtx_typeof_bvsge_second_arg_none
+                      (__eo_to_smt z) (__eo_to_smt a))
+                    (by
+                      intro hZEval hAEval
+                      simpa [__smtx_model_eval, hZEval, hAEval])
+            · by_cases hFOverflow :
+                ∃ z,
+                  f = Term.Apply (Term.UOp UserOp.bvuaddo) z ∨
+                    f = Term.Apply (Term.UOp UserOp.bvsaddo) z ∨
+                    f = Term.Apply (Term.UOp UserOp.bvumulo) z ∨
+                    f = Term.Apply (Term.UOp UserOp.bvsmulo) z ∨
+                    f = Term.Apply (Term.UOp UserOp.bvusubo) z ∨
+                    f = Term.Apply (Term.UOp UserOp.bvssubo) z ∨
+                    f = Term.Apply (Term.UOp UserOp.bvsdivo) z
+              · rcases hFOverflow with
+                  ⟨z, hFBvuaddo | hFBvsaddo | hFBvumulo |
+                    hFBvsmulo | hFBvusubo | hFBvssubo | hFBvsdivo⟩
+                · exact
+                    hBinaryCase UserOp.bvuaddo z SmtTerm.bvuaddo
+                      hFBvuaddo rfl
+                      (smtx_typeof_bvuaddo_first_arg_none
+                        (__eo_to_smt z) (__eo_to_smt a))
+                      (smtx_typeof_bvuaddo_second_arg_none
+                        (__eo_to_smt z) (__eo_to_smt a))
+                      (by
+                        intro hZEval hAEval
+                        simpa [__smtx_model_eval, hZEval, hAEval])
+                · exact
+                    hBinaryCase UserOp.bvsaddo z SmtTerm.bvsaddo
+                      hFBvsaddo rfl
+                      (smtx_typeof_bvsaddo_first_arg_none
+                        (__eo_to_smt z) (__eo_to_smt a))
+                      (smtx_typeof_bvsaddo_second_arg_none
+                        (__eo_to_smt z) (__eo_to_smt a))
+                      (by
+                        intro hZEval hAEval
+                        simpa [__smtx_model_eval, hZEval, hAEval])
+                · exact
+                    hBinaryCase UserOp.bvumulo z SmtTerm.bvumulo
+                      hFBvumulo rfl
+                      (smtx_typeof_bvumulo_first_arg_none
+                        (__eo_to_smt z) (__eo_to_smt a))
+                      (smtx_typeof_bvumulo_second_arg_none
+                        (__eo_to_smt z) (__eo_to_smt a))
+                      (by
+                        intro hZEval hAEval
+                        simpa [__smtx_model_eval, hZEval, hAEval])
+                · exact
+                    hBinaryCase UserOp.bvsmulo z SmtTerm.bvsmulo
+                      hFBvsmulo rfl
+                      (smtx_typeof_bvsmulo_first_arg_none
+                        (__eo_to_smt z) (__eo_to_smt a))
+                      (smtx_typeof_bvsmulo_second_arg_none
+                        (__eo_to_smt z) (__eo_to_smt a))
+                      (by
+                        intro hZEval hAEval
+                        simpa [__smtx_model_eval, hZEval, hAEval])
+                · exact
+                    hBinaryCase UserOp.bvusubo z SmtTerm.bvusubo
+                      hFBvusubo rfl
+                      (smtx_typeof_bvusubo_first_arg_none
+                        (__eo_to_smt z) (__eo_to_smt a))
+                      (smtx_typeof_bvusubo_second_arg_none
+                        (__eo_to_smt z) (__eo_to_smt a))
+                      (by
+                        intro hZEval hAEval
+                        simpa [__smtx_model_eval, hZEval, hAEval])
+                · exact
+                    hBinaryCase UserOp.bvssubo z SmtTerm.bvssubo
+                      hFBvssubo rfl
+                      (smtx_typeof_bvssubo_first_arg_none
+                        (__eo_to_smt z) (__eo_to_smt a))
+                      (smtx_typeof_bvssubo_second_arg_none
+                        (__eo_to_smt z) (__eo_to_smt a))
+                      (by
+                        intro hZEval hAEval
+                        simpa [__smtx_model_eval, hZEval, hAEval])
+                · exact
+                    hBinaryCase UserOp.bvsdivo z SmtTerm.bvsdivo
+                      hFBvsdivo rfl
+                      (smtx_typeof_bvsdivo_first_arg_none
+                        (__eo_to_smt z) (__eo_to_smt a))
+                      (smtx_typeof_bvsdivo_second_arg_none
+                        (__eo_to_smt z) (__eo_to_smt a))
+                      (by
+                        intro hZEval hAEval
+                        simpa [__smtx_model_eval, hZEval, hAEval])
+              · by_cases hFPredToBv :
+                  ∃ z,
+                    f = Term.Apply (Term.UOp UserOp.bvultbv) z ∨
+                      f = Term.Apply (Term.UOp UserOp.bvsltbv) z
+                · rcases hFPredToBv with
+                    ⟨z, hFBvultbv | hFBvsltbv⟩
+                  · exact
+                      hBinaryCase UserOp.bvultbv z
+                        (fun x y =>
+                          SmtTerm.ite (SmtTerm.bvult x y)
+                            (SmtTerm.Binary 1 1) (SmtTerm.Binary 1 0))
+                        hFBvultbv rfl
+                        (by
+                          intro hArgNone
+                          apply smtx_typeof_ite_first_arg_none
+                          exact smtx_typeof_bvult_first_arg_none
+                            (__eo_to_smt z) (__eo_to_smt a) hArgNone)
+                        (by
+                          intro hArgNone
+                          apply smtx_typeof_ite_first_arg_none
+                          exact smtx_typeof_bvult_second_arg_none
+                            (__eo_to_smt z) (__eo_to_smt a) hArgNone)
+                        (by
+                          intro hZEval hAEval
+                          simpa [__smtx_model_eval, hZEval, hAEval])
+                  · exact
+                      hBinaryCase UserOp.bvsltbv z
+                        (fun x y =>
+                          SmtTerm.ite (SmtTerm.bvslt x y)
+                            (SmtTerm.Binary 1 1) (SmtTerm.Binary 1 0))
+                        hFBvsltbv rfl
+                        (by
+                          intro hArgNone
+                          apply smtx_typeof_ite_first_arg_none
+                          exact smtx_typeof_bvslt_first_arg_none
+                            (__eo_to_smt z) (__eo_to_smt a) hArgNone)
+                        (by
+                          intro hArgNone
+                          apply smtx_typeof_ite_first_arg_none
+                          exact smtx_typeof_bvslt_second_arg_none
+                            (__eo_to_smt z) (__eo_to_smt a) hArgNone)
+                        (by
+                          intro hZEval hAEval
+                          simpa [__smtx_model_eval, hZEval, hAEval])
+                · by_cases hFString :
+                    ∃ z,
+                      f = Term.Apply (Term.UOp UserOp.str_concat) z ∨
+                        f = Term.Apply (Term.UOp UserOp.str_contains) z ∨
+                        f = Term.Apply (Term.UOp UserOp.str_at) z ∨
+                        f = Term.Apply (Term.UOp UserOp.str_prefixof) z ∨
+                        f = Term.Apply (Term.UOp UserOp.str_suffixof) z ∨
+                        f = Term.Apply (Term.UOp UserOp.str_lt) z ∨
+                        f = Term.Apply (Term.UOp UserOp.str_leq) z
+                  · rcases hFString with
+                      ⟨z, hFStrConcat | hFStrContains | hFStrAt |
+                        hFStrPrefixof | hFStrSuffixof | hFStrLt |
+                        hFStrLeq⟩
+                    · exact
+                        hBinaryCase UserOp.str_concat z
+                          SmtTerm.str_concat hFStrConcat rfl
+                          (smtx_typeof_str_concat_first_arg_none
+                            (__eo_to_smt z) (__eo_to_smt a))
+                          (smtx_typeof_str_concat_second_arg_none
+                            (__eo_to_smt z) (__eo_to_smt a))
+                          (by
+                            intro hZEval hAEval
+                            simpa [__smtx_model_eval, hZEval, hAEval])
+                    · exact
+                        hBinaryCase UserOp.str_contains z
+                          SmtTerm.str_contains hFStrContains rfl
+                          (smtx_typeof_str_contains_first_arg_none
+                            (__eo_to_smt z) (__eo_to_smt a))
+                          (smtx_typeof_str_contains_second_arg_none
+                            (__eo_to_smt z) (__eo_to_smt a))
+                          (by
+                            intro hZEval hAEval
+                            simpa [__smtx_model_eval, hZEval, hAEval])
+                    · exact
+                        hBinaryCase UserOp.str_at z
+                          SmtTerm.str_at hFStrAt rfl
+                          (smtx_typeof_str_at_first_arg_none
+                            (__eo_to_smt z) (__eo_to_smt a))
+                          (smtx_typeof_str_at_second_arg_none
+                            (__eo_to_smt z) (__eo_to_smt a))
+                          (by
+                            intro hZEval hAEval
+                            simpa [__smtx_model_eval, hZEval, hAEval])
+                    · exact
+                        hBinaryCase UserOp.str_prefixof z
+                          SmtTerm.str_prefixof hFStrPrefixof rfl
+                          (smtx_typeof_str_prefixof_first_arg_none
+                            (__eo_to_smt z) (__eo_to_smt a))
+                          (smtx_typeof_str_prefixof_second_arg_none
+                            (__eo_to_smt z) (__eo_to_smt a))
+                          (by
+                            intro hZEval hAEval
+                            simpa [__smtx_model_eval, hZEval, hAEval])
+                    · exact
+                        hBinaryCase UserOp.str_suffixof z
+                          SmtTerm.str_suffixof hFStrSuffixof rfl
+                          (smtx_typeof_str_suffixof_first_arg_none
+                            (__eo_to_smt z) (__eo_to_smt a))
+                          (smtx_typeof_str_suffixof_second_arg_none
+                            (__eo_to_smt z) (__eo_to_smt a))
+                          (by
+                            intro hZEval hAEval
+                            simpa [__smtx_model_eval, hZEval, hAEval])
+                    · exact
+                        hBinaryCase UserOp.str_lt z
+                          SmtTerm.str_lt hFStrLt rfl
+                          (smtx_typeof_str_lt_first_arg_none
+                            (__eo_to_smt z) (__eo_to_smt a))
+                          (smtx_typeof_str_lt_second_arg_none
+                            (__eo_to_smt z) (__eo_to_smt a))
+                          (by
+                            intro hZEval hAEval
+                            simpa [__smtx_model_eval, hZEval, hAEval])
+                    · exact
+                        hBinaryCase UserOp.str_leq z
+                          SmtTerm.str_leq hFStrLeq rfl
+                          (smtx_typeof_str_leq_first_arg_none
+                            (__eo_to_smt z) (__eo_to_smt a))
+                          (smtx_typeof_str_leq_second_arg_none
+                            (__eo_to_smt z) (__eo_to_smt a))
+                          (by
+                            intro hZEval hAEval
+                            simpa [__smtx_model_eval, hZEval, hAEval])
+                  · by_cases hFRegexSeq :
+                      ∃ z,
+                        f = Term.Apply (Term.UOp UserOp.re_range) z ∨
+                          f = Term.Apply (Term.UOp UserOp.re_concat) z ∨
+                          f = Term.Apply (Term.UOp UserOp.re_inter) z ∨
+                          f = Term.Apply (Term.UOp UserOp.re_union) z ∨
+                          f = Term.Apply (Term.UOp UserOp.re_diff) z ∨
+                          f = Term.Apply (Term.UOp UserOp.str_in_re) z ∨
+                          f = Term.Apply (Term.UOp UserOp.seq_nth) z
+                    · rcases hFRegexSeq with
+                        ⟨z, hFReRange | hFReConcat | hFReInter |
+                          hFReUnion | hFReDiff | hFStrInRe | hFSeqNth⟩
+                      · exact
+                          hBinaryCase UserOp.re_range z
+                            SmtTerm.re_range hFReRange rfl
+                            (smtx_typeof_re_range_first_arg_none
+                              (__eo_to_smt z) (__eo_to_smt a))
+                            (smtx_typeof_re_range_second_arg_none
+                              (__eo_to_smt z) (__eo_to_smt a))
+                            (by
+                              intro hZEval hAEval
+                              simpa [__smtx_model_eval, hZEval, hAEval])
+                      · exact
+                          hBinaryCase UserOp.re_concat z
+                            SmtTerm.re_concat hFReConcat rfl
+                            (smtx_typeof_re_concat_first_arg_none
+                              (__eo_to_smt z) (__eo_to_smt a))
+                            (smtx_typeof_re_concat_second_arg_none
+                              (__eo_to_smt z) (__eo_to_smt a))
+                            (by
+                              intro hZEval hAEval
+                              simpa [__smtx_model_eval, hZEval, hAEval])
+                      · exact
+                          hBinaryCase UserOp.re_inter z
+                            SmtTerm.re_inter hFReInter rfl
+                            (smtx_typeof_re_inter_first_arg_none
+                              (__eo_to_smt z) (__eo_to_smt a))
+                            (smtx_typeof_re_inter_second_arg_none
+                              (__eo_to_smt z) (__eo_to_smt a))
+                            (by
+                              intro hZEval hAEval
+                              simpa [__smtx_model_eval, hZEval, hAEval])
+                      · exact
+                          hBinaryCase UserOp.re_union z
+                            SmtTerm.re_union hFReUnion rfl
+                            (smtx_typeof_re_union_first_arg_none
+                              (__eo_to_smt z) (__eo_to_smt a))
+                            (smtx_typeof_re_union_second_arg_none
+                              (__eo_to_smt z) (__eo_to_smt a))
+                            (by
+                              intro hZEval hAEval
+                              simpa [__smtx_model_eval, hZEval, hAEval])
+                      · exact
+                          hBinaryCase UserOp.re_diff z
+                            SmtTerm.re_diff hFReDiff rfl
+                            (smtx_typeof_re_diff_first_arg_none
+                              (__eo_to_smt z) (__eo_to_smt a))
+                            (smtx_typeof_re_diff_second_arg_none
+                              (__eo_to_smt z) (__eo_to_smt a))
+                            (by
+                              intro hZEval hAEval
+                              simpa [__smtx_model_eval, hZEval, hAEval])
+                      · exact
+                          hBinaryCase UserOp.str_in_re z
+                            SmtTerm.str_in_re hFStrInRe rfl
+                            (smtx_typeof_str_in_re_first_arg_none
+                              (__eo_to_smt z) (__eo_to_smt a))
+                            (smtx_typeof_str_in_re_second_arg_none
+                              (__eo_to_smt z) (__eo_to_smt a))
+                            (by
+                              intro hZEval hAEval
+                              simpa [__smtx_model_eval, hZEval, hAEval])
+                      · exact
+                          hBinaryCase UserOp.seq_nth z
+                            SmtTerm.seq_nth hFSeqNth rfl
+                            (smtx_typeof_seq_nth_first_arg_none
+                              (__eo_to_smt z) (__eo_to_smt a))
+                            (smtx_typeof_seq_nth_second_arg_none
+                              (__eo_to_smt z) (__eo_to_smt a))
+                            (by
+                              intro hZEval hAEval
+                              simpa [__smtx_model_eval, hZEval, hAEval])
+                    · by_cases hFSet :
+                        ∃ z,
+                          f = Term.Apply (Term.UOp UserOp.set_union) z ∨
+                            f = Term.Apply (Term.UOp UserOp.set_inter) z ∨
+                            f = Term.Apply (Term.UOp UserOp.set_minus) z ∨
+                            f = Term.Apply (Term.UOp UserOp.set_member) z ∨
+                            f = Term.Apply (Term.UOp UserOp.set_subset) z
+                      · rcases hFSet with
+                          ⟨z, hFSetUnion | hFSetInter | hFSetMinus |
+                            hFSetMember | hFSetSubset⟩
+                        · exact
+                            hBinaryCase UserOp.set_union z
+                              SmtTerm.set_union hFSetUnion rfl
+                              (smtx_typeof_set_union_first_arg_none
+                                (__eo_to_smt z) (__eo_to_smt a))
+                              (smtx_typeof_set_union_second_arg_none
+                                (__eo_to_smt z) (__eo_to_smt a))
+                              (by
+                                intro hZEval hAEval
+                                simpa [__smtx_model_eval, hZEval, hAEval])
+                        · exact
+                            hBinaryCase UserOp.set_inter z
+                              SmtTerm.set_inter hFSetInter rfl
+                              (smtx_typeof_set_inter_first_arg_none
+                                (__eo_to_smt z) (__eo_to_smt a))
+                              (smtx_typeof_set_inter_second_arg_none
+                                (__eo_to_smt z) (__eo_to_smt a))
+                              (by
+                                intro hZEval hAEval
+                                simpa [__smtx_model_eval, hZEval, hAEval])
+                        · exact
+                            hBinaryCase UserOp.set_minus z
+                              SmtTerm.set_minus hFSetMinus rfl
+                              (smtx_typeof_set_minus_first_arg_none
+                                (__eo_to_smt z) (__eo_to_smt a))
+                              (smtx_typeof_set_minus_second_arg_none
+                                (__eo_to_smt z) (__eo_to_smt a))
+                              (by
+                                intro hZEval hAEval
+                                simpa [__smtx_model_eval, hZEval, hAEval])
+                        · exact
+                            hBinaryCase UserOp.set_member z
+                              SmtTerm.set_member hFSetMember rfl
+                              (smtx_typeof_set_member_first_arg_none
+                                (__eo_to_smt z) (__eo_to_smt a))
+                              (smtx_typeof_set_member_second_arg_none
+                                (__eo_to_smt z) (__eo_to_smt a))
+                              (by
+                                intro hZEval hAEval
+                                simpa [__smtx_model_eval, hZEval, hAEval])
+                        · exact
+                            hBinaryCase UserOp.set_subset z
+                              SmtTerm.set_subset hFSetSubset rfl
+                              (smtx_typeof_set_subset_first_arg_none
+                                (__eo_to_smt z) (__eo_to_smt a))
+                              (smtx_typeof_set_subset_second_arg_none
+                                (__eo_to_smt z) (__eo_to_smt a))
+                              (by
+                                intro hZEval hAEval
+                                simpa [__smtx_model_eval, hZEval, hAEval])
+                      · by_cases hFQdiv :
+                          ∃ z,
+                            f = Term.Apply (Term.UOp UserOp.qdiv) z ∨
+                              f =
+                                Term.Apply (Term.UOp UserOp.qdiv_total) z
+                        · rcases hFQdiv with
+                            ⟨z, hFQdiv | hFQdivTotal⟩
+                          · exact
+                              hBinaryCase UserOp.qdiv z
+                                SmtTerm.qdiv hFQdiv rfl
+                                (smtx_typeof_qdiv_first_arg_none
+                                  (__eo_to_smt z) (__eo_to_smt a))
+                                (smtx_typeof_qdiv_second_arg_none
+                                  (__eo_to_smt z) (__eo_to_smt a))
+                                (by
+                                  intro hZEval hAEval
+                                  simpa [__smtx_model_eval, hZEval, hAEval,
+                                    hRel.globals.1 native_qdiv_by_zero_id
+                                      (SmtType.FunType SmtType.Real
+                                        SmtType.Real),
+                                    smtx_model_eval_apply_eq_of_globals
+                                      hRel.globals])
+                          · exact
+                              hBinaryCase UserOp.qdiv_total z
+                                SmtTerm.qdiv_total hFQdivTotal rfl
+                                (smtx_typeof_qdiv_total_first_arg_none
+                                  (__eo_to_smt z) (__eo_to_smt a))
+                                (smtx_typeof_qdiv_total_second_arg_none
+                                  (__eo_to_smt z) (__eo_to_smt a))
+                                (by
+                                  intro hZEval hAEval
+                                  simpa [__smtx_model_eval, hZEval, hAEval])
+                        · by_cases hFFromBools :
+                            ∃ z,
+                              f =
+                                Term.Apply
+                                  (Term.UOp UserOp._at_from_bools) z
+                          · rcases hFFromBools with
+                              ⟨z, hFFromBools⟩
+                            exact
+                              hBinaryCase UserOp._at_from_bools z
+                                (fun x y =>
+                                  SmtTerm.concat
+                                    (SmtTerm.ite x (SmtTerm.Binary 1 1)
+                                      (SmtTerm.Binary 1 0))
+                                    y)
+                                hFFromBools rfl
+                                (by
+                                  intro hArgNone
+                                  apply smtx_typeof_concat_first_arg_none
+                                  apply smtx_typeof_ite_first_arg_none
+                                  exact hArgNone)
+                                (by
+                                  intro hArgNone
+                                  exact
+                                    smtx_typeof_concat_second_arg_none
+                                      (SmtTerm.ite (__eo_to_smt z)
+                                        (SmtTerm.Binary 1 1)
+                                        (SmtTerm.Binary 1 0))
+                                      (__eo_to_smt a) hArgNone)
+                                (by
+                                  intro hZEval hAEval
+                                  simpa [__smtx_model_eval, hZEval, hAEval])
+                          · by_cases hFDeqDiff :
+                              ∃ z,
+                                f =
+                                    Term.Apply
+                                      (Term.UOp
+                                        UserOp._at_array_deq_diff) z ∨
+                                  f =
+                                    Term.Apply
+                                      (Term.UOp
+                                        UserOp._at_sets_deq_diff) z
+                            · rcases hFDeqDiff with
+                                ⟨z, hFArrayDeqDiff | hFSetsDeqDiff⟩
+                              · exact
+                                  hBinaryCase
+                                    UserOp._at_array_deq_diff z
+                                    (fun x y =>
+                                      __eo_to_smt_array_deq_diff x
+                                        (__smtx_typeof x) y
+                                        (__smtx_typeof y))
+                                    hFArrayDeqDiff rfl
+                                    (by
+                                      intro hArgNone
+                                      rw [hArgNone]
+                                      simp [__eo_to_smt_array_deq_diff])
+                                    (by
+                                      intro hArgNone
+                                      rw [hArgNone]
+                                      cases __smtx_typeof
+                                          (__eo_to_smt z) <;>
+                                        simp [__eo_to_smt_array_deq_diff])
+                                    (by
+                                      intro hZEval hAEval
+                                      cases __smtx_typeof
+                                          (__eo_to_smt z) <;>
+                                        cases __smtx_typeof
+                                          (__eo_to_smt a) <;>
+                                        simpa [__eo_to_smt_array_deq_diff,
+                                          __smtx_model_eval, hZEval,
+                                          hAEval])
+                              · exact
+                                  hBinaryCase
+                                    UserOp._at_sets_deq_diff z
+                                    (fun x y =>
+                                      __eo_to_smt_sets_deq_diff x
+                                        (__smtx_typeof x) y
+                                        (__smtx_typeof y))
+                                    hFSetsDeqDiff rfl
+                                    (by
+                                      intro hArgNone
+                                      rw [hArgNone]
+                                      simp [__eo_to_smt_sets_deq_diff])
+                                    (by
+                                      intro hArgNone
+                                      rw [hArgNone]
+                                      cases __smtx_typeof
+                                          (__eo_to_smt z) <;>
+                                        simp [__eo_to_smt_sets_deq_diff])
+                                    (by
+                                      intro hZEval hAEval
+                                      cases __smtx_typeof
+                                          (__eo_to_smt z) <;>
+                                        cases __smtx_typeof
+                                          (__eo_to_smt a) <;>
+                                        simpa [__eo_to_smt_sets_deq_diff,
+                                          __smtx_model_eval, hZEval,
+                                          hAEval])
+                            · by_cases hFStringResult :
+                                ∃ z,
+                                  f =
+                                      Term.Apply
+                                        (Term.UOp
+                                          UserOp._at_strings_stoi_result) z ∨
+                                    f =
+                                      Term.Apply
+                                        (Term.UOp
+                                          UserOp._at_strings_itos_result) z ∨
+                                    f =
+                                      Term.Apply
+                                        (Term.UOp
+                                          UserOp._at_strings_num_occur) z
+                              · rcases hFStringResult with
+                                  ⟨z, hFStoi | hFItos | hFNumOccur⟩
+                                · exact
+                                    hBinaryCase
+                                      UserOp._at_strings_stoi_result z
+                                      (fun x y =>
+                                        SmtTerm.str_to_int
+                                          (SmtTerm.str_substr x
+                                            (SmtTerm.Numeral 0) y))
+                                      hFStoi rfl
+                                      (by
+                                        intro hArgNone
+                                        apply smtx_typeof_str_to_int_arg_none
+                                        apply smtx_typeof_str_substr_first_arg_none
+                                        exact hArgNone)
+                                      (by
+                                        intro hArgNone
+                                        apply smtx_typeof_str_to_int_arg_none
+                                        apply smtx_typeof_str_substr_third_arg_none
+                                        exact hArgNone)
+                                      (by
+                                        intro hZEval hAEval
+                                        simpa [__smtx_model_eval, hZEval,
+                                          hAEval])
+                                · exact
+                                    hBinaryCase
+                                      UserOp._at_strings_itos_result z
+                                      (fun x y =>
+                                        SmtTerm.mod x
+                                          (SmtTerm.multmult
+                                            (SmtTerm.Numeral 10) y))
+                                      hFItos rfl
+                                      (by
+                                        intro hArgNone
+                                        exact
+                                          smtx_typeof_mod_first_arg_none
+                                            (__eo_to_smt z)
+                                            (SmtTerm.multmult
+                                              (SmtTerm.Numeral 10)
+                                              (__eo_to_smt a))
+                                            hArgNone)
+                                      (by
+                                        intro hArgNone
+                                        apply smtx_typeof_mod_second_arg_none
+                                        apply smtx_typeof_multmult_second_arg_none
+                                        exact hArgNone)
+                                      (by
+                                        intro hZEval hAEval
+                                        simpa [__smtx_model_eval, hZEval,
+                                          hAEval,
+                                          hRel.globals.1 native_mod_by_zero_id
+                                            (SmtType.FunType SmtType.Int
+                                              SmtType.Int),
+                                          smtx_model_eval_apply_eq_of_globals
+                                            hRel.globals])
+                                · exact
+                                    hBinaryCase
+                                      UserOp._at_strings_num_occur z
+                                      (fun x y =>
+                                        SmtTerm.div
+                                          (SmtTerm.neg (SmtTerm.str_len x)
+                                            (SmtTerm.str_len
+                                              (SmtTerm.str_replace_all x y
+                                                (SmtTerm.seq_empty
+                                                  (SmtType.Seq
+                                                    SmtType.Char)))))
+                                          (SmtTerm.str_len y))
+                                      hFNumOccur rfl
+                                      (by
+                                        intro hArgNone
+                                        apply smtx_typeof_div_first_arg_none
+                                        apply smtx_typeof_neg_first_arg_none
+                                        apply smtx_typeof_str_len_arg_none
+                                        exact hArgNone)
+                                      (by
+                                        intro hArgNone
+                                        apply smtx_typeof_div_second_arg_none
+                                        apply smtx_typeof_str_len_arg_none
+                                        exact hArgNone)
+                                      (by
+                                        intro hZEval hAEval
+                                        simpa [__smtx_model_eval, hZEval,
+                                          hAEval,
+                                          hRel.globals.1 native_div_by_zero_id
+                                            (SmtType.FunType SmtType.Int
+                                              SmtType.Int),
+                                          smtx_model_eval_apply_eq_of_globals
+                                            hRel.globals])
+                              · by_cases hFStringsDeqDiff :
+                                  ∃ z,
+                                    f =
+                                      Term.Apply
+                                        (Term.UOp
+                                          UserOp._at_strings_deq_diff) z
+                                · rcases hFStringsDeqDiff with
+                                    ⟨z, hFStringsDeqDiff⟩
+                                  subst f
+                                  rcases
+                                      contains_atomic_term_list_free_rec_apply_false_cases
+                                        hFScan with
+                                    ⟨_hStringsDeqDiffHeadScan, hZScan⟩
+                                  have hZNN :
+                                      __smtx_typeof (__eo_to_smt z) ≠
+                                        SmtType.None := by
+                                    intro hArgNone
+                                    apply hNN
+                                    exact
+                                      smtx_typeof_eo_to_smt_apply_apply_strings_deq_diff_head_none
+                                        z a hArgNone
+                                  have hANN :
+                                      __smtx_typeof (__eo_to_smt a) ≠
+                                        SmtType.None := by
+                                    intro hArgNone
+                                    apply hNN
+                                    change
+                                      __smtx_typeof
+                                          (SmtTerm.choice_nth
+                                            (native_string_lit "@x")
+                                            SmtType.Int
+                                            (SmtTerm.not
+                                              (SmtTerm.eq
+                                                (SmtTerm.str_substr
+                                                  (__eo_to_smt z)
+                                                  (SmtTerm.Var
+                                                    (native_string_lit "@x")
+                                                    SmtType.Int)
+                                                  (SmtTerm.Numeral 1))
+                                                (SmtTerm.str_substr
+                                                  (__eo_to_smt a)
+                                                  (SmtTerm.Var
+                                                    (native_string_lit "@x")
+                                                    SmtType.Int)
+                                                  (SmtTerm.Numeral 1))))
+                                            native_nat_zero) =
+                                        SmtType.None
+                                    apply smtx_typeof_choice_nth_body_none
+                                    apply smtx_typeof_not_arg_none
+                                    apply smtx_typeof_eq_second_arg_none
+                                    apply smtx_typeof_str_substr_first_arg_none
+                                    exact hArgNone
+                                  change
+                                    __smtx_model_eval M
+                                        (SmtTerm.choice_nth
+                                          (native_string_lit "@x") SmtType.Int
+                                          (SmtTerm.not
+                                            (SmtTerm.eq
+                                              (SmtTerm.str_substr
+                                                (__eo_to_smt z)
+                                                (SmtTerm.Var
+                                                  (native_string_lit "@x")
+                                                  SmtType.Int)
+                                                (SmtTerm.Numeral 1))
+                                              (SmtTerm.str_substr
+                                                (__eo_to_smt a)
+                                                (SmtTerm.Var
+                                                  (native_string_lit "@x")
+                                                  SmtType.Int)
+                                                (SmtTerm.Numeral 1))))
+                                          native_nat_zero) =
+                                      __smtx_model_eval N
+                                        (SmtTerm.choice_nth
+                                          (native_string_lit "@x") SmtType.Int
+                                          (SmtTerm.not
+                                            (SmtTerm.eq
+                                              (SmtTerm.str_substr
+                                                (__eo_to_smt z)
+                                                (SmtTerm.Var
+                                                  (native_string_lit "@x")
+                                                  SmtType.Int)
+                                                (SmtTerm.Numeral 1))
+                                              (SmtTerm.str_substr
+                                                (__eo_to_smt a)
+                                                (SmtTerm.Var
+                                                  (native_string_lit "@x")
+                                                  SmtType.Int)
+                                                (SmtTerm.Numeral 1))))
+                                          native_nat_zero)
+                                  rw [smtx_model_eval_choice_nth_eq_aux M,
+                                    smtx_model_eval_choice_nth_eq_aux N]
+                                  simp [nativeEvalTChoiceNthAux]
+                                  apply native_eval_tchoice_eq_of_body_eval_eq
+                                  intro v
+                                  have hRelPush :
+                                      scannerModelRel xs bvs
+                                        (native_model_push M
+                                          (native_string_lit "@x")
+                                          SmtType.Int v)
+                                        (native_model_push N
+                                          (native_string_lit "@x")
+                                          SmtType.Int v) :=
+                                    scannerModelRel_push_same xs bvs M N
+                                      (native_string_lit "@x") SmtType.Int v
+                                      hRel
+                                  have hZEval :
+                                      __smtx_model_eval
+                                          (native_model_push M
+                                            (native_string_lit "@x")
+                                            SmtType.Int v)
+                                          (__eo_to_smt z) =
+                                        __smtx_model_eval
+                                          (native_model_push N
+                                            (native_string_lit "@x")
+                                            SmtType.Int v)
+                                          (__eo_to_smt z) :=
+                                    hRec z hZScan hZNN
+                                      (native_model_push M
+                                        (native_string_lit "@x")
+                                        SmtType.Int v)
+                                      (native_model_push N
+                                        (native_string_lit "@x")
+                                        SmtType.Int v)
+                                      hRelPush
+                                  have hAEval :
+                                      __smtx_model_eval
+                                          (native_model_push M
+                                            (native_string_lit "@x")
+                                            SmtType.Int v)
+                                          (__eo_to_smt a) =
+                                        __smtx_model_eval
+                                          (native_model_push N
+                                            (native_string_lit "@x")
+                                            SmtType.Int v)
+                                          (__eo_to_smt a) :=
+                                    hARec hANN
+                                      (native_model_push M
+                                        (native_string_lit "@x")
+                                        SmtType.Int v)
+                                      (native_model_push N
+                                        (native_string_lit "@x")
+                                        SmtType.Int v)
+                                      hRelPush
+                                  simpa [__smtx_model_eval, hZEval, hAEval,
+                                    native_model_var_lookup,
+                                    native_model_push]
+                                · sorry
+
 private theorem smtx_model_eval_eq_of_contains_atomic_false
     (t xs bvs : Term) :
     eo_var_list bvs ->
@@ -16815,7 +17913,2072 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                                           (__eo_to_smt z)
                                                                                                                                           (__eo_to_smt a))
                                                                                                                                   simpa [__smtx_model_eval, hZEval, hAEval]
-                                                                                                                                · sorry
+                                                                                                                                · by_cases hFNeg :
+                                                                                                                                    ∃ z,
+                                                                                                                                      f =
+                                                                                                                                        Term.Apply
+                                                                                                                                          (Term.UOp
+                                                                                                                                            UserOp.neg)
+                                                                                                                                          z
+                                                                                                                                  · rcases hFNeg with
+                                                                                                                                      ⟨z, hFNeg⟩
+                                                                                                                                    subst f
+                                                                                                                                    rcases
+                                                                                                                                        contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                          hFScan with
+                                                                                                                                      ⟨_hNegHeadScan, hZScan⟩
+                                                                                                                                    have hZNN :
+                                                                                                                                        __smtx_typeof
+                                                                                                                                            (__eo_to_smt z) ≠
+                                                                                                                                          SmtType.None := by
+                                                                                                                                      intro hArgNone
+                                                                                                                                      apply hNN
+                                                                                                                                      change
+                                                                                                                                        __smtx_typeof
+                                                                                                                                            (SmtTerm.neg
+                                                                                                                                              (__eo_to_smt z)
+                                                                                                                                              (__eo_to_smt a)) =
+                                                                                                                                          SmtType.None
+                                                                                                                                      exact
+                                                                                                                                        smtx_typeof_neg_first_arg_none
+                                                                                                                                          (__eo_to_smt z)
+                                                                                                                                          (__eo_to_smt a)
+                                                                                                                                          hArgNone
+                                                                                                                                    have hANN :
+                                                                                                                                        __smtx_typeof
+                                                                                                                                            (__eo_to_smt a) ≠
+                                                                                                                                          SmtType.None := by
+                                                                                                                                      intro hArgNone
+                                                                                                                                      apply hNN
+                                                                                                                                      change
+                                                                                                                                        __smtx_typeof
+                                                                                                                                            (SmtTerm.neg
+                                                                                                                                              (__eo_to_smt z)
+                                                                                                                                              (__eo_to_smt a)) =
+                                                                                                                                          SmtType.None
+                                                                                                                                      exact
+                                                                                                                                        smtx_typeof_neg_second_arg_none
+                                                                                                                                          (__eo_to_smt z)
+                                                                                                                                          (__eo_to_smt a)
+                                                                                                                                          hArgNone
+                                                                                                                                    have hZEval :
+                                                                                                                                        __smtx_model_eval M
+                                                                                                                                            (__eo_to_smt z) =
+                                                                                                                                          __smtx_model_eval N
+                                                                                                                                            (__eo_to_smt z) :=
+                                                                                                                                      smtx_model_eval_eq_of_contains_atomic_false
+                                                                                                                                        z xs bvs hBvsVar M N
+                                                                                                                                        hRel hZScan hZNN
+                                                                                                                                    have hAEval :
+                                                                                                                                        __smtx_model_eval M
+                                                                                                                                            (__eo_to_smt a) =
+                                                                                                                                          __smtx_model_eval N
+                                                                                                                                            (__eo_to_smt a) :=
+                                                                                                                                      ihA hBvsVar M N hRel
+                                                                                                                                        hAScan hANN
+                                                                                                                                    change
+                                                                                                                                      __smtx_model_eval M
+                                                                                                                                          (SmtTerm.neg
+                                                                                                                                            (__eo_to_smt z)
+                                                                                                                                            (__eo_to_smt a)) =
+                                                                                                                                        __smtx_model_eval N
+                                                                                                                                          (SmtTerm.neg
+                                                                                                                                            (__eo_to_smt z)
+                                                                                                                                            (__eo_to_smt a))
+                                                                                                                                    simpa [__smtx_model_eval, hZEval, hAEval]
+                                                                                                                                  · by_cases hFMult :
+                                                                                                                                      ∃ z,
+                                                                                                                                        f =
+                                                                                                                                          Term.Apply
+                                                                                                                                            (Term.UOp
+                                                                                                                                              UserOp.mult)
+                                                                                                                                            z
+                                                                                                                                    · rcases hFMult with
+                                                                                                                                        ⟨z, hFMult⟩
+                                                                                                                                      subst f
+                                                                                                                                      rcases
+                                                                                                                                          contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                            hFScan with
+                                                                                                                                        ⟨_hMultHeadScan, hZScan⟩
+                                                                                                                                      have hZNN :
+                                                                                                                                          __smtx_typeof
+                                                                                                                                              (__eo_to_smt z) ≠
+                                                                                                                                            SmtType.None := by
+                                                                                                                                        intro hArgNone
+                                                                                                                                        apply hNN
+                                                                                                                                        change
+                                                                                                                                          __smtx_typeof
+                                                                                                                                              (SmtTerm.mult
+                                                                                                                                                (__eo_to_smt z)
+                                                                                                                                                (__eo_to_smt a)) =
+                                                                                                                                            SmtType.None
+                                                                                                                                        exact
+                                                                                                                                          smtx_typeof_mult_first_arg_none
+                                                                                                                                            (__eo_to_smt z)
+                                                                                                                                            (__eo_to_smt a)
+                                                                                                                                            hArgNone
+                                                                                                                                      have hANN :
+                                                                                                                                          __smtx_typeof
+                                                                                                                                              (__eo_to_smt a) ≠
+                                                                                                                                            SmtType.None := by
+                                                                                                                                        intro hArgNone
+                                                                                                                                        apply hNN
+                                                                                                                                        change
+                                                                                                                                          __smtx_typeof
+                                                                                                                                              (SmtTerm.mult
+                                                                                                                                                (__eo_to_smt z)
+                                                                                                                                                (__eo_to_smt a)) =
+                                                                                                                                            SmtType.None
+                                                                                                                                        exact
+                                                                                                                                          smtx_typeof_mult_second_arg_none
+                                                                                                                                            (__eo_to_smt z)
+                                                                                                                                            (__eo_to_smt a)
+                                                                                                                                            hArgNone
+                                                                                                                                      have hZEval :
+                                                                                                                                          __smtx_model_eval M
+                                                                                                                                              (__eo_to_smt z) =
+                                                                                                                                            __smtx_model_eval N
+                                                                                                                                              (__eo_to_smt z) :=
+                                                                                                                                        smtx_model_eval_eq_of_contains_atomic_false
+                                                                                                                                          z xs bvs hBvsVar M N
+                                                                                                                                          hRel hZScan hZNN
+                                                                                                                                      have hAEval :
+                                                                                                                                          __smtx_model_eval M
+                                                                                                                                              (__eo_to_smt a) =
+                                                                                                                                            __smtx_model_eval N
+                                                                                                                                              (__eo_to_smt a) :=
+                                                                                                                                        ihA hBvsVar M N hRel
+                                                                                                                                          hAScan hANN
+                                                                                                                                      change
+                                                                                                                                        __smtx_model_eval M
+                                                                                                                                            (SmtTerm.mult
+                                                                                                                                              (__eo_to_smt z)
+                                                                                                                                              (__eo_to_smt a)) =
+                                                                                                                                          __smtx_model_eval N
+                                                                                                                                            (SmtTerm.mult
+                                                                                                                                              (__eo_to_smt z)
+                                                                                                                                              (__eo_to_smt a))
+                                                                                                                                      simpa [__smtx_model_eval, hZEval, hAEval]
+                                                                                                                                    · by_cases hFLt :
+                                                                                                                                        ∃ z,
+                                                                                                                                          f =
+                                                                                                                                            Term.Apply
+                                                                                                                                              (Term.UOp
+                                                                                                                                                UserOp.lt)
+                                                                                                                                              z
+                                                                                                                                      · rcases hFLt with
+                                                                                                                                          ⟨z, hFLt⟩
+                                                                                                                                        subst f
+                                                                                                                                        rcases
+                                                                                                                                            contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                              hFScan with
+                                                                                                                                          ⟨_hLtHeadScan, hZScan⟩
+                                                                                                                                        have hZNN :
+                                                                                                                                            __smtx_typeof
+                                                                                                                                                (__eo_to_smt z) ≠
+                                                                                                                                              SmtType.None := by
+                                                                                                                                          intro hArgNone
+                                                                                                                                          apply hNN
+                                                                                                                                          change
+                                                                                                                                            __smtx_typeof
+                                                                                                                                                (SmtTerm.lt
+                                                                                                                                                  (__eo_to_smt z)
+                                                                                                                                                  (__eo_to_smt a)) =
+                                                                                                                                              SmtType.None
+                                                                                                                                          exact
+                                                                                                                                            smtx_typeof_lt_first_arg_none
+                                                                                                                                              (__eo_to_smt z)
+                                                                                                                                              (__eo_to_smt a)
+                                                                                                                                              hArgNone
+                                                                                                                                        have hANN :
+                                                                                                                                            __smtx_typeof
+                                                                                                                                                (__eo_to_smt a) ≠
+                                                                                                                                              SmtType.None := by
+                                                                                                                                          intro hArgNone
+                                                                                                                                          apply hNN
+                                                                                                                                          change
+                                                                                                                                            __smtx_typeof
+                                                                                                                                                (SmtTerm.lt
+                                                                                                                                                  (__eo_to_smt z)
+                                                                                                                                                  (__eo_to_smt a)) =
+                                                                                                                                              SmtType.None
+                                                                                                                                          exact
+                                                                                                                                            smtx_typeof_lt_second_arg_none
+                                                                                                                                              (__eo_to_smt z)
+                                                                                                                                              (__eo_to_smt a)
+                                                                                                                                              hArgNone
+                                                                                                                                        have hZEval :
+                                                                                                                                            __smtx_model_eval M
+                                                                                                                                                (__eo_to_smt z) =
+                                                                                                                                              __smtx_model_eval N
+                                                                                                                                                (__eo_to_smt z) :=
+                                                                                                                                          smtx_model_eval_eq_of_contains_atomic_false
+                                                                                                                                            z xs bvs hBvsVar M N
+                                                                                                                                            hRel hZScan hZNN
+                                                                                                                                        have hAEval :
+                                                                                                                                            __smtx_model_eval M
+                                                                                                                                                (__eo_to_smt a) =
+                                                                                                                                              __smtx_model_eval N
+                                                                                                                                                (__eo_to_smt a) :=
+                                                                                                                                          ihA hBvsVar M N hRel
+                                                                                                                                            hAScan hANN
+                                                                                                                                        change
+                                                                                                                                          __smtx_model_eval M
+                                                                                                                                              (SmtTerm.lt
+                                                                                                                                                (__eo_to_smt z)
+                                                                                                                                                (__eo_to_smt a)) =
+                                                                                                                                            __smtx_model_eval N
+                                                                                                                                              (SmtTerm.lt
+                                                                                                                                                (__eo_to_smt z)
+                                                                                                                                                (__eo_to_smt a))
+                                                                                                                                        simpa [__smtx_model_eval, hZEval, hAEval]
+                                                                                                                                      · by_cases hFLeq :
+                                                                                                                                          ∃ z,
+                                                                                                                                            f =
+                                                                                                                                              Term.Apply
+                                                                                                                                                (Term.UOp
+                                                                                                                                                  UserOp.leq)
+                                                                                                                                                z
+                                                                                                                                        · rcases hFLeq with
+                                                                                                                                            ⟨z, hFLeq⟩
+                                                                                                                                          subst f
+                                                                                                                                          rcases
+                                                                                                                                              contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                hFScan with
+                                                                                                                                            ⟨_hLeqHeadScan, hZScan⟩
+                                                                                                                                          have hZNN :
+                                                                                                                                              __smtx_typeof
+                                                                                                                                                  (__eo_to_smt z) ≠
+                                                                                                                                                SmtType.None := by
+                                                                                                                                            intro hArgNone
+                                                                                                                                            apply hNN
+                                                                                                                                            change
+                                                                                                                                              __smtx_typeof
+                                                                                                                                                  (SmtTerm.leq
+                                                                                                                                                    (__eo_to_smt z)
+                                                                                                                                                    (__eo_to_smt a)) =
+                                                                                                                                                SmtType.None
+                                                                                                                                            exact
+                                                                                                                                              smtx_typeof_leq_first_arg_none
+                                                                                                                                                (__eo_to_smt z)
+                                                                                                                                                (__eo_to_smt a)
+                                                                                                                                                hArgNone
+                                                                                                                                          have hANN :
+                                                                                                                                              __smtx_typeof
+                                                                                                                                                  (__eo_to_smt a) ≠
+                                                                                                                                                SmtType.None := by
+                                                                                                                                            intro hArgNone
+                                                                                                                                            apply hNN
+                                                                                                                                            change
+                                                                                                                                              __smtx_typeof
+                                                                                                                                                  (SmtTerm.leq
+                                                                                                                                                    (__eo_to_smt z)
+                                                                                                                                                    (__eo_to_smt a)) =
+                                                                                                                                                SmtType.None
+                                                                                                                                            exact
+                                                                                                                                              smtx_typeof_leq_second_arg_none
+                                                                                                                                                (__eo_to_smt z)
+                                                                                                                                                (__eo_to_smt a)
+                                                                                                                                                hArgNone
+                                                                                                                                          have hZEval :
+                                                                                                                                              __smtx_model_eval M
+                                                                                                                                                  (__eo_to_smt z) =
+                                                                                                                                                __smtx_model_eval N
+                                                                                                                                                  (__eo_to_smt z) :=
+                                                                                                                                            smtx_model_eval_eq_of_contains_atomic_false
+                                                                                                                                              z xs bvs hBvsVar M N
+                                                                                                                                              hRel hZScan hZNN
+                                                                                                                                          have hAEval :
+                                                                                                                                              __smtx_model_eval M
+                                                                                                                                                  (__eo_to_smt a) =
+                                                                                                                                                __smtx_model_eval N
+                                                                                                                                                  (__eo_to_smt a) :=
+                                                                                                                                            ihA hBvsVar M N hRel
+                                                                                                                                              hAScan hANN
+                                                                                                                                          change
+                                                                                                                                            __smtx_model_eval M
+                                                                                                                                                (SmtTerm.leq
+                                                                                                                                                  (__eo_to_smt z)
+                                                                                                                                                  (__eo_to_smt a)) =
+                                                                                                                                              __smtx_model_eval N
+                                                                                                                                                (SmtTerm.leq
+                                                                                                                                                  (__eo_to_smt z)
+                                                                                                                                                  (__eo_to_smt a))
+                                                                                                                                          simpa [__smtx_model_eval, hZEval, hAEval]
+                                                                                                                                        · by_cases hFGt :
+                                                                                                                                            ∃ z,
+                                                                                                                                              f =
+                                                                                                                                                Term.Apply
+                                                                                                                                                  (Term.UOp
+                                                                                                                                                    UserOp.gt)
+                                                                                                                                                  z
+                                                                                                                                          · rcases hFGt with
+                                                                                                                                              ⟨z, hFGt⟩
+                                                                                                                                            subst f
+                                                                                                                                            rcases
+                                                                                                                                                contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                  hFScan with
+                                                                                                                                              ⟨_hGtHeadScan, hZScan⟩
+                                                                                                                                            have hZNN :
+                                                                                                                                                __smtx_typeof
+                                                                                                                                                    (__eo_to_smt z) ≠
+                                                                                                                                                  SmtType.None := by
+                                                                                                                                              intro hArgNone
+                                                                                                                                              apply hNN
+                                                                                                                                              change
+                                                                                                                                                __smtx_typeof
+                                                                                                                                                    (SmtTerm.gt
+                                                                                                                                                      (__eo_to_smt z)
+                                                                                                                                                      (__eo_to_smt a)) =
+                                                                                                                                                  SmtType.None
+                                                                                                                                              exact
+                                                                                                                                                smtx_typeof_gt_first_arg_none
+                                                                                                                                                  (__eo_to_smt z)
+                                                                                                                                                  (__eo_to_smt a)
+                                                                                                                                                  hArgNone
+                                                                                                                                            have hANN :
+                                                                                                                                                __smtx_typeof
+                                                                                                                                                    (__eo_to_smt a) ≠
+                                                                                                                                                  SmtType.None := by
+                                                                                                                                              intro hArgNone
+                                                                                                                                              apply hNN
+                                                                                                                                              change
+                                                                                                                                                __smtx_typeof
+                                                                                                                                                    (SmtTerm.gt
+                                                                                                                                                      (__eo_to_smt z)
+                                                                                                                                                      (__eo_to_smt a)) =
+                                                                                                                                                  SmtType.None
+                                                                                                                                              exact
+                                                                                                                                                smtx_typeof_gt_second_arg_none
+                                                                                                                                                  (__eo_to_smt z)
+                                                                                                                                                  (__eo_to_smt a)
+                                                                                                                                                  hArgNone
+                                                                                                                                            have hZEval :
+                                                                                                                                                __smtx_model_eval M
+                                                                                                                                                    (__eo_to_smt z) =
+                                                                                                                                                  __smtx_model_eval N
+                                                                                                                                                    (__eo_to_smt z) :=
+                                                                                                                                              smtx_model_eval_eq_of_contains_atomic_false
+                                                                                                                                                z xs bvs hBvsVar M N
+                                                                                                                                                hRel hZScan hZNN
+                                                                                                                                            have hAEval :
+                                                                                                                                                __smtx_model_eval M
+                                                                                                                                                    (__eo_to_smt a) =
+                                                                                                                                                  __smtx_model_eval N
+                                                                                                                                                    (__eo_to_smt a) :=
+                                                                                                                                              ihA hBvsVar M N hRel
+                                                                                                                                                hAScan hANN
+                                                                                                                                            change
+                                                                                                                                              __smtx_model_eval M
+                                                                                                                                                  (SmtTerm.gt
+                                                                                                                                                    (__eo_to_smt z)
+                                                                                                                                                    (__eo_to_smt a)) =
+                                                                                                                                                __smtx_model_eval N
+                                                                                                                                                  (SmtTerm.gt
+                                                                                                                                                    (__eo_to_smt z)
+                                                                                                                                                    (__eo_to_smt a))
+                                                                                                                                            simpa [__smtx_model_eval, hZEval, hAEval]
+                                                                                                                                          · by_cases hFGeq :
+                                                                                                                                              ∃ z,
+                                                                                                                                                f =
+                                                                                                                                                  Term.Apply
+                                                                                                                                                    (Term.UOp
+                                                                                                                                                      UserOp.geq)
+                                                                                                                                                    z
+                                                                                                                                            · rcases hFGeq with
+                                                                                                                                                ⟨z, hFGeq⟩
+                                                                                                                                              subst f
+                                                                                                                                              rcases
+                                                                                                                                                  contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                    hFScan with
+                                                                                                                                                ⟨_hGeqHeadScan, hZScan⟩
+                                                                                                                                              have hZNN :
+                                                                                                                                                  __smtx_typeof
+                                                                                                                                                      (__eo_to_smt z) ≠
+                                                                                                                                                    SmtType.None := by
+                                                                                                                                                intro hArgNone
+                                                                                                                                                apply hNN
+                                                                                                                                                change
+                                                                                                                                                  __smtx_typeof
+                                                                                                                                                      (SmtTerm.geq
+                                                                                                                                                        (__eo_to_smt z)
+                                                                                                                                                        (__eo_to_smt a)) =
+                                                                                                                                                    SmtType.None
+                                                                                                                                                exact
+                                                                                                                                                  smtx_typeof_geq_first_arg_none
+                                                                                                                                                    (__eo_to_smt z)
+                                                                                                                                                    (__eo_to_smt a)
+                                                                                                                                                    hArgNone
+                                                                                                                                              have hANN :
+                                                                                                                                                  __smtx_typeof
+                                                                                                                                                      (__eo_to_smt a) ≠
+                                                                                                                                                    SmtType.None := by
+                                                                                                                                                intro hArgNone
+                                                                                                                                                apply hNN
+                                                                                                                                                change
+                                                                                                                                                  __smtx_typeof
+                                                                                                                                                      (SmtTerm.geq
+                                                                                                                                                        (__eo_to_smt z)
+                                                                                                                                                        (__eo_to_smt a)) =
+                                                                                                                                                    SmtType.None
+                                                                                                                                                exact
+                                                                                                                                                  smtx_typeof_geq_second_arg_none
+                                                                                                                                                    (__eo_to_smt z)
+                                                                                                                                                    (__eo_to_smt a)
+                                                                                                                                                    hArgNone
+                                                                                                                                              have hZEval :
+                                                                                                                                                  __smtx_model_eval M
+                                                                                                                                                      (__eo_to_smt z) =
+                                                                                                                                                    __smtx_model_eval N
+                                                                                                                                                      (__eo_to_smt z) :=
+                                                                                                                                                smtx_model_eval_eq_of_contains_atomic_false
+                                                                                                                                                  z xs bvs hBvsVar M N
+                                                                                                                                                  hRel hZScan hZNN
+                                                                                                                                              have hAEval :
+                                                                                                                                                  __smtx_model_eval M
+                                                                                                                                                      (__eo_to_smt a) =
+                                                                                                                                                    __smtx_model_eval N
+                                                                                                                                                      (__eo_to_smt a) :=
+                                                                                                                                                ihA hBvsVar M N hRel
+                                                                                                                                                  hAScan hANN
+                                                                                                                                              change
+                                                                                                                                                __smtx_model_eval M
+                                                                                                                                                    (SmtTerm.geq
+                                                                                                                                                      (__eo_to_smt z)
+                                                                                                                                                      (__eo_to_smt a)) =
+                                                                                                                                                  __smtx_model_eval N
+                                                                                                                                                    (SmtTerm.geq
+                                                                                                                                                      (__eo_to_smt z)
+                                                                                                                                                      (__eo_to_smt a))
+                                                                                                                                              simpa [__smtx_model_eval, hZEval, hAEval]
+                                                                                                                                            · by_cases hFDiv :
+                                                                                                                                                ∃ z,
+                                                                                                                                                  f =
+                                                                                                                                                    Term.Apply
+                                                                                                                                                      (Term.UOp
+                                                                                                                                                        UserOp.div)
+                                                                                                                                                      z
+                                                                                                                                              · rcases hFDiv with
+                                                                                                                                                  ⟨z, hFDiv⟩
+                                                                                                                                                subst f
+                                                                                                                                                rcases
+                                                                                                                                                    contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                      hFScan with
+                                                                                                                                                  ⟨_hDivHeadScan, hZScan⟩
+                                                                                                                                                have hZNN :
+                                                                                                                                                    __smtx_typeof
+                                                                                                                                                        (__eo_to_smt z) ≠
+                                                                                                                                                      SmtType.None := by
+                                                                                                                                                  intro hArgNone
+                                                                                                                                                  apply hNN
+                                                                                                                                                  change
+                                                                                                                                                    __smtx_typeof
+                                                                                                                                                        (SmtTerm.div
+                                                                                                                                                          (__eo_to_smt z)
+                                                                                                                                                          (__eo_to_smt a)) =
+                                                                                                                                                      SmtType.None
+                                                                                                                                                  exact
+                                                                                                                                                    smtx_typeof_div_first_arg_none
+                                                                                                                                                      (__eo_to_smt z)
+                                                                                                                                                      (__eo_to_smt a)
+                                                                                                                                                      hArgNone
+                                                                                                                                                have hANN :
+                                                                                                                                                    __smtx_typeof
+                                                                                                                                                        (__eo_to_smt a) ≠
+                                                                                                                                                      SmtType.None := by
+                                                                                                                                                  intro hArgNone
+                                                                                                                                                  apply hNN
+                                                                                                                                                  change
+                                                                                                                                                    __smtx_typeof
+                                                                                                                                                        (SmtTerm.div
+                                                                                                                                                          (__eo_to_smt z)
+                                                                                                                                                          (__eo_to_smt a)) =
+                                                                                                                                                      SmtType.None
+                                                                                                                                                  exact
+                                                                                                                                                    smtx_typeof_div_second_arg_none
+                                                                                                                                                      (__eo_to_smt z)
+                                                                                                                                                      (__eo_to_smt a)
+                                                                                                                                                      hArgNone
+                                                                                                                                                have hZEval :
+                                                                                                                                                    __smtx_model_eval M
+                                                                                                                                                        (__eo_to_smt z) =
+                                                                                                                                                      __smtx_model_eval N
+                                                                                                                                                        (__eo_to_smt z) :=
+                                                                                                                                                  smtx_model_eval_eq_of_contains_atomic_false
+                                                                                                                                                    z xs bvs hBvsVar M N
+                                                                                                                                                    hRel hZScan hZNN
+                                                                                                                                                have hAEval :
+                                                                                                                                                    __smtx_model_eval M
+                                                                                                                                                        (__eo_to_smt a) =
+                                                                                                                                                      __smtx_model_eval N
+                                                                                                                                                        (__eo_to_smt a) :=
+                                                                                                                                                  ihA hBvsVar M N hRel
+                                                                                                                                                    hAScan hANN
+                                                                                                                                                change
+                                                                                                                                                  __smtx_model_eval M
+                                                                                                                                                      (SmtTerm.div
+                                                                                                                                                        (__eo_to_smt z)
+                                                                                                                                                        (__eo_to_smt a)) =
+                                                                                                                                                    __smtx_model_eval N
+                                                                                                                                                      (SmtTerm.div
+                                                                                                                                                        (__eo_to_smt z)
+                                                                                                                                                        (__eo_to_smt a))
+                                                                                                                                                simpa [__smtx_model_eval, hZEval,
+                                                                                                                                                  hAEval,
+                                                                                                                                                  hRel.globals.1
+                                                                                                                                                    native_div_by_zero_id
+                                                                                                                                                    (SmtType.FunType SmtType.Int
+                                                                                                                                                      SmtType.Int),
+                                                                                                                                                  smtx_model_eval_apply_eq_of_globals
+                                                                                                                                                    hRel.globals]
+                                                                                                                                              · by_cases hFMod :
+                                                                                                                                                  ∃ z,
+                                                                                                                                                    f =
+                                                                                                                                                      Term.Apply
+                                                                                                                                                        (Term.UOp
+                                                                                                                                                          UserOp.mod)
+                                                                                                                                                        z
+                                                                                                                                                · rcases hFMod with
+                                                                                                                                                    ⟨z, hFMod⟩
+                                                                                                                                                  subst f
+                                                                                                                                                  rcases
+                                                                                                                                                      contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                        hFScan with
+                                                                                                                                                    ⟨_hModHeadScan, hZScan⟩
+                                                                                                                                                  have hZNN :
+                                                                                                                                                      __smtx_typeof
+                                                                                                                                                          (__eo_to_smt z) ≠
+                                                                                                                                                        SmtType.None := by
+                                                                                                                                                    intro hArgNone
+                                                                                                                                                    apply hNN
+                                                                                                                                                    change
+                                                                                                                                                      __smtx_typeof
+                                                                                                                                                          (SmtTerm.mod
+                                                                                                                                                            (__eo_to_smt z)
+                                                                                                                                                            (__eo_to_smt a)) =
+                                                                                                                                                        SmtType.None
+                                                                                                                                                    exact
+                                                                                                                                                      smtx_typeof_mod_first_arg_none
+                                                                                                                                                        (__eo_to_smt z)
+                                                                                                                                                        (__eo_to_smt a)
+                                                                                                                                                        hArgNone
+                                                                                                                                                  have hANN :
+                                                                                                                                                      __smtx_typeof
+                                                                                                                                                          (__eo_to_smt a) ≠
+                                                                                                                                                        SmtType.None := by
+                                                                                                                                                    intro hArgNone
+                                                                                                                                                    apply hNN
+                                                                                                                                                    change
+                                                                                                                                                      __smtx_typeof
+                                                                                                                                                          (SmtTerm.mod
+                                                                                                                                                            (__eo_to_smt z)
+                                                                                                                                                            (__eo_to_smt a)) =
+                                                                                                                                                        SmtType.None
+                                                                                                                                                    exact
+                                                                                                                                                      smtx_typeof_mod_second_arg_none
+                                                                                                                                                        (__eo_to_smt z)
+                                                                                                                                                        (__eo_to_smt a)
+                                                                                                                                                        hArgNone
+                                                                                                                                                  have hZEval :
+                                                                                                                                                      __smtx_model_eval M
+                                                                                                                                                          (__eo_to_smt z) =
+                                                                                                                                                        __smtx_model_eval N
+                                                                                                                                                          (__eo_to_smt z) :=
+                                                                                                                                                    smtx_model_eval_eq_of_contains_atomic_false
+                                                                                                                                                      z xs bvs hBvsVar M N
+                                                                                                                                                      hRel hZScan hZNN
+                                                                                                                                                  have hAEval :
+                                                                                                                                                      __smtx_model_eval M
+                                                                                                                                                          (__eo_to_smt a) =
+                                                                                                                                                        __smtx_model_eval N
+                                                                                                                                                          (__eo_to_smt a) :=
+                                                                                                                                                    ihA hBvsVar M N hRel
+                                                                                                                                                      hAScan hANN
+                                                                                                                                                  change
+                                                                                                                                                    __smtx_model_eval M
+                                                                                                                                                        (SmtTerm.mod
+                                                                                                                                                          (__eo_to_smt z)
+                                                                                                                                                          (__eo_to_smt a)) =
+                                                                                                                                                      __smtx_model_eval N
+                                                                                                                                                        (SmtTerm.mod
+                                                                                                                                                          (__eo_to_smt z)
+                                                                                                                                                          (__eo_to_smt a))
+                                                                                                                                                  simpa [__smtx_model_eval, hZEval,
+                                                                                                                                                    hAEval,
+                                                                                                                                                    hRel.globals.1
+                                                                                                                                                      native_mod_by_zero_id
+                                                                                                                                                      (SmtType.FunType SmtType.Int
+                                                                                                                                                        SmtType.Int),
+                                                                                                                                                    smtx_model_eval_apply_eq_of_globals
+                                                                                                                                                      hRel.globals]
+                                                                                                                                                · by_cases hFMultmult :
+                                                                                                                                                    ∃ z,
+                                                                                                                                                      f =
+                                                                                                                                                        Term.Apply
+                                                                                                                                                          (Term.UOp
+                                                                                                                                                            UserOp.multmult)
+                                                                                                                                                          z
+                                                                                                                                                  · rcases hFMultmult with
+                                                                                                                                                      ⟨z, hFMultmult⟩
+                                                                                                                                                    subst f
+                                                                                                                                                    rcases
+                                                                                                                                                        contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                          hFScan with
+                                                                                                                                                      ⟨_hMultmultHeadScan, hZScan⟩
+                                                                                                                                                    have hZNN :
+                                                                                                                                                        __smtx_typeof
+                                                                                                                                                            (__eo_to_smt z) ≠
+                                                                                                                                                          SmtType.None := by
+                                                                                                                                                      intro hArgNone
+                                                                                                                                                      apply hNN
+                                                                                                                                                      change
+                                                                                                                                                        __smtx_typeof
+                                                                                                                                                            (SmtTerm.multmult
+                                                                                                                                                              (__eo_to_smt z)
+                                                                                                                                                              (__eo_to_smt a)) =
+                                                                                                                                                          SmtType.None
+                                                                                                                                                      exact
+                                                                                                                                                        smtx_typeof_multmult_first_arg_none
+                                                                                                                                                          (__eo_to_smt z)
+                                                                                                                                                          (__eo_to_smt a)
+                                                                                                                                                          hArgNone
+                                                                                                                                                    have hANN :
+                                                                                                                                                        __smtx_typeof
+                                                                                                                                                            (__eo_to_smt a) ≠
+                                                                                                                                                          SmtType.None := by
+                                                                                                                                                      intro hArgNone
+                                                                                                                                                      apply hNN
+                                                                                                                                                      change
+                                                                                                                                                        __smtx_typeof
+                                                                                                                                                            (SmtTerm.multmult
+                                                                                                                                                              (__eo_to_smt z)
+                                                                                                                                                              (__eo_to_smt a)) =
+                                                                                                                                                          SmtType.None
+                                                                                                                                                      exact
+                                                                                                                                                        smtx_typeof_multmult_second_arg_none
+                                                                                                                                                          (__eo_to_smt z)
+                                                                                                                                                          (__eo_to_smt a)
+                                                                                                                                                          hArgNone
+                                                                                                                                                    have hZEval :
+                                                                                                                                                        __smtx_model_eval M
+                                                                                                                                                            (__eo_to_smt z) =
+                                                                                                                                                          __smtx_model_eval N
+                                                                                                                                                            (__eo_to_smt z) :=
+                                                                                                                                                      smtx_model_eval_eq_of_contains_atomic_false
+                                                                                                                                                        z xs bvs hBvsVar M N
+                                                                                                                                                        hRel hZScan hZNN
+                                                                                                                                                    have hAEval :
+                                                                                                                                                        __smtx_model_eval M
+                                                                                                                                                            (__eo_to_smt a) =
+                                                                                                                                                          __smtx_model_eval N
+                                                                                                                                                            (__eo_to_smt a) :=
+                                                                                                                                                      ihA hBvsVar M N hRel
+                                                                                                                                                        hAScan hANN
+                                                                                                                                                    change
+                                                                                                                                                      __smtx_model_eval M
+                                                                                                                                                          (SmtTerm.multmult
+                                                                                                                                                            (__eo_to_smt z)
+                                                                                                                                                            (__eo_to_smt a)) =
+                                                                                                                                                        __smtx_model_eval N
+                                                                                                                                                          (SmtTerm.multmult
+                                                                                                                                                            (__eo_to_smt z)
+                                                                                                                                                            (__eo_to_smt a))
+                                                                                                                                                    simpa [__smtx_model_eval, hZEval,
+                                                                                                                                                      hAEval,
+                                                                                                                                                      hRel.globals.1
+                                                                                                                                                        native_div_by_zero_id
+                                                                                                                                                        (SmtType.FunType SmtType.Int
+                                                                                                                                                          SmtType.Int),
+                                                                                                                                                      smtx_model_eval_apply_eq_of_globals
+                                                                                                                                                        hRel.globals]
+                                                                                                                                                  · by_cases hFDivisible :
+                                                                                                                                                      ∃ z,
+                                                                                                                                                        f =
+                                                                                                                                                          Term.Apply
+                                                                                                                                                            (Term.UOp
+                                                                                                                                                              UserOp.divisible)
+                                                                                                                                                            z
+                                                                                                                                                    · rcases hFDivisible with
+                                                                                                                                                        ⟨z, hFDivisible⟩
+                                                                                                                                                      subst f
+                                                                                                                                                      rcases
+                                                                                                                                                          contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                            hFScan with
+                                                                                                                                                        ⟨_hDivisibleHeadScan, hZScan⟩
+                                                                                                                                                      have hZNN :
+                                                                                                                                                          __smtx_typeof
+                                                                                                                                                              (__eo_to_smt z) ≠
+                                                                                                                                                            SmtType.None := by
+                                                                                                                                                        intro hArgNone
+                                                                                                                                                        apply hNN
+                                                                                                                                                        change
+                                                                                                                                                          __smtx_typeof
+                                                                                                                                                              (SmtTerm.divisible
+                                                                                                                                                                (__eo_to_smt z)
+                                                                                                                                                                (__eo_to_smt a)) =
+                                                                                                                                                            SmtType.None
+                                                                                                                                                        exact
+                                                                                                                                                          smtx_typeof_divisible_first_arg_none
+                                                                                                                                                            (__eo_to_smt z)
+                                                                                                                                                            (__eo_to_smt a)
+                                                                                                                                                            hArgNone
+                                                                                                                                                      have hANN :
+                                                                                                                                                          __smtx_typeof
+                                                                                                                                                              (__eo_to_smt a) ≠
+                                                                                                                                                            SmtType.None := by
+                                                                                                                                                        intro hArgNone
+                                                                                                                                                        apply hNN
+                                                                                                                                                        change
+                                                                                                                                                          __smtx_typeof
+                                                                                                                                                              (SmtTerm.divisible
+                                                                                                                                                                (__eo_to_smt z)
+                                                                                                                                                                (__eo_to_smt a)) =
+                                                                                                                                                            SmtType.None
+                                                                                                                                                        exact
+                                                                                                                                                          smtx_typeof_divisible_second_arg_none
+                                                                                                                                                            (__eo_to_smt z)
+                                                                                                                                                            (__eo_to_smt a)
+                                                                                                                                                            hArgNone
+                                                                                                                                                      have hZEval :
+                                                                                                                                                          __smtx_model_eval M
+                                                                                                                                                              (__eo_to_smt z) =
+                                                                                                                                                            __smtx_model_eval N
+                                                                                                                                                              (__eo_to_smt z) :=
+                                                                                                                                                        smtx_model_eval_eq_of_contains_atomic_false
+                                                                                                                                                          z xs bvs hBvsVar M N
+                                                                                                                                                          hRel hZScan hZNN
+                                                                                                                                                      have hAEval :
+                                                                                                                                                          __smtx_model_eval M
+                                                                                                                                                              (__eo_to_smt a) =
+                                                                                                                                                            __smtx_model_eval N
+                                                                                                                                                              (__eo_to_smt a) :=
+                                                                                                                                                        ihA hBvsVar M N hRel
+                                                                                                                                                          hAScan hANN
+                                                                                                                                                      change
+                                                                                                                                                        __smtx_model_eval M
+                                                                                                                                                            (SmtTerm.divisible
+                                                                                                                                                              (__eo_to_smt z)
+                                                                                                                                                              (__eo_to_smt a)) =
+                                                                                                                                                          __smtx_model_eval N
+                                                                                                                                                            (SmtTerm.divisible
+                                                                                                                                                              (__eo_to_smt z)
+                                                                                                                                                              (__eo_to_smt a))
+                                                                                                                                                      simpa [__smtx_model_eval, hZEval, hAEval]
+                                                                                                                                                    · by_cases hFDivTotal :
+                                                                                                                                                        ∃ z,
+                                                                                                                                                          f =
+                                                                                                                                                            Term.Apply
+                                                                                                                                                              (Term.UOp
+                                                                                                                                                                UserOp.div_total)
+                                                                                                                                                              z
+                                                                                                                                                      · rcases hFDivTotal with
+                                                                                                                                                          ⟨z, hFDivTotal⟩
+                                                                                                                                                        subst f
+                                                                                                                                                        rcases
+                                                                                                                                                            contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                              hFScan with
+                                                                                                                                                          ⟨_hDivTotalHeadScan, hZScan⟩
+                                                                                                                                                        have hZNN :
+                                                                                                                                                            __smtx_typeof
+                                                                                                                                                                (__eo_to_smt z) ≠
+                                                                                                                                                              SmtType.None := by
+                                                                                                                                                          intro hArgNone
+                                                                                                                                                          apply hNN
+                                                                                                                                                          change
+                                                                                                                                                            __smtx_typeof
+                                                                                                                                                                (SmtTerm.div_total
+                                                                                                                                                                  (__eo_to_smt z)
+                                                                                                                                                                  (__eo_to_smt a)) =
+                                                                                                                                                              SmtType.None
+                                                                                                                                                          exact
+                                                                                                                                                            smtx_typeof_div_total_first_arg_none
+                                                                                                                                                              (__eo_to_smt z)
+                                                                                                                                                              (__eo_to_smt a)
+                                                                                                                                                              hArgNone
+                                                                                                                                                        have hANN :
+                                                                                                                                                            __smtx_typeof
+                                                                                                                                                                (__eo_to_smt a) ≠
+                                                                                                                                                              SmtType.None := by
+                                                                                                                                                          intro hArgNone
+                                                                                                                                                          apply hNN
+                                                                                                                                                          change
+                                                                                                                                                            __smtx_typeof
+                                                                                                                                                                (SmtTerm.div_total
+                                                                                                                                                                  (__eo_to_smt z)
+                                                                                                                                                                  (__eo_to_smt a)) =
+                                                                                                                                                              SmtType.None
+                                                                                                                                                          exact
+                                                                                                                                                            smtx_typeof_div_total_second_arg_none
+                                                                                                                                                              (__eo_to_smt z)
+                                                                                                                                                              (__eo_to_smt a)
+                                                                                                                                                              hArgNone
+                                                                                                                                                        have hZEval :
+                                                                                                                                                            __smtx_model_eval M
+                                                                                                                                                                (__eo_to_smt z) =
+                                                                                                                                                              __smtx_model_eval N
+                                                                                                                                                                (__eo_to_smt z) :=
+                                                                                                                                                          smtx_model_eval_eq_of_contains_atomic_false
+                                                                                                                                                            z xs bvs hBvsVar M N
+                                                                                                                                                            hRel hZScan hZNN
+                                                                                                                                                        have hAEval :
+                                                                                                                                                            __smtx_model_eval M
+                                                                                                                                                                (__eo_to_smt a) =
+                                                                                                                                                              __smtx_model_eval N
+                                                                                                                                                                (__eo_to_smt a) :=
+                                                                                                                                                          ihA hBvsVar M N hRel
+                                                                                                                                                            hAScan hANN
+                                                                                                                                                        change
+                                                                                                                                                          __smtx_model_eval M
+                                                                                                                                                              (SmtTerm.div_total
+                                                                                                                                                                (__eo_to_smt z)
+                                                                                                                                                                (__eo_to_smt a)) =
+                                                                                                                                                            __smtx_model_eval N
+                                                                                                                                                              (SmtTerm.div_total
+                                                                                                                                                                (__eo_to_smt z)
+                                                                                                                                                                (__eo_to_smt a))
+                                                                                                                                                        simpa [__smtx_model_eval, hZEval, hAEval]
+                                                                                                                                                      · by_cases hFModTotal :
+                                                                                                                                                          ∃ z,
+                                                                                                                                                            f =
+                                                                                                                                                              Term.Apply
+                                                                                                                                                                (Term.UOp
+                                                                                                                                                                  UserOp.mod_total)
+                                                                                                                                                                z
+                                                                                                                                                        · rcases hFModTotal with
+                                                                                                                                                            ⟨z, hFModTotal⟩
+                                                                                                                                                          subst f
+                                                                                                                                                          rcases
+                                                                                                                                                              contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                                hFScan with
+                                                                                                                                                            ⟨_hModTotalHeadScan, hZScan⟩
+                                                                                                                                                          have hZNN :
+                                                                                                                                                              __smtx_typeof
+                                                                                                                                                                  (__eo_to_smt z) ≠
+                                                                                                                                                                SmtType.None := by
+                                                                                                                                                            intro hArgNone
+                                                                                                                                                            apply hNN
+                                                                                                                                                            change
+                                                                                                                                                              __smtx_typeof
+                                                                                                                                                                  (SmtTerm.mod_total
+                                                                                                                                                                    (__eo_to_smt z)
+                                                                                                                                                                    (__eo_to_smt a)) =
+                                                                                                                                                                SmtType.None
+                                                                                                                                                            exact
+                                                                                                                                                              smtx_typeof_mod_total_first_arg_none
+                                                                                                                                                                (__eo_to_smt z)
+                                                                                                                                                                (__eo_to_smt a)
+                                                                                                                                                                hArgNone
+                                                                                                                                                          have hANN :
+                                                                                                                                                              __smtx_typeof
+                                                                                                                                                                  (__eo_to_smt a) ≠
+                                                                                                                                                                SmtType.None := by
+                                                                                                                                                            intro hArgNone
+                                                                                                                                                            apply hNN
+                                                                                                                                                            change
+                                                                                                                                                              __smtx_typeof
+                                                                                                                                                                  (SmtTerm.mod_total
+                                                                                                                                                                    (__eo_to_smt z)
+                                                                                                                                                                    (__eo_to_smt a)) =
+                                                                                                                                                                SmtType.None
+                                                                                                                                                            exact
+                                                                                                                                                              smtx_typeof_mod_total_second_arg_none
+                                                                                                                                                                (__eo_to_smt z)
+                                                                                                                                                                (__eo_to_smt a)
+                                                                                                                                                                hArgNone
+                                                                                                                                                          have hZEval :
+                                                                                                                                                              __smtx_model_eval M
+                                                                                                                                                                  (__eo_to_smt z) =
+                                                                                                                                                                __smtx_model_eval N
+                                                                                                                                                                  (__eo_to_smt z) :=
+                                                                                                                                                            smtx_model_eval_eq_of_contains_atomic_false
+                                                                                                                                                              z xs bvs hBvsVar M N
+                                                                                                                                                              hRel hZScan hZNN
+                                                                                                                                                          have hAEval :
+                                                                                                                                                              __smtx_model_eval M
+                                                                                                                                                                  (__eo_to_smt a) =
+                                                                                                                                                                __smtx_model_eval N
+                                                                                                                                                                  (__eo_to_smt a) :=
+                                                                                                                                                            ihA hBvsVar M N hRel
+                                                                                                                                                              hAScan hANN
+                                                                                                                                                          change
+                                                                                                                                                            __smtx_model_eval M
+                                                                                                                                                                (SmtTerm.mod_total
+                                                                                                                                                                  (__eo_to_smt z)
+                                                                                                                                                                  (__eo_to_smt a)) =
+                                                                                                                                                              __smtx_model_eval N
+                                                                                                                                                                (SmtTerm.mod_total
+                                                                                                                                                                  (__eo_to_smt z)
+                                                                                                                                                                  (__eo_to_smt a))
+                                                                                                                                                          simpa [__smtx_model_eval, hZEval, hAEval]
+                                                                                                                                                        · by_cases hFMultmultTotal :
+                                                                                                                                                            ∃ z,
+                                                                                                                                                              f =
+                                                                                                                                                                Term.Apply
+                                                                                                                                                                  (Term.UOp
+                                                                                                                                                                    UserOp.multmult_total)
+                                                                                                                                                                  z
+                                                                                                                                                          · rcases hFMultmultTotal with
+                                                                                                                                                              ⟨z, hFMultmultTotal⟩
+                                                                                                                                                            subst f
+                                                                                                                                                            rcases
+                                                                                                                                                                contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                                  hFScan with
+                                                                                                                                                              ⟨_hMultmultTotalHeadScan, hZScan⟩
+                                                                                                                                                            have hZNN :
+                                                                                                                                                                __smtx_typeof
+                                                                                                                                                                    (__eo_to_smt z) ≠
+                                                                                                                                                                  SmtType.None := by
+                                                                                                                                                              intro hArgNone
+                                                                                                                                                              apply hNN
+                                                                                                                                                              change
+                                                                                                                                                                __smtx_typeof
+                                                                                                                                                                    (SmtTerm.multmult_total
+                                                                                                                                                                      (__eo_to_smt z)
+                                                                                                                                                                      (__eo_to_smt a)) =
+                                                                                                                                                                  SmtType.None
+                                                                                                                                                              exact
+                                                                                                                                                                smtx_typeof_multmult_total_first_arg_none
+                                                                                                                                                                  (__eo_to_smt z)
+                                                                                                                                                                  (__eo_to_smt a)
+                                                                                                                                                                  hArgNone
+                                                                                                                                                            have hANN :
+                                                                                                                                                                __smtx_typeof
+                                                                                                                                                                    (__eo_to_smt a) ≠
+                                                                                                                                                                  SmtType.None := by
+                                                                                                                                                              intro hArgNone
+                                                                                                                                                              apply hNN
+                                                                                                                                                              change
+                                                                                                                                                                __smtx_typeof
+                                                                                                                                                                    (SmtTerm.multmult_total
+                                                                                                                                                                      (__eo_to_smt z)
+                                                                                                                                                                      (__eo_to_smt a)) =
+                                                                                                                                                                  SmtType.None
+                                                                                                                                                              exact
+                                                                                                                                                                smtx_typeof_multmult_total_second_arg_none
+                                                                                                                                                                  (__eo_to_smt z)
+                                                                                                                                                                  (__eo_to_smt a)
+                                                                                                                                                                  hArgNone
+                                                                                                                                                            have hZEval :
+                                                                                                                                                                __smtx_model_eval M
+                                                                                                                                                                    (__eo_to_smt z) =
+                                                                                                                                                                  __smtx_model_eval N
+                                                                                                                                                                    (__eo_to_smt z) :=
+                                                                                                                                                              smtx_model_eval_eq_of_contains_atomic_false
+                                                                                                                                                                z xs bvs hBvsVar M N
+                                                                                                                                                                hRel hZScan hZNN
+                                                                                                                                                            have hAEval :
+                                                                                                                                                                __smtx_model_eval M
+                                                                                                                                                                    (__eo_to_smt a) =
+                                                                                                                                                                  __smtx_model_eval N
+                                                                                                                                                                    (__eo_to_smt a) :=
+                                                                                                                                                              ihA hBvsVar M N hRel
+                                                                                                                                                                hAScan hANN
+                                                                                                                                                            change
+                                                                                                                                                              __smtx_model_eval M
+                                                                                                                                                                  (SmtTerm.multmult_total
+                                                                                                                                                                    (__eo_to_smt z)
+                                                                                                                                                                    (__eo_to_smt a)) =
+                                                                                                                                                                __smtx_model_eval N
+                                                                                                                                                                  (SmtTerm.multmult_total
+                                                                                                                                                                    (__eo_to_smt z)
+                                                                                                                                                                    (__eo_to_smt a))
+                                                                                                                                                            simpa [__smtx_model_eval, hZEval, hAEval]
+                                                                                                                                                          · by_cases hFSelect :
+                                                                                                                                                              ∃ z,
+                                                                                                                                                                f =
+                                                                                                                                                                  Term.Apply
+                                                                                                                                                                    (Term.UOp
+                                                                                                                                                                      UserOp.select)
+                                                                                                                                                                    z
+                                                                                                                                                            · rcases hFSelect with
+                                                                                                                                                                ⟨z, hFSelect⟩
+                                                                                                                                                              subst f
+                                                                                                                                                              rcases
+                                                                                                                                                                  contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                                    hFScan with
+                                                                                                                                                                ⟨_hSelectHeadScan, hZScan⟩
+                                                                                                                                                              have hZNN :
+                                                                                                                                                                  __smtx_typeof
+                                                                                                                                                                      (__eo_to_smt z) ≠
+                                                                                                                                                                    SmtType.None := by
+                                                                                                                                                                intro hArgNone
+                                                                                                                                                                apply hNN
+                                                                                                                                                                change
+                                                                                                                                                                  __smtx_typeof
+                                                                                                                                                                      (SmtTerm.select
+                                                                                                                                                                        (__eo_to_smt z)
+                                                                                                                                                                        (__eo_to_smt a)) =
+                                                                                                                                                                    SmtType.None
+                                                                                                                                                                exact
+                                                                                                                                                                  smtx_typeof_select_first_arg_none
+                                                                                                                                                                    (__eo_to_smt z)
+                                                                                                                                                                    (__eo_to_smt a)
+                                                                                                                                                                    hArgNone
+                                                                                                                                                              have hANN :
+                                                                                                                                                                  __smtx_typeof
+                                                                                                                                                                      (__eo_to_smt a) ≠
+                                                                                                                                                                    SmtType.None := by
+                                                                                                                                                                intro hArgNone
+                                                                                                                                                                apply hNN
+                                                                                                                                                                change
+                                                                                                                                                                  __smtx_typeof
+                                                                                                                                                                      (SmtTerm.select
+                                                                                                                                                                        (__eo_to_smt z)
+                                                                                                                                                                        (__eo_to_smt a)) =
+                                                                                                                                                                    SmtType.None
+                                                                                                                                                                exact
+                                                                                                                                                                  smtx_typeof_select_second_arg_none
+                                                                                                                                                                    (__eo_to_smt z)
+                                                                                                                                                                    (__eo_to_smt a)
+                                                                                                                                                                    hArgNone
+                                                                                                                                                              have hZEval :
+                                                                                                                                                                  __smtx_model_eval M
+                                                                                                                                                                      (__eo_to_smt z) =
+                                                                                                                                                                    __smtx_model_eval N
+                                                                                                                                                                      (__eo_to_smt z) :=
+                                                                                                                                                                smtx_model_eval_eq_of_contains_atomic_false
+                                                                                                                                                                  z xs bvs hBvsVar M N
+                                                                                                                                                                  hRel hZScan hZNN
+                                                                                                                                                              have hAEval :
+                                                                                                                                                                  __smtx_model_eval M
+                                                                                                                                                                      (__eo_to_smt a) =
+                                                                                                                                                                    __smtx_model_eval N
+                                                                                                                                                                      (__eo_to_smt a) :=
+                                                                                                                                                                ihA hBvsVar M N hRel
+                                                                                                                                                                  hAScan hANN
+                                                                                                                                                              change
+                                                                                                                                                                __smtx_model_eval M
+                                                                                                                                                                    (SmtTerm.select
+                                                                                                                                                                      (__eo_to_smt z)
+                                                                                                                                                                      (__eo_to_smt a)) =
+                                                                                                                                                                  __smtx_model_eval N
+                                                                                                                                                                    (SmtTerm.select
+                                                                                                                                                                      (__eo_to_smt z)
+                                                                                                                                                                      (__eo_to_smt a))
+                                                                                                                                                              simpa [__smtx_model_eval, hZEval, hAEval]
+                                                                                                                                                            · by_cases hFConcat :
+                                                                                                                                                                ∃ z,
+                                                                                                                                                                  f =
+                                                                                                                                                                    Term.Apply
+                                                                                                                                                                      (Term.UOp
+                                                                                                                                                                        UserOp.concat)
+                                                                                                                                                                      z
+                                                                                                                                                              · rcases hFConcat with
+                                                                                                                                                                  ⟨z, hFConcat⟩
+                                                                                                                                                                subst f
+                                                                                                                                                                rcases
+                                                                                                                                                                    contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                                      hFScan with
+                                                                                                                                                                  ⟨_hConcatHeadScan, hZScan⟩
+                                                                                                                                                                have hZNN :
+                                                                                                                                                                    __smtx_typeof
+                                                                                                                                                                        (__eo_to_smt z) ≠
+                                                                                                                                                                      SmtType.None := by
+                                                                                                                                                                  intro hArgNone
+                                                                                                                                                                  apply hNN
+                                                                                                                                                                  change
+                                                                                                                                                                    __smtx_typeof
+                                                                                                                                                                        (SmtTerm.concat
+                                                                                                                                                                          (__eo_to_smt z)
+                                                                                                                                                                          (__eo_to_smt a)) =
+                                                                                                                                                                      SmtType.None
+                                                                                                                                                                  exact
+                                                                                                                                                                    smtx_typeof_concat_first_arg_none
+                                                                                                                                                                      (__eo_to_smt z)
+                                                                                                                                                                      (__eo_to_smt a)
+                                                                                                                                                                      hArgNone
+                                                                                                                                                                have hANN :
+                                                                                                                                                                    __smtx_typeof
+                                                                                                                                                                        (__eo_to_smt a) ≠
+                                                                                                                                                                      SmtType.None := by
+                                                                                                                                                                  intro hArgNone
+                                                                                                                                                                  apply hNN
+                                                                                                                                                                  change
+                                                                                                                                                                    __smtx_typeof
+                                                                                                                                                                        (SmtTerm.concat
+                                                                                                                                                                          (__eo_to_smt z)
+                                                                                                                                                                          (__eo_to_smt a)) =
+                                                                                                                                                                      SmtType.None
+                                                                                                                                                                  exact
+                                                                                                                                                                    smtx_typeof_concat_second_arg_none
+                                                                                                                                                                      (__eo_to_smt z)
+                                                                                                                                                                      (__eo_to_smt a)
+                                                                                                                                                                      hArgNone
+                                                                                                                                                                have hZEval :
+                                                                                                                                                                    __smtx_model_eval M
+                                                                                                                                                                        (__eo_to_smt z) =
+                                                                                                                                                                      __smtx_model_eval N
+                                                                                                                                                                        (__eo_to_smt z) :=
+                                                                                                                                                                  smtx_model_eval_eq_of_contains_atomic_false
+                                                                                                                                                                    z xs bvs hBvsVar M N
+                                                                                                                                                                    hRel hZScan hZNN
+                                                                                                                                                                have hAEval :
+                                                                                                                                                                    __smtx_model_eval M
+                                                                                                                                                                        (__eo_to_smt a) =
+                                                                                                                                                                      __smtx_model_eval N
+                                                                                                                                                                        (__eo_to_smt a) :=
+                                                                                                                                                                  ihA hBvsVar M N hRel
+                                                                                                                                                                    hAScan hANN
+                                                                                                                                                                change
+                                                                                                                                                                  __smtx_model_eval M
+                                                                                                                                                                      (SmtTerm.concat
+                                                                                                                                                                        (__eo_to_smt z)
+                                                                                                                                                                        (__eo_to_smt a)) =
+                                                                                                                                                                    __smtx_model_eval N
+                                                                                                                                                                      (SmtTerm.concat
+                                                                                                                                                                        (__eo_to_smt z)
+                                                                                                                                                                        (__eo_to_smt a))
+                                                                                                                                                                simpa [__smtx_model_eval, hZEval, hAEval]
+                                                                                                                                                              · by_cases hFBvand :
+                                                                                                                                                                  ∃ z,
+                                                                                                                                                                    f =
+                                                                                                                                                                      Term.Apply
+                                                                                                                                                                        (Term.UOp
+                                                                                                                                                                          UserOp.bvand)
+                                                                                                                                                                        z
+                                                                                                                                                                · rcases hFBvand with
+                                                                                                                                                                    ⟨z, hFBvand⟩
+                                                                                                                                                                  subst f
+                                                                                                                                                                  rcases
+                                                                                                                                                                      contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                                        hFScan with
+                                                                                                                                                                    ⟨_hBvandHeadScan, hZScan⟩
+                                                                                                                                                                  have hZNN :
+                                                                                                                                                                      __smtx_typeof
+                                                                                                                                                                          (__eo_to_smt z) ≠
+                                                                                                                                                                        SmtType.None := by
+                                                                                                                                                                    intro hArgNone
+                                                                                                                                                                    apply hNN
+                                                                                                                                                                    change
+                                                                                                                                                                      __smtx_typeof
+                                                                                                                                                                          (SmtTerm.bvand
+                                                                                                                                                                            (__eo_to_smt z)
+                                                                                                                                                                            (__eo_to_smt a)) =
+                                                                                                                                                                        SmtType.None
+                                                                                                                                                                    exact
+                                                                                                                                                                      smtx_typeof_bvand_first_arg_none
+                                                                                                                                                                        (__eo_to_smt z)
+                                                                                                                                                                        (__eo_to_smt a)
+                                                                                                                                                                        hArgNone
+                                                                                                                                                                  have hANN :
+                                                                                                                                                                      __smtx_typeof
+                                                                                                                                                                          (__eo_to_smt a) ≠
+                                                                                                                                                                        SmtType.None := by
+                                                                                                                                                                    intro hArgNone
+                                                                                                                                                                    apply hNN
+                                                                                                                                                                    change
+                                                                                                                                                                      __smtx_typeof
+                                                                                                                                                                          (SmtTerm.bvand
+                                                                                                                                                                            (__eo_to_smt z)
+                                                                                                                                                                            (__eo_to_smt a)) =
+                                                                                                                                                                        SmtType.None
+                                                                                                                                                                    exact
+                                                                                                                                                                      smtx_typeof_bvand_second_arg_none
+                                                                                                                                                                        (__eo_to_smt z)
+                                                                                                                                                                        (__eo_to_smt a)
+                                                                                                                                                                        hArgNone
+                                                                                                                                                                  have hZEval :
+                                                                                                                                                                      __smtx_model_eval M
+                                                                                                                                                                          (__eo_to_smt z) =
+                                                                                                                                                                        __smtx_model_eval N
+                                                                                                                                                                          (__eo_to_smt z) :=
+                                                                                                                                                                    smtx_model_eval_eq_of_contains_atomic_false
+                                                                                                                                                                      z xs bvs hBvsVar M N
+                                                                                                                                                                      hRel hZScan hZNN
+                                                                                                                                                                  have hAEval :
+                                                                                                                                                                      __smtx_model_eval M
+                                                                                                                                                                          (__eo_to_smt a) =
+                                                                                                                                                                        __smtx_model_eval N
+                                                                                                                                                                          (__eo_to_smt a) :=
+                                                                                                                                                                    ihA hBvsVar M N hRel
+                                                                                                                                                                      hAScan hANN
+                                                                                                                                                                  change
+                                                                                                                                                                    __smtx_model_eval M
+                                                                                                                                                                        (SmtTerm.bvand
+                                                                                                                                                                          (__eo_to_smt z)
+                                                                                                                                                                          (__eo_to_smt a)) =
+                                                                                                                                                                      __smtx_model_eval N
+                                                                                                                                                                        (SmtTerm.bvand
+                                                                                                                                                                          (__eo_to_smt z)
+                                                                                                                                                                          (__eo_to_smt a))
+                                                                                                                                                                  simpa [__smtx_model_eval, hZEval, hAEval]
+                                                                                                                                                                · by_cases hFBvor :
+                                                                                                                                                                    ∃ z,
+                                                                                                                                                                      f =
+                                                                                                                                                                        Term.Apply
+                                                                                                                                                                          (Term.UOp
+                                                                                                                                                                            UserOp.bvor)
+                                                                                                                                                                          z
+                                                                                                                                                                  · rcases hFBvor with
+                                                                                                                                                                      ⟨z, hFBvor⟩
+                                                                                                                                                                    subst f
+                                                                                                                                                                    rcases
+                                                                                                                                                                        contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                                          hFScan with
+                                                                                                                                                                      ⟨_hBvorHeadScan, hZScan⟩
+                                                                                                                                                                    have hZNN :
+                                                                                                                                                                        __smtx_typeof
+                                                                                                                                                                            (__eo_to_smt z) ≠
+                                                                                                                                                                          SmtType.None := by
+                                                                                                                                                                      intro hArgNone
+                                                                                                                                                                      apply hNN
+                                                                                                                                                                      change
+                                                                                                                                                                        __smtx_typeof
+                                                                                                                                                                            (SmtTerm.bvor
+                                                                                                                                                                              (__eo_to_smt z)
+                                                                                                                                                                              (__eo_to_smt a)) =
+                                                                                                                                                                          SmtType.None
+                                                                                                                                                                      exact
+                                                                                                                                                                        smtx_typeof_bvor_first_arg_none
+                                                                                                                                                                          (__eo_to_smt z)
+                                                                                                                                                                          (__eo_to_smt a)
+                                                                                                                                                                          hArgNone
+                                                                                                                                                                    have hANN :
+                                                                                                                                                                        __smtx_typeof
+                                                                                                                                                                            (__eo_to_smt a) ≠
+                                                                                                                                                                          SmtType.None := by
+                                                                                                                                                                      intro hArgNone
+                                                                                                                                                                      apply hNN
+                                                                                                                                                                      change
+                                                                                                                                                                        __smtx_typeof
+                                                                                                                                                                            (SmtTerm.bvor
+                                                                                                                                                                              (__eo_to_smt z)
+                                                                                                                                                                              (__eo_to_smt a)) =
+                                                                                                                                                                          SmtType.None
+                                                                                                                                                                      exact
+                                                                                                                                                                        smtx_typeof_bvor_second_arg_none
+                                                                                                                                                                          (__eo_to_smt z)
+                                                                                                                                                                          (__eo_to_smt a)
+                                                                                                                                                                          hArgNone
+                                                                                                                                                                    have hZEval :
+                                                                                                                                                                        __smtx_model_eval M
+                                                                                                                                                                            (__eo_to_smt z) =
+                                                                                                                                                                          __smtx_model_eval N
+                                                                                                                                                                            (__eo_to_smt z) :=
+                                                                                                                                                                      smtx_model_eval_eq_of_contains_atomic_false
+                                                                                                                                                                        z xs bvs hBvsVar M N
+                                                                                                                                                                        hRel hZScan hZNN
+                                                                                                                                                                    have hAEval :
+                                                                                                                                                                        __smtx_model_eval M
+                                                                                                                                                                            (__eo_to_smt a) =
+                                                                                                                                                                          __smtx_model_eval N
+                                                                                                                                                                            (__eo_to_smt a) :=
+                                                                                                                                                                      ihA hBvsVar M N hRel
+                                                                                                                                                                        hAScan hANN
+                                                                                                                                                                    change
+                                                                                                                                                                      __smtx_model_eval M
+                                                                                                                                                                          (SmtTerm.bvor
+                                                                                                                                                                            (__eo_to_smt z)
+                                                                                                                                                                            (__eo_to_smt a)) =
+                                                                                                                                                                        __smtx_model_eval N
+                                                                                                                                                                          (SmtTerm.bvor
+                                                                                                                                                                            (__eo_to_smt z)
+                                                                                                                                                                            (__eo_to_smt a))
+                                                                                                                                                                    simpa [__smtx_model_eval, hZEval, hAEval]
+                                                                                                                                                                  · by_cases hFBvnand :
+                                                                                                                                                                      ∃ z,
+                                                                                                                                                                        f =
+                                                                                                                                                                          Term.Apply
+                                                                                                                                                                            (Term.UOp
+                                                                                                                                                                              UserOp.bvnand)
+                                                                                                                                                                            z
+                                                                                                                                                                    · rcases hFBvnand with
+                                                                                                                                                                        ⟨z, hFBvnand⟩
+                                                                                                                                                                      subst f
+                                                                                                                                                                      rcases
+                                                                                                                                                                          contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                                            hFScan with
+                                                                                                                                                                        ⟨_hBvnandHeadScan, hZScan⟩
+                                                                                                                                                                      have hZNN :
+                                                                                                                                                                          __smtx_typeof
+                                                                                                                                                                              (__eo_to_smt z) ≠
+                                                                                                                                                                            SmtType.None := by
+                                                                                                                                                                        intro hArgNone
+                                                                                                                                                                        apply hNN
+                                                                                                                                                                        change
+                                                                                                                                                                          __smtx_typeof
+                                                                                                                                                                              (SmtTerm.bvnand
+                                                                                                                                                                                (__eo_to_smt z)
+                                                                                                                                                                                (__eo_to_smt a)) =
+                                                                                                                                                                            SmtType.None
+                                                                                                                                                                        exact
+                                                                                                                                                                          smtx_typeof_bvnand_first_arg_none
+                                                                                                                                                                            (__eo_to_smt z)
+                                                                                                                                                                            (__eo_to_smt a)
+                                                                                                                                                                            hArgNone
+                                                                                                                                                                      have hANN :
+                                                                                                                                                                          __smtx_typeof
+                                                                                                                                                                              (__eo_to_smt a) ≠
+                                                                                                                                                                            SmtType.None := by
+                                                                                                                                                                        intro hArgNone
+                                                                                                                                                                        apply hNN
+                                                                                                                                                                        change
+                                                                                                                                                                          __smtx_typeof
+                                                                                                                                                                              (SmtTerm.bvnand
+                                                                                                                                                                                (__eo_to_smt z)
+                                                                                                                                                                                (__eo_to_smt a)) =
+                                                                                                                                                                            SmtType.None
+                                                                                                                                                                        exact
+                                                                                                                                                                          smtx_typeof_bvnand_second_arg_none
+                                                                                                                                                                            (__eo_to_smt z)
+                                                                                                                                                                            (__eo_to_smt a)
+                                                                                                                                                                            hArgNone
+                                                                                                                                                                      have hZEval :
+                                                                                                                                                                          __smtx_model_eval M
+                                                                                                                                                                              (__eo_to_smt z) =
+                                                                                                                                                                            __smtx_model_eval N
+                                                                                                                                                                              (__eo_to_smt z) :=
+                                                                                                                                                                        smtx_model_eval_eq_of_contains_atomic_false
+                                                                                                                                                                          z xs bvs hBvsVar M N
+                                                                                                                                                                          hRel hZScan hZNN
+                                                                                                                                                                      have hAEval :
+                                                                                                                                                                          __smtx_model_eval M
+                                                                                                                                                                              (__eo_to_smt a) =
+                                                                                                                                                                            __smtx_model_eval N
+                                                                                                                                                                              (__eo_to_smt a) :=
+                                                                                                                                                                        ihA hBvsVar M N hRel
+                                                                                                                                                                          hAScan hANN
+                                                                                                                                                                      change
+                                                                                                                                                                        __smtx_model_eval M
+                                                                                                                                                                            (SmtTerm.bvnand
+                                                                                                                                                                              (__eo_to_smt z)
+                                                                                                                                                                              (__eo_to_smt a)) =
+                                                                                                                                                                          __smtx_model_eval N
+                                                                                                                                                                            (SmtTerm.bvnand
+                                                                                                                                                                              (__eo_to_smt z)
+                                                                                                                                                                              (__eo_to_smt a))
+                                                                                                                                                                      simpa [__smtx_model_eval, hZEval, hAEval]
+                                                                                                                                                                    · by_cases hFBvnor :
+                                                                                                                                                                        ∃ z,
+                                                                                                                                                                          f =
+                                                                                                                                                                            Term.Apply
+                                                                                                                                                                              (Term.UOp
+                                                                                                                                                                                UserOp.bvnor)
+                                                                                                                                                                              z
+                                                                                                                                                                      · rcases hFBvnor with
+                                                                                                                                                                          ⟨z, hFBvnor⟩
+                                                                                                                                                                        subst f
+                                                                                                                                                                        rcases
+                                                                                                                                                                            contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                                              hFScan with
+                                                                                                                                                                          ⟨_hBvnorHeadScan, hZScan⟩
+                                                                                                                                                                        have hZNN :
+                                                                                                                                                                            __smtx_typeof
+                                                                                                                                                                                (__eo_to_smt z) ≠
+                                                                                                                                                                              SmtType.None := by
+                                                                                                                                                                          intro hArgNone
+                                                                                                                                                                          apply hNN
+                                                                                                                                                                          change
+                                                                                                                                                                            __smtx_typeof
+                                                                                                                                                                                (SmtTerm.bvnor
+                                                                                                                                                                                  (__eo_to_smt z)
+                                                                                                                                                                                  (__eo_to_smt a)) =
+                                                                                                                                                                              SmtType.None
+                                                                                                                                                                          exact
+                                                                                                                                                                            smtx_typeof_bvnor_first_arg_none
+                                                                                                                                                                              (__eo_to_smt z)
+                                                                                                                                                                              (__eo_to_smt a)
+                                                                                                                                                                              hArgNone
+                                                                                                                                                                        have hANN :
+                                                                                                                                                                            __smtx_typeof
+                                                                                                                                                                                (__eo_to_smt a) ≠
+                                                                                                                                                                              SmtType.None := by
+                                                                                                                                                                          intro hArgNone
+                                                                                                                                                                          apply hNN
+                                                                                                                                                                          change
+                                                                                                                                                                            __smtx_typeof
+                                                                                                                                                                                (SmtTerm.bvnor
+                                                                                                                                                                                  (__eo_to_smt z)
+                                                                                                                                                                                  (__eo_to_smt a)) =
+                                                                                                                                                                              SmtType.None
+                                                                                                                                                                          exact
+                                                                                                                                                                            smtx_typeof_bvnor_second_arg_none
+                                                                                                                                                                              (__eo_to_smt z)
+                                                                                                                                                                              (__eo_to_smt a)
+                                                                                                                                                                              hArgNone
+                                                                                                                                                                        have hZEval :
+                                                                                                                                                                            __smtx_model_eval M
+                                                                                                                                                                                (__eo_to_smt z) =
+                                                                                                                                                                              __smtx_model_eval N
+                                                                                                                                                                                (__eo_to_smt z) :=
+                                                                                                                                                                          smtx_model_eval_eq_of_contains_atomic_false
+                                                                                                                                                                            z xs bvs hBvsVar M N
+                                                                                                                                                                            hRel hZScan hZNN
+                                                                                                                                                                        have hAEval :
+                                                                                                                                                                            __smtx_model_eval M
+                                                                                                                                                                                (__eo_to_smt a) =
+                                                                                                                                                                              __smtx_model_eval N
+                                                                                                                                                                                (__eo_to_smt a) :=
+                                                                                                                                                                          ihA hBvsVar M N hRel
+                                                                                                                                                                            hAScan hANN
+                                                                                                                                                                        change
+                                                                                                                                                                          __smtx_model_eval M
+                                                                                                                                                                              (SmtTerm.bvnor
+                                                                                                                                                                                (__eo_to_smt z)
+                                                                                                                                                                                (__eo_to_smt a)) =
+                                                                                                                                                                            __smtx_model_eval N
+                                                                                                                                                                              (SmtTerm.bvnor
+                                                                                                                                                                                (__eo_to_smt z)
+                                                                                                                                                                                (__eo_to_smt a))
+                                                                                                                                                                        simpa [__smtx_model_eval, hZEval, hAEval]
+                                                                                                                                                                      · by_cases hFBvxor :
+                                                                                                                                                                          ∃ z,
+                                                                                                                                                                            f =
+                                                                                                                                                                              Term.Apply
+                                                                                                                                                                                (Term.UOp
+                                                                                                                                                                                  UserOp.bvxor)
+                                                                                                                                                                                z
+                                                                                                                                                                        · rcases hFBvxor with
+                                                                                                                                                                            ⟨z, hFBvxor⟩
+                                                                                                                                                                          subst f
+                                                                                                                                                                          rcases
+                                                                                                                                                                              contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                                                hFScan with
+                                                                                                                                                                            ⟨_hBvxorHeadScan, hZScan⟩
+                                                                                                                                                                          have hZNN :
+                                                                                                                                                                              __smtx_typeof
+                                                                                                                                                                                  (__eo_to_smt z) ≠
+                                                                                                                                                                                SmtType.None := by
+                                                                                                                                                                            intro hArgNone
+                                                                                                                                                                            apply hNN
+                                                                                                                                                                            change
+                                                                                                                                                                              __smtx_typeof
+                                                                                                                                                                                  (SmtTerm.bvxor
+                                                                                                                                                                                    (__eo_to_smt z)
+                                                                                                                                                                                    (__eo_to_smt a)) =
+                                                                                                                                                                                SmtType.None
+                                                                                                                                                                            exact
+                                                                                                                                                                              smtx_typeof_bvxor_first_arg_none
+                                                                                                                                                                                (__eo_to_smt z)
+                                                                                                                                                                                (__eo_to_smt a)
+                                                                                                                                                                                hArgNone
+                                                                                                                                                                          have hANN :
+                                                                                                                                                                              __smtx_typeof
+                                                                                                                                                                                  (__eo_to_smt a) ≠
+                                                                                                                                                                                SmtType.None := by
+                                                                                                                                                                            intro hArgNone
+                                                                                                                                                                            apply hNN
+                                                                                                                                                                            change
+                                                                                                                                                                              __smtx_typeof
+                                                                                                                                                                                  (SmtTerm.bvxor
+                                                                                                                                                                                    (__eo_to_smt z)
+                                                                                                                                                                                    (__eo_to_smt a)) =
+                                                                                                                                                                                SmtType.None
+                                                                                                                                                                            exact
+                                                                                                                                                                              smtx_typeof_bvxor_second_arg_none
+                                                                                                                                                                                (__eo_to_smt z)
+                                                                                                                                                                                (__eo_to_smt a)
+                                                                                                                                                                                hArgNone
+                                                                                                                                                                          have hZEval :
+                                                                                                                                                                              __smtx_model_eval M
+                                                                                                                                                                                  (__eo_to_smt z) =
+                                                                                                                                                                                __smtx_model_eval N
+                                                                                                                                                                                  (__eo_to_smt z) :=
+                                                                                                                                                                            smtx_model_eval_eq_of_contains_atomic_false
+                                                                                                                                                                              z xs bvs hBvsVar M N
+                                                                                                                                                                              hRel hZScan hZNN
+                                                                                                                                                                          have hAEval :
+                                                                                                                                                                              __smtx_model_eval M
+                                                                                                                                                                                  (__eo_to_smt a) =
+                                                                                                                                                                                __smtx_model_eval N
+                                                                                                                                                                                  (__eo_to_smt a) :=
+                                                                                                                                                                            ihA hBvsVar M N hRel
+                                                                                                                                                                              hAScan hANN
+                                                                                                                                                                          change
+                                                                                                                                                                            __smtx_model_eval M
+                                                                                                                                                                                (SmtTerm.bvxor
+                                                                                                                                                                                  (__eo_to_smt z)
+                                                                                                                                                                                  (__eo_to_smt a)) =
+                                                                                                                                                                              __smtx_model_eval N
+                                                                                                                                                                                (SmtTerm.bvxor
+                                                                                                                                                                                  (__eo_to_smt z)
+                                                                                                                                                                                  (__eo_to_smt a))
+                                                                                                                                                                          simpa [__smtx_model_eval, hZEval, hAEval]
+                                                                                                                                                                        · by_cases hFBvxnor :
+                                                                                                                                                                            ∃ z,
+                                                                                                                                                                              f =
+                                                                                                                                                                                Term.Apply
+                                                                                                                                                                                  (Term.UOp
+                                                                                                                                                                                    UserOp.bvxnor)
+                                                                                                                                                                                  z
+                                                                                                                                                                          · rcases hFBvxnor with
+                                                                                                                                                                              ⟨z, hFBvxnor⟩
+                                                                                                                                                                            subst f
+                                                                                                                                                                            rcases
+                                                                                                                                                                                contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                                                  hFScan with
+                                                                                                                                                                              ⟨_hBvxnorHeadScan, hZScan⟩
+                                                                                                                                                                            have hZNN :
+                                                                                                                                                                                __smtx_typeof
+                                                                                                                                                                                    (__eo_to_smt z) ≠
+                                                                                                                                                                                  SmtType.None := by
+                                                                                                                                                                              intro hArgNone
+                                                                                                                                                                              apply hNN
+                                                                                                                                                                              change
+                                                                                                                                                                                __smtx_typeof
+                                                                                                                                                                                    (SmtTerm.bvxnor
+                                                                                                                                                                                      (__eo_to_smt z)
+                                                                                                                                                                                      (__eo_to_smt a)) =
+                                                                                                                                                                                  SmtType.None
+                                                                                                                                                                              exact
+                                                                                                                                                                                smtx_typeof_bvxnor_first_arg_none
+                                                                                                                                                                                  (__eo_to_smt z)
+                                                                                                                                                                                  (__eo_to_smt a)
+                                                                                                                                                                                  hArgNone
+                                                                                                                                                                            have hANN :
+                                                                                                                                                                                __smtx_typeof
+                                                                                                                                                                                    (__eo_to_smt a) ≠
+                                                                                                                                                                                  SmtType.None := by
+                                                                                                                                                                              intro hArgNone
+                                                                                                                                                                              apply hNN
+                                                                                                                                                                              change
+                                                                                                                                                                                __smtx_typeof
+                                                                                                                                                                                    (SmtTerm.bvxnor
+                                                                                                                                                                                      (__eo_to_smt z)
+                                                                                                                                                                                      (__eo_to_smt a)) =
+                                                                                                                                                                                  SmtType.None
+                                                                                                                                                                              exact
+                                                                                                                                                                                smtx_typeof_bvxnor_second_arg_none
+                                                                                                                                                                                  (__eo_to_smt z)
+                                                                                                                                                                                  (__eo_to_smt a)
+                                                                                                                                                                                  hArgNone
+                                                                                                                                                                            have hZEval :
+                                                                                                                                                                                __smtx_model_eval M
+                                                                                                                                                                                    (__eo_to_smt z) =
+                                                                                                                                                                                  __smtx_model_eval N
+                                                                                                                                                                                    (__eo_to_smt z) :=
+                                                                                                                                                                              smtx_model_eval_eq_of_contains_atomic_false
+                                                                                                                                                                                z xs bvs hBvsVar M N
+                                                                                                                                                                                hRel hZScan hZNN
+                                                                                                                                                                            have hAEval :
+                                                                                                                                                                                __smtx_model_eval M
+                                                                                                                                                                                    (__eo_to_smt a) =
+                                                                                                                                                                                  __smtx_model_eval N
+                                                                                                                                                                                    (__eo_to_smt a) :=
+                                                                                                                                                                              ihA hBvsVar M N hRel
+                                                                                                                                                                                hAScan hANN
+                                                                                                                                                                            change
+                                                                                                                                                                              __smtx_model_eval M
+                                                                                                                                                                                  (SmtTerm.bvxnor
+                                                                                                                                                                                    (__eo_to_smt z)
+                                                                                                                                                                                    (__eo_to_smt a)) =
+                                                                                                                                                                                __smtx_model_eval N
+                                                                                                                                                                                  (SmtTerm.bvxnor
+                                                                                                                                                                                    (__eo_to_smt z)
+                                                                                                                                                                                    (__eo_to_smt a))
+                                                                                                                                                                            simpa [__smtx_model_eval, hZEval, hAEval]
+                                                                                                                                                                          · by_cases hFBvcomp :
+                                                                                                                                                                              ∃ z,
+                                                                                                                                                                                f =
+                                                                                                                                                                                  Term.Apply
+                                                                                                                                                                                    (Term.UOp
+                                                                                                                                                                                      UserOp.bvcomp)
+                                                                                                                                                                                    z
+                                                                                                                                                                            · rcases hFBvcomp with
+                                                                                                                                                                                ⟨z, hFBvcomp⟩
+                                                                                                                                                                              subst f
+                                                                                                                                                                              rcases
+                                                                                                                                                                                  contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                                                    hFScan with
+                                                                                                                                                                                ⟨_hBvcompHeadScan, hZScan⟩
+                                                                                                                                                                              have hZNN :
+                                                                                                                                                                                  __smtx_typeof
+                                                                                                                                                                                      (__eo_to_smt z) ≠
+                                                                                                                                                                                    SmtType.None := by
+                                                                                                                                                                                intro hArgNone
+                                                                                                                                                                                apply hNN
+                                                                                                                                                                                change
+                                                                                                                                                                                  __smtx_typeof
+                                                                                                                                                                                      (SmtTerm.bvcomp
+                                                                                                                                                                                        (__eo_to_smt z)
+                                                                                                                                                                                        (__eo_to_smt a)) =
+                                                                                                                                                                                    SmtType.None
+                                                                                                                                                                                exact
+                                                                                                                                                                                  smtx_typeof_bvcomp_first_arg_none
+                                                                                                                                                                                    (__eo_to_smt z)
+                                                                                                                                                                                    (__eo_to_smt a)
+                                                                                                                                                                                    hArgNone
+                                                                                                                                                                              have hANN :
+                                                                                                                                                                                  __smtx_typeof
+                                                                                                                                                                                      (__eo_to_smt a) ≠
+                                                                                                                                                                                    SmtType.None := by
+                                                                                                                                                                                intro hArgNone
+                                                                                                                                                                                apply hNN
+                                                                                                                                                                                change
+                                                                                                                                                                                  __smtx_typeof
+                                                                                                                                                                                      (SmtTerm.bvcomp
+                                                                                                                                                                                        (__eo_to_smt z)
+                                                                                                                                                                                        (__eo_to_smt a)) =
+                                                                                                                                                                                    SmtType.None
+                                                                                                                                                                                exact
+                                                                                                                                                                                  smtx_typeof_bvcomp_second_arg_none
+                                                                                                                                                                                    (__eo_to_smt z)
+                                                                                                                                                                                    (__eo_to_smt a)
+                                                                                                                                                                                    hArgNone
+                                                                                                                                                                              have hZEval :
+                                                                                                                                                                                  __smtx_model_eval M
+                                                                                                                                                                                      (__eo_to_smt z) =
+                                                                                                                                                                                    __smtx_model_eval N
+                                                                                                                                                                                      (__eo_to_smt z) :=
+                                                                                                                                                                                smtx_model_eval_eq_of_contains_atomic_false
+                                                                                                                                                                                  z xs bvs hBvsVar M N
+                                                                                                                                                                                  hRel hZScan hZNN
+                                                                                                                                                                              have hAEval :
+                                                                                                                                                                                  __smtx_model_eval M
+                                                                                                                                                                                      (__eo_to_smt a) =
+                                                                                                                                                                                    __smtx_model_eval N
+                                                                                                                                                                                      (__eo_to_smt a) :=
+                                                                                                                                                                                ihA hBvsVar M N hRel
+                                                                                                                                                                                  hAScan hANN
+                                                                                                                                                                              change
+                                                                                                                                                                                __smtx_model_eval M
+                                                                                                                                                                                    (SmtTerm.bvcomp
+                                                                                                                                                                                      (__eo_to_smt z)
+                                                                                                                                                                                      (__eo_to_smt a)) =
+                                                                                                                                                                                  __smtx_model_eval N
+                                                                                                                                                                                    (SmtTerm.bvcomp
+                                                                                                                                                                                      (__eo_to_smt z)
+                                                                                                                                                                                      (__eo_to_smt a))
+                                                                                                                                                                              simpa [__smtx_model_eval, hZEval, hAEval]
+                                                                                                                                                                            · by_cases hFBvadd :
+                                                                                                                                                                                ∃ z,
+                                                                                                                                                                                  f =
+                                                                                                                                                                                    Term.Apply
+                                                                                                                                                                                      (Term.UOp
+                                                                                                                                                                                        UserOp.bvadd)
+                                                                                                                                                                                      z
+                                                                                                                                                                              · rcases hFBvadd with
+                                                                                                                                                                                  ⟨z, hFBvadd⟩
+                                                                                                                                                                                subst f
+                                                                                                                                                                                rcases
+                                                                                                                                                                                    contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                                                      hFScan with
+                                                                                                                                                                                  ⟨_hBvaddHeadScan, hZScan⟩
+                                                                                                                                                                                have hZNN :
+                                                                                                                                                                                    __smtx_typeof
+                                                                                                                                                                                        (__eo_to_smt z) ≠
+                                                                                                                                                                                      SmtType.None := by
+                                                                                                                                                                                  intro hArgNone
+                                                                                                                                                                                  apply hNN
+                                                                                                                                                                                  change
+                                                                                                                                                                                    __smtx_typeof
+                                                                                                                                                                                        (SmtTerm.bvadd
+                                                                                                                                                                                          (__eo_to_smt z)
+                                                                                                                                                                                          (__eo_to_smt a)) =
+                                                                                                                                                                                      SmtType.None
+                                                                                                                                                                                  exact
+                                                                                                                                                                                    smtx_typeof_bvadd_first_arg_none
+                                                                                                                                                                                      (__eo_to_smt z)
+                                                                                                                                                                                      (__eo_to_smt a)
+                                                                                                                                                                                      hArgNone
+                                                                                                                                                                                have hANN :
+                                                                                                                                                                                    __smtx_typeof
+                                                                                                                                                                                        (__eo_to_smt a) ≠
+                                                                                                                                                                                      SmtType.None := by
+                                                                                                                                                                                  intro hArgNone
+                                                                                                                                                                                  apply hNN
+                                                                                                                                                                                  change
+                                                                                                                                                                                    __smtx_typeof
+                                                                                                                                                                                        (SmtTerm.bvadd
+                                                                                                                                                                                          (__eo_to_smt z)
+                                                                                                                                                                                          (__eo_to_smt a)) =
+                                                                                                                                                                                      SmtType.None
+                                                                                                                                                                                  exact
+                                                                                                                                                                                    smtx_typeof_bvadd_second_arg_none
+                                                                                                                                                                                      (__eo_to_smt z)
+                                                                                                                                                                                      (__eo_to_smt a)
+                                                                                                                                                                                      hArgNone
+                                                                                                                                                                                have hZEval :
+                                                                                                                                                                                    __smtx_model_eval M
+                                                                                                                                                                                        (__eo_to_smt z) =
+                                                                                                                                                                                      __smtx_model_eval N
+                                                                                                                                                                                        (__eo_to_smt z) :=
+                                                                                                                                                                                  smtx_model_eval_eq_of_contains_atomic_false
+                                                                                                                                                                                    z xs bvs hBvsVar M N
+                                                                                                                                                                                    hRel hZScan hZNN
+                                                                                                                                                                                have hAEval :
+                                                                                                                                                                                    __smtx_model_eval M
+                                                                                                                                                                                        (__eo_to_smt a) =
+                                                                                                                                                                                      __smtx_model_eval N
+                                                                                                                                                                                        (__eo_to_smt a) :=
+                                                                                                                                                                                  ihA hBvsVar M N hRel
+                                                                                                                                                                                    hAScan hANN
+                                                                                                                                                                                change
+                                                                                                                                                                                  __smtx_model_eval M
+                                                                                                                                                                                      (SmtTerm.bvadd
+                                                                                                                                                                                        (__eo_to_smt z)
+                                                                                                                                                                                        (__eo_to_smt a)) =
+                                                                                                                                                                                    __smtx_model_eval N
+                                                                                                                                                                                      (SmtTerm.bvadd
+                                                                                                                                                                                        (__eo_to_smt z)
+                                                                                                                                                                                        (__eo_to_smt a))
+                                                                                                                                                                                simpa [__smtx_model_eval, hZEval, hAEval]
+                                                                                                                                                                              · by_cases hFBvmul :
+                                                                                                                                                                                  ∃ z,
+                                                                                                                                                                                    f =
+                                                                                                                                                                                      Term.Apply
+                                                                                                                                                                                        (Term.UOp
+                                                                                                                                                                                          UserOp.bvmul)
+                                                                                                                                                                                        z
+                                                                                                                                                                                · rcases hFBvmul with
+                                                                                                                                                                                    ⟨z, hFBvmul⟩
+                                                                                                                                                                                  subst f
+                                                                                                                                                                                  rcases
+                                                                                                                                                                                      contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                                                        hFScan with
+                                                                                                                                                                                    ⟨_hBvmulHeadScan, hZScan⟩
+                                                                                                                                                                                  have hZNN :
+                                                                                                                                                                                      __smtx_typeof
+                                                                                                                                                                                          (__eo_to_smt z) ≠
+                                                                                                                                                                                        SmtType.None := by
+                                                                                                                                                                                    intro hArgNone
+                                                                                                                                                                                    apply hNN
+                                                                                                                                                                                    change
+                                                                                                                                                                                      __smtx_typeof
+                                                                                                                                                                                          (SmtTerm.bvmul
+                                                                                                                                                                                            (__eo_to_smt z)
+                                                                                                                                                                                            (__eo_to_smt a)) =
+                                                                                                                                                                                        SmtType.None
+                                                                                                                                                                                    exact
+                                                                                                                                                                                      smtx_typeof_bvmul_first_arg_none
+                                                                                                                                                                                        (__eo_to_smt z)
+                                                                                                                                                                                        (__eo_to_smt a)
+                                                                                                                                                                                        hArgNone
+                                                                                                                                                                                  have hANN :
+                                                                                                                                                                                      __smtx_typeof
+                                                                                                                                                                                          (__eo_to_smt a) ≠
+                                                                                                                                                                                        SmtType.None := by
+                                                                                                                                                                                    intro hArgNone
+                                                                                                                                                                                    apply hNN
+                                                                                                                                                                                    change
+                                                                                                                                                                                      __smtx_typeof
+                                                                                                                                                                                          (SmtTerm.bvmul
+                                                                                                                                                                                            (__eo_to_smt z)
+                                                                                                                                                                                            (__eo_to_smt a)) =
+                                                                                                                                                                                        SmtType.None
+                                                                                                                                                                                    exact
+                                                                                                                                                                                      smtx_typeof_bvmul_second_arg_none
+                                                                                                                                                                                        (__eo_to_smt z)
+                                                                                                                                                                                        (__eo_to_smt a)
+                                                                                                                                                                                        hArgNone
+                                                                                                                                                                                  have hZEval :
+                                                                                                                                                                                      __smtx_model_eval M
+                                                                                                                                                                                          (__eo_to_smt z) =
+                                                                                                                                                                                        __smtx_model_eval N
+                                                                                                                                                                                          (__eo_to_smt z) :=
+                                                                                                                                                                                    smtx_model_eval_eq_of_contains_atomic_false
+                                                                                                                                                                                      z xs bvs hBvsVar M N
+                                                                                                                                                                                      hRel hZScan hZNN
+                                                                                                                                                                                  have hAEval :
+                                                                                                                                                                                      __smtx_model_eval M
+                                                                                                                                                                                          (__eo_to_smt a) =
+                                                                                                                                                                                        __smtx_model_eval N
+                                                                                                                                                                                          (__eo_to_smt a) :=
+                                                                                                                                                                                    ihA hBvsVar M N hRel
+                                                                                                                                                                                      hAScan hANN
+                                                                                                                                                                                  change
+                                                                                                                                                                                    __smtx_model_eval M
+                                                                                                                                                                                        (SmtTerm.bvmul
+                                                                                                                                                                                          (__eo_to_smt z)
+                                                                                                                                                                                          (__eo_to_smt a)) =
+                                                                                                                                                                                      __smtx_model_eval N
+                                                                                                                                                                                        (SmtTerm.bvmul
+                                                                                                                                                                                          (__eo_to_smt z)
+                                                                                                                                                                                          (__eo_to_smt a))
+                                                                                                                                                                                  simpa [__smtx_model_eval, hZEval, hAEval]
+                                                                                                                                                                                · by_cases hFBvudiv :
+                                                                                                                                                                                    ∃ z,
+                                                                                                                                                                                      f =
+                                                                                                                                                                                        Term.Apply
+                                                                                                                                                                                          (Term.UOp
+                                                                                                                                                                                            UserOp.bvudiv)
+                                                                                                                                                                                          z
+                                                                                                                                                                                  · rcases hFBvudiv with
+                                                                                                                                                                                      ⟨z, hFBvudiv⟩
+                                                                                                                                                                                    subst f
+                                                                                                                                                                                    rcases
+                                                                                                                                                                                        contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                                                          hFScan with
+                                                                                                                                                                                      ⟨_hBvudivHeadScan, hZScan⟩
+                                                                                                                                                                                    have hZNN :
+                                                                                                                                                                                        __smtx_typeof
+                                                                                                                                                                                            (__eo_to_smt z) ≠
+                                                                                                                                                                                          SmtType.None := by
+                                                                                                                                                                                      intro hArgNone
+                                                                                                                                                                                      apply hNN
+                                                                                                                                                                                      change
+                                                                                                                                                                                        __smtx_typeof
+                                                                                                                                                                                            (SmtTerm.bvudiv
+                                                                                                                                                                                              (__eo_to_smt z)
+                                                                                                                                                                                              (__eo_to_smt a)) =
+                                                                                                                                                                                          SmtType.None
+                                                                                                                                                                                      exact
+                                                                                                                                                                                        smtx_typeof_bvudiv_first_arg_none
+                                                                                                                                                                                          (__eo_to_smt z)
+                                                                                                                                                                                          (__eo_to_smt a)
+                                                                                                                                                                                          hArgNone
+                                                                                                                                                                                    have hANN :
+                                                                                                                                                                                        __smtx_typeof
+                                                                                                                                                                                            (__eo_to_smt a) ≠
+                                                                                                                                                                                          SmtType.None := by
+                                                                                                                                                                                      intro hArgNone
+                                                                                                                                                                                      apply hNN
+                                                                                                                                                                                      change
+                                                                                                                                                                                        __smtx_typeof
+                                                                                                                                                                                            (SmtTerm.bvudiv
+                                                                                                                                                                                              (__eo_to_smt z)
+                                                                                                                                                                                              (__eo_to_smt a)) =
+                                                                                                                                                                                          SmtType.None
+                                                                                                                                                                                      exact
+                                                                                                                                                                                        smtx_typeof_bvudiv_second_arg_none
+                                                                                                                                                                                          (__eo_to_smt z)
+                                                                                                                                                                                          (__eo_to_smt a)
+                                                                                                                                                                                          hArgNone
+                                                                                                                                                                                    have hZEval :
+                                                                                                                                                                                        __smtx_model_eval M
+                                                                                                                                                                                            (__eo_to_smt z) =
+                                                                                                                                                                                          __smtx_model_eval N
+                                                                                                                                                                                            (__eo_to_smt z) :=
+                                                                                                                                                                                      smtx_model_eval_eq_of_contains_atomic_false
+                                                                                                                                                                                        z xs bvs hBvsVar M N
+                                                                                                                                                                                        hRel hZScan hZNN
+                                                                                                                                                                                    have hAEval :
+                                                                                                                                                                                        __smtx_model_eval M
+                                                                                                                                                                                            (__eo_to_smt a) =
+                                                                                                                                                                                          __smtx_model_eval N
+                                                                                                                                                                                            (__eo_to_smt a) :=
+                                                                                                                                                                                      ihA hBvsVar M N hRel
+                                                                                                                                                                                        hAScan hANN
+                                                                                                                                                                                    change
+                                                                                                                                                                                      __smtx_model_eval M
+                                                                                                                                                                                          (SmtTerm.bvudiv
+                                                                                                                                                                                            (__eo_to_smt z)
+                                                                                                                                                                                            (__eo_to_smt a)) =
+                                                                                                                                                                                        __smtx_model_eval N
+                                                                                                                                                                                          (SmtTerm.bvudiv
+                                                                                                                                                                                            (__eo_to_smt z)
+                                                                                                                                                                                            (__eo_to_smt a))
+                                                                                                                                                                                    simpa [__smtx_model_eval, hZEval, hAEval]
+                                                                                                                                                                                  · by_cases hFBvurem :
+                                                                                                                                                                                      ∃ z,
+                                                                                                                                                                                        f =
+                                                                                                                                                                                          Term.Apply
+                                                                                                                                                                                            (Term.UOp
+                                                                                                                                                                                              UserOp.bvurem)
+                                                                                                                                                                                            z
+                                                                                                                                                                                    · rcases hFBvurem with
+                                                                                                                                                                                        ⟨z, hFBvurem⟩
+                                                                                                                                                                                      subst f
+                                                                                                                                                                                      rcases
+                                                                                                                                                                                          contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                                                            hFScan with
+                                                                                                                                                                                        ⟨_hBvuremHeadScan, hZScan⟩
+                                                                                                                                                                                      have hZNN :
+                                                                                                                                                                                          __smtx_typeof
+                                                                                                                                                                                              (__eo_to_smt z) ≠
+                                                                                                                                                                                            SmtType.None := by
+                                                                                                                                                                                        intro hArgNone
+                                                                                                                                                                                        apply hNN
+                                                                                                                                                                                        change
+                                                                                                                                                                                          __smtx_typeof
+                                                                                                                                                                                              (SmtTerm.bvurem
+                                                                                                                                                                                                (__eo_to_smt z)
+                                                                                                                                                                                                (__eo_to_smt a)) =
+                                                                                                                                                                                            SmtType.None
+                                                                                                                                                                                        exact
+                                                                                                                                                                                          smtx_typeof_bvurem_first_arg_none
+                                                                                                                                                                                            (__eo_to_smt z)
+                                                                                                                                                                                            (__eo_to_smt a)
+                                                                                                                                                                                            hArgNone
+                                                                                                                                                                                      have hANN :
+                                                                                                                                                                                          __smtx_typeof
+                                                                                                                                                                                              (__eo_to_smt a) ≠
+                                                                                                                                                                                            SmtType.None := by
+                                                                                                                                                                                        intro hArgNone
+                                                                                                                                                                                        apply hNN
+                                                                                                                                                                                        change
+                                                                                                                                                                                          __smtx_typeof
+                                                                                                                                                                                              (SmtTerm.bvurem
+                                                                                                                                                                                                (__eo_to_smt z)
+                                                                                                                                                                                                (__eo_to_smt a)) =
+                                                                                                                                                                                            SmtType.None
+                                                                                                                                                                                        exact
+                                                                                                                                                                                          smtx_typeof_bvurem_second_arg_none
+                                                                                                                                                                                            (__eo_to_smt z)
+                                                                                                                                                                                            (__eo_to_smt a)
+                                                                                                                                                                                            hArgNone
+                                                                                                                                                                                      have hZEval :
+                                                                                                                                                                                          __smtx_model_eval M
+                                                                                                                                                                                              (__eo_to_smt z) =
+                                                                                                                                                                                            __smtx_model_eval N
+                                                                                                                                                                                              (__eo_to_smt z) :=
+                                                                                                                                                                                        smtx_model_eval_eq_of_contains_atomic_false
+                                                                                                                                                                                          z xs bvs hBvsVar M N
+                                                                                                                                                                                          hRel hZScan hZNN
+                                                                                                                                                                                      have hAEval :
+                                                                                                                                                                                          __smtx_model_eval M
+                                                                                                                                                                                              (__eo_to_smt a) =
+                                                                                                                                                                                            __smtx_model_eval N
+                                                                                                                                                                                              (__eo_to_smt a) :=
+                                                                                                                                                                                        ihA hBvsVar M N hRel
+                                                                                                                                                                                          hAScan hANN
+                                                                                                                                                                                      change
+                                                                                                                                                                                        __smtx_model_eval M
+                                                                                                                                                                                            (SmtTerm.bvurem
+                                                                                                                                                                                              (__eo_to_smt z)
+                                                                                                                                                                                              (__eo_to_smt a)) =
+                                                                                                                                                                                          __smtx_model_eval N
+                                                                                                                                                                                            (SmtTerm.bvurem
+                                                                                                                                                                                              (__eo_to_smt z)
+                                                                                                                                                                                              (__eo_to_smt a))
+                                                                                                                                                                                      simpa [__smtx_model_eval, hZEval, hAEval]
+                                                                                                                                                                                    · by_cases hFBvsub :
+                                                                                                                                                                                        ∃ z,
+                                                                                                                                                                                          f =
+                                                                                                                                                                                            Term.Apply
+                                                                                                                                                                                              (Term.UOp
+                                                                                                                                                                                                UserOp.bvsub)
+                                                                                                                                                                                              z
+                                                                                                                                                                                      · rcases hFBvsub with
+                                                                                                                                                                                          ⟨z, hFBvsub⟩
+                                                                                                                                                                                        subst f
+                                                                                                                                                                                        rcases
+                                                                                                                                                                                            contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                                                              hFScan with
+                                                                                                                                                                                          ⟨_hBvsubHeadScan, hZScan⟩
+                                                                                                                                                                                        have hZNN :
+                                                                                                                                                                                            __smtx_typeof
+                                                                                                                                                                                                (__eo_to_smt z) ≠
+                                                                                                                                                                                              SmtType.None := by
+                                                                                                                                                                                          intro hArgNone
+                                                                                                                                                                                          apply hNN
+                                                                                                                                                                                          change
+                                                                                                                                                                                            __smtx_typeof
+                                                                                                                                                                                                (SmtTerm.bvsub
+                                                                                                                                                                                                  (__eo_to_smt z)
+                                                                                                                                                                                                  (__eo_to_smt a)) =
+                                                                                                                                                                                              SmtType.None
+                                                                                                                                                                                          exact
+                                                                                                                                                                                            smtx_typeof_bvsub_first_arg_none
+                                                                                                                                                                                              (__eo_to_smt z)
+                                                                                                                                                                                              (__eo_to_smt a)
+                                                                                                                                                                                              hArgNone
+                                                                                                                                                                                        have hANN :
+                                                                                                                                                                                            __smtx_typeof
+                                                                                                                                                                                                (__eo_to_smt a) ≠
+                                                                                                                                                                                              SmtType.None := by
+                                                                                                                                                                                          intro hArgNone
+                                                                                                                                                                                          apply hNN
+                                                                                                                                                                                          change
+                                                                                                                                                                                            __smtx_typeof
+                                                                                                                                                                                                (SmtTerm.bvsub
+                                                                                                                                                                                                  (__eo_to_smt z)
+                                                                                                                                                                                                  (__eo_to_smt a)) =
+                                                                                                                                                                                              SmtType.None
+                                                                                                                                                                                          exact
+                                                                                                                                                                                            smtx_typeof_bvsub_second_arg_none
+                                                                                                                                                                                              (__eo_to_smt z)
+                                                                                                                                                                                              (__eo_to_smt a)
+                                                                                                                                                                                              hArgNone
+                                                                                                                                                                                        have hZEval :
+                                                                                                                                                                                            __smtx_model_eval M
+                                                                                                                                                                                                (__eo_to_smt z) =
+                                                                                                                                                                                              __smtx_model_eval N
+                                                                                                                                                                                                (__eo_to_smt z) :=
+                                                                                                                                                                                          smtx_model_eval_eq_of_contains_atomic_false
+                                                                                                                                                                                            z xs bvs hBvsVar M N
+                                                                                                                                                                                            hRel hZScan hZNN
+                                                                                                                                                                                        have hAEval :
+                                                                                                                                                                                            __smtx_model_eval M
+                                                                                                                                                                                                (__eo_to_smt a) =
+                                                                                                                                                                                              __smtx_model_eval N
+                                                                                                                                                                                                (__eo_to_smt a) :=
+                                                                                                                                                                                          ihA hBvsVar M N hRel
+                                                                                                                                                                                            hAScan hANN
+                                                                                                                                                                                        change
+                                                                                                                                                                                          __smtx_model_eval M
+                                                                                                                                                                                              (SmtTerm.bvsub
+                                                                                                                                                                                                (__eo_to_smt z)
+                                                                                                                                                                                                (__eo_to_smt a)) =
+                                                                                                                                                                                            __smtx_model_eval N
+                                                                                                                                                                                              (SmtTerm.bvsub
+                                                                                                                                                                                                (__eo_to_smt z)
+                                                                                                                                                                                                (__eo_to_smt a))
+                                                                                                                                                                                        simpa [__smtx_model_eval, hZEval, hAEval]
+                                                                                                                                                                                      · by_cases hFBvsdiv :
+                                                                                                                                                                                          ∃ z,
+                                                                                                                                                                                            f =
+                                                                                                                                                                                              Term.Apply
+                                                                                                                                                                                                (Term.UOp
+                                                                                                                                                                                                  UserOp.bvsdiv)
+                                                                                                                                                                                                z
+                                                                                                                                                                                        · rcases hFBvsdiv with
+                                                                                                                                                                                            ⟨z, hFBvsdiv⟩
+                                                                                                                                                                                          subst f
+                                                                                                                                                                                          rcases
+                                                                                                                                                                                              contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                                                                hFScan with
+                                                                                                                                                                                            ⟨_hBvsdivHeadScan, hZScan⟩
+                                                                                                                                                                                          have hZNN :
+                                                                                                                                                                                              __smtx_typeof
+                                                                                                                                                                                                  (__eo_to_smt z) ≠
+                                                                                                                                                                                                SmtType.None := by
+                                                                                                                                                                                            intro hArgNone
+                                                                                                                                                                                            apply hNN
+                                                                                                                                                                                            change
+                                                                                                                                                                                              __smtx_typeof
+                                                                                                                                                                                                  (SmtTerm.bvsdiv
+                                                                                                                                                                                                    (__eo_to_smt z)
+                                                                                                                                                                                                    (__eo_to_smt a)) =
+                                                                                                                                                                                                SmtType.None
+                                                                                                                                                                                            exact
+                                                                                                                                                                                              smtx_typeof_bvsdiv_first_arg_none
+                                                                                                                                                                                                (__eo_to_smt z)
+                                                                                                                                                                                                (__eo_to_smt a)
+                                                                                                                                                                                                hArgNone
+                                                                                                                                                                                          have hANN :
+                                                                                                                                                                                              __smtx_typeof
+                                                                                                                                                                                                  (__eo_to_smt a) ≠
+                                                                                                                                                                                                SmtType.None := by
+                                                                                                                                                                                            intro hArgNone
+                                                                                                                                                                                            apply hNN
+                                                                                                                                                                                            change
+                                                                                                                                                                                              __smtx_typeof
+                                                                                                                                                                                                  (SmtTerm.bvsdiv
+                                                                                                                                                                                                    (__eo_to_smt z)
+                                                                                                                                                                                                    (__eo_to_smt a)) =
+                                                                                                                                                                                                SmtType.None
+                                                                                                                                                                                            exact
+                                                                                                                                                                                              smtx_typeof_bvsdiv_second_arg_none
+                                                                                                                                                                                                (__eo_to_smt z)
+                                                                                                                                                                                                (__eo_to_smt a)
+                                                                                                                                                                                                hArgNone
+                                                                                                                                                                                          have hZEval :
+                                                                                                                                                                                              __smtx_model_eval M
+                                                                                                                                                                                                  (__eo_to_smt z) =
+                                                                                                                                                                                                __smtx_model_eval N
+                                                                                                                                                                                                  (__eo_to_smt z) :=
+                                                                                                                                                                                            smtx_model_eval_eq_of_contains_atomic_false
+                                                                                                                                                                                              z xs bvs hBvsVar M N
+                                                                                                                                                                                              hRel hZScan hZNN
+                                                                                                                                                                                          have hAEval :
+                                                                                                                                                                                              __smtx_model_eval M
+                                                                                                                                                                                                  (__eo_to_smt a) =
+                                                                                                                                                                                                __smtx_model_eval N
+                                                                                                                                                                                                  (__eo_to_smt a) :=
+                                                                                                                                                                                            ihA hBvsVar M N hRel
+                                                                                                                                                                                              hAScan hANN
+                                                                                                                                                                                          change
+                                                                                                                                                                                            __smtx_model_eval M
+                                                                                                                                                                                                (SmtTerm.bvsdiv
+                                                                                                                                                                                                  (__eo_to_smt z)
+                                                                                                                                                                                                  (__eo_to_smt a)) =
+                                                                                                                                                                                              __smtx_model_eval N
+                                                                                                                                                                                                (SmtTerm.bvsdiv
+                                                                                                                                                                                                  (__eo_to_smt z)
+                                                                                                                                                                                                  (__eo_to_smt a))
+                                                                                                                                                                                          simpa [__smtx_model_eval, hZEval, hAEval]
+                                                                                                                                                                                        · exact smtx_model_eval_eq_of_remaining_direct_binary_apply f a xs bvs M N hRel hFScan hNN (fun z hZScan hZNN M' N' hRel' => smtx_model_eval_eq_of_contains_atomic_false z xs bvs hBvsVar M' N' hRel' hZScan hZNN) (fun hANN M' N' hRel' => ihA hBvsVar M' N' hRel' hAScan hANN)
   | case6 name T xs bvs hXs hBvs =>
       intro hBvsVar M N hRel hScan hNN
       cases name with
