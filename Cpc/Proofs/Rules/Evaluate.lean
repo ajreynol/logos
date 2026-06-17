@@ -615,6 +615,12 @@ private theorem run_evaluate_apply_eq_smt_type_bool
     | rw [__smtx_typeof.eq_1]
     | contradiction
 
+private theorem eo_eq_typeof_bool_of_ne_stuck_early
+    (x y : Term)
+    (hNe : __eo_eq x y ≠ Term.Stuck) :
+    __eo_typeof (__eo_eq x y) = Term.Bool := by
+  cases x <;> cases y <;> simp [__eo_eq] at hNe ⊢
+
 private theorem run_evaluate_apply_eq_typeof_bool_of_run_typeof_eq
     (y x : Term)
     (hTy :
@@ -628,18 +634,12 @@ private theorem run_evaluate_apply_eq_typeof_bool_of_run_typeof_eq
         (__run_evaluate
           (Term.Apply (Term.Apply (Term.UOp UserOp.eq) y) x)) =
       Term.Bool := by
-  cases hy : __run_evaluate y <;> cases hx : __run_evaluate x <;>
-    simp [__run_evaluate, hy, hx, __eo_eq, __eo_ite, __eo_and,
-      __eo_is_q, __eo_is_q_internal, __eo_is_z, __eo_is_z_internal,
-      __eo_is_bin, __eo_is_bin_internal, __eo_is_str,
-      __eo_is_str_internal, __eo_is_bool, __eo_is_bool_internal,
-      __eo_mk_apply, native_ite, native_and, native_not, native_teq] at
-      hTy hNe ⊢
-  all_goals
-    first
-    | rfl
-    | cases hTy
-    | contradiction
+  have hEqNe :
+      __eo_eq (__run_evaluate y) (__run_evaluate x) ≠ Term.Stuck := by
+    simpa [__run_evaluate] using hNe
+  simpa [__run_evaluate] using
+    eo_eq_typeof_bool_of_ne_stuck_early
+      (__run_evaluate y) (__run_evaluate x) hEqNe
 
 private theorem smt_value_rel_model_eval_eo_to_smt_eq_refl
     (M : SmtModel) (y x : Term) :
@@ -1178,7 +1178,7 @@ private theorem eo_eval_str_from_code_rhs_run_numeral_eq
   · rcases hGuard with ⟨h0, hnLe⟩
     by_cases hlt : n < 196608
     · exact eo_eval_str_from_code_rhs_run_numeral_valid
-        hRun hXEoInt hRunFromNe h0 hlt)
+        hRun hXEoInt hRunFromNe h0 hlt
     · have hGe : (196608 : Int) ≤ n := Int.le_of_not_gt hlt
       have hEq : n = 196608 := Int.le_antisymm hnLe hGe
       subst n
@@ -3641,51 +3641,60 @@ private theorem eo_not_arg_boolean_of_typeof_bool
 private theorem eo_or_typeof_bool_of_args_bool
     (x y : Term)
     (hX : __eo_typeof x = Term.Bool)
-    (hY : __eo_typeof y = Term.Bool) :
+    (hY : __eo_typeof y = Term.Bool)
+    (hNe : __eo_or x y ≠ Term.Stuck) :
     __eo_typeof (__eo_or x y) = Term.Bool := by
-  cases x <;> cases y <;> simp [__eo_or] at hX hY ⊢
-  case Boolean.Boolean bx by =>
+  cases x <;> cases y <;> simp [__eo_or] at hX hY hNe ⊢
+  case Boolean.Boolean bx byv =>
     rfl
   all_goals
     first
     | cases hX
     | cases hY
+    | contradiction
 
 private theorem eo_and_typeof_bool_of_args_bool
     (x y : Term)
     (hX : __eo_typeof x = Term.Bool)
-    (hY : __eo_typeof y = Term.Bool) :
+    (hY : __eo_typeof y = Term.Bool)
+    (hNe : __eo_and x y ≠ Term.Stuck) :
     __eo_typeof (__eo_and x y) = Term.Bool := by
-  cases x <;> cases y <;> simp [__eo_and] at hX hY ⊢
-  case Boolean.Boolean bx by =>
+  cases x <;> cases y <;> simp [__eo_and] at hX hY hNe ⊢
+  case Boolean.Boolean bx byv =>
     rfl
   all_goals
     first
     | cases hX
     | cases hY
+    | contradiction
 
 private theorem eo_xor_typeof_bool_of_args_bool
     (x y : Term)
     (hX : __eo_typeof x = Term.Bool)
-    (hY : __eo_typeof y = Term.Bool) :
+    (hY : __eo_typeof y = Term.Bool)
+    (hNe : __eo_xor x y ≠ Term.Stuck) :
     __eo_typeof (__eo_xor x y) = Term.Bool := by
-  cases x <;> cases y <;> simp [__eo_xor] at hX hY ⊢
-  case Boolean.Boolean bx by =>
+  cases x <;> cases y <;> simp [__eo_xor] at hX hY hNe ⊢
+  case Boolean.Boolean bx byv =>
     rfl
   all_goals
     first
     | cases hX
     | cases hY
+    | contradiction
 
 private theorem eo_not_typeof_bool_of_arg_bool
     (x : Term)
-    (hX : __eo_typeof x = Term.Bool) :
+    (hX : __eo_typeof x = Term.Bool)
+    (hNe : __eo_not x ≠ Term.Stuck) :
     __eo_typeof (__eo_not x) = Term.Bool := by
-  cases x <;> simp [__eo_not] at hX ⊢
+  cases x <;> simp [__eo_not] at hX hNe ⊢
   case Boolean b =>
     rfl
   all_goals
-    cases hX
+    first
+    | cases hX
+    | contradiction
 
 private theorem eo_not_arg_binary_of_typeof_bitvec
     (t : Term) (w : native_Int) :
@@ -4156,15 +4165,17 @@ private theorem eo_add_args_numeral_of_typeof_int
 private theorem eo_add_typeof_int_of_args_int
     (x y : Term)
     (hX : __eo_typeof x = Term.UOp UserOp.Int)
-    (hY : __eo_typeof y = Term.UOp UserOp.Int) :
+    (hY : __eo_typeof y = Term.UOp UserOp.Int)
+    (hNe : __eo_add x y ≠ Term.Stuck) :
     __eo_typeof (__eo_add x y) = Term.UOp UserOp.Int := by
-  cases x <;> cases y <;> simp [__eo_add] at hX hY ⊢
+  cases x <;> cases y <;> simp [__eo_add] at hX hY hNe ⊢
   case Numeral.Numeral nx ny =>
     rfl
   all_goals
     first
     | cases hX
     | cases hY
+    | contradiction
 
 private theorem eo_add_int_args_numeral_of_nonstuck
     (x y : Term)
@@ -4251,15 +4262,17 @@ private theorem eo_add_args_rational_of_typeof_real
 private theorem eo_add_typeof_real_of_args_real
     (x y : Term)
     (hX : __eo_typeof x = Term.UOp UserOp.Real)
-    (hY : __eo_typeof y = Term.UOp UserOp.Real) :
+    (hY : __eo_typeof y = Term.UOp UserOp.Real)
+    (hNe : __eo_add x y ≠ Term.Stuck) :
     __eo_typeof (__eo_add x y) = Term.UOp UserOp.Real := by
-  cases x <;> cases y <;> simp [__eo_add] at hX hY ⊢
+  cases x <;> cases y <;> simp [__eo_add] at hX hY hNe ⊢
   case Rational.Rational rx ry =>
     rfl
   all_goals
     first
     | cases hX
     | cases hY
+    | contradiction
 
 private theorem eo_mul_args_binary_of_typeof_bitvec
     (x y : Term) (w : native_Int) :
@@ -4392,15 +4405,17 @@ private theorem eo_mul_args_numeral_of_typeof_int
 private theorem eo_mul_typeof_int_of_args_int
     (x y : Term)
     (hX : __eo_typeof x = Term.UOp UserOp.Int)
-    (hY : __eo_typeof y = Term.UOp UserOp.Int) :
+    (hY : __eo_typeof y = Term.UOp UserOp.Int)
+    (hNe : __eo_mul x y ≠ Term.Stuck) :
     __eo_typeof (__eo_mul x y) = Term.UOp UserOp.Int := by
-  cases x <;> cases y <;> simp [__eo_mul] at hX hY ⊢
+  cases x <;> cases y <;> simp [__eo_mul] at hX hY hNe ⊢
   case Numeral.Numeral nx ny =>
     rfl
   all_goals
     first
     | cases hX
     | cases hY
+    | contradiction
 
 private theorem eo_mul_args_rational_of_typeof_real
     (x y : Term) :
@@ -4463,15 +4478,17 @@ private theorem eo_mul_args_rational_of_typeof_real
 private theorem eo_mul_typeof_real_of_args_real
     (x y : Term)
     (hX : __eo_typeof x = Term.UOp UserOp.Real)
-    (hY : __eo_typeof y = Term.UOp UserOp.Real) :
+    (hY : __eo_typeof y = Term.UOp UserOp.Real)
+    (hNe : __eo_mul x y ≠ Term.Stuck) :
     __eo_typeof (__eo_mul x y) = Term.UOp UserOp.Real := by
-  cases x <;> cases y <;> simp [__eo_mul] at hX hY ⊢
+  cases x <;> cases y <;> simp [__eo_mul] at hX hY hNe ⊢
   case Rational.Rational rx ry =>
     rfl
   all_goals
     first
     | cases hX
     | cases hY
+    | contradiction
 
 private theorem eo_neg_arg_binary_of_eq_binary
     (x : Term) (w n : native_Int) :
@@ -4508,13 +4525,16 @@ private theorem eo_neg_arg_numeral_of_typeof_int
 
 private theorem eo_neg_typeof_int_of_arg_int
     (x : Term)
-    (hX : __eo_typeof x = Term.UOp UserOp.Int) :
+    (hX : __eo_typeof x = Term.UOp UserOp.Int)
+    (hNe : __eo_neg x ≠ Term.Stuck) :
     __eo_typeof (__eo_neg x) = Term.UOp UserOp.Int := by
-  cases x <;> simp [__eo_neg] at hX ⊢
+  cases x <;> simp [__eo_neg] at hX hNe ⊢
   case Numeral n =>
     rfl
   all_goals
-    cases hX
+    first
+    | cases hX
+    | contradiction
 
 private theorem eo_neg_arg_rational_of_typeof_real
     (x : Term) :
@@ -4541,13 +4561,16 @@ private theorem eo_neg_arg_rational_of_typeof_real
 
 private theorem eo_neg_typeof_real_of_arg_real
     (x : Term)
-    (hX : __eo_typeof x = Term.UOp UserOp.Real) :
+    (hX : __eo_typeof x = Term.UOp UserOp.Real)
+    (hNe : __eo_neg x ≠ Term.Stuck) :
     __eo_typeof (__eo_neg x) = Term.UOp UserOp.Real := by
-  cases x <;> simp [__eo_neg] at hX ⊢
+  cases x <;> simp [__eo_neg] at hX hNe ⊢
   case Rational q =>
     rfl
   all_goals
-    cases hX
+    first
+    | cases hX
+    | contradiction
 
 private theorem eo_is_neg_arg_arith_of_typeof_bool
     (x : Term) :
@@ -4567,23 +4590,29 @@ private theorem eo_is_neg_arg_arith_of_typeof_bool
 
 private theorem eo_is_neg_typeof_bool_of_arg_int
     (x : Term)
-    (hX : __eo_typeof x = Term.UOp UserOp.Int) :
+    (hX : __eo_typeof x = Term.UOp UserOp.Int)
+    (hNe : __eo_is_neg x ≠ Term.Stuck) :
     __eo_typeof (__eo_is_neg x) = Term.Bool := by
-  cases x <;> simp [__eo_is_neg] at hX ⊢
+  cases x <;> simp [__eo_is_neg] at hX hNe ⊢
   case Numeral n =>
     rfl
   all_goals
-    cases hX
+    first
+    | cases hX
+    | contradiction
 
 private theorem eo_is_neg_typeof_bool_of_arg_real
     (x : Term)
-    (hX : __eo_typeof x = Term.UOp UserOp.Real) :
+    (hX : __eo_typeof x = Term.UOp UserOp.Real)
+    (hNe : __eo_is_neg x ≠ Term.Stuck) :
     __eo_typeof (__eo_is_neg x) = Term.Bool := by
-  cases x <;> simp [__eo_is_neg] at hX ⊢
+  cases x <;> simp [__eo_is_neg] at hX hNe ⊢
   case Rational q =>
     rfl
   all_goals
-    cases hX
+    first
+    | cases hX
+    | contradiction
 
 private theorem eo_is_neg_arg_arith_of_nonstuck
     (x : Term) :
@@ -12036,23 +12065,27 @@ private theorem eo_neg_arg_binary_of_typeof_bitvec
 
 private theorem eo_to_q_typeof_real_of_arg_int
     (x : Term)
-    (hX : __eo_typeof x = Term.UOp UserOp.Int) :
+    (hX : __eo_typeof x = Term.UOp UserOp.Int)
+    (hNe : __eo_to_q x ≠ Term.Stuck) :
     __eo_typeof (__eo_to_q x) = Term.UOp UserOp.Real := by
-  cases x <;> simp [__eo_to_q] at hX ⊢
+  cases x <;> simp [__eo_to_q] at hX hNe ⊢
   all_goals
     first
     | rfl
     | cases hX
+    | contradiction
 
 private theorem eo_to_q_typeof_real_of_arg_real
     (x : Term)
-    (hX : __eo_typeof x = Term.UOp UserOp.Real) :
+    (hX : __eo_typeof x = Term.UOp UserOp.Real)
+    (hNe : __eo_to_q x ≠ Term.Stuck) :
     __eo_typeof (__eo_to_q x) = Term.UOp UserOp.Real := by
-  cases x <;> simp [__eo_to_q] at hX ⊢
+  cases x <;> simp [__eo_to_q] at hX hNe ⊢
   all_goals
     first
     | rfl
     | cases hX
+    | contradiction
 
 private theorem eo_eq_typeof_bool_of_args_real
     (x y : Term)
@@ -12172,7 +12205,12 @@ private theorem eo_qdiv_right_ne_stuck {a b : Term} :
 private theorem eo_leq_body_typeof_bool_of_int_args
     (x y : Term)
     (hX : __eo_typeof x = Term.UOp UserOp.Int)
-    (hY : __eo_typeof y = Term.UOp UserOp.Int) :
+    (hY : __eo_typeof y = Term.UOp UserOp.Int)
+    (hNe :
+      (let d := __eo_add x (__eo_neg y)
+       __eo_or (__eo_is_neg d)
+        (__eo_eq (__eo_to_q d)
+          (Term.Rational (native_mk_rational 0 1)))) ≠ Term.Stuck) :
     __eo_typeof
         (let d := __eo_add x (__eo_neg y)
          __eo_or (__eo_is_neg d)
@@ -12180,15 +12218,35 @@ private theorem eo_leq_body_typeof_bool_of_int_args
             (Term.Rational (native_mk_rational 0 1)))) =
       Term.Bool := by
   let d := __eo_add x (__eo_neg y)
+  have hOrNe :
+      __eo_or (__eo_is_neg d)
+          (__eo_eq (__eo_to_q d)
+            (Term.Rational (native_mk_rational 0 1))) ≠
+        Term.Stuck := by
+    simpa [d] using hNe
+  have hIsNegNe : __eo_is_neg d ≠ Term.Stuck :=
+    eo_or_left_ne_stuck hOrNe
+  have hDNe : d ≠ Term.Stuck :=
+    eo_is_neg_arg_ne_stuck hIsNegNe
+  have hNegYNe : __eo_neg y ≠ Term.Stuck :=
+    eo_add_right_ne_stuck (by simpa [d] using hDNe)
   have hNegY : __eo_typeof (__eo_neg y) = Term.UOp UserOp.Int :=
-    eo_neg_typeof_int_of_arg_int y hY
+    eo_neg_typeof_int_of_arg_int y hY hNegYNe
   have hD : __eo_typeof d = Term.UOp UserOp.Int := by
     dsimp [d]
     exact eo_add_typeof_int_of_args_int x (__eo_neg y) hX hNegY
+      (by simpa [d] using hDNe)
   have hIsNeg : __eo_typeof (__eo_is_neg d) = Term.Bool :=
-    eo_is_neg_typeof_bool_of_arg_int d hD
+    eo_is_neg_typeof_bool_of_arg_int d hD hIsNegNe
+  have hEqNe :
+      __eo_eq (__eo_to_q d)
+          (Term.Rational (native_mk_rational 0 1)) ≠
+        Term.Stuck :=
+    eo_or_right_ne_stuck hOrNe
+  have hToQNe : __eo_to_q d ≠ Term.Stuck :=
+    eo_eq_left_ne_stuck hEqNe
   have hToQ : __eo_typeof (__eo_to_q d) = Term.UOp UserOp.Real :=
-    eo_to_q_typeof_real_of_arg_int d hD
+    eo_to_q_typeof_real_of_arg_int d hD hToQNe
   have hEq :
       __eo_typeof
           (__eo_eq (__eo_to_q d)
@@ -12200,12 +12258,17 @@ private theorem eo_leq_body_typeof_bool_of_int_args
   simpa [d] using
     eo_or_typeof_bool_of_args_bool (__eo_is_neg d)
       (__eo_eq (__eo_to_q d)
-        (Term.Rational (native_mk_rational 0 1))) hIsNeg hEq
+        (Term.Rational (native_mk_rational 0 1))) hIsNeg hEq hOrNe
 
 private theorem eo_leq_body_typeof_bool_of_real_args
     (x y : Term)
     (hX : __eo_typeof x = Term.UOp UserOp.Real)
-    (hY : __eo_typeof y = Term.UOp UserOp.Real) :
+    (hY : __eo_typeof y = Term.UOp UserOp.Real)
+    (hNe :
+      (let d := __eo_add x (__eo_neg y)
+       __eo_or (__eo_is_neg d)
+        (__eo_eq (__eo_to_q d)
+          (Term.Rational (native_mk_rational 0 1)))) ≠ Term.Stuck) :
     __eo_typeof
         (let d := __eo_add x (__eo_neg y)
          __eo_or (__eo_is_neg d)
@@ -12213,15 +12276,35 @@ private theorem eo_leq_body_typeof_bool_of_real_args
             (Term.Rational (native_mk_rational 0 1)))) =
       Term.Bool := by
   let d := __eo_add x (__eo_neg y)
+  have hOrNe :
+      __eo_or (__eo_is_neg d)
+          (__eo_eq (__eo_to_q d)
+            (Term.Rational (native_mk_rational 0 1))) ≠
+        Term.Stuck := by
+    simpa [d] using hNe
+  have hIsNegNe : __eo_is_neg d ≠ Term.Stuck :=
+    eo_or_left_ne_stuck hOrNe
+  have hDNe : d ≠ Term.Stuck :=
+    eo_is_neg_arg_ne_stuck hIsNegNe
+  have hNegYNe : __eo_neg y ≠ Term.Stuck :=
+    eo_add_right_ne_stuck (by simpa [d] using hDNe)
   have hNegY : __eo_typeof (__eo_neg y) = Term.UOp UserOp.Real :=
-    eo_neg_typeof_real_of_arg_real y hY
+    eo_neg_typeof_real_of_arg_real y hY hNegYNe
   have hD : __eo_typeof d = Term.UOp UserOp.Real := by
     dsimp [d]
     exact eo_add_typeof_real_of_args_real x (__eo_neg y) hX hNegY
+      (by simpa [d] using hDNe)
   have hIsNeg : __eo_typeof (__eo_is_neg d) = Term.Bool :=
-    eo_is_neg_typeof_bool_of_arg_real d hD
+    eo_is_neg_typeof_bool_of_arg_real d hD hIsNegNe
+  have hEqNe :
+      __eo_eq (__eo_to_q d)
+          (Term.Rational (native_mk_rational 0 1)) ≠
+        Term.Stuck :=
+    eo_or_right_ne_stuck hOrNe
+  have hToQNe : __eo_to_q d ≠ Term.Stuck :=
+    eo_eq_left_ne_stuck hEqNe
   have hToQ : __eo_typeof (__eo_to_q d) = Term.UOp UserOp.Real :=
-    eo_to_q_typeof_real_of_arg_real d hD
+    eo_to_q_typeof_real_of_arg_real d hD hToQNe
   have hEq :
       __eo_typeof
           (__eo_eq (__eo_to_q d)
@@ -12233,7 +12316,7 @@ private theorem eo_leq_body_typeof_bool_of_real_args
   simpa [d] using
     eo_or_typeof_bool_of_args_bool (__eo_is_neg d)
       (__eo_eq (__eo_to_q d)
-        (Term.Rational (native_mk_rational 0 1))) hIsNeg hEq
+        (Term.Rational (native_mk_rational 0 1))) hIsNeg hEq hOrNe
 
 private theorem eo_zdiv_typeof_int_of_right_int_and_ne_stuck
     (x y : Term)
@@ -14368,7 +14451,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                         Term.Bool :=
                     eo_and_typeof_bool_of_args_bool
                       (__run_evaluate y) (__run_evaluate x)
-                      hRunYBool hRunXBool
+                      hRunYBool hRunXBool hRunAndNe
                   change
                     __eo_typeof
                         (__eo_and (__run_evaluate y)
@@ -14431,7 +14514,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                         Term.Bool :=
                     eo_or_typeof_bool_of_args_bool
                       (__run_evaluate y) (__run_evaluate x)
-                      hRunYBool hRunXBool
+                      hRunYBool hRunXBool hRunOrNe
                   change
                     __eo_typeof
                         (__eo_or (__run_evaluate y)
@@ -14494,7 +14577,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                         Term.Bool :=
                     eo_xor_typeof_bool_of_args_bool
                       (__run_evaluate y) (__run_evaluate x)
-                      hRunYBool hRunXBool
+                      hRunYBool hRunXBool hRunXorNe
                   change
                     __eo_typeof
                         (__eo_xor (__run_evaluate y)
@@ -14558,7 +14641,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       __eo_typeof (__eo_not (__run_evaluate y)) =
                         Term.Bool :=
                     eo_not_typeof_bool_of_arg_bool
-                      (__run_evaluate y) hRunYBool
+                      (__run_evaluate y) hRunYBool hRunNotYNe
                   have hRunBodyTy :
                       __eo_typeof
                           (__eo_or (__eo_not (__run_evaluate y))
@@ -14566,7 +14649,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                         Term.Bool :=
                     eo_or_typeof_bool_of_args_bool
                       (__eo_not (__run_evaluate y)) (__run_evaluate x)
-                      hRunNotYBool hRunXBool
+                      hRunNotYBool hRunXBool hRunImpNe
                   change
                     __eo_typeof
                         (__eo_or (__eo_not (__run_evaluate y))
@@ -14637,7 +14720,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                           Term.UOp UserOp.Int :=
                       eo_add_typeof_int_of_args_int
                         (__run_evaluate y) (__run_evaluate x)
-                        hRunYInt hRunXInt
+                        hRunYInt hRunXInt hRunAddNe
                     change
                       __eo_typeof
                           (__eo_add (__run_evaluate y)
@@ -14689,7 +14772,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                           Term.UOp UserOp.Real :=
                       eo_add_typeof_real_of_args_real
                         (__run_evaluate y) (__run_evaluate x)
-                        hRunYReal hRunXReal
+                        hRunYReal hRunXReal hRunAddNe
                     change
                       __eo_typeof
                           (__eo_add (__run_evaluate y)
@@ -14762,7 +14845,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                           Term.UOp UserOp.Int :=
                       eo_mul_typeof_int_of_args_int
                         (__run_evaluate y) (__run_evaluate x)
-                        hRunYInt hRunXInt
+                        hRunYInt hRunXInt hRunMulNe
                     change
                       __eo_typeof
                           (__eo_mul (__run_evaluate y)
@@ -14814,7 +14897,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                           Term.UOp UserOp.Real :=
                       eo_mul_typeof_real_of_args_real
                         (__run_evaluate y) (__run_evaluate x)
-                        hRunYReal hRunXReal
+                        hRunYReal hRunXReal hRunMulNe
                     change
                       __eo_typeof
                           (__eo_mul (__run_evaluate y)
@@ -14888,7 +14971,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                         __eo_typeof (__eo_neg (__run_evaluate x)) =
                           Term.UOp UserOp.Int :=
                       eo_neg_typeof_int_of_arg_int
-                        (__run_evaluate x) hRunXInt
+                        (__run_evaluate x) hRunXInt hRunNegXNe
                     have hRunBodyTy :
                         __eo_typeof
                             (__eo_add (__run_evaluate y)
@@ -14897,7 +14980,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       eo_add_typeof_int_of_args_int
                         (__run_evaluate y)
                         (__eo_neg (__run_evaluate x))
-                        hRunYInt hRunNegXInt
+                        hRunYInt hRunNegXInt hRunSubNe
                     change
                       __eo_typeof
                           (__eo_add (__run_evaluate y)
@@ -14946,7 +15029,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                         __eo_typeof (__eo_neg (__run_evaluate x)) =
                           Term.UOp UserOp.Real :=
                       eo_neg_typeof_real_of_arg_real
-                        (__run_evaluate x) hRunXReal
+                        (__run_evaluate x) hRunXReal hRunNegXNe
                     have hRunBodyTy :
                         __eo_typeof
                             (__eo_add (__run_evaluate y)
@@ -14955,7 +15038,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       eo_add_typeof_real_of_args_real
                         (__run_evaluate y)
                         (__eo_neg (__run_evaluate x))
-                        hRunYReal hRunNegXReal
+                        hRunYReal hRunNegXReal hRunSubNe
                     change
                       __eo_typeof
                           (__eo_add (__run_evaluate y)
@@ -15035,7 +15118,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                         __eo_typeof (__eo_neg (__run_evaluate x)) =
                           Term.UOp UserOp.Int :=
                       eo_neg_typeof_int_of_arg_int
-                        (__run_evaluate x) hRunXInt
+                        (__run_evaluate x) hRunXInt hRunNegXNe
                     have hRunDiffTy :
                         __eo_typeof
                             (__eo_add (__run_evaluate y)
@@ -15044,7 +15127,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       eo_add_typeof_int_of_args_int
                         (__run_evaluate y)
                         (__eo_neg (__run_evaluate x))
-                        hRunYInt hRunNegXInt
+                        hRunYInt hRunNegXInt hRunAddNe
                     have hRunBodyTy :
                         __eo_typeof
                             (__eo_is_neg
@@ -15054,7 +15137,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       eo_is_neg_typeof_bool_of_arg_int
                         (__eo_add (__run_evaluate y)
                           (__eo_neg (__run_evaluate x)))
-                        hRunDiffTy
+                        hRunDiffTy hRunLtNe
                     change
                       __eo_typeof
                           (__eo_is_neg
@@ -15104,7 +15187,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                         __eo_typeof (__eo_neg (__run_evaluate x)) =
                           Term.UOp UserOp.Real :=
                       eo_neg_typeof_real_of_arg_real
-                        (__run_evaluate x) hRunXReal
+                        (__run_evaluate x) hRunXReal hRunNegXNe
                     have hRunDiffTy :
                         __eo_typeof
                             (__eo_add (__run_evaluate y)
@@ -15113,7 +15196,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       eo_add_typeof_real_of_args_real
                         (__run_evaluate y)
                         (__eo_neg (__run_evaluate x))
-                        hRunYReal hRunNegXReal
+                        hRunYReal hRunNegXReal hRunAddNe
                     have hRunBodyTy :
                         __eo_typeof
                             (__eo_is_neg
@@ -15123,7 +15206,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       eo_is_neg_typeof_bool_of_arg_real
                         (__eo_add (__run_evaluate y)
                           (__eo_neg (__run_evaluate x)))
-                        hRunDiffTy
+                        hRunDiffTy hRunLtNe
                     change
                       __eo_typeof
                           (__eo_is_neg
@@ -15204,7 +15287,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                         __eo_typeof (__eo_neg (__run_evaluate y)) =
                           Term.UOp UserOp.Int :=
                       eo_neg_typeof_int_of_arg_int
-                        (__run_evaluate y) hRunYInt
+                        (__run_evaluate y) hRunYInt hRunNegYNe
                     have hRunDiffTy :
                         __eo_typeof
                             (__eo_add (__run_evaluate x)
@@ -15213,7 +15296,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       eo_add_typeof_int_of_args_int
                         (__run_evaluate x)
                         (__eo_neg (__run_evaluate y))
-                        hRunXInt hRunNegYInt
+                        hRunXInt hRunNegYInt hRunAddNe
                     have hRunBodyTy :
                         __eo_typeof
                             (__eo_is_neg
@@ -15223,7 +15306,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       eo_is_neg_typeof_bool_of_arg_int
                         (__eo_add (__run_evaluate x)
                           (__eo_neg (__run_evaluate y)))
-                        hRunDiffTy
+                        hRunDiffTy hRunGtNe
                     change
                       __eo_typeof
                           (__eo_is_neg
@@ -15273,7 +15356,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                         __eo_typeof (__eo_neg (__run_evaluate y)) =
                           Term.UOp UserOp.Real :=
                       eo_neg_typeof_real_of_arg_real
-                        (__run_evaluate y) hRunYReal
+                        (__run_evaluate y) hRunYReal hRunNegYNe
                     have hRunDiffTy :
                         __eo_typeof
                             (__eo_add (__run_evaluate x)
@@ -15282,7 +15365,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       eo_add_typeof_real_of_args_real
                         (__run_evaluate x)
                         (__eo_neg (__run_evaluate y))
-                        hRunXReal hRunNegYReal
+                        hRunXReal hRunNegYReal hRunAddNe
                     have hRunBodyTy :
                         __eo_typeof
                             (__eo_is_neg
@@ -15292,7 +15375,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       eo_is_neg_typeof_bool_of_arg_real
                         (__eo_add (__run_evaluate x)
                           (__eo_neg (__run_evaluate y)))
-                        hRunDiffTy
+                        hRunDiffTy hRunGtNe
                     change
                       __eo_typeof
                           (__eo_is_neg
@@ -15391,7 +15474,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                           Term.Bool :=
                       eo_leq_body_typeof_bool_of_int_args
                         (__run_evaluate y) (__run_evaluate x)
-                        hRunYInt hRunXInt
+                        hRunYInt hRunXInt hRunLeqNe
                     change
                       __eo_typeof
                           (let d :=
@@ -15453,7 +15536,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                           Term.Bool :=
                       eo_leq_body_typeof_bool_of_real_args
                         (__run_evaluate y) (__run_evaluate x)
-                        hRunYReal hRunXReal
+                        hRunYReal hRunXReal hRunLeqNe
                     change
                       __eo_typeof
                           (let d :=
@@ -15556,7 +15639,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                           Term.Bool :=
                       eo_leq_body_typeof_bool_of_int_args
                         (__run_evaluate x) (__run_evaluate y)
-                        hRunXInt hRunYInt
+                        hRunXInt hRunYInt hRunGeqNe
                     change
                       __eo_typeof
                           (let d :=
@@ -15618,7 +15701,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                           Term.Bool :=
                       eo_leq_body_typeof_bool_of_real_args
                         (__run_evaluate x) (__run_evaluate y)
-                        hRunXReal hRunYReal
+                        hRunXReal hRunYReal hRunGeqNe
                     change
                       __eo_typeof
                           (let d :=
@@ -15832,20 +15915,26 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                         __eo_typeof (__run_evaluate y) =
                           Term.UOp UserOp.Int :=
                       hYPres.trans hYEoInt
-                    have hRunXInt :
-                        __eo_typeof (__run_evaluate x) =
-                          Term.UOp UserOp.Int :=
-                      hXPres.trans hXEoInt
-                    have hRunToQYReal :
-                        __eo_typeof (__eo_to_q (__run_evaluate y)) =
-                          Term.UOp UserOp.Real :=
-                      eo_to_q_typeof_real_of_arg_int
-                        (__run_evaluate y) hRunYInt
-                    have hRunToQXReal :
-                        __eo_typeof (__eo_to_q (__run_evaluate x)) =
-                          Term.UOp UserOp.Real :=
-                      eo_to_q_typeof_real_of_arg_int
-                        (__run_evaluate x) hRunXInt
+	                    have hRunXInt :
+	                        __eo_typeof (__run_evaluate x) =
+	                          Term.UOp UserOp.Int :=
+	                      hXPres.trans hXEoInt
+	                    have hRunToQYNe :
+	                        __eo_to_q (__run_evaluate y) ≠ Term.Stuck :=
+	                      eo_qdiv_left_ne_stuck hRunQDivNe
+	                    have hRunToQXNe :
+	                        __eo_to_q (__run_evaluate x) ≠ Term.Stuck :=
+	                      eo_qdiv_right_ne_stuck hRunQDivNe
+	                    have hRunToQYReal :
+	                        __eo_typeof (__eo_to_q (__run_evaluate y)) =
+	                          Term.UOp UserOp.Real :=
+	                      eo_to_q_typeof_real_of_arg_int
+	                        (__run_evaluate y) hRunYInt hRunToQYNe
+	                    have hRunToQXReal :
+	                        __eo_typeof (__eo_to_q (__run_evaluate x)) =
+	                          Term.UOp UserOp.Real :=
+	                      eo_to_q_typeof_real_of_arg_int
+	                        (__run_evaluate x) hRunXInt hRunToQXNe
                     have hRunBodyTy :
                         __eo_typeof
                             (__eo_qdiv
@@ -15897,20 +15986,26 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                         __eo_typeof (__run_evaluate y) =
                           Term.UOp UserOp.Real :=
                       hYPres.trans hYEoReal
-                    have hRunXReal :
-                        __eo_typeof (__run_evaluate x) =
-                          Term.UOp UserOp.Real :=
-                      hXPres.trans hXEoReal
-                    have hRunToQYReal :
-                        __eo_typeof (__eo_to_q (__run_evaluate y)) =
-                          Term.UOp UserOp.Real :=
-                      eo_to_q_typeof_real_of_arg_real
-                        (__run_evaluate y) hRunYReal
-                    have hRunToQXReal :
-                        __eo_typeof (__eo_to_q (__run_evaluate x)) =
-                          Term.UOp UserOp.Real :=
-                      eo_to_q_typeof_real_of_arg_real
-                        (__run_evaluate x) hRunXReal
+	                    have hRunXReal :
+	                        __eo_typeof (__run_evaluate x) =
+	                          Term.UOp UserOp.Real :=
+	                      hXPres.trans hXEoReal
+	                    have hRunToQYNe :
+	                        __eo_to_q (__run_evaluate y) ≠ Term.Stuck :=
+	                      eo_qdiv_left_ne_stuck hRunQDivNe
+	                    have hRunToQXNe :
+	                        __eo_to_q (__run_evaluate x) ≠ Term.Stuck :=
+	                      eo_qdiv_right_ne_stuck hRunQDivNe
+	                    have hRunToQYReal :
+	                        __eo_typeof (__eo_to_q (__run_evaluate y)) =
+	                          Term.UOp UserOp.Real :=
+	                      eo_to_q_typeof_real_of_arg_real
+	                        (__run_evaluate y) hRunYReal hRunToQYNe
+	                    have hRunToQXReal :
+	                        __eo_typeof (__eo_to_q (__run_evaluate x)) =
+	                          Term.UOp UserOp.Real :=
+	                      eo_to_q_typeof_real_of_arg_real
+	                        (__run_evaluate x) hRunXReal hRunToQXNe
                     have hRunBodyTy :
                         __eo_typeof
                             (__eo_qdiv
@@ -17095,8 +17190,9 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       __eo_typeof (__eo_or (__eo_gt rx ry)
                           (__eo_eq ry rx)) =
                         Term.Bool :=
-                    eo_or_typeof_bool_of_args_bool
-                      (__eo_gt rx ry) (__eo_eq ry rx) hGtTy hEqTy
+	                    eo_or_typeof_bool_of_args_bool
+	                      (__eo_gt rx ry) (__eo_eq ry rx) hGtTy hEqTy
+	                      hRunOrNe
                   rcases bv_binop_ret_args_of_non_none
                       (op := SmtTerm.bvule) (ret := SmtType.Bool)
                       (by rw [__smtx_typeof.eq_56]) hBvUleNN with
@@ -17137,8 +17233,9 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       __eo_typeof (__eo_or (__eo_gt ry rx)
                           (__eo_eq ry rx)) =
                         Term.Bool :=
-                    eo_or_typeof_bool_of_args_bool
-                      (__eo_gt ry rx) (__eo_eq ry rx) hGtTy hEqTy
+	                    eo_or_typeof_bool_of_args_bool
+	                      (__eo_gt ry rx) (__eo_eq ry rx) hGtTy hEqTy
+	                      hRunOrNe
                   rcases bv_binop_ret_args_of_non_none
                       (op := SmtTerm.bvuge) (ret := SmtType.Bool)
                       (by rw [__smtx_typeof.eq_58]) hBvUgeNN with
@@ -17223,7 +17320,8 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                               (Term.Apply (Term.UOp UserOp.bvsle) y) x)) =
                         Term.Bool := by
                     change __eo_typeof (__eo_or _ _) = Term.Bool
-                    exact eo_or_typeof_bool_of_args_bool _ _ hGtTy hEqTy
+	                    exact eo_or_typeof_bool_of_args_bool _ _ hGtTy hEqTy
+	                      hRunOrNe
                   rcases bv_binop_ret_args_of_non_none
                       (op := SmtTerm.bvsle) (ret := SmtType.Bool)
                       (by rw [__smtx_typeof.eq_def] <;> simp only)
@@ -17311,7 +17409,8 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                               (Term.Apply (Term.UOp UserOp.bvsge) y) x)) =
                         Term.Bool := by
                     change __eo_typeof (__eo_or _ _) = Term.Bool
-                    exact eo_or_typeof_bool_of_args_bool _ _ hGtTy hEqTy
+	                    exact eo_or_typeof_bool_of_args_bool _ _ hGtTy hEqTy
+	                      hRunOrNe
                   rcases bv_binop_ret_args_of_non_none
                       (op := SmtTerm.bvsge) (ret := SmtType.Bool)
                       (by rw [__smtx_typeof.eq_def] <;> simp only)
