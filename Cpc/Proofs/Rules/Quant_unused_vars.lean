@@ -11616,21 +11616,209 @@ private theorem contains_atomic_term_list_free_rec_vars_ne_stuck_of_false
     simp [__contains_atomic_term_list_free_rec] at h
 
 private theorem contains_atomic_term_list_free_rec_apply_false_cases
-    {f a xs bvs : Term} :
+    {f a xs bvs : Term}
+    (hNotBinder :
+      ∀ q x ys : Term,
+        f ≠ Term.Apply q
+          (Term.Apply (Term.Apply Term.__eo_List_cons x) ys)) :
     __contains_atomic_term_list_free_rec (Term.Apply f a) xs bvs =
       Term.Boolean false ->
     __contains_atomic_term_list_free_rec f xs bvs = Term.Boolean false ∧
       __contains_atomic_term_list_free_rec a xs bvs = Term.Boolean false := by
   intro hScan
-  have hScan' :
-      __eo_ite (__contains_atomic_term_list_free_rec f xs bvs)
-          (Term.Boolean true)
-          (__contains_atomic_term_list_free_rec a xs bvs) =
-        Term.Boolean false := by
-    simpa [__contains_atomic_term_list_free_rec] using hScan
-  exact eo_ite_true_branch_eq_false_cases
-    (__contains_atomic_term_list_free_rec f xs bvs)
-    (__contains_atomic_term_list_free_rec a xs bvs) hScan'
+  generalize ht : Term.Apply f a = t at hScan
+  induction t, xs, bvs using Eo.__contains_atomic_term_list_free_rec.induct
+    generalizing f a with
+  | case1 xs bvs =>
+      cases ht
+  | case2 t bvs htStuck =>
+      exfalso
+      simpa [__contains_atomic_term_list_free_rec] using hScan
+  | case3 t xs htXs htT =>
+      exfalso
+      simpa [__contains_atomic_term_list_free_rec] using hScan
+  | case4 q x ys body xs bvs hXs hBvs ih =>
+      cases ht
+      exact False.elim (hNotBinder q x ys rfl)
+  | case5 f' a' xs bvs hXs hBvs hNot' ihF ihA =>
+      cases ht
+      have hScan' :
+          __eo_ite (__contains_atomic_term_list_free_rec f' xs bvs)
+              (Term.Boolean true)
+              (__contains_atomic_term_list_free_rec a' xs bvs) =
+            Term.Boolean false := by
+        simpa [__contains_atomic_term_list_free_rec] using hScan
+      exact eo_ite_true_branch_eq_false_cases
+        (__contains_atomic_term_list_free_rec f' xs bvs)
+        (__contains_atomic_term_list_free_rec a' xs bvs) hScan'
+  | case6 s T xs bvs hXs hBvs =>
+      cases ht
+  | case7 x xs bvs hx hXs hBvs hNotQ hNotApply hNotVar =>
+      exact False.elim (hNotApply f a ht.symm)
+
+private theorem contains_atomic_term_list_free_rec_uop_apply_false_cases
+    {op : UserOp} {a xs bvs : Term} :
+    __contains_atomic_term_list_free_rec (Term.Apply (Term.UOp op) a) xs bvs =
+      Term.Boolean false ->
+    __contains_atomic_term_list_free_rec (Term.UOp op) xs bvs =
+        Term.Boolean false ∧
+      __contains_atomic_term_list_free_rec a xs bvs = Term.Boolean false := by
+  exact
+    contains_atomic_term_list_free_rec_apply_false_cases
+      (by
+        intro q x ys h
+        cases h)
+
+private theorem smtx_model_eval_eo_to_smt_set_insert_eq_of_contains_atomic_false
+    (list base xs bvs : Term) (M N : SmtModel)
+    (hRel : scannerModelRel xs bvs M N)
+    (hListScan :
+      __contains_atomic_term_list_free_rec list xs bvs =
+        Term.Boolean false)
+    (hWholeNN :
+      __smtx_typeof (__eo_to_smt_set_insert list (__eo_to_smt base)) ≠
+        SmtType.None)
+    (hBaseEval :
+      __smtx_model_eval M (__eo_to_smt base) =
+        __smtx_model_eval N (__eo_to_smt base))
+    (hRec :
+      ∀ z : Term,
+        __contains_atomic_term_list_free_rec z xs bvs =
+          Term.Boolean false ->
+        __smtx_typeof (__eo_to_smt z) ≠ SmtType.None ->
+        ∀ M' N' : SmtModel,
+          scannerModelRel xs bvs M' N' ->
+          __smtx_model_eval M' (__eo_to_smt z) =
+            __smtx_model_eval N' (__eo_to_smt z)) :
+    __smtx_model_eval M
+        (__eo_to_smt_set_insert list (__eo_to_smt base)) =
+      __smtx_model_eval N
+        (__eo_to_smt_set_insert list (__eo_to_smt base)) := by
+  let rec go (list : Term) (M N : SmtModel)
+      (hRel : scannerModelRel xs bvs M N)
+      (hListScan :
+        __contains_atomic_term_list_free_rec list xs bvs =
+          Term.Boolean false)
+      (hWholeNN :
+        __smtx_typeof (__eo_to_smt_set_insert list (__eo_to_smt base)) ≠
+          SmtType.None)
+      (hBaseEval :
+        __smtx_model_eval M (__eo_to_smt base) =
+          __smtx_model_eval N (__eo_to_smt base)) :
+      __smtx_model_eval M
+          (__eo_to_smt_set_insert list (__eo_to_smt base)) =
+        __smtx_model_eval N
+          (__eo_to_smt_set_insert list (__eo_to_smt base)) := by
+    cases list <;> try
+      simpa [__eo_to_smt_set_insert] using
+        (smtx_model_eval_none_eq_models :
+          __smtx_model_eval M SmtTerm.None =
+            __smtx_model_eval N SmtTerm.None)
+    case Apply f tail =>
+      cases f <;> try
+        simpa [__eo_to_smt_set_insert] using
+          (smtx_model_eval_none_eq_models :
+            __smtx_model_eval M SmtTerm.None =
+              __smtx_model_eval N SmtTerm.None)
+      case UOp op =>
+        cases op <;> try
+          simpa [__eo_to_smt_set_insert] using
+            (smtx_model_eval_none_eq_models :
+              __smtx_model_eval M SmtTerm.None =
+                __smtx_model_eval N SmtTerm.None)
+        case _at__at_TypedList_nil =>
+          cases hGuard :
+              native_Teq (__smtx_typeof (__eo_to_smt base))
+                (SmtType.Set (__eo_to_smt_type tail))
+          · simpa [__eo_to_smt_set_insert, hGuard, native_ite] using
+              (smtx_model_eval_none_eq_models :
+                __smtx_model_eval M SmtTerm.None =
+                  __smtx_model_eval N SmtTerm.None)
+          · simpa [__eo_to_smt_set_insert, hGuard, native_ite] using
+              hBaseEval
+      case Apply g head =>
+        cases g <;> try
+          simpa [__eo_to_smt_set_insert] using
+            (smtx_model_eval_none_eq_models :
+              __smtx_model_eval M SmtTerm.None =
+                __smtx_model_eval N SmtTerm.None)
+        case UOp op =>
+          cases op <;> try
+            simpa [__eo_to_smt_set_insert] using
+              (smtx_model_eval_none_eq_models :
+                __smtx_model_eval M SmtTerm.None =
+                  __smtx_model_eval N SmtTerm.None)
+          case _at__at_TypedList_cons =>
+            have hUnionNN :
+                term_has_non_none_type
+                  (SmtTerm.set_union
+                    (SmtTerm.set_singleton (__eo_to_smt head))
+                    (__eo_to_smt_set_insert tail (__eo_to_smt base))) := by
+              unfold term_has_non_none_type
+              simpa [__eo_to_smt_set_insert] using hWholeNN
+            rcases
+                set_binop_args_of_non_none (op := SmtTerm.set_union)
+                  (typeof_set_union_eq
+                    (SmtTerm.set_singleton (__eo_to_smt head))
+                    (__eo_to_smt_set_insert tail (__eo_to_smt base)))
+                  hUnionNN with
+              ⟨_A, hHeadSet, hTailSet⟩
+            have hHeadNN :
+                __smtx_typeof (__eo_to_smt head) ≠ SmtType.None := by
+              intro hHeadNone
+              have hSingletonNone :
+                  __smtx_typeof
+                      (SmtTerm.set_singleton (__eo_to_smt head)) =
+                    SmtType.None :=
+                smtx_typeof_set_singleton_arg_none
+                  (__eo_to_smt head) hHeadNone
+              rw [hHeadSet] at hSingletonNone
+              cases hSingletonNone
+            have hTailNN :
+                __smtx_typeof
+                    (__eo_to_smt_set_insert tail (__eo_to_smt base)) ≠
+                  SmtType.None := by
+              rw [hTailSet]
+              intro h
+              cases h
+            have hConsNotBinder :
+                ∀ q x ys : Term,
+                  Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) head ≠
+                    Term.Apply q
+                      (Term.Apply (Term.Apply Term.__eo_List_cons x) ys) := by
+              intro q x ys h
+              cases h
+              exact hHeadNN (smtx_typeof_eo_to_smt_list_cons_none x ys)
+            rcases
+                contains_atomic_term_list_free_rec_apply_false_cases
+                  hConsNotBinder hListScan with
+              ⟨hHeadApplyScan, hTailScan⟩
+            rcases
+                contains_atomic_term_list_free_rec_uop_apply_false_cases
+                  hHeadApplyScan with
+              ⟨_hConsScan, hHeadScan⟩
+            have hHeadEval :
+                __smtx_model_eval M (__eo_to_smt head) =
+                  __smtx_model_eval N (__eo_to_smt head) :=
+              hRec head hHeadScan hHeadNN M N hRel
+            have hTailEval :
+                __smtx_model_eval M
+                    (__eo_to_smt_set_insert tail (__eo_to_smt base)) =
+                  __smtx_model_eval N
+                    (__eo_to_smt_set_insert tail (__eo_to_smt base)) :=
+              go tail M N hRel hTailScan hTailNN hBaseEval
+            change
+              __smtx_model_eval M
+                  (SmtTerm.set_union
+                    (SmtTerm.set_singleton (__eo_to_smt head))
+                    (__eo_to_smt_set_insert tail (__eo_to_smt base))) =
+                __smtx_model_eval N
+                  (SmtTerm.set_union
+                    (SmtTerm.set_singleton (__eo_to_smt head))
+                    (__eo_to_smt_set_insert tail (__eo_to_smt base)))
+            simpa [__smtx_model_eval, hHeadEval, hTailEval]
+  termination_by list
+  exact go list M N hRel hListScan hWholeNN hBaseEval
 
 private theorem smtx_model_eval_eq_of_remaining_direct_binary_apply
     (f a xs bvs : Term) (M N : SmtModel)
@@ -11723,7 +11911,7 @@ private theorem smtx_model_eval_eq_of_remaining_direct_binary_apply
       __smtx_model_eval M (__eo_to_smt (Term.Apply f a)) =
         __smtx_model_eval N (__eo_to_smt (Term.Apply f a)) := by
     subst f
-    rcases contains_atomic_term_list_free_rec_apply_false_cases
+    rcases contains_atomic_term_list_free_rec_uop_apply_false_cases
         hFScan with
       ⟨_hHeadScan, hZScan⟩
     rw [hToSmt]
@@ -11743,7 +11931,7 @@ private theorem smtx_model_eval_eq_of_remaining_direct_binary_apply
             z
   · rcases hFBvsrem with ⟨z, hFBvsrem⟩
     subst f
-    rcases contains_atomic_term_list_free_rec_apply_false_cases
+    rcases contains_atomic_term_list_free_rec_uop_apply_false_cases
         hFScan with
       ⟨_hBvsremHeadScan, hZScan⟩
     change
@@ -11777,7 +11965,7 @@ private theorem smtx_model_eval_eq_of_remaining_direct_binary_apply
             z
     · rcases hFBvsmod with ⟨z, hFBvsmod⟩
       subst f
-      rcases contains_atomic_term_list_free_rec_apply_false_cases
+      rcases contains_atomic_term_list_free_rec_uop_apply_false_cases
           hFScan with
         ⟨_hBvsmodHeadScan, hZScan⟩
       change
@@ -11811,7 +11999,7 @@ private theorem smtx_model_eval_eq_of_remaining_direct_binary_apply
               z
       · rcases hFBvshl with ⟨z, hFBvshl⟩
         subst f
-        rcases contains_atomic_term_list_free_rec_apply_false_cases
+        rcases contains_atomic_term_list_free_rec_uop_apply_false_cases
             hFScan with
           ⟨_hBvshlHeadScan, hZScan⟩
         change
@@ -11845,7 +12033,7 @@ private theorem smtx_model_eval_eq_of_remaining_direct_binary_apply
                 z
         · rcases hFBvlshr with ⟨z, hFBvlshr⟩
           subst f
-          rcases contains_atomic_term_list_free_rec_apply_false_cases
+          rcases contains_atomic_term_list_free_rec_uop_apply_false_cases
               hFScan with
             ⟨_hBvlshrHeadScan, hZScan⟩
           change
@@ -11880,7 +12068,7 @@ private theorem smtx_model_eval_eq_of_remaining_direct_binary_apply
                   z
           · rcases hFBvashr with ⟨z, hFBvashr⟩
             subst f
-            rcases contains_atomic_term_list_free_rec_apply_false_cases
+            rcases contains_atomic_term_list_free_rec_uop_apply_false_cases
                 hFScan with
               ⟨_hBvashrHeadScan, hZScan⟩
             change
@@ -12592,7 +12780,7 @@ private theorem smtx_model_eval_eq_of_remaining_direct_binary_apply
                                     ⟨z, hFStringsDeqDiff⟩
                                   subst f
                                   rcases
-                                      contains_atomic_term_list_free_rec_apply_false_cases
+                                      contains_atomic_term_list_free_rec_uop_apply_false_cases
                                         hFScan with
                                     ⟨_hStringsDeqDiffHeadScan, hZScan⟩
                                   have hZNN :
@@ -12728,7 +12916,51 @@ private theorem smtx_model_eval_eq_of_remaining_direct_binary_apply
                                   simpa [__smtx_model_eval, hZEval, hAEval,
                                     native_model_var_lookup,
                                     native_model_push]
-                                · sorry
+                                · by_cases hFSetInsert :
+                                    ∃ z,
+                                      f =
+                                        Term.Apply
+                                          (Term.UOp UserOp.set_insert) z
+                                  · rcases hFSetInsert with
+                                      ⟨z, hFSetInsert⟩
+                                    subst f
+                                    rcases
+                                        contains_atomic_term_list_free_rec_uop_apply_false_cases
+                                          hFScan with
+                                      ⟨_hSetInsertHeadScan, hZScan⟩
+                                    have hInsertNN :
+                                        __smtx_typeof
+                                            (__eo_to_smt_set_insert z
+                                              (__eo_to_smt a)) ≠
+                                          SmtType.None := by
+                                      intro hNone
+                                      apply hNN
+                                      change
+                                        __smtx_typeof
+                                            (__eo_to_smt_set_insert z
+                                              (__eo_to_smt a)) =
+                                          SmtType.None
+                                      exact hNone
+                                    have hANN :
+                                        __smtx_typeof (__eo_to_smt a) ≠
+                                          SmtType.None := by
+                                      intro hArgNone
+                                      exact hInsertNN
+                                        (smtx_typeof_eo_to_smt_set_insert_arg_none
+                                          z (__eo_to_smt a) hArgNone)
+                                    change
+                                      __smtx_model_eval M
+                                          (__eo_to_smt_set_insert z
+                                            (__eo_to_smt a)) =
+                                        __smtx_model_eval N
+                                          (__eo_to_smt_set_insert z
+                                            (__eo_to_smt a))
+                                    exact
+                                      smtx_model_eval_eo_to_smt_set_insert_eq_of_contains_atomic_false
+                                        z a xs bvs M N hRel hZScan
+                                        hInsertNN
+                                        (hARec hANN M N hRel) hRec
+                                  · sorry
 
 private theorem smtx_model_eval_eq_of_contains_atomic_false
     (t xs bvs : Term) :
@@ -15192,6 +15424,9 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
   | case5 f a xs bvs hXs hBvs hNotQuant ihF ihA =>
       intro hBvsVar M N hRel hScan hNN
       rcases contains_atomic_term_list_free_rec_apply_false_cases
+          (by
+            intro q x ys h
+            exact hNotQuant q x ys h)
           hScan with
         ⟨hFScan, hAScan⟩
       by_cases hWholeNone :
@@ -17297,7 +17532,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                       ⟨idx, z, hFUpdate⟩
                                                                                                                     subst f
                                                                                                                     rcases
-                                                                                                                        contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                        contains_atomic_term_list_free_rec_uop_apply_false_cases
                                                                                                                           hFScan with
                                                                                                                       ⟨_hUpdateHeadScan, hZScan⟩
                                                                                                                     have hZNN :
@@ -17383,7 +17618,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                         ⟨idx, z, hFTupleUpdate⟩
                                                                                                                       subst f
                                                                                                                       rcases
-                                                                                                                          contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                          contains_atomic_term_list_free_rec_uop_apply_false_cases
                                                                                                                             hFScan with
                                                                                                                         ⟨_hTupleUpdateHeadScan, hZScan⟩
                                                                                                                       have hZNN :
@@ -17476,7 +17711,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                           ⟨z, hFOr⟩
                                                                                                                         subst f
                                                                                                                         rcases
-                                                                                                                            contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                            contains_atomic_term_list_free_rec_uop_apply_false_cases
                                                                                                                               hFScan with
                                                                                                                           ⟨_hOrHeadScan, hZScan⟩
                                                                                                                         have hZNN :
@@ -17551,7 +17786,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                             ⟨z, hFAnd⟩
                                                                                                                           subst f
                                                                                                                           rcases
-                                                                                                                              contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                              contains_atomic_term_list_free_rec_uop_apply_false_cases
                                                                                                                                 hFScan with
                                                                                                                             ⟨_hAndHeadScan, hZScan⟩
                                                                                                                           have hZNN :
@@ -17626,7 +17861,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                               ⟨z, hFImp⟩
                                                                                                                             subst f
                                                                                                                             rcases
-                                                                                                                                contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                contains_atomic_term_list_free_rec_uop_apply_false_cases
                                                                                                                                   hFScan with
                                                                                                                               ⟨_hImpHeadScan, hZScan⟩
                                                                                                                             have hZNN :
@@ -17701,7 +17936,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                                 ⟨z, hFXor⟩
                                                                                                                               subst f
                                                                                                                               rcases
-                                                                                                                                  contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                  contains_atomic_term_list_free_rec_uop_apply_false_cases
                                                                                                                                     hFScan with
                                                                                                                                 ⟨_hXorHeadScan, hZScan⟩
                                                                                                                               have hZNN :
@@ -17776,7 +18011,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                                   ⟨z, hFEq⟩
                                                                                                                                 subst f
                                                                                                                                 rcases
-                                                                                                                                    contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                    contains_atomic_term_list_free_rec_uop_apply_false_cases
                                                                                                                                       hFScan with
                                                                                                                                   ⟨_hEqHeadScan, hZScan⟩
                                                                                                                                 have hZNN :
@@ -17851,7 +18086,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                                     ⟨z, hFPlus⟩
                                                                                                                                   subst f
                                                                                                                                   rcases
-                                                                                                                                      contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                      contains_atomic_term_list_free_rec_uop_apply_false_cases
                                                                                                                                         hFScan with
                                                                                                                                     ⟨_hPlusHeadScan, hZScan⟩
                                                                                                                                   have hZNN :
@@ -17924,7 +18159,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                                       ⟨z, hFNeg⟩
                                                                                                                                     subst f
                                                                                                                                     rcases
-                                                                                                                                        contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                        contains_atomic_term_list_free_rec_uop_apply_false_cases
                                                                                                                                           hFScan with
                                                                                                                                       ⟨_hNegHeadScan, hZScan⟩
                                                                                                                                     have hZNN :
@@ -17997,7 +18232,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                                         ⟨z, hFMult⟩
                                                                                                                                       subst f
                                                                                                                                       rcases
-                                                                                                                                          contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                          contains_atomic_term_list_free_rec_uop_apply_false_cases
                                                                                                                                             hFScan with
                                                                                                                                         ⟨_hMultHeadScan, hZScan⟩
                                                                                                                                       have hZNN :
@@ -18070,7 +18305,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                                           ⟨z, hFLt⟩
                                                                                                                                         subst f
                                                                                                                                         rcases
-                                                                                                                                            contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                            contains_atomic_term_list_free_rec_uop_apply_false_cases
                                                                                                                                               hFScan with
                                                                                                                                           ⟨_hLtHeadScan, hZScan⟩
                                                                                                                                         have hZNN :
@@ -18143,7 +18378,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                                             ⟨z, hFLeq⟩
                                                                                                                                           subst f
                                                                                                                                           rcases
-                                                                                                                                              contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                              contains_atomic_term_list_free_rec_uop_apply_false_cases
                                                                                                                                                 hFScan with
                                                                                                                                             ⟨_hLeqHeadScan, hZScan⟩
                                                                                                                                           have hZNN :
@@ -18216,7 +18451,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                                               ⟨z, hFGt⟩
                                                                                                                                             subst f
                                                                                                                                             rcases
-                                                                                                                                                contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                contains_atomic_term_list_free_rec_uop_apply_false_cases
                                                                                                                                                   hFScan with
                                                                                                                                               ⟨_hGtHeadScan, hZScan⟩
                                                                                                                                             have hZNN :
@@ -18289,7 +18524,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                                                 ⟨z, hFGeq⟩
                                                                                                                                               subst f
                                                                                                                                               rcases
-                                                                                                                                                  contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                  contains_atomic_term_list_free_rec_uop_apply_false_cases
                                                                                                                                                     hFScan with
                                                                                                                                                 ⟨_hGeqHeadScan, hZScan⟩
                                                                                                                                               have hZNN :
@@ -18362,7 +18597,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                                                   ⟨z, hFDiv⟩
                                                                                                                                                 subst f
                                                                                                                                                 rcases
-                                                                                                                                                    contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                    contains_atomic_term_list_free_rec_uop_apply_false_cases
                                                                                                                                                       hFScan with
                                                                                                                                                   ⟨_hDivHeadScan, hZScan⟩
                                                                                                                                                 have hZNN :
@@ -18442,7 +18677,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                                                     ⟨z, hFMod⟩
                                                                                                                                                   subst f
                                                                                                                                                   rcases
-                                                                                                                                                      contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                      contains_atomic_term_list_free_rec_uop_apply_false_cases
                                                                                                                                                         hFScan with
                                                                                                                                                     ⟨_hModHeadScan, hZScan⟩
                                                                                                                                                   have hZNN :
@@ -18522,7 +18757,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                                                       ⟨z, hFMultmult⟩
                                                                                                                                                     subst f
                                                                                                                                                     rcases
-                                                                                                                                                        contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                        contains_atomic_term_list_free_rec_uop_apply_false_cases
                                                                                                                                                           hFScan with
                                                                                                                                                       ⟨_hMultmultHeadScan, hZScan⟩
                                                                                                                                                     have hZNN :
@@ -18602,7 +18837,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                                                         ⟨z, hFDivisible⟩
                                                                                                                                                       subst f
                                                                                                                                                       rcases
-                                                                                                                                                          contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                          contains_atomic_term_list_free_rec_uop_apply_false_cases
                                                                                                                                                             hFScan with
                                                                                                                                                         ⟨_hDivisibleHeadScan, hZScan⟩
                                                                                                                                                       have hZNN :
@@ -18675,7 +18910,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                                                           ⟨z, hFDivTotal⟩
                                                                                                                                                         subst f
                                                                                                                                                         rcases
-                                                                                                                                                            contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                            contains_atomic_term_list_free_rec_uop_apply_false_cases
                                                                                                                                                               hFScan with
                                                                                                                                                           ⟨_hDivTotalHeadScan, hZScan⟩
                                                                                                                                                         have hZNN :
@@ -18748,7 +18983,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                                                             ⟨z, hFModTotal⟩
                                                                                                                                                           subst f
                                                                                                                                                           rcases
-                                                                                                                                                              contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                              contains_atomic_term_list_free_rec_uop_apply_false_cases
                                                                                                                                                                 hFScan with
                                                                                                                                                             ⟨_hModTotalHeadScan, hZScan⟩
                                                                                                                                                           have hZNN :
@@ -18821,7 +19056,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                                                               ⟨z, hFMultmultTotal⟩
                                                                                                                                                             subst f
                                                                                                                                                             rcases
-                                                                                                                                                                contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                                contains_atomic_term_list_free_rec_uop_apply_false_cases
                                                                                                                                                                   hFScan with
                                                                                                                                                               ⟨_hMultmultTotalHeadScan, hZScan⟩
                                                                                                                                                             have hZNN :
@@ -18894,7 +19129,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                                                                 ⟨z, hFSelect⟩
                                                                                                                                                               subst f
                                                                                                                                                               rcases
-                                                                                                                                                                  contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                                  contains_atomic_term_list_free_rec_uop_apply_false_cases
                                                                                                                                                                     hFScan with
                                                                                                                                                                 ⟨_hSelectHeadScan, hZScan⟩
                                                                                                                                                               have hZNN :
@@ -18967,7 +19202,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                                                                   ⟨z, hFConcat⟩
                                                                                                                                                                 subst f
                                                                                                                                                                 rcases
-                                                                                                                                                                    contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                                    contains_atomic_term_list_free_rec_uop_apply_false_cases
                                                                                                                                                                       hFScan with
                                                                                                                                                                   ⟨_hConcatHeadScan, hZScan⟩
                                                                                                                                                                 have hZNN :
@@ -19040,7 +19275,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                                                                     ⟨z, hFBvand⟩
                                                                                                                                                                   subst f
                                                                                                                                                                   rcases
-                                                                                                                                                                      contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                                      contains_atomic_term_list_free_rec_uop_apply_false_cases
                                                                                                                                                                         hFScan with
                                                                                                                                                                     ⟨_hBvandHeadScan, hZScan⟩
                                                                                                                                                                   have hZNN :
@@ -19113,7 +19348,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                                                                       ⟨z, hFBvor⟩
                                                                                                                                                                     subst f
                                                                                                                                                                     rcases
-                                                                                                                                                                        contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                                        contains_atomic_term_list_free_rec_uop_apply_false_cases
                                                                                                                                                                           hFScan with
                                                                                                                                                                       ⟨_hBvorHeadScan, hZScan⟩
                                                                                                                                                                     have hZNN :
@@ -19186,7 +19421,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                                                                         ⟨z, hFBvnand⟩
                                                                                                                                                                       subst f
                                                                                                                                                                       rcases
-                                                                                                                                                                          contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                                          contains_atomic_term_list_free_rec_uop_apply_false_cases
                                                                                                                                                                             hFScan with
                                                                                                                                                                         ⟨_hBvnandHeadScan, hZScan⟩
                                                                                                                                                                       have hZNN :
@@ -19259,7 +19494,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                                                                           ⟨z, hFBvnor⟩
                                                                                                                                                                         subst f
                                                                                                                                                                         rcases
-                                                                                                                                                                            contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                                            contains_atomic_term_list_free_rec_uop_apply_false_cases
                                                                                                                                                                               hFScan with
                                                                                                                                                                           ⟨_hBvnorHeadScan, hZScan⟩
                                                                                                                                                                         have hZNN :
@@ -19332,7 +19567,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                                                                             ⟨z, hFBvxor⟩
                                                                                                                                                                           subst f
                                                                                                                                                                           rcases
-                                                                                                                                                                              contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                                              contains_atomic_term_list_free_rec_uop_apply_false_cases
                                                                                                                                                                                 hFScan with
                                                                                                                                                                             ⟨_hBvxorHeadScan, hZScan⟩
                                                                                                                                                                           have hZNN :
@@ -19405,7 +19640,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                                                                               ⟨z, hFBvxnor⟩
                                                                                                                                                                             subst f
                                                                                                                                                                             rcases
-                                                                                                                                                                                contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                                                contains_atomic_term_list_free_rec_uop_apply_false_cases
                                                                                                                                                                                   hFScan with
                                                                                                                                                                               ⟨_hBvxnorHeadScan, hZScan⟩
                                                                                                                                                                             have hZNN :
@@ -19478,7 +19713,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                                                                                 ⟨z, hFBvcomp⟩
                                                                                                                                                                               subst f
                                                                                                                                                                               rcases
-                                                                                                                                                                                  contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                                                  contains_atomic_term_list_free_rec_uop_apply_false_cases
                                                                                                                                                                                     hFScan with
                                                                                                                                                                                 ⟨_hBvcompHeadScan, hZScan⟩
                                                                                                                                                                               have hZNN :
@@ -19551,7 +19786,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                                                                                   ⟨z, hFBvadd⟩
                                                                                                                                                                                 subst f
                                                                                                                                                                                 rcases
-                                                                                                                                                                                    contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                                                    contains_atomic_term_list_free_rec_uop_apply_false_cases
                                                                                                                                                                                       hFScan with
                                                                                                                                                                                   ⟨_hBvaddHeadScan, hZScan⟩
                                                                                                                                                                                 have hZNN :
@@ -19624,7 +19859,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                                                                                     ⟨z, hFBvmul⟩
                                                                                                                                                                                   subst f
                                                                                                                                                                                   rcases
-                                                                                                                                                                                      contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                                                      contains_atomic_term_list_free_rec_uop_apply_false_cases
                                                                                                                                                                                         hFScan with
                                                                                                                                                                                     ⟨_hBvmulHeadScan, hZScan⟩
                                                                                                                                                                                   have hZNN :
@@ -19697,7 +19932,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                                                                                       ⟨z, hFBvudiv⟩
                                                                                                                                                                                     subst f
                                                                                                                                                                                     rcases
-                                                                                                                                                                                        contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                                                        contains_atomic_term_list_free_rec_uop_apply_false_cases
                                                                                                                                                                                           hFScan with
                                                                                                                                                                                       ⟨_hBvudivHeadScan, hZScan⟩
                                                                                                                                                                                     have hZNN :
@@ -19770,7 +20005,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                                                                                         ⟨z, hFBvurem⟩
                                                                                                                                                                                       subst f
                                                                                                                                                                                       rcases
-                                                                                                                                                                                          contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                                                          contains_atomic_term_list_free_rec_uop_apply_false_cases
                                                                                                                                                                                             hFScan with
                                                                                                                                                                                         ⟨_hBvuremHeadScan, hZScan⟩
                                                                                                                                                                                       have hZNN :
@@ -19843,7 +20078,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                                                                                           ⟨z, hFBvsub⟩
                                                                                                                                                                                         subst f
                                                                                                                                                                                         rcases
-                                                                                                                                                                                            contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                                                            contains_atomic_term_list_free_rec_uop_apply_false_cases
                                                                                                                                                                                               hFScan with
                                                                                                                                                                                           ⟨_hBvsubHeadScan, hZScan⟩
                                                                                                                                                                                         have hZNN :
@@ -19916,7 +20151,7 @@ private theorem smtx_model_eval_eq_of_contains_atomic_false
                                                                                                                                                                                             ⟨z, hFBvsdiv⟩
                                                                                                                                                                                           subst f
                                                                                                                                                                                           rcases
-                                                                                                                                                                                              contains_atomic_term_list_free_rec_apply_false_cases
+                                                                                                                                                                                              contains_atomic_term_list_free_rec_uop_apply_false_cases
                                                                                                                                                                                                 hFScan with
                                                                                                                                                                                             ⟨_hBvsdivHeadScan, hZScan⟩
                                                                                                                                                                                           have hZNN :
