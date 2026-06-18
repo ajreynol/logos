@@ -1250,6 +1250,88 @@ private theorem opval_swap (op : BvOpSpec) (W : Nat) (x y z : Int)
         (by exact_mod_cast opnat_lt op W x.toNat z.toNat hxn hzn)]
   congr 2
   rw [Int.toNat_natCast, Int.toNat_natCast, ← op.hassoc, op.hcomm x.toNat, op.hassoc]
+
+private theorem is_bin_eq {a : Term} (h : __eo_is_bin a = Term.Boolean true) :
+    ∃ w n, a = Term.Binary w n := by
+  cases a <;>
+    simp_all [__eo_is_bin, __eo_is_bin_internal, native_and, native_not, native_teq, reduceCtorEq]
+
+private theorem is_bin_binary (w n : Int) : __eo_is_bin (Term.Binary w n) = Term.Boolean true := by
+  simp [__eo_is_bin, __eo_is_bin_internal, native_and, native_not, native_teq, reduceCtorEq]
+
+private theorem eq_binary_false (a : Term) (w n : Int) (hne : a ≠ Term.Stuck)
+    (h : __eo_is_bin a = Term.Boolean false) :
+    __eo_eq a (Term.Binary w n) = Term.Boolean false := by
+  cases a <;>
+    simp_all [__eo_eq, __eo_is_bin, __eo_is_bin_internal, native_and, native_not, native_teq,
+      reduceCtorEq]
+
+-- A constant-bearing right-spine of an op-list whose operand evals are canonical width-W.
+inductive Spine (op : BvOpSpec) (M : SmtModel) (W : Nat) : Term → Prop
+  | head (a1 b : Term) (cn vb : Int) (hcn0 : 0 ≤ cn) (hcn1 : cn < 2^W)
+      (hev : __smtx_model_eval M (__eo_to_smt a1) = SmtValue.Binary ↑W cn)
+      (hbin : __eo_is_bin a1 = Term.Boolean true)
+      (hvb0 : 0 ≤ vb) (hvb1 : vb < 2^W)
+      (hbev : __smtx_model_eval M (__eo_to_smt b) = SmtValue.Binary ↑W vb) :
+      Spine op M W (Term.Apply (Term.Apply op.f a1) b)
+  | tail (a1 b : Term) (va : Int) (hva0 : 0 ≤ va) (hva1 : va < 2^W)
+      (hev : __smtx_model_eval M (__eo_to_smt a1) = SmtValue.Binary ↑W va)
+      (hbin : __eo_is_bin a1 = Term.Boolean false)
+      (hsp : Spine op M W b) :
+      Spine op M W (Term.Apply (Term.Apply op.f a1) b)
+
+private theorem fold_eval (op : BvOpSpec) (M : SmtModel) (W : Nat) :
+    ∀ lhs, Spine op M W lhs → ∃ (cn vle : Int),
+      __bv_get_first_const_child lhs = Term.Binary ↑W cn ∧ 0 ≤ cn ∧ cn < 2^W ∧
+      __smtx_model_eval M (__eo_to_smt (__eo_list_erase_rec lhs (Term.Binary ↑W cn)))
+        = SmtValue.Binary ↑W vle ∧ 0 ≤ vle ∧ vle < 2^W ∧
+      __smtx_model_eval M (__eo_to_smt lhs)
+        = op.opval (SmtValue.Binary ↑W cn) (SmtValue.Binary ↑W vle) := by
+  intro lhs hsp
+  have hpc : ((2^W : Nat) : Int) = (2:Int)^W := by norm_cast
+  induction hsp with
+  | head a1 b cn vb hcn0 hcn1 hev hbin hvb0 hvb1 hbev =>
+      obtain ⟨w', n', rfl⟩ := is_bin_eq hbin
+      rw [eval_bin] at hev
+      injection hev with hw hn; subst w'; subst n'
+      refine ⟨cn, vb, ?_, hcn0, hcn1, ?_, hvb0, hvb1, ?_⟩
+      · show __eo_ite (__eo_is_bin (Term.Binary ↑W cn)) (Term.Binary ↑W cn)
+            (__bv_get_first_const_child b) = Term.Binary ↑W cn
+        rw [is_bin_binary, eo_ite_true]
+      · show __smtx_model_eval M (__eo_to_smt (__eo_ite (__eo_eq (Term.Binary ↑W cn)
+            (Term.Binary ↑W cn)) b (__eo_mk_apply (Term.Apply op.f (Term.Binary ↑W cn))
+            (__eo_list_erase_rec b (Term.Binary ↑W cn))))) = _
+        rw [show __eo_eq (Term.Binary ↑W cn) (Term.Binary ↑W cn) = Term.Boolean true from by
+              simp [__eo_eq, native_teq], eo_ite_true]
+        exact hbev
+      · exact op.heval M (Term.Binary ↑W cn) b ↑W cn ↑W vb (eval_bin M ↑W cn) hbev
+  | tail a1 b va hva0 hva1 hev hbin hsp ih =>
+      obtain ⟨cnb, vleb, hgfcb, hcnb0, hcnb1, hleb, hvleb0, hvleb1, hevb⟩ := ih
+      have hvan : va.toNat < 2^W := by omega
+      have hcnbn : cnb.toNat < 2^W := by omega
+      have hvlebn : vleb.toNat < 2^W := by omega
+      have ha1ne : a1 ≠ Term.Stuck := ne_stuck_of_eval_bin M a1 ↑W va hev
+      refine ⟨cnb, ↑(op.opnat va.toNat vleb.toNat), ?_, hcnb0, hcnb1, ?_, Int.natCast_nonneg _,
+        by exact_mod_cast opnat_lt op W va.toNat vleb.toNat hvan hvlebn, ?_⟩
+      · show __eo_ite (__eo_is_bin a1) a1 (__bv_get_first_const_child b) = Term.Binary ↑W cnb
+        rw [hbin, eo_ite_false]; exact hgfcb
+      · show __smtx_model_eval M (__eo_to_smt (__eo_ite (__eo_eq a1 (Term.Binary ↑W cnb)) b
+            (__eo_mk_apply (Term.Apply op.f a1)
+              (__eo_list_erase_rec b (Term.Binary ↑W cnb))))) = _
+        rw [eq_binary_false a1 ↑W cnb ha1ne hbin, eo_ite_false,
+            eo_mk_apply_ne (by intro h; cases h) (ne_stuck_of_eval_bin M _ ↑W vleb hleb),
+            op.heval M a1 _ ↑W va ↑W vleb hev hleb,
+            op.hvalN W va vleb hva0 hva1 hvleb0 hvleb1]
+      · have hevb' : __smtx_model_eval M (__eo_to_smt b)
+            = SmtValue.Binary ↑W ↑(op.opnat cnb.toNat vleb.toNat) := by
+          rw [hevb, op.hvalN W cnb vleb hcnb0 hcnb1 hvleb0 hvleb1]
+        rw [op.heval M a1 b ↑W va ↑W _ hev hevb',
+            op.hvalN W va _ hva0 hva1 (Int.natCast_nonneg _)
+              (by exact_mod_cast opnat_lt op W cnb.toNat vleb.toNat hcnbn hvlebn),
+            op.hvalN W cnb _ hcnb0 hcnb1 (Int.natCast_nonneg _)
+              (by exact_mod_cast opnat_lt op W va.toNat vleb.toNat hvan hvlebn)]
+        congr 2
+        rw [Int.toNat_natCast, Int.toNat_natCast, ← op.hassoc, op.hcomm va.toNat, op.hassoc]
 private theorem mk_bitwise_shape (lhs : Term)
     (h : __bv_mk_bitwise_slicing lhs ≠ Term.Stuck) :
     ∃ f a1 a2, lhs = Term.Apply (Term.Apply f a1) a2 := by
