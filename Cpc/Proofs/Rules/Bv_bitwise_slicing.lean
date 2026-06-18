@@ -174,6 +174,52 @@ private theorem to_z_numeral_eval (M : SmtModel) (y : Term) (W : Nat) (vy n : In
        simp only [__smtx_model_eval, reduceCtorEq] at hev)
     | (simp only [__eo_to_z, reduceCtorEq] at hz)
 
+-- The bvor/bvxor nil evaluates to 0.
+private theorem nilval_bvor (M : SmtModel) (y : Term) (W : Nat) (vy : Int)
+    (hnil : __eo_is_list_nil (Term.UOp UserOp.bvor) y = Term.Boolean true)
+    (hev : __smtx_model_eval M (__eo_to_smt y) = SmtValue.Binary ↑W vy) : vy = 0 := by
+  have hz : __eo_to_z y = Term.Numeral 0 := by
+    cases y <;> simp_all [__eo_is_list_nil, __eo_is_list_nil_bvor, __eo_is_eq, __eo_to_z,
+      native_and, native_not, native_teq, reduceCtorEq]
+  exact to_z_numeral_eval M y W vy 0 hz hev
+
+private theorem nilval_bvxor (M : SmtModel) (y : Term) (W : Nat) (vy : Int)
+    (hnil : __eo_is_list_nil (Term.UOp UserOp.bvxor) y = Term.Boolean true)
+    (hev : __smtx_model_eval M (__eo_to_smt y) = SmtValue.Binary ↑W vy) : vy = 0 := by
+  have hz : __eo_to_z y = Term.Numeral 0 := by
+    cases y <;> simp_all [__eo_is_list_nil, __eo_is_list_nil_bvxor, __eo_is_eq, __eo_to_z,
+      native_and, native_not, native_teq, reduceCtorEq]
+  exact to_z_numeral_eval M y W vy 0 hz hev
+
+
+-- The bvand nil evaluates to all-ones (2^W - 1), using operand canonicity.
+private theorem nilval_bvand (M : SmtModel) (y : Term) (W : Nat) (vy : Int)
+    (hnil : __eo_is_list_nil (Term.UOp UserOp.bvand) y = Term.Boolean true)
+    (hev : __smtx_model_eval M (__eo_to_smt y) = SmtValue.Binary ↑W vy)
+    (h0 : 0 ≤ vy) (h1 : vy < (2:Int)^W) : vy = (2:Int)^W - 1 := by
+  have hp : (0:Int) < (2:Int)^W := by exact_mod_cast Nat.two_pow_pos W
+  cases y
+  case Binary w' n' =>
+    rw [eval_bin] at hev; injection hev with hw hn; subst w'; subst n'
+    have ht := hnil
+    simp only [show __eo_is_list_nil (Term.UOp UserOp.bvand) (Term.Binary ↑W vy)
+        = __eo_is_list_nil_bvand (Term.Binary ↑W vy) from rfl,
+      __eo_is_list_nil_bvand, __eo_is_eq, __eo_not, __eo_to_z,
+      native_and, native_not, native_teq] at ht
+    simp only [Term.Boolean.injEq, Term.Numeral.injEq, decide_eq_true_eq, reduceCtorEq,
+      Bool.and_eq_true, Bool.not_eq_true', decide_eq_false_iff_not, not_false_iff, true_and] at ht
+    have hval : native_mod_total (native_binary_not (↑W) vy) (native_int_pow2 (↑W))
+              = ((2:Int)^W - vy - 1) % (2:Int)^W := by
+      show native_binary_not (↑W) vy % native_int_pow2 (↑W) = ((2:Int)^W - vy - 1) % (2:Int)^W
+      rw [show native_binary_not (↑W) vy = native_int_pow2 (↑W) + -(vy+1) from rfl, natpow2_eq,
+        show (2:Int)^W + -(vy+1) = (2:Int)^W - vy - 1 from by omega]
+    rw [hval, Int.emod_eq_of_lt (a := (2:Int)^W - vy - 1) (b := (2:Int)^W) (by omega) (by omega)] at ht
+    have ht' : (0:Int) = (2:Int)^W - vy - 1 := ht
+    omega
+  all_goals exfalso; revert hnil <;>
+    simp [__eo_is_list_nil, __eo_is_list_nil_bvand, __eo_is_eq, __eo_not, __eo_to_z,
+      native_and, native_not, native_teq]
+
 private theorem eval_extract (M : SmtModel) (X : Term) (hi lo w xn : Int)
     (hX : __smtx_model_eval M (__eo_to_smt X) = SmtValue.Binary w xn) :
     __smtx_model_eval M
@@ -549,6 +595,10 @@ structure BvOpSpec where
       = Term.Binary ↑(hi + 1 - lo) (nilpay (hi + 1 - lo))
   hnilid : ∀ (m : Nat) (pa : Int), 0 ≤ pa → pa < 2^m →
     opval (SmtValue.Binary ↑m pa) (SmtValue.Binary ↑m (nilpay m)) = SmtValue.Binary ↑m pa
+  hnilval : ∀ (M : SmtModel) (y : Term) (W : Nat) (vy : Int),
+    __eo_is_list_nil f y = Term.Boolean true →
+    __smtx_model_eval M (__eo_to_smt y) = SmtValue.Binary ↑W vy →
+    0 ≤ vy → vy < 2^W → vy = nilpay W
 
 private def bvOpAnd : BvOpSpec where
   f := Term.UOp UserOp.bvand
@@ -568,6 +618,7 @@ private def bvOpAnd : BvOpSpec where
   hvalN := bvand_valN
   hnilterm := nil_term_bvand
   hnilid := bvand_nil
+  hnilval := nilval_bvand
 
 private def bvOpOr : BvOpSpec where
   f := Term.UOp UserOp.bvor
@@ -587,6 +638,7 @@ private def bvOpOr : BvOpSpec where
   hvalN := bvor_valN
   hnilterm := nil_term_bvor
   hnilid := bvor_nil
+  hnilval := fun M y W vy hnil hev _ _ => nilval_bvor M y W vy hnil hev
 
 private def bvOpXor : BvOpSpec where
   f := Term.UOp UserOp.bvxor
@@ -606,6 +658,7 @@ private def bvOpXor : BvOpSpec where
   hvalN := bvxor_valN
   hnilterm := nil_term_bvxor
   hnilid := bvxor_nil
+  hnilval := fun M y W vy hnil hev _ _ => nilval_bvxor M y W vy hnil hev
 
 private theorem slice_op (op : BvOpSpec) (W : Nat) (cn an : Int)
     (hc0 : 0 ≤ cn) (ha0 : 0 ≤ an) (hi lo : Nat) (hlo : lo ≤ hi + 1) :
