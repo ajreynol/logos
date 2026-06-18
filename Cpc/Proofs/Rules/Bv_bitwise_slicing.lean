@@ -301,11 +301,10 @@ private theorem nil_term_bvand (W : Nat) (cn : Int) (hi lo : Nat)
           (Term.Numeral ↑lo)) (Term.Binary ↑W cn)))
       = Term.Binary ↑(hi + 1 - lo) ((2:Int)^(hi + 1 - lo) - 1) := by
   have hMeq : (↑hi - ↑lo + 1 : Int) = ↑(hi + 1 - lo) := by omega
-  have hg1 : __eo_gt (__eo_add (Term.Numeral ↑lo) (Term.Numeral 1)) (Term.Numeral 0)
-      = Term.Boolean true := by
-    show Term.Boolean (native_zlt 0 (native_zplus (↑lo) 1)) = Term.Boolean true
-    congr 1; show native_zlt 0 (native_zplus (↑lo) 1) = true
-    unfold native_zlt; exact decide_eq_true (show (0:Int) < ↑lo + 1 by omega)
+  have hg1 : __eo_gt (Term.Numeral ↑lo) (Term.Numeral (-1)) = Term.Boolean true := by
+    show Term.Boolean (native_zlt (-1) (↑lo)) = Term.Boolean true
+    rw [show native_zlt (-1) (↑lo) = true from by
+      unfold native_zlt; exact decide_eq_true (show ((-1):Int) < ↑lo by omega)]
   have hg2 : __eo_gt (Term.Numeral ↑W) (Term.Numeral ↑hi) = Term.Boolean true := by
     show Term.Boolean (native_zlt (↑hi) (↑W)) = Term.Boolean true
     congr 1; show native_zlt (↑hi) (↑W) = true
@@ -313,11 +312,21 @@ private theorem nil_term_bvand (W : Nat) (cn : Int) (hi lo : Nat)
   have htype : __eo_typeof (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑hi)
         (Term.Numeral ↑lo)) (Term.Binary ↑W cn))
       = Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral (↑hi - ↑lo + 1)) := by
+    rw [show __eo_typeof (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑hi)
+            (Term.Numeral ↑lo)) (Term.Binary ↑W cn))
+          = __eo_typeof_extract (__eo_typeof (Term.Numeral ↑hi)) (Term.Numeral ↑hi)
+              (__eo_typeof (Term.Numeral ↑lo)) (Term.Numeral ↑lo)
+              (__eo_typeof (Term.Binary ↑W cn)) from rfl,
+        show __eo_typeof (Term.Numeral ↑hi) = Term.UOp UserOp.Int from rfl,
+        show __eo_typeof (Term.Numeral ↑lo) = Term.UOp UserOp.Int from rfl,
+        show __eo_typeof (Term.Binary ↑W cn)
+          = Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral ↑W) from rfl]
     show __eo_mk_apply (Term.UOp UserOp.BitVec)
-        (__eo_requires (__eo_gt (__eo_add (Term.Numeral ↑lo) (Term.Numeral 1)) (Term.Numeral 0))
+        (__eo_requires (__eo_gt (Term.Numeral ↑lo) (Term.Numeral (-1)))
           (Term.Boolean true)
           (__eo_requires (__eo_gt (Term.Numeral ↑W) (Term.Numeral ↑hi)) (Term.Boolean true)
-            (__eo_add (__eo_add (Term.Numeral ↑hi) (__eo_neg (Term.Numeral ↑lo))) (Term.Numeral 1)))) = _
+            (__eo_add (__eo_add (Term.Numeral ↑hi) (__eo_neg (Term.Numeral ↑lo)))
+              (Term.Numeral 1)))) = _
     rw [hg1, hg2, requires_tt, requires_tt]
     show (Term.UOp UserOp.BitVec).Apply
         (Term.Numeral (native_zplus (native_zplus ↑hi (native_zneg ↑lo)) 1)) = _
@@ -570,19 +579,18 @@ private theorem rec_inv (M : SmtModel) (W : Nat) (cn : Int) (a : Term) (an : Int
   induction hFB with
   | nil =>
     intro bn hbn s hLs hsW
-    rw [show ((↑(0:Nat) : Int) - 1) = (-1:Int) from by omega]
-    rw [__bv_mk_bitwise_slicing_rec.eq_8 (Term.UOp UserOp.bvand) (Term.Binary ↑W cn) a
-        (Term.Binary 0 0) bn (Term.Numeral ↑s)
-        (by intro h; cases h) (by intro h; cases h) hane (by intro h; cases h) hbn
+    rw [__bv_mk_bitwise_slicing_rec.eq_7 (Term.UOp UserOp.bvand) (Term.Binary ↑W cn) a
+        bn (Term.Numeral ↑s) (Term.Numeral ((↑(0:Nat) : Int) - 1))
+        (by intro h; cases h) (by intro h; cases h) hane hbn (by intro h; cases h)
         (by intro h; cases h)]
     exact base_eval M W cn a an hc0 ha0 ha s hsW hWB
   | cons b bs' L' hb hFB' ih =>
     intro bn hbn s hLs hsW
     rw [show ((↑(L' + 1) : Int) - 1) = ↑L' from by push_cast; omega]
-    rw [__bv_mk_bitwise_slicing_rec.eq_9 (Term.UOp UserOp.bvand) (Term.Binary ↑W cn) a bn
+    rw [__bv_mk_bitwise_slicing_rec.eq_8 (Term.UOp UserOp.bvand) (Term.Binary ↑W cn) a bn
         (Term.Numeral ↑s) (Term.Numeral ↑L') b bs'
         (by intro h; cases h) (by intro h; cases h) hane hbn (by intro h; cases h)
-        (by intro h; cases h) (by intro h; cases h)]
+        (by intro h; cases h)]
     rw [show __eo_add (Term.Numeral ↑L') (Term.Numeral (-1)) = Term.Numeral ((↑L' : Int) - 1)
           from rfl, eo_eq_ne hb hbn]
     have hMs := ih b hb s (by omega) hsW
@@ -624,6 +632,42 @@ private theorem bv_bitwise_slicing_shape_of_ne_stuck (A : Term) :
       intro lhs rhs hEq
       exact hShape ⟨lhs, rhs, hEq⟩
     exact False.elim (h hStuck)
+
+-- Shape of a non-stuck `__bv_mk_bitwise_slicing`: its argument is a binary application.
+private theorem mk_bitwise_shape (lhs : Term)
+    (h : __bv_mk_bitwise_slicing lhs ≠ Term.Stuck) :
+    ∃ f a1 a2, lhs = Term.Apply (Term.Apply f a1) a2 := by
+  by_cases hsh : ∃ f a1 a2, lhs = Term.Apply (Term.Apply f a1) a2
+  · exact hsh
+  · exfalso; apply h
+    rw [__bv_mk_bitwise_slicing.eq_2]
+    intro f a1 a2 hEq; exact hsh ⟨f, a1, a2, hEq⟩
+
+-- Value-level commutativity of the bitwise ops (used when the constant operand is the
+-- second argument, so `get_first_const_child` / `list_erase` swap operand order).
+private theorem bvand_val_comm (w n1 n2 : Int) :
+    __smtx_model_eval_bvand (SmtValue.Binary w n1) (SmtValue.Binary w n2)
+      = __smtx_model_eval_bvand (SmtValue.Binary w n2) (SmtValue.Binary w n1) := by
+  simp only [__smtx_model_eval_bvand, native_binary_and, native_piand]
+  cases hz : native_zeq w 0
+  · simp only [native_ite, Bool.false_eq_true, if_false]; rw [BitVec.and_comm]
+  · simp [native_ite]
+
+private theorem bvor_val_comm (w n1 n2 : Int) :
+    __smtx_model_eval_bvor (SmtValue.Binary w n1) (SmtValue.Binary w n2)
+      = __smtx_model_eval_bvor (SmtValue.Binary w n2) (SmtValue.Binary w n1) := by
+  simp only [__smtx_model_eval_bvor, native_binary_or, native_pior]
+  cases hz : native_zeq w 0
+  · simp only [native_ite, Bool.false_eq_true, if_false]; rw [BitVec.or_comm]
+  · simp [native_ite]
+
+private theorem bvxor_val_comm (w n1 n2 : Int) :
+    __smtx_model_eval_bvxor (SmtValue.Binary w n1) (SmtValue.Binary w n2)
+      = __smtx_model_eval_bvxor (SmtValue.Binary w n2) (SmtValue.Binary w n1) := by
+  simp only [__smtx_model_eval_bvxor, native_binary_xor, native_pixor]
+  cases hz : native_zeq w 0
+  · simp only [native_ite, Bool.false_eq_true, if_false]; rw [BitVec.xor_comm]
+  · simp [native_ite]
 
 /-- The soundness core of the wrapper: the sliced form `__bv_mk_bitwise_slicing lhs`
 evaluates to the same bitvector value as `lhs`.  This is where `rec_inv` is connected
