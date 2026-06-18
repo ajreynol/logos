@@ -158,6 +158,22 @@ private theorem eval_bin (M : SmtModel) (w n : Int) :
   show __smtx_model_eval M (SmtTerm.Binary w n) = SmtValue.Binary w n
   simp only [__smtx_model_eval]
 
+-- A term whose `to_z` is `Numeral n` and which evaluates to a width-W binary has payload `n`.
+private theorem to_z_numeral_eval (M : SmtModel) (y : Term) (W : Nat) (vy n : Int)
+    (hz : __eo_to_z y = Term.Numeral n)
+    (hev : __smtx_model_eval M (__eo_to_smt y) = SmtValue.Binary ↑W vy) : vy = n := by
+  cases y <;>
+    first
+    | (rename_i w' n'; rw [eval_bin] at hev; injection hev with _ h2;
+       rw [show __eo_to_z (Term.Binary w' n') = Term.Numeral n' from rfl] at hz;
+       injection hz with h3; rw [← h2, h3])
+    | (rw [eval_num] at hev; simp only [reduceCtorEq] at hev)
+    | (rename_i r; rw [show __eo_to_smt (Term.Rational r) = SmtTerm.Rational r from rfl] at hev;
+       simp only [__smtx_model_eval, reduceCtorEq] at hev)
+    | (rename_i s; rw [show __eo_to_smt (Term.String s) = SmtTerm.String s from rfl] at hev;
+       simp only [__smtx_model_eval, reduceCtorEq] at hev)
+    | (simp only [__eo_to_z, reduceCtorEq] at hz)
+
 private theorem eval_extract (M : SmtModel) (X : Term) (hi lo w xn : Int)
     (hX : __smtx_model_eval M (__eo_to_smt X) = SmtValue.Binary w xn) :
     __smtx_model_eval M
