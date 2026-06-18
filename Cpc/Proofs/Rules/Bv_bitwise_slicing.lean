@@ -1147,17 +1147,22 @@ private theorem islist_isok (f x : Term) (hf : f ≠ Term.Stuck) (hx : x ≠ Ter
   unfold __eo_is_list; split <;> simp_all
 
 -- In a homogeneous op-list, the head operator is `op.f` and the tail is again a list.
+private theorem is_list_cons_inv_gen (f g x y : Term) (hfne : f ≠ Term.Stuck)
+    (h : __eo_is_list f (Term.Apply (Term.Apply g x) y) = Term.Boolean true) :
+    g = f ∧ __eo_is_list f y = Term.Boolean true := by
+  rw [islist_isok f _ hfne (by intro hh; cases hh), gnr_cons f g x y hfne] at h
+  have hZ : __eo_requires f g (__eo_get_nil_rec f y) ≠ Term.Stuck := by
+    intro hs; rw [hs] at h; simp [__eo_is_ok, native_not, native_teq] at h
+  have hgy : __eo_get_nil_rec f y ≠ Term.Stuck := eo_requires_payload_ne_stuck hZ
+  have hyne : y ≠ Term.Stuck := by rintro rfl; exact hgy (gnr_stuck f)
+  refine ⟨(eo_requires_arg_eq_of_ne_stuck hZ).symm, ?_⟩
+  rw [islist_isok f y hfne hyne, __eo_is_ok]
+  simp [native_not, native_teq, hgy]
+
 private theorem is_list_cons_inv (op : BvOpSpec) (g x y : Term)
     (h : __eo_is_list op.f (Term.Apply (Term.Apply g x) y) = Term.Boolean true) :
-    g = op.f ∧ __eo_is_list op.f y = Term.Boolean true := by
-  rw [islist_isok op.f _ op.hfne (by intro hh; cases hh), gnr_cons op.f g x y op.hfne] at h
-  have hZ : __eo_requires op.f g (__eo_get_nil_rec op.f y) ≠ Term.Stuck := by
-    intro hs; rw [hs] at h; simp [__eo_is_ok, native_not, native_teq] at h
-  have hgy : __eo_get_nil_rec op.f y ≠ Term.Stuck := eo_requires_payload_ne_stuck hZ
-  have hyne : y ≠ Term.Stuck := by rintro rfl; exact hgy (gnr_stuck op.f)
-  refine ⟨(eo_requires_arg_eq_of_ne_stuck hZ).symm, ?_⟩
-  rw [islist_isok op.f y op.hfne hyne, __eo_is_ok]
-  simp [native_not, native_teq, hgy]
+    g = op.f ∧ __eo_is_list op.f y = Term.Boolean true :=
+  is_list_cons_inv_gen op.f g x y op.hfne h
 
 -- Shape of a non-stuck `bv_bitwise_slicing` program: it must be an equality.
 private theorem bv_bitwise_slicing_shape_of_ne_stuck (A : Term) :
