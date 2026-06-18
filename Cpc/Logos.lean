@@ -3469,7 +3469,7 @@ def __seq_eval_replace_all_rec : Term -> Term -> Term -> Term -> Term -> Term
 
 def __seq_eval : Term -> Term
   | Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.seq_nth) t) n) => (__seq_element_of_unit (__eo_list_nth (Term.UOp UserOp.str_concat) (__str_nary_intro t) n))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.seq_nth) t) n) => (__eo_requires (__eo_ite (__eo_is_str t) (Term.Boolean false) (__eo_is_z (__str_value_len t))) (Term.Boolean true) (__seq_element_of_unit (__eo_list_nth (Term.UOp UserOp.str_concat) (__str_nary_intro t) n)))
   | (Term.Apply (Term.UOp UserOp.str_len) t) => (__str_value_len (__str_nary_intro t))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t) ts) => (__str_nary_elim (__eo_list_concat (Term.UOp UserOp.str_concat) (__str_nary_intro t) (__str_nary_intro (__seq_eval ts))))
   | (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) t) n) m) => 
