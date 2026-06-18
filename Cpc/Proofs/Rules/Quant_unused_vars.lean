@@ -5390,6 +5390,57 @@ private theorem smtTermFreeVars_eo_to_smt_set_empty_empty
     False := by
   cases T <;> simp [__eo_to_smt_set_empty, smtTermFreeVars] at hMem
 
+private theorem smtTermFreeVars_eo_to_smt_witness_string_length_empty
+    (x y z : Term) {key : SmtVarKey}
+    (hMem :
+      key ∈
+        smtTermFreeVars
+          (__eo_to_smt
+            (Term.UOp3 UserOp3._at_witness_string_length x y z))) :
+    False := by
+  change key ∈
+    smtTermFreeVars
+      (native_ite (__eo_to_smt_nat_is_valid y)
+        (native_ite (__eo_to_smt_nat_is_valid z)
+          (SmtTerm.choice_nth (native_string_lit "@x") (__eo_to_smt_type x)
+            (SmtTerm.eq
+              (SmtTerm.str_len
+                (SmtTerm.Var (native_string_lit "@x")
+                  (__eo_to_smt_type x)))
+              (__eo_to_smt y))
+            native_nat_zero)
+          SmtTerm.None)
+        SmtTerm.None) at hMem
+  cases y <;>
+    simp [__eo_to_smt_nat_is_valid, native_ite, smtTermFreeVars] at hMem
+  case Numeral n =>
+    by_cases hY : native_zleq 0 n = true
+    · rw [hY] at hMem
+      simp at hMem
+      let zValid : native_Bool := __eo_to_smt_nat_is_valid z
+      change key ∈
+        smtTermFreeVars
+          (if zValid = true then
+            SmtTerm.choice_nth (native_string_lit "@x") (__eo_to_smt_type x)
+              ((SmtTerm.Var (native_string_lit "@x") (__eo_to_smt_type x)).str_len.eq
+                (__eo_to_smt (Term.Numeral n))) native_nat_zero
+          else SmtTerm.None) at hMem
+      by_cases hZ : zValid = true
+      · rw [hZ] at hMem
+        simp [smtTermFreeVars] at hMem
+        rcases smtKeyEraseAll_mem hMem with ⟨hRaw, hNe⟩
+        simp at hRaw
+        rcases hRaw with hRaw | hRaw
+        · exact hNe hRaw
+        · change key ∈ smtTermFreeVars (SmtTerm.Numeral n) at hRaw
+          simp [smtTermFreeVars] at hRaw
+      · rw [if_neg hZ] at hMem
+        simp [smtTermFreeVars] at hMem
+    · have hYFalse : native_zleq 0 n = false := by
+        cases h : native_zleq 0 n <;> simp [h] at hY ⊢
+      rw [hYFalse] at hMem
+      simp [smtTermFreeVars] at hMem
+
 private theorem smtx_typeof_eo_to_smt_list_cons_none
     (head tail : Term) :
     __smtx_typeof
@@ -5506,6 +5557,73 @@ private theorem smtTermFreeVars_eo_to_smt_quantifiers_skolemize_subset
     simp [__eo_to_smt_quantifiers_skolemize, smtTermFreeVars] at hMem ⊢
   case «exists» s T body =>
     exact hMem
+
+private theorem smtTermFreeVars_eo_to_smt_re_unfold_pos_component_subset :
+    ∀ (s r : SmtTerm) (n : native_Nat) {key : SmtVarKey},
+      key ∈ smtTermFreeVars
+          (__eo_to_smt_re_unfold_pos_component s r n) ->
+        key ∈ smtTermFreeVars s ∨ key ∈ smtTermFreeVars r
+  | s, r, native_nat_zero, key, hMem =>
+      by
+        cases r <;>
+          simp [__eo_to_smt_re_unfold_pos_component, smtTermFreeVars]
+            at hMem ⊢
+        exact hMem
+  | s, r, native_nat_succ n, key, hMem =>
+      by
+        cases r <;>
+          try
+            (simp [__eo_to_smt_re_unfold_pos_component, smtTermFreeVars]
+              at hMem)
+        case re_concat r1 r2 =>
+          let split := SmtTerm.str_indexof_re_split s r1 r2
+          let suffix :=
+            SmtTerm.str_substr s split
+              (SmtTerm.neg (SmtTerm.str_len s) split)
+          change key ∈
+            smtTermFreeVars
+              (__eo_to_smt_re_unfold_pos_component suffix r2 n) at hMem
+          rcases
+              smtTermFreeVars_eo_to_smt_re_unfold_pos_component_subset
+                suffix r2 n hMem with
+            hSuffix | hR2
+          · simp [suffix, split, smtTermFreeVars] at hSuffix ⊢
+            rcases hSuffix with hS | hRest
+            · exact Or.inl hS
+            rcases hRest with hR1 | hRest
+            · exact Or.inr (Or.inl hR1)
+            rcases hRest with hR2' | hRest
+            · exact Or.inr (Or.inr hR2')
+            rcases hRest with hS | hRest
+            · exact Or.inl hS
+            rcases hRest with hR1 | hR2'
+            · exact Or.inr (Or.inl hR1)
+            · exact Or.inr (Or.inr hR2')
+          · simp [smtTermFreeVars, hR2]
+
+private theorem smtTermFreeVars_eo_to_smt_re_unfold_pos_component_raw_subset
+    (x y z : Term) {key : SmtVarKey}
+    (hMem :
+      key ∈
+        smtTermFreeVars
+          (__eo_to_smt
+            (Term.UOp3 UserOp3._at_re_unfold_pos_component x y z))) :
+    key ∈ smtTermFreeVars (__eo_to_smt x) ∨
+      key ∈ smtTermFreeVars (__eo_to_smt y) := by
+  let zValid : native_Bool := __eo_to_smt_nat_is_valid z
+  change key ∈
+    smtTermFreeVars
+      (if zValid = true then
+        (__eo_to_smt_re_unfold_pos_component (__eo_to_smt x)
+          (__eo_to_smt y) (__eo_to_smt_nat z))
+      else SmtTerm.None) at hMem
+  by_cases hZ : zValid = true
+  · rw [if_pos hZ] at hMem
+    exact
+      smtTermFreeVars_eo_to_smt_re_unfold_pos_component_subset
+        (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt_nat z) hMem
+  · rw [if_neg hZ] at hMem
+    simp [smtTermFreeVars] at hMem
 
 private theorem smtTermFreeVars_eo_to_smt_array_deq_diff_subset
     (a : SmtTerm) (aT : SmtType) (b : SmtTerm) (bT : SmtType)
@@ -6163,6 +6281,79 @@ private theorem smtTermFreeVars_allowed_of_subset
               Term.Boolean false) := by
   intro s U hMem
   exact hAllowed s U (hSubset (s, U) hMem)
+
+private theorem smtTermFreeVars_allowed_re_unfold_pos_component_of_args_allowed
+    (x y z xs bvs : Term)
+    (hXAllowed :
+      ∀ s U,
+        (s, U) ∈ smtTermFreeVars (__eo_to_smt x) ->
+          ∃ T,
+            U = __eo_to_smt_type T ∧
+              (__eo_is_neg
+                  (__eo_list_find Term.__eo_List_cons xs
+                    (Term.Var (Term.String s) T)) =
+                Term.Boolean true ∨
+                __eo_is_neg
+                  (__eo_list_find Term.__eo_List_cons bvs
+                    (Term.Var (Term.String s) T)) =
+                Term.Boolean false))
+    (hYAllowed :
+      ∀ s U,
+        (s, U) ∈ smtTermFreeVars (__eo_to_smt y) ->
+          ∃ T,
+            U = __eo_to_smt_type T ∧
+              (__eo_is_neg
+                  (__eo_list_find Term.__eo_List_cons xs
+                    (Term.Var (Term.String s) T)) =
+                Term.Boolean true ∨
+                __eo_is_neg
+                  (__eo_list_find Term.__eo_List_cons bvs
+                    (Term.Var (Term.String s) T)) =
+                Term.Boolean false)) :
+    ∀ s U,
+      (s, U) ∈
+          smtTermFreeVars
+            (__eo_to_smt
+              (Term.UOp3 UserOp3._at_re_unfold_pos_component x y z)) ->
+        ∃ T,
+          U = __eo_to_smt_type T ∧
+            (__eo_is_neg
+                (__eo_list_find Term.__eo_List_cons xs
+                  (Term.Var (Term.String s) T)) =
+              Term.Boolean true ∨
+              __eo_is_neg
+                (__eo_list_find Term.__eo_List_cons bvs
+                  (Term.Var (Term.String s) T)) =
+              Term.Boolean false) := by
+  intro s U hMem
+  rcases
+      smtTermFreeVars_eo_to_smt_re_unfold_pos_component_raw_subset
+        x y z hMem with
+    hX | hY
+  · exact hXAllowed s U hX
+  · exact hYAllowed s U hY
+
+private theorem smtTermFreeVars_allowed_witness_string_length
+    (x y z xs bvs : Term) :
+    ∀ s U,
+      (s, U) ∈
+          smtTermFreeVars
+            (__eo_to_smt
+              (Term.UOp3 UserOp3._at_witness_string_length x y z)) ->
+        ∃ T,
+          U = __eo_to_smt_type T ∧
+            (__eo_is_neg
+                (__eo_list_find Term.__eo_List_cons xs
+                  (Term.Var (Term.String s) T)) =
+              Term.Boolean true ∨
+              __eo_is_neg
+                (__eo_list_find Term.__eo_List_cons bvs
+                  (Term.Var (Term.String s) T)) =
+              Term.Boolean false) := by
+  intro s U hMem
+  exact False.elim
+    (smtTermFreeVars_eo_to_smt_witness_string_length_empty
+      x y z hMem)
 
 private theorem smtTermFreeVars_allowed_of_append3
     {x y z : SmtTerm} {xs bvs : Term}
