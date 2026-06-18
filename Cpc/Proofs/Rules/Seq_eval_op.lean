@@ -507,6 +507,207 @@ private theorem native_seq_extract_nil (i n : native_Int) :
     native_seq_extract [] i n = [] := by
   simp [native_seq_extract]
 
+private theorem native_seq_extract_zero_nat_any_local
+    (xs : List SmtValue) (n : Nat) :
+    native_seq_extract xs 0 (Int.ofNat n) = xs.take n := by
+  by_cases hle : n <= xs.length
+  · exact native_seq_extract_zero_nat xs n hle
+  · cases xs with
+    | nil =>
+        simp [native_seq_extract]
+    | cons x xs =>
+        unfold native_seq_extract
+        have hn : n ≠ 0 := by
+          intro hn
+          subst n
+          simp at hle
+        have hLenLt : (x :: xs).length < n := Nat.lt_of_not_ge hle
+        have hLenLe : (x :: xs).length <= n := Nat.le_of_lt hLenLt
+        have hLenNotLe :
+            ¬ ((Int.ofNat xs.length : Int) + 1 <= 0) := by
+          have hNonneg : (0 : Int) <= Int.ofNat xs.length :=
+            Int.natCast_nonneg xs.length
+          omega
+        have hmin :
+            min (Int.ofNat n) (Int.ofNat (x :: xs).length) =
+              Int.ofNat (x :: xs).length :=
+          Int.min_eq_right (Int.ofNat_le.mpr hLenLe)
+        have hminToNat :
+            (min (Int.ofNat n) (Int.ofNat (x :: xs).length)).toNat =
+              (x :: xs).length := by
+          rw [hmin]
+          simp
+        have hminNat : min n xs.length.succ = xs.length.succ :=
+          Nat.min_eq_right hLenLe
+        simp [hn]
+        change
+          (x :: xs).take
+              ((min (Int.ofNat n) (Int.ofNat (x :: xs).length)).toNat) =
+            (x :: xs).take n
+        rw [hminToNat, List.take_of_length_le (Nat.le_refl (x :: xs).length),
+          List.take_of_length_le hLenLe]
+
+private theorem native_seq_extract_cons_zero_pos
+    (x : SmtValue) (xs : List SmtValue) (e : native_Int)
+    (he : 0 < e) :
+    native_seq_extract (x :: xs) 0 e =
+      x :: native_seq_extract xs 0 (e - 1) := by
+  let k := e.toNat
+  have heEq : e = Int.ofNat k :=
+    (Int.toNat_of_nonneg (Int.le_of_lt he)).symm
+  have hkPos : 0 < k := by
+    have hInt : (0 : Int) < Int.ofNat k := by
+      rw [← heEq]
+      exact he
+    exact Int.ofNat_lt.mp hInt
+  have hPredK : (Int.ofNat k : Int) - 1 = Int.ofNat (k - 1) := by
+    have hOne : 1 <= k := Nat.succ_le_of_lt hkPos
+    simpa using (Int.ofNat_sub hOne).symm
+  rcases Nat.exists_eq_succ_of_ne_zero (Nat.ne_of_gt hkPos) with ⟨k', hkEq⟩
+  rw [heEq, native_seq_extract_zero_nat_any_local (x :: xs) k]
+  rw [hPredK, native_seq_extract_zero_nat_any_local xs (k - 1)]
+  rw [hkEq]
+  simp
+
+private theorem native_seq_extract_cons_pos_nat
+    (x : SmtValue) (xs : List SmtValue) (k : Nat) (n : native_Int) :
+    native_seq_extract (x :: xs) (Int.ofNat (Nat.succ k)) n =
+      native_seq_extract xs (Int.ofNat k) n := by
+  unfold native_seq_extract
+  by_cases hn : n <= 0
+  · have hLeftGuard :
+        (decide ((Int.ofNat (Nat.succ k) : Int) < 0) ||
+            decide (n <= 0) ||
+            decide
+              ((Int.ofNat (Nat.succ k) : Int) >=
+                Int.ofNat (x :: xs).length)) =
+          true := by
+      simp only [Bool.or_eq_true, decide_eq_true_eq]
+      exact Or.inl (Or.inr hn)
+    have hRightGuard :
+        (decide ((Int.ofNat k : Int) < 0) ||
+            decide (n <= 0) ||
+            decide ((Int.ofNat k : Int) >= Int.ofNat xs.length)) =
+          true := by
+      simp only [Bool.or_eq_true, decide_eq_true_eq]
+      exact Or.inl (Or.inr hn)
+    rw [if_pos hLeftGuard, if_pos hRightGuard]
+  · by_cases hOut :
+        (Int.ofNat (Nat.succ k) : Int) >=
+          Int.ofNat (x :: xs).length
+    · have hRightOut :
+          (Int.ofNat k : Int) >= Int.ofNat xs.length := by
+        have hOutNat : (x :: xs).length <= Nat.succ k :=
+          Int.ofNat_le.mp hOut
+        have hRightOutNat : xs.length <= k :=
+          Nat.succ_le_succ_iff.mp (by simpa using hOutNat)
+        exact Int.ofNat_le.mpr hRightOutNat
+      have hLeftGuard :
+          (decide ((Int.ofNat (Nat.succ k) : Int) < 0) ||
+              decide (n <= 0) ||
+              decide
+                ((Int.ofNat (Nat.succ k) : Int) >=
+                  Int.ofNat (x :: xs).length)) =
+            true := by
+        simp only [Bool.or_eq_true, decide_eq_true_eq]
+        exact Or.inr hOut
+      have hRightGuard :
+          (decide ((Int.ofNat k : Int) < 0) ||
+              decide (n <= 0) ||
+              decide ((Int.ofNat k : Int) >= Int.ofNat xs.length)) =
+            true := by
+        simp only [Bool.or_eq_true, decide_eq_true_eq]
+        exact Or.inr hRightOut
+      rw [if_pos hLeftGuard, if_pos hRightGuard]
+    · have hRightIn :
+          ¬ ((Int.ofNat k : Int) >= Int.ofNat xs.length) := by
+        intro hRightOut
+        apply hOut
+        have hRightOutNat : xs.length <= k :=
+          Int.ofNat_le.mp hRightOut
+        have hOutNat : (x :: xs).length <= Nat.succ k := by
+          simpa using Nat.succ_le_succ hRightOutNat
+        exact Int.ofNat_le.mpr hOutNat
+      have hLen :
+          (Int.ofNat xs.length + 1) - (Int.ofNat k + 1) =
+            Int.ofNat xs.length - Int.ofNat k := by
+        omega
+      have hRightLtNat : k < xs.length := by
+        apply Nat.lt_of_not_ge
+        intro hRightOutNat
+        exact hRightIn (Int.ofNat_le.mpr hRightOutNat)
+      have hNotRightOutNat : ¬ xs.length <= k :=
+        Nat.not_le_of_gt hRightLtNat
+      have hSuccIdxNonneg :
+          ¬ (Int.ofNat k + 1 < 0) := by
+        intro h
+        have hkNonneg : (0 : Int) <= Int.ofNat k :=
+          Int.natCast_nonneg k
+        omega
+      have hIdxNonneg :
+          ¬ ((Int.ofNat k : Int) < 0) := by
+        intro h
+        have hkNonneg : (0 : Int) <= Int.ofNat k :=
+          Int.natCast_nonneg k
+        omega
+      simp [hn, hNotRightOutNat]
+      change
+        (if (Int.ofNat k + 1 < 0) then ([] : List SmtValue)
+          else
+            List.take
+              (Int.toNat (min n
+                (Int.ofNat xs.length + 1 - (Int.ofNat k + 1))))
+              (List.drop k xs)) =
+          (if ((Int.ofNat k : Int) < 0) then ([] : List SmtValue)
+            else
+              List.take
+                (Int.toNat (min n (Int.ofNat xs.length - Int.ofNat k)))
+                (List.drop k xs))
+      rw [if_neg hSuccIdxNonneg, if_neg hIdxNonneg, hLen]
+
+private theorem native_seq_extract_cons_nonzero
+    (x : SmtValue) (xs : List SmtValue) (i n : native_Int)
+    (hi : i ≠ 0) :
+    native_seq_extract (x :: xs) i n =
+      native_seq_extract xs (i - 1) n := by
+  by_cases hiNeg : i < 0
+  · unfold native_seq_extract
+    have hLeftGuard :
+        (decide (i < 0) || decide (n <= 0) ||
+            decide (i >= Int.ofNat (x :: xs).length)) =
+          true := by
+      simp only [Bool.or_eq_true, decide_eq_true_eq]
+      exact Or.inl (Or.inl hiNeg)
+    have hPredNeg : i - 1 < 0 := by
+      exact (Int.sub_one_lt_iff).2 (Int.le_of_lt hiNeg)
+    have hRightGuard :
+        (decide (i - 1 < 0) || decide (n <= 0) ||
+            decide (i - 1 >= Int.ofNat xs.length)) =
+          true := by
+      simp only [Bool.or_eq_true, decide_eq_true_eq]
+      exact Or.inl (Or.inl hPredNeg)
+    rw [if_pos hLeftGuard, if_pos hRightGuard]
+  · have hiNonneg : 0 <= i := Int.le_of_not_gt hiNeg
+    have hiPos : 0 < i := by
+      apply Int.lt_of_not_ge
+      intro hiLe
+      exact hi (Int.le_antisymm hiLe hiNonneg)
+    let k := i.toNat
+    have hiEq : i = Int.ofNat k :=
+      (Int.toNat_of_nonneg hiNonneg).symm
+    have hkPos : 0 < k := by
+      have hInt : (0 : Int) < Int.ofNat k := by
+        rw [← hiEq]
+        exact hiPos
+      exact Int.ofNat_lt.mp hInt
+    rcases Nat.exists_eq_succ_of_ne_zero (Nat.ne_of_gt hkPos) with
+      ⟨k', hkEq⟩
+    have hPredK :
+        (Int.ofNat (Nat.succ k') : Int) - 1 = Int.ofNat k' := by
+      simp
+    rw [hiEq, hkEq, hPredK]
+    exact native_seq_extract_cons_pos_nat x xs k' n
+
 private theorem smt_value_rel_raw_empty_str_substr_of_end_neg
     (M : SmtModel) (hM : model_total_typed M)
     (a : Term) (T : SmtType) (i n : native_Int)
