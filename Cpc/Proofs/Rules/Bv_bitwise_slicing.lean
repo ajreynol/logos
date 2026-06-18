@@ -1226,6 +1226,30 @@ private theorem rec_inv_op (op : BvOpSpec) (M : SmtModel) (W : Nat) (cn : Int) (
     · rw [eo_ite_true]
       exact hMs
 
+
+private theorem opnat_lt (op : BvOpSpec) (W a b : Nat) (ha : a < 2^W) (hb : b < 2^W) :
+    op.opnat a b < 2^W := by
+  apply Nat.lt_pow_two_of_testBit
+  intro i hi
+  have hpow : 2^W ≤ 2^i := Nat.pow_le_pow_right (by omega) hi
+  rw [op.htb, Nat.testBit_lt_two_pow (by omega), Nat.testBit_lt_two_pow (by omega)]
+  exact op.hgff
+
+private theorem opval_swap (op : BvOpSpec) (W : Nat) (x y z : Int)
+    (hx0 : 0 ≤ x) (hx1 : x < 2^W) (hy0 : 0 ≤ y) (hy1 : y < 2^W) (hz0 : 0 ≤ z) (hz1 : z < 2^W) :
+    op.opval (SmtValue.Binary ↑W x) (op.opval (SmtValue.Binary ↑W y) (SmtValue.Binary ↑W z))
+      = op.opval (SmtValue.Binary ↑W y) (op.opval (SmtValue.Binary ↑W x) (SmtValue.Binary ↑W z)) := by
+  have hpc : ((2^W : Nat) : Int) = (2:Int)^W := by norm_cast
+  have hxn : x.toNat < 2^W := by omega
+  have hyn : y.toNat < 2^W := by omega
+  have hzn : z.toNat < 2^W := by omega
+  rw [op.hvalN W y z hy0 hy1 hz0 hz1, op.hvalN W x z hx0 hx1 hz0 hz1,
+      op.hvalN W x _ hx0 hx1 (Int.natCast_nonneg _)
+        (by exact_mod_cast opnat_lt op W y.toNat z.toNat hyn hzn),
+      op.hvalN W y _ hy0 hy1 (Int.natCast_nonneg _)
+        (by exact_mod_cast opnat_lt op W x.toNat z.toNat hxn hzn)]
+  congr 2
+  rw [Int.toNat_natCast, Int.toNat_natCast, ← op.hassoc, op.hcomm x.toNat, op.hassoc]
 private theorem mk_bitwise_shape (lhs : Term)
     (h : __bv_mk_bitwise_slicing lhs ≠ Term.Stuck) :
     ∃ f a1 a2, lhs = Term.Apply (Term.Apply f a1) a2 := by
