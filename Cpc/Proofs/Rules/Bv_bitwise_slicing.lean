@@ -599,6 +599,7 @@ structure BvOpSpec where
     __eo_is_list_nil f y = Term.Boolean true →
     __smtx_model_eval M (__eo_to_smt y) = SmtValue.Binary ↑W vy →
     0 ≤ vy → vy < 2^W → vy = nilpay W
+  hnilbool : ∀ (y : Term), y ≠ Term.Stuck → ∃ b, __eo_is_list_nil f y = Term.Boolean b
 
 private def bvOpAnd : BvOpSpec where
   f := Term.UOp UserOp.bvand
@@ -619,6 +620,7 @@ private def bvOpAnd : BvOpSpec where
   hnilterm := nil_term_bvand
   hnilid := bvand_nil
   hnilval := nilval_bvand
+  hnilbool := fun y hy => by cases y <;> first | exact ⟨_, rfl⟩ | exact absurd rfl hy
 
 private def bvOpOr : BvOpSpec where
   f := Term.UOp UserOp.bvor
@@ -639,6 +641,7 @@ private def bvOpOr : BvOpSpec where
   hnilterm := nil_term_bvor
   hnilid := bvor_nil
   hnilval := fun M y W vy hnil hev _ _ => nilval_bvor M y W vy hnil hev
+  hnilbool := fun y hy => by cases y <;> first | exact ⟨_, rfl⟩ | exact absurd rfl hy
 
 private def bvOpXor : BvOpSpec where
   f := Term.UOp UserOp.bvxor
@@ -659,6 +662,7 @@ private def bvOpXor : BvOpSpec where
   hnilterm := nil_term_bvxor
   hnilid := bvxor_nil
   hnilval := fun M y W vy hnil hev _ _ => nilval_bvxor M y W vy hnil hev
+  hnilbool := fun y hy => by cases y <;> first | exact ⟨_, rfl⟩ | exact absurd rfl hy
 
 private theorem slice_op (op : BvOpSpec) (W : Nat) (cn an : Int)
     (hc0 : 0 ≤ cn) (ha0 : 0 ≤ an) (hi lo : Nat) (hlo : lo ≤ hi + 1) :
@@ -1532,6 +1536,51 @@ private theorem mk_spine (op : BvOpSpec) (M : SmtModel) (hM : model_total_typed 
     (hgfc : __bv_get_first_const_child lhs ≠ Term.Stuck) :
     Spine op M W lhs :=
   mk_spine_fuel op M hM W (sizeOf lhs) lhs (Nat.le_refl _) hnn hty hlist hgfc
+
+
+-- singleton_elim preserves the evaluated value on a width-W op-list.
+private theorem sing_elim_eval (op : BvOpSpec) (M : SmtModel) (hM : model_total_typed M) (W : Nat)
+    (Z : Term) (hnn : term_has_non_none_type (__eo_to_smt Z))
+    (hty : __smtx_typeof (__eo_to_smt Z) = SmtType.BitVec ↑W)
+    (hlist : __eo_is_list op.f Z = Term.Boolean true) :
+    __smtx_model_eval M (__eo_to_smt (__eo_list_singleton_elim op.f Z))
+      = __smtx_model_eval M (__eo_to_smt Z) := by
+  have hcollapse : __eo_list_singleton_elim op.f Z = __eo_list_singleton_elim_2 Z := by
+    show __eo_requires (__eo_is_list op.f Z) (Term.Boolean true) (__eo_list_singleton_elim_2 Z)
+      = __eo_list_singleton_elim_2 Z
+    rw [hlist]; exact requires_refl (Term.Boolean true) _ (by intro h; cases h)
+  rw [hcollapse]
+  cases Z <;> try rfl
+  rename_i Z1 rest
+  cases Z1 <;> try rfl
+  rename_i g x
+  obtain ⟨hgeq, _⟩ := is_list_cons_inv op g x rest hlist
+  subst hgeq
+  obtain ⟨w, htx, htrest⟩ := bv_binop_args_of_non_none
+    (op := fun _ _ => __eo_to_smt (Term.Apply (Term.Apply op.f x) rest))
+    (t1 := __eo_to_smt x) (t2 := __eo_to_smt rest) (op.htypeof x rest) hnn
+  have hbv := op.htypeof x rest
+  rw [htx, htrest, hty] at hbv
+  have hwW : w = (↑W : native_Nat) := by
+    simp only [__smtx_typeof_bv_op_2, native_nateq, native_ite] at hbv
+    exact (SmtType.BitVec.inj hbv).symm
+  rw [hwW] at htx htrest
+  obtain ⟨vx, hevx, hvx0, hvx1⟩ := bv_term_eval_canonical M hM (__eo_to_smt x) W
+    (by rw [term_has_non_none_type, htx]; exact fun h => by cases h) htx
+  obtain ⟨vy, hevy, hvy0, hvy1⟩ := bv_term_eval_canonical M hM (__eo_to_smt rest) W
+    (by rw [term_has_non_none_type, htrest]; exact fun h => by cases h) htrest
+  have hevZ : __smtx_model_eval M (__eo_to_smt (Term.Apply (Term.Apply op.f x) rest))
+      = op.opval (SmtValue.Binary ↑W vx) (SmtValue.Binary ↑W vy) :=
+    op.heval M x rest ↑W vx ↑W vy hevx hevy
+  have hrestne : rest ≠ Term.Stuck := ne_stuck_of_eval_bin M rest ↑W vy hevy
+  obtain ⟨b, hb⟩ := op.hnilbool rest hrestne
+  show __smtx_model_eval M (__eo_to_smt (__eo_ite (__eo_is_list_nil op.f rest) x
+      (Term.Apply (Term.Apply op.f x) rest))) = _
+  cases b
+  · rw [hb, eo_ite_false]
+  · rw [hb, eo_ite_true, hevx, hevZ]
+    have hvyn : vy = op.nilpay W := op.hnilval M rest W vy hb hevy hvy0 hvy1
+    rw [hvyn, op.hnilid W vx hvx0 hvx1]
 
 private theorem mk_bitwise_shape (lhs : Term)
     (h : __bv_mk_bitwise_slicing lhs ≠ Term.Stuck) :
