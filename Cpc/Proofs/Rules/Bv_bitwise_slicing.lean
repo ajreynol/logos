@@ -445,6 +445,168 @@ inductive FB : Term → Nat → Prop
   | cons (b bs' : Term) (L : Nat) (hb : b ≠ Term.Stuck) : FB bs' L →
       FB (Term.Apply (Term.Apply (Term.UOp UserOp._at_from_bools) b) bs') (L + 1)
 
+private theorem FB_ne_stuck {t : Term} {n : Nat} (h : FB t n) : t ≠ Term.Stuck := by
+  cases h <;> intro hs <;> cases hs
+
+-- An `Int`-typed list (the index list fed to the bit-list constructor).
+inductive IL : Term → Nat → Prop
+  | nil : IL (Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) (Term.UOp UserOp.Int)) 0
+  | cons (i : Int) (xs : Term) (n : Nat) : IL xs n →
+      IL (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) (Term.Numeral i)) xs)
+        (n + 1)
+
+private theorem IL_ne_stuck {t : Term} {n : Nat} (h : IL t n) : t ≠ Term.Stuck := by
+  cases h <;> intro hs <;> cases hs
+
+private theorem extract_bin_ne_stuck (W cn i : Int) :
+    __eo_extract (Term.Binary W cn) (Term.Numeral i) (Term.Numeral i) ≠ Term.Stuck := by
+  have hz : native_zleq 0 (native_zplus (native_zplus i (native_zneg i)) 1) = true := by
+    have h : (0:Int) ≤ native_zplus (native_zplus i (native_zneg i)) 1 := by
+      simp only [native_zplus, native_zneg]; omega
+    unfold native_zleq; exact decide_eq_true h
+  unfold __eo_extract
+  cases hc : native_or (native_zlt i 0) (native_zlt (native_zplus i (native_zneg i)) 0)
+  · simp only [native_ite, hc, Bool.false_eq_true, if_false, __eo_mk_binary, hz, if_true]
+    intro h; cases h
+  · simp only [native_ite, hc, if_true]; intro h; cases h
+
+-- The bit list built from a constant `Binary W cn` over an index list `xs` is an `FB` list.
+private theorem const_to_bitlist_FB (W cn : Int) :
+    ∀ (xs : Term) (n : Nat), IL xs n →
+      FB (__bv_const_to_bitlist_rec (Term.Binary W cn) xs) n := by
+  intro xs n hIL
+  induction hIL with
+  | nil => exact FB.nil
+  | cons i xs n hIL ih =>
+      have hbit : __eo_eq (__eo_extract (Term.Binary W cn) (Term.Numeral i) (Term.Numeral i))
+          (Term.Binary 1 1) ≠ Term.Stuck := by
+        have hx := extract_bin_ne_stuck W cn i
+        cases he : __eo_extract (Term.Binary W cn) (Term.Numeral i) (Term.Numeral i) <;>
+          simp_all [__eo_eq]
+      have hrecne := FB_ne_stuck ih
+      show FB (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp._at_from_bools)
+          (__eo_eq (__eo_extract (Term.Binary W cn) (Term.Numeral i) (Term.Numeral i))
+            (Term.Binary 1 1)))
+          (__bv_const_to_bitlist_rec (Term.Binary W cn) xs)) (n + 1)
+      rw [eo_mk_apply_ne (by intro h; cases h) hbit,
+          eo_mk_apply_ne (by intro h; cases h) hrecne]
+      exact FB.cons _ _ _ hbit ih
+
+private theorem list_rev_rec_nil (acc : Term) (h : acc ≠ Term.Stuck) :
+    __eo_list_rev_rec (Term.Binary 0 0) acc = acc := by
+  cases acc <;> simp_all [__eo_list_rev_rec]
+
+private theorem list_rev_rec_cons (f x y acc : Term) (h : acc ≠ Term.Stuck) :
+    __eo_list_rev_rec (Term.Apply (Term.Apply f x) y) acc
+      = __eo_list_rev_rec y (Term.Apply (Term.Apply f x) acc) := by
+  cases acc <;> simp_all [__eo_list_rev_rec]
+
+private theorem list_rev_rec_FB {bs : Term} {n : Nat} (hbs : FB bs n) :
+    ∀ {acc : Term} {m : Nat}, FB acc m → FB (__eo_list_rev_rec bs acc) (n + m) := by
+  induction hbs with
+  | nil =>
+      intro acc m hacc
+      rw [list_rev_rec_nil acc (FB_ne_stuck hacc)]; simpa using hacc
+  | cons b bs' L hb hbs' ih =>
+      intro acc m hacc
+      rw [list_rev_rec_cons _ _ _ _ (FB_ne_stuck hacc)]
+      have := ih (FB.cons b acc m hb hacc)
+      have heq : L + (m + 1) = L + 1 + m := by omega
+      rwa [heq] at this
+
+private theorem lrr_ne_stuck (k : Nat) :
+    __eo_list_repeat_rec (Term.UOp UserOp._at__at_TypedList_cons) (Term.Numeral 0) k
+      ≠ Term.Stuck := by
+  induction k with
+  | zero =>
+      show __eo_nil (Term.UOp UserOp._at__at_TypedList_cons) (Term.UOp UserOp.Int) ≠ Term.Stuck
+      intro h; cases h
+  | succ k ih =>
+      rw [show __eo_list_repeat_rec (Term.UOp UserOp._at__at_TypedList_cons) (Term.Numeral 0)
+            (k + 1)
+          = __eo_mk_apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) (Term.Numeral 0))
+            (__eo_list_repeat_rec (Term.UOp UserOp._at__at_TypedList_cons) (Term.Numeral 0) k)
+          from rfl, eo_mk_apply_ne (by intro h; cases h) ih]
+      intro h; cases h
+
+-- The index list `iota_rec (list_repeat cons 0 k) n` is an `IL` of length `k`.
+private theorem iota_repeat_IL : ∀ (k : Nat) (n : Int),
+    IL (__iota_rec (__eo_list_repeat_rec (Term.UOp UserOp._at__at_TypedList_cons)
+        (Term.Numeral 0) k) (Term.Numeral n)) k := by
+  intro k
+  induction k with
+  | zero =>
+      intro n
+      show IL (__iota_rec (__eo_nil (Term.UOp UserOp._at__at_TypedList_cons)
+          (Term.UOp UserOp.Int)) (Term.Numeral n)) 0
+      exact IL.nil
+  | succ k ih =>
+      intro n
+      rw [show __eo_list_repeat_rec (Term.UOp UserOp._at__at_TypedList_cons) (Term.Numeral 0)
+            (k + 1)
+          = __eo_mk_apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) (Term.Numeral 0))
+            (__eo_list_repeat_rec (Term.UOp UserOp._at__at_TypedList_cons) (Term.Numeral 0) k)
+          from rfl,
+          eo_mk_apply_ne (by intro h; cases h) (lrr_ne_stuck k)]
+      show IL (__eo_mk_apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) (Term.Numeral n))
+          (__iota_rec (__eo_list_repeat_rec (Term.UOp UserOp._at__at_TypedList_cons)
+            (Term.Numeral 0) k) (__eo_add (Term.Numeral n) (Term.Numeral 1)))) (k + 1)
+      rw [show __eo_add (Term.Numeral n) (Term.Numeral 1) = Term.Numeral (n + 1) from rfl,
+          eo_mk_apply_ne (by intro h; cases h) (IL_ne_stuck (ih (n + 1)))]
+      exact IL.cons n _ k (ih (n + 1))
+
+private theorem requires_refl (t X : Term) (h : t ≠ Term.Stuck) :
+    __eo_requires t t X = X := by
+  simp [__eo_requires, native_teq, native_ite, native_not, h]
+
+private theorem FB_get_nil {bs : Term} {n : Nat} (h : FB bs n) :
+    __eo_get_nil_rec (Term.UOp UserOp._at_from_bools) bs = Term.Binary 0 0 := by
+  induction h with
+  | nil =>
+      show __eo_requires (Term.Boolean true) (Term.Boolean true) (Term.Binary 0 0) = Term.Binary 0 0
+      exact requires_refl _ _ (by intro hh; cases hh)
+  | cons b bs' L hb hbs' ih =>
+      show __eo_requires (Term.UOp UserOp._at_from_bools) (Term.UOp UserOp._at_from_bools)
+          (__eo_get_nil_rec (Term.UOp UserOp._at_from_bools) bs') = Term.Binary 0 0
+      rw [requires_refl _ _ (by intro hh; cases hh)]; exact ih
+
+private theorem FB_is_list {bs : Term} {n : Nat} (h : FB bs n) :
+    __eo_is_list (Term.UOp UserOp._at_from_bools) bs = Term.Boolean true := by
+  have hnil := FB_get_nil h
+  have hne := FB_ne_stuck h
+  cases bs <;>
+    simp_all [__eo_is_list, __eo_is_ok, native_not, native_teq, reduceCtorEq]
+
+-- The full bit list produced by `__bv_mk_bitwise_slicing` for a width-`W` constant is an
+-- `FB` list of length `W`.
+private theorem bitlist_FB (W : Nat) (cn : Int) :
+    FB (__eo_list_rev (Term.UOp UserOp._at_from_bools)
+        (__bv_const_to_bitlist_rec (Term.Binary ↑W cn)
+          (__eo_requires (__eo_is_neg (Term.Numeral ↑W)) (Term.Boolean false)
+            (__iota_rec (__eo_list_repeat (Term.UOp UserOp._at__at_TypedList_cons)
+              (Term.Numeral 0) (Term.Numeral ↑W)) (Term.Numeral 0))))) W := by
+  have hrep : __eo_list_repeat (Term.UOp UserOp._at__at_TypedList_cons) (Term.Numeral 0)
+      (Term.Numeral ↑W)
+      = __eo_list_repeat_rec (Term.UOp UserOp._at__at_TypedList_cons) (Term.Numeral 0) W := by
+    show native_ite (native_zlt (↑W) 0) Term.Stuck
+        (__eo_list_repeat_rec (Term.UOp UserOp._at__at_TypedList_cons) (Term.Numeral 0)
+          (native_int_to_nat ↑W)) = _
+    rw [show native_zlt (↑W) 0 = false from by
+          unfold native_zlt; exact decide_eq_false (show ¬((↑W:Int) < 0) by omega),
+        show native_int_to_nat (↑W : Int) = W from by simp [native_int_to_nat]]
+    rfl
+  rw [hrep]
+  have hneg : __eo_is_neg (Term.Numeral ↑W) = Term.Boolean false := by
+    show Term.Boolean (native_zlt (↑W) 0) = Term.Boolean false
+    rw [show native_zlt (↑W) 0 = false from by
+      unfold native_zlt; exact decide_eq_false (show ¬((↑W:Int) < 0) by omega)]
+  rw [hneg, requires_refl _ _ (by intro h; cases h)]
+  have hcbl := const_to_bitlist_FB ↑W cn _ W (iota_repeat_IL W 0)
+  show FB (__eo_requires (__eo_is_list (Term.UOp UserOp._at_from_bools) _) (Term.Boolean true)
+      (__eo_list_rev_rec _ (__eo_get_nil_rec (Term.UOp UserOp._at_from_bools) _))) W
+  rw [FB_is_list hcbl, FB_get_nil hcbl, requires_refl _ _ (by intro h; cases h)]
+  simpa using list_rev_rec_FB hcbl FB.nil
+
 private theorem base_eval (M : SmtModel) (W : Nat) (cn : Int) (a : Term) (an : Int)
     (hc0 : 0 ≤ cn) (ha0 : 0 ≤ an)
     (ha : __smtx_model_eval M (__eo_to_smt a) = SmtValue.Binary ↑W an)
