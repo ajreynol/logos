@@ -199,6 +199,38 @@ private theorem bvand_valN (W : Nat) (cn an : Int)
   simp only [__smtx_model_eval_bvand]
   rw [bvand_payload W cn an hc0 hc1 ha0 ha1]
 
+
+private theorem eval_bvor (M : SmtModel) (X Y : Term) (w1 n1 w2 n2 : Int)
+    (hX : __smtx_model_eval M (__eo_to_smt X) = SmtValue.Binary w1 n1)
+    (hY : __smtx_model_eval M (__eo_to_smt Y) = SmtValue.Binary w2 n2) :
+    __smtx_model_eval M (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvor) X) Y))
+      = __smtx_model_eval_bvor (SmtValue.Binary w1 n1) (SmtValue.Binary w2 n2) := by
+  have ht : __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvor) X) Y)
+      = SmtTerm.bvor (__eo_to_smt X) (__eo_to_smt Y) := rfl
+  rw [ht]; simp only [__smtx_model_eval]; rw [hX, hY]
+
+private theorem eval_bvxor (M : SmtModel) (X Y : Term) (w1 n1 w2 n2 : Int)
+    (hX : __smtx_model_eval M (__eo_to_smt X) = SmtValue.Binary w1 n1)
+    (hY : __smtx_model_eval M (__eo_to_smt Y) = SmtValue.Binary w2 n2) :
+    __smtx_model_eval M (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) X) Y))
+      = __smtx_model_eval_bvxor (SmtValue.Binary w1 n1) (SmtValue.Binary w2 n2) := by
+  have ht : __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) X) Y)
+      = SmtTerm.bvxor (__eo_to_smt X) (__eo_to_smt Y) := rfl
+  rw [ht]; simp only [__smtx_model_eval]; rw [hX, hY]
+
+private theorem bvor_valN (W : Nat) (cn an : Int)
+    (hc0 : 0 ≤ cn) (hc1 : cn < 2^W) (ha0 : 0 ≤ an) (ha1 : an < 2^W) :
+    __smtx_model_eval_bvor (SmtValue.Binary ↑W cn) (SmtValue.Binary ↑W an)
+      = SmtValue.Binary ↑W ↑(cn.toNat ||| an.toNat) := by
+  simp only [__smtx_model_eval_bvor]
+  rw [bvor_payload W cn an hc0 hc1 ha0 ha1]
+
+private theorem bvxor_valN (W : Nat) (cn an : Int)
+    (hc0 : 0 ≤ cn) (hc1 : cn < 2^W) (ha0 : 0 ≤ an) (ha1 : an < 2^W) :
+    __smtx_model_eval_bvxor (SmtValue.Binary ↑W cn) (SmtValue.Binary ↑W an)
+      = SmtValue.Binary ↑W ↑(cn.toNat ^^^ an.toNat) := by
+  simp only [__smtx_model_eval_bvxor]
+  rw [bvxor_payload W cn an hc0 hc1 ha0 ha1]
 private theorem concat_valN (w1 p1 w2 p2 : Nat) :
     __smtx_model_eval_concat (SmtValue.Binary ↑w1 ↑p1) (SmtValue.Binary ↑w2 ↑p2)
       = SmtValue.Binary ↑(w1 + w2) ↑((p1 * 2^w2 + p2) % 2^(w1 + w2)) := by
@@ -290,6 +322,51 @@ private theorem requires_tt (X : Term) :
   simp only [native_teq, native_ite, native_not, decide_true, reduceIte, reduceCtorEq,
     Bool.not_false, decide_false]
 
+-- Shared: the slice `typeof` reduces to a `BitVec` of the slice width.
+private theorem typeof_extract_slice (W : Nat) (cn : Int) (hi lo : Nat) (hhiW : hi < W) :
+    __eo_typeof (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑hi)
+      (Term.Numeral ↑lo)) (Term.Binary ↑W cn))
+      = Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral (↑hi - ↑lo + 1)) := by
+  have hg1 : __eo_gt (Term.Numeral ↑lo) (Term.Numeral (-1)) = Term.Boolean true := by
+    show Term.Boolean (native_zlt (-1) (↑lo)) = Term.Boolean true
+    rw [show native_zlt (-1) (↑lo) = true from by
+      unfold native_zlt; exact decide_eq_true (show ((-1):Int) < ↑lo by omega)]
+  have hg2 : __eo_gt (Term.Numeral ↑W) (Term.Numeral ↑hi) = Term.Boolean true := by
+    show Term.Boolean (native_zlt (↑hi) (↑W)) = Term.Boolean true
+    congr 1; show native_zlt (↑hi) (↑W) = true
+    unfold native_zlt; exact decide_eq_true (by exact_mod_cast hhiW)
+  rw [show __eo_typeof (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑hi)
+          (Term.Numeral ↑lo)) (Term.Binary ↑W cn))
+        = __eo_typeof_extract (__eo_typeof (Term.Numeral ↑hi)) (Term.Numeral ↑hi)
+            (__eo_typeof (Term.Numeral ↑lo)) (Term.Numeral ↑lo)
+            (__eo_typeof (Term.Binary ↑W cn)) from rfl,
+      show __eo_typeof (Term.Numeral ↑hi) = Term.UOp UserOp.Int from rfl,
+      show __eo_typeof (Term.Numeral ↑lo) = Term.UOp UserOp.Int from rfl,
+      show __eo_typeof (Term.Binary ↑W cn)
+        = Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral ↑W) from rfl]
+  show __eo_mk_apply (Term.UOp UserOp.BitVec)
+      (__eo_requires (__eo_gt (Term.Numeral ↑lo) (Term.Numeral (-1)))
+        (Term.Boolean true)
+        (__eo_requires (__eo_gt (Term.Numeral ↑W) (Term.Numeral ↑hi)) (Term.Boolean true)
+          (__eo_add (__eo_add (Term.Numeral ↑hi) (__eo_neg (Term.Numeral ↑lo)))
+            (Term.Numeral 1)))) = _
+  rw [hg1, hg2, requires_tt, requires_tt]
+  show (Term.UOp UserOp.BitVec).Apply
+      (Term.Numeral (native_zplus (native_zplus ↑hi (native_zneg ↑lo)) 1)) = _
+  congr 2
+
+-- Shared: `to_bin M 0` reduces to the zero literal of width M.
+private theorem to_bin_zero (M : Int) (h0 : 0 ≤ M) (h32 : M ≤ 4294967296) :
+    __eo_to_bin (Term.Numeral M) (Term.Numeral 0) = Term.Binary M 0 := by
+  show native_ite (native_zleq M 4294967296) (__eo_mk_binary M 0) Term.Stuck = _
+  rw [show native_zleq M 4294967296 = true from by unfold native_zleq; exact decide_eq_true h32]
+  show __eo_mk_binary M 0 = _
+  show native_ite (native_zleq 0 M)
+      (Term.Binary M (native_mod_total 0 (native_int_pow2 M))) Term.Stuck = _
+  rw [show native_zleq 0 M = true from by unfold native_zleq; exact decide_eq_true h0]
+  show Term.Binary M (native_mod_total 0 (native_int_pow2 M)) = Term.Binary M 0
+  congr 1
+
 -- The nil operand for the `bvand` slice [hi:lo] of the constant `c` (width W) reduces
 -- to the all-ones literal of the slice width (needs the slice width ≤ 2^32 so `to_bin`
 -- does not get stuck).
@@ -360,6 +437,171 @@ private theorem nil_term_bvand (W : Nat) (cn : Int) (hi lo : Nat)
     exact_mod_cast this
   rw [show ((2:Int)^(hi+1-lo) + -(0+1)) = (2:Int)^(hi+1-lo) - 1 from by omega]
   exact Int.emod_eq_of_lt (by omega) (by omega)
+
+private theorem nil_term_bvor (W : Nat) (cn : Int) (hi lo : Nat)
+    (hhiW : hi < W) (hlo : lo ≤ hi + 1)
+    (hMle : ((hi + 1 - lo : Nat) : Int) ≤ 4294967296) :
+    __eo_nil (Term.UOp UserOp.bvor)
+        (__eo_typeof (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑hi)
+          (Term.Numeral ↑lo)) (Term.Binary ↑W cn)))
+      = Term.Binary ↑(hi + 1 - lo) 0 := by
+  have hMeq : (↑hi - ↑lo + 1 : Int) = ↑(hi + 1 - lo) := by omega
+  rw [typeof_extract_slice W cn hi lo hhiW]
+  show __eo_to_bin (Term.Numeral (↑hi - ↑lo + 1)) (Term.Numeral 0) = _
+  rw [to_bin_zero _ (by omega) (by rw [hMeq]; exact hMle), hMeq]
+
+private theorem nil_term_bvxor (W : Nat) (cn : Int) (hi lo : Nat)
+    (hhiW : hi < W) (hlo : lo ≤ hi + 1)
+    (hMle : ((hi + 1 - lo : Nat) : Int) ≤ 4294967296) :
+    __eo_nil (Term.UOp UserOp.bvxor)
+        (__eo_typeof (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑hi)
+          (Term.Numeral ↑lo)) (Term.Binary ↑W cn)))
+      = Term.Binary ↑(hi + 1 - lo) 0 := by
+  have hMeq : (↑hi - ↑lo + 1 : Int) = ↑(hi + 1 - lo) := by omega
+  rw [typeof_extract_slice W cn hi lo hhiW]
+  show __eo_to_bin (Term.Numeral (↑hi - ↑lo + 1)) (Term.Numeral 0) = _
+  rw [to_bin_zero _ (by omega) (by rw [hMeq]; exact hMle), hMeq]
+
+private theorem bvor_nil (m : Nat) (pa : Int) (h0 : 0 ≤ pa) (h1 : pa < 2^m) :
+    __smtx_model_eval_bvor (SmtValue.Binary ↑m pa) (SmtValue.Binary ↑m 0)
+      = SmtValue.Binary ↑m pa := by
+  have h2 : (0:Int) < (2:Int)^m := by
+    have : (0:Nat) < 2^m := Nat.two_pow_pos m
+    exact_mod_cast this
+  rw [bvor_valN m pa 0 h0 h1 (by omega) h2]
+  congr 1
+  rw [show (0:Int).toNat = 0 from rfl, Nat.or_zero, Int.toNat_of_nonneg h0]
+
+private theorem bvxor_nil (m : Nat) (pa : Int) (h0 : 0 ≤ pa) (h1 : pa < 2^m) :
+    __smtx_model_eval_bvxor (SmtValue.Binary ↑m pa) (SmtValue.Binary ↑m 0)
+      = SmtValue.Binary ↑m pa := by
+  have h2 : (0:Int) < (2:Int)^m := by
+    have : (0:Nat) < 2^m := Nat.two_pow_pos m
+    exact_mod_cast this
+  rw [bvxor_valN m pa 0 h0 h1 (by omega) h2]
+  congr 1
+  rw [show (0:Int).toNat = 0 from rfl, Nat.xor_zero, Int.toNat_of_nonneg h0]
+
+/-- Algebraic interface shared by the three bitwise operators (`bvand`/`bvor`/`bvxor`),
+so the slicing recursion is proved once and instantiated three times. -/
+structure BvOpSpec where
+  f : Term
+  opval : SmtValue → SmtValue → SmtValue
+  opnat : Nat → Nat → Nat
+  gop : Bool → Bool → Bool
+  nilpay : Nat → Int
+  hfne : f ≠ Term.Stuck
+  hcomm : ∀ x y, opnat x y = opnat y x
+  hassoc : ∀ x y z, opnat (opnat x y) z = opnat x (opnat y z)
+  htb : ∀ x y i, (opnat x y).testBit i = gop (x.testBit i) (y.testBit i)
+  hgff : gop false false = false
+  heval : ∀ (M : SmtModel) (X Y : Term) (w1 n1 w2 n2 : Int),
+    __smtx_model_eval M (__eo_to_smt X) = SmtValue.Binary w1 n1 →
+    __smtx_model_eval M (__eo_to_smt Y) = SmtValue.Binary w2 n2 →
+    __smtx_model_eval M (__eo_to_smt (Term.Apply (Term.Apply f X) Y))
+      = opval (SmtValue.Binary w1 n1) (SmtValue.Binary w2 n2)
+  hvalN : ∀ (W : Nat) (cn an : Int), 0 ≤ cn → cn < 2^W → 0 ≤ an → an < 2^W →
+    opval (SmtValue.Binary ↑W cn) (SmtValue.Binary ↑W an)
+      = SmtValue.Binary ↑W ↑(opnat cn.toNat an.toNat)
+  hnilterm : ∀ (W : Nat) (cn : Int) (hi lo : Nat), hi < W → lo ≤ hi + 1 →
+    ((hi + 1 - lo : Nat) : Int) ≤ 4294967296 →
+    __eo_nil f (__eo_typeof (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑hi)
+      (Term.Numeral ↑lo)) (Term.Binary ↑W cn)))
+      = Term.Binary ↑(hi + 1 - lo) (nilpay (hi + 1 - lo))
+  hnilid : ∀ (m : Nat) (pa : Int), 0 ≤ pa → pa < 2^m →
+    opval (SmtValue.Binary ↑m pa) (SmtValue.Binary ↑m (nilpay m)) = SmtValue.Binary ↑m pa
+
+private def bvOpAnd : BvOpSpec where
+  f := Term.UOp UserOp.bvand
+  opval := __smtx_model_eval_bvand
+  opnat := fun x y => x &&& y
+  gop := fun a b => a && b
+  hfne := by intro h; cases h
+  nilpay := fun m => (2:Int)^m - 1
+  hcomm := Nat.and_comm
+  hassoc := Nat.and_assoc
+  htb := Nat.testBit_and
+  hgff := by decide
+  heval := eval_bvand
+  hvalN := bvand_valN
+  hnilterm := nil_term_bvand
+  hnilid := bvand_nil
+
+private def bvOpOr : BvOpSpec where
+  f := Term.UOp UserOp.bvor
+  opval := __smtx_model_eval_bvor
+  opnat := fun x y => x ||| y
+  gop := fun a b => a || b
+  hfne := by intro h; cases h
+  nilpay := fun _ => 0
+  hcomm := Nat.or_comm
+  hassoc := Nat.or_assoc
+  htb := Nat.testBit_or
+  hgff := by decide
+  heval := eval_bvor
+  hvalN := bvor_valN
+  hnilterm := nil_term_bvor
+  hnilid := bvor_nil
+
+private def bvOpXor : BvOpSpec where
+  f := Term.UOp UserOp.bvxor
+  opval := __smtx_model_eval_bvxor
+  opnat := fun x y => x ^^^ y
+  gop := fun a b => xor a b
+  hfne := by intro h; cases h
+  nilpay := fun _ => 0
+  hcomm := Nat.xor_comm
+  hassoc := Nat.xor_assoc
+  htb := Nat.testBit_xor
+  hgff := by decide
+  heval := eval_bvxor
+  hvalN := bvxor_valN
+  hnilterm := nil_term_bvxor
+  hnilid := bvxor_nil
+
+private theorem slice_op (op : BvOpSpec) (W : Nat) (cn an : Int)
+    (hc0 : 0 ≤ cn) (ha0 : 0 ≤ an) (hi lo : Nat) (hlo : lo ≤ hi + 1) :
+    op.opval
+        (__smtx_model_eval_extract (SmtValue.Numeral ↑hi) (SmtValue.Numeral ↑lo)
+          (SmtValue.Binary ↑W cn))
+        (__smtx_model_eval_extract (SmtValue.Numeral ↑hi) (SmtValue.Numeral ↑lo)
+          (SmtValue.Binary ↑W an))
+      = SmtValue.Binary ↑(hi + 1 - lo)
+          ↑(((op.opnat cn.toNat an.toNat) / 2^lo) % 2^(hi + 1 - lo)) := by
+  rw [extract_valN W cn hi lo hc0 hlo, extract_valN W an hi lo ha0 hlo,
+      op.hvalN (hi + 1 - lo) _ _ (Int.natCast_nonneg _) (natCast_mod_lt _ _)
+        (Int.natCast_nonneg _) (natCast_mod_lt _ _)]
+  congr 2
+  rw [Int.toNat_natCast, Int.toNat_natCast,
+      ← op_mod2pow op.htb op.hgff, ← op_div2pow op.htb]
+
+private theorem concat_split_op (op : BvOpSpec) (W : Nat) (cn an : Int)
+    (hc0 : 0 ≤ cn) (ha0 : 0 ≤ an) (s k : Nat) (hk1 : 1 ≤ k) (hks : k ≤ s + 1) :
+    op.opval
+        (__smtx_model_eval_extract (SmtValue.Numeral ↑s) (SmtValue.Numeral (0:Int))
+          (SmtValue.Binary ↑W cn))
+        (__smtx_model_eval_extract (SmtValue.Numeral ↑s) (SmtValue.Numeral (0:Int))
+          (SmtValue.Binary ↑W an))
+      = __smtx_model_eval_concat
+          (op.opval
+            (__smtx_model_eval_extract (SmtValue.Numeral ↑s) (SmtValue.Numeral ↑k)
+              (SmtValue.Binary ↑W cn))
+            (__smtx_model_eval_extract (SmtValue.Numeral ↑s) (SmtValue.Numeral ↑k)
+              (SmtValue.Binary ↑W an)))
+          (op.opval
+            (__smtx_model_eval_extract (SmtValue.Numeral ↑(k-1)) (SmtValue.Numeral (0:Int))
+              (SmtValue.Binary ↑W cn))
+            (__smtx_model_eval_extract (SmtValue.Numeral ↑(k-1)) (SmtValue.Numeral (0:Int))
+              (SmtValue.Binary ↑W an))) := by
+  have e0 : ((0:Int)) = ((0:Nat):Int) := by norm_cast
+  rw [e0, slice_op op W cn an hc0 ha0 s 0 (by omega),
+      slice_op op W cn an hc0 ha0 s k (by omega),
+      slice_op op W cn an hc0 ha0 (k-1) 0 (by omega)]
+  simp only [Nat.sub_zero, Nat.pow_zero, Nat.div_one]
+  rw [Nat.sub_add_cancel hk1, concat_valN (s + 1 - k) _ k _, Nat.sub_add_cancel hks]
+  congr 1
+  norm_cast
+  rw [← nat_split_mod (op.opnat cn.toNat an.toNat) k (s + 1) hks, Nat.mod_mod]
 
 -- eval of the full per-slice term: `bvand (extract c) (bvand (extract a) nil)` = the
 -- closed-form `bvand` of the [hi:lo] slices of `c` and `a`.
@@ -796,6 +1038,194 @@ private theorem bv_bitwise_slicing_shape_of_ne_stuck (A : Term) :
     exact False.elim (h hStuck)
 
 -- Shape of a non-stuck `__bv_mk_bitwise_slicing`: its argument is a binary application.
+private theorem slice_eval_op (op : BvOpSpec) (M : SmtModel) (W : Nat) (cn : Int) (a : Term) (an : Int)
+    (hc0 : 0 ≤ cn) (ha0 : 0 ≤ an)
+    (ha : __smtx_model_eval M (__eo_to_smt a) = SmtValue.Binary ↑W an)
+    (hi lo : Nat) (hhiW : hi < W) (hlo : lo ≤ hi + 1)
+    (hMle : ((hi + 1 - lo : Nat) : Int) ≤ 4294967296) :
+    __smtx_model_eval M
+        (__eo_to_smt (Term.Apply (Term.Apply (op.f)
+          (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑hi) (Term.Numeral ↑lo))
+            (Term.Binary ↑W cn)))
+          (Term.Apply (Term.Apply (op.f)
+            (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑hi) (Term.Numeral ↑lo)) a))
+            (__eo_nil (op.f)
+              (__eo_typeof (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑hi)
+                (Term.Numeral ↑lo)) (Term.Binary ↑W cn)))))))
+      = SmtValue.Binary ↑(hi + 1 - lo)
+          ↑(((op.opnat cn.toNat an.toNat) / 2^lo) % 2^(hi + 1 - lo)) := by
+  have hCext : __smtx_model_eval M
+      (__eo_to_smt (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑hi) (Term.Numeral ↑lo))
+        (Term.Binary ↑W cn)))
+      = SmtValue.Binary ↑(hi + 1 - lo) ↑((cn.toNat / 2^lo) % 2^(hi + 1 - lo)) := by
+    rw [eval_extract M (Term.Binary ↑W cn) ↑hi ↑lo ↑W cn (eval_bin M ↑W cn),
+        extract_valN W cn hi lo hc0 hlo]
+  have hAext : __smtx_model_eval M
+      (__eo_to_smt (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑hi) (Term.Numeral ↑lo)) a))
+      = SmtValue.Binary ↑(hi + 1 - lo) ↑((an.toNat / 2^lo) % 2^(hi + 1 - lo)) := by
+    rw [eval_extract M a ↑hi ↑lo ↑W an ha, extract_valN W an hi lo ha0 hlo]
+  have hNil : __smtx_model_eval M (__eo_to_smt (__eo_nil (op.f)
+        (__eo_typeof (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑hi)
+          (Term.Numeral ↑lo)) (Term.Binary ↑W cn)))))
+      = SmtValue.Binary ↑(hi + 1 - lo) (op.nilpay (hi + 1 - lo)) := by
+    rw [op.hnilterm W cn hi lo hhiW hlo hMle]; exact eval_bin M _ _
+  have hInner : __smtx_model_eval M
+      (__eo_to_smt (Term.Apply (Term.Apply (op.f)
+        (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑hi) (Term.Numeral ↑lo)) a))
+        (__eo_nil (op.f)
+          (__eo_typeof (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑hi)
+            (Term.Numeral ↑lo)) (Term.Binary ↑W cn))))))
+      = SmtValue.Binary ↑(hi + 1 - lo) ↑((an.toNat / 2^lo) % 2^(hi + 1 - lo)) := by
+    rw [op.heval M _ _ _ _ _ _ hAext hNil]
+    exact op.hnilid (hi + 1 - lo) _ (Int.natCast_nonneg _) (natCast_mod_lt _ _)
+  rw [op.heval M _ _ _ _ _ _ hCext hInner,
+      op.hvalN (hi + 1 - lo) _ _ (Int.natCast_nonneg _) (natCast_mod_lt _ _)
+        (Int.natCast_nonneg _) (natCast_mod_lt _ _)]
+  congr 2
+  rw [Int.toNat_natCast, Int.toNat_natCast,
+      ← op_mod2pow op.htb op.hgff, ← op_div2pow op.htb]
+
+-- Closed-form split used by the induction's emit case.
+
+private theorem base_eval_op (op : BvOpSpec) (M : SmtModel) (W : Nat) (cn : Int) (a : Term) (an : Int)
+    (hc0 : 0 ≤ cn) (ha0 : 0 ≤ an)
+    (ha : __smtx_model_eval M (__eo_to_smt a) = SmtValue.Binary ↑W an)
+    (s : Nat) (hsW : s < W) (hWB : (↑W : Int) ≤ 4294967296) :
+    __smtx_model_eval M (__eo_to_smt
+      (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.concat)
+        (__eo_mk_apply ((op.f).Apply
+            ((Term.UOp2 UserOp2.extract (Term.Numeral ↑s) (Term.Numeral 0)).Apply (Term.Binary ↑W cn)))
+          (__eo_mk_apply ((op.f).Apply
+              ((Term.UOp2 UserOp2.extract (Term.Numeral ↑s) (Term.Numeral 0)).Apply a))
+            (__eo_nil (op.f)
+              (__eo_typeof ((Term.UOp2 UserOp2.extract (Term.Numeral ↑s) (Term.Numeral 0)).Apply
+                (Term.Binary ↑W cn)))))))
+        (Term.Binary 0 0)))
+      = SmtValue.Binary ↑(s + 1) ↑((op.opnat cn.toNat an.toNat) % 2^(s + 1)) := by
+  have hMle : ((s + 1 - 0 : Nat) : Int) ≤ 4294967296 := by omega
+  rw [show Term.Numeral (0:Int) = Term.Numeral ((0:Nat):Int) from by simp]
+  have hNILne : __eo_nil (op.f)
+      (__eo_typeof ((Term.UOp2 UserOp2.extract (Term.Numeral ↑s) (Term.Numeral ((0:Nat):Int))).Apply
+        (Term.Binary ↑W cn))) ≠ Term.Stuck := by
+    rw [op.hnilterm W cn s 0 hsW (by omega) hMle]; intro h; cases h
+  rw [eo_mk_apply_ne (by intro h; cases h) hNILne,
+      eo_mk_apply_ne (by intro h; cases h) (by intro h; cases h),
+      eo_mk_apply_ne (by intro h; cases h) (by intro h; cases h),
+      eo_mk_apply_ne (by intro h; cases h) (by intro h; cases h)]
+  rw [eval_concat M _ (Term.Binary 0 0) _ _ _ _
+        (slice_eval_op op M W cn a an hc0 ha0 ha s 0 hsW (by omega) hMle) (eval_bin M 0 0),
+      concat_rempty (s + 1 - 0) (((op.opnat cn.toNat an.toNat) / 2^0) % 2^(s + 1 - 0))
+        (Nat.mod_lt _ (Nat.two_pow_pos _))]
+  simp only [Nat.sub_zero, Nat.pow_zero, Nat.div_one]
+
+private theorem emit_eval_op (op : BvOpSpec) (M : SmtModel) (W : Nat) (cn : Int) (a : Term) (an : Int)
+    (hc0 : 0 ≤ cn) (ha0 : 0 ≤ an)
+    (ha : __smtx_model_eval M (__eo_to_smt a) = SmtValue.Binary ↑W an)
+    (hane : a ≠ Term.Stuck)
+    (s L' : Nat) (hL's : L' ≤ s) (hsW : s < W) (hWB : (↑W : Int) ≤ 4294967296)
+    (rest : Term)
+    (hrest : __smtx_model_eval M (__eo_to_smt rest)
+      = SmtValue.Binary ↑(L' + 1) ↑((op.opnat cn.toNat an.toNat) % 2^(L' + 1)))
+    (hrestne : rest ≠ Term.Stuck) :
+    __smtx_model_eval M (__eo_to_smt
+      (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.concat)
+        (__eo_mk_apply (__eo_mk_apply (op.f)
+            (__eo_mk_apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑s)
+              (__eo_add (Term.Numeral ↑L') (Term.Numeral 1))) (Term.Binary ↑W cn)))
+          (__eo_mk_apply (__eo_mk_apply (op.f)
+              (__eo_mk_apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑s)
+                (__eo_add (Term.Numeral ↑L') (Term.Numeral 1))) a))
+            (__eo_nil (op.f)
+              (__eo_typeof (__eo_mk_apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑s)
+                (__eo_add (Term.Numeral ↑L') (Term.Numeral 1))) (Term.Binary ↑W cn)))))))
+        rest))
+      = SmtValue.Binary ↑(s + 1) ↑((op.opnat cn.toNat an.toNat) % 2^(s + 1)) := by
+  have hMle : ((s + 1 - (L' + 1) : Nat) : Int) ≤ 4294967296 := by omega
+  have hbr : (↑L' : Int) + 1 = ↑(L' + 1) := by omega
+  rw [show __eo_add (Term.Numeral ↑L') (Term.Numeral 1) = Term.Numeral ↑(L' + 1) from by
+        show Term.Numeral ((↑L' : Int) + 1) = Term.Numeral ↑(L' + 1)
+        rw [hbr]]
+  have eA : __eo_mk_apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑s) (Term.Numeral ↑(L' + 1))) (Term.Binary ↑W cn)
+      = Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑s) (Term.Numeral ↑(L' + 1))) (Term.Binary ↑W cn) :=
+    eo_mk_apply_ne (by intro h; cases h) (by intro h; cases h)
+  have eB : __eo_mk_apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑s) (Term.Numeral ↑(L' + 1))) a = Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑s) (Term.Numeral ↑(L' + 1))) a :=
+    eo_mk_apply_ne (by intro h; cases h) hane
+  simp only [eA, eB]
+  have hNILne : __eo_nil (op.f)
+      (__eo_typeof (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑s) (Term.Numeral ↑(L' + 1))) (Term.Binary ↑W cn))) ≠ Term.Stuck := by
+    rw [op.hnilterm W cn s (L' + 1) hsW (by omega) hMle]; intro h; cases h
+  have eC : __eo_mk_apply (op.f) (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑s) (Term.Numeral ↑(L' + 1))) (Term.Binary ↑W cn))
+      = Term.Apply (op.f) (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑s) (Term.Numeral ↑(L' + 1))) (Term.Binary ↑W cn)) :=
+    eo_mk_apply_ne op.hfne (by intro h; cases h)
+  have eD : __eo_mk_apply (op.f) (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑s) (Term.Numeral ↑(L' + 1))) a)
+      = Term.Apply (op.f) (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑s) (Term.Numeral ↑(L' + 1))) a) :=
+    eo_mk_apply_ne op.hfne (by intro h; cases h)
+  simp only [eC, eD]
+  have eE : __eo_mk_apply (Term.Apply (op.f) (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑s) (Term.Numeral ↑(L' + 1))) a))
+        (__eo_nil (op.f) (__eo_typeof (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑s) (Term.Numeral ↑(L' + 1))) (Term.Binary ↑W cn))))
+      = Term.Apply (Term.Apply (op.f) (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑s) (Term.Numeral ↑(L' + 1))) a))
+        (__eo_nil (op.f) (__eo_typeof (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑s) (Term.Numeral ↑(L' + 1))) (Term.Binary ↑W cn)))) :=
+    eo_mk_apply_ne (by intro h; cases h) hNILne
+  simp only [eE]
+  have eF : __eo_mk_apply (Term.Apply (op.f) (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑s) (Term.Numeral ↑(L' + 1))) (Term.Binary ↑W cn)))
+        (Term.Apply (Term.Apply (op.f) (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑s) (Term.Numeral ↑(L' + 1))) a))
+          (__eo_nil (op.f) (__eo_typeof (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑s) (Term.Numeral ↑(L' + 1))) (Term.Binary ↑W cn)))))
+      = Term.Apply (Term.Apply (op.f) (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑s) (Term.Numeral ↑(L' + 1))) (Term.Binary ↑W cn)))
+        (Term.Apply (Term.Apply (op.f) (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑s) (Term.Numeral ↑(L' + 1))) a))
+          (__eo_nil (op.f) (__eo_typeof (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑s) (Term.Numeral ↑(L' + 1))) (Term.Binary ↑W cn))))) :=
+    eo_mk_apply_ne (by intro h; cases h) (by intro h; cases h)
+  simp only [eF]
+  have eG : __eo_mk_apply (Term.UOp UserOp.concat)
+        (Term.Apply (Term.Apply (op.f) (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑s) (Term.Numeral ↑(L' + 1))) (Term.Binary ↑W cn)))
+          (Term.Apply (Term.Apply (op.f) (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑s) (Term.Numeral ↑(L' + 1))) a))
+            (__eo_nil (op.f) (__eo_typeof (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑s) (Term.Numeral ↑(L' + 1))) (Term.Binary ↑W cn))))))
+      = Term.Apply (Term.UOp UserOp.concat)
+        (Term.Apply (Term.Apply (op.f) (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑s) (Term.Numeral ↑(L' + 1))) (Term.Binary ↑W cn)))
+          (Term.Apply (Term.Apply (op.f) (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑s) (Term.Numeral ↑(L' + 1))) a))
+            (__eo_nil (op.f) (__eo_typeof (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑s) (Term.Numeral ↑(L' + 1))) (Term.Binary ↑W cn)))))) :=
+    eo_mk_apply_ne (by intro h; cases h) (by intro h; cases h)
+  rw [eG, eo_mk_apply_ne (by intro h; cases h) hrestne]
+  rw [eval_concat M _ rest _ _ _ _
+        (slice_eval_op op M W cn a an hc0 ha0 ha s (L' + 1) hsW (by omega) hMle) hrest]
+  rw [show s + 1 - (L' + 1) = s - L' from by omega]
+  exact (closed_split (op.opnat cn.toNat an.toNat) s L' hL's).symm
+
+private theorem rec_inv_op (op : BvOpSpec) (M : SmtModel) (W : Nat) (cn : Int) (a : Term) (an : Int)
+    (hc0 : 0 ≤ cn) (ha0 : 0 ≤ an)
+    (ha : __smtx_model_eval M (__eo_to_smt a) = SmtValue.Binary ↑W an)
+    (hane : a ≠ Term.Stuck) (hWB : (↑W : Int) ≤ 4294967296) :
+    ∀ (L : Nat) (bs : Term), FB bs L → ∀ (bn : Term), bn ≠ Term.Stuck →
+    ∀ (s : Nat), L ≤ s + 1 → s < W →
+      __smtx_model_eval M (__eo_to_smt (__bv_mk_bitwise_slicing_rec (op.f)
+        (Term.Binary ↑W cn) a bs bn (Term.Numeral ↑s) (Term.Numeral ((↑L : Int) - 1))))
+        = SmtValue.Binary ↑(s + 1) ↑((op.opnat cn.toNat an.toNat) % 2^(s + 1)) := by
+  intro L bs hFB
+  induction hFB with
+  | nil =>
+    intro bn hbn s hLs hsW
+    rw [__bv_mk_bitwise_slicing_rec.eq_7 (op.f) (Term.Binary ↑W cn) a
+        bn (Term.Numeral ↑s) (Term.Numeral ((↑(0:Nat) : Int) - 1))
+        op.hfne (by intro h; cases h) hane hbn (by intro h; cases h)
+        (by intro h; cases h)]
+    exact base_eval_op op M W cn a an hc0 ha0 ha s hsW hWB
+  | cons b bs' L' hb hFB' ih =>
+    intro bn hbn s hLs hsW
+    rw [show ((↑(L' + 1) : Int) - 1) = ↑L' from by push_cast; omega]
+    rw [__bv_mk_bitwise_slicing_rec.eq_8 (op.f) (Term.Binary ↑W cn) a bn
+        (Term.Numeral ↑s) (Term.Numeral ↑L') b bs'
+        op.hfne (by intro h; cases h) hane hbn (by intro h; cases h)
+        (by intro h; cases h)]
+    rw [show __eo_add (Term.Numeral ↑L') (Term.Numeral (-1)) = Term.Numeral ((↑L' : Int) - 1)
+          from rfl, eo_eq_ne hb hbn]
+    have hMs := ih b hb s (by omega) hsW
+    have hrest := ih b hb L' (by omega) (by omega)
+    cases hbb : native_teq bn b
+    · rw [eo_ite_false]
+      exact emit_eval_op op M W cn a an hc0 ha0 ha hane s L' (by omega) hsW hWB _ hrest
+        (ne_stuck_of_eval_bin M _ _ _ hrest)
+    · rw [eo_ite_true]
+      exact hMs
+
 private theorem mk_bitwise_shape (lhs : Term)
     (h : __bv_mk_bitwise_slicing lhs ≠ Term.Stuck) :
     ∃ f a1 a2, lhs = Term.Apply (Term.Apply f a1) a2 := by
