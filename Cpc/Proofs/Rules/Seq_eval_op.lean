@@ -148,6 +148,227 @@ private theorem smt_value_rel_model_eval_str_len_of_rel
     subst b
     exact RuleProofs.smt_value_rel_refl _
 
+private theorem smt_value_rel_model_eval_str_contains_of_rel
+    (a b c d : SmtValue) :
+    RuleProofs.smt_value_rel a c ->
+    RuleProofs.smt_value_rel b d ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval_str_contains a b)
+      (__smtx_model_eval_str_contains c d) := by
+  intro hRelA hRelB
+  by_cases hRegA :
+      ∃ r1 r2, a = SmtValue.RegLan r1 ∧ c = SmtValue.RegLan r2
+  · rcases hRegA with ⟨r1, r2, rfl, rfl⟩
+    unfold RuleProofs.smt_value_rel
+    cases b <;> cases d <;>
+      simp [__smtx_model_eval_str_contains, __smtx_model_eval_eq,
+        native_veq]
+  · have hAEq := (RuleProofs.smt_value_rel_iff_eq a c hRegA).mp hRelA
+    subst c
+    by_cases hRegB :
+        ∃ r1 r2, b = SmtValue.RegLan r1 ∧ d = SmtValue.RegLan r2
+    · rcases hRegB with ⟨r1, r2, rfl, rfl⟩
+      unfold RuleProofs.smt_value_rel
+      cases a <;>
+        simp [__smtx_model_eval_str_contains, __smtx_model_eval_eq,
+          native_veq]
+    · have hBEq := (RuleProofs.smt_value_rel_iff_eq b d hRegB).mp hRelB
+      subst d
+      exact RuleProofs.smt_value_rel_refl _
+
+private theorem smt_value_rel_model_eval_str_prefixof_of_rel
+    (a b c d : SmtValue) :
+    RuleProofs.smt_value_rel a c ->
+    RuleProofs.smt_value_rel b d ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval_str_prefixof a b)
+      (__smtx_model_eval_str_prefixof c d) := by
+  intro hRelA hRelB
+  by_cases hRegA :
+      ∃ r1 r2, a = SmtValue.RegLan r1 ∧ c = SmtValue.RegLan r2
+  · rcases hRegA with ⟨r1, r2, rfl, rfl⟩
+    unfold RuleProofs.smt_value_rel
+    cases b <;> cases d <;>
+      simp [__smtx_model_eval_str_prefixof, __smtx_model_eval_str_len,
+        __smtx_model_eval_str_substr, __smtx_model_eval_eq,
+        native_veq]
+  · have hAEq := (RuleProofs.smt_value_rel_iff_eq a c hRegA).mp hRelA
+    subst c
+    by_cases hRegB :
+        ∃ r1 r2, b = SmtValue.RegLan r1 ∧ d = SmtValue.RegLan r2
+    · rcases hRegB with ⟨r1, r2, rfl, rfl⟩
+      unfold RuleProofs.smt_value_rel
+      cases a <;>
+        simp [__smtx_model_eval_str_prefixof, __smtx_model_eval_str_substr,
+          __smtx_model_eval_eq, native_veq]
+    · have hBEq := (RuleProofs.smt_value_rel_iff_eq b d hRegB).mp hRelB
+      subst d
+      exact RuleProofs.smt_value_rel_refl _
+
+private theorem smt_value_rel_model_eval_str_suffixof_of_rel
+    (a b c d : SmtValue) :
+    RuleProofs.smt_value_rel a c ->
+    RuleProofs.smt_value_rel b d ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval_str_suffixof a b)
+      (__smtx_model_eval_str_suffixof c d) := by
+  intro hRelA hRelB
+  by_cases hRegA :
+      ∃ r1 r2, a = SmtValue.RegLan r1 ∧ c = SmtValue.RegLan r2
+  · rcases hRegA with ⟨r1, r2, rfl, rfl⟩
+    unfold RuleProofs.smt_value_rel
+    cases b <;> cases d <;>
+      simp [__smtx_model_eval_str_suffixof, __smtx_model_eval_str_len,
+        __smtx_model_eval_str_substr, __smtx_model_eval_eq,
+        native_veq]
+  · have hAEq := (RuleProofs.smt_value_rel_iff_eq a c hRegA).mp hRelA
+    subst c
+    by_cases hRegB :
+        ∃ r1 r2, b = SmtValue.RegLan r1 ∧ d = SmtValue.RegLan r2
+    · rcases hRegB with ⟨r1, r2, rfl, rfl⟩
+      unfold RuleProofs.smt_value_rel
+      cases a <;>
+        simp [__smtx_model_eval_str_suffixof, __smtx_model_eval_str_substr,
+          __smtx_model_eval_eq, native_veq]
+    · have hBEq := (RuleProofs.smt_value_rel_iff_eq b d hRegB).mp hRelB
+      subst d
+      exact RuleProofs.smt_value_rel_refl _
+
+private theorem native_seq_prefix_eq_take_eq_true
+    (xs ys : List SmtValue)
+    (h : ys.take xs.length = xs) :
+    native_seq_prefix_eq xs ys = true := by
+  rw [RuleProofs.native_seq_prefix_eq_iff]
+  exact ⟨ys.drop xs.length, by
+    calc
+      ys = ys.take xs.length ++ ys.drop xs.length :=
+        (List.take_append_drop xs.length ys).symm
+      _ = xs ++ ys.drop xs.length := by rw [h]⟩
+
+private theorem native_seq_extract_zero_nat_any
+    (xs : List SmtValue) (n : Nat) :
+    native_seq_extract xs 0 (Int.ofNat n) = xs.take n := by
+  by_cases hle : n <= xs.length
+  · exact native_seq_extract_zero_nat xs n hle
+  · cases xs with
+    | nil =>
+        simp [native_seq_extract]
+    | cons x xs =>
+        unfold native_seq_extract
+        have hn : n ≠ 0 := by
+          intro hn
+          subst n
+          simp at hle
+        have hLenLt : (x :: xs).length < n := Nat.lt_of_not_ge hle
+        have hLenLe : (x :: xs).length <= n := Nat.le_of_lt hLenLt
+        have hLenNotLe :
+            ¬ ((Int.ofNat xs.length : Int) + 1 <= 0) := by
+          have hNonneg : (0 : Int) <= Int.ofNat xs.length :=
+            Int.natCast_nonneg xs.length
+          omega
+        have hmin :
+            min (Int.ofNat n) (Int.ofNat (x :: xs).length) =
+              Int.ofNat (x :: xs).length :=
+          Int.min_eq_right (Int.ofNat_le.mpr hLenLe)
+        have hminToNat :
+            (min (Int.ofNat n) (Int.ofNat (x :: xs).length)).toNat =
+              (x :: xs).length := by
+          rw [hmin]
+          simp
+        simp [hn]
+        change
+          (x :: xs).take
+              ((min (Int.ofNat n) (Int.ofNat (x :: xs).length)).toNat) =
+            (x :: xs).take n
+        rw [hminToNat, List.take_of_length_le (Nat.le_refl (x :: xs).length),
+          List.take_of_length_le hLenLe]
+
+private theorem smtx_model_eval_str_prefixof_seq_eq
+    (sx sy : SmtSeq) (T : SmtType)
+    (hsxTy : __smtx_typeof_seq_value sx = SmtType.Seq T)
+    (hsyTy : __smtx_typeof_seq_value sy = SmtType.Seq T) :
+    __smtx_model_eval_str_prefixof (SmtValue.Seq sx) (SmtValue.Seq sy) =
+      SmtValue.Boolean
+        (native_seq_prefix_eq (native_unpack_seq sx) (native_unpack_seq sy)) := by
+  let xs := native_unpack_seq sx
+  let ys := native_unpack_seq sy
+  have hsxElem : __smtx_elem_typeof_seq_value sx = T :=
+    elem_typeof_seq_value_of_typeof_seq_value hsxTy
+  have hsyElem : __smtx_elem_typeof_seq_value sy = T :=
+    elem_typeof_seq_value_of_typeof_seq_value hsyTy
+  have hsxPack :
+      native_pack_seq T xs = sx := by
+    simpa [xs, hsxElem] using native_pack_unpack_seq sx
+  have hExtract :
+      native_seq_extract ys 0 (Int.ofNat xs.length) =
+        ys.take xs.length := by
+    exact native_seq_extract_zero_nat_any ys xs.length
+  by_cases hPref :
+      native_seq_prefix_eq xs ys = true
+  · rcases (RuleProofs.native_seq_prefix_eq_iff xs ys).1 hPref with
+      ⟨rest, hYs⟩
+    have hTake : ys.take xs.length = xs := by
+      rw [hYs]
+      simp
+    have hSeqEqExtract :
+        sx =
+          native_pack_seq T
+            (native_seq_extract (native_unpack_seq sy) 0
+              (Int.ofNat (native_unpack_seq sx).length)) := by
+      have hExtract' :
+          native_seq_extract (native_unpack_seq sy) 0
+              (Int.ofNat (native_unpack_seq sx).length) =
+            native_unpack_seq sx := by
+        calc
+          native_seq_extract (native_unpack_seq sy) 0
+              (Int.ofNat (native_unpack_seq sx).length) =
+              ys.take xs.length := by
+                simpa [xs, ys] using hExtract
+          _ = xs := hTake
+          _ = native_unpack_seq sx := rfl
+      rw [hExtract']
+      exact hsxPack.symm
+    simp [__smtx_model_eval_str_prefixof, __smtx_model_eval_str_len,
+      __smtx_model_eval_str_substr, __smtx_model_eval_eq, native_veq,
+      native_seq_len, xs, ys, hsyElem, hPref]
+    exact hSeqEqExtract
+  · have hPrefFalse :
+        native_seq_prefix_eq xs ys = false := by
+      cases h : native_seq_prefix_eq xs ys
+      · rfl
+      · exact False.elim (hPref h)
+    have hSeqNe :
+        sx ≠ native_pack_seq T (ys.take xs.length) := by
+      intro hEq
+      have hList :
+          xs = ys.take xs.length := by
+        have hPackEq :
+            native_pack_seq T xs =
+              native_pack_seq T (ys.take xs.length) := by
+          simpa [hsxPack] using hEq
+        exact native_pack_seq_inj T hPackEq
+      have hPrefTrue : native_seq_prefix_eq xs ys = true :=
+        native_seq_prefix_eq_take_eq_true xs ys hList.symm
+      rw [hPrefFalse] at hPrefTrue
+      cases hPrefTrue
+    have hSeqNeExtract :
+        sx ≠
+          native_pack_seq T
+            (native_seq_extract (native_unpack_seq sy) 0
+              (Int.ofNat (native_unpack_seq sx).length)) := by
+      have hExtract' :
+          native_seq_extract (native_unpack_seq sy) 0
+              (Int.ofNat (native_unpack_seq sx).length) =
+            List.take (native_unpack_seq sx).length (native_unpack_seq sy) := by
+        simpa [xs, ys] using hExtract
+      intro hEq
+      apply hSeqNe
+      rwa [hExtract'] at hEq
+    simp [__smtx_model_eval_str_prefixof, __smtx_model_eval_str_len,
+      __smtx_model_eval_str_substr, __smtx_model_eval_eq, native_veq,
+      native_seq_len, xs, ys, hsyElem, hPrefFalse]
+    exact hSeqNeExtract
+
 private theorem str_value_len_eval_seq_length
     (M : SmtModel) (hM : model_total_typed M) :
     ∀ x T,
