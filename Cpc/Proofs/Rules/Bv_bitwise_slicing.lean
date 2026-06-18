@@ -35,6 +35,26 @@ private theorem natpow2_eq (w : Nat) : native_int_pow2 (↑w : Int) = (2:Int)^w 
   unfold native_int_pow2 native_zexp_total
   rw [if_neg hwnn, Int.toNat_natCast]
 
+private theorem int_canon_bounds {n : Int} {W : Nat}
+    (h : native_zeq n (native_mod_total n (native_int_pow2 (↑W:Int))) = true) :
+    0 ≤ n ∧ n < 2^W := by
+  simp only [native_zeq, decide_eq_true_eq, native_mod_total, natpow2_eq] at h
+  have hpos : (0:Int) < 2^W := by exact_mod_cast Nat.two_pow_pos W
+  refine ⟨?_, ?_⟩
+  · rw [h]; exact Int.emod_nonneg n (by omega)
+  · rw [h]; exact Int.emod_lt_of_pos n hpos
+
+-- A non-none term of type `BitVec W` evaluates to a canonical width-W binary value.
+private theorem bv_term_eval_canonical (M : SmtModel) (hM : model_total_typed M) (t : SmtTerm)
+    (W : Nat) (hnn : term_has_non_none_type t) (hty : __smtx_typeof t = SmtType.BitVec ↑W) :
+    ∃ n : Int, __smtx_model_eval M t = SmtValue.Binary ↑W n ∧ 0 ≤ n ∧ n < 2^W := by
+  have hpres := type_preservation M hM t hnn
+  rw [hty] at hpres
+  obtain ⟨n, hn⟩ := bitvec_value_canonical hpres
+  rw [hn] at hpres
+  obtain ⟨h0, h1⟩ := int_canon_bounds (bitvec_payload_canonical hpres)
+  exact ⟨n, hn, h0, h1⟩
+
 -- A bitwise Nat op commutes with division by `2^k` (selecting the high bits).
 private theorem op_div2pow {f : Nat → Nat → Nat} {g : Bool → Bool → Bool}
     (hf : ∀ x y i, (f x y).testBit i = g (x.testBit i) (y.testBit i))
@@ -500,6 +520,9 @@ structure BvOpSpec where
     __smtx_model_eval M (__eo_to_smt Y) = SmtValue.Binary w2 n2 →
     __smtx_model_eval M (__eo_to_smt (Term.Apply (Term.Apply f X) Y))
       = opval (SmtValue.Binary w1 n1) (SmtValue.Binary w2 n2)
+  htypeof : ∀ (X Y : Term),
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply f X) Y))
+      = __smtx_typeof_bv_op_2 (__smtx_typeof (__eo_to_smt X)) (__smtx_typeof (__eo_to_smt Y))
   hvalN : ∀ (W : Nat) (cn an : Int), 0 ≤ cn → cn < 2^W → 0 ≤ an → an < 2^W →
     opval (SmtValue.Binary ↑W cn) (SmtValue.Binary ↑W an)
       = SmtValue.Binary ↑W ↑(opnat cn.toNat an.toNat)
@@ -523,6 +546,9 @@ private def bvOpAnd : BvOpSpec where
   htb := Nat.testBit_and
   hgff := by decide
   heval := eval_bvand
+  htypeof := fun X Y => by
+    rw [show __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvand) X) Y)
+          = SmtTerm.bvand (__eo_to_smt X) (__eo_to_smt Y) from rfl, __smtx_typeof.eq_39]
   hvalN := bvand_valN
   hnilterm := nil_term_bvand
   hnilid := bvand_nil
@@ -539,6 +565,9 @@ private def bvOpOr : BvOpSpec where
   htb := Nat.testBit_or
   hgff := by decide
   heval := eval_bvor
+  htypeof := fun X Y => by
+    rw [show __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvor) X) Y)
+          = SmtTerm.bvor (__eo_to_smt X) (__eo_to_smt Y) from rfl, __smtx_typeof.eq_40]
   hvalN := bvor_valN
   hnilterm := nil_term_bvor
   hnilid := bvor_nil
@@ -555,6 +584,9 @@ private def bvOpXor : BvOpSpec where
   htb := Nat.testBit_xor
   hgff := by decide
   heval := eval_bvxor
+  htypeof := fun X Y => by
+    rw [show __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) X) Y)
+          = SmtTerm.bvxor (__eo_to_smt X) (__eo_to_smt Y) from rfl, __smtx_typeof.eq_43]
   hvalN := bvxor_valN
   hnilterm := nil_term_bvxor
   hnilid := bvxor_nil
@@ -1023,6 +1055,37 @@ private theorem eo_requires_left_ne_stuck_of_ne_stuck {x y z : Term} :
     simp [__eo_requires, native_teq, native_ite, native_not, SmtEval.native_not]
   exact hReq hStuck
 
+private theorem eo_requires_payload_ne_stuck {x y z : Term} :
+    __eo_requires x y z ≠ Term.Stuck → z ≠ Term.Stuck := by
+  intro hReq hz; apply hReq; subst z
+  simp [__eo_requires, native_ite, native_teq, native_not]
+
+private theorem gnr_cons (f g x y : Term) (hf : f ≠ Term.Stuck) :
+    __eo_get_nil_rec f (Term.Apply (Term.Apply g x) y)
+      = __eo_requires f g (__eo_get_nil_rec f y) := by
+  generalize hz : __eo_get_nil_rec f y = z
+  unfold __eo_get_nil_rec; split <;> simp_all
+
+private theorem gnr_stuck (f : Term) : __eo_get_nil_rec f Term.Stuck = Term.Stuck := by
+  unfold __eo_get_nil_rec; split <;> simp_all
+
+private theorem islist_isok (f x : Term) (hf : f ≠ Term.Stuck) (hx : x ≠ Term.Stuck) :
+    __eo_is_list f x = __eo_is_ok (__eo_get_nil_rec f x) := by
+  unfold __eo_is_list; split <;> simp_all
+
+-- In a homogeneous op-list, the head operator is `op.f` and the tail is again a list.
+private theorem is_list_cons_inv (op : BvOpSpec) (g x y : Term)
+    (h : __eo_is_list op.f (Term.Apply (Term.Apply g x) y) = Term.Boolean true) :
+    g = op.f ∧ __eo_is_list op.f y = Term.Boolean true := by
+  rw [islist_isok op.f _ op.hfne (by intro hh; cases hh), gnr_cons op.f g x y op.hfne] at h
+  have hZ : __eo_requires op.f g (__eo_get_nil_rec op.f y) ≠ Term.Stuck := by
+    intro hs; rw [hs] at h; simp [__eo_is_ok, native_not, native_teq] at h
+  have hgy : __eo_get_nil_rec op.f y ≠ Term.Stuck := eo_requires_payload_ne_stuck hZ
+  have hyne : y ≠ Term.Stuck := by rintro rfl; exact hgy (gnr_stuck op.f)
+  refine ⟨(eo_requires_arg_eq_of_ne_stuck hZ).symm, ?_⟩
+  rw [islist_isok op.f y op.hfne hyne, __eo_is_ok]
+  simp [native_not, native_teq, hgy]
+
 -- Shape of a non-stuck `bv_bitwise_slicing` program: it must be an equality.
 private theorem bv_bitwise_slicing_shape_of_ne_stuck (A : Term) :
     __eo_prog_bv_bitwise_slicing A ≠ Term.Stuck ->
@@ -1332,6 +1395,75 @@ private theorem fold_eval (op : BvOpSpec) (M : SmtModel) (W : Nat) :
               (by exact_mod_cast opnat_lt op W va.toNat vleb.toNat hvan hvlebn)]
         congr 2
         rw [Int.toNat_natCast, Int.toNat_natCast, ← op.hassoc, op.hcomm va.toNat, op.hassoc]
+
+private theorem gfc_ne_stuck_shape {lhs : Term} (h : __bv_get_first_const_child lhs ≠ Term.Stuck) :
+    ∃ g a1 b, lhs = Term.Apply (Term.Apply g a1) b := by
+  cases lhs with
+  | Apply lhs1 b =>
+    cases lhs1 with
+    | Apply g a1 => exact ⟨g, a1, b, rfl⟩
+    | _ => exact (h rfl).elim
+  | _ => exact (h rfl).elim
+
+private theorem mk_spine_fuel (op : BvOpSpec) (M : SmtModel) (hM : model_total_typed M) (W : Nat) :
+    ∀ (n : Nat) (lhs : Term), sizeOf lhs ≤ n →
+      term_has_non_none_type (__eo_to_smt lhs) →
+      __smtx_typeof (__eo_to_smt lhs) = SmtType.BitVec ↑W →
+      __eo_is_list op.f lhs = Term.Boolean true →
+      __bv_get_first_const_child lhs ≠ Term.Stuck →
+      Spine op M W lhs := by
+  intro n
+  induction n with
+  | zero =>
+      intro lhs hsz _ _ _ hgfc
+      obtain ⟨g, a1, b, rfl⟩ := gfc_ne_stuck_shape hgfc
+      simp only [Term.Apply.sizeOf_spec] at hsz; omega
+  | succ n ih =>
+      intro lhs hsz hnn hty hlist hgfc
+      obtain ⟨g, a1, b, rfl⟩ := gfc_ne_stuck_shape hgfc
+      obtain ⟨hgeq, hlist2⟩ := is_list_cons_inv op g a1 b hlist
+      subst hgeq
+      obtain ⟨w, hta1, hta2⟩ := bv_binop_args_of_non_none
+        (op := fun _ _ => __eo_to_smt (Term.Apply (Term.Apply op.f a1) b))
+        (t1 := __eo_to_smt a1) (t2 := __eo_to_smt b) (op.htypeof a1 b) hnn
+      have hbv := op.htypeof a1 b
+      rw [hta1, hta2, hty] at hbv
+      have hwW : w = (↑W : native_Nat) := by
+        simp only [__smtx_typeof_bv_op_2, native_nateq, native_ite] at hbv
+        exact (SmtType.BitVec.inj hbv).symm
+      rw [hwW] at hta1 hta2
+      have hnn1 : term_has_non_none_type (__eo_to_smt a1) := by
+        rw [term_has_non_none_type, hta1]; exact fun h => by cases h
+      have hnn2 : term_has_non_none_type (__eo_to_smt b) := by
+        rw [term_has_non_none_type, hta2]; exact fun h => by cases h
+      obtain ⟨ca, heva, hca0, hca1⟩ := bv_term_eval_canonical M hM (__eo_to_smt a1) W hnn1 hta1
+      obtain ⟨cb, hevb, hcb0, hcb1⟩ := bv_term_eval_canonical M hM (__eo_to_smt b) W hnn2 hta2
+      have hisbin : __eo_is_bin a1 = Term.Boolean
+          (native_and (native_not (native_teq a1 Term.Stuck))
+            (native_teq (__eo_is_bin_internal a1) (Term.Boolean true))) := rfl
+      by_cases hb : (native_and (native_not (native_teq a1 Term.Stuck))
+          (native_teq (__eo_is_bin_internal a1) (Term.Boolean true))) = true
+      · exact Spine.head a1 b ca cb hca0 hca1 heva (by rw [hisbin, hb]) hcb0 hcb1 hevb
+      · have hbf : __eo_is_bin a1 = Term.Boolean false := by
+          rw [hisbin]; simp only [Bool.not_eq_true] at hb; rw [hb]
+        have hgfc2 : __bv_get_first_const_child b ≠ Term.Stuck := by
+          have he : __bv_get_first_const_child (Term.Apply (Term.Apply op.f a1) b)
+              = __bv_get_first_const_child b := by
+            show __eo_ite (__eo_is_bin a1) a1 (__bv_get_first_const_child b) = _
+            rw [hbf, eo_ite_false]
+          rw [he] at hgfc; exact hgfc
+        have hszb : sizeOf b ≤ n := by
+          simp only [Term.Apply.sizeOf_spec] at hsz; omega
+        exact Spine.tail a1 b ca hca0 hca1 heva hbf (ih b hszb hnn2 hta2 hlist2 hgfc2)
+
+private theorem mk_spine (op : BvOpSpec) (M : SmtModel) (hM : model_total_typed M) (W : Nat)
+    (lhs : Term) (hnn : term_has_non_none_type (__eo_to_smt lhs))
+    (hty : __smtx_typeof (__eo_to_smt lhs) = SmtType.BitVec ↑W)
+    (hlist : __eo_is_list op.f lhs = Term.Boolean true)
+    (hgfc : __bv_get_first_const_child lhs ≠ Term.Stuck) :
+    Spine op M W lhs :=
+  mk_spine_fuel op M hM W (sizeOf lhs) lhs (Nat.le_refl _) hnn hty hlist hgfc
+
 private theorem mk_bitwise_shape (lhs : Term)
     (h : __bv_mk_bitwise_slicing lhs ≠ Term.Stuck) :
     ∃ f a1 a2, lhs = Term.Apply (Term.Apply f a1) a2 := by
