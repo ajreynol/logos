@@ -2833,6 +2833,10 @@ def __re_flatten : Term -> Term -> Term -> Term
     (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.re_union) (__eo_ite rev (__eo_list_rev (Term.UOp UserOp.re_concat) _v0) _v0)) (__re_flatten rev (Term.Boolean false) c2))
   | rev, (Term.Boolean false), c => c
   | _, _, _ => Term.Stuck
+termination_by rev flag tree => 2 * sizeOf tree + (if flag = Term.Boolean true then 1 else 0)
+decreasing_by
+  all_goals simp_wf
+  all_goals omega
 
 
 def __re_unflatten : Term -> Term -> Term -> Term
