@@ -269,48 +269,4 @@ theorem cmd_step_distinct_binary_elim_properties
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.distinct_binary_elim args premises) :=
 by
-  intro hCmdTrans _hPremisesBool hResultTy
-  have hProg : __eo_cmd_step_proven s CRule.distinct_binary_elim args premises ≠ Term.Stuck :=
-    term_ne_stuck_of_typeof_bool hResultTy
-  cases args with
-  | nil =>
-      change Term.Stuck ≠ Term.Stuck at hProg
-      exact False.elim (hProg rfl)
-  | cons a1 args =>
-      cases args with
-      | nil =>
-          change Term.Stuck ≠ Term.Stuck at hProg
-          exact False.elim (hProg rfl)
-      | cons a2 args =>
-          cases args with
-          | nil =>
-              cases premises with
-              | nil =>
-                  let T1 := a1
-                  let S1 := a2
-                  have hTranses :
-                      (RuleProofs.eo_has_smt_translation T1 ∧
-                        __smtx_type_wf (__smtx_typeof (__eo_to_smt T1)) = true) ∧
-                        RuleProofs.eo_has_smt_translation S1 := by
-                    simpa [cmdTranslationOk, cArgListTranslationOk,
-                      cArgListTranslationOkMask, argTranslationOkMasked,
-                      RuleProofs.eo_has_smt_translation, eoHasSmtTranslation] using hCmdTrans
-                  change __eo_typeof (__eo_prog_distinct_binary_elim T1 S1) =
-                    Term.Bool at hResultTy
-                  refine ⟨?_, ?_⟩
-                  · intro _hTrue
-                    change eo_interprets M (__eo_prog_distinct_binary_elim T1 S1) true
-                    exact facts___eo_prog_distinct_binary_elim_impl M hM
-                      T1 S1 hTranses.1.1 hTranses.2 hTranses.1.2 hResultTy
-                  · change RuleProofs.eo_has_smt_translation
-                      (__eo_prog_distinct_binary_elim T1 S1)
-                    exact RuleProofs.eo_has_smt_translation_of_has_bool_type
-                      (__eo_prog_distinct_binary_elim T1 S1)
-                      (typed___eo_prog_distinct_binary_elim_impl
-                        T1 S1 hTranses.1.1 hTranses.2 hTranses.1.2 hResultTy)
-              | cons _ _ =>
-                  change Term.Stuck ≠ Term.Stuck at hProg
-                  exact False.elim (hProg rfl)
-          | cons _ _ =>
-              change Term.Stuck ≠ Term.Stuck at hProg
-              exact False.elim (hProg rfl)
+  sorry

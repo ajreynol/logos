@@ -19,15 +19,12 @@ def EoListAllHaveSmtTranslation : Term -> Prop
 /-- Classifies checker rule arguments by the translation side condition they require. -/
 inductive ArgTranslationKind where
   | term
-  | wfTerm
   | list
   | type
 
 /-- Interprets a command-argument mask entry. -/
 def argTranslationOkMasked : ArgTranslationKind -> Term -> Prop
   | ArgTranslationKind.term, t => eoHasSmtTranslation t
-  | ArgTranslationKind.wfTerm, t =>
-      eoHasSmtTranslation t ∧ __smtx_type_wf (__smtx_typeof (__eo_to_smt t)) = true
   | ArgTranslationKind.list, t => EoListAllHaveSmtTranslation t
   | ArgTranslationKind.type, t => __smtx_type_wf (__eo_to_smt_type t) = true
 
@@ -56,8 +53,6 @@ def cmdTranslationOk : CCmd -> Prop
   | CCmd.step CRule.alpha_equiv args _ =>
       cArgListTranslationOkMask [ArgTranslationKind.term, ArgTranslationKind.list,
         ArgTranslationKind.list] args
-  | CCmd.step CRule.distinct_binary_elim args _ =>
-      cArgListTranslationOkMask [ArgTranslationKind.wfTerm, ArgTranslationKind.term] args
   | CCmd.step CRule.exists_string_length args _ =>
       cArgListTranslationOkMask [ArgTranslationKind.type, ArgTranslationKind.term,
         ArgTranslationKind.term] args
