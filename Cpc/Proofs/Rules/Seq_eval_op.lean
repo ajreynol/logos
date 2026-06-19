@@ -3868,7 +3868,184 @@ private theorem seq_eval_smt_type_and_value_rel
         rw [← hSeqPrefixEval]
         exact hPrefixRel
   | case11 t s =>
-      sorry
+      let it := __str_nary_intro t
+      let is := __str_nary_intro s
+      let rt := __eo_list_rev (Term.UOp UserOp.str_concat) it
+      let rs := __eo_list_rev (Term.UOp UserOp.str_concat) is
+      have hPrefixNe : __seq_is_prefix rt rs ≠ Term.Stuck := by
+        simpa [__seq_eval, it, is, rt, rs] using hEvalNe
+      have hSuffixNN :
+          term_has_non_none_type
+            (SmtTerm.str_suffixof (__eo_to_smt t) (__eo_to_smt s)) := by
+        unfold term_has_non_none_type
+        simpa using hNN
+      rcases seq_char_binop_args_of_non_none (op := SmtTerm.str_suffixof)
+          (typeof_str_suffixof_eq (__eo_to_smt t) (__eo_to_smt s))
+          hSuffixNN with
+        ⟨htTy, hsTy⟩
+      have hRTNe : rt ≠ Term.Stuck :=
+        seq_is_prefix_left_ne_stuck_of_ne_stuck rt rs hPrefixNe
+      have hRSNe : rs ≠ Term.Stuck :=
+        seq_is_prefix_right_ne_stuck_of_ne_stuck rt rs hPrefixNe
+      have hIntroTNe : it ≠ Term.Stuck :=
+        eo_list_rev_arg_ne_stuck_of_ne_stuck (Term.UOp UserOp.str_concat)
+          it hRTNe
+      have hIntroSNe : is ≠ Term.Stuck :=
+        eo_list_rev_arg_ne_stuck_of_ne_stuck (Term.UOp UserOp.str_concat)
+          is hRSNe
+      have hListT :
+          __eo_is_list (Term.UOp UserOp.str_concat) it = Term.Boolean true :=
+        eo_list_rev_is_list_true_of_ne_stuck (Term.UOp UserOp.str_concat)
+          it hRTNe
+      have hListS :
+          __eo_is_list (Term.UOp UserOp.str_concat) is = Term.Boolean true :=
+        eo_list_rev_is_list_true_of_ne_stuck (Term.UOp UserOp.str_concat)
+          is hRSNe
+      have hTComponents :
+          type_inhabited SmtType.Char ∧
+            __smtx_type_wf SmtType.Char = true := by
+        have hSeqWF :
+            __smtx_type_wf (SmtType.Seq SmtType.Char) = true := by
+          have hGood :=
+            smt_term_result_seq_components_wf_of_non_none
+              (__eo_to_smt t)
+              (by
+                unfold term_has_non_none_type
+                rw [htTy]
+                exact seq_ne_none SmtType.Char)
+          simpa [htTy, type_result_seq_components_wf] using hGood
+        exact seq_component_inhabited_wf_of_seq_wf SmtType.Char hSeqWF
+      have hIntroTNN :
+          __smtx_typeof (__eo_to_smt it) ≠ SmtType.None := by
+        simpa [it] using
+          str_nary_intro_has_smt_translation_of_seq_wf t SmtType.Char htTy
+            hTComponents.1 hTComponents.2 (by simpa [it] using hIntroTNe)
+      have hIntroSNN :
+          __smtx_typeof (__eo_to_smt is) ≠ SmtType.None := by
+        simpa [is] using
+          str_nary_intro_has_smt_translation_of_seq_wf s SmtType.Char hsTy
+            hTComponents.1 hTComponents.2 (by simpa [is] using hIntroSNe)
+      have hIntroTTy :
+          __smtx_typeof (__eo_to_smt it) = SmtType.Seq SmtType.Char := by
+        simpa [it] using
+          smt_typeof_str_nary_intro_of_seq_ne_stuck t SmtType.Char htTy
+            (by simpa [it] using hIntroTNN) (by simpa [it] using hIntroTNe)
+      have hIntroSTy :
+          __smtx_typeof (__eo_to_smt is) = SmtType.Seq SmtType.Char := by
+        simpa [is] using
+          smt_typeof_str_nary_intro_of_seq_ne_stuck s SmtType.Char hsTy
+            (by simpa [is] using hIntroSNN) (by simpa [is] using hIntroSNe)
+      have hRTTy :
+          __smtx_typeof (__eo_to_smt rt) = SmtType.Seq SmtType.Char := by
+        simpa [it, rt] using
+          smt_typeof_list_rev_str_concat_of_seq it SmtType.Char
+            hListT hIntroTTy hRTNe
+      have hRSTy :
+          __smtx_typeof (__eo_to_smt rs) = SmtType.Seq SmtType.Char := by
+        simpa [is, rs] using
+          smt_typeof_list_rev_str_concat_of_seq is SmtType.Char
+            hListS hIntroSTy hRSNe
+      rcases seq_eval_of_seq_type M hM rt SmtType.Char hRTTy with
+        ⟨sx, hRTEval⟩
+      rcases seq_eval_of_seq_type M hM rs SmtType.Char hRSTy with
+        ⟨sy, hRSEval⟩
+      have hPrefixEq :
+          __seq_is_prefix rt rs =
+            Term.Boolean
+              (native_seq_prefix_eq (native_unpack_seq sx)
+                (native_unpack_seq sy)) :=
+        seq_prefix_eq_bool_native_char M hM rt rs sx sy
+          hRTTy hRSTy hRTEval hRSEval hPrefixNe
+      constructor
+      · change __smtx_typeof (__eo_to_smt (__seq_is_prefix rt rs)) =
+          __smtx_typeof
+            (SmtTerm.str_suffixof (__eo_to_smt t) (__eo_to_smt s))
+        rw [hPrefixEq]
+        change __smtx_typeof
+            (SmtTerm.Boolean
+              (native_seq_prefix_eq (native_unpack_seq sx)
+                (native_unpack_seq sy))) =
+          __smtx_typeof
+            (SmtTerm.str_suffixof (__eo_to_smt t) (__eo_to_smt s))
+        rw [__smtx_typeof.eq_1, typeof_str_suffixof_eq]
+        simp [htTy, hsTy, native_Teq, native_ite]
+      · rcases seq_eval_of_seq_type M hM t SmtType.Char htTy with
+          ⟨st, hTEval⟩
+        rcases seq_eval_of_seq_type M hM s SmtType.Char hsTy with
+          ⟨ss, hSEval⟩
+        have hStTy :
+            __smtx_typeof_seq_value st = SmtType.Seq SmtType.Char :=
+          smt_typeof_seq_value_of_eval_seq M hM t SmtType.Char st
+            htTy hTEval
+        have hSsTy :
+            __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char :=
+          smt_typeof_seq_value_of_eval_seq M hM s SmtType.Char ss
+            hsTy hSEval
+        have hSuffixEval :
+            __smtx_model_eval_str_suffixof
+                (__smtx_model_eval M (__eo_to_smt t))
+                (__smtx_model_eval M (__eo_to_smt s)) =
+              SmtValue.Boolean
+                (native_seq_prefix_eq
+                  (native_seq_rev (native_unpack_seq st))
+                  (native_seq_rev (native_unpack_seq ss))) := by
+          rw [hTEval, hSEval]
+          exact smtx_model_eval_str_suffixof_seq_eq st ss SmtType.Char
+            hStTy hSsTy
+        have hEvalEq :
+            __seq_eval
+                (Term.Apply (Term.Apply (Term.UOp UserOp.str_suffixof) t) s) =
+              __seq_is_prefix rt rs := by
+          simp [__seq_eval, it, is, rt, rs]
+        have hOrigEval :
+            __smtx_model_eval M
+                (__eo_to_smt
+                  (Term.Apply (Term.Apply (Term.UOp UserOp.str_suffixof) t) s)) =
+              __smtx_model_eval_str_suffixof
+                (__smtx_model_eval M (__eo_to_smt t))
+                (__smtx_model_eval M (__eo_to_smt s)) := by
+          simpa using
+            (show
+              __smtx_model_eval M
+                  (SmtTerm.str_suffixof (__eo_to_smt t) (__eo_to_smt s)) =
+                __smtx_model_eval_str_suffixof
+                  (__smtx_model_eval M (__eo_to_smt t))
+                  (__smtx_model_eval M (__eo_to_smt s)) by
+              rw [__smtx_model_eval.eq_87])
+        rw [hEvalEq]
+        rw [hOrigEval]
+        change RuleProofs.smt_value_rel
+          (__smtx_model_eval M (__eo_to_smt (__seq_is_prefix rt rs)))
+          (__smtx_model_eval_str_suffixof
+            (__smtx_model_eval M (__eo_to_smt t))
+            (__smtx_model_eval M (__eo_to_smt s)))
+        rw [hPrefixEq]
+        have hBoolEval :
+            __smtx_model_eval M
+                (__eo_to_smt
+                  (Term.Boolean
+                    (native_seq_prefix_eq (native_unpack_seq sx)
+                      (native_unpack_seq sy)))) =
+              SmtValue.Boolean
+                (native_seq_prefix_eq (native_unpack_seq sx)
+                  (native_unpack_seq sy)) := by
+          change __smtx_model_eval M
+              (SmtTerm.Boolean
+                (native_seq_prefix_eq (native_unpack_seq sx)
+                  (native_unpack_seq sy))) =
+            SmtValue.Boolean
+              (native_seq_prefix_eq (native_unpack_seq sx)
+                (native_unpack_seq sy))
+          rw [__smtx_model_eval.eq_1]
+        rw [hBoolEval, hSuffixEval]
+        have hNativeSuffix :
+            native_seq_prefix_eq (native_unpack_seq sx) (native_unpack_seq sy) =
+              native_seq_prefix_eq
+                (native_seq_rev (native_unpack_seq st))
+                (native_seq_rev (native_unpack_seq ss)) := by
+          sorry
+        rw [hNativeSuffix]
+        exact RuleProofs.smt_value_rel_refl _
   | case12 t n =>
       let a := __str_nary_intro t
       let u := __eo_add n (Term.Numeral 1)
