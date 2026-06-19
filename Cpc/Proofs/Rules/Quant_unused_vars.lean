@@ -5590,6 +5590,83 @@ private theorem smtTermFreeVars_eo_to_smt_re_unfold_pos_component_raw_subset
   · rw [if_neg hZ] at hMem
     simp [smtTermFreeVars] at hMem
 
+private theorem re_unfold_pos_component_zero_args_of_non_none_local
+    (s r1 r2 : SmtTerm)
+    (hNN :
+      term_has_non_none_type
+        (__eo_to_smt_re_unfold_pos_component s
+          (SmtTerm.re_concat r1 r2) native_nat_zero)) :
+    __smtx_typeof s = SmtType.Seq SmtType.Char ∧
+      __smtx_typeof (SmtTerm.re_concat r1 r2) = SmtType.RegLan := by
+  have hTermNN :
+      term_has_non_none_type
+        (SmtTerm.str_substr s (SmtTerm.Numeral 0)
+          (SmtTerm.str_indexof_re_split s r1 r2)) := by
+    simpa [__eo_to_smt_re_unfold_pos_component] using hNN
+  rcases str_substr_args_of_non_none hTermNN with
+    ⟨T, hS, _hStart, hLen⟩
+  have hSplitNN :
+      term_has_non_none_type (SmtTerm.str_indexof_re_split s r1 r2) := by
+    unfold term_has_non_none_type
+    rw [hLen]
+    simp
+  have hSplitArgs := str_indexof_re_split_args_of_non_none hSplitNN
+  have hR :
+      __smtx_typeof (SmtTerm.re_concat r1 r2) = SmtType.RegLan := by
+    rw [typeof_re_concat_eq]
+    simp [hSplitArgs.2.1, hSplitArgs.2.2, native_ite, native_Teq]
+  exact ⟨hSplitArgs.1, hR⟩
+
+private theorem re_unfold_pos_component_args_of_non_none_local
+    (s r : SmtTerm)
+    (n : native_Nat)
+    (hNN : term_has_non_none_type (__eo_to_smt_re_unfold_pos_component s r n)) :
+    __smtx_typeof s = SmtType.Seq SmtType.Char ∧
+      __smtx_typeof r = SmtType.RegLan := by
+  induction n generalizing s r with
+  | zero =>
+      cases r <;> simp [__eo_to_smt_re_unfold_pos_component] at hNN
+      case re_concat r1 r2 =>
+        exact re_unfold_pos_component_zero_args_of_non_none_local s r1 r2
+          (by simpa [__eo_to_smt_re_unfold_pos_component] using hNN)
+      all_goals
+        exfalso
+        unfold term_has_non_none_type at hNN
+        exact hNN TranslationProofs.smtx_typeof_none
+  | succ n ih =>
+      cases r <;> simp [__eo_to_smt_re_unfold_pos_component] at hNN
+      case re_concat r1 r2 =>
+        let v0 := SmtTerm.str_indexof_re_split s r1 r2
+        let newS :=
+          SmtTerm.str_substr s v0 (SmtTerm.neg (SmtTerm.str_len s) v0)
+        have hRecArgs :
+            __smtx_typeof newS = SmtType.Seq SmtType.Char ∧
+              __smtx_typeof r2 = SmtType.RegLan := by
+          exact ih newS r2
+            (by
+              simpa [newS, v0, __eo_to_smt_re_unfold_pos_component]
+                using hNN)
+        have hNewSNN : term_has_non_none_type newS := by
+          unfold term_has_non_none_type
+          rw [hRecArgs.1]
+          simp
+        rcases str_substr_args_of_non_none hNewSNN with
+          ⟨_T, _hSRaw, hV0, _hLen⟩
+        have hSplitNN : term_has_non_none_type v0 := by
+          unfold term_has_non_none_type
+          rw [hV0]
+          simp
+        have hSplitArgs := str_indexof_re_split_args_of_non_none hSplitNN
+        have hR :
+            __smtx_typeof (SmtTerm.re_concat r1 r2) = SmtType.RegLan := by
+          rw [typeof_re_concat_eq]
+          simp [hSplitArgs.2.1, hSplitArgs.2.2, native_ite, native_Teq]
+        exact ⟨hSplitArgs.1, hR⟩
+      all_goals
+        exfalso
+        unfold term_has_non_none_type at hNN
+        exact hNN TranslationProofs.smtx_typeof_none
+
 private theorem smtTermFreeVars_eo_to_smt_array_deq_diff_subset
     (a : SmtTerm) (aT : SmtType) (b : SmtTerm) (bT : SmtType)
     {key : SmtVarKey}
@@ -5864,6 +5941,266 @@ private theorem smtTermFreeVars_eo_to_smt_tuple_prepend_subset
     smtTermFreeVars_eo_to_smt_tuple_prepend_of_type_subset
       (__smtx_typeof tail) h (__smtx_typeof h) tail hMem
 
+private theorem smt_typeof_binary_one_one_eq :
+    __smtx_typeof (SmtTerm.Binary 1 1) = SmtType.BitVec 1 := by
+  have hNN : __smtx_typeof (SmtTerm.Binary 1 1) ≠ SmtType.None := by
+    native_decide
+  simpa using
+    TranslationProofs.smtx_typeof_binary_of_non_none 1 1 hNN
+
+private theorem smtTermFreeVars_eo_to_smt_apply_uop1_subset_arg_of_non_none
+    (op : UserOp1) (idx a : Term)
+    (hTy :
+      __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp1 op idx) a)) ≠
+        SmtType.None)
+    {key : SmtVarKey}
+    (hMem :
+      key ∈ smtTermFreeVars
+        (__eo_to_smt (Term.Apply (Term.UOp1 op idx) a))) :
+    key ∈ smtTermFreeVars (__eo_to_smt a) := by
+  cases op
+  case «repeat» =>
+    change key ∈
+      smtTermFreeVars (SmtTerm.repeat (__eo_to_smt idx) (__eo_to_smt a))
+      at hMem
+    rcases repeat_args_of_non_none hTy with ⟨i, _w, hIdx, _hA, _hi⟩
+    rw [hIdx] at hMem
+    simpa [smtTermFreeVars] using hMem
+  case zero_extend =>
+    change key ∈
+      smtTermFreeVars
+        (SmtTerm.zero_extend (__eo_to_smt idx) (__eo_to_smt a)) at hMem
+    rcases zero_extend_args_of_non_none hTy with
+      ⟨i, _w, hIdx, _hA, _hi⟩
+    rw [hIdx] at hMem
+    simpa [smtTermFreeVars] using hMem
+  case sign_extend =>
+    change key ∈
+      smtTermFreeVars
+        (SmtTerm.sign_extend (__eo_to_smt idx) (__eo_to_smt a)) at hMem
+    rcases sign_extend_args_of_non_none hTy with
+      ⟨i, _w, hIdx, _hA, _hi⟩
+    rw [hIdx] at hMem
+    simpa [smtTermFreeVars] using hMem
+  case rotate_left =>
+    change key ∈
+      smtTermFreeVars
+        (SmtTerm.rotate_left (__eo_to_smt idx) (__eo_to_smt a)) at hMem
+    rcases rotate_left_args_of_non_none hTy with
+      ⟨i, _w, hIdx, _hA, _hi⟩
+    rw [hIdx] at hMem
+    simpa [smtTermFreeVars] using hMem
+  case rotate_right =>
+    change key ∈
+      smtTermFreeVars
+        (SmtTerm.rotate_right (__eo_to_smt idx) (__eo_to_smt a)) at hMem
+    rcases rotate_right_args_of_non_none hTy with
+      ⟨i, _w, hIdx, _hA, _hi⟩
+    rw [hIdx] at hMem
+    simpa [smtTermFreeVars] using hMem
+  case _at_bit =>
+    change __smtx_typeof
+        (SmtTerm.eq
+          (let t := __eo_to_smt idx
+          SmtTerm.extract t t (__eo_to_smt a))
+          (SmtTerm.Binary 1 1)) ≠
+        SmtType.None at hTy
+    change key ∈
+      smtTermFreeVars
+        (SmtTerm.eq
+          (let t := __eo_to_smt idx
+          SmtTerm.extract t t (__eo_to_smt a))
+          (SmtTerm.Binary 1 1)) at hMem
+    have hEqNN :
+        __smtx_typeof_eq
+            (__smtx_typeof
+              (SmtTerm.extract (__eo_to_smt idx) (__eo_to_smt idx)
+                (__eo_to_smt a)))
+            (SmtType.BitVec 1) ≠
+          SmtType.None := by
+      rw [typeof_eq_eq, smt_typeof_binary_one_one_eq] at hTy
+      simpa using hTy
+    have hExtNN :
+        term_has_non_none_type
+          (SmtTerm.extract (__eo_to_smt idx) (__eo_to_smt idx)
+            (__eo_to_smt a)) := by
+      unfold term_has_non_none_type
+      exact (TranslationProofs.smtx_typeof_eq_non_none hEqNN).2
+    rcases extract_args_of_non_none hExtNN with
+      ⟨i, _j, _w, hIdx, _hIdx', _hA, _hj0, _hji, _hiw⟩
+    rw [hIdx] at hMem
+    simpa [smtTermFreeVars] using hMem
+  case re_exp =>
+    change __smtx_typeof
+        (SmtTerm.re_exp (__eo_to_smt idx) (__eo_to_smt a)) ≠
+        SmtType.None at hTy
+    change key ∈
+      smtTermFreeVars (SmtTerm.re_exp (__eo_to_smt idx) (__eo_to_smt a))
+      at hMem
+    cases hIdx : __eo_to_smt idx <;>
+      simp [hIdx, smtTermFreeVars, __smtx_typeof, __smtx_typeof_re_exp,
+        native_ite] at hTy hMem ⊢ <;>
+      try assumption
+  case «is» =>
+    change __smtx_typeof
+        (SmtTerm.Apply (__eo_to_smt_tester (__eo_to_smt idx))
+          (__eo_to_smt a)) ≠
+        SmtType.None at hTy
+    change key ∈
+      smtTermFreeVars
+        (SmtTerm.Apply (__eo_to_smt_tester (__eo_to_smt idx))
+          (__eo_to_smt a)) at hMem
+    cases hIdx : __eo_to_smt idx <;>
+      simp [hIdx, __eo_to_smt_tester, smtTermFreeVars] at hMem ⊢ <;>
+      try assumption
+  case tuple_select =>
+    change __smtx_typeof
+        (__eo_to_smt_tuple_select (__smtx_typeof (__eo_to_smt a))
+          (__eo_to_smt idx) (__eo_to_smt a)) ≠
+        SmtType.None at hTy
+    change key ∈
+      smtTermFreeVars
+        (__eo_to_smt_tuple_select (__smtx_typeof (__eo_to_smt a))
+          (__eo_to_smt idx) (__eo_to_smt a)) at hMem
+    cases hA : __smtx_typeof (__eo_to_smt a) <;>
+      cases hIdx : __eo_to_smt idx <;>
+      simp [hA, hIdx, __eo_to_smt_tuple_select, smtTermFreeVars,
+        __smtx_typeof, __smtx_typeof_apply, __smtx_typeof_guard,
+        native_ite, native_Teq] at hTy hMem ⊢ <;>
+      try assumption
+    case Datatype.Numeral s d n =>
+      cases hOk :
+          native_and (native_streq s (native_string_lit "@Tuple"))
+            (native_zleq 0 n) <;>
+        simp [hOk, smtTermFreeVars, __smtx_typeof, __smtx_typeof_apply,
+          __smtx_typeof_guard, native_ite, native_Teq] at hTy hMem ⊢
+      exact hMem
+  case int_to_bv =>
+    change key ∈
+      smtTermFreeVars (SmtTerm.int_to_bv (__eo_to_smt idx) (__eo_to_smt a))
+      at hMem
+    rcases int_to_bv_args_of_non_none hTy with ⟨i, hIdx, _hA, _hi⟩
+    rw [hIdx] at hMem
+    simpa [smtTermFreeVars] using hMem
+  case seq_empty =>
+    change key ∈
+      smtTermFreeVars
+        (SmtTerm.Apply (__eo_to_smt_seq_empty (__eo_to_smt_type idx))
+          (__eo_to_smt a)) at hMem
+    cases hT : __eo_to_smt_type idx <;>
+      simp [__eo_to_smt_seq_empty, hT, smtTermFreeVars] at hMem <;>
+      exact hMem
+  case update =>
+    change __smtx_typeof
+        (SmtTerm.Apply SmtTerm.None
+          (__eo_to_smt a)) ≠
+        SmtType.None at hTy
+    change key ∈
+      smtTermFreeVars
+        (SmtTerm.Apply SmtTerm.None (__eo_to_smt a)) at hMem
+    simp [__smtx_typeof, __smtx_typeof_apply] at hTy
+  case tuple_update =>
+    change __smtx_typeof
+        (SmtTerm.Apply SmtTerm.None
+          (__eo_to_smt a)) ≠
+        SmtType.None at hTy
+    change key ∈
+      smtTermFreeVars
+        (SmtTerm.Apply SmtTerm.None (__eo_to_smt a)) at hMem
+    simp [__smtx_typeof, __smtx_typeof_apply] at hTy
+  case set_empty =>
+    change key ∈
+      smtTermFreeVars
+        (SmtTerm.Apply (__eo_to_smt_set_empty (__eo_to_smt_type idx))
+          (__eo_to_smt a)) at hMem
+    cases hT : __eo_to_smt_type idx <;>
+      simp [__eo_to_smt_set_empty, hT, smtTermFreeVars] at hMem <;>
+      exact hMem
+
+private theorem smtTermFreeVars_eo_to_smt_apply_uop2_subset_head_or_arg_of_non_none
+    (op : UserOp2) (idx₁ idx₂ a : Term)
+    (hTy :
+      __smtx_typeof
+          (__eo_to_smt (Term.Apply (Term.UOp2 op idx₁ idx₂) a)) ≠
+        SmtType.None)
+    {key : SmtVarKey}
+    (hMem :
+      key ∈ smtTermFreeVars
+        (__eo_to_smt (Term.Apply (Term.UOp2 op idx₁ idx₂) a))) :
+    key ∈ smtTermFreeVars (__eo_to_smt (Term.UOp2 op idx₁ idx₂)) ∨
+      key ∈ smtTermFreeVars (__eo_to_smt a) := by
+  cases op
+  case extract =>
+    change __smtx_typeof
+        (SmtTerm.extract (__eo_to_smt idx₁) (__eo_to_smt idx₂)
+          (__eo_to_smt a)) ≠
+        SmtType.None at hTy
+    change key ∈
+      smtTermFreeVars
+        (SmtTerm.extract (__eo_to_smt idx₁) (__eo_to_smt idx₂)
+          (__eo_to_smt a)) at hMem
+    rcases extract_args_of_non_none hTy with
+      ⟨i, j, _w, hIdx₁, hIdx₂, _hA, _hj0, _hji, _hiw⟩
+    rw [hIdx₁, hIdx₂] at hMem
+    right
+    simpa [smtTermFreeVars] using hMem
+  case re_loop =>
+    change __smtx_typeof
+        (SmtTerm.re_loop (__eo_to_smt idx₁) (__eo_to_smt idx₂)
+          (__eo_to_smt a)) ≠
+        SmtType.None at hTy
+    change key ∈
+      smtTermFreeVars
+        (SmtTerm.re_loop (__eo_to_smt idx₁) (__eo_to_smt idx₂)
+          (__eo_to_smt a)) at hMem
+    cases hIdx₁ : __eo_to_smt idx₁ <;>
+      try
+        (simp [hIdx₁, typeof_re_loop_eq, __smtx_typeof_re_loop,
+          native_ite] at hTy)
+    case Numeral n₁ =>
+      cases hIdx₂ : __eo_to_smt idx₂ <;>
+        try
+          (simp [hIdx₁, hIdx₂, typeof_re_loop_eq, __smtx_typeof_re_loop,
+            native_ite] at hTy)
+      case Numeral n₂ =>
+        have hLoopNN :
+            term_has_non_none_type
+              (SmtTerm.re_loop (SmtTerm.Numeral n₁) (SmtTerm.Numeral n₂)
+                (__eo_to_smt a)) := by
+          unfold term_has_non_none_type
+          rw [typeof_re_loop_eq]
+          simpa [__smtx_typeof_re_loop, native_ite] using hTy
+        rcases re_loop_arg_of_non_none hLoopNN with
+          ⟨_hn₁, _hn₂, _hA⟩
+        rw [hIdx₁, hIdx₂] at hMem
+        right
+        simpa [smtTermFreeVars] using hMem
+  case _at_bv =>
+    change key ∈
+      smtTermFreeVars
+        (SmtTerm.Apply
+          (__eo_to_smt (Term.UOp2 UserOp2._at_bv idx₁ idx₂))
+          (__eo_to_smt a)) at hMem
+    simp [smtTermFreeVars] at hMem ⊢
+    exact hMem
+  case _at_quantifiers_skolemize =>
+    change key ∈
+      smtTermFreeVars
+        (SmtTerm.Apply
+          (__eo_to_smt
+            (Term.UOp2 UserOp2._at_quantifiers_skolemize idx₁ idx₂))
+          (__eo_to_smt a)) at hMem
+    simp [smtTermFreeVars] at hMem ⊢
+    exact hMem
+  case _at_const =>
+    change key ∈
+      smtTermFreeVars
+        (SmtTerm.Apply
+          (__eo_to_smt (Term.UOp2 UserOp2._at_const idx₁ idx₂))
+          (__eo_to_smt a)) at hMem
+    simp [smtTermFreeVars] at hMem ⊢
+    exact hMem
+
 private theorem smtExistsOfBinders_freeVars_body_and_not_binder :
     ∀ (binders : List SmtVarKey) (body : SmtTerm) {key : SmtVarKey},
       key ∈ smtTermFreeVars (smtExistsOfBinders binders body) ->
@@ -6054,6 +6391,25 @@ private theorem eoSmtVarEnv_find_concat_right_of_not_left
     exact False.elim (hNotLeft hKeyLeft)
   · exact eoSmtVarEnv_find_false_of_termMem hRight
       (termVarString_ne_stuck s T) hMemRight
+
+private theorem eoSmtVarEnvTermMem_concat_left_of_env
+    {left right : Term} {leftVars rightVars : List SmtVarKey}
+    {z : Term}
+    (hLeft : EoSmtVarEnv left leftVars)
+    (hRight : EoSmtVarEnv right rightVars)
+    (hMem : EoSmtVarEnvTermMem z left) :
+    EoSmtVarEnvTermMem z
+      (__eo_list_concat Term.__eo_List_cons left right) := by
+  rcases eoSmtVarEnv_as_eoListOfTerms hLeft with
+    ⟨leftTerms, hLeftEq, _hLeftVars, _hLeftAll⟩
+  rcases eoSmtVarEnv_as_eoListOfTerms hRight with
+    ⟨rightTerms, hRightEq, _hRightVars, _hRightAll⟩
+  subst left
+  subst right
+  rw [eo_list_concat_eoListOfTerms_eq]
+  exact (eoListOfTerms_termMem_iff).2
+    (List.mem_append.2
+      (Or.inl ((eoListOfTerms_termMem_iff).1 hMem)))
 
 private theorem smtTermFreeVars_eo_to_smt_exists_allowed_drop_binders
     {vs bvs : Term} {vsVars bvsVars : List SmtVarKey}
@@ -6258,6 +6614,313 @@ private theorem smtTermFreeVars_allowed_of_subset
               Term.Boolean false) := by
   intro s U hMem
   exact hAllowed s U (hSubset (s, U) hMem)
+
+private theorem typed_list_elem_type_cons_non_none_local
+    (x xs : Term) :
+    __eo_to_smt_typed_list_elem_type
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) x) xs) ≠
+      SmtType.None ->
+    __smtx_typeof (__eo_to_smt x) =
+        __eo_to_smt_typed_list_elem_type xs ∧
+      __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ∧
+      __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None := by
+  intro hNN
+  cases hx : __smtx_typeof (__eo_to_smt x) <;>
+    cases hxs : __eo_to_smt_typed_list_elem_type xs <;>
+    simp [__eo_to_smt_typed_list_elem_type, hx, hxs, native_ite,
+      native_Teq] at hNN ⊢
+  all_goals exact hNN
+
+private theorem typed_list_nil_elem_type_non_none_local
+    (T : Term) :
+    __eo_to_smt_typed_list_elem_type
+        (Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) T) ≠
+      SmtType.None ->
+    __eo_to_smt_type T ≠ SmtType.None := by
+  intro hNN hNone
+  apply hNN
+  change
+    native_ite (__smtx_type_wf (__eo_to_smt_type T))
+      (__eo_to_smt_type T) SmtType.None = SmtType.None
+  rw [hNone]
+  cases __smtx_type_wf SmtType.None <;> rfl
+
+private theorem smtx_typeof_eo_list_cons_apply_none_local
+    (x xs : Term) :
+    __smtx_typeof
+        (__eo_to_smt
+          (Term.Apply (Term.Apply Term.__eo_List_cons x) xs)) =
+      SmtType.None := by
+  change
+    __smtx_typeof
+      (SmtTerm.Apply (SmtTerm.Apply SmtTerm.None (__eo_to_smt x))
+        (__eo_to_smt xs)) =
+      SmtType.None
+  simp [__smtx_typeof, __smtx_typeof_apply]
+
+private theorem contains_atomic_typed_list_cons_false_cases_of_head_non_none
+    (head tail xs bvs : Term)
+    (hHeadNN : __smtx_typeof (__eo_to_smt head) ≠ SmtType.None)
+    (hNoFree :
+      __contains_atomic_term_list_free_rec
+          (Term.Apply
+            (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) head)
+            tail) xs bvs =
+        Term.Boolean false) :
+    __contains_atomic_term_list_free_rec
+        (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) head)
+        xs bvs =
+      Term.Boolean false ∧
+    __contains_atomic_term_list_free_rec tail xs bvs =
+      Term.Boolean false := by
+  have hNotBinder :
+      ∀ x ys, head ≠ Term.Apply (Term.Apply Term.__eo_List_cons x) ys := by
+    intro x ys hEq
+    apply hHeadNN
+    rw [hEq]
+    exact smtx_typeof_eo_list_cons_apply_none_local x ys
+  have hNoFree' :
+      __eo_ite
+        (__contains_atomic_term_list_free_rec
+          (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) head)
+          xs bvs)
+        (Term.Boolean true)
+        (__contains_atomic_term_list_free_rec tail xs bvs) =
+          Term.Boolean false := by
+    cases xs <;> cases bvs <;>
+      simpa [__contains_atomic_term_list_free_rec, hNotBinder] using hNoFree
+  exact eo_ite_true_eq_false _ _ hNoFree'
+
+private theorem contains_atomic_apply_false_cases_of_not_binder
+    (f a xs bvs : Term)
+    (hNotBinder :
+      ∀ q x ys,
+        f ≠ Term.Apply q
+          (Term.Apply (Term.Apply Term.__eo_List_cons x) ys))
+    (hNoFree :
+      __contains_atomic_term_list_free_rec (Term.Apply f a) xs bvs =
+        Term.Boolean false) :
+    __contains_atomic_term_list_free_rec f xs bvs = Term.Boolean false ∧
+      __contains_atomic_term_list_free_rec a xs bvs = Term.Boolean false := by
+  have hNoFree' :
+      __eo_ite (__contains_atomic_term_list_free_rec f xs bvs)
+          (Term.Boolean true)
+          (__contains_atomic_term_list_free_rec a xs bvs) =
+        Term.Boolean false := by
+    cases xs <;> cases bvs <;>
+      simpa [__contains_atomic_term_list_free_rec, hNotBinder] using hNoFree
+  exact eo_ite_true_eq_false _ _ hNoFree'
+
+private theorem smtTermFreeVars_typed_list_allowed_of_contains_atomic_false :
+    ∀ (root ys xs bvs : Term) {bvsVars : List SmtVarKey},
+      EoSmtVarEnv bvs bvsVars ->
+      sizeOf ys < sizeOf root ->
+      (∀ {G xs' bvs' : Term} {bvsVars' : List SmtVarKey},
+        sizeOf G < sizeOf root ->
+          EoSmtVarEnv bvs' bvsVars' ->
+          __smtx_typeof (__eo_to_smt G) ≠ SmtType.None ->
+            __contains_atomic_term_list_free_rec G xs' bvs' =
+              Term.Boolean false ->
+            ∀ s U,
+              (s, U) ∈ smtTermFreeVars (__eo_to_smt G) ->
+                ∃ T,
+                  U = __eo_to_smt_type T ∧
+                    (__eo_is_neg
+                        (__eo_list_find Term.__eo_List_cons xs'
+                          (Term.Var (Term.String s) T)) =
+                      Term.Boolean true ∨
+                      __eo_is_neg
+                        (__eo_list_find Term.__eo_List_cons bvs'
+                          (Term.Var (Term.String s) T)) =
+                      Term.Boolean false)) ->
+      __eo_to_smt_typed_list_elem_type ys ≠ SmtType.None ->
+      __contains_atomic_term_list_free_rec ys xs bvs =
+        Term.Boolean false ->
+      ∀ s U,
+        (s, U) ∈ smtTermFreeVars (__eo_to_smt ys) ->
+          ∃ T,
+            U = __eo_to_smt_type T ∧
+              (__eo_is_neg
+                  (__eo_list_find Term.__eo_List_cons xs
+                    (Term.Var (Term.String s) T)) =
+                Term.Boolean true ∨
+                __eo_is_neg
+                  (__eo_list_find Term.__eo_List_cons bvs
+                    (Term.Var (Term.String s) T)) =
+                Term.Boolean false)
+  | root, Term.Apply f a, xs, bvs, bvsVars, hBvsEnv, hLt, hRec,
+      hElemNN, hNoFree, s, U, hMem => by
+      cases f
+      case UOp op =>
+          cases op
+          case _at__at_TypedList_nil =>
+            have hTyType :
+                __eo_to_smt_type a ≠ SmtType.None :=
+              typed_list_nil_elem_type_non_none_local a hElemNN
+            have hAClosed :
+                __eo_is_closed_rec a bvs = Term.Boolean true :=
+              eo_is_closed_rec_of_eo_to_smt_type_non_none
+                (EoSmtVarEnvPerm.of_exact hBvsEnv) hTyType
+            change (s, U) ∈
+              smtTermFreeVars
+                (SmtTerm.Apply SmtTerm.None (__eo_to_smt a)) at hMem
+            simp [smtTermFreeVars] at hMem
+            exact
+              smtTermFreeVars_allowed_of_eo_closed_env
+                a xs bvs hBvsEnv hAClosed s U hMem
+          all_goals
+            exact False.elim
+              (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+      case Apply g head =>
+          cases g
+          case UOp op =>
+              cases op
+              case _at__at_TypedList_cons =>
+                rcases
+                    typed_list_elem_type_cons_non_none_local head a
+                      hElemNN with
+                  ⟨_hHeadTail, hHeadNN, hTailNN⟩
+                have hNoCases :
+                    __contains_atomic_term_list_free_rec
+                        (Term.Apply
+                          (Term.UOp UserOp._at__at_TypedList_cons) head)
+                        xs bvs =
+                      Term.Boolean false ∧
+                    __contains_atomic_term_list_free_rec a xs bvs =
+                      Term.Boolean false :=
+                  contains_atomic_typed_list_cons_false_cases_of_head_non_none
+                    head a xs bvs hHeadNN hNoFree
+                have hHeadNo :
+                    __contains_atomic_term_list_free_rec head xs bvs =
+                      Term.Boolean false :=
+                  contains_atomic_apply_uop_arg_false
+                    UserOp._at__at_TypedList_cons head xs bvs hNoCases.1
+                have hHeadAllowed :
+                    ∀ s U,
+                      (s, U) ∈ smtTermFreeVars (__eo_to_smt head) ->
+                        ∃ T,
+                          U = __eo_to_smt_type T ∧
+                            (__eo_is_neg
+                                (__eo_list_find Term.__eo_List_cons xs
+                                  (Term.Var (Term.String s) T)) =
+                              Term.Boolean true ∨
+                              __eo_is_neg
+                                (__eo_list_find Term.__eo_List_cons bvs
+                                  (Term.Var (Term.String s) T)) =
+                              Term.Boolean false) :=
+                  hRec (G := head) (xs' := xs) (bvs' := bvs)
+                    (by simp at hLt ⊢; omega) hBvsEnv hHeadNN hHeadNo
+                have hTailAllowed :
+                    ∀ s U,
+                      (s, U) ∈ smtTermFreeVars (__eo_to_smt a) ->
+                        ∃ T,
+                          U = __eo_to_smt_type T ∧
+                            (__eo_is_neg
+                                (__eo_list_find Term.__eo_List_cons xs
+                                  (Term.Var (Term.String s) T)) =
+                              Term.Boolean true ∨
+                              __eo_is_neg
+                                (__eo_list_find Term.__eo_List_cons bvs
+                                  (Term.Var (Term.String s) T)) =
+                              Term.Boolean false) :=
+                  smtTermFreeVars_typed_list_allowed_of_contains_atomic_false
+                    root a xs bvs hBvsEnv
+                    (by simp at hLt ⊢; omega) hRec hTailNN hNoCases.2
+                change (s, U) ∈
+                  smtTermFreeVars
+                    (SmtTerm.Apply
+                      (SmtTerm.Apply SmtTerm.None (__eo_to_smt head))
+                      (__eo_to_smt a)) at hMem
+                simp [smtTermFreeVars] at hMem
+                rcases hMem with hMem | hMem
+                · exact hHeadAllowed s U hMem
+                · exact hTailAllowed s U hMem
+              all_goals
+                exact False.elim
+                  (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+          all_goals
+            exact False.elim
+              (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+      all_goals
+        exact False.elim
+          (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+  | root, Term.UOp op, xs, bvs, bvsVars, hBvsEnv, hLt, hRec,
+      hElemNN, hNoFree, s, U, hMem => by
+      exact False.elim (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+  | root, Term.UOp1 op a, xs, bvs, bvsVars, hBvsEnv, hLt, hRec,
+      hElemNN, hNoFree, s, U, hMem => by
+      exact False.elim (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+  | root, Term.UOp2 op a b, xs, bvs, bvsVars, hBvsEnv, hLt, hRec,
+      hElemNN, hNoFree, s, U, hMem => by
+      exact False.elim (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+  | root, Term.UOp3 op a b c, xs, bvs, bvsVars, hBvsEnv, hLt, hRec,
+      hElemNN, hNoFree, s, U, hMem => by
+      exact False.elim (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+  | root, Term.__eo_List, xs, bvs, bvsVars, hBvsEnv, hLt, hRec,
+      hElemNN, hNoFree, s, U, hMem => by
+      exact False.elim (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+  | root, Term.__eo_List_nil, xs, bvs, bvsVars, hBvsEnv, hLt, hRec,
+      hElemNN, hNoFree, s, U, hMem => by
+      exact False.elim (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+  | root, Term.__eo_List_cons, xs, bvs, bvsVars, hBvsEnv, hLt, hRec,
+      hElemNN, hNoFree, s, U, hMem => by
+      exact False.elim (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+  | root, Term.Bool, xs, bvs, bvsVars, hBvsEnv, hLt, hRec,
+      hElemNN, hNoFree, s, U, hMem => by
+      exact False.elim (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+  | root, Term.Boolean b, xs, bvs, bvsVars, hBvsEnv, hLt, hRec,
+      hElemNN, hNoFree, s, U, hMem => by
+      exact False.elim (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+  | root, Term.Numeral i, xs, bvs, bvsVars, hBvsEnv, hLt, hRec,
+      hElemNN, hNoFree, s, U, hMem => by
+      exact False.elim (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+  | root, Term.Rational r, xs, bvs, bvsVars, hBvsEnv, hLt, hRec,
+      hElemNN, hNoFree, s, U, hMem => by
+      exact False.elim (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+  | root, Term.String str, xs, bvs, bvsVars, hBvsEnv, hLt, hRec,
+      hElemNN, hNoFree, s, U, hMem => by
+      exact False.elim (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+  | root, Term.Binary w i, xs, bvs, bvsVars, hBvsEnv, hLt, hRec,
+      hElemNN, hNoFree, s, U, hMem => by
+      exact False.elim (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+  | root, Term.Type, xs, bvs, bvsVars, hBvsEnv, hLt, hRec,
+      hElemNN, hNoFree, s, U, hMem => by
+      exact False.elim (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+  | root, Term.Stuck, xs, bvs, bvsVars, hBvsEnv, hLt, hRec,
+      hElemNN, hNoFree, s, U, hMem => by
+      exact False.elim (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+  | root, Term.FunType, xs, bvs, bvsVars, hBvsEnv, hLt, hRec,
+      hElemNN, hNoFree, s, U, hMem => by
+      exact False.elim (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+  | root, Term.Var name T, xs, bvs, bvsVars, hBvsEnv, hLt, hRec,
+      hElemNN, hNoFree, s, U, hMem => by
+      exact False.elim (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+  | root, Term.DatatypeType name d, xs, bvs, bvsVars, hBvsEnv, hLt, hRec,
+      hElemNN, hNoFree, s, U, hMem => by
+      exact False.elim (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+  | root, Term.DatatypeTypeRef name, xs, bvs, bvsVars, hBvsEnv, hLt, hRec,
+      hElemNN, hNoFree, s, U, hMem => by
+      exact False.elim (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+  | root, Term.DtcAppType A B, xs, bvs, bvsVars, hBvsEnv, hLt, hRec,
+      hElemNN, hNoFree, s, U, hMem => by
+      exact False.elim (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+  | root, Term.DtCons name d i, xs, bvs, bvsVars, hBvsEnv, hLt, hRec,
+      hElemNN, hNoFree, s, U, hMem => by
+      exact False.elim (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+  | root, Term.DtSel name d i j, xs, bvs, bvsVars, hBvsEnv, hLt, hRec,
+      hElemNN, hNoFree, s, U, hMem => by
+      exact False.elim (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+  | root, Term.USort i, xs, bvs, bvsVars, hBvsEnv, hLt, hRec,
+      hElemNN, hNoFree, s, U, hMem => by
+      exact False.elim (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+  | root, Term.UConst i T, xs, bvs, bvsVars, hBvsEnv, hLt, hRec,
+      hElemNN, hNoFree, s, U, hMem => by
+      exact False.elim (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+termination_by root ys xs bvs => sizeOf ys
+decreasing_by
+  all_goals simp_wf
+  all_goals omega
 
 private theorem smtTermFreeVars_allowed_re_unfold_pos_component_of_args_allowed
     (x y z xs bvs : Term)
@@ -6799,72 +7462,6 @@ private theorem smtTermFreeVars_eo_to_smt_allowed_uop1_bool
     change (s, U) ∈ smtTermFreeVars SmtTerm.None at hMem
     simp [smtTermFreeVars] at hMem
 
-private theorem contains_atomic_qterm_body_false_of_binder_env
-    (Q y F xs bvs : Term) {yVars bvsVars : List SmtVarKey}
-    (hYEnv : EoSmtVarEnv y yVars)
-    (hBvsEnv : EoSmtVarEnv bvs bvsVars)
-    (h :
-      __contains_atomic_term_list_free_rec (qterm Q y F) xs bvs =
-        Term.Boolean false) :
-    __contains_atomic_term_list_free_rec F xs
-        (__eo_list_concat Term.__eo_List_cons y bvs) =
-      Term.Boolean false := by
-  cases hYEnv with
-  | nil =>
-      have hBody :
-          __contains_atomic_term_list_free_rec F xs bvs =
-            Term.Boolean false := by
-        cases xs <;> cases bvs <;>
-          simp [qterm, __contains_atomic_term_list_free_rec] at h ⊢
-        all_goals exact (eo_ite_true_eq_false _ _ h).2
-      simpa [EoSmtVarEnv.concat_nil_left_eq hBvsEnv] using hBody
-  | cons hTail =>
-      rename_i s T tail tailVars
-      simpa using
-        contains_atomic_qterm_cons_body_false Q
-          (Term.Var (Term.String s) T) tail F xs bvs h
-
-private axiom smtTermFreeVars_eo_to_smt_allowed_of_contains_atomic_free_false
-    (F xs bvs : Term)
-    (hTy : __smtx_typeof (__eo_to_smt F) = SmtType.Bool)
-    (hNoFree :
-      __contains_atomic_term_list_free_rec F xs bvs =
-        Term.Boolean false) :
-    ∀ s U,
-      (s, U) ∈ smtTermFreeVars (__eo_to_smt F) ->
-        ∃ T,
-          U = __eo_to_smt_type T ∧
-            (__eo_is_neg
-                (__eo_list_find Term.__eo_List_cons xs
-                  (Term.Var (Term.String s) T)) =
-              Term.Boolean true ∨
-              __eo_is_neg
-                (__eo_list_find Term.__eo_List_cons bvs
-                  (Term.Var (Term.String s) T)) =
-              Term.Boolean false)
-
-private theorem smtTermFreeVars_eo_to_smt_allowed_of_contains_atomic_free_false_env
-    (F xs bvs : Term) {bvsVars : List SmtVarKey}
-    (_hBvsEnv : EoSmtVarEnv bvs bvsVars)
-    (hTy : __smtx_typeof (__eo_to_smt F) = SmtType.Bool)
-    (hNoFree :
-      __contains_atomic_term_list_free_rec F xs bvs =
-        Term.Boolean false) :
-    ∀ s U,
-      (s, U) ∈ smtTermFreeVars (__eo_to_smt F) ->
-        ∃ T,
-          U = __eo_to_smt_type T ∧
-            (__eo_is_neg
-                (__eo_list_find Term.__eo_List_cons xs
-                  (Term.Var (Term.String s) T)) =
-              Term.Boolean true ∨
-              __eo_is_neg
-                (__eo_list_find Term.__eo_List_cons bvs
-                  (Term.Var (Term.String s) T)) =
-              Term.Boolean false) := by
-  exact smtTermFreeVars_eo_to_smt_allowed_of_contains_atomic_free_false
-    F xs bvs hTy hNoFree
-
 private theorem smtTermFreeVars_eo_to_smt_allowed_of_qterm_body_allowed
     (Q y F xs bvs : Term) {yVars bvsVars : List SmtVarKey}
     (hQ : Q = Term.UOp UserOp.forall ∨ Q = Term.UOp UserOp.exists)
@@ -6942,6 +7539,302 @@ private theorem smtTermFreeVars_eo_to_smt_allowed_of_qterm_body_allowed
         smtTermFreeVars_eo_to_smt_exists_allowed_drop_binders
           (vs := y) (bvs := bvs) (body := __eo_to_smt F)
           hYEnv hBvsEnv hMem hAllowedBody
+
+private theorem contains_atomic_qterm_body_false_of_binder_env
+    (Q y F xs bvs : Term) {yVars bvsVars : List SmtVarKey}
+    (hYEnv : EoSmtVarEnv y yVars)
+    (hBvsEnv : EoSmtVarEnv bvs bvsVars)
+    (h :
+      __contains_atomic_term_list_free_rec (qterm Q y F) xs bvs =
+        Term.Boolean false) :
+    __contains_atomic_term_list_free_rec F xs
+        (__eo_list_concat Term.__eo_List_cons y bvs) =
+      Term.Boolean false := by
+  cases hYEnv with
+  | nil =>
+      have hBody :
+          __contains_atomic_term_list_free_rec F xs bvs =
+            Term.Boolean false := by
+        cases xs <;> cases bvs <;>
+          simp [qterm, __contains_atomic_term_list_free_rec] at h ⊢
+        all_goals exact (eo_ite_true_eq_false _ _ h).2
+      simpa [EoSmtVarEnv.concat_nil_left_eq hBvsEnv] using hBody
+  | cons hTail =>
+      rename_i s T tail tailVars
+      simpa using
+        contains_atomic_qterm_cons_body_false Q
+          (Term.Var (Term.String s) T) tail F xs bvs h
+
+private theorem smtTermFreeVars_eo_to_smt_allowed_of_contains_atomic_free_false_non_none_lt
+    (n : Nat) (F xs bvs : Term) {bvsVars : List SmtVarKey}
+    (hBvsEnv : EoSmtVarEnv bvs bvsVars)
+    (hLt : sizeOf F < n)
+    (hTy : __smtx_typeof (__eo_to_smt F) ≠ SmtType.None)
+    (hNoFree :
+      __contains_atomic_term_list_free_rec F xs bvs =
+        Term.Boolean false) :
+    ∀ s U,
+      (s, U) ∈ smtTermFreeVars (__eo_to_smt F) ->
+        ∃ T,
+          U = __eo_to_smt_type T ∧
+            (__eo_is_neg
+                (__eo_list_find Term.__eo_List_cons xs
+                  (Term.Var (Term.String s) T)) =
+              Term.Boolean true ∨
+              __eo_is_neg
+                (__eo_list_find Term.__eo_List_cons bvs
+                  (Term.Var (Term.String s) T)) =
+              Term.Boolean false) := by
+  cases n with
+  | zero =>
+      omega
+  | succ n =>
+      let hRec :
+          ∀ {G xs' bvs' : Term} {bvsVars' : List SmtVarKey},
+            sizeOf G < sizeOf F ->
+              EoSmtVarEnv bvs' bvsVars' ->
+              __smtx_typeof (__eo_to_smt G) ≠ SmtType.None ->
+                __contains_atomic_term_list_free_rec G xs' bvs' =
+                  Term.Boolean false ->
+                  ∀ s U,
+                    (s, U) ∈ smtTermFreeVars (__eo_to_smt G) ->
+                      ∃ T,
+                        U = __eo_to_smt_type T ∧
+                          (__eo_is_neg
+                              (__eo_list_find Term.__eo_List_cons xs'
+                                (Term.Var (Term.String s) T)) =
+                            Term.Boolean true ∨
+                            __eo_is_neg
+                              (__eo_list_find Term.__eo_List_cons bvs'
+                                (Term.Var (Term.String s) T)) =
+                            Term.Boolean false) :=
+        fun {G xs' bvs'} {bvsVars'} hGLt hGEnv hGTy hGNo =>
+          smtTermFreeVars_eo_to_smt_allowed_of_contains_atomic_free_false_non_none_lt
+            n G xs' bvs' hGEnv (by omega) hGTy hGNo
+      cases F with
+      | UOp op =>
+          intro s U hMem
+          have hEmpty :
+              smtTermFreeVars (__eo_to_smt (Term.UOp op)) = [] := by
+            cases op <;> native_decide
+          rw [hEmpty] at hMem
+          cases hMem
+      | Var name T =>
+          exact
+            smtTermFreeVars_eo_to_smt_allowed_of_contains_atomic_var_false
+              name T xs bvs hNoFree
+      | UOp1 op x =>
+          intro s U hMem
+          cases op
+          case seq_empty =>
+            exact False.elim
+              (smtTermFreeVars_eo_to_smt_seq_empty_empty
+                (__eo_to_smt_type x) hMem)
+          case set_empty =>
+            exact False.elim
+              (smtTermFreeVars_eo_to_smt_set_empty_empty
+                (__eo_to_smt_type x) hMem)
+          all_goals
+            change (s, U) ∈ smtTermFreeVars SmtTerm.None at hMem
+            simp [smtTermFreeVars] at hMem
+      | UOp2 op x y =>
+          intro s U hMem
+          cases op
+          case _at_bv =>
+            exact False.elim
+              (smtTermFreeVars_eo_to_smt__at_bv_empty
+                (__eo_to_smt x) (__eo_to_smt y) hMem)
+          case extract =>
+            change (s, U) ∈ smtTermFreeVars SmtTerm.None at hMem
+            simp [smtTermFreeVars] at hMem
+          case re_loop =>
+            change (s, U) ∈ smtTermFreeVars SmtTerm.None at hMem
+            simp [smtTermFreeVars] at hMem
+          case _at_quantifiers_skolemize =>
+            sorry
+          case _at_const =>
+            change (s, U) ∈ smtTermFreeVars SmtTerm.None at hMem
+            simp [smtTermFreeVars] at hMem
+      | UOp3 op x y z =>
+          intro s U hMem
+          cases op
+          case _at_witness_string_length =>
+            exact False.elim
+              (smtTermFreeVars_eo_to_smt_witness_string_length_empty
+                x y z hMem)
+          case _at_re_unfold_pos_component =>
+            sorry
+      | __eo_List =>
+          intro s U hMem
+          change (s, U) ∈ smtTermFreeVars SmtTerm.None at hMem
+          simp [smtTermFreeVars] at hMem
+      | __eo_List_nil =>
+          intro s U hMem
+          change (s, U) ∈ smtTermFreeVars SmtTerm.None at hMem
+          simp [smtTermFreeVars] at hMem
+      | __eo_List_cons =>
+          intro s U hMem
+          change (s, U) ∈ smtTermFreeVars SmtTerm.None at hMem
+          simp [smtTermFreeVars] at hMem
+      | Bool =>
+          intro s U hMem
+          change (s, U) ∈ smtTermFreeVars SmtTerm.None at hMem
+          simp [smtTermFreeVars] at hMem
+      | Apply f a =>
+          sorry
+      | Boolean b =>
+          intro s U hMem
+          change (s, U) ∈ smtTermFreeVars (SmtTerm.Boolean b) at hMem
+          simp [smtTermFreeVars] at hMem
+      | Numeral i =>
+          intro s U hMem
+          change (s, U) ∈ smtTermFreeVars (SmtTerm.Numeral i) at hMem
+          simp [smtTermFreeVars] at hMem
+      | Rational r =>
+          intro s U hMem
+          change (s, U) ∈ smtTermFreeVars (SmtTerm.Rational r) at hMem
+          simp [smtTermFreeVars] at hMem
+      | String str =>
+          intro s U hMem
+          change (s, U) ∈ smtTermFreeVars (SmtTerm.String str) at hMem
+          simp [smtTermFreeVars] at hMem
+      | Binary w i =>
+          intro s U hMem
+          change (s, U) ∈ smtTermFreeVars (SmtTerm.Binary w i) at hMem
+          simp [smtTermFreeVars] at hMem
+      | «Type» =>
+          intro s U hMem
+          change (s, U) ∈ smtTermFreeVars SmtTerm.None at hMem
+          simp [smtTermFreeVars] at hMem
+      | Stuck =>
+          intro s U hMem
+          change (s, U) ∈ smtTermFreeVars SmtTerm.None at hMem
+          simp [smtTermFreeVars] at hMem
+      | FunType =>
+          intro s U hMem
+          change (s, U) ∈ smtTermFreeVars SmtTerm.None at hMem
+          simp [smtTermFreeVars] at hMem
+      | DatatypeType name d =>
+          intro s U hMem
+          change (s, U) ∈ smtTermFreeVars SmtTerm.None at hMem
+          simp [smtTermFreeVars] at hMem
+      | DatatypeTypeRef name =>
+          intro s U hMem
+          change (s, U) ∈ smtTermFreeVars SmtTerm.None at hMem
+          simp [smtTermFreeVars] at hMem
+      | DtcAppType A B =>
+          intro s U hMem
+          change (s, U) ∈ smtTermFreeVars SmtTerm.None at hMem
+          simp [smtTermFreeVars] at hMem
+      | DtCons name d i =>
+          intro s U hMem
+          have hEmpty :
+              smtTermFreeVars (__eo_to_smt (Term.DtCons name d i)) = [] := by
+            change
+              smtTermFreeVars
+                (native_ite (native_reserved_datatype_name name)
+                  SmtTerm.None
+                  (SmtTerm.DtCons name (__eo_to_smt_datatype d) i)) = []
+            cases native_reserved_datatype_name name <;>
+              simp [native_ite, smtTermFreeVars]
+          rw [hEmpty] at hMem
+          cases hMem
+      | DtSel name d i j =>
+          intro s U hMem
+          have hEmpty :
+              smtTermFreeVars (__eo_to_smt (Term.DtSel name d i j)) = [] := by
+            change
+              smtTermFreeVars
+                (native_ite (native_reserved_datatype_name name)
+                  SmtTerm.None
+                  (SmtTerm.DtSel name (__eo_to_smt_datatype d) i j)) = []
+            cases native_reserved_datatype_name name <;>
+              simp [native_ite, smtTermFreeVars]
+          rw [hEmpty] at hMem
+          cases hMem
+      | USort i =>
+          intro s U hMem
+          change (s, U) ∈ smtTermFreeVars SmtTerm.None at hMem
+          simp [smtTermFreeVars] at hMem
+      | UConst i T =>
+          intro s U hMem
+          change
+            (s, U) ∈
+              smtTermFreeVars
+                (SmtTerm.UConst (native_uconst_id i) (__eo_to_smt_type T))
+            at hMem
+          simp [smtTermFreeVars] at hMem
+termination_by n
+decreasing_by
+  all_goals omega
+
+private theorem smtTermFreeVars_eo_to_smt_allowed_of_contains_atomic_free_false_non_none
+    (F xs bvs : Term) {bvsVars : List SmtVarKey}
+    (hBvsEnv : EoSmtVarEnv bvs bvsVars)
+    (hTy : __smtx_typeof (__eo_to_smt F) ≠ SmtType.None)
+    (hNoFree :
+      __contains_atomic_term_list_free_rec F xs bvs =
+        Term.Boolean false) :
+    ∀ s U,
+      (s, U) ∈ smtTermFreeVars (__eo_to_smt F) ->
+        ∃ T,
+          U = __eo_to_smt_type T ∧
+            (__eo_is_neg
+                (__eo_list_find Term.__eo_List_cons xs
+                  (Term.Var (Term.String s) T)) =
+              Term.Boolean true ∨
+              __eo_is_neg
+                (__eo_list_find Term.__eo_List_cons bvs
+                  (Term.Var (Term.String s) T)) =
+              Term.Boolean false) := by
+  exact
+    smtTermFreeVars_eo_to_smt_allowed_of_contains_atomic_free_false_non_none_lt
+      (sizeOf F + 1) F xs bvs hBvsEnv (by omega) hTy hNoFree
+
+private theorem smtTermFreeVars_eo_to_smt_allowed_of_contains_atomic_free_false
+    (F xs bvs : Term) {bvsVars : List SmtVarKey}
+    (hBvsEnv : EoSmtVarEnv bvs bvsVars)
+    (hTy : __smtx_typeof (__eo_to_smt F) = SmtType.Bool)
+    (hNoFree :
+      __contains_atomic_term_list_free_rec F xs bvs =
+        Term.Boolean false) :
+    ∀ s U,
+      (s, U) ∈ smtTermFreeVars (__eo_to_smt F) ->
+        ∃ T,
+          U = __eo_to_smt_type T ∧
+            (__eo_is_neg
+                (__eo_list_find Term.__eo_List_cons xs
+                  (Term.Var (Term.String s) T)) =
+              Term.Boolean true ∨
+              __eo_is_neg
+                (__eo_list_find Term.__eo_List_cons bvs
+                  (Term.Var (Term.String s) T)) =
+              Term.Boolean false) := by
+  exact
+    smtTermFreeVars_eo_to_smt_allowed_of_contains_atomic_free_false_non_none
+      F xs bvs hBvsEnv (by rw [hTy]; simp) hNoFree
+
+private theorem smtTermFreeVars_eo_to_smt_allowed_of_contains_atomic_free_false_env
+    (F xs bvs : Term) {bvsVars : List SmtVarKey}
+    (hBvsEnv : EoSmtVarEnv bvs bvsVars)
+    (hTy : __smtx_typeof (__eo_to_smt F) = SmtType.Bool)
+    (hNoFree :
+      __contains_atomic_term_list_free_rec F xs bvs =
+        Term.Boolean false) :
+    ∀ s U,
+      (s, U) ∈ smtTermFreeVars (__eo_to_smt F) ->
+        ∃ T,
+          U = __eo_to_smt_type T ∧
+            (__eo_is_neg
+                (__eo_list_find Term.__eo_List_cons xs
+                  (Term.Var (Term.String s) T)) =
+              Term.Boolean true ∨
+              __eo_is_neg
+                (__eo_list_find Term.__eo_List_cons bvs
+                  (Term.Var (Term.String s) T)) =
+              Term.Boolean false) := by
+  exact smtTermFreeVars_eo_to_smt_allowed_of_contains_atomic_free_false
+    F xs bvs hBvsEnv hTy hNoFree
 
 private theorem smtTermFreeVars_eo_to_smt_allowed_of_contains_atomic_qterm_false
     (Q y F xs bvs : Term) {yVars bvsVars : List SmtVarKey}
