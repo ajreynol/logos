@@ -2872,12 +2872,6 @@ def __re_unflatten_str : Term -> Term -> Term -> Term
   | rev, acc, b => (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.re_concat) (__eo_mk_apply (Term.UOp UserOp.str_to_re) (__str_nary_elim (__str_collect (__eo_ite rev (__eo_list_rev (Term.UOp UserOp.str_concat) acc) acc))))) (__re_unflatten rev (Term.Boolean true) b))
 
 
-def __str_maybe_get_star_body : Term -> Term
-  | Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.UOp UserOp.re_mult) r) => r
-  | r => r
-
-
 def __str_re_includes_lhs_union : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
@@ -2903,9 +2897,9 @@ decreasing_by
 def __str_re_includes_lhs_star : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.UOp UserOp.re_mult) r1), r2 => 
-    let _v0 := (__str_maybe_get_star_body r2)
-    (__eo_ite (__eo_eq r1 (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) (Term.UOp UserOp.re_allchar)) (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])))) (Term.Boolean true) (__eo_ite (__eo_eq r1 _v0) (Term.Boolean true) (__str_re_includes_rec r1 _v0)))
+  | (Term.Apply (Term.UOp UserOp.re_mult) (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) (Term.UOp UserOp.re_allchar)) (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])))), r2 => (Term.Boolean true)
+  | (Term.Apply (Term.UOp UserOp.re_mult) r1), (Term.Apply (Term.UOp UserOp.re_mult) r2) => (__eo_ite (__eo_eq r1 r2) (Term.Boolean true) (__str_re_includes_rec r1 r2))
+  | (Term.Apply (Term.UOp UserOp.re_mult) r1), r2 => (__eo_ite (__eo_eq r1 r2) (Term.Boolean true) (__str_re_includes_rec r1 r2))
   | r1, r2 => (Term.Boolean false)
 
 
@@ -2928,13 +2922,18 @@ def __str_re_includes_base : Term -> Term -> Term
     let _v3 := (__eo_to_z s3)
     (__eo_requires (__eo_is_neg _v0) (Term.Boolean false) (__eo_requires (__eo_is_neg _v2) (Term.Boolean false) (__eo_requires (__eo_is_neg _v3) (Term.Boolean false) (__eo_requires (__eo_is_neg _v1) (Term.Boolean false) (__eo_and (__eo_and (__eo_and (__eo_ite (__eo_eq _v2 _v3) (Term.Boolean true) (__eo_gt _v2 _v3)) (__eo_ite (__eo_eq _v3 _v0) (Term.Boolean true) (__eo_gt _v3 _v0))) (__eo_ite (__eo_eq _v2 _v1) (Term.Boolean true) (__eo_gt _v2 _v1))) (__eo_ite (__eo_eq _v1 _v0) (Term.Boolean true) (__eo_gt _v1 _v0)))))))
   | r1, r3 => (__eo_ite (__eo_eq (__str_re_includes_lhs_union r1 r3) (Term.Boolean true)) (Term.Boolean true) (__eo_ite (__eo_eq (__str_re_includes_rhs_inter r1 r3) (Term.Boolean true)) (Term.Boolean true) (__eo_ite (__eo_eq (__str_re_includes_lhs_star r1 r3) (Term.Boolean true)) (Term.Boolean true) (Term.Boolean false))))
+termination_by a b => 4 * (sizeOf a + sizeOf b) + 1
+decreasing_by
+  all_goals simp_wf
+  all_goals omega
 
 
 def __str_re_includes_rec : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) r1) (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))), r3 => (__str_re_includes_base r1 (__re_nary_elim r3))
-  | r1, (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) r3) (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))) => (__str_re_includes_base (__re_nary_elim r1) r3)
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) r1) (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))), (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) r3) (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))) => (__str_re_includes_base r1 r3)
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) r1) (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))), r3 => (__str_re_includes_base r1 r3)
+  | r1, (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) r3) (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))) => (__str_re_includes_base r1 r3)
   | (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) r1) r2), (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) r3) r4) => 
     let _v0 := (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) r3) r4)
     let _v1 := (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) r1) r2)
