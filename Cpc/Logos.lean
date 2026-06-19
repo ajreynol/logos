@@ -71,6 +71,16 @@ inductive Proof : Type where
 
 /- Definition of Eunoia signature -/
 
+/- Leaf-count measure used for `__str_re_includes` termination: `str.to_re ""` (the
+   flattened-regex terminator) is the unique 0; every other term is at least 1. -/
+def __re_inc_size : Term -> Nat
+  | (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) => 0
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a) b) => 1 + __re_inc_size a + __re_inc_size b
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) a) b) => 1 + __re_inc_size a + __re_inc_size b
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) a) b) => 1 + __re_inc_size a + __re_inc_size b
+  | (Term.Apply (Term.UOp UserOp.re_mult) a) => 1 + __re_inc_size a
+  | _ => 1
+
 mutual
 
 def __eo_Numeral : Term := (Term.UOp UserOp.Int)
@@ -2839,6 +2849,10 @@ def __re_flatten : Term -> Term -> Term -> Term
     (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.re_union) (__eo_ite rev (__eo_list_rev (Term.UOp UserOp.re_concat) _v0) _v0)) (__re_flatten rev (Term.Boolean false) c2))
   | rev, (Term.Boolean false), c => c
   | _, _, _ => Term.Stuck
+termination_by rev flag tree => 2 * sizeOf tree + (if flag = Term.Boolean true then 1 else 0)
+decreasing_by
+  all_goals simp_wf
+  all_goals omega
 
 
 def __re_unflatten : Term -> Term -> Term -> Term
@@ -2880,6 +2894,11 @@ def __str_re_includes_lhs_union : Term -> Term -> Term
   | _ , Term.Stuck  => Term.Stuck
   | (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r1) r2), r3 => (__eo_ite (__str_re_includes_rec r1 r3) (Term.Boolean true) (__str_re_includes_lhs_union r2 r3))
   | r1, r3 => (Term.Boolean false)
+termination_by a b => 4 * (__re_inc_size a + __re_inc_size b)
+decreasing_by
+  all_goals simp_wf
+  all_goals (try simp only [__re_inc_size])
+  all_goals omega
 
 
 def __str_re_includes_rhs_inter : Term -> Term -> Term
@@ -2887,6 +2906,11 @@ def __str_re_includes_rhs_inter : Term -> Term -> Term
   | _ , Term.Stuck  => Term.Stuck
   | r1, (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r3) r2) => (__eo_ite (__str_re_includes_rec r1 r3) (Term.Boolean true) (__str_re_includes_rhs_inter r1 r2))
   | r1, r3 => (Term.Boolean false)
+termination_by a b => 4 * (__re_inc_size a + __re_inc_size b)
+decreasing_by
+  all_goals simp_wf
+  all_goals (try simp only [__re_inc_size])
+  all_goals omega
 
 
 def __str_re_includes_lhs_star : Term -> Term -> Term
@@ -2894,6 +2918,16 @@ def __str_re_includes_lhs_star : Term -> Term -> Term
   | _ , Term.Stuck  => Term.Stuck
   | (Term.Apply (Term.UOp UserOp.re_mult) r1), r2 => (__eo_ite (__eo_eq r1 (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) (Term.UOp UserOp.re_allchar)) (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])))) (Term.Boolean true) (__str_re_includes_rec r1 (__str_maybe_get_star_body r2)))
   | r1, r2 => (Term.Boolean false)
+termination_by a b => 4 * (__re_inc_size a + __re_inc_size b)
+decreasing_by
+  all_goals simp_wf
+  all_goals (try simp only [__re_inc_size])
+  all_goals (first
+    | omega
+    | (have hmsb : __re_inc_size (__str_maybe_get_star_body r2) ≤ __re_inc_size r2 := by
+         unfold __str_maybe_get_star_body
+         split <;> (try simp_all [__re_inc_size]) <;> omega
+       omega))
 
 
 def __re_is_unbound_wildcard : Term -> Term
@@ -2915,12 +2949,22 @@ def __eo_l_1___str_re_includes_base : Term -> Term -> Term
     let _v3 := (__eo_to_z s3)
     (__eo_requires (__eo_is_neg _v0) (Term.Boolean false) (__eo_requires (__eo_is_neg _v2) (Term.Boolean false) (__eo_requires (__eo_is_neg _v3) (Term.Boolean false) (__eo_requires (__eo_is_neg _v1) (Term.Boolean false) (__eo_and (__eo_and (__eo_and (__eo_ite (__eo_eq _v2 _v3) (Term.Boolean true) (__eo_gt _v2 _v3)) (__eo_ite (__eo_eq _v3 _v0) (Term.Boolean true) (__eo_gt _v3 _v0))) (__eo_ite (__eo_eq _v2 _v1) (Term.Boolean true) (__eo_gt _v2 _v1))) (__eo_ite (__eo_eq _v1 _v0) (Term.Boolean true) (__eo_gt _v1 _v0)))))))
   | r1, r3 => (__eo_ite (__eo_eq (__str_re_includes_lhs_union r1 r3) (Term.Boolean true)) (Term.Boolean true) (__eo_ite (__eo_eq (__str_re_includes_rhs_inter r1 r3) (Term.Boolean true)) (Term.Boolean true) (__eo_ite (__eo_eq (__str_re_includes_lhs_star r1 r3) (Term.Boolean true)) (Term.Boolean true) (Term.Boolean false))))
+termination_by a b => 4 * (__re_inc_size a + __re_inc_size b) + 1
+decreasing_by
+  all_goals simp_wf
+  all_goals (try simp only [__re_inc_size])
+  all_goals omega
 
 
 def __str_re_includes_base : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
   | r1, __eo_lv_r1_2 => (__eo_ite (__eo_eq r1 __eo_lv_r1_2) (Term.Boolean true) (__eo_l_1___str_re_includes_base r1 __eo_lv_r1_2))
+termination_by a b => 4 * (__re_inc_size a + __re_inc_size b) + 2
+decreasing_by
+  all_goals simp_wf
+  all_goals (try simp only [__re_inc_size])
+  all_goals omega
 
 
 def __eo_l_1___str_re_includes_rec : Term -> Term -> Term
@@ -2936,12 +2980,22 @@ def __eo_l_1___str_re_includes_rec : Term -> Term -> Term
     let _v0 := (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))
     (__eo_and (__eo_eq r1 (Term.Apply (Term.UOp UserOp.re_mult) (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) (Term.UOp UserOp.re_allchar)) _v0))) (__eo_eq r2 _v0))
   | r1, r3 => (Term.Boolean false)
+termination_by a b => 4 * (__re_inc_size a + __re_inc_size b)
+decreasing_by
+  all_goals simp_wf
+  all_goals (try simp only [__re_inc_size])
+  all_goals omega
 
 
 def __str_re_includes_rec : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
   | r1, __eo_lv_r1_2 => (__eo_ite (__eo_eq r1 __eo_lv_r1_2) (Term.Boolean true) (__eo_l_1___str_re_includes_rec r1 __eo_lv_r1_2))
+termination_by a b => 4 * (__re_inc_size a + __re_inc_size b) + 1
+decreasing_by
+  all_goals simp_wf
+  all_goals (try simp only [__re_inc_size])
+  all_goals omega
 
 
 def __str_arith_entail_simple_rec : Term -> Term
