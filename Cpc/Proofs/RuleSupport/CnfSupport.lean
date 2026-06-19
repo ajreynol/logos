@@ -7,6 +7,7 @@ open Smtm
 
 set_option linter.unusedVariables false
 set_option linter.unnecessarySimpa false
+set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 namespace CnfSupport
@@ -1255,5 +1256,677 @@ theorem orList_nth_false_of_false
   simp [__eo_list_nth, __eo_requires, orList_is_list_true hList, native_ite,
     native_teq, native_not, SmtEval.native_not] at hNth ⊢
   exact orList_nth_rec_false_of_false M hM hList hCBool hCFalse hNth
+
+/-- A defined `mk_apply` has a defined function position. -/
+theorem mk_apply_ne_stuck_left {f a : Term} :
+    __eo_mk_apply f a ≠ Term.Stuck ->
+    f ≠ Term.Stuck := by
+  intro h
+  cases f <;> cases a <;> simp [__eo_mk_apply] at h ⊢
+
+/-- A defined `mk_apply` has a defined argument position. -/
+theorem mk_apply_ne_stuck_right {f a : Term} :
+    __eo_mk_apply f a ≠ Term.Stuck ->
+    a ≠ Term.Stuck := by
+  intro h
+  cases f <;> cases a <;> simp [__eo_mk_apply] at h ⊢
+
+/-- A defined `mk_apply` is ordinary application. -/
+theorem mk_apply_eq_apply {f a : Term} :
+    f ≠ Term.Stuck ->
+    a ≠ Term.Stuck ->
+    __eo_mk_apply f a = Term.Apply f a := by
+  intro hF hA
+  cases f <;> cases a <;> simp [__eo_mk_apply] at hF hA ⊢
+
+/-- If a generated Boolean equality over a Boolean constant is well typed, its left side is Boolean. -/
+theorem typeof_mk_eq_bool_left_const_bool {t : Term} {b : Bool} :
+    t ≠ Term.Stuck ->
+    __eo_typeof
+        (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.eq) t)
+          (Term.Boolean b)) = Term.Bool ->
+    __eo_typeof t = Term.Bool := by
+  intro hT hTy
+  rw [mk_apply_eq_apply (by simp) hT] at hTy
+  rw [mk_apply_eq_apply (by simp) (by simp)] at hTy
+  change __eo_typeof_eq (__eo_typeof t) Term.Bool = Term.Bool at hTy
+  cases h : __eo_typeof t <;>
+    simp [__eo_typeof_eq, __eo_requires, __eo_eq, native_ite, native_teq,
+      native_not, h] at hTy ⊢
+
+/-- A well-typed generated `and` application has a Boolean left argument. -/
+theorem typeof_mk_apply_and_left_bool {x y : Term} :
+    __eo_typeof (__eo_mk_apply (Term.Apply (Term.UOp UserOp.and) x) y) =
+      Term.Bool ->
+    __eo_typeof x = Term.Bool := by
+  intro hTy
+  by_cases hY : y = Term.Stuck
+  · subst y
+    have hBad : __eo_typeof Term.Stuck ≠ Term.Bool := by
+      native_decide
+    exact False.elim (hBad hTy)
+  · rw [mk_apply_eq_apply (by simp) hY] at hTy
+    change __eo_typeof_or (__eo_typeof x) (__eo_typeof y) = Term.Bool at hTy
+    exact typeof_or_eq_bool_left hTy
+
+/-- A well-typed generated `and` application has a Boolean right argument. -/
+theorem typeof_mk_apply_and_right_bool {x y : Term} :
+    __eo_typeof (__eo_mk_apply (Term.Apply (Term.UOp UserOp.and) x) y) =
+      Term.Bool ->
+    __eo_typeof y = Term.Bool := by
+  intro hTy
+  by_cases hY : y = Term.Stuck
+  · subst y
+    have hBad : __eo_typeof Term.Stuck ≠ Term.Bool := by
+      native_decide
+    exact False.elim (hBad hTy)
+  · rw [mk_apply_eq_apply (by simp) hY] at hTy
+    change __eo_typeof_or (__eo_typeof x) (__eo_typeof y) = Term.Bool at hTy
+    exact typeof_or_eq_bool_right hTy
+
+/-- A well-typed generated `or` application has a Boolean left argument. -/
+theorem typeof_mk_apply_or_left_bool {x y : Term} :
+    __eo_typeof (__eo_mk_apply (Term.Apply (Term.UOp UserOp.or) x) y) =
+      Term.Bool ->
+    __eo_typeof x = Term.Bool := by
+  intro hTy
+  by_cases hY : y = Term.Stuck
+  · subst y
+    have hBad : __eo_typeof Term.Stuck ≠ Term.Bool := by
+      native_decide
+    exact False.elim (hBad hTy)
+  · rw [mk_apply_eq_apply (by simp) hY] at hTy
+    change __eo_typeof_or (__eo_typeof x) (__eo_typeof y) = Term.Bool at hTy
+    exact typeof_or_eq_bool_left hTy
+
+/-- A well-typed generated `or` application has a Boolean right argument. -/
+theorem typeof_mk_apply_or_right_bool {x y : Term} :
+    __eo_typeof (__eo_mk_apply (Term.Apply (Term.UOp UserOp.or) x) y) =
+      Term.Bool ->
+    __eo_typeof y = Term.Bool := by
+  intro hTy
+  by_cases hY : y = Term.Stuck
+  · subst y
+    have hBad : __eo_typeof Term.Stuck ≠ Term.Bool := by
+      native_decide
+    exact False.elim (hBad hTy)
+  · rw [mk_apply_eq_apply (by simp) hY] at hTy
+    change __eo_typeof_or (__eo_typeof x) (__eo_typeof y) = Term.Bool at hTy
+    exact typeof_or_eq_bool_right hTy
+
+/-- A translated EO `and` application is Boolean. -/
+theorem eo_has_bool_type_and_of_translation (A B : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) B) ->
+    RuleProofs.eo_has_bool_type
+      (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) B) := by
+  intro hTrans
+  rw [RuleProofs.eo_has_smt_translation] at hTrans
+  unfold RuleProofs.eo_has_bool_type
+  change __smtx_typeof (SmtTerm.and (__eo_to_smt A) (__eo_to_smt B)) =
+    SmtType.Bool
+  change __smtx_typeof (SmtTerm.and (__eo_to_smt A) (__eo_to_smt B)) ≠
+    SmtType.None at hTrans
+  rw [typeof_and_eq] at hTrans ⊢
+  cases hA : __smtx_typeof (__eo_to_smt A) <;>
+    cases hB : __smtx_typeof (__eo_to_smt B) <;>
+    simp [hA, hB, native_ite, native_Teq] at hTrans ⊢
+
+/-- A translated EO `or` application is Boolean. -/
+theorem eo_has_bool_type_or_of_translation (A B : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.or) A) B) ->
+    RuleProofs.eo_has_bool_type
+      (Term.Apply (Term.Apply (Term.UOp UserOp.or) A) B) := by
+  intro hTrans
+  rw [RuleProofs.eo_has_smt_translation] at hTrans
+  unfold RuleProofs.eo_has_bool_type
+  change __smtx_typeof (SmtTerm.or (__eo_to_smt A) (__eo_to_smt B)) =
+    SmtType.Bool
+  change __smtx_typeof (SmtTerm.or (__eo_to_smt A) (__eo_to_smt B)) ≠
+    SmtType.None at hTrans
+  rw [typeof_or_eq] at hTrans ⊢
+  cases hA : __smtx_typeof (__eo_to_smt A) <;>
+    cases hB : __smtx_typeof (__eo_to_smt B) <;>
+    simp [hA, hB, native_ite, native_Teq] at hTrans ⊢
+
+/-- A translated structural EO `and`-list is Boolean. -/
+theorem andList_has_bool_type_of_translation {c : Term} :
+    AndList c ->
+    RuleProofs.eo_has_smt_translation c ->
+    RuleProofs.eo_has_bool_type c := by
+  intro hList hTrans
+  cases hList with
+  | true =>
+      exact RuleProofs.eo_has_bool_type_true
+  | cons x xs hXs =>
+      exact eo_has_bool_type_and_of_translation x xs hTrans
+
+/-- A translated structural EO `or`-list is Boolean. -/
+theorem orList_has_bool_type_of_translation {c : Term} :
+    OrList c ->
+    RuleProofs.eo_has_smt_translation c ->
+    RuleProofs.eo_has_bool_type c := by
+  intro hList hTrans
+  cases hList with
+  | false =>
+      exact RuleProofs.eo_has_bool_type_false
+  | cons x xs hXs =>
+      exact eo_has_bool_type_or_of_translation x xs hTrans
+
+private theorem is_list_true_of_list_concat_ne_stuck_left {f a b : Term} :
+    __eo_list_concat f a b ≠ Term.Stuck ->
+    __eo_is_list f a = Term.Boolean true := by
+  intro hConcat
+  cases hA : __eo_is_list f a <;>
+    simp [__eo_list_concat, __eo_requires, hA, native_ite, native_teq,
+      native_not, SmtEval.native_not] at hConcat ⊢
+  case Boolean b =>
+    cases b <;>
+      simp [__eo_list_concat, __eo_requires, hA, native_ite, native_teq,
+        native_not, SmtEval.native_not] at hConcat ⊢
+
+private theorem is_list_true_of_list_concat_ne_stuck_right {f a b : Term} :
+    __eo_list_concat f a b ≠ Term.Stuck ->
+    __eo_is_list f b = Term.Boolean true := by
+  intro hConcat
+  have hA := is_list_true_of_list_concat_ne_stuck_left hConcat
+  cases hB : __eo_is_list f b <;>
+    simp [__eo_list_concat, __eo_requires, hA, hB, native_ite, native_teq,
+      native_not, SmtEval.native_not] at hConcat ⊢
+  case Boolean b =>
+    cases b <;>
+      simp [__eo_list_concat, __eo_requires, hA, hB, native_ite, native_teq,
+        native_not, SmtEval.native_not] at hConcat ⊢
+
+/-- A non-stuck `and`-list concatenation has a structural left list. -/
+theorem andList_of_concat_ne_stuck_left {a b : Term} :
+    __eo_list_concat (Term.UOp UserOp.and) a b ≠ Term.Stuck ->
+    AndList a := by
+  intro hConcat
+  exact andList_of_is_list_true (is_list_true_of_list_concat_ne_stuck_left hConcat)
+
+/-- A non-stuck `and`-list concatenation has a structural right list. -/
+theorem andList_of_concat_ne_stuck_right {a b : Term} :
+    __eo_list_concat (Term.UOp UserOp.and) a b ≠ Term.Stuck ->
+    AndList b := by
+  intro hConcat
+  exact andList_of_is_list_true (is_list_true_of_list_concat_ne_stuck_right hConcat)
+
+/-- A non-stuck `or`-list concatenation has a structural left list. -/
+theorem orList_of_concat_ne_stuck_left {a b : Term} :
+    __eo_list_concat (Term.UOp UserOp.or) a b ≠ Term.Stuck ->
+    OrList a := by
+  intro hConcat
+  exact orList_of_is_list_true (is_list_true_of_list_concat_ne_stuck_left hConcat)
+
+/-- A non-stuck `or`-list concatenation has a structural right list. -/
+theorem orList_of_concat_ne_stuck_right {a b : Term} :
+    __eo_list_concat (Term.UOp UserOp.or) a b ≠ Term.Stuck ->
+    OrList b := by
+  intro hConcat
+  exact orList_of_is_list_true (is_list_true_of_list_concat_ne_stuck_right hConcat)
+
+/-- The tail of a generated structural `and` cons is a structural `and`-list. -/
+theorem andList_tail_of_mk_apply_and {x xs : Term} :
+    AndList (__eo_mk_apply (Term.Apply (Term.UOp UserOp.and) x) xs) ->
+    AndList xs := by
+  intro hList
+  by_cases hXs : xs = Term.Stuck
+  · subst xs
+    simpa [__eo_mk_apply] using hList
+  · rw [mk_apply_eq_apply (by simp) hXs] at hList
+    cases hList
+    assumption
+
+/-- The tail of a structural `and` cons is a structural `and`-list. -/
+theorem andList_tail_of_apply_and {x xs : Term} :
+    AndList (Term.Apply (Term.Apply (Term.UOp UserOp.and) x) xs) ->
+    AndList xs := by
+  intro hList
+  cases hList
+  assumption
+
+/-- The tail of a generated structural `or` cons is a structural `or`-list. -/
+theorem orList_tail_of_mk_apply_or {x xs : Term} :
+    OrList (__eo_mk_apply (Term.Apply (Term.UOp UserOp.or) x) xs) ->
+    OrList xs := by
+  intro hList
+  by_cases hXs : xs = Term.Stuck
+  · subst xs
+    simpa [__eo_mk_apply] using hList
+  · rw [mk_apply_eq_apply (by simp) hXs] at hList
+    cases hList
+    assumption
+
+/-- The tail of a structural `or` cons is a structural `or`-list. -/
+theorem orList_tail_of_apply_or {x xs : Term} :
+    OrList (Term.Apply (Term.Apply (Term.UOp UserOp.or) x) xs) ->
+    OrList xs := by
+  intro hList
+  cases hList
+  assumption
+
+private theorem andList_concat_rec_cons (x xs z : Term) :
+    __eo_list_concat_rec xs z ≠ Term.Stuck ->
+    __eo_list_concat_rec
+        (Term.Apply (Term.Apply (Term.UOp UserOp.and) x) xs) z =
+      Term.Apply (Term.Apply (Term.UOp UserOp.and) x)
+        (__eo_list_concat_rec xs z) := by
+  intro hTail
+  cases z with
+  | Stuck =>
+      have hStuck : __eo_list_concat_rec xs Term.Stuck = Term.Stuck := by
+        cases xs <;> simp [__eo_list_concat_rec]
+      exact False.elim (hTail hStuck)
+  | _ =>
+      simp [__eo_list_concat_rec, __eo_mk_apply]
+
+private theorem orList_concat_rec_cons (x xs z : Term) :
+    __eo_list_concat_rec xs z ≠ Term.Stuck ->
+    __eo_list_concat_rec
+        (Term.Apply (Term.Apply (Term.UOp UserOp.or) x) xs) z =
+      Term.Apply (Term.Apply (Term.UOp UserOp.or) x)
+        (__eo_list_concat_rec xs z) := by
+  intro hTail
+  cases z with
+  | Stuck =>
+      have hStuck : __eo_list_concat_rec xs Term.Stuck = Term.Stuck := by
+        cases xs <;> simp [__eo_list_concat_rec]
+      exact False.elim (hTail hStuck)
+  | _ =>
+      simp [__eo_list_concat_rec, __eo_mk_apply]
+
+private theorem andList_concat_rec_preserves_list {c1 c2 : Term} :
+    AndList c1 ->
+    AndList c2 ->
+    AndList (__eo_list_concat_rec c1 c2) := by
+  intro hC1 hC2
+  have hConcatTrue (z : Term) :
+      __eo_list_concat_rec (Term.Boolean true) z = z := by
+    cases z <;> simp [__eo_list_concat_rec]
+  induction hC1 generalizing c2 with
+  | true =>
+      rw [hConcatTrue c2]
+      exact hC2
+  | cons x xs hXs ih =>
+      have hTail : AndList (__eo_list_concat_rec xs c2) := ih hC2
+      have hTailNe : __eo_list_concat_rec xs c2 ≠ Term.Stuck :=
+        andList_ne_stuck hTail
+      rw [andList_concat_rec_cons x xs c2 hTailNe]
+      exact AndList.cons x (__eo_list_concat_rec xs c2) hTail
+
+private theorem orList_concat_rec_preserves_list {c1 c2 : Term} :
+    OrList c1 ->
+    OrList c2 ->
+    OrList (__eo_list_concat_rec c1 c2) := by
+  intro hC1 hC2
+  have hConcatFalse (z : Term) :
+      __eo_list_concat_rec (Term.Boolean false) z = z := by
+    cases z <;> simp [__eo_list_concat_rec]
+  induction hC1 generalizing c2 with
+  | false =>
+      rw [hConcatFalse c2]
+      exact hC2
+  | cons x xs hXs ih =>
+      have hTail : OrList (__eo_list_concat_rec xs c2) := ih hC2
+      have hTailNe : __eo_list_concat_rec xs c2 ≠ Term.Stuck :=
+        orList_ne_stuck hTail
+      rw [orList_concat_rec_cons x xs c2 hTailNe]
+      exact OrList.cons x (__eo_list_concat_rec xs c2) hTail
+
+/-- Concatenating structural EO `and`-lists preserves list structure. -/
+theorem andList_concat_preserves_list {c1 c2 : Term} :
+    AndList c1 ->
+    AndList c2 ->
+    AndList (__eo_list_concat (Term.UOp UserOp.and) c1 c2) := by
+  intro hC1 hC2
+  change AndList
+    (__eo_requires (__eo_is_list (Term.UOp UserOp.and) c1) (Term.Boolean true)
+      (__eo_requires (__eo_is_list (Term.UOp UserOp.and) c2) (Term.Boolean true)
+        (__eo_list_concat_rec c1 c2)))
+  rw [andList_is_list_true hC1, andList_is_list_true hC2]
+  simp [__eo_requires, native_ite, native_teq, native_not, SmtEval.native_not]
+  exact andList_concat_rec_preserves_list hC1 hC2
+
+/-- Concatenating structural EO `or`-lists preserves list structure. -/
+theorem orList_concat_preserves_list {c1 c2 : Term} :
+    OrList c1 ->
+    OrList c2 ->
+    OrList (__eo_list_concat (Term.UOp UserOp.or) c1 c2) := by
+  intro hC1 hC2
+  change OrList
+    (__eo_requires (__eo_is_list (Term.UOp UserOp.or) c1) (Term.Boolean true)
+      (__eo_requires (__eo_is_list (Term.UOp UserOp.or) c2) (Term.Boolean true)
+        (__eo_list_concat_rec c1 c2)))
+  rw [orList_is_list_true hC1, orList_is_list_true hC2]
+  simp [__eo_requires, native_ite, native_teq, native_not, SmtEval.native_not]
+  exact orList_concat_rec_preserves_list hC1 hC2
+
+private theorem andList_concat_rec_preserves_bool_type {c1 c2 : Term} :
+    AndList c1 ->
+    RuleProofs.eo_has_bool_type c1 ->
+    RuleProofs.eo_has_bool_type c2 ->
+    RuleProofs.eo_has_bool_type (__eo_list_concat_rec c1 c2) := by
+  intro hC1 hC1Bool hC2Bool
+  have hConcatTrue (z : Term) :
+      __eo_list_concat_rec (Term.Boolean true) z = z := by
+    cases z <;> simp [__eo_list_concat_rec]
+  induction hC1 generalizing c2 with
+  | true =>
+      rw [hConcatTrue c2]
+      exact hC2Bool
+  | cons x xs hXs ih =>
+      have hXBool : RuleProofs.eo_has_bool_type x :=
+        RuleProofs.eo_has_bool_type_and_left x xs hC1Bool
+      have hXsBool : RuleProofs.eo_has_bool_type xs :=
+        RuleProofs.eo_has_bool_type_and_right x xs hC1Bool
+      have hTailBool : RuleProofs.eo_has_bool_type (__eo_list_concat_rec xs c2) :=
+        ih hXsBool hC2Bool
+      have hTailNe : __eo_list_concat_rec xs c2 ≠ Term.Stuck :=
+        RuleProofs.term_ne_stuck_of_has_bool_type _ hTailBool
+      rw [andList_concat_rec_cons x xs c2 hTailNe]
+      exact RuleProofs.eo_has_bool_type_and_of_bool_args x
+        (__eo_list_concat_rec xs c2) hXBool hTailBool
+
+private theorem orList_concat_rec_preserves_bool_type {c1 c2 : Term} :
+    OrList c1 ->
+    RuleProofs.eo_has_bool_type c1 ->
+    RuleProofs.eo_has_bool_type c2 ->
+    RuleProofs.eo_has_bool_type (__eo_list_concat_rec c1 c2) := by
+  intro hC1 hC1Bool hC2Bool
+  have hConcatFalse (z : Term) :
+      __eo_list_concat_rec (Term.Boolean false) z = z := by
+    cases z <;> simp [__eo_list_concat_rec]
+  induction hC1 generalizing c2 with
+  | false =>
+      rw [hConcatFalse c2]
+      exact hC2Bool
+  | cons x xs hXs ih =>
+      have hXBool : RuleProofs.eo_has_bool_type x :=
+        RuleProofs.eo_has_bool_type_or_left x xs hC1Bool
+      have hXsBool : RuleProofs.eo_has_bool_type xs :=
+        RuleProofs.eo_has_bool_type_or_right x xs hC1Bool
+      have hTailBool : RuleProofs.eo_has_bool_type (__eo_list_concat_rec xs c2) :=
+        ih hXsBool hC2Bool
+      have hTailNe : __eo_list_concat_rec xs c2 ≠ Term.Stuck :=
+        RuleProofs.term_ne_stuck_of_has_bool_type _ hTailBool
+      rw [orList_concat_rec_cons x xs c2 hTailNe]
+      exact RuleProofs.eo_has_bool_type_or_of_bool_args x
+        (__eo_list_concat_rec xs c2) hXBool hTailBool
+
+/-- Concatenating typed structural EO `and`-lists preserves Boolean type. -/
+theorem andList_concat_preserves_bool_type {c1 c2 : Term} :
+    AndList c1 ->
+    AndList c2 ->
+    RuleProofs.eo_has_bool_type c1 ->
+    RuleProofs.eo_has_bool_type c2 ->
+    RuleProofs.eo_has_bool_type (__eo_list_concat (Term.UOp UserOp.and) c1 c2) := by
+  intro hC1 hC2 hC1Bool hC2Bool
+  change RuleProofs.eo_has_bool_type
+    (__eo_requires (__eo_is_list (Term.UOp UserOp.and) c1) (Term.Boolean true)
+      (__eo_requires (__eo_is_list (Term.UOp UserOp.and) c2) (Term.Boolean true)
+        (__eo_list_concat_rec c1 c2)))
+  rw [andList_is_list_true hC1, andList_is_list_true hC2]
+  simp [__eo_requires, native_ite, native_teq, native_not, SmtEval.native_not]
+  exact andList_concat_rec_preserves_bool_type hC1 hC1Bool hC2Bool
+
+/-- Concatenating typed structural EO `or`-lists preserves Boolean type. -/
+theorem orList_concat_preserves_bool_type {c1 c2 : Term} :
+    OrList c1 ->
+    OrList c2 ->
+    RuleProofs.eo_has_bool_type c1 ->
+    RuleProofs.eo_has_bool_type c2 ->
+    RuleProofs.eo_has_bool_type (__eo_list_concat (Term.UOp UserOp.or) c1 c2) := by
+  intro hC1 hC2 hC1Bool hC2Bool
+  change RuleProofs.eo_has_bool_type
+    (__eo_requires (__eo_is_list (Term.UOp UserOp.or) c1) (Term.Boolean true)
+      (__eo_requires (__eo_is_list (Term.UOp UserOp.or) c2) (Term.Boolean true)
+        (__eo_list_concat_rec c1 c2)))
+  rw [orList_is_list_true hC1, orList_is_list_true hC2]
+  simp [__eo_requires, native_ite, native_teq, native_not, SmtEval.native_not]
+  exact orList_concat_rec_preserves_bool_type hC1 hC1Bool hC2Bool
+
+private theorem andList_concat_rec_typeof_bool_right {c1 c2 : Term} :
+    AndList c1 ->
+    __eo_typeof (__eo_list_concat_rec c1 c2) = Term.Bool ->
+    __eo_typeof c2 = Term.Bool := by
+  intro hC1 hTy
+  have hConcatTrue (z : Term) :
+      __eo_list_concat_rec (Term.Boolean true) z = z := by
+    cases z <;> simp [__eo_list_concat_rec]
+  induction hC1 generalizing c2 with
+  | true =>
+      rw [hConcatTrue c2] at hTy
+      exact hTy
+  | cons x xs hXs ih =>
+      have hRecNe :
+          __eo_list_concat_rec
+              (Term.Apply (Term.Apply (Term.UOp UserOp.and) x) xs) c2 ≠
+            Term.Stuck :=
+        term_ne_stuck_of_typeof_bool hTy
+      have hC2Ne : c2 ≠ Term.Stuck := by
+        intro hC2
+        subst c2
+        simp [__eo_list_concat_rec] at hRecNe
+      have hRecEq :
+          __eo_list_concat_rec
+              (Term.Apply (Term.Apply (Term.UOp UserOp.and) x) xs) c2 =
+            __eo_mk_apply (Term.Apply (Term.UOp UserOp.and) x)
+              (__eo_list_concat_rec xs c2) := by
+        cases c2 <;> simp [__eo_list_concat_rec] at hC2Ne ⊢
+      rw [hRecEq] at hTy
+      change __eo_typeof
+          (__eo_mk_apply (Term.Apply (Term.UOp UserOp.and) x)
+            (__eo_list_concat_rec xs c2)) = Term.Bool at hTy
+      exact ih (typeof_mk_apply_and_right_bool hTy)
+
+private theorem orList_concat_rec_typeof_bool_right {c1 c2 : Term} :
+    OrList c1 ->
+    __eo_typeof (__eo_list_concat_rec c1 c2) = Term.Bool ->
+    __eo_typeof c2 = Term.Bool := by
+  intro hC1 hTy
+  have hConcatFalse (z : Term) :
+      __eo_list_concat_rec (Term.Boolean false) z = z := by
+    cases z <;> simp [__eo_list_concat_rec]
+  induction hC1 generalizing c2 with
+  | false =>
+      rw [hConcatFalse c2] at hTy
+      exact hTy
+  | cons x xs hXs ih =>
+      have hRecNe :
+          __eo_list_concat_rec
+              (Term.Apply (Term.Apply (Term.UOp UserOp.or) x) xs) c2 ≠
+            Term.Stuck :=
+        term_ne_stuck_of_typeof_bool hTy
+      have hC2Ne : c2 ≠ Term.Stuck := by
+        intro hC2
+        subst c2
+        simp [__eo_list_concat_rec] at hRecNe
+      have hRecEq :
+          __eo_list_concat_rec
+              (Term.Apply (Term.Apply (Term.UOp UserOp.or) x) xs) c2 =
+            __eo_mk_apply (Term.Apply (Term.UOp UserOp.or) x)
+              (__eo_list_concat_rec xs c2) := by
+        cases c2 <;> simp [__eo_list_concat_rec] at hC2Ne ⊢
+      rw [hRecEq] at hTy
+      change __eo_typeof
+          (__eo_mk_apply (Term.Apply (Term.UOp UserOp.or) x)
+            (__eo_list_concat_rec xs c2)) = Term.Bool at hTy
+      exact ih (typeof_mk_apply_or_right_bool hTy)
+
+/-- The right side of a well-typed structural `and`-list concatenation is well typed. -/
+theorem andList_concat_typeof_bool_right {c1 c2 : Term} :
+    AndList c1 ->
+    AndList c2 ->
+    __eo_typeof (__eo_list_concat (Term.UOp UserOp.and) c1 c2) = Term.Bool ->
+    __eo_typeof c2 = Term.Bool := by
+  intro hC1 hC2 hTy
+  change __eo_typeof
+    (__eo_requires (__eo_is_list (Term.UOp UserOp.and) c1) (Term.Boolean true)
+      (__eo_requires (__eo_is_list (Term.UOp UserOp.and) c2) (Term.Boolean true)
+        (__eo_list_concat_rec c1 c2))) = Term.Bool at hTy
+  rw [andList_is_list_true hC1, andList_is_list_true hC2] at hTy
+  simp [__eo_requires, native_ite, native_teq, native_not, SmtEval.native_not] at hTy
+  exact andList_concat_rec_typeof_bool_right hC1 hTy
+
+/-- The right side of a well-typed structural `or`-list concatenation is well typed. -/
+theorem orList_concat_typeof_bool_right {c1 c2 : Term} :
+    OrList c1 ->
+    OrList c2 ->
+    __eo_typeof (__eo_list_concat (Term.UOp UserOp.or) c1 c2) = Term.Bool ->
+    __eo_typeof c2 = Term.Bool := by
+  intro hC1 hC2 hTy
+  change __eo_typeof
+    (__eo_requires (__eo_is_list (Term.UOp UserOp.or) c1) (Term.Boolean true)
+      (__eo_requires (__eo_is_list (Term.UOp UserOp.or) c2) (Term.Boolean true)
+        (__eo_list_concat_rec c1 c2))) = Term.Bool at hTy
+  rw [orList_is_list_true hC1, orList_is_list_true hC2] at hTy
+  simp [__eo_requires, native_ite, native_teq, native_not, SmtEval.native_not] at hTy
+  exact orList_concat_rec_typeof_bool_right hC1 hTy
+
+/-- A false left side makes an EO conjunction false. -/
+theorem eo_interprets_and_false_of_left_false
+    (M : SmtModel) (hM : model_total_typed M) (A B : Term) :
+    eo_interprets M A false ->
+    RuleProofs.eo_has_bool_type B ->
+    eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) B) false := by
+  intro hAFalse hBBool
+  rw [RuleProofs.eo_interprets_iff_smt_interprets] at hAFalse ⊢
+  rw [show __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) B) =
+      SmtTerm.and (__eo_to_smt A) (__eo_to_smt B) by rfl]
+  rcases RuleProofs.eo_eval_is_boolean_of_has_bool_type M hM B hBBool with
+    ⟨b, hBEval⟩
+  cases hAFalse with
+  | intro_false hATy hAEval =>
+      refine smt_interprets.intro_false M
+        (SmtTerm.and (__eo_to_smt A) (__eo_to_smt B)) ?_ ?_
+      · rw [typeof_and_eq]
+        have hBTy : __smtx_typeof (__eo_to_smt B) = SmtType.Bool := by
+          simpa [RuleProofs.eo_has_bool_type] using hBBool
+        simp [hATy, hBTy, native_Teq, native_ite]
+      · rw [__smtx_model_eval.eq_8, hAEval, hBEval]
+        cases b <;> simp [__smtx_model_eval_and, SmtEval.native_and]
+
+/-- A false right side makes an EO conjunction false. -/
+theorem eo_interprets_and_false_of_right_false
+    (M : SmtModel) (hM : model_total_typed M) (A B : Term) :
+    RuleProofs.eo_has_bool_type A ->
+    eo_interprets M B false ->
+    eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) B) false := by
+  intro hABool hBFalse
+  rw [RuleProofs.eo_interprets_iff_smt_interprets] at hBFalse ⊢
+  rw [show __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) B) =
+      SmtTerm.and (__eo_to_smt A) (__eo_to_smt B) by rfl]
+  rcases RuleProofs.eo_eval_is_boolean_of_has_bool_type M hM A hABool with
+    ⟨a, hAEval⟩
+  cases hBFalse with
+  | intro_false hBTy hBEval =>
+      refine smt_interprets.intro_false M
+        (SmtTerm.and (__eo_to_smt A) (__eo_to_smt B)) ?_ ?_
+      · rw [typeof_and_eq]
+        have hATy : __smtx_typeof (__eo_to_smt A) = SmtType.Bool := by
+          simpa [RuleProofs.eo_has_bool_type] using hABool
+        simp [hATy, hBTy, native_Teq, native_ite]
+      · rw [__smtx_model_eval.eq_8, hAEval, hBEval]
+        cases a <;> simp [__smtx_model_eval_and, SmtEval.native_and]
+
+private theorem andList_concat_rec_false_of_right_false
+    (M : SmtModel) (hM : model_total_typed M) {c1 c2 : Term} :
+    AndList c1 ->
+    RuleProofs.eo_has_bool_type c1 ->
+    RuleProofs.eo_has_bool_type c2 ->
+    eo_interprets M c2 false ->
+    eo_interprets M (__eo_list_concat_rec c1 c2) false := by
+  intro hC1 hC1Bool hC2Bool hC2False
+  have hConcatTrue (z : Term) :
+      __eo_list_concat_rec (Term.Boolean true) z = z := by
+    cases z <;> simp [__eo_list_concat_rec]
+  induction hC1 generalizing c2 with
+  | true =>
+      rw [hConcatTrue c2]
+      exact hC2False
+  | cons x xs hXs ih =>
+      have hXBool : RuleProofs.eo_has_bool_type x :=
+        RuleProofs.eo_has_bool_type_and_left x xs hC1Bool
+      have hXsBool : RuleProofs.eo_has_bool_type xs :=
+        RuleProofs.eo_has_bool_type_and_right x xs hC1Bool
+      have hTailFalse : eo_interprets M (__eo_list_concat_rec xs c2) false :=
+        ih hXsBool hC2Bool hC2False
+      have hTailBool : RuleProofs.eo_has_bool_type (__eo_list_concat_rec xs c2) :=
+        andList_concat_rec_preserves_bool_type hXs hXsBool hC2Bool
+      have hTailNe : __eo_list_concat_rec xs c2 ≠ Term.Stuck :=
+        RuleProofs.term_ne_stuck_of_has_bool_type _ hTailBool
+      rw [andList_concat_rec_cons x xs c2 hTailNe]
+      exact eo_interprets_and_false_of_right_false M hM x
+        (__eo_list_concat_rec xs c2) hXBool hTailFalse
+
+/-- If the right `and`-list is false, its concatenation is false. -/
+theorem andList_concat_false_of_right_false
+    (M : SmtModel) (hM : model_total_typed M) {c1 c2 : Term} :
+    AndList c1 ->
+    AndList c2 ->
+    RuleProofs.eo_has_bool_type c1 ->
+    RuleProofs.eo_has_bool_type c2 ->
+    eo_interprets M c2 false ->
+    eo_interprets M (__eo_list_concat (Term.UOp UserOp.and) c1 c2) false := by
+  intro hC1 hC2 hC1Bool hC2Bool hC2False
+  change eo_interprets M
+    (__eo_requires (__eo_is_list (Term.UOp UserOp.and) c1) (Term.Boolean true)
+      (__eo_requires (__eo_is_list (Term.UOp UserOp.and) c2) (Term.Boolean true)
+        (__eo_list_concat_rec c1 c2))) false
+  rw [andList_is_list_true hC1, andList_is_list_true hC2]
+  simp [__eo_requires, native_ite, native_teq, native_not, SmtEval.native_not]
+  exact andList_concat_rec_false_of_right_false M hM hC1 hC1Bool hC2Bool
+    hC2False
+
+private theorem orList_concat_rec_true_of_right_true
+    (M : SmtModel) (hM : model_total_typed M) {c1 c2 : Term} :
+    OrList c1 ->
+    RuleProofs.eo_has_bool_type c1 ->
+    RuleProofs.eo_has_bool_type c2 ->
+    eo_interprets M c2 true ->
+    eo_interprets M (__eo_list_concat_rec c1 c2) true := by
+  intro hC1 hC1Bool hC2Bool hC2True
+  have hConcatFalse (z : Term) :
+      __eo_list_concat_rec (Term.Boolean false) z = z := by
+    cases z <;> simp [__eo_list_concat_rec]
+  induction hC1 generalizing c2 with
+  | false =>
+      rw [hConcatFalse c2]
+      exact hC2True
+  | cons x xs hXs ih =>
+      have hXBool : RuleProofs.eo_has_bool_type x :=
+        RuleProofs.eo_has_bool_type_or_left x xs hC1Bool
+      have hXsBool : RuleProofs.eo_has_bool_type xs :=
+        RuleProofs.eo_has_bool_type_or_right x xs hC1Bool
+      have hTailTrue : eo_interprets M (__eo_list_concat_rec xs c2) true :=
+        ih hXsBool hC2Bool hC2True
+      have hTailBool : RuleProofs.eo_has_bool_type (__eo_list_concat_rec xs c2) :=
+        orList_concat_rec_preserves_bool_type hXs hXsBool hC2Bool
+      have hTailNe : __eo_list_concat_rec xs c2 ≠ Term.Stuck :=
+        RuleProofs.term_ne_stuck_of_has_bool_type _ hTailBool
+      rw [orList_concat_rec_cons x xs c2 hTailNe]
+      exact RuleProofs.eo_interprets_or_right_intro M hM x
+        (__eo_list_concat_rec xs c2) hXBool hTailTrue
+
+/-- If the right `or`-list is true, its concatenation is true. -/
+theorem orList_concat_true_of_right_true
+    (M : SmtModel) (hM : model_total_typed M) {c1 c2 : Term} :
+    OrList c1 ->
+    OrList c2 ->
+    RuleProofs.eo_has_bool_type c1 ->
+    RuleProofs.eo_has_bool_type c2 ->
+    eo_interprets M c2 true ->
+    eo_interprets M (__eo_list_concat (Term.UOp UserOp.or) c1 c2) true := by
+  intro hC1 hC2 hC1Bool hC2Bool hC2True
+  change eo_interprets M
+    (__eo_requires (__eo_is_list (Term.UOp UserOp.or) c1) (Term.Boolean true)
+      (__eo_requires (__eo_is_list (Term.UOp UserOp.or) c2) (Term.Boolean true)
+        (__eo_list_concat_rec c1 c2))) true
+  rw [orList_is_list_true hC1, orList_is_list_true hC2]
+  simp [__eo_requires, native_ite, native_teq, native_not, SmtEval.native_not]
+  exact orList_concat_rec_true_of_right_true M hM hC1 hC1Bool hC2Bool
+    hC2True
 
 end CnfSupport
