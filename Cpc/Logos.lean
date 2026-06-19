@@ -2901,6 +2901,10 @@ def __str_re_includes_lhs_star : Term -> Term -> Term
   | (Term.Apply (Term.UOp UserOp.re_mult) r1), (Term.Apply (Term.UOp UserOp.re_mult) r2) => (__eo_ite (__eo_eq r1 r2) (Term.Boolean true) (__str_re_includes_rec r1 r2))
   | (Term.Apply (Term.UOp UserOp.re_mult) r1), r2 => (__eo_ite (__eo_eq r1 r2) (Term.Boolean true) (__str_re_includes_rec r1 r2))
   | r1, r2 => (Term.Boolean false)
+termination_by a b => 4 * (sizeOf a + sizeOf b)
+decreasing_by
+  all_goals simp_wf
+  all_goals omega
 
 
 def __re_is_unbound_wildcard : Term -> Term
@@ -2943,6 +2947,10 @@ def __str_re_includes_rec : Term -> Term -> Term
     let _v0 := (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))
     (__eo_and (__eo_eq r1 (Term.Apply (Term.UOp UserOp.re_mult) (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) (Term.UOp UserOp.re_allchar)) _v0))) (__eo_eq r2 _v0))
   | r1, r3 => (Term.Boolean false)
+termination_by a b => 4 * (sizeOf a + sizeOf b)
+decreasing_by
+  all_goals simp_wf
+  all_goals omega
 
 
 def __str_arith_entail_simple_rec : Term -> Term
@@ -3575,7 +3583,7 @@ def __seq_eval_replace_all_rec : Term -> Term -> Term -> Term -> Term -> Term
 
 def __seq_eval : Term -> Term
   | Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.seq_nth) t) n) => (__seq_element_of_unit (__eo_list_nth (Term.UOp UserOp.str_concat) (__str_nary_intro t) n))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.seq_nth) t) n) => (__eo_requires (__eo_ite (__eo_is_str t) (Term.Boolean false) (__eo_is_z (__str_value_len t))) (Term.Boolean true) (__seq_element_of_unit (__eo_list_nth (Term.UOp UserOp.str_concat) (__str_nary_intro t) n)))
   | (Term.Apply (Term.UOp UserOp.str_len) t) => (__str_value_len (__str_nary_intro t))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t) ts) => (__str_nary_elim (__eo_list_concat (Term.UOp UserOp.str_concat) (__str_nary_intro t) (__str_nary_intro (__seq_eval ts))))
   | (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) t) n) m) => 
