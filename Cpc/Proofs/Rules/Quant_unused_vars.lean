@@ -5500,6 +5500,19 @@ private theorem smtx_typeof_qeq_list_arg_ne_bool
     smtx_typeof_eo_to_smt_binderShape_uop_ne_bool_of_not_quant
       UserOp.eq head tail y (by decide) (by decide)
 
+private theorem smtx_typeof_apply_uop_list_arg_ne_bool
+    (op : UserOp) (a head tail y : Term) :
+    __smtx_typeof
+        (__eo_to_smt
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.UOp op) a)
+              (Term.Apply (Term.Apply Term.__eo_List_cons head) tail))
+            y)) ≠ SmtType.Bool := by
+  simpa [eoBinderShape, eoBinderListCons] using
+    smtx_typeof_eo_to_smt_binderShape_apply_uop_ne_bool
+      op a head tail y
+
 private theorem smtTermFreeVars_eo_to_smt_quantifiers_skolemize_subset
     (t : SmtTerm) (n : native_Nat) {key : SmtVarKey}
     (hMem :

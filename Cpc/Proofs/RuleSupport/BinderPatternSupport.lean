@@ -253,6 +253,142 @@ theorem smtx_typeof_eo_to_smt_exists_of_body_none :
         change __smtx_typeof SmtTerm.None = SmtType.None
         exact TranslationProofs.smtx_typeof_none
 
+theorem eo_to_smt_exists_binderListCons_ne_dt_sel :
+    ∀ (vs x xs : Term) (s : native_String)
+      (d : SmtDatatype) (i j : native_Nat),
+      __eo_to_smt_exists vs (__eo_to_smt (eoBinderListCons x xs)) ≠
+        SmtTerm.DtSel s d i j
+  | Term.__eo_List_nil, x, xs, s, d, i, j => by
+      change
+        SmtTerm.Apply
+            (SmtTerm.Apply SmtTerm.None (__eo_to_smt x))
+            (__eo_to_smt xs) ≠
+          SmtTerm.DtSel s d i j
+      intro h
+      cases h
+  | Term.Apply (Term.Apply Term.__eo_List_cons
+        (Term.Var (Term.String v) T)) tail, x, xs, s, d, i, j => by
+      change
+        SmtTerm.exists v (__eo_to_smt_type T)
+          (__eo_to_smt_exists tail (__eo_to_smt (eoBinderListCons x xs))) ≠
+          SmtTerm.DtSel s d i j
+      intro h
+      cases h
+  | vs, x, xs, s, d, i, j => by
+      cases vs
+      case __eo_List_nil =>
+        change
+          SmtTerm.Apply
+              (SmtTerm.Apply SmtTerm.None (__eo_to_smt x))
+              (__eo_to_smt xs) ≠
+            SmtTerm.DtSel s d i j
+        intro h
+        cases h
+      case Apply f tail =>
+        cases f
+        case Apply f' head =>
+          cases f'
+          case __eo_List_cons =>
+            cases head
+            case Var name T =>
+              cases name
+              case String v =>
+                change
+                  SmtTerm.exists v (__eo_to_smt_type T)
+                    (__eo_to_smt_exists tail
+                      (__eo_to_smt (eoBinderListCons x xs))) ≠
+                    SmtTerm.DtSel s d i j
+                intro h
+                cases h
+              all_goals
+                change SmtTerm.None ≠ SmtTerm.DtSel s d i j
+                intro h
+                cases h
+            all_goals
+              change SmtTerm.None ≠ SmtTerm.DtSel s d i j
+              intro h
+              cases h
+          all_goals
+            change SmtTerm.None ≠ SmtTerm.DtSel s d i j
+            intro h
+            cases h
+        all_goals
+          change SmtTerm.None ≠ SmtTerm.DtSel s d i j
+          intro h
+          cases h
+      all_goals
+        change SmtTerm.None ≠ SmtTerm.DtSel s d i j
+        intro h
+        cases h
+
+theorem eo_to_smt_exists_binderListCons_ne_dt_tester :
+    ∀ (vs x xs : Term) (s : native_String)
+      (d : SmtDatatype) (i : native_Nat),
+      __eo_to_smt_exists vs (__eo_to_smt (eoBinderListCons x xs)) ≠
+        SmtTerm.DtTester s d i
+  | Term.__eo_List_nil, x, xs, s, d, i => by
+      change
+        SmtTerm.Apply
+            (SmtTerm.Apply SmtTerm.None (__eo_to_smt x))
+            (__eo_to_smt xs) ≠
+          SmtTerm.DtTester s d i
+      intro h
+      cases h
+  | Term.Apply (Term.Apply Term.__eo_List_cons
+        (Term.Var (Term.String v) T)) tail, x, xs, s, d, i => by
+      change
+        SmtTerm.exists v (__eo_to_smt_type T)
+          (__eo_to_smt_exists tail (__eo_to_smt (eoBinderListCons x xs))) ≠
+          SmtTerm.DtTester s d i
+      intro h
+      cases h
+  | vs, x, xs, s, d, i => by
+      cases vs
+      case __eo_List_nil =>
+        change
+          SmtTerm.Apply
+              (SmtTerm.Apply SmtTerm.None (__eo_to_smt x))
+              (__eo_to_smt xs) ≠
+            SmtTerm.DtTester s d i
+        intro h
+        cases h
+      case Apply f tail =>
+        cases f
+        case Apply f' head =>
+          cases f'
+          case __eo_List_cons =>
+            cases head
+            case Var name T =>
+              cases name
+              case String v =>
+                change
+                  SmtTerm.exists v (__eo_to_smt_type T)
+                    (__eo_to_smt_exists tail
+                      (__eo_to_smt (eoBinderListCons x xs))) ≠
+                    SmtTerm.DtTester s d i
+                intro h
+                cases h
+              all_goals
+                change SmtTerm.None ≠ SmtTerm.DtTester s d i
+                intro h
+                cases h
+            all_goals
+              change SmtTerm.None ≠ SmtTerm.DtTester s d i
+              intro h
+              cases h
+          all_goals
+            change SmtTerm.None ≠ SmtTerm.DtTester s d i
+            intro h
+            cases h
+        all_goals
+          change SmtTerm.None ≠ SmtTerm.DtTester s d i
+          intro h
+          cases h
+      all_goals
+        change SmtTerm.None ≠ SmtTerm.DtTester s d i
+        intro h
+        cases h
+
 theorem smtx_typeof_ite_term_eq
     (c t e : SmtTerm) :
     __smtx_typeof (SmtTerm.ite c t e) =
@@ -735,6 +871,39 @@ theorem smt_array_deq_diff_type_none_of_first_arg_none
     simp [__eo_to_smt_array_deq_diff,
       TranslationProofs.smtx_typeof_none]
 
+theorem smt_array_deq_diff_type_none_of_second_arg_none
+    (a b : SmtTerm) :
+    __smtx_typeof b = SmtType.None ->
+    __smtx_typeof
+        (__eo_to_smt_array_deq_diff a (__smtx_typeof a) b
+          (__smtx_typeof b)) =
+      SmtType.None := by
+  intro hb
+  rw [hb]
+  cases ha : __smtx_typeof a <;>
+    simp [__eo_to_smt_array_deq_diff,
+      TranslationProofs.smtx_typeof_none]
+
+theorem smt_array_deq_diff_ne_dt_sel
+    (a b : SmtTerm) :
+    ∀ s d i j,
+      __eo_to_smt_array_deq_diff a (__smtx_typeof a) b
+          (__smtx_typeof b) ≠
+        SmtTerm.DtSel s d i j := by
+  intro s d i j h
+  cases ha : __smtx_typeof a <;> cases hb : __smtx_typeof b <;>
+    simp [__eo_to_smt_array_deq_diff, ha, hb] at h
+
+theorem smt_array_deq_diff_ne_dt_tester
+    (a b : SmtTerm) :
+    ∀ s d i,
+      __eo_to_smt_array_deq_diff a (__smtx_typeof a) b
+          (__smtx_typeof b) ≠
+        SmtTerm.DtTester s d i := by
+  intro s d i h
+  cases ha : __smtx_typeof a <;> cases hb : __smtx_typeof b <;>
+    simp [__eo_to_smt_array_deq_diff, ha, hb] at h
+
 theorem smt_sets_deq_diff_type_none_of_first_arg_none
     (a b : SmtTerm) :
     __smtx_typeof a = SmtType.None ->
@@ -748,6 +917,39 @@ theorem smt_sets_deq_diff_type_none_of_first_arg_none
     simp [__eo_to_smt_sets_deq_diff,
       TranslationProofs.smtx_typeof_none]
 
+theorem smt_sets_deq_diff_type_none_of_second_arg_none
+    (a b : SmtTerm) :
+    __smtx_typeof b = SmtType.None ->
+    __smtx_typeof
+        (__eo_to_smt_sets_deq_diff a (__smtx_typeof a) b
+          (__smtx_typeof b)) =
+      SmtType.None := by
+  intro hb
+  rw [hb]
+  cases ha : __smtx_typeof a <;>
+    simp [__eo_to_smt_sets_deq_diff,
+      TranslationProofs.smtx_typeof_none]
+
+theorem smt_sets_deq_diff_ne_dt_sel
+    (a b : SmtTerm) :
+    ∀ s d i j,
+      __eo_to_smt_sets_deq_diff a (__smtx_typeof a) b
+          (__smtx_typeof b) ≠
+        SmtTerm.DtSel s d i j := by
+  intro s d i j h
+  cases ha : __smtx_typeof a <;> cases hb : __smtx_typeof b <;>
+    simp [__eo_to_smt_sets_deq_diff, ha, hb] at h
+
+theorem smt_sets_deq_diff_ne_dt_tester
+    (a b : SmtTerm) :
+    ∀ s d i,
+      __eo_to_smt_sets_deq_diff a (__smtx_typeof a) b
+          (__smtx_typeof b) ≠
+        SmtTerm.DtTester s d i := by
+  intro s d i h
+  cases ha : __smtx_typeof a <;> cases hb : __smtx_typeof b <;>
+    simp [__eo_to_smt_sets_deq_diff, ha, hb] at h
+
 theorem eo_to_smt_set_insert_type_none_of_eo_list_cons
     (x xs : Term) (base : SmtTerm) :
     __smtx_typeof
@@ -755,6 +957,233 @@ theorem eo_to_smt_set_insert_type_none_of_eo_list_cons
       SmtType.None := by
   simp [eoBinderListCons, __eo_to_smt_set_insert,
     TranslationProofs.smtx_typeof_none]
+
+theorem eo_to_smt_set_insert_type_none_of_base_none :
+    ∀ (xs : Term) (base : SmtTerm),
+      __smtx_typeof base = SmtType.None ->
+        __smtx_typeof (__eo_to_smt_set_insert xs base) =
+          SmtType.None
+  | Term.Apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) head)
+      tail, base, hBase => by
+      change
+        __smtx_typeof
+            (SmtTerm.set_union (SmtTerm.set_singleton (__eo_to_smt head))
+              (__eo_to_smt_set_insert tail base)) =
+          SmtType.None
+      exact smt_set_binop_type_none_of_second_arg_none
+        SmtTerm.set_union
+        (SmtTerm.set_singleton (__eo_to_smt head))
+        (__eo_to_smt_set_insert tail base)
+        (fun a b => typeof_set_union_eq a b)
+        (eo_to_smt_set_insert_type_none_of_base_none tail base hBase)
+  | Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) T, base, hBase => by
+      change
+        __smtx_typeof
+            (native_ite
+              (native_Teq (__smtx_typeof base)
+                (SmtType.Set (__eo_to_smt_type T)))
+              base SmtTerm.None) =
+          SmtType.None
+      rw [hBase]
+      simp [native_Teq, native_ite, TranslationProofs.smtx_typeof_none]
+  | xs, base, hBase => by
+      cases xs <;>
+        try
+          simp [__eo_to_smt_set_insert,
+            TranslationProofs.smtx_typeof_none]
+      case Apply f tail =>
+        cases f <;>
+          try
+            simp [__eo_to_smt_set_insert,
+              TranslationProofs.smtx_typeof_none]
+        case UOp op =>
+          cases op <;>
+            try
+              simp [__eo_to_smt_set_insert,
+                TranslationProofs.smtx_typeof_none]
+          case _at__at_TypedList_nil =>
+            change
+              __smtx_typeof
+                  (native_ite
+                    (native_Teq (__smtx_typeof base)
+                      (SmtType.Set (__eo_to_smt_type tail)))
+                    base SmtTerm.None) =
+                SmtType.None
+            rw [hBase]
+            simp [native_Teq, native_ite,
+              TranslationProofs.smtx_typeof_none]
+        case Apply f' head =>
+          cases f' <;>
+            try
+              simp [__eo_to_smt_set_insert,
+                TranslationProofs.smtx_typeof_none]
+          case UOp op =>
+            cases op <;>
+              try
+                simp [__eo_to_smt_set_insert,
+                  TranslationProofs.smtx_typeof_none]
+            case _at__at_TypedList_cons =>
+              change
+                __smtx_typeof
+                    (SmtTerm.set_union
+                      (SmtTerm.set_singleton (__eo_to_smt head))
+                      (__eo_to_smt_set_insert tail base)) =
+                  SmtType.None
+              exact smt_set_binop_type_none_of_second_arg_none
+                SmtTerm.set_union
+                (SmtTerm.set_singleton (__eo_to_smt head))
+                (__eo_to_smt_set_insert tail base)
+                (fun a b => typeof_set_union_eq a b)
+                (eo_to_smt_set_insert_type_none_of_base_none
+                  tail base hBase)
+
+theorem eo_to_smt_set_insert_base_none_ne_dt_sel :
+    ∀ (xs : Term) (base : SmtTerm),
+      __smtx_typeof base = SmtType.None ->
+        ∀ s d i j,
+          __eo_to_smt_set_insert xs base ≠ SmtTerm.DtSel s d i j
+  | Term.Apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) head)
+      tail, base, _hBase, s, d, i, j => by
+      change
+        SmtTerm.set_union (SmtTerm.set_singleton (__eo_to_smt head))
+            (__eo_to_smt_set_insert tail base) ≠
+          SmtTerm.DtSel s d i j
+      intro h
+      cases h
+  | Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) T, base, hBase,
+      s, d, i, j => by
+      change
+        native_ite
+            (native_Teq (__smtx_typeof base)
+              (SmtType.Set (__eo_to_smt_type T)))
+            base SmtTerm.None ≠
+          SmtTerm.DtSel s d i j
+      rw [hBase]
+      simp [native_Teq, native_ite]
+  | xs, base, hBase, s, d, i, j => by
+      cases xs
+      all_goals
+        try
+          (change SmtTerm.None ≠ SmtTerm.DtSel s d i j
+           intro h
+           cases h)
+      case Apply f tail =>
+        cases f
+        all_goals
+          try
+            (change SmtTerm.None ≠ SmtTerm.DtSel s d i j
+             intro h
+             cases h)
+        case UOp op =>
+          cases op
+          case _at__at_TypedList_nil =>
+            change
+              native_ite
+                  (native_Teq (__smtx_typeof base)
+                    (SmtType.Set (__eo_to_smt_type tail)))
+                  base SmtTerm.None ≠
+                SmtTerm.DtSel s d i j
+            rw [hBase]
+            simp [native_Teq, native_ite]
+          all_goals
+            change SmtTerm.None ≠ SmtTerm.DtSel s d i j
+            intro h
+            cases h
+        case Apply f' head =>
+          cases f'
+          all_goals
+            try
+              (change SmtTerm.None ≠ SmtTerm.DtSel s d i j
+               intro h
+               cases h)
+          case UOp op =>
+            cases op
+            case _at__at_TypedList_cons =>
+              change
+                SmtTerm.set_union
+                    (SmtTerm.set_singleton (__eo_to_smt head))
+                    (__eo_to_smt_set_insert tail base) ≠
+                  SmtTerm.DtSel s d i j
+              intro h
+              cases h
+            all_goals
+              change SmtTerm.None ≠ SmtTerm.DtSel s d i j
+              intro h
+              cases h
+
+theorem eo_to_smt_set_insert_base_none_ne_dt_tester :
+    ∀ (xs : Term) (base : SmtTerm),
+      __smtx_typeof base = SmtType.None ->
+        ∀ s d i,
+          __eo_to_smt_set_insert xs base ≠ SmtTerm.DtTester s d i
+  | Term.Apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) head)
+      tail, base, _hBase, s, d, i => by
+      change
+        SmtTerm.set_union (SmtTerm.set_singleton (__eo_to_smt head))
+            (__eo_to_smt_set_insert tail base) ≠
+          SmtTerm.DtTester s d i
+      intro h
+      cases h
+  | Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) T, base, hBase,
+      s, d, i => by
+      change
+        native_ite
+            (native_Teq (__smtx_typeof base)
+              (SmtType.Set (__eo_to_smt_type T)))
+            base SmtTerm.None ≠
+          SmtTerm.DtTester s d i
+      rw [hBase]
+      simp [native_Teq, native_ite]
+  | xs, base, hBase, s, d, i => by
+      cases xs
+      all_goals
+        try
+          (change SmtTerm.None ≠ SmtTerm.DtTester s d i
+           intro h
+           cases h)
+      case Apply f tail =>
+        cases f
+        all_goals
+          try
+            (change SmtTerm.None ≠ SmtTerm.DtTester s d i
+             intro h
+             cases h)
+        case UOp op =>
+          cases op
+          case _at__at_TypedList_nil =>
+            change
+              native_ite
+                  (native_Teq (__smtx_typeof base)
+                    (SmtType.Set (__eo_to_smt_type tail)))
+                  base SmtTerm.None ≠
+                SmtTerm.DtTester s d i
+            rw [hBase]
+            simp [native_Teq, native_ite]
+          all_goals
+            change SmtTerm.None ≠ SmtTerm.DtTester s d i
+            intro h
+            cases h
+        case Apply f' head =>
+          cases f'
+          all_goals
+            try
+              (change SmtTerm.None ≠ SmtTerm.DtTester s d i
+               intro h
+               cases h)
+          case UOp op =>
+            cases op
+            case _at__at_TypedList_cons =>
+              change
+                SmtTerm.set_union
+                    (SmtTerm.set_singleton (__eo_to_smt head))
+                    (__eo_to_smt_set_insert tail base) ≠
+                  SmtTerm.DtTester s d i
+              intro h
+              cases h
+            all_goals
+              change SmtTerm.None ≠ SmtTerm.DtTester s d i
+              intro h
+              cases h
 
 theorem tuple_prepend_tail_type_of_non_none
     (head : SmtTerm) (headTy : SmtType) (tail : SmtTerm) :
@@ -810,6 +1239,22 @@ theorem smt_tuple_prepend_type_none_of_head_none
       TranslationProofs.smtx_tuple_prepend_head_non_none_of_tail_tuple_type
         tail head headTy c hTail hNone
     exact hHeadNN hHead
+
+theorem smt_tuple_prepend_type_none_of_tail_none
+    (head : SmtTerm) (headTy : SmtType) (tail : SmtTerm) :
+    __smtx_typeof tail = SmtType.None ->
+    __smtx_typeof (__eo_to_smt_tuple_prepend head headTy tail) =
+      SmtType.None := by
+  intro hTail
+  by_cases hNone :
+      __smtx_typeof (__eo_to_smt_tuple_prepend head headTy tail) =
+        SmtType.None
+  · exact hNone
+  · exfalso
+    rcases tuple_prepend_tail_type_of_non_none head headTy tail hNone with
+      ⟨c, hTuple⟩
+    rw [hTail] at hTuple
+    cases hTuple
 
 theorem smt_select_type_none_of_first_arg_none
     (a b : SmtTerm) :
@@ -870,6 +1315,14 @@ theorem smt_str_substr_type_none_of_second_arg_none
   intro hb
   rw [typeof_str_substr_eq, hb]
   cases __smtx_typeof a <;> rfl
+
+theorem smt_str_substr_type_none_of_third_arg_none
+    (a b c : SmtTerm) :
+    __smtx_typeof c = SmtType.None ->
+    __smtx_typeof (SmtTerm.str_substr a b c) = SmtType.None := by
+  intro hc
+  rw [typeof_str_substr_eq, hc]
+  simp [__smtx_typeof_str_substr]
 
 theorem smt_str_indexof_type_none_of_second_arg_none
     (a b c : SmtTerm) :
@@ -1250,6 +1703,169 @@ theorem smtx_typeof_eo_to_smt_apply_binderListCons_generic_none
   exact smtx_typeof_apply_eo_to_smt_binderListCons_none
     (__eo_to_smt q) x xs
 
+theorem smtx_typeof_eo_to_smt_apply_generic_none_of_arg_none
+    (f x : Term)
+    (hToSmt :
+      __eo_to_smt (Term.Apply f x) =
+        SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt x))
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.None) :
+    __smtx_typeof (__eo_to_smt (Term.Apply f x)) = SmtType.None := by
+  rw [hToSmt]
+  exact smtx_typeof_apply_of_arg_none
+    (__eo_to_smt f) (__eo_to_smt x) hx
+
+theorem smtx_typeof_eo_to_smt_apply_uop1_none_of_arg_none
+    (op : UserOp1) (idx x : Term)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.None) :
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp1 op idx) x)) =
+      SmtType.None := by
+  cases op
+  case «repeat» =>
+    change
+      __smtx_typeof
+          (SmtTerm.repeat (__eo_to_smt idx) (__eo_to_smt x)) =
+        SmtType.None
+    rw [typeof_repeat_eq, hx]
+    cases __eo_to_smt idx <;> rfl
+  case zero_extend =>
+    change
+      __smtx_typeof
+          (SmtTerm.zero_extend (__eo_to_smt idx) (__eo_to_smt x)) =
+        SmtType.None
+    rw [typeof_zero_extend_eq, hx]
+    cases __eo_to_smt idx <;> rfl
+  case sign_extend =>
+    change
+      __smtx_typeof
+          (SmtTerm.sign_extend (__eo_to_smt idx) (__eo_to_smt x)) =
+        SmtType.None
+    rw [typeof_sign_extend_eq, hx]
+    cases __eo_to_smt idx <;> rfl
+  case rotate_left =>
+    change
+      __smtx_typeof
+          (SmtTerm.rotate_left (__eo_to_smt idx) (__eo_to_smt x)) =
+        SmtType.None
+    rw [typeof_rotate_left_eq, hx]
+    cases __eo_to_smt idx <;> rfl
+  case rotate_right =>
+    change
+      __smtx_typeof
+          (SmtTerm.rotate_right (__eo_to_smt idx) (__eo_to_smt x)) =
+        SmtType.None
+    rw [typeof_rotate_right_eq, hx]
+    cases __eo_to_smt idx <;> rfl
+  case _at_bit =>
+    change
+      __smtx_typeof
+          (SmtTerm.eq
+            (SmtTerm.extract (__eo_to_smt idx) (__eo_to_smt idx)
+              (__eo_to_smt x))
+            (SmtTerm.Binary 1 1)) =
+        SmtType.None
+    have hExt :
+        __smtx_typeof
+            (SmtTerm.extract (__eo_to_smt idx) (__eo_to_smt idx)
+              (__eo_to_smt x)) =
+          SmtType.None := by
+      rw [typeof_extract_eq, hx]
+      cases __eo_to_smt idx <;> rfl
+    rw [typeof_eq_eq, hExt]
+    rfl
+  case re_exp =>
+    change
+      __smtx_typeof
+          (SmtTerm.re_exp (__eo_to_smt idx) (__eo_to_smt x)) =
+        SmtType.None
+    rw [typeof_re_exp_eq, hx]
+    cases __eo_to_smt idx <;> rfl
+  case is =>
+    change
+      __smtx_typeof
+          (SmtTerm.Apply (__eo_to_smt_tester (__eo_to_smt idx))
+            (__eo_to_smt x)) =
+        SmtType.None
+    exact smtx_typeof_apply_of_arg_none
+      (__eo_to_smt_tester (__eo_to_smt idx)) (__eo_to_smt x) hx
+  case tuple_select =>
+    change
+      __smtx_typeof
+          (__eo_to_smt_tuple_select (__smtx_typeof (__eo_to_smt x))
+            (__eo_to_smt idx) (__eo_to_smt x)) =
+        SmtType.None
+    rw [hx]
+    simp [__eo_to_smt_tuple_select]
+  case int_to_bv =>
+    change
+      __smtx_typeof
+          (SmtTerm.int_to_bv (__eo_to_smt idx) (__eo_to_smt x)) =
+        SmtType.None
+    rw [typeof_int_to_bv_eq, hx]
+    cases __eo_to_smt idx <;> rfl
+  all_goals
+    exact smtx_typeof_eo_to_smt_apply_generic_none_of_arg_none
+      _ _ (by rfl) hx
+
+theorem smtx_typeof_eo_to_smt_apply_uop2_none_of_arg_none
+    (op : UserOp2) (idx₁ idx₂ x : Term)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.None) :
+    __smtx_typeof
+        (__eo_to_smt (Term.Apply (Term.UOp2 op idx₁ idx₂) x)) =
+      SmtType.None := by
+  cases op
+  case extract =>
+    change
+      __smtx_typeof
+          (SmtTerm.extract (__eo_to_smt idx₁) (__eo_to_smt idx₂)
+            (__eo_to_smt x)) =
+        SmtType.None
+    rw [typeof_extract_eq, hx]
+    cases __eo_to_smt idx₁ <;> cases __eo_to_smt idx₂ <;> rfl
+  case re_loop =>
+    change
+      __smtx_typeof
+          (SmtTerm.re_loop (__eo_to_smt idx₁) (__eo_to_smt idx₂)
+            (__eo_to_smt x)) =
+        SmtType.None
+    rw [typeof_re_loop_eq, hx]
+    cases __eo_to_smt idx₁ <;> cases __eo_to_smt idx₂ <;> rfl
+  all_goals
+    exact smtx_typeof_eo_to_smt_apply_generic_none_of_arg_none
+      _ _ (by rfl) hx
+
+theorem smtx_typeof_eo_to_smt_apply_uop1_binderListCons_none
+    (op : UserOp1) (idx x xs : Term) :
+    __smtx_typeof
+        (__eo_to_smt
+          (Term.Apply (Term.UOp1 op idx) (eoBinderListCons x xs))) =
+      SmtType.None :=
+  smtx_typeof_eo_to_smt_apply_uop1_none_of_arg_none op idx
+    (eoBinderListCons x xs)
+    (smtx_typeof_eo_to_smt_binderListCons_none x xs)
+
+theorem smtx_typeof_eo_to_smt_apply_uop2_binderListCons_none
+    (op : UserOp2) (idx₁ idx₂ x xs : Term) :
+    __smtx_typeof
+        (__eo_to_smt
+          (Term.Apply (Term.UOp2 op idx₁ idx₂)
+            (eoBinderListCons x xs))) =
+      SmtType.None :=
+  smtx_typeof_eo_to_smt_apply_uop2_none_of_arg_none op idx₁ idx₂
+    (eoBinderListCons x xs)
+    (smtx_typeof_eo_to_smt_binderListCons_none x xs)
+
+theorem smtx_typeof_eo_to_smt_apply_uop3_binderListCons_none
+    (op : UserOp3) (idx₁ idx₂ idx₃ x xs : Term) :
+    __smtx_typeof
+        (__eo_to_smt
+          (Term.Apply (Term.UOp3 op idx₁ idx₂ idx₃)
+            (eoBinderListCons x xs))) =
+      SmtType.None :=
+  smtx_typeof_eo_to_smt_apply_generic_none_of_arg_none
+    (Term.UOp3 op idx₁ idx₂ idx₃) (eoBinderListCons x xs)
+    (by rfl)
+    (smtx_typeof_eo_to_smt_binderListCons_none x xs)
+
 theorem smtx_typeof_apply_apply_eo_to_smt_binderListCons_none
     (f : SmtTerm) (x xs : Term) (body : SmtTerm) :
     __smtx_typeof
@@ -1301,6 +1917,56 @@ theorem smtx_typeof_eo_to_smt_binderShape_outer_apply_none
   exact smtx_typeof_apply_of_head_none_of_non_datatype_head
     (__eo_to_smt (Term.Apply q (eoBinderListCons x xs)))
     (__eo_to_smt body) hSel hTester hHead
+
+theorem smtx_typeof_eo_to_smt_binderShape_uop2_none
+    (op : UserOp2) (idx₁ idx₂ x xs body : Term) :
+    __smtx_typeof
+        (__eo_to_smt
+          (eoBinderShape (Term.UOp2 op idx₁ idx₂) x xs body)) =
+      SmtType.None := by
+  exact smtx_typeof_eo_to_smt_binderShape_outer_apply_none
+    (Term.UOp2 op idx₁ idx₂) x xs body
+    (by rfl)
+    (by
+      intro s d i j hEq
+      cases op <;>
+        dsimp [__eo_to_smt, eoBinderListCons] at hEq <;>
+        cases hEq)
+    (by
+      intro s d i hEq
+      cases op <;>
+        dsimp [__eo_to_smt, eoBinderListCons] at hEq <;>
+        cases hEq)
+    (smtx_typeof_eo_to_smt_apply_uop2_binderListCons_none
+      op idx₁ idx₂ x xs)
+
+theorem smtx_typeof_eo_to_smt_binderShape_uop3_none
+    (op : UserOp3) (idx₁ idx₂ idx₃ x xs body : Term) :
+    __smtx_typeof
+        (__eo_to_smt
+          (eoBinderShape (Term.UOp3 op idx₁ idx₂ idx₃) x xs body)) =
+      SmtType.None := by
+  exact smtx_typeof_eo_to_smt_binderShape_outer_apply_none
+    (Term.UOp3 op idx₁ idx₂ idx₃) x xs body
+    (by rfl)
+    (by
+      intro s d i j hEq
+      change
+        SmtTerm.Apply
+            (__eo_to_smt (Term.UOp3 op idx₁ idx₂ idx₃))
+            (__eo_to_smt (eoBinderListCons x xs)) ≠
+          SmtTerm.DtSel s d i j at hEq
+      cases hEq)
+    (by
+      intro s d i hEq
+      change
+        SmtTerm.Apply
+            (__eo_to_smt (Term.UOp3 op idx₁ idx₂ idx₃))
+            (__eo_to_smt (eoBinderListCons x xs)) ≠
+          SmtTerm.DtTester s d i at hEq
+      cases hEq)
+    (smtx_typeof_eo_to_smt_apply_uop3_binderListCons_none
+      op idx₁ idx₂ idx₃ x xs)
 
 theorem smtx_typeof_eo_to_smt_binderShape_binop_first_none
     (q x xs body : Term)
@@ -1613,6 +2279,251 @@ theorem smtx_typeof_eo_to_smt_binderShape_str_replace_re_second_none
   rw [hToSmt]
   exact smt_str_replace_re_type_none_of_second_arg_none op hTy a
     (__eo_to_smt (eoBinderListCons x xs)) (__eo_to_smt body)
+    (smtx_typeof_eo_to_smt_binderListCons_none x xs)
+
+theorem smtx_typeof_eo_to_smt_apply_apply_bool_binop_second_none
+    (q a x xs : Term)
+    (op : SmtTerm -> SmtTerm -> SmtTerm)
+    (hToSmt :
+      __eo_to_smt (Term.Apply q (eoBinderListCons x xs)) =
+        op (__eo_to_smt a) (__eo_to_smt (eoBinderListCons x xs)))
+    (hArg :
+      __smtx_typeof
+            (op (__eo_to_smt a) (__eo_to_smt (eoBinderListCons x xs))) ≠
+          SmtType.None ->
+        __smtx_typeof (__eo_to_smt (eoBinderListCons x xs)) =
+          SmtType.Bool) :
+    __smtx_typeof (__eo_to_smt (Term.Apply q (eoBinderListCons x xs))) =
+      SmtType.None := by
+  rw [hToSmt]
+  exact smt_bool_binop_type_none_of_second_arg_none op
+    (__eo_to_smt a) (__eo_to_smt (eoBinderListCons x xs))
+    hArg (smtx_typeof_eo_to_smt_binderListCons_none x xs)
+
+theorem smtx_typeof_eo_to_smt_apply_apply_arith_binop_second_none
+    (q a x xs : Term)
+    (op : SmtTerm -> SmtTerm -> SmtTerm)
+    (hToSmt :
+      __eo_to_smt (Term.Apply q (eoBinderListCons x xs)) =
+        op (__eo_to_smt a) (__eo_to_smt (eoBinderListCons x xs)))
+    (hTy :
+      ∀ a b,
+        __smtx_typeof (op a b) =
+          __smtx_typeof_arith_overload_op_2
+            (__smtx_typeof a) (__smtx_typeof b)) :
+    __smtx_typeof (__eo_to_smt (Term.Apply q (eoBinderListCons x xs))) =
+      SmtType.None := by
+  rw [hToSmt]
+  exact smt_arith_overload_binop_type_none_of_second_arg_none op
+    (__eo_to_smt a) (__eo_to_smt (eoBinderListCons x xs))
+    hTy (smtx_typeof_eo_to_smt_binderListCons_none x xs)
+
+theorem smtx_typeof_eo_to_smt_apply_apply_arith_ret_binop_second_none
+    (q a x xs : Term)
+    (op : SmtTerm -> SmtTerm -> SmtTerm) (R : SmtType)
+    (hToSmt :
+      __eo_to_smt (Term.Apply q (eoBinderListCons x xs)) =
+        op (__eo_to_smt a) (__eo_to_smt (eoBinderListCons x xs)))
+    (hTy :
+      ∀ a b,
+        __smtx_typeof (op a b) =
+          __smtx_typeof_arith_overload_op_2_ret
+            (__smtx_typeof a) (__smtx_typeof b) R) :
+    __smtx_typeof (__eo_to_smt (Term.Apply q (eoBinderListCons x xs))) =
+      SmtType.None := by
+  rw [hToSmt]
+  exact smt_arith_overload_ret_binop_type_none_of_second_arg_none op R
+    (__eo_to_smt a) (__eo_to_smt (eoBinderListCons x xs))
+    hTy (smtx_typeof_eo_to_smt_binderListCons_none x xs)
+
+theorem smtx_typeof_eo_to_smt_apply_apply_int_binop_second_none
+    (q a x xs : Term)
+    (op : SmtTerm -> SmtTerm -> SmtTerm) (R : SmtType)
+    (hToSmt :
+      __eo_to_smt (Term.Apply q (eoBinderListCons x xs)) =
+        op (__eo_to_smt a) (__eo_to_smt (eoBinderListCons x xs)))
+    (hTy :
+      ∀ a b,
+        __smtx_typeof (op a b) =
+          native_ite (native_Teq (__smtx_typeof a) SmtType.Int)
+            (native_ite (native_Teq (__smtx_typeof b) SmtType.Int)
+              R SmtType.None)
+            SmtType.None) :
+    __smtx_typeof (__eo_to_smt (Term.Apply q (eoBinderListCons x xs))) =
+      SmtType.None := by
+  rw [hToSmt]
+  exact smt_int_binop_type_none_of_second_arg_none op R
+    (__eo_to_smt a) (__eo_to_smt (eoBinderListCons x xs))
+    hTy (smtx_typeof_eo_to_smt_binderListCons_none x xs)
+
+theorem smtx_typeof_eo_to_smt_apply_apply_bv_binop_second_none
+    (q a x xs : Term)
+    (op : SmtTerm -> SmtTerm -> SmtTerm)
+    (hToSmt :
+      __eo_to_smt (Term.Apply q (eoBinderListCons x xs)) =
+        op (__eo_to_smt a) (__eo_to_smt (eoBinderListCons x xs)))
+    (hTy :
+      ∀ a b,
+        __smtx_typeof (op a b) =
+          __smtx_typeof_bv_op_2
+            (__smtx_typeof a) (__smtx_typeof b)) :
+    __smtx_typeof (__eo_to_smt (Term.Apply q (eoBinderListCons x xs))) =
+      SmtType.None := by
+  rw [hToSmt]
+  exact smt_bv_binop_type_none_of_second_arg_none op
+    (__eo_to_smt a) (__eo_to_smt (eoBinderListCons x xs))
+    hTy (smtx_typeof_eo_to_smt_binderListCons_none x xs)
+
+theorem smtx_typeof_eo_to_smt_apply_apply_bv_ret_binop_second_none
+    (q a x xs : Term)
+    (op : SmtTerm -> SmtTerm -> SmtTerm) (R : SmtType)
+    (hToSmt :
+      __eo_to_smt (Term.Apply q (eoBinderListCons x xs)) =
+        op (__eo_to_smt a) (__eo_to_smt (eoBinderListCons x xs)))
+    (hTy :
+      ∀ a b,
+        __smtx_typeof (op a b) =
+          __smtx_typeof_bv_op_2_ret
+            (__smtx_typeof a) (__smtx_typeof b) R) :
+    __smtx_typeof (__eo_to_smt (Term.Apply q (eoBinderListCons x xs))) =
+      SmtType.None := by
+  rw [hToSmt]
+  exact smt_bv_binop_ret_type_none_of_second_arg_none op R
+    (__eo_to_smt a) (__eo_to_smt (eoBinderListCons x xs))
+    hTy (smtx_typeof_eo_to_smt_binderListCons_none x xs)
+
+theorem smtx_typeof_eo_to_smt_apply_apply_seq_binop_second_none
+    (q a x xs : Term)
+    (op : SmtTerm -> SmtTerm -> SmtTerm)
+    (hToSmt :
+      __eo_to_smt (Term.Apply q (eoBinderListCons x xs)) =
+        op (__eo_to_smt a) (__eo_to_smt (eoBinderListCons x xs)))
+    (hTy :
+      ∀ a b,
+        __smtx_typeof (op a b) =
+          __smtx_typeof_seq_op_2
+            (__smtx_typeof a) (__smtx_typeof b)) :
+    __smtx_typeof (__eo_to_smt (Term.Apply q (eoBinderListCons x xs))) =
+      SmtType.None := by
+  rw [hToSmt]
+  exact smt_seq_binop_type_none_of_second_arg_none op
+    (__eo_to_smt a) (__eo_to_smt (eoBinderListCons x xs))
+    hTy (smtx_typeof_eo_to_smt_binderListCons_none x xs)
+
+theorem smtx_typeof_eo_to_smt_apply_apply_seq_ret_binop_second_none
+    (q a x xs : Term)
+    (op : SmtTerm -> SmtTerm -> SmtTerm) (R : SmtType)
+    (hToSmt :
+      __eo_to_smt (Term.Apply q (eoBinderListCons x xs)) =
+        op (__eo_to_smt a) (__eo_to_smt (eoBinderListCons x xs)))
+    (hTy :
+      ∀ a b,
+        __smtx_typeof (op a b) =
+          __smtx_typeof_seq_op_2_ret
+            (__smtx_typeof a) (__smtx_typeof b) R) :
+    __smtx_typeof (__eo_to_smt (Term.Apply q (eoBinderListCons x xs))) =
+      SmtType.None := by
+  rw [hToSmt]
+  exact smt_seq_binop_ret_type_none_of_second_arg_none op R
+    (__eo_to_smt a) (__eo_to_smt (eoBinderListCons x xs))
+    hTy (smtx_typeof_eo_to_smt_binderListCons_none x xs)
+
+theorem smtx_typeof_eo_to_smt_apply_apply_seq_char_binop_second_none
+    (q a x xs : Term)
+    (op : SmtTerm -> SmtTerm -> SmtTerm) (R : SmtType)
+    (hToSmt :
+      __eo_to_smt (Term.Apply q (eoBinderListCons x xs)) =
+        op (__eo_to_smt a) (__eo_to_smt (eoBinderListCons x xs)))
+    (hTy :
+      ∀ a b,
+        __smtx_typeof (op a b) =
+          native_ite
+            (native_Teq (__smtx_typeof a) (SmtType.Seq SmtType.Char))
+            (native_ite
+              (native_Teq (__smtx_typeof b) (SmtType.Seq SmtType.Char))
+              R SmtType.None)
+            SmtType.None) :
+    __smtx_typeof (__eo_to_smt (Term.Apply q (eoBinderListCons x xs))) =
+      SmtType.None := by
+  rw [hToSmt]
+  exact smt_seq_char_binop_type_none_of_second_arg_none op R
+    (__eo_to_smt a) (__eo_to_smt (eoBinderListCons x xs))
+    hTy (smtx_typeof_eo_to_smt_binderListCons_none x xs)
+
+theorem smtx_typeof_eo_to_smt_apply_apply_set_binop_second_none
+    (q a x xs : Term)
+    (op : SmtTerm -> SmtTerm -> SmtTerm)
+    (hToSmt :
+      __eo_to_smt (Term.Apply q (eoBinderListCons x xs)) =
+        op (__eo_to_smt a) (__eo_to_smt (eoBinderListCons x xs)))
+    (hTy :
+      ∀ a b,
+        __smtx_typeof (op a b) =
+          __smtx_typeof_sets_op_2
+            (__smtx_typeof a) (__smtx_typeof b)) :
+    __smtx_typeof (__eo_to_smt (Term.Apply q (eoBinderListCons x xs))) =
+      SmtType.None := by
+  rw [hToSmt]
+  exact smt_set_binop_type_none_of_second_arg_none op
+    (__eo_to_smt a) (__eo_to_smt (eoBinderListCons x xs))
+    hTy (smtx_typeof_eo_to_smt_binderListCons_none x xs)
+
+theorem smtx_typeof_eo_to_smt_apply_apply_set_ret_binop_second_none
+    (q a x xs : Term)
+    (op : SmtTerm -> SmtTerm -> SmtTerm) (R : SmtType)
+    (hToSmt :
+      __eo_to_smt (Term.Apply q (eoBinderListCons x xs)) =
+        op (__eo_to_smt a) (__eo_to_smt (eoBinderListCons x xs)))
+    (hTy :
+      ∀ a b,
+        __smtx_typeof (op a b) =
+          __smtx_typeof_sets_op_2_ret
+            (__smtx_typeof a) (__smtx_typeof b) R) :
+    __smtx_typeof (__eo_to_smt (Term.Apply q (eoBinderListCons x xs))) =
+      SmtType.None := by
+  rw [hToSmt]
+  exact smt_set_binop_ret_type_none_of_second_arg_none op R
+    (__eo_to_smt a) (__eo_to_smt (eoBinderListCons x xs))
+    hTy (smtx_typeof_eo_to_smt_binderListCons_none x xs)
+
+theorem smtx_typeof_eo_to_smt_apply_apply_reglan_binop_second_none
+    (q a x xs : Term)
+    (op : SmtTerm -> SmtTerm -> SmtTerm)
+    (hToSmt :
+      __eo_to_smt (Term.Apply q (eoBinderListCons x xs)) =
+        op (__eo_to_smt a) (__eo_to_smt (eoBinderListCons x xs)))
+    (hTy :
+      ∀ a b,
+        __smtx_typeof (op a b) =
+          native_ite (native_Teq (__smtx_typeof a) SmtType.RegLan)
+            (native_ite (native_Teq (__smtx_typeof b) SmtType.RegLan)
+              SmtType.RegLan SmtType.None)
+            SmtType.None) :
+    __smtx_typeof (__eo_to_smt (Term.Apply q (eoBinderListCons x xs))) =
+      SmtType.None := by
+  rw [hToSmt]
+  exact smt_reglan_binop_type_none_of_second_arg_none op hTy
+    (__eo_to_smt a) (__eo_to_smt (eoBinderListCons x xs))
+    (smtx_typeof_eo_to_smt_binderListCons_none x xs)
+
+theorem smtx_typeof_eo_to_smt_apply_apply_seq_char_reglan_binop_second_none
+    (q a x xs : Term)
+    (op : SmtTerm -> SmtTerm -> SmtTerm)
+    (hToSmt :
+      __eo_to_smt (Term.Apply q (eoBinderListCons x xs)) =
+        op (__eo_to_smt a) (__eo_to_smt (eoBinderListCons x xs)))
+    (hTy :
+      ∀ a b,
+        __smtx_typeof (op a b) =
+          native_ite (native_Teq (__smtx_typeof a) (SmtType.Seq SmtType.Char))
+            (native_ite (native_Teq (__smtx_typeof b) SmtType.RegLan)
+              SmtType.Bool SmtType.None)
+            SmtType.None) :
+    __smtx_typeof (__eo_to_smt (Term.Apply q (eoBinderListCons x xs))) =
+      SmtType.None := by
+  rw [hToSmt]
+  exact smt_seq_char_reglan_binop_type_none_of_second_arg_none op hTy
+    (__eo_to_smt a) (__eo_to_smt (eoBinderListCons x xs))
     (smtx_typeof_eo_to_smt_binderListCons_none x xs)
 
 theorem smtx_typeof_eo_to_smt_apply_not_binderListCons_none
@@ -2080,6 +2991,700 @@ theorem smtx_typeof_eo_to_smt_apply_apply_exists_binderListCons_none
         exact smtx_typeof_eo_to_smt_exists_of_body_none _
           (__eo_to_smt (eoBinderListCons x xs))
           (smtx_typeof_eo_to_smt_binderListCons_none x xs)
+
+theorem eo_to_smt_apply_apply_forall_binderListCons_ne_dt_sel
+    (a x xs : Term) :
+    ∀ s d i j,
+      __eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.forall) a)
+            (eoBinderListCons x xs)) ≠
+        SmtTerm.DtSel s d i j := by
+  intro s d i j
+  by_cases ha : a = Term.__eo_List_nil
+  · subst a
+    change SmtTerm.None ≠ SmtTerm.DtSel s d i j
+    intro h
+    cases h
+  · cases a
+    all_goals
+      first
+      | exact False.elim (ha rfl)
+      | change
+          SmtTerm.not
+              (__eo_to_smt_exists _
+                (SmtTerm.not (__eo_to_smt (eoBinderListCons x xs)))) ≠
+            SmtTerm.DtSel s d i j
+        intro h
+        cases h
+
+theorem eo_to_smt_apply_apply_forall_binderListCons_ne_dt_tester
+    (a x xs : Term) :
+    ∀ s d i,
+      __eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.forall) a)
+            (eoBinderListCons x xs)) ≠
+        SmtTerm.DtTester s d i := by
+  intro s d i
+  by_cases ha : a = Term.__eo_List_nil
+  · subst a
+    change SmtTerm.None ≠ SmtTerm.DtTester s d i
+    intro h
+    cases h
+  · cases a
+    all_goals
+      first
+      | exact False.elim (ha rfl)
+      | change
+          SmtTerm.not
+              (__eo_to_smt_exists _
+                (SmtTerm.not (__eo_to_smt (eoBinderListCons x xs)))) ≠
+            SmtTerm.DtTester s d i
+        intro h
+        cases h
+
+theorem eo_to_smt_apply_apply_exists_binderListCons_ne_dt_sel
+    (a x xs : Term) :
+    ∀ s d i j,
+      __eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.exists) a)
+            (eoBinderListCons x xs)) ≠
+        SmtTerm.DtSel s d i j := by
+  intro s d i j
+  by_cases ha : a = Term.__eo_List_nil
+  · subst a
+    change SmtTerm.None ≠ SmtTerm.DtSel s d i j
+    intro h
+    cases h
+  · cases a
+    all_goals
+      first
+      | exact False.elim (ha rfl)
+      | change
+          __eo_to_smt_exists _ (__eo_to_smt (eoBinderListCons x xs)) ≠
+            SmtTerm.DtSel s d i j
+        exact eo_to_smt_exists_binderListCons_ne_dt_sel
+          _ x xs s d i j
+
+theorem eo_to_smt_apply_apply_exists_binderListCons_ne_dt_tester
+    (a x xs : Term) :
+    ∀ s d i,
+      __eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.exists) a)
+            (eoBinderListCons x xs)) ≠
+        SmtTerm.DtTester s d i := by
+  intro s d i
+  by_cases ha : a = Term.__eo_List_nil
+  · subst a
+    change SmtTerm.None ≠ SmtTerm.DtTester s d i
+    intro h
+    cases h
+  · cases a
+    all_goals
+      first
+      | exact False.elim (ha rfl)
+      | change
+          __eo_to_smt_exists _ (__eo_to_smt (eoBinderListCons x xs)) ≠
+            SmtTerm.DtTester s d i
+        exact eo_to_smt_exists_binderListCons_ne_dt_tester
+          _ x xs s d i
+
+theorem smtx_typeof_eo_to_smt_apply_apply_uop_binderListCons_none
+    (op : UserOp) (a x xs : Term) :
+    __smtx_typeof
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp op) a)
+            (eoBinderListCons x xs))) =
+      SmtType.None := by
+  cases op
+  case «forall» =>
+    exact smtx_typeof_eo_to_smt_apply_apply_forall_binderListCons_none
+      a x xs
+  case «exists» =>
+    exact smtx_typeof_eo_to_smt_apply_apply_exists_binderListCons_none
+      a x xs
+  case or =>
+    exact smtx_typeof_eo_to_smt_apply_apply_bool_binop_second_none
+      (Term.Apply (Term.UOp UserOp.or) a) a x xs SmtTerm.or (by rfl)
+      (fun h =>
+        (bool_binop_args_bool_of_non_none (op := SmtTerm.or)
+          (typeof_or_eq (__eo_to_smt a)
+            (__eo_to_smt (eoBinderListCons x xs)))
+          (by
+            unfold term_has_non_none_type
+            exact h)).2)
+  case and =>
+    exact smtx_typeof_eo_to_smt_apply_apply_bool_binop_second_none
+      (Term.Apply (Term.UOp UserOp.and) a) a x xs SmtTerm.and (by rfl)
+      (fun h =>
+        (bool_binop_args_bool_of_non_none (op := SmtTerm.and)
+          (typeof_and_eq (__eo_to_smt a)
+            (__eo_to_smt (eoBinderListCons x xs)))
+          (by
+            unfold term_has_non_none_type
+            exact h)).2)
+  case imp =>
+    exact smtx_typeof_eo_to_smt_apply_apply_bool_binop_second_none
+      (Term.Apply (Term.UOp UserOp.imp) a) a x xs SmtTerm.imp (by rfl)
+      (fun h =>
+        (bool_binop_args_bool_of_non_none (op := SmtTerm.imp)
+          (typeof_imp_eq (__eo_to_smt a)
+            (__eo_to_smt (eoBinderListCons x xs)))
+          (by
+            unfold term_has_non_none_type
+            exact h)).2)
+  case xor =>
+    exact smtx_typeof_eo_to_smt_apply_apply_bool_binop_second_none
+      (Term.Apply (Term.UOp UserOp.xor) a) a x xs SmtTerm.xor (by rfl)
+      (fun h =>
+        (bool_binop_args_bool_of_non_none (op := SmtTerm.xor)
+          (typeof_xor_eq (__eo_to_smt a)
+            (__eo_to_smt (eoBinderListCons x xs)))
+          (by
+            unfold term_has_non_none_type
+            exact h)).2)
+  case eq =>
+    change
+      __smtx_typeof
+          (SmtTerm.eq (__eo_to_smt a)
+            (__eo_to_smt (eoBinderListCons x xs))) =
+        SmtType.None
+    exact smt_eq_type_none_of_second_arg_none
+      (__eo_to_smt a) (__eo_to_smt (eoBinderListCons x xs))
+      (smtx_typeof_eo_to_smt_binderListCons_none x xs)
+  case plus =>
+    exact smtx_typeof_eo_to_smt_apply_apply_arith_binop_second_none
+      (Term.Apply (Term.UOp UserOp.plus) a) a x xs SmtTerm.plus
+      (by rfl) (fun a b => typeof_plus_eq a b)
+  case neg =>
+    exact smtx_typeof_eo_to_smt_apply_apply_arith_binop_second_none
+      (Term.Apply (Term.UOp UserOp.neg) a) a x xs SmtTerm.neg
+      (by rfl) (fun a b => typeof_neg_eq a b)
+  case mult =>
+    exact smtx_typeof_eo_to_smt_apply_apply_arith_binop_second_none
+      (Term.Apply (Term.UOp UserOp.mult) a) a x xs SmtTerm.mult
+      (by rfl) (fun a b => typeof_mult_eq a b)
+  case lt =>
+    exact smtx_typeof_eo_to_smt_apply_apply_arith_ret_binop_second_none
+      (Term.Apply (Term.UOp UserOp.lt) a) a x xs SmtTerm.lt
+      SmtType.Bool (by rfl) (fun a b => typeof_lt_eq a b)
+  case leq =>
+    exact smtx_typeof_eo_to_smt_apply_apply_arith_ret_binop_second_none
+      (Term.Apply (Term.UOp UserOp.leq) a) a x xs SmtTerm.leq
+      SmtType.Bool (by rfl) (fun a b => typeof_leq_eq a b)
+  case gt =>
+    exact smtx_typeof_eo_to_smt_apply_apply_arith_ret_binop_second_none
+      (Term.Apply (Term.UOp UserOp.gt) a) a x xs SmtTerm.gt
+      SmtType.Bool (by rfl) (fun a b => typeof_gt_eq a b)
+  case geq =>
+    exact smtx_typeof_eo_to_smt_apply_apply_arith_ret_binop_second_none
+      (Term.Apply (Term.UOp UserOp.geq) a) a x xs SmtTerm.geq
+      SmtType.Bool (by rfl) (fun a b => typeof_geq_eq a b)
+  case div =>
+    exact smtx_typeof_eo_to_smt_apply_apply_int_binop_second_none
+      (Term.Apply (Term.UOp UserOp.div) a) a x xs SmtTerm.div
+      SmtType.Int (by rfl) (fun a b => typeof_div_eq a b)
+  case mod =>
+    exact smtx_typeof_eo_to_smt_apply_apply_int_binop_second_none
+      (Term.Apply (Term.UOp UserOp.mod) a) a x xs SmtTerm.mod
+      SmtType.Int (by rfl) (fun a b => typeof_mod_eq a b)
+  case multmult =>
+    exact smtx_typeof_eo_to_smt_apply_apply_int_binop_second_none
+      (Term.Apply (Term.UOp UserOp.multmult) a) a x xs
+      SmtTerm.multmult SmtType.Int (by rfl)
+      (fun a b => typeof_multmult_eq a b)
+  case divisible =>
+    exact smtx_typeof_eo_to_smt_apply_apply_int_binop_second_none
+      (Term.Apply (Term.UOp UserOp.divisible) a) a x xs
+      SmtTerm.divisible SmtType.Bool (by rfl)
+      (fun a b => typeof_divisible_eq a b)
+  case div_total =>
+    exact smtx_typeof_eo_to_smt_apply_apply_int_binop_second_none
+      (Term.Apply (Term.UOp UserOp.div_total) a) a x xs
+      SmtTerm.div_total SmtType.Int (by rfl)
+      (fun a b => typeof_div_total_eq a b)
+  case mod_total =>
+    exact smtx_typeof_eo_to_smt_apply_apply_int_binop_second_none
+      (Term.Apply (Term.UOp UserOp.mod_total) a) a x xs
+      SmtTerm.mod_total SmtType.Int (by rfl)
+      (fun a b => typeof_mod_total_eq a b)
+  case multmult_total =>
+    exact smtx_typeof_eo_to_smt_apply_apply_int_binop_second_none
+      (Term.Apply (Term.UOp UserOp.multmult_total) a) a x xs
+      SmtTerm.multmult_total SmtType.Int (by rfl)
+      (fun a b => typeof_multmult_total_eq a b)
+  case select =>
+    change
+      __smtx_typeof
+          (SmtTerm.select (__eo_to_smt a)
+            (__eo_to_smt (eoBinderListCons x xs))) =
+        SmtType.None
+    exact smt_select_type_none_of_second_arg_none
+      (__eo_to_smt a) (__eo_to_smt (eoBinderListCons x xs))
+      (smtx_typeof_eo_to_smt_binderListCons_none x xs)
+  case _at_array_deq_diff =>
+    change
+      __smtx_typeof
+          (__eo_to_smt_array_deq_diff (__eo_to_smt a)
+            (__smtx_typeof (__eo_to_smt a))
+            (__eo_to_smt (eoBinderListCons x xs))
+            (__smtx_typeof (__eo_to_smt (eoBinderListCons x xs)))) =
+        SmtType.None
+    exact smt_array_deq_diff_type_none_of_second_arg_none
+      (__eo_to_smt a) (__eo_to_smt (eoBinderListCons x xs))
+      (smtx_typeof_eo_to_smt_binderListCons_none x xs)
+  case concat =>
+    change
+      __smtx_typeof
+          (SmtTerm.concat (__eo_to_smt a)
+            (__eo_to_smt (eoBinderListCons x xs))) =
+        SmtType.None
+    exact smt_concat_type_none_of_second_arg_none
+      (__eo_to_smt a) (__eo_to_smt (eoBinderListCons x xs))
+      (smtx_typeof_eo_to_smt_binderListCons_none x xs)
+  case bvand =>
+    exact smtx_typeof_eo_to_smt_apply_apply_bv_binop_second_none
+      (Term.Apply (Term.UOp UserOp.bvand) a) a x xs SmtTerm.bvand
+      (by rfl) (fun a b => by rw [__smtx_typeof.eq_39])
+  case bvor =>
+    exact smtx_typeof_eo_to_smt_apply_apply_bv_binop_second_none
+      (Term.Apply (Term.UOp UserOp.bvor) a) a x xs SmtTerm.bvor
+      (by rfl) (fun a b => by rw [__smtx_typeof.eq_40])
+  case bvnand =>
+    exact smtx_typeof_eo_to_smt_apply_apply_bv_binop_second_none
+      (Term.Apply (Term.UOp UserOp.bvnand) a) a x xs SmtTerm.bvnand
+      (by rfl) (fun a b => by rw [__smtx_typeof.eq_41])
+  case bvnor =>
+    exact smtx_typeof_eo_to_smt_apply_apply_bv_binop_second_none
+      (Term.Apply (Term.UOp UserOp.bvnor) a) a x xs SmtTerm.bvnor
+      (by rfl) (fun a b => by rw [__smtx_typeof.eq_42])
+  case bvxor =>
+    exact smtx_typeof_eo_to_smt_apply_apply_bv_binop_second_none
+      (Term.Apply (Term.UOp UserOp.bvxor) a) a x xs SmtTerm.bvxor
+      (by rfl) (fun a b => by rw [__smtx_typeof.eq_43])
+  case bvxnor =>
+    exact smtx_typeof_eo_to_smt_apply_apply_bv_binop_second_none
+      (Term.Apply (Term.UOp UserOp.bvxnor) a) a x xs SmtTerm.bvxnor
+      (by rfl) (fun a b => by rw [__smtx_typeof.eq_44])
+  case bvcomp =>
+    exact smtx_typeof_eo_to_smt_apply_apply_bv_ret_binop_second_none
+      (Term.Apply (Term.UOp UserOp.bvcomp) a) a x xs SmtTerm.bvcomp
+      (SmtType.BitVec 1) (by rfl) (fun a b => by rw [__smtx_typeof.eq_45])
+  case bvadd =>
+    exact smtx_typeof_eo_to_smt_apply_apply_bv_binop_second_none
+      (Term.Apply (Term.UOp UserOp.bvadd) a) a x xs SmtTerm.bvadd
+      (by rfl) (fun a b => by rw [__smtx_typeof.eq_47])
+  case bvmul =>
+    exact smtx_typeof_eo_to_smt_apply_apply_bv_binop_second_none
+      (Term.Apply (Term.UOp UserOp.bvmul) a) a x xs SmtTerm.bvmul
+      (by rfl) (fun a b => by rw [__smtx_typeof.eq_48])
+  case bvudiv =>
+    exact smtx_typeof_eo_to_smt_apply_apply_bv_binop_second_none
+      (Term.Apply (Term.UOp UserOp.bvudiv) a) a x xs SmtTerm.bvudiv
+      (by rfl) (fun a b => by rw [__smtx_typeof.eq_49])
+  case bvurem =>
+    exact smtx_typeof_eo_to_smt_apply_apply_bv_binop_second_none
+      (Term.Apply (Term.UOp UserOp.bvurem) a) a x xs SmtTerm.bvurem
+      (by rfl) (fun a b => by rw [__smtx_typeof.eq_50])
+  case bvsub =>
+    exact smtx_typeof_eo_to_smt_apply_apply_bv_binop_second_none
+      (Term.Apply (Term.UOp UserOp.bvsub) a) a x xs SmtTerm.bvsub
+      (by rfl) (fun a b => by rw [__smtx_typeof.eq_51])
+  case bvsdiv =>
+    exact smtx_typeof_eo_to_smt_apply_apply_bv_binop_second_none
+      (Term.Apply (Term.UOp UserOp.bvsdiv) a) a x xs SmtTerm.bvsdiv
+      (by rfl) (fun a b => by rw [__smtx_typeof.eq_52])
+  case bvsrem =>
+    exact smtx_typeof_eo_to_smt_apply_apply_bv_binop_second_none
+      (Term.Apply (Term.UOp UserOp.bvsrem) a) a x xs SmtTerm.bvsrem
+      (by rfl) (fun a b => by rw [__smtx_typeof.eq_53])
+  case bvsmod =>
+    exact smtx_typeof_eo_to_smt_apply_apply_bv_binop_second_none
+      (Term.Apply (Term.UOp UserOp.bvsmod) a) a x xs SmtTerm.bvsmod
+      (by rfl) (fun a b => by rw [__smtx_typeof.eq_54])
+  case bvult =>
+    exact smtx_typeof_eo_to_smt_apply_apply_bv_ret_binop_second_none
+      (Term.Apply (Term.UOp UserOp.bvult) a) a x xs SmtTerm.bvult
+      SmtType.Bool (by rfl) (fun a b => by rw [__smtx_typeof.eq_55])
+  case bvule =>
+    exact smtx_typeof_eo_to_smt_apply_apply_bv_ret_binop_second_none
+      (Term.Apply (Term.UOp UserOp.bvule) a) a x xs SmtTerm.bvule
+      SmtType.Bool (by rfl) (fun a b => by rw [__smtx_typeof.eq_56])
+  case bvugt =>
+    exact smtx_typeof_eo_to_smt_apply_apply_bv_ret_binop_second_none
+      (Term.Apply (Term.UOp UserOp.bvugt) a) a x xs SmtTerm.bvugt
+      SmtType.Bool (by rfl) (fun a b => by rw [__smtx_typeof.eq_57])
+  case bvuge =>
+    exact smtx_typeof_eo_to_smt_apply_apply_bv_ret_binop_second_none
+      (Term.Apply (Term.UOp UserOp.bvuge) a) a x xs SmtTerm.bvuge
+      SmtType.Bool (by rfl) (fun a b => by rw [__smtx_typeof.eq_58])
+  case bvslt =>
+    exact smtx_typeof_eo_to_smt_apply_apply_bv_ret_binop_second_none
+      (Term.Apply (Term.UOp UserOp.bvslt) a) a x xs SmtTerm.bvslt
+      SmtType.Bool (by rfl) (fun a b => by rw [__smtx_typeof.eq_59])
+  case bvsle =>
+    exact smtx_typeof_eo_to_smt_apply_apply_bv_ret_binop_second_none
+      (Term.Apply (Term.UOp UserOp.bvsle) a) a x xs SmtTerm.bvsle
+      SmtType.Bool (by rfl) (fun a b => by rw [__smtx_typeof.eq_60])
+  case bvsgt =>
+    exact smtx_typeof_eo_to_smt_apply_apply_bv_ret_binop_second_none
+      (Term.Apply (Term.UOp UserOp.bvsgt) a) a x xs SmtTerm.bvsgt
+      SmtType.Bool (by rfl) (fun a b => by rw [__smtx_typeof.eq_61])
+  case bvsge =>
+    exact smtx_typeof_eo_to_smt_apply_apply_bv_ret_binop_second_none
+      (Term.Apply (Term.UOp UserOp.bvsge) a) a x xs SmtTerm.bvsge
+      SmtType.Bool (by rfl) (fun a b => by rw [__smtx_typeof.eq_62])
+  case bvshl =>
+    exact smtx_typeof_eo_to_smt_apply_apply_bv_binop_second_none
+      (Term.Apply (Term.UOp UserOp.bvshl) a) a x xs SmtTerm.bvshl
+      (by rfl) (fun a b => by rw [__smtx_typeof.eq_63])
+  case bvlshr =>
+    exact smtx_typeof_eo_to_smt_apply_apply_bv_binop_second_none
+      (Term.Apply (Term.UOp UserOp.bvlshr) a) a x xs SmtTerm.bvlshr
+      (by rfl) (fun a b => by rw [__smtx_typeof.eq_64])
+  case bvashr =>
+    exact smtx_typeof_eo_to_smt_apply_apply_bv_binop_second_none
+      (Term.Apply (Term.UOp UserOp.bvashr) a) a x xs SmtTerm.bvashr
+      (by rfl) (fun a b => by rw [__smtx_typeof.eq_65])
+  case bvuaddo =>
+    exact smtx_typeof_eo_to_smt_apply_apply_bv_ret_binop_second_none
+      (Term.Apply (Term.UOp UserOp.bvuaddo) a) a x xs SmtTerm.bvuaddo
+      SmtType.Bool (by rfl) (fun a b => by rw [__smtx_typeof.eq_70])
+  case bvsaddo =>
+    exact smtx_typeof_eo_to_smt_apply_apply_bv_ret_binop_second_none
+      (Term.Apply (Term.UOp UserOp.bvsaddo) a) a x xs SmtTerm.bvsaddo
+      SmtType.Bool (by rfl) (fun a b => by rw [__smtx_typeof.eq_72])
+  case bvumulo =>
+    exact smtx_typeof_eo_to_smt_apply_apply_bv_ret_binop_second_none
+      (Term.Apply (Term.UOp UserOp.bvumulo) a) a x xs SmtTerm.bvumulo
+      SmtType.Bool (by rfl) (fun a b => by rw [__smtx_typeof.eq_73])
+  case bvsmulo =>
+    exact smtx_typeof_eo_to_smt_apply_apply_bv_ret_binop_second_none
+      (Term.Apply (Term.UOp UserOp.bvsmulo) a) a x xs SmtTerm.bvsmulo
+      SmtType.Bool (by rfl) (fun a b => by rw [__smtx_typeof.eq_74])
+  case bvusubo =>
+    exact smtx_typeof_eo_to_smt_apply_apply_bv_ret_binop_second_none
+      (Term.Apply (Term.UOp UserOp.bvusubo) a) a x xs SmtTerm.bvusubo
+      SmtType.Bool (by rfl) (fun a b => by rw [__smtx_typeof.eq_75])
+  case bvssubo =>
+    exact smtx_typeof_eo_to_smt_apply_apply_bv_ret_binop_second_none
+      (Term.Apply (Term.UOp UserOp.bvssubo) a) a x xs SmtTerm.bvssubo
+      SmtType.Bool (by rfl) (fun a b => by rw [__smtx_typeof.eq_76])
+  case bvsdivo =>
+    exact smtx_typeof_eo_to_smt_apply_apply_bv_ret_binop_second_none
+      (Term.Apply (Term.UOp UserOp.bvsdivo) a) a x xs SmtTerm.bvsdivo
+      SmtType.Bool (by rfl) (fun a b => by rw [__smtx_typeof.eq_77])
+  case bvultbv =>
+    change
+      __smtx_typeof
+          (SmtTerm.ite
+            (SmtTerm.bvult (__eo_to_smt a)
+              (__eo_to_smt (eoBinderListCons x xs)))
+            (SmtTerm.Binary 1 1) (SmtTerm.Binary 1 0)) =
+        SmtType.None
+    have hCond :
+        __smtx_typeof
+            (SmtTerm.bvult (__eo_to_smt a)
+              (__eo_to_smt (eoBinderListCons x xs))) =
+          SmtType.None :=
+      smt_bv_binop_ret_type_none_of_second_arg_none SmtTerm.bvult
+        SmtType.Bool (__eo_to_smt a)
+        (__eo_to_smt (eoBinderListCons x xs))
+        (fun a b => by rw [__smtx_typeof.eq_55])
+        (smtx_typeof_eo_to_smt_binderListCons_none x xs)
+    exact smt_ite_type_none_of_cond_arg_none
+      (SmtTerm.bvult (__eo_to_smt a)
+        (__eo_to_smt (eoBinderListCons x xs)))
+      (SmtTerm.Binary 1 1) (SmtTerm.Binary 1 0) hCond
+  case bvsltbv =>
+    change
+      __smtx_typeof
+          (SmtTerm.ite
+            (SmtTerm.bvslt (__eo_to_smt a)
+              (__eo_to_smt (eoBinderListCons x xs)))
+            (SmtTerm.Binary 1 1) (SmtTerm.Binary 1 0)) =
+        SmtType.None
+    have hCond :
+        __smtx_typeof
+            (SmtTerm.bvslt (__eo_to_smt a)
+              (__eo_to_smt (eoBinderListCons x xs))) =
+          SmtType.None :=
+      smt_bv_binop_ret_type_none_of_second_arg_none SmtTerm.bvslt
+        SmtType.Bool (__eo_to_smt a)
+        (__eo_to_smt (eoBinderListCons x xs))
+        (fun a b => by rw [__smtx_typeof.eq_59])
+        (smtx_typeof_eo_to_smt_binderListCons_none x xs)
+    exact smt_ite_type_none_of_cond_arg_none
+      (SmtTerm.bvslt (__eo_to_smt a)
+        (__eo_to_smt (eoBinderListCons x xs)))
+      (SmtTerm.Binary 1 1) (SmtTerm.Binary 1 0) hCond
+  case _at_from_bools =>
+    change
+      __smtx_typeof
+          (SmtTerm.concat
+            (SmtTerm.ite (__eo_to_smt a)
+              (SmtTerm.Binary 1 1) (SmtTerm.Binary 1 0))
+            (__eo_to_smt (eoBinderListCons x xs))) =
+        SmtType.None
+    exact smt_concat_type_none_of_second_arg_none
+      (SmtTerm.ite (__eo_to_smt a)
+        (SmtTerm.Binary 1 1) (SmtTerm.Binary 1 0))
+      (__eo_to_smt (eoBinderListCons x xs))
+      (smtx_typeof_eo_to_smt_binderListCons_none x xs)
+  case str_concat =>
+    exact smtx_typeof_eo_to_smt_apply_apply_seq_binop_second_none
+      (Term.Apply (Term.UOp UserOp.str_concat) a) a x xs
+      SmtTerm.str_concat (by rfl) (fun a b => typeof_str_concat_eq a b)
+  case _at_strings_deq_diff =>
+    change
+      __smtx_typeof
+          (SmtTerm.choice_nth (native_string_lit "@x") SmtType.Int
+            (SmtTerm.not
+              (SmtTerm.eq
+                (SmtTerm.str_substr (__eo_to_smt a)
+                  (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
+                  (SmtTerm.Numeral 1))
+                (SmtTerm.str_substr (__eo_to_smt (eoBinderListCons x xs))
+                  (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
+                  (SmtTerm.Numeral 1))))
+            native_nat_zero) =
+        SmtType.None
+    have hRightSub :
+        __smtx_typeof
+            (SmtTerm.str_substr (__eo_to_smt (eoBinderListCons x xs))
+              (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
+              (SmtTerm.Numeral 1)) =
+          SmtType.None := by
+      rw [typeof_str_substr_eq,
+        smtx_typeof_eo_to_smt_binderListCons_none]
+      cases __smtx_typeof
+          (SmtTerm.Var (native_string_lit "@x") SmtType.Int) <;>
+        rfl
+    have hBody :
+        __smtx_typeof
+            (SmtTerm.not
+              (SmtTerm.eq
+                (SmtTerm.str_substr (__eo_to_smt a)
+                  (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
+                  (SmtTerm.Numeral 1))
+                (SmtTerm.str_substr (__eo_to_smt (eoBinderListCons x xs))
+                  (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
+                  (SmtTerm.Numeral 1)))) =
+          SmtType.None := by
+      rw [typeof_not_eq, typeof_eq_eq, hRightSub]
+      cases __smtx_typeof
+          (SmtTerm.str_substr (__eo_to_smt a)
+            (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
+            (SmtTerm.Numeral 1)) <;>
+        simp [__smtx_typeof_eq, __smtx_typeof_guard, native_ite,
+          native_Teq]
+    rw [smtx_typeof_choice_nth_term_eq]
+    simp [__smtx_typeof_choice_nth, hBody, native_ite, native_Teq]
+  case str_contains =>
+    exact smtx_typeof_eo_to_smt_apply_apply_seq_ret_binop_second_none
+      (Term.Apply (Term.UOp UserOp.str_contains) a) a x xs
+      SmtTerm.str_contains SmtType.Bool (by rfl)
+      (fun a b => typeof_str_contains_eq a b)
+  case str_at =>
+    change
+      __smtx_typeof
+          (SmtTerm.str_at (__eo_to_smt a)
+            (__eo_to_smt (eoBinderListCons x xs))) =
+        SmtType.None
+    rw [typeof_str_at_eq, smtx_typeof_eo_to_smt_binderListCons_none]
+    cases __smtx_typeof (__eo_to_smt a) <;> rfl
+  case str_prefixof =>
+    exact smtx_typeof_eo_to_smt_apply_apply_seq_char_binop_second_none
+      (Term.Apply (Term.UOp UserOp.str_prefixof) a) a x xs
+      SmtTerm.str_prefixof SmtType.Bool (by rfl)
+      (fun a b => typeof_str_prefixof_eq a b)
+  case str_suffixof =>
+    exact smtx_typeof_eo_to_smt_apply_apply_seq_char_binop_second_none
+      (Term.Apply (Term.UOp UserOp.str_suffixof) a) a x xs
+      SmtTerm.str_suffixof SmtType.Bool (by rfl)
+      (fun a b => typeof_str_suffixof_eq a b)
+  case str_lt =>
+    exact smtx_typeof_eo_to_smt_apply_apply_seq_char_binop_second_none
+      (Term.Apply (Term.UOp UserOp.str_lt) a) a x xs
+      SmtTerm.str_lt SmtType.Bool (by rfl)
+      (fun a b => typeof_str_lt_eq a b)
+  case str_leq =>
+    exact smtx_typeof_eo_to_smt_apply_apply_seq_char_binop_second_none
+      (Term.Apply (Term.UOp UserOp.str_leq) a) a x xs
+      SmtTerm.str_leq SmtType.Bool (by rfl)
+      (fun a b => typeof_str_leq_eq a b)
+  case seq_nth =>
+    change
+      __smtx_typeof
+          (SmtTerm.seq_nth (__eo_to_smt a)
+            (__eo_to_smt (eoBinderListCons x xs))) =
+        SmtType.None
+    rw [typeof_seq_nth_eq, smtx_typeof_eo_to_smt_binderListCons_none]
+    cases __smtx_typeof (__eo_to_smt a) <;> rfl
+  case _at_strings_stoi_result =>
+    change
+      __smtx_typeof
+          (SmtTerm.str_to_int
+            (SmtTerm.str_substr (__eo_to_smt a)
+              (SmtTerm.Numeral 0)
+              (__eo_to_smt (eoBinderListCons x xs)))) =
+        SmtType.None
+    have hSub :
+        __smtx_typeof
+            (SmtTerm.str_substr (__eo_to_smt a)
+              (SmtTerm.Numeral 0)
+              (__eo_to_smt (eoBinderListCons x xs))) =
+          SmtType.None := by
+      exact smt_str_substr_type_none_of_third_arg_none
+        (__eo_to_smt a) (SmtTerm.Numeral 0)
+        (__eo_to_smt (eoBinderListCons x xs))
+        (smtx_typeof_eo_to_smt_binderListCons_none x xs)
+    rw [typeof_str_to_int_eq, hSub]
+    rfl
+  case _at_strings_itos_result =>
+    change
+      __smtx_typeof
+          (SmtTerm.mod (__eo_to_smt a)
+            (SmtTerm.multmult (SmtTerm.Numeral 10)
+              (__eo_to_smt (eoBinderListCons x xs)))) =
+        SmtType.None
+    have hDen :
+        __smtx_typeof
+            (SmtTerm.multmult (SmtTerm.Numeral 10)
+              (__eo_to_smt (eoBinderListCons x xs))) =
+          SmtType.None :=
+      smt_int_binop_type_none_of_second_arg_none SmtTerm.multmult
+        SmtType.Int (SmtTerm.Numeral 10)
+        (__eo_to_smt (eoBinderListCons x xs))
+        (fun a b => typeof_multmult_eq a b)
+        (smtx_typeof_eo_to_smt_binderListCons_none x xs)
+    exact smt_int_binop_type_none_of_second_arg_none SmtTerm.mod
+      SmtType.Int (__eo_to_smt a)
+      (SmtTerm.multmult (SmtTerm.Numeral 10)
+        (__eo_to_smt (eoBinderListCons x xs)))
+      (fun a b => typeof_mod_eq a b) hDen
+  case _at_strings_num_occur =>
+    change
+      __smtx_typeof
+          (SmtTerm.div
+            (SmtTerm.neg
+              (SmtTerm.str_len (__eo_to_smt a))
+              (SmtTerm.str_len
+                (SmtTerm.str_replace_all (__eo_to_smt a)
+                  (__eo_to_smt (eoBinderListCons x xs))
+                  (SmtTerm.seq_empty (SmtType.Seq SmtType.Char)))))
+            (SmtTerm.str_len (__eo_to_smt (eoBinderListCons x xs)))) =
+        SmtType.None
+    have hDen :
+        __smtx_typeof
+            (SmtTerm.str_len (__eo_to_smt (eoBinderListCons x xs))) =
+          SmtType.None := by
+      rw [typeof_str_len_eq,
+        smtx_typeof_eo_to_smt_binderListCons_none]
+      rfl
+    exact smt_int_binop_type_none_of_second_arg_none SmtTerm.div
+      SmtType.Int
+      (SmtTerm.neg
+        (SmtTerm.str_len (__eo_to_smt a))
+        (SmtTerm.str_len
+          (SmtTerm.str_replace_all (__eo_to_smt a)
+            (__eo_to_smt (eoBinderListCons x xs))
+            (SmtTerm.seq_empty (SmtType.Seq SmtType.Char)))))
+      (SmtTerm.str_len (__eo_to_smt (eoBinderListCons x xs)))
+      (fun a b => typeof_div_eq a b) hDen
+  case re_range =>
+    exact smtx_typeof_eo_to_smt_apply_apply_seq_char_binop_second_none
+      (Term.Apply (Term.UOp UserOp.re_range) a) a x xs
+      SmtTerm.re_range SmtType.RegLan (by rfl)
+      (fun a b => typeof_re_range_eq a b)
+  case re_concat =>
+    exact smtx_typeof_eo_to_smt_apply_apply_reglan_binop_second_none
+      (Term.Apply (Term.UOp UserOp.re_concat) a) a x xs
+      SmtTerm.re_concat (by rfl) (fun a b => typeof_re_concat_eq a b)
+  case re_inter =>
+    exact smtx_typeof_eo_to_smt_apply_apply_reglan_binop_second_none
+      (Term.Apply (Term.UOp UserOp.re_inter) a) a x xs
+      SmtTerm.re_inter (by rfl) (fun a b => typeof_re_inter_eq a b)
+  case re_union =>
+    exact smtx_typeof_eo_to_smt_apply_apply_reglan_binop_second_none
+      (Term.Apply (Term.UOp UserOp.re_union) a) a x xs
+      SmtTerm.re_union (by rfl) (fun a b => typeof_re_union_eq a b)
+  case re_diff =>
+    exact smtx_typeof_eo_to_smt_apply_apply_reglan_binop_second_none
+      (Term.Apply (Term.UOp UserOp.re_diff) a) a x xs
+      SmtTerm.re_diff (by rfl) (fun a b => typeof_re_diff_eq a b)
+  case str_in_re =>
+    exact smtx_typeof_eo_to_smt_apply_apply_seq_char_reglan_binop_second_none
+      (Term.Apply (Term.UOp UserOp.str_in_re) a) a x xs
+      SmtTerm.str_in_re (by rfl) (fun a b => typeof_str_in_re_eq a b)
+  case tuple =>
+    change
+      __smtx_typeof
+          (__eo_to_smt_tuple_prepend (__eo_to_smt a)
+            (__smtx_typeof (__eo_to_smt a))
+            (__eo_to_smt (eoBinderListCons x xs))) =
+        SmtType.None
+    exact smt_tuple_prepend_type_none_of_tail_none
+      (__eo_to_smt a) (__smtx_typeof (__eo_to_smt a))
+      (__eo_to_smt (eoBinderListCons x xs))
+      (smtx_typeof_eo_to_smt_binderListCons_none x xs)
+  case set_union =>
+    exact smtx_typeof_eo_to_smt_apply_apply_set_binop_second_none
+      (Term.Apply (Term.UOp UserOp.set_union) a) a x xs
+      SmtTerm.set_union (by rfl) (fun a b => typeof_set_union_eq a b)
+  case set_inter =>
+    exact smtx_typeof_eo_to_smt_apply_apply_set_binop_second_none
+      (Term.Apply (Term.UOp UserOp.set_inter) a) a x xs
+      SmtTerm.set_inter (by rfl) (fun a b => typeof_set_inter_eq a b)
+  case set_minus =>
+    exact smtx_typeof_eo_to_smt_apply_apply_set_binop_second_none
+      (Term.Apply (Term.UOp UserOp.set_minus) a) a x xs
+      SmtTerm.set_minus (by rfl) (fun a b => typeof_set_minus_eq a b)
+  case set_member =>
+    change
+      __smtx_typeof
+          (SmtTerm.set_member (__eo_to_smt a)
+            (__eo_to_smt (eoBinderListCons x xs))) =
+        SmtType.None
+    exact smt_set_member_type_none_of_second_arg_none
+      (__eo_to_smt a) (__eo_to_smt (eoBinderListCons x xs))
+      (smtx_typeof_eo_to_smt_binderListCons_none x xs)
+  case set_subset =>
+    exact smtx_typeof_eo_to_smt_apply_apply_set_ret_binop_second_none
+      (Term.Apply (Term.UOp UserOp.set_subset) a) a x xs
+      SmtTerm.set_subset SmtType.Bool (by rfl)
+      (fun a b => typeof_set_subset_eq a b)
+  case set_insert =>
+    change
+      __smtx_typeof
+          (__eo_to_smt_set_insert a
+            (__eo_to_smt (eoBinderListCons x xs))) =
+        SmtType.None
+    exact eo_to_smt_set_insert_type_none_of_base_none
+      a (__eo_to_smt (eoBinderListCons x xs))
+      (smtx_typeof_eo_to_smt_binderListCons_none x xs)
+  case _at_sets_deq_diff =>
+    change
+      __smtx_typeof
+          (__eo_to_smt_sets_deq_diff (__eo_to_smt a)
+            (__smtx_typeof (__eo_to_smt a))
+            (__eo_to_smt (eoBinderListCons x xs))
+            (__smtx_typeof (__eo_to_smt (eoBinderListCons x xs)))) =
+        SmtType.None
+    exact smt_sets_deq_diff_type_none_of_second_arg_none
+      (__eo_to_smt a) (__eo_to_smt (eoBinderListCons x xs))
+      (smtx_typeof_eo_to_smt_binderListCons_none x xs)
+  case qdiv =>
+    exact smtx_typeof_eo_to_smt_apply_apply_arith_ret_binop_second_none
+      (Term.Apply (Term.UOp UserOp.qdiv) a) a x xs SmtTerm.qdiv
+      SmtType.Real (by rfl) (fun a b => typeof_qdiv_eq a b)
+  case qdiv_total =>
+    exact smtx_typeof_eo_to_smt_apply_apply_arith_ret_binop_second_none
+      (Term.Apply (Term.UOp UserOp.qdiv_total) a) a x xs
+      SmtTerm.qdiv_total SmtType.Real (by rfl)
+      (fun a b => typeof_qdiv_total_eq a b)
+  all_goals
+    exact smtx_typeof_eo_to_smt_apply_binderListCons_generic_none
+      _ x xs (by rfl)
 
 theorem smtx_typeof_eo_to_smt_binderShape_not_none
     (x xs body : Term) :
@@ -3568,6 +5173,189 @@ theorem smtx_typeof_eo_to_smt_binderShape_str_indexof_re_split_none
     (__eo_to_smt s) (__eo_to_smt (eoBinderListCons x xs))
     (__eo_to_smt body)
     (smtx_typeof_eo_to_smt_binderListCons_none x xs)
+
+theorem smtx_typeof_eo_to_smt_binderShape_apply_uop_none
+    (op : UserOp) (a x xs body : Term) :
+    __smtx_typeof
+        (__eo_to_smt
+          (eoBinderShape (Term.Apply (Term.UOp op) a) x xs body)) =
+      SmtType.None := by
+  cases op
+  case ite =>
+    exact smtx_typeof_eo_to_smt_binderShape_ite_none a x xs body
+  case store =>
+    exact smtx_typeof_eo_to_smt_binderShape_store_none a x xs body
+  case bvite =>
+    exact smtx_typeof_eo_to_smt_binderShape_bvite_none a x xs body
+  case str_substr =>
+    exact smtx_typeof_eo_to_smt_binderShape_str_substr_none a x xs body
+  case str_replace =>
+    exact smtx_typeof_eo_to_smt_binderShape_str_replace_none a x xs body
+  case str_indexof =>
+    exact smtx_typeof_eo_to_smt_binderShape_str_indexof_none a x xs body
+  case str_update =>
+    exact smtx_typeof_eo_to_smt_binderShape_str_update_none a x xs body
+  case str_replace_all =>
+    exact smtx_typeof_eo_to_smt_binderShape_str_replace_all_none a x xs body
+  case str_replace_re =>
+    exact smtx_typeof_eo_to_smt_binderShape_str_replace_re_none a x xs body
+  case str_replace_re_all =>
+    exact smtx_typeof_eo_to_smt_binderShape_str_replace_re_all_none
+      a x xs body
+  case str_indexof_re =>
+    exact smtx_typeof_eo_to_smt_binderShape_str_indexof_re_none
+      a x xs body
+  case str_indexof_re_split =>
+    exact smtx_typeof_eo_to_smt_binderShape_str_indexof_re_split_none
+      a x xs body
+  case _at_array_deq_diff =>
+    exact smtx_typeof_eo_to_smt_binderShape_outer_apply_none
+      (Term.Apply (Term.UOp UserOp._at_array_deq_diff) a) x xs body
+      (by rfl)
+      (by
+        intro s d i j
+        change
+          __eo_to_smt_array_deq_diff (__eo_to_smt a)
+              (__smtx_typeof (__eo_to_smt a))
+              (__eo_to_smt (eoBinderListCons x xs))
+              (__smtx_typeof (__eo_to_smt (eoBinderListCons x xs))) ≠
+            SmtTerm.DtSel s d i j
+        exact smt_array_deq_diff_ne_dt_sel
+          (__eo_to_smt a) (__eo_to_smt (eoBinderListCons x xs))
+          s d i j)
+      (by
+        intro s d i
+        change
+          __eo_to_smt_array_deq_diff (__eo_to_smt a)
+              (__smtx_typeof (__eo_to_smt a))
+              (__eo_to_smt (eoBinderListCons x xs))
+              (__smtx_typeof (__eo_to_smt (eoBinderListCons x xs))) ≠
+            SmtTerm.DtTester s d i
+        exact smt_array_deq_diff_ne_dt_tester
+          (__eo_to_smt a) (__eo_to_smt (eoBinderListCons x xs))
+          s d i)
+      (smtx_typeof_eo_to_smt_apply_apply_uop_binderListCons_none
+        UserOp._at_array_deq_diff a x xs)
+  case tuple =>
+    exact smtx_typeof_eo_to_smt_binderShape_outer_apply_none
+      (Term.Apply (Term.UOp UserOp.tuple) a) x xs body
+      (by rfl)
+      (by
+        intro s d i j
+        change
+          __eo_to_smt_tuple_prepend (__eo_to_smt a)
+              (__smtx_typeof (__eo_to_smt a))
+              (__eo_to_smt (eoBinderListCons x xs)) ≠
+            SmtTerm.DtSel s d i j
+        exact TranslationProofs.eo_to_smt_tuple_prepend_ne_dt_sel
+          (__eo_to_smt a) (__smtx_typeof (__eo_to_smt a))
+          (__eo_to_smt (eoBinderListCons x xs)) s d i j)
+      (by
+        intro s d i
+        change
+          __eo_to_smt_tuple_prepend (__eo_to_smt a)
+              (__smtx_typeof (__eo_to_smt a))
+              (__eo_to_smt (eoBinderListCons x xs)) ≠
+            SmtTerm.DtTester s d i
+        exact TranslationProofs.eo_to_smt_tuple_prepend_ne_dt_tester
+          (__eo_to_smt a) (__smtx_typeof (__eo_to_smt a))
+          (__eo_to_smt (eoBinderListCons x xs)) s d i)
+      (smtx_typeof_eo_to_smt_apply_apply_uop_binderListCons_none
+        UserOp.tuple a x xs)
+  case set_insert =>
+    exact smtx_typeof_eo_to_smt_binderShape_outer_apply_none
+      (Term.Apply (Term.UOp UserOp.set_insert) a) x xs body
+      (by rfl)
+      (by
+        intro s d i j
+        change
+          __eo_to_smt_set_insert a
+              (__eo_to_smt (eoBinderListCons x xs)) ≠
+            SmtTerm.DtSel s d i j
+        exact eo_to_smt_set_insert_base_none_ne_dt_sel
+          a (__eo_to_smt (eoBinderListCons x xs))
+          (smtx_typeof_eo_to_smt_binderListCons_none x xs) s d i j)
+      (by
+        intro s d i
+        change
+          __eo_to_smt_set_insert a
+              (__eo_to_smt (eoBinderListCons x xs)) ≠
+            SmtTerm.DtTester s d i
+        exact eo_to_smt_set_insert_base_none_ne_dt_tester
+          a (__eo_to_smt (eoBinderListCons x xs))
+          (smtx_typeof_eo_to_smt_binderListCons_none x xs) s d i)
+      (smtx_typeof_eo_to_smt_apply_apply_uop_binderListCons_none
+        UserOp.set_insert a x xs)
+  case _at_sets_deq_diff =>
+    exact smtx_typeof_eo_to_smt_binderShape_outer_apply_none
+      (Term.Apply (Term.UOp UserOp._at_sets_deq_diff) a) x xs body
+      (by rfl)
+      (by
+        intro s d i j
+        change
+          __eo_to_smt_sets_deq_diff (__eo_to_smt a)
+              (__smtx_typeof (__eo_to_smt a))
+              (__eo_to_smt (eoBinderListCons x xs))
+              (__smtx_typeof (__eo_to_smt (eoBinderListCons x xs))) ≠
+            SmtTerm.DtSel s d i j
+        exact smt_sets_deq_diff_ne_dt_sel
+          (__eo_to_smt a) (__eo_to_smt (eoBinderListCons x xs))
+          s d i j)
+      (by
+        intro s d i
+        change
+          __eo_to_smt_sets_deq_diff (__eo_to_smt a)
+              (__smtx_typeof (__eo_to_smt a))
+              (__eo_to_smt (eoBinderListCons x xs))
+              (__smtx_typeof (__eo_to_smt (eoBinderListCons x xs))) ≠
+            SmtTerm.DtTester s d i
+        exact smt_sets_deq_diff_ne_dt_tester
+          (__eo_to_smt a) (__eo_to_smt (eoBinderListCons x xs))
+          s d i)
+      (smtx_typeof_eo_to_smt_apply_apply_uop_binderListCons_none
+        UserOp._at_sets_deq_diff a x xs)
+  case «forall» =>
+    exact smtx_typeof_eo_to_smt_binderShape_outer_apply_none
+      (Term.Apply (Term.UOp UserOp.forall) a) x xs body
+      (by rfl)
+      (eo_to_smt_apply_apply_forall_binderListCons_ne_dt_sel a x xs)
+      (eo_to_smt_apply_apply_forall_binderListCons_ne_dt_tester a x xs)
+      (smtx_typeof_eo_to_smt_apply_apply_uop_binderListCons_none
+        UserOp.forall a x xs)
+  case «exists» =>
+    exact smtx_typeof_eo_to_smt_binderShape_outer_apply_none
+      (Term.Apply (Term.UOp UserOp.exists) a) x xs body
+      (by rfl)
+      (eo_to_smt_apply_apply_exists_binderListCons_ne_dt_sel a x xs)
+      (eo_to_smt_apply_apply_exists_binderListCons_ne_dt_tester a x xs)
+      (smtx_typeof_eo_to_smt_apply_apply_uop_binderListCons_none
+        UserOp.exists a x xs)
+  all_goals
+    exact smtx_typeof_eo_to_smt_binderShape_outer_apply_none
+      (Term.Apply (Term.UOp _) a) x xs body
+      (by rfl)
+      (by
+        intro s d i j hEq
+        dsimp [__eo_to_smt, eoBinderListCons] at hEq
+        cases hEq)
+      (by
+        intro s d i hEq
+        dsimp [__eo_to_smt, eoBinderListCons] at hEq
+        cases hEq)
+      (smtx_typeof_eo_to_smt_apply_apply_uop_binderListCons_none
+        _ a x xs)
+
+theorem smtx_typeof_eo_to_smt_binderShape_apply_uop_ne_bool
+    (op : UserOp) (a x xs body : Term) :
+    __smtx_typeof
+        (__eo_to_smt
+          (eoBinderShape (Term.Apply (Term.UOp op) a) x xs body)) ≠
+      SmtType.Bool := by
+  intro hBool
+  have hNone :=
+    smtx_typeof_eo_to_smt_binderShape_apply_uop_none op a x xs body
+  rw [hNone] at hBool
+  cases hBool
 
 theorem isQuantifierHead_of_uop_binderShape_non_none
     (op : UserOp) (x xs body : Term)
