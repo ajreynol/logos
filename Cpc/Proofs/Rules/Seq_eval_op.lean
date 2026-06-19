@@ -730,6 +730,13 @@ private theorem smt_value_rel_raw_empty_str_substr_of_end_neg
     native_veq, native_pack_seq, hElem, native_seq_extract_empty_of_end_neg
       (native_unpack_seq sa) i n hEnd]
 
+private theorem int_sub_one_sub_sub_one (e i : native_Int) :
+    (e - 1) - (i - 1) = e - i := by
+  rw [Int.sub_eq_add_neg, Int.sub_eq_add_neg, Int.sub_eq_add_neg]
+  rw [Int.neg_add]
+  simp [Int.add_assoc, Int.add_comm, Int.add_left_comm]
+  rw [Int.sub_eq_add_neg]
+
 private theorem eo_add_int_args_numerals_of_ne_stuck
     (n m : Term)
     (hnTy : __smtx_typeof (__eo_to_smt n) = SmtType.Int)
@@ -859,7 +866,7 @@ private theorem smt_value_rel_seq_subsequence_rec_str_substr_of_numerals
       (__smtx_model_eval_str_substr
         (__smtx_model_eval M (__eo_to_smt a))
         (SmtValue.Numeral i) (SmtValue.Numeral (e - i))) := by
-  induction l, u, a using __seq_subsequence_rec.induct with
+  induction l, u, a using __seq_subsequence_rec.induct generalizing T i e with
   | case1 t x =>
       simp [__seq_subsequence_rec] at hSubseqNe
   | case2 t x hx =>
@@ -916,9 +923,266 @@ private theorem smt_value_rel_seq_subsequence_rec_str_substr_of_numerals
       rw [hExtract]
       rfl
   | case6 u elem ts hu hUNeZero ih =>
-      sorry
+      injection hL with hi
+      subst i
+      subst u
+      have hEPos : 0 < e := by
+        have hENe : e ≠ 0 := by
+          intro hE
+          subst e
+          exact hUNeZero rfl
+        exact Int.lt_of_not_ge (by
+          intro hLe
+          exact hENe (Int.le_antisymm hLe hEndNonneg))
+      have hRecU :
+          __eo_add (Term.Numeral e) (Term.Numeral (-1 : native_Int)) =
+            Term.Numeral (e - 1) := by
+        simp [__eo_add, native_zplus, SmtEval.native_zplus]
+        rw [Int.sub_eq_add_neg]
+      have hRecEnd : 0 <= e - 1 := by
+        have hOneLe : (1 : Int) <= e := Int.add_one_le_iff.mpr hEPos
+        exact Int.sub_nonneg.mpr hOneLe
+      let head := Term.Apply (Term.UOp UserOp.seq_unit) elem
+      let subseq :=
+        __seq_subsequence_rec (Term.Numeral 0)
+          (__eo_add (Term.Numeral e) (Term.Numeral (-1 : native_Int))) ts
+      have hFullNe :
+          __eo_mk_apply (Term.Apply (Term.UOp UserOp.str_concat) head)
+              subseq ≠
+            Term.Stuck := by
+        simpa [__seq_subsequence_rec, head, subseq] using hSubseqNe
+      have hSubseqNe : subseq ≠ Term.Stuck :=
+        eo_mk_apply_arg_ne_stuck_of_ne_stuck
+          (Term.Apply (Term.UOp UserOp.str_concat) head) subseq hFullNe
+      obtain ⟨hHeadTy, hTailTy⟩ :=
+        strConcat_args_of_seq_type head ts T
+          (by simpa [head, mkConcat] using hATy)
+      have hRecRel :
+          RuleProofs.smt_value_rel
+            (__smtx_model_eval M (__eo_to_smt subseq))
+            (__smtx_model_eval_str_substr
+              (__smtx_model_eval M (__eo_to_smt ts))
+              (SmtValue.Numeral 0) (SmtValue.Numeral (e - 1))) := by
+        simpa [subseq, hRecU] using
+          ih T 0 (e - 1) rfl hRecU hRecEnd hTailTy hSubseqNe
+      have hRecTy :
+          __smtx_typeof (__eo_to_smt subseq) = SmtType.Seq T :=
+        smt_typeof_seq_subsequence_rec_of_seq
+          (Term.Numeral 0)
+          (__eo_add (Term.Numeral e) (Term.Numeral (-1 : native_Int))) ts T
+          hTailTy hSubseqNe
+      rcases seq_eval_of_seq_type M hM subseq T hRecTy with
+        ⟨srec, hRecEval⟩
+      rcases seq_eval_of_seq_type M hM ts T hTailTy with
+        ⟨stail, hTailEval⟩
+      obtain ⟨shead, hHeadEvalRaw, hHeadUnpRaw⟩ :=
+        RuleProofs.eval_seqUnitAtom M elem
+      have hHeadEval :
+          __smtx_model_eval M (__eo_to_smt head) = SmtValue.Seq shead := by
+        simpa [head] using hHeadEvalRaw
+      have hHeadUnp :
+          native_unpack_seq shead = [RuleProofs.seqElemVal M head] := by
+        simpa [head] using hHeadUnpRaw
+      have hApplyEq :
+          __eo_mk_apply (Term.Apply (Term.UOp UserOp.str_concat) head)
+              subseq =
+            mkConcat head subseq :=
+        eo_mk_apply_eq_apply_of_ne_stuck
+          (Term.Apply (Term.UOp UserOp.str_concat) head) subseq hFullNe
+      have hHeadValTy :=
+        smt_model_eval_preserves_type M hM (__eo_to_smt head)
+          (SmtType.Seq T) hHeadTy (seq_ne_none T) (type_inhabited_seq T)
+      have hHeadSeqTy : __smtx_typeof_seq_value shead = SmtType.Seq T := by
+        simpa [head, hHeadEval, __smtx_typeof_value] using hHeadValTy
+      have hHeadElem : __smtx_elem_typeof_seq_value shead = T :=
+        elem_typeof_seq_value_of_typeof_seq_value hHeadSeqTy
+      have hTailValTy :=
+        smt_model_eval_preserves_type M hM (__eo_to_smt ts)
+          (SmtType.Seq T) hTailTy (seq_ne_none T) (type_inhabited_seq T)
+      have hTailSeqTy : __smtx_typeof_seq_value stail = SmtType.Seq T := by
+        simpa [hTailEval, __smtx_typeof_value] using hTailValTy
+      have hTailElem : __smtx_elem_typeof_seq_value stail = T :=
+        elem_typeof_seq_value_of_typeof_seq_value hTailSeqTy
+      have hRecEq :
+          srec =
+            native_pack_seq T
+              (native_seq_extract (native_unpack_seq stail) 0 (e - 1)) := by
+        unfold RuleProofs.smt_value_rel at hRecRel
+        rw [hRecEval, hTailEval] at hRecRel
+        simpa [__smtx_model_eval_str_substr, __smtx_model_eval_eq,
+          native_veq, hTailElem] using hRecRel
+      have hOrigEval :
+          __smtx_model_eval M (__eo_to_smt (mkConcat head ts)) =
+            SmtValue.Seq
+              (native_pack_seq T
+                (RuleProofs.seqElemVal M head :: native_unpack_seq stail)) := by
+        rw [smtx_model_eval_str_concat_term_eq, hHeadEval, hTailEval]
+        simp [__smtx_model_eval_str_concat, native_seq_concat, hHeadElem,
+          hHeadUnp]
+      have hConcatEval :
+          __smtx_model_eval_str_concat (SmtValue.Seq shead)
+              (SmtValue.Seq srec) =
+            SmtValue.Seq
+              (native_pack_seq T
+                (RuleProofs.seqElemVal M head ::
+                  native_seq_extract (native_unpack_seq stail) 0 (e - 1))) := by
+        rw [hRecEq]
+        simp [__smtx_model_eval_str_concat, native_seq_concat, hHeadElem,
+          hHeadUnp, Smtm.native_unpack_pack_seq]
+      have hSubstrEval :
+          __smtx_model_eval_str_substr
+              (SmtValue.Seq
+                (native_pack_seq T
+                  (RuleProofs.seqElemVal M head :: native_unpack_seq stail)))
+              (SmtValue.Numeral 0) (SmtValue.Numeral (e - 0)) =
+            SmtValue.Seq
+              (native_pack_seq T
+                (RuleProofs.seqElemVal M head ::
+                  native_seq_extract (native_unpack_seq stail) 0 (e - 1))) := by
+        simp [__smtx_model_eval_str_substr,
+          Smtm.native_unpack_pack_seq, elem_typeof_pack_seq,
+          native_seq_extract_cons_zero_pos _ _ _ hEPos]
+      change RuleProofs.smt_value_rel
+        (__smtx_model_eval M
+          (__eo_to_smt
+            (__seq_subsequence_rec (Term.Numeral 0) (Term.Numeral e)
+              (mkConcat head ts))))
+        (__smtx_model_eval_str_substr
+          (__smtx_model_eval M (__eo_to_smt (mkConcat head ts)))
+          (SmtValue.Numeral 0) (SmtValue.Numeral (e - 0)))
+      rw [show __seq_subsequence_rec (Term.Numeral 0) (Term.Numeral e)
+          (mkConcat head ts) =
+            __eo_mk_apply (Term.Apply (Term.UOp UserOp.str_concat) head)
+              subseq by
+        simp [__seq_subsequence_rec, head, subseq]]
+      rw [hApplyEq, smtx_model_eval_str_concat_term_eq, hHeadEval, hRecEval,
+        hOrigEval, hConcatEval, hSubstrEval]
+      exact RuleProofs.smt_value_rel_refl _
   | case7 l u elem ts hl hu hUNeZero hLNeZero ih =>
-      sorry
+      subst l
+      subst u
+      have hINe : i ≠ 0 := by
+        intro hI
+        subst i
+        exact hLNeZero rfl
+      have hENe : e ≠ 0 := by
+        intro hE
+        subst e
+        exact hUNeZero rfl
+      have hEPos : 0 < e :=
+        Int.lt_of_not_ge (by
+          intro hLe
+          exact hENe (Int.le_antisymm hLe hEndNonneg))
+      have hRecL :
+          __eo_add (Term.Numeral i) (Term.Numeral (-1 : native_Int)) =
+            Term.Numeral (i - 1) := by
+        simp [__eo_add, native_zplus, SmtEval.native_zplus]
+        rw [Int.sub_eq_add_neg]
+      have hRecU :
+          __eo_add (Term.Numeral e) (Term.Numeral (-1 : native_Int)) =
+            Term.Numeral (e - 1) := by
+        simp [__eo_add, native_zplus, SmtEval.native_zplus]
+        rw [Int.sub_eq_add_neg]
+      have hRecEnd : 0 <= e - 1 := by
+        have hOneLe : (1 : Int) <= e := Int.add_one_le_iff.mpr hEPos
+        exact Int.sub_nonneg.mpr hOneLe
+      have hLenEq : (e - 1) - (i - 1) = e - i := by
+        exact int_sub_one_sub_sub_one e i
+      let head := Term.Apply (Term.UOp UserOp.seq_unit) elem
+      let subseq :=
+        __seq_subsequence_rec
+          (__eo_add (Term.Numeral i) (Term.Numeral (-1 : native_Int)))
+          (__eo_add (Term.Numeral e) (Term.Numeral (-1 : native_Int))) ts
+      have hSubseqTailNe : subseq ≠ Term.Stuck := by
+        simpa [__seq_subsequence_rec, head, subseq, hINe, hENe] using
+          hSubseqNe
+      obtain ⟨hHeadTy, hTailTy⟩ :=
+        strConcat_args_of_seq_type head ts T
+          (by simpa [head, mkConcat] using hATy)
+      have hRecRel :
+          RuleProofs.smt_value_rel
+            (__smtx_model_eval M (__eo_to_smt subseq))
+            (__smtx_model_eval_str_substr
+              (__smtx_model_eval M (__eo_to_smt ts))
+              (SmtValue.Numeral (i - 1)) (SmtValue.Numeral (e - i))) := by
+        simpa [subseq, hRecL, hRecU, hLenEq] using
+          ih T (i - 1) (e - 1) hRecL hRecU hRecEnd hTailTy
+            hSubseqTailNe
+      have hRecTy :
+          __smtx_typeof (__eo_to_smt subseq) = SmtType.Seq T :=
+        smt_typeof_seq_subsequence_rec_of_seq
+          (__eo_add (Term.Numeral i) (Term.Numeral (-1 : native_Int)))
+          (__eo_add (Term.Numeral e) (Term.Numeral (-1 : native_Int))) ts T
+          hTailTy hSubseqTailNe
+      rcases seq_eval_of_seq_type M hM subseq T hRecTy with
+        ⟨srec, hRecEval⟩
+      rcases seq_eval_of_seq_type M hM ts T hTailTy with
+        ⟨stail, hTailEval⟩
+      obtain ⟨shead, hHeadEvalRaw, hHeadUnpRaw⟩ :=
+        RuleProofs.eval_seqUnitAtom M elem
+      have hHeadEval :
+          __smtx_model_eval M (__eo_to_smt head) = SmtValue.Seq shead := by
+        simpa [head] using hHeadEvalRaw
+      have hHeadUnp :
+          native_unpack_seq shead = [RuleProofs.seqElemVal M head] := by
+        simpa [head] using hHeadUnpRaw
+      have hHeadValTy :=
+        smt_model_eval_preserves_type M hM (__eo_to_smt head)
+          (SmtType.Seq T) hHeadTy (seq_ne_none T) (type_inhabited_seq T)
+      have hHeadSeqTy : __smtx_typeof_seq_value shead = SmtType.Seq T := by
+        simpa [head, hHeadEval, __smtx_typeof_value] using hHeadValTy
+      have hHeadElem : __smtx_elem_typeof_seq_value shead = T :=
+        elem_typeof_seq_value_of_typeof_seq_value hHeadSeqTy
+      have hTailValTy :=
+        smt_model_eval_preserves_type M hM (__eo_to_smt ts)
+          (SmtType.Seq T) hTailTy (seq_ne_none T) (type_inhabited_seq T)
+      have hTailSeqTy : __smtx_typeof_seq_value stail = SmtType.Seq T := by
+        simpa [hTailEval, __smtx_typeof_value] using hTailValTy
+      have hTailElem : __smtx_elem_typeof_seq_value stail = T :=
+        elem_typeof_seq_value_of_typeof_seq_value hTailSeqTy
+      have hRecEq :
+          srec =
+            native_pack_seq T
+              (native_seq_extract (native_unpack_seq stail) (i - 1)
+                (e - i)) := by
+        unfold RuleProofs.smt_value_rel at hRecRel
+        rw [hRecEval, hTailEval] at hRecRel
+        simpa [__smtx_model_eval_str_substr, __smtx_model_eval_eq,
+          native_veq, hTailElem] using hRecRel
+      have hOrigEval :
+          __smtx_model_eval M (__eo_to_smt (mkConcat head ts)) =
+            SmtValue.Seq
+              (native_pack_seq T
+                (RuleProofs.seqElemVal M head :: native_unpack_seq stail)) := by
+        rw [smtx_model_eval_str_concat_term_eq, hHeadEval, hTailEval]
+        simp [__smtx_model_eval_str_concat, native_seq_concat, hHeadElem,
+          hHeadUnp]
+      have hSubstrEval :
+          __smtx_model_eval_str_substr
+              (SmtValue.Seq
+                (native_pack_seq T
+                  (RuleProofs.seqElemVal M head :: native_unpack_seq stail)))
+              (SmtValue.Numeral i) (SmtValue.Numeral (e - i)) =
+            SmtValue.Seq
+              (native_pack_seq T
+                (native_seq_extract (native_unpack_seq stail) (i - 1)
+                  (e - i))) := by
+        simp [__smtx_model_eval_str_substr,
+          Smtm.native_unpack_pack_seq, elem_typeof_pack_seq,
+          native_seq_extract_cons_nonzero _ _ _ _ hINe]
+      change RuleProofs.smt_value_rel
+        (__smtx_model_eval M
+          (__eo_to_smt
+            (__seq_subsequence_rec (Term.Numeral i) (Term.Numeral e)
+              (mkConcat head ts))))
+        (__smtx_model_eval_str_substr
+          (__smtx_model_eval M (__eo_to_smt (mkConcat head ts)))
+          (SmtValue.Numeral i) (SmtValue.Numeral (e - i)))
+      rw [show __seq_subsequence_rec (Term.Numeral i) (Term.Numeral e)
+          (mkConcat head ts) = subseq by
+        simp [__seq_subsequence_rec, head, subseq]]
+      rw [hRecEval, hOrigEval, hSubstrEval, hRecEq]
+      exact RuleProofs.smt_value_rel_refl _
   | case8 t x y hx hy hyZero ht hNotEmpty hNotZeroConcat hNotConcat =>
       simp [__seq_subsequence_rec] at hSubseqNe
 
