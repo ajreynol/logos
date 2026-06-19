@@ -5450,19 +5450,9 @@ private theorem smtx_typeof_qor_list_arg_ne_bool
             (Term.Apply (Term.UOp UserOp.or)
               (Term.Apply (Term.Apply Term.__eo_List_cons head) tail))
             y)) ≠ SmtType.Bool := by
-  intro hBool
-  have hNone :
-      __smtx_typeof
-          (__eo_to_smt
-            (Term.Apply
-              (Term.Apply (Term.UOp UserOp.or)
-                (Term.Apply (Term.Apply Term.__eo_List_cons head) tail))
-              y)) =
-        SmtType.None := by
-    simpa [eoBinderShape, eoBinderListCons] using
-      smtx_typeof_eo_to_smt_binderShape_or_none head tail y
-  rw [hNone] at hBool
-  cases hBool
+  simpa [eoBinderShape, eoBinderListCons] using
+    smtx_typeof_eo_to_smt_binderShape_uop_ne_bool_of_not_quant
+      UserOp.or head tail y (by decide) (by decide)
 
 private theorem smtx_typeof_qand_list_arg_ne_bool
     (head tail y : Term) :
@@ -5472,19 +5462,9 @@ private theorem smtx_typeof_qand_list_arg_ne_bool
             (Term.Apply (Term.UOp UserOp.and)
               (Term.Apply (Term.Apply Term.__eo_List_cons head) tail))
             y)) ≠ SmtType.Bool := by
-  intro hBool
-  have hNone :
-      __smtx_typeof
-          (__eo_to_smt
-            (Term.Apply
-              (Term.Apply (Term.UOp UserOp.and)
-                (Term.Apply (Term.Apply Term.__eo_List_cons head) tail))
-              y)) =
-        SmtType.None := by
-    simpa [eoBinderShape, eoBinderListCons] using
-      smtx_typeof_eo_to_smt_binderShape_and_none head tail y
-  rw [hNone] at hBool
-  cases hBool
+  simpa [eoBinderShape, eoBinderListCons] using
+    smtx_typeof_eo_to_smt_binderShape_uop_ne_bool_of_not_quant
+      UserOp.and head tail y (by decide) (by decide)
 
 private theorem smtx_typeof_qimp_list_arg_ne_bool
     (head tail y : Term) :
@@ -5494,19 +5474,9 @@ private theorem smtx_typeof_qimp_list_arg_ne_bool
             (Term.Apply (Term.UOp UserOp.imp)
               (Term.Apply (Term.Apply Term.__eo_List_cons head) tail))
             y)) ≠ SmtType.Bool := by
-  intro hBool
-  have hNone :
-      __smtx_typeof
-          (__eo_to_smt
-            (Term.Apply
-              (Term.Apply (Term.UOp UserOp.imp)
-                (Term.Apply (Term.Apply Term.__eo_List_cons head) tail))
-              y)) =
-        SmtType.None := by
-    simpa [eoBinderShape, eoBinderListCons] using
-      smtx_typeof_eo_to_smt_binderShape_imp_none head tail y
-  rw [hNone] at hBool
-  cases hBool
+  simpa [eoBinderShape, eoBinderListCons] using
+    smtx_typeof_eo_to_smt_binderShape_uop_ne_bool_of_not_quant
+      UserOp.imp head tail y (by decide) (by decide)
 
 private theorem smtx_typeof_qxor_list_arg_ne_bool
     (head tail y : Term) :
@@ -5516,19 +5486,9 @@ private theorem smtx_typeof_qxor_list_arg_ne_bool
             (Term.Apply (Term.UOp UserOp.xor)
               (Term.Apply (Term.Apply Term.__eo_List_cons head) tail))
             y)) ≠ SmtType.Bool := by
-  intro hBool
-  have hNone :
-      __smtx_typeof
-          (__eo_to_smt
-            (Term.Apply
-              (Term.Apply (Term.UOp UserOp.xor)
-                (Term.Apply (Term.Apply Term.__eo_List_cons head) tail))
-              y)) =
-        SmtType.None := by
-    simpa [eoBinderShape, eoBinderListCons] using
-      smtx_typeof_eo_to_smt_binderShape_xor_none head tail y
-  rw [hNone] at hBool
-  cases hBool
+  simpa [eoBinderShape, eoBinderListCons] using
+    smtx_typeof_eo_to_smt_binderShape_uop_ne_bool_of_not_quant
+      UserOp.xor head tail y (by decide) (by decide)
 
 private theorem smtx_typeof_qeq_list_arg_ne_bool
     (head tail y : Term) :
@@ -5536,17 +5496,9 @@ private theorem smtx_typeof_qeq_list_arg_ne_bool
         (__eo_to_smt
           (qeq (Term.Apply (Term.Apply Term.__eo_List_cons head) tail) y)) ≠
       SmtType.Bool := by
-  intro hBool
-  have hNone :
-      __smtx_typeof
-          (__eo_to_smt
-            (qeq (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
-              y)) =
-        SmtType.None := by
-    simpa [qeq, eoBinderShape, eoBinderListCons] using
-      smtx_typeof_eo_to_smt_binderShape_eq_none head tail y
-  rw [hNone] at hBool
-  cases hBool
+  simpa [qeq, eoBinderShape, eoBinderListCons] using
+    smtx_typeof_eo_to_smt_binderShape_uop_ne_bool_of_not_quant
+      UserOp.eq head tail y (by decide) (by decide)
 
 private theorem smtTermFreeVars_eo_to_smt_quantifiers_skolemize_subset
     (t : SmtTerm) (n : native_Nat) {key : SmtVarKey}
@@ -6203,6 +6155,18 @@ private theorem smtTermFreeVars_eo_to_smt_allowed_of_eo_closed_nil
   exact smtTermFreeVars_eo_to_smt_allowed_of_closed_nil F xs bvs
     (smtTermClosedIn_of_eo_is_closed_rec_perm
       (hEnv := EoSmtVarEnvPerm.of_exact EoSmtVarEnv.nil) hClosed)
+
+private theorem eo_closed_nil_of_contains_atomic_default_false
+    (F : Term)
+    (h :
+      __eo_requires (__is_closed_rec F Term.__eo_List_nil)
+          (Term.Boolean true) (Term.Boolean false) =
+        Term.Boolean false) :
+    __is_closed_rec F Term.__eo_List_nil = Term.Boolean true := by
+  exact eq_of_requires_ne_stuck
+    (by
+      rw [h]
+      simp)
 
 private theorem smtTermFreeVars_allowed_of_append
     {x y : SmtTerm} {xs bvs : Term}
