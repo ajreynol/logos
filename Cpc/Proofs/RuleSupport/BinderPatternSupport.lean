@@ -129,6 +129,18 @@ theorem smtx_typeof_apply_of_arg_none
         rw [hx] at hArg
         exact hA hArg.symm
 
+theorem smtx_typeof_apply_of_head_none_of_non_datatype_head
+    (f x : SmtTerm)
+    (hSel : ∀ s d i j, f ≠ SmtTerm.DtSel s d i j)
+    (hTester : ∀ s d i, f ≠ SmtTerm.DtTester s d i)
+    (hf : __smtx_typeof f = SmtType.None) :
+    __smtx_typeof (SmtTerm.Apply f x) = SmtType.None := by
+  have hGeneric : generic_apply_type f x :=
+    generic_apply_type_of_non_datatype_head hSel hTester
+  unfold generic_apply_type at hGeneric
+  rw [hGeneric, hf]
+  simp [__smtx_typeof_apply]
+
 theorem smtx_typeof_apply_eo_to_smt_binderListCons_none
     (f : SmtTerm) (x xs : Term) :
     __smtx_typeof
@@ -143,16 +155,11 @@ theorem smtx_typeof_apply_apply_eo_to_smt_binderListCons_none
         (SmtTerm.Apply
           (SmtTerm.Apply f (__eo_to_smt (eoBinderListCons x xs))) body) =
       SmtType.None :=
-  by
-    have hGeneric :
-        generic_apply_type
-          (SmtTerm.Apply f (__eo_to_smt (eoBinderListCons x xs))) body :=
-      generic_apply_type_of_non_datatype_head
-        (by intro s d i j hEq; cases hEq)
-        (by intro s d i hEq; cases hEq)
-    unfold generic_apply_type at hGeneric
-    rw [hGeneric, smtx_typeof_apply_eo_to_smt_binderListCons_none]
-    simp [__smtx_typeof_apply]
+  smtx_typeof_apply_of_head_none_of_non_datatype_head
+    (SmtTerm.Apply f (__eo_to_smt (eoBinderListCons x xs))) body
+    (by intro s d i j hEq; cases hEq)
+    (by intro s d i hEq; cases hEq)
+    (smtx_typeof_apply_eo_to_smt_binderListCons_none f x xs)
 
 theorem smtx_typeof_eo_to_smt_binderShape_or_none
     (x xs body : Term) :

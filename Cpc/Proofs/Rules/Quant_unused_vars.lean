@@ -1,6 +1,7 @@
 import Cpc.Proofs.RuleSupport.Support
 import Cpc.Proofs.RuleSupport.CoreSupport
 import Cpc.Proofs.RuleSupport.ContainsAtomicSupport
+import Cpc.Proofs.RuleSupport.BinderPatternSupport
 
 open Eo
 open SmtEval
@@ -5447,12 +5448,7 @@ private theorem smtx_typeof_eo_to_smt_list_cons_none
         (__eo_to_smt
           (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)) =
       SmtType.None := by
-  change
-    __smtx_typeof
-        (SmtTerm.Apply (SmtTerm.Apply SmtTerm.None (__eo_to_smt head))
-          (__eo_to_smt tail)) =
-      SmtType.None
-  simp [__smtx_typeof, __smtx_typeof_apply]
+  exact smtx_typeof_eo_to_smt_binderListCons_none head tail
 
 private theorem smtx_typeof_smt_or_left_none_ne_bool
     {x y : SmtTerm}
