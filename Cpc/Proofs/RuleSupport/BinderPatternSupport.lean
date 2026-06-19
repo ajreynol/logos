@@ -1951,20 +1951,14 @@ theorem smtx_typeof_eo_to_smt_binderShape_uop3_none
     (by rfl)
     (by
       intro s d i j hEq
-      change
-        SmtTerm.Apply
-            (__eo_to_smt (Term.UOp3 op idx₁ idx₂ idx₃))
-            (__eo_to_smt (eoBinderListCons x xs)) ≠
-          SmtTerm.DtSel s d i j at hEq
-      cases hEq)
+      cases op <;>
+        dsimp [__eo_to_smt, eoBinderListCons] at hEq <;>
+        cases hEq)
     (by
       intro s d i hEq
-      change
-        SmtTerm.Apply
-            (__eo_to_smt (Term.UOp3 op idx₁ idx₂ idx₃))
-            (__eo_to_smt (eoBinderListCons x xs)) ≠
-          SmtTerm.DtTester s d i at hEq
-      cases hEq)
+      cases op <;>
+        dsimp [__eo_to_smt, eoBinderListCons] at hEq <;>
+        cases hEq)
     (smtx_typeof_eo_to_smt_apply_uop3_binderListCons_none
       op idx₁ idx₂ idx₃ x xs)
 
