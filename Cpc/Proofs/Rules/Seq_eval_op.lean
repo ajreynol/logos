@@ -3685,7 +3685,117 @@ private theorem seq_eval_smt_type_and_value_rel
                 (__smtx_model_eval M (__eo_to_smt m)))
               hBodyRelSubstrA hSubstrCong)
   | case6 t s =>
-      sorry
+      let a := __str_nary_intro t
+      let b := __str_nary_intro s
+      let find := __seq_find a b (Term.Numeral 0)
+      let out := __eo_not (__eo_is_neg find)
+      have hOutNe : out ≠ Term.Stuck := by
+        simpa [__seq_eval, a, b, find, out] using hEvalNe
+      have hFindNe : find ≠ Term.Stuck := by
+        intro hStuck
+        apply hOutNe
+        simp [out, hStuck, __eo_is_neg, __eo_not]
+      have hContainsNN :
+          term_has_non_none_type
+            (SmtTerm.str_contains (__eo_to_smt t) (__eo_to_smt s)) := by
+        unfold term_has_non_none_type
+        simpa using hNN
+      rcases seq_binop_args_of_non_none_ret (op := SmtTerm.str_contains)
+          (typeof_str_contains_eq (__eo_to_smt t) (__eo_to_smt s))
+          hContainsNN with
+        ⟨T, htTy, hsTy⟩
+      have hIntroTNe : a ≠ Term.Stuck := by
+        intro hStuck
+        apply hFindNe
+        simp [find, __seq_find, hStuck]
+      have hIntroSNe : b ≠ Term.Stuck := by
+        intro hStuck
+        apply hFindNe
+        cases a <;> simp [find, __seq_find, hStuck]
+      have hTComponents :
+          type_inhabited T ∧ __smtx_type_wf T = true := by
+        have hSeqWF :
+            __smtx_type_wf (SmtType.Seq T) = true := by
+          have hGood :=
+            smt_term_result_seq_components_wf_of_non_none
+              (__eo_to_smt t)
+              (by
+                unfold term_has_non_none_type
+                rw [htTy]
+                exact seq_ne_none T)
+          simpa [htTy, type_result_seq_components_wf] using hGood
+        exact seq_component_inhabited_wf_of_seq_wf T hSeqWF
+      have hIntroTNN :
+          __smtx_typeof (__eo_to_smt a) ≠ SmtType.None := by
+        simpa [a] using
+          str_nary_intro_has_smt_translation_of_seq_wf t T htTy
+            hTComponents.1 hTComponents.2 (by simpa [a] using hIntroTNe)
+      have hIntroSNN :
+          __smtx_typeof (__eo_to_smt b) ≠ SmtType.None := by
+        simpa [b] using
+          str_nary_intro_has_smt_translation_of_seq_wf s T hsTy
+            hTComponents.1 hTComponents.2 (by simpa [b] using hIntroSNe)
+      have hATy :
+          __smtx_typeof (__eo_to_smt a) = SmtType.Seq T := by
+        simpa [a] using
+          smt_typeof_str_nary_intro_of_seq_ne_stuck t T htTy
+            (by simpa [a] using hIntroTNN) (by simpa [a] using hIntroTNe)
+      have hBTy :
+          __smtx_typeof (__eo_to_smt b) = SmtType.Seq T := by
+        simpa [b] using
+          smt_typeof_str_nary_intro_of_seq_ne_stuck s T hsTy
+            (by simpa [b] using hIntroSNN) (by simpa [b] using hIntroSNe)
+      rcases seq_eval_of_seq_type M hM a T hATy with
+        ⟨sa, hAEval⟩
+      rcases seq_eval_of_seq_type M hM b T hBTy with
+        ⟨sb, hBEval⟩
+      rcases seq_eval_of_seq_type M hM t T htTy with
+        ⟨st, hTEval⟩
+      rcases seq_eval_of_seq_type M hM s T hsTy with
+        ⟨ss, hSEval⟩
+      have hOutBool : ∃ q, out = Term.Boolean q := by
+        cases hFind : find with
+        | Numeral n =>
+            exact ⟨native_not (native_zlt n 0), by
+              simp [out, hFind, __eo_is_neg, __eo_not]⟩
+        | Rational r =>
+            exact ⟨native_not (native_qlt r (native_mk_rational 0 1)), by
+              simp [out, hFind, __eo_is_neg, __eo_not]⟩
+        | _ =>
+            exfalso
+            apply hOutNe
+            simp [out, hFind, __eo_is_neg, __eo_not]
+      have hEvalEq :
+          __seq_eval
+              (Term.Apply (Term.Apply (Term.UOp UserOp.str_contains) t) s) =
+            out := by
+        simp [__seq_eval, a, b, find, out]
+      constructor
+      · rcases hOutBool with ⟨q, hOutEq⟩
+        rw [hEvalEq, hOutEq]
+        change __smtx_typeof (SmtTerm.Boolean q) =
+          __smtx_typeof
+            (SmtTerm.str_contains (__eo_to_smt t) (__eo_to_smt s))
+        rw [__smtx_typeof.eq_1, typeof_str_contains_eq]
+        simp [__smtx_typeof_seq_op_2_ret, htTy, hsTy, native_Teq,
+          native_ite]
+      · have hContainsEval :
+            __smtx_model_eval M
+                (__eo_to_smt
+                  (Term.Apply (Term.Apply (Term.UOp UserOp.str_contains) t) s)) =
+              SmtValue.Boolean
+                (native_seq_contains (native_unpack_seq st)
+                  (native_unpack_seq ss)) :=
+          RuleProofs.strContains_eval_eq M t s st ss hTEval hSEval
+        rw [hEvalEq, hContainsEval]
+        have hOutContains :
+            __smtx_model_eval M (__eo_to_smt out) =
+              SmtValue.Boolean
+                (native_seq_contains (native_unpack_seq st)
+                  (native_unpack_seq ss)) := by
+          sorry
+        rw [hOutContains]
+        exact RuleProofs.smt_value_rel_refl _
   | case7 t s r =>
       sorry
   | case8 t s r =>
