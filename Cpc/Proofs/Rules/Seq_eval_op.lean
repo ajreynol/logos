@@ -130,8 +130,13 @@ private theorem str_nary_intro_ne_stuck_of_seq_type
   by_cases hConcat : ∃ head tail : Term, x = mkConcat head tail
   · rcases hConcat with ⟨head, tail, hEq⟩
     subst x
-    rw [str_nary_intro_concat_eq head tail]
-    exact term_ne_stuck_of_smt_type_seq (mkConcat head tail) T hxTy
+    have hNN :
+        __smtx_typeof (__eo_to_smt (mkConcat head tail)) ≠ SmtType.None := by
+      rw [hxTy]
+      exact seq_ne_none T
+    exact RuleProofs.term_ne_stuck_of_has_smt_translation
+      (__str_nary_intro (mkConcat head tail))
+      (str_nary_intro_concat_has_smt_translation head tail hNN)
   · have hxNe : x ≠ Term.Stuck :=
       term_ne_stuck_of_smt_type_seq x T hxTy
     have hEmptyNe : __seq_empty (__eo_typeof x) ≠ Term.Stuck :=
@@ -1023,6 +1028,187 @@ private theorem eo_is_list_str_concat_cons_fun_eq (g x y : Term)
   case UOp op =>
     cases op <;>
       simp at h ⊢
+
+private theorem eo_get_nil_rec_stuck_of_is_list_false (f x : Term)
+    (h : __eo_is_list f x = Term.Boolean false) :
+    __eo_get_nil_rec f x = Term.Stuck := by
+  cases f <;> cases x <;>
+    simp [__eo_is_list, __eo_is_ok, native_teq, SmtEval.native_not] at h ⊢
+  all_goals
+    exact h
+
+private theorem eo_is_list_str_concat_cons_false_of_tail_false
+    (x y : Term)
+    (hTail :
+      __eo_is_list (Term.UOp UserOp.str_concat) y =
+        Term.Boolean false) :
+    __eo_is_list (Term.UOp UserOp.str_concat) (mkConcat x y) =
+      Term.Boolean false := by
+  have hRec :=
+    eo_get_nil_rec_stuck_of_is_list_false
+      (Term.UOp UserOp.str_concat) y hTail
+  simp [__eo_is_list, __eo_get_nil_rec, hRec, __eo_requires,
+    __eo_is_ok, native_teq, native_ite, SmtEval.native_ite,
+    SmtEval.native_not]
+
+private theorem list_nth_rec_non_cons_stuck (x i : Term)
+    (hNonCons :
+      ∀ f a b : Term, x = Term.Apply (Term.Apply f a) b -> False) :
+    __eo_list_nth_rec x i = Term.Stuck := by
+  by_cases hi : i = Term.Stuck
+  · subst i
+    exact __eo_list_nth_rec.eq_1 x
+  · exact __eo_list_nth_rec.eq_4 x i hNonCons hi
+      (by
+        intro f a b hx _hi0
+        exact hNonCons f a b hx)
+
+private theorem list_nth_rec_stuck_left (i : Term) :
+    __eo_list_nth_rec Term.Stuck i = Term.Stuck :=
+  list_nth_rec_non_cons_stuck Term.Stuck i
+    (by
+      intro f a b h
+      cases h)
+
+private theorem list_nth_rec_eo_nil_str_concat_stuck (A i : Term) :
+    __eo_list_nth_rec (__eo_nil (Term.UOp UserOp.str_concat) A) i =
+      Term.Stuck := by
+  cases A <;> try
+    (simpa [__eo_nil, __eo_nil_str_concat] using
+      list_nth_rec_stuck_left i)
+  case Apply f x =>
+    cases f <;> try
+      (simpa [__eo_nil, __eo_nil_str_concat] using
+        list_nth_rec_stuck_left i)
+    case UOp op =>
+      cases op <;> try
+        (simpa [__eo_nil, __eo_nil_str_concat] using
+          list_nth_rec_stuck_left i)
+      case Seq =>
+        cases x <;>
+          simp [__eo_nil, __eo_nil_str_concat, __seq_empty]
+        case UOp op =>
+          cases op <;>
+            simp
+          case Char =>
+            exact list_nth_rec_non_cons_stuck (Term.String []) i
+              (by
+                intro f a b h
+                cases h)
+          all_goals
+            exact list_nth_rec_non_cons_stuck
+              _ i
+              (by
+                intro f a b h
+                cases h)
+        all_goals
+          first
+          | exact list_nth_rec_non_cons_stuck (Term.String []) i
+              (by
+                intro f a b h
+                cases h)
+          | exact list_nth_rec_non_cons_stuck
+              _ i
+              (by
+                intro f a b h
+                cases h)
+
+private theorem list_nth_rec_intro_seqUnit_concat_eq_unit_tail_list
+    (head tail n e : Term)
+    (hTailNe : tail ≠ Term.Stuck)
+    (hNth :
+      __eo_list_nth_rec
+          (__str_nary_intro
+            (mkConcat (Term.Apply (Term.UOp UserOp.seq_unit) head) tail)) n =
+        Term.Apply (Term.UOp UserOp.seq_unit) e) :
+    __eo_is_list (Term.UOp UserOp.str_concat) tail =
+      Term.Boolean true := by
+  rcases eo_is_list_boolean_of_ne_stuck (Term.UOp UserOp.str_concat)
+      tail (by decide) hTailNe with
+    ⟨tailList, hTailList⟩
+  cases tailList
+  · have hConcatList :
+        __eo_is_list (Term.UOp UserOp.str_concat)
+            (mkConcat (Term.Apply (Term.UOp UserOp.seq_unit) head) tail) =
+          Term.Boolean false :=
+      eo_is_list_str_concat_cons_false_of_tail_false
+        (Term.Apply (Term.UOp UserOp.seq_unit) head) tail
+        (by simpa using hTailList)
+    let nil :=
+      __eo_nil (Term.UOp UserOp.str_concat)
+        (__eo_typeof
+          (mkConcat (Term.Apply (Term.UOp UserOp.seq_unit) head) tail))
+    cases hNilList :
+        __eo_is_list (Term.UOp UserOp.str_concat) nil with
+    | Boolean nilList =>
+        cases nilList
+        · have hIntro :
+              __str_nary_intro
+                  (mkConcat (Term.Apply (Term.UOp UserOp.seq_unit) head) tail) =
+                Term.Stuck := by
+            simp [__str_nary_intro, __eo_list_singleton_intro, hConcatList,
+              eo_ite_false, nil, hNilList, __eo_requires, native_teq,
+              native_ite, SmtEval.native_ite]
+          rw [hIntro] at hNth
+          cases n <;> simp [__eo_list_nth_rec] at hNth
+        · have hMk :
+              __eo_mk_apply
+                  (Term.Apply (Term.UOp UserOp.str_concat)
+                    (mkConcat (Term.Apply (Term.UOp UserOp.seq_unit) head)
+                      tail))
+                  nil =
+                mkConcat
+                  (mkConcat (Term.Apply (Term.UOp UserOp.seq_unit) head)
+                    tail)
+                  nil := by
+            have hNilNe : nil ≠ Term.Stuck := by
+              intro hNilStuck
+              rw [hNilStuck] at hNilList
+              simp [__eo_is_list] at hNilList
+            have hMkNe :
+                __eo_mk_apply
+                    (Term.Apply (Term.UOp UserOp.str_concat)
+                      (mkConcat
+                        (Term.Apply (Term.UOp UserOp.seq_unit) head) tail))
+                    nil ≠ Term.Stuck := by
+              cases hNilCases : nil <;>
+                simp [__eo_mk_apply, hNilCases] at hNilNe ⊢
+            exact eo_mk_apply_eq_apply_of_ne_stuck
+              (Term.Apply (Term.UOp UserOp.str_concat)
+                (mkConcat (Term.Apply (Term.UOp UserOp.seq_unit) head)
+                  tail))
+              nil hMkNe
+          have hIntro :
+              __str_nary_intro
+                  (mkConcat (Term.Apply (Term.UOp UserOp.seq_unit) head) tail) =
+                mkConcat
+                  (mkConcat (Term.Apply (Term.UOp UserOp.seq_unit) head) tail)
+                  nil := by
+            simp [__str_nary_intro, __eo_list_singleton_intro, hConcatList,
+              eo_ite_false, nil, hNilList, __eo_requires, hMk, native_teq,
+              native_ite, SmtEval.native_ite, SmtEval.native_not]
+          rw [hIntro] at hNth
+          cases n <;> simp [__eo_list_nth_rec, __eo_add, mkConcat] at hNth
+          case Numeral i =>
+            by_cases hi : i = 0 <;>
+              simp [__eo_list_nth_rec, __eo_add, hi] at hNth
+            rw [list_nth_rec_eo_nil_str_concat_stuck
+              (__eo_typeof
+                (mkConcat (Term.Apply (Term.UOp UserOp.seq_unit) head)
+                  tail))
+              (Term.Numeral (native_zplus i (-1)))] at hNth
+            simp at hNth
+    | _ =>
+        have hIntro :
+            __str_nary_intro
+                (mkConcat (Term.Apply (Term.UOp UserOp.seq_unit) head) tail) =
+              Term.Stuck := by
+          simp [__str_nary_intro, __eo_list_singleton_intro, hConcatList,
+            eo_ite_false, nil, hNilList, __eo_requires, native_teq,
+            native_ite, SmtEval.native_ite]
+        rw [hIntro] at hNth
+        cases n <;> simp [__eo_list_nth_rec] at hNth
+  · simpa using hTailList
 
 private theorem smt_typeof_list_nth_rec_str_concat_of_seq :
     ∀ a n T,
@@ -2818,7 +3004,22 @@ private theorem seq_eval_smt_type_and_value_rel
             native_ite, native_teq, SmtEval.native_and,
             SmtEval.native_not] at hGuardTerm
         · subst t
-          exact hFinish (by simpa [a, str_nary_intro_concat_eq] using hLenTNe)
+          have hTailTy :
+              __smtx_typeof (__eo_to_smt tail) = SmtType.Seq T :=
+            (strConcat_args_of_seq_type
+              (Term.Apply (Term.UOp UserOp.seq_unit) head) tail T
+              (by simpa using htTy)).2
+          have hTailList :
+              __eo_is_list (Term.UOp UserOp.str_concat) tail =
+                Term.Boolean true :=
+            list_nth_rec_intro_seqUnit_concat_eq_unit_tail_list head tail n e
+              (term_ne_stuck_of_smt_type_seq tail T hTailTy)
+              (by simpa [a] using hNthRecUnit)
+          exact hFinish
+            (by
+              simpa [a, str_nary_intro_concat_eq
+                (Term.Apply (Term.UOp UserOp.seq_unit) head) tail hTailList]
+                using hLenTNe)
         · subst t
           have hStuck : __seq_element_of_unit nth = Term.Stuck := by
             simpa [a, nth] using

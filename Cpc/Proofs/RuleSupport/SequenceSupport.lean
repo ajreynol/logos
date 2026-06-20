@@ -1027,40 +1027,30 @@ theorem eo_typeof_seq_empty_stuck_of_not_seq_ne_stuck
 
 theorem seq_empty_typeof_seq_type_of_elim_ne_stuck
     (A : Term)
+    (hEmptyNN :
+      __smtx_typeof (__eo_to_smt (__seq_empty A)) ≠ SmtType.None)
     (hElim : __str_nary_elim (__seq_empty A) ≠ Term.Stuck) :
     ∃ T, A = Term.Apply (Term.UOp UserOp.Seq) T := by
-  sorry
+  rcases eo_to_smt_type_seq_of_seq_empty_non_none A hEmptyNN with
+    ⟨T, hType, _hEmptyTy⟩
+  rcases TranslationProofs.eo_to_smt_type_eq_seq hType with
+    ⟨U, hA, _hU⟩
+  exact ⟨U, hA⟩
 
 theorem seq_empty_typeof_has_smt_translation_of_elim_ne_stuck
     (x : Term)
     (hxNN : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None)
+    (hxSeq : ∃ T, __smtx_typeof (__eo_to_smt x) = SmtType.Seq T)
     (hElim :
       __str_nary_elim (__seq_empty (__eo_typeof x)) ≠ Term.Stuck) :
     __smtx_typeof (__eo_to_smt (__seq_empty (__eo_typeof x))) ≠
       SmtType.None := by
-  have hTypeMatch :=
-    TranslationProofs.eo_to_smt_typeof_matches_translation x hxNN
-  generalize hA : __eo_typeof x = A at hElim hTypeMatch
-  rcases seq_empty_typeof_seq_type_of_elim_ne_stuck A hElim with ⟨a, rfl⟩
-  have hComponentNN : __eo_to_smt_type a ≠ SmtType.None := by
-    intro hNone
-    apply hxNN
-    rw [hTypeMatch]
-    simp [__eo_to_smt_type, __smtx_typeof_guard, hNone, native_Teq,
-      native_ite]
-  have hxTy :
-      __smtx_typeof (__eo_to_smt x) =
-        SmtType.Seq (__eo_to_smt_type a) := by
-    rw [hTypeMatch]
-    exact TranslationProofs.smtx_typeof_guard_of_non_none
-      (__eo_to_smt_type a) (SmtType.Seq (__eo_to_smt_type a))
-      hComponentNN
+  rcases hxSeq with ⟨T, hxTy⟩
   rcases smt_seq_component_wf_of_non_none_type
-      (__eo_to_smt x) (__eo_to_smt_type a) hxTy with
+      (__eo_to_smt x) T hxTy with
     ⟨hInh, hWf⟩
-  simpa [hA] using
-    seq_empty_typeof_has_smt_translation_of_smt_type_seq_wf
-      x (__eo_to_smt_type a) hxTy hInh hWf
+  exact seq_empty_typeof_has_smt_translation_of_smt_type_seq_wf
+    x T hxTy hInh hWf
 
 
 theorem smtx_model_eval_str_concat_term_eq (M : SmtModel) (x y : Term) :
@@ -1118,16 +1108,32 @@ theorem smt_typeof_str_concat_seq_of_non_none (x y : Term)
   rcases str_concat_args_of_non_none x y hNN with ⟨T, hxTy, hyTy⟩
   exact ⟨T, smt_typeof_str_concat_of_seq x y T hxTy hyTy⟩
 
-theorem str_nary_intro_concat_eq (x y : Term) :
-    __str_nary_intro (mkConcat x y) = mkConcat x y := by
-  sorry
+theorem strConcat_nil_is_list_nil_of_type {ty : Term} {T : SmtType}
+    (hTy : __eo_to_smt_type ty = SmtType.Seq T) :
+    __eo_is_list_nil (Term.UOp UserOp.str_concat)
+        (__eo_nil (Term.UOp UserOp.str_concat) ty) =
+      Term.Boolean true := by
+  rcases TranslationProofs.eo_to_smt_type_eq_seq hTy with ⟨V, hTyEq, _hV⟩
+  subst ty
+  cases V <;>
+    simp [__eo_nil, __eo_nil_str_concat, __seq_empty, __eo_is_list_nil,
+      __eo_is_list_nil_str_concat, __eo_eq, native_teq]
+  case UOp op =>
+    cases op <;> simp
 
-theorem str_nary_intro_concat_has_smt_translation
-    (x y : Term)
-    (hNN : __smtx_typeof (__eo_to_smt (mkConcat x y)) ≠ SmtType.None) :
-    __smtx_typeof (__eo_to_smt (__str_nary_intro (mkConcat x y))) ≠
-      SmtType.None := by
-  simpa [str_nary_intro_concat_eq] using hNN
+theorem strConcat_nil_eq_seq_empty_of_type {ty : Term} {T : SmtType}
+    (hTy : __eo_to_smt_type ty = SmtType.Seq T) :
+    __eo_nil (Term.UOp UserOp.str_concat) ty = __seq_empty ty := by
+  rcases TranslationProofs.eo_to_smt_type_eq_seq hTy with ⟨V, hTyEq, _hV⟩
+  subst ty
+  rfl
+
+theorem eo_is_list_boolean_of_ne_stuck (f x : Term)
+    (hf : f ≠ Term.Stuck) (hx : x ≠ Term.Stuck) :
+    ∃ b, __eo_is_list f x = Term.Boolean b := by
+  refine ⟨native_not (native_teq (__eo_get_nil_rec f x) Term.Stuck), ?_⟩
+  cases f <;> cases x <;>
+    simp [__eo_is_list, __eo_is_ok] at hf hx ⊢
 
 theorem eq_of_eo_eq_true_local (x y : Term)
     (h : __eo_eq x y = Term.Boolean true) :
@@ -1387,6 +1393,16 @@ theorem eo_is_list_str_concat_nil_true_of_nil_true (nil : Term)
   case String s =>
     subst s
     simp
+
+theorem eo_is_list_nil_str_concat_boolean_of_ne_stuck (x : Term)
+    (hx : x ≠ Term.Stuck) :
+    ∃ b, __eo_is_list_nil (Term.UOp UserOp.str_concat) x =
+      Term.Boolean b := by
+  cases x <;>
+    simp [__eo_is_list_nil, __eo_is_list_nil_str_concat, __eo_eq,
+      native_teq] at hx ⊢
+  case UOp1 op A =>
+    cases op <;> simp
 
 theorem eo_is_list_cons_self_true_of_tail_list (f x y : Term)
     (hF : f ≠ Term.Stuck)
@@ -2418,6 +2434,18 @@ theorem str_nary_elim_arg_ne_stuck_of_ne_stuck (x : Term)
   subst x
   exact h (by rfl)
 
+theorem str_nary_elim_is_list_true_of_ne_stuck (x : Term)
+    (h : __str_nary_elim x ≠ Term.Stuck) :
+    __eo_is_list (Term.UOp UserOp.str_concat) x = Term.Boolean true := by
+  have hReq :
+      __eo_requires (__eo_is_list (Term.UOp UserOp.str_concat) x)
+          (Term.Boolean true) (__eo_list_singleton_elim_2 x) ≠
+        Term.Stuck := by
+    simpa [__str_nary_elim, __eo_list_singleton_elim] using h
+  exact eo_requires_eq_of_ne_stuck
+    (__eo_is_list (Term.UOp UserOp.str_concat) x) (Term.Boolean true)
+    (__eo_list_singleton_elim_2 x) hReq
+
 theorem term_ne_stuck_of_smt_type_seq (x : Term) (T : SmtType)
     (hxTy : __smtx_typeof (__eo_to_smt x) = SmtType.Seq T) :
     x ≠ Term.Stuck := by
@@ -2426,6 +2454,99 @@ theorem term_ne_stuck_of_smt_type_seq (x : Term) (T : SmtType)
   change __smtx_typeof SmtTerm.None = SmtType.Seq T at hxTy
   rw [TranslationProofs.smtx_typeof_none] at hxTy
   cases hxTy
+
+theorem str_nary_intro_eq_self_of_is_list (x : Term)
+    (hList :
+      __eo_is_list (Term.UOp UserOp.str_concat) x = Term.Boolean true) :
+    __str_nary_intro x = x := by
+  simp [__str_nary_intro, __eo_list_singleton_intro, hList, eo_ite_true]
+
+theorem str_nary_intro_concat_eq (x y : Term)
+    (hTailList :
+      __eo_is_list (Term.UOp UserOp.str_concat) y = Term.Boolean true) :
+    __str_nary_intro (mkConcat x y) = mkConcat x y := by
+  have hList :
+      __eo_is_list (Term.UOp UserOp.str_concat) (mkConcat x y) =
+        Term.Boolean true :=
+    eo_is_list_cons_self_true_of_tail_list (Term.UOp UserOp.str_concat)
+      x y (by decide) hTailList
+  exact str_nary_intro_eq_self_of_is_list (mkConcat x y) hList
+
+theorem str_nary_intro_concat_has_smt_translation
+    (x y : Term)
+    (hNN : __smtx_typeof (__eo_to_smt (mkConcat x y)) ≠ SmtType.None) :
+    __smtx_typeof (__eo_to_smt (__str_nary_intro (mkConcat x y))) ≠
+      SmtType.None := by
+  rcases smt_typeof_str_concat_seq_of_non_none x y hNN with
+    ⟨T, hConcatTy⟩
+  have hConcatNe : mkConcat x y ≠ Term.Stuck :=
+    term_ne_stuck_of_smt_type_seq (mkConcat x y) T hConcatTy
+  rcases eo_is_list_boolean_of_ne_stuck (Term.UOp UserOp.str_concat)
+      (mkConcat x y) (by decide) hConcatNe with
+    ⟨isList, hListBool⟩
+  cases isList
+  · have hTrans :=
+      TranslationProofs.eo_to_smt_typeof_matches_translation
+        (mkConcat x y) hNN
+    have hTy :
+        __eo_to_smt_type (__eo_typeof (mkConcat x y)) =
+          SmtType.Seq T := by
+      rw [← hTrans, hConcatTy]
+    let nil := __eo_nil (Term.UOp UserOp.str_concat)
+      (__eo_typeof (mkConcat x y))
+    have hNilEq : nil = __seq_empty (__eo_typeof (mkConcat x y)) := by
+      simpa [nil] using strConcat_nil_eq_seq_empty_of_type hTy
+    have hNilNN :
+        __smtx_typeof (__eo_to_smt nil) ≠ SmtType.None := by
+      rw [hNilEq]
+      rcases smt_seq_component_wf_of_non_none_type
+          (__eo_to_smt (mkConcat x y)) T hConcatTy with
+        ⟨hInh, hWf⟩
+      exact seq_empty_typeof_has_smt_translation_of_smt_type_seq_wf
+        (mkConcat x y) T hConcatTy hInh hWf
+    have hNilTy : __smtx_typeof (__eo_to_smt nil) = SmtType.Seq T := by
+      have hNilNN' :
+          __smtx_typeof
+              (__eo_to_smt (__seq_empty (__eo_typeof (mkConcat x y)))) ≠
+            SmtType.None := by
+        simpa [← hNilEq] using hNilNN
+      rw [hNilEq]
+      exact smt_typeof_seq_empty_typeof (mkConcat x y) T hConcatTy hNilNN'
+    have hNilNe : nil ≠ Term.Stuck :=
+      term_ne_stuck_of_smt_type_seq nil T hNilTy
+    have hNilList :
+        __eo_is_list (Term.UOp UserOp.str_concat) nil =
+          Term.Boolean true :=
+      eo_is_list_str_concat_nil_true_of_nil_true nil
+        (by simpa [nil] using strConcat_nil_is_list_nil_of_type hTy)
+    have hMkNe :
+        __eo_mk_apply
+            (Term.Apply (Term.UOp UserOp.str_concat) (mkConcat x y)) nil ≠
+          Term.Stuck := by
+      cases hNilCases : nil <;> simp [__eo_mk_apply, hNilCases] at hNilNe ⊢
+    have hMkEq :
+        __eo_mk_apply
+            (Term.Apply (Term.UOp UserOp.str_concat) (mkConcat x y)) nil =
+          mkConcat (mkConcat x y) nil :=
+      eo_mk_apply_eq_apply_of_ne_stuck
+        (Term.Apply (Term.UOp UserOp.str_concat) (mkConcat x y)) nil hMkNe
+    have hWrappedTy :
+        __smtx_typeof (__eo_to_smt (mkConcat (mkConcat x y) nil)) =
+          SmtType.Seq T :=
+      smt_typeof_str_concat_of_seq (mkConcat x y) nil T hConcatTy hNilTy
+    have hIntroEq :
+        __str_nary_intro (mkConcat x y) =
+          mkConcat (mkConcat x y) nil := by
+      simp [__str_nary_intro, __eo_list_singleton_intro, hListBool,
+        eo_ite_false, nil, hNilList, hMkEq, __eo_requires, native_teq,
+        native_ite, SmtEval.native_ite, SmtEval.native_not]
+    rw [hIntroEq, hWrappedTy]
+    exact seq_ne_none T
+  · have hIntroEq :
+        __str_nary_intro (mkConcat x y) = mkConcat x y := by
+      exact str_nary_intro_eq_self_of_is_list (mkConcat x y)
+        (by simpa using hListBool)
+    simpa [hIntroEq] using hNN
 
 theorem seq_empty_ne_stuck_of_ne_stuck (A : Term)
     (hA : A ≠ Term.Stuck) :
@@ -2480,12 +2601,56 @@ theorem eo_eq_seq_empty_typeof_ne_stuck_of_smt_type_seq
     cases hEmpty : __seq_empty (__eo_typeof x) <;>
       simp [__eo_eq, hEmpty] at hEmptyNonStuck ⊢
 
+theorem eo_is_list_nil_str_concat_seq_empty_of_ne_stuck'
+    (A : Term) (hEmpty : __seq_empty A ≠ Term.Stuck) :
+    __eo_is_list_nil (Term.UOp UserOp.str_concat)
+      (__seq_empty A) = Term.Boolean true := by
+  cases A <;>
+    simp [__seq_empty, __eo_is_list_nil, __eo_is_list_nil_str_concat,
+      __eo_eq, native_teq] at hEmpty ⊢
+  case Apply f a =>
+    cases f with
+    | UOp op =>
+        cases op <;> try rfl
+        case Seq =>
+          cases a <;> try rfl
+          case UOp op =>
+            cases op <;> try rfl
+    | _ =>
+        rfl
+
+theorem eo_is_list_str_concat_seq_empty_of_ne_stuck
+    (A : Term) (hEmpty : __seq_empty A ≠ Term.Stuck) :
+    __eo_is_list (Term.UOp UserOp.str_concat) (__seq_empty A) =
+      Term.Boolean true :=
+  eo_is_list_str_concat_nil_true_of_nil_true (__seq_empty A)
+    (eo_is_list_nil_str_concat_seq_empty_of_ne_stuck' A hEmpty)
+
 theorem str_nary_elim_str_concat_cons_ne_stuck_of_seq
     (x y : Term) (T : SmtType)
     (hxTy : __smtx_typeof (__eo_to_smt x) = SmtType.Seq T)
-    (hyTy : __smtx_typeof (__eo_to_smt y) = SmtType.Seq T) :
+    (hyTy : __smtx_typeof (__eo_to_smt y) = SmtType.Seq T)
+    (hTailList :
+      __eo_is_list (Term.UOp UserOp.str_concat) y = Term.Boolean true) :
     __str_nary_elim (mkConcat x y) ≠ Term.Stuck := by
-  sorry
+  have hxNe : x ≠ Term.Stuck :=
+    term_ne_stuck_of_smt_type_seq x T hxTy
+  have hyNe : y ≠ Term.Stuck :=
+    term_ne_stuck_of_smt_type_seq y T hyTy
+  have hList :
+      __eo_is_list (Term.UOp UserOp.str_concat) (mkConcat x y) =
+        Term.Boolean true :=
+    eo_is_list_cons_self_true_of_tail_list (Term.UOp UserOp.str_concat)
+      x y (by decide) hTailList
+  rcases eo_is_list_nil_str_concat_boolean_of_ne_stuck y hyNe with
+    ⟨isNil, hNilBool⟩
+  cases isNil
+  · simp [__str_nary_elim, __eo_list_singleton_elim, hList,
+      __eo_list_singleton_elim_2, hNilBool, eo_ite_false, __eo_requires,
+      native_teq, native_ite, SmtEval.native_ite, SmtEval.native_not]
+  · simpa [__str_nary_elim, __eo_list_singleton_elim, hList,
+      __eo_list_singleton_elim_2, hNilBool, eo_ite_true, __eo_requires,
+      native_teq, native_ite, SmtEval.native_ite, SmtEval.native_not] using hxNe
 
 theorem str_nary_elim_str_nary_intro_default_ne_stuck_of_seq
     (x : Term) (T : SmtType)
@@ -2545,9 +2710,16 @@ theorem str_nary_elim_str_nary_intro_default_ne_stuck_of_seq
         __smtx_typeof (__eo_to_smt (__seq_empty (__eo_typeof x))) =
           SmtType.Seq T := by
       simpa [hUT] using hEmptyTyU
+    have hEmptyList :
+        __eo_is_list (Term.UOp UserOp.str_concat)
+            (__seq_empty (__eo_typeof x)) =
+          Term.Boolean true :=
+      eo_is_list_str_concat_seq_empty_of_ne_stuck (__eo_typeof x)
+        (term_ne_stuck_of_smt_type_seq
+          (__seq_empty (__eo_typeof x)) T hEmptyTy)
     rw [hCond, eo_ite_false, hApplyEq]
     exact str_nary_elim_str_concat_cons_ne_stuck_of_seq x
-      (__seq_empty (__eo_typeof x)) T hxTy hEmptyTy
+      (__seq_empty (__eo_typeof x)) T hxTy hEmptyTy hEmptyList
 
 theorem str_nary_elim_list_rev_rec_ne_stuck_of_seq
     (tail acc : Term) (T : SmtType)
@@ -2598,7 +2770,7 @@ theorem str_nary_elim_list_rev_rec_ne_stuck_of_seq
       have hNewAccElim :
           __str_nary_elim (mkConcat x acc) ≠ Term.Stuck :=
         str_nary_elim_str_concat_cons_ne_stuck_of_seq x acc T hxTy
-          hAccTy
+          hAccTy (str_nary_elim_is_list_true_of_ne_stuck acc hAccElim)
       have hTailRev :
           __eo_list_rev_rec y (mkConcat x acc) ≠ Term.Stuck := by
         simpa [__eo_list_rev_rec] using hRev
@@ -2640,6 +2812,10 @@ theorem str_nary_elim_list_rev_str_concat_cons_ne_stuck_of_seq
   have hAccElim : __str_nary_elim (mkConcat head nil) ≠ Term.Stuck :=
     str_nary_elim_str_concat_cons_ne_stuck_of_seq head nil T hHeadTy
       hNilTy
+      (by
+        simpa [nil] using
+          eo_get_nil_rec_is_list_true_of_is_list_true
+            (Term.UOp UserOp.str_concat) tail hTailList)
   have hRevEq :
       __eo_list_rev (Term.UOp UserOp.str_concat) (mkConcat head tail) =
         __eo_list_rev_rec tail (mkConcat head nil) := by
@@ -4915,7 +5091,7 @@ theorem eo_interprets_double_rev_elim_eq_of_cons_nil
   have hElimCons :
       __str_nary_elim (mkConcat head nil) ≠ Term.Stuck :=
     str_nary_elim_str_concat_cons_ne_stuck_of_seq head nil T hHeadTy
-      hNilTy
+      hNilTy (eo_is_list_str_concat_nil_true_of_nil_true nil hNil)
   have hElimTy :
       __smtx_typeof (__eo_to_smt (__str_nary_elim (mkConcat head nil))) =
         SmtType.Seq T :=
