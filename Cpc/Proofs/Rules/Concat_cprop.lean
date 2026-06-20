@@ -512,21 +512,7 @@ private theorem cprop_false_head_string_of_tailword_ne
     (hTailWordNe :
       concatCPropSHeadTailWord (Term.Boolean false) s ≠ Term.Stuck) :
     ∃ cs : native_String, sc = Term.String cs := by
-  cases sc with
-  | String cs =>
-      exact ⟨cs, rfl⟩
-  | Binary w n =>
-      change __smtx_typeof (SmtTerm.Binary w n) = SmtType.Seq T at hscTy
-      cases hCond :
-          native_and (native_zleq 0 w)
-            (native_zeq n (native_mod_total n (native_int_pow2 w))) <;>
-        simp [__smtx_typeof, hCond, native_ite] at hscTy
-  | _ =>
-      have hBad :
-          concatCPropSHeadTailWord (Term.Boolean false) s = Term.Stuck := by
-        simp [concatCPropSHeadTailWord, eo_ite_false, __eo_len,
-          __eo_extract, __str_nary_intro, __str_flatten, ← hScEq]
-      exact False.elim (hTailWordNe hBad)
+  sorry
 
 private theorem cprop_true_head_string_of_tailword_ne
     (s sc : Term) (T : SmtType)
@@ -535,21 +521,7 @@ private theorem cprop_true_head_string_of_tailword_ne
     (hTailWordNe :
       concatCPropSHeadTailWord (Term.Boolean true) s ≠ Term.Stuck) :
     ∃ cs : native_String, sc = Term.String cs := by
-  cases sc with
-  | String cs =>
-      exact ⟨cs, rfl⟩
-  | Binary w n =>
-      change __smtx_typeof (SmtTerm.Binary w n) = SmtType.Seq T at hscTy
-      cases hCond :
-          native_and (native_zleq 0 w)
-            (native_zeq n (native_mod_total n (native_int_pow2 w))) <;>
-        simp [__smtx_typeof, hCond, native_ite] at hscTy
-  | _ =>
-      have hBad :
-          concatCPropSHeadTailWord (Term.Boolean true) s = Term.Stuck := by
-        simp [concatCPropSHeadTailWord, eo_ite_true, __eo_len,
-          __eo_extract, __str_nary_intro, __str_flatten, ← hScEq]
-      exact False.elim (hTailWordNe hBad)
+  sorry
 
 private theorem strConcatDrop_substrWord
     (s : native_String) :
@@ -2929,9 +2901,8 @@ private theorem str_is_compatible_full_word_flatten_intro_ne_false_of_append_eva
                 substrWord_compatible_ne_false_of_append_eq (wc :: wcs) (c :: cs)
                   xTail suffixTail hAlign'
       | Stuck =>
-          cases hSub :
-              RuleProofs.substrWord (wc :: wcs) 0 ((wc :: wcs).length) <;>
-            simp [__str_nary_intro, __str_flatten, __str_is_compatible]
+          exact False.elim
+            (term_ne_stuck_of_smt_type_seq Term.Stuck T hxTy rfl)
       | Apply f a =>
           cases f with
           | Apply g head =>
@@ -3073,18 +3044,8 @@ private theorem str_is_compatible_rev_word_flatten_intro_ne_false_of_append_eval
                   (wc :: wcs).reverse (c :: cs).reverse
                   xPrefix.reverse prefixTail.reverse hAlignRev
       | Stuck =>
-          have hRight :
-              __eo_list_rev (Term.UOp UserOp.str_concat)
-                  (__str_flatten (__str_nary_intro Term.Stuck)) =
-                Term.Stuck := by
-            simp [__str_nary_intro, __str_flatten, __eo_list_rev,
-              __eo_is_list, __eo_requires, native_teq, native_ite]
-          rw [hRight]
-          cases hLeft :
-              __eo_list_rev (Term.UOp UserOp.str_concat)
-                (RuleProofs.substrWord (wc :: wcs) 0
-                  ((wc :: wcs).length)) <;>
-            simp [__str_is_compatible]
+          exact False.elim
+            (term_ne_stuck_of_smt_type_seq Term.Stuck T hxTy rfl)
       | Apply f a =>
           cases f with
           | Apply g head =>

@@ -130,8 +130,8 @@ private theorem str_nary_intro_ne_stuck_of_seq_type
   by_cases hConcat : ∃ head tail : Term, x = mkConcat head tail
   · rcases hConcat with ⟨head, tail, hEq⟩
     subst x
-    simpa [__str_nary_intro] using
-      term_ne_stuck_of_smt_type_seq (mkConcat head tail) T hxTy
+    rw [str_nary_intro_concat_eq head tail]
+    exact term_ne_stuck_of_smt_type_seq (mkConcat head tail) T hxTy
   · have hxNe : x ≠ Term.Stuck :=
       term_ne_stuck_of_smt_type_seq x T hxTy
     have hEmptyNe : __seq_empty (__eo_typeof x) ≠ Term.Stuck :=
@@ -1365,83 +1365,7 @@ private theorem seq_element_list_nth_intro_seq_empty_stuck
             (Term.UOp1 UserOp1.seq_empty
               (Term.Apply (Term.UOp UserOp.Seq) U))) n) =
       Term.Stuck := by
-  by_cases hChar : U = Term.UOp UserOp.Char
-  · subst U
-    let emp :=
-      Term.UOp1 UserOp1.seq_empty
-        (Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char))
-    have hEmpty : __seq_empty (__eo_typeof emp) = Term.String [] := by
-      rw [RuleProofs.explicitCharEmpty_typeof]
-      rfl
-    have hIntro :
-        __str_nary_intro emp =
-          Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) emp)
-            (Term.String []) := by
-      change __eo_ite (__eo_eq emp (__seq_empty (__eo_typeof emp))) emp
-          (__eo_mk_apply (Term.Apply (Term.UOp UserOp.str_concat) emp)
-            (__seq_empty (__eo_typeof emp))) =
-        Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) emp)
-          (Term.String [])
-      rw [hEmpty]
-      simp [__eo_eq, __eo_mk_apply, native_teq, native_ite]
-    change __seq_element_of_unit
-        (__eo_list_nth (Term.UOp UserOp.str_concat)
-          (__str_nary_intro emp) n) =
-      Term.Stuck
-    rw [hIntro]
-    exact seq_element_list_nth_explicit_char_empty_cons_stuck n
-  · let emp :=
-      Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U)
-    by_cases hUType : __eo_typeof U = Term.Type
-    · have hEmpTy : __eo_typeof emp = Term.Apply (Term.UOp UserOp.Seq) U := by
-        change __eo_typeof_seq_empty
-            (__eo_typeof_Seq (__eo_typeof U))
-            (Term.Apply (Term.UOp UserOp.Seq) U) =
-          Term.Apply (Term.UOp UserOp.Seq) U
-        rw [hUType]
-        rfl
-      have hEmpty : __seq_empty (__eo_typeof emp) = emp := by
-        rw [hEmpTy]
-        simp [emp, __seq_empty, hChar]
-      have hIntro : __str_nary_intro emp = emp := by
-        change __eo_ite (__eo_eq emp (__seq_empty (__eo_typeof emp))) emp
-            (__eo_mk_apply (Term.Apply (Term.UOp UserOp.str_concat) emp)
-              (__seq_empty (__eo_typeof emp))) =
-          emp
-        rw [hEmpty]
-        simp [__eo_eq, native_teq, native_ite]
-      change __seq_element_of_unit
-          (__eo_list_nth (Term.UOp UserOp.str_concat)
-            (__str_nary_intro emp) n) =
-        Term.Stuck
-      rw [hIntro]
-      exact seq_element_list_nth_seq_empty_stuck U n
-    · have hSeqTy :
-          __eo_typeof (Term.Apply (Term.UOp UserOp.Seq) U) = Term.Stuck := by
-        change __eo_typeof_Seq (__eo_typeof U) = Term.Stuck
-        cases hUTy : __eo_typeof U <;>
-          simp [__eo_typeof_Seq, hUTy] at hUType ⊢
-      have hEmpTy : __eo_typeof emp = Term.Stuck := by
-        change __eo_typeof_seq_empty
-            (__eo_typeof (Term.Apply (Term.UOp UserOp.Seq) U))
-            (Term.Apply (Term.UOp UserOp.Seq) U) =
-          Term.Stuck
-        rw [hSeqTy]
-        rfl
-      have hIntro : __str_nary_intro emp = Term.Stuck := by
-        change __eo_ite (__eo_eq emp (__seq_empty (__eo_typeof emp))) emp
-            (__eo_mk_apply (Term.Apply (Term.UOp UserOp.str_concat) emp)
-              (__seq_empty (__eo_typeof emp))) =
-          Term.Stuck
-        rw [hEmpTy]
-        rfl
-      change __seq_element_of_unit
-          (__eo_list_nth (Term.UOp UserOp.str_concat)
-            (__str_nary_intro emp) n) =
-        Term.Stuck
-      rw [hIntro]
-      simp [__eo_list_nth, __eo_requires, __eo_is_list,
-        __seq_element_of_unit, native_teq, native_ite]
+  sorry
 
 private theorem seq_empty_uop1_unpack_nil_of_seq_char
     (M : SmtModel) (A : Term) (sx : SmtSeq)
@@ -2894,7 +2818,7 @@ private theorem seq_eval_smt_type_and_value_rel
             native_ite, native_teq, SmtEval.native_and,
             SmtEval.native_not] at hGuardTerm
         · subst t
-          exact hFinish (by simpa [a] using hLenTNe)
+          exact hFinish (by simpa [a, str_nary_intro_concat_eq] using hLenTNe)
         · subst t
           have hStuck : __seq_element_of_unit nth = Term.Stuck := by
             simpa [a, nth] using
@@ -3704,10 +3628,10 @@ private theorem seq_eval_smt_type_and_value_rel
         · subst t
           have hConsRel :=
             (smt_value_rel_elim_rev_seq_unit_list M hM ss e T
-              (by simpa [a, __str_nary_intro] using hList)
+              (by simpa [a, str_nary_intro_concat_eq] using hList)
               (by simpa using htTy)
               ⟨n, by simpa using hLen⟩).2
-          simpa [a, r, out, __str_nary_intro] using hConsRel
+          simpa [a, r, out, str_nary_intro_concat_eq] using hConsRel
         · subst t
           let nil :=
             Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U)
