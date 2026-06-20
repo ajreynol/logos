@@ -505,6 +505,13 @@ private theorem str_overlap_rec_right_ne_stuck_of_ne_stuck
   subst b
   cases a <;> simp [__str_overlap_rec] at h
 
+private theorem cprop_str_flatten_arg_ne_stuck_of_ne_stuck (x : Term)
+    (h : __str_flatten x ≠ Term.Stuck) :
+    x ≠ Term.Stuck := by
+  intro hx
+  subst x
+  simp [__str_flatten] at h
+
 private theorem cprop_false_head_string_of_tailword_ne
     (s sc : Term) (T : SmtType)
     (hScEq : sc = concatCPropHead (Term.Boolean false) s)
@@ -512,7 +519,39 @@ private theorem cprop_false_head_string_of_tailword_ne
     (hTailWordNe :
       concatCPropSHeadTailWord (Term.Boolean false) s ≠ Term.Stuck) :
     ∃ cs : native_String, sc = Term.String cs := by
-  sorry
+  subst sc
+  generalize hHead : concatCPropHead (Term.Boolean false) s = h
+  have hhTy : __smtx_typeof (__eo_to_smt h) = SmtType.Seq T := by
+    rw [← hHead]
+    exact hscTy
+  have hTail :
+      __str_flatten
+          (__str_nary_intro
+            (__eo_extract h (Term.Numeral 1) (__eo_len h))) ≠
+        Term.Stuck := by
+    rw [← hHead]
+    simpa [concatCPropSHeadTailWord, eo_ite_false] using hTailWordNe
+  have hExtractNe :
+      __eo_extract h (Term.Numeral 1) (__eo_len h) ≠ Term.Stuck :=
+    str_nary_intro_arg_ne_stuck_of_ne_stuck
+      (__eo_extract h (Term.Numeral 1) (__eo_len h))
+      (cprop_str_flatten_arg_ne_stuck_of_ne_stuck
+        (__str_nary_intro
+          (__eo_extract h (Term.Numeral 1) (__eo_len h))) hTail)
+  cases h with
+  | String cs =>
+      exact ⟨cs, rfl⟩
+  | Binary w n =>
+      change __smtx_typeof (SmtTerm.Binary w n) = SmtType.Seq T at hhTy
+      rw [__smtx_typeof.eq_5] at hhTy
+      cases hCond :
+          native_and (native_zleq 0 w)
+            (native_zeq n (native_mod_total n (native_int_pow2 w))) <;>
+        simp [native_ite, hCond] at hhTy
+  | Stuck =>
+      simp [__eo_extract] at hExtractNe
+  | _ =>
+      simp [__eo_extract] at hExtractNe
 
 private theorem cprop_true_head_string_of_tailword_ne
     (s sc : Term) (T : SmtType)
@@ -521,7 +560,44 @@ private theorem cprop_true_head_string_of_tailword_ne
     (hTailWordNe :
       concatCPropSHeadTailWord (Term.Boolean true) s ≠ Term.Stuck) :
     ∃ cs : native_String, sc = Term.String cs := by
-  sorry
+  subst sc
+  generalize hHead : concatCPropHead (Term.Boolean true) s = h
+  have hhTy : __smtx_typeof (__eo_to_smt h) = SmtType.Seq T := by
+    rw [← hHead]
+    exact hscTy
+  have hTail :
+      __str_flatten
+          (__str_nary_intro
+            (__eo_extract h (Term.Numeral 0)
+              (__eo_add (__eo_len h) (Term.Numeral (-2 : native_Int))))) ≠
+        Term.Stuck := by
+    rw [← hHead]
+    simpa [concatCPropSHeadTailWord, eo_ite_true] using hTailWordNe
+  have hExtractNe :
+      __eo_extract h (Term.Numeral 0)
+          (__eo_add (__eo_len h) (Term.Numeral (-2 : native_Int))) ≠
+        Term.Stuck :=
+    str_nary_intro_arg_ne_stuck_of_ne_stuck
+      (__eo_extract h (Term.Numeral 0)
+        (__eo_add (__eo_len h) (Term.Numeral (-2 : native_Int))))
+      (cprop_str_flatten_arg_ne_stuck_of_ne_stuck
+        (__str_nary_intro
+          (__eo_extract h (Term.Numeral 0)
+            (__eo_add (__eo_len h) (Term.Numeral (-2 : native_Int))))) hTail)
+  cases h with
+  | String cs =>
+      exact ⟨cs, rfl⟩
+  | Binary w n =>
+      change __smtx_typeof (SmtTerm.Binary w n) = SmtType.Seq T at hhTy
+      rw [__smtx_typeof.eq_5] at hhTy
+      cases hCond :
+          native_and (native_zleq 0 w)
+            (native_zeq n (native_mod_total n (native_int_pow2 w))) <;>
+        simp [native_ite, hCond] at hhTy
+  | Stuck =>
+      simp [__eo_extract] at hExtractNe
+  | _ =>
+      simp [__eo_extract] at hExtractNe
 
 private theorem strConcatDrop_substrWord
     (s : native_String) :
