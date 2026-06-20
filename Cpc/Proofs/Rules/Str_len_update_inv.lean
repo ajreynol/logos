@@ -32,13 +32,14 @@ private theorem eo_typeof_str_len_str_update_args_of_ne_stuck
                 cases opC <;>
                   simp [__eo_typeof_str_update, __eo_typeof_str_len] at h ⊢
                 case Seq =>
-                  by_cases hYX : y = x
-                  · subst y
-                    exact ⟨x, rfl, rfl, rfl⟩
-                  · exfalso
+                  have hReqNe :
+                      __eo_requires (__eo_eq x y) (Term.Boolean true)
+                          (Term.Apply Term.Seq x) ≠ Term.Stuck := by
+                    intro hReq
                     apply h
-                    simp [__eo_requires, __eo_eq, native_ite, native_teq,
-                      native_not, hYX]
+                    rw [hReq]
+                  exact RuleProofs.eq_of_requires_eq_true_not_stuck x y
+                    (Term.Apply Term.Seq x) hReqNe
 
 private theorem smtx_typeof_of_eo_seq
     (a T : Term)
@@ -100,23 +101,39 @@ private theorem native_seq_update_length
     (xs ys : List SmtValue) (i : native_Int) :
     (native_seq_update xs i ys).length = xs.length := by
   unfold native_seq_update
-  by_cases hOut : i < 0 ∨ Int.ofNat xs.length ≤ i
-  · simp [hOut]
-  · have hNeg : ¬ i < 0 := by
-      intro h
-      exact hOut (Or.inl h)
-    have hHigh : ¬ Int.ofNat xs.length ≤ i := by
-      intro h
-      exact hOut (Or.inr h)
-    have hNonneg : 0 ≤ i := int_nonneg_of_not_neg hNeg
-    let idx := Int.toNat i
-    have hCast : Int.ofNat idx = i := Int.toNat_of_nonneg hNonneg
-    have hIdxLe : idx ≤ xs.length := by
-      exact Int.ofNat_le.mp <| by
-        calc
-          (idx : Int) = i := hCast
-          _ ≤ Int.ofNat xs.length := Int.le_of_lt (Int.lt_of_not_ge hHigh)
-    simpa [hOut, idx] using native_seq_update_slice_length xs ys idx hIdxLe
+  by_cases hNeg : i < 0
+  · rw [show decide (i < 0) = true from decide_eq_true hNeg]
+    rfl
+  · rw [show decide (i < 0) = false from decide_eq_false hNeg]
+    by_cases hHigh : Int.ofNat xs.length ≤ i
+    · simp [hHigh]
+      rw [show
+          (if (↑xs.length : native_Int) ≤ i then xs
+            else
+              List.take (Int.toNat i) xs ++
+                (List.take (xs.length - Int.toNat i) ys ++
+                  List.drop (Int.toNat i + ys.length) xs)) = xs from
+        if_pos hHigh]
+    · simp [hHigh]
+      have hNonneg : 0 ≤ i := int_nonneg_of_not_neg hNeg
+      let idx := Int.toNat i
+      have hCast : Int.ofNat idx = i := Int.toNat_of_nonneg hNonneg
+      have hIdxLe : idx ≤ xs.length := by
+        exact Int.ofNat_le.mp <| by
+          calc
+            (idx : Int) = i := hCast
+            _ ≤ Int.ofNat xs.length := Int.le_of_lt (Int.lt_of_not_ge hHigh)
+      rw [show
+          (if (↑xs.length : native_Int) ≤ i then xs
+            else
+              List.take (Int.toNat i) xs ++
+                (List.take (xs.length - Int.toNat i) ys ++
+                  List.drop (Int.toNat i + ys.length) xs)) =
+            List.take (Int.toNat i) xs ++
+              (List.take (xs.length - Int.toNat i) ys ++
+                List.drop (Int.toNat i + ys.length) xs) from
+        if_neg hHigh]
+      simpa [idx] using native_seq_update_slice_length xs ys idx hIdxLe
 
 private theorem typed___eo_prog_str_len_update_inv_impl
     (t n r : Term)
@@ -145,7 +162,15 @@ private theorem typed___eo_prog_str_len_update_inv_impl
         (SmtTerm.str_len
           (SmtTerm.str_update (__eo_to_smt t) (__eo_to_smt n) (__eo_to_smt r))) =
       SmtType.Int
-    rw [typeof_str_len_eq, hUpdTy]
+    rw [typeof_str_len_eq]
+    rw [show
+        __smtx_typeof
+            (SmtTerm.str_update (__eo_to_smt t) (__eo_to_smt n)
+              (__eo_to_smt r)) =
+          SmtType.Seq (__eo_to_smt_type T) by
+      change __smtx_typeof (__eo_to_smt upd) =
+        SmtType.Seq (__eo_to_smt_type T)
+      exact hUpdTy]
     simp [__smtx_typeof_seq_op_1_ret]
   have hRhsTy : __smtx_typeof (__eo_to_smt rhs) = SmtType.Int := by
     change __smtx_typeof (SmtTerm.str_len (__eo_to_smt t)) = SmtType.Int
