@@ -19194,6 +19194,9 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
               subst n
               have hi : (1 : Int) <= i := by
                 simpa [native_zleq, SmtEval.native_zleq] using hi1
+              have hIGtNegOne : native_zlt (-1 : native_Int) i = true := by
+                have hlt : (-1 : Int) < i := by omega
+                simpa [native_zlt, SmtEval.native_zlt] using hlt
               have hiNotNeg : native_zlt i 0 = false := by
                 simp [native_zlt, SmtEval.native_zlt]
                 omega
@@ -19263,7 +19266,9 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   __eo_typeof_repeat (Term.UOp UserOp.Int)
                     (Term.Numeral i) (__eo_typeof x)
               rw [hXEoBv]
-              simpa [__eo_typeof_repeat, __eo_mul, __eo_mk_apply] using
+              simpa [__eo_typeof_repeat, __eo_requires, __eo_gt, __eo_mul,
+                __eo_mk_apply, native_ite, native_teq, native_not,
+                hIGtNegOne] using
                 hRunBodyTy
             | zero_extend =>
               have hZeroNN :
@@ -19273,10 +19278,15 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                 unfold term_has_non_none_type
                 simpa [RuleProofs.eo_has_smt_translation] using hTrans
               rcases zero_extend_args_of_non_none hZeroNN with
-                ⟨i, w, hnSmt, hxSmtTy, _hi0⟩
+                ⟨i, w, hnSmt, hxSmtTy, hi0⟩
               have hnTerm : n = Term.Numeral i :=
                 TranslationProofs.eo_to_smt_eq_numeral n i hnSmt
               subst n
+              have hIGtNegOne : native_zlt (-1 : native_Int) i = true := by
+                have hi : (0 : Int) <= i := by
+                  simpa [native_zleq, SmtEval.native_zleq] using hi0
+                have hlt : (-1 : Int) < i := by omega
+                simpa [native_zlt, SmtEval.native_zlt] using hlt
               have hXTrans : RuleProofs.eo_has_smt_translation x := by
                 unfold RuleProofs.eo_has_smt_translation
                 rw [hxSmtTy]
@@ -19334,7 +19344,8 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                     (Term.Numeral i) (__eo_typeof x)
               rw [hRunXBv, hXEoBv]
               simpa [__bv_bitwidth, __eo_typeof_zero_extend, __eo_add,
-                __eo_mk_apply] using hRunBodyTy
+                __eo_requires, __eo_gt, __eo_mk_apply, native_ite,
+                native_teq, native_not, hIGtNegOne] using hRunBodyTy
             | sign_extend =>
               have hSignNN :
                   term_has_non_none_type
@@ -19343,10 +19354,15 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                 unfold term_has_non_none_type
                 simpa [RuleProofs.eo_has_smt_translation] using hTrans
               rcases sign_extend_args_of_non_none hSignNN with
-                ⟨i, w, hnSmt, hxSmtTy, _hi0⟩
+                ⟨i, w, hnSmt, hxSmtTy, hi0⟩
               have hnTerm : n = Term.Numeral i :=
                 TranslationProofs.eo_to_smt_eq_numeral n i hnSmt
               subst n
+              have hIGtNegOne : native_zlt (-1 : native_Int) i = true := by
+                have hi : (0 : Int) <= i := by
+                  simpa [native_zleq, SmtEval.native_zleq] using hi0
+                have hlt : (-1 : Int) < i := by omega
+                simpa [native_zlt, SmtEval.native_zlt] using hlt
               have hXTrans : RuleProofs.eo_has_smt_translation x := by
                 unfold RuleProofs.eo_has_smt_translation
                 rw [hxSmtTy]
@@ -19442,7 +19458,9 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                     (Term.Numeral i) (__eo_typeof x)
               rw [hXEoBv]
               simpa [eo_eval_sign_extend_rhs, hRunXBv, __bv_bitwidth,
-                __eo_add, __eo_typeof_zero_extend, __eo_mk_apply] using
+                __eo_add, __eo_typeof_zero_extend, __eo_requires, __eo_gt,
+                __eo_mk_apply, native_ite, native_teq, native_not,
+                hIGtNegOne] using
                 hRunBodyTy
             | int_to_bv =>
               have hIntToBvNN :
@@ -19452,10 +19470,15 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                 unfold term_has_non_none_type
                 simpa [RuleProofs.eo_has_smt_translation] using hTrans
               rcases int_to_bv_args_of_non_none hIntToBvNN with
-                ⟨i, hnSmt, hxSmtTy, _hi0⟩
+                ⟨i, hnSmt, hxSmtTy, hi0⟩
               have hnTerm : n = Term.Numeral i :=
                 TranslationProofs.eo_to_smt_eq_numeral n i hnSmt
               subst n
+              have hIGtNegOne : native_zlt (-1 : native_Int) i = true := by
+                have hi : (0 : Int) <= i := by
+                  simpa [native_zleq, SmtEval.native_zleq] using hi0
+                have hlt : (-1 : Int) < i := by omega
+                simpa [native_zlt, SmtEval.native_zlt] using hlt
               have hXTrans : RuleProofs.eo_has_smt_translation x := by
                 unfold RuleProofs.eo_has_smt_translation
                 rw [hxSmtTy]
@@ -19485,7 +19508,9 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   __eo_typeof_int_to_bv (Term.UOp UserOp.Int)
                     (Term.Numeral i) (__eo_typeof x)
               rw [hXEoInt]
-              simpa [__eo_typeof_int_to_bv] using hRunBodyTy
+              simpa [__eo_typeof_int_to_bv, __eo_requires, __eo_gt,
+                native_ite, native_teq, native_not, hIGtNegOne] using
+                hRunBodyTy
             | _ =>
               exact False.elim (hRun rfl)
         | UOp2 op hi lo =>
@@ -19542,6 +19567,10 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   native_zlt 0 (j + 1) = true := by
                 have h : 0 < j + 1 := Int.lt_add_one_of_le hjNonneg
                 simpa [native_zlt, SmtEval.native_zlt] using h
+              have hJGtNegOne : native_zlt (-1 : native_Int) j = true := by
+                have hlt : (-1 : native_Int) < j :=
+                  Int.lt_of_lt_of_le (by decide) hjNonneg
+                simpa [native_zlt, SmtEval.native_zlt] using hlt
               change
                 __eo_typeof
                     (__eo_extract (__run_evaluate x)
@@ -19551,7 +19580,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                     (Term.Numeral j) (__eo_typeof x)
               rw [hXEoBv]
               simpa [__eo_typeof_extract, __eo_add, __eo_neg, __eo_gt,
-                __eo_requires, __eo_mk_apply, hLowSuccPos, hiw,
+                __eo_requires, __eo_mk_apply, hLowSuccPos, hJGtNegOne, hiw,
                 native_ite, native_teq, native_not, native_zplus,
                 SmtEval.native_zplus, native_zneg, SmtEval.native_zneg]
                 using hRunBodyTy
@@ -21501,6 +21530,11 @@ private theorem run_evaluate_sound_apply_zero_extend_core
   have hnTerm : n = Term.Numeral i :=
     TranslationProofs.eo_to_smt_eq_numeral n i hnSmt
   subst n
+  have hIGtNegOne : native_zlt (-1 : native_Int) i = true := by
+    have hi : (0 : Int) <= i := by
+      simpa [native_zleq, SmtEval.native_zleq] using hi0
+    have hlt : (-1 : Int) < i := by omega
+    simpa [native_zlt, SmtEval.native_zlt] using hlt
   have hXTrans : RuleProofs.eo_has_smt_translation x := by
     unfold RuleProofs.eo_has_smt_translation
     rw [hxSmtTy]
@@ -21524,7 +21558,8 @@ private theorem run_evaluate_sound_apply_zero_extend_core
         Term.Apply (Term.UOp UserOp.BitVec)
           (Term.Numeral (native_zplus (native_nat_to_int w) i))
     rw [hXEoBv]
-    rfl
+    simp [__eo_typeof_zero_extend, __eo_requires, __eo_gt, __eo_add,
+      __eo_mk_apply, native_ite, native_teq, native_not, hIGtNegOne]
   let runZero :=
     __eo_to_bin
       (__eo_add (__bv_bitwidth (__eo_typeof (__run_evaluate x)))
@@ -21750,6 +21785,11 @@ private theorem run_evaluate_sound_apply_sign_extend_core
   have hnTerm : n = Term.Numeral i :=
     TranslationProofs.eo_to_smt_eq_numeral n i hnSmt
   subst n
+  have hIGtNegOne : native_zlt (-1 : native_Int) i = true := by
+    have hi : (0 : Int) <= i := by
+      simpa [native_zleq, SmtEval.native_zleq] using hi0
+    have hlt : (-1 : Int) < i := by omega
+    simpa [native_zlt, SmtEval.native_zlt] using hlt
   have hXTrans : RuleProofs.eo_has_smt_translation x := by
     unfold RuleProofs.eo_has_smt_translation
     rw [hxSmtTy]
@@ -21773,7 +21813,8 @@ private theorem run_evaluate_sound_apply_sign_extend_core
         Term.Apply (Term.UOp UserOp.BitVec)
           (Term.Numeral (native_zplus (native_nat_to_int w) i))
     rw [hXEoBv]
-    rfl
+    simp [__eo_typeof_zero_extend, __eo_requires, __eo_gt, __eo_add,
+      __eo_mk_apply, native_ite, native_teq, native_not, hIGtNegOne]
   let runSign :=
     eo_eval_sign_extend_rhs (__run_evaluate x) (Term.Numeral i)
   have hRunSignNe : runSign ≠ Term.Stuck := by
@@ -22028,6 +22069,9 @@ private theorem run_evaluate_sound_apply_repeat_core
     simpa [native_zleq, SmtEval.native_zleq] using hi1
   have hi0Int : (0 : Int) <= i := by
     omega
+  have hIGtNegOne : native_zlt (-1 : native_Int) i = true := by
+    have hlt : (-1 : Int) < i := by omega
+    simpa [native_zlt, SmtEval.native_zlt] using hlt
   have hi0 : native_zleq 0 i = true := by
     simpa [native_zleq, SmtEval.native_zleq] using hi0Int
   have hiNotNeg : native_zlt i 0 = false := by
@@ -22061,7 +22105,8 @@ private theorem run_evaluate_sound_apply_repeat_core
         Term.Apply (Term.UOp UserOp.BitVec)
           (Term.Numeral (native_zmult i (native_nat_to_int w)))
     rw [hXEoBv]
-    rfl
+    simp [__eo_typeof_repeat, __eo_requires, __eo_gt, __eo_mul,
+      __eo_mk_apply, native_ite, native_teq, native_not, hIGtNegOne]
   let runRepeat :=
     __bv_eval_concat
       (__eo_list_repeat (Term.UOp UserOp.concat)
@@ -37779,6 +37824,11 @@ private theorem run_evaluate_sound_apply_int_to_bv_core
   have hnTerm : n = Term.Numeral i :=
     TranslationProofs.eo_to_smt_eq_numeral n i hnSmt
   subst n
+  have hIGtNegOne : native_zlt (-1 : native_Int) i = true := by
+    have hi : (0 : Int) <= i := by
+      simpa [native_zleq, SmtEval.native_zleq] using hi0
+    have hlt : (-1 : Int) < i := by omega
+    simpa [native_zlt, SmtEval.native_zlt] using hlt
   have hXTrans : RuleProofs.eo_has_smt_translation x := by
     unfold RuleProofs.eo_has_smt_translation
     rw [hxSmtTy]
@@ -37796,7 +37846,8 @@ private theorem run_evaluate_sound_apply_int_to_bv_core
           (__eo_typeof x) =
         Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral i)
     rw [hXEoInt]
-    rfl
+    simp [__eo_typeof_int_to_bv, __eo_requires, __eo_gt, native_ite,
+      native_teq, native_not, hIGtNegOne]
   let runToBv := __eo_to_bin (Term.Numeral i) (__run_evaluate x)
   have hRunToBvNe : runToBv ≠ Term.Stuck := by
     intro hStuck
@@ -37975,6 +38026,10 @@ private theorem run_evaluate_sound_apply_extract_core
   have hLowSuccPos : native_zlt 0 (j + 1) = true := by
     have h : 0 < j + 1 := Int.lt_add_one_of_le hjNonneg
     simpa [native_zlt, SmtEval.native_zlt] using h
+  have hJGtNegOne : native_zlt (-1 : native_Int) j = true := by
+    have hlt : (-1 : native_Int) < j :=
+      Int.lt_of_lt_of_le (by decide) hjNonneg
+    simpa [native_zlt, SmtEval.native_zlt] using hlt
   have hWidthNonneg :
       native_zleq 0 (native_zplus (native_zplus i (native_zneg j)) 1) =
         true := by
@@ -38007,7 +38062,7 @@ private theorem run_evaluate_sound_apply_extract_core
             (native_zplus (native_zplus i (native_zneg j)) 1))
     rw [hXEoBv]
     simp [__eo_typeof_extract, __eo_add, __eo_neg, __eo_gt, __eo_requires,
-      __eo_mk_apply, hLowSuccPos, hiw, native_ite, native_teq,
+      __eo_mk_apply, hLowSuccPos, hJGtNegOne, hiw, native_ite, native_teq,
       native_not, native_zplus, SmtEval.native_zplus, native_zneg,
       SmtEval.native_zneg]
   let runExt :=
