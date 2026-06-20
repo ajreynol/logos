@@ -111,6 +111,14 @@ private theorem str_value_len_arg_ne_stuck_of_ne_stuck (x : Term)
   subst x
   simp [__str_value_len] at h
 
+private theorem smt_typeof_str_value_len_of_ne_stuck (x : Term)
+    (h : __str_value_len x ≠ Term.Stuck) :
+    __smtx_typeof (__eo_to_smt (__str_value_len x)) = SmtType.Int := by
+  rcases str_value_len_numeral_of_ne_stuck x h with ⟨n, hLen⟩
+  rw [hLen]
+  change __smtx_typeof (SmtTerm.Numeral n) = SmtType.Int
+  rw [__smtx_typeof.eq_2]
+
 private theorem seq_eval_of_seq_type
     (M : SmtModel) (hM : model_total_typed M) (t : Term) (T : SmtType) :
     __smtx_typeof (__eo_to_smt t) = SmtType.Seq T ->
@@ -735,6 +743,13 @@ private theorem smt_value_rel_raw_empty_str_substr_of_end_neg
     native_veq, native_pack_seq, hElem, native_seq_extract_empty_of_end_neg
       (native_unpack_seq sa) i n hEnd]
 
+private theorem int_sub_one_sub_sub_one (e i : native_Int) :
+    (e - 1) - (i - 1) = e - i := by
+  rw [Int.sub_eq_add_neg, Int.sub_eq_add_neg, Int.sub_eq_add_neg]
+  rw [Int.neg_add]
+  simp [Int.add_assoc, Int.add_comm, Int.add_left_comm]
+  rw [Int.sub_eq_add_neg]
+
 private theorem eo_add_int_args_numerals_of_ne_stuck
     (n m : Term)
     (hnTy : __smtx_typeof (__eo_to_smt n) = SmtType.Int)
@@ -757,6 +772,269 @@ private theorem eo_add_int_args_numerals_of_ne_stuck
         (native_and (native_zleq 0 w)
           (native_zeq n (native_mod_total n (native_int_pow2 w)))) <;>
       simp [native_ite, hValid] at hnTy
+
+private theorem seq_find_left_ne_stuck_of_ne_stuck (a b n : Term)
+    (h : __seq_find a b n ≠ Term.Stuck) :
+    a ≠ Term.Stuck := by
+  intro ha
+  subst a
+  cases b <;> cases n <;> rw [__seq_find.eq_def] at h <;> simp at h
+
+private theorem seq_find_right_ne_stuck_of_ne_stuck (a b n : Term)
+    (h : __seq_find a b n ≠ Term.Stuck) :
+    b ≠ Term.Stuck := by
+  intro hb
+  subst b
+  cases a <;> cases n <;> rw [__seq_find.eq_def] at h <;> simp at h
+
+private theorem seq_find_index_ne_stuck_of_ne_stuck (a b n : Term)
+    (h : __seq_find a b n ≠ Term.Stuck) :
+    n ≠ Term.Stuck := by
+  intro hn
+  subst n
+  cases a <;> cases b <;> rw [__seq_find.eq_def] at h <;> simp at h
+
+private theorem l1_seq_find_right_ne_stuck_of_ne_stuck (a b n : Term)
+    (h : __eo_l_1___seq_find a b n ≠ Term.Stuck) :
+    b ≠ Term.Stuck := by
+  intro hb
+  subst b
+  cases a <;> cases n <;> rw [__eo_l_1___seq_find.eq_def] at h <;> simp at h
+
+private theorem l1_seq_find_index_ne_stuck_of_ne_stuck (a b n : Term)
+    (h : __eo_l_1___seq_find a b n ≠ Term.Stuck) :
+    n ≠ Term.Stuck := by
+  intro hn
+  subst n
+  cases a <;> cases b <;> rw [__eo_l_1___seq_find.eq_def] at h <;> simp at h
+
+private theorem l1_seq_find_empty_eq_of_args_ne_stuck (s n U : Term)
+    (hs : s ≠ Term.Stuck) (hn : n ≠ Term.Stuck) :
+    __eo_l_1___seq_find
+        (Term.UOp1 UserOp1.seq_empty ((Term.UOp UserOp.Seq).Apply U))
+        s n =
+      Term.Numeral (-1 : native_Int) := by
+  cases s
+  case Stuck => exact False.elim (hs rfl)
+  all_goals
+    cases n
+    case Stuck => exact False.elim (hn rfl)
+    all_goals
+      rw [__eo_l_1___seq_find.eq_def]
+
+private theorem l1_seq_find_concat_eq_of_args_ne_stuck (t ts s n : Term)
+    (hs : s ≠ Term.Stuck) (hn : n ≠ Term.Stuck) :
+    __eo_l_1___seq_find
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t) ts) s n =
+      __eo_ite
+        (__seq_is_prefix s
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t) ts))
+        n
+        (__seq_find ts s (__eo_add n (Term.Numeral 1))) := by
+  cases s
+  case Stuck => exact False.elim (hs rfl)
+  all_goals
+    cases n
+    case Stuck => exact False.elim (hn rfl)
+    all_goals
+      rw [__eo_l_1___seq_find.eq_def]
+
+private theorem seq_find_eq_of_args_ne_stuck (a b n : Term)
+    (ha : a ≠ Term.Stuck) (hb : b ≠ Term.Stuck) (hn : n ≠ Term.Stuck) :
+    __seq_find a b n =
+      __eo_ite (__eo_eq a b) n (__eo_l_1___seq_find a b n) := by
+  cases a
+  case Stuck => exact False.elim (ha rfl)
+  all_goals
+    cases b
+    case Stuck => exact False.elim (hb rfl)
+    all_goals
+      cases n
+      case Stuck => exact False.elim (hn rfl)
+      all_goals
+        rw [__seq_find.eq_def]
+
+mutual
+
+private theorem smt_typeof_l1_seq_find_of_seq :
+    ∀ a b n T,
+      __smtx_typeof (__eo_to_smt a) = SmtType.Seq T ->
+      __smtx_typeof (__eo_to_smt b) = SmtType.Seq T ->
+      __smtx_typeof (__eo_to_smt n) = SmtType.Int ->
+      __eo_l_1___seq_find a b n ≠ Term.Stuck ->
+      __smtx_typeof (__eo_to_smt (__eo_l_1___seq_find a b n)) =
+        SmtType.Int
+  | _, Term.Stuck, _, T, _ha, _hb, _hn, hNe => by
+      exact False.elim
+        ((l1_seq_find_right_ne_stuck_of_ne_stuck _ _ _ hNe) rfl)
+  | _, _, Term.Stuck, T, _ha, _hb, _hn, hNe => by
+      exact False.elim
+        ((l1_seq_find_index_ne_stuck_of_ne_stuck _ _ _ hNe) rfl)
+  | Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U),
+      s, n, T, _ha, _hb, _hn, _hNe => by
+      have hRightNe :
+          s ≠ Term.Stuck :=
+        l1_seq_find_right_ne_stuck_of_ne_stuck
+          (Term.UOp1 UserOp1.seq_empty ((Term.UOp UserOp.Seq).Apply U))
+          s n _hNe
+      have hIndexNe :
+          n ≠ Term.Stuck :=
+        l1_seq_find_index_ne_stuck_of_ne_stuck
+          (Term.UOp1 UserOp1.seq_empty ((Term.UOp UserOp.Seq).Apply U))
+          s n _hNe
+      rw [l1_seq_find_empty_eq_of_args_ne_stuck s n U hRightNe hIndexNe]
+      change __smtx_typeof (SmtTerm.Numeral (-1 : native_Int)) = SmtType.Int
+      rw [__smtx_typeof.eq_2]
+  | Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t) ts,
+      s, n', T, ha, hb, hn, hNe => by
+    let whole := mkConcat t ts
+    let next := __seq_find ts s (__eo_add n' (Term.Numeral 1))
+    have hRightNe :
+        s ≠ Term.Stuck :=
+      l1_seq_find_right_ne_stuck_of_ne_stuck
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t) ts)
+        s n' hNe
+    have hIndexNe :
+        n' ≠ Term.Stuck :=
+      l1_seq_find_index_ne_stuck_of_ne_stuck
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t) ts)
+        s n' hNe
+    have hL1Eq :
+        __eo_l_1___seq_find
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t) ts)
+            s n' =
+          __eo_ite (__seq_is_prefix s whole) n' next := by
+      simpa [whole, next] using
+        l1_seq_find_concat_eq_of_args_ne_stuck t ts s n'
+          hRightNe hIndexNe
+    rw [hL1Eq] at hNe ⊢
+    change __smtx_typeof (__eo_to_smt
+        (__eo_ite (__seq_is_prefix s whole) n' next)) = SmtType.Int
+    rcases eo_ite_cases_of_ne_stuck (__seq_is_prefix s whole) n' next
+        hNe with hCond | hCond
+    · rw [hCond, eo_ite_true]
+      exact hn
+    · have hNextNe : next ≠ Term.Stuck := by
+        simpa [hCond, eo_ite_false] using hNe
+      have hAddNe : __eo_add n' (Term.Numeral 1) ≠ Term.Stuck :=
+        seq_find_index_ne_stuck_of_ne_stuck ts s
+          (__eo_add n' (Term.Numeral 1)) hNextNe
+      have hOneTy :
+          __smtx_typeof (__eo_to_smt (Term.Numeral 1)) = SmtType.Int := by
+        change __smtx_typeof (SmtTerm.Numeral (1 : native_Int)) =
+          SmtType.Int
+        rw [__smtx_typeof.eq_2]
+      rcases eo_add_int_args_numerals_of_ne_stuck n' (Term.Numeral 1)
+          hn hOneTy hAddNe with ⟨i, j, hnEq, hOneEq, hAddEq⟩
+      have hAddTy :
+          __smtx_typeof (__eo_to_smt (__eo_add n' (Term.Numeral 1))) =
+            SmtType.Int := by
+        rw [hAddEq]
+        change __smtx_typeof (SmtTerm.Numeral (native_zplus i j)) =
+          SmtType.Int
+        rw [__smtx_typeof.eq_2]
+      obtain ⟨_hHeadTy, hTailTy⟩ :=
+        strConcat_args_of_seq_type t ts T (by simpa [whole, mkConcat] using ha)
+      rw [hCond, eo_ite_false]
+      exact smt_typeof_seq_find_of_seq ts s (__eo_add n' (Term.Numeral 1))
+        T hTailTy hb hAddTy (by simpa [next] using hNextNe)
+  | a, b, n, T, ha, hb, hn, hNe => by
+      rw [__eo_l_1___seq_find.eq_def] at hNe
+      split at hNe
+      · simp at hNe
+      · simp at hNe
+      · rename_i _ _ _ U hRightNe hIndexNe
+        rw [l1_seq_find_empty_eq_of_args_ne_stuck b n U hRightNe hIndexNe]
+        change __smtx_typeof (SmtTerm.Numeral (-1 : native_Int)) =
+          SmtType.Int
+        rw [__smtx_typeof.eq_2]
+      · rename_i _ _ _ t ts hRightNe hIndexNe
+        let whole := mkConcat t ts
+        let next := __seq_find ts b (__eo_add n (Term.Numeral 1))
+        have hL1Eq :
+            __eo_l_1___seq_find
+                (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t) ts)
+                b n =
+              __eo_ite (__seq_is_prefix b whole) n next := by
+          simpa [whole, next] using
+            l1_seq_find_concat_eq_of_args_ne_stuck t ts b n
+              hRightNe hIndexNe
+        rw [hL1Eq]
+        change __smtx_typeof (__eo_to_smt
+            (__eo_ite (__seq_is_prefix b whole) n next)) = SmtType.Int
+        rcases eo_ite_cases_of_ne_stuck (__seq_is_prefix b whole) n next
+            hNe with hCond | hCond
+        · rw [hCond, eo_ite_true]
+          exact hn
+        · have hNextNe : next ≠ Term.Stuck := by
+            simpa [whole, next, hCond, eo_ite_false] using hNe
+          have hAddNe : __eo_add n (Term.Numeral 1) ≠ Term.Stuck :=
+            seq_find_index_ne_stuck_of_ne_stuck ts b
+              (__eo_add n (Term.Numeral 1)) hNextNe
+          have hOneTy :
+              __smtx_typeof (__eo_to_smt (Term.Numeral 1)) = SmtType.Int := by
+            change __smtx_typeof (SmtTerm.Numeral (1 : native_Int)) =
+              SmtType.Int
+            rw [__smtx_typeof.eq_2]
+          rcases eo_add_int_args_numerals_of_ne_stuck n (Term.Numeral 1)
+              hn hOneTy hAddNe with ⟨i, j, hnEq, hOneEq, hAddEq⟩
+          have hAddTy :
+              __smtx_typeof (__eo_to_smt (__eo_add n (Term.Numeral 1))) =
+                SmtType.Int := by
+            rw [hAddEq]
+            change __smtx_typeof (SmtTerm.Numeral (native_zplus i j)) =
+              SmtType.Int
+            rw [__smtx_typeof.eq_2]
+          obtain ⟨_hHeadTy, hTailTy⟩ :=
+            strConcat_args_of_seq_type t ts T
+              (by simpa [whole, mkConcat] using ha)
+          rw [hCond, eo_ite_false]
+          exact smt_typeof_seq_find_of_seq ts b (__eo_add n (Term.Numeral 1))
+            T hTailTy hb hAddTy (by simpa [next] using hNextNe)
+      · simp at hNe
+
+private theorem smt_typeof_seq_find_of_seq :
+    ∀ a b n T,
+      __smtx_typeof (__eo_to_smt a) = SmtType.Seq T ->
+      __smtx_typeof (__eo_to_smt b) = SmtType.Seq T ->
+      __smtx_typeof (__eo_to_smt n) = SmtType.Int ->
+      __seq_find a b n ≠ Term.Stuck ->
+      __smtx_typeof (__eo_to_smt (__seq_find a b n)) = SmtType.Int
+  | Term.Stuck, _, _, T, _ha, _hb, _hn, hNe => by
+      exact False.elim
+        ((seq_find_left_ne_stuck_of_ne_stuck _ _ _ hNe) rfl)
+  | _, Term.Stuck, _, T, _ha, _hb, _hn, hNe => by
+      exact False.elim
+        ((seq_find_right_ne_stuck_of_ne_stuck _ _ _ hNe) rfl)
+  | _, _, Term.Stuck, T, _ha, _hb, _hn, hNe => by
+      exact False.elim
+        ((seq_find_index_ne_stuck_of_ne_stuck _ _ _ hNe) rfl)
+  | t, s, n', T, ha, hb, hn, hNe => by
+    let l1 := __eo_l_1___seq_find t s n'
+    have hLeftNe : t ≠ Term.Stuck :=
+      seq_find_left_ne_stuck_of_ne_stuck t s n' hNe
+    have hRightNe : s ≠ Term.Stuck :=
+      seq_find_right_ne_stuck_of_ne_stuck t s n' hNe
+    have hIndexNe : n' ≠ Term.Stuck :=
+      seq_find_index_ne_stuck_of_ne_stuck t s n' hNe
+    have hFindEq :
+        __seq_find t s n' = __eo_ite (__eo_eq t s) n' l1 := by
+      simpa [l1] using
+        seq_find_eq_of_args_ne_stuck t s n' hLeftNe hRightNe hIndexNe
+    rw [hFindEq] at hNe ⊢
+    change __smtx_typeof (__eo_to_smt
+        (__eo_ite (__eo_eq t s) n' l1)) = SmtType.Int
+    rcases eo_ite_cases_of_ne_stuck (__eo_eq t s) n' l1 hNe with
+      hCond | hCond
+    · rw [hCond, eo_ite_true]
+      exact hn
+    · have hL1Ne : l1 ≠ Term.Stuck := by
+        simpa [hCond, eo_ite_false] using hNe
+      rw [hCond, eo_ite_false]
+      exact smt_typeof_l1_seq_find_of_seq t s n' T ha hb hn
+        (by simpa [l1] using hL1Ne)
+
+end
 
 private theorem smt_typeof_seq_subsequence_rec_of_seq :
     ∀ l u a T,
@@ -851,6 +1129,302 @@ private theorem smt_typeof_seq_substr_body_of_seq
     rw [hCond, eo_ite_false]
     exact smt_typeof_seq_subsequence_rec_of_seq n u a T hATy hSubseqNe
 
+private theorem smt_typeof_list_concat_str_concat_of_seq
+    (a z : Term) (T : SmtType)
+    (haTy : __smtx_typeof (__eo_to_smt a) = SmtType.Seq T)
+    (hzTy : __smtx_typeof (__eo_to_smt z) = SmtType.Seq T)
+    (hConcatNe :
+      __eo_list_concat (Term.UOp UserOp.str_concat) a z ≠ Term.Stuck) :
+    __smtx_typeof
+        (__eo_to_smt (__eo_list_concat (Term.UOp UserOp.str_concat) a z)) =
+      SmtType.Seq T := by
+  have hLists := eo_list_concat_str_concat_lists_of_ne_stuck a z hConcatNe
+  rw [eo_list_concat_str_concat_eq_rec_of_ne_stuck a z hConcatNe]
+  exact smt_typeof_list_concat_rec_str_concat_of_seq a z T hLists.1 haTy hzTy
+
+private theorem smt_typeof_eo_cons_str_concat_of_seq
+    (head tail : Term) (T : SmtType)
+    (hHeadTy : __smtx_typeof (__eo_to_smt head) = SmtType.Seq T)
+    (hTailTy : __smtx_typeof (__eo_to_smt tail) = SmtType.Seq T)
+    (hConsNe :
+      __eo_cons (Term.UOp UserOp.str_concat) head tail ≠ Term.Stuck) :
+    __smtx_typeof
+        (__eo_to_smt (__eo_cons (Term.UOp UserOp.str_concat) head tail)) =
+      SmtType.Seq T := by
+  change __smtx_typeof
+      (__eo_to_smt
+        (__eo_requires (__eo_is_list (Term.UOp UserOp.str_concat) tail)
+          (Term.Boolean true)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) head) tail))) =
+    SmtType.Seq T
+  have hEq :=
+    eo_requires_eq_result_of_ne_stuck
+      (__eo_is_list (Term.UOp UserOp.str_concat) tail)
+      (Term.Boolean true)
+      (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) head) tail)
+      hConsNe
+  rw [hEq]
+  exact smt_typeof_str_concat_of_seq head tail T hHeadTy hTailTy
+
+private theorem seq_eval_replace_all_rec_skip_ne_stuck_of_ne_stuck
+    (a b u skip lent : Term)
+    (h : __seq_eval_replace_all_rec a b u skip lent ≠ Term.Stuck) :
+    skip ≠ Term.Stuck := by
+  revert h
+  induction a, b, u, skip, lent using __seq_eval_replace_all_rec.induct with
+  | case1 a u skip lent =>
+      intro h hskip
+      simp [__seq_eval_replace_all_rec] at h
+  | case2 a b skip lent hb =>
+      intro h hskip
+      simp [__seq_eval_replace_all_rec] at h
+  | case3 a b u lent hb hu =>
+      intro h hskip
+      simp [__seq_eval_replace_all_rec] at h
+  | case4 a b u skip hb hu hskip =>
+      intro h hskip'
+      exact hskip hskip'
+  | case5 U b u skip lent hb hu hskip hlent =>
+      intro h hskip'
+      exact hskip hskip'
+  | case6 s1 s2 b u lent hb hu hlent ihSkip ihZero =>
+      intro h hskip
+      cases hskip
+  | case7 s1 s2 b u skip lent hb hu hskip hlent hSkipNeZero ih =>
+      intro h hskip'
+      exact hskip hskip'
+  | case8 a b u skip lent hb hu hskip hlent hNotEmpty hNotConcatZero
+      hNotConcat =>
+      intro h hskip'
+      exact hskip hskip'
+
+private theorem seq_eval_replace_all_rec_lent_ne_stuck_of_ne_stuck
+    (a b u skip lent : Term)
+    (h : __seq_eval_replace_all_rec a b u skip lent ≠ Term.Stuck) :
+    lent ≠ Term.Stuck := by
+  revert h
+  induction a, b, u, skip, lent using __seq_eval_replace_all_rec.induct with
+  | case1 a u skip lent =>
+      intro h hlent
+      simp [__seq_eval_replace_all_rec] at h
+  | case2 a b skip lent hb =>
+      intro h hlent
+      simp [__seq_eval_replace_all_rec] at h
+  | case3 a b u lent hb hu =>
+      intro h hlent
+      simp [__seq_eval_replace_all_rec] at h
+  | case4 a b u skip hb hu hskip =>
+      intro h hlent
+      simp [__seq_eval_replace_all_rec] at h
+  | case5 U b u skip lent hb hu hskip hlent =>
+      intro h hlent'
+      exact hlent hlent'
+  | case6 s1 s2 b u lent hb hu hlent ihSkip ihZero =>
+      intro h hlent'
+      exact hlent hlent'
+  | case7 s1 s2 b u skip lent hb hu hskip hlent hSkipNeZero ih =>
+      intro h hlent'
+      exact hlent hlent'
+  | case8 a b u skip lent hb hu hskip hlent hNotEmpty hNotConcatZero
+      hNotConcat =>
+      intro h hlent'
+      exact hlent hlent'
+
+private theorem smt_typeof_seq_eval_replace_all_rec_of_seq :
+    ∀ a b u skip lent T,
+      __smtx_typeof (__eo_to_smt a) = SmtType.Seq T ->
+      __smtx_typeof (__eo_to_smt b) = SmtType.Seq T ->
+      __smtx_typeof (__eo_to_smt u) = SmtType.Seq T ->
+      __smtx_typeof (__eo_to_smt skip) = SmtType.Int ->
+      __smtx_typeof (__eo_to_smt lent) = SmtType.Int ->
+      __seq_eval_replace_all_rec a b u skip lent ≠ Term.Stuck ->
+      __smtx_typeof
+          (__eo_to_smt (__seq_eval_replace_all_rec a b u skip lent)) =
+        SmtType.Seq T := by
+  intro a b u skip lent
+  induction a, b, u, skip, lent using __seq_eval_replace_all_rec.induct with
+  | case1 a u skip lent =>
+      intro T _hATy _hBTy _hUTy _hSkipTy _hLentTy hNe
+      simp [__seq_eval_replace_all_rec] at hNe
+  | case2 a b skip lent hb =>
+      intro T _hATy _hBTy _hUTy _hSkipTy _hLentTy hNe
+      simp [__seq_eval_replace_all_rec] at hNe
+  | case3 a b u lent hb hu =>
+      intro T _hATy _hBTy _hUTy _hSkipTy _hLentTy hNe
+      simp [__seq_eval_replace_all_rec] at hNe
+  | case4 a b u skip hb hu hskip =>
+      intro T _hATy _hBTy _hUTy _hSkipTy _hLentTy hNe
+      simp [__seq_eval_replace_all_rec] at hNe
+  | case5 U b u skip lent hb hu hskip hlent =>
+      intro T hATy _hBTy _hUTy _hSkipTy _hLentTy _hNe
+      simpa [__seq_eval_replace_all_rec] using hATy
+  | case6 s1 s2 b u lent hb hu hlent ihSkip ihZero =>
+      intro T hATy hBTy hUTy _hSkipTy hLentTy hNe
+      let whole := mkConcat s1 s2
+      let nextMatch :=
+        __seq_eval_replace_all_rec s2 b u
+          (__eo_add lent (Term.Numeral (-1 : native_Int))) lent
+      let nextNo :=
+        __seq_eval_replace_all_rec s2 b u (Term.Numeral 0) lent
+      have hWholeTy :
+          __smtx_typeof (__eo_to_smt (mkConcat s1 s2)) =
+            SmtType.Seq T := by
+        simpa [whole, mkConcat] using hATy
+      obtain ⟨hHeadTy, hTailTy⟩ :=
+        strConcat_args_of_seq_type s1 s2 T hWholeTy
+      have hIteNe :
+          __eo_ite (__seq_is_prefix b whole)
+              (__eo_list_concat (Term.UOp UserOp.str_concat) u nextMatch)
+              (__eo_cons (Term.UOp UserOp.str_concat) s1 nextNo) ≠
+            Term.Stuck := by
+        simpa [__seq_eval_replace_all_rec, whole, nextMatch, nextNo] using
+          hNe
+      rw [show
+          __seq_eval_replace_all_rec
+              (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) s1) s2)
+              b u (Term.Numeral 0) lent =
+            __eo_ite (__seq_is_prefix b whole)
+              (__eo_list_concat (Term.UOp UserOp.str_concat) u nextMatch)
+              (__eo_cons (Term.UOp UserOp.str_concat) s1 nextNo) by
+        simpa [__seq_eval_replace_all_rec, whole, nextMatch, nextNo]]
+      rcases eo_ite_cases_of_ne_stuck (__seq_is_prefix b whole)
+          (__eo_list_concat (Term.UOp UserOp.str_concat) u nextMatch)
+          (__eo_cons (Term.UOp UserOp.str_concat) s1 nextNo)
+          hIteNe with hCond | hCond
+      · have hConcatNe :
+            __eo_list_concat (Term.UOp UserOp.str_concat) u nextMatch ≠
+              Term.Stuck := by
+          simpa [hCond, eo_ite_true] using hIteNe
+        have hConcatLists :=
+          eo_list_concat_str_concat_lists_of_ne_stuck u nextMatch hConcatNe
+        have hNextNe : nextMatch ≠ Term.Stuck :=
+          term_ne_stuck_of_eo_is_list_true (Term.UOp UserOp.str_concat)
+            nextMatch hConcatLists.2
+        have hMinusTy :
+            __smtx_typeof
+                (__eo_to_smt (Term.Numeral (-1 : native_Int))) =
+              SmtType.Int := by
+          change __smtx_typeof (SmtTerm.Numeral (-1 : native_Int)) =
+            SmtType.Int
+          rw [__smtx_typeof.eq_2]
+        have hAddNe :
+            __eo_add lent (Term.Numeral (-1 : native_Int)) ≠
+              Term.Stuck :=
+          seq_eval_replace_all_rec_skip_ne_stuck_of_ne_stuck s2 b u
+            (__eo_add lent (Term.Numeral (-1 : native_Int))) lent
+            (by simpa [nextMatch] using hNextNe)
+        have hAddTy :
+            __smtx_typeof
+                (__eo_to_smt
+                  (__eo_add lent (Term.Numeral (-1 : native_Int)))) =
+              SmtType.Int := by
+          rcases eo_add_int_args_numerals_of_ne_stuck lent
+              (Term.Numeral (-1 : native_Int)) hLentTy hMinusTy hAddNe with
+            ⟨i, j, hLentEq, hMinusEq, hAddEq⟩
+          rw [hAddEq]
+          change __smtx_typeof (SmtTerm.Numeral (native_zplus i j)) =
+            SmtType.Int
+          rw [__smtx_typeof.eq_2]
+        have hNextTy :
+            __smtx_typeof (__eo_to_smt nextMatch) = SmtType.Seq T := by
+          simpa [nextMatch] using
+            ihSkip T hTailTy hBTy hUTy hAddTy hLentTy
+              (by simpa [nextMatch] using hNextNe)
+        have hConcatTy :
+            __smtx_typeof
+                (__eo_to_smt
+                  (__eo_list_concat (Term.UOp UserOp.str_concat) u
+                    nextMatch)) =
+              SmtType.Seq T :=
+          smt_typeof_list_concat_str_concat_of_seq u nextMatch T
+            hUTy hNextTy hConcatNe
+        rw [hCond, eo_ite_true]
+        exact hConcatTy
+      · have hConsNe :
+            __eo_cons (Term.UOp UserOp.str_concat) s1 nextNo ≠
+              Term.Stuck := by
+          simpa [hCond, eo_ite_false] using hIteNe
+        have hNextList :
+            __eo_is_list (Term.UOp UserOp.str_concat) nextNo =
+              Term.Boolean true := by
+          change __eo_requires
+              (__eo_is_list (Term.UOp UserOp.str_concat) nextNo)
+              (Term.Boolean true)
+              (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) s1)
+                nextNo) ≠
+            Term.Stuck at hConsNe
+          exact eo_requires_eq_of_ne_stuck
+            (__eo_is_list (Term.UOp UserOp.str_concat) nextNo)
+            (Term.Boolean true)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) s1)
+              nextNo) hConsNe
+        have hNextNe : nextNo ≠ Term.Stuck :=
+          term_ne_stuck_of_eo_is_list_true (Term.UOp UserOp.str_concat)
+            nextNo hNextList
+        have hZeroTy :
+            __smtx_typeof (__eo_to_smt (Term.Numeral 0)) = SmtType.Int := by
+          change __smtx_typeof (SmtTerm.Numeral (0 : native_Int)) =
+            SmtType.Int
+          rw [__smtx_typeof.eq_2]
+        have hNextTy :
+            __smtx_typeof (__eo_to_smt nextNo) = SmtType.Seq T := by
+          simpa [nextNo] using
+            ihZero T hTailTy hBTy hUTy hZeroTy hLentTy
+              (by simpa [nextNo] using hNextNe)
+        have hConsTy :
+            __smtx_typeof
+                (__eo_to_smt
+                  (__eo_cons (Term.UOp UserOp.str_concat) s1 nextNo)) =
+              SmtType.Seq T :=
+          smt_typeof_eo_cons_str_concat_of_seq s1 nextNo T
+            hHeadTy hNextTy (by simpa [nextNo] using hConsNe)
+        rw [hCond, eo_ite_false]
+        exact hConsTy
+  | case7 s1 s2 b u skip lent hb hu hskip hlent hSkipNeZero ih =>
+      intro T hATy hBTy hUTy hSkipTy hLentTy hNe
+      let next :=
+        __seq_eval_replace_all_rec s2 b u
+          (__eo_add skip (Term.Numeral (-1 : native_Int))) lent
+      have hNextNe : next ≠ Term.Stuck := by
+        simpa [__seq_eval_replace_all_rec, next] using hNe
+      have hWholeTy :
+          __smtx_typeof (__eo_to_smt (mkConcat s1 s2)) =
+            SmtType.Seq T := by
+        simpa [mkConcat] using hATy
+      obtain ⟨_hHeadTy, hTailTy⟩ :=
+        strConcat_args_of_seq_type s1 s2 T hWholeTy
+      have hMinusTy :
+          __smtx_typeof
+              (__eo_to_smt (Term.Numeral (-1 : native_Int))) =
+            SmtType.Int := by
+        change __smtx_typeof (SmtTerm.Numeral (-1 : native_Int)) =
+          SmtType.Int
+        rw [__smtx_typeof.eq_2]
+      have hAddNe :
+          __eo_add skip (Term.Numeral (-1 : native_Int)) ≠ Term.Stuck :=
+        seq_eval_replace_all_rec_skip_ne_stuck_of_ne_stuck s2 b u
+          (__eo_add skip (Term.Numeral (-1 : native_Int))) lent
+          (by simpa [next] using hNextNe)
+      have hAddTy :
+          __smtx_typeof
+              (__eo_to_smt
+                (__eo_add skip (Term.Numeral (-1 : native_Int)))) =
+            SmtType.Int := by
+        rcases eo_add_int_args_numerals_of_ne_stuck skip
+            (Term.Numeral (-1 : native_Int)) hSkipTy hMinusTy hAddNe with
+          ⟨i, j, hSkipEq, hMinusEq, hAddEq⟩
+        rw [hAddEq]
+        change __smtx_typeof (SmtTerm.Numeral (native_zplus i j)) =
+          SmtType.Int
+        rw [__smtx_typeof.eq_2]
+      simpa [__seq_eval_replace_all_rec, next] using
+        ih T hTailTy hBTy hUTy hAddTy hLentTy
+          (by simpa [next] using hNextNe)
+  | case8 a b u skip lent hb hu hskip hlent hNotEmpty hNotConcatZero
+      hNotConcat =>
+      intro T _hATy _hBTy _hUTy _hSkipTy _hLentTy hNe
+      simp [__seq_eval_replace_all_rec] at hNe
+
 private theorem smt_value_rel_seq_subsequence_rec_str_substr_of_numerals
     (M : SmtModel) (hM : model_total_typed M)
     (l u a : Term) (T : SmtType) (i e : native_Int)
@@ -864,7 +1438,7 @@ private theorem smt_value_rel_seq_subsequence_rec_str_substr_of_numerals
       (__smtx_model_eval_str_substr
         (__smtx_model_eval M (__eo_to_smt a))
         (SmtValue.Numeral i) (SmtValue.Numeral (e - i))) := by
-  induction l, u, a using __seq_subsequence_rec.induct with
+  induction l, u, a using __seq_subsequence_rec.induct generalizing T i e with
   | case1 t x =>
       simp [__seq_subsequence_rec] at hSubseqNe
   | case2 t x hx =>
@@ -921,9 +1495,266 @@ private theorem smt_value_rel_seq_subsequence_rec_str_substr_of_numerals
       rw [hExtract]
       rfl
   | case6 u elem ts hu hUNeZero ih =>
-      sorry
+      injection hL with hi
+      subst i
+      subst u
+      have hEPos : 0 < e := by
+        have hENe : e ≠ 0 := by
+          intro hE
+          subst e
+          exact hUNeZero rfl
+        exact Int.lt_of_not_ge (by
+          intro hLe
+          exact hENe (Int.le_antisymm hLe hEndNonneg))
+      have hRecU :
+          __eo_add (Term.Numeral e) (Term.Numeral (-1 : native_Int)) =
+            Term.Numeral (e - 1) := by
+        simp [__eo_add, native_zplus, SmtEval.native_zplus]
+        rw [Int.sub_eq_add_neg]
+      have hRecEnd : 0 <= e - 1 := by
+        have hOneLe : (1 : Int) <= e := Int.add_one_le_iff.mpr hEPos
+        exact Int.sub_nonneg.mpr hOneLe
+      let head := Term.Apply (Term.UOp UserOp.seq_unit) elem
+      let subseq :=
+        __seq_subsequence_rec (Term.Numeral 0)
+          (__eo_add (Term.Numeral e) (Term.Numeral (-1 : native_Int))) ts
+      have hFullNe :
+          __eo_mk_apply (Term.Apply (Term.UOp UserOp.str_concat) head)
+              subseq ≠
+            Term.Stuck := by
+        simpa [__seq_subsequence_rec, head, subseq] using hSubseqNe
+      have hSubseqNe : subseq ≠ Term.Stuck :=
+        eo_mk_apply_arg_ne_stuck_of_ne_stuck
+          (Term.Apply (Term.UOp UserOp.str_concat) head) subseq hFullNe
+      obtain ⟨hHeadTy, hTailTy⟩ :=
+        strConcat_args_of_seq_type head ts T
+          (by simpa [head, mkConcat] using hATy)
+      have hRecRel :
+          RuleProofs.smt_value_rel
+            (__smtx_model_eval M (__eo_to_smt subseq))
+            (__smtx_model_eval_str_substr
+              (__smtx_model_eval M (__eo_to_smt ts))
+              (SmtValue.Numeral 0) (SmtValue.Numeral (e - 1))) := by
+        simpa [subseq, hRecU] using
+          ih T 0 (e - 1) rfl hRecU hRecEnd hTailTy hSubseqNe
+      have hRecTy :
+          __smtx_typeof (__eo_to_smt subseq) = SmtType.Seq T :=
+        smt_typeof_seq_subsequence_rec_of_seq
+          (Term.Numeral 0)
+          (__eo_add (Term.Numeral e) (Term.Numeral (-1 : native_Int))) ts T
+          hTailTy hSubseqNe
+      rcases seq_eval_of_seq_type M hM subseq T hRecTy with
+        ⟨srec, hRecEval⟩
+      rcases seq_eval_of_seq_type M hM ts T hTailTy with
+        ⟨stail, hTailEval⟩
+      obtain ⟨shead, hHeadEvalRaw, hHeadUnpRaw⟩ :=
+        RuleProofs.eval_seqUnitAtom M elem
+      have hHeadEval :
+          __smtx_model_eval M (__eo_to_smt head) = SmtValue.Seq shead := by
+        simpa [head] using hHeadEvalRaw
+      have hHeadUnp :
+          native_unpack_seq shead = [RuleProofs.seqElemVal M head] := by
+        simpa [head] using hHeadUnpRaw
+      have hApplyEq :
+          __eo_mk_apply (Term.Apply (Term.UOp UserOp.str_concat) head)
+              subseq =
+            mkConcat head subseq :=
+        eo_mk_apply_eq_apply_of_ne_stuck
+          (Term.Apply (Term.UOp UserOp.str_concat) head) subseq hFullNe
+      have hHeadValTy :=
+        smt_model_eval_preserves_type M hM (__eo_to_smt head)
+          (SmtType.Seq T) hHeadTy (seq_ne_none T) (type_inhabited_seq T)
+      have hHeadSeqTy : __smtx_typeof_seq_value shead = SmtType.Seq T := by
+        simpa [head, hHeadEval, __smtx_typeof_value] using hHeadValTy
+      have hHeadElem : __smtx_elem_typeof_seq_value shead = T :=
+        elem_typeof_seq_value_of_typeof_seq_value hHeadSeqTy
+      have hTailValTy :=
+        smt_model_eval_preserves_type M hM (__eo_to_smt ts)
+          (SmtType.Seq T) hTailTy (seq_ne_none T) (type_inhabited_seq T)
+      have hTailSeqTy : __smtx_typeof_seq_value stail = SmtType.Seq T := by
+        simpa [hTailEval, __smtx_typeof_value] using hTailValTy
+      have hTailElem : __smtx_elem_typeof_seq_value stail = T :=
+        elem_typeof_seq_value_of_typeof_seq_value hTailSeqTy
+      have hRecEq :
+          srec =
+            native_pack_seq T
+              (native_seq_extract (native_unpack_seq stail) 0 (e - 1)) := by
+        unfold RuleProofs.smt_value_rel at hRecRel
+        rw [hRecEval, hTailEval] at hRecRel
+        simpa [__smtx_model_eval_str_substr, __smtx_model_eval_eq,
+          native_veq, hTailElem] using hRecRel
+      have hOrigEval :
+          __smtx_model_eval M (__eo_to_smt (mkConcat head ts)) =
+            SmtValue.Seq
+              (native_pack_seq T
+                (RuleProofs.seqElemVal M head :: native_unpack_seq stail)) := by
+        rw [smtx_model_eval_str_concat_term_eq, hHeadEval, hTailEval]
+        simp [__smtx_model_eval_str_concat, native_seq_concat, hHeadElem,
+          hHeadUnp]
+      have hConcatEval :
+          __smtx_model_eval_str_concat (SmtValue.Seq shead)
+              (SmtValue.Seq srec) =
+            SmtValue.Seq
+              (native_pack_seq T
+                (RuleProofs.seqElemVal M head ::
+                  native_seq_extract (native_unpack_seq stail) 0 (e - 1))) := by
+        rw [hRecEq]
+        simp [__smtx_model_eval_str_concat, native_seq_concat, hHeadElem,
+          hHeadUnp, Smtm.native_unpack_pack_seq]
+      have hSubstrEval :
+          __smtx_model_eval_str_substr
+              (SmtValue.Seq
+                (native_pack_seq T
+                  (RuleProofs.seqElemVal M head :: native_unpack_seq stail)))
+              (SmtValue.Numeral 0) (SmtValue.Numeral (e - 0)) =
+            SmtValue.Seq
+              (native_pack_seq T
+                (RuleProofs.seqElemVal M head ::
+                  native_seq_extract (native_unpack_seq stail) 0 (e - 1))) := by
+        simp [__smtx_model_eval_str_substr,
+          Smtm.native_unpack_pack_seq, elem_typeof_pack_seq,
+          native_seq_extract_cons_zero_pos _ _ _ hEPos]
+      change RuleProofs.smt_value_rel
+        (__smtx_model_eval M
+          (__eo_to_smt
+            (__seq_subsequence_rec (Term.Numeral 0) (Term.Numeral e)
+              (mkConcat head ts))))
+        (__smtx_model_eval_str_substr
+          (__smtx_model_eval M (__eo_to_smt (mkConcat head ts)))
+          (SmtValue.Numeral 0) (SmtValue.Numeral (e - 0)))
+      rw [show __seq_subsequence_rec (Term.Numeral 0) (Term.Numeral e)
+          (mkConcat head ts) =
+            __eo_mk_apply (Term.Apply (Term.UOp UserOp.str_concat) head)
+              subseq by
+        simp [__seq_subsequence_rec, head, subseq]]
+      rw [hApplyEq, smtx_model_eval_str_concat_term_eq, hHeadEval, hRecEval,
+        hOrigEval, hConcatEval, hSubstrEval]
+      exact RuleProofs.smt_value_rel_refl _
   | case7 l u elem ts hl hu hUNeZero hLNeZero ih =>
-      sorry
+      subst l
+      subst u
+      have hINe : i ≠ 0 := by
+        intro hI
+        subst i
+        exact hLNeZero rfl
+      have hENe : e ≠ 0 := by
+        intro hE
+        subst e
+        exact hUNeZero rfl
+      have hEPos : 0 < e :=
+        Int.lt_of_not_ge (by
+          intro hLe
+          exact hENe (Int.le_antisymm hLe hEndNonneg))
+      have hRecL :
+          __eo_add (Term.Numeral i) (Term.Numeral (-1 : native_Int)) =
+            Term.Numeral (i - 1) := by
+        simp [__eo_add, native_zplus, SmtEval.native_zplus]
+        rw [Int.sub_eq_add_neg]
+      have hRecU :
+          __eo_add (Term.Numeral e) (Term.Numeral (-1 : native_Int)) =
+            Term.Numeral (e - 1) := by
+        simp [__eo_add, native_zplus, SmtEval.native_zplus]
+        rw [Int.sub_eq_add_neg]
+      have hRecEnd : 0 <= e - 1 := by
+        have hOneLe : (1 : Int) <= e := Int.add_one_le_iff.mpr hEPos
+        exact Int.sub_nonneg.mpr hOneLe
+      have hLenEq : (e - 1) - (i - 1) = e - i := by
+        exact int_sub_one_sub_sub_one e i
+      let head := Term.Apply (Term.UOp UserOp.seq_unit) elem
+      let subseq :=
+        __seq_subsequence_rec
+          (__eo_add (Term.Numeral i) (Term.Numeral (-1 : native_Int)))
+          (__eo_add (Term.Numeral e) (Term.Numeral (-1 : native_Int))) ts
+      have hSubseqTailNe : subseq ≠ Term.Stuck := by
+        simpa [__seq_subsequence_rec, head, subseq, hINe, hENe] using
+          hSubseqNe
+      obtain ⟨hHeadTy, hTailTy⟩ :=
+        strConcat_args_of_seq_type head ts T
+          (by simpa [head, mkConcat] using hATy)
+      have hRecRel :
+          RuleProofs.smt_value_rel
+            (__smtx_model_eval M (__eo_to_smt subseq))
+            (__smtx_model_eval_str_substr
+              (__smtx_model_eval M (__eo_to_smt ts))
+              (SmtValue.Numeral (i - 1)) (SmtValue.Numeral (e - i))) := by
+        simpa [subseq, hRecL, hRecU, hLenEq] using
+          ih T (i - 1) (e - 1) hRecL hRecU hRecEnd hTailTy
+            hSubseqTailNe
+      have hRecTy :
+          __smtx_typeof (__eo_to_smt subseq) = SmtType.Seq T :=
+        smt_typeof_seq_subsequence_rec_of_seq
+          (__eo_add (Term.Numeral i) (Term.Numeral (-1 : native_Int)))
+          (__eo_add (Term.Numeral e) (Term.Numeral (-1 : native_Int))) ts T
+          hTailTy hSubseqTailNe
+      rcases seq_eval_of_seq_type M hM subseq T hRecTy with
+        ⟨srec, hRecEval⟩
+      rcases seq_eval_of_seq_type M hM ts T hTailTy with
+        ⟨stail, hTailEval⟩
+      obtain ⟨shead, hHeadEvalRaw, hHeadUnpRaw⟩ :=
+        RuleProofs.eval_seqUnitAtom M elem
+      have hHeadEval :
+          __smtx_model_eval M (__eo_to_smt head) = SmtValue.Seq shead := by
+        simpa [head] using hHeadEvalRaw
+      have hHeadUnp :
+          native_unpack_seq shead = [RuleProofs.seqElemVal M head] := by
+        simpa [head] using hHeadUnpRaw
+      have hHeadValTy :=
+        smt_model_eval_preserves_type M hM (__eo_to_smt head)
+          (SmtType.Seq T) hHeadTy (seq_ne_none T) (type_inhabited_seq T)
+      have hHeadSeqTy : __smtx_typeof_seq_value shead = SmtType.Seq T := by
+        simpa [head, hHeadEval, __smtx_typeof_value] using hHeadValTy
+      have hHeadElem : __smtx_elem_typeof_seq_value shead = T :=
+        elem_typeof_seq_value_of_typeof_seq_value hHeadSeqTy
+      have hTailValTy :=
+        smt_model_eval_preserves_type M hM (__eo_to_smt ts)
+          (SmtType.Seq T) hTailTy (seq_ne_none T) (type_inhabited_seq T)
+      have hTailSeqTy : __smtx_typeof_seq_value stail = SmtType.Seq T := by
+        simpa [hTailEval, __smtx_typeof_value] using hTailValTy
+      have hTailElem : __smtx_elem_typeof_seq_value stail = T :=
+        elem_typeof_seq_value_of_typeof_seq_value hTailSeqTy
+      have hRecEq :
+          srec =
+            native_pack_seq T
+              (native_seq_extract (native_unpack_seq stail) (i - 1)
+                (e - i)) := by
+        unfold RuleProofs.smt_value_rel at hRecRel
+        rw [hRecEval, hTailEval] at hRecRel
+        simpa [__smtx_model_eval_str_substr, __smtx_model_eval_eq,
+          native_veq, hTailElem] using hRecRel
+      have hOrigEval :
+          __smtx_model_eval M (__eo_to_smt (mkConcat head ts)) =
+            SmtValue.Seq
+              (native_pack_seq T
+                (RuleProofs.seqElemVal M head :: native_unpack_seq stail)) := by
+        rw [smtx_model_eval_str_concat_term_eq, hHeadEval, hTailEval]
+        simp [__smtx_model_eval_str_concat, native_seq_concat, hHeadElem,
+          hHeadUnp]
+      have hSubstrEval :
+          __smtx_model_eval_str_substr
+              (SmtValue.Seq
+                (native_pack_seq T
+                  (RuleProofs.seqElemVal M head :: native_unpack_seq stail)))
+              (SmtValue.Numeral i) (SmtValue.Numeral (e - i)) =
+            SmtValue.Seq
+              (native_pack_seq T
+                (native_seq_extract (native_unpack_seq stail) (i - 1)
+                  (e - i))) := by
+        simp [__smtx_model_eval_str_substr,
+          Smtm.native_unpack_pack_seq, elem_typeof_pack_seq,
+          native_seq_extract_cons_nonzero _ _ _ _ hINe]
+      change RuleProofs.smt_value_rel
+        (__smtx_model_eval M
+          (__eo_to_smt
+            (__seq_subsequence_rec (Term.Numeral i) (Term.Numeral e)
+              (mkConcat head ts))))
+        (__smtx_model_eval_str_substr
+          (__smtx_model_eval M (__eo_to_smt (mkConcat head ts)))
+          (SmtValue.Numeral i) (SmtValue.Numeral (e - i)))
+      rw [show __seq_subsequence_rec (Term.Numeral i) (Term.Numeral e)
+          (mkConcat head ts) = subseq by
+        simp [__seq_subsequence_rec, head, subseq]]
+      rw [hRecEval, hOrigEval, hSubstrEval, hRecEq]
+      exact RuleProofs.smt_value_rel_refl _
   | case8 t x y hx hy hyZero ht hNotEmpty hNotZeroConcat hNotConcat =>
       simp [__seq_subsequence_rec] at hSubseqNe
 
@@ -1668,6 +2499,390 @@ private theorem str_concat_unpack_of_seq_evals
   rw [hSeq]
   exact hUnp
 
+private theorem seq_empty_uop1_unpack_nil_of_seq
+    (M : SmtModel) (A : Term) (T : SmtType) (sx : SmtSeq)
+    (hTy :
+      __smtx_typeof (__eo_to_smt (Term.UOp1 UserOp1.seq_empty A)) =
+        SmtType.Seq T)
+    (hEval :
+      __smtx_model_eval M (__eo_to_smt (Term.UOp1 UserOp1.seq_empty A)) =
+        SmtValue.Seq sx) :
+    native_unpack_seq sx = [] := by
+  change __smtx_typeof (__eo_to_smt_seq_empty (__eo_to_smt_type A)) =
+      SmtType.Seq T at hTy
+  change __smtx_model_eval M (__eo_to_smt_seq_empty (__eo_to_smt_type A)) =
+      SmtValue.Seq sx at hEval
+  cases hA : __eo_to_smt_type A with
+  | Seq U =>
+      simp [__eo_to_smt_seq_empty, hA] at hTy hEval
+      rw [smtx_typeof_seq_empty_term_eq] at hTy
+      have hGuardNN :
+          __smtx_typeof_guard_wf (SmtType.Seq U) (SmtType.Seq U) ≠
+            SmtType.None := by
+        rw [hTy]
+        exact seq_ne_none T
+      have hGuard :
+          __smtx_typeof_guard_wf (SmtType.Seq U) (SmtType.Seq U) =
+            SmtType.Seq U :=
+        smtx_typeof_guard_wf_of_non_none (SmtType.Seq U) (SmtType.Seq U)
+          hGuardNN
+      rw [hGuard] at hTy
+      injection hTy with hU
+      subst U
+      rw [smtx_eval_seq_empty_term_eq] at hEval
+      injection hEval with hSx
+      subst sx
+      rfl
+  | _ =>
+      simp [__eo_to_smt_seq_empty, hA, TranslationProofs.smtx_typeof_none]
+        at hTy
+
+private theorem seq_unit_concat_unpack_cons
+    (M : SmtModel) (hM : model_total_typed M)
+    (e tail : Term) (T : SmtType) (sx : SmtSeq)
+    (hTNN : T ≠ SmtType.None)
+    (hTy :
+      __smtx_typeof
+          (__eo_to_smt
+            (mkConcat (Term.Apply (Term.UOp UserOp.seq_unit) e) tail)) =
+        SmtType.Seq T)
+    (hEval :
+      __smtx_model_eval M
+          (__eo_to_smt
+            (mkConcat (Term.Apply (Term.UOp UserOp.seq_unit) e) tail)) =
+        SmtValue.Seq sx) :
+    ∃ rest,
+      native_unpack_seq sx =
+        __smtx_model_eval M (__eo_to_smt e) :: rest ∧
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt e)) = T := by
+  let head := Term.Apply (Term.UOp UserOp.seq_unit) e
+  obtain ⟨hHeadTy, hTailTy⟩ :=
+    strConcat_args_of_seq_type head tail T
+      (by simpa [head] using hTy)
+  rcases seq_eval_of_seq_type M hM tail T hTailTy with
+    ⟨stail, hTailEval⟩
+  let shead :=
+    SmtSeq.cons (__smtx_model_eval M (__eo_to_smt e))
+      (SmtSeq.empty
+        (__smtx_typeof_value (__smtx_model_eval M (__eo_to_smt e))))
+  have hHeadEval :
+      __smtx_model_eval M (__eo_to_smt head) = SmtValue.Seq shead := by
+    change __smtx_model_eval M (SmtTerm.seq_unit (__eo_to_smt e)) =
+      SmtValue.Seq shead
+    simp [__smtx_model_eval, shead]
+  have hHeadUnp :
+      native_unpack_seq shead =
+        [__smtx_model_eval M (__eo_to_smt e)] := by
+    simp [shead, native_unpack_seq]
+  obtain ⟨sxy, hWholeEval, hWholeUnp⟩ :=
+    RuleProofs.strConcat_unpack_eval M head tail shead stail
+      hHeadEval hTailEval
+  have hSx : sx = sxy := by
+    rw [hEval] at hWholeEval
+    injection hWholeEval
+  have hElemTy :
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt e)) = T := by
+    have hArgTy :
+        __smtx_typeof (__eo_to_smt e) = T :=
+      (seq_unit_type_eq_arg_of_eq (t := __eo_to_smt e)
+        (A := T) (by simpa [head] using hHeadTy)).1
+    have hPres := Smtm.smt_model_eval_preserves_type_of_non_none M hM
+      (__eo_to_smt e)
+      (by
+        unfold term_has_non_none_type
+        rw [hArgTy]
+        exact hTNN)
+    simpa [hArgTy] using hPres
+  refine ⟨native_unpack_seq stail, ?_, hElemTy⟩
+  rw [hSx, hWholeUnp, hHeadUnp]
+  rfl
+
+private theorem seq_prefix_l2_eq_bool_native
+    (M : SmtModel) (hM : model_total_typed M) :
+    ∀ a b T sx sy,
+      T ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt a) = SmtType.Seq T ->
+      __smtx_typeof (__eo_to_smt b) = SmtType.Seq T ->
+      __smtx_model_eval M (__eo_to_smt a) = SmtValue.Seq sx ->
+      __smtx_model_eval M (__eo_to_smt b) = SmtValue.Seq sy ->
+      __eo_l_2___seq_is_prefix a b ≠ Term.Stuck ->
+      __eo_l_2___seq_is_prefix a b =
+        Term.Boolean
+          (native_seq_prefix_eq (native_unpack_seq sx)
+            (native_unpack_seq sy)) := by
+  intro a b T sx sy hTNN hATy hBTy hAEval hBEval hNe
+  unfold __eo_l_2___seq_is_prefix at hNe ⊢
+  split at hNe <;> simp at hNe ⊢
+  case h_2 x1 x2 et ts es ss =>
+    let guard :=
+      __eo_ite (__eo_eq et es) (Term.Boolean false)
+        (__are_distinct_terms_type et es (__eo_typeof et))
+    have hOut :
+        __eo_requires guard (Term.Boolean true) (Term.Boolean false) =
+          Term.Boolean false :=
+      eo_requires_eq_result_of_ne_stuck guard (Term.Boolean true)
+        (Term.Boolean false) (by simpa [guard] using hNe)
+    have hGuard : guard = Term.Boolean true :=
+      eo_requires_eq_of_ne_stuck guard (Term.Boolean true)
+        (Term.Boolean false) (by simpa [guard] using hNe)
+    rcases seq_unit_concat_unpack_cons M hM et ts T sx hTNN
+        (by simpa using hATy) (by simpa using hAEval) with
+      ⟨restA, hUnpA, _hEtTy⟩
+    rcases seq_unit_concat_unpack_cons M hM es ss T sy hTNN
+        (by simpa using hBTy) (by simpa using hBEval) with
+      ⟨restB, hUnpB, _hEsTy⟩
+    have hGuardParts :
+        __eo_eq et es = Term.Boolean false ∧
+          __are_distinct_terms_type et es (__eo_typeof et) =
+            Term.Boolean true :=
+      eo_ite_eq_false_guard_true (by simpa [guard] using hGuard)
+    have hEqFalse : __eo_eq et es = Term.Boolean false := hGuardParts.1
+    have hDistinct :
+        __are_distinct_terms_type et es (__eo_typeof et) =
+          Term.Boolean true := hGuardParts.2
+    have hEtArgTy :
+        __smtx_typeof (__eo_to_smt et) = T :=
+      (seq_unit_type_eq_arg_of_eq (t := __eo_to_smt et)
+        (A := T)
+        (by
+          exact (strConcat_args_of_seq_type
+            (Term.Apply (Term.UOp UserOp.seq_unit) et) ts
+            T (by simpa using hATy)).1)).1
+    have hEsArgTy :
+        __smtx_typeof (__eo_to_smt es) = T :=
+      (seq_unit_type_eq_arg_of_eq (t := __eo_to_smt es)
+        (A := T)
+        (by
+          exact (strConcat_args_of_seq_type
+            (Term.Apply (Term.UOp UserOp.seq_unit) es) ss
+            T (by simpa using hBTy)).1)).1
+    have hEtTrans : RuleProofs.eo_has_smt_translation et := by
+      unfold RuleProofs.eo_has_smt_translation
+      rw [hEtArgTy]
+      exact hTNN
+    have hEsTrans : RuleProofs.eo_has_smt_translation es := by
+      unfold RuleProofs.eo_has_smt_translation
+      rw [hEsArgTy]
+      exact hTNN
+    have hEvalEqFalse :
+        __smtx_model_eval_eq
+            (__smtx_model_eval M (__eo_to_smt et))
+            (__smtx_model_eval M (__eo_to_smt es)) =
+          SmtValue.Boolean false :=
+      are_distinct_terms_type_model_eval_eq_false M hM et es
+        hEtTrans hEsTrans hEqFalse hDistinct
+    have hVeqFalse :
+        native_veq (__smtx_model_eval M (__eo_to_smt et))
+            (__smtx_model_eval M (__eo_to_smt es)) = false :=
+      RuleProofs.native_veq_false_of_model_eval_eq_false hEvalEqFalse
+    rw [hOut, hUnpA, hUnpB]
+    rw [native_seq_prefix_eq_cons_cons_false_of_veq_false
+      (xs := restA) (ys := restB) hVeqFalse]
+  case h_3 =>
+    have hNil :
+        native_unpack_seq sx = [] :=
+      seq_empty_uop1_unpack_nil_of_seq M _ T sx hATy hAEval
+    rw [hNil]
+    rfl
+  case h_4 =>
+    rcases seq_unit_concat_unpack_cons M hM _ _ T sx hTNN
+        (by simpa using hATy) (by simpa using hAEval) with
+      ⟨restA, hUnpA, _hEtTy⟩
+    have hNil :
+        native_unpack_seq sy = [] :=
+      seq_empty_uop1_unpack_nil_of_seq M _ T sy hBTy hBEval
+    rw [hUnpA, hNil]
+    rfl
+
+private theorem seq_prefix_l1_eq_bool_native
+    (M : SmtModel) (hM : model_total_typed M) :
+    ∀ a b T sx sy,
+      T ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt a) = SmtType.Seq T ->
+      __smtx_typeof (__eo_to_smt b) = SmtType.Seq T ->
+      __smtx_model_eval M (__eo_to_smt a) = SmtValue.Seq sx ->
+      __smtx_model_eval M (__eo_to_smt b) = SmtValue.Seq sy ->
+      __eo_l_1___seq_is_prefix a b ≠ Term.Stuck ->
+      __eo_l_1___seq_is_prefix a b =
+        Term.Boolean
+          (native_seq_prefix_eq (native_unpack_seq sx)
+            (native_unpack_seq sy)) := by
+  intro a b
+  let motive1 : Term -> Term -> Prop := fun a b =>
+    ∀ T sx sy,
+      T ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt a) = SmtType.Seq T ->
+      __smtx_typeof (__eo_to_smt b) = SmtType.Seq T ->
+      __smtx_model_eval M (__eo_to_smt a) = SmtValue.Seq sx ->
+      __smtx_model_eval M (__eo_to_smt b) = SmtValue.Seq sy ->
+      __eo_l_1___seq_is_prefix a b ≠ Term.Stuck ->
+      __eo_l_1___seq_is_prefix a b =
+        Term.Boolean
+          (native_seq_prefix_eq (native_unpack_seq sx)
+            (native_unpack_seq sy))
+  let motive2 : Term -> Term -> Prop := fun a b =>
+    ∀ T sx sy,
+      T ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt a) = SmtType.Seq T ->
+      __smtx_typeof (__eo_to_smt b) = SmtType.Seq T ->
+      __smtx_model_eval M (__eo_to_smt a) = SmtValue.Seq sx ->
+      __smtx_model_eval M (__eo_to_smt b) = SmtValue.Seq sy ->
+      __seq_is_prefix a b ≠ Term.Stuck ->
+      __seq_is_prefix a b =
+        Term.Boolean
+          (native_seq_prefix_eq (native_unpack_seq sx)
+            (native_unpack_seq sy))
+  change motive1 a b
+  refine __eo_l_1___seq_is_prefix.induct motive1 motive2 ?_ ?_ ?_ ?_ ?_ ?_ ?_ a b
+  · intro x
+    dsimp [motive1]
+    intro T sx sy hTNN hATy hBTy hAEval hBEval hNe
+    simp [__eo_l_1___seq_is_prefix] at hNe
+  · intro x hx
+    dsimp [motive1]
+    intro T sx sy hTNN hATy hBTy hAEval hBEval hNe
+    simp [__eo_l_1___seq_is_prefix] at hNe
+  · intro t t2 u s2 ih
+    dsimp [motive1]
+    dsimp [motive2] at ih
+    intro T sx sy hTNN hATy hBTy hAEval hBEval hNe
+    let a := mkConcat t t2
+    let b := mkConcat u s2
+    let l2 := __eo_l_2___seq_is_prefix a b
+    simp [__eo_l_1___seq_is_prefix] at hNe ⊢
+    rcases eo_ite_cases_of_ne_stuck (__eo_eq t u)
+        (__seq_is_prefix t2 s2) l2 hNe with hCond | hCond
+    · have hTailNe : __seq_is_prefix t2 s2 ≠ Term.Stuck := by
+        simpa [hCond, eo_ite_true] using hNe
+      obtain ⟨hHeadTyA, hTailTyA⟩ :=
+        strConcat_args_of_seq_type t t2 T hATy
+      obtain ⟨_hHeadTyB, hTailTyB⟩ :=
+        strConcat_args_of_seq_type u s2 T hBTy
+      rcases seq_eval_of_seq_type M hM t T hHeadTyA with
+        ⟨sHead, hHeadEvalA⟩
+      rcases seq_eval_of_seq_type M hM t2 T hTailTyA with
+        ⟨sTailA, hTailEvalA⟩
+      rcases seq_eval_of_seq_type M hM s2 T hTailTyB with
+        ⟨sTailB, hTailEvalB⟩
+      have hHeadEq : u = t :=
+        eq_of_eo_eq_true_local t u hCond
+      have hHeadEvalB :
+          __smtx_model_eval M (__eo_to_smt u) = SmtValue.Seq sHead := by
+        simpa [hHeadEq] using hHeadEvalA
+      have hUnpA :
+          native_unpack_seq sx =
+            native_unpack_seq sHead ++ native_unpack_seq sTailA :=
+        str_concat_unpack_of_seq_evals M t t2 sx sHead sTailA
+          hHeadEvalA hTailEvalA hAEval
+      have hUnpB :
+          native_unpack_seq sy =
+            native_unpack_seq sHead ++ native_unpack_seq sTailB :=
+        str_concat_unpack_of_seq_evals M u s2 sy sHead sTailB
+          hHeadEvalB hTailEvalB hBEval
+      have hTailEq :
+          __seq_is_prefix t2 s2 =
+            Term.Boolean
+              (native_seq_prefix_eq (native_unpack_seq sTailA)
+                (native_unpack_seq sTailB)) :=
+        ih T sTailA sTailB hTNN hTailTyA hTailTyB
+          hTailEvalA hTailEvalB hTailNe
+      rw [hCond, eo_ite_true, hTailEq, hUnpA, hUnpB]
+      rw [native_seq_prefix_eq_append_left_same]
+    · have hL2Ne : l2 ≠ Term.Stuck := by
+        simpa [hCond, eo_ite_false] using hNe
+      have hL2Eq :
+          l2 =
+            Term.Boolean
+              (native_seq_prefix_eq (native_unpack_seq sx)
+                (native_unpack_seq sy)) :=
+        seq_prefix_l2_eq_bool_native M hM a b T sx sy hTNN
+          hATy hBTy hAEval hBEval hL2Ne
+      rw [hCond, eo_ite_false]
+      simpa [l2, a, b] using hL2Eq
+  · intro x y hx hy hNotBoth
+    dsimp [motive1]
+    intro T sx sy hTNN hATy hBTy hAEval hBEval hNe
+    simp [__eo_l_1___seq_is_prefix] at hNe ⊢
+    exact seq_prefix_l2_eq_bool_native M hM x y T sx sy hTNN
+      hATy hBTy hAEval hBEval hNe
+  · intro x
+    dsimp [motive2]
+    intro T sx sy hTNN hATy hBTy hAEval hBEval hNe
+    simp [__seq_is_prefix] at hNe
+  · intro x hx
+    dsimp [motive2]
+    intro T sx sy hTNN hATy hBTy hAEval hBEVal hNe
+    simp [__seq_is_prefix] at hNe
+  · intro x y hx hy ih
+    dsimp [motive2]
+    dsimp [motive1] at ih
+    intro T sx sy hTNN hATy hBTy hAEval hBEval hNe
+    simp [__seq_is_prefix] at hNe ⊢
+    rcases eo_ite_cases_of_ne_stuck (__eo_eq x y) (Term.Boolean true)
+        (__eo_l_1___seq_is_prefix x y) hNe with hCond | hCond
+    · have hXY : y = x :=
+        eq_of_eo_eq_true_local x y hCond
+      have hSeq : sx = sy := by
+        rw [hXY, hAEval] at hBEval
+        injection hBEval
+      rw [hCond, eo_ite_true, hSeq]
+      simp [native_seq_prefix_eq_self]
+    · have hL1Ne : __eo_l_1___seq_is_prefix x y ≠ Term.Stuck := by
+        simpa [hCond, eo_ite_false] using hNe
+      have hL1Eq :
+          __eo_l_1___seq_is_prefix x y =
+            Term.Boolean
+              (native_seq_prefix_eq (native_unpack_seq sx)
+                (native_unpack_seq sy)) :=
+        ih T sx sy hTNN hATy hBTy hAEval hBEval hL1Ne
+      rw [hCond, eo_ite_false, hL1Eq]
+
+private theorem seq_prefix_eq_bool_native
+    (M : SmtModel) (hM : model_total_typed M)
+    (a b : Term) (T : SmtType) (sx sy : SmtSeq)
+    (hTNN : T ≠ SmtType.None)
+    (hATy : __smtx_typeof (__eo_to_smt a) = SmtType.Seq T)
+    (hBTy : __smtx_typeof (__eo_to_smt b) = SmtType.Seq T)
+    (hAEval : __smtx_model_eval M (__eo_to_smt a) = SmtValue.Seq sx)
+    (hBEval : __smtx_model_eval M (__eo_to_smt b) = SmtValue.Seq sy)
+    (hNe : __seq_is_prefix a b ≠ Term.Stuck) :
+    __seq_is_prefix a b =
+      Term.Boolean
+        (native_seq_prefix_eq (native_unpack_seq sx)
+          (native_unpack_seq sy)) := by
+  have hA : a ≠ Term.Stuck :=
+    seq_is_prefix_left_ne_stuck_of_ne_stuck a b hNe
+  have hB : b ≠ Term.Stuck :=
+    seq_is_prefix_right_ne_stuck_of_ne_stuck a b hNe
+  have hSeqDef :
+      __seq_is_prefix a b =
+        __eo_ite (__eo_eq a b) (Term.Boolean true)
+          (__eo_l_1___seq_is_prefix a b) := by
+    cases a <;> cases b <;> simp [__seq_is_prefix] at hA hB ⊢
+  have hNeIte :
+      __eo_ite (__eo_eq a b) (Term.Boolean true)
+          (__eo_l_1___seq_is_prefix a b) ≠ Term.Stuck := by
+    simpa [hSeqDef] using hNe
+  rcases eo_ite_cases_of_ne_stuck (__eo_eq a b) (Term.Boolean true)
+      (__eo_l_1___seq_is_prefix a b) hNeIte with hCond | hCond
+  · have hBA : b = a :=
+      eq_of_eo_eq_true_local a b hCond
+    have hSeq : sx = sy := by
+      rw [hBA, hAEval] at hBEval
+      injection hBEval
+    rw [hSeqDef, hCond, eo_ite_true, hSeq]
+    simp [native_seq_prefix_eq_self]
+  · have hL1Ne : __eo_l_1___seq_is_prefix a b ≠ Term.Stuck := by
+      simpa [hCond, eo_ite_false] using hNeIte
+    have hL1Eq :
+        __eo_l_1___seq_is_prefix a b =
+          Term.Boolean
+            (native_seq_prefix_eq (native_unpack_seq sx)
+              (native_unpack_seq sy)) :=
+      seq_prefix_l1_eq_bool_native M hM a b T sx sy hTNN
+        hATy hBTy hAEval hBEval hL1Ne
+    rw [hSeqDef, hCond, eo_ite_false, hL1Eq]
+
 private theorem seq_prefix_l2_eq_bool_native_char
     (M : SmtModel) (hM : model_total_typed M) :
     ∀ a b sx sy,
@@ -2363,6 +3578,33 @@ private theorem smt_typeof_str_rev_of_seq (x : Term) (T : SmtType)
   change __smtx_typeof (SmtTerm.str_rev (__eo_to_smt x)) = SmtType.Seq T
   rw [typeof_str_rev_eq, hxTy]
   simp [__smtx_typeof_seq_op_1]
+
+private theorem str_nary_elim_list_rev_str_nary_intro_ne_stuck_of_seq
+    (x : Term) (T : SmtType)
+    (hxTy : __smtx_typeof (__eo_to_smt x) = SmtType.Seq T)
+    (hIntroNN :
+      __smtx_typeof (__eo_to_smt (__str_nary_intro x)) ≠ SmtType.None)
+    (hIntro : __str_nary_intro x ≠ Term.Stuck)
+    (hRev :
+      __eo_list_rev (Term.UOp UserOp.str_concat) (__str_nary_intro x) ≠
+        Term.Stuck) :
+    __str_nary_elim
+        (__eo_list_rev (Term.UOp UserOp.str_concat) (__str_nary_intro x)) ≠
+      Term.Stuck := by
+  by_cases hConcat : ∃ head tail : Term, x = mkConcat head tail
+  · rcases hConcat with ⟨head, tail, hEq⟩
+    subst x
+    simpa [__str_nary_intro] using
+      str_nary_elim_list_rev_str_concat_cons_ne_stuck_of_seq head tail T
+        hxTy (by simpa [__str_nary_intro] using hRev)
+  · have hRevEq :
+        __eo_list_rev (Term.UOp UserOp.str_concat) (__str_nary_intro x) =
+          __str_nary_intro x :=
+      eo_list_rev_str_nary_intro_eq_of_not_str_concat x hConcat hIntro
+        hRev
+    rw [hRevEq]
+    exact str_nary_elim_str_nary_intro_ne_stuck_of_seq x T hxTy
+      hIntroNN hIntro
 
 private theorem smt_value_rel_str_rev_seq_unit_snoc
     (M : SmtModel) (hM : model_total_typed M)
@@ -3546,13 +4788,454 @@ private theorem seq_eval_smt_type_and_value_rel
                 (__smtx_model_eval M (__eo_to_smt m)))
               hBodyRelSubstrA hSubstrCong)
   | case6 t s =>
-      sorry
+      let a := __str_nary_intro t
+      let b := __str_nary_intro s
+      let find := __seq_find a b (Term.Numeral 0)
+      let out := __eo_not (__eo_is_neg find)
+      have hOutNe : out ≠ Term.Stuck := by
+        simpa [__seq_eval, a, b, find, out] using hEvalNe
+      have hFindNe : find ≠ Term.Stuck := by
+        intro hStuck
+        apply hOutNe
+        simp [out, hStuck, __eo_is_neg, __eo_not]
+      have hContainsNN :
+          term_has_non_none_type
+            (SmtTerm.str_contains (__eo_to_smt t) (__eo_to_smt s)) := by
+        unfold term_has_non_none_type
+        simpa using hNN
+      rcases seq_binop_args_of_non_none_ret (op := SmtTerm.str_contains)
+          (typeof_str_contains_eq (__eo_to_smt t) (__eo_to_smt s))
+          hContainsNN with
+        ⟨T, htTy, hsTy⟩
+      have hIntroTNe : a ≠ Term.Stuck := by
+        intro hStuck
+        apply hFindNe
+        simp [find, __seq_find, hStuck]
+      have hIntroSNe : b ≠ Term.Stuck := by
+        intro hStuck
+        apply hFindNe
+        cases a <;> simp [find, __seq_find, hStuck]
+      have hTComponents :
+          type_inhabited T ∧ __smtx_type_wf T = true := by
+        have hSeqWF :
+            __smtx_type_wf (SmtType.Seq T) = true := by
+          have hGood :=
+            smt_term_result_seq_components_wf_of_non_none
+              (__eo_to_smt t)
+              (by
+                unfold term_has_non_none_type
+                rw [htTy]
+                exact seq_ne_none T)
+          simpa [htTy, type_result_seq_components_wf] using hGood
+        exact seq_component_inhabited_wf_of_seq_wf T hSeqWF
+      have hIntroTNN :
+          __smtx_typeof (__eo_to_smt a) ≠ SmtType.None := by
+        simpa [a] using
+          str_nary_intro_has_smt_translation_of_seq_wf t T htTy
+            hTComponents.1 hTComponents.2 (by simpa [a] using hIntroTNe)
+      have hIntroSNN :
+          __smtx_typeof (__eo_to_smt b) ≠ SmtType.None := by
+        simpa [b] using
+          str_nary_intro_has_smt_translation_of_seq_wf s T hsTy
+            hTComponents.1 hTComponents.2 (by simpa [b] using hIntroSNe)
+      have hATy :
+          __smtx_typeof (__eo_to_smt a) = SmtType.Seq T := by
+        simpa [a] using
+          smt_typeof_str_nary_intro_of_seq_ne_stuck t T htTy
+            (by simpa [a] using hIntroTNN) (by simpa [a] using hIntroTNe)
+      have hBTy :
+          __smtx_typeof (__eo_to_smt b) = SmtType.Seq T := by
+        simpa [b] using
+          smt_typeof_str_nary_intro_of_seq_ne_stuck s T hsTy
+            (by simpa [b] using hIntroSNN) (by simpa [b] using hIntroSNe)
+      rcases seq_eval_of_seq_type M hM a T hATy with
+        ⟨sa, hAEval⟩
+      rcases seq_eval_of_seq_type M hM b T hBTy with
+        ⟨sb, hBEval⟩
+      rcases seq_eval_of_seq_type M hM t T htTy with
+        ⟨st, hTEval⟩
+      rcases seq_eval_of_seq_type M hM s T hsTy with
+        ⟨ss, hSEval⟩
+      have hOutBool : ∃ q, out = Term.Boolean q := by
+        cases hFind : find with
+        | Numeral n =>
+            exact ⟨native_not (native_zlt n 0), by
+              simp [out, hFind, __eo_is_neg, __eo_not]⟩
+        | Rational r =>
+            exact ⟨native_not (native_qlt r (native_mk_rational 0 1)), by
+              simp [out, hFind, __eo_is_neg, __eo_not]⟩
+        | _ =>
+            exfalso
+            apply hOutNe
+            simp [out, hFind, __eo_is_neg, __eo_not]
+      have hEvalEq :
+          __seq_eval
+              (Term.Apply (Term.Apply (Term.UOp UserOp.str_contains) t) s) =
+            out := by
+        simp [__seq_eval, a, b, find, out]
+      constructor
+      · rcases hOutBool with ⟨q, hOutEq⟩
+        rw [hEvalEq, hOutEq]
+        change __smtx_typeof (SmtTerm.Boolean q) =
+          __smtx_typeof
+            (SmtTerm.str_contains (__eo_to_smt t) (__eo_to_smt s))
+        rw [__smtx_typeof.eq_1, typeof_str_contains_eq]
+        simp [__smtx_typeof_seq_op_2_ret, htTy, hsTy, native_Teq,
+          native_ite]
+      · have hContainsEval :
+            __smtx_model_eval M
+                (__eo_to_smt
+                  (Term.Apply (Term.Apply (Term.UOp UserOp.str_contains) t) s)) =
+              SmtValue.Boolean
+                (native_seq_contains (native_unpack_seq st)
+                  (native_unpack_seq ss)) :=
+          RuleProofs.strContains_eval_eq M t s st ss hTEval hSEval
+        rw [hEvalEq, hContainsEval]
+        have hOutContains :
+            __smtx_model_eval M (__eo_to_smt out) =
+              SmtValue.Boolean
+                (native_seq_contains (native_unpack_seq st)
+                  (native_unpack_seq ss)) := by
+          have hFindNative :
+              find =
+                Term.Numeral
+                  (native_seq_indexof (native_unpack_seq st)
+                    (native_unpack_seq ss) 0) := by
+            sorry
+          let idx :=
+            native_seq_indexof (native_unpack_seq st) (native_unpack_seq ss) 0
+          by_cases hNeg : idx < 0
+          · have hNotLe : ¬ 0 ≤ idx := by
+              intro hLe
+              exact (Int.not_lt.mpr hLe) hNeg
+            simp [out, hFindNative, idx, __eo_is_neg, __eo_not,
+              native_seq_contains, native_zlt, SmtEval.native_zlt,
+              SmtEval.native_not, __smtx_model_eval, hNeg, hNotLe]
+          · have hLe : 0 ≤ idx := Int.not_lt.mp hNeg
+            simp [out, hFindNative, idx, __eo_is_neg, __eo_not,
+              native_seq_contains, native_zlt, SmtEval.native_zlt,
+              SmtEval.native_not, __smtx_model_eval, hNeg, hLe]
+        rw [hOutContains]
+        exact RuleProofs.smt_value_rel_refl _
   | case7 t s r =>
-      sorry
+      let a := __str_nary_intro t
+      let len := __str_value_len a
+      let b := __str_nary_intro s
+      let find := __seq_find a b (Term.Numeral 0)
+      let empty := Term.UOp1 UserOp1.seq_empty (__eo_typeof a)
+      let isneg := __eo_is_neg find
+      let left :=
+        __eo_ite isneg empty
+          (__seq_subsequence_rec (Term.Numeral 0) find a)
+      let right :=
+        __eo_ite (__eo_is_neg len) empty
+          (__seq_subsequence_rec
+            (__eo_add find (__str_value_len b)) len a)
+      let repl := __str_nary_intro r
+      let tail := __eo_list_concat (Term.UOp UserOp.str_concat) repl right
+      let merged := __eo_list_concat (Term.UOp UserOp.str_concat) left tail
+      let out := __eo_ite isneg t (__str_nary_elim merged)
+      have hOutNe : out ≠ Term.Stuck := by
+        simpa [__seq_eval, a, len, b, find, empty, isneg, left, right,
+          repl, tail, merged, out] using hEvalNe
+      have hReplaceNN :
+          term_has_non_none_type
+            (SmtTerm.str_replace (__eo_to_smt t) (__eo_to_smt s)
+              (__eo_to_smt r)) := by
+        unfold term_has_non_none_type
+        simpa using hNN
+      rcases seq_triop_args_of_non_none (op := SmtTerm.str_replace)
+          (typeof_str_replace_eq (__eo_to_smt t) (__eo_to_smt s)
+            (__eo_to_smt r))
+          hReplaceNN with
+        ⟨T, htTy, hsTy, hrTy⟩
+      have hIntroTNe : a ≠ Term.Stuck := by
+        simpa [a] using str_nary_intro_ne_stuck_of_seq_type t T htTy
+      have hIntroSNe : b ≠ Term.Stuck := by
+        simpa [b] using str_nary_intro_ne_stuck_of_seq_type s T hsTy
+      have hIntroRNe : repl ≠ Term.Stuck := by
+        simpa [repl] using str_nary_intro_ne_stuck_of_seq_type r T hrTy
+      have hTComponents :
+          type_inhabited T ∧ __smtx_type_wf T = true := by
+        have hSeqWF :
+            __smtx_type_wf (SmtType.Seq T) = true := by
+          have hGood :=
+            smt_term_result_seq_components_wf_of_non_none
+              (__eo_to_smt t)
+              (by
+                unfold term_has_non_none_type
+                rw [htTy]
+                exact seq_ne_none T)
+          simpa [htTy, type_result_seq_components_wf] using hGood
+        exact seq_component_inhabited_wf_of_seq_wf T hSeqWF
+      have hIntroTNN :
+          __smtx_typeof (__eo_to_smt a) ≠ SmtType.None := by
+        simpa [a] using
+          str_nary_intro_has_smt_translation_of_seq_wf t T htTy
+            hTComponents.1 hTComponents.2 (by simpa [a] using hIntroTNe)
+      have hIntroSNN :
+          __smtx_typeof (__eo_to_smt b) ≠ SmtType.None := by
+        simpa [b] using
+          str_nary_intro_has_smt_translation_of_seq_wf s T hsTy
+            hTComponents.1 hTComponents.2 (by simpa [b] using hIntroSNe)
+      have hIntroRNN :
+          __smtx_typeof (__eo_to_smt repl) ≠ SmtType.None := by
+        simpa [repl] using
+          str_nary_intro_has_smt_translation_of_seq_wf r T hrTy
+            hTComponents.1 hTComponents.2 (by simpa [repl] using hIntroRNe)
+      have hATy :
+          __smtx_typeof (__eo_to_smt a) = SmtType.Seq T := by
+        simpa [a] using
+          smt_typeof_str_nary_intro_of_seq_ne_stuck t T htTy
+            (by simpa [a] using hIntroTNN) (by simpa [a] using hIntroTNe)
+      have hReplTy :
+          __smtx_typeof (__eo_to_smt repl) = SmtType.Seq T := by
+        simpa [repl] using
+          smt_typeof_str_nary_intro_of_seq_ne_stuck r T hrTy
+            (by simpa [repl] using hIntroRNN)
+            (by simpa [repl] using hIntroRNe)
+      have hOutTy :
+          __smtx_typeof (__eo_to_smt out) = SmtType.Seq T := by
+        rcases eo_ite_cases_of_ne_stuck isneg t (__str_nary_elim merged)
+            hOutNe with hCond | hCond
+        · simpa [out, hCond, eo_ite_true] using htTy
+        · have hElimNe : __str_nary_elim merged ≠ Term.Stuck := by
+            simpa [out, hCond, eo_ite_false] using hOutNe
+          have hMergedNe : merged ≠ Term.Stuck :=
+            str_nary_elim_arg_ne_stuck_of_ne_stuck merged hElimNe
+          have hMergedLists :=
+            eo_list_concat_str_concat_lists_of_ne_stuck left tail hMergedNe
+          have hLeftNe : left ≠ Term.Stuck :=
+            term_ne_stuck_of_eo_is_list_true (Term.UOp UserOp.str_concat)
+              left hMergedLists.1
+          have hTailNe : tail ≠ Term.Stuck :=
+            term_ne_stuck_of_eo_is_list_true (Term.UOp UserOp.str_concat)
+              tail hMergedLists.2
+          have hTailLists :=
+            eo_list_concat_str_concat_lists_of_ne_stuck repl right hTailNe
+          have hRightNe : right ≠ Term.Stuck :=
+            term_ne_stuck_of_eo_is_list_true (Term.UOp UserOp.str_concat)
+              right hTailLists.2
+          have hLeftTy :
+              __smtx_typeof (__eo_to_smt left) = SmtType.Seq T := by
+            simpa [left, empty] using
+              smt_typeof_seq_substr_body_of_seq a (Term.Numeral 0) find T
+                hATy (by simpa [left, empty] using hLeftNe)
+          have hRightTy :
+              __smtx_typeof (__eo_to_smt right) = SmtType.Seq T := by
+            simpa [right, empty] using
+              smt_typeof_seq_substr_body_of_seq a
+                (__eo_add find (__str_value_len b)) len T hATy
+                (by simpa [right, empty] using hRightNe)
+          have hTailTy :
+              __smtx_typeof (__eo_to_smt tail) = SmtType.Seq T := by
+            simpa [tail] using
+              smt_typeof_list_concat_str_concat_of_seq repl right T
+                hReplTy hRightTy (by simpa [tail] using hTailNe)
+          have hMergedTy :
+              __smtx_typeof (__eo_to_smt merged) = SmtType.Seq T := by
+            simpa [merged] using
+              smt_typeof_list_concat_str_concat_of_seq left tail T
+                hLeftTy hTailTy (by simpa [merged] using hMergedNe)
+          simpa [out, hCond, eo_ite_false] using
+            smt_typeof_str_nary_elim_of_seq_ne_stuck merged T hMergedTy
+              hElimNe
+      constructor
+      · change __smtx_typeof (__eo_to_smt out) =
+          __smtx_typeof
+            (SmtTerm.str_replace (__eo_to_smt t) (__eo_to_smt s)
+              (__eo_to_smt r))
+        rw [hOutTy, typeof_str_replace_eq, htTy, hsTy, hrTy]
+        simp [__smtx_typeof_seq_op_3, native_Teq, native_ite]
+      · sorry
   | case8 t s r =>
-      sorry
+      let b := __str_nary_intro s
+      let a := __str_nary_intro t
+      let repl := __str_nary_intro r
+      let lent := __str_value_len b
+      let replaced :=
+        __seq_eval_replace_all_rec a b repl (Term.Numeral 0) lent
+      let guard := __eo_eq (__str_value_len s) (Term.Numeral 0)
+      let out := __eo_ite guard t (__str_nary_elim replaced)
+      have hOutNe : out ≠ Term.Stuck := by
+        simpa [__seq_eval, b, a, repl, lent, replaced, guard, out] using
+          hEvalNe
+      have hReplaceAllNN :
+          term_has_non_none_type
+            (SmtTerm.str_replace_all (__eo_to_smt t) (__eo_to_smt s)
+              (__eo_to_smt r)) := by
+        unfold term_has_non_none_type
+        simpa using hNN
+      rcases seq_triop_args_of_non_none (op := SmtTerm.str_replace_all)
+          (typeof_str_replace_all_eq (__eo_to_smt t) (__eo_to_smt s)
+            (__eo_to_smt r))
+          hReplaceAllNN with
+        ⟨T, htTy, hsTy, hrTy⟩
+      have hIntroTNe : a ≠ Term.Stuck := by
+        simpa [a] using str_nary_intro_ne_stuck_of_seq_type t T htTy
+      have hIntroSNe : b ≠ Term.Stuck := by
+        simpa [b] using str_nary_intro_ne_stuck_of_seq_type s T hsTy
+      have hIntroRNe : repl ≠ Term.Stuck := by
+        simpa [repl] using str_nary_intro_ne_stuck_of_seq_type r T hrTy
+      have hTComponents :
+          type_inhabited T ∧ __smtx_type_wf T = true := by
+        have hSeqWF :
+            __smtx_type_wf (SmtType.Seq T) = true := by
+          have hGood :=
+            smt_term_result_seq_components_wf_of_non_none
+              (__eo_to_smt t)
+              (by
+                unfold term_has_non_none_type
+                rw [htTy]
+                exact seq_ne_none T)
+          simpa [htTy, type_result_seq_components_wf] using hGood
+        exact seq_component_inhabited_wf_of_seq_wf T hSeqWF
+      have hIntroTNN :
+          __smtx_typeof (__eo_to_smt a) ≠ SmtType.None := by
+        simpa [a] using
+          str_nary_intro_has_smt_translation_of_seq_wf t T htTy
+            hTComponents.1 hTComponents.2 (by simpa [a] using hIntroTNe)
+      have hIntroSNN :
+          __smtx_typeof (__eo_to_smt b) ≠ SmtType.None := by
+        simpa [b] using
+          str_nary_intro_has_smt_translation_of_seq_wf s T hsTy
+            hTComponents.1 hTComponents.2 (by simpa [b] using hIntroSNe)
+      have hIntroRNN :
+          __smtx_typeof (__eo_to_smt repl) ≠ SmtType.None := by
+        simpa [repl] using
+          str_nary_intro_has_smt_translation_of_seq_wf r T hrTy
+            hTComponents.1 hTComponents.2 (by simpa [repl] using hIntroRNe)
+      have hATy :
+          __smtx_typeof (__eo_to_smt a) = SmtType.Seq T := by
+        simpa [a] using
+          smt_typeof_str_nary_intro_of_seq_ne_stuck t T htTy
+            (by simpa [a] using hIntroTNN) (by simpa [a] using hIntroTNe)
+      have hBTy :
+          __smtx_typeof (__eo_to_smt b) = SmtType.Seq T := by
+        simpa [b] using
+          smt_typeof_str_nary_intro_of_seq_ne_stuck s T hsTy
+            (by simpa [b] using hIntroSNN) (by simpa [b] using hIntroSNe)
+      have hReplTy :
+          __smtx_typeof (__eo_to_smt repl) = SmtType.Seq T := by
+        simpa [repl] using
+          smt_typeof_str_nary_intro_of_seq_ne_stuck r T hrTy
+            (by simpa [repl] using hIntroRNN)
+            (by simpa [repl] using hIntroRNe)
+      have hOutTy :
+          __smtx_typeof (__eo_to_smt out) = SmtType.Seq T := by
+        rcases eo_ite_cases_of_ne_stuck guard t (__str_nary_elim replaced)
+            hOutNe with hCond | hCond
+        · simpa [out, hCond, eo_ite_true] using htTy
+        · have hElimNe : __str_nary_elim replaced ≠ Term.Stuck := by
+            simpa [out, hCond, eo_ite_false] using hOutNe
+          have hRecNe : replaced ≠ Term.Stuck :=
+            str_nary_elim_arg_ne_stuck_of_ne_stuck replaced hElimNe
+          have hZeroTy :
+              __smtx_typeof (__eo_to_smt (Term.Numeral 0)) =
+                SmtType.Int := by
+            change __smtx_typeof (SmtTerm.Numeral (0 : native_Int)) =
+              SmtType.Int
+            rw [__smtx_typeof.eq_2]
+          have hLentNe : lent ≠ Term.Stuck :=
+            seq_eval_replace_all_rec_lent_ne_stuck_of_ne_stuck a b repl
+              (Term.Numeral 0) lent (by simpa [replaced] using hRecNe)
+          have hLentTy :
+              __smtx_typeof (__eo_to_smt lent) = SmtType.Int := by
+            simpa [lent] using
+              smt_typeof_str_value_len_of_ne_stuck b
+                (by simpa [lent] using hLentNe)
+          have hRecTy :
+              __smtx_typeof (__eo_to_smt replaced) = SmtType.Seq T := by
+            simpa [replaced] using
+              smt_typeof_seq_eval_replace_all_rec_of_seq a b repl
+                (Term.Numeral 0) lent T hATy hBTy hReplTy hZeroTy
+                hLentTy (by simpa [replaced] using hRecNe)
+          simpa [out, hCond, eo_ite_false] using
+            smt_typeof_str_nary_elim_of_seq_ne_stuck replaced T hRecTy
+              hElimNe
+      constructor
+      · change __smtx_typeof (__eo_to_smt out) =
+          __smtx_typeof
+            (SmtTerm.str_replace_all (__eo_to_smt t) (__eo_to_smt s)
+              (__eo_to_smt r))
+        rw [hOutTy, typeof_str_replace_all_eq, htTy, hsTy, hrTy]
+        simp [__smtx_typeof_seq_op_3, native_Teq, native_ite]
+      · sorry
   | case9 t s n =>
-      sorry
+      let a := __str_nary_intro t
+      let len := __str_value_len a
+      let body :=
+        __eo_ite (__eo_is_neg len)
+          (Term.UOp1 UserOp1.seq_empty (__eo_typeof a))
+          (__seq_subsequence_rec n len a)
+      let b := __str_nary_intro s
+      let find := __seq_find body b n
+      have hFindNe : find ≠ Term.Stuck := by
+        simpa [__seq_eval, a, len, body, b, find] using hEvalNe
+      have hBodyNe : body ≠ Term.Stuck := by
+        simpa [body, b, find] using
+          seq_find_left_ne_stuck_of_ne_stuck body b n hFindNe
+      have hIntroSNe : b ≠ Term.Stuck := by
+        simpa [body, b, find] using
+          seq_find_right_ne_stuck_of_ne_stuck body b n hFindNe
+      have hIndexNN :
+          term_has_non_none_type
+            (SmtTerm.str_indexof (__eo_to_smt t) (__eo_to_smt s)
+              (__eo_to_smt n)) := by
+        unfold term_has_non_none_type
+        simpa using hNN
+      rcases str_indexof_args_of_non_none hIndexNN with
+        ⟨T, htTy, hsTy, hnTy⟩
+      have hIntroTNe : a ≠ Term.Stuck := by
+        simpa [a] using str_nary_intro_ne_stuck_of_seq_type t T htTy
+      have hTComponents :
+          type_inhabited T ∧ __smtx_type_wf T = true := by
+        have hSeqWF :
+            __smtx_type_wf (SmtType.Seq T) = true := by
+          have hGood :=
+            smt_term_result_seq_components_wf_of_non_none
+              (__eo_to_smt t)
+              (by
+                unfold term_has_non_none_type
+                rw [htTy]
+                exact seq_ne_none T)
+          simpa [htTy, type_result_seq_components_wf] using hGood
+        exact seq_component_inhabited_wf_of_seq_wf T hSeqWF
+      have hIntroTNN :
+          __smtx_typeof (__eo_to_smt a) ≠ SmtType.None := by
+        simpa [a] using
+          str_nary_intro_has_smt_translation_of_seq_wf t T htTy
+            hTComponents.1 hTComponents.2 (by simpa [a] using hIntroTNe)
+      have hIntroSNN :
+          __smtx_typeof (__eo_to_smt b) ≠ SmtType.None := by
+        simpa [b] using
+          str_nary_intro_has_smt_translation_of_seq_wf s T hsTy
+            hTComponents.1 hTComponents.2 (by simpa [b] using hIntroSNe)
+      have hATy :
+          __smtx_typeof (__eo_to_smt a) = SmtType.Seq T := by
+        simpa [a] using
+          smt_typeof_str_nary_intro_of_seq_ne_stuck t T htTy
+            (by simpa [a] using hIntroTNN) (by simpa [a] using hIntroTNe)
+      have hBTy :
+          __smtx_typeof (__eo_to_smt b) = SmtType.Seq T := by
+        simpa [b] using
+          smt_typeof_str_nary_intro_of_seq_ne_stuck s T hsTy
+            (by simpa [b] using hIntroSNN) (by simpa [b] using hIntroSNe)
+      have hBodyTy :
+          __smtx_typeof (__eo_to_smt body) = SmtType.Seq T := by
+        simpa [body] using
+          smt_typeof_seq_substr_body_of_seq a n len T hATy
+            (by simpa [body] using hBodyNe)
+      constructor
+      · change __smtx_typeof (__eo_to_smt find) =
+          __smtx_typeof
+            (SmtTerm.str_indexof (__eo_to_smt t) (__eo_to_smt s)
+              (__eo_to_smt n))
+        rw [smt_typeof_seq_find_of_seq body b n T hBodyTy hBTy hnTy
+          hFindNe]
+        rw [typeof_str_indexof_eq, htTy, hsTy, hnTy]
+        simp [__smtx_typeof_str_indexof, native_Teq, native_ite]
+      · sorry
   | case10 t s =>
       let a := __str_nary_intro t
       let b := __str_nary_intro s
@@ -3729,9 +5412,429 @@ private theorem seq_eval_smt_type_and_value_rel
         rw [← hSeqPrefixEval]
         exact hPrefixRel
   | case11 t s =>
-      sorry
+      let it := __str_nary_intro t
+      let is := __str_nary_intro s
+      let rt := __eo_list_rev (Term.UOp UserOp.str_concat) it
+      let rs := __eo_list_rev (Term.UOp UserOp.str_concat) is
+      have hPrefixNe : __seq_is_prefix rt rs ≠ Term.Stuck := by
+        simpa [__seq_eval, it, is, rt, rs] using hEvalNe
+      have hSuffixNN :
+          term_has_non_none_type
+            (SmtTerm.str_suffixof (__eo_to_smt t) (__eo_to_smt s)) := by
+        unfold term_has_non_none_type
+        simpa using hNN
+      rcases seq_char_binop_args_of_non_none (op := SmtTerm.str_suffixof)
+          (typeof_str_suffixof_eq (__eo_to_smt t) (__eo_to_smt s))
+          hSuffixNN with
+        ⟨htTy, hsTy⟩
+      have hRTNe : rt ≠ Term.Stuck :=
+        seq_is_prefix_left_ne_stuck_of_ne_stuck rt rs hPrefixNe
+      have hRSNe : rs ≠ Term.Stuck :=
+        seq_is_prefix_right_ne_stuck_of_ne_stuck rt rs hPrefixNe
+      have hIntroTNe : it ≠ Term.Stuck :=
+        eo_list_rev_arg_ne_stuck_of_ne_stuck (Term.UOp UserOp.str_concat)
+          it hRTNe
+      have hIntroSNe : is ≠ Term.Stuck :=
+        eo_list_rev_arg_ne_stuck_of_ne_stuck (Term.UOp UserOp.str_concat)
+          is hRSNe
+      have hListT :
+          __eo_is_list (Term.UOp UserOp.str_concat) it = Term.Boolean true :=
+        eo_list_rev_is_list_true_of_ne_stuck (Term.UOp UserOp.str_concat)
+          it hRTNe
+      have hListS :
+          __eo_is_list (Term.UOp UserOp.str_concat) is = Term.Boolean true :=
+        eo_list_rev_is_list_true_of_ne_stuck (Term.UOp UserOp.str_concat)
+          is hRSNe
+      have hTComponents :
+          type_inhabited SmtType.Char ∧
+            __smtx_type_wf SmtType.Char = true := by
+        have hSeqWF :
+            __smtx_type_wf (SmtType.Seq SmtType.Char) = true := by
+          have hGood :=
+            smt_term_result_seq_components_wf_of_non_none
+              (__eo_to_smt t)
+              (by
+                unfold term_has_non_none_type
+                rw [htTy]
+                exact seq_ne_none SmtType.Char)
+          simpa [htTy, type_result_seq_components_wf] using hGood
+        exact seq_component_inhabited_wf_of_seq_wf SmtType.Char hSeqWF
+      have hIntroTNN :
+          __smtx_typeof (__eo_to_smt it) ≠ SmtType.None := by
+        simpa [it] using
+          str_nary_intro_has_smt_translation_of_seq_wf t SmtType.Char htTy
+            hTComponents.1 hTComponents.2 (by simpa [it] using hIntroTNe)
+      have hIntroSNN :
+          __smtx_typeof (__eo_to_smt is) ≠ SmtType.None := by
+        simpa [is] using
+          str_nary_intro_has_smt_translation_of_seq_wf s SmtType.Char hsTy
+            hTComponents.1 hTComponents.2 (by simpa [is] using hIntroSNe)
+      have hIntroTTy :
+          __smtx_typeof (__eo_to_smt it) = SmtType.Seq SmtType.Char := by
+        simpa [it] using
+          smt_typeof_str_nary_intro_of_seq_ne_stuck t SmtType.Char htTy
+            (by simpa [it] using hIntroTNN) (by simpa [it] using hIntroTNe)
+      have hIntroSTy :
+          __smtx_typeof (__eo_to_smt is) = SmtType.Seq SmtType.Char := by
+        simpa [is] using
+          smt_typeof_str_nary_intro_of_seq_ne_stuck s SmtType.Char hsTy
+            (by simpa [is] using hIntroSNN) (by simpa [is] using hIntroSNe)
+      have hRTTy :
+          __smtx_typeof (__eo_to_smt rt) = SmtType.Seq SmtType.Char := by
+        simpa [it, rt] using
+          smt_typeof_list_rev_str_concat_of_seq it SmtType.Char
+            hListT hIntroTTy hRTNe
+      have hRSTy :
+          __smtx_typeof (__eo_to_smt rs) = SmtType.Seq SmtType.Char := by
+        simpa [is, rs] using
+          smt_typeof_list_rev_str_concat_of_seq is SmtType.Char
+            hListS hIntroSTy hRSNe
+      have hElimRT :
+          __str_nary_elim rt ≠ Term.Stuck := by
+        simpa [it, rt] using
+          str_nary_elim_list_rev_str_nary_intro_ne_stuck_of_seq
+            t SmtType.Char htTy hIntroTNN hIntroTNe hRTNe
+      have hElimRS :
+          __str_nary_elim rs ≠ Term.Stuck := by
+        simpa [is, rs] using
+          str_nary_elim_list_rev_str_nary_intro_ne_stuck_of_seq
+            s SmtType.Char hsTy hIntroSNN hIntroSNe hRSNe
+      have hElimRTTy :
+          __smtx_typeof (__eo_to_smt (__str_nary_elim rt)) =
+            SmtType.Seq SmtType.Char :=
+        smt_typeof_str_nary_elim_of_seq_ne_stuck rt SmtType.Char
+          hRTTy hElimRT
+      have hElimRSTy :
+          __smtx_typeof (__eo_to_smt (__str_nary_elim rs)) =
+            SmtType.Seq SmtType.Char :=
+        smt_typeof_str_nary_elim_of_seq_ne_stuck rs SmtType.Char
+          hRSTy hElimRS
+      have hRTElimRel :
+          RuleProofs.smt_value_rel
+            (__smtx_model_eval M (__eo_to_smt rt))
+            (__smtx_model_eval M (__eo_to_smt (__str_nary_elim rt))) :=
+        RuleProofs.smt_value_rel_symm
+          (__smtx_model_eval M (__eo_to_smt (__str_nary_elim rt)))
+          (__smtx_model_eval M (__eo_to_smt rt))
+          (smt_value_rel_str_nary_elim M hM rt SmtType.Char hRTTy
+            hElimRT)
+      have hRSElimRel :
+          RuleProofs.smt_value_rel
+            (__smtx_model_eval M (__eo_to_smt rs))
+            (__smtx_model_eval M (__eo_to_smt (__str_nary_elim rs))) :=
+        RuleProofs.smt_value_rel_symm
+          (__smtx_model_eval M (__eo_to_smt (__str_nary_elim rs)))
+          (__smtx_model_eval M (__eo_to_smt rs))
+          (smt_value_rel_str_nary_elim M hM rs SmtType.Char hRSTy
+            hElimRS)
+      rcases seq_eval_of_seq_type M hM rt SmtType.Char hRTTy with
+        ⟨sx, hRTEval⟩
+      rcases seq_eval_of_seq_type M hM rs SmtType.Char hRSTy with
+        ⟨sy, hRSEval⟩
+      have hPrefixEq :
+          __seq_is_prefix rt rs =
+            Term.Boolean
+              (native_seq_prefix_eq (native_unpack_seq sx)
+                (native_unpack_seq sy)) :=
+        seq_prefix_eq_bool_native_char M hM rt rs sx sy
+          hRTTy hRSTy hRTEval hRSEval hPrefixNe
+      constructor
+      · change __smtx_typeof (__eo_to_smt (__seq_is_prefix rt rs)) =
+          __smtx_typeof
+            (SmtTerm.str_suffixof (__eo_to_smt t) (__eo_to_smt s))
+        rw [hPrefixEq]
+        change __smtx_typeof
+            (SmtTerm.Boolean
+              (native_seq_prefix_eq (native_unpack_seq sx)
+                (native_unpack_seq sy))) =
+          __smtx_typeof
+            (SmtTerm.str_suffixof (__eo_to_smt t) (__eo_to_smt s))
+        rw [__smtx_typeof.eq_1, typeof_str_suffixof_eq]
+        simp [htTy, hsTy, native_Teq, native_ite]
+      · rcases seq_eval_of_seq_type M hM t SmtType.Char htTy with
+          ⟨st, hTEval⟩
+        rcases seq_eval_of_seq_type M hM s SmtType.Char hsTy with
+          ⟨ss, hSEval⟩
+        have hStTy :
+            __smtx_typeof_seq_value st = SmtType.Seq SmtType.Char :=
+          smt_typeof_seq_value_of_eval_seq M hM t SmtType.Char st
+            htTy hTEval
+        have hSsTy :
+            __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char :=
+          smt_typeof_seq_value_of_eval_seq M hM s SmtType.Char ss
+            hsTy hSEval
+        have hSuffixEval :
+            __smtx_model_eval_str_suffixof
+                (__smtx_model_eval M (__eo_to_smt t))
+                (__smtx_model_eval M (__eo_to_smt s)) =
+              SmtValue.Boolean
+                (native_seq_prefix_eq
+                  (native_seq_rev (native_unpack_seq st))
+                  (native_seq_rev (native_unpack_seq ss))) := by
+          rw [hTEval, hSEval]
+          exact smtx_model_eval_str_suffixof_seq_eq st ss SmtType.Char
+            hStTy hSsTy
+        have hEvalEq :
+            __seq_eval
+                (Term.Apply (Term.Apply (Term.UOp UserOp.str_suffixof) t) s) =
+              __seq_is_prefix rt rs := by
+          simp [__seq_eval, it, is, rt, rs]
+        have hOrigEval :
+            __smtx_model_eval M
+                (__eo_to_smt
+                  (Term.Apply (Term.Apply (Term.UOp UserOp.str_suffixof) t) s)) =
+              __smtx_model_eval_str_suffixof
+                (__smtx_model_eval M (__eo_to_smt t))
+                (__smtx_model_eval M (__eo_to_smt s)) := by
+          simpa using
+            (show
+              __smtx_model_eval M
+                  (SmtTerm.str_suffixof (__eo_to_smt t) (__eo_to_smt s)) =
+                __smtx_model_eval_str_suffixof
+                  (__smtx_model_eval M (__eo_to_smt t))
+                  (__smtx_model_eval M (__eo_to_smt s)) by
+              rw [__smtx_model_eval.eq_87])
+        rw [hEvalEq]
+        rw [hOrigEval]
+        change RuleProofs.smt_value_rel
+          (__smtx_model_eval M (__eo_to_smt (__seq_is_prefix rt rs)))
+          (__smtx_model_eval_str_suffixof
+            (__smtx_model_eval M (__eo_to_smt t))
+            (__smtx_model_eval M (__eo_to_smt s)))
+        rw [hPrefixEq]
+        have hBoolEval :
+            __smtx_model_eval M
+                (__eo_to_smt
+                  (Term.Boolean
+                    (native_seq_prefix_eq (native_unpack_seq sx)
+                      (native_unpack_seq sy)))) =
+              SmtValue.Boolean
+                (native_seq_prefix_eq (native_unpack_seq sx)
+                  (native_unpack_seq sy)) := by
+          change __smtx_model_eval M
+              (SmtTerm.Boolean
+                (native_seq_prefix_eq (native_unpack_seq sx)
+                  (native_unpack_seq sy))) =
+            SmtValue.Boolean
+              (native_seq_prefix_eq (native_unpack_seq sx)
+                (native_unpack_seq sy))
+          rw [__smtx_model_eval.eq_1]
+        rw [hBoolEval, hSuffixEval]
+        have hNativeSuffix :
+            native_seq_prefix_eq (native_unpack_seq sx) (native_unpack_seq sy) =
+              native_seq_prefix_eq
+                (native_seq_rev (native_unpack_seq st))
+                (native_seq_rev (native_unpack_seq ss)) := by
+          sorry
+        rw [hNativeSuffix]
+        exact RuleProofs.smt_value_rel_refl _
   | case12 t n =>
-      sorry
+      let a := __str_nary_intro t
+      let u := __eo_add n (Term.Numeral 1)
+      let body :=
+        __eo_ite (__eo_is_neg u)
+          (Term.UOp1 UserOp1.seq_empty (__eo_typeof a))
+          (__seq_subsequence_rec n u a)
+      let out := __str_nary_elim body
+      have hOutNe : out ≠ Term.Stuck := by
+        simpa [__seq_eval, a, u, body, out] using hEvalNe
+      have hBodyNe : body ≠ Term.Stuck :=
+        str_nary_elim_arg_ne_stuck_of_ne_stuck body hOutNe
+      have hAtNN :
+          term_has_non_none_type
+            (SmtTerm.str_at (__eo_to_smt t) (__eo_to_smt n)) := by
+        unfold term_has_non_none_type
+        simpa using hNN
+      rcases str_at_args_of_non_none hAtNN with ⟨T, htTy, hnTy⟩
+      have hIntroNe : a ≠ Term.Stuck := by
+        simpa [a] using str_nary_intro_ne_stuck_of_seq_type t T htTy
+      have hTComponents :
+          type_inhabited T ∧ __smtx_type_wf T = true := by
+        have hSeqWF :
+            __smtx_type_wf (SmtType.Seq T) = true := by
+          have hGood :=
+            smt_term_result_seq_components_wf_of_non_none
+              (__eo_to_smt t)
+              (by
+                unfold term_has_non_none_type
+                rw [htTy]
+                exact seq_ne_none T)
+          simpa [htTy, type_result_seq_components_wf] using hGood
+        exact seq_component_inhabited_wf_of_seq_wf T hSeqWF
+      have hIntroNN :
+          __smtx_typeof (__eo_to_smt a) ≠ SmtType.None := by
+        simpa [a] using
+          str_nary_intro_has_smt_translation_of_seq_wf t T htTy
+            hTComponents.1 hTComponents.2 (by simpa [a] using hIntroNe)
+      have hATy :
+          __smtx_typeof (__eo_to_smt a) = SmtType.Seq T := by
+        simpa [a] using
+          smt_typeof_str_nary_intro_of_seq_ne_stuck t T htTy
+            (by simpa [a] using hIntroNN) (by simpa [a] using hIntroNe)
+      have hBodyTy :
+          __smtx_typeof (__eo_to_smt body) = SmtType.Seq T := by
+        simpa [body] using
+          smt_typeof_seq_substr_body_of_seq a n u T hATy
+            (by simpa [body] using hBodyNe)
+      have hOutTy :
+          __smtx_typeof (__eo_to_smt out) = SmtType.Seq T := by
+        simpa [out] using
+          smt_typeof_str_nary_elim_of_seq_ne_stuck body T hBodyTy
+            (by simpa [out] using hOutNe)
+      constructor
+      · change __smtx_typeof (__eo_to_smt out) =
+          __smtx_typeof
+            (SmtTerm.str_at (__eo_to_smt t) (__eo_to_smt n))
+        rw [hOutTy, typeof_str_at_eq, htTy, hnTy]
+        simp [__smtx_typeof_str_at]
+      · have hOutRelBody :
+            RuleProofs.smt_value_rel
+              (__smtx_model_eval M (__eo_to_smt out))
+              (__smtx_model_eval M (__eo_to_smt body)) := by
+          simpa [out] using
+            smt_value_rel_str_nary_elim M hM body T hBodyTy
+              (by simpa [out] using hOutNe)
+        have hIntroRel :
+            RuleProofs.smt_value_rel
+              (__smtx_model_eval M (__eo_to_smt a))
+              (__smtx_model_eval M (__eo_to_smt t)) :=
+          smt_value_rel_str_nary_intro M hM t T htTy
+            (by simpa [a] using hIntroNe)
+        have hAtCong :
+            RuleProofs.smt_value_rel
+              (__smtx_model_eval_str_at
+                (__smtx_model_eval M (__eo_to_smt a))
+                (__smtx_model_eval M (__eo_to_smt n)))
+              (__smtx_model_eval_str_at
+                (__smtx_model_eval M (__eo_to_smt t))
+                (__smtx_model_eval M (__eo_to_smt n))) :=
+          smt_value_rel_model_eval_str_at_of_rel
+            (__smtx_model_eval M (__eo_to_smt a))
+            (__smtx_model_eval M (__eo_to_smt n))
+            (__smtx_model_eval M (__eo_to_smt t))
+            (__smtx_model_eval M (__eo_to_smt n))
+            hIntroRel (RuleProofs.smt_value_rel_refl _)
+        have hBodyRelAtA :
+            RuleProofs.smt_value_rel
+              (__smtx_model_eval M (__eo_to_smt body))
+              (__smtx_model_eval_str_at
+                (__smtx_model_eval M (__eo_to_smt a))
+                (__smtx_model_eval M (__eo_to_smt n))) := by
+          unfold __smtx_model_eval_str_at
+          rcases eo_ite_cases_of_ne_stuck (__eo_is_neg u)
+              (Term.UOp1 UserOp1.seq_empty (__eo_typeof a))
+              (__seq_subsequence_rec n u a)
+              (by simpa [body] using hBodyNe) with hCond | hCond
+          · have hAddNe : u ≠ Term.Stuck := by
+              intro hu
+              rw [hu] at hCond
+              simp [__eo_is_neg] at hCond
+            have hOneTy :
+                __smtx_typeof
+                    (__eo_to_smt (Term.Numeral (1 : native_Int))) =
+                  SmtType.Int := by
+              change __smtx_typeof (SmtTerm.Numeral (1 : native_Int)) =
+                SmtType.Int
+              rw [__smtx_typeof.eq_2]
+            rcases eo_add_int_args_numerals_of_ne_stuck n
+                (Term.Numeral (1 : native_Int)) hnTy hOneTy
+                (by simpa [u] using hAddNe) with
+              ⟨i, j, rfl, hOneEq, hUEq⟩
+            cases hOneEq
+            have hNegBool :
+                native_zlt (native_zplus i 1) 0 = true := by
+              simpa [u, hUEq, __eo_is_neg] using hCond
+            have hEnd : i + 1 < 0 := by
+              simpa [native_zlt, SmtEval.native_zlt, native_zplus] using
+                hNegBool
+            have hBodyEq :
+                body = Term.UOp1 UserOp1.seq_empty (__eo_typeof a) := by
+              simp [body, u, hUEq, __eo_is_neg, hNegBool, eo_ite_true]
+            rw [hBodyEq]
+            change RuleProofs.smt_value_rel
+              (__smtx_model_eval M
+                (__eo_to_smt
+                  (Term.UOp1 UserOp1.seq_empty (__eo_typeof a))))
+              (__smtx_model_eval_str_substr
+                (__smtx_model_eval M (__eo_to_smt a))
+                (__smtx_model_eval M (SmtTerm.Numeral i))
+                (SmtValue.Numeral 1))
+            rw [__smtx_model_eval.eq_2]
+            exact
+              smt_value_rel_raw_empty_str_substr_of_end_neg
+                M hM a T i 1 hATy hEnd
+          · have hAddNe : u ≠ Term.Stuck := by
+              intro hu
+              rw [hu] at hCond
+              simp [__eo_is_neg] at hCond
+            have hOneTy :
+                __smtx_typeof
+                    (__eo_to_smt (Term.Numeral (1 : native_Int))) =
+                  SmtType.Int := by
+              change __smtx_typeof (SmtTerm.Numeral (1 : native_Int)) =
+                SmtType.Int
+              rw [__smtx_typeof.eq_2]
+            rcases eo_add_int_args_numerals_of_ne_stuck n
+                (Term.Numeral (1 : native_Int)) hnTy hOneTy
+                (by simpa [u] using hAddNe) with
+              ⟨i, j, rfl, hOneEq, hUEq⟩
+            cases hOneEq
+            have hNegFalse :
+                native_zlt (native_zplus i 1) 0 = false := by
+              simpa [u, hUEq, __eo_is_neg] using hCond
+            have hEndNonneg : 0 <= native_zplus i 1 := by
+              have hNotLt : ¬ native_zplus i 1 < 0 := by
+                simpa [native_zlt, SmtEval.native_zlt] using hNegFalse
+              exact Int.le_of_not_gt hNotLt
+            have hBodyEq :
+                body =
+                  __seq_subsequence_rec (Term.Numeral i)
+                    (Term.Numeral (native_zplus i 1)) a := by
+              simp [body, u, hUEq, __eo_is_neg, hNegFalse, eo_ite_false]
+            have hSubseqNe :
+                __seq_subsequence_rec (Term.Numeral i)
+                    (Term.Numeral (native_zplus i 1)) a ≠
+                  Term.Stuck := by
+              simpa [hBodyEq] using hBodyNe
+            rw [hBodyEq]
+            have hLenEq : native_zplus i 1 - i = 1 := by
+              calc
+                native_zplus i 1 - i = (i + 1) - i := by
+                  simp [native_zplus, SmtEval.native_zplus]
+                _ = (1 + i) - i := by rw [Int.add_comm i 1]
+                _ = 1 := by simp
+            change RuleProofs.smt_value_rel
+              (__smtx_model_eval M
+                (__eo_to_smt
+                  (__seq_subsequence_rec (Term.Numeral i)
+                    (Term.Numeral (native_zplus i 1)) a)))
+              (__smtx_model_eval_str_substr
+                (__smtx_model_eval M (__eo_to_smt a))
+                (__smtx_model_eval M (SmtTerm.Numeral i))
+                (SmtValue.Numeral 1))
+            rw [__smtx_model_eval.eq_2]
+            simpa [hLenEq] using
+              smt_value_rel_seq_subsequence_rec_str_substr_of_numerals
+                M hM (Term.Numeral i) (Term.Numeral (native_zplus i 1))
+                a T i (native_zplus i 1) rfl rfl hEndNonneg hATy
+                hSubseqNe
+        rw [smtx_model_eval_str_at_term_eq M t n]
+        exact RuleProofs.smt_value_rel_trans
+          (__smtx_model_eval M (__eo_to_smt out))
+          (__smtx_model_eval M (__eo_to_smt body))
+          (__smtx_model_eval_str_at
+            (__smtx_model_eval M (__eo_to_smt t))
+            (__smtx_model_eval M (__eo_to_smt n)))
+          hOutRelBody
+          (RuleProofs.smt_value_rel_trans
+            (__smtx_model_eval M (__eo_to_smt body))
+            (__smtx_model_eval_str_at
+              (__smtx_model_eval M (__eo_to_smt a))
+              (__smtx_model_eval M (__eo_to_smt n)))
+            (__smtx_model_eval_str_at
+              (__smtx_model_eval M (__eo_to_smt t))
+              (__smtx_model_eval M (__eo_to_smt n)))
+            hBodyRelAtA hAtCong)
   | case13 t =>
       let guard :=
         __eo_ite (__eo_is_str t) (Term.Boolean false)
