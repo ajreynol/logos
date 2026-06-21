@@ -5056,27 +5056,6 @@ private theorem term_ne_stuck_of_smt_reglan_type {t : Term} :
   rw [TranslationProofs.smtx_typeof_none] at hTy
   cases hTy
 
-private theorem strConcat_nil_is_list_nil_of_type {ty : Term} {T : SmtType}
-    (hTy : __eo_to_smt_type ty = SmtType.Seq T) :
-    __eo_is_list_nil (Term.UOp UserOp.str_concat)
-        (__eo_nil (Term.UOp UserOp.str_concat) ty) =
-      Term.Boolean true := by
-  rcases TranslationProofs.eo_to_smt_type_eq_seq hTy with ⟨V, hTyEq, _hV⟩
-  subst ty
-  cases V <;>
-    simp [__eo_nil, __eo_nil_str_concat, __seq_empty, __eo_is_list_nil,
-      __eo_is_list_nil_str_concat, __eo_eq, native_teq]
-  case UOp op =>
-    cases op <;>
-      simp 
-
-private theorem strConcat_nil_eq_seq_empty_of_type {ty : Term} {T : SmtType}
-    (hTy : __eo_to_smt_type ty = SmtType.Seq T) :
-    __eo_nil (Term.UOp UserOp.str_concat) ty = __seq_empty ty := by
-  rcases TranslationProofs.eo_to_smt_type_eq_seq hTy with ⟨V, hTyEq, _hV⟩
-  subst ty
-  rfl
-
 private theorem strConcat_l1_eq_self_of_eq (id : Term) :
     id ≠ Term.Stuck ->
     __eo_l_1___get_a_norm_rec (Term.UOp UserOp.str_concat) id id = id := by
