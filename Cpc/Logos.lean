@@ -2335,12 +2335,23 @@ def __seq_element_of_unit : Term -> Term
   | _ => Term.Stuck
 
 
+def __is_seq_const_rec : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) (Term.Apply (Term.UOp UserOp.seq_unit) e)) ss) => (__is_seq_const_rec ss)
+  | (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) T)) => (Term.Boolean true)
+  | ss => (Term.Boolean false)
+
+
+def __is_seq_const : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | (Term.Apply (Term.UOp UserOp.seq_unit) e) => (Term.Boolean true)
+  | ss => (__is_seq_const_rec ss)
+
+
 def __str_value_len : Term -> Term
   | Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) (Term.Apply (Term.UOp UserOp.seq_unit) e)) ss) => (__eo_add (Term.Numeral 1) (__str_value_len ss))
-  | (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) T)) => (Term.Numeral 0)
   | (Term.Apply (Term.UOp UserOp.seq_unit) e) => (Term.Numeral 1)
-  | s => (__eo_requires (__eo_is_str s) (Term.Boolean true) (__eo_len s))
+  | s => (__eo_ite (__eo_is_str s) (__eo_len s) (__eo_requires (__is_seq_const s) (Term.Boolean true) (__eo_list_len (Term.UOp UserOp.str_concat) s)))
 
 
 def __str_fixed_len_re : Term -> Term
@@ -3556,7 +3567,7 @@ def __seq_eval_replace_all_rec : Term -> Term -> Term -> Term -> Term -> Term
 
 def __seq_eval : Term -> Term
   | Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.seq_nth) t) n) => (__eo_requires (__eo_ite (__eo_is_str t) (Term.Boolean false) (__eo_is_z (__str_value_len t))) (Term.Boolean true) (__seq_element_of_unit (__eo_list_nth (Term.UOp UserOp.str_concat) (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) t) n)))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.seq_nth) t) n) => (__eo_requires (__is_seq_const t) (Term.Boolean true) (__seq_element_of_unit (__eo_list_nth (Term.UOp UserOp.str_concat) (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) t) n)))
   | (Term.Apply (Term.UOp UserOp.str_len) t) => (__str_value_len (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) t))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t) ts) => (__eo_list_singleton_elim (Term.UOp UserOp.str_concat) (__eo_list_concat (Term.UOp UserOp.str_concat) (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) t) (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) (__seq_eval ts))))
   | (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) t) n) m) => 
@@ -3585,7 +3596,7 @@ def __seq_eval : Term -> Term
     let _v0 := (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) t)
     let _v1 := (__eo_add n (Term.Numeral 1))
     (__eo_list_singleton_elim (Term.UOp UserOp.str_concat) (__eo_ite (__eo_is_neg _v1) (Term.UOp1 UserOp1.seq_empty (__eo_typeof _v0)) (__seq_subsequence_rec n _v1 _v0)))
-  | (Term.Apply (Term.UOp UserOp.str_rev) t) => (__eo_requires (__eo_ite (__eo_is_str t) (Term.Boolean false) (__eo_is_z (__str_value_len t))) (Term.Boolean true) (__eo_list_singleton_elim (Term.UOp UserOp.str_concat) (__eo_list_rev (Term.UOp UserOp.str_concat) (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) t))))
+  | (Term.Apply (Term.UOp UserOp.str_rev) t) => (__eo_requires (__is_seq_const t) (Term.Boolean true) (__eo_list_singleton_elim (Term.UOp UserOp.str_concat) (__eo_list_rev (Term.UOp UserOp.str_concat) (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) t))))
   | t => t
 
 
