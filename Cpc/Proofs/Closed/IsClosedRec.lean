@@ -290,6 +290,53 @@ by
             (show (0 : native_Int) ≤ (0 : native_Int) by
               exact Int.le_refl 0)
 
+theorem eo_is_closed_rec_var_is_boolean
+    {env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (s : native_String) (T : Term) :
+  ∃ b,
+    __eo_is_closed_rec (Term.Var (Term.String s) T) env =
+      Term.Boolean b :=
+by
+  induction hEnv with
+  | nil =>
+      exact ⟨false, by simp [__eo_is_closed_rec]⟩
+  | cons hTail ih =>
+      rename_i s' T' env' vars'
+      by_cases hVarEq :
+          Term.Var (Term.String s') T' =
+            Term.Var (Term.String s) T
+      · have hClosedEq :
+            __eo_eq (Term.Var (Term.String s) T)
+                (Term.Var (Term.String s') T') =
+              Term.Boolean true := by
+          simp [__eo_eq, native_teq, hVarEq]
+        exact ⟨true, by
+          simp [__eo_is_closed_rec, __eo_ite, hClosedEq, native_ite,
+            native_teq]⟩
+      · have hClosedEq :
+            __eo_eq (Term.Var (Term.String s) T)
+                (Term.Var (Term.String s') T') =
+              Term.Boolean false := by
+          simp [__eo_eq, native_teq, hVarEq]
+        rcases ih with ⟨b, hb⟩
+        exact ⟨b, by
+          simp [__eo_is_closed_rec, __eo_ite, hClosedEq, hb, native_ite,
+            native_teq]⟩
+
+theorem is_closed_rec_var_eq_and_bool
+    {env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (s : native_String) (T : Term) :
+  __is_closed_rec (Term.Var (Term.String s) T) env =
+    __eo_is_closed_rec (Term.Var (Term.String s) T) env ∧
+    ∃ b,
+      __eo_is_closed_rec (Term.Var (Term.String s) T) env =
+        Term.Boolean b :=
+by
+  exact ⟨is_closed_rec_var_eq_eo_is_closed_rec_var hEnv s T,
+    eo_is_closed_rec_var_is_boolean hEnv s T⟩
+
 /--
 A Boolean SMT existential chain can only have come from an EO list of variables.
 This strengthens `eo_typeof_var_list_of_exists_bool` with the exact environment
@@ -997,6 +1044,162 @@ by
   | cons hTail =>
       simpa [__is_closed_rec, __eo_is_closed_rec, hClosed]
 
+theorem is_closed_rec_uop1_eq_and_bool_of_has_smt_translation
+    {op : UserOp1} {x env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hTrans : eoHasSmtTranslation (Term.UOp1 op x)) :
+  __is_closed_rec (Term.UOp1 op x) env =
+    __eo_is_closed_rec (Term.UOp1 op x) env ∧
+    ∃ b,
+      __eo_is_closed_rec (Term.UOp1 op x) env = Term.Boolean b :=
+by
+  cases op
+  case seq_empty =>
+    refine
+      ⟨is_closed_rec_seq_empty_eq_eo_is_closed_rec_of_has_smt_translation
+          hEnv hTrans,
+        ?_⟩
+    have hClosed :
+        __eo_is_closed_rec x env = Term.Boolean true :=
+      eo_is_closed_rec_eq_true_of_eo_type_valid hEnv
+        (eo_type_valid_of_seq_empty_has_smt_translation hTrans)
+    exact ⟨true, by
+      cases hEnv <;> simpa [__eo_is_closed_rec, hClosed]⟩
+  case set_empty =>
+    refine
+      ⟨is_closed_rec_set_empty_eq_eo_is_closed_rec_of_has_smt_translation
+          hEnv hTrans,
+        ?_⟩
+    have hClosed :
+        __eo_is_closed_rec x env = Term.Boolean true :=
+      eo_is_closed_rec_eq_true_of_eo_type_valid hEnv
+        (eo_type_valid_of_set_empty_has_smt_translation hTrans)
+    exact ⟨true, by
+      cases hEnv <;> simpa [__eo_is_closed_rec, hClosed]⟩
+  all_goals
+    exfalso
+    unfold eoHasSmtTranslation at hTrans
+    change __smtx_typeof SmtTerm.None ≠ SmtType.None at hTrans
+    exact hTrans TranslationProofs.smtx_typeof_none
+
+theorem re_unfold_pos_component_zero_args_of_non_none
+    (s r1 r2 : SmtTerm)
+    (hNN :
+      term_has_non_none_type
+        (__eo_to_smt_re_unfold_pos_component s (SmtTerm.re_concat r1 r2)
+          native_nat_zero)) :
+  __smtx_typeof s = SmtType.Seq SmtType.Char ∧
+    __smtx_typeof (SmtTerm.re_concat r1 r2) = SmtType.RegLan :=
+by
+  have hTermNN :
+      term_has_non_none_type
+        (SmtTerm.str_substr s (SmtTerm.Numeral 0)
+          (SmtTerm.str_indexof_re_split s r1 r2)) := by
+    simpa [__eo_to_smt_re_unfold_pos_component] using hNN
+  rcases str_substr_args_of_non_none hTermNN with
+    ⟨T, hS, hStart, hLen⟩
+  have hSplitNN :
+      term_has_non_none_type (SmtTerm.str_indexof_re_split s r1 r2) := by
+    unfold term_has_non_none_type
+    rw [hLen]
+    simp
+  have hSplitArgs := str_indexof_re_split_args_of_non_none hSplitNN
+  have hR :
+      __smtx_typeof (SmtTerm.re_concat r1 r2) = SmtType.RegLan := by
+    rw [typeof_re_concat_eq]
+    simp [hSplitArgs.2.1, hSplitArgs.2.2, native_ite, native_Teq]
+  exact ⟨hSplitArgs.1, hR⟩
+
+theorem re_unfold_pos_component_args_of_non_none
+    (s r : SmtTerm) (n : native_Nat)
+    (hNN :
+      term_has_non_none_type
+        (__eo_to_smt_re_unfold_pos_component s r n)) :
+  __smtx_typeof s = SmtType.Seq SmtType.Char ∧
+    __smtx_typeof r = SmtType.RegLan :=
+by
+  induction n generalizing s r with
+  | zero =>
+      cases r <;> simp [__eo_to_smt_re_unfold_pos_component] at hNN
+      case re_concat r1 r2 =>
+        exact re_unfold_pos_component_zero_args_of_non_none s r1 r2 (by
+          simpa [__eo_to_smt_re_unfold_pos_component] using hNN)
+      all_goals
+        exfalso
+        unfold term_has_non_none_type at hNN
+        exact hNN TranslationProofs.smtx_typeof_none
+  | succ n ih =>
+      cases r <;> simp [__eo_to_smt_re_unfold_pos_component] at hNN
+      case re_concat r1 r2 =>
+        let v0 := SmtTerm.str_indexof_re_split s r1 r2
+        let newS :=
+          SmtTerm.str_substr s v0 (SmtTerm.neg (SmtTerm.str_len s) v0)
+        have hRecArgs :
+            __smtx_typeof newS = SmtType.Seq SmtType.Char ∧
+              __smtx_typeof r2 = SmtType.RegLan := by
+          exact ih newS r2 (by
+            simpa [newS, v0, __eo_to_smt_re_unfold_pos_component]
+              using hNN)
+        have hNewSNN : term_has_non_none_type newS := by
+          unfold term_has_non_none_type
+          rw [hRecArgs.1]
+          simp
+        rcases str_substr_args_of_non_none hNewSNN with
+          ⟨T, hSRaw, hV0, hLen⟩
+        have hSplitNN : term_has_non_none_type v0 := by
+          unfold term_has_non_none_type
+          rw [hV0]
+          simp
+        have hSplitArgs := str_indexof_re_split_args_of_non_none hSplitNN
+        have hR :
+            __smtx_typeof (SmtTerm.re_concat r1 r2) = SmtType.RegLan := by
+          rw [typeof_re_concat_eq]
+          simp [hSplitArgs.2.1, hSplitArgs.2.2, native_ite, native_Teq]
+        exact ⟨hSplitArgs.1, hR⟩
+      all_goals
+        exfalso
+        unfold term_has_non_none_type at hNN
+        exact hNN TranslationProofs.smtx_typeof_none
+
+theorem re_unfold_pos_component_parts_have_smt_translation
+    {s r idx : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.UOp3 UserOp3._at_re_unfold_pos_component s r idx)) :
+  eoHasSmtTranslation s ∧ eoHasSmtTranslation r :=
+by
+  unfold eoHasSmtTranslation at hTrans
+  change
+      __smtx_typeof
+          (native_ite (__eo_to_smt_nat_is_valid idx)
+            (__eo_to_smt_re_unfold_pos_component
+              (__eo_to_smt s) (__eo_to_smt r) (__eo_to_smt_nat idx))
+            SmtTerm.None) ≠
+        SmtType.None at hTrans
+  cases hValid : __eo_to_smt_nat_is_valid idx
+  · exfalso
+    exact hTrans (by
+      simp [hValid, native_ite, TranslationProofs.smtx_typeof_none])
+  · have hCompNN :
+        term_has_non_none_type
+          (__eo_to_smt_re_unfold_pos_component
+            (__eo_to_smt s) (__eo_to_smt r) (__eo_to_smt_nat idx)) := by
+      unfold term_has_non_none_type
+      intro hNone
+      exact hTrans (by simpa [hValid, native_ite, hNone])
+    have hArgs :=
+      re_unfold_pos_component_args_of_non_none
+        (__eo_to_smt s) (__eo_to_smt r) (__eo_to_smt_nat idx) hCompNN
+    constructor
+    · unfold eoHasSmtTranslation
+      rw [hArgs.1]
+      intro h
+      cases h
+    · unfold eoHasSmtTranslation
+      rw [hArgs.2]
+      intro h
+      cases h
+
 theorem nat_is_valid_of_re_unfold_pos_component_has_smt_translation
     {s r idx : Term}
     (hTrans :
@@ -1142,6 +1345,286 @@ by
   subst y
   cases hEnv <;>
     simp [__is_closed_rec, __eo_is_closed_rec, __eo_and, native_and]
+
+theorem is_closed_rec_at_bv_eq_and_bool_of_has_smt_translation
+    {x y env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hTrans : eoHasSmtTranslation (Term.UOp2 UserOp2._at_bv x y)) :
+  __is_closed_rec (Term.UOp2 UserOp2._at_bv x y) env =
+    __eo_is_closed_rec (Term.UOp2 UserOp2._at_bv x y) env ∧
+    ∃ b,
+      __eo_is_closed_rec (Term.UOp2 UserOp2._at_bv x y) env =
+        Term.Boolean b :=
+by
+  refine
+    ⟨is_closed_rec_at_bv_eq_eo_is_closed_rec_of_has_smt_translation
+        hEnv hTrans,
+      ?_⟩
+  unfold eoHasSmtTranslation at hTrans
+  change
+      __smtx_typeof (__eo_to_smt__at_bv (__eo_to_smt x) (__eo_to_smt y)) ≠
+        SmtType.None at hTrans
+  rcases TranslationProofs.eo_to_smt_at_bv_of_non_none hTrans with
+    ⟨nx, ny, hxNum, hyNum, _hyNonneg, _hTy⟩
+  have hx : x = Term.Numeral nx :=
+    TranslationProofs.eo_to_smt_eq_numeral x nx hxNum
+  have hy : y = Term.Numeral ny :=
+    TranslationProofs.eo_to_smt_eq_numeral y ny hyNum
+  subst x
+  subst y
+  exact ⟨true, by
+    cases hEnv <;> simp [__eo_is_closed_rec, __eo_and, native_and]⟩
+
+theorem is_closed_rec_quantifiers_skolemize_forall_eq_and_bool_of_has_smt_translation_and_term
+    {vs body idx env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.UOp2 UserOp2._at_quantifiers_skolemize
+          (Term.Apply (Term.Apply (Term.UOp UserOp.forall) vs) body)
+          idx))
+    (hQ :
+      __is_closed_rec
+          (Term.Apply (Term.Apply (Term.UOp UserOp.forall) vs) body)
+          env =
+        __eo_is_closed_rec
+          (Term.Apply (Term.Apply (Term.UOp UserOp.forall) vs) body)
+          env)
+    (hQBool :
+      ∃ b,
+        __eo_is_closed_rec
+            (Term.Apply (Term.Apply (Term.UOp UserOp.forall) vs) body)
+            env =
+          Term.Boolean b) :
+  __is_closed_rec
+      (Term.UOp2 UserOp2._at_quantifiers_skolemize
+        (Term.Apply (Term.Apply (Term.UOp UserOp.forall) vs) body)
+        idx)
+      env =
+    __eo_is_closed_rec
+      (Term.UOp2 UserOp2._at_quantifiers_skolemize
+        (Term.Apply (Term.Apply (Term.UOp UserOp.forall) vs) body)
+        idx)
+      env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.UOp2 UserOp2._at_quantifiers_skolemize
+          (Term.Apply (Term.Apply (Term.UOp UserOp.forall) vs) body)
+          idx)
+        env =
+      Term.Boolean b :=
+by
+  refine
+    ⟨is_closed_rec_quantifiers_skolemize_forall_eq_of_has_smt_translation_and_term
+        hEnv hTrans hQ hQBool,
+      ?_⟩
+  rcases hQBool with ⟨bq, hQBool⟩
+  have hIdx :
+      __eo_is_closed_rec idx env = Term.Boolean true :=
+    eo_is_closed_rec_eq_true_of_nat_is_valid hEnv
+      (nat_is_valid_of_quantifiers_skolemize_forall_has_smt_translation
+        hTrans)
+  exact ⟨bq, by
+    cases hEnv <;>
+      simpa [__eo_is_closed_rec, hIdx] using
+        (eo_and_true_right_eq_of_boolean hQBool).trans hQBool⟩
+
+theorem is_closed_rec_re_unfold_pos_component_eq_and_bool_of_has_smt_translation_and_parts
+    {s r idx env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.UOp3 UserOp3._at_re_unfold_pos_component s r idx))
+    (hS :
+      __is_closed_rec s env = __eo_is_closed_rec s env ∧
+        ∃ b, __eo_is_closed_rec s env = Term.Boolean b)
+    (hR :
+      __is_closed_rec r env = __eo_is_closed_rec r env ∧
+        ∃ b, __eo_is_closed_rec r env = Term.Boolean b) :
+  __is_closed_rec
+      (Term.UOp3 UserOp3._at_re_unfold_pos_component s r idx) env =
+    __eo_is_closed_rec
+      (Term.UOp3 UserOp3._at_re_unfold_pos_component s r idx) env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.UOp3 UserOp3._at_re_unfold_pos_component s r idx) env =
+      Term.Boolean b :=
+by
+  rcases hS with ⟨hSEq, hSBool⟩
+  rcases hR with ⟨hREq, hRBool⟩
+  refine
+    ⟨is_closed_rec_re_unfold_pos_component_eq_of_has_smt_translation_and_parts
+        hEnv hTrans hSEq hREq hSBool hRBool,
+      ?_⟩
+  rcases hSBool with ⟨bs, hSBool⟩
+  rcases hRBool with ⟨br, hRBool⟩
+  have hIdx :
+      __eo_is_closed_rec idx env = Term.Boolean true :=
+    eo_is_closed_rec_eq_true_of_nat_is_valid hEnv
+      (nat_is_valid_of_re_unfold_pos_component_has_smt_translation hTrans)
+  rcases eo_and_eq_boolean_of_boolean hSBool hRBool with
+    ⟨bsr, hSRBool⟩
+  exact ⟨bsr, by
+    cases hEnv <;>
+      simpa [__eo_is_closed_rec, hIdx, hSRBool] using
+        (eo_and_true_right_eq_of_boolean hSRBool).trans hSRBool⟩
+
+theorem is_closed_rec_re_unfold_pos_component_eq_and_bool_of_has_smt_translation
+    {s r idx env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.UOp3 UserOp3._at_re_unfold_pos_component s r idx))
+    (ihS :
+      eoHasSmtTranslation s ->
+        __is_closed_rec s env = __eo_is_closed_rec s env ∧
+          ∃ b, __eo_is_closed_rec s env = Term.Boolean b)
+    (ihR :
+      eoHasSmtTranslation r ->
+        __is_closed_rec r env = __eo_is_closed_rec r env ∧
+          ∃ b, __eo_is_closed_rec r env = Term.Boolean b) :
+  __is_closed_rec
+      (Term.UOp3 UserOp3._at_re_unfold_pos_component s r idx) env =
+    __eo_is_closed_rec
+      (Term.UOp3 UserOp3._at_re_unfold_pos_component s r idx) env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.UOp3 UserOp3._at_re_unfold_pos_component s r idx) env =
+      Term.Boolean b :=
+by
+  rcases re_unfold_pos_component_parts_have_smt_translation hTrans with
+    ⟨hSTrans, hRTrans⟩
+  exact
+    is_closed_rec_re_unfold_pos_component_eq_and_bool_of_has_smt_translation_and_parts
+      hEnv hTrans (ihS hSTrans) (ihR hRTrans)
+
+theorem is_closed_rec_apply_eq_of_not_list_branch
+    {f x env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hNotList :
+      ∀ q v vs,
+        f ≠
+          Term.Apply q
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)) :
+  __is_closed_rec (Term.Apply f x) env =
+    __eo_and (__is_closed_rec f env) (__is_closed_rec x env) :=
+by
+  cases hEnv <;> cases f <;> simp [__is_closed_rec]
+
+theorem eo_is_closed_rec_apply_eq_of_not_quantifier
+    {f x env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hNotForall :
+      ∀ vs, f ≠ Term.Apply (Term.UOp UserOp.forall) vs)
+    (hNotExists :
+      ∀ vs, f ≠ Term.Apply (Term.UOp UserOp.exists) vs) :
+  __eo_is_closed_rec (Term.Apply f x) env =
+    __eo_and (__eo_is_closed_rec f env) (__eo_is_closed_rec x env) :=
+by
+  cases hEnv <;> cases f <;> simp [__eo_is_closed_rec]
+
+theorem is_closed_rec_apply_generic_eq_and_bool_of_parts
+    {f x env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hNotList :
+      ∀ q v vs,
+        f ≠
+          Term.Apply q
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+    (hNotForall :
+      ∀ vs, f ≠ Term.Apply (Term.UOp UserOp.forall) vs)
+    (hNotExists :
+      ∀ vs, f ≠ Term.Apply (Term.UOp UserOp.exists) vs)
+    (hF :
+      __is_closed_rec f env = __eo_is_closed_rec f env ∧
+        ∃ b, __eo_is_closed_rec f env = Term.Boolean b)
+    (hX :
+      __is_closed_rec x env = __eo_is_closed_rec x env ∧
+        ∃ b, __eo_is_closed_rec x env = Term.Boolean b) :
+  __is_closed_rec (Term.Apply f x) env =
+    __eo_is_closed_rec (Term.Apply f x) env ∧
+    ∃ b,
+      __eo_is_closed_rec (Term.Apply f x) env = Term.Boolean b :=
+by
+  rcases hF with ⟨hFEq, hFBool⟩
+  rcases hX with ⟨hXEq, hXBool⟩
+  refine ⟨?_, ?_⟩
+  · calc
+      __is_closed_rec (Term.Apply f x) env =
+          __eo_and (__is_closed_rec f env) (__is_closed_rec x env) := by
+            exact is_closed_rec_apply_eq_of_not_list_branch hEnv hNotList
+      _ = __eo_and (__eo_is_closed_rec f env)
+            (__eo_is_closed_rec x env) := by
+            rw [hFEq, hXEq]
+      _ = __eo_is_closed_rec (Term.Apply f x) env := by
+            exact
+              (eo_is_closed_rec_apply_eq_of_not_quantifier
+                hEnv hNotForall hNotExists).symm
+  · rcases hFBool with ⟨bf, hFBool⟩
+    rcases hXBool with ⟨bx, hXBool⟩
+    rw [eo_is_closed_rec_apply_eq_of_not_quantifier
+      hEnv hNotForall hNotExists]
+    exact eo_and_eq_boolean_of_boolean hFBool hXBool
+
+theorem eo_list_concat_nil_left_eq_of_env
+    {env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars) :
+  __eo_list_concat Term.__eo_List_cons Term.__eo_List_nil env = env :=
+by
+  have hNilList :
+      __eo_is_list Term.__eo_List_cons Term.__eo_List_nil =
+        Term.Boolean true := by
+    simp [__eo_is_list, __eo_get_nil_rec, __eo_is_list_nil,
+      __eo_requires, __eo_is_ok, native_ite, native_teq, native_not]
+  have hEnvList := hEnv.is_list
+  cases hEnv <;>
+    simp [__eo_list_concat, __eo_list_concat_rec, __eo_requires,
+      hNilList, hEnvList, native_ite, native_teq, native_not]
+
+/--
+For quantifiers with an empty binder list, `__is_closed_rec` reaches the
+generic application branch while `__eo_is_closed_rec` reaches its quantifier
+branch. The extra head check is `true`, and concatenating the empty binder
+list leaves the environment unchanged.
+-/
+theorem is_closed_rec_quantifier_nil_branch_eq_and_bool_of_body
+    {op : UserOp} {env : Term} {vars : List SmtVarKey}
+    (hOp : op = UserOp.forall ∨ op = UserOp.exists)
+    (hEnv : EoSmtVarEnv env vars)
+    (body : Term)
+    (hBody :
+      __is_closed_rec body env = __eo_is_closed_rec body env ∧
+        ∃ b, __eo_is_closed_rec body env = Term.Boolean b) :
+  __is_closed_rec
+      (Term.Apply (Term.Apply (Term.UOp op) Term.__eo_List_nil) body)
+      env =
+    __eo_is_closed_rec
+      (Term.Apply (Term.Apply (Term.UOp op) Term.__eo_List_nil) body)
+      env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.Apply (Term.Apply (Term.UOp op) Term.__eo_List_nil) body)
+        env =
+      Term.Boolean b :=
+by
+  rcases hBody with ⟨hBodyEq, hBodyBool⟩
+  rcases hBodyBool with ⟨b, hBodyBool⟩
+  have hConcat := eo_list_concat_nil_left_eq_of_env hEnv
+  rcases hOp with hForall | hExists
+  · subst op
+    refine ⟨?_, ?_⟩
+    · cases hEnv <;>
+        simpa [__is_closed_rec, __eo_is_closed_rec, hBodyEq, hConcat]
+          using eo_and_true_left_eq_of_boolean hBodyBool
+    · exact ⟨b, by
+        cases hEnv <;> simpa [__eo_is_closed_rec, hConcat] using hBodyBool⟩
+  · subst op
+    refine ⟨?_, ?_⟩
+    · cases hEnv <;>
+        simpa [__is_closed_rec, __eo_is_closed_rec, hBodyEq, hConcat]
+          using eo_and_true_left_eq_of_boolean hBodyBool
+    · exact ⟨b, by
+        cases hEnv <;> simpa [__eo_is_closed_rec, hConcat] using hBodyBool⟩
 
 /--
 The broad binder-list branch of `__is_closed_rec` agrees with
