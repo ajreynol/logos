@@ -3588,7 +3588,7 @@ def __seq_eval : Term -> Term
   | (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof) t) s) n) => 
     let _v0 := (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) t)
     let _v1 := (__str_value_len t)
-    (__eo_requires (__is_seq_const s) (Term.Boolean true) (__seq_find (__eo_ite (__eo_is_neg _v1) (Term.UOp1 UserOp1.seq_empty (__eo_typeof _v0)) (__seq_subsequence_rec n _v1 _v0)) (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) s) n))
+    (__eo_requires (__is_seq_const s) (Term.Boolean true) (__eo_ite (__eo_is_neg n) (Term.Numeral (-1 : native_Int)) (__eo_ite (__eo_gt n _v1) (Term.Numeral (-1 : native_Int)) (__seq_find (__eo_ite (__eo_is_neg _v1) (Term.UOp1 UserOp1.seq_empty (__eo_typeof _v0)) (__seq_subsequence_rec n _v1 _v0)) (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) s) n))))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.str_prefixof) t) s) => (__seq_is_prefix (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) t) (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) s))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.str_suffixof) t) s) => (__seq_is_prefix (__eo_list_rev (Term.UOp UserOp.str_concat) (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) t)) (__eo_list_rev (Term.UOp UserOp.str_concat) (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) s)))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.str_at) t) n) => 
