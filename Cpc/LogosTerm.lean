@@ -21,8 +21,6 @@ inductive UserOp : Type where
   | _at__at_TypedList : UserOp
   | _at__at_TypedList_nil : UserOp
   | _at__at_TypedList_cons : UserOp
-  | _at__at_result_null : UserOp
-  | _at__at_result_invalid : UserOp
   | ite : UserOp
   | not : UserOp
   | or : UserOp
