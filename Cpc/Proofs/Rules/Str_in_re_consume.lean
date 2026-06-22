@@ -124,6 +124,61 @@ theorem str_re_consume_str_flatten_eval_rel
     ⟨flatSs, hFlatEval, hFlatTy, hFlatList, hFlatRel⟩
   exact ⟨ss, flatSs, hSEval, hFlatEval, hFlatTy, hFlatList, hFlatRel⟩
 
+theorem str_re_consume_re_flatten_false_eval_rel
+    (M : SmtModel) (hM : model_total_typed M)
+    (s r side : Term)
+    (hEqTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp.eq)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) r))
+          side))
+    (hFlatNe :
+      __re_flatten (Term.Boolean false) (Term.Boolean true) r ≠
+        Term.Stuck) :
+    ∃ rv flatRv,
+      __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv ∧
+      __smtx_model_eval M
+          (__eo_to_smt
+            (__re_flatten (Term.Boolean false) (Term.Boolean true) r)) =
+        SmtValue.RegLan flatRv ∧
+      __smtx_typeof
+          (__eo_to_smt
+            (__re_flatten (Term.Boolean false) (Term.Boolean true) r)) =
+        SmtType.RegLan ∧
+      RuleProofs.smt_value_rel (SmtValue.RegLan flatRv)
+        (SmtValue.RegLan rv) := by
+  rcases str_re_consume_translation_facts s r side hEqTrans with
+    ⟨_hStrInTrans, _hSideTrans, _hSTy, hRTy, _hEqBool⟩
+  rcases str_re_consume_input_eval M hM s r side hEqTrans with
+    ⟨_ss, rv, _hSEval, hREval, _hStrInEval⟩
+  rcases re_flatten_false_eval_rel M hM (Term.Boolean false)
+      (Term.Boolean true) r rv rfl hRTy hREval hFlatNe with
+    ⟨flatRv, hFlatEval, hFlatTy, hFlatRel⟩
+  exact ⟨rv, flatRv, hREval, hFlatEval, hFlatTy, hFlatRel⟩
+
+theorem str_re_consume_re_flatten_true_rev_facts
+    (r : Term)
+    (hRevNe :
+      __eo_list_rev (Term.UOp UserOp.re_concat)
+          (__re_flatten (Term.Boolean true) (Term.Boolean true) r) ≠
+        Term.Stuck) :
+    __re_flatten (Term.Boolean true) (Term.Boolean true) r ≠ Term.Stuck ∧
+      __eo_is_list (Term.UOp UserOp.re_concat)
+          (__re_flatten (Term.Boolean true) (Term.Boolean true) r) =
+        Term.Boolean true ∧
+      __eo_is_list (Term.UOp UserOp.re_concat)
+          (__eo_list_rev (Term.UOp UserOp.re_concat)
+            (__re_flatten (Term.Boolean true) (Term.Boolean true) r)) =
+        Term.Boolean true := by
+  exact ⟨
+    eo_list_rev_arg_ne_stuck_of_ne_stuck (Term.UOp UserOp.re_concat)
+      (__re_flatten (Term.Boolean true) (Term.Boolean true) r) hRevNe,
+    eo_list_rev_is_list_true_of_ne_stuck (Term.UOp UserOp.re_concat)
+      (__re_flatten (Term.Boolean true) (Term.Boolean true) r) hRevNe,
+    eo_list_rev_result_is_list_true_of_ne_stuck (Term.UOp UserOp.re_concat)
+      (__re_flatten (Term.Boolean true) (Term.Boolean true) r) hRevNe⟩
+
 theorem str_re_consume_side_smt_type
     (s r side : Term)
     (hEqTrans :
@@ -197,6 +252,37 @@ theorem str_re_consume_model_rel_of_consume_identity
       (__smtx_model_eval M (__eo_to_smt side)) := by
   apply str_re_consume_model_rel_of_side_eq_str_in_re M s r side
   rw [hSide, hIdentity]
+
+theorem str_re_consume_model_rel_of_side_false
+    (M : SmtModel) (hM : model_total_typed M)
+    (s r side : Term)
+    (hEqTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp.eq)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) r))
+          side))
+    (hSideFalse : side = Term.Boolean false)
+    (hInputFalse :
+      ∀ ss rv,
+        __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss ->
+        __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv ->
+        native_str_in_re (native_unpack_string ss) rv = false) :
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) r)))
+      (__smtx_model_eval M (__eo_to_smt side)) := by
+  rcases str_re_consume_input_eval M hM s r side hEqTrans with
+    ⟨ss, rv, hSEval, hREval, hStrInEval⟩
+  have hNativeFalse := hInputFalse ss rv hSEval hREval
+  subst side
+  rw [hStrInEval, hNativeFalse]
+  change RuleProofs.smt_value_rel
+    (SmtValue.Boolean false)
+    (__smtx_model_eval M (SmtTerm.Boolean false))
+  rw [__smtx_model_eval.eq_1]
+  exact RuleProofs.smt_value_rel_refl _
 
 theorem str_re_consume_model_rel
     (M : SmtModel) (hM : model_total_typed M)
