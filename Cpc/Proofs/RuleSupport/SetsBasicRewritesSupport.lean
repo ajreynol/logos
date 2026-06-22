@@ -100,6 +100,67 @@ theorem eo_typeof_set_union_bool_info
     ⟨T, hxTy, hyTy, hUnionTy⟩
   exact ⟨T, hxTy, hyTy, by rw [← hSame, hUnionTy]⟩
 
+theorem eo_typeof_set_subset_ne_stuck_info
+    {A B : Term}
+    (h : __eo_typeof_set_subset A B ≠ Term.Stuck) :
+    ∃ T : Term,
+      A = Term.Apply (Term.UOp UserOp.Set) T ∧
+        B = Term.Apply (Term.UOp UserOp.Set) T ∧
+          T ≠ Term.Stuck := by
+  cases A <;> try simp [__eo_typeof_set_subset] at h
+  next f T =>
+    cases f <;> try simp [__eo_typeof_set_subset] at h
+    next op =>
+      cases op <;> try simp [__eo_typeof_set_subset] at h
+      cases B <;> try simp [__eo_typeof_set_subset] at h
+      next g U =>
+        cases g <;> try simp [__eo_typeof_set_subset] at h
+        next opB =>
+          cases opB <;> try simp [__eo_typeof_set_subset] at h
+          have hEq : U = T :=
+            RuleProofs.eq_of_requires_eq_true_not_stuck T U Term.Bool h
+          subst U
+          refine ⟨T, rfl, rfl, ?_⟩
+          intro hStuck
+          subst hStuck
+          simp [__eo_requires, __eo_eq, native_ite, native_teq] at h
+
+/-- Extracts the operand set types from a `(= (set_subset x y) rhs)` formula
+    whose `__eo_typeof` is `Bool`. -/
+theorem eo_typeof_set_subset_eq_bool_info
+    {x y rhs : Term}
+    (hTy :
+      __eo_typeof
+        (mkEq
+          (Term.Apply (Term.Apply Term.set_subset x) y)
+          rhs) = Term.Bool) :
+    ∃ T : Term,
+      __eo_typeof x = Term.Apply (Term.UOp UserOp.Set) T ∧
+        __eo_typeof y = Term.Apply (Term.UOp UserOp.Set) T ∧
+          __eo_typeof rhs = Term.Bool ∧
+          T ≠ Term.Stuck := by
+  have hEqTy :
+      __eo_typeof_eq
+        (__eo_typeof_set_subset (__eo_typeof x) (__eo_typeof y))
+        (__eo_typeof rhs) = Term.Bool := by
+    simpa [mkEq] using hTy
+  rcases SetsMemberSupport.eo_typeof_eq_eq_bool_info hEqTy with
+    ⟨hSame, hSubsetNS⟩
+  rcases eo_typeof_set_subset_ne_stuck_info hSubsetNS with
+    ⟨T, hxTy, hyTy, hTNS⟩
+  refine ⟨T, hxTy, hyTy, ?_, hTNS⟩
+  -- subset type is Bool, and rhs type equals subset type
+  have hSubsetReq :
+      __eo_typeof_set_subset (__eo_typeof x) (__eo_typeof y) =
+        __eo_requires (__eo_eq T T) (Term.Boolean true) Term.Bool := by
+    rw [hxTy, hyTy]
+    rfl
+  have hSubsetBool :
+      __eo_typeof_set_subset (__eo_typeof x) (__eo_typeof y) = Term.Bool := by
+    rw [hSubsetReq]
+    exact req_result (by rw [← hSubsetReq]; exact hSubsetNS)
+  rw [← hSame, hSubsetBool]
+
 private theorem set_smt_types_of_eo_set_types
     {x y : Term} {T : Term}
     (hxTrans : RuleProofs.eo_has_smt_translation x)
