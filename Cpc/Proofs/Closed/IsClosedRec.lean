@@ -4450,6 +4450,88 @@ by
     is_closed_rec_apply_apply_uop_nonquantifier_eq_and_bool_of_has_smt_translation_and_arg_trans
       hEnv hNotForall hNotExists hTrans hXTrans hYTrans ihX ihY
 
+theorem apply_apply_apply_uop_args_have_smt_translation_of_smt_triop_non_none
+    {eoOp : UserOp}
+    {smtOp : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm}
+    {x y z : Term}
+    (hTranslate :
+      __eo_to_smt
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) z) =
+        smtOp (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt z))
+    (hArgs :
+      term_has_non_none_type
+          (smtOp (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt z)) ->
+        eoHasSmtTranslation x ∧
+          eoHasSmtTranslation y ∧
+            eoHasSmtTranslation z)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) z)) :
+  eoHasSmtTranslation x ∧
+    eoHasSmtTranslation y ∧
+      eoHasSmtTranslation z :=
+by
+  unfold eoHasSmtTranslation at hTrans
+  have hNN :
+      term_has_non_none_type
+        (smtOp (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt z)) := by
+    unfold term_has_non_none_type
+    rw [← hTranslate]
+    exact hTrans
+  exact hArgs hNN
+
+theorem is_closed_rec_apply_apply_apply_uop_nonquantifier_eq_and_bool_of_smt_triop_non_none
+    {eoOp : UserOp}
+    {smtOp : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm}
+    {x y z env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hNotForall : eoOp ≠ UserOp.forall)
+    (hNotExists : eoOp ≠ UserOp.exists)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) z))
+    (hTranslate :
+      __eo_to_smt
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) z) =
+        smtOp (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt z))
+    (hArgs :
+      term_has_non_none_type
+          (smtOp (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt z)) ->
+        eoHasSmtTranslation x ∧
+          eoHasSmtTranslation y ∧
+            eoHasSmtTranslation z)
+    (ihX :
+      eoHasSmtTranslation x ->
+        __is_closed_rec x env = __eo_is_closed_rec x env ∧
+          ∃ b, __eo_is_closed_rec x env = Term.Boolean b)
+    (ihY :
+      eoHasSmtTranslation y ->
+        __is_closed_rec y env = __eo_is_closed_rec y env ∧
+          ∃ b, __eo_is_closed_rec y env = Term.Boolean b)
+    (ihZ :
+      eoHasSmtTranslation z ->
+        __is_closed_rec z env = __eo_is_closed_rec z env ∧
+          ∃ b, __eo_is_closed_rec z env = Term.Boolean b) :
+  __is_closed_rec
+      (Term.Apply (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) z)
+      env =
+    __eo_is_closed_rec
+      (Term.Apply (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) z)
+      env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) z)
+        env =
+        Term.Boolean b :=
+by
+  rcases
+      apply_apply_apply_uop_args_have_smt_translation_of_smt_triop_non_none
+        hTranslate hArgs hTrans with
+    ⟨hXTrans, hYTrans, hZTrans⟩
+  exact
+    is_closed_rec_apply_apply_apply_uop_nonquantifier_eq_and_bool_of_has_smt_translation_and_arg_trans
+      hEnv hNotForall hNotExists hXTrans hYTrans hZTrans ihX ihY ihZ
+
 theorem arith_binop_args_have_smt_translation_of_non_none
     {op : SmtTerm -> SmtTerm -> SmtTerm} {x y : Term}
     (hTy :
@@ -4513,6 +4595,357 @@ by
   rcases int_binop_args_of_non_none (op := op) (R := ret) hTy hNN with
     ⟨hXTy, hYTy⟩
   exact ⟨eo_has_smt_translation_of_smt_type_eq hXTy (by simp),
+    eo_has_smt_translation_of_smt_type_eq hYTy (by simp)⟩
+
+theorem map_type_components_non_none_of_eo_type_eq
+    {x : Term} {A B : SmtType}
+    (hTy : __smtx_typeof (__eo_to_smt x) = SmtType.Map A B) :
+  A ≠ SmtType.None ∧ B ≠ SmtType.None :=
+by
+  have hNN : term_has_non_none_type (__eo_to_smt x) := by
+    unfold term_has_non_none_type
+    rw [hTy]
+    simp
+  have hNoNone :
+      type_has_no_none_components (__smtx_typeof (__eo_to_smt x)) :=
+    term_type_has_no_none_components_of_non_none (__eo_to_smt x) hNN
+  have hMapNoNone : type_has_no_none_components (SmtType.Map A B) := by
+    simpa [hTy] using hNoNone
+  exact ⟨type_has_no_none_components_non_none hMapNoNone.1,
+    type_has_no_none_components_non_none hMapNoNone.2⟩
+
+theorem select_args_have_smt_translation_of_non_none
+    {x y : Term}
+    (hNN :
+      term_has_non_none_type
+        (SmtTerm.select (__eo_to_smt x) (__eo_to_smt y))) :
+  eoHasSmtTranslation x ∧ eoHasSmtTranslation y :=
+by
+  rcases select_args_of_non_none hNN with ⟨A, B, hXTy, hYTy⟩
+  have hComponents :
+      A ≠ SmtType.None ∧ B ≠ SmtType.None :=
+    map_type_components_non_none_of_eo_type_eq hXTy
+  exact ⟨eo_has_smt_translation_of_smt_type_eq hXTy (by simp),
+    eo_has_smt_translation_of_smt_type_eq hYTy hComponents.1⟩
+
+theorem store_args_have_smt_translation_of_non_none
+    {x y z : Term}
+    (hNN :
+      term_has_non_none_type
+        (SmtTerm.store (__eo_to_smt x) (__eo_to_smt y)
+          (__eo_to_smt z))) :
+  eoHasSmtTranslation x ∧
+    eoHasSmtTranslation y ∧
+      eoHasSmtTranslation z :=
+by
+  rcases store_args_of_non_none hNN with
+    ⟨A, B, hXTy, hYTy, hZTy⟩
+  have hComponents :
+      A ≠ SmtType.None ∧ B ≠ SmtType.None :=
+    map_type_components_non_none_of_eo_type_eq hXTy
+  exact ⟨eo_has_smt_translation_of_smt_type_eq hXTy (by simp),
+    eo_has_smt_translation_of_smt_type_eq hYTy hComponents.1,
+    eo_has_smt_translation_of_smt_type_eq hZTy hComponents.2⟩
+
+theorem set_type_component_non_none_of_eo_type_eq
+    {x : Term} {A : SmtType}
+    (hTy : __smtx_typeof (__eo_to_smt x) = SmtType.Set A) :
+  A ≠ SmtType.None :=
+by
+  have hNN : term_has_non_none_type (__eo_to_smt x) := by
+    unfold term_has_non_none_type
+    rw [hTy]
+    simp
+  have hNoNone :
+      type_has_no_none_components (__smtx_typeof (__eo_to_smt x)) :=
+    term_type_has_no_none_components_of_non_none (__eo_to_smt x) hNN
+  have hSetNoNone : type_has_no_none_components (SmtType.Set A) := by
+    simpa [hTy] using hNoNone
+  exact type_has_no_none_components_non_none hSetNoNone
+
+theorem seq_binop_args_have_smt_translation_of_non_none
+    {op : SmtTerm -> SmtTerm -> SmtTerm} {x y : Term}
+    (hTy :
+      __smtx_typeof (op (__eo_to_smt x) (__eo_to_smt y)) =
+        __smtx_typeof_seq_op_2
+          (__smtx_typeof (__eo_to_smt x))
+          (__smtx_typeof (__eo_to_smt y)))
+    (hNN : term_has_non_none_type (op (__eo_to_smt x) (__eo_to_smt y))) :
+  eoHasSmtTranslation x ∧ eoHasSmtTranslation y :=
+by
+  rcases seq_binop_args_of_non_none (op := op) hTy hNN with
+    ⟨T, hXTy, hYTy⟩
+  exact ⟨eo_has_smt_translation_of_smt_type_eq hXTy (by simp),
+    eo_has_smt_translation_of_smt_type_eq hYTy (by simp)⟩
+
+theorem seq_binop_ret_args_have_smt_translation_of_non_none
+    {op : SmtTerm -> SmtTerm -> SmtTerm} {ret : SmtType}
+    {x y : Term}
+    (hTy :
+      __smtx_typeof (op (__eo_to_smt x) (__eo_to_smt y)) =
+        __smtx_typeof_seq_op_2_ret
+          (__smtx_typeof (__eo_to_smt x))
+          (__smtx_typeof (__eo_to_smt y)) ret)
+    (hNN : term_has_non_none_type (op (__eo_to_smt x) (__eo_to_smt y))) :
+  eoHasSmtTranslation x ∧ eoHasSmtTranslation y :=
+by
+  rcases seq_binop_args_of_non_none_ret (op := op) (R := ret) hTy hNN with
+    ⟨T, hXTy, hYTy⟩
+  exact ⟨eo_has_smt_translation_of_smt_type_eq hXTy (by simp),
+    eo_has_smt_translation_of_smt_type_eq hYTy (by simp)⟩
+
+theorem seq_triop_args_have_smt_translation_of_non_none
+    {op : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm} {x y z : Term}
+    (hTy :
+      __smtx_typeof
+          (op (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt z)) =
+        __smtx_typeof_seq_op_3
+          (__smtx_typeof (__eo_to_smt x))
+          (__smtx_typeof (__eo_to_smt y))
+          (__smtx_typeof (__eo_to_smt z)))
+    (hNN :
+      term_has_non_none_type
+        (op (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt z))) :
+  eoHasSmtTranslation x ∧
+    eoHasSmtTranslation y ∧
+      eoHasSmtTranslation z :=
+by
+  rcases seq_triop_args_of_non_none (op := op) hTy hNN with
+    ⟨T, hXTy, hYTy, hZTy⟩
+  exact ⟨eo_has_smt_translation_of_smt_type_eq hXTy (by simp),
+    eo_has_smt_translation_of_smt_type_eq hYTy (by simp),
+    eo_has_smt_translation_of_smt_type_eq hZTy (by simp)⟩
+
+theorem seq_nth_args_have_smt_translation_of_non_none
+    {x y : Term}
+    (hNN :
+      term_has_non_none_type
+        (SmtTerm.seq_nth (__eo_to_smt x) (__eo_to_smt y))) :
+  eoHasSmtTranslation x ∧ eoHasSmtTranslation y :=
+by
+  rcases seq_nth_args_of_non_none hNN with ⟨T, hXTy, hYTy⟩
+  exact ⟨eo_has_smt_translation_of_smt_type_eq hXTy (by simp),
+    eo_has_smt_translation_of_smt_type_eq hYTy (by simp)⟩
+
+theorem str_substr_args_have_smt_translation_of_non_none
+    {x y z : Term}
+    (hNN :
+      term_has_non_none_type
+        (SmtTerm.str_substr (__eo_to_smt x) (__eo_to_smt y)
+          (__eo_to_smt z))) :
+  eoHasSmtTranslation x ∧
+    eoHasSmtTranslation y ∧
+      eoHasSmtTranslation z :=
+by
+  rcases str_substr_args_of_non_none hNN with ⟨T, hXTy, hYTy, hZTy⟩
+  exact ⟨eo_has_smt_translation_of_smt_type_eq hXTy (by simp),
+    eo_has_smt_translation_of_smt_type_eq hYTy (by simp),
+    eo_has_smt_translation_of_smt_type_eq hZTy (by simp)⟩
+
+theorem str_indexof_args_have_smt_translation_of_non_none
+    {x y z : Term}
+    (hNN :
+      term_has_non_none_type
+        (SmtTerm.str_indexof (__eo_to_smt x) (__eo_to_smt y)
+          (__eo_to_smt z))) :
+  eoHasSmtTranslation x ∧
+    eoHasSmtTranslation y ∧
+      eoHasSmtTranslation z :=
+by
+  rcases str_indexof_args_of_non_none hNN with
+    ⟨T, hXTy, hYTy, hZTy⟩
+  exact ⟨eo_has_smt_translation_of_smt_type_eq hXTy (by simp),
+    eo_has_smt_translation_of_smt_type_eq hYTy (by simp),
+    eo_has_smt_translation_of_smt_type_eq hZTy (by simp)⟩
+
+theorem str_at_args_have_smt_translation_of_non_none
+    {x y : Term}
+    (hNN :
+      term_has_non_none_type
+        (SmtTerm.str_at (__eo_to_smt x) (__eo_to_smt y))) :
+  eoHasSmtTranslation x ∧ eoHasSmtTranslation y :=
+by
+  rcases str_at_args_of_non_none hNN with ⟨T, hXTy, hYTy⟩
+  exact ⟨eo_has_smt_translation_of_smt_type_eq hXTy (by simp),
+    eo_has_smt_translation_of_smt_type_eq hYTy (by simp)⟩
+
+theorem str_update_args_have_smt_translation_of_non_none
+    {x y z : Term}
+    (hNN :
+      term_has_non_none_type
+        (SmtTerm.str_update (__eo_to_smt x) (__eo_to_smt y)
+          (__eo_to_smt z))) :
+  eoHasSmtTranslation x ∧
+    eoHasSmtTranslation y ∧
+      eoHasSmtTranslation z :=
+by
+  rcases str_update_args_of_non_none hNN with ⟨T, hXTy, hYTy, hZTy⟩
+  exact ⟨eo_has_smt_translation_of_smt_type_eq hXTy (by simp),
+    eo_has_smt_translation_of_smt_type_eq hYTy (by simp),
+    eo_has_smt_translation_of_smt_type_eq hZTy (by simp)⟩
+
+theorem reglan_binop_args_have_smt_translation_of_non_none
+    {op : SmtTerm -> SmtTerm -> SmtTerm} {x y : Term}
+    (hTy :
+      __smtx_typeof (op (__eo_to_smt x) (__eo_to_smt y)) =
+        native_ite
+          (native_Teq (__smtx_typeof (__eo_to_smt x)) SmtType.RegLan)
+          (native_ite
+            (native_Teq (__smtx_typeof (__eo_to_smt y)) SmtType.RegLan)
+            SmtType.RegLan SmtType.None)
+          SmtType.None)
+    (hNN : term_has_non_none_type (op (__eo_to_smt x) (__eo_to_smt y))) :
+  eoHasSmtTranslation x ∧ eoHasSmtTranslation y :=
+by
+  rcases reglan_binop_args_of_non_none (op := op) hTy hNN with
+    ⟨hXTy, hYTy⟩
+  exact ⟨eo_has_smt_translation_of_smt_type_eq hXTy (by simp),
+    eo_has_smt_translation_of_smt_type_eq hYTy (by simp)⟩
+
+theorem seq_char_binop_args_have_smt_translation_of_non_none
+    {op : SmtTerm -> SmtTerm -> SmtTerm} {ret : SmtType}
+    {x y : Term}
+    (hTy :
+      __smtx_typeof (op (__eo_to_smt x) (__eo_to_smt y)) =
+        native_ite
+          (native_Teq (__smtx_typeof (__eo_to_smt x))
+            (SmtType.Seq SmtType.Char))
+          (native_ite
+            (native_Teq (__smtx_typeof (__eo_to_smt y))
+              (SmtType.Seq SmtType.Char))
+            ret SmtType.None)
+          SmtType.None)
+    (hNN : term_has_non_none_type (op (__eo_to_smt x) (__eo_to_smt y))) :
+  eoHasSmtTranslation x ∧ eoHasSmtTranslation y :=
+by
+  rcases seq_char_binop_args_of_non_none (op := op) (ret := ret) hTy hNN with
+    ⟨hXTy, hYTy⟩
+  exact ⟨eo_has_smt_translation_of_smt_type_eq hXTy (by simp),
+    eo_has_smt_translation_of_smt_type_eq hYTy (by simp)⟩
+
+theorem seq_char_reglan_args_have_smt_translation_of_non_none
+    {op : SmtTerm -> SmtTerm -> SmtTerm} {ret : SmtType}
+    {x y : Term}
+    (hTy :
+      __smtx_typeof (op (__eo_to_smt x) (__eo_to_smt y)) =
+        native_ite
+          (native_Teq (__smtx_typeof (__eo_to_smt x))
+            (SmtType.Seq SmtType.Char))
+          (native_ite
+            (native_Teq (__smtx_typeof (__eo_to_smt y)) SmtType.RegLan)
+            ret SmtType.None)
+          SmtType.None)
+    (hNN : term_has_non_none_type (op (__eo_to_smt x) (__eo_to_smt y))) :
+  eoHasSmtTranslation x ∧ eoHasSmtTranslation y :=
+by
+  rcases seq_char_reglan_args_of_non_none (op := op) (ret := ret) hTy hNN with
+    ⟨hXTy, hYTy⟩
+  exact ⟨eo_has_smt_translation_of_smt_type_eq hXTy (by simp),
+    eo_has_smt_translation_of_smt_type_eq hYTy (by simp)⟩
+
+theorem str_replace_re_args_have_smt_translation_of_non_none
+    {op : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm} {x y z : Term}
+    (hTy :
+      __smtx_typeof
+          (op (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt z)) =
+        native_ite
+          (native_Teq (__smtx_typeof (__eo_to_smt x))
+            (SmtType.Seq SmtType.Char))
+          (native_ite
+            (native_Teq (__smtx_typeof (__eo_to_smt y)) SmtType.RegLan)
+            (native_ite
+              (native_Teq (__smtx_typeof (__eo_to_smt z))
+                (SmtType.Seq SmtType.Char))
+              (SmtType.Seq SmtType.Char) SmtType.None)
+            SmtType.None)
+          SmtType.None)
+    (hNN :
+      term_has_non_none_type
+        (op (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt z))) :
+  eoHasSmtTranslation x ∧
+    eoHasSmtTranslation y ∧
+      eoHasSmtTranslation z :=
+by
+  rcases str_replace_re_args_of_non_none (op := op) hTy hNN with
+    ⟨hXTy, hYTy, hZTy⟩
+  exact ⟨eo_has_smt_translation_of_smt_type_eq hXTy (by simp),
+    eo_has_smt_translation_of_smt_type_eq hYTy (by simp),
+    eo_has_smt_translation_of_smt_type_eq hZTy (by simp)⟩
+
+theorem str_indexof_re_args_have_smt_translation_of_non_none
+    {x y z : Term}
+    (hNN :
+      term_has_non_none_type
+        (SmtTerm.str_indexof_re (__eo_to_smt x) (__eo_to_smt y)
+          (__eo_to_smt z))) :
+  eoHasSmtTranslation x ∧
+    eoHasSmtTranslation y ∧
+      eoHasSmtTranslation z :=
+by
+  rcases str_indexof_re_args_of_non_none hNN with
+    ⟨hXTy, hYTy, hZTy⟩
+  exact ⟨eo_has_smt_translation_of_smt_type_eq hXTy (by simp),
+    eo_has_smt_translation_of_smt_type_eq hYTy (by simp),
+    eo_has_smt_translation_of_smt_type_eq hZTy (by simp)⟩
+
+theorem str_indexof_re_split_args_have_smt_translation_of_non_none
+    {x y z : Term}
+    (hNN :
+      term_has_non_none_type
+        (SmtTerm.str_indexof_re_split (__eo_to_smt x) (__eo_to_smt y)
+          (__eo_to_smt z))) :
+  eoHasSmtTranslation x ∧
+    eoHasSmtTranslation y ∧
+      eoHasSmtTranslation z :=
+by
+  rcases str_indexof_re_split_args_of_non_none hNN with
+    ⟨hXTy, hYTy, hZTy⟩
+  exact ⟨eo_has_smt_translation_of_smt_type_eq hXTy (by simp),
+    eo_has_smt_translation_of_smt_type_eq hYTy (by simp),
+    eo_has_smt_translation_of_smt_type_eq hZTy (by simp)⟩
+
+theorem set_binop_args_have_smt_translation_of_non_none
+    {op : SmtTerm -> SmtTerm -> SmtTerm} {x y : Term}
+    (hTy :
+      __smtx_typeof (op (__eo_to_smt x) (__eo_to_smt y)) =
+        __smtx_typeof_sets_op_2
+          (__smtx_typeof (__eo_to_smt x))
+          (__smtx_typeof (__eo_to_smt y)))
+    (hNN : term_has_non_none_type (op (__eo_to_smt x) (__eo_to_smt y))) :
+  eoHasSmtTranslation x ∧ eoHasSmtTranslation y :=
+by
+  rcases set_binop_args_of_non_none (op := op) hTy hNN with
+    ⟨A, hXTy, hYTy⟩
+  exact ⟨eo_has_smt_translation_of_smt_type_eq hXTy (by simp),
+    eo_has_smt_translation_of_smt_type_eq hYTy (by simp)⟩
+
+theorem set_binop_ret_args_have_smt_translation_of_non_none
+    {op : SmtTerm -> SmtTerm -> SmtTerm} {ret : SmtType}
+    {x y : Term}
+    (hTy :
+      __smtx_typeof (op (__eo_to_smt x) (__eo_to_smt y)) =
+        __smtx_typeof_sets_op_2_ret
+          (__smtx_typeof (__eo_to_smt x))
+          (__smtx_typeof (__eo_to_smt y)) ret)
+    (hNN : term_has_non_none_type (op (__eo_to_smt x) (__eo_to_smt y))) :
+  eoHasSmtTranslation x ∧ eoHasSmtTranslation y :=
+by
+  rcases set_binop_ret_args_of_non_none (op := op) (T := ret) hTy hNN with
+    ⟨A, hXTy, hYTy⟩
+  exact ⟨eo_has_smt_translation_of_smt_type_eq hXTy (by simp),
+    eo_has_smt_translation_of_smt_type_eq hYTy (by simp)⟩
+
+theorem set_member_args_have_smt_translation_of_non_none
+    {x y : Term}
+    (hNN :
+      term_has_non_none_type
+        (SmtTerm.set_member (__eo_to_smt x) (__eo_to_smt y))) :
+  eoHasSmtTranslation x ∧ eoHasSmtTranslation y :=
+by
+  rcases set_member_args_of_non_none hNN with ⟨A, hXTy, hYTy⟩
+  have hANe : A ≠ SmtType.None :=
+    set_type_component_non_none_of_eo_type_eq hYTy
+  exact ⟨eo_has_smt_translation_of_smt_type_eq hXTy hANe,
     eo_has_smt_translation_of_smt_type_eq hYTy (by simp)⟩
 
 theorem plus_args_have_smt_translation_of_has_smt_translation
@@ -4619,6 +5052,179 @@ by
         arith_binop_ret_bool_args_have_smt_translation_of_non_none
           (typeof_geq_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
       hTrans
+
+theorem div_args_have_smt_translation_of_has_smt_translation
+    {x y : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.div) x) y)) :
+  eoHasSmtTranslation x ∧ eoHasSmtTranslation y :=
+by
+  exact
+    apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+      (eoOp := UserOp.div) (smtOp := SmtTerm.div) (by rfl)
+      (fun hNN =>
+        int_binop_args_have_smt_translation_of_non_none
+          (typeof_div_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+      hTrans
+
+theorem mod_args_have_smt_translation_of_has_smt_translation
+    {x y : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.mod) x) y)) :
+  eoHasSmtTranslation x ∧ eoHasSmtTranslation y :=
+by
+  exact
+    apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+      (eoOp := UserOp.mod) (smtOp := SmtTerm.mod) (by rfl)
+      (fun hNN =>
+        int_binop_args_have_smt_translation_of_non_none
+          (typeof_mod_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+      hTrans
+
+theorem multmult_args_have_smt_translation_of_has_smt_translation
+    {x y : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.multmult) x) y)) :
+  eoHasSmtTranslation x ∧ eoHasSmtTranslation y :=
+by
+  exact
+    apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+      (eoOp := UserOp.multmult) (smtOp := SmtTerm.multmult) (by rfl)
+      (fun hNN =>
+        int_binop_args_have_smt_translation_of_non_none
+          (typeof_multmult_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+      hTrans
+
+theorem div_total_args_have_smt_translation_of_has_smt_translation
+    {x y : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.div_total) x) y)) :
+  eoHasSmtTranslation x ∧ eoHasSmtTranslation y :=
+by
+  exact
+    apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+      (eoOp := UserOp.div_total) (smtOp := SmtTerm.div_total) (by rfl)
+      (fun hNN =>
+        int_binop_args_have_smt_translation_of_non_none
+          (typeof_div_total_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+      hTrans
+
+theorem mod_total_args_have_smt_translation_of_has_smt_translation
+    {x y : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.mod_total) x) y)) :
+  eoHasSmtTranslation x ∧ eoHasSmtTranslation y :=
+by
+  exact
+    apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+      (eoOp := UserOp.mod_total) (smtOp := SmtTerm.mod_total) (by rfl)
+      (fun hNN =>
+        int_binop_args_have_smt_translation_of_non_none
+          (typeof_mod_total_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+      hTrans
+
+theorem multmult_total_args_have_smt_translation_of_has_smt_translation
+    {x y : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp.multmult_total) x) y)) :
+  eoHasSmtTranslation x ∧ eoHasSmtTranslation y :=
+by
+  exact
+    apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+      (eoOp := UserOp.multmult_total) (smtOp := SmtTerm.multmult_total)
+      (by rfl)
+      (fun hNN =>
+        int_binop_args_have_smt_translation_of_non_none
+          (typeof_multmult_total_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+      hTrans
+
+theorem divisible_args_have_smt_translation_of_has_smt_translation
+    {x y : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.divisible) x) y)) :
+  eoHasSmtTranslation x ∧ eoHasSmtTranslation y :=
+by
+  exact
+    apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+      (eoOp := UserOp.divisible) (smtOp := SmtTerm.divisible) (by rfl)
+      (fun hNN =>
+        int_binop_args_have_smt_translation_of_non_none
+          (typeof_divisible_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+      hTrans
+
+theorem qdiv_args_have_smt_translation_of_has_smt_translation
+    {x y : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) x) y)) :
+  eoHasSmtTranslation x ∧ eoHasSmtTranslation y :=
+by
+  exact
+    apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+      (eoOp := UserOp.qdiv) (smtOp := SmtTerm.qdiv) (by rfl)
+      (fun hNN =>
+        arith_binop_ret_args_have_smt_translation_of_non_none
+          (typeof_qdiv_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+      hTrans
+
+theorem qdiv_total_args_have_smt_translation_of_has_smt_translation
+    {x y : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) x) y)) :
+  eoHasSmtTranslation x ∧ eoHasSmtTranslation y :=
+by
+  exact
+    apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+      (eoOp := UserOp.qdiv_total) (smtOp := SmtTerm.qdiv_total) (by rfl)
+      (fun hNN =>
+        arith_binop_ret_args_have_smt_translation_of_non_none
+          (typeof_qdiv_total_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+      hTrans
+
+theorem select_args_have_smt_translation_of_has_smt_translation
+    {x y : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.select) x) y)) :
+  eoHasSmtTranslation x ∧ eoHasSmtTranslation y :=
+by
+  exact
+    apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+      (eoOp := UserOp.select) (smtOp := SmtTerm.select) (by rfl)
+      select_args_have_smt_translation_of_non_none hTrans
+
+theorem store_args_have_smt_translation_of_has_smt_translation
+    {x y z : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.store) x) y)
+          z)) :
+  eoHasSmtTranslation x ∧
+    eoHasSmtTranslation y ∧
+      eoHasSmtTranslation z :=
+by
+  unfold eoHasSmtTranslation at hTrans
+  change
+      __smtx_typeof
+          (SmtTerm.store (__eo_to_smt x) (__eo_to_smt y)
+            (__eo_to_smt z)) ≠
+        SmtType.None at hTrans
+  have hNN :
+      term_has_non_none_type
+        (SmtTerm.store (__eo_to_smt x) (__eo_to_smt y)
+          (__eo_to_smt z)) := by
+    unfold term_has_non_none_type
+    exact hTrans
+  exact store_args_have_smt_translation_of_non_none hNN
 
 theorem is_closed_rec_apply_apply_plus_eq_and_bool_of_has_smt_translation
     {x y env : Term} {vars : List SmtVarKey}
@@ -4820,6 +5426,1027 @@ by
   exact
     is_closed_rec_apply_apply_uop_nonquantifier_eq_and_bool_of_has_smt_translation_and_arg_trans
       hEnv (by decide) (by decide) hTrans hXTrans hYTrans ihX ihY
+
+theorem is_closed_rec_apply_apply_div_eq_and_bool_of_has_smt_translation
+    {x y env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.div) x) y))
+    (ihX :
+      eoHasSmtTranslation x ->
+        __is_closed_rec x env = __eo_is_closed_rec x env ∧
+          ∃ b, __eo_is_closed_rec x env = Term.Boolean b)
+    (ihY :
+      eoHasSmtTranslation y ->
+        __is_closed_rec y env = __eo_is_closed_rec y env ∧
+          ∃ b, __eo_is_closed_rec y env = Term.Boolean b) :
+  __is_closed_rec (Term.Apply (Term.Apply (Term.UOp UserOp.div) x) y)
+      env =
+    __eo_is_closed_rec
+      (Term.Apply (Term.Apply (Term.UOp UserOp.div) x) y) env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.Apply (Term.Apply (Term.UOp UserOp.div) x) y) env =
+        Term.Boolean b :=
+by
+  rcases div_args_have_smt_translation_of_has_smt_translation hTrans with
+    ⟨hXTrans, hYTrans⟩
+  exact
+    is_closed_rec_apply_apply_uop_nonquantifier_eq_and_bool_of_has_smt_translation_and_arg_trans
+      hEnv (by decide) (by decide) hTrans hXTrans hYTrans ihX ihY
+
+theorem is_closed_rec_apply_apply_mod_eq_and_bool_of_has_smt_translation
+    {x y env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.mod) x) y))
+    (ihX :
+      eoHasSmtTranslation x ->
+        __is_closed_rec x env = __eo_is_closed_rec x env ∧
+          ∃ b, __eo_is_closed_rec x env = Term.Boolean b)
+    (ihY :
+      eoHasSmtTranslation y ->
+        __is_closed_rec y env = __eo_is_closed_rec y env ∧
+          ∃ b, __eo_is_closed_rec y env = Term.Boolean b) :
+  __is_closed_rec (Term.Apply (Term.Apply (Term.UOp UserOp.mod) x) y)
+      env =
+    __eo_is_closed_rec
+      (Term.Apply (Term.Apply (Term.UOp UserOp.mod) x) y) env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.Apply (Term.Apply (Term.UOp UserOp.mod) x) y) env =
+        Term.Boolean b :=
+by
+  rcases mod_args_have_smt_translation_of_has_smt_translation hTrans with
+    ⟨hXTrans, hYTrans⟩
+  exact
+    is_closed_rec_apply_apply_uop_nonquantifier_eq_and_bool_of_has_smt_translation_and_arg_trans
+      hEnv (by decide) (by decide) hTrans hXTrans hYTrans ihX ihY
+
+theorem is_closed_rec_apply_apply_multmult_eq_and_bool_of_has_smt_translation
+    {x y env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.multmult) x) y))
+    (ihX :
+      eoHasSmtTranslation x ->
+        __is_closed_rec x env = __eo_is_closed_rec x env ∧
+          ∃ b, __eo_is_closed_rec x env = Term.Boolean b)
+    (ihY :
+      eoHasSmtTranslation y ->
+        __is_closed_rec y env = __eo_is_closed_rec y env ∧
+          ∃ b, __eo_is_closed_rec y env = Term.Boolean b) :
+  __is_closed_rec
+      (Term.Apply (Term.Apply (Term.UOp UserOp.multmult) x) y) env =
+    __eo_is_closed_rec
+      (Term.Apply (Term.Apply (Term.UOp UserOp.multmult) x) y) env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.Apply (Term.Apply (Term.UOp UserOp.multmult) x) y) env =
+        Term.Boolean b :=
+by
+  rcases multmult_args_have_smt_translation_of_has_smt_translation hTrans with
+    ⟨hXTrans, hYTrans⟩
+  exact
+    is_closed_rec_apply_apply_uop_nonquantifier_eq_and_bool_of_has_smt_translation_and_arg_trans
+      hEnv (by decide) (by decide) hTrans hXTrans hYTrans ihX ihY
+
+theorem is_closed_rec_apply_apply_div_total_eq_and_bool_of_has_smt_translation
+    {x y env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.div_total) x) y))
+    (ihX :
+      eoHasSmtTranslation x ->
+        __is_closed_rec x env = __eo_is_closed_rec x env ∧
+          ∃ b, __eo_is_closed_rec x env = Term.Boolean b)
+    (ihY :
+      eoHasSmtTranslation y ->
+        __is_closed_rec y env = __eo_is_closed_rec y env ∧
+          ∃ b, __eo_is_closed_rec y env = Term.Boolean b) :
+  __is_closed_rec
+      (Term.Apply (Term.Apply (Term.UOp UserOp.div_total) x) y) env =
+    __eo_is_closed_rec
+      (Term.Apply (Term.Apply (Term.UOp UserOp.div_total) x) y) env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.Apply (Term.Apply (Term.UOp UserOp.div_total) x) y) env =
+        Term.Boolean b :=
+by
+  rcases div_total_args_have_smt_translation_of_has_smt_translation hTrans with
+    ⟨hXTrans, hYTrans⟩
+  exact
+    is_closed_rec_apply_apply_uop_nonquantifier_eq_and_bool_of_has_smt_translation_and_arg_trans
+      hEnv (by decide) (by decide) hTrans hXTrans hYTrans ihX ihY
+
+theorem is_closed_rec_apply_apply_mod_total_eq_and_bool_of_has_smt_translation
+    {x y env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.mod_total) x) y))
+    (ihX :
+      eoHasSmtTranslation x ->
+        __is_closed_rec x env = __eo_is_closed_rec x env ∧
+          ∃ b, __eo_is_closed_rec x env = Term.Boolean b)
+    (ihY :
+      eoHasSmtTranslation y ->
+        __is_closed_rec y env = __eo_is_closed_rec y env ∧
+          ∃ b, __eo_is_closed_rec y env = Term.Boolean b) :
+  __is_closed_rec
+      (Term.Apply (Term.Apply (Term.UOp UserOp.mod_total) x) y) env =
+    __eo_is_closed_rec
+      (Term.Apply (Term.Apply (Term.UOp UserOp.mod_total) x) y) env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.Apply (Term.Apply (Term.UOp UserOp.mod_total) x) y) env =
+        Term.Boolean b :=
+by
+  rcases mod_total_args_have_smt_translation_of_has_smt_translation hTrans with
+    ⟨hXTrans, hYTrans⟩
+  exact
+    is_closed_rec_apply_apply_uop_nonquantifier_eq_and_bool_of_has_smt_translation_and_arg_trans
+      hEnv (by decide) (by decide) hTrans hXTrans hYTrans ihX ihY
+
+theorem is_closed_rec_apply_apply_multmult_total_eq_and_bool_of_has_smt_translation
+    {x y env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp.multmult_total) x) y))
+    (ihX :
+      eoHasSmtTranslation x ->
+        __is_closed_rec x env = __eo_is_closed_rec x env ∧
+          ∃ b, __eo_is_closed_rec x env = Term.Boolean b)
+    (ihY :
+      eoHasSmtTranslation y ->
+        __is_closed_rec y env = __eo_is_closed_rec y env ∧
+          ∃ b, __eo_is_closed_rec y env = Term.Boolean b) :
+  __is_closed_rec
+      (Term.Apply (Term.Apply (Term.UOp UserOp.multmult_total) x) y)
+      env =
+    __eo_is_closed_rec
+      (Term.Apply (Term.Apply (Term.UOp UserOp.multmult_total) x) y)
+      env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.Apply (Term.Apply (Term.UOp UserOp.multmult_total) x) y)
+        env =
+        Term.Boolean b :=
+by
+  rcases
+      multmult_total_args_have_smt_translation_of_has_smt_translation hTrans with
+    ⟨hXTrans, hYTrans⟩
+  exact
+    is_closed_rec_apply_apply_uop_nonquantifier_eq_and_bool_of_has_smt_translation_and_arg_trans
+      hEnv (by decide) (by decide) hTrans hXTrans hYTrans ihX ihY
+
+theorem is_closed_rec_apply_apply_divisible_eq_and_bool_of_has_smt_translation
+    {x y env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.divisible) x) y))
+    (ihX :
+      eoHasSmtTranslation x ->
+        __is_closed_rec x env = __eo_is_closed_rec x env ∧
+          ∃ b, __eo_is_closed_rec x env = Term.Boolean b)
+    (ihY :
+      eoHasSmtTranslation y ->
+        __is_closed_rec y env = __eo_is_closed_rec y env ∧
+          ∃ b, __eo_is_closed_rec y env = Term.Boolean b) :
+  __is_closed_rec
+      (Term.Apply (Term.Apply (Term.UOp UserOp.divisible) x) y) env =
+    __eo_is_closed_rec
+      (Term.Apply (Term.Apply (Term.UOp UserOp.divisible) x) y) env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.Apply (Term.Apply (Term.UOp UserOp.divisible) x) y) env =
+        Term.Boolean b :=
+by
+  rcases divisible_args_have_smt_translation_of_has_smt_translation hTrans with
+    ⟨hXTrans, hYTrans⟩
+  exact
+    is_closed_rec_apply_apply_uop_nonquantifier_eq_and_bool_of_has_smt_translation_and_arg_trans
+      hEnv (by decide) (by decide) hTrans hXTrans hYTrans ihX ihY
+
+theorem is_closed_rec_apply_apply_qdiv_eq_and_bool_of_has_smt_translation
+    {x y env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) x) y))
+    (ihX :
+      eoHasSmtTranslation x ->
+        __is_closed_rec x env = __eo_is_closed_rec x env ∧
+          ∃ b, __eo_is_closed_rec x env = Term.Boolean b)
+    (ihY :
+      eoHasSmtTranslation y ->
+        __is_closed_rec y env = __eo_is_closed_rec y env ∧
+          ∃ b, __eo_is_closed_rec y env = Term.Boolean b) :
+  __is_closed_rec (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) x) y)
+      env =
+    __eo_is_closed_rec
+      (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) x) y) env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) x) y) env =
+        Term.Boolean b :=
+by
+  rcases qdiv_args_have_smt_translation_of_has_smt_translation hTrans with
+    ⟨hXTrans, hYTrans⟩
+  exact
+    is_closed_rec_apply_apply_uop_nonquantifier_eq_and_bool_of_has_smt_translation_and_arg_trans
+      hEnv (by decide) (by decide) hTrans hXTrans hYTrans ihX ihY
+
+theorem is_closed_rec_apply_apply_qdiv_total_eq_and_bool_of_has_smt_translation
+    {x y env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) x) y))
+    (ihX :
+      eoHasSmtTranslation x ->
+        __is_closed_rec x env = __eo_is_closed_rec x env ∧
+          ∃ b, __eo_is_closed_rec x env = Term.Boolean b)
+    (ihY :
+      eoHasSmtTranslation y ->
+        __is_closed_rec y env = __eo_is_closed_rec y env ∧
+          ∃ b, __eo_is_closed_rec y env = Term.Boolean b) :
+  __is_closed_rec
+      (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) x) y) env =
+    __eo_is_closed_rec
+      (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) x) y) env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) x) y) env =
+        Term.Boolean b :=
+by
+  rcases qdiv_total_args_have_smt_translation_of_has_smt_translation
+      hTrans with
+    ⟨hXTrans, hYTrans⟩
+  exact
+    is_closed_rec_apply_apply_uop_nonquantifier_eq_and_bool_of_has_smt_translation_and_arg_trans
+      hEnv (by decide) (by decide) hTrans hXTrans hYTrans ihX ihY
+
+theorem is_closed_rec_apply_apply_select_eq_and_bool_of_has_smt_translation
+    {x y env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.select) x) y))
+    (ihX :
+      eoHasSmtTranslation x ->
+        __is_closed_rec x env = __eo_is_closed_rec x env ∧
+          ∃ b, __eo_is_closed_rec x env = Term.Boolean b)
+    (ihY :
+      eoHasSmtTranslation y ->
+        __is_closed_rec y env = __eo_is_closed_rec y env ∧
+          ∃ b, __eo_is_closed_rec y env = Term.Boolean b) :
+  __is_closed_rec
+      (Term.Apply (Term.Apply (Term.UOp UserOp.select) x) y) env =
+    __eo_is_closed_rec
+      (Term.Apply (Term.Apply (Term.UOp UserOp.select) x) y) env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.Apply (Term.Apply (Term.UOp UserOp.select) x) y) env =
+        Term.Boolean b :=
+by
+  rcases select_args_have_smt_translation_of_has_smt_translation hTrans with
+    ⟨hXTrans, hYTrans⟩
+  exact
+    is_closed_rec_apply_apply_uop_nonquantifier_eq_and_bool_of_has_smt_translation_and_arg_trans
+      hEnv (by decide) (by decide) hTrans hXTrans hYTrans ihX ihY
+
+theorem is_closed_rec_apply_apply_apply_store_eq_and_bool_of_has_smt_translation
+    {x y z env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.store) x) y)
+          z))
+    (ihX :
+      eoHasSmtTranslation x ->
+        __is_closed_rec x env = __eo_is_closed_rec x env ∧
+          ∃ b, __eo_is_closed_rec x env = Term.Boolean b)
+    (ihY :
+      eoHasSmtTranslation y ->
+        __is_closed_rec y env = __eo_is_closed_rec y env ∧
+          ∃ b, __eo_is_closed_rec y env = Term.Boolean b)
+    (ihZ :
+      eoHasSmtTranslation z ->
+        __is_closed_rec z env = __eo_is_closed_rec z env ∧
+          ∃ b, __eo_is_closed_rec z env = Term.Boolean b) :
+  __is_closed_rec
+      (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.store) x) y)
+        z) env =
+    __eo_is_closed_rec
+      (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.store) x) y)
+        z) env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.store) x) y)
+          z) env =
+        Term.Boolean b :=
+by
+  rcases store_args_have_smt_translation_of_has_smt_translation hTrans with
+    ⟨hXTrans, hYTrans, hZTrans⟩
+  exact
+    is_closed_rec_apply_apply_apply_uop_nonquantifier_eq_and_bool_of_has_smt_translation_and_arg_trans
+      hEnv (by decide) (by decide) hXTrans hYTrans hZTrans ihX ihY ihZ
+
+theorem is_closed_rec_apply_apply_uop_seq_binop_eq_and_bool_of_has_smt_translation
+    {eoOp : UserOp} {smtOp : SmtTerm -> SmtTerm -> SmtTerm}
+    {x y env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hNotForall : eoOp ≠ UserOp.forall)
+    (hNotExists : eoOp ≠ UserOp.exists)
+    (hTranslate :
+      __eo_to_smt (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) =
+        smtOp (__eo_to_smt x) (__eo_to_smt y))
+    (hTy :
+      __smtx_typeof (smtOp (__eo_to_smt x) (__eo_to_smt y)) =
+        __smtx_typeof_seq_op_2
+          (__smtx_typeof (__eo_to_smt x))
+          (__smtx_typeof (__eo_to_smt y)))
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp eoOp) x) y))
+    (ihX :
+      eoHasSmtTranslation x ->
+        __is_closed_rec x env = __eo_is_closed_rec x env ∧
+          ∃ b, __eo_is_closed_rec x env = Term.Boolean b)
+    (ihY :
+      eoHasSmtTranslation y ->
+        __is_closed_rec y env = __eo_is_closed_rec y env ∧
+          ∃ b, __eo_is_closed_rec y env = Term.Boolean b) :
+  __is_closed_rec (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) env =
+    __eo_is_closed_rec
+      (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) env =
+        Term.Boolean b :=
+by
+  exact
+    is_closed_rec_apply_apply_uop_nonquantifier_eq_and_bool_of_smt_binop_non_none
+      hEnv hNotForall hNotExists hTrans hTranslate
+      (fun hNN =>
+        seq_binop_args_have_smt_translation_of_non_none hTy hNN)
+      ihX ihY
+
+theorem is_closed_rec_apply_apply_uop_seq_binop_ret_eq_and_bool_of_has_smt_translation
+    {eoOp : UserOp} {smtOp : SmtTerm -> SmtTerm -> SmtTerm}
+    {ret : SmtType} {x y env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hNotForall : eoOp ≠ UserOp.forall)
+    (hNotExists : eoOp ≠ UserOp.exists)
+    (hTranslate :
+      __eo_to_smt (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) =
+        smtOp (__eo_to_smt x) (__eo_to_smt y))
+    (hTy :
+      __smtx_typeof (smtOp (__eo_to_smt x) (__eo_to_smt y)) =
+        __smtx_typeof_seq_op_2_ret
+          (__smtx_typeof (__eo_to_smt x))
+          (__smtx_typeof (__eo_to_smt y)) ret)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp eoOp) x) y))
+    (ihX :
+      eoHasSmtTranslation x ->
+        __is_closed_rec x env = __eo_is_closed_rec x env ∧
+          ∃ b, __eo_is_closed_rec x env = Term.Boolean b)
+    (ihY :
+      eoHasSmtTranslation y ->
+        __is_closed_rec y env = __eo_is_closed_rec y env ∧
+          ∃ b, __eo_is_closed_rec y env = Term.Boolean b) :
+  __is_closed_rec (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) env =
+    __eo_is_closed_rec
+      (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) env =
+        Term.Boolean b :=
+by
+  exact
+    is_closed_rec_apply_apply_uop_nonquantifier_eq_and_bool_of_smt_binop_non_none
+      hEnv hNotForall hNotExists hTrans hTranslate
+      (fun hNN =>
+        seq_binop_ret_args_have_smt_translation_of_non_none hTy hNN)
+      ihX ihY
+
+theorem is_closed_rec_apply_apply_seq_nth_eq_and_bool_of_has_smt_translation
+    {x y env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.seq_nth) x) y))
+    (ihX :
+      eoHasSmtTranslation x ->
+        __is_closed_rec x env = __eo_is_closed_rec x env ∧
+          ∃ b, __eo_is_closed_rec x env = Term.Boolean b)
+    (ihY :
+      eoHasSmtTranslation y ->
+        __is_closed_rec y env = __eo_is_closed_rec y env ∧
+          ∃ b, __eo_is_closed_rec y env = Term.Boolean b) :
+  __is_closed_rec
+      (Term.Apply (Term.Apply (Term.UOp UserOp.seq_nth) x) y) env =
+    __eo_is_closed_rec
+      (Term.Apply (Term.Apply (Term.UOp UserOp.seq_nth) x) y) env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.Apply (Term.Apply (Term.UOp UserOp.seq_nth) x) y) env =
+        Term.Boolean b :=
+by
+  exact
+    is_closed_rec_apply_apply_uop_nonquantifier_eq_and_bool_of_smt_binop_non_none
+      hEnv (by decide) (by decide) hTrans (by rfl)
+      seq_nth_args_have_smt_translation_of_non_none ihX ihY
+
+theorem is_closed_rec_apply_apply_str_at_eq_and_bool_of_has_smt_translation
+    {x y env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_at) x) y))
+    (ihX :
+      eoHasSmtTranslation x ->
+        __is_closed_rec x env = __eo_is_closed_rec x env ∧
+          ∃ b, __eo_is_closed_rec x env = Term.Boolean b)
+    (ihY :
+      eoHasSmtTranslation y ->
+        __is_closed_rec y env = __eo_is_closed_rec y env ∧
+          ∃ b, __eo_is_closed_rec y env = Term.Boolean b) :
+  __is_closed_rec
+      (Term.Apply (Term.Apply (Term.UOp UserOp.str_at) x) y) env =
+    __eo_is_closed_rec
+      (Term.Apply (Term.Apply (Term.UOp UserOp.str_at) x) y) env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_at) x) y) env =
+        Term.Boolean b :=
+by
+  exact
+    is_closed_rec_apply_apply_uop_nonquantifier_eq_and_bool_of_smt_binop_non_none
+      hEnv (by decide) (by decide) hTrans (by rfl)
+      str_at_args_have_smt_translation_of_non_none ihX ihY
+
+theorem is_closed_rec_apply_apply_uop_reglan_binop_eq_and_bool_of_has_smt_translation
+    {eoOp : UserOp} {smtOp : SmtTerm -> SmtTerm -> SmtTerm}
+    {x y env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hNotForall : eoOp ≠ UserOp.forall)
+    (hNotExists : eoOp ≠ UserOp.exists)
+    (hTranslate :
+      __eo_to_smt (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) =
+        smtOp (__eo_to_smt x) (__eo_to_smt y))
+    (hTy :
+      __smtx_typeof (smtOp (__eo_to_smt x) (__eo_to_smt y)) =
+        native_ite
+          (native_Teq (__smtx_typeof (__eo_to_smt x)) SmtType.RegLan)
+          (native_ite
+            (native_Teq (__smtx_typeof (__eo_to_smt y)) SmtType.RegLan)
+            SmtType.RegLan SmtType.None)
+          SmtType.None)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp eoOp) x) y))
+    (ihX :
+      eoHasSmtTranslation x ->
+        __is_closed_rec x env = __eo_is_closed_rec x env ∧
+          ∃ b, __eo_is_closed_rec x env = Term.Boolean b)
+    (ihY :
+      eoHasSmtTranslation y ->
+        __is_closed_rec y env = __eo_is_closed_rec y env ∧
+          ∃ b, __eo_is_closed_rec y env = Term.Boolean b) :
+  __is_closed_rec (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) env =
+    __eo_is_closed_rec
+      (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) env =
+        Term.Boolean b :=
+by
+  exact
+    is_closed_rec_apply_apply_uop_nonquantifier_eq_and_bool_of_smt_binop_non_none
+      hEnv hNotForall hNotExists hTrans hTranslate
+      (fun hNN =>
+        reglan_binop_args_have_smt_translation_of_non_none hTy hNN)
+      ihX ihY
+
+theorem is_closed_rec_apply_apply_uop_seq_char_binop_eq_and_bool_of_has_smt_translation
+    {eoOp : UserOp} {smtOp : SmtTerm -> SmtTerm -> SmtTerm}
+    {ret : SmtType} {x y env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hNotForall : eoOp ≠ UserOp.forall)
+    (hNotExists : eoOp ≠ UserOp.exists)
+    (hTranslate :
+      __eo_to_smt (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) =
+        smtOp (__eo_to_smt x) (__eo_to_smt y))
+    (hTy :
+      __smtx_typeof (smtOp (__eo_to_smt x) (__eo_to_smt y)) =
+        native_ite
+          (native_Teq (__smtx_typeof (__eo_to_smt x))
+            (SmtType.Seq SmtType.Char))
+          (native_ite
+            (native_Teq (__smtx_typeof (__eo_to_smt y))
+              (SmtType.Seq SmtType.Char))
+            ret SmtType.None)
+          SmtType.None)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp eoOp) x) y))
+    (ihX :
+      eoHasSmtTranslation x ->
+        __is_closed_rec x env = __eo_is_closed_rec x env ∧
+          ∃ b, __eo_is_closed_rec x env = Term.Boolean b)
+    (ihY :
+      eoHasSmtTranslation y ->
+        __is_closed_rec y env = __eo_is_closed_rec y env ∧
+          ∃ b, __eo_is_closed_rec y env = Term.Boolean b) :
+  __is_closed_rec (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) env =
+    __eo_is_closed_rec
+      (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) env =
+        Term.Boolean b :=
+by
+  exact
+    is_closed_rec_apply_apply_uop_nonquantifier_eq_and_bool_of_smt_binop_non_none
+      hEnv hNotForall hNotExists hTrans hTranslate
+      (fun hNN =>
+        seq_char_binop_args_have_smt_translation_of_non_none hTy hNN)
+      ihX ihY
+
+theorem is_closed_rec_apply_apply_uop_seq_char_reglan_eq_and_bool_of_has_smt_translation
+    {eoOp : UserOp} {smtOp : SmtTerm -> SmtTerm -> SmtTerm}
+    {ret : SmtType} {x y env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hNotForall : eoOp ≠ UserOp.forall)
+    (hNotExists : eoOp ≠ UserOp.exists)
+    (hTranslate :
+      __eo_to_smt (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) =
+        smtOp (__eo_to_smt x) (__eo_to_smt y))
+    (hTy :
+      __smtx_typeof (smtOp (__eo_to_smt x) (__eo_to_smt y)) =
+        native_ite
+          (native_Teq (__smtx_typeof (__eo_to_smt x))
+            (SmtType.Seq SmtType.Char))
+          (native_ite
+            (native_Teq (__smtx_typeof (__eo_to_smt y)) SmtType.RegLan)
+            ret SmtType.None)
+          SmtType.None)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp eoOp) x) y))
+    (ihX :
+      eoHasSmtTranslation x ->
+        __is_closed_rec x env = __eo_is_closed_rec x env ∧
+          ∃ b, __eo_is_closed_rec x env = Term.Boolean b)
+    (ihY :
+      eoHasSmtTranslation y ->
+        __is_closed_rec y env = __eo_is_closed_rec y env ∧
+          ∃ b, __eo_is_closed_rec y env = Term.Boolean b) :
+  __is_closed_rec (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) env =
+    __eo_is_closed_rec
+      (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) env =
+        Term.Boolean b :=
+by
+  exact
+    is_closed_rec_apply_apply_uop_nonquantifier_eq_and_bool_of_smt_binop_non_none
+      hEnv hNotForall hNotExists hTrans hTranslate
+      (fun hNN =>
+        seq_char_reglan_args_have_smt_translation_of_non_none hTy hNN)
+      ihX ihY
+
+theorem is_closed_rec_apply_apply_uop_set_binop_eq_and_bool_of_has_smt_translation
+    {eoOp : UserOp} {smtOp : SmtTerm -> SmtTerm -> SmtTerm}
+    {x y env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hNotForall : eoOp ≠ UserOp.forall)
+    (hNotExists : eoOp ≠ UserOp.exists)
+    (hTranslate :
+      __eo_to_smt (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) =
+        smtOp (__eo_to_smt x) (__eo_to_smt y))
+    (hTy :
+      __smtx_typeof (smtOp (__eo_to_smt x) (__eo_to_smt y)) =
+        __smtx_typeof_sets_op_2
+          (__smtx_typeof (__eo_to_smt x))
+          (__smtx_typeof (__eo_to_smt y)))
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp eoOp) x) y))
+    (ihX :
+      eoHasSmtTranslation x ->
+        __is_closed_rec x env = __eo_is_closed_rec x env ∧
+          ∃ b, __eo_is_closed_rec x env = Term.Boolean b)
+    (ihY :
+      eoHasSmtTranslation y ->
+        __is_closed_rec y env = __eo_is_closed_rec y env ∧
+          ∃ b, __eo_is_closed_rec y env = Term.Boolean b) :
+  __is_closed_rec (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) env =
+    __eo_is_closed_rec
+      (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) env =
+        Term.Boolean b :=
+by
+  exact
+    is_closed_rec_apply_apply_uop_nonquantifier_eq_and_bool_of_smt_binop_non_none
+      hEnv hNotForall hNotExists hTrans hTranslate
+      (fun hNN =>
+        set_binop_args_have_smt_translation_of_non_none hTy hNN)
+      ihX ihY
+
+theorem is_closed_rec_apply_apply_uop_set_binop_ret_eq_and_bool_of_has_smt_translation
+    {eoOp : UserOp} {smtOp : SmtTerm -> SmtTerm -> SmtTerm}
+    {ret : SmtType} {x y env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hNotForall : eoOp ≠ UserOp.forall)
+    (hNotExists : eoOp ≠ UserOp.exists)
+    (hTranslate :
+      __eo_to_smt (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) =
+        smtOp (__eo_to_smt x) (__eo_to_smt y))
+    (hTy :
+      __smtx_typeof (smtOp (__eo_to_smt x) (__eo_to_smt y)) =
+        __smtx_typeof_sets_op_2_ret
+          (__smtx_typeof (__eo_to_smt x))
+          (__smtx_typeof (__eo_to_smt y)) ret)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp eoOp) x) y))
+    (ihX :
+      eoHasSmtTranslation x ->
+        __is_closed_rec x env = __eo_is_closed_rec x env ∧
+          ∃ b, __eo_is_closed_rec x env = Term.Boolean b)
+    (ihY :
+      eoHasSmtTranslation y ->
+        __is_closed_rec y env = __eo_is_closed_rec y env ∧
+          ∃ b, __eo_is_closed_rec y env = Term.Boolean b) :
+  __is_closed_rec (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) env =
+    __eo_is_closed_rec
+      (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) env =
+        Term.Boolean b :=
+by
+  exact
+    is_closed_rec_apply_apply_uop_nonquantifier_eq_and_bool_of_smt_binop_non_none
+      hEnv hNotForall hNotExists hTrans hTranslate
+      (fun hNN =>
+        set_binop_ret_args_have_smt_translation_of_non_none hTy hNN)
+      ihX ihY
+
+theorem is_closed_rec_apply_apply_set_member_eq_and_bool_of_has_smt_translation
+    {x y env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.set_member) x) y))
+    (ihX :
+      eoHasSmtTranslation x ->
+        __is_closed_rec x env = __eo_is_closed_rec x env ∧
+          ∃ b, __eo_is_closed_rec x env = Term.Boolean b)
+    (ihY :
+      eoHasSmtTranslation y ->
+        __is_closed_rec y env = __eo_is_closed_rec y env ∧
+          ∃ b, __eo_is_closed_rec y env = Term.Boolean b) :
+  __is_closed_rec
+      (Term.Apply (Term.Apply (Term.UOp UserOp.set_member) x) y) env =
+    __eo_is_closed_rec
+      (Term.Apply (Term.Apply (Term.UOp UserOp.set_member) x) y) env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.Apply (Term.Apply (Term.UOp UserOp.set_member) x) y) env =
+        Term.Boolean b :=
+by
+  exact
+    is_closed_rec_apply_apply_uop_nonquantifier_eq_and_bool_of_smt_binop_non_none
+      hEnv (by decide) (by decide) hTrans (by rfl)
+      set_member_args_have_smt_translation_of_non_none ihX ihY
+
+theorem is_closed_rec_apply_apply_apply_uop_seq_triop_eq_and_bool_of_has_smt_translation
+    {eoOp : UserOp}
+    {smtOp : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm}
+    {x y z env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hNotForall : eoOp ≠ UserOp.forall)
+    (hNotExists : eoOp ≠ UserOp.exists)
+    (hTranslate :
+      __eo_to_smt
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) z) =
+        smtOp (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt z))
+    (hTy :
+      __smtx_typeof
+          (smtOp (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt z)) =
+        __smtx_typeof_seq_op_3
+          (__smtx_typeof (__eo_to_smt x))
+          (__smtx_typeof (__eo_to_smt y))
+          (__smtx_typeof (__eo_to_smt z)))
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) z))
+    (ihX :
+      eoHasSmtTranslation x ->
+        __is_closed_rec x env = __eo_is_closed_rec x env ∧
+          ∃ b, __eo_is_closed_rec x env = Term.Boolean b)
+    (ihY :
+      eoHasSmtTranslation y ->
+        __is_closed_rec y env = __eo_is_closed_rec y env ∧
+          ∃ b, __eo_is_closed_rec y env = Term.Boolean b)
+    (ihZ :
+      eoHasSmtTranslation z ->
+        __is_closed_rec z env = __eo_is_closed_rec z env ∧
+          ∃ b, __eo_is_closed_rec z env = Term.Boolean b) :
+  __is_closed_rec
+      (Term.Apply (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) z)
+      env =
+    __eo_is_closed_rec
+      (Term.Apply (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) z)
+      env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) z)
+        env =
+        Term.Boolean b :=
+by
+  exact
+    is_closed_rec_apply_apply_apply_uop_nonquantifier_eq_and_bool_of_smt_triop_non_none
+      hEnv hNotForall hNotExists hTrans hTranslate
+      (fun hNN =>
+        seq_triop_args_have_smt_translation_of_non_none hTy hNN)
+      ihX ihY ihZ
+
+theorem is_closed_rec_apply_apply_apply_str_substr_eq_and_bool_of_has_smt_translation
+    {x y z env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) x) y) z))
+    (ihX :
+      eoHasSmtTranslation x ->
+        __is_closed_rec x env = __eo_is_closed_rec x env ∧
+          ∃ b, __eo_is_closed_rec x env = Term.Boolean b)
+    (ihY :
+      eoHasSmtTranslation y ->
+        __is_closed_rec y env = __eo_is_closed_rec y env ∧
+          ∃ b, __eo_is_closed_rec y env = Term.Boolean b)
+    (ihZ :
+      eoHasSmtTranslation z ->
+        __is_closed_rec z env = __eo_is_closed_rec z env ∧
+          ∃ b, __eo_is_closed_rec z env = Term.Boolean b) :
+  __is_closed_rec
+      (Term.Apply
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) x) y) z)
+      env =
+    __eo_is_closed_rec
+      (Term.Apply
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) x) y) z)
+      env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.Apply
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) x) y) z)
+        env =
+        Term.Boolean b :=
+by
+  exact
+    is_closed_rec_apply_apply_apply_uop_nonquantifier_eq_and_bool_of_smt_triop_non_none
+      hEnv (by decide) (by decide) hTrans (by rfl)
+      str_substr_args_have_smt_translation_of_non_none ihX ihY ihZ
+
+theorem is_closed_rec_apply_apply_apply_str_indexof_eq_and_bool_of_has_smt_translation
+    {x y z env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof) x) y) z))
+    (ihX :
+      eoHasSmtTranslation x ->
+        __is_closed_rec x env = __eo_is_closed_rec x env ∧
+          ∃ b, __eo_is_closed_rec x env = Term.Boolean b)
+    (ihY :
+      eoHasSmtTranslation y ->
+        __is_closed_rec y env = __eo_is_closed_rec y env ∧
+          ∃ b, __eo_is_closed_rec y env = Term.Boolean b)
+    (ihZ :
+      eoHasSmtTranslation z ->
+        __is_closed_rec z env = __eo_is_closed_rec z env ∧
+          ∃ b, __eo_is_closed_rec z env = Term.Boolean b) :
+  __is_closed_rec
+      (Term.Apply
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof) x) y) z)
+      env =
+    __eo_is_closed_rec
+      (Term.Apply
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof) x) y) z)
+      env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.Apply
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof) x) y) z)
+        env =
+        Term.Boolean b :=
+by
+  exact
+    is_closed_rec_apply_apply_apply_uop_nonquantifier_eq_and_bool_of_smt_triop_non_none
+      hEnv (by decide) (by decide) hTrans (by rfl)
+      str_indexof_args_have_smt_translation_of_non_none ihX ihY ihZ
+
+theorem is_closed_rec_apply_apply_apply_str_update_eq_and_bool_of_has_smt_translation
+    {x y z env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_update) x) y) z))
+    (ihX :
+      eoHasSmtTranslation x ->
+        __is_closed_rec x env = __eo_is_closed_rec x env ∧
+          ∃ b, __eo_is_closed_rec x env = Term.Boolean b)
+    (ihY :
+      eoHasSmtTranslation y ->
+        __is_closed_rec y env = __eo_is_closed_rec y env ∧
+          ∃ b, __eo_is_closed_rec y env = Term.Boolean b)
+    (ihZ :
+      eoHasSmtTranslation z ->
+        __is_closed_rec z env = __eo_is_closed_rec z env ∧
+          ∃ b, __eo_is_closed_rec z env = Term.Boolean b) :
+  __is_closed_rec
+      (Term.Apply
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_update) x) y) z)
+      env =
+    __eo_is_closed_rec
+      (Term.Apply
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_update) x) y) z)
+      env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.Apply
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_update) x) y) z)
+        env =
+        Term.Boolean b :=
+by
+  exact
+    is_closed_rec_apply_apply_apply_uop_nonquantifier_eq_and_bool_of_smt_triop_non_none
+      hEnv (by decide) (by decide) hTrans (by rfl)
+      str_update_args_have_smt_translation_of_non_none ihX ihY ihZ
+
+theorem is_closed_rec_apply_apply_apply_uop_str_replace_re_eq_and_bool_of_has_smt_translation
+    {eoOp : UserOp}
+    {smtOp : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm}
+    {x y z env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hNotForall : eoOp ≠ UserOp.forall)
+    (hNotExists : eoOp ≠ UserOp.exists)
+    (hTranslate :
+      __eo_to_smt
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) z) =
+        smtOp (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt z))
+    (hTy :
+      __smtx_typeof
+          (smtOp (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt z)) =
+        native_ite
+          (native_Teq (__smtx_typeof (__eo_to_smt x))
+            (SmtType.Seq SmtType.Char))
+          (native_ite
+            (native_Teq (__smtx_typeof (__eo_to_smt y)) SmtType.RegLan)
+            (native_ite
+              (native_Teq (__smtx_typeof (__eo_to_smt z))
+                (SmtType.Seq SmtType.Char))
+              (SmtType.Seq SmtType.Char) SmtType.None)
+            SmtType.None)
+          SmtType.None)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) z))
+    (ihX :
+      eoHasSmtTranslation x ->
+        __is_closed_rec x env = __eo_is_closed_rec x env ∧
+          ∃ b, __eo_is_closed_rec x env = Term.Boolean b)
+    (ihY :
+      eoHasSmtTranslation y ->
+        __is_closed_rec y env = __eo_is_closed_rec y env ∧
+          ∃ b, __eo_is_closed_rec y env = Term.Boolean b)
+    (ihZ :
+      eoHasSmtTranslation z ->
+        __is_closed_rec z env = __eo_is_closed_rec z env ∧
+          ∃ b, __eo_is_closed_rec z env = Term.Boolean b) :
+  __is_closed_rec
+      (Term.Apply (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) z)
+      env =
+    __eo_is_closed_rec
+      (Term.Apply (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) z)
+      env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) z)
+        env =
+        Term.Boolean b :=
+by
+  exact
+    is_closed_rec_apply_apply_apply_uop_nonquantifier_eq_and_bool_of_smt_triop_non_none
+      hEnv hNotForall hNotExists hTrans hTranslate
+      (fun hNN =>
+        str_replace_re_args_have_smt_translation_of_non_none hTy hNN)
+      ihX ihY ihZ
+
+theorem is_closed_rec_apply_apply_apply_str_indexof_re_eq_and_bool_of_has_smt_translation
+    {x y z env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof_re) x) y)
+          z))
+    (ihX :
+      eoHasSmtTranslation x ->
+        __is_closed_rec x env = __eo_is_closed_rec x env ∧
+          ∃ b, __eo_is_closed_rec x env = Term.Boolean b)
+    (ihY :
+      eoHasSmtTranslation y ->
+        __is_closed_rec y env = __eo_is_closed_rec y env ∧
+          ∃ b, __eo_is_closed_rec y env = Term.Boolean b)
+    (ihZ :
+      eoHasSmtTranslation z ->
+        __is_closed_rec z env = __eo_is_closed_rec z env ∧
+          ∃ b, __eo_is_closed_rec z env = Term.Boolean b) :
+  __is_closed_rec
+      (Term.Apply
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof_re) x) y)
+        z) env =
+    __eo_is_closed_rec
+      (Term.Apply
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof_re) x) y)
+        z) env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.Apply
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof_re) x) y)
+          z) env =
+        Term.Boolean b :=
+by
+  exact
+    is_closed_rec_apply_apply_apply_uop_nonquantifier_eq_and_bool_of_smt_triop_non_none
+      hEnv (by decide) (by decide) hTrans (by rfl)
+      str_indexof_re_args_have_smt_translation_of_non_none ihX ihY ihZ
+
+theorem is_closed_rec_apply_apply_apply_str_indexof_re_split_eq_and_bool_of_has_smt_translation
+    {x y z env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply (Term.UOp UserOp.str_indexof_re_split) x) y) z))
+    (ihX :
+      eoHasSmtTranslation x ->
+        __is_closed_rec x env = __eo_is_closed_rec x env ∧
+          ∃ b, __eo_is_closed_rec x env = Term.Boolean b)
+    (ihY :
+      eoHasSmtTranslation y ->
+        __is_closed_rec y env = __eo_is_closed_rec y env ∧
+          ∃ b, __eo_is_closed_rec y env = Term.Boolean b)
+    (ihZ :
+      eoHasSmtTranslation z ->
+        __is_closed_rec z env = __eo_is_closed_rec z env ∧
+          ∃ b, __eo_is_closed_rec z env = Term.Boolean b) :
+  __is_closed_rec
+      (Term.Apply
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp.str_indexof_re_split) x) y) z)
+      env =
+    __eo_is_closed_rec
+      (Term.Apply
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp.str_indexof_re_split) x) y) z)
+      env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply (Term.UOp UserOp.str_indexof_re_split) x) y) z)
+        env =
+        Term.Boolean b :=
+by
+  exact
+    is_closed_rec_apply_apply_apply_uop_nonquantifier_eq_and_bool_of_smt_triop_non_none
+      hEnv (by decide) (by decide) hTrans (by rfl)
+      str_indexof_re_split_args_have_smt_translation_of_non_none
+      ihX ihY ihZ
 
 theorem is_closed_rec_apply_apply_uop_arith_binop_ret_eq_and_bool_of_has_smt_translation
     {eoOp : UserOp} {smtOp : SmtTerm -> SmtTerm -> SmtTerm}
