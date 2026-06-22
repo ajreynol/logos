@@ -30,33 +30,31 @@ private theorem str_in_re_eval_valid_properties
             (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) r)) b)) := by
   let strIn := Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) r
   let side := __str_eval_str_in_re_rec (__str_flatten (__str_nary_intro s)) r
+  let checkedSide := __eo_requires (__eo_is_str s) (Term.Boolean true) side
   let body := Term.Apply (Term.Apply (Term.UOp UserOp.eq) strIn) b
-  change
-    __eo_requires (__eo_is_str s) (Term.Boolean true)
-      (__eo_requires side b body) ≠ Term.Stuck at hProgNe
+  change __eo_requires checkedSide b body ≠ Term.Stuck at hProgNe
+  have hReqEq : checkedSide = b :=
+    eo_requires_eq_of_ne_stuck checkedSide b body hProgNe
+  have hReqResult : __eo_requires checkedSide b body = body :=
+    eo_requires_result_eq_of_ne_stuck checkedSide b body hProgNe
+  have hCheckedNe : checkedSide ≠ Term.Stuck :=
+    eo_requires_left_ne_stuck_of_ne_stuck checkedSide b body hProgNe
   have hStrReq : __eo_is_str s = Term.Boolean true :=
-    eo_requires_eq_of_ne_stuck (__eo_is_str s) (Term.Boolean true)
-      (__eo_requires side b body) hProgNe
-  have hInnerNe : __eo_requires side b body ≠ Term.Stuck :=
-    eo_requires_result_ne_stuck_of_ne_stuck (__eo_is_str s) (Term.Boolean true)
-      (__eo_requires side b body) hProgNe
-  have hOuterResult :
-      __eo_requires (__eo_is_str s) (Term.Boolean true)
-          (__eo_requires side b body) =
-        __eo_requires side b body :=
-    eo_requires_result_eq_of_ne_stuck (__eo_is_str s) (Term.Boolean true)
-      (__eo_requires side b body) hProgNe
-  have hReqEq : side = b := eo_requires_eq_of_ne_stuck side b body hInnerNe
-  have hReqResult : __eo_requires side b body = body :=
-    eo_requires_result_eq_of_ne_stuck side b body hInnerNe
+    eo_requires_eq_of_ne_stuck (__eo_is_str s) (Term.Boolean true) side hCheckedNe
+  have hCheckedResult : checkedSide = side :=
+    eo_requires_result_eq_of_ne_stuck (__eo_is_str s) (Term.Boolean true) side
+      hCheckedNe
   have hSideNe : side ≠ Term.Stuck :=
-    eo_requires_left_ne_stuck_of_ne_stuck side b body hInnerNe
+    eo_requires_result_ne_stuck_of_ne_stuck (__eo_is_str s) (Term.Boolean true)
+      side hCheckedNe
+  have hSideEqB : side = b := by
+    rw [hCheckedResult] at hReqEq
+    exact hReqEq
   rcases eo_is_str_eq_true_cases s hStrReq with ⟨str, rfl⟩
   subst b
   change StepRuleProperties M []
-    (__eo_requires (__eo_is_str (Term.String str)) (Term.Boolean true)
-      (__eo_requires side side body))
-  rw [hOuterResult, hReqResult]
+    (__eo_requires checkedSide side body)
+  rw [hSideEqB, hReqResult]
   have hEqTrans :
       RuleProofs.eo_has_smt_translation
         (Term.Apply (Term.Apply (Term.UOp UserOp.eq) strIn) side) := by
