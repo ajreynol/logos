@@ -1,6 +1,7 @@
 import Lean
 import Cpc.Proofs.Common
 import Cpc.Proofs.Assumptions
+import Cpc.Proofs.Closed.Support
 import Cpc.Proofs.TypePreservation.Full
 
 open Eo
@@ -184,3 +185,651 @@ by
       hTrans with hForall | hExists
   · exact Or.inl (by rw [hForall])
   · exact Or.inr (by rw [hExists])
+
+/--
+On a well-formed EO variable environment, the raw list-indexing test used by
+`__is_closed_rec` agrees with `__eo_is_closed_rec`'s direct recursive lookup.
+-/
+theorem eo_list_find_rec_var_nonneg_eq_eo_is_closed_rec
+    {env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (s : native_String) (T : Term) (n : native_Int)
+    (hNonneg : 0 ≤ n) :
+  __eo_not
+      (__eo_is_neg
+        (__eo_list_find_rec env (Term.Var (Term.String s) T)
+          (Term.Numeral n))) =
+    __eo_is_closed_rec (Term.Var (Term.String s) T) env :=
+by
+  induction hEnv generalizing n with
+  | nil =>
+      simp [__eo_list_find_rec, __eo_is_neg, __eo_not,
+        __eo_is_closed_rec, native_zlt, native_not]
+  | cons hTail ih =>
+      rename_i s' T' env' vars'
+      by_cases hVarEq :
+          Term.Var (Term.String s') T' =
+            Term.Var (Term.String s) T
+      · have hNotLtProp : ¬ n < 0 := by
+          exact Int.not_lt_of_ge hNonneg
+        have hNotLt : native_zlt n 0 = false := by
+          simp [native_zlt, hNotLtProp]
+        have hFindEq :
+            __eo_eq (Term.Var (Term.String s') T')
+                (Term.Var (Term.String s) T) =
+              Term.Boolean true := by
+          simp [__eo_eq, native_teq, hVarEq.symm]
+        have hClosedEq :
+            __eo_eq (Term.Var (Term.String s) T)
+                (Term.Var (Term.String s') T') =
+              Term.Boolean true := by
+          simp [__eo_eq, native_teq, hVarEq]
+        simp [__eo_list_find_rec, __eo_is_closed_rec, hFindEq,
+          hClosedEq, __eo_ite, __eo_is_neg, __eo_not, native_ite,
+          native_teq, native_not, hNotLt]
+      · have hVarEqSymm :
+            Term.Var (Term.String s) T ≠
+              Term.Var (Term.String s') T' := by
+          intro h
+          exact hVarEq h.symm
+        have hFindEq :
+            __eo_eq (Term.Var (Term.String s') T')
+                (Term.Var (Term.String s) T) =
+              Term.Boolean false := by
+          simp [__eo_eq, native_teq, hVarEqSymm]
+        have hClosedEq :
+            __eo_eq (Term.Var (Term.String s) T)
+                (Term.Var (Term.String s') T') =
+              Term.Boolean false := by
+          simp [__eo_eq, native_teq, hVarEq]
+        have hSuccNonneg : 0 ≤ native_zplus n 1 := by
+          simpa [native_zplus] using
+            Int.add_nonneg hNonneg (by decide : (0 : Int) ≤ 1)
+        simpa [__eo_list_find_rec, __eo_is_closed_rec, __eo_ite,
+          __eo_add, native_ite, native_teq, hFindEq, hClosedEq]
+          using ih (native_zplus n 1) hSuccNonneg
+
+/--
+For variables and well-formed EO variable environments, `__is_closed_rec` and
+`__eo_is_closed_rec` are definitionally different but extensionally identical.
+-/
+theorem is_closed_rec_var_eq_eo_is_closed_rec_var
+    {env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (s : native_String) (T : Term) :
+  __is_closed_rec (Term.Var (Term.String s) T) env =
+    __eo_is_closed_rec (Term.Var (Term.String s) T) env :=
+by
+  cases hEnv with
+  | nil =>
+      have hEnvNil : EoSmtVarEnv Term.__eo_List_nil [] :=
+        EoSmtVarEnv.nil
+      have hList := hEnvNil.is_list
+      simpa [__is_closed_rec, __eo_list_find, __eo_requires, hList,
+        native_ite, native_teq]
+        using
+          eo_list_find_rec_var_nonneg_eq_eo_is_closed_rec
+            hEnvNil s T 0
+            (show (0 : native_Int) ≤ (0 : native_Int) by
+              exact Int.le_refl 0)
+  | cons hTail =>
+      rename_i s' T' env' vars'
+      have hEnvCons :
+          EoSmtVarEnv
+            (Term.Apply
+              (Term.Apply Term.__eo_List_cons
+                (Term.Var (Term.String s') T')) env')
+            ((s', __eo_to_smt_type T') :: vars') :=
+        EoSmtVarEnv.cons hTail
+      have hList := hEnvCons.is_list
+      simpa [__is_closed_rec, __eo_list_find, __eo_requires, hList,
+        native_ite, native_teq]
+        using
+          eo_list_find_rec_var_nonneg_eq_eo_is_closed_rec
+            hEnvCons s T 0
+            (show (0 : native_Int) ≤ (0 : native_Int) by
+              exact Int.le_refl 0)
+
+/--
+A Boolean SMT existential chain can only have come from an EO list of variables.
+This strengthens `eo_typeof_var_list_of_exists_bool` with the exact environment
+relation used by the closedness proofs.
+-/
+theorem eo_smt_var_env_of_eo_to_smt_exists_bool
+    (xs : Term) (body : SmtTerm) :
+  __smtx_typeof (__eo_to_smt_exists xs body) = SmtType.Bool ->
+    ∃ vars, EoSmtVarEnv xs vars :=
+by
+  intro hTy
+  cases hxs : xs
+  case __eo_List_nil =>
+    subst hxs
+    exact ⟨[], EoSmtVarEnv.nil⟩
+  case Apply f a =>
+    subst hxs
+    cases hf : f
+    case Apply g y =>
+      subst hf
+      cases hg : g
+      case __eo_List_cons =>
+        subst hg
+        cases hy : y
+        case Var name T =>
+          subst hy
+          cases hname : name
+          case String s =>
+            subst hname
+            have hExistsTy :
+                __smtx_typeof
+                    (SmtTerm.exists s (__eo_to_smt_type T)
+                      (__eo_to_smt_exists a body)) =
+                  SmtType.Bool := by
+              simpa [__eo_to_smt_exists] using hTy
+            have hNN :
+                term_has_non_none_type
+                  (SmtTerm.exists s (__eo_to_smt_type T)
+                    (__eo_to_smt_exists a body)) := by
+              unfold term_has_non_none_type
+              rw [hExistsTy]
+              simp
+            have hSub :
+                __smtx_typeof (__eo_to_smt_exists a body) =
+                  SmtType.Bool := by
+              simpa using exists_body_bool_of_non_none hNN
+            rcases eo_smt_var_env_of_eo_to_smt_exists_bool a body hSub with
+              ⟨vars, hEnv⟩
+            exact ⟨(s, __eo_to_smt_type T) :: vars,
+              EoSmtVarEnv.cons hEnv⟩
+          all_goals
+            subst hname
+            have hNone := hTy
+            simp [__eo_to_smt_exists, __smtx_typeof] at hNone
+        all_goals
+          subst hy
+          have hNone := hTy
+          simp [__eo_to_smt_exists, __smtx_typeof] at hNone
+      all_goals
+        subst hg
+        have hNone := hTy
+        simp [__eo_to_smt_exists, __smtx_typeof] at hNone
+    all_goals
+      subst hf
+      have hNone := hTy
+      simp [__eo_to_smt_exists, __smtx_typeof] at hNone
+  all_goals
+    subst hxs
+    have hNone := hTy
+    simp [__eo_to_smt_exists, __smtx_typeof] at hNone
+
+theorem smtx_typeof_exists_eq_bool_of_non_none
+    {s : native_String} {T : SmtType} {body : SmtTerm}
+    (hNonNone :
+      __smtx_typeof (SmtTerm.exists s T body) ≠ SmtType.None) :
+  __smtx_typeof (SmtTerm.exists s T body) = SmtType.Bool :=
+by
+  exact exists_term_typeof_of_non_none (by
+    unfold term_has_non_none_type
+    exact hNonNone)
+
+/--
+For a nonempty raw EO binder list, non-`None` SMT existential-chain typing
+recovers the corresponding EO/SMT variable environment.
+-/
+theorem eo_smt_var_env_of_eo_to_smt_exists_cons_non_none
+    (v vs : Term) (body : SmtTerm)
+    (hNonNone :
+      __smtx_typeof
+          (__eo_to_smt_exists
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) body) ≠
+        SmtType.None) :
+  ∃ vars,
+    EoSmtVarEnv
+      (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) vars :=
+by
+  cases v
+  case Var name T =>
+    cases name
+    case String s =>
+      have hBool :
+          __smtx_typeof
+              (__eo_to_smt_exists
+                (Term.Apply
+                  (Term.Apply Term.__eo_List_cons
+                    (Term.Var (Term.String s) T)) vs) body) =
+            SmtType.Bool := by
+        change
+          __smtx_typeof
+              (SmtTerm.exists s (__eo_to_smt_type T)
+                (__eo_to_smt_exists vs body)) =
+            SmtType.Bool
+        exact smtx_typeof_exists_eq_bool_of_non_none hNonNone
+      exact
+        eo_smt_var_env_of_eo_to_smt_exists_bool
+          (Term.Apply
+            (Term.Apply Term.__eo_List_cons
+              (Term.Var (Term.String s) T)) vs)
+          body hBool
+    all_goals
+      exfalso
+      apply hNonNone
+      simp [__eo_to_smt_exists, __smtx_typeof]
+  all_goals
+    exfalso
+    apply hNonNone
+    simp [__eo_to_smt_exists, __smtx_typeof]
+
+theorem smtx_typeof_eo_to_smt_exists_cons_eq_bool_of_non_none
+    (v vs : Term) (body : SmtTerm)
+    (hNonNone :
+      __smtx_typeof
+          (__eo_to_smt_exists
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) body) ≠
+        SmtType.None) :
+  __smtx_typeof
+      (__eo_to_smt_exists
+        (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) body) =
+    SmtType.Bool :=
+by
+  cases v
+  case Var name T =>
+    cases name
+    case String s =>
+      change
+        __smtx_typeof
+            (SmtTerm.exists s (__eo_to_smt_type T)
+              (__eo_to_smt_exists vs body)) =
+          SmtType.Bool
+      exact smtx_typeof_exists_eq_bool_of_non_none hNonNone
+    all_goals
+      exfalso
+      apply hNonNone
+      simp [__eo_to_smt_exists, __smtx_typeof]
+  all_goals
+    exfalso
+    apply hNonNone
+    simp [__eo_to_smt_exists, __smtx_typeof]
+
+theorem smtx_typeof_not_eq_bool_of_non_none
+    (t : SmtTerm)
+    (hNonNone : __smtx_typeof (SmtTerm.not t) ≠ SmtType.None) :
+  __smtx_typeof (SmtTerm.not t) = SmtType.Bool :=
+by
+  cases hTy : __smtx_typeof t <;>
+    rw [typeof_not_eq] at hNonNone ⊢ <;>
+    simp [hTy, native_ite, native_Teq] at hNonNone ⊢
+
+theorem smtx_typeof_not_arg_eq_bool
+    (t : SmtTerm)
+    (hTy : __smtx_typeof (SmtTerm.not t) = SmtType.Bool) :
+  __smtx_typeof t = SmtType.Bool :=
+by
+  cases hArg : __smtx_typeof t <;>
+    rw [typeof_not_eq] at hTy <;>
+    simp [hArg, native_ite, native_Teq] at hTy ⊢
+
+theorem eo_smt_var_env_of_exists_list_branch_has_smt_translation
+    {v vs body : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp.exists)
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+          body)) :
+  ∃ vars,
+    EoSmtVarEnv
+      (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) vars :=
+by
+  unfold eoHasSmtTranslation at hTrans
+  exact
+    eo_smt_var_env_of_eo_to_smt_exists_cons_non_none
+      v vs (__eo_to_smt body) (by
+        change
+          __smtx_typeof
+              (__eo_to_smt_exists
+                (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
+                (__eo_to_smt body)) ≠
+            SmtType.None at hTrans
+        exact hTrans)
+
+theorem eo_smt_var_env_of_forall_list_branch_has_smt_translation
+    {v vs body : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp.forall)
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+          body)) :
+  ∃ vars,
+    EoSmtVarEnv
+      (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) vars :=
+by
+  unfold eoHasSmtTranslation at hTrans
+  have hNotBool :
+      __smtx_typeof
+          (SmtTerm.not
+            (__eo_to_smt_exists
+              (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
+              (SmtTerm.not (__eo_to_smt body)))) =
+        SmtType.Bool :=
+    smtx_typeof_not_eq_bool_of_non_none
+      (__eo_to_smt_exists
+        (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
+        (SmtTerm.not (__eo_to_smt body)))
+      (by
+        change
+          __smtx_typeof
+              (SmtTerm.not
+                (__eo_to_smt_exists
+                  (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
+                  (SmtTerm.not (__eo_to_smt body)))) ≠
+            SmtType.None at hTrans
+        exact hTrans)
+  have hExistsBool :
+      __smtx_typeof
+          (__eo_to_smt_exists
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
+            (SmtTerm.not (__eo_to_smt body))) =
+        SmtType.Bool :=
+    smtx_typeof_not_arg_eq_bool
+      (__eo_to_smt_exists
+        (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
+        (SmtTerm.not (__eo_to_smt body)))
+      hNotBool
+  exact
+    eo_smt_var_env_of_eo_to_smt_exists_bool
+      (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
+      (SmtTerm.not (__eo_to_smt body)) hExistsBool
+
+theorem eo_smt_var_env_of_uop_list_branch_has_smt_translation
+    {op : UserOp} {v vs body : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply (Term.UOp op)
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+          body)) :
+  ∃ vars,
+    EoSmtVarEnv
+      (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) vars :=
+by
+  rcases
+    is_closed_rec_uop_list_branch_head_quantifier_of_has_smt_translation
+      hTrans with hForall | hExists
+  · subst op
+    exact eo_smt_var_env_of_forall_list_branch_has_smt_translation hTrans
+  · subst op
+    exact eo_smt_var_env_of_exists_list_branch_has_smt_translation hTrans
+
+theorem eo_smt_var_env_concat_of_uop_list_branch_has_smt_translation
+    {op : UserOp} {env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    {v vs body : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply (Term.UOp op)
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+          body)) :
+  ∃ vars',
+    EoSmtVarEnv
+      (__eo_list_concat Term.__eo_List_cons
+        (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) env)
+      vars' :=
+by
+  rcases
+    eo_smt_var_env_of_uop_list_branch_has_smt_translation hTrans with
+    ⟨binderVars, hBinderEnv⟩
+  exact ⟨binderVars ++ vars, EoSmtVarEnv.concat hBinderEnv hEnv⟩
+
+theorem body_has_smt_translation_of_exists_list_branch_has_smt_translation
+    {v vs body : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp.exists)
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+          body)) :
+  eoHasSmtTranslation body :=
+by
+  unfold eoHasSmtTranslation at hTrans ⊢
+  have hExistsBool :
+      __smtx_typeof
+          (__eo_to_smt_exists
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
+            (__eo_to_smt body)) =
+        SmtType.Bool :=
+    smtx_typeof_eo_to_smt_exists_cons_eq_bool_of_non_none
+      v vs (__eo_to_smt body) (by
+        change
+          __smtx_typeof
+              (__eo_to_smt_exists
+                (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
+                (__eo_to_smt body)) ≠
+            SmtType.None at hTrans
+        exact hTrans)
+  have hBodyBool :
+      __smtx_typeof (__eo_to_smt body) = SmtType.Bool :=
+    TranslationProofs.eo_to_smt_exists_body_bool_of_bool
+      (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
+      (__eo_to_smt body) hExistsBool
+  rw [hBodyBool]
+  intro h
+  cases h
+
+theorem body_has_smt_translation_of_forall_list_branch_has_smt_translation
+    {v vs body : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp.forall)
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+          body)) :
+  eoHasSmtTranslation body :=
+by
+  unfold eoHasSmtTranslation at hTrans ⊢
+  have hNotBool :
+      __smtx_typeof
+          (SmtTerm.not
+            (__eo_to_smt_exists
+              (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
+              (SmtTerm.not (__eo_to_smt body)))) =
+        SmtType.Bool :=
+    smtx_typeof_not_eq_bool_of_non_none
+      (__eo_to_smt_exists
+        (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
+        (SmtTerm.not (__eo_to_smt body)))
+      (by
+        change
+          __smtx_typeof
+              (SmtTerm.not
+                (__eo_to_smt_exists
+                  (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
+                  (SmtTerm.not (__eo_to_smt body)))) ≠
+            SmtType.None at hTrans
+        exact hTrans)
+  have hExistsBool :
+      __smtx_typeof
+          (__eo_to_smt_exists
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
+            (SmtTerm.not (__eo_to_smt body))) =
+        SmtType.Bool :=
+    smtx_typeof_not_arg_eq_bool
+      (__eo_to_smt_exists
+        (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
+        (SmtTerm.not (__eo_to_smt body)))
+      hNotBool
+  have hBodyNotBool :
+      __smtx_typeof (SmtTerm.not (__eo_to_smt body)) =
+        SmtType.Bool :=
+    TranslationProofs.eo_to_smt_exists_body_bool_of_bool
+      (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
+      (SmtTerm.not (__eo_to_smt body)) hExistsBool
+  have hBodyBool :
+      __smtx_typeof (__eo_to_smt body) = SmtType.Bool :=
+    smtx_typeof_not_arg_eq_bool (__eo_to_smt body) hBodyNotBool
+  rw [hBodyBool]
+  intro h
+  cases h
+
+theorem body_has_smt_translation_of_uop_list_branch_has_smt_translation
+    {op : UserOp} {v vs body : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply (Term.UOp op)
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+          body)) :
+  eoHasSmtTranslation body :=
+by
+  rcases
+    is_closed_rec_uop_list_branch_head_quantifier_of_has_smt_translation
+      hTrans with hForall | hExists
+  · subst op
+    exact body_has_smt_translation_of_forall_list_branch_has_smt_translation
+      hTrans
+  · subst op
+    exact body_has_smt_translation_of_exists_list_branch_has_smt_translation
+      hTrans
+
+theorem body_obligations_of_uop_list_branch_has_smt_translation
+    {op : UserOp} {env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    {v vs body : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply (Term.UOp op)
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+          body)) :
+  eoHasSmtTranslation body ∧
+    ∃ vars',
+      EoSmtVarEnv
+        (__eo_list_concat Term.__eo_List_cons
+          (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) env)
+        vars' :=
+by
+  exact
+    ⟨body_has_smt_translation_of_uop_list_branch_has_smt_translation
+        hTrans,
+      eo_smt_var_env_concat_of_uop_list_branch_has_smt_translation
+        hEnv hTrans⟩
+
+theorem eo_and_true_left_eq_of_boolean
+    {x : Term} {b : Bool} (h : x = Term.Boolean b) :
+  __eo_and (Term.Boolean true) x = x :=
+by
+  subst x
+  cases b <;> simp [__eo_and, native_and]
+
+/--
+The broad binder-list branch of `__is_closed_rec` agrees with
+`__eo_is_closed_rec` for actual quantifier heads, once the recursive body result
+is known to agree and to be boolean.
+-/
+theorem is_closed_rec_quantifier_list_branch_eq_of_body
+    {op : UserOp} {env : Term} {vars : List SmtVarKey}
+    (hOp : op = UserOp.forall ∨ op = UserOp.exists)
+    (hEnv : EoSmtVarEnv env vars)
+    (v vs body : Term)
+    (hBodyEq :
+      __is_closed_rec body
+          (__eo_list_concat Term.__eo_List_cons
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) env) =
+        __eo_is_closed_rec body
+          (__eo_list_concat Term.__eo_List_cons
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) env))
+    (hBodyBool :
+      ∃ b,
+        __eo_is_closed_rec body
+          (__eo_list_concat Term.__eo_List_cons
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) env) =
+          Term.Boolean b) :
+  __is_closed_rec
+      (Term.Apply
+        (Term.Apply (Term.UOp op)
+          (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+        body)
+      env =
+    __eo_is_closed_rec
+      (Term.Apply
+        (Term.Apply (Term.UOp op)
+          (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+        body)
+      env :=
+by
+  rcases hBodyBool with ⟨b, hBodyBool⟩
+  rcases hOp with hForall | hExists
+  · subst op
+    cases hEnv with
+    | nil =>
+        simpa [__is_closed_rec, __eo_is_closed_rec, hBodyEq]
+          using eo_and_true_left_eq_of_boolean hBodyBool
+    | cons hTail =>
+        rename_i s' T' env' vars'
+        simpa [__is_closed_rec, __eo_is_closed_rec, hBodyEq]
+          using eo_and_true_left_eq_of_boolean hBodyBool
+  · subst op
+    cases hEnv with
+    | nil =>
+        simpa [__is_closed_rec, __eo_is_closed_rec, hBodyEq]
+          using eo_and_true_left_eq_of_boolean hBodyBool
+    | cons hTail =>
+        rename_i s' T' env' vars'
+        simpa [__is_closed_rec, __eo_is_closed_rec, hBodyEq]
+          using eo_and_true_left_eq_of_boolean hBodyBool
+
+/--
+SMT-translatability supplies the quantifier-head fact for the `UOp` binder-list
+case; the remaining obligations are exactly the recursive body comparison in
+the concatenated environment.
+-/
+theorem is_closed_rec_uop_list_branch_eq_of_has_smt_translation_and_body
+    {op : UserOp} {env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    {v vs body : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply (Term.UOp op)
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+          body))
+    (hBodyEq :
+      __is_closed_rec body
+          (__eo_list_concat Term.__eo_List_cons
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) env) =
+        __eo_is_closed_rec body
+          (__eo_list_concat Term.__eo_List_cons
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) env))
+    (hBodyBool :
+      ∃ b,
+        __eo_is_closed_rec body
+          (__eo_list_concat Term.__eo_List_cons
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) env) =
+          Term.Boolean b) :
+  __is_closed_rec
+      (Term.Apply
+        (Term.Apply (Term.UOp op)
+          (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+        body)
+      env =
+    __eo_is_closed_rec
+      (Term.Apply
+        (Term.Apply (Term.UOp op)
+          (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+        body)
+      env :=
+by
+  exact
+    is_closed_rec_quantifier_list_branch_eq_of_body
+      (is_closed_rec_uop_list_branch_head_quantifier_of_has_smt_translation
+        hTrans)
+      hEnv v vs body hBodyEq hBodyBool
+
+theorem is_closed_rec_var_eq_eo_is_closed
+    (s : native_String) (T : Term) :
+  __is_closed_rec (Term.Var (Term.String s) T) Term.__eo_List_nil =
+    __eo_is_closed (Term.Var (Term.String s) T) :=
+by
+  simpa [__eo_is_closed] using
+    is_closed_rec_var_eq_eo_is_closed_rec_var
+      EoSmtVarEnv.nil s T
