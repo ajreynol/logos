@@ -721,6 +721,255 @@ by
   subst x
   cases b <;> simp [__eo_and, native_and]
 
+theorem eo_and_true_true :
+  __eo_and (Term.Boolean true) (Term.Boolean true) =
+    Term.Boolean true :=
+by
+  simp [__eo_and, native_and]
+
+theorem eo_is_closed_rec_eq_true_of_eo_type_valid_rec
+    {refs : List native_String} {T env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hValid : TranslationProofs.eo_type_valid_rec refs T) :
+  __eo_is_closed_rec T env = Term.Boolean true :=
+by
+  let rec go (T : Term) :
+      ∀ {refs : List native_String} {env : Term} {vars : List SmtVarKey},
+        EoSmtVarEnv env vars ->
+          TranslationProofs.eo_type_valid_rec refs T ->
+            __eo_is_closed_rec T env = Term.Boolean true :=
+  by
+    intro refs env vars hEnv hValid
+    cases T with
+    | Bool =>
+        cases hEnv <;> simp [__eo_is_closed_rec]
+    | DatatypeType s d =>
+        cases hEnv <;> simp [__eo_is_closed_rec]
+    | DatatypeTypeRef s =>
+        cases hEnv <;> simp [__eo_is_closed_rec]
+    | DtcAppType T U =>
+        cases hEnv <;> simp [__eo_is_closed_rec]
+    | USort i =>
+        cases hEnv <;> simp [__eo_is_closed_rec]
+    | UOp op =>
+        cases op <;> cases hEnv <;>
+          simp [TranslationProofs.eo_type_valid_rec,
+            __eo_is_closed_rec] at hValid ⊢
+    | Apply f x =>
+        cases f with
+        | UOp op =>
+            cases op <;>
+              cases hEnv <;>
+                simp [TranslationProofs.eo_type_valid_rec,
+                  __eo_is_closed_rec] at hValid ⊢
+            case BitVec.nil =>
+              cases x <;>
+                simp [TranslationProofs.eo_type_valid_rec,
+                  __eo_is_closed_rec, __eo_and, native_and] at hValid ⊢
+            case BitVec.cons =>
+              cases x <;>
+                simp [TranslationProofs.eo_type_valid_rec,
+                  __eo_is_closed_rec, __eo_and, native_and] at hValid ⊢
+            case Seq.nil =>
+              have hx := go x EoSmtVarEnv.nil hValid
+              simpa [__eo_is_closed_rec, hx, eo_and_true_true]
+            case Seq.cons hTail =>
+              rename_i s' T' env' vars'
+              have hEnvCons := EoSmtVarEnv.cons (s := s') (T := T') hTail
+              have hx := go x hEnvCons hValid
+              simpa [__eo_is_closed_rec, hx, eo_and_true_true]
+            case Set.nil =>
+              have hx := go x EoSmtVarEnv.nil hValid
+              simpa [__eo_is_closed_rec, hx, eo_and_true_true]
+            case Set.cons hTail =>
+              rename_i s' T' env' vars'
+              have hEnvCons := EoSmtVarEnv.cons (s := s') (T := T') hTail
+              have hx := go x hEnvCons hValid
+              simpa [__eo_is_closed_rec, hx, eo_and_true_true]
+        | Apply g y =>
+            cases g with
+            | FunType =>
+                rcases (by
+                    simpa [TranslationProofs.eo_type_valid_rec]
+                      using hValid :
+                    TranslationProofs.eo_type_valid_rec [] y ∧
+                      TranslationProofs.eo_type_valid_rec [] x) with
+                  ⟨hyValid, hxValid⟩
+                cases hEnv with
+                | nil =>
+                    have hy := go y EoSmtVarEnv.nil hyValid
+                    have hx := go x EoSmtVarEnv.nil hxValid
+                    simpa [__eo_is_closed_rec, hy, hx, eo_and_true_true]
+                | cons hTail =>
+                    rename_i s' T' env' vars'
+                    have hEnvCons :=
+                      EoSmtVarEnv.cons (s := s') (T := T') hTail
+                    have hy := go y hEnvCons hyValid
+                    have hx := go x hEnvCons hxValid
+                    simpa [__eo_is_closed_rec, hy, hx, eo_and_true_true]
+            | UOp op =>
+                cases op <;>
+                  cases hEnv <;>
+                    simp [TranslationProofs.eo_type_valid_rec,
+                      __eo_is_closed_rec] at hValid ⊢
+                case Array.nil =>
+                  rcases (by
+                      simpa [TranslationProofs.eo_type_valid_rec]
+                        using hValid :
+                      TranslationProofs.eo_type_valid_rec [] y ∧
+                        TranslationProofs.eo_type_valid_rec [] x) with
+                    ⟨hyValid, hxValid⟩
+                  have hy := go y EoSmtVarEnv.nil hyValid
+                  have hx := go x EoSmtVarEnv.nil hxValid
+                  simpa [__eo_is_closed_rec, hy, hx, eo_and_true_true]
+                case Array.cons hTail =>
+                  rename_i s' T' env' vars'
+                  rcases (by
+                      simpa [TranslationProofs.eo_type_valid_rec]
+                        using hValid :
+                      TranslationProofs.eo_type_valid_rec [] y ∧
+                        TranslationProofs.eo_type_valid_rec [] x) with
+                    ⟨hyValid, hxValid⟩
+                  have hEnvCons :=
+                    EoSmtVarEnv.cons (s := s') (T := T') hTail
+                  have hy := go y hEnvCons hyValid
+                  have hx := go x hEnvCons hxValid
+                  simpa [__eo_is_closed_rec, hy, hx, eo_and_true_true]
+                case Tuple.nil =>
+                  rcases (by
+                      simpa [TranslationProofs.eo_type_valid_rec]
+                        using hValid :
+                      TranslationProofs.eo_type_valid_rec [] y ∧
+                        TranslationProofs.eo_type_valid_rec [] x ∧
+                          __smtx_type_wf
+                              (__eo_to_smt_type_tuple
+                                (__eo_to_smt_type y) (__eo_to_smt_type x)) =
+                            true) with
+                    ⟨hyValid, hxValid, _hWf⟩
+                  have hy := go y EoSmtVarEnv.nil hyValid
+                  have hx := go x EoSmtVarEnv.nil hxValid
+                  simpa [__eo_is_closed_rec, hy, hx, eo_and_true_true]
+                case Tuple.cons hTail =>
+                  rename_i s' T' env' vars'
+                  rcases (by
+                      simpa [TranslationProofs.eo_type_valid_rec]
+                        using hValid :
+                      TranslationProofs.eo_type_valid_rec [] y ∧
+                        TranslationProofs.eo_type_valid_rec [] x ∧
+                          __smtx_type_wf
+                              (__eo_to_smt_type_tuple
+                                (__eo_to_smt_type y) (__eo_to_smt_type x)) =
+                            true) with
+                    ⟨hyValid, hxValid, _hWf⟩
+                  have hEnvCons :=
+                    EoSmtVarEnv.cons (s := s') (T := T') hTail
+                  have hy := go y hEnvCons hyValid
+                  have hx := go x hEnvCons hxValid
+                  simpa [__eo_is_closed_rec, hy, hx, eo_and_true_true]
+            | _ =>
+                cases hEnv <;>
+                  simp [TranslationProofs.eo_type_valid_rec,
+                    __eo_is_closed_rec] at hValid
+        | _ =>
+            cases hEnv <;>
+              simp [TranslationProofs.eo_type_valid_rec,
+                __eo_is_closed_rec] at hValid
+    | _ =>
+        cases hEnv <;>
+          simp [TranslationProofs.eo_type_valid_rec,
+            __eo_is_closed_rec] at hValid
+  exact go T hEnv hValid
+
+theorem eo_is_closed_rec_eq_true_of_eo_type_valid
+    {T env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hValid : TranslationProofs.eo_type_valid T) :
+  __eo_is_closed_rec T env = Term.Boolean true :=
+by
+  cases T with
+  | UOp op =>
+      cases op with
+      | RegLan =>
+          cases hEnv <;> simp [__eo_is_closed_rec]
+      | _ =>
+          exact eo_is_closed_rec_eq_true_of_eo_type_valid_rec
+            hEnv (by simpa [TranslationProofs.eo_type_valid] using hValid)
+  | _ =>
+      exact eo_is_closed_rec_eq_true_of_eo_type_valid_rec
+        hEnv (by simpa [TranslationProofs.eo_type_valid] using hValid)
+
+theorem eo_type_valid_of_seq_empty_has_smt_translation
+    {T : Term}
+    (hTrans : eoHasSmtTranslation (Term.UOp1 UserOp1.seq_empty T)) :
+  TranslationProofs.eo_type_valid T :=
+by
+  unfold eoHasSmtTranslation at hTrans
+  change
+      __smtx_typeof (__eo_to_smt_seq_empty (__eo_to_smt_type T)) ≠
+        SmtType.None at hTrans
+  cases hTy : __eo_to_smt_type T <;> rw [hTy] at hTrans <;>
+    simp [__eo_to_smt_seq_empty] at hTrans
+  case Seq A =>
+    have hSeqWF : __smtx_type_wf (SmtType.Seq A) = true :=
+      Smtm.smtx_typeof_guard_wf_wf_of_non_none
+        (SmtType.Seq A) (SmtType.Seq A) (by
+          simpa [__smtx_typeof] using hTrans)
+    exact TranslationProofs.eo_type_valid_of_smt_wf T
+      (by simpa [hTy] using hSeqWF)
+
+theorem eo_type_valid_of_set_empty_has_smt_translation
+    {T : Term}
+    (hTrans : eoHasSmtTranslation (Term.UOp1 UserOp1.set_empty T)) :
+  TranslationProofs.eo_type_valid T :=
+by
+  unfold eoHasSmtTranslation at hTrans
+  change
+      __smtx_typeof (__eo_to_smt_set_empty (__eo_to_smt_type T)) ≠
+        SmtType.None at hTrans
+  cases hTy : __eo_to_smt_type T <;> rw [hTy] at hTrans <;>
+    simp [__eo_to_smt_set_empty] at hTrans
+  case Set A =>
+    have hSetWF : __smtx_type_wf (SmtType.Set A) = true :=
+      Smtm.smtx_typeof_guard_wf_wf_of_non_none
+        (SmtType.Set A) (SmtType.Set A) (by
+          simpa [__smtx_typeof] using hTrans)
+    exact TranslationProofs.eo_type_valid_of_smt_wf T
+      (by simpa [hTy] using hSetWF)
+
+theorem is_closed_rec_seq_empty_eq_eo_is_closed_rec_of_has_smt_translation
+    {T env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hTrans : eoHasSmtTranslation (Term.UOp1 UserOp1.seq_empty T)) :
+  __is_closed_rec (Term.UOp1 UserOp1.seq_empty T) env =
+    __eo_is_closed_rec (Term.UOp1 UserOp1.seq_empty T) env :=
+by
+  have hClosed :
+      __eo_is_closed_rec T env = Term.Boolean true :=
+    eo_is_closed_rec_eq_true_of_eo_type_valid hEnv
+      (eo_type_valid_of_seq_empty_has_smt_translation hTrans)
+  cases hEnv with
+  | nil =>
+      simpa [__is_closed_rec, __eo_is_closed_rec, hClosed]
+  | cons hTail =>
+      simpa [__is_closed_rec, __eo_is_closed_rec, hClosed]
+
+theorem is_closed_rec_set_empty_eq_eo_is_closed_rec_of_has_smt_translation
+    {T env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hTrans : eoHasSmtTranslation (Term.UOp1 UserOp1.set_empty T)) :
+  __is_closed_rec (Term.UOp1 UserOp1.set_empty T) env =
+    __eo_is_closed_rec (Term.UOp1 UserOp1.set_empty T) env :=
+by
+  have hClosed :
+      __eo_is_closed_rec T env = Term.Boolean true :=
+    eo_is_closed_rec_eq_true_of_eo_type_valid hEnv
+      (eo_type_valid_of_set_empty_has_smt_translation hTrans)
+  cases hEnv with
+  | nil =>
+      simpa [__is_closed_rec, __eo_is_closed_rec, hClosed]
+  | cons hTail =>
+      simpa [__is_closed_rec, __eo_is_closed_rec, hClosed]
+
 /--
 The broad binder-list branch of `__is_closed_rec` agrees with
 `__eo_is_closed_rec` for actual quantifier heads, once the recursive body result
