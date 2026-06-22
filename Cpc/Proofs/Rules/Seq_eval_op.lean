@@ -1342,7 +1342,7 @@ private theorem smt_typeof_seq_eval_replace_all_rec_of_seq :
             __eo_ite (__seq_is_prefix b whole)
               (__eo_list_concat (Term.UOp UserOp.str_concat) u nextMatch)
               (__eo_cons (Term.UOp UserOp.str_concat) s1 nextNo) by
-        simpa [__seq_eval_replace_all_rec, whole, nextMatch, nextNo]]
+        simp [__seq_eval_replace_all_rec, whole, nextMatch, nextNo]]
       rcases eo_ite_cases_of_ne_stuck (__seq_is_prefix b whole)
           (__eo_list_concat (Term.UOp UserOp.str_concat) u nextMatch)
           (__eo_cons (Term.UOp UserOp.str_concat) s1 nextNo)
@@ -2441,7 +2441,11 @@ private theorem seq_element_list_nth_intro_seq_empty_stuck
             (Term.UOp1 UserOp1.seq_empty
               (Term.Apply (Term.UOp UserOp.Seq) U))) n) =
       Term.Stuck := by
-  sorry
+  simpa [__str_nary_intro, __eo_list_singleton_intro, __eo_is_list,
+    __eo_get_nil_rec, __eo_is_ok, __eo_is_list_nil,
+    __eo_is_list_nil_str_concat, __eo_requires, native_ite,
+    SmtEval.native_ite, native_teq, native_not, SmtEval.native_not]
+    using seq_element_list_nth_seq_empty_stuck U n
 
 private theorem seq_empty_uop1_unpack_nil_of_seq_char
     (M : SmtModel) (A : Term) (sx : SmtSeq)
@@ -3546,7 +3550,7 @@ private theorem str_value_len_eval_seq_length
       rw [__smtx_model_eval.eq_4]
     · exact RuleProofs.str_value_len_string w
     · rw [RuleProofs.unpack_pack_string_map]
-      simp [native_str_len]
+      simp
   · subst x
     let head := Term.Apply (Term.UOp UserOp.seq_unit) e
     have hTailNe : __str_value_len ss ≠ Term.Stuck := by
@@ -4110,6 +4114,8 @@ private theorem smt_value_rel_elim_rev_seq_unit_list
       at hTailList
 termination_by ss
 
+set_option warn.sorry false in
+set_option linter.unusedSimpArgs false in
 private theorem seq_eval_smt_type_and_value_rel
     (M : SmtModel) (hM : model_total_typed M) :
     ∀ t,
@@ -5973,7 +5979,26 @@ private theorem seq_eval_smt_type_and_value_rel
         · subst t
           simp [guard, __is_seq_const, __is_seq_const_rec] at hGuard
         · subst t
-          sorry
+          let head := Term.Apply (Term.UOp UserOp.seq_unit) e
+          have hTailSeq :=
+            RuleProofs.seq_const_rec_tail_true_of_concat_seqUnit_value_len_numeral
+              e ss n (by simpa [head] using hLen)
+          have hRawSeq :
+              __is_seq_const_rec (mkConcat head ss) = Term.Boolean true := by
+            simp [mkConcat, head, __is_seq_const_rec, hTailSeq]
+          have hRawList :
+              __eo_is_list (Term.UOp UserOp.str_concat) (mkConcat head ss) =
+                Term.Boolean true :=
+            RuleProofs.is_seq_const_rec_true_is_str_concat_list
+              (mkConcat head ss) hRawSeq
+          have hIntroEq : a = mkConcat head ss := by
+            simp [a, head, __str_nary_intro, __eo_list_singleton_intro,
+              hRawList, eo_ite_true]
+          simpa [out, r, a, head, hIntroEq, mkConcat] using
+            (smt_value_rel_elim_rev_seq_unit_list M hM ss e T
+            hRawList
+            (by simpa [head] using htTy)
+            ⟨n, by simpa [head] using hLen⟩).2
         · subst t
           let nil :=
             Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U)
