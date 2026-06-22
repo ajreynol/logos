@@ -9,6 +9,18 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
+abbrev __str_nary_intro : Term -> Term :=
+  __eo_list_singleton_intro (Term.UOp UserOp.str_concat)
+
+abbrev __str_nary_elim : Term -> Term :=
+  __eo_list_singleton_elim (Term.UOp UserOp.str_concat)
+
+abbrev __re_nary_intro : Term -> Term :=
+  __eo_list_singleton_intro (Term.UOp UserOp.re_concat)
+
+abbrev __re_nary_elim : Term -> Term :=
+  __eo_list_singleton_elim (Term.UOp UserOp.re_concat)
+
 /-- Stable rewrite for evaluating SMT equality terms. -/
 theorem smtx_eval_eq_term_eq
     (M : SmtModel) (x y : SmtTerm) :

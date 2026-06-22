@@ -125,13 +125,6 @@ private theorem smtx_typeof_geq_int
   rw [typeof_geq_eq]
   simp [hx, hy, __smtx_typeof_arith_overload_op_2_ret]
 
-private theorem strConcat_nil_eq_seq_empty_of_type {ty : Term} {T : SmtType}
-    (hTy : __eo_to_smt_type ty = SmtType.Seq T) :
-    __eo_nil (Term.UOp UserOp.str_concat) ty = __seq_empty ty := by
-  rcases TranslationProofs.eo_to_smt_type_eq_seq hTy with ⟨V, hTyEq, _hV⟩
-  subst ty
-  rfl
-
 private theorem smt_typeof_seq_empty_typeof_of_smt_type_seq
     (x : Term) (T : SmtType)
     (hxTy : __smtx_typeof (__eo_to_smt x) = SmtType.Seq T) :
