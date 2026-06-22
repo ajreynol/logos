@@ -1243,6 +1243,406 @@ by
     exact hTrans (by simp [hValid, native_ite, __smtx_typeof])
   · rfl
 
+theorem closed_smtx_typeof_choice_nth_succ_eq_skolemize_of_non_none
+    (s : native_String) (T : SmtType) (body : SmtTerm) (n : native_Nat)
+    (hNN :
+      term_has_non_none_type (SmtTerm.choice_nth s T body n.succ)) :
+  __smtx_typeof (SmtTerm.choice_nth s T body n.succ) =
+    __smtx_typeof (__eo_to_smt_quantifiers_skolemize body n) :=
+by
+  cases body
+  case «exists» s' U body' =>
+    simpa [__eo_to_smt_quantifiers_skolemize] using
+      choice_nth_succ_typeof_tail_of_non_none hNN
+  all_goals
+    exfalso
+    unfold term_has_non_none_type at hNN
+    apply hNN
+    simp [__smtx_typeof, __smtx_typeof_choice_nth]
+
+theorem closed_quantifiers_skolemize_non_none_of_choice_nth_succ_non_none
+    (s : native_String) (T : SmtType) (body : SmtTerm) (n : native_Nat)
+    (hNN :
+      __smtx_typeof (SmtTerm.choice_nth s T body n.succ) ≠
+        SmtType.None) :
+  __smtx_typeof (__eo_to_smt_quantifiers_skolemize body n) ≠
+    SmtType.None :=
+by
+  have hTermNN :
+      term_has_non_none_type (SmtTerm.choice_nth s T body n.succ) := by
+    unfold term_has_non_none_type
+    exact hNN
+  have hEq :=
+    closed_smtx_typeof_choice_nth_succ_eq_skolemize_of_non_none
+      (s := s) (T := T) (body := body) (n := n) hTermNN
+  intro hNone
+  apply hNN
+  rw [hEq, hNone]
+
+theorem closed_choice_nth_head_type_wf_of_non_none
+    (s : native_String) (T : SmtType) (body : SmtTerm) (n : native_Nat)
+    (hNN : __smtx_typeof (SmtTerm.choice_nth s T body n) ≠
+      SmtType.None) :
+  __smtx_type_wf T = true :=
+by
+  cases n with
+  | zero =>
+      have hTermNN :
+          term_has_non_none_type (SmtTerm.choice_nth s T body 0) := by
+        unfold term_has_non_none_type
+        exact hNN
+      have hGuardTy :
+          __smtx_typeof (SmtTerm.choice_nth s T body 0) =
+            __smtx_typeof_guard_wf T T :=
+        choice_term_guard_type_of_non_none hTermNN
+      have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
+        intro hNone
+        apply hNN
+        rw [hGuardTy, hNone]
+      exact Smtm.smtx_typeof_guard_wf_wf_of_non_none T T hGuardNN
+  | succ n =>
+      cases body with
+      | «exists» s' U body' =>
+          have hGuardNN :
+              __smtx_typeof_guard_wf T
+                  (__smtx_typeof_choice_nth U body' n) ≠
+                SmtType.None := by
+            intro hNone
+            apply hNN
+            simp [__smtx_typeof, __smtx_typeof_choice_nth, hNone]
+          exact
+            Smtm.smtx_typeof_guard_wf_wf_of_non_none
+              T (__smtx_typeof_choice_nth U body' n) hGuardNN
+      | _ =>
+          exfalso
+          apply hNN
+          simp [__smtx_typeof, __smtx_typeof_choice_nth]
+
+theorem closed_type_wf_of_quantifiers_skolemize_cons_non_none
+    (s : native_String) (T a : Term) (body : SmtTerm) (n : native_Nat)
+    (hNN :
+      __smtx_typeof
+          (__eo_to_smt_quantifiers_skolemize
+            (__eo_to_smt_exists
+              (Term.Apply
+                (Term.Apply Term.__eo_List_cons
+                  (Term.Var (Term.String s) T)) a)
+              body) n) ≠
+        SmtType.None) :
+  __smtx_type_wf (__eo_to_smt_type T) = true :=
+by
+  have hChoiceNN :
+      __smtx_typeof
+          (SmtTerm.choice_nth s (__eo_to_smt_type T)
+            (__eo_to_smt_exists a body) n) ≠
+        SmtType.None := by
+    intro hChoiceNone
+    apply hNN
+    change
+      __smtx_typeof
+          (__eo_to_smt_quantifiers_skolemize
+            (__eo_to_smt_exists
+              (Term.Apply
+                (Term.Apply Term.__eo_List_cons
+                  (Term.Var (Term.String s) T)) a)
+              body) n) =
+        SmtType.None
+    rw [TranslationProofs.eo_to_smt_exists_cons]
+    change
+      __smtx_typeof
+          (SmtTerm.choice_nth s (__eo_to_smt_type T)
+            (__eo_to_smt_exists a body) n) =
+        SmtType.None
+    exact hChoiceNone
+  exact
+    closed_choice_nth_head_type_wf_of_non_none
+      (s := s) (T := __eo_to_smt_type T)
+      (body := __eo_to_smt_exists a body) (n := n) hChoiceNN
+
+theorem closed_choice_nth_non_none_of_quantifiers_skolemize_cons_non_none
+    (s : native_String) (T a : Term) (body : SmtTerm) (n : native_Nat)
+    (hNN :
+      __smtx_typeof
+          (__eo_to_smt_quantifiers_skolemize
+            (__eo_to_smt_exists
+              (Term.Apply
+                (Term.Apply Term.__eo_List_cons
+                  (Term.Var (Term.String s) T)) a)
+              body) n) ≠
+        SmtType.None) :
+  __smtx_typeof
+      (SmtTerm.choice_nth s (__eo_to_smt_type T)
+        (__eo_to_smt_exists a body) n) ≠
+    SmtType.None :=
+by
+  intro hChoiceNone
+  apply hNN
+  change
+    __smtx_typeof
+        (__eo_to_smt_quantifiers_skolemize
+          (__eo_to_smt_exists
+            (Term.Apply
+              (Term.Apply Term.__eo_List_cons
+                (Term.Var (Term.String s) T)) a)
+            body) n) =
+      SmtType.None
+  rw [TranslationProofs.eo_to_smt_exists_cons]
+  change
+    __smtx_typeof
+        (SmtTerm.choice_nth s (__eo_to_smt_type T)
+          (__eo_to_smt_exists a body) n) =
+      SmtType.None
+  exact hChoiceNone
+
+theorem closed_smtx_typeof_eo_to_smt_exists_cons_bool_of_tail_bool
+    (s : native_String) (T a : Term) (body : SmtTerm)
+    (hWf : __smtx_type_wf (__eo_to_smt_type T) = true)
+    (hTailBool : __smtx_typeof (__eo_to_smt_exists a body) = SmtType.Bool) :
+  __smtx_typeof
+      (__eo_to_smt_exists
+        (Term.Apply
+          (Term.Apply Term.__eo_List_cons
+            (Term.Var (Term.String s) T)) a)
+        body) =
+    SmtType.Bool :=
+by
+  rw [TranslationProofs.eo_to_smt_exists_cons]
+  change
+    __smtx_typeof
+        (SmtTerm.exists s (__eo_to_smt_type T)
+          (__eo_to_smt_exists a body)) =
+      SmtType.Bool
+  rw [__smtx_typeof.eq_def] <;> simp only
+  simp [hTailBool, native_ite, native_Teq, __smtx_typeof_guard_wf, hWf]
+
+theorem closed_eo_to_smt_exists_bool_of_quantifiers_skolemize_non_none
+    (xs : Term) (body : SmtTerm) (n : native_Nat)
+    (hBodyNoExists : ∀ s T F, body ≠ SmtTerm.exists s T F) :
+  __smtx_typeof
+      (__eo_to_smt_quantifiers_skolemize (__eo_to_smt_exists xs body) n) ≠
+      SmtType.None ->
+    __smtx_typeof (__eo_to_smt_exists xs body) = SmtType.Bool :=
+by
+  induction n generalizing xs body with
+  | zero =>
+      intro hNN
+      cases xs with
+      | Apply f a =>
+          cases f with
+          | Apply g y =>
+              cases g with
+              | __eo_List_cons =>
+                  cases y with
+                  | Var name T =>
+                      cases name with
+                      | String s =>
+                          have hChoiceNN :
+                              term_has_non_none_type
+                                (SmtTerm.choice_nth s (__eo_to_smt_type T)
+                                  (__eo_to_smt_exists a body) 0) := by
+                            unfold term_has_non_none_type
+                            exact
+                              closed_choice_nth_non_none_of_quantifiers_skolemize_cons_non_none
+                                (s := s) (T := T) (a := a) (body := body)
+                                (n := 0) hNN
+                          have hBodyBool :
+                              __smtx_typeof (__eo_to_smt_exists a body) =
+                                SmtType.Bool :=
+                            TranslationProofs.choice_nth_body_bool_of_non_none
+                              hChoiceNN
+                          have hWf :=
+                            closed_type_wf_of_quantifiers_skolemize_cons_non_none
+                              (s := s) (T := T) (a := a) (body := body)
+                              (n := 0) hNN
+                          exact
+                            closed_smtx_typeof_eo_to_smt_exists_cons_bool_of_tail_bool
+                              (s := s) (T := T) (a := a) (body := body)
+                              hWf hBodyBool
+                      | _ =>
+                          exfalso
+                          have hNoneNN :
+                              __smtx_typeof SmtTerm.None ≠ SmtType.None := by
+                            simp [__eo_to_smt_quantifiers_skolemize,
+                              __eo_to_smt_exists] at hNN ⊢
+                          exact hNoneNN TranslationProofs.smtx_typeof_none
+                  | _ =>
+                      exfalso
+                      have hNoneNN :
+                          __smtx_typeof SmtTerm.None ≠ SmtType.None := by
+                        simp [__eo_to_smt_quantifiers_skolemize,
+                          __eo_to_smt_exists] at hNN ⊢
+                      exact hNoneNN TranslationProofs.smtx_typeof_none
+              | _ =>
+                  exfalso
+                  have hNoneNN :
+                      __smtx_typeof SmtTerm.None ≠ SmtType.None := by
+                    simp [__eo_to_smt_quantifiers_skolemize,
+                      __eo_to_smt_exists] at hNN ⊢
+                  exact hNoneNN TranslationProofs.smtx_typeof_none
+          | _ =>
+              exfalso
+              have hNoneNN :
+                  __smtx_typeof SmtTerm.None ≠ SmtType.None := by
+                simp [__eo_to_smt_quantifiers_skolemize, __eo_to_smt_exists]
+                  at hNN ⊢
+              exact hNoneNN TranslationProofs.smtx_typeof_none
+      | _ =>
+          exfalso
+          have hNoneNN :
+              __smtx_typeof SmtTerm.None ≠ SmtType.None := by
+            simp [__eo_to_smt_quantifiers_skolemize, __eo_to_smt_exists]
+              at hNN ⊢
+          exact hNoneNN TranslationProofs.smtx_typeof_none
+  | succ n ih =>
+      intro hNN
+      cases xs with
+      | Apply f a =>
+          cases f with
+          | Apply g y =>
+              cases g with
+              | __eo_List_cons =>
+                  cases y with
+                  | Var name T =>
+                      cases name with
+                      | String s =>
+                          have hTailNN :
+                              __smtx_typeof
+                                  (__eo_to_smt_quantifiers_skolemize
+                                    (__eo_to_smt_exists a body) n) ≠
+                                SmtType.None := by
+                            have hChoiceSucc :
+                                __smtx_typeof
+                                    (SmtTerm.choice_nth s (__eo_to_smt_type T)
+                                      (__eo_to_smt_exists a body) n.succ) ≠
+                                  SmtType.None := by
+                              exact
+                                closed_choice_nth_non_none_of_quantifiers_skolemize_cons_non_none
+                                  (s := s) (T := T) (a := a)
+                                  (body := body) (n := n.succ) hNN
+                            exact
+                              closed_quantifiers_skolemize_non_none_of_choice_nth_succ_non_none
+                                (s := s) (T := __eo_to_smt_type T)
+                                (body := __eo_to_smt_exists a body)
+                                (n := n) hChoiceSucc
+                          have hTailBool :
+                              __smtx_typeof (__eo_to_smt_exists a body) =
+                                SmtType.Bool :=
+                            ih a body hBodyNoExists hTailNN
+                          have hWf :=
+                            closed_type_wf_of_quantifiers_skolemize_cons_non_none
+                              (s := s) (T := T) (a := a) (body := body)
+                              (n := n.succ) hNN
+                          exact
+                            closed_smtx_typeof_eo_to_smt_exists_cons_bool_of_tail_bool
+                              (s := s) (T := T) (a := a) (body := body)
+                              hWf hTailBool
+                      | _ =>
+                          exfalso
+                          have hNoneNN :
+                              __smtx_typeof SmtTerm.None ≠ SmtType.None := by
+                            simp [__eo_to_smt_quantifiers_skolemize,
+                              __eo_to_smt_exists] at hNN ⊢
+                          exact hNoneNN TranslationProofs.smtx_typeof_none
+                  | _ =>
+                      exfalso
+                      have hNoneNN :
+                          __smtx_typeof SmtTerm.None ≠ SmtType.None := by
+                        simp [__eo_to_smt_quantifiers_skolemize,
+                          __eo_to_smt_exists] at hNN ⊢
+                      exact hNoneNN TranslationProofs.smtx_typeof_none
+              | _ =>
+                  exfalso
+                  have hNoneNN :
+                      __smtx_typeof SmtTerm.None ≠ SmtType.None := by
+                    simp [__eo_to_smt_quantifiers_skolemize,
+                      __eo_to_smt_exists] at hNN ⊢
+                  exact hNoneNN TranslationProofs.smtx_typeof_none
+          | _ =>
+              exfalso
+              have hNoneNN :
+                  __smtx_typeof SmtTerm.None ≠ SmtType.None := by
+                simp [__eo_to_smt_quantifiers_skolemize, __eo_to_smt_exists]
+                  at hNN ⊢
+              exact hNoneNN TranslationProofs.smtx_typeof_none
+      | _ =>
+          exfalso
+          cases body
+          case «exists» s T F =>
+            exact hBodyNoExists s T F rfl
+          all_goals
+            have hNoneNN :
+                __smtx_typeof SmtTerm.None ≠ SmtType.None := by
+              simp [__eo_to_smt_quantifiers_skolemize, __eo_to_smt_exists]
+                at hNN ⊢
+            exact hNoneNN TranslationProofs.smtx_typeof_none
+
+theorem quantifiers_skolemize_forall_term_has_smt_translation
+    {vs body idx : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.UOp2 UserOp2._at_quantifiers_skolemize
+          (Term.Apply (Term.Apply (Term.UOp UserOp.forall) vs) body)
+          idx)) :
+  eoHasSmtTranslation
+    (Term.Apply (Term.Apply (Term.UOp UserOp.forall) vs) body) :=
+by
+  unfold eoHasSmtTranslation at hTrans ⊢
+  have hValid :
+      __eo_to_smt_nat_is_valid idx = true :=
+    nat_is_valid_of_quantifiers_skolemize_forall_has_smt_translation
+      hTrans
+  have hSkolemNN :
+      __smtx_typeof
+          (__eo_to_smt_quantifiers_skolemize
+            (__eo_to_smt_exists vs (SmtTerm.not (__eo_to_smt body)))
+            (__eo_to_smt_nat idx)) ≠
+        SmtType.None := by
+    intro hNone
+    apply hTrans
+    change
+      __smtx_typeof
+          (native_ite (__eo_to_smt_nat_is_valid idx)
+            (__eo_to_smt_quantifiers_skolemize
+              (__eo_to_smt_exists vs (SmtTerm.not (__eo_to_smt body)))
+              (__eo_to_smt_nat idx))
+            SmtTerm.None) =
+        SmtType.None
+    simp [hValid, hNone, native_ite]
+  have hNotNoExists :
+      ∀ s T F, SmtTerm.not (__eo_to_smt body) ≠
+        SmtTerm.exists s T F := by
+    intro s T F h
+    cases h
+  have hExistsBool :
+      __smtx_typeof
+          (__eo_to_smt_exists vs (SmtTerm.not (__eo_to_smt body))) =
+        SmtType.Bool :=
+    closed_eo_to_smt_exists_bool_of_quantifiers_skolemize_non_none
+      vs (SmtTerm.not (__eo_to_smt body)) (__eo_to_smt_nat idx)
+      hNotNoExists hSkolemNN
+  cases vs
+  case __eo_List_nil =>
+      exfalso
+      exact hTrans (by
+        change
+          __smtx_typeof
+              (native_ite (__eo_to_smt_nat_is_valid idx)
+                (__eo_to_smt_quantifiers_skolemize
+                  (SmtTerm.not (__eo_to_smt body))
+                  (__eo_to_smt_nat idx))
+                SmtTerm.None) =
+            SmtType.None
+        simp [hValid, __eo_to_smt_quantifiers_skolemize, native_ite,
+          TranslationProofs.smtx_typeof_none])
+  all_goals
+    change
+      __smtx_typeof
+          (SmtTerm.not
+            (__eo_to_smt_exists _ (SmtTerm.not (__eo_to_smt body)))) ≠
+        SmtType.None
+    rw [typeof_not_eq]
+    simp [hExistsBool, native_ite, native_Teq]
+
 theorem is_closed_rec_re_unfold_pos_component_eq_of_has_smt_translation_and_parts
     {s r idx env : Term} {vars : List SmtVarKey}
     (hEnv : EoSmtVarEnv env vars)
@@ -1429,6 +1829,110 @@ by
       simpa [__eo_is_closed_rec, hIdx] using
         (eo_and_true_right_eq_of_boolean hQBool).trans hQBool⟩
 
+theorem is_closed_rec_quantifiers_skolemize_forall_eq_and_bool_of_has_smt_translation
+    {vs body idx env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.UOp2 UserOp2._at_quantifiers_skolemize
+          (Term.Apply (Term.Apply (Term.UOp UserOp.forall) vs) body)
+          idx))
+    (ihQ :
+      eoHasSmtTranslation
+          (Term.Apply (Term.Apply (Term.UOp UserOp.forall) vs) body) ->
+        __is_closed_rec
+            (Term.Apply (Term.Apply (Term.UOp UserOp.forall) vs) body)
+            env =
+          __eo_is_closed_rec
+            (Term.Apply (Term.Apply (Term.UOp UserOp.forall) vs) body)
+            env ∧
+          ∃ b,
+            __eo_is_closed_rec
+                (Term.Apply (Term.Apply (Term.UOp UserOp.forall) vs) body)
+                env =
+              Term.Boolean b) :
+  __is_closed_rec
+      (Term.UOp2 UserOp2._at_quantifiers_skolemize
+        (Term.Apply (Term.Apply (Term.UOp UserOp.forall) vs) body)
+        idx)
+      env =
+    __eo_is_closed_rec
+      (Term.UOp2 UserOp2._at_quantifiers_skolemize
+        (Term.Apply (Term.Apply (Term.UOp UserOp.forall) vs) body)
+        idx)
+      env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.UOp2 UserOp2._at_quantifiers_skolemize
+          (Term.Apply (Term.Apply (Term.UOp UserOp.forall) vs) body)
+          idx)
+        env =
+      Term.Boolean b :=
+by
+  have hQTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.forall) vs) body) :=
+    quantifiers_skolemize_forall_term_has_smt_translation hTrans
+  exact
+    is_closed_rec_quantifiers_skolemize_forall_eq_and_bool_of_has_smt_translation_and_term
+      hEnv hTrans (ihQ hQTrans).1 (ihQ hQTrans).2
+
+theorem is_closed_rec_uop2_eq_and_bool_of_has_smt_translation
+    {op : UserOp2} {x y env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hTrans : eoHasSmtTranslation (Term.UOp2 op x y))
+    (ihX :
+      eoHasSmtTranslation x ->
+        __is_closed_rec x env = __eo_is_closed_rec x env ∧
+          ∃ b, __eo_is_closed_rec x env = Term.Boolean b) :
+  __is_closed_rec (Term.UOp2 op x y) env =
+    __eo_is_closed_rec (Term.UOp2 op x y) env ∧
+    ∃ b,
+      __eo_is_closed_rec (Term.UOp2 op x y) env =
+        Term.Boolean b :=
+by
+  cases op
+  case _at_bv =>
+    exact is_closed_rec_at_bv_eq_and_bool_of_has_smt_translation
+      hEnv hTrans
+  case _at_quantifiers_skolemize =>
+    cases x
+    case Apply f body =>
+      cases f
+      case Apply q vs =>
+        cases q
+        case UOp qOp =>
+          cases qOp
+          case «forall» =>
+            exact
+              is_closed_rec_quantifiers_skolemize_forall_eq_and_bool_of_has_smt_translation
+                hEnv hTrans ihX
+          all_goals
+            exfalso
+            unfold eoHasSmtTranslation at hTrans
+            change __smtx_typeof SmtTerm.None ≠ SmtType.None at hTrans
+            exact hTrans TranslationProofs.smtx_typeof_none
+        all_goals
+          exfalso
+          unfold eoHasSmtTranslation at hTrans
+          change __smtx_typeof SmtTerm.None ≠ SmtType.None at hTrans
+          exact hTrans TranslationProofs.smtx_typeof_none
+      all_goals
+        exfalso
+        unfold eoHasSmtTranslation at hTrans
+        change __smtx_typeof SmtTerm.None ≠ SmtType.None at hTrans
+        exact hTrans TranslationProofs.smtx_typeof_none
+    all_goals
+      exfalso
+      unfold eoHasSmtTranslation at hTrans
+      change __smtx_typeof SmtTerm.None ≠ SmtType.None at hTrans
+      exact hTrans TranslationProofs.smtx_typeof_none
+  all_goals
+    exfalso
+    unfold eoHasSmtTranslation at hTrans
+    change __smtx_typeof SmtTerm.None ≠ SmtType.None at hTrans
+    exact hTrans TranslationProofs.smtx_typeof_none
+
 theorem is_closed_rec_re_unfold_pos_component_eq_and_bool_of_has_smt_translation_and_parts
     {s r idx env : Term} {vars : List SmtVarKey}
     (hEnv : EoSmtVarEnv env vars)
@@ -1497,6 +2001,182 @@ by
   exact
     is_closed_rec_re_unfold_pos_component_eq_and_bool_of_has_smt_translation_and_parts
       hEnv hTrans (ihS hSTrans) (ihR hRTrans)
+
+theorem nat_is_valid_of_witness_string_length_len_has_smt_translation
+    {T len id : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.UOp3 UserOp3._at_witness_string_length T len id)) :
+  __eo_to_smt_nat_is_valid len = true :=
+by
+  unfold eoHasSmtTranslation at hTrans
+  change
+      __smtx_typeof
+          (native_ite (__eo_to_smt_nat_is_valid len)
+            (native_ite (__eo_to_smt_nat_is_valid id)
+              (SmtTerm.choice_nth (native_string_lit "@x")
+                (__eo_to_smt_type T)
+                (SmtTerm.eq
+                  (SmtTerm.str_len
+                    (SmtTerm.Var (native_string_lit "@x")
+                      (__eo_to_smt_type T)))
+                  (__eo_to_smt len))
+                native_nat_zero)
+              SmtTerm.None)
+            SmtTerm.None) ≠
+        SmtType.None at hTrans
+  cases hValid : __eo_to_smt_nat_is_valid len
+  · exfalso
+    exact hTrans (by
+      simp [hValid, native_ite, TranslationProofs.smtx_typeof_none])
+  · rfl
+
+theorem nat_is_valid_of_witness_string_length_id_has_smt_translation
+    {T len id : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.UOp3 UserOp3._at_witness_string_length T len id)) :
+  __eo_to_smt_nat_is_valid id = true :=
+by
+  have hLen :
+      __eo_to_smt_nat_is_valid len = true :=
+    nat_is_valid_of_witness_string_length_len_has_smt_translation hTrans
+  unfold eoHasSmtTranslation at hTrans
+  change
+      __smtx_typeof
+          (native_ite (__eo_to_smt_nat_is_valid len)
+            (native_ite (__eo_to_smt_nat_is_valid id)
+              (SmtTerm.choice_nth (native_string_lit "@x")
+                (__eo_to_smt_type T)
+                (SmtTerm.eq
+                  (SmtTerm.str_len
+                    (SmtTerm.Var (native_string_lit "@x")
+                      (__eo_to_smt_type T)))
+                  (__eo_to_smt len))
+                native_nat_zero)
+              SmtTerm.None)
+            SmtTerm.None) ≠
+        SmtType.None at hTrans
+  cases hValid : __eo_to_smt_nat_is_valid id
+  · exfalso
+    exact hTrans (by
+      simp [hLen, hValid, native_ite, TranslationProofs.smtx_typeof_none])
+  · rfl
+
+theorem eo_type_valid_of_witness_string_length_has_smt_translation
+    {T len id : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.UOp3 UserOp3._at_witness_string_length T len id)) :
+  TranslationProofs.eo_type_valid T :=
+by
+  have hLen :
+      __eo_to_smt_nat_is_valid len = true :=
+    nat_is_valid_of_witness_string_length_len_has_smt_translation hTrans
+  have hId :
+      __eo_to_smt_nat_is_valid id = true :=
+    nat_is_valid_of_witness_string_length_id_has_smt_translation hTrans
+  unfold eoHasSmtTranslation at hTrans
+  let ST := __eo_to_smt_type T
+  let body :=
+    SmtTerm.eq
+      (SmtTerm.str_len (SmtTerm.Var (native_string_lit "@x") ST))
+      (__eo_to_smt len)
+  have hChoiceNN :
+      term_has_non_none_type
+        (SmtTerm.choice_nth (native_string_lit "@x") ST body
+          native_nat_zero) := by
+    unfold term_has_non_none_type
+    intro hNone
+    apply hTrans
+    change
+      __smtx_typeof
+          (native_ite (__eo_to_smt_nat_is_valid len)
+            (native_ite (__eo_to_smt_nat_is_valid id)
+              (SmtTerm.choice_nth (native_string_lit "@x") ST body
+                native_nat_zero)
+              SmtTerm.None)
+            SmtTerm.None) =
+        SmtType.None
+    simp [hLen, hId, hNone, native_ite]
+  have hChoiceGuard :
+      __smtx_typeof
+          (SmtTerm.choice_nth (native_string_lit "@x") ST body
+            native_nat_zero) =
+        __smtx_typeof_guard_wf ST ST :=
+    choice_term_guard_type_of_non_none hChoiceNN
+  have hGuardNN : __smtx_typeof_guard_wf ST ST ≠ SmtType.None := by
+    intro hNone
+    unfold term_has_non_none_type at hChoiceNN
+    exact hChoiceNN (by rw [hChoiceGuard, hNone])
+  have hTWF : __smtx_type_wf ST = true :=
+    Smtm.smtx_typeof_guard_wf_wf_of_non_none ST ST hGuardNN
+  exact TranslationProofs.eo_type_valid_of_smt_wf T
+    (by simpa [ST] using hTWF)
+
+theorem is_closed_rec_witness_string_length_eq_and_bool_of_has_smt_translation
+    {T len id env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.UOp3 UserOp3._at_witness_string_length T len id)) :
+  __is_closed_rec
+      (Term.UOp3 UserOp3._at_witness_string_length T len id) env =
+    __eo_is_closed_rec
+      (Term.UOp3 UserOp3._at_witness_string_length T len id) env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.UOp3 UserOp3._at_witness_string_length T len id) env =
+      Term.Boolean b :=
+by
+  have hTClosed :
+      __eo_is_closed_rec T env = Term.Boolean true :=
+    eo_is_closed_rec_eq_true_of_eo_type_valid hEnv
+      (eo_type_valid_of_witness_string_length_has_smt_translation hTrans)
+  have hLenClosed :
+      __eo_is_closed_rec len env = Term.Boolean true :=
+    eo_is_closed_rec_eq_true_of_nat_is_valid hEnv
+      (nat_is_valid_of_witness_string_length_len_has_smt_translation hTrans)
+  have hIdClosed :
+      __eo_is_closed_rec id env = Term.Boolean true :=
+    eo_is_closed_rec_eq_true_of_nat_is_valid hEnv
+      (nat_is_valid_of_witness_string_length_id_has_smt_translation hTrans)
+  refine ⟨?_, ?_⟩
+  · cases hEnv <;>
+      simp [__is_closed_rec, __eo_is_closed_rec, hTClosed, hLenClosed,
+        hIdClosed, __eo_and, native_and]
+  · exact ⟨true, by
+      cases hEnv <;>
+        simp [__eo_is_closed_rec, hTClosed, hLenClosed, hIdClosed,
+          __eo_and, native_and]⟩
+
+theorem is_closed_rec_uop3_eq_and_bool_of_has_smt_translation
+    {op : UserOp3} {x y z env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hTrans : eoHasSmtTranslation (Term.UOp3 op x y z))
+    (ihX :
+      eoHasSmtTranslation x ->
+        __is_closed_rec x env = __eo_is_closed_rec x env ∧
+          ∃ b, __eo_is_closed_rec x env = Term.Boolean b)
+    (ihY :
+      eoHasSmtTranslation y ->
+        __is_closed_rec y env = __eo_is_closed_rec y env ∧
+          ∃ b, __eo_is_closed_rec y env = Term.Boolean b) :
+  __is_closed_rec (Term.UOp3 op x y z) env =
+    __eo_is_closed_rec (Term.UOp3 op x y z) env ∧
+    ∃ b,
+      __eo_is_closed_rec (Term.UOp3 op x y z) env =
+        Term.Boolean b :=
+by
+  cases op
+  case _at_re_unfold_pos_component =>
+    exact
+      is_closed_rec_re_unfold_pos_component_eq_and_bool_of_has_smt_translation
+        hEnv hTrans ihX ihY
+  case _at_witness_string_length =>
+    exact
+      is_closed_rec_witness_string_length_eq_and_bool_of_has_smt_translation
+        hEnv hTrans
 
 theorem is_closed_rec_apply_eq_of_not_list_branch
     {f x env : Term} {vars : List SmtVarKey}
@@ -1794,6 +2474,50 @@ by
         exact ⟨b, by simpa [__eo_is_closed_rec] using hBodyBool⟩
     | cons hTail =>
         exact ⟨b, by simpa [__eo_is_closed_rec] using hBodyBool⟩
+
+theorem is_closed_rec_uop_list_branch_eq_and_bool_of_has_smt_translation
+    {op : UserOp} {env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    {v vs body : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply (Term.UOp op)
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+          body))
+    (ihBody :
+      ∀ {env' : Term} {vars' : List SmtVarKey},
+        EoSmtVarEnv env' vars' ->
+          eoHasSmtTranslation body ->
+            __is_closed_rec body env' = __eo_is_closed_rec body env' ∧
+              ∃ b, __eo_is_closed_rec body env' = Term.Boolean b) :
+  __is_closed_rec
+      (Term.Apply
+        (Term.Apply (Term.UOp op)
+          (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+        body)
+      env =
+    __eo_is_closed_rec
+      (Term.Apply
+        (Term.Apply (Term.UOp op)
+          (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+        body)
+      env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.Apply
+          (Term.Apply (Term.UOp op)
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+          body)
+        env =
+      Term.Boolean b :=
+by
+  rcases body_obligations_of_uop_list_branch_has_smt_translation
+      hEnv hTrans with
+    ⟨hBodyTrans, ⟨vars', hBodyEnv⟩⟩
+  exact
+    is_closed_rec_uop_list_branch_eq_and_bool_of_has_smt_translation_and_body
+      hEnv hTrans (ihBody hBodyEnv hBodyTrans)
 
 theorem is_closed_rec_var_eq_eo_is_closed
     (s : native_String) (T : Term) :
