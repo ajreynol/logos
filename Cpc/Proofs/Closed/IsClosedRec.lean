@@ -1138,6 +1138,336 @@ by
       exact eo_is_closed_rec_eq_true_of_eo_type_valid_rec
         hEnv (by simpa [TranslationProofs.eo_type_valid] using hValid)
 
+theorem is_closed_rec_apply_eq_of_not_list_branch
+    {f x env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hNotList :
+      ∀ q v vs,
+        f ≠
+          Term.Apply q
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)) :
+  __is_closed_rec (Term.Apply f x) env =
+    __eo_and (__is_closed_rec f env) (__is_closed_rec x env) :=
+by
+  cases hEnv <;> cases f <;> simp [__is_closed_rec]
+
+theorem eo_type_valid_rec_not_eo_list_cons
+    {refs : List native_String} {T : Term}
+    (hValid : TranslationProofs.eo_type_valid_rec refs T) :
+    ∀ v vs, T ≠ Term.Apply (Term.Apply Term.__eo_List_cons v) vs :=
+by
+  intro v vs hEq
+  subst T
+  simp [TranslationProofs.eo_type_valid_rec] at hValid
+
+theorem apply_head_not_list_branch_of_arg_not_list
+    {h y : Term}
+    (hy : ∀ v vs, y ≠ Term.Apply (Term.Apply Term.__eo_List_cons v) vs) :
+    ∀ q v vs,
+      Term.Apply h y ≠
+        Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) :=
+by
+  intro q v vs hEq
+  cases hEq
+  exact hy v vs rfl
+
+theorem is_closed_rec_eq_true_of_eo_type_valid_rec
+    {refs : List native_String} {T env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hValid : TranslationProofs.eo_type_valid_rec refs T) :
+  __is_closed_rec T env = Term.Boolean true :=
+by
+  let rec go (T : Term) :
+      ∀ {refs : List native_String} {env : Term} {vars : List SmtVarKey},
+        EoSmtVarEnv env vars ->
+          TranslationProofs.eo_type_valid_rec refs T ->
+            __is_closed_rec T env = Term.Boolean true :=
+  by
+    intro refs env vars hEnv hValid
+    cases T with
+    | Bool =>
+        cases hEnv <;> simp [__is_closed_rec]
+    | DatatypeType s d =>
+        cases hEnv <;> simp [__is_closed_rec]
+    | DatatypeTypeRef s =>
+        cases hEnv <;> simp [__is_closed_rec]
+    | DtcAppType T U =>
+        cases hEnv <;> simp [__is_closed_rec]
+    | USort i =>
+        cases hEnv <;> simp [__is_closed_rec]
+    | UOp op =>
+        cases op <;> cases hEnv <;>
+          simp [TranslationProofs.eo_type_valid_rec,
+            __is_closed_rec] at hValid ⊢
+    | Apply f x =>
+        cases f with
+        | UOp op =>
+            cases op <;>
+              cases hEnv <;>
+                simp [TranslationProofs.eo_type_valid_rec,
+                  __is_closed_rec] at hValid ⊢
+            case BitVec.nil =>
+              cases x <;>
+                simp [TranslationProofs.eo_type_valid_rec,
+                  __is_closed_rec, __eo_and, native_and] at hValid ⊢
+            case BitVec.cons =>
+              cases x <;>
+                simp [TranslationProofs.eo_type_valid_rec,
+                  __is_closed_rec, __eo_and, native_and] at hValid ⊢
+            case Seq.nil =>
+              have hx := go x EoSmtVarEnv.nil hValid
+              simpa [__is_closed_rec, hx, eo_and_true_true]
+            case Seq.cons hTail =>
+              rename_i s' T' env' vars'
+              have hEnvCons := EoSmtVarEnv.cons (s := s') (T := T') hTail
+              have hx := go x hEnvCons hValid
+              simpa [__is_closed_rec, hx, eo_and_true_true]
+            case Set.nil =>
+              have hx := go x EoSmtVarEnv.nil hValid
+              simpa [__is_closed_rec, hx, eo_and_true_true]
+            case Set.cons hTail =>
+              rename_i s' T' env' vars'
+              have hEnvCons := EoSmtVarEnv.cons (s := s') (T := T') hTail
+              have hx := go x hEnvCons hValid
+              simpa [__is_closed_rec, hx, eo_and_true_true]
+        | Apply g y =>
+            cases g with
+            | FunType =>
+                rcases (by
+                    simpa [TranslationProofs.eo_type_valid_rec]
+                      using hValid :
+                    TranslationProofs.eo_type_valid_rec [] y ∧
+                      TranslationProofs.eo_type_valid_rec [] x) with
+                  ⟨hyValid, hxValid⟩
+                cases hEnv with
+                | nil =>
+                    have hy := go y EoSmtVarEnv.nil hyValid
+                    have hx := go x EoSmtVarEnv.nil hxValid
+                    have hyNotList :=
+                      eo_type_valid_rec_not_eo_list_cons hyValid
+                    have hOuterNotList :
+                        ∀ q v vs,
+                          Term.Apply Term.FunType y ≠
+                            Term.Apply q
+                              (Term.Apply
+                                (Term.Apply Term.__eo_List_cons v) vs) :=
+                      apply_head_not_list_branch_of_arg_not_list hyNotList
+                    have hInnerNotList :
+                        ∀ q v vs,
+                          Term.FunType ≠
+                            Term.Apply q
+                              (Term.Apply
+                                (Term.Apply Term.__eo_List_cons v) vs) := by
+                      intro q v vs hEq
+                      cases hEq
+                    rw [is_closed_rec_apply_eq_of_not_list_branch
+                      EoSmtVarEnv.nil hOuterNotList]
+                    rw [is_closed_rec_apply_eq_of_not_list_branch
+                      EoSmtVarEnv.nil hInnerNotList]
+                    simpa [__is_closed_rec, hy, hx, eo_and_true_true]
+                | cons hTail =>
+                    rename_i s' T' env' vars'
+                    have hEnvCons :=
+                      EoSmtVarEnv.cons (s := s') (T := T') hTail
+                    have hy := go y hEnvCons hyValid
+                    have hx := go x hEnvCons hxValid
+                    have hyNotList :=
+                      eo_type_valid_rec_not_eo_list_cons hyValid
+                    have hOuterNotList :
+                        ∀ q v vs,
+                          Term.Apply Term.FunType y ≠
+                            Term.Apply q
+                              (Term.Apply
+                                (Term.Apply Term.__eo_List_cons v) vs) :=
+                      apply_head_not_list_branch_of_arg_not_list hyNotList
+                    have hInnerNotList :
+                        ∀ q v vs,
+                          Term.FunType ≠
+                            Term.Apply q
+                              (Term.Apply
+                                (Term.Apply Term.__eo_List_cons v) vs) := by
+                      intro q v vs hEq
+                      cases hEq
+                    rw [is_closed_rec_apply_eq_of_not_list_branch
+                      hEnvCons hOuterNotList]
+                    rw [is_closed_rec_apply_eq_of_not_list_branch
+                      hEnvCons hInnerNotList]
+                    simpa [__is_closed_rec, hy, hx, eo_and_true_true]
+            | UOp op =>
+                cases op <;>
+                  cases hEnv <;>
+                    simp [TranslationProofs.eo_type_valid_rec,
+                      __is_closed_rec] at hValid ⊢
+                case Array.nil =>
+                  rcases (by
+                      simpa [TranslationProofs.eo_type_valid_rec]
+                        using hValid :
+                      TranslationProofs.eo_type_valid_rec [] y ∧
+                        TranslationProofs.eo_type_valid_rec [] x) with
+                    ⟨hyValid, hxValid⟩
+                  have hy := go y EoSmtVarEnv.nil hyValid
+                  have hx := go x EoSmtVarEnv.nil hxValid
+                  have hyNotList :=
+                    eo_type_valid_rec_not_eo_list_cons hyValid
+                  have hOuterNotList :
+                      ∀ q v vs,
+                        Term.Apply (Term.UOp UserOp.Array) y ≠
+                          Term.Apply q
+                            (Term.Apply
+                              (Term.Apply Term.__eo_List_cons v) vs) :=
+                    apply_head_not_list_branch_of_arg_not_list hyNotList
+                  have hInnerNotList :
+                      ∀ q v vs,
+                        Term.UOp UserOp.Array ≠
+                          Term.Apply q
+                            (Term.Apply
+                              (Term.Apply Term.__eo_List_cons v) vs) := by
+                    intro q v vs hEq
+                    cases hEq
+                  rw [is_closed_rec_apply_eq_of_not_list_branch
+                    EoSmtVarEnv.nil hOuterNotList]
+                  rw [is_closed_rec_apply_eq_of_not_list_branch
+                    EoSmtVarEnv.nil hInnerNotList]
+                  simpa [__is_closed_rec, hy, hx, eo_and_true_true]
+                case Array.cons hTail =>
+                  rename_i s' T' env' vars'
+                  rcases (by
+                      simpa [TranslationProofs.eo_type_valid_rec]
+                        using hValid :
+                      TranslationProofs.eo_type_valid_rec [] y ∧
+                        TranslationProofs.eo_type_valid_rec [] x) with
+                    ⟨hyValid, hxValid⟩
+                  have hEnvCons :=
+                    EoSmtVarEnv.cons (s := s') (T := T') hTail
+                  have hy := go y hEnvCons hyValid
+                  have hx := go x hEnvCons hxValid
+                  have hyNotList :=
+                    eo_type_valid_rec_not_eo_list_cons hyValid
+                  have hOuterNotList :
+                      ∀ q v vs,
+                        Term.Apply (Term.UOp UserOp.Array) y ≠
+                          Term.Apply q
+                            (Term.Apply
+                              (Term.Apply Term.__eo_List_cons v) vs) :=
+                    apply_head_not_list_branch_of_arg_not_list hyNotList
+                  have hInnerNotList :
+                      ∀ q v vs,
+                        Term.UOp UserOp.Array ≠
+                          Term.Apply q
+                            (Term.Apply
+                              (Term.Apply Term.__eo_List_cons v) vs) := by
+                    intro q v vs hEq
+                    cases hEq
+                  rw [is_closed_rec_apply_eq_of_not_list_branch
+                    hEnvCons hOuterNotList]
+                  rw [is_closed_rec_apply_eq_of_not_list_branch
+                    hEnvCons hInnerNotList]
+                  simpa [__is_closed_rec, hy, hx, eo_and_true_true]
+                case Tuple.nil =>
+                  rcases (by
+                      simpa [TranslationProofs.eo_type_valid_rec]
+                        using hValid :
+                      TranslationProofs.eo_type_valid_rec [] y ∧
+                        TranslationProofs.eo_type_valid_rec [] x ∧
+                          __smtx_type_wf
+                              (__eo_to_smt_type_tuple
+                                (__eo_to_smt_type y) (__eo_to_smt_type x)) =
+                            true) with
+                    ⟨hyValid, hxValid, _hWf⟩
+                  have hy := go y EoSmtVarEnv.nil hyValid
+                  have hx := go x EoSmtVarEnv.nil hxValid
+                  have hyNotList :=
+                    eo_type_valid_rec_not_eo_list_cons hyValid
+                  have hOuterNotList :
+                      ∀ q v vs,
+                        Term.Apply (Term.UOp UserOp.Tuple) y ≠
+                          Term.Apply q
+                            (Term.Apply
+                              (Term.Apply Term.__eo_List_cons v) vs) :=
+                    apply_head_not_list_branch_of_arg_not_list hyNotList
+                  have hInnerNotList :
+                      ∀ q v vs,
+                        Term.UOp UserOp.Tuple ≠
+                          Term.Apply q
+                            (Term.Apply
+                              (Term.Apply Term.__eo_List_cons v) vs) := by
+                    intro q v vs hEq
+                    cases hEq
+                  rw [is_closed_rec_apply_eq_of_not_list_branch
+                    EoSmtVarEnv.nil hOuterNotList]
+                  rw [is_closed_rec_apply_eq_of_not_list_branch
+                    EoSmtVarEnv.nil hInnerNotList]
+                  simpa [__is_closed_rec, hy, hx, eo_and_true_true]
+                case Tuple.cons hTail =>
+                  rename_i s' T' env' vars'
+                  rcases (by
+                      simpa [TranslationProofs.eo_type_valid_rec]
+                        using hValid :
+                      TranslationProofs.eo_type_valid_rec [] y ∧
+                        TranslationProofs.eo_type_valid_rec [] x ∧
+                          __smtx_type_wf
+                              (__eo_to_smt_type_tuple
+                                (__eo_to_smt_type y) (__eo_to_smt_type x)) =
+                            true) with
+                    ⟨hyValid, hxValid, _hWf⟩
+                  have hEnvCons :=
+                    EoSmtVarEnv.cons (s := s') (T := T') hTail
+                  have hy := go y hEnvCons hyValid
+                  have hx := go x hEnvCons hxValid
+                  have hyNotList :=
+                    eo_type_valid_rec_not_eo_list_cons hyValid
+                  have hOuterNotList :
+                      ∀ q v vs,
+                        Term.Apply (Term.UOp UserOp.Tuple) y ≠
+                          Term.Apply q
+                            (Term.Apply
+                              (Term.Apply Term.__eo_List_cons v) vs) :=
+                    apply_head_not_list_branch_of_arg_not_list hyNotList
+                  have hInnerNotList :
+                      ∀ q v vs,
+                        Term.UOp UserOp.Tuple ≠
+                          Term.Apply q
+                            (Term.Apply
+                              (Term.Apply Term.__eo_List_cons v) vs) := by
+                    intro q v vs hEq
+                    cases hEq
+                  rw [is_closed_rec_apply_eq_of_not_list_branch
+                    hEnvCons hOuterNotList]
+                  rw [is_closed_rec_apply_eq_of_not_list_branch
+                    hEnvCons hInnerNotList]
+                  simpa [__is_closed_rec, hy, hx, eo_and_true_true]
+            | _ =>
+                cases hEnv <;>
+                  simp [TranslationProofs.eo_type_valid_rec,
+                    __is_closed_rec] at hValid
+        | _ =>
+            cases hEnv <;>
+              simp [TranslationProofs.eo_type_valid_rec,
+                __is_closed_rec] at hValid
+    | _ =>
+        cases hEnv <;>
+          simp [TranslationProofs.eo_type_valid_rec,
+            __is_closed_rec] at hValid
+  exact go T hEnv hValid
+
+theorem is_closed_rec_eq_true_of_eo_type_valid
+    {T env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hValid : TranslationProofs.eo_type_valid T) :
+  __is_closed_rec T env = Term.Boolean true :=
+by
+  cases T with
+  | UOp op =>
+      cases op with
+      | RegLan =>
+          cases hEnv <;> simp [__is_closed_rec]
+      | _ =>
+          exact is_closed_rec_eq_true_of_eo_type_valid_rec
+            hEnv (by simpa [TranslationProofs.eo_type_valid] using hValid)
+  | _ =>
+      exact is_closed_rec_eq_true_of_eo_type_valid_rec
+        hEnv (by simpa [TranslationProofs.eo_type_valid] using hValid)
+
 theorem eo_type_valid_of_seq_empty_has_smt_translation
     {T : Term}
     (hTrans : eoHasSmtTranslation (Term.UOp1 UserOp1.seq_empty T)) :
@@ -5007,19 +5337,6 @@ by
       (eo_is_closed_rec_eq_true_of_nat_is_valid hEnv hHiValid)
       (ihX hXTrans)
 
-theorem is_closed_rec_apply_eq_of_not_list_branch
-    {f x env : Term} {vars : List SmtVarKey}
-    (hEnv : EoSmtVarEnv env vars)
-    (hNotList :
-      ∀ q v vs,
-        f ≠
-          Term.Apply q
-            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)) :
-  __is_closed_rec (Term.Apply f x) env =
-    __eo_and (__is_closed_rec f env) (__is_closed_rec x env) :=
-by
-  cases hEnv <;> cases f <;> simp [__is_closed_rec]
-
 theorem eo_is_closed_rec_apply_eq_of_not_quantifier
     {f x env : Term} {vars : List SmtVarKey}
     (hEnv : EoSmtVarEnv env vars)
@@ -5165,6 +5482,414 @@ by
   unfold eoHasSmtTranslation at hTrans
   rw [smtx_typeof_eo_list_cons_eq_none] at hTrans
   exact hTrans rfl
+
+theorem is_closed_rec_typed_list_eq_and_bool_of_elem_type_non_none
+    (root : Term)
+    (ih :
+      ∀ {t env : Term} {vars : List SmtVarKey},
+        sizeOf t < sizeOf root ->
+          EoSmtVarEnv env vars ->
+            eoHasSmtTranslation t ->
+              __is_closed_rec t env = __eo_is_closed_rec t env ∧
+                ∃ b, __eo_is_closed_rec t env = Term.Boolean b)
+    {xs env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hLt : sizeOf xs < sizeOf root)
+    (hElemNN : __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None) :
+  __is_closed_rec xs env = __eo_is_closed_rec xs env ∧
+    ∃ b, __eo_is_closed_rec xs env = Term.Boolean b :=
+by
+  let rec go (xs : Term) :
+      ∀ {env : Term} {vars : List SmtVarKey},
+        EoSmtVarEnv env vars ->
+          sizeOf xs < sizeOf root ->
+            __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None ->
+              __is_closed_rec xs env = __eo_is_closed_rec xs env ∧
+                ∃ b, __eo_is_closed_rec xs env = Term.Boolean b :=
+  by
+    intro env vars hEnv hLt hElemNN
+    cases xs with
+    | Apply f x =>
+        cases f with
+        | UOp op =>
+            cases op
+            case _at__at_TypedList_nil =>
+              have hWf : __smtx_type_wf (__eo_to_smt_type x) = true := by
+                by_cases hWf : __smtx_type_wf (__eo_to_smt_type x) = true
+                · exact hWf
+                · exfalso
+                  exact hElemNN (by
+                    simp [__eo_to_smt_typed_list_elem_type, native_ite, hWf])
+              have hXValid : TranslationProofs.eo_type_valid x :=
+                TranslationProofs.eo_type_valid_of_smt_wf x hWf
+              have hXIs : __is_closed_rec x env = Term.Boolean true :=
+                is_closed_rec_eq_true_of_eo_type_valid hEnv hXValid
+              have hXEo : __eo_is_closed_rec x env = Term.Boolean true :=
+                eo_is_closed_rec_eq_true_of_eo_type_valid hEnv hXValid
+              have hXClosed :
+                  __is_closed_rec x env = __eo_is_closed_rec x env ∧
+                    ∃ b, __eo_is_closed_rec x env = Term.Boolean b := by
+                refine ⟨?_, ⟨true, hXEo⟩⟩
+                rw [hXIs, hXEo]
+              exact is_closed_rec_apply_uop_eq_and_bool_of_arg hEnv hXClosed
+            all_goals
+              exact False.elim
+                (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+        | Apply g t =>
+            cases g with
+            | UOp op =>
+                cases op
+                case _at__at_TypedList_cons =>
+                  let headTy := __smtx_typeof (__eo_to_smt t)
+                  let tailTy := __eo_to_smt_typed_list_elem_type x
+                  have hGuard : native_Teq headTy tailTy = true := by
+                    by_cases hGuard : native_Teq headTy tailTy = true
+                    · exact hGuard
+                    · exfalso
+                      exact hElemNN (by
+                        simp [__eo_to_smt_typed_list_elem_type, headTy, tailTy,
+                          native_ite, hGuard])
+                  have hHeadNN : headTy ≠ SmtType.None := by
+                    change
+                      (native_ite (native_Teq headTy tailTy) headTy
+                          SmtType.None) ≠
+                        SmtType.None at hElemNN
+                    rw [hGuard] at hElemNN
+                    exact hElemNN
+                  have hTailNN : tailTy ≠ SmtType.None := by
+                    intro hTailNone
+                    cases hHead : headTy <;>
+                      simp [headTy, tailTy, hHead, hTailNone, native_Teq] at hGuard hHeadNN
+                  have hHeadTrans : eoHasSmtTranslation t := by
+                    unfold eoHasSmtTranslation
+                    simpa [headTy] using hHeadNN
+                  have hHeadLt : sizeOf t < sizeOf root := by
+                    simp at hLt
+                    omega
+                  have hTailLt : sizeOf x < sizeOf root := by
+                    simp at hLt
+                    omega
+                  have hHeadClosed := ih hHeadLt hEnv hHeadTrans
+                  have hTailClosed :=
+                    go x hEnv hTailLt (by simpa [tailTy] using hTailNN)
+                  have hInner :
+                      __is_closed_rec
+                          (Term.Apply
+                            (Term.UOp UserOp._at__at_TypedList_cons) t)
+                          env =
+                        __eo_is_closed_rec
+                          (Term.Apply
+                            (Term.UOp UserOp._at__at_TypedList_cons) t)
+                          env ∧
+                        ∃ b,
+                          __eo_is_closed_rec
+                              (Term.Apply
+                                (Term.UOp UserOp._at__at_TypedList_cons) t)
+                              env =
+                            Term.Boolean b :=
+                    is_closed_rec_apply_uop_eq_and_bool_of_arg
+                      hEnv hHeadClosed
+                  exact
+                    is_closed_rec_apply_generic_eq_and_bool_of_parts
+                      hEnv
+                      (by
+                        intro q v vs hEq
+                        cases hEq
+                        exact term_not_eo_list_cons_of_has_smt_translation
+                          hHeadTrans v vs rfl)
+                      (by
+                        intro vs hEq
+                        cases hEq)
+                      (by
+                        intro vs hEq
+                        cases hEq)
+                      hInner
+                      hTailClosed
+                all_goals
+                  exact False.elim
+                    (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+            | _ =>
+                exact False.elim
+                  (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+        | _ =>
+            exact False.elim
+              (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+    | _ =>
+        exact False.elim
+          (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+  exact go xs hEnv hLt hElemNN
+
+theorem typed_list_elem_type_non_none_of_distinct_has_smt_translation
+    {xs : Term}
+    (hTrans :
+      eoHasSmtTranslation (Term.Apply (Term.UOp UserOp.distinct) xs)) :
+  __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None :=
+by
+  unfold eoHasSmtTranslation at hTrans
+  change
+      __smtx_typeof
+          (native_ite
+            (native_Teq (__eo_to_smt_typed_list_elem_type xs) SmtType.None)
+            SmtTerm.None (__eo_to_smt_distinct xs)) ≠
+        SmtType.None at hTrans
+  intro hNone
+  have hTeq : native_Teq SmtType.None SmtType.None = true := by
+    simp [native_Teq]
+  exact hTrans (by
+    simp [hNone, hTeq, native_ite, TranslationProofs.smtx_typeof_none])
+
+theorem is_closed_rec_apply_distinct_eq_and_bool_of_has_smt_translation
+    (root : Term)
+    {xs env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hLt : sizeOf xs < sizeOf root)
+    (hTrans :
+      eoHasSmtTranslation (Term.Apply (Term.UOp UserOp.distinct) xs))
+    (ih :
+      ∀ {t env : Term} {vars : List SmtVarKey},
+        sizeOf t < sizeOf root ->
+          EoSmtVarEnv env vars ->
+            eoHasSmtTranslation t ->
+              __is_closed_rec t env = __eo_is_closed_rec t env ∧
+                ∃ b, __eo_is_closed_rec t env = Term.Boolean b) :
+  __is_closed_rec (Term.Apply (Term.UOp UserOp.distinct) xs) env =
+    __eo_is_closed_rec (Term.Apply (Term.UOp UserOp.distinct) xs) env ∧
+    ∃ b,
+      __eo_is_closed_rec (Term.Apply (Term.UOp UserOp.distinct) xs) env =
+        Term.Boolean b :=
+by
+  have hElemNN :=
+    typed_list_elem_type_non_none_of_distinct_has_smt_translation hTrans
+  have hXsClosed :=
+    is_closed_rec_typed_list_eq_and_bool_of_elem_type_non_none
+      root ih hEnv hLt hElemNN
+  exact is_closed_rec_apply_uop_eq_and_bool_of_arg hEnv hXsClosed
+
+theorem typed_list_elem_type_non_none_not_eo_list_cons
+    {xs : Term}
+    (hElemNN : __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None) :
+  ∀ v vs, xs ≠ Term.Apply (Term.Apply Term.__eo_List_cons v) vs :=
+by
+  intro v vs hEq
+  subst xs
+  exact hElemNN (by simp [__eo_to_smt_typed_list_elem_type])
+
+theorem eo_to_smt_set_insert_shape_of_non_none :
+    ∀ xs base,
+      __smtx_typeof (__eo_to_smt_set_insert xs base) ≠ SmtType.None ->
+        ∃ A,
+          __smtx_typeof (__eo_to_smt_set_insert xs base) = SmtType.Set A ∧
+          __smtx_typeof base = SmtType.Set A ∧
+          __eo_to_smt_typed_list_elem_type xs = A ∧
+          A ≠ SmtType.None :=
+by
+  intro xs base hNonNone
+  cases xs
+  all_goals
+    try
+      exfalso
+      apply hNonNone
+      simp [__eo_to_smt_set_insert, TranslationProofs.smtx_typeof_none]
+  case Apply f tail =>
+    cases f
+    all_goals
+      try
+        exfalso
+        apply hNonNone
+        simp [__eo_to_smt_set_insert, TranslationProofs.smtx_typeof_none]
+    case UOp op =>
+      cases op
+      case _at__at_TypedList_nil =>
+        cases hGuard :
+            native_Teq (__smtx_typeof base)
+              (SmtType.Set (__eo_to_smt_type tail))
+        · exfalso
+          apply hNonNone
+          simp [__eo_to_smt_set_insert, hGuard, native_ite,
+            TranslationProofs.smtx_typeof_none]
+        · have hBase :
+              __smtx_typeof base = SmtType.Set (__eo_to_smt_type tail) := by
+            simpa [native_Teq] using hGuard
+          have hBaseNN : term_has_non_none_type base := by
+            unfold term_has_non_none_type
+            rw [hBase]
+            simp
+          have hSetWf :
+              __smtx_type_wf (SmtType.Set (__eo_to_smt_type tail)) = true :=
+            smt_term_set_type_wf_of_non_none base hBaseNN hBase
+          have hTailWf : __smtx_type_wf (__eo_to_smt_type tail) = true :=
+            set_type_wf_component_of_wf hSetWf
+          have hTailNN : __eo_to_smt_type tail ≠ SmtType.None :=
+            type_wf_non_none hTailWf
+          refine ⟨__eo_to_smt_type tail, ?_, hBase, ?_, hTailNN⟩
+          · simpa [__eo_to_smt_set_insert, hGuard, native_ite] using hBase
+          · simp [__eo_to_smt_typed_list_elem_type, native_ite, hTailWf]
+      all_goals
+        exfalso
+        apply hNonNone
+        simp [__eo_to_smt_set_insert, TranslationProofs.smtx_typeof_none]
+    case Apply f' head =>
+      cases f'
+      all_goals
+        try
+          exfalso
+          apply hNonNone
+          simp [__eo_to_smt_set_insert, TranslationProofs.smtx_typeof_none]
+      case UOp op =>
+        cases op
+        case _at__at_TypedList_cons =>
+          have hNNUnion : term_has_non_none_type
+              (SmtTerm.set_union (SmtTerm.set_singleton (__eo_to_smt head))
+                (__eo_to_smt_set_insert tail base)) := by
+            unfold term_has_non_none_type
+            change
+              __smtx_typeof
+                  (__eo_to_smt_set_insert
+                    (Term.Apply
+                      (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons)
+                        head)
+                      tail) base) ≠ SmtType.None at hNonNone
+            simpa [__eo_to_smt_set_insert] using hNonNone
+          rcases set_binop_args_of_non_none (op := SmtTerm.set_union)
+              (typeof_set_union_eq
+                (SmtTerm.set_singleton (__eo_to_smt head))
+                (__eo_to_smt_set_insert tail base))
+              hNNUnion with
+            ⟨A, hHeadSet, hTailSet⟩
+          have hTailNN :
+              __smtx_typeof (__eo_to_smt_set_insert tail base) ≠
+                SmtType.None := by
+            rw [hTailSet]
+            simp
+          rcases eo_to_smt_set_insert_shape_of_non_none tail base hTailNN
+              with
+            ⟨B, hTailSmt, hBase, hTailElem, hBNN⟩
+          have hAB : A = B := by
+            have hSetEq : SmtType.Set A = SmtType.Set B :=
+              hTailSet.symm.trans hTailSmt
+            cases hSetEq
+            rfl
+          have hBaseA : __smtx_typeof base = SmtType.Set A := by
+            rw [hAB]
+            exact hBase
+          have hTailElemA : __eo_to_smt_typed_list_elem_type tail = A :=
+            hTailElem.trans hAB.symm
+          have hHeadArg := set_singleton_type_eq_arg_of_eq hHeadSet
+          have hSmt :
+              __smtx_typeof
+                  (__eo_to_smt_set_insert
+                    (Term.Apply
+                      (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons)
+                        head)
+                      tail) base) = SmtType.Set A := by
+            change
+              __smtx_typeof
+                  (SmtTerm.set_union
+                    (SmtTerm.set_singleton (__eo_to_smt head))
+                    (__eo_to_smt_set_insert tail base)) = SmtType.Set A
+            rw [typeof_set_union_eq, hHeadSet, hTailSet]
+            simp [__smtx_typeof_sets_op_2, native_ite, native_Teq]
+          have hElem :
+              __eo_to_smt_typed_list_elem_type
+                  (Term.Apply
+                    (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons)
+                      head)
+                    tail) = A := by
+            change
+              native_ite
+                (native_Teq (__smtx_typeof (__eo_to_smt head))
+                  (__eo_to_smt_typed_list_elem_type tail))
+                (__smtx_typeof (__eo_to_smt head)) SmtType.None = A
+            rw [hHeadArg.1, hTailElemA]
+            simp [native_Teq, native_ite]
+          exact ⟨A, hSmt, hBaseA, hElem, hHeadArg.2⟩
+        all_goals
+          exfalso
+          apply hNonNone
+          simp [__eo_to_smt_set_insert, TranslationProofs.smtx_typeof_none]
+termination_by xs base _ => sizeOf xs
+
+theorem set_insert_base_has_smt_translation_and_typed_list_elem_type_non_none
+    {xs base : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) base)) :
+  eoHasSmtTranslation base ∧
+    __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None :=
+by
+  unfold eoHasSmtTranslation at hTrans
+  change
+      __smtx_typeof (__eo_to_smt_set_insert xs (__eo_to_smt base)) ≠
+        SmtType.None at hTrans
+  rcases eo_to_smt_set_insert_shape_of_non_none xs (__eo_to_smt base)
+      hTrans with
+    ⟨A, _hSet, hBase, hElem, hANN⟩
+  refine ⟨?_, ?_⟩
+  · unfold eoHasSmtTranslation
+    rw [hBase]
+    simp
+  · rw [hElem]
+    exact hANN
+
+theorem is_closed_rec_apply_apply_set_insert_eq_and_bool_of_has_smt_translation
+    (root : Term)
+    {xs base env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hXsLt : sizeOf xs < sizeOf root)
+    (hBaseLt : sizeOf base < sizeOf root)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) base))
+    (ih :
+      ∀ {t env : Term} {vars : List SmtVarKey},
+        sizeOf t < sizeOf root ->
+          EoSmtVarEnv env vars ->
+            eoHasSmtTranslation t ->
+              __is_closed_rec t env = __eo_is_closed_rec t env ∧
+                ∃ b, __eo_is_closed_rec t env = Term.Boolean b) :
+  __is_closed_rec (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs)
+      base) env =
+    __eo_is_closed_rec
+      (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) base) env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) base)
+        env =
+      Term.Boolean b :=
+by
+  rcases
+      set_insert_base_has_smt_translation_and_typed_list_elem_type_non_none
+        hTrans with
+    ⟨hBaseTrans, hElemNN⟩
+  have hXsClosed :=
+    is_closed_rec_typed_list_eq_and_bool_of_elem_type_non_none
+      root ih hEnv hXsLt hElemNN
+  have hBaseClosed := ih hBaseLt hEnv hBaseTrans
+  have hInner :
+      __is_closed_rec (Term.Apply (Term.UOp UserOp.set_insert) xs) env =
+        __eo_is_closed_rec (Term.Apply (Term.UOp UserOp.set_insert) xs)
+          env ∧
+        ∃ b,
+          __eo_is_closed_rec
+              (Term.Apply (Term.UOp UserOp.set_insert) xs) env =
+            Term.Boolean b :=
+    is_closed_rec_apply_uop_eq_and_bool_of_arg hEnv hXsClosed
+  exact
+    is_closed_rec_apply_generic_eq_and_bool_of_parts
+      hEnv
+      (by
+        intro q v vs hEq
+        cases hEq
+        exact typed_list_elem_type_non_none_not_eo_list_cons hElemNN v vs
+          rfl)
+      (by
+        intro vs hEq
+        cases hEq)
+      (by
+        intro vs hEq
+        cases hEq)
+      hInner
+      hBaseClosed
 
 theorem is_closed_rec_apply_is_eq_and_bool_of_has_smt_translation
     {idx x env : Term} {vars : List SmtVarKey}
