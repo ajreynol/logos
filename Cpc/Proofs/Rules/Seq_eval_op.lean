@@ -7862,12 +7862,46 @@ private theorem seq_eval_smt_type_and_value_rel
         rw [← hSeqPrefixEval]
         exact hPrefixRel
   | case11 t s =>
+      let guardT := __is_seq_const t
+      let guardS := __is_seq_const s
       let it := __str_nary_intro t
       let is := __str_nary_intro s
       let rt := __eo_list_rev (Term.UOp UserOp.str_concat) it
       let rs := __eo_list_rev (Term.UOp UserOp.str_concat) is
+      have hReqNe :
+          __eo_requires guardT (Term.Boolean true)
+              (__eo_requires guardS (Term.Boolean true)
+                (__seq_is_prefix rt rs)) ≠ Term.Stuck := by
+        simpa [__seq_eval, guardT, guardS, it, is, rt, rs] using hEvalNe
+      have hGuardT : guardT = Term.Boolean true :=
+        eo_requires_eq_of_ne_stuck guardT (Term.Boolean true)
+          (__eo_requires guardS (Term.Boolean true) (__seq_is_prefix rt rs))
+          hReqNe
+      have hReqSNe :
+          __eo_requires guardS (Term.Boolean true) (__seq_is_prefix rt rs) ≠
+            Term.Stuck :=
+        eo_requires_result_ne_stuck_of_ne_stuck guardT (Term.Boolean true)
+          (__eo_requires guardS (Term.Boolean true) (__seq_is_prefix rt rs))
+          hReqNe
+      have hReqTEq :
+          __eo_requires guardT (Term.Boolean true)
+              (__eo_requires guardS (Term.Boolean true)
+                (__seq_is_prefix rt rs)) =
+            __eo_requires guardS (Term.Boolean true) (__seq_is_prefix rt rs) :=
+        eo_requires_eq_result_of_ne_stuck guardT (Term.Boolean true)
+          (__eo_requires guardS (Term.Boolean true) (__seq_is_prefix rt rs))
+          hReqNe
+      have hGuardS : guardS = Term.Boolean true :=
+        eo_requires_eq_of_ne_stuck guardS (Term.Boolean true)
+          (__seq_is_prefix rt rs) hReqSNe
+      have hReqSEq :
+          __eo_requires guardS (Term.Boolean true) (__seq_is_prefix rt rs) =
+            __seq_is_prefix rt rs :=
+        eo_requires_eq_result_of_ne_stuck guardS (Term.Boolean true)
+          (__seq_is_prefix rt rs) hReqSNe
       have hPrefixNe : __seq_is_prefix rt rs ≠ Term.Stuck := by
-        simpa [__seq_eval, it, is, rt, rs] using hEvalNe
+        exact eo_requires_result_ne_stuck_of_ne_stuck guardS
+          (Term.Boolean true) (__seq_is_prefix rt rs) hReqSNe
       have hSuffixNN :
           term_has_non_none_type
             (SmtTerm.str_suffixof (__eo_to_smt t) (__eo_to_smt s)) := by
@@ -7988,8 +8022,20 @@ private theorem seq_eval_smt_type_and_value_rel
                 (native_unpack_seq sy)) :=
         seq_prefix_eq_bool_native_char M hM rt rs sx sy
           hRTTy hRSTy hRTEval hRSEval hPrefixNe
+      have hEvalEq :
+          __seq_eval
+              (Term.Apply (Term.Apply (Term.UOp UserOp.str_suffixof) t) s) =
+            __seq_is_prefix rt rs := by
+        rw [show __seq_eval
+                (Term.Apply (Term.Apply (Term.UOp UserOp.str_suffixof) t) s) =
+              __eo_requires guardT (Term.Boolean true)
+                (__eo_requires guardS (Term.Boolean true)
+                  (__seq_is_prefix rt rs)) by
+            simp [__seq_eval, guardT, guardS, it, is, rt, rs]]
+        rw [hReqTEq, hReqSEq]
       constructor
-      · change __smtx_typeof (__eo_to_smt (__seq_is_prefix rt rs)) =
+      · rw [hEvalEq]
+        change __smtx_typeof (__eo_to_smt (__seq_is_prefix rt rs)) =
           __smtx_typeof
             (SmtTerm.str_suffixof (__eo_to_smt t) (__eo_to_smt s))
         rw [hPrefixEq]
@@ -8024,11 +8070,6 @@ private theorem seq_eval_smt_type_and_value_rel
           rw [hTEval, hSEval]
           exact smtx_model_eval_str_suffixof_seq_eq st ss SmtType.Char
             hStTy hSsTy
-        have hEvalEq :
-            __seq_eval
-                (Term.Apply (Term.Apply (Term.UOp UserOp.str_suffixof) t) s) =
-              __seq_is_prefix rt rs := by
-          simp [__seq_eval, it, is, rt, rs]
         have hOrigEval :
             __smtx_model_eval M
                 (__eo_to_smt
@@ -8075,7 +8116,87 @@ private theorem seq_eval_smt_type_and_value_rel
               native_seq_prefix_eq
                 (native_seq_rev (native_unpack_seq st))
                 (native_seq_rev (native_unpack_seq ss)) := by
-          sorry
+          have hRTToRevT :
+              RuleProofs.smt_value_rel
+                (__smtx_model_eval M (__eo_to_smt rt))
+                (__smtx_model_eval M
+                  (__eo_to_smt (Term.Apply (Term.UOp UserOp.str_rev) t))) :=
+            RuleProofs.smt_value_rel_trans
+              (__smtx_model_eval M (__eo_to_smt rt))
+              (__smtx_model_eval M (__eo_to_smt (__str_nary_elim rt)))
+              (__smtx_model_eval M
+                (__eo_to_smt (Term.Apply (Term.UOp UserOp.str_rev) t)))
+              hRTElimRel
+              (by
+                simpa [it, rt] using
+                  smt_value_rel_elim_rev_str_nary_intro_to_str_rev M hM
+                    t SmtType.Char htTy (by simpa [guardT] using hGuardT)
+                    hIntroTNN hIntroTNe hRTNe hElimRT)
+          have hRSToRevS :
+              RuleProofs.smt_value_rel
+                (__smtx_model_eval M (__eo_to_smt rs))
+                (__smtx_model_eval M
+                  (__eo_to_smt (Term.Apply (Term.UOp UserOp.str_rev) s))) :=
+            RuleProofs.smt_value_rel_trans
+              (__smtx_model_eval M (__eo_to_smt rs))
+              (__smtx_model_eval M (__eo_to_smt (__str_nary_elim rs)))
+              (__smtx_model_eval M
+                (__eo_to_smt (Term.Apply (Term.UOp UserOp.str_rev) s)))
+              hRSElimRel
+              (by
+                simpa [is, rs] using
+                  smt_value_rel_elim_rev_str_nary_intro_to_str_rev M hM
+                    s SmtType.Char hsTy (by simpa [guardS] using hGuardS)
+                    hIntroSNN hIntroSNe hRSNe hElimRS)
+          have hRevTEval :
+              __smtx_model_eval M
+                  (__eo_to_smt (Term.Apply (Term.UOp UserOp.str_rev) t)) =
+                SmtValue.Seq
+                  (native_pack_seq (__smtx_elem_typeof_seq_value st)
+                    (native_seq_rev (native_unpack_seq st))) := by
+            change __smtx_model_eval M (SmtTerm.str_rev (__eo_to_smt t)) =
+              SmtValue.Seq
+                (native_pack_seq (__smtx_elem_typeof_seq_value st)
+                  (native_seq_rev (native_unpack_seq st)))
+            rw [__smtx_model_eval.eq_88, hTEval]
+            rfl
+          have hRevSEval :
+              __smtx_model_eval M
+                  (__eo_to_smt (Term.Apply (Term.UOp UserOp.str_rev) s)) =
+                SmtValue.Seq
+                  (native_pack_seq (__smtx_elem_typeof_seq_value ss)
+                    (native_seq_rev (native_unpack_seq ss))) := by
+            change __smtx_model_eval M (SmtTerm.str_rev (__eo_to_smt s)) =
+              SmtValue.Seq
+                (native_pack_seq (__smtx_elem_typeof_seq_value ss)
+                  (native_seq_rev (native_unpack_seq ss)))
+            rw [__smtx_model_eval.eq_88, hSEval]
+            rfl
+          have hRTUnpack :
+              native_unpack_seq sx =
+                native_seq_rev (native_unpack_seq st) := by
+            have hRel :
+                RuleProofs.smt_value_rel
+                  (SmtValue.Seq sx)
+                  (SmtValue.Seq
+                    (native_pack_seq (__smtx_elem_typeof_seq_value st)
+                      (native_seq_rev (native_unpack_seq st)))) := by
+              simpa [hRTEval, hRevTEval] using hRTToRevT
+            have hUnpack := smt_value_rel_seq_unpack_eq hRel
+            simpa [Smtm.native_unpack_pack_seq] using hUnpack
+          have hRSUnpack :
+              native_unpack_seq sy =
+                native_seq_rev (native_unpack_seq ss) := by
+            have hRel :
+                RuleProofs.smt_value_rel
+                  (SmtValue.Seq sy)
+                  (SmtValue.Seq
+                    (native_pack_seq (__smtx_elem_typeof_seq_value ss)
+                      (native_seq_rev (native_unpack_seq ss)))) := by
+              simpa [hRSEval, hRevSEval] using hRSToRevS
+            have hUnpack := smt_value_rel_seq_unpack_eq hRel
+            simpa [Smtm.native_unpack_pack_seq] using hUnpack
+          rw [hRTUnpack, hRSUnpack]
         rw [hNativeSuffix]
         exact RuleProofs.smt_value_rel_refl _
   | case12 t n =>
