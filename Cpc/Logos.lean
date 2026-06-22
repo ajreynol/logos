@@ -2798,10 +2798,10 @@ def __str_mk_str_in_re_sigma_star_rec : Term -> Term -> Term -> Term
 
 
 def __re_split_str_to_re : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
   | (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) c) s), tail => (__eo_mk_apply (Term.Apply (Term.UOp UserOp.re_concat) (Term.Apply (Term.UOp UserOp.str_to_re) c)) (__re_split_str_to_re s tail))
-  | c, tail => tail
+  | (Term.String []), tail => tail
+  | _, _ => Term.Stuck
 
 
 def __re_flatten : Term -> Term -> Term -> Term
