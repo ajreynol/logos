@@ -3598,6 +3598,86 @@ private theorem native_seq_indexof_cons_not_prefix
     · rw [dif_neg hCons]
       simp
 
+private theorem native_seq_indexof_nil_zero (pat : List SmtValue) :
+    native_seq_indexof [] pat 0 =
+      if pat = [] then 0 else (-1 : native_Int) := by
+  cases pat with
+  | nil =>
+      simp [native_seq_indexof, native_seq_indexof_rec,
+        native_seq_prefix_eq]
+  | cons p ps =>
+      simp [native_seq_indexof]
+
+private theorem native_seq_indexof_zero_of_prefix
+    (xs pat : List SmtValue)
+    (hPref : native_seq_prefix_eq pat xs = true) :
+    native_seq_indexof xs pat 0 = 0 := by
+  have hLen : pat.length ≤ xs.length := by
+    rcases (RuleProofs.native_seq_prefix_eq_iff pat xs).1 hPref with
+      ⟨rest, hxs⟩
+    rw [hxs]
+    simp
+  unfold native_seq_indexof
+  simp only [Int.reduceLT, ↓reduceIte, Int.toNat_zero, Nat.zero_add,
+    List.drop_zero]
+  rw [dif_pos (by simpa using hLen)]
+  have hFuel :
+      xs.length - pat.length + 1 = (xs.length - pat.length) + 1 := by
+    omega
+  rw [hFuel]
+  unfold native_seq_indexof_rec
+  rw [if_pos hPref]
+  simp
+
+private def native_seq_indexof_offset
+    (xs pat : List SmtValue) (off : Nat) : native_Int :=
+  let r := native_seq_indexof xs pat 0
+  if r = (-1 : native_Int) then (-1 : native_Int) else r + Int.ofNat off
+
+private theorem native_seq_indexof_offset_zero
+    (xs pat : List SmtValue) :
+    native_seq_indexof_offset xs pat 0 =
+      native_seq_indexof xs pat 0 := by
+  unfold native_seq_indexof_offset
+  by_cases h : native_seq_indexof xs pat 0 = (-1 : native_Int)
+  · simp [h]
+  · simp [h]
+
+private theorem native_seq_indexof_offset_of_prefix
+    (xs pat : List SmtValue) (off : Nat)
+    (hPref : native_seq_prefix_eq pat xs = true) :
+    native_seq_indexof_offset xs pat off = Int.ofNat off := by
+  unfold native_seq_indexof_offset
+  rw [native_seq_indexof_zero_of_prefix xs pat hPref]
+  simp
+
+private theorem native_seq_indexof_offset_cons_not_prefix
+    (x : SmtValue) (xs pat : List SmtValue) (off : Nat)
+    (hPref : native_seq_prefix_eq pat (x :: xs) = false) :
+    native_seq_indexof_offset (x :: xs) pat off =
+      native_seq_indexof_offset xs pat (off + 1) := by
+  unfold native_seq_indexof_offset
+  rw [native_seq_indexof_cons_not_prefix x xs pat hPref]
+  by_cases hTail : native_seq_indexof xs pat 0 = (-1 : native_Int)
+  · simp [hTail]
+  · have hTailNonneg : 0 ≤ native_seq_indexof xs pat 0 := by
+      rcases native_seq_indexof_eq_neg_one_or_ge xs pat 0 with
+        hNeg | hGe
+      · exact False.elim (hTail hNeg)
+      · simpa using hGe
+    have hStepNe :
+        native_seq_indexof xs pat 0 + 1 ≠ (-1 : native_Int) := by
+      intro hBad
+      have hNonneg : 0 ≤ native_seq_indexof xs pat 0 + 1 :=
+        Int.add_nonneg hTailNonneg (by decide)
+      rw [hBad] at hNonneg
+      exact (by decide : ¬ (0 : native_Int) ≤ -1) hNonneg
+    have hStepNeLeft :
+        1 + native_seq_indexof xs pat 0 ≠ (-1 : native_Int) := by
+      simpa [Int.add_comm] using hStepNe
+    simp [hTail, hStepNeLeft, Int.add_assoc, Int.add_comm,
+      Int.add_left_comm]
+
 private theorem smtx_model_eval_not_is_neg_indexof_contains
     (M : SmtModel) (xs pat : List SmtValue) :
     __smtx_model_eval M
@@ -3618,6 +3698,71 @@ private theorem smtx_model_eval_not_is_neg_indexof_contains
     simp [idx, __eo_is_neg, __eo_not, native_seq_contains, native_zlt,
       SmtEval.native_zlt, SmtEval.native_not, __smtx_model_eval, hNeg,
       hLe]
+
+private theorem seq_find_str_nary_intro_guarded_eq_native_indexof
+    (M : SmtModel) (hM : model_total_typed M)
+    (t s : Term) (T : SmtType) (sa sb : SmtSeq)
+    (htTy : __smtx_typeof (__eo_to_smt t) = SmtType.Seq T)
+    (hsTy : __smtx_typeof (__eo_to_smt s) = SmtType.Seq T)
+    (hGuardT : __is_seq_const t = Term.Boolean true)
+    (hGuardS : __is_seq_const s = Term.Boolean true)
+    (hATy :
+      __smtx_typeof (__eo_to_smt (__str_nary_intro t)) = SmtType.Seq T)
+    (hBTy :
+      __smtx_typeof (__eo_to_smt (__str_nary_intro s)) = SmtType.Seq T)
+    (hAEval :
+      __smtx_model_eval M (__eo_to_smt (__str_nary_intro t)) =
+        SmtValue.Seq sa)
+    (hBEval :
+      __smtx_model_eval M (__eo_to_smt (__str_nary_intro s)) =
+        SmtValue.Seq sb)
+    (hFindNe :
+      __seq_find (__str_nary_intro t) (__str_nary_intro s)
+          (Term.Numeral 0) ≠ Term.Stuck) :
+    __seq_find (__str_nary_intro t) (__str_nary_intro s)
+        (Term.Numeral 0) =
+      Term.Numeral
+        (native_seq_indexof (native_unpack_seq sa)
+          (native_unpack_seq sb) 0) := by
+  let a := __str_nary_intro t
+  let b := __str_nary_intro s
+  have hLeftNe : a ≠ Term.Stuck :=
+    seq_find_left_ne_stuck_of_ne_stuck a b (Term.Numeral 0)
+      (by simpa [a, b] using hFindNe)
+  have hRightNe : b ≠ Term.Stuck :=
+    seq_find_right_ne_stuck_of_ne_stuck a b (Term.Numeral 0)
+      (by simpa [a, b] using hFindNe)
+  have hIndexNe : (Term.Numeral (0 : native_Int)) ≠ Term.Stuck := by
+    simp
+  have hFindEq :
+      __seq_find a b (Term.Numeral 0) =
+        __eo_ite (__eo_eq a b) (Term.Numeral 0)
+          (__eo_l_1___seq_find a b (Term.Numeral 0)) :=
+    seq_find_eq_of_args_ne_stuck a b (Term.Numeral 0)
+      hLeftNe hRightNe hIndexNe
+  change __seq_find a b (Term.Numeral 0) =
+    Term.Numeral
+      (native_seq_indexof (native_unpack_seq sa)
+        (native_unpack_seq sb) 0)
+  rw [hFindEq] at hFindNe ⊢
+  rcases eo_ite_cases_of_ne_stuck (__eo_eq a b) (Term.Numeral 0)
+      (__eo_l_1___seq_find a b (Term.Numeral 0))
+      (by simpa [a, b, hFindEq] using hFindNe) with hEq | hEq
+  · have hBA : b = a :=
+      eq_of_eo_eq_true_local a b hEq
+    have hSeq : sb = sa := by
+      have hAEvalA :
+          __smtx_model_eval M (__eo_to_smt a) = SmtValue.Seq sa := by
+        simpa [a] using hAEval
+      have hBEvalB :
+          __smtx_model_eval M (__eo_to_smt b) = SmtValue.Seq sb := by
+        simpa [b] using hBEval
+      rw [hBA, hAEvalA] at hBEvalB
+      injection hBEvalB with hSeqEq
+      exact hSeqEq.symm
+    rw [hEq, eo_ite_true, hSeq]
+    simp [native_seq_indexof_self_zero]
+  · sorry
 
 private theorem str_value_len_eval_seq_length
     (M : SmtModel) (hM : model_total_typed M)
@@ -4939,8 +5084,37 @@ private theorem seq_eval_smt_type_and_value_rel
       let b := __str_nary_intro s
       let find := __seq_find a b (Term.Numeral 0)
       let out := __eo_not (__eo_is_neg find)
+      let guardT := __is_seq_const t
+      let guardS := __is_seq_const s
+      have hReqNe :
+          __eo_requires guardT (Term.Boolean true)
+              (__eo_requires guardS (Term.Boolean true) out) ≠
+            Term.Stuck := by
+        simpa [__seq_eval, a, b, find, out, guardT, guardS] using hEvalNe
+      have hInnerReqNe :
+          __eo_requires guardS (Term.Boolean true) out ≠ Term.Stuck :=
+        eo_requires_result_ne_stuck_of_ne_stuck guardT (Term.Boolean true)
+          (__eo_requires guardS (Term.Boolean true) out) hReqNe
       have hOutNe : out ≠ Term.Stuck := by
-        simpa [__seq_eval, a, b, find, out] using hEvalNe
+        exact eo_requires_result_ne_stuck_of_ne_stuck guardS
+          (Term.Boolean true) out hInnerReqNe
+      have hGuardT : guardT = Term.Boolean true :=
+        eo_requires_eq_of_ne_stuck guardT (Term.Boolean true)
+          (__eo_requires guardS (Term.Boolean true) out) hReqNe
+      have hGuardS : guardS = Term.Boolean true :=
+        eo_requires_eq_of_ne_stuck guardS (Term.Boolean true) out
+          hInnerReqNe
+      have hReqEq :
+          __eo_requires guardT (Term.Boolean true)
+              (__eo_requires guardS (Term.Boolean true) out) =
+            out := by
+        have hOuter :=
+          eo_requires_eq_result_of_ne_stuck guardT (Term.Boolean true)
+            (__eo_requires guardS (Term.Boolean true) out) hReqNe
+        have hInner :=
+          eo_requires_eq_result_of_ne_stuck guardS (Term.Boolean true) out
+            hInnerReqNe
+        rw [hOuter, hInner]
       have hFindNe : find ≠ Term.Stuck := by
         intro hStuck
         apply hOutNe
@@ -5039,7 +5213,7 @@ private theorem seq_eval_smt_type_and_value_rel
           __seq_eval
               (Term.Apply (Term.Apply (Term.UOp UserOp.str_contains) t) s) =
             out := by
-        simp [__seq_eval, a, b, find, out]
+        simpa [__seq_eval, a, b, find, out, guardT, guardS] using hReqEq
       constructor
       · rcases hOutBool with ⟨q, hOutEq⟩
         rw [hEvalEq, hOutEq]
@@ -5073,7 +5247,16 @@ private theorem seq_eval_smt_type_and_value_rel
                   Term.Numeral
                     (native_seq_indexof (native_unpack_seq sa)
                       (native_unpack_seq sb) 0) := by
-              sorry
+              simpa [find, a, b] using
+                seq_find_str_nary_intro_guarded_eq_native_indexof M hM t s T
+                  sa sb htTy hsTy
+                  (by simpa [guardT] using hGuardT)
+                  (by simpa [guardS] using hGuardS)
+                  (by simpa [a] using hATy)
+                  (by simpa [b] using hBTy)
+                  (by simpa [a] using hAEval)
+                  (by simpa [b] using hBEval)
+                  (by simpa [find, a, b] using hFindNe)
             simpa [hAUnpack, hBUnpack] using hFindNativeIntro
           simpa [out, hFindNative] using
             smtx_model_eval_not_is_neg_indexof_contains M
@@ -5098,9 +5281,46 @@ private theorem seq_eval_smt_type_and_value_rel
       let tail := __eo_list_concat (Term.UOp UserOp.str_concat) repl right
       let merged := __eo_list_concat (Term.UOp UserOp.str_concat) left tail
       let out := __eo_ite isneg t (__str_nary_elim merged)
-      have hOutNe : out ≠ Term.Stuck := by
+      let guardT := __is_seq_const t
+      let guardS := __is_seq_const s
+      have hReqNe :
+          __eo_requires guardT (Term.Boolean true)
+              (__eo_requires guardS (Term.Boolean true) out) ≠
+            Term.Stuck := by
         simpa [__seq_eval, a, len, b, find, empty, isneg, left, right,
-          repl, tail, merged, out] using hEvalNe
+          repl, tail, merged, out, guardT, guardS] using hEvalNe
+      have hInnerReqNe :
+          __eo_requires guardS (Term.Boolean true) out ≠ Term.Stuck :=
+        eo_requires_result_ne_stuck_of_ne_stuck guardT (Term.Boolean true)
+          (__eo_requires guardS (Term.Boolean true) out) hReqNe
+      have hOutNe : out ≠ Term.Stuck := by
+        exact eo_requires_result_ne_stuck_of_ne_stuck guardS
+          (Term.Boolean true) out hInnerReqNe
+      have hGuardT : guardT = Term.Boolean true :=
+        eo_requires_eq_of_ne_stuck guardT (Term.Boolean true)
+          (__eo_requires guardS (Term.Boolean true) out) hReqNe
+      have hGuardS : guardS = Term.Boolean true :=
+        eo_requires_eq_of_ne_stuck guardS (Term.Boolean true) out
+          hInnerReqNe
+      have hReqEq :
+          __eo_requires guardT (Term.Boolean true)
+              (__eo_requires guardS (Term.Boolean true) out) =
+            out := by
+        have hOuter :=
+          eo_requires_eq_result_of_ne_stuck guardT (Term.Boolean true)
+            (__eo_requires guardS (Term.Boolean true) out) hReqNe
+        have hInner :=
+          eo_requires_eq_result_of_ne_stuck guardS (Term.Boolean true) out
+            hInnerReqNe
+        rw [hOuter, hInner]
+      have hEvalEq :
+          __seq_eval
+              (Term.Apply
+                (Term.Apply
+                  (Term.Apply (Term.UOp UserOp.str_replace) t) s) r) =
+            out := by
+        simpa [__seq_eval, a, len, b, find, empty, isneg, left, right,
+          repl, tail, merged, out, guardT, guardS] using hReqEq
       have hReplaceNN :
           term_has_non_none_type
             (SmtTerm.str_replace (__eo_to_smt t) (__eo_to_smt s)
@@ -5204,13 +5424,15 @@ private theorem seq_eval_smt_type_and_value_rel
             smt_typeof_str_nary_elim_of_seq_ne_stuck merged T hMergedTy
               hElimNe
       constructor
-      · change __smtx_typeof (__eo_to_smt out) =
+      · rw [hEvalEq]
+        change __smtx_typeof (__eo_to_smt out) =
           __smtx_typeof
             (SmtTerm.str_replace (__eo_to_smt t) (__eo_to_smt s)
               (__eo_to_smt r))
         rw [hOutTy, typeof_str_replace_eq, htTy, hsTy, hrTy]
         simp [__smtx_typeof_seq_op_3, native_Teq, native_ite]
-      · sorry
+      · rw [hEvalEq]
+        sorry
   | case8 t s r =>
       let b := __str_nary_intro s
       let a := __str_nary_intro t
