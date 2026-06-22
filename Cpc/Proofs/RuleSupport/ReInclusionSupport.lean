@@ -2245,7 +2245,7 @@ private theorem substrWord_full_type
             SmtType.Seq T := by
         rw [hT]
         exact smt_typeof_string_seq_char_of_valid [c]
-          (by simpa [native_string_valid, hc])
+          (by simp [native_string_valid, hc])
       have hTailTy :
           __smtx_typeof (__eo_to_smt (substrWord cs 0 cs.length)) =
             SmtType.Seq T := by
@@ -2499,7 +2499,7 @@ private theorem str_flatten_concat_nonstr_local
         (__str_flatten rest)) =
     mkConcat a (__str_flatten rest)
   rw [ha, eo_ite_false]
-  simp [__eo_mk_apply, hTail]
+  simp [__eo_mk_apply]
 
 private theorem str_flatten_eq_default_of_not_str_concat_local
     (x : Term)
@@ -2559,7 +2559,7 @@ private theorem eo_list_concat_eq_rec_of_lists
         (Term.Boolean true) (__eo_list_concat_rec a z)) =
     __eo_list_concat_rec a z
   rw [hListA, hListZ]
-  simp [eo_requires_self_eq_of_ne_stuck, hRecNe]
+  simp [eo_requires_self_eq_of_ne_stuck]
 
 private theorem smt_typeof_eo_list_concat_str_concat_of_seq
     (a z : Term) (T : SmtType)
@@ -3074,7 +3074,7 @@ private theorem re_split_str_to_re_eval_rel
               (Term.Apply (Term.UOp UserOp.re_concat) headRe) splitRest :=
         eo_mk_apply_eq_apply_of_ne_stuck
           (Term.Apply (Term.UOp UserOp.re_concat) headRe) splitRest (by
-            simp [__eo_mk_apply, headRe, hSplitRestNe])
+            simp [__eo_mk_apply, headRe])
       have hFullEval :
           __smtx_model_eval M
               (__eo_to_smt
