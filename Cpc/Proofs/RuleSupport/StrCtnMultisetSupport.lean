@@ -436,20 +436,6 @@ theorem valueCount_string_eval (M : SmtModel) (v : SmtValue)
   injection hEval' with hS
   rw [hS, unpack_pack_string_map]
 
-theorem eo_is_str_true_cases (t : Term)
-    (h : __eo_is_str t = Term.Boolean true) :
-    ∃ w, t = Term.String w := by
-  cases t <;> simp [__eo_is_str, __eo_is_str_internal, native_teq,
-    SmtEval.native_and, SmtEval.native_not] at h
-  · rename_i w
-    exact ⟨w, rfl⟩
-
-theorem eo_is_str_boolean_of_ne_stuck (t : Term) (ht : t ≠ Term.Stuck) :
-    ∃ b, __eo_is_str t = Term.Boolean b := by
-  unfold __eo_is_str
-  exact ⟨native_and (native_not (native_teq t Term.Stuck))
-    (native_teq (__eo_is_str_internal t) (Term.Boolean true)), rfl⟩
-
 theorem eo_typeof_ne_stuck_of_smt_seq_type (t : Term) (T : SmtType)
     (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.Seq T) :
     __eo_typeof t ≠ Term.Stuck := by
@@ -1548,45 +1534,7 @@ theorem seqTypedList_cons (T : SmtType) (x xs : Term)
 
 theorem scratch_value_len_numeral_nonneg :
     ∀ t : Term, ∀ n : Int, __str_value_len t = Term.Numeral n -> 0 ≤ n := by
-  intro t
-  induction t using __str_value_len.induct with
-  | case1 =>
-      intro n h
-      simp [__str_value_len] at h
-  | case2 e ss ih =>
-      intro n h
-      change __eo_add (Term.Numeral 1) (__str_value_len ss) = Term.Numeral n at h
-      cases hv : __str_value_len ss with
-      | Numeral m =>
-          have hm : 0 ≤ m := ih m hv
-          rw [hv] at h
-          simp [__eo_add, native_zplus] at h
-          rw [← h]
-          exact Int.add_nonneg (show (0 : Int) ≤ 1 by decide) hm
-      | Stuck =>
-          rw [hv] at h
-          simp [__eo_add] at h
-      | _ =>
-          rw [hv] at h
-          simp [__eo_add] at h
-  | case3 T =>
-      intro n h
-      simp [__str_value_len] at h
-      rw [← h]
-      decide
-  | case4 e =>
-      intro n h
-      simp [__str_value_len] at h
-      rw [← h]
-      decide
-  | case5 s hSt hNotConcat hNotEmpty hNotUnit =>
-      intro n h
-      cases s <;> simp [__str_value_len, __eo_requires, __eo_is_str,
-        __eo_is_str_internal, __eo_len, native_str_len, native_teq,
-        SmtEval.native_ite, SmtEval.native_and, SmtEval.native_not] at h
-      case String w =>
-        rw [← h]
-        exact Int.natCast_nonneg _
+  exact str_value_len_numeral_nonneg
 
 theorem scratch_string_nil_of_len_zero (w : native_String)
     (h : __str_value_len (Term.String w) = Term.Numeral 0) :
@@ -1624,24 +1572,7 @@ theorem scratch_string_singleton_of_len_one (w : native_String)
 theorem scratch_str_value_len_zero_is_empty (t : Term)
     (hLen0 : __str_value_len t = Term.Numeral 0) :
     __str_is_empty t = Term.Boolean true := by
-  rcases value_len_numeral_cases t 0 hLen0 with
-      ⟨w, rfl⟩ | ⟨e, ss, hConcat⟩ | ⟨U, rfl⟩ | ⟨e, rfl⟩
-  · have hw : w = [] := scratch_string_nil_of_len_zero w hLen0
-    subst hw
-    simp [__str_is_empty]
-  · subst hConcat
-    obtain ⟨m, hTail⟩ :=
-      value_len_tail_numeral_of_concat_seqUnit e ss 0 hLen0
-    have hm : 0 ≤ m := scratch_value_len_numeral_nonneg ss m hTail
-    change __eo_add (Term.Numeral 1) (__str_value_len ss) = Term.Numeral 0 at hLen0
-    rw [hTail] at hLen0
-    simp [__eo_add, native_zplus] at hLen0
-    have hpos : (0 : Int) < 1 + m :=
-      Int.add_pos_of_pos_of_nonneg (show (0 : Int) < 1 by decide) hm
-    rw [hLen0] at hpos
-    exact False.elim ((show ¬ (0 : Int) < 0 by decide) hpos)
-  · simp [__str_is_empty]
-  · simp [__str_value_len] at hLen0
+  exact str_value_len_zero_is_empty t hLen0
 
 theorem scratch_concat_seqUnit_len_one_tail_empty (e ss : Term)
     (hLen1 : __str_value_len
@@ -1649,18 +1580,7 @@ theorem scratch_concat_seqUnit_len_one_tail_empty (e ss : Term)
           (Term.Apply (Term.UOp UserOp.seq_unit) e)) ss) =
       Term.Numeral 1) :
     __str_is_empty ss = Term.Boolean true := by
-  obtain ⟨m, hTail⟩ :=
-    value_len_tail_numeral_of_concat_seqUnit e ss 1 hLen1
-  have hm : 0 ≤ m := scratch_value_len_numeral_nonneg ss m hTail
-  change __eo_add (Term.Numeral 1) (__str_value_len ss) = Term.Numeral 1 at hLen1
-  rw [hTail] at hLen1
-  simp [__eo_add, native_zplus] at hLen1
-  have hm0 : m = 0 := by
-    have hEq : 1 + m = 1 + 0 := by
-      simpa using hLen1
-    exact Int.add_left_cancel hEq
-  subst hm0
-  exact scratch_str_value_len_zero_is_empty ss hTail
+  exact concatSeqUnit_len_one_tail_empty e ss hLen1
 
 theorem scratch_eq_of_eo_is_eq_true (a b : Term)
     (h : __eo_is_eq a b = Term.Boolean true) :
@@ -2124,7 +2044,18 @@ theorem scratch_singleton_done_witness
     refine ⟨seqElemVal M a, hXsZero, ?_⟩
     rw [hCount]
     decide
-  · simp [__str_value_len] at hLenEq
+  · have hLen0 :
+        __str_value_len
+            (Term.UOp1 UserOp1.seq_empty
+              (Term.Apply (Term.UOp UserOp.Seq) U)) =
+          Term.Numeral 0 := by
+      simp [__str_value_len, __is_seq_const, __is_seq_const_rec,
+        __eo_is_str, __eo_is_str_internal, __eo_ite, native_teq, native_ite,
+        SmtEval.native_ite, SmtEval.native_and, SmtEval.native_not,
+        __eo_requires, __eo_list_len, strConcat_is_list_explicit_seq_empty_seq,
+        __eo_list_len_rec]
+    rw [hLen0] at hLenEq
+    cases hLenEq
   · let a := Term.Apply (Term.UOp UserOp.seq_unit) e
     have haAtom : AtomTerm a := Or.inr ⟨e, rfl⟩
     have hXsZero :
