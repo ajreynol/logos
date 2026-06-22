@@ -15,8 +15,6 @@ abbrev _at__at_pair := Term.UOp UserOp._at__at_pair
 abbrev _at__at_TypedList := Term.UOp UserOp._at__at_TypedList
 abbrev _at__at_TypedList_nil := Term.UOp UserOp._at__at_TypedList_nil
 abbrev _at__at_TypedList_cons := Term.UOp UserOp._at__at_TypedList_cons
-abbrev _at__at_result_null := Term.UOp UserOp._at__at_result_null
-abbrev _at__at_result_invalid := Term.UOp UserOp._at__at_result_invalid
 abbrev ite := Term.UOp UserOp.ite
 abbrev not := Term.UOp UserOp.not
 abbrev or := Term.UOp UserOp.or
@@ -220,8 +218,6 @@ attribute [match_pattern]
   Term._at__at_TypedList
   Term._at__at_TypedList_nil
   Term._at__at_TypedList_cons
-  Term._at__at_result_null
-  Term._at__at_result_invalid
   Term.ite
   Term.not
   Term.or
