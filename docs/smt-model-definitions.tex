@@ -21,7 +21,7 @@
     theorem, where, with
   },
   morekeywords=[2]{
-    Bool, CArgList, CCmd, CCmdList, CIndexList, CRule, CState, CStateObj,
+    Bool, CArgList, Cmd, CmdList, CIndexList, CRule, CState, CStateObj,
     Char, Datatype, Int, Nat, ObjectModel, ObjectTerm, Option, Prop, Rat,
     RefList, SmtDatatype,
     SmtDatatypeCons, SmtMap, SmtModel, SmtModelKey, SmtNativeFun, SmtSeq,
@@ -45,7 +45,7 @@
   commentstyle=\itshape\color{LeanComment},
   stringstyle=\color{LeanString},
   emph={
-    CArgList, CCmd, CCmdList, CIndexList, CRule, CState, CStateObj,
+    CArgList, Cmd, CmdList, CIndexList, CRule, CState, CStateObj,
     SmtDatatype, SmtDatatypeCons, SmtMap, SmtModel, SmtRegLan, SmtSeq, SmtTerm,
     SmtType, SmtValue, Term
   },
@@ -69,7 +69,111 @@
 
 \begin{document}
 
-\section*{SmtModel.lean}
+\section{Introduction}
+
+This document summarizes the architecture of Logos,
+a verified proof checking framework for SMT solvers in Lean.
+The core motivation behind Logos is to provide Lean-based verification
+for proof calculi expressed in the Eunoia logical framework.
+
+In detail, Eunoia is a logical framework which allows users to define theories
+and proof calculi in a \emph{signature}.
+%Its syntax is an extension of SMT-LIB version 2.7.
+%Additionally, proof rules and computational side conditions can be defined.
+It is tailored towards SMT solvers, and has a natural compilation to Lean.
+%At a high level, we use a shallow embedding of Eunoia side conditions as
+%Lean definitions, and a deep embedding of Eunoia terms as a Lean datatype.
+We do not give a comprehensive description of this compilation in this document.
+
+Logos itself is an executable proof checker.
+However, its focus is not on performance, but rather to provide a simple and minimal
+definition of a proof checker in Lean whose correctness can be verified.
+This allows the correctness of the
+Eunoia signature (via its compilation to Lean) to be formally verified.
+In this sense, Logos is a companion to Ethos, an efficient C++-based proof checker for Eunoia.
+
+%The code of Logos is auto-generated generated through a compilation process from Eunoia to Lean.
+The core definition of Logos includes a template defining the core proof checker,
+core definitions for native operations in Lean, as well as definitions of SMT-LIB semantics.
+The compilation completes these definitions based on the
+actual proof rules, terms and side conditions.
+The main correctness proof for Logos is in fact a skeleton which modularizes
+a theorem to prove to locally show the correctness of each proof rule.
+The correctness proof of the core checker is fully parameterized based on these theorems,
+meaning specific instantiations of Logos do not need to prove this.
+
+We overload the term \emph{Logos} specifically as the proof checker generated
+by compiling the Cooperating Proof Calculus (CPC), the proof calculus used by cvc5,
+to Lean via this compiler.
+CPC is formally defined in Eunoia as part of the cvc5 repository.
+While this version is specific to CPC,
+note that a similar proof checker can be generated for other Eunoia signatures.
+We also note that the compilation allows Logos to evolve automatically as the Eunoia
+signature in cvc5 updates.
+
+In detail, the definition of Logos consists of two parts.
+First, a formalization of SMT-LIB, defined based on a deep embedding of SMT-LIB terms, types and values.
+Second, an executable proof checker over a deep embedding of Eunoia terms, expressed as a Lean datatype.
+The former is meant to be general purpose, although certain non-standard SMT-LIB operators
+are included in this deep embedding to meet the specific needs of the proof calculus used by Logos.
+For example, CPC defines several non-standard extensions of SMT-LIB (e.g. sets and sequences),
+supports non-standard extensions of theories, and defines non-standard internal symbols
+(i.e. Skolem variables) to define several of its proof rules.
+
+Before looking into the definitions,
+we first provide a high-level overview of the core datatypes
+and key methods used throughout Logos.
+
+We define the following four types:
+- SmtTerm, the type of all SMT-LIB terms,
+- SmtType, the type of all SMT-LIB types,
+- SmtValue, the type of all SMT-LIB values,
+- SmtModel, a type corresponding to an SMT-LIB model,
+- Term, the type of all Eunoia terms and types, and
+- CmdList, a list of Eunoia command, i.e. a proof.
+
+SMT-LIB models themselves are a totalling mapping from identifiers
+(corresponding to variables, free constants and free functions)
+to SMT-LIB values.
+Note that Eunoia does not distinguish terms and types.
+
+We define the following key methods:
+SMT-LIB definition:
+- smt_typeof : SmtTerm -> SmtType
+  - Returns the type of an SMT-LIB term, or none if it is ill-typed.
+- smt_typeof_value : SmtValue -> SmtType
+  - Returns the type of an SMT-LIB value, or none if it is ill-typed.
+- smt_model_eval : SmtModel -> SmtTerm -> SmtValue
+  - Returns the evaluation of the term in the given model.
+Specification definition:
+- eo_to_smt : Term -> SmtTerm
+  - Given a Eunoia term, this returns the corresponding SMT-LIB term that defines its semantics, or none if none exist.
+- eo_to_smt_type : Term -> SmtType
+  - Given a Eunoia term, this returns the corresponding SMT-LIB type that it corresponds to.
+- eo_satisfiability : Term -> Bool -> Bool
+  - Given a Eunoia term $t$, this returns true iff $t$ is satisfiable if the second argument is true (resp. unsatisfiable if the second argument is false).
+Eunoia definitions:
+- eo_typeof : Term -> Term
+  - Given a Eunoia term, this returns the Eunoia term that corresponds to its type.
+- eo_is_closed : Term -> Bool
+  - Given a Eunoia term, this returns true iff it is a \emph{closed} term, i.e. has no free variables.
+- eo_is_refutation : CmdList -> Bool
+  - Returns true if Logos successfully executes the given command list, and is a valid, closed proof of false.
+
+Note the following design decisions.
+First, the executable portion of the Logos checker does \emph{not} depend on the SMT-LIB definition or the specification definition.
+This means it is defined solely over the Term datatype.
+Second, the speficiation layer above does \emph{not} rely on the Eunoia definitions, e.g. of the Eunoia type system.
+Third, the definition of the Eunoia type system is encapsulated as a method, eo_typeof, which returns the type of a given Eunoia term.
+All computational side conditions are essentially untyped manipulations over a single deep embedding of Eunoia types and terms, as encapsulated as Term.
+A command (in CmdList) is either a proof step or an input assumption.\footnote{There are also commands for local assumptions and steps which close them.}
+A proof checking step in Eunoia succeeds iff the conclusion of that step has type Bool,
+i.e. eo_typeof for that term returns the Eunoia term Bool.
+An input assumption command succeeds if it is a \emph{closed} Eunoia term of type Bool.
+
+We now look in detail at these definitions.
+
+\section{SmtModel.lean}
 
 \begin{figure}[p]
 \begin{lstlisting}
@@ -110,6 +214,10 @@ def Teq : SmtType -> SmtType -> native_Bool
 \end{lstlisting}
 \caption{The SMT type language.}
 \end{figure}
+
+Figure~\ref{} gives the official definition of SMT-LIB types.
+
+
 
 \begin{figure}[p]
 \begin{lstlisting}
@@ -768,17 +876,17 @@ inductive CRule : Type where
 
 deriving Repr, Inhabited
 
-inductive CCmd : Type where
-  | assume_push : Term -> CCmd
-  | check_proven : Term -> CCmd
-  | step : CRule -> CArgList -> CIndexList -> CCmd
-  | step_pop : CRule -> CArgList -> CIndexList -> CCmd
+inductive Cmd : Type where
+  | assume_push : Term -> Cmd
+  | check_proven : Term -> Cmd
+  | step : CRule -> CArgList -> CIndexList -> Cmd
+  | step_pop : CRule -> CArgList -> CIndexList -> Cmd
 
 deriving Repr, Inhabited
 
-inductive CCmdList : Type where
-  | nil : CCmdList
-  | cons : CCmd -> CCmdList -> CCmdList
+inductive CmdList : Type where
+  | nil : CmdList
+  | cons : Cmd -> CmdList -> CmdList
 deriving Repr, Inhabited
 \end{lstlisting}
 \caption{Checker indices, arguments, states, rules, and commands.}
@@ -846,17 +954,17 @@ def eo_invoke_cmd_step_pop (s : CState) : CState -> CRule -> CArgList -> CIndexL
   | (CState.cons so s2), r, args, premises => (__eo_invoke_cmd_step_pop s s2 r args premises)
   | s2, r, args, premises => CState.Stuck
 
-def eo_invoke_cmd : CState -> CCmd -> CState
+def eo_invoke_cmd : CState -> Cmd -> CState
   | CState.Stuck, c => CState.Stuck
-  | S, (CCmd.assume_push proven) =>
+  | S, (Cmd.assume_push proven) =>
       (__eo_push_assume_check (__eo_and (__eo_is_bool_type proven) (__eo_is_closed proven)) proven S)
-  | S, (CCmd.check_proven proven) => (__eo_invoke_cmd_check_proven S proven)
-  | S, (CCmd.step r args premises) => (__eo_push_proven (__eo_cmd_step_proven S r args premises) S)
-  | S, (CCmd.step_pop r args premises) => (__eo_invoke_cmd_step_pop S S r args premises)
+  | S, (Cmd.check_proven proven) => (__eo_invoke_cmd_check_proven S proven)
+  | S, (Cmd.step r args premises) => (__eo_push_proven (__eo_cmd_step_proven S r args premises) S)
+  | S, (Cmd.step_pop r args premises) => (__eo_invoke_cmd_step_pop S S r args premises)
 
-def eo_invoke_cmd_list (S : CState) : CCmdList -> CState
-  | CCmdList.nil => S
-  | (CCmdList.cons c cmds) => (__eo_invoke_cmd_list (__eo_invoke_cmd S c) cmds)
+def eo_invoke_cmd_list (S : CState) : CmdList -> CState
+  | CmdList.nil => S
+  | (CmdList.cons c cmds) => (__eo_invoke_cmd_list (__eo_invoke_cmd S c) cmds)
 
 def eo_state_is_refutation (s : CState) : Bool :=
   (__eo_state_is_closed (__eo_invoke_cmd_check_proven s (Term.Boolean false)))
@@ -867,11 +975,11 @@ def eo_invoke_assume_list (S : CState) : Term -> CState
   | (Term.Boolean true) => S
   | as => CState.Stuck
 
-def eo_checker_is_refutation : Term -> CCmdList -> Bool
+def eo_checker_is_refutation : Term -> CmdList -> Bool
   | as, cs => (__eo_state_is_refutation (__eo_invoke_cmd_list (__eo_invoke_assume_list CState.nil as) cs))
 
-inductive eo_is_refutation : Term -> CCmdList -> Prop
-  | intro (F : Term) (c : CCmdList) :
+inductive eo_is_refutation : Term -> CmdList -> Prop
+  | intro (F : Term) (c : CmdList) :
       (__eo_checker_is_refutation F c) = true -> (eo_is_refutation F c)
 \end{lstlisting}
 \caption{Checker command execution and refutation recognition.}
@@ -943,9 +1051,9 @@ def cArgListTranslationOk : CArgList -> Prop
   | CArgList.nil => True
   | CArgList.cons a args => eoHasSmtTranslation a ∧ cArgListTranslationOk args
 
-def cmdTranslationOk : CCmd -> Prop
-  | CCmd.assume_push A => eoHasSmtTranslation A
-  | CCmd.step _ args _ => cArgListTranslationOk args
+def cmdTranslationOk : Cmd -> Prop
+  | Cmd.assume_push A => eoHasSmtTranslation A
+  | Cmd.step _ args _ => cArgListTranslationOk args
   | _ => True
 
 inductive TranslatableAssumptionList : Term -> Prop
@@ -955,19 +1063,19 @@ inductive TranslatableAssumptionList : Term -> Prop
       TranslatableAssumptionList rest ->
       TranslatableAssumptionList (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) rest)
 
-inductive CmdListTranslationOk : CCmdList -> Prop
-  | nil : CmdListTranslationOk CCmdList.nil
-  | cons (c : CCmd) (cs : CCmdList) :
+inductive CmdListTranslationOk : CmdList -> Prop
+  | nil : CmdListTranslationOk CmdList.nil
+  | cons (c : Cmd) (cs : CmdList) :
       cmdTranslationOk c ->
       CmdListTranslationOk cs ->
-      CmdListTranslationOk (CCmdList.cons c cs)
+      CmdListTranslationOk (CmdList.cons c cs)
 \end{lstlisting}
 \caption{Translation obligations for checker assumptions and commands.}
 \end{figure}
 
 \begin{figure}[p]
 \begin{lstlisting}
-theorem correct___eo_is_refutation (F : Term) (pf : CCmdList) :
+theorem correct___eo_is_refutation (F : Term) (pf : CmdList) :
   TranslatableAssumptionList F ->
   CmdListTranslationOk pf ->
   (eo_is_refutation F pf) ->
@@ -1068,11 +1176,11 @@ theorem cmd_step_proven_facts_of_invariants
   checkerAssumptionStabilityInvariant M s ->
   checkerTypeInvariant s ->
   checkerTranslationInvariant s ->
-  cmdTranslationOk (CCmd.step r args premises) ->
+  cmdTranslationOk (Cmd.step r args premises) ->
   eo_typeof (__eo_cmd_step_proven s r args premises) = Term.Bool ->
   CmdStepFacts M s (__eo_cmd_step_proven s r args premises)
 \end{lstlisting}
-\caption{The step-only rule-correctness theorem in \texttt{RuleLemmas.lean}; plain \texttt{CCmd.step} reasoning now uses local truth plus assumption stability, and rule proofs receive contextual premise evidence that is stable across variable-model changes.}
+\caption{The step-only rule-correctness theorem in \texttt{RuleLemmas.lean}; plain \texttt{Cmd.step} reasoning now uses local truth plus assumption stability, and rule proofs receive contextual premise evidence that is stable across variable-model changes.}
 \end{figure}
 
 \begin{figure}[p]
@@ -1080,7 +1188,7 @@ theorem cmd_step_proven_facts_of_invariants
 theorem cmd_step_trans_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
-  cmdTranslationOk (CCmd.step CRule.trans args premises) ->
+  cmdTranslationOk (Cmd.step CRule.trans args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->
   eo_typeof (__eo_cmd_step_proven s CRule.trans args premises) = Term.Bool ->
   StepRuleProperties M (premiseTermList s premises)
