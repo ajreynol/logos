@@ -5,6 +5,7 @@
 \usepackage[margin=0.75in]{geometry}
 \usepackage{xcolor}
 \usepackage{listings}
+\usepackage{xspace}
 
 \definecolor{LeanKeyword}{HTML}{005CC5}
 \definecolor{LeanType}{HTML}{6F42C1}
@@ -69,6 +70,26 @@
 % underscores, arrows, etc. verbatim so they need no manual escaping.
 \newcommand{\code}[1]{\texttt{\detokenize{#1}}}
 
+% Macros for the main types. \xspace preserves a following space so that
+% e.g. "the \term datatype" does not run together.
+\newcommand{\term}{\code{Term}\xspace}
+\newcommand{\smtterm}{\code{SmtTerm}\xspace}
+\newcommand{\smttype}{\code{SmtType}\xspace}
+\newcommand{\smtvalue}{\code{SmtValue}\xspace}
+\newcommand{\smtmodel}{\code{SmtModel}\xspace}
+\newcommand{\cmdlist}{\code{CmdList}\xspace}
+
+% Macros for the main methods.
+\newcommand{\smttypeof}{\code{smt_typeof}\xspace}
+\newcommand{\smttypeofvalue}{\code{smt_typeof_value}\xspace}
+\newcommand{\smtmodeleval}{\code{smt_model_eval}\xspace}
+\newcommand{\eotosmt}{\code{eo_to_smt}\xspace}
+\newcommand{\eotosmttype}{\code{eo_to_smt_type}\xspace}
+\newcommand{\eosatisfiability}{\code{eo_satisfiability}\xspace}
+\newcommand{\eotypeof}{\code{eo_typeof}\xspace}
+\newcommand{\eoisclosed}{\code{eo_is_closed}\xspace}
+\newcommand{\eoisrefutation}{\code{eo_is_refutation}\xspace}
+
 \pagestyle{empty}
 
 \begin{document}
@@ -130,12 +151,12 @@ and key methods used throughout Logos.
 
 We define the following four types:
 \begin{itemize}
-  \item \code{SmtTerm}, the type of all SMT-LIB terms,
-  \item \code{SmtType}, the type of all SMT-LIB types,
-  \item \code{SmtValue}, the type of all SMT-LIB values,
-  \item \code{SmtModel}, a type corresponding to an SMT-LIB model,
-  \item \code{Term}, the type of all Eunoia terms and types, and
-  \item \code{CmdList}, a list of Eunoia command, i.e. a proof.
+  \item \smtterm, the type of all SMT-LIB terms,
+  \item \smttype, the type of all SMT-LIB types,
+  \item \smtvalue, the type of all SMT-LIB values,
+  \item \smtmodel, a type corresponding to an SMT-LIB model,
+  \item \term, the type of all Eunoia terms and types, and
+  \item \cmdlist, a list of Eunoia command, i.e. a proof.
 \end{itemize}
 
 SMT-LIB models themselves are a totalling mapping from identifiers
@@ -147,15 +168,15 @@ We define the following key methods:
 
 \noindent\textbf{SMT-LIB definition:}
 \begin{itemize}
-  \item \code{smt_typeof : SmtTerm -> SmtType}
+  \item \smttypeof \code{: SmtTerm -> SmtType}
     \begin{itemize}
       \item Returns the type of an SMT-LIB term, or none if it is ill-typed.
     \end{itemize}
-  \item \code{smt_typeof_value : SmtValue -> SmtType}
+  \item \smttypeofvalue \code{: SmtValue -> SmtType}
     \begin{itemize}
       \item Returns the type of an SMT-LIB value, or none if it is ill-typed.
     \end{itemize}
-  \item \code{smt_model_eval : SmtModel -> SmtTerm -> SmtValue}
+  \item \smtmodeleval \code{: SmtModel -> SmtTerm -> SmtValue}
     \begin{itemize}
       \item Returns the evaluation of the term in the given model.
     \end{itemize}
@@ -163,15 +184,15 @@ We define the following key methods:
 
 \noindent\textbf{Specification definition:}
 \begin{itemize}
-  \item \code{eo_to_smt : Term -> SmtTerm}
+  \item \eotosmt \code{: Term -> SmtTerm}
     \begin{itemize}
       \item Given a Eunoia term, this returns the corresponding SMT-LIB term that defines its semantics, or none if none exist.
     \end{itemize}
-  \item \code{eo_to_smt_type : Term -> SmtType}
+  \item \eotosmttype \code{: Term -> SmtType}
     \begin{itemize}
       \item Given a Eunoia term, this returns the corresponding SMT-LIB type that it corresponds to.
     \end{itemize}
-  \item \code{eo_satisfiability : Term -> Bool -> Bool}
+  \item \eosatisfiability \code{: Term -> Bool -> Bool}
     \begin{itemize}
       \item Given a Eunoia term $t$, this returns true iff $t$ is satisfiable if the second argument is true (resp. unsatisfiable if the second argument is false).
     \end{itemize}
@@ -179,15 +200,15 @@ We define the following key methods:
 
 \noindent\textbf{Eunoia definitions:}
 \begin{itemize}
-  \item \code{eo_typeof : Term -> Term}
+  \item \eotypeof \code{: Term -> Term}
     \begin{itemize}
       \item Given a Eunoia term, this returns the Eunoia term that corresponds to its type.
     \end{itemize}
-  \item \code{eo_is_closed : Term -> Bool}
+  \item \eoisclosed \code{: Term -> Bool}
     \begin{itemize}
       \item Given a Eunoia term, this returns true iff it is a \emph{closed} term, i.e. has no free variables.
     \end{itemize}
-  \item \code{eo_is_refutation : CmdList -> Bool}
+  \item \eoisrefutation \code{: CmdList -> Bool}
     \begin{itemize}
       \item Returns true if Logos successfully executes the given command list, and is a valid, closed proof of false.
     \end{itemize}
@@ -195,13 +216,13 @@ We define the following key methods:
 
 Note the following design decisions.
 First, the executable portion of the Logos checker does \emph{not} depend on the SMT-LIB definition or the specification definition.
-This means it is defined solely over the \code{Term} datatype.
+This means it is defined solely over the \term datatype.
 Second, the speficiation layer above does \emph{not} rely on the Eunoia definitions, e.g. of the Eunoia type system.
-Third, the definition of the Eunoia type system is encapsulated as a method, \code{eo_typeof}, which returns the type of a given Eunoia term.
-All computational side conditions are essentially untyped manipulations over a single deep embedding of Eunoia types and terms, as encapsulated as \code{Term}.
-A command (in \code{CmdList}) is either a proof step or an input assumption.\footnote{There are also commands for local assumptions and steps which close them.}
+Third, the definition of the Eunoia type system is encapsulated as a method, \eotypeof, which returns the type of a given Eunoia term.
+All computational side conditions are essentially untyped manipulations over a single deep embedding of Eunoia types and terms, as encapsulated as \term.
+A command (in \cmdlist) is either a proof step or an input assumption.\footnote{There are also commands for local assumptions and steps which close them.}
 A proof checking step in Eunoia succeeds iff the conclusion of that step has type \code{Bool},
-i.e. \code{eo_typeof} for that term returns the Eunoia term \code{Bool}.
+i.e. \eotypeof for that term returns the Eunoia term \code{Bool}.
 An input assumption command succeeds if it is a \emph{closed} Eunoia term of type \code{Bool}.
 
 We now look in detail at these definitions.
@@ -291,7 +312,7 @@ First, a type may contain a type reference that it not within the bounds of the 
 In this case, the type is not well-formed.
 Our formalization in SMT-LIB will later define a well-formedness predicate that
 defines a subset of types that are considered well-formed.
-Second, a datatype itself may be uninhabited, i.e. there are no \code{SmtValue}
+Second, a datatype itself may be uninhabited, i.e. there are no \smtvalue
 that have that type.
 For instance, a datatype containing only recursive constructors is uninhabited.
 Other examples include a datatype with no constructors,
