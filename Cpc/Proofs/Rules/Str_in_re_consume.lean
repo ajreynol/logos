@@ -277,6 +277,313 @@ theorem str_re_consume_re_flatten_true_rev_facts
     eo_list_rev_result_is_list_true_of_ne_stuck (Term.UOp UserOp.re_concat)
       (__re_flatten (Term.Boolean true) (Term.Boolean true) r) hRevNe⟩
 
+theorem term_ne_stuck_of_smt_seq_type_local
+    {t : Term} {T : SmtType}
+    (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.Seq T) :
+    t ≠ Term.Stuck := by
+  intro h
+  subst t
+  change __smtx_typeof SmtTerm.None = SmtType.Seq T at hTy
+  simp at hTy
+
+theorem strConcat_singleton_elim_rel_eval_local
+    (M : SmtModel) (hM : model_total_typed M) (c : Term) (T : SmtType) :
+    __eo_is_list (Term.UOp UserOp.str_concat) c = Term.Boolean true ->
+    __smtx_typeof (__eo_to_smt c) = SmtType.Seq T ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M
+        (__eo_to_smt
+          (__eo_list_singleton_elim (Term.UOp UserOp.str_concat) c)))
+      (__smtx_model_eval M (__eo_to_smt c)) := by
+  intro hList hcTy
+  change RuleProofs.smt_value_rel
+    (__smtx_model_eval M
+      (__eo_to_smt
+        (__eo_requires (__eo_is_list (Term.UOp UserOp.str_concat) c)
+          (Term.Boolean true) (__eo_list_singleton_elim_2 c))))
+    (__smtx_model_eval M (__eo_to_smt c))
+  rw [hList]
+  simp [__eo_requires, native_ite, native_teq, native_not,
+    SmtEval.native_not]
+  cases c with
+  | Apply f tail =>
+      cases f with
+      | Apply g head =>
+          have hg : g = Term.UOp UserOp.str_concat :=
+            strConcat_is_list_cons_head_eq_of_true g head tail hList
+          subst g
+          have hTailList :
+              __eo_is_list (Term.UOp UserOp.str_concat) tail =
+                Term.Boolean true :=
+            strConcat_is_list_tail_true_of_cons_self head tail hList
+          have hTypes := strConcat_args_of_seq_type head tail T hcTy
+          cases hNil : __eo_is_list_nil (Term.UOp UserOp.str_concat) tail
+          all_goals
+            simp [__eo_list_singleton_elim_2, hNil, __eo_ite, native_ite,
+              native_teq]
+          case Boolean b =>
+            cases b
+            · exact RuleProofs.smt_value_rel_refl
+                (__smtx_model_eval M
+                  (__eo_to_smt
+                    (Term.Apply
+                      (Term.Apply (Term.UOp UserOp.str_concat) head) tail)))
+            · exact RuleProofs.smt_value_rel_symm
+                (__smtx_model_eval M
+                  (__eo_to_smt
+                    (Term.Apply
+                      (Term.Apply (Term.UOp UserOp.str_concat) head) tail)))
+                (__smtx_model_eval M (__eo_to_smt head))
+                (strConcat_smt_value_rel_list_nil_right_empty M hM
+                  head tail T hTypes.1 hNil hTypes.2)
+          all_goals
+            have hTailNe : tail ≠ Term.Stuck :=
+              term_ne_stuck_of_smt_seq_type_local hTypes.2
+            cases tail <;>
+              simp [__eo_is_list_nil, __eo_is_list_nil_str_concat,
+                __eo_eq, native_teq] at hNil hTailNe
+            case UOp1 op A =>
+              cases op <;> simp at hNil
+      | _ =>
+          simpa [__eo_list_singleton_elim_2] using
+            RuleProofs.smt_value_rel_refl _
+  | _ =>
+      simpa [__eo_list_singleton_elim_2] using
+        RuleProofs.smt_value_rel_refl _
+
+theorem str_collect_tail_ne_stuck_of_cons_ne_stuck_local
+    (head tail : Term)
+    (hCollect :
+      __str_collect
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) head) tail) ≠
+        Term.Stuck) :
+    __str_collect tail ≠ Term.Stuck := by
+  intro hTail
+  cases head <;>
+    simp [__str_collect, hTail, __str_collect_merge, __eo_ite,
+      __eo_mk_apply, native_ite, native_teq] at hCollect
+
+theorem str_collect_merge_tail_ne_stuck_of_ne_stuck_local
+    (head tail : Term)
+    (hMerge : __str_collect_merge head tail ≠ Term.Stuck) :
+    tail ≠ Term.Stuck := by
+  intro hTail
+  subst tail
+  cases head <;> simp [__str_collect_merge] at hMerge
+
+theorem str_collect_merge_cons_eq_of_head_ne_stuck_local
+    (head s1 stail : Term)
+    (hHead : head ≠ Term.Stuck) :
+    __str_collect_merge head
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) s1) stail) =
+      __eo_ite (__eo_is_str s1)
+        (__eo_mk_apply
+          (__eo_mk_apply (Term.UOp UserOp.str_concat)
+            (__eo_concat head s1))
+          stail)
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) head)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) s1)
+            stail)) := by
+  cases head <;> simp [__str_collect_merge] at hHead ⊢
+
+theorem str_collect_merge_empty_eq_of_head_ne_stuck_local
+    (head : Term)
+    (hHead : head ≠ Term.Stuck) :
+    __str_collect_merge head (Term.String []) =
+      Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) head)
+        (Term.String []) := by
+  cases head <;> simp [__str_collect_merge] at hHead ⊢
+
+theorem str_collect_merge_cons_is_list_true_local
+    (head s1 stail : Term)
+    (hStailList :
+      __eo_is_list (Term.UOp UserOp.str_concat) stail = Term.Boolean true)
+    (hMerge :
+      __str_collect_merge head
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) s1)
+            stail) ≠
+        Term.Stuck) :
+    __eo_is_list (Term.UOp UserOp.str_concat)
+        (__str_collect_merge head
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) s1)
+            stail)) =
+      Term.Boolean true := by
+  have hHeadNe : head ≠ Term.Stuck := by
+    intro hHead
+    subst head
+    simp [__str_collect_merge] at hMerge
+  have hMergeEq :=
+    str_collect_merge_cons_eq_of_head_ne_stuck_local head s1 stail
+      hHeadNe
+  rw [hMergeEq] at hMerge ⊢
+  rcases eo_ite_cases_of_ne_stuck (__eo_is_str s1)
+      (__eo_mk_apply
+        (__eo_mk_apply (Term.UOp UserOp.str_concat)
+          (__eo_concat head s1))
+        stail)
+      (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) head)
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) s1)
+          stail)) hMerge with hStr | hStr
+  · have hOutNe :
+        __eo_mk_apply
+            (__eo_mk_apply (Term.UOp UserOp.str_concat)
+              (__eo_concat head s1))
+            stail ≠
+          Term.Stuck :=
+      eo_ite_then_ne_stuck_of_ne_stuck _ _ _ hMerge hStr
+    have hInnerNe :
+        __eo_mk_apply (Term.UOp UserOp.str_concat)
+            (__eo_concat head s1) ≠
+          Term.Stuck :=
+      eo_mk_apply_fun_ne_stuck_of_ne_stuck _ _ hOutNe
+    have hInnerEq :
+        __eo_mk_apply (Term.UOp UserOp.str_concat)
+            (__eo_concat head s1) =
+          Term.Apply (Term.UOp UserOp.str_concat)
+            (__eo_concat head s1) :=
+      eo_mk_apply_eq_apply_of_ne_stuck _ _ hInnerNe
+    rw [hStr, eo_ite_true, hInnerEq]
+    rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ (by
+      simpa [hInnerEq] using hOutNe)]
+    exact strConcat_is_list_cons_true_of_tail_list
+      (__eo_concat head s1) stail hStailList
+  · rw [hStr, eo_ite_false]
+    exact strConcat_is_list_cons_true_of_tail_list head
+      (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) s1) stail)
+      (strConcat_is_list_cons_true_of_tail_list s1 stail hStailList)
+
+theorem str_collect_merge_empty_is_list_true_local
+    (head : Term)
+    (hEmptyList :
+      __eo_is_list (Term.UOp UserOp.str_concat) (Term.String []) =
+        Term.Boolean true)
+    (hMerge : __str_collect_merge head (Term.String []) ≠ Term.Stuck) :
+    __eo_is_list (Term.UOp UserOp.str_concat)
+        (__str_collect_merge head (Term.String [])) =
+      Term.Boolean true := by
+  have hHeadNe : head ≠ Term.Stuck := by
+    intro hHead
+    subst head
+    simp [__str_collect_merge] at hMerge
+  rw [str_collect_merge_empty_eq_of_head_ne_stuck_local head hHeadNe]
+  exact strConcat_is_list_cons_true_of_tail_list head (Term.String [])
+    hEmptyList
+
+theorem str_collect_is_list_true_of_ne_stuck_local :
+    ∀ (parts : Term),
+      __eo_is_list (Term.UOp UserOp.str_concat) parts =
+        Term.Boolean true ->
+      __str_collect parts ≠ Term.Stuck ->
+      __eo_is_list (Term.UOp UserOp.str_concat)
+          (__str_collect parts) =
+        Term.Boolean true := by
+  intro parts
+  induction parts using __str_collect.induct with
+  | case1 =>
+      intro hList _hCollect
+      simp [__eo_is_list] at hList
+  | case2 head tail ih =>
+      intro hList hCollect
+      have hTailList :
+          __eo_is_list (Term.UOp UserOp.str_concat) tail =
+            Term.Boolean true :=
+        strConcat_is_list_tail_true_of_cons_self head tail hList
+      have hTailCollectNe :
+          __str_collect tail ≠ Term.Stuck :=
+        str_collect_tail_ne_stuck_of_cons_ne_stuck_local head tail
+          hCollect
+      have hTailCollectList :
+          __eo_is_list (Term.UOp UserOp.str_concat)
+              (__str_collect tail) =
+            Term.Boolean true :=
+        ih hTailList hTailCollectNe
+      let collectedTail := __str_collect tail
+      have hIteNe :
+          __eo_ite (__eo_is_eq (__eo_len head) (Term.Numeral 1))
+              (__str_collect_merge head collectedTail)
+              (__eo_mk_apply
+                (Term.Apply (Term.UOp UserOp.str_concat) head)
+                collectedTail) ≠
+            Term.Stuck := by
+        simpa [__str_collect, collectedTail] using hCollect
+      rcases eo_ite_cases_of_ne_stuck
+          (__eo_is_eq (__eo_len head) (Term.Numeral 1))
+          (__str_collect_merge head collectedTail)
+          (__eo_mk_apply
+            (Term.Apply (Term.UOp UserOp.str_concat) head)
+            collectedTail) hIteNe with hLen | hLen
+      · have hMergeNe :
+            __str_collect_merge head collectedTail ≠ Term.Stuck :=
+          eo_ite_then_ne_stuck_of_ne_stuck _ _ _ hIteNe hLen
+        cases hCollectedTail : collectedTail with
+        | Apply f stail =>
+            cases f with
+            | Apply g s1 =>
+                have hg : g = Term.UOp UserOp.str_concat :=
+                  strConcat_is_list_cons_head_eq_of_true g s1 stail
+                    (by simpa [collectedTail, hCollectedTail] using
+                      hTailCollectList)
+                subst g
+                have hStailList :
+                    __eo_is_list (Term.UOp UserOp.str_concat) stail =
+                      Term.Boolean true :=
+                  strConcat_is_list_tail_true_of_cons_self s1 stail
+                    (by simpa [collectedTail, hCollectedTail] using
+                      hTailCollectList)
+                rw [__str_collect, hLen, eo_ite_true]
+                simpa [collectedTail, hCollectedTail] using
+                  str_collect_merge_cons_is_list_true_local head s1
+                    stail hStailList (by
+                      simpa [collectedTail, hCollectedTail] using hMergeNe)
+            | _ =>
+                cases head <;>
+                  simp [collectedTail, hCollectedTail, __str_collect_merge]
+                    at hMergeNe
+        | String str =>
+            cases str with
+            | nil =>
+                rw [__str_collect, hLen, eo_ite_true]
+                simpa [collectedTail, hCollectedTail] using
+                  str_collect_merge_empty_is_list_true_local head
+                    (by
+                      simpa [collectedTail, hCollectedTail] using
+                        hTailCollectList)
+                    (by
+                      simpa [collectedTail, hCollectedTail] using hMergeNe)
+            | cons c cs =>
+                simp [collectedTail, hCollectedTail, __eo_is_list,
+                  __eo_get_nil_rec, __eo_is_list_nil,
+                  __eo_is_list_nil_str_concat, __eo_eq, __eo_requires,
+                  __eo_is_ok, native_teq, native_ite, SmtEval.native_ite,
+                  SmtEval.native_not]
+                  at hTailCollectList
+        | _ =>
+            cases head <;>
+              simp [collectedTail, hCollectedTail, __str_collect_merge]
+                at hMergeNe
+      · have hElseNe :
+            __eo_mk_apply
+                (Term.Apply (Term.UOp UserOp.str_concat) head)
+                collectedTail ≠
+              Term.Stuck :=
+          eo_ite_else_ne_stuck_of_ne_stuck _ _ _ hIteNe hLen
+        rw [__str_collect, hLen, eo_ite_false]
+        rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hElseNe]
+        exact strConcat_is_list_cons_true_of_tail_list head collectedTail
+          hTailCollectList
+  | case3 t _hStuck _hNotConcat =>
+      intro hList hCollect
+      have hReq :
+          __eo_requires t (__seq_empty (__eo_typeof t)) t ≠
+            Term.Stuck := by
+        simpa [__str_collect] using hCollect
+      have hCollectEq :
+          __str_collect t = t := by
+        simpa [__str_collect] using
+          eo_requires_eq_result_of_ne_stuck t (__seq_empty (__eo_typeof t))
+            t hReq
+      simpa [hCollectEq] using hList
+
 theorem str_re_consume_side_smt_type
     (s r side : Term)
     (hEqTrans :
