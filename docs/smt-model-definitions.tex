@@ -5,6 +5,7 @@
 \usepackage[margin=0.75in]{geometry}
 \usepackage{xcolor}
 \usepackage{listings}
+\usepackage{xspace}
 
 \definecolor{LeanKeyword}{HTML}{005CC5}
 \definecolor{LeanType}{HTML}{6F42C1}
@@ -21,7 +22,7 @@
     theorem, where, with
   },
   morekeywords=[2]{
-    Bool, CArgList, CCmd, CCmdList, CIndexList, CRule, CState, CStateObj,
+    Bool, CArgList, Cmd, CmdList, CIndexList, CRule, CState, CStateObj,
     Char, Datatype, Int, Nat, ObjectModel, ObjectTerm, Option, Prop, Rat,
     RefList, SmtDatatype,
     SmtDatatypeCons, SmtMap, SmtModel, SmtModelKey, SmtNativeFun, SmtSeq,
@@ -45,7 +46,7 @@
   commentstyle=\itshape\color{LeanComment},
   stringstyle=\color{LeanString},
   emph={
-    CArgList, CCmd, CCmdList, CIndexList, CRule, CState, CStateObj,
+    CArgList, Cmd, CmdList, CIndexList, CRule, CState, CStateObj,
     SmtDatatype, SmtDatatypeCons, SmtMap, SmtModel, SmtRegLan, SmtSeq, SmtTerm,
     SmtType, SmtValue, Term
   },
@@ -65,13 +66,180 @@
   literate={∀}{{$\forall$}}1 {∧}{{$\land$}}1 {∃}{{$\exists$}}1 {∈}{{$\in$}}1 {≠}{{$\neq$}}1 {¬}{{$\neg$}}1 {⟨}{{$\langle$}}1 {⟩}{{$\rangle$}}1 {·}{{$\cdot$}}1
 }
 
+% Inline Lean/SMT identifiers in typewriter font; \detokenize prints
+% underscores, arrows, etc. verbatim so they need no manual escaping.
+\newcommand{\code}[1]{\texttt{\detokenize{#1}}}
+
+% Displayed example snippets, given on their own line(s) and rendered with the
+% same Lean style and framing as the code in figures (inherits the global
+% \lstset configuration).
+\lstnewenvironment{examplecode}{}{}
+
+% Macros for the main types. \xspace preserves a following space so that
+% e.g. "the \term datatype" does not run together.
+\newcommand{\term}{\code{Term}\xspace}
+\newcommand{\smtterm}{\code{SmtTerm}\xspace}
+\newcommand{\smttype}{\code{SmtType}\xspace}
+\newcommand{\smtvalue}{\code{SmtValue}\xspace}
+\newcommand{\smtmodel}{\code{SmtModel}\xspace}
+\newcommand{\cmdlist}{\code{CmdList}\xspace}
+\newcommand{\bool}{\code{Bool}\xspace}
+
+% Macros for the main methods.
+\newcommand{\smttypeof}{\code{smt_typeof}\xspace}
+\newcommand{\smttypeofvalue}{\code{smt_typeof_value}\xspace}
+\newcommand{\smtmodeleval}{\code{smt_model_eval}\xspace}
+\newcommand{\eotosmt}{\code{eo_to_smt}\xspace}
+\newcommand{\eotosmttype}{\code{eo_to_smt_type}\xspace}
+\newcommand{\eosatisfiability}{\code{eo_satisfiability}\xspace}
+\newcommand{\eotypeof}{\code{eo_typeof}\xspace}
+\newcommand{\eoisclosed}{\code{eo_is_closed}\xspace}
+\newcommand{\eoisrefutation}{\code{eo_is_refutation}\xspace}
+
 \pagestyle{empty}
 
 \begin{document}
 
-\section*{SmtModel.lean}
+\section{Introduction}
 
-\begin{figure}[p]
+This document summarizes the architecture of Logos,
+a verified proof checking framework for SMT solvers in Lean.
+The core motivation behind Logos is to provide Lean-based verification
+for proof calculi expressed in the Eunoia logical framework.
+
+In detail, Eunoia is a logical framework which allows users to define theories
+and proof calculi in a \emph{signature}.
+%Its syntax is an extension of SMT-LIB version 2.7.
+%Additionally, proof rules and computational side conditions can be defined.
+It is tailored towards SMT solvers, and has a natural compilation to Lean.
+%At a high level, we use a shallow embedding of Eunoia side conditions as
+%Lean definitions, and a deep embedding of Eunoia terms as a Lean datatype.
+We do not give a comprehensive description of this compilation in this document.
+
+Logos itself is an executable proof checker.
+However, its focus is not on performance, but rather to provide a simple and minimal
+definition of a proof checker in Lean whose correctness can be verified.
+This allows the correctness of the
+Eunoia signature (via its compilation to Lean) to be formally verified.
+In this sense, Logos is a companion to Ethos, an efficient C++-based proof checker for Eunoia.
+
+%The code of Logos is auto-generated generated through a compilation process from Eunoia to Lean.
+The core definition of Logos includes a template defining the core proof checker,
+core definitions for native operations in Lean, as well as definitions of SMT-LIB semantics.
+The compilation completes these definitions based on the
+actual proof rules, terms and side conditions.
+The main correctness proof for Logos is in fact a skeleton which modularizes
+a theorem to prove to locally show the correctness of each proof rule.
+The correctness proof of the core checker is fully parameterized based on these theorems,
+meaning specific instantiations of Logos do not need to prove this.
+
+We overload the term \emph{Logos} specifically as the proof checker generated
+by compiling the Cooperating Proof Calculus (CPC), the proof calculus used by cvc5,
+to Lean via this compiler.
+CPC is formally defined in Eunoia as part of the cvc5 repository.
+While this version is specific to CPC,
+note that a similar proof checker can be generated for other Eunoia signatures.
+We also note that the compilation allows Logos to evolve automatically as the Eunoia
+signature in cvc5 updates.
+
+In detail, the definition of Logos consists of two parts.
+First, a formalization of SMT-LIB, defined based on a deep embedding of SMT-LIB terms, types and values.
+Second, an executable proof checker over a deep embedding of Eunoia terms, expressed as a Lean datatype.
+The former is meant to be general purpose, although certain non-standard SMT-LIB operators
+are included in this deep embedding to meet the specific needs of the proof calculus used by Logos.
+For example, CPC defines several non-standard extensions of SMT-LIB (e.g. sets and sequences),
+supports non-standard extensions of theories, and defines non-standard internal symbols
+(i.e. Skolem variables) to define several of its proof rules.
+
+\subsection{Core Definitions}
+
+Before looking into the definitions,
+we first provide a high-level overview of the core datatypes
+and key methods used throughout Logos.
+
+We define the following four types:
+\begin{itemize}
+  \item \smtterm, the type of all SMT-LIB terms,
+  \item \smttype, the type of all SMT-LIB types,
+  \item \smtvalue, the type of all SMT-LIB values,
+  \item \smtmodel, a type corresponding to an SMT-LIB model,
+  \item \term, the type of all Eunoia terms and types, and
+  \item \cmdlist, a list of Eunoia command, i.e. a proof.
+\end{itemize}
+
+SMT-LIB models themselves are a totalling mapping from identifiers
+(corresponding to variables, free constants and free functions)
+to SMT-LIB values.
+Note that Eunoia does not distinguish terms and types.
+
+We define the following key methods:
+
+\noindent\textbf{SMT-LIB definition:}
+\begin{itemize}
+  \item \smttypeof \code{:} \smtterm \code{->} \smttype
+    \begin{itemize}
+      \item Returns the type of an SMT-LIB term, or none if it is ill-typed.
+    \end{itemize}
+  \item \smttypeofvalue \code{:} \smtvalue \code{->} \smttype
+    \begin{itemize}
+      \item Returns the type of an SMT-LIB value, or none if it is ill-typed.
+    \end{itemize}
+  \item \smtmodeleval \code{:} \smtmodel \code{->} \smtterm \code{->} \smtvalue
+    \begin{itemize}
+      \item Returns the evaluation of the term in the given model.
+    \end{itemize}
+\end{itemize}
+
+\noindent\textbf{Specification definition:}
+\begin{itemize}
+  \item \eotosmt \code{:} \term \code{->} \smtterm
+    \begin{itemize}
+      \item Given a Eunoia term, this returns the corresponding SMT-LIB term that defines its semantics, or none if none exist.
+    \end{itemize}
+  \item \eotosmttype \code{:} \term \code{->} \smttype
+    \begin{itemize}
+      \item Given a Eunoia term, this returns the corresponding SMT-LIB type that it corresponds to.
+    \end{itemize}
+  \item \eosatisfiability \code{:} \term \code{->} \bool \code{->} \bool
+    \begin{itemize}
+      \item Given a Eunoia term $t$, this returns true iff $t$ is satisfiable if the second argument is true (resp. unsatisfiable if the second argument is false).
+    \end{itemize}
+\end{itemize}
+
+\noindent\textbf{Eunoia definitions:}
+\begin{itemize}
+  \item \eotypeof \code{:} \term \code{->} \term
+    \begin{itemize}
+      \item Given a Eunoia term, this returns the Eunoia term that corresponds to its type.
+    \end{itemize}
+  \item \eoisclosed \code{:} \term \code{->} \bool
+    \begin{itemize}
+      \item Given a Eunoia term, this returns true iff it is a \emph{closed} term, i.e. has no free variables.
+    \end{itemize}
+  \item \eoisrefutation \code{:} \cmdlist \code{->} \term \code{->} \bool
+    \begin{itemize}
+      \item Returns true iff Logos successfully executes the given command list, and is a valid, closed proof of false
+    \end{itemize}
+\end{itemize}
+
+Note the following design decisions.
+First, the executable portion of the Logos checker does \emph{not} depend on the SMT-LIB definition or the specification definition.
+This means it is defined solely over the \term datatype.
+Second, the speficiation layer above does \emph{not} rely on the Eunoia definitions, e.g. of the Eunoia type system.
+Third, the definition of the Eunoia type system is encapsulated as a method, \eotypeof, which returns the type of a given Eunoia term.
+All computational side conditions are essentially untyped manipulations over a single deep embedding of Eunoia types and terms, as encapsulated as \term.
+A command (in \cmdlist) is either a proof step or an input assumption.\footnote{There are also commands for local assumptions and steps which close them.}
+A proof checking step in Eunoia succeeds iff the conclusion of that step has type \bool,
+i.e. \eotypeof for that term returns the Eunoia term \bool.
+An input assumption command succeeds if it is a \emph{closed} Eunoia term of type \bool.
+
+We now look in detail at these definitions.
+
+\section{SMT-LIB definition}
+
+\subsection{Types}
+
+\begin{figure}
 \begin{lstlisting}
 abbrev Ch := Nat
 abbrev String := List Ch
@@ -89,9 +257,9 @@ inductive SmtType : Type where
   | Char : SmtType
   | Datatype : String -> SmtDatatype -> SmtType
   | TypeRef : String -> SmtType
-  | USort : Nat -> SmtType
-  | FunType : SmtType -> SmtType -> SmtType
   | DtcAppType : SmtType -> SmtType -> SmtType
+  | FunType : SmtType -> SmtType -> SmtType
+  | USort : Nat -> SmtType
 deriving Repr, DecidableEq, Inhabited, Ord
 
 inductive SmtDatatype : Type where
@@ -109,34 +277,168 @@ def Teq : SmtType -> SmtType -> native_Bool
   | x, y => decide (x = y)
 \end{lstlisting}
 \caption{The SMT type language.}
+\label{fig:smt-types}
 \end{figure}
 
-\begin{figure}[p]
-\begin{lstlisting}
-inductive SmtTerm : Type where
-  | None : SmtTerm
-  | Boolean : Bool -> SmtTerm
-  | Numeral : Int -> SmtTerm
-  | Rational : Rat -> SmtTerm
-  | String : String -> SmtTerm
-  | Binary : Int -> Int -> SmtTerm
-  | Apply : SmtTerm -> SmtTerm -> SmtTerm
-  | not : SmtTerm -> SmtTerm
-  | and : SmtTerm -> SmtTerm -> SmtTerm
-  | eq : SmtTerm -> SmtTerm -> SmtTerm
-  | exists : String -> SmtType -> SmtTerm -> SmtTerm
-  | forall : String -> SmtType -> SmtTerm -> SmtTerm
-  | choice_nth : String -> SmtType -> SmtTerm -> Nat -> SmtTerm
-  | DtCons : String -> SmtDatatype -> Nat -> SmtTerm
-  | DtSel : String -> SmtDatatype -> Nat -> Nat -> SmtTerm
-  | DtTester : String -> SmtDatatype -> Nat -> SmtTerm
-  | Var : String -> SmtType -> SmtTerm
-  | UConst : String -> SmtType -> SmtTerm
-  ...
-deriving Repr, DecidableEq, Inhabited
-\end{lstlisting}
-\caption{A representative template of SMT term constructors.}
-\end{figure}
+Figure~\ref{fig:smt-types} gives the definition of SMT-LIB types in our embedding.
+This includes an error value (\code{None}) denoting not a type,\footnote{
+One could alternatively use an \code{Option} type instead of allowing \code{None} as a first-class constructor.
+Throughout, we prefer using an error elements of types as opposed to option types to
+keep the control flow simple.}
+the standard atomic SMT-LIB types of Booleans (\code{Bool}),
+integers (\code{Int}), reals (\code{Real}) and regular languages (\code{RegLan}).
+Bitvectors (\code{BitVec}) are indexed by a natural number denoting the bitwidth.
+Note that in contrast to SMT-LIB, our semantics permit the bitvectors of size zero.
+
+We then define three composite types:
+\begin{itemize}
+  \item The type of maps (\code{Map}) will be used to reason about SMT-LIB arrays. Note that this type will have a minor difference with the official type of arrays in SMT-LIB, namely, it will interpreted as admitting only values that are almost constant maps.
+  \item The type of finite sets (\code{Set}).
+  \item The type of sequences (\code{Seq}). Note that for uniformity, SMT-LIB strings are represented as a sequence of characters, where the character type (\code{Char}) is another atomic type constructor and has a finite range of values determined by the range of Unicode in SMT-LIB (values 0 to 199607).
+\end{itemize}
+Note the latter two types are not in the SMT-LIB standard.
+
+The next three types pertain to SMT-LIB datatypes.
+The first (\code{Datatype}) denotes a (possibly recursive) datatype type.
+This definition reflects standard notions in the literature for mu-types, or \emph{recursive} types.
+In this definition, the datatype carries its name (via a string\footnote{Throughout,
+we define a string to be a list of natural numbers and do not use native Lean strings.
+This is to avoid complications in the definition of Lean strings which take peculiarities with Unicode into account.}) 
+and its definition inside the abstract syntax tree.
+In particular,
+the first argument of the datatype denotes the name of that datatype.
+The second argument (a \code{SmtDatatype}) denotes the list of constructors (\code{SmtDatatypeCons}) of that datatype,
+where \code{sum} adds a constructor to this list, and \code{null} terminates its list of constructors.
+A constructor itself is a list of types, indicating the types of its children, or fields.
+Recursive references to the datatype in question are indicated by type references (constructor \code{TypeRef}), which
+takes the name of the datatype that it references.
+For details on this, see Section~\ref{sec:datatypes}
+
+The next type (\code{DtcAppType}) is the type of partially applied constructors.
+It is a function-like type that takes its argument and return types.
+The type of partially applied constructors is intentionally distinct from function types (\code{FunType}),
+which also takes its argument and return types.
+Both these types are curried, for instance the function type expecting two integers and
+returning a Boolean is \code{(FunType Int (FunType Int Bool))}.
+These two types are distinct for several reasons,
+the primary being that SMT values of type \code{DtcAppType} type can be "applied" to other values
+to construct new values. As we will describe in Section~\ref{sec:values},
+this reflects the fact that datatype types are given Herbrand interpretations,
+i.e. their values are term-like.
+In contrast, function values cannot be applied to values to construct new values.
+
+The final constructor in this list denotes uninterpreted sorts (\code{USort}),
+which are indexed by a natural number identifier.
+
+All types have the Lean properties
+of being representable (\code{Repr}),
+having decidable equality (\code{DecidableEq}),
+are inhabited (\code{Inhabited})
+and orderable (\code{Ord}).
+Due to decidable equality, we can define (syntactic) equality on types,
+as \code{Teq}.
+
+\subsection{Datatypes}
+\label{sec:datatypes}
+
+This section presents how SMT-LIB datatype types are represented in our embedding.
+At a high level, we use mu-types or recursive types to represent datatype types,
+where the type itself carries its definition (i.e. a list of constructors).
+
+\noindent
+For example, consider the SMT-LIB datatype for lists of integers:
+\begin{examplecode}
+(declare-datatype List ((listc (head Int) (tail List)) (listn)))
+\end{examplecode}
+The datatype type for list is \code{(Datatype "List" DList)}, where
+\begin{examplecode}
+DList := (sum (cons Int (cons (TypeRef "List") unit)) (sum unit null))
+\end{examplecode}
+Here, \code{DList} is a list containing two datatype constructors.
+The first (corresponding to \code{listc}) contains the types \code{Int}
+and \code{(TypeRef "List")}.
+Intuitively, the latter can be thought of as a variable bound
+by \code{(Datatype "List" DList)}, i.e. it specifies that the child
+of this constructor is itself a list.
+The second constructor in this list (corresponding to \code{listn})
+is given by \code{unit}, marking it as a constructor taking no arguments.
+
+This definition also permits mutual recursive datatypes, for example, consider the SMT-LIB datatype:
+\begin{examplecode}
+(declare-datatypes ((Tree 0) (TreeList 0))
+  (((node (children List)) (leaf))) 
+   ((tlistc (head Tree) (tail TreeList)) (tlistn)))
+\end{examplecode}
+This is captured by the datatype \code{(Datatype "Tree" DTree)}, where \code{DTree} is the following datatype,
+which itself contains another datatype \code{DTreeList} in its definition:
+\begin{examplecode}
+DTree := (sum (cons (Datatype "List" DTreeList) unit) (sum unit nil))
+DTreeList := (sum (cons (TypeRef "Tree") (cons (TypeRef "TreeList") unit)) nil)
+\end{examplecode}
+In the above datatype \code{DTree},
+the first constructor contains a datatype type as its first field type,
+whose constructors are given by \code{DTreeList}.
+Within \code{DTreeList},
+the first constructor (which corresponds to \code{tlistc} above) contains two
+type references, the first being a reference to \code{Tree} (which references the top-level datatype type)
+and second being a self reference to \code{(Datatype "List" DTreeList)}.
+
+Note that the names of constructors and selectors are not given in the representation of datatypes.
+Instead 
+constructors are referenced by natural number indicies.
+For example, in \code{DList} above,
+0 will refer to \code{listc} and 1 will refer to \code{listn}.
+Similarly, we will use two natural numbers to reference selectors,
+e.g. in \code{DList} (0, 0) will refer to \code{head} and (0,1) to \code{tail}.
+Details on this will be given when values and terms are introduced
+(Sections~\ref{sec:values} and~\ref{sec:terms}).
+
+This definition permits three kinds of datatypes which we consider to be ill-formed.
+First, a type may contain a type reference that it not within the bounds of the datatype that it references.
+Examples of this kind of datatype are the following:
+\begin{examplecode}
+(TypeRef "List")
+(Array Int (TypeRef "List"))
+(Datatype "Tree" (sum (cons (TypeRef "List") unit) null))
+\end{examplecode}
+In this case, we say that the type is not well-formed.
+Our formalization in SMT-LIB will later define a well-formedness predicate that
+defines a subset of types that are considered well-formed.
+
+Second, a datatype itself may be uninhabited, i.e. there are no \smtvalue
+that have that type.
+Examples of this kind of datatype are the following:
+\begin{examplecode}
+(Datatype "no-wf" (sum (cons Int (cons (TypeRef "no-wf") unit)) null))
+(Datatype "empty" null)
+(Datatype "mutual-no-wf" (sum (DatatypeType "dummy" (sum (cons (TypeRef "mutual-no-wf") unit) null)) null))
+\end{examplecode}
+In the second example,
+a datatype containing only constructors with recursive references to itself is uninhabited.
+Other examples include a datatype with no constructors (the second example),
+or a mutually recursive datatype where constructing a value of that field
+contain a recursive reference to the datatype we are defining (the third example).
+
+Third, a datatype may contain datatypes as field types that have the same name as the current datatype.
+An example of such a datatype is:
+\begin{examplecode}
+(Datatype "aliased" (sum (cons (Datatype "aliased" (cons unit nil)) nil)))
+\end{examplecode}
+Above, the datatype contains a constructor whose field is a datatype
+with the same name.
+By convention, we also consider such datatypes to be ill-formed.
+
+For example, the type of the first constructor of the list datatype above is
+\begin{examplecode}
+(DtcAppType Int (DtcAppType (Datatype "list" D) (Datatype "list" D)))
+\end{examplecode}
+In detail, this type
+is a function that expects an integer,
+and returns a function that expects a list and returns a list.
+
+
+\subsection{Values}
+\label{sec:values}
 
 \begin{figure}[p]
 \begin{lstlisting}
@@ -181,6 +483,35 @@ inductive SmtRegLan : Type where
 deriving Repr, DecidableEq, Inhabited, Ord
 \end{lstlisting}
 \caption{Regular-language, value, map, sequence, and datatype values.}
+\label{fig:smt-values}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+inductive SmtTerm : Type where
+  | None : SmtTerm
+  | Boolean : Bool -> SmtTerm
+  | Numeral : Int -> SmtTerm
+  | Rational : Rat -> SmtTerm
+  | String : String -> SmtTerm
+  | Binary : Int -> Int -> SmtTerm
+  | Apply : SmtTerm -> SmtTerm -> SmtTerm
+  | not : SmtTerm -> SmtTerm
+  | and : SmtTerm -> SmtTerm -> SmtTerm
+  | eq : SmtTerm -> SmtTerm -> SmtTerm
+  | exists : String -> SmtType -> SmtTerm -> SmtTerm
+  | forall : String -> SmtType -> SmtTerm -> SmtTerm
+  | choice_nth : String -> SmtType -> SmtTerm -> Nat -> SmtTerm
+  | DtCons : String -> SmtDatatype -> Nat -> SmtTerm
+  | DtSel : String -> SmtDatatype -> Nat -> Nat -> SmtTerm
+  | DtTester : String -> SmtDatatype -> Nat -> SmtTerm
+  | Var : String -> SmtType -> SmtTerm
+  | UConst : String -> SmtType -> SmtTerm
+  ...
+deriving Repr, DecidableEq, Inhabited
+\end{lstlisting}
+\caption{A representative template of SMT term constructors.}
+\label{fig:smt-terms}
 \end{figure}
 
 \begin{figure}[p]
@@ -219,6 +550,7 @@ def model_push (M : SmtModel) (s : native_String) (T : SmtType) (v : SmtValue) :
         M.values k }
 \end{lstlisting}
 \caption{Model keys, model storage, and lookup/update helpers.}
+\label{fig:smt-model}
 \end{figure}
 
 \begin{figure}[p]
@@ -236,6 +568,7 @@ def smt_typeof_value : SmtValue -> SmtType
   | ... => ...
 \end{lstlisting}
 \caption{Types for SMT values.}
+\label{fig:typeof-value}
 \end{figure}
 
 \begin{figure}[p]
@@ -276,6 +609,7 @@ def smt_typeof : SmtTerm -> SmtType
   | ... => ...
 \end{lstlisting}
 \caption{Types for SMT terms.}
+\label{fig:typeof-term}
 \end{figure}
 
 \begin{figure}[p]
@@ -304,6 +638,7 @@ def smt_model_eval_eq : SmtValue -> SmtValue -> SmtValue
   | v1, v2 => (SmtValue.Boolean (decide (v1 = v2)))
 \end{lstlisting}
 \caption{Model evaluation for equality.}
+\label{fig:eval-eq}
 \end{figure}
 
 \begin{figure}[p]
@@ -380,6 +715,7 @@ macro_rules
           exact evalChoiceNth $M $s $T $body $n)
 \end{lstlisting}
 \caption{Evaluation macros for quantifiers and choice.}
+\label{fig:eval-quant}
 \end{figure}
 
 \begin{figure}[p]
@@ -394,6 +730,7 @@ noncomputable def smt_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | ... => ...
 \end{lstlisting}
 \caption{Skeleton of SMT term evaluation in a model.}
+\label{fig:model-eval}
 \end{figure}
 
 \begin{figure}[p]
@@ -454,6 +791,7 @@ def smt_type_wf : SmtType -> Bool
   | T => (smt_type_wf_component T)
 \end{lstlisting}
 \caption{Default values, inhabitation, and type well-formedness.}
+\label{fig:type-wf}
 \end{figure}
 
 \begin{figure}[p]
@@ -491,6 +829,7 @@ def smt_is_finite_type : SmtType -> Bool
   | T => false
 \end{lstlisting}
 \caption{Unit and finite SMT type predicates.}
+\label{fig:unit-finite}
 \end{figure}
 
 \begin{figure}[p]
@@ -528,6 +867,7 @@ def smt_value_canonical_bool : SmtValue -> Bool
   | v => true
 \end{lstlisting}
 \caption{Canonicality checks for maps, sequences, and values.}
+\label{fig:canonical}
 \end{figure}
 
 \begin{figure}[p]
@@ -546,6 +886,7 @@ def model_total_typed (M : SmtModel) : Prop :=
   native_fun_typed M
 \end{lstlisting}
 \caption{Total typed model conditions.}
+\label{fig:model-typed}
 \end{figure}
 
 \begin{figure}[p]
@@ -568,6 +909,7 @@ theorem total_typed_model_nonvacuous :
     ∃ M : SmtModel, model_total_typed M
 \end{lstlisting}
 \caption{Main type-preservation, canonicality, and model-existence statements.}
+\label{fig:type-preservation}
 \end{figure}
 
 \clearpage
@@ -610,6 +952,7 @@ def teq : Term -> Term -> Bool
   | x, y => decide (x = y)
 \end{lstlisting}
 \caption{Core Eunoia term syntax.}
+\label{fig:eo-term}
 \end{figure}
 
 \begin{figure}[p]
@@ -623,6 +966,7 @@ def eo_typeof : Term -> Term
   | ... => ...
 \end{lstlisting}
 \caption{Selected Eunoia type-synthesis clauses.}
+\label{fig:eo-typeof}
 \end{figure}
 
 \begin{figure}[p]
@@ -646,6 +990,7 @@ def eo_to_smt : Term -> SmtTerm
   | ... => ...
 \end{lstlisting}
 \caption{Translation from Eunoia terms and types into SMT.}
+\label{fig:eo-to-smt}
 \end{figure}
 
 \begin{figure}[p]
@@ -675,6 +1020,7 @@ def eo_satisfiability (t : Term) (b : Bool) : Prop :=
   (smt_satisfiability (eo_to_smt t) b)
 \end{lstlisting}
 \caption{Eunoia satisfiability via SMT.}
+\label{fig:eo-sat}
 \end{figure}
 
 
@@ -714,6 +1060,7 @@ def eo_prog_trans : Proof -> Term
   | _ => Term.Stuck
 \end{lstlisting}
 \caption{The \texttt{Logos.lean} definition of the \texttt{trans} rule program and its immediate dependencies.}
+\label{fig:trans-prog}
 \end{figure}
 
 \begin{figure}[p]
@@ -726,6 +1073,7 @@ theorem eo_to_smt_well_typed_and_typeof_implies_smt_type
   smt_typeof s = eo_to_smt_type T
 \end{lstlisting}
 \caption{A representative theorem connecting Eunoia and SMT types.}
+\label{fig:eo-smt-type-thm}
 \end{figure}
 
 \clearpage
@@ -768,20 +1116,21 @@ inductive CRule : Type where
 
 deriving Repr, Inhabited
 
-inductive CCmd : Type where
-  | assume_push : Term -> CCmd
-  | check_proven : Term -> CCmd
-  | step : CRule -> CArgList -> CIndexList -> CCmd
-  | step_pop : CRule -> CArgList -> CIndexList -> CCmd
+inductive Cmd : Type where
+  | assume_push : Term -> Cmd
+  | check_proven : Term -> Cmd
+  | step : CRule -> CArgList -> CIndexList -> Cmd
+  | step_pop : CRule -> CArgList -> CIndexList -> Cmd
 
 deriving Repr, Inhabited
 
-inductive CCmdList : Type where
-  | nil : CCmdList
-  | cons : CCmd -> CCmdList -> CCmdList
+inductive CmdList : Type where
+  | nil : CmdList
+  | cons : Cmd -> CmdList -> CmdList
 deriving Repr, Inhabited
 \end{lstlisting}
 \caption{Checker indices, arguments, states, rules, and commands.}
+\label{fig:checker-types}
 \end{figure}
 
 \begin{figure}[p]
@@ -826,6 +1175,7 @@ def eo_invoke_cmd_check_proven : CState -> Term -> CState
   | S, proven => CState.Stuck
 \end{lstlisting}
 \caption{Basic checker stack and state operations.}
+\label{fig:checker-ops}
 \end{figure}
 
 \begin{figure}[p]
@@ -846,17 +1196,17 @@ def eo_invoke_cmd_step_pop (s : CState) : CState -> CRule -> CArgList -> CIndexL
   | (CState.cons so s2), r, args, premises => (__eo_invoke_cmd_step_pop s s2 r args premises)
   | s2, r, args, premises => CState.Stuck
 
-def eo_invoke_cmd : CState -> CCmd -> CState
+def eo_invoke_cmd : CState -> Cmd -> CState
   | CState.Stuck, c => CState.Stuck
-  | S, (CCmd.assume_push proven) =>
+  | S, (Cmd.assume_push proven) =>
       (__eo_push_assume_check (__eo_and (__eo_is_bool_type proven) (__eo_is_closed proven)) proven S)
-  | S, (CCmd.check_proven proven) => (__eo_invoke_cmd_check_proven S proven)
-  | S, (CCmd.step r args premises) => (__eo_push_proven (__eo_cmd_step_proven S r args premises) S)
-  | S, (CCmd.step_pop r args premises) => (__eo_invoke_cmd_step_pop S S r args premises)
+  | S, (Cmd.check_proven proven) => (__eo_invoke_cmd_check_proven S proven)
+  | S, (Cmd.step r args premises) => (__eo_push_proven (__eo_cmd_step_proven S r args premises) S)
+  | S, (Cmd.step_pop r args premises) => (__eo_invoke_cmd_step_pop S S r args premises)
 
-def eo_invoke_cmd_list (S : CState) : CCmdList -> CState
-  | CCmdList.nil => S
-  | (CCmdList.cons c cmds) => (__eo_invoke_cmd_list (__eo_invoke_cmd S c) cmds)
+def eo_invoke_cmd_list (S : CState) : CmdList -> CState
+  | CmdList.nil => S
+  | (CmdList.cons c cmds) => (__eo_invoke_cmd_list (__eo_invoke_cmd S c) cmds)
 
 def eo_state_is_refutation (s : CState) : Bool :=
   (__eo_state_is_closed (__eo_invoke_cmd_check_proven s (Term.Boolean false)))
@@ -867,14 +1217,15 @@ def eo_invoke_assume_list (S : CState) : Term -> CState
   | (Term.Boolean true) => S
   | as => CState.Stuck
 
-def eo_checker_is_refutation : Term -> CCmdList -> Bool
+def eo_checker_is_refutation : Term -> CmdList -> Bool
   | as, cs => (__eo_state_is_refutation (__eo_invoke_cmd_list (__eo_invoke_assume_list CState.nil as) cs))
 
-inductive eo_is_refutation : Term -> CCmdList -> Prop
-  | intro (F : Term) (c : CCmdList) :
+inductive eo_is_refutation : Term -> CmdList -> Prop
+  | intro (F : Term) (c : CmdList) :
       (__eo_checker_is_refutation F c) = true -> (eo_is_refutation F c)
 \end{lstlisting}
 \caption{Checker command execution and refutation recognition.}
+\label{fig:checker-exec}
 \end{figure}
 
 \begin{figure}[p]
@@ -932,6 +1283,7 @@ theorem stableWhenTrueInAnyVarModel_of_closed
   StableWhenTrueInAnyVarModel P
 \end{lstlisting}
 \caption{The executable EO closedness check used by assumption guards, and the key theorem showing that closed formulas are stable under changes to SMT variable assignments.}
+\label{fig:eo-closed}
 \end{figure}
 
 \begin{figure}[p]
@@ -943,9 +1295,9 @@ def cArgListTranslationOk : CArgList -> Prop
   | CArgList.nil => True
   | CArgList.cons a args => eoHasSmtTranslation a ∧ cArgListTranslationOk args
 
-def cmdTranslationOk : CCmd -> Prop
-  | CCmd.assume_push A => eoHasSmtTranslation A
-  | CCmd.step _ args _ => cArgListTranslationOk args
+def cmdTranslationOk : Cmd -> Prop
+  | Cmd.assume_push A => eoHasSmtTranslation A
+  | Cmd.step _ args _ => cArgListTranslationOk args
   | _ => True
 
 inductive TranslatableAssumptionList : Term -> Prop
@@ -955,25 +1307,27 @@ inductive TranslatableAssumptionList : Term -> Prop
       TranslatableAssumptionList rest ->
       TranslatableAssumptionList (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) rest)
 
-inductive CmdListTranslationOk : CCmdList -> Prop
-  | nil : CmdListTranslationOk CCmdList.nil
-  | cons (c : CCmd) (cs : CCmdList) :
+inductive CmdListTranslationOk : CmdList -> Prop
+  | nil : CmdListTranslationOk CmdList.nil
+  | cons (c : Cmd) (cs : CmdList) :
       cmdTranslationOk c ->
       CmdListTranslationOk cs ->
-      CmdListTranslationOk (CCmdList.cons c cs)
+      CmdListTranslationOk (CmdList.cons c cs)
 \end{lstlisting}
 \caption{Translation obligations for checker assumptions and commands.}
+\label{fig:translation-ok}
 \end{figure}
 
 \begin{figure}[p]
 \begin{lstlisting}
-theorem correct___eo_is_refutation (F : Term) (pf : CCmdList) :
+theorem correct___eo_is_refutation (F : Term) (pf : CmdList) :
   TranslatableAssumptionList F ->
   CmdListTranslationOk pf ->
   (eo_is_refutation F pf) ->
   (eo_satisfiability F false)
 \end{lstlisting}
 \caption{Top-level checker soundness theorem.}
+\label{fig:soundness}
 \end{figure}
 
 \begin{figure}[p]
@@ -1021,6 +1375,7 @@ def checkerStateInvariant (M : SmtModel) (s : CState) : Prop :=
   checkerTranslationInvariant s
 \end{lstlisting}
 \caption{The combined checker invariant now separates local contextual truth from assumption stability, while retaining the shape, type, and translation invariants.}
+\label{fig:checker-invariant}
 \end{figure}
 
 \clearpage
@@ -1068,11 +1423,12 @@ theorem cmd_step_proven_facts_of_invariants
   checkerAssumptionStabilityInvariant M s ->
   checkerTypeInvariant s ->
   checkerTranslationInvariant s ->
-  cmdTranslationOk (CCmd.step r args premises) ->
+  cmdTranslationOk (Cmd.step r args premises) ->
   eo_typeof (__eo_cmd_step_proven s r args premises) = Term.Bool ->
   CmdStepFacts M s (__eo_cmd_step_proven s r args premises)
 \end{lstlisting}
-\caption{The step-only rule-correctness theorem in \texttt{RuleLemmas.lean}; plain \texttt{CCmd.step} reasoning now uses local truth plus assumption stability, and rule proofs receive contextual premise evidence that is stable across variable-model changes.}
+\caption{The step-only rule-correctness theorem in \texttt{RuleLemmas.lean}; plain \texttt{Cmd.step} reasoning now uses local truth plus assumption stability, and rule proofs receive contextual premise evidence that is stable across variable-model changes.}
+\label{fig:rule-lemmas}
 \end{figure}
 
 \begin{figure}[p]
@@ -1080,13 +1436,14 @@ theorem cmd_step_proven_facts_of_invariants
 theorem cmd_step_trans_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
-  cmdTranslationOk (CCmd.step CRule.trans args premises) ->
+  cmdTranslationOk (Cmd.step CRule.trans args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->
   eo_typeof (__eo_cmd_step_proven s CRule.trans args premises) = Term.Bool ->
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.trans args premises)
 \end{lstlisting}
 \caption{An example rule proof: the \texttt{trans} step packages contextual premise evidence and SMT translatability into \texttt{StepRuleProperties}.}
+\label{fig:trans-rule}
 \end{figure}
 
 \end{document}
