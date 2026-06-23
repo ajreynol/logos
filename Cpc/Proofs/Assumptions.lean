@@ -21,12 +21,20 @@ inductive ArgTranslationKind where
   | term
   | list
   | type
+  /-- A value argument that the rule's conclusion places into a container element
+      position (e.g. `set.singleton`/`seq.unit`). Requires the argument's value type
+      to be well-formed *as a container element* (`__smtx_type_wf_component`), which is
+      strictly stronger than `term`: it additionally rules out element types such as
+      `RegLan` that have a translation but cannot inhabit a `Set`/`Seq`. -/
+  | wfElem
 
 /-- Interprets a command-argument mask entry. -/
 def argTranslationOkMasked : ArgTranslationKind -> Term -> Prop
   | ArgTranslationKind.term, t => eoHasSmtTranslation t
   | ArgTranslationKind.list, t => EoListAllHaveSmtTranslation t
   | ArgTranslationKind.type, t => __smtx_type_wf (__eo_to_smt_type t) = true
+  | ArgTranslationKind.wfElem, t =>
+      __smtx_type_wf_component (__smtx_typeof (__eo_to_smt t)) = true
 
 /-- Predicate asserting that every argument in a checker argument list is translation-safe. -/
 def cArgListTranslationOk : CArgList -> Prop
@@ -117,6 +125,16 @@ def cmdTranslationOk : CCmd -> Prop
   | CCmd.step CRule.str_substr_char_start_eq_len args _ =>
       cArgListTranslationOkMask [ArgTranslationKind.term, ArgTranslationKind.term,
         ArgTranslationKind.type] args
+  | CCmd.step CRule.sets_member_singleton args _ =>
+      cArgListTranslationOkMask [ArgTranslationKind.term, ArgTranslationKind.wfElem] args
+  | CCmd.step CRule.sets_choose_singleton args _ =>
+      cArgListTranslationOkMask [ArgTranslationKind.wfElem] args
+  | CCmd.step CRule.seq_len_unit args _ =>
+      cArgListTranslationOkMask [ArgTranslationKind.wfElem] args
+  | CCmd.step CRule.seq_rev_unit args _ =>
+      cArgListTranslationOkMask [ArgTranslationKind.wfElem] args
+  | CCmd.step CRule.seq_nth_unit args _ =>
+      cArgListTranslationOkMask [ArgTranslationKind.wfElem] args
   | CCmd.step _ args _ => cArgListTranslationOk args
   | _ => True
 
