@@ -284,6 +284,466 @@ theorem str_re_consume_model_rel_of_side_false
   rw [__smtx_model_eval.eq_1]
   exact RuleProofs.smt_value_rel_refl _
 
+theorem native_str_in_re_eq_of_seq_reglan_rel
+    {ss ss' : SmtSeq} {rv rv' : native_RegLan}
+    (hSeqTy :
+      __smtx_typeof_value (SmtValue.Seq ss) =
+        SmtType.Seq SmtType.Char)
+    (hSeqRel :
+      RuleProofs.smt_value_rel (SmtValue.Seq ss') (SmtValue.Seq ss))
+    (hRegRel :
+      RuleProofs.smt_value_rel (SmtValue.RegLan rv') (SmtValue.RegLan rv)) :
+    native_str_in_re (native_unpack_string ss') rv' =
+      native_str_in_re (native_unpack_string ss) rv := by
+  have hSeq : RuleProofs.smt_seq_rel ss' ss := by
+    simpa [RuleProofs.smt_value_rel, RuleProofs.smt_seq_rel] using hSeqRel
+  have hSeqEq : ss' = ss :=
+    (RuleProofs.smt_seq_rel_iff_eq ss' ss).1 hSeq
+  subst ss'
+  have hValid :
+      native_string_valid (native_unpack_string ss) = true :=
+    native_unpack_string_valid_of_typeof_seq_char hSeqTy
+  exact smt_value_rel_reglan_valid_eq hRegRel hValid
+
+theorem str_re_consume_model_rel_of_side_str_in_re_rel
+    (M : SmtModel) (hM : model_total_typed M)
+    (s r side s' r' : Term)
+    (hEqTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp.eq)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) r))
+          side))
+    (hSideEq :
+      side = Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s') r')
+    (hSideRel :
+      ∀ ss rv,
+        __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss ->
+        __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv ->
+          ∃ ss' rv',
+            __smtx_model_eval M (__eo_to_smt s') = SmtValue.Seq ss' ∧
+            __smtx_model_eval M (__eo_to_smt r') = SmtValue.RegLan rv' ∧
+            RuleProofs.smt_value_rel (SmtValue.Seq ss') (SmtValue.Seq ss) ∧
+            RuleProofs.smt_value_rel (SmtValue.RegLan rv')
+              (SmtValue.RegLan rv)) :
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) r)))
+      (__smtx_model_eval M (__eo_to_smt side)) := by
+  rcases str_re_consume_translation_facts s r side hEqTrans with
+    ⟨_hStrInTrans, _hSideTrans, hSTy, _hRTy, _hEqBool⟩
+  rcases str_re_consume_input_eval M hM s r side hEqTrans with
+    ⟨ss, rv, hSEval, hREval, hStrInEval⟩
+  rcases hSideRel ss rv hSEval hREval with
+    ⟨ss', rv', hSEval', hREval', hSeqRel, hRegRel⟩
+  have hSeqTy :
+      __smtx_typeof_value (SmtValue.Seq ss) =
+        SmtType.Seq SmtType.Char := by
+    rw [← hSEval]
+    simpa [hSTy] using
+      smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt s) (by
+        unfold term_has_non_none_type
+        rw [hSTy]
+        simp)
+  have hNativeEq :
+      native_str_in_re (native_unpack_string ss') rv' =
+        native_str_in_re (native_unpack_string ss) rv :=
+    native_str_in_re_eq_of_seq_reglan_rel hSeqTy hSeqRel hRegRel
+  subst side
+  rw [hStrInEval]
+  change RuleProofs.smt_value_rel
+    (SmtValue.Boolean (native_str_in_re (native_unpack_string ss) rv))
+    (__smtx_model_eval M
+      (SmtTerm.str_in_re (__eo_to_smt s') (__eo_to_smt r')))
+  simp [__smtx_model_eval, __smtx_model_eval_str_in_re, hSEval',
+    hREval']
+  simpa [hNativeEq] using
+    RuleProofs.smt_value_rel_refl
+      (SmtValue.Boolean (native_str_in_re (native_unpack_string ss) rv))
+
+theorem str_re_consume_model_rel_of_side_native_eval
+    (M : SmtModel) (hM : model_total_typed M)
+    (s r side : Term)
+    (hEqTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp.eq)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) r))
+          side))
+    (hSideEval :
+      ∀ ss rv,
+        __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss ->
+        __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv ->
+          __smtx_model_eval M (__eo_to_smt side) =
+            SmtValue.Boolean
+              (native_str_in_re (native_unpack_string ss) rv)) :
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) r)))
+      (__smtx_model_eval M (__eo_to_smt side)) := by
+  rcases str_re_consume_input_eval M hM s r side hEqTrans with
+    ⟨ss, rv, hSEval, hREval, hStrInEval⟩
+  rw [hStrInEval, hSideEval ss rv hSEval hREval]
+  exact RuleProofs.smt_value_rel_refl _
+
+theorem str_re_consume_model_rel_of_re_none_result
+    (M : SmtModel) (hM : model_total_typed M)
+    (s side : Term)
+    (hEqTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp.eq)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s)
+              (Term.UOp UserOp.re_none)))
+          side))
+    (hSideFalse : side = Term.Boolean false) :
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s)
+            (Term.UOp UserOp.re_none))))
+      (__smtx_model_eval M (__eo_to_smt side)) := by
+  apply str_re_consume_model_rel_of_side_false M hM s
+    (Term.UOp UserOp.re_none) side hEqTrans hSideFalse
+  intro ss rv _hSEval hREval
+  change __smtx_model_eval M SmtTerm.re_none = SmtValue.RegLan rv at hREval
+  rw [__smtx_model_eval.eq_104] at hREval
+  cases hREval
+  exact native_str_in_re_re_none (native_unpack_string ss)
+
+theorem str_re_consume_model_rel_of_re_all_result
+    (M : SmtModel) (hM : model_total_typed M)
+    (s side : Term)
+    (hEqTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp.eq)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s)
+              (Term.UOp UserOp.re_all)))
+          side))
+    (hSideEq :
+      side =
+        Term.Apply
+          (Term.Apply (Term.UOp UserOp.str_in_re) (Term.String []))
+          (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))) :
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s)
+            (Term.UOp UserOp.re_all))))
+      (__smtx_model_eval M (__eo_to_smt side)) := by
+  rcases str_re_consume_translation_facts s (Term.UOp UserOp.re_all) side
+      hEqTrans with
+    ⟨_hStrInTrans, _hSideTrans, hSTy, _hRTy, _hEqBool⟩
+  apply str_re_consume_model_rel_of_side_native_eval M hM s
+    (Term.UOp UserOp.re_all) side hEqTrans
+  intro ss rv hSEval hREval
+  have hSeqTy :
+      __smtx_typeof_value (SmtValue.Seq ss) =
+        SmtType.Seq SmtType.Char := by
+    rw [← hSEval]
+    simpa [hSTy] using
+      smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt s) (by
+        unfold term_has_non_none_type
+        rw [hSTy]
+        simp)
+  have hValid :
+      native_string_valid (native_unpack_string ss) = true :=
+    native_unpack_string_valid_of_typeof_seq_char hSeqTy
+  change __smtx_model_eval M SmtTerm.re_all = SmtValue.RegLan rv at hREval
+  rw [__smtx_model_eval.eq_105] at hREval
+  cases hREval
+  have hInputTrue :
+      native_str_in_re (native_unpack_string ss) native_re_all = true :=
+    native_str_in_re_re_all (native_unpack_string ss) hValid
+  rw [hSideEq, hInputTrue]
+  change __smtx_model_eval M
+      (SmtTerm.str_in_re (SmtTerm.String [])
+        (SmtTerm.str_to_re (SmtTerm.String []))) =
+    SmtValue.Boolean true
+  have hEmptyValid : native_string_valid ([] : native_String) = true := by
+    rfl
+  simp [__smtx_model_eval, __smtx_model_eval_str_in_re,
+    __smtx_model_eval_str_to_re, native_unpack_string_pack_string,
+    native_str_in_re, native_str_to_re, native_re_of_list,
+    native_re_nullable, hEmptyValid]
+
+theorem str_re_consume_rec_re_none_eq
+    (s fuel : Term)
+    (hS : s ≠ Term.Stuck)
+    (hFuel : fuel ≠ Term.Stuck) :
+    __str_re_consume_rec s (Term.UOp UserOp.re_none) fuel =
+      Term.Boolean false := by
+  cases s <;> cases fuel <;>
+    simp [__str_re_consume_rec] at hS hFuel ⊢
+
+theorem str_re_consume_rec_re_all_eq
+    (s fuel : Term)
+    (hS : s ≠ Term.Stuck)
+    (hFuel : fuel ≠ Term.Stuck) :
+    __str_re_consume_rec s (Term.UOp UserOp.re_all) fuel =
+      Term.Apply
+        (Term.Apply (Term.UOp UserOp.str_in_re) (Term.String []))
+        (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) := by
+  cases s <;> cases fuel <;>
+    simp [__str_re_consume_rec] at hS hFuel ⊢
+
+theorem str_re_consume_rec_re_none_model_rel
+    (M : SmtModel) (hM : model_total_typed M)
+    (s fuel side : Term)
+    (hEqTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp.eq)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s)
+              (Term.UOp UserOp.re_none)))
+          side))
+    (hSide : side = __str_re_consume_rec s (Term.UOp UserOp.re_none) fuel)
+    (hS : s ≠ Term.Stuck)
+    (hFuel : fuel ≠ Term.Stuck) :
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s)
+            (Term.UOp UserOp.re_none))))
+      (__smtx_model_eval M (__eo_to_smt side)) := by
+  have hSideFalse : side = Term.Boolean false := by
+    rw [hSide, str_re_consume_rec_re_none_eq s fuel hS hFuel]
+  exact str_re_consume_model_rel_of_re_none_result M hM s side hEqTrans
+    hSideFalse
+
+theorem str_re_consume_rec_re_all_model_rel
+    (M : SmtModel) (hM : model_total_typed M)
+    (s fuel side : Term)
+    (hEqTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp.eq)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s)
+              (Term.UOp UserOp.re_all)))
+          side))
+    (hSide : side = __str_re_consume_rec s (Term.UOp UserOp.re_all) fuel)
+    (hS : s ≠ Term.Stuck)
+    (hFuel : fuel ≠ Term.Stuck) :
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s)
+            (Term.UOp UserOp.re_all))))
+      (__smtx_model_eval M (__eo_to_smt side)) := by
+  have hSideEq :
+      side =
+        Term.Apply
+          (Term.Apply (Term.UOp UserOp.str_in_re) (Term.String []))
+          (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) := by
+    rw [hSide, str_re_consume_rec_re_all_eq s fuel hS hFuel]
+  exact str_re_consume_model_rel_of_re_all_result M hM s side hEqTrans
+    hSideEq
+
+theorem native_re_concat_left_empty_local (r : native_RegLan) :
+    native_re_concat (native_str_to_re []) r = r := by
+  cases r <;> simp [native_re_concat, native_str_to_re, native_re_of_list,
+    native_re_mk_concat]
+
+theorem native_re_concat_right_empty_local (r : native_RegLan) :
+    native_re_concat r (native_str_to_re []) = r := by
+  cases r <;> simp [native_re_concat, native_str_to_re, native_re_of_list,
+    native_re_mk_concat]
+
+theorem str_re_consume_model_rel_of_re_concat_empty_left
+    (M : SmtModel) (hM : model_total_typed M)
+    (s r side : Term)
+    (hEqTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp.eq)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s)
+              (Term.Apply
+                (Term.Apply (Term.UOp UserOp.re_concat)
+                  (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])))
+                r)))
+          side))
+    (hReducedRel :
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) r)))
+        (__smtx_model_eval M (__eo_to_smt side))) :
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s)
+            (Term.Apply
+              (Term.Apply (Term.UOp UserOp.re_concat)
+                (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])))
+              r))))
+      (__smtx_model_eval M (__eo_to_smt side)) := by
+  let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
+  let concat := Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) eps) r
+  rcases str_re_consume_translation_facts s concat side (by
+      simpa [eps, concat] using hEqTrans) with
+    ⟨_hStrInTrans, _hSideTrans, hSTy, hConcatTy, _hEqBool⟩
+  have hConcatArgs :
+      __smtx_typeof (__eo_to_smt eps) = SmtType.RegLan ∧
+        __smtx_typeof (__eo_to_smt r) = SmtType.RegLan := by
+    have hNN : term_has_non_none_type
+        (SmtTerm.re_concat (__eo_to_smt eps) (__eo_to_smt r)) := by
+      unfold term_has_non_none_type
+      change __smtx_typeof (__eo_to_smt concat) ≠ SmtType.None
+      rw [hConcatTy]
+      simp
+    exact reglan_binop_args_of_non_none (op := SmtTerm.re_concat)
+      (typeof_re_concat_eq (__eo_to_smt eps) (__eo_to_smt r)) hNN
+  have hSEvalTy :
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt s)) =
+        SmtType.Seq SmtType.Char := by
+    simpa [hSTy] using
+      smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt s) (by
+        unfold term_has_non_none_type
+        rw [hSTy]
+        simp)
+  have hREvalTy :
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt r)) =
+        SmtType.RegLan := by
+    simpa [hConcatArgs.2] using
+      smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt r) (by
+        unfold term_has_non_none_type
+        rw [hConcatArgs.2]
+        simp)
+  rcases seq_value_canonical hSEvalTy with ⟨ss, hSEval⟩
+  rcases reglan_value_canonical hREvalTy with ⟨rv, hREval⟩
+  have hEpsEval :
+      __smtx_model_eval M (__eo_to_smt eps) =
+        SmtValue.RegLan (native_str_to_re []) := by
+    change __smtx_model_eval M
+        (SmtTerm.str_to_re (SmtTerm.String [])) =
+      SmtValue.RegLan (native_str_to_re [])
+    simp [__smtx_model_eval, __smtx_model_eval_str_to_re,
+      native_unpack_string_pack_string]
+  have hConcatEval :
+      __smtx_model_eval M (__eo_to_smt concat) =
+        SmtValue.RegLan (native_re_concat (native_str_to_re []) rv) := by
+    change __smtx_model_eval M
+        (SmtTerm.re_concat (__eo_to_smt eps) (__eo_to_smt r)) =
+      SmtValue.RegLan (native_re_concat (native_str_to_re []) rv)
+    simp [__smtx_model_eval, __smtx_model_eval_re_concat, hEpsEval,
+      hREval]
+  have hOrigReduced :
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s)
+              concat)))
+        (__smtx_model_eval M
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) r))) := by
+    change RuleProofs.smt_value_rel
+      (__smtx_model_eval M
+        (SmtTerm.str_in_re (__eo_to_smt s) (__eo_to_smt concat)))
+      (__smtx_model_eval M
+        (SmtTerm.str_in_re (__eo_to_smt s) (__eo_to_smt r)))
+    simp [__smtx_model_eval, __smtx_model_eval_str_in_re, hSEval,
+      hConcatEval, hREval, native_re_concat_left_empty_local]
+    exact RuleProofs.smt_value_rel_refl _
+  exact RuleProofs.smt_value_rel_trans _ _ _ hOrigReduced hReducedRel
+
+theorem str_re_consume_model_rel_of_re_concat_empty_right
+    (M : SmtModel) (hM : model_total_typed M)
+    (s r side : Term)
+    (hEqTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp.eq)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s)
+              (Term.Apply
+                (Term.Apply (Term.UOp UserOp.re_concat) r)
+                (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])))))
+          side))
+    (hReducedRel :
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) r)))
+        (__smtx_model_eval M (__eo_to_smt side))) :
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s)
+            (Term.Apply
+              (Term.Apply (Term.UOp UserOp.re_concat) r)
+              (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))))))
+      (__smtx_model_eval M (__eo_to_smt side)) := by
+  let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
+  let concat := Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) r) eps
+  rcases str_re_consume_translation_facts s concat side (by
+      simpa [eps, concat] using hEqTrans) with
+    ⟨_hStrInTrans, _hSideTrans, hSTy, hConcatTy, _hEqBool⟩
+  have hConcatArgs :
+      __smtx_typeof (__eo_to_smt r) = SmtType.RegLan ∧
+        __smtx_typeof (__eo_to_smt eps) = SmtType.RegLan := by
+    have hNN : term_has_non_none_type
+        (SmtTerm.re_concat (__eo_to_smt r) (__eo_to_smt eps)) := by
+      unfold term_has_non_none_type
+      change __smtx_typeof (__eo_to_smt concat) ≠ SmtType.None
+      rw [hConcatTy]
+      simp
+    exact reglan_binop_args_of_non_none (op := SmtTerm.re_concat)
+      (typeof_re_concat_eq (__eo_to_smt r) (__eo_to_smt eps)) hNN
+  have hSEvalTy :
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt s)) =
+        SmtType.Seq SmtType.Char := by
+    simpa [hSTy] using
+      smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt s) (by
+        unfold term_has_non_none_type
+        rw [hSTy]
+        simp)
+  have hREvalTy :
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt r)) =
+        SmtType.RegLan := by
+    simpa [hConcatArgs.1] using
+      smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt r) (by
+        unfold term_has_non_none_type
+        rw [hConcatArgs.1]
+        simp)
+  rcases seq_value_canonical hSEvalTy with ⟨ss, hSEval⟩
+  rcases reglan_value_canonical hREvalTy with ⟨rv, hREval⟩
+  have hEpsEval :
+      __smtx_model_eval M (__eo_to_smt eps) =
+        SmtValue.RegLan (native_str_to_re []) := by
+    change __smtx_model_eval M
+        (SmtTerm.str_to_re (SmtTerm.String [])) =
+      SmtValue.RegLan (native_str_to_re [])
+    simp [__smtx_model_eval, __smtx_model_eval_str_to_re,
+      native_unpack_string_pack_string]
+  have hConcatEval :
+      __smtx_model_eval M (__eo_to_smt concat) =
+        SmtValue.RegLan (native_re_concat rv (native_str_to_re [])) := by
+    change __smtx_model_eval M
+        (SmtTerm.re_concat (__eo_to_smt r) (__eo_to_smt eps)) =
+      SmtValue.RegLan (native_re_concat rv (native_str_to_re []))
+    simp [__smtx_model_eval, __smtx_model_eval_re_concat, hEpsEval,
+      hREval]
+  have hOrigReduced :
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s)
+              concat)))
+        (__smtx_model_eval M
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) r))) := by
+    change RuleProofs.smt_value_rel
+      (__smtx_model_eval M
+        (SmtTerm.str_in_re (__eo_to_smt s) (__eo_to_smt concat)))
+      (__smtx_model_eval M
+        (SmtTerm.str_in_re (__eo_to_smt s) (__eo_to_smt r)))
+    simp [__smtx_model_eval, __smtx_model_eval_str_in_re, hSEval,
+      hConcatEval, hREval, native_re_concat_right_empty_local]
+    exact RuleProofs.smt_value_rel_refl _
+  exact RuleProofs.smt_value_rel_trans _ _ _ hOrigReduced hReducedRel
+
 theorem str_re_consume_model_rel
     (M : SmtModel) (hM : model_total_typed M)
     (s r side : Term)
