@@ -297,15 +297,46 @@ The next three types pertain to SMT-LIB datatypes.
 The first (\code{Datatype}) denotes a (possibly recursive) datatype type.
 This definition reflects standard notions in the literature for mu-types, or \emph{recursive} types.
 In this definition, the first argument of the datatype denotes the name of that datatype.
-The second argument (a \code{SmtDatatype}) denotes the list of constructors of that datatype,
-where adds a constructor to this list, and null terminates its list of constructors.
+The second argument (a \code{SmtDatatype}) denotes the list of constructors (\code{SmtDatatypeCons}) of that datatype,
+where \code{sum} adds a constructor to this list, and \code{null} terminates its list of constructors.
+A constructor itself is a list of types, indicating the types of its children, or fields.
 Recursive references to the datatype in question are indicated by type references (constructor \code{TypeRef}), which
 takes the name of the datatype that it references.
 
-For example, a recursive list datatype is represented as:
+\noindent
+For example, consider the SMT-LIB datatype for lists of integers:
+\begin{examplecode}
+(declare-datatype List ((listc (head Int) (tail List)) (listn)))
+\end{examplecode}
+The datatype type for list is \code{(Datatype "List" D_L)}, where \code{D_L} is the following \code{SmtDatatype}:
+\begin{examplecode}
+D_L := (sum (cons Int (cons (TypeRef "List") unit)) (sum unit null))
+\end{examplecode}
+Note that \code{D_L} is a list containing two datatype constructors.
+The first (corresponding to \code{listc}) is a list contain \code{Int}
+and \code{(TypeRef "List")}.
+Intuitively, the latter can be thought of as a variable bound
+by \code{(Datatype "List" D_L)}, i.e. it specifies that the child
+of this constructor is itself a list.
+The second constructor in this list (corresponding to \code{listn})
+is given by \code{unit}, marking it as a constructor taking no arguments.
+Note that the names of constructors and selectors are not given in this representation.
+Instead, constructors will be referenced by natural number indicies in this list,
+e.g. 0 will refer to \code{listc} and 1 will refer to \code{listn}.
+Similarly, we will use two natural numbers to reference selectors,
+e.g. (0, 0) will refer to \code{head} and (0,1) to \code{tail}.
 
-
-This definition also permits mutual recursive datatypes, for example:
+This definition also permits mutual recursive datatypes, for example, consider the SMT-LIB datatype:
+\begin{examplecode}
+(declare-datatypes ((Tree 0) (ListTree 0))
+  (((node (children List)) (leaf))) 
+   ((tlistc (head Tree) (tail List)) (tlistn)))
+\end{examplecode}
+This is captured by the datatype \code{(Datatype "Tree" D_T)}, where \code{D_T} is the following datatype:
+\begin{examplecode}
+D_T := (sum (cons (Datatype "List" D_S) unit) (sum unit nil))
+D_S := (sum (cons (TypeRef "Tree") (cons (TypeRef "List") unit)) nil)
+\end{examplecode}
 
 Below, we will see that values of datatype types are datatype constructors (\code{DtCons})
 applied to other values.
@@ -313,17 +344,31 @@ We use an curried apply (\code{Apply}) constructor
 to denote applications of terms.
 For example, the value of datatype type
 
-Note that this definition permits two kinds of ill-formed datatypes.
+Note that this definition permits three kinds of ill-formed datatypes.
 First, a type may contain a type reference that it not within the bounds of the datatype that it references.
-In this case, the type is not well-formed.
+Examples of this kind of datatype are the following:
+\begin{examplecode}
+(TypeRef "list")
+(Array Int (TypeRef "list"))
+(Datatype "tree" (sum (cons (TypeRef "list") unit) null))
+\end{examplecode}
+In this case, we say that the type is not well-formed.
 Our formalization in SMT-LIB will later define a well-formedness predicate that
 defines a subset of types that are considered well-formed.
 Second, a datatype itself may be uninhabited, i.e. there are no \smtvalue
 that have that type.
+Examples of this kind of datatype are the following:
+\begin{examplecode}
+(Datatype "empty" null)
+(Datatype "no-wf" (sum (cons Int (cons (TypeRef "no-wf") unit)) null))
+(Datatype "mutual-no-wf" (sum (cons Int (cons (TypeRef "infinite-list") unit)) null))
+\end{examplecode}
 For instance, a datatype containing only recursive constructors is uninhabited.
 Other examples include a datatype with no constructors,
 or a mutually recursive datatype where all paths to other datatypes
 contain a recursive reference to the datatype we are defining.
+Third, a datatype may contain datatypes as field types that have the same name as the current datatype.
+
 
 The next type (\code{DtcAppType}) is the type of partially applied constructors.
 It is a function-like type that takes the argument and return types of the constructor,
