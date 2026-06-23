@@ -70,10 +70,10 @@
 % underscores, arrows, etc. verbatim so they need no manual escaping.
 \newcommand{\code}[1]{\texttt{\detokenize{#1}}}
 
-% Inline code for illustrative example snippets, styled distinctly from
-% identifier references (\code) via a separate colour.
-\definecolor{ExampleCode}{HTML}{0B6E4F}
-\newcommand{\excode}[1]{\textcolor{ExampleCode}{\texttt{\detokenize{#1}}}}
+% Displayed example snippets, given on their own line(s) and rendered with the
+% same Lean style and framing as the code in figures (inherits the global
+% \lstset configuration).
+\lstnewenvironment{examplecode}{}{}
 
 % Macros for the main types. \xspace preserves a following space so that
 % e.g. "the \term datatype" does not run together.
@@ -329,7 +329,9 @@ The next type (\code{DtcAppType}) is the type of partially applied constructors.
 It is a function-like type that takes the argument and return types of the constructor,
 where this type is curried.
 For example, the type of the first constructor of the list datatype above is
-\excode{(DtcAppType Int (DtcAppType (Datatype "list" D) (Datatype "list" D)))}
+\begin{examplecode}
+(DtcAppType Int (DtcAppType (Datatype "list" D) (Datatype "list" D)))
+\end{examplecode}
 In detail, this type
 is a function that expects an integer,
 and returns a function that expects a list and returns a list.
