@@ -65,6 +65,10 @@
   literate={∀}{{$\forall$}}1 {∧}{{$\land$}}1 {∃}{{$\exists$}}1 {∈}{{$\in$}}1 {≠}{{$\neq$}}1 {¬}{{$\neg$}}1 {⟨}{{$\langle$}}1 {⟩}{{$\rangle$}}1 {·}{{$\cdot$}}1
 }
 
+% Inline Lean/SMT identifiers in typewriter font; \detokenize prints
+% underscores, arrows, etc. verbatim so they need no manual escaping.
+\newcommand{\code}[1]{\texttt{\detokenize{#1}}}
+
 \pagestyle{empty}
 
 \begin{document}
@@ -125,12 +129,14 @@ we first provide a high-level overview of the core datatypes
 and key methods used throughout Logos.
 
 We define the following four types:
-- SmtTerm, the type of all SMT-LIB terms,
-- SmtType, the type of all SMT-LIB types,
-- SmtValue, the type of all SMT-LIB values,
-- SmtModel, a type corresponding to an SMT-LIB model,
-- Term, the type of all Eunoia terms and types, and
-- CmdList, a list of Eunoia command, i.e. a proof.
+\begin{itemize}
+  \item \code{SmtTerm}, the type of all SMT-LIB terms,
+  \item \code{SmtType}, the type of all SMT-LIB types,
+  \item \code{SmtValue}, the type of all SMT-LIB values,
+  \item \code{SmtModel}, a type corresponding to an SMT-LIB model,
+  \item \code{Term}, the type of all Eunoia terms and types, and
+  \item \code{CmdList}, a list of Eunoia command, i.e. a proof.
+\end{itemize}
 
 SMT-LIB models themselves are a totalling mapping from identifiers
 (corresponding to variables, free constants and free functions)
@@ -138,38 +144,65 @@ to SMT-LIB values.
 Note that Eunoia does not distinguish terms and types.
 
 We define the following key methods:
-SMT-LIB definition:
-- smt_typeof : SmtTerm -> SmtType
-  - Returns the type of an SMT-LIB term, or none if it is ill-typed.
-- smt_typeof_value : SmtValue -> SmtType
-  - Returns the type of an SMT-LIB value, or none if it is ill-typed.
-- smt_model_eval : SmtModel -> SmtTerm -> SmtValue
-  - Returns the evaluation of the term in the given model.
-Specification definition:
-- eo_to_smt : Term -> SmtTerm
-  - Given a Eunoia term, this returns the corresponding SMT-LIB term that defines its semantics, or none if none exist.
-- eo_to_smt_type : Term -> SmtType
-  - Given a Eunoia term, this returns the corresponding SMT-LIB type that it corresponds to.
-- eo_satisfiability : Term -> Bool -> Bool
-  - Given a Eunoia term $t$, this returns true iff $t$ is satisfiable if the second argument is true (resp. unsatisfiable if the second argument is false).
-Eunoia definitions:
-- eo_typeof : Term -> Term
-  - Given a Eunoia term, this returns the Eunoia term that corresponds to its type.
-- eo_is_closed : Term -> Bool
-  - Given a Eunoia term, this returns true iff it is a \emph{closed} term, i.e. has no free variables.
-- eo_is_refutation : CmdList -> Bool
-  - Returns true if Logos successfully executes the given command list, and is a valid, closed proof of false.
+
+\noindent\textbf{SMT-LIB definition:}
+\begin{itemize}
+  \item \code{smt_typeof : SmtTerm -> SmtType}
+    \begin{itemize}
+      \item Returns the type of an SMT-LIB term, or none if it is ill-typed.
+    \end{itemize}
+  \item \code{smt_typeof_value : SmtValue -> SmtType}
+    \begin{itemize}
+      \item Returns the type of an SMT-LIB value, or none if it is ill-typed.
+    \end{itemize}
+  \item \code{smt_model_eval : SmtModel -> SmtTerm -> SmtValue}
+    \begin{itemize}
+      \item Returns the evaluation of the term in the given model.
+    \end{itemize}
+\end{itemize}
+
+\noindent\textbf{Specification definition:}
+\begin{itemize}
+  \item \code{eo_to_smt : Term -> SmtTerm}
+    \begin{itemize}
+      \item Given a Eunoia term, this returns the corresponding SMT-LIB term that defines its semantics, or none if none exist.
+    \end{itemize}
+  \item \code{eo_to_smt_type : Term -> SmtType}
+    \begin{itemize}
+      \item Given a Eunoia term, this returns the corresponding SMT-LIB type that it corresponds to.
+    \end{itemize}
+  \item \code{eo_satisfiability : Term -> Bool -> Bool}
+    \begin{itemize}
+      \item Given a Eunoia term $t$, this returns true iff $t$ is satisfiable if the second argument is true (resp. unsatisfiable if the second argument is false).
+    \end{itemize}
+\end{itemize}
+
+\noindent\textbf{Eunoia definitions:}
+\begin{itemize}
+  \item \code{eo_typeof : Term -> Term}
+    \begin{itemize}
+      \item Given a Eunoia term, this returns the Eunoia term that corresponds to its type.
+    \end{itemize}
+  \item \code{eo_is_closed : Term -> Bool}
+    \begin{itemize}
+      \item Given a Eunoia term, this returns true iff it is a \emph{closed} term, i.e. has no free variables.
+    \end{itemize}
+  \item \code{eo_is_refutation : CmdList -> Bool}
+    \begin{itemize}
+      \item Returns true if Logos successfully executes the given command list, and is a valid, closed proof of false.
+    \end{itemize}
+\end{itemize}
 
 Note the following design decisions.
 First, the executable portion of the Logos checker does \emph{not} depend on the SMT-LIB definition or the specification definition.
-This means it is defined solely over the Term datatype.
+This means it is defined solely over the \code{Term} datatype.
 Second, the speficiation layer above does \emph{not} rely on the Eunoia definitions, e.g. of the Eunoia type system.
-Third, the definition of the Eunoia type system is encapsulated as a method, eo_typeof, which returns the type of a given Eunoia term.
-All computational side conditions are essentially untyped manipulations over a single deep embedding of Eunoia types and terms, as encapsulated as Term.
-A command (in CmdList) is either a proof step or an input assumption.\footnote{There are also commands for local assumptions and steps which close them.}
-A proof checking step in Eunoia succeeds iff the conclusion of that step has type Bool,
-i.e. eo_typeof for that term returns the Eunoia term Bool.
-An input assumption command succeeds if it is a \emph{closed} Eunoia term of type Bool.
+Third, the definition of the Eunoia type system is encapsulated as a method, \code{eo_typeof}, which returns the type of a given Eunoia term.
+All computational side conditions are essentially untyped manipulations over a single deep embedding of Eunoia types and terms, as encapsulated as \code{Term}.
+A command (in \code{CmdList}) is either a proof step or an input assumption.\footnote{There are also commands for local assumptions and steps which close them.}
+A proof checking step in Eunoia succeeds iff the conclusion of that step has type \code{Bool},
+i.e. \code{eo_typeof} for that term returns the Eunoia term \code{Bool}.
+An input assumption command succeeds if it is a \emph{closed} Eunoia term of type \code{Bool}.
 
 We now look in detail at these definitions.
 
@@ -213,30 +246,33 @@ def Teq : SmtType -> SmtType -> native_Bool
   | x, y => decide (x = y)
 \end{lstlisting}
 \caption{The SMT type language.}
+\label{fig:smt-types}
 \end{figure}
 
-Figure~\ref{} gives the official definition of SMT-LIB types.
-This includes an error value (None) denoting not a type,\footnote{
-One could alternatively use an Option type instead of allowing None as a first-class constructor.
+Figure~\ref{fig:smt-types} gives the official definition of SMT-LIB types.
+This includes an error value (\code{None}) denoting not a type,\footnote{
+One could alternatively use an \code{Option} type instead of allowing \code{None} as a first-class constructor.
 Throughout, we prefer using an error elements of types.}
-the standard atomic SMT-LIB types of Booleans (Bool),
-integers (Int), reals (Real) and regular languages (RegLan).
-Bitvectors (BitVec) are indexed by a natural number denoting the bitwidth.
+the standard atomic SMT-LIB types of Booleans (\code{Bool}),
+integers (\code{Int}), reals (\code{Real}) and regular languages (\code{RegLan}).
+Bitvectors (\code{BitVec}) are indexed by a natural number denoting the bitwidth.
 Note that in contrast to SMT-LIB, our semantics permit the bitvector of size zero.
 
 We then define three composite types:
-- The type of maps (Map) will be used to reason about SMT-LIB arrays. Note that this type will have a minor difference with the official type of arrays in SMT-LIB, namely, it will interpreted as admitting only values that are almost constant maps.
-- The type of finite sets (Set).
-- The type of sequences (Seq). Note that for uniformity, SMT-LIB strings are represented as a sequence of characters, where the character type (Char) is another atomic type constructor and has a finite range of values determined by the range of Unicode in SMT-LIB (values 0 to 199607).
+\begin{itemize}
+  \item The type of maps (\code{Map}) will be used to reason about SMT-LIB arrays. Note that this type will have a minor difference with the official type of arrays in SMT-LIB, namely, it will interpreted as admitting only values that are almost constant maps.
+  \item The type of finite sets (\code{Set}).
+  \item The type of sequences (\code{Seq}). Note that for uniformity, SMT-LIB strings are represented as a sequence of characters, where the character type (\code{Char}) is another atomic type constructor and has a finite range of values determined by the range of Unicode in SMT-LIB (values 0 to 199607).
+\end{itemize}
 Note the latter two types are not in the SMT-LIB standard.
 
 The next three types pertain to SMT-LIB datatypes.
-The first (Datatype) denotes a (possibly recursive) datatype type.
+The first (\code{Datatype}) denotes a (possibly recursive) datatype type.
 This definition reflects standard notions in the literature for mu-types, or \emph{recursive} types.
 In this definition, the first argument of the datatype denotes the name of that datatype.
-The second argument (a SmtDatatype) denotes the list of constructors of that datatype,
+The second argument (a \code{SmtDatatype}) denotes the list of constructors of that datatype,
 where adds a constructor to this list, and null terminates its list of constructors.
-Recursive references to the datatype in question are indicated by type references (constructor TypeRef), which
+Recursive references to the datatype in question are indicated by type references (constructor \code{TypeRef}), which
 takes the name of the datatype that it references.
 
 For example, a recursive list datatype is represented as:
@@ -244,9 +280,9 @@ For example, a recursive list datatype is represented as:
 
 This definition also permits mutual recursive datatypes, for example:
 
-Below, we will see that values of datatype types are datatype constructors (DtCons)
+Below, we will see that values of datatype types are datatype constructors (\code{DtCons})
 applied to other values.
-We use an curried apply (Apply) constructor
+We use an curried apply (\code{Apply}) constructor
 to denote applications of terms.
 For example, the value of datatype type
 
@@ -255,25 +291,25 @@ First, a type may contain a type reference that it not within the bounds of the 
 In this case, the type is not well-formed.
 Our formalization in SMT-LIB will later define a well-formedness predicate that
 defines a subset of types that are considered well-formed.
-Second, a datatype itself may be uninhabited, i.e. there are no SmtValue
+Second, a datatype itself may be uninhabited, i.e. there are no \code{SmtValue}
 that have that type.
 For instance, a datatype containing only recursive constructors is uninhabited.
 Other examples include a datatype with no constructors,
 or a mutually recursive datatype where all paths to other datatypes
 contain a recursive reference to the datatype we are defining.
 
-The next type (DtcAppType) is the type of partially applied constructors.
+The next type (\code{DtcAppType}) is the type of partially applied constructors.
 It is a function-like type that takes the argument and return types of the constructor,
 where this type is curried.
 For example, the type of the first constructor of the list datatype above is
-(DtcAppType Int (DtcAppType (Datatype "list" D) (Datatype "list" D)))
+\code{(DtcAppType Int (DtcAppType (Datatype "list" D) (Datatype "list" D)))}
 In detail, this type
 is a function that expects an integer,
 and returns a function that expects a list and returns a list.
 
-Note that the type of constructors is intentionally distinct from function types (FunType).
+Note that the type of constructors is intentionally distinct from function types (\code{FunType}).
 
-Finally, the last constructor in this list denotes uninterpreted sorts (USort),
+Finally, the last constructor in this list denotes uninterpreted sorts (\code{USort}),
 which are indexed by a natural number identifier.
 
 \begin{figure}[p]
