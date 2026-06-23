@@ -78,6 +78,7 @@
 \newcommand{\smtvalue}{\code{SmtValue}\xspace}
 \newcommand{\smtmodel}{\code{SmtModel}\xspace}
 \newcommand{\cmdlist}{\code{CmdList}\xspace}
+\newcommand{\bool}{\code{Bool}\xspace}
 
 % Macros for the main methods.
 \newcommand{\smttypeof}{\code{smt_typeof}\xspace}
@@ -168,15 +169,15 @@ We define the following key methods:
 
 \noindent\textbf{SMT-LIB definition:}
 \begin{itemize}
-  \item \smttypeof \code{: SmtTerm -> SmtType}
+  \item \smttypeof \code{:} \smtterm \code{->} \smttype
     \begin{itemize}
       \item Returns the type of an SMT-LIB term, or none if it is ill-typed.
     \end{itemize}
-  \item \smttypeofvalue \code{: SmtValue -> SmtType}
+  \item \smttypeofvalue \code{:} \smtvalue \code{->} \smttype
     \begin{itemize}
       \item Returns the type of an SMT-LIB value, or none if it is ill-typed.
     \end{itemize}
-  \item \smtmodeleval \code{: SmtModel -> SmtTerm -> SmtValue}
+  \item \smtmodeleval \code{:} \smtmodel \code{->} \smtterm \code{->} \smtvalue
     \begin{itemize}
       \item Returns the evaluation of the term in the given model.
     \end{itemize}
@@ -184,15 +185,15 @@ We define the following key methods:
 
 \noindent\textbf{Specification definition:}
 \begin{itemize}
-  \item \eotosmt \code{: Term -> SmtTerm}
+  \item \eotosmt \code{:} \term \code{->} \smtterm
     \begin{itemize}
       \item Given a Eunoia term, this returns the corresponding SMT-LIB term that defines its semantics, or none if none exist.
     \end{itemize}
-  \item \eotosmttype \code{: Term -> SmtType}
+  \item \eotosmttype \code{:} \term \code{->} \smttype
     \begin{itemize}
       \item Given a Eunoia term, this returns the corresponding SMT-LIB type that it corresponds to.
     \end{itemize}
-  \item \eosatisfiability \code{: Term -> Bool -> Bool}
+  \item \eosatisfiability \code{:} \term \code{->} \bool \code{->} \bool
     \begin{itemize}
       \item Given a Eunoia term $t$, this returns true iff $t$ is satisfiable if the second argument is true (resp. unsatisfiable if the second argument is false).
     \end{itemize}
@@ -200,15 +201,15 @@ We define the following key methods:
 
 \noindent\textbf{Eunoia definitions:}
 \begin{itemize}
-  \item \eotypeof \code{: Term -> Term}
+  \item \eotypeof \code{:} \term \code{->} \term
     \begin{itemize}
       \item Given a Eunoia term, this returns the Eunoia term that corresponds to its type.
     \end{itemize}
-  \item \eoisclosed \code{: Term -> Bool}
+  \item \eoisclosed \code{:} \term \code{->} \bool
     \begin{itemize}
       \item Given a Eunoia term, this returns true iff it is a \emph{closed} term, i.e. has no free variables.
     \end{itemize}
-  \item \eoisrefutation \code{: CmdList -> Bool}
+  \item \eoisrefutation \code{:} \cmdlist \code{->} \bool
     \begin{itemize}
       \item Returns true if Logos successfully executes the given command list, and is a valid, closed proof of false.
     \end{itemize}
@@ -221,9 +222,9 @@ Second, the speficiation layer above does \emph{not} rely on the Eunoia definiti
 Third, the definition of the Eunoia type system is encapsulated as a method, \eotypeof, which returns the type of a given Eunoia term.
 All computational side conditions are essentially untyped manipulations over a single deep embedding of Eunoia types and terms, as encapsulated as \term.
 A command (in \cmdlist) is either a proof step or an input assumption.\footnote{There are also commands for local assumptions and steps which close them.}
-A proof checking step in Eunoia succeeds iff the conclusion of that step has type \code{Bool},
-i.e. \eotypeof for that term returns the Eunoia term \code{Bool}.
-An input assumption command succeeds if it is a \emph{closed} Eunoia term of type \code{Bool}.
+A proof checking step in Eunoia succeeds iff the conclusion of that step has type \bool,
+i.e. \eotypeof for that term returns the Eunoia term \bool.
+An input assumption command succeeds if it is a \emph{closed} Eunoia term of type \bool.
 
 We now look in detail at these definitions.
 
