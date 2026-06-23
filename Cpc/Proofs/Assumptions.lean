@@ -21,6 +21,10 @@ inductive ArgTranslationKind where
   | term
   | list
   | type
+  /-- A value argument whose translated result type must itself be a full
+      well-formed SMT type. This is weaker than `wfElem` for top-level function
+      and regex types, but strong enough for EO typed-list annotations. -/
+  | wfTerm
   /-- A value argument that the rule's conclusion places into a container element
       position (e.g. `set.singleton`/`seq.unit`). Requires the argument's value type
       to be well-formed *as a container element* (`__smtx_type_wf_component`), which is
@@ -33,6 +37,8 @@ def argTranslationOkMasked : ArgTranslationKind -> Term -> Prop
   | ArgTranslationKind.term, t => eoHasSmtTranslation t
   | ArgTranslationKind.list, t => EoListAllHaveSmtTranslation t
   | ArgTranslationKind.type, t => __smtx_type_wf (__eo_to_smt_type t) = true
+  | ArgTranslationKind.wfTerm, t =>
+      eoHasSmtTranslation t ∧ __smtx_type_wf (__smtx_typeof (__eo_to_smt t)) = true
   | ArgTranslationKind.wfElem, t =>
       __smtx_type_wf_component (__smtx_typeof (__eo_to_smt t)) = true
 
@@ -61,6 +67,8 @@ def cmdTranslationOk : CCmd -> Prop
   | CCmd.step CRule.alpha_equiv args _ =>
       cArgListTranslationOkMask [ArgTranslationKind.term, ArgTranslationKind.list,
         ArgTranslationKind.list] args
+  | CCmd.step CRule.distinct_binary_elim args _ =>
+      cArgListTranslationOkMask [ArgTranslationKind.wfTerm, ArgTranslationKind.term] args
   | CCmd.step CRule.exists_string_length args _ =>
       cArgListTranslationOkMask [ArgTranslationKind.type, ArgTranslationKind.term,
         ArgTranslationKind.term] args
