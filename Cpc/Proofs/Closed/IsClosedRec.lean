@@ -11718,6 +11718,179 @@ by
   · rw [hNone]
     simp [__smtx_typeof_apply]
 
+theorem smtx_typeof_not_bool_or_none_closed (t : SmtTerm) :
+  __smtx_typeof (SmtTerm.not t) = SmtType.Bool ∨
+    __smtx_typeof (SmtTerm.not t) = SmtType.None :=
+by
+  by_cases hNone : __smtx_typeof (SmtTerm.not t) = SmtType.None
+  · exact Or.inr hNone
+  · exact Or.inl (smtx_typeof_not_eq_bool_of_non_none t hNone)
+
+theorem smtx_typeof_exists_bool_or_none_closed
+    (s : native_String) (T : SmtType) (body : SmtTerm) :
+  __smtx_typeof (SmtTerm.exists s T body) = SmtType.Bool ∨
+    __smtx_typeof (SmtTerm.exists s T body) = SmtType.None :=
+by
+  by_cases hNone :
+      __smtx_typeof (SmtTerm.exists s T body) = SmtType.None
+  · exact Or.inr hNone
+  · exact Or.inl (smtx_typeof_exists_eq_bool_of_non_none hNone)
+
+theorem smtx_typeof_eo_to_smt_exists_top_bool_or_none_closed
+    (body xs : Term) :
+  __smtx_typeof
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.exists) xs) body)) =
+      SmtType.Bool ∨
+    __smtx_typeof
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.exists) xs) body)) =
+      SmtType.None :=
+by
+  cases xs
+  case __eo_List_nil =>
+    right
+    change __smtx_typeof SmtTerm.None = SmtType.None
+    exact TranslationProofs.smtx_typeof_none
+  case Apply f tail =>
+    cases f
+    case Apply g head =>
+      cases g
+      case __eo_List_cons =>
+        cases head
+        case Var name T =>
+          cases name
+          case String s =>
+            change
+              __smtx_typeof
+                    (SmtTerm.exists s (__eo_to_smt_type T)
+                      (__eo_to_smt_exists tail (__eo_to_smt body))) =
+                  SmtType.Bool ∨
+                __smtx_typeof
+                    (SmtTerm.exists s (__eo_to_smt_type T)
+                      (__eo_to_smt_exists tail (__eo_to_smt body))) =
+                  SmtType.None
+            exact
+              smtx_typeof_exists_bool_or_none_closed s
+                (__eo_to_smt_type T)
+                (__eo_to_smt_exists tail (__eo_to_smt body))
+          all_goals
+            right
+            change __smtx_typeof SmtTerm.None = SmtType.None
+            exact TranslationProofs.smtx_typeof_none
+        all_goals
+          right
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact TranslationProofs.smtx_typeof_none
+      all_goals
+        right
+        change __smtx_typeof SmtTerm.None = SmtType.None
+        exact TranslationProofs.smtx_typeof_none
+    all_goals
+      right
+      change __smtx_typeof SmtTerm.None = SmtType.None
+      exact TranslationProofs.smtx_typeof_none
+  all_goals
+    right
+    change __smtx_typeof SmtTerm.None = SmtType.None
+    exact TranslationProofs.smtx_typeof_none
+
+theorem smtx_typeof_eo_to_smt_forall_top_bool_or_none_closed
+    (body xs : Term) :
+  __smtx_typeof
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body)) =
+      SmtType.Bool ∨
+    __smtx_typeof
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body)) =
+      SmtType.None :=
+by
+  cases xs
+  case __eo_List_nil =>
+    right
+    change __smtx_typeof SmtTerm.None = SmtType.None
+    exact TranslationProofs.smtx_typeof_none
+  all_goals
+    change
+      __smtx_typeof
+          (SmtTerm.not
+            (__eo_to_smt_exists _ (SmtTerm.not (__eo_to_smt body)))) =
+          SmtType.Bool ∨
+        __smtx_typeof
+          (SmtTerm.not
+            (__eo_to_smt_exists _ (SmtTerm.not (__eo_to_smt body)))) =
+          SmtType.None
+    exact
+      smtx_typeof_not_bool_or_none_closed
+        (__eo_to_smt_exists _ (SmtTerm.not (__eo_to_smt body)))
+
+theorem false_of_apply_apply_apply_forall_has_smt_translation {P : Prop}
+    {xs body z : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body) z)) :
+  P :=
+by
+  exfalso
+  unfold eoHasSmtTranslation at hTrans
+  apply hTrans
+  change
+    __smtx_typeof
+        (SmtTerm.Apply
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body))
+          (__eo_to_smt z)) =
+      SmtType.None
+  exact
+    smtx_typeof_generic_apply_bool_or_none_head_eq_none _ _
+      (generic_apply_type_of_non_special_head_closed _ _
+        (by
+          intro s d i j h
+          exact
+            TranslationProofs.eo_to_smt_apply_ne_dt_sel
+              _ _ s d i j h)
+        (by
+          intro s d i h
+          exact
+            TranslationProofs.eo_to_smt_apply_ne_dt_tester
+              _ _ s d i h))
+      (smtx_typeof_eo_to_smt_forall_top_bool_or_none_closed body xs)
+
+theorem false_of_apply_apply_apply_exists_has_smt_translation {P : Prop}
+    {xs body z : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply (Term.Apply (Term.UOp UserOp.exists) xs) body) z)) :
+  P :=
+by
+  exfalso
+  unfold eoHasSmtTranslation at hTrans
+  apply hTrans
+  change
+    __smtx_typeof
+        (SmtTerm.Apply
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.exists) xs) body))
+          (__eo_to_smt z)) =
+      SmtType.None
+  exact
+    smtx_typeof_generic_apply_bool_or_none_head_eq_none _ _
+      (generic_apply_type_of_non_special_head_closed _ _
+        (by
+          intro s d i j h
+          exact
+            TranslationProofs.eo_to_smt_apply_ne_dt_sel
+              _ _ s d i j h)
+        (by
+          intro s d i h
+          exact
+            TranslationProofs.eo_to_smt_apply_ne_dt_tester
+              _ _ s d i h))
+      (smtx_typeof_eo_to_smt_exists_top_bool_or_none_closed body xs)
+
 theorem is_closed_rec_apply_apply_uop_any_eq_and_bool_of_has_smt_translation
     (root : Term)
     {op : UserOp} {x y env : Term} {vars : List SmtVarKey}
