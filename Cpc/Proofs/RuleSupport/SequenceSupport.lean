@@ -7764,3 +7764,13 @@ theorem eo_typeof_eq_operands_same_of_bool (x y : Term)
   have hSame : __eo_typeof x = __eo_typeof y :=
     (eq_of_eo_eq_true_local (__eo_typeof x) (__eo_typeof y) hEq).symm
   exact ⟨hSame, hx, hy⟩
+
+/-- Bridge lemma: a Seq type is well-formed precisely when its element type's
+    well-formedness component holds (the Seq inhabitation check is
+    unconditional). -/
+theorem type_wf_seq_of_component (A : SmtType)
+    (h : __smtx_type_wf_component A = true) :
+    __smtx_type_wf (SmtType.Seq A) = true := by
+  simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+    native_inhabited_type_seq, SmtEval.native_and] at h ⊢
+  exact h
