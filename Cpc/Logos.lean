@@ -1189,7 +1189,9 @@ def __are_distinct_terms_type : Term -> Term -> Term -> Term
   | t, s, Term.Bool => (__eo_and (__eo_is_bool t) (__eo_is_bool s))
   | st, ss, (Term.Apply (Term.UOp UserOp.Set) U) => (__eo_or (__set_is_not_subset st ss U) (__set_is_not_subset ss st U))
   | sst, sss, (Term.Apply (Term.UOp UserOp.Seq) U) => (__seq_distinct_terms sst sss U)
-  | t, s, T => (__dt_distinct_terms t s)
+  | t, s, T => 
+    let _v0 := (__dt_distinct_terms t s)
+    (__eo_ite (__eo_is_ok _v0) _v0 (Term.Boolean false))
 termination_by x1 x2 x3 => sizeOf x1 + sizeOf x2 + 1
 decreasing_by
   all_goals simp_wf

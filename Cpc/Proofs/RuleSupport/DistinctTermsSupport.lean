@@ -55,6 +55,14 @@ private theorem eo_ite_eq_true_cases (c t e : Term) :
     · exact Or.inr ⟨rfl, h⟩
     · exact Or.inl ⟨rfl, h⟩
 
+private theorem dt_ite_is_ok_self_true {v : Term} :
+    __eo_ite (__eo_is_ok v) v (Term.Boolean false) = Term.Boolean true ->
+    v = Term.Boolean true := by
+  intro h
+  rcases eo_ite_eq_true_cases _ _ _ h with ⟨_, hv⟩ | ⟨_, hFalse⟩
+  · exact hv
+  · simp at hFalse
+
 private theorem eo_eq_false_ne {a b : Term} :
     __eo_eq a b = Term.Boolean false -> a ≠ b := by
   intro h hEq
@@ -3013,7 +3021,7 @@ private theorem are_distinct_terms_type_model_eval_eq_false_of_type
           by_cases hb : b = Term.Stuck
           · subst b
             simp [__are_distinct_terms_type.eq_def] at hDistinct
-          simpa [__are_distinct_terms_type.eq_def, ha, hb] using hDistinct
+          exact dt_ite_is_ok_self_true (by simpa [__are_distinct_terms_type.eq_def, ha, hb] using hDistinct)
         exact dt_distinct_terms_model_eval_eq_false_of_head_sound
           M hM a b haTrans hbTrans
           (fun e₁ e₂ hSmall he₁Trans he₂Trans hHeadEqFalse hHeadDistinct =>
@@ -3076,7 +3084,7 @@ private theorem are_distinct_terms_type_model_eval_eq_false_of_type
                 by_cases hb : b = Term.Stuck
                 · subst b
                   simp [__are_distinct_terms_type.eq_def] at hDistinct
-                simpa [__are_distinct_terms_type.eq_def, ha, hb] using hDistinct
+                exact dt_ite_is_ok_self_true (by simpa [__are_distinct_terms_type.eq_def, ha, hb] using hDistinct)
               exact dt_distinct_terms_model_eval_eq_false_of_head_sound
                 M hM a b haTrans hbTrans
                 (fun e₁ e₂ hSmall he₁Trans he₂Trans hHeadEqFalse hHeadDistinct =>
@@ -3094,7 +3102,7 @@ private theorem are_distinct_terms_type_model_eval_eq_false_of_type
             by_cases hb : b = Term.Stuck
             · subst b
               simp [__are_distinct_terms_type.eq_def] at hDistinct
-            simpa [__are_distinct_terms_type.eq_def, ha, hb] using hDistinct
+            exact dt_ite_is_ok_self_true (by simpa [__are_distinct_terms_type.eq_def, ha, hb] using hDistinct)
           exact dt_distinct_terms_model_eval_eq_false_of_head_sound
             M hM a b haTrans hbTrans
             (fun e₁ e₂ hSmall he₁Trans he₂Trans hHeadEqFalse hHeadDistinct =>
@@ -3115,7 +3123,7 @@ private theorem are_distinct_terms_type_model_eval_eq_false_of_type
         by_cases hb : b = Term.Stuck
         · subst b
           simp [__are_distinct_terms_type.eq_def] at hDistinct
-        simpa [__are_distinct_terms_type.eq_def, ha, hb] using hDistinct
+        exact dt_ite_is_ok_self_true (by simpa [__are_distinct_terms_type.eq_def, ha, hb] using hDistinct)
       exact dt_distinct_terms_model_eval_eq_false_of_head_sound
         M hM a b haTrans hbTrans
         (fun e₁ e₂ hSmall he₁Trans he₂Trans hHeadEqFalse hHeadDistinct =>
