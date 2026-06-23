@@ -159,12 +159,14 @@ private theorem typed___eo_prog_distinct_binary_elim_impl
     have hTypesSymm := hTypes.symm
     have hTypeWf :
         __smtx_type_wf (__eo_to_smt_type (__eo_typeof t1)) = true := by
-      simpa [hT1SmtTy] using hT1SmtWf
+      rw [← hT1SmtTy]
+      exact hT1SmtWf
     have hTypeNN :
-        __eo_to_smt_type (__eo_typeof t1) ≠ SmtType.None :=
-      Smtm.type_wf_non_none hTypeWf
+        __eo_to_smt_type (__eo_typeof t1) ≠ SmtType.None := by
+      rw [← hT1SmtTy]
+      exact hT1Trans
     simp [xs, tail, nil, hTypesSymm, hT1SmtTy, hS1SmtTy,
-      __eo_to_smt_typed_list_elem_type, hTypeWf, hTypeNN, native_ite,
+      __eo_to_smt_typed_list_elem_type, hTypeNN, hTypeWf, native_ite,
       native_Teq]
   have hDistinctBool : RuleProofs.eo_has_bool_type distinctTerm := by
     unfold RuleProofs.eo_has_bool_type
@@ -224,12 +226,14 @@ private theorem facts___eo_prog_distinct_binary_elim_impl
     have hTypesSymm := _hTypes.symm
     have hTypeWf :
         __smtx_type_wf (__eo_to_smt_type (__eo_typeof t1)) = true := by
-      simpa [hT1SmtTy] using hT1SmtWf
+      rw [← hT1SmtTy]
+      exact hT1SmtWf
     have hTypeNN :
-        __eo_to_smt_type (__eo_typeof t1) ≠ SmtType.None :=
-      Smtm.type_wf_non_none hTypeWf
+        __eo_to_smt_type (__eo_typeof t1) ≠ SmtType.None := by
+      rw [← hT1SmtTy]
+      exact hT1Trans
     simp [xs, tail, nil, hTypesSymm, hT1SmtTy, hS1SmtTy,
-      __eo_to_smt_typed_list_elem_type, hTypeWf, hTypeNN, native_ite,
+      __eo_to_smt_typed_list_elem_type, hTypeNN, hTypeWf, native_ite,
       native_Teq]
   rw [prog_distinct_binary_elim_eq t1 s1 hT1NotStuck hS1NotStuck hT1TypeNotStuck]
   apply RuleProofs.eo_interprets_eq_of_rel M
@@ -269,4 +273,43 @@ theorem cmd_step_distinct_binary_elim_properties
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.distinct_binary_elim args premises) :=
 by
-  sorry
+  intro hCmdTrans _hPremisesBool hResultTy
+  have hProg : __eo_cmd_step_proven s CRule.distinct_binary_elim args premises ≠ Term.Stuck :=
+    term_ne_stuck_of_typeof_bool hResultTy
+  cases args with
+  | nil =>
+      change Term.Stuck ≠ Term.Stuck at hProg
+      exact False.elim (hProg rfl)
+  | cons a1 args =>
+      cases args with
+      | nil =>
+          change Term.Stuck ≠ Term.Stuck at hProg
+          exact False.elim (hProg rfl)
+      | cons a2 args =>
+          cases args with
+          | nil =>
+              cases premises with
+              | nil =>
+                  have hATrans :
+                      (RuleProofs.eo_has_smt_translation a1 ∧
+                        __smtx_type_wf (__smtx_typeof (__eo_to_smt a1)) = true) ∧
+                        RuleProofs.eo_has_smt_translation a2 ∧ True := by
+                    simpa [cmdTranslationOk, cArgListTranslationOkMask,
+                      argTranslationOkMasked, RuleProofs.eo_has_smt_translation,
+                      eoHasSmtTranslation] using hCmdTrans
+                  change __eo_typeof (__eo_prog_distinct_binary_elim a1 a2) =
+                    Term.Bool at hResultTy
+                  refine ⟨?_, ?_⟩
+                  · intro _hTrue
+                    change eo_interprets M (__eo_prog_distinct_binary_elim a1 a2) true
+                    exact facts___eo_prog_distinct_binary_elim_impl M hM a1 a2
+                      hATrans.1.1 hATrans.2.1 hATrans.1.2 hResultTy
+                  · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
+                      (typed___eo_prog_distinct_binary_elim_impl a1 a2
+                        hATrans.1.1 hATrans.2.1 hATrans.1.2 hResultTy)
+              | cons _ _ =>
+                  change Term.Stuck ≠ Term.Stuck at hProg
+                  exact False.elim (hProg rfl)
+          | cons _ _ =>
+              change Term.Stuck ≠ Term.Stuck at hProg
+              exact False.elim (hProg rfl)

@@ -12,6 +12,14 @@ set_option maxHeartbeats 10000000
 
 namespace CnfSupport
 
+private theorem eo_requires_eq_of_ne_stuck (x y z : Term) :
+    __eo_requires x y z ≠ Term.Stuck ->
+    x = y := by
+  intro h
+  by_cases hxy : native_teq x y = true
+  · simpa [native_teq] using hxy
+  · simp [__eo_requires, hxy, SmtEval.native_ite] at h
+
 /-- Shows that `false` is interpreted as `false` in every model. -/
 theorem eo_interprets_false (M : SmtModel) :
     eo_interprets M (Term.Boolean false) false := by
@@ -1880,6 +1888,88 @@ theorem andList_concat_false_of_right_false
   exact andList_concat_rec_false_of_right_false M hM hC1 hC1Bool hC2Bool
     hC2False
 
+/-- A defined `and` singleton-elimination input is a structural EO `and`-list. -/
+theorem andList_of_singleton_elim_ne_stuck {c : Term} :
+    __eo_list_singleton_elim (Term.UOp UserOp.and) c ≠ Term.Stuck ->
+    AndList c := by
+  intro hElim
+  have hReq :
+      __eo_requires (__eo_is_list (Term.UOp UserOp.and) c) (Term.Boolean true)
+        (__eo_list_singleton_elim_2 c) ≠ Term.Stuck := by
+    simpa [__eo_list_singleton_elim] using hElim
+  have hList :
+      __eo_is_list (Term.UOp UserOp.and) c = Term.Boolean true :=
+    eo_requires_eq_of_ne_stuck (__eo_is_list (Term.UOp UserOp.and) c)
+      (Term.Boolean true) (__eo_list_singleton_elim_2 c) hReq
+  exact andList_of_is_list_true hList
+
+/-- Singleton elimination preserves translated Boolean type for structural EO `and`-lists. -/
+theorem andList_singleton_elim_preserves_bool_type {c : Term} :
+    AndList c ->
+    RuleProofs.eo_has_bool_type c ->
+    RuleProofs.eo_has_bool_type
+      (__eo_list_singleton_elim (Term.UOp UserOp.and) c) := by
+  intro hList hCBool
+  change RuleProofs.eo_has_bool_type
+    (__eo_requires (__eo_is_list (Term.UOp UserOp.and) c) (Term.Boolean true)
+      (__eo_list_singleton_elim_2 c))
+  rw [andList_is_list_true hList]
+  simp [__eo_requires, native_ite, native_teq, native_not, SmtEval.native_not]
+  cases hList with
+  | true =>
+      simpa [__eo_list_singleton_elim_2] using hCBool
+  | cons x xs hXs =>
+      have hXBool : RuleProofs.eo_has_bool_type x :=
+        RuleProofs.eo_has_bool_type_and_left x xs hCBool
+      cases hXs with
+      | true =>
+          simpa [__eo_list_singleton_elim_2, __eo_is_list_nil, __eo_ite,
+            native_ite, native_teq] using hXBool
+      | cons y ys hYs =>
+          simpa [__eo_list_singleton_elim_2, __eo_is_list_nil, __eo_ite,
+            native_ite, native_teq] using hCBool
+
+/-- Singleton elimination preserves truth for structural EO `and`-lists. -/
+theorem andList_singleton_elim_true_iff
+    (M : SmtModel) {c : Term} :
+    AndList c ->
+    RuleProofs.eo_has_bool_type c ->
+    (eo_interprets M (__eo_list_singleton_elim (Term.UOp UserOp.and) c) true ↔
+      eo_interprets M c true) := by
+  intro hList hCBool
+  change
+    (eo_interprets M
+        (__eo_requires (__eo_is_list (Term.UOp UserOp.and) c) (Term.Boolean true)
+          (__eo_list_singleton_elim_2 c)) true ↔
+      eo_interprets M c true)
+  rw [andList_is_list_true hList]
+  simp [__eo_requires, native_ite, native_teq, native_not, SmtEval.native_not]
+  cases hList with
+  | true =>
+      simp [__eo_list_singleton_elim_2]
+  | cons x xs hXs =>
+      have hXBool : RuleProofs.eo_has_bool_type x :=
+        RuleProofs.eo_has_bool_type_and_left x xs hCBool
+      cases hXs with
+      | true =>
+          have hIff :
+              (eo_interprets M x true ↔
+                eo_interprets M
+                  (Term.Apply (Term.Apply (Term.UOp UserOp.and) x)
+                    (Term.Boolean true)) true) := by
+            constructor
+            · intro hXTrue
+              exact RuleProofs.eo_interprets_and_intro M x (Term.Boolean true)
+                hXTrue (RuleProofs.eo_interprets_true M)
+            · intro hAndTrue
+              exact RuleProofs.eo_interprets_and_left M x (Term.Boolean true)
+                hAndTrue
+          simpa [__eo_list_singleton_elim_2, __eo_is_list_nil, __eo_ite,
+            native_ite, native_teq] using hIff
+      | cons y ys hYs =>
+          simp [__eo_list_singleton_elim_2, __eo_is_list_nil, __eo_ite,
+            native_ite, native_teq]
+
 private theorem orList_concat_rec_true_of_right_true
     (M : SmtModel) (hM : model_total_typed M) {c1 c2 : Term} :
     OrList c1 ->
@@ -1928,5 +2018,107 @@ theorem orList_concat_true_of_right_true
   simp [__eo_requires, native_ite, native_teq, native_not, SmtEval.native_not]
   exact orList_concat_rec_true_of_right_true M hM hC1 hC1Bool hC2Bool
     hC2True
+
+/-- A defined `or` singleton-elimination input is a structural EO `or`-list. -/
+theorem orList_of_singleton_elim_ne_stuck {c : Term} :
+    __eo_list_singleton_elim (Term.UOp UserOp.or) c ≠ Term.Stuck ->
+    OrList c := by
+  intro hElim
+  have hReq :
+      __eo_requires (__eo_is_list (Term.UOp UserOp.or) c) (Term.Boolean true)
+        (__eo_list_singleton_elim_2 c) ≠ Term.Stuck := by
+    simpa [__eo_list_singleton_elim] using hElim
+  have hList :
+      __eo_is_list (Term.UOp UserOp.or) c = Term.Boolean true :=
+    eo_requires_eq_of_ne_stuck (__eo_is_list (Term.UOp UserOp.or) c)
+      (Term.Boolean true) (__eo_list_singleton_elim_2 c) hReq
+  exact orList_of_is_list_true hList
+
+/-- Singleton elimination preserves translated Boolean type for structural EO `or`-lists. -/
+theorem orList_singleton_elim_preserves_bool_type {c : Term} :
+    OrList c ->
+    RuleProofs.eo_has_bool_type c ->
+    RuleProofs.eo_has_bool_type
+      (__eo_list_singleton_elim (Term.UOp UserOp.or) c) := by
+  intro hList hCBool
+  change RuleProofs.eo_has_bool_type
+    (__eo_requires (__eo_is_list (Term.UOp UserOp.or) c) (Term.Boolean true)
+      (__eo_list_singleton_elim_2 c))
+  rw [orList_is_list_true hList]
+  simp [__eo_requires, native_ite, native_teq, native_not, SmtEval.native_not]
+  cases hList with
+  | false =>
+      simpa [__eo_list_singleton_elim_2] using hCBool
+  | cons x xs hXs =>
+      have hXBool : RuleProofs.eo_has_bool_type x :=
+        RuleProofs.eo_has_bool_type_or_left x xs hCBool
+      cases hXs with
+      | false =>
+          simpa [__eo_list_singleton_elim_2, __eo_is_list_nil, __eo_ite,
+            native_ite, native_teq] using hXBool
+      | cons y ys hYs =>
+          simpa [__eo_list_singleton_elim_2, __eo_is_list_nil, __eo_ite,
+            native_ite, native_teq] using hCBool
+
+/-- Singleton elimination preserves truth for structural EO `or`-lists. -/
+theorem orList_singleton_elim_true_iff
+    (M : SmtModel) (hM : model_total_typed M) {c : Term} :
+    OrList c ->
+    RuleProofs.eo_has_bool_type c ->
+    (eo_interprets M (__eo_list_singleton_elim (Term.UOp UserOp.or) c) true ↔
+      eo_interprets M c true) := by
+  intro hList hCBool
+  change
+    (eo_interprets M
+        (__eo_requires (__eo_is_list (Term.UOp UserOp.or) c) (Term.Boolean true)
+          (__eo_list_singleton_elim_2 c)) true ↔
+      eo_interprets M c true)
+  rw [orList_is_list_true hList]
+  simp [__eo_requires, native_ite, native_teq, native_not, SmtEval.native_not]
+  cases hList with
+  | false =>
+      simp [__eo_list_singleton_elim_2]
+  | cons x xs hXs =>
+      have hXBool : RuleProofs.eo_has_bool_type x :=
+        RuleProofs.eo_has_bool_type_or_left x xs hCBool
+      cases hXs with
+      | false =>
+          have hIff :
+              (eo_interprets M x true ↔
+                eo_interprets M
+                  (Term.Apply (Term.Apply (Term.UOp UserOp.or) x)
+                    (Term.Boolean false)) true) := by
+            constructor
+            · intro hXTrue
+              exact RuleProofs.eo_interprets_or_left_intro M hM x
+                (Term.Boolean false) hXTrue RuleProofs.eo_has_bool_type_false
+            · intro hOrTrue
+              rcases eo_interprets_bool_cases M hM x hXBool with hXTrue | hXFalse
+              · exact hXTrue
+              · have hOrFalse :
+                    eo_interprets M
+                      (Term.Apply (Term.Apply (Term.UOp UserOp.or) x)
+                        (Term.Boolean false)) false := by
+                  rw [RuleProofs.eo_interprets_iff_smt_interprets] at hXFalse ⊢
+                  rw [show __eo_to_smt
+                      (Term.Apply (Term.Apply (Term.UOp UserOp.or) x)
+                        (Term.Boolean false)) =
+                        SmtTerm.or (__eo_to_smt x) (SmtTerm.Boolean false) by rfl]
+                  cases hXFalse with
+                  | intro_false hTy hEval =>
+                      refine smt_interprets.intro_false M
+                        (SmtTerm.or (__eo_to_smt x) (SmtTerm.Boolean false)) ?_ ?_
+                      · rw [typeof_or_eq]
+                        rw [__smtx_typeof.eq_1]
+                        simp [hTy, native_Teq, native_ite]
+                      · rw [__smtx_model_eval.eq_7, hEval, __smtx_model_eval.eq_1]
+                        simp [__smtx_model_eval_or, SmtEval.native_or]
+                exact False.elim
+                  ((RuleProofs.eo_interprets_true_not_false M _ hOrTrue) hOrFalse)
+          simpa [__eo_list_singleton_elim_2, __eo_is_list_nil, __eo_ite,
+            native_ite, native_teq] using hIff
+      | cons y ys hYs =>
+          simp [__eo_list_singleton_elim_2, __eo_is_list_nil, __eo_ite,
+            native_ite, native_teq]
 
 end CnfSupport

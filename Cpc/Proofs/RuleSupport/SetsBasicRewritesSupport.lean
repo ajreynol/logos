@@ -2606,4 +2606,93 @@ theorem facts_set_minus_self_eq_empty
     (typed_set_minus_self_eq_empty x T hxTrans hTypeWf hTy)
     (set_minus_self_rel M hM x T hxTrans hTy)
 
+/-- Bridge lemma: a Set type is well-formed precisely when its element type's
+    well-formedness component holds (the Set inhabitation check is
+    unconditional). -/
+theorem type_wf_set_of_component (A : SmtType)
+    (h : __smtx_type_wf_component A = true) :
+    __smtx_type_wf (SmtType.Set A) = true := by
+  simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+    native_inhabited_type_set, SmtEval.native_and] at h ⊢
+  exact h
+
+/-- Looking up element `i` in the canonical singleton map `{v ↦ true}` over a
+    default-`false` map yields `true` exactly when `i = v`. -/
+private theorem singleton_map_lookup (v i : SmtValue) (A : SmtType) :
+    __smtx_msm_lookup
+        (SmtMap.cons v (SmtValue.Boolean true)
+          (SmtMap.default A (SmtValue.Boolean false))) i =
+      native_ite (native_veq v i) (SmtValue.Boolean true)
+        (SmtValue.Boolean false) := by
+  simp [__smtx_msm_lookup]
+
+/-- The SMT `map_diff` of a canonical singleton set `{v}` and the empty set is
+    exactly the element `v`.  This is the semantic core of `sets_choose_singleton`:
+    the witness `i` distinguishing the two maps is uniquely `v`. -/
+theorem map_diff_singleton_empty_eq
+    (v : SmtValue) (A : SmtType)
+    (hvTy : __smtx_typeof_value v = A)
+    (hvCan : __smtx_value_canonical_bool v = true) :
+    native_eval_map_diff_msm
+        (SmtMap.cons v (SmtValue.Boolean true)
+          (SmtMap.default A (SmtValue.Boolean false)))
+        (SmtMap.default A (SmtValue.Boolean false)) = v := by
+  classical
+  -- the distinguishing predicate holds exactly at `i = v`
+  have hPredIffV :
+      ∀ i : SmtValue,
+        (__smtx_typeof_value i = A ∧
+          __smtx_value_canonical_bool i = true ∧
+            native_veq
+              (__smtx_msm_lookup
+                (SmtMap.cons v (SmtValue.Boolean true)
+                  (SmtMap.default A (SmtValue.Boolean false))) i)
+              (__smtx_msm_lookup
+                (SmtMap.default A (SmtValue.Boolean false)) i) =
+              false) ↔ i = v := by
+    intro i
+    constructor
+    · rintro ⟨_hiTy, _hiCan, hVeq⟩
+      rw [singleton_map_lookup v i A, __smtx_msm_lookup] at hVeq
+      by_cases hvi : native_veq v i = true
+      · exact (Smtm.eq_of_native_veq_true hvi).symm
+      · have hvif : native_veq v i = false := by
+          cases hb : native_veq v i <;> simp [hb] at hvi ⊢
+        rw [hvif] at hVeq
+        simp [native_ite, native_veq] at hVeq
+    · intro hiv
+      subst hiv
+      refine ⟨hvTy, hvCan, ?_⟩
+      rw [singleton_map_lookup i i A, __smtx_msm_lookup]
+      simp [native_ite, native_veq]
+  have hTypm1 :
+      __smtx_typeof_map_value
+          (SmtMap.cons v (SmtValue.Boolean true)
+            (SmtMap.default A (SmtValue.Boolean false))) =
+        SmtType.Map A SmtType.Bool := by
+    simp [__smtx_typeof_map_value, __smtx_typeof_value, hvTy,
+      native_ite, native_Teq]
+  have hTypm2 :
+      __smtx_typeof_map_value (SmtMap.default A (SmtValue.Boolean false)) =
+        SmtType.Map A SmtType.Bool := by
+    simp [__smtx_typeof_map_value, __smtx_typeof_value]
+  -- unfold the (noncomputable) map_diff evaluator
+  have hDiff :
+      ∃ i : SmtValue,
+        __smtx_typeof_value i = A ∧
+          __smtx_value_canonical_bool i = true ∧
+            native_veq
+              (__smtx_msm_lookup
+                (SmtMap.cons v (SmtValue.Boolean true)
+                  (SmtMap.default A (SmtValue.Boolean false))) i)
+              (__smtx_msm_lookup
+                (SmtMap.default A (SmtValue.Boolean false)) i) = false :=
+    ⟨v, (hPredIffV v).mpr rfl⟩
+  have hChoose : Classical.choose hDiff = v :=
+    (hPredIffV (Classical.choose hDiff)).mp (Classical.choose_spec hDiff)
+  rw [hTypm1, hTypm2]
+  simp only [native_ite, native_Teq, SmtEval.native_and, decide_true,
+    Bool.and_self, if_true]
+  rw [dif_pos hDiff, hChoose]
+
 end SetsBasicRewritesSupport

@@ -1989,14 +1989,14 @@ theorem seq_empty_seq_ne_stuck (T : Term) :
     __seq_empty (Term.Apply (Term.UOp UserOp.Seq) T) ≠ Term.Stuck := by
   cases T <;> simp [__seq_empty]
   case UOp op =>
-    cases op <;> simp [__seq_empty]
+    cases op <;> simp
 
 theorem str_is_empty_seq_empty_seq (T : Term) :
     __str_is_empty (__seq_empty (Term.Apply (Term.UOp UserOp.Seq) T)) =
       Term.Boolean true := by
   cases T <;> simp [__seq_empty, __str_is_empty]
   case UOp op =>
-    cases op <;> simp [__seq_empty, __str_is_empty]
+    cases op <;> simp
 
 theorem strConcat_is_list_seq_empty_seq (T : Term) :
     __eo_is_list (Term.UOp UserOp.str_concat)
@@ -2004,12 +2004,12 @@ theorem strConcat_is_list_seq_empty_seq (T : Term) :
     Term.Boolean true := by
   cases T <;>
     simp [__seq_empty, __eo_is_list, __eo_get_nil_rec, __eo_is_list_nil,
-      __eo_is_list_nil_str_concat, __eo_is_ok, __eo_eq, __eo_requires,
+      __eo_is_list_nil_str_concat, __eo_is_ok, __eo_requires,
       native_teq, native_ite, SmtEval.native_ite, SmtEval.native_not]
   case UOp op =>
     cases op <;>
-      simp [__seq_empty, __eo_is_list, __eo_get_nil_rec, __eo_is_list_nil,
-        __eo_is_list_nil_str_concat, __eo_is_ok, __eo_eq, __eo_requires,
+      simp [__eo_get_nil_rec, __eo_is_list_nil,
+        __eo_is_list_nil_str_concat, __eo_eq, __eo_requires,
         native_teq, native_ite, SmtEval.native_ite, SmtEval.native_not]
 
 theorem strConcat_is_list_explicit_seq_empty_seq (T : Term) :
@@ -2018,7 +2018,7 @@ theorem strConcat_is_list_explicit_seq_empty_seq (T : Term) :
     Term.Boolean true := by
   cases T <;>
     simp [__eo_is_list, __eo_get_nil_rec, __eo_is_list_nil,
-      __eo_is_list_nil_str_concat, __eo_is_ok, __eo_eq, __eo_requires,
+      __eo_is_list_nil_str_concat, __eo_is_ok, __eo_requires,
       native_teq, native_ite, SmtEval.native_ite, SmtEval.native_not]
 
 theorem is_seq_const_rec_true_is_str_concat_list :
@@ -2084,7 +2084,7 @@ theorem str_value_len_eq_list_len_rec_of_seq_const_rec_true :
       simp [__str_value_len, __is_seq_const, __is_seq_const_rec, hTail,
         __eo_is_str, __eo_is_str_internal, __eo_ite, native_teq, native_ite,
         SmtEval.native_ite, SmtEval.native_and, SmtEval.native_not,
-        __eo_requires, __eo_list_len, hRawList, hTailEq]
+        __eo_requires, __eo_list_len, hRawList]
   | case3 T =>
       intro _h
       have hList := strConcat_is_list_explicit_seq_empty_seq T
@@ -2202,7 +2202,7 @@ theorem str_value_len_concat_seqUnit_eq_add_tail (e ss : Term) (m : Int)
     rw [← hTailEq]
     exact hTailLen
   rw [hRawEq]
-  simp [raw, head, __eo_list_len_rec, hTailRec, __eo_add]
+  simp [raw, __eo_list_len_rec, hTailRec, __eo_add]
 
 theorem eo_list_len_rec_stuck_or_numeral :
     ∀ xs : Term, __eo_list_len_rec xs = Term.Stuck ∨
@@ -2229,7 +2229,7 @@ theorem eo_list_len_stuck_or_numeral (f xs : Term) :
       cases b
       · left
         simp [__eo_list_len, hList, __eo_requires, native_teq, native_ite,
-          SmtEval.native_ite, SmtEval.native_not]
+          SmtEval.native_ite]
       · rcases eo_list_len_rec_stuck_or_numeral xs with hStuck | ⟨n, hNum⟩
         · left
           simp [__eo_list_len, hList, __eo_requires, hStuck, native_teq,
@@ -2241,11 +2241,11 @@ theorem eo_list_len_stuck_or_numeral (f xs : Term) :
   | Stuck =>
       left
       simp [__eo_list_len, hList, __eo_requires, native_teq, native_ite,
-        SmtEval.native_ite, SmtEval.native_not]
+        SmtEval.native_ite]
   | _ =>
       left
       simp [__eo_list_len, hList, __eo_requires, native_teq, native_ite,
-        SmtEval.native_ite, SmtEval.native_not]
+        SmtEval.native_ite]
 
 theorem strConcat_is_list_seqUnit_false (e : Term) :
     __eo_is_list (Term.UOp UserOp.str_concat)
@@ -2263,7 +2263,7 @@ theorem seqUnit_arg_ne_stuck_of_intro_flatten_ne_stuck (e : Term)
   have hHeadTy := seqUnit_typeof_eq_stuck_of_arg_stuck e heTy
   apply hflatNe
   simp [__str_nary_intro, __eo_list_singleton_intro,
-    strConcat_is_list_seqUnit_false e, hHeadTy, __eo_nil, __eo_is_list,
+    hHeadTy, __eo_nil, __eo_is_list,
     __eo_get_nil_rec, __eo_is_list_nil, __eo_is_list_nil_str_concat,
     __eo_is_ok, __eo_eq, __eo_requires, __eo_ite, __str_flatten, native_teq,
     native_ite, SmtEval.native_ite, SmtEval.native_not]
@@ -2274,7 +2274,7 @@ theorem str_nary_intro_seqEmpty_eq_self (U : Term) :
       Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U) := by
   simp [__str_nary_intro, __eo_list_singleton_intro, __eo_is_list,
     __eo_get_nil_rec, __eo_is_list_nil, __eo_is_list_nil_str_concat,
-    __eo_is_ok, __eo_eq, __eo_requires, __eo_ite, native_teq, native_ite,
+    __eo_is_ok, __eo_requires, __eo_ite, native_teq, native_ite,
     SmtEval.native_ite, SmtEval.native_not]
 
 theorem seq_empty_eq_explicit_seq_type (A U : Term)
@@ -2282,21 +2282,27 @@ theorem seq_empty_eq_explicit_seq_type (A U : Term)
       Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U)) :
     A = Term.Apply (Term.UOp UserOp.Seq) U := by
   cases A
-  all_goals try simpa [__seq_empty] using h
   case Apply f a =>
     cases f
-    all_goals try simpa [__seq_empty] using h
     case UOp op =>
       cases op
-      all_goals try simpa [__seq_empty] using h
       case Seq =>
         cases a
-        all_goals try simpa [__seq_empty] using h
         case UOp op =>
           cases op
           case Char =>
             simp [__seq_empty] at h
-          all_goals simpa [__seq_empty] using h
+          all_goals
+            simp [__seq_empty] at h
+            cases h
+            rfl
+        all_goals
+          simp [__seq_empty] at h
+          cases h
+          rfl
+      all_goals simp [__seq_empty] at h
+    all_goals simp [__seq_empty] at h
+  all_goals simp [__seq_empty] at h
 
 theorem flatten_concat_seqUnit_tail_ne_stuck (e ss : Term)
     (h : __str_flatten
@@ -2940,7 +2946,7 @@ theorem str_nary_intro_seqUnit_eq (e : Term) (heTy : __eo_typeof e ≠ Term.Stuc
           (__seq_empty (__eo_typeof (Term.Apply (Term.UOp UserOp.seq_unit) e))) :=
     mk_apply_eq _ _ (by simp) hNilNe
   simp [__str_nary_intro, __eo_list_singleton_intro, hArgList, hNilEq,
-    hNilList, hMk, hMkSeq, __eo_ite, __eo_requires, native_teq, native_ite,
+    hNilList, hMkSeq, __eo_ite, __eo_requires, native_teq, native_ite,
     SmtEval.native_ite, SmtEval.native_not]
 
 def introWordView_seqUnit (M : SmtModel) (e : Term) (S : SmtSeq) (T : SmtType)
@@ -3028,7 +3034,7 @@ def introWordView_seqEmpty_self (M : SmtModel) (U : Term) (S : SmtSeq) (T : SmtT
     hflat := ?_,
     hlen := by
       have hList := strConcat_is_list_explicit_seq_empty_seq U
-      simp [emp, __str_value_len, __is_seq_const, __is_seq_const_rec,
+      simp [__str_value_len, __is_seq_const, __is_seq_const_rec,
         __eo_is_str, __eo_is_str_internal, __eo_ite, native_teq,
         native_ite, SmtEval.native_ite, SmtEval.native_and,
         SmtEval.native_not, __eo_requires, __eo_list_len, hList,
