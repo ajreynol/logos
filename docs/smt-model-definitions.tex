@@ -315,11 +315,22 @@ takes the name of the datatype that it references.
 For details on this, see Section~\ref{sec:datatypes}
 
 The next type (\code{DtcAppType}) is the type of partially applied constructors.
-It is a function-like type that takes the argument and return types of the constructor.
-The type of partially applied constructors is intentionally distinct from function types (\code{FunType}).
+It is a function-like type that takes its argument and return types.
+The type of partially applied constructors is intentionally distinct from function types (\code{FunType}),
+which also takes its argument and return types.
+Both these types are curried, for instance the function type expecting two integers and
+returning a Boolean is \code{(FunType Int (FunType Int Bool))}.
 
-Finally, the last constructor in this list denotes uninterpreted sorts (\code{USort}),
+The final constructor in this list denotes uninterpreted sorts (\code{USort}),
 which are indexed by a natural number identifier.
+
+All types have the Lean properties
+of being representable (\code{Repr}),
+having decidable equality (\code{DecidableEq}),
+are inhabited (\code{Inhabited})
+and orderable (\code{Ord}).
+Due to decidable equality, we can define (syntactic) equality on types,
+as \code{Teq}.
 
 \subsection{Datatypes}
 \label{sec:datatypes}
