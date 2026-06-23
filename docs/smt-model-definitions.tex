@@ -70,6 +70,11 @@
 % underscores, arrows, etc. verbatim so they need no manual escaping.
 \newcommand{\code}[1]{\texttt{\detokenize{#1}}}
 
+% Inline code for illustrative example snippets, styled distinctly from
+% identifier references (\code) via a separate colour.
+\definecolor{ExampleCode}{HTML}{0B6E4F}
+\newcommand{\excode}[1]{\textcolor{ExampleCode}{\texttt{\detokenize{#1}}}}
+
 % Macros for the main types. \xspace preserves a following space so that
 % e.g. "the \term datatype" does not run together.
 \newcommand{\term}{\code{Term}\xspace}
@@ -324,7 +329,7 @@ The next type (\code{DtcAppType}) is the type of partially applied constructors.
 It is a function-like type that takes the argument and return types of the constructor,
 where this type is curried.
 For example, the type of the first constructor of the list datatype above is
-\code{(DtcAppType Int (DtcAppType (Datatype "list" D) (Datatype "list" D)))}
+\excode{(DtcAppType Int (DtcAppType (Datatype "list" D) (Datatype "list" D)))}
 In detail, this type
 is a function that expects an integer,
 and returns a function that expects a list and returns a list.
@@ -377,6 +382,7 @@ inductive SmtRegLan : Type where
 deriving Repr, DecidableEq, Inhabited, Ord
 \end{lstlisting}
 \caption{Regular-language, value, map, sequence, and datatype values.}
+\label{fig:smt-values}
 \end{figure}
 
 \begin{figure}[p]
@@ -404,6 +410,7 @@ inductive SmtTerm : Type where
 deriving Repr, DecidableEq, Inhabited
 \end{lstlisting}
 \caption{A representative template of SMT term constructors.}
+\label{fig:smt-terms}
 \end{figure}
 
 \begin{figure}[p]
@@ -442,6 +449,7 @@ def model_push (M : SmtModel) (s : native_String) (T : SmtType) (v : SmtValue) :
         M.values k }
 \end{lstlisting}
 \caption{Model keys, model storage, and lookup/update helpers.}
+\label{fig:smt-model}
 \end{figure}
 
 \begin{figure}[p]
@@ -459,6 +467,7 @@ def smt_typeof_value : SmtValue -> SmtType
   | ... => ...
 \end{lstlisting}
 \caption{Types for SMT values.}
+\label{fig:typeof-value}
 \end{figure}
 
 \begin{figure}[p]
@@ -499,6 +508,7 @@ def smt_typeof : SmtTerm -> SmtType
   | ... => ...
 \end{lstlisting}
 \caption{Types for SMT terms.}
+\label{fig:typeof-term}
 \end{figure}
 
 \begin{figure}[p]
@@ -527,6 +537,7 @@ def smt_model_eval_eq : SmtValue -> SmtValue -> SmtValue
   | v1, v2 => (SmtValue.Boolean (decide (v1 = v2)))
 \end{lstlisting}
 \caption{Model evaluation for equality.}
+\label{fig:eval-eq}
 \end{figure}
 
 \begin{figure}[p]
@@ -603,6 +614,7 @@ macro_rules
           exact evalChoiceNth $M $s $T $body $n)
 \end{lstlisting}
 \caption{Evaluation macros for quantifiers and choice.}
+\label{fig:eval-quant}
 \end{figure}
 
 \begin{figure}[p]
@@ -617,6 +629,7 @@ noncomputable def smt_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | ... => ...
 \end{lstlisting}
 \caption{Skeleton of SMT term evaluation in a model.}
+\label{fig:model-eval}
 \end{figure}
 
 \begin{figure}[p]
@@ -677,6 +690,7 @@ def smt_type_wf : SmtType -> Bool
   | T => (smt_type_wf_component T)
 \end{lstlisting}
 \caption{Default values, inhabitation, and type well-formedness.}
+\label{fig:type-wf}
 \end{figure}
 
 \begin{figure}[p]
@@ -714,6 +728,7 @@ def smt_is_finite_type : SmtType -> Bool
   | T => false
 \end{lstlisting}
 \caption{Unit and finite SMT type predicates.}
+\label{fig:unit-finite}
 \end{figure}
 
 \begin{figure}[p]
@@ -751,6 +766,7 @@ def smt_value_canonical_bool : SmtValue -> Bool
   | v => true
 \end{lstlisting}
 \caption{Canonicality checks for maps, sequences, and values.}
+\label{fig:canonical}
 \end{figure}
 
 \begin{figure}[p]
@@ -769,6 +785,7 @@ def model_total_typed (M : SmtModel) : Prop :=
   native_fun_typed M
 \end{lstlisting}
 \caption{Total typed model conditions.}
+\label{fig:model-typed}
 \end{figure}
 
 \begin{figure}[p]
@@ -791,6 +808,7 @@ theorem total_typed_model_nonvacuous :
     ∃ M : SmtModel, model_total_typed M
 \end{lstlisting}
 \caption{Main type-preservation, canonicality, and model-existence statements.}
+\label{fig:type-preservation}
 \end{figure}
 
 \clearpage
@@ -833,6 +851,7 @@ def teq : Term -> Term -> Bool
   | x, y => decide (x = y)
 \end{lstlisting}
 \caption{Core Eunoia term syntax.}
+\label{fig:eo-term}
 \end{figure}
 
 \begin{figure}[p]
@@ -846,6 +865,7 @@ def eo_typeof : Term -> Term
   | ... => ...
 \end{lstlisting}
 \caption{Selected Eunoia type-synthesis clauses.}
+\label{fig:eo-typeof}
 \end{figure}
 
 \begin{figure}[p]
@@ -869,6 +889,7 @@ def eo_to_smt : Term -> SmtTerm
   | ... => ...
 \end{lstlisting}
 \caption{Translation from Eunoia terms and types into SMT.}
+\label{fig:eo-to-smt}
 \end{figure}
 
 \begin{figure}[p]
@@ -898,6 +919,7 @@ def eo_satisfiability (t : Term) (b : Bool) : Prop :=
   (smt_satisfiability (eo_to_smt t) b)
 \end{lstlisting}
 \caption{Eunoia satisfiability via SMT.}
+\label{fig:eo-sat}
 \end{figure}
 
 
@@ -937,6 +959,7 @@ def eo_prog_trans : Proof -> Term
   | _ => Term.Stuck
 \end{lstlisting}
 \caption{The \texttt{Logos.lean} definition of the \texttt{trans} rule program and its immediate dependencies.}
+\label{fig:trans-prog}
 \end{figure}
 
 \begin{figure}[p]
@@ -949,6 +972,7 @@ theorem eo_to_smt_well_typed_and_typeof_implies_smt_type
   smt_typeof s = eo_to_smt_type T
 \end{lstlisting}
 \caption{A representative theorem connecting Eunoia and SMT types.}
+\label{fig:eo-smt-type-thm}
 \end{figure}
 
 \clearpage
@@ -1005,6 +1029,7 @@ inductive CmdList : Type where
 deriving Repr, Inhabited
 \end{lstlisting}
 \caption{Checker indices, arguments, states, rules, and commands.}
+\label{fig:checker-types}
 \end{figure}
 
 \begin{figure}[p]
@@ -1049,6 +1074,7 @@ def eo_invoke_cmd_check_proven : CState -> Term -> CState
   | S, proven => CState.Stuck
 \end{lstlisting}
 \caption{Basic checker stack and state operations.}
+\label{fig:checker-ops}
 \end{figure}
 
 \begin{figure}[p]
@@ -1098,6 +1124,7 @@ inductive eo_is_refutation : Term -> CmdList -> Prop
       (__eo_checker_is_refutation F c) = true -> (eo_is_refutation F c)
 \end{lstlisting}
 \caption{Checker command execution and refutation recognition.}
+\label{fig:checker-exec}
 \end{figure}
 
 \begin{figure}[p]
@@ -1155,6 +1182,7 @@ theorem stableWhenTrueInAnyVarModel_of_closed
   StableWhenTrueInAnyVarModel P
 \end{lstlisting}
 \caption{The executable EO closedness check used by assumption guards, and the key theorem showing that closed formulas are stable under changes to SMT variable assignments.}
+\label{fig:eo-closed}
 \end{figure}
 
 \begin{figure}[p]
@@ -1186,6 +1214,7 @@ inductive CmdListTranslationOk : CmdList -> Prop
       CmdListTranslationOk (CmdList.cons c cs)
 \end{lstlisting}
 \caption{Translation obligations for checker assumptions and commands.}
+\label{fig:translation-ok}
 \end{figure}
 
 \begin{figure}[p]
@@ -1197,6 +1226,7 @@ theorem correct___eo_is_refutation (F : Term) (pf : CmdList) :
   (eo_satisfiability F false)
 \end{lstlisting}
 \caption{Top-level checker soundness theorem.}
+\label{fig:soundness}
 \end{figure}
 
 \begin{figure}[p]
@@ -1244,6 +1274,7 @@ def checkerStateInvariant (M : SmtModel) (s : CState) : Prop :=
   checkerTranslationInvariant s
 \end{lstlisting}
 \caption{The combined checker invariant now separates local contextual truth from assumption stability, while retaining the shape, type, and translation invariants.}
+\label{fig:checker-invariant}
 \end{figure}
 
 \clearpage
@@ -1296,6 +1327,7 @@ theorem cmd_step_proven_facts_of_invariants
   CmdStepFacts M s (__eo_cmd_step_proven s r args premises)
 \end{lstlisting}
 \caption{The step-only rule-correctness theorem in \texttt{RuleLemmas.lean}; plain \texttt{Cmd.step} reasoning now uses local truth plus assumption stability, and rule proofs receive contextual premise evidence that is stable across variable-model changes.}
+\label{fig:rule-lemmas}
 \end{figure}
 
 \begin{figure}[p]
@@ -1310,6 +1342,7 @@ theorem cmd_step_trans_properties
     (__eo_cmd_step_proven s CRule.trans args premises)
 \end{lstlisting}
 \caption{An example rule proof: the \texttt{trans} step packages contextual premise evidence and SMT translatability into \texttt{StepRuleProperties}.}
+\label{fig:trans-rule}
 \end{figure}
 
 \end{document}
