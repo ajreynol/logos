@@ -151,6 +151,8 @@ For example, CPC defines several non-standard extensions of SMT-LIB (e.g. sets a
 supports non-standard extensions of theories, and defines non-standard internal symbols
 (i.e. Skolem variables) to define several of its proof rules.
 
+\subsection{Core Definitions}
+
 Before looking into the definitions,
 we first provide a high-level overview of the core datatypes
 and key methods used throughout Logos.
@@ -214,9 +216,9 @@ We define the following key methods:
     \begin{itemize}
       \item Given a Eunoia term, this returns true iff it is a \emph{closed} term, i.e. has no free variables.
     \end{itemize}
-  \item \eoisrefutation \code{:} \cmdlist \code{->} \bool
+  \item \eoisrefutation \code{:} \cmdlist \code{->} \term \code{->} \bool
     \begin{itemize}
-      \item Returns true if Logos successfully executes the given command list, and is a valid, closed proof of false.
+      \item Returns true iff Logos successfully executes the given command list, and is a valid, closed proof of false
     \end{itemize}
 \end{itemize}
 
@@ -233,7 +235,9 @@ An input assumption command succeeds if it is a \emph{closed} Eunoia term of typ
 
 We now look in detail at these definitions.
 
-\section{SmtModel.lean}
+\section{SMT-LIB definition}
+
+\subsection{Types}
 
 \begin{figure}[p]
 \begin{lstlisting}
@@ -276,14 +280,15 @@ def Teq : SmtType -> SmtType -> native_Bool
 \label{fig:smt-types}
 \end{figure}
 
-Figure~\ref{fig:smt-types} gives the official definition of SMT-LIB types.
+Figure~\ref{fig:smt-types} gives the definition of SMT-LIB types in our embedding.
 This includes an error value (\code{None}) denoting not a type,\footnote{
 One could alternatively use an \code{Option} type instead of allowing \code{None} as a first-class constructor.
-Throughout, we prefer using an error elements of types.}
+Throughout, we prefer using an error elements of types as opposed to option types to
+keep the control flow simple.}
 the standard atomic SMT-LIB types of Booleans (\code{Bool}),
 integers (\code{Int}), reals (\code{Real}) and regular languages (\code{RegLan}).
 Bitvectors (\code{BitVec}) are indexed by a natural number denoting the bitwidth.
-Note that in contrast to SMT-LIB, our semantics permit the bitvector of size zero.
+Note that in contrast to SMT-LIB, our semantics permit the bitvectors of size zero.
 
 We then define three composite types:
 \begin{itemize}
@@ -296,83 +301,116 @@ Note the latter two types are not in the SMT-LIB standard.
 The next three types pertain to SMT-LIB datatypes.
 The first (\code{Datatype}) denotes a (possibly recursive) datatype type.
 This definition reflects standard notions in the literature for mu-types, or \emph{recursive} types.
-In this definition, the first argument of the datatype denotes the name of that datatype.
+In this definition, the datatype carries its name (via a string\footnote{Throughout,
+we define a string to be a list of natural numbers and do not use native Lean strings.
+This is to avoid complications in the definition of Lean strings which take peculiarities with Unicode into account.}) 
+and its definition inside the abstract syntax tree.
+In particular,
+the first argument of the datatype denotes the name of that datatype.
 The second argument (a \code{SmtDatatype}) denotes the list of constructors (\code{SmtDatatypeCons}) of that datatype,
 where \code{sum} adds a constructor to this list, and \code{null} terminates its list of constructors.
 A constructor itself is a list of types, indicating the types of its children, or fields.
 Recursive references to the datatype in question are indicated by type references (constructor \code{TypeRef}), which
 takes the name of the datatype that it references.
+For details on this, see Section~\ref{sec:datatypes}
+
+The next type (\code{DtcAppType}) is the type of partially applied constructors.
+It is a function-like type that takes the argument and return types of the constructor.
+The type of partially applied constructors is intentionally distinct from function types (\code{FunType}).
+
+Finally, the last constructor in this list denotes uninterpreted sorts (\code{USort}),
+which are indexed by a natural number identifier.
+
+\subsection{Datatypes}
+\label{sec:datatypes}
+
+This section presents how SMT-LIB datatype types are represented in our embedding.
+At a high level, we use mu-types or recursive types to represent datatype types,
+where the type itself carries its definition (i.e. a list of constructors).
 
 \noindent
 For example, consider the SMT-LIB datatype for lists of integers:
 \begin{examplecode}
 (declare-datatype List ((listc (head Int) (tail List)) (listn)))
 \end{examplecode}
-The datatype type for list is \code{(Datatype "List" D_L)}, where \code{D_L} is the following \code{SmtDatatype}:
+The datatype type for list is \code{(Datatype "List" DList)}, where
 \begin{examplecode}
-D_L := (sum (cons Int (cons (TypeRef "List") unit)) (sum unit null))
+DList := (sum (cons Int (cons (TypeRef "List") unit)) (sum unit null))
 \end{examplecode}
-Note that \code{D_L} is a list containing two datatype constructors.
-The first (corresponding to \code{listc}) is a list contain \code{Int}
+Here, \code{DList} is a list containing two datatype constructors.
+The first (corresponding to \code{listc}) contains the types \code{Int}
 and \code{(TypeRef "List")}.
 Intuitively, the latter can be thought of as a variable bound
-by \code{(Datatype "List" D_L)}, i.e. it specifies that the child
+by \code{(Datatype "List" DList)}, i.e. it specifies that the child
 of this constructor is itself a list.
 The second constructor in this list (corresponding to \code{listn})
 is given by \code{unit}, marking it as a constructor taking no arguments.
-Note that the names of constructors and selectors are not given in this representation.
-Instead, constructors will be referenced by natural number indicies in this list,
-e.g. 0 will refer to \code{listc} and 1 will refer to \code{listn}.
-Similarly, we will use two natural numbers to reference selectors,
-e.g. (0, 0) will refer to \code{head} and (0,1) to \code{tail}.
 
 This definition also permits mutual recursive datatypes, for example, consider the SMT-LIB datatype:
 \begin{examplecode}
-(declare-datatypes ((Tree 0) (ListTree 0))
+(declare-datatypes ((Tree 0) (TreeList 0))
   (((node (children List)) (leaf))) 
-   ((tlistc (head Tree) (tail List)) (tlistn)))
+   ((tlistc (head Tree) (tail TreeList)) (tlistn)))
 \end{examplecode}
-This is captured by the datatype \code{(Datatype "Tree" D_T)}, where \code{D_T} is the following datatype:
+This is captured by the datatype \code{(Datatype "Tree" DTree)}, where \code{DTree} is the following datatype,
+which itself contains another datatype \code{DTreeList} in its definition:
 \begin{examplecode}
-D_T := (sum (cons (Datatype "List" D_S) unit) (sum unit nil))
-D_S := (sum (cons (TypeRef "Tree") (cons (TypeRef "List") unit)) nil)
+DTree := (sum (cons (Datatype "List" DTreeList) unit) (sum unit nil))
+DTreeList := (sum (cons (TypeRef "Tree") (cons (TypeRef "TreeList") unit)) nil)
 \end{examplecode}
+In the above datatype \code{DTree},
+the first constructor contains a datatype type as its first field type,
+whose constructors are given by \code{DTreeList}.
+Within \code{DTreeList},
+the first constructor (which corresponds to \code{tlistc} above) contains two
+type references, the first being a reference to \code{Tree} (which references the top-level datatype type)
+and second being a self reference to \code{(Datatype "List" DTreeList)}.
 
-Below, we will see that values of datatype types are datatype constructors (\code{DtCons})
-applied to other values.
-We use an curried apply (\code{Apply}) constructor
-to denote applications of terms.
-For example, the value of datatype type
+Note that the names of constructors and selectors are not given in the representation of datatypes.
+Instead 
+constructors are referenced by natural number indicies.
+For example, in \code{DList} above,
+0 will refer to \code{listc} and 1 will refer to \code{listn}.
+Similarly, we will use two natural numbers to reference selectors,
+e.g. in \code{DList} (0, 0) will refer to \code{head} and (0,1) to \code{tail}.
+Details on this will be given when values and terms are introduced
+(Sections~\ref{sec:values} and~\ref{sec:terms}).
 
-Note that this definition permits three kinds of ill-formed datatypes.
+This definition permits three kinds of datatypes which we consider to be ill-formed.
 First, a type may contain a type reference that it not within the bounds of the datatype that it references.
 Examples of this kind of datatype are the following:
 \begin{examplecode}
-(TypeRef "list")
-(Array Int (TypeRef "list"))
-(Datatype "tree" (sum (cons (TypeRef "list") unit) null))
+(TypeRef "List")
+(Array Int (TypeRef "List"))
+(Datatype "Tree" (sum (cons (TypeRef "List") unit) null))
 \end{examplecode}
 In this case, we say that the type is not well-formed.
 Our formalization in SMT-LIB will later define a well-formedness predicate that
 defines a subset of types that are considered well-formed.
+
 Second, a datatype itself may be uninhabited, i.e. there are no \smtvalue
 that have that type.
 Examples of this kind of datatype are the following:
 \begin{examplecode}
-(Datatype "empty" null)
 (Datatype "no-wf" (sum (cons Int (cons (TypeRef "no-wf") unit)) null))
-(Datatype "mutual-no-wf" (sum (cons Int (cons (TypeRef "infinite-list") unit)) null))
+(Datatype "empty" null)
+(Datatype "mutual-no-wf" (sum (DatatypeType "dummy" (sum (cons (TypeRef "mutual-no-wf") unit) null)) null))
 \end{examplecode}
-For instance, a datatype containing only recursive constructors is uninhabited.
-Other examples include a datatype with no constructors,
-or a mutually recursive datatype where all paths to other datatypes
-contain a recursive reference to the datatype we are defining.
+In the second example,
+a datatype containing only constructors with recursive references to itself is uninhabited.
+Other examples include a datatype with no constructors (the second example),
+or a mutually recursive datatype where constructing a value of that field
+contain a recursive reference to the datatype we are defining (the third example).
+
 Third, a datatype may contain datatypes as field types that have the same name as the current datatype.
+An example of such a datatype is:
+\begin{examplecode}
+(Datatype "aliased" (sum (cons (Datatype "aliased" (cons unit nil)) nil)))
+\end{examplecode}
+Above, the datatype contains a constructor whose field is a datatype
+with the same name.
+By convention, we also consider such datatypes to be ill-formed.
 
-
-The next type (\code{DtcAppType}) is the type of partially applied constructors.
-It is a function-like type that takes the argument and return types of the constructor,
-where this type is curried.
 For example, the type of the first constructor of the list datatype above is
 \begin{examplecode}
 (DtcAppType Int (DtcAppType (Datatype "list" D) (Datatype "list" D)))
@@ -381,10 +419,9 @@ In detail, this type
 is a function that expects an integer,
 and returns a function that expects a list and returns a list.
 
-Note that the type of constructors is intentionally distinct from function types (\code{FunType}).
 
-Finally, the last constructor in this list denotes uninterpreted sorts (\code{USort}),
-which are indexed by a natural number identifier.
+\subsection{Values}
+\label{sec:values}
 
 \begin{figure}[p]
 \begin{lstlisting}
