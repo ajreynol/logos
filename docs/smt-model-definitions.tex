@@ -320,6 +320,12 @@ The type of partially applied constructors is intentionally distinct from functi
 which also takes its argument and return types.
 Both these types are curried, for instance the function type expecting two integers and
 returning a Boolean is \code{(FunType Int (FunType Int Bool))}.
+These two types are distinct for several reasons,
+the primary being that SMT values of type \code{DtcAppType} type can be "applied" to other values
+to construct new values. As we will describe in Section~\ref{sec:values},
+this reflects the fact that datatype types are given Herbrand interpretations,
+i.e. their values are term-like.
+In contrast, function values cannot be applied to values to construct new values.
 
 The final constructor in this list denotes uninterpreted sorts (\code{USort}),
 which are indexed by a natural number identifier.
