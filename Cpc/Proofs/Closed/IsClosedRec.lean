@@ -12950,6 +12950,98 @@ by
       hHeadClosed
       (ih hZLt hEnv hZTrans)
 
+theorem is_closed_rec_apply_apply_apply_uop_over_binary_of_args_eq_and_bool_of_has_smt_translation
+    (root : Term)
+    {op : UserOp} {x y z env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hXLt : sizeOf x < sizeOf root)
+    (hYLt : sizeOf y < sizeOf root)
+    (hZLt : sizeOf z < sizeOf root)
+    (hArgsOfHead :
+      eoHasSmtTranslation (Term.Apply (Term.Apply (Term.UOp op) x) y) ->
+        eoHasSmtTranslation x ∧ eoHasSmtTranslation y)
+    (hOuterTranslate :
+      __eo_to_smt
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) x) y) z) =
+        SmtTerm.Apply
+          (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp op) x) y))
+          (__eo_to_smt z))
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) x) y) z))
+    (ih :
+      ∀ {t env : Term} {vars : List SmtVarKey},
+        sizeOf t < sizeOf root ->
+          EoSmtVarEnv env vars ->
+            eoHasSmtTranslation t ->
+              __is_closed_rec t env = __eo_is_closed_rec t env ∧
+                ∃ b, __eo_is_closed_rec t env = Term.Boolean b) :
+  __is_closed_rec
+      (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) x) y) z) env =
+    __eo_is_closed_rec
+      (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) x) y) z) env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) x) y) z)
+        env =
+        Term.Boolean b :=
+by
+  exact
+    is_closed_rec_apply_apply_apply_uop_over_binary_eq_and_bool_of_has_smt_translation
+      root hEnv hXLt hYLt hZLt
+      (fun hHeadTrans => (hArgsOfHead hHeadTrans).2)
+      hOuterTranslate hTrans ih
+
+theorem is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+    (root : Term)
+    {eoOp : UserOp} {smtOp : SmtTerm -> SmtTerm -> SmtTerm}
+    {x y z env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hXLt : sizeOf x < sizeOf root)
+    (hYLt : sizeOf y < sizeOf root)
+    (hZLt : sizeOf z < sizeOf root)
+    (hHeadTranslate :
+      __eo_to_smt (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) =
+        smtOp (__eo_to_smt x) (__eo_to_smt y))
+    (hArgs :
+      term_has_non_none_type (smtOp (__eo_to_smt x) (__eo_to_smt y)) ->
+        eoHasSmtTranslation x ∧ eoHasSmtTranslation y)
+    (hOuterTranslate :
+      __eo_to_smt
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) z) =
+        SmtTerm.Apply
+          (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp eoOp) x) y))
+          (__eo_to_smt z))
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) z))
+    (ih :
+      ∀ {t env : Term} {vars : List SmtVarKey},
+        sizeOf t < sizeOf root ->
+          EoSmtVarEnv env vars ->
+            eoHasSmtTranslation t ->
+              __is_closed_rec t env = __eo_is_closed_rec t env ∧
+                ∃ b, __eo_is_closed_rec t env = Term.Boolean b) :
+  __is_closed_rec
+      (Term.Apply (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) z)
+      env =
+    __eo_is_closed_rec
+      (Term.Apply (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) z)
+      env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) z)
+        env =
+        Term.Boolean b :=
+by
+  exact
+    is_closed_rec_apply_apply_apply_uop_over_binary_of_args_eq_and_bool_of_has_smt_translation
+      root hEnv hXLt hYLt hZLt
+      (fun hHeadTrans =>
+        apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+          hHeadTranslate hArgs hHeadTrans)
+      hOuterTranslate hTrans ih
+
 theorem is_closed_rec_apply_apply_apply_or_eq_and_bool_of_has_smt_translation
     (root : Term)
     {x y z env : Term} {vars : List SmtVarKey}
@@ -13134,6 +13226,762 @@ by
         (eq_args_have_smt_translation_of_has_smt_translation
           hHeadTrans).2)
       (by rfl) hTrans ih
+
+theorem is_closed_rec_apply_apply_apply_uop_any_eq_and_bool_of_has_smt_translation
+    (root : Term)
+    {op : UserOp} {x y z env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars)
+    (hXLt : sizeOf x < sizeOf root)
+    (hYLt : sizeOf y < sizeOf root)
+    (hZLt : sizeOf z < sizeOf root)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) x) y) z))
+    (ih :
+      ∀ {t env : Term} {vars : List SmtVarKey},
+        sizeOf t < sizeOf root ->
+          EoSmtVarEnv env vars ->
+            eoHasSmtTranslation t ->
+              __is_closed_rec t env = __eo_is_closed_rec t env ∧
+                ∃ b, __eo_is_closed_rec t env = Term.Boolean b) :
+  __is_closed_rec
+      (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) x) y) z) env =
+    __eo_is_closed_rec
+      (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) x) y) z) env ∧
+    ∃ b,
+      __eo_is_closed_rec
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) x) y) z)
+        env =
+        Term.Boolean b :=
+by
+  cases op
+  case ite =>
+    exact
+      is_closed_rec_apply_apply_apply_ite_eq_and_bool_of_has_smt_translation
+        hEnv hTrans (fun hx => ih hXLt hEnv hx)
+        (fun hy => ih hYLt hEnv hy) (fun hz => ih hZLt hEnv hz)
+  case or =>
+    exact
+      is_closed_rec_apply_apply_apply_or_eq_and_bool_of_has_smt_translation
+        root hEnv hXLt hYLt hZLt hTrans ih
+  case and =>
+    exact
+      is_closed_rec_apply_apply_apply_and_eq_and_bool_of_has_smt_translation
+        root hEnv hXLt hYLt hZLt hTrans ih
+  case imp =>
+    exact
+      is_closed_rec_apply_apply_apply_imp_eq_and_bool_of_has_smt_translation
+        root hEnv hXLt hYLt hZLt hTrans ih
+  case xor =>
+    exact
+      is_closed_rec_apply_apply_apply_xor_eq_and_bool_of_has_smt_translation
+        root hEnv hXLt hYLt hZLt hTrans ih
+  case eq =>
+    exact
+      is_closed_rec_apply_apply_apply_eq_eq_and_bool_of_has_smt_translation
+        root hEnv hXLt hYLt hZLt hTrans ih
+  case plus =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_of_args_eq_and_bool_of_has_smt_translation
+        root hEnv hXLt hYLt hZLt
+        plus_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans ih
+  case neg =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_of_args_eq_and_bool_of_has_smt_translation
+        root hEnv hXLt hYLt hZLt
+        neg_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans ih
+  case mult =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_of_args_eq_and_bool_of_has_smt_translation
+        root hEnv hXLt hYLt hZLt
+        mult_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans ih
+  case lt =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_of_args_eq_and_bool_of_has_smt_translation
+        root hEnv hXLt hYLt hZLt
+        lt_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans ih
+  case leq =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_of_args_eq_and_bool_of_has_smt_translation
+        root hEnv hXLt hYLt hZLt
+        leq_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans ih
+  case gt =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_of_args_eq_and_bool_of_has_smt_translation
+        root hEnv hXLt hYLt hZLt
+        gt_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans ih
+  case geq =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_of_args_eq_and_bool_of_has_smt_translation
+        root hEnv hXLt hYLt hZLt
+        geq_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans ih
+  case div =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_of_args_eq_and_bool_of_has_smt_translation
+        root hEnv hXLt hYLt hZLt
+        div_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans ih
+  case mod =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_of_args_eq_and_bool_of_has_smt_translation
+        root hEnv hXLt hYLt hZLt
+        mod_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans ih
+  case multmult =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_of_args_eq_and_bool_of_has_smt_translation
+        root hEnv hXLt hYLt hZLt
+        multmult_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans ih
+  case divisible =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_of_args_eq_and_bool_of_has_smt_translation
+        root hEnv hXLt hYLt hZLt
+        divisible_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans ih
+  case div_total =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_of_args_eq_and_bool_of_has_smt_translation
+        root hEnv hXLt hYLt hZLt
+        div_total_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans ih
+  case mod_total =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_of_args_eq_and_bool_of_has_smt_translation
+        root hEnv hXLt hYLt hZLt
+        mod_total_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans ih
+  case multmult_total =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_of_args_eq_and_bool_of_has_smt_translation
+        root hEnv hXLt hYLt hZLt
+        multmult_total_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans ih
+  case select =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_of_args_eq_and_bool_of_has_smt_translation
+        root hEnv hXLt hYLt hZLt
+        select_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans ih
+  case store =>
+    exact
+      is_closed_rec_apply_apply_apply_store_eq_and_bool_of_has_smt_translation
+        hEnv hTrans (fun hx => ih hXLt hEnv hx)
+        (fun hy => ih hYLt hEnv hy) (fun hz => ih hZLt hEnv hz)
+  case _at_array_deq_diff =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_of_args_eq_and_bool_of_has_smt_translation
+        root hEnv hXLt hYLt hZLt
+        array_deq_diff_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans ih
+  case concat =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.concat) (smtOp := SmtTerm.concat)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        bv_concat_args_have_smt_translation_of_non_none (by rfl) hTrans ih
+  case bvand =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.bvand) (smtOp := SmtTerm.bvand)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          bv_binop_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans ih
+  case bvor =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.bvor) (smtOp := SmtTerm.bvor)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          bv_binop_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans ih
+  case bvnand =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.bvnand) (smtOp := SmtTerm.bvnand)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          bv_binop_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans ih
+  case bvnor =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.bvnor) (smtOp := SmtTerm.bvnor)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          bv_binop_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans ih
+  case bvxor =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.bvxor) (smtOp := SmtTerm.bvxor)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          bv_binop_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans ih
+  case bvxnor =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.bvxnor) (smtOp := SmtTerm.bvxnor)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          bv_binop_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans ih
+  case bvcomp =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.bvcomp) (smtOp := SmtTerm.bvcomp)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          bv_binop_ret_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans ih
+  case bvadd =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.bvadd) (smtOp := SmtTerm.bvadd)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          bv_binop_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans ih
+  case bvmul =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.bvmul) (smtOp := SmtTerm.bvmul)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          bv_binop_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans ih
+  case bvudiv =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.bvudiv) (smtOp := SmtTerm.bvudiv)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          bv_binop_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans ih
+  case bvurem =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.bvurem) (smtOp := SmtTerm.bvurem)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          bv_binop_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans ih
+  case bvsub =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.bvsub) (smtOp := SmtTerm.bvsub)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          bv_binop_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans ih
+  case bvsdiv =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.bvsdiv) (smtOp := SmtTerm.bvsdiv)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          bv_binop_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans ih
+  case bvsrem =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.bvsrem) (smtOp := SmtTerm.bvsrem)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          bv_binop_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans ih
+  case bvsmod =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.bvsmod) (smtOp := SmtTerm.bvsmod)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          bv_binop_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans ih
+  case bvult =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.bvult) (smtOp := SmtTerm.bvult)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          bv_binop_ret_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans ih
+  case bvule =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.bvule) (smtOp := SmtTerm.bvule)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          bv_binop_ret_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans ih
+  case bvugt =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.bvugt) (smtOp := SmtTerm.bvugt)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          bv_binop_ret_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans ih
+  case bvuge =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.bvuge) (smtOp := SmtTerm.bvuge)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          bv_binop_ret_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans ih
+  case bvslt =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.bvslt) (smtOp := SmtTerm.bvslt)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          bv_binop_ret_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans ih
+  case bvsle =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.bvsle) (smtOp := SmtTerm.bvsle)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          bv_binop_ret_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans ih
+  case bvsgt =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.bvsgt) (smtOp := SmtTerm.bvsgt)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          bv_binop_ret_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans ih
+  case bvsge =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.bvsge) (smtOp := SmtTerm.bvsge)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          bv_binop_ret_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans ih
+  case bvshl =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.bvshl) (smtOp := SmtTerm.bvshl)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          bv_binop_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans ih
+  case bvlshr =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.bvlshr) (smtOp := SmtTerm.bvlshr)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          bv_binop_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans ih
+  case bvashr =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.bvashr) (smtOp := SmtTerm.bvashr)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          bv_binop_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans ih
+  case bvite =>
+    exact
+      is_closed_rec_apply_apply_apply_bvite_eq_and_bool_of_has_smt_translation
+        hEnv hTrans (fun hx => ih hXLt hEnv hx)
+        (fun hy => ih hYLt hEnv hy) (fun hz => ih hZLt hEnv hz)
+  case bvuaddo =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.bvuaddo) (smtOp := SmtTerm.bvuaddo)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          bv_binop_ret_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans ih
+  case bvsaddo =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.bvsaddo) (smtOp := SmtTerm.bvsaddo)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          bv_binop_ret_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans ih
+  case bvumulo =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.bvumulo) (smtOp := SmtTerm.bvumulo)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          bv_binop_ret_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans ih
+  case bvsmulo =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.bvsmulo) (smtOp := SmtTerm.bvsmulo)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          bv_binop_ret_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans ih
+  case bvusubo =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.bvusubo) (smtOp := SmtTerm.bvusubo)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          bv_binop_ret_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans ih
+  case bvssubo =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.bvssubo) (smtOp := SmtTerm.bvssubo)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          bv_binop_ret_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans ih
+  case bvsdivo =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.bvsdivo) (smtOp := SmtTerm.bvsdivo)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          bv_binop_ret_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans ih
+  case bvultbv =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_of_args_eq_and_bool_of_has_smt_translation
+        root hEnv hXLt hYLt hZLt
+        bvultbv_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans ih
+  case bvsltbv =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_of_args_eq_and_bool_of_has_smt_translation
+        root hEnv hXLt hYLt hZLt
+        bvsltbv_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans ih
+  case _at_from_bools =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_of_args_eq_and_bool_of_has_smt_translation
+        root hEnv hXLt hYLt hZLt
+        from_bools_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans ih
+  case str_concat =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.str_concat) (smtOp := SmtTerm.str_concat)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          seq_binop_args_have_smt_translation_of_non_none
+            (typeof_str_concat_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+        (by rfl) hTrans ih
+  case str_substr =>
+    exact
+      is_closed_rec_apply_apply_apply_str_substr_eq_and_bool_of_has_smt_translation
+        hEnv hTrans (fun hx => ih hXLt hEnv hx)
+        (fun hy => ih hYLt hEnv hy) (fun hz => ih hZLt hEnv hz)
+  case str_contains =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.str_contains) (smtOp := SmtTerm.str_contains)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          seq_binop_ret_args_have_smt_translation_of_non_none
+            (typeof_str_contains_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+        (by rfl) hTrans ih
+  case str_replace =>
+    exact
+      is_closed_rec_apply_apply_apply_str_replace_eq_and_bool_of_has_smt_translation
+        hEnv hTrans (fun hx => ih hXLt hEnv hx)
+        (fun hy => ih hYLt hEnv hy) (fun hz => ih hZLt hEnv hz)
+  case str_indexof =>
+    exact
+      is_closed_rec_apply_apply_apply_str_indexof_eq_and_bool_of_has_smt_translation
+        hEnv hTrans (fun hx => ih hXLt hEnv hx)
+        (fun hy => ih hYLt hEnv hy) (fun hz => ih hZLt hEnv hz)
+  case str_at =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.str_at) (smtOp := SmtTerm.str_at)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        str_at_args_have_smt_translation_of_non_none (by rfl) hTrans ih
+  case str_prefixof =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.str_prefixof) (smtOp := SmtTerm.str_prefixof)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          seq_char_binop_args_have_smt_translation_of_non_none
+            (ret := SmtType.Bool)
+            (typeof_str_prefixof_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+        (by rfl) hTrans ih
+  case str_suffixof =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.str_suffixof) (smtOp := SmtTerm.str_suffixof)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          seq_char_binop_args_have_smt_translation_of_non_none
+            (ret := SmtType.Bool)
+            (typeof_str_suffixof_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+        (by rfl) hTrans ih
+  case str_update =>
+    exact
+      is_closed_rec_apply_apply_apply_str_update_eq_and_bool_of_has_smt_translation
+        hEnv hTrans (fun hx => ih hXLt hEnv hx)
+        (fun hy => ih hYLt hEnv hy) (fun hz => ih hZLt hEnv hz)
+  case str_lt =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.str_lt) (smtOp := SmtTerm.str_lt)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          seq_char_binop_args_have_smt_translation_of_non_none
+            (ret := SmtType.Bool)
+            (typeof_str_lt_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+        (by rfl) hTrans ih
+  case str_leq =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.str_leq) (smtOp := SmtTerm.str_leq)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          seq_char_binop_args_have_smt_translation_of_non_none
+            (ret := SmtType.Bool)
+            (typeof_str_leq_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+        (by rfl) hTrans ih
+  case str_replace_all =>
+    exact
+      is_closed_rec_apply_apply_apply_str_replace_all_eq_and_bool_of_has_smt_translation
+        hEnv hTrans (fun hx => ih hXLt hEnv hx)
+        (fun hy => ih hYLt hEnv hy) (fun hz => ih hZLt hEnv hz)
+  case str_replace_re =>
+    exact
+      is_closed_rec_apply_apply_apply_str_replace_re_eq_and_bool_of_has_smt_translation
+        hEnv hTrans (fun hx => ih hXLt hEnv hx)
+        (fun hy => ih hYLt hEnv hy) (fun hz => ih hZLt hEnv hz)
+  case str_replace_re_all =>
+    exact
+      is_closed_rec_apply_apply_apply_str_replace_re_all_eq_and_bool_of_has_smt_translation
+        hEnv hTrans (fun hx => ih hXLt hEnv hx)
+        (fun hy => ih hYLt hEnv hy) (fun hz => ih hZLt hEnv hz)
+  case str_indexof_re =>
+    exact
+      is_closed_rec_apply_apply_apply_str_indexof_re_eq_and_bool_of_has_smt_translation
+        hEnv hTrans (fun hx => ih hXLt hEnv hx)
+        (fun hy => ih hYLt hEnv hy) (fun hz => ih hZLt hEnv hz)
+  case re_range =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.re_range) (smtOp := SmtTerm.re_range)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          seq_char_binop_args_have_smt_translation_of_non_none
+            (ret := SmtType.RegLan)
+            (typeof_re_range_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+        (by rfl) hTrans ih
+  case re_concat =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.re_concat) (smtOp := SmtTerm.re_concat)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          reglan_binop_args_have_smt_translation_of_non_none
+            (typeof_re_concat_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+        (by rfl) hTrans ih
+  case re_inter =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.re_inter) (smtOp := SmtTerm.re_inter)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          reglan_binop_args_have_smt_translation_of_non_none
+            (typeof_re_inter_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+        (by rfl) hTrans ih
+  case re_union =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.re_union) (smtOp := SmtTerm.re_union)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          reglan_binop_args_have_smt_translation_of_non_none
+            (typeof_re_union_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+        (by rfl) hTrans ih
+  case re_diff =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.re_diff) (smtOp := SmtTerm.re_diff)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          reglan_binop_args_have_smt_translation_of_non_none
+            (typeof_re_diff_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+        (by rfl) hTrans ih
+  case str_in_re =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.str_in_re) (smtOp := SmtTerm.str_in_re)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          seq_char_reglan_args_have_smt_translation_of_non_none
+            (ret := SmtType.Bool)
+            (typeof_str_in_re_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+        (by rfl) hTrans ih
+  case str_indexof_re_split =>
+    exact
+      is_closed_rec_apply_apply_apply_str_indexof_re_split_eq_and_bool_of_has_smt_translation
+        hEnv hTrans (fun hx => ih hXLt hEnv hx)
+        (fun hy => ih hYLt hEnv hy) (fun hz => ih hZLt hEnv hz)
+  case seq_nth =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.seq_nth) (smtOp := SmtTerm.seq_nth)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        seq_nth_args_have_smt_translation_of_non_none (by rfl) hTrans ih
+  case _at_strings_deq_diff =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_of_args_eq_and_bool_of_has_smt_translation
+        root hEnv hXLt hYLt hZLt
+        strings_deq_diff_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans ih
+  case _at_strings_stoi_result =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_of_args_eq_and_bool_of_has_smt_translation
+        root hEnv hXLt hYLt hZLt
+        strings_stoi_result_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans ih
+  case _at_strings_itos_result =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_of_args_eq_and_bool_of_has_smt_translation
+        root hEnv hXLt hYLt hZLt
+        strings_itos_result_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans ih
+  case _at_strings_num_occur =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_of_args_eq_and_bool_of_has_smt_translation
+        root hEnv hXLt hYLt hZLt
+        strings_num_occur_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans ih
+  case tuple =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_of_args_eq_and_bool_of_has_smt_translation
+        root hEnv hXLt hYLt hZLt
+        tuple_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans ih
+  case set_union =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.set_union) (smtOp := SmtTerm.set_union)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          set_binop_args_have_smt_translation_of_non_none
+            (typeof_set_union_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+        (by rfl) hTrans ih
+  case set_inter =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.set_inter) (smtOp := SmtTerm.set_inter)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          set_binop_args_have_smt_translation_of_non_none
+            (typeof_set_inter_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+        (by rfl) hTrans ih
+  case set_minus =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.set_minus) (smtOp := SmtTerm.set_minus)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          set_binop_args_have_smt_translation_of_non_none
+            (typeof_set_minus_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+        (by rfl) hTrans ih
+  case set_member =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.set_member) (smtOp := SmtTerm.set_member)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        set_member_args_have_smt_translation_of_non_none
+        (by rfl) hTrans ih
+  case set_subset =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_smt_binop_eq_and_bool_of_has_smt_translation
+        (eoOp := UserOp.set_subset) (smtOp := SmtTerm.set_subset)
+        root hEnv hXLt hYLt hZLt (by rfl)
+        (fun hNN =>
+          set_binop_ret_args_have_smt_translation_of_non_none
+            (ret := SmtType.Bool)
+            (typeof_set_subset_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+        (by rfl) hTrans ih
+  case set_insert =>
+    exact
+      is_closed_rec_apply_apply_apply_set_insert_eq_and_bool_of_has_smt_translation
+        root hEnv hXLt hYLt hZLt hTrans ih
+  case _at_sets_deq_diff =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_of_args_eq_and_bool_of_has_smt_translation
+        root hEnv hXLt hYLt hZLt
+        sets_deq_diff_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans ih
+  case qdiv =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_of_args_eq_and_bool_of_has_smt_translation
+        root hEnv hXLt hYLt hZLt
+        qdiv_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans ih
+  case qdiv_total =>
+    exact
+      is_closed_rec_apply_apply_apply_uop_over_binary_of_args_eq_and_bool_of_has_smt_translation
+        root hEnv hXLt hYLt hZLt
+        qdiv_total_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans ih
+  case «forall» =>
+    exact false_of_apply_apply_apply_forall_has_smt_translation hTrans
+  case «exists» =>
+    exact false_of_apply_apply_apply_exists_has_smt_translation hTrans
+  all_goals
+    exact
+      is_closed_rec_apply_apply_apply_uop_generic_eq_and_bool_of_has_smt_translation
+        root hEnv hXLt hYLt hZLt (by rfl) (by rfl) hTrans ih
 
 theorem is_closed_rec_var_eq_eo_is_closed
     (s : native_String) (T : Term) :
