@@ -193,9 +193,9 @@ inductive SmtType : Type where
   | Char : SmtType
   | Datatype : String -> SmtDatatype -> SmtType
   | TypeRef : String -> SmtType
-  | USort : Nat -> SmtType
-  | FunType : SmtType -> SmtType -> SmtType
   | DtcAppType : SmtType -> SmtType -> SmtType
+  | FunType : SmtType -> SmtType -> SmtType
+  | USort : Nat -> SmtType
 deriving Repr, DecidableEq, Inhabited, Ord
 
 inductive SmtDatatype : Type where
@@ -216,35 +216,65 @@ def Teq : SmtType -> SmtType -> native_Bool
 \end{figure}
 
 Figure~\ref{} gives the official definition of SMT-LIB types.
+This includes an error value (None) denoting not a type,\footnote{
+One could alternatively use an Option type instead of allowing None as a first-class constructor.
+Throughout, we prefer using an error elements of types.}
+the standard atomic SMT-LIB types of Booleans (Bool),
+integers (Int), reals (Real) and regular languages (RegLan).
+Bitvectors (BitVec) are indexed by a natural number denoting the bitwidth.
+Note that in contrast to SMT-LIB, our semantics permit the bitvector of size zero.
+
+We then define three composite types:
+- The type of maps (Map) will be used to reason about SMT-LIB arrays. Note that this type will have a minor difference with the official type of arrays in SMT-LIB, namely, it will interpreted as admitting only values that are almost constant maps.
+- The type of finite sets (Set).
+- The type of sequences (Seq). Note that for uniformity, SMT-LIB strings are represented as a sequence of characters, where the character type (Char) is another atomic type constructor and has a finite range of values determined by the range of Unicode in SMT-LIB (values 0 to 199607).
+Note the latter two types are not in the SMT-LIB standard.
+
+The next three types pertain to SMT-LIB datatypes.
+The first (Datatype) denotes a (possibly recursive) datatype type.
+This definition reflects standard notions in the literature for mu-types, or \emph{recursive} types.
+In this definition, the first argument of the datatype denotes the name of that datatype.
+The second argument (a SmtDatatype) denotes the list of constructors of that datatype,
+where adds a constructor to this list, and null terminates its list of constructors.
+Recursive references to the datatype in question are indicated by type references (constructor TypeRef), which
+takes the name of the datatype that it references.
+
+For example, a recursive list datatype is represented as:
 
 
+This definition also permits mutual recursive datatypes, for example:
 
-\begin{figure}[p]
-\begin{lstlisting}
-inductive SmtTerm : Type where
-  | None : SmtTerm
-  | Boolean : Bool -> SmtTerm
-  | Numeral : Int -> SmtTerm
-  | Rational : Rat -> SmtTerm
-  | String : String -> SmtTerm
-  | Binary : Int -> Int -> SmtTerm
-  | Apply : SmtTerm -> SmtTerm -> SmtTerm
-  | not : SmtTerm -> SmtTerm
-  | and : SmtTerm -> SmtTerm -> SmtTerm
-  | eq : SmtTerm -> SmtTerm -> SmtTerm
-  | exists : String -> SmtType -> SmtTerm -> SmtTerm
-  | forall : String -> SmtType -> SmtTerm -> SmtTerm
-  | choice_nth : String -> SmtType -> SmtTerm -> Nat -> SmtTerm
-  | DtCons : String -> SmtDatatype -> Nat -> SmtTerm
-  | DtSel : String -> SmtDatatype -> Nat -> Nat -> SmtTerm
-  | DtTester : String -> SmtDatatype -> Nat -> SmtTerm
-  | Var : String -> SmtType -> SmtTerm
-  | UConst : String -> SmtType -> SmtTerm
-  ...
-deriving Repr, DecidableEq, Inhabited
-\end{lstlisting}
-\caption{A representative template of SMT term constructors.}
-\end{figure}
+Below, we will see that values of datatype types are datatype constructors (DtCons)
+applied to other values.
+We use an curried apply (Apply) constructor
+to denote applications of terms.
+For example, the value of datatype type
+
+Note that this definition permits two kinds of ill-formed datatypes.
+First, a type may contain a type reference that it not within the bounds of the datatype that it references.
+In this case, the type is not well-formed.
+Our formalization in SMT-LIB will later define a well-formedness predicate that
+defines a subset of types that are considered well-formed.
+Second, a datatype itself may be uninhabited, i.e. there are no SmtValue
+that have that type.
+For instance, a datatype containing only recursive constructors is uninhabited.
+Other examples include a datatype with no constructors,
+or a mutually recursive datatype where all paths to other datatypes
+contain a recursive reference to the datatype we are defining.
+
+The next type (DtcAppType) is the type of partially applied constructors.
+It is a function-like type that takes the argument and return types of the constructor,
+where this type is curried.
+For example, the type of the first constructor of the list datatype above is
+(DtcAppType Int (DtcAppType (Datatype "list" D) (Datatype "list" D)))
+In detail, this type
+is a function that expects an integer,
+and returns a function that expects a list and returns a list.
+
+Note that the type of constructors is intentionally distinct from function types (FunType).
+
+Finally, the last constructor in this list denotes uninterpreted sorts (USort),
+which are indexed by a natural number identifier.
 
 \begin{figure}[p]
 \begin{lstlisting}
@@ -289,6 +319,33 @@ inductive SmtRegLan : Type where
 deriving Repr, DecidableEq, Inhabited, Ord
 \end{lstlisting}
 \caption{Regular-language, value, map, sequence, and datatype values.}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+inductive SmtTerm : Type where
+  | None : SmtTerm
+  | Boolean : Bool -> SmtTerm
+  | Numeral : Int -> SmtTerm
+  | Rational : Rat -> SmtTerm
+  | String : String -> SmtTerm
+  | Binary : Int -> Int -> SmtTerm
+  | Apply : SmtTerm -> SmtTerm -> SmtTerm
+  | not : SmtTerm -> SmtTerm
+  | and : SmtTerm -> SmtTerm -> SmtTerm
+  | eq : SmtTerm -> SmtTerm -> SmtTerm
+  | exists : String -> SmtType -> SmtTerm -> SmtTerm
+  | forall : String -> SmtType -> SmtTerm -> SmtTerm
+  | choice_nth : String -> SmtType -> SmtTerm -> Nat -> SmtTerm
+  | DtCons : String -> SmtDatatype -> Nat -> SmtTerm
+  | DtSel : String -> SmtDatatype -> Nat -> Nat -> SmtTerm
+  | DtTester : String -> SmtDatatype -> Nat -> SmtTerm
+  | Var : String -> SmtType -> SmtTerm
+  | UConst : String -> SmtType -> SmtTerm
+  ...
+deriving Repr, DecidableEq, Inhabited
+\end{lstlisting}
+\caption{A representative template of SMT term constructors.}
 \end{figure}
 
 \begin{figure}[p]
