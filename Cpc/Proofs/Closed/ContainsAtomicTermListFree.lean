@@ -523,6 +523,19 @@ by
     · left
       rfl
 
+private theorem eo_ite_true_eq_false_cases
+    {c e : Term}
+    (h : __eo_ite c (Term.Boolean true) e = Term.Boolean false) :
+  c = Term.Boolean false ∧ e = Term.Boolean false :=
+by
+  cases c <;> simp [__eo_ite, native_ite, native_teq] at h ⊢
+  case Boolean b =>
+    cases b
+    · constructor
+      · rfl
+      · simpa [__eo_ite, native_ite, native_teq] using h
+    · cases h
+
 /--
 The variable case of `__contains_atomic_term_list_free_rec`.
 
@@ -619,6 +632,197 @@ by
     exact hNoFree
 
 /--
+Evaluator congruence for the SMT existential chain produced from an exact EO
+binder list.
+
+The body hypothesis is stated at the final bound stack
+`binderVars.reverse ++ boundVars`, because SMT evaluation pushes the binders in
+front of the current model one at a time.
+-/
+theorem smt_model_eval_eo_to_smt_exists_eq_of_body_eval_eq
+    {vs : Term} {binderVars exceptVars boundVars : List EoVarKey}
+    {M N : SmtModel} {body : SmtTerm}
+    (hEnv : EoVarEnv vs binderVars)
+    (hAgree : model_agrees_except_on_eo_env exceptVars boundVars M N)
+    (hBody :
+      ∀ {M' N' : SmtModel},
+        model_agrees_except_on_eo_env exceptVars
+          (binderVars.reverse ++ boundVars) M' N' ->
+          __smtx_model_eval M' body =
+            __smtx_model_eval N' body) :
+  __smtx_model_eval M (__eo_to_smt_exists vs body) =
+    __smtx_model_eval N (__eo_to_smt_exists vs body) :=
+by
+  induction hEnv generalizing boundVars M N body with
+  | nil =>
+      exact hBody (by simpa using hAgree)
+  | cons hTail ih =>
+      rename_i s T vs tailVars
+      change
+        __smtx_model_eval M
+            (SmtTerm.exists s (__eo_to_smt_type T)
+              (__eo_to_smt_exists vs body)) =
+          __smtx_model_eval N
+            (SmtTerm.exists s (__eo_to_smt_type T)
+              (__eo_to_smt_exists vs body))
+      exact
+        smtx_model_eval_exists_eq_of_body_eval_eq
+          (fun v =>
+            ih
+              (boundVars := (s, T) :: boundVars)
+              (M := native_model_push M s (__eo_to_smt_type T) v)
+              (N := native_model_push N s (__eo_to_smt_type T) v)
+              (body := body)
+              (model_agrees_except_on_eo_env_push_same hAgree)
+              (by
+                intro M' N' hAgreeTail
+                apply hBody
+                simpa [List.reverse_cons, List.append_assoc]
+                  using hAgreeTail))
+
+/--
+Evaluator congruence for the SMT encoding of EO `forall`.
+
+EO forall translates through `not (exists ... (not body))`, so this is just the
+existential-chain congruence with two `not` congruence steps.
+-/
+theorem smt_model_eval_eo_to_smt_forall_encoding_eq_of_body_eval_eq
+    {vs : Term} {binderVars exceptVars boundVars : List EoVarKey}
+    {M N : SmtModel} {body : SmtTerm}
+    (hEnv : EoVarEnv vs binderVars)
+    (hAgree : model_agrees_except_on_eo_env exceptVars boundVars M N)
+    (hBody :
+      ∀ {M' N' : SmtModel},
+        model_agrees_except_on_eo_env exceptVars
+          (binderVars.reverse ++ boundVars) M' N' ->
+          __smtx_model_eval M' body =
+            __smtx_model_eval N' body) :
+  __smtx_model_eval M
+      (SmtTerm.not (__eo_to_smt_exists vs (SmtTerm.not body))) =
+    __smtx_model_eval N
+      (SmtTerm.not (__eo_to_smt_exists vs (SmtTerm.not body))) :=
+by
+  exact
+    smtx_model_eval_not_eq_of_eval_eq
+      (smt_model_eval_eo_to_smt_exists_eq_of_body_eval_eq
+        hEnv hAgree
+        (by
+          intro M' N' hAgree'
+          exact smtx_model_eval_not_eq_of_eval_eq (hBody hAgree')))
+
+/--
+Evaluator congruence for the nonempty quantifier-shaped EO branch.
+
+The free-variable checker treats any `Apply (Apply q nonempty-list) body` as a
+binder branch; the translation proof tells us that the head is actually
+`forall` or `exists`.
+-/
+theorem smt_model_eval_uop_list_branch_eq_of_body_eval_eq
+    {op : UserOp} {v vs body : Term}
+    {binderVars exceptVars boundVars : List EoVarKey}
+    {M N : SmtModel}
+    (hEnv :
+      EoVarEnv
+        (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) binderVars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply (Term.UOp op)
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+          body))
+    (hAgree : model_agrees_except_on_eo_env exceptVars boundVars M N)
+    (hBody :
+      ∀ {M' N' : SmtModel},
+        model_agrees_except_on_eo_env exceptVars
+          (binderVars.reverse ++ boundVars) M' N' ->
+          __smtx_model_eval M' (__eo_to_smt body) =
+            __smtx_model_eval N' (__eo_to_smt body)) :
+  __smtx_model_eval M
+      (__eo_to_smt
+        (Term.Apply
+          (Term.Apply (Term.UOp op)
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+          body)) =
+    __smtx_model_eval N
+      (__eo_to_smt
+        (Term.Apply
+          (Term.Apply (Term.UOp op)
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+          body)) :=
+by
+  rcases
+    is_closed_rec_uop_list_branch_head_quantifier_of_has_smt_translation
+      hTrans with hForall | hExists
+  · subst op
+    change
+      __smtx_model_eval M
+          (SmtTerm.not
+            (__eo_to_smt_exists
+              (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
+              (SmtTerm.not (__eo_to_smt body)))) =
+        __smtx_model_eval N
+          (SmtTerm.not
+            (__eo_to_smt_exists
+              (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
+              (SmtTerm.not (__eo_to_smt body))))
+    exact
+      smt_model_eval_eo_to_smt_forall_encoding_eq_of_body_eval_eq
+        hEnv hAgree hBody
+  · subst op
+    change
+      __smtx_model_eval M
+          (__eo_to_smt_exists
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
+            (__eo_to_smt body)) =
+        __smtx_model_eval N
+          (__eo_to_smt_exists
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
+            (__eo_to_smt body))
+    exact
+      smt_model_eval_eo_to_smt_exists_eq_of_body_eval_eq
+        hEnv hAgree hBody
+
+private theorem eo_requires_true_false_eq_false
+    {c : Term}
+    (h :
+      __eo_requires c (Term.Boolean true) (Term.Boolean false) =
+        Term.Boolean false) :
+  c = Term.Boolean true :=
+by
+  cases c <;> simp [__eo_requires, native_ite, native_teq] at h ⊢
+  case Boolean b =>
+    cases b <;> simp at h ⊢
+
+/--
+Fallback case for `__contains_atomic_term_list_free_rec`.
+
+For non-recursive terms, the checker returns `false` by first proving that the
+term is closed at the empty environment.  Under SMT translation, closed EO terms
+evaluate the same in any two models that agree on globals.
+-/
+theorem smt_model_eval_eq_of_contains_atomic_term_list_free_rec_fallback
+    {t except bound : Term} {exceptVars boundVars : List EoVarKey}
+    {M N : SmtModel}
+    (hTrans : eoHasSmtTranslation t)
+    (hNoFree :
+      __eo_requires (__is_closed_rec t Term.__eo_List_nil)
+          (Term.Boolean true) (Term.Boolean false) =
+        Term.Boolean false)
+    (hAgree :
+      model_agrees_except_on_eo_env exceptVars boundVars M N) :
+  __smtx_model_eval M (__eo_to_smt t) =
+    __smtx_model_eval N (__eo_to_smt t) :=
+by
+  have hClosedRec :
+      __is_closed_rec t Term.__eo_List_nil = Term.Boolean true :=
+    eo_requires_true_false_eq_false hNoFree
+  have hClosed :
+      __eo_is_closed t = Term.Boolean true := by
+    simpa [is_closed_rec_eq_eo_is_closed_of_has_smt_translation hTrans]
+      using hClosedRec
+  exact smt_model_eval_eq_of_eo_closed t hClosed M N hAgree.globals
+
+/--
 The obligations needed by the recursive semantic proof in the quantifier-shaped
 `UOp` branch.
 
@@ -670,3 +874,71 @@ by
         EoVarEnvPerm.concat_rev hBinderEnv hBound,
         contains_atomic_term_list_free_rec_list_branch_false_body
           hNoFree⟩⟩
+
+/--
+One-step semantic theorem for the quantifier-shaped branch.
+
+This is the hook needed by the main recursive proof: once the recursive
+hypothesis can prove the body under the extended bound stack, this theorem
+turns that into evaluation equality for the whole quantified term.
+-/
+theorem smt_model_eval_uop_list_branch_eq_of_contains_atomic_term_list_free_rec_false
+    {op : UserOp} {v vs body except bound : Term}
+    {exceptVars boundVars : List EoVarKey}
+    {M N : SmtModel}
+    (hBound : EoVarEnvPerm bound boundVars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply (Term.UOp op)
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+          body))
+    (hNoFree :
+      __contains_atomic_term_list_free_rec
+          (Term.Apply
+            (Term.Apply (Term.UOp op)
+              (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+            body)
+          except bound =
+        Term.Boolean false)
+    (hAgree :
+      model_agrees_except_on_eo_env exceptVars boundVars M N)
+    (hBodyEval :
+      eoHasSmtTranslation body ->
+        ∀ {bodyBoundVars : List EoVarKey},
+          EoVarEnvPerm
+            (__eo_list_concat Term.__eo_List_cons
+              (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) bound)
+            bodyBoundVars ->
+          __contains_atomic_term_list_free_rec body except
+              (__eo_list_concat Term.__eo_List_cons
+                (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) bound) =
+            Term.Boolean false ->
+          ∀ {M' N' : SmtModel},
+            model_agrees_except_on_eo_env exceptVars bodyBoundVars M' N' ->
+              __smtx_model_eval M' (__eo_to_smt body) =
+                __smtx_model_eval N' (__eo_to_smt body)) :
+  __smtx_model_eval M
+      (__eo_to_smt
+        (Term.Apply
+          (Term.Apply (Term.UOp op)
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+          body)) =
+    __smtx_model_eval N
+      (__eo_to_smt
+        (Term.Apply
+          (Term.Apply (Term.UOp op)
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+          body)) :=
+by
+  rcases
+    body_obligations_of_contains_atomic_term_list_free_rec_uop_list_branch
+      hBound hTrans hNoFree with
+    ⟨hBodyTrans, binderVars, hBinderEnv, hExtendedBound, hBodyNoFree⟩
+  exact
+    smt_model_eval_uop_list_branch_eq_of_body_eval_eq
+      hBinderEnv hTrans hAgree
+      (by
+        intro M' N' hAgree'
+        exact
+          hBodyEval hBodyTrans hExtendedBound hBodyNoFree hAgree')
