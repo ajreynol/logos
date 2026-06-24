@@ -3389,7 +3389,7 @@ def __eo_prog_string_ext : Proof -> Term
 
 def __eo_prog_string_reduction : Term -> Term
   | Term.Stuck  => Term.Stuck
-  | s => (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.and) (__str_reduction_pred s)) (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) s) (Term.Apply (Term.UOp UserOp._at_purify) s))) (Term.Boolean true)))
+  | s => (__eo_requires (__is_closed_rec s Term.__eo_List_nil) (Term.Boolean true) (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.and) (__str_reduction_pred s)) (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) s) (Term.Apply (Term.UOp UserOp._at_purify) s))) (Term.Boolean true))))
 
 
 def __eo_prog_string_eager_reduction : Term -> Term
@@ -3428,9 +3428,10 @@ def __eo_prog_re_loop_elim : Term -> Term
 
 def __eo_prog_re_eq_elim : Term -> Term
   | (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) r1) r2)) Q) => 
-    let _v0 := (Term.Var (Term.String (native_string_lit "@var.re_eq")) (Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char)))
-    let _v1 := (Term.Apply (Term.UOp UserOp.str_in_re) _v0)
-    (__eo_requires Q (Term.Apply (Term.Apply (Term.UOp UserOp.forall) (Term.Apply (Term.Apply Term.__eo_List_cons _v0) Term.__eo_List_nil)) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply _v1 r1)) (Term.Apply _v1 r2))) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) r1) r2)) Q))
+    let _v0 := (Term.Apply (Term.Apply (Term.UOp UserOp.eq) r1) r2)
+    let _v1 := (Term.Var (Term.String (native_string_lit "@var.re_eq")) (Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char)))
+    let _v2 := (Term.Apply (Term.UOp UserOp.str_in_re) _v1)
+    (__eo_requires (__is_closed_rec _v0 Term.__eo_List_nil) (Term.Boolean true) (__eo_requires Q (Term.Apply (Term.Apply (Term.UOp UserOp.forall) (Term.Apply (Term.Apply Term.__eo_List_cons _v1) Term.__eo_List_nil)) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply _v2 r1)) (Term.Apply _v2 r2))) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) _v0) Q)))
   | _ => Term.Stuck
 
 
