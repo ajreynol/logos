@@ -1433,7 +1433,7 @@ private theorem str_re_includes_sound_mutual
     (∀ sup sub,
       ReIncludesCheckerSound __str_re_includes_rec M hM sup sub) ∧
     (∀ sup sub,
-      ReIncludesCheckerSound __str_re_includes_base M hM sup sub) ∧
+      ReIncludesCheckerSound __str_re_includes_base_rec M hM sup sub) ∧
     (∀ sup sub,
       ReIncludesCheckerSound __str_re_includes_lhs_star M hM sup sub) ∧
     (∀ sup sub,
@@ -1441,7 +1441,7 @@ private theorem str_re_includes_sound_mutual
   refine __str_re_includes_lhs_union.mutual_induct
     (ReIncludesCheckerSound __str_re_includes_lhs_union M hM)
     (ReIncludesCheckerSound __str_re_includes_rec M hM)
-    (ReIncludesCheckerSound __str_re_includes_base M hM)
+    (ReIncludesCheckerSound __str_re_includes_base_rec M hM)
     (ReIncludesCheckerSound __str_re_includes_lhs_star M hM)
     (ReIncludesCheckerSound __str_re_includes_rhs_inter M hM)
     ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_
@@ -1503,8 +1503,10 @@ private theorem str_re_includes_sound_mutual
     simp_all [__str_re_includes_rec]
   · intro r1 r3 ihBase
     intro rvSup rvSub hSupTy hSubTy hSupEval hSubEval hSide
-    have hBaseSide :
-        __str_re_includes_base r1 r3 = Term.Boolean true := by
+    have hSide' :
+        __eo_ite (__eo_eq r1 r3) (Term.Boolean true)
+            (__str_re_includes_base_rec r1 r3) =
+          Term.Boolean true := by
       simpa [__str_re_includes_rec] using hSide
     let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
     have hSupArgs := re_concat_arg_types_of_reglan r1 eps hSupTy
@@ -1528,16 +1530,23 @@ private theorem str_re_includes_sound_mutual
     rw [hSubFull] at hSubEval
     cases hSupEval
     cases hSubEval
-    have hHead :
-        NativeIncludes rv1 rv3 :=
-          ihBase rv1 rv3 hSupArgs.1 hSubArgs.1 hR1Eval hR3Eval
-            hBaseSide
+    have hHead : NativeIncludes rv1 rv3 := by
+      rcases eo_ite_true_result (__eo_eq r1 r3)
+          (__str_re_includes_base_rec r1 r3) hSide' with hEq | hRec
+      · have hTerm := eq_of_eo_eq_true r1 r3 hEq
+        subst r3
+        exact native_includes_of_same_term_eval M r1 rv1 rv3
+          hR1Eval hR3Eval
+      · exact ihBase rv1 rv3 hSupArgs.1 hSubArgs.1 hR1Eval hR3Eval
+          hRec.2
     exact native_includes_concat hHead
       (native_includes_refl (native_str_to_re []))
   · intro r1 r3 _hR3Ne _hR3NotEps ihBase
     intro rvSup rvSub hSupTy hSubTy hSupEval hSubEval hSide
-    have hBaseSide :
-        __str_re_includes_base r1 r3 = Term.Boolean true := by
+    have hSide' :
+        __eo_ite (__eo_eq r1 r3) (Term.Boolean true)
+            (__str_re_includes_base_rec r1 r3) =
+          Term.Boolean true := by
       simpa [__str_re_includes_rec] using hSide
     let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
     have hSupArgs := re_concat_arg_types_of_reglan r1 eps hSupTy
@@ -1553,15 +1562,22 @@ private theorem str_re_includes_sound_mutual
         hR1Eval hEpsEval
     rw [hSupFull] at hSupEval
     cases hSupEval
-    have hHead :
-        NativeIncludes rv1 rvSub :=
-          ihBase rv1 rvSub hSupArgs.1 hSubTy hR1Eval hSubEval
-            hBaseSide
+    have hHead : NativeIncludes rv1 rvSub := by
+      rcases eo_ite_true_result (__eo_eq r1 r3)
+          (__str_re_includes_base_rec r1 r3) hSide' with hEq | hRec
+      · have hTerm := eq_of_eo_eq_true r1 r3 hEq
+        subst r3
+        exact native_includes_of_same_term_eval M r1 rv1 rvSub
+          hR1Eval hSubEval
+      · exact ihBase rv1 rvSub hSupArgs.1 hSubTy hR1Eval hSubEval
+          hRec.2
     simpa [native_re_concat_right_empty] using hHead
   · intro r1 r3 _hR1Ne _hR1NotEps ihBase
     intro rvSup rvSub hSupTy hSubTy hSupEval hSubEval hSide
-    have hBaseSide :
-        __str_re_includes_base r1 r3 = Term.Boolean true := by
+    have hSide' :
+        __eo_ite (__eo_eq r1 r3) (Term.Boolean true)
+            (__str_re_includes_base_rec r1 r3) =
+          Term.Boolean true := by
       simpa [__str_re_includes_rec] using hSide
     let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
     have hSubArgs := re_concat_arg_types_of_reglan r3 eps hSubTy
@@ -1577,10 +1593,15 @@ private theorem str_re_includes_sound_mutual
         hR3Eval hEpsEval
     rw [hSubFull] at hSubEval
     cases hSubEval
-    have hHead :
-        NativeIncludes rvSup rv3 :=
-          ihBase rvSup rv3 hSupTy hSubArgs.1 hSupEval hR3Eval
-            hBaseSide
+    have hHead : NativeIncludes rvSup rv3 := by
+      rcases eo_ite_true_result (__eo_eq r1 r3)
+          (__str_re_includes_base_rec r1 r3) hSide' with hEq | hRec
+      · have hTerm := eq_of_eo_eq_true r1 r3 hEq
+        subst r3
+        exact native_includes_of_same_term_eval M r1 rvSup rv3
+          hSupEval hR3Eval
+      · exact ihBase rvSup rv3 hSupTy hSubArgs.1 hSupEval hR3Eval
+          hRec.2
     simpa [native_re_concat_right_empty] using hHead
   · intro r1 r2 r3 r4 _hNoBothEps _hR2Ne _hR4Ne
       _v0 _v1 ihBase ihTail ihWild ihSigma
@@ -1623,7 +1644,9 @@ private theorem str_re_includes_sound_mutual
     cases hSubEval
     have hSide' :
         __eo_ite
-            (__eo_ite (__str_re_includes_base r1 r3)
+            (__eo_ite
+              (__eo_ite (__eo_eq r1 r3) (Term.Boolean true)
+                (__str_re_includes_base_rec r1 r3))
               (__eo_ite (__eo_eq r2 r4) (Term.Boolean true)
                 (__str_re_includes_rec r2 r4))
               (Term.Boolean false))
@@ -1644,7 +1667,9 @@ private theorem str_re_includes_sound_mutual
           Term.Boolean true := by
       simpa [lhs, rhs, sigma, eqTail] using hSide
     rcases eo_ite_true_result
-        (__eo_ite (__str_re_includes_base r1 r3)
+        (__eo_ite
+          (__eo_ite (__eo_eq r1 r3) (Term.Boolean true)
+            (__str_re_includes_base_rec r1 r3))
           (__eo_ite (__eo_eq r2 r4) (Term.Boolean true)
             (__str_re_includes_rec r2 r4))
           (Term.Boolean false))
@@ -1662,14 +1687,22 @@ private theorem str_re_includes_sound_mutual
               (Term.Boolean false))
             (Term.Boolean true) (Term.Boolean false)))
         hSide' with hHeadTail | hFallback
-    · rcases eo_ite_false_else_true (__str_re_includes_base r1 r3)
+    · rcases eo_ite_false_else_true
+          (__eo_ite (__eo_eq r1 r3) (Term.Boolean true)
+            (__str_re_includes_base_rec r1 r3))
           (__eo_ite (__eo_eq r2 r4) (Term.Boolean true)
             (__str_re_includes_rec r2 r4))
           hHeadTail with ⟨hHeadSide, hTailSide⟩
       have hHeadIncl :
-          NativeIncludes rv1 rv3 :=
-        ihBase rv1 rv3 hSupArgs.1 hSubArgs.1 hR1Eval hR3Eval
-          hHeadSide
+          NativeIncludes rv1 rv3 := by
+        rcases eo_ite_true_result (__eo_eq r1 r3)
+            (__str_re_includes_base_rec r1 r3) hHeadSide with hEq | hRec
+        · have hTerm := eq_of_eo_eq_true r1 r3 hEq
+          subst r3
+          exact native_includes_of_same_term_eval M r1 rv1 rv3
+            hR1Eval hR3Eval
+        · exact ihBase rv1 rv3 hSupArgs.1 hSubArgs.1 hR1Eval hR3Eval
+            hRec.2
       have hTailIncl :
           NativeIncludes rv2 rv4 := by
         rcases eo_ite_true_result (__eo_eq r2 r4)
@@ -1805,9 +1838,9 @@ private theorem str_re_includes_sound_mutual
     unfold __str_re_includes_rec at hSide
     simp_all
   · intro x rvSup rvSub hSupTy hSubTy hSupEval hSubEval hSide
-    simp [__str_re_includes_base] at hSide
+    simp [__str_re_includes_base_rec] at hSide
   · intro x _hNe rvSup rvSub hSupTy hSubTy hSupEval hSubEval hSide
-    simp_all [__str_re_includes_base]
+    simp_all [__str_re_includes_base_rec]
   · intro r1 s1 _hR1Ne
     intro rvSup rvSub hSupTy hSubTy hSupEval hSubEval hSide
     have hReqSide :
@@ -1817,7 +1850,7 @@ private theorem str_re_includes_sound_mutual
                 (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) s1))
               r1) =
           Term.Boolean true := by
-      simpa [__str_re_includes_base] using hSide
+      simpa [__str_re_includes_base_rec] using hSide
     rcases eo_requires_true_parts (__eo_is_str s1) (Term.Boolean true)
         (__str_eval_str_in_re_rec
           (__str_flatten
@@ -1836,10 +1869,10 @@ private theorem str_re_includes_sound_mutual
       hSTy hSupTy hSupEval hEvalSide
   · intro s1 r1 _hR1Ne _hNotStr
     intro rvSup rvSub hSupTy hSubTy hSupEval hSubEval hSide
-    simp_all [__str_re_includes_base]
+    simp_all [__str_re_includes_base_rec]
   · intro s1 s2 s3 s4
     intro rvSup rvSub hSupTy hSubTy hSupEval hSubEval hSide
-    unfold __str_re_includes_base at hSide
+    unfold __str_re_includes_base_rec at hSide
     exact native_includes_range_of_side M hM s1 s2 s3 s4 rvSup rvSub
       hSupTy hSubTy hSupEval hSubEval hSide
   · intro r1 r3 _hR1Ne _hR3Ne _hR3NotStr _hR1NotStr _hNotRange
@@ -1858,7 +1891,7 @@ private theorem str_re_includes_sound_mutual
                 (Term.Boolean true))
               (Term.Boolean true) (Term.Boolean false))) =
           Term.Boolean true := by
-      simpa [__str_re_includes_base] using hSide
+      simpa [__str_re_includes_base_rec] using hSide
     rcases eo_ite_true_result
             (__eo_eq (__str_re_includes_lhs_union r1 r3)
               (Term.Boolean true))
@@ -2050,7 +2083,7 @@ private theorem str_re_includes_base_sound
       __smtx_typeof (__eo_to_smt sub) = SmtType.RegLan ->
       __smtx_model_eval M (__eo_to_smt sup) = SmtValue.RegLan rvSup ->
       __smtx_model_eval M (__eo_to_smt sub) = SmtValue.RegLan rvSub ->
-      __str_re_includes_base sup sub = Term.Boolean true ->
+      __str_re_includes_base_rec sup sub = Term.Boolean true ->
         NativeIncludes rvSup rvSub
   | sup, sub, rvSup, rvSub, hSupTy, hSubTy, hSupEval, hSubEval, hSide =>
       (str_re_includes_sound_mutual M hM).2.2.1 sup sub rvSup rvSub
