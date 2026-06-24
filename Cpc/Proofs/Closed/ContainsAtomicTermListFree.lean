@@ -805,6 +805,50 @@ by
   · exact Or.inl (hSub (s, T) hBound')
   · exact Or.inr hNotExcept
 
+theorem model_agrees_except_on_env_push_left_of_mem_except
+    {except bound : List SmtVarKey} {M : SmtModel}
+    {s : native_String} {T : SmtType} {v : SmtValue}
+    (hMem : (s, T) ∈ except)
+    (hNotBound : (s, T) ∉ bound) :
+  model_agrees_except_on_env except bound
+    (native_model_push M s T v) M :=
+by
+  refine ⟨model_agrees_on_globals_push M s T v, ?_⟩
+  intro s' T' hAllowed
+  by_cases hKey :
+      ({ isVar := true, name := s', ty := T' } : SmtModelKey) =
+        { isVar := true, name := s, ty := T }
+  · cases hKey
+    exfalso
+    rcases hAllowed with hBound | hNotExcept
+    · exact hNotBound hBound
+    · exact hNotExcept hMem
+  · simp [native_model_var_lookup, native_model_push, hKey]
+
+theorem model_agrees_except_on_env_push_left
+    {except bound : List SmtVarKey} {M N : SmtModel}
+    {s : native_String} {T : SmtType} {v : SmtValue}
+    (hAgree : model_agrees_except_on_env except bound N M)
+    (hMem : (s, T) ∈ except)
+    (hNotBound : (s, T) ∉ bound) :
+  model_agrees_except_on_env except bound
+    (native_model_push N s T v) M :=
+by
+  refine
+    ⟨model_agrees_on_globals_trans
+      (model_agrees_on_globals_push N s T v) hAgree.globals, ?_⟩
+  intro s' T' hAllowed
+  by_cases hKey :
+      ({ isVar := true, name := s', ty := T' } : SmtModelKey) =
+        { isVar := true, name := s, ty := T }
+  · cases hKey
+    exfalso
+    rcases hAllowed with hBound | hNotExcept
+    · exact hNotBound hBound
+    · exact hNotExcept hMem
+  · simpa [native_model_var_lookup, native_model_push, hKey]
+      using hAgree.vars_eq s' T' hAllowed
+
 /--
 Exact-EO-variable version of `model_agrees_except_on_env`.
 

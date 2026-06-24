@@ -623,6 +623,607 @@ by
           body_has_smt_translation_of_exists_list_branch_has_smt_translation
             hTrans
 
+private theorem quant_body_has_bool_type
+    {Q x F : Term}
+    (hQ : Q = Term.UOp UserOp.forall ∨ Q = Term.UOp UserOp.exists)
+    (hTrans : RuleProofs.eo_has_smt_translation (qterm Q x F)) :
+  __smtx_typeof (__eo_to_smt F) = SmtType.Bool :=
+by
+  rcases eo_var_env_of_quant_has_smt_translation hQ hTrans with
+    ⟨vars, hEnv⟩
+  cases hEnv with
+  | nil =>
+      rcases hQ with hForall | hExists
+      · subst Q
+        exact False.elim (hTrans (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact TranslationProofs.smtx_typeof_none))
+      · subst Q
+        exact False.elim (hTrans (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact TranslationProofs.smtx_typeof_none))
+  | cons hTail =>
+      rename_i s T env tailVars
+      rcases hQ with hForall | hExists
+      · subst Q
+        have hNotBool :
+            __smtx_typeof
+                (SmtTerm.not
+                  (__eo_to_smt_exists
+                    (Term.Apply (Term.Apply Term.__eo_List_cons
+                      (Term.Var (Term.String s) T)) env)
+                    (SmtTerm.not (__eo_to_smt F)))) =
+              SmtType.Bool :=
+          smtx_typeof_not_eq_bool_of_non_none
+            (__eo_to_smt_exists
+              (Term.Apply (Term.Apply Term.__eo_List_cons
+                (Term.Var (Term.String s) T)) env)
+              (SmtTerm.not (__eo_to_smt F)))
+            (by
+              change
+                __smtx_typeof
+                    (SmtTerm.not
+                      (__eo_to_smt_exists
+                        (Term.Apply (Term.Apply Term.__eo_List_cons
+                          (Term.Var (Term.String s) T)) env)
+                        (SmtTerm.not (__eo_to_smt F)))) ≠
+                  SmtType.None
+              simpa [qterm, RuleProofs.eo_has_smt_translation] using hTrans)
+        have hExistsBool :
+            __smtx_typeof
+                (__eo_to_smt_exists
+                  (Term.Apply (Term.Apply Term.__eo_List_cons
+                    (Term.Var (Term.String s) T)) env)
+                  (SmtTerm.not (__eo_to_smt F))) =
+              SmtType.Bool :=
+          smtx_typeof_not_arg_eq_bool
+            (__eo_to_smt_exists
+              (Term.Apply (Term.Apply Term.__eo_List_cons
+                (Term.Var (Term.String s) T)) env)
+              (SmtTerm.not (__eo_to_smt F)))
+            hNotBool
+        have hBodyNotBool :
+            __smtx_typeof (SmtTerm.not (__eo_to_smt F)) =
+              SmtType.Bool :=
+          TranslationProofs.eo_to_smt_exists_body_bool_of_bool
+            (Term.Apply (Term.Apply Term.__eo_List_cons
+              (Term.Var (Term.String s) T)) env)
+            (SmtTerm.not (__eo_to_smt F)) hExistsBool
+        exact smtx_typeof_not_arg_eq_bool (__eo_to_smt F) hBodyNotBool
+      · subst Q
+        have hExistsBool :
+            __smtx_typeof
+                (__eo_to_smt_exists
+                  (Term.Apply (Term.Apply Term.__eo_List_cons
+                    (Term.Var (Term.String s) T)) env)
+                  (__eo_to_smt F)) =
+              SmtType.Bool :=
+          smtx_typeof_eo_to_smt_exists_cons_eq_bool_of_non_none
+            (Term.Var (Term.String s) T) env (__eo_to_smt F)
+            (by
+              change
+                __smtx_typeof
+                    (__eo_to_smt_exists
+                      (Term.Apply (Term.Apply Term.__eo_List_cons
+                        (Term.Var (Term.String s) T)) env)
+                      (__eo_to_smt F)) ≠
+                  SmtType.None
+              simpa [qterm, RuleProofs.eo_has_smt_translation] using hTrans)
+        exact
+          TranslationProofs.eo_to_smt_exists_body_bool_of_bool
+            (Term.Apply (Term.Apply Term.__eo_List_cons
+              (Term.Var (Term.String s) T)) env)
+            (__eo_to_smt F) hExistsBool
+
+private theorem smtx_typeof_exists_tail_bool_of_cons_bool
+    (s : native_String) (T xs : Term) (body : SmtTerm) :
+    __smtx_typeof
+        (__eo_to_smt_exists
+          (Term.Apply (Term.Apply Term.__eo_List_cons
+            (Term.Var (Term.String s) T)) xs)
+          body) = SmtType.Bool ->
+    __smtx_typeof (__eo_to_smt_exists xs body) = SmtType.Bool := by
+  intro hTy
+  have hExists :
+      __smtx_typeof
+          (SmtTerm.exists s (__eo_to_smt_type T)
+            (__eo_to_smt_exists xs body)) = SmtType.Bool := by
+    simpa [__eo_to_smt_exists] using hTy
+  have hNN :
+      term_has_non_none_type
+        (SmtTerm.exists s (__eo_to_smt_type T)
+          (__eo_to_smt_exists xs body)) := by
+    unfold term_has_non_none_type
+    rw [hExists]
+    simp
+  exact exists_body_bool_of_non_none hNN
+
+private theorem smtx_type_wf_of_exists_cons_bool
+    (s : native_String) (T xs : Term) (body : SmtTerm) :
+    __smtx_typeof
+        (__eo_to_smt_exists
+          (Term.Apply (Term.Apply Term.__eo_List_cons
+            (Term.Var (Term.String s) T)) xs)
+          body) = SmtType.Bool ->
+    __smtx_type_wf (__eo_to_smt_type T) = true := by
+  intro hTy
+  have hTail :
+      __smtx_typeof (__eo_to_smt_exists xs body) = SmtType.Bool :=
+    smtx_typeof_exists_tail_bool_of_cons_bool s T xs body hTy
+  have hGuardNN :
+      __smtx_typeof_guard_wf (__eo_to_smt_type T) SmtType.Bool ≠
+        SmtType.None := by
+    intro hNone
+    have hExists :
+        __smtx_typeof
+            (SmtTerm.exists s (__eo_to_smt_type T)
+              (__eo_to_smt_exists xs body)) = SmtType.Bool := by
+      simpa [__eo_to_smt_exists] using hTy
+    rw [smtx_typeof_exists_term_eq, hTail] at hExists
+    simp [native_ite, native_Teq, hNone] at hExists
+  exact smtx_typeof_guard_wf_wf_of_non_none
+    (__eo_to_smt_type T) SmtType.Bool hGuardNN
+
+private theorem smtx_type_wf_of_eo_var_env_exists_bool
+    {xs : Term} {vars : List EoVarKey} {body : SmtTerm}
+    (hEnv : EoVarEnv xs vars)
+    (hTy : __smtx_typeof (__eo_to_smt_exists xs body) =
+      SmtType.Bool) :
+  ∀ s T, (s, T) ∈ vars ->
+    __smtx_type_wf (__eo_to_smt_type T) = true :=
+by
+  induction hEnv generalizing body with
+  | nil =>
+      intro s T hMem
+      cases hMem
+  | cons hTail ih =>
+      rename_i s T xs tailVars
+      intro s' T' hMem
+      cases hMem with
+      | head =>
+          exact smtx_type_wf_of_exists_cons_bool s T xs body hTy
+      | tail _ hTailMem =>
+          have hTailTy :
+              __smtx_typeof (__eo_to_smt_exists xs body) =
+                SmtType.Bool :=
+            smtx_typeof_exists_tail_bool_of_cons_bool s T xs body hTy
+          exact ih hTailTy s' T' hTailMem
+
+private theorem quant_binder_types_wf
+    {Q x F : Term} {vars : List EoVarKey}
+    (hQ : Q = Term.UOp UserOp.forall ∨ Q = Term.UOp UserOp.exists)
+    (hTrans : RuleProofs.eo_has_smt_translation (qterm Q x F))
+    (hEnv : EoVarEnv x vars) :
+  ∀ s T, (s, T) ∈ vars ->
+    __smtx_type_wf (__eo_to_smt_type T) = true :=
+by
+  rcases hQ with hForall | hExists
+  · subst Q
+    cases hEnv with
+    | nil =>
+        intro s T hMem
+        cases hMem
+    | cons hTail =>
+        rename_i s T env tailVars
+        have hNotTy :
+            __smtx_typeof
+                (SmtTerm.not
+                  (__eo_to_smt_exists
+                    (Term.Apply (Term.Apply Term.__eo_List_cons
+                      (Term.Var (Term.String s) T)) env)
+                    (SmtTerm.not (__eo_to_smt F)))) =
+              SmtType.Bool :=
+          smtx_typeof_not_eq_bool_of_non_none
+            (__eo_to_smt_exists
+              (Term.Apply (Term.Apply Term.__eo_List_cons
+                (Term.Var (Term.String s) T)) env)
+              (SmtTerm.not (__eo_to_smt F)))
+            (by
+              change
+                __smtx_typeof
+                    (SmtTerm.not
+                      (__eo_to_smt_exists
+                        (Term.Apply (Term.Apply Term.__eo_List_cons
+                          (Term.Var (Term.String s) T)) env)
+                        (SmtTerm.not (__eo_to_smt F)))) ≠
+                  SmtType.None
+              simpa [qterm, RuleProofs.eo_has_smt_translation] using hTrans)
+        have hExistsTy :
+            __smtx_typeof
+                (__eo_to_smt_exists
+                  (Term.Apply (Term.Apply Term.__eo_List_cons
+                    (Term.Var (Term.String s) T)) env)
+                  (SmtTerm.not (__eo_to_smt F))) =
+              SmtType.Bool :=
+          smtx_typeof_not_arg_eq_bool
+            (__eo_to_smt_exists
+              (Term.Apply (Term.Apply Term.__eo_List_cons
+                (Term.Var (Term.String s) T)) env)
+              (SmtTerm.not (__eo_to_smt F))) hNotTy
+        exact
+          smtx_type_wf_of_eo_var_env_exists_bool
+            (EoVarEnv.cons (s := s) (T := T) hTail) hExistsTy
+  · subst Q
+    cases hEnv with
+    | nil =>
+        intro s T hMem
+        cases hMem
+    | cons hTail =>
+        rename_i s T env tailVars
+        have hExistsTy :
+            __smtx_typeof
+                (__eo_to_smt_exists
+                  (Term.Apply (Term.Apply Term.__eo_List_cons
+                    (Term.Var (Term.String s) T)) env)
+                  (__eo_to_smt F)) =
+              SmtType.Bool :=
+          smtx_typeof_eo_to_smt_exists_cons_eq_bool_of_non_none
+            (Term.Var (Term.String s) T) env (__eo_to_smt F)
+            (by
+              change
+                __smtx_typeof
+                    (__eo_to_smt_exists
+                      (Term.Apply (Term.Apply Term.__eo_List_cons
+                        (Term.Var (Term.String s) T)) env)
+                      (__eo_to_smt F)) ≠
+                  SmtType.None
+              simpa [qterm, RuleProofs.eo_has_smt_translation] using hTrans)
+        exact
+          smtx_type_wf_of_eo_var_env_exists_bool
+            (EoVarEnv.cons (s := s) (T := T) hTail) hExistsTy
+
+private theorem smtx_model_eval_exists_eq_body_of_body_eval_eq
+    (M : SmtModel) (hM : model_total_typed M)
+    (s : native_String) (T : SmtType) (body : SmtTerm)
+    (hWF : __smtx_type_wf T = true)
+    (hBodyTy : __smtx_typeof body = SmtType.Bool)
+    (hBody :
+      ∀ v : SmtValue,
+        __smtx_typeof_value v = T ->
+          __smtx_value_canonical_bool v = true ->
+            __smtx_model_eval (native_model_push M s T v) body =
+              __smtx_model_eval M body) :
+  __smtx_model_eval M (SmtTerm.exists s T body) =
+    __smtx_model_eval M body :=
+by
+  classical
+  rcases smt_model_eval_bool_is_boolean M hM body hBodyTy with
+    ⟨b, hEvalBody⟩
+  rcases canonical_type_inhabited_of_type_wf T hWF with
+    ⟨w, hwTy, hwCan⟩
+  have hwCanBool : __smtx_value_canonical_bool w = true := by
+    simpa [__smtx_value_canonical] using hwCan
+  cases b
+  · rw [hEvalBody]
+    by_cases hSat :
+        ∃ v : SmtValue,
+          __smtx_typeof_value v = T ∧
+            __smtx_value_canonical_bool v = true ∧
+            __smtx_model_eval (native_model_push M s T v) body =
+              SmtValue.Boolean true
+    · rcases hSat with ⟨v, hvTy, hvCan, hvEval⟩
+      have hConst := hBody v hvTy hvCan
+      rw [hEvalBody] at hConst
+      rw [hConst] at hvEval
+      cases hvEval
+    · simp [__smtx_model_eval, hSat]
+  · rw [hEvalBody]
+    have hSat :
+        ∃ v : SmtValue,
+          __smtx_typeof_value v = T ∧
+            __smtx_value_canonical_bool v = true ∧
+            __smtx_model_eval (native_model_push M s T v) body =
+              SmtValue.Boolean true := by
+      refine ⟨w, hwTy, hwCanBool, ?_⟩
+      rw [hBody w hwTy hwCanBool, hEvalBody]
+    simp [__smtx_model_eval, hSat]
+
+private theorem smtx_model_eval_forall_eq_body_of_body_eval_eq
+    (M : SmtModel) (hM : model_total_typed M)
+    (s : native_String) (T : SmtType) (body : SmtTerm)
+    (hWF : __smtx_type_wf T = true)
+    (hBodyTy : __smtx_typeof body = SmtType.Bool)
+    (hBody :
+      ∀ v : SmtValue,
+        __smtx_typeof_value v = T ->
+          __smtx_value_canonical_bool v = true ->
+            __smtx_model_eval (native_model_push M s T v) body =
+              __smtx_model_eval M body) :
+  __smtx_model_eval M (SmtTerm.forall s T body) =
+    __smtx_model_eval M body :=
+by
+  classical
+  rcases smt_model_eval_bool_is_boolean M hM body hBodyTy with
+    ⟨b, hEvalBody⟩
+  rcases canonical_type_inhabited_of_type_wf T hWF with
+    ⟨w, hwTy, hwCan⟩
+  have hwCanBool : __smtx_value_canonical_bool w = true := by
+    simpa [__smtx_value_canonical] using hwCan
+  cases b
+  · rw [hEvalBody]
+    have hNotAll :
+        ¬ ∀ v : SmtValue,
+          __smtx_typeof_value v = T ->
+            __smtx_value_canonical_bool v = true ->
+              __smtx_model_eval (native_model_push M s T v) body =
+                SmtValue.Boolean true := by
+      intro hAll
+      have hConst := hBody w hwTy hwCanBool
+      rw [hEvalBody] at hConst
+      have hTrue := hAll w hwTy hwCanBool
+      rw [hConst] at hTrue
+      cases hTrue
+    simp [__smtx_model_eval, hNotAll]
+  · rw [hEvalBody]
+    have hAll :
+        ∀ v : SmtValue,
+          __smtx_typeof_value v = T ->
+            __smtx_value_canonical_bool v = true ->
+              __smtx_model_eval (native_model_push M s T v) body =
+        SmtValue.Boolean true := by
+      intro v hvTy hvCan
+      rw [hBody v hvTy hvCan, hEvalBody]
+    simpa [__smtx_model_eval] using hAll
+
+private theorem smtx_typeof_eo_to_smt_exists_eq_bool_of_eo_var_env
+    {xs : Term} {vars : List EoVarKey} {body : SmtTerm}
+    (hEnv : EoVarEnv xs vars)
+    (hWf :
+      ∀ s T, (s, T) ∈ vars ->
+        __smtx_type_wf (__eo_to_smt_type T) = true)
+    (hBodyTy : __smtx_typeof body = SmtType.Bool) :
+  __smtx_typeof (__eo_to_smt_exists xs body) = SmtType.Bool :=
+by
+  induction hEnv generalizing body with
+  | nil =>
+      simpa [__eo_to_smt_exists] using hBodyTy
+  | cons hTail ih =>
+      rename_i s T env tailVars
+      exact
+        closed_smtx_typeof_eo_to_smt_exists_cons_bool_of_tail_bool
+          s T env body
+          (hWf s T (List.Mem.head _))
+          (ih
+            (by
+              intro s' T' hMem
+              exact hWf s' T' (List.Mem.tail _ hMem))
+            hBodyTy)
+
+private theorem smtx_model_eval_eo_to_smt_exists_eq_base_of_body_eval_eq
+    {xs : Term} {vars : List EoVarKey} {except : List SmtVarKey}
+    {M : SmtModel} {body : SmtTerm}
+    (hEnv : EoVarEnv xs vars)
+    (hWf :
+      ∀ s T, (s, T) ∈ vars ->
+        __smtx_type_wf (__eo_to_smt_type T) = true)
+    (hInExcept :
+      ∀ s T, (s, T) ∈ vars ->
+        (s, __eo_to_smt_type T) ∈ except)
+    (hBodyTy : __smtx_typeof body = SmtType.Bool)
+    (hBodyInvariant :
+      ∀ {N : SmtModel},
+        model_total_typed N ->
+          model_agrees_except_on_env except [] N M ->
+            __smtx_model_eval N body =
+              __smtx_model_eval M body) :
+  ∀ {N : SmtModel},
+    model_total_typed N ->
+            model_agrees_except_on_env except [] N M ->
+        __smtx_model_eval N (__eo_to_smt_exists xs body) =
+          __smtx_model_eval M body :=
+by
+  induction hEnv generalizing except M body with
+  | nil =>
+      intro N hN hAgree
+      simpa [__eo_to_smt_exists] using hBodyInvariant hN hAgree
+  | cons hTail ih =>
+      rename_i s T env tailVars
+      intro N hN hAgree
+      let ST := __eo_to_smt_type T
+      have hHeadWf : __smtx_type_wf ST = true :=
+        hWf s T (List.Mem.head _)
+      have hTailWf :
+          ∀ s' T', (s', T') ∈ tailVars ->
+            __smtx_type_wf (__eo_to_smt_type T') = true := by
+        intro s' T' hMem
+        exact hWf s' T' (List.Mem.tail _ hMem)
+      have hTailInExcept :
+          ∀ s' T', (s', T') ∈ tailVars ->
+            (s', __eo_to_smt_type T') ∈ except := by
+        intro s' T' hMem
+        exact hInExcept s' T' (List.Mem.tail _ hMem)
+      have hTailTy :
+          __smtx_typeof (__eo_to_smt_exists env body) =
+            SmtType.Bool :=
+        smtx_typeof_eo_to_smt_exists_eq_bool_of_eo_var_env
+          hTail hTailWf hBodyTy
+      have hNTail :
+          __smtx_model_eval N (__eo_to_smt_exists env body) =
+            __smtx_model_eval M body :=
+        ih hTailWf hTailInExcept hBodyTy hBodyInvariant hN hAgree
+      have hTailConst :
+          ∀ v : SmtValue,
+            __smtx_typeof_value v = ST ->
+              __smtx_value_canonical_bool v = true ->
+                __smtx_model_eval
+                    (native_model_push N s ST v)
+                    (__eo_to_smt_exists env body) =
+                  __smtx_model_eval N (__eo_to_smt_exists env body) := by
+        intro v hvTy hvCan
+        have hPushTotal :
+            model_total_typed (native_model_push N s ST v) :=
+          model_total_typed_push hN s ST v hHeadWf hvTy
+            (by simpa [__smtx_value_canonical] using hvCan)
+        have hPushAgree :
+            model_agrees_except_on_env except []
+              (native_model_push N s ST v) M :=
+          model_agrees_except_on_env_push_left hAgree
+            (by
+              simpa [ST] using hInExcept s T (List.Mem.head _))
+            (by simp)
+        have hPushTail :
+            __smtx_model_eval
+                (native_model_push N s ST v)
+                (__eo_to_smt_exists env body) =
+              __smtx_model_eval M body :=
+          ih hTailWf hTailInExcept hBodyTy hBodyInvariant
+            hPushTotal hPushAgree
+        exact hPushTail.trans hNTail.symm
+      have hDrop :
+          __smtx_model_eval N
+              (SmtTerm.exists s ST (__eo_to_smt_exists env body)) =
+            __smtx_model_eval N (__eo_to_smt_exists env body) :=
+        smtx_model_eval_exists_eq_body_of_body_eval_eq
+          N hN s ST (__eo_to_smt_exists env body)
+          hHeadWf hTailTy hTailConst
+      change
+        __smtx_model_eval N
+            (SmtTerm.exists s ST (__eo_to_smt_exists env body)) =
+          __smtx_model_eval M body
+      exact hDrop.trans hNTail
+
+private theorem smtx_model_eval_not_not_eq_self_of_bool
+    (M : SmtModel) (hM : model_total_typed M) (body : SmtTerm)
+    (hBodyTy : __smtx_typeof body = SmtType.Bool) :
+  __smtx_model_eval M (SmtTerm.not (SmtTerm.not body)) =
+    __smtx_model_eval M body :=
+by
+  rcases smt_model_eval_bool_is_boolean M hM body hBodyTy with
+    ⟨b, hEval⟩
+  rw [hEval]
+  cases b <;>
+    simp [__smtx_model_eval, hEval, __smtx_model_eval_not,
+      SmtEval.native_not]
+
+private theorem smtx_model_eval_eo_to_smt_forall_encoding_eq_base_of_body_eval_eq
+    {xs : Term} {vars : List EoVarKey} {except : List SmtVarKey}
+    {M : SmtModel} {body : SmtTerm}
+    (hEnv : EoVarEnv xs vars)
+    (hM : model_total_typed M)
+    (hWf :
+      ∀ s T, (s, T) ∈ vars ->
+        __smtx_type_wf (__eo_to_smt_type T) = true)
+    (hInExcept :
+      ∀ s T, (s, T) ∈ vars ->
+        (s, __eo_to_smt_type T) ∈ except)
+    (hBodyTy : __smtx_typeof body = SmtType.Bool)
+    (hBodyInvariant :
+      ∀ {N : SmtModel},
+        model_total_typed N ->
+          model_agrees_except_on_env except [] N M ->
+            __smtx_model_eval N body =
+              __smtx_model_eval M body) :
+  ∀ {N : SmtModel},
+    model_total_typed N ->
+      model_agrees_except_on_env except [] N M ->
+        __smtx_model_eval N
+            (SmtTerm.not (__eo_to_smt_exists xs (SmtTerm.not body))) =
+          __smtx_model_eval M body :=
+by
+  intro N hN hAgree
+  have hNotBodyTy :
+      __smtx_typeof (SmtTerm.not body) = SmtType.Bool :=
+    smtx_typeof_not_eq_bool_of_non_none body
+      (by
+        rw [typeof_not_eq, hBodyTy]
+        simp [native_ite, native_Teq])
+  have hNotInvariant :
+      ∀ {N' : SmtModel},
+        model_total_typed N' ->
+          model_agrees_except_on_env except [] N' M ->
+            __smtx_model_eval N' (SmtTerm.not body) =
+              __smtx_model_eval M (SmtTerm.not body) := by
+    intro N' hN' hAgree'
+    exact smtx_model_eval_not_eq_of_eval_eq
+      (hBodyInvariant hN' hAgree')
+  have hExistsNot :
+      __smtx_model_eval N (__eo_to_smt_exists xs (SmtTerm.not body)) =
+        __smtx_model_eval M (SmtTerm.not body) :=
+    smtx_model_eval_eo_to_smt_exists_eq_base_of_body_eval_eq
+      hEnv hWf hInExcept hNotBodyTy hNotInvariant hN hAgree
+  have hNotEval :
+      __smtx_model_eval N
+          (SmtTerm.not (__eo_to_smt_exists xs (SmtTerm.not body))) =
+        __smtx_model_eval M (SmtTerm.not (SmtTerm.not body)) :=
+    by
+      simp [__smtx_model_eval, hExistsNot]
+  exact hNotEval.trans
+    (smtx_model_eval_not_not_eq_self_of_bool M hM body hBodyTy)
+
+private theorem smtx_model_eval_qterm_eq_body_of_body_eval_eq
+    {Q x F : Term} {vars : List EoVarKey} {except : List SmtVarKey}
+    {M : SmtModel}
+    (hQ : Q = Term.UOp UserOp.forall ∨ Q = Term.UOp UserOp.exists)
+    (hTrans : RuleProofs.eo_has_smt_translation (qterm Q x F))
+    (hEnv : EoVarEnv x vars)
+    (hM : model_total_typed M)
+    (hInExcept :
+      ∀ s T, (s, T) ∈ vars ->
+        (s, __eo_to_smt_type T) ∈ except)
+    (hBodyInvariant :
+      ∀ {N : SmtModel},
+        model_total_typed N ->
+          model_agrees_except_on_env except [] N M ->
+            __smtx_model_eval N (__eo_to_smt F) =
+              __smtx_model_eval M (__eo_to_smt F)) :
+  ∀ {N : SmtModel},
+    model_total_typed N ->
+      model_agrees_except_on_env except [] N M ->
+        __smtx_model_eval N (__eo_to_smt (qterm Q x F)) =
+          __smtx_model_eval M (__eo_to_smt F) :=
+by
+  have hWf :
+      ∀ s T, (s, T) ∈ vars ->
+        __smtx_type_wf (__eo_to_smt_type T) = true :=
+    quant_binder_types_wf hQ hTrans hEnv
+  have hBodyTy :
+      __smtx_typeof (__eo_to_smt F) = SmtType.Bool :=
+    quant_body_has_bool_type hQ hTrans
+  rcases hQ with hForall | hExists
+  · subst Q
+    cases hEnv with
+    | nil =>
+        intro N hN hAgree
+        exact False.elim (hTrans (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact TranslationProofs.smtx_typeof_none))
+    | cons hTail =>
+        rename_i s T env tailVars
+        intro N hN hAgree
+        change
+          __smtx_model_eval N
+              (SmtTerm.not
+                (__eo_to_smt_exists
+                  (Term.Apply (Term.Apply Term.__eo_List_cons
+                    (Term.Var (Term.String s) T)) env)
+                  (SmtTerm.not (__eo_to_smt F)))) =
+            __smtx_model_eval M (__eo_to_smt F)
+        exact
+          smtx_model_eval_eo_to_smt_forall_encoding_eq_base_of_body_eval_eq
+            (EoVarEnv.cons (s := s) (T := T) hTail) hM hWf
+            hInExcept hBodyTy hBodyInvariant hN hAgree
+  · subst Q
+    cases hEnv with
+    | nil =>
+        intro N hN hAgree
+        exact False.elim (hTrans (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact TranslationProofs.smtx_typeof_none))
+    | cons hTail =>
+        rename_i s T env tailVars
+        intro N hN hAgree
+        change
+          __smtx_model_eval N
+              (__eo_to_smt_exists
+                (Term.Apply (Term.Apply Term.__eo_List_cons
+                  (Term.Var (Term.String s) T)) env)
+                (__eo_to_smt F)) =
+            __smtx_model_eval M (__eo_to_smt F)
+        exact
+          smtx_model_eval_eo_to_smt_exists_eq_base_of_body_eval_eq
+            (EoVarEnv.cons (s := s) (T := T) hTail) hWf
+            hInExcept hBodyTy hBodyInvariant hN hAgree
+
 private theorem quant_unused_vars_shape_of_not_stuck
     (x1 : Term) :
     __eo_prog_quant_unused_vars x1 ≠ Term.Stuck ->
