@@ -2925,7 +2925,7 @@ private theorem str_nary_intro_is_list_true_of_seq
     rw [hIntroEq]
     simpa using hListBool
 
-private theorem str_flatten_nary_intro_eval_rel
+theorem str_flatten_nary_intro_eval_rel
     (M : SmtModel) (hM : model_total_typed M)
     (s : Term) (ss : SmtSeq)
     (hTy : __smtx_typeof (__eo_to_smt s) = SmtType.Seq SmtType.Char)
@@ -3253,7 +3253,7 @@ private theorem smt_typeof_re_inter_of_reglan_local
   rw [typeof_re_inter_eq]
   simp [hA, hB, native_ite, native_Teq]
 
-private theorem re_flatten_false_eval_rel
+theorem re_flatten_false_eval_rel
     (M : SmtModel) (hM : model_total_typed M) :
     ∀ (rev mode r : Term) (rv : native_RegLan),
       rev = Term.Boolean false ->

@@ -3010,8 +3010,6 @@ def __str_re_consume_rec : Term -> Term -> Term -> Term
   | s1, (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))) r2), fuel => (__str_re_consume_rec s1 r2 fuel)
   | s1, (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r1) r2), fuel => (__str_re_consume_inter s1 (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r1) r2) fuel)
   | s1, (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r1) r2), fuel => (__str_re_consume_union s1 (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r1) r2) fuel)
-  | s1, (Term.UOp UserOp.re_all), fuel => (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) (Term.String [])) (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])))
-  | s1, (Term.UOp UserOp.re_none), fuel => (Term.Boolean false)
   | s1, r1, fuel => (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s1) r1)
 
 
