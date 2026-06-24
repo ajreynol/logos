@@ -4209,6 +4209,29 @@ by
     eo_has_smt_translation_of_smt_type_eq hY hT,
     eo_has_smt_translation_of_smt_type_eq hZ hT⟩
 
+theorem bvite_args_have_smt_translation_of_non_none
+    {x y z : Term}
+    (hNN :
+      term_has_non_none_type
+        (SmtTerm.ite
+          (SmtTerm.eq (__eo_to_smt x) (SmtTerm.Binary 1 1))
+          (__eo_to_smt y) (__eo_to_smt z))) :
+  eoHasSmtTranslation x ∧
+    eoHasSmtTranslation y ∧
+      eoHasSmtTranslation z :=
+by
+  exact
+    bvite_args_have_smt_translation_of_has_smt_translation
+      (by
+        unfold eoHasSmtTranslation
+        change
+          __smtx_typeof
+              (SmtTerm.ite
+                (SmtTerm.eq (__eo_to_smt x) (SmtTerm.Binary 1 1))
+                (__eo_to_smt y) (__eo_to_smt z)) ≠
+            SmtType.None
+        exact hNN)
+
 theorem bv_cmp_to_bv_args_have_smt_translation_of_non_none
     {smtCmp : SmtTerm -> SmtTerm -> SmtTerm} {x y : Term}
     (hTy :
@@ -7014,6 +7037,161 @@ by
     apply_uop1_arg_has_smt_translation_of_has_smt_translation hHeadTrans
   exact term_not_eo_list_cons_of_has_smt_translation hRawTrans v vs rfl
 
+theorem false_of_apply_apply_apply_uop1_middle_raw_list_has_smt_translation
+    {P : Prop} {op : UserOp1} {idx x v vs body : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply (Term.UOp1 op idx) x)
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+          body)) :
+  P :=
+by
+  exfalso
+  by_cases hUpdate : op = UserOp1.update
+  · subst op
+    have hTranslate :
+        __eo_to_smt
+            (Term.Apply
+              (Term.Apply
+                (Term.Apply (Term.UOp1 UserOp1.update idx) x)
+                (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+              body) =
+          SmtTerm.Apply
+            (__eo_to_smt
+              (Term.Apply
+                (Term.Apply (Term.UOp1 UserOp1.update idx) x)
+                (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
+            (__eo_to_smt body) := by
+      rfl
+    have hTy :
+        __smtx_typeof
+            (SmtTerm.Apply
+              (__eo_to_smt
+                (Term.Apply
+                  (Term.Apply (Term.UOp1 UserOp1.update idx) x)
+                  (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
+              (__eo_to_smt body)) =
+          __smtx_typeof_apply
+            (__smtx_typeof
+              (__eo_to_smt
+                (Term.Apply
+                  (Term.Apply (Term.UOp1 UserOp1.update idx) x)
+                  (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))))
+            (__smtx_typeof (__eo_to_smt body)) :=
+      generic_apply_type_of_non_special_head_closed _ _
+        (by
+          intro s d i j h
+          exact
+            TranslationProofs.eo_to_smt_apply_ne_dt_sel
+              _ _ s d i j h)
+        (by
+          intro s d i h
+          exact
+            TranslationProofs.eo_to_smt_apply_ne_dt_tester
+              _ _ s d i h)
+    have hNN :
+        term_has_non_none_type
+          (SmtTerm.Apply
+            (__eo_to_smt
+              (Term.Apply
+                (Term.Apply (Term.UOp1 UserOp1.update idx) x)
+                (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
+            (__eo_to_smt body)) := by
+      unfold term_has_non_none_type
+      rw [← hTranslate]
+      exact hTrans
+    rcases apply_args_have_smt_translation_of_non_none hTy hNN with
+      ⟨hHeadTrans, _hBodyTrans⟩
+    rcases update_index_sel_and_args_have_smt_translation hHeadTrans with
+      ⟨_hIdx, _hXTrans, hRawTrans⟩
+    exact term_not_eo_list_cons_of_has_smt_translation hRawTrans v vs rfl
+  by_cases hTupleUpdate : op = UserOp1.tuple_update
+  · subst op
+    have hTranslate :
+        __eo_to_smt
+            (Term.Apply
+              (Term.Apply
+                (Term.Apply (Term.UOp1 UserOp1.tuple_update idx) x)
+                (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+              body) =
+          SmtTerm.Apply
+            (__eo_to_smt
+              (Term.Apply
+                (Term.Apply (Term.UOp1 UserOp1.tuple_update idx) x)
+                (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
+            (__eo_to_smt body) := by
+      rfl
+    have hTy :
+        __smtx_typeof
+            (SmtTerm.Apply
+              (__eo_to_smt
+                (Term.Apply
+                  (Term.Apply (Term.UOp1 UserOp1.tuple_update idx) x)
+                  (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
+              (__eo_to_smt body)) =
+          __smtx_typeof_apply
+            (__smtx_typeof
+              (__eo_to_smt
+                (Term.Apply
+                  (Term.Apply (Term.UOp1 UserOp1.tuple_update idx) x)
+                  (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))))
+            (__smtx_typeof (__eo_to_smt body)) :=
+      generic_apply_type_of_non_special_head_closed _ _
+        (by
+          intro s d i j h
+          exact
+            TranslationProofs.eo_to_smt_apply_ne_dt_sel
+              _ _ s d i j h)
+        (by
+          intro s d i h
+          exact
+            TranslationProofs.eo_to_smt_apply_ne_dt_tester
+              _ _ s d i h)
+    have hNN :
+        term_has_non_none_type
+          (SmtTerm.Apply
+            (__eo_to_smt
+              (Term.Apply
+                (Term.Apply (Term.UOp1 UserOp1.tuple_update idx) x)
+                (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
+            (__eo_to_smt body)) := by
+      unfold term_has_non_none_type
+      rw [← hTranslate]
+      exact hTrans
+    rcases apply_args_have_smt_translation_of_non_none hTy hNN with
+      ⟨hHeadTrans, _hBodyTrans⟩
+    rcases tuple_update_index_nat_valid_and_args_have_smt_translation
+        hHeadTrans with
+      ⟨_hIdx, _hXTrans, hRawTrans⟩
+    exact term_not_eo_list_cons_of_has_smt_translation hRawTrans v vs rfl
+  exact
+    false_of_apply_apply_generic_raw_list_has_smt_translation
+      (q := Term.Apply (Term.UOp1 op idx) x)
+      (body := body)
+      (by
+        cases op
+        case update =>
+          exact False.elim (hUpdate rfl)
+        case tuple_update =>
+          exact False.elim (hTupleUpdate rfl)
+        all_goals rfl)
+      (by
+        cases op <;> rfl)
+      (generic_apply_type_of_non_special_head_closed _ _
+        (by
+          intro s d i j h
+          exact
+            TranslationProofs.eo_to_smt_apply_ne_dt_sel
+              _ _ s d i j h)
+        (by
+          intro s d i h
+          exact
+            TranslationProofs.eo_to_smt_apply_ne_dt_tester
+              _ _ s d i h))
+      hTrans
+
 theorem is_closed_rec_apply_uop1_any_eq_and_bool_of_has_smt_translation
     (root : Term)
     {op : UserOp1} {idx x env : Term} {vars : List SmtVarKey}
@@ -7466,6 +7644,27 @@ by
   exact ⟨eo_has_smt_translation_of_smt_type_eq hC (by simp),
     eo_has_smt_translation_of_smt_type_eq hX hT,
     eo_has_smt_translation_of_smt_type_eq hY hT⟩
+
+theorem ite_args_have_smt_translation_of_non_none
+    {c x y : Term}
+    (hNN :
+      term_has_non_none_type
+        (SmtTerm.ite (__eo_to_smt c) (__eo_to_smt x)
+          (__eo_to_smt y))) :
+  eoHasSmtTranslation c ∧
+    eoHasSmtTranslation x ∧
+      eoHasSmtTranslation y :=
+by
+  exact
+    ite_args_have_smt_translation_of_has_smt_translation
+      (by
+        unfold eoHasSmtTranslation
+        change
+            __smtx_typeof
+                (SmtTerm.ite (__eo_to_smt c) (__eo_to_smt x)
+                  (__eo_to_smt y)) ≠
+              SmtType.None
+        exact hNN)
 
 theorem is_closed_rec_apply_apply_apply_ite_eq_and_bool_of_has_smt_translation
     {c x y env : Term} {vars : List SmtVarKey}
@@ -12518,6 +12717,202 @@ by
               _ _ s d i h))
       (smtx_typeof_eo_to_smt_exists_top_bool_or_none_closed body xs)
 
+theorem false_of_apply_apply_apply_uop_over_binary_middle_raw_list
+    {P : Prop} {op : UserOp} {x v vs z : Term}
+    (hRawTransOfHead :
+      eoHasSmtTranslation
+          (Term.Apply (Term.Apply (Term.UOp op) x)
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)) ->
+        eoHasSmtTranslation
+          (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+    (hOuterTranslate :
+      __eo_to_smt
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.UOp op) x)
+              (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+            z) =
+        SmtTerm.Apply
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp op) x)
+              (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
+          (__eo_to_smt z))
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply (Term.UOp op) x)
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+          z)) :
+  P :=
+by
+  exfalso
+  have hTy :
+      __smtx_typeof
+          (SmtTerm.Apply
+            (__eo_to_smt
+              (Term.Apply (Term.Apply (Term.UOp op) x)
+                (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
+            (__eo_to_smt z)) =
+        __smtx_typeof_apply
+          (__smtx_typeof
+            (__eo_to_smt
+              (Term.Apply (Term.Apply (Term.UOp op) x)
+                (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))))
+          (__smtx_typeof (__eo_to_smt z)) := by
+    exact
+      generic_apply_type_of_non_special_head_closed _ _
+        (by
+          intro s d i j h
+          exact
+            TranslationProofs.eo_to_smt_apply_ne_dt_sel
+              _ _ s d i j h)
+        (by
+          intro s d i h
+          exact
+            TranslationProofs.eo_to_smt_apply_ne_dt_tester
+              _ _ s d i h)
+  have hNN :
+      term_has_non_none_type
+        (SmtTerm.Apply
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp op) x)
+              (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
+          (__eo_to_smt z)) := by
+    unfold term_has_non_none_type
+    rw [← hOuterTranslate]
+    exact hTrans
+  rcases apply_args_have_smt_translation_of_non_none hTy hNN with
+    ⟨hHeadTrans, _hZTrans⟩
+  have hRawTrans :=
+    hRawTransOfHead hHeadTrans
+  exact term_not_eo_list_cons_of_has_smt_translation hRawTrans v vs rfl
+
+theorem false_of_apply_apply_apply_uop_smt_triop_middle_raw_list
+    {P : Prop} {eoOp : UserOp}
+    {smtOp : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm}
+    {x v vs z : Term}
+    (hTranslate :
+      __eo_to_smt
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.UOp eoOp) x)
+              (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+            z) =
+        smtOp (__eo_to_smt x)
+          (__eo_to_smt (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+          (__eo_to_smt z))
+    (hArgs :
+      term_has_non_none_type
+          (smtOp (__eo_to_smt x)
+            (__eo_to_smt (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+            (__eo_to_smt z)) ->
+        eoHasSmtTranslation x ∧
+          eoHasSmtTranslation
+              (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) ∧
+            eoHasSmtTranslation z)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply (Term.UOp eoOp) x)
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+          z)) :
+  P :=
+by
+  exfalso
+  unfold eoHasSmtTranslation at hTrans
+  have hNN :
+      term_has_non_none_type
+        (smtOp (__eo_to_smt x)
+          (__eo_to_smt (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+          (__eo_to_smt z)) := by
+    unfold term_has_non_none_type
+    rw [← hTranslate]
+    exact hTrans
+  have hRawTrans := (hArgs hNN).2.1
+  exact term_not_eo_list_cons_of_has_smt_translation hRawTrans v vs rfl
+
+theorem false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
+    {P : Prop} {op : UserOp} {x v vs z : Term}
+    (hArgsOfHead :
+      eoHasSmtTranslation
+          (Term.Apply (Term.Apply (Term.UOp op) x)
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)) ->
+        eoHasSmtTranslation x ∧
+          eoHasSmtTranslation
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+    (hOuterTranslate :
+      __eo_to_smt
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.UOp op) x)
+              (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+            z) =
+        SmtTerm.Apply
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp op) x)
+              (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
+          (__eo_to_smt z))
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply (Term.UOp op) x)
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+          z)) :
+  P :=
+by
+  exact
+    false_of_apply_apply_apply_uop_over_binary_middle_raw_list
+      (fun hHeadTrans => (hArgsOfHead hHeadTrans).2)
+      hOuterTranslate hTrans
+
+theorem false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+    {P : Prop} {eoOp : UserOp} {smtOp : SmtTerm -> SmtTerm -> SmtTerm}
+    {x v vs z : Term}
+    (hHeadTranslate :
+      __eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp eoOp) x)
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)) =
+        smtOp (__eo_to_smt x)
+          (__eo_to_smt (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
+    (hArgs :
+      term_has_non_none_type
+          (smtOp (__eo_to_smt x)
+            (__eo_to_smt
+              (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))) ->
+        eoHasSmtTranslation x ∧
+          eoHasSmtTranslation
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+    (hOuterTranslate :
+      __eo_to_smt
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.UOp eoOp) x)
+              (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+            z) =
+        SmtTerm.Apply
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp eoOp) x)
+              (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
+          (__eo_to_smt z))
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply (Term.UOp eoOp) x)
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+          z)) :
+  P :=
+by
+  exact
+    false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
+      (fun hHeadTrans =>
+        apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+          hHeadTranslate hArgs hHeadTrans)
+      hOuterTranslate hTrans
+
 theorem false_of_apply_apply_apply_generic_middle_list_has_smt_translation
     {P : Prop} {op : UserOp} {x v vs z : Term}
     (hInnerTranslate :
@@ -12574,6 +12969,834 @@ by
         (__eo_to_smt (Term.Apply (Term.UOp op) x)) v vs hInnerGeneric
   rw [hInnerNone]
   rfl
+
+theorem false_of_apply_apply_apply_uop_middle_raw_list_has_smt_translation
+    {P : Prop} {op : UserOp} {x v vs z : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply (Term.UOp op) x)
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+          z)) :
+  P :=
+by
+  cases op
+  case ite =>
+    exact
+      false_of_apply_apply_apply_uop_smt_triop_middle_raw_list
+        (eoOp := UserOp.ite) (smtOp := SmtTerm.ite)
+        (by rfl) ite_args_have_smt_translation_of_non_none hTrans
+  case or =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
+        or_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans
+  case and =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
+        and_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans
+  case imp =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
+        imp_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans
+  case xor =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
+        xor_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans
+  case eq =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
+        eq_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans
+  case plus =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
+        plus_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans
+  case neg =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
+        neg_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans
+  case mult =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
+        mult_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans
+  case lt =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
+        lt_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans
+  case leq =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
+        leq_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans
+  case gt =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
+        gt_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans
+  case geq =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
+        geq_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans
+  case div =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
+        div_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans
+  case mod =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
+        mod_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans
+  case multmult =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
+        multmult_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans
+  case divisible =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
+        divisible_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans
+  case div_total =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
+        div_total_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans
+  case mod_total =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
+        mod_total_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans
+  case multmult_total =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
+        multmult_total_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans
+  case select =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
+        select_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans
+  case store =>
+    exact
+      false_of_apply_apply_apply_uop_smt_triop_middle_raw_list
+        (eoOp := UserOp.store) (smtOp := SmtTerm.store)
+        (by rfl) store_args_have_smt_translation_of_non_none hTrans
+  case _at_array_deq_diff =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
+        array_deq_diff_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans
+  case concat =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.concat) (smtOp := SmtTerm.concat)
+        (by rfl) bv_concat_args_have_smt_translation_of_non_none
+        (by rfl) hTrans
+  case bvand =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.bvand) (smtOp := SmtTerm.bvand)
+        (by rfl)
+        (fun hNN =>
+          bv_binop_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans
+  case bvor =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.bvor) (smtOp := SmtTerm.bvor)
+        (by rfl)
+        (fun hNN =>
+          bv_binop_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans
+  case bvnand =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.bvnand) (smtOp := SmtTerm.bvnand)
+        (by rfl)
+        (fun hNN =>
+          bv_binop_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans
+  case bvnor =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.bvnor) (smtOp := SmtTerm.bvnor)
+        (by rfl)
+        (fun hNN =>
+          bv_binop_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans
+  case bvxor =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.bvxor) (smtOp := SmtTerm.bvxor)
+        (by rfl)
+        (fun hNN =>
+          bv_binop_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans
+  case bvxnor =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.bvxnor) (smtOp := SmtTerm.bvxnor)
+        (by rfl)
+        (fun hNN =>
+          bv_binop_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans
+  case bvcomp =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.bvcomp) (smtOp := SmtTerm.bvcomp)
+        (by rfl)
+        (fun hNN =>
+          bv_binop_ret_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans
+  case bvadd =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.bvadd) (smtOp := SmtTerm.bvadd)
+        (by rfl)
+        (fun hNN =>
+          bv_binop_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans
+  case bvmul =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.bvmul) (smtOp := SmtTerm.bvmul)
+        (by rfl)
+        (fun hNN =>
+          bv_binop_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans
+  case bvudiv =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.bvudiv) (smtOp := SmtTerm.bvudiv)
+        (by rfl)
+        (fun hNN =>
+          bv_binop_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans
+  case bvurem =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.bvurem) (smtOp := SmtTerm.bvurem)
+        (by rfl)
+        (fun hNN =>
+          bv_binop_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans
+  case bvsub =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.bvsub) (smtOp := SmtTerm.bvsub)
+        (by rfl)
+        (fun hNN =>
+          bv_binop_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans
+  case bvsdiv =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.bvsdiv) (smtOp := SmtTerm.bvsdiv)
+        (by rfl)
+        (fun hNN =>
+          bv_binop_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans
+  case bvsrem =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.bvsrem) (smtOp := SmtTerm.bvsrem)
+        (by rfl)
+        (fun hNN =>
+          bv_binop_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans
+  case bvsmod =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.bvsmod) (smtOp := SmtTerm.bvsmod)
+        (by rfl)
+        (fun hNN =>
+          bv_binop_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans
+  case bvult =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.bvult) (smtOp := SmtTerm.bvult)
+        (by rfl)
+        (fun hNN =>
+          bv_binop_ret_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans
+  case bvule =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.bvule) (smtOp := SmtTerm.bvule)
+        (by rfl)
+        (fun hNN =>
+          bv_binop_ret_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans
+  case bvugt =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.bvugt) (smtOp := SmtTerm.bvugt)
+        (by rfl)
+        (fun hNN =>
+          bv_binop_ret_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans
+  case bvuge =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.bvuge) (smtOp := SmtTerm.bvuge)
+        (by rfl)
+        (fun hNN =>
+          bv_binop_ret_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans
+  case bvslt =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.bvslt) (smtOp := SmtTerm.bvslt)
+        (by rfl)
+        (fun hNN =>
+          bv_binop_ret_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans
+  case bvsle =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.bvsle) (smtOp := SmtTerm.bvsle)
+        (by rfl)
+        (fun hNN =>
+          bv_binop_ret_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans
+  case bvsgt =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.bvsgt) (smtOp := SmtTerm.bvsgt)
+        (by rfl)
+        (fun hNN =>
+          bv_binop_ret_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans
+  case bvsge =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.bvsge) (smtOp := SmtTerm.bvsge)
+        (by rfl)
+        (fun hNN =>
+          bv_binop_ret_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans
+  case bvshl =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.bvshl) (smtOp := SmtTerm.bvshl)
+        (by rfl)
+        (fun hNN =>
+          bv_binop_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans
+  case bvlshr =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.bvlshr) (smtOp := SmtTerm.bvlshr)
+        (by rfl)
+        (fun hNN =>
+          bv_binop_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans
+  case bvashr =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.bvashr) (smtOp := SmtTerm.bvashr)
+        (by rfl)
+        (fun hNN =>
+          bv_binop_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans
+  case bvite =>
+    exact
+      false_of_apply_apply_apply_uop_smt_triop_middle_raw_list
+        (eoOp := UserOp.bvite)
+        (smtOp := fun c y z =>
+          SmtTerm.ite (SmtTerm.eq c (SmtTerm.Binary 1 1)) y z)
+        (by rfl) bvite_args_have_smt_translation_of_non_none hTrans
+  case bvuaddo =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.bvuaddo) (smtOp := SmtTerm.bvuaddo)
+        (by rfl)
+        (fun hNN =>
+          bv_binop_ret_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans
+  case bvsaddo =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.bvsaddo) (smtOp := SmtTerm.bvsaddo)
+        (by rfl)
+        (fun hNN =>
+          bv_binop_ret_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans
+  case bvumulo =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.bvumulo) (smtOp := SmtTerm.bvumulo)
+        (by rfl)
+        (fun hNN =>
+          bv_binop_ret_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans
+  case bvsmulo =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.bvsmulo) (smtOp := SmtTerm.bvsmulo)
+        (by rfl)
+        (fun hNN =>
+          bv_binop_ret_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans
+  case bvusubo =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.bvusubo) (smtOp := SmtTerm.bvusubo)
+        (by rfl)
+        (fun hNN =>
+          bv_binop_ret_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans
+  case bvssubo =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.bvssubo) (smtOp := SmtTerm.bvssubo)
+        (by rfl)
+        (fun hNN =>
+          bv_binop_ret_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans
+  case bvsdivo =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.bvsdivo) (smtOp := SmtTerm.bvsdivo)
+        (by rfl)
+        (fun hNN =>
+          bv_binop_ret_args_have_smt_translation_of_non_none
+            (by rw [__smtx_typeof.eq_def]) hNN)
+        (by rfl) hTrans
+  case bvultbv =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
+        bvultbv_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans
+  case bvsltbv =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
+        bvsltbv_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans
+  case _at_from_bools =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
+        from_bools_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans
+  case str_concat =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.str_concat) (smtOp := SmtTerm.str_concat)
+        (by rfl)
+        (fun hNN =>
+          seq_binop_args_have_smt_translation_of_non_none
+            (typeof_str_concat_eq (__eo_to_smt x)
+              (__eo_to_smt
+                (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
+            hNN)
+        (by rfl) hTrans
+  case str_substr =>
+    exact
+      false_of_apply_apply_apply_uop_smt_triop_middle_raw_list
+        (eoOp := UserOp.str_substr) (smtOp := SmtTerm.str_substr)
+        (by rfl) str_substr_args_have_smt_translation_of_non_none hTrans
+  case str_contains =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.str_contains) (smtOp := SmtTerm.str_contains)
+        (by rfl)
+        (fun hNN =>
+          seq_binop_ret_args_have_smt_translation_of_non_none
+            (typeof_str_contains_eq (__eo_to_smt x)
+              (__eo_to_smt
+                (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
+            hNN)
+        (by rfl) hTrans
+  case str_replace =>
+    exact
+      false_of_apply_apply_apply_uop_smt_triop_middle_raw_list
+        (eoOp := UserOp.str_replace) (smtOp := SmtTerm.str_replace)
+        (by rfl)
+        (fun hNN =>
+          seq_triop_args_have_smt_translation_of_non_none
+            (typeof_str_replace_eq (__eo_to_smt x)
+              (__eo_to_smt
+                (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+              (__eo_to_smt z))
+            hNN)
+        hTrans
+  case str_indexof =>
+    exact
+      false_of_apply_apply_apply_uop_smt_triop_middle_raw_list
+        (eoOp := UserOp.str_indexof) (smtOp := SmtTerm.str_indexof)
+        (by rfl) str_indexof_args_have_smt_translation_of_non_none hTrans
+  case str_at =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.str_at) (smtOp := SmtTerm.str_at)
+        (by rfl) str_at_args_have_smt_translation_of_non_none
+        (by rfl) hTrans
+  case str_prefixof =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.str_prefixof) (smtOp := SmtTerm.str_prefixof)
+        (by rfl)
+        (fun hNN =>
+          seq_char_binop_args_have_smt_translation_of_non_none
+            (ret := SmtType.Bool)
+            (typeof_str_prefixof_eq (__eo_to_smt x)
+              (__eo_to_smt
+                (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
+            hNN)
+        (by rfl) hTrans
+  case str_suffixof =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.str_suffixof) (smtOp := SmtTerm.str_suffixof)
+        (by rfl)
+        (fun hNN =>
+          seq_char_binop_args_have_smt_translation_of_non_none
+            (ret := SmtType.Bool)
+            (typeof_str_suffixof_eq (__eo_to_smt x)
+              (__eo_to_smt
+                (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
+            hNN)
+        (by rfl) hTrans
+  case str_update =>
+    exact
+      false_of_apply_apply_apply_uop_smt_triop_middle_raw_list
+        (eoOp := UserOp.str_update) (smtOp := SmtTerm.str_update)
+        (by rfl) str_update_args_have_smt_translation_of_non_none hTrans
+  case str_lt =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.str_lt) (smtOp := SmtTerm.str_lt)
+        (by rfl)
+        (fun hNN =>
+          seq_char_binop_args_have_smt_translation_of_non_none
+            (ret := SmtType.Bool)
+            (typeof_str_lt_eq (__eo_to_smt x)
+              (__eo_to_smt
+                (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
+            hNN)
+        (by rfl) hTrans
+  case str_leq =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.str_leq) (smtOp := SmtTerm.str_leq)
+        (by rfl)
+        (fun hNN =>
+          seq_char_binop_args_have_smt_translation_of_non_none
+            (ret := SmtType.Bool)
+            (typeof_str_leq_eq (__eo_to_smt x)
+              (__eo_to_smt
+                (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
+            hNN)
+        (by rfl) hTrans
+  case str_replace_all =>
+    exact
+      false_of_apply_apply_apply_uop_smt_triop_middle_raw_list
+        (eoOp := UserOp.str_replace_all)
+        (smtOp := SmtTerm.str_replace_all)
+        (by rfl)
+        (fun hNN =>
+          seq_triop_args_have_smt_translation_of_non_none
+            (typeof_str_replace_all_eq (__eo_to_smt x)
+              (__eo_to_smt
+                (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+              (__eo_to_smt z))
+            hNN)
+        hTrans
+  case str_replace_re =>
+    exact
+      false_of_apply_apply_apply_uop_smt_triop_middle_raw_list
+        (eoOp := UserOp.str_replace_re)
+        (smtOp := SmtTerm.str_replace_re)
+        (by rfl)
+        (fun hNN =>
+          str_replace_re_args_have_smt_translation_of_non_none
+            (typeof_str_replace_re_eq (__eo_to_smt x)
+              (__eo_to_smt
+                (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+              (__eo_to_smt z))
+            hNN)
+        hTrans
+  case str_replace_re_all =>
+    exact
+      false_of_apply_apply_apply_uop_smt_triop_middle_raw_list
+        (eoOp := UserOp.str_replace_re_all)
+        (smtOp := SmtTerm.str_replace_re_all)
+        (by rfl)
+        (fun hNN =>
+          str_replace_re_args_have_smt_translation_of_non_none
+            (typeof_str_replace_re_all_eq (__eo_to_smt x)
+              (__eo_to_smt
+                (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+              (__eo_to_smt z))
+            hNN)
+        hTrans
+  case str_indexof_re =>
+    exact
+      false_of_apply_apply_apply_uop_smt_triop_middle_raw_list
+        (eoOp := UserOp.str_indexof_re)
+        (smtOp := SmtTerm.str_indexof_re)
+        (by rfl) str_indexof_re_args_have_smt_translation_of_non_none hTrans
+  case re_range =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.re_range) (smtOp := SmtTerm.re_range)
+        (by rfl)
+        (fun hNN =>
+          seq_char_binop_args_have_smt_translation_of_non_none
+            (ret := SmtType.RegLan)
+            (typeof_re_range_eq (__eo_to_smt x)
+              (__eo_to_smt
+                (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
+            hNN)
+        (by rfl) hTrans
+  case re_concat =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.re_concat) (smtOp := SmtTerm.re_concat)
+        (by rfl)
+        (fun hNN =>
+          reglan_binop_args_have_smt_translation_of_non_none
+            (typeof_re_concat_eq (__eo_to_smt x)
+              (__eo_to_smt
+                (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
+            hNN)
+        (by rfl) hTrans
+  case re_inter =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.re_inter) (smtOp := SmtTerm.re_inter)
+        (by rfl)
+        (fun hNN =>
+          reglan_binop_args_have_smt_translation_of_non_none
+            (typeof_re_inter_eq (__eo_to_smt x)
+              (__eo_to_smt
+                (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
+            hNN)
+        (by rfl) hTrans
+  case re_union =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.re_union) (smtOp := SmtTerm.re_union)
+        (by rfl)
+        (fun hNN =>
+          reglan_binop_args_have_smt_translation_of_non_none
+            (typeof_re_union_eq (__eo_to_smt x)
+              (__eo_to_smt
+                (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
+            hNN)
+        (by rfl) hTrans
+  case re_diff =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.re_diff) (smtOp := SmtTerm.re_diff)
+        (by rfl)
+        (fun hNN =>
+          reglan_binop_args_have_smt_translation_of_non_none
+            (typeof_re_diff_eq (__eo_to_smt x)
+              (__eo_to_smt
+                (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
+            hNN)
+        (by rfl) hTrans
+  case str_in_re =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.str_in_re) (smtOp := SmtTerm.str_in_re)
+        (by rfl)
+        (fun hNN =>
+          seq_char_reglan_args_have_smt_translation_of_non_none
+            (ret := SmtType.Bool)
+            (typeof_str_in_re_eq (__eo_to_smt x)
+              (__eo_to_smt
+                (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
+            hNN)
+        (by rfl) hTrans
+  case str_indexof_re_split =>
+    exact
+      false_of_apply_apply_apply_uop_smt_triop_middle_raw_list
+        (eoOp := UserOp.str_indexof_re_split)
+        (smtOp := SmtTerm.str_indexof_re_split)
+        (by rfl) str_indexof_re_split_args_have_smt_translation_of_non_none
+        hTrans
+  case seq_nth =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.seq_nth) (smtOp := SmtTerm.seq_nth)
+        (by rfl) seq_nth_args_have_smt_translation_of_non_none
+        (by rfl) hTrans
+  case _at_strings_deq_diff =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
+        strings_deq_diff_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans
+  case _at_strings_stoi_result =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
+        strings_stoi_result_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans
+  case _at_strings_itos_result =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
+        strings_itos_result_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans
+  case _at_strings_num_occur =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
+        strings_num_occur_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans
+  case tuple =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
+        tuple_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans
+  case set_union =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.set_union) (smtOp := SmtTerm.set_union)
+        (by rfl)
+        (fun hNN =>
+          set_binop_args_have_smt_translation_of_non_none
+            (typeof_set_union_eq (__eo_to_smt x)
+              (__eo_to_smt
+                (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
+            hNN)
+        (by rfl) hTrans
+  case set_inter =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.set_inter) (smtOp := SmtTerm.set_inter)
+        (by rfl)
+        (fun hNN =>
+          set_binop_args_have_smt_translation_of_non_none
+            (typeof_set_inter_eq (__eo_to_smt x)
+              (__eo_to_smt
+                (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
+            hNN)
+        (by rfl) hTrans
+  case set_minus =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.set_minus) (smtOp := SmtTerm.set_minus)
+        (by rfl)
+        (fun hNN =>
+          set_binop_args_have_smt_translation_of_non_none
+            (typeof_set_minus_eq (__eo_to_smt x)
+              (__eo_to_smt
+                (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
+            hNN)
+        (by rfl) hTrans
+  case set_member =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.set_member) (smtOp := SmtTerm.set_member)
+        (by rfl) set_member_args_have_smt_translation_of_non_none
+        (by rfl) hTrans
+  case set_subset =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_smt_binop_middle_raw_list
+        (eoOp := UserOp.set_subset) (smtOp := SmtTerm.set_subset)
+        (by rfl)
+        (fun hNN =>
+          set_binop_ret_args_have_smt_translation_of_non_none
+            (ret := SmtType.Bool)
+            (typeof_set_subset_eq (__eo_to_smt x)
+              (__eo_to_smt
+                (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
+            hNN)
+        (by rfl) hTrans
+  case set_insert =>
+    exact
+      false_of_apply_apply_apply_set_insert_middle_list_has_smt_translation
+        hTrans
+  case _at_sets_deq_diff =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
+        sets_deq_diff_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans
+  case qdiv =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
+        qdiv_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans
+  case qdiv_total =>
+    exact
+      false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
+        qdiv_total_args_have_smt_translation_of_has_smt_translation
+        (by rfl) hTrans
+  case «forall» =>
+    exact false_of_apply_apply_apply_forall_has_smt_translation hTrans
+  case «exists» =>
+    exact false_of_apply_apply_apply_exists_has_smt_translation hTrans
+  all_goals
+    exact
+      false_of_apply_apply_apply_generic_middle_list_has_smt_translation
+        (by rfl) (by rfl)
+        (generic_apply_type_of_non_special_head_closed _ _
+          (by
+            intro s d i j h
+            exact
+              TranslationProofs.eo_to_smt_apply_ne_dt_sel
+                _ _ s d i j h)
+          (by
+            intro s d i h
+            exact
+              TranslationProofs.eo_to_smt_apply_ne_dt_tester
+                _ _ s d i h))
+        (generic_apply_type_of_non_special_head_closed _ _
+          (by
+            intro s d i j h
+            exact
+              TranslationProofs.eo_to_smt_apply_ne_dt_sel
+                _ _ s d i j h)
+          (by
+            intro s d i h
+            exact
+              TranslationProofs.eo_to_smt_apply_ne_dt_tester
+                _ _ s d i h))
+        hTrans
 
 theorem is_closed_rec_apply_apply_uop_any_eq_and_bool_of_has_smt_translation
     (root : Term)
