@@ -436,6 +436,193 @@ by
     ⟨vars, hEnv⟩
   exact ⟨vars, EoVarEnvPerm.of_exact hEnv⟩
 
+private theorem get_unused_vars_branch_of_contains_false
+    {Q x F G : Term}
+    (hNoFree :
+      __contains_atomic_term_list_free_rec G
+          (__get_unused_vars (qterm Q x F) G) Term.__eo_List_nil =
+        Term.Boolean false) :
+  (G = F ∧
+      __get_unused_vars (qterm Q x F) G =
+        __eo_list_setof Term.__eo_List_cons x) ∨
+    ∃ y,
+      G = qterm Q y F ∧
+        __eo_list_minclude Term.__eo_List_cons
+            (__eo_list_setof Term.__eo_List_cons x) y =
+          Term.Boolean true ∧
+        __get_unused_vars (qterm Q x F) G =
+          __eo_list_diff Term.__eo_List_cons
+            (__eo_list_setof Term.__eo_List_cons x) y :=
+by
+  have hGetNonstuck :
+      __get_unused_vars (qterm Q x F) G ≠ Term.Stuck :=
+    contains_atomic_term_list_free_rec_false_except_ne_stuck hNoFree
+  by_cases hShape :
+      ∃ Q₂ y F₂,
+        G = Term.Apply (Term.Apply Q₂ y) F₂
+  · rcases hShape with ⟨Q₂, y, F₂, rfl⟩
+    have hIteNonstuck :
+        __eo_ite
+            (__eo_and (__eo_eq Q Q₂) (__eo_eq F F₂))
+            (__eo_requires
+              (__eo_list_minclude Term.__eo_List_cons
+                (__eo_list_setof Term.__eo_List_cons x) y)
+              (Term.Boolean true)
+              (__eo_list_diff Term.__eo_List_cons
+                (__eo_list_setof Term.__eo_List_cons x) y))
+            (__eo_l_1___get_unused_vars
+              (Term.Apply (Term.Apply Q x) F)
+              (Term.Apply (Term.Apply Q₂ y) F₂)) ≠
+          Term.Stuck := by
+      intro hStuck
+      apply hGetNonstuck
+      simpa [qterm, __get_unused_vars] using hStuck
+    rcases eo_ite_nonstuck_guard_cases hIteNonstuck with hGuard | hGuard
+    · have hParts := eo_and_eq_true_cases hGuard
+      have hQEq : Q = Q₂ := eo_eq_true_eq hParts.1
+      have hFEq : F = F₂ := eo_eq_true_eq hParts.2
+      subst Q₂
+      subst F₂
+      have hReqNonstuck :
+          __eo_requires
+              (__eo_list_minclude Term.__eo_List_cons
+                (__eo_list_setof Term.__eo_List_cons x) y)
+              (Term.Boolean true)
+              (__eo_list_diff Term.__eo_List_cons
+                (__eo_list_setof Term.__eo_List_cons x) y) ≠
+            Term.Stuck := by
+        intro hStuck
+        apply hGetNonstuck
+        simpa [qterm, __get_unused_vars, hGuard, __eo_ite,
+          native_ite, native_teq] using hStuck
+      have hMinclude :
+          __eo_list_minclude Term.__eo_List_cons
+              (__eo_list_setof Term.__eo_List_cons x) y =
+            Term.Boolean true :=
+        eo_requires_arg_eq_of_ne_stuck hReqNonstuck
+      have hReqEq :=
+        eo_requires_true_nonstuck_eq hReqNonstuck
+      right
+      refine ⟨y, rfl, hMinclude, ?_⟩
+      simp [qterm, __get_unused_vars, hGuard, __eo_ite,
+        native_ite, native_teq, hReqEq]
+    · have hGetEqFallback :
+          __get_unused_vars (qterm Q x F)
+              (Term.Apply (Term.Apply Q₂ y) F₂) =
+            __eo_l_1___get_unused_vars
+              (Term.Apply (Term.Apply Q x) F)
+              (Term.Apply (Term.Apply Q₂ y) F₂) := by
+        simp [qterm, __get_unused_vars, hGuard, __eo_ite,
+          native_ite, native_teq]
+      have hFallbackNonstuck :
+          __eo_l_1___get_unused_vars
+              (Term.Apply (Term.Apply Q x) F)
+              (Term.Apply (Term.Apply Q₂ y) F₂) ≠
+            Term.Stuck := by
+        intro hStuck
+        apply hGetNonstuck
+        rw [hGetEqFallback, hStuck]
+      have hGNonstuck :
+          Term.Apply (Term.Apply Q₂ y) F₂ ≠ Term.Stuck := by
+        intro h
+        cases h
+      have hL1Eq :=
+        eo_l1_get_unused_vars_nonstuck_eq
+          (Q := Q) (x := x) (F := F)
+          (G := Term.Apply (Term.Apply Q₂ y) F₂) hGNonstuck
+      have hReqNonstuck :
+          __eo_requires (__eo_eq F (Term.Apply (Term.Apply Q₂ y) F₂))
+              (Term.Boolean true)
+              (__eo_list_setof Term.__eo_List_cons x) ≠
+            Term.Stuck := by
+        intro hStuck
+        apply hFallbackNonstuck
+        rw [hL1Eq, hStuck]
+      have hEqGuard :
+          __eo_eq F (Term.Apply (Term.Apply Q₂ y) F₂) =
+            Term.Boolean true :=
+        eo_requires_arg_eq_of_ne_stuck hReqNonstuck
+      have hFG :
+          F = Term.Apply (Term.Apply Q₂ y) F₂ :=
+        eo_eq_true_eq hEqGuard
+      have hReqEq :=
+        eo_requires_true_nonstuck_eq hReqNonstuck
+      left
+      constructor
+      · exact hFG.symm
+      · rw [hGetEqFallback, hL1Eq, hReqEq]
+  · have hGNonstuck : G ≠ Term.Stuck := by
+      intro hG
+      subst G
+      apply hGetNonstuck
+      simp [qterm, __get_unused_vars]
+    have hGetEqFallback :
+        __get_unused_vars (qterm Q x F) G =
+          __eo_l_1___get_unused_vars
+            (Term.Apply (Term.Apply Q x) F) G :=
+      get_unused_vars_fallback_eq_of_not_quant_branch
+        hGNonstuck
+        (by
+          intro Q₂ y F₂ hEq
+          exact hShape ⟨Q₂, y, F₂, hEq⟩)
+    have hFallbackNonstuck :
+        __eo_l_1___get_unused_vars
+            (Term.Apply (Term.Apply Q x) F) G ≠
+          Term.Stuck := by
+      intro hStuck
+      apply hGetNonstuck
+      rw [hGetEqFallback, hStuck]
+    have hL1Eq :=
+      eo_l1_get_unused_vars_nonstuck_eq
+        (Q := Q) (x := x) (F := F) hGNonstuck
+    have hReqNonstuck :
+        __eo_requires (__eo_eq F G) (Term.Boolean true)
+            (__eo_list_setof Term.__eo_List_cons x) ≠
+          Term.Stuck := by
+      intro hStuck
+      apply hFallbackNonstuck
+      rw [hL1Eq, hStuck]
+    have hEqGuard :
+        __eo_eq F G = Term.Boolean true :=
+      eo_requires_arg_eq_of_ne_stuck hReqNonstuck
+    have hFG : F = G := eo_eq_true_eq hEqGuard
+    have hReqEq := eo_requires_true_nonstuck_eq hReqNonstuck
+    left
+    constructor
+    · exact hFG.symm
+    · rw [hGetEqFallback, hL1Eq, hReqEq]
+
+private theorem quant_body_has_smt_translation
+    {Q x F : Term}
+    (hQ : Q = Term.UOp UserOp.forall ∨ Q = Term.UOp UserOp.exists)
+    (hTrans : RuleProofs.eo_has_smt_translation (qterm Q x F)) :
+  RuleProofs.eo_has_smt_translation F :=
+by
+  rcases eo_var_env_of_quant_has_smt_translation hQ hTrans with
+    ⟨vars, hEnv⟩
+  cases hEnv with
+  | nil =>
+      rcases hQ with hForall | hExists
+      · subst Q
+        exact False.elim (hTrans (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact TranslationProofs.smtx_typeof_none))
+      · subst Q
+        exact False.elim (hTrans (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact TranslationProofs.smtx_typeof_none))
+  | cons hTail =>
+      rename_i s T env tailVars
+      rcases hQ with hForall | hExists
+      · subst Q
+        exact
+          body_has_smt_translation_of_forall_list_branch_has_smt_translation
+            hTrans
+      · subst Q
+        exact
+          body_has_smt_translation_of_exists_list_branch_has_smt_translation
+            hTrans
+
 private theorem quant_unused_vars_shape_of_not_stuck
     (x1 : Term) :
     __eo_prog_quant_unused_vars x1 ≠ Term.Stuck ->
@@ -562,11 +749,35 @@ by
       RuleProofs.eo_has_smt_translation G := by
     intro hNone
     exact hLeftNN (by rw [hSameTy, hNone])
+  have hFTrans :
+      RuleProofs.eo_has_smt_translation F :=
+    quant_body_has_smt_translation hQ hLeftTrans
+  rcases eo_var_env_of_quant_has_smt_translation hQ hLeftTrans with
+    ⟨xVars, hXEnv⟩
   rcases
     eo_var_env_perm_of_get_unused_vars_of_quant_has_smt_translation
       hQ hLeftTrans hGTrans hNoFree with
     ⟨exceptVars, hExceptEnv⟩
-  sorry
+  rcases get_unused_vars_branch_of_contains_false hNoFree with
+    hSameBody | hSameQuant
+  · rcases hSameBody with ⟨hG, hGet⟩
+    subst G
+    have hNoFreeSet :
+        __contains_atomic_term_list_free_rec F
+            (__eo_list_setof Term.__eo_List_cons x) Term.__eo_List_nil =
+          Term.Boolean false := by
+      simpa [hGet] using hNoFree
+    sorry
+  · rcases hSameQuant with ⟨y, hG, hMinclude, hGet⟩
+    subst G
+    have hNoFreeDiff :
+        __contains_atomic_term_list_free_rec (qterm Q y F)
+            (__eo_list_diff Term.__eo_List_cons
+              (__eo_list_setof Term.__eo_List_cons x) y)
+            Term.__eo_List_nil =
+          Term.Boolean false := by
+      simpa [hGet] using hNoFree
+    sorry
 
 theorem cmd_step_quant_unused_vars_properties
     (M : SmtModel) (hM : model_total_typed M)
