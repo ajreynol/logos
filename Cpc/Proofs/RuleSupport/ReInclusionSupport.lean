@@ -3610,7 +3610,21 @@ theorem re_flatten_false_eval_rel
           hFullTy
       · exact RuleProofs.smt_value_rel_trans _ _ _
           hConcatRel hRightEmpty
-  | case8 rev body hRevNe ih =>
+  | case8 rev hRevNe =>
+      intro rv hRev hTy hEval _hFlatNe
+      subst rev
+      refine ⟨rv, ?_, ?_, ?_⟩
+      · simpa [__re_flatten] using hEval
+      · simpa [__re_flatten] using hTy
+      · exact RuleProofs.smt_value_rel_refl _
+  | case9 rev hRevNe =>
+      intro rv hRev hTy hEval _hFlatNe
+      subst rev
+      refine ⟨rv, ?_, ?_, ?_⟩
+      · simpa [__re_flatten] using hEval
+      · simpa [__re_flatten] using hTy
+      · exact RuleProofs.smt_value_rel_refl _
+  | case10 rev body hRevNe ih =>
       intro rv hRev hTy hEval hFlatNe
       subst rev
       let flatBody := __re_flatten (Term.Boolean false) (Term.Boolean true) body
@@ -3665,7 +3679,7 @@ theorem re_flatten_false_eval_rel
       · simpa [__re_flatten, flatBody, hOutEq] using hFullEval
       · simpa [__re_flatten, flatBody, hOutEq] using hFullTy
       · exact smt_value_rel_re_mult_local hFlatBodyRel
-  | case9 rev c1 c2 hRevNe ih1 ih2 =>
+  | case11 rev c1 c2 hRevNe ih1 ih2 =>
       intro rv hRev hTy hEval hFlatNe
       subst rev
       let flatC1 := __re_flatten (Term.Boolean false) (Term.Boolean true) c1
@@ -3757,7 +3771,7 @@ theorem re_flatten_false_eval_rel
       · simpa [__re_flatten, flatC1, flatC2, hOutEq, hInnerEq] using
           hFullTy
       · exact smt_value_rel_re_inter_local hFlatC1Rel hFlatC2Rel
-  | case10 rev c1 c2 hRevNe ih1 ih2 =>
+  | case12 rev c1 c2 hRevNe ih1 ih2 =>
       intro rv hRev hTy hEval hFlatNe
       subst rev
       let flatC1 := __re_flatten (Term.Boolean false) (Term.Boolean true) c1
@@ -3849,14 +3863,15 @@ theorem re_flatten_false_eval_rel
       · simpa [__re_flatten, flatC1, flatC2, hOutEq, hInnerEq] using
           hFullTy
       · exact smt_value_rel_re_union_local hFlatC1Rel hFlatC2Rel
-  | case11 rev c hRevNe hCNe hMult hInter hUnion =>
+  | case13 rev c hRevNe hCNe hAll hNone hMult hInter hUnion =>
       intro rv hRev hTy hEval _hFlatNe
       subst rev
       refine ⟨rv, ?_, ?_, ?_⟩
       · simpa [__re_flatten] using hEval
       · simpa [__re_flatten] using hTy
       · exact RuleProofs.smt_value_rel_refl _
-  | case12 x x_1 x_2 hRevNe hRNe hOther =>
+  | case14 x x_1 x_2 hRevNe hTreeNe hEmpty hConcatStr hConcat
+      hStr hTrue hAll hNone hMult hInter hUnion hFalse =>
       intro rv hRev _hTy _hEval hFlatNe
       subst x
       simp [__re_flatten] at hFlatNe

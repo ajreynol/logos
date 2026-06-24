@@ -10813,6 +10813,10 @@ theorem str_re_consume_inter_no_epsilon_eq
       __eo_eq
           (__str_membership_re (__str_re_consume_rec s c1 fuel))
           (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) =
+        Term.Boolean false)
+    (hRightNotFalse :
+      __eo_is_eq (__str_re_consume_inter s c2 fuel)
+          (Term.Boolean false) =
         Term.Boolean false) :
     __str_re_consume_inter s
         (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) c1) c2)
@@ -10821,7 +10825,7 @@ theorem str_re_consume_inter_no_epsilon_eq
         (Term.Apply (Term.UOp UserOp.str_in_re) s)
         (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) c1) c2) := by
   rw [__str_re_consume_inter.eq_4 s fuel c1 c2 hC2Ne hS hFuel]
-  simp [hLeftNotFalse, hMemNotEps, eo_ite_false]
+  simp [hLeftNotFalse, hMemNotEps, hRightNotFalse, eo_ite_false]
 
 theorem str_re_consume_inter_right_false_eq
     (s c1 c2 fuel : Term)
@@ -12688,7 +12692,9 @@ theorem str_re_consume_inter_model_rel_from_ih
     inter
   let sameIte := __eo_ite condSame left fallback
   let rightIte := __eo_ite condRightFalse (Term.Boolean false) sameIte
-  let memIte := __eo_ite condMem rightIte fallback
+  let rightFallbackIte := __eo_ite condRightFalse (Term.Boolean false)
+    fallback
+  let memIte := __eo_ite condMem rightIte rightFallbackIte
   let whole := __eo_ite condLeftFalse (Term.Boolean false) memIte
   rcases str_re_consume_translation_facts s inter side (by
       simpa [inter] using hEqTrans) with
@@ -12759,7 +12765,7 @@ theorem str_re_consume_inter_model_rel_from_ih
       intro hBad
       apply hWholeNe
       simpa [whole, hLeftFalseFalse, eo_ite_false] using hBad
-    rcases eo_ite_cases_of_ne_stuck condMem rightIte fallback
+    rcases eo_ite_cases_of_ne_stuck condMem rightIte rightFallbackIte
         hMemIteNe with hMemTrue | hMemFalse
     · have hRightIteNe : rightIte ≠ Term.Stuck := by
         intro hBad
@@ -12881,11 +12887,60 @@ theorem str_re_consume_inter_model_rel_from_ih
               sameIte, hSameFalse]
           exact str_re_consume_model_rel_of_side_eq_str_in_re M s inter side
             (by simpa [fallback] using hSideFallback)
-    · have hSideFallback : side = fallback := by
-        rw [hSideWhole]
-        simp [whole, hLeftFalseFalse, eo_ite_false, memIte, hMemFalse]
-      exact str_re_consume_model_rel_of_side_eq_str_in_re M s inter side
-        (by simpa [fallback] using hSideFallback)
+    · have hRightFallbackIteNe : rightFallbackIte ≠ Term.Stuck := by
+        intro hBad
+        apply hMemIteNe
+        simpa [memIte, hMemFalse, eo_ite_false] using hBad
+      rcases eo_ite_cases_of_ne_stuck condRightFalse
+          (Term.Boolean false) fallback hRightFallbackIteNe with
+        hRightFalseTrue | hRightFalseFalse
+      · have hSideFalse : side = Term.Boolean false := by
+          rw [hSideWhole]
+          simp [whole, hLeftFalseFalse, eo_ite_false, memIte, hMemFalse,
+            rightFallbackIte, hRightFalseTrue, eo_ite_true]
+        have hRightEqFalse : right = Term.Boolean false :=
+          eq_of_eo_is_eq_true_consume_local right (Term.Boolean false)
+            (by simpa [condRightFalse] using hRightFalseTrue)
+        have hRightTy :
+            __smtx_typeof (__eo_to_smt right) = SmtType.Bool := by
+          rw [hRightEqFalse]
+          change __smtx_typeof (SmtTerm.Boolean false) = SmtType.Bool
+          rw [__smtx_typeof.eq_1]
+        have hRightTrans :
+            RuleProofs.eo_has_smt_translation
+              (Term.Apply
+                (Term.Apply (Term.UOp UserOp.eq)
+                  (Term.Apply
+                    (Term.Apply (Term.UOp UserOp.str_in_re) s) c2))
+                right) :=
+          str_re_consume_eq_translation_of_types s c2 right hSTy
+            hInterArgs.2 hRightTy
+        have hRightRel :
+            RuleProofs.smt_value_rel
+              (__smtx_model_eval M
+                (__eo_to_smt
+                  (Term.Apply
+                    (Term.Apply (Term.UOp UserOp.str_in_re) s) c2)))
+              (__smtx_model_eval M (__eo_to_smt right)) :=
+          ihRight right hRightTrans rfl (by
+            rw [hRightEqFalse]
+            simp)
+        have hRightEval :
+            __smtx_model_eval M (__eo_to_smt right) =
+              SmtValue.Boolean false := by
+          rw [hRightEqFalse]
+          change __smtx_model_eval M (SmtTerm.Boolean false) =
+            SmtValue.Boolean false
+          rw [__smtx_model_eval.eq_1]
+        exact str_re_consume_model_rel_of_re_inter_right_false M hM s c1
+          c2 right side (by simpa [inter] using hEqTrans) hRightRel
+          hRightEval hSideFalse
+      · have hSideFallback : side = fallback := by
+          rw [hSideWhole]
+          simp [whole, hLeftFalseFalse, eo_ite_false, memIte, hMemFalse,
+            rightFallbackIte, hRightFalseFalse, eo_ite_false]
+        exact str_re_consume_model_rel_of_side_eq_str_in_re M s inter side
+          (by simpa [fallback] using hSideFallback)
 
 theorem str_re_consume_rec_str_concat_re_allchar_model_rel_from_ih
     (M : SmtModel) (hM : model_total_typed M)
@@ -13800,7 +13855,7 @@ theorem str_re_consume_model_rel
     · intro s c1 c2 fuel hS hFuel hC2Ne ihLeft ihRight side hEqTrans
         hSide hSideNe
       exact str_re_consume_inter_model_rel_from_ih M hM s c1 c2 fuel
-        side hEqTrans hSide hSideNe hS hFuel hC2Ne ihLeft ihRight
+        side hEqTrans hSide hSideNe hS hFuel hC2Ne ihRight ihLeft
     · intro s r fuel hS hFuel hNotAll hNotInter side _hEqTrans hSide
         hSideNe
       exfalso
