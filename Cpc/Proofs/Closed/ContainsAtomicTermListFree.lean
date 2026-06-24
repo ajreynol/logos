@@ -1,4 +1,4 @@
-import Cpc.Proofs.Closed.Support
+import Cpc.Proofs.Closed.IsClosedRec
 
 open Eo
 open SmtEval
@@ -41,6 +41,23 @@ theorem to_smt :
   | _, _, cons hTail =>
       by
         simpa [EoVarKey.toSmt] using EoSmtVarEnv.cons (to_smt hTail)
+
+theorem of_smt :
+    ∀ {env : Term} {vars : List SmtVarKey},
+      EoSmtVarEnv env vars ->
+        ∃ eoVars,
+          EoVarEnv env eoVars ∧ vars = eoVars.map EoVarKey.toSmt
+  | _, _, EoSmtVarEnv.nil =>
+      by
+        exact ⟨[], EoVarEnv.nil, rfl⟩
+  | _, _, EoSmtVarEnv.cons hTail =>
+      by
+        rename_i s T env vars
+        rcases of_smt hTail with ⟨eoVars, hEo, hVars⟩
+        exact
+          ⟨(s, T) :: eoVars,
+            EoVarEnv.cons (s := s) (T := T) hEo,
+            by simp [EoVarKey.toSmt, hVars]⟩
 
 theorem is_list
     {env : Term} {vars : List EoVarKey}
@@ -342,6 +359,25 @@ by
     (EoVarEnvEquiv.reverse binderVars)
     hEquiv
 
+theorem eo_var_env_of_uop_list_branch_has_smt_translation
+    {op : UserOp} {v vs body : Term}
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply (Term.UOp op)
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+          body)) :
+  ∃ vars,
+    EoVarEnv
+      (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) vars :=
+by
+  rcases
+    eo_smt_var_env_of_uop_list_branch_has_smt_translation hTrans with
+    ⟨smtVars, hSmtEnv⟩
+  rcases EoVarEnv.of_smt hSmtEnv with
+    ⟨eoVars, hEoEnv, _hVars⟩
+  exact ⟨eoVars, hEoEnv⟩
+
 /--
 Models agree everywhere except possibly on the variables in `except` that are
 not currently shadowed by `bound`.
@@ -581,3 +617,56 @@ by
     simp [__contains_atomic_term_list_free_rec] at hNoFree ⊢
   all_goals
     exact hNoFree
+
+/--
+The obligations needed by the recursive semantic proof in the quantifier-shaped
+`UOp` branch.
+
+When the branch has an SMT translation and the free-variable check returns
+`false`, the body is translation-safe, the binder list is an exact EO variable
+environment, the bound stack extends by that binder list, and the body inherits
+the `false` free-variable check under the extended bound stack.
+-/
+theorem body_obligations_of_contains_atomic_term_list_free_rec_uop_list_branch
+    {op : UserOp} {v vs body except bound : Term}
+    {boundVars : List EoVarKey}
+    (hBound : EoVarEnvPerm bound boundVars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply (Term.UOp op)
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+          body))
+    (hNoFree :
+      __contains_atomic_term_list_free_rec
+          (Term.Apply
+            (Term.Apply (Term.UOp op)
+              (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+            body)
+          except bound =
+        Term.Boolean false) :
+  eoHasSmtTranslation body ∧
+    ∃ binderVars,
+      EoVarEnv
+        (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) binderVars ∧
+      EoVarEnvPerm
+        (__eo_list_concat Term.__eo_List_cons
+          (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) bound)
+        (binderVars.reverse ++ boundVars) ∧
+      __contains_atomic_term_list_free_rec body except
+          (__eo_list_concat Term.__eo_List_cons
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) bound) =
+        Term.Boolean false :=
+by
+  have hBodyTrans :
+      eoHasSmtTranslation body :=
+    body_has_smt_translation_of_uop_list_branch_has_smt_translation
+      hTrans
+  rcases eo_var_env_of_uop_list_branch_has_smt_translation hTrans with
+    ⟨binderVars, hBinderEnv⟩
+  exact
+    ⟨hBodyTrans,
+      ⟨binderVars, hBinderEnv,
+        EoVarEnvPerm.concat_rev hBinderEnv hBound,
+        contains_atomic_term_list_free_rec_list_branch_false_body
+          hNoFree⟩⟩
