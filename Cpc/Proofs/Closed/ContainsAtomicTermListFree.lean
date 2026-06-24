@@ -80,30 +80,64 @@ by
   · exact Or.inl (hSub (s, T) hBound')
   · exact Or.inr hNotExcept
 
-/--
-Main semantic bridge needed by quantifier unused-variable rules.
-
-If `__contains_atomic_term_list_free_rec t except bound` says that no variable
-from `except` occurs free in `t` under the current bound-variable stack, then
-the SMT interpretation of `t` is insensitive to model changes on exactly those
-excepted variables.
-
-The proof is intentionally isolated here: it should be a structural induction on
-`t`, with the quantifier-shaped branch extending `bound` and using
-`model_agrees_except_on_env_push_same`.
--/
-theorem smt_model_eval_eq_of_contains_atomic_term_list_free_rec_false
-    {t except bound : Term}
-    {exceptVars boundVars : List SmtVarKey}
-    {M N : SmtModel}
-    (hTrans : eoHasSmtTranslation t)
-    (hExcept : EoSmtVarEnvPerm except exceptVars)
-    (hBound : EoSmtVarEnvPerm bound boundVars)
-    (hNoFree :
-      __contains_atomic_term_list_free_rec t except bound =
-        Term.Boolean false)
-    (hAgree : model_agrees_except_on_env exceptVars boundVars M N) :
-  __smtx_model_eval M (__eo_to_smt t) =
-    __smtx_model_eval N (__eo_to_smt t) :=
+private theorem eo_ite_false_eq_false_cases
+    {c e : Term}
+    (h : __eo_ite c (Term.Boolean false) e = Term.Boolean false) :
+  c = Term.Boolean true ∨ e = Term.Boolean false :=
 by
-  sorry
+  cases c <;> simp [__eo_ite, native_ite, native_teq] at h ⊢
+  case Boolean b =>
+    cases b
+    · right
+      simpa [__eo_ite, native_ite, native_teq] using h
+    · left
+      rfl
+
+/--
+The variable case of `__contains_atomic_term_list_free_rec`.
+
+For a variable, returning `false` means exactly the checker's local condition:
+either the variable is absent from the exception list, or it is present in the
+current bound-variable stack.
+-/
+theorem contains_atomic_term_list_free_rec_var_false_cases
+    {name T except bound : Term}
+    (hNoFree :
+      __contains_atomic_term_list_free_rec (Term.Var name T) except bound =
+        Term.Boolean false) :
+  __eo_is_neg
+      (__eo_list_find Term.__eo_List_cons except (Term.Var name T)) =
+      Term.Boolean true ∨
+    __eo_is_neg
+      (__eo_list_find Term.__eo_List_cons bound (Term.Var name T)) =
+      Term.Boolean false :=
+by
+  cases except <;> cases bound <;>
+    simp [__contains_atomic_term_list_free_rec] at hNoFree ⊢
+  all_goals
+    exact eo_ite_false_eq_false_cases hNoFree
+
+/--
+The quantifier-shaped/list-binder branch only asks the body about free
+variables, with the binder list appended to the bound-variable stack.
+-/
+theorem contains_atomic_term_list_free_rec_list_branch_false_body
+    {q x ys body except bound : Term}
+    (hNoFree :
+      __contains_atomic_term_list_free_rec
+          (Term.Apply
+            (Term.Apply q
+              (Term.Apply (Term.Apply Term.__eo_List_cons x) ys))
+            body)
+          except bound =
+        Term.Boolean false)
+    :
+  __contains_atomic_term_list_free_rec body except
+      (__eo_list_concat Term.__eo_List_cons
+        (Term.Apply (Term.Apply Term.__eo_List_cons x) ys) bound) =
+    Term.Boolean false :=
+by
+  cases except <;> cases bound <;>
+    simp [__contains_atomic_term_list_free_rec] at hNoFree ⊢
+  all_goals
+    exact hNoFree
