@@ -167,14 +167,36 @@ We define the following four types:
   \item \cmdlist, a list of Eunoia command, i.e. a proof.
 \end{itemize}
 
-SMT-LIB models themselves are a totalling mapping from identifiers
-(corresponding to variables, free constants and free functions)
-to SMT-LIB values.
+SMT-LIB models are a total mapping from identifiers to SMT-LIB values.
+This mapping provides the interpretation of variables, free constants,
+and free function symbols.
+Models are updatable, i.e. to evaluate a quantified formula, we consider
+all possible updates to the interpretation of the variable that is quantified.
+
 Note that Eunoia does not distinguish terms and types.
+Instead, we use a single \term datatype to represent them.
+This is for uniformity, as the semantics of Eunoia can be used to manipulate
+both terms and types.
+We provide two translation functions from Eunoia terms to SMT-LIB terms and
+types, as we describe below.
 
-We define the following key methods:
+A proof is represented as a list of commands.
+We will see that executing a command list updates a solver state,
+which is stack of proven formulas.
+At the beginning of this list is a list of commands that initialize the
+solver state with a list of assumed formulas,
+which we call the \emph{input assumptions} of the proof.
+A command list is expected to end with a step that concludes false.
+Full details on commands and checker state are given in Section~\ref{sec:commands}.
 
-\noindent\textbf{SMT-LIB definition:}
+We define the following key methods.
+We break these into three categories.
+First, methods that define the semantics of SMT-LIB.
+Second, methods that define the semantics of Eunoia terms
+based on a reduction to SMT-LIB.
+Third, the core methods that Logos depends on.
+
+\noindent\textbf{SMT-LIB definition (1954 LOC):}
 \begin{itemize}
   \item \smttypeof \code{:} \smtterm \code{->} \smttype
     \begin{itemize}
@@ -190,7 +212,7 @@ We define the following key methods:
     \end{itemize}
 \end{itemize}
 
-\noindent\textbf{Specification definition:}
+\noindent\textbf{Specification definition (602 LOC):}
 \begin{itemize}
   \item \eotosmt \code{:} \term \code{->} \smtterm
     \begin{itemize}
@@ -206,7 +228,7 @@ We define the following key methods:
     \end{itemize}
 \end{itemize}
 
-\noindent\textbf{Eunoia definitions:}
+\noindent\textbf{Logos definitions (8564 LOC):}
 \begin{itemize}
   \item \eotypeof \code{:} \term \code{->} \term
     \begin{itemize}
@@ -218,24 +240,47 @@ We define the following key methods:
     \end{itemize}
   \item \eoisrefutation \code{:} \cmdlist \code{->} \term \code{->} \bool
     \begin{itemize}
-      \item Returns true iff Logos successfully executes the given command list, and is a valid, closed proof of false
+      \item \eoisrefutation C F returns true iff Logos successfully executes the given command list C, and is a valid, closed proof of false with assumptions F.
     \end{itemize}
 \end{itemize}
 
+Our proof of correctness for Logos
+will state that under suitable assumptions, $\eoisrefutation C F$ implies $\eosatisfiability F \bot$.
+In other words, if we successfully execute Logos given a proof $C$ that assumes $F$,
+then indeed $F$ is unsatisfiable.
+Our trusted core for this specification is thus the definition of \eosatisfiability,
+which is contained in the SMT-LIB and speficiation layers.
+The third layer does not need to be trusted.
+Roughly, the first layer is roughly 1954 lines of Lean,
+the second layer is 602 lines of Lean,
+and the third layer is roughly 8564 lines of Lean.
+In other words, the Logos checker is 8564 lines,
+
 Note the following design decisions.
-First, the executable portion of the Logos checker does \emph{not} depend on the SMT-LIB definition or the specification definition.
-This means it is defined solely over the \term datatype.
-Second, the speficiation layer above does \emph{not} rely on the Eunoia definitions, e.g. of the Eunoia type system.
-Third, the definition of the Eunoia type system is encapsulated as a method, \eotypeof, which returns the type of a given Eunoia term.
+First, the executable portion of the Logos checker (the third layer) does \emph{not} depend on the SMT-LIB definition or the specification definition.
+Instead, they only share the common definition of Eunoia terms (\term).
+Note this means that the SMT-LIB semantics cannot be used as an oracle to define the Logos checker.
+This is in fact a real restriction, as for instance \smtmodeleval is a non-computable definition in Lean e.g. due to quantified formulas,
+and \eosatisfiability itself is defined based on quantifying over all SMT-LIB values \smtvalue.
+This also properly encapsulates the goal of this verification, namely the Logos definition is intended to be an accurate
+reflection of the calculus and proof checker in question (e.g. CPC and Ethos), which are reflected in the third layer.
+
+Also, the speficiation layer above does \emph{not} rely on the Eunoia definitions, e.g. of the Eunoia type system.
+This is for simplicity, i.e the specification of satisfiability remains as small as possible
+to minimize the trusted core.
+
+The definition of the Eunoia type system is encapsulated as a method, \eotypeof, which returns the type of a given Eunoia term.
 All computational side conditions are essentially untyped manipulations over a single deep embedding of Eunoia types and terms, as encapsulated as \term.
-A command (in \cmdlist) is either a proof step or an input assumption.\footnote{There are also commands for local assumptions and steps which close them.}
+A command (in \cmdlist) is either a proof step or an input assumption.\footnote{There are also commands for local assumptions and steps which close them as we describe in Section~\ref{sec:commands}.}
 A proof checking step in Eunoia succeeds iff the conclusion of that step has type \bool,
 i.e. \eotypeof for that term returns the Eunoia term \bool.
-An input assumption command succeeds if it is a \emph{closed} Eunoia term of type \bool.
+An input assumption command succeeds if it is a \emph{closed} Eunoia term of type \bool (via \eoisclosed).
 
 We now look in detail at these definitions.
 
 \section{SMT-LIB definition}
+
+We first discuss SMT-LIB types, terms and values.
 
 \subsection{Types}
 
@@ -393,7 +438,7 @@ e.g. in \code{DList} (0, 0) will refer to \code{head} and (0,1) to \code{tail}.
 Details on this will be given when values and terms are introduced
 (Sections~\ref{sec:values} and~\ref{sec:terms}).
 
-This definition permits three kinds of datatypes which we consider to be ill-formed.
+This definition permits four kinds of datatypes which we wish to exclude from input formulas.
 First, a type may contain a type reference that it not within the bounds of the datatype that it references.
 Examples of this kind of datatype are the following:
 \begin{examplecode}
@@ -422,25 +467,91 @@ contain a recursive reference to the datatype we are defining (the third example
 Third, a datatype may contain datatypes as field types that have the same name as the current datatype.
 An example of such a datatype is:
 \begin{examplecode}
-(Datatype "aliased" (sum (cons (Datatype "aliased" (cons unit nil)) nil)))
+(Datatype "aliased" (sum (cons (Datatype "aliased" (cons unit nil)) unit) nil))
 \end{examplecode}
-Above, the datatype contains a constructor whose field is a datatype
+Above, the datatype contains a single constructor whose field is a datatype
 with the same name.
 By convention, we also consider such datatypes to be ill-formed.
 
-For example, the type of the first constructor of the list datatype above is
+Fourth, a datatype may contain \emph{nested recursion}, that is, references to the datatype being defined
+beneath foreign types.
+An example of such a datatype is:
 \begin{examplecode}
-(DtcAppType Int (DtcAppType (Datatype "list" D) (Datatype "list" D)))
+(Datatype "nested-rec" (sum (cons (Map Int (TypeRef "nested-rec")) unit) null))
 \end{examplecode}
-In detail, this type
-is a function that expects an integer,
-and returns a function that expects a list and returns a list.
+Here, this datatype contains a single constructor
+having a single field that is of type \code{(Map Int (TypeRef "nested-rec"))},
+where note that the element sort of this map is a recursive reference to the datatype being defined.
+Such datatypes are generally not supported by SMT solvers,
+and moreover are not allowed by the SMT-LIB standard.
+In our definition, we will consider these datatypes to be ill-formed.
 
+
+%For example, the type of the first constructor of the list datatype above is
+%\begin{examplecode}
+%(DtcAppType Int (DtcAppType (Datatype "list" D) (Datatype "list" D)))
+%\end{examplecode}
+%In detail, this type
+%is a function that expects an integer,
+%and returns a function that expects a list and returns a list.
+
+\subsection{Models}
+\label{sec:models}
+
+\begin{figure}
+\begin{lstlisting}
+abbrev SmtNativeFun := SmtValue -> SmtValue
+
+structure SmtModelKey where
+  isVar : Bool
+  name : String
+  ty : SmtType
+deriving Repr, DecidableEq, Inhabited
+
+structure SmtModel where
+  values : SmtModelKey -> SmtValue
+  nativeFuns : SmtModelKey -> SmtNativeFun
+deriving Inhabited
+
+def model_push (M : SmtModel) (s : native_String) (T : SmtType) (v : SmtValue) : SmtModel :=
+  { M with values := fun k =>
+      if k = { isVar := true, name := s, ty := T } then
+        v
+      else
+        M.values k }
+\end{lstlisting}
+\caption{Models and update helpers.}
+\label{fig:smt-model}
+\end{figure}
+
+Before giving the definition of SMT-LIB values (\smtvalue), 
+we first give a definition of \smtmodel.
+A model consists of two mappings.
+The first (\code{values}) is a mapping from keys (as defined via the structure \code{SmtModelKey})
+to values.
+The second (\code{nativeFuns}) is a mapping from keys to native (unary) Lean functions.
+For both, a model key consists of three things:
+(1) whether the key is for a variable (resp. free constant),
+(2) a string identifier for the variable or constant, and
+(3) the type of the variable or constant.
+
+We will be only interested in models that have several properties,
+namely that they are total mappings (over both mappings).
+We also require that they are \emph{well-typed},
+namely, that they map identifiers having a given type to values with that type
+(for the mapping \code{values}).
+For the mapping \code{nativeFuns},
+for keys whose types are \code{FunType T U},
+we require that for all input values of type \code{T},
+the Lean function successfully returns a value of type \code{U}.
+
+We will additionally impose a property of \emph{canonicity}
+on the values that are mapped to by an SMT-LIB model, which we will describe later.
 
 \subsection{Values}
 \label{sec:values}
-
-\begin{figure}[p]
+\
+\begin{figure}
 \begin{lstlisting}
 inductive SmtValue : Type where
   | NotValue : SmtValue
@@ -453,10 +564,10 @@ inductive SmtValue : Type where
   | Set : SmtMap -> SmtValue
   | Seq : SmtSeq -> SmtValue
   | Char : Char -> SmtValue
-  | UValue : Nat -> Nat -> SmtValue
   | RegLan : SmtRegLan -> SmtValue
   | DtCons : String -> SmtDatatype -> Nat -> SmtValue
   | Apply : SmtValue -> SmtValue -> SmtValue
+  | UValue : Nat -> Nat -> SmtValue
 deriving Repr, DecidableEq, Inhabited, Ord
 
 inductive SmtMap : Type where
@@ -482,11 +593,132 @@ inductive SmtRegLan : Type where
   | comp : SmtRegLan -> SmtRegLan
 deriving Repr, DecidableEq, Inhabited, Ord
 \end{lstlisting}
-\caption{Regular-language, value, map, sequence, and datatype values.}
+\caption{SMT-LIB values, and auxiliary definitions of maps, sequences, and regular languages.}
 \label{fig:smt-values}
 \end{figure}
 
-\begin{figure}[p]
+Figure~\ref{fig:smt-values} contains
+the complete definition of SMT-LIB values,
+which roughly correspond one-to-one with SMT-LIB types.
+It is important to note that the definition of this datatype does not contain any nested recursion.
+In particular, we do not embed e.g. maps, sequences or sets over values
+as subfields of this datatype.
+Instead, these are reified as data.
+This datatype permits both values that are ill-typed as well as multiple
+values that are semantically equivalent.
+A subset of \smtvalue will be considered well-typed values, and
+a further subset of these will be considered \emph{canonical} values.
+
+Like types, we use an error constructor \code{NotValue} to denote a failure in model evaluation.
+We then have the atomic constructors for Booleans, integers and reals.
+The constructor for the first takes native Lean Booleans and integers respectively.
+Presently we assume that all values of type Real are rational (Rational),
+which make use of Lean's builtin Rat utility.
+For bitvectors, we use a constructor (called \code{Binary})
+that takes two integers as input denoting the bitwidth and the value.
+We assume that the bitwidth $w$ is non-negative and the value is in the range $[0, 2^w)$.
+Note that we do not make use of builtin naturals (Nat) or native Lean bit-vectors here.
+We chose not to use Nat to avoid having to overload many arithmetic operations
+when defining SMT-LIB evaluations (since SMT-LIB does not define Nat).
+We chose not to use native bit-vectors to avoid dependently typed programming.\footnote{
+This decision was made since Isabelle is an alternative target for compilation from Eunoia.}
+
+Map values are given by the constructor \code{Map},
+which takes an auxiliary datatype, \code{SmtMap} as an argument.
+The SMT map datatype itself is defined as a list of index, element pairs (via \code{SmtMap.cons})
+which indicate the \emph{stores} of the map value, followed
+with a default value (via \code{SmtMap.default}).
+In other words, \code{(cons (Int 0) (Int 1) (default (Int 2)))}
+represents the map where integer 0 is mapped to 1, and all other integers are mapped to 2.
+Maps will be used to represent values of the SMT-LIB type Array.
+Note that this is a slight divergence from the official semantics, which
+does not insist on a concrete interpretation of this type.
+This implies that our semantics will insist that Array is interpreted
+as almost-constant maps.
+Map values may contain redundant entries,
+for instance
+\code{(cons (Int 0) (Int 1) (cons (Int 0) (Int 3) (default (Int 2))))}
+represents the same map as the previous one, where the index 0 was "overwritten"
+at index 0 by the value 1.
+Similarly, the store in
+\code{(cons (Int 0) (Int 1) (default (Int 0)))}
+is also redundant.
+In general, this will require us to define a notion of canonicty of array
+values, which we define later.
+Furthermore more that a constructed map may not be typeable,
+e.g. \code{(const (Int 0) (Int 1) (default (Bool true)))}
+stores integer indices but has a different type of value as its default.
+We will see later that these values will be considered ill-typed.
+
+Function values are represented by the constructor \code{Fun},
+which takes three arguments (a string and two types).
+These arguments together are an identifier that is used to lookup
+the behavior of the function value in the model,
+as a native Lean function \smtvalue \code{->} \smtvalue.
+In detail, the first argument s is a string identifier,
+the second argument T is its domain type,
+and the third argument U is its range type.
+Given a model \code{M}, the behavior of a function value
+is the Lean function \code{M.nativeFuns false s (FunType T U)}.
+In other words, function values use a level of indirection for their definition.
+As a downside, this means that we cannot do computations over function values,
+nor can we define equality over function values in a manner that preserves
+extensionality.
+Note that two functions may be mapped to an identical 
+However, this ensures that our definition of the domain of functions is
+accurate with respect to SMT-LIB semantics of uninterpreted functions.
+
+Set values are represented by constructor \code{Set},
+which reuses the SMT map datatype that was used for the map type.
+Intuitively, this map maps all elements to whether they occur in the set.
+Like map values, there may be many ways of representing the same set.
+Note that for \emph{finite} sets, we will insist that the default value
+given to the set is false, i.e. a set is a finite list of elements
+(storing true), and the default says that no further elements are in the set.
+
+Sequence values are represented by constructor \code{Seq},
+which uses a different auxiliary datatype (\code{SmtSeq}) to represent them.
+This datatype is a simply a list of \smtvalue, where note that the empty
+sequence carries the type of its elements.
+Like maps and sets, it is possible to construct a ill-typed sequence
+by e.g. concatentation \code{(cons (Int 0) (cons (Bool true) (empty Int)))}.
+Recall that strings are defined as a sequence of chars.
+The next constructor (\code{Char}) defines elements of this sort,
+which are expected to be natural numbers within the range of characters
+specified by SMT-LIB (0 to 199607).
+
+Regular language values (\code{RegLan}) use an auxiliary datatype (\code{SmtRegLan})
+in their definition.
+
+
+Values of uninterpreted sort are represented by constructor \code{UValue},
+which take two natural number indicies.
+The first correspond to the identifier of their uninterpreted sort,
+where recall uninterpreted sorts are of the form \code{(USort n)} for natural
+number \code{n}.
+The second index is the identifier for the value,
+where we assume that \code{(UValue n i)} and \code{(UValue n j)} are distinct
+when i and j are distinct.
+This implies that uninterpreted sorts are implicitly assumed to be interpreted
+as infinite cardinality.
+Note that this does not necessarily hold for arbitrary SMT-LIB inputs.
+
+
+Recall that the primary purpose of values is to represent the
+output of model evaluation.
+We will impose certain restrictions on SMT-LIB values.
+In particular, 
+later we define \emph{canonical} as a property of (a subclass of) SMT-LIB values
+with the following behavior:
+two canonical values
+that are syntactically distinct are guaranteed to be semantically distinct.
+In other words, our model evaluator 
+Canonicity, however, does not apply to values over all types.
+
+\subsection{Terms}
+\label{sec:terms}
+
+\begin{figure}
 \begin{lstlisting}
 inductive SmtTerm : Type where
   | None : SmtTerm
@@ -512,45 +744,6 @@ deriving Repr, DecidableEq, Inhabited
 \end{lstlisting}
 \caption{A representative template of SMT term constructors.}
 \label{fig:smt-terms}
-\end{figure}
-
-\begin{figure}[p]
-\begin{lstlisting}
-abbrev SmtNativeFun := SmtValue -> SmtValue
-
-structure SmtModelKey where
-  isVar : Bool
-  name : String
-  ty : SmtType
-deriving Repr, DecidableEq, Inhabited
-
-structure SmtModel where
-  values : SmtModelKey -> SmtValue
-  nativeFuns : SmtModelKey -> SmtNativeFun
-deriving Inhabited
-
-/-- Lookup free constant with name s and type T -/
-def model_const_lookup (M : SmtModel) (s : native_String) (T : SmtType) : SmtValue :=
-  M.values { isVar := false, name := s, ty := T }
-
-/-- Lookup variable with name s and type T -/
-def model_var_lookup (M : SmtModel) (s : native_String) (T : SmtType) : SmtValue :=
-  M.values { isVar := true, name := s, ty := T }
-
-/-- Lookup function with name s and domain T and codomain U -/
-def model_fun_lookup (M : SmtModel) (s : native_String) (T U : SmtType) : SmtNativeFun :=
-  M.nativeFuns { isVar := false, name := s, ty := (SmtType.FunType T U) }
-
-/-- Updates model M to have variable with name s and type T be interpreted as v -/
-def model_push (M : SmtModel) (s : native_String) (T : SmtType) (v : SmtValue) : SmtModel :=
-  { M with values := fun k =>
-      if k = { isVar := true, name := s, ty := T } then
-        v
-      else
-        M.values k }
-\end{lstlisting}
-\caption{Model keys, model storage, and lookup/update helpers.}
-\label{fig:smt-model}
 \end{figure}
 
 \begin{figure}[p]
