@@ -810,6 +810,15 @@ by
         invoke_cmd_preserves_stateInvariant M hM s c hs hCmd
       simpa [__eo_invoke_cmd_list] using ih (__eo_invoke_cmd s c) hstep hTail
 
+/-- Every translatable assumption list translates to a Boolean-typed SMT term. -/
+theorem eo_has_bool_type_of_translatableAssumptionList (F : Term) :
+  TranslatableAssumptionList F -> RuleProofs.eo_has_bool_type F := by
+  intro hF
+  induction hF with
+  | base => exact RuleProofs.eo_has_bool_type_true
+  | step A rest hA hRest ih =>
+      exact RuleProofs.eo_has_bool_type_and_of_bool_args A rest hA ih
+
 /- correctness theorem for the checker -/
 /-- Main soundness theorem showing that a successful checker run yields an EO refutation. -/
 theorem correct___eo_is_refutation (F : Term) (pf : CCmdList) :
@@ -837,6 +846,5 @@ by
           simpa [S0, S1] using invoke_cmd_list_preserves_stateInvariant M hM S0 pf hInit hPfTrans
         exact refutation_contradiction_of_truthInvariant M F pf hF
           (checkerLocalTruthInvariant_implies_truthInvariant M hSteps.2.1) hChecker
-  apply smt_satisfiability.intro_false
-  intro M hM hSmt
-  exact hNoInterp M hM ((eo_interprets_iff_smt_interprets M F true).2 hSmt)
+  exact RuleProofs.smt_satisfiability_false_of_no_true F
+    (eo_has_bool_type_of_translatableAssumptionList F hFTrans) hNoInterp

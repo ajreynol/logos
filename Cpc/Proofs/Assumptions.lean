@@ -9,6 +9,10 @@ open Smtm
 def eoHasSmtTranslation (t : Term) : Prop :=
   __smtx_typeof (__eo_to_smt t) ≠ SmtType.None
 
+/-- Predicate asserting that an EO term translates to a Boolean-typed SMT term. -/
+def eoHasBoolType (t : Term) : Prop :=
+  __smtx_typeof (__eo_to_smt t) = SmtType.Bool
+
 /-- Predicate asserting that every element of an EO list has an SMT translation. -/
 def EoListAllHaveSmtTranslation : Term -> Prop
   | Term.__eo_List_nil => True
@@ -150,7 +154,7 @@ def cmdTranslationOk : CCmd -> Prop
 inductive TranslatableAssumptionList : Term -> Prop
   | base : TranslatableAssumptionList (Term.Boolean true)
   | step (A rest : Term) :
-      eoHasSmtTranslation A ->
+      eoHasBoolType A ->
       TranslatableAssumptionList rest ->
       TranslatableAssumptionList (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) rest)
 
