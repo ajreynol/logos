@@ -1363,12 +1363,45 @@ by
     hSameBody | hSameQuant
   · rcases hSameBody with ⟨hG, hGet⟩
     subst G
+    have hGetSet :
+        __get_unused_vars ((Q.Apply x).Apply F) F =
+          __eo_list_setof Term.__eo_List_cons x := by
+      simpa [qterm] using hGet
+    have hExceptSet :
+        EoVarEnvPerm (__eo_list_setof Term.__eo_List_cons x) exceptVars := by
+      simpa [hGetSet] using hExceptEnv
+    have hInExcept :
+        ∀ s T, (s, T) ∈ xVars ->
+          (s, __eo_to_smt_type T) ∈
+            exceptVars.map EoVarKey.toSmt := by
+      intro s T hMem
+      rcases EoVarEnv.setof_mem_of_mem hXEnv hMem with
+        ⟨setVars, hSetEnv, hSetMem⟩
+      have hExceptMem :
+          (s, T) ∈ exceptVars :=
+        EoVarEnvPerm.mem_of_exact_env_mem
+          hExceptSet hSetEnv hSetMem
+      exact List.mem_map.2
+        ⟨(s, T), hExceptMem, by simp [EoVarKey.toSmt]⟩
     have hNoFreeSet :
         __contains_atomic_term_list_free_rec F
             (__eo_list_setof Term.__eo_List_cons x) Term.__eo_List_nil =
           Term.Boolean false := by
       simpa [hGet] using hNoFree
-    sorry
+    have hBodyInvariant :
+        ∀ {N : SmtModel},
+          model_total_typed N ->
+            model_agrees_except_on_env
+                (exceptVars.map EoVarKey.toSmt) [] N M ->
+              __smtx_model_eval N (__eo_to_smt F) =
+                __smtx_model_eval M (__eo_to_smt F) := by
+      sorry
+    exact
+      smtx_model_eval_qterm_eq_body_of_body_eval_eq
+        hQ hLeftTrans hXEnv hM hInExcept hBodyInvariant
+        hM
+        (model_agrees_except_on_env_refl
+          (exceptVars.map EoVarKey.toSmt) [] M)
   · rcases hSameQuant with ⟨y, hG, hMinclude, hGet⟩
     subst G
     have hNoFreeDiff :
