@@ -14571,27 +14571,44 @@ private theorem congTypeSpine_re_diff_eq_has_bool_type
       rw [typeof_re_diff_eq, typeof_re_diff_eq, ha, hb])
     x₁ x₂ rhs
 
-private theorem set_is_empty_translation_no_type (x : Term) :
+private theorem set_is_empty_arg_non_reg_of_non_none (x : Term) :
     __smtx_typeof
         (__eo_to_smt (Term.Apply (Term.UOp UserOp.set_is_empty) x)) ≠
       SmtType.None ->
-    False := by
+      ∃ A,
+        __smtx_typeof (__eo_to_smt x) = A ∧
+          A ≠ SmtType.None ∧ A ≠ SmtType.RegLan := by
   intro hNN
+  let T :=
+    __eo_to_smt_set_elem_type (__smtx_typeof (__eo_to_smt x))
   have hEqNN :
       __smtx_typeof_eq
           (__smtx_typeof (__eo_to_smt x))
-          (__smtx_typeof_guard_wf
-            (SmtType.Set (__smtx_typeof (__eo_to_smt x)))
-            (SmtType.Set (__smtx_typeof (__eo_to_smt x)))) ≠
+          (__smtx_typeof (SmtTerm.set_empty T)) ≠
         SmtType.None := by
     change
       __smtx_typeof
           (SmtTerm.eq (__eo_to_smt x)
-            (SmtTerm.set_empty (__smtx_typeof (__eo_to_smt x)))) ≠
+            (SmtTerm.set_empty T)) ≠
         SmtType.None at hNN
-    rwa [typeof_eq_eq, smtx_typeof_set_empty_term_eq] at hNN
+    simpa [T, typeof_eq_eq] using hNN
   have hEqArgs := cong_smtx_typeof_eq_non_none hEqNN
-  exact cong_smt_type_ne_guard_wf_set_full_self hEqArgs.2 hEqArgs.1
+  refine ⟨__smtx_typeof (__eo_to_smt x), rfl, hEqArgs.2, ?_⟩
+  intro hReg
+  have hEmptyNN :
+      __smtx_typeof (SmtTerm.set_empty T) ≠ SmtType.None := by
+    rw [← hEqArgs.1]
+    exact hEqArgs.2
+  have hEmptyTy :
+      __smtx_typeof (SmtTerm.set_empty T) = SmtType.Set T := by
+    rw [smtx_typeof_set_empty_term_eq]
+    exact smtx_typeof_guard_wf_of_non_none
+      (SmtType.Set T) (SmtType.Set T) (by
+        simpa [smtx_typeof_set_empty_term_eq] using hEmptyNN)
+  have hSetReg : SmtType.Set T = SmtType.RegLan := by
+    rw [← hEmptyTy, ← hEqArgs.1]
+    exact hReg
+  cases hSetReg
 
 private theorem set_choose_arg_non_reg_of_non_none (x : Term) :
     __smtx_typeof
@@ -14739,17 +14756,31 @@ private theorem congTrueSpine_set_is_singleton_eq_true
     x rhs
 
 private theorem congTrueSpine_set_is_empty_eq_true
-    (M : SmtModel) (x rhs : Term) :
+    (M : SmtModel) (hM : model_total_typed M) (x rhs : Term) :
     RuleProofs.eo_has_bool_type
       (mkEq (Term.Apply (Term.UOp UserOp.set_is_empty) x) rhs) ->
     CongTrueSpine M (Term.Apply (Term.UOp UserOp.set_is_empty) x) rhs ->
     eo_interprets M
-      (mkEq (Term.Apply (Term.UOp UserOp.set_is_empty) x) rhs) true := by
-  intro hEqBool _hSpine
-  have hTypes :=
-    RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
-      (Term.Apply (Term.UOp UserOp.set_is_empty) x) rhs hEqBool
-  exact False.elim (set_is_empty_translation_no_type x hTypes.2)
+      (mkEq (Term.Apply (Term.UOp UserOp.set_is_empty) x) rhs) true :=
+  congTrueSpine_eotype_non_reg_unop_eq_true_of_eval_congr
+    M hM UserOp.set_is_empty
+    set_is_empty_arg_non_reg_of_non_none
+    (by
+      intro a b hSmt hEo hEval
+      let T₁ :=
+        __eo_to_smt_set_elem_type (__smtx_typeof (__eo_to_smt a))
+      let T₂ :=
+        __eo_to_smt_set_elem_type (__smtx_typeof (__eo_to_smt b))
+      have hT : T₁ = T₂ := by
+        dsimp [T₁, T₂]
+        rw [hSmt]
+      change
+        __smtx_model_eval M
+            (SmtTerm.eq (__eo_to_smt a) (SmtTerm.set_empty T₁)) =
+          __smtx_model_eval M
+            (SmtTerm.eq (__eo_to_smt b) (SmtTerm.set_empty T₂))
+      rw [hT, smtx_model_eval_eq_term_eq, smtx_model_eval_eq_term_eq, hEval])
+    x rhs
 
 private theorem congTypeSpine_set_is_empty_eq_has_bool_type
     (x rhs : Term) :
@@ -14758,8 +14789,23 @@ private theorem congTypeSpine_set_is_empty_eq_has_bool_type
     CongTypeSpine (Term.Apply (Term.UOp UserOp.set_is_empty) x) rhs ->
     RuleProofs.eo_has_bool_type
       (mkEq (Term.Apply (Term.UOp UserOp.set_is_empty) x) rhs) := by
-  intro hTrans _hSpine
-  exact False.elim (set_is_empty_translation_no_type x hTrans)
+  intro hTrans hSpine
+  refine congTypeSpine_typecongr_eotype_unop_eq_has_bool_type
+    UserOp.set_is_empty ?_ x rhs hTrans hSpine
+  intro a b hSmt hEo
+  let T₁ :=
+    __eo_to_smt_set_elem_type (__smtx_typeof (__eo_to_smt a))
+  let T₂ :=
+    __eo_to_smt_set_elem_type (__smtx_typeof (__eo_to_smt b))
+  have hT : T₁ = T₂ := by
+    dsimp [T₁, T₂]
+    rw [hSmt]
+  change
+    __smtx_typeof
+        (SmtTerm.eq (__eo_to_smt a) (SmtTerm.set_empty T₁)) =
+      __smtx_typeof
+        (SmtTerm.eq (__eo_to_smt b) (SmtTerm.set_empty T₂))
+  rw [hT, typeof_eq_eq, typeof_eq_eq, hSmt]
 
 private theorem set_binop_args_non_reg_of_non_none
     (op : SmtTerm -> SmtTerm -> SmtTerm)
@@ -19149,7 +19195,9 @@ private theorem uop_apply_typeof_none_of_arg_none
         change
           __smtx_typeof
             (SmtTerm.eq (__eo_to_smt x)
-              (SmtTerm.set_empty (__smtx_typeof (__eo_to_smt x)))) =
+              (SmtTerm.set_empty
+                (__eo_to_smt_set_elem_type
+                  (__smtx_typeof (__eo_to_smt x))))) =
             SmtType.None
         rw [typeof_eq_eq, hx]
         rfl
@@ -22699,7 +22747,7 @@ private theorem congTrueSpine_eq_true
       exact congTrueSpine_str_indexof_re_split_eq_true M hM
         x₁ x₂ x₃ rhs hEqBool hSpine
   | Term.Apply (Term.UOp UserOp.set_is_empty) x =>
-      exact congTrueSpine_set_is_empty_eq_true M x rhs hEqBool hSpine
+      exact congTrueSpine_set_is_empty_eq_true M hM x rhs hEqBool hSpine
   | Term.Apply (Term.UOp UserOp.set_choose) x =>
       exact congTrueSpine_set_choose_eq_true M hM x rhs hEqBool hSpine
   | Term.Apply (Term.UOp UserOp.set_singleton) x =>
@@ -23374,7 +23422,7 @@ private theorem congTrueSpine_eq_true
                           (by intro a; rw [smtx_model_eval_seq_unit_term_eq])
                           x (Term.Apply g y) hEqBool hApp
                       case set_is_empty =>
-                        exact congTrueSpine_set_is_empty_eq_true M
+                        exact congTrueSpine_set_is_empty_eq_true M hM
                           x (Term.Apply g y) hEqBool hApp
                       case set_singleton =>
                         exact congTrueSpine_non_reg_unop_eq_true M hM
