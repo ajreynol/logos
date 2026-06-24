@@ -81,9 +81,9 @@ private theorem t7_has_bool_type : RuleProofs.eo_has_bool_type t7 := by
 example : TranslatableAssumptionList assumptions := by
   unfold assumptions
   apply TranslatableAssumptionList.step
-  · exact t7_has_bool_type
+  · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _ t7_has_bool_type
   · apply TranslatableAssumptionList.step
-    · exact t4_has_bool_type
+    · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _ t4_has_bool_type
     · exact TranslatableAssumptionList.base
 
 example : CmdListTranslationOk proof := by

@@ -1518,7 +1518,7 @@ by
         simpa [checkerTranslationInvariant] using
           (show RuleProofs.eo_has_smt_translation A ∧
               checkerTranslationInvariant (__eo_invoke_assume_list CState.nil rest) from
-            ⟨RuleProofs.eo_has_smt_translation_of_has_bool_type A hA, ih⟩)
+            ⟨hA, ih⟩)
       · change checkerTranslationInvariant
           (__eo_push_input_assume_check (assumptionCheckGuard A) A
             (__eo_invoke_assume_list CState.nil rest))
