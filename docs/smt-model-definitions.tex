@@ -240,12 +240,12 @@ Third, the core methods that Logos depends on.
     \end{itemize}
   \item \eoisrefutation \code{:} \cmdlist \code{->} \term \code{->} \bool
     \begin{itemize}
-      \item \eoisrefutation C F returns true iff Logos successfully executes the given command list C, and is a valid, closed proof of false with assumptions F.
+      \item \eoisrefutation $C$ $F$ returns true iff Logos successfully executes the given command list $C$, and is a valid, closed proof of false with assumptions $F$.
     \end{itemize}
 \end{itemize}
 
 Our proof of correctness for Logos
-will state that under suitable assumptions, $\eoisrefutation C F$ implies $\eosatisfiability F \bot$.
+will state that under suitable assumptions, \eoisrefutation $C$ $F$ implies \eosatisfiability $F$ $\bot$.
 In other words, if we successfully execute Logos given a proof $C$ that assumes $F$,
 then indeed $F$ is unsatisfiable.
 Our trusted core for this specification is thus the definition of \eosatisfiability,
@@ -542,15 +542,15 @@ namely, that they map identifiers having a given type to values with that type
 (for the mapping \code{values}).
 For the mapping \code{nativeFuns},
 for keys whose types are \code{FunType T U},
-we require that for all input values of type \code{T},
-the Lean function successfully returns a value of type \code{U}.
+we require that for all input values of type $T$,
+the Lean function successfully returns a value of type $U$.
 
 We will additionally impose a property of \emph{canonicity}
 on the values that are mapped to by an SMT-LIB model, which we will describe later.
 
 \subsection{Values}
 \label{sec:values}
-\
+
 \begin{figure}
 \begin{lstlisting}
 inductive SmtValue : Type where
@@ -655,10 +655,10 @@ which takes three arguments (a string and two types).
 These arguments together are an identifier that is used to lookup
 the behavior of the function value in the model,
 as a native Lean function \smtvalue \code{->} \smtvalue.
-In detail, the first argument s is a string identifier,
-the second argument T is its domain type,
-and the third argument U is its range type.
-Given a model \code{M}, the behavior of a function value
+In detail, the first argument $s$ is a string identifier,
+the second argument $T$ is its domain type,
+and the third argument $U$ is its range type.
+Given a model $M$, the behavior of a function value
 is the Lean function \code{M.nativeFuns false s (FunType T U)}.
 In other words, function values use a level of indirection for their definition.
 As a downside, this means that we cannot do computations over function values,
@@ -736,10 +736,10 @@ Values of uninterpreted sort are represented by constructor \code{UValue},
 which take two natural number indicies.
 The first correspond to the identifier of their uninterpreted sort,
 where recall uninterpreted sorts are of the form \code{(USort n)} for natural
-number \code{n}.
+number $n$.
 The second index is the identifier for the value,
 where we assume that \code{(UValue n i)} and \code{(UValue n j)} are distinct
-when i and j are distinct.
+when $i$ and $j$ are distinct.
 This implies that uninterpreted sorts are implicitly assumed to be interpreted
 as infinite cardinality.
 Note that this does not necessarily hold for arbitrary SMT-LIB inputs.
@@ -1408,7 +1408,8 @@ theorem eo_to_smt_well_typed_and_typeof_implies_smt_type
 
 \clearpage
 
-\section*{Logos Checker}
+\section{Logos Checker}
+\label{sec:commands}
 
 \begin{figure}[p]
 \begin{lstlisting}
