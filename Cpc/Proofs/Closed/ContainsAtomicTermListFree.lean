@@ -796,6 +796,14 @@ by
   subst exactVars
   exact (hEquiv key).1 hMem
 
+theorem EoVarEnvPerm.ne_stuck
+    {env : Term} {vars : List EoVarKey}
+    (hEnv : EoVarEnvPerm env vars) :
+  env ≠ Term.Stuck :=
+by
+  rcases hEnv with ⟨_, hExact, _⟩
+  exact hExact.ne_stuck
+
 theorem EoVarEnvPerm.mem_of_find_neg_false
     {env : Term} {vars : List EoVarKey}
     (hEnv : EoVarEnvPerm env vars)
@@ -885,6 +893,25 @@ by
   intro hMem
   exact hNotMem
     (EoVarKey.mem_of_toSmt_mem_map_of_type_wf hWf hMem)
+
+theorem smtx_type_wf_of_var_has_smt_translation
+    {s : native_String} {T : Term}
+    (hTrans :
+      eoHasSmtTranslation (Term.Var (Term.String s) T)) :
+  __smtx_type_wf (__eo_to_smt_type T) = true :=
+by
+  have hGuardNN :
+      __smtx_typeof_guard_wf
+          (__eo_to_smt_type T) (__eo_to_smt_type T) ≠
+        SmtType.None := by
+    have hNN :
+        __smtx_typeof (SmtTerm.Var s (__eo_to_smt_type T)) ≠
+          SmtType.None := by
+      simpa [eoHasSmtTranslation] using hTrans
+    simpa [__smtx_typeof] using hNN
+  exact
+    smtx_typeof_guard_wf_wf_of_non_none
+      (__eo_to_smt_type T) (__eo_to_smt_type T) hGuardNN
 
 theorem EoVarEnvPerm.concat_rev
     {vs env : Term} {binderVars vars : List EoVarKey}
@@ -1894,6 +1921,105 @@ by
     simpa [is_closed_rec_eq_eo_is_closed_of_has_smt_translation hTrans]
       using hClosedRec
   exact smt_model_eval_eq_of_eo_closed t hClosed M N hAgree.globals
+
+theorem smt_model_eval_eq_of_contains_atomic_term_list_free_rec_fallback_mapped
+    {t except bound : Term} {exceptVars boundVars : List EoVarKey}
+    {M N : SmtModel}
+    (hTrans : eoHasSmtTranslation t)
+    (hNoFree :
+      __eo_requires (__is_closed_rec t Term.__eo_List_nil)
+          (Term.Boolean true) (Term.Boolean false) =
+        Term.Boolean false)
+    (hAgree :
+      model_agrees_except_on_env
+        (exceptVars.map EoVarKey.toSmt) (boundVars.map EoVarKey.toSmt)
+        M N) :
+  __smtx_model_eval M (__eo_to_smt t) =
+    __smtx_model_eval N (__eo_to_smt t) :=
+by
+  have hClosedRec :
+      __is_closed_rec t Term.__eo_List_nil = Term.Boolean true :=
+    eo_requires_true_false_eq_false hNoFree
+  have hClosed :
+      __eo_is_closed t = Term.Boolean true := by
+    simpa [is_closed_rec_eq_eo_is_closed_of_has_smt_translation hTrans]
+      using hClosedRec
+  exact smt_model_eval_eq_of_eo_closed t hClosed M N hAgree.globals
+
+theorem contains_atomic_term_list_free_rec_fallback_eq_of_shape
+    {t except bound : Term}
+    (hExcept : except ≠ Term.Stuck)
+    (hBound : bound ≠ Term.Stuck)
+    (hNotStuck : t ≠ Term.Stuck)
+    (hNotApply : ∀ f a, t ≠ Term.Apply f a)
+    (hNotVar : ∀ name T, t ≠ Term.Var name T)
+    (hNoFree :
+      __contains_atomic_term_list_free_rec t except bound =
+        Term.Boolean false) :
+  __eo_requires (__is_closed_rec t Term.__eo_List_nil)
+      (Term.Boolean true) (Term.Boolean false) =
+    Term.Boolean false :=
+by
+  cases t
+  case Stuck =>
+    exact False.elim (hNotStuck rfl)
+  case Apply f a =>
+    exact False.elim (hNotApply f a rfl)
+  case Var name T =>
+    exact False.elim (hNotVar name T rfl)
+  all_goals
+    cases except <;> cases bound <;>
+      simp [__contains_atomic_term_list_free_rec] at hNoFree ⊢
+  all_goals
+    exact hNoFree
+
+theorem smt_model_eval_eq_of_contains_atomic_term_list_free_rec_non_apply_false_mapped
+    {t except bound : Term} {exceptVars boundVars : List EoVarKey}
+    {M N : SmtModel}
+    (hExcept : EoVarEnvPerm except exceptVars)
+    (hBound : EoVarEnvPerm bound boundVars)
+    (hTrans : eoHasSmtTranslation t)
+    (hNotApply : ∀ f a, t ≠ Term.Apply f a)
+    (hNoFree :
+      __contains_atomic_term_list_free_rec t except bound =
+        Term.Boolean false)
+    (hAgree :
+      model_agrees_except_on_env
+        (exceptVars.map EoVarKey.toSmt) (boundVars.map EoVarKey.toSmt)
+        M N) :
+  __smtx_model_eval M (__eo_to_smt t) =
+    __smtx_model_eval N (__eo_to_smt t) :=
+by
+  cases t
+  case Stuck =>
+      simp [__contains_atomic_term_list_free_rec] at hNoFree
+  case Apply f a =>
+      exact False.elim (hNotApply f a rfl)
+  case Var name T =>
+      cases name
+      case String s =>
+          exact
+            smt_model_eval_var_eq_of_contains_atomic_term_list_free_rec_false_mapped
+              hExcept hBound
+              (smtx_type_wf_of_var_has_smt_translation hTrans)
+              hNoFree hAgree
+      all_goals
+        exfalso
+        unfold eoHasSmtTranslation at hTrans
+        change __smtx_typeof SmtTerm.None ≠ SmtType.None at hTrans
+        exact hTrans TranslationProofs.smtx_typeof_none
+  all_goals
+    have hReq :=
+      contains_atomic_term_list_free_rec_fallback_eq_of_shape
+        (EoVarEnvPerm.ne_stuck hExcept)
+        (EoVarEnvPerm.ne_stuck hBound)
+        (by intro h; cases h)
+        hNotApply
+        (by intro name T h; cases h)
+        hNoFree
+    exact
+      smt_model_eval_eq_of_contains_atomic_term_list_free_rec_fallback_mapped
+        (except := except) (bound := bound) hTrans hReq hAgree
 
 /--
 The obligations needed by the recursive semantic proof in the quantifier-shaped
