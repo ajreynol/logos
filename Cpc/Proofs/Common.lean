@@ -6,6 +6,19 @@ open Eo
 open SmtEval
 open Smtm
 
+/-- Proof-side bridge predicate: an SMT term is Boolean-typed and evaluates to `b`.
+    Formerly defined in the model; now a proof-only helper after `smt_satisfiability`
+    was simplified to refer to `__smtx_model_eval` directly. -/
+inductive smt_interprets : SmtModel -> SmtTerm -> Bool -> Prop
+  | intro_true  (M : SmtModel) (t : SmtTerm) :
+      (__smtx_typeof t) = SmtType.Bool ->
+      (__smtx_model_eval M t) = (SmtValue.Boolean true) ->
+      (smt_interprets M t true)
+  | intro_false (M : SmtModel) (t : SmtTerm) :
+      (__smtx_typeof t) = SmtType.Bool ->
+      (__smtx_model_eval M t) = (SmtValue.Boolean false)->
+      smt_interprets M t false
+
 /-- Proof-side EO interpretation after the core translation bridge was flattened. -/
 def eo_interprets (M : SmtModel) (t : Term) (b : Bool) : Prop :=
   smt_interprets M (__eo_to_smt t) b
@@ -232,7 +245,7 @@ theorem smt_satisfiability_false_of_no_true (t : Term)
   | true =>
       exact absurd (eo_interprets_of_bool_eval M t true hTy hb) (h M hM)
   | false =>
-      exact eo_interprets_of_bool_eval M t false hTy hb
+      exact hb
 
 /-- Shows that an EO term cannot be interpreted as both `true` and `false`. -/
 theorem eo_interprets_true_not_false (M : SmtModel) (t : Term) :
