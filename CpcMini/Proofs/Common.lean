@@ -222,6 +222,20 @@ theorem eo_eval_is_boolean_of_has_bool_type
   intro hTy
   exact smt_model_eval_bool_is_boolean M hM (__eo_to_smt t) hTy
 
+/-- A Boolean-typed term with no `true` interpretation is false in every model. -/
+theorem smt_satisfiability_false_of_no_true (t : Term)
+    (hTy : eo_has_bool_type t)
+    (h : ∀ M : SmtModel, model_total_typed M -> ¬ eo_interprets M t true) :
+    smt_satisfiability (__eo_to_smt t) false := by
+  apply smt_satisfiability.intro_false
+  intro M hM
+  rcases eo_eval_is_boolean_of_has_bool_type M hM t hTy with ⟨b, hb⟩
+  cases b with
+  | true =>
+      exact absurd (eo_interprets_of_bool_eval M t true hTy hb) (h M hM)
+  | false =>
+      exact eo_interprets_of_bool_eval M t false hTy hb
+
 /-- Lemma about `eo_interprets_true_not_false`. -/
 theorem eo_interprets_true_not_false (M : SmtModel) (t : Term) :
   eo_interprets M t true -> ¬ eo_interprets M t false := by

@@ -988,6 +988,33 @@ by
               simpa [__eo_invoke_cmd_list] using
                 ih (__eo_invoke_cmd s c) hstep hTail hTailStable
 
+/-- A checked, translatable assumption list translates to a Boolean-typed SMT term.
+The Boolean typing comes from the checker's assumption guard (via `stateOk`); translatability
+alone only guarantees a non-`None` translation. -/
+theorem eo_has_bool_type_of_translatableAssumptionList (F : Term) :
+  TranslatableAssumptionList F ->
+  stateOk (__eo_invoke_assume_list CState.nil F) ->
+  RuleProofs.eo_has_bool_type F := by
+  intro hF
+  induction hF with
+  | base =>
+      intro _
+      exact RuleProofs.eo_has_bool_type_true
+  | step A rest hA hRest ih =>
+      intro hOk
+      have hPushOk :
+          stateOk (__eo_push_input_assume_check (assumptionCheckGuard A) A
+            (__eo_invoke_assume_list CState.nil rest)) := by
+        simpa [__eo_invoke_assume_list] using hOk
+      have hTyA : __eo_typeof A = Term.Bool :=
+        push_input_assume_typeof_bool_of_stateOk A
+          (__eo_invoke_assume_list CState.nil rest) hPushOk
+      have hRestOk : stateOk (__eo_invoke_assume_list CState.nil rest) :=
+        push_input_assume_reflects_stateOk A
+          (__eo_invoke_assume_list CState.nil rest) hPushOk
+      exact RuleProofs.eo_has_bool_type_and_of_bool_args A rest
+        (RuleProofs.eo_typeof_bool_implies_has_bool_type A hA hTyA) (ih hRestOk)
+
 /- correctness theorem for the checker -/
 /-- Main soundness theorem showing that a successful checker run yields an EO refutation. -/
 theorem correct___eo_is_refutation (F : Term) (pf : CCmdList) :
@@ -1021,6 +1048,10 @@ by
             hInit hPfTrans hPfStable
         exact refutation_contradiction_of_truthInvariant M F pf hF
           (checkerLocalTruthInvariant_implies_truthInvariant M hSteps.2.1) hChecker
-  apply smt_satisfiability.intro_false
-  intro M hM hSmt
-  exact hNoInterp M hM ((eo_interprets_iff_smt_interprets M F true).2 hSmt)
+  have hS0Ok : stateOk (__eo_invoke_assume_list CState.nil F) := by
+    cases hRef with
+    | intro hChecker =>
+        exact invoke_cmd_list_reflects_stateOk (__eo_invoke_assume_list CState.nil F) pf
+          (final_stateOk_of_checker_true F pf hChecker)
+  exact RuleProofs.smt_satisfiability_false_of_no_true F
+    (eo_has_bool_type_of_translatableAssumptionList F hFTrans hS0Ok) hNoInterp
