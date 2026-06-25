@@ -510,6 +510,9 @@ Such datatypes are generally not supported by SMT solvers,
 and moreover are not allowed by the SMT-LIB standard.
 In our definition, we will consider these datatypes to be ill-formed.
 
+\subsubsection{Datatype Unfolding}
+\label{sec:datatypes-substitute}
+
 A common operation on datatypes in this representation is a \emph{one-step unfolding},
 which replaces recursive references to the datatype by itself.
 This operation is used when giving type rules for datatype constructors, selectors
@@ -538,7 +541,7 @@ def smt_dt_substitute (s : native_String) (d : SmtDatatype) : SmtDatatype -> Smt
 \end{figure}
 
 In detail, the method \code{(smt_dt_substitute s d)}
-take a datatype and replaces all references (\code{(SmtType.TypeRef s)}) in that datatype
+takes a datatype and replaces the desired references (\code{(SmtType.TypeRef s)}) in that datatype
 with \code{(SmtType.Datatype s d)}.
 This is a simple recursive method, where we traverse the constructors of the
 datatype, each field of that datatype and apply \code{(smt_type_substitute s d)}
@@ -555,7 +558,7 @@ we replace it by \code{(SmtType.Datatype s d)}, otherwise it is unchanged.
 In all other cases, the datatype is unchanged.
 This implies that for e.g. nested recursive datatypes,
 type references to the datatype we are unfolding are not replaced.
-Again, this behavior is arbtirary as we do not consider datatypes with nested 
+Again, this behavior is arbitrary as we do not consider datatypes with nested 
 recursion to be well-formed.
 
 \subsection{Models}
@@ -563,8 +566,6 @@ recursion to be well-formed.
 
 \begin{figure}
 \begin{lstlisting}
-abbrev SmtNativeFun := SmtValue -> SmtValue
-
 structure SmtModelKey where
   isVar : Bool
   name : String
@@ -573,7 +574,7 @@ deriving Repr, DecidableEq, Inhabited
 
 structure SmtModel where
   values : SmtModelKey -> SmtValue
-  nativeFuns : SmtModelKey -> SmtNativeFun
+  nativeFuns : SmtModelKey -> (SmtValue -> SmtValue)
 deriving Inhabited
 
 def model_push (M : SmtModel) (s : native_String) (T : SmtType) (v : SmtValue) : SmtModel :=
@@ -599,15 +600,15 @@ For both, a model key consists of three things:
 (3) the type of the variable or constant.
 
 We will be only interested in models that have several properties,
-namely that they are total mappings (over both mappings).
+namely that they are total mappings (over both value and function mappings).
 We also require that they are \emph{well-typed},
 namely, that they map identifiers having a given type to values with that type
 (for the mapping \code{values}).
 For the mapping \code{nativeFuns},
-for keys whose types are \code{FunType T U},
+for keys whose types are \code{(FunType T U)},
 we require that for all input values of type $T$,
 the Lean function successfully returns a value of type $U$.
-
+All other indices in either map are not used.
 We will additionally impose a property of \emph{canonicity}
 on the values that are mapped to by an SMT-LIB model, which we will describe later.
 
@@ -658,6 +659,11 @@ deriving Repr, DecidableEq, Inhabited, Ord
 
 def veq : SmtValue -> SmtValue -> Bool
   | x, y => decide (x = y)
+
+def vcmp (v1 : SmtValue) (v2 : SmtValue) : native_Bool :=
+  match compare v1 v2 with
+  | Ordering.lt => true
+  | _ => false
 \end{lstlisting}
 \caption{SMT-LIB values, and auxiliary definitions of maps, sequences, and regular languages.}
 \label{fig:smt-values}
@@ -813,6 +819,12 @@ Note that this does not necessarily hold for arbitrary SMT-LIB inputs.
 
 Values have the same type class properties as types,
 and can be compared with \code{veq}.
+We will additionally require an (arbitrary total) ordering over types,
+which we define as \code{vcmp}.
+Note that this definition requires an instantiation over the native Lean
+types that are used within this datatype.
+In practice, this required us to define a total ordering over Lean rationals (\code{Rat}) for this
+purpose; the ordering for all other types were automatic.
 
 Recall that the primary purpose of values is to represent the
 output of model evaluation.
@@ -939,6 +951,11 @@ For the latter, our semantics of quantified formulas will be bottom-up,
 where inner quantified formulas essentially override the interpretation of
 variables, so that \code{(Var "x" Int)} is effectively bound
 by the innermost binder, in this case, it is extentionally bound.
+Note that we do not include a constructor for \code{lambda},
+as our formulation does not consider higher-order constructs.
+CPC will define one further binder for a variant of Hilbert's choice operator.
+This operator however is specific to the implementation of the CPC calculus,
+so we omit it from discussion here.
 
 The last term constructor \code{UConst} denotes free (uninterpreted) constants.
 Note that a free constant may have a function type.
@@ -948,7 +965,12 @@ a parallel mapping for variables and constants.
 In contrast, the interpretation of variables is updatable in model (e.g.
 when evaluating binders), where the interpretation of a constant is fixed.
 
-\subsection{Types for Values and Terms}
+\subsection{Types and Canonicity for SMT-LIB Values}
+
+In this section,
+we present type rules for SMT-LIB values and terms.
+Type rules will be used to define the semantics of quantified formulas
+and our definition of SMT-LIB models.
 
 \begin{figure}[p]
 \begin{lstlisting}
@@ -960,6 +982,10 @@ def smt_typeof_map_value : SmtMap -> SmtType
     let _v0 := (smt_typeof_map_value m)
     (native_ite (Teq (SmtType.Map (smt_typeof_value i) (smt_typeof_value e)) _v0) _v0 SmtType.None)
   | (SmtMap.default T e) => (SmtType.Map T (smt_typeof_value e))
+
+def smt_map_to_set_type : SmtType -> SmtType
+  | (SmtType.Map T SmtType.Bool) => (SmtType.Set T)
+  | T => SmtType.None
   
 def smt_typeof_seq_value : SmtSeq -> SmtType
   | (SmtSeq.cons v vs) => 
@@ -967,23 +993,23 @@ def smt_typeof_seq_value : SmtSeq -> SmtType
     (native_ite (Teq (SmtType.Seq (smt_typeof_value v)) _v0) _v0 SmtType.None)
   | (SmtSeq.empty T) => (SmtType.Seq T)
   
-def smt_map_to_set_type : SmtType -> SmtType
-  | (SmtType.Map T SmtType.Bool) => (SmtType.Set T)
-  | T => SmtType.None
-  
+def smt_typeof_dt_cons_value_rec (T : SmtType) : SmtDatatype -> native_Nat -> SmtType
+  | (SmtDatatype.sum SmtDatatypeCons.unit d), native_nat_zero => T
+  | (SmtDatatype.sum (SmtDatatypeCons.cons U c) d), native_nat_zero => 
+    (SmtType.DtcAppType U (smt_typeof_dt_cons_value_rec T (SmtDatatype.sum c d) native_nat_zero))
+  | (SmtDatatype.sum c d), (native_nat_succ n) => (smt_typeof_dt_cons_value_rec T d n)
+  | d, n => SmtType.None
+
 def smt_typeof_apply_value : SmtType -> SmtType -> SmtType
   | (SmtType.DtcAppType T U), V => (smt_typeof_guard T (native_ite (Teq T V) U SmtType.None))
   | T, U => SmtType.None
-
+  
 ...
 
 def smt_typeof_value : SmtValue -> SmtType
   | (SmtValue.Boolean b) => SmtType.Bool
   | (SmtValue.Binary w n) =>
-      if 0 <= w ∧ n = n % (2 ^ Int.toNat w) then
-        SmtType.BitVec (Int.toNat w)
-      else
-        SmtType.None
+      if 0 <= w ∧ n = n % (2 ^ w) then SmtType.BitVec (Int.toNat w) else SmtType.None
   | (SmtValue.Map m) => (smt_typeof_map_value m)
   | (SmtValue.Set m) => (smt_map_to_set_type (smt_typeof_map_value m))
   | (SmtValue.Seq ss) => (smt_typeof_seq_value ss)
@@ -996,28 +1022,299 @@ def smt_typeof_value : SmtValue -> SmtType
 \label{fig:typeof-value}
 \end{figure}
 
-We now present
+We definition \smttypeofvalue is given in Figure~\ref{{fig:typeof-value}.
+We present a representative subset of value cases.
+
+This method first contains the obvious base cases for e.g. Boolean values.
+For bit-vector values (\code{Binary}), we consider only values that
+specify well-formed and canonical bit-vector values to be well-typed.
+In particular, this means their bitwidth must be non-negative
+and their value must be in the interval $[0, 2^w)$; otherwise they
+are ill-typed (i.e. have type \code{SmtType.None}).
+
+Recall that maps and set values share a common payload (\code{SmtMap}).
+We define a method computing the type for this datatype (\code{smt_typeof_map_value}).
+In particular, note that a map is considered ill-typed if any \code{cons}
+term has index and element type that does not match the tail.
+For sets, we cast the type for the returned map to a set type (method \code{smt_map_to_set_type}),
+noting that the element type of the map must be \code{Bool}.
+
+Sequences values are typed similarly using a recursive method \code{smt_typeof_seq_value}.
+Like maps and sets, this may return that the sequence is ill-typed if any
+element does not match the element type of its tail.
+
+Datatype constructor values use a recursive method to compute their type
+as well. This method \code{smt_typeof_dt_cons_value_rec} take the return
+type of the constructor and the index of constructor in question.
+If n is not zero, we recurse to the next constructor.
+If n is zero, then for each field type, we prepend an argument type
+via the partially applied constructor type \code{SmtType.DtcAppType}.
+
+Recall that apply values apply partially applied constructors to arguments.
+This uses a helper method \code{smt_typeof_apply_value},
+which notice only applies to \code{SmtType.DtcAppType}.
+In this defintition, the application is only well typed if
+(1) the argument type is not \code{SmtType.None},
+and (2) matches the domain type of the constructor type.
+We use \code{Teq} (syntactic equality on SMT-LIB types) for this purpose.
+Note that this implies that all syntactically distinct types are considered to be distinct,
+and there is no notion of type equivalence.
+
+\subsubsection{Type Finiteness and Value Defaults and Value Canonicity}
+
+We now turn our attention to defining a notion of \emph{canonical} SMT-LIB value.
+This will require two prerequisite definitions.
+First, we will require defining a predicate for deciding whether a type is finite.
+Second, we require defining a "default value" for a given type, that is,
+a method for constructs an arbitrary value for a given type.
+These both will impact our definition of canonicity for map values.
+The latter will additionally be used to define our notion of inhabited types.
+
+\begin{figure}
+\begin{lstlisting}
+def smt_is_finite_datatype_cons : SmtDatatypeCons -> Bool
+  | SmtDatatypeCons.unit => true
+  | (SmtDatatypeCons.cons T c) => (smt_is_finite_type T && smt_is_finite_datatype_cons c)
+
+def smt_is_finite_datatype : SmtDatatype -> Bool
+  | SmtDatatype.null => true
+  | (SmtDatatype.sum c d) => (smt_is_finite_datatype_cons c && smt_is_finite_datatype d)
+
+def smt_is_unit_datatype_cons : SmtDatatypeCons -> Bool
+  | SmtDatatypeCons.unit => true
+  | (SmtDatatypeCons.cons T c) => (smt_is_unit_type T && smt_is_unit_datatype_cons c)
+
+def smt_is_unit_datatype : SmtDatatype -> Bool
+  | (SmtDatatype.sum c SmtDatatype.null) => (smt_is_unit_datatype_cons c)
+  | d => false
+
+def smt_is_unit_type : SmtType -> Bool
+  | (SmtType.BitVec w) => decide (w = 0)
+  | (SmtType.Datatype s d) => (smt_is_unit_datatype d)
+  | (SmtType.Map T U) => (smt_is_unit_type U)
+  | T => false
+
+def smt_is_finite_type : SmtType -> Bool
+  | SmtType.Bool => true
+  | (SmtType.BitVec w) => true
+  | SmtType.Char => true
+  | (SmtType.Datatype s d) => (smt_is_finite_datatype d)
+  | (SmtType.Map T U) => (smt_is_unit_type U || (smt_is_finite_type T && smt_is_finite_type U))
+  | (SmtType.Set T) => (smt_is_finite_type T)
+  | T => false
+\end{lstlisting}
+\caption{Unit and finite SMT type predicates.}
+\label{fig:unit-finite}
+\end{figure}
+
+First, Figure~\ref{fig:unit-finite}
+defines a predicate \code{smt_is_finite_type} that 
+(for well-formed, first-class types) returns true iff that type is finite.
+Note that we have three atomic finite types (Booleans, bit-vectors and characters).
+
+A datatype type is finite based on the recursive method \code{smt_is_finite_datatype}.
+This recurses the constructors and returns true only if all datatype constructors
+are classified as finite by \code{smt_is_finite_datatype_cons}.
+A constructor is classified as finite iff all of its fields are finite types.
+Note that \code{TypeRef} is unconditionally classified as not finite
+in \code{smt_is_finite_type}, meaning any datatype with a recursive reference
+to itself (possibly within a datatype subfield) is considered infinite.
+In practice, this is true for inhabited inductive datatypes (those that admit finite values).
+
+A map type is finite in one of two cases.
+Either its element type is \emph{unit} (having only a single element),
+or if both its index and element types are finite.
+For the former, we define another auxiliary method \code{smt_is_unit_type} for deciding whether a type
+is unit, which has additional cases for bit-vectors, datatypes, and maps.
+Note that a datatype is unit iff has a single constructor whose fields are each unit types.
+Set types are simpler: they are finite iff their element type is finite.
+
+Other types such as integers, reals, sequences, regular expressions
+and uninterpreted sorts are unconditionally not finite.
+We do not define finiteness for functions here,
+as they will not be considered first-class.
+Overall, type finiteness will impact our definition of canonicty,
+which we describe later in this section.
+
+\begin{figure}
+\begin{lstlisting}
+def smt_value_dt_substitute (s : native_String) (d : SmtDatatype) : SmtValue -> SmtValue
+  | (SmtValue.DtCons s2 d2 i) => (SmtValue.DtCons s2 (smt_dt_substitute s d d2) i)
+  | (SmtValue.Apply f v) => (SmtValue.Apply (smt_value_dt_substitute s d f) (smt_value_dt_substitute s d v))
+  | v => v
+  
+def smt_datatype_cons_default (s : native_String) (d : SmtDatatype) (v : SmtValue) : SmtDatatypeCons -> SmtValue
+  | SmtDatatypeCons.unit => v
+  | (SmtDatatypeCons.cons T c) => 
+    let _v0 := (smt_value_dt_substitute s d (smt_type_default T))
+    (native_ite (veq _v0 SmtValue.NotValue) SmtValue.NotValue (smt_datatype_cons_default s d (SmtValue.Apply v _v0) c))
+
+def smt_datatype_default (s : native_String) (d0 : SmtDatatype) (n : Nat) : SmtDatatype -> SmtValue
+  | SmtDatatype.null => SmtValue.NotValue
+  | (SmtDatatype.sum c d) => 
+    let _v0 := (smt_datatype_cons_default s d0 (SmtValue.DtCons s d0 n) c)
+    (native_ite (native_not (veq _v0 SmtValue.NotValue)) _v0 (smt_datatype_default s d0 (native_nat_succ n) d))
+    
+def smt_type_default : SmtType -> SmtValue
+  | SmtType.Bool => (SmtValue.Boolean false)
+  | SmtType.Int => (SmtValue.Numeral 0)
+  | (SmtType.Datatype s d) => (smt_datatype_default s d 0 d)
+  | (SmtType.Map T U) => (SmtValue.Map (SmtMap.default T (smt_type_default U)))
+  | (SmtType.Set T) => (SmtValue.Set (SmtMap.default T (SmtValue.Boolean false)))
+  | (SmtType.Seq T) => (SmtValue.Seq (SmtSeq.empty T))
+  | (SmtType.FunType T U) => (SmtValue.Fun "@default" T U)
+  | (SmtType.USort i) => (SmtValue.UValue i native_nat_zero)
+  | ... => ...
+  | T => SmtValue.NotValue
+\end{lstlisting}
+\caption{Finite default value computation.}
+\label{fig:default-value}
+\end{figure}
+
+The method \code{smt_type_default} takes a type and returns an (arbitrary)
+value of that type, which is guaranteed to succeed when the input type
+is well-formed (which we define later).
+
+Our default value method for atomic types returns an arbitrary value,
+e.g. false for Booleans, 0 for integers, and so on.
+For datatypes, we use a recursive method \code{(smt_datatype_default s d0 n)}
+for returning a default datatype value.
+This top-level method also carries the string \code{s} and datatype \code{d0} of the current datatype we are considering,
+as well as the natural number index \code{n} counting the index of the current constructor.
+The key intuition behind this method is that, for inhabited datatypes,
+it is never productive to
+consider a recursive reference to (any) datatype when constructing its default value.
+It is important to note that \code{TypeRef} is \emph{not} given a case
+in our definition of \code{smt_type_default}, so it will be treated as an error (\code{SmtValue.NotValue}).
+
+In detail, \code{(smt_datatype_default s d0 n)} scans the list of constructors
+and tries to return a value that is built from an application of that constructor,
+via the submethod \code{(smt_datatype_cons_default s d0 v)}.
+The submethod \code{smt_datatype_cons_default} also carries the string and datatype of the current datatype we are considering,
+the value \code{v} corresponding to the (partially applied) datatype constructor of which an
+application we are trying to construct.
+That method may fail if it contains a field type of the current constructor is not well-formed,
+which notice includes recursive references (\code{TypeRef}) to that datatype.
+More generally, since the definition of \code{smt_type_default} is mutually recursive,
+this includes references to any subfield of a datatype that we have traversed.
+
+Furthermore, when constructing a subfield value via \code{smt_datatype_cons_default}
+it is still important that we resolve dangling references to the datatype
+we are defining the default value for, since the type we have traversed into
+may contain recursive references to the top-level even though we do not construct values for them. 
+Resolving dangling reference is done via the recursive method
+\code{smt_value_dt_substitute}, which traverses a datatype value and replaces
+dangling references to the current datatype.
+We demonstrate this via an example. Consider the SMT-LIB datatype:
+\begin{examplecode}
+(declare-datatypes ((A 0) (B 0))
+  (((mkA (b B)))) 
+   ((mkB (a A)) (leaf)))
+\end{examplecode}
+which has the following representation \code{DA}:
+\begin{examplecode}
+DA := (sum (cons (Datatype "B" DB) unit) nil)
+DB := (sum (cons (TypeRef "A") unit) (sum unit nil))
+\end{examplecode}
+When constructing a default value of type \code{(Datatype "A" DA)},
+we call the method \code{(smt_datatype_default "A" DA)},
+which in turn calls \code{(smt_datatype_cons_default "A" DA)}
+on a constructor value and first constructor of \code{DA}.
+This in turn invokes \code{(smt_type_default (Datatype "B" DB))},
+which calls \code{(smt_datatype_cons_default "B" DB)},
+which in turn calls \code{(smt_type_default  (TypeRef "A"))},
+which fails.
+We proceed with the second constructor of \code{DB},
+which succeeds.
+Note that we have not unfolded the datatype \code{DA},
+hence we return the constructor value
+\code{(SmtValue.DtCons "B" DB 1)}
+where note that \code{DB} contains a dangling reference \code{(TypeRef "A")}.
+When this is returned to \code{(smt_datatype_cons_default "A" DA)},
+we apply the unfolding to replace the dangling references via the call
+\code{(smt_value_dt_substitute "A" DA (SmtValue.DtCons "B" DB 1))}.
+This used as an argument to the first constructor of \code{DA},
+giving us the value:
+\begin{examplecode}
+(SmtValue.Apply (SmtValue.DtCons "A" DA 0) (SmtValue.DtCons "B" DB2 0))
+\end{examplecode}
+where \code{DB2} is:
+\begin{examplecode}
+DB2 := (sum (cons (sum (cons (Datatype "B" DB) unit) nil) unit) (sum unit nil))
+\end{examplecode}
+
+
+
+  
+\begin{figure}
+\begin{lstlisting}
+def smt_map_entries_ordered_after (i : SmtValue) : SmtMap -> Bool
+  | (SmtMap.cons j e m) => (vcmp j i)
+  | m => true
+
+def smt_map_default_canonical (T : SmtType) (e : SmtValue) : Bool :=
+  if smt_is_finite_type T then
+    decide (e = smt_type_default (smt_typeof_value e))
+  else
+    true
+
+def smt_map_canonical : SmtMap -> Bool
+  | (SmtMap.default T e) => (smt_map_default_canonical T e && smt_value_canonical e)
+  | (SmtMap.cons i e m) =>
+      smt_value_canonical i &&
+        smt_value_canonical e &&
+        smt_map_canonical m &&
+        smt_map_entries_ordered_after i m &&
+        !(decide (e = smt_msm_get_default m))
+
+def smt_seq_canonical : SmtSeq -> Bool
+  | (SmtSeq.empty T) => true
+  | (SmtSeq.cons v s) => (smt_value_canonical v && smt_seq_canonical s)
+
+def smt_value_canonical : SmtValue -> Bool
+  | (SmtValue.Binary w n) =>
+      if 0 <= w then decide (n = n % (2 ^ Int.toNat w)) else true
+  | (SmtValue.Map m) => (smt_map_canonical m)
+  | (SmtValue.Set m) => (smt_map_canonical m && decide (smt_msm_get_default m = SmtValue.Boolean false))
+  | (SmtValue.Seq s) => (smt_seq_canonical s)
+  | (SmtValue.Apply f v) => (smt_value_canonical f && smt_value_canonical v)
+  | v => true
+\end{lstlisting}
+\caption{Canonicality checks for maps, sequences, and values.}
+\label{fig:canonical}
+\end{figure}
+
+
+\subsection{Well-Formedness of Types}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\subsection{Types of SMT-LIB Terms}
 
 
 \begin{figure}[p]
 \begin{lstlisting}
-def smt_typeof_dt_cons_rec (T : SmtType) : SmtDatatype -> Nat -> SmtType
-  | (SmtDatatype.sum SmtDatatypeCons.unit d), 0 => T
-  | (SmtDatatype.sum (SmtDatatypeCons.cons U c) d), 0 =>
-      (SmtType.DtcAppType U (smt_typeof_dt_cons_rec T (SmtDatatype.sum c d) 0))
-  | (SmtDatatype.sum c d), (Nat.succ n) => (smt_typeof_dt_cons_rec T d n)
-  | d, n => SmtType.None
-
+def smt_typeof_eq (T : SmtType) (U : SmtType) : SmtType :=
+  (smt_typeof_guard T (native_ite (native_Teq T U) SmtType.Bool SmtType.None))
+  
 def smt_ret_typeof_sel (s : String) (d : SmtDatatype) (n : Nat) (m : Nat) : SmtType :=
   (smt_ret_typeof_sel_rec (smt_dt_substitute s d d) n m)
 
 def smt_typeof : SmtTerm -> SmtType
   | (SmtTerm.Boolean b) => SmtType.Bool
   | (SmtTerm.Binary w n) =>
-      if 0 <= w ∧ n = n % (2 ^ Int.toNat w) then
-        SmtType.BitVec (Int.toNat w)
-      else
-        SmtType.None
+      if 0 <= w ∧ n = n % (2 ^ w) then SmtType.BitVec (Int.toNat w) else SmtType.None
   | (SmtTerm.eq x1 x2) => (smt_typeof_eq (smt_typeof x1) (smt_typeof x2))
   | (SmtTerm.exists s T x1) =>
       if smt_typeof x1 = SmtType.Bool then SmtType.Bool else SmtType.None
@@ -1030,10 +1327,6 @@ def smt_typeof : SmtTerm -> SmtType
   | (SmtTerm.Apply (SmtTerm.DtSel s d i j) x1) =>
       let _v0 := (smt_ret_typeof_sel s d i j)
       (smt_typeof_guard_wf _v0 (smt_typeof_apply (SmtType.FunType (SmtType.Datatype s d) _v0) (smt_typeof x1)))
-  | (SmtTerm.Apply (SmtTerm.DtTester s d i) x1) =>
-      let _v0 := (SmtType.Datatype s d)
-      (smt_typeof_guard (smt_typeof_dt_cons_rec _v0 (smt_dt_substitute s d d) i)
-        (smt_typeof_apply (SmtType.FunType _v0 SmtType.Bool) (smt_typeof x1)))
   | ... => ...
 \end{lstlisting}
 \caption{Types for SMT terms.}
@@ -1042,13 +1335,6 @@ def smt_typeof : SmtTerm -> SmtType
 
 \begin{figure}[p]
 \begin{lstlisting}
-def smt_type_default : SmtType -> SmtValue
-  | SmtType.Bool => (SmtValue.Boolean false)
-  | SmtType.Int => (SmtValue.Numeral 0)
-  | SmtType.RegLan => (SmtValue.RegLan native_re_none)
-  | (SmtType.Datatype s d) => (smt_datatype_default s d d 0)
-  | (SmtType.FunType T U) => (SmtValue.Fun native_default_ifun_id T U)
-  | ... => ...
 
 def native_inhabited_type (T : SmtType) : Bool := by
   classical
@@ -1101,81 +1387,6 @@ def smt_type_wf : SmtType -> Bool
 \label{fig:type-wf}
 \end{figure}
 
-\begin{figure}[p]
-\begin{lstlisting}
-def smt_is_unit_datatype_cons : SmtDatatypeCons -> Bool
-  | SmtDatatypeCons.unit => true
-  | (SmtDatatypeCons.cons T c) => (smt_is_unit_type T && smt_is_unit_datatype_cons c)
-
-def smt_is_unit_datatype : SmtDatatype -> Bool
-  | (SmtDatatype.sum c SmtDatatype.null) => (smt_is_unit_datatype_cons c)
-  | d => false
-
-def smt_is_unit_type : SmtType -> Bool
-  | (SmtType.BitVec w) => decide (w = 0)
-  | (SmtType.Datatype s d) => (smt_is_unit_datatype d)
-  | (SmtType.Map T U) => (smt_is_unit_type U)
-  | T => false
-
-def smt_is_finite_datatype_cons : SmtDatatypeCons -> Bool
-  | SmtDatatypeCons.unit => true
-  | (SmtDatatypeCons.cons T c) => (smt_is_finite_type T && smt_is_finite_datatype_cons c)
-
-def smt_is_finite_datatype : SmtDatatype -> Bool
-  | SmtDatatype.null => true
-  | (SmtDatatype.sum c d) => (smt_is_finite_datatype_cons c && smt_is_finite_datatype d)
-
-def smt_is_finite_type : SmtType -> Bool
-  | SmtType.Bool => true
-  | (SmtType.BitVec w) => true
-  | SmtType.Char => true
-  | (SmtType.Datatype s d) => (smt_is_finite_datatype d)
-  | (SmtType.Map T U) => (smt_is_unit_type U || (smt_is_finite_type T && smt_is_finite_type U))
-  | (SmtType.Set T) => (smt_is_finite_type T)
-  | (SmtType.Seq T) => (smt_is_finite_type T)
-  | T => false
-\end{lstlisting}
-\caption{Unit and finite SMT type predicates.}
-\label{fig:unit-finite}
-\end{figure}
-
-\begin{figure}[p]
-\begin{lstlisting}
-def smt_map_entries_ordered_after (i : SmtValue) : SmtMap -> Bool
-  | (SmtMap.cons j e m) => decide (compare j i = Ordering.lt)
-  | m => true
-
-def smt_map_default_canonical (T : SmtType) (e : SmtValue) : Bool :=
-  if smt_is_finite_type T then
-    decide (e = smt_type_default (smt_typeof_value e))
-  else
-    true
-
-def smt_map_canonical : SmtMap -> Bool
-  | (SmtMap.default T e) => (smt_map_default_canonical T e && smt_value_canonical e)
-  | (SmtMap.cons i e m) =>
-      smt_value_canonical i &&
-        smt_value_canonical e &&
-        smt_map_canonical m &&
-        smt_map_entries_ordered_after i m &&
-        !(decide (e = smt_msm_get_default m))
-
-def smt_seq_canonical : SmtSeq -> Bool
-  | (SmtSeq.empty T) => true
-  | (SmtSeq.cons v s) => (smt_value_canonical v && smt_seq_canonical s)
-
-def smt_value_canonical : SmtValue -> Bool
-  | (SmtValue.Binary w n) =>
-      if 0 <= w then decide (n = n % (2 ^ Int.toNat w)) else true
-  | (SmtValue.Map m) => (smt_map_canonical m)
-  | (SmtValue.Set m) => (smt_map_canonical m && decide (smt_msm_get_default m = SmtValue.Boolean false))
-  | (SmtValue.Seq s) => (smt_seq_canonical s)
-  | (SmtValue.Apply f v) => (smt_value_canonical f && smt_value_canonical v)
-  | v => true
-\end{lstlisting}
-\caption{Canonicality checks for maps, sequences, and values.}
-\label{fig:canonical}
-\end{figure}
 
 \begin{figure}[p]
 \begin{lstlisting}
