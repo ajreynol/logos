@@ -941,127 +941,6 @@ def smt_typeof : SmtTerm -> SmtType
 
 \begin{figure}[p]
 \begin{lstlisting}
-def native_veq : SmtValue -> SmtValue -> Bool
-  | x, y => decide (x = y)
-
-def native_str_in_re : String -> native_RegLan -> Bool
-  | s, r => native_re_nullable <| s.toList.foldl (fun acc c => native_re_deriv c acc) r
-
-macro_rules
-  | `(native_re_ext_eq $r1 $r2) => do
-      let strInReId := Lean.mkIdent `native_str_in_re
-      `(by
-          classical
-          exact
-            if hExt :
-                ∀ s : String,
-                  $strInReId s $r1 = $strInReId s $r2 then
-              true
-            else
-              false)
-
-def smt_model_eval_eq : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.RegLan r1), (SmtValue.RegLan r2) => (SmtValue.Boolean (native_re_ext_eq r1 r2))
-  | v1, v2 => (SmtValue.Boolean (decide (v1 = v2)))
-\end{lstlisting}
-\caption{Model evaluation for equality.}
-\label{fig:eval-eq}
-\end{figure}
-
-\begin{figure}[p]
-\begin{lstlisting}
-macro_rules
-  | `(native_eval_texists $M $s $T $body) => do
-      let evalId := Lean.mkIdent `smt_model_eval
-      let pushId := Lean.mkIdent `model_push
-      let typeofValueId := Lean.mkIdent `smt_typeof_value
-      let canonId := Lean.mkIdent `smt_value_canonical_bool
-      `(by
-          classical
-          exact
-            if h :
-                ∃ v : SmtValue,
-                  $typeofValueId v = $T ∧
-                    $canonId v = true ∧
-                    $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
-              SmtValue.Boolean true
-            else
-              SmtValue.Boolean false)
-
-  | `(native_eval_tforall $M $s $T $body) => do
-      let evalId := Lean.mkIdent `smt_model_eval
-      let pushId := Lean.mkIdent `model_push
-      let typeofValueId := Lean.mkIdent `smt_typeof_value
-      let canonId := Lean.mkIdent `smt_value_canonical_bool
-      `(by
-          classical
-          exact
-            if h :
-                ∀ v : SmtValue,
-                  $typeofValueId v = $T ->
-                    $canonId v = true ->
-                    $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
-              SmtValue.Boolean true
-            else
-              SmtValue.Boolean false)
-
-  | `(native_eval_tchoice $M $s $T $body) => do
-      let evalId := Lean.mkIdent `smt_model_eval
-      let pushId := Lean.mkIdent `model_push
-      let typeofValueId := Lean.mkIdent `smt_typeof_value
-      let canonId := Lean.mkIdent `smt_value_canonical_bool
-      `(by
-          classical
-          exact
-            if hSat :
-                ∃ v : SmtValue,
-                  $typeofValueId v = $T ∧
-                    $canonId v = true ∧
-                    $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
-              Classical.choose hSat
-            else if hTy : ∃ v : SmtValue, $typeofValueId v = $T ∧ $canonId v then
-              Classical.choose hTy
-            else
-              SmtValue.NotValue)
-
-  | `(native_eval_tchoice_nth $M $s $T $body $n) => do
-      let evalChoiceId := Lean.mkIdent `native_eval_tchoice
-      let pushId := Lean.mkIdent `model_push
-      `(by
-          classical
-          let rec evalChoiceNth (M' : SmtModel)
-              (s' : String) (T' : SmtType) (body' : SmtTerm) : Nat -> SmtValue
-            | 0 =>
-                $evalChoiceId M' s' T' body'
-            | Nat.succ n' =>
-                let v := $evalChoiceId M' s' T' body'
-                match body' with
-                | SmtTerm.exists s'' T'' body'' =>
-                    evalChoiceNth ($pushId M' s' T' v) s'' T'' body'' n'
-                | _ => SmtValue.NotValue
-          exact evalChoiceNth $M $s $T $body $n)
-\end{lstlisting}
-\caption{Evaluation macros for quantifiers and choice.}
-\label{fig:eval-quant}
-\end{figure}
-
-\begin{figure}[p]
-\begin{lstlisting}
-noncomputable def smt_model_eval (M : SmtModel) : SmtTerm -> SmtValue
-  | (SmtTerm.Boolean b) => (SmtValue.Boolean b)
-  | (SmtTerm.String s) => (SmtValue.Seq (native_pack_string s))
-  | (SmtTerm.not x1) => (smt_model_eval_not (smt_model_eval M x1))
-  | (SmtTerm.eq x1 x2) => (smt_model_eval_eq (smt_model_eval M x1) (smt_model_eval M x2))
-  | (SmtTerm.exists s T x1) => (native_eval_texists M s T x1)
-  | (SmtTerm.Var s T) => (model_var_lookup M s T)
-  | ... => ...
-\end{lstlisting}
-\caption{Skeleton of SMT term evaluation in a model.}
-\label{fig:model-eval}
-\end{figure}
-
-\begin{figure}[p]
-\begin{lstlisting}
 def smt_type_default : SmtType -> SmtValue
   | SmtType.Bool => (SmtValue.Boolean false)
   | SmtType.Int => (SmtValue.Numeral 0)
@@ -1215,6 +1094,130 @@ def model_total_typed (M : SmtModel) : Prop :=
 \caption{Total typed model conditions.}
 \label{fig:model-typed}
 \end{figure}
+
+
+\begin{figure}[p]
+\begin{lstlisting}
+def native_veq : SmtValue -> SmtValue -> Bool
+  | x, y => decide (x = y)
+
+def native_str_in_re : String -> native_RegLan -> Bool
+  | s, r => native_re_nullable <| s.toList.foldl (fun acc c => native_re_deriv c acc) r
+
+macro_rules
+  | `(native_re_ext_eq $r1 $r2) => do
+      let strInReId := Lean.mkIdent `native_str_in_re
+      `(by
+          classical
+          exact
+            if hExt :
+                ∀ s : String,
+                  $strInReId s $r1 = $strInReId s $r2 then
+              true
+            else
+              false)
+
+def smt_model_eval_eq : SmtValue -> SmtValue -> SmtValue
+  | (SmtValue.RegLan r1), (SmtValue.RegLan r2) => (SmtValue.Boolean (native_re_ext_eq r1 r2))
+  | v1, v2 => (SmtValue.Boolean (decide (v1 = v2)))
+\end{lstlisting}
+\caption{Model evaluation for equality.}
+\label{fig:eval-eq}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+macro_rules
+  | `(native_eval_texists $M $s $T $body) => do
+      let evalId := Lean.mkIdent `smt_model_eval
+      let pushId := Lean.mkIdent `model_push
+      let typeofValueId := Lean.mkIdent `smt_typeof_value
+      let canonId := Lean.mkIdent `smt_value_canonical_bool
+      `(by
+          classical
+          exact
+            if h :
+                ∃ v : SmtValue,
+                  $typeofValueId v = $T ∧
+                    $canonId v = true ∧
+                    $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
+              SmtValue.Boolean true
+            else
+              SmtValue.Boolean false)
+
+  | `(native_eval_tforall $M $s $T $body) => do
+      let evalId := Lean.mkIdent `smt_model_eval
+      let pushId := Lean.mkIdent `model_push
+      let typeofValueId := Lean.mkIdent `smt_typeof_value
+      let canonId := Lean.mkIdent `smt_value_canonical_bool
+      `(by
+          classical
+          exact
+            if h :
+                ∀ v : SmtValue,
+                  $typeofValueId v = $T ->
+                    $canonId v = true ->
+                    $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
+              SmtValue.Boolean true
+            else
+              SmtValue.Boolean false)
+
+  | `(native_eval_tchoice $M $s $T $body) => do
+      let evalId := Lean.mkIdent `smt_model_eval
+      let pushId := Lean.mkIdent `model_push
+      let typeofValueId := Lean.mkIdent `smt_typeof_value
+      let canonId := Lean.mkIdent `smt_value_canonical_bool
+      `(by
+          classical
+          exact
+            if hSat :
+                ∃ v : SmtValue,
+                  $typeofValueId v = $T ∧
+                    $canonId v = true ∧
+                    $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
+              Classical.choose hSat
+            else if hTy : ∃ v : SmtValue, $typeofValueId v = $T ∧ $canonId v then
+              Classical.choose hTy
+            else
+              SmtValue.NotValue)
+
+  | `(native_eval_tchoice_nth $M $s $T $body $n) => do
+      let evalChoiceId := Lean.mkIdent `native_eval_tchoice
+      let pushId := Lean.mkIdent `model_push
+      `(by
+          classical
+          let rec evalChoiceNth (M' : SmtModel)
+              (s' : String) (T' : SmtType) (body' : SmtTerm) : Nat -> SmtValue
+            | 0 =>
+                $evalChoiceId M' s' T' body'
+            | Nat.succ n' =>
+                let v := $evalChoiceId M' s' T' body'
+                match body' with
+                | SmtTerm.exists s'' T'' body'' =>
+                    evalChoiceNth ($pushId M' s' T' v) s'' T'' body'' n'
+                | _ => SmtValue.NotValue
+          exact evalChoiceNth $M $s $T $body $n)
+\end{lstlisting}
+\caption{Evaluation macros for quantifiers and choice.}
+\label{fig:eval-quant}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+noncomputable def smt_model_eval (M : SmtModel) : SmtTerm -> SmtValue
+  | (SmtTerm.Boolean b) => (SmtValue.Boolean b)
+  | (SmtTerm.String s) => (SmtValue.Seq (native_pack_string s))
+  | (SmtTerm.not x1) => (smt_model_eval_not (smt_model_eval M x1))
+  | (SmtTerm.eq x1 x2) => (smt_model_eval_eq (smt_model_eval M x1) (smt_model_eval M x2))
+  | (SmtTerm.exists s T x1) => (native_eval_texists M s T x1)
+  | (SmtTerm.Var s T) => (model_var_lookup M s T)
+  | ... => ...
+\end{lstlisting}
+\caption{Skeleton of SMT term evaluation in a model.}
+\label{fig:model-eval}
+\end{figure}
+
+
 
 \begin{figure}[p]
 \begin{lstlisting}
