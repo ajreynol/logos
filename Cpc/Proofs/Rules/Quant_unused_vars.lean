@@ -14,6 +14,544 @@ private def qterm (Q x F : Term) : Term :=
 private def qeq (x y : Term) : Term :=
   Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) y
 
+private abbrev QuantBinder := native_String × SmtType
+
+private def smtExistsOfBinders : List QuantBinder -> SmtTerm -> SmtTerm
+  | [], body => body
+  | b :: bs, body => SmtTerm.exists b.1 b.2 (smtExistsOfBinders bs body)
+
+private theorem native_model_push_same
+    (M : SmtModel) (s : native_String) (T : SmtType) (v w : SmtValue) :
+    native_model_push (native_model_push M s T v) s T w =
+      native_model_push M s T w := by
+  cases M with
+  | mk values nativeFuns =>
+      change
+        SmtModel.mk
+            (fun k =>
+              if k = ({ isVar := true, name := s, ty := T } : SmtModelKey) then w
+              else
+                (if k = ({ isVar := true, name := s, ty := T } : SmtModelKey) then v
+                else values k))
+            nativeFuns =
+          SmtModel.mk
+            (fun k =>
+              if k = ({ isVar := true, name := s, ty := T } : SmtModelKey) then w
+              else values k)
+            nativeFuns
+      congr
+      funext k
+      by_cases hk : k = ({ isVar := true, name := s, ty := T } : SmtModelKey)
+      · simp [hk]
+      · simp [hk]
+
+private theorem native_model_push_comm
+    (M : SmtModel) (s1 s2 : native_String) (T1 T2 : SmtType)
+    (v1 v2 : SmtValue)
+    (hNe :
+      ({ isVar := true, name := s1, ty := T1 } : SmtModelKey) ≠
+        { isVar := true, name := s2, ty := T2 }) :
+    native_model_push (native_model_push M s1 T1 v1) s2 T2 v2 =
+      native_model_push (native_model_push M s2 T2 v2) s1 T1 v1 := by
+  cases M with
+  | mk values nativeFuns =>
+      change
+        SmtModel.mk
+            (fun k =>
+              if k = ({ isVar := true, name := s2, ty := T2 } : SmtModelKey) then v2
+              else
+                (if k = ({ isVar := true, name := s1, ty := T1 } : SmtModelKey) then v1
+                else values k))
+            nativeFuns =
+          SmtModel.mk
+            (fun k =>
+              if k = ({ isVar := true, name := s1, ty := T1 } : SmtModelKey) then v1
+              else
+                (if k = ({ isVar := true, name := s2, ty := T2 } : SmtModelKey) then v2
+                else values k))
+            nativeFuns
+      congr
+      funext k
+      by_cases h1 : k = ({ isVar := true, name := s1, ty := T1 } : SmtModelKey)
+      · subst k
+        by_cases h2 :
+            ({ isVar := true, name := s1, ty := T1 } : SmtModelKey) =
+              { isVar := true, name := s2, ty := T2 }
+        · exact False.elim (hNe h2)
+        · simp [h2]
+      · by_cases h2 : k = ({ isVar := true, name := s2, ty := T2 } : SmtModelKey)
+        · subst k
+          have h21 :
+              ¬ ({ isVar := true, name := s2, ty := T2 } : SmtModelKey) =
+                { isVar := true, name := s1, ty := T1 } := by
+            intro h
+            exact hNe h.symm
+          simp [h21]
+        · simp [h1, h2]
+
+private theorem smtExistsOfBinders_cons_congr
+    (M : SmtModel) (b : QuantBinder) (t u : SmtTerm) :
+    (∀ M2, __smtx_model_eval M2 t = __smtx_model_eval M2 u) ->
+    __smtx_model_eval M (smtExistsOfBinders [b] t) =
+      __smtx_model_eval M (smtExistsOfBinders [b] u) := by
+  rcases b with ⟨s, T⟩
+  intro hEval
+  classical
+  let P : Prop :=
+    ∃ v : SmtValue,
+      __smtx_typeof_value v = T ∧
+        __smtx_value_canonical_bool v = true ∧
+        __smtx_model_eval (native_model_push M s T v) t =
+          SmtValue.Boolean true
+  let Q : Prop :=
+    ∃ v : SmtValue,
+      __smtx_typeof_value v = T ∧
+        __smtx_value_canonical_bool v = true ∧
+        __smtx_model_eval (native_model_push M s T v) u =
+          SmtValue.Boolean true
+  have hPQ : P ↔ Q := by
+    constructor
+    · intro hSat
+      rcases hSat with ⟨v, hv, hCan, hT⟩
+      exact ⟨v, hv, hCan, by
+        simpa [hEval (native_model_push M s T v)] using hT⟩
+    · intro hSat
+      rcases hSat with ⟨v, hv, hCan, hU⟩
+      exact ⟨v, hv, hCan, by
+        simpa [hEval (native_model_push M s T v)] using hU⟩
+  have hPropEq : P = Q := propext hPQ
+  simp [smtExistsOfBinders, __smtx_model_eval, P, Q, hPropEq]
+
+private theorem smtExistsOfBinders_swap
+    (M : SmtModel) (b1 b2 : QuantBinder) (tail : List QuantBinder)
+    (body : SmtTerm) :
+    __smtx_model_eval M (smtExistsOfBinders (b1 :: b2 :: tail) body) =
+      __smtx_model_eval M (smtExistsOfBinders (b2 :: b1 :: tail) body) := by
+  rcases b1 with ⟨s1, T1⟩
+  rcases b2 with ⟨s2, T2⟩
+  classical
+  let rest := smtExistsOfBinders tail body
+  let P : Prop :=
+    ∃ v1 : SmtValue,
+      __smtx_typeof_value v1 = T1 ∧
+        __smtx_value_canonical_bool v1 = true ∧
+        ∃ v2 : SmtValue,
+          __smtx_typeof_value v2 = T2 ∧
+            __smtx_value_canonical_bool v2 = true ∧
+            __smtx_model_eval
+                (native_model_push (native_model_push M s1 T1 v1) s2 T2 v2)
+                rest =
+              SmtValue.Boolean true
+  let Q : Prop :=
+    ∃ v2 : SmtValue,
+      __smtx_typeof_value v2 = T2 ∧
+        __smtx_value_canonical_bool v2 = true ∧
+        ∃ v1 : SmtValue,
+          __smtx_typeof_value v1 = T1 ∧
+            __smtx_value_canonical_bool v1 = true ∧
+            __smtx_model_eval
+                (native_model_push (native_model_push M s2 T2 v2) s1 T1 v1)
+                rest =
+              SmtValue.Boolean true
+  have hPQ : P ↔ Q := by
+    by_cases hKey :
+        ({ isVar := true, name := s1, ty := T1 } : SmtModelKey) =
+          { isVar := true, name := s2, ty := T2 }
+    · cases hKey
+      constructor
+      · intro hSat
+        rcases hSat with ⟨v1, hv1, hc1, v2, hv2, hc2, hEval⟩
+        exact ⟨v1, hv1, hc1, v2, hv2, hc2, by
+          simpa [native_model_push_same] using hEval⟩
+      · intro hSat
+        rcases hSat with ⟨v1, hv1, hc1, v2, hv2, hc2, hEval⟩
+        exact ⟨v1, hv1, hc1, v2, hv2, hc2, by
+          simpa [native_model_push_same] using hEval⟩
+    · constructor
+      · intro hSat
+        rcases hSat with ⟨v1, hv1, hc1, v2, hv2, hc2, hEval⟩
+        refine ⟨v2, hv2, hc2, v1, hv1, hc1, ?_⟩
+        simpa [native_model_push_comm M s1 s2 T1 T2 v1 v2 hKey] using
+          hEval
+      · intro hSat
+        rcases hSat with ⟨v2, hv2, hc2, v1, hv1, hc1, hEval⟩
+        refine ⟨v1, hv1, hc1, v2, hv2, hc2, ?_⟩
+        simpa [native_model_push_comm M s1 s2 T1 T2 v1 v2 hKey] using
+          hEval
+  have hPropEq : P = Q := propext hPQ
+  simp [smtExistsOfBinders, __smtx_model_eval, P, Q, rest, hPropEq]
+
+private theorem smtExistsOfBinders_eval_perm
+    (body : SmtTerm) {xs ys : List QuantBinder}
+    (hperm : xs.Perm ys) :
+    ∀ M, __smtx_model_eval M (smtExistsOfBinders xs body) =
+      __smtx_model_eval M (smtExistsOfBinders ys body) := by
+  induction hperm with
+  | nil =>
+      intro M
+      rfl
+  | cons b _h ih =>
+      intro M
+      exact smtExistsOfBinders_cons_congr M b
+        (smtExistsOfBinders _ body) (smtExistsOfBinders _ body) ih
+  | swap b1 b2 tail =>
+      intro M
+      exact (smtExistsOfBinders_swap M b1 b2 tail body).symm
+  | trans _h1 _h2 ih1 ih2 =>
+      intro M
+      exact (ih1 M).trans (ih2 M)
+
+private theorem smtExistsOfBinders_dup
+    (M : SmtModel) (b : QuantBinder) (tail : List QuantBinder)
+    (body : SmtTerm) :
+    __smtx_model_eval M (smtExistsOfBinders (b :: b :: tail) body) =
+      __smtx_model_eval M (smtExistsOfBinders (b :: tail) body) := by
+  rcases b with ⟨s, T⟩
+  classical
+  let rest := smtExistsOfBinders tail body
+  let P : Prop :=
+    ∃ v1 : SmtValue,
+      __smtx_typeof_value v1 = T ∧
+        __smtx_value_canonical_bool v1 = true ∧
+        ∃ v2 : SmtValue,
+          __smtx_typeof_value v2 = T ∧
+            __smtx_value_canonical_bool v2 = true ∧
+            __smtx_model_eval
+                (native_model_push (native_model_push M s T v1) s T v2)
+                rest =
+              SmtValue.Boolean true
+  let Q : Prop :=
+    ∃ v : SmtValue,
+      __smtx_typeof_value v = T ∧
+        __smtx_value_canonical_bool v = true ∧
+        __smtx_model_eval (native_model_push M s T v) rest =
+          SmtValue.Boolean true
+  have hPQ : P ↔ Q := by
+    constructor
+    · intro hSat
+      rcases hSat with ⟨v1, hv1, hc1, v2, hv2, hc2, hEval⟩
+      exact ⟨v2, hv2, hc2, by
+        simpa [native_model_push_same] using hEval⟩
+    · intro hSat
+      rcases hSat with ⟨v, hv, hc, hEval⟩
+      exact ⟨v, hv, hc, v, hv, hc, by
+        simpa [native_model_push_same] using hEval⟩
+  have hPropEq : P = Q := propext hPQ
+  simp [smtExistsOfBinders, __smtx_model_eval, P, Q, rest, hPropEq]
+
+private theorem smtExistsOfBinders_cons_erase
+    (body : SmtTerm) {b : QuantBinder} {xs : List QuantBinder}
+    (hMem : b ∈ xs) :
+    ∀ M,
+      __smtx_model_eval M (smtExistsOfBinders (b :: xs) body) =
+        __smtx_model_eval M (smtExistsOfBinders xs body) := by
+  intro M
+  have hPerm : (b :: xs).Perm (b :: b :: xs.erase b) :=
+    List.Perm.cons b (List.perm_cons_erase hMem)
+  exact
+    (smtExistsOfBinders_eval_perm body hPerm M).trans
+      ((smtExistsOfBinders_dup M b (xs.erase b) body).trans
+        (smtExistsOfBinders_eval_perm body
+          (List.perm_cons_erase hMem).symm M))
+
+private theorem smtExistsOfBinders_append
+    (xs ys : List QuantBinder) (body : SmtTerm) :
+  smtExistsOfBinders xs (smtExistsOfBinders ys body) =
+    smtExistsOfBinders (xs ++ ys) body :=
+by
+  induction xs with
+  | nil =>
+      simp [smtExistsOfBinders]
+  | cons b xs ih =>
+      simp [smtExistsOfBinders, ih]
+
+private theorem smtExistsOfBinders_eval_append_singleton_of_mem
+    (body : SmtTerm) {xs : List QuantBinder} {b : QuantBinder}
+    (hMem : b ∈ xs) :
+    ∀ M,
+      __smtx_model_eval M (smtExistsOfBinders (xs ++ [b]) body) =
+        __smtx_model_eval M (smtExistsOfBinders xs body) := by
+  intro M
+  have hPermXs : xs.Perm (b :: xs.erase b) :=
+    List.perm_cons_erase hMem
+  have hPermAppend :
+      (xs ++ [b]).Perm (b :: b :: xs.erase b) := by
+    have h1 : (xs ++ [b]).Perm ((b :: xs.erase b) ++ [b]) :=
+      List.Perm.append_right [b] hPermXs
+    have h2 :
+        ((b :: xs.erase b) ++ [b]).Perm (b :: b :: xs.erase b) := by
+      simpa using
+        List.Perm.cons b
+          (List.perm_append_comm (l₁ := xs.erase b) (l₂ := [b]))
+    exact h1.trans h2
+  exact
+    (smtExistsOfBinders_eval_perm body hPermAppend M).trans
+      ((smtExistsOfBinders_dup M b (xs.erase b) body).trans
+        (smtExistsOfBinders_eval_perm body hPermXs M).symm)
+
+private theorem smtExistsOfBinders_eval_append_of_subset
+    (body : SmtTerm) {xs ys : List QuantBinder}
+    (hSub : ∀ b, b ∈ ys -> b ∈ xs) :
+    ∀ M,
+      __smtx_model_eval M (smtExistsOfBinders (xs ++ ys) body) =
+        __smtx_model_eval M (smtExistsOfBinders xs body) := by
+  induction ys generalizing xs with
+  | nil =>
+      intro M
+      simp
+  | cons b ys ih =>
+      intro M
+      have hTailSub :
+          ∀ c, c ∈ ys -> c ∈ xs ++ [b] := by
+        intro c hMem
+        exact List.mem_append.2 (Or.inl (hSub c (List.Mem.tail _ hMem)))
+      have hTailEval :=
+        ih (xs := xs ++ [b]) hTailSub M
+      have hHeadEval :=
+        smtExistsOfBinders_eval_append_singleton_of_mem
+          body (xs := xs) (b := b) (hSub b (List.Mem.head _)) M
+      simpa [List.append_assoc] using hTailEval.trans hHeadEval
+
+private theorem eo_to_smt_exists_eq_smtExistsOfBinders
+    {xs : Term} {vars : List EoVarKey}
+    (hEnv : EoVarEnv xs vars) (body : SmtTerm) :
+  __eo_to_smt_exists xs body =
+    smtExistsOfBinders (vars.map EoVarKey.toSmt) body :=
+by
+  induction hEnv generalizing body with
+  | nil =>
+      simp [smtExistsOfBinders]
+  | cons hTail ih =>
+      rename_i s T env tailVars
+      simp [smtExistsOfBinders, EoVarKey.toSmt, ih]
+
+private theorem smtx_model_eval_eo_to_smt_exists_perm
+    (M : SmtModel) (body : SmtTerm)
+    {xs ys : Term} {xVars yVars : List EoVarKey}
+    (hX : EoVarEnv xs xVars)
+    (hY : EoVarEnv ys yVars)
+    (hPerm :
+      (xVars.map EoVarKey.toSmt).Perm
+        (yVars.map EoVarKey.toSmt)) :
+  __smtx_model_eval M (__eo_to_smt_exists xs body) =
+    __smtx_model_eval M (__eo_to_smt_exists ys body) :=
+by
+  rw [eo_to_smt_exists_eq_smtExistsOfBinders hX body]
+  rw [eo_to_smt_exists_eq_smtExistsOfBinders hY body]
+  exact smtExistsOfBinders_eval_perm body hPerm M
+
+private theorem model_agrees_except_on_env_bound_equiv
+    {except bound bound' : List SmtVarKey} {M N : SmtModel}
+    (hBound : ∀ key, key ∈ bound' ↔ key ∈ bound)
+    (hAgree : model_agrees_except_on_env except bound M N) :
+  model_agrees_except_on_env except bound' M N :=
+by
+  refine ⟨hAgree.globals, ?_⟩
+  intro s T hAllowed
+  apply hAgree.vars_eq
+  rcases hAllowed with hInBound' | hNotExcept
+  · exact Or.inl ((hBound (s, T)).1 hInBound')
+  · exact Or.inr hNotExcept
+
+private theorem smtx_model_eval_eo_to_smt_exists_eq_of_body_eval_eq_bound_aux
+    {ys : Term} {vars : List EoVarKey}
+    (hEnv : EoVarEnv ys vars)
+    {except bound fullBound : List SmtVarKey}
+    {M N : SmtModel} {body : SmtTerm}
+    (hFull :
+      ∀ key, key ∈ fullBound ↔
+        key ∈ vars.map EoVarKey.toSmt ++ bound)
+    (hBody :
+      ∀ {M' N' : SmtModel},
+        model_agrees_except_on_env except fullBound M' N' ->
+          __smtx_model_eval M' body =
+            __smtx_model_eval N' body)
+    (hAgree : model_agrees_except_on_env except bound M N) :
+  __smtx_model_eval M (__eo_to_smt_exists ys body) =
+    __smtx_model_eval N (__eo_to_smt_exists ys body) :=
+by
+  induction hEnv generalizing bound M N body with
+  | nil =>
+      have hAgreeFull :
+          model_agrees_except_on_env except fullBound M N :=
+        model_agrees_except_on_env_bound_equiv
+          (by
+            intro key
+            simpa using hFull key)
+          hAgree
+      simpa [__eo_to_smt_exists] using hBody hAgreeFull
+  | cons hTail ih =>
+      rename_i s T env tailVars
+      let head : SmtVarKey := (s, __eo_to_smt_type T)
+      change
+        __smtx_model_eval M
+            (SmtTerm.exists s (__eo_to_smt_type T)
+              (__eo_to_smt_exists env body)) =
+          __smtx_model_eval N
+            (SmtTerm.exists s (__eo_to_smt_type T)
+              (__eo_to_smt_exists env body))
+      apply smtx_model_eval_exists_eq_of_body_eval_eq
+      intro v
+      have hPush :
+          model_agrees_except_on_env except (head :: bound)
+            (native_model_push M s (__eo_to_smt_type T) v)
+            (native_model_push N s (__eo_to_smt_type T) v) := by
+        simpa [head] using model_agrees_except_on_env_push_same hAgree
+      have hFullTail :
+          ∀ key, key ∈ fullBound ↔
+            key ∈ tailVars.map EoVarKey.toSmt ++ head :: bound := by
+        intro key
+        constructor
+        · intro hKey
+          have hKey' := (hFull key).1 hKey
+          simp [EoVarKey.toSmt, head, List.mem_append] at hKey' ⊢
+          rcases hKey' with hHead | hTailMem | hBoundMem
+          · exact Or.inr (Or.inl hHead)
+          · exact Or.inl hTailMem
+          · exact Or.inr (Or.inr hBoundMem)
+        · intro hKey
+          apply (hFull key).2
+          simp [EoVarKey.toSmt, head, List.mem_append] at hKey ⊢
+          rcases hKey with hTailMem | hHead | hBoundMem
+          · exact Or.inr (Or.inl hTailMem)
+          · exact Or.inl hHead
+          · exact Or.inr (Or.inr hBoundMem)
+      exact ih hFullTail hBody hPush
+
+private theorem smtx_model_eval_eo_to_smt_exists_eq_of_body_eval_eq_bound
+    {ys : Term} {vars : List EoVarKey}
+    (hEnv : EoVarEnv ys vars)
+    {except : List SmtVarKey}
+    {M N : SmtModel} {body : SmtTerm}
+    (hBody :
+      ∀ {M' N' : SmtModel},
+        model_agrees_except_on_env except
+            (vars.map EoVarKey.toSmt) M' N' ->
+          __smtx_model_eval M' body =
+            __smtx_model_eval N' body)
+    (hAgree : model_agrees_except_on_env except [] M N) :
+  __smtx_model_eval M (__eo_to_smt_exists ys body) =
+    __smtx_model_eval N (__eo_to_smt_exists ys body) :=
+by
+  exact
+    smtx_model_eval_eo_to_smt_exists_eq_of_body_eval_eq_bound_aux
+      hEnv
+      (by intro key; simp)
+      hBody hAgree
+
+private theorem smtx_model_eval_none_eq (M N : SmtModel) :
+  __smtx_model_eval M SmtTerm.None =
+    __smtx_model_eval N SmtTerm.None :=
+by
+  rw [__smtx_model_eval.eq_def]
+  rw [__smtx_model_eval.eq_def]
+
+private theorem smtx_model_eval_qterm_eq_of_body_eval_eq_bound
+    {Q ys F : Term} {vars : List EoVarKey}
+    {except : List SmtVarKey} {M N : SmtModel}
+    (hQ : Q = Term.UOp UserOp.forall ∨ Q = Term.UOp UserOp.exists)
+    (hEnv : EoVarEnv ys vars)
+    (hBody :
+      ∀ {M' N' : SmtModel},
+        model_agrees_except_on_env except
+            (vars.map EoVarKey.toSmt) M' N' ->
+          __smtx_model_eval M' (__eo_to_smt F) =
+            __smtx_model_eval N' (__eo_to_smt F))
+    (hAgree : model_agrees_except_on_env except [] M N) :
+  __smtx_model_eval M (__eo_to_smt (qterm Q ys F)) =
+    __smtx_model_eval N (__eo_to_smt (qterm Q ys F)) :=
+by
+  rcases hQ with hForall | hExists
+  · subst Q
+    cases hEnv with
+    | nil =>
+        change __smtx_model_eval M SmtTerm.None =
+          __smtx_model_eval N SmtTerm.None
+        exact smtx_model_eval_none_eq M N
+    | cons hTail =>
+        rename_i s T env tailVars
+        have hBodyNot :
+            ∀ {M' N' : SmtModel},
+              model_agrees_except_on_env
+                  except (((s, T) :: tailVars).map EoVarKey.toSmt)
+                  M' N' ->
+                __smtx_model_eval M'
+                    (SmtTerm.not (__eo_to_smt F)) =
+                  __smtx_model_eval N'
+                    (SmtTerm.not (__eo_to_smt F)) := by
+          intro M' N' hAgree'
+          exact smtx_model_eval_not_eq_of_eval_eq (hBody hAgree')
+        have hExistsEq :
+            __smtx_model_eval M
+                (__eo_to_smt_exists
+                  (Term.Apply
+                    (Term.Apply Term.__eo_List_cons
+                      (Term.Var (Term.String s) T)) env)
+                  (SmtTerm.not (__eo_to_smt F))) =
+              __smtx_model_eval N
+                (__eo_to_smt_exists
+                  (Term.Apply
+                    (Term.Apply Term.__eo_List_cons
+                      (Term.Var (Term.String s) T)) env)
+                  (SmtTerm.not (__eo_to_smt F))) :=
+          smtx_model_eval_eo_to_smt_exists_eq_of_body_eval_eq_bound
+            (EoVarEnv.cons (s := s) (T := T) hTail)
+            hBodyNot hAgree
+        change
+          __smtx_model_eval M
+              (SmtTerm.not
+                (__eo_to_smt_exists
+                  (Term.Apply
+                    (Term.Apply Term.__eo_List_cons
+                      (Term.Var (Term.String s) T)) env)
+                  (SmtTerm.not (__eo_to_smt F)))) =
+            __smtx_model_eval N
+              (SmtTerm.not
+                (__eo_to_smt_exists
+                  (Term.Apply
+                    (Term.Apply Term.__eo_List_cons
+                  (Term.Var (Term.String s) T)) env)
+                  (SmtTerm.not (__eo_to_smt F))))
+        exact smtx_model_eval_not_eq_of_eval_eq hExistsEq
+  · subst Q
+    cases hEnv with
+    | nil =>
+        change __smtx_model_eval M SmtTerm.None =
+          __smtx_model_eval N SmtTerm.None
+        exact smtx_model_eval_none_eq M N
+    | cons hTail =>
+        rename_i s T env tailVars
+        have hExistsEq :
+            __smtx_model_eval M
+                (__eo_to_smt_exists
+                  (Term.Apply
+                    (Term.Apply Term.__eo_List_cons
+                      (Term.Var (Term.String s) T)) env)
+                  (__eo_to_smt F)) =
+              __smtx_model_eval N
+                (__eo_to_smt_exists
+                  (Term.Apply
+                    (Term.Apply Term.__eo_List_cons
+                      (Term.Var (Term.String s) T)) env)
+                  (__eo_to_smt F)) :=
+          smtx_model_eval_eo_to_smt_exists_eq_of_body_eval_eq_bound
+            (EoVarEnv.cons (s := s) (T := T) hTail)
+            hBody hAgree
+        change
+          __smtx_model_eval M
+              (__eo_to_smt_exists
+                (Term.Apply
+                  (Term.Apply Term.__eo_List_cons
+                    (Term.Var (Term.String s) T)) env)
+                (__eo_to_smt F)) =
+            __smtx_model_eval N
+              (__eo_to_smt_exists
+                (Term.Apply
+                  (Term.Apply Term.__eo_List_cons
+                    (Term.Var (Term.String s) T)) env)
+                (__eo_to_smt F))
+        exact hExistsEq
+
 private theorem eo_requires_arg_eq_of_ne_stuck {x y z : Term} :
     __eo_requires x y z ≠ Term.Stuck -> x = y := by
   intro h
@@ -103,6 +641,420 @@ by
     cases a <;> cases b <;> simp [__eo_eq, native_teq] at hEq ⊢
     all_goals exact hEq
   exact hEqSymm.symm
+
+private theorem eo_eq_false_of_ne_local
+    {x y : Term}
+    (hNe : x ≠ y)
+    (hX : x ≠ Term.Stuck)
+    (hY : y ≠ Term.Stuck) :
+  __eo_eq x y = Term.Boolean false :=
+by
+  have hNeSymm : y ≠ x := by
+    intro h
+    exact hNe h.symm
+  cases x <;> cases y <;>
+    simp [__eo_eq, native_teq, hNe, hNeSymm] at hX hY ⊢
+  all_goals exact False.elim (hNe rfl)
+
+private theorem eo_prepend_if_true_eq_local
+    {f x res : Term}
+    (hF : f ≠ Term.Stuck)
+    (hX : x ≠ Term.Stuck)
+    (hRes : res ≠ Term.Stuck) :
+  __eo_prepend_if (Term.Boolean true) f x res =
+    Term.Apply (Term.Apply f x) res :=
+by
+  cases f <;> cases x <;> cases res <;>
+    simp [__eo_prepend_if] at hF hX hRes ⊢
+
+private theorem eo_prepend_if_false_eq_local
+    {f x res : Term}
+    (hF : f ≠ Term.Stuck)
+    (hX : x ≠ Term.Stuck)
+    (hRes : res ≠ Term.Stuck) :
+  __eo_prepend_if (Term.Boolean false) f x res = res :=
+by
+  cases f <;> cases x <;> cases res <;>
+    simp [__eo_prepend_if] at hF hX hRes ⊢
+
+private theorem eo_var_env_erase_rec_eq_self_of_not_mem :
+    ∀ {env : Term} {vars : List EoVarKey}
+      (hEnv : EoVarEnv env vars)
+      {s : native_String} {T : Term},
+      (s, T) ∉ vars ->
+        __eo_list_erase_rec env (Term.Var (Term.String s) T) = env
+  | _, _, EoVarEnv.nil, s, T, _ =>
+      by
+        simp [__eo_list_erase_rec]
+  | _, _, EoVarEnv.cons (s := sHead) (T := THead)
+      (vars := tailVars) hTail,
+      s, T, hNotMem =>
+      by
+        by_cases hVarEq :
+            Term.Var (Term.String sHead) THead =
+              Term.Var (Term.String s) T
+        · injection hVarEq with hName hTy
+          injection hName with hString
+          cases hString
+          cases hTy
+          exact False.elim (hNotMem (List.Mem.head _))
+        · have hVarEqSymm :
+              Term.Var (Term.String s) T ≠
+                Term.Var (Term.String sHead) THead := by
+            intro h
+            exact hVarEq h.symm
+          have hTailNotMem : (s, T) ∉ tailVars := by
+            intro hMem
+            exact hNotMem (List.Mem.tail _ hMem)
+          have hTailErase :=
+            eo_var_env_erase_rec_eq_self_of_not_mem hTail hTailNotMem
+          simp [__eo_list_erase_rec, __eo_eq, native_teq, hVarEq,
+            hVarEqSymm, __eo_ite, native_ite, hTailErase,
+            __eo_mk_apply, hTail.ne_stuck]
+
+private theorem eo_var_env_erase_rec_mem_subset :
+    ∀ {env : Term} {vars : List EoVarKey}
+      (hEnv : EoVarEnv env vars)
+      {sErase : native_String} {TErase : Term}
+      {eraseVars : List EoVarKey},
+      EoVarEnv
+        (__eo_list_erase_rec env
+          (Term.Var (Term.String sErase) TErase))
+        eraseVars ->
+        ∀ key, key ∈ eraseVars -> key ∈ vars
+  | _, _, EoVarEnv.nil, sErase, TErase, eraseVars, hErase =>
+      by
+        intro key hMem
+        have hNil : EoVarEnv
+            (__eo_list_erase_rec Term.__eo_List_nil
+              (Term.Var (Term.String sErase) TErase)) [] := by
+          simpa [__eo_list_erase_rec] using EoVarEnv.nil
+        have hEq : eraseVars = [] :=
+          EoVarEnv.vars_eq_of_same_env hErase hNil
+        subst eraseVars
+        cases hMem
+  | _, _, EoVarEnv.cons (s := sHead) (T := THead)
+      (env := envTail) (vars := tailVars) hTail,
+      sErase, TErase, eraseVars, hErase =>
+      by
+        intro key hMem
+        by_cases hVarEq :
+            Term.Var (Term.String sHead) THead =
+              Term.Var (Term.String sErase) TErase
+        · have hTailEnv :
+              EoVarEnv
+                (__eo_list_erase_rec
+                  (Term.Apply
+                    (Term.Apply Term.__eo_List_cons
+                      (Term.Var (Term.String sHead) THead))
+                    envTail)
+                  (Term.Var (Term.String sErase) TErase))
+                tailVars := by
+            simpa [__eo_list_erase_rec, __eo_eq, native_teq,
+              hVarEq, __eo_ite, native_ite] using hTail
+          have hEq : eraseVars = tailVars :=
+            EoVarEnv.vars_eq_of_same_env hErase hTailEnv
+          subst eraseVars
+          exact List.Mem.tail _ hMem
+        · have hVarEqSymm :
+              Term.Var (Term.String sErase) TErase ≠
+                Term.Var (Term.String sHead) THead := by
+            intro h
+            exact hVarEq h.symm
+          rcases EoVarEnv.erase_rec_var sErase TErase hTail with
+            ⟨tailEraseVars, hTailErase⟩
+          have hOut :
+              EoVarEnv
+                (__eo_list_erase_rec
+                  (Term.Apply
+                    (Term.Apply Term.__eo_List_cons
+                      (Term.Var (Term.String sHead) THead))
+                    envTail)
+                  (Term.Var (Term.String sErase) TErase))
+                ((sHead, THead) :: tailEraseVars) := by
+            simpa [__eo_list_erase_rec, __eo_eq, native_teq,
+              hVarEq, hVarEqSymm, __eo_ite, native_ite] using
+              EoVarEnv.cons_mk_apply (s := sHead) (T := THead)
+                hTailErase
+          have hEq : eraseVars = (sHead, THead) :: tailEraseVars :=
+            EoVarEnv.vars_eq_of_same_env hErase hOut
+          subst eraseVars
+          cases hMem with
+          | head =>
+              exact List.Mem.head _
+          | tail _ hTailMem =>
+              exact List.Mem.tail _
+                (eo_var_env_erase_rec_mem_subset hTail hTailErase
+                  key hTailMem)
+
+private theorem eo_var_env_get_elements_rec :
+    ∀ {env : Term} {vars : List EoVarKey},
+      EoVarEnv env vars ->
+        __eo_get_elements_rec env = env
+  | _, _, EoVarEnv.nil =>
+      by
+        simp [__eo_get_elements_rec]
+  | _, _, EoVarEnv.cons hTail =>
+      by
+        have hTailGet := eo_var_env_get_elements_rec hTail
+        simp [__eo_get_elements_rec, __eo_mk_apply, hTailGet,
+          hTail.ne_stuck]
+
+private theorem eo_minclude_rec_true_flag_true
+    {y z orig : Term} :
+    y ≠ Term.Stuck ->
+    z ≠ Term.Stuck ->
+    orig ≠ Term.Stuck ->
+    __eo_list_minclude_rec y z (__eo_not (__eo_eq y orig)) =
+      Term.Boolean true ->
+    __eo_not (__eo_eq y orig) = Term.Boolean true := by
+  intro hY hZ hOrig hIncl
+  by_cases hEq : y = orig
+  · have hEqTerm : __eo_eq y orig = Term.Boolean true := by
+      subst orig
+      exact eo_eq_self_true hY
+    have hFlag :
+        __eo_not (__eo_eq y orig) = Term.Boolean false := by
+      simp [__eo_not, hEqTerm, native_not]
+    rw [hFlag] at hIncl
+    cases y <;> cases z <;> simp [__eo_list_minclude_rec] at hIncl hY hZ
+  · have hEqTerm : __eo_eq y orig = Term.Boolean false :=
+      eo_eq_false_of_ne_local hEq hY hOrig
+    simp [__eo_not, hEqTerm, native_not]
+
+private theorem eo_var_env_minclude_rec_mem_subset :
+    ∀ {a b : Term} {aVars bVars : List EoVarKey}
+      (hA : EoVarEnv a aVars)
+      (hB : EoVarEnv b bVars),
+      __eo_list_minclude_rec a b (Term.Boolean true) =
+        Term.Boolean true ->
+        ∀ key, key ∈ bVars -> key ∈ aVars
+  | _, _, _, _, hA, EoVarEnv.nil, _ =>
+      by
+        intro key hMem
+        cases hMem
+  | a, _, aVars, _, hA,
+      EoVarEnv.cons (s := s) (T := T) (env := bTail)
+        (vars := bTailVars) hBTail,
+      hIncl =>
+      by
+        intro key hMem
+        let erased := __eo_list_erase_rec a (Term.Var (Term.String s) T)
+        rcases EoVarEnv.erase_rec_var s T hA with
+          ⟨erasedVars, hErased⟩
+        have hErased' : EoVarEnv erased erasedVars := by
+          simpa [erased] using hErased
+        have hInclRaw :
+            __eo_list_minclude_rec erased bTail
+                (__eo_not (__eo_eq erased a)) =
+              Term.Boolean true := by
+          simpa [__eo_list_minclude_rec, erased, hA.ne_stuck] using hIncl
+        have hFlag :
+            __eo_not (__eo_eq erased a) = Term.Boolean true :=
+          eo_minclude_rec_true_flag_true
+            hErased'.ne_stuck hBTail.ne_stuck hA.ne_stuck hInclRaw
+        have hTailIncl :
+            __eo_list_minclude_rec erased bTail (Term.Boolean true) =
+              Term.Boolean true := by
+          rw [hFlag] at hInclRaw
+          exact hInclRaw
+        cases hMem with
+        | head =>
+            by_cases hMemA : (s, T) ∈ aVars
+            · exact hMemA
+            · have hEraseEq :
+                  __eo_list_erase_rec a (Term.Var (Term.String s) T) =
+                    a :=
+                eo_var_env_erase_rec_eq_self_of_not_mem hA hMemA
+              have hEqTerm : __eo_eq erased a = Term.Boolean true := by
+                simpa [erased, hEraseEq] using eo_eq_self_true hA.ne_stuck
+              simp [__eo_not, hEqTerm, native_not] at hFlag
+        | tail _ hTailMem =>
+            have hErasedMem :
+                key ∈ erasedVars :=
+              eo_var_env_minclude_rec_mem_subset hErased' hBTail
+                hTailIncl key hTailMem
+            exact
+              eo_var_env_erase_rec_mem_subset hA hErased key hErasedMem
+
+private theorem eo_var_env_minclude_mem_subset
+    {a b : Term} {aVars bVars : List EoVarKey}
+    (hA : EoVarEnv a aVars)
+    (hB : EoVarEnv b bVars)
+    (hIncl :
+      __eo_list_minclude Term.__eo_List_cons a b =
+        Term.Boolean true) :
+  ∀ key, key ∈ bVars -> key ∈ aVars :=
+by
+  have hAList := hA.is_list
+  have hBList := hB.is_list
+  have hAGet := eo_var_env_get_elements_rec hA
+  have hBGet := eo_var_env_get_elements_rec hB
+  have hInclRec :
+      __eo_list_minclude_rec a b (Term.Boolean true) =
+        Term.Boolean true := by
+    simpa [__eo_list_minclude, __eo_requires, hAList, hBList,
+      native_ite, native_teq, hAGet, hBGet] using hIncl
+  exact eo_var_env_minclude_rec_mem_subset hA hB hInclRec
+
+private theorem eo_var_env_diff_rec_mem_or :
+    ∀ {a b : Term} {aVars bVars diffVars : List EoVarKey}
+      (hA : EoVarEnv a aVars)
+      (hB : EoVarEnv b bVars),
+      EoVarEnv (__eo_list_diff_rec a b) diffVars ->
+        ∀ key, key ∈ aVars -> key ∈ bVars ∨ key ∈ diffVars
+  | _, _, _, _, _, EoVarEnv.nil, hB, hDiff =>
+      by
+        intro key hMem
+        cases hMem
+  | _, b, _, bVars, diffVars,
+      EoVarEnv.cons (s := s) (T := T) (env := aTail) hTail,
+      hB, hDiff =>
+      by
+        intro key hMem
+        let erased := __eo_list_erase_rec b (Term.Var (Term.String s) T)
+        rcases EoVarEnv.erase_rec_var s T hB with
+          ⟨erasedVars, hErased⟩
+        have hErased' : EoVarEnv erased erasedVars := by
+          simpa [erased] using hErased
+        rcases EoVarEnv.diff_rec hTail hErased' with
+          ⟨tailDiffVars, hTailDiff⟩
+        by_cases hEq : erased = b
+        · have hOut :
+              EoVarEnv
+                (__eo_list_diff_rec
+                  (Term.Apply
+                    (Term.Apply Term.__eo_List_cons
+                      (Term.Var (Term.String s) T))
+                    aTail)
+                  b)
+                ((s, T) :: tailDiffVars) := by
+            have hCond : __eo_eq erased b = Term.Boolean true := by
+              subst erased
+              rw [hEq]
+              exact eo_eq_self_true hB.ne_stuck
+            have hPrep :
+                __eo_prepend_if (Term.Boolean true) Term.__eo_List_cons
+                    (Term.Var (Term.String s) T)
+                    (__eo_list_diff_rec aTail erased) =
+                  Term.Apply
+                    (Term.Apply Term.__eo_List_cons
+                    (Term.Var (Term.String s) T))
+                    (__eo_list_diff_rec aTail erased) := by
+              exact
+                eo_prepend_if_true_eq_local
+                  (by intro h; cases h) (by intro h; cases h)
+                  hTailDiff.ne_stuck
+            have hUnfold :
+                __eo_list_diff_rec
+                    (Term.Apply
+                      (Term.Apply Term.__eo_List_cons
+                        (Term.Var (Term.String s) T))
+                      aTail)
+                    b =
+                  __eo_prepend_if (__eo_eq erased b)
+                    Term.__eo_List_cons
+                    (Term.Var (Term.String s) T)
+                    (__eo_list_diff_rec aTail erased) := by
+              cases hB <;> simp [__eo_list_diff_rec, erased]
+            rw [hUnfold, hCond, hPrep]
+            exact EoVarEnv.cons (s := s) (T := T) hTailDiff
+          have hVarsEq :
+              diffVars = (s, T) :: tailDiffVars :=
+            EoVarEnv.vars_eq_of_same_env hDiff hOut
+          subst diffVars
+          cases hMem with
+          | head =>
+              exact Or.inr (List.Mem.head _)
+          | tail _ hTailMem =>
+              rcases
+                eo_var_env_diff_rec_mem_or hTail hErased'
+                  hTailDiff key hTailMem with
+                hMemErased | hMemDiff
+              · exact Or.inl
+                  (eo_var_env_erase_rec_mem_subset hB hErased
+                    key hMemErased)
+              · exact Or.inr (List.Mem.tail _ hMemDiff)
+        · have hHeadMem : (s, T) ∈ bVars := by
+            by_cases hMemB : (s, T) ∈ bVars
+            · exact hMemB
+            · have hEraseEq :
+                __eo_list_erase_rec b (Term.Var (Term.String s) T) = b :=
+                eo_var_env_erase_rec_eq_self_of_not_mem hB hMemB
+              exact False.elim (hEq hEraseEq)
+          have hOut :
+              EoVarEnv
+                (__eo_list_diff_rec
+                  (Term.Apply
+                    (Term.Apply Term.__eo_List_cons
+                      (Term.Var (Term.String s) T))
+                    aTail)
+                  b)
+                tailDiffVars := by
+            have hEqSymm : b ≠ erased := by
+              intro h
+              exact hEq h.symm
+            have hCond : __eo_eq erased b = Term.Boolean false :=
+              eo_eq_false_of_ne_local hEq hErased'.ne_stuck hB.ne_stuck
+            have hPrep :
+                __eo_prepend_if (Term.Boolean false) Term.__eo_List_cons
+                    (Term.Var (Term.String s) T)
+                    (__eo_list_diff_rec aTail erased) =
+                  __eo_list_diff_rec aTail erased := by
+              exact
+                eo_prepend_if_false_eq_local
+                  (by intro h; cases h) (by intro h; cases h)
+                  hTailDiff.ne_stuck
+            have hUnfold :
+                __eo_list_diff_rec
+                    (Term.Apply
+                      (Term.Apply Term.__eo_List_cons
+                        (Term.Var (Term.String s) T))
+                      aTail)
+                    b =
+                  __eo_prepend_if (__eo_eq erased b)
+                    Term.__eo_List_cons
+                    (Term.Var (Term.String s) T)
+                    (__eo_list_diff_rec aTail erased) := by
+              cases hB <;> simp [__eo_list_diff_rec, erased]
+            rw [hUnfold, hCond, hPrep]
+            exact hTailDiff
+          have hVarsEq : diffVars = tailDiffVars :=
+            EoVarEnv.vars_eq_of_same_env hDiff hOut
+          subst diffVars
+          cases hMem with
+          | head =>
+              exact Or.inl hHeadMem
+          | tail _ hTailMem =>
+              rcases
+                eo_var_env_diff_rec_mem_or hTail hErased'
+                  hTailDiff key hTailMem with
+                hMemErased | hMemDiff
+              · exact Or.inl
+                  (eo_var_env_erase_rec_mem_subset hB hErased
+                    key hMemErased)
+              · exact Or.inr hMemDiff
+
+private theorem eo_var_env_diff_mem_or
+    {a b : Term} {aVars bVars diffVars : List EoVarKey}
+    (hA : EoVarEnv a aVars)
+    (hB : EoVarEnv b bVars)
+    (hDiff :
+      EoVarEnv (__eo_list_diff Term.__eo_List_cons a b) diffVars) :
+  ∀ key, key ∈ aVars -> key ∈ bVars ∨ key ∈ diffVars :=
+by
+  rcases EoVarEnv.diff_rec hA hB with ⟨knownDiffVars, hKnownDiffRec⟩
+  have hAList := hA.is_list
+  have hBList := hB.is_list
+  have hKnownDiff :
+      EoVarEnv (__eo_list_diff Term.__eo_List_cons a b)
+        knownDiffVars := by
+    simpa [__eo_list_diff, __eo_requires, hAList, hBList,
+      native_ite, native_teq] using hKnownDiffRec
+  have hVarsEq : diffVars = knownDiffVars :=
+    EoVarEnv.vars_eq_of_same_env hDiff hKnownDiff
+  subst diffVars
+  exact eo_var_env_diff_rec_mem_or hA hB hKnownDiffRec
 
 private theorem eo_ite_nonstuck_guard_cases
     {c t e : Term}
@@ -1416,6 +2368,119 @@ by
             Term.__eo_List_nil =
           Term.Boolean false := by
       simpa [hGet] using hNoFree
+    rcases eo_var_env_of_quant_has_smt_translation hQ hGTrans with
+      ⟨yVars, hYEnv⟩
+    rcases EoVarEnv.setof hXEnv with
+      ⟨setVars, hSetEnv⟩
+    rcases EoVarEnv.diff hSetEnv hYEnv with
+      ⟨diffVars, hDiffEnv⟩
+    have hExceptDiff :
+        EoVarEnvPerm
+          (__eo_list_diff Term.__eo_List_cons
+            (__eo_list_setof Term.__eo_List_cons x) y)
+          exceptVars := by
+      have hGetDiff :
+          __get_unused_vars ((Q.Apply x).Apply F) (qterm Q y F) =
+            __eo_list_diff Term.__eo_List_cons
+              (__eo_list_setof Term.__eo_List_cons x) y := by
+        simpa [qterm] using hGet
+      rw [hGetDiff] at hExceptEnv
+      exact hExceptEnv
+    have hYSubsetSet :
+        ∀ key, key ∈ yVars -> key ∈ setVars :=
+      eo_var_env_minclude_mem_subset hSetEnv hYEnv hMinclude
+    have hYSubsetSetSmt :
+        ∀ key, key ∈ yVars.map EoVarKey.toSmt ->
+          key ∈ setVars.map EoVarKey.toSmt := by
+      intro key hMem
+      rcases List.mem_map.1 hMem with ⟨eoKey, hEoMem, hKeyEq⟩
+      exact List.mem_map.2
+        ⟨eoKey, hYSubsetSet eoKey hEoMem, hKeyEq⟩
+    have hSetMemYOrDiffSmt :
+        ∀ key, key ∈ setVars.map EoVarKey.toSmt ->
+          key ∈ yVars.map EoVarKey.toSmt ∨
+            key ∈ exceptVars.map EoVarKey.toSmt := by
+      intro key hMem
+      rcases List.mem_map.1 hMem with ⟨eoKey, hEoMem, hKeyEq⟩
+      rcases
+        eo_var_env_diff_mem_or hSetEnv hYEnv hDiffEnv eoKey hEoMem with
+        hMemY | hMemDiff
+      · exact Or.inl (List.mem_map.2 ⟨eoKey, hMemY, hKeyEq⟩)
+      · have hExceptMem :
+            eoKey ∈ exceptVars :=
+          EoVarEnvPerm.mem_of_exact_env_mem
+            hExceptDiff hDiffEnv hMemDiff
+        exact Or.inr (List.mem_map.2 ⟨eoKey, hExceptMem, hKeyEq⟩)
+    have hBodyNoFreeDiff :
+        __contains_atomic_term_list_free_rec F
+            (__eo_list_diff Term.__eo_List_cons
+              (__eo_list_setof Term.__eo_List_cons x) y)
+            (__eo_list_concat Term.__eo_List_cons y Term.__eo_List_nil) =
+          Term.Boolean false := by
+      cases hYEnv with
+      | nil =>
+          exfalso
+          rcases hQ with hForall | hExists
+          · subst Q
+            exact hGTrans (by
+              change __smtx_typeof SmtTerm.None = SmtType.None
+              exact TranslationProofs.smtx_typeof_none)
+          · subst Q
+            exact hGTrans (by
+              change __smtx_typeof SmtTerm.None = SmtType.None
+              exact TranslationProofs.smtx_typeof_none)
+      | cons hTail =>
+          rename_i s T env tailVars
+          simpa [qterm] using
+            contains_atomic_term_list_free_rec_list_branch_false_body
+              (q := Q) (x := Term.Var (Term.String s) T)
+              (ys := env) (body := F)
+              (except :=
+                __eo_list_diff Term.__eo_List_cons
+                  (__eo_list_setof Term.__eo_List_cons x)
+                  (Term.Apply
+                    (Term.Apply Term.__eo_List_cons
+                      (Term.Var (Term.String s) T)) env))
+              (bound := Term.__eo_List_nil)
+              hNoFreeDiff
+    have hBoundY :
+        EoVarEnvPerm
+          (__eo_list_concat Term.__eo_List_cons y Term.__eo_List_nil)
+          yVars := by
+      simpa using
+        EoVarEnvPerm.of_exact
+          (EoVarEnv.concat hYEnv EoVarEnv.nil)
+    have hRightInvariant :
+        ∀ {N : SmtModel},
+          model_total_typed N ->
+            model_agrees_except_on_env
+                (setVars.map EoVarKey.toSmt) [] N M ->
+              __smtx_model_eval N (__eo_to_smt (qterm Q y F)) =
+                __smtx_model_eval M (__eo_to_smt (qterm Q y F)) := by
+      intro N _hN hAgreeSet
+      refine
+        smtx_model_eval_qterm_eq_of_body_eval_eq_bound
+          hQ hYEnv ?_ hAgreeSet
+      intro M' N' hAgreeSetBound
+      have hAgreeDiffBound :
+          model_agrees_except_on_env
+              (exceptVars.map EoVarKey.toSmt)
+              (yVars.map EoVarKey.toSmt) M' N' := by
+        refine ⟨hAgreeSetBound.globals, ?_⟩
+        intro s T hAllowed
+        apply hAgreeSetBound.vars_eq
+        rcases hAllowed with hBound | hNotDiff
+        · exact Or.inl hBound
+        · by_cases hSetMem :
+              (s, T) ∈ setVars.map EoVarKey.toSmt
+          · rcases hSetMemYOrDiffSmt (s, T) hSetMem with
+              hMemY | hMemDiff
+            · exact Or.inl hMemY
+            · exact False.elim (hNotDiff hMemDiff)
+          · exact Or.inr hSetMem
+      exact
+        smt_model_eval_eq_of_contains_atomic_term_list_free_rec_false_mapped
+          hExceptDiff hBoundY hFTrans hBodyNoFreeDiff hAgreeDiffBound
     sorry
 
 theorem cmd_step_quant_unused_vars_properties
