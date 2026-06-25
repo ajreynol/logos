@@ -1584,6 +1584,704 @@ by
       (hFuncEval hFuncTrans hBound hFuncNoFree hAgree)
       (hArgEval hArgTrans hBound hArgNoFree hAgree)
 
+theorem smtx_model_eval_ite_eq_of_eval_eq
+    {M N : SmtModel} {c x y : SmtTerm}
+    (hc :
+      __smtx_model_eval M c = __smtx_model_eval N c)
+    (hx :
+      __smtx_model_eval M x = __smtx_model_eval N x)
+    (hy :
+      __smtx_model_eval M y = __smtx_model_eval N y) :
+  __smtx_model_eval M (SmtTerm.ite c x y) =
+    __smtx_model_eval N (SmtTerm.ite c x y) :=
+by
+  simp [__smtx_model_eval, hc, hx, hy]
+
+theorem contains_atomic_term_list_free_rec_apply_uop_false_arg
+    {op : UserOp} {x except bound : Term}
+    {exceptVars boundVars : List EoVarKey}
+    (hExcept : EoVarEnvPerm except exceptVars)
+    (hBound : EoVarEnvPerm bound boundVars)
+    (hNoFree :
+      __contains_atomic_term_list_free_rec
+          (Term.Apply (Term.UOp op) x) except bound =
+        Term.Boolean false) :
+  __contains_atomic_term_list_free_rec x except bound =
+    Term.Boolean false :=
+by
+  rcases
+    contains_atomic_term_list_free_rec_apply_false_cases
+      hExcept hBound
+      (by intro q v vs hEq; cases hEq)
+      hNoFree with
+    ⟨_hHeadNoFree, hArgNoFree⟩
+  exact hArgNoFree
+
+theorem contains_atomic_term_list_free_rec_apply_apply_uop_false_args
+    {op : UserOp} {x y except bound : Term}
+    {exceptVars boundVars : List EoVarKey}
+    (hExcept : EoVarEnvPerm except exceptVars)
+    (hBound : EoVarEnvPerm bound boundVars)
+    (hXNotList :
+      ∀ v vs,
+        x ≠ Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
+    (hNoFree :
+      __contains_atomic_term_list_free_rec
+          (Term.Apply (Term.Apply (Term.UOp op) x) y) except bound =
+        Term.Boolean false) :
+  __contains_atomic_term_list_free_rec x except bound =
+      Term.Boolean false ∧
+    __contains_atomic_term_list_free_rec y except bound =
+      Term.Boolean false :=
+by
+  rcases
+    contains_atomic_term_list_free_rec_apply_false_cases
+      hExcept hBound
+      (by
+        intro q v vs hEq
+        cases hEq
+        exact hXNotList v vs rfl)
+      hNoFree with
+    ⟨hHeadNoFree, hYNoFree⟩
+  have hXNoFree :
+      __contains_atomic_term_list_free_rec x except bound =
+        Term.Boolean false :=
+    contains_atomic_term_list_free_rec_apply_uop_false_arg
+      hExcept hBound hHeadNoFree
+  exact ⟨hXNoFree, hYNoFree⟩
+
+theorem contains_atomic_term_list_free_rec_apply_apply_apply_uop_false_args
+    {op : UserOp} {c x y except bound : Term}
+    {exceptVars boundVars : List EoVarKey}
+    (hExcept : EoVarEnvPerm except exceptVars)
+    (hBound : EoVarEnvPerm bound boundVars)
+    (hCNotList :
+      ∀ v vs,
+        c ≠ Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
+    (hXNotList :
+      ∀ v vs,
+        x ≠ Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
+    (hNoFree :
+      __contains_atomic_term_list_free_rec
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) c) x) y)
+          except bound =
+        Term.Boolean false) :
+  __contains_atomic_term_list_free_rec c except bound =
+      Term.Boolean false ∧
+    __contains_atomic_term_list_free_rec x except bound =
+      Term.Boolean false ∧
+    __contains_atomic_term_list_free_rec y except bound =
+      Term.Boolean false :=
+by
+  rcases
+    contains_atomic_term_list_free_rec_apply_false_cases
+      hExcept hBound
+      (by
+        intro q v vs hEq
+        cases hEq
+        exact hXNotList v vs rfl)
+      hNoFree with
+    ⟨hHeadNoFree, hYNoFree⟩
+  rcases
+    contains_atomic_term_list_free_rec_apply_apply_uop_false_args
+      hExcept hBound hCNotList hHeadNoFree with
+    ⟨hCNoFree, hXNoFree⟩
+  exact ⟨hCNoFree, hXNoFree, hYNoFree⟩
+
+theorem smt_model_eval_apply_not_eq_of_contains_atomic_term_list_free_rec_false_mapped
+    (root : Term)
+    {x except bound : Term} {exceptVars boundVars : List EoVarKey}
+    {M N : SmtModel}
+    (hXLt : sizeOf x < sizeOf root)
+    (hExcept : EoVarEnvPerm except exceptVars)
+    (hBound : EoVarEnvPerm bound boundVars)
+    (hTrans :
+      eoHasSmtTranslation (Term.Apply (Term.UOp UserOp.not) x))
+    (hNoFree :
+      __contains_atomic_term_list_free_rec
+          (Term.Apply (Term.UOp UserOp.not) x) except bound =
+        Term.Boolean false)
+    (hAgree :
+      model_agrees_except_on_env
+        (exceptVars.map EoVarKey.toSmt) (boundVars.map EoVarKey.toSmt)
+        M N)
+    (ih :
+      ∀ {t except' bound' : Term}
+        {exceptVars' boundVars' : List EoVarKey}
+        {M' N' : SmtModel},
+        sizeOf t < sizeOf root ->
+          EoVarEnvPerm except' exceptVars' ->
+          EoVarEnvPerm bound' boundVars' ->
+          eoHasSmtTranslation t ->
+          __contains_atomic_term_list_free_rec t except' bound' =
+            Term.Boolean false ->
+          model_agrees_except_on_env
+            (exceptVars'.map EoVarKey.toSmt)
+            (boundVars'.map EoVarKey.toSmt) M' N' ->
+          __smtx_model_eval M' (__eo_to_smt t) =
+            __smtx_model_eval N' (__eo_to_smt t)) :
+  __smtx_model_eval M
+      (__eo_to_smt (Term.Apply (Term.UOp UserOp.not) x)) =
+    __smtx_model_eval N
+      (__eo_to_smt (Term.Apply (Term.UOp UserOp.not) x)) :=
+by
+  have hXNoFree :
+      __contains_atomic_term_list_free_rec x except bound =
+        Term.Boolean false :=
+    contains_atomic_term_list_free_rec_apply_uop_false_arg
+      hExcept hBound hNoFree
+  have hXTrans :
+      eoHasSmtTranslation x :=
+    not_arg_has_smt_translation_of_has_smt_translation hTrans
+  change
+    __smtx_model_eval M (SmtTerm.not (__eo_to_smt x)) =
+      __smtx_model_eval N (SmtTerm.not (__eo_to_smt x))
+  exact
+    smtx_model_eval_not_eq_of_eval_eq
+      (ih hXLt hExcept hBound hXTrans hXNoFree hAgree)
+
+theorem smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+    (root : Term)
+    {op : UserOp} {x except bound : Term}
+    {exceptVars boundVars : List EoVarKey}
+    {M N : SmtModel}
+    (hXLt : sizeOf x < sizeOf root)
+    (hExcept : EoVarEnvPerm except exceptVars)
+    (hBound : EoVarEnvPerm bound boundVars)
+    (hTrans :
+      eoHasSmtTranslation (Term.Apply (Term.UOp op) x))
+    (hArgTrans :
+      eoHasSmtTranslation (Term.Apply (Term.UOp op) x) ->
+        eoHasSmtTranslation x)
+    (hNoFree :
+      __contains_atomic_term_list_free_rec
+          (Term.Apply (Term.UOp op) x) except bound =
+        Term.Boolean false)
+    (hAgree :
+      model_agrees_except_on_env
+        (exceptVars.map EoVarKey.toSmt) (boundVars.map EoVarKey.toSmt)
+        M N)
+    (hEval :
+      __smtx_model_eval M (__eo_to_smt x) =
+        __smtx_model_eval N (__eo_to_smt x) ->
+      __smtx_model_eval M (__eo_to_smt (Term.Apply (Term.UOp op) x)) =
+        __smtx_model_eval N (__eo_to_smt (Term.Apply (Term.UOp op) x)))
+    (ih :
+      ∀ {t except' bound' : Term}
+        {exceptVars' boundVars' : List EoVarKey}
+        {M' N' : SmtModel},
+        sizeOf t < sizeOf root ->
+          EoVarEnvPerm except' exceptVars' ->
+          EoVarEnvPerm bound' boundVars' ->
+          eoHasSmtTranslation t ->
+          __contains_atomic_term_list_free_rec t except' bound' =
+            Term.Boolean false ->
+          model_agrees_except_on_env
+            (exceptVars'.map EoVarKey.toSmt)
+            (boundVars'.map EoVarKey.toSmt) M' N' ->
+          __smtx_model_eval M' (__eo_to_smt t) =
+            __smtx_model_eval N' (__eo_to_smt t)) :
+  __smtx_model_eval M (__eo_to_smt (Term.Apply (Term.UOp op) x)) =
+    __smtx_model_eval N (__eo_to_smt (Term.Apply (Term.UOp op) x)) :=
+by
+  have hXNoFree :
+      __contains_atomic_term_list_free_rec x except bound =
+        Term.Boolean false :=
+    contains_atomic_term_list_free_rec_apply_uop_false_arg
+      hExcept hBound hNoFree
+  exact
+    hEval
+      (ih hXLt hExcept hBound (hArgTrans hTrans) hXNoFree hAgree)
+
+theorem smt_model_eval_apply_apply_and_eq_of_contains_atomic_term_list_free_rec_false_mapped
+    (root : Term)
+    {x y except bound : Term} {exceptVars boundVars : List EoVarKey}
+    {M N : SmtModel}
+    (hXLt : sizeOf x < sizeOf root)
+    (hYLt : sizeOf y < sizeOf root)
+    (hExcept : EoVarEnvPerm except exceptVars)
+    (hBound : EoVarEnvPerm bound boundVars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.and) x) y))
+    (hNoFree :
+      __contains_atomic_term_list_free_rec
+          (Term.Apply (Term.Apply (Term.UOp UserOp.and) x) y)
+          except bound =
+        Term.Boolean false)
+    (hAgree :
+      model_agrees_except_on_env
+        (exceptVars.map EoVarKey.toSmt) (boundVars.map EoVarKey.toSmt)
+        M N)
+    (ih :
+      ∀ {t except' bound' : Term}
+        {exceptVars' boundVars' : List EoVarKey}
+        {M' N' : SmtModel},
+        sizeOf t < sizeOf root ->
+          EoVarEnvPerm except' exceptVars' ->
+          EoVarEnvPerm bound' boundVars' ->
+          eoHasSmtTranslation t ->
+          __contains_atomic_term_list_free_rec t except' bound' =
+            Term.Boolean false ->
+          model_agrees_except_on_env
+            (exceptVars'.map EoVarKey.toSmt)
+            (boundVars'.map EoVarKey.toSmt) M' N' ->
+          __smtx_model_eval M' (__eo_to_smt t) =
+            __smtx_model_eval N' (__eo_to_smt t)) :
+  __smtx_model_eval M
+      (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.and) x) y)) =
+    __smtx_model_eval N
+      (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.and) x) y)) :=
+by
+  rcases and_args_have_smt_translation_of_has_smt_translation hTrans with
+    ⟨hXTrans, hYTrans⟩
+  rcases
+    contains_atomic_term_list_free_rec_apply_apply_uop_false_args
+      hExcept hBound
+      (apply_apply_uop_arg_not_list_of_nonquantifier_has_smt_translation
+        (by decide) (by decide) hTrans)
+      hNoFree with
+    ⟨hXNoFree, hYNoFree⟩
+  change
+    __smtx_model_eval M (SmtTerm.and (__eo_to_smt x) (__eo_to_smt y)) =
+      __smtx_model_eval N (SmtTerm.and (__eo_to_smt x) (__eo_to_smt y))
+  exact
+    smtx_model_eval_and_eq_of_eval_eq
+      (ih hXLt hExcept hBound hXTrans hXNoFree hAgree)
+      (ih hYLt hExcept hBound hYTrans hYNoFree hAgree)
+
+theorem smt_model_eval_apply_apply_or_eq_of_contains_atomic_term_list_free_rec_false_mapped
+    (root : Term)
+    {x y except bound : Term} {exceptVars boundVars : List EoVarKey}
+    {M N : SmtModel}
+    (hXLt : sizeOf x < sizeOf root)
+    (hYLt : sizeOf y < sizeOf root)
+    (hExcept : EoVarEnvPerm except exceptVars)
+    (hBound : EoVarEnvPerm bound boundVars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.or) x) y))
+    (hNoFree :
+      __contains_atomic_term_list_free_rec
+          (Term.Apply (Term.Apply (Term.UOp UserOp.or) x) y)
+          except bound =
+        Term.Boolean false)
+    (hAgree :
+      model_agrees_except_on_env
+        (exceptVars.map EoVarKey.toSmt) (boundVars.map EoVarKey.toSmt)
+        M N)
+    (ih :
+      ∀ {t except' bound' : Term}
+        {exceptVars' boundVars' : List EoVarKey}
+        {M' N' : SmtModel},
+        sizeOf t < sizeOf root ->
+          EoVarEnvPerm except' exceptVars' ->
+          EoVarEnvPerm bound' boundVars' ->
+          eoHasSmtTranslation t ->
+          __contains_atomic_term_list_free_rec t except' bound' =
+            Term.Boolean false ->
+          model_agrees_except_on_env
+            (exceptVars'.map EoVarKey.toSmt)
+            (boundVars'.map EoVarKey.toSmt) M' N' ->
+          __smtx_model_eval M' (__eo_to_smt t) =
+            __smtx_model_eval N' (__eo_to_smt t)) :
+  __smtx_model_eval M
+      (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.or) x) y)) =
+    __smtx_model_eval N
+      (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.or) x) y)) :=
+by
+  rcases or_args_have_smt_translation_of_has_smt_translation hTrans with
+    ⟨hXTrans, hYTrans⟩
+  rcases
+    contains_atomic_term_list_free_rec_apply_apply_uop_false_args
+      hExcept hBound
+      (apply_apply_uop_arg_not_list_of_nonquantifier_has_smt_translation
+        (by decide) (by decide) hTrans)
+      hNoFree with
+    ⟨hXNoFree, hYNoFree⟩
+  change
+    __smtx_model_eval M (SmtTerm.or (__eo_to_smt x) (__eo_to_smt y)) =
+      __smtx_model_eval N (SmtTerm.or (__eo_to_smt x) (__eo_to_smt y))
+  exact
+    smtx_model_eval_or_eq_of_eval_eq
+      (ih hXLt hExcept hBound hXTrans hXNoFree hAgree)
+      (ih hYLt hExcept hBound hYTrans hYNoFree hAgree)
+
+theorem smt_model_eval_apply_apply_imp_eq_of_contains_atomic_term_list_free_rec_false_mapped
+    (root : Term)
+    {x y except bound : Term} {exceptVars boundVars : List EoVarKey}
+    {M N : SmtModel}
+    (hXLt : sizeOf x < sizeOf root)
+    (hYLt : sizeOf y < sizeOf root)
+    (hExcept : EoVarEnvPerm except exceptVars)
+    (hBound : EoVarEnvPerm bound boundVars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.imp) x) y))
+    (hNoFree :
+      __contains_atomic_term_list_free_rec
+          (Term.Apply (Term.Apply (Term.UOp UserOp.imp) x) y)
+          except bound =
+        Term.Boolean false)
+    (hAgree :
+      model_agrees_except_on_env
+        (exceptVars.map EoVarKey.toSmt) (boundVars.map EoVarKey.toSmt)
+        M N)
+    (ih :
+      ∀ {t except' bound' : Term}
+        {exceptVars' boundVars' : List EoVarKey}
+        {M' N' : SmtModel},
+        sizeOf t < sizeOf root ->
+          EoVarEnvPerm except' exceptVars' ->
+          EoVarEnvPerm bound' boundVars' ->
+          eoHasSmtTranslation t ->
+          __contains_atomic_term_list_free_rec t except' bound' =
+            Term.Boolean false ->
+          model_agrees_except_on_env
+            (exceptVars'.map EoVarKey.toSmt)
+            (boundVars'.map EoVarKey.toSmt) M' N' ->
+          __smtx_model_eval M' (__eo_to_smt t) =
+            __smtx_model_eval N' (__eo_to_smt t)) :
+  __smtx_model_eval M
+      (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.imp) x) y)) =
+    __smtx_model_eval N
+      (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.imp) x) y)) :=
+by
+  rcases imp_args_have_smt_translation_of_has_smt_translation hTrans with
+    ⟨hXTrans, hYTrans⟩
+  rcases
+    contains_atomic_term_list_free_rec_apply_apply_uop_false_args
+      hExcept hBound
+      (apply_apply_uop_arg_not_list_of_nonquantifier_has_smt_translation
+        (by decide) (by decide) hTrans)
+      hNoFree with
+    ⟨hXNoFree, hYNoFree⟩
+  change
+    __smtx_model_eval M (SmtTerm.imp (__eo_to_smt x) (__eo_to_smt y)) =
+      __smtx_model_eval N (SmtTerm.imp (__eo_to_smt x) (__eo_to_smt y))
+  exact
+    smtx_model_eval_imp_eq_of_eval_eq
+      (ih hXLt hExcept hBound hXTrans hXNoFree hAgree)
+      (ih hYLt hExcept hBound hYTrans hYNoFree hAgree)
+
+theorem smt_model_eval_apply_apply_xor_eq_of_contains_atomic_term_list_free_rec_false_mapped
+    (root : Term)
+    {x y except bound : Term} {exceptVars boundVars : List EoVarKey}
+    {M N : SmtModel}
+    (hXLt : sizeOf x < sizeOf root)
+    (hYLt : sizeOf y < sizeOf root)
+    (hExcept : EoVarEnvPerm except exceptVars)
+    (hBound : EoVarEnvPerm bound boundVars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.xor) x) y))
+    (hNoFree :
+      __contains_atomic_term_list_free_rec
+          (Term.Apply (Term.Apply (Term.UOp UserOp.xor) x) y)
+          except bound =
+        Term.Boolean false)
+    (hAgree :
+      model_agrees_except_on_env
+        (exceptVars.map EoVarKey.toSmt) (boundVars.map EoVarKey.toSmt)
+        M N)
+    (ih :
+      ∀ {t except' bound' : Term}
+        {exceptVars' boundVars' : List EoVarKey}
+        {M' N' : SmtModel},
+        sizeOf t < sizeOf root ->
+          EoVarEnvPerm except' exceptVars' ->
+          EoVarEnvPerm bound' boundVars' ->
+          eoHasSmtTranslation t ->
+          __contains_atomic_term_list_free_rec t except' bound' =
+            Term.Boolean false ->
+          model_agrees_except_on_env
+            (exceptVars'.map EoVarKey.toSmt)
+            (boundVars'.map EoVarKey.toSmt) M' N' ->
+          __smtx_model_eval M' (__eo_to_smt t) =
+            __smtx_model_eval N' (__eo_to_smt t)) :
+  __smtx_model_eval M
+      (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.xor) x) y)) =
+    __smtx_model_eval N
+      (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.xor) x) y)) :=
+by
+  rcases xor_args_have_smt_translation_of_has_smt_translation hTrans with
+    ⟨hXTrans, hYTrans⟩
+  rcases
+    contains_atomic_term_list_free_rec_apply_apply_uop_false_args
+      hExcept hBound
+      (apply_apply_uop_arg_not_list_of_nonquantifier_has_smt_translation
+        (by decide) (by decide) hTrans)
+      hNoFree with
+    ⟨hXNoFree, hYNoFree⟩
+  change
+    __smtx_model_eval M (SmtTerm.xor (__eo_to_smt x) (__eo_to_smt y)) =
+      __smtx_model_eval N (SmtTerm.xor (__eo_to_smt x) (__eo_to_smt y))
+  exact
+    smtx_model_eval_xor_eq_of_eval_eq
+      (ih hXLt hExcept hBound hXTrans hXNoFree hAgree)
+      (ih hYLt hExcept hBound hYTrans hYNoFree hAgree)
+
+theorem smt_model_eval_apply_apply_eq_eq_of_contains_atomic_term_list_free_rec_false_mapped
+    (root : Term)
+    {x y except bound : Term} {exceptVars boundVars : List EoVarKey}
+    {M N : SmtModel}
+    (hXLt : sizeOf x < sizeOf root)
+    (hYLt : sizeOf y < sizeOf root)
+    (hExcept : EoVarEnvPerm except exceptVars)
+    (hBound : EoVarEnvPerm bound boundVars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) y))
+    (hNoFree :
+      __contains_atomic_term_list_free_rec
+          (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) y)
+          except bound =
+        Term.Boolean false)
+    (hAgree :
+      model_agrees_except_on_env
+        (exceptVars.map EoVarKey.toSmt) (boundVars.map EoVarKey.toSmt)
+        M N)
+    (ih :
+      ∀ {t except' bound' : Term}
+        {exceptVars' boundVars' : List EoVarKey}
+        {M' N' : SmtModel},
+        sizeOf t < sizeOf root ->
+          EoVarEnvPerm except' exceptVars' ->
+          EoVarEnvPerm bound' boundVars' ->
+          eoHasSmtTranslation t ->
+          __contains_atomic_term_list_free_rec t except' bound' =
+            Term.Boolean false ->
+          model_agrees_except_on_env
+            (exceptVars'.map EoVarKey.toSmt)
+            (boundVars'.map EoVarKey.toSmt) M' N' ->
+          __smtx_model_eval M' (__eo_to_smt t) =
+            __smtx_model_eval N' (__eo_to_smt t)) :
+  __smtx_model_eval M
+      (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) y)) =
+    __smtx_model_eval N
+      (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) y)) :=
+by
+  rcases eq_args_have_smt_translation_of_has_smt_translation hTrans with
+    ⟨hXTrans, hYTrans⟩
+  rcases
+    contains_atomic_term_list_free_rec_apply_apply_uop_false_args
+      hExcept hBound
+      (apply_apply_uop_arg_not_list_of_nonquantifier_has_smt_translation
+        (by decide) (by decide) hTrans)
+      hNoFree with
+    ⟨hXNoFree, hYNoFree⟩
+  change
+    __smtx_model_eval M (SmtTerm.eq (__eo_to_smt x) (__eo_to_smt y)) =
+      __smtx_model_eval N (SmtTerm.eq (__eo_to_smt x) (__eo_to_smt y))
+  exact
+    smtx_model_eval_eq_eq_of_eval_eq
+      (ih hXLt hExcept hBound hXTrans hXNoFree hAgree)
+      (ih hYLt hExcept hBound hYTrans hYNoFree hAgree)
+
+theorem smt_model_eval_apply_apply_uop_binary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+    (root : Term)
+    {op : UserOp} {x y except bound : Term}
+    {exceptVars boundVars : List EoVarKey}
+    {M N : SmtModel}
+    (hXLt : sizeOf x < sizeOf root)
+    (hYLt : sizeOf y < sizeOf root)
+    (hExcept : EoVarEnvPerm except exceptVars)
+    (hBound : EoVarEnvPerm bound boundVars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp op) x) y))
+    (hArgsTrans :
+      eoHasSmtTranslation (Term.Apply (Term.Apply (Term.UOp op) x) y) ->
+        eoHasSmtTranslation x ∧ eoHasSmtTranslation y)
+    (hNoFree :
+      __contains_atomic_term_list_free_rec
+          (Term.Apply (Term.Apply (Term.UOp op) x) y) except bound =
+        Term.Boolean false)
+    (hAgree :
+      model_agrees_except_on_env
+        (exceptVars.map EoVarKey.toSmt) (boundVars.map EoVarKey.toSmt)
+        M N)
+    (hEval :
+      __smtx_model_eval M (__eo_to_smt x) =
+        __smtx_model_eval N (__eo_to_smt x) ->
+      __smtx_model_eval M (__eo_to_smt y) =
+        __smtx_model_eval N (__eo_to_smt y) ->
+      __smtx_model_eval M
+          (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp op) x) y)) =
+        __smtx_model_eval N
+          (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp op) x) y)))
+    (ih :
+      ∀ {t except' bound' : Term}
+        {exceptVars' boundVars' : List EoVarKey}
+        {M' N' : SmtModel},
+        sizeOf t < sizeOf root ->
+          EoVarEnvPerm except' exceptVars' ->
+          EoVarEnvPerm bound' boundVars' ->
+          eoHasSmtTranslation t ->
+          __contains_atomic_term_list_free_rec t except' bound' =
+            Term.Boolean false ->
+          model_agrees_except_on_env
+            (exceptVars'.map EoVarKey.toSmt)
+            (boundVars'.map EoVarKey.toSmt) M' N' ->
+          __smtx_model_eval M' (__eo_to_smt t) =
+            __smtx_model_eval N' (__eo_to_smt t)) :
+  __smtx_model_eval M
+      (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp op) x) y)) =
+    __smtx_model_eval N
+      (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp op) x) y)) :=
+by
+  rcases hArgsTrans hTrans with ⟨hXTrans, hYTrans⟩
+  rcases
+    contains_atomic_term_list_free_rec_apply_apply_uop_false_args
+      hExcept hBound
+      (term_not_eo_list_cons_of_has_smt_translation hXTrans)
+      hNoFree with
+    ⟨hXNoFree, hYNoFree⟩
+  exact
+    hEval
+      (ih hXLt hExcept hBound hXTrans hXNoFree hAgree)
+      (ih hYLt hExcept hBound hYTrans hYNoFree hAgree)
+
+theorem smt_model_eval_apply_apply_apply_ite_eq_of_contains_atomic_term_list_free_rec_false_mapped
+    (root : Term)
+    {c x y except bound : Term} {exceptVars boundVars : List EoVarKey}
+    {M N : SmtModel}
+    (hCLt : sizeOf c < sizeOf root)
+    (hXLt : sizeOf x < sizeOf root)
+    (hYLt : sizeOf y < sizeOf root)
+    (hExcept : EoVarEnvPerm except exceptVars)
+    (hBound : EoVarEnvPerm bound boundVars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) c) x) y))
+    (hNoFree :
+      __contains_atomic_term_list_free_rec
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) c) x) y)
+          except bound =
+        Term.Boolean false)
+    (hAgree :
+      model_agrees_except_on_env
+        (exceptVars.map EoVarKey.toSmt) (boundVars.map EoVarKey.toSmt)
+        M N)
+    (ih :
+      ∀ {t except' bound' : Term}
+        {exceptVars' boundVars' : List EoVarKey}
+        {M' N' : SmtModel},
+        sizeOf t < sizeOf root ->
+          EoVarEnvPerm except' exceptVars' ->
+          EoVarEnvPerm bound' boundVars' ->
+          eoHasSmtTranslation t ->
+          __contains_atomic_term_list_free_rec t except' bound' =
+            Term.Boolean false ->
+          model_agrees_except_on_env
+            (exceptVars'.map EoVarKey.toSmt)
+            (boundVars'.map EoVarKey.toSmt) M' N' ->
+          __smtx_model_eval M' (__eo_to_smt t) =
+            __smtx_model_eval N' (__eo_to_smt t)) :
+  __smtx_model_eval M
+      (__eo_to_smt
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) c) x) y)) =
+    __smtx_model_eval N
+      (__eo_to_smt
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) c) x) y)) :=
+by
+  rcases ite_args_have_smt_translation_of_has_smt_translation hTrans with
+    ⟨hCTrans, hXTrans, hYTrans⟩
+  rcases
+    contains_atomic_term_list_free_rec_apply_apply_apply_uop_false_args
+      hExcept hBound
+      (term_not_eo_list_cons_of_has_smt_translation hCTrans)
+      (term_not_eo_list_cons_of_has_smt_translation hXTrans)
+      hNoFree with
+    ⟨hCNoFree, hXNoFree, hYNoFree⟩
+  change
+    __smtx_model_eval M
+        (SmtTerm.ite (__eo_to_smt c) (__eo_to_smt x) (__eo_to_smt y)) =
+      __smtx_model_eval N
+        (SmtTerm.ite (__eo_to_smt c) (__eo_to_smt x) (__eo_to_smt y))
+  exact
+    smtx_model_eval_ite_eq_of_eval_eq
+      (ih hCLt hExcept hBound hCTrans hCNoFree hAgree)
+      (ih hXLt hExcept hBound hXTrans hXNoFree hAgree)
+      (ih hYLt hExcept hBound hYTrans hYNoFree hAgree)
+
+theorem smt_model_eval_apply_apply_apply_uop_ternary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+    (root : Term)
+    {op : UserOp} {c x y except bound : Term}
+    {exceptVars boundVars : List EoVarKey}
+    {M N : SmtModel}
+    (hCLt : sizeOf c < sizeOf root)
+    (hXLt : sizeOf x < sizeOf root)
+    (hYLt : sizeOf y < sizeOf root)
+    (hExcept : EoVarEnvPerm except exceptVars)
+    (hBound : EoVarEnvPerm bound boundVars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) c) x) y))
+    (hArgsTrans :
+      eoHasSmtTranslation
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) c) x) y) ->
+        eoHasSmtTranslation c ∧
+          eoHasSmtTranslation x ∧
+          eoHasSmtTranslation y)
+    (hNoFree :
+      __contains_atomic_term_list_free_rec
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) c) x) y)
+          except bound =
+        Term.Boolean false)
+    (hAgree :
+      model_agrees_except_on_env
+        (exceptVars.map EoVarKey.toSmt) (boundVars.map EoVarKey.toSmt)
+        M N)
+    (hEval :
+      __smtx_model_eval M (__eo_to_smt c) =
+        __smtx_model_eval N (__eo_to_smt c) ->
+      __smtx_model_eval M (__eo_to_smt x) =
+        __smtx_model_eval N (__eo_to_smt x) ->
+      __smtx_model_eval M (__eo_to_smt y) =
+        __smtx_model_eval N (__eo_to_smt y) ->
+      __smtx_model_eval M
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) c) x) y)) =
+        __smtx_model_eval N
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) c) x) y)))
+    (ih :
+      ∀ {t except' bound' : Term}
+        {exceptVars' boundVars' : List EoVarKey}
+        {M' N' : SmtModel},
+        sizeOf t < sizeOf root ->
+          EoVarEnvPerm except' exceptVars' ->
+          EoVarEnvPerm bound' boundVars' ->
+          eoHasSmtTranslation t ->
+          __contains_atomic_term_list_free_rec t except' bound' =
+            Term.Boolean false ->
+          model_agrees_except_on_env
+            (exceptVars'.map EoVarKey.toSmt)
+            (boundVars'.map EoVarKey.toSmt) M' N' ->
+          __smtx_model_eval M' (__eo_to_smt t) =
+            __smtx_model_eval N' (__eo_to_smt t)) :
+  __smtx_model_eval M
+      (__eo_to_smt
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) c) x) y)) =
+    __smtx_model_eval N
+      (__eo_to_smt
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) c) x) y)) :=
+by
+  rcases hArgsTrans hTrans with ⟨hCTrans, hXTrans, hYTrans⟩
+  rcases
+    contains_atomic_term_list_free_rec_apply_apply_apply_uop_false_args
+      hExcept hBound
+      (term_not_eo_list_cons_of_has_smt_translation hCTrans)
+      (term_not_eo_list_cons_of_has_smt_translation hXTrans)
+      hNoFree with
+    ⟨hCNoFree, hXNoFree, hYNoFree⟩
+  exact
+    hEval
+      (ih hCLt hExcept hBound hCTrans hCNoFree hAgree)
+      (ih hXLt hExcept hBound hXTrans hXNoFree hAgree)
+      (ih hYLt hExcept hBound hYTrans hYNoFree hAgree)
+
 /--
 Evaluator congruence for the SMT existential chain produced from an exact EO
 binder list.
