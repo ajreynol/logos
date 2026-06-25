@@ -965,7 +965,7 @@ a parallel mapping for variables and constants.
 In contrast, the interpretation of variables is updatable in model (e.g.
 when evaluating binders), where the interpretation of a constant is fixed.
 
-\subsection{Types and Canonicity for SMT-LIB Values}
+\subsection{Types for SMT-LIB Values}
 
 In this section,
 we present type rules for SMT-LIB values and terms.
@@ -1022,7 +1022,7 @@ def smt_typeof_value : SmtValue -> SmtType
 \label{fig:typeof-value}
 \end{figure}
 
-We definition \smttypeofvalue is given in Figure~\ref{{fig:typeof-value}.
+We definition \smttypeofvalue is given in Figure~\ref{fig:typeof-value}.
 We present a representative subset of value cases.
 
 This method first contains the obvious base cases for e.g. Boolean values.
@@ -1256,8 +1256,6 @@ SMT-LIB uses a convention that user symbols cannot be prefixed by "@".}
 Uninterpreted sort values use a default natural number identifier,
 i.e. the first value of the uninterpreted sort's domain.
 
-
-  
 \begin{figure}
 \begin{lstlisting}
 def smt_map_entries_ordered_after (i : SmtValue) : SmtMap -> Bool
@@ -1284,8 +1282,8 @@ def smt_seq_canonical : SmtSeq -> Bool
   | (SmtSeq.cons v s) => (smt_value_canonical v && smt_seq_canonical s)
 
 def smt_value_canonical : SmtValue -> Bool
-  | (SmtValue.Binary w n) =>
-      if 0 <= w then decide (n = n % (2 ^ Int.toNat w)) else true
+  | (SmtValue.Binary w n) => if 0 <= w then decide (n = n % (2 ^ Int.toNat w)) else true
+  | (SmtValue.Char c) => c < 196608
   | (SmtValue.Map m) => (smt_map_canonical m)
   | (SmtValue.Set m) => (smt_map_canonical m && decide (smt_msm_get_default m = SmtValue.Boolean false))
   | (SmtValue.Seq s) => (smt_seq_canonical s)
@@ -1295,6 +1293,23 @@ def smt_value_canonical : SmtValue -> Bool
 \caption{Canonicality checks for maps, sequences, and values.}
 \label{fig:canonical}
 \end{figure}
+
+Given definitions of finiteness of types
+and a default value method,
+we are now ready to define canonicity of types.
+This is given by the method \code{smt_value_canonical}
+in Figure~\ref{fig:canonical}.
+If this method returns true for two syntactically distinct values having a \emph{first-class}
+type, then it will be the case that those two values are semantically distinct in all models.
+Moreover, it will be the case that our types will be interpreted
+as the subset of values of their type for which \code{smt_value_canonical} returns true.
+
+Note that \code{smt_value_canonical}
+by default considers values to be canonical (its default value is true).
+Hence, the list of cases can be seen as exceptions to when a value is not canonical.
+Firstly, bitvectors values are considered canonical 
+
+
 
 
 \subsection{Well-Formedness of Types}
