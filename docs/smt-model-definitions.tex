@@ -612,7 +612,7 @@ a further subset of these will be considered \emph{canonical} values.
 Like types, we use an error constructor \code{NotValue} to denote a failure in model evaluation.
 We then have the atomic constructors for Booleans, integers and reals.
 The constructor for the first takes native Lean Booleans and integers respectively.
-Presently we assume that all values of type Real are rational (Rational),
+Presently we assume that all values of type Real are rational (\code{Rational}),
 which make use of Lean's builtin Rat utility.
 For bitvectors, we use a constructor (called \code{Binary})
 that takes two integers as input denoting the bitwidth and the value.
@@ -628,7 +628,7 @@ which takes an auxiliary datatype, \code{SmtMap} as an argument.
 The SMT map datatype itself is defined as a list of index, element pairs (via \code{SmtMap.cons})
 which indicate the \emph{stores} of the map value, followed
 with a default value (via \code{SmtMap.default}).
-In other words, \code{(cons (Int 0) (Int 1) (default (Int 2)))}
+In other words, \code{(cons (Numeral 0) (Numeral 1) (default (Numeral 2)))}
 represents the map where integer 0 is mapped to 1, and all other integers are mapped to 2.
 Maps will be used to represent values of the SMT-LIB type Array.
 Note that this is a slight divergence from the official semantics, which
@@ -637,16 +637,16 @@ This implies that our semantics will insist that Array is interpreted
 as almost-constant maps.
 Map values may contain redundant entries,
 for instance
-\code{(cons (Int 0) (Int 1) (cons (Int 0) (Int 3) (default (Int 2))))}
+\code{(cons (Numeral 0) (Numeral 1) (cons (Numeral 0) (Numeral 3) (default (Numeral 2))))}
 represents the same map as the previous one, where the index 0 was "overwritten"
 at index 0 by the value 1.
 Similarly, the store in
-\code{(cons (Int 0) (Int 1) (default (Int 0)))}
+\code{(cons (Numeral 0) (Numeral 1) (default (Numeral 0)))}
 is also redundant.
 In general, this will require us to define a notion of canonicty of array
 values, which we define later.
 Furthermore more that a constructed map may not be typeable,
-e.g. \code{(const (Int 0) (Int 1) (default (Bool true)))}
+e.g. \code{(const (Numeral 0) (Numeral 1) (default (Boolean true)))}
 stores integer indices but has a different type of value as its default.
 We will see later that these values will be considered ill-typed.
 
@@ -689,7 +689,48 @@ specified by SMT-LIB (0 to 199607).
 
 Regular language values (\code{RegLan}) use an auxiliary datatype (\code{SmtRegLan})
 in their definition.
+This representation is not canonical: multiple distinct ASTs may denote the same regular language.
+Consequently, later we will see that 
+equality on regular expression values will be defined extensionally, i.e.,
+two values are equal iff they accept the same set of strings.
 
+The next two constructors (\code{DtCons} and \code{Apply}) are used to
+denote datatype values.
+In particular, the constructor \code{DtCons} takes the same first two arguments as
+a datatype type: a string identifier of its type and the SMT datatype that defines its structure.
+The third argument is a natural number that denotes the index of the constructor.
+Recall the datatype \code{DList} from the previous section,
+which corresponds to a list of integers:
+\begin{examplecode}
+DList := (sum (cons Int (cons (TypeRef "List") unit)) (sum unit null))
+\end{examplecode}
+which corresponded to the SMT-LIB datatype
+\begin{examplecode}
+(declare-datatype List ((listc (head Int) (tail List)) (listn)))
+\end{examplecode}
+Values that denote the constructors of this datatype are given by
+\code{(DtCons "List" DList 0)} and \code{(DtCons "List" DList 1)}.
+The former corresponds to \code{listc} and the latter corresponds to \code{listn}.
+We will see that the types of these values are 
+\code{(DtcAppType Int (DtcAppType (DatatypeType "List" DList) (DatatypeType "List" DList)))}
+and \code{(DatatypeType "List" DList)} respectively.
+In other words, the first value denotes a partially applied constructor
+that expects an integer and a list, while the second corresponds to
+a list.
+The value constructor \code{Apply} is used to construct applications of
+datatype constructors to values.
+It is a higher-order application, taking the head (a partially applied constructor value)
+and an argument to apply to.
+For instance, value corresponding to the singleton list containing the integer 7 is:
+\begin{examplecode}
+(Apply (Apply (DtCons "List" DList 0) 0) (DtCons "List" DList 1))
+\end{examplecode}
+Applications in this style are curried.
+Our typing rules on SMT-LIB values will 
+restrict the \code{Apply} value constructor to only allow partially
+applied datatype constructors as the head,
+and not for instance functions.
+Again, this is because datatypes are given Herbrand interpretations.
 
 Values of uninterpreted sort are represented by constructor \code{UValue},
 which take two natural number indicies.
@@ -703,7 +744,6 @@ This implies that uninterpreted sorts are implicitly assumed to be interpreted
 as infinite cardinality.
 Note that this does not necessarily hold for arbitrary SMT-LIB inputs.
 
-
 Recall that the primary purpose of values is to represent the
 output of model evaluation.
 We will impose certain restrictions on SMT-LIB values.
@@ -712,8 +752,11 @@ later we define \emph{canonical} as a property of (a subclass of) SMT-LIB values
 with the following behavior:
 two canonical values
 that are syntactically distinct are guaranteed to be semantically distinct.
-In other words, our model evaluator 
-Canonicity, however, does not apply to values over all types.
+Canonicity, however, will not apply to values over all types.
+In particular, 
+we will not define a notion of canonicity for functions and regular expression values.
+This will limit their usage when considering the space of well-formed types
+we will consider.
 
 \subsection{Terms}
 \label{sec:terms}
@@ -727,24 +770,115 @@ inductive SmtTerm : Type where
   | Rational : Rat -> SmtTerm
   | String : String -> SmtTerm
   | Binary : Int -> Int -> SmtTerm
-  | Apply : SmtTerm -> SmtTerm -> SmtTerm
+  
+  | eq : SmtTerm -> SmtTerm -> SmtTerm
   | not : SmtTerm -> SmtTerm
   | and : SmtTerm -> SmtTerm -> SmtTerm
-  | eq : SmtTerm -> SmtTerm -> SmtTerm
-  | exists : String -> SmtType -> SmtTerm -> SmtTerm
-  | forall : String -> SmtType -> SmtTerm -> SmtTerm
-  | choice_nth : String -> SmtType -> SmtTerm -> Nat -> SmtTerm
+  | select : SmtTerm -> SmtTerm
+  | store : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
+  ...
+  
+  | Apply : SmtTerm -> SmtTerm -> SmtTerm
   | DtCons : String -> SmtDatatype -> Nat -> SmtTerm
   | DtSel : String -> SmtDatatype -> Nat -> Nat -> SmtTerm
-  | DtTester : String -> SmtDatatype -> Nat -> SmtTerm
+  | exists : String -> SmtType -> SmtTerm -> SmtTerm
+  | forall : String -> SmtType -> SmtTerm -> SmtTerm
   | Var : String -> SmtType -> SmtTerm
   | UConst : String -> SmtType -> SmtTerm
-  ...
 deriving Repr, DecidableEq, Inhabited
 \end{lstlisting}
 \caption{A representative template of SMT term constructors.}
 \label{fig:smt-terms}
 \end{figure}
+
+We now turn our attention to SMT-LIB terms.
+Figure~\ref{fig:smt-terms} gives a representative sample of our definitions
+for SMT-LIB terms.
+
+As before, we use an error constructor \code{None} to denote an error
+value for terms.
+We then provide a list of standard atomic terms, which carry native Lean
+datatypes as arguments.
+
+The next group of operators shows our encoding of ordinary SMT-LIB operators.
+We use a santization pass on SMT-LIB identifiers, e.g.
+\code{eq} denotes SMT-LIB equality \code{=}; other constructors (e.g. \code{not}, \code{and})
+coincide with their SMT-LIB name.
+It is important to note that for these SMT-LIB operators, we use a first-order
+representation where the arguments of these operators are arguments to these constructors.
+Effectively, this hardcodes the application of interpreted functions in SMT-LIB to
+be fully applied.
+Note that SMT-LIB does not contain any variadic operators, so this is not a
+limitation.\footnote{
+It does however support syntax for providing arbtirary inputs to many associative operators
+such as \code{and}, which is equivalent to chaining together binary applications of that
+operator.
+}
+This design decision was made since we are not considering higher-order extensions
+of SMT-LIB, and moreover higher-order treatments of SMT-LIB often avoid reasoning
+about interpreted functions as first class objects (they can equivalently be
+represented as lambda functions).
+Overall, this representations limits the expressiveness of our embedding
+but greatly simplifies several dimensions of reasoning in our proofs.
+
+The next constructor \code{Apply} is used for two purposes:
+for applying uninterpreted functions, and for applying datatype constructors.
+In contrast to interpreted functions, these functions can have arbtirary (fixed)
+arity based on the user's definition.
+Thus, these are treated by curried applications.
+
+The next two terms denote datatype constructors and datatype selectors.
+Datatype constructors mirror their structure from SMT-LIB values.
+Datatype selectors take two natural numbers:
+the index of the constructor, and the index of the field within that constructor.
+For instance, the head and tail selectors from the example \code{DList}
+from the previous section are denoted as
+\code{(DtSel "List" DList 0 0)} and \code{(DtSel "List" DList 0 1)}.
+Note that these indices may be out of bounds, in which case the term will be
+ill-typed.
+
+The next two constructors (\code{forall} and \code{exists}) denote the SMT-LIB
+standard universal and existential binders.
+For each, the first two arguments are a string and a type, which
+together denote an identifier for a variable.
+The third argument denotes the body of the quantified formula,
+which is expected to be of Boolean type.
+Variables (\code{Var}) within that body are considered to be bound by the
+(innermost) instance of a binder that shares their identifier.
+For example, the SMT-LIB formula \code{(forall ((x Int)) (= x 0))}
+is represented in this encoding as:
+\begin{examplecode}
+(forall "x" Int (eq (Var "x" Int) (Numeral 0)))
+\end{examplecode}
+This representation has some of the same complications as our representation
+of datatypes, which we describe briefly here.
+First, a formula may have free variables, i.e. variables that
+are not bound by a binder, e.g.:
+\begin{examplecode}
+(eq (Var "x" Int) (Numeral 0))
+\end{examplecode}
+Second, a formula may contain aliased variables, e.g.:
+\begin{examplecode}
+(forall "x" Int (exists "x" Int (eq (Var "x" Int) (Numeral 0))))
+\end{examplecode}
+Both formulas will be considered well-formed in our definition.
+For the former, the semantics of a formula with free variables follows
+naturally from the definition of a SMT-LIB model, namely a variable has a
+fixed interpretation in a model.
+For the latter, our semantics of quantified formulas will be bottom-up,
+where inner quantified formulas essentially override the interpretation of
+variables, so that \code{(Var "x" Int)} is effectively bound
+by the innermost binder, in this case, it is extentionally bound.
+
+The last term constructor \code{UConst} denotes free (uninterpreted) constants.
+Note that a free constant may have a function type.
+These have the same structure as variables, and will have a model semantics
+that mirrors variables, where recall that an SMT-LIB model contains
+a parallel mapping for variables and constants.
+In contrast, the interpretation of variables is updatable in model (e.g.
+when evaluating binders), where the interpretation of a constant is fixed.
+
+\subsection{Types for Values and Terms}
 
 \begin{figure}[p]
 \begin{lstlisting}
