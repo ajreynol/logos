@@ -221,8 +221,65 @@ private theorem re_eq_forall_args_reglan (r1 r2 : Term)
 `(= r1 r2)` (regex extensional equality) and the extensionality formula `Q`
 evaluate to the same Boolean in `M`. -/
 
+private theorem unpack_pack_seq (T : SmtType) :
+    ∀ xs : List SmtValue, native_unpack_seq (native_pack_seq T xs) = xs
+  | [] => rfl
+  | _ :: xs => by
+      simp [native_pack_seq, native_unpack_seq, unpack_pack_seq T xs]
+
+/-- Round-trip: unpacking a packed native string is the identity. -/
+private theorem native_unpack_string_pack_string (s : native_String) :
+    native_unpack_string (native_pack_string s) = s := by
+  unfold native_unpack_string native_pack_string
+  rw [unpack_pack_seq, List.map_map]
+  have hid : (native_ssm_char_of_value ∘ SmtValue.Char) = id := by
+    funext x; rfl
+  rw [hid, List.map_id]
+
+/-- A valid native string packs to a canonical SMT sequence value. -/
+private theorem seq_canonical_pack_string :
+    ∀ s : native_String, native_string_valid s = true ->
+      __smtx_seq_canonical (native_pack_string s) = true
+  | [], _ => rfl
+  | c :: cs, hValid => by
+      have hc : native_char_valid c = true := by
+        rw [native_string_valid, List.all_eq_true] at hValid
+        exact hValid c (by simp)
+      have hcs : native_string_valid cs = true := by
+        rw [native_string_valid, List.all_eq_true] at hValid ⊢
+        intro d hd
+        exact hValid d (by simp [hd])
+      have ih := seq_canonical_pack_string cs hcs
+      change
+        __smtx_seq_canonical
+          (native_pack_seq SmtType.Char ((c :: cs).map SmtValue.Char)) = true
+      rw [List.map_cons]
+      change
+        native_and (__smtx_value_canonical_bool (SmtValue.Char c))
+          (__smtx_seq_canonical
+            (native_pack_seq SmtType.Char (cs.map SmtValue.Char))) = true
+      have ih' :
+          __smtx_seq_canonical (native_pack_seq SmtType.Char (cs.map SmtValue.Char)) =
+            true := ih
+      change native_and (native_char_valid c) _ = true
+      rw [ih', hc]
+      rfl
+
+/-- Evaluation of a `RegLan`-typed term yields a `RegLan` value. -/
+private theorem smt_eval_reglan_of_smt_type_reglan
+    (M : SmtModel) (hM : model_total_typed M) (t : SmtTerm) :
+    __smtx_typeof t = SmtType.RegLan ->
+    ∃ r, __smtx_model_eval M t = SmtValue.RegLan r := by
+  intro hTy
+  have hNN : term_has_non_none_type t := by
+    unfold term_has_non_none_type; rw [hTy]; simp
+  have hValTy : __smtx_typeof_value (__smtx_model_eval M t) = SmtType.RegLan := by
+    simpa [hTy] using smt_model_eval_preserves_type_of_non_none M hM t hNN
+  exact reglan_value_canonical hValTy
+
 /-
-Proof plan for the core (the only remaining `sorry`).  All cited lemmas exist.
+Core: `(= r1 r2)` (regex extensional equality) and the extensionality formula
+evaluate to the same Boolean in `M`.  Proof outline:
 
 Let `R1 := eval M (smt r1)`, `R2 := eval M (smt r2)` (both `RegLan` by `hr1`/`hr2`
 via `smt_eval_reglan_of_smt_type_reglan`).
@@ -280,7 +337,147 @@ private theorem re_eq_elim_smt_value_rel
     smt_value_rel
       (__smtx_model_eval M (__eo_to_smt (mkEqT r1 r2)))
       (__smtx_model_eval M (__eo_to_smt (reEqForall r1 r2))) := by
-  sorry
+  classical
+  obtain ⟨R1, hR1⟩ :=
+    smt_eval_reglan_of_smt_type_reglan M hM (__eo_to_smt r1) hr1
+  obtain ⟨R2, hR2⟩ :=
+    smt_eval_reglan_of_smt_type_reglan M hM (__eo_to_smt r2) hr2
+  have hT : __eo_to_smt_type seqCharTy = SmtType.Seq SmtType.Char := rfl
+  -- LHS value
+  have hLHS :
+      __smtx_model_eval M (__eo_to_smt (mkEqT r1 r2)) =
+        SmtValue.Boolean (native_re_ext_eq R1 R2) := by
+    have h1 : __eo_to_smt (mkEqT r1 r2) =
+        SmtTerm.eq (__eo_to_smt r1) (__eo_to_smt r2) := rfl
+    rw [h1]
+    simp only [__smtx_model_eval]
+    rw [hR1, hR2]
+    rfl
+  -- closedness of the operands → push-invariance (freshness)
+  have hEoTrans : eoHasSmtTranslation (mkEqT r1 r2) := by
+    simpa [eoHasSmtTranslation, eo_has_smt_translation] using hTrans
+  have hEoClosed : __eo_is_closed (mkEqT r1 r2) = Term.Boolean true := by
+    rw [← is_closed_rec_eq_eo_is_closed_of_has_smt_translation hEoTrans]
+    exact hClosed
+  have hClosedEq :
+      SmtTermClosedIn [] (SmtTerm.eq (__eo_to_smt r1) (__eo_to_smt r2)) :=
+    smtTermClosedIn_of_eo_is_closed _ hEoClosed
+  have hC1 : SmtTermClosedIn [] (__eo_to_smt r1) := hClosedEq.1
+  have hC2 : SmtTermClosedIn [] (__eo_to_smt r2) := hClosedEq.2
+  have hFresh1 : ∀ v : SmtValue,
+      __smtx_model_eval
+        (native_model_push M reqName (__eo_to_smt_type seqCharTy) v)
+        (__eo_to_smt r1) = SmtValue.RegLan R1 := by
+    intro v
+    have h := smt_model_eval_eq_of_eo_smt_closed (P := r1) hC1
+      (model_agrees_on_globals_push M reqName (__eo_to_smt_type seqCharTy) v)
+    rw [← h]; exact hR1
+  have hFresh2 : ∀ v : SmtValue,
+      __smtx_model_eval
+        (native_model_push M reqName (__eo_to_smt_type seqCharTy) v)
+        (__eo_to_smt r2) = SmtValue.RegLan R2 := by
+    intro v
+    have h := smt_model_eval_eq_of_eo_smt_closed (P := r2) hC2
+      (model_agrees_on_globals_push M reqName (__eo_to_smt_type seqCharTy) v)
+    rw [← h]; exact hR2
+  have hReqVar : ∀ v : SmtValue,
+      __smtx_model_eval
+        (native_model_push M reqName (__eo_to_smt_type seqCharTy) v)
+        (__eo_to_smt reqVar) = v := by
+    intro v
+    have h1 : __eo_to_smt reqVar =
+        SmtTerm.Var reqName (__eo_to_smt_type seqCharTy) := rfl
+    rw [h1]
+    simp only [__smtx_model_eval]
+    simp [native_model_var_lookup, native_model_push]
+  -- the body evaluated at a `Seq` value
+  have hBodyEval : ∀ ss : SmtSeq,
+      __smtx_model_eval
+        (native_model_push M reqName (__eo_to_smt_type seqCharTy)
+          (SmtValue.Seq ss))
+        (__eo_to_smt (reEqBody r1 r2)) =
+        SmtValue.Boolean
+          (decide (native_str_in_re (native_unpack_string ss) R1 =
+                   native_str_in_re (native_unpack_string ss) R2)) := by
+    intro ss
+    have h1 : __eo_to_smt (reEqBody r1 r2) =
+        SmtTerm.eq
+          (SmtTerm.str_in_re (__eo_to_smt reqVar) (__eo_to_smt r1))
+          (SmtTerm.str_in_re (__eo_to_smt reqVar) (__eo_to_smt r2)) := rfl
+    rw [h1]
+    simp only [__smtx_model_eval]
+    rw [hFresh1 (SmtValue.Seq ss), hFresh2 (SmtValue.Seq ss)]
+    simp [__smtx_model_eval, native_model_var_lookup, native_model_push,
+      __smtx_model_eval_str_in_re, __smtx_model_eval_eq, native_veq,
+      SmtValue.Boolean.injEq]
+  -- characterization of regex extensional equality
+  have hExtIff : native_re_ext_eq R1 R2 = true ↔
+      (∀ s : native_String, native_string_valid s = true →
+        native_str_in_re s R1 = native_str_in_re s R2) := by
+    constructor
+    · intro h
+      by_cases hP : (∀ s : native_String, native_string_valid s = true →
+          native_str_in_re s R1 = native_str_in_re s R2)
+      · exact hP
+      · rw [dif_neg hP] at h; exact absurd h (by decide)
+    · intro hP; exact dif_pos hP
+  rw [hLHS]
+  rw [smt_value_rel_iff_model_eval_eq_true]
+  -- RHS value
+  have hRHSeq :
+      __smtx_model_eval M (__eo_to_smt (reEqForall r1 r2)) =
+        SmtValue.Boolean (native_re_ext_eq R1 R2) := by
+    rw [re_eq_forall_smt]
+    simp only [__smtx_model_eval]
+    by_cases hEx :
+        ∃ v : SmtValue,
+          __smtx_typeof_value v = __eo_to_smt_type seqCharTy ∧
+            __smtx_value_canonical_bool v = true ∧
+            __smtx_model_eval_not
+              (__smtx_model_eval
+                (native_model_push M reqName (__eo_to_smt_type seqCharTy) v)
+                (__eo_to_smt (reEqBody r1 r2))) =
+              SmtValue.Boolean true
+    · -- a witness exists: the formula is false, and so is `native_re_ext_eq`
+      rw [dif_pos hEx]
+      have hNotHp :
+          ¬ (∀ s : native_String, native_string_valid s = true →
+              native_str_in_re s R1 = native_str_in_re s R2) := by
+        rcases hEx with ⟨v, hvTy, _hvCan, hvEval⟩
+        rcases seq_value_canonical (T := SmtType.Char) (by rw [← hT]; exact hvTy)
+          with ⟨ss, rfl⟩
+        have hssTy : __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char := by
+          have h := hvTy; rw [hT] at h; simpa [__smtx_typeof_value] using h
+        rw [hBodyEval ss] at hvEval
+        simp [__smtx_model_eval_not, native_not] at hvEval
+        intro hAll
+        exact hvEval (hAll (native_unpack_string ss)
+          (native_unpack_string_valid_of_typeof_seq_char hssTy))
+      rw [dif_neg hNotHp]
+      rfl
+    · -- no witness: the formula is true, and so is `native_re_ext_eq`
+      rw [dif_neg hEx]
+      have hHp : ∀ s : native_String, native_string_valid s = true →
+          native_str_in_re s R1 = native_str_in_re s R2 := by
+        intro s hs
+        by_cases hne : native_str_in_re s R1 = native_str_in_re s R2
+        · exact hne
+        · exfalso
+          apply hEx
+          refine ⟨SmtValue.Seq (native_pack_string s), ?_, ?_, ?_⟩
+          · rw [hT]
+            show __smtx_typeof_seq_value (native_pack_string s) =
+              SmtType.Seq SmtType.Char
+            exact typeof_pack_string s hs
+          · show __smtx_seq_canonical (native_pack_string s) = true
+            exact seq_canonical_pack_string s hs
+          · rw [hBodyEval (native_pack_string s),
+              native_unpack_string_pack_string s]
+            simp [__smtx_model_eval_not, native_not, hne]
+      rw [dif_pos hHp]
+      rfl
+  rw [hRHSeq]
+  simp [__smtx_model_eval_eq, native_veq]
 
 end RuleProofs
 
