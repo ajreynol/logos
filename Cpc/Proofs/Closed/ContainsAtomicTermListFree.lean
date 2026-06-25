@@ -1597,6 +1597,172 @@ theorem smtx_model_eval_ite_eq_of_eval_eq
 by
   simp [__smtx_model_eval, hc, hx, hy]
 
+theorem smtx_model_eval_apply_term_eq_of_eval_eq
+    {M N : SmtModel} (hGlobals : model_agrees_on_globals M N)
+    {f x : SmtTerm}
+    (hf :
+      __smtx_model_eval M f =
+        __smtx_model_eval N f)
+    (hx :
+      __smtx_model_eval M x =
+        __smtx_model_eval N x) :
+  __smtx_model_eval M (SmtTerm.Apply f x) =
+    __smtx_model_eval N (SmtTerm.Apply f x) :=
+by
+  cases f <;>
+    simp [__smtx_model_eval, hf, hx,
+      smtx_model_eval_apply_eq_of_globals hGlobals,
+      smtx_model_eval_dt_sel_eq_of_globals hGlobals]
+
+theorem smtx_model_eval_eo_to_smt_updater_rec_eq_of_eval_eq
+    {M N : SmtModel} (hGlobals : model_agrees_on_globals M N)
+    (sel : SmtTerm) (n : native_Nat) (t u acc : SmtTerm)
+    (ht :
+      __smtx_model_eval M t =
+        __smtx_model_eval N t)
+    (hu :
+      __smtx_model_eval M u =
+        __smtx_model_eval N u)
+    (hAcc :
+      __smtx_model_eval M acc =
+        __smtx_model_eval N acc) :
+  __smtx_model_eval M (__eo_to_smt_updater_rec sel n t u acc) =
+    __smtx_model_eval N (__eo_to_smt_updater_rec sel n t u acc) :=
+by
+  induction n generalizing acc with
+  | zero =>
+      cases sel <;>
+        simp [__eo_to_smt_updater_rec, __smtx_model_eval, hAcc]
+  | succ k ih =>
+      cases sel <;>
+        try simp [__eo_to_smt_updater_rec, __smtx_model_eval]
+      case DtSel s d i j =>
+        have hRec :
+            __smtx_model_eval M
+                (__eo_to_smt_updater_rec (SmtTerm.DtSel s d i j) k t u acc) =
+              __smtx_model_eval N
+                (__eo_to_smt_updater_rec (SmtTerm.DtSel s d i j) k t u acc) :=
+          ih acc hAcc
+        have hArg :
+            __smtx_model_eval M
+                (native_ite (native_nateq j k) u
+                  (SmtTerm.Apply (SmtTerm.DtSel s d i k) t)) =
+              __smtx_model_eval N
+                (native_ite (native_nateq j k) u
+                  (SmtTerm.Apply (SmtTerm.DtSel s d i k) t)) := by
+          cases hEq : native_nateq j k <;>
+            simp [native_ite, hu, ht, __smtx_model_eval,
+              smtx_model_eval_dt_sel_eq_of_globals hGlobals]
+        exact
+          smtx_model_eval_apply_term_eq_of_eval_eq hGlobals hRec hArg
+
+theorem smtx_model_eval_eo_to_smt_updater_eq_of_eval_eq
+    {M N : SmtModel} (hGlobals : model_agrees_on_globals M N)
+    (sel t u : SmtTerm)
+    (ht :
+      __smtx_model_eval M t =
+        __smtx_model_eval N t)
+    (hu :
+      __smtx_model_eval M u =
+        __smtx_model_eval N u) :
+  __smtx_model_eval M (__eo_to_smt_updater sel t u) =
+    __smtx_model_eval N (__eo_to_smt_updater sel t u) :=
+by
+  cases sel
+  case DtSel s d i j =>
+    cases hGuard :
+        native_zlt (native_nat_to_int j)
+          (native_nat_to_int (__smtx_dt_num_sels d i))
+    · have hUpdater :
+          __eo_to_smt_updater (SmtTerm.DtSel s d i j) t u =
+            SmtTerm.None := by
+        simp [__eo_to_smt_updater, native_ite, hGuard]
+      rw [hUpdater]
+      simp [__smtx_model_eval]
+    ·
+      have hUpdater :
+          __eo_to_smt_updater (SmtTerm.DtSel s d i j) t u =
+            SmtTerm.ite
+              (SmtTerm.Apply (SmtTerm.DtTester s d i) t)
+              (__eo_to_smt_updater_rec (SmtTerm.DtSel s d i j)
+                (__smtx_dt_num_sels d i) t u (SmtTerm.DtCons s d i))
+              t := by
+        simp [__eo_to_smt_updater, native_ite, hGuard]
+      rw [hUpdater]
+      have hCond :
+          __smtx_model_eval M
+              (SmtTerm.Apply (SmtTerm.DtTester s d i) t) =
+            __smtx_model_eval N
+              (SmtTerm.Apply (SmtTerm.DtTester s d i) t) :=
+        smtx_model_eval_apply_term_eq_of_eval_eq hGlobals
+          (by simp [__smtx_model_eval]) ht
+      have hThen :
+          __smtx_model_eval M
+              (__eo_to_smt_updater_rec (SmtTerm.DtSel s d i j)
+                (__smtx_dt_num_sels d i) t u (SmtTerm.DtCons s d i)) =
+            __smtx_model_eval N
+              (__eo_to_smt_updater_rec (SmtTerm.DtSel s d i j)
+                (__smtx_dt_num_sels d i) t u (SmtTerm.DtCons s d i)) :=
+        smtx_model_eval_eo_to_smt_updater_rec_eq_of_eval_eq
+          hGlobals (SmtTerm.DtSel s d i j) (__smtx_dt_num_sels d i)
+          t u (SmtTerm.DtCons s d i) ht hu
+          (by simp [__smtx_model_eval])
+      exact smtx_model_eval_ite_eq_of_eval_eq hCond hThen ht
+  all_goals
+    simp [__eo_to_smt_updater, __smtx_model_eval]
+
+theorem smtx_model_eval_eo_to_smt_tuple_update_eq_of_eval_eq
+    {M N : SmtModel} (hGlobals : model_agrees_on_globals M N)
+    (T : SmtType) (idx t u : SmtTerm)
+    (ht :
+      __smtx_model_eval M t =
+        __smtx_model_eval N t)
+    (hu :
+      __smtx_model_eval M u =
+        __smtx_model_eval N u) :
+  __smtx_model_eval M (__eo_to_smt_tuple_update T idx t u) =
+    __smtx_model_eval N (__eo_to_smt_tuple_update T idx t u) :=
+by
+  cases T <;> cases idx
+  case Datatype.Numeral s d n =>
+    by_cases hs : s = native_string_lit "@Tuple"
+    · subst s
+      cases hNonneg : native_zleq 0 n
+      · have hTuple :
+            __eo_to_smt_tuple_update
+                (SmtType.Datatype (native_string_lit "@Tuple") d)
+                (SmtTerm.Numeral n) t u =
+              SmtTerm.None := by
+          simp [__eo_to_smt_tuple_update, native_streq, native_and,
+            native_ite, hNonneg]
+        rw [hTuple]
+        simp [__smtx_model_eval]
+      · have hTuple :
+            __eo_to_smt_tuple_update
+                (SmtType.Datatype (native_string_lit "@Tuple") d)
+                (SmtTerm.Numeral n) t u =
+              __eo_to_smt_updater
+                (SmtTerm.DtSel (native_string_lit "@Tuple") d
+                  native_nat_zero (native_int_to_nat n)) t u := by
+          simp [__eo_to_smt_tuple_update, native_streq, native_and,
+            native_ite, hNonneg]
+        rw [hTuple]
+        exact
+          smtx_model_eval_eo_to_smt_updater_eq_of_eval_eq hGlobals
+            (SmtTerm.DtSel (native_string_lit "@Tuple") d native_nat_zero
+              (native_int_to_nat n))
+            t u ht hu
+    · have hTuple :
+          __eo_to_smt_tuple_update (SmtType.Datatype s d)
+              (SmtTerm.Numeral n) t u =
+            SmtTerm.None := by
+        simp [__eo_to_smt_tuple_update, hs, native_streq, native_and,
+          native_ite]
+      rw [hTuple]
+      simp [__smtx_model_eval]
+  all_goals
+    simp [__eo_to_smt_tuple_update, __smtx_model_eval]
+
 theorem contains_atomic_term_list_free_rec_apply_uop_false_arg
     {op : UserOp} {x except bound : Term}
     {exceptVars boundVars : List EoVarKey}
@@ -1792,6 +1958,739 @@ by
   exact
     hEval
       (ih hXLt hExcept hBound (hArgTrans hTrans) hXNoFree hAgree)
+
+theorem smt_model_eval_eo_to_smt_distinct_pairs_eq_of_contains_atomic_term_list_free_rec_false_mapped
+    (root : Term)
+    {s : SmtTerm} {xs except bound : Term}
+    {exceptVars boundVars : List EoVarKey}
+    {M N : SmtModel}
+    (hXsLt : sizeOf xs < sizeOf root)
+    (hExcept : EoVarEnvPerm except exceptVars)
+    (hBound : EoVarEnvPerm bound boundVars)
+    (hElemNN : __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None)
+    (hNoFree :
+      __contains_atomic_term_list_free_rec xs except bound =
+        Term.Boolean false)
+    (hAgree :
+      model_agrees_except_on_env
+        (exceptVars.map EoVarKey.toSmt) (boundVars.map EoVarKey.toSmt)
+        M N)
+    (hS :
+      __smtx_model_eval M s = __smtx_model_eval N s)
+    (ih :
+      ∀ {t except' bound' : Term}
+        {exceptVars' boundVars' : List EoVarKey}
+        {M' N' : SmtModel},
+        sizeOf t < sizeOf root ->
+          EoVarEnvPerm except' exceptVars' ->
+          EoVarEnvPerm bound' boundVars' ->
+          eoHasSmtTranslation t ->
+          __contains_atomic_term_list_free_rec t except' bound' =
+            Term.Boolean false ->
+          model_agrees_except_on_env
+            (exceptVars'.map EoVarKey.toSmt)
+            (boundVars'.map EoVarKey.toSmt) M' N' ->
+          __smtx_model_eval M' (__eo_to_smt t) =
+            __smtx_model_eval N' (__eo_to_smt t)) :
+  __smtx_model_eval M (__eo_to_smt_distinct_pairs s xs) =
+    __smtx_model_eval N (__eo_to_smt_distinct_pairs s xs) :=
+by
+  cases xs with
+  | Apply f tail =>
+      cases f with
+      | UOp op =>
+          cases op
+          case _at__at_TypedList_nil =>
+            change
+              __smtx_model_eval M (SmtTerm.Boolean true) =
+                __smtx_model_eval N (SmtTerm.Boolean true)
+            simp [__smtx_model_eval]
+          all_goals
+            exact False.elim
+              (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+      | Apply g head =>
+          cases g with
+          | UOp op =>
+              cases op
+              case _at__at_TypedList_cons =>
+                let headTy := __smtx_typeof (__eo_to_smt head)
+                let tailTy := __eo_to_smt_typed_list_elem_type tail
+                have hGuard : native_Teq headTy tailTy = true := by
+                  by_cases hGuard : native_Teq headTy tailTy = true
+                  · exact hGuard
+                  · exfalso
+                    exact hElemNN (by
+                      simp [__eo_to_smt_typed_list_elem_type, headTy,
+                        tailTy, native_ite, hGuard])
+                have hHeadNN : headTy ≠ SmtType.None := by
+                  change
+                    (native_ite (native_Teq headTy tailTy) headTy
+                        SmtType.None) ≠
+                      SmtType.None at hElemNN
+                  rw [hGuard] at hElemNN
+                  exact hElemNN
+                have hTailNN : tailTy ≠ SmtType.None := by
+                  intro hTailNone
+                  cases hHead : headTy <;>
+                    simp [headTy, tailTy, hHead, hTailNone, native_Teq]
+                      at hGuard hHeadNN
+                have hHeadTrans : eoHasSmtTranslation head := by
+                  unfold eoHasSmtTranslation
+                  simpa [headTy] using hHeadNN
+                rcases
+                  contains_atomic_term_list_free_rec_apply_apply_uop_false_args
+                    hExcept hBound
+                    (term_not_eo_list_cons_of_has_smt_translation hHeadTrans)
+                    hNoFree with
+                  ⟨hHeadNoFree, hTailNoFree⟩
+                have hHeadEval :
+                    __smtx_model_eval M (__eo_to_smt head) =
+                      __smtx_model_eval N (__eo_to_smt head) :=
+                  ih (by simp at hXsLt ⊢; omega)
+                    hExcept hBound hHeadTrans hHeadNoFree hAgree
+                have hTailEval :
+                    __smtx_model_eval M
+                        (__eo_to_smt_distinct_pairs s tail) =
+                      __smtx_model_eval N
+                        (__eo_to_smt_distinct_pairs s tail) :=
+                  smt_model_eval_eo_to_smt_distinct_pairs_eq_of_contains_atomic_term_list_free_rec_false_mapped
+                    root
+                    (hXsLt := by simp at hXsLt ⊢; omega)
+                    hExcept hBound
+                    (by simpa [tailTy] using hTailNN)
+                    hTailNoFree hAgree hS ih
+                change
+                  __smtx_model_eval M
+                      (SmtTerm.and
+                        (SmtTerm.not
+                          (SmtTerm.eq s (__eo_to_smt head)))
+                        (__eo_to_smt_distinct_pairs s tail)) =
+                    __smtx_model_eval N
+                      (SmtTerm.and
+                        (SmtTerm.not
+                          (SmtTerm.eq s (__eo_to_smt head)))
+                        (__eo_to_smt_distinct_pairs s tail))
+                exact
+                  smtx_model_eval_and_eq_of_eval_eq
+                    (smtx_model_eval_not_eq_of_eval_eq
+                      (smtx_model_eval_eq_eq_of_eval_eq hS hHeadEval))
+                    hTailEval
+              all_goals
+                exact False.elim
+                  (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+          | _ =>
+            exact False.elim
+              (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+      | _ =>
+        exact False.elim
+          (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+  | _ =>
+      exact False.elim
+        (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+
+theorem smt_model_eval_eo_to_smt_distinct_eq_of_contains_atomic_term_list_free_rec_false_mapped
+    (root : Term)
+    {xs except bound : Term}
+    {exceptVars boundVars : List EoVarKey}
+    {M N : SmtModel}
+    (hXsLt : sizeOf xs < sizeOf root)
+    (hExcept : EoVarEnvPerm except exceptVars)
+    (hBound : EoVarEnvPerm bound boundVars)
+    (hElemNN : __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None)
+    (hNoFree :
+      __contains_atomic_term_list_free_rec xs except bound =
+        Term.Boolean false)
+    (hAgree :
+      model_agrees_except_on_env
+        (exceptVars.map EoVarKey.toSmt) (boundVars.map EoVarKey.toSmt)
+        M N)
+    (ih :
+      ∀ {t except' bound' : Term}
+        {exceptVars' boundVars' : List EoVarKey}
+        {M' N' : SmtModel},
+        sizeOf t < sizeOf root ->
+          EoVarEnvPerm except' exceptVars' ->
+          EoVarEnvPerm bound' boundVars' ->
+          eoHasSmtTranslation t ->
+          __contains_atomic_term_list_free_rec t except' bound' =
+            Term.Boolean false ->
+          model_agrees_except_on_env
+            (exceptVars'.map EoVarKey.toSmt)
+            (boundVars'.map EoVarKey.toSmt) M' N' ->
+          __smtx_model_eval M' (__eo_to_smt t) =
+            __smtx_model_eval N' (__eo_to_smt t)) :
+  __smtx_model_eval M (__eo_to_smt_distinct xs) =
+    __smtx_model_eval N (__eo_to_smt_distinct xs) :=
+by
+  cases xs with
+  | Apply f tail =>
+      cases f with
+      | UOp op =>
+          cases op
+          case _at__at_TypedList_nil =>
+            change
+              __smtx_model_eval M (SmtTerm.Boolean true) =
+                __smtx_model_eval N (SmtTerm.Boolean true)
+            simp [__smtx_model_eval]
+          all_goals
+            exact False.elim
+              (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+      | Apply g head =>
+          cases g with
+          | UOp op =>
+              cases op
+              case _at__at_TypedList_cons =>
+                let headTy := __smtx_typeof (__eo_to_smt head)
+                let tailTy := __eo_to_smt_typed_list_elem_type tail
+                have hGuard : native_Teq headTy tailTy = true := by
+                  by_cases hGuard : native_Teq headTy tailTy = true
+                  · exact hGuard
+                  · exfalso
+                    exact hElemNN (by
+                      simp [__eo_to_smt_typed_list_elem_type, headTy,
+                        tailTy, native_ite, hGuard])
+                have hHeadNN : headTy ≠ SmtType.None := by
+                  change
+                    (native_ite (native_Teq headTy tailTy) headTy
+                        SmtType.None) ≠
+                      SmtType.None at hElemNN
+                  rw [hGuard] at hElemNN
+                  exact hElemNN
+                have hTailNN : tailTy ≠ SmtType.None := by
+                  intro hTailNone
+                  cases hHead : headTy <;>
+                    simp [headTy, tailTy, hHead, hTailNone, native_Teq]
+                      at hGuard hHeadNN
+                have hHeadTrans : eoHasSmtTranslation head := by
+                  unfold eoHasSmtTranslation
+                  simpa [headTy] using hHeadNN
+                rcases
+                  contains_atomic_term_list_free_rec_apply_apply_uop_false_args
+                    hExcept hBound
+                    (term_not_eo_list_cons_of_has_smt_translation hHeadTrans)
+                    hNoFree with
+                  ⟨hHeadNoFree, hTailNoFree⟩
+                have hHeadEval :
+                    __smtx_model_eval M (__eo_to_smt head) =
+                      __smtx_model_eval N (__eo_to_smt head) :=
+                  ih (by simp at hXsLt ⊢; omega)
+                    hExcept hBound hHeadTrans hHeadNoFree hAgree
+                have hPairsEval :
+                    __smtx_model_eval M
+                        (__eo_to_smt_distinct_pairs (__eo_to_smt head)
+                          tail) =
+                      __smtx_model_eval N
+                        (__eo_to_smt_distinct_pairs (__eo_to_smt head)
+                          tail) :=
+                  smt_model_eval_eo_to_smt_distinct_pairs_eq_of_contains_atomic_term_list_free_rec_false_mapped
+                    root
+                    (hXsLt := by simp at hXsLt ⊢; omega)
+                    hExcept hBound
+                    (by simpa [tailTy] using hTailNN)
+                    hTailNoFree hAgree hHeadEval ih
+                have hTailEval :
+                    __smtx_model_eval M (__eo_to_smt_distinct tail) =
+                      __smtx_model_eval N (__eo_to_smt_distinct tail) :=
+                  smt_model_eval_eo_to_smt_distinct_eq_of_contains_atomic_term_list_free_rec_false_mapped
+                    root
+                    (hXsLt := by simp at hXsLt ⊢; omega)
+                    hExcept hBound
+                    (by simpa [tailTy] using hTailNN)
+                    hTailNoFree hAgree ih
+                change
+                  __smtx_model_eval M
+                      (SmtTerm.and
+                        (__eo_to_smt_distinct_pairs (__eo_to_smt head)
+                          tail)
+                        (__eo_to_smt_distinct tail)) =
+                    __smtx_model_eval N
+                      (SmtTerm.and
+                        (__eo_to_smt_distinct_pairs (__eo_to_smt head)
+                          tail)
+                        (__eo_to_smt_distinct tail))
+                exact
+                  smtx_model_eval_and_eq_of_eval_eq
+                    hPairsEval hTailEval
+              all_goals
+                exact False.elim
+                  (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+          | _ =>
+            exact False.elim
+              (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+      | _ =>
+        exact False.elim
+          (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+  | _ =>
+      exact False.elim
+        (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+
+theorem smt_model_eval_apply_distinct_eq_of_contains_atomic_term_list_free_rec_false_mapped
+    (root : Term)
+    {xs except bound : Term} {exceptVars boundVars : List EoVarKey}
+    {M N : SmtModel}
+    (hXsLt : sizeOf xs < sizeOf root)
+    (hExcept : EoVarEnvPerm except exceptVars)
+    (hBound : EoVarEnvPerm bound boundVars)
+    (hTrans :
+      eoHasSmtTranslation (Term.Apply (Term.UOp UserOp.distinct) xs))
+    (hNoFree :
+      __contains_atomic_term_list_free_rec
+          (Term.Apply (Term.UOp UserOp.distinct) xs) except bound =
+        Term.Boolean false)
+    (hAgree :
+      model_agrees_except_on_env
+        (exceptVars.map EoVarKey.toSmt) (boundVars.map EoVarKey.toSmt)
+        M N)
+    (ih :
+      ∀ {t except' bound' : Term}
+        {exceptVars' boundVars' : List EoVarKey}
+        {M' N' : SmtModel},
+        sizeOf t < sizeOf root ->
+          EoVarEnvPerm except' exceptVars' ->
+          EoVarEnvPerm bound' boundVars' ->
+          eoHasSmtTranslation t ->
+          __contains_atomic_term_list_free_rec t except' bound' =
+            Term.Boolean false ->
+          model_agrees_except_on_env
+            (exceptVars'.map EoVarKey.toSmt)
+            (boundVars'.map EoVarKey.toSmt) M' N' ->
+          __smtx_model_eval M' (__eo_to_smt t) =
+            __smtx_model_eval N' (__eo_to_smt t)) :
+  __smtx_model_eval M
+      (__eo_to_smt (Term.Apply (Term.UOp UserOp.distinct) xs)) =
+    __smtx_model_eval N
+      (__eo_to_smt (Term.Apply (Term.UOp UserOp.distinct) xs)) :=
+by
+  have hXsNoFree :
+      __contains_atomic_term_list_free_rec xs except bound =
+        Term.Boolean false :=
+    contains_atomic_term_list_free_rec_apply_uop_false_arg
+      hExcept hBound hNoFree
+  have hElemNN :
+      __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None :=
+    typed_list_elem_type_non_none_of_distinct_has_smt_translation hTrans
+  have hDistinctEval :
+      __smtx_model_eval M (__eo_to_smt_distinct xs) =
+        __smtx_model_eval N (__eo_to_smt_distinct xs) :=
+    smt_model_eval_eo_to_smt_distinct_eq_of_contains_atomic_term_list_free_rec_false_mapped
+      root hXsLt hExcept hBound hElemNN hXsNoFree hAgree ih
+  change
+    __smtx_model_eval M
+        (native_ite
+          (native_Teq (__eo_to_smt_typed_list_elem_type xs) SmtType.None)
+          SmtTerm.None (__eo_to_smt_distinct xs)) =
+      __smtx_model_eval N
+        (native_ite
+          (native_Teq (__eo_to_smt_typed_list_elem_type xs) SmtType.None)
+          SmtTerm.None (__eo_to_smt_distinct xs))
+  by_cases hTeq :
+      native_Teq (__eo_to_smt_typed_list_elem_type xs) SmtType.None = true
+  · exfalso
+    have hNone :
+        __eo_to_smt_typed_list_elem_type xs = SmtType.None := by
+      cases hTy : __eo_to_smt_typed_list_elem_type xs <;>
+        simp [hTy, native_Teq] at hTeq ⊢
+    exact hElemNN hNone
+  · have hTeqFalse :
+        native_Teq (__eo_to_smt_typed_list_elem_type xs) SmtType.None =
+          false := by
+      cases hTy :
+          native_Teq (__eo_to_smt_typed_list_elem_type xs) SmtType.None <;>
+        simp [hTy] at hTeq ⊢
+    simpa [hTeqFalse, native_ite] using hDistinctEval
+
+theorem smt_model_eval_apply_uop_any_eq_of_contains_atomic_term_list_free_rec_false_mapped
+    (root : Term)
+    {op : UserOp} {x except bound : Term}
+    {exceptVars boundVars : List EoVarKey}
+    {M N : SmtModel}
+    (hXLt : sizeOf x < sizeOf root)
+    (hExcept : EoVarEnvPerm except exceptVars)
+    (hBound : EoVarEnvPerm bound boundVars)
+    (hTrans : eoHasSmtTranslation (Term.Apply (Term.UOp op) x))
+    (hNoFree :
+      __contains_atomic_term_list_free_rec
+          (Term.Apply (Term.UOp op) x) except bound =
+        Term.Boolean false)
+    (hAgree :
+      model_agrees_except_on_env
+        (exceptVars.map EoVarKey.toSmt) (boundVars.map EoVarKey.toSmt)
+        M N)
+    (ih :
+      ∀ {t except' bound' : Term}
+        {exceptVars' boundVars' : List EoVarKey}
+        {M' N' : SmtModel},
+        sizeOf t < sizeOf root ->
+          EoVarEnvPerm except' exceptVars' ->
+          EoVarEnvPerm bound' boundVars' ->
+          eoHasSmtTranslation t ->
+          __contains_atomic_term_list_free_rec t except' bound' =
+            Term.Boolean false ->
+          model_agrees_except_on_env
+            (exceptVars'.map EoVarKey.toSmt)
+            (boundVars'.map EoVarKey.toSmt) M' N' ->
+          __smtx_model_eval M' (__eo_to_smt t) =
+            __smtx_model_eval N' (__eo_to_smt t)) :
+  __smtx_model_eval M (__eo_to_smt (Term.Apply (Term.UOp op) x)) =
+    __smtx_model_eval N (__eo_to_smt (Term.Apply (Term.UOp op) x)) :=
+by
+  cases op
+  case not =>
+    exact
+      smt_model_eval_apply_not_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans hNoFree hAgree ih
+  case distinct =>
+    exact
+      smt_model_eval_apply_distinct_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans hNoFree hAgree ih
+  case _at_purify =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        purify_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        ih
+  case to_real =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        to_real_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        ih
+  case to_int =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        to_int_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        ih
+  case is_int =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        is_int_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        ih
+  case abs =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        abs_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        ih
+  case __eoo_neg_2 =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        uneg_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        ih
+  case int_pow2 =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        int_pow2_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        ih
+  case int_log2 =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        int_log2_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        ih
+  case int_ispow2 =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        int_ispow2_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        ih
+  case _at_int_div_by_zero =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        int_div_by_zero_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by
+          intro hx
+          dsimp only [__eo_to_smt]
+          simp [__smtx_model_eval, hx, hAgree.globals.1,
+            smtx_model_eval_apply_eq_of_globals hAgree.globals])
+        ih
+  case _at_mod_by_zero =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        mod_by_zero_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by
+          intro hx
+          dsimp only [__eo_to_smt]
+          simp [__smtx_model_eval, hx, hAgree.globals.1,
+            smtx_model_eval_apply_eq_of_globals hAgree.globals])
+        ih
+  case _at_div_by_zero =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        qdiv_by_zero_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by
+          intro hx
+          dsimp only [__eo_to_smt]
+          simp [__smtx_model_eval, hx, hAgree.globals.1,
+            smtx_model_eval_apply_eq_of_globals hAgree.globals])
+        ih
+  case _at_bvsize =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        bvsize_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by
+          intro hx
+          dsimp only [__eo_to_smt]
+          cases h :
+              native_zleq 0
+                (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))) <;>
+            simp [native_ite, h, __smtx_model_eval])
+        ih
+  case bvnot =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        bvnot_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        ih
+  case bvneg =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        bvneg_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        ih
+  case bvnego =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        bvnego_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        ih
+  case bvredand =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        bvredand_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        ih
+  case bvredor =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        bvredor_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        ih
+  case str_len =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        str_len_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        ih
+  case str_rev =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        str_rev_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        ih
+  case str_to_lower =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        str_to_lower_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        ih
+  case str_to_upper =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        str_to_upper_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        ih
+  case str_to_code =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        str_to_code_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        ih
+  case str_from_code =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        str_from_code_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        ih
+  case str_is_digit =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        str_is_digit_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        ih
+  case str_to_int =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        str_to_int_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        ih
+  case str_from_int =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        str_from_int_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        ih
+  case _at_strings_stoi_non_digit =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        strings_stoi_non_digit_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        ih
+  case str_to_re =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        str_to_re_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        ih
+  case re_mult =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        re_mult_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        ih
+  case re_plus =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        re_plus_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        ih
+  case re_opt =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        re_opt_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        ih
+  case re_comp =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        re_comp_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        ih
+  case seq_unit =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        seq_unit_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        ih
+  case set_singleton =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        set_singleton_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        ih
+  case set_choose =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        set_choose_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        ih
+  case set_is_empty =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        set_is_empty_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        ih
+  case set_is_singleton =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        set_is_singleton_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        ih
+  case ubv_to_int =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        ubv_to_int_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        ih
+  case sbv_to_int =>
+    exact
+      smt_model_eval_apply_uop_unary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hXLt hExcept hBound hTrans
+        sbv_to_int_arg_has_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        ih
+  case re_allchar =>
+    exact false_of_apply_re_allchar hTrans
+  case re_none =>
+    exact false_of_apply_re_none hTrans
+  case re_all =>
+    exact false_of_apply_re_all hTrans
+  case tuple_unit =>
+    exact false_of_apply_tuple_unit hTrans
+  all_goals
+    exact false_of_apply_translate_apply_none hTrans rfl
 
 theorem smt_model_eval_apply_apply_and_eq_of_contains_atomic_term_list_free_rec_false_mapped
     (root : Term)
@@ -2141,6 +3040,331 @@ by
     hEval
       (ih hXLt hExcept hBound hXTrans hXNoFree hAgree)
       (ih hYLt hExcept hBound hYTrans hYNoFree hAgree)
+
+theorem smt_model_eval_apply_apply_strings_deq_diff_eq_of_contains_atomic_term_list_free_rec_false_mapped
+    (root : Term)
+    {x y except bound : Term} {exceptVars boundVars : List EoVarKey}
+    {M N : SmtModel}
+    (hXLt : sizeOf x < sizeOf root)
+    (hYLt : sizeOf y < sizeOf root)
+    (hExcept : EoVarEnvPerm except exceptVars)
+    (hBound : EoVarEnvPerm bound boundVars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_deq_diff) x) y))
+    (hNoFree :
+      __contains_atomic_term_list_free_rec
+          (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_deq_diff) x) y)
+          except bound =
+        Term.Boolean false)
+    (hAgree :
+      model_agrees_except_on_env
+        (exceptVars.map EoVarKey.toSmt) (boundVars.map EoVarKey.toSmt)
+        M N)
+    (ih :
+      ∀ {t except' bound' : Term}
+        {exceptVars' boundVars' : List EoVarKey}
+        {M' N' : SmtModel},
+        sizeOf t < sizeOf root ->
+          EoVarEnvPerm except' exceptVars' ->
+          EoVarEnvPerm bound' boundVars' ->
+          eoHasSmtTranslation t ->
+          __contains_atomic_term_list_free_rec t except' bound' =
+            Term.Boolean false ->
+          model_agrees_except_on_env
+            (exceptVars'.map EoVarKey.toSmt)
+            (boundVars'.map EoVarKey.toSmt) M' N' ->
+          __smtx_model_eval M' (__eo_to_smt t) =
+            __smtx_model_eval N' (__eo_to_smt t)) :
+  __smtx_model_eval M
+      (__eo_to_smt
+        (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_deq_diff) x) y)) =
+    __smtx_model_eval N
+      (__eo_to_smt
+        (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_deq_diff) x) y)) :=
+by
+  rcases
+    strings_deq_diff_args_have_smt_translation_of_has_smt_translation
+      hTrans with
+    ⟨hXTrans, hYTrans⟩
+  rcases
+    contains_atomic_term_list_free_rec_apply_apply_uop_false_args
+      hExcept hBound
+      (term_not_eo_list_cons_of_has_smt_translation hXTrans)
+      hNoFree with
+    ⟨hXNoFree, hYNoFree⟩
+  change
+    __smtx_model_eval M
+        (SmtTerm.choice_nth (native_string_lit "@x") SmtType.Int
+          (SmtTerm.not
+            (SmtTerm.eq
+              (SmtTerm.str_substr (__eo_to_smt x)
+                (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
+                (SmtTerm.Numeral 1))
+              (SmtTerm.str_substr (__eo_to_smt y)
+                (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
+                (SmtTerm.Numeral 1))))
+          native_nat_zero) =
+      __smtx_model_eval N
+        (SmtTerm.choice_nth (native_string_lit "@x") SmtType.Int
+          (SmtTerm.not
+            (SmtTerm.eq
+              (SmtTerm.str_substr (__eo_to_smt x)
+                (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
+                (SmtTerm.Numeral 1))
+              (SmtTerm.str_substr (__eo_to_smt y)
+                (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
+                (SmtTerm.Numeral 1))))
+          native_nat_zero)
+  rw [smtx_model_eval_choice_nth_eq_aux M,
+    smtx_model_eval_choice_nth_eq_aux N]
+  simp [nativeEvalTChoiceNthAux]
+  apply native_eval_tchoice_eq_of_body_eval_eq
+  intro v
+  have hXEval :
+      __smtx_model_eval
+          (native_model_push M (native_string_lit "@x") SmtType.Int v)
+          (__eo_to_smt x) =
+        __smtx_model_eval
+          (native_model_push N (native_string_lit "@x") SmtType.Int v)
+          (__eo_to_smt x) :=
+    ih hXLt hExcept hBound hXTrans hXNoFree
+      (model_agrees_except_on_env_shrink_bound
+        (bound := (native_string_lit "@x", SmtType.Int) ::
+          boundVars.map EoVarKey.toSmt)
+        (bound' := boundVars.map EoVarKey.toSmt)
+        (by intro key hKey; exact List.mem_cons_of_mem _ hKey)
+        (model_agrees_except_on_env_push_same
+          (s := native_string_lit "@x") (T := SmtType.Int) (v := v)
+          hAgree))
+  have hYEval :
+      __smtx_model_eval
+          (native_model_push M (native_string_lit "@x") SmtType.Int v)
+          (__eo_to_smt y) =
+        __smtx_model_eval
+          (native_model_push N (native_string_lit "@x") SmtType.Int v)
+          (__eo_to_smt y) :=
+    ih hYLt hExcept hBound hYTrans hYNoFree
+      (model_agrees_except_on_env_shrink_bound
+        (bound := (native_string_lit "@x", SmtType.Int) ::
+          boundVars.map EoVarKey.toSmt)
+        (bound' := boundVars.map EoVarKey.toSmt)
+        (by intro key hKey; exact List.mem_cons_of_mem _ hKey)
+        (model_agrees_except_on_env_push_same
+          (s := native_string_lit "@x") (T := SmtType.Int) (v := v)
+          hAgree))
+  have hVarM :
+      __smtx_model_eval
+          (native_model_push M (native_string_lit "@x") SmtType.Int v)
+          (SmtTerm.Var (native_string_lit "@x") SmtType.Int) =
+        v := by
+    simp [__smtx_model_eval, native_model_var_lookup, native_model_push]
+  have hVarN :
+      __smtx_model_eval
+          (native_model_push N (native_string_lit "@x") SmtType.Int v)
+          (SmtTerm.Var (native_string_lit "@x") SmtType.Int) =
+        v := by
+    simp [__smtx_model_eval, native_model_var_lookup, native_model_push]
+  simp [__smtx_model_eval, hXEval, hYEval, hVarM, hVarN]
+
+theorem smt_model_eval_eo_to_smt_set_insert_eq_of_contains_atomic_term_list_free_rec_false_mapped
+    (root : Term)
+    {xs except bound : Term} {base : SmtTerm}
+    {exceptVars boundVars : List EoVarKey}
+    {M N : SmtModel}
+    (hXsLt : sizeOf xs < sizeOf root)
+    (hExcept : EoVarEnvPerm except exceptVars)
+    (hBound : EoVarEnvPerm bound boundVars)
+    (hElemNN : __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None)
+    (hNoFree :
+      __contains_atomic_term_list_free_rec xs except bound =
+        Term.Boolean false)
+    (hAgree :
+      model_agrees_except_on_env
+        (exceptVars.map EoVarKey.toSmt) (boundVars.map EoVarKey.toSmt)
+        M N)
+    (hBase :
+      __smtx_model_eval M base = __smtx_model_eval N base)
+    (ih :
+      ∀ {t except' bound' : Term}
+        {exceptVars' boundVars' : List EoVarKey}
+        {M' N' : SmtModel},
+        sizeOf t < sizeOf root ->
+          EoVarEnvPerm except' exceptVars' ->
+          EoVarEnvPerm bound' boundVars' ->
+          eoHasSmtTranslation t ->
+          __contains_atomic_term_list_free_rec t except' bound' =
+            Term.Boolean false ->
+          model_agrees_except_on_env
+            (exceptVars'.map EoVarKey.toSmt)
+            (boundVars'.map EoVarKey.toSmt) M' N' ->
+          __smtx_model_eval M' (__eo_to_smt t) =
+            __smtx_model_eval N' (__eo_to_smt t)) :
+  __smtx_model_eval M (__eo_to_smt_set_insert xs base) =
+    __smtx_model_eval N (__eo_to_smt_set_insert xs base) :=
+by
+  cases xs with
+  | Apply f tail =>
+      cases f with
+      | UOp op =>
+          cases op
+          case _at__at_TypedList_nil =>
+            change
+              __smtx_model_eval M
+                  (native_ite
+                    (native_Teq (__smtx_typeof base)
+                      (SmtType.Set (__eo_to_smt_type tail)))
+                    base SmtTerm.None) =
+                __smtx_model_eval N
+                  (native_ite
+                    (native_Teq (__smtx_typeof base)
+                      (SmtType.Set (__eo_to_smt_type tail)))
+                    base SmtTerm.None)
+            cases
+                native_Teq (__smtx_typeof base)
+                  (SmtType.Set (__eo_to_smt_type tail)) <;>
+              simp [native_ite, __smtx_model_eval, hBase]
+          all_goals
+            exact False.elim
+              (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+      | Apply g head =>
+          cases g with
+          | UOp op =>
+              cases op
+              case _at__at_TypedList_cons =>
+                let headTy := __smtx_typeof (__eo_to_smt head)
+                let tailTy := __eo_to_smt_typed_list_elem_type tail
+                have hGuard : native_Teq headTy tailTy = true := by
+                  by_cases hGuard : native_Teq headTy tailTy = true
+                  · exact hGuard
+                  · exfalso
+                    exact hElemNN (by
+                      simp [__eo_to_smt_typed_list_elem_type, headTy,
+                        tailTy, native_ite, hGuard])
+                have hHeadNN : headTy ≠ SmtType.None := by
+                  change
+                    (native_ite (native_Teq headTy tailTy) headTy
+                        SmtType.None) ≠
+                      SmtType.None at hElemNN
+                  rw [hGuard] at hElemNN
+                  exact hElemNN
+                have hTailNN : tailTy ≠ SmtType.None := by
+                  intro hTailNone
+                  cases hHead : headTy <;>
+                    simp [headTy, tailTy, hHead, hTailNone, native_Teq]
+                      at hGuard hHeadNN
+                have hHeadTrans : eoHasSmtTranslation head := by
+                  unfold eoHasSmtTranslation
+                  simpa [headTy] using hHeadNN
+                rcases
+                  contains_atomic_term_list_free_rec_apply_apply_uop_false_args
+                    hExcept hBound
+                    (term_not_eo_list_cons_of_has_smt_translation hHeadTrans)
+                    hNoFree with
+                  ⟨hHeadNoFree, hTailNoFree⟩
+                have hHeadEval :
+                    __smtx_model_eval M (__eo_to_smt head) =
+                      __smtx_model_eval N (__eo_to_smt head) :=
+                  ih (by simp at hXsLt ⊢; omega)
+                    hExcept hBound hHeadTrans hHeadNoFree hAgree
+                have hTailEval :
+                    __smtx_model_eval M
+                        (__eo_to_smt_set_insert tail base) =
+                      __smtx_model_eval N
+                        (__eo_to_smt_set_insert tail base) :=
+                  smt_model_eval_eo_to_smt_set_insert_eq_of_contains_atomic_term_list_free_rec_false_mapped
+                    root
+                    (hXsLt := by simp at hXsLt ⊢; omega)
+                    hExcept hBound
+                    (by simpa [tailTy] using hTailNN)
+                    hTailNoFree hAgree hBase ih
+                change
+                  __smtx_model_eval M
+                      (SmtTerm.set_union
+                        (SmtTerm.set_singleton (__eo_to_smt head))
+                        (__eo_to_smt_set_insert tail base)) =
+                    __smtx_model_eval N
+                      (SmtTerm.set_union
+                        (SmtTerm.set_singleton (__eo_to_smt head))
+                        (__eo_to_smt_set_insert tail base))
+                simp [__smtx_model_eval, hHeadEval, hTailEval]
+              all_goals
+                exact False.elim
+                  (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+          | _ =>
+            exact False.elim
+              (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+      | _ =>
+        exact False.elim
+          (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+  | _ =>
+      exact False.elim
+        (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+
+theorem smt_model_eval_apply_apply_set_insert_eq_of_contains_atomic_term_list_free_rec_false_mapped
+    (root : Term)
+    {xs base except bound : Term} {exceptVars boundVars : List EoVarKey}
+    {M N : SmtModel}
+    (hXsLt : sizeOf xs < sizeOf root)
+    (hBaseLt : sizeOf base < sizeOf root)
+    (hExcept : EoVarEnvPerm except exceptVars)
+    (hBound : EoVarEnvPerm bound boundVars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) base))
+    (hNoFree :
+      __contains_atomic_term_list_free_rec
+          (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) base)
+          except bound =
+        Term.Boolean false)
+    (hAgree :
+      model_agrees_except_on_env
+        (exceptVars.map EoVarKey.toSmt) (boundVars.map EoVarKey.toSmt)
+        M N)
+    (ih :
+      ∀ {t except' bound' : Term}
+        {exceptVars' boundVars' : List EoVarKey}
+        {M' N' : SmtModel},
+        sizeOf t < sizeOf root ->
+          EoVarEnvPerm except' exceptVars' ->
+          EoVarEnvPerm bound' boundVars' ->
+          eoHasSmtTranslation t ->
+          __contains_atomic_term_list_free_rec t except' bound' =
+            Term.Boolean false ->
+          model_agrees_except_on_env
+            (exceptVars'.map EoVarKey.toSmt)
+            (boundVars'.map EoVarKey.toSmt) M' N' ->
+          __smtx_model_eval M' (__eo_to_smt t) =
+            __smtx_model_eval N' (__eo_to_smt t)) :
+  __smtx_model_eval M
+      (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs)
+        base)) =
+    __smtx_model_eval N
+      (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs)
+        base)) :=
+by
+  rcases
+    set_insert_base_has_smt_translation_and_typed_list_elem_type_non_none
+      hTrans with
+    ⟨hBaseTrans, hElemNN⟩
+  rcases
+    contains_atomic_term_list_free_rec_apply_apply_uop_false_args
+      hExcept hBound
+      (typed_list_elem_type_non_none_not_eo_list_cons hElemNN)
+      hNoFree with
+    ⟨hXsNoFree, hBaseNoFree⟩
+  have hBaseEval :
+      __smtx_model_eval M (__eo_to_smt base) =
+        __smtx_model_eval N (__eo_to_smt base) :=
+    ih hBaseLt hExcept hBound hBaseTrans hBaseNoFree hAgree
+  change
+    __smtx_model_eval M
+        (__eo_to_smt_set_insert xs (__eo_to_smt base)) =
+      __smtx_model_eval N
+        (__eo_to_smt_set_insert xs (__eo_to_smt base))
+  exact
+    smt_model_eval_eo_to_smt_set_insert_eq_of_contains_atomic_term_list_free_rec_false_mapped
+      root hXsLt hExcept hBound hElemNN hXsNoFree hAgree hBaseEval ih
 
 theorem smt_model_eval_apply_apply_apply_ite_eq_of_contains_atomic_term_list_free_rec_false_mapped
     (root : Term)
@@ -3104,7 +4328,1796 @@ by
     exact
       smt_model_eval_uop_list_branch_eq_of_contains_atomic_term_list_free_rec_false_mapped
         hBound hTrans hNoFree hAgree hBodyEval
+
+
   · subst q
     exact
       smt_model_eval_uop_list_branch_eq_of_contains_atomic_term_list_free_rec_false_mapped
         hBound hTrans hNoFree hAgree hBodyEval
+
+private theorem eo_to_smt_tuple_prepend_rec_ne_dt_sel
+    (tailD : SmtDatatype) (tail : SmtTerm) :
+    ∀ (k : native_Nat) (acc : SmtTerm),
+      (∀ s d i j, acc ≠ SmtTerm.DtSel s d i j) ->
+        ∀ s d i j,
+          __eo_to_smt_tuple_prepend_rec tailD tail k acc ≠
+            SmtTerm.DtSel s d i j
+  | native_nat_zero, acc, hAcc, s, d, i, j => by
+      simpa [__eo_to_smt_tuple_prepend_rec] using hAcc s d i j
+  | native_nat_succ _k, _acc, _hAcc, _s, _d, _i, _j => by
+      intro h
+      cases h
+
+private theorem eo_to_smt_tuple_prepend_rec_ne_dt_tester
+    (tailD : SmtDatatype) (tail : SmtTerm) :
+    ∀ (k : native_Nat) (acc : SmtTerm),
+      (∀ s d i, acc ≠ SmtTerm.DtTester s d i) ->
+        ∀ s d i,
+          __eo_to_smt_tuple_prepend_rec tailD tail k acc ≠
+            SmtTerm.DtTester s d i
+  | native_nat_zero, acc, hAcc, s, d, i => by
+      simpa [__eo_to_smt_tuple_prepend_rec] using hAcc s d i
+  | native_nat_succ _k, _acc, _hAcc, _s, _d, _i => by
+      intro h
+      cases h
+
+private theorem smt_model_eval_tuple_prepend_rec_eq_of_eval_eq
+    {M N : SmtModel} (hGlobals : model_agrees_on_globals M N)
+    (tailD : SmtDatatype) (tail acc : SmtTerm)
+    (hTail : __smtx_model_eval M tail = __smtx_model_eval N tail)
+    (hAccSel : ∀ s d i j, acc ≠ SmtTerm.DtSel s d i j)
+    (hAccTester : ∀ s d i, acc ≠ SmtTerm.DtTester s d i)
+    (hAcc : __smtx_model_eval M acc = __smtx_model_eval N acc) :
+    ∀ k,
+      __smtx_model_eval M
+          (__eo_to_smt_tuple_prepend_rec tailD tail k acc) =
+        __smtx_model_eval N
+          (__eo_to_smt_tuple_prepend_rec tailD tail k acc)
+  | native_nat_zero => by
+      simpa [__eo_to_smt_tuple_prepend_rec] using hAcc
+  | native_nat_succ k => by
+      let recTerm := __eo_to_smt_tuple_prepend_rec tailD tail k acc
+      let argTerm :=
+        SmtTerm.Apply (SmtTerm.DtSel (native_string_lit "@Tuple") tailD
+          native_nat_zero k) tail
+      have hRecEval :
+          __smtx_model_eval M recTerm =
+            __smtx_model_eval N recTerm := by
+        simpa [recTerm] using
+          smt_model_eval_tuple_prepend_rec_eq_of_eval_eq hGlobals
+            tailD tail acc hTail hAccSel hAccTester hAcc k
+      have hArgEval :
+          __smtx_model_eval M argTerm =
+            __smtx_model_eval N argTerm := by
+        simp [argTerm, __smtx_model_eval, hTail,
+          smtx_model_eval_dt_sel_eq_of_globals hGlobals]
+      have hGen : generic_apply_eval recTerm argTerm :=
+        generic_apply_eval_of_non_datatype_head
+          (by
+            intro s d i j h
+            exact
+              eo_to_smt_tuple_prepend_rec_ne_dt_sel tailD tail k acc
+                hAccSel s d i j (by simpa [recTerm] using h))
+          (by
+            intro s d i h
+            exact
+              eo_to_smt_tuple_prepend_rec_ne_dt_tester tailD tail k acc
+                hAccTester s d i (by simpa [recTerm] using h))
+      unfold generic_apply_eval at hGen
+      change
+        __smtx_model_eval M (SmtTerm.Apply recTerm argTerm) =
+          __smtx_model_eval N (SmtTerm.Apply recTerm argTerm)
+      rw [hGen M, hGen N, hRecEval, hArgEval]
+      exact smtx_model_eval_apply_eq_of_globals hGlobals _ _
+
+private theorem smt_model_eval_tuple_prepend_eq_of_eval_eq
+    {M N : SmtModel} (hGlobals : model_agrees_on_globals M N)
+    (head tail : SmtTerm) (headTy : SmtType)
+    (hHead : __smtx_model_eval M head = __smtx_model_eval N head)
+    (hTail : __smtx_model_eval M tail = __smtx_model_eval N tail) :
+    __smtx_model_eval M (__eo_to_smt_tuple_prepend head headTy tail) =
+      __smtx_model_eval N (__eo_to_smt_tuple_prepend head headTy tail) := by
+  unfold __eo_to_smt_tuple_prepend
+  cases hTailTy : __smtx_typeof tail with
+  | Datatype s d =>
+      by_cases hs : s = (native_string_lit "@Tuple")
+      · subst s
+        cases d with
+        | null =>
+            simp [__eo_to_smt_tuple_prepend_of_type, __smtx_model_eval]
+        | sum c rest =>
+            cases rest with
+            | null =>
+                let tailD := SmtDatatype.sum c SmtDatatype.null
+                let fullD :=
+                  SmtDatatype.sum (SmtDatatypeCons.cons headTy c)
+                    SmtDatatype.null
+                let seed :=
+                  SmtTerm.Apply
+                    (SmtTerm.DtCons (native_string_lit "@Tuple") fullD
+                      native_nat_zero) head
+                cases hWf :
+                    __smtx_type_wf
+                      (SmtType.Datatype (native_string_lit "@Tuple") fullD)
+                · simp [__eo_to_smt_tuple_prepend_of_type, native_ite,
+                    native_streq, native_and, hWf, fullD, __smtx_model_eval]
+                · simp [__eo_to_smt_tuple_prepend_of_type, native_ite,
+                    native_streq, native_and, hWf, fullD]
+                  exact
+                    smt_model_eval_tuple_prepend_rec_eq_of_eval_eq hGlobals
+                      tailD tail seed hTail
+                      (by intro s d i j h; simp [seed] at h)
+                      (by intro s d i h; simp [seed] at h)
+                      (by
+                        simp [seed, __smtx_model_eval, hHead,
+                          smtx_model_eval_apply_eq_of_globals hGlobals])
+                      (__smtx_dt_num_sels tailD native_nat_zero)
+              | sum c' rest' =>
+                  simp [__eo_to_smt_tuple_prepend_of_type, __smtx_model_eval]
+      · cases d with
+        | null =>
+            simp [__eo_to_smt_tuple_prepend_of_type, __smtx_model_eval]
+        | sum c rest =>
+            cases rest <;>
+              simp [__eo_to_smt_tuple_prepend_of_type, native_streq,
+                native_and, native_ite, hs, __smtx_model_eval]
+  | _ =>
+      simp [__eo_to_smt_tuple_prepend_of_type, __smtx_model_eval]
+
+private theorem apply_apply_uop_bv_binop_args_have_smt_translation
+    {eoOp : UserOp} {smtOp : SmtTerm -> SmtTerm -> SmtTerm}
+    {x y : Term}
+    (hTranslate :
+      __eo_to_smt (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) =
+        smtOp (__eo_to_smt x) (__eo_to_smt y))
+    (hTy :
+      __smtx_typeof (smtOp (__eo_to_smt x) (__eo_to_smt y)) =
+        __smtx_typeof_bv_op_2
+          (__smtx_typeof (__eo_to_smt x))
+          (__smtx_typeof (__eo_to_smt y)))
+    (hTrans :
+      eoHasSmtTranslation (Term.Apply (Term.Apply (Term.UOp eoOp) x) y)) :
+  eoHasSmtTranslation x ∧ eoHasSmtTranslation y := by
+  exact
+    apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+      hTranslate
+      (fun hNN => bv_binop_args_have_smt_translation_of_non_none hTy hNN)
+      hTrans
+
+private theorem apply_apply_uop_bv_binop_ret_args_have_smt_translation
+    {eoOp : UserOp} {smtOp : SmtTerm -> SmtTerm -> SmtTerm}
+    {ret : SmtType} {x y : Term}
+    (hTranslate :
+      __eo_to_smt (Term.Apply (Term.Apply (Term.UOp eoOp) x) y) =
+        smtOp (__eo_to_smt x) (__eo_to_smt y))
+    (hTy :
+      __smtx_typeof (smtOp (__eo_to_smt x) (__eo_to_smt y)) =
+        __smtx_typeof_bv_op_2_ret
+          (__smtx_typeof (__eo_to_smt x))
+          (__smtx_typeof (__eo_to_smt y)) ret)
+    (hTrans :
+      eoHasSmtTranslation (Term.Apply (Term.Apply (Term.UOp eoOp) x) y)) :
+  eoHasSmtTranslation x ∧ eoHasSmtTranslation y := by
+  exact
+    apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+      hTranslate
+      (fun hNN => bv_binop_ret_args_have_smt_translation_of_non_none hTy hNN)
+      hTrans
+
+theorem smt_model_eval_apply_apply_uop_any_eq_of_contains_atomic_term_list_free_rec_false_mapped
+    (root : Term)
+    {op : UserOp} {x y except bound : Term}
+    {exceptVars boundVars : List EoVarKey}
+    {M N : SmtModel}
+    (hXLt : sizeOf x < sizeOf root)
+    (hYLt : sizeOf y < sizeOf root)
+    (hExcept : EoVarEnvPerm except exceptVars)
+    (hBound : EoVarEnvPerm bound boundVars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp op) x) y))
+    (hNoFree :
+      __contains_atomic_term_list_free_rec
+          (Term.Apply (Term.Apply (Term.UOp op) x) y) except bound =
+        Term.Boolean false)
+    (hAgree :
+      model_agrees_except_on_env
+        (exceptVars.map EoVarKey.toSmt) (boundVars.map EoVarKey.toSmt)
+        M N)
+    (ih :
+      ∀ {t except' bound' : Term}
+        {exceptVars' boundVars' : List EoVarKey}
+        {M' N' : SmtModel},
+        sizeOf t < sizeOf root ->
+          EoVarEnvPerm except' exceptVars' ->
+          EoVarEnvPerm bound' boundVars' ->
+          eoHasSmtTranslation t ->
+          __contains_atomic_term_list_free_rec t except' bound' =
+            Term.Boolean false ->
+          model_agrees_except_on_env
+            (exceptVars'.map EoVarKey.toSmt)
+            (boundVars'.map EoVarKey.toSmt) M' N' ->
+          __smtx_model_eval M' (__eo_to_smt t) =
+            __smtx_model_eval N' (__eo_to_smt t)) :
+  __smtx_model_eval M
+      (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp op) x) y)) =
+    __smtx_model_eval N
+      (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp op) x) y)) :=
+by
+  cases op
+  case «forall» =>
+    by_cases hCons :
+        ∃ v vs, x = Term.Apply (Term.Apply Term.__eo_List_cons v) vs
+    · rcases hCons with ⟨v, vs, hX⟩
+      subst x
+      exact
+        smt_model_eval_uop_list_branch_eq_of_contains_atomic_term_list_free_rec_false_mapped
+          hBound hTrans hNoFree hAgree
+          (by
+            intro hBodyTrans bodyBoundVars hBodyBound hBodyNoFree M' N' hAgree'
+            exact ih hYLt hExcept hBodyBound hBodyTrans hBodyNoFree hAgree')
+    · exact
+        false_of_forall_non_list_has_smt_translation
+          (by intro v vs hX; exact hCons ⟨v, vs, hX⟩) hTrans
+  case «exists» =>
+    by_cases hCons :
+        ∃ v vs, x = Term.Apply (Term.Apply Term.__eo_List_cons v) vs
+    · rcases hCons with ⟨v, vs, hX⟩
+      subst x
+      exact
+        smt_model_eval_uop_list_branch_eq_of_contains_atomic_term_list_free_rec_false_mapped
+          hBound hTrans hNoFree hAgree
+          (by
+            intro hBodyTrans bodyBoundVars hBodyBound hBodyNoFree M' N' hAgree'
+            exact ih hYLt hExcept hBodyBound hBodyTrans hBodyNoFree hAgree')
+    · exact
+        false_of_exists_non_list_has_smt_translation
+          (by intro v vs hX; exact hCons ⟨v, vs, hX⟩) hTrans
+  all_goals
+    first
+    | exact
+        smt_model_eval_apply_apply_strings_deq_diff_eq_of_contains_atomic_term_list_free_rec_false_mapped
+          root hXLt hYLt hExcept hBound hTrans hNoFree hAgree ih
+    | exact
+        smt_model_eval_apply_apply_set_insert_eq_of_contains_atomic_term_list_free_rec_false_mapped
+          root hXLt hYLt hExcept hBound hTrans hNoFree hAgree ih
+    | exact
+        smt_model_eval_apply_apply_uop_binary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+          root hXLt hYLt hExcept hBound hTrans
+          (by
+            intro h
+            exact array_deq_diff_args_have_smt_translation_of_has_smt_translation h)
+          hNoFree hAgree
+          (by
+            intro hx hy
+            dsimp only [__eo_to_smt]
+            simp only [__eo_to_smt_array_deq_diff]
+            cases hXTy : __smtx_typeof (__eo_to_smt x) <;>
+              cases hYTy : __smtx_typeof (__eo_to_smt y) <;>
+              simp [__smtx_model_eval, __smtx_model_eval_map_diff,
+                hXTy, hYTy, hx, hy])
+          ih
+    | exact
+        smt_model_eval_apply_apply_uop_binary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+          root hXLt hYLt hExcept hBound hTrans
+          (by
+            intro h
+            exact sets_deq_diff_args_have_smt_translation_of_has_smt_translation h)
+          hNoFree hAgree
+          (by
+            intro hx hy
+            dsimp only [__eo_to_smt]
+            simp only [__eo_to_smt_sets_deq_diff]
+            cases hXTy : __smtx_typeof (__eo_to_smt x) <;>
+              cases hYTy : __smtx_typeof (__eo_to_smt y) <;>
+              simp [__smtx_model_eval, __smtx_model_eval_map_diff,
+                hXTy, hYTy, hx, hy])
+          ih
+    | exact
+        smt_model_eval_apply_apply_uop_binary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+          root hXLt hYLt hExcept hBound hTrans
+          (by
+            intro h
+            first
+            | exact and_args_have_smt_translation_of_has_smt_translation h
+            | exact or_args_have_smt_translation_of_has_smt_translation h
+            | exact imp_args_have_smt_translation_of_has_smt_translation h
+            | exact xor_args_have_smt_translation_of_has_smt_translation h
+            | exact eq_args_have_smt_translation_of_has_smt_translation h
+            | exact plus_args_have_smt_translation_of_has_smt_translation h
+            | exact neg_args_have_smt_translation_of_has_smt_translation h
+            | exact mult_args_have_smt_translation_of_has_smt_translation h
+            | exact lt_args_have_smt_translation_of_has_smt_translation h
+            | exact leq_args_have_smt_translation_of_has_smt_translation h
+            | exact gt_args_have_smt_translation_of_has_smt_translation h
+            | exact geq_args_have_smt_translation_of_has_smt_translation h
+            | exact div_args_have_smt_translation_of_has_smt_translation h
+            | exact mod_args_have_smt_translation_of_has_smt_translation h
+            | exact multmult_args_have_smt_translation_of_has_smt_translation h
+            | exact divisible_args_have_smt_translation_of_has_smt_translation h
+            | exact div_total_args_have_smt_translation_of_has_smt_translation h
+            | exact mod_total_args_have_smt_translation_of_has_smt_translation h
+            | exact multmult_total_args_have_smt_translation_of_has_smt_translation h
+            | exact select_args_have_smt_translation_of_has_smt_translation h
+            | exact array_deq_diff_args_have_smt_translation_of_has_smt_translation h
+            | exact strings_stoi_result_args_have_smt_translation_of_has_smt_translation h
+            | exact strings_itos_result_args_have_smt_translation_of_has_smt_translation h
+            | exact strings_num_occur_args_have_smt_translation_of_has_smt_translation h
+            | exact tuple_args_have_smt_translation_of_has_smt_translation h
+            | exact sets_deq_diff_args_have_smt_translation_of_has_smt_translation h
+            | exact qdiv_args_have_smt_translation_of_has_smt_translation h
+            | exact qdiv_total_args_have_smt_translation_of_has_smt_translation h
+            | exact bvultbv_args_have_smt_translation_of_has_smt_translation h
+            | exact bvsltbv_args_have_smt_translation_of_has_smt_translation h
+            | exact from_bools_args_have_smt_translation_of_has_smt_translation h
+            | exact
+                apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                  (eoOp := UserOp.concat) (smtOp := SmtTerm.concat)
+                  (by rfl) bv_concat_args_have_smt_translation_of_non_none h
+            | exact
+                apply_apply_uop_bv_binop_args_have_smt_translation
+                  (eoOp := UserOp.bvand) (smtOp := SmtTerm.bvand)
+                  (by rfl) (by rw [__smtx_typeof.eq_def]) h
+            | exact
+                apply_apply_uop_bv_binop_args_have_smt_translation
+                  (eoOp := UserOp.bvor) (smtOp := SmtTerm.bvor)
+                  (by rfl) (by rw [__smtx_typeof.eq_def]) h
+            | exact
+                apply_apply_uop_bv_binop_args_have_smt_translation
+                  (eoOp := UserOp.bvnand) (smtOp := SmtTerm.bvnand)
+                  (by rfl) (by rw [__smtx_typeof.eq_def]) h
+            | exact
+                apply_apply_uop_bv_binop_args_have_smt_translation
+                  (eoOp := UserOp.bvnor) (smtOp := SmtTerm.bvnor)
+                  (by rfl) (by rw [__smtx_typeof.eq_def]) h
+            | exact
+                apply_apply_uop_bv_binop_args_have_smt_translation
+                  (eoOp := UserOp.bvxor) (smtOp := SmtTerm.bvxor)
+                  (by rfl) (by rw [__smtx_typeof.eq_def]) h
+            | exact
+                apply_apply_uop_bv_binop_args_have_smt_translation
+                  (eoOp := UserOp.bvxnor) (smtOp := SmtTerm.bvxnor)
+                  (by rfl) (by rw [__smtx_typeof.eq_def]) h
+            | exact
+                apply_apply_uop_bv_binop_ret_args_have_smt_translation
+                  (eoOp := UserOp.bvcomp) (smtOp := SmtTerm.bvcomp)
+                  (ret := SmtType.BitVec Nat.zero.succ)
+                  (by rfl) (by rw [__smtx_typeof.eq_def]) h
+            | exact
+                apply_apply_uop_bv_binop_args_have_smt_translation
+                  (eoOp := UserOp.bvadd) (smtOp := SmtTerm.bvadd)
+                  (by rfl) (by rw [__smtx_typeof.eq_def]) h
+            | exact
+                apply_apply_uop_bv_binop_args_have_smt_translation
+                  (eoOp := UserOp.bvmul) (smtOp := SmtTerm.bvmul)
+                  (by rfl) (by rw [__smtx_typeof.eq_def]) h
+            | exact
+                apply_apply_uop_bv_binop_args_have_smt_translation
+                  (eoOp := UserOp.bvudiv) (smtOp := SmtTerm.bvudiv)
+                  (by rfl) (by rw [__smtx_typeof.eq_def]) h
+            | exact
+                apply_apply_uop_bv_binop_args_have_smt_translation
+                  (eoOp := UserOp.bvurem) (smtOp := SmtTerm.bvurem)
+                  (by rfl) (by rw [__smtx_typeof.eq_def]) h
+            | exact
+                apply_apply_uop_bv_binop_args_have_smt_translation
+                  (eoOp := UserOp.bvsub) (smtOp := SmtTerm.bvsub)
+                  (by rfl) (by rw [__smtx_typeof.eq_def]) h
+            | exact
+                apply_apply_uop_bv_binop_args_have_smt_translation
+                  (eoOp := UserOp.bvsdiv) (smtOp := SmtTerm.bvsdiv)
+                  (by rfl) (by rw [__smtx_typeof.eq_def]) h
+            | exact
+                apply_apply_uop_bv_binop_args_have_smt_translation
+                  (eoOp := UserOp.bvsrem) (smtOp := SmtTerm.bvsrem)
+                  (by rfl) (by rw [__smtx_typeof.eq_def]) h
+            | exact
+                apply_apply_uop_bv_binop_args_have_smt_translation
+                  (eoOp := UserOp.bvsmod) (smtOp := SmtTerm.bvsmod)
+                  (by rfl) (by rw [__smtx_typeof.eq_def]) h
+            | exact
+                apply_apply_uop_bv_binop_ret_args_have_smt_translation
+                  (eoOp := UserOp.bvult) (smtOp := SmtTerm.bvult)
+                  (ret := SmtType.Bool)
+                  (by rfl) (by rw [__smtx_typeof.eq_def]) h
+            | exact
+                apply_apply_uop_bv_binop_ret_args_have_smt_translation
+                  (eoOp := UserOp.bvule) (smtOp := SmtTerm.bvule)
+                  (ret := SmtType.Bool)
+                  (by rfl) (by rw [__smtx_typeof.eq_def]) h
+            | exact
+                apply_apply_uop_bv_binop_ret_args_have_smt_translation
+                  (eoOp := UserOp.bvugt) (smtOp := SmtTerm.bvugt)
+                  (ret := SmtType.Bool)
+                  (by rfl) (by rw [__smtx_typeof.eq_def]) h
+            | exact
+                apply_apply_uop_bv_binop_ret_args_have_smt_translation
+                  (eoOp := UserOp.bvuge) (smtOp := SmtTerm.bvuge)
+                  (ret := SmtType.Bool)
+                  (by rfl) (by rw [__smtx_typeof.eq_def]) h
+            | exact
+                apply_apply_uop_bv_binop_ret_args_have_smt_translation
+                  (eoOp := UserOp.bvslt) (smtOp := SmtTerm.bvslt)
+                  (ret := SmtType.Bool)
+                  (by rfl) (by rw [__smtx_typeof.eq_def]) h
+            | exact
+                apply_apply_uop_bv_binop_ret_args_have_smt_translation
+                  (eoOp := UserOp.bvsle) (smtOp := SmtTerm.bvsle)
+                  (ret := SmtType.Bool)
+                  (by rfl) (by rw [__smtx_typeof.eq_def]) h
+            | exact
+                apply_apply_uop_bv_binop_ret_args_have_smt_translation
+                  (eoOp := UserOp.bvsgt) (smtOp := SmtTerm.bvsgt)
+                  (ret := SmtType.Bool)
+                  (by rfl) (by rw [__smtx_typeof.eq_def]) h
+            | exact
+                apply_apply_uop_bv_binop_ret_args_have_smt_translation
+                  (eoOp := UserOp.bvsge) (smtOp := SmtTerm.bvsge)
+                  (ret := SmtType.Bool)
+                  (by rfl) (by rw [__smtx_typeof.eq_def]) h
+            | exact
+                apply_apply_uop_bv_binop_args_have_smt_translation
+                  (eoOp := UserOp.bvshl) (smtOp := SmtTerm.bvshl)
+                  (by rfl) (by rw [__smtx_typeof.eq_def]) h
+            | exact
+                apply_apply_uop_bv_binop_args_have_smt_translation
+                  (eoOp := UserOp.bvlshr) (smtOp := SmtTerm.bvlshr)
+                  (by rfl) (by rw [__smtx_typeof.eq_def]) h
+            | exact
+                apply_apply_uop_bv_binop_args_have_smt_translation
+                  (eoOp := UserOp.bvashr) (smtOp := SmtTerm.bvashr)
+                  (by rfl) (by rw [__smtx_typeof.eq_def]) h
+            | exact
+                apply_apply_uop_bv_binop_ret_args_have_smt_translation
+                  (eoOp := UserOp.bvuaddo) (smtOp := SmtTerm.bvuaddo)
+                  (ret := SmtType.Bool)
+                  (by rfl) (by rw [__smtx_typeof.eq_def]) h
+            | exact
+                apply_apply_uop_bv_binop_ret_args_have_smt_translation
+                  (eoOp := UserOp.bvsaddo) (smtOp := SmtTerm.bvsaddo)
+                  (ret := SmtType.Bool)
+                  (by rfl) (by rw [__smtx_typeof.eq_def]) h
+            | exact
+                apply_apply_uop_bv_binop_ret_args_have_smt_translation
+                  (eoOp := UserOp.bvumulo) (smtOp := SmtTerm.bvumulo)
+                  (ret := SmtType.Bool)
+                  (by rfl) (by rw [__smtx_typeof.eq_def]) h
+            | exact
+                apply_apply_uop_bv_binop_ret_args_have_smt_translation
+                  (eoOp := UserOp.bvsmulo) (smtOp := SmtTerm.bvsmulo)
+                  (ret := SmtType.Bool)
+                  (by rfl) (by rw [__smtx_typeof.eq_def]) h
+            | exact
+                apply_apply_uop_bv_binop_ret_args_have_smt_translation
+                  (eoOp := UserOp.bvusubo) (smtOp := SmtTerm.bvusubo)
+                  (ret := SmtType.Bool)
+                  (by rfl) (by rw [__smtx_typeof.eq_def]) h
+            | exact
+                apply_apply_uop_bv_binop_ret_args_have_smt_translation
+                  (eoOp := UserOp.bvssubo) (smtOp := SmtTerm.bvssubo)
+                  (ret := SmtType.Bool)
+                  (by rfl) (by rw [__smtx_typeof.eq_def]) h
+            | exact
+                apply_apply_uop_bv_binop_ret_args_have_smt_translation
+                  (eoOp := UserOp.bvsdivo) (smtOp := SmtTerm.bvsdivo)
+                  (ret := SmtType.Bool)
+                  (by rfl) (by rw [__smtx_typeof.eq_def]) h
+            | exact
+                apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                  (by rfl)
+                  (fun hNN =>
+                    seq_binop_args_have_smt_translation_of_non_none
+                      (typeof_str_concat_eq (__eo_to_smt x) (__eo_to_smt y))
+                      hNN)
+                  h
+            | exact
+                apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                  (by rfl)
+                  (fun hNN =>
+                    seq_binop_ret_args_have_smt_translation_of_non_none
+                      (typeof_str_contains_eq (__eo_to_smt x) (__eo_to_smt y))
+                      hNN)
+                  h
+            | exact
+                apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                  (by rfl) str_at_args_have_smt_translation_of_non_none h
+            | exact
+                apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                  (by rfl)
+                  (fun hNN =>
+                    seq_char_binop_args_have_smt_translation_of_non_none
+                      (ret := SmtType.Bool)
+                      (typeof_str_prefixof_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+                  h
+            | exact
+                apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                  (by rfl)
+                  (fun hNN =>
+                    seq_char_binop_args_have_smt_translation_of_non_none
+                      (ret := SmtType.Bool)
+                      (typeof_str_suffixof_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+                  h
+            | exact
+                apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                  (by rfl)
+                  (fun hNN =>
+                    seq_char_binop_args_have_smt_translation_of_non_none
+                      (ret := SmtType.Bool)
+                      (typeof_str_lt_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+                  h
+            | exact
+                apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                  (by rfl)
+                  (fun hNN =>
+                    seq_char_binop_args_have_smt_translation_of_non_none
+                      (ret := SmtType.Bool)
+                      (typeof_str_leq_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+                  h
+            | exact
+                apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                  (by rfl)
+                  (fun hNN =>
+                    seq_char_binop_args_have_smt_translation_of_non_none
+                      (ret := SmtType.RegLan)
+                      (typeof_re_range_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+                  h
+            | exact
+                apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                  (by rfl)
+                  (fun hNN =>
+                    reglan_binop_args_have_smt_translation_of_non_none
+                      (typeof_re_concat_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+                  h
+            | exact
+                apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                  (by rfl)
+                  (fun hNN =>
+                    reglan_binop_args_have_smt_translation_of_non_none
+                      (typeof_re_inter_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+                  h
+            | exact
+                apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                  (by rfl)
+                  (fun hNN =>
+                    reglan_binop_args_have_smt_translation_of_non_none
+                      (typeof_re_union_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+                  h
+            | exact
+                apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                  (by rfl)
+                  (fun hNN =>
+                    reglan_binop_args_have_smt_translation_of_non_none
+                      (typeof_re_diff_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+                  h
+            | exact
+                apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                  (by rfl)
+                  (fun hNN =>
+                    seq_char_reglan_args_have_smt_translation_of_non_none
+                      (ret := SmtType.Bool)
+                      (typeof_str_in_re_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+                  h
+            | exact
+                apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                  (by rfl) seq_nth_args_have_smt_translation_of_non_none h
+            | exact
+                apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                  (by rfl)
+                  (fun hNN =>
+                    set_binop_args_have_smt_translation_of_non_none
+                      (typeof_set_union_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+                  h
+            | exact
+                apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                  (by rfl)
+                  (fun hNN =>
+                    set_binop_args_have_smt_translation_of_non_none
+                      (typeof_set_inter_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+                  h
+            | exact
+                apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                  (by rfl)
+                  (fun hNN =>
+                    set_binop_args_have_smt_translation_of_non_none
+                      (typeof_set_minus_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+                  h
+            | exact
+                apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                  (by rfl) set_member_args_have_smt_translation_of_non_none h
+            | exact
+                apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                  (by rfl)
+                  (fun hNN =>
+                    set_binop_ret_args_have_smt_translation_of_non_none
+                      (ret := SmtType.Bool)
+                      (typeof_set_subset_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+                  h)
+          hNoFree hAgree
+          (by
+            intro hx hy
+            dsimp only [__eo_to_smt]
+            first
+            | exact
+                smt_model_eval_tuple_prepend_eq_of_eval_eq hAgree.globals
+                  (__eo_to_smt x) (__eo_to_smt y)
+                  (__smtx_typeof (__eo_to_smt x)) hx hy
+            | simp [__smtx_model_eval, __eo_to_smt_array_deq_diff,
+              __eo_to_smt_sets_deq_diff, hx, hy, hAgree.globals.1,
+              smtx_model_eval_apply_eq_of_globals hAgree.globals,
+              smtx_seq_nth_eq_of_globals hAgree.globals])
+          ih
+    | exact
+        smt_model_eval_apply_generic_eq_of_contains_atomic_term_list_free_rec_false_mapped
+          hExcept hBound
+          (by
+            intro q v vs hEq
+            cases hEq
+            exact
+              apply_apply_uop_arg_not_list_of_nonquantifier_has_smt_translation
+                (by decide) (by decide) hTrans v vs rfl)
+          (by rfl)
+          (generic_apply_type_of_non_special_head_closed _ _
+            (by
+              intro s d i j hSel
+              exact
+                TranslationProofs.eo_to_smt_apply_ne_dt_sel
+                  _ _ s d i j hSel)
+            (by
+              intro s d i hTester
+              exact
+                TranslationProofs.eo_to_smt_apply_ne_dt_tester
+                  _ x s d i hTester))
+          hTrans hNoFree hAgree
+          (by
+            intro hHeadTrans hBound' hHeadNoFree M' N' hAgree'
+            exact
+              smt_model_eval_apply_uop_any_eq_of_contains_atomic_term_list_free_rec_false_mapped
+                root hXLt hExcept hBound' hHeadTrans hHeadNoFree hAgree' ih)
+          (by
+            intro hYTrans hBound' hYNoFree M' N' hAgree'
+            exact ih hYLt hExcept hBound' hYTrans hYNoFree hAgree')
+
+theorem smt_model_eval_eq_of_eo_to_smt_nat_is_valid
+    {idx : Term} {M N : SmtModel}
+    (hValid : __eo_to_smt_nat_is_valid idx = true) :
+  __smtx_model_eval M (__eo_to_smt idx) =
+    __smtx_model_eval N (__eo_to_smt idx) :=
+by
+  cases idx <;> simp [__eo_to_smt_nat_is_valid] at hValid
+  case Numeral n =>
+    dsimp only [__eo_to_smt]
+    simp only [__smtx_model_eval]
+
+theorem smt_model_eval_eq_of_eo_to_smt_eq_dt_sel
+    {idx : Term} {M N : SmtModel}
+    {s : native_String} {d : SmtDatatype} {i j : native_Nat}
+    (hSel : __eo_to_smt idx = SmtTerm.DtSel s d i j) :
+  __smtx_model_eval M (__eo_to_smt idx) =
+    __smtx_model_eval N (__eo_to_smt idx) :=
+by
+  rw [hSel]
+  simp [__smtx_model_eval]
+
+theorem smt_model_eval_eq_of_eo_to_smt_eq_dt_cons
+    {idx : Term} {M N : SmtModel}
+    {s : native_String} {d : SmtDatatype} {i : native_Nat}
+    (hCons : __eo_to_smt idx = SmtTerm.DtCons s d i) :
+  __smtx_model_eval M (__eo_to_smt idx) =
+    __smtx_model_eval N (__eo_to_smt idx) :=
+by
+  rw [hCons]
+  simp [__smtx_model_eval]
+
+theorem contains_atomic_term_list_free_rec_apply_uop1_false_arg
+    {op : UserOp1} {idx x except bound : Term}
+    {exceptVars boundVars : List EoVarKey}
+    (hExcept : EoVarEnvPerm except exceptVars)
+    (hBound : EoVarEnvPerm bound boundVars)
+    (hNoFree :
+      __contains_atomic_term_list_free_rec
+          (Term.Apply (Term.UOp1 op idx) x) except bound =
+        Term.Boolean false) :
+  __contains_atomic_term_list_free_rec x except bound =
+    Term.Boolean false :=
+by
+  rcases
+    contains_atomic_term_list_free_rec_apply_false_cases
+      hExcept hBound
+      (by intro q v vs hEq; cases hEq)
+      hNoFree with
+    ⟨_hHeadNoFree, hArgNoFree⟩
+  exact hArgNoFree
+
+theorem contains_atomic_term_list_free_rec_apply_apply_uop1_false_args
+    {op : UserOp1} {idx x y except bound : Term}
+    {exceptVars boundVars : List EoVarKey}
+    (hExcept : EoVarEnvPerm except exceptVars)
+    (hBound : EoVarEnvPerm bound boundVars)
+    (hXNotList :
+      ∀ v vs,
+        x ≠ Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
+    (hNoFree :
+      __contains_atomic_term_list_free_rec
+          (Term.Apply (Term.Apply (Term.UOp1 op idx) x) y)
+          except bound =
+        Term.Boolean false) :
+  __contains_atomic_term_list_free_rec x except bound =
+      Term.Boolean false ∧
+    __contains_atomic_term_list_free_rec y except bound =
+      Term.Boolean false :=
+by
+  rcases
+    contains_atomic_term_list_free_rec_apply_false_cases
+      hExcept hBound
+      (by
+        intro q v vs hEq
+        cases hEq
+        exact hXNotList v vs rfl)
+      hNoFree with
+    ⟨hHeadNoFree, hYNoFree⟩
+  rcases
+    contains_atomic_term_list_free_rec_apply_false_cases
+      hExcept hBound
+      (by intro q v vs hEq; cases hEq)
+      hHeadNoFree with
+    ⟨hOpNoFree, hXNoFree⟩
+  exact ⟨hXNoFree, hYNoFree⟩
+
+theorem contains_atomic_term_list_free_rec_apply_uop2_false_arg
+    {op : UserOp2} {i j x except bound : Term}
+    {exceptVars boundVars : List EoVarKey}
+    (hExcept : EoVarEnvPerm except exceptVars)
+    (hBound : EoVarEnvPerm bound boundVars)
+    (hNoFree :
+      __contains_atomic_term_list_free_rec
+          (Term.Apply (Term.UOp2 op i j) x) except bound =
+        Term.Boolean false) :
+  __contains_atomic_term_list_free_rec x except bound =
+    Term.Boolean false :=
+by
+  rcases
+    contains_atomic_term_list_free_rec_apply_false_cases
+      hExcept hBound
+      (by intro q v vs hEq; cases hEq)
+      hNoFree with
+    ⟨_hHeadNoFree, hArgNoFree⟩
+  exact hArgNoFree
+
+theorem contains_atomic_term_list_free_rec_apply_uop3_false_arg
+    {op : UserOp3} {a b c x except bound : Term}
+    {exceptVars boundVars : List EoVarKey}
+    (hExcept : EoVarEnvPerm except exceptVars)
+    (hBound : EoVarEnvPerm bound boundVars)
+    (hNoFree :
+      __contains_atomic_term_list_free_rec
+          (Term.Apply (Term.UOp3 op a b c) x) except bound =
+        Term.Boolean false) :
+  __contains_atomic_term_list_free_rec x except bound =
+    Term.Boolean false :=
+by
+  rcases
+    contains_atomic_term_list_free_rec_apply_false_cases
+      hExcept hBound
+      (by intro q v vs hEq; cases hEq)
+      hNoFree with
+    ⟨_hHeadNoFree, hArgNoFree⟩
+  exact hArgNoFree
+
+theorem smt_model_eval_apply_uop1_any_eq_of_contains_atomic_term_list_free_rec_false_mapped
+    (root : Term)
+    {op : UserOp1} {idx x except bound : Term}
+    {exceptVars boundVars : List EoVarKey}
+    {M N : SmtModel}
+    (hXLt : sizeOf x < sizeOf root)
+    (hExcept : EoVarEnvPerm except exceptVars)
+    (hBound : EoVarEnvPerm bound boundVars)
+    (hTrans : eoHasSmtTranslation (Term.Apply (Term.UOp1 op idx) x))
+    (hNoFree :
+      __contains_atomic_term_list_free_rec
+          (Term.Apply (Term.UOp1 op idx) x) except bound =
+        Term.Boolean false)
+    (hAgree :
+      model_agrees_except_on_env
+        (exceptVars.map EoVarKey.toSmt) (boundVars.map EoVarKey.toSmt)
+        M N)
+    (ih :
+      ∀ {t except' bound' : Term}
+        {exceptVars' boundVars' : List EoVarKey}
+        {M' N' : SmtModel},
+        sizeOf t < sizeOf root ->
+          EoVarEnvPerm except' exceptVars' ->
+          EoVarEnvPerm bound' boundVars' ->
+          eoHasSmtTranslation t ->
+          __contains_atomic_term_list_free_rec t except' bound' =
+            Term.Boolean false ->
+          model_agrees_except_on_env
+            (exceptVars'.map EoVarKey.toSmt)
+            (boundVars'.map EoVarKey.toSmt) M' N' ->
+          __smtx_model_eval M' (__eo_to_smt t) =
+            __smtx_model_eval N' (__eo_to_smt t)) :
+  __smtx_model_eval M (__eo_to_smt (Term.Apply (Term.UOp1 op idx) x)) =
+    __smtx_model_eval N (__eo_to_smt (Term.Apply (Term.UOp1 op idx) x)) :=
+by
+  have hXNoFree :
+      __contains_atomic_term_list_free_rec x except bound =
+        Term.Boolean false :=
+    contains_atomic_term_list_free_rec_apply_uop1_false_arg
+      hExcept hBound hNoFree
+  cases op
+  case «repeat» =>
+    rcases repeat_index_nat_valid_and_arg_has_smt_translation hTrans with
+      ⟨hIdxValid, hXTrans⟩
+    have hIdxEval := smt_model_eval_eq_of_eo_to_smt_nat_is_valid
+      (M := M) (N := N) hIdxValid
+    have hXEval := ih hXLt hExcept hBound hXTrans hXNoFree hAgree
+    dsimp only [__eo_to_smt]
+    simp only [__smtx_model_eval]
+    simp [hIdxEval, hXEval]
+  case zero_extend =>
+    rcases zero_extend_index_nat_valid_and_arg_has_smt_translation hTrans with
+      ⟨hIdxValid, hXTrans⟩
+    have hIdxEval := smt_model_eval_eq_of_eo_to_smt_nat_is_valid
+      (M := M) (N := N) hIdxValid
+    have hXEval := ih hXLt hExcept hBound hXTrans hXNoFree hAgree
+    dsimp only [__eo_to_smt]
+    simp only [__smtx_model_eval]
+    simp [hIdxEval, hXEval]
+  case sign_extend =>
+    rcases sign_extend_index_nat_valid_and_arg_has_smt_translation hTrans with
+      ⟨hIdxValid, hXTrans⟩
+    have hIdxEval := smt_model_eval_eq_of_eo_to_smt_nat_is_valid
+      (M := M) (N := N) hIdxValid
+    have hXEval := ih hXLt hExcept hBound hXTrans hXNoFree hAgree
+    dsimp only [__eo_to_smt]
+    simp only [__smtx_model_eval]
+    simp [hIdxEval, hXEval]
+  case rotate_left =>
+    rcases rotate_left_index_nat_valid_and_arg_has_smt_translation hTrans with
+      ⟨hIdxValid, hXTrans⟩
+    have hIdxEval := smt_model_eval_eq_of_eo_to_smt_nat_is_valid
+      (M := M) (N := N) hIdxValid
+    have hXEval := ih hXLt hExcept hBound hXTrans hXNoFree hAgree
+    dsimp only [__eo_to_smt]
+    simp only [__smtx_model_eval]
+    simp [hIdxEval, hXEval]
+  case rotate_right =>
+    rcases rotate_right_index_nat_valid_and_arg_has_smt_translation hTrans with
+      ⟨hIdxValid, hXTrans⟩
+    have hIdxEval := smt_model_eval_eq_of_eo_to_smt_nat_is_valid
+      (M := M) (N := N) hIdxValid
+    have hXEval := ih hXLt hExcept hBound hXTrans hXNoFree hAgree
+    dsimp only [__eo_to_smt]
+    simp only [__smtx_model_eval]
+    simp [hIdxEval, hXEval]
+  case _at_bit =>
+    rcases at_bit_index_nat_valid_and_arg_has_smt_translation hTrans with
+      ⟨hIdxValid, hXTrans⟩
+    have hIdxEval := smt_model_eval_eq_of_eo_to_smt_nat_is_valid
+      (M := M) (N := N) hIdxValid
+    have hXEval := ih hXLt hExcept hBound hXTrans hXNoFree hAgree
+    dsimp only [__eo_to_smt]
+    simp only [__smtx_model_eval]
+    simp [hIdxEval, hXEval]
+  case re_exp =>
+    rcases re_exp_index_nat_valid_and_arg_has_smt_translation hTrans with
+      ⟨hIdxValid, hXTrans⟩
+    have hIdxEval := smt_model_eval_eq_of_eo_to_smt_nat_is_valid
+      (M := M) (N := N) hIdxValid
+    have hXEval := ih hXLt hExcept hBound hXTrans hXNoFree hAgree
+    dsimp only [__eo_to_smt]
+    simp only [__smtx_model_eval]
+    simp [hIdxEval, hXEval]
+  case is =>
+    rcases is_index_cons_and_arg_has_smt_translation hTrans with
+      ⟨⟨s, d, i, hCons⟩, hXTrans⟩
+    have hXEval := ih hXLt hExcept hBound hXTrans hXNoFree hAgree
+    dsimp only [__eo_to_smt]
+    rw [hCons]
+    simp only [__eo_to_smt_tester, __smtx_model_eval]
+    simp [hXEval]
+  case tuple_select =>
+    rcases tuple_select_index_nat_valid_and_arg_has_smt_translation hTrans with
+      ⟨hIdxValid, hXTrans⟩
+    have hXEval := ih hXLt hExcept hBound hXTrans hXNoFree hAgree
+    cases idx <;> simp [__eo_to_smt_nat_is_valid] at hIdxValid
+    case Numeral n =>
+      dsimp only [__eo_to_smt]
+      cases hTy : __smtx_typeof (__eo_to_smt x)
+      case Datatype s d =>
+        cases hGuard :
+            native_and (native_streq s (native_string_lit "@Tuple"))
+              (native_zleq 0 n)
+        · simp [__eo_to_smt_tuple_select, hGuard, native_ite,
+            __smtx_model_eval]
+        · simp [__eo_to_smt_tuple_select, hGuard, native_ite,
+            __smtx_model_eval, hXEval]
+          exact
+            smtx_model_eval_dt_sel_eq_of_globals hAgree.globals
+              (native_string_lit "@Tuple") d 0 (native_int_to_nat n)
+              (__smtx_model_eval N (__eo_to_smt x))
+      all_goals
+        simp [__eo_to_smt_tuple_select, hTy, __smtx_model_eval]
+  case int_to_bv =>
+    rcases int_to_bv_index_nat_valid_and_arg_has_smt_translation hTrans with
+      ⟨hIdxValid, hXTrans⟩
+    have hIdxEval := smt_model_eval_eq_of_eo_to_smt_nat_is_valid
+      (M := M) (N := N) hIdxValid
+    have hXEval := ih hXLt hExcept hBound hXTrans hXNoFree hAgree
+    dsimp only [__eo_to_smt]
+    simp only [__smtx_model_eval]
+    simp [hIdxEval, hXEval]
+  case seq_empty =>
+    exact false_of_apply_seq_empty hTrans
+  case set_empty =>
+    exact false_of_apply_set_empty hTrans
+  all_goals
+    exact false_of_apply_uop1_translate_apply_none hTrans rfl
+
+theorem smt_model_eval_apply_uop2_any_eq_of_contains_atomic_term_list_free_rec_false_mapped
+    (root : Term)
+    {op : UserOp2} {i j x except bound : Term}
+    {exceptVars boundVars : List EoVarKey}
+    {M N : SmtModel}
+    (hXLt : sizeOf x < sizeOf root)
+    (hExcept : EoVarEnvPerm except exceptVars)
+    (hBound : EoVarEnvPerm bound boundVars)
+    (hTrans : eoHasSmtTranslation (Term.Apply (Term.UOp2 op i j) x))
+    (hNoFree :
+      __contains_atomic_term_list_free_rec
+          (Term.Apply (Term.UOp2 op i j) x) except bound =
+        Term.Boolean false)
+    (hAgree :
+      model_agrees_except_on_env
+        (exceptVars.map EoVarKey.toSmt) (boundVars.map EoVarKey.toSmt)
+        M N)
+    (ih :
+      ∀ {t except' bound' : Term}
+        {exceptVars' boundVars' : List EoVarKey}
+        {M' N' : SmtModel},
+        sizeOf t < sizeOf root ->
+          EoVarEnvPerm except' exceptVars' ->
+          EoVarEnvPerm bound' boundVars' ->
+          eoHasSmtTranslation t ->
+          __contains_atomic_term_list_free_rec t except' bound' =
+            Term.Boolean false ->
+          model_agrees_except_on_env
+            (exceptVars'.map EoVarKey.toSmt)
+            (boundVars'.map EoVarKey.toSmt) M' N' ->
+          __smtx_model_eval M' (__eo_to_smt t) =
+            __smtx_model_eval N' (__eo_to_smt t)) :
+  __smtx_model_eval M (__eo_to_smt (Term.Apply (Term.UOp2 op i j) x)) =
+    __smtx_model_eval N (__eo_to_smt (Term.Apply (Term.UOp2 op i j) x)) :=
+by
+  have hXNoFree :
+      __contains_atomic_term_list_free_rec x except bound =
+        Term.Boolean false :=
+    contains_atomic_term_list_free_rec_apply_uop2_false_arg
+      hExcept hBound hNoFree
+  cases op
+  case extract =>
+    rcases extract_indices_nat_valid_and_arg_has_smt_translation hTrans with
+      ⟨hIValid, hJValid, hXTrans⟩
+    have hIEval := smt_model_eval_eq_of_eo_to_smt_nat_is_valid
+      (M := M) (N := N) hIValid
+    have hJEval := smt_model_eval_eq_of_eo_to_smt_nat_is_valid
+      (M := M) (N := N) hJValid
+    have hXEval := ih hXLt hExcept hBound hXTrans hXNoFree hAgree
+    dsimp only [__eo_to_smt]
+    simp only [__smtx_model_eval]
+    simp [hIEval, hJEval, hXEval]
+  case re_loop =>
+    rcases re_loop_indices_nat_valid_and_arg_has_smt_translation hTrans with
+      ⟨hIValid, hJValid, hXTrans⟩
+    have hIEval := smt_model_eval_eq_of_eo_to_smt_nat_is_valid
+      (M := M) (N := N) hIValid
+    have hJEval := smt_model_eval_eq_of_eo_to_smt_nat_is_valid
+      (M := M) (N := N) hJValid
+    have hXEval := ih hXLt hExcept hBound hXTrans hXNoFree hAgree
+    dsimp only [__eo_to_smt]
+    simp only [__smtx_model_eval]
+    simp [hIEval, hJEval, hXEval]
+  case _at_quantifiers_skolemize =>
+    exact
+      smt_model_eval_apply_generic_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        hExcept hBound
+        (by intro q v vs hEq; cases hEq)
+        (by rfl)
+        (quant_skolemize_apply_generic_type i j x)
+        hTrans hNoFree hAgree
+        (by
+          intro hHeadTrans hBound' hHeadNoFree M' N' hAgree'
+          exact
+            smt_model_eval_eq_of_contains_atomic_term_list_free_rec_non_apply_false_mapped
+              hExcept hBound' hHeadTrans
+              (by intro f a h; cases h)
+              hHeadNoFree hAgree')
+        (by
+          intro hXTrans hBound' hXNoFree M' N' hAgree'
+          exact ih hXLt hExcept hBound' hXTrans hXNoFree hAgree')
+  case _at_bv =>
+    exact false_of_apply_at_bv hTrans
+  case _at_const =>
+    exact false_of_apply_uop2_translate_apply_none hTrans rfl
+
+theorem smt_model_eval_apply_uop3_any_eq_of_contains_atomic_term_list_free_rec_false_mapped
+    (root : Term)
+    {op : UserOp3} {a b c x except bound : Term}
+    {exceptVars boundVars : List EoVarKey}
+    {M N : SmtModel}
+    (hXLt : sizeOf x < sizeOf root)
+    (hExcept : EoVarEnvPerm except exceptVars)
+    (hBound : EoVarEnvPerm bound boundVars)
+    (hTrans : eoHasSmtTranslation (Term.Apply (Term.UOp3 op a b c) x))
+    (hNoFree :
+      __contains_atomic_term_list_free_rec
+          (Term.Apply (Term.UOp3 op a b c) x) except bound =
+        Term.Boolean false)
+    (hAgree :
+      model_agrees_except_on_env
+        (exceptVars.map EoVarKey.toSmt) (boundVars.map EoVarKey.toSmt)
+        M N)
+    (ih :
+      ∀ {t except' bound' : Term}
+        {exceptVars' boundVars' : List EoVarKey}
+        {M' N' : SmtModel},
+        sizeOf t < sizeOf root ->
+          EoVarEnvPerm except' exceptVars' ->
+          EoVarEnvPerm bound' boundVars' ->
+          eoHasSmtTranslation t ->
+          __contains_atomic_term_list_free_rec t except' bound' =
+            Term.Boolean false ->
+          model_agrees_except_on_env
+            (exceptVars'.map EoVarKey.toSmt)
+            (boundVars'.map EoVarKey.toSmt) M' N' ->
+          __smtx_model_eval M' (__eo_to_smt t) =
+            __smtx_model_eval N' (__eo_to_smt t)) :
+  __smtx_model_eval M (__eo_to_smt (Term.Apply (Term.UOp3 op a b c) x)) =
+    __smtx_model_eval N (__eo_to_smt (Term.Apply (Term.UOp3 op a b c) x)) :=
+by
+  cases op
+  case _at_re_unfold_pos_component =>
+    exact false_of_apply_re_unfold_pos_component hTrans
+  case _at_witness_string_length =>
+    exact
+      smt_model_eval_apply_generic_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        hExcept hBound
+        (by intro q v vs hEq; cases hEq)
+        (by rfl)
+        (witness_string_length_apply_generic_type a b c x)
+        hTrans hNoFree hAgree
+        (by
+          intro hHeadTrans hBound' hHeadNoFree M' N' hAgree'
+          exact
+            smt_model_eval_eq_of_contains_atomic_term_list_free_rec_non_apply_false_mapped
+              hExcept hBound' hHeadTrans
+              (by intro f y h; cases h)
+              hHeadNoFree hAgree')
+        (by
+          intro hXTrans hBound' hXNoFree M' N' hAgree'
+          exact ih hXLt hExcept hBound' hXTrans hXNoFree hAgree')
+
+theorem smt_model_eval_apply_dt_sel_eq_of_contains_atomic_term_list_free_rec_false_mapped
+    (root : Term)
+    {s : native_String} {d : Datatype} {i j : native_Nat}
+    {x except bound : Term} {exceptVars boundVars : List EoVarKey}
+    {M N : SmtModel}
+    (hXLt : sizeOf x < sizeOf root)
+    (hExcept : EoVarEnvPerm except exceptVars)
+    (hBound : EoVarEnvPerm bound boundVars)
+    (hTrans : eoHasSmtTranslation (Term.Apply (Term.DtSel s d i j) x))
+    (hNoFree :
+      __contains_atomic_term_list_free_rec
+          (Term.Apply (Term.DtSel s d i j) x) except bound =
+        Term.Boolean false)
+    (hAgree :
+      model_agrees_except_on_env
+        (exceptVars.map EoVarKey.toSmt) (boundVars.map EoVarKey.toSmt)
+        M N)
+    (ih :
+      ∀ {t except' bound' : Term}
+        {exceptVars' boundVars' : List EoVarKey}
+        {M' N' : SmtModel},
+        sizeOf t < sizeOf root ->
+          EoVarEnvPerm except' exceptVars' ->
+          EoVarEnvPerm bound' boundVars' ->
+          eoHasSmtTranslation t ->
+          __contains_atomic_term_list_free_rec t except' bound' =
+            Term.Boolean false ->
+          model_agrees_except_on_env
+            (exceptVars'.map EoVarKey.toSmt)
+            (boundVars'.map EoVarKey.toSmt) M' N' ->
+          __smtx_model_eval M' (__eo_to_smt t) =
+            __smtx_model_eval N' (__eo_to_smt t)) :
+  __smtx_model_eval M (__eo_to_smt (Term.Apply (Term.DtSel s d i j) x)) =
+    __smtx_model_eval N (__eo_to_smt (Term.Apply (Term.DtSel s d i j) x)) :=
+by
+  rcases
+    contains_atomic_term_list_free_rec_apply_false_cases
+      hExcept hBound
+      (by intro q v vs hEq; cases hEq)
+      hNoFree with
+    ⟨_hHeadNoFree, hXNoFree⟩
+  have hXTrans :
+      eoHasSmtTranslation x :=
+    apply_dt_sel_arg_has_smt_translation_of_has_smt_translation hTrans
+  have hXEval := ih hXLt hExcept hBound hXTrans hXNoFree hAgree
+  dsimp only [__eo_to_smt]
+  cases hReserved : native_reserved_datatype_name s
+  · simp [native_ite, hReserved, __smtx_model_eval, hXEval,
+      smtx_model_eval_dt_sel_eq_of_globals hAgree.globals]
+  · exfalso
+    change
+        __smtx_typeof
+            (SmtTerm.Apply
+              (native_ite (native_reserved_datatype_name s) SmtTerm.None
+                (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j))
+              (__eo_to_smt x)) ≠
+          SmtType.None at hTrans
+    rw [hReserved] at hTrans
+    exact hTrans (by
+      simpa [native_ite] using
+        TranslationProofs.typeof_apply_none_eq (__eo_to_smt x))
+
+theorem smt_model_eval_apply_apply_uop1_any_eq_of_contains_atomic_term_list_free_rec_false_mapped
+    (root : Term)
+    {op : UserOp1} {idx x y except bound : Term}
+    {exceptVars boundVars : List EoVarKey}
+    {M N : SmtModel}
+    (hXLt : sizeOf x < sizeOf root)
+    (hYLt : sizeOf y < sizeOf root)
+    (hExcept : EoVarEnvPerm except exceptVars)
+    (hBound : EoVarEnvPerm bound boundVars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.UOp1 op idx) x) y))
+    (hNoFree :
+      __contains_atomic_term_list_free_rec
+          (Term.Apply (Term.Apply (Term.UOp1 op idx) x) y) except bound =
+        Term.Boolean false)
+    (hAgree :
+      model_agrees_except_on_env
+        (exceptVars.map EoVarKey.toSmt) (boundVars.map EoVarKey.toSmt)
+        M N)
+    (ih :
+      ∀ {t except' bound' : Term}
+        {exceptVars' boundVars' : List EoVarKey}
+        {M' N' : SmtModel},
+        sizeOf t < sizeOf root ->
+          EoVarEnvPerm except' exceptVars' ->
+          EoVarEnvPerm bound' boundVars' ->
+          eoHasSmtTranslation t ->
+          __contains_atomic_term_list_free_rec t except' bound' =
+            Term.Boolean false ->
+          model_agrees_except_on_env
+            (exceptVars'.map EoVarKey.toSmt)
+            (boundVars'.map EoVarKey.toSmt) M' N' ->
+          __smtx_model_eval M' (__eo_to_smt t) =
+            __smtx_model_eval N' (__eo_to_smt t)) :
+  __smtx_model_eval M
+      (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp1 op idx) x) y)) =
+    __smtx_model_eval N
+      (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp1 op idx) x) y)) :=
+by
+  by_cases hUpdate : op = UserOp1.update
+  · subst op
+    rcases update_index_sel_and_args_have_smt_translation hTrans with
+      ⟨_hIdxSel, hXTrans, hYTrans⟩
+    rcases
+      contains_atomic_term_list_free_rec_apply_apply_uop1_false_args
+        hExcept hBound
+        (term_not_eo_list_cons_of_has_smt_translation hXTrans)
+        hNoFree with
+      ⟨hXNoFree, hYNoFree⟩
+    have hXEval := ih hXLt hExcept hBound hXTrans hXNoFree hAgree
+    have hYEval := ih hYLt hExcept hBound hYTrans hYNoFree hAgree
+    change
+      __smtx_model_eval M
+          (__eo_to_smt_updater (__eo_to_smt idx) (__eo_to_smt x)
+            (__eo_to_smt y)) =
+        __smtx_model_eval N
+          (__eo_to_smt_updater (__eo_to_smt idx) (__eo_to_smt x)
+            (__eo_to_smt y))
+    exact
+      smtx_model_eval_eo_to_smt_updater_eq_of_eval_eq
+        hAgree.globals (__eo_to_smt idx) (__eo_to_smt x) (__eo_to_smt y)
+        hXEval hYEval
+  by_cases hTupleUpdate : op = UserOp1.tuple_update
+  · subst op
+    rcases tuple_update_index_nat_valid_and_args_have_smt_translation hTrans with
+      ⟨_hIdxValid, hXTrans, hYTrans⟩
+    rcases
+      contains_atomic_term_list_free_rec_apply_apply_uop1_false_args
+        hExcept hBound
+        (term_not_eo_list_cons_of_has_smt_translation hXTrans)
+        hNoFree with
+      ⟨hXNoFree, hYNoFree⟩
+    have hXEval := ih hXLt hExcept hBound hXTrans hXNoFree hAgree
+    have hYEval := ih hYLt hExcept hBound hYTrans hYNoFree hAgree
+    change
+      __smtx_model_eval M
+          (__eo_to_smt_tuple_update (__smtx_typeof (__eo_to_smt x))
+            (__eo_to_smt idx) (__eo_to_smt x) (__eo_to_smt y)) =
+        __smtx_model_eval N
+          (__eo_to_smt_tuple_update (__smtx_typeof (__eo_to_smt x))
+            (__eo_to_smt idx) (__eo_to_smt x) (__eo_to_smt y))
+    exact
+      smtx_model_eval_eo_to_smt_tuple_update_eq_of_eval_eq
+        hAgree.globals (__smtx_typeof (__eo_to_smt x)) (__eo_to_smt idx)
+        (__eo_to_smt x) (__eo_to_smt y) hXEval hYEval
+  have hTranslate :
+      __eo_to_smt (Term.Apply (Term.Apply (Term.UOp1 op idx) x) y) =
+        SmtTerm.Apply
+          (__eo_to_smt (Term.Apply (Term.UOp1 op idx) x))
+          (__eo_to_smt y) := by
+    cases op <;> try rfl
+    · exact False.elim (hUpdate rfl)
+    · exact False.elim (hTupleUpdate rfl)
+  have hTy :
+      __smtx_typeof
+          (SmtTerm.Apply
+            (__eo_to_smt (Term.Apply (Term.UOp1 op idx) x))
+            (__eo_to_smt y)) =
+        __smtx_typeof_apply
+          (__smtx_typeof
+            (__eo_to_smt (Term.Apply (Term.UOp1 op idx) x)))
+          (__smtx_typeof (__eo_to_smt y)) :=
+    generic_apply_type_of_non_special_head_closed _ _
+      (by
+        intro s d i j hSel
+        exact
+          TranslationProofs.eo_to_smt_apply_ne_dt_sel
+            _ _ s d i j hSel)
+      (by
+        intro s d i hTester
+        exact
+          TranslationProofs.eo_to_smt_apply_ne_dt_tester
+            _ _ s d i hTester)
+  have hNN :
+      term_has_non_none_type
+        (SmtTerm.Apply
+          (__eo_to_smt (Term.Apply (Term.UOp1 op idx) x))
+          (__eo_to_smt y)) := by
+    unfold term_has_non_none_type
+    rw [← hTranslate]
+    exact hTrans
+  rcases apply_args_have_smt_translation_of_non_none hTy hNN with
+    ⟨hHeadTrans, hYTrans⟩
+  have hXTrans :
+      eoHasSmtTranslation x :=
+    apply_uop1_arg_has_smt_translation_of_has_smt_translation hHeadTrans
+  exact
+    smt_model_eval_apply_generic_eq_of_contains_atomic_term_list_free_rec_false_mapped
+      hExcept hBound
+      (by
+        intro q v vs hEq
+        have hXEq :
+            x = Term.Apply (Term.Apply Term.__eo_List_cons v) vs := by
+          injection hEq
+        exact
+          term_not_eo_list_cons_of_has_smt_translation hXTrans v vs hXEq)
+      hTranslate hTy hTrans hNoFree hAgree
+      (by
+        intro hHeadTrans hBound' hHeadNoFree M' N' hAgree'
+        exact
+          smt_model_eval_apply_uop1_any_eq_of_contains_atomic_term_list_free_rec_false_mapped
+            root hXLt hExcept hBound' hHeadTrans hHeadNoFree hAgree' ih)
+      (by
+        intro hYTrans hBound' hYNoFree M' N' hAgree'
+        exact ih hYLt hExcept hBound' hYTrans hYNoFree hAgree')
+
+theorem smt_model_eval_apply_apply_apply_uop_any_eq_of_contains_atomic_term_list_free_rec_false_mapped
+    (root : Term)
+    {op : UserOp} {c x y except bound : Term}
+    {exceptVars boundVars : List EoVarKey}
+    {M N : SmtModel}
+    (hCLt : sizeOf c < sizeOf root)
+    (hXLt : sizeOf x < sizeOf root)
+    (hYLt : sizeOf y < sizeOf root)
+    (hExcept : EoVarEnvPerm except exceptVars)
+    (hBound : EoVarEnvPerm bound boundVars)
+    (hTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) c) x) y))
+    (hNoFree :
+      __contains_atomic_term_list_free_rec
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) c) x) y)
+          except bound =
+        Term.Boolean false)
+    (hAgree :
+      model_agrees_except_on_env
+        (exceptVars.map EoVarKey.toSmt) (boundVars.map EoVarKey.toSmt)
+        M N)
+    (ih :
+      ∀ {t except' bound' : Term}
+        {exceptVars' boundVars' : List EoVarKey}
+        {M' N' : SmtModel},
+        sizeOf t < sizeOf root ->
+          EoVarEnvPerm except' exceptVars' ->
+          EoVarEnvPerm bound' boundVars' ->
+          eoHasSmtTranslation t ->
+          __contains_atomic_term_list_free_rec t except' bound' =
+            Term.Boolean false ->
+          model_agrees_except_on_env
+            (exceptVars'.map EoVarKey.toSmt)
+            (boundVars'.map EoVarKey.toSmt) M' N' ->
+          __smtx_model_eval M' (__eo_to_smt t) =
+            __smtx_model_eval N' (__eo_to_smt t)) :
+  __smtx_model_eval M
+      (__eo_to_smt
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) c) x) y)) =
+    __smtx_model_eval N
+      (__eo_to_smt
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) c) x) y)) :=
+by
+  cases op
+  case ite =>
+    exact
+      smt_model_eval_apply_apply_apply_ite_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hCLt hXLt hYLt hExcept hBound hTrans hNoFree hAgree ih
+  case store =>
+    exact
+      smt_model_eval_apply_apply_apply_uop_ternary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hCLt hXLt hYLt hExcept hBound hTrans
+        (by
+          intro h
+          exact
+            apply_apply_apply_uop_args_have_smt_translation_of_smt_triop_non_none
+              (by rfl) store_args_have_smt_translation_of_non_none h)
+        hNoFree hAgree
+        (by
+          intro hc hx hy
+          dsimp only [__eo_to_smt]
+          simp [__smtx_model_eval, hc, hx, hy])
+        ih
+  case bvite =>
+    exact
+      smt_model_eval_apply_apply_apply_uop_ternary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hCLt hXLt hYLt hExcept hBound hTrans
+        bvite_args_have_smt_translation_of_has_smt_translation
+        hNoFree hAgree
+        (by
+          intro hc hx hy
+          dsimp only [__eo_to_smt]
+          simp [__smtx_model_eval, hc, hx, hy])
+        ih
+  case str_substr =>
+    exact
+      smt_model_eval_apply_apply_apply_uop_ternary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hCLt hXLt hYLt hExcept hBound hTrans
+        (by
+          intro h
+          exact
+            apply_apply_apply_uop_args_have_smt_translation_of_smt_triop_non_none
+              (by rfl) str_substr_args_have_smt_translation_of_non_none h)
+        hNoFree hAgree
+        (by
+          intro hc hx hy
+          dsimp only [__eo_to_smt]
+          simp [__smtx_model_eval, hc, hx, hy])
+        ih
+  case str_replace =>
+    exact
+      smt_model_eval_apply_apply_apply_uop_ternary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hCLt hXLt hYLt hExcept hBound hTrans
+        (by
+          intro h
+          exact
+            apply_apply_apply_uop_args_have_smt_translation_of_smt_triop_non_none
+              (by rfl)
+              (fun hNN =>
+                seq_triop_args_have_smt_translation_of_non_none
+                  (typeof_str_replace_eq (__eo_to_smt c) (__eo_to_smt x)
+                    (__eo_to_smt y))
+                  hNN)
+              h)
+        hNoFree hAgree
+        (by
+          intro hc hx hy
+          dsimp only [__eo_to_smt]
+          simp [__smtx_model_eval, hc, hx, hy])
+        ih
+  case str_indexof =>
+    exact
+      smt_model_eval_apply_apply_apply_uop_ternary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hCLt hXLt hYLt hExcept hBound hTrans
+        (by
+          intro h
+          exact
+            apply_apply_apply_uop_args_have_smt_translation_of_smt_triop_non_none
+              (by rfl) str_indexof_args_have_smt_translation_of_non_none h)
+        hNoFree hAgree
+        (by
+          intro hc hx hy
+          dsimp only [__eo_to_smt]
+          simp [__smtx_model_eval, hc, hx, hy])
+        ih
+  case str_update =>
+    exact
+      smt_model_eval_apply_apply_apply_uop_ternary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hCLt hXLt hYLt hExcept hBound hTrans
+        (by
+          intro h
+          exact
+            apply_apply_apply_uop_args_have_smt_translation_of_smt_triop_non_none
+              (by rfl) str_update_args_have_smt_translation_of_non_none h)
+        hNoFree hAgree
+        (by
+          intro hc hx hy
+          dsimp only [__eo_to_smt]
+          simp [__smtx_model_eval, hc, hx, hy])
+        ih
+  case str_replace_all =>
+    exact
+      smt_model_eval_apply_apply_apply_uop_ternary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hCLt hXLt hYLt hExcept hBound hTrans
+        (by
+          intro h
+          exact
+            apply_apply_apply_uop_args_have_smt_translation_of_smt_triop_non_none
+              (by rfl)
+              (fun hNN =>
+                seq_triop_args_have_smt_translation_of_non_none
+                  (typeof_str_replace_all_eq (__eo_to_smt c)
+                    (__eo_to_smt x) (__eo_to_smt y))
+                  hNN)
+              h)
+        hNoFree hAgree
+        (by
+          intro hc hx hy
+          dsimp only [__eo_to_smt]
+          simp [__smtx_model_eval, hc, hx, hy])
+        ih
+  case str_replace_re =>
+    exact
+      smt_model_eval_apply_apply_apply_uop_ternary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hCLt hXLt hYLt hExcept hBound hTrans
+        (by
+          intro h
+          exact
+            apply_apply_apply_uop_args_have_smt_translation_of_smt_triop_non_none
+              (by rfl)
+              (fun hNN =>
+                str_replace_re_args_have_smt_translation_of_non_none
+                  (typeof_str_replace_re_eq (__eo_to_smt c)
+                    (__eo_to_smt x) (__eo_to_smt y))
+                  hNN)
+              h)
+        hNoFree hAgree
+        (by
+          intro hc hx hy
+          dsimp only [__eo_to_smt]
+          simp [__smtx_model_eval, hc, hx, hy])
+        ih
+  case str_replace_re_all =>
+    exact
+      smt_model_eval_apply_apply_apply_uop_ternary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hCLt hXLt hYLt hExcept hBound hTrans
+        (by
+          intro h
+          exact
+            apply_apply_apply_uop_args_have_smt_translation_of_smt_triop_non_none
+              (by rfl)
+              (fun hNN =>
+                str_replace_re_args_have_smt_translation_of_non_none
+                  (typeof_str_replace_re_all_eq (__eo_to_smt c)
+                    (__eo_to_smt x) (__eo_to_smt y))
+                  hNN)
+              h)
+        hNoFree hAgree
+        (by
+          intro hc hx hy
+          dsimp only [__eo_to_smt]
+          simp [__smtx_model_eval, hc, hx, hy])
+        ih
+  case str_indexof_re =>
+    exact
+      smt_model_eval_apply_apply_apply_uop_ternary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hCLt hXLt hYLt hExcept hBound hTrans
+        (by
+          intro h
+          exact
+            apply_apply_apply_uop_args_have_smt_translation_of_smt_triop_non_none
+              (by rfl) str_indexof_re_args_have_smt_translation_of_non_none h)
+        hNoFree hAgree
+        (by
+          intro hc hx hy
+          dsimp only [__eo_to_smt]
+          simp [__smtx_model_eval, hc, hx, hy])
+        ih
+  case str_indexof_re_split =>
+    exact
+      smt_model_eval_apply_apply_apply_uop_ternary_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        root hCLt hXLt hYLt hExcept hBound hTrans
+        (by
+          intro h
+          exact
+            apply_apply_apply_uop_args_have_smt_translation_of_smt_triop_non_none
+              (by rfl)
+              str_indexof_re_split_args_have_smt_translation_of_non_none h)
+        hNoFree hAgree
+        (by
+          intro hc hx hy
+          dsimp only [__eo_to_smt]
+          simp [__smtx_model_eval, hc, hx, hy])
+        ih
+  case «forall» =>
+    exact false_of_apply_apply_apply_forall_has_smt_translation hTrans
+  case «exists» =>
+    exact false_of_apply_apply_apply_exists_has_smt_translation hTrans
+  all_goals
+    exact
+      smt_model_eval_apply_generic_eq_of_contains_atomic_term_list_free_rec_false_mapped
+        hExcept hBound
+        (by
+          intro q v vs hEq
+          cases hEq
+          exact
+            false_of_apply_apply_apply_uop_middle_raw_list_has_smt_translation
+              hTrans)
+        (by rfl)
+        (generic_apply_type_of_non_special_head_closed _ _
+          (by
+            intro s d i j hSel
+            exact
+              TranslationProofs.eo_to_smt_apply_ne_dt_sel
+                _ _ s d i j hSel)
+          (by
+            intro s d i hTester
+            exact
+              TranslationProofs.eo_to_smt_apply_ne_dt_tester
+                _ _ s d i hTester))
+        hTrans hNoFree hAgree
+        (by
+          intro hHeadTrans hBound' hHeadNoFree M' N' hAgree'
+          exact
+            smt_model_eval_apply_apply_uop_any_eq_of_contains_atomic_term_list_free_rec_false_mapped
+              root hCLt hXLt hExcept hBound' hHeadTrans hHeadNoFree
+              hAgree' ih)
+        (by
+          intro hYTrans hBound' hYNoFree M' N' hAgree'
+          exact ih hYLt hExcept hBound' hYTrans hYNoFree hAgree')
+
+theorem smt_model_eval_eq_of_contains_atomic_term_list_free_rec_false_mapped_lt
+    (n : Nat) {t except bound : Term}
+    {exceptVars boundVars : List EoVarKey}
+    {M N : SmtModel}
+    (hLt : sizeOf t < n)
+    (hExcept : EoVarEnvPerm except exceptVars)
+    (hBound : EoVarEnvPerm bound boundVars)
+    (hTrans : eoHasSmtTranslation t)
+    (hNoFree :
+      __contains_atomic_term_list_free_rec t except bound =
+        Term.Boolean false)
+    (hAgree :
+      model_agrees_except_on_env
+        (exceptVars.map EoVarKey.toSmt) (boundVars.map EoVarKey.toSmt)
+        M N) :
+  __smtx_model_eval M (__eo_to_smt t) =
+    __smtx_model_eval N (__eo_to_smt t) :=
+by
+  cases n with
+  | zero =>
+      omega
+  | succ n =>
+      let hRec :
+          ∀ {u except' bound' : Term}
+            {exceptVars' boundVars' : List EoVarKey}
+            {M' N' : SmtModel},
+            sizeOf u < sizeOf t ->
+              EoVarEnvPerm except' exceptVars' ->
+              EoVarEnvPerm bound' boundVars' ->
+              eoHasSmtTranslation u ->
+              __contains_atomic_term_list_free_rec u except' bound' =
+                Term.Boolean false ->
+              model_agrees_except_on_env
+                (exceptVars'.map EoVarKey.toSmt)
+                (boundVars'.map EoVarKey.toSmt) M' N' ->
+              __smtx_model_eval M' (__eo_to_smt u) =
+                __smtx_model_eval N' (__eo_to_smt u) :=
+        fun {u except' bound'} {exceptVars' boundVars'} {M' N'} hULt
+            hExcept' hBound' hTrans' hNoFree' hAgree' =>
+          smt_model_eval_eq_of_contains_atomic_term_list_free_rec_false_mapped_lt
+            n (t := u) (except := except') (bound := bound')
+            (exceptVars := exceptVars') (boundVars := boundVars')
+            (M := M') (N := N') (by omega)
+            hExcept' hBound' hTrans' hNoFree' hAgree'
+      cases t
+      case Apply f x =>
+        cases f
+        case UOp op =>
+          exact
+            smt_model_eval_apply_uop_any_eq_of_contains_atomic_term_list_free_rec_false_mapped
+              (Term.Apply (Term.UOp op) x) (by
+                simp <;> omega)
+              hExcept hBound hTrans hNoFree hAgree hRec
+        case UOp1 op idx =>
+          exact
+            smt_model_eval_apply_uop1_any_eq_of_contains_atomic_term_list_free_rec_false_mapped
+              (Term.Apply (Term.UOp1 op idx) x) (by
+                simp <;> omega)
+              hExcept hBound hTrans hNoFree hAgree hRec
+        case UOp2 op i j =>
+          exact
+            smt_model_eval_apply_uop2_any_eq_of_contains_atomic_term_list_free_rec_false_mapped
+              (Term.Apply (Term.UOp2 op i j) x) (by
+                simp <;> omega)
+              hExcept hBound hTrans hNoFree hAgree hRec
+        case UOp3 op a b c =>
+          exact
+            smt_model_eval_apply_uop3_any_eq_of_contains_atomic_term_list_free_rec_false_mapped
+              (Term.Apply (Term.UOp3 op a b c) x) (by
+                simp <;> omega)
+              hExcept hBound hTrans hNoFree hAgree hRec
+        case DtSel s d i j =>
+          exact
+            smt_model_eval_apply_dt_sel_eq_of_contains_atomic_term_list_free_rec_false_mapped
+              (Term.Apply (Term.DtSel s d i j) x) (by
+                simp <;> omega)
+              hExcept hBound hTrans hNoFree hAgree hRec
+        case Apply g y =>
+          cases g
+          case UOp op =>
+            exact
+              smt_model_eval_apply_apply_uop_any_eq_of_contains_atomic_term_list_free_rec_false_mapped
+                (Term.Apply (Term.Apply (Term.UOp op) y) x)
+                (by
+                  simp <;> omega)
+                (by
+                  simp <;> omega)
+                hExcept hBound hTrans hNoFree hAgree hRec
+          case UOp1 op idx =>
+            exact
+              smt_model_eval_apply_apply_uop1_any_eq_of_contains_atomic_term_list_free_rec_false_mapped
+                (Term.Apply (Term.Apply (Term.UOp1 op idx) y) x)
+                (by
+                  simp <;> omega)
+                (by
+                  simp <;> omega)
+                hExcept hBound hTrans hNoFree hAgree hRec
+          case Apply h z =>
+            cases h
+            case UOp op =>
+              exact
+                smt_model_eval_apply_apply_apply_uop_any_eq_of_contains_atomic_term_list_free_rec_false_mapped
+                  (Term.Apply
+                    (Term.Apply (Term.Apply (Term.UOp op) z) y) x)
+                  (by
+                    simp <;> omega)
+                  (by
+                    simp <;> omega)
+                  (by
+                    simp <;> omega)
+                  hExcept hBound hTrans hNoFree hAgree hRec
+            all_goals
+              exact
+                smt_model_eval_apply_generic_eq_of_contains_atomic_term_list_free_rec_false_mapped
+                  hExcept hBound
+                  (by
+                    intro q v vs hEq
+                    cases hEq
+                    rcases
+                      is_closed_rec_list_branch_head_term_quantifier_of_has_smt_translation
+                        hTrans with hForall | hExists
+                    · cases hForall
+                    · cases hExists)
+                  (by rfl)
+                  (generic_apply_type_of_non_special_head_closed _ _
+                    (by
+                      intro s d i j hSel
+                      exact
+                        TranslationProofs.eo_to_smt_apply_ne_dt_sel
+                          _ _ s d i j hSel)
+                    (by
+                      intro s d i hTester
+                      exact
+                        TranslationProofs.eo_to_smt_apply_ne_dt_tester
+                          _ _ s d i hTester))
+                  hTrans hNoFree hAgree
+                  (by
+                    intro hFTrans hBound' hFNoFree M' N' hAgree'
+                    exact hRec (by
+                      simp <;> omega) hExcept hBound'
+                      hFTrans hFNoFree hAgree')
+                  (by
+                    intro hXTrans hBound' hXNoFree M' N' hAgree'
+                    exact hRec (by
+                      simp <;> omega) hExcept hBound'
+                      hXTrans hXNoFree hAgree')
+          all_goals
+            exact
+              smt_model_eval_apply_generic_eq_of_contains_atomic_term_list_free_rec_false_mapped
+                hExcept hBound
+                (by
+                  intro q v vs hEq
+                  cases hEq
+                  rcases
+                    is_closed_rec_list_branch_head_term_quantifier_of_has_smt_translation
+                      hTrans with hForall | hExists
+                  · cases hForall
+                  · cases hExists)
+                (by rfl)
+                (generic_apply_type_of_non_special_head_closed _ _
+                  (by
+                    intro s d i j hSel
+                    exact
+                      TranslationProofs.eo_to_smt_apply_ne_dt_sel
+                        _ _ s d i j hSel)
+                  (by
+                    intro s d i hTester
+                    exact
+                      TranslationProofs.eo_to_smt_apply_ne_dt_tester
+                        _ _ s d i hTester))
+                hTrans hNoFree hAgree
+                (by
+                  intro hFTrans hBound' hFNoFree M' N' hAgree'
+                  exact hRec (by
+                    simp <;> omega) hExcept hBound'
+                    hFTrans hFNoFree hAgree')
+                (by
+                  intro hXTrans hBound' hXNoFree M' N' hAgree'
+                  exact hRec (by
+                    simp <;> omega) hExcept hBound'
+                    hXTrans hXNoFree hAgree')
+        all_goals
+          exact
+            smt_model_eval_apply_generic_eq_of_contains_atomic_term_list_free_rec_false_mapped
+              hExcept hBound
+              (by intro q v vs hEq; cases hEq)
+              (by rfl)
+              (generic_apply_type_of_non_special_head_closed _ _
+                (by
+                  intro s d i j hSel
+                  rcases
+                    TranslationProofs.eo_to_smt_eq_dt_sel_cases
+                      _ s d i j hSel with hSelTerm | hPurify
+                  · rcases hSelTerm with ⟨d0, hd, hTerm, hReserved⟩
+                    cases hTerm
+                  · rcases hPurify with ⟨z, hTerm, hz⟩
+                    cases hTerm)
+                (by
+                  intro s d i hTester
+                  exact
+                    TranslationProofs.eo_to_smt_ne_dt_tester
+                      _ s d i hTester))
+              hTrans hNoFree hAgree
+              (by
+                intro hFTrans hBound' hFNoFree M' N' hAgree'
+                exact hRec (by
+                  simp <;> omega) hExcept hBound'
+                  hFTrans hFNoFree hAgree')
+              (by
+                intro hXTrans hBound' hXNoFree M' N' hAgree'
+                exact hRec (by
+                  simp <;> omega) hExcept hBound'
+                  hXTrans hXNoFree hAgree')
+      all_goals
+        exact
+          smt_model_eval_eq_of_contains_atomic_term_list_free_rec_non_apply_false_mapped
+            hExcept hBound hTrans
+            (by intro f a hApply; cases hApply)
+            hNoFree hAgree
+termination_by n
+decreasing_by
+  all_goals omega
+
+theorem smt_model_eval_eq_of_contains_atomic_term_list_free_rec_false_mapped
+    {t except bound : Term}
+    {exceptVars boundVars : List EoVarKey}
+    {M N : SmtModel}
+    (hExcept : EoVarEnvPerm except exceptVars)
+    (hBound : EoVarEnvPerm bound boundVars)
+    (hTrans : eoHasSmtTranslation t)
+    (hNoFree :
+      __contains_atomic_term_list_free_rec t except bound =
+        Term.Boolean false)
+    (hAgree :
+      model_agrees_except_on_env
+        (exceptVars.map EoVarKey.toSmt) (boundVars.map EoVarKey.toSmt)
+        M N) :
+  __smtx_model_eval M (__eo_to_smt t) =
+    __smtx_model_eval N (__eo_to_smt t) :=
+by
+  exact
+    smt_model_eval_eq_of_contains_atomic_term_list_free_rec_false_mapped_lt
+      (sizeOf t + 1) (by omega)
+      hExcept hBound hTrans hNoFree hAgree

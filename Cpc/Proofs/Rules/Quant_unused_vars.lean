@@ -1395,7 +1395,12 @@ by
                 (exceptVars.map EoVarKey.toSmt) [] N M ->
               __smtx_model_eval N (__eo_to_smt F) =
                 __smtx_model_eval M (__eo_to_smt F) := by
-      sorry
+      intro N _hN hAgree
+      exact
+        smt_model_eval_eq_of_contains_atomic_term_list_free_rec_false_mapped
+          hExceptSet
+          (EoVarEnvPerm.of_exact EoVarEnv.nil)
+          hFTrans hNoFreeSet hAgree
     exact
       smtx_model_eval_qterm_eq_body_of_body_eval_eq
         hQ hLeftTrans hXEnv hM hInExcept hBodyInvariant
