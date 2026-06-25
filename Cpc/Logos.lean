@@ -2985,6 +2985,31 @@ def __str_arith_entail_is_approx : Term -> Term -> Term -> Term
   | n1, __eo_lv_n1_2, isUnder => (__eo_ite (__eo_eq n1 __eo_lv_n1_2) (Term.Boolean true) (__eo_l_1___str_arith_entail_is_approx n1 __eo_lv_n1_2 isUnder))
 
 
+def __str_re_consume_inter : Term -> Term -> Term -> Term
+  | Term.Stuck , _ , _  => Term.Stuck
+  | _ , _ , Term.Stuck  => Term.Stuck
+  | s, (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) c1) (Term.UOp UserOp.re_all)), fuel => (__str_re_consume_rec s c1 fuel)
+  | s, (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) c1) c2), fuel => 
+    let _v0 := (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) c1) c2))
+    let _v1 := (__str_re_consume_inter s c2 fuel)
+    let _v2 := (__eo_is_eq _v1 (Term.Boolean false))
+    let _v3 := (__str_re_consume_rec s c1 fuel)
+    (__eo_ite (__eo_is_eq _v3 (Term.Boolean false)) (Term.Boolean false) (__eo_ite (__eo_eq (__str_membership_re _v3) (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))) (__eo_ite _v2 (Term.Boolean false) (__eo_ite (__eo_eq _v3 _v1) _v3 _v0)) (__eo_ite _v2 (Term.Boolean false) _v0)))
+  | _, _, _ => Term.Stuck
+
+
+def __str_re_consume_union : Term -> Term -> Term -> Term
+  | Term.Stuck , _ , _  => Term.Stuck
+  | _ , _ , Term.Stuck  => Term.Stuck
+  | s, (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) c1) (Term.UOp UserOp.re_none)), fuel => (__str_re_consume_rec s c1 fuel)
+  | s, (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) c1) c2), fuel => 
+    let _v0 := (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) c1) c2))
+    let _v1 := (__str_re_consume_rec s c1 fuel)
+    let _v2 := (__str_re_consume_union s c2 fuel)
+    (__eo_ite (__eo_is_eq _v1 (Term.Boolean false)) _v2 (__eo_ite (__eo_eq (__str_membership_re _v1) (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))) (__eo_ite (__eo_is_eq _v2 (Term.Boolean false)) _v1 (__eo_ite (__eo_eq _v1 _v2) _v1 _v0)) _v0))
+  | _, _, _ => Term.Stuck
+
+
 def __str_re_consume_rec : Term -> Term -> Term -> Term
   | Term.Stuck , _ , _  => Term.Stuck
   | _ , Term.Stuck , _  => Term.Stuck
@@ -3013,31 +3038,6 @@ def __str_re_consume_rec : Term -> Term -> Term -> Term
   | s1, (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r1) r2), fuel => (__str_re_consume_inter s1 (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r1) r2) fuel)
   | s1, (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r1) r2), fuel => (__str_re_consume_union s1 (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r1) r2) fuel)
   | s1, r1, fuel => (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s1) r1)
-
-
-def __str_re_consume_inter : Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _  => Term.Stuck
-  | _ , _ , Term.Stuck  => Term.Stuck
-  | s, (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) c1) (Term.UOp UserOp.re_all)), fuel => (__str_re_consume_rec s c1 fuel)
-  | s, (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) c1) c2), fuel => 
-    let _v0 := (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) c1) c2))
-    let _v1 := (__str_re_consume_inter s c2 fuel)
-    let _v2 := (__eo_is_eq _v1 (Term.Boolean false))
-    let _v3 := (__str_re_consume_rec s c1 fuel)
-    (__eo_ite (__eo_is_eq _v3 (Term.Boolean false)) (Term.Boolean false) (__eo_ite (__eo_eq (__str_membership_re _v3) (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))) (__eo_ite _v2 (Term.Boolean false) (__eo_ite (__eo_eq _v3 _v1) _v3 _v0)) (__eo_ite _v2 (Term.Boolean false) _v0)))
-  | _, _, _ => Term.Stuck
-
-
-def __str_re_consume_union : Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _  => Term.Stuck
-  | _ , _ , Term.Stuck  => Term.Stuck
-  | s, (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) c1) (Term.UOp UserOp.re_none)), fuel => (__str_re_consume_rec s c1 fuel)
-  | s, (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) c1) c2), fuel => 
-    let _v0 := (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) c1) c2))
-    let _v1 := (__str_re_consume_rec s c1 fuel)
-    let _v2 := (__str_re_consume_union s c2 fuel)
-    (__eo_ite (__eo_is_eq _v1 (Term.Boolean false)) _v2 (__eo_ite (__eo_eq (__str_membership_re _v1) (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))) (__eo_ite (__eo_is_eq _v2 (Term.Boolean false)) _v1 (__eo_ite (__eo_eq _v1 _v2) _v1 _v0)) _v0))
-  | _, _, _ => Term.Stuck
 
 
 def __str_re_consume : Term -> Term -> Term
