@@ -3991,6 +3991,15 @@ theorem eo_to_smt_type_typeof_apply_set_is_singleton_of_set
   rw [hx]
   rfl
 
+/-- Stronger EO-side helper for `typeof_apply_set_is_empty`. -/
+theorem eo_to_smt_type_typeof_apply_set_is_empty_of_set
+    (x T : Term)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.Set) T) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp UserOp.set_is_empty) x)) = SmtType.Bool := by
+  change __eo_to_smt_type (__eo_typeof_set_is_empty (__eo_typeof x)) = SmtType.Bool
+  rw [hx]
+  rfl
+
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_to_real_of_int`. -/
 theorem eo_to_smt_type_typeof_apply_to_real_of_int
     (x : Term)

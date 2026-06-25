@@ -395,7 +395,7 @@ def __eo_to_smt : Term -> SmtTerm
     (SmtTerm.map_diff _v0 (SmtTerm.set_empty (__eo_to_smt_set_elem_type (__smtx_typeof _v0))))
   | (Term.Apply (Term.UOp UserOp.set_is_empty) x1) => 
     let _v0 := (__eo_to_smt x1)
-    (SmtTerm.eq _v0 (SmtTerm.set_empty (__smtx_typeof _v0)))
+    (SmtTerm.eq _v0 (SmtTerm.set_empty (__eo_to_smt_set_elem_type (__smtx_typeof _v0))))
   | (Term.Apply (Term.UOp UserOp.set_is_singleton) x1) => 
     let _v0 := (__eo_to_smt x1)
     (SmtTerm.eq _v0 (SmtTerm.set_singleton (SmtTerm.map_diff _v0 (SmtTerm.set_empty (__eo_to_smt_set_elem_type (__smtx_typeof _v0))))))
