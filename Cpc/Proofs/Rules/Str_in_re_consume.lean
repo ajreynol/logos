@@ -224,6 +224,30 @@ private theorem eo_and_true_left_eq_arg_of_ne_stuck_local
     __eo_and (Term.Boolean true) x = x := by
   cases x <;> simp [__eo_and, SmtEval.native_and] at h ⊢
 
+private theorem eo_not_arg_ne_stuck_of_ne_stuck_local
+    (x : Term)
+    (h : __eo_not x ≠ Term.Stuck) :
+    x ≠ Term.Stuck := by
+  intro hBad
+  subst x
+  simp [__eo_not] at h
+
+private theorem eo_eq_left_ne_stuck_of_ne_stuck_local
+    (x y : Term)
+    (h : __eo_eq x y ≠ Term.Stuck) :
+    x ≠ Term.Stuck := by
+  intro hBad
+  subst x
+  cases y <;> simp [__eo_eq] at h
+
+private theorem eo_eq_right_ne_stuck_of_ne_stuck_local
+    (x y : Term)
+    (h : __eo_eq x y ≠ Term.Stuck) :
+    y ≠ Term.Stuck := by
+  intro hBad
+  subst y
+  cases x <;> simp [__eo_eq] at h
+
 private theorem eo_eq_left_ne_stuck_of_false_local
     (x y : Term)
     (h : __eo_eq x y = Term.Boolean false) :
@@ -239,6 +263,14 @@ private theorem eo_eq_right_ne_stuck_of_false_local
   intro hBad
   subst y
   cases x <;> simp [__eo_eq] at h
+
+private theorem ne_of_eo_eq_false_local
+    (x y : Term)
+    (h : __eo_eq x y = Term.Boolean false) :
+    x ≠ y := by
+  intro hEq
+  subst y
+  cases x <;> simp [__eo_eq, native_teq] at h
 
 theorem eq_of_eo_is_eq_true_consume_local
     (x y : Term)
@@ -7607,6 +7639,47 @@ theorem re_unflatten_singleton_elim_eval_rel_consume_local
   exact ⟨elimRv, by simpa [unflat] using hElimEval, hElimTy,
     RuleProofs.smt_value_rel_trans _ _ _ hElimRel hFlatRel⟩
 
+private theorem str_re_consume_final_args_type_of_side_local
+    (side s' r' : Term)
+    (hSideTy : __smtx_typeof (__eo_to_smt side) = SmtType.Bool)
+    (hSide :
+      side =
+        __eo_mk_apply
+          (__eo_mk_apply (Term.UOp UserOp.str_in_re) s') r')
+    (hSideNe : side ≠ Term.Stuck) :
+    __smtx_typeof (__eo_to_smt s') = SmtType.Seq SmtType.Char ∧
+      __smtx_typeof (__eo_to_smt r') = SmtType.RegLan := by
+  let final :=
+    __eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.str_in_re) s') r'
+  have hFinalNe : final ≠ Term.Stuck := by
+    simpa [final, hSide] using hSideNe
+  have hInnerNe :
+      __eo_mk_apply (Term.UOp UserOp.str_in_re) s' ≠ Term.Stuck :=
+    eo_mk_apply_fun_ne_stuck_of_ne_stuck _ _ hFinalNe
+  have hInnerEq :
+      __eo_mk_apply (Term.UOp UserOp.str_in_re) s' =
+        Term.Apply (Term.UOp UserOp.str_in_re) s' :=
+    eo_mk_apply_eq_apply_of_ne_stuck (Term.UOp UserOp.str_in_re) s'
+      hInnerNe
+  have hFinalEq :
+      final =
+        Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s') r' := by
+    have hOuterEqRaw :
+        final =
+          Term.Apply (__eo_mk_apply (Term.UOp UserOp.str_in_re) s') r' :=
+      eo_mk_apply_eq_apply_of_ne_stuck
+        (__eo_mk_apply (Term.UOp UserOp.str_in_re) s') r' hFinalNe
+    rw [hOuterEqRaw, hInnerEq]
+  have hBool :
+      RuleProofs.eo_has_bool_type
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp.str_in_re) s') r') := by
+    unfold RuleProofs.eo_has_bool_type
+    simpa [final, hSide, hFinalEq] using hSideTy
+  simpa [RuleProofs.ReUnfoldNegSupport.mkStrInRe] using
+    RuleProofs.ReUnfoldNegSupport.str_in_re_args_of_bool_type s' r'
+      hBool
+
 theorem str_re_consume_model_rel_of_final_parts_local
     (M : SmtModel) (hM : model_total_typed M)
     (s r side parts rePart : Term)
@@ -13118,6 +13191,30 @@ private def str_re_consume_inter_model_rel_motive
           (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) r)))
       (__smtx_model_eval M (__eo_to_smt side))
 
+private def str_re_consume_rec_type_motive
+    (s r fuel : Term) : Prop :=
+  __smtx_typeof (__eo_to_smt s) = SmtType.Seq SmtType.Char ->
+  __smtx_typeof (__eo_to_smt r) = SmtType.RegLan ->
+  __str_re_consume_rec s r fuel ≠ Term.Stuck ->
+    __smtx_typeof (__eo_to_smt (__str_re_consume_rec s r fuel)) =
+      SmtType.Bool
+
+private def str_re_consume_union_type_motive
+    (s r fuel : Term) : Prop :=
+  __smtx_typeof (__eo_to_smt s) = SmtType.Seq SmtType.Char ->
+  __smtx_typeof (__eo_to_smt r) = SmtType.RegLan ->
+  __str_re_consume_union s r fuel ≠ Term.Stuck ->
+    __smtx_typeof (__eo_to_smt (__str_re_consume_union s r fuel)) =
+      SmtType.Bool
+
+private def str_re_consume_inter_type_motive
+    (s r fuel : Term) : Prop :=
+  __smtx_typeof (__eo_to_smt s) = SmtType.Seq SmtType.Char ->
+  __smtx_typeof (__eo_to_smt r) = SmtType.RegLan ->
+  __str_re_consume_inter s r fuel ≠ Term.Stuck ->
+    __smtx_typeof (__eo_to_smt (__str_re_consume_inter s r fuel)) =
+      SmtType.Bool
+
 private def str_re_consume_rec_no_prefix_motive
     (M : SmtModel) (s r fuel : Term) : Prop :=
   ∀ side,
@@ -15746,6 +15843,19 @@ theorem str_re_consume_rec_model_rel_from_ih_of_types
       (__str_re_consume_rec s r fuel) hSTy hRTy hSideTy
   exact ih (__str_re_consume_rec s r fuel) hTrans rfl hSideNe
 
+private theorem str_re_consume_rec_type_of_translation_local
+    (s r fuel : Term)
+    (hEqTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp.eq)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) r))
+          (__str_re_consume_rec s r fuel))) :
+    __smtx_typeof (__eo_to_smt (__str_re_consume_rec s r fuel)) =
+      SmtType.Bool :=
+  str_re_consume_side_smt_type s r (__str_re_consume_rec s r fuel)
+    hEqTrans
+
 theorem str_re_consume_rec_native_false_of_ih_false
     (M : SmtModel) (hM : model_total_typed M)
     (s r fuel : Term)
@@ -17046,6 +17156,102 @@ private theorem str_re_consume_rec_rebuild_of_ne_false
   exact str_membership_re_eq_rebuild side (__str_membership_re side) rfl
     hReNe
 
+private theorem str_membership_types_of_bool_rebuild_local
+    (side : Term)
+    (hSideTy : __smtx_typeof (__eo_to_smt side) = SmtType.Bool)
+    (hReNe : __str_membership_re side ≠ Term.Stuck) :
+    __smtx_typeof (__eo_to_smt (__str_membership_str side)) =
+        SmtType.Seq SmtType.Char ∧
+      __smtx_typeof (__eo_to_smt (__str_membership_re side)) =
+        SmtType.RegLan := by
+  have hRebuild :
+      side =
+        Term.Apply
+          (Term.Apply (Term.UOp UserOp.str_in_re)
+            (__str_membership_str side))
+          (__str_membership_re side) :=
+    str_membership_re_eq_rebuild side (__str_membership_re side) rfl
+      hReNe
+  have hBool :
+      RuleProofs.eo_has_bool_type
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp.str_in_re)
+            (__str_membership_str side))
+          (__str_membership_re side)) := by
+    unfold RuleProofs.eo_has_bool_type
+    simpa [← hRebuild] using hSideTy
+  simpa [RuleProofs.ReUnfoldNegSupport.mkStrInRe] using
+    RuleProofs.ReUnfoldNegSupport.str_in_re_args_of_bool_type
+      (__str_membership_str side) (__str_membership_re side) hBool
+
+private theorem str_re_consume_rec_projection_types_of_bool_local
+    (side : Term)
+    (hSideTy : __smtx_typeof (__eo_to_smt side) = SmtType.Bool)
+    (hMemReNe : __str_membership_re side ≠ Term.Stuck) :
+    __smtx_typeof (__eo_to_smt (__str_membership_str side)) =
+        SmtType.Seq SmtType.Char ∧
+      __smtx_typeof (__eo_to_smt (__str_membership_re side)) =
+        SmtType.RegLan :=
+  str_membership_types_of_bool_rebuild_local side hSideTy hMemReNe
+
+private theorem smt_typeof_eo_ite_of_branches_local
+    (c t e : Term) {T : SmtType}
+    (hThenTy : __smtx_typeof (__eo_to_smt t) = T)
+    (hElseTy : __smtx_typeof (__eo_to_smt e) = T)
+    (hNe : __eo_ite c t e ≠ Term.Stuck) :
+    __smtx_typeof (__eo_to_smt (__eo_ite c t e)) = T := by
+  rcases eo_ite_cases_of_ne_stuck c t e hNe with hCond | hCond
+  · simpa [hCond, eo_ite_true] using hThenTy
+  · simpa [hCond, eo_ite_false] using hElseTy
+
+private theorem smt_typeof_eo_ite_of_selected_local
+    (c t e : Term) {T : SmtType}
+    (hThenTy : t ≠ Term.Stuck ->
+      __smtx_typeof (__eo_to_smt t) = T)
+    (hElseTy : e ≠ Term.Stuck ->
+      __smtx_typeof (__eo_to_smt e) = T)
+    (hNe : __eo_ite c t e ≠ Term.Stuck) :
+    __smtx_typeof (__eo_to_smt (__eo_ite c t e)) = T := by
+  rcases eo_ite_cases_of_ne_stuck c t e hNe with hCond | hCond
+  · have hThenNe : t ≠ Term.Stuck := by
+      intro hBad
+      apply hNe
+      rw [hCond, eo_ite_true, hBad]
+    simpa [hCond, eo_ite_true] using hThenTy hThenNe
+  · have hElseNe : e ≠ Term.Stuck := by
+      intro hBad
+      apply hNe
+      rw [hCond, eo_ite_false, hBad]
+    simpa [hCond, eo_ite_false] using hElseTy hElseNe
+
+private theorem smt_typeof_eo_requires_of_result_local
+    (a b result : Term) {T : SmtType}
+    (hResultTy : __smtx_typeof (__eo_to_smt result) = T)
+    (hReqNe : __eo_requires a b result ≠ Term.Stuck) :
+    __smtx_typeof (__eo_to_smt (__eo_requires a b result)) = T := by
+  rw [eo_requires_result_eq_of_ne_stuck a b result hReqNe]
+  exact hResultTy
+
+private theorem smt_typeof_boolean_false_local :
+    __smtx_typeof (__eo_to_smt (Term.Boolean false)) = SmtType.Bool := by
+  change __smtx_typeof (SmtTerm.Boolean false) = SmtType.Bool
+  rw [__smtx_typeof.eq_1]
+
+private theorem smt_typeof_str_in_re_of_types_local
+    (s r : Term)
+    (hSTy :
+      __smtx_typeof (__eo_to_smt s) = SmtType.Seq SmtType.Char)
+    (hRTy : __smtx_typeof (__eo_to_smt r) = SmtType.RegLan) :
+    __smtx_typeof
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) r)) =
+      SmtType.Bool := by
+  change __smtx_typeof
+      (SmtTerm.str_in_re (__eo_to_smt s) (__eo_to_smt r)) =
+    SmtType.Bool
+  rw [typeof_str_in_re_eq]
+  simp [hSTy, hRTy, native_ite, native_Teq]
+
 private theorem re_concat_nil_eq_eps_of_is_list_nil_true_local
     (nil : Term)
     (hNil :
@@ -17824,6 +18030,193 @@ private theorem str_re_consume_rflat_type_facts_local
       smt_typeof_list_rev_re_concat_of_reglan_local flat hFlatList
         hFlatTy (by simpa [rFlat] using hRFlatNe)
   exact ⟨hRFlatTy, hRFlatList, hFlatNe, hFlatList, hFlatTy⟩
+
+private theorem str_re_consume_sflat_eval_facts_local
+    (M : SmtModel) (hM : model_total_typed M)
+    (s r side : Term)
+    (hEqTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp.eq)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) r))
+          side))
+    (hSFlatNe :
+      __eo_list_rev (Term.UOp UserOp.str_concat)
+          (__str_flatten (__str_nary_intro s)) ≠
+        Term.Stuck) :
+    let flat := __str_flatten (__str_nary_intro s)
+    let sFlat := __eo_list_rev (Term.UOp UserOp.str_concat) flat
+    ∃ ss flatSs sFlatSs,
+      __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss ∧
+      __smtx_model_eval M (__eo_to_smt flat) = SmtValue.Seq flatSs ∧
+      __smtx_model_eval M (__eo_to_smt sFlat) =
+        SmtValue.Seq sFlatSs ∧
+      __smtx_typeof (__eo_to_smt flat) = SmtType.Seq SmtType.Char ∧
+      __smtx_typeof (__eo_to_smt sFlat) = SmtType.Seq SmtType.Char ∧
+      __eo_is_list (Term.UOp UserOp.str_concat) flat =
+        Term.Boolean true ∧
+      __eo_is_list (Term.UOp UserOp.str_concat) sFlat =
+        Term.Boolean true ∧
+      RuleProofs.smt_value_rel (SmtValue.Seq flatSs)
+        (SmtValue.Seq ss) := by
+  let flat := __str_flatten (__str_nary_intro s)
+  let sFlat := __eo_list_rev (Term.UOp UserOp.str_concat) flat
+  rcases str_re_consume_sflat_type_facts_local M hM s r side hEqTrans
+      (by simpa [flat, sFlat] using hSFlatNe) with
+    ⟨hSFlatTy, hSFlatList, hFlatNe, hFlatList, hFlatTy⟩
+  rcases str_re_consume_str_flatten_eval_rel M hM s r side hEqTrans
+      (by simpa [flat] using hFlatNe) with
+    ⟨ss, flatSs, hSEval, hFlatEval, hFlatTy', hFlatList',
+      hFlatRel⟩
+  have hSFlatEvalTy :
+      __smtx_typeof_value
+          (__smtx_model_eval M (__eo_to_smt sFlat)) =
+        SmtType.Seq SmtType.Char := by
+    have hPres :
+        __smtx_typeof_value
+            (__smtx_model_eval M (__eo_to_smt sFlat)) =
+          __smtx_typeof (__eo_to_smt sFlat) :=
+      smt_model_eval_preserves_type_of_non_none M hM
+        (__eo_to_smt sFlat) (by
+          unfold term_has_non_none_type
+          rw [hSFlatTy]
+          simp)
+    rw [hPres, hSFlatTy]
+  rcases seq_value_canonical hSFlatEvalTy with
+    ⟨sFlatSs, hSFlatEval⟩
+  exact ⟨ss, flatSs, sFlatSs, hSEval,
+    by simpa [flat] using hFlatEval,
+    by simpa [sFlat] using hSFlatEval,
+    by simpa [flat] using hFlatTy',
+    by simpa [sFlat] using hSFlatTy,
+    by simpa [flat] using hFlatList',
+    by simpa [sFlat] using hSFlatList,
+    hFlatRel⟩
+
+private theorem str_re_consume_rflat_eval_facts_local
+    (M : SmtModel) (hM : model_total_typed M)
+    (r : Term)
+    (hRTy : __smtx_typeof (__eo_to_smt r) = SmtType.RegLan)
+    (hRFlatNe :
+      __eo_list_rev (Term.UOp UserOp.re_concat)
+          (__re_flatten (Term.Boolean true) (Term.Boolean true) r) ≠
+        Term.Stuck) :
+    let flat := __re_flatten (Term.Boolean true) (Term.Boolean true) r
+    let rFlat := __eo_list_rev (Term.UOp UserOp.re_concat) flat
+    ∃ rv flatRv rFlatRv,
+      __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv ∧
+      __smtx_model_eval M (__eo_to_smt flat) =
+        SmtValue.RegLan flatRv ∧
+      __smtx_model_eval M (__eo_to_smt rFlat) =
+        SmtValue.RegLan rFlatRv ∧
+      __smtx_typeof (__eo_to_smt flat) = SmtType.RegLan ∧
+      __smtx_typeof (__eo_to_smt rFlat) = SmtType.RegLan ∧
+      __eo_is_list (Term.UOp UserOp.re_concat) flat =
+        Term.Boolean true ∧
+      __eo_is_list (Term.UOp UserOp.re_concat) rFlat =
+        Term.Boolean true := by
+  let flat := __re_flatten (Term.Boolean true) (Term.Boolean true) r
+  let rFlat := __eo_list_rev (Term.UOp UserOp.re_concat) flat
+  rcases str_re_consume_rflat_type_facts_local M hM r hRTy
+      (by simpa [flat, rFlat] using hRFlatNe) with
+    ⟨hRFlatTy, hRFlatList, _hFlatNe, hFlatList, hFlatTy⟩
+  rcases smt_model_eval_reglan_of_type M hM r hRTy with
+    ⟨rv, hREval⟩
+  rcases smt_model_eval_reglan_of_type M hM flat hFlatTy with
+    ⟨flatRv, hFlatEval⟩
+  rcases smt_model_eval_reglan_of_type M hM rFlat hRFlatTy with
+    ⟨rFlatRv, hRFlatEval⟩
+  exact ⟨rv, flatRv, rFlatRv, hREval,
+    by simpa [flat] using hFlatEval,
+    by simpa [rFlat] using hRFlatEval,
+    by simpa [flat] using hFlatTy,
+    by simpa [rFlat] using hRFlatTy,
+    by simpa [flat] using hFlatList,
+    by simpa [rFlat] using hRFlatList⟩
+
+private theorem str_re_consume_first_input_eval_context_local
+    (M : SmtModel) (hM : model_total_typed M)
+    (s r side rFlatSrc : Term)
+    (hEqTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp.eq)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) r))
+          side))
+    (hRFlatSrcTy :
+      __smtx_typeof (__eo_to_smt rFlatSrc) = SmtType.RegLan)
+    (hSFlatNe :
+      __eo_list_rev (Term.UOp UserOp.str_concat)
+          (__str_flatten (__str_nary_intro s)) ≠
+        Term.Stuck)
+    (hRFlatNe :
+      __eo_list_rev (Term.UOp UserOp.re_concat)
+          (__re_flatten (Term.Boolean true) (Term.Boolean true)
+            rFlatSrc) ≠
+        Term.Stuck) :
+    let sFlatSource := __str_flatten (__str_nary_intro s)
+    let sFlat := __eo_list_rev (Term.UOp UserOp.str_concat) sFlatSource
+    let rFlatSource :=
+      __re_flatten (Term.Boolean true) (Term.Boolean true) rFlatSrc
+    let rFlat := __eo_list_rev (Term.UOp UserOp.re_concat) rFlatSource
+    ∃ ss flatSs sFlatSs rv flatRv rFlatRv,
+      __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss ∧
+      __smtx_model_eval M (__eo_to_smt sFlatSource) =
+        SmtValue.Seq flatSs ∧
+      __smtx_model_eval M (__eo_to_smt sFlat) =
+        SmtValue.Seq sFlatSs ∧
+      __smtx_model_eval M (__eo_to_smt rFlatSrc) =
+        SmtValue.RegLan rv ∧
+      __smtx_model_eval M (__eo_to_smt rFlatSource) =
+        SmtValue.RegLan flatRv ∧
+      __smtx_model_eval M (__eo_to_smt rFlat) =
+        SmtValue.RegLan rFlatRv ∧
+      __smtx_typeof (__eo_to_smt sFlatSource) =
+        SmtType.Seq SmtType.Char ∧
+      __smtx_typeof (__eo_to_smt sFlat) =
+        SmtType.Seq SmtType.Char ∧
+      __smtx_typeof (__eo_to_smt rFlatSource) = SmtType.RegLan ∧
+      __smtx_typeof (__eo_to_smt rFlat) = SmtType.RegLan ∧
+      __eo_is_list (Term.UOp UserOp.str_concat) sFlatSource =
+        Term.Boolean true ∧
+      __eo_is_list (Term.UOp UserOp.str_concat) sFlat =
+        Term.Boolean true ∧
+      __eo_is_list (Term.UOp UserOp.re_concat) rFlatSource =
+        Term.Boolean true ∧
+      __eo_is_list (Term.UOp UserOp.re_concat) rFlat =
+        Term.Boolean true ∧
+      RuleProofs.smt_value_rel (SmtValue.Seq flatSs)
+        (SmtValue.Seq ss) := by
+  let sFlatSource := __str_flatten (__str_nary_intro s)
+  let sFlat := __eo_list_rev (Term.UOp UserOp.str_concat) sFlatSource
+  let rFlatSource :=
+    __re_flatten (Term.Boolean true) (Term.Boolean true) rFlatSrc
+  let rFlat := __eo_list_rev (Term.UOp UserOp.re_concat) rFlatSource
+  rcases str_re_consume_sflat_eval_facts_local M hM s r side hEqTrans
+      (by simpa [sFlatSource, sFlat] using hSFlatNe) with
+    ⟨ss, flatSs, sFlatSs, hSEval, hSFlatSourceEval, hSFlatEval,
+      hSFlatSourceTy, hSFlatTy, hSFlatSourceList, hSFlatList,
+      hSFlatSourceRel⟩
+  rcases str_re_consume_rflat_eval_facts_local M hM rFlatSrc
+      hRFlatSrcTy (by simpa [rFlatSource, rFlat] using hRFlatNe) with
+    ⟨rv, flatRv, rFlatRv, hREval, hRFlatSourceEval, hRFlatEval,
+      hRFlatSourceTy, hRFlatTy, hRFlatSourceList, hRFlatList⟩
+  exact ⟨ss, flatSs, sFlatSs, rv, flatRv, rFlatRv,
+    by simpa using hSEval,
+    by simpa [sFlatSource] using hSFlatSourceEval,
+    by simpa [sFlat] using hSFlatEval,
+    by simpa using hREval,
+    by simpa [rFlatSource] using hRFlatSourceEval,
+    by simpa [rFlat] using hRFlatEval,
+    by simpa [sFlatSource] using hSFlatSourceTy,
+    by simpa [sFlat] using hSFlatTy,
+    by simpa [rFlatSource] using hRFlatSourceTy,
+    by simpa [rFlat] using hRFlatTy,
+    by simpa [sFlatSource] using hSFlatSourceList,
+    by simpa [sFlat] using hSFlatList,
+    by simpa [rFlatSource] using hRFlatSourceList,
+    by simpa [rFlat] using hRFlatList,
+    hSFlatSourceRel⟩
 
 private theorem eo_mk_apply_ne_boolean_false_local (f x : Term) :
     __eo_mk_apply f x ≠ Term.Boolean false := by
@@ -19083,6 +19476,76 @@ private theorem str_re_consume_mult_final_subterms_ne_stuck_local
     by simpa [second] using hCollectNe,
     by simpa [rePart, second] using hRePartNe⟩
 
+private theorem re_flatten_tree_ne_stuck_of_ne_stuck_local
+    (rev mode r : Term)
+    (h : __re_flatten rev mode r ≠ Term.Stuck) :
+    r ≠ Term.Stuck := by
+  intro hR
+  subst r
+  cases rev <;> cases mode <;> simp [__re_flatten] at h
+
+private theorem str_collect_arg_ne_stuck_of_ne_stuck_local
+    (x : Term)
+    (h : __str_collect x ≠ Term.Stuck) :
+    x ≠ Term.Stuck := by
+  intro hX
+  subst x
+  simp [__str_collect] at h
+
+private theorem str_collect_arg_is_list_true_of_ne_stuck_local :
+    ∀ (parts : Term),
+      __str_collect parts ≠ Term.Stuck ->
+        __eo_is_list (Term.UOp UserOp.str_concat) parts =
+          Term.Boolean true := by
+  intro parts
+  induction parts using __str_collect.induct with
+  | case1 =>
+      intro hCollect
+      simp [__str_collect] at hCollect
+  | case2 head tail ih =>
+      intro hCollect
+      have hTailCollect :
+          __str_collect tail ≠ Term.Stuck :=
+        str_collect_tail_ne_stuck_of_cons_ne_stuck_local head tail
+          hCollect
+      have hTailList :
+          __eo_is_list (Term.UOp UserOp.str_concat) tail =
+            Term.Boolean true :=
+        ih hTailCollect
+      exact strConcat_is_list_cons_true_of_tail_list head tail hTailList
+  | case3 t _hStuck _hNotConcat =>
+      intro hCollect
+      have hReq :
+          __eo_requires t (__seq_empty (__eo_typeof t)) t ≠
+            Term.Stuck := by
+        simpa [__str_collect] using hCollect
+      have hEq :
+          t = __seq_empty (__eo_typeof t) :=
+        eo_requires_eq_of_ne_stuck t (__seq_empty (__eo_typeof t)) t hReq
+      have hTNe : t ≠ Term.Stuck :=
+        eo_requires_left_ne_stuck_of_ne_stuck t
+          (__seq_empty (__eo_typeof t)) t hReq
+      have hEmptyNe :
+          __seq_empty (__eo_typeof t) ≠ Term.Stuck := by
+        intro hEmpty
+        apply hTNe
+        rw [hEq, hEmpty]
+      have hEmptyList :
+          __eo_is_list (Term.UOp UserOp.str_concat)
+              (__seq_empty (__eo_typeof t)) =
+            Term.Boolean true :=
+        eo_is_list_str_concat_seq_empty_of_ne_stuck (__eo_typeof t)
+          hEmptyNe
+      exact (Eq.symm hEq) ▸ hEmptyList
+
+private theorem re_unflatten_tree_ne_stuck_of_ne_stuck_local
+    (rev mode r : Term)
+    (h : __re_unflatten rev mode r ≠ Term.Stuck) :
+    r ≠ Term.Stuck := by
+  intro hR
+  subst r
+  cases rev <;> cases mode <;> simp [__re_unflatten] at h
+
 private theorem str_re_consume_non_mult_first_input_type_facts_local
     (M : SmtModel) (hM : model_total_typed M)
     (s r side : Term)
@@ -19146,6 +19609,185 @@ private theorem str_re_consume_non_mult_first_input_type_facts_local
     ⟨hRFlatTy, hRFlatList, _hReFlatNe, _hReFlatList, _hReFlatTy⟩
   exact ⟨hSFlatTy, hRFlatTy, hSFlatList, hRFlatList, hFirstNe,
     hSFlatNe, hRFlatNe⟩
+
+private theorem str_re_consume_non_mult_second_input_ne_stuck_facts_local
+    (s r side : Term)
+    (hS : s ≠ Term.Stuck)
+    (hR : r ≠ Term.Stuck)
+    (hNotMult :
+      ∀ r0, r = Term.Apply (Term.UOp UserOp.re_mult) r0 -> False)
+    (hSide : side = __str_re_consume s r)
+    (hSideNe : side ≠ Term.Stuck)
+    (hSideNotFalse : side ≠ Term.Boolean false) :
+    let sFlat :=
+      __eo_list_rev (Term.UOp UserOp.str_concat)
+        (__str_flatten (__eo_list_singleton_intro
+          (Term.UOp UserOp.str_concat) s))
+    let rFlat :=
+      __eo_list_rev (Term.UOp UserOp.re_concat)
+        (__re_flatten (Term.Boolean true) (Term.Boolean true) r)
+    let first := __str_re_consume_rec sFlat rFlat sFlat
+    let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
+    let carry :=
+      __eo_and (Term.Boolean false)
+        (__eo_not (__eo_eq (__str_membership_re first) eps))
+    let nextS :=
+      __eo_list_rev (Term.UOp UserOp.str_concat)
+        (__eo_ite carry sFlat (__str_membership_str first))
+    let nextR :=
+      __eo_list_rev (Term.UOp UserOp.re_concat)
+        (__re_flatten (Term.Boolean true) (Term.Boolean true)
+          (__eo_ite carry rFlat (__str_membership_re first)))
+    let second := __str_re_consume_rec nextS nextR nextS
+    __str_membership_str first ≠ Term.Stuck ∧
+      __str_membership_re first ≠ Term.Stuck ∧
+      nextS ≠ Term.Stuck ∧
+      nextR ≠ Term.Stuck ∧
+      second ≠ Term.Stuck := by
+  let sFlat :=
+    __eo_list_rev (Term.UOp UserOp.str_concat)
+      (__str_flatten (__eo_list_singleton_intro
+        (Term.UOp UserOp.str_concat) s))
+  let rFlat :=
+    __eo_list_rev (Term.UOp UserOp.re_concat)
+      (__re_flatten (Term.Boolean true) (Term.Boolean true) r)
+  let first := __str_re_consume_rec sFlat rFlat sFlat
+  let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
+  let carry :=
+    __eo_and (Term.Boolean false)
+      (__eo_not (__eo_eq (__str_membership_re first) eps))
+  let nextS :=
+    __eo_list_rev (Term.UOp UserOp.str_concat)
+      (__eo_ite carry sFlat (__str_membership_str first))
+  let nextR :=
+    __eo_list_rev (Term.UOp UserOp.re_concat)
+      (__re_flatten (Term.Boolean true) (Term.Boolean true)
+        (__eo_ite carry rFlat (__str_membership_re first)))
+  let second := __str_re_consume_rec nextS nextR nextS
+  rcases str_re_consume_non_mult_final_carry_false_local s r side hS hR
+      hNotMult hSide hSideNe hSideNotFalse with
+    ⟨hCarryFalse, hSecondNe, _hFirstEqFalse, _hSecondEqFalse⟩
+  have hCarryFalseLocal : carry = Term.Boolean false := by
+    simpa [sFlat, rFlat, first, eps, carry, nextS, nextR, second] using
+      hCarryFalse
+  have hNextSNe : nextS ≠ Term.Stuck :=
+    str_re_consume_rec_left_ne_stuck_of_ne_stuck nextS nextR nextS
+      (by simpa [second] using hSecondNe)
+  have hNextRNe : nextR ≠ Term.Stuck :=
+    str_re_consume_rec_right_ne_stuck_of_ne_stuck nextS nextR nextS
+      (by simpa [second] using hSecondNe)
+  have hIteSNe :
+      __eo_ite carry sFlat (__str_membership_str first) ≠ Term.Stuck :=
+    eo_list_rev_arg_ne_stuck_of_ne_stuck (Term.UOp UserOp.str_concat)
+      (__eo_ite carry sFlat (__str_membership_str first)) hNextSNe
+  have hMemStrNe : __str_membership_str first ≠ Term.Stuck := by
+    simpa [hCarryFalseLocal, eo_ite_false] using hIteSNe
+  have hFlatNextRNe :
+      __re_flatten (Term.Boolean true) (Term.Boolean true)
+          (__eo_ite carry rFlat (__str_membership_re first)) ≠
+        Term.Stuck :=
+    eo_list_rev_arg_ne_stuck_of_ne_stuck (Term.UOp UserOp.re_concat)
+      (__re_flatten (Term.Boolean true) (Term.Boolean true)
+        (__eo_ite carry rFlat (__str_membership_re first))) hNextRNe
+  have hIteRNe :
+      __eo_ite carry rFlat (__str_membership_re first) ≠ Term.Stuck :=
+    re_flatten_tree_ne_stuck_of_ne_stuck_local
+      (Term.Boolean true) (Term.Boolean true)
+      (__eo_ite carry rFlat (__str_membership_re first))
+      hFlatNextRNe
+  have hMemReNe : __str_membership_re first ≠ Term.Stuck := by
+    simpa [hCarryFalseLocal, eo_ite_false] using hIteRNe
+  exact ⟨hMemStrNe, hMemReNe, hNextSNe, hNextRNe,
+    by simpa [second] using hSecondNe⟩
+
+private theorem str_re_consume_mult_second_input_ne_stuck_facts_local
+    (s r side : Term)
+    (hS : s ≠ Term.Stuck)
+    (hSide : side = __str_re_consume s (Term.Apply (Term.UOp UserOp.re_mult) r))
+    (hSideNe : side ≠ Term.Stuck)
+    (hSideNotFalse : side ≠ Term.Boolean false) :
+    let sFlat :=
+      __eo_list_rev (Term.UOp UserOp.str_concat)
+        (__str_flatten (__eo_list_singleton_intro
+          (Term.UOp UserOp.str_concat) s))
+    let rFlat :=
+      __eo_list_rev (Term.UOp UserOp.re_concat)
+        (__re_flatten (Term.Boolean true) (Term.Boolean true) r)
+    let first := __str_re_consume_rec sFlat rFlat sFlat
+    let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
+    let carry :=
+      __eo_and (Term.Boolean true)
+        (__eo_not (__eo_eq (__str_membership_re first) eps))
+    let nextS :=
+      __eo_list_rev (Term.UOp UserOp.str_concat)
+        (__eo_ite carry sFlat (__str_membership_str first))
+    let nextR :=
+      __eo_list_rev (Term.UOp UserOp.re_concat)
+        (__re_flatten (Term.Boolean true) (Term.Boolean true)
+          (__eo_ite carry rFlat (__str_membership_re first)))
+    let second := __str_re_consume_rec nextS nextR nextS
+    __str_membership_re first ≠ Term.Stuck ∧
+      carry ≠ Term.Stuck ∧
+      nextS ≠ Term.Stuck ∧
+      nextR ≠ Term.Stuck ∧
+      second ≠ Term.Stuck := by
+  let sFlat :=
+    __eo_list_rev (Term.UOp UserOp.str_concat)
+      (__str_flatten (__eo_list_singleton_intro
+        (Term.UOp UserOp.str_concat) s))
+  let rFlat :=
+    __eo_list_rev (Term.UOp UserOp.re_concat)
+      (__re_flatten (Term.Boolean true) (Term.Boolean true) r)
+  let first := __str_re_consume_rec sFlat rFlat sFlat
+  let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
+  let carry :=
+    __eo_and (Term.Boolean true)
+      (__eo_not (__eo_eq (__str_membership_re first) eps))
+  let nextS :=
+    __eo_list_rev (Term.UOp UserOp.str_concat)
+      (__eo_ite carry sFlat (__str_membership_str first))
+  let nextR :=
+    __eo_list_rev (Term.UOp UserOp.re_concat)
+      (__re_flatten (Term.Boolean true) (Term.Boolean true)
+        (__eo_ite carry rFlat (__str_membership_re first)))
+  let second := __str_re_consume_rec nextS nextR nextS
+  rcases str_re_consume_mult_final_carry_eq_local s r side hS hSide
+      hSideNe hSideNotFalse with
+    ⟨hCarryEq, hSecondNe, _hFirstEqFalse, _hSecondEqFalse⟩
+  have hCarryEqLocal :
+      carry = __eo_not (__eo_eq (__str_membership_re first) eps) := by
+    simpa [sFlat, rFlat, first, eps, carry, nextS, nextR, second] using
+      hCarryEq
+  have hNextSNe : nextS ≠ Term.Stuck :=
+    str_re_consume_rec_left_ne_stuck_of_ne_stuck nextS nextR nextS
+      (by simpa [second] using hSecondNe)
+  have hNextRNe : nextR ≠ Term.Stuck :=
+    str_re_consume_rec_right_ne_stuck_of_ne_stuck nextS nextR nextS
+      (by simpa [second] using hSecondNe)
+  have hIteSNe :
+      __eo_ite carry sFlat (__str_membership_str first) ≠ Term.Stuck :=
+    eo_list_rev_arg_ne_stuck_of_ne_stuck (Term.UOp UserOp.str_concat)
+      (__eo_ite carry sFlat (__str_membership_str first)) hNextSNe
+  have hCarryNe : carry ≠ Term.Stuck := by
+    rcases eo_ite_cases_of_ne_stuck carry sFlat
+        (__str_membership_str first) hIteSNe with hCarryTrue |
+        hCarryFalse
+    · rw [hCarryTrue]
+      simp
+    · rw [hCarryFalse]
+      simp
+  have hNotNe :
+      __eo_not (__eo_eq (__str_membership_re first) eps) ≠ Term.Stuck := by
+    simpa [← hCarryEqLocal] using hCarryNe
+  have hEqNe :
+      __eo_eq (__str_membership_re first) eps ≠ Term.Stuck :=
+    eo_not_arg_ne_stuck_of_ne_stuck_local
+      (__eo_eq (__str_membership_re first) eps) hNotNe
+  have hMemReNe : __str_membership_re first ≠ Term.Stuck :=
+    eo_eq_left_ne_stuck_of_ne_stuck_local (__str_membership_re first) eps
+      hEqNe
+  exact ⟨hMemReNe, hCarryNe, hNextSNe, hNextRNe,
+    by simpa [second] using hSecondNe⟩
 
 private theorem str_re_consume_mult_first_input_type_facts_local
     (M : SmtModel) (hM : model_total_typed M)
@@ -20064,18 +20706,353 @@ theorem str_re_consume_model_rel
           ∀ r0, r = Term.Apply (Term.UOp UserOp.re_mult) r0 -> False) =>
       str_re_consume_non_mult_final_subterms_ne_stuck_local s r side hSNe
         hRNe hNotMult hSide hSideNe hSideNotFalse
+  have hNonMultFinalArgTypeProgress :
+      ∀ (hSideNotFalse : side ≠ Term.Boolean false),
+        (∀ r0, r = Term.Apply (Term.UOp UserOp.re_mult) r0 -> False) ->
+          let sFlat :=
+            __eo_list_rev (Term.UOp UserOp.str_concat)
+              (__str_flatten (__eo_list_singleton_intro
+                (Term.UOp UserOp.str_concat) s))
+          let rFlat :=
+            __eo_list_rev (Term.UOp UserOp.re_concat)
+              (__re_flatten (Term.Boolean true) (Term.Boolean true) r)
+          let first := __str_re_consume_rec sFlat rFlat sFlat
+          let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
+          let carry :=
+            __eo_and (Term.Boolean false)
+              (__eo_not (__eo_eq (__str_membership_re first) eps))
+          let nextS :=
+            __eo_list_rev (Term.UOp UserOp.str_concat)
+              (__eo_ite carry sFlat (__str_membership_str first))
+          let nextR :=
+            __eo_list_rev (Term.UOp UserOp.re_concat)
+              (__re_flatten (Term.Boolean true) (Term.Boolean true)
+                (__eo_ite carry rFlat (__str_membership_re first)))
+          let second := __str_re_consume_rec nextS nextR nextS
+          let strPart :=
+            __eo_list_singleton_elim (Term.UOp UserOp.str_concat)
+              (__str_collect (__str_membership_str second))
+          let rePart :=
+            __eo_list_singleton_elim (Term.UOp UserOp.re_concat)
+              (__re_unflatten (Term.Boolean false) (Term.Boolean true)
+                (__str_membership_re second))
+          __smtx_typeof (__eo_to_smt strPart) =
+              SmtType.Seq SmtType.Char ∧
+            __smtx_typeof (__eo_to_smt rePart) = SmtType.RegLan ∧
+            __str_collect (__str_membership_str second) ≠ Term.Stuck ∧
+            rePart ≠ Term.Stuck := by
+    intro hSideNotFalse hNotMult
+    let sFlat :=
+      __eo_list_rev (Term.UOp UserOp.str_concat)
+        (__str_flatten (__eo_list_singleton_intro
+          (Term.UOp UserOp.str_concat) s))
+    let rFlat :=
+      __eo_list_rev (Term.UOp UserOp.re_concat)
+        (__re_flatten (Term.Boolean true) (Term.Boolean true) r)
+    let first := __str_re_consume_rec sFlat rFlat sFlat
+    let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
+    let carry :=
+      __eo_and (Term.Boolean false)
+        (__eo_not (__eo_eq (__str_membership_re first) eps))
+    let nextS :=
+      __eo_list_rev (Term.UOp UserOp.str_concat)
+        (__eo_ite carry sFlat (__str_membership_str first))
+    let nextR :=
+      __eo_list_rev (Term.UOp UserOp.re_concat)
+        (__re_flatten (Term.Boolean true) (Term.Boolean true)
+          (__eo_ite carry rFlat (__str_membership_re first)))
+    let second := __str_re_consume_rec nextS nextR nextS
+    let strPart :=
+      __eo_list_singleton_elim (Term.UOp UserOp.str_concat)
+        (__str_collect (__str_membership_str second))
+    let rePart :=
+      __eo_list_singleton_elim (Term.UOp UserOp.re_concat)
+        (__re_unflatten (Term.Boolean false) (Term.Boolean true)
+          (__str_membership_re second))
+    let final :=
+      __eo_mk_apply
+        (__eo_mk_apply (Term.UOp UserOp.str_in_re) strPart)
+        rePart
+    rcases hNonMultFinalProgress hSideNotFalse hNotMult with
+      ⟨hSideFinal, hCollectNe, hRePartNe⟩
+    have hSideTy := str_re_consume_side_smt_type s r side hEqTrans
+    rcases str_re_consume_final_args_type_of_side_local side strPart
+        rePart hSideTy (by
+          simpa [sFlat, rFlat, first, eps, carry, nextS, nextR,
+            second, strPart, rePart, final] using hSideFinal)
+        hSideNe with
+      ⟨hStrPartTy, hRePartTy⟩
+    exact ⟨hStrPartTy, hRePartTy,
+      by simpa [second] using hCollectNe,
+      by simpa [rePart, second] using hRePartNe⟩
+  have hNonMultFinalRawProjectionProgress :
+      ∀ (hSideNotFalse : side ≠ Term.Boolean false),
+        (∀ r0, r = Term.Apply (Term.UOp UserOp.re_mult) r0 -> False) ->
+          let sFlat :=
+            __eo_list_rev (Term.UOp UserOp.str_concat)
+              (__str_flatten (__eo_list_singleton_intro
+                (Term.UOp UserOp.str_concat) s))
+          let rFlat :=
+            __eo_list_rev (Term.UOp UserOp.re_concat)
+              (__re_flatten (Term.Boolean true) (Term.Boolean true) r)
+          let first := __str_re_consume_rec sFlat rFlat sFlat
+          let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
+          let carry :=
+            __eo_and (Term.Boolean false)
+              (__eo_not (__eo_eq (__str_membership_re first) eps))
+          let nextS :=
+            __eo_list_rev (Term.UOp UserOp.str_concat)
+              (__eo_ite carry sFlat (__str_membership_str first))
+          let nextR :=
+            __eo_list_rev (Term.UOp UserOp.re_concat)
+              (__re_flatten (Term.Boolean true) (Term.Boolean true)
+                (__eo_ite carry rFlat (__str_membership_re first)))
+          let second := __str_re_consume_rec nextS nextR nextS
+          __str_membership_str second ≠ Term.Stuck ∧
+            __str_membership_re second ≠ Term.Stuck := by
+    intro hSideNotFalse hNotMult
+    let sFlat :=
+      __eo_list_rev (Term.UOp UserOp.str_concat)
+        (__str_flatten (__eo_list_singleton_intro
+          (Term.UOp UserOp.str_concat) s))
+    let rFlat :=
+      __eo_list_rev (Term.UOp UserOp.re_concat)
+        (__re_flatten (Term.Boolean true) (Term.Boolean true) r)
+    let first := __str_re_consume_rec sFlat rFlat sFlat
+    let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
+    let carry :=
+      __eo_and (Term.Boolean false)
+        (__eo_not (__eo_eq (__str_membership_re first) eps))
+    let nextS :=
+      __eo_list_rev (Term.UOp UserOp.str_concat)
+        (__eo_ite carry sFlat (__str_membership_str first))
+    let nextR :=
+      __eo_list_rev (Term.UOp UserOp.re_concat)
+        (__re_flatten (Term.Boolean true) (Term.Boolean true)
+          (__eo_ite carry rFlat (__str_membership_re first)))
+    let second := __str_re_consume_rec nextS nextR nextS
+    rcases hNonMultFinalArgTypeProgress hSideNotFalse hNotMult with
+      ⟨_hStrPartTy, _hRePartTy, hCollectNe, hRePartNe⟩
+    have hMemStrNe : __str_membership_str second ≠ Term.Stuck :=
+      str_collect_arg_ne_stuck_of_ne_stuck_local
+        (__str_membership_str second)
+        (by simpa [second] using hCollectNe)
+    have hUnflatNe :
+        __re_unflatten (Term.Boolean false) (Term.Boolean true)
+            (__str_membership_re second) ≠
+          Term.Stuck :=
+      eo_list_singleton_elim_arg_ne_stuck_of_ne_stuck_local
+        (Term.UOp UserOp.re_concat)
+        (__re_unflatten (Term.Boolean false) (Term.Boolean true)
+          (__str_membership_re second))
+        (by simpa [second] using hRePartNe)
+    have hMemReNe : __str_membership_re second ≠ Term.Stuck :=
+      re_unflatten_tree_ne_stuck_of_ne_stuck_local
+        (Term.Boolean false) (Term.Boolean true)
+        (__str_membership_re second)
+        (by simpa [second] using hUnflatNe)
+    exact ⟨hMemStrNe, hMemReNe⟩
+  have hNonMultFinalPartsListProgress :
+      ∀ (hSideNotFalse : side ≠ Term.Boolean false),
+        (∀ r0, r = Term.Apply (Term.UOp UserOp.re_mult) r0 -> False) ->
+          let sFlat :=
+            __eo_list_rev (Term.UOp UserOp.str_concat)
+              (__str_flatten (__eo_list_singleton_intro
+                (Term.UOp UserOp.str_concat) s))
+          let rFlat :=
+            __eo_list_rev (Term.UOp UserOp.re_concat)
+              (__re_flatten (Term.Boolean true) (Term.Boolean true) r)
+          let first := __str_re_consume_rec sFlat rFlat sFlat
+          let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
+          let carry :=
+            __eo_and (Term.Boolean false)
+              (__eo_not (__eo_eq (__str_membership_re first) eps))
+          let nextS :=
+            __eo_list_rev (Term.UOp UserOp.str_concat)
+              (__eo_ite carry sFlat (__str_membership_str first))
+          let nextR :=
+            __eo_list_rev (Term.UOp UserOp.re_concat)
+              (__re_flatten (Term.Boolean true) (Term.Boolean true)
+                (__eo_ite carry rFlat (__str_membership_re first)))
+          let second := __str_re_consume_rec nextS nextR nextS
+          __eo_is_list (Term.UOp UserOp.str_concat)
+              (__str_membership_str second) =
+            Term.Boolean true := by
+    intro hSideNotFalse hNotMult
+    let sFlat :=
+      __eo_list_rev (Term.UOp UserOp.str_concat)
+        (__str_flatten (__eo_list_singleton_intro
+          (Term.UOp UserOp.str_concat) s))
+    let rFlat :=
+      __eo_list_rev (Term.UOp UserOp.re_concat)
+        (__re_flatten (Term.Boolean true) (Term.Boolean true) r)
+    let first := __str_re_consume_rec sFlat rFlat sFlat
+    let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
+    let carry :=
+      __eo_and (Term.Boolean false)
+        (__eo_not (__eo_eq (__str_membership_re first) eps))
+    let nextS :=
+      __eo_list_rev (Term.UOp UserOp.str_concat)
+        (__eo_ite carry sFlat (__str_membership_str first))
+    let nextR :=
+      __eo_list_rev (Term.UOp UserOp.re_concat)
+        (__re_flatten (Term.Boolean true) (Term.Boolean true)
+          (__eo_ite carry rFlat (__str_membership_re first)))
+    let second := __str_re_consume_rec nextS nextR nextS
+    rcases hNonMultFinalArgTypeProgress hSideNotFalse hNotMult with
+      ⟨_hStrPartTy, _hRePartTy, hCollectNe, _hRePartNe⟩
+    exact str_collect_arg_is_list_true_of_ne_stuck_local
+      (__str_membership_str second) (by simpa [second] using hCollectNe)
+  have hNonMultFinalSecondRebuildProgress :
+      ∀ (hSideNotFalse : side ≠ Term.Boolean false),
+        (∀ r0, r = Term.Apply (Term.UOp UserOp.re_mult) r0 -> False) ->
+          let sFlat :=
+            __eo_list_rev (Term.UOp UserOp.str_concat)
+              (__str_flatten (__eo_list_singleton_intro
+                (Term.UOp UserOp.str_concat) s))
+          let rFlat :=
+            __eo_list_rev (Term.UOp UserOp.re_concat)
+              (__re_flatten (Term.Boolean true) (Term.Boolean true) r)
+          let first := __str_re_consume_rec sFlat rFlat sFlat
+          let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
+          let carry :=
+            __eo_and (Term.Boolean false)
+              (__eo_not (__eo_eq (__str_membership_re first) eps))
+          let nextS :=
+            __eo_list_rev (Term.UOp UserOp.str_concat)
+              (__eo_ite carry sFlat (__str_membership_str first))
+          let nextR :=
+            __eo_list_rev (Term.UOp UserOp.re_concat)
+              (__re_flatten (Term.Boolean true) (Term.Boolean true)
+                (__eo_ite carry rFlat (__str_membership_re first)))
+          let second := __str_re_consume_rec nextS nextR nextS
+          second =
+            Term.Apply
+              (Term.Apply (Term.UOp UserOp.str_in_re)
+                (__str_membership_str second))
+              (__str_membership_re second) := by
+    intro hSideNotFalse hNotMult
+    let sFlat :=
+      __eo_list_rev (Term.UOp UserOp.str_concat)
+        (__str_flatten (__eo_list_singleton_intro
+          (Term.UOp UserOp.str_concat) s))
+    let rFlat :=
+      __eo_list_rev (Term.UOp UserOp.re_concat)
+        (__re_flatten (Term.Boolean true) (Term.Boolean true) r)
+    let first := __str_re_consume_rec sFlat rFlat sFlat
+    let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
+    let carry :=
+      __eo_and (Term.Boolean false)
+        (__eo_not (__eo_eq (__str_membership_re first) eps))
+    let nextS :=
+      __eo_list_rev (Term.UOp UserOp.str_concat)
+        (__eo_ite carry sFlat (__str_membership_str first))
+    let nextR :=
+      __eo_list_rev (Term.UOp UserOp.re_concat)
+        (__re_flatten (Term.Boolean true) (Term.Boolean true)
+          (__eo_ite carry rFlat (__str_membership_re first)))
+    let second := __str_re_consume_rec nextS nextR nextS
+    rcases hNonMultFinalRawProjectionProgress hSideNotFalse hNotMult with
+      ⟨_hMemStrNe, hMemReNe⟩
+    exact str_membership_re_eq_rebuild second
+      (__str_membership_re second) rfl
+      (by simpa [second] using hMemReNe)
   have hNonMultCarryProgress :=
     fun (hSideNotFalse : side ≠ Term.Boolean false)
         (hNotMult :
           ∀ r0, r = Term.Apply (Term.UOp UserOp.re_mult) r0 -> False) =>
       str_re_consume_non_mult_final_carry_false_local s r side hSNe hRNe
         hNotMult hSide hSideNe hSideNotFalse
+  have hNonMultSecondInputNeProgress :=
+    fun (hSideNotFalse : side ≠ Term.Boolean false)
+        (hNotMult :
+          ∀ r0, r = Term.Apply (Term.UOp UserOp.re_mult) r0 -> False) =>
+      str_re_consume_non_mult_second_input_ne_stuck_facts_local s r side
+        hSNe hRNe hNotMult hSide hSideNe hSideNotFalse
   have hNonMultFirstInputProgress :=
     fun (hSideNotFalse : side ≠ Term.Boolean false)
         (hNotMult :
           ∀ r0, r = Term.Apply (Term.UOp UserOp.re_mult) r0 -> False) =>
       str_re_consume_non_mult_first_input_type_facts_local M hM s r side
         hEqTrans hSNe hRNe hNotMult hSide hSideNe hSideNotFalse
+  have hNonMultFinalNotFalseProgress :
+      ∀ (hSideNotFalse : side ≠ Term.Boolean false),
+        (∀ r0, r = Term.Apply (Term.UOp UserOp.re_mult) r0 -> False) ->
+          let sFlat :=
+            __eo_list_rev (Term.UOp UserOp.str_concat)
+              (__str_flatten (__eo_list_singleton_intro
+                (Term.UOp UserOp.str_concat) s))
+          let rFlat :=
+            __eo_list_rev (Term.UOp UserOp.re_concat)
+              (__re_flatten (Term.Boolean true) (Term.Boolean true) r)
+          let first := __str_re_consume_rec sFlat rFlat sFlat
+          let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
+          let carry :=
+            __eo_and (Term.Boolean false)
+              (__eo_not (__eo_eq (__str_membership_re first) eps))
+          let nextS :=
+            __eo_list_rev (Term.UOp UserOp.str_concat)
+              (__eo_ite carry sFlat (__str_membership_str first))
+          let nextR :=
+            __eo_list_rev (Term.UOp UserOp.re_concat)
+              (__re_flatten (Term.Boolean true) (Term.Boolean true)
+                (__eo_ite carry rFlat (__str_membership_re first)))
+          let second := __str_re_consume_rec nextS nextR nextS
+          first ≠ Term.Boolean false ∧
+            second ≠ Term.Boolean false ∧
+            first ≠ Term.Stuck ∧
+            second ≠ Term.Stuck := by
+    intro hSideNotFalse hNotMult
+    let sFlat :=
+      __eo_list_rev (Term.UOp UserOp.str_concat)
+        (__str_flatten (__eo_list_singleton_intro
+          (Term.UOp UserOp.str_concat) s))
+    let rFlat :=
+      __eo_list_rev (Term.UOp UserOp.re_concat)
+        (__re_flatten (Term.Boolean true) (Term.Boolean true) r)
+    let first := __str_re_consume_rec sFlat rFlat sFlat
+    let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
+    let carry :=
+      __eo_and (Term.Boolean false)
+        (__eo_not (__eo_eq (__str_membership_re first) eps))
+    let nextS :=
+      __eo_list_rev (Term.UOp UserOp.str_concat)
+        (__eo_ite carry sFlat (__str_membership_str first))
+    let nextR :=
+      __eo_list_rev (Term.UOp UserOp.re_concat)
+        (__re_flatten (Term.Boolean true) (Term.Boolean true)
+          (__eo_ite carry rFlat (__str_membership_re first)))
+    let second := __str_re_consume_rec nextS nextR nextS
+    rcases hNonMultCarryProgress hSideNotFalse hNotMult with
+      ⟨_hCarryFalse, hSecondNe, hFirstEqFalse, hSecondEqFalse⟩
+    rcases hNonMultFirstInputProgress hSideNotFalse hNotMult with
+      ⟨_hSFlatTy, _hRFlatTy, _hSFlatList, _hRFlatList, hFirstNe,
+        _hSFlatNe, _hRFlatNe⟩
+    exact ⟨
+      ne_of_eo_eq_false_local first (Term.Boolean false)
+        (by simpa [first] using hFirstEqFalse),
+      ne_of_eo_eq_false_local second (Term.Boolean false)
+        (by simpa [second] using hSecondEqFalse),
+      by simpa [first] using hFirstNe,
+      by simpa [second] using hSecondNe⟩
+  have hNonMultFirstInputEvalProgress :=
+    fun (hSideNotFalse : side ≠ Term.Boolean false)
+        (hNotMult :
+          ∀ r0, r = Term.Apply (Term.UOp UserOp.re_mult) r0 -> False) => by
+      let sFlatSource := __str_flatten (__str_nary_intro s)
+      let sFlat := __eo_list_rev (Term.UOp UserOp.str_concat) sFlatSource
+      let rFlatSource :=
+        __re_flatten (Term.Boolean true) (Term.Boolean true) r
+      let rFlat := __eo_list_rev (Term.UOp UserOp.re_concat) rFlatSource
+      rcases hNonMultFirstInputProgress hSideNotFalse hNotMult with
+        ⟨_hSFlatTy, _hRFlatTy, _hSFlatList, _hRFlatList, _hFirstNe,
+          hSFlatNe, hRFlatNe⟩
+      rcases str_re_consume_translation_facts s r side hEqTrans with
+        ⟨_hStrInTrans, _hSideTrans, _hSTy, hRTy, _hEqBool⟩
+      exact str_re_consume_first_input_eval_context_local M hM s r side r
+        hEqTrans hRTy
+        (by simpa [sFlatSource, sFlat, __str_nary_intro] using hSFlatNe)
+        (by simpa [rFlatSource, rFlat] using hRFlatNe)
   have hMultFalseProgress :
       ∀ r0,
         r = Term.Apply (Term.UOp UserOp.re_mult) r0 ->
@@ -20208,6 +21185,290 @@ theorem str_re_consume_model_rel
     subst r
     exact str_re_consume_mult_final_subterms_ne_stuck_local s r0 side hSNe
       hSide hSideNe hSideNotFalse
+  have hMultFinalArgTypeProgress :
+      ∀ r0,
+        r = Term.Apply (Term.UOp UserOp.re_mult) r0 ->
+        side ≠ Term.Boolean false ->
+          let sFlat :=
+            __eo_list_rev (Term.UOp UserOp.str_concat)
+              (__str_flatten (__eo_list_singleton_intro
+                (Term.UOp UserOp.str_concat) s))
+          let rFlat :=
+            __eo_list_rev (Term.UOp UserOp.re_concat)
+              (__re_flatten (Term.Boolean true) (Term.Boolean true) r0)
+          let first := __str_re_consume_rec sFlat rFlat sFlat
+          let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
+          let carry :=
+            __eo_and (Term.Boolean true)
+              (__eo_not (__eo_eq (__str_membership_re first) eps))
+          let nextS :=
+            __eo_list_rev (Term.UOp UserOp.str_concat)
+              (__eo_ite carry sFlat (__str_membership_str first))
+          let nextR :=
+            __eo_list_rev (Term.UOp UserOp.re_concat)
+              (__re_flatten (Term.Boolean true) (Term.Boolean true)
+                (__eo_ite carry rFlat (__str_membership_re first)))
+          let second := __str_re_consume_rec nextS nextR nextS
+          let final :=
+            __eo_mk_apply
+              (__eo_mk_apply (Term.UOp UserOp.str_in_re)
+                (__eo_list_singleton_elim (Term.UOp UserOp.str_concat)
+                  (__str_collect (__str_membership_str second))))
+              (__eo_list_singleton_elim (Term.UOp UserOp.re_concat)
+                (__re_unflatten (Term.Boolean false) (Term.Boolean true)
+                  (__str_membership_re second)))
+          let candidate :=
+            __eo_ite (__eo_eq first (Term.Boolean false))
+              (Term.Boolean false)
+              (__eo_ite (__eo_eq second (Term.Boolean false))
+                (Term.Boolean false) final)
+          __smtx_typeof (__eo_to_smt (__str_membership_str candidate)) =
+              SmtType.Seq SmtType.Char ∧
+            __smtx_typeof
+                (__eo_to_smt
+                  (Term.Apply (Term.UOp UserOp.re_mult) r0)) =
+              SmtType.RegLan ∧
+            __str_collect (__str_membership_str second) ≠ Term.Stuck ∧
+            __eo_list_singleton_elim (Term.UOp UserOp.re_concat)
+                (__re_unflatten (Term.Boolean false) (Term.Boolean true)
+                  (__str_membership_re second)) ≠
+              Term.Stuck := by
+    intro r0 hR hSideNotFalse
+    subst r
+    let sFlat :=
+      __eo_list_rev (Term.UOp UserOp.str_concat)
+        (__str_flatten (__eo_list_singleton_intro
+          (Term.UOp UserOp.str_concat) s))
+    let rFlat :=
+      __eo_list_rev (Term.UOp UserOp.re_concat)
+        (__re_flatten (Term.Boolean true) (Term.Boolean true) r0)
+    let first := __str_re_consume_rec sFlat rFlat sFlat
+    let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
+    let carry :=
+      __eo_and (Term.Boolean true)
+        (__eo_not (__eo_eq (__str_membership_re first) eps))
+    let nextS :=
+      __eo_list_rev (Term.UOp UserOp.str_concat)
+        (__eo_ite carry sFlat (__str_membership_str first))
+    let nextR :=
+      __eo_list_rev (Term.UOp UserOp.re_concat)
+        (__re_flatten (Term.Boolean true) (Term.Boolean true)
+          (__eo_ite carry rFlat (__str_membership_re first)))
+    let second := __str_re_consume_rec nextS nextR nextS
+    let final :=
+      __eo_mk_apply
+        (__eo_mk_apply (Term.UOp UserOp.str_in_re)
+          (__eo_list_singleton_elim (Term.UOp UserOp.str_concat)
+            (__str_collect (__str_membership_str second))))
+        (__eo_list_singleton_elim (Term.UOp UserOp.re_concat)
+          (__re_unflatten (Term.Boolean false) (Term.Boolean true)
+            (__str_membership_re second)))
+    let candidate :=
+      __eo_ite (__eo_eq first (Term.Boolean false))
+        (Term.Boolean false)
+        (__eo_ite (__eo_eq second (Term.Boolean false))
+          (Term.Boolean false) final)
+    let rebuild :=
+      __eo_mk_apply
+        (__eo_mk_apply (Term.UOp UserOp.str_in_re)
+          (__str_membership_str candidate))
+        (Term.Apply (Term.UOp UserOp.re_mult) r0)
+    rcases hMultFinalProgress r0 rfl hSideNotFalse with
+      ⟨hSideRebuild, _hCandidateFinal, _hCandidateMem⟩
+    rcases hMultFinalSubtermProgress r0 rfl hSideNotFalse with
+      ⟨_hSideRebuild, _hCandidateFinal, _hCandidateMem, hCollectNe,
+        hRePartNe⟩
+    have hSideTy :=
+      str_re_consume_side_smt_type s
+        (Term.Apply (Term.UOp UserOp.re_mult) r0) side hEqTrans
+    rcases str_re_consume_final_args_type_of_side_local side
+        (__str_membership_str candidate)
+        (Term.Apply (Term.UOp UserOp.re_mult) r0) hSideTy (by
+          simpa [sFlat, rFlat, first, eps, carry, nextS, nextR, second,
+            final, candidate, rebuild] using hSideRebuild)
+        hSideNe with
+      ⟨hCandidateStrTy, hMultTy⟩
+    exact ⟨hCandidateStrTy, hMultTy,
+      by simpa [second] using hCollectNe,
+      by simpa [second] using hRePartNe⟩
+  have hMultFinalRawProjectionProgress :
+      ∀ r0,
+        r = Term.Apply (Term.UOp UserOp.re_mult) r0 ->
+        side ≠ Term.Boolean false ->
+          let sFlat :=
+            __eo_list_rev (Term.UOp UserOp.str_concat)
+              (__str_flatten (__eo_list_singleton_intro
+                (Term.UOp UserOp.str_concat) s))
+          let rFlat :=
+            __eo_list_rev (Term.UOp UserOp.re_concat)
+              (__re_flatten (Term.Boolean true) (Term.Boolean true) r0)
+          let first := __str_re_consume_rec sFlat rFlat sFlat
+          let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
+          let carry :=
+            __eo_and (Term.Boolean true)
+              (__eo_not (__eo_eq (__str_membership_re first) eps))
+          let nextS :=
+            __eo_list_rev (Term.UOp UserOp.str_concat)
+              (__eo_ite carry sFlat (__str_membership_str first))
+          let nextR :=
+            __eo_list_rev (Term.UOp UserOp.re_concat)
+              (__re_flatten (Term.Boolean true) (Term.Boolean true)
+                (__eo_ite carry rFlat (__str_membership_re first)))
+          let second := __str_re_consume_rec nextS nextR nextS
+          __str_membership_str second ≠ Term.Stuck ∧
+            __str_membership_re second ≠ Term.Stuck := by
+    intro r0 hR hSideNotFalse
+    subst r
+    let sFlat :=
+      __eo_list_rev (Term.UOp UserOp.str_concat)
+        (__str_flatten (__eo_list_singleton_intro
+          (Term.UOp UserOp.str_concat) s))
+    let rFlat :=
+      __eo_list_rev (Term.UOp UserOp.re_concat)
+        (__re_flatten (Term.Boolean true) (Term.Boolean true) r0)
+    let first := __str_re_consume_rec sFlat rFlat sFlat
+    let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
+    let carry :=
+      __eo_and (Term.Boolean true)
+        (__eo_not (__eo_eq (__str_membership_re first) eps))
+    let nextS :=
+      __eo_list_rev (Term.UOp UserOp.str_concat)
+        (__eo_ite carry sFlat (__str_membership_str first))
+    let nextR :=
+      __eo_list_rev (Term.UOp UserOp.re_concat)
+        (__re_flatten (Term.Boolean true) (Term.Boolean true)
+          (__eo_ite carry rFlat (__str_membership_re first)))
+    let second := __str_re_consume_rec nextS nextR nextS
+    rcases hMultFinalArgTypeProgress r0 rfl hSideNotFalse with
+      ⟨_hStrPartTy, _hRePartTy, hCollectNe, hRePartNe⟩
+    have hMemStrNe : __str_membership_str second ≠ Term.Stuck :=
+      str_collect_arg_ne_stuck_of_ne_stuck_local
+        (__str_membership_str second)
+        (by simpa [second] using hCollectNe)
+    have hUnflatNe :
+        __re_unflatten (Term.Boolean false) (Term.Boolean true)
+            (__str_membership_re second) ≠
+          Term.Stuck :=
+      eo_list_singleton_elim_arg_ne_stuck_of_ne_stuck_local
+        (Term.UOp UserOp.re_concat)
+        (__re_unflatten (Term.Boolean false) (Term.Boolean true)
+          (__str_membership_re second))
+        (by simpa [second] using hRePartNe)
+    have hMemReNe : __str_membership_re second ≠ Term.Stuck :=
+      re_unflatten_tree_ne_stuck_of_ne_stuck_local
+        (Term.Boolean false) (Term.Boolean true)
+        (__str_membership_re second)
+        (by simpa [second] using hUnflatNe)
+    exact ⟨hMemStrNe, hMemReNe⟩
+  have hMultFinalPartsListProgress :
+      ∀ r0,
+        r = Term.Apply (Term.UOp UserOp.re_mult) r0 ->
+        side ≠ Term.Boolean false ->
+          let sFlat :=
+            __eo_list_rev (Term.UOp UserOp.str_concat)
+              (__str_flatten (__eo_list_singleton_intro
+                (Term.UOp UserOp.str_concat) s))
+          let rFlat :=
+            __eo_list_rev (Term.UOp UserOp.re_concat)
+              (__re_flatten (Term.Boolean true) (Term.Boolean true) r0)
+          let first := __str_re_consume_rec sFlat rFlat sFlat
+          let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
+          let carry :=
+            __eo_and (Term.Boolean true)
+              (__eo_not (__eo_eq (__str_membership_re first) eps))
+          let nextS :=
+            __eo_list_rev (Term.UOp UserOp.str_concat)
+              (__eo_ite carry sFlat (__str_membership_str first))
+          let nextR :=
+            __eo_list_rev (Term.UOp UserOp.re_concat)
+              (__re_flatten (Term.Boolean true) (Term.Boolean true)
+                (__eo_ite carry rFlat (__str_membership_re first)))
+          let second := __str_re_consume_rec nextS nextR nextS
+          __eo_is_list (Term.UOp UserOp.str_concat)
+              (__str_membership_str second) =
+            Term.Boolean true := by
+    intro r0 hR hSideNotFalse
+    subst r
+    let sFlat :=
+      __eo_list_rev (Term.UOp UserOp.str_concat)
+        (__str_flatten (__eo_list_singleton_intro
+          (Term.UOp UserOp.str_concat) s))
+    let rFlat :=
+      __eo_list_rev (Term.UOp UserOp.re_concat)
+        (__re_flatten (Term.Boolean true) (Term.Boolean true) r0)
+    let first := __str_re_consume_rec sFlat rFlat sFlat
+    let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
+    let carry :=
+      __eo_and (Term.Boolean true)
+        (__eo_not (__eo_eq (__str_membership_re first) eps))
+    let nextS :=
+      __eo_list_rev (Term.UOp UserOp.str_concat)
+        (__eo_ite carry sFlat (__str_membership_str first))
+    let nextR :=
+      __eo_list_rev (Term.UOp UserOp.re_concat)
+        (__re_flatten (Term.Boolean true) (Term.Boolean true)
+          (__eo_ite carry rFlat (__str_membership_re first)))
+    let second := __str_re_consume_rec nextS nextR nextS
+    rcases hMultFinalArgTypeProgress r0 rfl hSideNotFalse with
+      ⟨_hStrPartTy, _hRePartTy, hCollectNe, _hRePartNe⟩
+    exact str_collect_arg_is_list_true_of_ne_stuck_local
+      (__str_membership_str second) (by simpa [second] using hCollectNe)
+  have hMultFinalSecondRebuildProgress :
+      ∀ r0,
+        r = Term.Apply (Term.UOp UserOp.re_mult) r0 ->
+        side ≠ Term.Boolean false ->
+          let sFlat :=
+            __eo_list_rev (Term.UOp UserOp.str_concat)
+              (__str_flatten (__eo_list_singleton_intro
+                (Term.UOp UserOp.str_concat) s))
+          let rFlat :=
+            __eo_list_rev (Term.UOp UserOp.re_concat)
+              (__re_flatten (Term.Boolean true) (Term.Boolean true) r0)
+          let first := __str_re_consume_rec sFlat rFlat sFlat
+          let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
+          let carry :=
+            __eo_and (Term.Boolean true)
+              (__eo_not (__eo_eq (__str_membership_re first) eps))
+          let nextS :=
+            __eo_list_rev (Term.UOp UserOp.str_concat)
+              (__eo_ite carry sFlat (__str_membership_str first))
+          let nextR :=
+            __eo_list_rev (Term.UOp UserOp.re_concat)
+              (__re_flatten (Term.Boolean true) (Term.Boolean true)
+                (__eo_ite carry rFlat (__str_membership_re first)))
+          let second := __str_re_consume_rec nextS nextR nextS
+          second =
+            Term.Apply
+              (Term.Apply (Term.UOp UserOp.str_in_re)
+                (__str_membership_str second))
+              (__str_membership_re second) := by
+    intro r0 hR hSideNotFalse
+    subst r
+    let sFlat :=
+      __eo_list_rev (Term.UOp UserOp.str_concat)
+        (__str_flatten (__eo_list_singleton_intro
+          (Term.UOp UserOp.str_concat) s))
+    let rFlat :=
+      __eo_list_rev (Term.UOp UserOp.re_concat)
+        (__re_flatten (Term.Boolean true) (Term.Boolean true) r0)
+    let first := __str_re_consume_rec sFlat rFlat sFlat
+    let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
+    let carry :=
+      __eo_and (Term.Boolean true)
+        (__eo_not (__eo_eq (__str_membership_re first) eps))
+    let nextS :=
+      __eo_list_rev (Term.UOp UserOp.str_concat)
+        (__eo_ite carry sFlat (__str_membership_str first))
+    let nextR :=
+      __eo_list_rev (Term.UOp UserOp.re_concat)
+        (__re_flatten (Term.Boolean true) (Term.Boolean true)
+          (__eo_ite carry rFlat (__str_membership_re first)))
+    let second := __str_re_consume_rec nextS nextR nextS
+    rcases hMultFinalRawProjectionProgress r0 rfl hSideNotFalse with
+      ⟨_hMemStrNe, hMemReNe⟩
+    exact str_membership_re_eq_rebuild second
+      (__str_membership_re second) rfl
+      (by simpa [second] using hMemReNe)
   have hMultCarryProgress :
       ∀ r0,
         r = Term.Apply (Term.UOp UserOp.re_mult) r0 ->
@@ -20253,6 +21514,39 @@ theorem str_re_consume_model_rel
     subst r
     exact str_re_consume_mult_final_carry_eq_local s r0 side hSNe hSide
       hSideNe hSideNotFalse
+  have hMultSecondInputNeProgress :
+      ∀ r0,
+        r = Term.Apply (Term.UOp UserOp.re_mult) r0 ->
+        side ≠ Term.Boolean false ->
+          let sFlat :=
+            __eo_list_rev (Term.UOp UserOp.str_concat)
+              (__str_flatten (__eo_list_singleton_intro
+                (Term.UOp UserOp.str_concat) s))
+          let rFlat :=
+            __eo_list_rev (Term.UOp UserOp.re_concat)
+              (__re_flatten (Term.Boolean true) (Term.Boolean true) r0)
+          let first := __str_re_consume_rec sFlat rFlat sFlat
+          let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
+          let carry :=
+            __eo_and (Term.Boolean true)
+              (__eo_not (__eo_eq (__str_membership_re first) eps))
+          let nextS :=
+            __eo_list_rev (Term.UOp UserOp.str_concat)
+              (__eo_ite carry sFlat (__str_membership_str first))
+          let nextR :=
+            __eo_list_rev (Term.UOp UserOp.re_concat)
+              (__re_flatten (Term.Boolean true) (Term.Boolean true)
+                (__eo_ite carry rFlat (__str_membership_re first)))
+          let second := __str_re_consume_rec nextS nextR nextS
+          __str_membership_re first ≠ Term.Stuck ∧
+            carry ≠ Term.Stuck ∧
+            nextS ≠ Term.Stuck ∧
+            nextR ≠ Term.Stuck ∧
+            second ≠ Term.Stuck := by
+    intro r0 hR hSideNotFalse
+    subst r
+    exact str_re_consume_mult_second_input_ne_stuck_facts_local s r0 side
+      hSNe hSide hSideNe hSideNotFalse
   have hMultFirstInputProgress :
       ∀ r0,
         r = Term.Apply (Term.UOp UserOp.re_mult) r0 ->
@@ -20278,6 +21572,128 @@ theorem str_re_consume_model_rel
     subst r
     exact str_re_consume_mult_first_input_type_facts_local M hM s r0 side
       hEqTrans hSNe hSide hSideNe hSideNotFalse
+  have hMultFinalNotFalseProgress :
+      ∀ r0,
+        r = Term.Apply (Term.UOp UserOp.re_mult) r0 ->
+        side ≠ Term.Boolean false ->
+          let sFlat :=
+            __eo_list_rev (Term.UOp UserOp.str_concat)
+              (__str_flatten (__eo_list_singleton_intro
+                (Term.UOp UserOp.str_concat) s))
+          let rFlat :=
+            __eo_list_rev (Term.UOp UserOp.re_concat)
+              (__re_flatten (Term.Boolean true) (Term.Boolean true) r0)
+          let first := __str_re_consume_rec sFlat rFlat sFlat
+          let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
+          let carry :=
+            __eo_and (Term.Boolean true)
+              (__eo_not (__eo_eq (__str_membership_re first) eps))
+          let nextS :=
+            __eo_list_rev (Term.UOp UserOp.str_concat)
+              (__eo_ite carry sFlat (__str_membership_str first))
+          let nextR :=
+            __eo_list_rev (Term.UOp UserOp.re_concat)
+              (__re_flatten (Term.Boolean true) (Term.Boolean true)
+                (__eo_ite carry rFlat (__str_membership_re first)))
+          let second := __str_re_consume_rec nextS nextR nextS
+          first ≠ Term.Boolean false ∧
+            second ≠ Term.Boolean false ∧
+            first ≠ Term.Stuck ∧
+            second ≠ Term.Stuck := by
+    intro r0 hR hSideNotFalse
+    subst r
+    let sFlat :=
+      __eo_list_rev (Term.UOp UserOp.str_concat)
+        (__str_flatten (__eo_list_singleton_intro
+          (Term.UOp UserOp.str_concat) s))
+    let rFlat :=
+      __eo_list_rev (Term.UOp UserOp.re_concat)
+        (__re_flatten (Term.Boolean true) (Term.Boolean true) r0)
+    let first := __str_re_consume_rec sFlat rFlat sFlat
+    let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
+    let carry :=
+      __eo_and (Term.Boolean true)
+        (__eo_not (__eo_eq (__str_membership_re first) eps))
+    let nextS :=
+      __eo_list_rev (Term.UOp UserOp.str_concat)
+        (__eo_ite carry sFlat (__str_membership_str first))
+    let nextR :=
+      __eo_list_rev (Term.UOp UserOp.re_concat)
+        (__re_flatten (Term.Boolean true) (Term.Boolean true)
+          (__eo_ite carry rFlat (__str_membership_re first)))
+    let second := __str_re_consume_rec nextS nextR nextS
+    rcases hMultCarryProgress r0 rfl hSideNotFalse with
+      ⟨_hCarryEq, hSecondNe, hFirstEqFalse, hSecondEqFalse⟩
+    rcases hMultFirstInputProgress r0 rfl hSideNotFalse with
+      ⟨_hSFlatTy, _hRFlatTy, _hSFlatList, _hRFlatList, hFirstNe,
+        _hSFlatNe, _hRFlatNe⟩
+    exact ⟨
+      ne_of_eo_eq_false_local first (Term.Boolean false)
+        (by simpa [first] using hFirstEqFalse),
+      ne_of_eo_eq_false_local second (Term.Boolean false)
+        (by simpa [second] using hSecondEqFalse),
+      by simpa [first] using hFirstNe,
+      by simpa [second] using hSecondNe⟩
+  have hMultFirstInputEvalProgress :
+      ∀ r0,
+        r = Term.Apply (Term.UOp UserOp.re_mult) r0 ->
+        side ≠ Term.Boolean false ->
+          let sFlatSource := __str_flatten (__str_nary_intro s)
+          let sFlat :=
+            __eo_list_rev (Term.UOp UserOp.str_concat) sFlatSource
+          let rFlatSource :=
+            __re_flatten (Term.Boolean true) (Term.Boolean true) r0
+          let rFlat :=
+            __eo_list_rev (Term.UOp UserOp.re_concat) rFlatSource
+          ∃ ss flatSs sFlatSs rv flatRv rFlatRv,
+            __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss ∧
+            __smtx_model_eval M (__eo_to_smt sFlatSource) =
+              SmtValue.Seq flatSs ∧
+            __smtx_model_eval M (__eo_to_smt sFlat) =
+              SmtValue.Seq sFlatSs ∧
+            __smtx_model_eval M (__eo_to_smt r0) =
+              SmtValue.RegLan rv ∧
+            __smtx_model_eval M (__eo_to_smt rFlatSource) =
+              SmtValue.RegLan flatRv ∧
+            __smtx_model_eval M (__eo_to_smt rFlat) =
+              SmtValue.RegLan rFlatRv ∧
+            __smtx_typeof (__eo_to_smt sFlatSource) =
+              SmtType.Seq SmtType.Char ∧
+            __smtx_typeof (__eo_to_smt sFlat) =
+              SmtType.Seq SmtType.Char ∧
+            __smtx_typeof (__eo_to_smt rFlatSource) = SmtType.RegLan ∧
+            __smtx_typeof (__eo_to_smt rFlat) = SmtType.RegLan ∧
+            __eo_is_list (Term.UOp UserOp.str_concat) sFlatSource =
+              Term.Boolean true ∧
+            __eo_is_list (Term.UOp UserOp.str_concat) sFlat =
+              Term.Boolean true ∧
+            __eo_is_list (Term.UOp UserOp.re_concat) rFlatSource =
+              Term.Boolean true ∧
+            __eo_is_list (Term.UOp UserOp.re_concat) rFlat =
+              Term.Boolean true ∧
+            RuleProofs.smt_value_rel (SmtValue.Seq flatSs)
+              (SmtValue.Seq ss) := by
+    intro r0 hR hSideNotFalse
+    subst r
+    let multR := Term.Apply (Term.UOp UserOp.re_mult) r0
+    let sFlatSource := __str_flatten (__str_nary_intro s)
+    let sFlat := __eo_list_rev (Term.UOp UserOp.str_concat) sFlatSource
+    let rFlatSource :=
+      __re_flatten (Term.Boolean true) (Term.Boolean true) r0
+    let rFlat := __eo_list_rev (Term.UOp UserOp.re_concat) rFlatSource
+    rcases hMultFirstInputProgress r0 rfl hSideNotFalse with
+      ⟨_hSFlatTy, _hRFlatTy, _hSFlatList, _hRFlatList, _hFirstNe,
+        hSFlatNe, hRFlatNe⟩
+    rcases str_re_consume_translation_facts s multR side (by
+        simpa [multR] using hEqTrans) with
+      ⟨_hStrInTrans, _hSideTrans, _hSTy, hMultRTy, _hEqBool⟩
+    have hR0Ty : __smtx_typeof (__eo_to_smt r0) = SmtType.RegLan :=
+      re_mult_arg_type_of_reglan_consume_local r0
+        (by simpa [multR] using hMultRTy)
+    exact str_re_consume_first_input_eval_context_local M hM s multR side
+      r0 (by simpa [multR] using hEqTrans) hR0Ty
+      (by simpa [sFlatSource, sFlat, __str_nary_intro] using hSFlatNe)
+      (by simpa [rFlatSource, rFlat] using hRFlatNe)
   sorry
 
 private theorem str_in_re_consume_valid_properties
