@@ -1242,7 +1242,19 @@ where \code{DB2} is:
 \begin{examplecode}
 DB2 := (sum (cons (sum (cons (Datatype "B" DB) unit) nil) unit) (sum unit nil))
 \end{examplecode}
+(FIXME)
 
+
+The other definitions of default values are trivial.
+Maps and sets use a default (constant) map, where maps store the default
+value of the element type and sets store false.
+Sequence default value is the empty sequence.
+Function types have a default value which uses a default identifier
+"@default", where note that "@" is used a prefix to avoid name clashes
+with user symbols.\footnote{
+SMT-LIB uses a convention that user symbols cannot be prefixed by "@".}
+Uninterpreted sort values use a default natural number identifier,
+i.e. the first value of the uninterpreted sort's domain.
 
 
   
