@@ -819,11 +819,11 @@ Note that this does not necessarily hold for arbitrary SMT-LIB inputs.
 
 Values have the same type class properties as types,
 and can be compared with \code{veq}.
-We will additionally require an (arbitrary total) ordering over types,
+We will additionally require an (arbitrary strict total) ordering over values,
 which we define as \code{vcmp}.
 Note that this definition requires an instantiation over the native Lean
 types that are used within this datatype.
-In practice, this required us to define a total ordering over Lean rationals (\code{Rat}) for this
+In practice, this required us to define a strict total ordering over Lean rationals (\code{Rat}) for this
 purpose; the ordering for all other types were automatic.
 
 Recall that the primary purpose of values is to represent the
@@ -1010,6 +1010,7 @@ def smt_typeof_value : SmtValue -> SmtType
   | (SmtValue.Boolean b) => SmtType.Bool
   | (SmtValue.Binary w n) =>
       if 0 <= w ∧ n = n % (2 ^ w) then SmtType.BitVec (Int.toNat w) else SmtType.None
+  | (SmtValue.Char c) => c < 196608
   | (SmtValue.Map m) => (smt_typeof_map_value m)
   | (SmtValue.Set m) => (smt_map_to_set_type (smt_typeof_map_value m))
   | (SmtValue.Seq ss) => (smt_typeof_seq_value ss)
@@ -1031,6 +1032,8 @@ specify well-formed and canonical bit-vector values to be well-typed.
 In particular, this means their bitwidth must be non-negative
 and their value must be in the interval $[0, 2^w)$; otherwise they
 are ill-typed (i.e. have type \code{SmtType.None}).
+Similarly, characters are ill-typed if their value falls outside the
+legal range of characters as defined by SMT-LIB ($[0, 199608)$).
 
 Recall that maps and set values share a common payload (\code{SmtMap}).
 We define a method computing the type for this datatype (\code{smt_typeof_map_value}).
@@ -1258,36 +1261,33 @@ i.e. the first value of the uninterpreted sort's domain.
 
 \begin{figure}
 \begin{lstlisting}
+def smt_map_get_default : SmtMap -> SmtValue
+  | (SmtMap.cons j e m) => (smt_map_get_default m)
+  | (SmtMap.default T e) => e
+  
 def smt_map_entries_ordered_after (i : SmtValue) : SmtMap -> Bool
   | (SmtMap.cons j e m) => (vcmp j i)
   | m => true
 
-def smt_map_default_canonical (T : SmtType) (e : SmtValue) : Bool :=
-  if smt_is_finite_type T then
-    decide (e = smt_type_default (smt_typeof_value e))
-  else
-    true
-
 def smt_map_canonical : SmtMap -> Bool
-  | (SmtMap.default T e) => (smt_map_default_canonical T e && smt_value_canonical e)
+  | (SmtMap.default T e) =>
+    !(smt_is_finite_type T) || (veq e (smt_type_default (smt_typeof_value e)))
   | (SmtMap.cons i e m) =>
       smt_value_canonical i &&
-        smt_value_canonical e &&
-        smt_map_canonical m &&
-        smt_map_entries_ordered_after i m &&
-        !(decide (e = smt_msm_get_default m))
+      smt_value_canonical e &&
+      smt_map_canonical m &&
+      smt_map_entries_ordered_after i m &&
+      !(veq e smt_map_get_default m)
 
 def smt_seq_canonical : SmtSeq -> Bool
   | (SmtSeq.empty T) => true
-  | (SmtSeq.cons v s) => (smt_value_canonical v && smt_seq_canonical s)
+  | (SmtSeq.cons v s) => (smt_value_canonical v) && (smt_seq_canonical s)
 
 def smt_value_canonical : SmtValue -> Bool
-  | (SmtValue.Binary w n) => if 0 <= w then decide (n = n % (2 ^ Int.toNat w)) else true
-  | (SmtValue.Char c) => c < 196608
   | (SmtValue.Map m) => (smt_map_canonical m)
-  | (SmtValue.Set m) => (smt_map_canonical m && decide (smt_msm_get_default m = SmtValue.Boolean false))
+  | (SmtValue.Set m) => (smt_map_canonical m) && (veq smt_map_get_default m (SmtValue.Boolean false))
   | (SmtValue.Seq s) => (smt_seq_canonical s)
-  | (SmtValue.Apply f v) => (smt_value_canonical f && smt_value_canonical v)
+  | (SmtValue.Apply f v) => (smt_value_canonical f) && (smt_value_canonical v)
   | v => true
 \end{lstlisting}
 \caption{Canonicality checks for maps, sequences, and values.}
@@ -1307,58 +1307,72 @@ as the subset of values of their type for which \code{smt_value_canonical} retur
 Note that \code{smt_value_canonical}
 by default considers values to be canonical (its default value is true).
 Hence, the list of cases can be seen as exceptions to when a value is not canonical.
-Firstly, bitvectors values are considered canonical 
 
+When introducing SMT-LIB values,
+we remarked that there were many cases where two syntactically distinct map values
+denoted the same map.
+Our notion of canonicity rectifies this by only accepting
+one such array.
+In particular, for map values,
+we use the method \code{smt_map_canonical}.
+This is defined recursively.
+For each index \code{i} and element \code{e} pair stored in the list,
+we require the following things.
+First, \code{i} and \code{e} must themselves be canonical values.
+Second, the tail of the map must also be canonical.
+Third, the indices must be sorted.
+We use the strict total ordering \code{veq} for this.
+In particular, the submethod \code{smt_map_entries_ordered_after}
+ensures that the index is strictly less than the next stored index,
+which by transitivity ensures that the index list is sorted.
+This criteria prevents a list of stores being equivalent,
+both by commuting distinct indices and by disallowing repeated equivalent indices.
+Finally, we must ensure that the element does not coincide
+with the default element stored in the map (obtainable by \code{smt_map_get_default}).
 
+The default value of a map has the following requirement:
+if the index type of the map is finite, then the default element stored
+must be the one obtained by the method \code{smt_type_default} in the previous section.
+To understand this restriction,
+consider the following equivalent maps have index and element type as \code{Bool}:
+\begin{examplecode}
+m1 := 
+  (SmtMap.cons (Boolean true) (Boolean true) 
+  (SmtMap.cons (Boolean false) (Boolean true)
+    (SmtMap.default Bool (Boolean false))))
+m2 := (SmtMap.default Bool (Boolean true))
+\end{examplecode}
+In other words, \code{m1} is a map that stores \code{(Boolean true)}
+at both the index \code{(Boolean true)} and \code{(Boolean false)},
+and stores \code{(Boolean false)} otherwise,
+and \code{m2} is a map that stores \code{(Boolean true)} everywhere.
+It is easy to see that these two maps are semantically the same,
+as they store \code{(Boolean true)} everywhere.
+The key thing to notice is that for finite types,
+it is possible to exhaust the entire domain with stores,
+thereby making the default value irrelevant.
+Without the restriction on default values, both \code{m1} and \code{m2}
+could be considered canonical.
 
+For infinite types, it is impossible exhaust the space of all possible indices.
+Moreover, it would be limiting to insist that a consistent default is used
+for a map. For instance say we have a map from \code{Int} to \code{Int}.
+If we insisted maps always had the same default given any index type,
+it would be impossible to represent a map mapping all integers to both 0 and 1, say.
+On the other hand, with finite types, it is possible to store values
+for all indices, so this restriction comes with no loss of generality for maps
+with finite index type.
+In fact, \code{m1} above is the canonical value
+of a map from \code{Bool} to \code{Bool} that stores true everywhere.
 
-\subsection{Well-Formedness of Types}
+Sets are similar to maps, but for canonical values, their default value is false,
+regardless of the index type.
+Defining canonicity for the other types is trivial.
+For composite SMT-LIB values, we simply traverse their structure 
+and confirm that all values they are built from are also canonical.
 
+\subsection{Inhabited and Well-Formedness of Types}
 
-
-
-
-
-
-
-
-
-
-
-
-
-\subsection{Types of SMT-LIB Terms}
-
-
-\begin{figure}[p]
-\begin{lstlisting}
-def smt_typeof_eq (T : SmtType) (U : SmtType) : SmtType :=
-  (smt_typeof_guard T (native_ite (native_Teq T U) SmtType.Bool SmtType.None))
-  
-def smt_ret_typeof_sel (s : String) (d : SmtDatatype) (n : Nat) (m : Nat) : SmtType :=
-  (smt_ret_typeof_sel_rec (smt_dt_substitute s d d) n m)
-
-def smt_typeof : SmtTerm -> SmtType
-  | (SmtTerm.Boolean b) => SmtType.Bool
-  | (SmtTerm.Binary w n) =>
-      if 0 <= w ∧ n = n % (2 ^ w) then SmtType.BitVec (Int.toNat w) else SmtType.None
-  | (SmtTerm.eq x1 x2) => (smt_typeof_eq (smt_typeof x1) (smt_typeof x2))
-  | (SmtTerm.exists s T x1) =>
-      if smt_typeof x1 = SmtType.Bool then SmtType.Bool else SmtType.None
-  | (SmtTerm.plus x1 x2) => (smt_typeof_arith_overload_op_2 (smt_typeof x1) (smt_typeof x2))
-  | (SmtTerm.select x1 x2) => (smt_typeof_select (smt_typeof x1) (smt_typeof x2))
-  | (SmtTerm.Apply f x1) => (smt_typeof_apply (smt_typeof f) (smt_typeof x1))
-  | (SmtTerm.DtCons s d i) =>
-      let _v0 := (SmtType.Datatype s d)
-      (smt_typeof_guard_wf _v0 (smt_typeof_dt_cons_rec _v0 (smt_dt_substitute s d d) i))
-  | (SmtTerm.Apply (SmtTerm.DtSel s d i j) x1) =>
-      let _v0 := (smt_ret_typeof_sel s d i j)
-      (smt_typeof_guard_wf _v0 (smt_typeof_apply (SmtType.FunType (SmtType.Datatype s d) _v0) (smt_typeof x1)))
-  | ... => ...
-\end{lstlisting}
-\caption{Types for SMT terms.}
-\label{fig:typeof-term}
-\end{figure}
 
 \begin{figure}[p]
 \begin{lstlisting}
@@ -1410,9 +1424,52 @@ def smt_type_wf : SmtType -> Bool
   | (SmtType.FunType T U) => (smt_type_wf_component T && smt_type_wf_component U)
   | T => (smt_type_wf_component T)
 \end{lstlisting}
-\caption{Default values, inhabitation, and type well-formedness.}
+\caption{Inhabitation, and type well-formedness.}
 \label{fig:type-wf}
 \end{figure}
+
+
+
+
+
+
+
+
+
+
+\subsection{Types of SMT-LIB Terms}
+
+
+\begin{figure}[p]
+\begin{lstlisting}
+def smt_typeof_eq (T : SmtType) (U : SmtType) : SmtType :=
+  (smt_typeof_guard T (native_ite (native_Teq T U) SmtType.Bool SmtType.None))
+  
+def smt_ret_typeof_sel (s : String) (d : SmtDatatype) (n : Nat) (m : Nat) : SmtType :=
+  (smt_ret_typeof_sel_rec (smt_dt_substitute s d d) n m)
+
+def smt_typeof : SmtTerm -> SmtType
+  | (SmtTerm.Boolean b) => SmtType.Bool
+  | (SmtTerm.Binary w n) =>
+      if 0 <= w ∧ n = n % (2 ^ w) then SmtType.BitVec (Int.toNat w) else SmtType.None
+  | (SmtTerm.eq x1 x2) => (smt_typeof_eq (smt_typeof x1) (smt_typeof x2))
+  | (SmtTerm.exists s T x1) =>
+      if smt_typeof x1 = SmtType.Bool then SmtType.Bool else SmtType.None
+  | (SmtTerm.plus x1 x2) => (smt_typeof_arith_overload_op_2 (smt_typeof x1) (smt_typeof x2))
+  | (SmtTerm.select x1 x2) => (smt_typeof_select (smt_typeof x1) (smt_typeof x2))
+  | (SmtTerm.Apply f x1) => (smt_typeof_apply (smt_typeof f) (smt_typeof x1))
+  | (SmtTerm.DtCons s d i) =>
+      let _v0 := (SmtType.Datatype s d)
+      (smt_typeof_guard_wf _v0 (smt_typeof_dt_cons_rec _v0 (smt_dt_substitute s d d) i))
+  | (SmtTerm.Apply (SmtTerm.DtSel s d i j) x1) =>
+      let _v0 := (smt_ret_typeof_sel s d i j)
+      (smt_typeof_guard_wf _v0 (smt_typeof_apply (SmtType.FunType (SmtType.Datatype s d) _v0) (smt_typeof x1)))
+  | ... => ...
+\end{lstlisting}
+\caption{Types for SMT terms.}
+\label{fig:typeof-term}
+\end{figure}
+
 
 
 \begin{figure}[p]
