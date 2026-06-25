@@ -3352,7 +3352,8 @@ by
   change
       term_has_non_none_type
         (SmtTerm.eq (__eo_to_smt x)
-          (SmtTerm.set_empty (__smtx_typeof (__eo_to_smt x)))) at hNN
+          (SmtTerm.set_empty
+            (__eo_to_smt_set_elem_type (__smtx_typeof (__eo_to_smt x))))) at hNN
   unfold term_has_non_none_type at hNN
   rw [typeof_eq_eq] at hNN
   unfold eoHasSmtTranslation
