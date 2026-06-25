@@ -17158,6 +17158,673 @@ private theorem smt_typeof_list_rev_re_concat_of_reglan_local
   exact smt_typeof_list_rev_rec_re_concat_of_reglan_local a nil hList haTy
     hNilTy hRecNe
 
+private theorem str_re_consume_sflat_type_facts_local
+    (M : SmtModel) (hM : model_total_typed M)
+    (s r side : Term)
+    (hEqTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp.eq)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) r))
+          side))
+    (hSFlatNe :
+      __eo_list_rev (Term.UOp UserOp.str_concat)
+          (__str_flatten (__str_nary_intro s)) ≠
+        Term.Stuck) :
+    let flat := __str_flatten (__str_nary_intro s)
+    let sFlat := __eo_list_rev (Term.UOp UserOp.str_concat) flat
+    __smtx_typeof (__eo_to_smt sFlat) = SmtType.Seq SmtType.Char ∧
+      __eo_is_list (Term.UOp UserOp.str_concat) sFlat = Term.Boolean true ∧
+      flat ≠ Term.Stuck ∧
+      __eo_is_list (Term.UOp UserOp.str_concat) flat = Term.Boolean true ∧
+      __smtx_typeof (__eo_to_smt flat) = SmtType.Seq SmtType.Char := by
+  let flat := __str_flatten (__str_nary_intro s)
+  let sFlat := __eo_list_rev (Term.UOp UserOp.str_concat) flat
+  have hFlatNe : flat ≠ Term.Stuck :=
+    eo_list_rev_arg_ne_stuck_of_ne_stuck (Term.UOp UserOp.str_concat)
+      flat hSFlatNe
+  rcases str_re_consume_str_flatten_eval_rel M hM s r side hEqTrans
+      (by simpa [flat] using hFlatNe) with
+    ⟨_ss, _flatSs, _hSEval, _hFlatEval, hFlatTy, hFlatList,
+      _hFlatRel⟩
+  have hSFlatTy :
+      __smtx_typeof (__eo_to_smt sFlat) = SmtType.Seq SmtType.Char := by
+    simpa [sFlat, flat] using
+      smt_typeof_list_rev_str_concat_of_seq flat SmtType.Char hFlatList
+        hFlatTy (by simpa [sFlat] using hSFlatNe)
+  have hSFlatList :
+      __eo_is_list (Term.UOp UserOp.str_concat) sFlat =
+        Term.Boolean true := by
+    simpa [sFlat] using
+      eo_list_rev_result_is_list_true_of_ne_stuck
+        (Term.UOp UserOp.str_concat) flat hSFlatNe
+  exact ⟨hSFlatTy, hSFlatList, hFlatNe, hFlatList, hFlatTy⟩
+
+private theorem re_split_str_to_re_parts_ne_stuck_local
+    (parts tail : Term)
+    (h : __re_split_str_to_re parts tail ≠ Term.Stuck) :
+    parts ≠ Term.Stuck := by
+  intro hParts
+  subst parts
+  simp [__re_split_str_to_re] at h
+
+private theorem re_split_str_to_re_tail_ne_stuck_local
+    (parts tail : Term)
+    (h : __re_split_str_to_re parts tail ≠ Term.Stuck) :
+    tail ≠ Term.Stuck := by
+  intro hTail
+  subst tail
+  cases parts <;> simp [__re_split_str_to_re] at h
+
+private theorem smt_typeof_re_split_str_to_re_of_seq_reglan_local
+    (parts tail : Term)
+    (hList :
+      __eo_is_list (Term.UOp UserOp.str_concat) parts =
+        Term.Boolean true)
+    (hPartsTy :
+      __smtx_typeof (__eo_to_smt parts) =
+        SmtType.Seq SmtType.Char)
+    (hTailTy : __smtx_typeof (__eo_to_smt tail) = SmtType.RegLan) :
+    __smtx_typeof (__eo_to_smt (__re_split_str_to_re parts tail)) =
+      SmtType.RegLan := by
+  induction parts, tail using __re_split_str_to_re.induct with
+  | case1 tail =>
+      simp [__eo_is_list] at hList
+  | case2 parts hPartsNe =>
+      change __smtx_typeof SmtTerm.None = SmtType.RegLan at hTailTy
+      rw [TranslationProofs.smtx_typeof_none] at hTailTy
+      cases hTailTy
+  | case3 c rest tail hTailNe ih =>
+      have hArgs :=
+        str_concat_args_of_seq_type c rest SmtType.Char hPartsTy
+      have hRestList :
+          __eo_is_list (Term.UOp UserOp.str_concat) rest =
+            Term.Boolean true :=
+        eo_is_list_tail_true_of_cons_self (Term.UOp UserOp.str_concat)
+          c rest hList
+      have hRestSplitTy :
+          __smtx_typeof
+              (__eo_to_smt (__re_split_str_to_re rest tail)) =
+            SmtType.RegLan :=
+        ih hRestList hArgs.2 hTailTy
+      have hRestSplitNe :
+          __re_split_str_to_re rest tail ≠ Term.Stuck := by
+        intro hBad
+        rw [hBad] at hRestSplitTy
+        change __smtx_typeof SmtTerm.None = SmtType.RegLan at hRestSplitTy
+        rw [TranslationProofs.smtx_typeof_none] at hRestSplitTy
+        cases hRestSplitTy
+      have hMkApplyEq :
+          __eo_mk_apply
+              (Term.Apply (Term.UOp UserOp.re_concat)
+                (Term.Apply (Term.UOp UserOp.str_to_re) c))
+              (__re_split_str_to_re rest tail) =
+            Term.Apply
+              (Term.Apply (Term.UOp UserOp.re_concat)
+                (Term.Apply (Term.UOp UserOp.str_to_re) c))
+              (__re_split_str_to_re rest tail) :=
+        have hMkApplyNe :
+            __eo_mk_apply
+                (Term.Apply (Term.UOp UserOp.re_concat)
+                  (Term.Apply (Term.UOp UserOp.str_to_re) c))
+                (__re_split_str_to_re rest tail) ≠ Term.Stuck := by
+          intro hBad
+          cases hSplit : __re_split_str_to_re rest tail <;>
+            simp [__eo_mk_apply, hSplit] at hBad
+          exact hRestSplitNe hSplit
+        eo_mk_apply_eq_apply_of_ne_stuck
+          (Term.Apply (Term.UOp UserOp.re_concat)
+            (Term.Apply (Term.UOp UserOp.str_to_re) c))
+          (__re_split_str_to_re rest tail) hMkApplyNe
+      have hHeadTy :
+          __smtx_typeof
+              (__eo_to_smt (Term.Apply (Term.UOp UserOp.str_to_re) c)) =
+            SmtType.RegLan := by
+        change __smtx_typeof (SmtTerm.str_to_re (__eo_to_smt c)) =
+          SmtType.RegLan
+        rw [typeof_str_to_re_eq]
+        simp [hArgs.1, native_ite, native_Teq]
+      have hFullTy :
+          __smtx_typeof
+              (__eo_to_smt
+                (Term.Apply
+                  (Term.Apply (Term.UOp UserOp.re_concat)
+                    (Term.Apply (Term.UOp UserOp.str_to_re) c))
+                  (__re_split_str_to_re rest tail))) =
+            SmtType.RegLan := by
+        change __smtx_typeof
+            (SmtTerm.re_concat
+              (__eo_to_smt (Term.Apply (Term.UOp UserOp.str_to_re) c))
+              (__eo_to_smt (__re_split_str_to_re rest tail))) =
+          SmtType.RegLan
+        rw [typeof_re_concat_eq]
+        simp [hHeadTy, hRestSplitTy, native_ite, native_Teq]
+      simpa [__re_split_str_to_re, hMkApplyEq] using hFullTy
+  | case4 parts tail hPartsNe hTailNe hNotConcat =>
+      simpa [__re_split_str_to_re] using hTailTy
+
+private theorem re_concat_arg_types_of_reglan_consume_local
+    (a b : Term)
+    (hTy :
+      __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a) b)) =
+        SmtType.RegLan) :
+    __smtx_typeof (__eo_to_smt a) = SmtType.RegLan ∧
+      __smtx_typeof (__eo_to_smt b) = SmtType.RegLan := by
+  have hNN : term_has_non_none_type
+      (SmtTerm.re_concat (__eo_to_smt a) (__eo_to_smt b)) := by
+    unfold term_has_non_none_type
+    change
+      __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a) b)) ≠
+        SmtType.None
+    rw [hTy]
+    simp
+  exact reglan_binop_args_of_non_none (op := SmtTerm.re_concat)
+    (typeof_re_concat_eq (__eo_to_smt a) (__eo_to_smt b)) hNN
+
+private theorem re_inter_arg_types_of_reglan_consume_local
+    (a b : Term)
+    (hTy :
+      __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) a) b)) =
+        SmtType.RegLan) :
+    __smtx_typeof (__eo_to_smt a) = SmtType.RegLan ∧
+      __smtx_typeof (__eo_to_smt b) = SmtType.RegLan := by
+  have hNN : term_has_non_none_type
+      (SmtTerm.re_inter (__eo_to_smt a) (__eo_to_smt b)) := by
+    unfold term_has_non_none_type
+    change
+      __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) a) b)) ≠
+        SmtType.None
+    rw [hTy]
+    simp
+  exact reglan_binop_args_of_non_none (op := SmtTerm.re_inter)
+    (typeof_re_inter_eq (__eo_to_smt a) (__eo_to_smt b)) hNN
+
+private theorem re_union_arg_types_of_reglan_consume_local
+    (a b : Term)
+    (hTy :
+      __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) a) b)) =
+        SmtType.RegLan) :
+    __smtx_typeof (__eo_to_smt a) = SmtType.RegLan ∧
+      __smtx_typeof (__eo_to_smt b) = SmtType.RegLan := by
+  have hNN : term_has_non_none_type
+      (SmtTerm.re_union (__eo_to_smt a) (__eo_to_smt b)) := by
+    unfold term_has_non_none_type
+    change
+      __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) a) b)) ≠
+        SmtType.None
+    rw [hTy]
+    simp
+  exact reglan_binop_args_of_non_none (op := SmtTerm.re_union)
+    (typeof_re_union_eq (__eo_to_smt a) (__eo_to_smt b)) hNN
+
+private theorem re_mult_arg_type_of_reglan_consume_local
+    (r : Term)
+    (hTy :
+      __smtx_typeof
+          (__eo_to_smt (Term.Apply (Term.UOp UserOp.re_mult) r)) =
+        SmtType.RegLan) :
+    __smtx_typeof (__eo_to_smt r) = SmtType.RegLan := by
+  exact RuleProofs.ReUnfoldNegSupport.smtx_typeof_re_mult_arg_of_reglan
+    r hTy
+
+private theorem smt_typeof_re_empty_string_consume_local :
+    __smtx_typeof
+        (__eo_to_smt
+          (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))) =
+      SmtType.RegLan := by
+  change __smtx_typeof (SmtTerm.str_to_re (SmtTerm.String [])) =
+    SmtType.RegLan
+  rw [typeof_str_to_re_eq]
+  simp [__smtx_typeof, native_string_valid, native_ite, native_Teq]
+
+private theorem smt_typeof_re_flatten_true_of_reglan_local
+    (M : SmtModel) (hM : model_total_typed M) :
+    ∀ (rev mode r : Term),
+      rev = Term.Boolean true ->
+      __smtx_typeof (__eo_to_smt r) = SmtType.RegLan ->
+      __re_flatten rev mode r ≠ Term.Stuck ->
+      __smtx_typeof
+          (__eo_to_smt (__re_flatten rev mode r)) =
+        SmtType.RegLan := by
+  intro rev mode r
+  induction rev, mode, r using __re_flatten.induct with
+  | case1 x x_1 =>
+      intro hRev _hTy _hFlatNe
+      cases hRev
+  | case2 x x_1 hRevNe =>
+      intro _hRev hTy _hFlatNe
+      change __smtx_typeof SmtTerm.None = SmtType.RegLan at hTy
+      rw [TranslationProofs.smtx_typeof_none] at hTy
+      cases hTy
+  | case3 rev hRevNe =>
+      intro hRev _hTy _hFlatNe
+      subst rev
+      simpa [__re_flatten] using smt_typeof_re_empty_string_consume_local
+  | case4 rev s b hRevNe ih =>
+      intro hRev hTy hFlatNe
+      subst rev
+      let parts := __str_flatten (__str_nary_intro s)
+      let flatB := __re_flatten (Term.Boolean true) (Term.Boolean true) b
+      have hArgs :=
+        re_concat_arg_types_of_reglan_consume_local
+          (Term.Apply (Term.UOp UserOp.str_to_re) s) b hTy
+      have hSTy :
+          __smtx_typeof (__eo_to_smt s) = SmtType.Seq SmtType.Char :=
+        str_to_re_arg_type_of_reglan_consume_local s hArgs.1
+      rcases smt_eval_seq_char_of_smt_type_seq_char_consume_local M hM
+          (__eo_to_smt s) hSTy with
+        ⟨ss, hSEval⟩
+      have hSplitNe :
+          __re_split_str_to_re parts flatB ≠ Term.Stuck := by
+        simpa [__re_flatten, parts, flatB] using hFlatNe
+      have hPartsNe : parts ≠ Term.Stuck :=
+        re_split_str_to_re_parts_ne_stuck_local parts flatB hSplitNe
+      have hFlatBNe : flatB ≠ Term.Stuck :=
+        re_split_str_to_re_tail_ne_stuck_local parts flatB hSplitNe
+      rcases str_flatten_nary_intro_eval_rel M hM s ss hSTy hSEval
+          (by simpa [parts] using hPartsNe) with
+        ⟨_flatSs, _hPartsEval, hPartsTy, hPartsList, _hPartsRel⟩
+      have hFlatBTy :
+          __smtx_typeof (__eo_to_smt flatB) = SmtType.RegLan :=
+        ih rfl hArgs.2 (by simpa [flatB] using hFlatBNe)
+      have hSplitTy :
+          __smtx_typeof
+              (__eo_to_smt (__re_split_str_to_re parts flatB)) =
+            SmtType.RegLan :=
+        smt_typeof_re_split_str_to_re_of_seq_reglan_local parts flatB
+          hPartsList hPartsTy hFlatBTy
+      simpa [__re_flatten, parts, flatB] using hSplitTy
+  | case5 rev a b hRevNe hNotStr ihA ihB =>
+      intro hRev hTy hFlatNe
+      subst rev
+      let flatA := __re_flatten (Term.Boolean true) (Term.Boolean false) a
+      let flatB := __re_flatten (Term.Boolean true) (Term.Boolean true) b
+      have hArgs := re_concat_arg_types_of_reglan_consume_local a b hTy
+      have hOutNe :
+          __eo_mk_apply
+              (__eo_mk_apply (Term.UOp UserOp.re_concat) flatA) flatB ≠
+            Term.Stuck := by
+        simpa [__re_flatten, flatA, flatB] using hFlatNe
+      have hInnerNe :
+          __eo_mk_apply (Term.UOp UserOp.re_concat) flatA ≠
+            Term.Stuck :=
+        eo_mk_apply_fun_ne_stuck_of_ne_stuck _ _ hOutNe
+      have hFlatANe : flatA ≠ Term.Stuck :=
+        eo_mk_apply_arg_ne_stuck_of_ne_stuck _ _ hInnerNe
+      have hFlatBNe : flatB ≠ Term.Stuck :=
+        eo_mk_apply_arg_ne_stuck_of_ne_stuck _ _ hOutNe
+      have hFlatATy :
+          __smtx_typeof (__eo_to_smt flatA) = SmtType.RegLan :=
+        ihA rfl hArgs.1 (by simpa [flatA] using hFlatANe)
+      have hFlatBTy :
+          __smtx_typeof (__eo_to_smt flatB) = SmtType.RegLan :=
+        ihB rfl hArgs.2 (by simpa [flatB] using hFlatBNe)
+      have hInnerEq :
+          __eo_mk_apply (Term.UOp UserOp.re_concat) flatA =
+            Term.Apply (Term.UOp UserOp.re_concat) flatA :=
+        eo_mk_apply_eq_apply_of_ne_stuck
+          (Term.UOp UserOp.re_concat) flatA hInnerNe
+      have hOutNe' :
+          __eo_mk_apply
+              (Term.Apply (Term.UOp UserOp.re_concat) flatA) flatB ≠
+            Term.Stuck := by
+        simpa [hInnerEq] using hOutNe
+      have hOutEq :
+          __eo_mk_apply
+              (Term.Apply (Term.UOp UserOp.re_concat) flatA) flatB =
+            Term.Apply
+              (Term.Apply (Term.UOp UserOp.re_concat) flatA) flatB :=
+        eo_mk_apply_eq_apply_of_ne_stuck
+          (Term.Apply (Term.UOp UserOp.re_concat) flatA) flatB hOutNe'
+      have hFullTy :
+          __smtx_typeof
+              (__eo_to_smt
+                (Term.Apply
+                  (Term.Apply (Term.UOp UserOp.re_concat) flatA) flatB)) =
+            SmtType.RegLan :=
+        smt_typeof_re_concat_of_reglan_consume_local flatA flatB
+          hFlatATy hFlatBTy
+      simpa [__re_flatten, flatA, flatB, hInnerEq, hOutEq] using hFullTy
+  | case6 rev s hRevNe hNotEmpty =>
+      intro hRev hTy hFlatNe
+      subst rev
+      let parts := __str_flatten (__str_nary_intro s)
+      let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
+      have hSTy :
+          __smtx_typeof (__eo_to_smt s) = SmtType.Seq SmtType.Char :=
+        str_to_re_arg_type_of_reglan_consume_local s hTy
+      rcases smt_eval_seq_char_of_smt_type_seq_char_consume_local M hM
+          (__eo_to_smt s) hSTy with
+        ⟨ss, hSEval⟩
+      have hSplitNe :
+          __re_split_str_to_re parts eps ≠ Term.Stuck := by
+        simpa [__re_flatten, parts, eps] using hFlatNe
+      have hPartsNe : parts ≠ Term.Stuck :=
+        re_split_str_to_re_parts_ne_stuck_local parts eps hSplitNe
+      rcases str_flatten_nary_intro_eval_rel M hM s ss hSTy hSEval
+          (by simpa [parts] using hPartsNe) with
+        ⟨_flatSs, _hPartsEval, hPartsTy, hPartsList, _hPartsRel⟩
+      have hSplitTy :
+          __smtx_typeof
+              (__eo_to_smt (__re_split_str_to_re parts eps)) =
+            SmtType.RegLan :=
+        smt_typeof_re_split_str_to_re_of_seq_reglan_local parts eps
+          hPartsList hPartsTy
+          (by simpa [eps] using smt_typeof_re_empty_string_consume_local)
+      simpa [__re_flatten, parts, eps] using hSplitTy
+  | case7 rev c hRevNe hCNe hEmpty hConcatStr hConcat hStr ih =>
+      intro hRev hTy hFlatNe
+      subst rev
+      let flatC := __re_flatten (Term.Boolean true) (Term.Boolean false) c
+      let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
+      have hOutNe :
+          __eo_mk_apply
+              (__eo_mk_apply (Term.UOp UserOp.re_concat) flatC) eps ≠
+            Term.Stuck := by
+        simpa [__re_flatten, flatC, eps] using hFlatNe
+      have hInnerNe :
+          __eo_mk_apply (Term.UOp UserOp.re_concat) flatC ≠
+            Term.Stuck :=
+        eo_mk_apply_fun_ne_stuck_of_ne_stuck _ _ hOutNe
+      have hFlatCNe : flatC ≠ Term.Stuck :=
+        eo_mk_apply_arg_ne_stuck_of_ne_stuck _ _ hInnerNe
+      have hFlatCTy :
+          __smtx_typeof (__eo_to_smt flatC) = SmtType.RegLan :=
+        ih rfl hTy (by simpa [flatC] using hFlatCNe)
+      have hInnerEq :
+          __eo_mk_apply (Term.UOp UserOp.re_concat) flatC =
+            Term.Apply (Term.UOp UserOp.re_concat) flatC :=
+        eo_mk_apply_eq_apply_of_ne_stuck
+          (Term.UOp UserOp.re_concat) flatC hInnerNe
+      have hOutNe' :
+          __eo_mk_apply
+              (Term.Apply (Term.UOp UserOp.re_concat) flatC) eps ≠
+            Term.Stuck := by
+        simpa [hInnerEq] using hOutNe
+      have hOutEq :
+          __eo_mk_apply
+              (Term.Apply (Term.UOp UserOp.re_concat) flatC) eps =
+            Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) flatC)
+              eps :=
+        eo_mk_apply_eq_apply_of_ne_stuck
+          (Term.Apply (Term.UOp UserOp.re_concat) flatC) eps hOutNe'
+      have hFullTy :
+          __smtx_typeof
+              (__eo_to_smt
+                (Term.Apply
+                  (Term.Apply (Term.UOp UserOp.re_concat) flatC) eps)) =
+            SmtType.RegLan :=
+        smt_typeof_re_concat_of_reglan_consume_local flatC eps
+          hFlatCTy
+          (by simpa [eps] using smt_typeof_re_empty_string_consume_local)
+      simpa [__re_flatten, flatC, eps, hInnerEq, hOutEq] using hFullTy
+  | case8 rev hRevNe =>
+      intro hRev hTy _hFlatNe
+      subst rev
+      simpa [__re_flatten] using hTy
+  | case9 rev hRevNe =>
+      intro hRev hTy _hFlatNe
+      subst rev
+      simpa [__re_flatten] using hTy
+  | case10 rev body hRevNe ih =>
+      intro hRev hTy hFlatNe
+      subst rev
+      let flatBody :=
+        __re_flatten (Term.Boolean true) (Term.Boolean true) body
+      let revBody := __eo_list_rev (Term.UOp UserOp.re_concat) flatBody
+      have hBodyTy := re_mult_arg_type_of_reglan_consume_local body hTy
+      have hOutNe :
+          __eo_mk_apply (Term.UOp UserOp.re_mult)
+              (__eo_ite (Term.Boolean true) revBody flatBody) ≠
+            Term.Stuck := by
+        simpa [__re_flatten, flatBody, revBody] using hFlatNe
+      have hIteNe :
+          __eo_ite (Term.Boolean true) revBody flatBody ≠ Term.Stuck :=
+        eo_mk_apply_arg_ne_stuck_of_ne_stuck _ _ hOutNe
+      have hRevBodyNe : revBody ≠ Term.Stuck := by
+        simpa [eo_ite_true, revBody] using hIteNe
+      have hFlatBodyNe : flatBody ≠ Term.Stuck :=
+        eo_list_rev_arg_ne_stuck_of_ne_stuck
+          (Term.UOp UserOp.re_concat) flatBody
+          (by simpa [revBody] using hRevBodyNe)
+      have hFlatBodyTy :
+          __smtx_typeof (__eo_to_smt flatBody) = SmtType.RegLan :=
+        ih rfl hBodyTy (by simpa [flatBody] using hFlatBodyNe)
+      have hFlatBodyList :
+          __eo_is_list (Term.UOp UserOp.re_concat) flatBody =
+            Term.Boolean true :=
+        eo_list_rev_is_list_true_of_ne_stuck
+          (Term.UOp UserOp.re_concat) flatBody
+          (by simpa [revBody] using hRevBodyNe)
+      have hRevBodyTy :
+          __smtx_typeof (__eo_to_smt revBody) = SmtType.RegLan := by
+        simpa [revBody] using
+          smt_typeof_list_rev_re_concat_of_reglan_local flatBody
+            hFlatBodyList hFlatBodyTy
+            (by simpa [revBody] using hRevBodyNe)
+      have hOutEq :
+          __eo_mk_apply (Term.UOp UserOp.re_mult)
+              (__eo_ite (Term.Boolean true) revBody flatBody) =
+            Term.Apply (Term.UOp UserOp.re_mult) revBody := by
+        rw [eo_ite_true]
+        exact eo_mk_apply_eq_apply_of_ne_stuck
+          (Term.UOp UserOp.re_mult) revBody
+          (by simpa [eo_ite_true, revBody] using hOutNe)
+      have hFullTy :
+          __smtx_typeof
+              (__eo_to_smt (Term.Apply (Term.UOp UserOp.re_mult) revBody)) =
+            SmtType.RegLan :=
+        smt_typeof_re_mult_of_reglan_consume_local revBody hRevBodyTy
+      simpa [__re_flatten, flatBody, revBody, hOutEq] using hFullTy
+  | case11 rev c1 c2 hRevNe ih1 ih2 =>
+      intro hRev hTy hFlatNe
+      subst rev
+      let flatC1 := __re_flatten (Term.Boolean true) (Term.Boolean true) c1
+      let revC1 := __eo_list_rev (Term.UOp UserOp.re_concat) flatC1
+      let flatC2 := __re_flatten (Term.Boolean true) (Term.Boolean false) c2
+      have hArgs := re_inter_arg_types_of_reglan_consume_local c1 c2 hTy
+      have hOutNe :
+          __eo_mk_apply
+              (__eo_mk_apply (Term.UOp UserOp.re_inter)
+                (__eo_ite (Term.Boolean true) revC1 flatC1)) flatC2 ≠
+            Term.Stuck := by
+        simpa [__re_flatten, flatC1, revC1, flatC2] using hFlatNe
+      have hInnerNe :
+          __eo_mk_apply (Term.UOp UserOp.re_inter)
+              (__eo_ite (Term.Boolean true) revC1 flatC1) ≠
+            Term.Stuck :=
+        eo_mk_apply_fun_ne_stuck_of_ne_stuck _ _ hOutNe
+      have hIteNe :
+          __eo_ite (Term.Boolean true) revC1 flatC1 ≠ Term.Stuck :=
+        eo_mk_apply_arg_ne_stuck_of_ne_stuck _ _ hInnerNe
+      have hRevC1Ne : revC1 ≠ Term.Stuck := by
+        simpa [eo_ite_true, revC1] using hIteNe
+      have hFlatC1Ne : flatC1 ≠ Term.Stuck :=
+        eo_list_rev_arg_ne_stuck_of_ne_stuck
+          (Term.UOp UserOp.re_concat) flatC1
+          (by simpa [revC1] using hRevC1Ne)
+      have hFlatC2Ne : flatC2 ≠ Term.Stuck :=
+        eo_mk_apply_arg_ne_stuck_of_ne_stuck _ _ hOutNe
+      have hFlatC1Ty :
+          __smtx_typeof (__eo_to_smt flatC1) = SmtType.RegLan :=
+        ih1 rfl hArgs.1 (by simpa [flatC1] using hFlatC1Ne)
+      have hFlatC1List :
+          __eo_is_list (Term.UOp UserOp.re_concat) flatC1 =
+            Term.Boolean true :=
+        eo_list_rev_is_list_true_of_ne_stuck
+          (Term.UOp UserOp.re_concat) flatC1
+          (by simpa [revC1] using hRevC1Ne)
+      have hRevC1Ty :
+          __smtx_typeof (__eo_to_smt revC1) = SmtType.RegLan := by
+        simpa [revC1] using
+          smt_typeof_list_rev_re_concat_of_reglan_local flatC1
+            hFlatC1List hFlatC1Ty
+            (by simpa [revC1] using hRevC1Ne)
+      have hFlatC2Ty :
+          __smtx_typeof (__eo_to_smt flatC2) = SmtType.RegLan :=
+        ih2 rfl hArgs.2 (by simpa [flatC2] using hFlatC2Ne)
+      have hInnerEq :
+          __eo_mk_apply (Term.UOp UserOp.re_inter)
+              (__eo_ite (Term.Boolean true) revC1 flatC1) =
+            Term.Apply (Term.UOp UserOp.re_inter) revC1 := by
+        rw [eo_ite_true]
+        exact eo_mk_apply_eq_apply_of_ne_stuck
+          (Term.UOp UserOp.re_inter) revC1
+          (by simpa [eo_ite_true, revC1] using hInnerNe)
+      have hOutNe' :
+          __eo_mk_apply
+              (Term.Apply (Term.UOp UserOp.re_inter) revC1) flatC2 ≠
+            Term.Stuck := by
+        simpa [hInnerEq] using hOutNe
+      have hOutEq :
+          __eo_mk_apply
+              (Term.Apply (Term.UOp UserOp.re_inter) revC1) flatC2 =
+            Term.Apply
+              (Term.Apply (Term.UOp UserOp.re_inter) revC1) flatC2 :=
+        eo_mk_apply_eq_apply_of_ne_stuck
+          (Term.Apply (Term.UOp UserOp.re_inter) revC1) flatC2 hOutNe'
+      have hFullTy :
+          __smtx_typeof
+              (__eo_to_smt
+                (Term.Apply
+                  (Term.Apply (Term.UOp UserOp.re_inter) revC1) flatC2)) =
+            SmtType.RegLan :=
+        smt_typeof_re_inter_of_reglan_consume_local revC1 flatC2
+          hRevC1Ty hFlatC2Ty
+      simpa [__re_flatten, flatC1, revC1, flatC2, hInnerEq, hOutEq] using
+        hFullTy
+  | case12 rev c1 c2 hRevNe ih1 ih2 =>
+      intro hRev hTy hFlatNe
+      subst rev
+      let flatC1 := __re_flatten (Term.Boolean true) (Term.Boolean true) c1
+      let revC1 := __eo_list_rev (Term.UOp UserOp.re_concat) flatC1
+      let flatC2 := __re_flatten (Term.Boolean true) (Term.Boolean false) c2
+      have hArgs := re_union_arg_types_of_reglan_consume_local c1 c2 hTy
+      have hOutNe :
+          __eo_mk_apply
+              (__eo_mk_apply (Term.UOp UserOp.re_union)
+                (__eo_ite (Term.Boolean true) revC1 flatC1)) flatC2 ≠
+            Term.Stuck := by
+        simpa [__re_flatten, flatC1, revC1, flatC2] using hFlatNe
+      have hInnerNe :
+          __eo_mk_apply (Term.UOp UserOp.re_union)
+              (__eo_ite (Term.Boolean true) revC1 flatC1) ≠
+            Term.Stuck :=
+        eo_mk_apply_fun_ne_stuck_of_ne_stuck _ _ hOutNe
+      have hIteNe :
+          __eo_ite (Term.Boolean true) revC1 flatC1 ≠ Term.Stuck :=
+        eo_mk_apply_arg_ne_stuck_of_ne_stuck _ _ hInnerNe
+      have hRevC1Ne : revC1 ≠ Term.Stuck := by
+        simpa [eo_ite_true, revC1] using hIteNe
+      have hFlatC1Ne : flatC1 ≠ Term.Stuck :=
+        eo_list_rev_arg_ne_stuck_of_ne_stuck
+          (Term.UOp UserOp.re_concat) flatC1
+          (by simpa [revC1] using hRevC1Ne)
+      have hFlatC2Ne : flatC2 ≠ Term.Stuck :=
+        eo_mk_apply_arg_ne_stuck_of_ne_stuck _ _ hOutNe
+      have hFlatC1Ty :
+          __smtx_typeof (__eo_to_smt flatC1) = SmtType.RegLan :=
+        ih1 rfl hArgs.1 (by simpa [flatC1] using hFlatC1Ne)
+      have hFlatC1List :
+          __eo_is_list (Term.UOp UserOp.re_concat) flatC1 =
+            Term.Boolean true :=
+        eo_list_rev_is_list_true_of_ne_stuck
+          (Term.UOp UserOp.re_concat) flatC1
+          (by simpa [revC1] using hRevC1Ne)
+      have hRevC1Ty :
+          __smtx_typeof (__eo_to_smt revC1) = SmtType.RegLan := by
+        simpa [revC1] using
+          smt_typeof_list_rev_re_concat_of_reglan_local flatC1
+            hFlatC1List hFlatC1Ty
+            (by simpa [revC1] using hRevC1Ne)
+      have hFlatC2Ty :
+          __smtx_typeof (__eo_to_smt flatC2) = SmtType.RegLan :=
+        ih2 rfl hArgs.2 (by simpa [flatC2] using hFlatC2Ne)
+      have hInnerEq :
+          __eo_mk_apply (Term.UOp UserOp.re_union)
+              (__eo_ite (Term.Boolean true) revC1 flatC1) =
+            Term.Apply (Term.UOp UserOp.re_union) revC1 := by
+        rw [eo_ite_true]
+        exact eo_mk_apply_eq_apply_of_ne_stuck
+          (Term.UOp UserOp.re_union) revC1
+          (by simpa [eo_ite_true, revC1] using hInnerNe)
+      have hOutNe' :
+          __eo_mk_apply
+              (Term.Apply (Term.UOp UserOp.re_union) revC1) flatC2 ≠
+            Term.Stuck := by
+        simpa [hInnerEq] using hOutNe
+      have hOutEq :
+          __eo_mk_apply
+              (Term.Apply (Term.UOp UserOp.re_union) revC1) flatC2 =
+            Term.Apply
+              (Term.Apply (Term.UOp UserOp.re_union) revC1) flatC2 :=
+        eo_mk_apply_eq_apply_of_ne_stuck
+          (Term.Apply (Term.UOp UserOp.re_union) revC1) flatC2 hOutNe'
+      have hFullTy :
+          __smtx_typeof
+              (__eo_to_smt
+                (Term.Apply
+                  (Term.Apply (Term.UOp UserOp.re_union) revC1) flatC2)) =
+            SmtType.RegLan :=
+        smt_typeof_re_union_of_reglan_consume_local revC1 flatC2
+          hRevC1Ty hFlatC2Ty
+      simpa [__re_flatten, flatC1, revC1, flatC2, hInnerEq, hOutEq] using
+        hFullTy
+  | case13 rev c hRevNe hCNe hAll hNone hMult hInter hUnion =>
+      intro hRev hTy _hFlatNe
+      subst rev
+      simpa [__re_flatten] using hTy
+  | case14 x x_1 x_2 hRevNe hTreeNe hEmpty hConcatStr hConcat
+      hStr hTrue hAll hNone hMult hInter hUnion hFalse =>
+      intro hRev _hTy hFlatNe
+      subst x
+      simp [__re_flatten] at hFlatNe
+
+private theorem str_re_consume_rflat_type_facts_local
+    (M : SmtModel) (hM : model_total_typed M)
+    (r : Term)
+    (hRTy : __smtx_typeof (__eo_to_smt r) = SmtType.RegLan)
+    (hRFlatNe :
+      __eo_list_rev (Term.UOp UserOp.re_concat)
+          (__re_flatten (Term.Boolean true) (Term.Boolean true) r) ≠
+        Term.Stuck) :
+    let flat := __re_flatten (Term.Boolean true) (Term.Boolean true) r
+    let rFlat := __eo_list_rev (Term.UOp UserOp.re_concat) flat
+    __smtx_typeof (__eo_to_smt rFlat) = SmtType.RegLan ∧
+      __eo_is_list (Term.UOp UserOp.re_concat) rFlat = Term.Boolean true ∧
+      flat ≠ Term.Stuck ∧
+      __eo_is_list (Term.UOp UserOp.re_concat) flat = Term.Boolean true ∧
+      __smtx_typeof (__eo_to_smt flat) = SmtType.RegLan := by
+  let flat := __re_flatten (Term.Boolean true) (Term.Boolean true) r
+  let rFlat := __eo_list_rev (Term.UOp UserOp.re_concat) flat
+  rcases str_re_consume_re_flatten_true_rev_facts r (by
+      simpa [flat, rFlat] using hRFlatNe) with
+    ⟨hFlatNe, hFlatList, hRFlatList⟩
+  have hFlatTy :
+      __smtx_typeof (__eo_to_smt flat) = SmtType.RegLan := by
+    simpa [flat] using
+      smt_typeof_re_flatten_true_of_reglan_local M hM
+        (Term.Boolean true) (Term.Boolean true) r rfl hRTy
+        (by simpa [flat] using hFlatNe)
+  have hRFlatTy :
+      __smtx_typeof (__eo_to_smt rFlat) = SmtType.RegLan := by
+    simpa [rFlat, flat] using
+      smt_typeof_list_rev_re_concat_of_reglan_local flat hFlatList
+        hFlatTy (by simpa [rFlat] using hRFlatNe)
+  exact ⟨hRFlatTy, hRFlatList, hFlatNe, hFlatList, hFlatTy⟩
+
 private theorem eo_mk_apply_ne_boolean_false_local (f x : Term) :
     __eo_mk_apply f x ≠ Term.Boolean false := by
   cases f <;> cases x <;> simp [__eo_mk_apply]
@@ -18416,6 +19083,140 @@ private theorem str_re_consume_mult_final_subterms_ne_stuck_local
     by simpa [second] using hCollectNe,
     by simpa [rePart, second] using hRePartNe⟩
 
+private theorem str_re_consume_non_mult_first_input_type_facts_local
+    (M : SmtModel) (hM : model_total_typed M)
+    (s r side : Term)
+    (hEqTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp.eq)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) r))
+          side))
+    (hS : s ≠ Term.Stuck)
+    (hR : r ≠ Term.Stuck)
+    (hNotMult :
+      ∀ r0, r = Term.Apply (Term.UOp UserOp.re_mult) r0 -> False)
+    (hSide : side = __str_re_consume s r)
+    (hSideNe : side ≠ Term.Stuck)
+    (hSideNotFalse : side ≠ Term.Boolean false) :
+    let sFlat :=
+      __eo_list_rev (Term.UOp UserOp.str_concat)
+        (__str_flatten (__eo_list_singleton_intro
+          (Term.UOp UserOp.str_concat) s))
+    let rFlat :=
+      __eo_list_rev (Term.UOp UserOp.re_concat)
+        (__re_flatten (Term.Boolean true) (Term.Boolean true) r)
+    let first := __str_re_consume_rec sFlat rFlat sFlat
+    __smtx_typeof (__eo_to_smt sFlat) = SmtType.Seq SmtType.Char ∧
+      __smtx_typeof (__eo_to_smt rFlat) = SmtType.RegLan ∧
+      __eo_is_list (Term.UOp UserOp.str_concat) sFlat =
+        Term.Boolean true ∧
+      __eo_is_list (Term.UOp UserOp.re_concat) rFlat =
+        Term.Boolean true ∧
+      first ≠ Term.Stuck ∧
+      sFlat ≠ Term.Stuck ∧
+      rFlat ≠ Term.Stuck := by
+  let sFlat :=
+    __eo_list_rev (Term.UOp UserOp.str_concat)
+      (__str_flatten (__eo_list_singleton_intro
+        (Term.UOp UserOp.str_concat) s))
+  let rFlat :=
+    __eo_list_rev (Term.UOp UserOp.re_concat)
+      (__re_flatten (Term.Boolean true) (Term.Boolean true) r)
+  let first := __str_re_consume_rec sFlat rFlat sFlat
+  rcases str_re_consume_translation_facts s r side hEqTrans with
+    ⟨_hStrInTrans, _hSideTrans, _hSTy, hRTy, _hEqBool⟩
+  rcases str_re_consume_non_mult_final_carry_false_local s r side hS hR
+      hNotMult hSide hSideNe hSideNotFalse with
+    ⟨_hCarryFalse, _hSecondNe, hFirstEqFalse, _hSecondEqFalse⟩
+  have hFirstNe : first ≠ Term.Stuck :=
+    eo_eq_left_ne_stuck_of_false_local first (Term.Boolean false)
+      (by simpa [sFlat, rFlat, first] using hFirstEqFalse)
+  have hSFlatNe : sFlat ≠ Term.Stuck :=
+    str_re_consume_rec_left_ne_stuck_of_ne_stuck sFlat rFlat sFlat
+      hFirstNe
+  have hRFlatNe : rFlat ≠ Term.Stuck :=
+    str_re_consume_rec_right_ne_stuck_of_ne_stuck sFlat rFlat sFlat
+      hFirstNe
+  rcases str_re_consume_sflat_type_facts_local M hM s r side hEqTrans
+      (by simpa [sFlat, __str_nary_intro] using hSFlatNe) with
+    ⟨hSFlatTy, hSFlatList, _hFlatNe, _hFlatList, _hFlatTy⟩
+  rcases str_re_consume_rflat_type_facts_local M hM r hRTy
+      (by simpa [rFlat] using hRFlatNe) with
+    ⟨hRFlatTy, hRFlatList, _hReFlatNe, _hReFlatList, _hReFlatTy⟩
+  exact ⟨hSFlatTy, hRFlatTy, hSFlatList, hRFlatList, hFirstNe,
+    hSFlatNe, hRFlatNe⟩
+
+private theorem str_re_consume_mult_first_input_type_facts_local
+    (M : SmtModel) (hM : model_total_typed M)
+    (s r side : Term)
+    (hEqTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp.eq)
+            (Term.Apply
+              (Term.Apply (Term.UOp UserOp.str_in_re) s)
+              (Term.Apply (Term.UOp UserOp.re_mult) r)))
+          side))
+    (hS : s ≠ Term.Stuck)
+    (hSide : side = __str_re_consume s
+      (Term.Apply (Term.UOp UserOp.re_mult) r))
+    (hSideNe : side ≠ Term.Stuck)
+    (hSideNotFalse : side ≠ Term.Boolean false) :
+    let sFlat :=
+      __eo_list_rev (Term.UOp UserOp.str_concat)
+        (__str_flatten (__eo_list_singleton_intro
+          (Term.UOp UserOp.str_concat) s))
+    let rFlat :=
+      __eo_list_rev (Term.UOp UserOp.re_concat)
+        (__re_flatten (Term.Boolean true) (Term.Boolean true) r)
+    let first := __str_re_consume_rec sFlat rFlat sFlat
+    __smtx_typeof (__eo_to_smt sFlat) = SmtType.Seq SmtType.Char ∧
+      __smtx_typeof (__eo_to_smt rFlat) = SmtType.RegLan ∧
+      __eo_is_list (Term.UOp UserOp.str_concat) sFlat =
+        Term.Boolean true ∧
+      __eo_is_list (Term.UOp UserOp.re_concat) rFlat =
+        Term.Boolean true ∧
+      first ≠ Term.Stuck ∧
+      sFlat ≠ Term.Stuck ∧
+      rFlat ≠ Term.Stuck := by
+  let multR := Term.Apply (Term.UOp UserOp.re_mult) r
+  let sFlat :=
+    __eo_list_rev (Term.UOp UserOp.str_concat)
+      (__str_flatten (__eo_list_singleton_intro
+        (Term.UOp UserOp.str_concat) s))
+  let rFlat :=
+    __eo_list_rev (Term.UOp UserOp.re_concat)
+      (__re_flatten (Term.Boolean true) (Term.Boolean true) r)
+  let first := __str_re_consume_rec sFlat rFlat sFlat
+  rcases str_re_consume_translation_facts s multR side (by
+      simpa [multR] using hEqTrans) with
+    ⟨_hStrInTrans, _hSideTrans, _hSTy, hMultRTy, _hEqBool⟩
+  have hRTy : __smtx_typeof (__eo_to_smt r) = SmtType.RegLan :=
+    re_mult_arg_type_of_reglan_consume_local r
+      (by simpa [multR] using hMultRTy)
+  rcases str_re_consume_mult_final_carry_eq_local s r side hS hSide
+      hSideNe hSideNotFalse with
+    ⟨_hCarryEq, _hSecondNe, hFirstEqFalse, _hSecondEqFalse⟩
+  have hFirstNe : first ≠ Term.Stuck :=
+    eo_eq_left_ne_stuck_of_false_local first (Term.Boolean false)
+      (by simpa [sFlat, rFlat, first] using hFirstEqFalse)
+  have hSFlatNe : sFlat ≠ Term.Stuck :=
+    str_re_consume_rec_left_ne_stuck_of_ne_stuck sFlat rFlat sFlat
+      hFirstNe
+  have hRFlatNe : rFlat ≠ Term.Stuck :=
+    str_re_consume_rec_right_ne_stuck_of_ne_stuck sFlat rFlat sFlat
+      hFirstNe
+  rcases str_re_consume_sflat_type_facts_local M hM s multR side
+      (by simpa [multR] using hEqTrans)
+      (by simpa [sFlat, __str_nary_intro] using hSFlatNe) with
+    ⟨hSFlatTy, hSFlatList, _hFlatNe, _hFlatList, _hFlatTy⟩
+  rcases str_re_consume_rflat_type_facts_local M hM r hRTy
+      (by simpa [rFlat] using hRFlatNe) with
+    ⟨hRFlatTy, hRFlatList, _hReFlatNe, _hReFlatList, _hReFlatTy⟩
+  exact ⟨hSFlatTy, hRFlatTy, hSFlatList, hRFlatList, hFirstNe,
+    hSFlatNe, hRFlatNe⟩
+
 theorem str_re_consume_model_rel
     (M : SmtModel) (hM : model_total_typed M)
     (s r side : Term)
@@ -19269,6 +20070,12 @@ theorem str_re_consume_model_rel
           ∀ r0, r = Term.Apply (Term.UOp UserOp.re_mult) r0 -> False) =>
       str_re_consume_non_mult_final_carry_false_local s r side hSNe hRNe
         hNotMult hSide hSideNe hSideNotFalse
+  have hNonMultFirstInputProgress :=
+    fun (hSideNotFalse : side ≠ Term.Boolean false)
+        (hNotMult :
+          ∀ r0, r = Term.Apply (Term.UOp UserOp.re_mult) r0 -> False) =>
+      str_re_consume_non_mult_first_input_type_facts_local M hM s r side
+        hEqTrans hSNe hRNe hNotMult hSide hSideNe hSideNotFalse
   have hMultFalseProgress :
       ∀ r0,
         r = Term.Apply (Term.UOp UserOp.re_mult) r0 ->
@@ -19446,6 +20253,31 @@ theorem str_re_consume_model_rel
     subst r
     exact str_re_consume_mult_final_carry_eq_local s r0 side hSNe hSide
       hSideNe hSideNotFalse
+  have hMultFirstInputProgress :
+      ∀ r0,
+        r = Term.Apply (Term.UOp UserOp.re_mult) r0 ->
+        side ≠ Term.Boolean false ->
+          let sFlat :=
+            __eo_list_rev (Term.UOp UserOp.str_concat)
+              (__str_flatten (__eo_list_singleton_intro
+                (Term.UOp UserOp.str_concat) s))
+          let rFlat :=
+            __eo_list_rev (Term.UOp UserOp.re_concat)
+              (__re_flatten (Term.Boolean true) (Term.Boolean true) r0)
+          let first := __str_re_consume_rec sFlat rFlat sFlat
+          __smtx_typeof (__eo_to_smt sFlat) = SmtType.Seq SmtType.Char ∧
+            __smtx_typeof (__eo_to_smt rFlat) = SmtType.RegLan ∧
+            __eo_is_list (Term.UOp UserOp.str_concat) sFlat =
+              Term.Boolean true ∧
+            __eo_is_list (Term.UOp UserOp.re_concat) rFlat =
+              Term.Boolean true ∧
+            first ≠ Term.Stuck ∧
+            sFlat ≠ Term.Stuck ∧
+            rFlat ≠ Term.Stuck := by
+    intro r0 hR hSideNotFalse
+    subst r
+    exact str_re_consume_mult_first_input_type_facts_local M hM s r0 side
+      hEqTrans hSNe hSide hSideNe hSideNotFalse
   sorry
 
 private theorem str_in_re_consume_valid_properties
