@@ -319,6 +319,7 @@ inductive SmtTerm : Type where
   | forall : native_String -> SmtType -> SmtTerm -> SmtTerm
   | choice_nth : native_String -> SmtType -> SmtTerm -> native_Nat -> SmtTerm
   | map_diff : SmtTerm -> SmtTerm -> SmtTerm
+  | seq_diff : SmtTerm -> SmtTerm -> SmtTerm
   | DtCons : native_String -> SmtDatatype -> native_Nat -> SmtTerm
   | DtSel : native_String -> SmtDatatype -> native_Nat -> native_Nat -> SmtTerm
   | DtTester : native_String -> SmtDatatype -> native_Nat -> SmtTerm
@@ -541,6 +542,26 @@ macro_rules
                     $typeDefaultId T1)
                   SmtValue.NotValue
             | _ => SmtValue.NotValue)
+  | `(native_eval_seq_diff_ssm $s1 $s2) => do
+      let typeofSeqValueId := Lean.mkIdent `__smtx_typeof_seq_value
+      `(by
+          classical
+          exact
+            match ($typeofSeqValueId $s1, $typeofSeqValueId $s2) with
+            | (SmtType.Seq T1, SmtType.Seq T2) =>
+                native_ite (native_Teq T1 T2)
+                  -- the index of the first position at which the two
+                  -- sequences differ. If one sequence is a prefix of the
+                  -- other (or they are equal), this is the length of the
+                  -- shorter sequence.
+                  (let rec seqDiff (a : SmtSeq) (b : SmtSeq) : native_Int :=
+                    match a, b with
+                    | SmtSeq.cons v1 r1, SmtSeq.cons v2 r2 =>
+                        native_ite (native_veq v1 v2) (1 + seqDiff r1 r2) 0
+                    | _, _ => 0
+                   SmtValue.Numeral (seqDiff $s1 $s2))
+                  SmtValue.NotValue
+            | _ => SmtValue.NotValue)
 
 /- Definition of SMT-LIB model semantics -/
 
@@ -724,6 +745,11 @@ def __smtx_model_eval_map_diff : SmtValue -> SmtValue -> SmtValue
   | v1, v2 => SmtValue.NotValue
 
 
+def __smtx_model_eval_seq_diff : SmtValue -> SmtValue -> SmtValue
+  | (SmtValue.Seq s1), (SmtValue.Seq s2) => (native_eval_seq_diff_ssm s1 s2)
+  | v1, v2 => SmtValue.NotValue
+
+
 def __smtx_model_eval_apply (M : SmtModel) : SmtValue -> SmtValue -> SmtValue
   | v, SmtValue.NotValue => SmtValue.NotValue
   | (SmtValue.DtCons s d n), i => (SmtValue.Apply (SmtValue.DtCons s d n) i)
@@ -782,6 +808,11 @@ def __smtx_typeof_map_diff : SmtType -> SmtType -> SmtType
   | T1, T2 => SmtType.None
 
 
+def __smtx_typeof_seq_diff : SmtType -> SmtType -> SmtType
+  | (SmtType.Seq T1), (SmtType.Seq T2) => (native_ite (native_Teq T1 T2) SmtType.Int SmtType.None)
+  | T1, T2 => SmtType.None
+
+
 def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.Boolean b) => SmtType.Bool
   | (SmtTerm.Numeral n) => SmtType.Int
@@ -798,6 +829,7 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.forall s T x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) (__smtx_typeof_guard_wf T SmtType.Bool) SmtType.None)
   | (SmtTerm.choice_nth s T x1 n) => (__smtx_typeof_choice_nth T x1 n)
   | (SmtTerm.map_diff x1 x2) => (__smtx_typeof_map_diff (__smtx_typeof x1) (__smtx_typeof x2))
+  | (SmtTerm.seq_diff x1 x2) => (__smtx_typeof_seq_diff (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.DtCons s d i) => 
     let _v0 := (SmtType.Datatype s d)
     (__smtx_typeof_guard_wf _v0 (__smtx_typeof_dt_cons_rec _v0 (__smtx_dt_substitute s d d) i))
@@ -1052,6 +1084,7 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.forall s T x1) => (native_eval_tforall M s T x1)
   | (SmtTerm.choice_nth s T x1 i) => (native_eval_tchoice_nth M s T x1 i)
   | (SmtTerm.map_diff x1 x2) => (__smtx_model_eval_map_diff (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.seq_diff x1 x2) => (__smtx_model_eval_seq_diff (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.DtCons s d i) => (SmtValue.DtCons s d i)
   | (SmtTerm.Apply (SmtTerm.DtSel s d i j) x1) => (__smtx_model_eval_dt_sel M s d i j (__smtx_model_eval M x1))
   | (SmtTerm.Apply (SmtTerm.DtTester s d i) x1) => (__smtx_model_eval_dt_tester s d i (__smtx_model_eval M x1))
