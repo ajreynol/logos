@@ -1012,20 +1012,20 @@ by
                   __eo_is_closed_rec, __eo_and, native_and] at hValid ⊢
             case Seq.nil =>
               have hx := go x EoSmtVarEnv.nil hValid
-              simpa [__eo_is_closed_rec, hx, eo_and_true_true]
+              simp [__eo_is_closed_rec, hx, eo_and_true_true]
             case Seq.cons hTail =>
               rename_i s' T' env' vars'
               have hEnvCons := EoSmtVarEnv.cons (s := s') (T := T') hTail
               have hx := go x hEnvCons hValid
-              simpa [__eo_is_closed_rec, hx, eo_and_true_true]
+              simp [__eo_is_closed_rec, hx, eo_and_true_true]
             case Set.nil =>
               have hx := go x EoSmtVarEnv.nil hValid
-              simpa [__eo_is_closed_rec, hx, eo_and_true_true]
+              simp [__eo_is_closed_rec, hx, eo_and_true_true]
             case Set.cons hTail =>
               rename_i s' T' env' vars'
               have hEnvCons := EoSmtVarEnv.cons (s := s') (T := T') hTail
               have hx := go x hEnvCons hValid
-              simpa [__eo_is_closed_rec, hx, eo_and_true_true]
+              simp [__eo_is_closed_rec, hx, eo_and_true_true]
         | Apply g y =>
             cases g with
             | FunType =>
@@ -1039,14 +1039,14 @@ by
                 | nil =>
                     have hy := go y EoSmtVarEnv.nil hyValid
                     have hx := go x EoSmtVarEnv.nil hxValid
-                    simpa [__eo_is_closed_rec, hy, hx, eo_and_true_true]
+                    simp [__eo_is_closed_rec, hy, hx, eo_and_true_true]
                 | cons hTail =>
                     rename_i s' T' env' vars'
                     have hEnvCons :=
                       EoSmtVarEnv.cons (s := s') (T := T') hTail
                     have hy := go y hEnvCons hyValid
                     have hx := go x hEnvCons hxValid
-                    simpa [__eo_is_closed_rec, hy, hx, eo_and_true_true]
+                    simp [__eo_is_closed_rec, hy, hx, eo_and_true_true]
             | UOp op =>
                 cases op <;>
                   cases hEnv <;>
@@ -1061,7 +1061,7 @@ by
                     ⟨hyValid, hxValid⟩
                   have hy := go y EoSmtVarEnv.nil hyValid
                   have hx := go x EoSmtVarEnv.nil hxValid
-                  simpa [__eo_is_closed_rec, hy, hx, eo_and_true_true]
+                  simp [__eo_is_closed_rec, hy, hx, eo_and_true_true]
                 case Array.cons hTail =>
                   rename_i s' T' env' vars'
                   rcases (by
@@ -1074,7 +1074,7 @@ by
                     EoSmtVarEnv.cons (s := s') (T := T') hTail
                   have hy := go y hEnvCons hyValid
                   have hx := go x hEnvCons hxValid
-                  simpa [__eo_is_closed_rec, hy, hx, eo_and_true_true]
+                  simp [__eo_is_closed_rec, hy, hx, eo_and_true_true]
                 case Tuple.nil =>
                   rcases (by
                       simpa [TranslationProofs.eo_type_valid_rec]
@@ -1088,7 +1088,7 @@ by
                     ⟨hyValid, hxValid, _hWf⟩
                   have hy := go y EoSmtVarEnv.nil hyValid
                   have hx := go x EoSmtVarEnv.nil hxValid
-                  simpa [__eo_is_closed_rec, hy, hx, eo_and_true_true]
+                  simp [__eo_is_closed_rec, hy, hx, eo_and_true_true]
                 case Tuple.cons hTail =>
                   rename_i s' T' env' vars'
                   rcases (by
@@ -1105,7 +1105,7 @@ by
                     EoSmtVarEnv.cons (s := s') (T := T') hTail
                   have hy := go y hEnvCons hyValid
                   have hx := go x hEnvCons hxValid
-                  simpa [__eo_is_closed_rec, hy, hx, eo_and_true_true]
+                  simp [__eo_is_closed_rec, hy, hx, eo_and_true_true]
             | _ =>
                 cases hEnv <;>
                   simp [TranslationProofs.eo_type_valid_rec,
@@ -1216,20 +1216,20 @@ by
                   __is_closed_rec, __eo_and, native_and] at hValid ⊢
             case Seq.nil =>
               have hx := go x EoSmtVarEnv.nil hValid
-              simpa [__is_closed_rec, hx, eo_and_true_true]
+              simp [__is_closed_rec, hx, eo_and_true_true]
             case Seq.cons hTail =>
               rename_i s' T' env' vars'
               have hEnvCons := EoSmtVarEnv.cons (s := s') (T := T') hTail
               have hx := go x hEnvCons hValid
-              simpa [__is_closed_rec, hx, eo_and_true_true]
+              simp [__is_closed_rec, hx, eo_and_true_true]
             case Set.nil =>
               have hx := go x EoSmtVarEnv.nil hValid
-              simpa [__is_closed_rec, hx, eo_and_true_true]
+              simp [__is_closed_rec, hx, eo_and_true_true]
             case Set.cons hTail =>
               rename_i s' T' env' vars'
               have hEnvCons := EoSmtVarEnv.cons (s := s') (T := T') hTail
               have hx := go x hEnvCons hValid
-              simpa [__is_closed_rec, hx, eo_and_true_true]
+              simp [__is_closed_rec, hx, eo_and_true_true]
         | Apply g y =>
             cases g with
             | FunType =>
@@ -1264,7 +1264,7 @@ by
                       EoSmtVarEnv.nil hOuterNotList]
                     rw [is_closed_rec_apply_eq_of_not_list_branch
                       EoSmtVarEnv.nil hInnerNotList]
-                    simpa [__is_closed_rec, hy, hx, eo_and_true_true]
+                    simp [__is_closed_rec, hy, hx, eo_and_true_true]
                 | cons hTail =>
                     rename_i s' T' env' vars'
                     have hEnvCons :=
@@ -1292,7 +1292,7 @@ by
                       hEnvCons hOuterNotList]
                     rw [is_closed_rec_apply_eq_of_not_list_branch
                       hEnvCons hInnerNotList]
-                    simpa [__is_closed_rec, hy, hx, eo_and_true_true]
+                    simp [__is_closed_rec, hy, hx, eo_and_true_true]
             | UOp op =>
                 cases op <;>
                   cases hEnv <;>
@@ -1328,7 +1328,7 @@ by
                     EoSmtVarEnv.nil hOuterNotList]
                   rw [is_closed_rec_apply_eq_of_not_list_branch
                     EoSmtVarEnv.nil hInnerNotList]
-                  simpa [__is_closed_rec, hy, hx, eo_and_true_true]
+                  simp [__is_closed_rec, hy, hx, eo_and_true_true]
                 case Array.cons hTail =>
                   rename_i s' T' env' vars'
                   rcases (by
@@ -1362,7 +1362,7 @@ by
                     hEnvCons hOuterNotList]
                   rw [is_closed_rec_apply_eq_of_not_list_branch
                     hEnvCons hInnerNotList]
-                  simpa [__is_closed_rec, hy, hx, eo_and_true_true]
+                  simp [__is_closed_rec, hy, hx, eo_and_true_true]
                 case Tuple.nil =>
                   rcases (by
                       simpa [TranslationProofs.eo_type_valid_rec]
@@ -1397,7 +1397,7 @@ by
                     EoSmtVarEnv.nil hOuterNotList]
                   rw [is_closed_rec_apply_eq_of_not_list_branch
                     EoSmtVarEnv.nil hInnerNotList]
-                  simpa [__is_closed_rec, hy, hx, eo_and_true_true]
+                  simp [__is_closed_rec, hy, hx, eo_and_true_true]
                 case Tuple.cons hTail =>
                   rename_i s' T' env' vars'
                   rcases (by
@@ -1435,7 +1435,7 @@ by
                     hEnvCons hOuterNotList]
                   rw [is_closed_rec_apply_eq_of_not_list_branch
                     hEnvCons hInnerNotList]
-                  simpa [__is_closed_rec, hy, hx, eo_and_true_true]
+                  simp [__is_closed_rec, hy, hx, eo_and_true_true]
             | _ =>
                 cases hEnv <;>
                   simp [TranslationProofs.eo_type_valid_rec,
@@ -1519,9 +1519,9 @@ by
       (eo_type_valid_of_seq_empty_has_smt_translation hTrans)
   cases hEnv with
   | nil =>
-      simpa [__is_closed_rec, __eo_is_closed_rec, hClosed]
+      simp [__is_closed_rec, __eo_is_closed_rec, hClosed]
   | cons hTail =>
-      simpa [__is_closed_rec, __eo_is_closed_rec, hClosed]
+      simp [__is_closed_rec, __eo_is_closed_rec, hClosed]
 
 theorem is_closed_rec_set_empty_eq_eo_is_closed_rec_of_has_smt_translation
     {T env : Term} {vars : List SmtVarKey}
@@ -1536,9 +1536,9 @@ by
       (eo_type_valid_of_set_empty_has_smt_translation hTrans)
   cases hEnv with
   | nil =>
-      simpa [__is_closed_rec, __eo_is_closed_rec, hClosed]
+      simp [__is_closed_rec, __eo_is_closed_rec, hClosed]
   | cons hTail =>
-      simpa [__is_closed_rec, __eo_is_closed_rec, hClosed]
+      simp [__is_closed_rec, __eo_is_closed_rec, hClosed]
 
 theorem is_closed_rec_uop1_eq_and_bool_of_has_smt_translation
     {op : UserOp1} {x env : Term} {vars : List SmtVarKey}
@@ -1560,7 +1560,7 @@ by
       eo_is_closed_rec_eq_true_of_eo_type_valid hEnv
         (eo_type_valid_of_seq_empty_has_smt_translation hTrans)
     exact ⟨true, by
-      cases hEnv <;> simpa [__eo_is_closed_rec, hClosed]⟩
+      cases hEnv <;> simp [__eo_is_closed_rec, hClosed]⟩
   case set_empty =>
     refine
       ⟨is_closed_rec_set_empty_eq_eo_is_closed_rec_of_has_smt_translation
@@ -1571,7 +1571,7 @@ by
       eo_is_closed_rec_eq_true_of_eo_type_valid hEnv
         (eo_type_valid_of_set_empty_has_smt_translation hTrans)
     exact ⟨true, by
-      cases hEnv <;> simpa [__eo_is_closed_rec, hClosed]⟩
+      cases hEnv <;> simp [__eo_is_closed_rec, hClosed]⟩
   all_goals
     exfalso
     unfold eoHasSmtTranslation at hTrans
@@ -1682,7 +1682,7 @@ by
             (__eo_to_smt s) (__eo_to_smt r) (__eo_to_smt_nat idx)) := by
       unfold term_has_non_none_type
       intro hNone
-      exact hTrans (by simpa [hValid, native_ite, hNone])
+      exact hTrans (by simp [hValid, native_ite, hNone])
     have hArgs :=
       re_unfold_pos_component_args_of_non_none
         (__eo_to_smt s) (__eo_to_smt r) (__eo_to_smt_nat idx) hCompNN
@@ -2688,13 +2688,13 @@ theorem is_closed_rec_apply_uop_eq_and_bool_of_arg
 by
   rcases hX with ⟨hXEq, ⟨b, hXBool⟩⟩
   refine ⟨?_, ?_⟩
-  · cases hEnv <;>
-      simpa [__is_closed_rec, __eo_is_closed_rec, hXEq] using
-        eo_and_true_left_eq_of_boolean hXBool
+  · have hEq := eo_and_true_left_eq_of_boolean hXBool
+    cases hEnv <;>
+      simp [__is_closed_rec, __eo_is_closed_rec, hXEq, hEq]
   · exact ⟨b, by
+      have hEq := (eo_and_true_left_eq_of_boolean hXBool).trans hXBool
       cases hEnv <;>
-        simpa [__eo_is_closed_rec] using
-          (eo_and_true_left_eq_of_boolean hXBool).trans hXBool⟩
+        simp [__eo_is_closed_rec, hEq]⟩
 
 theorem term_has_non_none_type_of_eo_has_smt_translation
     {t : Term}
@@ -4126,7 +4126,7 @@ by
   have hIdxTerm : idx = Term.Numeral i :=
     TranslationProofs.eo_to_smt_eq_numeral idx i hIdx
   subst idx
-  simpa [__eo_to_smt_nat_is_valid, hi]
+  simp [__eo_to_smt_nat_is_valid, hi]
 
 theorem smtx_typeof_binary_one_eq :
     __smtx_typeof (SmtTerm.Binary 1 1) = SmtType.BitVec 1 :=
@@ -4449,13 +4449,13 @@ theorem is_closed_rec_apply_uop1_eq_and_bool_of_index_true_and_arg
 by
   rcases hX with ⟨hXEq, ⟨b, hXBool⟩⟩
   refine ⟨?_, ?_⟩
-  · cases hEnv <;>
-      simpa [__is_closed_rec, __eo_is_closed_rec, hIdx, hXEq] using
-        eo_and_true_left_eq_of_boolean hXBool
+  · have hEq := eo_and_true_left_eq_of_boolean hXBool
+    cases hEnv <;>
+      simp [__is_closed_rec, __eo_is_closed_rec, hIdx, hXEq, hEq]
   · exact ⟨b, by
+      have hEq := (eo_and_true_left_eq_of_boolean hXBool).trans hXBool
       cases hEnv <;>
-        simpa [__eo_is_closed_rec, hIdx] using
-          (eo_and_true_left_eq_of_boolean hXBool).trans hXBool⟩
+        simp [__eo_is_closed_rec, hIdx, hEq]⟩
 
 theorem repeat_index_nat_valid_and_arg_has_smt_translation
     {idx x : Term}
@@ -5220,14 +5220,14 @@ theorem is_closed_rec_apply_uop2_eq_and_bool_of_indices_true_and_arg
 by
   rcases hX with ⟨hXEq, ⟨b, hXBool⟩⟩
   refine ⟨?_, ?_⟩
-  · cases hEnv <;>
-      simpa [__is_closed_rec, __eo_is_closed_rec, hHead, hI, hJ, hXEq,
-        eo_and_true_true] using
-        eo_and_true_left_eq_of_boolean hXBool
+  · have hEq := eo_and_true_left_eq_of_boolean hXBool
+    cases hEnv <;>
+      simp [__is_closed_rec, __eo_is_closed_rec, hHead, hI, hJ, hXEq,
+        eo_and_true_true, hEq]
   · exact ⟨b, by
+      have hEq := (eo_and_true_left_eq_of_boolean hXBool).trans hXBool
       cases hEnv <;>
-        simpa [__eo_is_closed_rec, hI, hJ, eo_and_true_true] using
-          (eo_and_true_left_eq_of_boolean hXBool).trans hXBool⟩
+        simp [__eo_is_closed_rec, hI, hJ, eo_and_true_true, hEq]⟩
 
 theorem extract_indices_nat_valid_and_arg_has_smt_translation
     {hi lo x : Term}

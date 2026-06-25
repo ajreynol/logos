@@ -2349,7 +2349,7 @@ by
         root hXLt hExcept hBound hTrans
         purify_arg_has_smt_translation_of_has_smt_translation
         hNoFree hAgree
-        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx])
         ih
   case to_real =>
     exact
@@ -2357,7 +2357,7 @@ by
         root hXLt hExcept hBound hTrans
         to_real_arg_has_smt_translation_of_has_smt_translation
         hNoFree hAgree
-        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx])
         ih
   case to_int =>
     exact
@@ -2365,7 +2365,7 @@ by
         root hXLt hExcept hBound hTrans
         to_int_arg_has_smt_translation_of_has_smt_translation
         hNoFree hAgree
-        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx])
         ih
   case is_int =>
     exact
@@ -2373,7 +2373,7 @@ by
         root hXLt hExcept hBound hTrans
         is_int_arg_has_smt_translation_of_has_smt_translation
         hNoFree hAgree
-        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx])
         ih
   case abs =>
     exact
@@ -2381,7 +2381,7 @@ by
         root hXLt hExcept hBound hTrans
         abs_arg_has_smt_translation_of_has_smt_translation
         hNoFree hAgree
-        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx])
         ih
   case __eoo_neg_2 =>
     exact
@@ -2389,7 +2389,7 @@ by
         root hXLt hExcept hBound hTrans
         uneg_arg_has_smt_translation_of_has_smt_translation
         hNoFree hAgree
-        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx])
         ih
   case int_pow2 =>
     exact
@@ -2397,7 +2397,7 @@ by
         root hXLt hExcept hBound hTrans
         int_pow2_arg_has_smt_translation_of_has_smt_translation
         hNoFree hAgree
-        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx])
         ih
   case int_log2 =>
     exact
@@ -2405,7 +2405,7 @@ by
         root hXLt hExcept hBound hTrans
         int_log2_arg_has_smt_translation_of_has_smt_translation
         hNoFree hAgree
-        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx])
         ih
   case int_ispow2 =>
     exact
@@ -2413,7 +2413,7 @@ by
         root hXLt hExcept hBound hTrans
         int_ispow2_arg_has_smt_translation_of_has_smt_translation
         hNoFree hAgree
-        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx])
         ih
   case _at_int_div_by_zero =>
     exact
@@ -2463,7 +2463,7 @@ by
           cases h :
               native_zleq 0
                 (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))) <;>
-            simp [native_ite, h, __smtx_model_eval])
+            simp [native_ite, __smtx_model_eval])
         ih
   case bvnot =>
     exact
@@ -2471,7 +2471,7 @@ by
         root hXLt hExcept hBound hTrans
         bvnot_arg_has_smt_translation_of_has_smt_translation
         hNoFree hAgree
-        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx])
         ih
   case bvneg =>
     exact
@@ -2479,7 +2479,7 @@ by
         root hXLt hExcept hBound hTrans
         bvneg_arg_has_smt_translation_of_has_smt_translation
         hNoFree hAgree
-        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx])
         ih
   case bvnego =>
     exact
@@ -2487,7 +2487,7 @@ by
         root hXLt hExcept hBound hTrans
         bvnego_arg_has_smt_translation_of_has_smt_translation
         hNoFree hAgree
-        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx])
         ih
   case bvredand =>
     exact
@@ -2495,7 +2495,7 @@ by
         root hXLt hExcept hBound hTrans
         bvredand_arg_has_smt_translation_of_has_smt_translation
         hNoFree hAgree
-        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx])
         ih
   case bvredor =>
     exact
@@ -2503,7 +2503,7 @@ by
         root hXLt hExcept hBound hTrans
         bvredor_arg_has_smt_translation_of_has_smt_translation
         hNoFree hAgree
-        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx])
         ih
   case str_len =>
     exact
@@ -2511,7 +2511,7 @@ by
         root hXLt hExcept hBound hTrans
         str_len_arg_has_smt_translation_of_has_smt_translation
         hNoFree hAgree
-        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx])
         ih
   case str_rev =>
     exact
@@ -2519,7 +2519,7 @@ by
         root hXLt hExcept hBound hTrans
         str_rev_arg_has_smt_translation_of_has_smt_translation
         hNoFree hAgree
-        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx])
         ih
   case str_to_lower =>
     exact
@@ -2527,7 +2527,7 @@ by
         root hXLt hExcept hBound hTrans
         str_to_lower_arg_has_smt_translation_of_has_smt_translation
         hNoFree hAgree
-        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx])
         ih
   case str_to_upper =>
     exact
@@ -2535,7 +2535,7 @@ by
         root hXLt hExcept hBound hTrans
         str_to_upper_arg_has_smt_translation_of_has_smt_translation
         hNoFree hAgree
-        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx])
         ih
   case str_to_code =>
     exact
@@ -2543,7 +2543,7 @@ by
         root hXLt hExcept hBound hTrans
         str_to_code_arg_has_smt_translation_of_has_smt_translation
         hNoFree hAgree
-        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx])
         ih
   case str_from_code =>
     exact
@@ -2551,7 +2551,7 @@ by
         root hXLt hExcept hBound hTrans
         str_from_code_arg_has_smt_translation_of_has_smt_translation
         hNoFree hAgree
-        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx])
         ih
   case str_is_digit =>
     exact
@@ -2559,7 +2559,7 @@ by
         root hXLt hExcept hBound hTrans
         str_is_digit_arg_has_smt_translation_of_has_smt_translation
         hNoFree hAgree
-        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx])
         ih
   case str_to_int =>
     exact
@@ -2567,7 +2567,7 @@ by
         root hXLt hExcept hBound hTrans
         str_to_int_arg_has_smt_translation_of_has_smt_translation
         hNoFree hAgree
-        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx])
         ih
   case str_from_int =>
     exact
@@ -2575,7 +2575,7 @@ by
         root hXLt hExcept hBound hTrans
         str_from_int_arg_has_smt_translation_of_has_smt_translation
         hNoFree hAgree
-        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx])
         ih
   case _at_strings_stoi_non_digit =>
     exact
@@ -2583,7 +2583,7 @@ by
         root hXLt hExcept hBound hTrans
         strings_stoi_non_digit_arg_has_smt_translation_of_has_smt_translation
         hNoFree hAgree
-        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx])
         ih
   case str_to_re =>
     exact
@@ -2591,7 +2591,7 @@ by
         root hXLt hExcept hBound hTrans
         str_to_re_arg_has_smt_translation_of_has_smt_translation
         hNoFree hAgree
-        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx])
         ih
   case re_mult =>
     exact
@@ -2599,7 +2599,7 @@ by
         root hXLt hExcept hBound hTrans
         re_mult_arg_has_smt_translation_of_has_smt_translation
         hNoFree hAgree
-        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx])
         ih
   case re_plus =>
     exact
@@ -2607,7 +2607,7 @@ by
         root hXLt hExcept hBound hTrans
         re_plus_arg_has_smt_translation_of_has_smt_translation
         hNoFree hAgree
-        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx])
         ih
   case re_opt =>
     exact
@@ -2615,7 +2615,7 @@ by
         root hXLt hExcept hBound hTrans
         re_opt_arg_has_smt_translation_of_has_smt_translation
         hNoFree hAgree
-        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx])
         ih
   case re_comp =>
     exact
@@ -2623,7 +2623,7 @@ by
         root hXLt hExcept hBound hTrans
         re_comp_arg_has_smt_translation_of_has_smt_translation
         hNoFree hAgree
-        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx])
         ih
   case seq_unit =>
     exact
@@ -2631,7 +2631,7 @@ by
         root hXLt hExcept hBound hTrans
         seq_unit_arg_has_smt_translation_of_has_smt_translation
         hNoFree hAgree
-        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx])
         ih
   case set_singleton =>
     exact
@@ -2639,7 +2639,7 @@ by
         root hXLt hExcept hBound hTrans
         set_singleton_arg_has_smt_translation_of_has_smt_translation
         hNoFree hAgree
-        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx])
         ih
   case set_choose =>
     exact
@@ -2647,7 +2647,7 @@ by
         root hXLt hExcept hBound hTrans
         set_choose_arg_has_smt_translation_of_has_smt_translation
         hNoFree hAgree
-        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx])
         ih
   case set_is_empty =>
     exact
@@ -2655,7 +2655,7 @@ by
         root hXLt hExcept hBound hTrans
         set_is_empty_arg_has_smt_translation_of_has_smt_translation
         hNoFree hAgree
-        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx])
         ih
   case set_is_singleton =>
     exact
@@ -2663,7 +2663,7 @@ by
         root hXLt hExcept hBound hTrans
         set_is_singleton_arg_has_smt_translation_of_has_smt_translation
         hNoFree hAgree
-        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx])
         ih
   case ubv_to_int =>
     exact
@@ -2671,7 +2671,7 @@ by
         root hXLt hExcept hBound hTrans
         ubv_to_int_arg_has_smt_translation_of_has_smt_translation
         hNoFree hAgree
-        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx])
         ih
   case sbv_to_int =>
     exact
@@ -2679,7 +2679,7 @@ by
         root hXLt hExcept hBound hTrans
         sbv_to_int_arg_has_smt_translation_of_has_smt_translation
         hNoFree hAgree
-        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx, hAgree.globals.1])
+        (by intro hx; dsimp only [__eo_to_smt]; simp [__smtx_model_eval, hx])
         ih
   case re_allchar =>
     exact false_of_apply_re_allchar hTrans
@@ -4595,7 +4595,7 @@ by
             cases hXTy : __smtx_typeof (__eo_to_smt x) <;>
               cases hYTy : __smtx_typeof (__eo_to_smt y) <;>
               simp [__smtx_model_eval, __smtx_model_eval_map_diff,
-                hXTy, hYTy, hx, hy])
+                hx, hy])
           ih
     | exact
         smt_model_eval_apply_apply_uop_binary_eq_of_contains_atomic_term_list_free_rec_false_mapped
@@ -4611,7 +4611,7 @@ by
             cases hXTy : __smtx_typeof (__eo_to_smt x) <;>
               cases hYTy : __smtx_typeof (__eo_to_smt y) <;>
               simp [__smtx_model_eval, __smtx_model_eval_map_diff,
-                hXTy, hYTy, hx, hy])
+                hx, hy])
           ih
     | exact
         smt_model_eval_apply_apply_uop_binary_eq_of_contains_atomic_term_list_free_rec_false_mapped
@@ -4941,8 +4941,7 @@ by
                 smt_model_eval_tuple_prepend_eq_of_eval_eq hAgree.globals
                   (__eo_to_smt x) (__eo_to_smt y)
                   (__smtx_typeof (__eo_to_smt x)) hx hy
-            | simp [__smtx_model_eval, __eo_to_smt_array_deq_diff,
-              __eo_to_smt_sets_deq_diff, hx, hy, hAgree.globals.1,
+            | simp [__smtx_model_eval, hx, hy, hAgree.globals.1,
               smtx_model_eval_apply_eq_of_globals hAgree.globals,
               smtx_seq_nth_eq_of_globals hAgree.globals])
           ih
@@ -5236,7 +5235,7 @@ by
               (native_string_lit "@Tuple") d 0 (native_int_to_nat n)
               (__smtx_model_eval N (__eo_to_smt x))
       all_goals
-        simp [__eo_to_smt_tuple_select, hTy, __smtx_model_eval]
+        simp [__eo_to_smt_tuple_select, __smtx_model_eval]
   case int_to_bv =>
     rcases int_to_bv_index_nat_valid_and_arg_has_smt_translation hTrans with
       ⟨hIdxValid, hXTrans⟩
@@ -5443,7 +5442,7 @@ by
   have hXEval := ih hXLt hExcept hBound hXTrans hXNoFree hAgree
   dsimp only [__eo_to_smt]
   cases hReserved : native_reserved_datatype_name s
-  · simp [native_ite, hReserved, __smtx_model_eval, hXEval,
+  · simp [native_ite, __smtx_model_eval, hXEval,
       smtx_model_eval_dt_sel_eq_of_globals hAgree.globals]
   · exfalso
     change
