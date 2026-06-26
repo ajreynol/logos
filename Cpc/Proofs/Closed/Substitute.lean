@@ -328,6 +328,59 @@ theorem substFalse_eval_var
         hisr hxs hss hbvs hbTrue hx, eval_eo_var M s T]
       exact hRel.agree s T (Or.inr hx)
 
+/-! ### Atom case
+
+A non-`Apply`, non-`Var`, non-`Stuck` term must be ground for the substitution to
+succeed (`substitute_simul_rec_atom` wraps it in `__eo_requires (closed …) …`). If
+the substituted term translates (is non-`None`, hence non-`Stuck`) the closedness
+guard fired, so the term is unchanged and closed, and a closed term evaluates the
+same under any two models agreeing on globals. -/
+theorem substFalse_eval_atom
+    (M N : SmtModel) (F xs ss bvs : Term)
+    (hxs : xs ≠ Term.Stuck) (hss : ss ≠ Term.Stuck) (hbvs : bvs ≠ Term.Stuck)
+    (hNotApply : ∀ f a, F ≠ Term.Apply f a)
+    (hNotVar : ∀ s S, F ≠ Term.Var s S)
+    (hNotStuck : F ≠ Term.Stuck)
+    (hF : eoHasSmtTranslation F)
+    (hSubstTrans :
+      eoHasSmtTranslation
+        (__substitute_simul_rec (Term.Boolean false) F xs ss bvs))
+    (hGlobals : model_agrees_on_globals M N) :
+    __smtx_model_eval M
+        (__eo_to_smt (__substitute_simul_rec (Term.Boolean false) F xs ss bvs)) =
+      __smtx_model_eval N (__eo_to_smt F) := by
+  have hisr : (Term.Boolean false : Term) ≠ Term.Stuck := by decide
+  have hSubstEq :
+      __substitute_simul_rec (Term.Boolean false) F xs ss bvs =
+        __eo_requires (__is_closed_rec F Term.__eo_List_nil) (Term.Boolean true) F :=
+    substitute_simul_rec_atom (Term.Boolean false) F xs ss bvs
+      hisr hxs hss hbvs hNotApply hNotVar hNotStuck
+  -- The substitution translates, so the `requires` did not collapse to `Stuck`.
+  rw [hSubstEq] at hSubstTrans ⊢
+  by_cases hck :
+      native_teq (__is_closed_rec F Term.__eo_List_nil) (Term.Boolean true) = true
+  · have hcTrue : __is_closed_rec F Term.__eo_List_nil = Term.Boolean true := by
+      have := hck
+      simp only [native_teq, decide_eq_true_eq] at this
+      exact this
+    have hReq :
+        __eo_requires (__is_closed_rec F Term.__eo_List_nil) (Term.Boolean true) F = F := by
+      simp [__eo_requires, hcTrue, native_ite, native_teq, native_not, SmtEval.native_not]
+    rw [hReq]
+    have hClosed : __eo_is_closed F = Term.Boolean true := by
+      rw [← is_closed_rec_eq_eo_is_closed_of_has_smt_translation hF]
+      exact hcTrue
+    exact smt_model_eval_eq_of_eo_closed F hClosed M N hGlobals
+  · exfalso
+    have hReq :
+        __eo_requires (__is_closed_rec F Term.__eo_List_nil) (Term.Boolean true) F =
+          Term.Stuck := by
+      simp [__eo_requires, native_ite, hck]
+    rw [hReq] at hSubstTrans
+    unfold eoHasSmtTranslation at hSubstTrans
+    change __smtx_typeof SmtTerm.None ≠ SmtType.None at hSubstTrans
+    exact hSubstTrans TranslationProofs.smtx_typeof_none
+
 /-! ### Capture avoidance: substitute values are push-invariant
 
 Going under a binder pushes the binder's variables. The capture-avoidance side
