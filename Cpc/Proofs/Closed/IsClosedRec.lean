@@ -87,6 +87,7 @@ by
       __smtx_typeof_str_at, __smtx_typeof_str_update,
       __smtx_typeof_re_exp, __smtx_typeof_re_loop, __smtx_typeof_seq_nth,
       __smtx_typeof_set_member, __smtx_typeof_map_diff,
+      __smtx_typeof_seq_diff,
       __smtx_typeof_int_to_bv, __smtx_typeof_choice_nth,
       __eo_to_smt_array_deq_diff,
       __eo_to_smt_sets_deq_diff, __eo_to_smt_set_insert,
@@ -9594,43 +9595,12 @@ theorem strings_deq_diff_args_have_smt_translation_of_has_smt_translation
           (Term.Apply (Term.UOp UserOp._at_strings_deq_diff) x) y)) :
   eoHasSmtTranslation x ∧ eoHasSmtTranslation y :=
 by
-  have hChoiceNN := term_has_non_none_type_of_eo_has_smt_translation hTrans
-  let one := SmtTerm.Numeral 1
-  let idx := SmtTerm.Var (native_string_lit "@x") SmtType.Int
-  let xSub := SmtTerm.str_substr (__eo_to_smt x) idx one
-  let ySub := SmtTerm.str_substr (__eo_to_smt y) idx one
+  have hNN := term_has_non_none_type_of_eo_has_smt_translation hTrans
   change
       term_has_non_none_type
-        (SmtTerm.choice_nth (native_string_lit "@x") SmtType.Int
-          (SmtTerm.not (SmtTerm.eq xSub ySub)) native_nat_zero) at hChoiceNN
-  have hBodyBool :
-      __smtx_typeof (SmtTerm.not (SmtTerm.eq xSub ySub)) =
-        SmtType.Bool :=
-    TranslationProofs.choice_nth_body_bool_of_non_none hChoiceNN
-  have hEqBool : __smtx_typeof (SmtTerm.eq xSub ySub) = SmtType.Bool :=
-    smtx_typeof_not_arg_eq_bool (SmtTerm.eq xSub ySub) hBodyBool
-  have hEqNN : term_has_non_none_type (SmtTerm.eq xSub ySub) := by
-    unfold term_has_non_none_type
-    rw [hEqBool]
-    simp
-  have hEqTypeNN :
-      __smtx_typeof_eq (__smtx_typeof xSub) (__smtx_typeof ySub) ≠
-        SmtType.None := by
-    unfold term_has_non_none_type at hEqNN
-    rw [typeof_eq_eq] at hEqNN
-    exact hEqNN
-  have hEqArgs := smtx_typeof_eq_non_none_closed hEqTypeNN
-  have hXSubNN : term_has_non_none_type xSub := by
-    unfold term_has_non_none_type
-    exact hEqArgs.2
-  have hYSubNN : term_has_non_none_type ySub := by
-    unfold term_has_non_none_type
-    rw [← hEqArgs.1]
-    exact hEqArgs.2
-  rcases str_substr_args_of_non_none hXSubNN with
-    ⟨A, hXTy, _hIdxX, _hOneX⟩
-  rcases str_substr_args_of_non_none hYSubNN with
-    ⟨B, hYTy, _hIdxY, _hOneY⟩
+        (SmtTerm.seq_diff (__eo_to_smt x) (__eo_to_smt y)) at hNN
+  rcases seq_binop_args_of_non_none_ret (op := SmtTerm.seq_diff)
+      (typeof_seq_diff_eq (__eo_to_smt x) (__eo_to_smt y)) hNN with ⟨A, hXTy, hYTy⟩
   exact ⟨eo_has_smt_translation_of_smt_type_eq hXTy (by simp),
     eo_has_smt_translation_of_smt_type_eq hYTy (by simp)⟩
 

@@ -29,6 +29,13 @@ theorem typeof_map_diff_eq
       __smtx_typeof_map_diff (__smtx_typeof t1) (__smtx_typeof t2) := by
   rw [__smtx_typeof.eq_def]
 
+/-- Rewrites the typing equation for `seq_diff`. -/
+theorem typeof_seq_diff_eq
+    (t1 t2 : SmtTerm) :
+    __smtx_typeof (SmtTerm.seq_diff t1 t2) =
+      __smtx_typeof_seq_diff (__smtx_typeof t1) (__smtx_typeof t2) := by
+  rw [__smtx_typeof.eq_def]
+
 /-- Rewrites the typing equation for `not`. -/
 theorem typeof_not_eq (t : SmtTerm) :
     __smtx_typeof (SmtTerm.not t) =
@@ -376,5 +383,66 @@ theorem typeof_value_model_eval_map_diff
       set_map_value_typed (A := A) (by simpa [hm2, h2] using hpres2)
     rw [hm1, hm2]
     exact native_eval_map_diff_msm_typed hm1Ty hm2Ty (hDefault hTy)
+
+/-- Derives `seq_diff` argument shapes from `non_none`. -/
+theorem seq_diff_args_of_non_none
+    {t1 t2 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.seq_diff t1 t2)) :
+    ∃ A : SmtType,
+      __smtx_typeof t1 = SmtType.Seq A ∧
+        __smtx_typeof t2 = SmtType.Seq A ∧
+        __smtx_typeof (SmtTerm.seq_diff t1 t2) = SmtType.Int := by
+  unfold term_has_non_none_type at ht
+  rw [typeof_seq_diff_eq] at ht
+  cases h1 : __smtx_typeof t1 with
+  | Seq A =>
+      cases h2 : __smtx_typeof t2 with
+      | Seq A' =>
+          by_cases hEq : native_Teq A A'
+          · have hAA' : A = A' := by
+              simpa [native_Teq] using hEq
+            subst A'
+            refine ⟨A, rfl, rfl, ?_⟩
+            rw [typeof_seq_diff_eq]
+            simp [__smtx_typeof_seq_diff, h1, h2, native_ite, native_Teq]
+          · exfalso
+            exact ht (by
+              simp [__smtx_typeof_seq_diff, h1, h2, native_ite, hEq])
+      | _ =>
+          exfalso
+          exact ht (by simp [__smtx_typeof_seq_diff, h1, h2])
+  | _ =>
+      exfalso
+      exact ht (by simp [__smtx_typeof_seq_diff, h1])
+
+private theorem model_eval_seq_diff_typed
+    (s1 s2 : SmtSeq) :
+    __smtx_typeof_value
+        (__smtx_model_eval_seq_diff (SmtValue.Seq s1) (SmtValue.Seq s2)) =
+      SmtType.Int := by
+  classical
+  -- `native_eval_seq_diff_ssm` now always returns a `Numeral` (the differing index,
+  -- or `-1` as the default), so the result type is unconditionally `Int`.
+  simp only [__smtx_model_eval_seq_diff]
+  split <;> rfl
+
+/-- Shows that evaluating `seq_diff` terms produces values of the expected index type. -/
+theorem typeof_value_model_eval_seq_diff
+    (M : SmtModel)
+    (t1 t2 : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.seq_diff t1 t2))
+    (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
+    (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.seq_diff t1 t2)) =
+      __smtx_typeof (SmtTerm.seq_diff t1 t2) := by
+  rcases seq_diff_args_of_non_none ht with ⟨A, h1, h2, hTy⟩
+  rw [hTy]
+  rw [show __smtx_model_eval M (SmtTerm.seq_diff t1 t2) =
+      __smtx_model_eval_seq_diff (__smtx_model_eval M t1) (__smtx_model_eval M t2) by
+    simp [__smtx_model_eval]]
+  rcases seq_value_canonical (T := A) (by simpa [h1] using hpres1) with ⟨s1, hs1⟩
+  rcases seq_value_canonical (T := A) (by simpa [h2] using hpres2) with ⟨s2, hs2⟩
+  rw [hs1, hs2]
+  exact model_eval_seq_diff_typed s1 s2
 
 end Smtm

@@ -113,6 +113,12 @@ private theorem tp_result_seq_components_wf_seq_op_2_ret
   cases T <;> cases U <;> simp [__smtx_typeof_seq_op_2_ret,
     tp_result_seq_components_wf, hR, native_ite, native_Teq]
 
+private theorem tp_result_seq_components_wf_seq_diff
+    (T U : SmtType) :
+    tp_result_seq_components_wf (__smtx_typeof_seq_diff T U) := by
+  cases T <;> cases U <;> simp [__smtx_typeof_seq_diff,
+    tp_result_seq_components_wf, native_ite, native_Teq]
+
 private theorem tp_result_seq_components_wf_str_indexof
     (T U V : SmtType) :
     tp_result_seq_components_wf (__smtx_typeof_str_indexof T U V) := by
@@ -692,6 +698,7 @@ private theorem tp_smt_term_result_seq_components_wf_of_non_none
         tp_result_seq_components_wf_bv_op_2_ret,
         tp_result_seq_components_wf_seq_op_1_ret,
         tp_result_seq_components_wf_seq_op_2_ret,
+        tp_result_seq_components_wf_seq_diff,
         tp_result_seq_components_wf_str_indexof,
         tp_result_seq_components_wf_str_indexof_re,
         tp_result_seq_components_wf_str_indexof_re_split,
@@ -966,6 +973,10 @@ private theorem supported_type_preservation
   | map_diff ht1 hs1 ht2 hs2 hDefault =>
       exact typeof_value_model_eval_map_diff M _ _ ht
         (fun {A} hA => (hDefault (A := A) hA).1)
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | seq_diff ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_seq_diff M _ _ ht
         (supported_type_preservation M hM _ ht1 hs1)
         (supported_type_preservation M hM _ ht2 hs2)
   | ite htc hsc ht1 hs1 ht2 hs2 =>
@@ -3405,6 +3416,9 @@ theorem term_type_has_no_none_components_of_non_none :
           · rcases hSet with ⟨A, h1, h2, hRes⟩
             exact term_has_non_none_of_type_eq h1 (by simp)
         exact map_diff_type_has_no_none_components_of_non_none ht (go t1 ht1)
+    | SmtTerm.seq_diff t1 t2 =>
+        exact seq_op_2_ret_type_has_no_none_components_of_non_none
+          (typeof_seq_diff_eq t1 t2) ht (by simp [type_has_no_none_components])
     | SmtTerm.concat _ _ =>
         exact concat_type_has_no_none_components_of_non_none ht
     | SmtTerm.extract _ _ _ =>
@@ -4051,6 +4065,12 @@ theorem supported_preservation_term_of_non_none :
             exact term_has_non_none_of_type_eq h2 (by simp)
         exact supported_preservation_term.map_diff ht1 (go t1 ht1) ht2 (go t2 ht2)
           (map_diff_default_typed_canonical_of_non_none ht)
+    | SmtTerm.seq_diff t1 t2 =>
+        rcases seq_binop_args_of_non_none_ret (op := SmtTerm.seq_diff)
+            (typeof_seq_diff_eq t1 t2) ht with ⟨T, h1, h2⟩
+        have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
+        have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
+        exact supported_preservation_term.seq_diff ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.concat t1 t2 =>
         rcases bv_concat_args_of_non_none ht with ⟨w1, w2, h1, h2⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
