@@ -25876,6 +25876,77 @@ theorem str_re_consume_model_rel
         (by simpa [sFlat] using hSFlatEval)
         (by simpa [rFlat] using hRFlatEval)
     exact hNoPrefix (native_unpack_string sFlatSs) [] (by simp)
+  have hMultFalseOfFirstFalseBridgeProgress :
+      ∀ r0,
+        r = Term.Apply (Term.UOp UserOp.re_mult) r0 ->
+        (let sFlat :=
+          __eo_list_rev (Term.UOp UserOp.str_concat)
+            (__str_flatten (__eo_list_singleton_intro
+              (Term.UOp UserOp.str_concat) s))
+        let rFlat :=
+          __eo_list_rev (Term.UOp UserOp.re_concat)
+            (__re_flatten (Term.Boolean true) (Term.Boolean true) r0)
+        let first := __str_re_consume_rec sFlat rFlat sFlat
+        first = Term.Boolean false) ->
+        (let sFlat :=
+          __eo_list_rev (Term.UOp UserOp.str_concat)
+            (__str_flatten (__eo_list_singleton_intro
+              (Term.UOp UserOp.str_concat) s))
+        let rFlat :=
+          __eo_list_rev (Term.UOp UserOp.re_concat)
+            (__re_flatten (Term.Boolean true) (Term.Boolean true) r0)
+        ∀ ss rv sFlatSs rFlatRv,
+          __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss ->
+          __smtx_model_eval M
+              (__eo_to_smt (Term.Apply (Term.UOp UserOp.re_mult) r0)) =
+            SmtValue.RegLan rv ->
+          __smtx_model_eval M (__eo_to_smt sFlat) =
+            SmtValue.Seq sFlatSs ->
+          __smtx_model_eval M (__eo_to_smt rFlat) =
+            SmtValue.RegLan rFlatRv ->
+            native_str_in_re (native_unpack_string ss) rv =
+              native_str_in_re (native_unpack_string sFlatSs) rFlatRv) ->
+          ∀ ss rv,
+            __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss ->
+            __smtx_model_eval M
+                (__eo_to_smt (Term.Apply (Term.UOp UserOp.re_mult) r0)) =
+              SmtValue.RegLan rv ->
+              native_str_in_re (native_unpack_string ss) rv = false := by
+    intro r0 hR hFirstFalse hInputBridge ss rv hSEval hREval
+    subst r
+    let multR := Term.Apply (Term.UOp UserOp.re_mult) r0
+    let sFlat :=
+      __eo_list_rev (Term.UOp UserOp.str_concat)
+        (__str_flatten (__eo_list_singleton_intro
+          (Term.UOp UserOp.str_concat) s))
+    let rFlat :=
+      __eo_list_rev (Term.UOp UserOp.re_concat)
+        (__re_flatten (Term.Boolean true) (Term.Boolean true) r0)
+    let first := __str_re_consume_rec sFlat rFlat sFlat
+    rcases str_re_consume_translation_facts s multR side
+        (by simpa [multR] using hEqTrans) with
+      ⟨_hStrInTrans, _hSideTrans, _hSTy, hMultRTy, _hEqBool⟩
+    have hR0Ty : __smtx_typeof (__eo_to_smt r0) = SmtType.RegLan :=
+      re_mult_arg_type_of_reglan_consume_local r0
+        (by simpa [multR] using hMultRTy)
+    rcases smt_eval_reglan_of_smt_type_reglan_consume_local M hM
+        (__eo_to_smt r0) hR0Ty with
+      ⟨r0Rv, hR0Eval⟩
+    rcases hMultFirstInputEvalForValuesOfFirstFalseProgress r0 rfl
+        (by simpa [sFlat, rFlat, first] using hFirstFalse)
+        ss r0Rv hSEval hR0Eval with
+      ⟨_flatSs, sFlatSs, _flatRv, rFlatRv, _hSFlatSourceEval,
+        hSFlatEval, _hRFlatSourceEval, hRFlatEval, _hSFlatSourceTy,
+        _hSFlatTy, _hRFlatSourceTy, _hRFlatTy, _hSFlatSourceList,
+        _hSFlatList, _hRFlatSourceList, _hRFlatList,
+        _hSFlatSourceRel⟩
+    have hFirstInputFalse :
+        native_str_in_re (native_unpack_string sFlatSs) rFlatRv = false :=
+      hMultFirstInputFalseNativeProgress r0 rfl hFirstFalse
+        sFlatSs rFlatRv hSFlatEval hRFlatEval
+    rw [hInputBridge ss rv sFlatSs rFlatRv hSEval hREval
+      hSFlatEval hRFlatEval]
+    exact hFirstInputFalse
   have hMultFinalProgress :
       ∀ r0,
         r = Term.Apply (Term.UOp UserOp.re_mult) r0 ->
@@ -27296,6 +27367,26 @@ theorem str_re_consume_model_rel
         SmtValue.RegLan nextRv ->
         native_str_in_re (native_unpack_string ss) rv =
           native_str_in_re (native_unpack_string nextSs) nextRv
+  let nonMultFirstInputBridge
+      (_hNotMult :
+        ∀ r0, r = Term.Apply (Term.UOp UserOp.re_mult) r0 -> False) :
+      Prop :=
+    let sFlat :=
+      __eo_list_rev (Term.UOp UserOp.str_concat)
+        (__str_flatten (__eo_list_singleton_intro
+          (Term.UOp UserOp.str_concat) s))
+    let rFlat :=
+      __eo_list_rev (Term.UOp UserOp.re_concat)
+        (__re_flatten (Term.Boolean true) (Term.Boolean true) r)
+    ∀ ss rv sFlatSs rFlatRv,
+      __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss ->
+      __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv ->
+      __smtx_model_eval M (__eo_to_smt sFlat) =
+        SmtValue.Seq sFlatSs ->
+      __smtx_model_eval M (__eo_to_smt rFlat) =
+        SmtValue.RegLan rFlatRv ->
+        native_str_in_re (native_unpack_string ss) rv =
+          native_str_in_re (native_unpack_string sFlatSs) rFlatRv
   let multFirstFalseNative
       (r0 : Term)
       (_hR : r = Term.Apply (Term.UOp UserOp.re_mult) r0) :
@@ -27349,6 +27440,28 @@ theorem str_re_consume_model_rel
         SmtValue.RegLan nextRv ->
         native_str_in_re (native_unpack_string ss) rv =
           native_str_in_re (native_unpack_string nextSs) nextRv
+  let multFirstInputBridge
+      (r0 : Term)
+      (_hR : r = Term.Apply (Term.UOp UserOp.re_mult) r0) :
+      Prop :=
+    let sFlat :=
+      __eo_list_rev (Term.UOp UserOp.str_concat)
+        (__str_flatten (__eo_list_singleton_intro
+          (Term.UOp UserOp.str_concat) s))
+    let rFlat :=
+      __eo_list_rev (Term.UOp UserOp.re_concat)
+        (__re_flatten (Term.Boolean true) (Term.Boolean true) r0)
+    ∀ ss rv sFlatSs rFlatRv,
+      __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss ->
+      __smtx_model_eval M
+          (__eo_to_smt (Term.Apply (Term.UOp UserOp.re_mult) r0)) =
+        SmtValue.RegLan rv ->
+      __smtx_model_eval M (__eo_to_smt sFlat) =
+        SmtValue.Seq sFlatSs ->
+      __smtx_model_eval M (__eo_to_smt rFlat) =
+        SmtValue.RegLan rFlatRv ->
+        native_str_in_re (native_unpack_string ss) rv =
+          native_str_in_re (native_unpack_string sFlatSs) rFlatRv
   have hNonMultInputNativeEqOfBridgesProgress :
       ∀ (hSideNotFalse : side ≠ Term.Boolean false)
         (hNotMult :
@@ -27458,6 +27571,131 @@ theorem str_re_consume_model_rel
           (by simpa [rFlat] using hRFlatEval)
       _ = native_str_in_re (native_unpack_string firstSs) firstRv :=
         hNonMultFirstNativeEqProgress hSideNotFalse hNotMult
+          sFlatSs rFlatRv firstSs firstRv
+          (by simpa [sFlat] using hSFlatEval)
+          (by simpa [rFlat] using hRFlatEval)
+          (by simpa [first] using hFirstSEval)
+          (by simpa [first] using hFirstREval)
+      _ = native_str_in_re (native_unpack_string nextSs) nextRv :=
+        hFirstResidualBridge firstSs firstRv nextSs nextRv
+          (by simpa [first] using hFirstSEval)
+          (by simpa [first] using hFirstREval)
+          (by simpa [sFlat, rFlat, first, eps, carry, nextS] using
+            hNextSEval)
+          (by simpa [sFlat, rFlat, first, eps, carry, nextR] using
+            hNextREval)
+  have hMultInputNativeEqOfBridgesProgress :
+      ∀ r0
+        (hR : r = Term.Apply (Term.UOp UserOp.re_mult) r0)
+        (hSideNotFalse : side ≠ Term.Boolean false),
+        (let sFlat :=
+          __eo_list_rev (Term.UOp UserOp.str_concat)
+            (__str_flatten (__eo_list_singleton_intro
+              (Term.UOp UserOp.str_concat) s))
+        let rFlat :=
+          __eo_list_rev (Term.UOp UserOp.re_concat)
+            (__re_flatten (Term.Boolean true) (Term.Boolean true) r0)
+        ∀ ss rv sFlatSs rFlatRv,
+          __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss ->
+          __smtx_model_eval M
+              (__eo_to_smt (Term.Apply (Term.UOp UserOp.re_mult) r0)) =
+            SmtValue.RegLan rv ->
+          __smtx_model_eval M (__eo_to_smt sFlat) =
+            SmtValue.Seq sFlatSs ->
+          __smtx_model_eval M (__eo_to_smt rFlat) =
+            SmtValue.RegLan rFlatRv ->
+            native_str_in_re (native_unpack_string ss) rv =
+              native_str_in_re (native_unpack_string sFlatSs) rFlatRv) ->
+        (let sFlat :=
+          __eo_list_rev (Term.UOp UserOp.str_concat)
+            (__str_flatten (__eo_list_singleton_intro
+              (Term.UOp UserOp.str_concat) s))
+        let rFlat :=
+          __eo_list_rev (Term.UOp UserOp.re_concat)
+            (__re_flatten (Term.Boolean true) (Term.Boolean true) r0)
+        let first := __str_re_consume_rec sFlat rFlat sFlat
+        let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
+        let carry :=
+          __eo_and (Term.Boolean true)
+            (__eo_not (__eo_eq (__str_membership_re first) eps))
+        let nextS :=
+          __eo_list_rev (Term.UOp UserOp.str_concat)
+            (__eo_ite carry sFlat (__str_membership_str first))
+        let nextR :=
+          __eo_list_rev (Term.UOp UserOp.re_concat)
+            (__re_flatten (Term.Boolean true) (Term.Boolean true)
+              (__eo_ite carry rFlat (__str_membership_re first)))
+        ∀ firstSs firstRv nextSs nextRv,
+          __smtx_model_eval M
+              (__eo_to_smt (__str_membership_str first)) =
+            SmtValue.Seq firstSs ->
+          __smtx_model_eval M
+              (__eo_to_smt (__str_membership_re first)) =
+            SmtValue.RegLan firstRv ->
+          __smtx_model_eval M (__eo_to_smt nextS) =
+            SmtValue.Seq nextSs ->
+          __smtx_model_eval M (__eo_to_smt nextR) =
+            SmtValue.RegLan nextRv ->
+            native_str_in_re (native_unpack_string firstSs) firstRv =
+              native_str_in_re (native_unpack_string nextSs) nextRv) ->
+          multSecondInputNativeEq r0 hR := by
+    intro r0 hR hSideNotFalse hFirstInputBridge hFirstResidualBridge
+    subst r
+    dsimp [multSecondInputNativeEq]
+    let sFlat :=
+      __eo_list_rev (Term.UOp UserOp.str_concat)
+        (__str_flatten (__eo_list_singleton_intro
+          (Term.UOp UserOp.str_concat) s))
+    let rFlat :=
+      __eo_list_rev (Term.UOp UserOp.re_concat)
+        (__re_flatten (Term.Boolean true) (Term.Boolean true) r0)
+    let first := __str_re_consume_rec sFlat rFlat sFlat
+    let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
+    let carry :=
+      __eo_and (Term.Boolean true)
+        (__eo_not (__eo_eq (__str_membership_re first) eps))
+    let nextS :=
+      __eo_list_rev (Term.UOp UserOp.str_concat)
+        (__eo_ite carry sFlat (__str_membership_str first))
+    let nextR :=
+      __eo_list_rev (Term.UOp UserOp.re_concat)
+        (__re_flatten (Term.Boolean true) (Term.Boolean true)
+          (__eo_ite carry rFlat (__str_membership_re first)))
+    intro ss rv nextSs nextRv hSEval hREval hNextSEval hNextREval
+    rcases hMultFirstInputEvalForValuesProgress r0 rfl hSideNotFalse
+        ss rv hSEval hREval with
+      ⟨_r0Rv, _flatSs, sFlatSs, _flatRv, rFlatRv, _hR0Eval,
+        _hStarRv, _hSFlatSourceEval, hSFlatEval, _hRFlatSourceEval,
+        hRFlatEval, _hSFlatSourceTy, hSFlatTy, _hRFlatSourceTy,
+        hRFlatTy, _hSFlatSourceList, _hSFlatList, _hRFlatSourceList,
+        _hRFlatList, _hSFlatSourceRel⟩
+    rcases hMultSecondInputNeProgress r0 rfl hSideNotFalse with
+      ⟨hMemReNe, _hCarryNe, _hNextSNe, _hNextRNe, _hSecondNe⟩
+    rcases hMultFinalNotFalseProgress r0 rfl hSideNotFalse with
+      ⟨_hFirstNotFalse, _hSecondNotFalse, hFirstNe, _hSecondNe'⟩
+    have hFirstTy :
+        __smtx_typeof (__eo_to_smt first) = SmtType.Bool :=
+      hRecType sFlat rFlat sFlat
+        (by simpa [sFlat] using hSFlatTy)
+        (by simpa [rFlat] using hRFlatTy)
+        (by simpa [first] using hFirstNe)
+    rcases str_re_consume_rec_projection_types_of_bool_local first
+        hFirstTy (by simpa [first] using hMemReNe) with
+      ⟨hMemStrTy, hMemReTy⟩
+    rcases smt_eval_seq_char_of_smt_type_seq_char_consume_local M hM
+        (__eo_to_smt (__str_membership_str first)) hMemStrTy with
+      ⟨firstSs, hFirstSEval⟩
+    rcases smt_eval_reglan_of_smt_type_reglan_consume_local M hM
+        (__eo_to_smt (__str_membership_re first)) hMemReTy with
+      ⟨firstRv, hFirstREval⟩
+    calc
+      native_str_in_re (native_unpack_string ss) rv =
+          native_str_in_re (native_unpack_string sFlatSs) rFlatRv :=
+        hFirstInputBridge ss rv sFlatSs rFlatRv hSEval hREval
+          (by simpa [sFlat] using hSFlatEval)
+          (by simpa [rFlat] using hRFlatEval)
+      _ = native_str_in_re (native_unpack_string firstSs) firstRv :=
+        hMultFirstNativeEqProgress r0 rfl hSideNotFalse
           sFlatSs rFlatRv firstSs firstRv
           (by simpa [sFlat] using hSFlatEval)
           (by simpa [rFlat] using hRFlatEval)
@@ -28104,7 +28342,42 @@ theorem str_re_consume_model_rel
           (_hR : r = Term.Apply (Term.UOp UserOp.re_mult) r0)
           (hSideNotFalse : side ≠ Term.Boolean false),
         multSecondStrNativeEq r0 hSideNotFalse) := by
-    sorry
+    have hTwoPassBridgeRestProgress :
+        (∀ (hNotMult :
+            ∀ r0, r = Term.Apply (Term.UOp UserOp.re_mult) r0 -> False),
+          nonMultFirstInputBridge hNotMult) ∧
+        (∀ r0
+            (hR : r = Term.Apply (Term.UOp UserOp.re_mult) r0),
+          multFirstInputBridge r0 hR) ∧
+        (∀ (hNotMult :
+            ∀ r0, r = Term.Apply (Term.UOp UserOp.re_mult) r0 -> False),
+          nonMultSecondInputNativeEq hNotMult) ∧
+        (∀ r0
+            (hR : r = Term.Apply (Term.UOp UserOp.re_mult) r0),
+          multSecondInputNativeEq r0 hR) ∧
+        (∀ r0
+            (_hR : r = Term.Apply (Term.UOp UserOp.re_mult) r0)
+            (hSideNotFalse : side ≠ Term.Boolean false),
+          multSecondStrNativeEq r0 hSideNotFalse) := by
+      sorry
+    rcases hTwoPassBridgeRestProgress with
+      ⟨hNonMultFirstInputBridge, hMultFirstInputBridge,
+        hNonMultSecondInputNative, hMultSecondInputNative,
+        hMultSecondStrNativeFinal⟩
+    refine ⟨?_, hNonMultSecondInputNative, ?_, hMultSecondInputNative,
+      hMultSecondStrNativeFinal⟩
+    · intro hNotMult hFirstFalse ss rv hSEval hREval
+      exact hNonMultFalseOfFirstFalseBridgeProgress hNotMult hFirstFalse
+        (by
+          simpa [nonMultFirstInputBridge] using
+            hNonMultFirstInputBridge hNotMult)
+        ss rv hSEval hREval
+    · intro r0 hR hFirstFalse ss rv hSEval hREval
+      exact hMultFalseOfFirstFalseBridgeProgress r0 hR hFirstFalse
+        (by
+          simpa [multFirstInputBridge] using
+            hMultFirstInputBridge r0 hR)
+        ss rv hSEval hREval
   have hRemainingSemantic :
       (∀ (hSideFalse : side = Term.Boolean false)
           (hNotMult :
