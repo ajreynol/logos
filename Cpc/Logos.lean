@@ -337,12 +337,15 @@ def __eo_is_var : Term -> Term
 
 
 def __eo_type_lift (s : native_String) (d : Datatype) : Term -> Term
+  | Term.Stuck  => Term.Stuck
   | (Term.DatatypeType s2 d2) => (native_ite (native_teq (Term.DatatypeType s d) (Term.DatatypeType s2 d2)) (Term.DatatypeTypeRef s) (Term.DatatypeType s2 (__eo_dt_lift s d d2)))
   | T => T
+
 
 def __eo_dtc_lift (s : native_String) (d : Datatype) : DatatypeCons -> DatatypeCons
   | (DatatypeCons.cons T c) => (DatatypeCons.cons (__eo_type_lift s d T) (__eo_dtc_lift s d c))
   | DatatypeCons.unit => DatatypeCons.unit
+
 
 def __eo_dt_lift (s : native_String) (d : Datatype) : Datatype -> Datatype
   | (Datatype.sum c d2) => (Datatype.sum (__eo_dtc_lift s d c) (__eo_dt_lift s d d2))
