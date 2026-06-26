@@ -330,14 +330,7 @@ private theorem string_ext_smt_types
 /-- The SMT translation of the deq-diff index. -/
 private theorem eo_to_smt_deq_diff_eq (a b : Term) :
     __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_deq_diff) a) b) =
-      SmtTerm.choice_nth (native_string_lit "@x") SmtType.Int
-        (SmtTerm.not
-          (SmtTerm.eq
-            (SmtTerm.str_substr (__eo_to_smt a) (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-              (SmtTerm.Numeral 1))
-            (SmtTerm.str_substr (__eo_to_smt b) (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-              (SmtTerm.Numeral 1))))
-        native_nat_zero := by
+      SmtTerm.seq_diff (__eo_to_smt a) (__eo_to_smt b) := by
   rfl
 
 /-- The deq-diff index translates to an `Int`-typed SMT term. -/
@@ -348,35 +341,8 @@ private theorem deq_diff_smt_typeof_int
     __smtx_typeof
         (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_deq_diff) a) b)) =
       SmtType.Int := by
-  rw [eo_to_smt_deq_diff_eq, smtx_typeof_choice_nth_term_eq]
-  have hVarInt :
-      __smtx_typeof (SmtTerm.Var (native_string_lit "@x") SmtType.Int) = SmtType.Int := by
-    rw [smtx_typeof_var_term_eq]; rfl
-  have hNum1 : __smtx_typeof (SmtTerm.Numeral 1) = SmtType.Int := by rw [__smtx_typeof.eq_2]
-  have hSub :
-      __smtx_typeof
-        (SmtTerm.str_substr (__eo_to_smt a)
-          (SmtTerm.Var (native_string_lit "@x") SmtType.Int) (SmtTerm.Numeral 1)) =
-        SmtType.Seq (__eo_to_smt_type A) := by
-    rw [typeof_str_substr_eq, hSmtA, hVarInt, hNum1]; rfl
-  have hSubB :
-      __smtx_typeof
-        (SmtTerm.str_substr (__eo_to_smt b)
-          (SmtTerm.Var (native_string_lit "@x") SmtType.Int) (SmtTerm.Numeral 1)) =
-        SmtType.Seq (__eo_to_smt_type A) := by
-    rw [typeof_str_substr_eq, hSmtB, hVarInt, hNum1]; rfl
-  have hBodyBool :
-      __smtx_typeof
-        (SmtTerm.not
-          (SmtTerm.eq
-            (SmtTerm.str_substr (__eo_to_smt a) (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-              (SmtTerm.Numeral 1))
-            (SmtTerm.str_substr (__eo_to_smt b) (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-              (SmtTerm.Numeral 1)))) = SmtType.Bool := by
-    rw [typeof_not_eq, typeof_eq_eq, hSub, hSubB]
-    simp [__smtx_typeof_eq, __smtx_typeof_guard, native_ite, native_Teq]
-  simp only [__smtx_typeof_choice_nth, hBodyBool, native_Teq]
-  rfl
+  rw [eo_to_smt_deq_diff_eq, typeof_seq_diff_eq, hSmtA, hSmtB]
+  simp [__smtx_typeof_seq_op_2_ret, native_ite, native_Teq]
 
 /-- The SMT typeof of `str_len a` is `Int` when `a` is a sequence. -/
 private theorem str_len_smt_typeof_int

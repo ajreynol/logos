@@ -622,6 +622,15 @@ private theorem result_datatype_components_wf_typeof_eq
       repeat split <;>
       simp [result_datatype_components_wf])
 
+private theorem result_datatype_components_wf_typeof_seq_diff
+    (T U : SmtType) :
+    result_datatype_components_wf (__smtx_typeof_seq_diff T U) := by
+  cases T <;> cases U <;>
+    (simp [__smtx_typeof_seq_diff,
+      result_datatype_components_wf, native_ite, native_Teq] <;>
+      repeat split <;>
+      simp [result_datatype_components_wf])
+
 private theorem result_datatype_components_wf_dt_tester_apply
     (s : native_String) (d : SmtDatatype) (i : native_Nat) (x : SmtTerm) :
     result_datatype_components_wf
@@ -781,6 +790,12 @@ private theorem term_result_datatype_components_wf_of_non_none
         rw [hTy]
         exact result_datatype_components_wf_of_type_wf
           (set_type_wf_component_of_wf hSetWf)
+    case seq_diff t1 t2 =>
+      rw [show __smtx_typeof (t1.seq_diff t2) =
+            __smtx_typeof_seq_diff (__smtx_typeof t1) (__smtx_typeof t2) by
+        simp [__smtx_typeof]]
+      exact result_datatype_components_wf_typeof_seq_diff
+        (__smtx_typeof t1) (__smtx_typeof t2)
     case Apply f x =>
       by_cases hSelWitness : ∃ s d i j, f = SmtTerm.DtSel s d i j
       · rcases hSelWitness with ⟨s, d, i, j, rfl⟩
