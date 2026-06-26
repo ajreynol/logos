@@ -1382,11 +1382,9 @@ and confirm that all values they are built from are also canonical.
 
 \begin{figure}[p]
 \begin{lstlisting}
-def inhabited_type (T : SmtType) : Bool := by
-  classical
-  exact
-    decide (smt_typeof_value (smt_type_default T) = T) &&
-      (smt_value_canonical (smt_type_default T))
+def inhabited_type (T : SmtType) : Bool :=
+  (Teq (smt_typeof_value (smt_type_default T)) T) &&
+  (smt_value_canonical (smt_type_default T))
 
 def smt_dt_cons_wf_rec : SmtDatatypeCons -> RefList -> Bool
   | (SmtDatatypeCons.cons (SmtType.TypeRef s) c), refs =>
