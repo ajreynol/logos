@@ -188,6 +188,14 @@ theorem model_agrees_except_on_env_weaken_cons
   model_agrees_except_on_env_weaken_except
     (fun key hMem => smtVar_mem_cons_map_tail hMem) hAgree
 
+theorem model_agrees_on_env_of_agrees_everywhere
+    {vars : List SmtVarKey} {M N : SmtModel}
+    (hAgree : model_agrees_except_on_env [] [] M N) :
+    model_agrees_on_env vars M N := by
+  refine ⟨hAgree.globals, ?_⟩
+  intro s T _hMem
+  exact hAgree.vars_eq s T (Or.inr (by simp))
+
 /-- `pushSubstModel` agrees with the original model outside the binder keys. -/
 theorem pushSubstModel_agrees_except
     (M : SmtModel) :
@@ -292,6 +300,135 @@ theorem forall_binders_env_of_has_smt_translation
       simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
         using hForall)
 
+/-- Peels one binder from a Boolean-typed encoded existential. -/
+theorem smtx_typeof_exists_tail_bool_of_cons_bool
+    (s : native_String) (T xs : Term) (body : SmtTerm) :
+    __smtx_typeof
+        (__eo_to_smt_exists
+          (Term.Apply (Term.Apply Term.__eo_List_cons
+            (Term.Var (Term.String s) T)) xs)
+          body) = SmtType.Bool ->
+    __smtx_typeof (__eo_to_smt_exists xs body) = SmtType.Bool := by
+  intro hTy
+  have hExists :
+      __smtx_typeof
+          (SmtTerm.exists s (__eo_to_smt_type T)
+            (__eo_to_smt_exists xs body)) = SmtType.Bool := by
+    simpa [__eo_to_smt_exists] using hTy
+  have hNN :
+      term_has_non_none_type
+        (SmtTerm.exists s (__eo_to_smt_type T)
+          (__eo_to_smt_exists xs body)) := by
+    unfold term_has_non_none_type
+    rw [hExists]
+    simp
+  exact exists_body_bool_of_non_none hNN
+
+/-- The head type of a Boolean-typed encoded existential is well-formed. -/
+theorem smtx_type_wf_of_exists_cons_bool
+    (s : native_String) (T xs : Term) (body : SmtTerm) :
+    __smtx_typeof
+        (__eo_to_smt_exists
+          (Term.Apply (Term.Apply Term.__eo_List_cons
+            (Term.Var (Term.String s) T)) xs)
+          body) = SmtType.Bool ->
+    __smtx_type_wf (__eo_to_smt_type T) = true := by
+  intro hTy
+  have hTail :
+      __smtx_typeof (__eo_to_smt_exists xs body) = SmtType.Bool :=
+    smtx_typeof_exists_tail_bool_of_cons_bool s T xs body hTy
+  have hGuardNN :
+      __smtx_typeof_guard_wf (__eo_to_smt_type T) SmtType.Bool ≠
+        SmtType.None := by
+    intro hNone
+    have hExists :
+        __smtx_typeof
+            (SmtTerm.exists s (__eo_to_smt_type T)
+              (__eo_to_smt_exists xs body)) = SmtType.Bool := by
+      simpa [__eo_to_smt_exists] using hTy
+    rw [smtx_typeof_exists_term_eq, hTail] at hExists
+    simp [native_ite, native_Teq, hNone] at hExists
+  exact smtx_typeof_guard_wf_wf_of_non_none
+    (__eo_to_smt_type T) SmtType.Bool hGuardNN
+
+/-- Every binder in a Boolean-typed encoded existential has a well-formed type. -/
+theorem smtx_type_wf_of_eo_var_env_exists_bool
+    {xs : Term} {vars : List EoVarKey} {body : SmtTerm}
+    (hEnv : EoVarEnv xs vars)
+    (hTy : __smtx_typeof (__eo_to_smt_exists xs body) = SmtType.Bool) :
+    ∀ s T, (s, T) ∈ vars ->
+      __smtx_type_wf (__eo_to_smt_type T) = true := by
+  induction hEnv generalizing body with
+  | nil =>
+      intro s T hMem
+      cases hMem
+  | cons hTail ih =>
+      rename_i s T xs tailVars
+      intro s' T' hMem
+      cases hMem with
+      | head =>
+          exact smtx_type_wf_of_exists_cons_bool s T xs body hTy
+      | tail _ hTailMem =>
+          have hTailTy :
+              __smtx_typeof (__eo_to_smt_exists xs body) =
+                SmtType.Bool :=
+            smtx_typeof_exists_tail_bool_of_cons_bool s T xs body hTy
+          exact ih hTailTy s' T' hTailMem
+
+/-- A translatable universal quantifier has well-formed SMT binder types. -/
+theorem forall_binder_types_wf_of_has_smt_translation
+    {xs F : Term} {vars : List EoVarKey}
+    (hForall : RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F))
+    (hEnv : EoVarEnv xs vars) :
+    ∀ s T, (s, T) ∈ vars ->
+      __smtx_type_wf (__eo_to_smt_type T) = true := by
+  cases hEnv with
+  | nil =>
+      intro s T hMem
+      cases hMem
+  | cons hTail =>
+      rename_i s T env tailVars
+      have hNotTy :
+          __smtx_typeof
+              (SmtTerm.not
+                (__eo_to_smt_exists
+                  (Term.Apply (Term.Apply Term.__eo_List_cons
+                    (Term.Var (Term.String s) T)) env)
+                  (SmtTerm.not (__eo_to_smt F)))) =
+            SmtType.Bool :=
+        smtx_typeof_not_eq_bool_of_non_none
+          (__eo_to_smt_exists
+            (Term.Apply (Term.Apply Term.__eo_List_cons
+              (Term.Var (Term.String s) T)) env)
+            (SmtTerm.not (__eo_to_smt F)))
+          (by
+            change
+              __smtx_typeof
+                  (SmtTerm.not
+                    (__eo_to_smt_exists
+                      (Term.Apply (Term.Apply Term.__eo_List_cons
+                        (Term.Var (Term.String s) T)) env)
+                      (SmtTerm.not (__eo_to_smt F)))) ≠
+                SmtType.None
+            simpa [RuleProofs.eo_has_smt_translation] using hForall)
+      have hExistsTy :
+          __smtx_typeof
+              (__eo_to_smt_exists
+                (Term.Apply (Term.Apply Term.__eo_List_cons
+                  (Term.Var (Term.String s) T)) env)
+                (SmtTerm.not (__eo_to_smt F))) =
+            SmtType.Bool :=
+        smtx_typeof_not_arg_eq_bool
+          (__eo_to_smt_exists
+            (Term.Apply (Term.Apply Term.__eo_List_cons
+              (Term.Var (Term.String s) T)) env)
+            (SmtTerm.not (__eo_to_smt F)))
+          hNotTy
+      exact
+        smtx_type_wf_of_eo_var_env_exists_bool
+          (EoVarEnv.cons (s := s) (T := T) hTail) hExistsTy
+
 /-- A translatable universal quantifier has a translatable body. -/
 theorem forall_body_has_smt_translation_of_has_smt_translation
     (xs F : Term)
@@ -348,6 +485,250 @@ inductive ForallInstantiationModel : SmtModel -> Term -> SmtModel -> Prop where
       ForallInstantiationModel M
         (Term.Apply (Term.Apply Term.__eo_List_cons
           (Term.Var (Term.String s) T)) env) N
+
+/--
+Builds the quantifier-assignment model obtained by reading each binder value
+from `Source` and pushing it, in binder order, onto the base model `M`.
+-/
+noncomputable def forallAssignmentModel (Source : SmtModel) :
+    SmtModel -> Term -> SmtModel
+  | M,
+    (Term.Apply (Term.Apply Term.__eo_List_cons
+      (Term.Var (Term.String s) T)) env) =>
+      forallAssignmentModel Source
+        (native_model_push M s (__eo_to_smt_type T)
+          (native_model_var_lookup Source s (__eo_to_smt_type T)))
+        env
+  | M, _ => M
+
+@[simp] theorem forallAssignmentModel_nil
+    (Source M : SmtModel) :
+    forallAssignmentModel Source M Term.__eo_List_nil = M := by
+  rfl
+
+@[simp] theorem forallAssignmentModel_cons_var
+    (Source M : SmtModel) (s : native_String) (T env : Term) :
+    forallAssignmentModel Source M
+        (Term.Apply (Term.Apply Term.__eo_List_cons
+          (Term.Var (Term.String s) T)) env) =
+      forallAssignmentModel Source
+        (native_model_push M s (__eo_to_smt_type T)
+          (native_model_var_lookup Source s (__eo_to_smt_type T)))
+        env := by
+  rfl
+
+/-- Well-typed canonical instantiation preserves total typedness of models. -/
+theorem ForallInstantiationModel.total_typed
+    {M N : SmtModel} {xs : Term}
+    (hInst : ForallInstantiationModel M xs N)
+    (hM : model_total_typed M) :
+    model_total_typed N := by
+  induction hInst with
+  | nil M =>
+      exact hM
+  | cons hWf hValTy hValCan _hTail ih =>
+      rename_i M N s T env v
+      exact ih
+        (model_total_typed_push hM s (__eo_to_smt_type T) v
+          hWf hValTy
+          (by simpa [__smtx_value_canonical] using hValCan))
+
+/--
+An instantiation model agrees with its base model outside the quantified binder
+keys. The instantiated values may differ exactly on those keys.
+-/
+theorem ForallInstantiationModel.agrees_except
+    {M N : SmtModel} {xs : Term} {vars : List EoVarKey}
+    (hInst : ForallInstantiationModel M xs N)
+    (hEnv : EoVarEnv xs vars) :
+    model_agrees_except_on_env (vars.map EoVarKey.toSmt) [] N M := by
+  induction hInst generalizing vars with
+  | nil M =>
+      cases hEnv
+      exact model_agrees_except_on_env_refl [] [] M
+  | cons hWf hValTy hValCan hTail ih =>
+      rename_i M N s T env v
+      cases hEnv with
+      | cons hEnvTail =>
+          rename_i tailVars
+          have hTailAgree :
+              model_agrees_except_on_env
+                (tailVars.map EoVarKey.toSmt) [] N
+                (native_model_push M s (__eo_to_smt_type T) v) :=
+            ih hEnvTail
+          have hPushGlobals :
+              model_agrees_on_globals
+                (native_model_push M s (__eo_to_smt_type T) v) M :=
+            ⟨by
+                intro s' T'
+                exact
+                  ((model_agrees_on_globals_push M s (__eo_to_smt_type T) v).1
+                    s' T').symm,
+              by
+                intro fid T' U'
+                exact
+                  ((model_agrees_on_globals_push M s (__eo_to_smt_type T) v).2
+                    fid T' U').symm⟩
+          refine
+            ⟨model_agrees_on_globals_trans hTailAgree.globals hPushGlobals, ?_⟩
+          intro s' T' hAllowed
+          rcases hAllowed with hBound | hNotExcept
+          · cases hBound
+          · have hNotTail :
+                (s', T') ∉ tailVars.map EoVarKey.toSmt := by
+              intro hMem
+              exact hNotExcept (List.Mem.tail _ hMem)
+            have hKeyNe :
+                ({ isVar := true, name := s', ty := T' } : SmtModelKey) ≠
+                  { isVar := true, name := s, ty := __eo_to_smt_type T } := by
+              intro hKey
+              apply hNotExcept
+              cases hKey
+              simp [EoVarKey.toSmt]
+            have hTailEq :
+                native_model_var_lookup N s' T' =
+                  native_model_var_lookup
+                    (native_model_push M s (__eo_to_smt_type T) v) s' T' :=
+              hTailAgree.vars_eq s' T' (Or.inr hNotTail)
+            have hPushEq :
+                native_model_var_lookup
+                    (native_model_push M s (__eo_to_smt_type T) v) s' T' =
+                  native_model_var_lookup M s' T' := by
+              simp [native_model_var_lookup, native_model_push, hKeyNe]
+            exact hTailEq.trans hPushEq
+
+/--
+Values read from a total model produce a legal instantiation model for any
+well-formed binder environment.
+-/
+theorem forallAssignmentModel_instantiation
+    (Source : SmtModel) (hSource : model_total_typed Source)
+    {xs : Term} {vars : List EoVarKey}
+    (hEnv : EoVarEnv xs vars)
+    (hWf :
+      ∀ s T, (s, T) ∈ vars ->
+        __smtx_type_wf (__eo_to_smt_type T) = true)
+    (M : SmtModel) :
+    ForallInstantiationModel M xs
+      (forallAssignmentModel Source M xs) := by
+  induction hEnv generalizing M with
+  | nil =>
+      simp [forallAssignmentModel]
+      exact ForallInstantiationModel.nil M
+  | cons hTail ih =>
+      rename_i s T env tailVars
+      rw [forallAssignmentModel_cons_var]
+      let ST := __eo_to_smt_type T
+      have hHeadWf : __smtx_type_wf ST = true :=
+        hWf s T (List.Mem.head _)
+      refine ForallInstantiationModel.cons (M := M)
+        (N := forallAssignmentModel Source
+          (native_model_push M s ST
+            (native_model_var_lookup Source s ST)) env)
+        (s := s) (T := T) (env := env)
+        (v := native_model_var_lookup Source s ST)
+        (by simpa [ST] using hHeadWf)
+        (by
+          simpa [ST] using
+            model_total_typed_var_lookup hSource s ST hHeadWf)
+        (by
+          simpa [ST, __smtx_value_canonical] using
+            model_total_typed_var_lookup_canonical hSource s ST hHeadWf)
+        ?_
+      exact ih
+        (by
+          intro s' T' hMem
+          exact hWf s' T' (List.Mem.tail _ hMem))
+        (native_model_push M s ST
+          (native_model_var_lookup Source s ST))
+
+theorem forallAssignmentModel_total_typed
+    (Source M : SmtModel)
+    (hSource : model_total_typed Source) (hM : model_total_typed M)
+    {xs : Term} {vars : List EoVarKey}
+    (hEnv : EoVarEnv xs vars)
+    (hWf :
+      ∀ s T, (s, T) ∈ vars ->
+        __smtx_type_wf (__eo_to_smt_type T) = true) :
+    model_total_typed (forallAssignmentModel Source M xs) :=
+  (forallAssignmentModel_instantiation Source hSource hEnv hWf M).total_typed hM
+
+theorem forallAssignmentModel_agrees_except_base
+    (Source M : SmtModel)
+    {xs : Term} {vars : List EoVarKey}
+    (hSource : model_total_typed Source)
+    (hEnv : EoVarEnv xs vars)
+    (hWf :
+      ∀ s T, (s, T) ∈ vars ->
+        __smtx_type_wf (__eo_to_smt_type T) = true) :
+    model_agrees_except_on_env (vars.map EoVarKey.toSmt) []
+      (forallAssignmentModel Source M xs) M :=
+  (forallAssignmentModel_instantiation Source hSource hEnv hWf M).agrees_except hEnv
+
+/--
+If `M` and `Source` already agree outside the binder keys, assigning the binder
+keys from `Source` makes the resulting model agree with `Source` everywhere.
+-/
+theorem forallAssignmentModel_agrees_source
+    (Source M : SmtModel)
+    {xs : Term} {vars : List EoVarKey}
+    (hEnv : EoVarEnv xs vars)
+    (hBase :
+      model_agrees_except_on_env (vars.map EoVarKey.toSmt) [] M Source) :
+    model_agrees_except_on_env [] []
+      (forallAssignmentModel Source M xs) Source := by
+  induction hEnv generalizing M with
+  | nil =>
+      simpa [forallAssignmentModel] using hBase
+  | cons hTail ih =>
+      rename_i s T env tailVars
+      rw [forallAssignmentModel_cons_var]
+      let ST := __eo_to_smt_type T
+      let v := native_model_var_lookup Source s ST
+      have hPushGlobals :
+          model_agrees_on_globals (native_model_push M s ST v) Source := by
+        have hPushToBase :
+            model_agrees_on_globals (native_model_push M s ST v) M :=
+          ⟨by
+              intro s' T'
+              exact ((model_agrees_on_globals_push M s ST v).1 s' T').symm,
+            by
+              intro fid T' U'
+              exact
+                ((model_agrees_on_globals_push M s ST v).2 fid T' U').symm⟩
+        exact model_agrees_on_globals_trans hPushToBase hBase.globals
+      have hPushBase :
+          model_agrees_except_on_env (tailVars.map EoVarKey.toSmt) []
+            (native_model_push M s ST v) Source := by
+        refine ⟨hPushGlobals, ?_⟩
+        intro s' T' hAllowed
+        rcases hAllowed with hBound | hNotTail
+        · cases hBound
+        · by_cases hPair : (s', T') = (s, ST)
+          · cases hPair
+            simp [native_model_var_lookup, native_model_push, v]
+          · have hKeyNe :
+                ({ isVar := true, name := s', ty := T' } : SmtModelKey) ≠
+                  { isVar := true, name := s, ty := ST } := by
+              intro hKey
+              apply hPair
+              cases hKey
+              rfl
+            have hNotFull :
+                (s', T') ∉ ((s, T) :: tailVars).map EoVarKey.toSmt := by
+              intro hMem
+              cases hMem with
+              | head =>
+                  exact hPair rfl
+              | tail _ hTailMem =>
+                  exact hNotTail hTailMem
+            have hPushEq :
+                native_model_var_lookup
+                    (native_model_push M s ST v) s' T' =
+                  native_model_var_lookup M s' T' := by
+              simp [native_model_var_lookup, native_model_push, hKeyNe]
+            exact hPushEq.trans (hBase.vars_eq s' T' (Or.inr hNotFull))
+      exact ih (native_model_push M s ST v) hPushBase
 
 /-- Actuals are well-typed for the binders they instantiate in the ambient model. -/
 inductive SubstActualsTyped (M : SmtModel) : Term -> Term -> Prop where
@@ -487,6 +868,30 @@ theorem forall_instantiation_body_true
             SmtEval.native_not]
         exact ih hPushTotal hBodyTy (by simpa [tail] using hEvalTail)
       · exact False.elim (hTailNotTrue hTailEval)
+
+/--
+Pure universal instantiation using binder values read from an arbitrary total
+source model.
+-/
+theorem forall_assignment_body_true
+    {M Source : SmtModel} {xs : Term} {vars : List EoVarKey}
+    {body : SmtTerm}
+    (hEnv : EoVarEnv xs vars)
+    (hSource : model_total_typed Source)
+    (hM : model_total_typed M)
+    (hWf :
+      ∀ s T, (s, T) ∈ vars ->
+        __smtx_type_wf (__eo_to_smt_type T) = true)
+    (hBodyTy : __smtx_typeof body = SmtType.Bool)
+    (hEval :
+      __smtx_model_eval M
+        (SmtTerm.not (__eo_to_smt_exists xs (SmtTerm.not body))) =
+        SmtValue.Boolean true) :
+    __smtx_model_eval (forallAssignmentModel Source M xs) body =
+      SmtValue.Boolean true :=
+  forall_instantiation_body_true
+    (forallAssignmentModel_instantiation Source hSource hEnv hWf M)
+    hM hBodyTy hEval
 
 /--
 SMT-translatability preservation for the instantiate substitution result.
