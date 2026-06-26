@@ -639,17 +639,130 @@ private theorem ssm_seq_nth_ofNat (d : SmtValue) :
   | SmtSeq.empty T, j => by simp [__smtx_ssm_seq_nth, native_unpack_seq]
   | SmtSeq.cons v vs, 0 => by simp [__smtx_ssm_seq_nth, native_unpack_seq]
   | SmtSeq.cons v vs, (j + 1) => by
-      have hne : (Int.ofNat (j + 1)) ≠ 0 := by exact_mod_cast Nat.succ_ne_zero j
       have hidx : native_zplus (Int.ofNat (j + 1)) (native_zneg 1) = Int.ofNat j := by
-        simp only [native_zplus, native_zneg]; push_cast; ring
+        show Int.ofNat j + 1 + (-1) = Int.ofNat j
+        omega
       have ih := ssm_seq_nth_ofNat d vs j
-      simp [__smtx_ssm_seq_nth, hne, hidx, ih, native_unpack_seq, List.getD_cons_succ]
+      simp only [__smtx_ssm_seq_nth, hidx, ih, native_unpack_seq, List.getD_cons_succ]
 
 /-- In bounds, `getD` does not depend on the default. -/
 private theorem getD_lt_eq (d d' : SmtValue) (l : List SmtValue) (j : Nat)
     (h : j < l.length) : l.getD j d = l.getD j d' := by
   rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD,
     List.getElem?_eq_getElem h, Option.getD_some, Option.getD_some]
+
+/-! ### Eval-layer rewrites for SMT operators not covered by `RuleSupport.Support`.
+
+`__smtx_model_eval` does not reduce definitionally (it is a huge `noncomputable` match),
+so we peel one constructor at a time with these stable equation lemmas, mirroring the
+public `smtx_eval_*_term_eq` lemmas. -/
+private theorem eval_leq_eq (M : SmtModel) (x y : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.leq x y) =
+      __smtx_model_eval_leq (__smtx_model_eval M x) (__smtx_model_eval M y) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+private theorem eval_lt_eq (M : SmtModel) (x y : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.lt x y) =
+      __smtx_model_eval_lt (__smtx_model_eval M x) (__smtx_model_eval M y) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+private theorem eval_str_substr_eq (M : SmtModel) (x y z : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.str_substr x y z) =
+      __smtx_model_eval_str_substr (__smtx_model_eval M x) (__smtx_model_eval M y)
+        (__smtx_model_eval M z) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+private theorem eval_seq_nth_eq (M : SmtModel) (x y : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.seq_nth x y) =
+      __smtx_seq_nth M (__smtx_model_eval M x) (__smtx_model_eval M y) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+private theorem eval_seq_diff_eq (M : SmtModel) (x y : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.seq_diff x y) =
+      __smtx_model_eval_seq_diff (__smtx_model_eval M x) (__smtx_model_eval M y) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+private theorem eval_numeral_eq (M : SmtModel) (n : native_Int) :
+    __smtx_model_eval M (SmtTerm.Numeral n) = SmtValue.Numeral n := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+/-! ### Translation (`__eo_to_smt`) normal forms for the conclusion's atoms (all `rfl`). -/
+private theorem tr_D1 (a b : Term) :
+    __eo_to_smt (stringExtD1 a b) =
+      SmtTerm.not (SmtTerm.eq (SmtTerm.str_len (__eo_to_smt a))
+        (SmtTerm.str_len (__eo_to_smt b))) := rfl
+private theorem tr_deq_char (a b : Term) :
+    __eo_to_smt
+        (Term.Apply (Term.UOp UserOp.not)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.eq)
+            (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) a)
+              (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_deq_diff) a) b))
+              (Term.Numeral 1)))
+            (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) b)
+              (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_deq_diff) a) b))
+              (Term.Numeral 1)))) =
+      SmtTerm.not (SmtTerm.eq
+        (SmtTerm.str_substr (__eo_to_smt a)
+          (SmtTerm.seq_diff (__eo_to_smt a) (__eo_to_smt b)) (SmtTerm.Numeral 1))
+        (SmtTerm.str_substr (__eo_to_smt b)
+          (SmtTerm.seq_diff (__eo_to_smt a) (__eo_to_smt b)) (SmtTerm.Numeral 1))) := rfl
+private theorem tr_deq_nth (a b : Term) :
+    __eo_to_smt
+        (Term.Apply (Term.UOp UserOp.not)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.eq)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.seq_nth) a)
+              (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_deq_diff) a) b)))
+            (Term.Apply (Term.Apply (Term.UOp UserOp.seq_nth) b)
+              (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_deq_diff) a) b)))) =
+      SmtTerm.not (SmtTerm.eq
+        (SmtTerm.seq_nth (__eo_to_smt a)
+          (SmtTerm.seq_diff (__eo_to_smt a) (__eo_to_smt b)))
+        (SmtTerm.seq_nth (__eo_to_smt b)
+          (SmtTerm.seq_diff (__eo_to_smt a) (__eo_to_smt b)))) := rfl
+private theorem tr_leq0k (a b : Term) :
+    __eo_to_smt
+        (Term.Apply (Term.Apply (Term.UOp UserOp.leq) (Term.Numeral 0))
+          (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_deq_diff) a) b)) =
+      SmtTerm.leq (SmtTerm.Numeral 0)
+        (SmtTerm.seq_diff (__eo_to_smt a) (__eo_to_smt b)) := rfl
+private theorem tr_ltklen (a b : Term) :
+    __eo_to_smt
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp.lt)
+            (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_deq_diff) a) b))
+          (Term.Apply (Term.UOp UserOp.str_len) a)) =
+      SmtTerm.lt (SmtTerm.seq_diff (__eo_to_smt a) (__eo_to_smt b))
+        (SmtTerm.str_len (__eo_to_smt a)) := rfl
+
+/-! ### Disequality of element values (for the general `seq.nth` deq branch).
+
+`__smtx_model_eval_eq` uses regex extensional equality on `RegLan` pairs, so it only
+agrees with structural `native_veq` when the operands are not both `RegLan`.  Sequence
+elements have the sequence's element type `As`, and `Seq RegLan` is not well-formed, so
+`As ≠ RegLan` and the elements are never `RegLan` values. -/
+private theorem eval_neq (v1 v2 : SmtValue)
+    (hReg : ¬ ∃ r1 r2, v1 = SmtValue.RegLan r1 ∧ v2 = SmtValue.RegLan r2)
+    (h : v1 ≠ v2) :
+    __smtx_model_eval_not (__smtx_model_eval_eq v1 v2) = SmtValue.Boolean true := by
+  have heq : __smtx_model_eval_eq v1 v2 = SmtValue.Boolean (native_veq v1 v2) := by
+    cases v1 <;> cases v2 <;> first | exact absurd ⟨_, _, rfl, rfl⟩ hReg | rfl
+  rw [heq]
+  simp [__smtx_model_eval_not, native_veq, SmtEval.native_not, h]
+
+private theorem list_typed_getD (T : SmtType) :
+    ∀ (xs : List SmtValue) (j : Nat), list_typed T xs → j < xs.length →
+      __smtx_typeof_value (xs.getD j SmtValue.NotValue) = T
+  | v :: vs, 0, h, _ => h.1
+  | v :: vs, j + 1, h, hlt => by
+      simp only [List.getD_cons_succ]
+      exact list_typed_getD T vs j h.2 (by simpa using hlt)
+  | [], j, _, hlt => by simp at hlt
+
+private theorem getD_ne_reglan (xs : List SmtValue) (As : SmtType)
+    (hAs : As ≠ SmtType.RegLan) (hxs : list_typed As xs) (j : Nat) (r : native_RegLan) :
+    xs.getD j SmtValue.NotValue ≠ SmtValue.RegLan r := by
+  intro h
+  by_cases hj : j < xs.length
+  · have hty := list_typed_getD As xs j hxs hj
+    rw [h] at hty
+    exact hAs hty.symm
+  · rw [getD_ge SmtValue.NotValue xs j (Nat.le_of_not_lt hj)] at h
+    exact SmtValue.noConfusion h
 
 private theorem facts___eo_prog_string_ext_impl
     (M : SmtModel) (hM : model_total_typed M) (a b : Term)
@@ -667,7 +780,7 @@ private theorem facts___eo_prog_string_ext_impl
       (__eo_prog_string_ext
         (Proof.pf (Term.Apply Term.not (Term.Apply (Term.Apply Term.eq a) b)))) true := by
   rcases string_ext_smt_types a b hPremBool hResultTy with
-    \u27e8A, hATy, hBTy, hSmtA, hSmtB, hAsNonNone, hATrans, hBTrans\u27e9
+    ⟨A, hATy, hBTy, hSmtA, hSmtB, hAsNonNone, hATrans, hBTrans⟩
   -- canonical evaluations of `a` and `b`
   have hAvalTy : __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt a)) =
       SmtType.Seq (__eo_to_smt_type A) :=
@@ -677,14 +790,27 @@ private theorem facts___eo_prog_string_ext_impl
       SmtType.Seq (__eo_to_smt_type A) :=
     smt_model_eval_preserves_type M hM (__eo_to_smt b) (SmtType.Seq (__eo_to_smt_type A))
       hSmtB (seq_ne_none _) (type_inhabited_seq _)
-  rcases seq_value_canonical hAvalTy with \u27e8s1, hAEval\u27e9
-  rcases seq_value_canonical hBvalTy with \u27e8s2, hBEval\u27e9
+  rcases seq_value_canonical hAvalTy with ⟨s1, hAEval⟩
+  rcases seq_value_canonical hBvalTy with ⟨s2, hBEval⟩
+  have hs1ty : __smtx_typeof_seq_value s1 = SmtType.Seq (__eo_to_smt_type A) := by
+    simpa [hAEval, __smtx_typeof_value] using hAvalTy
+  have hs2ty : __smtx_typeof_seq_value s2 = SmtType.Seq (__eo_to_smt_type A) := by
+    simpa [hBEval, __smtx_typeof_value] using hBvalTy
   have hElem1 : __smtx_elem_typeof_seq_value s1 = __eo_to_smt_type A :=
-    elem_typeof_seq_value_of_typeof_seq_value
-      (by simpa [hAEval, __smtx_typeof_value] using hAvalTy)
+    elem_typeof_seq_value_of_typeof_seq_value hs1ty
   have hElem2 : __smtx_elem_typeof_seq_value s2 = __eo_to_smt_type A :=
-    elem_typeof_seq_value_of_typeof_seq_value
-      (by simpa [hBEval, __smtx_typeof_value] using hBvalTy)
+    elem_typeof_seq_value_of_typeof_seq_value hs2ty
+  have hxs1 : list_typed (__eo_to_smt_type A) (native_unpack_seq s1) :=
+    typed_unpack_seq_of_typeof_seq_value hs1ty
+  have hxs2 : list_typed (__eo_to_smt_type A) (native_unpack_seq s2) :=
+    typed_unpack_seq_of_typeof_seq_value hs2ty
+  -- the element type is not `RegLan` (since `Seq RegLan` is not well-formed)
+  have hAsNe : __eo_to_smt_type A ≠ SmtType.RegLan := by
+    have hNN : term_has_non_none_type (__eo_to_smt a) := by
+      unfold term_has_non_none_type; rw [hSmtA]; simp
+    have hSeqWf : __smtx_type_wf (SmtType.Seq (__eo_to_smt_type A)) = true :=
+      Smtm.smt_term_seq_type_wf_of_non_none (__eo_to_smt a) hNN hSmtA
+    intro hR; rw [hR] at hSeqWf; exact absurd hSeqWf (by native_decide)
   -- typing facts of the conclusion's components (mirroring the typing lemma)
   have hKInt :
       __smtx_typeof
@@ -692,7 +818,7 @@ private theorem facts___eo_prog_string_ext_impl
         SmtType.Int := deq_diff_smt_typeof_int a b A hSmtA hSmtB
   have hDeqBool : RuleProofs.eo_has_bool_type (stringExtDeq a b A) :=
     stringExtDeq_bool a b A hSmtA hSmtB hAsNonNone hKInt
-  have hDeqNeStuck : stringExtDeq a b A \u2260 Term.Stuck :=
+  have hDeqNeStuck : stringExtDeq a b A ≠ Term.Stuck :=
     RuleProofs.term_ne_stuck_of_has_smt_translation _
       (RuleProofs.eo_has_smt_translation_of_has_bool_type _ hDeqBool)
   have hLenA : __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp UserOp.str_len) a)) =
@@ -700,8 +826,8 @@ private theorem facts___eo_prog_string_ext_impl
   have hD1Bool : RuleProofs.eo_has_bool_type (stringExtD1 a b) := by
     apply RuleProofs.eo_has_bool_type_not_of_bool_arg
     apply RuleProofs.eo_has_bool_type_eq_of_same_smt_type
-    \u00b7 rw [hLenA, str_len_smt_typeof_int b A hSmtB]
-    \u00b7 rw [hLenA]; simp
+    · rw [hLenA, str_len_smt_typeof_int b A hSmtB]
+    · rw [hLenA]; simp
   have hBoundsBool : RuleProofs.eo_has_bool_type (stringExtBounds a b) := by
     unfold stringExtBounds
     apply RuleProofs.eo_has_bool_type_and_of_bool_args _ _
@@ -720,145 +846,104 @@ private theorem facts___eo_prog_string_ext_impl
       (RuleProofs.eo_has_bool_type_and_of_bool_args _ _ hDeqBool hBoundsBool)
       RuleProofs.eo_has_bool_type_false
   -- the premise `(not (= a b))` forces the two sequence values to differ
-  have hABne : SmtValue.Seq s1 \u2260 SmtValue.Seq s2 := by
+  have hABne : SmtValue.Seq s1 ≠ SmtValue.Seq s2 := by
     rw [RuleProofs.eo_interprets_iff_smt_interprets] at hPremTrue
     cases hPremTrue with
     | intro_true _ hEval =>
-        have hEval' :
-            __smtx_model_eval_not
-              (__smtx_model_eval_eq (__smtx_model_eval M (__eo_to_smt a))
-                (__smtx_model_eval M (__eo_to_smt b))) = SmtValue.Boolean true := hEval
-        rw [hAEval, hBEval] at hEval'
+        rw [show __eo_to_smt (Term.Apply Term.not (Term.Apply (Term.Apply Term.eq a) b))
+              = SmtTerm.not (SmtTerm.eq (__eo_to_smt a) (__eo_to_smt b)) from rfl,
+            smtx_eval_not_term_eq, smtx_eval_eq_term_eq, hAEval, hBEval] at hEval
         intro hEq
-        rw [hEq] at hEval'
+        rw [hEq] at hEval
         simp [__smtx_model_eval_eq, __smtx_model_eval_not, native_veq,
-          SmtEval.native_not] at hEval'
+          SmtEval.native_not] at hEval
   -- rewrite the conclusion to its explicit disjunction form
   rw [prog_string_ext_explicit a b A hATy hDeqNeStuck]
   by_cases hLen : (native_unpack_seq s1).length = (native_unpack_seq s2).length
-  \u00b7 -- equal lengths: establish the second disjunct
-    have hxsne : native_unpack_seq s1 \u2260 native_unpack_seq s2 := by
+  · -- equal lengths: establish the second disjunct
+    have hxsne : native_unpack_seq s1 ≠ native_unpack_seq s2 := by
       intro hEq
       apply hABne
-      rw [\u2190 native_pack_unpack_seq s1, \u2190 native_pack_unpack_seq s2, hElem1, hElem2, hEq]
-    obtain \u27e8i0, hi0\u27e9 := getD_diff_of_ne SmtValue.NotValue _ _ hLen hxsne
-    obtain \u27e8j, hKval0, hjDiff\u27e9 := seq_diff_pick s1 s2 \u27e8i0, hi0\u27e9
+      rw [← native_pack_unpack_seq s1, ← native_pack_unpack_seq s2, hElem1, hElem2, hEq]
+    obtain ⟨i0, hi0⟩ := getD_diff_of_ne SmtValue.NotValue _ _ hLen hxsne
+    obtain ⟨j, hKval0, hjDiff⟩ := seq_diff_pick s1 s2 ⟨i0, hi0⟩
     have hjLt : j < (native_unpack_seq s1).length := by
-      by_contra hge
-      push_neg at hge
-      exact hjDiff (by rw [getD_ge _ _ _ hge, getD_ge _ _ _ (hLen \u25b8 hge)])
-    have hjLt2 : j < (native_unpack_seq s2).length := hLen \u25b8 hjLt
-    have hKEval :
-        __smtx_model_eval M
-            (__eo_to_smt
-              (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_deq_diff) a) b))
+      rcases Nat.lt_or_ge j (native_unpack_seq s1).length with h | h
+      · exact h
+      · exact absurd
+          (by rw [getD_ge SmtValue.NotValue _ _ h, getD_ge SmtValue.NotValue _ _ (hLen ▸ h)])
+          hjDiff
+    have hjLt2 : j < (native_unpack_seq s2).length := hLen ▸ hjLt
+    -- evaluation of the deq-diff index `seq_diff a b`
+    have hSeqDiffEval :
+        __smtx_model_eval M (SmtTerm.seq_diff (__eo_to_smt a) (__eo_to_smt b))
           = SmtValue.Numeral (Int.ofNat j) := by
-      rw [eo_to_smt_deq_diff_eq]
-      show __smtx_model_eval_seq_diff (__smtx_model_eval M (__eo_to_smt a))
-          (__smtx_model_eval M (__eo_to_smt b)) = _
-      rw [hAEval, hBEval, hKval0]
+      rw [eval_seq_diff_eq, hAEval, hBEval, hKval0]
     apply RuleProofs.eo_interprets_or_right_intro M hM _ _ hD1Bool
     apply RuleProofs.eo_interprets_or_left_intro M hM _ _ _
       RuleProofs.eo_has_bool_type_false
     apply RuleProofs.eo_interprets_and_intro
-    \u00b7 -- the deq conjunct: the elements at index `j` differ
+    · -- the deq conjunct: the elements at index `j` differ
       apply RuleProofs.eo_interprets_of_bool_eval M _ true hDeqBool
       rw [stringExtDeq_eq a b A
         (ne_stuck_of_smt_typeof_seq a _ hSmtA) (ne_stuck_of_smt_typeof_seq b _ hSmtB)]
       by_cases hChar : A = Term.UOp UserOp.Char
-      \u00b7 rw [if_pos hChar]
-        show __smtx_model_eval_not
-          (__smtx_model_eval_eq
-            (__smtx_model_eval_str_substr (__smtx_model_eval M (__eo_to_smt a))
-              (__smtx_model_eval M
-                (__eo_to_smt
-                  (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_deq_diff) a) b)))
-              (SmtValue.Numeral 1))
-            (__smtx_model_eval_str_substr (__smtx_model_eval M (__eo_to_smt b))
-              (__smtx_model_eval M
-                (__eo_to_smt
-                  (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_deq_diff) a) b)))
-              (SmtValue.Numeral 1))) = SmtValue.Boolean true
-        rw [hAEval, hBEval, hKEval]
-        have hne :
-            SmtValue.Seq (native_pack_seq (__eo_to_smt_type A)
-                ((native_unpack_seq s1).drop j |>.take 1))
-              \u2260 SmtValue.Seq (native_pack_seq (__eo_to_smt_type A)
-                ((native_unpack_seq s2).drop j |>.take 1)) := by
-          rw [take1_drop_eq SmtValue.NotValue _ _ hjLt,
-            take1_drop_eq SmtValue.NotValue _ _ hjLt2]
-          intro h
-          exact hjDiff (by simpa using native_pack_seq_inj _ (by injection h))
-        simp only [__smtx_model_eval_str_substr, hElem1, hElem2,
+      · rw [if_pos hChar, tr_deq_char, smtx_eval_not_term_eq, smtx_eval_eq_term_eq,
+          eval_str_substr_eq, eval_str_substr_eq, hAEval, hBEval, hSeqDiffEval]
+        simp only [eval_numeral_eq, __smtx_model_eval_str_substr, hElem1, hElem2,
           native_seq_extract_one_nat _ _ hjLt, native_seq_extract_one_nat _ _ hjLt2,
-          __smtx_model_eval_eq, __smtx_model_eval_not, native_veq,
-          decide_eq_false hne, SmtEval.native_not, Bool.not_false]
-      \u00b7 rw [if_neg hChar]
-        show __smtx_model_eval_not
-          (__smtx_model_eval_eq
-            (__smtx_seq_nth M (__smtx_model_eval M (__eo_to_smt a))
-              (__smtx_model_eval M
-                (__eo_to_smt
-                  (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_deq_diff) a) b))))
-            (__smtx_seq_nth M (__smtx_model_eval M (__eo_to_smt b))
-              (__smtx_model_eval M
-                (__eo_to_smt
-                  (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_deq_diff) a) b)))))
-          = SmtValue.Boolean true
-        rw [hAEval, hBEval, hKEval]
+          take1_drop_eq SmtValue.NotValue _ _ hjLt,
+          take1_drop_eq SmtValue.NotValue _ _ hjLt2,
+          __smtx_model_eval_eq, __smtx_model_eval_not]
+        rw [SmtValue.Boolean.injEq, native_not_veq_true_iff]
+        intro h
+        rw [SmtValue.Seq.injEq] at h
+        exact hjDiff (by simpa using native_pack_seq_inj _ h)
+      · rw [if_neg hChar, tr_deq_nth, smtx_eval_not_term_eq, smtx_eval_eq_term_eq,
+          eval_seq_nth_eq, eval_seq_nth_eq, hAEval, hBEval, hSeqDiffEval]
         have hnth1 : __smtx_seq_nth M (SmtValue.Seq s1) (SmtValue.Numeral (Int.ofNat j))
             = (native_unpack_seq s1).getD j SmtValue.NotValue := by
-          rw [__smtx_seq_nth, ssm_seq_nth_ofNat]; exact getD_lt_eq _ _ _ _ hjLt
+          simp only [__smtx_seq_nth, ssm_seq_nth_ofNat]
+          exact getD_lt_eq _ _ _ _ hjLt
         have hnth2 : __smtx_seq_nth M (SmtValue.Seq s2) (SmtValue.Numeral (Int.ofNat j))
             = (native_unpack_seq s2).getD j SmtValue.NotValue := by
-          rw [__smtx_seq_nth, ssm_seq_nth_ofNat]; exact getD_lt_eq _ _ _ _ hjLt2
+          simp only [__smtx_seq_nth, ssm_seq_nth_ofNat]
+          exact getD_lt_eq _ _ _ _ hjLt2
         rw [hnth1, hnth2]
-        simp only [__smtx_model_eval_eq, __smtx_model_eval_not, native_veq,
-          decide_eq_false hjDiff, SmtEval.native_not, Bool.not_false]
-    \u00b7 -- the bounds conjunct: `0 \u2264 j < len a`
+        exact eval_neq _ _
+          (fun ⟨r1, r2, hr1, _⟩ => getD_ne_reglan _ _ hAsNe hxs1 j r1 hr1) hjDiff
+    · -- the bounds conjunct: `0 ≤ j < len a`
       unfold stringExtBounds
       apply RuleProofs.eo_interprets_and_intro
-      \u00b7 apply RuleProofs.eo_interprets_of_bool_eval M _ true
+      · apply RuleProofs.eo_interprets_of_bool_eval M _ true
           (eo_has_bool_type_leq_of_int_args _ _ (numeral_smt_typeof_int 0) hKInt)
-        show __smtx_model_eval_leq (SmtValue.Numeral 0)
-            (__smtx_model_eval M
-              (__eo_to_smt
-                (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_deq_diff) a) b)))
-            = SmtValue.Boolean true
-        rw [hKEval]
-        simp only [__smtx_model_eval_leq, native_zleq,
-          decide_eq_true (by positivity : (0 : native_Int) \u2264 Int.ofNat j)]
-      \u00b7 apply RuleProofs.eo_interprets_and_intro
-        \u00b7 apply RuleProofs.eo_interprets_of_bool_eval M _ true
+        rw [tr_leq0k, eval_leq_eq, eval_numeral_eq, hSeqDiffEval]
+        have h0 : native_zleq 0 (Int.ofNat j) = true := by
+          rw [native_zleq]; exact decide_eq_true_eq.mpr (Int.natCast_nonneg j)
+        simp only [__smtx_model_eval_leq, h0]
+      · apply RuleProofs.eo_interprets_and_intro
+        · apply RuleProofs.eo_interprets_of_bool_eval M _ true
             (eo_has_bool_type_lt_of_int_args _ _ hKInt hLenA)
-          show __smtx_model_eval_lt
-              (__smtx_model_eval M
-                (__eo_to_smt
-                  (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_deq_diff) a) b)))
-              (__smtx_model_eval_str_len (__smtx_model_eval M (__eo_to_smt a)))
-              = SmtValue.Boolean true
-          rw [hKEval, hAEval]
-          have hlt : (Int.ofNat j) < native_seq_len (native_unpack_seq s1) := by
-            rw [native_seq_len]; exact_mod_cast hjLt
-          simp only [__smtx_model_eval_str_len, __smtx_model_eval_lt, native_zlt,
-            decide_eq_true hlt]
-        \u00b7 exact RuleProofs.eo_interprets_true M
-  \u00b7 -- unequal lengths: establish the first disjunct
+          rw [tr_ltklen, eval_lt_eq, hSeqDiffEval, smtx_eval_str_len_term_eq, hAEval]
+          have hpf : (Int.ofNat j) < native_seq_len (native_unpack_seq s1) := by
+            rw [native_seq_len, Int.ofNat_eq_natCast, Int.ofNat_eq_natCast]; omega
+          have h1 : native_zlt (Int.ofNat j) (native_seq_len (native_unpack_seq s1)) = true := by
+            rw [native_zlt]; exact decide_eq_true_eq.mpr hpf
+          simp only [__smtx_model_eval_str_len, __smtx_model_eval_lt, h1]
+        · exact RuleProofs.eo_interprets_true M
+  · -- unequal lengths: establish the first disjunct
     apply RuleProofs.eo_interprets_or_left_intro M hM _ _ _ hRHSBool
     apply RuleProofs.eo_interprets_of_bool_eval M _ true hD1Bool
-    show __smtx_model_eval_not
-      (__smtx_model_eval_eq
-        (__smtx_model_eval_str_len (__smtx_model_eval M (__eo_to_smt a)))
-        (__smtx_model_eval_str_len (__smtx_model_eval M (__eo_to_smt b))))
-      = SmtValue.Boolean true
-    rw [hAEval, hBEval]
-    have hne : SmtValue.Numeral (native_seq_len (native_unpack_seq s1))
-        \u2260 SmtValue.Numeral (native_seq_len (native_unpack_seq s2)) := by
-      rw [native_seq_len, native_seq_len]
-      intro h
-      exact hLen (by exact_mod_cast (SmtValue.Numeral.inj h))
-    simp only [__smtx_model_eval_str_len, __smtx_model_eval_eq, native_veq,
-      decide_eq_false hne, __smtx_model_eval_not, SmtEval.native_not, Bool.not_false]
+    rw [tr_D1, smtx_eval_not_term_eq, smtx_eval_eq_term_eq,
+      smtx_eval_str_len_term_eq, smtx_eval_str_len_term_eq, hAEval, hBEval]
+    simp only [__smtx_model_eval_str_len, __smtx_model_eval_eq, __smtx_model_eval_not]
+    rw [SmtValue.Boolean.injEq, native_not_veq_true_iff]
+    intro h
+    apply hLen
+    injection h with h'
+    have h2 : (↑(native_unpack_seq s1).length : Int) = (↑(native_unpack_seq s2).length : Int) := by
+      simpa [native_seq_len] using h'
+    exact_mod_cast h2
 
 
 /-
