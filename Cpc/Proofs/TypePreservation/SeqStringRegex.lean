@@ -1091,7 +1091,9 @@ theorem typeof_value_model_eval_seq_diff
   rw [hss1, hss2]
   simp only [__smtx_model_eval_seq_diff]
   rw [hty1, hty2]
-  simp [native_ite, native_Teq, __smtx_typeof_value]
+  have hTeq : native_Teq T T = true := by simp [native_Teq]
+  simp only [native_ite, hTeq, if_true]
+  split <;> rfl
 
 /-- Shows that evaluating `str_substr` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_str_substr

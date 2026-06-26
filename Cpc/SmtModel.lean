@@ -674,16 +674,19 @@ macro_rules
             match ($typeofSeqValueId $s1, $typeofSeqValueId $s2) with
             | (SmtType.Seq T1, SmtType.Seq T2) =>
                 native_ite (native_Teq T1 T2)
-                  -- the index of the first position at which the two
-                  -- sequences differ. If one sequence is a prefix of the
-                  -- other (or they are equal), this is the length of the
-                  -- shorter sequence.
-                  (let rec seqDiff (a : SmtSeq) (b : SmtSeq) : native_Int :=
-                    match a, b with
-                    | SmtSeq.cons v1 r1, SmtSeq.cons v2 r2 =>
-                        native_ite (native_veq v1 v2) (1 + seqDiff r1 r2) 0
-                    | _, _ => 0
-                   SmtValue.Numeral (seqDiff $s1 $s2))
+                  -- an arbitrary index at which the two sequences differ: a
+                  -- position whose elements disagree, where a missing element
+                  -- past the end of the shorter sequence counts as a
+                  -- disagreement. Such an index exists exactly when the two
+                  -- sequences are unequal; when they are equal we return 0.
+                  (let rec seqNth : SmtSeq -> Nat -> Option SmtValue
+                    | SmtSeq.cons v _, 0 => some v
+                    | SmtSeq.cons _ vs, Nat.succ n => seqNth vs n
+                    | SmtSeq.empty _, _ => none
+                   if hDiff : ∃ i : Nat, seqNth $s1 i ≠ seqNth $s2 i then
+                     SmtValue.Numeral (Int.ofNat (Classical.choose hDiff))
+                   else
+                     SmtValue.Numeral 0)
                   SmtValue.NotValue
             | _ => SmtValue.NotValue)
 
