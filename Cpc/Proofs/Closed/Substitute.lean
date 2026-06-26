@@ -34,6 +34,46 @@ Naming: `substitute_simul_rec_*` for shared structural lemmas;
 `substFalse_*` / `substTrue_*` for the mode-specific quantifier lemmas.
 -/
 
+/-! ## `EoVarEnvPerm` helpers (reusable)
+
+Permutation-level companions of the `EoVarEnv` find lemmas, plus a cons builder,
+used by the binder-push reasoning below. -/
+
+/-- Membership in the reflected list forces a non-negative `find` index. -/
+theorem EoVarEnvPerm.find_neg_false_of_mem
+    {env : Term} {vars : List EoVarKey}
+    (h : EoVarEnvPerm env vars)
+    {s : native_String} {T : Term}
+    (hMem : (s, T) ∈ vars) :
+    __eo_is_neg (__eo_list_find Term.__eo_List_cons env (Term.Var (Term.String s) T)) =
+      Term.Boolean false := by
+  rcases h with ⟨exact, hExact, hEquiv⟩
+  exact hExact.find_neg_false_of_mem ((hEquiv (s, T)).2 hMem)
+
+/-- Non-membership in the reflected list forces a negative `find` index. -/
+theorem EoVarEnvPerm.find_neg_true_of_not_mem
+    {env : Term} {vars : List EoVarKey}
+    (h : EoVarEnvPerm env vars)
+    {s : native_String} {T : Term}
+    (hNotMem : (s, T) ∉ vars) :
+    __eo_is_neg (__eo_list_find Term.__eo_List_cons env (Term.Var (Term.String s) T)) =
+      Term.Boolean true := by
+  rcases h with ⟨exact, hExact, hEquiv⟩
+  exact hExact.find_neg_true_of_not_mem (fun hc => hNotMem ((hEquiv (s, T)).1 hc))
+
+/-- Prepending a binder variable to a reflected environment. -/
+theorem EoVarEnvPerm.cons
+    {s : native_String} {T env : Term} {vars : List EoVarKey}
+    (h : EoVarEnvPerm env vars) :
+    EoVarEnvPerm
+      (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var (Term.String s) T)) env)
+      ((s, T) :: vars) := by
+  rcases h with ⟨exact, hExact, hEquiv⟩
+  refine ⟨(s, T) :: exact, EoVarEnv.cons hExact, ?_⟩
+  intro key
+  simp only [List.mem_cons]
+  rw [hEquiv key]
+
 namespace SubstituteSupport
 
 /-- `(v :: vs)` as an EO cons-list term, the binder-list shape. -/
@@ -345,5 +385,111 @@ theorem subst_entry_eval_push_invariant
   exact
     (smt_model_eval_eq_of_contains_atomic_term_list_free_rec_false_mapped
       hExceptEnv hBoundEnv hTrans hEntryNoFree hAgree).symm
+
+/-! ### Binder-push preservation
+
+`SubstFalseRel` survives descending under a binder: pushing the binder variable
+`(s, T)` to value `v` in both `M` and `N`, and prepending it to `bvs`,
+re-establishes the relation. The `agree` fields follow from the push lemmas; the
+`mapped` field uses `subst_entry_eval_push_invariant` (capture avoidance).
+
+Design note: `SubstFalseRel` mixes EO-keyed checker conditions (`is_neg (find …)`)
+with SMT-keyed model lookups. The `mapped` field's asymmetry means it can fail if
+a free-mapped variable shares an SMT key with the pushed binder while differing as
+an EO variable (distinct EO types collapsing under `__eo_to_smt_type`). This
+genuine semantic case (an SMT-level capture the EO checker doesn't see) is
+excluded by the explicit `hNoCollide` hypothesis, to be discharged from the
+substitution's well-formedness when wiring into the rule. -/
+theorem substFalseRel_push
+    (M N : SmtModel) (xs ss bvs except : Term)
+    {bvsVars exceptVars : List EoVarKey}
+    (s : native_String) (T : Term) (v : SmtValue)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hExceptEnv : EoVarEnvPerm except exceptVars)
+    (hMemExcept : (s, T) ∈ exceptVars)
+    (hNoFreeSs :
+      __contains_atomic_term_list_free_rec ss except Term.__eo_List_nil =
+        Term.Boolean false)
+    (hEntryTrans :
+      ∀ (s' : native_String) (T' : Term),
+        __eo_is_neg (__eo_list_find Term.__eo_List_cons bvs (Term.Var (Term.String s') T')) =
+            Term.Boolean true ->
+        __eo_is_neg (__eo_list_find Term.__eo_List_cons xs (Term.Var (Term.String s') T')) =
+            Term.Boolean false ->
+        eoHasSmtTranslation
+          (__assoc_nil_nth Term.__eo_List_cons ss
+            (__eo_list_find Term.__eo_List_cons xs (Term.Var (Term.String s') T'))))
+    (hNoCollide :
+      ∀ (s' : native_String) (T' : Term),
+        __eo_is_neg
+            (__eo_list_find Term.__eo_List_cons
+              (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var (Term.String s) T)) bvs)
+              (Term.Var (Term.String s') T')) = Term.Boolean true ->
+        __eo_is_neg (__eo_list_find Term.__eo_List_cons xs (Term.Var (Term.String s') T')) =
+            Term.Boolean false ->
+        ({ isVar := true, name := s', ty := __eo_to_smt_type T' } : SmtModelKey) ≠
+          { isVar := true, name := s, ty := __eo_to_smt_type T })
+    (hRel : SubstFalseRel M N xs ss bvs) :
+    SubstFalseRel (native_model_push M s (__eo_to_smt_type T) v)
+      (native_model_push N s (__eo_to_smt_type T) v) xs ss
+      (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var (Term.String s) T)) bvs) := by
+  have hBvs'Env :
+      EoVarEnvPerm
+        (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var (Term.String s) T)) bvs)
+        ((s, T) :: bvsVars) := hBvsEnv.cons
+  refine ⟨model_agrees_on_globals_push₂ hRel.globals, ?_, ?_⟩
+  · -- agree
+    intro s' T' H
+    by_cases hKey :
+        ({ isVar := true, name := s', ty := __eo_to_smt_type T' } : SmtModelKey) =
+          { isVar := true, name := s, ty := __eo_to_smt_type T }
+    · simp [native_model_var_lookup, native_model_push, hKey]
+    · have hML :
+          native_model_var_lookup (native_model_push M s (__eo_to_smt_type T) v) s'
+              (__eo_to_smt_type T') =
+            native_model_var_lookup M s' (__eo_to_smt_type T') := by
+        simp [native_model_var_lookup, native_model_push, hKey]
+      have hNL :
+          native_model_var_lookup (native_model_push N s (__eo_to_smt_type T) v) s'
+              (__eo_to_smt_type T') =
+            native_model_var_lookup N s' (__eo_to_smt_type T') := by
+        simp [native_model_var_lookup, native_model_push, hKey]
+      rw [hML, hNL]
+      apply hRel.agree s' T'
+      rcases H with hb' | hx'
+      · left
+        have hMem' : (s', T') ∈ (s, T) :: bvsVars := hBvs'Env.mem_of_find_neg_false hb'
+        have hNeKey : (s', T') ≠ (s, T) := by
+          intro hEq
+          simp only [Prod.mk.injEq] at hEq
+          obtain ⟨rfl, rfl⟩ := hEq
+          exact hKey rfl
+        have hMemBvs : (s', T') ∈ bvsVars := by
+          rcases List.mem_cons.1 hMem' with hh | hh
+          · exact absurd hh hNeKey
+          · exact hh
+        exact hBvsEnv.find_neg_false_of_mem hMemBvs
+      · right; exact hx'
+  · -- mapped
+    intro s' T' hFree hMapped
+    have hNotMem' : (s', T') ∉ (s, T) :: bvsVars :=
+      hBvs'Env.not_mem_of_find_neg_true hFree
+    have hNotMemBvs : (s', T') ∉ bvsVars :=
+      fun hc => hNotMem' (List.mem_cons_of_mem _ hc)
+    have hbTrueBvs :
+        __eo_is_neg (__eo_list_find Term.__eo_List_cons bvs (Term.Var (Term.String s') T')) =
+          Term.Boolean true := hBvsEnv.find_neg_true_of_not_mem hNotMemBvs
+    have hKeyNe := hNoCollide s' T' hFree hMapped
+    have hNL :
+        native_model_var_lookup (native_model_push N s (__eo_to_smt_type T) v) s'
+            (__eo_to_smt_type T') =
+          native_model_var_lookup N s' (__eo_to_smt_type T') := by
+      simp [native_model_var_lookup, native_model_push, hKeyNe]
+    rw [hNL, hRel.mapped s' T' hbTrueBvs hMapped]
+    exact
+      subst_entry_eval_push_invariant M ss except
+        (__eo_list_find Term.__eo_List_cons xs (Term.Var (Term.String s') T'))
+        hExceptEnv s T v hMemExcept
+        (hEntryTrans s' T' hbTrueBvs hMapped) hNoFreeSs
 
 end SubstituteSupport
