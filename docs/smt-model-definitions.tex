@@ -1382,25 +1382,24 @@ and confirm that all values they are built from are also canonical.
 
 \begin{figure}[p]
 \begin{lstlisting}
+abbrev RefList := List String
+
 def inhabited_type (T : SmtType) : Bool :=
   (Teq (smt_typeof_value (smt_type_default T)) T) &&
   (smt_value_canonical (smt_type_default T))
 
 def smt_dt_cons_wf_rec : SmtDatatypeCons -> RefList -> Bool
   | (SmtDatatypeCons.cons (SmtType.TypeRef s) c), refs =>
-      if s ∈ refs then smt_dt_cons_wf_rec c refs else false
+      (s ∈ refs) && (smt_dt_cons_wf_rec c refs)
   | (SmtDatatypeCons.cons T c), refs =>
-      if inhabited_type T then
-        if smt_type_wf_rec T refs then smt_dt_cons_wf_rec c refs else false
-      else
-        false
+      (inhabited_type T) && (smt_type_wf_rec T refs) && (smt_dt_cons_wf_rec c refs)
   | SmtDatatypeCons.unit, refs => true
 
 def smt_dt_wf_rec : SmtDatatype -> RefList -> Bool
   | SmtDatatype.null, refs => false
   | (SmtDatatype.sum c SmtDatatype.null), refs => (smt_dt_cons_wf_rec c refs)
   | (SmtDatatype.sum c d), refs =>
-      if smt_dt_cons_wf_rec c refs then smt_dt_wf_rec d refs else false
+      (smt_dt_cons_wf_rec c refs) && (smt_dt_wf_rec d refs)
 
 def smt_type_wf_rec : SmtType -> RefList -> Bool
   | (SmtType.Datatype s d), refs =>
@@ -1432,13 +1431,64 @@ Figure~\ref{fig:type-wf}
 provides two key definitions which we will use when defining the properties
 of SMT-LIB models we wish to consider.
 
+First, \code{inhabited_type} is a predicate that is true iff
+an SMT-LIB type is inhabited.
+We define type inhabitedness operationally.
+In particular, a type is considered inhabited if the method \code{smt_type_default}
+(from Figure~\ref{fig:default-value})succeeds in generating a value of that type,
+where recall that the type of values can be computed by the method \code{smt_typeof_value}.
+We additionally require that the default value of the type is canonical.
+TODO: this can likely be proven, not assumed.
+Note that any datatype that is not well-founded (i.e. does not have finite values)
+will be such that \code{smt_type_default} fails to return a value of that sort.
+It is important to note that the definition of \code{inhabited_type}
+could alternatively have been defined by a native Lean binder,
+i.e. a type is inhabited iff there exists a value having that type.
+However, this definition does not quite coincide with our desired notion,
+as it admits other types (e.g. datatypes with nested recursion) to be
+considered inhabited. Instead, \code{smt_type_default} operationally
+defines what we consider to be an inhabited type.
 
+The second key method defined in Figure~\ref{fig:type-wf}
+is \smttypewf.
+This predicate will define exactly the set of types that are relevant
+to in our SMT-LIB representation.
+To understand the intuition for the precise definition of this,
+it is important to recall our definition of canonicity of values.
 
+Note that \smttypewf
+relies on a helper \code{smt_type_wf_component},
+which returns true for types that are well-formed and can be used as component
+types to build other well-formed types.
+We also will say that a type \code{T} is \emph{first-class}
+iff \code{(smt_type_wf_component T)} returns true.
+Assume we have two canonical values \code{v1} and \code{v2} of first-class type \code{T},
+that is, \smttypeofvalue{v1} = \smttypeofvalue{v2} = \code{T},
+and \smtvaluecanon{v1} = \smtvalue{v2} = true.
+In this case, 
+we say that \smttypeofvalue{v1} and \smttypeofvalue{v2} are
+semantically equivalent iff they are syntactically equivalent.
+Concretely,
+our definition of SMT-LIB model evaluation \smtmodeleval for equality (\code{eq})
+will use syntactic comparison over values (\code{veq}) for all first-class types.
 
+Let us now look in detail at how \smttypewf is defined.
+First, regular languages and function types
+will not be considered first-class types.
+They will however be permitted as top-level types.
+Thus, we provide them as special cases in \smttypewf,
+where regular langauges return true.
+Function types are considered well-formed
+if their argument types are first-class and their return types
+are well-formed.
+Note that this excludes functions taking regular expressions
+as arguments, as well as higher-order functions
+(functions taking functions as arguments).
 
-
-
-
+The method \code{smt_type_wf_component}
+returns true if the given type is inhabited
+and its component types are well-formed, as defined by the recursive method \code{smt_type_wf_rec}.
+This method tracks a list of datatypes we have traversed beneath (\code{RefList}).
 
 
 \subsection{Types of SMT-LIB Terms}
@@ -1503,7 +1553,7 @@ def native_str_in_re : String -> native_RegLan -> Bool
   | s, r => native_re_nullable <| s.toList.foldl (fun acc c => native_re_deriv c acc) r
 
 macro_rules
-  | `(native_re_ext_eq $r1 $r2) => do
+  | `(re_ext_eq $r1 $r2) => do
       let strInReId := Lean.mkIdent `native_str_in_re
       `(by
           classical
@@ -1516,7 +1566,7 @@ macro_rules
               false)
 
 def smt_model_eval_eq : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.RegLan r1), (SmtValue.RegLan r2) => (SmtValue.Boolean (native_re_ext_eq r1 r2))
+  | (SmtValue.RegLan r1), (SmtValue.RegLan r2) => (SmtValue.Boolean (re_ext_eq r1 r2))
   | v1, v2 => (SmtValue.Boolean (decide (v1 = v2)))
 \end{lstlisting}
 \caption{Model evaluation for equality.}
