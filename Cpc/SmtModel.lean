@@ -690,12 +690,10 @@ noncomputable section
 
 mutual
 
-def native_inhabited_type (T : SmtType) : native_Bool := by
-  classical
-  exact
-    native_and
-      (decide (__smtx_typeof_value (__smtx_type_default T) = T))
-      (__smtx_value_canonical_bool (__smtx_type_default T))
+def native_inhabited_type (T : SmtType) : native_Bool :=
+  native_and
+    (native_Teq (__smtx_typeof_value (__smtx_type_default T)) T)
+    (__smtx_value_canonical_bool (__smtx_type_default T))
 
 def __vsm_apply_head : SmtValue -> SmtValue
   | (SmtValue.Apply f a) => (__vsm_apply_head f)

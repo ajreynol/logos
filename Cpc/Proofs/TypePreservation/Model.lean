@@ -300,7 +300,7 @@ theorem datatype_type_default_typed_canonical_of_inhabited
         SmtType.Datatype s d ∧
       __smtx_value_canonical (__smtx_type_default (SmtType.Datatype s d)) := by
   classical
-  simpa [native_inhabited_type, __smtx_value_canonical, native_and] using _hInh
+  simpa [native_inhabited_type, native_Teq, __smtx_value_canonical, native_and] using _hInh
 
 private theorem datatype_type_default_typed_canonical_of_wf_rec_deferred
     (s : native_String)
