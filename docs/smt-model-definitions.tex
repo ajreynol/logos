@@ -1285,7 +1285,7 @@ def smt_seq_canonical : SmtSeq -> Bool
 
 def smt_value_canonical : SmtValue -> Bool
   | (SmtValue.Map m) => (smt_map_canonical m)
-  | (SmtValue.Set m) => (smt_map_canonical m) && (veq smt_map_get_default m (SmtValue.Boolean false))
+  | (SmtValue.Set m) => (smt_map_canonical m) && (veq (smt_map_get_default m) (SmtValue.Boolean false))
   | (SmtValue.Seq s) => (smt_seq_canonical s)
   | (SmtValue.Apply f v) => (smt_value_canonical f) && (smt_value_canonical v)
   | v => true
@@ -1365,6 +1365,13 @@ with finite index type.
 In fact, \code{m1} above is the canonical value
 of a map from \code{Bool} to \code{Bool} that stores true everywhere.
 
+In other words,
+our definition of canonicty ensures that
+default values \emph{never} matter for maps of finite index types
+(since in this case they must have a common default),
+and default values \emph{always} matter for maps of infinite index types
+(since they cannot be fully covered by a finite set of stores).
+
 Sets are similar to maps, but for canonical values, their default value is false,
 regardless of the index type.
 Defining canonicity for the other types is trivial.
@@ -1373,11 +1380,9 @@ and confirm that all values they are built from are also canonical.
 
 \subsection{Inhabited and Well-Formedness of Types}
 
-
 \begin{figure}[p]
 \begin{lstlisting}
-
-def native_inhabited_type (T : SmtType) : Bool := by
+def inhabited_type (T : SmtType) : Bool := by
   classical
   exact
     decide (smt_typeof_value (smt_type_default T) = T) &&
@@ -1387,7 +1392,7 @@ def smt_dt_cons_wf_rec : SmtDatatypeCons -> RefList -> Bool
   | (SmtDatatypeCons.cons (SmtType.TypeRef s) c), refs =>
       if s ∈ refs then smt_dt_cons_wf_rec c refs else false
   | (SmtDatatypeCons.cons T c), refs =>
-      if native_inhabited_type T then
+      if inhabited_type T then
         if smt_type_wf_rec T refs then smt_dt_cons_wf_rec c refs else false
       else
         false
@@ -1403,30 +1408,31 @@ def smt_type_wf_rec : SmtType -> RefList -> Bool
   | (SmtType.Datatype s d), refs =>
       if s ∈ refs then false else smt_dt_wf_rec d (s :: refs)
   | (SmtType.TypeRef s), refs => false
-  | (SmtType.Seq x1), refs => (native_inhabited_type x1 && smt_type_wf_rec x1 [])
+  | (SmtType.Seq x1), refs => (smt_type_wf_component x1)
   | (SmtType.Map x1 x2), refs =>
-      native_inhabited_type x1 &&
-        smt_type_wf_rec x1 [] &&
-        native_inhabited_type x2 &&
-        smt_type_wf_rec x2 []
+      (smt_type_wf_component x1) && (smt_type_wf_component x2)
+  | (SmtType.Set x1), refs => (smt_type_wf_component x1)
   | (SmtType.FunType x1 x2), refs => false
-  | (SmtType.Set x1), refs => (native_inhabited_type x1 && smt_type_wf_rec x1 [])
   | (SmtType.DtcAppType x1 x2), refs => false
-  | SmtType.None, refs => false
   | SmtType.RegLan, refs => false
+  | SmtType.None, refs => false
   | T, refs => true
 
 def smt_type_wf_component (T : SmtType) : Bool :=
-  (native_inhabited_type T && smt_type_wf_rec T [])
+  (inhabited_type T) && (smt_type_wf_rec T [])
 
 def smt_type_wf : SmtType -> Bool
   | SmtType.RegLan => true
-  | (SmtType.FunType T U) => (smt_type_wf_component T && smt_type_wf_component U)
+  | (SmtType.FunType T U) => (smt_type_wf_component T) && (smt_type_wf U)
   | T => (smt_type_wf_component T)
 \end{lstlisting}
 \caption{Inhabitation, and type well-formedness.}
 \label{fig:type-wf}
 \end{figure}
+
+Figure~\ref{fig:type-wf}
+provides two key definitions which we will use when defining the properties
+of SMT-LIB models we wish to consider.
 
 
 
