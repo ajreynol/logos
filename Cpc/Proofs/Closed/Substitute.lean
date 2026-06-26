@@ -288,4 +288,62 @@ theorem substFalse_eval_var
         hisr hxs hss hbvs hbTrue hx, eval_eo_var M s T]
       exact hRel.agree s T (Or.inr hx)
 
+/-! ### Capture avoidance: substitute values are push-invariant
+
+Going under a binder pushes the binder's variables. The capture-avoidance side
+condition `contains ss (binderList) nil = false` guarantees those variables do
+not occur free in the substitution values `ss`, so each substitute's evaluation
+is unchanged by the push. This is the key fact that makes `SubstFalseRel`
+survive a binder. -/
+
+/--
+*Structural list fact (pending).* An entry extracted from a value list inherits
+"no free occurrence of `except`": if no `except`-variable occurs free in `ss`,
+none occurs free in the `idx`-th entry `__assoc_nil_nth cons ss idx`. Proved by
+induction on the cons structure of `ss` (each entry is a subterm, introducing no
+new free variables under the empty bound context).
+-/
+theorem contains_assoc_nil_nth_false
+    (ss except idx : Term)
+    (hNoFree :
+      __contains_atomic_term_list_free_rec ss except Term.__eo_List_nil =
+        Term.Boolean false) :
+    __contains_atomic_term_list_free_rec
+        (__assoc_nil_nth Term.__eo_List_cons ss idx) except Term.__eo_List_nil =
+      Term.Boolean false := by
+  sorry
+
+/--
+A substitute entry's evaluation is invariant under pushing a binder variable that
+is excluded by the capture-avoidance condition. Proved via the master coincidence
+theorem `smt_model_eval_eq_of_contains_atomic_term_list_free_rec_false_mapped`. -/
+theorem subst_entry_eval_push_invariant
+    (M : SmtModel) (ss except idx : Term)
+    {exceptVars : List EoVarKey}
+    (hExceptEnv : EoVarEnvPerm except exceptVars)
+    (s : native_String) (T : Term) (v : SmtValue)
+    (hMem : (s, T) ∈ exceptVars)
+    (hTrans : eoHasSmtTranslation (__assoc_nil_nth Term.__eo_List_cons ss idx))
+    (hNoFree :
+      __contains_atomic_term_list_free_rec ss except Term.__eo_List_nil =
+        Term.Boolean false) :
+    __smtx_model_eval M
+        (__eo_to_smt (__assoc_nil_nth Term.__eo_List_cons ss idx)) =
+      __smtx_model_eval (native_model_push M s (__eo_to_smt_type T) v)
+        (__eo_to_smt (__assoc_nil_nth Term.__eo_List_cons ss idx)) := by
+  have hEntryNoFree := contains_assoc_nil_nth_false ss except idx hNoFree
+  have hBoundEnv : EoVarEnvPerm Term.__eo_List_nil ([] : List EoVarKey) :=
+    EoVarEnvPerm.of_exact EoVarEnv.nil
+  have hMemSmt :
+      (s, __eo_to_smt_type T) ∈ exceptVars.map EoVarKey.toSmt :=
+    List.mem_map.2 ⟨(s, T), hMem, rfl⟩
+  have hAgree :
+      model_agrees_except_on_env (exceptVars.map EoVarKey.toSmt)
+        (([] : List EoVarKey).map EoVarKey.toSmt)
+        (native_model_push M s (__eo_to_smt_type T) v) M :=
+    model_agrees_except_on_env_push_left_of_mem_except hMemSmt (by simp)
+  exact
+    (smt_model_eval_eq_of_contains_atomic_term_list_free_rec_false_mapped
+      hExceptEnv hBoundEnv hTrans hEntryNoFree hAgree).symm
+
 end SubstituteSupport
