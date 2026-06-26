@@ -1,4 +1,11 @@
 import Cpc.Logos
+import Cpc.SmtModel
+
+open Smtm in
+/-- `native_Teq` is reflexive; lets `simp` discharge the reflexive residual left
+when `native_inhabited_type` is unfolded on a concrete type. -/
+@[simp] theorem native_Teq_self (x : SmtType) : native_Teq x x = true := by
+  simp [native_Teq]
 
 open Eo
 
