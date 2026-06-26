@@ -3280,6 +3280,632 @@ theorem nativeListInRe_re_mult_nonempty_prefix_local
     ⟨pre, suf, hAppend, hPreNe, hPreMem, _hSufMem⟩
   exact ⟨pre, suf, hAppend, hPreNe, hPreMem⟩
 
+private theorem list_all_reverse_eq_consume_local {α : Type}
+    (p : α -> Bool) :
+    ∀ xs : List α, xs.reverse.all p = xs.all p
+  | [] => by simp
+  | x :: xs => by
+      rw [List.reverse_cons, List.all_append]
+      rw [list_all_reverse_eq_consume_local p xs]
+      simp only [List.all_cons, List.all_nil, Bool.and_true]
+      exact Bool.and_comm (xs.all p) (p x)
+
+private theorem native_string_valid_reverse_consume_local
+    (str : native_String) :
+    native_string_valid str.reverse = native_string_valid str := by
+  simpa [native_string_valid] using
+    list_all_reverse_eq_consume_local native_char_valid str
+
+private def native_re_reverse_raw_consume_local :
+    native_RegLan -> native_RegLan
+  | SmtRegLan.empty => SmtRegLan.empty
+  | SmtRegLan.epsilon => SmtRegLan.epsilon
+  | SmtRegLan.char c => SmtRegLan.char c
+  | SmtRegLan.range lo hi => SmtRegLan.range lo hi
+  | SmtRegLan.allchar => SmtRegLan.allchar
+  | SmtRegLan.concat r s =>
+      SmtRegLan.concat (native_re_reverse_raw_consume_local s)
+        (native_re_reverse_raw_consume_local r)
+  | SmtRegLan.union r s =>
+      SmtRegLan.union (native_re_reverse_raw_consume_local r)
+        (native_re_reverse_raw_consume_local s)
+  | SmtRegLan.inter r s =>
+      SmtRegLan.inter (native_re_reverse_raw_consume_local r)
+        (native_re_reverse_raw_consume_local s)
+  | SmtRegLan.star r =>
+      SmtRegLan.star (native_re_reverse_raw_consume_local r)
+  | SmtRegLan.comp r =>
+      SmtRegLan.comp (native_re_reverse_raw_consume_local r)
+
+private theorem native_str_in_re_reverse_str_to_re_consume_local
+    (xs pat : native_String) :
+    native_str_in_re xs.reverse (native_str_to_re pat.reverse) =
+      native_str_in_re xs (native_str_to_re pat) := by
+  by_cases hValid : native_string_valid xs = true
+  · have hRevValid : native_string_valid xs.reverse = true := by
+      simpa [native_string_valid_reverse_consume_local xs] using hValid
+    apply Bool.eq_iff_iff.mpr
+    constructor
+    · intro hMem
+      have hEqRev :
+          xs.reverse = pat.reverse :=
+        native_str_in_re_str_to_re_eq hRevValid hMem
+      have hEq : xs = pat := by
+        have h := congrArg List.reverse hEqRev
+        simpa using h
+      subst xs
+      exact native_str_in_re_str_to_re_self_local pat hValid
+    · intro hMem
+      have hEq : xs = pat :=
+        native_str_in_re_str_to_re_eq hValid hMem
+      subst xs
+      exact native_str_in_re_str_to_re_self_local pat.reverse hRevValid
+  · have hRevInvalid : native_string_valid xs.reverse = false := by
+      cases h : native_string_valid xs <;> simp [h] at hValid
+      simpa [native_string_valid_reverse_consume_local xs, h]
+    have hInvalid : native_string_valid xs = false := by
+      cases h : native_string_valid xs <;> simp [h] at hValid ⊢
+    simp [native_str_in_re, hInvalid, hRevInvalid]
+
+private theorem nativeListInRe_raw_star_once_consume_local :
+    (xs : List native_Char) -> (r : native_RegLan) ->
+      nativeListInRe xs r = true ->
+        nativeListInRe xs (SmtRegLan.star r) = true
+  | [], r, _hMem => by
+      simp [nativeListInRe, native_re_nullable]
+  | c :: cs, r, hMem => by
+      have hDer : nativeListInRe cs (native_re_deriv c r) = true := by
+        simpa [nativeListInRe] using hMem
+      have hNil : nativeListInRe [] (SmtRegLan.star r) = true := by
+        simp [nativeListInRe, native_re_nullable]
+      have hConcat :
+          nativeListInRe cs
+              (native_re_mk_concat (native_re_deriv c r)
+                (SmtRegLan.star r)) =
+            true :=
+        (nativeListInRe_mk_concat_true_iff_exists_append cs
+          (native_re_deriv c r) (SmtRegLan.star r)).2
+          ⟨cs, [], by simp, hDer, hNil⟩
+      simpa [nativeListInRe, native_re_deriv] using hConcat
+
+private theorem nativeListInRe_char_length_one_consume_local
+    (xs : native_String) (c : native_Char)
+    (hMem : nativeListInRe xs (SmtRegLan.char c) = true) :
+    xs.length = 1 := by
+  cases xs with
+  | nil =>
+      simp [nativeListInRe, native_re_nullable] at hMem
+  | cons x xs =>
+      cases xs with
+      | nil =>
+          simp
+      | cons y ys =>
+          by_cases hCond :
+              (native_char_valid x = true ∧ native_char_valid c = true) ∧
+                x = c
+          · simp [nativeListInRe, native_re_deriv, hCond] at hMem
+            change nativeListInRe ys SmtRegLan.empty = true at hMem
+            rw [nativeListInRe_empty ys] at hMem
+            cases hMem
+          · simp [nativeListInRe, native_re_deriv, hCond] at hMem
+            change nativeListInRe ys SmtRegLan.empty = true at hMem
+            rw [nativeListInRe_empty ys] at hMem
+            cases hMem
+
+private theorem nativeListInRe_range_length_one_consume_local
+    (xs : native_String) (lo hi : native_Char)
+    (hMem : nativeListInRe xs (SmtRegLan.range lo hi) = true) :
+    xs.length = 1 := by
+  cases xs with
+  | nil =>
+      simp [nativeListInRe, native_re_nullable] at hMem
+  | cons x xs =>
+      cases xs with
+      | nil =>
+          simp
+      | cons y ys =>
+          by_cases hCond :
+              (((native_char_valid x = true ∧ native_char_valid lo = true) ∧
+                    native_char_valid hi = true) ∧ lo ≤ x) ∧
+                x ≤ hi
+          · simp [nativeListInRe, native_re_deriv, hCond] at hMem
+            change nativeListInRe ys SmtRegLan.empty = true at hMem
+            rw [nativeListInRe_empty ys] at hMem
+            cases hMem
+          · simp [nativeListInRe, native_re_deriv, hCond] at hMem
+            change nativeListInRe ys SmtRegLan.empty = true at hMem
+            rw [nativeListInRe_empty ys] at hMem
+            cases hMem
+
+private theorem nativeListInRe_reverse_char_consume_local
+    (xs : native_String) (c : native_Char) :
+    nativeListInRe xs.reverse (SmtRegLan.char c) =
+      nativeListInRe xs (SmtRegLan.char c) := by
+  cases xs with
+  | nil =>
+      simp [nativeListInRe, native_re_nullable]
+  | cons x xs =>
+      cases xs with
+      | nil =>
+          simp [nativeListInRe, native_re_deriv, Bool.and_assoc]
+      | cons y ys =>
+          have hLeft :
+              nativeListInRe (x :: y :: ys).reverse (SmtRegLan.char c) =
+                false := by
+            apply Bool.eq_false_iff.mpr
+            intro hMem
+            have hLen :=
+              nativeListInRe_char_length_one_consume_local
+                (x :: y :: ys).reverse c hMem
+            simp at hLen
+          have hRight :
+              nativeListInRe (x :: y :: ys) (SmtRegLan.char c) =
+                false := by
+            apply Bool.eq_false_iff.mpr
+            intro hMem
+            have hLen :=
+              nativeListInRe_char_length_one_consume_local
+                (x :: y :: ys) c hMem
+            simp at hLen
+          rw [hLeft, hRight]
+
+private theorem nativeListInRe_reverse_range_consume_local
+    (xs : native_String) (lo hi : native_Char) :
+    nativeListInRe xs.reverse (SmtRegLan.range lo hi) =
+      nativeListInRe xs (SmtRegLan.range lo hi) := by
+  cases xs with
+  | nil =>
+      simp [nativeListInRe, native_re_nullable]
+  | cons x xs =>
+      cases xs with
+      | nil =>
+          simp [nativeListInRe, native_re_deriv, Bool.and_assoc]
+      | cons y ys =>
+          have hLeft :
+              nativeListInRe (x :: y :: ys).reverse
+                  (SmtRegLan.range lo hi) =
+                false := by
+            apply Bool.eq_false_iff.mpr
+            intro hMem
+            have hLen :=
+              nativeListInRe_range_length_one_consume_local
+                (x :: y :: ys).reverse lo hi hMem
+            simp at hLen
+          have hRight :
+              nativeListInRe (x :: y :: ys) (SmtRegLan.range lo hi) =
+                false := by
+            apply Bool.eq_false_iff.mpr
+            intro hMem
+            have hLen :=
+              nativeListInRe_range_length_one_consume_local
+                (x :: y :: ys) lo hi hMem
+            simp at hLen
+          rw [hLeft, hRight]
+
+private theorem nativeListInRe_reverse_allchar_consume_local
+    (xs : native_String) :
+    nativeListInRe xs.reverse native_re_allchar =
+      nativeListInRe xs native_re_allchar := by
+  apply Bool.eq_iff_iff.mpr
+  constructor
+  · intro hMem
+    have hFacts := (nativeListInRe_allchar_true_iff xs.reverse).1 hMem
+    apply (nativeListInRe_allchar_true_iff xs).2
+    constructor
+    · simpa using hFacts.1
+    · simpa [list_all_reverse_eq_consume_local native_char_valid xs] using
+        hFacts.2
+  · intro hMem
+    have hFacts := (nativeListInRe_allchar_true_iff xs).1 hMem
+    apply (nativeListInRe_allchar_true_iff xs.reverse).2
+    constructor
+    · simpa using hFacts.1
+    · simpa [list_all_reverse_eq_consume_local native_char_valid xs] using
+        hFacts.2
+
+private theorem nativeListInRe_reverse_epsilon_consume_local
+    (xs : native_String) :
+    nativeListInRe xs.reverse SmtRegLan.epsilon =
+      nativeListInRe xs SmtRegLan.epsilon := by
+  apply Bool.eq_iff_iff.mpr
+  constructor
+  · intro hMem
+    have hRevNil : xs.reverse = [] :=
+      (nativeListInRe_epsilon_iff xs.reverse).1 hMem
+    have hNil : xs = [] := by
+      have h := congrArg List.reverse hRevNil
+      simpa using h
+    exact (nativeListInRe_epsilon_iff xs).2 hNil
+  · intro hMem
+    have hNil : xs = [] := (nativeListInRe_epsilon_iff xs).1 hMem
+    subst xs
+    simp [nativeListInRe, native_re_nullable]
+
+private theorem nativeListInRe_raw_union_consume_local :
+    ∀ (xs : native_String) (r s : native_RegLan),
+      nativeListInRe xs (SmtRegLan.union r s) =
+        (nativeListInRe xs r || nativeListInRe xs s)
+  | [], r, s => by
+      simp [nativeListInRe, native_re_nullable]
+  | c :: cs, r, s => by
+      change
+        nativeListInRe cs
+            (native_re_mk_union (native_re_deriv c r)
+              (native_re_deriv c s)) =
+          (nativeListInRe cs (native_re_deriv c r) ||
+            nativeListInRe cs (native_re_deriv c s))
+      rw [nativeListInRe_mk_union]
+
+private theorem nativeListInRe_raw_inter_consume_local :
+    ∀ (xs : native_String) (r s : native_RegLan),
+      nativeListInRe xs (SmtRegLan.inter r s) =
+        (nativeListInRe xs r && nativeListInRe xs s)
+  | [], r, s => by
+      simp [nativeListInRe, native_re_nullable]
+  | c :: cs, r, s => by
+      change
+        nativeListInRe cs
+            (native_re_mk_inter (native_re_deriv c r)
+              (native_re_deriv c s)) =
+          (nativeListInRe cs (native_re_deriv c r) &&
+            nativeListInRe cs (native_re_deriv c s))
+      rw [nativeListInRe_mk_inter]
+
+private theorem nativeListInRe_raw_comp_consume_local :
+    ∀ (xs : native_String) (r : native_RegLan),
+      nativeListInRe xs (SmtRegLan.comp r) =
+        Bool.not (nativeListInRe xs r)
+  | [], r => by
+      cases r <;> simp [nativeListInRe, native_re_nullable]
+  | c :: cs, r => by
+      have hComp := nativeListInRe_mk_comp cs (native_re_deriv c r)
+      simpa [nativeListInRe, native_re_deriv,
+        nativeListInRe_raw_comp_consume_local cs] using hComp
+
+private theorem nativeListInRe_raw_concat_true_iff_exists_append_consume_local :
+    ∀ (xs : native_String) (r s : native_RegLan),
+      nativeListInRe xs (SmtRegLan.concat r s) = true ↔
+        ∃ xs₁ xs₂ : native_String,
+          xs₁ ++ xs₂ = xs ∧
+            nativeListInRe xs₁ r = true ∧
+            nativeListInRe xs₂ s = true
+  | [], r, s => by
+      constructor
+      · intro h
+        have hParts :
+            native_re_nullable r = true ∧ native_re_nullable s = true := by
+          simpa [nativeListInRe, native_re_nullable, Bool.and_eq_true]
+            using h
+        exact ⟨[], [], by rfl, by simpa [nativeListInRe] using hParts.1,
+          by simpa [nativeListInRe] using hParts.2⟩
+      · intro h
+        rcases h with ⟨xs₁, xs₂, hAppend, hLeft, hRight⟩
+        cases xs₁ with
+        | nil =>
+            cases xs₂ with
+            | nil =>
+                simp [nativeListInRe, native_re_nullable] at hLeft hRight ⊢
+                simp [hLeft, hRight]
+            | cons _ _ =>
+                simp at hAppend
+        | cons _ _ =>
+            simp at hAppend
+  | c :: cs, r, s => by
+      constructor
+      · intro h
+        have hDer :
+            nativeListInRe cs
+                (native_re_mk_union
+                  (native_re_mk_concat (native_re_deriv c r) s)
+                  (if native_re_nullable r then native_re_deriv c s
+                    else SmtRegLan.empty)) =
+              true := by
+          simpa [nativeListInRe, native_re_deriv] using h
+        rw [nativeListInRe_mk_union] at hDer
+        have hDerCases :
+            nativeListInRe cs
+                  (native_re_mk_concat (native_re_deriv c r) s) =
+                true ∨
+              nativeListInRe cs
+                  (if native_re_nullable r then native_re_deriv c s
+                    else SmtRegLan.empty) =
+                true := by
+          cases hA :
+              nativeListInRe cs
+                (native_re_mk_concat (native_re_deriv c r) s) <;>
+            cases hB :
+              nativeListInRe cs
+                (if native_re_nullable r then native_re_deriv c s
+                  else SmtRegLan.empty) <;>
+            simp [hA, hB] at hDer ⊢
+        rcases hDerCases with hLeft | hRight
+        · rcases
+            (nativeListInRe_mk_concat_true_iff_exists_append cs
+              (native_re_deriv c r) s).1 hLeft with
+            ⟨xs₁, xs₂, hAppend, hHead, hTail⟩
+          exact ⟨c :: xs₁, xs₂, by simp [hAppend],
+            by simpa [nativeListInRe] using hHead, hTail⟩
+        · cases hNull : native_re_nullable r
+          · simp [hNull, nativeListInRe_empty] at hRight
+          · have hR : nativeListInRe [] r = true := by
+              simpa [nativeListInRe] using hNull
+            have hS : nativeListInRe (c :: cs) s = true := by
+              simpa [hNull, nativeListInRe] using hRight
+            exact ⟨[], c :: cs, by rfl, hR, hS⟩
+      · intro h
+        rcases h with ⟨xs₁, xs₂, hAppend, hLeft, hRight⟩
+        cases xs₁ with
+        | nil =>
+            cases hAppend
+            have hNull : native_re_nullable r = true := by
+              simpa [nativeListInRe] using hLeft
+            have hS : nativeListInRe cs (native_re_deriv c s) = true := by
+              simpa [nativeListInRe] using hRight
+            have hUnion :
+                nativeListInRe cs
+                    (native_re_mk_union
+                      (native_re_mk_concat (native_re_deriv c r) s)
+                      (if native_re_nullable r then native_re_deriv c s
+                        else SmtRegLan.empty)) =
+                  true := by
+              rw [nativeListInRe_mk_union]
+              simp [hNull, hS]
+            simpa [nativeListInRe, native_re_deriv] using hUnion
+        | cons x xs₁ =>
+            cases hAppend
+            have hHead : nativeListInRe xs₁ (native_re_deriv c r) = true := by
+              simpa [nativeListInRe] using hLeft
+            have hConcat :
+                nativeListInRe (xs₁ ++ xs₂)
+                    (native_re_mk_concat (native_re_deriv c r) s) =
+                  true :=
+              (nativeListInRe_mk_concat_true_iff_exists_append
+                (xs₁ ++ xs₂) (native_re_deriv c r) s).2
+                ⟨xs₁, xs₂, by rfl, hHead, hRight⟩
+            have hUnion :
+                nativeListInRe (xs₁ ++ xs₂)
+                    (native_re_mk_union
+                      (native_re_mk_concat (native_re_deriv c r) s)
+                      (if native_re_nullable r then native_re_deriv c s
+                        else SmtRegLan.empty)) =
+                  true := by
+              rw [nativeListInRe_mk_union]
+              simp [hConcat]
+            simpa [nativeListInRe, native_re_deriv] using hUnion
+
+private theorem nativeListInRe_reverse_raw_concat_consume_local
+    (xs : native_String) (r1 r2 rr1 rr2 : native_RegLan)
+    (h1 : ∀ ys,
+      nativeListInRe ys.reverse rr1 = nativeListInRe ys r1)
+    (h2 : ∀ ys,
+      nativeListInRe ys.reverse rr2 = nativeListInRe ys r2) :
+    nativeListInRe xs.reverse (SmtRegLan.concat rr2 rr1) =
+      nativeListInRe xs (SmtRegLan.concat r1 r2) := by
+  apply Bool.eq_iff_iff.mpr
+  constructor
+  · intro hMem
+    rcases
+        (nativeListInRe_raw_concat_true_iff_exists_append_consume_local
+          xs.reverse rr2 rr1).1 hMem with
+      ⟨ys2, ys1, hAppend, hYs2, hYs1⟩
+    have hRevAppend :
+        ys1.reverse ++ ys2.reverse = xs := by
+      have h := congrArg List.reverse hAppend
+      simpa [List.reverse_append] using h
+    have hLeft : nativeListInRe ys1.reverse r1 = true := by
+      have h' :
+          nativeListInRe ys1 rr1 = nativeListInRe ys1.reverse r1 := by
+        simpa using h1 ys1.reverse
+      rw [← h']
+      exact hYs1
+    have hRight : nativeListInRe ys2.reverse r2 = true := by
+      have h' :
+          nativeListInRe ys2 rr2 = nativeListInRe ys2.reverse r2 := by
+        simpa using h2 ys2.reverse
+      rw [← h']
+      exact hYs2
+    exact
+      (nativeListInRe_raw_concat_true_iff_exists_append_consume_local
+        xs r1 r2).2
+        ⟨ys1.reverse, ys2.reverse, hRevAppend, hLeft, hRight⟩
+  · intro hMem
+    rcases
+        (nativeListInRe_raw_concat_true_iff_exists_append_consume_local
+          xs r1 r2).1 hMem with
+      ⟨ys1, ys2, hAppend, hYs1, hYs2⟩
+    have hRevAppend :
+        ys2.reverse ++ ys1.reverse = xs.reverse := by
+      rw [← hAppend, List.reverse_append]
+    have hLeft : nativeListInRe ys2.reverse rr2 = true := by
+      rw [h2 ys2]
+      exact hYs2
+    have hRight : nativeListInRe ys1.reverse rr1 = true := by
+      rw [h1 ys1]
+      exact hYs1
+    exact
+      (nativeListInRe_raw_concat_true_iff_exists_append_consume_local
+        xs.reverse rr2 rr1).2
+        ⟨ys2.reverse, ys1.reverse, hRevAppend, hLeft, hRight⟩
+
+private theorem nativeListInRe_raw_star_nonempty_prefix_decomp_consume_local
+    (xs : native_String) (r : native_RegLan)
+    (hStar : nativeListInRe xs (SmtRegLan.star r) = true)
+    (hNe : xs ≠ []) :
+    ∃ pre suf : native_String,
+      pre ++ suf = xs ∧
+      pre ≠ [] ∧
+      nativeListInRe pre r = true ∧
+      nativeListInRe suf (SmtRegLan.star r) = true := by
+  cases xs with
+  | nil => exact False.elim (hNe rfl)
+  | cons c cs =>
+      rcases nativeListInRe_raw_star_cons_decomp_local (r := r) hStar with
+        ⟨preTail, suf, hAppend, hHead, hSuf⟩
+      exact ⟨c :: preTail, suf, by simp [hAppend], by simp, hHead,
+        hSuf⟩
+
+private theorem nativeListInRe_reverse_raw_star_consume_local
+    (r rr : native_RegLan)
+    (h : ∀ ys,
+      nativeListInRe ys.reverse rr = nativeListInRe ys r) :
+    ∀ xs : native_String,
+      nativeListInRe xs.reverse (SmtRegLan.star rr) =
+        nativeListInRe xs (SmtRegLan.star r)
+  | [] => by
+      simp [nativeListInRe, native_re_nullable]
+  | c :: cs => by
+      apply Bool.eq_iff_iff.mpr
+      constructor
+      · intro hMem
+        have hRevNe : (c :: cs).reverse ≠ [] := by simp
+        rcases
+            nativeListInRe_raw_star_nonempty_prefix_decomp_consume_local
+              (c :: cs).reverse rr hMem hRevNe with
+          ⟨pre, suf, hAppend, hPreNe, hPreMem, hSufMem⟩
+        have hOrigAppend : suf.reverse ++ pre.reverse = c :: cs := by
+          have hRev := congrArg List.reverse hAppend
+          simpa [List.reverse_append] using hRev
+        have hPreR : nativeListInRe pre.reverse r = true := by
+          have hEq :
+              nativeListInRe pre rr =
+                nativeListInRe pre.reverse r := by
+            simpa using h pre.reverse
+          rw [← hEq]
+          exact hPreMem
+        have hSufR :
+            nativeListInRe suf.reverse (SmtRegLan.star r) = true := by
+          have hRec :=
+            nativeListInRe_reverse_raw_star_consume_local r rr h suf.reverse
+          have hLeft :
+              nativeListInRe (suf.reverse).reverse (SmtRegLan.star rr) =
+                true := by
+            simpa using hSufMem
+          rw [← hRec]
+          exact hLeft
+        have hPreStar :
+            nativeListInRe pre.reverse (SmtRegLan.star r) = true :=
+          nativeListInRe_raw_star_once_consume_local pre.reverse r hPreR
+        have hJoin :
+            nativeListInRe (suf.reverse ++ pre.reverse)
+                (SmtRegLan.star r) = true :=
+          nativeListInRe_raw_star_append suf.reverse pre.reverse r
+            hSufR hPreStar
+        simpa [hOrigAppend] using hJoin
+      · intro hMem
+        have hNe : c :: cs ≠ [] := by simp
+        rcases
+            nativeListInRe_raw_star_nonempty_prefix_decomp_consume_local
+              (c :: cs) r hMem hNe with
+          ⟨pre, suf, hAppend, hPreNe, hPreMem, hSufMem⟩
+        have hRevAppend : suf.reverse ++ pre.reverse = (c :: cs).reverse := by
+          rw [← hAppend, List.reverse_append]
+        have hPreRR : nativeListInRe pre.reverse rr = true := by
+          rw [h pre]
+          exact hPreMem
+        have hSufRR :
+            nativeListInRe suf.reverse (SmtRegLan.star rr) = true := by
+          have hRec := nativeListInRe_reverse_raw_star_consume_local r rr h suf
+          rw [hRec]
+          exact hSufMem
+        have hPreStar :
+            nativeListInRe pre.reverse (SmtRegLan.star rr) = true :=
+          nativeListInRe_raw_star_once_consume_local pre.reverse rr hPreRR
+        have hJoin :
+            nativeListInRe (suf.reverse ++ pre.reverse)
+                (SmtRegLan.star rr) = true :=
+          nativeListInRe_raw_star_append suf.reverse pre.reverse rr
+            hSufRR hPreStar
+        simpa [hRevAppend] using hJoin
+termination_by xs => xs.length
+decreasing_by
+  all_goals
+    have hLenEq := congrArg List.length hAppend
+    simp only [List.length_append, List.length_reverse, List.length_cons]
+      at hLenEq ⊢
+    have hPreLen : 0 < pre.length := by
+      cases pre with
+      | nil => exact False.elim (hPreNe rfl)
+      | cons _ _ => simp
+    omega
+
+private theorem nativeListInRe_reverse_re_consume_local :
+    ∀ (r : native_RegLan) (xs : native_String),
+      nativeListInRe xs.reverse (native_re_reverse_raw_consume_local r) =
+        nativeListInRe xs r
+  | SmtRegLan.empty, xs => by
+      simp [native_re_reverse_raw_consume_local, nativeListInRe_empty]
+  | SmtRegLan.epsilon, xs => by
+      simpa [native_re_reverse_raw_consume_local] using
+        nativeListInRe_reverse_epsilon_consume_local xs
+  | SmtRegLan.char c, xs => by
+      simpa [native_re_reverse_raw_consume_local] using
+        nativeListInRe_reverse_char_consume_local xs c
+  | SmtRegLan.range lo hi, xs => by
+      simpa [native_re_reverse_raw_consume_local] using
+        nativeListInRe_reverse_range_consume_local xs lo hi
+  | SmtRegLan.allchar, xs => by
+      simpa [native_re_reverse_raw_consume_local] using
+        nativeListInRe_reverse_allchar_consume_local xs
+  | SmtRegLan.concat r s, xs => by
+      simpa [native_re_reverse_raw_consume_local] using
+        nativeListInRe_reverse_raw_concat_consume_local xs r s
+          (native_re_reverse_raw_consume_local r)
+          (native_re_reverse_raw_consume_local s)
+          (nativeListInRe_reverse_re_consume_local r)
+          (nativeListInRe_reverse_re_consume_local s)
+  | SmtRegLan.union r s, xs => by
+      simp [native_re_reverse_raw_consume_local,
+        nativeListInRe_raw_union_consume_local,
+        nativeListInRe_reverse_re_consume_local r xs,
+        nativeListInRe_reverse_re_consume_local s xs]
+  | SmtRegLan.inter r s, xs => by
+      simp [native_re_reverse_raw_consume_local,
+        nativeListInRe_raw_inter_consume_local,
+        nativeListInRe_reverse_re_consume_local r xs,
+        nativeListInRe_reverse_re_consume_local s xs]
+  | SmtRegLan.star r, xs => by
+      simpa [native_re_reverse_raw_consume_local] using
+        nativeListInRe_reverse_raw_star_consume_local r
+          (native_re_reverse_raw_consume_local r)
+          (nativeListInRe_reverse_re_consume_local r) xs
+  | SmtRegLan.comp r, xs => by
+      rw [native_re_reverse_raw_consume_local]
+      rw [nativeListInRe_raw_comp_consume_local]
+      rw [nativeListInRe_raw_comp_consume_local]
+      rw [nativeListInRe_reverse_re_consume_local r xs]
+
+private theorem native_str_in_re_reverse_re_consume_local
+    (xs : native_String) (r : native_RegLan) :
+    native_str_in_re xs.reverse (native_re_reverse_raw_consume_local r) =
+      native_str_in_re xs r := by
+  by_cases hValid : native_string_valid xs = true
+  · have hRevValid : native_string_valid xs.reverse = true := by
+      simpa [native_string_valid_reverse_consume_local xs] using hValid
+    change
+      (if native_string_valid xs.reverse = true then
+          nativeListInRe xs.reverse (native_re_reverse_raw_consume_local r)
+        else false) =
+        native_str_in_re xs r
+    rw [hRevValid]
+    change
+      nativeListInRe xs.reverse (native_re_reverse_raw_consume_local r) =
+        (if native_string_valid xs = true then nativeListInRe xs r
+          else false)
+    rw [hValid]
+    exact nativeListInRe_reverse_re_consume_local r xs
+  · have hInvalid : native_string_valid xs = false := by
+      cases h : native_string_valid xs <;> simp [h] at hValid ⊢
+    have hRevInvalid : native_string_valid xs.reverse = false := by
+      simpa [native_string_valid_reverse_consume_local xs] using hInvalid
+    change
+      (if native_string_valid xs.reverse = true then
+          nativeListInRe xs.reverse (native_re_reverse_raw_consume_local r)
+        else false) =
+        (if native_string_valid xs = true then nativeListInRe xs r
+          else false)
+    rw [hRevInvalid, hInvalid]
+    simp
+
 theorem native_str_in_re_re_mult_concat_eq_tail_of_no_prefix_local
     (xs : native_String) (r tail : native_RegLan)
     (hNoPrefix :
