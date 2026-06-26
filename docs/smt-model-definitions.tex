@@ -1490,6 +1490,46 @@ returns true if the given type is inhabited
 and its component types are well-formed, as defined by the recursive method \code{smt_type_wf_rec}.
 This method tracks a list of datatypes we have traversed beneath (\code{RefList}).
 
+For datatype types,
+we call the recursive helper \code{smt_dt_wf_rec} that returns true if the datatype is well-formed.
+We append the datatype name \code{s} to our list of references when calling this method,
+indicating that type references to \code{s} are valid in this context.
+This method returns false if the datatype has no constructors.
+Otherwise, we visit each constructor
+and return true only if all constructors are well formed via \code{smt_dtc_wf_rec}.
+Note we have a special case for one constructors to avoid returning false for an empty tail.
+We determine whether a constructor is well-formed if
+for each of its field types \code{T},
+either \code{T} is a type reference in scope (\code{s ∈ refs}),
+or otherwise \code{T} is an inhabited type that is well-formed, which we check
+recursively, maintaining the list of references.
+Note that carrying the reference list 
+implies that mutually recursive datatypes are supported.
+
+Note that type references are only permitted as direct children of
+constructors.
+Unguarded type reference are not well-formed given their case 
+in \code{smt_dt_wf_rec}, which returns false.
+
+The next cases in \code{smt_dt_wf_rec}
+cover composite types like maps, sequences and sets.
+It is important to note that for each component type (e.g. element and index types of maps,
+or element types of sequences),
+we do not carry the list of reference when recursing
+via \code{smt_type_wf_component}.
+This disallows nested recursive datatypes.
+It is also important to note that composite types built from uninhabited types
+are themselves considered not well-formed.
+This prevents us from otherwise have e.g. sets of an uninhabited type be
+inhabited via the empty set; sequences are guarded for the same reason.
+
+The remaining cases in \code{smt_dt_wf_rec} include exceptions
+for other types that we disallow as first-class types.
+As mentioned, we do not have regular expressions or function types
+as first class.
+We also disallow partially applied datatype constructors as a first-class type.
+Finally, we disallow the error type \code{None}.
+All other types (e.g. the atomic base types) are first-class.
 
 \subsection{Types of SMT-LIB Terms}
 
