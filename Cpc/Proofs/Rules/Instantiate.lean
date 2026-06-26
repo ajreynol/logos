@@ -1,5 +1,6 @@
 import Cpc.Proofs.RuleSupport.Support
 import Cpc.Proofs.Closed.ContainsAtomicTermListFree
+import Cpc.Proofs.Closed.Substitute
 
 open Eo
 open SmtEval
@@ -58,10 +59,11 @@ Status (2026-06-26):
   * main theorem `hWf`        — PROVEN (premise is Bool-typed ⇒ translatable).
   * `substitute_simul_eval`   — sorry (crux; see above).
   * `instantiate_body_true`   — sorry (forall unfolding).
-  * main theorem `hResBool`   — sorry; needs a *type-preservation* lemma for
-    `__substitute_simul_rec` (Bool-typed body + well-formed subst ⇒ Bool-typed
-    result). No generic `__eo_typeof t = Bool → eo_has_smt_translation t` exists,
-    so this is its own structural induction.
+  * `substitute_simul_has_bool_type_of_typeof_bool` — sorry; needs a
+    *type-preservation* lemma for `__substitute_simul_rec` (translatable
+    premise + translatable actuals + checker Bool result ⇒ SMT Bool result).
+    No generic `__eo_typeof t = Bool → eo_has_smt_translation t` exists, so
+    this is its own structural induction.
 
 The main theorem then wires these together with the standard single-arg /
 single-premise boilerplate (mirrors `BooleanElimSupport.cmd_step_and_elim_properties`).
@@ -84,6 +86,65 @@ noncomputable def pushSubstModel (M : SmtModel) : Term -> Term -> SmtModel
       native_model_push (pushSubstModel M xs ts) s (__eo_to_smt_type T)
         (__smtx_model_eval M (__eo_to_smt t))
   | _, _ => M
+
+@[simp] theorem pushSubstModel_nil_left (M : SmtModel) (ts : Term) :
+    pushSubstModel M Term.__eo_List_nil ts = M := by
+  cases ts <;> rfl
+
+@[simp] theorem pushSubstModel_nil_right (M : SmtModel) (xs : Term) :
+    pushSubstModel M xs Term.__eo_List_nil = M := by
+  cases xs with
+  | Apply f a =>
+      cases f with
+      | Apply g x =>
+          cases g <;> cases x <;> try rfl
+          case Var name T =>
+            cases name <;> rfl
+      | _ => rfl
+  | _ => rfl
+
+@[simp] theorem pushSubstModel_cons_var
+    (M : SmtModel) (s : native_String) (T xs t ts : Term) :
+    pushSubstModel M
+        (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var (Term.String s) T)) xs)
+        (Term.Apply (Term.Apply Term.__eo_List_cons t) ts) =
+      native_model_push (pushSubstModel M xs ts) s (__eo_to_smt_type T)
+        (__smtx_model_eval M (__eo_to_smt t)) := by
+  rfl
+
+/-- One `pushSubstModel` cons step preserves globals whenever the tail does. -/
+theorem pushSubstModel_cons_var_globals
+    (M : SmtModel) (s : native_String) (T xs t ts : Term)
+    (hTail : model_agrees_on_globals M (pushSubstModel M xs ts)) :
+    model_agrees_on_globals M
+      (pushSubstModel M
+        (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var (Term.String s) T)) xs)
+        (Term.Apply (Term.Apply Term.__eo_List_cons t) ts)) := by
+  rw [pushSubstModel_cons_var]
+  exact model_agrees_on_globals_trans hTail
+    (model_agrees_on_globals_push (pushSubstModel M xs ts) s
+      (__eo_to_smt_type T) (__smtx_model_eval M (__eo_to_smt t)))
+
+/--
+Typing/translatability preservation for the instantiate substitution result.
+
+The checker gives the last hypothesis (`__eo_typeof result = Bool`) after running
+the program, while `cmdTranslationOk` only gives elementwise translation of the
+actuals `ts`. Bridging those to `eo_has_bool_type result` is a structural
+substitution theorem, separate from the semantic substitution lemma below.
+-/
+theorem substitute_simul_has_bool_type_of_typeof_bool
+    (F xs ts : Term)
+    (hForall : RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F))
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hTy :
+      __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false) F xs ts Term.__eo_List_nil) =
+        Term.Bool) :
+    RuleProofs.eo_has_bool_type
+      (__substitute_simul_rec (Term.Boolean false) F xs ts Term.__eo_List_nil) := by
+  sorry
 
 /--
 **Substitution–evaluation lemma (crux).**
@@ -245,11 +306,6 @@ by
                   -- Shape: prem is a `forall`, result is the substitution.
                   obtain ⟨xs, F, hPremShape, hResEq⟩ :=
                     InstantiateRule.prog_instantiate_shape a1 prem hProg
-                  -- The result is Bool-typed (transport hResultTy along hResEq).
-                  have hResBool :
-                      RuleProofs.eo_has_bool_type
-                        (__substitute_simul_rec (Term.Boolean false) F xs a1 Term.__eo_List_nil) := by
-                    sorry
                   -- The premise (the forall) is Bool-typed, hence translatable.
                   have hPremBool : RuleProofs.eo_has_bool_type prem :=
                     hPremisesBool prem (by simp [prem, premiseTermList])
@@ -259,6 +315,26 @@ by
                       RuleProofs.eo_has_smt_translation
                         (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F) :=
                     RuleProofs.eo_has_smt_translation_of_has_bool_type _ hPremBool
+                  -- The instantiate argument is a list of translatable actuals.
+                  have hActualsTrans : EoListAllHaveSmtTranslation a1 := by
+                    simpa [cmdTranslationOk, cArgListTranslationOkMask,
+                      argTranslationOkMasked] using hCmdTrans
+                  -- The program result has EO Bool type.
+                  have hSubstTypeof :
+                      __eo_typeof
+                        (__substitute_simul_rec (Term.Boolean false) F xs a1
+                          Term.__eo_List_nil) = Term.Bool := by
+                    change __eo_typeof (__eo_prog_instantiate a1 (Proof.pf prem)) =
+                      Term.Bool at hResultTy
+                    rw [hResEq] at hResultTy
+                    exact hResultTy
+                  -- The result is SMT Bool-typed by substitution type preservation.
+                  have hResBool :
+                      RuleProofs.eo_has_bool_type
+                        (__substitute_simul_rec (Term.Boolean false) F xs a1
+                          Term.__eo_List_nil) :=
+                    InstantiateRule.substitute_simul_has_bool_type_of_typeof_bool
+                      F xs a1 hWf hActualsTrans hSubstTypeof
                   refine ⟨?_, ?_⟩
                   · -- facts_of_true
                     intro hEvid
