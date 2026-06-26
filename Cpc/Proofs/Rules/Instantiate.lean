@@ -188,13 +188,19 @@ theorem model_agrees_except_on_env_weaken_cons
   model_agrees_except_on_env_weaken_except
     (fun key hMem => smtVar_mem_cons_map_tail hMem) hAgree
 
-theorem model_agrees_on_env_of_agrees_everywhere
-    {vars : List SmtVarKey} {M N : SmtModel}
-    (hAgree : model_agrees_except_on_env [] [] M N) :
+theorem model_agrees_on_env_of_agrees_except_empty
+    {vars bound : List SmtVarKey} {M N : SmtModel}
+    (hAgree : model_agrees_except_on_env [] bound M N) :
     model_agrees_on_env vars M N := by
   refine ⟨hAgree.globals, ?_⟩
   intro s T _hMem
   exact hAgree.vars_eq s T (Or.inr (by simp))
+
+theorem model_agrees_on_env_of_agrees_everywhere
+    {vars : List SmtVarKey} {M N : SmtModel}
+    (hAgree : model_agrees_except_on_env [] [] M N) :
+    model_agrees_on_env vars M N := by
+  exact model_agrees_on_env_of_agrees_except_empty hAgree
 
 /-- `pushSubstModel` agrees with the original model outside the binder keys. -/
 theorem pushSubstModel_agrees_except
@@ -745,6 +751,62 @@ inductive SubstActualsTyped (M : SmtModel) : Term -> Term -> Prop where
           (Term.Var (Term.String s) T)) env)
         (Term.Apply (Term.Apply Term.__eo_List_cons t) ts)
 
+theorem SubstActualsTyped.env
+    {M : SmtModel} :
+    ∀ {xs ts : Term},
+      SubstActualsTyped M xs ts ->
+        ∃ vars, EoVarEnv xs vars
+  | _, _, SubstActualsTyped.nil ts =>
+      ⟨[], EoVarEnv.nil⟩
+  | _, _, SubstActualsTyped.cons _hWf _hValTy _hValCan hTail =>
+      by
+        rename_i s T env t ts
+        rcases SubstActualsTyped.env hTail with ⟨vars, hEnv⟩
+        exact ⟨(s, T) :: vars, EoVarEnv.cons hEnv⟩
+
+/-- Syntactic actual-list typing against a binder list. -/
+inductive SubstActualsHaveSmtTypes : Term -> Term -> Prop where
+  | nil (ts : Term) :
+      SubstActualsHaveSmtTypes Term.__eo_List_nil ts
+  | cons {s : native_String} {T env t ts : Term} :
+      __smtx_type_wf (__eo_to_smt_type T) = true ->
+      RuleProofs.eo_has_smt_translation t ->
+      __smtx_typeof (__eo_to_smt t) = __eo_to_smt_type T ->
+      SubstActualsHaveSmtTypes env ts ->
+      SubstActualsHaveSmtTypes
+        (Term.Apply (Term.Apply Term.__eo_List_cons
+          (Term.Var (Term.String s) T)) env)
+        (Term.Apply (Term.Apply Term.__eo_List_cons t) ts)
+
+theorem SubstActualsHaveSmtTypes.env :
+    ∀ {xs ts : Term},
+      SubstActualsHaveSmtTypes xs ts ->
+        ∃ vars, EoVarEnv xs vars
+  | _, _, SubstActualsHaveSmtTypes.nil ts =>
+      ⟨[], EoVarEnv.nil⟩
+  | _, _, SubstActualsHaveSmtTypes.cons _hWf _hTrans _hTy hTail =>
+      by
+        rename_i s T env t ts
+        rcases SubstActualsHaveSmtTypes.env hTail with ⟨vars, hEnv⟩
+        exact ⟨(s, T) :: vars, EoVarEnv.cons hEnv⟩
+
+theorem SubstActualsHaveSmtTypes.to_typed
+    (M : SmtModel) (hM : model_total_typed M) :
+    ∀ {xs ts : Term},
+      SubstActualsHaveSmtTypes xs ts ->
+        SubstActualsTyped M xs ts
+  | _, _, SubstActualsHaveSmtTypes.nil ts =>
+      SubstActualsTyped.nil ts
+  | _, _, SubstActualsHaveSmtTypes.cons hWf hTrans hTy hTail =>
+      by
+        rename_i s T env t ts
+        rcases eo_to_smt_eval_typed_canonical M hM t hTrans with
+          ⟨hEvalTy, hEvalCan⟩
+        exact SubstActualsTyped.cons hWf
+          (by simpa [hTy] using hEvalTy)
+          (by simpa [__smtx_value_canonical] using hEvalCan)
+          (SubstActualsHaveSmtTypes.to_typed M hM hTail)
+
 theorem pushSubstModel_total_typed_of_actuals
     (M : SmtModel) (hM : model_total_typed M)
     {xs ts : Term}
@@ -760,6 +822,14 @@ theorem pushSubstModel_total_typed_of_actuals
       exact model_total_typed_push ih s (__eo_to_smt_type T)
         (__smtx_model_eval M (__eo_to_smt t)) hWf hValTy
         (by simpa [__smtx_value_canonical] using hValCan)
+
+theorem pushSubstModel_total_typed_of_smt_typed_actuals
+    (M : SmtModel) (hM : model_total_typed M)
+    {xs ts : Term}
+    (hActuals : SubstActualsHaveSmtTypes xs ts) :
+    model_total_typed (pushSubstModel M xs ts) :=
+  pushSubstModel_total_typed_of_actuals M hM
+    (SubstActualsHaveSmtTypes.to_typed M hM hActuals)
 
 theorem smtx_model_eval_not_true_iff (v : SmtValue) :
     __smtx_model_eval_not v = SmtValue.Boolean true ↔
@@ -892,6 +962,285 @@ theorem forall_assignment_body_true
   forall_instantiation_body_true
     (forallAssignmentModel_instantiation Source hSource hEnv hWf M)
     hM hBodyTy hEval
+
+/--
+Bridge from pure universal instantiation to the substitution model.
+
+The two remaining facts needed by the full instantiate proof are kept explicit:
+`pushSubstModel` must be total-typed, and the translated body must be closed in
+some finite SMT-variable environment. The assignment model then agrees with the
+substitution model everywhere, so closed-term evaluation coincidence transfers
+the truth of the body.
+-/
+theorem instantiate_body_true_of_push_total_and_closedIn
+    (M : SmtModel) (hM : model_total_typed M)
+    (xs F ts : Term)
+    (hPrem : eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F) true)
+    (hWf : RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F))
+    (hPushTotal : model_total_typed (pushSubstModel M xs ts))
+    (hBodyClosed :
+      ∃ bodyVars : List SmtVarKey,
+        SmtTermClosedIn bodyVars (__eo_to_smt F)) :
+    __smtx_model_eval (pushSubstModel M xs ts) (__eo_to_smt F) =
+      SmtValue.Boolean true := by
+  have hXsNonNil : xs ≠ Term.__eo_List_nil :=
+    forall_binders_non_nil_of_has_smt_translation xs F hWf
+  have hBodyBool : RuleProofs.eo_has_bool_type F :=
+    forall_body_has_bool_type_of_has_smt_translation xs F hWf
+  rcases forall_binders_env_of_has_smt_translation xs F hWf with
+    ⟨binderVars, hXsEnv⟩
+  cases hPrem with
+  | intro_true hForallTy hForallEval =>
+      rw [eo_to_smt_forall_eq_of_non_nil xs F hXsNonNil] at hForallTy hForallEval
+      let Source := pushSubstModel M xs ts
+      have hBinderWf :
+          ∀ s T, (s, T) ∈ binderVars ->
+            __smtx_type_wf (__eo_to_smt_type T) = true :=
+        forall_binder_types_wf_of_has_smt_translation hWf hXsEnv
+      have hAssignTrue :
+          __smtx_model_eval (forallAssignmentModel Source M xs)
+              (__eo_to_smt F) =
+            SmtValue.Boolean true :=
+        forall_assignment_body_true
+          (M := M) (Source := Source) (xs := xs) (vars := binderVars)
+          (body := __eo_to_smt F)
+          hXsEnv
+          (by simpa [Source] using hPushTotal)
+          hM hBinderWf hBodyBool hForallEval
+      have hBase :
+          model_agrees_except_on_env (binderVars.map EoVarKey.toSmt) []
+            M Source :=
+        model_agrees_except_on_env_symm
+          (by
+            simpa [Source] using
+              pushSubstModel_agrees_except M ts hXsEnv)
+      have hAgreeAll :
+          model_agrees_except_on_env [] []
+            (forallAssignmentModel Source M xs) Source :=
+        forallAssignmentModel_agrees_source Source M hXsEnv hBase
+      rcases hBodyClosed with ⟨bodyVars, hClosed⟩
+      have hEvalEq :
+          __smtx_model_eval (forallAssignmentModel Source M xs)
+              (__eo_to_smt F) =
+            __smtx_model_eval Source (__eo_to_smt F) :=
+        smt_model_eval_eq_of_closedIn (__eo_to_smt F) bodyVars
+          (forallAssignmentModel Source M xs) Source hClosed
+          (model_agrees_on_env_of_agrees_everywhere hAgreeAll)
+      simpa [Source, ← hEvalEq] using hAssignTrue
+
+/-- Variant of `instantiate_body_true_of_push_total_and_closedIn` using the
+finite support of SMT terms as the closedness environment. -/
+theorem instantiate_body_true_of_push_total
+    (M : SmtModel) (hM : model_total_typed M)
+    (xs F ts : Term)
+    (hPrem : eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F) true)
+    (hWf : RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F))
+    (hPushTotal : model_total_typed (pushSubstModel M xs ts)) :
+    __smtx_model_eval (pushSubstModel M xs ts) (__eo_to_smt F) =
+      SmtValue.Boolean true := by
+  exact instantiate_body_true_of_push_total_and_closedIn M hM xs F ts
+    hPrem hWf hPushTotal (SmtTermClosedIn.exists_env (__eo_to_smt F))
+
+/-- Bridge specialised to actual terms that already evaluate to canonical values
+of the corresponding binder SMT types in the ambient model. -/
+theorem instantiate_body_true_of_actuals
+    (M : SmtModel) (hM : model_total_typed M)
+    (xs F ts : Term)
+    (hPrem : eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F) true)
+    (hWf : RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F))
+    (hActuals : SubstActualsTyped M xs ts) :
+    __smtx_model_eval (pushSubstModel M xs ts) (__eo_to_smt F) =
+      SmtValue.Boolean true := by
+  exact instantiate_body_true_of_push_total M hM xs F ts
+    hPrem hWf (pushSubstModel_total_typed_of_actuals M hM hActuals)
+
+/-- Same bridge, with syntactic SMT typing of actual terms converted through
+evaluation type preservation in the ambient model. -/
+theorem instantiate_body_true_of_smt_typed_actuals
+    (M : SmtModel) (hM : model_total_typed M)
+    (xs F ts : Term)
+    (hPrem : eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F) true)
+    (hWf : RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F))
+    (hActuals : SubstActualsHaveSmtTypes xs ts) :
+    __smtx_model_eval (pushSubstModel M xs ts) (__eo_to_smt F) =
+      SmtValue.Boolean true := by
+  exact instantiate_body_true_of_push_total M hM xs F ts hPrem hWf
+    (pushSubstModel_total_typed_of_smt_typed_actuals M hM hActuals)
+
+/-- EO closedness of a body under its binder list gives the SMT closedness
+environment needed by the model-coincidence theorem. -/
+theorem smt_body_closedIn_of_eo_closed_under_binders
+    {xs F : Term} {vars : List EoVarKey}
+    (hEnv : EoVarEnv xs vars)
+    (hClosed : __eo_is_closed_rec F xs = Term.Boolean true) :
+    SmtTermClosedIn (vars.map EoVarKey.toSmt) (__eo_to_smt F) := by
+  exact smtTermClosedIn_of_eo_is_closed_rec_perm
+    (hEnv := EoSmtVarEnvPerm.of_exact (EoVarEnv.to_smt hEnv))
+    hClosed
+
+/--
+Bridge specialised to the natural instantiate side conditions: the actual terms
+produce well-typed canonical binder values, and the body is EO-closed under the
+binder list.
+-/
+theorem instantiate_body_true_of_actuals_and_eo_closed
+    (M : SmtModel) (hM : model_total_typed M)
+    (xs F ts : Term)
+    (hPrem : eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F) true)
+    (hWf : RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F))
+    (hActuals : SubstActualsTyped M xs ts)
+    (hBodyClosed : __eo_is_closed_rec F xs = Term.Boolean true) :
+    __smtx_model_eval (pushSubstModel M xs ts) (__eo_to_smt F) =
+      SmtValue.Boolean true := by
+  rcases forall_binders_env_of_has_smt_translation xs F hWf with
+    ⟨binderVars, hXsEnv⟩
+  exact instantiate_body_true_of_push_total_and_closedIn M hM xs F ts
+    hPrem hWf
+    (pushSubstModel_total_typed_of_actuals M hM hActuals)
+    ⟨binderVars.map EoVarKey.toSmt,
+      smt_body_closedIn_of_eo_closed_under_binders hXsEnv hBodyClosed⟩
+
+/-- Same bridge, with syntactic actual typing converted through SMT evaluation
+type preservation in the ambient model. -/
+theorem instantiate_body_true_of_smt_typed_actuals_and_eo_closed
+    (M : SmtModel) (hM : model_total_typed M)
+    (xs F ts : Term)
+    (hPrem : eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F) true)
+    (hWf : RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F))
+    (hActuals : SubstActualsHaveSmtTypes xs ts)
+    (hBodyClosed : __eo_is_closed_rec F xs = Term.Boolean true) :
+    __smtx_model_eval (pushSubstModel M xs ts) (__eo_to_smt F) =
+      SmtValue.Boolean true := by
+  rcases forall_binders_env_of_has_smt_translation xs F hWf with
+    ⟨binderVars, hXsEnv⟩
+  exact instantiate_body_true_of_push_total_and_closedIn M hM xs F ts
+    hPrem hWf
+    (pushSubstModel_total_typed_of_smt_typed_actuals M hM hActuals)
+    ⟨binderVars.map EoVarKey.toSmt,
+      smt_body_closedIn_of_eo_closed_under_binders hXsEnv hBodyClosed⟩
+
+/-- Variable case for substitution-result translatability. If a top-level
+substituted variable is EO Boolean-typed, then it has an SMT translation. -/
+theorem substitute_simul_var_has_smt_translation_of_typeof_bool_nil
+    (s : native_String) (S xs ts : Term)
+    {xsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hVarTrans : RuleProofs.eo_has_smt_translation (Term.Var (Term.String s) S))
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hTy :
+      __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Var (Term.String s) S) xs ts Term.__eo_List_nil) =
+        Term.Bool) :
+    RuleProofs.eo_has_smt_translation
+      (__substitute_simul_rec (Term.Boolean false)
+        (Term.Var (Term.String s) S) xs ts Term.__eo_List_nil) := by
+  have hisr : (Term.Boolean false : Term) ≠ Term.Stuck := by decide
+  have hxs : xs ≠ Term.Stuck := hXsEnv.ne_stuck
+  have hts : ts ≠ Term.Stuck := by
+    intro h
+    subst ts
+    cases hTs
+  have hbvs : (Term.__eo_List_nil : Term) ≠ Term.Stuck := by decide
+  have hBvsEnv : EoVarEnvPerm Term.__eo_List_nil ([] : List EoVarKey) :=
+    EoVarEnvPerm.of_exact EoVarEnv.nil
+  have hFree :
+      __eo_is_neg
+          (__eo_list_find Term.__eo_List_cons Term.__eo_List_nil
+            (Term.Var (Term.String s) S)) =
+        Term.Boolean true :=
+    hBvsEnv.find_neg_true_of_not_mem (by simp)
+  rcases hXsEnv with ⟨xsExact, hXsExact, _hXsEquiv⟩
+  by_cases hMapped : (s, S) ∈ xsExact
+  · have hx :
+        __eo_is_neg
+            (__eo_list_find Term.__eo_List_cons xs
+              (Term.Var (Term.String s) S)) =
+          Term.Boolean false :=
+      hXsExact.find_neg_false_of_mem hMapped
+    have hSubstEq :
+        __substitute_simul_rec (Term.Boolean false)
+            (Term.Var (Term.String s) S) xs ts Term.__eo_List_nil =
+          __assoc_nil_nth Term.__eo_List_cons ts
+            (__eo_list_find Term.__eo_List_cons xs
+              (Term.Var (Term.String s) S)) :=
+      SubstituteSupport.substitute_simul_rec_var_mapped
+        (Term.Boolean false) (Term.String s) S xs ts Term.__eo_List_nil
+        hisr hxs hts hbvs hFree hx
+    rw [hSubstEq] at hTy ⊢
+    exact
+      SubstituteSupport.assoc_nil_nth_has_smt_translation_of_list_all_and_typeof_bool
+        ts
+        (__eo_list_find Term.__eo_List_cons xs (Term.Var (Term.String s) S))
+        hTs hTy
+  · have hx :
+        __eo_is_neg
+            (__eo_list_find Term.__eo_List_cons xs
+              (Term.Var (Term.String s) S)) =
+          Term.Boolean true :=
+      hXsExact.find_neg_true_of_not_mem hMapped
+    have hSubstEq :
+        __substitute_simul_rec (Term.Boolean false)
+            (Term.Var (Term.String s) S) xs ts Term.__eo_List_nil =
+          Term.Var (Term.String s) S :=
+      SubstituteSupport.substitute_simul_rec_var_unmapped
+        (Term.Boolean false) (Term.String s) S xs ts Term.__eo_List_nil
+        hisr hxs hts hbvs hFree hx
+    simpa [hSubstEq] using hVarTrans
+
+/-- Atom/default case for substitution-result translatability. -/
+theorem substitute_simul_atom_has_smt_translation_of_typeof_bool_nil
+    (F xs ts : Term)
+    {xsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hNotApply : ∀ f a, F ≠ Term.Apply f a)
+    (hNotVar : ∀ s S, F ≠ Term.Var s S)
+    (hNotStuck : F ≠ Term.Stuck)
+    (hFTrans : RuleProofs.eo_has_smt_translation F)
+    (hTy :
+      __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false) F xs ts Term.__eo_List_nil) =
+        Term.Bool) :
+    RuleProofs.eo_has_smt_translation
+      (__substitute_simul_rec (Term.Boolean false) F xs ts Term.__eo_List_nil) := by
+  have hisr : (Term.Boolean false : Term) ≠ Term.Stuck := by decide
+  have hxs : xs ≠ Term.Stuck := hXsEnv.ne_stuck
+  have hts : ts ≠ Term.Stuck := by
+    intro h
+    subst ts
+    cases hTs
+  have hbvs : (Term.__eo_List_nil : Term) ≠ Term.Stuck := by decide
+  have hSubstEq :
+      __substitute_simul_rec (Term.Boolean false) F xs ts Term.__eo_List_nil =
+        __eo_requires (__is_closed_rec F Term.__eo_List_nil) (Term.Boolean true) F :=
+    SubstituteSupport.substitute_simul_rec_atom
+      (Term.Boolean false) F xs ts Term.__eo_List_nil
+      hisr hxs hts hbvs hNotApply hNotVar hNotStuck
+  rw [hSubstEq] at hTy ⊢
+  by_cases hck :
+      native_teq (__is_closed_rec F Term.__eo_List_nil) (Term.Boolean true) = true
+  · have hcTrue : __is_closed_rec F Term.__eo_List_nil = Term.Boolean true := by
+      simpa only [native_teq, decide_eq_true_eq] using hck
+    have hReq :
+        __eo_requires (__is_closed_rec F Term.__eo_List_nil) (Term.Boolean true) F =
+          F := by
+      simp [__eo_requires, hcTrue, native_ite, native_teq, native_not,
+        SmtEval.native_not]
+    simpa [hReq] using hFTrans
+  · have hReq :
+        __eo_requires (__is_closed_rec F Term.__eo_List_nil) (Term.Boolean true) F =
+          Term.Stuck := by
+      simp [__eo_requires, native_ite, hck]
+    rw [hReq] at hTy
+    change Term.Stuck = Term.Bool at hTy
+    cases hTy
 
 /--
 SMT-translatability preservation for the instantiate substitution result.

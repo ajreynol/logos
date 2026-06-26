@@ -389,42 +389,263 @@ not occur free in the substitution values `ss`, so each substitute's evaluation
 is unchanged by the push. This is the key fact that makes `SubstFalseRel`
 survive a binder. -/
 
+private theorem assoc_nil_nth_index_stuck (f xs : Term) :
+    __assoc_nil_nth f xs Term.Stuck = Term.Stuck := by
+  cases f <;> cases xs <;>
+    simp [__assoc_nil_nth]
+
+private theorem assoc_nil_nth_nil_stuck (f n : Term) :
+    __assoc_nil_nth f Term.__eo_List_nil n = Term.Stuck := by
+  cases f <;> cases n <;>
+    simp [__assoc_nil_nth, __eo_l_1___assoc_nil_nth]
+
+private theorem eo_typeof_stuck :
+    __eo_typeof Term.Stuck = Term.Stuck := by
+  rfl
+
 /--
-*Structural list fact (pending).* An entry extracted from a value list inherits
-"no free occurrence of `except`": if no `except`-variable occurs free in `ss`,
-none occurs free in the `idx`-th entry `__assoc_nil_nth cons ss idx`. Proved by
-induction on the cons structure of `ss` (each entry is a subterm, introducing no
-new free variables under the empty bound context).
-
-WARNING (spec gap, 2026-06-26): the lemma as stated is **not** unconditionally
-true and needs two extra hypotheses to hold in general:
-
-  1. *In-range index.* For an out-of-range `idx`, `__assoc_nil_nth cons ss idx`
-     reduces to `Term.Stuck` (`assoc_nil_nth_nil_stuck`), and
-     `__contains_atomic_term_list_free_rec Stuck _ _ = Stuck ≠ Boolean false`.
-     The caller `subst_entry_eval_push_invariant` already carries
-     `hTrans : eoHasSmtTranslation (__assoc_nil_nth … ss idx)`, which forces the
-     entry `≠ Stuck` (`eoHasSmtTranslation Stuck` is `False`); thread that in.
-
-  2. *Non-binder-shaped entries.* `__contains_atomic_term_list_free_rec`
-     special-cases binder-shaped applications `(q (cons v vs) a)`. If a list entry
-     is itself a cons-list, the `except` variable can be *shadowed* at the list
-     level (so `contains ss except nil = false`) yet occur *free* in the extracted
-     entry — making the conclusion false. In real `instantiate` usage the entries
-     of `ss` (= the instantiation terms `ts`) are ordinary, non-binder terms, so a
-     well-formedness premise on `ss` is required to exclude this.
-
-Both premises hold in the intended call site; capture them before proving.
+An entry extracted from a translated EO value list inherits "no free occurrence
+of `except`". The SMT-translation hypotheses rule out the `Stuck` and
+binder-shaped edge cases where `__assoc_nil_nth` / `contains` would otherwise
+make the statement false.
 -/
-theorem contains_assoc_nil_nth_false
-    (ss except idx : Term)
+theorem contains_assoc_nil_nth_false_lt
+    (n : Nat) (ss except idx : Term)
+    {exceptVars : List EoVarKey}
+    (hLt : sizeOf ss < n)
+    (hExceptEnv : EoVarEnvPerm except exceptVars)
+    (hSsTrans : EoListAllHaveSmtTranslation ss)
+    (hTrans : eoHasSmtTranslation (__assoc_nil_nth Term.__eo_List_cons ss idx))
     (hNoFree :
       __contains_atomic_term_list_free_rec ss except Term.__eo_List_nil =
         Term.Boolean false) :
     __contains_atomic_term_list_free_rec
         (__assoc_nil_nth Term.__eo_List_cons ss idx) except Term.__eo_List_nil =
       Term.Boolean false := by
-  sorry
+  cases n with
+  | zero => omega
+  | succ n =>
+      have hBoundEnv : EoVarEnvPerm Term.__eo_List_nil ([] : List EoVarKey) :=
+        EoVarEnvPerm.of_exact EoVarEnv.nil
+      let hRec :
+          ∀ {ss' except' idx' : Term} {exceptVars' : List EoVarKey},
+            sizeOf ss' < sizeOf ss ->
+              EoVarEnvPerm except' exceptVars' ->
+              EoListAllHaveSmtTranslation ss' ->
+              eoHasSmtTranslation (__assoc_nil_nth Term.__eo_List_cons ss' idx') ->
+              __contains_atomic_term_list_free_rec ss' except' Term.__eo_List_nil =
+                Term.Boolean false ->
+              __contains_atomic_term_list_free_rec
+                  (__assoc_nil_nth Term.__eo_List_cons ss' idx') except'
+                  Term.__eo_List_nil =
+                Term.Boolean false :=
+        fun {ss' except' idx' exceptVars'} hLt' hExcept' hSsTrans' hTrans' hNoFree' =>
+          contains_assoc_nil_nth_false_lt n ss' except' idx'
+            (by omega) hExcept' hSsTrans' hTrans' hNoFree'
+      cases ss with
+      | __eo_List_nil =>
+          exfalso
+          cases idx <;>
+            unfold eoHasSmtTranslation at hTrans <;>
+            simp [__assoc_nil_nth, __eo_l_1___assoc_nil_nth] at hTrans <;>
+            exact hTrans TranslationProofs.smtx_typeof_none
+      | Apply f tail =>
+          cases f with
+          | Apply g head =>
+              by_cases hg : g = Term.__eo_List_cons
+              · subst g
+                rcases hSsTrans with ⟨hHeadTrans, hTailTrans⟩
+                rcases
+                  contains_atomic_term_list_free_rec_apply_false_cases
+                    hExceptEnv hBoundEnv
+                    (by
+                      intro q x ys hEq
+                      cases hEq
+                      exact
+                        term_not_eo_list_cons_of_has_smt_translation
+                          hHeadTrans x ys rfl)
+                    hNoFree with
+                  ⟨hHeadApplyNoFree, hTailNoFree⟩
+                rcases
+                  contains_atomic_term_list_free_rec_apply_false_cases
+                    hExceptEnv hBoundEnv
+                    (by intro q x ys hEq; cases hEq)
+                    hHeadApplyNoFree with
+                  ⟨_hConsNoFree, hHeadNoFree⟩
+                by_cases hIdxZero : idx = Term.Numeral 0
+                · subst idx
+                  simpa [__assoc_nil_nth, __eo_ite, __eo_eq, native_ite,
+                    native_teq] using hHeadNoFree
+                · have hAssocTail :
+                      __assoc_nil_nth Term.__eo_List_cons
+                          ((Term.Apply (Term.Apply Term.__eo_List_cons head) tail))
+                          idx =
+                        __assoc_nil_nth Term.__eo_List_cons tail
+                          (__eo_add idx (Term.Numeral (-1 : native_Int))) := by
+                    cases idx with
+                    | Numeral k =>
+                        by_cases hk : k = 0
+                        · exfalso
+                          apply hIdxZero
+                          simp [hk]
+                        · simp [__assoc_nil_nth, __eo_l_1___assoc_nil_nth,
+                            __eo_requires, __eo_eq, native_ite, native_teq,
+                            native_not, SmtEval.native_not, __eo_add, hk]
+                    | Stuck =>
+                        have hAdd :
+                            __eo_add Term.Stuck (Term.Numeral (-1 : native_Int)) =
+                              Term.Stuck := by
+                          rfl
+                        rw [assoc_nil_nth_index_stuck, hAdd,
+                          assoc_nil_nth_index_stuck]
+                    | _ =>
+                        simp [__assoc_nil_nth, __eo_l_1___assoc_nil_nth,
+                          __eo_requires, __eo_eq, native_ite, native_teq,
+                          native_not, SmtEval.native_not, __eo_add] at hIdxZero ⊢
+                  have hTailTrans' :
+                      eoHasSmtTranslation
+                        (__assoc_nil_nth Term.__eo_List_cons tail
+                          (__eo_add idx (Term.Numeral (-1 : native_Int)))) := by
+                    simpa [hAssocTail] using hTrans
+                  have hTailResult :
+                      __contains_atomic_term_list_free_rec
+                          (__assoc_nil_nth Term.__eo_List_cons tail
+                            (__eo_add idx (Term.Numeral (-1 : native_Int))))
+                          except Term.__eo_List_nil =
+                        Term.Boolean false :=
+                    hRec
+                      (ss' := tail)
+                      (idx' := __eo_add idx (Term.Numeral (-1 : native_Int)))
+                      (by simp; omega)
+                      hExceptEnv
+                      hTailTrans
+                      hTailTrans'
+                      hTailNoFree
+                  simpa [hAssocTail] using hTailResult
+              · exfalso
+                cases g <;> simp [EoListAllHaveSmtTranslation] at hSsTrans hg
+          | _ =>
+              cases hSsTrans
+      | _ =>
+          cases hSsTrans
+termination_by n
+decreasing_by
+  all_goals omega
+
+theorem contains_assoc_nil_nth_false
+    (ss except idx : Term)
+    {exceptVars : List EoVarKey}
+    (hExceptEnv : EoVarEnvPerm except exceptVars)
+    (hSsTrans : EoListAllHaveSmtTranslation ss)
+    (hTrans : eoHasSmtTranslation (__assoc_nil_nth Term.__eo_List_cons ss idx))
+    (hNoFree :
+      __contains_atomic_term_list_free_rec ss except Term.__eo_List_nil =
+        Term.Boolean false) :
+    __contains_atomic_term_list_free_rec
+        (__assoc_nil_nth Term.__eo_List_cons ss idx) except Term.__eo_List_nil =
+      Term.Boolean false := by
+  exact contains_assoc_nil_nth_false_lt (sizeOf ss + 1) ss except idx
+    (by omega) hExceptEnv hSsTrans hTrans hNoFree
+
+theorem assoc_nil_nth_has_smt_translation_of_list_all_and_typeof_bool_lt
+    (n : Nat) (ss idx : Term)
+    (hLt : sizeOf ss < n)
+    (hSsTrans : EoListAllHaveSmtTranslation ss)
+    (hTy :
+      __eo_typeof (__assoc_nil_nth Term.__eo_List_cons ss idx) =
+        Term.Bool) :
+    eoHasSmtTranslation (__assoc_nil_nth Term.__eo_List_cons ss idx) := by
+  cases n with
+  | zero => omega
+  | succ n =>
+      let hRec :
+          ∀ {ss' idx' : Term},
+            sizeOf ss' < sizeOf ss ->
+              EoListAllHaveSmtTranslation ss' ->
+              __eo_typeof (__assoc_nil_nth Term.__eo_List_cons ss' idx') =
+                Term.Bool ->
+              eoHasSmtTranslation
+                (__assoc_nil_nth Term.__eo_List_cons ss' idx') :=
+        fun {ss' idx'} hLt' hSsTrans' hTy' =>
+          assoc_nil_nth_has_smt_translation_of_list_all_and_typeof_bool_lt
+            n ss' idx' (by omega) hSsTrans' hTy'
+      cases ss with
+      | __eo_List_nil =>
+          exfalso
+          rw [assoc_nil_nth_nil_stuck, eo_typeof_stuck] at hTy
+          cases hTy
+      | Apply f tail =>
+          cases f with
+          | Apply g head =>
+              by_cases hg : g = Term.__eo_List_cons
+              · subst g
+                rcases hSsTrans with ⟨hHeadTrans, hTailTrans⟩
+                by_cases hIdxZero : idx = Term.Numeral 0
+                · subst idx
+                  simpa [__assoc_nil_nth, __eo_ite, __eo_eq, native_ite,
+                    native_teq] using hHeadTrans
+                · have hAssocTail :
+                      __assoc_nil_nth Term.__eo_List_cons
+                          ((Term.Apply (Term.Apply Term.__eo_List_cons head) tail))
+                          idx =
+                        __assoc_nil_nth Term.__eo_List_cons tail
+                          (__eo_add idx (Term.Numeral (-1 : native_Int))) := by
+                    cases idx with
+                    | Numeral k =>
+                        by_cases hk : k = 0
+                        · exfalso
+                          apply hIdxZero
+                          simp [hk]
+                        · simp [__assoc_nil_nth, __eo_l_1___assoc_nil_nth,
+                            __eo_requires, __eo_eq, native_ite, native_teq,
+                            native_not, SmtEval.native_not, __eo_add, hk]
+                    | Stuck =>
+                        have hAdd :
+                            __eo_add Term.Stuck (Term.Numeral (-1 : native_Int)) =
+                              Term.Stuck := by
+                          rfl
+                        rw [assoc_nil_nth_index_stuck, hAdd,
+                          assoc_nil_nth_index_stuck]
+                    | _ =>
+                        simp [__assoc_nil_nth, __eo_l_1___assoc_nil_nth,
+                          __eo_requires, __eo_eq, native_ite, native_teq,
+                          native_not, SmtEval.native_not, __eo_add] at hIdxZero ⊢
+                  have hTailTy :
+                      __eo_typeof
+                          (__assoc_nil_nth Term.__eo_List_cons tail
+                            (__eo_add idx (Term.Numeral (-1 : native_Int)))) =
+                        Term.Bool := by
+                    simpa [hAssocTail] using hTy
+                  have hTailTransResult :
+                      eoHasSmtTranslation
+                        (__assoc_nil_nth Term.__eo_List_cons tail
+                          (__eo_add idx (Term.Numeral (-1 : native_Int)))) :=
+                    hRec
+                      (ss' := tail)
+                      (idx' := __eo_add idx (Term.Numeral (-1 : native_Int)))
+                      (by simp; omega)
+                      hTailTrans
+                      hTailTy
+                  simpa [hAssocTail] using hTailTransResult
+              · exfalso
+                cases g <;> simp [EoListAllHaveSmtTranslation] at hSsTrans hg
+          | _ =>
+              cases hSsTrans
+      | _ =>
+          cases hSsTrans
+termination_by n
+decreasing_by
+  all_goals omega
+
+theorem assoc_nil_nth_has_smt_translation_of_list_all_and_typeof_bool
+    (ss idx : Term)
+    (hSsTrans : EoListAllHaveSmtTranslation ss)
+    (hTy :
+      __eo_typeof (__assoc_nil_nth Term.__eo_List_cons ss idx) =
+        Term.Bool) :
+    eoHasSmtTranslation (__assoc_nil_nth Term.__eo_List_cons ss idx) := by
+  exact assoc_nil_nth_has_smt_translation_of_list_all_and_typeof_bool_lt
+    (sizeOf ss + 1) ss idx (by omega) hSsTrans hTy
 
 /--
 A substitute entry's evaluation is invariant under pushing a binder variable that
@@ -436,6 +657,7 @@ theorem subst_entry_eval_push_invariant
     (hExceptEnv : EoVarEnvPerm except exceptVars)
     (s : native_String) (T : Term) (v : SmtValue)
     (hMem : (s, T) ∈ exceptVars)
+    (hSsTrans : EoListAllHaveSmtTranslation ss)
     (hTrans : eoHasSmtTranslation (__assoc_nil_nth Term.__eo_List_cons ss idx))
     (hNoFree :
       __contains_atomic_term_list_free_rec ss except Term.__eo_List_nil =
@@ -444,7 +666,8 @@ theorem subst_entry_eval_push_invariant
         (__eo_to_smt (__assoc_nil_nth Term.__eo_List_cons ss idx)) =
       __smtx_model_eval (native_model_push M s (__eo_to_smt_type T) v)
         (__eo_to_smt (__assoc_nil_nth Term.__eo_List_cons ss idx)) := by
-  have hEntryNoFree := contains_assoc_nil_nth_false ss except idx hNoFree
+  have hEntryNoFree :=
+    contains_assoc_nil_nth_false ss except idx hExceptEnv hSsTrans hTrans hNoFree
   have hBoundEnv : EoVarEnvPerm Term.__eo_List_nil ([] : List EoVarKey) :=
     EoVarEnvPerm.of_exact EoVarEnv.nil
   have hMemSmt :
@@ -483,6 +706,7 @@ theorem substFalseRel_push
     (hNoFreeSs :
       __contains_atomic_term_list_free_rec ss except Term.__eo_List_nil =
         Term.Boolean false)
+    (hSsTrans : EoListAllHaveSmtTranslation ss)
     (hEntryTrans :
       ∀ (s' : native_String) (T' : Term),
         __eo_is_neg (__eo_list_find Term.__eo_List_cons bvs (Term.Var (Term.String s') T')) =
@@ -563,6 +787,6 @@ theorem substFalseRel_push
       subst_entry_eval_push_invariant M ss except
         (__eo_list_find Term.__eo_List_cons xs (Term.Var (Term.String s') T'))
         hExceptEnv s T v hMemExcept
-        (hEntryTrans s' T' hbTrueBvs hMapped) hNoFreeSs
+        hSsTrans (hEntryTrans s' T' hbTrueBvs hMapped) hNoFreeSs
 
 end SubstituteSupport
