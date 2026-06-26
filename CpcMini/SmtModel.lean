@@ -431,6 +431,12 @@ def native_reflist_contains (xs : RefList) (s : native_String ) :=
 /- Type equality -/
 def native_Teq : SmtType -> SmtType -> native_Bool
   | x, y => decide (x = y)
+
+/-- `native_Teq` is reflexive; lets `simp` discharge the reflexive residual left
+when `native_inhabited_type` is unfolded on a concrete type. -/
+@[simp] theorem native_Teq_self (x : SmtType) : native_Teq x x = true := by
+  simp [native_Teq]
+
 /- Value equality -/
 def native_veq : SmtValue -> SmtValue -> native_Bool
   | x, y => decide (x = y)

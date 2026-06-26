@@ -29,7 +29,7 @@ theorem type_inhabited_of_native_inhabited_type
   have hPair :
       __smtx_typeof_value (__smtx_type_default T) = T ∧
         __smtx_value_canonical_bool (__smtx_type_default T) = true := by
-    simpa [native_inhabited_type, native_and] using h
+    simpa [native_inhabited_type, native_Teq, native_and] using h
   exact ⟨__smtx_type_default T, hPair.1⟩
 
 /-- Extracts the concrete default witness carried by the generated Boolean inhabitation check. -/
@@ -42,7 +42,7 @@ theorem type_default_typed_canonical_of_native_inhabited_type
   have hPair :
       __smtx_typeof_value (__smtx_type_default T) = T ∧
         __smtx_value_canonical_bool (__smtx_type_default T) = true := by
-    simpa [native_inhabited_type, native_and] using h
+    simpa [native_inhabited_type, native_Teq, native_and] using h
   exact ⟨hPair.1, by simpa [__smtx_value_canonical] using hPair.2⟩
 
 /-- Non-inhabited types fail the generated Boolean inhabitation check. -/
