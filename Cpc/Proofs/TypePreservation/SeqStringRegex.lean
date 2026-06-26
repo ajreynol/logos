@@ -1043,6 +1043,53 @@ theorem typeof_value_model_eval_str_concat
       (xs := native_unpack_seq ss1 ++ native_unpack_seq ss2)
       (list_typed_append hxs1 hxs2))
 
+/-- `__smtx_typeof_seq_diff` agrees with the generic sequence binary-op return type
+constructor specialised to `Int`. -/
+theorem seq_diff_typeof_fn_eq (A B : SmtType) :
+    __smtx_typeof_seq_diff A B =
+      __smtx_typeof_seq_op_2_ret A B SmtType.Int := by
+  cases A <;> cases B <;> rfl
+
+/-- Rewrites the typing equation for `seq_diff`. Its result type matches the generic
+sequence binary-op return type with `Int`, so the existing seq helpers apply. -/
+theorem typeof_seq_diff_eq (t1 t2 : SmtTerm) :
+    __smtx_typeof (SmtTerm.seq_diff t1 t2) =
+      __smtx_typeof_seq_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Int := by
+  have h : __smtx_typeof (SmtTerm.seq_diff t1 t2) =
+      __smtx_typeof_seq_diff (__smtx_typeof t1) (__smtx_typeof t2) := by
+    rw [__smtx_typeof.eq_def] <;> simp only
+  rw [h, seq_diff_typeof_fn_eq]
+
+/-- Shows that evaluating `seq_diff` terms produces values of the expected (`Int`) type.
+
+`native_eval_seq_diff_ssm` is a macro containing a `let rec`, so each textual occurrence
+elaborates to a distinct recursion that is not definitionally equal across expansions.  We
+therefore unfold `__smtx_model_eval_seq_diff` (which bakes in a single expansion) rather than
+restating the macro, and only ever observe that the result is a `Numeral`. -/
+theorem typeof_value_model_eval_seq_diff
+    (M : SmtModel)
+    (t1 t2 : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.seq_diff t1 t2))
+    (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
+    (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.seq_diff t1 t2)) =
+      __smtx_typeof (SmtTerm.seq_diff t1 t2) := by
+  rcases seq_binop_args_of_non_none_ret (op := SmtTerm.seq_diff)
+      (typeof_seq_diff_eq t1 t2) ht with ⟨T, h1, h2⟩
+  rw [show __smtx_typeof (SmtTerm.seq_diff t1 t2) = SmtType.Int by
+    rw [typeof_seq_diff_eq]
+    simp [__smtx_typeof_seq_op_2_ret, native_ite, native_Teq, h1, h2]]
+  rw [__smtx_model_eval.eq_def] <;> simp only
+  change __smtx_typeof_value (__smtx_model_eval_seq_diff (__smtx_model_eval M t1)
+      (__smtx_model_eval M t2)) = SmtType.Int
+  rcases seq_value_canonical (by simpa [h1] using hpres1) with ⟨ss1, hss1⟩
+  rcases seq_value_canonical (by simpa [h2] using hpres2) with ⟨ss2, hss2⟩
+  rw [hss1, hss2]
+  -- `native_eval_seq_diff_ssm` now always returns a `Numeral` (the differing index,
+  -- or `-1` as the default), so the result type is unconditionally `Int`.
+  simp only [__smtx_model_eval_seq_diff]
+  split <;> rfl
+
 /-- Shows that evaluating `str_substr` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_str_substr
     (M : SmtModel)

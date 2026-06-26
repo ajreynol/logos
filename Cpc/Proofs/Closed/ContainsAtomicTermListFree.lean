@@ -3094,78 +3094,27 @@ by
       hNoFree with
     ⟨hXNoFree, hYNoFree⟩
   change
-    __smtx_model_eval M
-        (SmtTerm.choice_nth (native_string_lit "@x") SmtType.Int
-          (SmtTerm.not
-            (SmtTerm.eq
-              (SmtTerm.str_substr (__eo_to_smt x)
-                (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-                (SmtTerm.Numeral 1))
-              (SmtTerm.str_substr (__eo_to_smt y)
-                (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-                (SmtTerm.Numeral 1))))
-          native_nat_zero) =
-      __smtx_model_eval N
-        (SmtTerm.choice_nth (native_string_lit "@x") SmtType.Int
-          (SmtTerm.not
-            (SmtTerm.eq
-              (SmtTerm.str_substr (__eo_to_smt x)
-                (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-                (SmtTerm.Numeral 1))
-              (SmtTerm.str_substr (__eo_to_smt y)
-                (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-                (SmtTerm.Numeral 1))))
-          native_nat_zero)
-  rw [smtx_model_eval_choice_nth_eq_aux M,
-    smtx_model_eval_choice_nth_eq_aux N]
-  simp [nativeEvalTChoiceNthAux]
-  apply native_eval_tchoice_eq_of_body_eval_eq
-  intro v
+    __smtx_model_eval M (SmtTerm.seq_diff (__eo_to_smt x) (__eo_to_smt y)) =
+      __smtx_model_eval N (SmtTerm.seq_diff (__eo_to_smt x) (__eo_to_smt y))
   have hXEval :
-      __smtx_model_eval
-          (native_model_push M (native_string_lit "@x") SmtType.Int v)
-          (__eo_to_smt x) =
-        __smtx_model_eval
-          (native_model_push N (native_string_lit "@x") SmtType.Int v)
-          (__eo_to_smt x) :=
-    ih hXLt hExcept hBound hXTrans hXNoFree
-      (model_agrees_except_on_env_shrink_bound
-        (bound := (native_string_lit "@x", SmtType.Int) ::
-          boundVars.map EoVarKey.toSmt)
-        (bound' := boundVars.map EoVarKey.toSmt)
-        (by intro key hKey; exact List.mem_cons_of_mem _ hKey)
-        (model_agrees_except_on_env_push_same
-          (s := native_string_lit "@x") (T := SmtType.Int) (v := v)
-          hAgree))
+      __smtx_model_eval M (__eo_to_smt x) =
+        __smtx_model_eval N (__eo_to_smt x) :=
+    ih hXLt hExcept hBound hXTrans hXNoFree hAgree
   have hYEval :
-      __smtx_model_eval
-          (native_model_push M (native_string_lit "@x") SmtType.Int v)
-          (__eo_to_smt y) =
-        __smtx_model_eval
-          (native_model_push N (native_string_lit "@x") SmtType.Int v)
-          (__eo_to_smt y) :=
-    ih hYLt hExcept hBound hYTrans hYNoFree
-      (model_agrees_except_on_env_shrink_bound
-        (bound := (native_string_lit "@x", SmtType.Int) ::
-          boundVars.map EoVarKey.toSmt)
-        (bound' := boundVars.map EoVarKey.toSmt)
-        (by intro key hKey; exact List.mem_cons_of_mem _ hKey)
-        (model_agrees_except_on_env_push_same
-          (s := native_string_lit "@x") (T := SmtType.Int) (v := v)
-          hAgree))
-  have hVarM :
-      __smtx_model_eval
-          (native_model_push M (native_string_lit "@x") SmtType.Int v)
-          (SmtTerm.Var (native_string_lit "@x") SmtType.Int) =
-        v := by
-    simp [__smtx_model_eval, native_model_var_lookup, native_model_push]
-  have hVarN :
-      __smtx_model_eval
-          (native_model_push N (native_string_lit "@x") SmtType.Int v)
-          (SmtTerm.Var (native_string_lit "@x") SmtType.Int) =
-        v := by
-    simp [__smtx_model_eval, native_model_var_lookup, native_model_push]
-  simp [__smtx_model_eval, hXEval, hYEval, hVarM, hVarN]
+      __smtx_model_eval M (__eo_to_smt y) =
+        __smtx_model_eval N (__eo_to_smt y) :=
+    ih hYLt hExcept hBound hYTrans hYNoFree hAgree
+  have hM :
+      __smtx_model_eval M (SmtTerm.seq_diff (__eo_to_smt x) (__eo_to_smt y)) =
+        __smtx_model_eval_seq_diff (__smtx_model_eval M (__eo_to_smt x))
+          (__smtx_model_eval M (__eo_to_smt y)) := by
+    rw [__smtx_model_eval.eq_def] <;> simp only
+  have hN :
+      __smtx_model_eval N (SmtTerm.seq_diff (__eo_to_smt x) (__eo_to_smt y)) =
+        __smtx_model_eval_seq_diff (__smtx_model_eval N (__eo_to_smt x))
+          (__smtx_model_eval N (__eo_to_smt y)) := by
+    rw [__smtx_model_eval.eq_def] <;> simp only
+  rw [hM, hN, hXEval, hYEval]
 
 theorem smt_model_eval_eo_to_smt_set_insert_eq_of_contains_atomic_term_list_free_rec_false_mapped
     (root : Term)

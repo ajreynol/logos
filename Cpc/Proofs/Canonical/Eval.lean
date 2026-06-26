@@ -572,6 +572,12 @@ theorem model_eval_canonical_of_supported
         (fun {A} hA => (hDefault (A := A) hA).2)
         (smt_model_eval_preserves_type_of_non_none M hM _ ht1)
         (smt_model_eval_preserves_type_of_non_none M hM _ ht2)
+  case seq_diff ht1 hs1 ht2 hs2 ih1 ih2 =>
+      refine model_eval_canonical_of_int_type M hM _ ?_
+      rcases seq_binop_args_of_non_none_ret (op := SmtTerm.seq_diff)
+          (typeof_seq_diff_eq _ _) hTy with ⟨T, h1, h2⟩
+      rw [typeof_seq_diff_eq]
+      simp [__smtx_typeof_seq_op_2_ret, native_ite, native_Teq, h1, h2]
   case ite htc hsc ht1 hs1 ht2 hs2 ihc ih1 ih2 =>
       exact model_eval_ite_term_canonical M _ _ _
         (ih1 M hM ht1) (ih2 M hM ht2)
