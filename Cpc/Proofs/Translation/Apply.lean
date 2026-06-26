@@ -65,7 +65,7 @@ private theorem smtx_dt_wf_rec_of_datatype_type_wf_rec_apply
 @[simp] private theorem native_inhabited_type_typeref_apply
     (s : native_String) :
     native_inhabited_type (SmtType.TypeRef s) = false := by
-  simp [native_inhabited_type, __smtx_type_default, __smtx_typeof_value,
+  simp [native_inhabited_type, native_Teq, __smtx_type_default, __smtx_typeof_value,
     native_and]
 
 @[simp] private theorem native_inhabited_type_seq_apply
