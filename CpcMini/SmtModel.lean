@@ -543,28 +543,22 @@ macro_rules
                   SmtValue.NotValue
             | _ => SmtValue.NotValue)
   | `(native_eval_seq_diff_ssm $s1 $s2) => do
-      let typeofSeqValueId := Lean.mkIdent `__smtx_typeof_seq_value
       `(by
           classical
           exact
-            match ($typeofSeqValueId $s1, $typeofSeqValueId $s2) with
-            | (SmtType.Seq T1, SmtType.Seq T2) =>
-                native_ite (native_Teq T1 T2)
-                  -- an arbitrary index at which the two sequences differ: a
-                  -- position whose elements disagree, where a missing element
-                  -- past the end of the shorter sequence counts as a
-                  -- disagreement. Such an index exists exactly when the two
-                  -- sequences are unequal; when they are equal we return 0.
-                  (let rec seqNth : SmtSeq -> Nat -> Option SmtValue
-                    | SmtSeq.cons v _, 0 => some v
-                    | SmtSeq.cons _ vs, Nat.succ n => seqNth vs n
-                    | SmtSeq.empty _, _ => none
-                   if hDiff : ∃ i : Nat, seqNth $s1 i ≠ seqNth $s2 i then
-                     SmtValue.Numeral (Int.ofNat (Classical.choose hDiff))
-                   else
-                     SmtValue.Numeral 0)
-                  SmtValue.NotValue
-            | _ => SmtValue.NotValue)
+            -- an arbitrary index at which the two sequences differ: a
+            -- position whose elements disagree, where a missing element
+            -- past the end of the shorter sequence counts as a
+            -- disagreement. Such an index exists exactly when the two
+            -- sequences are unequal; when they are equal we return -1.
+            (let rec seqNth : SmtSeq -> Nat -> SmtValue
+              | SmtSeq.cons v _, 0 => v
+              | SmtSeq.cons _ vs, Nat.succ n => seqNth vs n
+              | SmtSeq.empty _, _ => SmtValue.NotValue
+              if hDiff : ∃ i : Nat, native_not (native_veq (seqNth $s1 i) (seqNth $s2 i)) then
+                SmtValue.Numeral (Int.ofNat (Classical.choose hDiff))
+              else
+                SmtValue.Numeral (-1)))
 
 /- Definition of SMT-LIB model semantics -/
 

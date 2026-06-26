@@ -1084,15 +1084,10 @@ theorem typeof_value_model_eval_seq_diff
       (__smtx_model_eval M t2)) = SmtType.Int
   rcases seq_value_canonical (by simpa [h1] using hpres1) with ⟨ss1, hss1⟩
   rcases seq_value_canonical (by simpa [h2] using hpres2) with ⟨ss2, hss2⟩
-  have hty1 : __smtx_typeof_seq_value ss1 = SmtType.Seq T := by
-    simpa [__smtx_typeof_value, hss1, h1] using hpres1
-  have hty2 : __smtx_typeof_seq_value ss2 = SmtType.Seq T := by
-    simpa [__smtx_typeof_value, hss2, h2] using hpres2
   rw [hss1, hss2]
+  -- `native_eval_seq_diff_ssm` now always returns a `Numeral` (the differing index,
+  -- or `-1` as the default), so the result type is unconditionally `Int`.
   simp only [__smtx_model_eval_seq_diff]
-  rw [hty1, hty2]
-  have hTeq : native_Teq T T = true := by simp [native_Teq]
-  simp only [native_ite, hTeq, if_true]
   split <;> rfl
 
 /-- Shows that evaluating `str_substr` terms produces values of the expected type. -/
