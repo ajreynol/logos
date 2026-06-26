@@ -1165,6 +1165,61 @@ theorem eoListAllHaveSmtTranslation_ne_stuck {ts : Term}
   subst ts
   cases hTs
 
+theorem substitute_simul_rec_uop_eq_self
+    (op : UserOp) (xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hTs : EoListAllHaveSmtTranslation ts) :
+    __substitute_simul_rec (Term.Boolean false) (Term.UOp op) xs ts bvs =
+      Term.UOp op := by
+  have hisr : (Term.Boolean false : Term) ≠ Term.Stuck := by decide
+  have hxs : xs ≠ Term.Stuck := hXsEnv.ne_stuck
+  have hts : ts ≠ Term.Stuck := eoListAllHaveSmtTranslation_ne_stuck hTs
+  have hbvs : bvs ≠ Term.Stuck := hBvsEnv.ne_stuck
+  have hHeadEq :
+      __substitute_simul_rec (Term.Boolean false) (Term.UOp op) xs ts bvs =
+        __eo_requires
+          (__is_closed_rec (Term.UOp op) Term.__eo_List_nil)
+          (Term.Boolean true) (Term.UOp op) :=
+    SubstituteSupport.substitute_simul_rec_atom
+      (Term.Boolean false) (Term.UOp op) xs ts bvs
+      hisr hxs hts hbvs
+      (by intro f a h; cases h)
+      (by intro s S h; cases h)
+      (by intro h; cases h)
+  rw [hHeadEq]
+  simp [__is_closed_rec, __eo_requires, native_ite, native_teq,
+    native_not, SmtEval.native_not]
+
+set_option linter.unusedSimpArgs false in
+theorem eo_typeof_to_real_arg_arith_of_ne_stuck {A : Term}
+    (h : __eo_typeof_to_real A ≠ Term.Stuck) :
+    A = Term.UOp UserOp.Int ∨ A = Term.UOp UserOp.Real := by
+  cases A <;>
+    simp [__eo_typeof_to_real, __is_arith_type, __eo_requires,
+      native_ite, native_teq, native_not, SmtEval.native_not] at h ⊢
+  case UOp op =>
+    cases op <;>
+      simp [__eo_typeof_to_real, __is_arith_type, __eo_requires,
+        native_ite, native_teq, native_not, SmtEval.native_not] at h ⊢
+
+set_option linter.unusedSimpArgs false in
+theorem eo_typeof_to_int_arg_real_of_ne_stuck {A : Term}
+    (h : __eo_typeof_to_int A ≠ Term.Stuck) :
+    A = Term.UOp UserOp.Real := by
+  cases A <;> simp [__eo_typeof_to_int] at h ⊢
+  case UOp op =>
+    cases op <;> simp [__eo_typeof_to_int] at h ⊢
+
+set_option linter.unusedSimpArgs false in
+theorem eo_typeof_is_int_arg_real_of_ne_stuck {A : Term}
+    (h : __eo_typeof_is_int A ≠ Term.Stuck) :
+    A = Term.UOp UserOp.Real := by
+  cases A <;> simp [__eo_typeof_is_int] at h ⊢
+  case UOp op =>
+    cases op <;> simp [__eo_typeof_is_int] at h ⊢
+
 theorem instantiate_smt_term_ne_dt_sel_of_non_none_type
     {F : SmtTerm}
     (hF : __smtx_typeof F ≠ SmtType.None) :
@@ -1482,6 +1537,41 @@ theorem eo_has_smt_translation_mk_apply_of_head_arg_translation_and_type
   exact eo_has_smt_translation_apply_of_head_arg_translation_and_type
     f x hF hX hTy
 
+theorem instantiate_eo_mk_apply_fun_ne_stuck_of_ne_stuck {f x : Term} :
+    __eo_mk_apply f x ≠ Term.Stuck ->
+      f ≠ Term.Stuck := by
+  intro h hf
+  subst f
+  cases x <;> simp [__eo_mk_apply] at h
+
+theorem instantiate_eo_mk_apply_arg_ne_stuck_of_ne_stuck {f x : Term} :
+    __eo_mk_apply f x ≠ Term.Stuck ->
+      x ≠ Term.Stuck := by
+  intro h hx
+  subst x
+  cases f <;> simp [__eo_mk_apply] at h
+
+theorem instantiate_eo_mk_apply_eq_apply_of_ne_stuck (f x : Term)
+    (h : __eo_mk_apply f x ≠ Term.Stuck) :
+    __eo_mk_apply f x = Term.Apply f x := by
+  have hf := instantiate_eo_mk_apply_fun_ne_stuck_of_ne_stuck h
+  have hx := instantiate_eo_mk_apply_arg_ne_stuck_of_ne_stuck h
+  cases f <;> cases x <;> simp [__eo_mk_apply] at hf hx ⊢
+
+theorem instantiate_eo_mk_apply_ne_stuck_of_typeof_ne_stuck {f x : Term}
+    (hTy : __eo_typeof (__eo_mk_apply f x) ≠ Term.Stuck) :
+    __eo_mk_apply f x ≠ Term.Stuck := by
+  intro hStuck
+  apply hTy
+  rw [hStuck]
+  rfl
+
+theorem instantiate_eo_mk_apply_eq_apply_of_typeof_ne_stuck (f x : Term)
+    (hTy : __eo_typeof (__eo_mk_apply f x) ≠ Term.Stuck) :
+    __eo_mk_apply f x = Term.Apply f x :=
+  instantiate_eo_mk_apply_eq_apply_of_ne_stuck f x
+    (instantiate_eo_mk_apply_ne_stuck_of_typeof_ne_stuck hTy)
+
 theorem eo_typeof_eo_var_env_eq_list
     {xs : Term} {vars : List EoVarKey}
     (hEnv : EoVarEnv xs vars) :
@@ -1743,6 +1833,39 @@ theorem substitute_simul_apply_has_smt_translation_of_typeof_ne_stuck
       (__substitute_simul_rec (Term.Boolean false) a xs ts bvs)
       hFSubTrans hASubTrans hTy
 
+/-- Boolean-typed variant of the non-binder application substitution case. -/
+theorem substitute_simul_apply_has_smt_translation_of_typeof_bool
+    (f a xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hNotBinder :
+      ∀ q v vs,
+        f ≠ Term.Apply q
+          (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+    (hFSubTrans :
+      RuleProofs.eo_has_smt_translation
+        (__substitute_simul_rec (Term.Boolean false) f xs ts bvs))
+    (hASubTrans :
+      RuleProofs.eo_has_smt_translation
+        (__substitute_simul_rec (Term.Boolean false) a xs ts bvs))
+    (hTy :
+      __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply f a) xs ts bvs) =
+        Term.Bool) :
+    RuleProofs.eo_has_smt_translation
+      (__substitute_simul_rec (Term.Boolean false)
+        (Term.Apply f a) xs ts bvs) := by
+  exact
+    substitute_simul_apply_has_smt_translation_of_typeof_ne_stuck
+      f a xs ts bvs hXsEnv hBvsEnv hTs hNotBinder hFSubTrans hASubTrans
+      (by
+        intro hStuck
+        rw [hStuck] at hTy
+        cases hTy)
+
 /-- Quantifier-shaped substitution case: a non-`Stuck` type for the whole
 substitution result forces the capture-avoidance `requires` guard to return the
 rebuilt quantified body. This isolates the binder-specific unfolding from the
@@ -1946,6 +2069,57 @@ theorem substitute_simul_quant_has_smt_translation_of_typeof_ne_stuck
         hQ hQuantTrans hBinderEnv)
       hBodySubTrans hTy
 
+/-- Boolean-typed variant of the quantifier-shaped substitution case. -/
+theorem substitute_simul_quant_has_smt_translation_of_typeof_bool
+    (q v vs a xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hQuantTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.Apply q
+          (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)) a))
+    (hBodySubTrans :
+      RuleProofs.eo_has_smt_translation
+        (__substitute_simul_rec (Term.Boolean false) a xs ts
+          (__eo_list_concat Term.__eo_List_cons
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) bvs)))
+    (hTy :
+      __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply q
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)) a)
+          xs ts bvs) =
+        Term.Bool) :
+    RuleProofs.eo_has_smt_translation
+      (__substitute_simul_rec (Term.Boolean false)
+        (Term.Apply (Term.Apply q
+          (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)) a)
+        xs ts bvs) := by
+  exact
+    substitute_simul_quant_has_smt_translation_of_typeof_ne_stuck
+      q v vs a xs ts bvs hXsEnv hBvsEnv hTs hQuantTrans hBodySubTrans
+      (by
+        intro hStuck
+        rw [hStuck] at hTy
+        cases hTy)
+
+/-- A variable whose name is not an EO string cannot have an SMT translation. -/
+theorem false_of_non_string_var_has_smt_translation
+    {name S : Term} {P : Prop}
+    (hName : ∀ s, name ≠ Term.String s)
+    (hTrans : RuleProofs.eo_has_smt_translation (Term.Var name S)) :
+    P := by
+  exfalso
+  apply hTrans
+  cases name <;>
+    try
+      (change __smtx_typeof SmtTerm.None = SmtType.None
+       exact TranslationProofs.smtx_typeof_none)
+  case String s =>
+    exact False.elim (hName s rfl)
+
 /-- Variable case for substitution-result translatability under an arbitrary
 bound-variable accumulator, in the general non-`Stuck` typing form needed by
 recursive application cases. -/
@@ -2028,6 +2202,32 @@ theorem substitute_simul_var_has_smt_translation_of_typeof_ne_stuck
           hisr hxs hts hbvs hFree hx
       simpa [hSubstEq] using hVarTrans
 
+/-- Variable case for arbitrary EO variable names. Non-string names are ruled
+out by the translation hypothesis; string names use the main variable helper. -/
+theorem substitute_simul_var_any_has_smt_translation_of_typeof_ne_stuck
+    (name S xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hVarTrans : RuleProofs.eo_has_smt_translation (Term.Var name S))
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hTy :
+      __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Var name S) xs ts bvs) ≠
+        Term.Stuck) :
+    RuleProofs.eo_has_smt_translation
+      (__substitute_simul_rec (Term.Boolean false)
+        (Term.Var name S) xs ts bvs) := by
+  by_cases hString : ∃ s, name = Term.String s
+  · rcases hString with ⟨s, rfl⟩
+    exact
+      substitute_simul_var_has_smt_translation_of_typeof_ne_stuck
+        s S xs ts bvs hXsEnv hBvsEnv hVarTrans hTs hTy
+  · exact
+      false_of_non_string_var_has_smt_translation
+        (fun s hEq => hString ⟨s, hEq⟩) hVarTrans
+
 /-- Variable case for substitution-result translatability under an arbitrary
 bound-variable accumulator. If the substituted variable result is EO
 Boolean-typed, then it has an SMT translation. -/
@@ -2109,6 +2309,31 @@ theorem substitute_simul_var_has_smt_translation_of_typeof_bool
           (Term.Boolean false) (Term.String s) S xs ts bvs
           hisr hxs hts hbvs hFree hx
       simpa [hSubstEq] using hVarTrans
+
+/-- Boolean-typed variant of the arbitrary-name variable helper. -/
+theorem substitute_simul_var_any_has_smt_translation_of_typeof_bool
+    (name S xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hVarTrans : RuleProofs.eo_has_smt_translation (Term.Var name S))
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hTy :
+      __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Var name S) xs ts bvs) =
+        Term.Bool) :
+    RuleProofs.eo_has_smt_translation
+      (__substitute_simul_rec (Term.Boolean false)
+        (Term.Var name S) xs ts bvs) := by
+  by_cases hString : ∃ s, name = Term.String s
+  · rcases hString with ⟨s, rfl⟩
+    exact
+      substitute_simul_var_has_smt_translation_of_typeof_bool
+        s S xs ts bvs hXsEnv hBvsEnv hVarTrans hTs hTy
+  · exact
+      false_of_non_string_var_has_smt_translation
+        (fun s hEq => hString ⟨s, hEq⟩) hVarTrans
 
 /-- Top-level variable case for substitution-result translatability. -/
 theorem substitute_simul_var_has_smt_translation_of_typeof_bool_nil
@@ -2251,6 +2476,518 @@ theorem substitute_simul_atom_has_smt_translation_of_typeof_bool_nil
       (EoVarEnvPerm.of_exact EoVarEnv.nil)
       hTs hNotApply hNotVar hNotStuck hFTrans hTy
 
+/-- Size-recursive form of general substitution-result translatability, under
+an arbitrary bound-variable accumulator. The remaining recursive work is the
+application case, where SMT-translatable EO applications must be inverted by
+operator shape before rebuilding the substituted application. -/
+theorem substitute_simul_has_smt_translation_of_typeof_ne_stuck_lt
+    (n : Nat) (F xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hLt : sizeOf F < n)
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hFTrans : RuleProofs.eo_has_smt_translation F)
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hTy :
+      __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false) F xs ts bvs) ≠
+        Term.Stuck) :
+    RuleProofs.eo_has_smt_translation
+      (__substitute_simul_rec (Term.Boolean false) F xs ts bvs) := by
+  cases n with
+  | zero =>
+      omega
+  | succ n =>
+      let hRec :
+          ∀ {G xs' ts' bvs' : Term} {xsVars' bvsVars' : List EoVarKey},
+            sizeOf G < sizeOf F ->
+            EoVarEnvPerm xs' xsVars' ->
+            EoVarEnvPerm bvs' bvsVars' ->
+            RuleProofs.eo_has_smt_translation G ->
+            EoListAllHaveSmtTranslation ts' ->
+            __eo_typeof
+                (__substitute_simul_rec (Term.Boolean false) G xs' ts' bvs') ≠
+              Term.Stuck ->
+            RuleProofs.eo_has_smt_translation
+              (__substitute_simul_rec (Term.Boolean false) G xs' ts' bvs') :=
+        fun {G xs' ts' bvs'} {xsVars' bvsVars'} hGLt hXsEnv' hBvsEnv'
+            hGTrans hTs' hGTy =>
+          substitute_simul_has_smt_translation_of_typeof_ne_stuck_lt
+            n G xs' ts' bvs'
+            (by omega) hXsEnv' hBvsEnv' hGTrans hTs' hGTy
+      cases F
+      case Apply f a =>
+          by_cases hBinder :
+              ∃ q v vs,
+                f =
+                  Term.Apply q
+                    (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
+          · rcases hBinder with ⟨q, v, vs, rfl⟩
+            let binders := Term.Apply (Term.Apply Term.__eo_List_cons v) vs
+            let bodySub :=
+              __substitute_simul_rec (Term.Boolean false) a xs ts
+                (__eo_list_concat Term.__eo_List_cons binders bvs)
+            have hFTrans' :
+                eoHasSmtTranslation
+                  (Term.Apply (Term.Apply q binders) a) := by
+              simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation,
+                binders] using hFTrans
+            have hQ :
+                q = Term.UOp UserOp.forall ∨
+                  q = Term.UOp UserOp.exists :=
+              is_closed_rec_list_branch_head_term_quantifier_of_has_smt_translation
+                hFTrans'
+            rcases eo_var_env_of_list_branch_has_smt_translation hFTrans' with
+              ⟨binderVars, hBinderEnv⟩
+            have hSubstEq :
+                __substitute_simul_rec (Term.Boolean false)
+                    (Term.Apply (Term.Apply q binders) a) xs ts bvs =
+                  __eo_mk_apply (Term.Apply q binders) bodySub := by
+              simpa [binders, bodySub] using
+                substitute_simul_quant_eq_of_typeof_ne_stuck
+                  q v vs a xs ts bvs hXsEnv hBvsEnv hTs hTy
+            have hTyMk :
+                __eo_typeof
+                    (__eo_mk_apply (Term.Apply q binders) bodySub) ≠
+                  Term.Stuck := by
+              rwa [hSubstEq] at hTy
+            have hMk :
+                __eo_mk_apply (Term.Apply q binders) bodySub =
+                  Term.Apply (Term.Apply q binders) bodySub :=
+              eo_mk_apply_apply_head_eq_apply_of_typeof_ne_stuck
+                q binders bodySub hTyMk
+            have hTyApply :
+                __eo_typeof (Term.Apply (Term.Apply q binders) bodySub) ≠
+                  Term.Stuck := by
+              rwa [hMk] at hTyMk
+            have hBodyBool : __eo_typeof bodySub = Term.Bool :=
+              eo_typeof_body_bool_of_quant_type_ne_stuck
+                hQ hBinderEnv hTyApply
+            have hBodyTy : __eo_typeof bodySub ≠ Term.Stuck := by
+              rw [hBodyBool]
+              intro h
+              cases h
+            have hBodyTrans :
+                RuleProofs.eo_has_smt_translation a := by
+              simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+                using
+                  body_has_smt_translation_of_list_branch_has_smt_translation
+                    hFTrans'
+            have hBvsEnv' :
+                EoVarEnvPerm
+                  (__eo_list_concat Term.__eo_List_cons binders bvs)
+                  (binderVars.reverse ++ bvsVars) :=
+              EoVarEnvPerm.concat_rev hBinderEnv hBvsEnv
+            have hBodySubTrans :
+                RuleProofs.eo_has_smt_translation bodySub :=
+              hRec
+                (G := a) (xs' := xs) (ts' := ts)
+                (bvs' := __eo_list_concat Term.__eo_List_cons binders bvs)
+                (by simp; omega)
+                hXsEnv hBvsEnv' hBodyTrans hTs
+                (by simpa [bodySub] using hBodyTy)
+            exact
+              substitute_simul_quant_has_smt_translation_of_typeof_ne_stuck
+                q v vs a xs ts bvs hXsEnv hBvsEnv hTs hFTrans
+                (by simpa [binders, bodySub] using hBodySubTrans)
+                hTy
+          · by_cases hNot : f = Term.UOp UserOp.not
+            · subst f
+              let aSub :=
+                __substitute_simul_rec (Term.Boolean false) a xs ts bvs
+              have hisr : (Term.Boolean false : Term) ≠ Term.Stuck := by decide
+              have hxs : xs ≠ Term.Stuck := hXsEnv.ne_stuck
+              have hts : ts ≠ Term.Stuck :=
+                eoListAllHaveSmtTranslation_ne_stuck hTs
+              have hbvs : bvs ≠ Term.Stuck := hBvsEnv.ne_stuck
+              have hHeadSub :
+                  __substitute_simul_rec (Term.Boolean false)
+                      (Term.UOp UserOp.not) xs ts bvs =
+                    Term.UOp UserOp.not := by
+                have hHeadEq :
+                    __substitute_simul_rec (Term.Boolean false)
+                        (Term.UOp UserOp.not) xs ts bvs =
+                      __eo_requires
+                        (__is_closed_rec (Term.UOp UserOp.not)
+                          Term.__eo_List_nil)
+                        (Term.Boolean true) (Term.UOp UserOp.not) :=
+                  SubstituteSupport.substitute_simul_rec_atom
+                    (Term.Boolean false) (Term.UOp UserOp.not) xs ts bvs
+                    hisr hxs hts hbvs
+                    (by intro f a h; cases h)
+                    (by intro s S h; cases h)
+                    (by intro h; cases h)
+                rw [hHeadEq]
+                simp [__is_closed_rec, __eo_requires, native_ite,
+                  native_teq, native_not, SmtEval.native_not]
+              have hSubstEq :
+                  __substitute_simul_rec (Term.Boolean false)
+                      (Term.Apply (Term.UOp UserOp.not) a) xs ts bvs =
+                    __eo_mk_apply (Term.UOp UserOp.not) aSub := by
+                have hApplyEq :=
+                  SubstituteSupport.substitute_simul_rec_apply
+                    (Term.Boolean false) (Term.UOp UserOp.not) a xs ts bvs
+                    hisr hxs hts hbvs
+                    (by
+                      intro q v vs hEq
+                      exact hBinder ⟨q, v, vs, hEq⟩)
+                simpa [aSub, hHeadSub] using hApplyEq
+              have hTyMk :
+                  __eo_typeof (__eo_mk_apply (Term.UOp UserOp.not) aSub) ≠
+                    Term.Stuck := by
+                rwa [hSubstEq] at hTy
+              have hMk :
+                  __eo_mk_apply (Term.UOp UserOp.not) aSub =
+                    Term.Apply (Term.UOp UserOp.not) aSub :=
+                instantiate_eo_mk_apply_eq_apply_of_typeof_ne_stuck
+                  (Term.UOp UserOp.not) aSub hTyMk
+              have hTyApply :
+                  __eo_typeof (Term.Apply (Term.UOp UserOp.not) aSub) ≠
+                    Term.Stuck := by
+                rwa [hMk] at hTyMk
+              have hASubBool : __eo_typeof aSub = Term.Bool := by
+                change __eo_typeof_not (__eo_typeof aSub) ≠
+                  Term.Stuck at hTyApply
+                cases hAType : __eo_typeof aSub <;>
+                  simp [__eo_typeof_not, hAType] at hTyApply ⊢
+              have hFTransEo :
+                  eoHasSmtTranslation
+                    (Term.Apply (Term.UOp UserOp.not) a) := by
+                simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+                  using hFTrans
+              have hATrans :
+                  RuleProofs.eo_has_smt_translation a := by
+                simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+                  using
+                    not_arg_has_smt_translation_of_has_smt_translation
+                      hFTransEo
+              have hASubTrans :
+                  RuleProofs.eo_has_smt_translation aSub :=
+                hRec
+                  (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                  (by simp)
+                  hXsEnv hBvsEnv hATrans hTs
+                  (by
+                    rw [hASubBool]
+                    intro h
+                    cases h)
+              have hASubBoolType : RuleProofs.eo_has_bool_type aSub :=
+                RuleProofs.eo_typeof_bool_implies_has_bool_type
+                  aSub hASubTrans hASubBool
+              have hNotTrans :
+                  RuleProofs.eo_has_smt_translation
+                    (Term.Apply (Term.UOp UserOp.not) aSub) :=
+                RuleProofs.eo_has_smt_translation_of_has_bool_type
+                  (Term.Apply (Term.UOp UserOp.not) aSub)
+                  (RuleProofs.eo_has_bool_type_not_of_bool_arg
+                    aSub hASubBoolType)
+              rwa [hSubstEq, hMk]
+            · by_cases hToReal : f = Term.UOp UserOp.to_real
+              · subst f
+                let aSub :=
+                  __substitute_simul_rec (Term.Boolean false) a xs ts bvs
+                have hisr : (Term.Boolean false : Term) ≠ Term.Stuck := by decide
+                have hxs : xs ≠ Term.Stuck := hXsEnv.ne_stuck
+                have hts : ts ≠ Term.Stuck :=
+                  eoListAllHaveSmtTranslation_ne_stuck hTs
+                have hbvs : bvs ≠ Term.Stuck := hBvsEnv.ne_stuck
+                have hHeadSub :
+                    __substitute_simul_rec (Term.Boolean false)
+                        (Term.UOp UserOp.to_real) xs ts bvs =
+                      Term.UOp UserOp.to_real :=
+                  substitute_simul_rec_uop_eq_self
+                    UserOp.to_real xs ts bvs hXsEnv hBvsEnv hTs
+                have hSubstEq :
+                    __substitute_simul_rec (Term.Boolean false)
+                        (Term.Apply (Term.UOp UserOp.to_real) a) xs ts bvs =
+                      __eo_mk_apply (Term.UOp UserOp.to_real) aSub := by
+                  have hApplyEq :=
+                    SubstituteSupport.substitute_simul_rec_apply
+                      (Term.Boolean false) (Term.UOp UserOp.to_real) a xs ts bvs
+                      hisr hxs hts hbvs
+                      (by
+                        intro q v vs hEq
+                        exact hBinder ⟨q, v, vs, hEq⟩)
+                  simpa [aSub, hHeadSub] using hApplyEq
+                have hTyMk :
+                    __eo_typeof (__eo_mk_apply (Term.UOp UserOp.to_real) aSub) ≠
+                      Term.Stuck := by
+                  rwa [hSubstEq] at hTy
+                have hMk :
+                    __eo_mk_apply (Term.UOp UserOp.to_real) aSub =
+                      Term.Apply (Term.UOp UserOp.to_real) aSub :=
+                  instantiate_eo_mk_apply_eq_apply_of_typeof_ne_stuck
+                    (Term.UOp UserOp.to_real) aSub hTyMk
+                have hTyApply :
+                    __eo_typeof (Term.Apply (Term.UOp UserOp.to_real) aSub) ≠
+                      Term.Stuck := by
+                  rwa [hMk] at hTyMk
+                have hASubTyNe : __eo_typeof aSub ≠ Term.Stuck := by
+                  intro hAStuck
+                  apply hTyApply
+                  change __eo_typeof_to_real (__eo_typeof aSub) = Term.Stuck
+                  rw [hAStuck]
+                  rfl
+                have hArgArith :
+                    __eo_typeof aSub = Term.UOp UserOp.Int ∨
+                      __eo_typeof aSub = Term.UOp UserOp.Real := by
+                  apply eo_typeof_to_real_arg_arith_of_ne_stuck
+                  change __eo_typeof_to_real (__eo_typeof aSub) ≠
+                    Term.Stuck at hTyApply
+                  exact hTyApply
+                have hFTransEo :
+                    eoHasSmtTranslation
+                      (Term.Apply (Term.UOp UserOp.to_real) a) := by
+                  simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+                    using hFTrans
+                have hATrans :
+                    RuleProofs.eo_has_smt_translation a := by
+                  simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+                    using
+                      to_real_arg_has_smt_translation_of_has_smt_translation
+                        hFTransEo
+                have hASubTrans :
+                    RuleProofs.eo_has_smt_translation aSub :=
+                  hRec
+                    (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                    (by simp)
+                    hXsEnv hBvsEnv hATrans hTs hASubTyNe
+                have hASubMatch :
+                    __smtx_typeof (__eo_to_smt aSub) =
+                      __eo_to_smt_type (__eo_typeof aSub) :=
+                  TranslationProofs.eo_to_smt_typeof_matches_translation
+                    aSub hASubTrans
+                have hToRealTrans :
+                    RuleProofs.eo_has_smt_translation
+                      (Term.Apply (Term.UOp UserOp.to_real) aSub) := by
+                  unfold RuleProofs.eo_has_smt_translation
+                  change
+                    __smtx_typeof (SmtTerm.to_real (__eo_to_smt aSub)) ≠
+                      SmtType.None
+                  rw [typeof_to_real_eq]
+                  rcases hArgArith with hArgInt | hArgReal
+                  · have hSmtArg :
+                        __smtx_typeof (__eo_to_smt aSub) = SmtType.Int := by
+                      rw [hASubMatch, hArgInt]
+                      rfl
+                    simp [hSmtArg, native_ite, native_Teq]
+                  · have hSmtArg :
+                        __smtx_typeof (__eo_to_smt aSub) = SmtType.Real := by
+                      rw [hASubMatch, hArgReal]
+                      rfl
+                    simp [hSmtArg, native_ite, native_Teq]
+                rw [hSubstEq, hMk]
+                exact hToRealTrans
+              · by_cases hToInt : f = Term.UOp UserOp.to_int
+                · subst f
+                  let aSub :=
+                    __substitute_simul_rec (Term.Boolean false) a xs ts bvs
+                  have hisr : (Term.Boolean false : Term) ≠ Term.Stuck := by decide
+                  have hxs : xs ≠ Term.Stuck := hXsEnv.ne_stuck
+                  have hts : ts ≠ Term.Stuck :=
+                    eoListAllHaveSmtTranslation_ne_stuck hTs
+                  have hbvs : bvs ≠ Term.Stuck := hBvsEnv.ne_stuck
+                  have hHeadSub :
+                      __substitute_simul_rec (Term.Boolean false)
+                          (Term.UOp UserOp.to_int) xs ts bvs =
+                        Term.UOp UserOp.to_int :=
+                    substitute_simul_rec_uop_eq_self
+                      UserOp.to_int xs ts bvs hXsEnv hBvsEnv hTs
+                  have hSubstEq :
+                      __substitute_simul_rec (Term.Boolean false)
+                          (Term.Apply (Term.UOp UserOp.to_int) a) xs ts bvs =
+                        __eo_mk_apply (Term.UOp UserOp.to_int) aSub := by
+                    have hApplyEq :=
+                      SubstituteSupport.substitute_simul_rec_apply
+                        (Term.Boolean false) (Term.UOp UserOp.to_int) a xs ts bvs
+                        hisr hxs hts hbvs
+                        (by
+                          intro q v vs hEq
+                          exact hBinder ⟨q, v, vs, hEq⟩)
+                    simpa [aSub, hHeadSub] using hApplyEq
+                  have hTyMk :
+                      __eo_typeof (__eo_mk_apply (Term.UOp UserOp.to_int) aSub) ≠
+                        Term.Stuck := by
+                    rwa [hSubstEq] at hTy
+                  have hMk :
+                      __eo_mk_apply (Term.UOp UserOp.to_int) aSub =
+                        Term.Apply (Term.UOp UserOp.to_int) aSub :=
+                    instantiate_eo_mk_apply_eq_apply_of_typeof_ne_stuck
+                      (Term.UOp UserOp.to_int) aSub hTyMk
+                  have hTyApply :
+                      __eo_typeof (Term.Apply (Term.UOp UserOp.to_int) aSub) ≠
+                        Term.Stuck := by
+                    rwa [hMk] at hTyMk
+                  have hArgReal :
+                      __eo_typeof aSub = Term.UOp UserOp.Real := by
+                    apply eo_typeof_to_int_arg_real_of_ne_stuck
+                    change __eo_typeof_to_int (__eo_typeof aSub) ≠
+                      Term.Stuck at hTyApply
+                    exact hTyApply
+                  have hASubTyNe : __eo_typeof aSub ≠ Term.Stuck := by
+                    rw [hArgReal]
+                    intro h
+                    cases h
+                  have hFTransEo :
+                      eoHasSmtTranslation
+                        (Term.Apply (Term.UOp UserOp.to_int) a) := by
+                    simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+                      using hFTrans
+                  have hATrans :
+                      RuleProofs.eo_has_smt_translation a := by
+                    simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+                      using
+                        to_int_arg_has_smt_translation_of_has_smt_translation
+                          hFTransEo
+                  have hASubTrans :
+                      RuleProofs.eo_has_smt_translation aSub :=
+                    hRec
+                      (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                      (by simp)
+                      hXsEnv hBvsEnv hATrans hTs hASubTyNe
+                  have hASubMatch :
+                      __smtx_typeof (__eo_to_smt aSub) =
+                        __eo_to_smt_type (__eo_typeof aSub) :=
+                    TranslationProofs.eo_to_smt_typeof_matches_translation
+                      aSub hASubTrans
+                  have hToIntTrans :
+                      RuleProofs.eo_has_smt_translation
+                        (Term.Apply (Term.UOp UserOp.to_int) aSub) := by
+                    unfold RuleProofs.eo_has_smt_translation
+                    change
+                      __smtx_typeof (SmtTerm.to_int (__eo_to_smt aSub)) ≠
+                        SmtType.None
+                    rw [typeof_to_int_eq]
+                    have hSmtArg :
+                        __smtx_typeof (__eo_to_smt aSub) = SmtType.Real := by
+                      rw [hASubMatch, hArgReal]
+                      rfl
+                    simp [hSmtArg, native_ite, native_Teq]
+                  rw [hSubstEq, hMk]
+                  exact hToIntTrans
+                · by_cases hIsInt : f = Term.UOp UserOp.is_int
+                  · subst f
+                    let aSub :=
+                      __substitute_simul_rec (Term.Boolean false) a xs ts bvs
+                    have hisr : (Term.Boolean false : Term) ≠ Term.Stuck := by decide
+                    have hxs : xs ≠ Term.Stuck := hXsEnv.ne_stuck
+                    have hts : ts ≠ Term.Stuck :=
+                      eoListAllHaveSmtTranslation_ne_stuck hTs
+                    have hbvs : bvs ≠ Term.Stuck := hBvsEnv.ne_stuck
+                    have hHeadSub :
+                        __substitute_simul_rec (Term.Boolean false)
+                            (Term.UOp UserOp.is_int) xs ts bvs =
+                          Term.UOp UserOp.is_int :=
+                      substitute_simul_rec_uop_eq_self
+                        UserOp.is_int xs ts bvs hXsEnv hBvsEnv hTs
+                    have hSubstEq :
+                        __substitute_simul_rec (Term.Boolean false)
+                            (Term.Apply (Term.UOp UserOp.is_int) a) xs ts bvs =
+                          __eo_mk_apply (Term.UOp UserOp.is_int) aSub := by
+                      have hApplyEq :=
+                        SubstituteSupport.substitute_simul_rec_apply
+                          (Term.Boolean false) (Term.UOp UserOp.is_int) a xs ts bvs
+                          hisr hxs hts hbvs
+                          (by
+                            intro q v vs hEq
+                            exact hBinder ⟨q, v, vs, hEq⟩)
+                      simpa [aSub, hHeadSub] using hApplyEq
+                    have hTyMk :
+                        __eo_typeof (__eo_mk_apply (Term.UOp UserOp.is_int) aSub) ≠
+                          Term.Stuck := by
+                      rwa [hSubstEq] at hTy
+                    have hMk :
+                        __eo_mk_apply (Term.UOp UserOp.is_int) aSub =
+                          Term.Apply (Term.UOp UserOp.is_int) aSub :=
+                      instantiate_eo_mk_apply_eq_apply_of_typeof_ne_stuck
+                        (Term.UOp UserOp.is_int) aSub hTyMk
+                    have hTyApply :
+                        __eo_typeof (Term.Apply (Term.UOp UserOp.is_int) aSub) ≠
+                          Term.Stuck := by
+                      rwa [hMk] at hTyMk
+                    have hArgReal :
+                        __eo_typeof aSub = Term.UOp UserOp.Real := by
+                      apply eo_typeof_is_int_arg_real_of_ne_stuck
+                      change __eo_typeof_is_int (__eo_typeof aSub) ≠
+                        Term.Stuck at hTyApply
+                      exact hTyApply
+                    have hASubTyNe : __eo_typeof aSub ≠ Term.Stuck := by
+                      rw [hArgReal]
+                      intro h
+                      cases h
+                    have hFTransEo :
+                        eoHasSmtTranslation
+                          (Term.Apply (Term.UOp UserOp.is_int) a) := by
+                      simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+                        using hFTrans
+                    have hATrans :
+                        RuleProofs.eo_has_smt_translation a := by
+                      simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+                        using
+                          is_int_arg_has_smt_translation_of_has_smt_translation
+                            hFTransEo
+                    have hASubTrans :
+                        RuleProofs.eo_has_smt_translation aSub :=
+                      hRec
+                        (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                        (by simp)
+                        hXsEnv hBvsEnv hATrans hTs hASubTyNe
+                    have hASubMatch :
+                        __smtx_typeof (__eo_to_smt aSub) =
+                          __eo_to_smt_type (__eo_typeof aSub) :=
+                      TranslationProofs.eo_to_smt_typeof_matches_translation
+                        aSub hASubTrans
+                    have hIsIntTrans :
+                        RuleProofs.eo_has_smt_translation
+                          (Term.Apply (Term.UOp UserOp.is_int) aSub) := by
+                      unfold RuleProofs.eo_has_smt_translation
+                      change
+                        __smtx_typeof (SmtTerm.is_int (__eo_to_smt aSub)) ≠
+                          SmtType.None
+                      rw [typeof_is_int_eq]
+                      have hSmtArg :
+                          __smtx_typeof (__eo_to_smt aSub) = SmtType.Real := by
+                        rw [hASubMatch, hArgReal]
+                        rfl
+                      simp [hSmtArg, native_ite, native_Teq]
+                    rw [hSubstEq, hMk]
+                    exact hIsIntTrans
+                  · sorry
+      case Var name S =>
+          exact
+            substitute_simul_var_any_has_smt_translation_of_typeof_ne_stuck
+              name S xs ts bvs hXsEnv hBvsEnv hFTrans hTs hTy
+      case Stuck =>
+          exact False.elim
+            ((RuleProofs.term_ne_stuck_of_has_smt_translation Term.Stuck hFTrans) rfl)
+      all_goals
+        exact
+          substitute_simul_atom_has_smt_translation_of_typeof_ne_stuck
+            _ xs ts bvs hXsEnv hBvsEnv hTs
+            (by intro f a h; cases h)
+            (by intro s S h; cases h)
+            (by intro h; cases h)
+            hFTrans hTy
+
+/-- General substitution-result translatability, under an arbitrary
+bound-variable accumulator. -/
+theorem substitute_simul_has_smt_translation_of_typeof_ne_stuck
+    (F xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hFTrans : RuleProofs.eo_has_smt_translation F)
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hTy :
+      __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false) F xs ts bvs) ≠
+        Term.Stuck) :
+    RuleProofs.eo_has_smt_translation
+      (__substitute_simul_rec (Term.Boolean false) F xs ts bvs) :=
+  substitute_simul_has_smt_translation_of_typeof_ne_stuck_lt
+    (sizeOf F + 1) F xs ts bvs (by omega)
+    hXsEnv hBvsEnv hFTrans hTs hTy
+
 /--
 SMT-translatability preservation for the instantiate substitution result.
 
@@ -2275,7 +3012,226 @@ theorem substitute_simul_has_smt_translation_of_typeof_bool
     forall_body_has_smt_translation_of_has_smt_translation xs F hForall
   rcases forall_binders_env_of_has_smt_translation xs F hForall with
     ⟨binderVars, hXsEnv⟩
-  sorry
+  cases F with
+  | Apply f a =>
+      exact
+        substitute_simul_has_smt_translation_of_typeof_ne_stuck
+          (Term.Apply f a) xs ts Term.__eo_List_nil
+          (EoVarEnvPerm.of_exact hXsEnv)
+          (EoVarEnvPerm.of_exact EoVarEnv.nil)
+          hBodyTrans hTs
+          (by
+            intro hStuck
+            rw [hStuck] at hTy
+            cases hTy)
+  | Var name S =>
+      exact
+        substitute_simul_var_any_has_smt_translation_of_typeof_bool
+          name S xs ts Term.__eo_List_nil
+          (EoVarEnvPerm.of_exact hXsEnv)
+          (EoVarEnvPerm.of_exact EoVarEnv.nil)
+          hBodyTrans hTs hTy
+  | Stuck =>
+      exact False.elim
+        ((RuleProofs.term_ne_stuck_of_has_smt_translation Term.Stuck hBodyTrans) rfl)
+  | UOp op =>
+      exact
+        substitute_simul_atom_has_smt_translation_of_typeof_bool_nil
+          (Term.UOp op) xs ts
+          (EoVarEnvPerm.of_exact hXsEnv) hTs
+          (by intro f a h; cases h)
+          (by intro s S h; cases h)
+          (by intro h; cases h)
+          hBodyTrans hTy
+  | UOp1 op x =>
+      exact
+        substitute_simul_atom_has_smt_translation_of_typeof_bool_nil
+          (Term.UOp1 op x) xs ts
+          (EoVarEnvPerm.of_exact hXsEnv) hTs
+          (by intro f a h; cases h)
+          (by intro s S h; cases h)
+          (by intro h; cases h)
+          hBodyTrans hTy
+  | UOp2 op x y =>
+      exact
+        substitute_simul_atom_has_smt_translation_of_typeof_bool_nil
+          (Term.UOp2 op x y) xs ts
+          (EoVarEnvPerm.of_exact hXsEnv) hTs
+          (by intro f a h; cases h)
+          (by intro s S h; cases h)
+          (by intro h; cases h)
+          hBodyTrans hTy
+  | UOp3 op x y z =>
+      exact
+        substitute_simul_atom_has_smt_translation_of_typeof_bool_nil
+          (Term.UOp3 op x y z) xs ts
+          (EoVarEnvPerm.of_exact hXsEnv) hTs
+          (by intro f a h; cases h)
+          (by intro s S h; cases h)
+          (by intro h; cases h)
+          hBodyTrans hTy
+  | __eo_List =>
+      exact
+        substitute_simul_atom_has_smt_translation_of_typeof_bool_nil
+          Term.__eo_List xs ts
+          (EoVarEnvPerm.of_exact hXsEnv) hTs
+          (by intro f a h; cases h)
+          (by intro s S h; cases h)
+          (by intro h; cases h)
+          hBodyTrans hTy
+  | __eo_List_nil =>
+      exact
+        substitute_simul_atom_has_smt_translation_of_typeof_bool_nil
+          Term.__eo_List_nil xs ts
+          (EoVarEnvPerm.of_exact hXsEnv) hTs
+          (by intro f a h; cases h)
+          (by intro s S h; cases h)
+          (by intro h; cases h)
+          hBodyTrans hTy
+  | __eo_List_cons =>
+      exact
+        substitute_simul_atom_has_smt_translation_of_typeof_bool_nil
+          Term.__eo_List_cons xs ts
+          (EoVarEnvPerm.of_exact hXsEnv) hTs
+          (by intro f a h; cases h)
+          (by intro s S h; cases h)
+          (by intro h; cases h)
+          hBodyTrans hTy
+  | Bool =>
+      exact
+        substitute_simul_atom_has_smt_translation_of_typeof_bool_nil
+          Term.Bool xs ts
+          (EoVarEnvPerm.of_exact hXsEnv) hTs
+          (by intro f a h; cases h)
+          (by intro s S h; cases h)
+          (by intro h; cases h)
+          hBodyTrans hTy
+  | Boolean b =>
+      exact
+        substitute_simul_atom_has_smt_translation_of_typeof_bool_nil
+          (Term.Boolean b) xs ts
+          (EoVarEnvPerm.of_exact hXsEnv) hTs
+          (by intro f a h; cases h)
+          (by intro s S h; cases h)
+          (by intro h; cases h)
+          hBodyTrans hTy
+  | Numeral n =>
+      exact
+        substitute_simul_atom_has_smt_translation_of_typeof_bool_nil
+          (Term.Numeral n) xs ts
+          (EoVarEnvPerm.of_exact hXsEnv) hTs
+          (by intro f a h; cases h)
+          (by intro s S h; cases h)
+          (by intro h; cases h)
+          hBodyTrans hTy
+  | Rational r =>
+      exact
+        substitute_simul_atom_has_smt_translation_of_typeof_bool_nil
+          (Term.Rational r) xs ts
+          (EoVarEnvPerm.of_exact hXsEnv) hTs
+          (by intro f a h; cases h)
+          (by intro s S h; cases h)
+          (by intro h; cases h)
+          hBodyTrans hTy
+  | String s =>
+      exact
+        substitute_simul_atom_has_smt_translation_of_typeof_bool_nil
+          (Term.String s) xs ts
+          (EoVarEnvPerm.of_exact hXsEnv) hTs
+          (by intro f a h; cases h)
+          (by intro s S h; cases h)
+          (by intro h; cases h)
+          hBodyTrans hTy
+  | Binary w n =>
+      exact
+        substitute_simul_atom_has_smt_translation_of_typeof_bool_nil
+          (Term.Binary w n) xs ts
+          (EoVarEnvPerm.of_exact hXsEnv) hTs
+          (by intro f a h; cases h)
+          (by intro s S h; cases h)
+          (by intro h; cases h)
+          hBodyTrans hTy
+  | «Type» =>
+      exact
+        substitute_simul_atom_has_smt_translation_of_typeof_bool_nil
+          Term.Type xs ts
+          (EoVarEnvPerm.of_exact hXsEnv) hTs
+          (by intro f a h; cases h)
+          (by intro s S h; cases h)
+          (by intro h; cases h)
+          hBodyTrans hTy
+  | FunType =>
+      exact
+        substitute_simul_atom_has_smt_translation_of_typeof_bool_nil
+          Term.FunType xs ts
+          (EoVarEnvPerm.of_exact hXsEnv) hTs
+          (by intro f a h; cases h)
+          (by intro s S h; cases h)
+          (by intro h; cases h)
+          hBodyTrans hTy
+  | DatatypeType s d =>
+      exact
+        substitute_simul_atom_has_smt_translation_of_typeof_bool_nil
+          (Term.DatatypeType s d) xs ts
+          (EoVarEnvPerm.of_exact hXsEnv) hTs
+          (by intro f a h; cases h)
+          (by intro s S h; cases h)
+          (by intro h; cases h)
+          hBodyTrans hTy
+  | DatatypeTypeRef s =>
+      exact
+        substitute_simul_atom_has_smt_translation_of_typeof_bool_nil
+          (Term.DatatypeTypeRef s) xs ts
+          (EoVarEnvPerm.of_exact hXsEnv) hTs
+          (by intro f a h; cases h)
+          (by intro s S h; cases h)
+          (by intro h; cases h)
+          hBodyTrans hTy
+  | DtcAppType T U =>
+      exact
+        substitute_simul_atom_has_smt_translation_of_typeof_bool_nil
+          (Term.DtcAppType T U) xs ts
+          (EoVarEnvPerm.of_exact hXsEnv) hTs
+          (by intro f a h; cases h)
+          (by intro s S h; cases h)
+          (by intro h; cases h)
+          hBodyTrans hTy
+  | DtCons s d i =>
+      exact
+        substitute_simul_atom_has_smt_translation_of_typeof_bool_nil
+          (Term.DtCons s d i) xs ts
+          (EoVarEnvPerm.of_exact hXsEnv) hTs
+          (by intro f a h; cases h)
+          (by intro s S h; cases h)
+          (by intro h; cases h)
+          hBodyTrans hTy
+  | DtSel s d i j =>
+      exact
+        substitute_simul_atom_has_smt_translation_of_typeof_bool_nil
+          (Term.DtSel s d i j) xs ts
+          (EoVarEnvPerm.of_exact hXsEnv) hTs
+          (by intro f a h; cases h)
+          (by intro s S h; cases h)
+          (by intro h; cases h)
+          hBodyTrans hTy
+  | USort i =>
+      exact
+        substitute_simul_atom_has_smt_translation_of_typeof_bool_nil
+          (Term.USort i) xs ts
+          (EoVarEnvPerm.of_exact hXsEnv) hTs
+          (by intro f a h; cases h)
+          (by intro s S h; cases h)
+          (by intro h; cases h)
+          hBodyTrans hTy
+  | UConst i T =>
+      exact
+        substitute_simul_atom_has_smt_translation_of_typeof_bool_nil
+          (Term.UConst i T) xs ts
+          (EoVarEnvPerm.of_exact hXsEnv) hTs
+          (by intro f a h; cases h)
+          (by intro s S h; cases h)
+          (by intro h; cases h)
+          hBodyTrans hTy
 
 /--
 Typing preservation for the instantiate substitution result, packaged as SMT
