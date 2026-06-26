@@ -65,7 +65,7 @@ private theorem smtx_dt_wf_rec_of_datatype_type_wf_rec_apply
 @[simp] private theorem native_inhabited_type_typeref_apply
     (s : native_String) :
     native_inhabited_type (SmtType.TypeRef s) = false := by
-  simp [native_inhabited_type, __smtx_type_default, __smtx_typeof_value,
+  simp [native_inhabited_type, native_Teq, __smtx_type_default, __smtx_typeof_value,
     native_and]
 
 @[simp] private theorem native_inhabited_type_seq_apply
@@ -5341,7 +5341,7 @@ theorem smtx_term_fun_like_arg_ne_reglan_of_non_none :
         __smtx_typeof_eq, __smtx_typeof_guard,
         __smtx_typeof_arith_overload_op_1, __smtx_typeof_arith_overload_op_2,
         __smtx_typeof_arith_overload_op_2_ret, __smtx_typeof_seq_op_1_ret,
-        __smtx_typeof_seq_op_2_ret, __smtx_typeof_str_indexof,
+        __smtx_typeof_seq_op_2_ret, __smtx_typeof_seq_diff, __smtx_typeof_str_indexof,
         __smtx_typeof_re_exp, __smtx_typeof_re_loop, __smtx_typeof_set_member,
         __smtx_typeof_sets_op_2_ret, __smtx_typeof_int_to_bv,
         __smtx_typeof_concat, __smtx_typeof_extract, __smtx_typeof_repeat,
@@ -6598,66 +6598,22 @@ theorem eo_to_smt_typeof_matches_translation_apply_at_strings_deq_diff
       __eo_to_smt_type
         (__eo_typeof (Term._at_strings_deq_diff y x)) ∧
       eo_type_valid (__eo_typeof (Term._at_strings_deq_diff y x)) := by
-  let one := SmtTerm.Numeral 1
-  let idx := SmtTerm.Var (native_string_lit "@x") SmtType.Int
-  let ySub := SmtTerm.str_substr (__eo_to_smt y) idx one
-  let xSub := SmtTerm.str_substr (__eo_to_smt x) idx one
-  let body := SmtTerm.not (SmtTerm.eq ySub xSub)
   have hTranslate :
       __eo_to_smt (Term._at_strings_deq_diff y x) =
-        SmtTerm.choice_nth (native_string_lit "@x") SmtType.Int body native_nat_zero := by
+        SmtTerm.seq_diff (__eo_to_smt y) (__eo_to_smt x) := by
     rfl
-  have hChoiceNN :
-      term_has_non_none_type (SmtTerm.choice_nth (native_string_lit "@x") SmtType.Int body 0) := by
+  have hArgsNN :
+      term_has_non_none_type (SmtTerm.seq_diff (__eo_to_smt y) (__eo_to_smt x)) := by
     unfold term_has_non_none_type
     rw [← hTranslate]
     exact hNonNone
+  rcases seq_binop_args_of_non_none_ret (op := SmtTerm.seq_diff)
+      (typeof_seq_diff_eq (__eo_to_smt y) (__eo_to_smt x)) hArgsNN with ⟨A, hYSeq, hXSeq⟩
   have hSmt :
       __smtx_typeof (__eo_to_smt (Term._at_strings_deq_diff y x)) =
         SmtType.Int := by
-    rw [hTranslate]
-    exact choice_term_typeof_of_non_none hChoiceNN
-  have hBodyBool : __smtx_typeof body = SmtType.Bool :=
-    choice_nth_body_bool_of_non_none hChoiceNN
-  have hEqBool : __smtx_typeof (SmtTerm.eq ySub xSub) = SmtType.Bool :=
-    by
-      rw [typeof_not_eq] at hBodyBool
-      by_cases hArg : __smtx_typeof (SmtTerm.eq ySub xSub) = SmtType.Bool
-      · exact hArg
-      · cases hTest : native_Teq (__smtx_typeof (SmtTerm.eq ySub xSub)) SmtType.Bool <;>
-          simp [hTest, native_ite] at hBodyBool
-        simpa [native_Teq] using hTest
-  have hEqNN :
-      __smtx_typeof_eq (__smtx_typeof ySub) (__smtx_typeof xSub) ≠ SmtType.None := by
-    intro hNone
-    rw [typeof_eq_eq ySub xSub] at hEqBool
-    rw [hNone] at hEqBool
-    cases hEqBool
-  have hEqArgs := smtx_typeof_eq_non_none hEqNN
-  have hYSubNN : term_has_non_none_type ySub := by
-    unfold term_has_non_none_type
-    exact hEqArgs.2
-  have hXSubNN : term_has_non_none_type xSub := by
-    unfold term_has_non_none_type
-    intro hNone
-    exact hEqArgs.2 (by rw [hEqArgs.1, hNone])
-  rcases str_substr_args_of_non_none hYSubNN with ⟨A, hYSeq, hIdxY, hOneY⟩
-  rcases str_substr_args_of_non_none hXSubNN with ⟨B, hXSeq, hIdxX, hOneX⟩
-  have hYSubTy : __smtx_typeof ySub = SmtType.Seq A := by
-    rw [show ySub = SmtTerm.str_substr (__eo_to_smt y) idx one by rfl]
-    rw [typeof_str_substr_eq (__eo_to_smt y) idx one, hYSeq, hIdxY, hOneY]
-    simp [__smtx_typeof_str_substr]
-  have hXSubTy : __smtx_typeof xSub = SmtType.Seq B := by
-    rw [show xSub = SmtTerm.str_substr (__eo_to_smt x) idx one by rfl]
-    rw [typeof_str_substr_eq (__eo_to_smt x) idx one, hXSeq, hIdxX, hOneX]
-    simp [__smtx_typeof_str_substr]
-  have hAB : A = B := by
-    have hSeqEq : SmtType.Seq A = SmtType.Seq B := by
-      rw [← hYSubTy, ← hXSubTy]
-      exact hEqArgs.1
-    cases hSeqEq
-    rfl
-  subst B
+    rw [hTranslate, typeof_seq_diff_eq]
+    simp [__smtx_typeof_seq_op_2_ret, native_ite, native_Teq, hYSeq, hXSeq]
   have hAWF :
       smtx_type_field_wf_rec A native_reflist_nil :=
     smtx_seq_component_field_wf_rec_of_non_none_type_apply (__eo_to_smt y) A hYSeq

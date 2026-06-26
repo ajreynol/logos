@@ -33,7 +33,7 @@ private theorem type_default_typed_canonical_of_native_inhabited
     (h : native_inhabited_type T = true) :
     __smtx_typeof_value (__smtx_type_default T) = T ∧
       __smtx_value_canonical_bool (__smtx_type_default T) = true := by
-  simpa [native_inhabited_type, native_and] using h
+  simpa [native_inhabited_type, native_Teq, native_and] using h
 
 private theorem value_dt_substitute_canonical_bool
     (s : native_String)

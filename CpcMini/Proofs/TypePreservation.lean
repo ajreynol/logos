@@ -96,6 +96,10 @@ private theorem supported_type_preservation
         (fun {A} hA => (hDefault (A := A) hA).1)
         (supported_type_preservation M hM _ ht1 hs1)
         (supported_type_preservation M hM _ ht2 hs2)
+  | seq_diff ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_seq_diff M _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
   | «not» ht1 hs1 =>
       exact typeof_value_model_eval_not M _ ht
         (supported_type_preservation M hM _ ht1 hs1)
@@ -291,6 +295,18 @@ theorem supported_preservation_term_of_non_none :
           exact supported_preservation_term.map_diff
             ht1 (go t1 ht1) ht2 (go t2 ht2)
             (map_diff_default_typed_canonical_of_non_none ht)
+    | SmtTerm.seq_diff t1 t2 =>
+        rcases seq_diff_args_of_non_none ht with ⟨A, h1, h2, hTy⟩
+        have ht1 : term_has_non_none_type t1 := by
+          unfold term_has_non_none_type
+          rw [h1]
+          simp
+        have ht2 : term_has_non_none_type t2 := by
+          unfold term_has_non_none_type
+          rw [h2]
+          simp
+        exact supported_preservation_term.seq_diff
+          ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.DtCons s d i =>
         exact supported_preservation_term.dt_cons s d i
     | SmtTerm.DtSel s d i j =>
@@ -389,6 +405,14 @@ theorem supported_preservation_term_of_non_none :
             have hArgs := generic_apply_subterms_non_none hApp.1 ht
             exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
               (go (SmtTerm.map_diff t1 t2) hArgs.1)
+              (go x hArgs.2)
+        | seq_diff t1 t2 =>
+            have hApp := generic_apply_facts_of_not_special (f := SmtTerm.seq_diff t1 t2) (x := x)
+              (by intro s' d i j hEq; cases hEq)
+              (by intro s' d i hEq; cases hEq)
+            have hArgs := generic_apply_subterms_non_none hApp.1 ht
+            exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
+              (go (SmtTerm.seq_diff t1 t2) hArgs.1)
               (go x hArgs.2)
         | DtSel s d i j =>
             have htx : term_has_non_none_type x := by

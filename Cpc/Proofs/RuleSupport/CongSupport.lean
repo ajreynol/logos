@@ -15130,107 +15130,23 @@ private theorem congTrueSpine_sets_deq_diff_eq_true
             hA, hB, hea, heb] at ha hb hea heb ⊢)
       x₁ x₂ rhs
 
-private def stringsDeqDiffTerm (a b : SmtTerm) : SmtTerm :=
-  let one := SmtTerm.Numeral 1
-  let idx := SmtTerm.Var (native_string_lit "@x") SmtType.Int
-  SmtTerm.choice_nth (native_string_lit "@x") SmtType.Int
-    (SmtTerm.not
-      (SmtTerm.eq
-        (SmtTerm.str_substr a idx one)
-        (SmtTerm.str_substr b idx one)))
-    native_nat_zero
-
-private theorem native_eval_tchoice_eq_of_body_eval_eq_on_candidates
-    {M : SmtModel} {s : native_String} {T : SmtType}
-    {body₁ body₂ : SmtTerm}
-    (hBody : ∀ v : SmtValue,
-      __smtx_typeof_value v = T ->
-      __smtx_value_canonical_bool v = true ->
-        __smtx_model_eval (native_model_push M s T v) body₁ =
-          __smtx_model_eval (native_model_push M s T v) body₂) :
-    native_eval_tchoice M s T body₁ =
-      native_eval_tchoice M s T body₂ := by
-  classical
-  let Pred₁ : SmtValue -> Prop := fun v =>
-    __smtx_typeof_value v = T ∧
-      __smtx_value_canonical_bool v = true ∧
-        __smtx_model_eval (native_model_push M s T v) body₁ =
-          SmtValue.Boolean true
-  let Pred₂ : SmtValue -> Prop := fun v =>
-    __smtx_typeof_value v = T ∧
-      __smtx_value_canonical_bool v = true ∧
-        __smtx_model_eval (native_model_push M s T v) body₂ =
-          SmtValue.Boolean true
-  let PTy : Prop :=
-    ∃ v : SmtValue, __smtx_typeof_value v = T ∧
-      __smtx_value_canonical_bool v
-  change
-    (if hSat : ∃ v : SmtValue, Pred₁ v then Classical.choose hSat
-      else if hTy : PTy then Classical.choose hTy else SmtValue.NotValue) =
-    (if hSat : ∃ v : SmtValue, Pred₂ v then Classical.choose hSat
-      else if hTy : PTy then Classical.choose hTy else SmtValue.NotValue)
-  have hPredEq : Pred₁ = Pred₂ := by
-    funext v
-    apply propext
-    constructor
-    · intro h
-      exact ⟨h.1, h.2.1, by simpa [hBody v h.1 h.2.1] using h.2.2⟩
-    · intro h
-      exact ⟨h.1, h.2.1, by simpa [← hBody v h.1 h.2.1] using h.2.2⟩
-  rw [hPredEq]
+private theorem smtx_model_eval_seq_diff_term_eq
+    (M : SmtModel) (x y : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.seq_diff x y) =
+      __smtx_model_eval_seq_diff (__smtx_model_eval M x) (__smtx_model_eval M y) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
 
 private theorem strings_deq_diff_args_non_reg_of_non_none
     (a b : SmtTerm) :
-    __smtx_typeof (stringsDeqDiffTerm a b) ≠ SmtType.None ->
+    __smtx_typeof (SmtTerm.seq_diff a b) ≠ SmtType.None ->
       ∃ A B,
         __smtx_typeof a = A ∧ __smtx_typeof b = B ∧
           A ≠ SmtType.None ∧ B ≠ SmtType.None ∧
           A ≠ SmtType.RegLan ∧ B ≠ SmtType.RegLan := by
   intro hNN
-  let one := SmtTerm.Numeral 1
-  let idx := SmtTerm.Var (native_string_lit "@x") SmtType.Int
-  let aSub := SmtTerm.str_substr a idx one
-  let bSub := SmtTerm.str_substr b idx one
-  let body := SmtTerm.not (SmtTerm.eq aSub bSub)
-  have hChoiceNN :
-      term_has_non_none_type
-        (SmtTerm.choice_nth (native_string_lit "@x") SmtType.Int body 0) := by
-    unfold term_has_non_none_type
-    simpa [stringsDeqDiffTerm, body, aSub, bSub, idx, one] using hNN
-  have hBodyBool : __smtx_typeof body = SmtType.Bool :=
-    TranslationProofs.choice_nth_body_bool_of_non_none hChoiceNN
-  have hEqBool : __smtx_typeof (SmtTerm.eq aSub bSub) = SmtType.Bool := by
-    change __smtx_typeof (SmtTerm.not (SmtTerm.eq aSub bSub)) =
-      SmtType.Bool at hBodyBool
-    rw [typeof_not_eq] at hBodyBool
-    by_cases hArg : __smtx_typeof (SmtTerm.eq aSub bSub) = SmtType.Bool
-    · exact hArg
-    · cases hTest :
-        native_Teq (__smtx_typeof (SmtTerm.eq aSub bSub)) SmtType.Bool <;>
-        simp [hTest, native_ite] at hBodyBool
-      simpa [native_Teq] using hTest
-  have hEqNN :
-      __smtx_typeof_eq (__smtx_typeof aSub) (__smtx_typeof bSub) ≠
-        SmtType.None := by
-    intro hNone
-    rw [typeof_eq_eq aSub bSub] at hEqBool
-    rw [hNone] at hEqBool
-    cases hEqBool
-  have hEqArgs := cong_smtx_typeof_eq_non_none hEqNN
-  have hASubNN : term_has_non_none_type aSub := by
-    unfold term_has_non_none_type
-    exact hEqArgs.2
-  have hBSubNN : term_has_non_none_type bSub := by
-    unfold term_has_non_none_type
-    intro hNone
-    exact hEqArgs.2 (by rw [hEqArgs.1, hNone])
-  rcases str_substr_args_non_reg_of_non_none a idx one hASubNN with
-    ⟨A, _Z, _I, hA, _hIdx, _hOne, hANN, _hZNN, _hINN, hAReg,
-      _hZReg, _hIReg⟩
-  rcases str_substr_args_non_reg_of_non_none b idx one hBSubNN with
-    ⟨B, _Z, _I, hB, _hIdx, _hOne, hBNN, _hZNN, _hINN, hBReg,
-      _hZReg, _hIReg⟩
-  exact ⟨A, B, hA, hB, hANN, hBNN, hAReg, hBReg⟩
+  rcases seq_binop_args_of_non_none_ret (op := SmtTerm.seq_diff)
+      (typeof_seq_diff_eq a b) hNN with ⟨A, ha, hb⟩
+  exact ⟨SmtType.Seq A, SmtType.Seq A, ha, hb, by simp, by simp, by simp, by simp⟩
 
 private theorem congTypeSpine_strings_deq_diff_eq_has_bool_type
     (x₁ x₂ rhs : Term) :
@@ -15241,15 +15157,11 @@ private theorem congTypeSpine_strings_deq_diff_eq_has_bool_type
       (mkEq (Term._at_strings_deq_diff x₁ x₂) rhs) := by
   exact
     congTypeSpine_typecongr_binop_eq_has_bool_type
-      UserOp._at_strings_deq_diff stringsDeqDiffTerm
+      UserOp._at_strings_deq_diff SmtTerm.seq_diff
       (by intro a b; rfl)
       (by
         intro a b a' b' ha hb
-        unfold stringsDeqDiffTerm
-        rw [smtx_typeof_choice_nth_term_eq,
-          smtx_typeof_choice_nth_term_eq]
-        simp [__smtx_typeof_choice_nth, typeof_not_eq, typeof_eq_eq,
-          typeof_str_substr_eq, ha, hb])
+        rw [typeof_seq_diff_eq, typeof_seq_diff_eq, ha, hb])
       x₁ x₂ rhs
 
 private theorem congTrueSpine_strings_deq_diff_eq_true
@@ -15257,88 +15169,13 @@ private theorem congTrueSpine_strings_deq_diff_eq_true
     RuleProofs.eo_has_bool_type
       (mkEq (Term._at_strings_deq_diff x₁ x₂) rhs) ->
     CongTrueSpine M (Term._at_strings_deq_diff x₁ x₂) rhs ->
-    eo_interprets M (mkEq (Term._at_strings_deq_diff x₁ x₂) rhs) true := by
-  intro hEqBool hSpine
-  rcases congTrueSpine_binary_uop_stable_inv M
-      UserOp._at_strings_deq_diff x₁ x₂ rhs hSpine with
-    ⟨y₁, y₂, hRhs, hArg₁, hArg₂⟩
-  subst hRhs
-  apply RuleProofs.eo_interprets_eq_of_rel M
-  · exact hEqBool
-  · let X₁ : SmtTerm := __eo_to_smt x₁
-    let X₂ : SmtTerm := __eo_to_smt x₂
-    let Y₁ : SmtTerm := __eo_to_smt y₁
-    let Y₂ : SmtTerm := __eo_to_smt y₂
-    have hTypes :=
-      RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
-        (Term._at_strings_deq_diff x₁ x₂)
-        (Term._at_strings_deq_diff y₁ y₂) hEqBool
-    have hxOpNN :
-        __smtx_typeof (stringsDeqDiffTerm X₁ X₂) ≠ SmtType.None := by
-      simpa [X₁, X₂, stringsDeqDiffTerm] using hTypes.2
-    rcases strings_deq_diff_args_non_reg_of_non_none X₁ X₂ hxOpNN with
-      ⟨A, B, hx₁A, hx₂B, hANN, hBNN, hAReg, hBReg⟩
-    have hArg₁True : EqTrueOrSame M x₁ y₁ := by
-      rcases hArg₁ with hSame | hData
-      · exact Or.inl hSame
-      · exact Or.inr hData.1
-    have hArg₂True : EqTrueOrSame M x₂ y₂ := by
-      rcases hArg₂ with hSame | hData
-      · exact Or.inl hSame
-      · exact Or.inr hData.1
-    have hArgTy₁ : __smtx_typeof X₁ = __smtx_typeof Y₁ := by
-      simpa [X₁, Y₁] using smt_type_eq_of_eq_true_or_same M x₁ y₁ hArg₁True
-    have hArgTy₂ : __smtx_typeof X₂ = __smtx_typeof Y₂ := by
-      simpa [X₂, Y₂] using smt_type_eq_of_eq_true_or_same M x₂ y₂ hArg₂True
-    have hy₁A : __smtx_typeof Y₁ = A := by
-      rw [← hArgTy₁]
-      exact hx₁A
-    have hy₂B : __smtx_typeof Y₂ = B := by
-      rw [← hArgTy₂]
-      exact hx₂B
-    have hEvalChoice :
-        __smtx_model_eval M (stringsDeqDiffTerm X₁ X₂) =
-          __smtx_model_eval M (stringsDeqDiffTerm Y₁ Y₂) := by
-      unfold stringsDeqDiffTerm
-      rw [smtx_model_eval_choice_nth_eq_aux,
-        smtx_model_eval_choice_nth_eq_aux]
-      simp only [nativeEvalTChoiceNthAux]
-      apply native_eval_tchoice_eq_of_body_eval_eq_on_candidates
-      intro v hvTy hvCanon
-      let N := native_model_push M (native_string_lit "@x") SmtType.Int v
-      have hWF : __smtx_type_wf SmtType.Int = true := by
-        simp [__smtx_type_wf, __smtx_type_wf_component,
-          __smtx_type_wf_rec, native_and]
-      have hN : model_total_typed N := by
-        exact model_total_typed_push hM (native_string_lit "@x") SmtType.Int
-          v hWF hvTy (by
-            simpa [__smtx_value_canonical] using hvCanon)
-      have hAgree : model_agrees_on_globals M N :=
-        model_agrees_on_globals_push M (native_string_lit "@x") SmtType.Int v
-      have hEval₁N : __smtx_model_eval N X₁ = __smtx_model_eval N Y₁ := by
-        rcases hArg₁ with hSame | hData
-        · subst hSame
-          rfl
-        · exact eo_model_eval_eq_of_eq_true_or_same_at_non_reglan_type N hN
-            x₁ y₁ A (by simpa [X₁] using hx₁A)
-            (by simpa [Y₁] using hy₁A) hANN hAReg
-            (Or.inr (hData.2 N hN hAgree))
-      have hEval₂N : __smtx_model_eval N X₂ = __smtx_model_eval N Y₂ := by
-        rcases hArg₂ with hSame | hData
-        · subst hSame
-          rfl
-        · exact eo_model_eval_eq_of_eq_true_or_same_at_non_reglan_type N hN
-            x₂ y₂ B (by simpa [X₂] using hx₂B)
-            (by simpa [Y₂] using hy₂B) hBNN hBReg
-            (Or.inr (hData.2 N hN hAgree))
-      simp [N, __smtx_model_eval.eq_6, __smtx_model_eval.eq_81,
-        smtx_model_eval_eq_term_eq, hEval₁N, hEval₂N]
-    change
-      RuleProofs.smt_value_rel
-        (__smtx_model_eval M (stringsDeqDiffTerm X₁ X₂))
-        (__smtx_model_eval M (stringsDeqDiffTerm Y₁ Y₂))
-    rw [hEvalChoice]
-    exact RuleProofs.smt_value_rel_refl _
+    eo_interprets M (mkEq (Term._at_strings_deq_diff x₁ x₂) rhs) true :=
+  congTrueSpine_non_reg_binop_eq_true M hM
+    UserOp._at_strings_deq_diff SmtTerm.seq_diff __smtx_model_eval_seq_diff
+    (by intro a b; rfl)
+    strings_deq_diff_args_non_reg_of_non_none
+    (by intro a b; rw [smtx_model_eval_seq_diff_term_eq])
+    x₁ x₂ rhs
 
 private def stringsStoiResultTerm (a b : SmtTerm) : SmtTerm :=
   SmtTerm.str_to_int (SmtTerm.str_substr a (SmtTerm.Numeral 0) b)
@@ -18143,60 +17980,9 @@ private theorem eo_apply_apply_arg_has_translation_of_has_translation
             simp [__eo_to_smt_array_deq_diff, hx,
               TranslationProofs.smtx_typeof_none])
       case _at_strings_deq_diff =>
-        have hNN :
-            term_has_non_none_type
-              (SmtTerm.choice_nth (native_string_lit "@x") SmtType.Int
-                (SmtTerm.not
-                  (SmtTerm.eq
-                    (SmtTerm.str_substr (__eo_to_smt z)
-                      (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-                      (SmtTerm.Numeral 1))
-                    (SmtTerm.str_substr (__eo_to_smt x)
-                      (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-                      (SmtTerm.Numeral 1))))
-                native_nat_zero) := by
-          unfold term_has_non_none_type
-          change
-            __smtx_typeof
-              (SmtTerm.choice_nth (native_string_lit "@x") SmtType.Int
-                (SmtTerm.not
-                  (SmtTerm.eq
-                    (SmtTerm.str_substr (__eo_to_smt z)
-                      (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-                      (SmtTerm.Numeral 1))
-                    (SmtTerm.str_substr (__eo_to_smt x)
-                      (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-                      (SmtTerm.Numeral 1))))
-                native_nat_zero) ≠ SmtType.None at hTrans
-          exact hTrans
-        have hBodyBool :=
-          TranslationProofs.choice_nth_body_bool_of_non_none hNN
-        have hSubNone :
-            __smtx_typeof
-              (SmtTerm.str_substr (__eo_to_smt x)
-                (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-                (SmtTerm.Numeral 1)) = SmtType.None := by
-          rw [typeof_str_substr_eq, hx]
-          rfl
-        have hBodyNone :
-            __smtx_typeof
-              (SmtTerm.not
-                (SmtTerm.eq
-                  (SmtTerm.str_substr (__eo_to_smt z)
-                    (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-                    (SmtTerm.Numeral 1))
-                  (SmtTerm.str_substr (__eo_to_smt x)
-                    (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-                    (SmtTerm.Numeral 1)))) = SmtType.None := by
-          rw [typeof_not_eq, typeof_eq_eq, hSubNone]
-          cases __smtx_typeof
-              (SmtTerm.str_substr (__eo_to_smt z)
-                (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-                (SmtTerm.Numeral 1)) <;>
-            simp [__smtx_typeof_eq, __smtx_typeof_guard, native_ite,
-              native_Teq]
-        rw [hBodyNone] at hBodyBool
-        cases hBodyBool
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.seq_diff (__eo_to_smt z) (__eo_to_smt x)
+          strings_deq_diff_args_non_reg_of_non_none hx)
       case _at_strings_stoi_result =>
         exact hTrans (by
           change
@@ -18641,14 +18427,7 @@ private theorem eo_to_smt_strings_deq_diff_ne_dt_sel
         SmtTerm.DtSel s d i j := by
   intro s d i j h
   change
-    SmtTerm.choice_nth (native_string_lit "@x") SmtType.Int
-        (SmtTerm.not
-          (SmtTerm.eq
-            (SmtTerm.str_substr (__eo_to_smt a)
-              (SmtTerm.Var (native_string_lit "@x") SmtType.Int) (SmtTerm.Numeral 1))
-            (SmtTerm.str_substr (__eo_to_smt b)
-              (SmtTerm.Var (native_string_lit "@x") SmtType.Int) (SmtTerm.Numeral 1))))
-        native_nat_zero =
+    SmtTerm.seq_diff (__eo_to_smt a) (__eo_to_smt b) =
       SmtTerm.DtSel s d i j at h
   cases h
 
@@ -18659,14 +18438,7 @@ private theorem eo_to_smt_strings_deq_diff_ne_dt_tester
         SmtTerm.DtTester s d i := by
   intro s d i h
   change
-    SmtTerm.choice_nth (native_string_lit "@x") SmtType.Int
-        (SmtTerm.not
-          (SmtTerm.eq
-            (SmtTerm.str_substr (__eo_to_smt a)
-              (SmtTerm.Var (native_string_lit "@x") SmtType.Int) (SmtTerm.Numeral 1))
-            (SmtTerm.str_substr (__eo_to_smt b)
-              (SmtTerm.Var (native_string_lit "@x") SmtType.Int) (SmtTerm.Numeral 1))))
-        native_nat_zero =
+    SmtTerm.seq_diff (__eo_to_smt a) (__eo_to_smt b) =
       SmtTerm.DtTester s d i at h
   cases h
 
