@@ -358,6 +358,7 @@ def SmtTermClosedIn (vars : List SmtVarKey) : SmtTerm -> Prop
   | SmtTerm.forall s T body => SmtTermClosedIn ((s, T) :: vars) body
   | SmtTerm.choice_nth s T body _ => SmtTermClosedIn ((s, T) :: vars) body
   | SmtTerm.map_diff x y => SmtTermClosedIn vars x ∧ SmtTermClosedIn vars y
+  | SmtTerm.seq_diff x y => SmtTermClosedIn vars x ∧ SmtTermClosedIn vars y
   | SmtTerm.DtCons _ _ _ => True
   | SmtTerm.DtSel _ _ _ _ => True
   | SmtTerm.DtTester _ _ _ => True
@@ -1577,26 +1578,8 @@ theorem smtTermClosedIn_eo_to_smt_strings_deq_diff
     (__eo_to_smt (Term._at_strings_deq_diff x y)) :=
 by
   change SmtTermClosedIn vars
-    (SmtTerm.choice_nth (native_string_lit "@x") SmtType.Int
-      (SmtTerm.not (SmtTerm.eq
-        (SmtTerm.str_substr (__eo_to_smt x)
-          (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-          (SmtTerm.Numeral 1))
-        (SmtTerm.str_substr (__eo_to_smt y)
-          (SmtTerm.Var (native_string_lit "@x") SmtType.Int)
-          (SmtTerm.Numeral 1))))
-      native_nat_zero)
-  have hx' :
-      SmtTermClosedIn ((native_string_lit "@x", SmtType.Int) :: vars)
-        (__eo_to_smt x) :=
-    SmtTermClosedIn.weaken_cons hx
-  have hy' :
-      SmtTermClosedIn ((native_string_lit "@x", SmtType.Int) :: vars)
-        (__eo_to_smt y) :=
-    SmtTermClosedIn.weaken_cons hy
-  exact
-    ⟨⟨hx', List.Mem.head _, trivial⟩,
-      ⟨hy', List.Mem.head _, trivial⟩⟩
+    (SmtTerm.seq_diff (__eo_to_smt x) (__eo_to_smt y))
+  exact ⟨hx, hy⟩
 
 theorem smtTermClosedIn_eo_to_smt_strings_stoi_result
     {vars : List SmtVarKey} {x y : Term}

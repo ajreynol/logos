@@ -44,6 +44,12 @@ inductive supported_preservation_term : SmtTerm -> Prop
             __smtx_typeof_value (__smtx_type_default A) = A ∧
               __smtx_value_canonical (__smtx_type_default A)) :
       supported_preservation_term (SmtTerm.map_diff t1 t2)
+  | seq_diff {t1 t2 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2) :
+      supported_preservation_term (SmtTerm.seq_diff t1 t2)
   | not {t : SmtTerm}
       (ht : term_has_non_none_type t)
       (hs : supported_preservation_term t) :
