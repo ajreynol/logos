@@ -133,6 +133,12 @@ theorem type_result_seq_components_wf_seq_op_2_ret
   cases T <;> cases U <;> simp [__smtx_typeof_seq_op_2_ret,
     type_result_seq_components_wf, hR, native_ite, native_Teq]
 
+theorem type_result_seq_components_wf_seq_diff
+    (T U : SmtType) :
+    type_result_seq_components_wf (__smtx_typeof_seq_diff T U) := by
+  cases T <;> cases U <;> simp [__smtx_typeof_seq_diff,
+    type_result_seq_components_wf, native_ite, native_Teq]
+
 theorem type_result_seq_components_wf_str_indexof
     (T U V : SmtType) :
     type_result_seq_components_wf (__smtx_typeof_str_indexof T U V) := by
@@ -715,6 +721,7 @@ theorem smt_term_result_seq_components_wf_of_non_none
         type_result_seq_components_wf_bv_op_2_ret,
         type_result_seq_components_wf_seq_op_1_ret,
         type_result_seq_components_wf_seq_op_2_ret,
+        type_result_seq_components_wf_seq_diff,
         type_result_seq_components_wf_str_indexof,
         type_result_seq_components_wf_str_indexof_re,
         type_result_seq_components_wf_str_indexof_re_split,
