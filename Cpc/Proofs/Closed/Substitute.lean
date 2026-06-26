@@ -342,6 +342,26 @@ survive a binder. -/
 none occurs free in the `idx`-th entry `__assoc_nil_nth cons ss idx`. Proved by
 induction on the cons structure of `ss` (each entry is a subterm, introducing no
 new free variables under the empty bound context).
+
+WARNING (spec gap, 2026-06-26): the lemma as stated is **not** unconditionally
+true and needs two extra hypotheses to hold in general:
+
+  1. *In-range index.* For an out-of-range `idx`, `__assoc_nil_nth cons ss idx`
+     reduces to `Term.Stuck` (`assoc_nil_nth_nil_stuck`), and
+     `__contains_atomic_term_list_free_rec Stuck _ _ = Stuck ≠ Boolean false`.
+     The caller `subst_entry_eval_push_invariant` already carries
+     `hTrans : eoHasSmtTranslation (__assoc_nil_nth … ss idx)`, which forces the
+     entry `≠ Stuck` (`eoHasSmtTranslation Stuck` is `False`); thread that in.
+
+  2. *Non-binder-shaped entries.* `__contains_atomic_term_list_free_rec`
+     special-cases binder-shaped applications `(q (cons v vs) a)`. If a list entry
+     is itself a cons-list, the `except` variable can be *shadowed* at the list
+     level (so `contains ss except nil = false`) yet occur *free* in the extracted
+     entry — making the conclusion false. In real `instantiate` usage the entries
+     of `ss` (= the instantiation terms `ts`) are ordinary, non-binder terms, so a
+     well-formedness premise on `ss` is required to exclude this.
+
+Both premises hold in the intended call site; capture them before proving.
 -/
 theorem contains_assoc_nil_nth_false
     (ss except idx : Term)

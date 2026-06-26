@@ -37,7 +37,11 @@ The proof factors into four pieces, in dependency order:
    the substituted body in `M` equals evaluating the translation of `F` in
    `pushSubstModel M xs ts`. This is the capture-avoiding substitution /
    coincidence lemma, proved by structural induction. See the doc comment on the
-   lemma for the case breakdown and the `bvs`-generalisation it needs.
+   lemma for the case breakdown and the `bvs`-generalisation it needs. The
+   per-case machinery (`SubstFalseRel`, `substFalse_eval_var`, `substFalseRel_push`)
+   already lives in `Cpc/Proofs/Closed/Substitute.lean`; what remains is the
+   well-founded recursion tying them together (analogous to
+   `smt_model_eval_eq_of_contains_atomic_term_list_free_rec_false_mapped_lt`).
 
 3. **`instantiate_body_true`** (`sorry`) — from `forall xs F` true and the
    well-typedness of `ts`, the body is true under `pushSubstModel M xs ts`. This
@@ -45,8 +49,19 @@ The proof factors into four pieces, in dependency order:
    `native_eval_texists`, `Cpc/SmtModel.lean:580`) and instantiates the universal
    at the specific assignment `pushSubstModel M xs ts`.
 
-4. **`prog_instantiate_shape`** (`sorry`) — a non-`Stuck` result forces the
+4. **`prog_instantiate_shape`** (DONE) — a non-`Stuck` result forces the
    premise to be `forall xs F` and pins the conclusion to the substitution.
+
+Status (2026-06-26):
+  * `prog_instantiate_shape`  — PROVEN.
+  * `instantiate_sound`       — PROVEN (pure wiring of the two cruxes + `hResBool`).
+  * main theorem `hWf`        — PROVEN (premise is Bool-typed ⇒ translatable).
+  * `substitute_simul_eval`   — sorry (crux; see above).
+  * `instantiate_body_true`   — sorry (forall unfolding).
+  * main theorem `hResBool`   — sorry; needs a *type-preservation* lemma for
+    `__substitute_simul_rec` (Bool-typed body + well-formed subst ⇒ Bool-typed
+    result). No generic `__eo_typeof t = Bool → eo_has_smt_translation t` exists,
+    so this is its own structural induction.
 
 The main theorem then wires these together with the standard single-arg /
 single-premise boilerplate (mirrors `BooleanElimSupport.cmd_step_and_elim_properties`).
@@ -143,7 +158,20 @@ theorem prog_instantiate_shape
       prem = Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F ∧
       __eo_prog_instantiate ts (Proof.pf prem) =
         __substitute_simul_rec (Term.Boolean false) F xs ts Term.__eo_List_nil := by
-  sorry
+  cases prem with
+  | Apply f F =>
+      cases f with
+      | Apply g xs =>
+          cases g with
+          | UOp op =>
+              cases op with
+              | «forall» =>
+                  refine ⟨xs, F, rfl, ?_⟩
+                  cases ts <;> first | rfl | exact absurd rfl hNe
+              | _ => cases ts <;> exact absurd rfl hNe
+          | _ => cases ts <;> exact absurd rfl hNe
+      | _ => cases ts <;> exact absurd rfl hNe
+  | _ => cases ts <;> exact absurd rfl hNe
 
 /--
 Soundness core: if the premise `(forall xs F)` is true in `M`, the conclusion
@@ -161,7 +189,19 @@ theorem instantiate_sound
     eo_interprets M
       (__substitute_simul_rec (Term.Boolean false) F xs ts Term.__eo_List_nil) true := by
   -- chain: subst-eval ▸ body-true, then repackage with hResBool
-  sorry
+  have hEval :
+      __smtx_model_eval M
+          (__eo_to_smt
+            (__substitute_simul_rec (Term.Boolean false) F xs ts Term.__eo_List_nil)) =
+        SmtValue.Boolean true := by
+    rw [substitute_simul_eval M hM F xs ts]
+    exact instantiate_body_true M hM xs F ts hPrem hWf
+  have hTy :
+      __smtx_typeof
+          (__eo_to_smt
+            (__substitute_simul_rec (Term.Boolean false) F xs ts Term.__eo_List_nil)) =
+        SmtType.Bool := hResBool
+  exact smt_interprets.intro_true M _ hTy hEval
 
 end InstantiateRule
 
@@ -210,11 +250,15 @@ by
                       RuleProofs.eo_has_bool_type
                         (__substitute_simul_rec (Term.Boolean false) F xs a1 Term.__eo_List_nil) := by
                     sorry
+                  -- The premise (the forall) is Bool-typed, hence translatable.
+                  have hPremBool : RuleProofs.eo_has_bool_type prem :=
+                    hPremisesBool prem (by simp [prem, premiseTermList])
+                  rw [hPremShape] at hPremBool
                   -- The premise (the forall) has an SMT translation.
                   have hWf :
                       RuleProofs.eo_has_smt_translation
-                        (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F) := by
-                    sorry
+                        (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F) :=
+                    RuleProofs.eo_has_smt_translation_of_has_bool_type _ hPremBool
                   refine ⟨?_, ?_⟩
                   · -- facts_of_true
                     intro hEvid
