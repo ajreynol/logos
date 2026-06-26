@@ -125,6 +125,54 @@ theorem pushSubstModel_cons_var_globals
     (model_agrees_on_globals_push (pushSubstModel M xs ts) s
       (__eo_to_smt_type T) (__smtx_model_eval M (__eo_to_smt t)))
 
+/-- A translatable universal quantifier has a Boolean-translatable body. -/
+theorem forall_body_has_bool_type_of_has_smt_translation
+    (xs F : Term)
+    (hForall : RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F)) :
+    RuleProofs.eo_has_bool_type F := by
+  unfold RuleProofs.eo_has_smt_translation at hForall
+  unfold RuleProofs.eo_has_bool_type
+  by_cases hNil : xs = Term.__eo_List_nil
+  · subst xs
+    exact False.elim (by
+      apply hForall
+      change __smtx_typeof SmtTerm.None = SmtType.None
+      exact TranslationProofs.smtx_typeof_none)
+  · have hForallNN :
+        __smtx_typeof
+            (SmtTerm.not
+              (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt F)))) ≠
+          SmtType.None := by
+      cases xs with
+      | __eo_List_nil =>
+          exact False.elim (hNil rfl)
+      | _ =>
+          change
+            __smtx_typeof
+                (SmtTerm.not
+                  (__eo_to_smt_exists _ (SmtTerm.not (__eo_to_smt F)))) ≠
+              SmtType.None at hForall
+          exact hForall
+    have hNotBool :
+        __smtx_typeof
+            (SmtTerm.not
+              (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt F)))) =
+          SmtType.Bool :=
+      smtx_typeof_not_eq_bool_of_non_none
+        (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt F))) hForallNN
+    have hExistsBool :
+        __smtx_typeof
+            (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt F))) =
+          SmtType.Bool :=
+      smtx_typeof_not_arg_eq_bool
+        (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt F))) hNotBool
+    have hBodyNotBool :
+        __smtx_typeof (SmtTerm.not (__eo_to_smt F)) = SmtType.Bool :=
+      TranslationProofs.eo_to_smt_exists_body_bool_of_bool xs
+        (SmtTerm.not (__eo_to_smt F)) hExistsBool
+    exact smtx_typeof_not_arg_eq_bool (__eo_to_smt F) hBodyNotBool
+
 /--
 Typing/translatability preservation for the instantiate substitution result.
 
