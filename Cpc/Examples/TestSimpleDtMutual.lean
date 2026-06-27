@@ -15,21 +15,17 @@ storing a `B`; `B` has one nullary constructor and one constructor storing an `A
 Sibling occurrences inside the mutual block are encoded with
 `Term.DatatypeTypeRef <name>`.
 
-This file is the mutual analogue of `TestSimpleDt.lean`, written in the spirit of
-`CpcMini/Examples/TestSimpleCheckerAssumptions.lean`. It records the current state
-of mutual-datatype support against the side conditions in `Cpc/Proofs/Assumptions.lean`:
+The mutual analogue of `TestSimpleDt.lean`, in the spirit of
+`CpcMini/Examples/TestSimpleCheckerAssumptions.lean`: we `#eval!`-check the checker
+and prove the example meets all three side conditions in `Cpc/Proofs/Assumptions.lean`
+(`TranslatableAssumptionList`, `CmdListTranslationOk`, `eo_is_refutation`).
 
-  * `eo_is_refutation assumptions proof`  -- HOLDS: the checker accepts the proof.
-  * `TranslatableAssumptionList assumptions`  -- DOES NOT HOLD (yet).
-  * `CmdListTranslationOk proof`  -- DOES NOT HOLD (yet).
-
-The two translation obligations fail because of a *sibling* `Term.DatatypeTypeRef`
-translation gap: while a bare value of a mutual type translates fine, every
-constructor application, selector application, and tester over a mutual datatype
-translates to `SmtType.None` (its result/argument type needs the sibling binding,
-which `__eo_to_smt` does not yet supply). The `#eval!`s below isolate exactly which
-terms are affected; the two obligations become provable (by the same tactic used in
-`TestSimpleDt.lean`) once mutual-datatype translation is implemented.
+Note: mutual-datatype constructor/selector/tester terms used to translate to
+`SmtType.None` (the sibling-`DatatypeTypeRef` gap), which blocked the two
+translation obligations. That is fixed: `__smtx_dt_cons_wf_rec` no longer runs a
+*per-field* inhabitance check on nested mutual datatypes (which evaluated them
+standalone, without the enclosing block's bindings); whole-type inhabitance is
+still enforced by `__smtx_type_wf_component`. See `Cpc/SmtModel.lean`.
 -/
 
 def t1 := (Datatype.sum DatatypeCons.unit Datatype.null)
@@ -211,40 +207,31 @@ def proof : CCmdList :=
   CCmdList.cons (CCmd.step CRule.chain_m_resolution (CArgList.cons (Term.Boolean false) (CArgList.cons t103 (CArgList.cons t107 CArgList.nil))) (CIndexList.cons 0 (CIndexList.cons 8 (CIndexList.cons 9 CIndexList.nil)))) <|
   CCmdList.nil
 
--- Sanity checks: the hand-built state chain agrees with `assumptions`/`proof`, and
--- the checker accepts the refutation.
 #eval! decide (__eo_invoke_assume_list CState.nil assumptions = s2)
 #eval! decide (__eo_invoke_cmd_list (__eo_invoke_assume_list CState.nil assumptions) proof = s31)
 #eval! __eo_checker_is_refutation assumptions proof
 #eval! logos_state_is_refutation s31
 
--- The checker accepts the proof: `eo_is_refutation` holds, exactly as in the
--- self-recursive case.
+example : TranslatableAssumptionList assumptions := by
+  unfold assumptions
+  repeat' first
+    | apply TranslatableAssumptionList.step
+    | apply TranslatableAssumptionList.base
+  all_goals (unfold eoHasSmtTranslation; native_decide)
+
+example : CmdListTranslationOk proof := by
+  unfold proof
+  repeat' first
+    | apply CmdListTranslationOk.cons
+    | apply CmdListTranslationOk.nil
+  all_goals
+    simp only [cmdTranslationOk, cArgListTranslationOk, cArgListTranslationOkMask,
+      argTranslationOkMasked, eoHasSmtTranslation, EoListAllHaveSmtTranslation,
+      t79, t80, t81, t82, t100, t101, t102, t103, t104, t105, t106, t107]
+  all_goals native_decide
+
 example : eo_is_refutation assumptions proof := by
   apply eo_is_refutation.intro
   native_decide
-
-/-
-The translation side conditions, by contrast, do NOT hold. A bare value of a mutual
-type translates, but constructor/selector/tester terms over it translate to `None`.
-These `#eval!`s witness the gap (every entry but `t26` is `SmtType.None`):
--/
-#eval! ("t26  value of A", __smtx_typeof (__eo_to_smt t26))   -- Datatype ... (ok)
-#eval! ("t8   ctor app b1(A)", __smtx_typeof (__eo_to_smt t8))    -- None
-#eval! ("t17  ctor app mkA(B)", __smtx_typeof (__eo_to_smt t17))  -- None
-#eval! ("t38  selector app", __smtx_typeof (__eo_to_smt t38))     -- None
-#eval! ("t48  tester is-b0", __smtx_typeof (__eo_to_smt t48))     -- None
-#eval! ("t29  assumption #1", __smtx_typeof (__eo_to_smt t29))    -- None
-#eval! ("t49  assumption #2", __smtx_typeof (__eo_to_smt t49))    -- None
-
--- Both translation obligations are currently false (the leaves above are
--- decidably `None`). They are stated here, blocked on the sibling-`DatatypeTypeRef`
--- translation gap described in the header comment. Once mutual-datatype translation
--- is implemented, replace each `sorry` with the tactic block from `TestSimpleDt.lean`.
-example : TranslatableAssumptionList assumptions := by
-  sorry
-
-example : CmdListTranslationOk proof := by
-  sorry
 
 end Cpc.Examples.TestSimpleDtMutual
