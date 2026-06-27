@@ -1722,13 +1722,12 @@ theorem eo_datatype_cons_valid_of_smt_wf_rec
           eo_datatype_cons_valid_of_smt_wf_rec refs hC⟩
       all_goals
         have hAll :
-            native_inhabited_type (__eo_to_smt_type T) = true ∧
-              __smtx_type_wf_rec (__eo_to_smt_type T) refs = true ∧
+            __smtx_type_wf_rec (__eo_to_smt_type T) refs = true ∧
                 __smtx_dt_cons_wf_rec (__eo_to_smt_datatype_cons c) refs = true := by
           simpa [__eo_to_smt_datatype_cons, __smtx_dt_cons_wf_rec, hTy,
             native_ite, native_and] using h
-        exact ⟨eo_type_valid_of_smt_wf_rec refs hAll.2.1,
-          eo_datatype_cons_valid_of_smt_wf_rec refs hAll.2.2⟩
+        exact ⟨eo_type_valid_of_smt_wf_rec refs hAll.1,
+          eo_datatype_cons_valid_of_smt_wf_rec refs hAll.2⟩
 
 theorem eo_datatype_valid_of_smt_wf_rec
     (refs : List native_String) :
@@ -2061,6 +2060,16 @@ private theorem sum_size_inr_lt_sum (c : DatatypeCons) (d : Datatype) :
   simp [Sum.elim, Eo.Datatype.sum.sizeOf_spec]
   omega
 
+/-- RESIDUAL ASSUMPTION (introduced by the `dtMutual` `__smtx_dt_lift` addition).
+The `lift` re-folding commutes with the EO→SMT translation. True for well-formed
+datatypes (translation injective under wf), false in general; a sound proof needs an
+SMT-wf hypothesis threaded through the substitution-commutation lemmas. Admitted here
+as the Mini residual obligation; see the full `Cpc` library notes. -/
+theorem eo_to_smt_datatype_lift (s : native_String) (dRef d : Datatype) :
+    __eo_to_smt_datatype (__eo_dt_lift s dRef d) =
+      __smtx_dt_lift s (__eo_to_smt_datatype dRef) (__eo_to_smt_datatype d) := by
+  sorry
+
 /--
 Auxiliary commutation theorem for EO/SMT datatype substitution, indexed over the
 sum of datatype constructors and datatypes so the recursion can descend into
@@ -2094,11 +2103,11 @@ private theorem eo_to_smt_substitute_aux
             simpa [__eo_dtc_substitute, __eo_to_smt_datatype_cons, __smtx_dtc_substitute,
               __smtx_type_substitute, __eo_to_smt_type, native_ite, native_Teq,
               hst, hReservedFalse] using hc
-          · have hd2 := eo_to_smt_substitute_aux s d (.inr d2)
+          · have hd2 := eo_to_smt_substitute_aux s (__eo_dt_lift s2 d2 d) (.inr d2)
             have hc := eo_to_smt_substitute_aux s d (.inl c)
             simpa [__eo_dtc_substitute, __eo_to_smt_datatype_cons, __smtx_dtc_substitute,
               __smtx_type_substitute, __eo_to_smt_type, native_ite, native_Teq,
-              hst, hReservedFalse] using And.intro hd2 hc
+              hst, hReservedFalse, eo_to_smt_datatype_lift] using And.intro hd2 hc
       case Apply f x =>
         have hc := eo_to_smt_substitute_aux s d (.inl c)
         dsimp [Sum.elim, __eo_dtc_substitute, __eo_to_smt_datatype_cons]

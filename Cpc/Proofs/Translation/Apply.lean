@@ -2391,7 +2391,7 @@ private def smtx_type_context_substitute_apply
         SmtType.Datatype r newRoot
       else
         SmtType.Datatype r
-          (smtx_dt_context_substitute_apply sub base root oldRoot newRoot
+          (smtx_dt_context_substitute_apply sub (__smtx_dt_lift r d base) root oldRoot newRoot
             (doSub && !native_streq r sub) (doRoot && !native_streq r root) d)
   | SmtType.DtcAppType A B =>
       SmtType.DtcAppType
@@ -2460,9 +2460,9 @@ private theorem smtx_type_context_substitute_off_apply
         T
   | SmtType.Datatype r d => by
       have hD :
-          smtx_dt_context_substitute_apply sub base root oldRoot newRoot
+          smtx_dt_context_substitute_apply sub (__smtx_dt_lift r d base) root oldRoot newRoot
               false false d = d :=
-        smtx_dt_context_substitute_off_apply sub base root oldRoot newRoot d
+        smtx_dt_context_substitute_off_apply sub (__smtx_dt_lift r d base) root oldRoot newRoot d
       simp [smtx_type_context_substitute_apply, hD]
   | SmtType.DtcAppType A B => by
       have hA :
@@ -2576,9 +2576,9 @@ private theorem smtx_chain_type_context_substitute_off_apply
       simp [smtx_chain_type_context_substitute_apply, hA, hB]
   | SmtType.Datatype r d => by
       have hD :
-          smtx_dt_context_substitute_apply sub base root oldRoot newRoot
+          smtx_dt_context_substitute_apply sub (__smtx_dt_lift r d base) root oldRoot newRoot
               false false d = d :=
-        smtx_dt_context_substitute_off_apply sub base root oldRoot newRoot d
+        smtx_dt_context_substitute_off_apply sub (__smtx_dt_lift r d base) root oldRoot newRoot d
       simp [smtx_chain_type_context_substitute_apply,
         smtx_type_context_substitute_apply, hD]
   | SmtType.None => by
@@ -3375,18 +3375,18 @@ private theorem smtx_type_context_substitute_no_root_of_field_wf_apply
       by_cases hEq : r = sub
       · subst r
         have hOff :
-            smtx_dt_context_substitute_apply sub base root oldRoot newRoot
+            smtx_dt_context_substitute_apply sub (__smtx_dt_lift sub d base) root oldRoot newRoot
                 false false d = d :=
           smtx_dt_context_substitute_off_apply
-            sub base root oldRoot newRoot d
+            sub (__smtx_dt_lift sub d base) root oldRoot newRoot d
         simp [smtx_type_context_substitute_apply,
           smtx_type_substitute_top_apply, native_ite, native_streq, hOff]
       · have hDt :
-            smtx_dt_context_substitute_apply sub base root oldRoot newRoot
+            smtx_dt_context_substitute_apply sub (__smtx_dt_lift r d base) root oldRoot newRoot
                 true false d =
-              __smtx_dt_substitute sub base d := by
+              __smtx_dt_substitute sub (__smtx_dt_lift r d base) d := by
             exact smtx_dt_context_substitute_no_root_of_wf_apply
-              sub base root oldRoot newRoot d
+              sub (__smtx_dt_lift r d base) root oldRoot newRoot d
               (smtx_dt_wf_rec_of_datatype_type_wf_rec_apply (by
                 simpa [smtx_type_field_wf_rec] using hWf))
         have hNe : sub ≠ r := by
@@ -3794,7 +3794,7 @@ private theorem smtx_ret_typeof_sel_rec_substitute_non_chain_or_datatype_of_wf_a
       | Datatype s2 d2 =>
           exact Or.inr (by
             refine ⟨s2, native_ite (native_streq sub s2) d2
-              (__smtx_dt_substitute sub base d2), ?_⟩
+              (__smtx_dt_substitute sub (__smtx_dt_lift s2 d2 base) d2), ?_⟩
             simp [__smtx_dt_substitute, __smtx_dtc_substitute,
               __smtx_ret_typeof_sel_rec, smtx_type_substitute_top_apply])
       | Bool =>
@@ -4819,7 +4819,7 @@ private def smtx_dtc_substitute_field_type
     (s : native_String) (base : SmtDatatype) : SmtType -> SmtType
   | SmtType.Datatype s2 d2 =>
       SmtType.Datatype s2
-        (native_ite (native_streq s s2) d2 (__smtx_dt_substitute s base d2))
+        (native_ite (native_streq s s2) d2 (__smtx_dt_substitute s (__smtx_dt_lift s2 d2 base) d2))
   | SmtType.TypeRef s2 =>
       native_ite (native_streq s s2) (SmtType.Datatype s base) (SmtType.TypeRef s2)
   | T => T
@@ -8707,10 +8707,11 @@ private theorem smtx_type_substitute_top_apply_tuple_of_eo_valid_rec
         · exact hNe hEq.symm
         · exact hNo hMem
       have hDSub :
-          __smtx_dt_substitute (native_string_lit "@Tuple") base (__eo_to_smt_datatype d) =
+          __smtx_dt_substitute (native_string_lit "@Tuple")
+              (__smtx_dt_lift s (__eo_to_smt_datatype d) base) (__eo_to_smt_datatype d) =
             __eo_to_smt_datatype d :=
         smtx_dt_substitute_tuple_of_eo_datatype_valid_rec
-          base hNo' hD
+          (__smtx_dt_lift s (__eo_to_smt_datatype d) base) hNo' hD
       simp [__eo_to_smt_type, hReserved, smtx_type_substitute_top_apply,
         native_ite, native_streq, hDSub]
   | refs, hNo, Term.DatatypeTypeRef s, hValid => by
@@ -8825,10 +8826,11 @@ private theorem smtx_type_substitute_top_apply_tuple_of_eo_valid_rec
             · exact hNe hEq.symm
             · exact hNo hMem
           have hDSub :
-              __smtx_dt_substitute (native_string_lit "@Tuple") base (__eo_to_smt_datatype d) =
+              __smtx_dt_substitute (native_string_lit "@Tuple")
+                  (__smtx_dt_lift s (__eo_to_smt_datatype d) base) (__eo_to_smt_datatype d) =
                 __eo_to_smt_datatype d :=
             smtx_dt_substitute_tuple_of_eo_datatype_valid_rec
-              base hNo' hD
+              (__smtx_dt_lift s (__eo_to_smt_datatype d) base) hNo' hD
           simp [__eo_to_smt_type, hReserved, smtx_type_substitute_top_apply,
             native_ite, native_streq, hDSub]
       | DatatypeTypeRef s =>
