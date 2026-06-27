@@ -695,6 +695,7 @@ def native_inhabited_type (T : SmtType) : native_Bool :=
     (native_not (native_Teq T SmtType.None))
     (native_Teq (__smtx_typeof_value (__smtx_type_default T)) T))
 
+
 def __vsm_apply_head : SmtValue -> SmtValue
   | (SmtValue.Apply f a) => (__vsm_apply_head f)
   | a => a
