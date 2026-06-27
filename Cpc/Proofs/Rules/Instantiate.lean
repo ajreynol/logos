@@ -65,7 +65,11 @@ Status (2026-06-27):
   * `instantiate_body_true`   — PROVEN (via the `__is_instantiation` reflection).
   * `instantiate_sound`       — depends only on the `substitute_simul_eval` crux.
   * main theorem `hWf`        — PROVEN (premise is Bool-typed ⇒ translatable).
-  * `substitute_simul_eval`   — sorry (crux; see above).
+  * `substFalse_eval_gen_lt`  — general substitution-eval induction; variable /
+    atom / `Stuck` cases PROVEN, application (non-binder heads + quantifier)
+    case remains. This is the reusable core of the crux.
+  * `substitute_simul_eval`   — sorry (crux); reduces to `substFalse_eval_gen_lt`
+    plus the `SubstFalseRel M (pushSubstModel …) xs ts nil` base relation.
   * `substitute_simul_has_smt_translation_of_typeof_ne_stuck_lt` — one `sorry`
     remains in the generic / non-special-head application case (line ~2955).
     This is a *type-preservation* obligation for `__substitute_simul_rec`: it
@@ -3263,6 +3267,72 @@ theorem substitute_simul_has_bool_type_of_typeof_bool
     hTy
 
 /--
+General substitution–evaluation induction (substitution mode, `isr = false`),
+generalised over the bound-variable accumulator `bvs` and an arbitrary model
+`N` realising the substitution.
+
+Evaluating the translation of `subst false F xs ss bvs` in `M` coincides with
+evaluating the translation of `F` in any model `N` related to `M` by
+`SubstFalseRel M N xs ss bvs` (variables bound by `bvs` or unmapped by `xs` are
+interpreted identically; a free mapped variable is assigned by `N` the value of
+its substitute evaluated in `M`).
+
+Proved by well-founded recursion on `F`. The **variable**, **atom**, and
+**`Stuck`** cases are discharged here by `SubstituteSupport.substFalse_eval_var`
+/ `substFalse_eval_atom` and the translation hypotheses. The **application**
+case (both the non-binder heads — which reduce, per SMT constructor, to the
+subterm IHs via the evaluator's compositionality — and the binder/quantifier
+case, which descends under the binder via `SubstituteSupport.substFalseRel_push`
+and the capture-avoidance guard) remains: it mirrors the head-shape dispatch of
+`smt_model_eval_eq_of_contains_atomic_term_list_free_rec_false_mapped_lt`
+(`Cpc/Proofs/Closed/ContainsAtomicTermListFree.lean`), but with the substitution
+applied on the `M` side. -/
+theorem substFalse_eval_gen_lt
+    (n : Nat) (F xs ss bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    {M N : SmtModel}
+    (hLt : sizeOf F < n)
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hSsTrans : EoListAllHaveSmtTranslation ss)
+    (hFTrans : RuleProofs.eo_has_smt_translation F)
+    (hSubstTrans : RuleProofs.eo_has_smt_translation
+      (__substitute_simul_rec (Term.Boolean false) F xs ss bvs))
+    (hRel : SubstituteSupport.SubstFalseRel M N xs ss bvs) :
+    __smtx_model_eval M
+        (__eo_to_smt (__substitute_simul_rec (Term.Boolean false) F xs ss bvs)) =
+      __smtx_model_eval N (__eo_to_smt F) := by
+  have hss : ss ≠ Term.Stuck := eoListAllHaveSmtTranslation_ne_stuck hSsTrans
+  have hxs : xs ≠ Term.Stuck := hXsEnv.ne_stuck
+  have hbvs : bvs ≠ Term.Stuck := hBvsEnv.ne_stuck
+  cases n with
+  | zero => omega
+  | succ n =>
+      cases F
+      case Apply f a =>
+          -- Non-binder heads reduce to the subterm IHs via the SMT evaluator's
+          -- compositionality; the binder/quantifier case descends under the
+          -- binder via `substFalseRel_push` and the capture-avoidance guard.
+          sorry
+      case Var name S =>
+          by_cases hString : ∃ s, name = Term.String s
+          · rcases hString with ⟨s, rfl⟩
+            exact SubstituteSupport.substFalse_eval_var M N s S xs ss bvs
+              hXsEnv hBvsEnv hss hRel
+          · exact false_of_non_string_var_has_smt_translation
+              (fun s hEq => hString ⟨s, hEq⟩) hFTrans
+      case Stuck =>
+          exact False.elim
+            (RuleProofs.term_ne_stuck_of_has_smt_translation Term.Stuck hFTrans rfl)
+      all_goals
+          exact SubstituteSupport.substFalse_eval_atom M N _ xs ss bvs
+            hxs hss hbvs
+            (by intro f a h; cases h)
+            (by intro s S h; cases h)
+            (by intro h; cases h)
+            hFTrans hSubstTrans hRel.globals
+
+/--
 **Substitution–evaluation lemma (crux).**
 
 Evaluating the SMT translation of the simultaneously-substituted body in `M`
@@ -3291,11 +3361,18 @@ Induction cases (following `__substitute_simul_rec`, `Cpc/Logos.lean:2298`):
 * **Closed atom (default)** — `__is_closed_rec` holds, the term is unchanged and
   ground, so its evaluation is model-independent.
 
-Side hypotheses to be threaded through (placeholders — to be pinned down against
-the typing/translation context in the main theorem):
+The general induction (over an arbitrary `bvs` accumulator and a model `N`
+related by `SubstFalseRel`) is factored into `substFalse_eval_gen_lt`, whose
+variable / atom / `Stuck` cases are proved; only its application case remains.
+Reducing this top-level `bvs = nil` statement to that lemma additionally needs
+the base relation `SubstFalseRel M (pushSubstModel M xs ts) xs ts nil` (the
+mapped field of which relates `pushSubstModel`'s push order to `assoc_nil_nth`
+by `find`-index, and needs binder-key distinctness — the same collision subtlety
+as `substFalseRel_push`'s `hNoCollide`).
+
+Side hypotheses still to be threaded through from the rule context:
 * `F` has an SMT translation and is `Bool`-typed under the binders;
-* `xs` is a well-formed binder list and `ts` matches it in length/type;
-* `model_total_typed M`.
+* `ts` is a translatable value list matching `xs` (`__is_instantiation`).
 -/
 theorem substitute_simul_eval
     (M : SmtModel) (hM : model_total_typed M)
