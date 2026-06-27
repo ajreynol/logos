@@ -66,8 +66,10 @@ Status (2026-06-27):
   * `instantiate_sound`       — depends only on the `substitute_simul_eval` crux.
   * main theorem `hWf`        — PROVEN (premise is Bool-typed ⇒ translatable).
   * `substFalse_eval_gen_lt`  — general substitution-eval induction; variable /
-    atom / `Stuck` cases PROVEN, application (non-binder heads + quantifier)
-    case remains. This is the reusable core of the crux.
+    atom / `Stuck` cases PROVEN, and the `not` head of the application case
+    PROVEN (establishing the recursion + per-constructor eval-compositionality
+    pattern). Remaining: the other non-binder heads (each mirrors `not`) and the
+    binder/quantifier case. This is the reusable core of the crux.
   * `substitute_simul_eval`   — sorry (crux); reduces to `substFalse_eval_gen_lt`
     plus the `SubstFalseRel M (pushSubstModel …) xs ts nil` base relation.
   * `substitute_simul_has_smt_translation_of_typeof_ne_stuck_lt` — one `sorry`
@@ -3305,15 +3307,109 @@ theorem substFalse_eval_gen_lt
   have hss : ss ≠ Term.Stuck := eoListAllHaveSmtTranslation_ne_stuck hSsTrans
   have hxs : xs ≠ Term.Stuck := hXsEnv.ne_stuck
   have hbvs : bvs ≠ Term.Stuck := hBvsEnv.ne_stuck
+  have hisr : (Term.Boolean false : Term) ≠ Term.Stuck := by decide
   cases n with
   | zero => omega
   | succ n =>
+      let hRec :
+          ∀ {G bvs' : Term} {bvsVars' : List EoVarKey} {M' N' : SmtModel},
+            sizeOf G < sizeOf F ->
+            EoVarEnvPerm bvs' bvsVars' ->
+            RuleProofs.eo_has_smt_translation G ->
+            RuleProofs.eo_has_smt_translation
+              (__substitute_simul_rec (Term.Boolean false) G xs ss bvs') ->
+            SubstituteSupport.SubstFalseRel M' N' xs ss bvs' ->
+            __smtx_model_eval M'
+                (__eo_to_smt
+                  (__substitute_simul_rec (Term.Boolean false) G xs ss bvs')) =
+              __smtx_model_eval N' (__eo_to_smt G) :=
+        fun {G bvs' bvsVars' M' N'} hGLt hBvsEnv' hGTrans hGSubstTrans hRel' =>
+          substFalse_eval_gen_lt n G xs ss bvs' (by omega)
+            hXsEnv hBvsEnv' hSsTrans hGTrans hGSubstTrans hRel'
       cases F
       case Apply f a =>
-          -- Non-binder heads reduce to the subterm IHs via the SMT evaluator's
-          -- compositionality; the binder/quantifier case descends under the
-          -- binder via `substFalseRel_push` and the capture-avoidance guard.
-          sorry
+          by_cases hBinder :
+              ∃ q v vs,
+                f =
+                  Term.Apply q
+                    (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
+          · -- binder / quantifier: descends under the binder via
+            -- `substFalseRel_push` (its `hNoCollide` is dischargeable from
+            -- `__eo_to_smt_type` injectivity; see the file header) and the
+            -- capture-avoidance guard, then the body IH.
+            sorry
+          · by_cases hNot : f = Term.UOp UserOp.not
+            · subst f
+              have hHeadSub :
+                  __substitute_simul_rec (Term.Boolean false)
+                      (Term.UOp UserOp.not) xs ss bvs =
+                    Term.UOp UserOp.not :=
+                substitute_simul_rec_uop_eq_self UserOp.not xs ss bvs
+                  hXsEnv hBvsEnv hSsTrans
+              have hSubstEq :
+                  __substitute_simul_rec (Term.Boolean false)
+                      (Term.Apply (Term.UOp UserOp.not) a) xs ss bvs =
+                    __eo_mk_apply (Term.UOp UserOp.not)
+                      (__substitute_simul_rec (Term.Boolean false) a xs ss bvs) := by
+                have hApplyEq :=
+                  SubstituteSupport.substitute_simul_rec_apply (Term.Boolean false)
+                    (Term.UOp UserOp.not) a xs ss bvs hisr hxs hss hbvs
+                    (by intro q v vs hEq; exact hBinder ⟨q, v, vs, hEq⟩)
+                simpa [hHeadSub] using hApplyEq
+              have hMkNeStuck :
+                  __eo_mk_apply (Term.UOp UserOp.not)
+                      (__substitute_simul_rec (Term.Boolean false) a xs ss bvs) ≠
+                    Term.Stuck := by
+                rw [← hSubstEq]
+                exact RuleProofs.term_ne_stuck_of_has_smt_translation _ hSubstTrans
+              have hMk :
+                  __eo_mk_apply (Term.UOp UserOp.not)
+                      (__substitute_simul_rec (Term.Boolean false) a xs ss bvs) =
+                    Term.Apply (Term.UOp UserOp.not)
+                      (__substitute_simul_rec (Term.Boolean false) a xs ss bvs) :=
+                instantiate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNeStuck
+              have hFTransEo :
+                  eoHasSmtTranslation (Term.Apply (Term.UOp UserOp.not) a) := by
+                simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+                  using hFTrans
+              have hATrans : RuleProofs.eo_has_smt_translation a := by
+                simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+                  using not_arg_has_smt_translation_of_has_smt_translation hFTransEo
+              have hSubstApplyTrans :
+                  eoHasSmtTranslation
+                    (Term.Apply (Term.UOp UserOp.not)
+                      (__substitute_simul_rec (Term.Boolean false) a xs ss bvs)) := by
+                have hTr :
+                    RuleProofs.eo_has_smt_translation
+                      (Term.Apply (Term.UOp UserOp.not)
+                        (__substitute_simul_rec (Term.Boolean false) a xs ss bvs)) := by
+                  rw [← hMk, ← hSubstEq]; exact hSubstTrans
+                simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation] using hTr
+              have hSubstATrans :
+                  RuleProofs.eo_has_smt_translation
+                    (__substitute_simul_rec (Term.Boolean false) a xs ss bvs) := by
+                simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+                  using
+                    not_arg_has_smt_translation_of_has_smt_translation hSubstApplyTrans
+              have hIH :
+                  __smtx_model_eval M
+                      (__eo_to_smt
+                        (__substitute_simul_rec (Term.Boolean false) a xs ss bvs)) =
+                    __smtx_model_eval N (__eo_to_smt a) :=
+                hRec (by simp) hBvsEnv hATrans hSubstATrans hRel
+              rw [hSubstEq, hMk]
+              show
+                __smtx_model_eval M
+                    (SmtTerm.not
+                      (__eo_to_smt
+                        (__substitute_simul_rec (Term.Boolean false) a xs ss bvs))) =
+                  __smtx_model_eval N (SmtTerm.not (__eo_to_smt a))
+              simp only [__smtx_model_eval]
+              rw [hIH]
+            · -- remaining non-binder heads (other unary/binary/ternary ops and
+              -- the generic application) — each reduces to the subterm IHs via
+              -- its SMT-constructor evaluation rule, exactly as the `not` case.
+              sorry
       case Var name S =>
           by_cases hString : ∃ s, name = Term.String s
           · rcases hString with ⟨s, rfl⟩
