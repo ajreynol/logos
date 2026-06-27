@@ -67,14 +67,19 @@ Status (2026-06-27):
   * main theorem `hWf`        — PROVEN (premise is Bool-typed ⇒ translatable).
   * `substFalse_eval_gen_lt`  — general substitution-eval induction. PROVEN:
     variable / atom / `Stuck`; 9 unary heads (not, to_real, to_int, is_int, abs,
-    uneg, int_pow2, int_log2, purify) via `substFalse_eval_unary_op`; 19 binary
+    uneg, int_pow2, int_log2, purify) via `substFalse_eval_unary_op`; 20 binary
     heads (and, or, imp, xor, eq, plus, neg, mult, lt, leq, gt, geq, div, mod,
-    select, divisible, div_total, mod_total, multmult_total) via
-    `substFalse_eval_binary_op` — div/mod use a `SubstFalseRel.globals`-aware
-    congruence (their eval reads `native_div_by_zero_id` from the model).
-    REMAINING: `multmult` (globals, nested), ternary (ite/store), generic
-    application, and the binder/quantifier case. This is the reusable core of
-    the crux.
+    multmult, select, divisible, div_total, mod_total, multmult_total) via
+    `substFalse_eval_binary_op` — div/mod/multmult use a `SubstFalseRel.globals`-
+    aware congruence (their eval reads `native_div_by_zero_id` from the model).
+    REMAINING: ternary (ite/store; needs the middle head's non-binder-shape from
+    translatability), theory ops (strings/seq/set/bv/regex — same helper
+    pattern), the generic application, and the binder/quantifier case. The quant
+    case reduces, via `smt_model_eval_eo_to_smt_exists_eq_of_body_eval_eq`-style
+    chain congruence (but a *different-body* variant: `toSmt (subst a)` vs
+    `toSmt a`) threaded with `SubstituteSupport.substFalseRel_push` per binder
+    (its `hNoCollide` discharged by `eo_to_smt_type_injective_of_field_wf_rec`),
+    to the body IH. This is the reusable core of the crux.
   * `substitute_simul_eval`   — sorry (crux); reduces to `substFalse_eval_gen_lt`
     plus the `SubstFalseRel M (pushSubstModel …) xs ts nil` base relation.
   * `substitute_simul_has_smt_translation_of_typeof_ne_stuck_lt` — one `sorry`
@@ -3273,6 +3278,44 @@ theorem substitute_simul_has_bool_type_of_typeof_bool
       hForall hTs hTy)
     hTy
 
+/-- Different-body congruence for the existential evaluator: if for every
+witness value the two (distinct) bodies evaluate equally in the pushed models,
+then the existentials evaluate equally. Generalises
+`native_eval_texists_eq_of_body_eval_eq` (same body) and is what the
+substitution case needs (`toSmt (subst a)` vs `toSmt a`). -/
+theorem native_eval_texists_eq_of_body_eval_eq_diff
+    {M N : SmtModel} {s : native_String} {T : SmtType} {bodyM bodyN : SmtTerm}
+    (hBody : ∀ v : SmtValue,
+      __smtx_model_eval (native_model_push M s T v) bodyM =
+        __smtx_model_eval (native_model_push N s T v) bodyN) :
+    native_eval_texists M s T bodyM = native_eval_texists N s T bodyN := by
+  classical
+  let PM : Prop :=
+    ∃ v : SmtValue,
+      __smtx_typeof_value v = T ∧
+        __smtx_value_canonical_bool v = true ∧
+        __smtx_model_eval (native_model_push M s T v) bodyM = SmtValue.Boolean true
+  let PN : Prop :=
+    ∃ v : SmtValue,
+      __smtx_typeof_value v = T ∧
+        __smtx_value_canonical_bool v = true ∧
+        __smtx_model_eval (native_model_push N s T v) bodyN = SmtValue.Boolean true
+  change (if _ : PM then SmtValue.Boolean true else SmtValue.Boolean false) =
+    (if _ : PN then SmtValue.Boolean true else SmtValue.Boolean false)
+  have hIff : PM ↔ PN := by
+    constructor
+    · intro h
+      rcases h with ⟨v, hTy, hCanon, hEval⟩
+      exact ⟨v, hTy, hCanon, by simpa [hBody v] using hEval⟩
+    · intro h
+      rcases h with ⟨v, hTy, hCanon, hEval⟩
+      exact ⟨v, hTy, hCanon, by simpa [← hBody v] using hEval⟩
+  by_cases hM : PM
+  · have hN : PN := hIff.mp hM
+    simp [hM, hN]
+  · have hN : ¬ PN := fun h => hM (hIff.mpr h)
+    simp [hM, hN]
+
 /-- Reusable reduction for a **unary special-head application** in the
 substitution-evaluation induction. Given that the head's substitution is the
 bare operator (`hHeadSub`, from `substitute_simul_rec_uop_eq_self`), argument
@@ -3939,7 +3982,22 @@ theorem substFalse_eval_gen_lt
                                                                                 simp only [__smtx_model_eval]; rw [h1, h2])
                                                                               (fun ht hst => hRecArg (by simp; try omega) ht hst)
                                                                               (fun ht hst => hRecArg (by simp; try omega) ht hst)
-                                                                          · sorry
+                                                                          · by_cases h_multmult : op = UserOp.multmult
+                                                                            · subst op
+                                                                              exact substFalse_eval_binary_op UserOp.multmult x1 a xs ss bvs
+                                                                                hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                hFTrans hSubstTrans
+                                                                                (substitute_simul_rec_uop_eq_self UserOp.multmult xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                                (fun {s t} h => multmult_args_have_smt_translation_of_has_smt_translation h)
+                                                                                (fun X1 Y1 X2 Y2 h1 h2 => by
+                                                                                  show __smtx_model_eval M (SmtTerm.multmult (__eo_to_smt X1) (__eo_to_smt X2)) =
+                                                                                    __smtx_model_eval N (SmtTerm.multmult (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                                  simp only [__smtx_model_eval]
+                                                                                  rw [h1, h2, smtx_model_eval_apply_eq_of_globals hRel.globals,
+                                                                                    hRel.globals.1])
+                                                                                (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                            · sorry
                                   | _ =>
                                       -- ternary / generic application head
                                       sorry
