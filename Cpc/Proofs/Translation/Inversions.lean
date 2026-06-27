@@ -310,7 +310,7 @@ theorem smtx_type_field_wf_rec_of_cons_wf
   case TypeRef =>
     exact h.1
   all_goals
-    exact h.2.1
+    exact h.1
 
 theorem smtx_type_wf_rec_guard_of_true
     (T U : SmtType) (refs : RefList)

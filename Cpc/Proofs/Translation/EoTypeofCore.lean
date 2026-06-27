@@ -429,7 +429,8 @@ private theorem eo_to_smt_type_unique_of_valid_rec_apply
             have hInh : native_inhabited_type tupleTy = true := by
               classical
               simp [tupleTy, native_inhabited_type, native_and, native_ite, native_not,
-                native_veq, __smtx_type_default, __smtx_datatype_default,
+                native_veq, native_Teq, __smtx_type_default, __smtx_type_default_rec,
+                __smtx_datatype_default,
                 __smtx_datatype_cons_default, __smtx_typeof_value,
                 __smtx_typeof_dt_cons_value_rec, __smtx_dt_substitute,
                 __smtx_dtc_substitute, __smtx_value_canonical_bool]
@@ -1152,6 +1153,53 @@ private theorem eo_datatype_valid_rec_refine_reserved
 
 end
 
+/- Lifting (re-folding a datatype occurrence back to a `TypeRef`) preserves validity,
+provided the re-folded name is in scope. The lift is shallow at the type level, so the
+only non-identity case is a top-level `DatatypeType`. -/
+mutual
+
+private theorem eo_type_lift_preserves_valid (s0 : native_String) (d0 : Datatype)
+    {T : Term} {refs : List native_String}
+    (hMem : s0 ∈ refs) (hValid : eo_type_valid_rec refs T) :
+    eo_type_valid_rec refs (__eo_type_lift s0 d0 T) := by
+  cases T with
+  | DatatypeType s2 d2 =>
+      rcases hValid with ⟨hRes, hD⟩
+      simp only [__eo_type_lift]
+      by_cases hteq : native_teq (Term.DatatypeType s0 d0) (Term.DatatypeType s2 d2) = true
+      · rw [native_ite, if_pos hteq]
+        have hEq : Term.DatatypeType s0 d0 = Term.DatatypeType s2 d2 := of_decide_eq_true hteq
+        injection hEq with hs hd
+        subst hs
+        exact ⟨hRes, hMem⟩
+      · rw [native_ite, if_neg hteq]
+        exact ⟨hRes, eo_datatype_lift_preserves_valid s0 d0 (List.mem_cons_of_mem _ hMem) hD⟩
+  | _ => exact hValid
+
+private theorem eo_datatype_cons_lift_preserves_valid (s0 : native_String) (d0 : Datatype)
+    {c : DatatypeCons} {refs : List native_String}
+    (hMem : s0 ∈ refs) (hValid : eo_datatype_cons_valid_rec refs c) :
+    eo_datatype_cons_valid_rec refs (__eo_dtc_lift s0 d0 c) := by
+  cases c with
+  | unit => exact hValid
+  | cons T c =>
+      rcases hValid with ⟨hT, hC⟩
+      exact ⟨eo_type_lift_preserves_valid s0 d0 hMem hT,
+        eo_datatype_cons_lift_preserves_valid s0 d0 hMem hC⟩
+
+private theorem eo_datatype_lift_preserves_valid (s0 : native_String) (d0 : Datatype)
+    {d : Datatype} {refs : List native_String}
+    (hMem : s0 ∈ refs) (hValid : eo_datatype_valid_rec refs d) :
+    eo_datatype_valid_rec refs (__eo_dt_lift s0 d0 d) := by
+  cases d with
+  | null => exact hValid
+  | sum c d =>
+      rcases hValid with ⟨hC, hD⟩
+      exact ⟨eo_datatype_cons_lift_preserves_valid s0 d0 hMem hC,
+        eo_datatype_lift_preserves_valid s0 d0 hMem hD⟩
+
+end
+
 /- Substituting a valid datatype for a valid type-reference preserves datatype validity. -/
 mutual
 
@@ -1183,7 +1231,8 @@ private theorem eo_datatype_cons_valid_rec_substitute
               ⟨hReserved, hD2'⟩
             simpa [__eo_dtc_substitute, eo_datatype_cons_valid_rec, eo_type_valid_rec,
               native_ite, native_streq] using And.intro hT' hC'
-          · have hD2' : eo_datatype_valid_rec (s2 :: refs) (__eo_dt_substitute s dsub d2) := by
+          · have hD2' : eo_datatype_valid_rec (s2 :: refs)
+                (__eo_dt_substitute s (__eo_dt_lift s2 d2 dsub) d2) := by
               have hSub' : eo_datatype_valid_rec (s :: s2 :: refs) dsub := by
                 apply eo_datatype_valid_rec_weaken hSub
                 intro t ht
@@ -1199,10 +1248,14 @@ private theorem eo_datatype_cons_valid_rec_substitute
                 · exact Or.inr (Or.inl rfl)
                 · exact Or.inl rfl
                 · exact Or.inr (Or.inr ht)
-              exact eo_datatype_valid_rec_substitute s dsub (s2 :: refs) hSub' hD2swap
+              have hSubLifted : eo_datatype_valid_rec (s :: s2 :: refs)
+                  (__eo_dt_lift s2 d2 dsub) :=
+                eo_datatype_lift_preserves_valid s2 d2 (by simp) hSub'
+              exact eo_datatype_valid_rec_substitute s (__eo_dt_lift s2 d2 dsub)
+                (s2 :: refs) hSubLifted hD2swap
             have hT' :
                 eo_type_valid_rec refs
-                  (Term.DatatypeType s2 (__eo_dt_substitute s dsub d2)) :=
+                  (Term.DatatypeType s2 (__eo_dt_substitute s (__eo_dt_lift s2 d2 dsub) d2)) :=
               ⟨hReserved, hD2'⟩
             simpa [__eo_dtc_substitute, eo_datatype_cons_valid_rec, eo_type_valid_rec,
               hs, native_ite, native_streq] using And.intro hT' hC'
@@ -2904,12 +2957,7 @@ private theorem smtx_dtc_substitute_of_wf_rec
           have hPair :
               __smtx_type_wf_rec (SmtType.Datatype s d) refs = true ∧
                 __smtx_dt_cons_wf_rec c refs = true := by
-            have hField :
-                native_inhabited_type (SmtType.Datatype s d) = true ∧
-                  __smtx_type_wf_rec (SmtType.Datatype s d) refs = true ∧
-                    __smtx_dt_cons_wf_rec c refs = true := by
-              simpa [__smtx_dt_cons_wf_rec, native_ite] using hWf
-            exact ⟨hField.2.1, hField.2.2⟩
+            simpa [__smtx_dt_cons_wf_rec, native_ite] using hWf
           have hT := smtx_type_substitute_top_of_wf_rec sub d0 (SmtType.Datatype s d) refs hNot hPair.1
           have hC := smtx_dtc_substitute_of_wf_rec sub d0 c refs hNot hPair.2
           have hT' :
@@ -3025,7 +3073,8 @@ private theorem smtx_type_substitute_top_of_guard
 
 private def eo_type_substitute_field (sub : native_String) (d0 : Datatype) : Term -> Term
   | Term.DatatypeType s2 d2 =>
-      Term.DatatypeType s2 (native_ite (native_streq sub s2) d2 (__eo_dt_substitute sub d0 d2))
+      Term.DatatypeType s2 (native_ite (native_streq sub s2) d2
+        (__eo_dt_substitute sub (__eo_dt_lift s2 d2 d0) d2))
   | T => native_ite (native_teq T (Term.DatatypeTypeRef sub)) (Term.DatatypeType sub d0) T
 
 mutual
