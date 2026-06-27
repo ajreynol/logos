@@ -16,8 +16,8 @@
 
 \lstdefinelanguage{Lean}{
   morekeywords={
-    abbrev, by, classical, def, deriving, do, else, end, exact,
-    forall, fun, if, inductive, let, macro_rules, match, namespace,
+    abbrev, by, def, deriving, else, end,
+    forall, fun, if, inductive, let, match, namespace,
     noncomputable, open, private, section, set_option, structure, then,
     theorem, where, with
   },
@@ -1490,6 +1490,46 @@ returns true if the given type is inhabited
 and its component types are well-formed, as defined by the recursive method \code{smt_type_wf_rec}.
 This method tracks a list of datatypes we have traversed beneath (\code{RefList}).
 
+For datatype types,
+we call the recursive helper \code{smt_dt_wf_rec} that returns true if the datatype is well-formed.
+We append the datatype name \code{s} to our list of references when calling this method,
+indicating that type references to \code{s} are valid in this context.
+This method returns false if the datatype has no constructors.
+Otherwise, we visit each constructor
+and return true only if all constructors are well formed via \code{smt_dtc_wf_rec}.
+Note we have a special case for one constructors to avoid returning false for an empty tail.
+We determine whether a constructor is well-formed if
+for each of its field types \code{T},
+either \code{T} is a type reference in scope (\code{s ∈ refs}),
+or otherwise \code{T} is an inhabited type that is well-formed, which we check
+recursively, maintaining the list of references.
+Note that carrying the reference list 
+implies that mutually recursive datatypes are supported.
+
+Note that type references are only permitted as direct children of
+constructors.
+Unguarded type reference are not well-formed given their case 
+in \code{smt_dt_wf_rec}, which returns false.
+
+The next cases in \code{smt_dt_wf_rec}
+cover composite types like maps, sequences and sets.
+It is important to note that for each component type (e.g. element and index types of maps,
+or element types of sequences),
+we do not carry the list of reference when recursing
+via \code{smt_type_wf_component}.
+This disallows nested recursive datatypes.
+It is also important to note that composite types built from uninhabited types
+are themselves considered not well-formed.
+This prevents us from otherwise have e.g. sets of an uninhabited type be
+inhabited via the empty set; sequences are guarded for the same reason.
+
+The remaining cases in \code{smt_dt_wf_rec} include exceptions
+for other types that we disallow as first-class types.
+As mentioned, we do not have regular expressions or function types
+as first class.
+We also disallow partially applied datatype constructors as a first-class type.
+Finally, we disallow the error type \code{None}.
+All other types (e.g. the atomic base types) are first-class.
 
 \subsection{Types of SMT-LIB Terms}
 
@@ -1552,18 +1592,9 @@ def model_total_typed (M : SmtModel) : Prop :=
 def native_str_in_re : String -> native_RegLan -> Bool
   | s, r => native_re_nullable <| s.toList.foldl (fun acc c => native_re_deriv c acc) r
 
-macro_rules
-  | `(re_ext_eq $r1 $r2) => do
-      let strInReId := Lean.mkIdent `native_str_in_re
-      `(by
-          classical
-          exact
-            if hExt :
-                ∀ s : String,
-                  $strInReId s $r1 = $strInReId s $r2 then
-              true
-            else
-              false)
+open Classical in
+noncomputable def re_ext_eq (r1 r2 : native_RegLan) : Bool :=
+  if ∀ s : String, native_str_in_re s r1 = native_str_in_re s r2 then true else false
 
 def smt_model_eval_eq : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.RegLan r1), (SmtValue.RegLan r2) => (SmtValue.Boolean (re_ext_eq r1 r2))
@@ -1575,78 +1606,52 @@ def smt_model_eval_eq : SmtValue -> SmtValue -> SmtValue
 
 \begin{figure}[p]
 \begin{lstlisting}
-macro_rules
-  | `(native_eval_texists $M $s $T $body) => do
-      let evalId := Lean.mkIdent `smt_model_eval
-      let pushId := Lean.mkIdent `model_push
-      let typeofValueId := Lean.mkIdent `smt_typeof_value
-      let canonId := Lean.mkIdent `smt_value_canonical
-      `(by
-          classical
-          exact
-            if h :
-                ∃ v : SmtValue,
-                  $typeofValueId v = $T ∧
-                    $canonId v = true ∧
-                    $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
-              SmtValue.Boolean true
-            else
-              SmtValue.Boolean false)
+open Classical in
+noncomputable def native_eval_texists (M : SmtModel) (s : String)
+    (T : SmtType) (body : SmtTerm) : SmtValue :=
+  if ∃ v : SmtValue,
+      smt_typeof_value v = T ∧
+        smt_value_canonical v = true ∧
+        smt_model_eval (model_push M s T v) body = (SmtValue.Boolean true) then
+    SmtValue.Boolean true
+  else
+    SmtValue.Boolean false
 
-  | `(native_eval_tforall $M $s $T $body) => do
-      let evalId := Lean.mkIdent `smt_model_eval
-      let pushId := Lean.mkIdent `model_push
-      let typeofValueId := Lean.mkIdent `smt_typeof_value
-      let canonId := Lean.mkIdent `smt_value_canonical
-      `(by
-          classical
-          exact
-            if h :
-                ∀ v : SmtValue,
-                  $typeofValueId v = $T ->
-                    $canonId v = true ->
-                    $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
-              SmtValue.Boolean true
-            else
-              SmtValue.Boolean false)
+open Classical in
+noncomputable def native_eval_tforall (M : SmtModel) (s : String)
+    (T : SmtType) (body : SmtTerm) : SmtValue :=
+  if ∀ v : SmtValue,
+      smt_typeof_value v = T ->
+        smt_value_canonical v = true ->
+        smt_model_eval (model_push M s T v) body = (SmtValue.Boolean true) then
+    SmtValue.Boolean true
+  else
+    SmtValue.Boolean false
 
-  | `(native_eval_tchoice $M $s $T $body) => do
-      let evalId := Lean.mkIdent `smt_model_eval
-      let pushId := Lean.mkIdent `model_push
-      let typeofValueId := Lean.mkIdent `smt_typeof_value
-      let canonId := Lean.mkIdent `smt_value_canonical
-      `(by
-          classical
-          exact
-            if hSat :
-                ∃ v : SmtValue,
-                  $typeofValueId v = $T ∧
-                    $canonId v = true ∧
-                    $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
-              Classical.choose hSat
-            else if hTy : ∃ v : SmtValue, $typeofValueId v = $T ∧ $canonId v then
-              Classical.choose hTy
-            else
-              SmtValue.NotValue)
+open Classical in
+noncomputable def native_eval_tchoice (M : SmtModel) (s : String)
+    (T : SmtType) (body : SmtTerm) : SmtValue :=
+  if hSat : ∃ v : SmtValue,
+      smt_typeof_value v = T ∧
+        smt_value_canonical v = true ∧
+        smt_model_eval (model_push M s T v) body = (SmtValue.Boolean true) then
+    Classical.choose hSat
+  else if hTy : ∃ v : SmtValue, smt_typeof_value v = T ∧ smt_value_canonical v then
+    Classical.choose hTy
+  else
+    SmtValue.NotValue
 
-  | `(native_eval_tchoice_nth $M $s $T $body $n) => do
-      let evalChoiceId := Lean.mkIdent `native_eval_tchoice
-      let pushId := Lean.mkIdent `model_push
-      `(by
-          classical
-          let rec evalChoiceNth (M' : SmtModel)
-              (s' : String) (T' : SmtType) (body' : SmtTerm) : Nat -> SmtValue
-            | 0 =>
-                $evalChoiceId M' s' T' body'
-            | Nat.succ n' =>
-                let v := $evalChoiceId M' s' T' body'
-                match body' with
-                | SmtTerm.exists s'' T'' body'' =>
-                    evalChoiceNth ($pushId M' s' T' v) s'' T'' body'' n'
-                | _ => SmtValue.NotValue
-          exact evalChoiceNth $M $s $T $body $n)
+noncomputable def native_eval_tchoice_nth (M : SmtModel) (s : String)
+    (T : SmtType) (body : SmtTerm) : Nat -> SmtValue
+  | 0 => native_eval_tchoice M s T body
+  | Nat.succ n =>
+      let v := native_eval_tchoice M s T body
+      match body with
+      | SmtTerm.exists s' T' body' =>
+          native_eval_tchoice_nth (model_push M s T v) s' T' body' n
+      | _ => SmtValue.NotValue
 \end{lstlisting}
-\caption{Evaluation macros for quantifiers and choice.}
+\caption{Evaluation of quantifiers and choice.}
 \label{fig:eval-quant}
 \end{figure}
 
