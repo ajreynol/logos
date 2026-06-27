@@ -9,6 +9,7 @@ open Smtm
 
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
+set_option maxRecDepth 2000
 
 /-!
 # CPC rule `instantiate` — proof scaffold
@@ -3839,9 +3840,347 @@ theorem substFalse_eval_gen_lt
                                     __smtx_model_eval N (SmtTerm._at_purify (__eo_to_smt Y))
                                   simp only [__smtx_model_eval]; rw [h])
                                 (fun ht hst => hRecArg (by simp; try omega) ht hst)
-                            · -- `f` is not a special unary head: dispatch on its
-                              -- structure for binary heads (`Apply (UOp op) x1`).
-                              cases f with
+                            · by_cases hIntIspow2 : f = Term.UOp UserOp.int_ispow2
+                              · subst f
+                                exact substFalse_eval_unary_op UserOp.int_ispow2 a xs ss bvs
+                                  hisr hxs hss hbvs hFTrans hSubstTrans
+                                  (substitute_simul_rec_uop_eq_self UserOp.int_ispow2 xs ss bvs
+                                    hXsEnv hBvsEnv hSsTrans)
+                                  (fun {t} h => int_ispow2_arg_has_smt_translation_of_has_smt_translation h)
+                                  (fun X Y h => by
+                                    show __smtx_model_eval M
+                                        (SmtTerm.and (SmtTerm.geq (__eo_to_smt X) (SmtTerm.Numeral 0))
+                                          (SmtTerm.eq (__eo_to_smt X)
+                                            (SmtTerm.int_pow2 (SmtTerm.int_log2 (__eo_to_smt X))))) =
+                                      __smtx_model_eval N
+                                        (SmtTerm.and (SmtTerm.geq (__eo_to_smt Y) (SmtTerm.Numeral 0))
+                                          (SmtTerm.eq (__eo_to_smt Y)
+                                            (SmtTerm.int_pow2 (SmtTerm.int_log2 (__eo_to_smt Y)))))
+                                    simp [__smtx_model_eval, h])
+                                  (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                              · by_cases hBvnot : f = Term.UOp UserOp.bvnot
+                                · subst f
+                                  exact substFalse_eval_unary_op UserOp.bvnot a xs ss bvs
+                                    hisr hxs hss hbvs hFTrans hSubstTrans
+                                    (substitute_simul_rec_uop_eq_self UserOp.bvnot xs ss bvs
+                                      hXsEnv hBvsEnv hSsTrans)
+                                    (fun {t} h => bvnot_arg_has_smt_translation_of_has_smt_translation h)
+                                    (fun X Y h => by
+                                      show __smtx_model_eval M (SmtTerm.bvnot (__eo_to_smt X)) =
+                                        __smtx_model_eval N (SmtTerm.bvnot (__eo_to_smt Y))
+                                      simp only [__smtx_model_eval]; rw [h])
+                                    (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                · by_cases hBvneg : f = Term.UOp UserOp.bvneg
+                                  · subst f
+                                    exact substFalse_eval_unary_op UserOp.bvneg a xs ss bvs
+                                      hisr hxs hss hbvs hFTrans hSubstTrans
+                                      (substitute_simul_rec_uop_eq_self UserOp.bvneg xs ss bvs
+                                        hXsEnv hBvsEnv hSsTrans)
+                                      (fun {t} h => bvneg_arg_has_smt_translation_of_has_smt_translation h)
+                                      (fun X Y h => by
+                                        show __smtx_model_eval M (SmtTerm.bvneg (__eo_to_smt X)) =
+                                          __smtx_model_eval N (SmtTerm.bvneg (__eo_to_smt Y))
+                                        simp only [__smtx_model_eval]; rw [h])
+                                      (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                  · by_cases hBvnego : f = Term.UOp UserOp.bvnego
+                                    · subst f
+                                      exact substFalse_eval_unary_op UserOp.bvnego a xs ss bvs
+                                        hisr hxs hss hbvs hFTrans hSubstTrans
+                                        (substitute_simul_rec_uop_eq_self UserOp.bvnego xs ss bvs
+                                          hXsEnv hBvsEnv hSsTrans)
+                                        (fun {t} h => bvnego_arg_has_smt_translation_of_has_smt_translation h)
+                                        (fun X Y h => by
+                                          show __smtx_model_eval M (SmtTerm.bvnego (__eo_to_smt X)) =
+                                            __smtx_model_eval N (SmtTerm.bvnego (__eo_to_smt Y))
+                                          simp only [__smtx_model_eval]; rw [h])
+                                        (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                    · by_cases hStrLen : f = Term.UOp UserOp.str_len
+                                      · subst f
+                                        exact substFalse_eval_unary_op UserOp.str_len a xs ss bvs
+                                          hisr hxs hss hbvs hFTrans hSubstTrans
+                                          (substitute_simul_rec_uop_eq_self UserOp.str_len xs ss bvs
+                                            hXsEnv hBvsEnv hSsTrans)
+                                          (fun {t} h => str_len_arg_has_smt_translation_of_has_smt_translation h)
+                                          (fun X Y h => by
+                                            show __smtx_model_eval M (SmtTerm.str_len (__eo_to_smt X)) =
+                                              __smtx_model_eval N (SmtTerm.str_len (__eo_to_smt Y))
+                                            simp only [__smtx_model_eval]; rw [h])
+                                          (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                      · by_cases hStrRev : f = Term.UOp UserOp.str_rev
+                                        · subst f
+                                          exact substFalse_eval_unary_op UserOp.str_rev a xs ss bvs
+                                            hisr hxs hss hbvs hFTrans hSubstTrans
+                                            (substitute_simul_rec_uop_eq_self UserOp.str_rev xs ss bvs
+                                              hXsEnv hBvsEnv hSsTrans)
+                                            (fun {t} h => str_rev_arg_has_smt_translation_of_has_smt_translation h)
+                                            (fun X Y h => by
+                                              show __smtx_model_eval M (SmtTerm.str_rev (__eo_to_smt X)) =
+                                                __smtx_model_eval N (SmtTerm.str_rev (__eo_to_smt Y))
+                                              simp only [__smtx_model_eval]; rw [h])
+                                            (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                        · by_cases hStrToInt : f = Term.UOp UserOp.str_to_int
+                                          · subst f
+                                            exact substFalse_eval_unary_op UserOp.str_to_int a xs ss bvs
+                                              hisr hxs hss hbvs hFTrans hSubstTrans
+                                              (substitute_simul_rec_uop_eq_self UserOp.str_to_int xs ss bvs
+                                                hXsEnv hBvsEnv hSsTrans)
+                                              (fun {t} h => str_to_int_arg_has_smt_translation_of_has_smt_translation h)
+                                              (fun X Y h => by
+                                                show __smtx_model_eval M (SmtTerm.str_to_int (__eo_to_smt X)) =
+                                                  __smtx_model_eval N (SmtTerm.str_to_int (__eo_to_smt Y))
+                                                simp only [__smtx_model_eval]; rw [h])
+                                              (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                          · by_cases hStrToRe : f = Term.UOp UserOp.str_to_re
+                                            · subst f
+                                              exact substFalse_eval_unary_op UserOp.str_to_re a xs ss bvs
+                                                hisr hxs hss hbvs hFTrans hSubstTrans
+                                                (substitute_simul_rec_uop_eq_self UserOp.str_to_re xs ss bvs
+                                                  hXsEnv hBvsEnv hSsTrans)
+                                                (fun {t} h => str_to_re_arg_has_smt_translation_of_has_smt_translation h)
+                                                (fun X Y h => by
+                                                  show __smtx_model_eval M (SmtTerm.str_to_re (__eo_to_smt X)) =
+                                                    __smtx_model_eval N (SmtTerm.str_to_re (__eo_to_smt Y))
+                                                  simp only [__smtx_model_eval]; rw [h])
+                                                (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                            · by_cases hReMult : f = Term.UOp UserOp.re_mult
+                                              · subst f
+                                                exact substFalse_eval_unary_op UserOp.re_mult a xs ss bvs
+                                                  hisr hxs hss hbvs hFTrans hSubstTrans
+                                                  (substitute_simul_rec_uop_eq_self UserOp.re_mult xs ss bvs
+                                                    hXsEnv hBvsEnv hSsTrans)
+                                                  (fun {t} h => re_mult_arg_has_smt_translation_of_has_smt_translation h)
+                                                  (fun X Y h => by
+                                                    show __smtx_model_eval M (SmtTerm.re_mult (__eo_to_smt X)) =
+                                                      __smtx_model_eval N (SmtTerm.re_mult (__eo_to_smt Y))
+                                                    simp only [__smtx_model_eval]; rw [h])
+                                                  (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                              · by_cases hSeqUnit : f = Term.UOp UserOp.seq_unit
+                                                · subst f
+                                                  exact substFalse_eval_unary_op UserOp.seq_unit a xs ss bvs
+                                                    hisr hxs hss hbvs hFTrans hSubstTrans
+                                                    (substitute_simul_rec_uop_eq_self UserOp.seq_unit xs ss bvs
+                                                      hXsEnv hBvsEnv hSsTrans)
+                                                    (fun {t} h => seq_unit_arg_has_smt_translation_of_has_smt_translation h)
+                                                    (fun X Y h => by
+                                                      show __smtx_model_eval M (SmtTerm.seq_unit (__eo_to_smt X)) =
+                                                        __smtx_model_eval N (SmtTerm.seq_unit (__eo_to_smt Y))
+                                                      simp only [__smtx_model_eval]; rw [h])
+                                                    (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                · by_cases hSetSingleton : f = Term.UOp UserOp.set_singleton
+                                                  · subst f
+                                                    exact substFalse_eval_unary_op UserOp.set_singleton a xs ss bvs
+                                                      hisr hxs hss hbvs hFTrans hSubstTrans
+                                                      (substitute_simul_rec_uop_eq_self UserOp.set_singleton xs ss bvs
+                                                        hXsEnv hBvsEnv hSsTrans)
+                                                      (fun {t} h => set_singleton_arg_has_smt_translation_of_has_smt_translation h)
+                                                      (fun X Y h => by
+                                                        show __smtx_model_eval M (SmtTerm.set_singleton (__eo_to_smt X)) =
+                                                          __smtx_model_eval N (SmtTerm.set_singleton (__eo_to_smt Y))
+                                                        simp only [__smtx_model_eval]; rw [h])
+                                                      (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                  · by_cases hStrToLower : f = Term.UOp UserOp.str_to_lower
+                                                    · subst f
+                                                      exact substFalse_eval_unary_op UserOp.str_to_lower a xs ss bvs
+                                                        hisr hxs hss hbvs hFTrans hSubstTrans
+                                                        (substitute_simul_rec_uop_eq_self UserOp.str_to_lower xs ss bvs
+                                                          hXsEnv hBvsEnv hSsTrans)
+                                                        (fun {t} h => str_to_lower_arg_has_smt_translation_of_has_smt_translation h)
+                                                        (fun X Y h => by
+                                                          show __smtx_model_eval M (SmtTerm.str_to_lower (__eo_to_smt X)) =
+                                                            __smtx_model_eval N (SmtTerm.str_to_lower (__eo_to_smt Y))
+                                                          simp only [__smtx_model_eval]; rw [h])
+                                                        (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                    · by_cases hStrToUpper : f = Term.UOp UserOp.str_to_upper
+                                                      · subst f
+                                                        exact substFalse_eval_unary_op UserOp.str_to_upper a xs ss bvs
+                                                          hisr hxs hss hbvs hFTrans hSubstTrans
+                                                          (substitute_simul_rec_uop_eq_self UserOp.str_to_upper xs ss bvs
+                                                            hXsEnv hBvsEnv hSsTrans)
+                                                          (fun {t} h => str_to_upper_arg_has_smt_translation_of_has_smt_translation h)
+                                                          (fun X Y h => by
+                                                            show __smtx_model_eval M (SmtTerm.str_to_upper (__eo_to_smt X)) =
+                                                              __smtx_model_eval N (SmtTerm.str_to_upper (__eo_to_smt Y))
+                                                            simp only [__smtx_model_eval]; rw [h])
+                                                          (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                      · by_cases hStrToCode : f = Term.UOp UserOp.str_to_code
+                                                        · subst f
+                                                          exact substFalse_eval_unary_op UserOp.str_to_code a xs ss bvs
+                                                            hisr hxs hss hbvs hFTrans hSubstTrans
+                                                            (substitute_simul_rec_uop_eq_self UserOp.str_to_code xs ss bvs
+                                                              hXsEnv hBvsEnv hSsTrans)
+                                                            (fun {t} h => str_to_code_arg_has_smt_translation_of_has_smt_translation h)
+                                                            (fun X Y h => by
+                                                              show __smtx_model_eval M (SmtTerm.str_to_code (__eo_to_smt X)) =
+                                                                __smtx_model_eval N (SmtTerm.str_to_code (__eo_to_smt Y))
+                                                              simp only [__smtx_model_eval]; rw [h])
+                                                            (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                        · by_cases hStrFromCode : f = Term.UOp UserOp.str_from_code
+                                                          · subst f
+                                                            exact substFalse_eval_unary_op UserOp.str_from_code a xs ss bvs
+                                                              hisr hxs hss hbvs hFTrans hSubstTrans
+                                                              (substitute_simul_rec_uop_eq_self UserOp.str_from_code xs ss bvs
+                                                                hXsEnv hBvsEnv hSsTrans)
+                                                              (fun {t} h => str_from_code_arg_has_smt_translation_of_has_smt_translation h)
+                                                              (fun X Y h => by
+                                                                show __smtx_model_eval M (SmtTerm.str_from_code (__eo_to_smt X)) =
+                                                                  __smtx_model_eval N (SmtTerm.str_from_code (__eo_to_smt Y))
+                                                                simp only [__smtx_model_eval]; rw [h])
+                                                              (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                          · by_cases hStrIsDigit : f = Term.UOp UserOp.str_is_digit
+                                                            · subst f
+                                                              exact substFalse_eval_unary_op UserOp.str_is_digit a xs ss bvs
+                                                                hisr hxs hss hbvs hFTrans hSubstTrans
+                                                                (substitute_simul_rec_uop_eq_self UserOp.str_is_digit xs ss bvs
+                                                                  hXsEnv hBvsEnv hSsTrans)
+                                                                (fun {t} h => str_is_digit_arg_has_smt_translation_of_has_smt_translation h)
+                                                                (fun X Y h => by
+                                                                  show __smtx_model_eval M (SmtTerm.str_is_digit (__eo_to_smt X)) =
+                                                                    __smtx_model_eval N (SmtTerm.str_is_digit (__eo_to_smt Y))
+                                                                  simp only [__smtx_model_eval]; rw [h])
+                                                                (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                            · by_cases hStrFromInt : f = Term.UOp UserOp.str_from_int
+                                                              · subst f
+                                                                exact substFalse_eval_unary_op UserOp.str_from_int a xs ss bvs
+                                                                  hisr hxs hss hbvs hFTrans hSubstTrans
+                                                                  (substitute_simul_rec_uop_eq_self UserOp.str_from_int xs ss bvs
+                                                                    hXsEnv hBvsEnv hSsTrans)
+                                                                  (fun {t} h => str_from_int_arg_has_smt_translation_of_has_smt_translation h)
+                                                                  (fun X Y h => by
+                                                                    show __smtx_model_eval M (SmtTerm.str_from_int (__eo_to_smt X)) =
+                                                                      __smtx_model_eval N (SmtTerm.str_from_int (__eo_to_smt Y))
+                                                                    simp only [__smtx_model_eval]; rw [h])
+                                                                  (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                              · by_cases hRePlus : f = Term.UOp UserOp.re_plus
+                                                                · subst f
+                                                                  exact substFalse_eval_unary_op UserOp.re_plus a xs ss bvs
+                                                                    hisr hxs hss hbvs hFTrans hSubstTrans
+                                                                    (substitute_simul_rec_uop_eq_self UserOp.re_plus xs ss bvs
+                                                                      hXsEnv hBvsEnv hSsTrans)
+                                                                    (fun {t} h => re_plus_arg_has_smt_translation_of_has_smt_translation h)
+                                                                    (fun X Y h => by
+                                                                      show __smtx_model_eval M (SmtTerm.re_plus (__eo_to_smt X)) =
+                                                                        __smtx_model_eval N (SmtTerm.re_plus (__eo_to_smt Y))
+                                                                      simp only [__smtx_model_eval]; rw [h])
+                                                                    (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                · by_cases hReOpt : f = Term.UOp UserOp.re_opt
+                                                                  · subst f
+                                                                    exact substFalse_eval_unary_op UserOp.re_opt a xs ss bvs
+                                                                      hisr hxs hss hbvs hFTrans hSubstTrans
+                                                                      (substitute_simul_rec_uop_eq_self UserOp.re_opt xs ss bvs
+                                                                        hXsEnv hBvsEnv hSsTrans)
+                                                                      (fun {t} h => re_opt_arg_has_smt_translation_of_has_smt_translation h)
+                                                                      (fun X Y h => by
+                                                                        show __smtx_model_eval M (SmtTerm.re_opt (__eo_to_smt X)) =
+                                                                          __smtx_model_eval N (SmtTerm.re_opt (__eo_to_smt Y))
+                                                                        simp only [__smtx_model_eval]; rw [h])
+                                                                      (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                  · by_cases hReComp : f = Term.UOp UserOp.re_comp
+                                                                    · subst f
+                                                                      exact substFalse_eval_unary_op UserOp.re_comp a xs ss bvs
+                                                                        hisr hxs hss hbvs hFTrans hSubstTrans
+                                                                        (substitute_simul_rec_uop_eq_self UserOp.re_comp xs ss bvs
+                                                                          hXsEnv hBvsEnv hSsTrans)
+                                                                        (fun {t} h => re_comp_arg_has_smt_translation_of_has_smt_translation h)
+                                                                        (fun X Y h => by
+                                                                          show __smtx_model_eval M (SmtTerm.re_comp (__eo_to_smt X)) =
+                                                                            __smtx_model_eval N (SmtTerm.re_comp (__eo_to_smt Y))
+                                                                          simp only [__smtx_model_eval]; rw [h])
+                                                                        (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                    · by_cases hUbvToInt : f = Term.UOp UserOp.ubv_to_int
+                                                                      · subst f
+                                                                        exact substFalse_eval_unary_op UserOp.ubv_to_int a xs ss bvs
+                                                                          hisr hxs hss hbvs hFTrans hSubstTrans
+                                                                          (substitute_simul_rec_uop_eq_self UserOp.ubv_to_int xs ss bvs
+                                                                            hXsEnv hBvsEnv hSsTrans)
+                                                                          (fun {t} h => ubv_to_int_arg_has_smt_translation_of_has_smt_translation h)
+                                                                          (fun X Y h => by
+                                                                            show __smtx_model_eval M (SmtTerm.ubv_to_int (__eo_to_smt X)) =
+                                                                              __smtx_model_eval N (SmtTerm.ubv_to_int (__eo_to_smt Y))
+                                                                            simp only [__smtx_model_eval]; rw [h])
+                                                                          (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                      · by_cases hSbvToInt : f = Term.UOp UserOp.sbv_to_int
+                                                                        · subst f
+                                                                          exact substFalse_eval_unary_op UserOp.sbv_to_int a xs ss bvs
+                                                                            hisr hxs hss hbvs hFTrans hSubstTrans
+                                                                            (substitute_simul_rec_uop_eq_self UserOp.sbv_to_int xs ss bvs
+                                                                              hXsEnv hBvsEnv hSsTrans)
+                                                                            (fun {t} h => sbv_to_int_arg_has_smt_translation_of_has_smt_translation h)
+                                                                            (fun X Y h => by
+                                                                              show __smtx_model_eval M (SmtTerm.sbv_to_int (__eo_to_smt X)) =
+                                                                                __smtx_model_eval N (SmtTerm.sbv_to_int (__eo_to_smt Y))
+                                                                              simp only [__smtx_model_eval]; rw [h])
+                                                                            (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                        · by_cases hStringsStoiNonDigit : f = Term.UOp UserOp._at_strings_stoi_non_digit
+                                                                          · subst f
+                                                                            exact substFalse_eval_unary_op UserOp._at_strings_stoi_non_digit a xs ss bvs
+                                                                              hisr hxs hss hbvs hFTrans hSubstTrans
+                                                                              (substitute_simul_rec_uop_eq_self UserOp._at_strings_stoi_non_digit xs ss bvs
+                                                                                hXsEnv hBvsEnv hSsTrans)
+                                                                              (fun {t} h => strings_stoi_non_digit_arg_has_smt_translation_of_has_smt_translation h)
+                                                                              (fun X Y h => by
+                                                                                show __smtx_model_eval M
+                                                                                    (SmtTerm.str_indexof_re (__eo_to_smt X)
+                                                                                      (SmtTerm.re_comp
+                                                                                        (SmtTerm.re_range (SmtTerm.String (native_string_lit "0"))
+                                                                                          (SmtTerm.String (native_string_lit "9"))))
+                                                                                      (SmtTerm.Numeral 0)) =
+                                                                                  __smtx_model_eval N
+                                                                                    (SmtTerm.str_indexof_re (__eo_to_smt Y)
+                                                                                      (SmtTerm.re_comp
+                                                                                        (SmtTerm.re_range (SmtTerm.String (native_string_lit "0"))
+                                                                                          (SmtTerm.String (native_string_lit "9"))))
+                                                                                      (SmtTerm.Numeral 0))
+                                                                                simp [__smtx_model_eval, h])
+                                                                              (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                          · by_cases hIntDivByZero : f = Term.UOp UserOp._at_int_div_by_zero
+                                                                            · subst f
+                                                                              exact substFalse_eval_unary_op UserOp._at_int_div_by_zero a xs ss bvs
+                                                                                hisr hxs hss hbvs hFTrans hSubstTrans
+                                                                                (substitute_simul_rec_uop_eq_self UserOp._at_int_div_by_zero xs ss bvs
+                                                                                  hXsEnv hBvsEnv hSsTrans)
+                                                                                (fun {t} h => int_div_by_zero_arg_has_smt_translation_of_has_smt_translation h)
+                                                                                (fun X Y h => by
+                                                                                  show __smtx_model_eval M (SmtTerm.div (__eo_to_smt X) (SmtTerm.Numeral 0)) =
+                                                                                    __smtx_model_eval N (SmtTerm.div (__eo_to_smt Y) (SmtTerm.Numeral 0))
+                                                                                  simp [__smtx_model_eval, h,
+                                                                                    smtx_model_eval_apply_eq_of_globals hRel.globals,
+                                                                                    hRel.globals.1])
+                                                                                (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                            · by_cases hModByZero : f = Term.UOp UserOp._at_mod_by_zero
+                                                                              · subst f
+                                                                                exact substFalse_eval_unary_op UserOp._at_mod_by_zero a xs ss bvs
+                                                                                  hisr hxs hss hbvs hFTrans hSubstTrans
+                                                                                  (substitute_simul_rec_uop_eq_self UserOp._at_mod_by_zero xs ss bvs
+                                                                                    hXsEnv hBvsEnv hSsTrans)
+                                                                                  (fun {t} h => mod_by_zero_arg_has_smt_translation_of_has_smt_translation h)
+                                                                                  (fun X Y h => by
+                                                                                    show __smtx_model_eval M (SmtTerm.mod (__eo_to_smt X) (SmtTerm.Numeral 0)) =
+                                                                                      __smtx_model_eval N (SmtTerm.mod (__eo_to_smt Y) (SmtTerm.Numeral 0))
+                                                                                    simp [__smtx_model_eval, h,
+                                                                                      smtx_model_eval_apply_eq_of_globals hRel.globals,
+                                                                                      hRel.globals.1])
+                                                                                  (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                              · by_cases hQdivByZero : f = Term.UOp UserOp._at_div_by_zero
+                                                                                · subst f
+                                                                                  exact substFalse_eval_unary_op UserOp._at_div_by_zero a xs ss bvs
+                                                                                    hisr hxs hss hbvs hFTrans hSubstTrans
+                                                                                    (substitute_simul_rec_uop_eq_self UserOp._at_div_by_zero xs ss bvs
+                                                                                      hXsEnv hBvsEnv hSsTrans)
+                                                                                    (fun {t} h => qdiv_by_zero_arg_has_smt_translation_of_has_smt_translation h)
+                                                                                    (fun X Y h => by
+                                                                                      show __smtx_model_eval M
+                                                                                          (SmtTerm.qdiv (__eo_to_smt X)
+                                                                                            (SmtTerm.Rational (native_mk_rational 0 1))) =
+                                                                                        __smtx_model_eval N
+                                                                                          (SmtTerm.qdiv (__eo_to_smt Y)
+                                                                                            (SmtTerm.Rational (native_mk_rational 0 1)))
+                                                                                      simp [__smtx_model_eval, h,
+                                                                                        smtx_model_eval_apply_eq_of_globals hRel.globals,
+                                                                                        hRel.globals.1])
+                                                                                    (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                · -- `f` is not one of the handled unary heads: dispatch on its
+                                                                                  -- structure for binary heads (`Apply (UOp op) x1`).
+                                                                                  cases f with
                               | Apply g x1 =>
                                   cases g with
                                   | UOp op =>
@@ -5497,7 +5836,23 @@ theorem substFalse_eval_gen_lt
                                                                                                                                                                                                                       simp [__smtx_model_eval, h1, h2])
                                                                                                                                                                                                                 (fun ht hst => hRecArg (by simp; try omega) ht hst)
                                                                                                                                                                                                                 (fun ht hst => hRecArg (by simp; try omega) ht hst)
-                                                                                                                                                                                                            · sorry
+                                                                                                                                                                                                            · by_cases h_forall : op = UserOp.forall
+                                                                                                                                                                                                              · subst op
+                                                                                                                                                                                                                exact
+                                                                                                                                                                                                                  false_of_forall_non_list_has_smt_translation
+                                                                                                                                                                                                                    (by
+                                                                                                                                                                                                                      intro v vs hEq
+                                                                                                                                                                                                                      exact hBinder ⟨Term.UOp UserOp.forall, v, vs, by rw [hEq]⟩)
+                                                                                                                                                                                                                    hFTrans
+                                                                                                                                                                                                              · by_cases h_exists : op = UserOp.exists
+                                                                                                                                                                                                                · subst op
+                                                                                                                                                                                                                  exact
+                                                                                                                                                                                                                    false_of_exists_non_list_has_smt_translation
+                                                                                                                                                                                                                      (by
+                                                                                                                                                                                                                        intro v vs hEq
+                                                                                                                                                                                                                        exact hBinder ⟨Term.UOp UserOp.exists, v, vs, by rw [hEq]⟩)
+                                                                                                                                                                                                                      hFTrans
+                                                                                                                                                                                                                · sorry
                                   | _ =>
                                       -- ternary / generic application head
                                       sorry
