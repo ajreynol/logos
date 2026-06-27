@@ -3788,9 +3788,15 @@ def __eo_prog_int_to_bv_elim : Term -> Term
   | _ => Term.Stuck
 
 
+def __is_instantiation : Term -> Term -> Term
+  | Term.__eo_List_nil, Term.__eo_List_nil => (Term.Boolean true)
+  | (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var s T)) xs), (Term.Apply (Term.Apply Term.__eo_List_cons t) ts) => (__eo_requires (__eo_typeof t) T (__is_instantiation xs ts))
+  | _, _ => Term.Stuck
+
+
 def __eo_prog_instantiate : Term -> Proof -> Term
   | Term.Stuck , _  => Term.Stuck
-  | ts, (Proof.pf (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F)) => (__substitute_simul_rec (Term.Boolean false) F xs ts Term.__eo_List_nil)
+  | ts, (Proof.pf (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F)) => (__eo_requires (__is_instantiation xs ts) (Term.Boolean true) (__substitute_simul_rec (Term.Boolean false) F xs ts Term.__eo_List_nil))
   | _, _ => Term.Stuck
 
 
