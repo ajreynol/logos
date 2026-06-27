@@ -2821,7 +2821,8 @@ theorem eo_to_smt_type_typeof_apply_uconst_of_fun_like
 
 private def smtx_type_substitute_top (sub : native_String) (d0 : SmtDatatype) : SmtType -> SmtType
   | SmtType.Datatype s2 d2 =>
-      SmtType.Datatype s2 (native_ite (native_streq sub s2) d2 (__smtx_dt_substitute sub d0 d2))
+      SmtType.Datatype s2 (native_ite (native_streq sub s2) d2
+        (__smtx_dt_substitute sub (__smtx_dt_lift s2 d2 d0) d2))
   | SmtType.TypeRef s2 =>
       native_ite (native_streq sub s2) (SmtType.Datatype sub d0) (SmtType.TypeRef s2)
   | T => T
@@ -2851,7 +2852,8 @@ private theorem smtx_type_substitute_top_of_wf_rec
           simpa [native_reflist_contains] using hNot
         have hNotIns : native_reflist_contains (native_reflist_insert refs s) sub = false := by
           simp [native_reflist_insert, native_reflist_contains, hEq, hNotRefs]
-        have hSub := smtx_dt_substitute_of_wf_rec sub d0 d (native_reflist_insert refs s) hNotIns hDt
+        have hSub := smtx_dt_substitute_of_wf_rec sub (__smtx_dt_lift s d d0) d
+          (native_reflist_insert refs s) hNotIns hDt
         simp [smtx_type_substitute_top, native_streq, native_ite, hEq, hSub]
   | SmtType.TypeRef s, refs, hNot, hWf => by
       simp [__smtx_type_wf_rec] at hWf
