@@ -45,30 +45,38 @@ The proof factors into four pieces, in dependency order:
    well-founded recursion tying them together (analogous to
    `smt_model_eval_eq_of_contains_atomic_term_list_free_rec_false_mapped_lt`).
 
-3. **`instantiate_body_true`** (`sorry`) — from `forall xs F` true and the
-   well-typedness of `ts`, the body is true under `pushSubstModel M xs ts`. The
-   pure quantifier-instantiation part is now proved by
-   `forall_instantiation_body_true`; the remaining bridge is to show that
-   `pushSubstModel M xs ts` supplies canonical, correctly typed assignments for
-   the binder list. The support lemmas `pushSubstModel_agrees_except` and
-   `pushSubstModel_total_typed_of_actuals` isolate the agreement and total-typed
-   halves of that bridge.
+3. **`instantiate_body_true`** (DONE) — from `forall xs F` true and the
+   well-typedness of `ts`, the body is true under `pushSubstModel M xs ts`.
+   The well-typedness of the actuals is exactly what the checker's
+   `__is_instantiation xs ts = true` guard certifies: it requires
+   `__eo_typeof tᵢ = Tᵢ` for each binder. `substActualsHaveSmtTypes_of_is_instantiation`
+   reflects that guard into `SubstActualsHaveSmtTypes`, and the existing
+   `instantiate_body_true_of_smt_typed_actuals` finishes the quantifier
+   instantiation. `prog_instantiate_shape` exposes the guard from the checker.
 
 4. **`prog_instantiate_shape`** (DONE) — a non-`Stuck` result forces the
-   premise to be `forall xs F` and pins the conclusion to the substitution.
+   premise to be `forall xs F`, pins the conclusion to the substitution, AND
+   exposes the `__is_instantiation xs ts = true` guard (the `__eo_requires`
+   wrapper around `__substitute_simul_rec` collapses only when the guard holds).
 
-Status (2026-06-26):
-  * `prog_instantiate_shape`  — PROVEN.
-  * `instantiate_sound`       — PROVEN (pure wiring of the two cruxes + `hResBool`).
+Status (2026-06-27):
+  * `prog_instantiate_shape`  — PROVEN (now also returns the `__is_instantiation`
+    fact; previously this proof was broken because it ignored the guard wrapper).
+  * `instantiate_body_true`   — PROVEN (via the `__is_instantiation` reflection).
+  * `instantiate_sound`       — depends only on the `substitute_simul_eval` crux.
   * main theorem `hWf`        — PROVEN (premise is Bool-typed ⇒ translatable).
   * `substitute_simul_eval`   — sorry (crux; see above).
-  * `instantiate_body_true`   — one bridge sorry remains: prove `pushSubstModel`
-    is an admissible instantiation model from the actuals/binders invariants.
-  * `substitute_simul_has_smt_translation_of_typeof_bool` — sorry; needs a
-    *type-preservation* lemma for `__substitute_simul_rec` (translatable
-    premise + translatable actuals + checker Bool result ⇒ SMT Bool result).
-    No generic `__eo_typeof t = Bool → eo_has_smt_translation t` exists, so
-    this is its own structural induction.
+  * `substitute_simul_has_smt_translation_of_typeof_ne_stuck_lt` — one `sorry`
+    remains in the generic / non-special-head application case (line ~2955).
+    This is a *type-preservation* obligation for `__substitute_simul_rec`: it
+    must reprove EO→SMT translatability for every remaining operator head under
+    substitution (`__eo_to_smt`, `Cpc/Spec.lean:204`, special-cases dozens of
+    unary/binary/ternary heads). NOTE: this case is only TRUE because the same
+    `__is_instantiation` guard makes the substitution type-preserving (e.g. EO
+    `abs` accepts arith, but SMT `abs` is `Int`-only); the guard's type-matching
+    must be threaded here too, otherwise a translatable-but-mistyped actual
+    breaks it. No generic `__eo_typeof t = Bool → eo_has_smt_translation t`
+    exists, so this remains its own large structural induction.
 
 The main theorem then wires these together with the standard single-arg /
 single-premise boilerplate (mirrors `BooleanElimSupport.cmd_step_and_elim_properties`).
@@ -3298,38 +3306,86 @@ theorem substitute_simul_eval
   sorry
 
 /--
-From `(forall xs F)` true in `M` and well-typed instantiation terms `ts`, the
-body `F` is true under the substitution model `pushSubstModel M xs ts`.
+The checker's `__is_instantiation xs ts = true` guard exactly reflects the
+predicate `SubstActualsHaveSmtTypes`: it certifies that `ts` matches `xs` in
+length and that each actual `tᵢ` has EO type equal to the binder type `Tᵢ`.
+Combined with elementwise translatability of `ts` and well-formedness of the
+binder SMT types, this yields the well-typed-actuals record the substitution
+soundness lemmas consume. -/
+theorem substActualsHaveSmtTypes_of_is_instantiation
+    {xs ts : Term} {vars : List EoVarKey}
+    (hEnv : EoVarEnv xs vars)
+    (hWf :
+      ∀ s T, (s, T) ∈ vars ->
+        __smtx_type_wf (__eo_to_smt_type T) = true)
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hIsInst : __is_instantiation xs ts = Term.Boolean true) :
+    SubstActualsHaveSmtTypes xs ts := by
+  induction hEnv generalizing ts with
+  | nil => exact SubstActualsHaveSmtTypes.nil ts
+  | cons hTail ih =>
+      rename_i s T env tailVars
+      cases ts with
+      | Apply f ts' =>
+          cases f with
+          | Apply g t =>
+              cases g with
+              | __eo_List_cons =>
+                  rcases hTs with ⟨hHeadTrans, hTailTrans⟩
+                  have hReq :
+                      __is_instantiation
+                          (Term.Apply (Term.Apply Term.__eo_List_cons
+                            (Term.Var (Term.String s) T)) env)
+                          (Term.Apply (Term.Apply Term.__eo_List_cons t) ts') =
+                        __eo_requires (__eo_typeof t) T
+                          (__is_instantiation env ts') := rfl
+                  rw [hReq] at hIsInst
+                  have hNeStuck :
+                      __eo_requires (__eo_typeof t) T
+                          (__is_instantiation env ts') ≠ Term.Stuck := by
+                    rw [hIsInst]; decide
+                  have hTypeofT : __eo_typeof t = T :=
+                    instantiate_eo_requires_arg_eq_of_ne_stuck hNeStuck
+                  have hTailInst :
+                      __is_instantiation env ts' = Term.Boolean true := by
+                    rw [← instantiate_eo_requires_result_eq_of_ne_stuck hNeStuck]
+                    exact hIsInst
+                  have hMatch :
+                      __smtx_typeof (__eo_to_smt t) = __eo_to_smt_type T := by
+                    rw [TranslationProofs.eo_to_smt_typeof_matches_translation t
+                      hHeadTrans, hTypeofT]
+                  exact SubstActualsHaveSmtTypes.cons
+                    (hWf s T (List.Mem.head _))
+                    hHeadTrans hMatch
+                    (ih (fun s' T' hMem => hWf s' T' (List.Mem.tail _ hMem))
+                      hTailTrans hTailInst)
+              | _ => simp [EoListAllHaveSmtTranslation] at hTs
+          | _ => simp [EoListAllHaveSmtTranslation] at hTs
+      | __eo_List_nil =>
+          have hStuck :
+              __is_instantiation
+                  (Term.Apply (Term.Apply Term.__eo_List_cons
+                    (Term.Var (Term.String s) T)) env)
+                  Term.__eo_List_nil = Term.Stuck := rfl
+          rw [hStuck] at hIsInst
+          cases hIsInst
+      | _ => simp [EoListAllHaveSmtTranslation] at hTs
 
-Proof sketch: `eo_interprets M (forall xs F) true` unfolds via
-`__eo_to_smt (forall xs F) = not (exists xs (not (toSmt F)))` and the
-`native_eval_texists` semantics to: for every assignment of canonical,
-correctly-typed values to `xs`, `eval (push…) (toSmt F) = Boolean true`. The
-values assigned by `pushSubstModel M xs ts` are canonical of the right types
-because each `tᵢ` is a well-typed term (from `cmdTranslationOk` / the binder
-types), so the universal instantiates to give the body true here. -/
+/--
+From `(forall xs F)` true in `M` and well-typed instantiation terms `ts`, the
+body `F` is true under the substitution model `pushSubstModel M xs ts`. The
+well-typedness of the actuals (`SubstActualsHaveSmtTypes`) is exactly what the
+checker's `__is_instantiation` guard certifies; see
+`substActualsHaveSmtTypes_of_is_instantiation`. -/
 theorem instantiate_body_true
     (M : SmtModel) (hM : model_total_typed M)
     (xs F ts : Term)
     (hPrem : eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F) true)
     (hWf : RuleProofs.eo_has_smt_translation
-      (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F)) :
-    __smtx_model_eval (pushSubstModel M xs ts) (__eo_to_smt F) = SmtValue.Boolean true := by
-  have hXsNonNil : xs ≠ Term.__eo_List_nil :=
-    forall_binders_non_nil_of_has_smt_translation xs F hWf
-  have hBodyBool : RuleProofs.eo_has_bool_type F :=
-    forall_body_has_bool_type_of_has_smt_translation xs F hWf
-  have hBodyTrans : RuleProofs.eo_has_smt_translation F :=
-    forall_body_has_smt_translation_of_has_smt_translation xs F hWf
-  rcases forall_binders_env_of_has_smt_translation xs F hWf with
-    ⟨binderVars, hXsEnv⟩
-  cases hPrem with
-  | intro_true hForallTy hForallEval =>
-      rw [eo_to_smt_forall_eq_of_non_nil xs F hXsNonNil] at hForallTy hForallEval
-      have hInst :
-          ForallInstantiationModel M xs (pushSubstModel M xs ts) := by
-        sorry
-      exact forall_instantiation_body_true hInst hM hBodyBool hForallEval
+      (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F))
+    (hActuals : SubstActualsHaveSmtTypes xs ts) :
+    __smtx_model_eval (pushSubstModel M xs ts) (__eo_to_smt F) = SmtValue.Boolean true :=
+  instantiate_body_true_of_smt_typed_actuals M hM xs F ts hPrem hWf hActuals
 
 /--
 A non-`Stuck` result of `__eo_prog_instantiate` forces the premise to be a
@@ -3339,6 +3395,7 @@ theorem prog_instantiate_shape
     (hNe : __eo_prog_instantiate ts (Proof.pf prem) ≠ Term.Stuck) :
     ∃ xs F,
       prem = Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F ∧
+      __is_instantiation xs ts = Term.Boolean true ∧
       __eo_prog_instantiate ts (Proof.pf prem) =
         __substitute_simul_rec (Term.Boolean false) F xs ts Term.__eo_List_nil := by
   cases prem with
@@ -3349,8 +3406,23 @@ theorem prog_instantiate_shape
           | UOp op =>
               cases op with
               | «forall» =>
-                  refine ⟨xs, F, rfl, ?_⟩
-                  cases ts <;> first | rfl | exact absurd rfl hNe
+                  -- `__eo_prog_instantiate` wraps the substitution in a
+                  -- `__is_instantiation` capture/type guard; a non-`Stuck`
+                  -- result forces that guard, collapsing `requires` to the
+                  -- substitution itself, and pins `__is_instantiation` to `true`.
+                  have hProgEq :
+                      __eo_prog_instantiate ts
+                          (Proof.pf
+                            (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F)) =
+                        __eo_requires (__is_instantiation xs ts) (Term.Boolean true)
+                          (__substitute_simul_rec (Term.Boolean false) F xs ts
+                            Term.__eo_List_nil) := by
+                    cases ts <;> first | rfl | exact absurd rfl hNe
+                  rw [hProgEq] at hNe
+                  refine ⟨xs, F, rfl, ?_, ?_⟩
+                  · exact instantiate_eo_requires_arg_eq_of_ne_stuck hNe
+                  · rw [hProgEq]
+                    exact instantiate_eo_requires_result_eq_of_ne_stuck hNe
               | _ => cases ts <;> exact absurd rfl hNe
           | _ => cases ts <;> exact absurd rfl hNe
       | _ => cases ts <;> exact absurd rfl hNe
@@ -3367,6 +3439,7 @@ theorem instantiate_sound
     (hPrem : eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F) true)
     (hWf : RuleProofs.eo_has_smt_translation
       (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F))
+    (hActuals : SubstActualsHaveSmtTypes xs ts)
     (hResBool : RuleProofs.eo_has_bool_type
       (__substitute_simul_rec (Term.Boolean false) F xs ts Term.__eo_List_nil)) :
     eo_interprets M
@@ -3378,7 +3451,7 @@ theorem instantiate_sound
             (__substitute_simul_rec (Term.Boolean false) F xs ts Term.__eo_List_nil)) =
         SmtValue.Boolean true := by
     rw [substitute_simul_eval M hM F xs ts]
-    exact instantiate_body_true M hM xs F ts hPrem hWf
+    exact instantiate_body_true M hM xs F ts hPrem hWf hActuals
   have hTy :
       __smtx_typeof
           (__eo_to_smt
@@ -3426,7 +3499,7 @@ by
                   let prem : Term := __eo_state_proven_nth s n1
                   change __eo_prog_instantiate a1 (Proof.pf prem) ≠ Term.Stuck at hProg
                   -- Shape: prem is a `forall`, result is the substitution.
-                  obtain ⟨xs, F, hPremShape, hResEq⟩ :=
+                  obtain ⟨xs, F, hPremShape, hIsInst, hResEq⟩ :=
                     InstantiateRule.prog_instantiate_shape a1 prem hProg
                   -- The premise (the forall) is Bool-typed, hence translatable.
                   have hPremBool : RuleProofs.eo_has_bool_type prem :=
@@ -3441,6 +3514,19 @@ by
                   have hActualsTrans : EoListAllHaveSmtTranslation a1 := by
                     simpa [cmdTranslationOk, cArgListTranslationOkMask,
                       argTranslationOkMasked] using hCmdTrans
+                  -- The binder list reflects an EO variable environment with
+                  -- well-formed SMT types, and the `__is_instantiation` guard
+                  -- certifies the actuals are correctly typed against it.
+                  obtain ⟨binderVars, hXsEnv⟩ :=
+                    InstantiateRule.forall_binders_env_of_has_smt_translation xs F hWf
+                  have hBinderWf :
+                      ∀ s T, (s, T) ∈ binderVars ->
+                        __smtx_type_wf (__eo_to_smt_type T) = true :=
+                    InstantiateRule.forall_binder_types_wf_of_has_smt_translation
+                      hWf hXsEnv
+                  have hActuals : InstantiateRule.SubstActualsHaveSmtTypes xs a1 :=
+                    InstantiateRule.substActualsHaveSmtTypes_of_is_instantiation
+                      hXsEnv hBinderWf hActualsTrans hIsInst
                   -- The program result has EO Bool type.
                   have hSubstTypeof :
                       __eo_typeof
@@ -3466,7 +3552,7 @@ by
                     change eo_interprets M (__eo_prog_instantiate a1 (Proof.pf prem)) true
                     rw [hResEq]
                     exact InstantiateRule.instantiate_sound M hM xs F a1
-                      hPremTrue hWf hResBool
+                      hPremTrue hWf hActuals hResBool
                   · -- has_smt_translation
                     change RuleProofs.eo_has_smt_translation
                       (__eo_prog_instantiate a1 (Proof.pf prem))
