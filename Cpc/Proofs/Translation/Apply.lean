@@ -65,8 +65,8 @@ private theorem smtx_dt_wf_rec_of_datatype_type_wf_rec_apply
 @[simp] private theorem native_inhabited_type_typeref_apply
     (s : native_String) :
     native_inhabited_type (SmtType.TypeRef s) = false := by
-  simp [native_inhabited_type, native_Teq, __smtx_type_default, __smtx_typeof_value,
-    native_and]
+  simp [native_inhabited_type, native_Teq, native_not, __smtx_type_default,
+    __smtx_type_default_rec, __smtx_typeof_value, native_and]
 
 @[simp] private theorem native_inhabited_type_seq_apply
     (T : SmtType) :
@@ -81,7 +81,8 @@ private theorem smtx_dt_wf_rec_of_datatype_type_wf_rec_apply
 @[simp] private theorem native_inhabited_type_bitvec_apply
     (w : native_Nat) :
     native_inhabited_type (SmtType.BitVec w) = true := by
-  simp [native_inhabited_type, __smtx_type_default, __smtx_typeof_value,
+  simp [native_inhabited_type, native_not, native_Teq, __smtx_type_default,
+    __smtx_type_default_rec, __smtx_typeof_value,
     __smtx_value_canonical_bool, native_and, native_zleq, native_zeq,
     native_mod_total, native_int_pow2, native_zexp_total, native_nat_to_int,
     native_int_to_nat, native_ite]
@@ -2348,7 +2349,8 @@ private def smtx_type_substitute_top_apply (sub : native_String) (d0 : SmtDataty
     SmtType -> SmtType
   | SmtType.Datatype s2 d2 =>
       SmtType.Datatype s2
-        (native_ite (native_streq sub s2) d2 (__smtx_dt_substitute sub d0 d2))
+        (native_ite (native_streq sub s2) d2
+          (__smtx_dt_substitute sub (__smtx_dt_lift s2 d2 d0) d2))
   | SmtType.TypeRef s2 =>
       native_ite (native_streq sub s2) (SmtType.Datatype sub d0) (SmtType.TypeRef s2)
   | T => T
@@ -3974,14 +3976,6 @@ private theorem smtx_dtc_wf_rec_congr_refs_apply :
       | DtcAppType A B =>
           simp [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite] at hWf
       | Datatype s d =>
-          have hInh :
-              native_inhabited_type (SmtType.Datatype s d) = true := by
-            have hAll :
-                native_inhabited_type (SmtType.Datatype s d) = true ∧
-                  __smtx_type_wf_rec (SmtType.Datatype s d) refs = true ∧
-                    __smtx_dt_cons_wf_rec c refs = true := by
-              simpa [__smtx_dt_cons_wf_rec, native_ite] using hWf
-            exact hAll.1
           have hField :
               __smtx_type_wf_rec (SmtType.Datatype s d) refs = true :=
             by
@@ -3996,7 +3990,7 @@ private theorem smtx_dtc_wf_rec_congr_refs_apply :
             smtx_type_wf_rec_congr_refs_apply (SmtType.Datatype s d) hEq hField
           have hTail' : __smtx_dt_cons_wf_rec c refs' = true :=
             smtx_dtc_wf_rec_congr_refs_apply c hEq hTail
-          simp [__smtx_dt_cons_wf_rec, native_ite, hInh, hField', hTail']
+          simp [__smtx_dt_cons_wf_rec, native_ite, hField', hTail']
       | Bool =>
           have hTail := smtx_dt_cons_wf_rec_tail_of_true hWf
           have hTail' := smtx_dtc_wf_rec_congr_refs_apply c hEq hTail
@@ -4016,14 +4010,6 @@ private theorem smtx_dtc_wf_rec_congr_refs_apply :
           have hTail' := smtx_dtc_wf_rec_congr_refs_apply c hEq hTail
           simp [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite, hTail']
       | Map A B =>
-          have hInh :
-              native_inhabited_type (SmtType.Map A B) = true := by
-            have hAll :
-                native_inhabited_type (SmtType.Map A B) = true ∧
-                  __smtx_type_wf_rec (SmtType.Map A B) refs = true ∧
-                    __smtx_dt_cons_wf_rec c refs = true := by
-              simpa [__smtx_dt_cons_wf_rec, native_ite] using hWf
-            exact hAll.1
           have hField :
               __smtx_type_wf_rec (SmtType.Map A B) refs = true := by
             have hField' : smtx_type_field_wf_rec (SmtType.Map A B) refs :=
@@ -4033,7 +4019,7 @@ private theorem smtx_dtc_wf_rec_congr_refs_apply :
           have hField' :=
             smtx_type_wf_rec_congr_refs_apply (SmtType.Map A B) hEq hField
           have hTail' := smtx_dtc_wf_rec_congr_refs_apply c hEq hTail
-          simp [__smtx_dt_cons_wf_rec, native_ite, hInh, hField', hTail']
+          simp [__smtx_dt_cons_wf_rec, native_ite, hField', hTail']
       | Set A =>
           have hField :
               __smtx_type_wf_rec (SmtType.Set A) refs = true := by
@@ -9956,7 +9942,6 @@ private theorem eo_to_smt_typeof_matches_translation_apply_tuple_of_tail_type
                       __smtx_type_wf_rec B native_reflist_nil = true := by
             have hAll :
                 native_inhabited_type (SmtType.Datatype (native_string_lit "@Tuple") fullD) = true ∧
-                  native_inhabited_type (SmtType.Map A B) = true ∧
                     (native_inhabited_type A = true ∧
                       __smtx_type_wf_rec A native_reflist_nil = true ∧
                         native_inhabited_type B = true ∧
@@ -9968,7 +9953,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_tuple_of_tail_type
                 __smtx_type_wf_rec, __smtx_dt_wf_rec, __smtx_dt_cons_wf_rec,
                 native_and, native_ite, native_reflist_contains,
                 native_reflist_nil] using hFullWfFromRaw
-            exact ⟨hAll.2.1, hAll.2.2.1⟩
+            exact ⟨native_inhabited_type_map hAll.2.1.2.2.1, hAll.2.1⟩
           simpa [hHeadTy, __smtx_type_wf_component, __smtx_type_wf_rec,
             native_and] using hParts
       | Set A =>

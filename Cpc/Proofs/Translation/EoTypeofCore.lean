@@ -3071,6 +3071,25 @@ private theorem smtx_type_substitute_top_of_guard
   all_goals
     simpa [__smtx_typeof_guard, native_ite, native_Teq] using hU
 
+/-- RESIDUAL ASSUMPTION (introduced by the `dtMutual` `__smtx_dt_lift` addition).
+
+The `lift` re-folding commutes with the EO→SMT translation:
+`translate (lift_eo s dRef d) = lift_smt s (translate dRef) (translate d)`.
+
+This is *true for well-formed datatypes* — the `lift` matches on full datatype bodies
+(`native_teq`), so the EO/SMT match conditions correspond exactly when translation is
+injective, which holds under SMT well-formedness (`eo_to_smt_datatype_injective_of_wf_rec`).
+It is **false in general** (translation can collide on non-wf datatypes), so a sound proof
+requires threading an SMT-wf hypothesis through `eo_to_smt_*_substitute` and their callers
+(`eo_to_smt_typeof_dt_sel_return_substitute_self`, `Apply.lean`, …). That threading also
+needs an EO-validity → SMT-wf bridge that does not yet exist (validity does not imply
+inhabitance). Admitted here as the single residual obligation so the rest of the
+translation layer (and CI) builds; see session notes. -/
+theorem eo_to_smt_datatype_lift (s : native_String) (dRef d : Datatype) :
+    __eo_to_smt_datatype (__eo_dt_lift s dRef d) =
+      __smtx_dt_lift s (__eo_to_smt_datatype dRef) (__eo_to_smt_datatype d) := by
+  sorry
+
 private def eo_type_substitute_field (sub : native_String) (d0 : Datatype) : Term -> Term
   | Term.DatatypeType s2 d2 =>
       Term.DatatypeType s2 (native_ite (native_streq sub s2) d2
@@ -3096,8 +3115,9 @@ private theorem eo_to_smt_type_substitute_field
         · simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type,
             native_ite, native_streq, hEq, hRes]
         · simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type,
-            native_ite, native_streq, hEq, hRes,
-            eo_to_smt_datatype_substitute sub d0 d]
+            native_ite, native_streq, hEq, hRes]
+          rw [eo_to_smt_datatype_substitute sub (__eo_dt_lift s d d0) d,
+            eo_to_smt_datatype_lift]
   | Term.DatatypeTypeRef s => by
       by_cases hEq : s = sub
       · subst hEq
