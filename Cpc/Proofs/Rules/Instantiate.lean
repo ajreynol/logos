@@ -87,12 +87,13 @@ Status (2026-06-27):
     This is a *type-preservation* obligation for `__substitute_simul_rec`: it
     must reprove EO→SMT translatability for every remaining operator head under
     substitution (`__eo_to_smt`, `Cpc/Spec.lean:204`, special-cases dozens of
-    unary/binary/ternary heads). NOTE: this case is only TRUE because the same
-    `__is_instantiation` guard makes the substitution type-preserving (e.g. EO
-    `abs` accepts arith, but SMT `abs` is `Int`-only); the guard's type-matching
-    must be threaded here too, otherwise a translatable-but-mistyped actual
-    breaks it. No generic `__eo_typeof t = Bool → eo_has_smt_translation t`
-    exists, so this remains its own large structural induction.
+    unary/binary/ternary heads). The induction now threads the
+    `SubstActualsHaveSmtTypes` reflection of the `__is_instantiation` guard,
+    which is required for the statement to be true (e.g. EO `abs` accepts arith,
+    but SMT `abs` is `Int`-only). The remaining work is to exploit that guard for
+    exact substitution type preservation in the special-head cases. No generic
+    `__eo_typeof t = Bool → eo_has_smt_translation t` exists, so this remains its
+    own large structural induction.
 
 The main theorem then wires these together with the standard single-arg /
 single-premise boilerplate (mirrors `BooleanElimSupport.cmd_step_and_elim_properties`).
@@ -2501,9 +2502,11 @@ theorem substitute_simul_atom_has_smt_translation_of_typeof_bool_nil
       hTs hNotApply hNotVar hNotStuck hFTrans hTy
 
 /-- Size-recursive form of general substitution-result translatability, under
-an arbitrary bound-variable accumulator. The remaining recursive work is the
-application case, where SMT-translatable EO applications must be inverted by
-operator shape before rebuilding the substituted application. -/
+an arbitrary bound-variable accumulator. The instantiate guard (`hActuals`) is
+threaded through because several EO heads are more permissive than their SMT
+translations unless substitution preserves the exact binder types. The remaining
+recursive work is the application case, where SMT-translatable EO applications
+must be inverted by operator shape before rebuilding the substituted application. -/
 theorem substitute_simul_has_smt_translation_of_typeof_ne_stuck_lt
     (n : Nat) (F xs ts bvs : Term)
     {xsVars bvsVars : List EoVarKey}
@@ -2512,6 +2515,7 @@ theorem substitute_simul_has_smt_translation_of_typeof_ne_stuck_lt
     (hBvsEnv : EoVarEnvPerm bvs bvsVars)
     (hFTrans : RuleProofs.eo_has_smt_translation F)
     (hTs : EoListAllHaveSmtTranslation ts)
+    (hActuals : SubstActualsHaveSmtTypes xs ts)
     (hTy :
       __eo_typeof
         (__substitute_simul_rec (Term.Boolean false) F xs ts bvs) ≠
@@ -2529,16 +2533,17 @@ theorem substitute_simul_has_smt_translation_of_typeof_ne_stuck_lt
             EoVarEnvPerm bvs' bvsVars' ->
             RuleProofs.eo_has_smt_translation G ->
             EoListAllHaveSmtTranslation ts' ->
+            SubstActualsHaveSmtTypes xs' ts' ->
             __eo_typeof
                 (__substitute_simul_rec (Term.Boolean false) G xs' ts' bvs') ≠
               Term.Stuck ->
             RuleProofs.eo_has_smt_translation
               (__substitute_simul_rec (Term.Boolean false) G xs' ts' bvs') :=
         fun {G xs' ts' bvs'} {xsVars' bvsVars'} hGLt hXsEnv' hBvsEnv'
-            hGTrans hTs' hGTy =>
+            hGTrans hTs' hActuals' hGTy =>
           substitute_simul_has_smt_translation_of_typeof_ne_stuck_lt
             n G xs' ts' bvs'
-            (by omega) hXsEnv' hBvsEnv' hGTrans hTs' hGTy
+            (by omega) hXsEnv' hBvsEnv' hGTrans hTs' hActuals' hGTy
       cases F
       case Apply f a =>
           by_cases hBinder :
@@ -2608,7 +2613,7 @@ theorem substitute_simul_has_smt_translation_of_typeof_ne_stuck_lt
                 (G := a) (xs' := xs) (ts' := ts)
                 (bvs' := __eo_list_concat Term.__eo_List_cons binders bvs)
                 (by simp; omega)
-                hXsEnv hBvsEnv' hBodyTrans hTs
+                hXsEnv hBvsEnv' hBodyTrans hTs hActuals
                 (by simpa [bodySub] using hBodyTy)
             exact
               substitute_simul_quant_has_smt_translation_of_typeof_ne_stuck
@@ -2690,7 +2695,7 @@ theorem substitute_simul_has_smt_translation_of_typeof_ne_stuck_lt
                 hRec
                   (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
                   (by simp)
-                  hXsEnv hBvsEnv hATrans hTs
+                  hXsEnv hBvsEnv hATrans hTs hActuals
                   (by
                     rw [hASubBool]
                     intro h
@@ -2775,7 +2780,7 @@ theorem substitute_simul_has_smt_translation_of_typeof_ne_stuck_lt
                   hRec
                     (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
                     (by simp)
-                    hXsEnv hBvsEnv hATrans hTs hASubTyNe
+                    hXsEnv hBvsEnv hATrans hTs hActuals hASubTyNe
                 have hASubMatch :
                     __smtx_typeof (__eo_to_smt aSub) =
                       __eo_to_smt_type (__eo_typeof aSub) :=
@@ -2868,7 +2873,7 @@ theorem substitute_simul_has_smt_translation_of_typeof_ne_stuck_lt
                     hRec
                       (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
                       (by simp)
-                      hXsEnv hBvsEnv hATrans hTs hASubTyNe
+                      hXsEnv hBvsEnv hATrans hTs hActuals hASubTyNe
                   have hASubMatch :
                       __smtx_typeof (__eo_to_smt aSub) =
                         __eo_to_smt_type (__eo_typeof aSub) :=
@@ -2955,7 +2960,7 @@ theorem substitute_simul_has_smt_translation_of_typeof_ne_stuck_lt
                       hRec
                         (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
                         (by simp)
-                        hXsEnv hBvsEnv hATrans hTs hASubTyNe
+                        hXsEnv hBvsEnv hATrans hTs hActuals hASubTyNe
                     have hASubMatch :
                         __smtx_typeof (__eo_to_smt aSub) =
                           __eo_to_smt_type (__eo_typeof aSub) :=
@@ -3002,6 +3007,7 @@ theorem substitute_simul_has_smt_translation_of_typeof_ne_stuck
     (hBvsEnv : EoVarEnvPerm bvs bvsVars)
     (hFTrans : RuleProofs.eo_has_smt_translation F)
     (hTs : EoListAllHaveSmtTranslation ts)
+    (hActuals : SubstActualsHaveSmtTypes xs ts)
     (hTy :
       __eo_typeof
         (__substitute_simul_rec (Term.Boolean false) F xs ts bvs) ≠
@@ -3010,7 +3016,7 @@ theorem substitute_simul_has_smt_translation_of_typeof_ne_stuck
       (__substitute_simul_rec (Term.Boolean false) F xs ts bvs) :=
   substitute_simul_has_smt_translation_of_typeof_ne_stuck_lt
     (sizeOf F + 1) F xs ts bvs (by omega)
-    hXsEnv hBvsEnv hFTrans hTs hTy
+    hXsEnv hBvsEnv hFTrans hTs hActuals hTy
 
 /--
 SMT-translatability preservation for the instantiate substitution result.
@@ -3025,6 +3031,7 @@ theorem substitute_simul_has_smt_translation_of_typeof_bool
     (hForall : RuleProofs.eo_has_smt_translation
       (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F))
     (hTs : EoListAllHaveSmtTranslation ts)
+    (hActuals : SubstActualsHaveSmtTypes xs ts)
     (hTy :
       __eo_typeof
         (__substitute_simul_rec (Term.Boolean false) F xs ts Term.__eo_List_nil) =
@@ -3043,7 +3050,7 @@ theorem substitute_simul_has_smt_translation_of_typeof_bool
           (Term.Apply f a) xs ts Term.__eo_List_nil
           (EoVarEnvPerm.of_exact hXsEnv)
           (EoVarEnvPerm.of_exact EoVarEnv.nil)
-          hBodyTrans hTs
+          hBodyTrans hTs hActuals
           (by
             intro hStuck
             rw [hStuck] at hTy
@@ -3266,6 +3273,7 @@ theorem substitute_simul_has_bool_type_of_typeof_bool
     (hForall : RuleProofs.eo_has_smt_translation
       (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F))
     (hTs : EoListAllHaveSmtTranslation ts)
+    (hActuals : SubstActualsHaveSmtTypes xs ts)
     (hTy :
       __eo_typeof
         (__substitute_simul_rec (Term.Boolean false) F xs ts Term.__eo_List_nil) =
@@ -3275,7 +3283,7 @@ theorem substitute_simul_has_bool_type_of_typeof_bool
   RuleProofs.eo_typeof_bool_implies_has_bool_type
     (__substitute_simul_rec (Term.Boolean false) F xs ts Term.__eo_List_nil)
     (substitute_simul_has_smt_translation_of_typeof_bool F xs ts
-      hForall hTs hTy)
+      hForall hTs hActuals hTy)
     hTy
 
 /-- Different-body congruence for the existential evaluator: if for every
@@ -4310,7 +4318,7 @@ by
                         (__substitute_simul_rec (Term.Boolean false) F xs a1
                           Term.__eo_List_nil) :=
                     InstantiateRule.substitute_simul_has_bool_type_of_typeof_bool
-                      F xs a1 hWf hActualsTrans hSubstTypeof
+                      F xs a1 hWf hActualsTrans hActuals hSubstTypeof
                   refine ⟨?_, ?_⟩
                   · -- facts_of_true
                     intro hEvid
