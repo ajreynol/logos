@@ -2061,10 +2061,13 @@ private theorem sum_size_inr_lt_sum (c : DatatypeCons) (d : Datatype) :
   omega
 
 /-- RESIDUAL ASSUMPTION (introduced by the `dtMutual` `__smtx_dt_lift` addition).
-The `lift` re-folding commutes with the EO→SMT translation. True for well-formed
-datatypes (translation injective under wf), false in general; a sound proof needs an
-SMT-wf hypothesis threaded through the substitution-commutation lemmas. Admitted here
-as the Mini residual obligation; see the full `Cpc` library notes. -/
+The `lift` re-folding commutes with the EO→SMT translation. **False in general**: EO
+`__eo_type_lift` is shallow on tuples (`Apply (UOp Tuple) …` hits the catch-all) while SMT
+`__smtx_type_lift` recurses into the translated `Datatype "@Tuple"` body — so a tuple field
+carrying an inlined re-fold target folds on the SMT side only. The `DatatypeType` case is
+provable (injectivity under wf of the re-fold target). A sound proof needs a normal-form
+invariant (tuple fields hold refs, not inlined datatypes), not merely SMT-wf. Admitted here
+as the Mini residual obligation; see the full `Cpc` library notes (`eo_to_smt_datatype_lift`). -/
 theorem eo_to_smt_datatype_lift (s : native_String) (dRef d : Datatype) :
     __eo_to_smt_datatype (__eo_dt_lift s dRef d) =
       __smtx_dt_lift s (__eo_to_smt_datatype dRef) (__eo_to_smt_datatype d) := by

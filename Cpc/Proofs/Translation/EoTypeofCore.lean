@@ -3076,15 +3076,23 @@ private theorem smtx_type_substitute_top_of_guard
 The `lift` re-folding commutes with the EO→SMT translation:
 `translate (lift_eo s dRef d) = lift_smt s (translate dRef) (translate d)`.
 
-This is *true for well-formed datatypes* — the `lift` matches on full datatype bodies
-(`native_teq`), so the EO/SMT match conditions correspond exactly when translation is
-injective, which holds under SMT well-formedness (`eo_to_smt_datatype_injective_of_wf_rec`).
-It is **false in general** (translation can collide on non-wf datatypes), so a sound proof
-requires threading an SMT-wf hypothesis through `eo_to_smt_*_substitute` and their callers
-(`eo_to_smt_typeof_dt_sel_return_substitute_self`, `Apply.lean`, …). That threading also
-needs an EO-validity → SMT-wf bridge that does not yet exist (validity does not imply
-inhabitance). Admitted here as the single residual obligation so the rest of the
-translation layer (and CI) builds; see session notes. -/
+This is **false in general**, due to a structural asymmetry between the two `lift`s:
+* EO `__eo_type_lift` is SHALLOW on tuples — a tuple is a `Term.Apply (UOp Tuple) …`, which
+  hits the catch-all `| T => T` and is left untouched.
+* SMT `__smtx_type_lift` is DEEP — tuples translate to `SmtType.Datatype "@Tuple" body`
+  (`__eo_to_smt_type`), and the SMT lift recurses into every `Datatype` body via
+  `__smtx_dt_lift`.
+So if a tuple field carries an inlined datatype equal to the re-fold target, the SMT side
+folds it (→ `TypeRef`) while the EO side cannot reach it. The non-`Datatype` (`DatatypeType`)
+case IS provable: only `dRef` needs SMT-wf, and `eo_to_smt_datatype_injective_of_wf_rec`
+rules out a translation collision against the common image `translate dRef`.
+
+Note the *substitute* commutation does not hit this: substitute re-targets free `TypeRef`s,
+which a wf (closed) tuple has none of; lift re-targets inlined `Datatype`s, which a wf tuple
+CAN contain. So SMT-wf is insufficient — a sound proof needs a normal-form invariant (tuple
+fields hold refs, not inlined datatypes), which holds for parser output but is not expressed
+by the current wf predicate. Admitted here pending a decision on adjusting the lift defs vs.
+threading that invariant; see session notes. -/
 theorem eo_to_smt_datatype_lift (s : native_String) (dRef d : Datatype) :
     __eo_to_smt_datatype (__eo_dt_lift s dRef d) =
       __smtx_dt_lift s (__eo_to_smt_datatype dRef) (__eo_to_smt_datatype d) := by

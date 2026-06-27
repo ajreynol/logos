@@ -1,5 +1,6 @@
 import CpcMini.Proofs.TypePreservation.Predicates
 import CpcMini.Proofs.TypePreservation.CanonicalAssumptions
+import CpcMini.Proofs.Canonical.TypeDefaultBasic
 
 open SmtEval
 open Smtm
@@ -41,14 +42,6 @@ theorem native_inhabited_type_of_typed {T : SmtType} (hNe : T ≠ SmtType.None)
     (hT : __smtx_typeof_value (__smtx_type_default T) = T) :
     native_inhabited_type T = true := by
   simp [native_inhabited_type, native_and, native_not, native_Teq, hT, hNe]
-
-/-- MINI RESIDUAL ASSUMPTION: the default value of any inhabited type is canonical.
-Proved unconditionally by the kernel (`type_default_canonical_of_typed`) in the full
-`Cpc` library; the kernel is not ported to the Mini library, so it is admitted here. -/
-theorem type_default_canonical_of_typed (T : SmtType)
-    (_h : native_Teq (__smtx_typeof_value (__smtx_type_default T)) T = true) :
-    __smtx_value_canonical_bool (__smtx_type_default T) = true := by
-  sorry
 
 /-- Extracts semantic inhabitation from the generated Boolean inhabitation check. -/
 theorem type_inhabited_of_native_inhabited_type
