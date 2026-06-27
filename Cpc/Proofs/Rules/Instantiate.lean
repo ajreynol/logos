@@ -4005,7 +4005,599 @@ theorem substFalse_eval_gen_lt
                                                                                     hRel.globals.1])
                                                                                 (fun ht hst => hRecArg (by simp; try omega) ht hst)
                                                                                 (fun ht hst => hRecArg (by simp; try omega) ht hst)
-                                                                            · sorry
+                                                                            · by_cases h_qdiv_total : op = UserOp.qdiv_total
+                                                                              · subst op
+                                                                                exact substFalse_eval_binary_op UserOp.qdiv_total x1 a xs ss bvs
+                                                                                  hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                  hFTrans hSubstTrans
+                                                                                  (substitute_simul_rec_uop_eq_self UserOp.qdiv_total xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                                  (fun {s t} h => qdiv_total_args_have_smt_translation_of_has_smt_translation h)
+                                                                                  (fun X1 Y1 X2 Y2 h1 h2 => by
+                                                                                    show __smtx_model_eval M (SmtTerm.qdiv_total (__eo_to_smt X1) (__eo_to_smt X2)) =
+                                                                                      __smtx_model_eval N (SmtTerm.qdiv_total (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                                    simp only [__smtx_model_eval]
+                                                                                    rw [h1, h2])
+                                                                                  (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                  (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                              · by_cases h_qdiv : op = UserOp.qdiv
+                                                                                · subst op
+                                                                                  exact substFalse_eval_binary_op UserOp.qdiv x1 a xs ss bvs
+                                                                                    hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                    hFTrans hSubstTrans
+                                                                                    (substitute_simul_rec_uop_eq_self UserOp.qdiv xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                                    (fun {s t} h => qdiv_args_have_smt_translation_of_has_smt_translation h)
+                                                                                    (fun X1 Y1 X2 Y2 h1 h2 => by
+                                                                                      show __smtx_model_eval M (SmtTerm.qdiv (__eo_to_smt X1) (__eo_to_smt X2)) =
+                                                                                        __smtx_model_eval N (SmtTerm.qdiv (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                                      simp only [__smtx_model_eval]
+                                                                                      rw [h1, h2, smtx_model_eval_apply_eq_of_globals hRel.globals,
+                                                                                        hRel.globals.1])
+                                                                                    (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                    (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                · by_cases h_concat : op = UserOp.concat
+                                                                                  · subst op
+                                                                                    exact substFalse_eval_binary_op UserOp.concat x1 a xs ss bvs
+                                                                                      hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                      hFTrans hSubstTrans
+                                                                                      (substitute_simul_rec_uop_eq_self UserOp.concat xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                                      (fun {s t} h =>
+                                                                                        apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                                                                                          (eoOp := UserOp.concat) (smtOp := SmtTerm.concat)
+                                                                                          (by rfl) bv_concat_args_have_smt_translation_of_non_none h)
+                                                                                      (fun X1 Y1 X2 Y2 h1 h2 => by
+                                                                                        show __smtx_model_eval M (SmtTerm.concat (__eo_to_smt X1) (__eo_to_smt X2)) =
+                                                                                          __smtx_model_eval N (SmtTerm.concat (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                                        simp only [__smtx_model_eval]
+                                                                                        rw [h1, h2])
+                                                                                      (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                      (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                  · by_cases h_bvand : op = UserOp.bvand
+                                                                                    · subst op
+                                                                                      exact substFalse_eval_binary_op UserOp.bvand x1 a xs ss bvs
+                                                                                        hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                        hFTrans hSubstTrans
+                                                                                        (substitute_simul_rec_uop_eq_self UserOp.bvand xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                                        (fun {s t} h =>
+                                                                                          apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                                                                                            (eoOp := UserOp.bvand) (smtOp := SmtTerm.bvand)
+                                                                                            (by rfl)
+                                                                                            (fun hNN =>
+                                                                                              bv_binop_args_have_smt_translation_of_non_none
+                                                                                                (by rw [__smtx_typeof.eq_def]) hNN)
+                                                                                            h)
+                                                                                        (fun X1 Y1 X2 Y2 h1 h2 => by
+                                                                                          show __smtx_model_eval M (SmtTerm.bvand (__eo_to_smt X1) (__eo_to_smt X2)) =
+                                                                                            __smtx_model_eval N (SmtTerm.bvand (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                                          simp only [__smtx_model_eval]
+                                                                                          rw [h1, h2])
+                                                                                        (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                        (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                    · by_cases h_bvor : op = UserOp.bvor
+                                                                                      · subst op
+                                                                                        exact substFalse_eval_binary_op UserOp.bvor x1 a xs ss bvs
+                                                                                          hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                          hFTrans hSubstTrans
+                                                                                          (substitute_simul_rec_uop_eq_self UserOp.bvor xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                                          (fun {s t} h =>
+                                                                                            apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                                                                                              (eoOp := UserOp.bvor) (smtOp := SmtTerm.bvor)
+                                                                                              (by rfl)
+                                                                                              (fun hNN =>
+                                                                                                bv_binop_args_have_smt_translation_of_non_none
+                                                                                                  (by rw [__smtx_typeof.eq_def]) hNN)
+                                                                                              h)
+                                                                                          (fun X1 Y1 X2 Y2 h1 h2 => by
+                                                                                            show __smtx_model_eval M (SmtTerm.bvor (__eo_to_smt X1) (__eo_to_smt X2)) =
+                                                                                              __smtx_model_eval N (SmtTerm.bvor (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                                            simp only [__smtx_model_eval]
+                                                                                            rw [h1, h2])
+                                                                                          (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                          (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                      · by_cases h_bvnand : op = UserOp.bvnand
+                                                                                        · subst op
+                                                                                          exact substFalse_eval_binary_op UserOp.bvnand x1 a xs ss bvs
+                                                                                            hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                            hFTrans hSubstTrans
+                                                                                            (substitute_simul_rec_uop_eq_self UserOp.bvnand xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                                            (fun {s t} h =>
+                                                                                              apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                                                                                                (eoOp := UserOp.bvnand) (smtOp := SmtTerm.bvnand)
+                                                                                                (by rfl)
+                                                                                                (fun hNN =>
+                                                                                                  bv_binop_args_have_smt_translation_of_non_none
+                                                                                                    (by rw [__smtx_typeof.eq_def]) hNN)
+                                                                                                h)
+                                                                                            (fun X1 Y1 X2 Y2 h1 h2 => by
+                                                                                              show __smtx_model_eval M (SmtTerm.bvnand (__eo_to_smt X1) (__eo_to_smt X2)) =
+                                                                                                __smtx_model_eval N (SmtTerm.bvnand (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                                              simp only [__smtx_model_eval]
+                                                                                              rw [h1, h2])
+                                                                                            (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                            (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                        · by_cases h_bvnor : op = UserOp.bvnor
+                                                                                          · subst op
+                                                                                            exact substFalse_eval_binary_op UserOp.bvnor x1 a xs ss bvs
+                                                                                              hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                              hFTrans hSubstTrans
+                                                                                              (substitute_simul_rec_uop_eq_self UserOp.bvnor xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                                              (fun {s t} h =>
+                                                                                                apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                                                                                                  (eoOp := UserOp.bvnor) (smtOp := SmtTerm.bvnor)
+                                                                                                  (by rfl)
+                                                                                                  (fun hNN =>
+                                                                                                    bv_binop_args_have_smt_translation_of_non_none
+                                                                                                      (by rw [__smtx_typeof.eq_def]) hNN)
+                                                                                                  h)
+                                                                                              (fun X1 Y1 X2 Y2 h1 h2 => by
+                                                                                                show __smtx_model_eval M (SmtTerm.bvnor (__eo_to_smt X1) (__eo_to_smt X2)) =
+                                                                                                  __smtx_model_eval N (SmtTerm.bvnor (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                                                simp only [__smtx_model_eval]
+                                                                                                rw [h1, h2])
+                                                                                              (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                              (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                          · by_cases h_bvxor : op = UserOp.bvxor
+                                                                                            · subst op
+                                                                                              exact substFalse_eval_binary_op UserOp.bvxor x1 a xs ss bvs
+                                                                                                hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                hFTrans hSubstTrans
+                                                                                                (substitute_simul_rec_uop_eq_self UserOp.bvxor xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                                                (fun {s t} h =>
+                                                                                                  apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                                                                                                    (eoOp := UserOp.bvxor) (smtOp := SmtTerm.bvxor)
+                                                                                                    (by rfl)
+                                                                                                    (fun hNN =>
+                                                                                                      bv_binop_args_have_smt_translation_of_non_none
+                                                                                                        (by rw [__smtx_typeof.eq_def]) hNN)
+                                                                                                    h)
+                                                                                                (fun X1 Y1 X2 Y2 h1 h2 => by
+                                                                                                  show __smtx_model_eval M (SmtTerm.bvxor (__eo_to_smt X1) (__eo_to_smt X2)) =
+                                                                                                    __smtx_model_eval N (SmtTerm.bvxor (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                                                  simp only [__smtx_model_eval]
+                                                                                                  rw [h1, h2])
+                                                                                                (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                            · by_cases h_bvxnor : op = UserOp.bvxnor
+                                                                                              · subst op
+                                                                                                exact substFalse_eval_binary_op UserOp.bvxnor x1 a xs ss bvs
+                                                                                                  hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                  hFTrans hSubstTrans
+                                                                                                  (substitute_simul_rec_uop_eq_self UserOp.bvxnor xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                                                  (fun {s t} h =>
+                                                                                                    apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                                                                                                      (eoOp := UserOp.bvxnor) (smtOp := SmtTerm.bvxnor)
+                                                                                                      (by rfl)
+                                                                                                      (fun hNN =>
+                                                                                                        bv_binop_args_have_smt_translation_of_non_none
+                                                                                                          (by rw [__smtx_typeof.eq_def]) hNN)
+                                                                                                      h)
+                                                                                                  (fun X1 Y1 X2 Y2 h1 h2 => by
+                                                                                                    show __smtx_model_eval M (SmtTerm.bvxnor (__eo_to_smt X1) (__eo_to_smt X2)) =
+                                                                                                      __smtx_model_eval N (SmtTerm.bvxnor (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                                                    simp only [__smtx_model_eval]
+                                                                                                    rw [h1, h2])
+                                                                                                  (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                  (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                              · by_cases h_bvcomp : op = UserOp.bvcomp
+                                                                                                · subst op
+                                                                                                  exact substFalse_eval_binary_op UserOp.bvcomp x1 a xs ss bvs
+                                                                                                    hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                    hFTrans hSubstTrans
+                                                                                                    (substitute_simul_rec_uop_eq_self UserOp.bvcomp xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                                                    (fun {s t} h =>
+                                                                                                      apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                                                                                                        (eoOp := UserOp.bvcomp) (smtOp := SmtTerm.bvcomp)
+                                                                                                        (by rfl)
+                                                                                                        (fun hNN =>
+                                                                                                          bv_binop_ret_args_have_smt_translation_of_non_none
+                                                                                                            (by rw [__smtx_typeof.eq_def]) hNN)
+                                                                                                        h)
+                                                                                                    (fun X1 Y1 X2 Y2 h1 h2 => by
+                                                                                                      show __smtx_model_eval M (SmtTerm.bvcomp (__eo_to_smt X1) (__eo_to_smt X2)) =
+                                                                                                        __smtx_model_eval N (SmtTerm.bvcomp (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                                                      simp only [__smtx_model_eval]
+                                                                                                      rw [h1, h2])
+                                                                                                    (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                    (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                · by_cases h_bvadd : op = UserOp.bvadd
+                                                                                                  · subst op
+                                                                                                    exact substFalse_eval_binary_op UserOp.bvadd x1 a xs ss bvs
+                                                                                                      hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                      hFTrans hSubstTrans
+                                                                                                      (substitute_simul_rec_uop_eq_self UserOp.bvadd xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                                                      (fun {s t} h =>
+                                                                                                        apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                                                                                                          (eoOp := UserOp.bvadd) (smtOp := SmtTerm.bvadd)
+                                                                                                          (by rfl)
+                                                                                                          (fun hNN =>
+                                                                                                            bv_binop_args_have_smt_translation_of_non_none
+                                                                                                              (by rw [__smtx_typeof.eq_def]) hNN)
+                                                                                                          h)
+                                                                                                      (fun X1 Y1 X2 Y2 h1 h2 => by
+                                                                                                        show __smtx_model_eval M (SmtTerm.bvadd (__eo_to_smt X1) (__eo_to_smt X2)) =
+                                                                                                          __smtx_model_eval N (SmtTerm.bvadd (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                                                        simp only [__smtx_model_eval]
+                                                                                                        rw [h1, h2])
+                                                                                                      (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                      (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                  · by_cases h_bvmul : op = UserOp.bvmul
+                                                                                                    · subst op
+                                                                                                      exact substFalse_eval_binary_op UserOp.bvmul x1 a xs ss bvs
+                                                                                                        hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                        hFTrans hSubstTrans
+                                                                                                        (substitute_simul_rec_uop_eq_self UserOp.bvmul xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                                                        (fun {s t} h =>
+                                                                                                          apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                                                                                                            (eoOp := UserOp.bvmul) (smtOp := SmtTerm.bvmul)
+                                                                                                            (by rfl)
+                                                                                                            (fun hNN =>
+                                                                                                              bv_binop_args_have_smt_translation_of_non_none
+                                                                                                                (by rw [__smtx_typeof.eq_def]) hNN)
+                                                                                                            h)
+                                                                                                        (fun X1 Y1 X2 Y2 h1 h2 => by
+                                                                                                          show __smtx_model_eval M (SmtTerm.bvmul (__eo_to_smt X1) (__eo_to_smt X2)) =
+                                                                                                            __smtx_model_eval N (SmtTerm.bvmul (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                                                          simp only [__smtx_model_eval]
+                                                                                                          rw [h1, h2])
+                                                                                                        (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                        (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                    · by_cases h_bvudiv : op = UserOp.bvudiv
+                                                                                                      · subst op
+                                                                                                        exact substFalse_eval_binary_op UserOp.bvudiv x1 a xs ss bvs
+                                                                                                          hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                          hFTrans hSubstTrans
+                                                                                                          (substitute_simul_rec_uop_eq_self UserOp.bvudiv xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                                                          (fun {s t} h =>
+                                                                                                            apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                                                                                                              (eoOp := UserOp.bvudiv) (smtOp := SmtTerm.bvudiv)
+                                                                                                              (by rfl)
+                                                                                                              (fun hNN =>
+                                                                                                                bv_binop_args_have_smt_translation_of_non_none
+                                                                                                                  (by rw [__smtx_typeof.eq_def]) hNN)
+                                                                                                              h)
+                                                                                                          (fun X1 Y1 X2 Y2 h1 h2 => by
+                                                                                                            show __smtx_model_eval M (SmtTerm.bvudiv (__eo_to_smt X1) (__eo_to_smt X2)) =
+                                                                                                              __smtx_model_eval N (SmtTerm.bvudiv (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                                                            simp only [__smtx_model_eval]
+                                                                                                            rw [h1, h2])
+                                                                                                          (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                          (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                      · by_cases h_bvurem : op = UserOp.bvurem
+                                                                                                        · subst op
+                                                                                                          exact substFalse_eval_binary_op UserOp.bvurem x1 a xs ss bvs
+                                                                                                            hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                            hFTrans hSubstTrans
+                                                                                                            (substitute_simul_rec_uop_eq_self UserOp.bvurem xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                                                            (fun {s t} h =>
+                                                                                                              apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                                                                                                                (eoOp := UserOp.bvurem) (smtOp := SmtTerm.bvurem)
+                                                                                                                (by rfl)
+                                                                                                                (fun hNN =>
+                                                                                                                  bv_binop_args_have_smt_translation_of_non_none
+                                                                                                                    (by rw [__smtx_typeof.eq_def]) hNN)
+                                                                                                                h)
+                                                                                                            (fun X1 Y1 X2 Y2 h1 h2 => by
+                                                                                                              show __smtx_model_eval M (SmtTerm.bvurem (__eo_to_smt X1) (__eo_to_smt X2)) =
+                                                                                                                __smtx_model_eval N (SmtTerm.bvurem (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                                                              simp only [__smtx_model_eval]
+                                                                                                              rw [h1, h2])
+                                                                                                            (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                            (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                        · by_cases h_bvsub : op = UserOp.bvsub
+                                                                                                          · subst op
+                                                                                                            exact substFalse_eval_binary_op UserOp.bvsub x1 a xs ss bvs
+                                                                                                              hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                              hFTrans hSubstTrans
+                                                                                                              (substitute_simul_rec_uop_eq_self UserOp.bvsub xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                                                              (fun {s t} h =>
+                                                                                                                apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                                                                                                                  (eoOp := UserOp.bvsub) (smtOp := SmtTerm.bvsub)
+                                                                                                                  (by rfl)
+                                                                                                                  (fun hNN =>
+                                                                                                                    bv_binop_args_have_smt_translation_of_non_none
+                                                                                                                      (by rw [__smtx_typeof.eq_def]) hNN)
+                                                                                                                  h)
+                                                                                                              (fun X1 Y1 X2 Y2 h1 h2 => by
+                                                                                                                show __smtx_model_eval M (SmtTerm.bvsub (__eo_to_smt X1) (__eo_to_smt X2)) =
+                                                                                                                  __smtx_model_eval N (SmtTerm.bvsub (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                                                                simp only [__smtx_model_eval]
+                                                                                                                rw [h1, h2])
+                                                                                                              (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                              (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                          · by_cases h_bvsdiv : op = UserOp.bvsdiv
+                                                                                                            · subst op
+                                                                                                              exact substFalse_eval_binary_op UserOp.bvsdiv x1 a xs ss bvs
+                                                                                                                hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                hFTrans hSubstTrans
+                                                                                                                (substitute_simul_rec_uop_eq_self UserOp.bvsdiv xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                                                                (fun {s t} h =>
+                                                                                                                  apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                                                                                                                    (eoOp := UserOp.bvsdiv) (smtOp := SmtTerm.bvsdiv)
+                                                                                                                    (by rfl)
+                                                                                                                    (fun hNN =>
+                                                                                                                      bv_binop_args_have_smt_translation_of_non_none
+                                                                                                                        (by rw [__smtx_typeof.eq_def]) hNN)
+                                                                                                                    h)
+                                                                                                                (fun X1 Y1 X2 Y2 h1 h2 => by
+                                                                                                                  show __smtx_model_eval M (SmtTerm.bvsdiv (__eo_to_smt X1) (__eo_to_smt X2)) =
+                                                                                                                    __smtx_model_eval N (SmtTerm.bvsdiv (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                                                                  simp only [__smtx_model_eval]
+                                                                                                                  rw [h1, h2])
+                                                                                                                (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                                (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                            · by_cases h_bvsrem : op = UserOp.bvsrem
+                                                                                                              · subst op
+                                                                                                                exact substFalse_eval_binary_op UserOp.bvsrem x1 a xs ss bvs
+                                                                                                                  hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                  hFTrans hSubstTrans
+                                                                                                                  (substitute_simul_rec_uop_eq_self UserOp.bvsrem xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                                                                  (fun {s t} h =>
+                                                                                                                    apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                                                                                                                      (eoOp := UserOp.bvsrem) (smtOp := SmtTerm.bvsrem)
+                                                                                                                      (by rfl)
+                                                                                                                      (fun hNN =>
+                                                                                                                        bv_binop_args_have_smt_translation_of_non_none
+                                                                                                                          (by rw [__smtx_typeof.eq_def]) hNN)
+                                                                                                                      h)
+                                                                                                                  (fun X1 Y1 X2 Y2 h1 h2 => by
+                                                                                                                    show __smtx_model_eval M (SmtTerm.bvsrem (__eo_to_smt X1) (__eo_to_smt X2)) =
+                                                                                                                      __smtx_model_eval N (SmtTerm.bvsrem (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                                                                    simp only [__smtx_model_eval]
+                                                                                                                    rw [h1, h2])
+                                                                                                                  (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                                  (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                              · by_cases h_bvsmod : op = UserOp.bvsmod
+                                                                                                                · subst op
+                                                                                                                  exact substFalse_eval_binary_op UserOp.bvsmod x1 a xs ss bvs
+                                                                                                                    hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                    hFTrans hSubstTrans
+                                                                                                                    (substitute_simul_rec_uop_eq_self UserOp.bvsmod xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                                                                    (fun {s t} h =>
+                                                                                                                      apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                                                                                                                        (eoOp := UserOp.bvsmod) (smtOp := SmtTerm.bvsmod)
+                                                                                                                        (by rfl)
+                                                                                                                        (fun hNN =>
+                                                                                                                          bv_binop_args_have_smt_translation_of_non_none
+                                                                                                                            (by rw [__smtx_typeof.eq_def]) hNN)
+                                                                                                                        h)
+                                                                                                                    (fun X1 Y1 X2 Y2 h1 h2 => by
+                                                                                                                      show __smtx_model_eval M (SmtTerm.bvsmod (__eo_to_smt X1) (__eo_to_smt X2)) =
+                                                                                                                        __smtx_model_eval N (SmtTerm.bvsmod (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                                                                      simp only [__smtx_model_eval]
+                                                                                                                      rw [h1, h2])
+                                                                                                                    (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                                    (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                                · by_cases h_bvshl : op = UserOp.bvshl
+                                                                                                                  · subst op
+                                                                                                                    exact substFalse_eval_binary_op UserOp.bvshl x1 a xs ss bvs
+                                                                                                                      hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                      hFTrans hSubstTrans
+                                                                                                                      (substitute_simul_rec_uop_eq_self UserOp.bvshl xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                                                                      (fun {s t} h =>
+                                                                                                                        apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                                                                                                                          (eoOp := UserOp.bvshl) (smtOp := SmtTerm.bvshl)
+                                                                                                                          (by rfl)
+                                                                                                                          (fun hNN =>
+                                                                                                                            bv_binop_args_have_smt_translation_of_non_none
+                                                                                                                              (by rw [__smtx_typeof.eq_def]) hNN)
+                                                                                                                          h)
+                                                                                                                      (fun X1 Y1 X2 Y2 h1 h2 => by
+                                                                                                                        show __smtx_model_eval M (SmtTerm.bvshl (__eo_to_smt X1) (__eo_to_smt X2)) =
+                                                                                                                          __smtx_model_eval N (SmtTerm.bvshl (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                                                                        simp only [__smtx_model_eval]
+                                                                                                                        rw [h1, h2])
+                                                                                                                      (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                                      (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                                  · by_cases h_bvlshr : op = UserOp.bvlshr
+                                                                                                                    · subst op
+                                                                                                                      exact substFalse_eval_binary_op UserOp.bvlshr x1 a xs ss bvs
+                                                                                                                        hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                        hFTrans hSubstTrans
+                                                                                                                        (substitute_simul_rec_uop_eq_self UserOp.bvlshr xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                                                                        (fun {s t} h =>
+                                                                                                                          apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                                                                                                                            (eoOp := UserOp.bvlshr) (smtOp := SmtTerm.bvlshr)
+                                                                                                                            (by rfl)
+                                                                                                                            (fun hNN =>
+                                                                                                                              bv_binop_args_have_smt_translation_of_non_none
+                                                                                                                                (by rw [__smtx_typeof.eq_def]) hNN)
+                                                                                                                            h)
+                                                                                                                        (fun X1 Y1 X2 Y2 h1 h2 => by
+                                                                                                                          show __smtx_model_eval M (SmtTerm.bvlshr (__eo_to_smt X1) (__eo_to_smt X2)) =
+                                                                                                                            __smtx_model_eval N (SmtTerm.bvlshr (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                                                                          simp only [__smtx_model_eval]
+                                                                                                                          rw [h1, h2])
+                                                                                                                        (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                                        (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                                    · by_cases h_bvashr : op = UserOp.bvashr
+                                                                                                                      · subst op
+                                                                                                                        exact substFalse_eval_binary_op UserOp.bvashr x1 a xs ss bvs
+                                                                                                                          hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                          hFTrans hSubstTrans
+                                                                                                                          (substitute_simul_rec_uop_eq_self UserOp.bvashr xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                                                                          (fun {s t} h =>
+                                                                                                                            apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                                                                                                                              (eoOp := UserOp.bvashr) (smtOp := SmtTerm.bvashr)
+                                                                                                                              (by rfl)
+                                                                                                                              (fun hNN =>
+                                                                                                                                bv_binop_args_have_smt_translation_of_non_none
+                                                                                                                                  (by rw [__smtx_typeof.eq_def]) hNN)
+                                                                                                                              h)
+                                                                                                                          (fun X1 Y1 X2 Y2 h1 h2 => by
+                                                                                                                            show __smtx_model_eval M (SmtTerm.bvashr (__eo_to_smt X1) (__eo_to_smt X2)) =
+                                                                                                                              __smtx_model_eval N (SmtTerm.bvashr (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                                                                            simp only [__smtx_model_eval]
+                                                                                                                            rw [h1, h2])
+                                                                                                                          (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                                          (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                                      · by_cases h_bvult : op = UserOp.bvult
+                                                                                                                        · subst op
+                                                                                                                          exact substFalse_eval_binary_op UserOp.bvult x1 a xs ss bvs
+                                                                                                                            hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                            hFTrans hSubstTrans
+                                                                                                                            (substitute_simul_rec_uop_eq_self UserOp.bvult xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                                                                            (fun {s t} h =>
+                                                                                                                              apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                                                                                                                                (eoOp := UserOp.bvult) (smtOp := SmtTerm.bvult)
+                                                                                                                                (by rfl)
+                                                                                                                                (fun hNN =>
+                                                                                                                                  bv_binop_ret_args_have_smt_translation_of_non_none
+                                                                                                                                    (by rw [__smtx_typeof.eq_def]) hNN)
+                                                                                                                                h)
+                                                                                                                            (fun X1 Y1 X2 Y2 h1 h2 => by
+                                                                                                                              show __smtx_model_eval M (SmtTerm.bvult (__eo_to_smt X1) (__eo_to_smt X2)) =
+                                                                                                                                __smtx_model_eval N (SmtTerm.bvult (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                                                                              simp only [__smtx_model_eval]
+                                                                                                                              rw [h1, h2])
+                                                                                                                            (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                                            (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                                        · by_cases h_bvule : op = UserOp.bvule
+                                                                                                                          · subst op
+                                                                                                                            exact substFalse_eval_binary_op UserOp.bvule x1 a xs ss bvs
+                                                                                                                              hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                              hFTrans hSubstTrans
+                                                                                                                              (substitute_simul_rec_uop_eq_self UserOp.bvule xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                                                                              (fun {s t} h =>
+                                                                                                                                apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                                                                                                                                  (eoOp := UserOp.bvule) (smtOp := SmtTerm.bvule)
+                                                                                                                                  (by rfl)
+                                                                                                                                  (fun hNN =>
+                                                                                                                                    bv_binop_ret_args_have_smt_translation_of_non_none
+                                                                                                                                      (by rw [__smtx_typeof.eq_def]) hNN)
+                                                                                                                                  h)
+                                                                                                                              (fun X1 Y1 X2 Y2 h1 h2 => by
+                                                                                                                                show __smtx_model_eval M (SmtTerm.bvule (__eo_to_smt X1) (__eo_to_smt X2)) =
+                                                                                                                                  __smtx_model_eval N (SmtTerm.bvule (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                                                                                simp only [__smtx_model_eval]
+                                                                                                                                rw [h1, h2])
+                                                                                                                              (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                                              (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                                          · by_cases h_bvugt : op = UserOp.bvugt
+                                                                                                                            · subst op
+                                                                                                                              exact substFalse_eval_binary_op UserOp.bvugt x1 a xs ss bvs
+                                                                                                                                hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                                hFTrans hSubstTrans
+                                                                                                                                (substitute_simul_rec_uop_eq_self UserOp.bvugt xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                                                                                (fun {s t} h =>
+                                                                                                                                  apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                                                                                                                                    (eoOp := UserOp.bvugt) (smtOp := SmtTerm.bvugt)
+                                                                                                                                    (by rfl)
+                                                                                                                                    (fun hNN =>
+                                                                                                                                      bv_binop_ret_args_have_smt_translation_of_non_none
+                                                                                                                                        (by rw [__smtx_typeof.eq_def]) hNN)
+                                                                                                                                    h)
+                                                                                                                                (fun X1 Y1 X2 Y2 h1 h2 => by
+                                                                                                                                  show __smtx_model_eval M (SmtTerm.bvugt (__eo_to_smt X1) (__eo_to_smt X2)) =
+                                                                                                                                    __smtx_model_eval N (SmtTerm.bvugt (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                                                                                  simp only [__smtx_model_eval]
+                                                                                                                                  rw [h1, h2])
+                                                                                                                                (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                                                (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                                            · by_cases h_bvuge : op = UserOp.bvuge
+                                                                                                                              · subst op
+                                                                                                                                exact substFalse_eval_binary_op UserOp.bvuge x1 a xs ss bvs
+                                                                                                                                  hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                                  hFTrans hSubstTrans
+                                                                                                                                  (substitute_simul_rec_uop_eq_self UserOp.bvuge xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                                                                                  (fun {s t} h =>
+                                                                                                                                    apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                                                                                                                                      (eoOp := UserOp.bvuge) (smtOp := SmtTerm.bvuge)
+                                                                                                                                      (by rfl)
+                                                                                                                                      (fun hNN =>
+                                                                                                                                        bv_binop_ret_args_have_smt_translation_of_non_none
+                                                                                                                                          (by rw [__smtx_typeof.eq_def]) hNN)
+                                                                                                                                      h)
+                                                                                                                                  (fun X1 Y1 X2 Y2 h1 h2 => by
+                                                                                                                                    show __smtx_model_eval M (SmtTerm.bvuge (__eo_to_smt X1) (__eo_to_smt X2)) =
+                                                                                                                                      __smtx_model_eval N (SmtTerm.bvuge (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                                                                                    simp only [__smtx_model_eval]
+                                                                                                                                    rw [h1, h2])
+                                                                                                                                  (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                                                  (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                                              · by_cases h_bvslt : op = UserOp.bvslt
+                                                                                                                                · subst op
+                                                                                                                                  exact substFalse_eval_binary_op UserOp.bvslt x1 a xs ss bvs
+                                                                                                                                    hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                                    hFTrans hSubstTrans
+                                                                                                                                    (substitute_simul_rec_uop_eq_self UserOp.bvslt xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                                                                                    (fun {s t} h =>
+                                                                                                                                      apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                                                                                                                                        (eoOp := UserOp.bvslt) (smtOp := SmtTerm.bvslt)
+                                                                                                                                        (by rfl)
+                                                                                                                                        (fun hNN =>
+                                                                                                                                          bv_binop_ret_args_have_smt_translation_of_non_none
+                                                                                                                                            (by rw [__smtx_typeof.eq_def]) hNN)
+                                                                                                                                        h)
+                                                                                                                                    (fun X1 Y1 X2 Y2 h1 h2 => by
+                                                                                                                                      show __smtx_model_eval M (SmtTerm.bvslt (__eo_to_smt X1) (__eo_to_smt X2)) =
+                                                                                                                                        __smtx_model_eval N (SmtTerm.bvslt (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                                                                                      simp only [__smtx_model_eval]
+                                                                                                                                      rw [h1, h2])
+                                                                                                                                    (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                                                    (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                                                · by_cases h_bvsle : op = UserOp.bvsle
+                                                                                                                                  · subst op
+                                                                                                                                    exact substFalse_eval_binary_op UserOp.bvsle x1 a xs ss bvs
+                                                                                                                                      hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                                      hFTrans hSubstTrans
+                                                                                                                                      (substitute_simul_rec_uop_eq_self UserOp.bvsle xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                                                                                      (fun {s t} h =>
+                                                                                                                                        apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                                                                                                                                          (eoOp := UserOp.bvsle) (smtOp := SmtTerm.bvsle)
+                                                                                                                                          (by rfl)
+                                                                                                                                          (fun hNN =>
+                                                                                                                                            bv_binop_ret_args_have_smt_translation_of_non_none
+                                                                                                                                              (by rw [__smtx_typeof.eq_def]) hNN)
+                                                                                                                                          h)
+                                                                                                                                      (fun X1 Y1 X2 Y2 h1 h2 => by
+                                                                                                                                        show __smtx_model_eval M (SmtTerm.bvsle (__eo_to_smt X1) (__eo_to_smt X2)) =
+                                                                                                                                          __smtx_model_eval N (SmtTerm.bvsle (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                                                                                        simp only [__smtx_model_eval]
+                                                                                                                                        rw [h1, h2])
+                                                                                                                                      (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                                                      (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                                                  · by_cases h_bvsgt : op = UserOp.bvsgt
+                                                                                                                                    · subst op
+                                                                                                                                      exact substFalse_eval_binary_op UserOp.bvsgt x1 a xs ss bvs
+                                                                                                                                        hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                                        hFTrans hSubstTrans
+                                                                                                                                        (substitute_simul_rec_uop_eq_self UserOp.bvsgt xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                                                                                        (fun {s t} h =>
+                                                                                                                                          apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                                                                                                                                            (eoOp := UserOp.bvsgt) (smtOp := SmtTerm.bvsgt)
+                                                                                                                                            (by rfl)
+                                                                                                                                            (fun hNN =>
+                                                                                                                                              bv_binop_ret_args_have_smt_translation_of_non_none
+                                                                                                                                                (by rw [__smtx_typeof.eq_def]) hNN)
+                                                                                                                                            h)
+                                                                                                                                        (fun X1 Y1 X2 Y2 h1 h2 => by
+                                                                                                                                          show __smtx_model_eval M (SmtTerm.bvsgt (__eo_to_smt X1) (__eo_to_smt X2)) =
+                                                                                                                                            __smtx_model_eval N (SmtTerm.bvsgt (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                                                                                          simp only [__smtx_model_eval]
+                                                                                                                                          rw [h1, h2])
+                                                                                                                                        (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                                                        (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                                                    · by_cases h_bvsge : op = UserOp.bvsge
+                                                                                                                                      · subst op
+                                                                                                                                        exact substFalse_eval_binary_op UserOp.bvsge x1 a xs ss bvs
+                                                                                                                                          hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                                          hFTrans hSubstTrans
+                                                                                                                                          (substitute_simul_rec_uop_eq_self UserOp.bvsge xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                                                                                          (fun {s t} h =>
+                                                                                                                                            apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                                                                                                                                              (eoOp := UserOp.bvsge) (smtOp := SmtTerm.bvsge)
+                                                                                                                                              (by rfl)
+                                                                                                                                              (fun hNN =>
+                                                                                                                                                bv_binop_ret_args_have_smt_translation_of_non_none
+                                                                                                                                                  (by rw [__smtx_typeof.eq_def]) hNN)
+                                                                                                                                              h)
+                                                                                                                                          (fun X1 Y1 X2 Y2 h1 h2 => by
+                                                                                                                                            show __smtx_model_eval M (SmtTerm.bvsge (__eo_to_smt X1) (__eo_to_smt X2)) =
+                                                                                                                                              __smtx_model_eval N (SmtTerm.bvsge (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                                                                                            simp only [__smtx_model_eval]
+                                                                                                                                            rw [h1, h2])
+                                                                                                                                          (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                                                          (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                                                      · sorry
                                   | _ =>
                                       -- ternary / generic application head
                                       sorry
