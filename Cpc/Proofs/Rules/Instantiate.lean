@@ -67,13 +67,14 @@ Status (2026-06-27):
   * main theorem `hWf`        — PROVEN (premise is Bool-typed ⇒ translatable).
   * `substFalse_eval_gen_lt`  — general substitution-eval induction. PROVEN:
     variable / atom / `Stuck`; 9 unary heads (not, to_real, to_int, is_int, abs,
-    uneg, int_pow2, int_log2, purify) via `substFalse_eval_unary_op`; 12 binary
-    heads (and, or, imp, xor, eq, plus, neg, mult, lt, leq, gt, geq) via
-    `substFalse_eval_binary_op`. REMAINING: model-global-dependent binary ops
-    (div/mod — their eval reads `native_div_by_zero_id` from the model, so they
-    need `SubstFalseRel.globals`, not just the arg congruence), ternary
-    (ite/store), generic application, and the binder/quantifier case. This is
-    the reusable core of the crux.
+    uneg, int_pow2, int_log2, purify) via `substFalse_eval_unary_op`; 19 binary
+    heads (and, or, imp, xor, eq, plus, neg, mult, lt, leq, gt, geq, div, mod,
+    select, divisible, div_total, mod_total, multmult_total) via
+    `substFalse_eval_binary_op` — div/mod use a `SubstFalseRel.globals`-aware
+    congruence (their eval reads `native_div_by_zero_id` from the model).
+    REMAINING: `multmult` (globals, nested), ternary (ite/store), generic
+    application, and the binder/quantifier case. This is the reusable core of
+    the crux.
   * `substitute_simul_eval`   — sorry (crux); reduces to `substFalse_eval_gen_lt`
     plus the `SubstFalseRel M (pushSubstModel …) xs ts nil` base relation.
   * `substitute_simul_has_smt_translation_of_typeof_ne_stuck_lt` — one `sorry`
@@ -3838,7 +3839,107 @@ theorem substFalse_eval_gen_lt
                                                                   simp only [__smtx_model_eval]; rw [h1, h2])
                                                                 (fun ht hst => hRecArg (by simp; try omega) ht hst)
                                                                 (fun ht hst => hRecArg (by simp; try omega) ht hst)
-                                                            · sorry
+                                                            · by_cases h_div : op = UserOp.div
+                                                              · subst op
+                                                                exact substFalse_eval_binary_op UserOp.div x1 a xs ss bvs
+                                                                  hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                  hFTrans hSubstTrans
+                                                                  (substitute_simul_rec_uop_eq_self UserOp.div xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                  (fun {s t} h => div_args_have_smt_translation_of_has_smt_translation h)
+                                                                  (fun X1 Y1 X2 Y2 h1 h2 => by
+                                                                    show __smtx_model_eval M (SmtTerm.div (__eo_to_smt X1) (__eo_to_smt X2)) =
+                                                                      __smtx_model_eval N (SmtTerm.div (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                    simp only [__smtx_model_eval]
+                                                                    rw [h1, h2, smtx_model_eval_apply_eq_of_globals hRel.globals,
+                                                                      hRel.globals.1])
+                                                                  (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                  (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                              · by_cases h_mod : op = UserOp.mod
+                                                                · subst op
+                                                                  exact substFalse_eval_binary_op UserOp.mod x1 a xs ss bvs
+                                                                    hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                    hFTrans hSubstTrans
+                                                                    (substitute_simul_rec_uop_eq_self UserOp.mod xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                    (fun {s t} h => mod_args_have_smt_translation_of_has_smt_translation h)
+                                                                    (fun X1 Y1 X2 Y2 h1 h2 => by
+                                                                      show __smtx_model_eval M (SmtTerm.mod (__eo_to_smt X1) (__eo_to_smt X2)) =
+                                                                        __smtx_model_eval N (SmtTerm.mod (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                      simp only [__smtx_model_eval]
+                                                                      rw [h1, h2, smtx_model_eval_apply_eq_of_globals hRel.globals,
+                                                                        hRel.globals.1])
+                                                                    (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                    (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                ·
+                                                                  by_cases h_select : op = UserOp.select
+                                                                  · subst op
+                                                                    exact substFalse_eval_binary_op UserOp.select x1 a xs ss bvs
+                                                                      hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                      hFTrans hSubstTrans
+                                                                      (substitute_simul_rec_uop_eq_self UserOp.select xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                      (fun {s t} h => select_args_have_smt_translation_of_has_smt_translation h)
+                                                                      (fun X1 Y1 X2 Y2 h1 h2 => by
+                                                                        show __smtx_model_eval M (SmtTerm.select (__eo_to_smt X1) (__eo_to_smt X2)) =
+                                                                          __smtx_model_eval N (SmtTerm.select (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                        simp only [__smtx_model_eval]; rw [h1, h2])
+                                                                      (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                      (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                  ·
+                                                                    by_cases h_divisible : op = UserOp.divisible
+                                                                    · subst op
+                                                                      exact substFalse_eval_binary_op UserOp.divisible x1 a xs ss bvs
+                                                                        hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                        hFTrans hSubstTrans
+                                                                        (substitute_simul_rec_uop_eq_self UserOp.divisible xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                        (fun {s t} h => divisible_args_have_smt_translation_of_has_smt_translation h)
+                                                                        (fun X1 Y1 X2 Y2 h1 h2 => by
+                                                                          show __smtx_model_eval M (SmtTerm.divisible (__eo_to_smt X1) (__eo_to_smt X2)) =
+                                                                            __smtx_model_eval N (SmtTerm.divisible (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                          simp only [__smtx_model_eval]; rw [h1, h2])
+                                                                        (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                        (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                    ·
+                                                                      by_cases h_div_total : op = UserOp.div_total
+                                                                      · subst op
+                                                                        exact substFalse_eval_binary_op UserOp.div_total x1 a xs ss bvs
+                                                                          hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                          hFTrans hSubstTrans
+                                                                          (substitute_simul_rec_uop_eq_self UserOp.div_total xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                          (fun {s t} h => div_total_args_have_smt_translation_of_has_smt_translation h)
+                                                                          (fun X1 Y1 X2 Y2 h1 h2 => by
+                                                                            show __smtx_model_eval M (SmtTerm.div_total (__eo_to_smt X1) (__eo_to_smt X2)) =
+                                                                              __smtx_model_eval N (SmtTerm.div_total (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                            simp only [__smtx_model_eval]; rw [h1, h2])
+                                                                          (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                          (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                      ·
+                                                                        by_cases h_mod_total : op = UserOp.mod_total
+                                                                        · subst op
+                                                                          exact substFalse_eval_binary_op UserOp.mod_total x1 a xs ss bvs
+                                                                            hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                            hFTrans hSubstTrans
+                                                                            (substitute_simul_rec_uop_eq_self UserOp.mod_total xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                            (fun {s t} h => mod_total_args_have_smt_translation_of_has_smt_translation h)
+                                                                            (fun X1 Y1 X2 Y2 h1 h2 => by
+                                                                              show __smtx_model_eval M (SmtTerm.mod_total (__eo_to_smt X1) (__eo_to_smt X2)) =
+                                                                                __smtx_model_eval N (SmtTerm.mod_total (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                              simp only [__smtx_model_eval]; rw [h1, h2])
+                                                                            (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                            (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                        ·
+                                                                          by_cases h_multmult_total : op = UserOp.multmult_total
+                                                                          · subst op
+                                                                            exact substFalse_eval_binary_op UserOp.multmult_total x1 a xs ss bvs
+                                                                              hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                              hFTrans hSubstTrans
+                                                                              (substitute_simul_rec_uop_eq_self UserOp.multmult_total xs ss bvs hXsEnv hBvsEnv hSsTrans)
+                                                                              (fun {s t} h => multmult_total_args_have_smt_translation_of_has_smt_translation h)
+                                                                              (fun X1 Y1 X2 Y2 h1 h2 => by
+                                                                                show __smtx_model_eval M (SmtTerm.multmult_total (__eo_to_smt X1) (__eo_to_smt X2)) =
+                                                                                  __smtx_model_eval N (SmtTerm.multmult_total (__eo_to_smt Y1) (__eo_to_smt Y2))
+                                                                                simp only [__smtx_model_eval]; rw [h1, h2])
+                                                                              (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                              (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                          · sorry
                                   | _ =>
                                       -- ternary / generic application head
                                       sorry
