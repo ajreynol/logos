@@ -600,6 +600,64 @@ by
     (by intro s' T' hMem; exact List.Mem.tail _ hMem)
     hClosed
 
+theorem SmtTermClosedIn.exists_env
+    (t : SmtTerm) :
+    ∃ vars : List SmtVarKey, SmtTermClosedIn vars t := by
+  let rec go (t : SmtTerm) :
+      ∃ vars : List SmtVarKey, SmtTermClosedIn vars t := by
+    cases t <;> simp [SmtTermClosedIn]
+    case Var s T =>
+      exact ⟨[(s, T)], by simp⟩
+    case «exists» s T body =>
+      rcases go body with ⟨vars, hClosed⟩
+      exact ⟨vars, SmtTermClosedIn.weaken_cons hClosed⟩
+    case «forall» s T body =>
+      rcases go body with ⟨vars, hClosed⟩
+      exact ⟨vars, SmtTermClosedIn.weaken_cons hClosed⟩
+    case choice_nth s T body n =>
+      rcases go body with ⟨vars, hClosed⟩
+      exact ⟨vars, SmtTermClosedIn.weaken_cons hClosed⟩
+    all_goals try
+      first
+      | exact ⟨[], trivial⟩
+      | rename_i x
+        rcases go x with ⟨vars, hClosed⟩
+        exact ⟨vars, hClosed⟩
+      | rename_i x y
+        rcases go x with ⟨varsX, hX⟩
+        rcases go y with ⟨varsY, hY⟩
+        refine ⟨varsX ++ varsY, ?_⟩
+        constructor
+        · exact SmtTermClosedIn.mono
+            (vars := varsX) (vars' := varsX ++ varsY)
+            (by intro s T hMem; exact List.mem_append_left _ hMem) hX
+        · exact SmtTermClosedIn.mono
+            (vars := varsY) (vars' := varsX ++ varsY)
+            (by intro s T hMem; exact List.mem_append_right _ hMem) hY
+    all_goals try
+      rename_i x y z
+      rcases go x with ⟨varsX, hX⟩
+      rcases go y with ⟨varsY, hY⟩
+      rcases go z with ⟨varsZ, hZ⟩
+      refine ⟨(varsX ++ varsY) ++ varsZ, ?_⟩
+      refine ⟨?_, ?_, ?_⟩
+      · exact SmtTermClosedIn.mono
+          (vars := varsX) (vars' := (varsX ++ varsY) ++ varsZ)
+          (by
+            intro s T hMem
+            exact List.mem_append_left varsZ (List.mem_append_left varsY hMem)) hX
+      · exact SmtTermClosedIn.mono
+          (vars := varsY) (vars' := (varsX ++ varsY) ++ varsZ)
+          (by
+            intro s T hMem
+            exact List.mem_append_left varsZ (List.mem_append_right varsX hMem)) hY
+      · exact SmtTermClosedIn.mono
+          (vars := varsZ) (vars' := (varsX ++ varsY) ++ varsZ)
+          (by
+            intro s T hMem
+            exact List.mem_append_right (varsX ++ varsY) hMem) hZ
+  exact go t
+
 theorem eo_and_eq_true_cases {a b : Term} :
   __eo_and a b = Term.Boolean true ->
     a = Term.Boolean true ∧ b = Term.Boolean true :=
