@@ -6799,6 +6799,44 @@ theorem smtx_model_eval_eo_to_smt_tuple_prepend_cross_eq_of_eval_eq
   | _ =>
       simp [__eo_to_smt_tuple_prepend_of_type, __smtx_model_eval]
 
+theorem smtx_model_eval_eo_to_smt_set_insert_base_eq_of_eval_eq
+    (M : SmtModel) :
+    ∀ xs a b,
+      __smtx_typeof a = __smtx_typeof b ->
+      __smtx_model_eval M a = __smtx_model_eval M b ->
+        __smtx_model_eval M (__eo_to_smt_set_insert xs a) =
+          __smtx_model_eval M (__eo_to_smt_set_insert xs b) := by
+  intro xs a b hTy hEval
+  cases xs <;> try rfl
+  case Apply f tail =>
+    cases f <;> try rfl
+    case UOp op =>
+      cases op <;> try rfl
+      case _at__at_TypedList_nil =>
+        cases hGuard :
+            native_Teq (__smtx_typeof b)
+              (SmtType.Set (__eo_to_smt_type tail))
+        · simp [__eo_to_smt_set_insert, hTy, hGuard, native_ite]
+        · simpa [__eo_to_smt_set_insert, hTy, hGuard, native_ite] using hEval
+    case Apply f' head =>
+      cases f' <;> try rfl
+      case UOp op =>
+        cases op <;> try rfl
+        case _at__at_TypedList_cons =>
+          change
+            __smtx_model_eval M
+                (SmtTerm.set_union (SmtTerm.set_singleton (__eo_to_smt head))
+                  (__eo_to_smt_set_insert tail a)) =
+              __smtx_model_eval M
+                (SmtTerm.set_union (SmtTerm.set_singleton (__eo_to_smt head))
+                  (__eo_to_smt_set_insert tail b))
+          have hTailEval :=
+            smtx_model_eval_eo_to_smt_set_insert_base_eq_of_eval_eq
+              M tail a b hTy hEval
+          simp only [__smtx_model_eval]
+          rw [hTailEval]
+termination_by xs a b _ _ => xs
+
 theorem substFalse_eval_binary_tuple
     (x y xs ss bvs : Term) {M N : SmtModel}
     (hM : model_total_typed M) (hN : model_total_typed N)
