@@ -309,4 +309,124 @@ theorem lift_noop_dtc (s sub : native_String) (D : SmtDatatype)
           · next => exact absurd hwf0 (by simp)
 end
 
+/- The SMT substitute `__smtx_*_substitute sub X` is a no-op on a structure `W` well-formed both at
+`r0` (sub ∉ r0) and `rR` (sub ∈ rR): such a `W` has no `TypeRef sub` occurrence (a free one would be
+caught by `wf @ r0`; a bound one needs a `Datatype sub` binder, forbidden by `wf @ rR`'s no-aliasing). -/
+mutual
+theorem subst_noop_ty (sub : native_String) :
+    (T : SmtType) → (X : SmtDatatype) → (r0 rR : RefList) →
+      native_reflist_contains r0 sub = false →
+      native_reflist_contains rR sub = true →
+      __smtx_type_wf_rec T r0 = true →
+      __smtx_type_wf_rec T rR = true →
+      __smtx_type_substitute sub X T = T
+  | SmtType.Datatype s' Y, X, r0, rR, h0, hR, hwf0, hwfR => by
+      have hns0 : native_reflist_contains r0 s' = false := by
+        cases hc : native_reflist_contains r0 s' <;> simp [__smtx_type_wf_rec, native_ite, hc] at hwf0 ⊢
+      have hY0 : __smtx_dt_wf_rec Y (native_reflist_insert r0 s') = true := by
+        simp [__smtx_type_wf_rec, native_ite, hns0] at hwf0; exact hwf0
+      have hnsR : native_reflist_contains rR s' = false := by
+        cases hc : native_reflist_contains rR s' <;> simp [__smtx_type_wf_rec, native_ite, hc] at hwfR ⊢
+      have hYR : __smtx_dt_wf_rec Y (native_reflist_insert rR s') = true := by
+        simp [__smtx_type_wf_rec, native_ite, hnsR] at hwfR; exact hwfR
+      have hs'sub : s' ≠ sub := by
+        intro he; subst he; rw [hR] at hnsR; exact absurd hnsR (by simp)
+      have hsub0 : sub ∉ r0 := by simpa [native_reflist_contains] using h0
+      have hsubR : sub ∈ rR := by simpa [native_reflist_contains] using hR
+      have hsubs' : sub ≠ s' := Ne.symm hs'sub
+      have h0' : native_reflist_contains (native_reflist_insert r0 s') sub = false := by
+        simp [native_reflist_contains, native_reflist_insert, List.mem_cons, hsubs', hsub0]
+      have hR' : native_reflist_contains (native_reflist_insert rR s') sub = true := by
+        simp [native_reflist_contains, native_reflist_insert, List.mem_cons, hsubR]
+      have hstreq : native_streq sub s' = false := by simp [native_streq, fun h => hsubs' h]
+      simp only [__smtx_type_substitute, native_ite, hstreq, if_false]
+      congr 1
+      exact subst_noop_dt sub Y (__smtx_dt_lift s' Y X) (native_reflist_insert r0 s')
+        (native_reflist_insert rR s') h0' hR' hY0 hYR
+  | SmtType.TypeRef s', X, r0, rR, h0, hR, hwf0, hwfR => by
+      simp [__smtx_type_wf_rec] at hwf0
+  | SmtType.Seq x, _, _, _, _, _, _, _ => by simp only [__smtx_type_substitute]
+  | SmtType.Set x, _, _, _, _, _, _, _ => by simp only [__smtx_type_substitute]
+  | SmtType.Map x y, _, _, _, _, _, _, _ => by simp only [__smtx_type_substitute]
+  | SmtType.FunType x y, _, _, _, _, _, _, _ => by simp only [__smtx_type_substitute]
+  | SmtType.DtcAppType x y, _, _, _, _, _, _, _ => by simp only [__smtx_type_substitute]
+  | SmtType.None, _, _, _, _, _, _, _ => by simp only [__smtx_type_substitute]
+  | SmtType.RegLan, _, _, _, _, _, _, _ => by simp only [__smtx_type_substitute]
+  | SmtType.Bool, _, _, _, _, _, _, _ => by simp only [__smtx_type_substitute]
+  | SmtType.Int, _, _, _, _, _, _, _ => by simp only [__smtx_type_substitute]
+  | SmtType.Real, _, _, _, _, _, _, _ => by simp only [__smtx_type_substitute]
+  | SmtType.BitVec n, _, _, _, _, _, _, _ => by simp only [__smtx_type_substitute]
+  | SmtType.Char, _, _, _, _, _, _, _ => by simp only [__smtx_type_substitute]
+  | SmtType.USort n, _, _, _, _, _, _, _ => by simp only [__smtx_type_substitute]
+
+theorem subst_noop_dt (sub : native_String) :
+    (W : SmtDatatype) → (X : SmtDatatype) → (r0 rR : RefList) →
+      native_reflist_contains r0 sub = false →
+      native_reflist_contains rR sub = true →
+      __smtx_dt_wf_rec W r0 = true →
+      __smtx_dt_wf_rec W rR = true →
+      __smtx_dt_substitute sub X W = W
+  | SmtDatatype.null, _, _, _, _, _, hwf0, _ => by simp [__smtx_dt_wf_rec] at hwf0
+  | SmtDatatype.sum c SmtDatatype.null, X, r0, rR, h0, hR, hwf0, hwfR => by
+      simp only [__smtx_dt_wf_rec] at hwf0 hwfR
+      show SmtDatatype.sum (__smtx_dtc_substitute sub X c) SmtDatatype.null = SmtDatatype.sum c SmtDatatype.null
+      rw [subst_noop_dtc sub c X r0 rR h0 hR hwf0 hwfR]
+  | SmtDatatype.sum c (SmtDatatype.sum c2 d2), X, r0, rR, h0, hR, hwf0, hwfR => by
+      simp only [__smtx_dt_wf_rec, native_ite] at hwf0 hwfR
+      have hc0 : __smtx_dt_cons_wf_rec c r0 = true := by
+        cases hcc : __smtx_dt_cons_wf_rec c r0 <;> simp [hcc] at hwf0 ⊢
+      have hd0 : __smtx_dt_wf_rec (SmtDatatype.sum c2 d2) r0 = true := by rw [hc0] at hwf0; simpa using hwf0
+      have hcR : __smtx_dt_cons_wf_rec c rR = true := by
+        cases hcc : __smtx_dt_cons_wf_rec c rR <;> simp [hcc] at hwfR ⊢
+      have hdR : __smtx_dt_wf_rec (SmtDatatype.sum c2 d2) rR = true := by rw [hcR] at hwfR; simpa using hwfR
+      show SmtDatatype.sum (__smtx_dtc_substitute sub X c) (__smtx_dt_substitute sub X (SmtDatatype.sum c2 d2))
+         = SmtDatatype.sum c (SmtDatatype.sum c2 d2)
+      rw [subst_noop_dtc sub c X r0 rR h0 hR hc0 hcR,
+        subst_noop_dt sub (SmtDatatype.sum c2 d2) X r0 rR h0 hR hd0 hdR]
+
+theorem subst_noop_dtc (sub : native_String) :
+    (c : SmtDatatypeCons) → (X : SmtDatatype) → (r0 rR : RefList) →
+      native_reflist_contains r0 sub = false →
+      native_reflist_contains rR sub = true →
+      __smtx_dt_cons_wf_rec c r0 = true →
+      __smtx_dt_cons_wf_rec c rR = true →
+      __smtx_dtc_substitute sub X c = c
+  | SmtDatatypeCons.unit, _, _, _, _, _, _, _ => by simp [__smtx_dtc_substitute]
+  | SmtDatatypeCons.cons T c, X, r0, rR, h0, hR, hwf0, hwfR => by
+      cases T with
+      | TypeRef s' =>
+          simp only [__smtx_dt_cons_wf_rec, native_ite] at hwf0 hwfR
+          have hs0 : native_reflist_contains r0 s' = true := by
+            by_cases hc : native_reflist_contains r0 s' = true
+            · exact hc
+            · rw [if_neg hc] at hwf0; exact absurd hwf0 (by simp)
+          have hc0 : __smtx_dt_cons_wf_rec c r0 = true := by rw [if_pos hs0] at hwf0; exact hwf0
+          have hcR : __smtx_dt_cons_wf_rec c rR = true := by
+            by_cases hsR : native_reflist_contains rR s' = true
+            · rw [if_pos hsR] at hwfR; exact hwfR
+            · rw [if_neg hsR] at hwfR; exact absurd hwfR (by simp)
+          have hs'sub : s' ≠ sub := by
+            intro he; subst he; rw [h0] at hs0; exact absurd hs0 (by simp)
+          have hsubs' : sub ≠ s' := Ne.symm hs'sub
+          have hstreq : native_streq sub s' = false := by simp [native_streq, hsubs']
+          have hsubst : __smtx_type_substitute sub X (SmtType.TypeRef s') = SmtType.TypeRef s' := by
+            simp [__smtx_type_substitute, native_ite, hstreq]
+          show SmtDatatypeCons.cons (__smtx_type_substitute sub X (SmtType.TypeRef s'))
+                (__smtx_dtc_substitute sub X c)
+             = SmtDatatypeCons.cons (SmtType.TypeRef s') c
+          rw [hsubst, subst_noop_dtc sub c X r0 rR h0 hR hc0 hcR]
+      | _ =>
+          simp only [__smtx_dt_cons_wf_rec, native_ite] at hwf0 hwfR
+          split at hwf0
+          · next hT0 =>
+              split at hwfR
+              · next hTR =>
+                  simp only [__smtx_dtc_substitute]
+                  rw [subst_noop_ty sub _ X r0 rR h0 hR hT0 hTR,
+                    subst_noop_dtc sub c X r0 rR h0 hR hwf0 hwfR]
+              · next => exact absurd hwfR (by simp)
+          · next => exact absurd hwf0 (by simp)
+end
+
+
 end Smtm
