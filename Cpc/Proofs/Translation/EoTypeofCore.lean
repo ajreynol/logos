@@ -3072,6 +3072,31 @@ private theorem smtx_type_substitute_top_of_guard
   all_goals
     simpa [__smtx_typeof_guard, native_ite, native_Teq] using hU
 
+/-- Fold-decision correspondence used by the `lift`: under SMT well-formedness of the candidate
+body, the EO-level `native_teq` and SMT-level `native_Teq` equality checks agree. The forward
+direction is congruence of translation; the backward direction is translation injectivity
+(`eo_to_smt_datatype_injective_of_wf_rec`). -/
+private theorem eo_to_smt_teq_corr (s s2 : native_String) (dRef d2 : Datatype) (refs : RefList)
+    (hwf : __smtx_dt_wf_rec (__eo_to_smt_datatype d2) refs = true) :
+    native_teq (Term.DatatypeType s dRef) (Term.DatatypeType s2 d2)
+      = native_Teq (SmtType.Datatype s (__eo_to_smt_datatype dRef))
+          (SmtType.Datatype s2 (__eo_to_smt_datatype d2)) := by
+  simp only [native_teq, native_Teq]
+  by_cases hEO : Term.DatatypeType s dRef = Term.DatatypeType s2 d2
+  · rw [decide_eq_true hEO]
+    injection hEO with hs hd; subst hs; subst hd
+    rw [decide_eq_true rfl]
+  · rw [decide_eq_false hEO]
+    have hSMTne : ¬ (SmtType.Datatype s (__eo_to_smt_datatype dRef)
+        = SmtType.Datatype s2 (__eo_to_smt_datatype d2)) := by
+      intro hSMT
+      injection hSMT with hs hd
+      subst hs
+      have hde : dRef = d2 := eo_to_smt_datatype_injective_of_wf_rec hd rfl hwf
+      subst hde
+      exact hEO rfl
+    rw [decide_eq_false hSMTne]
+
 /-- RESIDUAL ASSUMPTION (introduced by the `dtMutual` `__smtx_dt_lift` addition).
 
 The `lift` re-folding commutes with the EO→SMT translation:
