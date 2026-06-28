@@ -3097,6 +3097,21 @@ private theorem eo_to_smt_teq_corr (s s2 : native_String) (dRef d2 : Datatype) (
       exact hEO rfl
     rw [decide_eq_false hSMTne]
 
+/-- Connector for the tuple case of the lift correspondence: a tuple that translates to a real
+`Datatype` (not `None`) has a well-formed body, because `__eo_to_smt_type` gates the tuple
+translation on `__smtx_type_wf` (`wf_component`, i.e. well-formed at the empty ref context). -/
+private theorem tuple_translate_wf {x1 x2 : Term} {s' : native_String} {body : SmtDatatype}
+    (h : __eo_to_smt_type (Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) x1) x2)
+        = SmtType.Datatype s' body) :
+    __smtx_type_wf_rec (SmtType.Datatype s' body) native_reflist_nil = true := by
+  simp only [__eo_to_smt_type, native_ite] at h
+  split at h
+  · next hwf =>
+      rw [h] at hwf
+      simp only [__smtx_type_wf, __smtx_type_wf_component, native_and, Bool.and_eq_true] at hwf
+      exact hwf.2
+  · next => exact absurd h (by simp)
+
 /-- RESIDUAL ASSUMPTION (introduced by the `dtMutual` `__smtx_dt_lift` addition).
 
 The `lift` re-folding commutes with the EO→SMT translation:
