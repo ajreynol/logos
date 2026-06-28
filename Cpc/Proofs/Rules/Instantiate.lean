@@ -1218,6 +1218,33 @@ theorem substitute_simul_rec_uop_eq_self
   simp [__is_closed_rec, __eo_requires, native_ite, native_teq,
     native_not, SmtEval.native_not]
 
+theorem substitute_simul_rec_uop1_eq_self
+    (op : UserOp1) (idx xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hTs : EoListAllHaveSmtTranslation ts) :
+    __substitute_simul_rec (Term.Boolean false) (Term.UOp1 op idx) xs ts bvs =
+      Term.UOp1 op idx := by
+  have hisr : (Term.Boolean false : Term) ≠ Term.Stuck := by decide
+  have hxs : xs ≠ Term.Stuck := hXsEnv.ne_stuck
+  have hts : ts ≠ Term.Stuck := eoListAllHaveSmtTranslation_ne_stuck hTs
+  have hbvs : bvs ≠ Term.Stuck := hBvsEnv.ne_stuck
+  have hHeadEq :
+      __substitute_simul_rec (Term.Boolean false) (Term.UOp1 op idx) xs ts bvs =
+        __eo_requires
+          (__is_closed_rec (Term.UOp1 op idx) Term.__eo_List_nil)
+          (Term.Boolean true) (Term.UOp1 op idx) :=
+    SubstituteSupport.substitute_simul_rec_atom
+      (Term.Boolean false) (Term.UOp1 op idx) xs ts bvs
+      hisr hxs hts hbvs
+      (by intro f a h; cases h)
+      (by intro s S h; cases h)
+      (by intro h; cases h)
+  rw [hHeadEq]
+  simp [__is_closed_rec, __eo_requires, native_ite, native_teq,
+    native_not, SmtEval.native_not]
+
 set_option linter.unusedSimpArgs false in
 theorem eo_typeof_to_real_arg_arith_of_ne_stuck {A : Term}
     (h : __eo_typeof_to_real A ≠ Term.Stuck) :
@@ -4822,6 +4849,241 @@ theorem substFalse_eval_unary_op
     hArgExtract hSubstApplyTrans
   rw [hSubstEq, hMk]
   exact hCong _ _ (hRecArg hATrans hSubstATrans)
+
+/-- Reusable reduction for a unary indexed special-head application
+`Apply (UOp1 op idx) a`. The indexed head is syntactically fixed by
+substitution; concrete operator cases provide the index-evaluation fact and the
+SMT constructor congruence. -/
+theorem substFalse_eval_unary_uop1
+    (op : UserOp1) (idx a xs ss bvs : Term) {M N : SmtModel}
+    (hisr : (Term.Boolean false : Term) ≠ Term.Stuck)
+    (hxs : xs ≠ Term.Stuck) (hss : ss ≠ Term.Stuck) (hbvs : bvs ≠ Term.Stuck)
+    (hFTrans : eoHasSmtTranslation (Term.Apply (Term.UOp1 op idx) a))
+    (hSubstTrans :
+      eoHasSmtTranslation
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.UOp1 op idx) a) xs ss bvs))
+    (hHeadSub :
+      __substitute_simul_rec (Term.Boolean false) (Term.UOp1 op idx) xs ss bvs =
+        Term.UOp1 op idx)
+    (hArgExtract :
+      ∀ {t : Term},
+        eoHasSmtTranslation (Term.Apply (Term.UOp1 op idx) t) →
+          eoHasSmtTranslation t)
+    (hIdxEval :
+      __smtx_model_eval M (__eo_to_smt idx) =
+        __smtx_model_eval N (__eo_to_smt idx))
+    (hCong :
+      ∀ X Y : Term,
+        __smtx_model_eval M (__eo_to_smt idx) =
+          __smtx_model_eval N (__eo_to_smt idx) →
+        __smtx_model_eval M (__eo_to_smt X) =
+          __smtx_model_eval N (__eo_to_smt Y) →
+          __smtx_model_eval M (__eo_to_smt (Term.Apply (Term.UOp1 op idx) X)) =
+            __smtx_model_eval N (__eo_to_smt (Term.Apply (Term.UOp1 op idx) Y)))
+    (hRecArg :
+      eoHasSmtTranslation a →
+        eoHasSmtTranslation
+          (__substitute_simul_rec (Term.Boolean false) a xs ss bvs) →
+        __smtx_model_eval M
+            (__eo_to_smt
+              (__substitute_simul_rec (Term.Boolean false) a xs ss bvs)) =
+          __smtx_model_eval N (__eo_to_smt a)) :
+    __smtx_model_eval M
+        (__eo_to_smt
+          (__substitute_simul_rec (Term.Boolean false)
+            (Term.Apply (Term.UOp1 op idx) a) xs ss bvs)) =
+      __smtx_model_eval N (__eo_to_smt (Term.Apply (Term.UOp1 op idx) a)) := by
+  have hSubstEq :
+      __substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.UOp1 op idx) a) xs ss bvs =
+        __eo_mk_apply (Term.UOp1 op idx)
+          (__substitute_simul_rec (Term.Boolean false) a xs ss bvs) := by
+    have hApplyEq :=
+      SubstituteSupport.substitute_simul_rec_apply (Term.Boolean false)
+        (Term.UOp1 op idx) a xs ss bvs hisr hxs hss hbvs
+        (by intro q v vs hEq; cases hEq)
+    simpa [hHeadSub] using hApplyEq
+  have hMkNeStuck :
+      __eo_mk_apply (Term.UOp1 op idx)
+          (__substitute_simul_rec (Term.Boolean false) a xs ss bvs) ≠ Term.Stuck := by
+    rw [← hSubstEq]
+    exact RuleProofs.term_ne_stuck_of_has_smt_translation _ hSubstTrans
+  have hMk :
+      __eo_mk_apply (Term.UOp1 op idx)
+          (__substitute_simul_rec (Term.Boolean false) a xs ss bvs) =
+        Term.Apply (Term.UOp1 op idx)
+          (__substitute_simul_rec (Term.Boolean false) a xs ss bvs) :=
+    instantiate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMkNeStuck
+  have hATrans : eoHasSmtTranslation a := hArgExtract hFTrans
+  have hSubstApplyTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.UOp1 op idx)
+          (__substitute_simul_rec (Term.Boolean false) a xs ss bvs)) := by
+    rw [← hMk, ← hSubstEq]
+    exact hSubstTrans
+  have hSubstATrans :
+      eoHasSmtTranslation
+        (__substitute_simul_rec (Term.Boolean false) a xs ss bvs) :=
+    hArgExtract hSubstApplyTrans
+  rw [hSubstEq, hMk]
+  exact hCong _ _ hIdxEval (hRecArg hATrans hSubstATrans)
+
+theorem substFalse_eval_unary_uop1_nontuple_select
+    (op : UserOp1) (idx a xs ss bvs : Term) {M N : SmtModel}
+    (hisr : (Term.Boolean false : Term) ≠ Term.Stuck)
+    (hxs : xs ≠ Term.Stuck) (hss : ss ≠ Term.Stuck) (hbvs : bvs ≠ Term.Stuck)
+    (hTupleSelect : op ≠ UserOp1.tuple_select)
+    (hFTrans : eoHasSmtTranslation (Term.Apply (Term.UOp1 op idx) a))
+    (hSubstTrans :
+      eoHasSmtTranslation
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.UOp1 op idx) a) xs ss bvs))
+    (hHeadSub :
+      __substitute_simul_rec (Term.Boolean false) (Term.UOp1 op idx) xs ss bvs =
+        Term.UOp1 op idx)
+    (hRecArg :
+      eoHasSmtTranslation a →
+        eoHasSmtTranslation
+          (__substitute_simul_rec (Term.Boolean false) a xs ss bvs) →
+        __smtx_model_eval M
+            (__eo_to_smt
+              (__substitute_simul_rec (Term.Boolean false) a xs ss bvs)) =
+          __smtx_model_eval N (__eo_to_smt a)) :
+    __smtx_model_eval M
+        (__eo_to_smt
+          (__substitute_simul_rec (Term.Boolean false)
+            (Term.Apply (Term.UOp1 op idx) a) xs ss bvs)) =
+      __smtx_model_eval N (__eo_to_smt (Term.Apply (Term.UOp1 op idx) a)) := by
+  cases op
+  case «repeat» =>
+    exact substFalse_eval_unary_uop1 UserOp1.repeat idx a xs ss bvs
+      hisr hxs hss hbvs hFTrans hSubstTrans hHeadSub
+      (fun {t} h => (repeat_index_nat_valid_and_arg_has_smt_translation h).2)
+      (smt_model_eval_eq_of_eo_to_smt_nat_is_valid
+        (repeat_index_nat_valid_and_arg_has_smt_translation hFTrans).1)
+      (fun X Y hIdx hArg => by
+        show __smtx_model_eval M (SmtTerm.repeat (__eo_to_smt idx) (__eo_to_smt X)) =
+          __smtx_model_eval N (SmtTerm.repeat (__eo_to_smt idx) (__eo_to_smt Y))
+        simp only [__smtx_model_eval]
+        rw [hIdx, hArg])
+      hRecArg
+  case zero_extend =>
+    exact substFalse_eval_unary_uop1 UserOp1.zero_extend idx a xs ss bvs
+      hisr hxs hss hbvs hFTrans hSubstTrans hHeadSub
+      (fun {t} h => (zero_extend_index_nat_valid_and_arg_has_smt_translation h).2)
+      (smt_model_eval_eq_of_eo_to_smt_nat_is_valid
+        (zero_extend_index_nat_valid_and_arg_has_smt_translation hFTrans).1)
+      (fun X Y hIdx hArg => by
+        show __smtx_model_eval M (SmtTerm.zero_extend (__eo_to_smt idx) (__eo_to_smt X)) =
+          __smtx_model_eval N (SmtTerm.zero_extend (__eo_to_smt idx) (__eo_to_smt Y))
+        simp only [__smtx_model_eval]
+        rw [hIdx, hArg])
+      hRecArg
+  case sign_extend =>
+    exact substFalse_eval_unary_uop1 UserOp1.sign_extend idx a xs ss bvs
+      hisr hxs hss hbvs hFTrans hSubstTrans hHeadSub
+      (fun {t} h => (sign_extend_index_nat_valid_and_arg_has_smt_translation h).2)
+      (smt_model_eval_eq_of_eo_to_smt_nat_is_valid
+        (sign_extend_index_nat_valid_and_arg_has_smt_translation hFTrans).1)
+      (fun X Y hIdx hArg => by
+        show __smtx_model_eval M (SmtTerm.sign_extend (__eo_to_smt idx) (__eo_to_smt X)) =
+          __smtx_model_eval N (SmtTerm.sign_extend (__eo_to_smt idx) (__eo_to_smt Y))
+        simp only [__smtx_model_eval]
+        rw [hIdx, hArg])
+      hRecArg
+  case rotate_left =>
+    exact substFalse_eval_unary_uop1 UserOp1.rotate_left idx a xs ss bvs
+      hisr hxs hss hbvs hFTrans hSubstTrans hHeadSub
+      (fun {t} h => (rotate_left_index_nat_valid_and_arg_has_smt_translation h).2)
+      (smt_model_eval_eq_of_eo_to_smt_nat_is_valid
+        (rotate_left_index_nat_valid_and_arg_has_smt_translation hFTrans).1)
+      (fun X Y hIdx hArg => by
+        show __smtx_model_eval M (SmtTerm.rotate_left (__eo_to_smt idx) (__eo_to_smt X)) =
+          __smtx_model_eval N (SmtTerm.rotate_left (__eo_to_smt idx) (__eo_to_smt Y))
+        simp only [__smtx_model_eval]
+        rw [hIdx, hArg])
+      hRecArg
+  case rotate_right =>
+    exact substFalse_eval_unary_uop1 UserOp1.rotate_right idx a xs ss bvs
+      hisr hxs hss hbvs hFTrans hSubstTrans hHeadSub
+      (fun {t} h => (rotate_right_index_nat_valid_and_arg_has_smt_translation h).2)
+      (smt_model_eval_eq_of_eo_to_smt_nat_is_valid
+        (rotate_right_index_nat_valid_and_arg_has_smt_translation hFTrans).1)
+      (fun X Y hIdx hArg => by
+        show __smtx_model_eval M (SmtTerm.rotate_right (__eo_to_smt idx) (__eo_to_smt X)) =
+          __smtx_model_eval N (SmtTerm.rotate_right (__eo_to_smt idx) (__eo_to_smt Y))
+        simp only [__smtx_model_eval]
+        rw [hIdx, hArg])
+      hRecArg
+  case _at_bit =>
+    exact substFalse_eval_unary_uop1 UserOp1._at_bit idx a xs ss bvs
+      hisr hxs hss hbvs hFTrans hSubstTrans hHeadSub
+      (fun {t} h => (at_bit_index_nat_valid_and_arg_has_smt_translation h).2)
+      (smt_model_eval_eq_of_eo_to_smt_nat_is_valid
+        (at_bit_index_nat_valid_and_arg_has_smt_translation hFTrans).1)
+      (fun X Y hIdx hArg => by
+        show __smtx_model_eval M
+            (SmtTerm.eq
+              (SmtTerm.extract (__eo_to_smt idx) (__eo_to_smt idx) (__eo_to_smt X))
+              (SmtTerm.Binary 1 1)) =
+          __smtx_model_eval N
+            (SmtTerm.eq
+              (SmtTerm.extract (__eo_to_smt idx) (__eo_to_smt idx) (__eo_to_smt Y))
+              (SmtTerm.Binary 1 1))
+        simp only [__smtx_model_eval]
+        rw [hIdx, hArg])
+      hRecArg
+  case seq_empty =>
+    exact false_of_apply_seq_empty hFTrans
+  case re_exp =>
+    exact substFalse_eval_unary_uop1 UserOp1.re_exp idx a xs ss bvs
+      hisr hxs hss hbvs hFTrans hSubstTrans hHeadSub
+      (fun {t} h => (re_exp_index_nat_valid_and_arg_has_smt_translation h).2)
+      (smt_model_eval_eq_of_eo_to_smt_nat_is_valid
+        (re_exp_index_nat_valid_and_arg_has_smt_translation hFTrans).1)
+      (fun X Y hIdx hArg => by
+        show __smtx_model_eval M (SmtTerm.re_exp (__eo_to_smt idx) (__eo_to_smt X)) =
+          __smtx_model_eval N (SmtTerm.re_exp (__eo_to_smt idx) (__eo_to_smt Y))
+        simp only [__smtx_model_eval]
+        rw [hIdx, hArg])
+      hRecArg
+  case is =>
+    rcases (is_index_cons_and_arg_has_smt_translation hFTrans).1 with
+      ⟨s, d, i, hCons⟩
+    exact substFalse_eval_unary_uop1 UserOp1.is idx a xs ss bvs
+      hisr hxs hss hbvs hFTrans hSubstTrans hHeadSub
+      (fun {t} h => (is_index_cons_and_arg_has_smt_translation h).2)
+      (smt_model_eval_eq_of_eo_to_smt_eq_dt_cons hCons)
+      (fun X Y _ hArg => by
+        show __smtx_model_eval M
+            (SmtTerm.Apply (__eo_to_smt_tester (__eo_to_smt idx)) (__eo_to_smt X)) =
+          __smtx_model_eval N
+            (SmtTerm.Apply (__eo_to_smt_tester (__eo_to_smt idx)) (__eo_to_smt Y))
+        rw [hCons]
+        simp only [__eo_to_smt_tester, __smtx_model_eval]
+        rw [hArg])
+      hRecArg
+  case update =>
+    exact false_of_apply_uop1_translate_apply_none hFTrans rfl
+  case tuple_select =>
+    exact False.elim (hTupleSelect rfl)
+  case tuple_update =>
+    exact false_of_apply_uop1_translate_apply_none hFTrans rfl
+  case set_empty =>
+    exact false_of_apply_set_empty hFTrans
+  case int_to_bv =>
+    exact substFalse_eval_unary_uop1 UserOp1.int_to_bv idx a xs ss bvs
+      hisr hxs hss hbvs hFTrans hSubstTrans hHeadSub
+      (fun {t} h => (int_to_bv_index_nat_valid_and_arg_has_smt_translation h).2)
+      (smt_model_eval_eq_of_eo_to_smt_nat_is_valid
+        (int_to_bv_index_nat_valid_and_arg_has_smt_translation hFTrans).1)
+      (fun X Y hIdx hArg => by
+        show __smtx_model_eval M (SmtTerm.int_to_bv (__eo_to_smt idx) (__eo_to_smt X)) =
+          __smtx_model_eval N (SmtTerm.int_to_bv (__eo_to_smt idx) (__eo_to_smt Y))
+        simp only [__smtx_model_eval]
+        rw [hIdx, hArg])
+      hRecArg
 
 /-- Reusable reduction for a **binary special-head application**
 `(Apply (Apply (UOp op) x1) a)` in the substitution-evaluation induction.
@@ -8705,9 +8967,21 @@ theorem substFalse_eval_gen_lt
                                   | _ =>
                                       -- ternary / generic application head
                                       sorry
+                              | UOp1 op idx =>
+                                  by_cases hTupleSelect : op = UserOp1.tuple_select
+                                  · subst op
+                                    -- `tuple_select` bakes `typeof` of the selected
+                                    -- tuple into the SMT term, so it needs the
+                                    -- substitution type-preservation ingredient.
+                                    sorry
+                                  · exact substFalse_eval_unary_uop1_nontuple_select
+                                      op idx a xs ss bvs
+                                      hisr hxs hss hbvs hTupleSelect hFTrans hSubstTrans
+                                      (substitute_simul_rec_uop1_eq_self op idx xs ss bvs
+                                        hXsEnv hBvsEnv hSsTrans)
+                                      (fun ht hst => hRecArg (by simp; try omega) ht hst)
                               | _ =>
-                                  -- remaining unary `UOp` heads and atom heads
-                                  -- (generic application)
+                                  -- remaining atom heads / generic application
                                   sorry
       case Var name S =>
           by_cases hString : ∃ s, name = Term.String s
