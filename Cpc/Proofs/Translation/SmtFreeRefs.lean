@@ -661,4 +661,75 @@ theorem lift_wf_pres_dtc (s : native_String) (D : SmtDatatype) :
           · next => exact absurd hwf (by simp)
 end
 
+
+/- `noStray` is preserved by an unrelated lift `__smtx_*_lift s1 D1`, provided the target body `D2`
+is itself stable under that lift (`lift s1 D1 D2 = D2`). Used to maintain the substitute-recursion
+invariant as the substituting datatype is re-lifted under each datatype binder. -/
+mutual
+theorem noStray_lift_ty (s1 : native_String) (D1 : SmtDatatype)
+    (s2 : native_String) (D2 : SmtDatatype) (hD2 : __smtx_dt_lift s1 D1 D2 = D2) :
+    (T : SmtType) → noStrayTy s2 D2 T = true →
+      noStrayTy s2 D2 (__smtx_type_lift s1 D1 T) = true
+  | SmtType.Datatype s3 d3, h => by
+      simp only [__smtx_type_lift]
+      by_cases hfold : native_Teq (SmtType.Datatype s1 D1) (SmtType.Datatype s3 d3) = true
+      · rw [native_ite, if_pos hfold]; simp [noStrayTy]
+      · rw [native_ite, if_neg hfold]
+        by_cases hm : native_Teq (SmtType.Datatype s2 D2) (SmtType.Datatype s3 d3) = true
+        · -- s2 = s3 and D2 = d3
+          obtain ⟨hs, hd⟩ : s2 = s3 ∧ D2 = d3 := by simpa [native_Teq] using hm
+          subst hs; subst hd
+          simp only [noStrayTy, native_ite]
+          rw [if_pos (by simp [native_Teq, hD2])]
+        · -- not matched: from h, s3 ≠ s2 and noStrayDt s2 D2 d3
+          have hsplit : native_streq s3 s2 = false ∧ noStrayDt s2 D2 d3 = true := by
+            simp only [noStrayTy, native_ite, if_neg hm] at h
+            cases hst : native_streq s3 s2 with
+            | false => exact ⟨rfl, by simpa [native_and, native_not, hst] using h⟩
+            | true => simp [native_and, native_not, hst] at h
+          have hs3ne : s2 ≠ s3 := by
+            intro he; subst he; simp [native_streq] at hsplit
+          simp only [noStrayTy, native_ite]
+          rw [if_neg (by
+            intro hbad
+            obtain ⟨hs', _⟩ : s2 = s3 ∧ D2 = __smtx_dt_lift s1 D1 d3 := by simpa [native_Teq] using hbad
+            exact hs3ne hs')]
+          simp only [native_and, native_not, Bool.and_eq_true]
+          exact ⟨by simp [hsplit.1], noStray_lift_dt s1 D1 s2 D2 hD2 d3 hsplit.2⟩
+  | SmtType.Seq x, h => by simp [noStrayTy, __smtx_type_lift]
+  | SmtType.Set x, h => by simp [noStrayTy, __smtx_type_lift]
+  | SmtType.Map x y, h => by simp [noStrayTy, __smtx_type_lift]
+  | SmtType.FunType x y, h => by simp [noStrayTy, __smtx_type_lift]
+  | SmtType.DtcAppType x y, h => by simp [noStrayTy, __smtx_type_lift]
+  | SmtType.TypeRef s, h => by simp [noStrayTy, __smtx_type_lift]
+  | SmtType.None, h => by simp [noStrayTy, __smtx_type_lift]
+  | SmtType.RegLan, h => by simp [noStrayTy, __smtx_type_lift]
+  | SmtType.Bool, h => by simp [noStrayTy, __smtx_type_lift]
+  | SmtType.Int, h => by simp [noStrayTy, __smtx_type_lift]
+  | SmtType.Real, h => by simp [noStrayTy, __smtx_type_lift]
+  | SmtType.BitVec n, h => by simp [noStrayTy, __smtx_type_lift]
+  | SmtType.Char, h => by simp [noStrayTy, __smtx_type_lift]
+  | SmtType.USort n, h => by simp [noStrayTy, __smtx_type_lift]
+
+theorem noStray_lift_dt (s1 : native_String) (D1 : SmtDatatype)
+    (s2 : native_String) (D2 : SmtDatatype) (hD2 : __smtx_dt_lift s1 D1 D2 = D2) :
+    (W : SmtDatatype) → noStrayDt s2 D2 W = true →
+      noStrayDt s2 D2 (__smtx_dt_lift s1 D1 W) = true
+  | SmtDatatype.null, h => by simp [noStrayDt, __smtx_dt_lift]
+  | SmtDatatype.sum c d, h => by
+      simp only [noStrayDt, native_and, Bool.and_eq_true] at h
+      simp only [__smtx_dt_lift, noStrayDt, native_and, Bool.and_eq_true]
+      exact ⟨noStray_lift_dtc s1 D1 s2 D2 hD2 c h.1, noStray_lift_dt s1 D1 s2 D2 hD2 d h.2⟩
+
+theorem noStray_lift_dtc (s1 : native_String) (D1 : SmtDatatype)
+    (s2 : native_String) (D2 : SmtDatatype) (hD2 : __smtx_dt_lift s1 D1 D2 = D2) :
+    (c : SmtDatatypeCons) → noStrayDtc s2 D2 c = true →
+      noStrayDtc s2 D2 (__smtx_dtc_lift s1 D1 c) = true
+  | SmtDatatypeCons.unit, h => by simp [noStrayDtc, __smtx_dtc_lift]
+  | SmtDatatypeCons.cons T c, h => by
+      simp only [noStrayDtc, native_and, Bool.and_eq_true] at h
+      simp only [__smtx_dtc_lift, noStrayDtc, native_and, Bool.and_eq_true]
+      exact ⟨noStray_lift_ty s1 D1 s2 D2 hD2 T h.1, noStray_lift_dtc s1 D1 s2 D2 hD2 c h.2⟩
+end
+
 end Smtm
