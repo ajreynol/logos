@@ -1,6 +1,7 @@
 import Cpc.Proofs.Translation.Base
 import Cpc.Proofs.Translation.Datatypes
 import Cpc.Proofs.Translation.Inversions
+import Cpc.Proofs.Translation.SmtFreeRefs
 import Cpc.Proofs.TypePreservation.BitVecPrep
 import Cpc.Proofs.TypePreservation.Common
 import Cpc.Proofs.TypePreservation.CoreArith
@@ -3097,6 +3098,42 @@ theorem eo_to_smt_datatype_lift (s : native_String) (dRef d : Datatype) :
     __eo_to_smt_datatype (__eo_dt_lift s dRef d) =
       __smtx_dt_lift s (__eo_to_smt_datatype dRef) (__eo_to_smt_datatype d) := by
   sorry
+
+/-! ### Concrete refutation of `eo_to_smt_datatype_lift`
+
+The commutation above is FALSE as stated. Witness `cexD`: a datatype whose single
+constructor has one field that is a 1-tuple holding the *inlined* datatype
+`DatatypeType "Foo" cexDRef`. The EO lift `__eo_dt_lift` is shallow on tuples (a tuple is a
+`Term.Apply (UOp Tuple) …`, hitting the catch-all), so it leaves the inlined `Foo` in place.
+The SMT lift `__smtx_dt_lift` recurses into the translated `Datatype "@Tuple" …` body and
+folds `Foo` to `TypeRef "Foo"`. So the two sides differ:
+
+* EO-lift-then-translate: `… (cons (Datatype "@Tuple" (cons (Datatype "Foo" …) …)) …)`
+* translate-then-SMT-lift: `… (cons (Datatype "@Tuple" (cons (TypeRef "Foo")    …)) …)`
+-/
+private def cexS : native_String := native_string_lit "Foo"
+private def cexDRef : Datatype := Datatype.sum DatatypeCons.unit Datatype.null
+private def cexD : Datatype :=
+  Datatype.sum
+    (DatatypeCons.cons
+      (Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) (Term.DatatypeType cexS cexDRef))
+        (Term.UOp UserOp.UnitTuple))
+      DatatypeCons.unit)
+    Datatype.null
+
+/-- The two sides of `eo_to_smt_datatype_lift` are concretely unequal at `(cexS, cexDRef, cexD)`. -/
+example :
+    __eo_to_smt_datatype (__eo_dt_lift cexS cexDRef cexD) ≠
+      __smtx_dt_lift cexS (__eo_to_smt_datatype cexDRef) (__eo_to_smt_datatype cexD) := by
+  native_decide
+
+/-- Therefore the universally-quantified commutation `eo_to_smt_datatype_lift` cannot hold. -/
+theorem eo_to_smt_datatype_lift_not_general :
+    ¬ (∀ (s : native_String) (dRef d : Datatype),
+        __eo_to_smt_datatype (__eo_dt_lift s dRef d) =
+          __smtx_dt_lift s (__eo_to_smt_datatype dRef) (__eo_to_smt_datatype d)) := by
+  intro h
+  exact absurd (h cexS cexDRef cexD) (by native_decide)
 
 private def eo_type_substitute_field (sub : native_String) (d0 : Datatype) : Term -> Term
   | Term.DatatypeType s2 d2 =>
