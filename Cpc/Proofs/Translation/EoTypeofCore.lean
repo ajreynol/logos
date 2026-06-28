@@ -3112,6 +3112,60 @@ private theorem tuple_translate_wf {x1 x2 : Term} {s' : native_String} {body : S
       exact hwf.2
   · next => exact absurd h (by simp)
 
+/-- Generalised tuple connector: any non-`DatatypeType` term that translates to a `Datatype`
+must be a tuple, hence has a well-formed body. -/
+private theorem tuple_translate_wf_gen {fieldT : Term} {s' : native_String} {body : SmtDatatype}
+    (hnDT : ∀ s2 d2, fieldT ≠ Term.DatatypeType s2 d2)
+    (h : __eo_to_smt_type fieldT = SmtType.Datatype s' body) :
+    __smtx_type_wf_rec (SmtType.Datatype s' body) native_reflist_nil = true := by
+  cases fieldT with
+  | DatatypeType s2 d2 => exact absurd rfl (hnDT s2 d2)
+  | UOp op =>
+      cases op with
+      | UnitTuple =>
+          simp only [__eo_to_smt_type] at h
+          obtain ⟨rfl, rfl⟩ := h
+          simp [__smtx_type_wf_rec, __smtx_dt_wf_rec, __smtx_dt_cons_wf_rec, native_ite,
+            native_reflist_contains, native_reflist_nil]
+      | _ =>
+          simp only [__eo_to_smt_type, __smtx_typeof_guard, native_ite] at h
+          repeat' split at h
+          all_goals exact absurd h (by simp)
+  | Apply f x =>
+      cases f with
+      | Apply g y =>
+          cases g with
+          | UOp op =>
+              cases op with
+              | Tuple => exact tuple_translate_wf h
+              | _ =>
+                  simp only [__eo_to_smt_type, __smtx_typeof_guard, native_ite] at h
+                  repeat' split at h
+                  all_goals exact absurd h (by simp)
+          | _ =>
+              simp only [__eo_to_smt_type, __smtx_typeof_guard, native_ite] at h
+              repeat' split at h
+              all_goals exact absurd h (by simp)
+      | UOp op =>
+          cases op with
+          | BitVec =>
+              cases x <;>
+                (simp only [__eo_to_smt_type, __smtx_typeof_guard, native_ite] at h
+                 repeat' split at h
+                 all_goals exact absurd h (by simp))
+          | _ =>
+              simp only [__eo_to_smt_type, __smtx_typeof_guard, native_ite] at h
+              repeat' split at h
+              all_goals exact absurd h (by simp)
+      | _ =>
+          simp only [__eo_to_smt_type, __smtx_typeof_guard, native_ite] at h
+          repeat' split at h
+          all_goals exact absurd h (by simp)
+  | _ =>
+      simp only [__eo_to_smt_type, __smtx_typeof_guard, native_ite] at h
+      repeat' split at h
+      all_goals exact absurd h (by simp)
+
 /-- RESIDUAL ASSUMPTION (introduced by the `dtMutual` `__smtx_dt_lift` addition).
 
 The `lift` re-folding commutes with the EO→SMT translation:
