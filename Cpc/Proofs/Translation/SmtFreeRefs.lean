@@ -732,4 +732,67 @@ theorem noStray_lift_dtc (s1 : native_String) (D1 : SmtDatatype)
       exact ⟨noStray_lift_ty s1 D1 s2 D2 hD2 T h.1, noStray_lift_dtc s1 D1 s2 D2 hD2 c h.2⟩
 end
 
+
+/- `noDt s W`: `W` has no `Datatype s …` reachable by the lift's recursion. The SMT lift `__smtx_*_lift
+s D` is then the identity (nothing matches the fold pattern `Datatype s D`). -/
+mutual
+def noDtTy (s : native_String) : SmtType → Bool
+  | SmtType.Datatype s2 d2 => native_and (native_not (native_streq s2 s)) (noDtDt s d2)
+  | _ => true
+def noDtDt (s : native_String) : SmtDatatype → Bool
+  | SmtDatatype.sum c d => native_and (noDtDtc s c) (noDtDt s d)
+  | SmtDatatype.null => true
+def noDtDtc (s : native_String) : SmtDatatypeCons → Bool
+  | SmtDatatypeCons.cons T c => native_and (noDtTy s T) (noDtDtc s c)
+  | SmtDatatypeCons.unit => true
+end
+
+mutual
+theorem lift_noop_no_dt_ty (s : native_String) (D : SmtDatatype) :
+    (T : SmtType) → noDtTy s T = true → __smtx_type_lift s D T = T
+  | SmtType.Datatype s2 d2, h => by
+      simp only [noDtTy, native_and, native_not, Bool.and_eq_true] at h
+      have hs2 : native_streq s2 s = false := by
+        cases hst : native_streq s2 s
+        · rfl
+        · simp [hst] at h
+      have hsne : ¬ (s2 = s) := by intro he; subst he; simp [native_streq] at hs2
+      simp only [__smtx_type_lift, native_ite]
+      rw [if_neg (by
+        intro hbad
+        obtain ⟨he, _⟩ : s = s2 ∧ D = d2 := by simpa [native_Teq] using hbad
+        exact hsne he.symm)]
+      rw [lift_noop_no_dt_dt s D d2 h.2]
+  | SmtType.Seq x, h => by simp [__smtx_type_lift]
+  | SmtType.Set x, h => by simp [__smtx_type_lift]
+  | SmtType.Map x y, h => by simp [__smtx_type_lift]
+  | SmtType.FunType x y, h => by simp [__smtx_type_lift]
+  | SmtType.DtcAppType x y, h => by simp [__smtx_type_lift]
+  | SmtType.TypeRef s2, h => by simp [__smtx_type_lift]
+  | SmtType.None, h => by simp [__smtx_type_lift]
+  | SmtType.RegLan, h => by simp [__smtx_type_lift]
+  | SmtType.Bool, h => by simp [__smtx_type_lift]
+  | SmtType.Int, h => by simp [__smtx_type_lift]
+  | SmtType.Real, h => by simp [__smtx_type_lift]
+  | SmtType.BitVec n, h => by simp [__smtx_type_lift]
+  | SmtType.Char, h => by simp [__smtx_type_lift]
+  | SmtType.USort n, h => by simp [__smtx_type_lift]
+
+theorem lift_noop_no_dt_dt (s : native_String) (D : SmtDatatype) :
+    (W : SmtDatatype) → noDtDt s W = true → __smtx_dt_lift s D W = W
+  | SmtDatatype.null, h => by simp [__smtx_dt_lift]
+  | SmtDatatype.sum c d, h => by
+      simp only [noDtDt, native_and, Bool.and_eq_true] at h
+      simp only [__smtx_dt_lift]
+      rw [lift_noop_no_dt_dtc s D c h.1, lift_noop_no_dt_dt s D d h.2]
+
+theorem lift_noop_no_dt_dtc (s : native_String) (D : SmtDatatype) :
+    (c : SmtDatatypeCons) → noDtDtc s c = true → __smtx_dtc_lift s D c = c
+  | SmtDatatypeCons.unit, h => by simp [__smtx_dtc_lift]
+  | SmtDatatypeCons.cons T c, h => by
+      simp only [noDtDtc, native_and, Bool.and_eq_true] at h
+      simp only [__smtx_dtc_lift]
+      rw [lift_noop_no_dt_ty s D T h.1, lift_noop_no_dt_dtc s D c h.2]
+end
+
 end Smtm
