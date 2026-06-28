@@ -5291,6 +5291,399 @@ theorem smtx_model_eval_apply_cross_eq_of_eval_eq
   rw [hEvalF M, hEvalF' N, hF, hX]
   exact smtx_model_eval_apply_eq_of_globals hGlobals _ _
 
+theorem eo_to_smt_apply_apply_uop_generic_of_not_smt_binop
+    {op : UserOp} {x y : Term}
+    (hAnd : op ≠ UserOp.and)
+    (hOr : op ≠ UserOp.or)
+    (hImp : op ≠ UserOp.imp)
+    (hXor : op ≠ UserOp.xor)
+    (hEq : op ≠ UserOp.eq)
+    (hPlus : op ≠ UserOp.plus)
+    (hNeg : op ≠ UserOp.neg)
+    (hMult : op ≠ UserOp.mult)
+    (hLt : op ≠ UserOp.lt)
+    (hLeq : op ≠ UserOp.leq)
+    (hGt : op ≠ UserOp.gt)
+    (hGeq : op ≠ UserOp.geq)
+    (hDiv : op ≠ UserOp.div)
+    (hMod : op ≠ UserOp.mod)
+    (hSelect : op ≠ UserOp.select)
+    (hDivisible : op ≠ UserOp.divisible)
+    (hDivTotal : op ≠ UserOp.div_total)
+    (hModTotal : op ≠ UserOp.mod_total)
+    (hMultmultTotal : op ≠ UserOp.multmult_total)
+    (hMultmult : op ≠ UserOp.multmult)
+    (hQdivTotal : op ≠ UserOp.qdiv_total)
+    (hQdiv : op ≠ UserOp.qdiv)
+    (hConcat : op ≠ UserOp.concat)
+    (hBvand : op ≠ UserOp.bvand)
+    (hBvor : op ≠ UserOp.bvor)
+    (hBvnand : op ≠ UserOp.bvnand)
+    (hBvnor : op ≠ UserOp.bvnor)
+    (hBvxor : op ≠ UserOp.bvxor)
+    (hBvxnor : op ≠ UserOp.bvxnor)
+    (hBvcomp : op ≠ UserOp.bvcomp)
+    (hBvadd : op ≠ UserOp.bvadd)
+    (hBvmul : op ≠ UserOp.bvmul)
+    (hBvudiv : op ≠ UserOp.bvudiv)
+    (hBvurem : op ≠ UserOp.bvurem)
+    (hBvsub : op ≠ UserOp.bvsub)
+    (hBvsdiv : op ≠ UserOp.bvsdiv)
+    (hBvsrem : op ≠ UserOp.bvsrem)
+    (hBvsmod : op ≠ UserOp.bvsmod)
+    (hBvshl : op ≠ UserOp.bvshl)
+    (hBvlshr : op ≠ UserOp.bvlshr)
+    (hBvashr : op ≠ UserOp.bvashr)
+    (hBvult : op ≠ UserOp.bvult)
+    (hBvule : op ≠ UserOp.bvule)
+    (hBvugt : op ≠ UserOp.bvugt)
+    (hBvuge : op ≠ UserOp.bvuge)
+    (hBvslt : op ≠ UserOp.bvslt)
+    (hBvsle : op ≠ UserOp.bvsle)
+    (hBvsgt : op ≠ UserOp.bvsgt)
+    (hBvsge : op ≠ UserOp.bvsge)
+    (hBvuaddo : op ≠ UserOp.bvuaddo)
+    (hBvsaddo : op ≠ UserOp.bvsaddo)
+    (hBvumulo : op ≠ UserOp.bvumulo)
+    (hBvsmulo : op ≠ UserOp.bvsmulo)
+    (hBvusubo : op ≠ UserOp.bvusubo)
+    (hBvssubo : op ≠ UserOp.bvssubo)
+    (hBvsdivo : op ≠ UserOp.bvsdivo)
+    (hBvultbv : op ≠ UserOp.bvultbv)
+    (hBvsltbv : op ≠ UserOp.bvsltbv)
+    (hFromBools : op ≠ UserOp._at_from_bools)
+    (hStringsDeqDiff : op ≠ UserOp._at_strings_deq_diff)
+    (hStringsStoiResult : op ≠ UserOp._at_strings_stoi_result)
+    (hStrConcat : op ≠ UserOp.str_concat)
+    (hStrContains : op ≠ UserOp.str_contains)
+    (hStrAt : op ≠ UserOp.str_at)
+    (hStrPrefixof : op ≠ UserOp.str_prefixof)
+    (hStrSuffixof : op ≠ UserOp.str_suffixof)
+    (hStrLt : op ≠ UserOp.str_lt)
+    (hStrLeq : op ≠ UserOp.str_leq)
+    (hReRange : op ≠ UserOp.re_range)
+    (hReConcat : op ≠ UserOp.re_concat)
+    (hReInter : op ≠ UserOp.re_inter)
+    (hReUnion : op ≠ UserOp.re_union)
+    (hReDiff : op ≠ UserOp.re_diff)
+    (hStrInRe : op ≠ UserOp.str_in_re)
+    (hSeqNth : op ≠ UserOp.seq_nth)
+    (hSetUnion : op ≠ UserOp.set_union)
+    (hSetInter : op ≠ UserOp.set_inter)
+    (hSetMinus : op ≠ UserOp.set_minus)
+    (hSetMember : op ≠ UserOp.set_member)
+    (hSetSubset : op ≠ UserOp.set_subset)
+    (hStringsItosResult : op ≠ UserOp._at_strings_itos_result)
+    (hStringsNumOccur : op ≠ UserOp._at_strings_num_occur)
+    (hArrayDeqDiff : op ≠ UserOp._at_array_deq_diff)
+    (hSetsDeqDiff : op ≠ UserOp._at_sets_deq_diff)
+    (hTuple : op ≠ UserOp.tuple)
+    (hSetInsert : op ≠ UserOp.set_insert)
+    (hForall : op ≠ UserOp.forall)
+    (hExists : op ≠ UserOp.exists) :
+    __eo_to_smt (Term.Apply (Term.Apply (Term.UOp op) x) y) =
+      SmtTerm.Apply (__eo_to_smt (Term.Apply (Term.UOp op) x)) (__eo_to_smt y) := by
+  cases op <;> try rfl
+  all_goals
+    exfalso
+    first
+    | exact hAnd rfl
+    | exact hOr rfl
+    | exact hImp rfl
+    | exact hXor rfl
+    | exact hEq rfl
+    | exact hPlus rfl
+    | exact hNeg rfl
+    | exact hMult rfl
+    | exact hLt rfl
+    | exact hLeq rfl
+    | exact hGt rfl
+    | exact hGeq rfl
+    | exact hDiv rfl
+    | exact hMod rfl
+    | exact hSelect rfl
+    | exact hDivisible rfl
+    | exact hDivTotal rfl
+    | exact hModTotal rfl
+    | exact hMultmultTotal rfl
+    | exact hMultmult rfl
+    | exact hQdivTotal rfl
+    | exact hQdiv rfl
+    | exact hConcat rfl
+    | exact hBvand rfl
+    | exact hBvor rfl
+    | exact hBvnand rfl
+    | exact hBvnor rfl
+    | exact hBvxor rfl
+    | exact hBvxnor rfl
+    | exact hBvcomp rfl
+    | exact hBvadd rfl
+    | exact hBvmul rfl
+    | exact hBvudiv rfl
+    | exact hBvurem rfl
+    | exact hBvsub rfl
+    | exact hBvsdiv rfl
+    | exact hBvsrem rfl
+    | exact hBvsmod rfl
+    | exact hBvshl rfl
+    | exact hBvlshr rfl
+    | exact hBvashr rfl
+    | exact hBvult rfl
+    | exact hBvule rfl
+    | exact hBvugt rfl
+    | exact hBvuge rfl
+    | exact hBvslt rfl
+    | exact hBvsle rfl
+    | exact hBvsgt rfl
+    | exact hBvsge rfl
+    | exact hBvuaddo rfl
+    | exact hBvsaddo rfl
+    | exact hBvumulo rfl
+    | exact hBvsmulo rfl
+    | exact hBvusubo rfl
+    | exact hBvssubo rfl
+    | exact hBvsdivo rfl
+    | exact hBvultbv rfl
+    | exact hBvsltbv rfl
+    | exact hFromBools rfl
+    | exact hStringsDeqDiff rfl
+    | exact hStringsStoiResult rfl
+    | exact hStrConcat rfl
+    | exact hStrContains rfl
+    | exact hStrAt rfl
+    | exact hStrPrefixof rfl
+    | exact hStrSuffixof rfl
+    | exact hStrLt rfl
+    | exact hStrLeq rfl
+    | exact hReRange rfl
+    | exact hReConcat rfl
+    | exact hReInter rfl
+    | exact hReUnion rfl
+    | exact hReDiff rfl
+    | exact hStrInRe rfl
+    | exact hSeqNth rfl
+    | exact hSetUnion rfl
+    | exact hSetInter rfl
+    | exact hSetMinus rfl
+    | exact hSetMember rfl
+    | exact hSetSubset rfl
+    | exact hStringsItosResult rfl
+    | exact hStringsNumOccur rfl
+    | exact hArrayDeqDiff rfl
+    | exact hSetsDeqDiff rfl
+    | exact hTuple rfl
+    | exact hSetInsert rfl
+    | exact hForall rfl
+    | exact hExists rfl
+
+theorem substFalse_eval_binary_uop_generic_apply
+    (op : UserOp) (x1 a xs ss bvs : Term) {M N : SmtModel}
+    (hisr : (Term.Boolean false : Term) ≠ Term.Stuck)
+    (hxs : xs ≠ Term.Stuck) (hss : ss ≠ Term.Stuck) (hbvs : bvs ≠ Term.Stuck)
+    (hNotBinderOuter :
+      ∀ q v vs,
+        Term.Apply (Term.UOp op) x1 ≠
+          Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+    (hOrigTranslate :
+      __eo_to_smt (Term.Apply (Term.Apply (Term.UOp op) x1) a) =
+        SmtTerm.Apply
+          (__eo_to_smt (Term.Apply (Term.UOp op) x1))
+          (__eo_to_smt a))
+    (hSubstTranslate :
+      __eo_to_smt
+          (Term.Apply
+            (Term.Apply (Term.UOp op)
+              (__substitute_simul_rec (Term.Boolean false) x1 xs ss bvs))
+            (__substitute_simul_rec (Term.Boolean false) a xs ss bvs)) =
+        SmtTerm.Apply
+          (__eo_to_smt
+            (Term.Apply (Term.UOp op)
+              (__substitute_simul_rec (Term.Boolean false) x1 xs ss bvs)))
+          (__eo_to_smt
+            (__substitute_simul_rec (Term.Boolean false) a xs ss bvs)))
+    (hFTrans :
+      eoHasSmtTranslation (Term.Apply (Term.Apply (Term.UOp op) x1) a))
+    (hSubstTrans :
+      eoHasSmtTranslation
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp op) x1) a) xs ss bvs))
+    (hHeadSub :
+      __substitute_simul_rec (Term.Boolean false) (Term.UOp op) xs ss bvs =
+        Term.UOp op)
+    (hGlobals : model_agrees_on_globals M N)
+    (hRecHead :
+      eoHasSmtTranslation (Term.Apply (Term.UOp op) x1) →
+        eoHasSmtTranslation
+          (__substitute_simul_rec (Term.Boolean false)
+            (Term.Apply (Term.UOp op) x1) xs ss bvs) →
+        __smtx_model_eval M
+            (__eo_to_smt
+              (__substitute_simul_rec (Term.Boolean false)
+                (Term.Apply (Term.UOp op) x1) xs ss bvs)) =
+          __smtx_model_eval N (__eo_to_smt (Term.Apply (Term.UOp op) x1)))
+    (hRecArg :
+      eoHasSmtTranslation a →
+        eoHasSmtTranslation
+          (__substitute_simul_rec (Term.Boolean false) a xs ss bvs) →
+        __smtx_model_eval M
+            (__eo_to_smt
+              (__substitute_simul_rec (Term.Boolean false) a xs ss bvs)) =
+          __smtx_model_eval N (__eo_to_smt a)) :
+    __smtx_model_eval M
+        (__eo_to_smt
+          (__substitute_simul_rec (Term.Boolean false)
+            (Term.Apply (Term.Apply (Term.UOp op) x1) a) xs ss bvs)) =
+      __smtx_model_eval N
+        (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp op) x1) a)) := by
+  have hOrigTy :
+      generic_apply_type
+        (__eo_to_smt (Term.Apply (Term.UOp op) x1))
+        (__eo_to_smt a) :=
+    generic_apply_type_of_non_special_head_closed _ _
+      (by
+        intro s d i j hSel
+        exact TranslationProofs.eo_to_smt_apply_ne_dt_sel _ _ s d i j hSel)
+      (by
+        intro s d i hTester
+        exact TranslationProofs.eo_to_smt_apply_ne_dt_tester _ _ s d i hTester)
+  have hOrigNN :
+      term_has_non_none_type
+        (SmtTerm.Apply
+          (__eo_to_smt (Term.Apply (Term.UOp op) x1))
+          (__eo_to_smt a)) := by
+    unfold term_has_non_none_type
+    rw [← hOrigTranslate]
+    exact hFTrans
+  rcases apply_args_have_smt_translation_of_non_none hOrigTy hOrigNN with
+    ⟨hHeadTrans, hATrans⟩
+  have hSubstHead :
+      __substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.UOp op) x1) xs ss bvs =
+        __eo_mk_apply (Term.UOp op)
+          (__substitute_simul_rec (Term.Boolean false) x1 xs ss bvs) := by
+    have hEq :=
+      SubstituteSupport.substitute_simul_rec_apply (Term.Boolean false)
+        (Term.UOp op) x1 xs ss bvs hisr hxs hss hbvs
+        (by intro q v vs hEq; cases hEq)
+    simpa [hHeadSub] using hEq
+  have hSubstEq :
+      __substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp op) x1) a) xs ss bvs =
+        __eo_mk_apply
+          (__eo_mk_apply (Term.UOp op)
+            (__substitute_simul_rec (Term.Boolean false) x1 xs ss bvs))
+          (__substitute_simul_rec (Term.Boolean false) a xs ss bvs) := by
+    have hEq :=
+      SubstituteSupport.substitute_simul_rec_apply (Term.Boolean false)
+        (Term.Apply (Term.UOp op) x1) a xs ss bvs hisr hxs hss hbvs
+        hNotBinderOuter
+    rw [hEq, hSubstHead]
+  have hOuterNeStuck :
+      __eo_mk_apply
+          (__eo_mk_apply (Term.UOp op)
+            (__substitute_simul_rec (Term.Boolean false) x1 xs ss bvs))
+          (__substitute_simul_rec (Term.Boolean false) a xs ss bvs) ≠
+        Term.Stuck := by
+    rw [← hSubstEq]
+    exact RuleProofs.term_ne_stuck_of_has_smt_translation _ hSubstTrans
+  have hInnerNeStuck :
+      __eo_mk_apply (Term.UOp op)
+          (__substitute_simul_rec (Term.Boolean false) x1 xs ss bvs) ≠
+        Term.Stuck :=
+    instantiate_eo_mk_apply_fun_ne_stuck_of_ne_stuck hOuterNeStuck
+  have hInnerMk :
+      __eo_mk_apply (Term.UOp op)
+          (__substitute_simul_rec (Term.Boolean false) x1 xs ss bvs) =
+        Term.Apply (Term.UOp op)
+          (__substitute_simul_rec (Term.Boolean false) x1 xs ss bvs) :=
+    instantiate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hInnerNeStuck
+  have hOuterMk :
+      __eo_mk_apply
+          (Term.Apply (Term.UOp op)
+            (__substitute_simul_rec (Term.Boolean false) x1 xs ss bvs))
+          (__substitute_simul_rec (Term.Boolean false) a xs ss bvs) =
+        Term.Apply
+          (Term.Apply (Term.UOp op)
+            (__substitute_simul_rec (Term.Boolean false) x1 xs ss bvs))
+          (__substitute_simul_rec (Term.Boolean false) a xs ss bvs) :=
+    instantiate_eo_mk_apply_eq_apply_of_ne_stuck _ _ (by
+      rw [← hInnerMk]
+      exact hOuterNeStuck)
+  have hResultEq :
+      __substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp op) x1) a) xs ss bvs =
+        Term.Apply
+          (Term.Apply (Term.UOp op)
+            (__substitute_simul_rec (Term.Boolean false) x1 xs ss bvs))
+          (__substitute_simul_rec (Term.Boolean false) a xs ss bvs) := by
+    rw [hSubstEq, hInnerMk, hOuterMk]
+  have hSubstTy :
+      generic_apply_type
+        (__eo_to_smt
+          (Term.Apply (Term.UOp op)
+            (__substitute_simul_rec (Term.Boolean false) x1 xs ss bvs)))
+        (__eo_to_smt
+          (__substitute_simul_rec (Term.Boolean false) a xs ss bvs)) :=
+    generic_apply_type_of_non_special_head_closed _ _
+      (by
+        intro s d i j hSel
+        exact TranslationProofs.eo_to_smt_apply_ne_dt_sel _ _ s d i j hSel)
+      (by
+        intro s d i hTester
+        exact TranslationProofs.eo_to_smt_apply_ne_dt_tester _ _ s d i hTester)
+  have hSubstAppTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.Apply (Term.UOp op)
+            (__substitute_simul_rec (Term.Boolean false) x1 xs ss bvs))
+          (__substitute_simul_rec (Term.Boolean false) a xs ss bvs)) := by
+    rw [← hResultEq]
+    exact hSubstTrans
+  have hSubstNN :
+      term_has_non_none_type
+        (SmtTerm.Apply
+          (__eo_to_smt
+            (Term.Apply (Term.UOp op)
+              (__substitute_simul_rec (Term.Boolean false) x1 xs ss bvs)))
+          (__eo_to_smt
+            (__substitute_simul_rec (Term.Boolean false) a xs ss bvs))) := by
+    unfold term_has_non_none_type
+    rw [← hSubstTranslate]
+    exact hSubstAppTrans
+  rcases apply_args_have_smt_translation_of_non_none hSubstTy hSubstNN with
+    ⟨hSubstHeadTrans, hSubstATrans⟩
+  have hHeadEval :
+      __smtx_model_eval M
+          (__eo_to_smt
+            (Term.Apply (Term.UOp op)
+              (__substitute_simul_rec (Term.Boolean false) x1 xs ss bvs))) =
+        __smtx_model_eval N
+          (__eo_to_smt (Term.Apply (Term.UOp op) x1)) := by
+    simpa [hSubstHead, hInnerMk] using
+      hRecHead hHeadTrans
+        (by
+          rw [hSubstHead, hInnerMk]
+          exact hSubstHeadTrans)
+  have hArgEval := hRecArg hATrans hSubstATrans
+  rw [hResultEq, hOrigTranslate, hSubstTranslate]
+  exact
+    smtx_model_eval_apply_cross_eq_of_eval_eq hGlobals
+      (generic_apply_eval_of_non_datatype_head
+        (by
+          intro s d i j hSel
+          exact TranslationProofs.eo_to_smt_apply_ne_dt_sel _ _ s d i j hSel)
+        (by
+          intro s d i hTester
+          exact TranslationProofs.eo_to_smt_apply_ne_dt_tester _ _ s d i hTester))
+      (generic_apply_eval_of_non_datatype_head
+        (by
+          intro s d i j hSel
+          exact TranslationProofs.eo_to_smt_apply_ne_dt_sel _ _ s d i j hSel)
+        (by
+          intro s d i hTester
+          exact TranslationProofs.eo_to_smt_apply_ne_dt_tester _ _ s d i hTester))
+      hHeadEval hArgEval
+
 theorem eo_to_smt_apply_apply_apply_uop_generic_of_not_smt_triop
     {op : UserOp} {x y z : Term}
     (hIte : op ≠ UserOp.ite)
@@ -5614,6 +6007,130 @@ theorem substFalse_eval_ternary_uop_generic_apply
           intro s d i hTester
           exact TranslationProofs.eo_to_smt_apply_ne_dt_tester _ _ s d i hTester))
       hHeadEval hArgEval
+
+theorem substFalse_eval_generic_apply
+    (f a xs ss bvs : Term) {M N : SmtModel}
+    (hisr : (Term.Boolean false : Term) ≠ Term.Stuck)
+    (hxs : xs ≠ Term.Stuck) (hss : ss ≠ Term.Stuck) (hbvs : bvs ≠ Term.Stuck)
+    (hNotBinder :
+      ∀ q v vs,
+        f ≠ Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+    (hOrigTranslate :
+      __eo_to_smt (Term.Apply f a) =
+        SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt a))
+    (hSubstTranslate :
+      __eo_to_smt
+          (Term.Apply
+            (__substitute_simul_rec (Term.Boolean false) f xs ss bvs)
+            (__substitute_simul_rec (Term.Boolean false) a xs ss bvs)) =
+        SmtTerm.Apply
+          (__eo_to_smt
+            (__substitute_simul_rec (Term.Boolean false) f xs ss bvs))
+          (__eo_to_smt
+            (__substitute_simul_rec (Term.Boolean false) a xs ss bvs)))
+    (hOrigTy :
+      generic_apply_type (__eo_to_smt f) (__eo_to_smt a))
+    (hSubstTy :
+      generic_apply_type
+        (__eo_to_smt
+          (__substitute_simul_rec (Term.Boolean false) f xs ss bvs))
+        (__eo_to_smt
+          (__substitute_simul_rec (Term.Boolean false) a xs ss bvs)))
+    (hOrigEval :
+      generic_apply_eval (__eo_to_smt f) (__eo_to_smt a))
+    (hSubstEval :
+      generic_apply_eval
+        (__eo_to_smt
+          (__substitute_simul_rec (Term.Boolean false) f xs ss bvs))
+        (__eo_to_smt
+          (__substitute_simul_rec (Term.Boolean false) a xs ss bvs)))
+    (hFTrans : eoHasSmtTranslation (Term.Apply f a))
+    (hSubstTrans :
+      eoHasSmtTranslation
+        (__substitute_simul_rec (Term.Boolean false) (Term.Apply f a) xs ss bvs))
+    (hGlobals : model_agrees_on_globals M N)
+    (hRecHead :
+      eoHasSmtTranslation f →
+        eoHasSmtTranslation
+          (__substitute_simul_rec (Term.Boolean false) f xs ss bvs) →
+        __smtx_model_eval M
+            (__eo_to_smt
+              (__substitute_simul_rec (Term.Boolean false) f xs ss bvs)) =
+          __smtx_model_eval N (__eo_to_smt f))
+    (hRecArg :
+      eoHasSmtTranslation a →
+        eoHasSmtTranslation
+          (__substitute_simul_rec (Term.Boolean false) a xs ss bvs) →
+        __smtx_model_eval M
+            (__eo_to_smt
+              (__substitute_simul_rec (Term.Boolean false) a xs ss bvs)) =
+          __smtx_model_eval N (__eo_to_smt a)) :
+    __smtx_model_eval M
+        (__eo_to_smt
+          (__substitute_simul_rec (Term.Boolean false) (Term.Apply f a) xs ss bvs)) =
+      __smtx_model_eval N (__eo_to_smt (Term.Apply f a)) := by
+  have hSubstEq :
+      __substitute_simul_rec (Term.Boolean false) (Term.Apply f a) xs ss bvs =
+        __eo_mk_apply
+          (__substitute_simul_rec (Term.Boolean false) f xs ss bvs)
+          (__substitute_simul_rec (Term.Boolean false) a xs ss bvs) := by
+    exact
+      SubstituteSupport.substitute_simul_rec_apply (Term.Boolean false)
+        f a xs ss bvs hisr hxs hss hbvs hNotBinder
+  have hOuterNeStuck :
+      __eo_mk_apply
+          (__substitute_simul_rec (Term.Boolean false) f xs ss bvs)
+          (__substitute_simul_rec (Term.Boolean false) a xs ss bvs) ≠
+        Term.Stuck := by
+    rw [← hSubstEq]
+    exact RuleProofs.term_ne_stuck_of_has_smt_translation _ hSubstTrans
+  have hMk :
+      __eo_mk_apply
+          (__substitute_simul_rec (Term.Boolean false) f xs ss bvs)
+          (__substitute_simul_rec (Term.Boolean false) a xs ss bvs) =
+        Term.Apply
+          (__substitute_simul_rec (Term.Boolean false) f xs ss bvs)
+          (__substitute_simul_rec (Term.Boolean false) a xs ss bvs) :=
+    instantiate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hOuterNeStuck
+  have hResultEq :
+      __substitute_simul_rec (Term.Boolean false) (Term.Apply f a) xs ss bvs =
+        Term.Apply
+          (__substitute_simul_rec (Term.Boolean false) f xs ss bvs)
+          (__substitute_simul_rec (Term.Boolean false) a xs ss bvs) := by
+    rw [hSubstEq, hMk]
+  have hOrigNN :
+      term_has_non_none_type
+        (SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt a)) := by
+    unfold term_has_non_none_type
+    rw [← hOrigTranslate]
+    exact hFTrans
+  rcases apply_args_have_smt_translation_of_non_none hOrigTy hOrigNN with
+    ⟨hFHeadTrans, hATrans⟩
+  have hSubstAppTrans :
+      eoHasSmtTranslation
+        (Term.Apply
+          (__substitute_simul_rec (Term.Boolean false) f xs ss bvs)
+          (__substitute_simul_rec (Term.Boolean false) a xs ss bvs)) := by
+    rw [← hResultEq]
+    exact hSubstTrans
+  have hSubstNN :
+      term_has_non_none_type
+        (SmtTerm.Apply
+          (__eo_to_smt
+            (__substitute_simul_rec (Term.Boolean false) f xs ss bvs))
+          (__eo_to_smt
+            (__substitute_simul_rec (Term.Boolean false) a xs ss bvs))) := by
+    unfold term_has_non_none_type
+    rw [← hSubstTranslate]
+    exact hSubstAppTrans
+  rcases apply_args_have_smt_translation_of_non_none hSubstTy hSubstNN with
+    ⟨hSubstHeadTrans, hSubstATrans⟩
+  rw [hResultEq, hOrigTranslate, hSubstTranslate]
+  exact
+    smtx_model_eval_apply_cross_eq_of_eval_eq hGlobals
+      hSubstEval hOrigEval
+      (hRecHead hFHeadTrans hSubstHeadTrans)
+      (hRecArg hATrans hSubstATrans)
 
 /--
 General substitution–evaluation induction (substitution mode, `isr = false`),
@@ -7819,7 +8336,62 @@ theorem substFalse_eval_gen_lt
                                                                                                                                                                                                                         intro v vs hEq
                                                                                                                                                                                                                         exact hBinder ⟨Term.UOp UserOp.exists, v, vs, by rw [hEq]⟩)
                                                                                                                                                                                                                       hFTrans
-                                                                                                                                                                                                                · sorry
+                                                                                                                                                                                                                · by_cases h_tuple_or_set_insert :
+                                                                                                                                                                                                                    op = UserOp.tuple ∨ op = UserOp.set_insert
+                                                                                                                                                                                                                  · sorry
+                                                                                                                                                                                                                  · have h_tuple : op ≠ UserOp.tuple := by
+                                                                                                                                                                                                                      intro h
+                                                                                                                                                                                                                      exact h_tuple_or_set_insert (Or.inl h)
+                                                                                                                                                                                                                    have h_set_insert : op ≠ UserOp.set_insert := by
+                                                                                                                                                                                                                      intro h
+                                                                                                                                                                                                                      exact h_tuple_or_set_insert (Or.inr h)
+                                                                                                                                                                                                                    exact substFalse_eval_binary_uop_generic_apply op x1 a xs ss bvs
+                                                                                                                                                                                                                        hisr hxs hss hbvs
+                                                                                                                                                                                                                        (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                                                                                                                        (eo_to_smt_apply_apply_uop_generic_of_not_smt_binop
+                                                                                                                                                                                                                          h_and h_or h_imp h_xor h_eq h_plus h_neg h_mult
+                                                                                                                                                                                                                          h_lt h_leq h_gt h_geq h_div h_mod h_select
+                                                                                                                                                                                                                          h_divisible h_div_total h_mod_total h_multmult_total
+                                                                                                                                                                                                                          h_multmult h_qdiv_total h_qdiv h_concat
+                                                                                                                                                                                                                          h_bvand h_bvor h_bvnand h_bvnor h_bvxor h_bvxnor
+                                                                                                                                                                                                                          h_bvcomp h_bvadd h_bvmul h_bvudiv h_bvurem h_bvsub
+                                                                                                                                                                                                                          h_bvsdiv h_bvsrem h_bvsmod h_bvshl h_bvlshr
+                                                                                                                                                                                                                          h_bvashr h_bvult h_bvule h_bvugt h_bvuge h_bvslt
+                                                                                                                                                                                                                          h_bvsle h_bvsgt h_bvsge h_bvuaddo h_bvsaddo
+                                                                                                                                                                                                                          h_bvumulo h_bvsmulo h_bvusubo h_bvssubo h_bvsdivo
+                                                                                                                                                                                                                          h_bvultbv h_bvsltbv h_from_bools h_strings_deq_diff
+                                                                                                                                                                                                                          h_strings_stoi_result h_str_concat h_str_contains h_str_at
+                                                                                                                                                                                                                          h_str_prefixof h_str_suffixof h_str_lt h_str_leq
+                                                                                                                                                                                                                          h_re_range h_re_concat h_re_inter h_re_union h_re_diff
+                                                                                                                                                                                                                          h_str_in_re h_seq_nth h_set_union h_set_inter
+                                                                                                                                                                                                                          h_set_minus h_set_member h_set_subset h_strings_itos_result
+                                                                                                                                                                                                                          h_strings_num_occur h_array_deq_diff h_sets_deq_diff
+                                                                                                                                                                                                                          h_tuple h_set_insert h_forall h_exists)
+                                                                                                                                                                                                                        (eo_to_smt_apply_apply_uop_generic_of_not_smt_binop
+                                                                                                                                                                                                                          h_and h_or h_imp h_xor h_eq h_plus h_neg h_mult
+                                                                                                                                                                                                                          h_lt h_leq h_gt h_geq h_div h_mod h_select
+                                                                                                                                                                                                                          h_divisible h_div_total h_mod_total h_multmult_total
+                                                                                                                                                                                                                          h_multmult h_qdiv_total h_qdiv h_concat
+                                                                                                                                                                                                                          h_bvand h_bvor h_bvnand h_bvnor h_bvxor h_bvxnor
+                                                                                                                                                                                                                          h_bvcomp h_bvadd h_bvmul h_bvudiv h_bvurem h_bvsub
+                                                                                                                                                                                                                          h_bvsdiv h_bvsrem h_bvsmod h_bvshl h_bvlshr
+                                                                                                                                                                                                                          h_bvashr h_bvult h_bvule h_bvugt h_bvuge h_bvslt
+                                                                                                                                                                                                                          h_bvsle h_bvsgt h_bvsge h_bvuaddo h_bvsaddo
+                                                                                                                                                                                                                          h_bvumulo h_bvsmulo h_bvusubo h_bvssubo h_bvsdivo
+                                                                                                                                                                                                                          h_bvultbv h_bvsltbv h_from_bools h_strings_deq_diff
+                                                                                                                                                                                                                          h_strings_stoi_result h_str_concat h_str_contains h_str_at
+                                                                                                                                                                                                                          h_str_prefixof h_str_suffixof h_str_lt h_str_leq
+                                                                                                                                                                                                                          h_re_range h_re_concat h_re_inter h_re_union h_re_diff
+                                                                                                                                                                                                                          h_str_in_re h_seq_nth h_set_union h_set_inter
+                                                                                                                                                                                                                          h_set_minus h_set_member h_set_subset h_strings_itos_result
+                                                                                                                                                                                                                          h_strings_num_occur h_array_deq_diff h_sets_deq_diff
+                                                                                                                                                                                                                          h_tuple h_set_insert h_forall h_exists)
+                                                                                                                                                                                                                        hFTrans hSubstTrans
+                                                                                                                                                                                                                        (substitute_simul_rec_uop_eq_self op xs ss bvs
+                                                                                                                                                                                                                          hXsEnv hBvsEnv hSsTrans)
+                                                                                                                                                                                                                        hRel.globals
+                                                                                                                                                                                                                        (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                                                                                                                                        (fun ht hst => hRecArg (by simp; try omega) ht hst)
                                   | Apply h x0 =>
                                       cases h with
                                       | UOp op =>
