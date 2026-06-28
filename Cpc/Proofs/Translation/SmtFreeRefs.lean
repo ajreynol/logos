@@ -877,4 +877,80 @@ theorem noDt_of_wf_dtc (s : native_String) :
           · next => exact absurd hwf (by simp)
 end
 
+
+/- `consistentWith D0 W`: every `Datatype s' E'` reachable in `W` is `noStray`-consistent with `D0`
+(i.e. all `Datatype s'` in `D0` have body `E'`). The relational invariant threaded through the
+substitute recursion: `consistentWith (tr d0) (tr d)` (substituting d0 vs substituted-into d). -/
+mutual
+def consistentWithTy (D0 : SmtDatatype) : SmtType → Bool
+  | SmtType.Datatype s' E' => native_and (noStrayDt s' E' D0) (consistentWithDt D0 E')
+  | _ => true
+def consistentWithDt (D0 : SmtDatatype) : SmtDatatype → Bool
+  | SmtDatatype.sum c d => native_and (consistentWithDtc D0 c) (consistentWithDt D0 d)
+  | SmtDatatype.null => true
+def consistentWithDtc (D0 : SmtDatatype) : SmtDatatypeCons → Bool
+  | SmtDatatypeCons.cons T c => native_and (consistentWithTy D0 T) (consistentWithDtc D0 c)
+  | SmtDatatypeCons.unit => true
+end
+
+/- MAINTENANCE: lifting the comparison target `D0` by an `s'`-fold (with `W` free of `Datatype s'`)
+preserves `consistentWith`. This is the step that keeps the invariant alive as the substituting
+datatype is re-lifted under each binder in the recursion. -/
+mutual
+theorem consistentWith_maintained_ty (s' : native_String) (B : SmtDatatype) (D0 : SmtDatatype) :
+    (T : SmtType) → noDtTy s' T = true → consistentWithTy D0 T = true →
+      consistentWithTy (__smtx_dt_lift s' B D0) T = true
+  | SmtType.Datatype s'' E'', hnd, hcw => by
+      simp only [noDtTy, native_and, Bool.and_eq_true] at hnd
+      simp only [consistentWithTy, native_and, Bool.and_eq_true] at hcw
+      have hD2 : __smtx_dt_lift s' B E'' = E'' := lift_noop_no_dt_dt s' B E'' hnd.2
+      simp only [consistentWithTy, native_and, Bool.and_eq_true]
+      exact ⟨noStray_lift_dt s' B s'' E'' hD2 D0 hcw.1,
+             consistentWith_maintained_dt s' B D0 E'' hnd.2 hcw.2⟩
+  | SmtType.Seq x, _, _ => by simp [consistentWithTy]
+  | SmtType.Set x, _, _ => by simp [consistentWithTy]
+  | SmtType.Map x y, _, _ => by simp [consistentWithTy]
+  | SmtType.FunType x y, _, _ => by simp [consistentWithTy]
+  | SmtType.DtcAppType x y, _, _ => by simp [consistentWithTy]
+  | SmtType.TypeRef s, _, _ => by simp [consistentWithTy]
+  | SmtType.None, _, _ => by simp [consistentWithTy]
+  | SmtType.RegLan, _, _ => by simp [consistentWithTy]
+  | SmtType.Bool, _, _ => by simp [consistentWithTy]
+  | SmtType.Int, _, _ => by simp [consistentWithTy]
+  | SmtType.Real, _, _ => by simp [consistentWithTy]
+  | SmtType.BitVec n, _, _ => by simp [consistentWithTy]
+  | SmtType.Char, _, _ => by simp [consistentWithTy]
+  | SmtType.USort n, _, _ => by simp [consistentWithTy]
+
+theorem consistentWith_maintained_dt (s' : native_String) (B : SmtDatatype) (D0 : SmtDatatype) :
+    (W : SmtDatatype) → noDtDt s' W = true → consistentWithDt D0 W = true →
+      consistentWithDt (__smtx_dt_lift s' B D0) W = true
+  | SmtDatatype.null, _, _ => by simp [consistentWithDt]
+  | SmtDatatype.sum c d, hnd, hcw => by
+      simp only [noDtDt, native_and, Bool.and_eq_true] at hnd
+      simp only [consistentWithDt, native_and, Bool.and_eq_true] at hcw
+      simp only [consistentWithDt, native_and, Bool.and_eq_true]
+      exact ⟨consistentWith_maintained_dtc s' B D0 c hnd.1 hcw.1,
+             consistentWith_maintained_dt s' B D0 d hnd.2 hcw.2⟩
+
+theorem consistentWith_maintained_dtc (s' : native_String) (B : SmtDatatype) (D0 : SmtDatatype) :
+    (c : SmtDatatypeCons) → noDtDtc s' c = true → consistentWithDtc D0 c = true →
+      consistentWithDtc (__smtx_dt_lift s' B D0) c = true
+  | SmtDatatypeCons.unit, _, _ => by simp [consistentWithDtc]
+  | SmtDatatypeCons.cons T c, hnd, hcw => by
+      simp only [noDtDtc, native_and, Bool.and_eq_true] at hnd
+      simp only [consistentWithDtc, native_and, Bool.and_eq_true] at hcw
+      simp only [consistentWithDtc, native_and, Bool.and_eq_true]
+      exact ⟨consistentWith_maintained_ty s' B D0 T hnd.1 hcw.1,
+             consistentWith_maintained_dtc s' B D0 c hnd.2 hcw.2⟩
+end
+
+/-- Field extraction: a `Datatype s' E'` field of a `consistentWith`-D0 datatype is noStray-consistent
+with D0 (and its body is too). -/
+theorem noStray_of_consistentWith (D0 : SmtDatatype) (s' : native_String) (E' : SmtDatatype)
+    (h : consistentWithTy D0 (SmtType.Datatype s' E') = true) :
+    noStrayDt s' E' D0 = true := by
+  simp only [consistentWithTy, native_and, Bool.and_eq_true] at h
+  exact h.1
+
 end Smtm
