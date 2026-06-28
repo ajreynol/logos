@@ -3076,7 +3076,7 @@ private theorem smtx_type_substitute_top_of_guard
 body, the EO-level `native_teq` and SMT-level `native_Teq` equality checks agree. The forward
 direction is congruence of translation; the backward direction is translation injectivity
 (`eo_to_smt_datatype_injective_of_wf_rec`). -/
-private theorem eo_to_smt_teq_corr (s s2 : native_String) (dRef d2 : Datatype) (refs : RefList)
+theorem eo_to_smt_teq_corr (s s2 : native_String) (dRef d2 : Datatype) (refs : RefList)
     (hwf : __smtx_dt_wf_rec (__eo_to_smt_datatype d2) refs = true) :
     native_teq (Term.DatatypeType s dRef) (Term.DatatypeType s2 d2)
       = native_Teq (SmtType.Datatype s (__eo_to_smt_datatype dRef))
@@ -3100,7 +3100,7 @@ private theorem eo_to_smt_teq_corr (s s2 : native_String) (dRef d2 : Datatype) (
 /-- Connector for the tuple case of the lift correspondence: a tuple that translates to a real
 `Datatype` (not `None`) has a well-formed body, because `__eo_to_smt_type` gates the tuple
 translation on `__smtx_type_wf` (`wf_component`, i.e. well-formed at the empty ref context). -/
-private theorem tuple_translate_wf {x1 x2 : Term} {s' : native_String} {body : SmtDatatype}
+theorem tuple_translate_wf {x1 x2 : Term} {s' : native_String} {body : SmtDatatype}
     (h : __eo_to_smt_type (Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) x1) x2)
         = SmtType.Datatype s' body) :
     __smtx_type_wf_rec (SmtType.Datatype s' body) native_reflist_nil = true := by
@@ -3114,7 +3114,7 @@ private theorem tuple_translate_wf {x1 x2 : Term} {s' : native_String} {body : S
 
 /-- Generalised tuple connector: any non-`DatatypeType` term that translates to a `Datatype`
 must be a tuple, hence has a well-formed body. -/
-private theorem tuple_translate_wf_gen {fieldT : Term} {s' : native_String} {body : SmtDatatype}
+theorem tuple_translate_wf_gen {fieldT : Term} {s' : native_String} {body : SmtDatatype}
     (hnDT : ∀ s2 d2, fieldT ≠ Term.DatatypeType s2 d2)
     (h : __eo_to_smt_type fieldT = SmtType.Datatype s' body) :
     __smtx_type_wf_rec (SmtType.Datatype s' body) native_reflist_nil = true := by
@@ -3228,6 +3228,111 @@ theorem eo_to_smt_datatype_lift_not_general :
           __smtx_dt_lift s (__eo_to_smt_datatype dRef) (__eo_to_smt_datatype d)) := by
   intro h
   exact absurd (h cexS cexDRef cexD) (by native_decide)
+
+/- Lift correspondence (the SOUND replacement for `eo_to_smt_datatype_lift`): translating the
+EO-lifted datatype equals SMT-lifting the translated datatype, GIVEN SMT well-formedness of the
+datatype and that the re-fold target `dRef` has a free reference `sub`. The `DatatypeType` field
+case uses `eo_to_smt_teq_corr` (fold-decision via injectivity); the tuple field case will use
+`Smtm.lift_noop_*` (tuple no-op) + `tuple_translate_wf_gen`. -/
+mutual
+theorem eo_to_smt_ty_lift_of_wf (s sub : native_String) (dRef : Datatype)
+    (hsne : sub ≠ s)
+    (hFree : hasFreeDt sub (native_reflist_insert native_reflist_nil s) (__eo_to_smt_datatype dRef) = true) :
+    (T : Term) → (refs : RefList) →
+      native_reflist_contains refs sub = true →
+      __smtx_type_wf_rec (__eo_to_smt_type T) refs = true →
+      __eo_to_smt_type (__eo_type_lift s dRef T) =
+        __smtx_type_lift s (__eo_to_smt_datatype dRef) (__eo_to_smt_type T)
+  | Term.DatatypeType s2 d2, refs, hsr, hwf => by
+      by_cases hRes : native_reserved_datatype_name s2 = true
+      · simp [__eo_to_smt_type, native_ite, hRes, __smtx_type_wf_rec] at hwf
+      have hRes' : native_reserved_datatype_name s2 = false := by
+        simpa using hRes
+      have htrwf : __smtx_type_wf_rec (SmtType.Datatype s2 (__eo_to_smt_datatype d2)) refs = true := by
+        simpa only [__eo_to_smt_type, native_ite, hRes'] using hwf
+      have hns2 : native_reflist_contains refs s2 = false := by
+        cases hc : native_reflist_contains refs s2 <;>
+          simp [__smtx_type_wf_rec, native_ite, hc] at htrwf ⊢
+      have hd2wf : __smtx_dt_wf_rec (__eo_to_smt_datatype d2) (native_reflist_insert refs s2) = true := by
+        simp [__smtx_type_wf_rec, native_ite, hns2] at htrwf; exact htrwf
+      have hsr2 : native_reflist_contains (native_reflist_insert refs s2) sub = true := by
+        simp [native_reflist_contains, native_reflist_insert, List.mem_cons]
+        right; simpa [native_reflist_contains] using hsr
+      have htrDT : __eo_to_smt_type (Term.DatatypeType s2 d2)
+          = SmtType.Datatype s2 (__eo_to_smt_datatype d2) := by
+        simp [__eo_to_smt_type, native_ite, hRes']
+      simp only [__eo_type_lift]
+      have hcorr := eo_to_smt_teq_corr s s2 dRef d2 (native_reflist_insert refs s2) hd2wf
+      by_cases hteq : native_teq (Term.DatatypeType s dRef) (Term.DatatypeType s2 d2) = true
+      · rw [native_ite, if_pos hteq]
+        have hEq : Term.DatatypeType s dRef = Term.DatatypeType s2 d2 := of_decide_eq_true hteq
+        injection hEq with hs hd
+        subst hs; subst hd
+        have hLHS : __eo_to_smt_type (Term.DatatypeTypeRef s) = SmtType.TypeRef s := by
+          simp [__eo_to_smt_type, native_ite, hRes']
+        rw [hLHS, htrDT, __smtx_type_lift, native_ite, if_pos (by simp [native_Teq])]
+      · rw [native_ite, if_neg hteq]
+        have hTeqF : ¬ (native_Teq (SmtType.Datatype s (__eo_to_smt_datatype dRef))
+            (SmtType.Datatype s2 (__eo_to_smt_datatype d2)) = true) := by
+          rw [← hcorr]; exact hteq
+        have hLHS : __eo_to_smt_type (Term.DatatypeType s2 (__eo_dt_lift s dRef d2))
+            = SmtType.Datatype s2 (__eo_to_smt_datatype (__eo_dt_lift s dRef d2)) := by
+          simp [__eo_to_smt_type, native_ite, hRes']
+        rw [hLHS, htrDT, __smtx_type_lift, native_ite, if_neg hTeqF]
+        congr 1
+        exact eo_to_smt_dt_lift_of_wf s sub dRef hsne hFree d2 (native_reflist_insert refs s2) hsr2 hd2wf
+  | T, refs, hsr, hwf => by
+      -- REMAINING: non-`DatatypeType` field. `eo_type_lift` is identity here; need
+      -- `smt_type_lift (tr T) = tr T`, which is identity unless `tr T` is a tuple `Datatype`,
+      -- where `Smtm.lift_noop_*` + `tuple_translate_wf_gen` apply. Mechanical Term enumeration.
+      sorry
+
+theorem eo_to_smt_dt_lift_of_wf (s sub : native_String) (dRef : Datatype)
+    (hsne : sub ≠ s)
+    (hFree : hasFreeDt sub (native_reflist_insert native_reflist_nil s) (__eo_to_smt_datatype dRef) = true) :
+    (d0 : Datatype) → (refs : RefList) →
+      native_reflist_contains refs sub = true →
+      __smtx_dt_wf_rec (__eo_to_smt_datatype d0) refs = true →
+      __eo_to_smt_datatype (__eo_dt_lift s dRef d0) =
+        __smtx_dt_lift s (__eo_to_smt_datatype dRef) (__eo_to_smt_datatype d0)
+  | Datatype.null, refs, hsr, hwf => by
+      simp [__eo_to_smt_datatype, __smtx_dt_wf_rec] at hwf
+  | Datatype.sum c Datatype.null, refs, hsr, hwf => by
+      simp only [__eo_to_smt_datatype, __smtx_dt_wf_rec] at hwf
+      show SmtDatatype.sum (__eo_to_smt_datatype_cons (__eo_dtc_lift s dRef c)) SmtDatatype.null
+        = SmtDatatype.sum (__smtx_dtc_lift s (__eo_to_smt_datatype dRef) (__eo_to_smt_datatype_cons c)) SmtDatatype.null
+      rw [eo_to_smt_dtc_lift_of_wf s sub dRef hsne hFree c refs hsr hwf]
+  | Datatype.sum c (Datatype.sum c2 d2), refs, hsr, hwf => by
+      simp only [__eo_to_smt_datatype, __smtx_dt_wf_rec, native_ite] at hwf
+      have hc : __smtx_dt_cons_wf_rec (__eo_to_smt_datatype_cons c) refs = true := by
+        by_cases hcc : __smtx_dt_cons_wf_rec (__eo_to_smt_datatype_cons c) refs = true
+        · exact hcc
+        · rw [if_neg hcc] at hwf; exact absurd hwf (by simp)
+      have hd : __smtx_dt_wf_rec (__eo_to_smt_datatype (Datatype.sum c2 d2)) refs = true := by
+        rw [if_pos hc] at hwf; exact hwf
+      show SmtDatatype.sum (__eo_to_smt_datatype_cons (__eo_dtc_lift s dRef c))
+            (__eo_to_smt_datatype (__eo_dt_lift s dRef (Datatype.sum c2 d2)))
+        = SmtDatatype.sum (__smtx_dtc_lift s (__eo_to_smt_datatype dRef) (__eo_to_smt_datatype_cons c))
+            (__smtx_dt_lift s (__eo_to_smt_datatype dRef) (__eo_to_smt_datatype (Datatype.sum c2 d2)))
+      rw [eo_to_smt_dtc_lift_of_wf s sub dRef hsne hFree c refs hsr hc,
+        eo_to_smt_dt_lift_of_wf s sub dRef hsne hFree (Datatype.sum c2 d2) refs hsr hd]
+
+theorem eo_to_smt_dtc_lift_of_wf (s sub : native_String) (dRef : Datatype)
+    (hsne : sub ≠ s)
+    (hFree : hasFreeDt sub (native_reflist_insert native_reflist_nil s) (__eo_to_smt_datatype dRef) = true) :
+    (c : DatatypeCons) → (refs : RefList) →
+      native_reflist_contains refs sub = true →
+      __smtx_dt_cons_wf_rec (__eo_to_smt_datatype_cons c) refs = true →
+      __eo_to_smt_datatype_cons (__eo_dtc_lift s dRef c) =
+        __smtx_dtc_lift s (__eo_to_smt_datatype dRef) (__eo_to_smt_datatype_cons c)
+  | DatatypeCons.unit, refs, hsr, hwf => by
+      simp [__eo_dtc_lift, __eo_to_smt_datatype_cons, __smtx_dtc_lift]
+  | DatatypeCons.cons fieldT c', refs, hsr, hwf => by
+      -- REMAINING: dispatch the field to `eo_to_smt_ty_lift_of_wf` (non-`DatatypeTypeRef`) or
+      -- handle `DatatypeTypeRef` directly, plus the tail recursion; extract the per-field wf from
+      -- `__smtx_dt_cons_wf_rec` (TypeRef-branch vs other). Mechanical Term enumeration.
+      sorry
+end
 
 private def eo_type_substitute_field (sub : native_String) (d0 : Datatype) : Term -> Term
   | Term.DatatypeType s2 d2 =>
