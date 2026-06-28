@@ -429,4 +429,236 @@ theorem subst_noop_dtc (sub : native_String) :
 end
 
 
+
+/-- Two ref-lists are equivalent if they have the same membership. -/
+def reflEquiv (r1 r2 : RefList) : Prop :=
+  ∀ x, native_reflist_contains r1 x = native_reflist_contains r2 x
+
+theorem reflEquiv_insert {r1 r2 : RefList} (h : reflEquiv r1 r2) (s : native_String) :
+    reflEquiv (native_reflist_insert r1 s) (native_reflist_insert r2 s) := by
+  intro x
+  simp only [native_reflist_contains, native_reflist_insert, List.mem_cons]
+  rw [decide_eq_decide]
+  have := h x
+  simp only [native_reflist_contains] at this
+  rw [decide_eq_decide] at this
+  exact or_congr_right this
+
+/- wf_rec depends on refs only through membership. -/
+mutual
+theorem wf_congr_ty :
+    (T : SmtType) → {r1 r2 : RefList} → reflEquiv r1 r2 →
+      __smtx_type_wf_rec T r1 = true → __smtx_type_wf_rec T r2 = true
+  | SmtType.Datatype s d, r1, r2, hEq, hwf => by
+      have hc : native_reflist_contains r1 s = native_reflist_contains r2 s := hEq s
+      cases hr : native_reflist_contains r1 s
+      · have hr2 : native_reflist_contains r2 s = false := by rw [← hc]; exact hr
+        have hd : __smtx_dt_wf_rec d (native_reflist_insert r1 s) = true := by
+          simpa [__smtx_type_wf_rec, native_ite, hr] using hwf
+        have hd2 := wf_congr_dt d (reflEquiv_insert hEq s) hd
+        simp [__smtx_type_wf_rec, native_ite, hr2, hd2]
+      · simp [__smtx_type_wf_rec, native_ite, hr] at hwf
+  | SmtType.TypeRef s, r1, r2, hEq, hwf => by simp [__smtx_type_wf_rec] at hwf
+  | SmtType.Seq x, r1, r2, hEq, hwf => by simpa [__smtx_type_wf_rec] using hwf
+  | SmtType.Set x, r1, r2, hEq, hwf => by simpa [__smtx_type_wf_rec] using hwf
+  | SmtType.Map x y, r1, r2, hEq, hwf => by simpa [__smtx_type_wf_rec] using hwf
+  | SmtType.FunType x y, r1, r2, hEq, hwf => by simp [__smtx_type_wf_rec] at hwf
+  | SmtType.DtcAppType x y, r1, r2, hEq, hwf => by simp [__smtx_type_wf_rec] at hwf
+  | SmtType.None, r1, r2, hEq, hwf => by simp [__smtx_type_wf_rec] at hwf
+  | SmtType.RegLan, r1, r2, hEq, hwf => by simp [__smtx_type_wf_rec] at hwf
+  | SmtType.Bool, r1, r2, hEq, hwf => by simp [__smtx_type_wf_rec]
+  | SmtType.Int, r1, r2, hEq, hwf => by simp [__smtx_type_wf_rec]
+  | SmtType.Real, r1, r2, hEq, hwf => by simp [__smtx_type_wf_rec]
+  | SmtType.BitVec n, r1, r2, hEq, hwf => by simp [__smtx_type_wf_rec]
+  | SmtType.Char, r1, r2, hEq, hwf => by simp [__smtx_type_wf_rec]
+  | SmtType.USort n, r1, r2, hEq, hwf => by simp [__smtx_type_wf_rec]
+
+theorem wf_congr_dt :
+    (W : SmtDatatype) → {r1 r2 : RefList} → reflEquiv r1 r2 →
+      __smtx_dt_wf_rec W r1 = true → __smtx_dt_wf_rec W r2 = true
+  | SmtDatatype.null, r1, r2, hEq, hwf => by simp [__smtx_dt_wf_rec] at hwf
+  | SmtDatatype.sum c SmtDatatype.null, r1, r2, hEq, hwf => by
+      simp only [__smtx_dt_wf_rec] at hwf ⊢
+      exact wf_congr_dtc c hEq hwf
+  | SmtDatatype.sum c (SmtDatatype.sum c2 d2), r1, r2, hEq, hwf => by
+      simp only [__smtx_dt_wf_rec, native_ite] at hwf ⊢
+      have hc : __smtx_dt_cons_wf_rec c r1 = true := by
+        cases hcc : __smtx_dt_cons_wf_rec c r1 <;> simp [hcc] at hwf ⊢
+      have hd : __smtx_dt_wf_rec (SmtDatatype.sum c2 d2) r1 = true := by rw [hc] at hwf; simpa using hwf
+      rw [if_pos (wf_congr_dtc c hEq hc)]; exact wf_congr_dt (SmtDatatype.sum c2 d2) hEq hd
+
+theorem wf_congr_dtc :
+    (c : SmtDatatypeCons) → {r1 r2 : RefList} → reflEquiv r1 r2 →
+      __smtx_dt_cons_wf_rec c r1 = true → __smtx_dt_cons_wf_rec c r2 = true
+  | SmtDatatypeCons.unit, r1, r2, hEq, hwf => by simp [__smtx_dt_cons_wf_rec]
+  | SmtDatatypeCons.cons T c, r1, r2, hEq, hwf => by
+      cases T with
+      | TypeRef s =>
+          simp only [__smtx_dt_cons_wf_rec, native_ite] at hwf ⊢
+          have hs : native_reflist_contains r1 s = true := by
+            by_cases hc : native_reflist_contains r1 s = true
+            · exact hc
+            · rw [if_neg hc] at hwf; exact absurd hwf (by simp)
+          have hs2 : native_reflist_contains r2 s = true := by rw [← hEq s]; exact hs
+          have hc1 : __smtx_dt_cons_wf_rec c r1 = true := by rw [if_pos hs] at hwf; exact hwf
+          rw [if_pos hs2, wf_congr_dtc c hEq hc1]
+      | _ =>
+          simp only [__smtx_dt_cons_wf_rec, native_ite] at hwf ⊢
+          split at hwf
+          · next hT =>
+              have hc1 : __smtx_dt_cons_wf_rec c r1 = true := hwf
+              rw [if_pos (wf_congr_ty _ hEq hT), wf_congr_dtc c hEq hc1]
+          · next => exact absurd hwf (by simp)
+end
+
+/- noStray s D W: every Datatype s ... reachable by the lift's recursion has body = D. Lift is shallow on non-datatype types. -/
+mutual
+def noStrayTy (s : native_String) (D : SmtDatatype) : SmtType → Bool
+  | SmtType.Datatype s2 d2 =>
+      native_ite (native_Teq (SmtType.Datatype s D) (SmtType.Datatype s2 d2))
+        true
+        (native_and (native_not (native_streq s2 s)) (noStrayDt s D d2))
+  | _ => true
+def noStrayDt (s : native_String) (D : SmtDatatype) : SmtDatatype → Bool
+  | SmtDatatype.sum c d => native_and (noStrayDtc s D c) (noStrayDt s D d)
+  | SmtDatatype.null => true
+def noStrayDtc (s : native_String) (D : SmtDatatype) : SmtDatatypeCons → Bool
+  | SmtDatatypeCons.cons T c => native_and (noStrayTy s D T) (noStrayDtc s D c)
+  | SmtDatatypeCons.unit => true
+end
+
+/- LIFT-WF-PRESERVATION: lifting a noStray wf datatype stays wf once s is added to scope. -/
+mutual
+theorem lift_wf_pres_dt (s : native_String) (D : SmtDatatype) :
+    (W : SmtDatatype) → (refs : RefList) →
+      __smtx_dt_wf_rec W refs = true →
+      noStrayDt s D W = true →
+      __smtx_dt_wf_rec (__smtx_dt_lift s D W) (native_reflist_insert refs s) = true
+  | SmtDatatype.null, refs, hwf, _ => by simp [__smtx_dt_wf_rec] at hwf
+  | SmtDatatype.sum c SmtDatatype.null, refs, hwf, hns => by
+      simp only [__smtx_dt_wf_rec] at hwf
+      simp only [noStrayDt, native_and, Bool.and_eq_true] at hns
+      show __smtx_dt_wf_rec (SmtDatatype.sum (__smtx_dtc_lift s D c) (__smtx_dt_lift s D SmtDatatype.null))
+            (native_reflist_insert refs s) = true
+      simp only [__smtx_dt_lift, __smtx_dt_wf_rec]
+      exact lift_wf_pres_dtc s D c refs hwf hns.1
+  | SmtDatatype.sum c (SmtDatatype.sum c2 d2), refs, hwf, hns => by
+      simp only [__smtx_dt_wf_rec, native_ite] at hwf
+      simp only [noStrayDt, native_and, Bool.and_eq_true] at hns
+      have hc : __smtx_dt_cons_wf_rec c refs = true := by
+        cases hcc : __smtx_dt_cons_wf_rec c refs <;> simp [hcc] at hwf ⊢
+      have hd : __smtx_dt_wf_rec (SmtDatatype.sum c2 d2) refs = true := by rw [hc] at hwf; simpa using hwf
+      have hns_d : noStrayDt s D (SmtDatatype.sum c2 d2) = true := by
+        simp only [noStrayDt, native_and, Bool.and_eq_true]; exact hns.2
+      have hcL := lift_wf_pres_dtc s D c refs hc hns.1
+      have hdL := lift_wf_pres_dt s D (SmtDatatype.sum c2 d2) refs hd hns_d
+      simp only [__smtx_dt_lift] at hdL ⊢
+      simp only [__smtx_dt_wf_rec, native_ite, hcL, if_true]
+      exact hdL
+
+theorem lift_wf_pres_dtc (s : native_String) (D : SmtDatatype) :
+    (c : SmtDatatypeCons) → (refs : RefList) →
+      __smtx_dt_cons_wf_rec c refs = true →
+      noStrayDtc s D c = true →
+      __smtx_dt_cons_wf_rec (__smtx_dtc_lift s D c) (native_reflist_insert refs s) = true
+  | SmtDatatypeCons.unit, refs, _, _ => by simp [__smtx_dtc_lift, __smtx_dt_cons_wf_rec]
+  | SmtDatatypeCons.cons T c, refs, hwf, hns => by
+      simp only [noStrayDtc, native_and, Bool.and_eq_true] at hns
+      simp only [__smtx_dtc_lift]
+      cases T with
+      | TypeRef s2 =>
+          simp only [__smtx_dt_cons_wf_rec, native_ite] at hwf
+          simp only [__smtx_type_lift]
+          have hs2 : native_reflist_contains refs s2 = true := by
+            by_cases hc : native_reflist_contains refs s2 = true
+            · exact hc
+            · rw [if_neg hc] at hwf; exact absurd hwf (by simp)
+          have hcr : __smtx_dt_cons_wf_rec c refs = true := by rw [if_pos hs2] at hwf; exact hwf
+          have hs2' : native_reflist_contains (native_reflist_insert refs s) s2 = true := by
+            simp [native_reflist_contains, native_reflist_insert, List.mem_cons]
+            right; simpa [native_reflist_contains] using hs2
+          simp only [__smtx_dt_cons_wf_rec, native_ite, hs2', if_true]
+          exact lift_wf_pres_dtc s D c refs hcr hns.2
+      | Datatype s2 d2 =>
+          simp only [__smtx_dt_cons_wf_rec, native_ite] at hwf
+          have hns2 : noStrayTy s D (SmtType.Datatype s2 d2) = true := hns.1
+          have hcr : __smtx_dt_cons_wf_rec c refs = true := by
+            split at hwf
+            · exact hwf
+            · exact absurd hwf (by simp)
+          have hcL := lift_wf_pres_dtc s D c refs hcr hns.2
+          have hTwf : __smtx_type_wf_rec (SmtType.Datatype s2 d2) refs = true := by
+            split at hwf
+            · next h => exact h
+            · exact absurd hwf (by simp)
+          simp only [__smtx_type_lift]
+          by_cases hTeq : native_Teq (SmtType.Datatype s D) (SmtType.Datatype s2 d2) = true
+          · -- folded → TypeRef s
+            rw [native_ite, if_pos hTeq]
+            have hsmem : native_reflist_contains (native_reflist_insert refs s) s = true := by
+              simp [native_reflist_contains, native_reflist_insert, List.mem_cons]
+            simp only [__smtx_dt_cons_wf_rec, native_ite, hsmem, if_true]
+            exact hcL
+          · -- not folded → Datatype s2 (lift d2); from noStray, s2 ≠ s
+            rw [native_ite, if_neg hTeq]
+            have hs2ne : native_streq s2 s = false := by
+              simp only [noStrayTy, native_ite, if_neg hTeq, native_and, native_not,
+                Bool.and_eq_true] at hns2
+              cases hstr : native_streq s2 s
+              · rfl
+              · simp [hstr] at hns2
+            have hd2ns : noStrayDt s D d2 = true := by
+              simp only [noStrayTy, native_ite, if_neg hTeq, native_and, native_not,
+                Bool.and_eq_true] at hns2
+              exact hns2.2
+            -- wf of Datatype s2 d2 at refs ⇒ s2 ∉ refs, d2 wf at insert refs s2
+            have hns2refs : native_reflist_contains refs s2 = false := by
+              cases hc : native_reflist_contains refs s2 <;>
+                simp [__smtx_type_wf_rec, native_ite, hc] at hTwf ⊢
+            have hd2wf : __smtx_dt_wf_rec d2 (native_reflist_insert refs s2) = true := by
+              simp [__smtx_type_wf_rec, native_ite, hns2refs] at hTwf; exact hTwf
+            have hs2ne' : s2 ≠ s := by
+              intro he; rw [he] at hs2ne; simp [native_streq] at hs2ne
+            have hs2notins : native_reflist_contains (native_reflist_insert refs s) s2 = false := by
+              simp [native_reflist_contains, native_reflist_insert, List.mem_cons, hs2ne']
+              simpa [native_reflist_contains] using hns2refs
+            -- recurse on d2 body
+            have hd2L := lift_wf_pres_dt s D d2 (native_reflist_insert refs s2) hd2wf hd2ns
+            -- congr: insert (insert refs s2) s  ~  insert (insert refs s) s2
+            have hEquiv : reflEquiv (native_reflist_insert (native_reflist_insert refs s2) s)
+                (native_reflist_insert (native_reflist_insert refs s) s2) := by
+              intro x
+              simp only [native_reflist_contains, native_reflist_insert, List.mem_cons]
+              rw [decide_eq_decide]
+              constructor
+              · rintro (h | h | h)
+                · exact Or.inr (Or.inl h)
+                · exact Or.inl h
+                · exact Or.inr (Or.inr h)
+              · rintro (h | h | h)
+                · exact Or.inr (Or.inl h)
+                · exact Or.inl h
+                · exact Or.inr (Or.inr h)
+            have hd2L' := wf_congr_dt (__smtx_dt_lift s D d2) hEquiv hd2L
+            have htywf : __smtx_type_wf_rec (SmtType.Datatype s2 (__smtx_dt_lift s D d2))
+                (native_reflist_insert refs s) = true := by
+              simp only [__smtx_type_wf_rec, native_ite, hs2notins, if_false]
+              exact hd2L'
+            simp only [__smtx_dt_cons_wf_rec, native_ite, htywf, if_true]
+            exact hcL
+      | _ =>
+          -- non-Datatype, non-TypeRef field: lift is identity; wf_rec refs-independent here
+          simp only [__smtx_type_lift]
+          simp only [__smtx_dt_cons_wf_rec, native_ite] at hwf ⊢
+          split at hwf
+          · next hT =>
+              have hcr : __smtx_dt_cons_wf_rec c refs = true := hwf
+              have hcL := lift_wf_pres_dtc s D c refs hcr hns.2
+              -- non-Datatype field: wf_rec ignores refs, so the if-condition matches hT by defeq
+              split
+              · exact hcL
+              · next hF => exact absurd hT hF
+          · next => exact absurd hwf (by simp)
+end
+
 end Smtm
