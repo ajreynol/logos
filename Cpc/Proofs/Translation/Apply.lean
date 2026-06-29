@@ -5530,7 +5530,7 @@ private theorem eo_to_smt_type_typeof_apply_dt_sel_of_smt_datatype_from_ih
     eo_to_smt_datatype_injective_of_wf_rec hd0 rfl hDWF
   subst d0
   exact eo_to_smt_type_typeof_apply_dt_sel_of_datatype_type_smt_ret
-    x s d i j hxType
+    x s d i j hxType hDWF
 
 private theorem eo_to_smt_typeof_matches_translation_apply_set_member_from_ih
     (x y : Term)
@@ -6948,8 +6948,22 @@ private theorem eo_to_smt_typeof_matches_translation_apply_is
                   (__eo_to_smt_type (Term.DatatypeType s d0))
                   (__eo_to_smt_datatype (__eo_dt_substitute s d0 d0)) i ≠
                 SmtType.None := by
+            let D : SmtType := SmtType.Datatype s (__eo_to_smt_datatype d0)
+            let raw : SmtType :=
+              __smtx_typeof_dt_cons_rec D
+                (__smtx_dt_substitute s (__eo_to_smt_datatype d0)
+                  (__eo_to_smt_datatype d0)) i
+            have hGuardNN : __smtx_typeof_guard_wf D raw ≠ SmtType.None := by
+              simpa [D, raw, Smtm.typeof_dt_cons_eq] using hCtorSmt
+            have hBaseTypeWf : __smtx_type_wf D = true :=
+              Smtm.smtx_typeof_guard_wf_wf_of_non_none D raw hGuardNN
+            have hBaseDtWf :
+                __smtx_dt_wf_rec (__eo_to_smt_datatype d0)
+                  (native_reflist_insert native_reflist_nil s) = true :=
+              datatype_wf_rec_of_type_wf hBaseTypeWf
             simpa [__eo_to_smt_type, native_ite, hReserved,
-              ← eo_to_smt_datatype_substitute] using hCtorSmt
+              ← eo_to_smt_datatype_substitute s d0 d0
+                (native_reflist_insert native_reflist_nil s) hBaseDtWf] using hCtorSmt
           exact
             eo_typeof_dt_cons_rec_ne_stuck_of_smt_non_none
               (Term.DatatypeType s d0) (__eo_dt_substitute s d0 d0) i
