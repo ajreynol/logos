@@ -705,11 +705,11 @@ private theorem eo_to_smt_type_typeof_dt_cons_of_valid
     eo_to_smt_type_typeof_dt_cons_rec_of_valid (T := Term.DatatypeType s d) hTyValid hSubValid
       (by
         simpa [D, inner, __eo_to_smt_type, hReserved,
-          TranslationProofs.eo_to_smt_datatype_substitute] using hInnerNN)
+          TranslationProofs.eo_to_smt_datatype_substitute s d d hValid] using hInnerNN)
   have hSubEq :
       __eo_to_smt_datatype (__eo_dt_substitute s d d) =
         __smtx_dt_substitute s (__eo_to_smt_datatype d) (__eo_to_smt_datatype d) :=
-    TranslationProofs.eo_to_smt_datatype_substitute s d d
+    TranslationProofs.eo_to_smt_datatype_substitute s d d hValid
   refine ⟨?_, ?_⟩
   · have hRec' :
         __eo_to_smt_type (__eo_typeof (Term.DtCons s d i)) = inner := by
@@ -738,7 +738,12 @@ private theorem eo_to_smt_type_typeof_apply_dt_sel_of_smt_datatype_valid
     simp [__eo_to_smt_type, hReserved, hx]
   have hExact : __eo_typeof x = Term.DatatypeType s d :=
     TranslationProofs.eo_to_smt_type_eq_of_valid hValid hTyEq
-  exact TranslationProofs.eo_to_smt_type_typeof_apply_dt_sel_of_exact_eo_datatype x s d i j hExact
+  have hDtValid : TranslationProofs.eo_datatype_valid_rec [s] d := by
+    have hTyValid : TranslationProofs.eo_type_valid_rec [] (Term.DatatypeType s d) := by
+      simpa [hExact] using hValid
+    exact hTyValid.2
+  exact TranslationProofs.eo_to_smt_type_typeof_apply_dt_sel_of_exact_eo_datatype
+    x s d i j hDtValid hExact
 
 /-- Valid EO proof-side types are never `Stuck`. -/
 private theorem eo_type_valid_not_stuck
@@ -1329,8 +1334,14 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid :
                   have hSelRetValid :
                       TranslationProofs.eo_type_valid_rec []
                         (__eo_typeof_dt_sel_return (__eo_dt_substitute s d d) i j) := by
+                    have hDtValid : TranslationProofs.eo_datatype_valid_rec [s] d := by
+                      have hTyValid :
+                          TranslationProofs.eo_type_valid_rec [] (Term.DatatypeType s d) := by
+                        simpa [hArgExact] using hIx.2
+                      exact hTyValid.2
                     apply TranslationProofs.eo_type_valid_of_smt_wf_rec []
-                    rw [TranslationProofs.eo_to_smt_type_typeof_dt_sel_return_on_substituted_datatype s d i j]
+                    rw [TranslationProofs.eo_to_smt_type_typeof_dt_sel_return_on_substituted_datatype
+                      s d i j hDtValid]
                     exact hRetWfRec
                   simpa [__eo_typeof, __eo_typeof_apply, __eo_requires, hArgExact,
                     native_ite, native_teq, native_not] using hSelRetValid
