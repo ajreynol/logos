@@ -835,6 +835,55 @@ def noDtDtc (s : native_String) : SmtDatatypeCons → Bool
   | SmtDatatypeCons.unit => true
 end
 
+mutual
+theorem noDt_lift_ty (s sub : native_String) (D : SmtDatatype) :
+    (T : SmtType) → noDtTy sub T = true → noDtTy sub (__smtx_type_lift s D T) = true
+  | SmtType.Datatype s2 d2, h => by
+      have hParts : native_streq s2 sub = false ∧ noDtDt sub d2 = true := by
+        simpa [noDtTy, native_and, native_not, Bool.and_eq_true] using h
+      simp only [__smtx_type_lift]
+      by_cases hFold : native_Teq (SmtType.Datatype s D) (SmtType.Datatype s2 d2) = true
+      · rw [native_ite, if_pos hFold]
+        simp [noDtTy]
+      · rw [native_ite, if_neg hFold]
+        simp only [noDtTy, native_and, native_not, Bool.and_eq_true]
+        exact ⟨by
+          cases hst : native_streq s2 sub <;> simp [hst] at hParts ⊢,
+          noDt_lift_dt s sub D d2 hParts.2⟩
+  | SmtType.Seq x, h => by simp [__smtx_type_lift, noDtTy]
+  | SmtType.Set x, h => by simp [__smtx_type_lift, noDtTy]
+  | SmtType.Map x y, h => by simp [__smtx_type_lift, noDtTy]
+  | SmtType.FunType x y, h => by simp [__smtx_type_lift, noDtTy]
+  | SmtType.DtcAppType x y, h => by simp [__smtx_type_lift, noDtTy]
+  | SmtType.TypeRef s2, h => by simp [__smtx_type_lift, noDtTy]
+  | SmtType.None, h => by simp [__smtx_type_lift, noDtTy]
+  | SmtType.RegLan, h => by simp [__smtx_type_lift, noDtTy]
+  | SmtType.Bool, h => by simp [__smtx_type_lift, noDtTy]
+  | SmtType.Int, h => by simp [__smtx_type_lift, noDtTy]
+  | SmtType.Real, h => by simp [__smtx_type_lift, noDtTy]
+  | SmtType.BitVec w, h => by simp [__smtx_type_lift, noDtTy]
+  | SmtType.Char, h => by simp [__smtx_type_lift, noDtTy]
+  | SmtType.USort i, h => by simp [__smtx_type_lift, noDtTy]
+
+theorem noDt_lift_dt (s sub : native_String) (D : SmtDatatype) :
+    (W : SmtDatatype) → noDtDt sub W = true → noDtDt sub (__smtx_dt_lift s D W) = true
+  | SmtDatatype.null, h => by simp [__smtx_dt_lift, noDtDt]
+  | SmtDatatype.sum c d, h => by
+      have hParts : noDtDtc sub c = true ∧ noDtDt sub d = true := by
+        simpa [noDtDt, native_and, Bool.and_eq_true] using h
+      simp only [__smtx_dt_lift, noDtDt, native_and, Bool.and_eq_true]
+      exact ⟨noDt_lift_dtc s sub D c hParts.1, noDt_lift_dt s sub D d hParts.2⟩
+
+theorem noDt_lift_dtc (s sub : native_String) (D : SmtDatatype) :
+    (c : SmtDatatypeCons) → noDtDtc sub c = true → noDtDtc sub (__smtx_dtc_lift s D c) = true
+  | SmtDatatypeCons.unit, h => by simp [__smtx_dtc_lift, noDtDtc]
+  | SmtDatatypeCons.cons T c, h => by
+      have hParts : noDtTy sub T = true ∧ noDtDtc sub c = true := by
+        simpa [noDtDtc, native_and, Bool.and_eq_true] using h
+      simp only [__smtx_dtc_lift, noDtDtc, native_and, Bool.and_eq_true]
+      exact ⟨noDt_lift_ty s sub D T hParts.1, noDt_lift_dtc s sub D c hParts.2⟩
+end
+
 private theorem smtx_dt_cons_wf_tail_of_cons
     {T : SmtType} {c : SmtDatatypeCons} {refs : RefList}
     (h : __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons T c) refs = true) :
