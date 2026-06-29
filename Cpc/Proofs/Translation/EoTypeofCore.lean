@@ -3395,6 +3395,52 @@ theorem eo_to_smt_dtc_lift_of_wf (s sub : native_String) (dRef : Datatype)
           · exact eo_to_smt_dtc_lift_of_wf s sub dRef hsne hFree c' refs hsr htail
 end
 
+/- `noRefSub sub W`: the EO datatype `W` has no free `DatatypeTypeRef sub` field (a `DatatypeType sub …`
+binder shadows). Then `__eo_dt_substitute sub d0 W = W` (substituting `sub` is a no-op). Branch-B glue. -/
+mutual
+def noRefSubDt (sub : native_String) : Datatype → Bool
+  | Datatype.sum c d => native_and (noRefSubDtc sub c) (noRefSubDt sub d)
+  | Datatype.null => true
+def noRefSubDtc (sub : native_String) : DatatypeCons → Bool
+  | DatatypeCons.cons (Term.DatatypeType s2 d2) c =>
+      native_and (native_or (native_streq sub s2) (noRefSubDt sub d2)) (noRefSubDtc sub c)
+  | DatatypeCons.cons T c =>
+      native_and (native_not (native_teq T (Term.DatatypeTypeRef sub))) (noRefSubDtc sub c)
+  | DatatypeCons.unit => true
+end
+
+mutual
+theorem eo_dt_substitute_noop (sub : native_String) (d0 : Datatype) :
+    (W : Datatype) → noRefSubDt sub W = true → __eo_dt_substitute sub d0 W = W
+  | Datatype.null, _ => by simp [__eo_dt_substitute]
+  | Datatype.sum c d, h => by
+      simp only [noRefSubDt, native_and, Bool.and_eq_true] at h
+      simp only [__eo_dt_substitute]
+      rw [eo_dtc_substitute_noop sub d0 c h.1, eo_dt_substitute_noop sub d0 d h.2]
+
+theorem eo_dtc_substitute_noop (sub : native_String) (d0 : Datatype) :
+    (c : DatatypeCons) → noRefSubDtc sub c = true → __eo_dtc_substitute sub d0 c = c
+  | DatatypeCons.unit, _ => by simp [__eo_dtc_substitute]
+  | DatatypeCons.cons U c, h => by
+      cases U
+      case DatatypeType s2 d2 =>
+          simp only [noRefSubDtc, native_and, native_or, Bool.and_eq_true, Bool.or_eq_true] at h
+          simp only [__eo_dtc_substitute]
+          rw [eo_dtc_substitute_noop sub d0 c h.2]
+          congr 2
+          rcases h.1 with hsh | hns
+          · rw [native_ite, if_pos hsh]
+          · rw [native_ite]
+            split
+            · rfl
+            · exact eo_dt_substitute_noop sub (__eo_dt_lift s2 d2 d0) d2 hns
+      all_goals (
+        simp only [noRefSubDtc, native_and, native_not, Bool.and_eq_true] at h
+        simp only [__eo_dtc_substitute]
+        rw [eo_dtc_substitute_noop sub d0 c h.2]
+        try simp_all [native_ite, native_teq, native_not])
+end
+
 private def eo_type_substitute_field (sub : native_String) (d0 : Datatype) : Term -> Term
   | Term.DatatypeType s2 d2 =>
       Term.DatatypeType s2 (native_ite (native_streq sub s2) d2
