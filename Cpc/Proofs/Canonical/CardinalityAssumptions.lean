@@ -1,5 +1,6 @@
 import Cpc.Proofs.TypePreservation.Predicates
 import Cpc.Proofs.Canonical.TypeDefaultBasic
+import Cpc.Proofs.Canonical.FiniteDefaultable
 
 /-!
 Canonical/cardinality and freshness witnesses used by datatype cardinality
