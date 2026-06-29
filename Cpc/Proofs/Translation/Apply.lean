@@ -6888,6 +6888,60 @@ private theorem eo_typeof_dt_cons_rec_ne_stuck_of_smt_non_none
                 exact go (Datatype.sum cTail dTail) T n hT hTailNN
   exact go d T i hT hNN
 
+/-- The datatype tester rule exposes the raw SMT constructor recursion after
+datatype substitution.  For EO non-stuckness, only the constructor shape matters:
+EO and SMT datatype substitution preserve that shape even when their field-type
+translations are not propositionally equal. -/
+private theorem eo_typeof_dt_cons_rec_substitute_ne_stuck_of_smt_non_none
+    (T : Term) (sub : native_String) (d0 : Datatype)
+    (hT : T ≠ Term.Stuck) :
+    ∀ (d : Datatype) (i : native_Nat),
+      __smtx_typeof_dt_cons_rec (__eo_to_smt_type T)
+          (__smtx_dt_substitute sub (__eo_to_smt_datatype d0) (__eo_to_smt_datatype d)) i ≠
+        SmtType.None ->
+      __eo_typeof_dt_cons_rec T (__eo_dt_substitute sub d0 d) i ≠ Term.Stuck
+  | Datatype.null, i, hNN => by
+      exfalso
+      apply hNN
+      cases i <;> simp [__eo_to_smt_datatype, __smtx_dt_substitute,
+        __smtx_typeof_dt_cons_rec]
+  | Datatype.sum DatatypeCons.unit d, native_nat_zero, _hNN => by
+      intro hStuck
+      rw [__eo_dt_substitute, __eo_dtc_substitute] at hStuck
+      rw [__eo_typeof_dt_cons_rec.eq_def] at hStuck
+      cases T <;> simp at hT hStuck
+  | Datatype.sum (DatatypeCons.cons U c) d, native_nat_zero, _hNN => by
+      intro hStuck
+      cases U <;>
+        simp [__eo_dt_substitute, __eo_dtc_substitute,
+          __eo_typeof_dt_cons_rec] at hT hStuck
+  | Datatype.sum c d, native_nat_succ n, hNN => by
+      have hTailNN :
+          __smtx_typeof_dt_cons_rec (__eo_to_smt_type T)
+              (__smtx_dt_substitute sub (__eo_to_smt_datatype d0) (__eo_to_smt_datatype d)) n ≠
+            SmtType.None := by
+        intro hNone
+        apply hNN
+        cases c <;> simpa [__eo_to_smt_datatype, __smtx_dt_substitute,
+          __smtx_typeof_dt_cons_rec] using hNone
+      have hRec :=
+        eo_typeof_dt_cons_rec_substitute_ne_stuck_of_smt_non_none T sub d0 hT d n hTailNN
+      have hEq :
+          __eo_typeof_dt_cons_rec T
+              (__eo_dt_substitute sub d0 (Datatype.sum c d)) (native_nat_succ n) =
+            __eo_typeof_dt_cons_rec T (__eo_dt_substitute sub d0 d) n := by
+        cases c with
+        | unit =>
+            rw [__eo_dt_substitute, __eo_dtc_substitute]
+            rw [__eo_typeof_dt_cons_rec.eq_def]
+            cases T <;> simp at hT ⊢
+        | cons U cTail =>
+            cases U <;>
+              simp [__eo_dt_substitute, __eo_dtc_substitute,
+                __eo_typeof_dt_cons_rec] at hT ⊢
+      rw [hEq]
+      exact hRec
+
 /-- Simplifies EO-to-SMT translation for datatype testers. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_is
     (x y : Term)
@@ -6943,41 +6997,11 @@ private theorem eo_to_smt_typeof_matches_translation_apply_is
           change
             __eo_typeof_dt_cons_rec (Term.DatatypeType s d0)
                 (__eo_dt_substitute s d0 d0) i ≠ Term.Stuck
-          have hCtor' :
-              __smtx_typeof_dt_cons_rec
-                  (__eo_to_smt_type (Term.DatatypeType s d0))
-                  (__eo_to_smt_datatype (__eo_dt_substitute s d0 d0)) i ≠
-                SmtType.None := by
-            let D : SmtType := SmtType.Datatype s (__eo_to_smt_datatype d0)
-            let raw : SmtType :=
-              __smtx_typeof_dt_cons_rec D
-                (__smtx_dt_substitute s (__eo_to_smt_datatype d0)
-                  (__eo_to_smt_datatype d0)) i
-            have hGuardNN : __smtx_typeof_guard_wf D raw ≠ SmtType.None := by
-              simpa [D, raw, Smtm.typeof_dt_cons_eq] using hCtorSmt
-            have hBaseTypeWf : __smtx_type_wf D = true :=
-              Smtm.smtx_typeof_guard_wf_wf_of_non_none D raw hGuardNN
-            have hBaseDtWf :
-                __smtx_dt_wf_rec (__eo_to_smt_datatype d0)
-                  (native_reflist_insert native_reflist_nil s) = true :=
-              datatype_wf_rec_of_type_wf hBaseTypeWf
-            have hBaseValid :
-                eo_datatype_valid_rec (native_reflist_insert native_reflist_nil s) d0 :=
-              eo_datatype_valid_of_smt_wf_rec
-                (native_reflist_insert native_reflist_nil s) hBaseDtWf
-            have hBaseNoDt :
-                noDtDt s (__eo_to_smt_datatype d0) = true :=
-              noDt_of_wf_dt s (__eo_to_smt_datatype d0)
-                (native_reflist_insert native_reflist_nil s) hBaseDtWf
-                (by simp [native_reflist_contains, native_reflist_insert, native_reflist_nil])
-            simpa [__eo_to_smt_type, native_ite, hReserved,
-              ← eo_to_smt_datatype_substitute s d0 d0
-                (native_reflist_insert native_reflist_nil s)
-                hBaseValid hBaseNoDt hBaseDtWf] using hCtorSmt
           exact
-            eo_typeof_dt_cons_rec_ne_stuck_of_smt_non_none
-              (Term.DatatypeType s d0) (__eo_dt_substitute s d0 d0) i
-              (by simp) hCtor'
+            eo_typeof_dt_cons_rec_substitute_ne_stuck_of_smt_non_none
+              (Term.DatatypeType s d0) s d0 (by simp) d0 i
+              (by
+                simpa [__eo_to_smt_type, native_ite, hReserved] using hCtorSmt)
         · subst y
           simp
       have hEo :
