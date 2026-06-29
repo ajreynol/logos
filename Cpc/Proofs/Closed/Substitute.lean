@@ -750,6 +750,107 @@ theorem assoc_nil_nth_has_smt_translation_of_list_all_and_typeof_ne_stuck
     assoc_nil_nth_has_smt_translation_of_list_all_and_typeof_ne_stuck_lt
       (sizeOf ss + 1) ss idx (by omega) hSsTrans hTy
 
+/-- Selecting a non-`Stuck` entry from an EO list whose entries all have SMT
+translations yields a translated entry. -/
+theorem assoc_nil_nth_has_smt_translation_of_list_all_and_ne_stuck_lt
+    (n : Nat) (ss idx : Term)
+    (hLt : sizeOf ss < n)
+    (hSsTrans : EoListAllHaveSmtTranslation ss)
+    (hNe :
+      __assoc_nil_nth Term.__eo_List_cons ss idx ≠ Term.Stuck) :
+    eoHasSmtTranslation (__assoc_nil_nth Term.__eo_List_cons ss idx) := by
+  cases n with
+  | zero => omega
+  | succ n =>
+      let hRec :
+          ∀ {ss' idx' : Term},
+            sizeOf ss' < sizeOf ss ->
+              EoListAllHaveSmtTranslation ss' ->
+              __assoc_nil_nth Term.__eo_List_cons ss' idx' ≠ Term.Stuck ->
+              eoHasSmtTranslation
+                (__assoc_nil_nth Term.__eo_List_cons ss' idx') :=
+        fun {ss' idx'} hLt' hSsTrans' hNe' =>
+          assoc_nil_nth_has_smt_translation_of_list_all_and_ne_stuck_lt
+            n ss' idx' (by omega) hSsTrans' hNe'
+      cases ss with
+      | __eo_List_nil =>
+          exfalso
+          rw [assoc_nil_nth_nil_stuck] at hNe
+          exact hNe rfl
+      | Apply f tail =>
+          cases f with
+          | Apply g head =>
+              by_cases hg : g = Term.__eo_List_cons
+              · subst g
+                rcases hSsTrans with ⟨hHeadTrans, hTailTrans⟩
+                by_cases hIdxZero : idx = Term.Numeral 0
+                · subst idx
+                  simpa [__assoc_nil_nth, __eo_ite, __eo_eq, native_ite,
+                    native_teq] using hHeadTrans
+                · have hAssocTail :
+                      __assoc_nil_nth Term.__eo_List_cons
+                          ((Term.Apply (Term.Apply Term.__eo_List_cons head) tail))
+                          idx =
+                        __assoc_nil_nth Term.__eo_List_cons tail
+                          (__eo_add idx (Term.Numeral (-1 : native_Int))) := by
+                    cases idx with
+                    | Numeral k =>
+                        by_cases hk : k = 0
+                        · exfalso
+                          apply hIdxZero
+                          simp [hk]
+                        · simp [__assoc_nil_nth, __eo_l_1___assoc_nil_nth,
+                            __eo_requires, __eo_eq, native_ite, native_teq,
+                            native_not, SmtEval.native_not, __eo_add, hk]
+                    | Stuck =>
+                        have hAdd :
+                            __eo_add Term.Stuck (Term.Numeral (-1 : native_Int)) =
+                              Term.Stuck := by
+                          rfl
+                        rw [assoc_nil_nth_index_stuck, hAdd,
+                          assoc_nil_nth_index_stuck]
+                    | _ =>
+                        simp [__assoc_nil_nth, __eo_l_1___assoc_nil_nth,
+                          __eo_requires, __eo_eq, native_ite, native_teq,
+                          native_not, SmtEval.native_not, __eo_add] at hIdxZero ⊢
+                  have hTailNe :
+                      __assoc_nil_nth Term.__eo_List_cons tail
+                          (__eo_add idx (Term.Numeral (-1 : native_Int))) ≠
+                        Term.Stuck := by
+                    intro hTail
+                    apply hNe
+                    simpa [hAssocTail] using hTail
+                  have hTailTransResult :
+                      eoHasSmtTranslation
+                        (__assoc_nil_nth Term.__eo_List_cons tail
+                          (__eo_add idx (Term.Numeral (-1 : native_Int)))) :=
+                    hRec
+                      (ss' := tail)
+                      (idx' := __eo_add idx (Term.Numeral (-1 : native_Int)))
+                      (by simp; omega)
+                      hTailTrans
+                      hTailNe
+                  simpa [hAssocTail] using hTailTransResult
+              · exfalso
+                cases g <;> simp [EoListAllHaveSmtTranslation] at hSsTrans hg
+          | _ =>
+              cases hSsTrans
+      | _ =>
+          cases hSsTrans
+termination_by n
+decreasing_by
+  all_goals omega
+
+theorem assoc_nil_nth_has_smt_translation_of_list_all_and_ne_stuck
+    (ss idx : Term)
+    (hSsTrans : EoListAllHaveSmtTranslation ss)
+    (hNe :
+      __assoc_nil_nth Term.__eo_List_cons ss idx ≠ Term.Stuck) :
+    eoHasSmtTranslation (__assoc_nil_nth Term.__eo_List_cons ss idx) := by
+  exact
+    assoc_nil_nth_has_smt_translation_of_list_all_and_ne_stuck_lt
+      (sizeOf ss + 1) ss idx (by omega) hSsTrans hNe
+
 /--
 A substitute entry's evaluation is invariant under pushing a binder variable that
 is excluded by the capture-avoidance condition. Proved via the master coincidence
