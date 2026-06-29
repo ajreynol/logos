@@ -546,6 +546,98 @@ private theorem smt_map_head_key_mem_of_mem (k e : SmtValue) (m : SmtMap) :
         exact ih h
 
 
+/-! ### Foundation for the residual datatype-cardinality proofs
+
+Reusable facts re-established on the refactored two-datatype default machinery
+(`TypeDefaultBasic`).  These replace the deleted value-substitution scaffolding
+and are the building blocks for discharging the two `sorry`s below: typedness +
+canonicality of a generated constructor value (`datatype_cons_default_kernel`),
+selection of a constructor by the datatype default (`datatype_default_select`),
+and stability of the constructor head (`cons_default_head`). -/
+
+/-- Cons-default kernel (exposes `TypeDefaultBasic.datatype_kernel_rec` motive3):
+a constructor's generated value is `NotValue`, or it is typed `base` and canonical. -/
+theorem datatype_cons_default_kernel :
+    ∀ (cF cU : SmtDatatypeCons), DtcSubstStar cF cU →
+      ∀ (v : SmtValue) (base : SmtType),
+        __smtx_typeof_value v = chainType cF base →
+        __smtx_value_canonical_bool v = true →
+          __smtx_datatype_cons_default v cF cU = SmtValue.NotValue ∨
+          (__smtx_typeof_value (__smtx_datatype_cons_default v cF cU) = base ∧
+           __smtx_value_canonical_bool (__smtx_datatype_cons_default v cF cU) = true)
+  | SmtDatatypeCons.unit, cU, hc, v, base, htypeof, hcanon => by
+      cases hc
+      right
+      refine ⟨?_, ?_⟩
+      · simpa [__smtx_datatype_cons_default, chainType] using htypeof
+      · simpa [__smtx_datatype_cons_default] using hcanon
+  | SmtDatatypeCons.cons TF cF, cU, hc, v, base, htypeof, hcanon => by
+      cases hc with
+      | @cons _ TU _ cU hfr hcc =>
+        rw [__smtx_datatype_cons_default]
+        by_cases hv : native_veq (__smtx_type_default_rec TF TU) SmtValue.NotValue = true
+        · left; rw [native_ite, if_pos hv]
+        · rw [native_ite, if_neg hv]
+          have hss : SubstStar TF TU := by
+            cases hfr with
+            | rel h => exact h
+            | forcesNV h => exact absurd (by simp [native_veq, h TF]) hv
+          rcases datatype_kernel_rec TF TU hss with hNV | ⟨hTy, hCanonField⟩
+          · exact absurd (by simp [native_veq, hNV]) hv
+          · have hTFne : TF ≠ SmtType.None := by
+              cases hss with
+              | refl => intro hNone; rw [hNone] at hv; simp [__smtx_type_default_rec, native_veq] at hv
+              | dt _ => intro hNone; cases hNone
+            have htypeofApply :
+                __smtx_typeof_value (SmtValue.Apply v (__smtx_type_default_rec TF TU)) =
+                  chainType cF base := by
+              have hchain : chainType (SmtDatatypeCons.cons TF cF) base =
+                  SmtType.DtcAppType TF (chainType cF base) := rfl
+              rw [hchain] at htypeof
+              simp only [__smtx_typeof_value, htypeof, hTy, __smtx_typeof_apply_value,
+                         __smtx_typeof_guard, native_Teq, native_ite, decide_true, if_true]
+              simp [hTFne]
+            have hcanonApply :
+                __smtx_value_canonical_bool (SmtValue.Apply v (__smtx_type_default_rec TF TU)) = true := by
+              simp [__smtx_value_canonical_bool, hcanon, hCanonField, native_and]
+            exact datatype_cons_default_kernel cF cU hcc
+              (SmtValue.Apply v (__smtx_type_default_rec TF TU)) base htypeofApply hcanonApply
+  termination_by cF _ _ _ _ _ _ => sizeOf cF
+  decreasing_by all_goals (try simp_wf); all_goals omega
+
+/-- The datatype-default picks constructor `n`'s value when it is defaultable. -/
+theorem datatype_default_select
+    (s : native_String) (d : SmtDatatype) (n : native_Nat)
+    (cF cU : SmtDatatypeCons) (DF DU : SmtDatatype)
+    (hNe : __smtx_datatype_cons_default (SmtValue.DtCons s d n) cF cU ≠ SmtValue.NotValue) :
+    __smtx_datatype_default s d n (SmtDatatype.sum cF DF) (SmtDatatype.sum cU DU) =
+      __smtx_datatype_cons_default (SmtValue.DtCons s d n) cF cU := by
+  have hf : native_veq (__smtx_datatype_cons_default (SmtValue.DtCons s d n) cF cU)
+      SmtValue.NotValue = false := native_veq_eq_false_of_ne hNe
+  rw [__smtx_datatype_default]
+  simp [native_ite, native_not, hf]
+
+/-- The apply-head of a (non-`NotValue`) constructor default is the head of the seed value. -/
+theorem cons_default_head :
+    ∀ (cF cU : SmtDatatypeCons) (v : SmtValue),
+      __smtx_datatype_cons_default v cF cU ≠ SmtValue.NotValue ->
+        __vsm_apply_head (__smtx_datatype_cons_default v cF cU) = __vsm_apply_head v
+  | SmtDatatypeCons.unit, cU, v, _hNe => by
+      cases cU <;> simp [__smtx_datatype_cons_default] at *
+  | SmtDatatypeCons.cons TF cF, cU, v, hNe => by
+      cases cU with
+      | unit => simp [__smtx_datatype_cons_default] at hNe
+      | cons TU cU =>
+        rw [__smtx_datatype_cons_default] at hNe ⊢
+        by_cases hv : native_veq (__smtx_type_default_rec TF TU) SmtValue.NotValue = true
+        · rw [native_ite, if_pos hv] at hNe; exact absurd rfl hNe
+        · rw [native_ite, if_neg hv] at hNe ⊢
+          have hrec := cons_default_head cF cU
+            (SmtValue.Apply v (__smtx_type_default_rec TF TU)) hNe
+          rw [hrec]; simp [__vsm_apply_head]
+  termination_by cF _ _ _ => sizeOf cF
+  decreasing_by all_goals (try simp_wf); all_goals omega
+
 /-- RESIDUAL (sorry): an inhabited, well-formed, infinite datatype has typed
 canonical inhabitants avoiding any finite list.  Formerly proved by the
 value-substitution "pump" construction, removed in the datatype-default
