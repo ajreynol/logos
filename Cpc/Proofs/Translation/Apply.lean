@@ -6961,9 +6961,19 @@ private theorem eo_to_smt_typeof_matches_translation_apply_is
                 __smtx_dt_wf_rec (__eo_to_smt_datatype d0)
                   (native_reflist_insert native_reflist_nil s) = true :=
               datatype_wf_rec_of_type_wf hBaseTypeWf
+            have hBaseValid :
+                eo_datatype_valid_rec (native_reflist_insert native_reflist_nil s) d0 :=
+              eo_datatype_valid_of_smt_wf_rec
+                (native_reflist_insert native_reflist_nil s) hBaseDtWf
+            have hBaseNoDt :
+                noDtDt s (__eo_to_smt_datatype d0) = true :=
+              noDt_of_wf_dt s (__eo_to_smt_datatype d0)
+                (native_reflist_insert native_reflist_nil s) hBaseDtWf
+                (by simp [native_reflist_contains, native_reflist_insert, native_reflist_nil])
             simpa [__eo_to_smt_type, native_ite, hReserved,
               ← eo_to_smt_datatype_substitute s d0 d0
-                (native_reflist_insert native_reflist_nil s) hBaseDtWf] using hCtorSmt
+                (native_reflist_insert native_reflist_nil s)
+                hBaseValid hBaseNoDt hBaseDtWf] using hCtorSmt
           exact
             eo_typeof_dt_cons_rec_ne_stuck_of_smt_non_none
               (Term.DatatypeType s d0) (__eo_dt_substitute s d0 d0) i
