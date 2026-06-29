@@ -16,8 +16,8 @@
 
 \lstdefinelanguage{Lean}{
   morekeywords={
-    abbrev, by, classical, def, deriving, do, else, end, exact,
-    forall, fun, if, inductive, let, macro_rules, match, namespace,
+    abbrev, by, def, deriving, else, end,
+    forall, fun, if, inductive, let, match, namespace,
     noncomputable, open, private, section, set_option, structure, then,
     theorem, where, with
   },
@@ -1285,7 +1285,7 @@ def smt_seq_canonical : SmtSeq -> Bool
 
 def smt_value_canonical : SmtValue -> Bool
   | (SmtValue.Map m) => (smt_map_canonical m)
-  | (SmtValue.Set m) => (smt_map_canonical m) && (veq smt_map_get_default m (SmtValue.Boolean false))
+  | (SmtValue.Set m) => (smt_map_canonical m) && (veq (smt_map_get_default m) (SmtValue.Boolean false))
   | (SmtValue.Seq s) => (smt_seq_canonical s)
   | (SmtValue.Apply f v) => (smt_value_canonical f) && (smt_value_canonical v)
   | v => true
@@ -1365,6 +1365,13 @@ with finite index type.
 In fact, \code{m1} above is the canonical value
 of a map from \code{Bool} to \code{Bool} that stores true everywhere.
 
+In other words,
+our definition of canonicty ensures that
+default values \emph{never} matter for maps of finite index types
+(since in this case they must have a common default),
+and default values \emph{always} matter for maps of infinite index types
+(since they cannot be fully covered by a finite set of stores).
+
 Sets are similar to maps, but for canonical values, their default value is false,
 regardless of the index type.
 Defining canonicity for the other types is trivial.
@@ -1373,69 +1380,156 @@ and confirm that all values they are built from are also canonical.
 
 \subsection{Inhabited and Well-Formedness of Types}
 
-
 \begin{figure}[p]
 \begin{lstlisting}
+abbrev RefList := List String
 
-def native_inhabited_type (T : SmtType) : Bool := by
-  classical
-  exact
-    decide (smt_typeof_value (smt_type_default T) = T) &&
-      (smt_value_canonical (smt_type_default T))
+def inhabited_type (T : SmtType) : Bool :=
+  (Teq (smt_typeof_value (smt_type_default T)) T) &&
+  (smt_value_canonical (smt_type_default T))
 
 def smt_dt_cons_wf_rec : SmtDatatypeCons -> RefList -> Bool
   | (SmtDatatypeCons.cons (SmtType.TypeRef s) c), refs =>
-      if s ∈ refs then smt_dt_cons_wf_rec c refs else false
+      (s ∈ refs) && (smt_dt_cons_wf_rec c refs)
   | (SmtDatatypeCons.cons T c), refs =>
-      if native_inhabited_type T then
-        if smt_type_wf_rec T refs then smt_dt_cons_wf_rec c refs else false
-      else
-        false
+      (inhabited_type T) && (smt_type_wf_rec T refs) && (smt_dt_cons_wf_rec c refs)
   | SmtDatatypeCons.unit, refs => true
 
 def smt_dt_wf_rec : SmtDatatype -> RefList -> Bool
   | SmtDatatype.null, refs => false
   | (SmtDatatype.sum c SmtDatatype.null), refs => (smt_dt_cons_wf_rec c refs)
   | (SmtDatatype.sum c d), refs =>
-      if smt_dt_cons_wf_rec c refs then smt_dt_wf_rec d refs else false
+      (smt_dt_cons_wf_rec c refs) && (smt_dt_wf_rec d refs)
 
 def smt_type_wf_rec : SmtType -> RefList -> Bool
   | (SmtType.Datatype s d), refs =>
       if s ∈ refs then false else smt_dt_wf_rec d (s :: refs)
   | (SmtType.TypeRef s), refs => false
-  | (SmtType.Seq x1), refs => (native_inhabited_type x1 && smt_type_wf_rec x1 [])
+  | (SmtType.Seq x1), refs => (smt_type_wf_component x1)
   | (SmtType.Map x1 x2), refs =>
-      native_inhabited_type x1 &&
-        smt_type_wf_rec x1 [] &&
-        native_inhabited_type x2 &&
-        smt_type_wf_rec x2 []
+      (smt_type_wf_component x1) && (smt_type_wf_component x2)
+  | (SmtType.Set x1), refs => (smt_type_wf_component x1)
   | (SmtType.FunType x1 x2), refs => false
-  | (SmtType.Set x1), refs => (native_inhabited_type x1 && smt_type_wf_rec x1 [])
   | (SmtType.DtcAppType x1 x2), refs => false
-  | SmtType.None, refs => false
   | SmtType.RegLan, refs => false
+  | SmtType.None, refs => false
   | T, refs => true
 
 def smt_type_wf_component (T : SmtType) : Bool :=
-  (native_inhabited_type T && smt_type_wf_rec T [])
+  (inhabited_type T) && (smt_type_wf_rec T [])
 
 def smt_type_wf : SmtType -> Bool
   | SmtType.RegLan => true
-  | (SmtType.FunType T U) => (smt_type_wf_component T && smt_type_wf_component U)
+  | (SmtType.FunType T U) => (smt_type_wf_component T) && (smt_type_wf U)
   | T => (smt_type_wf_component T)
 \end{lstlisting}
 \caption{Inhabitation, and type well-formedness.}
 \label{fig:type-wf}
 \end{figure}
 
+Figure~\ref{fig:type-wf}
+provides two key definitions which we will use when defining the properties
+of SMT-LIB models we wish to consider.
 
+First, \code{inhabited_type} is a predicate that is true iff
+an SMT-LIB type is inhabited.
+We define type inhabitedness operationally.
+In particular, a type is considered inhabited if the method \code{smt_type_default}
+(from Figure~\ref{fig:default-value})succeeds in generating a value of that type,
+where recall that the type of values can be computed by the method \code{smt_typeof_value}.
+We additionally require that the default value of the type is canonical.
+TODO: this can likely be proven, not assumed.
+Note that any datatype that is not well-founded (i.e. does not have finite values)
+will be such that \code{smt_type_default} fails to return a value of that sort.
+It is important to note that the definition of \code{inhabited_type}
+could alternatively have been defined by a native Lean binder,
+i.e. a type is inhabited iff there exists a value having that type.
+However, this definition does not quite coincide with our desired notion,
+as it admits other types (e.g. datatypes with nested recursion) to be
+considered inhabited. Instead, \code{smt_type_default} operationally
+defines what we consider to be an inhabited type.
 
+The second key method defined in Figure~\ref{fig:type-wf}
+is \smttypewf.
+This predicate will define exactly the set of types that are relevant
+to in our SMT-LIB representation.
+To understand the intuition for the precise definition of this,
+it is important to recall our definition of canonicity of values.
 
+Note that \smttypewf
+relies on a helper \code{smt_type_wf_component},
+which returns true for types that are well-formed and can be used as component
+types to build other well-formed types.
+We also will say that a type \code{T} is \emph{first-class}
+iff \code{(smt_type_wf_component T)} returns true.
+Assume we have two canonical values \code{v1} and \code{v2} of first-class type \code{T},
+that is, \smttypeofvalue{v1} = \smttypeofvalue{v2} = \code{T},
+and \smtvaluecanon{v1} = \smtvalue{v2} = true.
+In this case, 
+we say that \smttypeofvalue{v1} and \smttypeofvalue{v2} are
+semantically equivalent iff they are syntactically equivalent.
+Concretely,
+our definition of SMT-LIB model evaluation \smtmodeleval for equality (\code{eq})
+will use syntactic comparison over values (\code{veq}) for all first-class types.
 
+Let us now look in detail at how \smttypewf is defined.
+First, regular languages and function types
+will not be considered first-class types.
+They will however be permitted as top-level types.
+Thus, we provide them as special cases in \smttypewf,
+where regular langauges return true.
+Function types are considered well-formed
+if their argument types are first-class and their return types
+are well-formed.
+Note that this excludes functions taking regular expressions
+as arguments, as well as higher-order functions
+(functions taking functions as arguments).
 
+The method \code{smt_type_wf_component}
+returns true if the given type is inhabited
+and its component types are well-formed, as defined by the recursive method \code{smt_type_wf_rec}.
+This method tracks a list of datatypes we have traversed beneath (\code{RefList}).
 
+For datatype types,
+we call the recursive helper \code{smt_dt_wf_rec} that returns true if the datatype is well-formed.
+We append the datatype name \code{s} to our list of references when calling this method,
+indicating that type references to \code{s} are valid in this context.
+This method returns false if the datatype has no constructors.
+Otherwise, we visit each constructor
+and return true only if all constructors are well formed via \code{smt_dtc_wf_rec}.
+Note we have a special case for one constructors to avoid returning false for an empty tail.
+We determine whether a constructor is well-formed if
+for each of its field types \code{T},
+either \code{T} is a type reference in scope (\code{s ∈ refs}),
+or otherwise \code{T} is an inhabited type that is well-formed, which we check
+recursively, maintaining the list of references.
+Note that carrying the reference list 
+implies that mutually recursive datatypes are supported.
 
+Note that type references are only permitted as direct children of
+constructors.
+Unguarded type reference are not well-formed given their case 
+in \code{smt_dt_wf_rec}, which returns false.
 
+The next cases in \code{smt_dt_wf_rec}
+cover composite types like maps, sequences and sets.
+It is important to note that for each component type (e.g. element and index types of maps,
+or element types of sequences),
+we do not carry the list of reference when recursing
+via \code{smt_type_wf_component}.
+This disallows nested recursive datatypes.
+It is also important to note that composite types built from uninhabited types
+are themselves considered not well-formed.
+This prevents us from otherwise have e.g. sets of an uninhabited type be
+inhabited via the empty set; sequences are guarded for the same reason.
+
+The remaining cases in \code{smt_dt_wf_rec} include exceptions
+for other types that we disallow as first-class types.
+As mentioned, we do not have regular expressions or function types
+as first class.
+We also disallow partially applied datatype constructors as a first-class type.
+Finally, we disallow the error type \code{None}.
+All other types (e.g. the atomic base types) are first-class.
 
 \subsection{Types of SMT-LIB Terms}
 
@@ -1498,21 +1592,12 @@ def model_total_typed (M : SmtModel) : Prop :=
 def native_str_in_re : String -> native_RegLan -> Bool
   | s, r => native_re_nullable <| s.toList.foldl (fun acc c => native_re_deriv c acc) r
 
-macro_rules
-  | `(native_re_ext_eq $r1 $r2) => do
-      let strInReId := Lean.mkIdent `native_str_in_re
-      `(by
-          classical
-          exact
-            if hExt :
-                ∀ s : String,
-                  $strInReId s $r1 = $strInReId s $r2 then
-              true
-            else
-              false)
+open Classical in
+noncomputable def re_ext_eq (r1 r2 : native_RegLan) : Bool :=
+  if ∀ s : String, native_str_in_re s r1 = native_str_in_re s r2 then true else false
 
 def smt_model_eval_eq : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.RegLan r1), (SmtValue.RegLan r2) => (SmtValue.Boolean (native_re_ext_eq r1 r2))
+  | (SmtValue.RegLan r1), (SmtValue.RegLan r2) => (SmtValue.Boolean (re_ext_eq r1 r2))
   | v1, v2 => (SmtValue.Boolean (decide (v1 = v2)))
 \end{lstlisting}
 \caption{Model evaluation for equality.}
@@ -1521,78 +1606,52 @@ def smt_model_eval_eq : SmtValue -> SmtValue -> SmtValue
 
 \begin{figure}[p]
 \begin{lstlisting}
-macro_rules
-  | `(native_eval_texists $M $s $T $body) => do
-      let evalId := Lean.mkIdent `smt_model_eval
-      let pushId := Lean.mkIdent `model_push
-      let typeofValueId := Lean.mkIdent `smt_typeof_value
-      let canonId := Lean.mkIdent `smt_value_canonical
-      `(by
-          classical
-          exact
-            if h :
-                ∃ v : SmtValue,
-                  $typeofValueId v = $T ∧
-                    $canonId v = true ∧
-                    $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
-              SmtValue.Boolean true
-            else
-              SmtValue.Boolean false)
+open Classical in
+noncomputable def native_eval_texists (M : SmtModel) (s : String)
+    (T : SmtType) (body : SmtTerm) : SmtValue :=
+  if ∃ v : SmtValue,
+      smt_typeof_value v = T ∧
+        smt_value_canonical v = true ∧
+        smt_model_eval (model_push M s T v) body = (SmtValue.Boolean true) then
+    SmtValue.Boolean true
+  else
+    SmtValue.Boolean false
 
-  | `(native_eval_tforall $M $s $T $body) => do
-      let evalId := Lean.mkIdent `smt_model_eval
-      let pushId := Lean.mkIdent `model_push
-      let typeofValueId := Lean.mkIdent `smt_typeof_value
-      let canonId := Lean.mkIdent `smt_value_canonical
-      `(by
-          classical
-          exact
-            if h :
-                ∀ v : SmtValue,
-                  $typeofValueId v = $T ->
-                    $canonId v = true ->
-                    $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
-              SmtValue.Boolean true
-            else
-              SmtValue.Boolean false)
+open Classical in
+noncomputable def native_eval_tforall (M : SmtModel) (s : String)
+    (T : SmtType) (body : SmtTerm) : SmtValue :=
+  if ∀ v : SmtValue,
+      smt_typeof_value v = T ->
+        smt_value_canonical v = true ->
+        smt_model_eval (model_push M s T v) body = (SmtValue.Boolean true) then
+    SmtValue.Boolean true
+  else
+    SmtValue.Boolean false
 
-  | `(native_eval_tchoice $M $s $T $body) => do
-      let evalId := Lean.mkIdent `smt_model_eval
-      let pushId := Lean.mkIdent `model_push
-      let typeofValueId := Lean.mkIdent `smt_typeof_value
-      let canonId := Lean.mkIdent `smt_value_canonical
-      `(by
-          classical
-          exact
-            if hSat :
-                ∃ v : SmtValue,
-                  $typeofValueId v = $T ∧
-                    $canonId v = true ∧
-                    $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
-              Classical.choose hSat
-            else if hTy : ∃ v : SmtValue, $typeofValueId v = $T ∧ $canonId v then
-              Classical.choose hTy
-            else
-              SmtValue.NotValue)
+open Classical in
+noncomputable def native_eval_tchoice (M : SmtModel) (s : String)
+    (T : SmtType) (body : SmtTerm) : SmtValue :=
+  if hSat : ∃ v : SmtValue,
+      smt_typeof_value v = T ∧
+        smt_value_canonical v = true ∧
+        smt_model_eval (model_push M s T v) body = (SmtValue.Boolean true) then
+    Classical.choose hSat
+  else if hTy : ∃ v : SmtValue, smt_typeof_value v = T ∧ smt_value_canonical v then
+    Classical.choose hTy
+  else
+    SmtValue.NotValue
 
-  | `(native_eval_tchoice_nth $M $s $T $body $n) => do
-      let evalChoiceId := Lean.mkIdent `native_eval_tchoice
-      let pushId := Lean.mkIdent `model_push
-      `(by
-          classical
-          let rec evalChoiceNth (M' : SmtModel)
-              (s' : String) (T' : SmtType) (body' : SmtTerm) : Nat -> SmtValue
-            | 0 =>
-                $evalChoiceId M' s' T' body'
-            | Nat.succ n' =>
-                let v := $evalChoiceId M' s' T' body'
-                match body' with
-                | SmtTerm.exists s'' T'' body'' =>
-                    evalChoiceNth ($pushId M' s' T' v) s'' T'' body'' n'
-                | _ => SmtValue.NotValue
-          exact evalChoiceNth $M $s $T $body $n)
+noncomputable def native_eval_tchoice_nth (M : SmtModel) (s : String)
+    (T : SmtType) (body : SmtTerm) : Nat -> SmtValue
+  | 0 => native_eval_tchoice M s T body
+  | Nat.succ n =>
+      let v := native_eval_tchoice M s T body
+      match body with
+      | SmtTerm.exists s' T' body' =>
+          native_eval_tchoice_nth (model_push M s T v) s' T' body' n
+      | _ => SmtValue.NotValue
 \end{lstlisting}
-\caption{Evaluation macros for quantifiers and choice.}
+\caption{Evaluation of quantifiers and choice.}
 \label{fig:eval-quant}
 \end{figure}
 
