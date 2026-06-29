@@ -4085,6 +4085,523 @@ private theorem native_str_in_re_eq_of_unpack_reverse_reglan_rel_consume_local
     _ = native_str_in_re (native_unpack_string revSs) revRv :=
       (smt_value_rel_reglan_valid_eq hRegRel hRevValid).symm
 
+private def consume_atom_chain_term (atoms : List Term) (e : Term) :
+    Term :=
+  atoms.foldr
+    (fun a acc => Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) a) acc)
+    e
+
+private theorem consume_atom_chain_cons (a : Term) (xs : List Term)
+    (e : Term) :
+    consume_atom_chain_term (a :: xs) e =
+      Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) a)
+        (consume_atom_chain_term xs e) := rfl
+
+private theorem consume_atom_chain_append (xs ys : List Term) (e : Term) :
+    consume_atom_chain_term (xs ++ ys) e =
+      consume_atom_chain_term xs (consume_atom_chain_term ys e) := by
+  induction xs with
+  | nil => rfl
+  | cons a xs ih =>
+      rw [List.cons_append, consume_atom_chain_cons, ih,
+        consume_atom_chain_cons]
+
+private theorem consume_str_is_empty_ne_stuck {e : Term}
+    (he : __str_is_empty e = Term.Boolean true) : e ≠ Term.Stuck := by
+  intro h
+  subst e
+  simp [__str_is_empty] at he
+
+private theorem consume_str_is_empty_cases (e : Term)
+    (he : __str_is_empty e = Term.Boolean true) :
+    (∃ U,
+        e = Term.UOp1 UserOp1.seq_empty
+          (Term.Apply (Term.UOp UserOp.Seq) U)) ∨
+      e = Term.String [] := by
+  unfold __str_is_empty at he
+  split at he
+  · cases he
+  · next U => exact Or.inl ⟨U, rfl⟩
+  · exact Or.inr rfl
+  · cases he
+
+private theorem consume_eo_is_list_nil_str_concat_of_str_is_empty
+    (e : Term) (he : __str_is_empty e = Term.Boolean true) :
+    __eo_is_list_nil (Term.UOp UserOp.str_concat) e =
+      Term.Boolean true := by
+  rcases consume_str_is_empty_cases e he with ⟨U, rfl⟩ | rfl
+  · simp [__eo_is_list_nil, __eo_is_list_nil_str_concat]
+  · simp [__eo_is_list_nil, __eo_is_list_nil_str_concat, __eo_eq,
+      native_teq]
+
+private theorem consume_eo_get_nil_rec_atom_chain (xs : List Term)
+    (e : Term) (he : __str_is_empty e = Term.Boolean true) :
+    __eo_get_nil_rec (Term.UOp UserOp.str_concat)
+        (consume_atom_chain_term xs e) =
+      e := by
+  induction xs with
+  | nil =>
+      exact eo_get_nil_rec_str_concat_eq_of_nil_true e
+        (consume_eo_is_list_nil_str_concat_of_str_is_empty e he)
+  | cons a xs ih =>
+      rw [consume_atom_chain_cons]
+      change __eo_requires (Term.UOp UserOp.str_concat)
+          (Term.UOp UserOp.str_concat)
+          (__eo_get_nil_rec (Term.UOp UserOp.str_concat)
+            (consume_atom_chain_term xs e)) = e
+      rw [ih]
+      exact eo_requires_self_eq_of_ne_stuck (Term.UOp UserOp.str_concat)
+        e (by simp)
+
+private theorem consume_eo_is_list_atom_chain (xs : List Term) (e : Term)
+    (he : __str_is_empty e = Term.Boolean true) :
+    __eo_is_list (Term.UOp UserOp.str_concat)
+        (consume_atom_chain_term xs e) =
+      Term.Boolean true := by
+  exact eo_is_list_true_of_get_nil_rec_ne_stuck
+    (Term.UOp UserOp.str_concat) (consume_atom_chain_term xs e) (by
+      rw [consume_eo_get_nil_rec_atom_chain xs e he]
+      exact consume_str_is_empty_ne_stuck he)
+
+private theorem consume_eo_list_rev_rec_atom_chain (xs : List Term)
+    (e acc : Term) (he : __str_is_empty e = Term.Boolean true)
+    (hacc : acc ≠ Term.Stuck) :
+    __eo_list_rev_rec (consume_atom_chain_term xs e) acc =
+      consume_atom_chain_term xs.reverse acc := by
+  induction xs generalizing acc with
+  | nil =>
+      rcases consume_str_is_empty_cases e he with ⟨U, rfl⟩ | rfl
+      · simp [consume_atom_chain_term, __eo_list_rev_rec]
+      · simp [consume_atom_chain_term, __eo_list_rev_rec]
+  | cons a xs ih =>
+      rw [consume_atom_chain_cons]
+      rw [eo_list_rev_rec_cons (Term.UOp UserOp.str_concat) a
+        (consume_atom_chain_term xs e) acc hacc]
+      rw [ih (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) a) acc)
+        (by simp)]
+      rw [List.reverse_cons, consume_atom_chain_append]
+      rfl
+
+private theorem consume_eo_list_rev_atom_chain (xs : List Term) (e : Term)
+    (he : __str_is_empty e = Term.Boolean true) :
+    __eo_list_rev (Term.UOp UserOp.str_concat)
+        (consume_atom_chain_term xs e) =
+      consume_atom_chain_term xs.reverse e := by
+  have hList := consume_eo_is_list_atom_chain xs e he
+  have hGet := consume_eo_get_nil_rec_atom_chain xs e he
+  rw [__eo_list_rev, hList]
+  rw [eo_requires_self_eq_of_ne_stuck (Term.Boolean true)
+    (__eo_list_rev_rec (consume_atom_chain_term xs e)
+      (__eo_get_nil_rec (Term.UOp UserOp.str_concat)
+        (consume_atom_chain_term xs e))) (by decide)]
+  rw [hGet]
+  exact consume_eo_list_rev_rec_atom_chain xs e e he
+    (consume_str_is_empty_ne_stuck he)
+
+private theorem consume_concat_unpack (M : SmtModel) (x y : Term)
+    (sx sy : SmtSeq)
+    (hx : __smtx_model_eval M (__eo_to_smt x) = SmtValue.Seq sx)
+    (hy : __smtx_model_eval M (__eo_to_smt y) = SmtValue.Seq sy) :
+    ∃ sxy,
+      __smtx_model_eval M
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) x) y)) =
+        SmtValue.Seq sxy ∧
+      native_unpack_seq sxy =
+        native_unpack_seq sx ++ native_unpack_seq sy := by
+  rw [smtx_model_eval_str_concat_term_eq, hx, hy]
+  simp only [__smtx_model_eval_str_concat]
+  exact ⟨_, rfl, by rw [Smtm.native_unpack_pack_seq]; rfl⟩
+
+private noncomputable def consume_seq_elem_val (M : SmtModel)
+    (a : Term) : SmtValue :=
+  match a with
+  | Term.Apply (Term.UOp UserOp.seq_unit) e =>
+      __smtx_model_eval M (__eo_to_smt e)
+  | Term.String [ch] => SmtValue.Char ch
+  | _ => SmtValue.NotValue
+
+private theorem consume_eval_seq_unit_atom (M : SmtModel) (e : Term) :
+    ∃ sa,
+      __smtx_model_eval M
+          (__eo_to_smt (Term.Apply (Term.UOp UserOp.seq_unit) e)) =
+        SmtValue.Seq sa ∧
+      native_unpack_seq sa =
+        [consume_seq_elem_val M (Term.Apply (Term.UOp UserOp.seq_unit) e)] := by
+  rw [show
+    __eo_to_smt (Term.Apply (Term.UOp UserOp.seq_unit) e) =
+      SmtTerm.seq_unit (__eo_to_smt e) from rfl]
+  rw [show
+    __smtx_model_eval M (SmtTerm.seq_unit (__eo_to_smt e)) =
+      SmtValue.Seq
+        (SmtSeq.cons (__smtx_model_eval M (__eo_to_smt e))
+          (SmtSeq.empty
+            (__smtx_typeof_value
+              (__smtx_model_eval M (__eo_to_smt e))))) from by
+        simp only [__smtx_model_eval]]
+  exact ⟨_, rfl, by simp [native_unpack_seq, consume_seq_elem_val]⟩
+
+private theorem consume_eval_char_atom (M : SmtModel)
+    (ch : native_Char) :
+    ∃ sa,
+      __smtx_model_eval M (__eo_to_smt (Term.String [ch])) =
+        SmtValue.Seq sa ∧
+      native_unpack_seq sa =
+        [consume_seq_elem_val M (Term.String [ch])] := by
+  rw [show __eo_to_smt (Term.String [ch]) = SmtTerm.String [ch] from rfl]
+  simp only [__smtx_model_eval]
+  exact ⟨native_pack_string [ch], rfl, by
+    simp [consume_seq_elem_val, native_pack_string, native_pack_seq,
+      native_unpack_seq]⟩
+
+private theorem consume_str_is_empty_eval_unpack_nil (M : SmtModel)
+    (e : Term) (s : SmtSeq)
+    (hemp : __str_is_empty e = Term.Boolean true)
+    (hev : __smtx_model_eval M (__eo_to_smt e) = SmtValue.Seq s) :
+    native_unpack_seq s = [] := by
+  unfold __str_is_empty at hemp
+  split at hemp
+  · exact Term.noConfusion hemp
+  · rename_i U
+    rw [show
+      __eo_to_smt
+          (Term.UOp1 UserOp1.seq_empty
+            (Term.Apply (Term.UOp UserOp.Seq) U)) =
+        __eo_to_smt_seq_empty
+          (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U)) from rfl]
+      at hev
+    simp only [__eo_to_smt_type, __smtx_typeof_guard, native_ite] at hev
+    split at hev
+    · simp only [__eo_to_smt_seq_empty, __smtx_model_eval] at hev
+      exact SmtValue.noConfusion hev
+    · rw [show
+        __eo_to_smt_seq_empty (SmtType.Seq (__eo_to_smt_type U)) =
+          SmtTerm.seq_empty (__eo_to_smt_type U) from rfl,
+        show
+          __smtx_model_eval M (SmtTerm.seq_empty (__eo_to_smt_type U)) =
+            SmtValue.Seq (SmtSeq.empty (__eo_to_smt_type U)) from by
+              simp only [__smtx_model_eval]] at hev
+      injection hev with hev
+      rw [← hev]
+      rfl
+  · rw [show __eo_to_smt (Term.String []) = SmtTerm.String [] from rfl,
+      show
+        __smtx_model_eval M (SmtTerm.String []) =
+          SmtValue.Seq (native_pack_string []) from by
+            simp only [__smtx_model_eval]] at hev
+    injection hev with hev
+    rw [← hev]
+    simp [native_pack_string, native_pack_seq, native_unpack_seq]
+  · simp at hemp
+
+private theorem consume_atom_eval_unpack (M : SmtModel) (a : Term)
+    (hShape :
+      (∃ ch, a = Term.String [ch]) ∨
+        (∃ e, a = Term.Apply (Term.UOp UserOp.seq_unit) e)) :
+    ∀ sa,
+      __smtx_model_eval M (__eo_to_smt a) = SmtValue.Seq sa ->
+      native_unpack_seq sa = [consume_seq_elem_val M a] := by
+  intro sa hEval
+  rcases hShape with ⟨ch, rfl⟩ | ⟨e, rfl⟩
+  · rcases consume_eval_char_atom M ch with ⟨sa0, hEval0, hUnp⟩
+    rw [hEval] at hEval0
+    cases hEval0
+    exact hUnp
+  · rcases consume_eval_seq_unit_atom M e with ⟨sa0, hEval0, hUnp⟩
+    rw [hEval] at hEval0
+    cases hEval0
+    exact hUnp
+
+private theorem consume_chain_unpack_td (M : SmtModel) (ex : Term)
+    (htermempty : __str_is_empty ex = Term.Boolean true) :
+    ∀ (xs : List Term) (sc : SmtSeq),
+      __smtx_model_eval M
+          (__eo_to_smt (consume_atom_chain_term xs ex)) =
+        SmtValue.Seq sc ->
+      (∀ a ∈ xs,
+        ∀ sa,
+          __smtx_model_eval M (__eo_to_smt a) = SmtValue.Seq sa ->
+          native_unpack_seq sa = [consume_seq_elem_val M a]) ->
+      native_unpack_seq sc = xs.map (consume_seq_elem_val M) := by
+  intro xs
+  induction xs with
+  | nil =>
+      intro sc hc _
+      rw [show consume_atom_chain_term [] ex = ex from rfl] at hc
+      simpa using consume_str_is_empty_eval_unpack_nil M ex sc htermempty hc
+  | cons a xs ih =>
+      intro sc hc hatoms
+      rw [consume_atom_chain_cons] at hc
+      obtain ⟨⟨sa, hsa⟩, ⟨sc', hsc'⟩⟩ :=
+        strConcat_args_eval_seq_of_concat_eval_seq M a
+          (consume_atom_chain_term xs ex) ⟨sc, hc⟩
+      obtain ⟨sxy, hsxy, hsxynil⟩ :=
+        consume_concat_unpack M a (consume_atom_chain_term xs ex) sa sc'
+          hsa hsc'
+      have heq : sc = sxy := by
+        rw [hc] at hsxy
+        injection hsxy
+      rw [heq, hsxynil, hatoms a (by simp) sa hsa,
+        ih sc' hsc' (fun a' h' => hatoms a' (by simp [h']))]
+      simp
+
+private structure ConsumeIntroWordView (M : SmtModel) (t : Term)
+    (S : SmtSeq) (T : SmtType) where
+  atoms : List Term
+  ex : Term
+  hflat :
+    __str_flatten (__str_nary_intro t) =
+      consume_atom_chain_term atoms ex
+  hlen : __str_value_len t = Term.Numeral (Int.ofNat atoms.length)
+  hunp : native_unpack_seq S = atoms.map (consume_seq_elem_val M)
+  hexEmpty : __str_is_empty ex = Term.Boolean true
+  hAtomTy :
+    ∀ a ∈ atoms, __smtx_typeof (__eo_to_smt a) = SmtType.Seq T
+  hAtomShape :
+    ∀ a ∈ atoms,
+      (∃ ch, a = Term.String [ch]) ∨
+        (∃ e, a = Term.Apply (Term.UOp UserOp.seq_unit) e)
+
+private theorem consume_atom_chain_string_atoms_eq_substrWord :
+    ∀ w : native_String,
+      consume_atom_chain_term (w.map (fun ch => Term.String [ch]))
+          (Term.String []) =
+        substrWord w 0 w.length
+  | [] => by
+      rfl
+  | c :: cs => by
+      rw [show (c :: cs).length = cs.length + 1 from rfl,
+        List.map_cons, consume_atom_chain_cons, substrWord,
+        extractString_zero_cons,
+        show (0 : native_Int) + 1 = 1 by simp, substrWord_cons_tail,
+        consume_atom_chain_string_atoms_eq_substrWord cs]
+
+private theorem consume_char_atoms_unpack (M : SmtModel)
+    (w : native_String) :
+    w.map SmtValue.Char =
+      (w.map (fun ch => Term.String [ch])).map
+        (consume_seq_elem_val M) := by
+  induction w with
+  | nil => rfl
+  | cons ch rest ih =>
+      simp [consume_seq_elem_val, ih]
+
+private theorem consume_unpack_pack_string_map (w : native_String) :
+    native_unpack_seq (native_pack_string w) =
+      w.map SmtValue.Char := by
+  simp [native_pack_string, Smtm.native_unpack_pack_seq]
+
+private theorem consume_char_atoms_type (w : native_String)
+    (T : SmtType)
+    (hTy :
+      __smtx_typeof (__eo_to_smt (Term.String w)) = SmtType.Seq T) :
+    ∀ a ∈ w.map (fun ch => Term.String [ch]),
+      __smtx_typeof (__eo_to_smt a) = SmtType.Seq T := by
+  have hT : T = SmtType.Char := string_seq_type_char_local w T hTy
+  intro a ha
+  rcases List.mem_map.1 ha with ⟨ch, hMem, rfl⟩
+  rw [hT]
+  have hValid : native_string_valid w = true :=
+    native_string_valid_of_smtx_typeof_eo_string w (by
+      simpa [hT] using hTy)
+  have hCharValid : native_char_valid ch = true := by
+    unfold native_string_valid at hValid
+    exact List.all_eq_true.1 hValid ch hMem
+  change __smtx_typeof (SmtTerm.String [ch]) =
+    SmtType.Seq SmtType.Char
+  rw [__smtx_typeof.eq_4]
+  simp [native_string_valid, hCharValid, native_ite]
+
+private theorem consume_char_atoms_shape (w : native_String) :
+    ∀ a ∈ w.map (fun ch => Term.String [ch]),
+      (∃ ch, a = Term.String [ch]) ∨
+        (∃ e, a = Term.Apply (Term.UOp UserOp.seq_unit) e) := by
+  intro a ha
+  rcases List.mem_map.1 ha with ⟨ch, _hMem, rfl⟩
+  exact Or.inl ⟨ch, rfl⟩
+
+private theorem consume_str_value_len_string (w : native_String) :
+    __str_value_len (Term.String w) =
+      Term.Numeral (Int.ofNat w.length) := by
+  simp [__str_value_len, __eo_requires, __eo_is_str,
+    __eo_is_str_internal, __eo_len, native_str_len, native_teq,
+    SmtEval.native_ite, SmtEval.native_and, SmtEval.native_not]
+
+private def consume_intro_word_view_string
+    (M : SmtModel) (w : native_String) (S : SmtSeq) (T : SmtType)
+    (hTy :
+      __smtx_typeof (__eo_to_smt (Term.String w)) = SmtType.Seq T)
+    (hEval :
+      __smtx_model_eval M (__eo_to_smt (Term.String w)) =
+        SmtValue.Seq S) :
+    ConsumeIntroWordView M (Term.String w) S T := by
+  refine {
+    atoms := w.map (fun ch => Term.String [ch]),
+    ex := Term.String [],
+    hflat := ?_,
+    hlen := by simpa using consume_str_value_len_string w,
+    hunp := ?_,
+    hexEmpty := by simp [__str_is_empty],
+    hAtomTy := consume_char_atoms_type w T hTy,
+    hAtomShape := consume_char_atoms_shape w
+  }
+  · cases w with
+    | nil =>
+        rw [str_flatten_nary_intro_empty]
+        rfl
+    | cons c cs =>
+        rw [str_flatten_nary_intro_cons,
+          ← consume_atom_chain_string_atoms_eq_substrWord (c :: cs)]
+  · rw [show __eo_to_smt (Term.String w) = SmtTerm.String w from rfl] at hEval
+    simp only [__smtx_model_eval] at hEval
+    injection hEval with hS
+    rw [← hS, consume_unpack_pack_string_map,
+      consume_char_atoms_unpack]
+
+private theorem consume_intro_word_view_list_rev_eval_reverse_string
+    (M : SmtModel) (t : Term) (S revS : SmtSeq) (T : SmtType)
+    (v : ConsumeIntroWordView M t S T)
+    (hRevEval :
+      __smtx_model_eval M
+          (__eo_to_smt
+            (__eo_list_rev (Term.UOp UserOp.str_concat)
+              (__str_flatten (__str_nary_intro t)))) =
+        SmtValue.Seq revS) :
+    native_unpack_string revS = (native_unpack_string S).reverse := by
+  have hRevEvalChain :
+      __smtx_model_eval M
+          (__eo_to_smt
+            (consume_atom_chain_term v.atoms.reverse v.ex)) =
+        SmtValue.Seq revS := by
+    simpa [v.hflat, consume_eo_list_rev_atom_chain v.atoms v.ex
+      v.hexEmpty] using hRevEval
+  have hRevUnpack :
+      native_unpack_seq revS =
+        v.atoms.reverse.map (consume_seq_elem_val M) :=
+    consume_chain_unpack_td M v.ex v.hexEmpty v.atoms.reverse revS
+      hRevEvalChain
+      (by
+        intro a ha sa hEval
+        exact consume_atom_eval_unpack M a
+          (v.hAtomShape a (List.mem_reverse.mp ha)) sa hEval)
+  unfold native_unpack_string
+  rw [hRevUnpack, v.hunp]
+  simp [List.map_reverse]
+
+private theorem consume_native_unpack_string_eq_of_seq_rel
+    {ss ss' : SmtSeq}
+    (hRel :
+      RuleProofs.smt_value_rel (SmtValue.Seq ss') (SmtValue.Seq ss)) :
+    native_unpack_string ss' = native_unpack_string ss := by
+  have hSeq : RuleProofs.smt_seq_rel ss' ss := by
+    simpa [RuleProofs.smt_value_rel, RuleProofs.smt_seq_rel] using hRel
+  have hEq : ss' = ss := (RuleProofs.smt_seq_rel_iff_eq ss' ss).1 hSeq
+  subst ss'
+  rfl
+
+private theorem consume_intro_word_view_reverse_native_bridge
+    (M : SmtModel) (t : Term) (S revS : SmtSeq) (T : SmtType)
+    (rv revRv : native_RegLan)
+    (hSeqTy :
+      __smtx_typeof_value (SmtValue.Seq S) =
+        SmtType.Seq SmtType.Char)
+    (v : ConsumeIntroWordView M t S T)
+    (hRevEval :
+      __smtx_model_eval M
+          (__eo_to_smt
+            (__eo_list_rev (Term.UOp UserOp.str_concat)
+              (__str_flatten (__str_nary_intro t)))) =
+        SmtValue.Seq revS)
+    (hRegRel :
+      RuleProofs.smt_value_rel (SmtValue.RegLan revRv)
+        (SmtValue.RegLan (native_re_reverse_raw_consume_local rv))) :
+    native_str_in_re (native_unpack_string S) rv =
+      native_str_in_re (native_unpack_string revS) revRv := by
+  have hRevUnpack :
+      native_unpack_string revS = (native_unpack_string S).reverse :=
+    consume_intro_word_view_list_rev_eval_reverse_string M t S revS T v
+      hRevEval
+  exact native_str_in_re_eq_of_unpack_reverse_reglan_rel_consume_local
+    hSeqTy hRevUnpack hRegRel
+
+private theorem consume_intro_word_view_flat_rel_reverse_native_bridge
+    (M : SmtModel) (t : Term) (ss flatSs revSs : SmtSeq)
+    (T : SmtType) (rv revRv : native_RegLan)
+    (hSeqTy :
+      __smtx_typeof_value (SmtValue.Seq ss) =
+        SmtType.Seq SmtType.Char)
+    (hFlatRel :
+      RuleProofs.smt_value_rel (SmtValue.Seq flatSs) (SmtValue.Seq ss))
+    (v : ConsumeIntroWordView M t flatSs T)
+    (hRevEval :
+      __smtx_model_eval M
+          (__eo_to_smt
+            (__eo_list_rev (Term.UOp UserOp.str_concat)
+              (__str_flatten (__str_nary_intro t)))) =
+        SmtValue.Seq revSs)
+    (hRegRel :
+      RuleProofs.smt_value_rel (SmtValue.RegLan revRv)
+        (SmtValue.RegLan (native_re_reverse_raw_consume_local rv))) :
+    native_str_in_re (native_unpack_string ss) rv =
+      native_str_in_re (native_unpack_string revSs) revRv := by
+  have hFlatUnpack :
+      native_unpack_string flatSs = native_unpack_string ss :=
+    consume_native_unpack_string_eq_of_seq_rel hFlatRel
+  have hFlatSeqTy :
+      __smtx_typeof_value (SmtValue.Seq flatSs) =
+        SmtType.Seq SmtType.Char := by
+    have hSeq : RuleProofs.smt_seq_rel flatSs ss := by
+      simpa [RuleProofs.smt_value_rel, RuleProofs.smt_seq_rel] using
+        hFlatRel
+    have hEq : flatSs = ss :=
+      (RuleProofs.smt_seq_rel_iff_eq flatSs ss).1 hSeq
+    subst flatSs
+    exact hSeqTy
+  have hBridge :
+      native_str_in_re (native_unpack_string flatSs) rv =
+        native_str_in_re (native_unpack_string revSs) revRv :=
+    consume_intro_word_view_reverse_native_bridge M t flatSs revSs T rv
+      revRv hFlatSeqTy v hRevEval hRegRel
+  simpa [hFlatUnpack] using hBridge
+
+private theorem consume_string_flat_rel_reverse_native_bridge
+    (M : SmtModel) (w : native_String)
+    (ss flatSs revSs : SmtSeq) (T : SmtType)
+    (rv revRv : native_RegLan)
+    (hSeqTy :
+      __smtx_typeof_value (SmtValue.Seq ss) =
+        SmtType.Seq SmtType.Char)
+    (hTy :
+      __smtx_typeof (__eo_to_smt (Term.String w)) = SmtType.Seq T)
+    (hSEval :
+      __smtx_model_eval M (__eo_to_smt (Term.String w)) =
+        SmtValue.Seq ss)
+    (hFlatRel :
+      RuleProofs.smt_value_rel (SmtValue.Seq flatSs)
+        (SmtValue.Seq ss))
+    (hRevEval :
+      __smtx_model_eval M
+          (__eo_to_smt
+            (__eo_list_rev (Term.UOp UserOp.str_concat)
+              (__str_flatten (__str_nary_intro (Term.String w))))) =
+        SmtValue.Seq revSs)
+    (hRegRel :
+      RuleProofs.smt_value_rel (SmtValue.RegLan revRv)
+        (SmtValue.RegLan (native_re_reverse_raw_consume_local rv))) :
+    native_str_in_re (native_unpack_string ss) rv =
+      native_str_in_re (native_unpack_string revSs) revRv := by
+  have hFlatEq : flatSs = ss := by
+    have hSeq : RuleProofs.smt_seq_rel flatSs ss := by
+      simpa [RuleProofs.smt_value_rel, RuleProofs.smt_seq_rel] using
+        hFlatRel
+    exact (RuleProofs.smt_seq_rel_iff_eq flatSs ss).1 hSeq
+  subst flatSs
+  exact consume_intro_word_view_flat_rel_reverse_native_bridge M
+    (Term.String w) ss ss revSs T rv revRv hSeqTy
+    (RuleProofs.smt_value_rel_refl (SmtValue.Seq ss))
+    (consume_intro_word_view_string M w ss T hTy hSEval) hRevEval
+    hRegRel
+
 theorem native_str_in_re_re_mult_concat_eq_tail_of_no_prefix_local
     (xs : native_String) (r tail : native_RegLan)
     (hNoPrefix :
@@ -27066,128 +27583,6 @@ theorem str_re_consume_model_rel
       (by simpa [sFlat, rFlat, first, eps, carry, nextS] using hNextSTy)
       (by simpa [sFlat, rFlat, first, eps, carry, nextR] using hNextRTy)
       hSecondTy
-  have hMultFinalRelOfSecondStrEvalProgress :
-      ∀ r0,
-        r = Term.Apply (Term.UOp UserOp.re_mult) r0 ->
-        side ≠ Term.Boolean false ->
-        (let sFlat :=
-          __eo_list_rev (Term.UOp UserOp.str_concat)
-            (__str_flatten (__eo_list_singleton_intro
-              (Term.UOp UserOp.str_concat) s))
-        let rFlat :=
-          __eo_list_rev (Term.UOp UserOp.re_concat)
-            (__re_flatten (Term.Boolean true) (Term.Boolean true) r0)
-        let first := __str_re_consume_rec sFlat rFlat sFlat
-        let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
-        let carry :=
-          __eo_and (Term.Boolean true)
-            (__eo_not (__eo_eq (__str_membership_re first) eps))
-        let nextS :=
-          __eo_list_rev (Term.UOp UserOp.str_concat)
-            (__eo_ite carry sFlat (__str_membership_str first))
-        let nextR :=
-          __eo_list_rev (Term.UOp UserOp.re_concat)
-            (__re_flatten (Term.Boolean true) (Term.Boolean true)
-              (__eo_ite carry rFlat (__str_membership_re first)))
-        let second := __str_re_consume_rec nextS nextR nextS
-        ∀ ss,
-          __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss ->
-            ∃ partsSs,
-              __smtx_model_eval M
-                  (__eo_to_smt (__str_membership_str second)) =
-                SmtValue.Seq partsSs ∧
-              RuleProofs.smt_value_rel (SmtValue.Seq partsSs)
-                (SmtValue.Seq ss)) ->
-        RuleProofs.smt_value_rel
-          (__smtx_model_eval M
-            (__eo_to_smt
-              (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) r)))
-          (__smtx_model_eval M (__eo_to_smt side)) := by
-    intro r0 hR hSideNotFalse hSecondStrEvalRel
-    subst r
-    let multR := Term.Apply (Term.UOp UserOp.re_mult) r0
-    let sFlat :=
-      __eo_list_rev (Term.UOp UserOp.str_concat)
-        (__str_flatten (__eo_list_singleton_intro
-          (Term.UOp UserOp.str_concat) s))
-    let rFlat :=
-      __eo_list_rev (Term.UOp UserOp.re_concat)
-        (__re_flatten (Term.Boolean true) (Term.Boolean true) r0)
-    let first := __str_re_consume_rec sFlat rFlat sFlat
-    let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
-    let carry :=
-      __eo_and (Term.Boolean true)
-        (__eo_not (__eo_eq (__str_membership_re first) eps))
-    let nextS :=
-      __eo_list_rev (Term.UOp UserOp.str_concat)
-        (__eo_ite carry sFlat (__str_membership_str first))
-    let nextR :=
-      __eo_list_rev (Term.UOp UserOp.re_concat)
-        (__re_flatten (Term.Boolean true) (Term.Boolean true)
-          (__eo_ite carry rFlat (__str_membership_re first)))
-    let second := __str_re_consume_rec nextS nextR nextS
-    let final :=
-      __eo_mk_apply
-        (__eo_mk_apply (Term.UOp UserOp.str_in_re)
-          (__eo_list_singleton_elim (Term.UOp UserOp.str_concat)
-            (__str_collect (__str_membership_str second))))
-        (__eo_list_singleton_elim (Term.UOp UserOp.re_concat)
-          (__re_unflatten (Term.Boolean false) (Term.Boolean true)
-            (__str_membership_re second)))
-    let candidate :=
-      __eo_ite (__eo_eq first (Term.Boolean false))
-        (Term.Boolean false)
-        (__eo_ite (__eo_eq second (Term.Boolean false))
-          (Term.Boolean false) final)
-    rcases hMultFinalProgress r0 rfl hSideNotFalse with
-      ⟨_hSideRebuild, hCandidateFinal, hCandidateMem⟩
-    rcases hMultFinalSubtermProgress r0 rfl hSideNotFalse with
-      ⟨_hSideRebuild, _hCandidateFinal, _hCandidateMem, hCollectNe,
-        hUnflatElimNe⟩
-    have hSecondTy :
-        __smtx_typeof (__eo_to_smt second) = SmtType.Bool := by
-      simpa [sFlat, rFlat, first, eps, carry, nextS, nextR, second] using
-        str_re_consume_mult_second_type_from_rec_type_local M hM hRecType
-          s r0 side (by simpa [multR] using hEqTrans) hSNe
-          (by simpa [multR] using hSide) hSideNe hSideNotFalse
-    rcases str_re_consume_final_raw_projection_types_of_second_bool_local
-        second hSecondTy (by simpa [second] using hUnflatElimNe) with
-      ⟨hPartsTy, _hRePartTy⟩
-    have hPartsList :
-        __eo_is_list (Term.UOp UserOp.str_concat)
-            (__str_membership_str second) =
-          Term.Boolean true := by
-      simpa [sFlat, rFlat, first, eps, carry, nextS, nextR, second] using
-        hMultFinalPartsListProgress r0 rfl hSideNotFalse
-    have hCandidateStrEvalRel :
-        ∀ ss,
-          __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss ->
-            ∃ partsSs,
-              __smtx_model_eval M
-                  (__eo_to_smt (__str_membership_str candidate)) =
-                SmtValue.Seq partsSs ∧
-              RuleProofs.smt_value_rel (SmtValue.Seq partsSs)
-                (SmtValue.Seq ss) := by
-      exact str_re_consume_candidate_str_eval_rel_of_second_parts_local
-        M hM s candidate second
-        (by
-          simpa [sFlat, rFlat, first, eps, carry, nextS, nextR, second,
-            final, candidate] using hCandidateFinal)
-        (by
-          simpa [sFlat, rFlat, first, eps, carry, nextS, nextR, second,
-            final, candidate] using hCandidateMem)
-        hPartsList hPartsTy
-        (by
-          simpa [sFlat, rFlat, first, eps, carry, nextS, nextR, second] using
-            hSecondStrEvalRel)
-        (by simpa [second] using hCollectNe)
-    simpa [multR] using
-      str_re_consume_mult_model_rel_of_final_candidate_str_eval_rel_local
-        M hM s r0 side (by simpa [multR] using hEqTrans) hSNe
-        (by simpa [multR] using hSide) hSideNe hSideNotFalse
-        (by
-          simpa [sFlat, rFlat, first, eps, carry, nextS, nextR, second,
-            final, candidate] using hCandidateStrEvalRel)
   have hMultFinalRelOfCandidateNativeEqProgress :
       ∀ r0,
         r = Term.Apply (Term.UOp UserOp.re_mult) r0 ->
@@ -28992,97 +29387,13 @@ theorem str_re_consume_model_rel
           (hR : r = Term.Apply (Term.UOp UserOp.re_mult) r0)
           (hSideNotFalse : side ≠ Term.Boolean false),
         multSecondStrNativeEq r0 hSideNotFalse) := by
-    have hSemanticRawInputBridgeProgress :
-        initialFlatReverseCore ∧
-        firstResidualFlatReverseCore ∧
-        (∀ r0
-            (hR : r = Term.Apply (Term.UOp UserOp.re_mult) r0),
-          (let sFlat :=
-            __eo_list_rev (Term.UOp UserOp.str_concat)
-              (__str_flatten (__eo_list_singleton_intro
-                (Term.UOp UserOp.str_concat) s))
-          let rFlat :=
-            __eo_list_rev (Term.UOp UserOp.re_concat)
-              (__re_flatten (Term.Boolean true) (Term.Boolean true) r0)
-          let first := __str_re_consume_rec sFlat rFlat sFlat
-          first = Term.Boolean false ->
-            ∀ ss rv sFlatSs rFlatRv,
-              __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss ->
-              __smtx_model_eval M
-                  (__eo_to_smt (Term.Apply (Term.UOp UserOp.re_mult) r0)) =
-                SmtValue.RegLan rv ->
-              __smtx_model_eval M (__eo_to_smt sFlat) =
-                SmtValue.Seq sFlatSs ->
-              __smtx_model_eval M (__eo_to_smt rFlat) =
-                SmtValue.RegLan rFlatRv ->
-                native_str_in_re (native_unpack_string ss) rv =
-                  native_str_in_re (native_unpack_string sFlatSs)
-                    rFlatRv)) ∧
-        (∀ r0
-            (hR : r = Term.Apply (Term.UOp UserOp.re_mult) r0),
-          (let sFlat :=
-            __eo_list_rev (Term.UOp UserOp.str_concat)
-              (__str_flatten (__eo_list_singleton_intro
-                (Term.UOp UserOp.str_concat) s))
-          let rFlat :=
-            __eo_list_rev (Term.UOp UserOp.re_concat)
-              (__re_flatten (Term.Boolean true) (Term.Boolean true) r0)
-          let first := __str_re_consume_rec sFlat rFlat sFlat
-          let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
-          let carry :=
-            __eo_and (Term.Boolean true)
-              (__eo_not (__eo_eq (__str_membership_re first) eps))
-          let nextS :=
-            __eo_list_rev (Term.UOp UserOp.str_concat)
-              (__eo_ite carry sFlat (__str_membership_str first))
-          let nextR :=
-            __eo_list_rev (Term.UOp UserOp.re_concat)
-              (__re_flatten (Term.Boolean true) (Term.Boolean true)
-                (__eo_ite carry rFlat (__str_membership_re first)))
-          let second := __str_re_consume_rec nextS nextR nextS
-          first ≠ Term.Boolean false ->
-          second = Term.Boolean false ->
-            ∀ ss rv nextSs nextRv,
-              __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss ->
-              __smtx_model_eval M
-                  (__eo_to_smt (Term.Apply (Term.UOp UserOp.re_mult) r0)) =
-                SmtValue.RegLan rv ->
-              __smtx_model_eval M (__eo_to_smt nextS) =
-                SmtValue.Seq nextSs ->
-              __smtx_model_eval M (__eo_to_smt nextR) =
-                SmtValue.RegLan nextRv ->
-                native_str_in_re (native_unpack_string ss) rv =
-                  native_str_in_re (native_unpack_string nextSs)
-                    nextRv)) ∧
-        (∀ r0
-            (hR : r = Term.Apply (Term.UOp UserOp.re_mult) r0)
-            (hSideNotFalse : side ≠ Term.Boolean false),
-          multSecondStrNativeEq r0 hSideNotFalse) := by
-      sorry
-    rcases hSemanticRawInputBridgeProgress with
-      ⟨hInitialFlatReverseCore, hFirstResidualFlatReverseCore,
-        hMultFirstInputBridge, hMultInputBridgeCore,
-        hMultSecondStrBridge⟩
-    refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
-    · intro hNotMult
-      simpa using
-        hNonMultFirstInputBridgeOfFlatReverseCoreProgress
-          hInitialFlatReverseCore hNotMult
-    · intro r0 hR
-      exact hMultFirstInputBridge r0 hR
-    · intro hSideNotFalse hNotMult
-      simpa using
-        hNonMultInputBridgeOfFlatReverseCoreProgress
-          hInitialFlatReverseCore hFirstResidualFlatReverseCore
-          hSideNotFalse hNotMult
-    · intro hNotMult
-      simpa using
-        hNonMultSecondFalseInputBridgeOfFlatReverseCoreProgress
-          hInitialFlatReverseCore hFirstResidualFlatReverseCore hNotMult
-    · intro r0 hR
-      exact hMultInputBridgeCore r0 hR
-    · intro r0 hR hSideNotFalse
-      exact hMultSecondStrBridge r0 hR hSideNotFalse
+    -- The remaining bridge has to be proved from the branch contexts.  A
+    -- global lemma saying that reversing a flattened string chunk list
+    -- reverses the native string is false for symbolic chunks.  In the
+    -- `re_mult` success case the right target is the native star-membership
+    -- equality above; the residual string itself need not equal the original
+    -- string (for example, consuming `"a"` from `"a"*` may leave `""`).
+    sorry
   have hTwoPassBridgeProgress :
       (∀ (hNotMult :
           ∀ r0, r = Term.Apply (Term.UOp UserOp.re_mult) r0 -> False),
@@ -29108,7 +29419,7 @@ theorem str_re_consume_model_rel
       ⟨hNonMultFirstInputBridge, hMultFirstInputBridge,
         hNonMultInputBridgeCore, hNonMultSecondFalseInputBridgeCore,
         hMultInputBridgeCore,
-        hMultSecondStrBridge⟩
+        hMultSecondStrNativeBridge⟩
     refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
     · intro hNotMult hFirstFalse
       exact hNonMultFalseOfFirstFalseBridgeProgress hNotMult hFirstFalse
@@ -29131,7 +29442,7 @@ theorem str_re_consume_model_rel
       simpa [multSecondFalseInputNativeEq] using
         hMultInputBridgeCore r0 hR hFirstNotFalse _hSecondFalse
     · intro r0 hR hSideNotFalse
-      exact hMultSecondStrBridge r0 hR hSideNotFalse
+      exact hMultSecondStrNativeBridge r0 hR hSideNotFalse
   rcases hTwoPassBridgeProgress with
     ⟨hNonMultFirstFalseNative, hMultFirstFalseNative,
       hNonMultInputNativeBridge, hNonMultSecondFalseInputNative,
