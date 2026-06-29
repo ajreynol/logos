@@ -9539,6 +9539,41 @@ theorem eo_to_smt_apply_apply_generic_of_head_has_smt_translation
         simp [__smtx_typeof, __smtx_typeof_apply,
           TranslationProofs.smtx_typeof_none]
 
+theorem eo_to_smt_apply_apply_apply_generic_of_head_has_smt_translation
+    (g x y z : Term)
+    (hG : eoHasSmtTranslation g) :
+    __eo_to_smt (Term.Apply (Term.Apply (Term.Apply g x) y) z) =
+      SmtTerm.Apply
+        (__eo_to_smt (Term.Apply (Term.Apply g x) y))
+        (__eo_to_smt z) := by
+  unfold eoHasSmtTranslation at hG
+  cases g <;> try rfl
+  case UOp op =>
+    cases op <;> try rfl
+    all_goals
+      exfalso
+      apply hG
+      change __smtx_typeof SmtTerm.None = SmtType.None
+      exact TranslationProofs.smtx_typeof_none
+
+theorem eo_to_smt_apply_apply_apply_non_uop_head_generic
+    {g x y z : Term}
+    (hNotUOp : ∀ op, g ≠ Term.UOp op) :
+    __eo_to_smt (Term.Apply (Term.Apply (Term.Apply g x) y) z) =
+      SmtTerm.Apply
+        (__eo_to_smt (Term.Apply (Term.Apply g x) y))
+        (__eo_to_smt z) := by
+  cases g <;> try rfl
+  case UOp op => exact False.elim (hNotUOp op rfl)
+
+theorem eo_to_smt_apply_apply_apply_apply_head_generic
+    (g x y z w : Term) :
+    __eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.Apply g x) y) z) w) =
+      SmtTerm.Apply
+        (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply g x) y) z))
+        (__eo_to_smt w) := by
+  rfl
+
 theorem substFalse_eval_binary_atom_head_generic_apply
     (g x y xs ss bvs : Term) {M N : SmtModel}
     {xsVars bvsVars : List EoVarKey}
@@ -10462,6 +10497,308 @@ theorem substFalse_eval_binary_var_head_generic_apply
   exact
     smtx_model_eval_apply_cross_eq_of_eval_eq hRel.globals
       hSubstEval hOrigEval hHeadEval hYEval
+
+theorem substFalse_eval_ternary_var_head_generic_apply
+    (name S x y z xs ss bvs : Term) {M N : SmtModel}
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hSsTrans : EoListAllHaveSmtTranslation ss)
+    (hisr : (Term.Boolean false : Term) ≠ Term.Stuck)
+    (hxs : xs ≠ Term.Stuck) (hss : ss ≠ Term.Stuck) (hbvs : bvs ≠ Term.Stuck)
+    (hNotBinderOuter :
+      ∀ q v vs,
+        Term.Apply (Term.Apply (Term.Var name S) x) y ≠
+          Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+    (hFTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.Apply (Term.Var name S) x) y) z))
+    (hSubstTrans :
+      eoHasSmtTranslation
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.Apply (Term.Var name S) x) y) z)
+          xs ss bvs))
+    (hRel : SubstituteSupport.SubstFalseRel M N xs ss bvs)
+    (hRecX :
+      eoHasSmtTranslation x →
+        eoHasSmtTranslation
+          (__substitute_simul_rec (Term.Boolean false) x xs ss bvs) →
+        __smtx_model_eval M
+            (__eo_to_smt
+              (__substitute_simul_rec (Term.Boolean false) x xs ss bvs)) =
+          __smtx_model_eval N (__eo_to_smt x))
+    (hRecY :
+      eoHasSmtTranslation y →
+        eoHasSmtTranslation
+          (__substitute_simul_rec (Term.Boolean false) y xs ss bvs) →
+        __smtx_model_eval M
+            (__eo_to_smt
+              (__substitute_simul_rec (Term.Boolean false) y xs ss bvs)) =
+          __smtx_model_eval N (__eo_to_smt y))
+    (hRecZ :
+      eoHasSmtTranslation z →
+        eoHasSmtTranslation
+          (__substitute_simul_rec (Term.Boolean false) z xs ss bvs) →
+        __smtx_model_eval M
+            (__eo_to_smt
+              (__substitute_simul_rec (Term.Boolean false) z xs ss bvs)) =
+          __smtx_model_eval N (__eo_to_smt z)) :
+    __smtx_model_eval M
+        (__eo_to_smt
+          (__substitute_simul_rec (Term.Boolean false)
+            (Term.Apply (Term.Apply (Term.Apply (Term.Var name S) x) y) z)
+            xs ss bvs)) =
+      __smtx_model_eval N
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.Apply (Term.Var name S) x) y) z)) := by
+  let headSub :=
+    __substitute_simul_rec (Term.Boolean false) (Term.Var name S) xs ss bvs
+  let xSub := __substitute_simul_rec (Term.Boolean false) x xs ss bvs
+  let ySub := __substitute_simul_rec (Term.Boolean false) y xs ss bvs
+  let zSub := __substitute_simul_rec (Term.Boolean false) z xs ss bvs
+  have hOrigTranslate :
+      __eo_to_smt
+          (Term.Apply (Term.Apply (Term.Apply (Term.Var name S) x) y) z) =
+        SmtTerm.Apply
+          (__eo_to_smt (Term.Apply (Term.Apply (Term.Var name S) x) y))
+          (__eo_to_smt z) := by
+    rfl
+  have hOrigTy :
+      generic_apply_type
+        (__eo_to_smt (Term.Apply (Term.Apply (Term.Var name S) x) y))
+        (__eo_to_smt z) :=
+    generic_apply_type_of_non_special_head_closed _ _
+      (by
+        intro s d i j hSel
+        exact TranslationProofs.eo_to_smt_apply_ne_dt_sel _ _ s d i j hSel)
+      (by
+        intro s d i hTester
+        exact TranslationProofs.eo_to_smt_apply_ne_dt_tester _ _ s d i hTester)
+  have hOrigNN :
+      term_has_non_none_type
+        (SmtTerm.Apply
+          (__eo_to_smt (Term.Apply (Term.Apply (Term.Var name S) x) y))
+          (__eo_to_smt z)) := by
+    unfold term_has_non_none_type
+    rw [← hOrigTranslate]
+    exact hFTrans
+  rcases apply_args_have_smt_translation_of_non_none hOrigTy hOrigNN with
+    ⟨hOrigHeadTrans, hZTrans⟩
+  have hOrigInnerTranslate :
+      __eo_to_smt (Term.Apply (Term.Var name S) x) =
+        SmtTerm.Apply (__eo_to_smt (Term.Var name S)) (__eo_to_smt x) := by
+    rfl
+  have hOrigInnerTy :
+      generic_apply_type (__eo_to_smt (Term.Var name S)) (__eo_to_smt x) :=
+    generic_apply_type_of_non_special_head_closed _ _
+      (eo_to_smt_var_ne_dt_sel name S)
+      (eo_to_smt_var_ne_dt_tester name S)
+  have hOrigInnerNN :
+      term_has_non_none_type
+        (SmtTerm.Apply (__eo_to_smt (Term.Var name S)) (__eo_to_smt x)) := by
+    unfold term_has_non_none_type
+    rw [← hOrigInnerTranslate]
+    exact
+      (apply_args_have_smt_translation_of_non_none
+        (generic_apply_type_of_non_special_head_closed _ _
+          (by
+            intro s d i j hSel
+            exact TranslationProofs.eo_to_smt_apply_ne_dt_sel _ _ s d i j hSel)
+          (by
+            intro s d i hTester
+            exact TranslationProofs.eo_to_smt_apply_ne_dt_tester _ _ s d i hTester))
+        (by
+          unfold term_has_non_none_type
+          rw [← (by
+            rfl :
+              __eo_to_smt (Term.Apply (Term.Apply (Term.Var name S) x) y) =
+                SmtTerm.Apply
+                  (__eo_to_smt (Term.Apply (Term.Var name S) x))
+                  (__eo_to_smt y))]
+          exact hOrigHeadTrans)).1
+  rcases apply_args_have_smt_translation_of_non_none
+      hOrigInnerTy hOrigInnerNN with
+    ⟨hOrigVarTrans, hXTrans⟩
+  have hNotBinderMiddle :
+      ∀ q v vs,
+        Term.Apply (Term.Var name S) x ≠
+          Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) := by
+    intro q v vs hEq
+    cases hEq
+    exact term_not_eo_list_cons_of_has_smt_translation hXTrans v vs rfl
+  have hSubstInnerRaw :
+      __substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Var name S) x) xs ss bvs =
+        __eo_mk_apply headSub xSub := by
+    simpa [headSub, xSub] using
+      SubstituteSupport.substitute_simul_rec_apply (Term.Boolean false)
+        (Term.Var name S) x xs ss bvs hisr hxs hss hbvs
+        (by intro q v vs hEq; cases hEq)
+  have hSubstMidRaw :
+      __substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.Var name S) x) y) xs ss bvs =
+        __eo_mk_apply
+          (__substitute_simul_rec (Term.Boolean false)
+            (Term.Apply (Term.Var name S) x) xs ss bvs)
+          ySub := by
+    simpa [ySub] using
+      SubstituteSupport.substitute_simul_rec_apply (Term.Boolean false)
+        (Term.Apply (Term.Var name S) x) y xs ss bvs
+        hisr hxs hss hbvs hNotBinderMiddle
+  have hSubstOuterRaw :
+      __substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.Apply (Term.Var name S) x) y) z)
+          xs ss bvs =
+        __eo_mk_apply
+          (__substitute_simul_rec (Term.Boolean false)
+            (Term.Apply (Term.Apply (Term.Var name S) x) y) xs ss bvs)
+          zSub := by
+    simpa [zSub] using
+      SubstituteSupport.substitute_simul_rec_apply (Term.Boolean false)
+        (Term.Apply (Term.Apply (Term.Var name S) x) y) z xs ss bvs
+        hisr hxs hss hbvs hNotBinderOuter
+  have hOuterNeStuck :
+      __eo_mk_apply
+          (__substitute_simul_rec (Term.Boolean false)
+            (Term.Apply (Term.Apply (Term.Var name S) x) y) xs ss bvs)
+          zSub ≠ Term.Stuck := by
+    rw [← hSubstOuterRaw]
+    exact RuleProofs.term_ne_stuck_of_has_smt_translation _ hSubstTrans
+  have hMidSubstNe :
+      __substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.Var name S) x) y) xs ss bvs ≠
+        Term.Stuck :=
+    instantiate_eo_mk_apply_fun_ne_stuck_of_ne_stuck hOuterNeStuck
+  have hMidMkNe :
+      __eo_mk_apply
+          (__substitute_simul_rec (Term.Boolean false)
+            (Term.Apply (Term.Var name S) x) xs ss bvs)
+          ySub ≠ Term.Stuck := by
+    rwa [hSubstMidRaw] at hMidSubstNe
+  have hInnerSubstNe :
+      __substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Var name S) x) xs ss bvs ≠ Term.Stuck :=
+    instantiate_eo_mk_apply_fun_ne_stuck_of_ne_stuck hMidMkNe
+  have hInnerMkNe :
+      __eo_mk_apply headSub xSub ≠ Term.Stuck := by
+    rwa [hSubstInnerRaw] at hInnerSubstNe
+  have hHeadSubNe : headSub ≠ Term.Stuck :=
+    instantiate_eo_mk_apply_fun_ne_stuck_of_ne_stuck hInnerMkNe
+  have hHeadSubTrans : eoHasSmtTranslation headSub :=
+    substitute_simul_var_any_has_smt_translation_of_ne_stuck
+      name S xs ss bvs hXsEnv hBvsEnv hOrigVarTrans hSsTrans hHeadSubNe
+  have hInnerMk :
+      __eo_mk_apply headSub xSub = Term.Apply headSub xSub :=
+    instantiate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hInnerMkNe
+  have hMidMkNe' :
+      __eo_mk_apply (Term.Apply headSub xSub) ySub ≠ Term.Stuck := by
+    simpa [hSubstInnerRaw, hInnerMk] using hMidMkNe
+  have hMidMk :
+      __eo_mk_apply (Term.Apply headSub xSub) ySub =
+        Term.Apply (Term.Apply headSub xSub) ySub :=
+    instantiate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hMidMkNe'
+  have hHeadResultEq :
+      __substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.Var name S) x) y) xs ss bvs =
+        Term.Apply (Term.Apply headSub xSub) ySub := by
+    rw [hSubstMidRaw, hSubstInnerRaw, hInnerMk, hMidMk]
+  have hOuterMkNe' :
+      __eo_mk_apply (Term.Apply (Term.Apply headSub xSub) ySub) zSub ≠
+        Term.Stuck := by
+    simpa [hHeadResultEq] using hOuterNeStuck
+  have hOuterMk :
+      __eo_mk_apply (Term.Apply (Term.Apply headSub xSub) ySub) zSub =
+        Term.Apply (Term.Apply (Term.Apply headSub xSub) ySub) zSub :=
+    instantiate_eo_mk_apply_eq_apply_of_ne_stuck _ _ hOuterMkNe'
+  have hResultEq :
+      __substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.Apply (Term.Var name S) x) y) z)
+          xs ss bvs =
+        Term.Apply (Term.Apply (Term.Apply headSub xSub) ySub) zSub := by
+    rw [hSubstOuterRaw, hHeadResultEq, hOuterMk]
+  have hSubstTranslate :
+      __eo_to_smt (Term.Apply (Term.Apply (Term.Apply headSub xSub) ySub) zSub) =
+        SmtTerm.Apply
+          (__eo_to_smt (Term.Apply (Term.Apply headSub xSub) ySub))
+          (__eo_to_smt zSub) :=
+    eo_to_smt_apply_apply_apply_generic_of_head_has_smt_translation
+      headSub xSub ySub zSub hHeadSubTrans
+  have hSubstTy :
+      generic_apply_type
+        (__eo_to_smt (Term.Apply (Term.Apply headSub xSub) ySub))
+        (__eo_to_smt zSub) :=
+    generic_apply_type_of_non_special_head_closed _ _
+      (by
+        intro s d i j hSel
+        exact TranslationProofs.eo_to_smt_apply_ne_dt_sel _ _ s d i j hSel)
+      (by
+        intro s d i hTester
+        exact TranslationProofs.eo_to_smt_apply_ne_dt_tester _ _ s d i hTester)
+  have hSubstFullTrans :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.Apply headSub xSub) ySub) zSub) := by
+    rw [← hResultEq]
+    exact hSubstTrans
+  have hSubstNN :
+      term_has_non_none_type
+        (SmtTerm.Apply
+          (__eo_to_smt (Term.Apply (Term.Apply headSub xSub) ySub))
+          (__eo_to_smt zSub)) := by
+    unfold term_has_non_none_type
+    rw [← hSubstTranslate]
+    exact hSubstFullTrans
+  rcases apply_args_have_smt_translation_of_non_none hSubstTy hSubstNN with
+    ⟨hSubstHeadTrans, hSubstZTrans⟩
+  have hHeadEval :
+      __smtx_model_eval M
+          (__eo_to_smt (Term.Apply (Term.Apply headSub xSub) ySub)) =
+        __smtx_model_eval N
+          (__eo_to_smt (Term.Apply (Term.Apply (Term.Var name S) x) y)) := by
+    have hHeadEvalRaw :
+        __smtx_model_eval M
+            (__eo_to_smt
+              (__substitute_simul_rec (Term.Boolean false)
+                (Term.Apply (Term.Apply (Term.Var name S) x) y) xs ss bvs)) =
+          __smtx_model_eval N
+            (__eo_to_smt (Term.Apply (Term.Apply (Term.Var name S) x) y)) := by
+      exact
+        substFalse_eval_binary_var_head_generic_apply
+          name S x y xs ss bvs
+          hXsEnv hBvsEnv hSsTrans
+          hisr hxs hss hbvs hNotBinderMiddle
+          hOrigHeadTrans
+          (by
+            rw [hHeadResultEq]
+            exact hSubstHeadTrans)
+          hRel hRecX hRecY
+    simpa [hHeadResultEq] using hHeadEvalRaw
+  have hZEval := hRecZ hZTrans hSubstZTrans
+  have hOrigEval :
+      generic_apply_eval
+        (__eo_to_smt (Term.Apply (Term.Apply (Term.Var name S) x) y))
+        (__eo_to_smt z) :=
+    generic_apply_eval_of_non_datatype_head
+      (by
+        intro s d i j hSel
+        exact TranslationProofs.eo_to_smt_apply_ne_dt_sel _ _ s d i j hSel)
+      (by
+        intro s d i hTester
+        exact TranslationProofs.eo_to_smt_apply_ne_dt_tester _ _ s d i hTester)
+  have hSubstEval :
+      generic_apply_eval
+        (__eo_to_smt (Term.Apply (Term.Apply headSub xSub) ySub))
+        (__eo_to_smt zSub) :=
+    generic_apply_eval_of_non_datatype_head
+      (by
+        intro s d i j hSel
+        exact TranslationProofs.eo_to_smt_apply_ne_dt_sel _ _ s d i j hSel)
+      (by
+        intro s d i hTester
+        exact TranslationProofs.eo_to_smt_apply_ne_dt_tester _ _ s d i hTester)
+  rw [hResultEq, hOrigTranslate, hSubstTranslate]
+  exact
+    smtx_model_eval_apply_cross_eq_of_eval_eq hRel.globals
+      hSubstEval hOrigEval hHeadEval hZEval
 
 theorem substFalse_eval_unary_atom_head_apply
     (g a xs ss bvs : Term) {M N : SmtModel}
@@ -13491,6 +13828,30 @@ theorem substFalse_eval_gen_lt
                                                                                                                                     hRel.globals
                                                                                                                                     (fun ht hst => hRecArg (by simp; try omega) ht hst)
                                                                                                                                     (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                      | Var name S =>
+                                                                                                          exact
+                                                                                                            substFalse_eval_ternary_var_head_generic_apply
+                                                                                                              name S x0 x1 a xs ss bvs
+                                                                                                              hXsEnv hBvsEnv hSsTrans
+                                                                                                              hisr hxs hss hbvs
+                                                                                                              (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                              hFTrans hSubstTrans hRel
+                                                                                                              (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                              (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                              (fun ht hst => hRecArg (by simp; try omega) ht hst)
+                                                                                                      | Stuck =>
+                                                                                                          exact False.elim (by
+                                                                                                            apply hFTrans
+                                                                                                            change
+                                                                                                              __smtx_typeof
+                                                                                                                  (SmtTerm.Apply
+                                                                                                                    (SmtTerm.Apply
+                                                                                                                      (SmtTerm.Apply SmtTerm.None (__eo_to_smt x0))
+                                                                                                                      (__eo_to_smt x1))
+                                                                                                                    (__eo_to_smt a)) =
+                                                                                                                SmtType.None
+                                                                                                            simp [__smtx_typeof, __smtx_typeof_apply,
+                                                                                                              TranslationProofs.smtx_typeof_none])
                                                                                                       | _ =>
                                                                                                           -- ternary / generic application head
                                                                                                           sorry
