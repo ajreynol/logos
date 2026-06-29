@@ -3410,6 +3410,176 @@ def noRefSubDtc (sub : native_String) : DatatypeCons → Bool
 end
 
 mutual
+private theorem noRefSubDt_of_valid_no_free (sub : native_String) :
+    (W : Datatype) → (refs : RefList) →
+      native_reflist_contains refs sub = false →
+      eo_datatype_valid_rec refs W →
+      hasFreeDt sub refs (__eo_to_smt_datatype W) = false →
+      noRefSubDt sub W = true
+  | Datatype.null, refs, hNot, hValid, hFree => by
+      simp [noRefSubDt]
+  | Datatype.sum c d, refs, hNot, hValid, hFree => by
+      rcases hValid with ⟨hCValid, hDValid⟩
+      simp only [__eo_to_smt_datatype, hasFreeDt, native_or, Bool.or_eq_false_iff] at hFree
+      simp only [noRefSubDt, native_and, Bool.and_eq_true]
+      exact ⟨noRefSubDtc_of_valid_no_free sub c refs hNot hCValid hFree.1,
+        noRefSubDt_of_valid_no_free sub d refs hNot hDValid hFree.2⟩
+
+private theorem noRefSubDtc_of_valid_no_free (sub : native_String) :
+    (c : DatatypeCons) → (refs : RefList) →
+      native_reflist_contains refs sub = false →
+      eo_datatype_cons_valid_rec refs c →
+      hasFreeDtc sub refs (__eo_to_smt_datatype_cons c) = false →
+      noRefSubDtc sub c = true
+  | DatatypeCons.unit, refs, hNot, hValid, hFree => by
+      simp [noRefSubDtc]
+  | DatatypeCons.cons U c, refs, hNot, hValid, hFree => by
+      rcases hValid with ⟨hUValid, hCValid⟩
+      have hTailValid := hCValid
+      have hTailFreeAll : hasFreeDtc sub refs (__eo_to_smt_datatype_cons c) = false :=
+        hasFreeDtc_tail_false_of_cons_false sub refs (__eo_to_smt_type U)
+          (__eo_to_smt_datatype_cons c) (by
+            simpa [__eo_to_smt_datatype_cons] using hFree)
+      cases U <;> try
+        (have hTailFree : hasFreeDtc sub refs (__eo_to_smt_datatype_cons c) = false := by
+          exact hTailFreeAll
+         have hTail := noRefSubDtc_of_valid_no_free sub c refs hNot hTailValid hTailFree
+         simp [noRefSubDtc, native_and, native_not, native_teq, hTail])
+      case DatatypeType s2 d2 =>
+          rcases hUValid with ⟨hReserved, hD2Valid⟩
+          have hFree' :
+              hasFreeTy sub refs (__eo_to_smt_type (Term.DatatypeType s2 d2)) = false ∧
+                hasFreeDtc sub refs (__eo_to_smt_datatype_cons c) = false := by
+            simpa [__eo_to_smt_datatype_cons, hasFreeDtc, native_or,
+              Bool.or_eq_false_iff] using hFree
+          have hD2Free :
+              hasFreeDt sub (native_reflist_insert refs s2) (__eo_to_smt_datatype d2) = false := by
+            simpa [__eo_to_smt_type, native_ite, hReserved, hasFreeTy] using hFree'.1
+          have hTail := noRefSubDtc_of_valid_no_free sub c refs hNot hTailValid hFree'.2
+          by_cases hs : sub = s2
+          · subst hs
+            simp [noRefSubDtc, native_and, native_or, native_streq, hTail]
+          · have hNot' :
+                native_reflist_contains (native_reflist_insert refs s2) sub = false := by
+              simp [native_reflist_contains, native_reflist_insert, List.mem_cons]
+              constructor
+              · exact hs
+              · simpa [native_reflist_contains] using hNot
+            have hD2NoRef :=
+              noRefSubDt_of_valid_no_free sub d2 (native_reflist_insert refs s2)
+                hNot' hD2Valid hD2Free
+            have hst : native_streq sub s2 = false := by
+              simp [native_streq, hs]
+            simp [noRefSubDtc, native_and, native_or, hst, hD2NoRef, hTail]
+      case DatatypeTypeRef s2 =>
+          rcases hUValid with ⟨hReserved, _hMem⟩
+          have hFree' :
+              native_or
+                  (native_and (native_streq s2 sub) (native_not (native_reflist_contains refs sub)))
+                  (hasFreeDtc sub refs (__eo_to_smt_datatype_cons c)) = false := by
+            simpa [__eo_to_smt_datatype_cons, __eo_to_smt_type, native_ite, hReserved,
+              hasFreeDtc] using hFree
+          have hFreeSplit :
+              native_and (native_streq s2 sub) (native_not (native_reflist_contains refs sub)) = false ∧
+                hasFreeDtc sub refs (__eo_to_smt_datatype_cons c) = false := by
+            simpa [native_or, Bool.or_eq_false_iff] using hFree'
+          have hTailFree : hasFreeDtc sub refs (__eo_to_smt_datatype_cons c) = false := hTailFreeAll
+          have hsne : s2 ≠ sub := by
+            intro hs
+            subst hs
+            simp [native_and, native_not, hNot, native_streq] at hFreeSplit
+          have hTail := noRefSubDtc_of_valid_no_free sub c refs hNot hTailValid hTailFree
+          simp [noRefSubDtc, native_and, native_not, native_teq, hsne, hTail]
+end
+
+mutual
+private theorem noRefSubDt_of_valid_cons_no_free (sub : native_String) :
+    (W : Datatype) → (refs : RefList) →
+      native_reflist_contains refs sub = false →
+      eo_datatype_valid_rec (sub :: refs) W →
+      hasFreeDt sub refs (__eo_to_smt_datatype W) = false →
+      noRefSubDt sub W = true
+  | Datatype.null, refs, hNot, hValid, hFree => by
+      simp [noRefSubDt]
+  | Datatype.sum c d, refs, hNot, hValid, hFree => by
+      rcases hValid with ⟨hCValid, hDValid⟩
+      simp only [__eo_to_smt_datatype, hasFreeDt, native_or, Bool.or_eq_false_iff] at hFree
+      simp only [noRefSubDt, native_and, Bool.and_eq_true]
+      exact ⟨noRefSubDtc_of_valid_cons_no_free sub c refs hNot hCValid hFree.1,
+        noRefSubDt_of_valid_cons_no_free sub d refs hNot hDValid hFree.2⟩
+
+private theorem noRefSubDtc_of_valid_cons_no_free (sub : native_String) :
+    (c : DatatypeCons) → (refs : RefList) →
+      native_reflist_contains refs sub = false →
+      eo_datatype_cons_valid_rec (sub :: refs) c →
+      hasFreeDtc sub refs (__eo_to_smt_datatype_cons c) = false →
+      noRefSubDtc sub c = true
+  | DatatypeCons.unit, refs, hNot, hValid, hFree => by
+      simp [noRefSubDtc]
+  | DatatypeCons.cons U c, refs, hNot, hValid, hFree => by
+      rcases hValid with ⟨hUValid, hCValid⟩
+      have hTailFreeAll : hasFreeDtc sub refs (__eo_to_smt_datatype_cons c) = false :=
+        hasFreeDtc_tail_false_of_cons_false sub refs (__eo_to_smt_type U)
+          (__eo_to_smt_datatype_cons c) (by
+            simpa [__eo_to_smt_datatype_cons] using hFree)
+      cases U <;> try
+        (have hTail := noRefSubDtc_of_valid_cons_no_free sub c refs hNot hCValid hTailFreeAll
+         simp [noRefSubDtc, native_and, native_not, native_teq, hTail])
+      case DatatypeType s2 d2 =>
+          rcases hUValid with ⟨hReserved, hD2Valid⟩
+          have hFree' :
+              hasFreeTy sub refs (__eo_to_smt_type (Term.DatatypeType s2 d2)) = false ∧
+                hasFreeDtc sub refs (__eo_to_smt_datatype_cons c) = false := by
+            simpa [__eo_to_smt_datatype_cons, hasFreeDtc, native_or,
+              Bool.or_eq_false_iff] using hFree
+          have hD2Free :
+              hasFreeDt sub (native_reflist_insert refs s2) (__eo_to_smt_datatype d2) = false := by
+            simpa [__eo_to_smt_type, native_ite, hReserved, hasFreeTy] using hFree'.1
+          have hTail := noRefSubDtc_of_valid_cons_no_free sub c refs hNot hCValid hFree'.2
+          by_cases hs : sub = s2
+          · subst hs
+            simp [noRefSubDtc, native_and, native_or, native_streq, hTail]
+          · have hNot' :
+                native_reflist_contains (native_reflist_insert refs s2) sub = false := by
+              simp [native_reflist_contains, native_reflist_insert, List.mem_cons]
+              constructor
+              · exact hs
+              · simpa [native_reflist_contains] using hNot
+            have hD2Swap : eo_datatype_valid_rec (sub :: s2 :: refs) d2 := by
+              apply eo_datatype_valid_rec_weaken hD2Valid
+              intro t ht
+              simp at ht ⊢
+              rcases ht with rfl | rfl | ht
+              · exact Or.inr (Or.inl rfl)
+              · exact Or.inl rfl
+              · exact Or.inr (Or.inr ht)
+            have hD2NoRef :=
+              noRefSubDt_of_valid_cons_no_free sub d2
+                (native_reflist_insert refs s2) hNot' hD2Swap hD2Free
+            have hst : native_streq sub s2 = false := by
+              simp [native_streq, hs]
+            simp [noRefSubDtc, native_and, native_or, hst, hD2NoRef, hTail]
+      case DatatypeTypeRef s2 =>
+          rcases hUValid with ⟨hReserved, _hMem⟩
+          have hFree' :
+              native_or
+                  (native_and (native_streq s2 sub) (native_not (native_reflist_contains refs sub)))
+                  (hasFreeDtc sub refs (__eo_to_smt_datatype_cons c)) = false := by
+            simpa [__eo_to_smt_datatype_cons, __eo_to_smt_type, native_ite, hReserved,
+              hasFreeDtc] using hFree
+          have hFreeSplit :
+              native_and (native_streq s2 sub) (native_not (native_reflist_contains refs sub)) = false ∧
+                hasFreeDtc sub refs (__eo_to_smt_datatype_cons c) = false := by
+            simpa [native_or, Bool.or_eq_false_iff] using hFree'
+          have hsne : s2 ≠ sub := by
+            intro hs
+            subst hs
+            simp [native_and, native_not, hNot, native_streq] at hFreeSplit
+          have hTail := noRefSubDtc_of_valid_cons_no_free sub c refs hNot hCValid hTailFreeAll
+          simp [noRefSubDtc, native_and, native_not, native_teq, hsne, hTail]
+end
+
+mutual
 theorem eo_dt_substitute_noop (sub : native_String) (d0 : Datatype) :
     (W : Datatype) → noRefSubDt sub W = true → __eo_dt_substitute sub d0 W = W
   | Datatype.null, _ => by simp [__eo_dt_substitute]
@@ -3440,6 +3610,58 @@ theorem eo_dtc_substitute_noop (sub : native_String) (d0 : Datatype) :
         rw [eo_dtc_substitute_noop sub d0 c h.2]
         try simp_all [native_ite, native_teq, native_not])
 end
+
+private theorem eo_to_smt_datatype_substitute_no_free
+    (sub : native_String) (d0 W : Datatype) (refs : RefList)
+    (hNot : native_reflist_contains refs sub = false)
+    (hValid : eo_datatype_valid_rec refs W)
+    (hFree : hasFreeDt sub refs (__eo_to_smt_datatype W) = false) :
+    __eo_to_smt_datatype (__eo_dt_substitute sub d0 W) =
+      __smtx_dt_substitute sub (__eo_to_smt_datatype d0) (__eo_to_smt_datatype W) := by
+  have hNoRef : noRefSubDt sub W = true :=
+    noRefSubDt_of_valid_no_free sub W refs hNot hValid hFree
+  rw [eo_dt_substitute_noop sub d0 W hNoRef]
+  exact (subst_noop_no_free_dt sub (__eo_to_smt_datatype W) (__eo_to_smt_datatype d0)
+    refs hNot hFree).symm
+
+private theorem eo_to_smt_datatype_cons_substitute_no_free
+    (sub : native_String) (d0 : Datatype) (c : DatatypeCons) (refs : RefList)
+    (hNot : native_reflist_contains refs sub = false)
+    (hValid : eo_datatype_cons_valid_rec refs c)
+    (hFree : hasFreeDtc sub refs (__eo_to_smt_datatype_cons c) = false) :
+    __eo_to_smt_datatype_cons (__eo_dtc_substitute sub d0 c) =
+      __smtx_dtc_substitute sub (__eo_to_smt_datatype d0) (__eo_to_smt_datatype_cons c) := by
+  have hNoRef : noRefSubDtc sub c = true :=
+    noRefSubDtc_of_valid_no_free sub c refs hNot hValid hFree
+  rw [eo_dtc_substitute_noop sub d0 c hNoRef]
+  exact (subst_noop_no_free_dtc sub (__eo_to_smt_datatype_cons c) (__eo_to_smt_datatype d0)
+    refs hNot hFree).symm
+
+private theorem eo_to_smt_datatype_substitute_cons_no_free
+    (sub : native_String) (d0 W : Datatype) (refs : RefList)
+    (hNot : native_reflist_contains refs sub = false)
+    (hValid : eo_datatype_valid_rec (sub :: refs) W)
+    (hFree : hasFreeDt sub refs (__eo_to_smt_datatype W) = false) :
+    __eo_to_smt_datatype (__eo_dt_substitute sub d0 W) =
+      __smtx_dt_substitute sub (__eo_to_smt_datatype d0) (__eo_to_smt_datatype W) := by
+  have hNoRef : noRefSubDt sub W = true :=
+    noRefSubDt_of_valid_cons_no_free sub W refs hNot hValid hFree
+  rw [eo_dt_substitute_noop sub d0 W hNoRef]
+  exact (subst_noop_no_free_dt sub (__eo_to_smt_datatype W) (__eo_to_smt_datatype d0)
+    refs hNot hFree).symm
+
+private theorem eo_to_smt_datatype_cons_substitute_cons_no_free
+    (sub : native_String) (d0 : Datatype) (c : DatatypeCons) (refs : RefList)
+    (hNot : native_reflist_contains refs sub = false)
+    (hValid : eo_datatype_cons_valid_rec (sub :: refs) c)
+    (hFree : hasFreeDtc sub refs (__eo_to_smt_datatype_cons c) = false) :
+    __eo_to_smt_datatype_cons (__eo_dtc_substitute sub d0 c) =
+      __smtx_dtc_substitute sub (__eo_to_smt_datatype d0) (__eo_to_smt_datatype_cons c) := by
+  have hNoRef : noRefSubDtc sub c = true :=
+    noRefSubDtc_of_valid_cons_no_free sub c refs hNot hValid hFree
+  rw [eo_dtc_substitute_noop sub d0 c hNoRef]
+  exact (subst_noop_no_free_dtc sub (__eo_to_smt_datatype_cons c) (__eo_to_smt_datatype d0)
+    refs hNot hFree).symm
 
 private def eo_type_substitute_field (sub : native_String) (d0 : Datatype) : Term -> Term
   | Term.DatatypeType s2 d2 =>

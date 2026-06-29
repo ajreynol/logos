@@ -173,6 +173,13 @@ theorem hasFreeDtc_refs_irrel (sub : native_String) :
           rw [hasFreeTy_refs_irrel sub _ r1 r2 h, hasFreeDtc_refs_irrel sub c r1 r2 h]
 end
 
+theorem hasFreeDtc_tail_false_of_cons_false
+    (sub : native_String) (refs : RefList) (T : SmtType) (c : SmtDatatypeCons)
+    (h : hasFreeDtc sub refs (SmtDatatypeCons.cons T c) = false) :
+    hasFreeDtc sub refs c = false := by
+  cases T <;> simp [hasFreeDtc, native_or, Bool.or_eq_false_iff] at h
+  all_goals exact h.2
+
 /- The SMT lift `__smtx_*_lift s D` is a no-op on a structure `W` that is well-formed both at
 `r0` (with `sub ∉ r0`) and at `rR` (with `sub ∈ rR`), when the target body `D` has a free
 reference `sub` at scope `[s]`. A fold would place the target inside `W`; its free `sub` must be
@@ -307,6 +314,87 @@ theorem lift_noop_dtc (s sub : native_String) (D : SmtDatatype)
                     lift_noop_dtc s sub D hsne hFree c r0 rR h0 hR hwf0 hwfR]
               · next => exact absurd hwfR (by simp)
           · next => exact absurd hwf0 (by simp)
+end
+
+/- If `hasFree…` says `sub` is absent in a scope that does not already bind `sub`,
+then substituting `sub` is a no-op. `TypeRef` is only a well-scoped datatype-field
+form, so the type-level lemma excludes a bare `TypeRef`. -/
+mutual
+theorem subst_noop_no_free_ty (sub : native_String) :
+    (T : SmtType) → (X : SmtDatatype) → (refs : RefList) →
+      (∀ s, T ≠ SmtType.TypeRef s) →
+      native_reflist_contains refs sub = false →
+      hasFreeTy sub refs T = false →
+      __smtx_type_substitute sub X T = T
+  | SmtType.Datatype s d, X, refs, _hNoRef, hNot, hFree => by
+      simp only [hasFreeTy] at hFree
+      simp only [__smtx_type_substitute]
+      by_cases hs : sub = s
+      · subst hs
+        rw [native_ite, if_pos (by simp [native_streq])]
+      · have hst : native_streq sub s = false := by
+          simp [native_streq, hs]
+        have hNot' : native_reflist_contains (native_reflist_insert refs s) sub = false := by
+          simp [native_reflist_contains, native_reflist_insert, List.mem_cons]
+          constructor
+          · exact hs
+          · simpa [native_reflist_contains] using hNot
+        rw [native_ite, if_neg (by simpa [native_streq] using hs)]
+        congr 1
+        exact subst_noop_no_free_dt sub d (__smtx_dt_lift s d X)
+          (native_reflist_insert refs s) hNot' hFree
+  | SmtType.TypeRef s, X, refs, hNoRef, _hNot, _hFree => by
+      exact False.elim (hNoRef s rfl)
+  | SmtType.Seq A, X, refs, _hNoRef, _hNot, _hFree => by simp [__smtx_type_substitute]
+  | SmtType.Set A, X, refs, _hNoRef, _hNot, _hFree => by simp [__smtx_type_substitute]
+  | SmtType.Map A B, X, refs, _hNoRef, _hNot, _hFree => by simp [__smtx_type_substitute]
+  | SmtType.FunType A B, X, refs, _hNoRef, _hNot, _hFree => by simp [__smtx_type_substitute]
+  | SmtType.DtcAppType A B, X, refs, _hNoRef, _hNot, _hFree => by simp [__smtx_type_substitute]
+  | SmtType.None, X, refs, _hNoRef, _hNot, _hFree => by simp [__smtx_type_substitute]
+  | SmtType.RegLan, X, refs, _hNoRef, _hNot, _hFree => by simp [__smtx_type_substitute]
+  | SmtType.Bool, X, refs, _hNoRef, _hNot, _hFree => by simp [__smtx_type_substitute]
+  | SmtType.Int, X, refs, _hNoRef, _hNot, _hFree => by simp [__smtx_type_substitute]
+  | SmtType.Real, X, refs, _hNoRef, _hNot, _hFree => by simp [__smtx_type_substitute]
+  | SmtType.BitVec n, X, refs, _hNoRef, _hNot, _hFree => by simp [__smtx_type_substitute]
+  | SmtType.Char, X, refs, _hNoRef, _hNot, _hFree => by simp [__smtx_type_substitute]
+  | SmtType.USort n, X, refs, _hNoRef, _hNot, _hFree => by simp [__smtx_type_substitute]
+
+theorem subst_noop_no_free_dt (sub : native_String) :
+    (W : SmtDatatype) → (X : SmtDatatype) → (refs : RefList) →
+      native_reflist_contains refs sub = false →
+      hasFreeDt sub refs W = false →
+      __smtx_dt_substitute sub X W = W
+  | SmtDatatype.null, X, refs, hNot, hFree => by simp [__smtx_dt_substitute]
+  | SmtDatatype.sum c d, X, refs, hNot, hFree => by
+      simp only [hasFreeDt, native_or, Bool.or_eq_false_iff] at hFree
+      simp only [__smtx_dt_substitute]
+      rw [subst_noop_no_free_dtc sub c X refs hNot hFree.1,
+        subst_noop_no_free_dt sub d X refs hNot hFree.2]
+
+theorem subst_noop_no_free_dtc (sub : native_String) :
+    (c : SmtDatatypeCons) → (X : SmtDatatype) → (refs : RefList) →
+      native_reflist_contains refs sub = false →
+      hasFreeDtc sub refs c = false →
+      __smtx_dtc_substitute sub X c = c
+  | SmtDatatypeCons.unit, X, refs, hNot, hFree => by simp [__smtx_dtc_substitute]
+  | SmtDatatypeCons.cons T c, X, refs, hNot, hFree => by
+      cases T with
+      | TypeRef s =>
+          simp only [hasFreeDtc, native_or, Bool.or_eq_false_iff] at hFree
+          have hsne : sub ≠ s := by
+            intro hs
+            subst hs
+            simp [native_and, native_not, hNot, native_streq] at hFree
+          have hst : native_streq sub s = false := by
+            simp [native_streq, hsne]
+          simp only [__smtx_dtc_substitute]
+          rw [subst_noop_no_free_dtc sub c X refs hNot hFree.2]
+          simp [__smtx_type_substitute, native_ite, hst]
+      | _ =>
+          simp only [hasFreeDtc, native_or, Bool.or_eq_false_iff] at hFree
+          simp only [__smtx_dtc_substitute]
+          rw [subst_noop_no_free_dtc sub c X refs hNot hFree.2]
+          rw [subst_noop_no_free_ty sub _ X refs (by intro s h; cases h) hNot hFree.1]
 end
 
 /- The SMT substitute `__smtx_*_substitute sub X` is a no-op on a structure `W` well-formed both at
