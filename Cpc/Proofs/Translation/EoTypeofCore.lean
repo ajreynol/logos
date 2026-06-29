@@ -3741,6 +3741,12 @@ private def eo_type_substitute_field (sub : native_String) (d0 : Datatype) : Ter
 
 mutual
 
+/- Do not fix this block by simply adding replacement-WF to every recursive call:
+when substitution descends under `DatatypeType s d`, the replacement is EO-lifted by `s`,
+and that lifted replacement can fail SMT WF even if the original replacement was WF.
+The missing invariant is narrower: the lifted EO replacement must still translate like the
+corresponding SMT lift, with tuple/non-`DatatypeType` interiors discharged by no-free/no-`Datatype sub`
+no-op lemmas from `SmtFreeRefs`. -/
 private theorem eo_to_smt_type_substitute_field
     (sub : native_String) (d0 : Datatype) :
     (T : Term) -> (refs : RefList) ->
@@ -4056,9 +4062,21 @@ theorem eo_to_smt_datatype_substitute
             have hCons' :
                 __smtx_dt_cons_wf_rec (__eo_to_smt_datatype_cons c) refs = true := hCons
             simpa [__eo_to_smt_datatype, __smtx_dt_wf_rec, native_ite, hCons'] using hWf
-          simp [__eo_dt_substitute, __eo_to_smt_datatype, __smtx_dt_substitute,
-            eo_to_smt_datatype_cons_substitute sub d0 c refs hCons,
-            eo_to_smt_datatype_substitute sub d0 (Datatype.sum cTail dTail) refs hTail]
+          have hConsSub :=
+            eo_to_smt_datatype_cons_substitute sub d0 c refs hCons
+          have hTailSub :=
+            eo_to_smt_datatype_substitute sub d0 (Datatype.sum cTail dTail) refs hTail
+          change
+            SmtDatatype.sum
+                (__eo_to_smt_datatype_cons (__eo_dtc_substitute sub d0 c))
+                (__eo_to_smt_datatype
+                  (__eo_dt_substitute sub d0 (Datatype.sum cTail dTail))) =
+              SmtDatatype.sum
+                (__smtx_dtc_substitute sub (__eo_to_smt_datatype d0)
+                  (__eo_to_smt_datatype_cons c))
+                (__smtx_dt_substitute sub (__eo_to_smt_datatype d0)
+                  (__eo_to_smt_datatype (Datatype.sum cTail dTail)))
+          rw [hConsSub, hTailSub]
 
 end
 
@@ -4228,15 +4246,16 @@ private theorem smtx_typeof_dt_cons_rec_zero_subst_ne_none
 private theorem eo_to_smt_typeof_dt_cons_rec_substitute_of_wf
     (sub : native_String) (d0 : Datatype) (T : Term) (hT : __eo_to_smt_type T ≠ SmtType.None) :
     (d : Datatype) -> (i : native_Nat) -> (refs : RefList) ->
+      __smtx_dt_wf_rec (__eo_to_smt_datatype d0) refs = true ->
       __smtx_dt_wf_rec (__eo_to_smt_datatype d) refs = true ->
       __eo_to_smt_type (__eo_typeof_dt_cons_rec T (__eo_dt_substitute sub d0 d) i) =
         __smtx_typeof_dt_cons_rec (__eo_to_smt_type T)
           (__smtx_dt_substitute sub (__eo_to_smt_datatype d0) (__eo_to_smt_datatype d)) i
-  | Datatype.null, i, refs, hWf => by
+  | Datatype.null, i, refs, hD0Wf, hWf => by
       rw [__eo_dt_substitute, __smtx_dt_substitute.eq_def, eo_typeof_dt_cons_rec_null]
       change SmtType.None = __smtx_typeof_dt_cons_rec (__eo_to_smt_type T) SmtDatatype.null i
       rw [smtx_typeof_dt_cons_rec_null]
-  | Datatype.sum DatatypeCons.unit d, native_nat_zero, refs, hWf => by
+  | Datatype.sum DatatypeCons.unit d, native_nat_zero, refs, hD0Wf, hWf => by
       have hTTerm : T ≠ Term.Stuck := eo_term_ne_stuck_of_smt_type_non_none T hT
       rw [__eo_dt_substitute, __smtx_dt_substitute.eq_def, __eo_dtc_substitute,
         eo_typeof_dt_cons_rec_unit T (__eo_dt_substitute sub d0 d) hTTerm]
@@ -4245,7 +4264,7 @@ private theorem eo_to_smt_typeof_dt_cons_rec_substitute_of_wf
           (SmtDatatype.sum SmtDatatypeCons.unit
             (__smtx_dt_substitute sub (__eo_to_smt_datatype d0) (__eo_to_smt_datatype d))) native_nat_zero
       rw [smtx_typeof_dt_cons_rec_unit]
-  | Datatype.sum (DatatypeCons.cons U c) d, native_nat_zero, refs, hWf => by
+  | Datatype.sum (DatatypeCons.cons U c) d, native_nat_zero, refs, hD0Wf, hWf => by
       have hTTerm : T ≠ Term.Stuck := eo_term_ne_stuck_of_smt_type_non_none T hT
       rw [__eo_dt_substitute, __smtx_dt_substitute.eq_def]
       rw [show __eo_dtc_substitute sub d0 (DatatypeCons.cons U c) =
@@ -4282,7 +4301,7 @@ private theorem eo_to_smt_typeof_dt_cons_rec_substitute_of_wf
           simp [__eo_to_smt_datatype, __smtx_dt_wf_rec, cSmt, dSmt, hTailCons,
             hDtTail, native_ite]
       have hRec := eo_to_smt_typeof_dt_cons_rec_substitute_of_wf sub d0 T hT
-        (Datatype.sum c d) native_nat_zero refs hTailWf
+        (Datatype.sum c d) native_nat_zero refs hD0Wf hTailWf
       have hRestNN :
           __eo_to_smt_type
               (__eo_typeof_dt_cons_rec T (__eo_dt_substitute sub d0 (Datatype.sum c d)) native_nat_zero) ≠
@@ -4290,7 +4309,7 @@ private theorem eo_to_smt_typeof_dt_cons_rec_substitute_of_wf
         rw [hRec]
         exact smtx_typeof_dt_cons_rec_zero_subst_ne_none sub d0Smt (__eo_to_smt_type T) hT cSmt dSmt
       rw [eo_to_smt_type_dtc_app]
-      rw [eo_to_smt_type_substitute_field sub d0 U refs
+      rw [eo_to_smt_type_substitute_field sub d0 U refs hD0Wf
         (smtx_type_field_wf_rec_of_cons_wf hCons)]
       change
         __smtx_typeof_guard (smtx_type_substitute_top sub d0Smt (__eo_to_smt_type U))
@@ -4304,7 +4323,7 @@ private theorem eo_to_smt_typeof_dt_cons_rec_substitute_of_wf
       rw [smtx_typeof_guard_of_non_none _ _ hFieldNN,
         smtx_typeof_guard_of_non_none _ _ hRestNN, hRec]
       rfl
-  | Datatype.sum c d, native_nat_succ n, refs, hWf => by
+  | Datatype.sum c d, native_nat_succ n, refs, hD0Wf, hWf => by
       have hTTerm : T ≠ Term.Stuck := eo_term_ne_stuck_of_smt_type_non_none T hT
       rw [__eo_dt_substitute, __smtx_dt_substitute.eq_def]
       rw [eo_typeof_dt_cons_rec_succ T (__eo_dtc_substitute sub d0 c)
@@ -4324,7 +4343,7 @@ private theorem eo_to_smt_typeof_dt_cons_rec_substitute_of_wf
             exact smtx_dt_wf_tail_of_sum_wf _ _ refs (by simp [__eo_to_smt_datatype])
               (by simpa [__eo_to_smt_datatype] using hWf)
           exact eo_to_smt_typeof_dt_cons_rec_substitute_of_wf sub d0 T hT
-            (Datatype.sum cTail dTail) n refs hDtTail
+            (Datatype.sum cTail dTail) n refs hD0Wf hDtTail
 
 theorem eo_to_smt_type_typeof_dt_cons
     (s : native_String) (d : Datatype) (i : native_Nat)
@@ -4346,7 +4365,7 @@ theorem eo_to_smt_type_typeof_dt_cons
   have hBaseNN : __eo_to_smt_type (Term.DatatypeType s d) ≠ SmtType.None := by
     simp [__eo_to_smt_type, native_ite, hReserved]
   have hRec := eo_to_smt_typeof_dt_cons_rec_substitute_of_wf s d (Term.DatatypeType s d)
-    hBaseNN d i (native_reflist_insert native_reflist_nil s) hBaseWf
+    hBaseNN d i (native_reflist_insert native_reflist_nil s) hBaseWf hBaseWf
   change __eo_to_smt_type (__eo_typeof_dt_cons_rec (Term.DatatypeType s d) (__eo_dt_substitute s d d) i) =
     __smtx_typeof (SmtTerm.DtCons s dSmt i)
   rw [hRec]
