@@ -2504,7 +2504,9 @@ def __str_unify_split : Term -> Term -> Term -> Term
 
 def __str_re_rev_rec : Term -> Term
   | Term.Stuck  => Term.Stuck
-  | rs => rs
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) r) rs) => (__eo_list_concat (Term.UOp UserOp.re_concat) (__str_re_rev_rec rs) (__str_re_rev_rec r))
+  | (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) => (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))
+  | r => (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) r) (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])))
 
 
 def __str_reduction_pred : Term -> Term
