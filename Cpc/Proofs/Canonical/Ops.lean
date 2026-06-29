@@ -1444,14 +1444,14 @@ theorem model_eval_set_empty_value_canonical
     __smtx_value_canonical (SmtValue.Set (SmtMap.default T (SmtValue.Boolean false))) := by
   simp [__smtx_value_canonical, __smtx_value_canonical_bool,
     __smtx_map_canonical, __smtx_map_default_canonical, __smtx_typeof_value,
-    __smtx_type_default, __smtx_msm_get_default, native_ite, native_veq,
+    __smtx_type_default, __smtx_type_default_rec, __smtx_msm_get_default, native_ite, native_veq,
     SmtEval.native_and]
 
 theorem set_empty_map_canonical
     (T : SmtType) :
     __smtx_map_canonical (SmtMap.default T (SmtValue.Boolean false)) = true := by
   simp [__smtx_map_canonical, __smtx_map_default_canonical, __smtx_typeof_value,
-    __smtx_type_default, __smtx_value_canonical_bool, native_ite, native_veq,
+    __smtx_type_default, __smtx_type_default_rec, __smtx_value_canonical_bool, native_ite, native_veq,
     SmtEval.native_and]
 
 theorem model_eval_set_singleton_value_canonical
@@ -1463,7 +1463,7 @@ theorem model_eval_set_singleton_value_canonical
   simp [__smtx_model_eval_set_singleton, __smtx_value_canonical,
     __smtx_value_canonical_bool, __smtx_map_canonical,
     __smtx_map_entries_ordered_after, __smtx_map_default_canonical,
-    __smtx_typeof_value, __smtx_type_default, __smtx_msm_get_default,
+    __smtx_typeof_value, __smtx_type_default, __smtx_type_default_rec, __smtx_msm_get_default,
     native_ite, native_veq, hvBool, SmtEval.native_and, SmtEval.native_not]
 
 theorem mss_op_internal_canonical
