@@ -252,4 +252,48 @@ theorem cons_defaultable :
   termination_by cU => sizeOf cU
   decreasing_by all_goals (try simp_wf); all_goals omega
 
+-- substitution is the identity on finite types (no TypeRef ⇒ nothing to substitute),
+-- collapsing the folded/unfolding distinction to the diagonal for finite datatypes
+mutual
+theorem subst_T_fin_id (s : native_String) :
+    ∀ (d0 : SmtDatatype) (T : SmtType), __smtx_is_finite_type T = true →
+      __smtx_type_substitute s d0 T = T
+  | d0, SmtType.Datatype s2 d2, hfin => by
+      have hf2 : __smtx_is_finite_datatype d2 = true := by simpa [__smtx_is_finite_type] using hfin
+      simp only [__smtx_type_substitute]
+      by_cases hEq : native_streq s s2 = true
+      · rw [native_ite, if_pos hEq]
+      · rw [native_ite, if_neg hEq, subst_D_fin_id s _ d2 hf2]
+  | d0, SmtType.TypeRef s2, hfin => by simp [__smtx_is_finite_type] at hfin
+  | d0, SmtType.None, hfin => by simp [__smtx_is_finite_type] at hfin
+  | d0, SmtType.Int, hfin => by simp [__smtx_is_finite_type] at hfin
+  | d0, SmtType.Real, hfin => by simp [__smtx_is_finite_type] at hfin
+  | d0, SmtType.RegLan, hfin => by simp [__smtx_is_finite_type] at hfin
+  | d0, SmtType.Seq A, hfin => by simp [__smtx_is_finite_type] at hfin
+  | d0, SmtType.USort i, hfin => by simp [__smtx_is_finite_type] at hfin
+  | d0, SmtType.FunType A B, hfin => by simp [__smtx_is_finite_type] at hfin
+  | d0, SmtType.DtcAppType A B, hfin => by simp [__smtx_is_finite_type] at hfin
+  | d0, SmtType.Bool, hfin => by simp [__smtx_type_substitute]
+  | d0, SmtType.BitVec w, hfin => by simp [__smtx_type_substitute]
+  | d0, SmtType.Char, hfin => by simp [__smtx_type_substitute]
+  | d0, SmtType.Map A B, hfin => by simp [__smtx_type_substitute]
+  | d0, SmtType.Set A, hfin => by simp [__smtx_type_substitute]
+theorem subst_C_fin_id (s : native_String) :
+    ∀ (d0 : SmtDatatype) (c : SmtDatatypeCons), __smtx_is_finite_datatype_cons c = true →
+      __smtx_dtc_substitute s d0 c = c
+  | d0, SmtDatatypeCons.unit, hfin => by simp [__smtx_dtc_substitute]
+  | d0, SmtDatatypeCons.cons T c, hfin => by
+      have hp : __smtx_is_finite_type T = true ∧ __smtx_is_finite_datatype_cons c = true := by
+        simpa [__smtx_is_finite_datatype_cons, native_and] using hfin
+      simp [__smtx_dtc_substitute, subst_T_fin_id s d0 T hp.1, subst_C_fin_id s d0 c hp.2]
+theorem subst_D_fin_id (s : native_String) :
+    ∀ (d0 : SmtDatatype) (D : SmtDatatype), __smtx_is_finite_datatype D = true →
+      __smtx_dt_substitute s d0 D = D
+  | d0, SmtDatatype.null, hfin => by simp [__smtx_dt_substitute]
+  | d0, SmtDatatype.sum c D, hfin => by
+      have hp : __smtx_is_finite_datatype_cons c = true ∧ __smtx_is_finite_datatype D = true := by
+        simpa [__smtx_is_finite_datatype, native_and] using hfin
+      simp [__smtx_dt_substitute, subst_C_fin_id s d0 c hp.1, subst_D_fin_id s d0 D hp.2]
+end
+
 end Smtm
