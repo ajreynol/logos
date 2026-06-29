@@ -3229,6 +3229,81 @@ theorem eo_to_smt_datatype_lift_not_general :
   intro h
   exact absurd (h cexS cexDRef cexD) (by native_decide)
 
+/-! ### Concrete refutation of unconstrained substitution
+
+The old all-inputs substitution commutation has the same root problem if the substituted
+datatype is not constrained to the valid/well-formed fragment. Here the substituted-into
+datatype carries a free `Sub` reference, so substitution observes the replacement. The replacement
+contains `Datatype "Foo" cexSubstTarget2`, whose translation collides with the valid-looking
+target `cexSubstTarget1` because both contain an invalid field that translates to `None`.
+SMT lift folds the translated collision; EO lift does not, since the EO datatypes are distinct.
+-/
+private def cexSubstSub : native_String := native_string_lit "Sub"
+
+private def cexSubstTarget1 : Datatype :=
+  Datatype.sum
+    (DatatypeCons.cons (Term.DatatypeTypeRef cexSubstSub)
+      (DatatypeCons.cons Term.Stuck DatatypeCons.unit))
+    Datatype.null
+
+private def cexSubstTarget2 : Datatype :=
+  Datatype.sum
+    (DatatypeCons.cons (Term.DatatypeTypeRef cexSubstSub)
+      (DatatypeCons.cons Term.FunType DatatypeCons.unit))
+    Datatype.null
+
+private def cexSubstReplacement : Datatype :=
+  Datatype.sum
+    (DatatypeCons.cons (Term.DatatypeType cexS cexSubstTarget2) DatatypeCons.unit)
+    Datatype.null
+
+private def cexSubstInto : Datatype :=
+  Datatype.sum
+    (DatatypeCons.cons (Term.DatatypeType cexS cexSubstTarget1) DatatypeCons.unit)
+    Datatype.null
+
+example : cexSubstTarget1 ≠ cexSubstTarget2 := by
+  native_decide
+
+example :
+    __eo_to_smt_datatype cexSubstTarget1 =
+      __eo_to_smt_datatype cexSubstTarget2 := by
+  native_decide
+
+example :
+    __eo_to_smt_datatype
+        (__eo_dt_substitute cexSubstSub
+          (__eo_dt_lift cexS cexSubstTarget1 cexSubstReplacement)
+          cexSubstTarget1) ≠
+      __smtx_dt_substitute cexSubstSub
+        (__smtx_dt_lift cexS (__eo_to_smt_datatype cexSubstTarget1)
+          (__eo_to_smt_datatype cexSubstReplacement))
+        (__eo_to_smt_datatype cexSubstTarget1) := by
+  native_decide
+
+example :
+    __eo_to_smt_datatype
+        (__eo_dt_substitute cexSubstSub cexSubstReplacement cexSubstInto) ≠
+      __smtx_dt_substitute cexSubstSub
+        (__eo_to_smt_datatype cexSubstReplacement)
+        (__eo_to_smt_datatype cexSubstInto) := by
+  native_decide
+
+theorem eo_to_smt_datatype_substitute_not_general :
+    ¬ (∀ (sub : native_String) (d0 d : Datatype),
+        __eo_to_smt_datatype (__eo_dt_substitute sub d0 d) =
+          __smtx_dt_substitute sub (__eo_to_smt_datatype d0) (__eo_to_smt_datatype d)) := by
+  intro h
+  exact
+    (show
+      __eo_to_smt_datatype
+          (__eo_dt_substitute cexSubstSub cexSubstReplacement cexSubstInto) ≠
+        __smtx_dt_substitute cexSubstSub
+          (__eo_to_smt_datatype cexSubstReplacement)
+          (__eo_to_smt_datatype cexSubstInto) by
+      native_decide)
+    (h cexSubstSub cexSubstReplacement cexSubstInto)
+
 /- Lift correspondence (the SOUND replacement for `eo_to_smt_datatype_lift`): translating the
 EO-lifted datatype equals SMT-lifting the translated datatype, GIVEN SMT well-formedness of the
 datatype and that the re-fold target `dRef` has a free reference `sub`. The `DatatypeType` field
