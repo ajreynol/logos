@@ -1,4 +1,5 @@
 import Cpc.Proofs.TypePreservation.Predicates
+import Cpc.Proofs.Canonical.TypeDefaultBasic
 
 /-!
 Canonical/cardinality and freshness witnesses used by datatype cardinality
@@ -33,7 +34,14 @@ private theorem type_default_typed_canonical_of_native_inhabited
     (h : native_inhabited_type T = true) :
     __smtx_typeof_value (__smtx_type_default T) = T ∧
       __smtx_value_canonical_bool (__smtx_type_default T) = true := by
-  simpa [native_inhabited_type, native_Teq, native_and] using h
+  -- `native_inhabited_type` now carries only `(T ≠ None) ∧ (typeof(default T) = T)`;
+  -- canonicality is recovered from the unconditional `type_default_canonical_of_typed`.
+  have hParts : native_Teq T SmtType.None = false ∧
+      native_Teq (__smtx_typeof_value (__smtx_type_default T)) T = true := by
+    simpa [native_inhabited_type, native_and, native_not] using h
+  have hTyped : __smtx_typeof_value (__smtx_type_default T) = T := by
+    simpa [native_Teq] using hParts.2
+  exact ⟨hTyped, type_default_canonical_of_typed T hParts.2⟩
 
 private theorem value_dt_substitute_canonical_bool
     (s : native_String)
