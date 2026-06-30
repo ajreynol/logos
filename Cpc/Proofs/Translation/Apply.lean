@@ -11906,11 +11906,14 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_extract
     have hWidthNonneg :
         native_zleq 0 (native_zplus (native_zplus i (native_zneg j)) 1) = true :=
       native_zleq_zero_extract_width i j hji
+    have hWidthGtNegOne :
+        native_zlt (-1 : native_Int) (native_zplus (native_zplus i (native_zneg j)) 1) = true :=
+      native_zlt_neg_one_of_zleq_zero hWidthNonneg
     rw [hEoRaw]
     rw [hZTerm, hYTerm]
     simp [__eo_mk_apply, __eo_requires, __eo_gt,
       __eo_add, __eo_neg, native_ite, native_teq, native_not,
-      hLoGtNegOne, hiw, hWidthNonneg]
+      hLoGtNegOne, hiw, hWidthGtNegOne, hWidthNonneg]
   exact hSmt.trans hEo.symm
 
 /-- Proof for `_at_witness_string_length`. -/
