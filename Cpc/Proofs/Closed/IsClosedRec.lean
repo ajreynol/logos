@@ -933,6 +933,17 @@ by
   case Numeral n =>
     cases hEnv <;> simp [__eo_is_closed_rec]
 
+theorem eo_is_closed_rec_eq_true_of_eo_to_smt_numeral
+    {idx env : Term} {vars : List SmtVarKey} {i : native_Int}
+    (hEnv : EoSmtVarEnv env vars)
+    (hIdx : __eo_to_smt idx = SmtTerm.Numeral i) :
+  __eo_is_closed_rec idx env = Term.Boolean true :=
+by
+  have hIdxTerm : idx = Term.Numeral i :=
+    TranslationProofs.eo_to_smt_eq_numeral idx i hIdx
+  subst idx
+  cases hEnv <;> simp [__eo_is_closed_rec]
+
 theorem eo_is_closed_rec_eq_true_of_eo_to_smt_eq_dt_sel
     {idx env : Term} {vars : List SmtVarKey}
     {s : native_String} {d : SmtDatatype} {i j : native_Nat}
@@ -5231,7 +5242,7 @@ theorem extract_indices_nat_valid_and_arg_has_smt_translation
     {hi lo x : Term}
     (hTrans :
       eoHasSmtTranslation (Term.Apply (Term.UOp2 UserOp2.extract hi lo) x)) :
-  __eo_to_smt_nat_is_valid hi = true ∧
+  (∃ i : native_Int, __eo_to_smt hi = SmtTerm.Numeral i) ∧
     __eo_to_smt_nat_is_valid lo = true ∧
       eoHasSmtTranslation x :=
 by
@@ -5248,11 +5259,9 @@ by
     unfold term_has_non_none_type
     exact hTrans
   rcases extract_args_of_non_none hNN with
-    ⟨i, j, w, hHiNum, hLoNum, hXTy, hj0, hji, _hiw⟩
-  have hi0 : native_zleq 0 i = true :=
-    native_zleq_zero_of_zleq_chain hj0 hji
+    ⟨i, j, w, hHiNum, hLoNum, hXTy, hj0, _hWidth, _hiw⟩
   refine ⟨?_, ?_, ?_⟩
-  · exact eo_to_smt_nat_is_valid_of_smt_numeral_nonneg hHiNum hi0
+  · exact ⟨i, hHiNum⟩
   · exact eo_to_smt_nat_is_valid_of_smt_numeral_nonneg hLoNum hj0
   · unfold eoHasSmtTranslation
     rw [hXTy]
@@ -5324,12 +5333,12 @@ theorem is_closed_rec_apply_extract_eq_and_bool_of_has_smt_translation
         Term.Boolean b :=
 by
   rcases extract_indices_nat_valid_and_arg_has_smt_translation hTrans with
-    ⟨hHiValid, hLoValid, hXTrans⟩
+    ⟨⟨_hiVal, hHiNum⟩, hLoValid, hXTrans⟩
   exact
     is_closed_rec_apply_uop2_eq_and_bool_of_indices_true_and_arg
       hEnv
       (by cases hEnv <;> simp [__is_closed_rec])
-      (eo_is_closed_rec_eq_true_of_nat_is_valid hEnv hHiValid)
+      (eo_is_closed_rec_eq_true_of_eo_to_smt_numeral hEnv hHiNum)
       (eo_is_closed_rec_eq_true_of_nat_is_valid hEnv hLoValid)
       (ihX hXTrans)
 

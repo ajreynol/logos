@@ -8451,7 +8451,9 @@ def __eo_typeof_concat : Term -> Term -> Term
 def __eo_typeof_extract : Term -> Term -> Term -> Term -> Term -> Term
   | _ , Term.Stuck , _ , _ , _  => Term.Stuck
   | _ , _ , _ , Term.Stuck , _  => Term.Stuck
-  | (Term.UOp UserOp.Int), h, (Term.UOp UserOp.Int), l, (Term.Apply (Term.UOp UserOp.BitVec) n) => (__eo_mk_apply (Term.UOp UserOp.BitVec) (__eo_requires (__eo_gt l (Term.Numeral (-1 : native_Int))) (Term.Boolean true) (__eo_requires (__eo_gt n h) (Term.Boolean true) (__eo_add (__eo_add h (__eo_neg l)) (Term.Numeral 1)))))
+  | (Term.UOp UserOp.Int), h, (Term.UOp UserOp.Int), l, (Term.Apply (Term.UOp UserOp.BitVec) n) => 
+    let _v0 := (__eo_add (__eo_add h (__eo_neg l)) (Term.Numeral 1))
+    (__eo_mk_apply (Term.UOp UserOp.BitVec) (__eo_requires (__eo_gt l (Term.Numeral (-1 : native_Int))) (Term.Boolean true) (__eo_requires (__eo_gt n h) (Term.Boolean true) (__eo_requires (__eo_gt _v0 (Term.Numeral (-1 : native_Int))) (Term.Boolean true) _v0))))
   | _, _, _, _, _ => Term.Stuck
 
 

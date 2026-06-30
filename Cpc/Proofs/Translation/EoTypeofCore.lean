@@ -6726,14 +6726,20 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_extract_of_int_int_bitvec_type
           (Term.UOp UserOp.BitVec)
           (__eo_requires (__eo_gt z (Term.Numeral (-1 : native_Int))) (Term.Boolean true)
             (__eo_requires (__eo_gt n y) (Term.Boolean true)
-              (__eo_add (__eo_add y (__eo_neg z)) (Term.Numeral 1))))) := by
+              (__eo_requires
+                (__eo_gt (__eo_add (__eo_add y (__eo_neg z)) (Term.Numeral 1))
+                  (Term.Numeral (-1 : native_Int))) (Term.Boolean true)
+                (__eo_add (__eo_add y (__eo_neg z)) (Term.Numeral 1)))))) := by
   change __eo_to_smt_type (__eo_typeof_extract (__eo_typeof y) y (__eo_typeof z) z (__eo_typeof x)) =
     __eo_to_smt_type
       (__eo_mk_apply
         (Term.UOp UserOp.BitVec)
         (__eo_requires (__eo_gt z (Term.Numeral (-1 : native_Int))) (Term.Boolean true)
           (__eo_requires (__eo_gt n y) (Term.Boolean true)
-            (__eo_add (__eo_add y (__eo_neg z)) (Term.Numeral 1)))))
+            (__eo_requires
+              (__eo_gt (__eo_add (__eo_add y (__eo_neg z)) (Term.Numeral 1))
+                (Term.Numeral (-1 : native_Int))) (Term.Boolean true)
+              (__eo_add (__eo_add y (__eo_neg z)) (Term.Numeral 1))))))
   rw [hy, hz, hx]
   apply congrArg __eo_to_smt_type
   cases y with

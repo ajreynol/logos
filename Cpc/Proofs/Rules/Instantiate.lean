@@ -12622,8 +12622,8 @@ theorem substFalse_eval_unary_uop2_any
     exact substFalse_eval_unary_uop2_special UserOp2.extract i j a xs ss bvs
       hisr hxs hss hbvs hFTrans hSubstTrans hHeadSub
       (fun {t} h => (extract_indices_nat_valid_and_arg_has_smt_translation h).2.2)
-      (smt_model_eval_eq_of_eo_to_smt_nat_is_valid
-        (extract_indices_nat_valid_and_arg_has_smt_translation hFTrans).1)
+      (smt_model_eval_eq_of_eo_to_smt_numeral
+        (extract_indices_nat_valid_and_arg_has_smt_translation hFTrans).1.2)
       (smt_model_eval_eq_of_eo_to_smt_nat_is_valid
         (extract_indices_nat_valid_and_arg_has_smt_translation hFTrans).2.1)
       (fun X Y hI hJ hArg => by

@@ -58,17 +58,13 @@ theorem typeof_value_model_eval_extract
     __smtx_typeof_value
         (__smtx_model_eval M (SmtTerm.extract t1 t2 t3)) =
       __smtx_typeof (SmtTerm.extract t1 t2 t3) := by
-  rcases extract_args_of_non_none ht with ⟨i, j, w, h1, h2, h3, hj0, hji, hiw⟩
-  have hWidthEq :
-      native_zplus (native_zplus i (native_zneg j)) 1 =
-        native_zplus (native_zplus i 1) (native_zneg j) := by
-    simp [SmtEval.native_zplus, SmtEval.native_zneg, Int.add_assoc, Int.add_comm, Int.add_left_comm]
+  rcases extract_args_of_non_none ht with ⟨i, j, w, h1, h2, h3, hj0, hWidth, hiw⟩
   rw [show __smtx_typeof
       (SmtTerm.extract t1 t2 t3) =
         SmtType.BitVec
           (native_int_to_nat (native_zplus (native_zplus i 1) (native_zneg j))) by
     rw [typeof_extract_eq, h1, h2, h3]
-    simp [__smtx_typeof_extract, native_ite, hj0, hji, hiw, hWidthEq]]
+    simp [__smtx_typeof_extract, native_ite, hj0, hWidth, hiw]]
   rw [__smtx_model_eval.eq_def] <;> simp only
   change __smtx_typeof_value
       (__smtx_model_eval_extract (__smtx_model_eval M t1) (__smtx_model_eval M t2)
@@ -78,16 +74,6 @@ theorem typeof_value_model_eval_extract
   rw [__smtx_model_eval.eq_2, __smtx_model_eval.eq_2]
   rcases bitvec_value_canonical (by simpa [h3] using hpres3) with ⟨n, hv⟩
   rw [hv]
-  have hji' : j <= i := by
-    simpa [SmtEval.native_zleq] using hji
-  have hWidthInt : 0 <= (i + 1) + -j := by
-    have hsub : 0 <= i - j := (Int.sub_nonneg).2 hji'
-    have hWidth' : 0 <= (i - j) + 1 := Int.add_nonneg hsub (by decide)
-    simpa [Int.sub_eq_add_neg, Int.add_assoc, Int.add_comm, Int.add_left_comm] using hWidth'
-  have hWidth : native_zleq 0 (native_zplus (native_zplus i 1) (native_zneg j)) = true := by
-    have hWidthInt' : 0 <= native_zplus (native_zplus i 1) (native_zneg j) := by
-      simpa [SmtEval.native_zplus, SmtEval.native_zneg] using hWidthInt
-    simpa [SmtEval.native_zleq] using hWidthInt'
   simpa [__smtx_model_eval_extract] using
     typeof_value_binary_mod_of_nonneg (native_zplus (native_zplus i 1) (native_zneg j))
       (native_binary_extract (native_nat_to_int w) n i j) hWidth
