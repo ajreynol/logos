@@ -1609,9 +1609,12 @@ def native_fun_typed (M : SmtModel) : Prop :=
       smt_value_canonical (native_eval_ifun_apply M fid A B i) = true
 
 def model_total_typed (M : SmtModel) : Prop :=
-  (∀ s T, smt_type_wf T = true -> smt_typeof_value (model_const_lookup M s T) = T) ∧
-  (∀ s T, smt_type_wf T = true -> smt_value_canonical (model_const_lookup M s T)) = true ∧
-  (∀ s T, smt_type_wf T = false -> model_const_lookup M s T = SmtValue.NotValue) ∧
+  (∀ isVar s T, smt_type_wf T = true ->
+    smt_typeof_value (M.values { isVar := isVar, name := s, ty := T }) = T) ∧
+  (∀ isVar s T, smt_type_wf T = true ->
+    smt_value_canonical (M.values { isVar := isVar, name := s, ty := T }) = true) ∧
+  (∀ isVar s T, smt_type_wf T = false ->
+    M.values { isVar := isVar, name := s, ty := T } = SmtValue.NotValue) ∧
   native_fun_typed M
 \end{lstlisting}
 \caption{Total typed model conditions.}
