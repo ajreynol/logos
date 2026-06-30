@@ -441,19 +441,16 @@ private theorem tester_ctor_translation_of_non_none
       rw [hC]
       simp [__eo_to_smt_tester, TranslationProofs.typeof_apply_none_eq]
 
-private theorem smt_datatype_dt_wf_rec_of_typeof
+private theorem smt_datatype_dt_all_wf_of_typeof
     (x : SmtTerm) (s : native_String) (d : SmtDatatype)
     (hxTy : __smtx_typeof x = SmtType.Datatype s d) :
-    __smtx_dt_wf_rec d (native_reflist_insert native_reflist_nil s) = true := by
+    dtAllWf d (native_reflist_insert native_reflist_nil s) = true := by
   have hWf := Smtm.smt_datatype_wf_of_non_none_type x s d hxTy
   have hParts :
       native_inhabited_type (SmtType.Datatype s d) = true ∧
-        __smtx_dt_wf_rec d (native_reflist_insert native_reflist_nil s) =
-          true := by
-    simpa [__smtx_type_wf, __smtx_type_wf_component,
-      __smtx_type_wf_rec, native_and, native_reflist_contains,
-      native_reflist_nil, native_ite] using hWf
-  exact hParts.2
+        __smtx_type_wf_rec (SmtType.Datatype s d) native_reflist_nil = true := by
+    simpa [__smtx_type_wf, __smtx_type_wf_component, native_and] using hWf
+  exact (dtAllWf_of_type_wf_rec_datatype s d native_reflist_nil hParts.2).2
 
 private theorem datatype_cons_selectors_rec_nil_of_num_sels_zero
     (s : native_String) (root : Datatype) (n : Nat) :
@@ -1587,10 +1584,10 @@ private theorem facts___eo_prog_dt_inst_impl
             hNameNe hEoXTy with
           ⟨dx, hXType, hDx⟩
         have hWF :
-            __smtx_dt_wf_rec (__eo_to_smt_datatype d0)
+            dtAllWf (__eo_to_smt_datatype d0)
                 (native_reflist_insert native_reflist_nil cs) =
               true :=
-          smt_datatype_dt_wf_rec_of_typeof
+          smt_datatype_dt_all_wf_of_typeof
             (__eo_to_smt x) cs (__eo_to_smt_datatype d0) hXTy
         have hDxEq : dx = d0 :=
           TranslationProofs.eo_to_smt_datatype_injective_of_wf_rec
@@ -1657,10 +1654,10 @@ private theorem facts___eo_prog_dt_inst_impl
           hNameNe hEoXTy with
         ⟨dx, hXType, hDx⟩
       have hWF :
-          __smtx_dt_wf_rec (__eo_to_smt_datatype d0)
+          dtAllWf (__eo_to_smt_datatype d0)
               (native_reflist_insert native_reflist_nil cs) =
             true :=
-        smt_datatype_dt_wf_rec_of_typeof
+        smt_datatype_dt_all_wf_of_typeof
           (__eo_to_smt x) cs (__eo_to_smt_datatype d0) hXTy
       have hDxEq : dx = d0 :=
         TranslationProofs.eo_to_smt_datatype_injective_of_wf_rec
