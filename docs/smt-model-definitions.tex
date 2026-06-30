@@ -1457,7 +1457,7 @@ and confirm that all values they are built from are also canonical.
 
 \subsection{Inhabited and Well-Formedness of Types}
 
-\begin{figure}[p]
+\begin{figure}
 \begin{lstlisting}
 abbrev RefList := List String
 
@@ -1544,42 +1544,54 @@ as arguments, as well as higher-order functions
 The method \code{smt_type_wf_component}
 returns true if the given type is inhabited
 and its component types are well-formed, as defined by the recursive method \code{smt_type_wf_rec}.
-This method tracks a list of datatypes we have traversed beneath (\code{RefList}).
+The latter tracks a list of datatype names we are currently traversing beneath (\code{RefList}),
+recording the recursive references that are permitted in the current context.
 
-For datatype types,
-we call the recursive helper \code{smt_dt_wf_rec} that returns true if the datatype is well-formed.
-We append the datatype name \code{s} to our list of references when calling this method,
-indicating that type references to \code{s} are valid in this context.
-This method returns false if the datatype has no constructors.
-Otherwise, we visit each constructor
-and return true only if all constructors are well formed via \code{smt_dtc_wf_rec}.
-Note we have a special case for one constructors to avoid returning false for an empty tail.
+For a datatype type \code{(Datatype s d)},
+we first check that \code{s} does not already occur in the reference list \code{refs}.
+If it does, the datatype aliases an enclosing datatype of the same name,
+which we consider to be not well-formed, returning false.
+Otherwise, we call the recursive helper \code{smt_dt_wf_rec} on the list of constructors \code{d}.
+This helper visits each constructor in turn.
+For each constructor \code{c}, it requires that \code{c} is well-formed via \code{smt_dt_cons_wf_rec},
+where the name \code{s} of the datatype being defined is added to the reference list (\code{(s :: refs)}),
+indicating that type references to \code{s} are valid as fields of \code{c}.
 We determine whether a constructor is well-formed if
 for each of its field types \code{T},
 either \code{T} is a type reference in scope (\code{s ∈ refs}),
 or otherwise \code{T} is an inhabited type that is well-formed, which we check
 recursively, maintaining the list of references.
-Note that carrying the reference list 
+Note that carrying the reference list
 implies that mutually recursive datatypes are supported.
 
-Note that type references are only permitted as direct children of
-constructors.
-Unguarded type reference are not well-formed given their case 
-in \code{smt_dt_wf_rec}, which returns false.
+In addition, \code{smt_dt_wf_rec} requires that the datatype has at least one
+\emph{base} constructor, that is, a constructor that is well-formed
+\emph{without} relying on a recursive reference to \code{s}.
+This is tracked by the accumulator \code{haveBase}: when processing a constructor \code{c},
+we update it based on whether \code{c} is well-formed when \code{s} is \emph{not}
+in scope, i.e. \code{(smt_dt_cons_wf_rec c refs)}.
+After all constructors have been processed, the \code{null} case returns \code{haveBase}.
+In particular, a datatype with no constructors, or one all of whose constructors
+recursively reference \code{s}, has no base constructor and is considered not well-formed,
+since it would admit no finite values.
 
-The next cases in \code{smt_dt_wf_rec}
+Note that type references are only permitted as direct fields of constructors.
+An unguarded type reference is not well-formed, given the case for
+\code{(SmtType.TypeRef s)} in \code{smt_type_wf_rec}, which returns false.
+
+The next cases in \code{smt_type_wf_rec}
 cover composite types like maps, sequences and sets.
 It is important to note that for each component type (e.g. element and index types of maps,
 or element types of sequences),
-we do not carry the list of reference when recursing
+we do not carry the list of references when recursing
 via \code{smt_type_wf_component}.
 This disallows nested recursive datatypes.
 It is also important to note that composite types built from uninhabited types
 are themselves considered not well-formed.
-This prevents us from otherwise have e.g. sets of an uninhabited type be
+This prevents us from otherwise having e.g. sets of an uninhabited type be
 inhabited via the empty set; sequences are guarded for the same reason.
 
-The remaining cases in \code{smt_dt_wf_rec} include exceptions
+The remaining cases in \code{smt_type_wf_rec} are exceptions
 for other types that we disallow as first-class types.
 As mentioned, we do not have regular expressions or function types
 as first class.
@@ -1636,6 +1648,58 @@ when applied to \code{i} results in a value of type \code{B}, and moreover the r
 
 Notice that for both clauses, we insist that the respective components of \code{M} are total mappings.
 
+
+\subsection{Model Evaluation}
+
+
+\begin{figure}[p]
+\begin{lstlisting}
+def native_str_in_re : String -> native_RegLan -> Bool
+  | s, r => native_re_nullable <| s.toList.foldl (fun acc c => native_re_deriv c acc) r
+
+open Classical in
+noncomputable def re_ext_eq (r1 r2 : native_RegLan) : Bool :=
+  if ∀ s : String, native_str_in_re s r1 = native_str_in_re s r2 then true else false
+
+def smt_model_eval_eq : SmtValue -> SmtValue -> SmtValue
+  | (SmtValue.RegLan r1), (SmtValue.RegLan r2) => (SmtValue.Boolean (re_ext_eq r1 r2))
+  | v1, v2 => (SmtValue.Boolean (decide (v1 = v2)))
+  
+def smt_model_eval_not : SmtValue -> SmtValue
+  | (SmtValue.Boolean b) => (SmtValue.Boolean !b)
+  | v1 => SmtValue.NotValue
+
+open Classical in
+noncomputable def eval_texists (M : SmtModel) (s : String)
+    (T : SmtType) (body : SmtTerm) : SmtValue :=
+  if ∃ v : SmtValue,
+      smt_typeof_value v = T ∧
+        smt_value_canonical v = true ∧
+        smt_model_eval (model_push M s T v) body = (SmtValue.Boolean true) then
+    SmtValue.Boolean true
+  else
+    SmtValue.Boolean false
+
+noncomputable def smt_model_eval (M : SmtModel) : SmtTerm -> SmtValue
+  | (SmtTerm.Boolean b) => (SmtValue.Boolean b)
+  | (SmtTerm.String s) => (SmtValue.Seq (native_pack_string s))
+  | (SmtTerm.not x1) => (smt_model_eval_not (smt_model_eval M x1))
+  | (SmtTerm.eq x1 x2) => (smt_model_eval_eq (smt_model_eval M x1) (smt_model_eval M x2))
+  | (SmtTerm.exists s T x1) => (eval_texists M s T x1)
+  | (SmtTerm.Var s T) => (model_lookup M true s T)
+  | (SmtTerm.Const s T) => (model_lookup M false s T)
+  | ... => ...
+\end{lstlisting}
+\caption{Skeleton of SMT term evaluation in a model.}
+\label{fig:model-eval}
+\end{figure}
+
+
+
+
+
+
+
 \subsection{Types of SMT-LIB Terms}
 
 \begin{figure}
@@ -1668,89 +1732,6 @@ def smt_typeof : SmtTerm -> SmtType
 \label{fig:typeof-term}
 \end{figure}
 
-
-\begin{figure}[p]
-\begin{lstlisting}
-def native_str_in_re : String -> native_RegLan -> Bool
-  | s, r => native_re_nullable <| s.toList.foldl (fun acc c => native_re_deriv c acc) r
-
-open Classical in
-noncomputable def re_ext_eq (r1 r2 : native_RegLan) : Bool :=
-  if ∀ s : String, native_str_in_re s r1 = native_str_in_re s r2 then true else false
-
-def smt_model_eval_eq : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.RegLan r1), (SmtValue.RegLan r2) => (SmtValue.Boolean (re_ext_eq r1 r2))
-  | v1, v2 => (SmtValue.Boolean (decide (v1 = v2)))
-\end{lstlisting}
-\caption{Model evaluation for equality.}
-\label{fig:eval-eq}
-\end{figure}
-
-\begin{figure}[p]
-\begin{lstlisting}
-open Classical in
-noncomputable def native_eval_texists (M : SmtModel) (s : String)
-    (T : SmtType) (body : SmtTerm) : SmtValue :=
-  if ∃ v : SmtValue,
-      smt_typeof_value v = T ∧
-        smt_value_canonical v = true ∧
-        smt_model_eval (model_push M s T v) body = (SmtValue.Boolean true) then
-    SmtValue.Boolean true
-  else
-    SmtValue.Boolean false
-
-open Classical in
-noncomputable def native_eval_tforall (M : SmtModel) (s : String)
-    (T : SmtType) (body : SmtTerm) : SmtValue :=
-  if ∀ v : SmtValue,
-      smt_typeof_value v = T ->
-        smt_value_canonical v = true ->
-        smt_model_eval (model_push M s T v) body = (SmtValue.Boolean true) then
-    SmtValue.Boolean true
-  else
-    SmtValue.Boolean false
-
-open Classical in
-noncomputable def native_eval_tchoice (M : SmtModel) (s : String)
-    (T : SmtType) (body : SmtTerm) : SmtValue :=
-  if hSat : ∃ v : SmtValue,
-      smt_typeof_value v = T ∧
-        smt_value_canonical v = true ∧
-        smt_model_eval (model_push M s T v) body = (SmtValue.Boolean true) then
-    Classical.choose hSat
-  else if hTy : ∃ v : SmtValue, smt_typeof_value v = T ∧ smt_value_canonical v then
-    Classical.choose hTy
-  else
-    SmtValue.NotValue
-
-noncomputable def native_eval_tchoice_nth (M : SmtModel) (s : String)
-    (T : SmtType) (body : SmtTerm) : Nat -> SmtValue
-  | 0 => native_eval_tchoice M s T body
-  | Nat.succ n =>
-      let v := native_eval_tchoice M s T body
-      match body with
-      | SmtTerm.exists s' T' body' =>
-          native_eval_tchoice_nth (model_push M s T v) s' T' body' n
-      | _ => SmtValue.NotValue
-\end{lstlisting}
-\caption{Evaluation of quantifiers and choice.}
-\label{fig:eval-quant}
-\end{figure}
-
-\begin{figure}[p]
-\begin{lstlisting}
-noncomputable def smt_model_eval (M : SmtModel) : SmtTerm -> SmtValue
-  | (SmtTerm.Boolean b) => (SmtValue.Boolean b)
-  | (SmtTerm.String s) => (SmtValue.Seq (native_pack_string s))
-  | (SmtTerm.not x1) => (smt_model_eval_not (smt_model_eval M x1))
-  | (SmtTerm.eq x1 x2) => (smt_model_eval_eq (smt_model_eval M x1) (smt_model_eval M x2))
-  | (SmtTerm.exists s T x1) => (native_eval_texists M s T x1)
-  | (SmtTerm.Var s T) => (model_var_lookup M s T)
-  | ... => ...
-\end{lstlisting}
-\caption{Skeleton of SMT term evaluation in a model.}
-\label{fig:model-eval}
-\end{figure}
 
 
 \begin{figure}[p]
@@ -1877,7 +1858,6 @@ def eo_satisfiability (t : Term) (b : Bool) : Prop :=
 
 \begin{figure}[p]
 \begin{lstlisting}
-
 inductive Proof : Type where
   | pf : Term -> Proof
   | Stuck : Proof
