@@ -1071,9 +1071,9 @@ def smt_typeof_seq_value : SmtSeq -> SmtType
   | (SmtSeq.empty T) => (SmtType.Seq T)
   
 def smt_typeof_dt_cons_value_rec (T : SmtType) : SmtDatatype -> native_Nat -> SmtType
-  | (SmtDatatype.sum SmtDatatypeCons.unit d), native_nat_zero => T
-  | (SmtDatatype.sum (SmtDatatypeCons.cons U c) d), native_nat_zero => 
-    (SmtType.DtcAppType U (smt_typeof_dt_cons_value_rec T (SmtDatatype.sum c d) native_nat_zero))
+  | (SmtDatatype.sum SmtDatatypeCons.unit d), 0 => T
+  | (SmtDatatype.sum (SmtDatatypeCons.cons U c) d), 0 => 
+    (SmtType.DtcAppType U (smt_typeof_dt_cons_value_rec T (SmtDatatype.sum c d) 0))
   | (SmtDatatype.sum c d), (native_nat_succ n) => (smt_typeof_dt_cons_value_rec T d n)
   | d, n => SmtType.None
 
@@ -1228,7 +1228,7 @@ def smt_datatype_cons_default (v : SmtValue) : SmtDatatypeCons -> SmtDatatypeCon
 def smt_datatype_default (s : native_String) (d : SmtDatatype) (n : Nat) : SmtDatatype -> SmtDatatype -> SmtValue
   | (SmtDatatype.sum cF dF), (SmtDatatype.sum cU dU) =>
     let _v0 := (smt_datatype_cons_default (SmtValue.DtCons s d n) cF cU)
-    (if (native_not (veq _v0 SmtValue.NotValue)) then _v0 else (smt_datatype_default s d (native_nat_succ n) dF dU))
+    (if (veq _v0 SmtValue.NotValue) then (smt_datatype_default s d (native_nat_succ n) dF dU) else _v0)
   | dF, dU => SmtValue.NotValue
 
 def smt_type_default_rec : SmtType -> SmtType -> SmtValue
@@ -1242,14 +1242,18 @@ def smt_type_default_rec : SmtType -> SmtType -> SmtValue
   | V, (SmtType.Set T) => (SmtValue.Set (SmtMap.default T (SmtValue.Boolean false)))
   | V, (SmtType.Seq T) => (SmtValue.Seq (SmtSeq.empty T))
   | V, (SmtType.FunType T U) => (SmtValue.Fun "@default" T U)
-  | V, (SmtType.USort i) => (SmtValue.UValue i native_nat_zero)
+  | V, (SmtType.USort i) => (SmtValue.UValue i 0)
   | V, ... => ...
   | V, T => SmtValue.NotValue
 
 def smt_type_default (T : SmtType) : SmtValue :=
   (smt_type_default_rec T T)
+  
+def inhabited_type (T : SmtType) : Bool :=
+  (Teq (smt_typeof_value (smt_type_default T)) T) &&
+  (smt_value_canonical (smt_type_default T))
 \end{lstlisting}
-\caption{Finite default value computation.}
+\caption{Finite default value computation and type inhabitedness.}
 \label{fig:default-value}
 \end{figure}
 
@@ -1257,75 +1261,50 @@ The method \code{smt_type_default} takes a type and returns an (arbitrary)
 value of that type, which is guaranteed to succeed when the input type
 is well-formed (which we define later).
 
-Our default value method for atomic types returns an arbitrary value,
-e.g. false for Booleans, 0 for integers, and so on.
-For datatypes, we use a recursive method \code{(smt_datatype_default s d0 n)}
-for returning a default datatype value.
-This top-level method also carries the string \code{s} and datatype \code{d0} of the current datatype we are considering,
-as well as the natural number index \code{n} counting the index of the current constructor.
+The method \code{smt_type_default}
+calls
+the method \code{smt_type_default_rec}
+on two types.
+We use two types here solely for the purpose of recursion
+on datatypes.
+The first type will be the current \emph{unfolded}
+version of the type we have traversed to (recall the definition of unfolding from Section~\ref{sec:datatypes}),
+and the second type will be the original type.
+
+The default value method \code{smt_type_default_rec},
+datatypes are the only non-trivial case.
 The key intuition behind this method is that, for inhabited datatypes,
 it is never productive to
-consider a recursive reference to (any) datatype when constructing its default value.
+consider a recursive reference to any datatype when constructing its default value.
 It is important to note that \code{TypeRef} is \emph{not} given a case
-in our definition of \code{smt_type_default}, so it will be treated as an error (\code{SmtValue.NotValue}).
+in our definition of \code{smt_type_default_rec},
+so it will be treated as an error (\code{SmtValue.NotValue}).
 
-In detail, \code{(smt_datatype_default s d0 n)} scans the list of constructors
-and tries to return a value that is built from an application of that constructor,
-via the submethod \code{(smt_datatype_cons_default s d0 v)}.
-The submethod \code{smt_datatype_cons_default} also carries the string and datatype of the current datatype we are considering,
-the value \code{v} corresponding to the (partially applied) datatype constructor of which an
-application we are trying to construct.
-That method may fail if it contains a field type of the current constructor is not well-formed,
-which notice includes recursive references (\code{TypeRef}) to that datatype.
-More generally, since the definition of \code{smt_type_default} is mutually recursive,
-this includes references to any subfield of a datatype that we have traversed.
+In detail,
+in the datatypes case, if \emph{both}
+the unfolded and original types are a datatype,
+this indicates the current position in the datatype is not a recursive reference.
+In this case, we call the submethod
+\code{(smt_datatype_default sF dF 0)},
+which will attempt to construct a datatype constructor
+of type \code{(DatatypeType sF dF)} based on the constructors of that
+datatype, starting with constructor 0.
+We pass two datatypes to this method,
+corresponding to the unfolded version of the unfolded version \code{(smt_dt_substitute sF dF dF)}
+along with the original datatype \code{dU}.
 
-Furthermore, when constructing a subfield value via \code{smt_datatype_cons_default}
-it is still important that we resolve dangling references to the datatype
-we are defining the default value for, since the type we have traversed into
-may contain recursive references to the top-level even though we do not construct values for them. 
-Resolving dangling reference is done via the recursive method
-\code{smt_value_dt_substitute}, which traverses a datatype value and replaces
-dangling references to the current datatype.
-We demonstrate this via an example. Consider the SMT-LIB datatype:
-\begin{examplecode}
-(declare-datatypes ((A 0) (B 0))
-  (((mkA (b B)))) 
-   ((mkB (a A)) (leaf)))
-\end{examplecode}
-which has the following representation \code{DA}:
-\begin{examplecode}
-DA := (sum (cons (Datatype "B" DB) unit) nil)
-DB := (sum (cons (TypeRef "A") unit) (sum unit nil))
-\end{examplecode}
-When constructing a default value of type \code{(Datatype "A" DA)},
-we call the method \code{(smt_datatype_default "A" DA)},
-which in turn calls \code{(smt_datatype_cons_default "A" DA)}
-on a constructor value and first constructor of \code{DA}.
-This in turn invokes \code{(smt_type_default (Datatype "B" DB))},
-which calls \code{(smt_datatype_cons_default "B" DB)},
-which in turn calls \code{(smt_type_default  (TypeRef "A"))},
-which fails.
-We proceed with the second constructor of \code{DB},
-which succeeds.
-Note that we have not unfolded the datatype \code{DA},
-hence we return the constructor value
-\code{(SmtValue.DtCons "B" DB 1)}
-where note that \code{DB} contains a dangling reference \code{(TypeRef "A")}.
-When this is returned to \code{(smt_datatype_cons_default "A" DA)},
-we apply the unfolding to replace the dangling references via the call
-\code{(smt_value_dt_substitute "A" DA (SmtValue.DtCons "B" DB 1))}.
-This used as an argument to the first constructor of \code{DA},
-giving us the value:
-\begin{examplecode}
-(SmtValue.Apply (SmtValue.DtCons "A" DA 0) (SmtValue.DtCons "B" DB2 0))
-\end{examplecode}
-where \code{DB2} is:
-\begin{examplecode}
-DB2 := (sum (cons (sum (cons (Datatype "B" DB) unit) nil) unit) (sum unit nil))
-\end{examplecode}
-(FIXME)
-
+Within \code{smt_datatype_default},
+we attempt to construct a value that is an application of the current
+constructor we are looking at, i.e. index \code{n}.
+We call \code{(smt_datatype_cons_default v cF cU)}
+where \code{v} is equal to the value corresponding to that constructor.
+This method will either successfully return a value that is an application
+of that constructor value by applying it to the default values of its field types,
+or otherwise return an error \code{NotValue} if one of its types is not supported
+or corresponds to a recursive reference to a datatype.
+If the former, we return the value, otherwise we proceed to the next constructor.
+Note that this implies that our default values will use the first viable constructor
+in the list that does not contain a recursive reference.
 
 The other definitions of default values are trivial.
 Maps and sets use a default (constant) map, where maps store the default
@@ -1337,6 +1316,23 @@ with user symbols.\footnote{
 SMT-LIB uses a convention that user symbols cannot be prefixed by "@".}
 Uninterpreted sort values use a default natural number identifier,
 i.e. the first value of the uninterpreted sort's domain.
+
+In the figure, we also give a definition of inhabitedness for types
+via the method \code{inhabited_type}.
+We define type inhabitedness operationally.
+In particular, a type is considered inhabited if it is not \code{None},
+and the method \code{smt_type_default}
+succeeds in generating a value of that type,
+where recall that the type of values can be computed by the method \code{smt_typeof_value}.
+Note that any datatype that is not well-founded (i.e. does not have finite values)
+will be such that \code{smt_type_default} fails to return a value of that sort.
+It is important to note that the definition of \code{inhabited_type}
+could alternatively have been defined by a native Lean binder,
+i.e. a type is inhabited iff there exists a value having that type.
+However, this definition does not quite coincide with our desired notion,
+as it admits other types (e.g. datatypes with nested recursion) to be
+considered inhabited. Instead, \code{smt_type_default} operationally
+defines what we consider to be an inhabited type.
 
 \begin{figure}
 \begin{lstlisting}
@@ -1464,10 +1460,6 @@ and confirm that all values they are built from are also canonical.
 \begin{lstlisting}
 abbrev RefList := List String
 
-def inhabited_type (T : SmtType) : Bool :=
-  (Teq (smt_typeof_value (smt_type_default T)) T) &&
-  (smt_value_canonical (smt_type_default T))
-
 def smt_dt_cons_wf_rec : SmtDatatypeCons -> RefList -> Bool
   | (SmtDatatypeCons.cons (SmtType.TypeRef s) c), refs =>
       (s ∈ refs) && (smt_dt_cons_wf_rec c refs)
@@ -1503,33 +1495,15 @@ def smt_type_wf : SmtType -> Bool
   | (SmtType.FunType T U) => (smt_type_wf_component T) && (smt_type_wf U)
   | T => (smt_type_wf_component T)
 \end{lstlisting}
-\caption{Inhabitation, and type well-formedness.}
+\caption{Type well-formedness.}
 \label{fig:type-wf}
 \end{figure}
 
 Figure~\ref{fig:type-wf}
-provides two key definitions which we will use when defining the properties
+provides a central definition which we will use when defining the properties
 of SMT-LIB models we wish to consider.
 
-First, \code{inhabited_type} is a predicate that is true iff
-an SMT-LIB type is inhabited.
-We define type inhabitedness operationally.
-In particular, a type is considered inhabited if the method \code{smt_type_default}
-(from Figure~\ref{fig:default-value})succeeds in generating a value of that type,
-where recall that the type of values can be computed by the method \code{smt_typeof_value}.
-We additionally require that the default value of the type is canonical.
-TODO: this can likely be proven, not assumed.
-Note that any datatype that is not well-founded (i.e. does not have finite values)
-will be such that \code{smt_type_default} fails to return a value of that sort.
-It is important to note that the definition of \code{inhabited_type}
-could alternatively have been defined by a native Lean binder,
-i.e. a type is inhabited iff there exists a value having that type.
-However, this definition does not quite coincide with our desired notion,
-as it admits other types (e.g. datatypes with nested recursion) to be
-considered inhabited. Instead, \code{smt_type_default} operationally
-defines what we consider to be an inhabited type.
-
-The second key method defined in Figure~\ref{fig:type-wf}
+The key method defined in Figure~\ref{fig:type-wf}
 is \smttypewf.
 This predicate will define exactly the set of types that are relevant
 to in our SMT-LIB representation.
@@ -1648,6 +1622,15 @@ def smt_typeof : SmtTerm -> SmtType
 
 \begin{figure}[p]
 \begin{lstlisting}
+def model_const_lookup (M : SmtModel) (s : native_String) (T : SmtType) : SmtValue :=
+  M.values { isVar := false, name := s, ty := T }
+
+def model_fun_lookup (M : SmtModel) (fid : native_String) (T U : SmtType) : SmtValue -> SmtValue :=
+  M.nativeFuns { isVar := false, name := fid, ty := (SmtType.FunType T U) }
+
+def native_eval_ifun_apply (M : SmtModel) (fid : native_String) (T U : SmtType) (i : SmtValue) : SmtValue :=
+  if fid = "@default" then (smt_type_default U) else (model_fun_lookup M fid T U i)
+
 def native_fun_typed (M : SmtModel) : Prop :=
   ∀ fid A B i,
     smt_type_wf (SmtType.FunType A B) = true ->
