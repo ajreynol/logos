@@ -1602,21 +1602,43 @@ def model_wf (M : SmtModel) : Prop :=
   (∀ isVar s T, smt_type_wf T = true ->
     smt_typeof_value (model_lookup M isVar s T) = T ∧
     smt_value_canonical (model_lookup M isVar s T) = true) ∧
-  ∀ fid A B i,
+  (∀ fid A B i,
     smt_type_wf (SmtType.FunType A B) = true ->
     smt_typeof_value i = A ->
-    smt_typeof_value (native_eval_ifun_apply M fid A B i) = B ∧
-      smt_value_canonical (native_eval_ifun_apply M fid A B i) = true
+    smt_typeof_value (model_fun_lookup M fid A B i) = B ∧
+      smt_value_canonical (model_fun_lookup M fid A B i) = true)
 \end{lstlisting}
 \caption{Total typed model conditions.}
 \label{fig:model-typed}
 \end{figure}
 
+We now have the required definitions to define well-formed models,
+as given in Figure~\ref{ref:model-typed}.
+In particular, we define \code{model_wf}
+to be a property of models that holds when its value and function fields
+are well-formed.
+
+In detail, the first clause says that for all keys
+(which consistute of a flag \code{isVar} denoting whether we are looking up a variable, a string identifier \code{s}, and a type \code{T}),
+if \code{T} is a well-formed type (based on the definition from Figure~\ref{fig:type-wf}),
+then the map \code{M.values} stores a value \code{v} that has the given type (i.e. \code{T}),
+and moreover that value is \emph{canonical}.
+It will be the case that our model evaluator only returns canonical values,
+the latter requirement can be seen as a base case on the leafs when interpretting a term (i.e. its variables and free constants).
+
+The second clause says that for all keys,
+the \code{M.nativeFuns} has similar requirements,
+but where now the functions stored in the domain behave like propertly typed functions of the given type.
+In particular, for functions stored in the domain of \code{M.nativeFuns} for keys having type \code{(SmtType.FunType A B)},
+for all inputs \code{i} whose type is \code{A},
+the function at that lookup (\code{model_fun_lookup M fid A B})
+when applied to \code{i} results in a value of type \code{B}, and moreover the returned value is canonical.
+
+Notice that for both clauses, we insist that the respective components of \code{M} are total mappings.
 
 \subsection{Types of SMT-LIB Terms}
 
-
-\begin{figure}[p]
+\begin{figure}
 \begin{lstlisting}
 def smt_typeof_eq (T : SmtType) (U : SmtType) : SmtType :=
   (smt_typeof_guard T (if (native_Teq T U) then SmtType.Bool else SmtType.None))
