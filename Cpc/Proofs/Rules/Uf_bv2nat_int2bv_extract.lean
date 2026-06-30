@@ -8,8 +8,9 @@ set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
 /-
-BLOCKED (framework gap, not a proof-difficulty gap) — same root cause as
-`Uf_bv2nat_int2bv_extend`.
+BLOCKED (framework gap, not a proof-difficulty gap). The sibling
+`Uf_bv2nat_int2bv_extend` is now provable after `_at_bv` was tightened, but
+this extract rule still has a separate EO/SMT typing mismatch.
 
 This rule's conclusion is
   eq (int_to_bv w (ubv_to_int t)) (extract wm 0 t)
