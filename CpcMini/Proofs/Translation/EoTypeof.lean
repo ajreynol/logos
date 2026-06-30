@@ -1,4 +1,5 @@
 import CpcMini.Proofs.Translation.Datatypes
+import CpcMini.Proofs.SmtWfCompat
 
 open Eo
 open SmtEval
@@ -1621,13 +1622,17 @@ theorem eo_type_valid_of_smt_wf_rec
           · have hReservedFalse : native_reserved_datatype_name s = false := by
               cases hName : native_reserved_datatype_name s <;> simp [hName] at hReserved ⊢
             have hDt :
-                __smtx_dt_wf_rec (__eo_to_smt_datatype d) (s :: refs) = true := by
-              have hParts :
-                  native_reflist_contains refs s = false ∧
-                    __smtx_dt_wf_rec (__eo_to_smt_datatype d)
-                        (native_reflist_insert refs s) = true := by
+                dtAllWf (__eo_to_smt_datatype d) (s :: refs) = true := by
+              have hRaw :
+                  __smtx_type_wf_rec
+                      (SmtType.Datatype s (__eo_to_smt_datatype d)) refs = true := by
                 simpa [__eo_to_smt_type, __smtx_type_wf_rec, hReservedFalse,
                   native_ite] using h
+              have hParts :
+                  native_reflist_contains refs s = false ∧
+                    dtAllWf (__eo_to_smt_datatype d)
+                        (native_reflist_insert refs s) = true :=
+                dtAllWf_of_type_wf_rec_datatype s (__eo_to_smt_datatype d) refs hRaw
               simpa [native_reflist_insert] using hParts.2
             exact ⟨hReservedFalse, eo_datatype_valid_of_smt_wf_rec (s :: refs) hDt⟩
       | DatatypeTypeRef s =>
@@ -1732,7 +1737,7 @@ theorem eo_datatype_cons_valid_of_smt_wf_rec
 theorem eo_datatype_valid_of_smt_wf_rec
     (refs : List native_String) :
     ∀ {d : Datatype},
-      __smtx_dt_wf_rec (__eo_to_smt_datatype d) refs = true ->
+      dtAllWf (__eo_to_smt_datatype d) refs = true ->
       eo_datatype_valid_rec refs d
   | Datatype.null, _ => by
       simp [eo_datatype_valid_rec]
@@ -1740,15 +1745,15 @@ theorem eo_datatype_valid_of_smt_wf_rec
       cases d with
       | null =>
           have hC : __smtx_dt_cons_wf_rec (__eo_to_smt_datatype_cons c) refs = true := by
-            simpa [__eo_to_smt_datatype, __smtx_dt_wf_rec] using h
+            simpa [__eo_to_smt_datatype, dtAllWf] using h
           exact ⟨eo_datatype_cons_valid_of_smt_wf_rec refs hC, by
             simp [eo_datatype_valid_rec]⟩
       | sum cTail dTail =>
           have h' :
               native_ite (__smtx_dt_cons_wf_rec (__eo_to_smt_datatype_cons c) refs)
-                (__smtx_dt_wf_rec
+                (dtAllWf
                   (__eo_to_smt_datatype (Datatype.sum cTail dTail)) refs) false = true := by
-            simpa [__eo_to_smt_datatype, __smtx_dt_wf_rec] using h
+            simpa [__eo_to_smt_datatype, dtAllWf] using h
           rcases native_ite_false_eq_true h' with ⟨hC, hD⟩
           exact ⟨eo_datatype_cons_valid_of_smt_wf_rec refs hC,
             eo_datatype_valid_of_smt_wf_rec refs hD⟩

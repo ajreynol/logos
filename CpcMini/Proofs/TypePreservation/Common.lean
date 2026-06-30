@@ -1,6 +1,7 @@
 import CpcMini.Proofs.TypePreservation.Predicates
 import CpcMini.Proofs.TypePreservation.CanonicalAssumptions
 import CpcMini.Proofs.Canonical.TypeDefaultBasic
+import CpcMini.Proofs.SmtWfCompat
 
 open SmtEval
 open Smtm
@@ -403,24 +404,24 @@ private theorem dt_cons_wf_rec_tail_of_true
 
 private theorem dt_wf_cons_of_wf
     {c : SmtDatatypeCons} {d : SmtDatatype} {refs : RefList}
-    (h : __smtx_dt_wf_rec (SmtDatatype.sum c d) refs = true) :
+    (h : dtAllWf (SmtDatatype.sum c d) refs = true) :
     __smtx_dt_cons_wf_rec c refs = true := by
   cases d with
   | null =>
-      simpa [__smtx_dt_wf_rec] using h
+      simpa [dtAllWf] using h
   | sum cTail dTail =>
       cases hc : __smtx_dt_cons_wf_rec c refs <;>
-        simp [__smtx_dt_wf_rec, native_ite, hc] at h ⊢
+        simp [dtAllWf, native_ite, hc] at h ⊢
 
 private theorem dt_wf_tail_of_nonempty_tail_wf
     {c cTail : SmtDatatypeCons}
     {dTail : SmtDatatype}
     {refs : RefList}
-    (h : __smtx_dt_wf_rec (SmtDatatype.sum c (SmtDatatype.sum cTail dTail)) refs = true) :
-    __smtx_dt_wf_rec (SmtDatatype.sum cTail dTail) refs = true := by
+    (h : dtAllWf (SmtDatatype.sum c (SmtDatatype.sum cTail dTail)) refs = true) :
+    dtAllWf (SmtDatatype.sum cTail dTail) refs = true := by
   have hc : __smtx_dt_cons_wf_rec c refs = true :=
     dt_wf_cons_of_wf h
-  simpa [__smtx_dt_wf_rec, native_ite, hc] using h
+  simpa [dtAllWf, native_ite, hc] using h
 
 private theorem datatype_type_default_typed_canonical_of_wf_rec
     (s : native_String)
