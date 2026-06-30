@@ -1700,7 +1700,9 @@ def __smtx_typeof_concat : SmtType -> SmtType -> SmtType
 
 
 def __smtx_typeof_extract : SmtTerm -> SmtTerm -> SmtType -> SmtType
-  | (SmtTerm.Numeral x1), (SmtTerm.Numeral x2), (SmtType.BitVec x3) => (native_ite (native_zleq 0 x2) (native_ite (native_zleq x2 x1) (native_ite (native_zlt x1 (native_nat_to_int x3)) (SmtType.BitVec (native_int_to_nat (native_zplus (native_zplus x1 (native_zneg x2)) 1))) SmtType.None) SmtType.None) SmtType.None)
+  | (SmtTerm.Numeral x1), (SmtTerm.Numeral x2), (SmtType.BitVec x3) => 
+    let _v0 := (native_zplus (native_zplus x1 1) (native_zneg x2))
+    (native_ite (native_zleq 0 x2) (native_ite (native_zlt x1 (native_nat_to_int x3)) (native_ite (native_zleq 0 _v0) (SmtType.BitVec (native_int_to_nat _v0)) SmtType.None) SmtType.None) SmtType.None)
   | x4, x5, x6 => SmtType.None
 
 

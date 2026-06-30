@@ -11873,14 +11873,23 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_extract
     unfold term_has_non_none_type
     rw [← hTranslate]
     exact hNonNone
-  rcases extract_args_of_non_none hApplyNN with ⟨i, j, w, hZ, hY, hX, hj0, hji, hiw⟩
+  rcases extract_args_of_non_none hApplyNN with ⟨i, j, w, hZ, hY, hX, hj0, hWidth, hiw⟩
+  have hWidthEq :
+      native_zplus (native_zplus i 1) (native_zneg j) =
+        native_zplus (native_zplus i (native_zneg j)) 1 := by
+    simp [SmtEval.native_zplus, SmtEval.native_zneg, Int.add_assoc, Int.add_comm,
+      Int.add_left_comm]
+  have hWidthOld :
+      native_zleq 0 (native_zplus (native_zplus i (native_zneg j)) 1) = true := by
+    rw [← hWidthEq]
+    exact hWidth
   have hSmt :
       __smtx_typeof
           (__eo_to_smt (Term.Apply (Term.UOp2 UserOp2.extract z y) x)) =
         SmtType.BitVec
           (native_int_to_nat (native_zplus (native_zplus i (native_zneg j)) 1)) := by
     rw [hTranslate, typeof_extract_eq, hZ, hY, hX]
-    simp [__smtx_typeof_extract, native_ite, hj0, hji, hiw]
+    simp [__smtx_typeof_extract, native_ite, hj0, hiw, hWidthOld, hWidthEq]
   have hEo :
       __eo_to_smt_type
           (__eo_typeof (Term.Apply (Term.UOp2 UserOp2.extract z y) x)) =
@@ -11905,7 +11914,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_extract
       native_zlt_neg_one_of_zleq_zero (n := j) hj0
     have hWidthNonneg :
         native_zleq 0 (native_zplus (native_zplus i (native_zneg j)) 1) = true :=
-      native_zleq_zero_extract_width i j hji
+      hWidthOld
     have hWidthGtNegOne :
         native_zlt (-1 : native_Int) (native_zplus (native_zplus i (native_zneg j)) 1) = true :=
       native_zlt_neg_one_of_zleq_zero hWidthNonneg
