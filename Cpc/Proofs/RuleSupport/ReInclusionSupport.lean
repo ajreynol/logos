@@ -3288,33 +3288,28 @@ private theorem smt_typeof_re_inter_of_reglan_local
 
 theorem re_flatten_false_eval_rel
     (M : SmtModel) (hM : model_total_typed M) :
-    ∀ (rev mode r : Term) (rv : native_RegLan),
-      rev = Term.Boolean false ->
+    ∀ (mode r : Term) (rv : native_RegLan),
       __smtx_typeof (__eo_to_smt r) = SmtType.RegLan ->
       __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv ->
-      __re_flatten rev mode r ≠ Term.Stuck ->
+      __re_flatten mode r ≠ Term.Stuck ->
       ∃ flatRv,
         __smtx_model_eval M
-            (__eo_to_smt (__re_flatten rev mode r)) =
+            (__eo_to_smt (__re_flatten mode r)) =
           SmtValue.RegLan flatRv ∧
         __smtx_typeof
-            (__eo_to_smt (__re_flatten rev mode r)) =
+            (__eo_to_smt (__re_flatten mode r)) =
           SmtType.RegLan ∧
         RuleProofs.smt_value_rel (SmtValue.RegLan flatRv)
           (SmtValue.RegLan rv) := by
-  intro rev mode r
-  induction rev, mode, r using __re_flatten.induct with
-  | case1 x x_1 =>
-      intro rv hRev _hTy _hEval _hFlatNe
-      cases hRev
-  | case2 x x_1 hRevNe =>
-      intro rv _hRev hTy _hEval _hFlatNe
+  intro mode r
+  induction mode, r using __re_flatten.induct with
+  | case1 x =>
+      intro rv hTy _hEval _hFlatNe
       change __smtx_typeof SmtTerm.None = SmtType.RegLan at hTy
       rw [TranslationProofs.smtx_typeof_none] at hTy
       cases hTy
-  | case3 rev hRevNe =>
-      intro rv hRev _hTy hEval _hFlatNe
-      subst rev
+  | case2 =>
+      intro rv _hTy hEval _hFlatNe
       have hEmptyEval := smtx_model_eval_re_empty_string M
       rw [hEmptyEval] at hEval
       cases hEval
@@ -3322,11 +3317,10 @@ theorem re_flatten_false_eval_rel
       · simpa [__re_flatten] using hEmptyEval
       · simpa [__re_flatten] using smtx_typeof_re_empty_string
       · exact RuleProofs.smt_value_rel_refl _
-  | case4 rev s b hRevNe ih =>
-      intro rv hRev hTy hEval hFlatNe
-      subst rev
+  | case3 s b ih =>
+      intro rv hTy hEval hFlatNe
       let parts := __str_flatten (__str_nary_intro s)
-      let flatB := __re_flatten (Term.Boolean false) (Term.Boolean true) b
+      let flatB := __re_flatten (Term.Boolean true) b
       have hArgs :=
         re_concat_arg_types_of_reglan
           (Term.Apply (Term.UOp UserOp.str_to_re) s) b hTy
@@ -3375,7 +3369,7 @@ theorem re_flatten_false_eval_rel
       rcases str_flatten_nary_intro_eval_rel M hM s ss hSTy hSEval
           (by simpa [parts] using hPartsNe) with
         ⟨flatSs, hPartsEval, hPartsTy, hPartsList, hPartsRel⟩
-      rcases ih rb rfl hArgs.2 hBEval
+      rcases ih rb hArgs.2 hBEval
           (by simpa [flatB] using hFlatBNe) with
         ⟨flatRb, hFlatBEval, hFlatBTy, hFlatBRel⟩
       rcases re_split_str_to_re_eval_rel M hM parts flatB flatSs flatRb
@@ -3403,11 +3397,10 @@ theorem re_flatten_false_eval_rel
       · simpa [__re_flatten, parts, flatB] using hSplitTy
       · exact RuleProofs.smt_value_rel_trans _ _ _
           hSplitRel hConcatRel
-  | case5 rev a b hRevNe hNotStr ihA ihB =>
-      intro rv hRev hTy hEval hFlatNe
-      subst rev
-      let flatA := __re_flatten (Term.Boolean false) (Term.Boolean false) a
-      let flatB := __re_flatten (Term.Boolean false) (Term.Boolean true) b
+  | case4 a b hNotStr ihA ihB =>
+      intro rv hTy hEval hFlatNe
+      let flatA := __re_flatten (Term.Boolean false) a
+      let flatB := __re_flatten (Term.Boolean true) b
       have hArgs := re_concat_arg_types_of_reglan a b hTy
       rcases smt_model_eval_reglan_of_type M hM a hArgs.1 with
         ⟨ra, hAEval⟩
@@ -3434,10 +3427,10 @@ theorem re_flatten_false_eval_rel
         eo_mk_apply_arg_ne_stuck_of_ne_stuck _ _ hInnerNe
       have hFlatBNe : flatB ≠ Term.Stuck :=
         eo_mk_apply_arg_ne_stuck_of_ne_stuck _ _ hOutNe
-      rcases ihA ra rfl hArgs.1 hAEval
+      rcases ihA ra hArgs.1 hAEval
           (by simpa [flatA] using hFlatANe) with
         ⟨flatRa, hFlatAEval, hFlatATy, hFlatARel⟩
-      rcases ihB rb rfl hArgs.2 hBEval
+      rcases ihB rb hArgs.2 hBEval
           (by simpa [flatB] using hFlatBNe) with
         ⟨flatRb, hFlatBEval, hFlatBTy, hFlatBRel⟩
       have hInnerEq :
@@ -3479,9 +3472,8 @@ theorem re_flatten_false_eval_rel
       · simpa [__re_flatten, flatA, flatB, hOutEq, hInnerEq] using
           hFullTy
       · exact smt_value_rel_re_concat_local hFlatARel hFlatBRel
-  | case6 rev s hRevNe hNotEmpty =>
-      intro rv hRev hTy hEval hFlatNe
-      subst rev
+  | case5 s hNotEmpty =>
+      intro rv hTy hEval hFlatNe
       let parts := __str_flatten (__str_nary_intro s)
       let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
       have hSTy : __smtx_typeof (__eo_to_smt s) =
@@ -3542,10 +3534,9 @@ theorem re_flatten_false_eval_rel
       · exact RuleProofs.smt_value_rel_trans _ _ _
           hSplitRel
           (RuleProofs.smt_value_rel_trans _ _ _ hEmptyRight hHeadRel)
-  | case7 rev c hRevNe hCNe hEmpty hConcatStr hConcat hStr ih =>
-      intro rv hRev hTy hEval hFlatNe
-      subst rev
-      let flatC := __re_flatten (Term.Boolean false) (Term.Boolean false) c
+  | case6 c hCNe hEmpty hConcatStr hConcat hStr ih =>
+      intro rv hTy hEval hFlatNe
+      let flatC := __re_flatten (Term.Boolean false) c
       let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
       have hOutNe :
           __eo_mk_apply
@@ -3557,7 +3548,7 @@ theorem re_flatten_false_eval_rel
         eo_mk_apply_fun_ne_stuck_of_ne_stuck _ _ hOutNe
       have hFlatCNe : flatC ≠ Term.Stuck :=
         eo_mk_apply_arg_ne_stuck_of_ne_stuck _ _ hInnerNe
-      rcases ih rv rfl hTy hEval (by simpa [flatC] using hFlatCNe) with
+      rcases ih rv hTy hEval (by simpa [flatC] using hFlatCNe) with
         ⟨flatRv, hFlatEval, hFlatTy, hFlatRel⟩
       have hInnerEq :
           __eo_mk_apply (Term.UOp UserOp.re_concat) flatC =
@@ -3610,24 +3601,21 @@ theorem re_flatten_false_eval_rel
           hFullTy
       · exact RuleProofs.smt_value_rel_trans _ _ _
           hConcatRel hRightEmpty
-  | case8 rev hRevNe =>
-      intro rv hRev hTy hEval _hFlatNe
-      subst rev
+  | case7 =>
+      intro rv hTy hEval _hFlatNe
       refine ⟨rv, ?_, ?_, ?_⟩
       · simpa [__re_flatten] using hEval
       · simpa [__re_flatten] using hTy
       · exact RuleProofs.smt_value_rel_refl _
-  | case9 rev hRevNe =>
-      intro rv hRev hTy hEval _hFlatNe
-      subst rev
+  | case8 =>
+      intro rv hTy hEval _hFlatNe
       refine ⟨rv, ?_, ?_, ?_⟩
       · simpa [__re_flatten] using hEval
       · simpa [__re_flatten] using hTy
       · exact RuleProofs.smt_value_rel_refl _
-  | case10 rev body hRevNe ih =>
-      intro rv hRev hTy hEval hFlatNe
-      subst rev
-      let flatBody := __re_flatten (Term.Boolean false) (Term.Boolean true) body
+  | case9 body ih =>
+      intro rv hTy hEval hFlatNe
+      let flatBody := __re_flatten (Term.Boolean true) body
       have hBodyTy := re_mult_arg_type_of_reglan body hTy
       rcases smt_model_eval_reglan_of_type M hM body hBodyTy with
         ⟨rBody, hBodyEval⟩
@@ -3639,31 +3627,19 @@ theorem re_flatten_false_eval_rel
       rw [hOrigEval] at hEval
       cases hEval
       have hOutNe :
-          __eo_mk_apply (Term.UOp UserOp.re_mult)
-              (__eo_ite (Term.Boolean false)
-                (__eo_list_rev (Term.UOp UserOp.re_concat) flatBody)
-                flatBody) ≠ Term.Stuck := by
+          __eo_mk_apply (Term.UOp UserOp.re_mult) flatBody ≠
+            Term.Stuck := by
         simpa [__re_flatten, flatBody] using hFlatNe
-      have hIteNe :
-          __eo_ite (Term.Boolean false)
-              (__eo_list_rev (Term.UOp UserOp.re_concat) flatBody)
-              flatBody ≠ Term.Stuck :=
+      have hFlatBodyNe : flatBody ≠ Term.Stuck :=
         eo_mk_apply_arg_ne_stuck_of_ne_stuck _ _ hOutNe
-      have hFlatBodyNe : flatBody ≠ Term.Stuck := by
-        simpa [eo_ite_false, flatBody] using hIteNe
-      rcases ih rBody rfl hBodyTy hBodyEval
+      rcases ih rBody hBodyTy hBodyEval
           (by simpa [flatBody] using hFlatBodyNe) with
         ⟨flatRBody, hFlatBodyEval, hFlatBodyTy, hFlatBodyRel⟩
       have hOutEq :
-          __eo_mk_apply (Term.UOp UserOp.re_mult)
-              (__eo_ite (Term.Boolean false)
-                (__eo_list_rev (Term.UOp UserOp.re_concat) flatBody)
-                flatBody) =
-            Term.Apply (Term.UOp UserOp.re_mult) flatBody := by
-        rw [eo_ite_false]
-        exact eo_mk_apply_eq_apply_of_ne_stuck
-          (Term.UOp UserOp.re_mult) flatBody (by
-            simpa [eo_ite_false, flatBody] using hOutNe)
+          __eo_mk_apply (Term.UOp UserOp.re_mult) flatBody =
+            Term.Apply (Term.UOp UserOp.re_mult) flatBody :=
+        eo_mk_apply_eq_apply_of_ne_stuck
+          (Term.UOp UserOp.re_mult) flatBody hOutNe
       have hFullEval :
           __smtx_model_eval M
               (__eo_to_smt (Term.Apply (Term.UOp UserOp.re_mult) flatBody)) =
@@ -3679,11 +3655,10 @@ theorem re_flatten_false_eval_rel
       · simpa [__re_flatten, flatBody, hOutEq] using hFullEval
       · simpa [__re_flatten, flatBody, hOutEq] using hFullTy
       · exact smt_value_rel_re_mult_local hFlatBodyRel
-  | case11 rev c1 c2 hRevNe ih1 ih2 =>
-      intro rv hRev hTy hEval hFlatNe
-      subst rev
-      let flatC1 := __re_flatten (Term.Boolean false) (Term.Boolean true) c1
-      let flatC2 := __re_flatten (Term.Boolean false) (Term.Boolean false) c2
+  | case10 c1 c2 ih1 ih2 =>
+      intro rv hTy hEval hFlatNe
+      let flatC1 := __re_flatten (Term.Boolean true) c1
+      let flatC2 := __re_flatten (Term.Boolean false) c2
       have hArgs := re_inter_arg_types_of_reglan c1 c2 hTy
       rcases smt_model_eval_reglan_of_type M hM c1 hArgs.1 with
         ⟨r1, hC1Eval⟩
@@ -3700,43 +3675,29 @@ theorem re_flatten_false_eval_rel
       cases hEval
       have hOutNe :
           __eo_mk_apply
-              (__eo_mk_apply (Term.UOp UserOp.re_inter)
-                (__eo_ite (Term.Boolean false)
-                  (__eo_list_rev (Term.UOp UserOp.re_concat) flatC1)
-                  flatC1)) flatC2 ≠
+              (__eo_mk_apply (Term.UOp UserOp.re_inter) flatC1)
+              flatC2 ≠
             Term.Stuck := by
         simpa [__re_flatten, flatC1, flatC2] using hFlatNe
       have hInnerNe :
-          __eo_mk_apply (Term.UOp UserOp.re_inter)
-              (__eo_ite (Term.Boolean false)
-                (__eo_list_rev (Term.UOp UserOp.re_concat) flatC1)
-                flatC1) ≠ Term.Stuck :=
-        eo_mk_apply_fun_ne_stuck_of_ne_stuck _ _ hOutNe
-      have hIteNe :
-          __eo_ite (Term.Boolean false)
-              (__eo_list_rev (Term.UOp UserOp.re_concat) flatC1) flatC1 ≠
+          __eo_mk_apply (Term.UOp UserOp.re_inter) flatC1 ≠
             Term.Stuck :=
+        eo_mk_apply_fun_ne_stuck_of_ne_stuck _ _ hOutNe
+      have hFlatC1Ne : flatC1 ≠ Term.Stuck :=
         eo_mk_apply_arg_ne_stuck_of_ne_stuck _ _ hInnerNe
-      have hFlatC1Ne : flatC1 ≠ Term.Stuck := by
-        simpa [eo_ite_false, flatC1] using hIteNe
       have hFlatC2Ne : flatC2 ≠ Term.Stuck :=
         eo_mk_apply_arg_ne_stuck_of_ne_stuck _ _ hOutNe
-      rcases ih1 r1 rfl hArgs.1 hC1Eval
+      rcases ih1 r1 hArgs.1 hC1Eval
           (by simpa [flatC1] using hFlatC1Ne) with
         ⟨flatR1, hFlatC1Eval, hFlatC1Ty, hFlatC1Rel⟩
-      rcases ih2 r2 rfl hArgs.2 hC2Eval
+      rcases ih2 r2 hArgs.2 hC2Eval
           (by simpa [flatC2] using hFlatC2Ne) with
         ⟨flatR2, hFlatC2Eval, hFlatC2Ty, hFlatC2Rel⟩
       have hInnerEq :
-          __eo_mk_apply (Term.UOp UserOp.re_inter)
-              (__eo_ite (Term.Boolean false)
-                (__eo_list_rev (Term.UOp UserOp.re_concat) flatC1)
-                flatC1) =
-            Term.Apply (Term.UOp UserOp.re_inter) flatC1 := by
-        rw [eo_ite_false]
-        exact eo_mk_apply_eq_apply_of_ne_stuck
-          (Term.UOp UserOp.re_inter) flatC1 (by
-            simpa [eo_ite_false, flatC1] using hInnerNe)
+          __eo_mk_apply (Term.UOp UserOp.re_inter) flatC1 =
+            Term.Apply (Term.UOp UserOp.re_inter) flatC1 :=
+        eo_mk_apply_eq_apply_of_ne_stuck
+          (Term.UOp UserOp.re_inter) flatC1 hInnerNe
       have hOutNe' :
           __eo_mk_apply
               (Term.Apply (Term.UOp UserOp.re_inter) flatC1) flatC2 ≠
@@ -3771,11 +3732,10 @@ theorem re_flatten_false_eval_rel
       · simpa [__re_flatten, flatC1, flatC2, hOutEq, hInnerEq] using
           hFullTy
       · exact smt_value_rel_re_inter_local hFlatC1Rel hFlatC2Rel
-  | case12 rev c1 c2 hRevNe ih1 ih2 =>
-      intro rv hRev hTy hEval hFlatNe
-      subst rev
-      let flatC1 := __re_flatten (Term.Boolean false) (Term.Boolean true) c1
-      let flatC2 := __re_flatten (Term.Boolean false) (Term.Boolean false) c2
+  | case11 c1 c2 ih1 ih2 =>
+      intro rv hTy hEval hFlatNe
+      let flatC1 := __re_flatten (Term.Boolean true) c1
+      let flatC2 := __re_flatten (Term.Boolean false) c2
       have hArgs := re_union_arg_types_of_reglan c1 c2 hTy
       rcases smt_model_eval_reglan_of_type M hM c1 hArgs.1 with
         ⟨r1, hC1Eval⟩
@@ -3792,43 +3752,29 @@ theorem re_flatten_false_eval_rel
       cases hEval
       have hOutNe :
           __eo_mk_apply
-              (__eo_mk_apply (Term.UOp UserOp.re_union)
-                (__eo_ite (Term.Boolean false)
-                  (__eo_list_rev (Term.UOp UserOp.re_concat) flatC1)
-                  flatC1)) flatC2 ≠
+              (__eo_mk_apply (Term.UOp UserOp.re_union) flatC1)
+              flatC2 ≠
             Term.Stuck := by
         simpa [__re_flatten, flatC1, flatC2] using hFlatNe
       have hInnerNe :
-          __eo_mk_apply (Term.UOp UserOp.re_union)
-              (__eo_ite (Term.Boolean false)
-                (__eo_list_rev (Term.UOp UserOp.re_concat) flatC1)
-                flatC1) ≠ Term.Stuck :=
-        eo_mk_apply_fun_ne_stuck_of_ne_stuck _ _ hOutNe
-      have hIteNe :
-          __eo_ite (Term.Boolean false)
-              (__eo_list_rev (Term.UOp UserOp.re_concat) flatC1) flatC1 ≠
+          __eo_mk_apply (Term.UOp UserOp.re_union) flatC1 ≠
             Term.Stuck :=
+        eo_mk_apply_fun_ne_stuck_of_ne_stuck _ _ hOutNe
+      have hFlatC1Ne : flatC1 ≠ Term.Stuck :=
         eo_mk_apply_arg_ne_stuck_of_ne_stuck _ _ hInnerNe
-      have hFlatC1Ne : flatC1 ≠ Term.Stuck := by
-        simpa [eo_ite_false, flatC1] using hIteNe
       have hFlatC2Ne : flatC2 ≠ Term.Stuck :=
         eo_mk_apply_arg_ne_stuck_of_ne_stuck _ _ hOutNe
-      rcases ih1 r1 rfl hArgs.1 hC1Eval
+      rcases ih1 r1 hArgs.1 hC1Eval
           (by simpa [flatC1] using hFlatC1Ne) with
         ⟨flatR1, hFlatC1Eval, hFlatC1Ty, hFlatC1Rel⟩
-      rcases ih2 r2 rfl hArgs.2 hC2Eval
+      rcases ih2 r2 hArgs.2 hC2Eval
           (by simpa [flatC2] using hFlatC2Ne) with
         ⟨flatR2, hFlatC2Eval, hFlatC2Ty, hFlatC2Rel⟩
       have hInnerEq :
-          __eo_mk_apply (Term.UOp UserOp.re_union)
-              (__eo_ite (Term.Boolean false)
-                (__eo_list_rev (Term.UOp UserOp.re_concat) flatC1)
-                flatC1) =
-            Term.Apply (Term.UOp UserOp.re_union) flatC1 := by
-        rw [eo_ite_false]
-        exact eo_mk_apply_eq_apply_of_ne_stuck
-          (Term.UOp UserOp.re_union) flatC1 (by
-            simpa [eo_ite_false, flatC1] using hInnerNe)
+          __eo_mk_apply (Term.UOp UserOp.re_union) flatC1 =
+            Term.Apply (Term.UOp UserOp.re_union) flatC1 :=
+        eo_mk_apply_eq_apply_of_ne_stuck
+          (Term.UOp UserOp.re_union) flatC1 hInnerNe
       have hOutNe' :
           __eo_mk_apply
               (Term.Apply (Term.UOp UserOp.re_union) flatC1) flatC2 ≠
@@ -3863,17 +3809,15 @@ theorem re_flatten_false_eval_rel
       · simpa [__re_flatten, flatC1, flatC2, hOutEq, hInnerEq] using
           hFullTy
       · exact smt_value_rel_re_union_local hFlatC1Rel hFlatC2Rel
-  | case13 rev c hRevNe hCNe hAll hNone hMult hInter hUnion =>
-      intro rv hRev hTy hEval _hFlatNe
-      subst rev
+  | case12 c hCNe hAll hNone hMult hInter hUnion =>
+      intro rv hTy hEval _hFlatNe
       refine ⟨rv, ?_, ?_, ?_⟩
       · simpa [__re_flatten] using hEval
       · simpa [__re_flatten] using hTy
       · exact RuleProofs.smt_value_rel_refl _
-  | case14 x x_1 x_2 hRevNe hTreeNe hEmpty hConcatStr hConcat
+  | case13 x x_1 hTreeNe hEmpty hConcatStr hConcat
       hStr hTrue hAll hNone hMult hInter hUnion hFalse =>
-      intro rv hRev _hTy _hEval hFlatNe
-      subst x
+      intro rv _hTy _hEval hFlatNe
       simp [__re_flatten] at hFlatNe
 
 theorem re_inclusion_side_native_includes
@@ -3885,9 +3829,9 @@ theorem re_inclusion_side_native_includes
     (hSupEval : __smtx_model_eval M (__eo_to_smt sup) = SmtValue.RegLan rvSup)
     (hSubEval : __smtx_model_eval M (__eo_to_smt sub) = SmtValue.RegLan rvSub)
     (hFlatSup :
-      flatSup = __re_flatten (Term.Boolean false) (Term.Boolean true) sup)
+      flatSup = __re_flatten (Term.Boolean true) sup)
     (hFlatSub :
-      flatSub = __re_flatten (Term.Boolean false) (Term.Boolean true) sub)
+      flatSub = __re_flatten (Term.Boolean true) sub)
     (hSide :
       side =
         __eo_ite (__eo_eq flatSup flatSub) (Term.Boolean true)
@@ -3897,8 +3841,8 @@ theorem re_inclusion_side_native_includes
   subst flatSup
   subst flatSub
   rw [hSide] at hSideTrue
-  let fs := __re_flatten (Term.Boolean false) (Term.Boolean true) sup
-  let ft := __re_flatten (Term.Boolean false) (Term.Boolean true) sub
+  let fs := __re_flatten (Term.Boolean true) sup
+  let ft := __re_flatten (Term.Boolean true) sub
   change
     __eo_ite (__eo_eq fs ft) (Term.Boolean true)
       (__str_re_includes_rec fs ft) =
@@ -3916,11 +3860,11 @@ theorem re_inclusion_side_native_includes
       rw [hStuck] at hBad
       simp [__eo_eq] at hBad
     rcases re_flatten_false_eval_rel M hM
-        (Term.Boolean false) (Term.Boolean true) sup rvSup rfl
+        (Term.Boolean true) sup rvSup
         hSupTy hSupEval (by simpa [fs] using hFsNe) with
       ⟨flatRvSup, hFlatSupEval, hFlatSupTy, hFlatSupRel⟩
     rcases re_flatten_false_eval_rel M hM
-        (Term.Boolean false) (Term.Boolean true) sub rvSub rfl
+        (Term.Boolean true) sub rvSub
         hSubTy hSubEval (by simpa [ft] using hFtNe) with
       ⟨flatRvSub, hFlatSubEval, hFlatSubTy, hFlatSubRel⟩
     have hTerm : fs = ft := (eq_of_eo_eq_true fs ft hEq).symm
@@ -3941,11 +3885,11 @@ theorem re_inclusion_side_native_includes
       rw [hStuck] at hBad
       simp [__str_re_includes_rec] at hBad
     rcases re_flatten_false_eval_rel M hM
-        (Term.Boolean false) (Term.Boolean true) sup rvSup rfl
+        (Term.Boolean true) sup rvSup
         hSupTy hSupEval (by simpa [fs] using hFsNe) with
       ⟨flatRvSup, hFlatSupEval, hFlatSupTy, hFlatSupRel⟩
     rcases re_flatten_false_eval_rel M hM
-        (Term.Boolean false) (Term.Boolean true) sub rvSub rfl
+        (Term.Boolean true) sub rvSub
         hSubTy hSubEval (by simpa [ft] using hFtNe) with
       ⟨flatRvSub, hFlatSubEval, hFlatSubTy, hFlatSubRel⟩
     have hFlatIncl : NativeIncludes flatRvSup flatRvSub :=
