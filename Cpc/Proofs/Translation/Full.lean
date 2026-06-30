@@ -3156,7 +3156,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                 simp [hSmt, __smtx_type_wf, __smtx_type_wf_rec, native_and,
                   native_inhabited_type, native_not, native_Teq,
                   __smtx_type_default, __smtx_type_default_rec, __smtx_typeof_value,
-                  __smtx_value_canonical_bool, native_zleq, native_zeq,
+                  native_zleq, native_zeq,
                   native_mod_total, native_int_pow2, native_zexp_total,
                   native_nat_to_int, native_int_to_nat, native_ite])
             case Map A B =>

@@ -427,7 +427,7 @@ theorem subst_noop_ty (sub : native_String) :
       have hR' : native_reflist_contains (native_reflist_insert rR s') sub = true := by
         simp [native_reflist_contains, native_reflist_insert, List.mem_cons, hsubR]
       have hstreq : native_streq sub s' = false := by simp [native_streq, fun h => hsubs' h]
-      simp only [__smtx_type_substitute, native_ite, hstreq, if_false]
+      simp only [__smtx_type_substitute, native_ite, hstreq]
       congr 1
       exact subst_noop_dt sub Y (__smtx_dt_lift s' Y X) (native_reflist_insert r0 s')
         (native_reflist_insert rR s') h0' hR' hY0 hYR
@@ -730,7 +730,7 @@ theorem lift_wf_pres_dtc (s : native_String) (D : SmtDatatype) :
             have hd2L' := wf_congr_dt (__smtx_dt_lift s D d2) hEquiv hd2L
             have htywf : __smtx_type_wf_rec (SmtType.Datatype s2 (__smtx_dt_lift s D d2))
                 (native_reflist_insert refs s) = true := by
-              simp only [__smtx_type_wf_rec, native_ite, hs2notins, if_false]
+              simp only [__smtx_type_wf_rec, native_ite, hs2notins]
               exact hd2L'
             simp only [__smtx_dt_cons_wf_rec, native_ite, htywf, if_true]
             exact hcL
@@ -1183,7 +1183,7 @@ theorem noDt_of_wf_dt (s : native_String) :
   | SmtDatatype.sum c SmtDatatype.null, refs, hwf, hmem => by
       simp only [__smtx_dt_wf_rec] at hwf
       simp only [noDtDt, native_and, Bool.and_eq_true]
-      exact ⟨noDt_of_wf_dtc s c refs hwf hmem, by simp [noDtDt]⟩
+      exact ⟨noDt_of_wf_dtc s c refs hwf hmem, by simp⟩
   | SmtDatatype.sum c (SmtDatatype.sum c2 d2), refs, hwf, hmem => by
       simp only [__smtx_dt_wf_rec, native_ite] at hwf
       have hc : __smtx_dt_cons_wf_rec c refs = true := by

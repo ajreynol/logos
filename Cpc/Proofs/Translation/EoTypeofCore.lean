@@ -434,7 +434,7 @@ private theorem eo_to_smt_type_unique_of_valid_rec_apply
                 __smtx_datatype_default,
                 __smtx_datatype_cons_default, __smtx_typeof_value,
                 __smtx_typeof_dt_cons_value_rec, __smtx_dt_substitute,
-                __smtx_dtc_substitute, __smtx_value_canonical_bool]
+                __smtx_dtc_substitute]
             have hRec : __smtx_type_wf_rec tupleTy native_reflist_nil = true := by
               simp [tupleTy, __smtx_type_wf_rec,
                 __smtx_dt_wf_rec, __smtx_dt_cons_wf_rec, native_reflist_contains,
@@ -3128,7 +3128,7 @@ theorem tuple_translate_wf_gen {fieldT : Term} {s' : native_String} {body : SmtD
           simp [__smtx_type_wf_rec, __smtx_dt_wf_rec, __smtx_dt_cons_wf_rec, native_ite,
             native_reflist_contains, native_reflist_nil]
       | _ =>
-          simp only [__eo_to_smt_type, __smtx_typeof_guard, native_ite] at h
+          simp only [__eo_to_smt_type] at h
           repeat' split at h
           all_goals exact absurd h (by simp)
   | Apply f x =>
@@ -3150,7 +3150,7 @@ theorem tuple_translate_wf_gen {fieldT : Term} {s' : native_String} {body : SmtD
           cases op with
           | BitVec =>
               cases x <;>
-                (simp only [__eo_to_smt_type, __smtx_typeof_guard, native_ite] at h
+                (simp only [__eo_to_smt_type, native_ite] at h
                  repeat' split at h
                  all_goals exact absurd h (by simp))
           | _ =>
@@ -3158,7 +3158,7 @@ theorem tuple_translate_wf_gen {fieldT : Term} {s' : native_String} {body : SmtD
               repeat' split at h
               all_goals exact absurd h (by simp)
       | _ =>
-          simp only [__eo_to_smt_type, __smtx_typeof_guard, native_ite] at h
+          simp only [__eo_to_smt_type] at h
           repeat' split at h
           all_goals exact absurd h (by simp)
   | _ =>
@@ -3315,12 +3315,12 @@ private theorem eo_lift_preserves_noDt_ty
         by_cases hRes : __eo_reserved_datatype_name s = true <;>
           simp [__eo_type_lift, __eo_to_smt_type, native_ite, hFold, hRes, noDtTy]
       · by_cases hRes : __eo_reserved_datatype_name s2 = true
-        · simp [__eo_type_lift, __eo_to_smt_type, native_ite, hFold, hRes, noDtTy]
+        · simp [__eo_type_lift, native_ite, hFold, hRes, noDtTy]
         · have hParts :
               native_streq s2 sub = false ∧ noDtDt sub (__eo_to_smt_datatype d2) = true := by
             simpa [__eo_to_smt_type, native_ite, hRes, noDtTy, native_and,
               native_not, Bool.and_eq_true] using hNoDt
-          simp [__eo_type_lift, __eo_to_smt_type, native_ite, hFold, hRes,
+          simp [__eo_type_lift, native_ite, hFold, hRes,
             noDtTy, native_and, native_not, Bool.and_eq_true]
           constructor
           · simpa [native_streq] using hParts.1
@@ -3356,7 +3356,7 @@ private theorem eo_lift_preserves_noDt_dt
       noDtDt sub (__eo_to_smt_datatype d) = true →
       noDtDt sub (__eo_to_smt_datatype (__eo_dt_lift s dRef d)) = true
   | Datatype.null, hNoDt => by
-      simp [__eo_dt_lift, __eo_to_smt_datatype, noDtDt]
+      simp [__eo_dt_lift, noDtDt]
   | Datatype.sum c d, hNoDt => by
       have hParts :
           noDtDtc sub (__eo_to_smt_datatype_cons c) = true ∧
@@ -3372,7 +3372,7 @@ private theorem eo_lift_preserves_noDt_dtc
       noDtDtc sub (__eo_to_smt_datatype_cons c) = true →
       noDtDtc sub (__eo_to_smt_datatype_cons (__eo_dtc_lift s dRef c)) = true
   | DatatypeCons.unit, hNoDt => by
-      simp [__eo_dtc_lift, __eo_to_smt_datatype_cons, noDtDtc]
+      simp [__eo_dtc_lift, noDtDtc]
   | DatatypeCons.cons T c, hNoDt => by
       have hParts :
           noDtTy sub (__eo_to_smt_type T) = true ∧
@@ -3695,7 +3695,7 @@ theorem eo_to_smt_ty_lift_of_wf (s sub : native_String) (dRef : Datatype)
       cases htr : __eo_to_smt_type (Term.DtcAppType a b) with
       | Datatype s' body => exact tuple_translate_wf_gen (by intro s2 d2; simp) htr
       | _ => rw [htr] at hwf; exact hwf
-    | _ => simp [__eo_type_lift, __eo_to_smt_type, __smtx_type_lift, native_ite]
+    | _ => simp [__eo_type_lift, __eo_to_smt_type, __smtx_type_lift]
 
 theorem eo_to_smt_dt_lift_of_wf (s sub : native_String) (dRef : Datatype)
     (hsne : sub ≠ s)
@@ -3838,7 +3838,7 @@ private theorem noRefSubDtc_of_valid_no_free (sub : native_String) :
           have hTail := noRefSubDtc_of_valid_no_free sub c refs hNot hTailValid hFree'.2
           by_cases hs : sub = s2
           · subst hs
-            simp [noRefSubDtc, native_and, native_or, native_streq, hTail]
+            simp [native_or]
           · have hNot' :
                 native_reflist_contains (native_reflist_insert refs s2) sub = false := by
               simp [native_reflist_contains, native_reflist_insert, List.mem_cons]
@@ -3850,7 +3850,7 @@ private theorem noRefSubDtc_of_valid_no_free (sub : native_String) :
                 hNot' hD2Valid hD2Free
             have hst : native_streq sub s2 = false := by
               simp [native_streq, hs]
-            simp [noRefSubDtc, native_and, native_or, hst, hD2NoRef, hTail]
+            simp [native_or, hD2NoRef]
       case DatatypeTypeRef s2 =>
           rcases hUValid with ⟨hReserved, _hMem⟩
           have hFree' :
@@ -3869,7 +3869,7 @@ private theorem noRefSubDtc_of_valid_no_free (sub : native_String) :
             subst hs
             simp [native_and, native_not, hNot, native_streq] at hFreeSplit
           have hTail := noRefSubDtc_of_valid_no_free sub c refs hNot hTailValid hTailFree
-          simp [noRefSubDtc, native_and, native_not, native_teq, hsne, hTail]
+          simp [hsne]
 end
 
 mutual
@@ -3918,7 +3918,7 @@ private theorem noRefSubDtc_of_valid_cons_no_free (sub : native_String) :
           have hTail := noRefSubDtc_of_valid_cons_no_free sub c refs hNot hCValid hFree'.2
           by_cases hs : sub = s2
           · subst hs
-            simp [noRefSubDtc, native_and, native_or, native_streq, hTail]
+            simp [native_or]
           · have hNot' :
                 native_reflist_contains (native_reflist_insert refs s2) sub = false := by
               simp [native_reflist_contains, native_reflist_insert, List.mem_cons]
@@ -3938,7 +3938,7 @@ private theorem noRefSubDtc_of_valid_cons_no_free (sub : native_String) :
                 (native_reflist_insert refs s2) hNot' hD2Swap hD2Free
             have hst : native_streq sub s2 = false := by
               simp [native_streq, hs]
-            simp [noRefSubDtc, native_and, native_or, hst, hD2NoRef, hTail]
+            simp [native_or, hD2NoRef]
       case DatatypeTypeRef s2 =>
           rcases hUValid with ⟨hReserved, _hMem⟩
           have hFree' :
@@ -3956,7 +3956,7 @@ private theorem noRefSubDtc_of_valid_cons_no_free (sub : native_String) :
             subst hs
             simp [native_and, native_not, hNot, native_streq] at hFreeSplit
           have hTail := noRefSubDtc_of_valid_cons_no_free sub c refs hNot hCValid hTailFreeAll
-          simp [noRefSubDtc, native_and, native_not, native_teq, hsne, hTail]
+          simp [hsne]
 end
 
 mutual
@@ -3988,7 +3988,7 @@ theorem eo_dtc_substitute_noop (sub : native_String) (d0 : Datatype) :
         simp only [noRefSubDtc, native_and, native_not, Bool.and_eq_true] at h
         simp only [__eo_dtc_substitute]
         rw [eo_dtc_substitute_noop sub d0 c h.2]
-        try simp_all [native_ite, native_teq, native_not])
+        try simp_all [native_ite, native_teq])
 end
 
 private theorem eo_to_smt_datatype_substitute_no_free

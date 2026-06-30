@@ -83,7 +83,7 @@ private theorem smtx_dt_wf_rec_of_datatype_type_wf_rec_apply
     native_inhabited_type (SmtType.BitVec w) = true := by
   simp [native_inhabited_type, native_not, native_Teq, __smtx_type_default,
     __smtx_type_default_rec, __smtx_typeof_value,
-    __smtx_value_canonical_bool, native_and, native_zleq, native_zeq,
+    native_and, native_zleq, native_zeq,
     native_mod_total, native_int_pow2, native_zexp_total, native_nat_to_int,
     native_int_to_nat, native_ite]
 
@@ -4068,7 +4068,7 @@ private theorem smtx_dtc_wf_rec_congr_refs_apply :
           have hField' :=
             smtx_type_wf_rec_congr_refs_apply (SmtType.FunType A B) hEq hField
           have hTail' := smtx_dtc_wf_rec_congr_refs_apply c hEq hTail
-          simp [__smtx_dt_cons_wf_rec, native_ite, hInh, hField', hTail']
+          simp [__smtx_dt_cons_wf_rec, native_ite, hField', hTail']
 
 private theorem smtx_dt_wf_rec_congr_refs_apply :
     (d : SmtDatatype) -> {refs refs' : RefList} ->
