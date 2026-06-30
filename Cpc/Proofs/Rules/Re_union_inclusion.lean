@@ -25,8 +25,8 @@ private theorem prog_form (a : Term)
     (hNe : __eo_prog_re_union_inclusion a ≠ Term.Stuck) :
     ∃ r1 r2 flat1 flat2 side,
       a = body r1 r2 ∧
-        flat1 = __re_flatten (Term.Boolean false) (Term.Boolean true) r1 ∧
-        flat2 = __re_flatten (Term.Boolean false) (Term.Boolean true) r2 ∧
+        flat1 = __re_flatten (Term.Boolean true) r1 ∧
+        flat2 = __re_flatten (Term.Boolean true) r2 ∧
         side =
           __eo_ite (__eo_eq flat1 flat2) (Term.Boolean true)
             (__str_re_includes_rec flat1 flat2) ∧
@@ -35,8 +35,8 @@ private theorem prog_form (a : Term)
   unfold __eo_prog_re_union_inclusion at hNe ⊢
   split at hNe
   · rename_i r1 r2 hEq
-    let flat2 := __re_flatten (Term.Boolean false) (Term.Boolean true) hEq
-    let flat1 := __re_flatten (Term.Boolean false) (Term.Boolean true) r2
+    let flat2 := __re_flatten (Term.Boolean true) hEq
+    let flat1 := __re_flatten (Term.Boolean true) r2
     let side := __eo_ite (__eo_eq flat1 flat2) (Term.Boolean true)
       (__str_re_includes_rec flat1 flat2)
     let concl := body r2 hEq
@@ -59,9 +59,9 @@ private theorem facts
     (M : SmtModel) (hM : model_total_typed M)
     (r1 r2 flat1 flat2 side : Term)
     (hFlat1 :
-      flat1 = __re_flatten (Term.Boolean false) (Term.Boolean true) r1)
+      flat1 = __re_flatten (Term.Boolean true) r1)
     (hFlat2 :
-      flat2 = __re_flatten (Term.Boolean false) (Term.Boolean true) r2)
+      flat2 = __re_flatten (Term.Boolean true) r2)
     (hSide :
       side =
         __eo_ite (__eo_eq flat1 flat2) (Term.Boolean true)

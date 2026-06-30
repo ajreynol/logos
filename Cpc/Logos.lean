@@ -2797,16 +2797,36 @@ def __re_rev_map : Term -> Term
   | (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) => (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a) b) => (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.re_concat) (__re_rev_comp a)) (__re_rev_map b))
   | _ => Term.Stuck
+termination_by t => sizeOf t
+decreasing_by
+  all_goals simp_wf
+  all_goals omega
+
+
+def __re_rev_map_rev : Term -> Term -> Term
+  | Term.Stuck , _  => Term.Stuck
+  | _ , Term.Stuck  => Term.Stuck
+  | (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])), acc => acc
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a) b), acc => (__re_rev_map_rev b (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.re_concat) (__re_rev_comp a)) acc))
+  | _, _ => Term.Stuck
+termination_by t acc => sizeOf t
+decreasing_by
+  all_goals simp_wf
+  all_goals omega
 
 
 def __re_rev_comp : Term -> Term
   | Term.Stuck  => Term.Stuck
   | (Term.UOp UserOp.re_all) => (Term.UOp UserOp.re_all)
   | (Term.UOp UserOp.re_none) => (Term.UOp UserOp.re_none)
-  | (Term.Apply (Term.UOp UserOp.re_mult) body) => (__eo_mk_apply (Term.UOp UserOp.re_mult) (__re_rev_map (__eo_list_rev (Term.UOp UserOp.re_concat) body)))
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) c1) c2) => (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.re_inter) (__re_rev_map (__eo_list_rev (Term.UOp UserOp.re_concat) c1))) (__re_rev_comp c2))
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) c1) c2) => (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.re_union) (__re_rev_map (__eo_list_rev (Term.UOp UserOp.re_concat) c1))) (__re_rev_comp c2))
+  | (Term.Apply (Term.UOp UserOp.re_mult) body) => (__eo_mk_apply (Term.UOp UserOp.re_mult) (__re_rev_map_rev body (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) c1) c2) => (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.re_inter) (__re_rev_map_rev c1 (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])))) (__re_rev_comp c2))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) c1) c2) => (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.re_union) (__re_rev_map_rev c1 (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])))) (__re_rev_comp c2))
   | c => c
+termination_by t => sizeOf t
+decreasing_by
+  all_goals simp_wf
+  all_goals omega
 
 
 def __re_flatten : Term -> Term -> Term
@@ -2823,7 +2843,7 @@ def __re_flatten : Term -> Term -> Term
   | (Term.Boolean false), (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) c1) c2) => (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.re_union) (__re_flatten (Term.Boolean true) c1)) (__re_flatten (Term.Boolean false) c2))
   | (Term.Boolean false), c => c
   | _, _ => Term.Stuck
-termination_by rev flag tree => 2 * sizeOf tree + (if flag = Term.Boolean true then 1 else 0)
+termination_by flag tree => 2 * sizeOf tree + (if flag = Term.Boolean true then 1 else 0)
 decreasing_by
   all_goals simp_wf
   all_goals omega
