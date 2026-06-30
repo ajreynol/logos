@@ -1140,7 +1140,7 @@ We use \code{Teq} (syntactic equality on SMT-LIB types) for this purpose.
 Note that this implies that all syntactically distinct types are considered to be distinct,
 and there is no notion of type equivalence.
 
-\subsubsection{Type Finiteness and Value Defaults and Value Canonicity}
+\subsubsection{Type Finiteness, Witness, Inhabitedness and Value Canonicity}
 
 We now turn our attention to defining a notion of \emph{canonical} SMT-LIB value.
 This will require two prerequisite definitions.
@@ -1455,7 +1455,7 @@ Defining canonicity for the other types is trivial.
 For composite SMT-LIB values, we simply traverse their structure 
 and confirm that all values they are built from are also canonical.
 
-\subsection{Inhabited and Well-Formedness of Types}
+\subsection{Well-Formedness of Types}
 
 \begin{figure}
 \begin{lstlisting}
@@ -1700,7 +1700,6 @@ noncomputable def smt_model_eval (M : SmtModel) : SmtTerm -> SmtValue
 \label{fig:model-eval}
 \end{figure}
 
-
 Figure~\ref{fig:model-eval}
 gives a sample of cases for model evaluation, which takes as input an SMT-LIB model and a term,
 and returns the evaluation of that term in the model.
@@ -1798,11 +1797,32 @@ takes a flag denoting whether or not the lookup is for a variable.
 
 \begin{figure}
 \begin{lstlisting}
+def smt_typeof_guard_wf (T : SmtType) (U : SmtType) : SmtType :=
+  (if (smt_type_wf T) then U else SmtType.None)
+
 def smt_typeof_eq (T : SmtType) (U : SmtType) : SmtType :=
   (smt_typeof_guard T (if (native_Teq T U) then SmtType.Bool else SmtType.None))
-  
-def smt_ret_typeof_sel (s : String) (d : SmtDatatype) (n : Nat) (m : Nat) : SmtType :=
-  (smt_ret_typeof_sel_rec (smt_dt_substitute s d d) n m)
+
+def smt_typeof_apply : SmtType -> SmtType -> SmtType
+  | (SmtType.FunType T U), V => (smt_typeof_guard T (if (native_Teq T V) then U else SmtType.None))
+  | (SmtType.DtcAppType T U), V => (smt_typeof_guard T (if (native_Teq T V) then U else SmtType.None))
+  | T, U => SmtType.None
+
+def smt_typeof_select : SmtType -> SmtType -> SmtType
+  | (SmtType.Map T U), V => (if (native_Teq T V) then U else SmtType.None)
+  | T, U => SmtType.None
+
+def smt_typeof_arith_overload_op_2 : SmtType -> SmtType -> SmtType
+  | SmtType.Int, SmtType.Int => SmtType.Int
+  | SmtType.Real, SmtType.Real => SmtType.Real
+  | T, U => SmtType.None
+
+def smt_typeof_dt_cons_rec (T : SmtType) : SmtDatatype -> native_Nat -> SmtType
+  | (SmtDatatype.sum SmtDatatypeCons.unit d), native_nat_zero => T
+  | (SmtDatatype.sum (SmtDatatypeCons.cons U c) d), native_nat_zero =>
+      (SmtType.DtcAppType U (smt_typeof_dt_cons_rec T (SmtDatatype.sum c d) native_nat_zero))
+  | (SmtDatatype.sum c d), (native_nat_succ n) => (smt_typeof_dt_cons_rec T d n)
+  | d, n => SmtType.None
 
 def smt_typeof : SmtTerm -> SmtType
   | (SmtTerm.Boolean b) => SmtType.Bool
@@ -1810,16 +1830,13 @@ def smt_typeof : SmtTerm -> SmtType
       if 0 <= w ∧ n = n % (2 ^ w) then SmtType.BitVec (Int.toNat w) else SmtType.None
   | (SmtTerm.eq x1 x2) => (smt_typeof_eq (smt_typeof x1) (smt_typeof x2))
   | (SmtTerm.exists s T x1) =>
-      if smt_typeof x1 = SmtType.Bool then SmtType.Bool else SmtType.None
+      if smt_typeof x1 = SmtType.Bool then (smt_typeof_guard_wf T SmtType.Bool) else SmtType.None
   | (SmtTerm.plus x1 x2) => (smt_typeof_arith_overload_op_2 (smt_typeof x1) (smt_typeof x2))
   | (SmtTerm.select x1 x2) => (smt_typeof_select (smt_typeof x1) (smt_typeof x2))
   | (SmtTerm.Apply f x1) => (smt_typeof_apply (smt_typeof f) (smt_typeof x1))
   | (SmtTerm.DtCons s d i) =>
       let _v0 := (SmtType.Datatype s d)
       (smt_typeof_guard_wf _v0 (smt_typeof_dt_cons_rec _v0 (smt_dt_substitute s d d) i))
-  | (SmtTerm.Apply (SmtTerm.DtSel s d i j) x1) =>
-      let _v0 := (smt_ret_typeof_sel s d i j)
-      (smt_typeof_guard_wf _v0 (smt_typeof_apply (SmtType.FunType (SmtType.Datatype s d) _v0) (smt_typeof x1)))
   | ... => ...
 \end{lstlisting}
 \caption{Types for SMT terms.}
@@ -1851,9 +1868,8 @@ theorem total_typed_model_nonvacuous :
 \label{fig:type-preservation}
 \end{figure}
 
-\clearpage
 
-\section*{Logos.lean / Spec.lean}
+\section{Specification}
 
 \begin{figure}[p]
 \begin{lstlisting}
