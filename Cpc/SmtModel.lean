@@ -712,9 +712,9 @@ def __smtx_dt_cons_wf_rec : SmtDatatypeCons -> RefList -> native_Bool
   | SmtDatatypeCons.unit, refs => true
 
 
-def __smtx_dt_wf_rec (s : native_String) (refs : RefList) : Term -> SmtDatatype -> native_Bool
-  | haveBase, SmtDatatype.null => haveBase
-  | haveBase, (SmtDatatype.sum c d) => (native_and (__smtx_dt_cons_wf_rec c (native_reflist_insert refs s)) (__smtx_dt_wf_rec s refs (native_or haveBase (__smtx_dt_cons_wf_rec c refs)) d))
+def __smtx_dt_wf_rec (s : native_String) (refs : RefList) (haveBase : native_Bool) : SmtDatatype -> native_Bool
+  | SmtDatatype.null => haveBase
+  | (SmtDatatype.sum c d) => (native_and (__smtx_dt_cons_wf_rec c (native_reflist_insert refs s)) (__smtx_dt_wf_rec s refs (native_or haveBase (__smtx_dt_cons_wf_rec c refs)) d))
 
 
 def __smtx_type_wf_rec : SmtType -> RefList -> native_Bool
