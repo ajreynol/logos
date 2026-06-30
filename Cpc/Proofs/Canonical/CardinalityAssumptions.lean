@@ -1094,6 +1094,47 @@ theorem inhabited_of_wf (T : SmtType) (hwf : __smtx_type_wf_rec T native_reflist
   simp only [native_inhabited_type, native_and, native_not, native_Teq, hTyped]
   simp [native_Teq, hTne]
 
+/-- A datatype field paired (via `FieldRel`) with a definition side `TF`, whose nested datatype
+`d2` has a closed base (`DtHasBase`), is defaultable — without needing the field itself to be
+closed-well-formed.  This is the infinite-tolerant defaultability for nested (possibly
+mutually-recursive) datatype fields whose recursion bottoms out in a closed constructor. -/
+theorem field_default_ne_nv_of_base (TF : SmtType) (s2 : native_String) (d2 : SmtDatatype)
+    (hfr : FieldRel TF (SmtType.Datatype s2 d2)) (hbase : DtHasBase d2) :
+    __smtx_type_default_rec TF (SmtType.Datatype s2 d2) ≠ SmtValue.NotValue := by
+  cases hfr with
+  | rel hss =>
+      cases hss with
+      | refl =>
+          rw [__smtx_type_default_rec]
+          exact datatype_default_ne_nv_of_some s2 d2 native_nat_zero
+            (__smtx_dt_substitute s2 d2 d2) d2
+            (dt_inhabited_aux s2 d2 native_nat_zero (__smtx_dt_substitute s2 d2 d2) d2
+              (dtSubstStar_of_subst s2 d2 d2) (drop_cons_zero _).symm hbase)
+      | @dt sF sU' dF dU' hdt =>
+          rw [__smtx_type_default_rec]
+          exact datatype_default_ne_nv_of_some sF dF native_nat_zero
+            (__smtx_dt_substitute sF dF dF) d2
+            (dt_inhabited_aux sF dF native_nat_zero (__smtx_dt_substitute sF dF dF) d2
+              (dtSubstStar_subst sF dF hdt) (drop_cons_zero _).symm hbase)
+  | forcesNV hnv =>
+      exfalso
+      have hdiag : __smtx_type_default_rec (SmtType.Datatype s2 d2) (SmtType.Datatype s2 d2)
+          ≠ SmtValue.NotValue := by
+        rw [__smtx_type_default_rec]
+        exact datatype_default_ne_nv_of_some s2 d2 native_nat_zero
+          (__smtx_dt_substitute s2 d2 d2) d2
+          (dt_inhabited_aux s2 d2 native_nat_zero (__smtx_dt_substitute s2 d2 d2) d2
+            (dtSubstStar_of_subst s2 d2 d2) (drop_cons_zero _).symm hbase)
+      exact hdiag (hnv (SmtType.Datatype s2 d2))
+
+/-- A nested-datatype field with a closed base is defaultable after folding. -/
+theorem nested_field_default_ne_nv (s : native_String) (d : SmtDatatype)
+    (s2 : native_String) (d2 : SmtDatatype) (hbase : DtHasBase d2) :
+    __smtx_type_default_rec (__smtx_type_substitute s d (SmtType.Datatype s2 d2))
+        (SmtType.Datatype s2 d2) ≠ SmtValue.NotValue :=
+  field_default_ne_nv_of_base (__smtx_type_substitute s d (SmtType.Datatype s2 d2)) s2 d2
+    (fieldRel_of_type_subst s d (SmtType.Datatype s2 d2)) hbase
+
 /-- `__smtx_type_wf_rec` reads `refs` only at `Datatype`/`TypeRef`; it is refs-independent
 elsewhere.  Hence a non-datatype field that is well-formed in scope `refs` is closed-well-formed. -/
 theorem type_wf_rec_refs_irrel_nondt :
@@ -1190,6 +1231,64 @@ theorem fields_ok_of_field_wf (s : native_String) (d : SmtDatatype) :
       · right
         exact field_default_ne_nv_of_wf (__smtx_type_substitute s d TU) TU
           (fieldRel_of_type_subst s d TU) hwfTU
+
+/-- Boolean reflection of `DtHasBase`: the datatype has a closed (nil-well-formed) constructor. -/
+def dtHasBaseB : SmtDatatype → Bool
+  | SmtDatatype.null => false
+  | SmtDatatype.sum c d => __smtx_dt_cons_wf_rec c native_reflist_nil || dtHasBaseB d
+
+theorem dtHasBaseB_sound : ∀ d : SmtDatatype, dtHasBaseB d = true → DtHasBase d
+  | SmtDatatype.null => by simp [dtHasBaseB]
+  | SmtDatatype.sum c d => by
+      intro h
+      simp only [dtHasBaseB, Bool.or_eq_true] at h
+      rcases h with hc | hd
+      · exact Or.inl hc
+      · exact Or.inr (dtHasBaseB_sound d hd)
+
+/-- A field is either the self-reference `TypeRef s`, a nested datatype with a closed base, or any
+other (closed-well-formed) type. -/
+def fieldSelfOrDef (s : native_String) : SmtType → Bool
+  | SmtType.TypeRef s' => native_streq s' s
+  | SmtType.Datatype _ d2 => dtHasBaseB d2
+  | _ => true
+
+def allFieldsSelfOrDef (s : native_String) : SmtDatatypeCons → Bool
+  | SmtDatatypeCons.cons TU c => fieldSelfOrDef s TU && allFieldsSelfOrDef s c
+  | SmtDatatypeCons.unit => true
+
+/-- Generalized `fields_ok`: every field is self-recursive, a nested datatype with a closed base, or
+closed-well-formed.  Unlike `fields_ok_of_field_wf` this admits nested (mutually-recursive) datatype
+fields whose recursion bottoms out in a closed constructor. -/
+theorem fields_ok_of_self_or_def (s : native_String) (d : SmtDatatype) :
+    ∀ (c : SmtDatatypeCons),
+      __smtx_dt_cons_wf_rec c (native_reflist_insert native_reflist_nil s) = true →
+      allFieldsSelfOrDef s c = true →
+      fields_ok s d (__smtx_dtc_substitute s d c) c
+  | SmtDatatypeCons.unit, _, _ => by simp [__smtx_dtc_substitute, fields_ok]
+  | SmtDatatypeCons.cons TU c', hwf, hok => by
+      simp only [__smtx_dtc_substitute, fields_ok]
+      have hokP : fieldSelfOrDef s TU = true ∧ allFieldsSelfOrDef s c' = true := by
+        simpa [allFieldsSelfOrDef, Bool.and_eq_true] using hok
+      refine ⟨?_, fields_ok_of_self_or_def s d c' (cons_wf_tail_gen hwf) hokP.2⟩
+      cases TU with
+      | TypeRef s' =>
+          left
+          have hss : s' = s := by
+            have : native_streq s' s = true := by simpa [fieldSelfOrDef] using hokP.1
+            simpa [native_streq] using this
+          subst hss
+          simp [__smtx_type_substitute, native_streq, native_ite, native_Teq]
+      | Datatype s2 d2 =>
+          right
+          exact nested_field_default_ne_nv s d s2 d2
+            (dtHasBaseB_sound d2 (by simpa [fieldSelfOrDef] using hokP.1))
+      | _ =>
+          right
+          have hTwf := cons_wf_head_gen hwf (by intro s' h; cases h)
+          rw [type_wf_rec_refs_irrel_nondt _ (native_reflist_insert native_reflist_nil s)
+            (by intro s2 d2 h; cases h)] at hTwf
+          exact field_default_ne_nv_of_wf _ _ (fieldRel_of_type_subst s d _) hTwf
 
 /-- `drop_cons` commutes with datatype substitution. -/
 theorem drop_cons_subst (s : native_String) (d : SmtDatatype) :
@@ -1428,11 +1527,14 @@ theorem build_inj_size (v : SmtValue) :
   termination_by k => sizeOf k
   decreasing_by all_goals (try simp_wf); all_goals omega
 
-/-- "Simply infinite" non-datatype types with cleanly size-unbounded canonical values whose
-substitution is the identity (so the folded field type equals the raw one). -/
+/-- "Simply infinite" non-datatype types with cleanly size-unbounded canonical values. Since
+`__smtx_type_substitute` is the identity on every constructor except `Datatype`/`TypeRef`
+(catch-all `| T => T`), substitution is the identity on all of these (so the folded field type
+equals the raw one). -/
 def simplyInf : SmtType → Bool
   | SmtType.Int => true
   | SmtType.USort _ => true
+  | SmtType.Seq _ => true
   | _ => false
 
 /-- Substitution is the identity on a `simplyInf` type. -/
@@ -1441,6 +1543,7 @@ theorem subst_id_simplyInf (s : native_String) (d : SmtDatatype) (T : SmtType)
   cases T with
   | Int => simp [__smtx_type_substitute]
   | USort i => simp [__smtx_type_substitute]
+  | Seq T' => simp [__smtx_type_substitute]
   | _ => simp [simplyInf] at hsi
 
 /-- A `simplyInf` type is not `None`. -/
@@ -1448,6 +1551,7 @@ theorem simplyInf_ne_none (T : SmtType) (hsi : simplyInf T = true) : T ≠ SmtTy
   cases T with
   | Int => simp
   | USort i => simp
+  | Seq T' => simp
   | _ => simp [simplyInf] at hsi
 
 /-- A closed `simplyInf` type has canonical values of arbitrary size. -/
@@ -1464,6 +1568,10 @@ theorem simply_inf_large_witness (T : SmtType) (hsi : simplyInf T = true)
   | USort i =>
       exact ⟨SmtValue.UValue i M, by simp [__smtx_typeof_value],
         by simp [__smtx_value_canonical_bool], by simp⟩
+  | Seq T' =>
+      have hInhT' : native_inhabited_type T' = true := by
+        simp only [__smtx_type_wf_rec, native_and, Bool.and_eq_true] at hwf; exact hwf.1
+      exact seq_inhabited_large_witness T' hInhT' M
   | _ => simp [simplyInf] at hsi
 
 /-- Self-recursive growth: with a located self-recursive constructor whose every field is either
@@ -1480,6 +1588,39 @@ theorem grow_via_self_rec (s : native_String) (d : SmtDatatype)
       __smtx_value_canonical_bool w' = true ∧ sizeOf w < sizeOf w' := by
   have hDtcSS : DtcSubstStar (__smtx_dtc_substitute s d c) c := dtcSubstStar_of_subst s d c
   have hfok : fields_ok s d (__smtx_dtc_substitute s d c) c := fields_ok_of_field_wf s d c hfields
+  have hseedTy : __smtx_typeof_value (SmtValue.DtCons s d n) =
+      chainType (__smtx_dtc_substitute s d c) (SmtType.Datatype s d) := by
+    simp only [__smtx_typeof_value]
+    have hdropS : drop_cons (__smtx_dt_substitute s d d) n =
+        SmtDatatype.sum (__smtx_dtc_substitute s d c) (__smtx_dt_substitute s d rest) := by
+      rw [drop_cons_subst, hdrop]; simp [__smtx_dt_substitute]
+    exact drop_lemma (SmtType.Datatype s d) (__smtx_dt_substitute s d d) n
+      (__smtx_dtc_substitute s d c) (__smtx_dt_substitute s d rest) hdropS
+  have hseedCan : __smtx_value_canonical_bool (SmtValue.DtCons s d n) = true := by
+    simp [__smtx_value_canonical_bool]
+  refine ⟨build_cons s d w (__smtx_dtc_substitute s d c) c (SmtValue.DtCons s d n), ?_, ?_, ?_⟩
+  · exact build_cons_typeof s d w hwTy (__smtx_dtc_substitute s d c) c hDtcSS hfok
+      (SmtValue.DtCons s d n) (SmtType.Datatype s d) hseedTy
+  · exact build_cons_canonical s d w hwCan (__smtx_dtc_substitute s d c) c hDtcSS hfok
+      (SmtValue.DtCons s d n) hseedCan
+  · exact build_cons_size_strict s d w (__smtx_dtc_substitute s d c) c hDtcSS hself
+      (SmtValue.DtCons s d n)
+
+/-- Generalized self-recursive growth: every field is self-recursive, a nested datatype with a
+closed base, or closed-well-formed.  Admits self-recursive datatypes carrying founded-datatype
+payloads (and mutually-recursive datatypes whose recursion bottoms out in a closed constructor). -/
+theorem grow_via_self_rec_gen (s : native_String) (d : SmtDatatype)
+    (n : native_Nat) (c : SmtDatatypeCons) (rest : SmtDatatype)
+    (hdrop : drop_cons d n = SmtDatatype.sum c rest)
+    (hself : has_self_rec s d (__smtx_dtc_substitute s d c))
+    (hwfc : __smtx_dt_cons_wf_rec c (native_reflist_insert native_reflist_nil s) = true)
+    (hok : allFieldsSelfOrDef s c = true)
+    (w : SmtValue) (hwTy : __smtx_typeof_value w = SmtType.Datatype s d)
+    (hwCan : __smtx_value_canonical_bool w = true) :
+    ∃ w' : SmtValue, __smtx_typeof_value w' = SmtType.Datatype s d ∧
+      __smtx_value_canonical_bool w' = true ∧ sizeOf w < sizeOf w' := by
+  have hDtcSS : DtcSubstStar (__smtx_dtc_substitute s d c) c := dtcSubstStar_of_subst s d c
+  have hfok : fields_ok s d (__smtx_dtc_substitute s d c) c := fields_ok_of_self_or_def s d c hwfc hok
   have hseedTy : __smtx_typeof_value (SmtValue.DtCons s d n) =
       chainType (__smtx_dtc_substitute s d c) (SmtType.Datatype s d) := by
     simp only [__smtx_typeof_value]
@@ -1720,13 +1861,12 @@ theorem grow_search (s : native_String) (d : SmtDatatype)
         __smtx_value_canonical_bool w' = true ∧ sizeOf w < sizeOf w') ∨ True
   | _, SmtDatatype.null, _ => Or.inr trivial
   | n, SmtDatatype.sum c rest, hdrop => by
-      by_cases hgood : hasTypeRefS s c = true ∧ noNestedDt c = true
+      by_cases hgood : hasTypeRefS s c = true ∧ allFieldsSelfOrDef s c = true
       · left
         have hwfc : __smtx_dt_cons_wf_rec c (native_reflist_insert native_reflist_nil s) = true :=
           hWfAll n c rest hdrop
-        exact grow_via_self_rec s d n c rest hdrop
-          (has_self_rec_of_hasTypeRefS s d c hgood.1)
-          (cons_fields_self_or_closed s c hwfc (noNested_no_datatype c hgood.2)) w hwTy hwCan
+        exact grow_via_self_rec_gen s d n c rest hdrop
+          (has_self_rec_of_hasTypeRefS s d c hgood.1) hwfc hgood.2 w hwTy hwCan
       · have hdrop' : drop_cons d (Nat.succ n) = rest := by rw [drop_cons_succ, hdrop]
         exact grow_search s d w hwTy hwCan hWfAll (Nat.succ n) rest hdrop'
   termination_by _ D _ => sizeOf D
