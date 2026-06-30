@@ -1233,6 +1233,98 @@ theorem grow_via_self_rec (s : native_String) (d : SmtDatatype)
   · exact build_cons_size_strict s d w (__smtx_dtc_substitute s d c) c hDtcSS hself
       (SmtValue.DtCons s d n)
 
+/-- A constructor has a `TypeRef s` (self-reference) field. -/
+def hasTypeRefS (s : native_String) : SmtDatatypeCons → Bool
+  | SmtDatatypeCons.cons (SmtType.TypeRef s') c => native_streq s' s || hasTypeRefS s c
+  | SmtDatatypeCons.cons _ c => hasTypeRefS s c
+  | SmtDatatypeCons.unit => false
+
+/-- A constructor has no nested-`Datatype` field. -/
+def noNestedDt : SmtDatatypeCons → Bool
+  | SmtDatatypeCons.cons (SmtType.Datatype _ _) _ => false
+  | SmtDatatypeCons.cons _ c => noNestedDt c
+  | SmtDatatypeCons.unit => true
+
+/-- A self-reference field makes the folded constructor self-recursive. -/
+theorem has_self_rec_of_hasTypeRefS (s : native_String) (d : SmtDatatype) :
+    ∀ (c : SmtDatatypeCons), hasTypeRefS s c = true →
+      has_self_rec s d (__smtx_dtc_substitute s d c)
+  | SmtDatatypeCons.unit, h => by simp [hasTypeRefS] at h
+  | SmtDatatypeCons.cons TU c', h => by
+      simp only [__smtx_dtc_substitute, has_self_rec]
+      cases TU with
+      | TypeRef s' =>
+          simp only [hasTypeRefS, Bool.or_eq_true] at h
+          rcases h with hs | htail
+          · left
+            have hss : s' = s := by simpa [native_streq] using hs
+            subst hss
+            simp [__smtx_type_substitute, native_streq, native_ite, native_Teq]
+          · right; exact has_self_rec_of_hasTypeRefS s d c' htail
+      | _ =>
+          right
+          have htail : hasTypeRefS s c' = true := by simpa [hasTypeRefS] using h
+          exact has_self_rec_of_hasTypeRefS s d c' htail
+
+/-- `noNestedDt` ⇒ no field is a nested datatype. -/
+theorem noNested_no_datatype :
+    ∀ (c : SmtDatatypeCons), noNestedDt c = true →
+      ∀ TU, FieldMem TU c → ∀ s2 d2, TU ≠ SmtType.Datatype s2 d2
+  | SmtDatatypeCons.unit, _, _, hmem, _, _ => by cases hmem
+  | SmtDatatypeCons.cons T c', h, TU, hmem, s2, d2 => by
+      cases hmem with
+      | head =>
+          intro heq; subst heq
+          simp [noNestedDt] at h
+      | tail hmemTail =>
+          have htail : noNestedDt c' = true := by
+            cases T with
+            | Datatype a b => simp [noNestedDt] at h
+            | _ => simpa [noNestedDt] using h
+          exact noNested_no_datatype c' htail TU hmemTail s2 d2
+
+/-- The `n`-th constructor of a `dtAllWf` datatype is well-formed. -/
+theorem dtAllWf_cons_at (refs : RefList) :
+    ∀ (n : native_Nat) (d : SmtDatatype),
+      dtAllWf d refs = true →
+      ∀ (c : SmtDatatypeCons) (rest : SmtDatatype),
+        drop_cons d n = SmtDatatype.sum c rest → __smtx_dt_cons_wf_rec c refs = true
+  | Nat.zero, d, hwf, c, rest, hdrop => by
+      rw [drop_cons_zero] at hdrop; subst hdrop; exact dt_wf_cons_of_wf hwf
+  | Nat.succ n, SmtDatatype.null, hwf, c, rest, hdrop => by simp [dtAllWf] at hwf
+  | Nat.succ n, SmtDatatype.sum c0 d', hwf, c, rest, hdrop => by
+      simp only [drop_cons] at hdrop
+      cases d' with
+      | null => cases n <;> simp [drop_cons] at hdrop
+      | sum cT dT =>
+          exact dtAllWf_cons_at refs n (SmtDatatype.sum cT dT)
+            (dt_wf_tail_of_nonempty_tail_wf hwf) c rest hdrop
+
+/-- Search the constructors of `d` for a good self-recursive one (a `TypeRef s` field, no nested
+datatype field); if found, grow via `grow_via_self_rec`. -/
+theorem grow_search (s : native_String) (d : SmtDatatype)
+    (w : SmtValue) (hwTy : __smtx_typeof_value w = SmtType.Datatype s d)
+    (hwCan : __smtx_value_canonical_bool w = true)
+    (hWfAll : ∀ (n : native_Nat) (c : SmtDatatypeCons) (rest : SmtDatatype),
+      drop_cons d n = SmtDatatype.sum c rest →
+      __smtx_dt_cons_wf_rec c (native_reflist_insert native_reflist_nil s) = true) :
+    ∀ (n : native_Nat) (D : SmtDatatype),
+      drop_cons d n = D →
+      (∃ w' : SmtValue, __smtx_typeof_value w' = SmtType.Datatype s d ∧
+        __smtx_value_canonical_bool w' = true ∧ sizeOf w < sizeOf w') ∨ True
+  | _, SmtDatatype.null, _ => Or.inr trivial
+  | n, SmtDatatype.sum c rest, hdrop => by
+      by_cases hgood : hasTypeRefS s c = true ∧ noNestedDt c = true
+      · left
+        have hwfc : __smtx_dt_cons_wf_rec c (native_reflist_insert native_reflist_nil s) = true :=
+          hWfAll n c rest hdrop
+        exact grow_via_self_rec s d n c rest hdrop
+          (has_self_rec_of_hasTypeRefS s d c hgood.1)
+          (cons_fields_self_or_closed s c hwfc (noNested_no_datatype c hgood.2)) w hwTy hwCan
+      · have hdrop' : drop_cons d (Nat.succ n) = rest := by rw [drop_cons_succ, hdrop]
+        exact grow_search s d w hwTy hwCan hWfAll (Nat.succ n) rest hdrop'
+  termination_by _ D _ => sizeOf D
+
 /-- The core growth step: from any canonical typed value, build a strictly larger one.
 This is where the constructor-selection combinatorics (self-recursive nesting vs.
 base-infinite field) lives. -/
@@ -1245,7 +1337,18 @@ private theorem grow_witness
     (hwCan : __smtx_value_canonical_bool w = true) :
     ∃ w' : SmtValue, __smtx_typeof_value w' = SmtType.Datatype s d ∧
       __smtx_value_canonical_bool w' = true ∧ sizeOf w < sizeOf w' := by
-  sorry
+  have hWfAll : ∀ (n : native_Nat) (c : SmtDatatypeCons) (rest : SmtDatatype),
+      drop_cons d n = SmtDatatype.sum c rest →
+      __smtx_dt_cons_wf_rec c (native_reflist_insert native_reflist_nil s) = true := by
+    intro n c rest hdrop
+    exact dtAllWf_cons_at (native_reflist_insert native_reflist_nil s) n d
+      (dtAllWf_of_type_wf_rec_datatype s d native_reflist_nil hWf).2 c rest hdrop
+  rcases grow_search s d w hwTy hwCan hWfAll native_nat_zero d (drop_cons_zero d) with hfound | _
+  · exact hfound
+  · -- No self-recursive constructor with only closed non-self fields: the datatype is infinite
+    -- only via a non-self infinite field (`data D = mk Int`) or genuine mutual recursion.
+    -- These require a different builder / the mutual "pump" (see notes); deferred.
+    sorry
 
 private theorem infinite_datatype_large_witness :
     ∀ (N : Nat) (s : native_String) (d : SmtDatatype),
