@@ -1250,8 +1250,7 @@ def smt_type_default (T : SmtType) : SmtValue :=
   (smt_type_default_rec T T)
   
 def inhabited_type (T : SmtType) : Bool :=
-  (Teq (smt_typeof_value (smt_type_default T)) T) &&
-  (smt_value_canonical (smt_type_default T))
+  (Teq (smt_typeof_value (smt_type_default T)) T) && !(Teq T SmtType.None)
 \end{lstlisting}
 \caption{Finite default value computation and type inhabitedness.}
 \label{fig:default-value}
@@ -1404,12 +1403,14 @@ which by transitivity ensures that the index list is sorted.
 This criteria prevents a list of stores being equivalent,
 both by commuting distinct indices and by disallowing repeated equivalent indices.
 Finally, we must ensure that the element does not coincide
-with the default element stored in the map (obtainable by \code{smt_map_get_default}).
+with the default element stored in the map (obtainable by \code{smt_map_get_default}),
+which would also make it redundant.
 
 The default value of a map has the following requirement:
-if the index type of the map is finite, then the default element stored
+First, the default value must itself be canonical.
+Second, if the index type of the map is finite, then the default element stored
 must be the one obtained by the method \code{smt_type_default} in the previous section.
-To understand this restriction,
+To understand the second restriction,
 consider the following equivalent maps have index and element type as \code{Bool}:
 \begin{examplecode}
 m1 := 
@@ -1518,10 +1519,11 @@ We also will say that a type \code{T} is \emph{first-class}
 iff \code{(smt_type_wf_component T)} returns true.
 Assume we have two canonical values \code{v1} and \code{v2} of first-class type \code{T},
 that is, \smttypeofvalue{v1} = \smttypeofvalue{v2} = \code{T},
-and \smtvaluecanon{v1} = \smtvalue{v2} = true.
+and \smtvaluecanon{v1} = \smtvaluecanon{v2} = true.
 In this case, 
 we say that \smttypeofvalue{v1} and \smttypeofvalue{v2} are
 semantically equivalent iff they are syntactically equivalent.
+%In other words, \smtvaluecanon returns true for only one
 Concretely,
 our definition of SMT-LIB model evaluation \smtmodeleval for equality (\code{eq})
 will use syntactic comparison over values (\code{veq}) for all first-class types.
@@ -1585,6 +1587,41 @@ We also disallow partially applied datatype constructors as a first-class type.
 Finally, we disallow the error type \code{None}.
 All other types (e.g. the atomic base types) are first-class.
 
+
+\subsection{Well-Formed Models}
+
+\begin{figure}
+\begin{lstlisting}
+def model_const_lookup (M : SmtModel) (s : native_String) (T : SmtType) : SmtValue :=
+  M.values { isVar := false, name := s, ty := T }
+
+def model_fun_lookup (M : SmtModel) (fid : native_String) (T U : SmtType) : SmtValue -> SmtValue :=
+  M.nativeFuns { isVar := false, name := fid, ty := (SmtType.FunType T U) }
+
+def native_eval_ifun_apply (M : SmtModel) (fid : native_String) (T U : SmtType) (i : SmtValue) : SmtValue :=
+  if fid = "@default" then (smt_type_default U) else (model_fun_lookup M fid T U i)
+
+def native_fun_typed (M : SmtModel) : Prop :=
+  ∀ fid A B i,
+    smt_type_wf (SmtType.FunType A B) = true ->
+    smt_typeof_value i = A ->
+    smt_typeof_value (native_eval_ifun_apply M fid A B i) = B ∧
+      smt_value_canonical (native_eval_ifun_apply M fid A B i) = true
+
+def model_total_typed (M : SmtModel) : Prop :=
+  (∀ isVar s T, smt_type_wf T = true ->
+    smt_typeof_value (M.values { isVar := isVar, name := s, ty := T }) = T) ∧
+  (∀ isVar s T, smt_type_wf T = true ->
+    smt_value_canonical (M.values { isVar := isVar, name := s, ty := T }) = true) ∧
+  (∀ isVar s T, smt_type_wf T = false ->
+    M.values { isVar := isVar, name := s, ty := T } = SmtValue.NotValue) ∧
+  native_fun_typed M
+\end{lstlisting}
+\caption{Total typed model conditions.}
+\label{fig:model-typed}
+\end{figure}
+
+
 \subsection{Types of SMT-LIB Terms}
 
 
@@ -1618,35 +1655,6 @@ def smt_typeof : SmtTerm -> SmtType
 \label{fig:typeof-term}
 \end{figure}
 
-
-
-\begin{figure}[p]
-\begin{lstlisting}
-def model_const_lookup (M : SmtModel) (s : native_String) (T : SmtType) : SmtValue :=
-  M.values { isVar := false, name := s, ty := T }
-
-def model_fun_lookup (M : SmtModel) (fid : native_String) (T U : SmtType) : SmtValue -> SmtValue :=
-  M.nativeFuns { isVar := false, name := fid, ty := (SmtType.FunType T U) }
-
-def native_eval_ifun_apply (M : SmtModel) (fid : native_String) (T U : SmtType) (i : SmtValue) : SmtValue :=
-  if fid = "@default" then (smt_type_default U) else (model_fun_lookup M fid T U i)
-
-def native_fun_typed (M : SmtModel) : Prop :=
-  ∀ fid A B i,
-    smt_type_wf (SmtType.FunType A B) = true ->
-    smt_typeof_value i = A ->
-    smt_typeof_value (native_eval_ifun_apply M fid A B i) = B ∧
-      smt_value_canonical (native_eval_ifun_apply M fid A B i) = true
-
-def model_total_typed (M : SmtModel) : Prop :=
-  (∀ s T, smt_type_wf T = true -> smt_typeof_value (model_const_lookup M s T) = T) ∧
-  (∀ s T, smt_type_wf T = true -> smt_value_canonical (model_const_lookup M s T)) = true ∧
-  (∀ s T, smt_type_wf T = false -> model_const_lookup M s T = SmtValue.NotValue) ∧
-  native_fun_typed M
-\end{lstlisting}
-\caption{Total typed model conditions.}
-\label{fig:model-typed}
-\end{figure}
 
 
 \begin{figure}[p]
