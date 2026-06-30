@@ -1081,6 +1081,86 @@ theorem cons_default_ne_nv_of_wf (cF cU : SmtDatatypeCons) (v : SmtValue)
 
 end
 
+/-- Founded ⇒ inhabited: a closed well-formed type has a typed, non-`None` default (the payoff of
+the founded-`wf` refactor; the infinite-tolerant analog of `inhabited_of_finite_wf`). -/
+theorem inhabited_of_wf (T : SmtType) (hwf : __smtx_type_wf_rec T native_reflist_nil = true) :
+    native_inhabited_type T = true := by
+  have hne : __smtx_type_default T ≠ SmtValue.NotValue := by
+    have := field_default_ne_nv_of_wf T T (FieldRel.rel (SubstStar.refl T)) hwf
+    simpa [__smtx_type_default] using this
+  have hTyped : __smtx_typeof_value (__smtx_type_default T) = T :=
+    (type_default_notvalue_or_typed T).resolve_left hne
+  have hTne : T ≠ SmtType.None := by intro h; subst T; simp [__smtx_type_wf_rec] at hwf
+  simp only [native_inhabited_type, native_and, native_not, native_Teq, hTyped]
+  simp [native_Teq, hTne]
+
+/-- `TU` is a field of constructor `c`. -/
+inductive FieldMem : SmtType → SmtDatatypeCons → Prop where
+  | head {TU : SmtType} {c : SmtDatatypeCons} : FieldMem TU (SmtDatatypeCons.cons TU c)
+  | tail {TU TU' : SmtType} {c : SmtDatatypeCons} :
+      FieldMem TU c → FieldMem TU (SmtDatatypeCons.cons TU' c)
+
+/-- A folded constructor's fields are all defaultable-or-self, when every non-self field is closed
+well-formed.  Provides `fields_ok` for the `build_cons` machinery. -/
+theorem fields_ok_of_field_wf (s : native_String) (d : SmtDatatype) :
+    ∀ (c : SmtDatatypeCons),
+      (∀ TU, FieldMem TU c → TU = SmtType.TypeRef s ∨
+        __smtx_type_wf_rec TU native_reflist_nil = true) →
+      fields_ok s d (__smtx_dtc_substitute s d c) c
+  | SmtDatatypeCons.unit, _ => by simp [__smtx_dtc_substitute, fields_ok]
+  | SmtDatatypeCons.cons TU c, hfields => by
+      simp only [__smtx_dtc_substitute, fields_ok]
+      refine ⟨?_, fields_ok_of_field_wf s d c (fun TU' hmem => hfields TU' (FieldMem.tail hmem))⟩
+      rcases hfields TU FieldMem.head with hself | hwfTU
+      · subst hself
+        left
+        simp [__smtx_type_substitute, native_streq, native_ite, native_Teq]
+      · right
+        exact field_default_ne_nv_of_wf (__smtx_type_substitute s d TU) TU
+          (fieldRel_of_type_subst s d TU) hwfTU
+
+/-- `drop_cons` commutes with datatype substitution. -/
+theorem drop_cons_subst (s : native_String) (d : SmtDatatype) :
+    ∀ (n : native_Nat) (D : SmtDatatype),
+      drop_cons (__smtx_dt_substitute s d D) n = __smtx_dt_substitute s d (drop_cons D n)
+  | Nat.zero, D => by rw [drop_cons_zero, drop_cons_zero]
+  | Nat.succ n, SmtDatatype.null => by simp [__smtx_dt_substitute, drop_cons]
+  | Nat.succ n, SmtDatatype.sum c D => by
+      simp only [__smtx_dt_substitute, drop_cons]
+      exact drop_cons_subst s d n D
+
+/-- Self-recursive growth: with a located self-recursive constructor whose every field is either
+the self-reference or a closed well-formed type, `build_cons` yields a strictly larger value. -/
+theorem grow_via_self_rec (s : native_String) (d : SmtDatatype)
+    (n : native_Nat) (c : SmtDatatypeCons) (rest : SmtDatatype)
+    (hdrop : drop_cons d n = SmtDatatype.sum c rest)
+    (hself : has_self_rec s d (__smtx_dtc_substitute s d c))
+    (hfields : ∀ TU, FieldMem TU c →
+      TU = SmtType.TypeRef s ∨ __smtx_type_wf_rec TU native_reflist_nil = true)
+    (w : SmtValue) (hwTy : __smtx_typeof_value w = SmtType.Datatype s d)
+    (hwCan : __smtx_value_canonical_bool w = true) :
+    ∃ w' : SmtValue, __smtx_typeof_value w' = SmtType.Datatype s d ∧
+      __smtx_value_canonical_bool w' = true ∧ sizeOf w < sizeOf w' := by
+  have hDtcSS : DtcSubstStar (__smtx_dtc_substitute s d c) c := dtcSubstStar_of_subst s d c
+  have hfok : fields_ok s d (__smtx_dtc_substitute s d c) c := fields_ok_of_field_wf s d c hfields
+  have hseedTy : __smtx_typeof_value (SmtValue.DtCons s d n) =
+      chainType (__smtx_dtc_substitute s d c) (SmtType.Datatype s d) := by
+    simp only [__smtx_typeof_value]
+    have hdropS : drop_cons (__smtx_dt_substitute s d d) n =
+        SmtDatatype.sum (__smtx_dtc_substitute s d c) (__smtx_dt_substitute s d rest) := by
+      rw [drop_cons_subst, hdrop]; simp [__smtx_dt_substitute]
+    exact drop_lemma (SmtType.Datatype s d) (__smtx_dt_substitute s d d) n
+      (__smtx_dtc_substitute s d c) (__smtx_dt_substitute s d rest) hdropS
+  have hseedCan : __smtx_value_canonical_bool (SmtValue.DtCons s d n) = true := by
+    simp [__smtx_value_canonical_bool]
+  refine ⟨build_cons s d w (__smtx_dtc_substitute s d c) c (SmtValue.DtCons s d n), ?_, ?_, ?_⟩
+  · exact build_cons_typeof s d w hwTy (__smtx_dtc_substitute s d c) c hDtcSS hfok
+      (SmtValue.DtCons s d n) (SmtType.Datatype s d) hseedTy
+  · exact build_cons_canonical s d w hwCan (__smtx_dtc_substitute s d c) c hDtcSS hfok
+      (SmtValue.DtCons s d n) hseedCan
+  · exact build_cons_size_strict s d w (__smtx_dtc_substitute s d c) c hDtcSS hself
+      (SmtValue.DtCons s d n)
+
 /-- The core growth step: from any canonical typed value, build a strictly larger one.
 This is where the constructor-selection combinatorics (self-recursive nesting vs.
 base-infinite field) lives. -/
