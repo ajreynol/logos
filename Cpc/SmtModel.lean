@@ -706,20 +706,31 @@ def __vsm_apply_arg_nth : SmtValue -> native_Nat -> native_Nat -> SmtValue
   | a, n, npos => SmtValue.NotValue
 
 
+-- A constructor is well-formed in scope `refs` iff every field sort is well-formed there, with a
+-- recursive reference `TypeRef r` admissible iff `r` is in scope.  This same check doubles as the
+-- *base*/foundedness test: running it with the datatype's own name OUT of scope holds iff the
+-- constructor is a base (no self-recursion needed to inhabit it).  This is why `__smtx_dt_wf_rec`
+-- below calls it twice -- once with `s` inserted (well-formedness) and once without (base) -- which
+-- subsumes the old `__smtx_founded_field`/`__smtx_founded_dtc`.  It is purely structural (no
+-- substitution, no `__smtx_type_default` self-call), so the mutual block stays structurally recursive.
 def __smtx_dt_cons_wf_rec : SmtDatatypeCons -> RefList -> native_Bool
   | (SmtDatatypeCons.cons (SmtType.TypeRef s) c), refs => (native_ite (native_reflist_contains refs s) (__smtx_dt_cons_wf_rec c refs) false)
   | (SmtDatatypeCons.cons T c), refs => (native_ite (__smtx_type_wf_rec T refs) (__smtx_dt_cons_wf_rec c refs) false)
   | SmtDatatypeCons.unit, refs => true
 
 
-def __smtx_dt_wf_rec : SmtDatatype -> RefList -> native_Bool
-  | SmtDatatype.null, refs => false
-  | (SmtDatatype.sum c SmtDatatype.null), refs => (__smtx_dt_cons_wf_rec c refs)
-  | (SmtDatatype.sum c d), refs => (native_ite (__smtx_dt_cons_wf_rec c refs) (__smtx_dt_wf_rec d refs) false)
+-- Checks, in one pass over the constructor list, that every constructor is well-formed (with the
+-- datatype's own name `s` in scope) AND that at least one constructor is a base (`haveBase`,
+-- accumulated via `__smtx_dt_cons_wf_rec c refs` against `refs`, which excludes `s`).
+def __smtx_dt_wf_rec (s : native_String) (refs : RefList) (haveBase : native_Bool) : SmtDatatype -> native_Bool
+  | SmtDatatype.null => haveBase
+  | (SmtDatatype.sum c d) =>
+      (native_and (__smtx_dt_cons_wf_rec c (native_reflist_insert refs s))
+        (__smtx_dt_wf_rec s refs (native_or haveBase (__smtx_dt_cons_wf_rec c refs)) d))
 
 
 def __smtx_type_wf_rec : SmtType -> RefList -> native_Bool
-  | (SmtType.Datatype s d), refs => (native_ite (native_reflist_contains refs s) false (__smtx_dt_wf_rec d (native_reflist_insert refs s)))
+  | (SmtType.Datatype s d), refs => (native_ite (native_reflist_contains refs s) false (__smtx_dt_wf_rec s refs false d))
   | (SmtType.TypeRef s), refs => false
   | (SmtType.Seq x1), refs => (native_and (native_inhabited_type x1) (__smtx_type_wf_rec x1 native_reflist_nil))
   | (SmtType.Map x1 x2), refs => (native_and (native_inhabited_type x1) (native_and (__smtx_type_wf_rec x1 native_reflist_nil) (native_and (native_inhabited_type x2) (__smtx_type_wf_rec x2 native_reflist_nil))))
