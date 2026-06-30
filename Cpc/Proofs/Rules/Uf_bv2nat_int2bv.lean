@@ -68,27 +68,14 @@ private theorem shape_of_prog_uf_bv2nat_int2bv_not_stuck
         Term.Apply
           (Term.Apply (Term.UOp UserOp.eq)
             (Term.Apply (Term.UOp UserOp._at_bvsize) lt)) lw := by
-  cases w1 <;> cases t1 <;> (try (exact absurd rfl hW)) <;> (try (exact absurd rfl hT)) <;>
-    (cases p with
-     | Apply pEqR lw =>
-         cases pEqR with
-         | Apply pEqL bvsizeArg =>
-             cases pEqL with
-             | UOp op =>
-                 cases op <;> try (simp [__eo_prog_uf_bv2nat_int2bv] at h)
-                 case eq =>
-                   cases bvsizeArg with
-                   | Apply bvOp lt =>
-                       cases bvOp with
-                       | UOp bop =>
-                           cases bop <;> try (simp [__eo_prog_uf_bv2nat_int2bv] at h)
-                           case _at_bvsize =>
-                             exact ⟨lt, lw, rfl⟩
-                       | _ => simp [__eo_prog_uf_bv2nat_int2bv] at h
-                   | _ => simp [__eo_prog_uf_bv2nat_int2bv] at h
-             | _ => simp [__eo_prog_uf_bv2nat_int2bv] at h
-         | _ => simp [__eo_prog_uf_bv2nat_int2bv] at h
-     | _ => simp [__eo_prog_uf_bv2nat_int2bv] at h)
+  unfold __eo_prog_uf_bv2nat_int2bv at h
+  split at h
+  · exact absurd rfl hW
+  · exact absurd rfl hT
+  · rename_i lt lw _ _ heq
+    injection heq with heq
+    exact ⟨lt, lw, heq⟩
+  · exact absurd rfl h
 
 private theorem eq_of_eo_eq_true (x y : Term)
     (h : __eo_eq x y = Term.Boolean true) :

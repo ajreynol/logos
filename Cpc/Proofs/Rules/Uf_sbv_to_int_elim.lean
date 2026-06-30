@@ -483,9 +483,12 @@ private theorem typeof_extract_diag_not_numeral_stuck (wm t : Term)
   by_cases hWmTy : __eo_typeof wm = Term.UOp UserOp.Int
   · exact typeof_extract_diag_stuck_of_gt_stuck (__eo_typeof wm) wm (__eo_typeof t)
       hWmTy (eo_gt_neg_one_stuck_of_not_numeral wm hwm)
-  · cases hwt : __eo_typeof wm with
-    | UOp o => cases o <;> simp_all [__eo_typeof_extract]
-    | _ => simp_all [__eo_typeof_extract]
+  · by_cases hwmS : wm = Term.Stuck
+    · subst wm
+      simp [__eo_typeof_extract]
+    · cases hwt : __eo_typeof wm with
+      | UOp o => cases o <;> simp_all [__eo_typeof_extract, hwmS]
+      | _ => simp_all [__eo_typeof_extract, hwmS]
 
 /-- The diagonal extract typeof for a numeral `wm` over a non-`BitVec(Numeral)`
     operand type is `Stuck`. -/
@@ -498,14 +501,17 @@ private theorem typeof_extract_diag_numeral_stuck_of_not_bv
   | Apply f a =>
       cases f with
       | UOp o =>
-          cases o <;>
-            (try (cases ha : a with
-              | Numeral w => exact absurd (by rw [hB', ha]) (hB w)
-              | _ =>
-                  simp only [__eo_typeof_extract, __eo_mk_apply, __eo_requires,
-                    __eo_gt, native_ite, native_teq, native_not,
-                    SmtEval.native_not])) <;>
-            simp only [__eo_typeof_extract]
+          by_cases hOBv : o = UserOp.BitVec
+          · subst o
+            cases ha : a with
+            | Numeral w =>
+                exfalso
+                exact hB w (by rw [hB', ha])
+            | _ =>
+                simp [__eo_typeof_extract, __eo_mk_apply, __eo_requires,
+                  __eo_gt, native_ite, native_teq, native_not,
+                  SmtEval.native_not, ha]
+          · cases o <;> simp [__eo_typeof_extract] at hOBv ⊢
       | _ => simp only [__eo_typeof_extract]
   | _ => simp only [__eo_typeof_extract]
 
@@ -527,8 +533,12 @@ private theorem typeof_extract_diag_bitvec_inv (wm t : Term) (m : Term)
       by_cases hg1 : native_zlt (-1 : native_Int) wmv = true
       · by_cases hg2 : native_zlt wmv w = true
         · exact ⟨wmv, w, rfl, hT, hg1, hg2⟩
-        · simp only [native_ite, hg1, hg2, Bool.not_eq_true] at h
-      · simp only [native_ite, hg1, Bool.not_eq_true] at h
+        · have hFalse : Term.Stuck = Term.Apply (Term.UOp UserOp.BitVec) m := by
+            simpa [native_ite, hg1, hg2] using h
+          cases hFalse
+      · have hFalse : Term.Stuck = Term.Apply (Term.UOp UserOp.BitVec) m := by
+          simpa [native_ite, hg1] using h
+        cases hFalse
     · rw [typeof_extract_diag_numeral_stuck_of_not_bv wmv (__eo_typeof t)
         (by intro w hw; exact hBv ⟨w, hw⟩)] at h
       exact absurd h (by simp)
@@ -895,13 +905,24 @@ private theorem smt_typeof_rhs_int
       rw [hwfit]; simpa [native_zlt, SmtEval.native_zlt] using hwlt
     have hwidth : native_int_to_nat
         (native_zplus (native_zplus wmv (native_zneg wmv)) 1) = 1 := by
-      simp only [native_int_to_nat, native_zplus, native_zneg]
-      omega
-    simp only [__smtx_typeof_extract, native_ite, hge0, hle, hlt, if_true, hwidth]
+      have hsum :
+          native_zplus (native_zplus wmv (native_zneg wmv)) 1 = (1 : native_Int) := by
+        change (wmv + -wmv) + 1 = (1 : Int)
+        calc
+          (wmv + -wmv) + 1 = 0 + 1 := by rw [Int.add_right_neg]
+          _ = 1 := rfl
+      rw [hsum]
+      native_decide
+    have hNatOne : native_int_to_nat (1 : native_Int) = 1 := by
+      native_decide
+    simpa only [__smtx_typeof_extract, native_ite, hge0, hle, hlt, if_true, hwidth]
+      using hNatOne
   have hBvTy : __smtx_typeof (SmtTerm.Binary 1 0) = SmtType.BitVec 1 := by
+    have hNatOne : native_int_to_nat (1 : native_Int) = 1 := by
+      native_decide
     rw [__smtx_typeof.eq_def] <;> simp only
     simp [native_ite, native_zleq, SmtEval.native_zleq, native_and, SmtEval.native_and,
-      native_zeq, SmtEval.native_zeq, native_mod_total, native_int_pow2]
+      native_zeq, SmtEval.native_zeq, native_mod_total, native_int_pow2, hNatOne]
   have hUbvTy : __smtx_typeof (SmtTerm.ubv_to_int (__eo_to_smt t)) = SmtType.Int := by
     rw [show __smtx_typeof (SmtTerm.ubv_to_int (__eo_to_smt t)) =
         __smtx_typeof_bv_op_1_ret (__smtx_typeof (__eo_to_smt t)) SmtType.Int by
@@ -1016,11 +1037,16 @@ private theorem facts_body_impl
   rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hWmRel
   rw [hNegEval] at hWmRel
   subst hwm
+  change __smtx_model_eval_eq (__smtx_model_eval M (SmtTerm.Numeral wmv))
+      (SmtValue.Numeral (native_zplus w (native_zneg 1))) =
+    SmtValue.Boolean true at hWmRel
   rw [smtx_eval_numeral_eq] at hWmRel
   have hWmEq : wmv = native_zplus w (native_zneg 1) := by
     have := (smtx_model_eval_eq_true_iff_numeral hWmRel)
     exact this
-  have hWmVal : wmv = w - 1 := by rw [hWmEq]; simp [native_zplus, native_zneg]
+  have hWmVal : wmv = w - 1 := by
+    rw [hWmEq]
+    simp [native_zplus, native_zneg, Int.sub_eq_add_neg]
   -- From premise 2: eval(n) = 2^w.
   have hPow2Eval :
       __smtx_model_eval M (__eo_to_smt (intPow2Term (bvsizeTerm t))) =
@@ -1050,7 +1076,8 @@ private theorem facts_body_impl
       exact this
     rw [this]
   -- Conclude via the eval crux.
-  have hBoolTy : RuleProofs.eo_has_bool_type (ufSbvToIntElimBody t wm n) := by
+  have hBoolTy : RuleProofs.eo_has_bool_type
+      (ufSbvToIntElimBody t (Term.Numeral wmv) n) := by
     have := typed_body_impl t (Term.Numeral wmv) n hTTrans hNTrans hResultTy
     exact this
   change eo_interprets M
@@ -1125,25 +1152,27 @@ by
                                 args_ne_stuck_of_prog_not_stuck a1 a2 a3 P1 P2 hProgArg
                               rcases shape_of_prog_uf_sbv_to_int_elim_not_stuck a1 a2 a3
                                 P1 P2 hA1NS hA2NS hA3NS hProgArg with
-                                ⟨wm2, t2, n2, t3, hP1eq, hP2eq⟩
+                                ⟨wm2, t2, nTerm2, t3, hP1eq, hP2eq⟩
                               have hProgEq :
                                   __eo_prog_uf_sbv_to_int_elim a1 a2 a3
                                       (Proof.pf P1) (Proof.pf P2) =
                                     __eo_requires
                                       (__eo_and
                                         (__eo_and (__eo_and (__eo_eq a2 wm2) (__eo_eq a1 t2))
-                                          (__eo_eq a3 n2))
+                                          (__eo_eq a3 nTerm2))
                                         (__eo_eq a1 t3))
                                       (Term.Boolean true)
                                       (ufSbvToIntElimBody a1 a2 a3) := by
                                 rw [hP1eq, hP2eq]
-                                exact prog_uf_sbv_to_int_elim_eq a1 a2 a3 wm2 t2 n2 t3
+                                exact prog_uf_sbv_to_int_elim_eq a1 a2 a3 wm2 t2 nTerm2 t3
                                   hA1NS hA2NS hA3NS
                               rw [hProgEq] at hProgArg hResultTy
                               obtain ⟨hwm2, ht2, hn2, ht3⟩ :=
-                                eqs_of_requires_and4_eq_true_not_stuck a2 wm2 a1 t2 a3 n2
+                                eqs_of_requires_and4_eq_true_not_stuck a2 wm2 a1 t2 a3 nTerm2
                                   a1 t3 _ hProgArg
-                              subst hwm2; subst ht2; subst hn2; subst ht3
+                              rw [hwm2, ht2] at hP1eq
+                              rw [hn2, ht3] at hP2eq
+                              rw [hwm2, ht2, hn2, ht3] at hProgEq hResultTy
                               rw [requires_and4_eq_self_true_body a1 a2 a3 _
                                 hA1NS hA2NS hA3NS] at hResultTy
                               have hStepEq :
@@ -1165,9 +1194,9 @@ by
                                     (CIndexList.cons n1 (CIndexList.cons n2 CIndexList.nil))) :=
                                   hPrem.true_here
                                 have hP1true : eo_interprets M P1 true :=
-                                  hAll P1 (by left; rfl)
+                                  hAll P1 (by left)
                                 have hP2true : eo_interprets M P2 true :=
-                                  hAll P2 (by right; left; rfl)
+                                  hAll P2 (by right; left)
                                 rw [hP1eq] at hP1true
                                 rw [hP2eq] at hP2true
                                 exact facts_body_impl M hM a1 a2 a3 hA1Trans hA3Trans
