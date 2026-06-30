@@ -5980,6 +5980,9 @@ theorem substFalse_eval_eo_to_smt_exists_diff_rel
                   simpa [__smtx_value_canonical] using hValCanon)
             exact
               ih
+                (bvs :=
+                  Term.Apply (Term.Apply Term.__eo_List_cons
+                    (Term.Var (Term.String s) T)) bvs)
                 (bvsVars := (s, T) :: bvsVars)
                 (M := native_model_push M s (__eo_to_smt_type T) v)
                 (N := native_model_push N s (__eo_to_smt_type T) v)
@@ -5987,10 +5990,8 @@ theorem substFalse_eval_eo_to_smt_exists_diff_rel
                 (by
                   simpa [List.reverse_cons, List.append_assoc] using
                     hFullBvsEnv)
-                hExceptEnv
                 (fun key hMem => hVsSub key (List.Mem.tail _ hMem))
-                hExceptWf hNoFreeSs hSsTrans hEntryTrans hMappedWf
-                hM' hN' hRelPush hBase)
+                hM' hN' hRelPush)
 
 /-- Reusable reduction for a **unary special-head application** in the
 substitution-evaluation induction. Given that the head's substitution is the
