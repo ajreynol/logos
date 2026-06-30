@@ -1141,34 +1141,36 @@ which we describe later in this section.
 
 \begin{figure}
 \begin{lstlisting}
-def smt_value_dt_substitute (s : native_String) (d : SmtDatatype) : SmtValue -> SmtValue
-  | (SmtValue.DtCons s2 d2 i) => (SmtValue.DtCons s2 (smt_dt_substitute s d d2) i)
-  | (SmtValue.Apply f v) => (SmtValue.Apply (smt_value_dt_substitute s d f) (smt_value_dt_substitute s d v))
-  | v => v
-  
-def smt_datatype_cons_default (s : native_String) (d : SmtDatatype) (v : SmtValue) : SmtDatatypeCons -> SmtValue
-  | SmtDatatypeCons.unit => v
-  | (SmtDatatypeCons.cons T c) => 
-    let _v0 := (smt_value_dt_substitute s d (smt_type_default T))
-    (native_ite (veq _v0 SmtValue.NotValue) SmtValue.NotValue (smt_datatype_cons_default s d (SmtValue.Apply v _v0) c))
+def smt_datatype_cons_default (v : SmtValue) : SmtDatatypeCons -> SmtDatatypeCons -> SmtValue
+  | SmtDatatypeCons.unit, SmtDatatypeCons.unit => v
+  | (SmtDatatypeCons.cons TF cF), (SmtDatatypeCons.cons TU cU) =>
+    let _v0 := (smt_type_default_rec TF TU)
+    (native_ite (veq _v0 SmtValue.NotValue) SmtValue.NotValue (smt_datatype_cons_default (SmtValue.Apply v _v0) cF cU))
+  | cF, cU => SmtValue.NotValue
 
-def smt_datatype_default (s : native_String) (d0 : SmtDatatype) (n : Nat) : SmtDatatype -> SmtValue
-  | SmtDatatype.null => SmtValue.NotValue
-  | (SmtDatatype.sum c d) => 
-    let _v0 := (smt_datatype_cons_default s d0 (SmtValue.DtCons s d0 n) c)
-    (native_ite (native_not (veq _v0 SmtValue.NotValue)) _v0 (smt_datatype_default s d0 (native_nat_succ n) d))
-    
-def smt_type_default : SmtType -> SmtValue
-  | SmtType.Bool => (SmtValue.Boolean false)
-  | SmtType.Int => (SmtValue.Numeral 0)
-  | (SmtType.Datatype s d) => (smt_datatype_default s d 0 d)
-  | (SmtType.Map T U) => (SmtValue.Map (SmtMap.default T (smt_type_default U)))
-  | (SmtType.Set T) => (SmtValue.Set (SmtMap.default T (SmtValue.Boolean false)))
-  | (SmtType.Seq T) => (SmtValue.Seq (SmtSeq.empty T))
-  | (SmtType.FunType T U) => (SmtValue.Fun "@default" T U)
-  | (SmtType.USort i) => (SmtValue.UValue i native_nat_zero)
-  | ... => ...
-  | T => SmtValue.NotValue
+def smt_datatype_default (s : native_String) (d : SmtDatatype) (n : Nat) : SmtDatatype -> SmtDatatype -> SmtValue
+  | (SmtDatatype.sum cF dF), (SmtDatatype.sum cU dU) =>
+    let _v0 := (smt_datatype_cons_default (SmtValue.DtCons s d n) cF cU)
+    (native_ite (native_not (veq _v0 SmtValue.NotValue)) _v0 (smt_datatype_default s d (native_nat_succ n) dF dU))
+  | dF, dU => SmtValue.NotValue
+
+def smt_type_default_rec : SmtType -> SmtType -> SmtValue
+  | (SmtType.Datatype sF dF), (SmtType.Datatype sU dU) =>
+    (smt_datatype_default sF dF 0 (smt_dt_substitute sF dF dF) dU)
+  | V, SmtType.Bool => (SmtValue.Boolean false)
+  | V, SmtType.Int => (SmtValue.Numeral 0)
+  | V, (SmtType.Map T U) =>
+    let _v0 := (smt_type_default_rec U U)
+    (native_ite (veq _v0 SmtValue.NotValue) SmtValue.NotValue (SmtValue.Map (SmtMap.default T _v0)))
+  | V, (SmtType.Set T) => (SmtValue.Set (SmtMap.default T (SmtValue.Boolean false)))
+  | V, (SmtType.Seq T) => (SmtValue.Seq (SmtSeq.empty T))
+  | V, (SmtType.FunType T U) => (SmtValue.Fun "@default" T U)
+  | V, (SmtType.USort i) => (SmtValue.UValue i native_nat_zero)
+  | V, ... => ...
+  | V, T => SmtValue.NotValue
+
+def smt_type_default (T : SmtType) : SmtValue :=
+  (smt_type_default_rec T T)
 \end{lstlisting}
 \caption{Finite default value computation.}
 \label{fig:default-value}
@@ -1271,7 +1273,8 @@ def smt_map_entries_ordered_after (i : SmtValue) : SmtMap -> Bool
 
 def smt_map_canonical : SmtMap -> Bool
   | (SmtMap.default T e) =>
-    !(smt_is_finite_type T) || (veq e (smt_type_default (smt_typeof_value e)))
+    (!(smt_is_finite_type T) || (veq e (smt_type_default (smt_typeof_value e)))) &&
+    (smt_value_canonical e)
   | (SmtMap.cons i e m) =>
       smt_value_canonical i &&
       smt_value_canonical e &&
@@ -1395,15 +1398,15 @@ def smt_dt_cons_wf_rec : SmtDatatypeCons -> RefList -> Bool
       (inhabited_type T) && (smt_type_wf_rec T refs) && (smt_dt_cons_wf_rec c refs)
   | SmtDatatypeCons.unit, refs => true
 
-def smt_dt_wf_rec : SmtDatatype -> RefList -> Bool
-  | SmtDatatype.null, refs => false
-  | (SmtDatatype.sum c SmtDatatype.null), refs => (smt_dt_cons_wf_rec c refs)
-  | (SmtDatatype.sum c d), refs =>
-      (smt_dt_cons_wf_rec c refs) && (smt_dt_wf_rec d refs)
+def smt_dt_wf_rec (s : String) (refs : RefList) (haveBase : Bool) : SmtDatatype -> Bool
+  | SmtDatatype.null => haveBase
+  | (SmtDatatype.sum c d) =>
+      (smt_dt_cons_wf_rec c (s :: refs)) &&
+      (smt_dt_wf_rec s refs (haveBase || (smt_dt_cons_wf_rec c refs)) d)
 
 def smt_type_wf_rec : SmtType -> RefList -> Bool
   | (SmtType.Datatype s d), refs =>
-      if s ∈ refs then false else smt_dt_wf_rec d (s :: refs)
+      if s ∈ refs then false else smt_dt_wf_rec s refs false d
   | (SmtType.TypeRef s), refs => false
   | (SmtType.Seq x1), refs => (smt_type_wf_component x1)
   | (SmtType.Map x1 x2), refs =>
