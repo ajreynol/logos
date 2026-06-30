@@ -26,7 +26,7 @@
     Char, Datatype, Int, Nat, ObjectModel, ObjectTerm, Option, Prop, Rat,
     RefList, SmtDatatype,
     SmtDatatypeCons, SmtMap, SmtModel, SmtModelKey, SmtNativeFun, SmtSeq,
-    SmtRegLan, SmtTerm, SmtType, SmtValue, String, Term, Type, native_RegLan
+    SmtRegLan, SmtTerm, SmtType, SmtValue, String, Term, Type, SmtRegLan
   },
   morekeywords=[3]{
     false, none, some, true
@@ -1648,56 +1648,150 @@ when applied to \code{i} results in a value of type \code{B}, and moreover the r
 
 Notice that for both clauses, we insist that the respective components of \code{M} are total mappings.
 
-
 \subsection{Model Evaluation}
 
-
-\begin{figure}[p]
+\begin{figure}
 \begin{lstlisting}
-def native_str_in_re : String -> native_RegLan -> Bool
-  | s, r => native_re_nullable <| s.toList.foldl (fun acc c => native_re_deriv c acc) r
-
-open Classical in
-noncomputable def re_ext_eq (r1 r2 : native_RegLan) : Bool :=
-  if ∀ s : String, native_str_in_re s r1 = native_str_in_re s r2 then true else false
-
-def smt_model_eval_eq : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.RegLan r1), (SmtValue.RegLan r2) => (SmtValue.Boolean (re_ext_eq r1 r2))
-  | v1, v2 => (SmtValue.Boolean (decide (v1 = v2)))
-  
 def smt_model_eval_not : SmtValue -> SmtValue
   | (SmtValue.Boolean b) => (SmtValue.Boolean !b)
   | v1 => SmtValue.NotValue
 
+def str_in_re : String -> SmtRegLan -> Bool
+  ...
+
+open Classical in
+noncomputable def re_ext_eq (r1 r2 : SmtRegLan) : Bool :=
+  if ∀ s : String, (str_in_re s r1 = str_in_re s r2)
+
+def smt_model_eval_eq : SmtValue -> SmtValue -> SmtValue
+  | (SmtValue.RegLan r1), (SmtValue.RegLan r2) => (SmtValue.Boolean (re_ext_eq r1 r2))
+  | v1, v2 => (SmtValue.Boolean (veq v1 v2))
+
 open Classical in
 noncomputable def eval_texists (M : SmtModel) (s : String)
     (T : SmtType) (body : SmtTerm) : SmtValue :=
-  if ∃ v : SmtValue,
+  SmtValue.Boolean (∃ v : SmtValue,
       smt_typeof_value v = T ∧
         smt_value_canonical v = true ∧
-        smt_model_eval (model_push M s T v) body = (SmtValue.Boolean true) then
-    SmtValue.Boolean true
-  else
-    SmtValue.Boolean false
+        smt_model_eval (model_push M s T v) body = (SmtValue.Boolean true))
+
+def smt_model_eval_apply (M : SmtModel) : SmtValue -> SmtValue -> SmtValue
+  | v, SmtValue.NotValue => SmtValue.NotValue
+  | (SmtValue.DtCons s d n), i => (SmtValue.Apply (SmtValue.DtCons s d n) i)
+  | (SmtValue.Apply f v), i => (SmtValue.Apply (SmtValue.Apply f v) i)
+  | (SmtValue.Fun s T U), i => (model_fun_lookup M s T U i)
+  | v, i => SmtValue.NotValue
 
 noncomputable def smt_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.Boolean b) => (SmtValue.Boolean b)
-  | (SmtTerm.String s) => (SmtValue.Seq (native_pack_string s))
+  | (SmtTerm.Numeral b) => (SmtValue.Numeral b)
+  ...
   | (SmtTerm.not x1) => (smt_model_eval_not (smt_model_eval M x1))
   | (SmtTerm.eq x1 x2) => (smt_model_eval_eq (smt_model_eval M x1) (smt_model_eval M x2))
   | (SmtTerm.exists s T x1) => (eval_texists M s T x1)
+  | (SmtTerm.DtCons s d i) => (SmtValue.DtCons s d i)
+  | (SmtTerm.Apply f x1) =>
+      (smt_model_eval_apply M (smt_model_eval M f) (smt_model_eval M x1))
   | (SmtTerm.Var s T) => (model_lookup M true s T)
   | (SmtTerm.Const s T) => (model_lookup M false s T)
   | ... => ...
 \end{lstlisting}
-\caption{Skeleton of SMT term evaluation in a model.}
+\caption{Core skeleton of SMT term evaluation in a model.}
 \label{fig:model-eval}
 \end{figure}
 
 
+Figure~\ref{fig:model-eval}
+gives a sample of cases for model evaluation, which takes as input an SMT-LIB model and a term,
+and returns the evaluation of that term in the model.
+We will prove several theorems about this method later.
+It is important to note that the method is marked \code{noncomputable}
+in Lean, since several cases rely on native Lean quantification.
+Thus, as mentioned, model evaluation cannot be used in the Logos executable,
+instead it is a specification that we will base our correctness proof upon.
+Its also important to note that the model evaluation method \code{smt_model_eval}
+is largely structurally recursive.
+For example, for a majority of operators, it builds values by first evaluating each
+direct subterm of the current one and then combining their results.
 
+In the method \code{smt_model_eval},
+we present a sample of the cases.
+The first set of cases is for the atomic interpreted constant terms,
+e.g. Booleans, integer numerals, etc.
+These simply evaluate to their corresponding SMT-LIB value.
+We then present the evaluator for SMT-LIB \code{not}.
+This recursively calls model evaluation on its argument
+which is passed to \code{smt_model_eval_not}.
+If the argument was a Boolean value, then its payload is negated.
+Otherwise, we return an error.
+A majority of evaluation for SMT-LIB operators is defined in this manner.
 
+We also present several of the key definitions for evaluation.
+In particular, the next case is for SMT-LIB equality.
+We define the method \code{smt_model_eval_eq} for this, which takes the
+result of evaluating both sides of the equality.
+Recall that our definitions of canonicity
+implied that for most types, two canonical values
+are syntactically distinct iff they are semantically distinct.
+Moreover, we will prove as an invariant of our model evaluation that
+for well-formed models, only canonical values are returned.
+This is reflected in our definition of \code{smt_model_eval_eq}.
+For all types (apart from regular expressions),
+model evaluation for equality reduces to a syntactic comparison of the two values (via \code{veq}).
+For regular expression values (\code{SmtValue.RegLan}),
+we instead rely on an extensional definition of equality,
+which states that two regular expressions are equal if regular expression
+membership is equivalent for all strings.
+This definition depends on a method \code{str_in_re} (not given)
+for deciding whether a concrete string is a member of a (ground) regular expression.
+This method internally is based on derivatives of strings.
 
+Note that function values are treated \emph{intensionally} in our definition of equality:
+the values \code{(Fun n U T)} and \code{(Fun m U T)},
+i.e. two function values over the same type are unconditionally considered
+disequal when \code{n} and \code{m} are distinct natural numbers.
+This is even if the function they refer to the model (via \code{M.nativeFuns}) 
+is identical.
+This is an acceptable definition, as we do not consider functions to be a
+first-class type in our representation.
+
+The next case we give is for the SMT-LIB quantifier \code{exists}.
+This case involves an auxiliary definition \code{eval_texists}.
+This returns a Boolean whose value is determined by a Lean binder,
+which existentially quantifies over SMT-LIB values.
+It states that if there exists a (canonical) value of the same type as the binder
+such that the body evaluates to true under the model \code{(model_push M s T v)}.
+Recall that the definition of \code{model_push} from Figure~\ref{fig:smt-model}
+updates the variable with name \code{s} and type \code{T} to be value \code{v}.
+In other words, the recursive model evaluation is done on a modified
+verision of the current model where the variable specified by the binder
+is \emph{replaced} by \code{v}.
+Note that this definition has the advantage that we do not need to
+define a substitution function on terms, nor do we need have SMT-LIB terms
+depend on SMT-LIB values (the two datatypes do not depend on one another).
+The case for universal quantification \code{forall} (not given) is similar.
+
+The next two cases handle datatype constructors and applications
+of datatype constructors and functions.
+Firstly, datatype constructor terms are interpreted as their corresponding
+datatype constructor value.
+For applications, we first evaluate the function and argument
+and call the method \code{smt_model_eval_apply}.
+This has 5 cases.
+First, if the argument failed to evaluate, we fail to evaluate.
+Second, if the head was a datatype constructor, then we construct
+the (partially) applied datatype selector value via \code{SmtValue.Apply}.
+The third cases handles when the head itself was a partially applied selector.
+It is the case by induction that the only \code{SmtValue.Apply} values
+returned by model evaluation necessarily have datatype constructors as their heads.
+In the fourth case, if the head was a function value,
+we lookup its value in the model and apply it to the argument.
+Otherwise, we fail to evaluate.
+
+The next cases of \code{smt_model_eval_apply}
+are for variables (\code{Var}) and free constants (\code{Const}).
+These are handled similarly in the model, where the model lookup
+takes a flag denoting whether or not the lookup is for a variable.
 
 
 \subsection{Types of SMT-LIB Terms}
