@@ -19472,6 +19472,452 @@ private theorem re_rev_map_rev_arg_ne_stuck_of_ne_stuck_local
   subst a
   cases acc <;> simp [__re_rev_map_rev] at h
 
+private abbrev re_empty_string_re_consume_local : Term :=
+  Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
+
+private theorem re_rev_comp_arg_ne_stuck_of_ne_stuck_local
+    (c : Term)
+    (h : __re_rev_comp c ≠ Term.Stuck) :
+    c ≠ Term.Stuck := by
+  intro hc
+  subst c
+  simp [__re_rev_comp] at h
+
+private theorem eo_mk_apply_ne_stuck_of_args_local
+    (f x : Term)
+    (hf : f ≠ Term.Stuck)
+    (hx : x ≠ Term.Stuck) :
+    __eo_mk_apply f x ≠ Term.Stuck := by
+  cases f <;> cases x <;> simp [__eo_mk_apply] at hf hx ⊢
+
+private theorem eo_mk_apply_eq_apply_of_args_local
+    (f x : Term)
+    (hf : f ≠ Term.Stuck)
+    (hx : x ≠ Term.Stuck) :
+    __eo_mk_apply f x = Term.Apply f x :=
+  eo_mk_apply_eq_apply_of_ne_stuck f x
+    (eo_mk_apply_ne_stuck_of_args_local f x hf hx)
+
+private def re_rev_map_rev_action_involutive_motive_local
+    (a acc : Term) : Prop :=
+  __re_rev_map_rev a acc ≠ Term.Stuck ->
+    __re_rev_map_rev (__re_rev_map_rev a acc)
+        re_empty_string_re_consume_local =
+      __re_rev_map_rev acc a
+
+private def re_rev_comp_action_involutive_motive_local
+    (c : Term) : Prop :=
+  __re_rev_comp c ≠ Term.Stuck ->
+    __re_rev_comp (__re_rev_comp c) = c
+
+private theorem re_rev_map_rev_comp_action_involutive_local :
+    (∀ a acc, re_rev_map_rev_action_involutive_motive_local a acc) ∧
+      (∀ c, re_rev_comp_action_involutive_motive_local c) := by
+  let eps := re_empty_string_re_consume_local
+  have case1 :
+      ∀ t, re_rev_map_rev_action_involutive_motive_local t Term.Stuck := by
+    intro t h
+    exfalso
+    exact h (__re_rev_map_rev.eq_1 t)
+  have case2 :
+      ∀ acc, (acc = Term.Stuck -> False) ->
+        re_rev_map_rev_action_involutive_motive_local eps acc := by
+    intro acc hAccNe _hRev
+    simpa [re_rev_map_rev_action_involutive_motive_local, eps,
+      re_empty_string_re_consume_local, __re_rev_map_rev.eq_2 acc hAccNe]
+  have case3 :
+      ∀ a b acc,
+        (acc = Term.Stuck -> False) ->
+        re_rev_comp_action_involutive_motive_local a ->
+        re_rev_map_rev_action_involutive_motive_local b
+          (__eo_mk_apply
+            (__eo_mk_apply (Term.UOp UserOp.re_concat)
+              (__re_rev_comp a)) acc) ->
+        re_rev_map_rev_action_involutive_motive_local
+          (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a) b)
+          acc := by
+    intro a b acc hAccNe ihComp ihTail hRev
+    let compA := __re_rev_comp a
+    let newAcc :=
+      __eo_mk_apply
+        (__eo_mk_apply (Term.UOp UserOp.re_concat) compA) acc
+    have hEq :
+        __re_rev_map_rev
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a) b)
+            acc =
+          __re_rev_map_rev b newAcc := by
+      simpa [compA, newAcc] using
+        __re_rev_map_rev.eq_3 acc a b hAccNe
+    have hTailRev : __re_rev_map_rev b newAcc ≠ Term.Stuck := by
+      intro hBad
+      exact hRev (by simpa [hEq] using hBad)
+    have hTail := ihTail hTailRev
+    have hNewAccNe : newAcc ≠ Term.Stuck :=
+      re_rev_map_rev_acc_ne_stuck_of_ne_stuck_local b newAcc hTailRev
+    have hInnerNe :
+        __eo_mk_apply (Term.UOp UserOp.re_concat) compA ≠ Term.Stuck :=
+      eo_mk_apply_fun_ne_stuck_of_ne_stuck
+        (__eo_mk_apply (Term.UOp UserOp.re_concat) compA) acc
+        (by simpa [newAcc] using hNewAccNe)
+    have hCompNe : compA ≠ Term.Stuck :=
+      eo_mk_apply_arg_ne_stuck_of_ne_stuck
+        (Term.UOp UserOp.re_concat) compA hInnerNe
+    have hCompInv : __re_rev_comp compA = a :=
+      ihComp (by simpa [compA] using hCompNe)
+    have hBNe : b ≠ Term.Stuck :=
+      re_rev_map_rev_arg_ne_stuck_of_ne_stuck_local b newAcc hTailRev
+    have hANe : a ≠ Term.Stuck :=
+      re_rev_comp_arg_ne_stuck_of_ne_stuck_local a
+        (by simpa [compA] using hCompNe)
+    have hInnerEq :
+        __eo_mk_apply (Term.UOp UserOp.re_concat) compA =
+          Term.Apply (Term.UOp UserOp.re_concat) compA :=
+      eo_mk_apply_eq_apply_of_ne_stuck
+        (Term.UOp UserOp.re_concat) compA hInnerNe
+    have hNewAccEq :
+        newAcc = Term.Apply
+          (Term.Apply (Term.UOp UserOp.re_concat) compA) acc := by
+      have hOuterEq := eo_mk_apply_eq_apply_of_ne_stuck
+        (__eo_mk_apply (Term.UOp UserOp.re_concat) compA) acc
+        (by simpa [newAcc] using hNewAccNe)
+      rw [show newAcc =
+            __eo_mk_apply
+              (__eo_mk_apply (Term.UOp UserOp.re_concat) compA) acc by
+            rfl,
+        hOuterEq, hInnerEq]
+    have hMapNew :
+        __re_rev_map_rev newAcc b =
+          __re_rev_map_rev acc
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a) b) := by
+      have hEqNew :
+          __re_rev_map_rev
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) compA)
+                acc) b =
+            __re_rev_map_rev acc
+              (__eo_mk_apply
+                (__eo_mk_apply (Term.UOp UserOp.re_concat)
+                  (__re_rev_comp compA)) b) := by
+        simpa using __re_rev_map_rev.eq_3 b compA acc hBNe
+      have hMkInnerA :
+          __eo_mk_apply (Term.UOp UserOp.re_concat) a =
+            Term.Apply (Term.UOp UserOp.re_concat) a :=
+        eo_mk_apply_eq_apply_of_args_local
+          (Term.UOp UserOp.re_concat) a (by simp) hANe
+      have hMkOuterA :
+          __eo_mk_apply
+              (__eo_mk_apply (Term.UOp UserOp.re_concat) a) b =
+            Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a) b := by
+        rw [eo_mk_apply_eq_apply_of_args_local
+          (__eo_mk_apply (Term.UOp UserOp.re_concat) a) b]
+        · rw [hMkInnerA]
+        · rw [hMkInnerA]
+          simp
+        · exact hBNe
+      rw [hNewAccEq]
+      rw [hEqNew]
+      rw [hCompInv]
+      rw [hMkOuterA]
+    calc
+      __re_rev_map_rev
+          (__re_rev_map_rev
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a) b)
+            acc) re_empty_string_re_consume_local
+          = __re_rev_map_rev (__re_rev_map_rev b newAcc)
+              re_empty_string_re_consume_local := by
+            rw [hEq]
+      _ = __re_rev_map_rev newAcc b := hTail
+      _ = __re_rev_map_rev acc
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a) b) :=
+            hMapNew
+  have case4 :
+      ∀ t x,
+        (x = Term.Stuck -> False) ->
+        (t = eps -> False) ->
+        (∀ a b,
+          t = Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a) b ->
+            False) ->
+        re_rev_map_rev_action_involutive_motive_local t x := by
+    intro t x hX hNotEps hNotConcat hRev
+    exfalso
+    exact hRev (by
+      simpa [eps, re_empty_string_re_consume_local] using
+        __re_rev_map_rev.eq_4 t x
+          (by simpa [eps, re_empty_string_re_consume_local] using hNotEps)
+          hNotConcat hX)
+  have case5 :
+      re_rev_comp_action_involutive_motive_local Term.Stuck := by
+    intro h
+    exfalso
+    exact h __re_rev_comp.eq_1
+  have case6 :
+      re_rev_comp_action_involutive_motive_local
+        (Term.UOp UserOp.re_all) := by
+    intro _h
+    simp [__re_rev_comp]
+  have case7 :
+      re_rev_comp_action_involutive_motive_local
+        (Term.UOp UserOp.re_none) := by
+    intro _h
+    simp [__re_rev_comp]
+  have case8 :
+      ∀ body, re_rev_map_rev_action_involutive_motive_local body eps ->
+        re_rev_comp_action_involutive_motive_local
+          (Term.Apply (Term.UOp UserOp.re_mult) body) := by
+    intro body ih hRev
+    let mapped := __re_rev_map_rev body eps
+    have hEq :
+        __re_rev_comp (Term.Apply (Term.UOp UserOp.re_mult) body) =
+          __eo_mk_apply (Term.UOp UserOp.re_mult) mapped := by
+      simpa [eps, mapped] using __re_rev_comp.eq_4 body
+    have hMkNe :
+        __eo_mk_apply (Term.UOp UserOp.re_mult) mapped ≠ Term.Stuck := by
+      intro hBad
+      exact hRev (by simpa [hEq] using hBad)
+    have hMappedNe : mapped ≠ Term.Stuck :=
+      eo_mk_apply_arg_ne_stuck_of_ne_stuck
+        (Term.UOp UserOp.re_mult) mapped hMkNe
+    have hMapInv := ih (by simpa [mapped] using hMappedNe)
+    have hBodyNe : body ≠ Term.Stuck :=
+      re_rev_map_rev_arg_ne_stuck_of_ne_stuck_local body eps
+        (by simpa [mapped] using hMappedNe)
+    have hMapEpsBody : __re_rev_map_rev eps body = body := by
+      simpa [eps, re_empty_string_re_consume_local] using
+        __re_rev_map_rev.eq_2 body hBodyNe
+    have hMkEqMapped :
+        __eo_mk_apply (Term.UOp UserOp.re_mult) mapped =
+          Term.Apply (Term.UOp UserOp.re_mult) mapped :=
+      eo_mk_apply_eq_apply_of_ne_stuck
+        (Term.UOp UserOp.re_mult) mapped hMkNe
+    have hMkEqBody :
+        __eo_mk_apply (Term.UOp UserOp.re_mult) body =
+          Term.Apply (Term.UOp UserOp.re_mult) body :=
+      eo_mk_apply_eq_apply_of_args_local
+        (Term.UOp UserOp.re_mult) body (by simp) hBodyNe
+    rw [hEq, hMkEqMapped]
+    simp [__re_rev_comp]
+    rw [show __re_rev_map_rev mapped re_empty_string_re_consume_local =
+          __re_rev_map_rev eps body by
+        simpa [eps, re_empty_string_re_consume_local, mapped] using hMapInv]
+    rw [hMapEpsBody]
+    rw [hMkEqBody]
+  have comp_inter_union
+      (op : UserOp)
+      (hop : op = UserOp.re_inter ∨ op = UserOp.re_union)
+      (c1 c2 : Term)
+      (ihLeft : re_rev_map_rev_action_involutive_motive_local c1 eps)
+      (ihRight : re_rev_comp_action_involutive_motive_local c2)
+      (hRev :
+        __re_rev_comp (Term.Apply (Term.Apply (Term.UOp op) c1) c2) ≠
+          Term.Stuck) :
+      __re_rev_comp
+          (__re_rev_comp (Term.Apply (Term.Apply (Term.UOp op) c1) c2)) =
+        Term.Apply (Term.Apply (Term.UOp op) c1) c2 := by
+    cases hop with
+    | inl hopInter =>
+        subst op
+        let left := __re_rev_map_rev c1 eps
+        let right := __re_rev_comp c2
+        let inner := __eo_mk_apply (Term.UOp UserOp.re_inter) left
+        let outer := __eo_mk_apply inner right
+        have hEq :
+            __re_rev_comp
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) c1)
+                  c2) =
+              outer := by
+          simpa [eps, left, right, inner, outer] using
+            __re_rev_comp.eq_5 c1 c2
+        have hOuterNe : outer ≠ Term.Stuck := by
+          intro hBad
+          exact hRev (by simpa [hEq] using hBad)
+        have hInnerNe : inner ≠ Term.Stuck :=
+          eo_mk_apply_fun_ne_stuck_of_ne_stuck inner right hOuterNe
+        have hRightNe : right ≠ Term.Stuck :=
+          eo_mk_apply_arg_ne_stuck_of_ne_stuck inner right hOuterNe
+        have hLeftNe : left ≠ Term.Stuck :=
+          eo_mk_apply_arg_ne_stuck_of_ne_stuck
+            (Term.UOp UserOp.re_inter) left hInnerNe
+        have hLeftInv := ihLeft (by simpa [left] using hLeftNe)
+        have hRightInv := ihRight (by simpa [right] using hRightNe)
+        have hC1Ne : c1 ≠ Term.Stuck :=
+          re_rev_map_rev_arg_ne_stuck_of_ne_stuck_local c1 eps
+            (by simpa [left] using hLeftNe)
+        have hC2Ne : c2 ≠ Term.Stuck :=
+          re_rev_comp_arg_ne_stuck_of_ne_stuck_local c2
+            (by simpa [right] using hRightNe)
+        have hMapEpsC1 : __re_rev_map_rev eps c1 = c1 := by
+          simpa [eps, re_empty_string_re_consume_local] using
+            __re_rev_map_rev.eq_2 c1 hC1Ne
+        have hInnerEq :
+            inner = Term.Apply (Term.UOp UserOp.re_inter) left :=
+          eo_mk_apply_eq_apply_of_ne_stuck
+            (Term.UOp UserOp.re_inter) left hInnerNe
+        have hOuterEq :
+            outer = Term.Apply
+              (Term.Apply (Term.UOp UserOp.re_inter) left) right := by
+          have hOuterEq0 :=
+            eo_mk_apply_eq_apply_of_ne_stuck inner right hOuterNe
+          simpa [outer, hInnerEq] using hOuterEq0
+        have hMkInnerC1 :
+            __eo_mk_apply (Term.UOp UserOp.re_inter) c1 =
+              Term.Apply (Term.UOp UserOp.re_inter) c1 :=
+          eo_mk_apply_eq_apply_of_args_local
+            (Term.UOp UserOp.re_inter) c1 (by simp) hC1Ne
+        have hMkOuterC :
+            __eo_mk_apply
+                (__eo_mk_apply (Term.UOp UserOp.re_inter) c1) c2 =
+              Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) c1) c2 := by
+          rw [eo_mk_apply_eq_apply_of_args_local
+            (__eo_mk_apply (Term.UOp UserOp.re_inter) c1) c2]
+          · rw [hMkInnerC1]
+          · rw [hMkInnerC1]
+            simp
+          · exact hC2Ne
+        rw [hEq, hOuterEq]
+        simp [__re_rev_comp]
+        rw [show __re_rev_map_rev left re_empty_string_re_consume_local =
+              __re_rev_map_rev eps c1 by
+            simpa [eps, re_empty_string_re_consume_local, left] using
+              hLeftInv]
+        rw [hMapEpsC1]
+        rw [hRightInv]
+        rw [hMkOuterC]
+    | inr hopUnion =>
+        subst op
+        let left := __re_rev_map_rev c1 eps
+        let right := __re_rev_comp c2
+        let inner := __eo_mk_apply (Term.UOp UserOp.re_union) left
+        let outer := __eo_mk_apply inner right
+        have hEq :
+            __re_rev_comp
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) c1)
+                  c2) =
+              outer := by
+          simpa [eps, left, right, inner, outer] using
+            __re_rev_comp.eq_6 c1 c2
+        have hOuterNe : outer ≠ Term.Stuck := by
+          intro hBad
+          exact hRev (by simpa [hEq] using hBad)
+        have hInnerNe : inner ≠ Term.Stuck :=
+          eo_mk_apply_fun_ne_stuck_of_ne_stuck inner right hOuterNe
+        have hRightNe : right ≠ Term.Stuck :=
+          eo_mk_apply_arg_ne_stuck_of_ne_stuck inner right hOuterNe
+        have hLeftNe : left ≠ Term.Stuck :=
+          eo_mk_apply_arg_ne_stuck_of_ne_stuck
+            (Term.UOp UserOp.re_union) left hInnerNe
+        have hLeftInv := ihLeft (by simpa [left] using hLeftNe)
+        have hRightInv := ihRight (by simpa [right] using hRightNe)
+        have hC1Ne : c1 ≠ Term.Stuck :=
+          re_rev_map_rev_arg_ne_stuck_of_ne_stuck_local c1 eps
+            (by simpa [left] using hLeftNe)
+        have hC2Ne : c2 ≠ Term.Stuck :=
+          re_rev_comp_arg_ne_stuck_of_ne_stuck_local c2
+            (by simpa [right] using hRightNe)
+        have hMapEpsC1 : __re_rev_map_rev eps c1 = c1 := by
+          simpa [eps, re_empty_string_re_consume_local] using
+            __re_rev_map_rev.eq_2 c1 hC1Ne
+        have hInnerEq :
+            inner = Term.Apply (Term.UOp UserOp.re_union) left :=
+          eo_mk_apply_eq_apply_of_ne_stuck
+            (Term.UOp UserOp.re_union) left hInnerNe
+        have hOuterEq :
+            outer = Term.Apply
+              (Term.Apply (Term.UOp UserOp.re_union) left) right := by
+          have hOuterEq0 :=
+            eo_mk_apply_eq_apply_of_ne_stuck inner right hOuterNe
+          simpa [outer, hInnerEq] using hOuterEq0
+        have hMkInnerC1 :
+            __eo_mk_apply (Term.UOp UserOp.re_union) c1 =
+              Term.Apply (Term.UOp UserOp.re_union) c1 :=
+          eo_mk_apply_eq_apply_of_args_local
+            (Term.UOp UserOp.re_union) c1 (by simp) hC1Ne
+        have hMkOuterC :
+            __eo_mk_apply
+                (__eo_mk_apply (Term.UOp UserOp.re_union) c1) c2 =
+              Term.Apply (Term.Apply (Term.UOp UserOp.re_union) c1) c2 := by
+          rw [eo_mk_apply_eq_apply_of_args_local
+            (__eo_mk_apply (Term.UOp UserOp.re_union) c1) c2]
+          · rw [hMkInnerC1]
+          · rw [hMkInnerC1]
+            simp
+          · exact hC2Ne
+        rw [hEq, hOuterEq]
+        simp [__re_rev_comp]
+        rw [show __re_rev_map_rev left re_empty_string_re_consume_local =
+              __re_rev_map_rev eps c1 by
+            simpa [eps, re_empty_string_re_consume_local, left] using
+              hLeftInv]
+        rw [hMapEpsC1]
+        rw [hRightInv]
+        rw [hMkOuterC]
+  have case9 :
+      ∀ c1 c2,
+        re_rev_map_rev_action_involutive_motive_local c1 eps ->
+        re_rev_comp_action_involutive_motive_local c2 ->
+        re_rev_comp_action_involutive_motive_local
+          (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) c1) c2) := by
+    intro c1 c2 ihLeft ihRight hRev
+    exact comp_inter_union UserOp.re_inter (Or.inl rfl) c1 c2
+      ihLeft ihRight hRev
+  have case10 :
+      ∀ c1 c2,
+        re_rev_map_rev_action_involutive_motive_local c1 eps ->
+        re_rev_comp_action_involutive_motive_local c2 ->
+        re_rev_comp_action_involutive_motive_local
+          (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) c1) c2) := by
+    intro c1 c2 ihLeft ihRight hRev
+    exact comp_inter_union UserOp.re_union (Or.inr rfl) c1 c2
+      ihLeft ihRight hRev
+  have case11 :
+      ∀ c,
+        (c = Term.Stuck -> False) ->
+        (c = Term.UOp UserOp.re_all -> False) ->
+        (c = Term.UOp UserOp.re_none -> False) ->
+        (∀ body, c = Term.Apply (Term.UOp UserOp.re_mult) body ->
+          False) ->
+        (∀ c1 c2,
+          c = Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) c1) c2 ->
+            False) ->
+        (∀ c1 c2,
+          c = Term.Apply (Term.Apply (Term.UOp UserOp.re_union) c1) c2 ->
+            False) ->
+        re_rev_comp_action_involutive_motive_local c := by
+    intro c hSt hAll hNone hMult hInter hUnion hRev
+    simpa [re_rev_comp_action_involutive_motive_local,
+      __re_rev_comp.eq_7 c hSt hAll hNone hMult hInter hUnion]
+  constructor
+  · intro a acc
+    exact __re_rev_map_rev.induct
+      re_rev_map_rev_action_involutive_motive_local
+      re_rev_comp_action_involutive_motive_local
+      case1 case2 case3 case4 case5 case6 case7 case8 case9 case10
+      case11 a acc
+  · intro c
+    exact __re_rev_comp.induct
+      re_rev_map_rev_action_involutive_motive_local
+      re_rev_comp_action_involutive_motive_local
+      case1 case2 case3 case4 case5 case6 case7 case8 case9 case10
+      case11 c
+
+private theorem re_rev_map_rev_action_double_eps_local
+    (a : Term)
+    (hRev :
+      __re_rev_map_rev a re_empty_string_re_consume_local ≠
+        Term.Stuck) :
+    __re_rev_map_rev
+        (__re_rev_map_rev a re_empty_string_re_consume_local)
+        re_empty_string_re_consume_local =
+      a := by
+  have hMain :=
+    (re_rev_map_rev_comp_action_involutive_local.1
+      a re_empty_string_re_consume_local) hRev
+  have hANe : a ≠ Term.Stuck :=
+    re_rev_map_rev_arg_ne_stuck_of_ne_stuck_local
+      a re_empty_string_re_consume_local hRev
+  have hEpsA : __re_rev_map_rev re_empty_string_re_consume_local a = a := by
+    simpa [re_empty_string_re_consume_local] using
+      __re_rev_map_rev.eq_2 a hANe
+  simpa [hEpsA] using hMain
+
 private def re_rev_map_rev_type_motive_local (a acc : Term) : Prop :=
   __smtx_typeof (__eo_to_smt a) = SmtType.RegLan ->
     __eo_is_list (Term.UOp UserOp.re_concat) acc =
@@ -28717,6 +29163,102 @@ theorem str_re_consume_model_rel
       rfl
     subst nextRv0
     exact hRel
+  have hRegLanRelOfActionDoubleRevEvalFactsProgress :
+      ∀ rParts rv nextRv,
+        __smtx_model_eval M (__eo_to_smt rParts) = SmtValue.RegLan rv ->
+        __re_rev_map_rev rParts
+            (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) ≠
+          Term.Stuck ->
+        __smtx_model_eval M
+            (__eo_to_smt
+              (__re_rev_map_rev
+                (__re_rev_map_rev rParts
+                  (Term.Apply (Term.UOp UserOp.str_to_re)
+                    (Term.String [])))
+                (Term.Apply (Term.UOp UserOp.str_to_re)
+                  (Term.String [])))) =
+          SmtValue.RegLan nextRv ->
+          RuleProofs.smt_value_rel (SmtValue.RegLan nextRv)
+            (SmtValue.RegLan rv) := by
+    intro rParts rv nextRv hREval hRevNe hNextREval
+    let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
+    have hDouble :
+        __re_rev_map_rev (__re_rev_map_rev rParts eps) eps = rParts := by
+      exact re_rev_map_rev_action_double_eps_local rParts
+        (by simpa [eps] using hRevNe)
+    have hNextAsOriginal :
+        __smtx_model_eval M (__eo_to_smt rParts) =
+          SmtValue.RegLan nextRv := by
+      rw [← hDouble]
+      simpa [eps] using hNextREval
+    have hRv : rv = nextRv := by
+      rw [hREval] at hNextAsOriginal
+      cases hNextAsOriginal
+      rfl
+    subst rv
+    exact RuleProofs.smt_value_rel_refl (SmtValue.RegLan nextRv)
+  have hInputBridgeOfDoubleRevActionEvalFactsProgress :
+      ∀ sParts rParts ss rv nextSs nextRv,
+        __eo_is_list (Term.UOp UserOp.str_concat) sParts =
+          Term.Boolean true ->
+        __smtx_typeof (__eo_to_smt sParts) =
+          SmtType.Seq SmtType.Char ->
+        __smtx_model_eval M (__eo_to_smt sParts) = SmtValue.Seq ss ->
+        __eo_list_rev (Term.UOp UserOp.str_concat) sParts ≠
+          Term.Stuck ->
+        __smtx_model_eval M (__eo_to_smt rParts) = SmtValue.RegLan rv ->
+        __re_rev_map_rev rParts
+            (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) ≠
+          Term.Stuck ->
+        __smtx_model_eval M
+            (__eo_to_smt
+              (__eo_list_rev (Term.UOp UserOp.str_concat)
+                (__eo_list_rev (Term.UOp UserOp.str_concat) sParts))) =
+          SmtValue.Seq nextSs ->
+        __smtx_model_eval M
+            (__eo_to_smt
+              (__re_rev_map_rev
+                (__re_rev_map_rev rParts
+                  (Term.Apply (Term.UOp UserOp.str_to_re)
+                    (Term.String [])))
+                (Term.Apply (Term.UOp UserOp.str_to_re)
+                  (Term.String [])))) =
+          SmtValue.RegLan nextRv ->
+          native_str_in_re (native_unpack_string ss) rv =
+            native_str_in_re (native_unpack_string nextSs) nextRv := by
+    intro sParts rParts ss rv nextSs nextRv hSList hSTy hSEval hSRev
+      hREval hRRev hNextSEval hNextREval
+    have hUnpack :
+        native_unpack_string nextSs = native_unpack_string ss :=
+      hNativeUnpackEqOfDoubleRevEvalFactsProgress sParts ss nextSs
+        hSList hSTy hSEval hSRev hNextSEval
+    have hRegRel :
+        RuleProofs.smt_value_rel (SmtValue.RegLan nextRv)
+          (SmtValue.RegLan rv) :=
+      hRegLanRelOfActionDoubleRevEvalFactsProgress rParts rv nextRv
+        hREval hRRev hNextREval
+    have hSeqTy :
+        __smtx_typeof_value (SmtValue.Seq ss) =
+          SmtType.Seq SmtType.Char := by
+      rw [← hSEval]
+      simpa [hSTy] using
+        smt_model_eval_preserves_type_of_non_none M hM
+          (__eo_to_smt sParts) (by
+            unfold term_has_non_none_type
+            rw [hSTy]
+            simp)
+    have hValid :
+        native_string_valid (native_unpack_string nextSs) = true := by
+      have hValidSs :
+          native_string_valid (native_unpack_string ss) = true :=
+        native_unpack_string_valid_of_typeof_seq_char hSeqTy
+      simpa [hUnpack] using hValidSs
+    calc
+      native_str_in_re (native_unpack_string ss) rv =
+          native_str_in_re (native_unpack_string nextSs) rv := by
+            simpa [hUnpack]
+      _ = native_str_in_re (native_unpack_string nextSs) nextRv :=
+          (smt_value_rel_reglan_valid_eq hRegRel hValid).symm
   have hActionableFrontierTwoPassBridgeProgress :
       (∀ (hNotMult :
           ∀ r0, r = Term.Apply (Term.UOp UserOp.re_mult) r0 -> False),
