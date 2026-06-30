@@ -1,4 +1,5 @@
 import CpcMini.Proofs.TypePreservation.Predicates
+import CpcMini.Proofs.Canonical.TypeDefaultBasic
 
 open SmtEval
 open Smtm
@@ -9,8 +10,8 @@ namespace Smtm
 Datatype-default canonicity for the generated Mini model.
 
 The theorem keeps the historical `_assumption` name used by the downstream
-proof skeleton, but `native_inhabited_type` now uniformly carries exactly this
-canonical default witness.
+proof skeleton. Typing is extracted from `native_inhabited_type`; canonicity is
+proved unconditionally by the kernel (`type_default_canonical_of_typed`).
 -/
 theorem cpcmini_datatype_type_default_typed_canonical_assumption
     (s : native_String)
@@ -21,6 +22,14 @@ theorem cpcmini_datatype_type_default_typed_canonical_assumption
         SmtType.Datatype s d ∧
       __smtx_value_canonical (__smtx_type_default (SmtType.Datatype s d)) := by
   classical
-  simpa [native_inhabited_type, native_Teq, __smtx_value_canonical, native_and] using _hInh
+  have hTyped : native_Teq (__smtx_typeof_value
+      (__smtx_type_default (SmtType.Datatype s d))) (SmtType.Datatype s d) = true := by
+    have h2 := _hInh
+    simp only [native_inhabited_type, native_and, Bool.and_eq_true] at h2
+    exact h2.2
+  refine ⟨of_decide_eq_true (by simpa [native_Teq] using hTyped), ?_⟩
+  -- canonicity: proved unconditionally by the kernel
+  simpa [__smtx_value_canonical] using
+    type_default_canonical_of_typed (SmtType.Datatype s d) hTyped
 
 end Smtm

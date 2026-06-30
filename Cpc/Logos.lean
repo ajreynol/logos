@@ -336,8 +336,24 @@ def __eo_is_var : Term -> Term
     (Term.Boolean (native_and (native_not (native_teq _v0 Term.Stuck)) (native_and (native_not (native_teq x Term.Stuck)) (native_teq x _v0))))
 
 
+def __eo_type_lift (s : native_String) (d : Datatype) : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | (Term.DatatypeType s2 d2) => (native_ite (native_teq (Term.DatatypeType s d) (Term.DatatypeType s2 d2)) (Term.DatatypeTypeRef s) (Term.DatatypeType s2 (__eo_dt_lift s d d2)))
+  | T => T
+
+
+def __eo_dtc_lift (s : native_String) (d : Datatype) : DatatypeCons -> DatatypeCons
+  | (DatatypeCons.cons T c) => (DatatypeCons.cons (__eo_type_lift s d T) (__eo_dtc_lift s d c))
+  | DatatypeCons.unit => DatatypeCons.unit
+
+
+def __eo_dt_lift (s : native_String) (d : Datatype) : Datatype -> Datatype
+  | (Datatype.sum c d2) => (Datatype.sum (__eo_dtc_lift s d c) (__eo_dt_lift s d d2))
+  | Datatype.null => Datatype.null
+
+
 def __eo_dtc_substitute (s : native_String) (d : Datatype) : DatatypeCons -> DatatypeCons
-  | (DatatypeCons.cons (Term.DatatypeType s2 d2) c) => (DatatypeCons.cons (Term.DatatypeType s2 (native_ite (native_streq s s2) d2 (__eo_dt_substitute s d d2))) (__eo_dtc_substitute s d c))
+  | (DatatypeCons.cons (Term.DatatypeType s2 d2) c) => (DatatypeCons.cons (Term.DatatypeType s2 (native_ite (native_streq s s2) d2 (__eo_dt_substitute s (__eo_dt_lift s2 d2 d) d2))) (__eo_dtc_substitute s d c))
   | (DatatypeCons.cons T c) => (DatatypeCons.cons (native_ite (native_teq T (Term.DatatypeTypeRef s)) (Term.DatatypeType s d) T) (__eo_dtc_substitute s d c))
   | DatatypeCons.unit => DatatypeCons.unit
 

@@ -2499,7 +2499,7 @@ private theorem dt_cons_wf_head_type_substitute_has_no_none_components
     simpa [type_has_no_none_components] using
       (type_has_no_none_components_of_wf_rec
         (T := SmtType.Map A B)
-        (refs := native_reflist_insert native_reflist_nil s) h.2.1)
+        (refs := native_reflist_insert native_reflist_nil s) h.1)
   case Set A =>
     simpa [type_has_no_none_components] using
       (type_has_no_none_components_of_wf_rec

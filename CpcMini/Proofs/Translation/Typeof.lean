@@ -355,6 +355,52 @@ private theorem eo_datatype_valid_rec_weaken
 
 end
 
+/- Lifting (re-folding a datatype occurrence to a `TypeRef`) preserves validity when the
+re-folded name is in scope. The lift is shallow at the type level. -/
+mutual
+
+private theorem eo_type_lift_preserves_valid (s0 : native_String) (d0 : Datatype)
+    {T : Term} {refs : List native_String}
+    (hMem : s0 ∈ refs) (hValid : TranslationProofs.eo_type_valid_rec refs T) :
+    TranslationProofs.eo_type_valid_rec refs (__eo_type_lift s0 d0 T) := by
+  cases T with
+  | DatatypeType s2 d2 =>
+      rcases hValid with ⟨hRes, hD⟩
+      simp only [__eo_type_lift]
+      by_cases hteq : native_teq (Term.DatatypeType s0 d0) (Term.DatatypeType s2 d2) = true
+      · rw [native_ite, if_pos hteq]
+        have hEq : Term.DatatypeType s0 d0 = Term.DatatypeType s2 d2 := of_decide_eq_true hteq
+        injection hEq with hs hd
+        subst hs
+        exact ⟨hRes, hMem⟩
+      · rw [native_ite, if_neg hteq]
+        exact ⟨hRes, eo_datatype_lift_preserves_valid s0 d0 (List.mem_cons_of_mem _ hMem) hD⟩
+  | _ => exact hValid
+
+private theorem eo_datatype_cons_lift_preserves_valid (s0 : native_String) (d0 : Datatype)
+    {c : DatatypeCons} {refs : List native_String}
+    (hMem : s0 ∈ refs) (hValid : TranslationProofs.eo_datatype_cons_valid_rec refs c) :
+    TranslationProofs.eo_datatype_cons_valid_rec refs (__eo_dtc_lift s0 d0 c) := by
+  cases c with
+  | unit => exact hValid
+  | cons T c =>
+      rcases hValid with ⟨hT, hC⟩
+      exact ⟨eo_type_lift_preserves_valid s0 d0 hMem hT,
+        eo_datatype_cons_lift_preserves_valid s0 d0 hMem hC⟩
+
+private theorem eo_datatype_lift_preserves_valid (s0 : native_String) (d0 : Datatype)
+    {d : Datatype} {refs : List native_String}
+    (hMem : s0 ∈ refs) (hValid : TranslationProofs.eo_datatype_valid_rec refs d) :
+    TranslationProofs.eo_datatype_valid_rec refs (__eo_dt_lift s0 d0 d) := by
+  cases d with
+  | null => exact hValid
+  | sum c d =>
+      rcases hValid with ⟨hC, hD⟩
+      exact ⟨eo_datatype_cons_lift_preserves_valid s0 d0 hMem hC,
+        eo_datatype_lift_preserves_valid s0 d0 hMem hD⟩
+
+end
+
 /- Substituting a valid datatype for a valid type-reference preserves datatype validity. -/
 mutual
 
@@ -406,11 +452,15 @@ private theorem eo_datatype_cons_valid_rec_substitute
               · exact Or.inr (Or.inl rfl)
               · exact Or.inl rfl
               · exact Or.inr (Or.inr ht)
+            have hSubLifted : TranslationProofs.eo_datatype_valid_rec (s :: s2 :: refs)
+                (__eo_dt_lift s2 d2 dsub) :=
+              eo_datatype_lift_preserves_valid s2 d2 (by simp) hSub'
             have hD2' :=
-              eo_datatype_valid_rec_substitute s dsub (s2 :: refs) hSub' hD2swap
+              eo_datatype_valid_rec_substitute s (__eo_dt_lift s2 d2 dsub) (s2 :: refs)
+                hSubLifted hD2swap
             have hT' :
                 TranslationProofs.eo_type_valid_rec refs
-                  (Term.DatatypeType s2 (__eo_dt_substitute s dsub d2)) := by
+                  (Term.DatatypeType s2 (__eo_dt_substitute s (__eo_dt_lift s2 d2 dsub) d2)) := by
               exact ⟨hReserved, hD2'⟩
             simpa [__eo_dtc_substitute, TranslationProofs.eo_datatype_cons_valid_rec,
               TranslationProofs.eo_type_valid_rec, hs, native_ite, native_streq] using
@@ -655,11 +705,11 @@ private theorem eo_to_smt_type_typeof_dt_cons_of_valid
     eo_to_smt_type_typeof_dt_cons_rec_of_valid (T := Term.DatatypeType s d) hTyValid hSubValid
       (by
         simpa [D, inner, __eo_to_smt_type, hReserved,
-          TranslationProofs.eo_to_smt_datatype_substitute] using hInnerNN)
+          TranslationProofs.eo_to_smt_datatype_substitute s d d hValid] using hInnerNN)
   have hSubEq :
       __eo_to_smt_datatype (__eo_dt_substitute s d d) =
         __smtx_dt_substitute s (__eo_to_smt_datatype d) (__eo_to_smt_datatype d) :=
-    TranslationProofs.eo_to_smt_datatype_substitute s d d
+    TranslationProofs.eo_to_smt_datatype_substitute s d d hValid
   refine ⟨?_, ?_⟩
   · have hRec' :
         __eo_to_smt_type (__eo_typeof (Term.DtCons s d i)) = inner := by
@@ -688,7 +738,12 @@ private theorem eo_to_smt_type_typeof_apply_dt_sel_of_smt_datatype_valid
     simp [__eo_to_smt_type, hReserved, hx]
   have hExact : __eo_typeof x = Term.DatatypeType s d :=
     TranslationProofs.eo_to_smt_type_eq_of_valid hValid hTyEq
-  exact TranslationProofs.eo_to_smt_type_typeof_apply_dt_sel_of_exact_eo_datatype x s d i j hExact
+  have hDtValid : TranslationProofs.eo_datatype_valid_rec [s] d := by
+    have hTyValid : TranslationProofs.eo_type_valid_rec [] (Term.DatatypeType s d) := by
+      simpa [hExact] using hValid
+    exact hTyValid.2
+  exact TranslationProofs.eo_to_smt_type_typeof_apply_dt_sel_of_exact_eo_datatype
+    x s d i j hDtValid hExact
 
 /-- Valid EO proof-side types are never `Stuck`. -/
 private theorem eo_type_valid_not_stuck
@@ -1279,8 +1334,14 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid :
                   have hSelRetValid :
                       TranslationProofs.eo_type_valid_rec []
                         (__eo_typeof_dt_sel_return (__eo_dt_substitute s d d) i j) := by
+                    have hDtValid : TranslationProofs.eo_datatype_valid_rec [s] d := by
+                      have hTyValid :
+                          TranslationProofs.eo_type_valid_rec [] (Term.DatatypeType s d) := by
+                        simpa [hArgExact] using hIx.2
+                      exact hTyValid.2
                     apply TranslationProofs.eo_type_valid_of_smt_wf_rec []
-                    rw [TranslationProofs.eo_to_smt_type_typeof_dt_sel_return_on_substituted_datatype s d i j]
+                    rw [TranslationProofs.eo_to_smt_type_typeof_dt_sel_return_on_substituted_datatype
+                      s d i j hDtValid]
                     exact hRetWfRec
                   simpa [__eo_typeof, __eo_typeof_apply, __eo_requires, hArgExact,
                     native_ite, native_teq, native_not] using hSelRetValid
