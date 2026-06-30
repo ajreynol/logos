@@ -903,6 +903,184 @@ theorem datatype_default_ne_nv_of_some (s : native_String) (d : SmtDatatype) :
         simp [native_ite, native_not, hf]; exact ih
       · rw [datatype_default_select s d n cF cU DF DU heq]; exact heq
 
+/-- Head-field well-formedness from a closed constructor's well-formedness. -/
+private theorem cons_wf_nil_head {TU : SmtType} {cU : SmtDatatypeCons}
+    (hwf : __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons TU cU) native_reflist_nil = true) :
+    __smtx_type_wf_rec TU native_reflist_nil = true := by
+  cases TU with
+  | TypeRef s =>
+      simp [__smtx_dt_cons_wf_rec, native_reflist_contains, native_reflist_nil, native_ite] at hwf
+  | None => simp [__smtx_dt_cons_wf_rec, native_ite, __smtx_type_wf_rec] at hwf
+  | FunType A B => simp [__smtx_dt_cons_wf_rec, native_ite, __smtx_type_wf_rec] at hwf
+  | DtcAppType A B => simp [__smtx_dt_cons_wf_rec, native_ite, __smtx_type_wf_rec] at hwf
+  | Bool => simp [__smtx_type_wf_rec]
+  | Int => simp [__smtx_type_wf_rec]
+  | Real => simp [__smtx_type_wf_rec]
+  | RegLan => simp [__smtx_dt_cons_wf_rec, native_ite, __smtx_type_wf_rec] at hwf
+  | BitVec w => simp [__smtx_type_wf_rec]
+  | Char => simp [__smtx_type_wf_rec]
+  | USort i => simp [__smtx_type_wf_rec]
+  | Datatype s2 d2 =>
+      simp only [__smtx_dt_cons_wf_rec, native_ite] at hwf
+      split at hwf
+      · next h => exact h
+      · next h => exact absurd hwf (by simp)
+  | Seq A =>
+      simp only [__smtx_dt_cons_wf_rec, native_ite] at hwf
+      split at hwf
+      · next h => exact h
+      · next h => exact absurd hwf (by simp)
+  | Set A =>
+      simp only [__smtx_dt_cons_wf_rec, native_ite] at hwf
+      split at hwf
+      · next h => exact h
+      · next h => exact absurd hwf (by simp)
+  | Map A B =>
+      simp only [__smtx_dt_cons_wf_rec, native_ite] at hwf
+      split at hwf
+      · next h => exact h
+      · next h => exact absurd hwf (by simp)
+
+/-- Tail well-formedness from a closed constructor's well-formedness. -/
+private theorem cons_wf_nil_tail {TU : SmtType} {cU : SmtDatatypeCons}
+    (hwf : __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons TU cU) native_reflist_nil = true) :
+    __smtx_dt_cons_wf_rec cU native_reflist_nil = true := by
+  cases TU with
+  | TypeRef s =>
+      simp [__smtx_dt_cons_wf_rec, native_reflist_contains, native_reflist_nil, native_ite] at hwf
+  | _ =>
+      simp only [__smtx_dt_cons_wf_rec, native_ite] at hwf
+      split at hwf
+      · next h => exact hwf
+      · next h => exact absurd hwf (by simp)
+
+/-- Name-independent "has a base constructor" (a closed-well-formed constructor). -/
+def DtHasBase : SmtDatatype → Prop
+  | SmtDatatype.null => False
+  | SmtDatatype.sum c d => __smtx_dt_cons_wf_rec c native_reflist_nil = true ∨ DtHasBase d
+
+private theorem dt_has_base_of_wf_gen (s : native_String) :
+    ∀ (hb : native_Bool) (d : SmtDatatype),
+      __smtx_dt_wf_rec s native_reflist_nil hb d = true → hb = true ∨ DtHasBase d
+  | hb, SmtDatatype.null => by intro h; left; simpa [__smtx_dt_wf_rec] using h
+  | hb, SmtDatatype.sum c d => by
+      intro h
+      simp only [__smtx_dt_wf_rec, native_and, Bool.and_eq_true] at h
+      rcases dt_has_base_of_wf_gen s (native_or hb (__smtx_dt_cons_wf_rec c native_reflist_nil)) d h.2
+        with hb' | hbase
+      · simp only [native_or, Bool.or_eq_true] at hb'
+        rcases hb' with hh | hc
+        · left; exact hh
+        · right; left; exact hc
+      · right; right; exact hbase
+
+private theorem dt_has_base_of_wf (s : native_String) (d : SmtDatatype)
+    (h : __smtx_dt_wf_rec s native_reflist_nil false d = true) : DtHasBase d :=
+  (dt_has_base_of_wf_gen s false d h).resolve_left (by simp)
+
+/-! ### Founded-defaultability kernel — the infinite-tolerant analog of `fin_defaultable`.
+A well-formed field is defaultable; a well-formed (founded) closed datatype has a defaultable
+constructor; a closed well-formed constructor is defaultable.  Mutually recursive on `sizeOf`. -/
+mutual
+
+/-- A closed well-formed field type has a non-`NotValue` default. -/
+theorem field_default_ne_nv_of_wf (TF TU : SmtType)
+    (hfr : FieldRel TF TU) (hwf : __smtx_type_wf_rec TU native_reflist_nil = true) :
+    __smtx_type_default_rec TF TU ≠ SmtValue.NotValue := by
+  cases TU with
+  | None => simp [__smtx_type_wf_rec] at hwf
+  | TypeRef s => simp [__smtx_type_wf_rec] at hwf
+  | FunType A B => simp [__smtx_type_wf_rec] at hwf
+  | DtcAppType A B => simp [__smtx_type_wf_rec] at hwf
+  | RegLan => simp [__smtx_type_wf_rec] at hwf
+  | Bool => rw [__smtx_type_default_rec]; exact fun h => by cases h
+  | Int => rw [__smtx_type_default_rec]; exact fun h => by cases h
+  | Real => rw [__smtx_type_default_rec]; exact fun h => by cases h
+  | BitVec w => rw [__smtx_type_default_rec]; exact fun h => by cases h
+  | Char => rw [__smtx_type_default_rec]; exact fun h => by cases h
+  | USort i => rw [__smtx_type_default_rec]; exact fun h => by cases h
+  | Seq A => rw [__smtx_type_default_rec]; exact fun h => by cases h
+  | Set A => rw [__smtx_type_default_rec]; exact fun h => by cases h
+  | Map A B =>
+      have hwfB : __smtx_type_wf_rec B native_reflist_nil = true := by
+        simp only [__smtx_type_wf_rec, native_and, Bool.and_eq_true] at hwf; exact hwf.2.2.2
+      have hB := field_default_ne_nv_of_wf B B (FieldRel.rel (SubstStar.refl B)) hwfB
+      have hv : ¬ (native_veq (__smtx_type_default_rec B B) SmtValue.NotValue = true) := by
+        rw [native_veq_eq_false_of_ne hB]; simp
+      rw [__smtx_type_default_rec, native_ite, if_neg hv]
+      exact fun h => by cases h
+  | Datatype sU dU =>
+      have hbase : DtHasBase dU :=
+        dt_has_base_of_wf sU dU (dt_wf_rec_of_type_wf_rec_datatype sU dU native_reflist_nil hwf)
+      cases hfr with
+      | rel hss =>
+          cases hss with
+          | refl =>
+              rw [__smtx_type_default_rec]
+              exact datatype_default_ne_nv_of_some sU dU native_nat_zero
+                (__smtx_dt_substitute sU dU dU) dU
+                (dt_inhabited_aux sU dU native_nat_zero (__smtx_dt_substitute sU dU dU) dU
+                  (dtSubstStar_of_subst sU dU dU) (drop_cons_zero _).symm hbase)
+          | @dt sF sU' dF dU' hdt =>
+              rw [__smtx_type_default_rec]
+              exact datatype_default_ne_nv_of_some sF dF native_nat_zero
+                (__smtx_dt_substitute sF dF dF) dU
+                (dt_inhabited_aux sF dF native_nat_zero (__smtx_dt_substitute sF dF dF) dU
+                  (dtSubstStar_subst sF dF hdt) (drop_cons_zero _).symm hbase)
+      | forcesNV hnv =>
+          exfalso
+          have hdiag : __smtx_type_default_rec (SmtType.Datatype sU dU) (SmtType.Datatype sU dU)
+              ≠ SmtValue.NotValue := by
+            rw [__smtx_type_default_rec]
+            exact datatype_default_ne_nv_of_some sU dU native_nat_zero
+              (__smtx_dt_substitute sU dU dU) dU
+              (dt_inhabited_aux sU dU native_nat_zero (__smtx_dt_substitute sU dU dU) dU
+                (dtSubstStar_of_subst sU dU dU) (drop_cons_zero _).symm hbase)
+          exact hdiag (hnv (SmtType.Datatype sU dU))
+  termination_by sizeOf TU
+
+/-- A closed founded datatype suffix has a defaultable constructor (in its folded/raw pairing). -/
+theorem dt_inhabited_aux (s2 : native_String) (dF2 : SmtDatatype) :
+    ∀ (n : native_Nat) (DF DU : SmtDatatype),
+      DtSubstStar DF DU →
+      DF = drop_cons (__smtx_dt_substitute s2 dF2 dF2) n →
+      DtHasBase DU →
+      SomeDefaultable s2 dF2 n DF DU
+  | n, DF, DU, hdsub, hdrop, hbase => by
+    cases hdsub with
+    | null => simp [DtHasBase] at hbase
+    | @sum cF cU dF' dU' hcc hdd =>
+        rcases hbase with hb | hbtail
+        · exact SomeDefaultable.head
+            (cons_default_ne_nv_of_wf cF cU (SmtValue.DtCons s2 dF2 n) hcc hb (by intro h; cases h))
+        · apply SomeDefaultable.tail
+          have hdrop' : dF' = drop_cons (__smtx_dt_substitute s2 dF2 dF2) (native_nat_succ n) := by
+            rw [drop_cons_succ, ← hdrop]
+          exact dt_inhabited_aux s2 dF2 (native_nat_succ n) dF' dU' hdd hdrop' hbtail
+  termination_by _ _ DU _ _ _ => sizeOf DU
+
+/-- A closed well-formed constructor (a base) has a non-`NotValue` default. -/
+theorem cons_default_ne_nv_of_wf (cF cU : SmtDatatypeCons) (v : SmtValue)
+    (hc : DtcSubstStar cF cU)
+    (hwf : __smtx_dt_cons_wf_rec cU native_reflist_nil = true)
+    (hv : v ≠ SmtValue.NotValue) :
+    __smtx_datatype_cons_default v cF cU ≠ SmtValue.NotValue := by
+  cases hc with
+  | unit => simpa [__smtx_datatype_cons_default] using hv
+  | @cons TF TU cF' cU' hfr hcc =>
+      have hwfTU : __smtx_type_wf_rec TU native_reflist_nil = true := cons_wf_nil_head hwf
+      have hwfTail : __smtx_dt_cons_wf_rec cU' native_reflist_nil = true := cons_wf_nil_tail hwf
+      have hfield : __smtx_type_default_rec TF TU ≠ SmtValue.NotValue :=
+        field_default_ne_nv_of_wf TF TU hfr hwfTU
+      have hv2 : ¬ (native_veq (__smtx_type_default_rec TF TU) SmtValue.NotValue = true) := by
+        rw [native_veq_eq_false_of_ne hfield]; simp
+      rw [__smtx_datatype_cons_default, native_ite, if_neg hv2]
+      exact cons_default_ne_nv_of_wf cF' cU' (SmtValue.Apply v (__smtx_type_default_rec TF TU))
+        hcc hwfTail (by intro h; cases h)
+  termination_by sizeOf cU
+
+end
+
 /-- The core growth step: from any canonical typed value, build a strictly larger one.
 This is where the constructor-selection combinatorics (self-recursive nesting vs.
 base-infinite field) lives. -/
