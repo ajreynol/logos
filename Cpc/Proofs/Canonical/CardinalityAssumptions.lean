@@ -698,10 +698,19 @@ private theorem cons_default_seed_inj :
   termination_by cF _ _ _ _ => sizeOf cF
   decreasing_by all_goals (try simp_wf); all_goals omega
 
-/-- RESIDUAL (sorry): an inhabited, well-formed, infinite datatype has typed
-canonical inhabitants avoiding any finite list.  Formerly proved by the
-value-substitution "pump" construction, removed in the datatype-default
-refactor; to be re-established on `TypeDefaultBasic`. -/
+/-- An inhabited, well-formed, infinite datatype has arbitrarily large canonical typed
+values (kernel-based size recursion; replaces the old value-substitution "pump"). -/
+private theorem infinite_datatype_large_witness :
+    ∀ (N : Nat) (s : native_String) (d : SmtDatatype),
+      native_inhabited_type (SmtType.Datatype s d) = true →
+      __smtx_type_wf_rec (SmtType.Datatype s d) native_reflist_nil = true →
+      __smtx_is_finite_datatype d = false →
+      ∃ i : SmtValue, __smtx_typeof_value i = SmtType.Datatype s d ∧
+        __smtx_value_canonical_bool i = true ∧ N ≤ sizeOf i := by
+  sorry
+
+/-- RESIDUAL: an inhabited, well-formed, infinite datatype has typed canonical
+inhabitants avoiding any finite list — reduced to `infinite_datatype_large_witness`. -/
 theorem cpc_infinite_datatype_fresh_value_assumption
     (s : native_String) (d : SmtDatatype)
     (_hInh : native_inhabited_type (SmtType.Datatype s d) = true)
@@ -712,7 +721,10 @@ theorem cpc_infinite_datatype_fresh_value_assumption
       __smtx_typeof_value i = SmtType.Datatype s d ∧
         __smtx_value_canonical_bool i = true ∧
           ∀ j : SmtValue, j ∈ avoid -> native_veq j i = false := by
-  sorry
+  have hInf : __smtx_is_finite_datatype d = false := by
+    simpa [__smtx_is_finite_type] using _hInfinite
+  exact datatype_fresh_of_size_bound
+    (infinite_datatype_large_witness (smt_value_size_bound avoid) s d _hInh _hRec hInf)
 
 private theorem inhabited_of_finite_wf {T : SmtType} {refs : RefList}
     (hfin : __smtx_is_finite_type T = true) (hwf : __smtx_type_wf_rec T refs = true) :
