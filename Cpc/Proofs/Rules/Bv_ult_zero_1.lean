@@ -94,33 +94,11 @@ private theorem typeof_args_of_prog_bv_ult_zero_1_bool (x1 n1 : Term) :
               · cases hNTy : __eo_typeof n1 with
                 | UOp nop =>
                     cases nop
-                    · by_cases hEq : n1 = w
-                      · subst n1
-                        exact ⟨w, by simpa [hXTy], rfl, by
-                          intro hW
-                          subst w
-                          simp at hN1⟩
-                      · exfalso
-                        have hLeftStuck :
-                            __eo_typeof_bvult
-                                (Term.Apply (Term.UOp UserOp.BitVec) n1)
-                                (Term.Apply (Term.UOp UserOp.BitVec) w) =
-                              Term.Stuck := by
-                          simpa [__eo_typeof_bvult] using
-                            requires_eq_true_stuck_of_ne n1 w Term.Bool hEq
-                        have hOuterBool :
-                            __eo_typeof_eq
-                                (__eo_typeof_bvult
-                                  (Term.Apply (Term.UOp UserOp.BitVec) n1)
-                                  (Term.Apply (Term.UOp UserOp.BitVec) w))
-                                (__eo_typeof_not
-                                  (__eo_typeof_eq
-                                    (Term.Apply (Term.UOp UserOp.BitVec) w)
-                                    (Term.Apply (Term.UOp UserOp.BitVec) n1))) =
-                              Term.Bool := by
-                          simpa [__eo_typeof_bvult, __eo_typeof__at_bv, hXTy, hNTy] using hTy
-                        rw [hLeftStuck] at hOuterBool
-                        simp [__eo_typeof_eq] at hOuterBool
+                    · have hEq : n1 = w :=
+                        bv_width_eq_of_typeof_bvult_at_bv_left_not_eq_bool
+                          n1 w hN1 hNTy (by simpa [hXTy] using hTy)
+                      subst n1
+                      exact ⟨w, by simpa [hXTy], rfl, hN1⟩
                     all_goals
                       exfalso
                       simpa [__eo_typeof_eq, __eo_typeof_bvult, __eo_typeof__at_bv,

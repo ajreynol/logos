@@ -79,19 +79,9 @@ private theorem typeof_args_of_prog_bv_ult_zero_2_bool (x1 n1 : Term) :
               · cases hNTy : __eo_typeof n1 with
                 | UOp nop =>
                     cases nop
-                    · have hReqTy :
-                          __eo_typeof_eq
-                              (__eo_requires (__eo_eq w n1) (Term.Boolean true) Term.Bool)
-                              Term.Bool =
-                            Term.Bool := by
-                        simpa [__eo_typeof_bvult, __eo_typeof__at_bv, hXTy, hNTy] using hTy
-                      have hReqNN :
-                          __eo_requires (__eo_eq w n1) (Term.Boolean true) Term.Bool ≠
-                            Term.Stuck := by
-                        intro hReq
-                        simp [__eo_typeof_eq, hReq] at hReqTy
-                      have hEq : n1 = w :=
-                        eq_of_requires_eq_true_not_stuck w n1 Term.Bool hReqNN
+                    · have hEq : n1 = w :=
+                        bv_width_eq_of_typeof_bvult_at_bv_right_bool w n1 hN1 hNTy
+                          (by simpa [hXTy] using hTy)
                       subst n1
                       exact ⟨w, by simpa [hXTy], rfl, by
                         intro hW

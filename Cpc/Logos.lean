@@ -8522,7 +8522,7 @@ def __eo_typeof__at_from_bools : Term -> Term -> Term
 
 def __eo_typeof__at_bv : Term -> Term -> Term -> Term
   | _ , _ , Term.Stuck  => Term.Stuck
-  | (Term.UOp UserOp.Int), (Term.UOp UserOp.Int), w => (Term.Apply (Term.UOp UserOp.BitVec) w)
+  | (Term.UOp UserOp.Int), (Term.UOp UserOp.Int), w => (__eo_requires (__eo_gt w (Term.Numeral (-1 : native_Int))) (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) w))
   | _, _, _ => Term.Stuck
 
 
