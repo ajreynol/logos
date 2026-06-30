@@ -2160,12 +2160,16 @@ theorem eo_to_smt_type_injective_of_field_wf_rec
                 __smtx_dt_cons_wf_rec cT (native_reflist_insert refs (native_string_lit "@Tuple")) =
                   true :=
               smtx_dt_cons_wf_rec_tail_of_true hConsWF
+            have hFullBase :
+                __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons (__eo_to_smt_type yT) cT) refs = true :=
+              dt_cons_base_of_single _ _ _ (dt_wf_rec_of_type_wf_rec_datatype _ _ _ hWF')
+            have hTailBase : __smtx_dt_cons_wf_rec cT refs = true :=
+              smtx_dt_cons_wf_rec_tail_of_true hFullBase
             have hxFieldWF :
                 smtx_type_field_wf_rec
                     (SmtType.Datatype (native_string_lit "@Tuple") (SmtDatatype.sum cT SmtDatatype.null))
-                    refs := by
-              simp [smtx_type_field_wf_rec, __smtx_type_wf_rec, hWFParts.1,
-                dtAllWf, hTailWF, native_ite]
+                    refs :=
+              type_wf_rec_datatype_single_of _ _ _ hWFParts.1 hTailWF hTailBase
             have hyEq : yT = yU :=
               eo_to_smt_type_injective_of_field_wf_rec
                 (A := __eo_to_smt_type yT) (refs := native_reflist_insert refs (native_string_lit "@Tuple"))
@@ -2447,7 +2451,7 @@ theorem eo_typeof_type_of_smt_type_wf_rec :
                                           (SmtDatatypeCons.cons (__eo_to_smt_type y) c)
                                           SmtDatatype.null)
                                         (native_reflist_insert native_reflist_nil (native_string_lit "@Tuple")) =
-                                      true := hRawRec.2
+                                      true := dtAllWf_of_dt_wf_rec _ _ _ hRawRec.2
                                 simpa [dtAllWf] using hRawDt
                               have hTail :
                                   __smtx_dt_cons_wf_rec c
@@ -2474,13 +2478,20 @@ theorem eo_typeof_type_of_smt_type_wf_rec :
                                       simpa [smtx_type_field_wf_rec, hY] using hField
                                   exact eo_typeof_type_of_smt_type_wf_rec y
                                     (native_reflist_insert native_reflist_nil (native_string_lit "@Tuple")) hyWF
+                              have hFullBase :
+                                  __smtx_dt_cons_wf_rec
+                                      (SmtDatatypeCons.cons (__eo_to_smt_type y) c)
+                                      native_reflist_nil = true :=
+                                dt_cons_base_of_single _ _ _ hRawRec.2
+                              have hTailBase :
+                                  __smtx_dt_cons_wf_rec c native_reflist_nil = true :=
+                                smtx_dt_cons_wf_rec_tail_of_true hFullBase
                               have hxWF :
                                   __smtx_type_wf_rec (__eo_to_smt_type x) native_reflist_nil =
                                     true := by
                                 rw [hX]
-                                simp [__smtx_type_wf_rec, dtAllWf,
-                                  native_reflist_contains, native_reflist_nil, native_ite]
-                                simpa [native_reflist_nil] using hTail
+                                exact type_wf_rec_datatype_single_of _ _ _
+                                  (by simp [native_reflist_contains, native_reflist_nil]) hTail hTailBase
                               have hx := eo_typeof_type_of_smt_type_wf_rec x native_reflist_nil hxWF
                               change __eo_typeof__at__at_Pair (__eo_typeof y) (__eo_typeof x) =
                                 Term.Type

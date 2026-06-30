@@ -94,7 +94,7 @@ by
       __smtx_type_wf_rec, __smtx_dt_wf_rec, __smtx_dt_cons_wf_rec,
       __smtx_dt_substitute, __smtx_dtc_substitute, __smtx_type_substitute,
       __smtx_typeof_dt_cons_rec, smtx_dt_cons_wf_rec_cons_none_eq_false,
-      hNeg, native_ite, native_Teq, native_and]
+      hNeg, native_ite, native_Teq, native_and, native_or]
   case tuple_unit =>
     by_cases hCond :
         native_inhabited_type

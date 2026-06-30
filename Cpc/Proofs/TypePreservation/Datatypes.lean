@@ -1,4 +1,5 @@
 import Cpc.Proofs.TypePreservation.Common
+import Cpc.Proofs.SmtWfCompat
 import Cpc.Proofs.TypePreservation.Helpers
 
 open SmtEval
@@ -634,13 +635,12 @@ theorem datatype_wf_rec_of_type_wf
     {s : native_String}
     {d : SmtDatatype}
     (h : __smtx_type_wf (SmtType.Datatype s d) = true) :
-    __smtx_dt_wf_rec d (native_reflist_insert native_reflist_nil s) = true := by
+    dtAllWf d (native_reflist_insert native_reflist_nil s) = true := by
   have hPair :
       native_inhabited_type (SmtType.Datatype s d) = true ∧
-        __smtx_dt_wf_rec d (native_reflist_insert native_reflist_nil s) = true := by
-    simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
-      native_and] using h
-  exact hPair.2
+        __smtx_type_wf_rec (SmtType.Datatype s d) native_reflist_nil = true := by
+    simpa [__smtx_type_wf, __smtx_type_wf_component, native_and] using h
+  exact (dtAllWf_of_type_wf_rec_datatype s d native_reflist_nil hPair.2).2
 
 /-- Empty datatypes are uninhabited. -/
 theorem not_type_inhabited_empty_datatype

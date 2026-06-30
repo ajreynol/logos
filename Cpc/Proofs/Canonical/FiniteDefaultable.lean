@@ -1,4 +1,5 @@
 import Cpc.Proofs.Canonical.TypeDefaultBasic
+import Cpc.Proofs.SmtWfCompat
 open SmtEval Smtm
 namespace Smtm
 set_option linter.unusedVariables false
@@ -139,7 +140,7 @@ theorem fin_defaultable :
     (motive1 := fun V T => ShT V T → __smtx_is_finite_type T = true →
       ∀ refs, __smtx_type_wf_rec T refs = true → __smtx_type_default_rec V T ≠ SmtValue.NotValue)
     (motive2 := fun s d n DF DU => ShD DF DU → __smtx_is_finite_datatype DU = true →
-      ∀ refs, __smtx_dt_wf_rec DU refs = true → __smtx_datatype_default s d n DF DU ≠ SmtValue.NotValue)
+      ∀ refs, dtAllWf DU refs = true → __smtx_datatype_default s d n DF DU ≠ SmtValue.NotValue)
     (motive3 := fun v cF cU => ShC cF cU → __smtx_is_finite_datatype_cons cU = true →
       ∀ refs, __smtx_dt_cons_wf_rec cU refs = true → v ≠ SmtValue.NotValue →
         __smtx_datatype_cons_default v cF cU ≠ SmtValue.NotValue)
@@ -147,10 +148,8 @@ theorem fin_defaultable :
   · intro sF dF sU dU ih2 hsh hfin refs hwf
     rw [__smtx_type_default_rec]
     have hfinDU : __smtx_is_finite_datatype dU = true := by simpa [__smtx_is_finite_type] using hfin
-    have hwfDU : __smtx_dt_wf_rec dU (native_reflist_insert refs sU) = true := by
-      by_cases hc : native_reflist_contains refs sU = true
-      · simp [__smtx_type_wf_rec, native_ite, hc] at hwf
-      · simpa [__smtx_type_wf_rec, native_ite, hc] using hwf
+    have hwfDU : dtAllWf dU (native_reflist_insert refs sU) = true :=
+      (dtAllWf_of_type_wf_rec_datatype sU dU refs hwf).2
     have hShD : ShD dF dU := by cases hsh with | refl => exact ShD_refl _ | dt h => exact h
     exact ih2 (ShD_substF sF dF hShD hfinDU) hfinDU (native_reflist_insert refs sU) hwfDU
   · intro V hsh hfin refs hwf; rw [__smtx_type_default_rec]; exact fun h => by cases h
@@ -185,13 +184,13 @@ theorem fin_defaultable :
     have hwfCons : __smtx_dt_cons_wf_rec cU refs = true := by
       by_cases hcw : __smtx_dt_cons_wf_rec cU refs = true
       · exact hcw
-      · exfalso; cases dU <;> simp [__smtx_dt_wf_rec, native_ite, hcw] at hwf
+      · exfalso; cases dU <;> simp [dtAllWf, native_ite, hcw] at hwf
     have hcons : __smtx_datatype_cons_default (SmtValue.DtCons s d n) cF cU ≠ SmtValue.NotValue :=
       ih3 hShC hfinCons refs hwfCons (by intro h; cases h)
     rw [dd_select s d n cF cU dF dU hcons]; exact hcons
   · intro s d n dF dU hne hsh hfin refs hwf
     cases hsh with
-    | null => simp [__smtx_dt_wf_rec] at hwf
+    | null => simp [dtAllWf] at hwf
     | sum hc hd => exact (hne _ _ _ _ rfl rfl).elim
   · intro v hsh hfin refs hwf hvne
     simpa [__smtx_datatype_cons_default] using hvne
