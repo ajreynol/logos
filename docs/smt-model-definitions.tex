@@ -556,19 +556,37 @@ def smt_dt_substitute (s : native_String) (d : SmtDatatype) : SmtDatatype -> Smt
 In detail, the method \code{(smt_dt_substitute s d)}
 takes a datatype and replaces the desired references (\code{(SmtType.TypeRef s)}) in that datatype
 with \code{(SmtType.Datatype s d)}.
-This is a simple recursive method, where we traverse the constructors of the
+This is a recursive method, where we traverse the constructors of the
 datatype, each field of that datatype and apply \code{(smt_type_substitute s d)}
 to the field type \code{T}.
 Note the following behavior.
+If \code{T} is a type reference, then if it is the datatype we are substituting,
+we replace it by \code{(SmtType.Datatype s d)}.
 If \code{T} itself is a datatype type,
 we check if its name aliases the current datatype.
 If it does, we simply return the datatype itself; this behavior is arbitrary
 as we do not consider datatypes with aliasing to be well-formed.
-Otherwise, the substitution is applied to that datatype, which handles
-the case where the datatype has mutual recursion.
-If \code{T} is a type reference, then if it is the datatype we are substituting,
-we replace it by \code{(SmtType.Datatype s d)}, otherwise it is unchanged.
-In all other cases, the datatype is unchanged.
+Otherwise, we do two things.
+First, since we are constructing the datatype beneath the name \code{s2},
+and since \code{d} contains references to \code{(SmtType.Datatype s2 d2)},
+we must "lift" these occurrences by replacing them each with \code{(TypeRef s2)}.
+This is done via the recursive method \code{smt_dt_lift}.
+After this lifting is done, we replace
+references to the current datatype we are unfolding \code{s}
+with the result of this lifting (\code{(smt_dt_lift s2 d2 d)}).
+Consider the following mutually recursive datatype, in smt2:
+\begin{examplecode}
+(declare-datatypes ((A 0) (B 0))
+  (((mkA (b B)))) 
+   ((mkB (a A)) (leaf)))
+\end{examplecode}
+
+(representation, then representation after substitution, explaning steps).
+
+
+
+Note the definition of \code{smt_dt_substitute}
+does not traverse composite types like maps, sequences and sets.
 This implies that for e.g. nested recursive datatypes,
 type references to the datatype we are unfolding are not replaced.
 Again, this behavior is arbitrary as we do not consider datatypes with nested 
