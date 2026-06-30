@@ -522,9 +522,22 @@ The definition of one-step unfolding of datatypes is given by the method
 
 \begin{figure}
 \begin{lstlisting}
+def smt_type_lift (s : native_String) (d : SmtDatatype) : SmtType -> SmtType
+  | (SmtType.Datatype s2 d2) => (if (Teq (SmtType.Datatype s d) (SmtType.Datatype s2 d2)) then (SmtType.TypeRef s) else (SmtType.Datatype s2 (smt_dt_lift s d d2)))
+  | T => T
+
+def smt_dtc_lift (s : native_String) (d : SmtDatatype) : SmtDatatypeCons -> SmtDatatypeCons
+  | (SmtDatatypeCons.cons T c) => (SmtDatatypeCons.cons (smt_type_lift s d T) (smt_dtc_lift s d c))
+  | SmtDatatypeCons.unit => SmtDatatypeCons.unit
+
+def smt_dt_lift (s : native_String) (d : SmtDatatype) : SmtDatatype -> SmtDatatype
+  | (SmtDatatype.sum c d2) => (SmtDatatype.sum (smt_dtc_lift s d c) (smt_dt_lift s d d2))
+  | SmtDatatype.null => SmtDatatype.null
+
+
 def smt_type_substitute (s : native_String) (d : SmtDatatype) : SmtType -> SmtType
-  | (SmtType.Datatype s2 d2) => (SmtType.Datatype s2 (native_ite (native_streq s s2) d2 (smt_dt_substitute s d d2)))
-  | (SmtType.TypeRef s2) => (native_ite (native_streq s s2) (SmtType.Datatype s d) (SmtType.TypeRef s2))
+  | (SmtType.Datatype s2 d2) => (SmtType.Datatype s2 (if (native_streq s s2) then d2 else (smt_dt_substitute s (smt_dt_lift s2 d2 d) d2)))
+  | (SmtType.TypeRef s2) => (if (native_streq s s2) then (SmtType.Datatype s d) else (SmtType.TypeRef s2))
   | T => T
 
 def smt_dtc_substitute (s : native_String) (d : SmtDatatype) : SmtDatatypeCons -> SmtDatatypeCons
@@ -543,23 +556,87 @@ def smt_dt_substitute (s : native_String) (d : SmtDatatype) : SmtDatatype -> Smt
 In detail, the method \code{(smt_dt_substitute s d)}
 takes a datatype and replaces the desired references (\code{(SmtType.TypeRef s)}) in that datatype
 with \code{(SmtType.Datatype s d)}.
-This is a simple recursive method, where we traverse the constructors of the
+This is a recursive method, where we traverse the constructors of the
 datatype, each field of that datatype and apply \code{(smt_type_substitute s d)}
 to the field type \code{T}.
 Note the following behavior.
+If \code{T} is a type reference, then if it is the datatype we are substituting,
+we replace it by \code{(SmtType.Datatype s d)}.
 If \code{T} itself is a datatype type,
 we check if its name aliases the current datatype.
 If it does, we simply return the datatype itself; this behavior is arbitrary
 as we do not consider datatypes with aliasing to be well-formed.
-Otherwise, the substitution is applied to that datatype, which handles
-the case where the datatype has mutual recursion.
-If \code{T} is a type reference, then if it is the datatype we are substituting,
-we replace it by \code{(SmtType.Datatype s d)}, otherwise it is unchanged.
-In all other cases, the datatype is unchanged.
+Otherwise, we do two things.
+First, since we are constructing the datatype beneath the name \code{s2},
+and since \code{d} contains references to \code{(SmtType.Datatype s2 d2)},
+we must "lift" these occurrences by replacing them each with \code{(TypeRef s2)}.
+This is done via the recursive method \code{smt_dt_lift}.
+After this lifting is done, we replace
+references to the current datatype we are unfolding \code{s}
+with the result of this lifting (\code{(smt_dt_lift s2 d2 d)}).
+Consider the following mutually recursive datatype, in smt2:
+\begin{examplecode}
+(declare-datatypes ((A 0) (B 0))
+  (((mkA (b B)))) 
+   ((mkB (a A)) (leaf)))
+\end{examplecode}
+
+Following the conventions above, the datatype type for \code{A} is
+\code{(Datatype "A" DA)}, where
+\begin{examplecode}
+DA := (sum (cons (Datatype "B" DB) unit) null)
+DB := (sum (cons (TypeRef "A") unit) (sum unit null))
+\end{examplecode}
+Here, the single constructor \code{mkA} of \code{A} carries a field of type \code{B},
+which is inlined as \code{(Datatype "B" DB)}.
+Within \code{DB}, the constructor \code{mkB} carries a field of type \code{A},
+which (being a reference back to the top-level datatype) is the type
+reference \code{(TypeRef "A")}, while \code{leaf} takes no arguments (\code{unit}).
+
+Now consider the one-step unfolding of \code{A}, namely
+\code{(smt_dt_substitute "A" DA DA)}.
+Traversing \code{DA}, we reach the field type \code{(Datatype "B" DB)} of \code{mkA}
+and compute \code{(smt_type_substitute "A" DA (Datatype "B" DB))}.
+Since \code{"A"} and \code{"B"} differ, this returns
+\begin{examplecode}
+(Datatype "B" (smt_dt_substitute "A" (smt_dt_lift "B" DB DA) DB))
+\end{examplecode}
+The lifting \code{(smt_dt_lift "B" DB DA)} replaces the occurrence of
+\code{(Datatype "B" DB)} inside \code{DA} by the self-reference \code{(TypeRef "B")}, yielding
+\begin{examplecode}
+DA' := (sum (cons (TypeRef "B") unit) null)
+\end{examplecode}
+Substituting references to \code{"A"} by \code{(Datatype "A" DA')} into \code{DB} 
+then gives:
+\begin{examplecode}
+DB' := (sum (cons (Datatype "A" DA') unit) (sum unit null))
+\end{examplecode}
+Putting this together, the one-step unfolding of \code{A},
+\code{(smt_dt_substitute "A" DA DA)} returns \code{DA''}, where:
+\begin{examplecode}
+DA'' := (sum (cons (Datatype "B" DB') unit) null)
+DB' := (sum (cons (Datatype "A" DA') unit) (sum unit null))
+DA' := (sum (cons (TypeRef "B") unit) null)
+\end{examplecode}
+Note the role of the lifting step here: without it, the copy of \code{DA} inserted
+for \code{(TypeRef "A")} beneath \code{B} would re-state \code{(Datatype "B" DB)} in full,
+redundantly inlining \code{B} underneath itself.
+Lifting instead turns this occurrence into the self-reference \code{(TypeRef "B")},
+so that the unfolded type remains well-formed.
+
+Note the definition of \code{smt_dt_substitute}
+does not traverse composite types like maps, sequences and sets.
 This implies that for e.g. nested recursive datatypes,
 type references to the datatype we are unfolding are not replaced.
 Again, this behavior is arbitrary as we do not consider datatypes with nested 
 recursion to be well-formed.
+
+Overall the purpose of unfolding of datatypes is to make the field types
+of a datatype self-contained. In particular, note in the example
+above, the field type \code{(Datatype "B" DB')} is now a well-formed,
+standalone type. This operation will be used to give type rules for datatype
+values and terms, as well as defining the construction of canonical values
+for datatype types.
 
 \subsection{Models}
 \label{sec:models}
@@ -975,12 +1052,12 @@ and our definition of SMT-LIB models.
 \begin{figure}[p]
 \begin{lstlisting}
 def smt_typeof_guard (T : SmtType) (U : SmtType) : SmtType :=
-  (native_ite (Teq T SmtType.None) SmtType.None U)
+  (if (Teq T SmtType.None) then SmtType.None else U)
   
 def smt_typeof_map_value : SmtMap -> SmtType
   | (SmtMap.cons i e m) => 
     let _v0 := (smt_typeof_map_value m)
-    (native_ite (Teq (SmtType.Map (smt_typeof_value i) (smt_typeof_value e)) _v0) _v0 SmtType.None)
+    (if (Teq (SmtType.Map (smt_typeof_value i) (smt_typeof_value e)) _v0) then _v0 else SmtType.None)
   | (SmtMap.default T e) => (SmtType.Map T (smt_typeof_value e))
 
 def smt_map_to_set_type : SmtType -> SmtType
@@ -990,7 +1067,7 @@ def smt_map_to_set_type : SmtType -> SmtType
 def smt_typeof_seq_value : SmtSeq -> SmtType
   | (SmtSeq.cons v vs) => 
     let _v0 := (smt_typeof_seq_value vs)
-    (native_ite (Teq (SmtType.Seq (smt_typeof_value v)) _v0) _v0 SmtType.None)
+    (if (Teq (SmtType.Seq (smt_typeof_value v)) _v0) then _v0 else SmtType.None)
   | (SmtSeq.empty T) => (SmtType.Seq T)
   
 def smt_typeof_dt_cons_value_rec (T : SmtType) : SmtDatatype -> native_Nat -> SmtType
@@ -1001,7 +1078,7 @@ def smt_typeof_dt_cons_value_rec (T : SmtType) : SmtDatatype -> native_Nat -> Sm
   | d, n => SmtType.None
 
 def smt_typeof_apply_value : SmtType -> SmtType -> SmtType
-  | (SmtType.DtcAppType T U), V => (smt_typeof_guard T (native_ite (Teq T V) U SmtType.None))
+  | (SmtType.DtcAppType T U), V => (smt_typeof_guard T (if (Teq T V) then U else SmtType.None))
   | T, U => SmtType.None
   
 ...
@@ -1141,34 +1218,36 @@ which we describe later in this section.
 
 \begin{figure}
 \begin{lstlisting}
-def smt_value_dt_substitute (s : native_String) (d : SmtDatatype) : SmtValue -> SmtValue
-  | (SmtValue.DtCons s2 d2 i) => (SmtValue.DtCons s2 (smt_dt_substitute s d d2) i)
-  | (SmtValue.Apply f v) => (SmtValue.Apply (smt_value_dt_substitute s d f) (smt_value_dt_substitute s d v))
-  | v => v
-  
-def smt_datatype_cons_default (s : native_String) (d : SmtDatatype) (v : SmtValue) : SmtDatatypeCons -> SmtValue
-  | SmtDatatypeCons.unit => v
-  | (SmtDatatypeCons.cons T c) => 
-    let _v0 := (smt_value_dt_substitute s d (smt_type_default T))
-    (native_ite (veq _v0 SmtValue.NotValue) SmtValue.NotValue (smt_datatype_cons_default s d (SmtValue.Apply v _v0) c))
+def smt_datatype_cons_default (v : SmtValue) : SmtDatatypeCons -> SmtDatatypeCons -> SmtValue
+  | SmtDatatypeCons.unit, SmtDatatypeCons.unit => v
+  | (SmtDatatypeCons.cons TF cF), (SmtDatatypeCons.cons TU cU) =>
+    let _v0 := (smt_type_default_rec TF TU)
+    (if (veq _v0 SmtValue.NotValue) then SmtValue.NotValue else (smt_datatype_cons_default (SmtValue.Apply v _v0) cF cU))
+  | cF, cU => SmtValue.NotValue
 
-def smt_datatype_default (s : native_String) (d0 : SmtDatatype) (n : Nat) : SmtDatatype -> SmtValue
-  | SmtDatatype.null => SmtValue.NotValue
-  | (SmtDatatype.sum c d) => 
-    let _v0 := (smt_datatype_cons_default s d0 (SmtValue.DtCons s d0 n) c)
-    (native_ite (native_not (veq _v0 SmtValue.NotValue)) _v0 (smt_datatype_default s d0 (native_nat_succ n) d))
-    
-def smt_type_default : SmtType -> SmtValue
-  | SmtType.Bool => (SmtValue.Boolean false)
-  | SmtType.Int => (SmtValue.Numeral 0)
-  | (SmtType.Datatype s d) => (smt_datatype_default s d 0 d)
-  | (SmtType.Map T U) => (SmtValue.Map (SmtMap.default T (smt_type_default U)))
-  | (SmtType.Set T) => (SmtValue.Set (SmtMap.default T (SmtValue.Boolean false)))
-  | (SmtType.Seq T) => (SmtValue.Seq (SmtSeq.empty T))
-  | (SmtType.FunType T U) => (SmtValue.Fun "@default" T U)
-  | (SmtType.USort i) => (SmtValue.UValue i native_nat_zero)
-  | ... => ...
-  | T => SmtValue.NotValue
+def smt_datatype_default (s : native_String) (d : SmtDatatype) (n : Nat) : SmtDatatype -> SmtDatatype -> SmtValue
+  | (SmtDatatype.sum cF dF), (SmtDatatype.sum cU dU) =>
+    let _v0 := (smt_datatype_cons_default (SmtValue.DtCons s d n) cF cU)
+    (if (native_not (veq _v0 SmtValue.NotValue)) then _v0 else (smt_datatype_default s d (native_nat_succ n) dF dU))
+  | dF, dU => SmtValue.NotValue
+
+def smt_type_default_rec : SmtType -> SmtType -> SmtValue
+  | (SmtType.Datatype sF dF), (SmtType.Datatype sU dU) =>
+    (smt_datatype_default sF dF 0 (smt_dt_substitute sF dF dF) dU)
+  | V, SmtType.Bool => (SmtValue.Boolean false)
+  | V, SmtType.Int => (SmtValue.Numeral 0)
+  | V, (SmtType.Map T U) =>
+    let _v0 := (smt_type_default_rec U U)
+    (if (veq _v0 SmtValue.NotValue) then SmtValue.NotValue else (SmtValue.Map (SmtMap.default T _v0)))
+  | V, (SmtType.Set T) => (SmtValue.Set (SmtMap.default T (SmtValue.Boolean false)))
+  | V, (SmtType.Seq T) => (SmtValue.Seq (SmtSeq.empty T))
+  | V, (SmtType.FunType T U) => (SmtValue.Fun "@default" T U)
+  | V, (SmtType.USort i) => (SmtValue.UValue i native_nat_zero)
+  | V, ... => ...
+  | V, T => SmtValue.NotValue
+
+def smt_type_default (T : SmtType) : SmtValue :=
+  (smt_type_default_rec T T)
 \end{lstlisting}
 \caption{Finite default value computation.}
 \label{fig:default-value}
@@ -1271,7 +1350,8 @@ def smt_map_entries_ordered_after (i : SmtValue) : SmtMap -> Bool
 
 def smt_map_canonical : SmtMap -> Bool
   | (SmtMap.default T e) =>
-    !(smt_is_finite_type T) || (veq e (smt_type_default (smt_typeof_value e)))
+    (!(smt_is_finite_type T) || (veq e (smt_type_default (smt_typeof_value e)))) &&
+    (smt_value_canonical e)
   | (SmtMap.cons i e m) =>
       smt_value_canonical i &&
       smt_value_canonical e &&
@@ -1395,15 +1475,15 @@ def smt_dt_cons_wf_rec : SmtDatatypeCons -> RefList -> Bool
       (inhabited_type T) && (smt_type_wf_rec T refs) && (smt_dt_cons_wf_rec c refs)
   | SmtDatatypeCons.unit, refs => true
 
-def smt_dt_wf_rec : SmtDatatype -> RefList -> Bool
-  | SmtDatatype.null, refs => false
-  | (SmtDatatype.sum c SmtDatatype.null), refs => (smt_dt_cons_wf_rec c refs)
-  | (SmtDatatype.sum c d), refs =>
-      (smt_dt_cons_wf_rec c refs) && (smt_dt_wf_rec d refs)
+def smt_dt_wf_rec (s : String) (refs : RefList) (haveBase : Bool) : SmtDatatype -> Bool
+  | SmtDatatype.null => haveBase
+  | (SmtDatatype.sum c d) =>
+      (smt_dt_cons_wf_rec c (s :: refs)) &&
+      (smt_dt_wf_rec s refs (haveBase || (smt_dt_cons_wf_rec c refs)) d)
 
 def smt_type_wf_rec : SmtType -> RefList -> Bool
   | (SmtType.Datatype s d), refs =>
-      if s ∈ refs then false else smt_dt_wf_rec d (s :: refs)
+      if s ∈ refs then false else smt_dt_wf_rec s refs false d
   | (SmtType.TypeRef s), refs => false
   | (SmtType.Seq x1), refs => (smt_type_wf_component x1)
   | (SmtType.Map x1 x2), refs =>
@@ -1537,7 +1617,7 @@ All other types (e.g. the atomic base types) are first-class.
 \begin{figure}[p]
 \begin{lstlisting}
 def smt_typeof_eq (T : SmtType) (U : SmtType) : SmtType :=
-  (smt_typeof_guard T (native_ite (native_Teq T U) SmtType.Bool SmtType.None))
+  (smt_typeof_guard T (if (native_Teq T U) then SmtType.Bool else SmtType.None))
   
 def smt_ret_typeof_sel (s : String) (d : SmtDatatype) (n : Nat) (m : Nat) : SmtType :=
   (smt_ret_typeof_sel_rec (smt_dt_substitute s d d) n m)
@@ -1816,9 +1896,9 @@ inductive Proof : Type where
 
 def eo_requires : Term -> Term -> Term -> Term
   | x1, x2, x3 =>
-      (native_ite (teq x1 x2)
-        (native_ite (native_not (teq x1 Term.Stuck)) x3 Term.Stuck)
-        Term.Stuck)
+      (if (teq x1 x2) then
+        (if (native_not (teq x1 Term.Stuck)) then x3 else Term.Stuck)
+        else Term.Stuck)
 
 def __mk_trans : Term -> Term -> Term -> Term
   | Term.Stuck, _, _ => Term.Stuck
