@@ -1,4 +1,5 @@
 import Cpc.Proofs.RuleSupport.Support
+import Cpc.Proofs.RuleSupport.SubstituteTypeSupport
 import Cpc.Proofs.Canonical
 import Cpc.Proofs.Closed.ContainsAtomicTermListFree
 import Cpc.Proofs.Closed.Substitute
@@ -1255,6 +1256,32 @@ theorem SubstActualsHaveSmtTypes.entry_smt_type_eq :
           exact
             SubstActualsHaveSmtTypes.entry_smt_type_eq hTail
               s T hTailFind
+
+theorem SubstActualsHaveSmtTypes.entry_eo_type_eq
+    {xs ts : Term}
+    (hActuals : SubstActualsHaveSmtTypes xs ts) :
+    ∀ (s : native_String) (T : Term),
+      __eo_is_neg (__eo_list_find Term.__eo_List_cons xs
+        (Term.Var (Term.String s) T)) = Term.Boolean false ->
+      __eo_typeof
+          (__assoc_nil_nth Term.__eo_List_cons ts
+            (__eo_list_find Term.__eo_List_cons xs
+              (Term.Var (Term.String s) T))) = T := by
+  intro s T hFind
+  let actual :=
+    __assoc_nil_nth Term.__eo_List_cons ts
+      (__eo_list_find Term.__eo_List_cons xs
+        (Term.Var (Term.String s) T))
+  have hActualTrans : RuleProofs.eo_has_smt_translation actual := by
+    simpa [actual, RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+      using SubstActualsHaveSmtTypes.entry_has_smt_translation
+        hActuals s T hFind
+  exact SubstituteSupport.eo_typeof_eq_of_smt_type_eq actual T
+    hActualTrans
+    (SubstActualsHaveSmtTypes.wf_of_find_neg_false hActuals s T hFind)
+    (by
+      simpa [actual] using
+        SubstActualsHaveSmtTypes.entry_smt_type_eq hActuals s T hFind)
 
 theorem SubstActualsHaveSmtTypes.pushSubstModel_lookup_mapped
     (M : SmtModel) :
@@ -6053,8 +6080,7 @@ theorem substitute_simul_has_smt_translation_of_typeof_ne_stuck_lt
                                                                                                 (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
                                                                                                 (by simp)
                                                                                                 hXsEnv hBvsEnv hATrans hTs hActuals hATy)
-                                                                                      · trace_state
-                                                                                        fail
+                                                                                      · sorry
       case Var name S =>
           exact
             substitute_simul_var_any_has_smt_translation_of_typeof_ne_stuck
