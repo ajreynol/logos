@@ -47,6 +47,11 @@ private abbrev ufGeqElimConclusion (x n w : Term) : Term :=
 
 /-! ## Private eval / typeof term-equation rewrites (not in Support) -/
 
+private theorem smtx_eval_boolean_term_eq
+    (M : SmtModel) (b : native_Bool) :
+    __smtx_model_eval M (SmtTerm.Boolean b) = SmtValue.Boolean b := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
 private theorem smtx_eval_geq_term_eq
     (M : SmtModel) (x y : SmtTerm) :
     __smtx_model_eval M (SmtTerm.geq x y) =
@@ -175,6 +180,29 @@ private theorem args_ne_stuck_of_prog_not_stuck
   · intro hW; subst w1
     cases x1 <;> cases n1 <;> simp [__eo_prog_uf_bv2nat_geq_elim] at h
 
+/-- The program is `Stuck` whenever the premise term does not have the expected
+    `eq _ (bvsize _)` shape. Proven without casing the (non-stuck) args: every
+    match arm that can fire under a non-matching `p` returns `Stuck`. -/
+private theorem prog_stuck_of_p_not_shape
+    (x1 n1 w1 p : Term)
+    (hP : ∀ lw lx : Term, p ≠
+        Term.Apply (Term.Apply (Term.UOp UserOp.eq) lw)
+          (Term.Apply (Term.UOp UserOp._at_bvsize) lx)) :
+    __eo_prog_uf_bv2nat_geq_elim x1 n1 w1 (Proof.pf p) = Term.Stuck := by
+  rw [__eo_prog_uf_bv2nat_geq_elim.eq_def]
+  split
+  case h_1 => rfl
+  case h_2 => rfl
+  case h_3 => rfl
+  case h_4 =>
+    -- body arm: the discriminant forced `p` to the expected shape, contradiction.
+    exfalso
+    rename_i lw lx _ _ _ heq
+    have hp : p = Term.Apply (Term.Apply (Term.UOp UserOp.eq) lw)
+        (Term.Apply (Term.UOp UserOp._at_bvsize) lx) := by injection heq
+    exact hP lw lx hp
+  case h_5 => rfl
+
 /-- Shape lemma: a non-stuck program forces the premise to be an equality of
     a term and a `bvsize` term. -/
 private theorem shape_of_prog_uf_bv2nat_geq_elim_not_stuck
@@ -186,29 +214,12 @@ private theorem shape_of_prog_uf_bv2nat_geq_elim_not_stuck
         Term.Apply
           (Term.Apply (Term.UOp UserOp.eq) lw)
           (Term.Apply (Term.UOp UserOp._at_bvsize) lx) := by
-  cases x1 <;> cases n1 <;> cases w1 <;>
-    (try (exact absurd rfl hX)) <;> (try (exact absurd rfl hN)) <;>
-    (try (exact absurd rfl hW)) <;>
-    (cases p with
-     | Apply pEqL lxArg =>
-         cases pEqL with
-         | Apply pEqOp lw =>
-             cases pEqOp with
-             | UOp op =>
-                 cases op <;> try (simp [__eo_prog_uf_bv2nat_geq_elim] at h)
-                 case eq =>
-                   cases lxArg with
-                   | Apply bvOp lx =>
-                       cases bvOp with
-                       | UOp bop =>
-                           cases bop <;> try (simp [__eo_prog_uf_bv2nat_geq_elim] at h)
-                           case _at_bvsize =>
-                             exact ⟨lw, lx, rfl⟩
-                       | _ => simp [__eo_prog_uf_bv2nat_geq_elim] at h
-                   | _ => simp [__eo_prog_uf_bv2nat_geq_elim] at h
-             | _ => simp [__eo_prog_uf_bv2nat_geq_elim] at h
-         | _ => simp [__eo_prog_uf_bv2nat_geq_elim] at h
-     | _ => simp [__eo_prog_uf_bv2nat_geq_elim] at h)
+  apply Classical.byContradiction
+  intro hC
+  apply h
+  apply prog_stuck_of_p_not_shape x1 n1 w1 p
+  intro lw lx hp
+  exact hC ⟨lw, lx, hp⟩
 
 /-- When all args are non-stuck and the premise has the expected shape, the
     program reduces to the requires-guarded conclusion. -/
@@ -221,10 +232,8 @@ private theorem prog_uf_bv2nat_geq_elim_eq (x1 n1 w1 lw lx : Term)
           (Term.Apply (Term.UOp UserOp._at_bvsize) lx))) =
       __eo_requires (__eo_and (__eo_eq w1 lw) (__eo_eq x1 lx))
         (Term.Boolean true) (ufGeqElimConclusion x1 n1 w1) := by
-  cases x1 <;> cases n1 <;> cases w1 <;>
-    simp [__eo_prog_uf_bv2nat_geq_elim, ufGeqElimConclusion, ufGeqElimLhs,
-      ufGeqElimRhs, ubvToIntTerm, intToBvTerm, geqTerm, ltTerm, int_pow2Term,
-      bvugeTerm, iteTerm] at hX hN hW ⊢
+  rw [__eo_prog_uf_bv2nat_geq_elim.eq_4 x1 n1 w1 lw lx
+    (fun hc => hX hc) (fun hc => hN hc) (fun hc => hW hc)]
 
 /-! ## Typing inversion (factored into small lemmas) -/
 
@@ -250,10 +259,10 @@ private theorem typeof_eq_bool_inv (A B : Term)
       exact eq_of_eo_eq_true A B hReq'.1
 
 /-- Inversion for `__eo_typeof_lt`: a `Bool` result forces both operand types
-    to be `Int` (the only arith type that can appear here) and equal. -/
+    to be equal and an arithmetic type (`Int` or `Real`). -/
 private theorem typeof_lt_bool_inv (A B : Term)
     (h : __eo_typeof_lt A B = Term.Bool) :
-    A = Term.UOp UserOp.Int ∧ B = Term.UOp UserOp.Int := by
+    B = A ∧ (A = Term.UOp UserOp.Int ∨ A = Term.UOp UserOp.Real) := by
   by_cases hA : A = Term.Stuck
   · subst A; simp [__eo_typeof_lt] at h
   · by_cases hB : B = Term.Stuck
@@ -271,11 +280,23 @@ private theorem typeof_lt_bool_inv (A B : Term)
       simp [__eo_requires, native_ite, native_teq, native_not,
         SmtEval.native_not] at hNe'
       have hBA : B = A := eq_of_eo_eq_true A B hNe'.1
-      subst hBA
-      -- now arith A must be true (non-stuck), forcing A = Int
-      have hArithBool : __is_arith_type A = Term.Boolean true := by
-        cases A <;> simp_all [__is_arith_type]
-      cases A <;> simp_all [__is_arith_type]
+      -- now arith A must be true (non-stuck), forcing A = Int or Real
+      have hArith : __is_arith_type A = Term.Boolean true := hNe'.2.2.1
+      have hAArith : A = Term.UOp UserOp.Int ∨ A = Term.UOp UserOp.Real := by
+        match A, hArith with
+        | Term.UOp UserOp.Int, _ => exact Or.inl rfl
+        | Term.UOp UserOp.Real, _ => exact Or.inr rfl
+      exact ⟨hBA, hAArith⟩
+
+/-- `__eo_requires g v body` is either `body` or `Stuck`. -/
+private theorem requires_body_or_stuck (g v body : Term) :
+    __eo_requires g v body = body ∨ __eo_requires g v body = Term.Stuck := by
+  unfold __eo_requires
+  by_cases hG : native_teq g v = true
+  · by_cases hNe : native_not (native_teq g Term.Stuck) = true
+    · left; simp [native_ite, hG, hNe]
+    · right; simp [native_ite, hG, hNe]
+  · right; simp [native_ite, hG]
 
 /-- `__eo_typeof_lt` always returns `Bool` or `Stuck`. -/
 private theorem typeof_lt_bool_or_stuck (A B : Term) :
@@ -289,23 +310,14 @@ private theorem typeof_lt_bool_or_stuck (A B : Term) :
             (__eo_requires (__is_arith_type A) (Term.Boolean true) Term.Bool) := by
         cases A <;> cases B <;> simp_all [__eo_typeof_lt]
       rw [hForm]
-      -- The inner body is `Bool`, so the requires nest is either `Bool` or `Stuck`.
-      unfold __eo_requires
-      by_cases hG1 : native_teq (__eo_eq A B) (Term.Boolean true) = true
-      · by_cases hNe1 : native_not (native_teq (__eo_eq A B) Term.Stuck) = true
-        · -- inner requires:
-          by_cases hG2 :
-              native_teq (__is_arith_type A) (Term.Boolean true) = true
-          · by_cases hNe2 :
-                native_not (native_teq (__is_arith_type A) Term.Stuck) = true
-            · left
-              simp [native_ite, hG1, hNe1, hG2, hNe2]
-            · right
-              simp [native_ite, hG1, hNe1, hG2, hNe2]
-          · right
-            simp [native_ite, hG1, hNe1, hG2]
-        · right; simp [native_ite, hG1, hNe1]
-      · right; simp [native_ite, hG1]
+      rcases requires_body_or_stuck (__eo_eq A B) (Term.Boolean true)
+          (__eo_requires (__is_arith_type A) (Term.Boolean true) Term.Bool) with hO | hO
+      · rw [hO]
+        rcases requires_body_or_stuck (__is_arith_type A) (Term.Boolean true) Term.Bool
+          with hI | hI
+        · left; exact hI
+        · right; exact hI
+      · right; exact hO
 
 /-- Inversion for `__eo_typeof_ite Bool U V = Bool`: forces both branches `Bool`. -/
 private theorem typeof_ite_bool_inv (U V : Term)
@@ -333,6 +345,22 @@ private theorem typeof_ite_bool_inv (U V : Term)
           SmtEval.native_not, hU] using h
       exact ⟨hUBool, by rw [hVU]; exact hUBool⟩
 
+/-- `__eo_typeof_ite C U V = Stuck` whenever the guard type `C` is not `Bool`. -/
+private theorem typeof_ite_stuck_of_guard_ne_bool (C U V : Term)
+    (hC : C ≠ Term.Bool) :
+    __eo_typeof_ite C U V = Term.Stuck := by
+  unfold __eo_typeof_ite
+  split <;> simp_all
+
+/-- `__eo_typeof_ite C U V = Bool` forces the guard type `C` to be `Bool`. -/
+private theorem typeof_ite_guard_bool (C U V : Term)
+    (h : __eo_typeof_ite C U V = Term.Bool) :
+    C = Term.Bool := by
+  apply Classical.byContradiction
+  intro hC
+  rw [typeof_ite_stuck_of_guard_ne_bool C U V hC] at h
+  cases h
+
 /-- Inversion for `__eo_typeof_bvult A B = Bool`: forces both `BitVec` of the
     same width. -/
 private theorem typeof_bvult_bool_inv (A B : Term)
@@ -354,16 +382,19 @@ private theorem typeof_bvult_bool_inv (A B : Term)
                       by_cases hEq : mA = mB
                       · subst mB; exact ⟨mA, rfl, rfl⟩
                       · exfalso
-                        have hForm : __eo_typeof_bvult
+                        -- `h : __eo_requires (__eo_eq mA mB) (Boolean true) Bool = Bool`
+                        -- (already reduced by the `BitVec`/`BitVec` match).
+                        have hEqMm : __eo_typeof_bvult
+                              (Term.Apply (Term.UOp UserOp.BitVec) mA)
+                              (Term.Apply (Term.UOp UserOp.BitVec) mB) = Term.Bool := h
+                        rw [show __eo_typeof_bvult
                               (Term.Apply (Term.UOp UserOp.BitVec) mA)
                               (Term.Apply (Term.UOp UserOp.BitVec) mB) =
                             __eo_requires (__eo_eq mA mB) (Term.Boolean true)
-                              Term.Bool := by
-                          simp [__eo_typeof_bvult]
-                        rw [hForm] at h
+                              Term.Bool from by simp [__eo_typeof_bvult]] at hEqMm
                         have hNe : __eo_requires (__eo_eq mA mB)
                               (Term.Boolean true) Term.Bool ≠ Term.Stuck := by
-                          rw [h]; intro hc; cases hc
+                          rw [hEqMm]; intro hc; cases hc
                         have hNe' := hNe
                         simp [__eo_requires, native_ite, native_teq,
                           native_not, SmtEval.native_not] at hNe'
@@ -372,6 +403,13 @@ private theorem typeof_bvult_bool_inv (A B : Term)
             | _ => simp [__eo_typeof_bvult] at h
       | _ => simp [__eo_typeof_bvult] at h
   | _ => simp [__eo_typeof_bvult] at h
+
+/-- `int_to_bv` typing yields `Stuck` whenever the width type is not `Int`. -/
+private theorem typeof_int_to_bv_stuck_of_width_ty_ne_int (A w B : Term)
+    (hA : A ≠ Term.UOp UserOp.Int) :
+    __eo_typeof_int_to_bv A w B = Term.Stuck := by
+  unfold __eo_typeof_int_to_bv
+  split <;> simp_all
 
 /-- Inversion for `int_to_bv` typing: a `BitVec` result with `Int` operand-type
     forces an `Int` width-type, a nonnegative-numeral width and matching width. -/
@@ -403,7 +441,8 @@ private theorem int_to_bv_type_bitvec_inv (A w m : Term)
          simp [__eo_typeof_int_to_bv, __eo_requires, __eo_gt, native_ite,
            native_teq, native_not, SmtEval.native_not] at h)
   · exfalso
-    cases A <;> simp_all [__eo_typeof_int_to_bv]
+    rw [typeof_int_to_bv_stuck_of_width_ty_ne_int A w (Term.UOp UserOp.Int) hA] at h
+    simp at h
 
 /-- From the result type being `Bool`, recover the width as a nonnegative
     numeral, the bit-vector type of `x` and the `Int` type of `n`. -/
@@ -439,17 +478,34 @@ private theorem typeof_args_of_conclusion_bool (x n w : Term) :
       simp [__eo_typeof_eq] at hTy
   -- From lhs = Bool, invert the lt to get x : BitVec _, n : Int.
   rw [hLhsTy] at hLhsBool
-  rcases typeof_lt_bool_inv _ _ hLhsBool with ⟨hBvsizeInt, hnInt⟩
+  rcases typeof_lt_bool_inv _ _ hLhsBool with ⟨hBA, hArith⟩
+  -- `bvsize (typeof x)` is `Int` or `Stuck`; the arith branch rules out `Real`.
+  have hBvsizeInt : __eo_typeof__at_bvsize (__eo_typeof x) = Term.UOp UserOp.Int := by
+    rcases hArith with hI | hR
+    · exact hI
+    · exfalso
+      revert hR
+      cases hxc : __eo_typeof x with
+      | Apply f m =>
+          cases f with
+          | UOp op => cases op <;> simp [__eo_typeof__at_bvsize]
+          | _ => simp [__eo_typeof__at_bvsize]
+      | _ => simp [__eo_typeof__at_bvsize]
+  -- `typeof n = bvsize (typeof x) = Int`.
+  have hnInt : __eo_typeof n = Term.UOp UserOp.Int := by
+    rw [hBA, hBvsizeInt]
   -- `bvsize (typeof x) = Int` ⟹ typeof x is a BitVec.
   have hxBv : ∃ m, __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) m := by
+    revert hBvsizeInt
     cases hxc : __eo_typeof x with
     | Apply f m =>
         cases f with
         | UOp op =>
-            cases op <;> simp_all [__eo_typeof__at_bvsize] <;>
+            cases op <;> intro hBvsizeInt <;>
+              simp_all [__eo_typeof__at_bvsize] <;>
               (first | (exact ⟨m, rfl⟩) | (simp_all [__eo_typeof__at_bvsize]))
-        | _ => simp_all [__eo_typeof__at_bvsize]
-    | _ => simp_all [__eo_typeof__at_bvsize]
+        | _ => intro hBvsizeInt; simp_all [__eo_typeof__at_bvsize]
+    | _ => intro hBvsizeInt; simp_all [__eo_typeof__at_bvsize]
   rcases hxBv with ⟨m, hxBvm⟩
   -- Now use the RHS = Bool to pin down `w = Numeral k` and `m = Numeral k`.
   have hRhsBool : __eo_typeof (ufGeqElimRhs x n w) = Term.Bool := by
@@ -465,10 +521,8 @@ private theorem typeof_args_of_conclusion_bool (x n w : Term) :
   rw [hRhsForm] at hRhsBool
   -- The ite requires its condition to be Bool; otherwise the ite is Stuck.
   have hGuardBool :
-      __eo_typeof (geqTerm n (int_pow2Term w)) = Term.Bool := by
-    by_contra hGuard
-    cases hgc : __eo_typeof (geqTerm n (int_pow2Term w)) <;>
-      simp_all [__eo_typeof_ite]
+      __eo_typeof (geqTerm n (int_pow2Term w)) = Term.Bool :=
+    typeof_ite_guard_bool _ _ _ hRhsBool
   rw [hGuardBool] at hRhsBool
   -- typeof (Boolean false) = Bool, so ite reduces and forces the inner ite = Bool.
   have hBoolFalse : __eo_typeof (Term.Boolean false) = Term.Bool := rfl
@@ -485,10 +539,8 @@ private theorem typeof_args_of_conclusion_bool (x n w : Term) :
     rfl
   rw [hInnerForm] at hInnerBool
   have hGuard2Bool :
-      __eo_typeof (ltTerm n (Term.Numeral 0)) = Term.Bool := by
-    by_contra hG2
-    cases hg2c : __eo_typeof (ltTerm n (Term.Numeral 0)) <;>
-      simp_all [__eo_typeof_ite]
+      __eo_typeof (ltTerm n (Term.Numeral 0)) = Term.Bool :=
+    typeof_ite_guard_bool _ _ _ hInnerBool
   rw [hGuard2Bool] at hInnerBool
   have hBoolTrue : __eo_typeof (Term.Boolean true) = Term.Bool := rfl
   rw [hBoolTrue] at hInnerBool
@@ -584,6 +636,7 @@ private theorem eval_lhs_matches_rhs
       (by rw [hEvalX] at hEvalXTy; exact hEvalXTy)
   have hRange : 0 <= a ∧ a < native_int_pow2 k :=
     bitvec_payload_range_of_canonical hNonneg hCanon
+  obtain ⟨hRange0, hRangeLt⟩ := hRange
   -- `n` evaluates to a Numeral.
   have hEvalNTy :
       __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt n)) = SmtType.Int := by
@@ -637,9 +690,10 @@ private theorem eval_lhs_matches_rhs
   · -- 2^k <= nv ⟹ a < 2^k <= nv ⟹ ¬ nv <= a ⟹ zleq nv a = false
     rw [hG1]
     simp only [__smtx_model_eval_ite]
+    rw [smtx_eval_boolean_term_eq]
     have hle : native_int_pow2 k <= nv := by simpa [SmtEval.native_zleq] using hG1
     have : native_zleq nv a = false := by
-      have : ¬ (nv <= a) := by omega
+      have : ¬ (nv <= a) := by simp only [native_Int] at *; omega
       simpa [SmtEval.native_zleq] using this
     rw [this]
   · -- nv < 2^k
@@ -652,7 +706,7 @@ private theorem eval_lhs_matches_rhs
     have hltPow : nv < native_int_pow2 k := by
       have hnle : ¬ (native_int_pow2 k <= nv) := by
         intro hc; exact hG1 (by simpa [SmtEval.native_zleq] using hc)
-      omega
+      simp only [native_Int] at *; omega
     -- evaluate inner guard2 = lt n 0
     rw [smtx_eval_ite_term_eq, smtx_eval_lt_term_eq, hEvalN]
     have hZero : __smtx_model_eval M (SmtTerm.Numeral 0) = SmtValue.Numeral 0 := by
@@ -667,9 +721,10 @@ private theorem eval_lhs_matches_rhs
     · -- nv < 0 ≤ a ⟹ nv <= a ⟹ zleq nv a = true
       rw [hG2]
       simp only [__smtx_model_eval_ite]
+      rw [smtx_eval_boolean_term_eq]
       have hlt0 : nv < 0 := by simpa [SmtEval.native_zlt] using hG2
       have : native_zleq nv a = true := by
-        have : nv <= a := by omega
+        have : nv <= a := by simp only [native_Int] at *; omega
         simpa [SmtEval.native_zleq] using this
       rw [this]
     · -- 0 <= nv < 2^k ⟹ bvuge x (int_to_bv k n)
@@ -682,7 +737,7 @@ private theorem eval_lhs_matches_rhs
       have hnv0 : 0 <= nv := by
         have hnlt : ¬ (nv < 0) := by
           intro hc; exact hG2 (by simpa [SmtEval.native_zlt] using hc)
-        omega
+        simp only [native_Int] at *; omega
       -- evaluate bvuge x (int_to_bv k n)
       rw [smtx_eval_bvuge_term_eq, smtx_eval_int_to_bv_term_eq, hEvalX, hEvalN,
         hPow]
@@ -700,18 +755,14 @@ private theorem eval_lhs_matches_rhs
         -- or (zlt nv a) (veq (Binary k a) (Binary k nv)) = zleq nv a
         have hVeq : native_veq (SmtValue.Binary k a) (SmtValue.Binary k nv) =
             decide (a = nv) := by
-          simp [native_veq]
+          simp only [native_veq, SmtValue.Binary.injEq, true_and]
         rw [hVeq]
         congr 1
         simp only [SmtEval.native_or, SmtEval.native_zlt, SmtEval.native_zleq]
         rw [Bool.eq_iff_iff]
         simp only [Bool.or_eq_true, decide_eq_true_eq]
-        constructor
-        · rintro (h | h) <;> omega
-        · intro h
-          rcases lt_or_eq_of_le h with h' | h'
-          · exact Or.inl h'
-          · exact Or.inr h'.symm
+        simp only [native_Int] at *
+        omega
       rw [hBvuge]
 
 /-! ## Bool-typedness and interpretation of the conclusion -/
@@ -775,6 +826,11 @@ private theorem facts_conclusion_impl
     have hNum0Ty : __smtx_typeof (SmtTerm.Numeral 0) = SmtType.Int := by
       rw [__smtx_typeof.eq_2]
     rw [hNumTy, hNum0Ty]
+    have hBoolFalseTy : __smtx_typeof (SmtTerm.Boolean false) = SmtType.Bool := by
+      rw [__smtx_typeof.eq_def] <;> simp only
+    have hBoolTrueTy : __smtx_typeof (SmtTerm.Boolean true) = SmtType.Bool := by
+      rw [__smtx_typeof.eq_def] <;> simp only
+    rw [hBoolFalseTy, hBoolTrueTy]
     have hNonnegK : native_zleq 0 k = true := hNonneg
     simp [__smtx_typeof_int_to_bv, __smtx_typeof_arith_overload_op_2_ret,
       __smtx_typeof_bv_op_2_ret, __smtx_typeof_ite, __smtx_typeof_bv_op_1_ret,

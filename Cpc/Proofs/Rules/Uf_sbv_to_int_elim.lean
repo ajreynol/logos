@@ -8,7 +8,7 @@ open Smtm
 set_option linter.unusedVariables false
 set_option linter.unusedSimpArgs false
 set_option linter.unnecessarySimpa false
-set_option maxHeartbeats 10000000
+set_option maxHeartbeats 4000000
 
 /-! ## Term abbreviations -/
 
@@ -311,8 +311,9 @@ private theorem sign_bit_and_uts_of_canonical
     rw [hnEq]
     change native_zplus (native_zmult 2 (native_mod_total r p)) (native_zneg r) = r
     rw [hRMod]
-    show 2 * r + -r = r
-    omega
+    have key : ∀ x : native_Int, native_zplus (native_zmult 2 x) (native_zneg x) = x := by
+      intro x; simp only [native_zplus, native_zmult, native_zneg, native_Int]; omega
+    exact key r
   · -- sign bit 1: uts = n - 2^w
     refine Or.inr ⟨hq, ?_⟩
     have hnEq : n = p + r := by
@@ -327,8 +328,10 @@ private theorem sign_bit_and_uts_of_canonical
     change native_zplus (native_zmult 2 (native_mod_total n p)) (native_zneg n)
       = n - native_int_pow2 w
     rw [hnEq, hPAddMod, hPow]
-    show 2 * r + -(p + r) = (p + r) - 2 * p
-    omega
+    have key : ∀ x y : native_Int,
+        native_zplus (native_zmult 2 x) (native_zneg (y + x)) = (y + x) - 2 * y := by
+      intro x y; simp only [native_zplus, native_zmult, native_zneg, native_Int]; omega
+    exact key r p
 
 /-- The width-1 extract payload (the sign bit), expressed via `native_div_total`. -/
 private theorem extract_sign_bit_payload
@@ -338,7 +341,7 @@ private theorem extract_sign_bit_payload
         (native_int_pow2 (native_zplus (native_zplus wm 1) (native_zneg wm)))
       = native_mod_total (native_div_total n (native_int_pow2 wm)) 2 := by
   have hExp : native_zplus (native_zplus wm 1) (native_zneg wm) = 1 := by
-    show (wm + 1) + -wm = 1
+    simp only [native_zplus, native_zneg, native_Int]
     omega
   rw [hExp]
   have hPow1 : native_int_pow2 (1 : native_Int) = 2 := by decide
@@ -430,32 +433,81 @@ private theorem typeof_extract_diag_numeral (wmv w : native_Int) :
     by_cases hg2 : native_zlt wmv w = true <;>
     simp [hg1, hg2, native_ite, native_teq]
 
+/-- The `gt wm (-1)` guard is `Stuck` when `wm` is not a numeral. -/
+private theorem eo_gt_neg_one_stuck_of_not_numeral (wm : Term)
+    (hwm : ∀ k, wm ≠ Term.Numeral k) :
+    __eo_gt wm (Term.Numeral (-1 : native_Int)) = Term.Stuck := by
+  cases hw : wm with
+  | Numeral k => exact absurd hw (hwm k)
+  | _ => rfl
+
+/-- `__eo_requires` with a `Stuck` condition is `Stuck`. -/
+private theorem requires_stuck_cond (b c : Term) :
+    __eo_requires Term.Stuck b c = Term.Stuck := by
+  by_cases hb : Term.Stuck = b
+  · subst hb
+    simp [__eo_requires, native_ite, native_teq, native_not, SmtEval.native_not]
+  · simp [__eo_requires, native_ite, native_teq, native_not, SmtEval.native_not,
+      hb]
+
+/-- `__eo_mk_apply` with a `Stuck` right argument is `Stuck`. -/
+private theorem mk_apply_stuck_right (x : Term) :
+    __eo_mk_apply x Term.Stuck = Term.Stuck := by
+  cases x <;> rfl
+
+/-- General reduction: with the `gt wm (-1)` guard `Stuck`, the `Int/Int/BitVec`
+    extract arm collapses to `Stuck`; combined with all other arms this gives a
+    `Stuck` result whenever that guard is stuck. -/
+private theorem typeof_extract_diag_stuck_of_gt_stuck (A wm B : Term)
+    (hA : A = Term.UOp UserOp.Int)
+    (hgt : __eo_gt wm (Term.Numeral (-1 : native_Int)) = Term.Stuck) :
+    __eo_typeof_extract A wm A wm B = Term.Stuck := by
+  subst A
+  by_cases hwmS : wm = Term.Stuck
+  · subst wm; rfl
+  · cases hB : B with
+    | Apply f a =>
+        cases f with
+        | UOp o =>
+            cases o <;>
+              simp only [__eo_typeof_extract, hwmS, hgt, requires_stuck_cond,
+                mk_apply_stuck_right]
+        | _ => simp only [__eo_typeof_extract, hwmS]
+    | _ => simp only [__eo_typeof_extract, hwmS]
+
 /-- The diagonal extract typeof is `Stuck` when `wm` is not a numeral term. -/
 private theorem typeof_extract_diag_not_numeral_stuck (wm t : Term)
     (hwm : ∀ k, wm ≠ Term.Numeral k) :
     __eo_typeof_extract (__eo_typeof wm) wm (__eo_typeof wm) wm (__eo_typeof t)
       = Term.Stuck := by
-  unfold __eo_typeof_extract
-  -- Row 3 needs `typeof wm = UOp Int`; even then the body's `gt wm (-1)` is stuck
-  -- because `wm` is not a numeral.  We case only on `typeof wm` and `typeof t`.
-  cases hwt : __eo_typeof wm with
-  | UOp o =>
-      cases o <;>
-        (cases ht : __eo_typeof t with
-         | Apply f a =>
-             cases f with
-             | UOp ot =>
-                 cases ot <;>
-                   simp only [hwt, ht, __eo_mk_apply, __eo_requires, __eo_gt,
-                     native_ite, native_teq, native_not, SmtEval.native_not] <;>
-                   (first
-                    | rfl
-                    | (cases hw : wm with
-                       | Numeral k => exact absurd hw (hwm k)
-                       | _ => simp [__eo_gt, native_teq, native_ite]))
-             | _ => simp only [hwt, ht, __eo_typeof_extract]
-         | _ => simp only [hwt, ht, __eo_typeof_extract])
-  | _ => simp only [hwt, __eo_typeof_extract]
+  by_cases hWmTy : __eo_typeof wm = Term.UOp UserOp.Int
+  · exact typeof_extract_diag_stuck_of_gt_stuck (__eo_typeof wm) wm (__eo_typeof t)
+      hWmTy (eo_gt_neg_one_stuck_of_not_numeral wm hwm)
+  · cases hwt : __eo_typeof wm with
+    | UOp o => cases o <;> simp_all [__eo_typeof_extract]
+    | _ => simp_all [__eo_typeof_extract]
+
+/-- The diagonal extract typeof for a numeral `wm` over a non-`BitVec(Numeral)`
+    operand type is `Stuck`. -/
+private theorem typeof_extract_diag_numeral_stuck_of_not_bv
+    (wmv : native_Int) (B : Term)
+    (hB : ∀ w, B ≠ Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w)) :
+    __eo_typeof_extract (Term.UOp UserOp.Int) (Term.Numeral wmv)
+        (Term.UOp UserOp.Int) (Term.Numeral wmv) B = Term.Stuck := by
+  cases hB' : B with
+  | Apply f a =>
+      cases f with
+      | UOp o =>
+          cases o <;>
+            (try (cases ha : a with
+              | Numeral w => exact absurd (by rw [hB', ha]) (hB w)
+              | _ =>
+                  simp only [__eo_typeof_extract, __eo_mk_apply, __eo_requires,
+                    __eo_gt, native_ite, native_teq, native_not,
+                    SmtEval.native_not])) <;>
+            simp only [__eo_typeof_extract]
+      | _ => simp only [__eo_typeof_extract]
+  | _ => simp only [__eo_typeof_extract]
 
 /-- Inversion of the extract-typeof being a `BitVec`: `wm` is a numeral, the
     operand is a `BitVec (Numeral w)`, with `-1 < wm` and `wm < w`. -/
@@ -465,51 +517,24 @@ private theorem typeof_extract_diag_bitvec_inv (wm t : Term) (m : Term)
     ∃ wmv w, wm = Term.Numeral wmv ∧
       __eo_typeof t = Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w) ∧
       native_zlt (-1 : native_Int) wmv = true ∧ native_zlt wmv w = true := by
-  -- `wm` must be a numeral.
   by_cases hNum : ∃ k, wm = Term.Numeral k
   · rcases hNum with ⟨wmv, hwm⟩
     subst wm
-    have hWmTy : __eo_typeof (Term.Numeral wmv) = Term.UOp UserOp.Int := rfl
-    rw [hWmTy] at h
-    -- operand type must be `BitVec (Numeral w)`.
-    cases hT : __eo_typeof t with
-    | Apply f n =>
-        cases f with
-        | UOp ot =>
-            cases ot <;>
-              (try (rw [hT] at h; simp only [__eo_typeof_extract, __eo_mk_apply,
-                __eo_requires, __eo_gt, native_ite, native_teq, native_not,
-                SmtEval.native_not] at h; exact absurd h (by simp)))
-            case BitVec =>
-              cases hn : n with
-              | Numeral w =>
-                  rw [hT, hn, typeof_extract_diag_numeral] at h
-                  by_cases hg1 : native_zlt (-1 : native_Int) wmv = true
-                  · by_cases hg2 : native_zlt wmv w = true
-                    · exact ⟨wmv, w, rfl, by rw [hT, hn], hg1, hg2⟩
-                    · rw [native_ite, if_neg (by simp [hg2]), native_ite,
-                        if_pos hg1] at h
-                      exact absurd h (by simp)
-                  · rw [native_ite, if_neg (by simp [hg1])] at h
-                    exact absurd h (by simp)
-              | _ =>
-                  rw [hT, hn] at h
-                  simp only [__eo_typeof_extract, __eo_mk_apply, __eo_requires,
-                    __eo_gt, native_ite, native_teq, native_not,
-                    SmtEval.native_not] at h
-                  exact absurd h (by simp)
-        | _ =>
-            rw [hT] at h
-            simp only [__eo_typeof_extract] at h
-            exact absurd h (by simp)
-    | _ =>
-        rw [hT] at h
-        simp only [__eo_typeof_extract] at h
-        exact absurd h (by simp)
+    rw [show __eo_typeof (Term.Numeral wmv) = Term.UOp UserOp.Int from rfl] at h
+    by_cases hBv : ∃ w, __eo_typeof t = Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w)
+    · rcases hBv with ⟨w, hT⟩
+      rw [hT, typeof_extract_diag_numeral] at h
+      by_cases hg1 : native_zlt (-1 : native_Int) wmv = true
+      · by_cases hg2 : native_zlt wmv w = true
+        · exact ⟨wmv, w, rfl, hT, hg1, hg2⟩
+        · simp only [native_ite, hg1, hg2, Bool.not_eq_true] at h
+      · simp only [native_ite, hg1, Bool.not_eq_true] at h
+    · rw [typeof_extract_diag_numeral_stuck_of_not_bv wmv (__eo_typeof t)
+        (by intro w hw; exact hBv ⟨w, hw⟩)] at h
+      exact absurd h (by simp)
   · exfalso
-    have hStuck := typeof_extract_diag_not_numeral_stuck wm t
-      (by intro k hk; exact hNum ⟨k, hk⟩)
-    rw [hStuck] at h
+    rw [typeof_extract_diag_not_numeral_stuck wm t
+      (by intro k hk; exact hNum ⟨k, hk⟩)] at h
     exact absurd h (by simp)
 
 /-- `__eo_typeof_ite X A B = Int` forces the condition type `X = Bool`. -/
@@ -564,22 +589,24 @@ private theorem typeof_args_of_body_bool (t wm n : Term) :
     cases hT : __eo_typeof t with
     | Apply f m =>
         cases f with
-        | UOp o => cases o <;> simp_all [__eo_typeof__at_bvsize]
-                   exact ⟨m, rfl⟩
-        | _ => simp_all [__eo_typeof__at_bvsize]
-    | _ => simp_all [__eo_typeof__at_bvsize]
+        | UOp o =>
+            cases o <;>
+              first
+              | exact ⟨m, rfl⟩
+              | (exfalso; apply hLNonStuck; rw [hT]; rfl)
+        | _ => exfalso; apply hLNonStuck; rw [hT]; rfl
+    | _ => exfalso; apply hLNonStuck; rw [hT]; rfl
   rcases hTBitVec with ⟨mt, hTty⟩
   have hLInt : __eo_typeof__at_bvsize (__eo_typeof t) = Term.UOp UserOp.Int := by
     rw [hTty]; rfl
   -- So typeof R = Int.
   rw [hLInt] at hLeqR
   -- hLeqR : typeof_ite (...) Int (typeof_plus Int (typeof n)) = Int
-  have hREq := hLeqR.symm
+  have hREq := hLeqR
   -- condition type is Bool
   have hCondBool := typeof_ite_int_forces_bool _ _ _ hREq
   -- destructure ite: branches are Int
   rw [hCondBool] at hREq
-  rw [hLInt] at hREq
   obtain ⟨_hA, hB⟩ := typeof_ite_inv _ _ hREq
   -- hB : typeof_plus Int (typeof n) = Int  ⟹ typeof n = Int
   have hNInt := typeof_plus_int_inv _ hB
@@ -694,7 +721,7 @@ private theorem eval_sides_rel
   have hCanon :
       native_zeq p (native_mod_total p (native_int_pow2 w)) = true :=
     bitvec_payload_canonical (u := native_int_to_nat w)
-      (by rw [hEvalT] at hEvalTy; rw [hWfit] at hEvalTy; exact hEvalTy)
+      (by rw [hEvalT] at hEvalTy; exact hEvalTy)
   -- Evaluate the LHS.
   have hEvalLhs :
       __smtx_model_eval M (__eo_to_smt (sbvToIntTerm t)) =
@@ -712,7 +739,7 @@ private theorem eval_sides_rel
     rw [smtx_eval_extract_term_eq, hEvalT, smtx_eval_numeral_eq]
     simp only [__smtx_model_eval_extract]
     have hWidth1 : native_zplus (native_zplus wmv 1) (native_zneg wmv) = 1 := by
-      simp only [native_zplus, native_zneg]; omega
+      simp only [native_zplus, native_zneg, native_Int]; omega
     rw [hWidth1]
     have hExtractPayload :
         native_mod_total (native_binary_extract w p wmv wmv) (native_int_pow2 1)
@@ -809,7 +836,7 @@ private theorem eval_sides_rel
       rfl
     rw [hEvalLhs, hEvalRhs]
     have hUtsEq : native_binary_uts w p = native_zplus p (native_zneg (native_int_pow2 w)) := by
-      rw [hUts]; simp [native_zplus, native_zneg]; omega
+      rw [hUts]; simp only [native_zplus, native_zneg, native_Int]; omega
     rw [hUtsEq]
     exact RuleProofs.smt_value_rel_refl _
 
@@ -856,19 +883,21 @@ private theorem smt_typeof_rhs_int
           (__smtx_typeof (__eo_to_smt t)) by rw [__smtx_typeof.eq_def] <;> simp only]
     rw [hTSmt]
     have hge0 : native_zleq 0 wmv = true := by
-      have : (-1 : native_Int) < wmv := by simpa [native_zlt, SmtEval.native_zlt] using hg1
-      simp [native_zleq, SmtEval.native_zleq]; omega
+      have hlt : (-1 : Int) < wmv := by simpa [native_zlt, SmtEval.native_zlt] using hg1
+      have : (0 : Int) ≤ wmv := by omega
+      simpa [native_zleq, SmtEval.native_zleq] using this
     have hle : native_zleq wmv wmv = true := by simp [native_zleq, SmtEval.native_zleq]
     have hlt : native_zlt wmv (native_nat_to_int (native_int_to_nat w)) = true := by
-      have hwlt : wmv < w := by simpa [native_zlt, SmtEval.native_zlt] using hg2
+      have hwlt : (wmv : Int) < w := by simpa [native_zlt, SmtEval.native_zlt] using hg2
       have hwfit : native_nat_to_int (native_int_to_nat w) = w := by
         have : 0 <= w := by simpa [SmtEval.native_zleq] using hNonneg
         simpa [native_int_to_nat, native_nat_to_int] using Int.toNat_of_nonneg this
-      rw [hwfit]; simp [native_zlt, SmtEval.native_zlt]; omega
-    simp only [__smtx_typeof_extract, native_ite, hge0, hle, hlt]
-    have : native_int_to_nat (native_zplus (native_zplus wmv (native_zneg wmv)) 1) = 1 := by
-      simp [native_int_to_nat, native_zplus, native_zneg]
-    rw [this]
+      rw [hwfit]; simpa [native_zlt, SmtEval.native_zlt] using hwlt
+    have hwidth : native_int_to_nat
+        (native_zplus (native_zplus wmv (native_zneg wmv)) 1) = 1 := by
+      simp only [native_int_to_nat, native_zplus, native_zneg]
+      omega
+    simp only [__smtx_typeof_extract, native_ite, hge0, hle, hlt, if_true, hwidth]
   have hBvTy : __smtx_typeof (SmtTerm.Binary 1 0) = SmtType.BitVec 1 := by
     rw [__smtx_typeof.eq_def] <;> simp only
     simp [native_ite, native_zleq, SmtEval.native_zleq, native_and, SmtEval.native_and,
@@ -966,10 +995,11 @@ private theorem facts_body_impl
     have : 0 <= w := by simpa [SmtEval.native_zleq] using hNonneg
     simpa [native_int_to_nat, native_nat_to_int] using Int.toNat_of_nonneg this
   -- Width is positive: wmv satisfies -1 < wmv < w, so 0 ≤ wmv < w hence w ≥ 1.
-  have hwpos : 0 < w := by
-    have h1 : (-1 : native_Int) < wmv := by simpa [native_zlt, SmtEval.native_zlt] using hg1
-    have h2 : wmv < w := by simpa [native_zlt, SmtEval.native_zlt] using hg2
-    omega
+  have hwpos : (0 : Int) < w := by
+    have h1 : (-1 : Int) < wmv := by simpa [native_zlt, SmtEval.native_zlt] using hg1
+    have h2 : (wmv : Int) < w := by simpa [native_zlt, SmtEval.native_zlt] using hg2
+    have h0 : (0 : Int) ≤ wmv := by omega
+    exact Int.lt_of_le_of_lt h0 h2
   -- From premise 1: eval(wm) = w - 1.
   have hBvsize := eval_bvsize_eq M t w hNonneg hTSmt
   -- eval of neg (bvsize t) 1
@@ -1043,90 +1073,110 @@ by
   have hProg : __eo_cmd_step_proven s CRule.uf_sbv_to_int_elim args premises ≠ Term.Stuck :=
     term_ne_stuck_of_typeof_bool hResultTy
   cases args with
-  | nil => exact absurd rfl (by simpa using hProg)
+  | nil =>
+      change Term.Stuck ≠ Term.Stuck at hProg
+      exact False.elim (hProg rfl)
   | cons a1 args =>
-    cases args with
-    | nil => exact absurd rfl (by simpa using hProg)
-    | cons a2 args =>
       cases args with
-      | nil => exact absurd rfl (by simpa using hProg)
-      | cons a3 args =>
-        cases args with
-        | nil =>
-          cases premises with
-          | nil => exact absurd rfl (by simpa using hProg)
-          | cons n1 premises =>
-            cases premises with
-            | nil => exact absurd rfl (by simpa using hProg)
-            | cons n2 premises =>
-              cases premises with
+      | nil =>
+          change Term.Stuck ≠ Term.Stuck at hProg
+          exact False.elim (hProg rfl)
+      | cons a2 args =>
+          cases args with
+          | nil =>
+              change Term.Stuck ≠ Term.Stuck at hProg
+              exact False.elim (hProg rfl)
+          | cons a3 args =>
+              cases args with
               | nil =>
-                let P1 := __eo_state_proven_nth s n1
-                let P2 := __eo_state_proven_nth s n2
-                have hTransTriple :
-                    RuleProofs.eo_has_smt_translation a1 ∧
-                      RuleProofs.eo_has_smt_translation a2 ∧
-                        RuleProofs.eo_has_smt_translation a3 ∧ True := by
-                  simpa [cmdTranslationOk, cArgListTranslationOk, eoHasSmtTranslation,
-                    RuleProofs.eo_has_smt_translation] using hCmdTrans
-                have hA1Trans : RuleProofs.eo_has_smt_translation a1 := hTransTriple.1
-                have hA3Trans : RuleProofs.eo_has_smt_translation a3 := hTransTriple.2.2.1
-                change __eo_typeof
-                    (__eo_prog_uf_sbv_to_int_elim a1 a2 a3 (Proof.pf P1) (Proof.pf P2)) =
-                  Term.Bool at hResultTy
-                have hProgArg :
-                    __eo_prog_uf_sbv_to_int_elim a1 a2 a3 (Proof.pf P1) (Proof.pf P2) ≠
-                      Term.Stuck :=
-                  term_ne_stuck_of_typeof_bool hResultTy
-                obtain ⟨hA1NS, hA2NS, hA3NS⟩ :=
-                  args_ne_stuck_of_prog_not_stuck a1 a2 a3 P1 P2 hProgArg
-                rcases shape_of_prog_uf_sbv_to_int_elim_not_stuck a1 a2 a3 P1 P2
-                  hA1NS hA2NS hA3NS hProgArg with ⟨wm2, t2, n2, t3, hP1eq, hP2eq⟩
-                -- Reduce the program.
-                have hProgEq :
-                    __eo_prog_uf_sbv_to_int_elim a1 a2 a3 (Proof.pf P1) (Proof.pf P2) =
-                      __eo_requires
-                        (__eo_and
-                          (__eo_and (__eo_and (__eo_eq a2 wm2) (__eo_eq a1 t2))
-                            (__eo_eq a3 n2))
-                          (__eo_eq a1 t3))
-                        (Term.Boolean true) (ufSbvToIntElimBody a1 a2 a3) := by
-                  rw [hP1eq, hP2eq]
-                  exact prog_uf_sbv_to_int_elim_eq a1 a2 a3 wm2 t2 n2 t3 hA1NS hA2NS hA3NS
-                rw [hProgEq] at hProgArg hResultTy
-                -- Discharge the guard: align args.
-                obtain ⟨hwm2, ht2, hn2, ht3⟩ :=
-                  eqs_of_requires_and4_eq_true_not_stuck a2 wm2 a1 t2 a3 n2 a1 t3 _ hProgArg
-                subst hwm2; subst ht2; subst hn2; subst ht3
-                rw [requires_and4_eq_self_true_body a1 a2 a3 _ hA1NS hA2NS hA3NS]
-                  at hResultTy
-                have hStepEq :
-                    __eo_cmd_step_proven s CRule.uf_sbv_to_int_elim
-                        (CArgList.cons a1 (CArgList.cons a2 (CArgList.cons a3 CArgList.nil)))
-                        (CIndexList.cons n1 (CIndexList.cons n2 CIndexList.nil)) =
-                      ufSbvToIntElimBody a1 a2 a3 := by
-                  change __eo_prog_uf_sbv_to_int_elim a1 a2 a3 (Proof.pf P1) (Proof.pf P2) =
-                    ufSbvToIntElimBody a1 a2 a3
-                  rw [hProgEq, requires_and4_eq_self_true_body a1 a2 a3 _ hA1NS hA2NS hA3NS]
-                rw [hStepEq]
-                refine ⟨?_, ?_⟩
-                · intro hPrem
-                  -- Premise evidence: extract the two interpreted-true facts.
-                  have hAll : AllInterpretedTrue M (premiseTermList s
-                      (CIndexList.cons n1 (CIndexList.cons n2 CIndexList.nil))) :=
-                    hPrem.true_here
-                  have hP1true : eo_interprets M P1 true := by
-                    have := hAll P1 (by left; rfl)
-                    exact this
-                  have hP2true : eo_interprets M P2 true := by
-                    have := hAll P2 (by right; left; rfl)
-                    exact this
-                  -- P1 = eq a2 (neg (bvsize a1) 1), P2 = eq a3 (int_pow2 (bvsize a1))
-                  rw [hP1eq] at hP1true
-                  rw [hP2eq] at hP2true
-                  exact facts_body_impl M hM a1 a2 a3 hA1Trans hA3Trans hResultTy
-                    hP1true hP2true
-                · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
-                    (typed_body_impl a1 a2 a3 hA1Trans hA3Trans hResultTy)
-              | cons _ _ => exact absurd rfl (by simpa using hProg)
-        | cons _ _ => exact absurd rfl (by simpa using hProg)
+                  cases premises with
+                  | nil =>
+                      change Term.Stuck ≠ Term.Stuck at hProg
+                      exact False.elim (hProg rfl)
+                  | cons n1 premises =>
+                      cases premises with
+                      | nil =>
+                          change Term.Stuck ≠ Term.Stuck at hProg
+                          exact False.elim (hProg rfl)
+                      | cons n2 premises =>
+                          cases premises with
+                          | nil =>
+                              let P1 := __eo_state_proven_nth s n1
+                              let P2 := __eo_state_proven_nth s n2
+                              have hTransTriple :
+                                  RuleProofs.eo_has_smt_translation a1 ∧
+                                    RuleProofs.eo_has_smt_translation a2 ∧
+                                      RuleProofs.eo_has_smt_translation a3 ∧ True := by
+                                simpa [cmdTranslationOk, cArgListTranslationOk,
+                                  eoHasSmtTranslation,
+                                  RuleProofs.eo_has_smt_translation] using hCmdTrans
+                              have hA1Trans : RuleProofs.eo_has_smt_translation a1 :=
+                                hTransTriple.1
+                              have hA3Trans : RuleProofs.eo_has_smt_translation a3 :=
+                                hTransTriple.2.2.1
+                              change __eo_typeof
+                                  (__eo_prog_uf_sbv_to_int_elim a1 a2 a3
+                                    (Proof.pf P1) (Proof.pf P2)) = Term.Bool at hResultTy
+                              have hProgArg :
+                                  __eo_prog_uf_sbv_to_int_elim a1 a2 a3
+                                    (Proof.pf P1) (Proof.pf P2) ≠ Term.Stuck :=
+                                term_ne_stuck_of_typeof_bool hResultTy
+                              obtain ⟨hA1NS, hA2NS, hA3NS⟩ :=
+                                args_ne_stuck_of_prog_not_stuck a1 a2 a3 P1 P2 hProgArg
+                              rcases shape_of_prog_uf_sbv_to_int_elim_not_stuck a1 a2 a3
+                                P1 P2 hA1NS hA2NS hA3NS hProgArg with
+                                ⟨wm2, t2, n2, t3, hP1eq, hP2eq⟩
+                              have hProgEq :
+                                  __eo_prog_uf_sbv_to_int_elim a1 a2 a3
+                                      (Proof.pf P1) (Proof.pf P2) =
+                                    __eo_requires
+                                      (__eo_and
+                                        (__eo_and (__eo_and (__eo_eq a2 wm2) (__eo_eq a1 t2))
+                                          (__eo_eq a3 n2))
+                                        (__eo_eq a1 t3))
+                                      (Term.Boolean true)
+                                      (ufSbvToIntElimBody a1 a2 a3) := by
+                                rw [hP1eq, hP2eq]
+                                exact prog_uf_sbv_to_int_elim_eq a1 a2 a3 wm2 t2 n2 t3
+                                  hA1NS hA2NS hA3NS
+                              rw [hProgEq] at hProgArg hResultTy
+                              obtain ⟨hwm2, ht2, hn2, ht3⟩ :=
+                                eqs_of_requires_and4_eq_true_not_stuck a2 wm2 a1 t2 a3 n2
+                                  a1 t3 _ hProgArg
+                              subst hwm2; subst ht2; subst hn2; subst ht3
+                              rw [requires_and4_eq_self_true_body a1 a2 a3 _
+                                hA1NS hA2NS hA3NS] at hResultTy
+                              have hStepEq :
+                                  __eo_cmd_step_proven s CRule.uf_sbv_to_int_elim
+                                      (CArgList.cons a1
+                                        (CArgList.cons a2 (CArgList.cons a3 CArgList.nil)))
+                                      (CIndexList.cons n1
+                                        (CIndexList.cons n2 CIndexList.nil)) =
+                                    ufSbvToIntElimBody a1 a2 a3 := by
+                                change __eo_prog_uf_sbv_to_int_elim a1 a2 a3
+                                    (Proof.pf P1) (Proof.pf P2) =
+                                  ufSbvToIntElimBody a1 a2 a3
+                                rw [hProgEq, requires_and4_eq_self_true_body a1 a2 a3 _
+                                  hA1NS hA2NS hA3NS]
+                              rw [hStepEq]
+                              refine ⟨?_, ?_⟩
+                              · intro hPrem
+                                have hAll : AllInterpretedTrue M (premiseTermList s
+                                    (CIndexList.cons n1 (CIndexList.cons n2 CIndexList.nil))) :=
+                                  hPrem.true_here
+                                have hP1true : eo_interprets M P1 true :=
+                                  hAll P1 (by left; rfl)
+                                have hP2true : eo_interprets M P2 true :=
+                                  hAll P2 (by right; left; rfl)
+                                rw [hP1eq] at hP1true
+                                rw [hP2eq] at hP2true
+                                exact facts_body_impl M hM a1 a2 a3 hA1Trans hA3Trans
+                                  hResultTy hP1true hP2true
+                              · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
+                                  (typed_body_impl a1 a2 a3 hA1Trans hA3Trans hResultTy)
+                          | cons _ _ =>
+                              change Term.Stuck ≠ Term.Stuck at hProg
+                              exact False.elim (hProg rfl)
+              | cons _ _ =>
+                  change Term.Stuck ≠ Term.Stuck at hProg
+                  exact False.elim (hProg rfl)
