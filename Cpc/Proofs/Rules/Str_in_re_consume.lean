@@ -28717,6 +28717,38 @@ theorem str_re_consume_model_rel
       rfl
     subst nextRv0
     exact hRel
+  have hActionableFrontierTwoPassBridgeProgress :
+      (∀ (hNotMult :
+          ∀ r0, r = Term.Apply (Term.UOp UserOp.re_mult) r0 -> False),
+        nonMultFirstFalseNative hNotMult) ∧
+      (∀ r0
+          (hR : r = Term.Apply (Term.UOp UserOp.re_mult) r0),
+        multFirstFalseNative r0 hR) ∧
+      (∀ (hSideNotFalse : side ≠ Term.Boolean false)
+          (hNotMult :
+            ∀ r0, r = Term.Apply (Term.UOp UserOp.re_mult) r0 -> False),
+        nonMultInputNativeEq hSideNotFalse hNotMult) ∧
+      (∀ (hNotMult :
+          ∀ r0, r = Term.Apply (Term.UOp UserOp.re_mult) r0 -> False),
+        nonMultSecondFalseInputNativeEq hNotMult) ∧
+      (∀ r0
+          (hR : r = Term.Apply (Term.UOp UserOp.re_mult) r0),
+        multSecondFalseInputNativeEq r0 hR) ∧
+      (∀ r0
+          (_hR : r = Term.Apply (Term.UOp UserOp.re_mult) r0)
+          (hSideNotFalse : side ≠ Term.Boolean false),
+        multSecondStrNativeEq r0 hSideNotFalse) := by
+    -- `__re_rev_map_rev` is not a semantic regex reverse. It reverses the
+    -- consume-actionable frontier: the pieces that `__str_re_consume_rec`
+    -- can actually peel. Opaque atoms are left in place and must fall back to
+    -- `str_in_re`; the second pass then restores their original orientation.
+    -- The remaining proof should be an operational induction over those
+    -- consume cases, not a language-reversal lemma for arbitrary regexes.
+    sorry
+  rcases hActionableFrontierTwoPassBridgeProgress with
+    ⟨hActionNonMultFirstFalse, hActionMultFirstFalse,
+      hActionNonMultInput, hActionNonMultSecondFalse,
+      hActionMultSecondFalse, hActionMultSecondStr⟩
   have hRawTwoPassInputBridgeProgress :
       (∀ (hNotMult :
           ∀ r0, r = Term.Apply (Term.UOp UserOp.re_mult) r0 -> False),
@@ -28876,10 +28908,8 @@ theorem str_re_consume_model_rel
           sFlatSs rFlatRv hSFlatEval hRFlatEval
       have hOriginalFalse :
           native_str_in_re (native_unpack_string ss) rv = false := by
-        -- First-pass `false` must be reflected back through the two-pass
-        -- residual invariant; the old one-pass reverse bridge is not valid
-        -- for fallback regex atoms.
-        sorry
+        exact hActionNonMultFirstFalse hNotMult hFirstFalse
+          ss rv hSEval hREval
       rw [hOriginalFalse, hFirstInputFalse]
     · intro r0 hR
       dsimp
@@ -28892,9 +28922,8 @@ theorem str_re_consume_model_rel
           sFlatSs rFlatRv hSFlatEval hRFlatEval
       have hOriginalFalse :
           native_str_in_re (native_unpack_string ss) rv = false := by
-        -- Same first-pass `false` obligation, with the original regex wrapped
-        -- in `re_mult`.
-        sorry
+        exact hActionMultFirstFalse r0 hR hFirstFalse ss rv hSEval
+          hREval
       rw [hOriginalFalse, hFirstInputFalse]
     · intro hSideNotFalse hNotMult
       dsimp
@@ -28997,13 +29026,9 @@ theorem str_re_consume_model_rel
       have hTwoPassResidualNative :
           native_str_in_re (native_unpack_string flatSs) rv =
             native_str_in_re (native_unpack_string nextSs) nextRv := by
-        -- The known facts now identify the exact remaining invariant:
-        -- the first consume is sound in the reversed orientation
-        -- (`hFirstNative`), and `nextS`/`nextR` are the syntactic reverse
-        -- of that first residual (`hNextSCoreEval`, `hNextRCoreEval`).
-        -- What remains is the two-pass cancellation lemma relating
-        -- the original flat input to this reversed residual.
-        sorry
+        exact hOriginalFlat.symm.trans
+          (hActionNonMultInput hSideNotFalse hNotMult ss rv nextSs nextRv
+            hSEval hREval hNextSEval hNextREval)
       exact hOriginalFlat.trans hTwoPassResidualNative
     · intro hNotMult
       dsimp
@@ -29053,9 +29078,11 @@ theorem str_re_consume_model_rel
             hNextREval)
       have hOriginalFalse :
           native_str_in_re (native_unpack_string ss) rv = false := by
-        -- Non-`re_mult` second-pass `false`: reflect the second false result
-        -- back to the original input with the two-pass invariant.
-        sorry
+        have hEq :=
+          hActionNonMultSecondFalse hNotMult hFirstNotFalse hSecondFalse
+            ss rv nextSs nextRv hSEval hREval hNextSEval hNextREval
+        rw [hEq]
+        exact hNextInputFalse
       rw [hOriginalFalse, hNextInputFalse]
     · intro r0 hR
       dsimp
@@ -29105,9 +29132,11 @@ theorem str_re_consume_model_rel
             hNextREval)
       have hOriginalFalse :
           native_str_in_re (native_unpack_string ss) rv = false := by
-        -- `re_mult` second-pass `false`: reflect the second false result
-        -- back through the star-specific two-pass residual invariant.
-        sorry
+        have hEq :=
+          hActionMultSecondFalse r0 hR hFirstNotFalse hSecondFalse
+            ss rv nextSs nextRv hSEval hREval hNextSEval hNextREval
+        rw [hEq]
+        exact hNextInputFalse
       rw [hOriginalFalse, hNextInputFalse]
     · intro r0 hR hSideNotFalse
       dsimp [multSecondStrNativeEq]
@@ -29210,15 +29239,8 @@ theorem str_re_consume_model_rel
       have hStarResidualNative :
           native_str_in_re (native_unpack_string ss) rv =
             native_str_in_re (native_unpack_string partsSs) rv := by
-        -- The first and second recursive calls are now exposed through
-        -- `hFirstNative` and `hSecondNative`.  We also know the original
-        -- regex value is `native_re_mult r0Rv` (`hOriginalStarValue`) and
-        -- the top-level candidate carries an epsilon residual
-        -- (`hCandidateMem`).  The remaining obligation is the star-specific
-        -- two-pass cancellation: the residual string produced by the second
-        -- pass is equivalent to the original string under the enclosing
-        -- `re_mult` language.
-        sorry
+        exact hActionMultSecondStr r0 hR hSideNotFalse
+          ss rv partsSs hSEval hStarEval hPartsEval
       exact hStarResidualNative
   have hTwoPassBridgeProgress :
       (∀ (hNotMult :
