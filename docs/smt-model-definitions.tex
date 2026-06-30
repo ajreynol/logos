@@ -523,7 +523,7 @@ The definition of one-step unfolding of datatypes is given by the method
 \begin{figure}
 \begin{lstlisting}
 def smt_type_lift (s : native_String) (d : SmtDatatype) : SmtType -> SmtType
-  | (SmtType.Datatype s2 d2) => (native_ite (Teq (SmtType.Datatype s d) (SmtType.Datatype s2 d2)) (SmtType.TypeRef s) (SmtType.Datatype s2 (smt_dt_lift s d d2)))
+  | (SmtType.Datatype s2 d2) => (if (Teq (SmtType.Datatype s d) (SmtType.Datatype s2 d2)) then (SmtType.TypeRef s) else (SmtType.Datatype s2 (smt_dt_lift s d d2)))
   | T => T
 
 def smt_dtc_lift (s : native_String) (d : SmtDatatype) : SmtDatatypeCons -> SmtDatatypeCons
@@ -536,8 +536,8 @@ def smt_dt_lift (s : native_String) (d : SmtDatatype) : SmtDatatype -> SmtDataty
 
 
 def smt_type_substitute (s : native_String) (d : SmtDatatype) : SmtType -> SmtType
-  | (SmtType.Datatype s2 d2) => (SmtType.Datatype s2 (native_ite (native_streq s s2) d2 (smt_dt_substitute s (smt_dt_lift s2 d2 d) d2)))
-  | (SmtType.TypeRef s2) => (native_ite (native_streq s s2) (SmtType.Datatype s d) (SmtType.TypeRef s2))
+  | (SmtType.Datatype s2 d2) => (SmtType.Datatype s2 (if (native_streq s s2) then d2 else (smt_dt_substitute s (smt_dt_lift s2 d2 d) d2)))
+  | (SmtType.TypeRef s2) => (if (native_streq s s2) then (SmtType.Datatype s d) else (SmtType.TypeRef s2))
   | T => T
 
 def smt_dtc_substitute (s : native_String) (d : SmtDatatype) : SmtDatatypeCons -> SmtDatatypeCons
@@ -1052,12 +1052,12 @@ and our definition of SMT-LIB models.
 \begin{figure}[p]
 \begin{lstlisting}
 def smt_typeof_guard (T : SmtType) (U : SmtType) : SmtType :=
-  (native_ite (Teq T SmtType.None) SmtType.None U)
+  (if (Teq T SmtType.None) then SmtType.None else U)
   
 def smt_typeof_map_value : SmtMap -> SmtType
   | (SmtMap.cons i e m) => 
     let _v0 := (smt_typeof_map_value m)
-    (native_ite (Teq (SmtType.Map (smt_typeof_value i) (smt_typeof_value e)) _v0) _v0 SmtType.None)
+    (if (Teq (SmtType.Map (smt_typeof_value i) (smt_typeof_value e)) _v0) then _v0 else SmtType.None)
   | (SmtMap.default T e) => (SmtType.Map T (smt_typeof_value e))
 
 def smt_map_to_set_type : SmtType -> SmtType
@@ -1067,7 +1067,7 @@ def smt_map_to_set_type : SmtType -> SmtType
 def smt_typeof_seq_value : SmtSeq -> SmtType
   | (SmtSeq.cons v vs) => 
     let _v0 := (smt_typeof_seq_value vs)
-    (native_ite (Teq (SmtType.Seq (smt_typeof_value v)) _v0) _v0 SmtType.None)
+    (if (Teq (SmtType.Seq (smt_typeof_value v)) _v0) then _v0 else SmtType.None)
   | (SmtSeq.empty T) => (SmtType.Seq T)
   
 def smt_typeof_dt_cons_value_rec (T : SmtType) : SmtDatatype -> native_Nat -> SmtType
@@ -1078,7 +1078,7 @@ def smt_typeof_dt_cons_value_rec (T : SmtType) : SmtDatatype -> native_Nat -> Sm
   | d, n => SmtType.None
 
 def smt_typeof_apply_value : SmtType -> SmtType -> SmtType
-  | (SmtType.DtcAppType T U), V => (smt_typeof_guard T (native_ite (Teq T V) U SmtType.None))
+  | (SmtType.DtcAppType T U), V => (smt_typeof_guard T (if (Teq T V) then U else SmtType.None))
   | T, U => SmtType.None
   
 ...
@@ -1222,13 +1222,13 @@ def smt_datatype_cons_default (v : SmtValue) : SmtDatatypeCons -> SmtDatatypeCon
   | SmtDatatypeCons.unit, SmtDatatypeCons.unit => v
   | (SmtDatatypeCons.cons TF cF), (SmtDatatypeCons.cons TU cU) =>
     let _v0 := (smt_type_default_rec TF TU)
-    (native_ite (veq _v0 SmtValue.NotValue) SmtValue.NotValue (smt_datatype_cons_default (SmtValue.Apply v _v0) cF cU))
+    (if (veq _v0 SmtValue.NotValue) then SmtValue.NotValue else (smt_datatype_cons_default (SmtValue.Apply v _v0) cF cU))
   | cF, cU => SmtValue.NotValue
 
 def smt_datatype_default (s : native_String) (d : SmtDatatype) (n : Nat) : SmtDatatype -> SmtDatatype -> SmtValue
   | (SmtDatatype.sum cF dF), (SmtDatatype.sum cU dU) =>
     let _v0 := (smt_datatype_cons_default (SmtValue.DtCons s d n) cF cU)
-    (native_ite (native_not (veq _v0 SmtValue.NotValue)) _v0 (smt_datatype_default s d (native_nat_succ n) dF dU))
+    (if (native_not (veq _v0 SmtValue.NotValue)) then _v0 else (smt_datatype_default s d (native_nat_succ n) dF dU))
   | dF, dU => SmtValue.NotValue
 
 def smt_type_default_rec : SmtType -> SmtType -> SmtValue
@@ -1238,7 +1238,7 @@ def smt_type_default_rec : SmtType -> SmtType -> SmtValue
   | V, SmtType.Int => (SmtValue.Numeral 0)
   | V, (SmtType.Map T U) =>
     let _v0 := (smt_type_default_rec U U)
-    (native_ite (veq _v0 SmtValue.NotValue) SmtValue.NotValue (SmtValue.Map (SmtMap.default T _v0)))
+    (if (veq _v0 SmtValue.NotValue) then SmtValue.NotValue else (SmtValue.Map (SmtMap.default T _v0)))
   | V, (SmtType.Set T) => (SmtValue.Set (SmtMap.default T (SmtValue.Boolean false)))
   | V, (SmtType.Seq T) => (SmtValue.Seq (SmtSeq.empty T))
   | V, (SmtType.FunType T U) => (SmtValue.Fun "@default" T U)
@@ -1617,7 +1617,7 @@ All other types (e.g. the atomic base types) are first-class.
 \begin{figure}[p]
 \begin{lstlisting}
 def smt_typeof_eq (T : SmtType) (U : SmtType) : SmtType :=
-  (smt_typeof_guard T (native_ite (native_Teq T U) SmtType.Bool SmtType.None))
+  (smt_typeof_guard T (if (native_Teq T U) then SmtType.Bool else SmtType.None))
   
 def smt_ret_typeof_sel (s : String) (d : SmtDatatype) (n : Nat) (m : Nat) : SmtType :=
   (smt_ret_typeof_sel_rec (smt_dt_substitute s d d) n m)
@@ -1896,9 +1896,9 @@ inductive Proof : Type where
 
 def eo_requires : Term -> Term -> Term -> Term
   | x1, x2, x3 =>
-      (native_ite (teq x1 x2)
-        (native_ite (native_not (teq x1 Term.Stuck)) x3 Term.Stuck)
-        Term.Stuck)
+      (if (teq x1 x2) then
+        (if (native_not (teq x1 Term.Stuck)) then x3 else Term.Stuck)
+        else Term.Stuck)
 
 def __mk_trans : Term -> Term -> Term -> Term
   | Term.Stuck, _, _ => Term.Stuck
