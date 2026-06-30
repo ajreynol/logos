@@ -581,9 +581,48 @@ Consider the following mutually recursive datatype, in smt2:
    ((mkB (a A)) (leaf)))
 \end{examplecode}
 
-(representation, then representation after substitution, explaning steps).
+Following the conventions above, the datatype type for \code{A} is
+\code{(Datatype "A" DA)}, where
+\begin{examplecode}
+DA := (sum (cons (Datatype "B" DB) unit) null)
+DB := (sum (cons (TypeRef "A") unit) (sum unit null))
+\end{examplecode}
+Here, the single constructor \code{mkA} of \code{A} carries a field of type \code{B},
+which is inlined as \code{(Datatype "B" DB)}.
+Within \code{DB}, the constructor \code{mkB} carries a field of type \code{A},
+which (being a reference back to the top-level datatype) is the type
+reference \code{(TypeRef "A")}, while \code{leaf} takes no arguments (\code{unit}).
 
-
+Now consider the one-step unfolding of \code{A}, namely
+\code{(smt_dt_substitute "A" DA DA)}.
+Traversing \code{DA}, we reach the field type \code{(Datatype "B" DB)} of \code{mkA}
+and compute \code{(smt_type_substitute "A" DA (Datatype "B" DB))}.
+Since \code{"A"} and \code{"B"} differ, this returns
+\begin{examplecode}
+(Datatype "B" (smt_dt_substitute "A" (smt_dt_lift "B" DB DA) DB))
+\end{examplecode}
+The lifting \code{(smt_dt_lift "B" DB DA)} replaces the occurrence of
+\code{(Datatype "B" DB)} inside \code{DA} by the self-reference \code{(TypeRef "B")}, yielding
+\begin{examplecode}
+DA' := (sum (cons (TypeRef "B") unit) null)
+\end{examplecode}
+Substituting references to \code{"A"} by \code{(Datatype "A" DA')} into \code{DB} 
+then gives:
+\begin{examplecode}
+DB' := (sum (cons (Datatype "A" DA') unit) (sum unit null))
+\end{examplecode}
+Putting this together, the one-step unfolding of \code{A},
+\code{(smt_dt_substitute "A" DA DA)} returns \code{DA''}, where:
+\begin{examplecode}
+DA'' := (sum (cons (Datatype "B" DB') unit) null)
+DB' := (sum (cons (Datatype "A" DA') unit) (sum unit null))
+DA' := (sum (cons (TypeRef "B") unit) null)
+\end{examplecode}
+Note the role of the lifting step here: without it, the copy of \code{DA} inserted
+for \code{(TypeRef "A")} beneath \code{B} would re-state \code{(Datatype "B" DB)} in full,
+redundantly inlining \code{B} underneath itself.
+Lifting instead turns this occurrence into the self-reference \code{(TypeRef "B")},
+so that the unfolded type remains well-formed.
 
 Note the definition of \code{smt_dt_substitute}
 does not traverse composite types like maps, sequences and sets.
@@ -591,6 +630,13 @@ This implies that for e.g. nested recursive datatypes,
 type references to the datatype we are unfolding are not replaced.
 Again, this behavior is arbitrary as we do not consider datatypes with nested 
 recursion to be well-formed.
+
+Overall the purpose of unfolding of datatypes is to make the field types
+of a datatype self-contained. In particular, note in the example
+above, the field type \code{(Datatype "B" DB')} is now a well-formed,
+standalone type. This operation will be used to give type rules for datatype
+values and terms, as well as defining the construction of canonical values
+for datatype types.
 
 \subsection{Models}
 \label{sec:models}
