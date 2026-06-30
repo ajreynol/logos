@@ -1094,11 +1094,83 @@ theorem inhabited_of_wf (T : SmtType) (hwf : __smtx_type_wf_rec T native_reflist
   simp only [native_inhabited_type, native_and, native_not, native_Teq, hTyped]
   simp [native_Teq, hTne]
 
+/-- `__smtx_type_wf_rec` reads `refs` only at `Datatype`/`TypeRef`; it is refs-independent
+elsewhere.  Hence a non-datatype field that is well-formed in scope `refs` is closed-well-formed. -/
+theorem type_wf_rec_refs_irrel_nondt :
+    ∀ (T : SmtType) (refs : RefList),
+      (∀ s2 d2, T ≠ SmtType.Datatype s2 d2) →
+      __smtx_type_wf_rec T refs = __smtx_type_wf_rec T native_reflist_nil := by
+  intro T refs hnd
+  cases T <;> first | exact absurd rfl (hnd _ _) | rfl
+
 /-- `TU` is a field of constructor `c`. -/
 inductive FieldMem : SmtType → SmtDatatypeCons → Prop where
   | head {TU : SmtType} {c : SmtDatatypeCons} : FieldMem TU (SmtDatatypeCons.cons TU c)
   | tail {TU TU' : SmtType} {c : SmtDatatypeCons} :
       FieldMem TU c → FieldMem TU (SmtDatatypeCons.cons TU' c)
+
+/-- Tail well-formedness from a constructor's well-formedness (any scope). -/
+private theorem cons_wf_tail_gen {TU : SmtType} {cU : SmtDatatypeCons} {refs : RefList}
+    (hwf : __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons TU cU) refs = true) :
+    __smtx_dt_cons_wf_rec cU refs = true := by
+  cases TU with
+  | TypeRef s =>
+      simp only [__smtx_dt_cons_wf_rec, native_ite] at hwf
+      split at hwf
+      · next h => exact hwf
+      · next h => exact absurd hwf (by simp)
+  | _ =>
+      simp only [__smtx_dt_cons_wf_rec, native_ite] at hwf
+      split at hwf
+      · next h => exact hwf
+      · next h => exact absurd hwf (by simp)
+
+/-- Head-field well-formedness for a non-`TypeRef` head (any scope). -/
+private theorem cons_wf_head_gen {T : SmtType} {cU : SmtDatatypeCons} {refs : RefList}
+    (hwf : __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons T cU) refs = true)
+    (hnotTR : ∀ s, T ≠ SmtType.TypeRef s) :
+    __smtx_type_wf_rec T refs = true := by
+  cases T with
+  | TypeRef s => exact absurd rfl (hnotTR s)
+  | _ =>
+      simp only [__smtx_dt_cons_wf_rec, native_ite] at hwf
+      split at hwf
+      · next h => exact h
+      · next h => exact absurd hwf (by simp)
+
+/-- A constructor well-formed at scope `{s}` with no nested-datatype fields has every field either
+the self-reference `TypeRef s` or a closed (refs-`nil`) well-formed type. -/
+theorem cons_fields_self_or_closed (s : native_String) :
+    ∀ (c : SmtDatatypeCons),
+      __smtx_dt_cons_wf_rec c (native_reflist_insert native_reflist_nil s) = true →
+      (∀ TU, FieldMem TU c → ∀ s2 d2, TU ≠ SmtType.Datatype s2 d2) →
+      ∀ TU, FieldMem TU c →
+        TU = SmtType.TypeRef s ∨ __smtx_type_wf_rec TU native_reflist_nil = true
+  | SmtDatatypeCons.unit, _, _, _, hmem => by cases hmem
+  | SmtDatatypeCons.cons T c', hwf, hnd, TU, hmem => by
+      cases hmem with
+      | head =>
+          cases T with
+          | TypeRef s'' =>
+              left
+              simp only [__smtx_dt_cons_wf_rec, native_ite] at hwf
+              split at hwf
+              · next hc =>
+                  have hss : s'' = s := by
+                    simpa [native_reflist_contains, native_reflist_insert, native_reflist_nil]
+                      using hc
+                  rw [hss]
+              · next hc => exact absurd hwf (by simp)
+          | Datatype s2 d2 => exact absurd rfl (hnd _ FieldMem.head s2 d2)
+          | _ =>
+              right
+              have hTwf := cons_wf_head_gen hwf (by intro s' h; cases h)
+              rw [type_wf_rec_refs_irrel_nondt _ (native_reflist_insert native_reflist_nil s)
+                (by intro s2 d2 h; cases h)] at hTwf
+              exact hTwf
+      | tail hmemTail =>
+          exact cons_fields_self_or_closed s c' (cons_wf_tail_gen hwf)
+            (fun TU' h => hnd TU' (FieldMem.tail h)) TU hmemTail
 
 /-- A folded constructor's fields are all defaultable-or-self, when every non-self field is closed
 well-formed.  Provides `fields_ok` for the `build_cons` machinery. -/
