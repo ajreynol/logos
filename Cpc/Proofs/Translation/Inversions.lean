@@ -1,4 +1,5 @@
 import Cpc.Proofs.Translation.Base
+import Cpc.Proofs.SmtWfCompat
 
 open Eo
 open SmtEval
@@ -269,10 +270,8 @@ private theorem smtx_datatype_type_wf_rec_parts
     {s : native_String} {d : SmtDatatype} {refs : RefList}
     (h : __smtx_type_wf_rec (SmtType.Datatype s d) refs = true) :
     native_reflist_contains refs s = false ∧
-      __smtx_dt_wf_rec d (native_reflist_insert refs s) = true := by
-  cases hRefs : native_reflist_contains refs s <;>
-    simp [__smtx_type_wf_rec, native_ite, hRefs] at h ⊢
-  exact h
+      dtAllWf d (native_reflist_insert refs s) = true :=
+  dtAllWf_of_type_wf_rec_datatype s d refs h
 
 def smtx_type_field_wf_rec : SmtType -> RefList -> Prop
   | SmtType.TypeRef s, refs => native_reflist_contains refs s = true
@@ -282,7 +281,7 @@ private theorem smtx_datatype_field_wf_rec_parts
     {s : native_String} {d : SmtDatatype} {refs : RefList}
     (h : smtx_type_field_wf_rec (SmtType.Datatype s d) refs) :
     native_reflist_contains refs s = false ∧
-      __smtx_dt_wf_rec d (native_reflist_insert refs s) = true :=
+      dtAllWf d (native_reflist_insert refs s) = true :=
   smtx_datatype_type_wf_rec_parts (by
     simpa [smtx_type_field_wf_rec] using h)
 
@@ -416,17 +415,17 @@ private theorem smtx_dt_wf_tail_of_sum_wf_of_tail_ne_null
     {C : SmtDatatypeCons}
     {Dtail : SmtDatatype}
     {refs : RefList}
-    (hWF : __smtx_dt_wf_rec (SmtDatatype.sum C Dtail) refs = true)
+    (hWF : dtAllWf (SmtDatatype.sum C Dtail) refs = true)
     (hTail : Dtail ≠ SmtDatatype.null) :
-    __smtx_dt_wf_rec Dtail refs = true := by
+    dtAllWf Dtail refs = true := by
   cases Dtail with
   | null =>
       exact False.elim (hTail rfl)
   | sum Ctail DtailTail =>
       have hCWF : __smtx_dt_cons_wf_rec C refs = true := by
         cases hC : __smtx_dt_cons_wf_rec C refs <;>
-          simp [__smtx_dt_wf_rec, native_ite, hC] at hWF ⊢
-      simpa [__smtx_dt_wf_rec, native_ite, hCWF] using hWF
+          simp [dtAllWf, native_ite, hC] at hWF ⊢
+      simpa [dtAllWf, native_ite, hCWF] using hWF
 
 @[simp] private theorem eo_to_smt_type_bitvec_lit_ne_bool
     (n : native_Int) :
@@ -2140,7 +2139,7 @@ theorem eo_to_smt_type_injective_of_field_wf_rec
               simpa [hDT] using hWF
             have hWFParts := smtx_datatype_field_wf_rec_parts hWF'
             have hDWF :
-                __smtx_dt_wf_rec
+                dtAllWf
                     (SmtDatatype.sum (SmtDatatypeCons.cons (__eo_to_smt_type yT) cT)
                       SmtDatatype.null)
                     (native_reflist_insert refs (native_string_lit "@Tuple")) =
@@ -2152,7 +2151,7 @@ theorem eo_to_smt_type_injective_of_field_wf_rec
               cases hConsWF :
                   __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons (__eo_to_smt_type yT) cT)
                     (native_reflist_insert refs (native_string_lit "@Tuple")) <;>
-                simp [__smtx_dt_wf_rec, hConsWF] at hDWF ⊢
+                simp [dtAllWf, hConsWF] at hDWF ⊢
             have hFieldWF :
                 smtx_type_field_wf_rec (__eo_to_smt_type yT)
                   (native_reflist_insert refs (native_string_lit "@Tuple")) :=
@@ -2166,7 +2165,7 @@ theorem eo_to_smt_type_injective_of_field_wf_rec
                     (SmtType.Datatype (native_string_lit "@Tuple") (SmtDatatype.sum cT SmtDatatype.null))
                     refs := by
               simp [smtx_type_field_wf_rec, __smtx_type_wf_rec, hWFParts.1,
-                __smtx_dt_wf_rec, hTailWF, native_ite]
+                dtAllWf, hTailWF, native_ite]
             have hyEq : yT = yU :=
               eo_to_smt_type_injective_of_field_wf_rec
                 (A := __eo_to_smt_type yT) (refs := native_reflist_insert refs (native_string_lit "@Tuple"))
@@ -2180,7 +2179,7 @@ theorem eo_to_smt_type_injective_of_field_wf_rec
             rfl
       · rcases eo_to_smt_type_eq_datatype_non_tuple hs hT with ⟨dT, rfl, hDT⟩
         rcases eo_to_smt_type_eq_datatype_non_tuple hs hU with ⟨dU, rfl, hDU⟩
-        have hDWF : __smtx_dt_wf_rec d (native_reflist_insert refs s) = true := by
+        have hDWF : dtAllWf d (native_reflist_insert refs s) = true := by
           exact (smtx_datatype_field_wf_rec_parts hWF).2
         have hD : dT = dU :=
           eo_to_smt_datatype_injective_of_wf_rec hDT hDU hDWF
@@ -2211,7 +2210,7 @@ theorem eo_to_smt_datatype_injective_of_wf_rec
     {d e : Datatype} {D : SmtDatatype} {refs : RefList}
     (hd : __eo_to_smt_datatype d = D)
     (he : __eo_to_smt_datatype e = D)
-    (hWF : __smtx_dt_wf_rec D refs = true) :
+    (hWF : dtAllWf D refs = true) :
     d = e := by
   cases D with
   | null =>
@@ -2228,14 +2227,14 @@ theorem eo_to_smt_datatype_injective_of_wf_rec
               rcases he with ⟨hc', heTail⟩
               have hCWF : __smtx_dt_cons_wf_rec C refs = true := by
                 cases hC : __smtx_dt_cons_wf_rec C refs <;>
-                  cases Dtail <;> simp [__smtx_dt_wf_rec, native_ite, hC] at hWF ⊢
+                  cases Dtail <;> simp [dtAllWf, native_ite, hC] at hWF ⊢
               have hcEq : c = c' :=
                 eo_to_smt_datatype_cons_injective_of_wf_rec hc hc' hCWF
               have hdEq : dt = dt' := by
                 by_cases hDtail : Dtail = SmtDatatype.null
                 · cases dt <;> cases dt' <;>
                     simp [__eo_to_smt_datatype, hDtail] at hdTail heTail ⊢
-                · have hDtailWF : __smtx_dt_wf_rec Dtail refs = true :=
+                · have hDtailWF : dtAllWf Dtail refs = true :=
                     smtx_dt_wf_tail_of_sum_wf_of_tail_ne_null hWF hDtail
                   exact eo_to_smt_datatype_injective_of_wf_rec hdTail heTail hDtailWF
               subst c'
@@ -2443,13 +2442,13 @@ theorem eo_typeof_type_of_smt_type_wf_rec :
                                       (native_reflist_insert native_reflist_nil (native_string_lit "@Tuple")) =
                                     true := by
                                 have hRawDt :
-                                    __smtx_dt_wf_rec
+                                    dtAllWf
                                         (SmtDatatype.sum
                                           (SmtDatatypeCons.cons (__eo_to_smt_type y) c)
                                           SmtDatatype.null)
                                         (native_reflist_insert native_reflist_nil (native_string_lit "@Tuple")) =
                                       true := hRawRec.2
-                                simpa [__smtx_dt_wf_rec] using hRawDt
+                                simpa [dtAllWf] using hRawDt
                               have hTail :
                                   __smtx_dt_cons_wf_rec c
                                     (native_reflist_insert native_reflist_nil (native_string_lit "@Tuple")) =
@@ -2479,7 +2478,7 @@ theorem eo_typeof_type_of_smt_type_wf_rec :
                                   __smtx_type_wf_rec (__eo_to_smt_type x) native_reflist_nil =
                                     true := by
                                 rw [hX]
-                                simp [__smtx_type_wf_rec, __smtx_dt_wf_rec,
+                                simp [__smtx_type_wf_rec, dtAllWf,
                                   native_reflist_contains, native_reflist_nil, native_ite]
                                 simpa [native_reflist_nil] using hTail
                               have hx := eo_typeof_type_of_smt_type_wf_rec x native_reflist_nil hxWF
