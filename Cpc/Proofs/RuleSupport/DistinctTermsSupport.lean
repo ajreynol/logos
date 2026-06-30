@@ -1,4 +1,5 @@
 import Cpc.Proofs.RuleSupport.CoreSupport
+import Cpc.Proofs.SmtWfCompat
 import Cpc.Proofs.RuleSupport.SequenceSupport
 import Cpc.Proofs.RuleSupport.SetsMemberSupport
 import Cpc.Proofs.RuleSupport.DtConsEqSupport
@@ -2588,7 +2589,7 @@ private theorem dtcons_model_eval_of_translation
 private theorem dtcons_smt_datatype_wf_rec_of_translation
     {s : native_String} {d : Datatype} {i : native_Nat} :
     RuleProofs.eo_has_smt_translation (Term.DtCons s d i) ->
-    __smtx_dt_wf_rec (__eo_to_smt_datatype d)
+    dtAllWf (__eo_to_smt_datatype d)
         (native_reflist_insert native_reflist_nil s) =
       true := by
   intro hTrans
@@ -2700,7 +2701,7 @@ private theorem dtcons_dtcons_model_eval_eq_false
       subst s₂
       subst i₂
       have hWF :
-          __smtx_dt_wf_rec (__eo_to_smt_datatype d₁)
+          dtAllWf (__eo_to_smt_datatype d₁)
               (native_reflist_insert native_reflist_nil s₁) =
             true :=
         dtcons_smt_datatype_wf_rec_of_translation h₁Trans

@@ -1,4 +1,5 @@
 import Cpc.Proofs.TypePreservation.Predicates
+import Cpc.Proofs.SmtWfCompat
 import Cpc.Proofs.Canonical.TypeDefaultBasic
 import Cpc.Proofs.Canonical.FiniteDefaultable
 
@@ -640,20 +641,20 @@ theorem cons_default_head :
   decreasing_by all_goals (try simp_wf); all_goals omega
 
 private theorem dt_wf_cons_of_wf {c : SmtDatatypeCons} {d : SmtDatatype} {refs : RefList}
-    (h : __smtx_dt_wf_rec (SmtDatatype.sum c d) refs = true) :
+    (h : dtAllWf (SmtDatatype.sum c d) refs = true) :
     __smtx_dt_cons_wf_rec c refs = true := by
   by_cases hc : __smtx_dt_cons_wf_rec c refs = true
   · exact hc
-  · have hFalse : __smtx_dt_wf_rec (SmtDatatype.sum c d) refs = false := by
-      cases d <;> simp [__smtx_dt_wf_rec, native_ite, hc]
+  · have hFalse : dtAllWf (SmtDatatype.sum c d) refs = false := by
+      cases d <;> simp [dtAllWf, native_ite, hc]
     rw [hFalse] at h; simp at h
 
 private theorem dt_wf_tail_of_nonempty_tail_wf {c cTail : SmtDatatypeCons} {dTail : SmtDatatype}
     {refs : RefList}
-    (h : __smtx_dt_wf_rec (SmtDatatype.sum c (SmtDatatype.sum cTail dTail)) refs = true) :
-    __smtx_dt_wf_rec (SmtDatatype.sum cTail dTail) refs = true := by
+    (h : dtAllWf (SmtDatatype.sum c (SmtDatatype.sum cTail dTail)) refs = true) :
+    dtAllWf (SmtDatatype.sum cTail dTail) refs = true := by
   have hc : __smtx_dt_cons_wf_rec c refs = true := dt_wf_cons_of_wf h
-  simpa [__smtx_dt_wf_rec, native_ite, hc] using h
+  simpa [dtAllWf, native_ite, hc] using h
 
 private theorem finite_dt_cons_of_finite_sum {c : SmtDatatypeCons} {d : SmtDatatype}
     (hFin : __smtx_is_finite_datatype (SmtDatatype.sum c d) = true) :
@@ -1030,11 +1031,9 @@ private theorem finite_nonunit_datatype_nondefault_value :
         simpa [__smtx_is_finite_type] using hFin
       have hRoot : native_reflist_contains (native_reflist_insert refs s) s = true := by
         simp [native_reflist_contains, native_reflist_insert]
-      have hDtWf : __smtx_dt_wf_rec (SmtDatatype.sum c SmtDatatype.null)
-          (native_reflist_insert refs s) = true := by
-        by_cases hc : native_reflist_contains refs s = true
-        · simp [__smtx_type_wf_rec, native_ite, hc] at hRec
-        · simpa [__smtx_type_wf_rec, native_ite, hc] using hRec
+      have hDtWf : dtAllWf (SmtDatatype.sum c SmtDatatype.null)
+          (native_reflist_insert refs s) = true :=
+        (dtAllWf_of_type_wf_rec_datatype s (SmtDatatype.sum c SmtDatatype.null) refs hRec).2
       have hcWf : __smtx_dt_cons_wf_rec c (native_reflist_insert refs s) = true :=
         dt_wf_cons_of_wf hDtWf
       have hcFin : __smtx_is_finite_datatype_cons c = true := finite_dt_cons_of_finite_sum hFinD
@@ -1067,11 +1066,9 @@ private theorem finite_nonunit_datatype_nondefault_value :
       have hFinD : __smtx_is_finite_datatype d = true := by simpa [d, __smtx_is_finite_type] using hFin
       have hRoot : native_reflist_contains (native_reflist_insert refs s) s = true := by
         simp [native_reflist_contains, native_reflist_insert]
-      have hDtWf : __smtx_dt_wf_rec d (native_reflist_insert refs s) = true := by
-        by_cases hc : native_reflist_contains refs s = true
-        · simp [d, __smtx_type_wf_rec, native_ite, hc] at hRec
-        · simpa [d, __smtx_type_wf_rec, native_ite, hc] using hRec
-      have hTailWf : __smtx_dt_wf_rec (SmtDatatype.sum cTail dTail) (native_reflist_insert refs s) = true :=
+      have hDtWf : dtAllWf d (native_reflist_insert refs s) = true :=
+        (dtAllWf_of_type_wf_rec_datatype s d refs hRec).2
+      have hTailWf : dtAllWf (SmtDatatype.sum cTail dTail) (native_reflist_insert refs s) = true :=
         dt_wf_tail_of_nonempty_tail_wf hDtWf
       have hcTailWf : __smtx_dt_cons_wf_rec cTail (native_reflist_insert refs s) = true :=
         dt_wf_cons_of_wf hTailWf

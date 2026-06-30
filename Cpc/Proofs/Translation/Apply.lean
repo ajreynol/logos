@@ -1,4 +1,5 @@
 import Cpc.Proofs.Translation.Datatypes
+import Cpc.Proofs.SmtWfCompat
 import Cpc.Proofs.Translation.Quantifiers
 import Cpc.Proofs.Translation.Special
 import Cpc.Proofs.Translation.Inversions
@@ -32,10 +33,8 @@ private theorem smtx_type_wf_rec_of_type_wf
 private theorem smtx_dt_wf_rec_of_datatype_type_wf_rec_apply
     {s : native_String} {d : SmtDatatype} {refs : RefList}
     (h : __smtx_type_wf_rec (SmtType.Datatype s d) refs = true) :
-    __smtx_dt_wf_rec d (native_reflist_insert refs s) = true := by
-  cases hRefs : native_reflist_contains refs s <;>
-    simp [__smtx_type_wf_rec, native_ite, hRefs] at h ⊢
-  all_goals exact h
+    dtAllWf d (native_reflist_insert refs s) = true :=
+  (dtAllWf_of_type_wf_rec_datatype s d refs h).2
 
 @[simp] private theorem native_inhabited_type_bool_apply :
     native_inhabited_type SmtType.Bool = true :=
@@ -2312,24 +2311,24 @@ private theorem smtx_dt_wf_cons_of_sum_wf_apply
     {c : SmtDatatypeCons}
     {d : SmtDatatype}
     {refs : RefList}
-    (h : __smtx_dt_wf_rec (SmtDatatype.sum c d) refs = true) :
+    (h : dtAllWf (SmtDatatype.sum c d) refs = true) :
     __smtx_dt_cons_wf_rec c refs = true := by
   cases hC : __smtx_dt_cons_wf_rec c refs <;>
-    cases d <;> simp [__smtx_dt_wf_rec, native_ite, hC] at h ⊢
+    cases d <;> simp [dtAllWf, native_ite, hC] at h ⊢
 
 private theorem smtx_dt_wf_tail_of_sum_wf_apply
     {c : SmtDatatypeCons}
     {d : SmtDatatype}
     {refs : RefList}
     (hTail : d ≠ SmtDatatype.null)
-    (h : __smtx_dt_wf_rec (SmtDatatype.sum c d) refs = true) :
-    __smtx_dt_wf_rec d refs = true := by
+    (h : dtAllWf (SmtDatatype.sum c d) refs = true) :
+    dtAllWf d refs = true := by
   cases d with
   | null =>
       exact False.elim (hTail rfl)
   | sum cTail dTail =>
       cases hC : __smtx_dt_cons_wf_rec c refs <;>
-        simp [__smtx_dt_wf_rec, native_ite, hC] at h ⊢
+        simp [dtAllWf, native_ite, hC] at h ⊢
       exact h
 
 private def reflist_equiv_apply (xs ys : RefList) : Prop :=
@@ -3105,7 +3104,7 @@ private theorem smtx_typeof_dt_cons_value_rec_zero_ne_none_of_wf_apply
     (T : SmtType) {refs : RefList}
     (hT : smtx_type_field_wf_rec T refs) :
     (c : SmtDatatypeCons) -> (d : SmtDatatype) ->
-      __smtx_dt_wf_rec (SmtDatatype.sum c d) refs = true ->
+      dtAllWf (SmtDatatype.sum c d) refs = true ->
       __smtx_typeof_dt_cons_value_rec T (SmtDatatype.sum c d) native_nat_zero ≠
         SmtType.None
   | SmtDatatypeCons.unit, d, _hWf => by
@@ -3118,12 +3117,12 @@ private theorem smtx_typeof_dt_cons_value_rec_chain_field_wf_of_wf_apply
     (T : SmtType) {refs : RefList}
     (hT : smtx_type_field_wf_rec T refs) :
     (d : SmtDatatype) -> (i : native_Nat) ->
-      __smtx_dt_wf_rec d refs = true ->
+      dtAllWf d refs = true ->
       __smtx_typeof_dt_cons_value_rec T d i ≠ SmtType.None ->
       smtx_type_chain_field_wf_rec refs
         (__smtx_typeof_dt_cons_value_rec T d i)
   | SmtDatatype.null, i, hWf, hNN => by
-      cases i <;> simp [__smtx_dt_wf_rec] at hWf
+      cases i <;> simp [dtAllWf] at hWf
   | SmtDatatype.sum SmtDatatypeCons.unit d, native_nat_zero, hWf, hNN => by
       simpa [__smtx_typeof_dt_cons_value_rec,
         smtx_type_chain_field_wf_rec] using
@@ -3136,15 +3135,15 @@ private theorem smtx_typeof_dt_cons_value_rec_chain_field_wf_of_wf_apply
         smtx_type_field_wf_rec_of_cons_wf hCons
       have hTailCons : __smtx_dt_cons_wf_rec c refs = true :=
         smtx_dt_cons_wf_rec_tail_of_true hCons
-      have hTailWf : __smtx_dt_wf_rec (SmtDatatype.sum c d) refs = true := by
+      have hTailWf : dtAllWf (SmtDatatype.sum c d) refs = true := by
         cases d with
         | null =>
-            simpa [__smtx_dt_wf_rec] using hTailCons
+            simpa [dtAllWf] using hTailCons
         | sum cTail dTail =>
             have hDTail :
-                __smtx_dt_wf_rec (SmtDatatype.sum cTail dTail) refs = true :=
+                dtAllWf (SmtDatatype.sum cTail dTail) refs = true :=
               smtx_dt_wf_tail_of_sum_wf_apply (by simp) hWf
-            simp [__smtx_dt_wf_rec, native_ite, hTailCons, hDTail]
+            simp [dtAllWf, native_ite, hTailCons, hDTail]
       have hTailNN :
           __smtx_typeof_dt_cons_value_rec T (SmtDatatype.sum c d)
               native_nat_zero ≠
@@ -3167,7 +3166,7 @@ private theorem smtx_typeof_dt_cons_value_rec_chain_field_wf_of_wf_apply
           simp [__smtx_typeof_dt_cons_value_rec] at hNN
       | sum cTail dTail =>
           have hTailWf :
-              __smtx_dt_wf_rec (SmtDatatype.sum cTail dTail) refs = true :=
+              dtAllWf (SmtDatatype.sum cTail dTail) refs = true :=
             smtx_dt_wf_tail_of_sum_wf_apply (by simp) hWf
           have hTailNN :
               __smtx_typeof_dt_cons_value_rec T
@@ -3182,7 +3181,7 @@ private theorem smtx_dt_cons_applied_type_rec_chain_field_wf_of_wf_apply
     (s : native_String) (d0 : SmtDatatype) {refs : RefList}
     (hT : smtx_type_field_wf_rec (SmtType.Datatype s d0) refs) :
     (d : SmtDatatype) -> (i n : native_Nat) ->
-      __smtx_dt_wf_rec d refs = true ->
+      dtAllWf d refs = true ->
       dt_cons_applied_type_rec s d0 d i n ≠ SmtType.None ->
       smtx_type_chain_field_wf_rec refs
         (dt_cons_applied_type_rec s d0 d i n)
@@ -3203,15 +3202,15 @@ private theorem smtx_dt_cons_applied_type_rec_chain_field_wf_of_wf_apply
         smtx_dt_wf_cons_of_sum_wf_apply hWf
       have hTailCons : __smtx_dt_cons_wf_rec c refs = true :=
         smtx_dt_cons_wf_rec_tail_of_true hCons
-      have hTailWf : __smtx_dt_wf_rec (SmtDatatype.sum c d) refs = true := by
+      have hTailWf : dtAllWf (SmtDatatype.sum c d) refs = true := by
         cases d with
         | null =>
-            simpa [__smtx_dt_wf_rec] using hTailCons
+            simpa [dtAllWf] using hTailCons
         | sum cTail dTail =>
             have hDTail :
-                __smtx_dt_wf_rec (SmtDatatype.sum cTail dTail) refs = true :=
+                dtAllWf (SmtDatatype.sum cTail dTail) refs = true :=
               smtx_dt_wf_tail_of_sum_wf_apply (by simp) hWf
-            simp [__smtx_dt_wf_rec, native_ite, hTailCons, hDTail]
+            simp [dtAllWf, native_ite, hTailCons, hDTail]
       have hTailNN :
           dt_cons_applied_type_rec s d0 (SmtDatatype.sum c d)
               native_nat_zero n ≠
@@ -3226,7 +3225,7 @@ private theorem smtx_dt_cons_applied_type_rec_chain_field_wf_of_wf_apply
           simp [dt_cons_applied_type_rec] at hNN
       | sum cTail dTail =>
           have hTailWf :
-              __smtx_dt_wf_rec (SmtDatatype.sum cTail dTail) refs = true :=
+              dtAllWf (SmtDatatype.sum cTail dTail) refs = true :=
             smtx_dt_wf_tail_of_sum_wf_apply (by simp) hWf
           have hTailNN :
               dt_cons_applied_type_rec s d0
@@ -3468,12 +3467,12 @@ private theorem smtx_dt_context_substitute_no_root_of_wf_apply
     (sub : native_String) (base : SmtDatatype)
     (root : native_String) (oldRoot newRoot : SmtDatatype) :
     (d : SmtDatatype) -> {refs : RefList} ->
-      __smtx_dt_wf_rec d refs = true ->
+      dtAllWf d refs = true ->
       smtx_dt_context_substitute_apply sub base root oldRoot newRoot
           true false d =
         __smtx_dt_substitute sub base d
   | SmtDatatype.null, refs, hWf => by
-      simp [__smtx_dt_wf_rec] at hWf
+      simp [dtAllWf] at hWf
   | SmtDatatype.sum c SmtDatatype.null, refs, hWf => by
       have hCons : __smtx_dt_cons_wf_rec c refs = true :=
         smtx_dt_wf_cons_of_sum_wf_apply hWf
@@ -3488,7 +3487,7 @@ private theorem smtx_dt_context_substitute_no_root_of_wf_apply
       have hCons : __smtx_dt_cons_wf_rec c refs = true :=
         smtx_dt_wf_cons_of_sum_wf_apply hWf
       have hTail :
-          __smtx_dt_wf_rec (SmtDatatype.sum cTail dTail) refs = true :=
+          dtAllWf (SmtDatatype.sum cTail dTail) refs = true :=
         smtx_dt_wf_tail_of_sum_wf_apply (by simp) hWf
       have hC :
           smtx_dtc_context_substitute_apply sub base root oldRoot newRoot
@@ -3672,11 +3671,11 @@ private theorem smtx_ret_typeof_sel_rec_substitute_apply
 
 private theorem smtx_ret_typeof_sel_rec_field_wf_of_wf_apply :
     (d : SmtDatatype) -> (i j : native_Nat) -> {refs : RefList} ->
-      __smtx_dt_wf_rec d refs = true ->
+      dtAllWf d refs = true ->
       j < __smtx_dt_num_sels d i ->
       smtx_type_field_wf_rec (__smtx_ret_typeof_sel_rec d i j) refs
   | SmtDatatype.null, i, j, refs, hWf, hj => by
-      cases i <;> simp [__smtx_dt_wf_rec] at hWf hj
+      cases i <;> simp [dtAllWf] at hWf hj
   | SmtDatatype.sum SmtDatatypeCons.unit d, native_nat_zero, j, refs, hWf, hj => by
       cases j <;> simp [__smtx_dt_num_sels, __smtx_dtc_num_sels] at hj
   | SmtDatatype.sum (SmtDatatypeCons.cons T c) d, native_nat_zero,
@@ -3693,15 +3692,15 @@ private theorem smtx_ret_typeof_sel_rec_field_wf_of_wf_apply :
         smtx_dt_wf_cons_of_sum_wf_apply hWf
       have hTailCons : __smtx_dt_cons_wf_rec c refs = true :=
         smtx_dt_cons_wf_rec_tail_of_true hCons
-      have hTailWf : __smtx_dt_wf_rec (SmtDatatype.sum c d) refs = true := by
+      have hTailWf : dtAllWf (SmtDatatype.sum c d) refs = true := by
         cases d with
         | null =>
-            simpa [__smtx_dt_wf_rec] using hTailCons
+            simpa [dtAllWf] using hTailCons
         | sum cTail dTail =>
             have hDTail :
-                __smtx_dt_wf_rec (SmtDatatype.sum cTail dTail) refs = true :=
+                dtAllWf (SmtDatatype.sum cTail dTail) refs = true :=
               smtx_dt_wf_tail_of_sum_wf_apply (by simp) hWf
-            simp [__smtx_dt_wf_rec, native_ite, hTailCons, hDTail]
+            simp [dtAllWf, native_ite, hTailCons, hDTail]
       have hj' : j < __smtx_dt_num_sels (SmtDatatype.sum c d) native_nat_zero := by
         simpa [__smtx_dt_num_sels, __smtx_dtc_num_sels] using hj
       simpa [__smtx_ret_typeof_sel_rec] using
@@ -3713,7 +3712,7 @@ private theorem smtx_ret_typeof_sel_rec_field_wf_of_wf_apply :
           simp [__smtx_dt_num_sels] at hj
       | sum cTail dTail =>
           have hTailWf :
-              __smtx_dt_wf_rec (SmtDatatype.sum cTail dTail) refs = true :=
+              dtAllWf (SmtDatatype.sum cTail dTail) refs = true :=
             smtx_dt_wf_tail_of_sum_wf_apply (by simp) hWf
           have hj' : j < __smtx_dt_num_sels (SmtDatatype.sum cTail dTail) i := by
             simpa [__smtx_dt_num_sels] using hj
@@ -3751,7 +3750,7 @@ private theorem smtx_ret_typeof_sel_rec_substitute_cons_succ_apply
 private theorem smtx_ret_typeof_sel_rec_substitute_non_chain_or_datatype_of_wf_apply
     (sub : native_String) (base : SmtDatatype) :
     (d : SmtDatatype) -> (i j : native_Nat) -> {refs : RefList} ->
-      __smtx_dt_wf_rec d (native_reflist_insert refs sub) = true ->
+      dtAllWf d (native_reflist_insert refs sub) = true ->
       j < __smtx_dt_num_sels (__smtx_dt_substitute sub base d) i ->
       (¬ dt_cons_chain_result
           (__smtx_ret_typeof_sel_rec (__smtx_dt_substitute sub base d) i j)) ∨
@@ -3759,7 +3758,7 @@ private theorem smtx_ret_typeof_sel_rec_substitute_non_chain_or_datatype_of_wf_a
           __smtx_ret_typeof_sel_rec (__smtx_dt_substitute sub base d) i j =
             SmtType.Datatype s2 d2
   | SmtDatatype.null, i, j, refs, hWf, hj => by
-      cases i <;> simp [__smtx_dt_wf_rec] at hWf hj
+      cases i <;> simp [dtAllWf] at hWf hj
   | SmtDatatype.sum SmtDatatypeCons.unit d, native_nat_zero, j, refs, hWf, hj => by
       cases j <;>
         simp [__smtx_dt_substitute, __smtx_dtc_substitute,
@@ -3859,17 +3858,17 @@ private theorem smtx_ret_typeof_sel_rec_substitute_non_chain_or_datatype_of_wf_a
           __smtx_dt_cons_wf_rec c (native_reflist_insert refs sub) = true :=
         smtx_dt_cons_wf_rec_tail_of_true hCons
       have hTailWf :
-          __smtx_dt_wf_rec (SmtDatatype.sum c d)
+          dtAllWf (SmtDatatype.sum c d)
               (native_reflist_insert refs sub) = true := by
         cases d with
         | null =>
-            simpa [__smtx_dt_wf_rec] using hTailCons
+            simpa [dtAllWf] using hTailCons
         | sum cTail dTail =>
             have hDTail :
-                __smtx_dt_wf_rec (SmtDatatype.sum cTail dTail)
+                dtAllWf (SmtDatatype.sum cTail dTail)
                     (native_reflist_insert refs sub) = true :=
               smtx_dt_wf_tail_of_sum_wf_apply (by simp) hWf
-            simp [__smtx_dt_wf_rec, native_ite, hTailCons, hDTail]
+            simp [dtAllWf, native_ite, hTailCons, hDTail]
       have hj' :
           j <
             __smtx_dt_num_sels
@@ -3890,7 +3889,7 @@ private theorem smtx_ret_typeof_sel_rec_substitute_non_chain_or_datatype_of_wf_a
           simp [__smtx_dt_substitute, __smtx_dt_num_sels] at hj
       | sum cTail dTail =>
           have hTailWf :
-              __smtx_dt_wf_rec (SmtDatatype.sum cTail dTail)
+              dtAllWf (SmtDatatype.sum cTail dTail)
                   (native_reflist_insert refs sub) = true :=
             smtx_dt_wf_tail_of_sum_wf_apply (by simp) hWf
           have hj' :
@@ -3915,12 +3914,11 @@ private theorem smtx_type_wf_rec_congr_refs_apply :
       · have hRefs' : native_reflist_contains refs' s = false := by
           simpa [hRefs] using hEq s
         have hD :
-            __smtx_dt_wf_rec d (native_reflist_insert refs s) = true := by
+            __smtx_dt_wf_rec s refs false d = true := by
           simpa [__smtx_type_wf_rec, native_ite, hRefs] using hWf
         have hD' :
-            __smtx_dt_wf_rec d (native_reflist_insert refs' s) = true :=
-          smtx_dt_wf_rec_congr_refs_apply d
-            (reflist_equiv_insert_same_apply hEq) hD
+            __smtx_dt_wf_rec s refs' false d = true :=
+          dt_wf_rec_new_congr_refs_apply s d false hEq hD
         simp [__smtx_type_wf_rec, native_ite, hRefs', hD']
       · simp [__smtx_type_wf_rec, native_ite, hRefs] at hWf
   | SmtType.TypeRef _s, refs, refs', hEq, hWf => by
@@ -4073,23 +4071,41 @@ private theorem smtx_dtc_wf_rec_congr_refs_apply :
 private theorem smtx_dt_wf_rec_congr_refs_apply :
     (d : SmtDatatype) -> {refs refs' : RefList} ->
       reflist_equiv_apply refs refs' ->
-      __smtx_dt_wf_rec d refs = true ->
-      __smtx_dt_wf_rec d refs' = true
+      dtAllWf d refs = true ->
+      dtAllWf d refs' = true
   | SmtDatatype.null, refs, refs', hEq, hWf => by
-      simp [__smtx_dt_wf_rec] at hWf
+      simp [dtAllWf] at hWf
   | SmtDatatype.sum c SmtDatatype.null, refs, refs', hEq, hWf => by
       exact smtx_dtc_wf_rec_congr_refs_apply c hEq (by
-        simpa [__smtx_dt_wf_rec] using hWf)
+        simpa [dtAllWf] using hWf)
   | SmtDatatype.sum c (SmtDatatype.sum cTail dTail), refs, refs', hEq, hWf => by
       have hCons : __smtx_dt_cons_wf_rec c refs = true :=
         smtx_dt_wf_cons_of_sum_wf_apply hWf
       have hTail :
-          __smtx_dt_wf_rec (SmtDatatype.sum cTail dTail) refs = true := by
-        simpa [__smtx_dt_wf_rec, native_ite, hCons] using hWf
+          dtAllWf (SmtDatatype.sum cTail dTail) refs = true := by
+        simpa [dtAllWf, native_ite, hCons] using hWf
       have hCons' := smtx_dtc_wf_rec_congr_refs_apply c hEq hCons
       have hTail' :=
         smtx_dt_wf_rec_congr_refs_apply (SmtDatatype.sum cTail dTail) hEq hTail
-      simp [__smtx_dt_wf_rec, native_ite, hCons', hTail']
+      simp [dtAllWf, native_ite, hCons', hTail']
+
+private theorem dt_wf_rec_new_congr_refs_apply (s : native_String) :
+    (d : SmtDatatype) -> (hb : native_Bool) -> {refs refs' : RefList} ->
+      reflist_equiv_apply refs refs' ->
+      __smtx_dt_wf_rec s refs hb d = true -> __smtx_dt_wf_rec s refs' hb d = true
+  | SmtDatatype.null, hb, refs, refs', _hEq, hWf => by
+      simpa [__smtx_dt_wf_rec] using hWf
+  | SmtDatatype.sum c d, hb, refs, refs', hEq, hWf => by
+      simp only [__smtx_dt_wf_rec, native_and, Bool.and_eq_true] at hWf ⊢
+      refine ⟨smtx_dtc_wf_rec_congr_refs_apply c (reflist_equiv_insert_same_apply hEq) hWf.1, ?_⟩
+      have hAccEq : __smtx_dt_cons_wf_rec c refs = __smtx_dt_cons_wf_rec c refs' := by
+        by_cases hc : __smtx_dt_cons_wf_rec c refs = true
+        · rw [hc, smtx_dtc_wf_rec_congr_refs_apply c hEq hc]
+        · by_cases hc' : __smtx_dt_cons_wf_rec c refs' = true
+          · exact absurd (smtx_dtc_wf_rec_congr_refs_apply c (fun x => (hEq x).symm) hc') hc
+          · rw [Bool.not_eq_true] at hc hc'; rw [hc, hc']
+      rw [← hAccEq]
+      exact dt_wf_rec_new_congr_refs_apply s d (native_or hb (__smtx_dt_cons_wf_rec c refs)) hEq hWf.2
 
 end
 
@@ -4858,12 +4874,12 @@ private theorem smtx_dtc_substitute_field_no_reglan_of_cons_wf
 private theorem smtx_typeof_dt_cons_rec_no_reglan_of_substitute_wf
     (s : native_String) (base : SmtDatatype) :
     ∀ (d d0 : SmtDatatype) (i : native_Nat) (refs : RefList),
-      __smtx_dt_wf_rec d (native_reflist_insert refs s) = true ->
+      dtAllWf d (native_reflist_insert refs s) = true ->
       smtx_type_fun_like_domains_no_reglan
         (__smtx_typeof_dt_cons_rec (SmtType.Datatype s d0)
           (__smtx_dt_substitute s base d) i)
   | SmtDatatype.null, _d0, i, refs, hWf => by
-      cases i <;> simp [__smtx_dt_wf_rec] at hWf
+      cases i <;> simp [dtAllWf] at hWf
   | SmtDatatype.sum SmtDatatypeCons.unit d, d0, native_nat_zero, refs, _hWf => by
       simp [__smtx_dt_substitute, __smtx_dtc_substitute,
         __smtx_typeof_dt_cons_rec, smtx_type_fun_like_domains_no_reglan]
@@ -4879,17 +4895,17 @@ private theorem smtx_typeof_dt_cons_rec_no_reglan_of_substitute_wf
           __smtx_dt_cons_wf_rec c (native_reflist_insert refs s) = true :=
         smtx_dt_cons_wf_rec_tail_of_true hCons
       have hSumTail :
-          __smtx_dt_wf_rec (SmtDatatype.sum c d)
+          dtAllWf (SmtDatatype.sum c d)
               (native_reflist_insert refs s) = true := by
         cases d with
         | null =>
-            simpa [__smtx_dt_wf_rec] using hConsTail
+            simpa [dtAllWf] using hConsTail
         | sum cTail dTail =>
             have hDTail :
-                __smtx_dt_wf_rec (SmtDatatype.sum cTail dTail)
+                dtAllWf (SmtDatatype.sum cTail dTail)
                     (native_reflist_insert refs s) = true :=
               smtx_dt_wf_tail_of_sum_wf_apply (by simp) hWf
-            simp [__smtx_dt_wf_rec, native_ite, hConsTail, hDTail]
+            simp [dtAllWf, native_ite, hConsTail, hDTail]
       have hTail :=
         smtx_typeof_dt_cons_rec_no_reglan_of_substitute_wf
           s base (SmtDatatype.sum c d) d0 native_nat_zero refs hSumTail
@@ -4918,7 +4934,7 @@ private theorem smtx_typeof_dt_cons_rec_no_reglan_of_substitute_wf
             smtx_type_fun_like_domains_no_reglan]
       | sum cTail dTail =>
           have hTail :
-              __smtx_dt_wf_rec (SmtDatatype.sum cTail dTail)
+              dtAllWf (SmtDatatype.sum cTail dTail)
                   (native_reflist_insert refs s) = true :=
             smtx_dt_wf_tail_of_sum_wf_apply (by simp) hWf
           simpa [__smtx_dt_substitute, __smtx_typeof_dt_cons_rec] using
@@ -4939,7 +4955,7 @@ private theorem smtx_typeof_dt_cons_no_reglan_of_non_none
     exact smtx_typeof_guard_wf_of_non_none (SmtType.Datatype s d) raw hGuardNN
   have hBaseTypeWf : __smtx_type_wf (SmtType.Datatype s d) = true :=
     Smtm.smtx_typeof_guard_wf_wf_of_non_none (SmtType.Datatype s d) raw hGuardNN
-  have hBaseWf : __smtx_dt_wf_rec d (native_reflist_insert native_reflist_nil s) = true := by
+  have hBaseWf : dtAllWf d (native_reflist_insert native_reflist_nil s) = true := by
     exact datatype_wf_rec_of_type_wf hBaseTypeWf
   rw [hRawEq]
   exact smtx_typeof_dt_cons_rec_no_reglan_of_substitute_wf
@@ -5523,9 +5539,10 @@ private theorem eo_to_smt_type_typeof_apply_dt_sel_of_smt_datatype_from_ih
     smtx_datatype_field_wf_rec_of_non_none_type_apply
       (__eo_to_smt x) s (__eo_to_smt_datatype d) hx
   have hDWF :
-      __smtx_dt_wf_rec (__eo_to_smt_datatype d)
-        (native_reflist_insert native_reflist_nil s) = true := by
-    simpa [smtx_type_field_wf_rec] using hFieldWF
+      dtAllWf (__eo_to_smt_datatype d)
+        (native_reflist_insert native_reflist_nil s) = true :=
+    (dtAllWf_of_type_wf_rec_datatype s (__eo_to_smt_datatype d) native_reflist_nil
+      (by simpa [smtx_type_field_wf_rec] using hFieldWF)).2
   have hdEq : d0 = d :=
     eo_to_smt_datatype_injective_of_wf_rec hd0 rfl hDWF
   subst d0
@@ -5719,7 +5736,7 @@ private theorem eo_to_smt_type_typeof_apply_dt_cons_of_smt_apply_from_ih
   have hBaseTypeWf : __smtx_type_wf D = true :=
     Smtm.smtx_typeof_guard_wf_wf_of_non_none D raw hGuardNN
   have hBaseDtWf :
-      __smtx_dt_wf_rec (__eo_to_smt_datatype d)
+      dtAllWf (__eo_to_smt_datatype d)
         (native_reflist_insert native_reflist_nil s) = true :=
     datatype_wf_rec_of_type_wf hBaseTypeWf
   have hDValid : eo_datatype_valid_rec [s] d := by
@@ -9990,56 +10007,36 @@ private theorem eo_to_smt_typeof_matches_translation_apply_tuple_of_tail_type
                   __smtx_type_wf_rec A native_reflist_nil = true ∧
                     native_inhabited_type B = true ∧
                       __smtx_type_wf_rec B native_reflist_nil = true := by
-            have hAll :
-                native_inhabited_type (SmtType.Datatype (native_string_lit "@Tuple") fullD) = true ∧
-                    (native_inhabited_type A = true ∧
-                      __smtx_type_wf_rec A native_reflist_nil = true ∧
-                        native_inhabited_type B = true ∧
-                          __smtx_type_wf_rec B native_reflist_nil = true) ∧
-                      __smtx_dt_cons_wf_rec c
-                          (native_reflist_insert native_reflist_nil (native_string_lit "@Tuple")) =
-                        true := by
-              simpa [hHeadTy, fullD, __smtx_type_wf, __smtx_type_wf_component,
-                __smtx_type_wf_rec, __smtx_dt_wf_rec, __smtx_dt_cons_wf_rec,
-                native_and, native_ite, native_reflist_contains,
-                native_reflist_nil] using hFullWfFromRaw
-            exact ⟨native_inhabited_type_map hAll.2.1.2.2.1, hAll.2.1⟩
+            have hAll := hFullWfFromRaw
+            simp [hHeadTy, fullD, __smtx_type_wf, __smtx_type_wf_component,
+              __smtx_type_wf_rec, __smtx_dt_wf_rec, __smtx_dt_cons_wf_rec,
+              native_and, native_or, native_ite, native_reflist_contains,
+              native_reflist_nil, Bool.and_eq_true] at hAll
+            exact ⟨native_inhabited_type_map hAll.2.1.1.2.2.1, hAll.2.1.1⟩
           simpa [hHeadTy, __smtx_type_wf_component, __smtx_type_wf_rec,
             native_and] using hParts
       | Set A =>
           have hParts :
               native_inhabited_type A = true ∧
                 __smtx_type_wf_rec A native_reflist_nil = true := by
-            have hAll :
-                native_inhabited_type (SmtType.Datatype (native_string_lit "@Tuple") fullD) = true ∧
-                  (native_inhabited_type A = true ∧
-                    __smtx_type_wf_rec A native_reflist_nil = true) ∧
-                    __smtx_dt_cons_wf_rec c
-                        (native_reflist_insert native_reflist_nil (native_string_lit "@Tuple")) =
-                      true := by
-              simpa [hHeadTy, fullD, __smtx_type_wf, __smtx_type_wf_component,
-                __smtx_type_wf_rec, __smtx_dt_wf_rec, __smtx_dt_cons_wf_rec,
-                native_and, native_ite, native_reflist_contains,
-                native_reflist_nil] using hFullWfFromRaw
-            exact hAll.2.1
+            have hAll := hFullWfFromRaw
+            simp [hHeadTy, fullD, __smtx_type_wf, __smtx_type_wf_component,
+              __smtx_type_wf_rec, __smtx_dt_wf_rec, __smtx_dt_cons_wf_rec,
+              native_and, native_or, native_ite, native_reflist_contains,
+              native_reflist_nil, Bool.and_eq_true] at hAll
+            exact hAll.2.1.1
           simpa [hHeadTy, __smtx_type_wf_component, __smtx_type_wf_rec,
             native_and] using hParts
       | Seq A =>
           have hParts :
               native_inhabited_type A = true ∧
                 __smtx_type_wf_rec A native_reflist_nil = true := by
-            have hAll :
-                native_inhabited_type (SmtType.Datatype (native_string_lit "@Tuple") fullD) = true ∧
-                  (native_inhabited_type A = true ∧
-                    __smtx_type_wf_rec A native_reflist_nil = true) ∧
-                    __smtx_dt_cons_wf_rec c
-                        (native_reflist_insert native_reflist_nil (native_string_lit "@Tuple")) =
-                      true := by
-              simpa [hHeadTy, fullD, __smtx_type_wf, __smtx_type_wf_component,
-                __smtx_type_wf_rec, __smtx_dt_wf_rec, __smtx_dt_cons_wf_rec,
-                native_and, native_ite, native_reflist_contains,
-                native_reflist_nil] using hFullWfFromRaw
-            exact hAll.2.1
+            have hAll := hFullWfFromRaw
+            simp [hHeadTy, fullD, __smtx_type_wf, __smtx_type_wf_component,
+              __smtx_type_wf_rec, __smtx_dt_wf_rec, __smtx_dt_cons_wf_rec,
+              native_and, native_or, native_ite, native_reflist_contains,
+              native_reflist_nil, Bool.and_eq_true] at hAll
+            exact hAll.2.1.1
           simpa [hHeadTy, __smtx_type_wf_component, __smtx_type_wf_rec,
             native_and] using hParts
       | Datatype s d =>
@@ -10053,23 +10050,14 @@ private theorem eo_to_smt_typeof_matches_translation_apply_tuple_of_tail_type
             native_and] using hHeadWf
       | TypeRef s =>
           exfalso
-          have hAll :
-              native_inhabited_type (SmtType.Datatype (native_string_lit "@Tuple") fullD) = true ∧
-                s ∈ native_reflist_insert native_reflist_nil (native_string_lit "@Tuple") ∧
-                __smtx_dt_cons_wf_rec c
-                    (native_reflist_insert native_reflist_nil (native_string_lit "@Tuple")) =
-                  true := by
-            simpa [hHeadTy, fullD, __smtx_type_wf, __smtx_type_wf_component,
-              __smtx_type_wf_rec, __smtx_dt_wf_rec, __smtx_dt_cons_wf_rec,
-              native_and, native_ite, native_reflist_contains,
-              native_reflist_nil] using hFullWfFromRaw
-          have hs : s = (native_string_lit "@Tuple") := by
-            simpa [native_reflist_insert, native_reflist_nil] using hAll.2.1
-          exact hHeadNotTupleRef (by simp [hHeadTy, hs])
+          simp [hHeadTy, fullD, __smtx_type_wf, __smtx_type_wf_component,
+            __smtx_type_wf_rec, __smtx_dt_wf_rec, __smtx_dt_cons_wf_rec,
+            native_and, native_or, native_ite, native_reflist_contains,
+            native_reflist_nil] at hFullWfFromRaw
       | _ =>
           simp [hHeadTy, fullD, __smtx_type_wf, __smtx_type_wf_component,
             __smtx_type_wf_rec, __smtx_dt_wf_rec, __smtx_dt_cons_wf_rec,
-            native_and, native_ite, native_reflist_contains,
+            native_and, native_or, native_ite, native_reflist_contains,
             native_reflist_nil] at hFullWfFromRaw ⊢
     have hHeadParts :
         native_inhabited_type headTy = true ∧

@@ -57,4 +57,30 @@ theorem dtAllWf_of_type_wf_rec_datatype (s : native_String) (d : SmtDatatype) (r
     simp [__smtx_type_wf_rec, native_ite, hc] at h ⊢
   exact dtAllWf_of_dt_wf_rec s refs d h
 
+/-- Unfold `__smtx_type_wf_rec` at a `Datatype` to the raw (new) `__smtx_dt_wf_rec`. -/
+theorem dt_wf_rec_of_type_wf_rec_datatype (s : native_String) (d : SmtDatatype) (refs : RefList)
+    (h : __smtx_type_wf_rec (SmtType.Datatype s d) refs = true) :
+    __smtx_dt_wf_rec s refs false d = true := by
+  cases hc : native_reflist_contains refs s <;>
+    simp [__smtx_type_wf_rec, native_ite, hc] at h ⊢
+  exact h
+
+/-- For a single-constructor datatype, well-formedness yields that its constructor is a *base*
+(well-formed without the datatype's own name in scope). -/
+theorem dt_cons_base_of_single (s : native_String) (C : SmtDatatypeCons) (refs : RefList)
+    (h : __smtx_dt_wf_rec s refs false (SmtDatatype.sum C SmtDatatype.null) = true) :
+    __smtx_dt_cons_wf_rec C refs = true := by
+  simp only [__smtx_dt_wf_rec, native_or, native_and, Bool.and_eq_true, Bool.false_or] at h
+  exact h.2
+
+/-- Build well-formedness of a single-constructor datatype from its constructor being well-formed
+(with the name in scope) and a base (well-formed without the name). -/
+theorem type_wf_rec_datatype_single_of (s : native_String) (C : SmtDatatypeCons) (refs : RefList)
+    (hContains : native_reflist_contains refs s = false)
+    (hAll : __smtx_dt_cons_wf_rec C (native_reflist_insert refs s) = true)
+    (hBase : __smtx_dt_cons_wf_rec C refs = true) :
+    __smtx_type_wf_rec (SmtType.Datatype s (SmtDatatype.sum C SmtDatatype.null)) refs = true := by
+  simp [__smtx_type_wf_rec, native_ite, hContains, __smtx_dt_wf_rec, native_and, native_or,
+    hAll, hBase]
+
 end Smtm
