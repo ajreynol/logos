@@ -890,6 +890,95 @@ theorem SubstActualsHaveSmtTypes.to_typed
           (by simpa [__smtx_value_canonical] using hEvalCan)
           (SubstActualsHaveSmtTypes.to_typed M hM hTail)
 
+theorem SubstActualsHaveSmtTypes.env_wf :
+    ∀ {xs ts : Term},
+      SubstActualsHaveSmtTypes xs ts ->
+        ∃ vars, EoVarEnv xs vars ∧
+          ∀ s T, (s, T) ∈ vars ->
+            __smtx_type_wf (__eo_to_smt_type T) = true
+  | _, _, SubstActualsHaveSmtTypes.nil ts =>
+      ⟨[], EoVarEnv.nil, by
+        intro s T hMem
+        cases hMem⟩
+  | _, _, SubstActualsHaveSmtTypes.cons hWf _hTrans _hTy hTail =>
+      by
+        rename_i s T env t ts
+        rcases SubstActualsHaveSmtTypes.env_wf hTail with
+          ⟨vars, hEnv, hVarsWf⟩
+        refine ⟨(s, T) :: vars, EoVarEnv.cons hEnv, ?_⟩
+        intro s' T' hMem
+        cases hMem with
+        | head =>
+          exact hWf
+        | tail _ hTailMem =>
+          exact hVarsWf s' T' hTailMem
+
+theorem SubstActualsHaveSmtTypes.wf_of_find_neg_false
+    {xs ts : Term}
+    (hActuals : SubstActualsHaveSmtTypes xs ts) :
+    ∀ (s : native_String) (T : Term),
+      __eo_is_neg (__eo_list_find Term.__eo_List_cons xs
+        (Term.Var (Term.String s) T)) = Term.Boolean false ->
+      __smtx_type_wf (__eo_to_smt_type T) = true := by
+  intro s T hFind
+  rcases SubstActualsHaveSmtTypes.env_wf hActuals with
+    ⟨vars, hEnv, hVarsWf⟩
+  have hMem : (s, T) ∈ vars :=
+    EoVarEnvPerm.mem_of_find_neg_false (EoVarEnvPerm.of_exact hEnv) hFind
+  exact hVarsWf s T hMem
+
+theorem EoVarEnv.find_rec_succ_pred_of_mem
+    {env : Term} {vars : List EoVarKey}
+    (hEnv : EoVarEnv env vars) :
+    ∀ {s : native_String} {T : Term},
+      (s, T) ∈ vars ->
+      ∀ n : native_Int,
+        __eo_add
+            (__eo_list_find_rec env (Term.Var (Term.String s) T)
+              (Term.Numeral (native_zplus n 1)))
+            (Term.Numeral (-1 : native_Int)) =
+          __eo_list_find_rec env (Term.Var (Term.String s) T)
+            (Term.Numeral n) := by
+  induction hEnv with
+  | nil =>
+      intro s T hMem n
+      cases hMem
+  | cons hTail ih =>
+      rename_i s0 T0 env vars
+      intro s T hMem n
+      by_cases hVarEq :
+          Term.Var (Term.String s0) T0 =
+            Term.Var (Term.String s) T
+      · have hFindEq :
+            __eo_eq (Term.Var (Term.String s0) T0)
+                (Term.Var (Term.String s) T) =
+              Term.Boolean true := by
+          simp [__eo_eq, native_teq, hVarEq.symm]
+        simpa [__eo_list_find_rec, hFindEq, __eo_ite, __eo_add,
+          native_ite, native_teq, native_zplus, Int.sub_eq_add_neg,
+          Int.add_assoc] using (Int.add_sub_cancel n 1)
+      · have hVarEqSymm :
+            Term.Var (Term.String s) T ≠
+              Term.Var (Term.String s0) T0 := by
+          intro h
+          exact hVarEq h.symm
+        have hFindEq :
+            __eo_eq (Term.Var (Term.String s0) T0)
+                (Term.Var (Term.String s) T) =
+              Term.Boolean false := by
+          simp [__eo_eq, native_teq, hVarEqSymm]
+        have hTailMem : (s, T) ∈ vars := by
+          cases hMem with
+          | head =>
+              exfalso
+              exact hVarEq rfl
+          | tail _ hTailMem =>
+              exact hTailMem
+        have hTailStep := ih hTailMem (native_zplus n 1)
+        simpa [__eo_list_find_rec, hFindEq, __eo_ite, __eo_add,
+          native_ite, native_teq, native_zplus, Int.add_assoc,
+          Int.add_comm, Int.add_left_comm] using hTailStep
+
 theorem pushSubstModel_total_typed_of_actuals
     (M : SmtModel) (hM : model_total_typed M)
     {xs ts : Term}
@@ -12323,6 +12412,19 @@ theorem substFalse_eval_gen_lt
     (hXsEnv : EoVarEnvPerm xs xsVars)
     (hBvsEnv : EoVarEnvPerm bvs bvsVars)
     (hSsTrans : EoListAllHaveSmtTranslation ss)
+    (hEntryTrans :
+      ∀ (s : native_String) (T : Term),
+        __eo_is_neg (__eo_list_find Term.__eo_List_cons xs
+          (Term.Var (Term.String s) T)) = Term.Boolean false ->
+        eoHasSmtTranslation
+          (__assoc_nil_nth Term.__eo_List_cons ss
+            (__eo_list_find Term.__eo_List_cons xs
+              (Term.Var (Term.String s) T))))
+    (hMappedWf :
+      ∀ (s : native_String) (T : Term),
+        __eo_is_neg (__eo_list_find Term.__eo_List_cons xs
+          (Term.Var (Term.String s) T)) = Term.Boolean false ->
+        __smtx_type_wf (__eo_to_smt_type T) = true)
     (hFTrans : RuleProofs.eo_has_smt_translation F)
     (hSubstTrans : RuleProofs.eo_has_smt_translation
       (__substitute_simul_rec (Term.Boolean false) F xs ss bvs))
@@ -12356,7 +12458,8 @@ theorem substFalse_eval_gen_lt
         fun {G bvs' bvsVars' M' N'} hGLt hBvsEnv' hGTrans hGSubstTrans
             hM' hN' hRel' =>
           substFalse_eval_gen_lt n G xs ss bvs' (by omega)
-            hXsEnv hBvsEnv' hSsTrans hGTrans hGSubstTrans hM' hN' hRel'
+            hXsEnv hBvsEnv' hSsTrans hEntryTrans hMappedWf
+            hGTrans hGSubstTrans hM' hN' hRel'
       cases F
       case Apply f a =>
           by_cases hBinder :
@@ -12368,7 +12471,154 @@ theorem substFalse_eval_gen_lt
             -- `substFalseRel_push` (its `hNoCollide` is dischargeable from
             -- `__eo_to_smt_type` injectivity; see the file header) and the
             -- capture-avoidance guard, then the body IH.
-            sorry
+            rcases hBinder with ⟨q, v, vs, rfl⟩
+            let binder := Term.Apply (Term.Apply Term.__eo_List_cons v) vs
+            let bodySub :=
+              __substitute_simul_rec (Term.Boolean false) a xs ss
+                (__eo_list_concat Term.__eo_List_cons binder bvs)
+            have hOrigTrans :
+                eoHasSmtTranslation
+                  (Term.Apply (Term.Apply q binder) a) := by
+              simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation,
+                binder] using hFTrans
+            have hQ :
+                q = Term.UOp UserOp.forall ∨
+                  q = Term.UOp UserOp.exists :=
+              is_closed_rec_list_branch_head_term_quantifier_of_has_smt_translation
+                hOrigTrans
+            rcases eo_var_env_of_list_branch_has_smt_translation hOrigTrans with
+              ⟨binderVars, hBinderEnv⟩
+            have hNoFree :
+                __contains_atomic_term_list_free_rec ss binder Term.__eo_List_nil =
+                  Term.Boolean false := by
+              have hSubstNe :
+                  __substitute_simul_rec (Term.Boolean false)
+                      (Term.Apply (Term.Apply q binder) a) xs ss bvs ≠
+                    Term.Stuck :=
+                RuleProofs.term_ne_stuck_of_has_smt_translation _ hSubstTrans
+              simpa [binder] using
+                substitute_simul_quant_guard_false_of_ne_stuck
+                  q v vs a xs ss bvs hxs hss hbvs hSubstNe
+            have hSubstEq :
+                __substitute_simul_rec (Term.Boolean false)
+                    (Term.Apply (Term.Apply q binder) a) xs ss bvs =
+                  __eo_mk_apply (Term.Apply q binder) bodySub := by
+              have hSubstNe :
+                  __substitute_simul_rec (Term.Boolean false)
+                      (Term.Apply (Term.Apply q binder) a) xs ss bvs ≠
+                    Term.Stuck :=
+                RuleProofs.term_ne_stuck_of_has_smt_translation _ hSubstTrans
+              simpa [binder, bodySub] using
+                substitute_simul_quant_eq_of_ne_stuck
+                  q v vs a xs ss bvs hxs hss hbvs hSubstNe
+            have hMkNe :
+                __eo_mk_apply (Term.Apply q binder) bodySub ≠ Term.Stuck := by
+              rw [← hSubstEq]
+              exact RuleProofs.term_ne_stuck_of_has_smt_translation _ hSubstTrans
+            have hMk :
+                __eo_mk_apply (Term.Apply q binder) bodySub =
+                  Term.Apply (Term.Apply q binder) bodySub :=
+              instantiate_eo_mk_apply_eq_apply_of_ne_stuck
+                (Term.Apply q binder) bodySub hMkNe
+            have hSubstQuantTrans :
+                eoHasSmtTranslation
+                  (Term.Apply (Term.Apply q binder) bodySub) := by
+              have hTmp := hSubstTrans
+              rw [hSubstEq, hMk] at hTmp
+              simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+                using hTmp
+            have hBodyTrans :
+                RuleProofs.eo_has_smt_translation a := by
+              simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+                using
+                  body_has_smt_translation_of_list_branch_has_smt_translation
+                    hOrigTrans
+            have hBodySubTrans :
+                RuleProofs.eo_has_smt_translation bodySub := by
+              simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+                using
+                  body_has_smt_translation_of_list_branch_has_smt_translation
+                    hSubstQuantTrans
+            have hFullBvsEnv :
+                EoVarEnvPerm
+                  (__eo_list_concat Term.__eo_List_cons binder bvs)
+                  (binderVars.reverse ++ bvsVars) := by
+              simpa [binder] using
+                EoVarEnvPerm.concat_rev hBinderEnv hBvsEnv
+            have hBinderWf :
+                ∀ s T, (s, T) ∈ binderVars ->
+                  __smtx_type_wf (__eo_to_smt_type T) = true :=
+              quant_binder_types_wf_of_has_smt_translation
+                hQ
+                (by
+                  simpa [binder] using hFTrans)
+                hBinderEnv
+            rw [hSubstEq, hMk]
+            rcases hQ with hForall | hExists
+            · subst q
+              have hExistsEq :
+                  __smtx_model_eval M
+                      (__eo_to_smt_exists binder
+                        (SmtTerm.not (__eo_to_smt bodySub))) =
+                    __smtx_model_eval N
+                      (__eo_to_smt_exists binder
+                        (SmtTerm.not (__eo_to_smt a))) :=
+                substFalse_eval_eo_to_smt_exists_diff_rel
+                  binder xs ss bvs
+                  (__eo_list_concat Term.__eo_List_cons binder bvs)
+                  binder
+                  hBinderEnv hXsEnv hBvsEnv hFullBvsEnv
+                  (EoVarEnvPerm.of_exact hBinderEnv)
+                  (fun key hMem => hMem)
+                  hBinderWf hNoFree hSsTrans hEntryTrans hMappedWf
+                  hM hN hRel
+                  (fun {M' N'} hM' hN' hRel' => by
+                    have hBodyEq :
+                        __smtx_model_eval M'
+                            (__eo_to_smt
+                              (__substitute_simul_rec (Term.Boolean false) a xs ss
+                                (__eo_list_concat Term.__eo_List_cons binder bvs))) =
+                          __smtx_model_eval N' (__eo_to_smt a) :=
+                      hRec
+                        (G := a)
+                        (bvs' := __eo_list_concat Term.__eo_List_cons binder bvs)
+                        (by simp; omega)
+                        hFullBvsEnv hBodyTrans hBodySubTrans
+                        hM' hN' hRel'
+                    simpa [bodySub, __smtx_model_eval, hBodyEq])
+              change
+                __smtx_model_eval M
+                    (SmtTerm.not
+                      (__eo_to_smt_exists binder
+                        (SmtTerm.not (__eo_to_smt bodySub)))) =
+                  __smtx_model_eval N
+                    (SmtTerm.not
+                      (__eo_to_smt_exists binder
+                        (SmtTerm.not (__eo_to_smt a))))
+              simpa [__smtx_model_eval, hExistsEq]
+            · subst q
+              change
+                __smtx_model_eval M
+                    (__eo_to_smt_exists binder (__eo_to_smt bodySub)) =
+                  __smtx_model_eval N
+                    (__eo_to_smt_exists binder (__eo_to_smt a))
+              exact
+                substFalse_eval_eo_to_smt_exists_diff_rel
+                  binder xs ss bvs
+                  (__eo_list_concat Term.__eo_List_cons binder bvs)
+                  binder
+                  hBinderEnv hXsEnv hBvsEnv hFullBvsEnv
+                  (EoVarEnvPerm.of_exact hBinderEnv)
+                  (fun key hMem => hMem)
+                  hBinderWf hNoFree hSsTrans hEntryTrans hMappedWf
+                  hM hN hRel
+                  (fun {M' N'} hM' hN' hRel' =>
+                    hRec
+                      (G := a)
+                      (bvs' := __eo_list_concat Term.__eo_List_cons binder bvs)
+                      (by simp; omega)
+                      hFullBvsEnv hBodyTrans hBodySubTrans
+                      hM' hN' hRel')
           · -- The argument IH provider, shared by every non-binder head: the
             -- substitution keeps the operator head fixed, so each head reduces
             -- to the subterm IHs via `substFalse_eval_unary_op`.
