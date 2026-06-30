@@ -853,6 +853,56 @@ theorem build_cons_size (s : native_String) (d : SmtDatatype) (w : SmtValue) :
   termination_by cF _ _ _ _ => sizeOf cF
   decreasing_by all_goals (try simp_wf); all_goals omega
 
+/-- Strict version of `build_cons_size`: with a self-recursive field, the built value is strictly
+larger than the injected `w`. -/
+theorem build_cons_size_strict (s : native_String) (d : SmtDatatype) (w : SmtValue) :
+    ∀ (cF cU : SmtDatatypeCons), DtcSubstStar cF cU → has_self_rec s d cF →
+      ∀ (seed : SmtValue), sizeOf w < sizeOf (build_cons s d w cF cU seed)
+  | SmtDatatypeCons.unit, cU, _hc, hsr, seed => by simp [has_self_rec] at hsr
+  | SmtDatatypeCons.cons TF cF, cU, hc, hsr, seed => by
+      cases hc with
+      | @cons _ TU _ cU hfr hcc =>
+        rw [build_cons]
+        by_cases hself : native_Teq TF (SmtType.Datatype s d) = true
+        · have hINJ : native_ite (native_Teq TF (SmtType.Datatype s d)) w
+              (__smtx_type_default_rec TF TU) = w := by rw [native_ite, if_pos hself]
+          rw [hINJ]
+          have hmono := build_cons_mono s d w cF cU (SmtValue.Apply seed w)
+          have happ : sizeOf (SmtValue.Apply seed w) = 1 + sizeOf seed + sizeOf w := by rfl
+          omega
+        · have hsrTail : has_self_rec s d cF := Or.resolve_left hsr hself
+          exact build_cons_size_strict s d w cF cU hcc hsrTail _
+  termination_by cF _ _ _ _ => sizeOf cF
+  decreasing_by all_goals (try simp_wf); all_goals omega
+
+/-- `SomeDefaultable s d n DF DU`: some constructor at or after position `n` (in the paired
+folded/raw constructor lists `DF`/`DU`) has a non-`NotValue` default. -/
+inductive SomeDefaultable (s : native_String) (d : SmtDatatype) :
+    native_Nat → SmtDatatype → SmtDatatype → Prop where
+  | head {n : native_Nat} {cF cU : SmtDatatypeCons} {DF DU : SmtDatatype} :
+      __smtx_datatype_cons_default (SmtValue.DtCons s d n) cF cU ≠ SmtValue.NotValue →
+      SomeDefaultable s d n (SmtDatatype.sum cF DF) (SmtDatatype.sum cU DU)
+  | tail {n : native_Nat} {cF cU : SmtDatatypeCons} {DF DU : SmtDatatype} :
+      SomeDefaultable s d (native_nat_succ n) DF DU →
+      SomeDefaultable s d n (SmtDatatype.sum cF DF) (SmtDatatype.sum cU DU)
+
+/-- If some constructor is defaultable, the datatype default selects a non-`NotValue` value. -/
+theorem datatype_default_ne_nv_of_some (s : native_String) (d : SmtDatatype) :
+    ∀ (n : native_Nat) (DF DU : SmtDatatype),
+      SomeDefaultable s d n DF DU →
+      __smtx_datatype_default s d n DF DU ≠ SmtValue.NotValue := by
+  intro n DF DU h
+  induction h with
+  | @head n cF cU DF DU hcF =>
+      rw [datatype_default_select s d n cF cU DF DU hcF]; exact hcF
+  | @tail n cF cU DF DU _htail ih =>
+      by_cases heq : __smtx_datatype_cons_default (SmtValue.DtCons s d n) cF cU = SmtValue.NotValue
+      · rw [__smtx_datatype_default]
+        have hf : native_veq (__smtx_datatype_cons_default (SmtValue.DtCons s d n) cF cU)
+            SmtValue.NotValue = true := by simp [native_veq, heq]
+        simp [native_ite, native_not, hf]; exact ih
+      · rw [datatype_default_select s d n cF cU DF DU heq]; exact heq
+
 /-- The core growth step: from any canonical typed value, build a strictly larger one.
 This is where the constructor-selection combinatorics (self-recursive nesting vs.
 base-infinite field) lives. -/
