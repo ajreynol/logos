@@ -1201,6 +1201,271 @@ theorem drop_cons_subst (s : native_String) (d : SmtDatatype) :
       simp only [__smtx_dt_substitute, drop_cons]
       exact drop_cons_subst s d n D
 
+/-- Default every field of a constructor. -/
+def build_inj_rest : SmtDatatypeCons → SmtDatatypeCons → SmtValue → SmtValue
+  | SmtDatatypeCons.cons TF cF, SmtDatatypeCons.cons TU cU, seed =>
+      build_inj_rest cF cU (SmtValue.Apply seed (__smtx_type_default_rec TF TU))
+  | _, _, seed => seed
+
+/-- Build a constructor value injecting `v` at field position `k`, defaulting elsewhere. -/
+def build_inj (v : SmtValue) :
+    SmtDatatypeCons → SmtDatatypeCons → Nat → SmtValue → SmtValue
+  | SmtDatatypeCons.cons TF cF, SmtDatatypeCons.cons TU cU, Nat.zero, seed =>
+      build_inj_rest cF cU (SmtValue.Apply seed v)
+  | SmtDatatypeCons.cons TF cF, SmtDatatypeCons.cons TU cU, Nat.succ k, seed =>
+      build_inj v cF cU k (SmtValue.Apply seed (__smtx_type_default_rec TF TU))
+  | _, _, _, seed => seed
+
+/-- Every field is defaultable. -/
+def inj_ok_rest : SmtDatatypeCons → SmtDatatypeCons → Prop
+  | SmtDatatypeCons.cons TF cF, SmtDatatypeCons.cons TU cU =>
+      __smtx_type_default_rec TF TU ≠ SmtValue.NotValue ∧ inj_ok_rest cF cU
+  | SmtDatatypeCons.unit, SmtDatatypeCons.unit => True
+  | _, _ => False
+
+/-- Field `k` matches `v`'s type; every other field is defaultable. -/
+def inj_ok (v : SmtValue) : Nat → SmtDatatypeCons → SmtDatatypeCons → Prop
+  | Nat.zero, SmtDatatypeCons.cons TF cF, SmtDatatypeCons.cons TU cU =>
+      (__smtx_typeof_value v = TF ∧ TF ≠ SmtType.None) ∧ inj_ok_rest cF cU
+  | Nat.succ k, SmtDatatypeCons.cons TF cF, SmtDatatypeCons.cons TU cU =>
+      __smtx_type_default_rec TF TU ≠ SmtValue.NotValue ∧ inj_ok v k cF cU
+  | _, _, _ => False
+
+/-- Position `k` is a valid field index of the constructor. -/
+def injPosValid : Nat → SmtDatatypeCons → Prop
+  | Nat.zero, SmtDatatypeCons.cons _ _ => True
+  | Nat.succ k, SmtDatatypeCons.cons _ c => injPosValid k c
+  | _, SmtDatatypeCons.unit => False
+
+/-- Typing of a fully-defaulted constructor application. -/
+theorem build_inj_rest_typeof :
+    ∀ (cF cU : SmtDatatypeCons), DtcSubstStar cF cU → inj_ok_rest cF cU →
+      ∀ (seed : SmtValue) (base : SmtType),
+        __smtx_typeof_value seed = chainType cF base →
+        __smtx_typeof_value (build_inj_rest cF cU seed) = base
+  | SmtDatatypeCons.unit, cU, hc, _hok, seed, base, hseed => by
+      cases hc; simpa [build_inj_rest, chainType] using hseed
+  | SmtDatatypeCons.cons TF cF, cU, hc, hok, seed, base, hseed => by
+      cases hc with
+      | @cons _ TU _ cU hfr hcc =>
+        have hokP : __smtx_type_default_rec TF TU ≠ SmtValue.NotValue ∧ inj_ok_rest cF cU := by
+          simpa [inj_ok_rest] using hok
+        have hss : SubstStar TF TU := by
+          cases hfr with
+          | rel h => exact h
+          | forcesNV h => exact absurd (h TF) hokP.1
+        have hTFne : TF ≠ SmtType.None := by
+          intro hNone; rw [hNone] at hss hokP
+          cases hss with
+          | refl => simp [__smtx_type_default_rec] at hokP
+        have hTy : __smtx_typeof_value (__smtx_type_default_rec TF TU) = TF := by
+          rcases datatype_kernel_rec TF TU hss with hNV | ⟨hTy, _⟩
+          · exact absurd hNV hokP.1
+          · exact hTy
+        have hApply : __smtx_typeof_value
+            (SmtValue.Apply seed (__smtx_type_default_rec TF TU)) = chainType cF base := by
+          have hchain : chainType (SmtDatatypeCons.cons TF cF) base =
+              SmtType.DtcAppType TF (chainType cF base) := rfl
+          rw [hchain] at hseed
+          have h1 : native_Teq TF TF = true := by simp [native_Teq]
+          have h2 : native_Teq TF SmtType.None = false := by simp [native_Teq, hTFne]
+          show __smtx_typeof_apply_value (__smtx_typeof_value seed)
+            (__smtx_typeof_value (__smtx_type_default_rec TF TU)) = chainType cF base
+          rw [hseed, hTy]
+          simp [__smtx_typeof_apply_value, __smtx_typeof_guard, native_ite, h1, h2]
+        rw [build_inj_rest]
+        exact build_inj_rest_typeof cF cU hcc hokP.2 _ base hApply
+  termination_by cF _ _ _ _ _ => sizeOf cF
+  decreasing_by all_goals (try simp_wf); all_goals omega
+
+theorem build_inj_rest_canonical :
+    ∀ (cF cU : SmtDatatypeCons), DtcSubstStar cF cU → inj_ok_rest cF cU →
+      ∀ (seed : SmtValue), __smtx_value_canonical_bool seed = true →
+        __smtx_value_canonical_bool (build_inj_rest cF cU seed) = true
+  | SmtDatatypeCons.unit, cU, hc, _hok, seed, hseed => by cases hc; simpa [build_inj_rest] using hseed
+  | SmtDatatypeCons.cons TF cF, cU, hc, hok, seed, hseed => by
+      cases hc with
+      | @cons _ TU _ cU hfr hcc =>
+        have hokP : __smtx_type_default_rec TF TU ≠ SmtValue.NotValue ∧ inj_ok_rest cF cU := by
+          simpa [inj_ok_rest] using hok
+        have hss : SubstStar TF TU := by
+          cases hfr with
+          | rel h => exact h
+          | forcesNV h => exact absurd (h TF) hokP.1
+        have hCan : __smtx_value_canonical_bool (__smtx_type_default_rec TF TU) = true := by
+          rcases datatype_kernel_rec TF TU hss with hNV | ⟨_, hCan⟩
+          · exact absurd hNV hokP.1
+          · exact hCan
+        rw [build_inj_rest]
+        exact build_inj_rest_canonical cF cU hcc hokP.2 _ (by
+          simp [__smtx_value_canonical_bool, hseed, hCan, native_and])
+  termination_by cF _ _ _ _ => sizeOf cF
+  decreasing_by all_goals (try simp_wf); all_goals omega
+
+theorem build_inj_rest_mono :
+    ∀ (cF cU : SmtDatatypeCons) (seed : SmtValue),
+      sizeOf seed ≤ sizeOf (build_inj_rest cF cU seed)
+  | SmtDatatypeCons.cons TF cF, SmtDatatypeCons.cons TU cU, seed => by
+      rw [build_inj_rest]
+      have hrec := build_inj_rest_mono cF cU
+        (SmtValue.Apply seed (__smtx_type_default_rec TF TU))
+      have happ : sizeOf (SmtValue.Apply seed (__smtx_type_default_rec TF TU)) =
+          1 + sizeOf seed + sizeOf (__smtx_type_default_rec TF TU) := by rfl
+      omega
+  | SmtDatatypeCons.unit, cU, seed => by simp [build_inj_rest]
+  | SmtDatatypeCons.cons TF cF, SmtDatatypeCons.unit, seed => by simp [build_inj_rest]
+  termination_by cF _ => sizeOf cF
+  decreasing_by all_goals (try simp_wf); all_goals omega
+
+theorem build_inj_typeof (v : SmtValue) :
+    ∀ (k : Nat) (cF cU : SmtDatatypeCons), DtcSubstStar cF cU → inj_ok v k cF cU →
+      ∀ (seed : SmtValue) (base : SmtType),
+        __smtx_typeof_value seed = chainType cF base →
+        __smtx_typeof_value (build_inj v cF cU k seed) = base
+  | Nat.zero, SmtDatatypeCons.cons TF cF, cU, hc, hok, seed, base, hseed => by
+      cases hc with
+      | @cons _ TU _ cU hfr hcc =>
+        have hokP : (__smtx_typeof_value v = TF ∧ TF ≠ SmtType.None) ∧ inj_ok_rest cF cU := by
+          simpa [inj_ok] using hok
+        have hApply : __smtx_typeof_value (SmtValue.Apply seed v) = chainType cF base := by
+          have hchain : chainType (SmtDatatypeCons.cons TF cF) base =
+              SmtType.DtcAppType TF (chainType cF base) := rfl
+          rw [hchain] at hseed
+          have h1 : native_Teq TF TF = true := by simp [native_Teq]
+          have h2 : native_Teq TF SmtType.None = false := by simp [native_Teq, hokP.1.2]
+          show __smtx_typeof_apply_value (__smtx_typeof_value seed)
+            (__smtx_typeof_value v) = chainType cF base
+          rw [hseed, hokP.1.1]
+          simp [__smtx_typeof_apply_value, __smtx_typeof_guard, native_ite, h1, h2]
+        rw [build_inj]
+        exact build_inj_rest_typeof cF cU hcc hokP.2 _ base hApply
+  | Nat.succ k, SmtDatatypeCons.cons TF cF, cU, hc, hok, seed, base, hseed => by
+      cases hc with
+      | @cons _ TU _ cU hfr hcc =>
+        have hokP : __smtx_type_default_rec TF TU ≠ SmtValue.NotValue ∧ inj_ok v k cF cU := by
+          simpa [inj_ok] using hok
+        have hss : SubstStar TF TU := by
+          cases hfr with
+          | rel h => exact h
+          | forcesNV h => exact absurd (h TF) hokP.1
+        have hTFne : TF ≠ SmtType.None := by
+          intro hNone; rw [hNone] at hss hokP
+          cases hss with
+          | refl => simp [__smtx_type_default_rec] at hokP
+        have hTy : __smtx_typeof_value (__smtx_type_default_rec TF TU) = TF := by
+          rcases datatype_kernel_rec TF TU hss with hNV | ⟨hTy, _⟩
+          · exact absurd hNV hokP.1
+          · exact hTy
+        have hApply : __smtx_typeof_value
+            (SmtValue.Apply seed (__smtx_type_default_rec TF TU)) = chainType cF base := by
+          have hchain : chainType (SmtDatatypeCons.cons TF cF) base =
+              SmtType.DtcAppType TF (chainType cF base) := rfl
+          rw [hchain] at hseed
+          have h1 : native_Teq TF TF = true := by simp [native_Teq]
+          have h2 : native_Teq TF SmtType.None = false := by simp [native_Teq, hTFne]
+          show __smtx_typeof_apply_value (__smtx_typeof_value seed)
+            (__smtx_typeof_value (__smtx_type_default_rec TF TU)) = chainType cF base
+          rw [hseed, hTy]
+          simp [__smtx_typeof_apply_value, __smtx_typeof_guard, native_ite, h1, h2]
+        rw [build_inj]
+        exact build_inj_typeof v k cF cU hcc hokP.2 _ base hApply
+  | k, SmtDatatypeCons.unit, cU, hc, hok, seed, base, hseed => by
+      cases k <;> simp [inj_ok] at hok
+  termination_by k _ _ _ _ _ _ => sizeOf k
+  decreasing_by all_goals (try simp_wf); all_goals omega
+
+theorem build_inj_canonical (v : SmtValue) (hvCan : __smtx_value_canonical_bool v = true) :
+    ∀ (k : Nat) (cF cU : SmtDatatypeCons), DtcSubstStar cF cU → inj_ok v k cF cU →
+      ∀ (seed : SmtValue), __smtx_value_canonical_bool seed = true →
+        __smtx_value_canonical_bool (build_inj v cF cU k seed) = true
+  | Nat.zero, SmtDatatypeCons.cons TF cF, cU, hc, hok, seed, hseed => by
+      cases hc with
+      | @cons _ TU _ cU hfr hcc =>
+        have hokP : (__smtx_typeof_value v = TF ∧ TF ≠ SmtType.None) ∧ inj_ok_rest cF cU := by
+          simpa [inj_ok] using hok
+        rw [build_inj]
+        exact build_inj_rest_canonical cF cU hcc hokP.2 _ (by
+          simp [__smtx_value_canonical_bool, hseed, hvCan, native_and])
+  | Nat.succ k, SmtDatatypeCons.cons TF cF, cU, hc, hok, seed, hseed => by
+      cases hc with
+      | @cons _ TU _ cU hfr hcc =>
+        have hokP : __smtx_type_default_rec TF TU ≠ SmtValue.NotValue ∧ inj_ok v k cF cU := by
+          simpa [inj_ok] using hok
+        have hss : SubstStar TF TU := by
+          cases hfr with
+          | rel h => exact h
+          | forcesNV h => exact absurd (h TF) hokP.1
+        have hCan : __smtx_value_canonical_bool (__smtx_type_default_rec TF TU) = true := by
+          rcases datatype_kernel_rec TF TU hss with hNV | ⟨_, hCan⟩
+          · exact absurd hNV hokP.1
+          · exact hCan
+        rw [build_inj]
+        exact build_inj_canonical v hvCan k cF cU hcc hokP.2 _ (by
+          simp [__smtx_value_canonical_bool, hseed, hCan, native_and])
+  | k, SmtDatatypeCons.unit, cU, hc, hok, seed, hseed => by
+      cases k <;> simp [inj_ok] at hok
+  termination_by k _ _ _ _ _ => sizeOf k
+  decreasing_by all_goals (try simp_wf); all_goals omega
+
+theorem build_inj_size (v : SmtValue) :
+    ∀ (k : Nat) (cF cU : SmtDatatypeCons), DtcSubstStar cF cU → injPosValid k cU →
+      ∀ (seed : SmtValue), sizeOf v ≤ sizeOf (build_inj v cF cU k seed)
+  | k, SmtDatatypeCons.cons TF cF, SmtDatatypeCons.cons TU cU, hc, hpos, seed => by
+      cases k with
+      | zero =>
+          rw [build_inj]
+          have hmono := build_inj_rest_mono cF cU (SmtValue.Apply seed v)
+          have happ : sizeOf (SmtValue.Apply seed v) = 1 + sizeOf seed + sizeOf v := by rfl
+          omega
+      | succ k =>
+          rw [build_inj]
+          cases hc with
+          | @cons _ _ _ _ hfr hcc =>
+            have hposTail : injPosValid k cU := by simpa [injPosValid] using hpos
+            exact build_inj_size v k cF cU hcc hposTail _
+  | Nat.zero, _, SmtDatatypeCons.unit, _, hpos, seed => by simp [injPosValid] at hpos
+  | Nat.succ k, _, SmtDatatypeCons.unit, _, hpos, seed => by simp [injPosValid] at hpos
+  termination_by k => sizeOf k
+  decreasing_by all_goals (try simp_wf); all_goals omega
+
+/-- "Simply infinite" non-datatype types with cleanly size-unbounded canonical values whose
+substitution is the identity (so the folded field type equals the raw one). -/
+def simplyInf : SmtType → Bool
+  | SmtType.Int => true
+  | SmtType.USort _ => true
+  | _ => false
+
+/-- Substitution is the identity on a `simplyInf` type. -/
+theorem subst_id_simplyInf (s : native_String) (d : SmtDatatype) (T : SmtType)
+    (hsi : simplyInf T = true) : __smtx_type_substitute s d T = T := by
+  cases T with
+  | Int => simp [__smtx_type_substitute]
+  | USort i => simp [__smtx_type_substitute]
+  | _ => simp [simplyInf] at hsi
+
+/-- A `simplyInf` type is not `None`. -/
+theorem simplyInf_ne_none (T : SmtType) (hsi : simplyInf T = true) : T ≠ SmtType.None := by
+  cases T with
+  | Int => simp
+  | USort i => simp
+  | _ => simp [simplyInf] at hsi
+
+/-- A closed `simplyInf` type has canonical values of arbitrary size. -/
+theorem simply_inf_large_witness (T : SmtType) (hsi : simplyInf T = true)
+    (hwf : __smtx_type_wf_rec T native_reflist_nil = true) (M : Nat) :
+    ∃ v : SmtValue, __smtx_typeof_value v = T ∧ __smtx_value_canonical_bool v = true ∧ M ≤ sizeOf v := by
+  cases T with
+  | Int =>
+      refine ⟨SmtValue.Numeral (Int.ofNat M), by simp [__smtx_typeof_value],
+        by simp [__smtx_value_canonical_bool], ?_⟩
+      have h1 : sizeOf (Int.ofNat M) = 1 + M := by rfl
+      have h2 : sizeOf (SmtValue.Numeral (Int.ofNat M)) = 1 + sizeOf (Int.ofNat M) := by rfl
+      omega
+  | USort i =>
+      exact ⟨SmtValue.UValue i M, by simp [__smtx_typeof_value],
+        by simp [__smtx_value_canonical_bool], by simp⟩
+  | _ => simp [simplyInf] at hsi
+
 /-- Self-recursive growth: with a located self-recursive constructor whose every field is either
 the self-reference or a closed well-formed type, `build_cons` yields a strictly larger value. -/
 theorem grow_via_self_rec (s : native_String) (d : SmtDatatype)
@@ -1232,6 +1497,147 @@ theorem grow_via_self_rec (s : native_String) (d : SmtDatatype)
       (SmtValue.DtCons s d n) hseedCan
   · exact build_cons_size_strict s d w (__smtx_dtc_substitute s d c) c hDtcSS hself
       (SmtValue.DtCons s d n)
+
+/-- Non-self growth: with a located constructor, a position-`k` injection of a large value `v`
+(`inj_ok`/`injPosValid`) and all other fields defaultable, `build_inj` yields a larger value. -/
+theorem grow_via_inj (s : native_String) (d : SmtDatatype)
+    (n : native_Nat) (c : SmtDatatypeCons) (rest : SmtDatatype) (k : Nat) (v : SmtValue)
+    (hdrop : drop_cons d n = SmtDatatype.sum c rest)
+    (hinj : inj_ok v k (__smtx_dtc_substitute s d c) c)
+    (hpos : injPosValid k c)
+    (hvCan : __smtx_value_canonical_bool v = true)
+    (w : SmtValue) (hwTy : __smtx_typeof_value w = SmtType.Datatype s d)
+    (hwCan : __smtx_value_canonical_bool w = true)
+    (hvSize : sizeOf w < sizeOf v) :
+    ∃ w' : SmtValue, __smtx_typeof_value w' = SmtType.Datatype s d ∧
+      __smtx_value_canonical_bool w' = true ∧ sizeOf w < sizeOf w' := by
+  have hDtcSS : DtcSubstStar (__smtx_dtc_substitute s d c) c := dtcSubstStar_of_subst s d c
+  have hseedTy : __smtx_typeof_value (SmtValue.DtCons s d n) =
+      chainType (__smtx_dtc_substitute s d c) (SmtType.Datatype s d) := by
+    simp only [__smtx_typeof_value]
+    have hdropS : drop_cons (__smtx_dt_substitute s d d) n =
+        SmtDatatype.sum (__smtx_dtc_substitute s d c) (__smtx_dt_substitute s d rest) := by
+      rw [drop_cons_subst, hdrop]; simp [__smtx_dt_substitute]
+    exact drop_lemma (SmtType.Datatype s d) (__smtx_dt_substitute s d d) n
+      (__smtx_dtc_substitute s d c) (__smtx_dt_substitute s d rest) hdropS
+  refine ⟨build_inj v (__smtx_dtc_substitute s d c) c k (SmtValue.DtCons s d n), ?_, ?_, ?_⟩
+  · exact build_inj_typeof v k (__smtx_dtc_substitute s d c) c hDtcSS hinj
+      (SmtValue.DtCons s d n) (SmtType.Datatype s d) hseedTy
+  · exact build_inj_canonical v hvCan k (__smtx_dtc_substitute s d c) c hDtcSS hinj
+      (SmtValue.DtCons s d n) (by simp [__smtx_value_canonical_bool])
+  · have hsize := build_inj_size v k (__smtx_dtc_substitute s d c) c hDtcSS hpos (SmtValue.DtCons s d n)
+    omega
+
+/-- Every field closed-well-formed ⇒ the folded constructor is fully defaultable. -/
+theorem inj_ok_rest_of_closed (s : native_String) (d : SmtDatatype) :
+    ∀ (c : SmtDatatypeCons),
+      (∀ TU, FieldMem TU c → __smtx_type_wf_rec TU native_reflist_nil = true) →
+      inj_ok_rest (__smtx_dtc_substitute s d c) c
+  | SmtDatatypeCons.unit, _ => by simp [__smtx_dtc_substitute, inj_ok_rest]
+  | SmtDatatypeCons.cons TU c', hfields => by
+      simp only [__smtx_dtc_substitute, inj_ok_rest]
+      exact ⟨field_default_ne_nv_of_wf (__smtx_type_substitute s d TU) TU
+          (fieldRel_of_type_subst s d TU) (hfields TU FieldMem.head),
+        inj_ok_rest_of_closed s d c' (fun TU' h => hfields TU' (FieldMem.tail h))⟩
+
+/-- `v`'s type matches the folded `k`-th field. -/
+def MatchAt (s : native_String) (d : SmtDatatype) (v : SmtValue) :
+    Nat → SmtDatatypeCons → Prop
+  | Nat.zero, SmtDatatypeCons.cons TU _ =>
+      __smtx_typeof_value v = __smtx_type_substitute s d TU ∧
+        __smtx_type_substitute s d TU ≠ SmtType.None
+  | Nat.succ k, SmtDatatypeCons.cons _ c => MatchAt s d v k c
+  | _, SmtDatatypeCons.unit => False
+
+/-- With every field closed-well-formed and `v` matching the `k`-th field, `inj_ok` holds. -/
+theorem inj_ok_of_closed (s : native_String) (d : SmtDatatype) (v : SmtValue) :
+    ∀ (k : Nat) (c : SmtDatatypeCons),
+      (∀ TU, FieldMem TU c → __smtx_type_wf_rec TU native_reflist_nil = true) →
+      MatchAt s d v k c →
+      inj_ok v k (__smtx_dtc_substitute s d c) c
+  | Nat.zero, SmtDatatypeCons.cons TU c', hfields, hmatch => by
+      simp only [__smtx_dtc_substitute, inj_ok]
+      refine ⟨?_, inj_ok_rest_of_closed s d c' (fun TU' h => hfields TU' (FieldMem.tail h))⟩
+      simpa [MatchAt] using hmatch
+  | Nat.succ k, SmtDatatypeCons.cons TU c', hfields, hmatch => by
+      simp only [__smtx_dtc_substitute, inj_ok]
+      refine ⟨field_default_ne_nv_of_wf (__smtx_type_substitute s d TU) TU
+          (fieldRel_of_type_subst s d TU) (hfields TU FieldMem.head), ?_⟩
+      exact inj_ok_of_closed s d v k c' (fun TU' h => hfields TU' (FieldMem.tail h))
+        (by simpa [MatchAt] using hmatch)
+  | Nat.zero, SmtDatatypeCons.unit, _, hmatch => by simp [MatchAt] at hmatch
+  | Nat.succ k, SmtDatatypeCons.unit, _, hmatch => by simp [MatchAt] at hmatch
+
+/-- Find the position of the first `simplyInf` field. -/
+def findSimplyInfPos : SmtDatatypeCons → Option (Nat × SmtType)
+  | SmtDatatypeCons.cons TU c =>
+      if simplyInf TU then some (0, TU)
+      else (findSimplyInfPos c).map (fun p => (p.1 + 1, p.2))
+  | SmtDatatypeCons.unit => none
+
+/-- Value-independent correctness of `findSimplyInfPos`. -/
+theorem findpos_props :
+    ∀ (c : SmtDatatypeCons) (k : Nat) (Tk : SmtType),
+      findSimplyInfPos c = some (k, Tk) →
+      injPosValid k c ∧ FieldMem Tk c ∧ simplyInf Tk = true
+  | SmtDatatypeCons.unit, k, Tk, hfind => by simp [findSimplyInfPos] at hfind
+  | SmtDatatypeCons.cons TU c', k, Tk, hfind => by
+      simp only [findSimplyInfPos] at hfind
+      by_cases hsi : simplyInf TU = true
+      · rw [if_pos hsi] at hfind
+        obtain ⟨hk, hT⟩ := Prod.mk.inj (Option.some.inj hfind)
+        subst hk; subst hT
+        exact ⟨by simp [injPosValid], FieldMem.head, hsi⟩
+      · rw [if_neg hsi] at hfind
+        rcases hp : findSimplyInfPos c' with _ | ⟨k', Tk'⟩
+        · rw [hp] at hfind; simp at hfind
+        · rw [hp] at hfind
+          simp only [Option.map_some] at hfind
+          obtain ⟨hk, hT⟩ := Prod.mk.inj (Option.some.inj hfind)
+          subst hk; subst hT
+          have hrec := findpos_props c' k' Tk' hp
+          exact ⟨by simp only [injPosValid]; exact hrec.1, FieldMem.tail hrec.2.1, hrec.2.2⟩
+
+/-- Given `v` typed as the found field, `MatchAt` holds. -/
+theorem findpos_matchat (s : native_String) (d : SmtDatatype) (v : SmtValue) :
+    ∀ (c : SmtDatatypeCons) (k : Nat) (Tk : SmtType),
+      findSimplyInfPos c = some (k, Tk) → __smtx_typeof_value v = Tk → MatchAt s d v k c
+  | SmtDatatypeCons.unit, k, Tk, hfind, _ => by simp [findSimplyInfPos] at hfind
+  | SmtDatatypeCons.cons TU c', k, Tk, hfind, hvTy => by
+      simp only [findSimplyInfPos] at hfind
+      by_cases hsi : simplyInf TU = true
+      · rw [if_pos hsi] at hfind
+        obtain ⟨hk, hT⟩ := Prod.mk.inj (Option.some.inj hfind)
+        subst hk; subst hT
+        simp only [MatchAt]
+        rw [subst_id_simplyInf s d TU hsi]
+        exact ⟨hvTy, simplyInf_ne_none TU hsi⟩
+      · rw [if_neg hsi] at hfind
+        rcases hp : findSimplyInfPos c' with _ | ⟨k', Tk'⟩
+        · rw [hp] at hfind; simp at hfind
+        · rw [hp] at hfind
+          simp only [Option.map_some] at hfind
+          obtain ⟨hk, hT⟩ := Prod.mk.inj (Option.some.inj hfind)
+          subst hk; subst hT
+          simp only [MatchAt]
+          exact findpos_matchat s d v c' k' Tk' hp hvTy
+
+/-- Per-constructor non-self growth: a constructor with all-closed fields and a `simplyInf` field. -/
+theorem grow_via_field_search (s : native_String) (d : SmtDatatype)
+    (n : native_Nat) (c : SmtDatatypeCons) (rest : SmtDatatype) (k : Nat) (Tk : SmtType)
+    (hdrop : drop_cons d n = SmtDatatype.sum c rest)
+    (hallclosed : ∀ TU, FieldMem TU c → __smtx_type_wf_rec TU native_reflist_nil = true)
+    (hfind : findSimplyInfPos c = some (k, Tk))
+    (w : SmtValue) (hwTy : __smtx_typeof_value w = SmtType.Datatype s d)
+    (hwCan : __smtx_value_canonical_bool w = true) :
+    ∃ w' : SmtValue, __smtx_typeof_value w' = SmtType.Datatype s d ∧
+      __smtx_value_canonical_bool w' = true ∧ sizeOf w < sizeOf w' := by
+  obtain ⟨hpos, hmem, hsi⟩ := findpos_props c k Tk hfind
+  have hwfTk : __smtx_type_wf_rec Tk native_reflist_nil = true := hallclosed Tk hmem
+  rcases simply_inf_large_witness Tk hsi hwfTk (sizeOf w + 1) with ⟨v, hvTy, hvCan, hvSize⟩
+  exact grow_via_inj s d n c rest k v hdrop
+    (inj_ok_of_closed s d v k c hallclosed (findpos_matchat s d v c k Tk hfind hvTy))
+    hpos hvCan w hwTy hwCan (by omega)
 
 /-- A constructor has a `TypeRef s` (self-reference) field. -/
 def hasTypeRefS (s : native_String) : SmtDatatypeCons → Bool
@@ -1325,6 +1731,58 @@ theorem grow_search (s : native_String) (d : SmtDatatype)
         exact grow_search s d w hwTy hwCan hWfAll (Nat.succ n) rest hdrop'
   termination_by _ D _ => sizeOf D
 
+/-- No self-reference field ⇒ no field is `TypeRef s`. -/
+theorem field_not_typeref_of_no_self (s : native_String) :
+    ∀ (c : SmtDatatypeCons), hasTypeRefS s c = false →
+      ∀ TU, FieldMem TU c → TU ≠ SmtType.TypeRef s
+  | SmtDatatypeCons.unit, _, _, hmem => by cases hmem
+  | SmtDatatypeCons.cons T c', h, TU, hmem => by
+      cases hmem with
+      | head =>
+          intro heq; subst heq
+          simp [hasTypeRefS, native_streq] at h
+      | tail hmemTail =>
+          have htail : hasTypeRefS s c' = false := by
+            cases T with
+            | TypeRef s' => simp only [hasTypeRefS, Bool.or_eq_false_iff] at h; exact h.2
+            | _ => simpa [hasTypeRefS] using h
+          exact field_not_typeref_of_no_self s c' htail TU hmemTail
+
+/-- A `{s}`-well-formed constructor with no self-ref and no nested-datatype fields has all fields
+closed-well-formed. -/
+theorem all_closed_of_no_self (s : native_String) (c : SmtDatatypeCons)
+    (hwf : __smtx_dt_cons_wf_rec c (native_reflist_insert native_reflist_nil s) = true)
+    (hnodt : noNestedDt c = true) (hnoself : hasTypeRefS s c = false) :
+    ∀ TU, FieldMem TU c → __smtx_type_wf_rec TU native_reflist_nil = true := by
+  intro TU hmem
+  rcases cons_fields_self_or_closed s c hwf (noNested_no_datatype c hnodt) TU hmem with hself | hclosed
+  · exact absurd hself (field_not_typeref_of_no_self s c hnoself TU hmem)
+  · exact hclosed
+
+/-- Search the constructors of `d` for a non-self constructor (no self-ref, no nested datatype)
+with a `simplyInf` field; if found, grow via `grow_via_field_search`. -/
+theorem grow_search_b (s : native_String) (d : SmtDatatype)
+    (w : SmtValue) (hwTy : __smtx_typeof_value w = SmtType.Datatype s d)
+    (hwCan : __smtx_value_canonical_bool w = true)
+    (hWfAll : ∀ (n : native_Nat) (c : SmtDatatypeCons) (rest : SmtDatatype),
+      drop_cons d n = SmtDatatype.sum c rest →
+      __smtx_dt_cons_wf_rec c (native_reflist_insert native_reflist_nil s) = true) :
+    ∀ (n : native_Nat) (D : SmtDatatype),
+      drop_cons d n = D →
+      (∃ w' : SmtValue, __smtx_typeof_value w' = SmtType.Datatype s d ∧
+        __smtx_value_canonical_bool w' = true ∧ sizeOf w < sizeOf w') ∨ True
+  | _, SmtDatatype.null, _ => Or.inr trivial
+  | n, SmtDatatype.sum c rest, hdrop => by
+      by_cases hb : hasTypeRefS s c = false ∧ noNestedDt c = true
+      · rcases hfind : findSimplyInfPos c with _ | ⟨k, Tk⟩
+        · have hdrop' : drop_cons d (Nat.succ n) = rest := by rw [drop_cons_succ, hdrop]
+          exact grow_search_b s d w hwTy hwCan hWfAll (Nat.succ n) rest hdrop'
+        · exact Or.inl (grow_via_field_search s d n c rest k Tk hdrop
+            (all_closed_of_no_self s c (hWfAll n c rest hdrop) hb.2 hb.1) hfind w hwTy hwCan)
+      · have hdrop' : drop_cons d (Nat.succ n) = rest := by rw [drop_cons_succ, hdrop]
+        exact grow_search_b s d w hwTy hwCan hWfAll (Nat.succ n) rest hdrop'
+  termination_by _ D _ => sizeOf D
+
 /-- The core growth step: from any canonical typed value, build a strictly larger one.
 This is where the constructor-selection combinatorics (self-recursive nesting vs.
 base-infinite field) lives. -/
@@ -1345,10 +1803,13 @@ private theorem grow_witness
       (dtAllWf_of_type_wf_rec_datatype s d native_reflist_nil hWf).2 c rest hdrop
   rcases grow_search s d w hwTy hwCan hWfAll native_nat_zero d (drop_cons_zero d) with hfound | _
   · exact hfound
-  · -- No self-recursive constructor with only closed non-self fields: the datatype is infinite
-    -- only via a non-self infinite field (`data D = mk Int`) or genuine mutual recursion.
-    -- These require a different builder / the mutual "pump" (see notes); deferred.
-    sorry
+  · rcases grow_search_b s d w hwTy hwCan hWfAll native_nat_zero d (drop_cons_zero d) with hfound | _
+    · exact hfound
+    · -- Neither a self-recursive constructor with only closed non-self fields, nor a non-self
+      -- constructor with a `simplyInf` (Int/USort) field: the datatype is infinite only via a
+      -- non-`simplyInf` infinite field (Real/Set/Map/Seq) or genuine mutual recursion (the "pump").
+      -- These require additional builders; deferred.
+      sorry
 
 private theorem infinite_datatype_large_witness :
     ∀ (N : Nat) (s : native_String) (d : SmtDatatype),
