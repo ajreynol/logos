@@ -29363,17 +29363,25 @@ theorem str_re_consume_model_rel
           (hR : r = Term.Apply (Term.UOp UserOp.re_mult) r0)
           (hSideNotFalse : side ≠ Term.Boolean false),
         multSecondStrNativeEq r0 hSideNotFalse) := by
-    -- The remaining bridge has to be proved as a two-pass residual invariant.
-    -- Splitting it into the old one-pass facts is too strong: fallback atoms
-    -- such as `re_comp (str_to_re "ab")` are deliberately carried through the
-    -- first pass, so the first reversed input is not generally equivalent to
-    -- the original input.  The second pass turns those carried residuals back
-    -- around, and that combined invariant is what the branches below need.
+    -- The remaining bridge must be proved as a two-pass residual invariant.
+    -- The tempting one-pass statement
     --
-    -- In the `re_mult` success case the right target is the native
-    -- star-membership equality above; the residual string itself need not equal
-    -- the original string (for example, consuming `"a"` from `"a"*` may leave
-    -- `""`).
+    --   original input = first reversed input
+    --
+    -- is false after switching to `__re_rev_map_rev`: fallback atoms are not
+    -- semantically reversed by `__re_rev_comp`.  For example,
+    -- `re_comp (str_to_re "ab")` is carried through the first pass unchanged,
+    -- so `"ba"` against that regex is not equivalent to the first input
+    -- `"ab"` against that same regex.  This is still not a counterexample to
+    -- `str_in_re_consume`, because the second pass reverses the carried
+    -- residual back to the original orientation.
+    --
+    -- The useful invariant is therefore: after the first recursive consume
+    -- produces its residual pair, applying the second reverse-map pass to that
+    -- residual preserves membership against the original input.  In the
+    -- `re_mult` success branch the target is the native star-membership
+    -- equality above; the residual string itself need not equal the original
+    -- string (for example, consuming `"a"` from `"a"*` may leave `""`).
     sorry
   have hTwoPassBridgeProgress :
       (∀ (hNotMult :
