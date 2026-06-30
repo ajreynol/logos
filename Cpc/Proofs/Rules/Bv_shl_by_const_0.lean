@@ -79,23 +79,9 @@ private theorem typeof_args_of_prog_bv_shl_by_const_0_bool (x1 sz1 : Term) :
               · cases hSzTy : __eo_typeof sz1 with
                 | UOp nop =>
                     cases nop
-                    · have hReqTy :
-                          __eo_typeof_eq
-                              (__eo_requires (__eo_eq w sz1) (Term.Boolean true)
-                                (Term.Apply (Term.UOp UserOp.BitVec) w))
-                              (Term.Apply (Term.UOp UserOp.BitVec) w) =
-                            Term.Bool := by
-                        simpa [__eo_typeof_bvand, __eo_typeof__at_bv, hXTy, hSzTy] using
-                          hTy
-                      have hReqNN :
-                          __eo_requires (__eo_eq w sz1) (Term.Boolean true)
-                              (Term.Apply (Term.UOp UserOp.BitVec) w) ≠
-                            Term.Stuck := by
-                        intro hReq
-                        simp [__eo_typeof_eq, hReq] at hReqTy
-                      have hEq : sz1 = w :=
-                        eq_of_requires_eq_true_not_stuck w sz1
-                          (Term.Apply (Term.UOp UserOp.BitVec) w) hReqNN
+                    · have hEq : sz1 = w :=
+                        bv_width_eq_of_typeof_bvand_at_bv_right_bool w sz1 hSz1 hSzTy
+                          (by simpa [hXTy] using hTy)
                       have hWNotStuck : w ≠ Term.Stuck := by
                         intro hW
                         exact hSz1 (hEq.trans hW)

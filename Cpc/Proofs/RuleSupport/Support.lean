@@ -87,6 +87,522 @@ theorem smtx_eval_int_to_bv_term_eq
         (__smtx_model_eval M w) (__smtx_model_eval M x) := by
   rw [__smtx_model_eval.eq_def] <;> simp only
 
+theorem support_eo_requires_cond_eq_of_non_stuck {x y z : Term}
+    (h : __eo_requires x y z ≠ Term.Stuck) :
+    x = y := by
+  unfold __eo_requires at h
+  by_cases hxy : native_teq x y = true
+  · simpa [native_teq] using hxy
+  · have hxyFalse : native_teq x y = false := by
+      cases hTeq : native_teq x y <;> simp_all
+    simp [native_ite, hxyFalse] at h
+
+theorem support_eq_of_eo_eq_true (x y : Term)
+    (h : __eo_eq x y = Term.Boolean true) :
+    y = x := by
+  by_cases hx : x = Term.Stuck
+  · subst x
+    simp [__eo_eq] at h
+  · by_cases hy : y = Term.Stuck
+    · subst y
+      simp [__eo_eq] at h
+    · have hDec : native_teq y x = true := by
+        simpa [__eo_eq, hx, hy] using h
+      simpa [native_teq] using hDec
+
+theorem support_eo_typeof_eq_bool_operands_eq (A B : Term)
+    (h : __eo_typeof_eq A B = Term.Bool) :
+    A = B := by
+  by_cases hA : A = Term.Stuck
+  · subst A
+    simp [__eo_typeof_eq] at h
+  · by_cases hB : B = Term.Stuck
+    · subst B
+      simp [__eo_typeof_eq] at h
+    · simp [__eo_typeof_eq, __eo_requires, __eo_eq, native_ite, native_teq,
+        native_not] at h
+      exact h.symm
+
+theorem eo_requires_eq_true_stuck_of_ne (x y B : Term) :
+    x ≠ y ->
+    __eo_requires (__eo_eq x y) (Term.Boolean true) B = Term.Stuck := by
+  intro hNe
+  by_cases hReq :
+      __eo_requires (__eo_eq x y) (Term.Boolean true) B = Term.Stuck
+  · exact hReq
+  · have hEq : y = x :=
+      support_eq_of_eo_eq_true x y (support_eo_requires_cond_eq_of_non_stuck hReq)
+    exact False.elim (hNe hEq.symm)
+
+theorem bv_width_eq_of_typeof_bvand_at_bv_left_bool (n w : Term)
+    (hN : n ≠ Term.Stuck)
+    (hNTy : __eo_typeof n = Term.UOp UserOp.Int)
+    (hTy :
+      __eo_typeof_eq
+        (__eo_typeof_bvand
+          (__eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof n) n)
+          (Term.Apply (Term.UOp UserOp.BitVec) w))
+        (__eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof n) n) =
+      Term.Bool) :
+    w = n := by
+  have hTy' :
+      __eo_typeof_eq
+        (__eo_typeof_bvand
+          (__eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
+            (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n))
+          (Term.Apply (Term.UOp UserOp.BitVec) w))
+        (__eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
+          (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n)) =
+      Term.Bool := by
+    simpa [__eo_typeof__at_bv, hNTy, hN] using hTy
+  have hAtReqNN :
+      __eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
+          (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n) ≠
+        Term.Stuck := by
+    intro hReq
+    simp [__eo_typeof_eq, __eo_typeof_bvand, hReq] at hTy'
+  have hAtGuard :
+      __eo_gt n (Term.Numeral (-1 : native_Int)) = Term.Boolean true :=
+    support_eo_requires_cond_eq_of_non_stuck hAtReqNN
+  have hAtReqEq :
+      __eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
+          (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n) =
+        Term.Apply (Term.UOp UserOp.BitVec) n := by
+    simp [__eo_requires, hAtGuard, native_ite, native_teq, native_not]
+  have hTypesEq :=
+    support_eo_typeof_eq_bool_operands_eq
+      (__eo_typeof_bvand
+        (__eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
+          (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n))
+        (Term.Apply (Term.UOp UserOp.BitVec) w))
+      (__eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
+        (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n))
+      hTy'
+  have hReqEq :
+      __eo_requires (__eo_eq n w) (Term.Boolean true)
+          (Term.Apply (Term.UOp UserOp.BitVec) n) =
+        Term.Apply (Term.UOp UserOp.BitVec) n := by
+    simpa [__eo_typeof_bvand, hAtReqEq] using hTypesEq
+  have hReqNN :
+      __eo_requires (__eo_eq n w) (Term.Boolean true)
+          (Term.Apply (Term.UOp UserOp.BitVec) n) ≠
+        Term.Stuck := by
+    rw [hReqEq]
+    intro h
+    cases h
+  exact support_eq_of_eo_eq_true n w
+    (support_eo_requires_cond_eq_of_non_stuck hReqNN)
+
+theorem bv_width_eq_of_typeof_bvand_at_bv_right_bool (w n : Term)
+    (hN : n ≠ Term.Stuck)
+    (hNTy : __eo_typeof n = Term.UOp UserOp.Int)
+    (hTy :
+      __eo_typeof_eq
+        (__eo_typeof_bvand (Term.Apply (Term.UOp UserOp.BitVec) w)
+          (__eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof n) n))
+        (Term.Apply (Term.UOp UserOp.BitVec) w) =
+      Term.Bool) :
+    n = w := by
+  have hTy' :
+      __eo_typeof_eq
+        (__eo_typeof_bvand (Term.Apply (Term.UOp UserOp.BitVec) w)
+          (__eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
+            (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n)))
+        (Term.Apply (Term.UOp UserOp.BitVec) w) =
+      Term.Bool := by
+    simpa [__eo_typeof__at_bv, hNTy, hN] using hTy
+  have hAtReqNN :
+      __eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
+          (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n) ≠
+        Term.Stuck := by
+    intro hReq
+    simp [__eo_typeof_eq, __eo_typeof_bvand, hReq] at hTy'
+  have hAtGuard :
+      __eo_gt n (Term.Numeral (-1 : native_Int)) = Term.Boolean true :=
+    support_eo_requires_cond_eq_of_non_stuck hAtReqNN
+  have hAtReqEq :
+      __eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
+          (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n) =
+        Term.Apply (Term.UOp UserOp.BitVec) n := by
+    simp [__eo_requires, hAtGuard, native_ite, native_teq, native_not]
+  have hTypesEq :=
+    support_eo_typeof_eq_bool_operands_eq
+      (__eo_typeof_bvand (Term.Apply (Term.UOp UserOp.BitVec) w)
+        (__eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
+          (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n)))
+      (Term.Apply (Term.UOp UserOp.BitVec) w)
+      hTy'
+  have hReqEq :
+      __eo_requires (__eo_eq w n) (Term.Boolean true)
+          (Term.Apply (Term.UOp UserOp.BitVec) w) =
+        Term.Apply (Term.UOp UserOp.BitVec) w := by
+    simpa [__eo_typeof_bvand, hAtReqEq] using hTypesEq
+  have hReqNN :
+      __eo_requires (__eo_eq w n) (Term.Boolean true)
+          (Term.Apply (Term.UOp UserOp.BitVec) w) ≠
+        Term.Stuck := by
+    rw [hReqEq]
+    intro h
+    cases h
+  exact support_eq_of_eo_eq_true w n
+    (support_eo_requires_cond_eq_of_non_stuck hReqNN)
+
+theorem bv_width_eq_of_typeof_bvand_at_bv_right_at_bv_bool (w n : Term)
+    (hN : n ≠ Term.Stuck)
+    (hNTy : __eo_typeof n = Term.UOp UserOp.Int)
+    (hTy :
+      __eo_typeof_eq
+        (__eo_typeof_bvand (Term.Apply (Term.UOp UserOp.BitVec) w)
+          (__eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof n) n))
+        (__eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof n) n) =
+      Term.Bool) :
+    n = w := by
+  have hTy' :
+      __eo_typeof_eq
+        (__eo_typeof_bvand (Term.Apply (Term.UOp UserOp.BitVec) w)
+          (__eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
+            (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n)))
+        (__eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
+          (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n)) =
+      Term.Bool := by
+    simpa [__eo_typeof__at_bv, hNTy, hN] using hTy
+  have hAtReqNN :
+      __eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
+          (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n) ≠
+        Term.Stuck := by
+    intro hReq
+    simp [__eo_typeof_eq, __eo_typeof_bvand, hReq] at hTy'
+  have hAtGuard :
+      __eo_gt n (Term.Numeral (-1 : native_Int)) = Term.Boolean true :=
+    support_eo_requires_cond_eq_of_non_stuck hAtReqNN
+  have hAtReqEq :
+      __eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
+          (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n) =
+        Term.Apply (Term.UOp UserOp.BitVec) n := by
+    simp [__eo_requires, hAtGuard, native_ite, native_teq, native_not]
+  have hTypesEq :=
+    support_eo_typeof_eq_bool_operands_eq
+      (__eo_typeof_bvand (Term.Apply (Term.UOp UserOp.BitVec) w)
+        (__eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
+          (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n)))
+      (__eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
+        (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n))
+      hTy'
+  have hReqEq :
+      __eo_requires (__eo_eq w n) (Term.Boolean true)
+          (Term.Apply (Term.UOp UserOp.BitVec) w) =
+        Term.Apply (Term.UOp UserOp.BitVec) n := by
+    simpa [__eo_typeof_bvand, hAtReqEq] using hTypesEq
+  have hReqNN :
+      __eo_requires (__eo_eq w n) (Term.Boolean true)
+          (Term.Apply (Term.UOp UserOp.BitVec) w) ≠
+        Term.Stuck := by
+    rw [hReqEq]
+    intro h
+    cases h
+  exact support_eq_of_eo_eq_true w n
+    (support_eo_requires_cond_eq_of_non_stuck hReqNN)
+
+theorem bv_width_eq_of_typeof_bvand_at_bv_right_bvnot_at_bv_bool
+    (w n : Term)
+    (hN : n ≠ Term.Stuck)
+    (hNTy : __eo_typeof n = Term.UOp UserOp.Int)
+    (hTy :
+      __eo_typeof_eq
+        (__eo_typeof_bvand (Term.Apply (Term.UOp UserOp.BitVec) w)
+          (__eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof n) n))
+        (__eo_typeof_bvnot
+          (__eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof n) n)) =
+      Term.Bool) :
+    n = w := by
+  have hTy' :
+      __eo_typeof_eq
+        (__eo_typeof_bvand (Term.Apply (Term.UOp UserOp.BitVec) w)
+          (__eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
+            (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n)))
+        (__eo_typeof_bvnot
+          (__eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
+            (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n))) =
+      Term.Bool := by
+    simpa [__eo_typeof__at_bv, hNTy, hN] using hTy
+  have hAtReqNN :
+      __eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
+          (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n) ≠
+        Term.Stuck := by
+    intro hReq
+    simp [__eo_typeof_eq, __eo_typeof_bvand, __eo_typeof_bvnot, hReq] at hTy'
+  have hAtGuard :
+      __eo_gt n (Term.Numeral (-1 : native_Int)) = Term.Boolean true :=
+    support_eo_requires_cond_eq_of_non_stuck hAtReqNN
+  have hAtReqEq :
+      __eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
+          (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n) =
+        Term.Apply (Term.UOp UserOp.BitVec) n := by
+    simp [__eo_requires, hAtGuard, native_ite, native_teq, native_not]
+  have hTypesEq :=
+    support_eo_typeof_eq_bool_operands_eq
+      (__eo_typeof_bvand (Term.Apply (Term.UOp UserOp.BitVec) w)
+        (__eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
+          (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n)))
+      (__eo_typeof_bvnot
+        (__eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
+          (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n)))
+      hTy'
+  have hReqEq :
+      __eo_requires (__eo_eq w n) (Term.Boolean true)
+          (Term.Apply (Term.UOp UserOp.BitVec) w) =
+        Term.Apply (Term.UOp UserOp.BitVec) n := by
+    simpa [__eo_typeof_bvand, __eo_typeof_bvnot, hAtReqEq] using hTypesEq
+  have hReqNN :
+      __eo_requires (__eo_eq w n) (Term.Boolean true)
+          (Term.Apply (Term.UOp UserOp.BitVec) w) ≠
+        Term.Stuck := by
+    rw [hReqEq]
+    intro h
+    cases h
+  exact support_eq_of_eo_eq_true w n
+    (support_eo_requires_cond_eq_of_non_stuck hReqNN)
+
+theorem bv_width_eq_of_typeof_bvult_at_bv_left_bool (n w : Term)
+    (hN : n ≠ Term.Stuck)
+    (hNTy : __eo_typeof n = Term.UOp UserOp.Int)
+    (hTy :
+      __eo_typeof_eq
+        (__eo_typeof_bvult
+          (__eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof n) n)
+          (Term.Apply (Term.UOp UserOp.BitVec) w))
+        Term.Bool =
+      Term.Bool) :
+    w = n := by
+  have hTy' :
+      __eo_typeof_eq
+        (__eo_typeof_bvult
+          (__eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
+            (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n))
+          (Term.Apply (Term.UOp UserOp.BitVec) w))
+        Term.Bool =
+      Term.Bool := by
+    simpa [__eo_typeof__at_bv, hNTy, hN] using hTy
+  have hAtReqNN :
+      __eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
+          (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n) ≠
+        Term.Stuck := by
+    intro hReq
+    simp [__eo_typeof_eq, __eo_typeof_bvult, hReq] at hTy'
+  have hAtGuard :
+      __eo_gt n (Term.Numeral (-1 : native_Int)) = Term.Boolean true :=
+    support_eo_requires_cond_eq_of_non_stuck hAtReqNN
+  have hAtReqEq :
+      __eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
+          (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n) =
+        Term.Apply (Term.UOp UserOp.BitVec) n := by
+    simp [__eo_requires, hAtGuard, native_ite, native_teq, native_not]
+  have hTypesEq :=
+    support_eo_typeof_eq_bool_operands_eq
+      (__eo_typeof_bvult
+        (__eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
+          (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n))
+        (Term.Apply (Term.UOp UserOp.BitVec) w))
+      Term.Bool
+      hTy'
+  have hReqEq :
+      __eo_requires (__eo_eq n w) (Term.Boolean true) Term.Bool =
+        Term.Bool := by
+    simpa [__eo_typeof_bvult, hAtReqEq] using hTypesEq
+  have hReqNN :
+      __eo_requires (__eo_eq n w) (Term.Boolean true) Term.Bool ≠
+        Term.Stuck := by
+    rw [hReqEq]
+    intro h
+    cases h
+  exact support_eq_of_eo_eq_true n w
+    (support_eo_requires_cond_eq_of_non_stuck hReqNN)
+
+theorem bv_width_eq_of_typeof_bvult_at_bv_right_bool (w n : Term)
+    (hN : n ≠ Term.Stuck)
+    (hNTy : __eo_typeof n = Term.UOp UserOp.Int)
+    (hTy :
+      __eo_typeof_eq
+        (__eo_typeof_bvult (Term.Apply (Term.UOp UserOp.BitVec) w)
+          (__eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof n) n))
+        Term.Bool =
+      Term.Bool) :
+    n = w := by
+  have hTy' :
+      __eo_typeof_eq
+        (__eo_typeof_bvult (Term.Apply (Term.UOp UserOp.BitVec) w)
+          (__eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
+            (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n)))
+        Term.Bool =
+      Term.Bool := by
+    simpa [__eo_typeof__at_bv, hNTy, hN] using hTy
+  have hAtReqNN :
+      __eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
+          (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n) ≠
+        Term.Stuck := by
+    intro hReq
+    simp [__eo_typeof_eq, __eo_typeof_bvult, hReq] at hTy'
+  have hAtGuard :
+      __eo_gt n (Term.Numeral (-1 : native_Int)) = Term.Boolean true :=
+    support_eo_requires_cond_eq_of_non_stuck hAtReqNN
+  have hAtReqEq :
+      __eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
+          (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n) =
+        Term.Apply (Term.UOp UserOp.BitVec) n := by
+    simp [__eo_requires, hAtGuard, native_ite, native_teq, native_not]
+  have hTypesEq :=
+    support_eo_typeof_eq_bool_operands_eq
+      (__eo_typeof_bvult (Term.Apply (Term.UOp UserOp.BitVec) w)
+        (__eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
+          (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n)))
+      Term.Bool
+      hTy'
+  have hReqEq :
+      __eo_requires (__eo_eq w n) (Term.Boolean true) Term.Bool =
+        Term.Bool := by
+    simpa [__eo_typeof_bvult, hAtReqEq] using hTypesEq
+  have hReqNN :
+      __eo_requires (__eo_eq w n) (Term.Boolean true) Term.Bool ≠
+        Term.Stuck := by
+    rw [hReqEq]
+    intro h
+    cases h
+  exact support_eq_of_eo_eq_true w n
+    (support_eo_requires_cond_eq_of_non_stuck hReqNN)
+
+theorem bv_width_eq_of_typeof_bvult_at_bv_right_eq_bool (w n : Term)
+    (hN : n ≠ Term.Stuck)
+    (hNTy : __eo_typeof n = Term.UOp UserOp.Int)
+    (hTy :
+      __eo_typeof_eq
+        (__eo_typeof_bvult (Term.Apply (Term.UOp UserOp.BitVec) w)
+          (__eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof n) n))
+        (__eo_typeof_eq (Term.Apply (Term.UOp UserOp.BitVec) w)
+          (__eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof n) n)) =
+      Term.Bool) :
+    n = w := by
+  have hTy' :
+      __eo_typeof_eq
+        (__eo_typeof_bvult (Term.Apply (Term.UOp UserOp.BitVec) w)
+          (__eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
+            (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n)))
+        (__eo_typeof_eq (Term.Apply (Term.UOp UserOp.BitVec) w)
+          (__eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
+            (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n))) =
+      Term.Bool := by
+    simpa [__eo_typeof__at_bv, hNTy, hN] using hTy
+  have hAtReqNN :
+      __eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
+          (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n) ≠
+        Term.Stuck := by
+    intro hReq
+    simp [__eo_typeof_eq, __eo_typeof_bvult, hReq] at hTy'
+  have hAtGuard :
+      __eo_gt n (Term.Numeral (-1 : native_Int)) = Term.Boolean true :=
+    support_eo_requires_cond_eq_of_non_stuck hAtReqNN
+  have hAtReqEq :
+      __eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
+          (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n) =
+        Term.Apply (Term.UOp UserOp.BitVec) n := by
+    simp [__eo_requires, hAtGuard, native_ite, native_teq, native_not]
+  by_cases hEq : n = w
+  · exact hEq
+  · exfalso
+    have hNeWN : w ≠ n := by
+      intro h
+      exact hEq h.symm
+    have hLeftStuck :
+        __eo_typeof_bvult (Term.Apply (Term.UOp UserOp.BitVec) w)
+            (Term.Apply (Term.UOp UserOp.BitVec) n) =
+          Term.Stuck := by
+      simpa [__eo_typeof_bvult] using
+        eo_requires_eq_true_stuck_of_ne w n Term.Bool hNeWN
+    have hApplyNe :
+        Term.Apply (Term.UOp UserOp.BitVec) w ≠
+          Term.Apply (Term.UOp UserOp.BitVec) n := by
+      intro hApply
+      cases hApply
+      exact hNeWN rfl
+    have hRightStuck :
+        __eo_typeof_eq (Term.Apply (Term.UOp UserOp.BitVec) w)
+            (Term.Apply (Term.UOp UserOp.BitVec) n) =
+          Term.Stuck := by
+      simpa [__eo_typeof_eq] using
+        eo_requires_eq_true_stuck_of_ne
+          (Term.Apply (Term.UOp UserOp.BitVec) w)
+          (Term.Apply (Term.UOp UserOp.BitVec) n)
+          Term.Bool hApplyNe
+    have hTy'' :
+        __eo_typeof_eq
+            (__eo_typeof_bvult (Term.Apply (Term.UOp UserOp.BitVec) w)
+              (Term.Apply (Term.UOp UserOp.BitVec) n))
+            (__eo_typeof_eq (Term.Apply (Term.UOp UserOp.BitVec) w)
+              (Term.Apply (Term.UOp UserOp.BitVec) n)) =
+          Term.Bool := by
+      simpa [__eo_typeof__at_bv, hNTy, hN, hAtReqEq] using hTy
+    rw [hLeftStuck, hRightStuck] at hTy''
+    simp [__eo_typeof_eq] at hTy''
+
+theorem bv_width_eq_of_typeof_bvult_at_bv_left_not_eq_bool (n w : Term)
+    (hN : n ≠ Term.Stuck)
+    (hNTy : __eo_typeof n = Term.UOp UserOp.Int)
+    (hTy :
+      __eo_typeof_eq
+        (__eo_typeof_bvult
+          (__eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof n) n)
+          (Term.Apply (Term.UOp UserOp.BitVec) w))
+        (__eo_typeof_not
+          (__eo_typeof_eq (Term.Apply (Term.UOp UserOp.BitVec) w)
+            (__eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof n) n))) =
+      Term.Bool) :
+    n = w := by
+  have hTy' :
+      __eo_typeof_eq
+        (__eo_typeof_bvult
+          (__eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
+            (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n))
+          (Term.Apply (Term.UOp UserOp.BitVec) w))
+        (__eo_typeof_not
+          (__eo_typeof_eq (Term.Apply (Term.UOp UserOp.BitVec) w)
+            (__eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
+              (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n)))) =
+      Term.Bool := by
+    simpa [__eo_typeof__at_bv, hNTy, hN] using hTy
+  have hAtReqNN :
+      __eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
+          (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n) ≠
+        Term.Stuck := by
+    intro hReq
+    simp [__eo_typeof_eq, __eo_typeof_bvult, __eo_typeof_not, hReq] at hTy'
+  have hAtGuard :
+      __eo_gt n (Term.Numeral (-1 : native_Int)) = Term.Boolean true :=
+    support_eo_requires_cond_eq_of_non_stuck hAtReqNN
+  have hAtReqEq :
+      __eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
+          (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n) =
+        Term.Apply (Term.UOp UserOp.BitVec) n := by
+    simp [__eo_requires, hAtGuard, native_ite, native_teq, native_not]
+  by_cases hEq : n = w
+  · exact hEq
+  · exfalso
+    have hLeftStuck :
+        __eo_typeof_bvult (Term.Apply (Term.UOp UserOp.BitVec) n)
+            (Term.Apply (Term.UOp UserOp.BitVec) w) =
+          Term.Stuck := by
+      simpa [__eo_typeof_bvult] using
+        eo_requires_eq_true_stuck_of_ne n w Term.Bool hEq
+    have hTy'' :
+        __eo_typeof_eq
+            (__eo_typeof_bvult (Term.Apply (Term.UOp UserOp.BitVec) n)
+              (Term.Apply (Term.UOp UserOp.BitVec) w))
+            (__eo_typeof_not
+              (__eo_typeof_eq (Term.Apply (Term.UOp UserOp.BitVec) w)
+                (Term.Apply (Term.UOp UserOp.BitVec) n))) =
+          Term.Bool := by
+      simpa [__eo_typeof__at_bv, hNTy, hN, hAtReqEq] using hTy
+    rw [hLeftStuck] at hTy''
+    simp [__eo_typeof_eq] at hTy''
+
 /-- Stable rewrite for evaluating SMT extraction terms. -/
 theorem smtx_eval_extract_term_eq
     (M : SmtModel) (hi lo x : SmtTerm) :
