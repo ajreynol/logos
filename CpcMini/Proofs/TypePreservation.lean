@@ -19,9 +19,9 @@ private theorem type_default_typed_canonical_of_map_domain_wf
   have hAll :
       native_inhabited_type (SmtType.Map A B) = true ∧
         native_inhabited_type A = true ∧
-          __smtx_type_wf_rec A native_reflist_nil = true ∧
+          __smtx_type_wf_rec A A = true ∧
             native_inhabited_type B = true ∧
-              __smtx_type_wf_rec B native_reflist_nil = true := by
+              __smtx_type_wf_rec B B = true := by
     simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using h
   exact type_default_typed_canonical_of_inhabited_wf_rec A hAll.2.1 hAll.2.2.1
 
@@ -33,7 +33,7 @@ private theorem type_default_typed_canonical_of_set_element_wf
   have hAll :
       native_inhabited_type (SmtType.Set A) = true ∧
         native_inhabited_type A = true ∧
-          __smtx_type_wf_rec A native_reflist_nil = true := by
+          __smtx_type_wf_rec A A = true := by
     simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using h
   exact type_default_typed_canonical_of_inhabited_wf_rec A hAll.2.1 hAll.2.2
 

@@ -746,6 +746,7 @@ def __smtx_dt_cons_wf_rec : SmtDatatypeCons -> SmtDatatypeCons -> native_Bool
 
 def __smtx_dt_wf_rec : SmtDatatype -> SmtDatatype -> native_Bool
   | (SmtDatatype.sum cF dF), (SmtDatatype.sum cU dU) => (native_ite (__smtx_dt_cons_wf_rec cF cU) (__smtx_dt_wf_rec dF dU) false)
+  | SmtDatatype.null, SmtDatatype.null => true
   | dF, dU => false
 
 
