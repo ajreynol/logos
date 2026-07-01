@@ -29487,104 +29487,107 @@ theorem str_re_consume_model_rel
       -- split by flattening, while the flattened frontier has already exposed
       -- those singleton string atoms. The induction therefore needs to carry
       -- that flattened-normal frontier shape along with the residual.
-      refine ⟨?_, ?_, ?_, ?_, ?_⟩
-      · intro hNotMult
-        dsimp [nonMultFirstInputNativeEq]
-        intro hFirstFalse ss rv sFlatSs rFlatRv hSEval hREval
-          hSFlatEval hRFlatEval
-        have hFirstInputFalse :
-            native_str_in_re (native_unpack_string sFlatSs) rFlatRv =
-              false :=
-          hNonMultFirstInputFalseNativeProgress hNotMult hFirstFalse
-            sFlatSs rFlatRv hSFlatEval hRFlatEval
-        have hOriginalFalse :
-            native_str_in_re (native_unpack_string ss) rv = false := by
-          -- Core first-pass no-prefix bridge. The premise
-          -- `first = false` rules out opaque/default fallback cases; the
-          -- remaining work is to transport the no-prefix result from the
-          -- action-reversed flattened input back to the original `s,r`.
+      have hFirstFalseActionFrontierCoreProgress :
+          (∀ (hNotMult :
+              ∀ r0, r = Term.Apply (Term.UOp UserOp.re_mult) r0 ->
+                False),
+            nonMultFirstInputNativeEq hNotMult) ∧
+          (∀ r0
+              (hR : r = Term.Apply (Term.UOp UserOp.re_mult) r0),
+            multFirstInputNativeEq r0 hR) := by
+        have hFirstFalseOriginalNativeProgress :
+            (∀ (hNotMult :
+                ∀ r0, r = Term.Apply (Term.UOp UserOp.re_mult) r0 ->
+                  False),
+              (let sFlat :=
+                __eo_list_rev (Term.UOp UserOp.str_concat)
+                  (__str_flatten (__eo_list_singleton_intro
+                    (Term.UOp UserOp.str_concat) s))
+              let rFlat :=
+                __re_rev_map_rev (__re_flatten (Term.Boolean true) r)
+                  (Term.Apply (Term.UOp UserOp.str_to_re)
+                    (Term.String []))
+              let first := __str_re_consume_rec sFlat rFlat sFlat
+              first = Term.Boolean false ->
+                ∀ ss rv,
+                  __smtx_model_eval M (__eo_to_smt s) =
+                    SmtValue.Seq ss ->
+                  __smtx_model_eval M (__eo_to_smt r) =
+                    SmtValue.RegLan rv ->
+                    native_str_in_re (native_unpack_string ss) rv =
+                      false)) ∧
+            (∀ r0
+                (hR : r = Term.Apply (Term.UOp UserOp.re_mult) r0),
+              (let sFlat :=
+                __eo_list_rev (Term.UOp UserOp.str_concat)
+                  (__str_flatten (__eo_list_singleton_intro
+                    (Term.UOp UserOp.str_concat) s))
+              let rFlat :=
+                __re_rev_map_rev (__re_flatten (Term.Boolean true) r0)
+                  (Term.Apply (Term.UOp UserOp.str_to_re)
+                    (Term.String []))
+              let first := __str_re_consume_rec sFlat rFlat sFlat
+              first = Term.Boolean false ->
+                ∀ ss rv,
+                  __smtx_model_eval M (__eo_to_smt s) =
+                    SmtValue.Seq ss ->
+                  __smtx_model_eval M
+                      (__eo_to_smt
+                        (Term.Apply (Term.UOp UserOp.re_mult) r0)) =
+                    SmtValue.RegLan rv ->
+                    native_str_in_re (native_unpack_string ss) rv =
+                      false)) := by
+          -- A syntactic `first = false` rules out opaque/default fallback
+          -- cases. The core induction transports the no-prefix fact from the
+          -- action-reversed flattened input back to the original query.
           sorry
-        rw [hOriginalFalse, hFirstInputFalse]
-      · intro r0 hR
-        dsimp [multFirstInputNativeEq]
-        intro hFirstFalse ss rv sFlatSs rFlatRv hSEval hStarEval
-          hSFlatEval hRFlatEval
-        have hFirstInputFalse :
-            native_str_in_re (native_unpack_string sFlatSs) rFlatRv =
-              false :=
-          hMultFirstInputFalseNativeProgress r0 hR hFirstFalse
-            sFlatSs rFlatRv hSFlatEval hRFlatEval
-        have hOriginalFalse :
-            native_str_in_re (native_unpack_string ss) rv = false := by
-          -- Same first-pass no-prefix bridge as the non-star branch, now
-          -- with the original regex evaluated as `r0*`.
-          sorry
-        rw [hOriginalFalse, hFirstInputFalse]
-      · intro hNotMult
-        dsimp [nonMultAfterFirstInputNativeEq]
-        let sFlat :=
-          __eo_list_rev (Term.UOp UserOp.str_concat)
-            (__str_flatten (__eo_list_singleton_intro
-              (Term.UOp UserOp.str_concat) s))
-        let rFlat :=
-          __re_rev_map_rev (__re_flatten (Term.Boolean true) r)
-            (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))
-        let first := __str_re_consume_rec sFlat rFlat sFlat
-        let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
-        let carry :=
-          __eo_and (Term.Boolean false)
-            (__eo_not (__eo_eq (__str_membership_re first) eps))
-        let nextS :=
-          __eo_list_rev (Term.UOp UserOp.str_concat)
-            (__eo_ite carry sFlat (__str_membership_str first))
-        let nextR :=
-          __re_rev_map_rev
-            (__re_flatten (Term.Boolean true)
-              (__eo_ite carry rFlat (__str_membership_re first))) eps
-        intro hFirstNotFalse ss rv nextSs nextRv hSEval hREval
-          hNextSEval hNextREval
-        have hAfterFirstBridge :
-            native_str_in_re (native_unpack_string ss) rv =
-              native_str_in_re (native_unpack_string nextSs) nextRv := by
-          -- Core non-star after-first bridge. The first consume result is
-          -- not syntactic `false`, and the second-pass inputs have evaluated
-          -- to `nextSs,nextRv`; the missing induction relates those inputs
-          -- back to the original `s,r` through the action-reversed frontier.
-          sorry
-        exact hAfterFirstBridge
-      · intro r0 hR
-        dsimp [multAfterFirstInputNativeEq]
-        let sFlat :=
-          __eo_list_rev (Term.UOp UserOp.str_concat)
-            (__str_flatten (__eo_list_singleton_intro
-              (Term.UOp UserOp.str_concat) s))
-        let rFlat :=
-          __re_rev_map_rev (__re_flatten (Term.Boolean true) r0)
-            (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))
-        let first := __str_re_consume_rec sFlat rFlat sFlat
-        let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
-        let carry :=
-          __eo_and (Term.Boolean true)
-            (__eo_not (__eo_eq (__str_membership_re first) eps))
-        let nextS :=
-          __eo_list_rev (Term.UOp UserOp.str_concat)
-            (__eo_ite carry sFlat (__str_membership_str first))
-        let nextR :=
-          __re_rev_map_rev
-            (__re_flatten (Term.Boolean true)
-              (__eo_ite carry rFlat (__str_membership_re first))) eps
-        intro hFirstNotFalse ss rv nextSs nextRv hSEval hStarEval
-          hNextSEval hNextREval
-        have hAfterFirstBridge :
-            native_str_in_re (native_unpack_string ss) rv =
-              native_str_in_re (native_unpack_string nextSs) nextRv := by
-          -- Core star after-first bridge for the second-pass input. Unlike
-          -- `multSecondStrNativeEq`, this stops before projecting `second`;
-          -- it relates the original `r0*` query to the evaluated
-          -- `nextS,nextR` pair produced after the first consume result.
-          sorry
-        exact hAfterFirstBridge
-      · intro r0 hR hSideNotFalse
+        rcases hFirstFalseOriginalNativeProgress with
+          ⟨hNonMultOriginalFalse, hMultOriginalFalse⟩
+        refine ⟨?_, ?_⟩
+        · intro hNotMult
+          dsimp [nonMultFirstInputNativeEq]
+          intro hFirstFalse ss rv sFlatSs rFlatRv hSEval hREval
+            hSFlatEval hRFlatEval
+          have hFirstInputFalse :
+              native_str_in_re (native_unpack_string sFlatSs) rFlatRv =
+                false :=
+            hNonMultFirstInputFalseNativeProgress hNotMult hFirstFalse
+              sFlatSs rFlatRv hSFlatEval hRFlatEval
+          have hOriginalFalse :
+              native_str_in_re (native_unpack_string ss) rv = false :=
+            hNonMultOriginalFalse hNotMult hFirstFalse ss rv hSEval hREval
+          rw [hOriginalFalse, hFirstInputFalse]
+        · intro r0 hR
+          dsimp [multFirstInputNativeEq]
+          intro hFirstFalse ss rv sFlatSs rFlatRv hSEval hStarEval
+            hSFlatEval hRFlatEval
+          have hFirstInputFalse :
+              native_str_in_re (native_unpack_string sFlatSs) rFlatRv =
+                false :=
+            hMultFirstInputFalseNativeProgress r0 hR hFirstFalse
+              sFlatSs rFlatRv hSFlatEval hRFlatEval
+          have hOriginalFalse :
+              native_str_in_re (native_unpack_string ss) rv = false :=
+            hMultOriginalFalse r0 hR hFirstFalse ss rv hSEval hStarEval
+          rw [hOriginalFalse, hFirstInputFalse]
+      have hAfterFirstActionFrontierCoreProgress :
+          (∀ (hNotMult :
+              ∀ r0, r = Term.Apply (Term.UOp UserOp.re_mult) r0 ->
+                False),
+            nonMultAfterFirstInputNativeEq hNotMult) ∧
+          (∀ r0
+              (hR : r = Term.Apply (Term.UOp UserOp.re_mult) r0),
+            multAfterFirstInputNativeEq r0 hR) := by
+        -- This one cannot factor through a global reverse equivalence:
+        -- fallback results are repaired only after the residual is flattened
+        -- and action-reversed for the second pass.
+        sorry
+      have hMultSecondStrActionFrontierCoreProgress :
+          ∀ r0
+            (_hR : r = Term.Apply (Term.UOp UserOp.re_mult) r0)
+            (hSideNotFalse : side ≠ Term.Boolean false),
+              multSecondStrNativeEq r0 hSideNotFalse := by
+        intro r0 hR hSideNotFalse
         dsimp [multSecondStrNativeEq]
         let sFlat :=
           __eo_list_rev (Term.UOp UserOp.str_concat)
@@ -29625,22 +29628,20 @@ theorem str_re_consume_model_rel
                 (native_re_mult r0Rv) =
               native_str_in_re (native_unpack_string partsSs)
                 (native_re_mult r0Rv) := by
-          -- Core remaining star-frontier invariant. At this point all
-          -- model/evaluation plumbing has been exposed: `sFlat` and `rFlat`
-          -- are the first reversed flattened inputs, `nextS`/`nextR` are the
-          -- second-pass inputs, `first` and `second` are both non-false, and
-          -- `partsSs` is the string projection of `second`. The missing
-          -- argument is the native star residual proof that the two consume
-          -- passes preserve membership in `r0*`.
-          --
-          -- This is where the action-frontier insight matters: when the first
-          -- pass falls back on an opaque atom, the second pass restores the
-          -- orientation by action-reversing the residual; when the first pass
-          -- consumes a full `r0` chunk, the existing `hRecResidual` plus the
-          -- `native_str_in_re_re_mult_concat_*` lemmas should carry the star
-          -- residual through the second pass.
+          -- The star-specific residual invariant: after both
+          -- action-frontier passes, the projected second string preserves
+          -- membership in `r0*`. The proof should combine the consume
+          -- residual theorem with the native `re_mult` concat/no-prefix
+          -- lemmas, splitting on whether the first pass carried a residual
+          -- or completed an `r0` chunk.
           sorry
         simpa [hStarRv] using hStarPreserve
+      rcases hFirstFalseActionFrontierCoreProgress with
+        ⟨hNonMultFirstInput, hMultFirstInput⟩
+      rcases hAfterFirstActionFrontierCoreProgress with
+        ⟨hNonMultAfterFirst, hMultAfterFirst⟩
+      exact ⟨hNonMultFirstInput, hMultFirstInput, hNonMultAfterFirst,
+        hMultAfterFirst, hMultSecondStrActionFrontierCoreProgress⟩
     rcases hActionableFrontierAfterFirstBridgeProgress with
       ⟨hNonMultFirstInput, hMultFirstInput, hNonMultAfterFirst,
         hMultAfterFirst, hMultSecondStr⟩
