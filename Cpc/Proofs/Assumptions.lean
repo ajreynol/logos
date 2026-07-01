@@ -23,8 +23,6 @@ inductive ArgTranslationKind where
   | type
   | intTerm
   | realTerm
-  | plusIntList
-  | multIntList
   /-- A value argument whose translated result type must itself be a full
       well-formed SMT type. This is weaker than `wfElem` for top-level function
       and regex types, but strong enough for EO typed-list annotations. -/
@@ -45,12 +43,6 @@ def argTranslationOkMasked : ArgTranslationKind -> Term -> Prop
       eoHasSmtTranslation t ∧ __eo_typeof t = Term.UOp UserOp.Int
   | ArgTranslationKind.realTerm, t =>
       eoHasSmtTranslation t ∧ __eo_typeof t = Term.UOp UserOp.Real
-  | ArgTranslationKind.plusIntList, t =>
-      eoHasSmtTranslation t ∧ __eo_typeof t = Term.UOp UserOp.Int ∧
-        __eo_is_list (Term.UOp UserOp.plus) t = Term.Boolean true
-  | ArgTranslationKind.multIntList, t =>
-      eoHasSmtTranslation t ∧ __eo_typeof t = Term.UOp UserOp.Int ∧
-        __eo_is_list (Term.UOp UserOp.mult) t = Term.Boolean true
   | ArgTranslationKind.wfTerm, t =>
       eoHasSmtTranslation t ∧ __smtx_type_wf (__smtx_typeof (__eo_to_smt t)) = true
   | ArgTranslationKind.wfElem, t =>
@@ -163,11 +155,11 @@ def cmdTranslationOk : CCmd -> Prop
       cArgListTranslationOkMask [ArgTranslationKind.intTerm, ArgTranslationKind.realTerm,
         ArgTranslationKind.intTerm] args
   | CCmd.step CRule.arith_mod_over_mod args _ =>
-      cArgListTranslationOkMask [ArgTranslationKind.intTerm, ArgTranslationKind.plusIntList,
-        ArgTranslationKind.intTerm, ArgTranslationKind.plusIntList] args
+      cArgListTranslationOkMask [ArgTranslationKind.intTerm, ArgTranslationKind.intTerm,
+        ArgTranslationKind.intTerm, ArgTranslationKind.intTerm] args
   | CCmd.step CRule.arith_mod_over_mod_mult args _ =>
-      cArgListTranslationOkMask [ArgTranslationKind.intTerm, ArgTranslationKind.multIntList,
-        ArgTranslationKind.intTerm, ArgTranslationKind.multIntList] args
+      cArgListTranslationOkMask [ArgTranslationKind.intTerm, ArgTranslationKind.intTerm,
+        ArgTranslationKind.intTerm, ArgTranslationKind.intTerm] args
   | CCmd.step _ args _ => cArgListTranslationOk args
   | _ => True
 
