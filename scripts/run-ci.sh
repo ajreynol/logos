@@ -31,6 +31,8 @@ for example in "${examples[@]}"; do
   echo "::endgroup::"
 done
 
+cpc_examples=(Cpc/Examples/*.lean)
+
 if [ "${#cpc_examples[@]}" -eq 0 ]; then
   echo "No Cpc examples found under Cpc/Examples/." >&2
   exit 1
@@ -77,7 +79,5 @@ lake build CpcMini.Proofs.TypePreservation.Nonvacuity
 
 echo "Compiling CpcMini.Examples.TestSimpleCheckerAssumptions..."
 lake build CpcMini.Examples.TestSimpleCheckerAssumptions
-
-cpc_examples=(Cpc/Examples/*.lean)
 
 echo "All CI checks passed."
