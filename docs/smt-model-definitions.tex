@@ -534,7 +534,6 @@ def smt_dt_lift (s : String) (d : SmtDatatype) : SmtDatatype -> SmtDatatype
   | (SmtDatatype.sum c d2) => (SmtDatatype.sum (smt_dtc_lift s d c) (smt_dt_lift s d d2))
   | SmtDatatype.null => SmtDatatype.null
 
-
 def smt_type_substitute (s : String) (d : SmtDatatype) : SmtType -> SmtType
   | (SmtType.Datatype s2 d2) => (SmtType.Datatype s2 (if (native_streq s s2) then d2 else (smt_dt_substitute s (smt_dt_lift s2 d2 d) d2)))
   | (SmtType.TypeRef s2) => (if (native_streq s s2) then (SmtType.Datatype s d) else (SmtType.TypeRef s2))
@@ -543,7 +542,6 @@ def smt_type_substitute (s : String) (d : SmtDatatype) : SmtType -> SmtType
 def smt_dtc_substitute (s : String) (d : SmtDatatype) : SmtDatatypeCons -> SmtDatatypeCons
   | (SmtDatatypeCons.cons T c) => (SmtDatatypeCons.cons (smt_type_substitute s d T) (smt_dtc_substitute s d c))
   | SmtDatatypeCons.unit => SmtDatatypeCons.unit
-
 
 def smt_dt_substitute (s : String) (d : SmtDatatype) : SmtDatatype -> SmtDatatype
   | (SmtDatatype.sum c d2) => (SmtDatatype.sum (smt_dtc_substitute s d c) (smt_dt_substitute s d d2))
@@ -850,30 +848,24 @@ In particular, the constructor \code{DtCons} takes the same first two arguments 
 a datatype type: a string identifier of its type and the SMT datatype that defines its structure.
 The third argument is a natural number that denotes the index of the constructor.
 Recall the datatype \code{DList} from the previous section,
-which corresponds to a list of integers:
-\begin{examplecode}
-DList := (sum (cons Int (cons (TypeRef "List") unit)) (sum unit null))
-\end{examplecode}
 which corresponded to the SMT-LIB datatype
 \begin{examplecode}
 (declare-datatype List ((listc (head Int) (tail List)) (listn)))
 \end{examplecode}
+and had the encoding:
+\begin{examplecode}
+DList := (sum (cons Int (cons (TypeRef "List") unit)) (sum unit null))
+\end{examplecode}
 Values that denote the constructors of this datatype are given by
 \code{(DtCons "List" DList 0)} and \code{(DtCons "List" DList 1)}.
 The former corresponds to \code{listc} and the latter corresponds to \code{listn}.
-We will see that the types of these values are 
-\code{(DtcAppType Int (DtcAppType (DatatypeType "List" DList) (DatatypeType "List" DList)))}
-and \code{(DatatypeType "List" DList)} respectively.
-In other words, the first value denotes a partially applied constructor
-that expects an integer and a list, while the second corresponds to
-a list.
 The value constructor \code{Apply} is used to construct applications of
 datatype constructors to values.
 It is a higher-order application, taking the head (a partially applied constructor value)
 and an argument to apply to.
 For instance, value corresponding to the singleton list containing the integer 7 is:
 \begin{examplecode}
-(Apply (Apply (DtCons "List" DList 0) 0) (DtCons "List" DList 1))
+(Apply (Apply (DtCons "List" DList 0) (Numeral 7)) (DtCons "List" DList 1))
 \end{examplecode}
 Applications in this style are curried.
 Our typing rules on SMT-LIB values will 
@@ -917,131 +909,6 @@ we will not define a notion of canonicity for functions and regular expression v
 This will limit their usage when considering the space of well-formed types
 we will consider.
 
-\subsection{Terms}
-\label{sec:terms}
-
-\begin{figure}
-\begin{lstlisting}
-inductive SmtTerm : Type where
-  | None : SmtTerm
-  | Boolean : Bool -> SmtTerm
-  | Numeral : Int -> SmtTerm
-  | Rational : Rat -> SmtTerm
-  | String : String -> SmtTerm
-  | Binary : Int -> Int -> SmtTerm
-  
-  | eq : SmtTerm -> SmtTerm -> SmtTerm
-  | not : SmtTerm -> SmtTerm
-  | and : SmtTerm -> SmtTerm -> SmtTerm
-  | select : SmtTerm -> SmtTerm
-  | store : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
-  ...
-  
-  | Apply : SmtTerm -> SmtTerm -> SmtTerm
-  | DtCons : String -> SmtDatatype -> Nat -> SmtTerm
-  | DtSel : String -> SmtDatatype -> Nat -> Nat -> SmtTerm
-  | exists : String -> SmtType -> SmtTerm -> SmtTerm
-  | forall : String -> SmtType -> SmtTerm -> SmtTerm
-  | Var : String -> SmtType -> SmtTerm
-  | UConst : String -> SmtType -> SmtTerm
-deriving Repr, DecidableEq, Inhabited
-\end{lstlisting}
-\caption{A representative template of SMT term constructors.}
-\label{fig:smt-terms}
-\end{figure}
-
-We now turn our attention to SMT-LIB terms.
-Figure~\ref{fig:smt-terms} gives a representative sample of our definitions
-for SMT-LIB terms.
-
-As before, we use an error constructor \code{None} to denote an error
-value for terms.
-We then provide a list of standard atomic terms, which carry native Lean
-datatypes as arguments.
-
-The next group of operators shows our encoding of ordinary SMT-LIB operators.
-We use a santization pass on SMT-LIB identifiers, e.g.
-\code{eq} denotes SMT-LIB equality \code{=}; other constructors (e.g. \code{not}, \code{and})
-coincide with their SMT-LIB name.
-It is important to note that for these SMT-LIB operators, we use a first-order
-representation where the arguments of these operators are arguments to these constructors.
-Effectively, this hardcodes the application of interpreted functions in SMT-LIB to
-be fully applied.
-Note that SMT-LIB does not contain any variadic operators, so this is not a
-limitation.\footnote{
-It does however support syntax for providing arbtirary inputs to many associative operators
-such as \code{and}, which is equivalent to chaining together binary applications of that
-operator.
-}
-This design decision was made since we are not considering higher-order extensions
-of SMT-LIB, and moreover higher-order treatments of SMT-LIB often avoid reasoning
-about interpreted functions as first class objects (they can equivalently be
-represented as lambda functions).
-Overall, this representations limits the expressiveness of our embedding
-but greatly simplifies several dimensions of reasoning in our proofs.
-
-The next constructor \code{Apply} is used for two purposes:
-for applying uninterpreted functions, and for applying datatype constructors.
-In contrast to interpreted functions, these functions can have arbtirary (fixed)
-arity based on the user's definition.
-Thus, these are treated by curried applications.
-
-The next two terms denote datatype constructors and datatype selectors.
-Datatype constructors mirror their structure from SMT-LIB values.
-Datatype selectors take two natural numbers:
-the index of the constructor, and the index of the field within that constructor.
-For instance, the head and tail selectors from the example \code{DList}
-from the previous section are denoted as
-\code{(DtSel "List" DList 0 0)} and \code{(DtSel "List" DList 0 1)}.
-Note that these indices may be out of bounds, in which case the term will be
-ill-typed.
-
-The next two constructors (\code{forall} and \code{exists}) denote the SMT-LIB
-standard universal and existential binders.
-For each, the first two arguments are a string and a type, which
-together denote an identifier for a variable.
-The third argument denotes the body of the quantified formula,
-which is expected to be of Boolean type.
-Variables (\code{Var}) within that body are considered to be bound by the
-(innermost) instance of a binder that shares their identifier.
-For example, the SMT-LIB formula \code{(forall ((x Int)) (= x 0))}
-is represented in this encoding as:
-\begin{examplecode}
-(forall "x" Int (eq (Var "x" Int) (Numeral 0)))
-\end{examplecode}
-This representation has some of the same complications as our representation
-of datatypes, which we describe briefly here.
-First, a formula may have free variables, i.e. variables that
-are not bound by a binder, e.g.:
-\begin{examplecode}
-(eq (Var "x" Int) (Numeral 0))
-\end{examplecode}
-Second, a formula may contain aliased variables, e.g.:
-\begin{examplecode}
-(forall "x" Int (exists "x" Int (eq (Var "x" Int) (Numeral 0))))
-\end{examplecode}
-Both formulas will be considered well-formed in our definition.
-For the former, the semantics of a formula with free variables follows
-naturally from the definition of a SMT-LIB model, namely a variable has a
-fixed interpretation in a model.
-For the latter, our semantics of quantified formulas will be bottom-up,
-where inner quantified formulas essentially override the interpretation of
-variables, so that \code{(Var "x" Int)} is effectively bound
-by the innermost binder, in this case, it is extentionally bound.
-Note that we do not include a constructor for \code{lambda},
-as our formulation does not consider higher-order constructs.
-CPC will define one further binder for a variant of Hilbert's choice operator.
-This operator however is specific to the implementation of the CPC calculus,
-so we omit it from discussion here.
-
-The last term constructor \code{UConst} denotes free (uninterpreted) constants.
-Note that a free constant may have a function type.
-These have the same structure as variables, and will have a model semantics
-that mirrors variables, where recall that an SMT-LIB model contains
-a parallel mapping for variables and constants.
-In contrast, the interpretation of variables is updatable in model (e.g.
-when evaluating binders), where the interpretation of a constant is fixed.
-
 \subsection{Types for SMT-LIB Values}
 
 In this section,
@@ -1049,7 +916,7 @@ we present type rules for SMT-LIB values and terms.
 Type rules will be used to define the semantics of quantified formulas
 and our definition of SMT-LIB models.
 
-\begin{figure}[p]
+\begin{figure}
 \begin{lstlisting}
 def smt_typeof_guard (T : SmtType) (U : SmtType) : SmtType :=
   (if (Teq T SmtType.None) then SmtType.None else U)
@@ -1129,6 +996,13 @@ type of the constructor and the index of constructor in question.
 If n is not zero, we recurse to the next constructor.
 If n is zero, then for each field type, we prepend an argument type
 via the partially applied constructor type \code{SmtType.DtcAppType}.
+Again, recall the datatype \code{DList}:
+We will see that the types of these values are 
+\code{(DtcAppType Int (DtcAppType (DatatypeType "List" DList) (DatatypeType "List" DList)))}
+and \code{(DatatypeType "List" DList)} respectively.
+In other words, the first value denotes a partially applied constructor
+that expects an integer and a list, while the second corresponds to
+a list.
 
 Recall that apply values apply partially applied constructors to arguments.
 This uses a helper method \code{smt_typeof_apply_value},
@@ -1261,8 +1135,7 @@ value of that type, which is guaranteed to succeed when the input type
 is well-formed (which we define later).
 
 The method \code{smt_type_default}
-calls
-the method \code{smt_type_default_rec}
+calls the method \code{smt_type_default_rec}
 on two types.
 We use two types here solely for the purpose of recursion
 on datatypes.
@@ -1470,6 +1343,7 @@ def smt_dt_cons_wf_rec : SmtDatatypeCons -> SmtDatatypeCons -> Bool
 def smt_dt_wf_rec : SmtDatatype -> SmtDatatype -> Bool
   | (SmtDatatype.sum cF dF), (SmtDatatype.sum cU dU) =>
       (smt_dt_cons_wf_rec cF cU) && (smt_dt_wf_rec dF dU)
+  | SmtDatatype.null, SmtDatatype.null => true
   | dF, dU => false
 
 def smt_type_wf_rec : SmtType -> SmtType -> Bool
@@ -1506,27 +1380,15 @@ The key method defined in Figure~\ref{fig:type-wf}
 is \smttypewf.
 This predicate will define exactly the set of types that are relevant
 to in our SMT-LIB representation.
-To understand the intuition for the precise definition of this,
-it is important to recall our definition of canonicity of values.
 
-Note that \smttypewf
-relies on a helper \code{smt_type_wf_component},
+Let us now look in detail at how \smttypewf is defined.
+First, note that \smttypewf
+relies in several places on a helper \code{smt_type_wf_component},
 which returns true for types that are well-formed and can be used as component
 types to build other well-formed types.
 We also will say that a type \code{T} is \emph{first-class}
 iff \code{(smt_type_wf_component T)} returns true.
-Assume we have two canonical values \code{v1} and \code{v2} of first-class type \code{T},
-that is, \smttypeofvalue{v1} = \smttypeofvalue{v2} = \code{T},
-and \smtvaluecanon{v1} = \smtvaluecanon{v2} = true.
-In this case, 
-we say that \smttypeofvalue{v1} and \smttypeofvalue{v2} are
-semantically equivalent iff they are syntactically equivalent.
-%In other words, \smtvaluecanon returns true for only one
-Concretely,
-our definition of SMT-LIB model evaluation \smtmodeleval for equality (\code{eq})
-will use syntactic comparison over values (\code{veq}) for all first-class types.
 
-Let us now look in detail at how \smttypewf is defined.
 First, regular languages and function types
 will not be considered first-class types.
 They will however be permitted as top-level types.
@@ -1539,50 +1401,38 @@ Note that this excludes functions taking regular expressions
 as arguments, as well as higher-order functions
 (functions taking functions as arguments).
 
-The method \code{smt_type_wf_component}
-returns true if the given type is inhabited
-and its component types are well-formed, as defined by the recursive method \code{smt_type_wf_rec}.
-The latter tracks a list of datatype names we are currently traversing beneath (\code{RefList}),
-recording the recursive references that are permitted in the current context.
+The main recursive method for computing well-formedness of types is
+\code{smt_type_wf_rec}.
+At a high level, the method ensures that non-first-class types such as
+regular expressions, functions, and partially applied datatype constructors
+do not occur as a component types.
+It also ensures that \emph{every} field of every constructor of a datatype
+are inhabited and well-formed, whereas note that \code{inhabited_type}
+only requires that \emph{some} constructor is inhabited.
 
-For a datatype type \code{(Datatype s d)},
-we first check that \code{s} does not already occur in the reference list \code{refs}.
-If it does, the datatype aliases an enclosing datatype of the same name,
-which we consider to be not well-formed, returning false.
-Otherwise, we call the recursive helper \code{smt_dt_wf_rec} on the list of constructors \code{d}.
+Similar to the type default method from Figure~\ref{fig:default-value},
+the method \code{smt_type_wf_rec}
+takes two types, the unfolded version of the type and the original type.
+For a datatype type \code{(Datatype sF dF)},
+We call the recursive helper \code{smt_dt_wf_rec} on the list of constructors \code{d},
+where we unfold the unfolded version of the datatype and pass the original datatype unchanged.
 This helper visits each constructor in turn.
-For each constructor \code{c}, it requires that \code{c} is well-formed via \code{smt_dt_cons_wf_rec},
-where the name \code{s} of the datatype being defined is added to the reference list (\code{(s :: refs)}),
-indicating that type references to \code{s} are valid as fields of \code{c}.
+For each constructor \code{c}, it requires that \code{c} is well-formed via \code{smt_dt_cons_wf_rec}.
 We determine whether a constructor is well-formed if
 for each of its field types \code{T},
-either \code{T} is a type reference in scope (\code{s ∈ refs}),
-or otherwise \code{T} is an inhabited type that is well-formed, which we check
-recursively, maintaining the list of references.
-Note that carrying the reference list
-implies that mutually recursive datatypes are supported.
-
-In addition, \code{smt_dt_wf_rec} requires that the datatype has at least one
-\emph{base} constructor, that is, a constructor that is well-formed
-\emph{without} relying on a recursive reference to \code{s}.
-This is tracked by the accumulator \code{haveBase}: when processing a constructor \code{c},
-we update it based on whether \code{c} is well-formed when \code{s} is \emph{not}
-in scope, i.e. \code{(smt_dt_cons_wf_rec c refs)}.
-After all constructors have been processed, the \code{null} case returns \code{haveBase}.
-In particular, a datatype with no constructors, or one all of whose constructors
-recursively reference \code{s}, has no base constructor and is considered not well-formed,
-since it would admit no finite values.
+either \code{T} is a type reference in scope (i.e. its unfolded version is a datatype type),
+or otherwise \code{T} is an inhabited type that is well-formed, which we check recursively.
+Note that this definition permits mutually recursive datatypes,
+as the unfolded datatype is passed in this recursive call.
 
 Note that type references are only permitted as direct fields of constructors.
 An unguarded type reference is not well-formed, given the case for
-\code{(SmtType.TypeRef s)} in \code{smt_type_wf_rec}, which returns false.
+\code{(SmtType.TypeRef s)} as the second argument in \code{smt_type_wf_rec}, which returns false.
 
 The next cases in \code{smt_type_wf_rec}
 cover composite types like maps, sequences and sets.
 It is important to note that for each component type (e.g. element and index types of maps,
-or element types of sequences),
-we do not carry the list of references when recursing
-via \code{smt_type_wf_component}.
+or element types of sequences), ignore the unfolded type.
 This disallows nested recursive datatypes.
 It is also important to note that composite types built from uninhabited types
 are themselves considered not well-formed.
@@ -1597,6 +1447,19 @@ We also disallow partially applied datatype constructors as a first-class type.
 Finally, we disallow the error type \code{None}.
 All other types (e.g. the atomic base types) are first-class.
 
+To understand the intuition for the precise motivation for the definition of \smttypewf,
+it is important to recall our definition of canonicity of values.
+Assume we have two canonical values \code{v1} and \code{v2} of first-class type \code{T},
+that is, \smttypeofvalue{v1} = \smttypeofvalue{v2} = \code{T},
+and \smtvaluecanon{v1} = \smtvaluecanon{v2} = true.
+In this case, 
+we say that \smttypeofvalue{v1} and \smttypeofvalue{v2} are
+semantically equivalent iff they are syntactically equivalent.
+%In other words, \smtvaluecanon returns true for only one
+Concretely,
+our definition of SMT-LIB model evaluation \smtmodeleval for equality (\code{eq})
+will use syntactic comparison over values (\code{veq}) for all first-class types,
+and will contain a special case for regular expressions.
 
 \subsection{Well-Formed Models}
 
@@ -1645,6 +1508,131 @@ the function at that lookup (\code{model_fun_lookup M fid A B})
 when applied to \code{i} results in a value of type \code{B}, and moreover the returned value is canonical.
 
 Notice that for both clauses, we insist that the respective components of \code{M} are total mappings.
+
+\subsection{Terms}
+\label{sec:terms}
+
+\begin{figure}
+\begin{lstlisting}
+inductive SmtTerm : Type where
+  | None : SmtTerm
+  | Boolean : Bool -> SmtTerm
+  | Numeral : Int -> SmtTerm
+  | Rational : Rat -> SmtTerm
+  | String : String -> SmtTerm
+  | Binary : Int -> Int -> SmtTerm
+  
+  | eq : SmtTerm -> SmtTerm -> SmtTerm
+  | not : SmtTerm -> SmtTerm
+  | and : SmtTerm -> SmtTerm -> SmtTerm
+  | select : SmtTerm -> SmtTerm
+  | store : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
+  ...
+  
+  | Apply : SmtTerm -> SmtTerm -> SmtTerm
+  | DtCons : String -> SmtDatatype -> Nat -> SmtTerm
+  | DtSel : String -> SmtDatatype -> Nat -> Nat -> SmtTerm
+  | exists : String -> SmtType -> SmtTerm -> SmtTerm
+  | forall : String -> SmtType -> SmtTerm -> SmtTerm
+  | Var : String -> SmtType -> SmtTerm
+  | UConst : String -> SmtType -> SmtTerm
+deriving Repr, DecidableEq, Inhabited
+\end{lstlisting}
+\caption{A representative template of SMT term constructors.}
+\label{fig:smt-terms}
+\end{figure}
+
+We now turn our attention to SMT-LIB terms.
+Figure~\ref{fig:smt-terms} gives a representative sample of our definitions
+for SMT-LIB terms.
+
+As before, we use an error constructor \code{None} to denote an error
+value for terms.
+We then provide a list of standard atomic terms, which carry native Lean
+datatypes as arguments.
+
+The next group of operators shows our encoding of ordinary SMT-LIB operators.
+We use a santization pass on SMT-LIB identifiers, e.g.
+\code{eq} denotes SMT-LIB equality \code{=}; other constructors (e.g. \code{not}, \code{and})
+coincide with their SMT-LIB name.
+It is important to note that for these SMT-LIB operators, we use a first-order
+representation where the arguments of these operators are arguments to these constructors.
+Effectively, this hardcodes the application of interpreted functions in SMT-LIB to
+be fully applied.
+Note that SMT-LIB does not contain any variadic operators, so this is not a
+limitation.\footnote{
+It does however support syntax for providing arbtirary inputs to many associative operators
+such as \code{and}, which is equivalent to chaining together binary applications of that
+operator.
+}
+This design decision was made since we are not considering higher-order extensions
+of SMT-LIB, and moreover higher-order treatments of SMT-LIB often avoid reasoning
+about interpreted functions as first class objects (they can equivalently be
+represented as lambda functions).
+Overall, this representations limits the expressiveness of our embedding
+but greatly simplifies several dimensions of reasoning in our proofs.
+
+The next constructor \code{Apply} is used for two purposes:
+for applying uninterpreted functions, and for applying datatype constructors.
+In contrast to interpreted functions, these functions can have arbtirary (fixed)
+arity based on the user's definition.
+Thus, these are treated by curried applications.
+
+The next two terms denote datatype constructors and datatype selectors.
+Datatype constructors mirror their structure from SMT-LIB values.
+Datatype selectors take two natural numbers:
+the index of the constructor, and the index of the field within that constructor.
+For instance, the head and tail selectors from the example \code{DList}
+from the previous section are denoted as
+\code{(DtSel "List" DList 0 0)} and \code{(DtSel "List" DList 0 1)}.
+Note that these indices may be out of bounds, in which case the term will be
+ill-typed.
+
+The next two constructors (\code{forall} and \code{exists}) denote the SMT-LIB
+standard universal and existential binders.
+For each, the first two arguments are a string and a type, which
+together denote an identifier for a variable.
+The third argument denotes the body of the quantified formula,
+which is expected to be of Boolean type.
+Variables (\code{Var}) within that body are considered to be bound by the
+(innermost) instance of a binder that shares their identifier.
+For example, the SMT-LIB formula \code{(forall ((x Int)) (= x 0))}
+is represented in this encoding as:
+\begin{examplecode}
+(forall "x" Int (eq (Var "x" Int) (Numeral 0)))
+\end{examplecode}
+This representation has some of the same complications as our representation
+of datatypes, which we describe briefly here.
+First, a formula may have free variables, i.e. variables that
+are not bound by a binder, e.g.:
+\begin{examplecode}
+(eq (Var "x" Int) (Numeral 0))
+\end{examplecode}
+Second, a formula may contain aliased variables, e.g.:
+\begin{examplecode}
+(forall "x" Int (exists "x" Int (eq (Var "x" Int) (Numeral 0))))
+\end{examplecode}
+Both formulas will be considered well-formed in our definition.
+For the former, the semantics of a formula with free variables follows
+naturally from the definition of a SMT-LIB model, namely a variable has a
+fixed interpretation in a model.
+For the latter, our semantics of quantified formulas will be bottom-up,
+where inner quantified formulas essentially override the interpretation of
+variables, so that \code{(Var "x" Int)} is effectively bound
+by the innermost binder, in this case, it is extentionally bound.
+Note that we do not include a constructor for \code{lambda},
+as our formulation does not consider higher-order constructs.
+CPC will define one further binder for a variant of Hilbert's choice operator.
+This operator however is specific to the implementation of the CPC calculus,
+so we omit it from discussion here.
+
+The last term constructor \code{UConst} denotes free (uninterpreted) constants.
+Note that a free constant may have a function type.
+These have the same structure as variables, and will have a model semantics
+that mirrors variables, where recall that an SMT-LIB model contains
+a parallel mapping for variables and constants.
+In contrast, the interpretation of variables is updatable in model (e.g.
+when evaluating binders), where the interpretation of a constant is fixed.
 
 \subsection{Model Evaluation}
 
@@ -1789,7 +1777,6 @@ The next cases of \code{smt_model_eval_apply}
 are for variables (\code{Var}) and free constants (\code{Const}).
 These are handled similarly in the model, where the model lookup
 takes a flag denoting whether or not the lookup is for a variable.
-
 
 \subsection{Types of SMT-LIB Terms}
 
