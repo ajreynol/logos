@@ -1459,37 +1459,35 @@ and confirm that all values they are built from are also canonical.
 
 \begin{figure}
 \begin{lstlisting}
-abbrev RefList := List String
+def smt_dt_cons_wf_rec : SmtDatatypeCons -> SmtDatatypeCons -> Bool
+  | (SmtDatatypeCons.cons (SmtType.Datatype s d) cF),
+    (SmtDatatypeCons.cons (SmtType.TypeRef sU) cU) => (smt_dt_cons_wf_rec cF cU)
+  | (SmtDatatypeCons.cons TF cF), (SmtDatatypeCons.cons TU cU) =>
+      (inhabited_type TF) && (smt_type_wf_rec TF TU) && (smt_dt_cons_wf_rec cF cU)
+  | SmtDatatypeCons.unit, SmtDatatypeCons.unit => true
+  | cF, cU => false
 
-def smt_dt_cons_wf_rec : SmtDatatypeCons -> RefList -> Bool
-  | (SmtDatatypeCons.cons (SmtType.TypeRef s) c), refs =>
-      (s ∈ refs) && (smt_dt_cons_wf_rec c refs)
-  | (SmtDatatypeCons.cons T c), refs =>
-      (inhabited_type T) && (smt_type_wf_rec T refs) && (smt_dt_cons_wf_rec c refs)
-  | SmtDatatypeCons.unit, refs => true
+def smt_dt_wf_rec : SmtDatatype -> SmtDatatype -> Bool
+  | (SmtDatatype.sum cF dF), (SmtDatatype.sum cU dU) =>
+      (smt_dt_cons_wf_rec cF cU) && (smt_dt_wf_rec dF dU)
+  | dF, dU => false
 
-def smt_dt_wf_rec (s : String) (refs : RefList) (haveBase : Bool) : SmtDatatype -> Bool
-  | SmtDatatype.null => haveBase
-  | (SmtDatatype.sum c d) =>
-      (smt_dt_cons_wf_rec c (s :: refs)) &&
-      (smt_dt_wf_rec s refs (haveBase || (smt_dt_cons_wf_rec c refs)) d)
-
-def smt_type_wf_rec : SmtType -> RefList -> Bool
-  | (SmtType.Datatype s d), refs =>
-      if s ∈ refs then false else smt_dt_wf_rec s refs false d
-  | (SmtType.TypeRef s), refs => false
-  | (SmtType.Seq x1), refs => (smt_type_wf_component x1)
-  | (SmtType.Map x1 x2), refs =>
+def smt_type_wf_rec : SmtType -> SmtType -> Bool
+  | (SmtType.Datatype sF dF), (SmtType.Datatype sU dU) =>
+      (smt_dt_wf_rec (smt_dt_substitute sF dF dF) dU)
+  | T, (SmtType.TypeRef s) => false
+  | T, (SmtType.Seq x1) => (smt_type_wf_component x1)
+  | T, (SmtType.Map x1 x2) =>
       (smt_type_wf_component x1) && (smt_type_wf_component x2)
-  | (SmtType.Set x1), refs => (smt_type_wf_component x1)
-  | (SmtType.FunType x1 x2), refs => false
-  | (SmtType.DtcAppType x1 x2), refs => false
-  | SmtType.RegLan, refs => false
-  | SmtType.None, refs => false
-  | T, refs => true
+  | T, (SmtType.Set x1) => (smt_type_wf_component x1)
+  | T, (SmtType.FunType x1 x2) => false
+  | T, (SmtType.DtcAppType x1 x2) => false
+  | T, SmtType.None => false
+  | T, SmtType.RegLan => false
+  | T, U => true
 
 def smt_type_wf_component (T : SmtType) : Bool :=
-  (inhabited_type T) && (smt_type_wf_rec T [])
+  (inhabited_type T) && (smt_type_wf_rec T T)
 
 def smt_type_wf : SmtType -> Bool
   | SmtType.RegLan => true
