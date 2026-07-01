@@ -1784,22 +1784,21 @@ takes a flag denoting whether or not the lookup is for a variable.
 \begin{lstlisting}
 def smt_typeof_guard_wf (T : SmtType) (U : SmtType) : SmtType :=
   (if (smt_type_wf T) then U else SmtType.None)
+  
+def smt_typeof_not : SmtType -> SmtType :=
+  | SmtType.Bool => SmtType.Bool
+  | T => SmtType.None
 
 def smt_typeof_eq (T : SmtType) (U : SmtType) : SmtType :=
   (smt_typeof_guard T (if (native_Teq T U) then SmtType.Bool else SmtType.None))
 
-def smt_typeof_apply : SmtType -> SmtType -> SmtType
-  | (SmtType.FunType T U), V => (smt_typeof_guard T (if (native_Teq T V) then U else SmtType.None))
-  | (SmtType.DtcAppType T U), V => (smt_typeof_guard T (if (native_Teq T V) then U else SmtType.None))
-  | T, U => SmtType.None
-
-def smt_typeof_select : SmtType -> SmtType -> SmtType
-  | (SmtType.Map T U), V => (if (native_Teq T V) then U else SmtType.None)
-  | T, U => SmtType.None
-
 def smt_typeof_arith_overload_op_2 : SmtType -> SmtType -> SmtType
   | SmtType.Int, SmtType.Int => SmtType.Int
   | SmtType.Real, SmtType.Real => SmtType.Real
+  | T, U => SmtType.None
+  
+def smt_typeof_select : SmtType -> SmtType -> SmtType
+  | (SmtType.Map T U), V => (if (native_Teq T V) then U else SmtType.None)
   | T, U => SmtType.None
 
 def smt_typeof_dt_cons_rec (T : SmtType) : SmtDatatype -> native_Nat -> SmtType
@@ -1809,10 +1808,17 @@ def smt_typeof_dt_cons_rec (T : SmtType) : SmtDatatype -> native_Nat -> SmtType
   | (SmtDatatype.sum c d), (native_nat_succ n) => (smt_typeof_dt_cons_rec T d n)
   | d, n => SmtType.None
 
+def smt_typeof_apply : SmtType -> SmtType -> SmtType
+  | (SmtType.FunType T U), V => (smt_typeof_guard T (if (native_Teq T V) then U else SmtType.None))
+  | (SmtType.DtcAppType T U), V => (smt_typeof_guard T (if (native_Teq T V) then U else SmtType.None))
+  | T, U => SmtType.None
+
 def smt_typeof : SmtTerm -> SmtType
   | (SmtTerm.Boolean b) => SmtType.Bool
+  | (SmtTerm.Numeral n) => SmtType.Int
   | (SmtTerm.Binary w n) =>
-      if 0 <= w ∧ n = n % (2 ^ w) then SmtType.BitVec (Int.toNat w) else SmtType.None
+      if 0 <= w ∧ n = n % (2 ^ w) then (SmtType.BitVec (Int.toNat w)) else SmtType.None
+  | (SmtTerm.not x1) => (smt_typeof_not (smt_typeof x1))
   | (SmtTerm.eq x1 x2) => (smt_typeof_eq (smt_typeof x1) (smt_typeof x2))
   | (SmtTerm.exists s T x1) =>
       if smt_typeof x1 = SmtType.Bool then (smt_typeof_guard_wf T SmtType.Bool) else SmtType.None
@@ -1828,26 +1834,72 @@ def smt_typeof : SmtTerm -> SmtType
 \label{fig:typeof-term}
 \end{figure}
 
+Figure~\ref{fig:typeof-term}
+gives our definition for the types of SMT-LIB terms.
+At a high-level, this is a structurally recursive method
+that first computes the types the arguments of the term and based on the
+argument types constructs a return type.
+We give a representative set of cases in the definition of \smttypeof.
 
+First, atomic interpreted constants
+are trivial, e.g. Boolean constants are Bool, integer constants are Int, etc.
+Bit-vector constants (\code{Binary})
+are well-typed iff they have a non-negative bitwidth \code{w}
+and a value \code{n} within the range [0,2^w).
 
-\begin{figure}[p]
+For the remaining operators, it is important to note that, since our definition of SMT-LIB
+terms do not allow us to specify partially applied interpreted functions,
+the type rules we give are for fully applied terms.
+We give some of the cases above, for example,
+for SMT-LIB \code{not}, the method \code{smt_typeof_not} returns the Boolean type
+iff the argument is Boolean.
+For SMT-LIB equality \code{eq},
+the method for computing its type \code{smt_typeof_eq}
+takes two types \code{T} and \code{U}.
+If these are syntactically equal types, then the equality has type Bool,
+otherwise it is ill-typed.
+Again notice that we consider only syntactically equivalent types here,
+i.e. there is no notion of type equivalence.
+Second, note that we permit equalities between terms whose types are not well-formed
+(apart from if the terms are not well typed, i.e. have type \code{None}).
+
+Our type for quantifiers \code{exists} first checks whether its third
+argument (its body) has Bool type, if so, then Bool is returned provided
+that the quantified type is well-formed (via helper \code{smt_typeof_guard_wf}).
+This prevents quantified formulas over types that are not well-formed,
+which would have an unintuitive semantics based on our model evaluation for
+\code{exists} as defined earlier.
+
+The type of arithmetic operators like \code{plus} handle overloading Int and Real,
+i.e. plus is well-typed if both of its arguments are Int, or if both arguments are Real.
+Array select (\code{select})
+has type given by \code{smt_typeof_select}, which succeeds iff the index type of map we are
+selector from matches the type of the argument.
+The generic \code{Apply} term can either refer to an application of an uninterpreted
+function or a datatype constructor. These cases are handled similarly.
+The type of datatype constructor terms is analogous to the typing for
+datatype constructor values, as given in Figure~\ref{fig:typeof-value}.
+
+\subsection{Properties of Model Evaluation}
+
+\begin{figure}
 \begin{lstlisting}
+theorem model_wf_nonvacuous :
+    ∃ M : SmtModel, model_wf M
+  
 theorem type_preservation
     (M : SmtModel)
-    (hM : model_total_typed M)
+    (hM : model_wf M)
     (t : SmtTerm)
     (ht : smt_typeof t ≠ SmtType.None) :
     smt_typeof_value (smt_model_eval M t) = smt_typeof t
 
 theorem model_eval_canonical
     (M : SmtModel)
-    (hM : model_total_typed M)
+    (hM : model_wf M)
     (t : SmtTerm)
     (hTy : smt_typeof t ≠ SmtType.None) :
     smt_value_canonical (smt_model_eval M t) = true
-
-theorem total_typed_model_nonvacuous :
-    ∃ M : SmtModel, model_total_typed M
 \end{lstlisting}
 \caption{Main type-preservation, canonicality, and model-existence statements.}
 \label{fig:type-preservation}
@@ -1937,10 +1989,10 @@ def eo_to_smt : Term -> SmtTerm
 \begin{lstlisting}
 inductive smt_satisfiability : SmtTerm -> Bool -> Prop
   | intro_true  (t : SmtTerm) :
-      (exists M : SmtModel, model_total_typed M /\ (smt_model_eval M t) = (SmtValue.Boolean true)) ->
+      (exists M : SmtModel, model_wf M /\ (smt_model_eval M t) = (SmtValue.Boolean true)) ->
       smt_satisfiability t true
   | intro_false (t : SmtTerm) :
-      (forall M : SmtModel, model_total_typed M -> (smt_model_eval M t) = (SmtValue.Boolean false))->
+      (forall M : SmtModel, model_wf M -> (smt_model_eval M t) = (SmtValue.Boolean false))->
       smt_satisfiability t false
 
 def eo_satisfiability (t : Term) (b : Bool) : Prop :=
@@ -2197,12 +2249,12 @@ theorem smt_model_eval_eq_of_eo_closed
 
 /-- A formula remains true when only SMT variable assignments are changed. -/
 def StableInAnyVarModel (M : SmtModel) (P : Term) : Prop :=
-  ∀ N, model_total_typed N -> model_agrees_on_globals M N ->
+  ∀ N, model_wf N -> model_agrees_on_globals M N ->
     eo_interprets N P true
 
 /-- A formula remains true under variable-model changes whenever it is true. -/
 def StableWhenTrueInAnyVarModel (P : Term) : Prop :=
-  ∀ M, model_total_typed M -> eo_interprets M P true ->
+  ∀ M, model_wf M -> eo_interprets M P true ->
     StableInAnyVarModel M P
 
 theorem stableWhenTrueInAnyVarModel_of_closed
@@ -2266,7 +2318,7 @@ structure ContextualTruth
     eo_interprets M pushes true ->
     eo_interprets M P true
   true_in_var_model :
-    forall N, model_total_typed N ->
+    forall N, model_wf N ->
       model_agrees_on_globals M N ->
       eo_interprets N assumes true ->
       eo_interprets N pushes true ->
@@ -2316,7 +2368,7 @@ structure RulePremiseEvidence
   true_here :
     AllInterpretedTrue M premises
   true_in_var_model :
-    forall N, model_total_typed N ->
+    forall N, model_wf N ->
       model_agrees_on_globals M N ->
       AllInterpretedTrue N premises
 
@@ -2334,7 +2386,7 @@ structure CmdStepFacts (M : SmtModel) (s : CState) (P : Term) : Prop where
     eo_interprets M (statePushes s) true ->
     eo_interprets M P true
   true_in_var_model :
-    forall N, model_total_typed N ->
+    forall N, model_wf N ->
       model_agrees_on_globals M N ->
       eo_interprets N (stateAssumes s) true ->
       eo_interprets N (statePushes s) true ->
@@ -2343,7 +2395,7 @@ structure CmdStepFacts (M : SmtModel) (s : CState) (P : Term) : Prop where
     RuleProofs.eo_has_smt_translation P
 
 theorem cmd_step_proven_facts_of_invariants
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (_hNotStuck : s ≠ CState.Stuck)
     (r : CRule) (args : CArgList) (premises : CIndexList) :
   checkerLocalTruthInvariant M s ->
@@ -2361,7 +2413,7 @@ theorem cmd_step_proven_facts_of_invariants
 \begin{figure}[p]
 \begin{lstlisting}
 theorem cmd_step_trans_properties
-    (M : SmtModel) (hM : model_total_typed M)
+    (M : SmtModel) (hM : model_wf M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (Cmd.step CRule.trans args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->
