@@ -131,29 +131,26 @@ private theorem dd_select
       SmtValue.NotValue = false := nveq_false hNe
   rw [__smtx_datatype_default]; simp [native_ite, native_not, hf]
 
--- TODO(typeWf-0701 aliasing refactor): this whole finite-defaultability derivation threaded an
--- ambient `RefList` under the old reflist-scoped algorithm. Under the new algorithm,
--- `__smtx_type_wf_rec`/`__smtx_dt_wf_rec`/`__smtx_dt_cons_wf_rec` take a full/unfold
--- SmtType/SmtDatatype/SmtDatatypeCons pair instead (no `RefList` at all), so the old
--- `∀ refs, wf_rec T refs = true → …` statements are no longer even well-typed. Signatures below
--- are corrected to the diagonal (`wf_rec T T`) form matching `__smtx_type_wf_component`'s own
--- shape (the natural "T is independently well-formed" invariant); bodies are `sorry`'d. Re-deriving
--- these needs the same ShT/ShD/ShC-threading argument reworked around the new substitution-based
--- wf_rec (see the `TypePreservation/Full.lean` full/unfold pattern for the general technique).
-theorem fin_defaultable :
-    ∀ V T : SmtType, ShT V T → __smtx_is_finite_type T = true →
-      __smtx_type_wf_rec T T = true →
-        __smtx_type_default_rec V T ≠ SmtValue.NotValue := by
-  sorry
+private theorem finite_dt_cons_of_finite_sum {c : SmtDatatypeCons} {d : SmtDatatype}
+    (hFin : __smtx_is_finite_datatype (SmtDatatype.sum c d) = true) :
+    __smtx_is_finite_datatype_cons c = true := by
+  have hP : __smtx_is_finite_datatype_cons c = true ∧ __smtx_is_finite_datatype d = true := by
+    simpa [__smtx_is_finite_datatype, native_and] using hFin
+  exact hP.1
 
--- constructor-level defaultability (the witnesses need this)
-theorem cons_defaultable :
-    ∀ (cU cF : SmtDatatypeCons), ShC cF cU →
-      __smtx_is_finite_datatype_cons cU = true →
-      __smtx_dt_cons_wf_rec cU cU = true →
-      ∀ v, v ≠ SmtValue.NotValue →
-        __smtx_datatype_cons_default v cF cU ≠ SmtValue.NotValue := by
-  sorry
+private theorem dt_wf_cons_of_wf {cF cU : SmtDatatypeCons} {dF dU : SmtDatatype}
+    (h : __smtx_dt_wf_rec (SmtDatatype.sum cF dF) (SmtDatatype.sum cU dU) = true) :
+    __smtx_dt_cons_wf_rec cF cU = true := by
+  cases hc : __smtx_dt_cons_wf_rec cF cU <;>
+    simp [__smtx_dt_wf_rec, native_ite, hc] at h ⊢
+
+private theorem wf_parts_of_cons_diag {T : SmtType} {c : SmtDatatypeCons}
+    (h : __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons T c)
+        (SmtDatatypeCons.cons T c) = true) :
+    native_inhabited_type T = true ∧ __smtx_type_wf_rec T T = true ∧
+      __smtx_dt_cons_wf_rec c c = true := by
+  cases T <;> simp [__smtx_dt_cons_wf_rec, native_and, native_ite] at h ⊢
+  all_goals exact ⟨h.1.1, h.1.2, h.2⟩
 
 -- substitution is the identity on finite types (no TypeRef ⇒ nothing to substitute),
 -- collapsing the folded/unfolding distinction to the diagonal for finite datatypes
@@ -197,6 +194,92 @@ theorem subst_D_fin_id (s : native_String) :
       have hp : __smtx_is_finite_datatype_cons c = true ∧ __smtx_is_finite_datatype D = true := by
         simpa [__smtx_is_finite_datatype, native_and] using hfin
       simp [__smtx_dt_substitute, subst_C_fin_id s d0 c hp.1, subst_D_fin_id s d0 D hp.2]
+end
+
+-- Finite defaultability under the refactored full/unfold well-formedness.
+-- The type-level theorem requires inhabitedness: finite + diagonal `wf_rec`
+-- alone is not enough, since the empty datatype is finite and diagonal-well-formed
+-- but has no default value.
+mutual
+
+theorem fin_defaultable :
+    ∀ V T : SmtType, ShT V T → __smtx_is_finite_type T = true →
+      __smtx_type_wf_rec T T = true → native_inhabited_type T = true →
+        __smtx_type_default_rec V T ≠ SmtValue.NotValue := by
+  intro V T hSh hFin hWf hInh
+  cases hSh with
+  | refl T =>
+      have hTne := ne_none_inh hInh
+      simpa [__smtx_type_default] using tdef_ne_nv hInh hTne
+  | @dt sF sU dF dU hD =>
+      have hFinD : __smtx_is_finite_datatype dU = true := by
+        simpa [__smtx_is_finite_type] using hFin
+      have hSubU : __smtx_dt_substitute sU dU dU = dU :=
+        subst_D_fin_id sU dU dU hFinD
+      have hWfD : __smtx_dt_wf_rec dU dU = true := by
+        simpa [__smtx_type_wf_rec, hSubU] using hWf
+      have hShape : ShD (__smtx_dt_substitute sF dF dF) dU :=
+        ShD_substF sF dF hD hFinD
+      cases dU with
+      | null =>
+          simp [native_inhabited_type, __smtx_type_default, __smtx_type_default_rec,
+            __smtx_datatype_default, __smtx_typeof_value, native_Teq, native_not,
+            native_and] at hInh
+        | sum cU dUTail =>
+            cases hSubF : __smtx_dt_substitute sF dF dF with
+            | null =>
+                have hShape' : ShD SmtDatatype.null (SmtDatatype.sum cU dUTail) := by
+                  simpa [hSubF] using hShape
+                cases hShape'
+            | sum cF dFTail =>
+                have hShape' : ShD (SmtDatatype.sum cF dFTail) (SmtDatatype.sum cU dUTail) := by
+                  simpa [hSubF] using hShape
+                cases hShape' with
+                | sum hC hDTail =>
+                    have hConsFin : __smtx_is_finite_datatype_cons cU = true :=
+                      finite_dt_cons_of_finite_sum hFinD
+                    have hConsWf : __smtx_dt_cons_wf_rec cU cU = true :=
+                      dt_wf_cons_of_wf hWfD
+                    have hSeedNe : SmtValue.DtCons sF dF 0 ≠ SmtValue.NotValue := by
+                      intro h; cases h
+                    have hConsNe :
+                        __smtx_datatype_cons_default (SmtValue.DtCons sF dF 0)
+                          cF cU ≠ SmtValue.NotValue :=
+                      cons_defaultable cU cF hC hConsFin hConsWf
+                        (SmtValue.DtCons sF dF 0) hSeedNe
+                    rw [__smtx_type_default_rec, hSubF]
+                    rw [dd_select sF dF 0 cF cU dFTail dUTail hConsNe]
+                    exact hConsNe
+
+-- constructor-level defaultability (the witnesses need this)
+theorem cons_defaultable :
+    ∀ (cU cF : SmtDatatypeCons), ShC cF cU →
+      __smtx_is_finite_datatype_cons cU = true →
+      __smtx_dt_cons_wf_rec cU cU = true →
+      ∀ v, v ≠ SmtValue.NotValue →
+        __smtx_datatype_cons_default v cF cU ≠ SmtValue.NotValue
+  | SmtDatatypeCons.unit, SmtDatatypeCons.unit, ShC.unit, _hFin, _hWf, v, hv => by
+      simpa [__smtx_datatype_cons_default] using hv
+  | SmtDatatypeCons.cons TU cU, SmtDatatypeCons.cons TF cF,
+      ShC.cons hT hC, hFin, hWf, v, hv => by
+      have hFinParts :
+          __smtx_is_finite_type TU = true ∧ __smtx_is_finite_datatype_cons cU = true := by
+        simpa [__smtx_is_finite_datatype_cons, native_and] using hFin
+      have hWfParts := wf_parts_of_cons_diag hWf
+      have hFieldNe :
+          __smtx_type_default_rec TF TU ≠ SmtValue.NotValue :=
+        fin_defaultable TF TU hT hFinParts.1 hWfParts.2.1 hWfParts.1
+      have hFieldVeq :
+          native_veq (__smtx_type_default_rec TF TU) SmtValue.NotValue = false :=
+        nveq_false hFieldNe
+      have hApplyNe :
+          SmtValue.Apply v (__smtx_type_default_rec TF TU) ≠ SmtValue.NotValue := by
+        intro h; cases h
+      rw [__smtx_datatype_cons_default]
+      simp [native_ite, hFieldVeq]
+      exact cons_defaultable cU cF hC hFinParts.2 hWfParts.2.2
+        (SmtValue.Apply v (__smtx_type_default_rec TF TU)) hApplyNe
+
 end
 
 end Smtm
