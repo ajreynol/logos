@@ -207,7 +207,7 @@ private theorem typed___eo_prog_array_read_over_write_split_impl
 
 private theorem smt_type_ne_reglan_of_wf_rec
     {T : SmtType}
-    (h : __smtx_type_wf_rec T native_reflist_nil = true) :
+    (h : __smtx_type_wf_rec T T = true) :
     T ≠ SmtType.RegLan := by
   intro hReg
   subst T
@@ -298,7 +298,7 @@ private theorem facts___eo_prog_array_read_over_write_split_impl
   have hMapCan : __smtx_map_canonical m = true := by
     rw [hT1EvalMap] at hT1Can
     simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hT1Can
-  have hARec : __smtx_type_wf_rec A native_reflist_nil = true :=
+  have hARec : __smtx_type_wf_rec A A = true :=
     (Smtm.smt_map_components_wf_rec_of_non_none_type
       (__eo_to_smt t1) A B hSmtT1).1
   have hANeRegLan : A ≠ SmtType.RegLan :=

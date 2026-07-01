@@ -564,7 +564,7 @@ private theorem map_defaults_eq_of_no_typed_canonical_lookup_diff
     (hm1Can : __smtx_map_canonical m1 = true)
     (hm2Can : __smtx_map_canonical m2 = true)
     (hAInh : native_inhabited_type A = true)
-    (hARec : __smtx_type_wf_rec A native_reflist_nil = true)
+    (hARec : __smtx_type_wf_rec A A = true)
     (hNoDiff :
       ¬ ∃ i : SmtValue,
         __smtx_typeof_value i = A ∧
@@ -597,7 +597,7 @@ private theorem map_diff_typed_canonical_lookup_witness
     (hm1Can : __smtx_map_canonical m1 = true)
     (hm2Can : __smtx_map_canonical m2 = true)
     (hAInh : native_inhabited_type A = true)
-    (hARec : __smtx_type_wf_rec A native_reflist_nil = true)
+    (hARec : __smtx_type_wf_rec A A = true)
     (hNe : __smtx_model_eval_eq (SmtValue.Map m1) (SmtValue.Map m2) =
       SmtValue.Boolean false) :
     ∃ i : SmtValue,
@@ -728,7 +728,7 @@ theorem map_diff_selects_model_eval_eq_false
     (hm1Can : __smtx_map_canonical m1 = true)
     (hm2Can : __smtx_map_canonical m2 = true)
     (hAInh : native_inhabited_type A = true)
-    (hARec : __smtx_type_wf_rec A native_reflist_nil = true)
+    (hARec : __smtx_type_wf_rec A A = true)
     (hBNeRegLan : B ≠ SmtType.RegLan)
     (hNe : __smtx_model_eval_eq (SmtValue.Map m1) (SmtValue.Map m2) =
       SmtValue.Boolean false) :

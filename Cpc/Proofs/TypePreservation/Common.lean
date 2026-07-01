@@ -81,13 +81,13 @@ theorem smtx_type_wf_component_parts
     {T : SmtType}
     (h : __smtx_type_wf_component T = true) :
     native_inhabited_type T = true ∧
-      __smtx_type_wf_rec T native_reflist_nil = true := by
+      __smtx_type_wf_rec T T = true := by
   simpa [__smtx_type_wf_component, native_and] using h
 
 theorem smtx_type_wf_component_of_parts
     {T : SmtType}
     (hInh : native_inhabited_type T = true)
-    (hRec : __smtx_type_wf_rec T native_reflist_nil = true) :
+    (hRec : __smtx_type_wf_rec T T = true) :
     __smtx_type_wf_component T = true := by
   simp [__smtx_type_wf_component, native_and, hInh, hRec]
 
@@ -96,14 +96,14 @@ theorem fun_type_wf_parts
     {A B : SmtType}
     (h : __smtx_type_wf (SmtType.FunType A B) = true) :
     native_inhabited_type A = true ∧
-      __smtx_type_wf_rec A native_reflist_nil = true ∧
+      __smtx_type_wf_rec A A = true ∧
         native_inhabited_type B = true ∧
-          __smtx_type_wf_rec B native_reflist_nil = true := by
+          __smtx_type_wf_rec B B = true := by
   have hAll :
       (native_inhabited_type A = true ∧
-        __smtx_type_wf_rec A native_reflist_nil = true) ∧
+        __smtx_type_wf_rec A A = true) ∧
           (native_inhabited_type B = true ∧
-            __smtx_type_wf_rec B native_reflist_nil = true) := by
+            __smtx_type_wf_rec B B = true) := by
     simpa [__smtx_type_wf, __smtx_type_wf_component, native_and] using h
   exact ⟨hAll.1.1, hAll.1.2, hAll.2.1, hAll.2.2⟩
 
@@ -112,9 +112,9 @@ theorem ifun_type_wf_parts
     {A B : SmtType}
     (h : __smtx_type_wf (SmtType.FunType A B) = true) :
     native_inhabited_type A = true ∧
-      __smtx_type_wf_rec A native_reflist_nil = true ∧
+      __smtx_type_wf_rec A A = true ∧
         native_inhabited_type B = true ∧
-          __smtx_type_wf_rec B native_reflist_nil = true := by
+          __smtx_type_wf_rec B B = true := by
   exact fun_type_wf_parts h
 
 /-- Extracts semantic inhabitation from a non-`None` guarded type. -/
@@ -132,16 +132,16 @@ theorem smtx_typeof_guard_wf_inhabited_of_non_none
     · rcases hFun with ⟨A, B, rfl⟩
       have hParts :
           native_inhabited_type A = true ∧
-            __smtx_type_wf_rec A native_reflist_nil = true ∧
+            __smtx_type_wf_rec A A = true ∧
               native_inhabited_type B = true ∧
-                __smtx_type_wf_rec B native_reflist_nil = true := by
+                __smtx_type_wf_rec B B = true := by
         exact fun_type_wf_parts hWf
       have hDef := type_default_typed_canonical_of_native_inhabited_type B hParts.2.2.1
       exact ⟨SmtValue.Fun native_default_ifun_id A B, by
         simp [__smtx_typeof_value]⟩
     · have hPair :
         native_inhabited_type T = true ∧
-          __smtx_type_wf_rec T native_reflist_nil = true := by
+          __smtx_type_wf_rec T T = true := by
         cases T <;>
           simp [__smtx_type_wf, __smtx_type_wf_component, native_and] at hWf hReg hFun ⊢
         all_goals first | contradiction | assumption
@@ -167,9 +167,9 @@ theorem type_wf_non_none
 
 /-- Recursive well-formedness rejects `RegLan` at nested positions. -/
 theorem type_wf_rec_ne_reglan
-    {T : SmtType} {refs : RefList}
-    (h : __smtx_type_wf_rec T refs = true) :
-    T ≠ SmtType.RegLan := by
+    {F U : SmtType}
+    (h : __smtx_type_wf_rec F U = true) :
+    U ≠ SmtType.RegLan := by
   intro hReg
   subst hReg
   simp [__smtx_type_wf_rec] at h
@@ -178,7 +178,7 @@ theorem type_wf_rec_ne_reglan
 theorem type_wf_of_inhabited_and_wf_rec
     {T : SmtType}
     (hInh : native_inhabited_type T = true)
-    (hRec : __smtx_type_wf_rec T native_reflist_nil = true) :
+    (hRec : __smtx_type_wf_rec T T = true) :
     __smtx_type_wf T = true := by
   cases T <;>
     simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
@@ -197,9 +197,9 @@ theorem type_inhabited_of_type_wf
     · rcases hFun with ⟨A, B, rfl⟩
       have hParts :
           native_inhabited_type A = true ∧
-            __smtx_type_wf_rec A native_reflist_nil = true ∧
+            __smtx_type_wf_rec A A = true ∧
               native_inhabited_type B = true ∧
-                __smtx_type_wf_rec B native_reflist_nil = true := by
+                __smtx_type_wf_rec B B = true := by
         exact fun_type_wf_parts hWF
       have hDef := type_default_typed_canonical_of_native_inhabited_type B hParts.2.2.1
       exact ⟨SmtValue.Fun native_default_ifun_id A B, rfl⟩
@@ -217,11 +217,11 @@ theorem seq_type_wf_component_of_wf
     (h : __smtx_type_wf (SmtType.Seq A) = true) :
     __smtx_type_wf A = true := by
   have hPair :
-      native_inhabited_type A = true ∧ __smtx_type_wf_rec A native_reflist_nil = true := by
+      native_inhabited_type A = true ∧ __smtx_type_wf_rec A A = true := by
     have hAll :
         native_inhabited_type (SmtType.Seq A) = true ∧
           native_inhabited_type A = true ∧
-            __smtx_type_wf_rec A native_reflist_nil = true := by
+            __smtx_type_wf_rec A A = true := by
       simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
         native_and] using h
     exact hAll.2
@@ -233,11 +233,11 @@ theorem set_type_wf_component_of_wf
     (h : __smtx_type_wf (SmtType.Set A) = true) :
     __smtx_type_wf A = true := by
   have hPair :
-      native_inhabited_type A = true ∧ __smtx_type_wf_rec A native_reflist_nil = true := by
+      native_inhabited_type A = true ∧ __smtx_type_wf_rec A A = true := by
     have hAll :
         native_inhabited_type (SmtType.Set A) = true ∧
           native_inhabited_type A = true ∧
-            __smtx_type_wf_rec A native_reflist_nil = true := by
+            __smtx_type_wf_rec A A = true := by
       simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
         native_and] using h
     exact hAll.2
@@ -250,15 +250,15 @@ theorem map_type_wf_components_of_wf
     __smtx_type_wf A = true ∧ __smtx_type_wf B = true := by
   have hPair :
       native_inhabited_type A = true ∧
-        __smtx_type_wf_rec A native_reflist_nil = true ∧
+        __smtx_type_wf_rec A A = true ∧
           native_inhabited_type B = true ∧
-            __smtx_type_wf_rec B native_reflist_nil = true := by
+            __smtx_type_wf_rec B B = true := by
     have hAll :
         native_inhabited_type (SmtType.Map A B) = true ∧
           native_inhabited_type A = true ∧
-            __smtx_type_wf_rec A native_reflist_nil = true ∧
+            __smtx_type_wf_rec A A = true ∧
               native_inhabited_type B = true ∧
-                __smtx_type_wf_rec B native_reflist_nil = true := by
+                __smtx_type_wf_rec B B = true := by
       simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
         native_and] using h
     exact hAll.2
@@ -272,14 +272,14 @@ theorem fun_type_wf_components_of_wf
     __smtx_type_wf A = true ∧ __smtx_type_wf B = true := by
   have hPair :
       native_inhabited_type A = true ∧
-        __smtx_type_wf_rec A native_reflist_nil = true ∧
+        __smtx_type_wf_rec A A = true ∧
           native_inhabited_type B = true ∧
-            __smtx_type_wf_rec B native_reflist_nil = true := by
+            __smtx_type_wf_rec B B = true := by
     have hAll :
         native_inhabited_type A = true ∧
-          __smtx_type_wf_rec A native_reflist_nil = true ∧
+          __smtx_type_wf_rec A A = true ∧
             native_inhabited_type B = true ∧
-              __smtx_type_wf_rec B native_reflist_nil = true := by
+              __smtx_type_wf_rec B B = true := by
       exact fun_type_wf_parts h
     exact hAll
   exact ⟨type_wf_of_inhabited_and_wf_rec hPair.1 hPair.2.1,
@@ -296,18 +296,18 @@ theorem ifun_type_wf_components_of_wf
 theorem fun_type_wf_rec_components_of_wf
     {A B : SmtType}
     (h : __smtx_type_wf (SmtType.FunType A B) = true) :
-    __smtx_type_wf_rec A native_reflist_nil = true ∧
-      __smtx_type_wf_rec B native_reflist_nil = true := by
+    __smtx_type_wf_rec A A = true ∧
+      __smtx_type_wf_rec B B = true := by
   have hPair :
       native_inhabited_type A = true ∧
-        __smtx_type_wf_rec A native_reflist_nil = true ∧
+        __smtx_type_wf_rec A A = true ∧
           native_inhabited_type B = true ∧
-            __smtx_type_wf_rec B native_reflist_nil = true := by
+            __smtx_type_wf_rec B B = true := by
     have hAll :
         native_inhabited_type A = true ∧
-          __smtx_type_wf_rec A native_reflist_nil = true ∧
+          __smtx_type_wf_rec A A = true ∧
             native_inhabited_type B = true ∧
-              __smtx_type_wf_rec B native_reflist_nil = true := by
+              __smtx_type_wf_rec B B = true := by
       exact fun_type_wf_parts h
     exact hAll
   exact ⟨hPair.2.1, hPair.2.2.2⟩
@@ -316,8 +316,8 @@ theorem fun_type_wf_rec_components_of_wf
 theorem ifun_type_wf_rec_components_of_wf
     {A B : SmtType}
     (h : __smtx_type_wf (SmtType.FunType A B) = true) :
-    __smtx_type_wf_rec A native_reflist_nil = true ∧
-      __smtx_type_wf_rec B native_reflist_nil = true := by
+    __smtx_type_wf_rec A A = true ∧
+      __smtx_type_wf_rec B B = true := by
   exact fun_type_wf_rec_components_of_wf h
 
 /-- The domain of a well-formed function type is not `RegLan`. -/
@@ -500,7 +500,7 @@ theorem native_inhabited_type_map
 theorem seq_nth_wrong_map_type_wf
     {T : SmtType}
     (hTInh : native_inhabited_type T = true)
-    (hRec : __smtx_type_wf_rec T native_reflist_nil = true) :
+    (hRec : __smtx_type_wf_rec T T = true) :
     __smtx_type_wf
       (SmtType.Map (SmtType.Seq T) (SmtType.Map SmtType.Int T)) = true := by
   have hIntInh : native_inhabited_type SmtType.Int = true := by

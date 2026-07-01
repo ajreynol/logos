@@ -199,7 +199,7 @@ private theorem smt_set_domain_inhabited_wf_rec_of_typeof
     (t : SmtTerm) (A : SmtType)
     (hTy : __smtx_typeof t = SmtType.Set A) :
     native_inhabited_type A = true ∧
-      __smtx_type_wf_rec A native_reflist_nil = true := by
+      __smtx_type_wf_rec A A = true := by
   have hNN : term_has_non_none_type t := by
     unfold term_has_non_none_type
     rw [hTy]
@@ -208,11 +208,11 @@ private theorem smt_set_domain_inhabited_wf_rec_of_typeof
     Smtm.smt_term_set_type_wf_of_non_none t hNN hTy
   have hParts :
       native_inhabited_type A = true ∧
-        __smtx_type_wf_rec A native_reflist_nil = true := by
+        __smtx_type_wf_rec A A = true := by
     have hAll :
         native_inhabited_type (SmtType.Set A) = true ∧
           native_inhabited_type A = true ∧
-            __smtx_type_wf_rec A native_reflist_nil = true := by
+            __smtx_type_wf_rec A A = true := by
       simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
         native_and] using hWF
     exact hAll.2
