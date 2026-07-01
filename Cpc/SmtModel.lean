@@ -27,6 +27,10 @@ abbrev native_RegLan := SmtRegLan
 
 def native_int_log2 : native_Int -> native_Int
   | x => Int.ofNat (Nat.log2 (Int.toNat x))
+def native_zabs : native_Int -> native_Int
+  | x => if x < 0 then -x else x
+def native_qabs : native_Rat -> native_Rat
+  | x => if x < 0 then -x else x
   
 def native_char_is_digit (c : native_Char) : native_Bool :=
   48 <= c && c <= 57
@@ -1051,10 +1055,11 @@ def __smtx_model_eval_to_int : SmtValue -> SmtValue
 def __smtx_model_eval_is_int (x1 : SmtValue) : SmtValue :=
   (__smtx_model_eval_eq (__smtx_model_eval_to_real (__smtx_model_eval_to_int x1)) x1)
 
-def __smtx_model_eval_abs (x1 : SmtValue) : SmtValue :=
-  
-    let _v0 := (SmtValue.Numeral 0)
-    (__smtx_model_eval_ite (__smtx_model_eval_lt x1 _v0) (__smtx_model_eval__ _v0 x1) x1)
+def __smtx_model_eval_abs : SmtValue -> SmtValue
+  | (SmtValue.Numeral x1) => (SmtValue.Numeral (native_zabs x1))
+  | (SmtValue.Rational x2) => (SmtValue.Rational (native_qabs x2))
+  | t1 => SmtValue.NotValue
+
 
 def __smtx_model_eval_uneg : SmtValue -> SmtValue
   | (SmtValue.Numeral x1) => (SmtValue.Numeral (native_zneg x1))
@@ -1800,7 +1805,7 @@ def __smtx_typeof : SmtTerm -> SmtType
     (native_ite (native_Teq _v0 SmtType.Int) SmtType.Real (native_ite (native_Teq _v0 SmtType.Real) SmtType.Real SmtType.None))
   | (SmtTerm.to_int x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Real) SmtType.Int SmtType.None)
   | (SmtTerm.is_int x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Real) SmtType.Bool SmtType.None)
-  | (SmtTerm.abs x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Int) SmtType.Int SmtType.None)
+  | (SmtTerm.abs x1) => (__smtx_typeof_arith_overload_op_1 (__smtx_typeof x1))
   | (SmtTerm.uneg x1) => (__smtx_typeof_arith_overload_op_1 (__smtx_typeof x1))
   | (SmtTerm.div x1 x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Int) (native_ite (native_Teq (__smtx_typeof x2) SmtType.Int) SmtType.Int SmtType.None) SmtType.None)
   | (SmtTerm.mod x1 x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Int) (native_ite (native_Teq (__smtx_typeof x2) SmtType.Int) SmtType.Int SmtType.None) SmtType.None)
