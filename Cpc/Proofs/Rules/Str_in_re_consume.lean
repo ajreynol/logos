@@ -29259,6 +29259,54 @@ theorem str_re_consume_model_rel
             simpa [hUnpack]
       _ = native_str_in_re (native_unpack_string nextSs) nextRv :=
           (smt_value_rel_reglan_valid_eq hRegRel hValid).symm
+  have hInputBridgeOfRelDoubleRevActionEvalFactsProgress :
+      ∀ sParts rParts ss rv partsSs partsRv nextSs nextRv,
+        __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss ->
+        RuleProofs.smt_value_rel (SmtValue.Seq partsSs)
+          (SmtValue.Seq ss) ->
+        RuleProofs.smt_value_rel (SmtValue.RegLan partsRv)
+          (SmtValue.RegLan rv) ->
+        __eo_is_list (Term.UOp UserOp.str_concat) sParts =
+          Term.Boolean true ->
+        __smtx_typeof (__eo_to_smt sParts) =
+          SmtType.Seq SmtType.Char ->
+        __smtx_model_eval M (__eo_to_smt sParts) =
+          SmtValue.Seq partsSs ->
+        __eo_list_rev (Term.UOp UserOp.str_concat) sParts ≠
+          Term.Stuck ->
+        __smtx_model_eval M (__eo_to_smt rParts) =
+          SmtValue.RegLan partsRv ->
+        __re_rev_map_rev rParts
+            (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) ≠
+          Term.Stuck ->
+        __smtx_model_eval M
+            (__eo_to_smt
+              (__eo_list_rev (Term.UOp UserOp.str_concat)
+                (__eo_list_rev (Term.UOp UserOp.str_concat) sParts))) =
+          SmtValue.Seq nextSs ->
+        __smtx_model_eval M
+            (__eo_to_smt
+              (__re_rev_map_rev
+                (__re_rev_map_rev rParts
+                  (Term.Apply (Term.UOp UserOp.str_to_re)
+                    (Term.String [])))
+                (Term.Apply (Term.UOp UserOp.str_to_re)
+                  (Term.String [])))) =
+          SmtValue.RegLan nextRv ->
+          native_str_in_re (native_unpack_string ss) rv =
+            native_str_in_re (native_unpack_string nextSs) nextRv := by
+    intro sParts rParts ss rv partsSs partsRv nextSs nextRv hSEval
+      hSeqRel hRegRel hSList hSTy hPartsSEval hSRev hPartsREval
+      hRRev hNextSEval hNextREval
+    calc
+      native_str_in_re (native_unpack_string ss) rv =
+          native_str_in_re (native_unpack_string partsSs) partsRv :=
+        hInputBridgeOfEvalRelFactsProgress ss rv partsSs partsRv hSEval
+          hSeqRel hRegRel
+      _ = native_str_in_re (native_unpack_string nextSs) nextRv :=
+        hInputBridgeOfDoubleRevActionEvalFactsProgress sParts rParts
+          partsSs partsRv nextSs nextRv hSList hSTy hPartsSEval hSRev
+          hPartsREval hRRev hNextSEval hNextREval
   have hActionableFrontierTwoPassBridgeProgress :
       (∀ (hNotMult :
           ∀ r0, r = Term.Apply (Term.UOp UserOp.re_mult) r0 -> False),
@@ -29280,12 +29328,19 @@ theorem str_re_consume_model_rel
           (_hR : r = Term.Apply (Term.UOp UserOp.re_mult) r0)
           (hSideNotFalse : side ≠ Term.Boolean false),
         multSecondStrNativeEq r0 hSideNotFalse) := by
-    -- `__re_rev_map_rev` is not a semantic regex reverse. It reverses the
-    -- consume-actionable frontier: the pieces that `__str_re_consume_rec`
-    -- can actually peel. Opaque atoms are left in place and must fall back to
-    -- `str_in_re`; the second pass then restores their original orientation.
-    -- The remaining proof should be an operational induction over those
-    -- consume cases, not a language-reversal lemma for arbitrary regexes.
+    -- `__re_rev_map_rev` is not a semantic regex reverse for arbitrary terms.
+    -- It reverses the consume-actionable frontier: the pieces that
+    -- `__str_re_consume_rec` can actually peel. Opaque/default atoms are left
+    -- in place and fall back to `str_in_re`; the second pass restores their
+    -- orientation by action-reversing the residual produced by that fallback.
+    --
+    -- In particular, do not prove this by relating
+    -- `__re_rev_map_rev (__re_flatten true r) eps` to a global
+    -- `native_re_reverse_raw_consume_local rv`. That is false for shapes such
+    -- as `re_comp (str.to_re "ab")`: the helper leaves the complement body in
+    -- place, and correctness comes from the two-pass operational behavior.
+    -- The remaining proof should be an induction over the successful/failed
+    -- consume cases, carrying the residual through the second action-reversal.
     sorry
   rcases hActionableFrontierTwoPassBridgeProgress with
     ⟨hActionNonMultFirstFalse, hActionMultFirstFalse,
