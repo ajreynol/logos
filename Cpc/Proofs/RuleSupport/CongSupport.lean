@@ -11600,7 +11600,7 @@ private theorem seq_unit_arg_non_reg_of_non_none
     simpa [__smtx_type_wf] using hSeqWf
   have hSeqWfRec :
       __smtx_type_wf_rec (SmtType.Seq (__smtx_typeof a))
-        native_reflist_nil = true :=
+        (SmtType.Seq (__smtx_typeof a)) = true :=
     (smtx_type_wf_component_parts hSeqComponent).2
   have hArgWfRec :
       __smtx_type_wf_rec (__smtx_typeof a) (__smtx_typeof a) = true :=
@@ -11634,7 +11634,7 @@ private theorem set_singleton_arg_non_reg_of_non_none
     simpa [__smtx_type_wf] using hSetWf
   have hSetWfRec :
       __smtx_type_wf_rec (SmtType.Set (__smtx_typeof a))
-        native_reflist_nil = true :=
+        (SmtType.Set (__smtx_typeof a)) = true :=
     (smtx_type_wf_component_parts hSetComponent).2
   have hArgWfRec :
       __smtx_type_wf_rec (__smtx_typeof a) (__smtx_typeof a) = true :=
