@@ -68,8 +68,8 @@ private theorem eval_abs_real (M : SmtModel) (x : Term) (n : native_Rat)
   rw [show __eo_to_smt (absTerm x) = SmtTerm.abs (__eo_to_smt x) by rfl]
   rw [eval_abs, hx]
   by_cases hneg : n < 0
-  · simp [__smtx_model_eval_abs, native_qneg, hneg]
-  · simp [__smtx_model_eval_abs, hneg]
+  · simp [__smtx_model_eval_abs, native_qabs, hneg]
+  · simp [__smtx_model_eval_abs, native_qabs, hneg]
 
 /-- uneg eval on an integer value. -/
 private theorem eval_neg_real (M : SmtModel) (x : Term) (n : native_Rat)

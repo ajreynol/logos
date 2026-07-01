@@ -277,7 +277,7 @@ private theorem eval_abs_int (M : SmtModel) (x : Term) (n : native_Int)
       SmtValue.Numeral (if n < 0 then native_zneg n else n) := by
   rw [show __eo_to_smt (absTerm x) = SmtTerm.abs (__eo_to_smt x) by rfl]
   rw [eval_abs, hx]
-  simp [__smtx_model_eval_abs]
+  simp [__smtx_model_eval_abs, native_zabs, native_zneg]
 
 private theorem eval_abs_real (M : SmtModel) (x : Term) (q : native_Rat)
     (hx : __smtx_model_eval M (__eo_to_smt x) = SmtValue.Rational q) :
@@ -285,7 +285,7 @@ private theorem eval_abs_real (M : SmtModel) (x : Term) (q : native_Rat)
       SmtValue.Rational (if q < 0 then native_qneg q else q) := by
   rw [show __eo_to_smt (absTerm x) = SmtTerm.abs (__eo_to_smt x) by rfl]
   rw [eval_abs, hx]
-  simp [__smtx_model_eval_abs]
+  simp [__smtx_model_eval_abs, native_qabs, native_qneg]
 
 private theorem eval_neg_int (M : SmtModel) (x : Term) (n : native_Int)
     (hx : __smtx_model_eval M (__eo_to_smt x) = SmtValue.Numeral n) :

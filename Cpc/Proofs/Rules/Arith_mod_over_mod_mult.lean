@@ -49,36 +49,24 @@ private theorem prog_arith_mod_over_mod_mult_info
         Term.Stuck) :
     ∃ c0,
       P = modPremise c0 ∧ c0 = c ∧
-      __eo_typeof c = Term.Int ∧
-      __eo_typeof ts = Term.Int ∧
-      __eo_typeof r = Term.Int ∧
-      __eo_typeof ss = Term.Int ∧
-      __eo_is_list multOp ts = Term.Boolean true ∧
-      __eo_is_list multOp ss = Term.Boolean true ∧
       __eo_prog_arith_mod_over_mod_mult c ts r ss (Proof.pf P) =
         multConclusion c ts r ss := by
-  unfold __eo_prog_arith_mod_over_mod_mult at hProg ⊢
+  unfold __eo_prog_arith_mod_over_mod_mult at hProg
   split at hProg <;> try contradiction
   next h1 h2 h3 h4 heq =>
     rename_i c0
     injection heq with hPEq
-    simp [__eo_requires, native_ite, native_teq, native_not,
-      SmtEval.native_not] at hProg
-    rcases hProg with
-      ⟨hCeqGuard, _hCeqOk, hCIntGuard, _hCIntOk, hTsIntGuard,
-        _hTsIntOk, hRIntGuard, _hRIntOk, hSsIntGuard, _hSsIntOk,
-        hTsList, _hTsListOk, hSsList, _hSsListOk, hFinalNe⟩
-    have hc0 := RuleProofs.eq_of_eo_eq_true _ _ hCeqGuard
-    have hCInt := (RuleProofs.eq_of_eo_eq_true _ _ hCIntGuard).symm
-    have hTsInt := (RuleProofs.eq_of_eo_eq_true _ _ hTsIntGuard).symm
-    have hRInt := (RuleProofs.eq_of_eo_eq_true _ _ hRIntGuard).symm
-    have hSsInt := (RuleProofs.eq_of_eo_eq_true _ _ hSsIntGuard).symm
-    refine ⟨c0, ?_, hc0, hCInt, hTsInt, hRInt, hSsInt,
-      hTsList, hSsList, ?_⟩
+    have hc0 := RuleProofs.eq_of_requires_eq_true_not_stuck _ _ _ hProg
+    have hFinalNe := by
+      rw [hc0] at hProg
+      simpa [__eo_requires, __eo_eq, native_ite, native_teq,
+        native_not, SmtEval.native_not, lhsTerm, rhsTerm, multConclusion,
+        modTotalTerm, multTerm, eqTerm] using hProg
+    refine ⟨c0, ?_, hc0, ?_⟩
     · simpa [modPremise, eqTerm] using hPEq
-    · simp [__eo_requires, native_ite, native_teq, native_not,
-        SmtEval.native_not, hCeqGuard, hCIntGuard, hTsIntGuard,
-        hRIntGuard, hSsIntGuard, hTsList, hSsList]
+    · rw [hPEq, hc0]
+      simp [__eo_prog_arith_mod_over_mod_mult, __eo_requires, native_ite, native_teq, native_not,
+        SmtEval.native_not, hc0, __eo_eq]
       have hEqFunNe := eo_mk_apply_fun_ne_stuck_of_ne_stuck _ _ hFinalNe
       have hRhsNe := eo_mk_apply_arg_ne_stuck_of_ne_stuck _ _ hFinalNe
       have hLhsNe := eo_mk_apply_arg_ne_stuck_of_ne_stuck _ _ hEqFunNe
@@ -287,24 +275,47 @@ by
                               let SS1 := a4
                               let P1 := __eo_state_proven_nth s p1
                               have hArgsTrans :
-                                  cArgListTranslationOk
-                                    (CArgList.cons C1
-                                      (CArgList.cons TS1
-                                        (CArgList.cons R1
-                                          (CArgList.cons SS1 CArgList.nil)))) := by
-                                simpa [cmdTranslationOk] using hCmdTrans
+                                  (RuleProofs.eo_has_smt_translation C1 ∧
+                                      __eo_typeof C1 = Term.Int) ∧
+                                    ((RuleProofs.eo_has_smt_translation TS1 ∧
+                                        __eo_typeof TS1 = Term.Int ∧
+                                        __eo_is_list multOp TS1 = Term.Boolean true) ∧
+                                      ((RuleProofs.eo_has_smt_translation R1 ∧
+                                          __eo_typeof R1 = Term.Int) ∧
+                                        ((RuleProofs.eo_has_smt_translation SS1 ∧
+                                            __eo_typeof SS1 = Term.Int ∧
+                                            __eo_is_list multOp SS1 = Term.Boolean true) ∧
+                                          True))) := by
+                                simpa [cmdTranslationOk, cArgListTranslationOkMask,
+                                  argTranslationOkMasked,
+                                  RuleProofs.eo_has_smt_translation,
+                                  eoHasSmtTranslation, multOp] using hCmdTrans
                               have hCTrans :
-                                  RuleProofs.eo_has_smt_translation C1 := by
-                                simpa [cArgListTranslationOk] using hArgsTrans.1
+                                  RuleProofs.eo_has_smt_translation C1 :=
+                                hArgsTrans.1.1
+                              have hCInt : __eo_typeof C1 = Term.Int :=
+                                hArgsTrans.1.2
                               have hTsTrans :
-                                  RuleProofs.eo_has_smt_translation TS1 := by
-                                simpa [cArgListTranslationOk] using hArgsTrans.2.1
+                                  RuleProofs.eo_has_smt_translation TS1 :=
+                                hArgsTrans.2.1.1
+                              have hTsInt : __eo_typeof TS1 = Term.Int :=
+                                hArgsTrans.2.1.2.1
+                              have hTsList :
+                                  __eo_is_list multOp TS1 = Term.Boolean true :=
+                                hArgsTrans.2.1.2.2
                               have hRTrans :
-                                  RuleProofs.eo_has_smt_translation R1 := by
-                                simpa [cArgListTranslationOk] using hArgsTrans.2.2.1
+                                  RuleProofs.eo_has_smt_translation R1 :=
+                                hArgsTrans.2.2.1.1
+                              have hRInt : __eo_typeof R1 = Term.Int :=
+                                hArgsTrans.2.2.1.2
                               have hSsTrans :
-                                  RuleProofs.eo_has_smt_translation SS1 := by
-                                simpa [cArgListTranslationOk] using hArgsTrans.2.2.2
+                                  RuleProofs.eo_has_smt_translation SS1 :=
+                                hArgsTrans.2.2.2.1.1
+                              have hSsInt : __eo_typeof SS1 = Term.Int :=
+                                hArgsTrans.2.2.2.1.2.1
+                              have hSsList :
+                                  __eo_is_list multOp SS1 = Term.Boolean true :=
+                                hArgsTrans.2.2.2.1.2.2
                               change __eo_typeof
                                 (__eo_prog_arith_mod_over_mod_mult C1 TS1 R1 SS1
                                   (Proof.pf P1)) = Term.Bool at hResultTy
@@ -312,8 +323,7 @@ by
                                 (Proof.pf P1) ≠ Term.Stuck at hProg
                               rcases prog_arith_mod_over_mod_mult_info
                                   C1 TS1 R1 SS1 P1 hProg with
-                                ⟨C0, hP1Eq, hC0Eq, hCInt, hTsInt, hRInt,
-                                  hSsInt, hTsList, hSsList, hProgEq⟩
+                                ⟨C0, hP1Eq, hC0Eq, hProgEq⟩
                               refine ⟨?_, ?_⟩
                               · intro _hPremTrue
                                 change eo_interprets M

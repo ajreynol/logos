@@ -61,7 +61,6 @@ private theorem prog_arith_int_eq_conflict_info
     ∃ c0 c1,
       P = nonIntPremise c0 c1 ∧
       c0 = c ∧ c1 = c ∧
-      __eo_typeof t = Term.Int ∧
       __eo_prog_arith_int_eq_conflict t c (Proof.pf P) =
         conclusionTerm t c := by
   unfold __eo_prog_arith_int_eq_conflict at hProg
@@ -73,22 +72,12 @@ private theorem prog_arith_int_eq_conflict_info
       exact RuleProofs.eqs_of_requires_and_eq_true_not_stuck
         cArg cArg c0 c1 _ hProg
     rcases hBoth with ⟨hc0, hc1⟩
-    have hInner :
-        __eo_requires (__eo_eq (__eo_typeof tArg) Term.Int)
-            (Term.Boolean true) (conclusionTerm tArg cArg) ≠ Term.Stuck := by
-      rw [hc0, hc1] at hProg
-      simpa [__eo_requires, __eo_and, __eo_eq, SmtEval.native_ite,
-        native_teq, SmtEval.native_not, native_and, conclusionTerm,
-        toRealTerm, eqTerm] using hProg
-    have hTInt : __eo_typeof tArg = Term.Int := by
-      exact (RuleProofs.eq_of_requires_eq_true_not_stuck
-        (__eo_typeof tArg) Term.Int _ hInner).symm
-    refine ⟨c0, c1, ?_, hc0, hc1, hTInt, ?_⟩
+    refine ⟨c0, c1, ?_, hc0, hc1, ?_⟩
     · simpa [nonIntPremise, eqTerm, toRealTerm, toIntTerm] using hPEq
     · rw [hPEq, hc0, hc1]
       simp [__eo_prog_arith_int_eq_conflict, __eo_requires, __eo_and,
         __eo_eq, SmtEval.native_ite, native_teq, SmtEval.native_not,
-        native_and, hTInt, conclusionTerm, toRealTerm, eqTerm]
+        native_and, conclusionTerm, toRealTerm, eqTerm]
 
 private theorem c_real_of_result_bool
     (t c : Term)
@@ -279,23 +268,24 @@ by
                       let C1 := a2
                       let P := __eo_state_proven_nth s p
                       have hArgsTrans :
-                          cArgListTranslationOk
-                            (CArgList.cons T1
-                              (CArgList.cons C1 CArgList.nil)) := by
-                        simpa [cmdTranslationOk] using hCmdTrans
+                          (RuleProofs.eo_has_smt_translation T1 ∧
+                              __eo_typeof T1 = Term.Int) ∧
+                            (RuleProofs.eo_has_smt_translation C1 ∧ True) := by
+                        simpa [cmdTranslationOk, cArgListTranslationOkMask,
+                          argTranslationOkMasked, RuleProofs.eo_has_smt_translation,
+                          eoHasSmtTranslation] using hCmdTrans
                       have hTTrans :
-                          RuleProofs.eo_has_smt_translation T1 := by
-                        simpa [cArgListTranslationOk] using hArgsTrans.1
+                          RuleProofs.eo_has_smt_translation T1 := hArgsTrans.1.1
+                      have hTInt : __eo_typeof T1 = Term.Int := hArgsTrans.1.2
                       have hCTrans :
-                          RuleProofs.eo_has_smt_translation C1 := by
-                        simpa [cArgListTranslationOk] using hArgsTrans.2
+                          RuleProofs.eo_has_smt_translation C1 := hArgsTrans.2.1
                       change __eo_typeof
                         (__eo_prog_arith_int_eq_conflict T1 C1 (Proof.pf P)) =
                         Term.Bool at hResultTy
                       change __eo_prog_arith_int_eq_conflict T1 C1
                         (Proof.pf P) ≠ Term.Stuck at hProg
                       rcases prog_arith_int_eq_conflict_info T1 C1 P hProg with
-                        ⟨C0, C2, hPEq, hC0Eq, hC2Eq, hTInt, hProgEq⟩
+                        ⟨C0, C2, hPEq, hC0Eq, hC2Eq, hProgEq⟩
                       refine ⟨?_, ?_⟩
                       · intro hPremTrue
                         change eo_interprets M
