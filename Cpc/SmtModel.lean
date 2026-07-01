@@ -27,6 +27,10 @@ abbrev native_RegLan := SmtRegLan
 
 def native_int_log2 : native_Int -> native_Int
   | x => Int.ofNat (Nat.log2 (Int.toNat x))
+def native_zabs : native_Int -> native_Int
+  | x => if x < 0 then -x else x
+def native_qabs : native_Rat -> native_Rat
+  | x => if x < 0 then -x else x
   
 def native_char_is_digit (c : native_Char) : native_Bool :=
   48 <= c && c <= 57
@@ -1052,11 +1056,10 @@ def __smtx_model_eval_is_int (x1 : SmtValue) : SmtValue :=
   (__smtx_model_eval_eq (__smtx_model_eval_to_real (__smtx_model_eval_to_int x1)) x1)
 
 def __smtx_model_eval_abs : SmtValue -> SmtValue
-  | (SmtValue.Numeral x1) =>
-      SmtValue.Numeral (if x1 < 0 then native_zneg x1 else x1)
-  | (SmtValue.Rational x1) =>
-      SmtValue.Rational (if x1 < 0 then native_qneg x1 else x1)
-  | _ => SmtValue.NotValue
+  | (SmtValue.Numeral x1) => (SmtValue.Numeral (native_zabs x1))
+  | (SmtValue.Rational x2) => (SmtValue.Rational (native_qabs x2))
+  | t1 => SmtValue.NotValue
+
 
 def __smtx_model_eval_uneg : SmtValue -> SmtValue
   | (SmtValue.Numeral x1) => (SmtValue.Numeral (native_zneg x1))

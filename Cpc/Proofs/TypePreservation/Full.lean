@@ -3976,7 +3976,7 @@ theorem supported_preservation_term_of_non_none :
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq hArg (by simp)
         exact supported_preservation_term.is_int ht1 (go t1 ht1)
     | SmtTerm.abs t1 =>
-        rcases arith_unop_arg_of_non_none (op := SmtTerm.abs) (typeof_abs_eq t1) ht with hArg | hArg
+        rcases abs_arg_of_non_none ht with hArg | hArg
         · have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq hArg (by simp)
           exact supported_preservation_term.abs ht1 (go t1 ht1)
         · have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq hArg (by simp)
