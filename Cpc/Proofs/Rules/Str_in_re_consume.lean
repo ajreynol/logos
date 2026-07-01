@@ -19132,6 +19132,34 @@ private theorem str_flattened_chunks_string_flatten_local
           ← consume_atom_chain_string_atoms_eq_substrWord (c :: cs)]]
       exact str_flattened_chunks_string_atom_chain_local (c :: cs)
 
+private theorem re_split_str_to_re_ne_stuck_of_chunks_local
+    (parts tail : Term)
+    (hParts : str_flattened_chunks_local parts)
+    (hTail : tail ≠ Term.Stuck) :
+    __re_split_str_to_re parts tail ≠ Term.Stuck := by
+  induction parts, tail using __re_split_str_to_re.induct with
+  | case1 tail =>
+      cases hParts
+  | case2 parts hPartsNe =>
+      exact False.elim (hTail rfl)
+  | case3 c rest tail hTailNe ih =>
+      rcases hParts with ⟨_hHeadFlat, hRestChunks⟩
+      let restSplit := __re_split_str_to_re rest tail
+      have hRestSplitNe : restSplit ≠ Term.Stuck :=
+        ih hRestChunks hTailNe
+      have hMkNe :
+          __eo_mk_apply
+              (Term.Apply (Term.UOp UserOp.re_concat)
+                (Term.Apply (Term.UOp UserOp.str_to_re) c))
+              restSplit ≠ Term.Stuck := by
+        cases hRest : restSplit <;> simp [__eo_mk_apply]
+        exact False.elim (hRestSplitNe hRest)
+      intro hBad
+      exact hMkNe (by
+        simpa [__re_split_str_to_re, restSplit] using hBad)
+  | case4 parts tail hPartsNe hTailNe hNotConcat =>
+      simpa [__re_split_str_to_re] using hTail
+
 private theorem re_split_str_to_re_string_empty_tail_local
     (tail : Term)
     (hTail : tail ≠ Term.Stuck) :
@@ -19279,6 +19307,220 @@ private theorem re_split_str_to_re_flatten_true_string_flatten_local
       (__eo_list_singleton_intro (Term.UOp UserOp.str_concat)
         (Term.String w))) tail
     (str_flattened_chunks_string_flatten_local w) hTailNorm hSplit
+
+private def re_action_frontier_true_local : Term -> Prop
+  | Term.Stuck => False
+  | Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []) => True
+  | Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) head) tail =>
+      __re_flatten (Term.Boolean false) head = head ∧
+        re_action_frontier_true_local tail
+  | _ => False
+
+private theorem re_action_frontier_true_tail_local
+    (head tail : Term)
+    (hFrontier :
+      re_action_frontier_true_local
+        (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) head) tail)) :
+    re_action_frontier_true_local tail :=
+  hFrontier.2
+
+private theorem re_action_frontier_true_ne_stuck_local
+    (t : Term)
+    (hFrontier : re_action_frontier_true_local t) :
+    t ≠ Term.Stuck := by
+  cases t <;> simp [re_action_frontier_true_local] at hFrontier ⊢
+
+private theorem re_action_frontier_true_mk_concat_local
+    (head tail : Term)
+    (hHead : __re_flatten (Term.Boolean false) head = head)
+    (hTail : re_action_frontier_true_local tail)
+    (hMk :
+      __eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.re_concat) head)
+          tail ≠ Term.Stuck) :
+    re_action_frontier_true_local
+      (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.re_concat) head)
+        tail) := by
+  let inner := __eo_mk_apply (Term.UOp UserOp.re_concat) head
+  have hInnerNe : inner ≠ Term.Stuck :=
+    eo_mk_apply_fun_ne_stuck_of_ne_stuck inner tail
+      (by simpa [inner] using hMk)
+  have hInnerEq :
+      inner = Term.Apply (Term.UOp UserOp.re_concat) head :=
+    eo_mk_apply_eq_apply_of_ne_stuck
+      (Term.UOp UserOp.re_concat) head hInnerNe
+  have hMkEq :
+      __eo_mk_apply inner tail =
+        Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) head) tail := by
+    rw [eo_mk_apply_eq_apply_of_ne_stuck inner tail
+      (by simpa [inner] using hMk), hInnerEq]
+  change re_action_frontier_true_local (__eo_mk_apply inner tail)
+  rw [hMkEq]
+  exact ⟨hHead, hTail⟩
+
+private theorem re_split_str_to_re_action_frontier_true_local
+    (parts tail : Term)
+    (hTail : re_action_frontier_true_local tail)
+    (hSplit : __re_split_str_to_re parts tail ≠ Term.Stuck) :
+    re_action_frontier_true_local (__re_split_str_to_re parts tail) := by
+  induction parts, tail using __re_split_str_to_re.induct with
+  | case1 tail =>
+      simp [__re_split_str_to_re] at hSplit
+  | case2 parts hPartsNe =>
+      simp [__re_split_str_to_re] at hSplit
+  | case3 c rest tail hTailNe ih =>
+      let restSplit := __re_split_str_to_re rest tail
+      have hRestSplitNe : restSplit ≠ Term.Stuck := by
+        intro hBad
+        apply hSplit
+        calc
+          __re_split_str_to_re
+              (Term.Apply
+                (Term.Apply (Term.UOp UserOp.str_concat) c) rest)
+              tail =
+              __eo_mk_apply
+                (Term.Apply (Term.UOp UserOp.re_concat)
+                  (Term.Apply (Term.UOp UserOp.str_to_re) c))
+                restSplit := by
+            simp [__re_split_str_to_re, restSplit]
+          _ = Term.Stuck := by
+            rw [hBad]
+            rfl
+      have hRestFrontier :
+          re_action_frontier_true_local restSplit :=
+        ih hTail hRestSplitNe
+      have hMkNe :
+          __eo_mk_apply
+              (Term.Apply (Term.UOp UserOp.re_concat)
+                (Term.Apply (Term.UOp UserOp.str_to_re) c))
+              restSplit ≠ Term.Stuck := by
+        simpa [__re_split_str_to_re, restSplit] using hSplit
+      have hMkEq :
+          __eo_mk_apply
+              (Term.Apply (Term.UOp UserOp.re_concat)
+                (Term.Apply (Term.UOp UserOp.str_to_re) c))
+              restSplit =
+            __eo_mk_apply
+              (__eo_mk_apply (Term.UOp UserOp.re_concat)
+                (Term.Apply (Term.UOp UserOp.str_to_re) c))
+              restSplit := by
+        have hInnerNe :
+            __eo_mk_apply (Term.UOp UserOp.re_concat)
+                (Term.Apply (Term.UOp UserOp.str_to_re) c) ≠
+              Term.Stuck :=
+          eo_mk_apply_fun_ne_stuck_of_ne_stuck
+            (__eo_mk_apply (Term.UOp UserOp.re_concat)
+              (Term.Apply (Term.UOp UserOp.str_to_re) c))
+            restSplit (by
+              simpa [__eo_mk_apply] using hMkNe)
+        have hInnerEq :
+            __eo_mk_apply (Term.UOp UserOp.re_concat)
+                (Term.Apply (Term.UOp UserOp.str_to_re) c) =
+              Term.Apply (Term.UOp UserOp.re_concat)
+                (Term.Apply (Term.UOp UserOp.str_to_re) c) :=
+          eo_mk_apply_eq_apply_of_ne_stuck
+            (Term.UOp UserOp.re_concat)
+            (Term.Apply (Term.UOp UserOp.str_to_re) c) hInnerNe
+        rw [hInnerEq]
+      have hHeadNorm :
+          __re_flatten (Term.Boolean false)
+              (Term.Apply (Term.UOp UserOp.str_to_re) c) =
+            Term.Apply (Term.UOp UserOp.str_to_re) c := by
+        simp [__re_flatten]
+      have hFrontier :
+          re_action_frontier_true_local
+            (__eo_mk_apply
+              (__eo_mk_apply (Term.UOp UserOp.re_concat)
+                (Term.Apply (Term.UOp UserOp.str_to_re) c))
+              restSplit) :=
+        re_action_frontier_true_mk_concat_local
+          (Term.Apply (Term.UOp UserOp.str_to_re) c)
+          restSplit hHeadNorm hRestFrontier
+          (by simpa [← hMkEq] using hMkNe)
+      rw [show __re_split_str_to_re
+            (Term.Apply
+              (Term.Apply (Term.UOp UserOp.str_concat) c) rest)
+            tail =
+          __eo_mk_apply
+            (Term.Apply (Term.UOp UserOp.re_concat)
+              (Term.Apply (Term.UOp UserOp.str_to_re) c))
+            restSplit by
+        simp [__re_split_str_to_re, restSplit]]
+      rw [hMkEq]
+      exact hFrontier
+  | case4 parts tail hPartsNe hTailNe hNotConcat =>
+      simpa [__re_split_str_to_re] using hTail
+
+private theorem re_flatten_true_str_to_re_string_frontier_local
+    (w : native_String) :
+    re_action_frontier_true_local
+      (__re_flatten (Term.Boolean true)
+        (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String w))) := by
+  let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
+  cases w with
+  | nil =>
+      simp [__re_flatten, re_action_frontier_true_local]
+  | cons c cs =>
+      let parts :=
+        __str_flatten
+          (__eo_list_singleton_intro (Term.UOp UserOp.str_concat)
+            (Term.String (c :: cs)))
+      have hTail : re_action_frontier_true_local eps := by
+        simp [eps, re_action_frontier_true_local]
+      have hSplitNe :
+          __re_split_str_to_re parts eps ≠ Term.Stuck :=
+        re_split_str_to_re_ne_stuck_of_chunks_local parts eps
+          (by
+            simpa [parts] using
+              str_flattened_chunks_string_flatten_local (c :: cs))
+          (by simp [eps])
+      have hFrontier :
+          re_action_frontier_true_local
+            (__re_split_str_to_re parts eps) :=
+        re_split_str_to_re_action_frontier_true_local parts eps hTail
+          hSplitNe
+      simpa [eps, parts, __re_flatten] using hFrontier
+
+private theorem re_flatten_true_str_to_re_string_norm_local
+    (w : native_String) :
+    __re_flatten (Term.Boolean true)
+        (__re_flatten (Term.Boolean true)
+          (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String w))) =
+      __re_flatten (Term.Boolean true)
+        (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String w)) := by
+  let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
+  cases w with
+  | nil =>
+      simp [__re_flatten]
+  | cons c cs =>
+      let parts :=
+        __str_flatten
+          (__eo_list_singleton_intro (Term.UOp UserOp.str_concat)
+            (Term.String (c :: cs)))
+      have hSplitNe :
+          __re_split_str_to_re parts eps ≠ Term.Stuck :=
+        re_split_str_to_re_ne_stuck_of_chunks_local parts eps
+          (by
+            simpa [parts] using
+              str_flattened_chunks_string_flatten_local (c :: cs))
+          (by simp [eps])
+      have hTailNorm :
+          __re_flatten (Term.Boolean true) eps = eps := by
+        simp [eps, __re_flatten]
+      have hNorm :
+          __re_flatten (Term.Boolean true)
+              (__re_split_str_to_re parts eps) =
+            __re_split_str_to_re parts eps :=
+        re_split_str_to_re_flatten_true_string_flatten_local (c :: cs)
+          eps hTailNorm (by simpa [parts, eps] using hSplitNe)
+      simpa [eps, parts, __re_flatten] using hNorm
+
+private theorem re_flatten_true_str_to_re_string_ne_stuck_local
+    (w : native_String) :
+    __re_flatten (Term.Boolean true)
+        (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String w)) ≠
+      Term.Stuck :=
+  re_action_frontier_true_ne_stuck_local _
+    (re_flatten_true_str_to_re_string_frontier_local w)
 
 private theorem smt_typeof_re_split_str_to_re_of_seq_reglan_local
     (parts tail : Term)
