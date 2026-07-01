@@ -130,7 +130,7 @@ theorem smtx_typeof_tuple_unit_translation :
       __smtx_datatype_default, __smtx_datatype_cons_default, __smtx_typeof_value,
       __smtx_typeof_dt_cons_value_rec, __smtx_dt_substitute, __smtx_dtc_substitute,
       __smtx_value_canonical_bool]
-  have hRec : __smtx_type_wf_rec tupleTy native_reflist_nil = true := by
+  have hRec : __smtx_type_wf_rec tupleTy tupleTy = true := by
     simp [tupleTy, __smtx_type_wf_rec, __smtx_dt_wf_rec,
       __smtx_dt_cons_wf_rec, native_reflist_contains, native_reflist_nil,
       native_ite]

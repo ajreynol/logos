@@ -23,7 +23,7 @@ private theorem smtx_type_wf_rec_of_type_wf
     (hNotFun : ∀ A B : SmtType, T ≠ SmtType.FunType A B)
     (hNotIFun : ∀ A B : SmtType, T ≠ SmtType.FunType A B)
     (h : __smtx_type_wf T = true) :
-    __smtx_type_wf_rec T native_reflist_nil = true := by
+    __smtx_type_wf_rec T T = true := by
   cases T <;> simp [__smtx_type_wf, __smtx_type_wf_rec, native_and] at h hNotReg ⊢
   case FunType A B =>
     exact False.elim (hNotFun A B rfl)
@@ -1770,7 +1770,7 @@ private theorem eo_to_smt_type_injective_of_type_wf_rec
     {T U : Term} {A : SmtType}
     (hT : __eo_to_smt_type T = A)
     (hU : __eo_to_smt_type U = A)
-    (hWF : __smtx_type_wf_rec A native_reflist_nil = true) :
+    (hWF : __smtx_type_wf_rec A A = true) :
     T = U := by
   exact eo_to_smt_type_injective_of_field_wf_rec hT hU
     (smtx_type_field_wf_rec_of_type_wf_rec hWF)
@@ -8710,7 +8710,7 @@ private theorem eo_to_smt_type_tuple_eq_tuple_datatype_of_wf
           | null =>
               by_cases hComp :
                   native_inhabited_type A = true ∧
-                    __smtx_type_wf_rec A native_reflist_nil = true
+                    __smtx_type_wf_rec A A = true
               · exact ⟨
                   SmtDatatype.sum (SmtDatatypeCons.cons A c) SmtDatatype.null,
                   by
@@ -9987,15 +9987,15 @@ private theorem eo_to_smt_typeof_matches_translation_apply_tuple_of_tail_type
           have hParts :
               native_inhabited_type (SmtType.Map A B) = true ∧
                 native_inhabited_type A = true ∧
-                  __smtx_type_wf_rec A native_reflist_nil = true ∧
+                  __smtx_type_wf_rec A A = true ∧
                     native_inhabited_type B = true ∧
-                      __smtx_type_wf_rec B native_reflist_nil = true := by
+                      __smtx_type_wf_rec B B = true := by
             have hAll :
                 native_inhabited_type (SmtType.Datatype (native_string_lit "@Tuple") fullD) = true ∧
                     (native_inhabited_type A = true ∧
-                      __smtx_type_wf_rec A native_reflist_nil = true ∧
+                      __smtx_type_wf_rec A A = true ∧
                         native_inhabited_type B = true ∧
-                          __smtx_type_wf_rec B native_reflist_nil = true) ∧
+                          __smtx_type_wf_rec B B = true) ∧
                       __smtx_dt_cons_wf_rec c
                           (native_reflist_insert native_reflist_nil (native_string_lit "@Tuple")) =
                         true := by
@@ -10009,11 +10009,11 @@ private theorem eo_to_smt_typeof_matches_translation_apply_tuple_of_tail_type
       | Set A =>
           have hParts :
               native_inhabited_type A = true ∧
-                __smtx_type_wf_rec A native_reflist_nil = true := by
+                __smtx_type_wf_rec A A = true := by
             have hAll :
                 native_inhabited_type (SmtType.Datatype (native_string_lit "@Tuple") fullD) = true ∧
                   (native_inhabited_type A = true ∧
-                    __smtx_type_wf_rec A native_reflist_nil = true) ∧
+                    __smtx_type_wf_rec A A = true) ∧
                     __smtx_dt_cons_wf_rec c
                         (native_reflist_insert native_reflist_nil (native_string_lit "@Tuple")) =
                       true := by
@@ -10027,11 +10027,11 @@ private theorem eo_to_smt_typeof_matches_translation_apply_tuple_of_tail_type
       | Seq A =>
           have hParts :
               native_inhabited_type A = true ∧
-                __smtx_type_wf_rec A native_reflist_nil = true := by
+                __smtx_type_wf_rec A A = true := by
             have hAll :
                 native_inhabited_type (SmtType.Datatype (native_string_lit "@Tuple") fullD) = true ∧
                   (native_inhabited_type A = true ∧
-                    __smtx_type_wf_rec A native_reflist_nil = true) ∧
+                    __smtx_type_wf_rec A A = true) ∧
                     __smtx_dt_cons_wf_rec c
                         (native_reflist_insert native_reflist_nil (native_string_lit "@Tuple")) =
                       true := by
@@ -10073,7 +10073,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_tuple_of_tail_type
             native_reflist_nil] at hFullWfFromRaw ⊢
     have hHeadParts :
         native_inhabited_type headTy = true ∧
-          __smtx_type_wf_rec headTy native_reflist_nil = true :=
+          __smtx_type_wf_rec headTy headTy = true :=
       Smtm.smtx_type_wf_component_parts hHeadComp
     simp [headTy, tailD, fullD, hXTailType, __eo_to_smt_type_tuple,
       hHeadParts.1, hHeadParts.2, native_streq, native_and, native_ite]
@@ -14681,7 +14681,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
             have h := hTWF
             rw [hTFun] at h
             exact (fun_type_wf_components_of_wf h).1
-          have hArgTypeRec : __smtx_type_wf_rec A native_reflist_nil = true := by
+          have hArgTypeRec : __smtx_type_wf_rec A A = true := by
             have h := hTWF
             rw [hTFun] at h
             exact (fun_type_wf_rec_components_of_wf h).1
@@ -14871,7 +14871,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
           have h := hTWF
           rw [hTFun] at h
           exact (fun_type_wf_components_of_wf h).1
-        have hArgTypeRec : __smtx_type_wf_rec A native_reflist_nil = true := by
+        have hArgTypeRec : __smtx_type_wf_rec A A = true := by
           have h := hTWF
           rw [hTFun] at h
           exact (fun_type_wf_rec_components_of_wf h).1

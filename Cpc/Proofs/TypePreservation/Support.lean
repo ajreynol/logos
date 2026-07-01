@@ -49,7 +49,7 @@ inductive supported_preservation_term : SmtTerm -> Prop
       (hElemRec :
         ∀ {T : SmtType},
           __smtx_typeof t1 = SmtType.Seq T ->
-            __smtx_type_wf_rec T native_reflist_nil = true) :
+            __smtx_type_wf_rec T T = true) :
       supported_preservation_term (SmtTerm.seq_nth t1 t2)
   | set_union {t1 t2 : SmtTerm}
       (ht1 : term_has_non_none_type t1)
