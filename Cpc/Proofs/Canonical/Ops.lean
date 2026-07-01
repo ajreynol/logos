@@ -127,10 +127,7 @@ theorem model_eval_abs_canonical
     (v : SmtValue) :
     __smtx_value_canonical (__smtx_model_eval_abs v) := by
   cases v <;>
-    simp [__smtx_model_eval_abs, __smtx_model_eval_ite, __smtx_model_eval_lt,
-      __smtx_model_eval__, __smtx_value_canonical, __smtx_value_canonical_bool]
-  · cases native_zlt ‹native_Int› 0 <;>
-      simp [__smtx_value_canonical_bool]
+    simp [__smtx_model_eval_abs, __smtx_value_canonical, __smtx_value_canonical_bool]
 
 theorem model_eval_uneg_canonical
     (v : SmtValue) :
