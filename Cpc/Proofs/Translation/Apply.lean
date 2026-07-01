@@ -9391,7 +9391,133 @@ private theorem eo_to_smt_typeof_matches_translation_apply_tuple_of_tail_type
       Smtm.smt_datatype_wf_of_non_none_type
         (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) y) x))
         (native_string_lit "@Tuple") fullD hSmt
-    have hHeadComp : __smtx_type_wf_component headTy = true := by sorry
+    have hHeadComp : __smtx_type_wf_component headTy = true := by
+      have hUnfold : headTy = __smtx_typeof (__eo_to_smt y) := rfl
+      have hCompFull :
+          __smtx_type_wf_component (SmtType.Datatype (native_string_lit "@Tuple") fullD) = true := by
+        simp only [__smtx_type_wf] at hFullWfFromRaw
+        exact hFullWfFromRaw
+      have hRecFull :
+          __smtx_type_wf_rec (SmtType.Datatype (native_string_lit "@Tuple") fullD)
+              (SmtType.Datatype (native_string_lit "@Tuple") fullD) = true :=
+        (Smtm.smtx_type_wf_component_parts hCompFull).2
+      have hDtWf :
+          __smtx_dt_wf_rec
+              (__smtx_dt_substitute (native_string_lit "@Tuple") fullD fullD) fullD = true := by
+        simp only [__smtx_type_wf_rec] at hRecFull
+        exact hRecFull
+      have hConsWf :
+          __smtx_dt_cons_wf_rec
+              (SmtDatatypeCons.cons
+                (__smtx_type_substitute (native_string_lit "@Tuple") fullD headTy)
+                (__smtx_dtc_substitute (native_string_lit "@Tuple") fullD c))
+              (SmtDatatypeCons.cons headTy c) = true := by
+        have hDtWf' := hDtWf
+        simp only [fullD, __smtx_dt_substitute, __smtx_dtc_substitute, __smtx_dt_wf_rec] at hDtWf'
+        cases hb :
+            __smtx_dt_cons_wf_rec
+              (SmtDatatypeCons.cons
+                (__smtx_type_substitute (native_string_lit "@Tuple") fullD headTy)
+                (__smtx_dtc_substitute (native_string_lit "@Tuple") fullD c))
+              (SmtDatatypeCons.cons headTy c) with
+        | true => rfl
+        | false => rw [hb] at hDtWf'; simp [native_ite] at hDtWf'
+      have hRes : __eo_reserved_datatype_name (native_string_lit "@Tuple") = true := by
+        native_decide
+      have hNoOp :
+          __smtx_type_substitute (native_string_lit "@Tuple") fullD headTy = headTy := by
+        rw [hUnfold]
+        cases hshape : __smtx_typeof (__eo_to_smt y) with
+        | Datatype s2 d2 =>
+            by_cases hs2 : native_streq (native_string_lit "@Tuple") s2 = true
+            · simp [__smtx_type_substitute, native_ite, hs2]
+            · have hs2F : native_streq (native_string_lit "@Tuple") s2 = false :=
+                Bool.eq_false_iff.mpr hs2
+              have hFree :
+                  hasFreeTy (native_string_lit "@Tuple") native_reflist_nil
+                    (__smtx_typeof (__eo_to_smt y)) = false := by
+                rw [hYEq]
+                exact hasFreeTy_reserved_of_translate (native_string_lit "@Tuple") hRes
+                  (__eo_typeof y) native_reflist_nil
+              have hFreeDt :
+                  hasFreeDt (native_string_lit "@Tuple")
+                    (native_reflist_insert native_reflist_nil s2) d2 = false := by
+                have hFree' := hFree
+                rw [hshape] at hFree'
+                simpa [hasFreeTy] using hFree'
+              have hNotMem :
+                  native_reflist_contains (native_reflist_insert native_reflist_nil s2)
+                      (native_string_lit "@Tuple") = false := by
+                simp only [native_reflist_contains, native_reflist_insert, List.mem_cons,
+                  decide_eq_false_iff_not]
+                rintro (hEq | hEq)
+                · have hTrue : native_streq (native_string_lit "@Tuple") s2 = true := by
+                    simp [native_streq, hEq]
+                  rw [hTrue] at hs2F
+                  exact absurd hs2F (by decide)
+                · simp [native_reflist_nil] at hEq
+              have hDtNoOp :
+                  __smtx_dt_substitute (native_string_lit "@Tuple")
+                      (__smtx_dt_lift s2 d2 fullD) d2 = d2 :=
+                Smtm.subst_noop_no_free_dt (native_string_lit "@Tuple") d2
+                  (__smtx_dt_lift s2 d2 fullD)
+                  (native_reflist_insert native_reflist_nil s2) hNotMem hFreeDt
+              simp [__smtx_type_substitute, native_ite, hs2F, hDtNoOp]
+        | TypeRef sU =>
+            exfalso
+            have hNeTuple :
+                __eo_to_smt_type (__eo_typeof y) ≠
+                  SmtType.TypeRef (native_string_lit "@Tuple") :=
+              eo_to_smt_type_ne_tuple_typeref (__eo_typeof y)
+            rw [← hYEq, hshape] at hNeTuple
+            have hsUne : native_streq (native_string_lit "@Tuple") sU = false := by
+              cases h : native_streq (native_string_lit "@Tuple") sU
+              · rfl
+              · exfalso
+                apply hNeTuple
+                congr 1
+                exact (show native_string_lit "@Tuple" = sU by simpa [native_streq] using h).symm
+            rw [hUnfold, hshape] at hConsWf
+            simp [__smtx_type_substitute, native_ite, hsUne, __smtx_dt_cons_wf_rec,
+              __smtx_type_wf_rec, native_and] at hConsWf
+        | Seq A => simp [__smtx_type_substitute]
+        | Set A => simp [__smtx_type_substitute]
+        | Map A B => simp [__smtx_type_substitute]
+        | FunType A B => simp [__smtx_type_substitute]
+        | DtcAppType A B => simp [__smtx_type_substitute]
+        | None => simp [__smtx_type_substitute]
+        | RegLan => simp [__smtx_type_substitute]
+        | Bool => simp [__smtx_type_substitute]
+        | Int => simp [__smtx_type_substitute]
+        | Real => simp [__smtx_type_substitute]
+        | BitVec n => simp [__smtx_type_substitute]
+        | Char => simp [__smtx_type_substitute]
+        | USort i => simp [__smtx_type_substitute]
+      rw [hNoOp] at hConsWf
+      have hNotRef : ∀ s, headTy ≠ SmtType.TypeRef s := by
+        intro s hEq
+        rw [hEq] at hConsWf
+        simp [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite, native_and] at hConsWf
+      have hgen :
+          __smtx_dt_cons_wf_rec
+              (SmtDatatypeCons.cons headTy
+                (__smtx_dtc_substitute (native_string_lit "@Tuple") fullD c))
+              (SmtDatatypeCons.cons headTy c) =
+            native_ite
+              (native_and (native_inhabited_type headTy) (__smtx_type_wf_rec headTy headTy))
+              (__smtx_dt_cons_wf_rec
+                (__smtx_dtc_substitute (native_string_lit "@Tuple") fullD c) c)
+              false := by
+        cases hHT : headTy with
+        | TypeRef s => exact absurd hHT (hNotRef s)
+        | _ => simp [__smtx_dt_cons_wf_rec, hHT]
+      rw [hgen] at hConsWf
+      cases hb :
+          native_and (native_inhabited_type headTy) (__smtx_type_wf_rec headTy headTy) with
+      | false => rw [hb] at hConsWf; exact absurd hConsWf (by simp [native_ite])
+      | true =>
+          simp only [native_and, Bool.and_eq_true] at hb
+          exact Smtm.smtx_type_wf_component_of_parts hb.1 hb.2
     have hHeadParts :
         native_inhabited_type headTy = true ∧
           __smtx_type_wf_rec headTy headTy = true :=

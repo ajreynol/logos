@@ -3675,6 +3675,277 @@ theorem hasFreeDtc_eq_false_of_valid (sub : native_String) :
         exact ⟨hasFreeTy_eq_false_of_valid sub T refs hT, hTail⟩
 end
 
+/-! `hasFreeTy_reserved_of_translate` and its mutual siblings: a **validity-free** companion to
+`hasFreeTy_eq_false_of_valid`. If `sub` is itself a *reserved* datatype name (e.g. the synthetic
+tuple-encoding name `"@Tuple"`), no translation can ever produce a free `TypeRef sub`, regardless of
+whether the source term is EO-valid: `SmtType.TypeRef s` is only ever constructed by
+`__eo_to_smt_type` from `Term.DatatypeTypeRef s`, and that case is itself reserved-gated to `None`
+whenever `s` is reserved — so `sub` (reserved) can never be the name of a produced `TypeRef`. This
+lets tuple-head-field facts (no-op of substitution/lift by a reserved name) be established without
+threading eo-validity through the tuple recursion. -/
+mutual
+theorem hasFreeTy_reserved_of_translate (sub : native_String)
+    (hRes : __eo_reserved_datatype_name sub = true) :
+    ∀ (T : Term) (refs : RefList), hasFreeTy sub refs (__eo_to_smt_type T) = false
+  | Term.Bool, refs => by simp [__eo_to_smt_type, hasFreeTy]
+  | Term.USort i, refs => by simp [__eo_to_smt_type, hasFreeTy]
+  | Term.DatatypeType s d, refs => by
+      by_cases hs : __eo_reserved_datatype_name s = true
+      · simp [__eo_to_smt_type, native_ite, hs, hasFreeTy]
+      · have hsF : __eo_reserved_datatype_name s = false := by
+          cases h : __eo_reserved_datatype_name s <;> simp [h] at hs ⊢
+        have hDfree := hasFreeDt_reserved_of_translate sub hRes d (native_reflist_insert refs s)
+        simp [__eo_to_smt_type, native_ite, hsF, hasFreeTy, hDfree]
+  | Term.DatatypeTypeRef s, refs => by
+      by_cases h : __eo_reserved_datatype_name s = true <;>
+        simp [__eo_to_smt_type, native_ite, h, hasFreeTy]
+  | Term.DtcAppType T U, refs => by
+      simp only [__eo_to_smt_type]
+      apply hasFreeTy_guard_of_hasFreeTy_arg
+      apply hasFreeTy_guard_of_hasFreeTy_arg
+      simp [hasFreeTy]
+  | Term.UOp op, refs => by
+      cases op with
+      | Int => simp [__eo_to_smt_type, hasFreeTy]
+      | Real => simp [__eo_to_smt_type, hasFreeTy]
+      | Char => simp [__eo_to_smt_type, hasFreeTy]
+      | UnitTuple => simp [__eo_to_smt_type, hasFreeTy, hasFreeDt, hasFreeDtc, native_or]
+      | _ => simp [__eo_to_smt_type, hasFreeTy]
+  | Term.Apply (Term.Apply Term.FunType T1) T2, refs => by
+      simp only [__eo_to_smt_type]
+      apply hasFreeTy_guard_of_hasFreeTy_arg
+      apply hasFreeTy_guard_of_hasFreeTy_arg
+      simp [hasFreeTy]
+  | Term.Apply f x, refs => by
+      cases f with
+      | UOp op =>
+          cases op with
+          | BitVec =>
+              cases x with
+              | Numeral n =>
+                  simp only [__eo_to_smt_type]
+                  by_cases h : native_zleq 0 n = true <;> simp [native_ite, h, hasFreeTy]
+              | _ => simp [__eo_to_smt_type, hasFreeTy]
+          | Seq =>
+              simp only [__eo_to_smt_type]
+              apply hasFreeTy_guard_of_hasFreeTy_arg
+              simp only [hasFreeTy]
+              exact hasFreeTy_reserved_of_translate sub hRes x native_reflist_nil
+          | Set =>
+              simp only [__eo_to_smt_type]
+              apply hasFreeTy_guard_of_hasFreeTy_arg
+              simp only [hasFreeTy]
+              exact hasFreeTy_reserved_of_translate sub hRes x native_reflist_nil
+          | _ => simp [__eo_to_smt_type, hasFreeTy]
+      | Apply g y =>
+          cases g with
+          | FunType =>
+              simp only [__eo_to_smt_type]
+              apply hasFreeTy_guard_of_hasFreeTy_arg
+              apply hasFreeTy_guard_of_hasFreeTy_arg
+              simp [hasFreeTy]
+          | UOp op =>
+              cases op with
+              | Array =>
+                  simp only [__eo_to_smt_type]
+                  apply hasFreeTy_guard_of_hasFreeTy_arg
+                  apply hasFreeTy_guard_of_hasFreeTy_arg
+                  simp only [hasFreeTy, native_or, Bool.or_eq_false_iff]
+                  exact ⟨hasFreeTy_reserved_of_translate sub hRes y native_reflist_nil,
+                    hasFreeTy_reserved_of_translate sub hRes x native_reflist_nil⟩
+              | Tuple =>
+                  simp only [__eo_to_smt_type]
+                  by_cases hWfRaw :
+                      __smtx_type_wf
+                          (__eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x)) = true
+                  · rw [native_ite, if_pos hWfRaw]
+                    have hRawNN :
+                        __eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x) ≠
+                          SmtType.None := by
+                      intro hNone
+                      rw [hNone] at hWfRaw
+                      simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+                        native_and] at hWfRaw
+                    cases htrX : __eo_to_smt_type x with
+                    | Datatype s2 body2 =>
+                        cases body2 with
+                        | null =>
+                            exfalso; apply hRawNN; simp [__eo_to_smt_type_tuple, htrX]
+                        | sum c2 tail2 =>
+                            cases tail2 with
+                            | null =>
+                                by_cases hs2 : native_streq s2 (native_string_lit "@Tuple") = true
+                                · by_cases hy2 :
+                                      __smtx_type_wf_component (__eo_to_smt_type y) = true
+                                  · have hs2eq : s2 = native_string_lit "@Tuple" := by
+                                      simpa [native_streq] using hs2
+                                    subst hs2eq
+                                    have hrawEq :
+                                        __eo_to_smt_type_tuple (__eo_to_smt_type y)
+                                            (SmtType.Datatype (native_string_lit "@Tuple")
+                                              (SmtDatatype.sum c2 SmtDatatype.null)) =
+                                          SmtType.Datatype (native_string_lit "@Tuple")
+                                            (SmtDatatype.sum
+                                              (SmtDatatypeCons.cons (__eo_to_smt_type y) c2)
+                                              SmtDatatype.null) := by
+                                      simp [__eo_to_smt_type_tuple, native_ite, native_and, hs2, hy2]
+                                    rw [hrawEq]
+                                    have hxFree :
+                                        hasFreeTy sub
+                                          (native_reflist_insert refs (native_string_lit "@Tuple"))
+                                          (__eo_to_smt_type x) = false :=
+                                      hasFreeTy_reserved_of_translate sub hRes x
+                                        (native_reflist_insert refs (native_string_lit "@Tuple"))
+                                    have hyFree :
+                                        hasFreeTy sub
+                                          (native_reflist_insert refs (native_string_lit "@Tuple"))
+                                          (__eo_to_smt_type y) = false :=
+                                      hasFreeTy_reserved_of_translate sub hRes y
+                                        (native_reflist_insert refs (native_string_lit "@Tuple"))
+                                    have hc2Free :
+                                        hasFreeDtc sub
+                                          (native_reflist_insert refs (native_string_lit "@Tuple")) c2
+                                          = false := by
+                                      have hxFree' := hxFree
+                                      rw [htrX] at hxFree'
+                                      simp only [hasFreeTy] at hxFree'
+                                      have hirrel :
+                                          hasFreeDt sub
+                                            (native_reflist_insert
+                                              (native_reflist_insert refs (native_string_lit "@Tuple"))
+                                              (native_string_lit "@Tuple"))
+                                            (SmtDatatype.sum c2 SmtDatatype.null) =
+                                          hasFreeDt sub
+                                            (native_reflist_insert refs (native_string_lit "@Tuple"))
+                                            (SmtDatatype.sum c2 SmtDatatype.null) := by
+                                        apply hasFreeDt_refs_irrel
+                                        simp [native_reflist_contains, native_reflist_insert]
+                                      rw [hirrel] at hxFree'
+                                      simpa [hasFreeDt, native_or, Bool.or_eq_false_iff] using hxFree'
+                                    have hyNotTypeRefSub :
+                                        ∀ s', __eo_to_smt_type y = SmtType.TypeRef s' →
+                                          native_streq s' sub = false := by
+                                      intro s' hEq
+                                      have hyEq : y = Term.DatatypeTypeRef s' :=
+                                        eo_to_smt_type_eq_typeref hEq
+                                      by_cases hResS' : __eo_reserved_datatype_name s' = true
+                                      · exfalso
+                                        rw [hyEq] at hEq
+                                        simp [__eo_to_smt_type, hResS', native_ite] at hEq
+                                      · have hResS'F : __eo_reserved_datatype_name s' = false := by
+                                          cases h : __eo_reserved_datatype_name s' <;>
+                                            simp [h] at hResS' ⊢
+                                        have hsne : s' ≠ sub := by
+                                          intro hEq2
+                                          rw [hEq2] at hResS'F
+                                          rw [hResS'F] at hRes
+                                          exact absurd hRes (by decide)
+                                        simp [native_streq, hsne]
+                                    simp only [hasFreeTy, hasFreeDt, native_or, Bool.or_eq_false_iff]
+                                    refine ⟨?_, trivial⟩
+                                    by_cases hyIsRef : ∃ s', __eo_to_smt_type y = SmtType.TypeRef s'
+                                    · obtain ⟨s', hyshape⟩ := hyIsRef
+                                      rw [hyshape]
+                                      simp only [hasFreeDtc, native_or, Bool.or_eq_false_iff,
+                                        native_and, Bool.and_eq_false_iff]
+                                      exact ⟨Or.inl (hyNotTypeRefSub s' hyshape), hc2Free⟩
+                                    · have hyNotRef : ∀ s', __eo_to_smt_type y ≠ SmtType.TypeRef s' := by
+                                        intro s' hEq; exact hyIsRef ⟨s', hEq⟩
+                                      rw [hasFreeDtc_cons_of_not_typeref sub
+                                        (native_reflist_insert refs (native_string_lit "@Tuple"))
+                                        (__eo_to_smt_type y) c2 hyNotRef]
+                                      simp only [native_or, Bool.or_eq_false_iff]
+                                      exact ⟨hyFree, hc2Free⟩
+                                  · exfalso
+                                    apply hRawNN
+                                    have hy2' : __smtx_type_wf_component (__eo_to_smt_type y) = false := by
+                                      cases h : __smtx_type_wf_component (__eo_to_smt_type y) with
+                                      | false => rfl
+                                      | true => exact absurd h hy2
+                                    simp [__eo_to_smt_type_tuple, htrX, native_ite, native_and, hy2']
+                                · exfalso
+                                  apply hRawNN
+                                  have hs2' : s2 ≠ native_string_lit "@Tuple" := by
+                                    intro hEq; apply hs2; simp [hEq, native_streq]
+                                  simp [__eo_to_smt_type_tuple, htrX, native_ite, native_and, hs2']
+                            | sum _ _ =>
+                                exfalso; apply hRawNN; simp [__eo_to_smt_type_tuple, htrX]
+                    | Bool => exfalso; apply hRawNN; simp [__eo_to_smt_type_tuple, htrX]
+                    | Int => exfalso; apply hRawNN; simp [__eo_to_smt_type_tuple, htrX]
+                    | Real => exfalso; apply hRawNN; simp [__eo_to_smt_type_tuple, htrX]
+                    | RegLan => exfalso; apply hRawNN; simp [__eo_to_smt_type_tuple, htrX]
+                    | BitVec n => exfalso; apply hRawNN; simp [__eo_to_smt_type_tuple, htrX]
+                    | Map A B => exfalso; apply hRawNN; simp [__eo_to_smt_type_tuple, htrX]
+                    | Set A => exfalso; apply hRawNN; simp [__eo_to_smt_type_tuple, htrX]
+                    | Seq A => exfalso; apply hRawNN; simp [__eo_to_smt_type_tuple, htrX]
+                    | Char => exfalso; apply hRawNN; simp [__eo_to_smt_type_tuple, htrX]
+                    | TypeRef s3 => exfalso; apply hRawNN; simp [__eo_to_smt_type_tuple, htrX]
+                    | USort i => exfalso; apply hRawNN; simp [__eo_to_smt_type_tuple, htrX]
+                    | FunType A B => exfalso; apply hRawNN; simp [__eo_to_smt_type_tuple, htrX]
+                    | DtcAppType A B => exfalso; apply hRawNN; simp [__eo_to_smt_type_tuple, htrX]
+                    | None => exfalso; apply hRawNN; simp [__eo_to_smt_type_tuple, htrX]
+                  · rw [native_ite, if_neg hWfRaw]
+                    simp [hasFreeTy]
+              | _ => simp [__eo_to_smt_type, hasFreeTy]
+          | _ => simp [__eo_to_smt_type, hasFreeTy]
+      | _ => simp [__eo_to_smt_type, hasFreeTy]
+  | Term.__eo_List, refs => by simp [__eo_to_smt_type, hasFreeTy]
+  | Term.__eo_List_nil, refs => by simp [__eo_to_smt_type, hasFreeTy]
+  | Term.__eo_List_cons, refs => by simp [__eo_to_smt_type, hasFreeTy]
+  | Term.Boolean b, refs => by simp [__eo_to_smt_type, hasFreeTy]
+  | Term.Numeral n, refs => by simp [__eo_to_smt_type, hasFreeTy]
+  | Term.Rational q, refs => by simp [__eo_to_smt_type, hasFreeTy]
+  | Term.String s, refs => by simp [__eo_to_smt_type, hasFreeTy]
+  | Term.Binary w n, refs => by simp [__eo_to_smt_type, hasFreeTy]
+  | Term.Type, refs => by simp [__eo_to_smt_type, hasFreeTy]
+  | Term.Stuck, refs => by simp [__eo_to_smt_type, hasFreeTy]
+  | Term.FunType, refs => by simp [__eo_to_smt_type, hasFreeTy]
+  | Term.Var name T, refs => by simp [__eo_to_smt_type, hasFreeTy]
+  | Term.DtCons s d i, refs => by simp [__eo_to_smt_type, hasFreeTy]
+  | Term.DtSel s d i j, refs => by simp [__eo_to_smt_type, hasFreeTy]
+  | Term.UConst i T, refs => by simp [__eo_to_smt_type, hasFreeTy]
+  | Term.UOp1 op x, refs => by cases op <;> simp [__eo_to_smt_type, hasFreeTy]
+  | Term.UOp2 op x y, refs => by cases op <;> simp [__eo_to_smt_type, hasFreeTy]
+  | Term.UOp3 op x y z, refs => by cases op <;> simp [__eo_to_smt_type, hasFreeTy]
+theorem hasFreeDt_reserved_of_translate (sub : native_String)
+    (hRes : __eo_reserved_datatype_name sub = true) :
+    ∀ (d : Datatype) (refs : RefList), hasFreeDt sub refs (__eo_to_smt_datatype d) = false
+  | Datatype.null, refs => by simp [__eo_to_smt_datatype, hasFreeDt]
+  | Datatype.sum c d, refs => by
+      simp only [__eo_to_smt_datatype, hasFreeDt, native_or, Bool.or_eq_false_iff]
+      exact ⟨hasFreeDtc_reserved_of_translate sub hRes c refs,
+        hasFreeDt_reserved_of_translate sub hRes d refs⟩
+theorem hasFreeDtc_reserved_of_translate (sub : native_String)
+    (hRes : __eo_reserved_datatype_name sub = true) :
+    ∀ (c : DatatypeCons) (refs : RefList), hasFreeDtc sub refs (__eo_to_smt_datatype_cons c) = false
+  | DatatypeCons.unit, refs => by simp [__eo_to_smt_datatype_cons, hasFreeDtc]
+  | DatatypeCons.cons T c, refs => by
+      have hTail := hasFreeDtc_reserved_of_translate sub hRes c refs
+      simp only [__eo_to_smt_datatype_cons]
+      by_cases hRef : ∃ s, T = Term.DatatypeTypeRef s
+      · obtain ⟨s, rfl⟩ := hRef
+        by_cases hs : __eo_reserved_datatype_name s = true
+        · simp [__eo_to_smt_type, native_ite, hs, hasFreeDtc, hasFreeTy, native_or, hTail]
+        · have hsF : __eo_reserved_datatype_name s = false := by
+            cases h : __eo_reserved_datatype_name s <;> simp [h] at hs ⊢
+          have hsne : s ≠ sub := by
+            intro hEq
+            subst hEq
+            rw [hsF] at hRes
+            exact absurd hRes (by decide)
+          have hstreq : native_streq s sub = false := by simp [native_streq, hsne]
+          simp [__eo_to_smt_type, native_ite, hsF, hasFreeDtc, native_or, native_and,
+            native_not, hstreq, hTail, hsne]
+      · have hA : ∀ s, __eo_to_smt_type T ≠ SmtType.TypeRef s := by
+          intro s hEq
+          apply hRef
+          exact ⟨s, eo_to_smt_type_eq_typeref hEq⟩
+        rw [hasFreeDtc_cons_of_not_typeref sub refs (__eo_to_smt_type T)
+          (__eo_to_smt_datatype_cons c) hA]
+        simp only [native_or, Bool.or_eq_false_iff]
+        exact ⟨hasFreeTy_reserved_of_translate sub hRes T refs, hTail⟩
+end
+
 -- TODO(typeWf-0701 aliasing refactor): this cluster is the "substitute correspondence" —
 -- `translate(eo_subst sub d0 T) = smt_subst sub (translate d0) (translate T)`. It previously
 -- needed both a `RefList`-scoped well-formedness fact for `T` (now genuinely type-broken: the new
