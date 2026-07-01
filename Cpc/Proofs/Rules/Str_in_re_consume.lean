@@ -4813,6 +4813,60 @@ theorem native_str_in_re_re_mult_concat_residual_eq_local
       exact hTailMem
     exact native_str_in_re_re_mult_concat_cons_local xs r tail hConcat
 
+theorem native_str_in_re_re_mult_residual_eq_nonempty_local
+    (xs tailStr : native_String) (r : native_RegLan)
+    (hXsNe : xs ≠ [])
+    (hResidual :
+      native_str_in_re xs (native_re_concat r (native_re_mult r)) =
+        native_str_in_re tailStr (native_re_mult r)) :
+    native_str_in_re xs (native_re_mult r) =
+      native_str_in_re tailStr (native_re_mult r) := by
+  apply Bool.eq_iff_iff.mpr
+  constructor
+  · intro hMem
+    by_cases hValid : native_string_valid xs = true
+    · have hListMem :
+          nativeListInRe xs (native_re_mult r) = true := by
+        simpa [native_str_in_re, hValid, nativeListInRe] using hMem
+      rcases nativeListInRe_re_mult_nonempty_prefix_decomp_local xs r
+          hListMem hXsNe with
+        ⟨pre, suf, hAppend, _hPreNe, hPre, hSuf⟩
+      have hPreValid : native_string_valid pre = true :=
+        native_string_valid_append_left pre suf (by
+          simpa [hAppend] using hValid)
+      have hSufValid : native_string_valid suf = true :=
+        native_string_valid_append_right pre suf (by
+          simpa [hAppend] using hValid)
+      have hPreNative : native_str_in_re pre r = true := by
+        simpa [native_str_in_re, hPreValid, nativeListInRe] using hPre
+      have hSufNative :
+          native_str_in_re suf (native_re_mult r) = true := by
+        simpa [native_str_in_re, hSufValid, nativeListInRe] using hSuf
+      have hConcat :
+          native_str_in_re xs
+              (native_re_concat r (native_re_mult r)) = true := by
+        have hIntro :=
+          native_str_in_re_re_concat_intro pre suf r (native_re_mult r)
+            hPreNative hSufNative
+        simpa [hAppend] using hIntro
+      rw [hResidual] at hConcat
+      exact hConcat
+    · simp [native_str_in_re, hValid] at hMem
+  · intro hMem
+    have hConcat :
+        native_str_in_re xs (native_re_concat r (native_re_mult r)) =
+          true := by
+      rw [hResidual]
+      exact hMem
+    have hCons :
+        native_str_in_re xs
+            (native_re_concat (native_re_mult r) (native_str_to_re [])) =
+          true := by
+      apply native_str_in_re_re_mult_concat_cons_local xs r
+        (native_str_to_re [])
+      simpa [native_re_concat_right_empty_local] using hConcat
+    simpa [native_re_concat_right_empty_local] using hCons
+
 theorem native_str_in_re_re_mult_concat_no_prefix_local
     (xs : native_String) (r tail : native_RegLan)
     (hTailNoPrefix :
@@ -28362,41 +28416,6 @@ theorem str_re_consume_model_rel
           SmtValue.RegLan nextRv ->
           native_str_in_re (native_unpack_string ss) rv =
             native_str_in_re (native_unpack_string nextSs) nextRv
-  let multAfterFirstInputNativeEq
-      (r0 : Term)
-      (_hR : r = Term.Apply (Term.UOp UserOp.re_mult) r0) :
-      Prop :=
-    let sFlat :=
-      __eo_list_rev (Term.UOp UserOp.str_concat)
-        (__str_flatten (__eo_list_singleton_intro
-          (Term.UOp UserOp.str_concat) s))
-    let rFlat :=
-      __re_rev_map_rev (__re_flatten (Term.Boolean true) r0)
-        (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))
-    let first := __str_re_consume_rec sFlat rFlat sFlat
-    let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
-    let carry :=
-      __eo_and (Term.Boolean true)
-        (__eo_not (__eo_eq (__str_membership_re first) eps))
-    let nextS :=
-      __eo_list_rev (Term.UOp UserOp.str_concat)
-        (__eo_ite carry sFlat (__str_membership_str first))
-    let nextR :=
-      __re_rev_map_rev
-        (__re_flatten (Term.Boolean true)
-          (__eo_ite carry rFlat (__str_membership_re first))) eps
-    first ≠ Term.Boolean false ->
-      ∀ ss rv nextSs nextRv,
-        __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss ->
-        __smtx_model_eval M
-            (__eo_to_smt (Term.Apply (Term.UOp UserOp.re_mult) r0)) =
-          SmtValue.RegLan rv ->
-        __smtx_model_eval M (__eo_to_smt nextS) =
-          SmtValue.Seq nextSs ->
-        __smtx_model_eval M (__eo_to_smt nextR) =
-          SmtValue.RegLan nextRv ->
-          native_str_in_re (native_unpack_string ss) rv =
-            native_str_in_re (native_unpack_string nextSs) nextRv
   let nonMultFirstFalseNative
       (_hNotMult :
         ∀ r0, r = Term.Apply (Term.UOp UserOp.re_mult) r0 -> False) :
@@ -29449,12 +29468,17 @@ theorem str_re_consume_model_rel
         (∀ r0
             (hR : r = Term.Apply (Term.UOp UserOp.re_mult) r0),
           multFirstInputNativeEq r0 hR) ∧
+        (∀ (hSideNotFalse : side ≠ Term.Boolean false)
+            (hNotMult :
+              ∀ r0, r = Term.Apply (Term.UOp UserOp.re_mult) r0 ->
+                False),
+          nonMultInputNativeEq hSideNotFalse hNotMult) ∧
         (∀ (hNotMult :
             ∀ r0, r = Term.Apply (Term.UOp UserOp.re_mult) r0 -> False),
-          nonMultAfterFirstInputNativeEq hNotMult) ∧
+          nonMultSecondFalseInputNativeEq hNotMult) ∧
         (∀ r0
             (hR : r = Term.Apply (Term.UOp UserOp.re_mult) r0),
-          multAfterFirstInputNativeEq r0 hR) ∧
+          multSecondFalseInputNativeEq r0 hR) ∧
         (∀ r0
             (_hR : r = Term.Apply (Term.UOp UserOp.re_mult) r0)
             (hSideNotFalse : side ≠ Term.Boolean false),
@@ -29571,16 +29595,24 @@ theorem str_re_consume_model_rel
             hMultOriginalFalse r0 hR hFirstFalse ss rv hSEval hStarEval
           rw [hOriginalFalse, hFirstInputFalse]
       have hAfterFirstActionFrontierCoreProgress :
+          (∀ (hSideNotFalse : side ≠ Term.Boolean false)
+              (hNotMult :
+                ∀ r0, r = Term.Apply (Term.UOp UserOp.re_mult) r0 ->
+                  False),
+            nonMultInputNativeEq hSideNotFalse hNotMult) ∧
           (∀ (hNotMult :
               ∀ r0, r = Term.Apply (Term.UOp UserOp.re_mult) r0 ->
                 False),
-            nonMultAfterFirstInputNativeEq hNotMult) ∧
+            nonMultSecondFalseInputNativeEq hNotMult) ∧
           (∀ r0
               (hR : r = Term.Apply (Term.UOp UserOp.re_mult) r0),
-            multAfterFirstInputNativeEq r0 hR) := by
-        -- This one cannot factor through a global reverse equivalence:
-        -- fallback results are repaired only after the residual is flattened
-        -- and action-reversed for the second pass.
+            multSecondFalseInputNativeEq r0 hR) := by
+        -- The exposed obligations match the two real call sites. Non-star
+        -- finalization supplies `side ≠ false`; false-side reasoning supplies
+        -- `second = false`. For a starred regex, full after-first equivalence
+        -- is too strong: after peeling one `a` from `"aa" ∈ (str.to_re "a")*`,
+        -- the intermediate query is `"a" ∈ eps`, which is not equivalent to
+        -- the original star query.
         sorry
       have hMultSecondStrActionFrontierCoreProgress :
           ∀ r0
@@ -29628,38 +29660,135 @@ theorem str_re_consume_model_rel
                 (native_re_mult r0Rv) =
               native_str_in_re (native_unpack_string partsSs)
                 (native_re_mult r0Rv) := by
-          -- The star-specific residual invariant: after both
-          -- action-frontier passes, the projected second string preserves
-          -- membership in `r0*`. The proof should combine the consume
-          -- residual theorem with the native `re_mult` concat/no-prefix
-          -- lemmas, splitting on whether the first pass carried a residual
-          -- or completed an `r0` chunk.
+          let strPart :=
+            __eo_list_singleton_elim (Term.UOp UserOp.str_concat)
+              (__str_collect (__str_membership_str second))
+          let rePart :=
+            __eo_list_singleton_elim (Term.UOp UserOp.re_concat)
+              (__re_unflatten (Term.Boolean true)
+                (__str_membership_re second))
+          let final :=
+            __eo_mk_apply
+              (__eo_mk_apply (Term.UOp UserOp.str_in_re) strPart) rePart
+          let candidate :=
+            __eo_ite (__eo_eq first (Term.Boolean false))
+              (Term.Boolean false)
+              (__eo_ite (__eo_eq second (Term.Boolean false))
+                (Term.Boolean false) final)
+          rcases hMultFinalProgress r0 hR hSideNotFalse with
+            ⟨_hSideRebuild, hCandidateFinal, hCandidateMem⟩
+          rcases hMultFinalSubtermProgress r0 hR hSideNotFalse with
+            ⟨_hSideRebuild', _hCandidateFinal', _hCandidateMem',
+              hCollectNe, hUnflatElimNe⟩
+          have hCandidateFinalLocal : candidate = final := by
+            simpa [sFlat, rFlat, first, eps, carry, nextS, nextR, second,
+              strPart, rePart, final, candidate] using hCandidateFinal
+          have hCandidateMemLocal :
+              __str_membership_re candidate = eps := by
+            simpa [sFlat, rFlat, first, eps, carry, nextS, nextR, second,
+              strPart, rePart, final, candidate] using hCandidateMem
+          have hCandidateNe : candidate ≠ Term.Stuck := by
+            intro hBad
+            rw [hBad] at hCandidateMemLocal
+            simp [__str_membership_re] at hCandidateMemLocal
+          have hFinalNe : final ≠ Term.Stuck := by
+            intro hBad
+            apply hCandidateNe
+            rw [hCandidateFinalLocal, hBad]
+          have hInnerNe :
+              __eo_mk_apply (Term.UOp UserOp.str_in_re) strPart ≠
+                Term.Stuck :=
+            eo_mk_apply_fun_ne_stuck_of_ne_stuck _ _ hFinalNe
+          have hInnerEq :
+              __eo_mk_apply (Term.UOp UserOp.str_in_re) strPart =
+                Term.Apply (Term.UOp UserOp.str_in_re) strPart :=
+            eo_mk_apply_eq_apply_of_ne_stuck
+              (Term.UOp UserOp.str_in_re) strPart hInnerNe
+          have hOuterEq :
+              final =
+                Term.Apply
+                  (__eo_mk_apply (Term.UOp UserOp.str_in_re) strPart)
+                  rePart := by
+            simpa [final] using
+              eo_mk_apply_eq_apply_of_ne_stuck
+                (__eo_mk_apply (Term.UOp UserOp.str_in_re) strPart)
+                rePart hFinalNe
+          have hFinalApply :
+              final =
+                Term.Apply
+                  (Term.Apply (Term.UOp UserOp.str_in_re) strPart)
+                  rePart := by
+            rw [hOuterEq, hInnerEq]
+          have hFinalRe : __str_membership_re final = rePart := by
+            rw [hFinalApply]
+            exact str_membership_re_str_in_re strPart rePart
+          have hRePartEps : rePart = eps := by
+            rw [hCandidateFinalLocal] at hCandidateMemLocal
+            simpa [hFinalRe] using hCandidateMemLocal
+          have hRePartEvalEps :
+              __smtx_model_eval M (__eo_to_smt rePart) =
+                SmtValue.RegLan (native_str_to_re []) := by
+            rw [hRePartEps]
+            change __smtx_model_eval M
+                (SmtTerm.str_to_re (SmtTerm.String [])) =
+              SmtValue.RegLan (native_str_to_re [])
+            simp [__smtx_model_eval, __smtx_model_eval_str_to_re,
+              native_unpack_string_pack_string]
+          have hSecondTy :
+              __smtx_typeof (__eo_to_smt second) = SmtType.Bool := by
+            simpa [sFlat, rFlat, first, eps, carry, nextS, nextR,
+              second] using
+              str_re_consume_mult_second_type_from_rec_type_local M hM
+                hRecType s r0 side (by simpa [hR] using hEqTrans) hSNe
+                (by simpa [hR] using hSide) hSideNe hSideNotFalse
+          rcases str_re_consume_final_raw_projection_types_of_second_bool_local
+              second hSecondTy
+              (by simpa [sFlat, rFlat, first, eps, carry, nextS, nextR,
+                second, rePart] using hUnflatElimNe) with
+            ⟨_hPartsTy, hSecondReTy⟩
+          rcases smt_eval_reglan_of_smt_type_reglan_consume_local M hM
+              (__eo_to_smt (__str_membership_re second)) hSecondReTy with
+            ⟨secondRv, hSecondReEval⟩
+          rcases re_unflatten_singleton_elim_eval_rel_consume_local M hM
+              (__str_membership_re second) secondRv hSecondReTy
+              hSecondReEval
+              (by simpa [sFlat, rFlat, first, eps, carry, nextS, nextR,
+                second, rePart] using hUnflatElimNe) with
+            ⟨outRv, hOutReEval, _hOutReTy, hOutReRel⟩
+          have hOutRvEps : outRv = native_str_to_re [] := by
+            rw [hRePartEvalEps] at hOutReEval
+            cases hOutReEval
+            rfl
+          subst outRv
+          have hSecondReRelEps :
+              RuleProofs.smt_value_rel
+                (SmtValue.RegLan secondRv)
+                (SmtValue.RegLan (native_str_to_re [])) :=
+            RuleProofs.smt_value_rel_symm _ _ hOutReRel
+          -- The remaining star-specific residual invariant: the two
+          -- action-frontier passes consume one complete, nonempty `r0`
+          -- chunk (or leave the string unchanged in the empty/progress
+          -- case), so the projected second string preserves membership in
+          -- `r0*`. The facts above establish the final residual is
+          -- semantically epsilon after unflattening; the last step is the
+          -- operational bridge from the two passes to a native star
+          -- residual, where
+          -- `native_str_in_re_re_mult_residual_eq_nonempty_local` is the
+          -- native algebraic step.
           sorry
         simpa [hStarRv] using hStarPreserve
       rcases hFirstFalseActionFrontierCoreProgress with
         ⟨hNonMultFirstInput, hMultFirstInput⟩
       rcases hAfterFirstActionFrontierCoreProgress with
-        ⟨hNonMultAfterFirst, hMultAfterFirst⟩
-      exact ⟨hNonMultFirstInput, hMultFirstInput, hNonMultAfterFirst,
-        hMultAfterFirst, hMultSecondStrActionFrontierCoreProgress⟩
+        ⟨hNonMultInput, hNonMultSecondFalse, hMultSecondFalse⟩
+      exact ⟨hNonMultFirstInput, hMultFirstInput, hNonMultInput,
+        hNonMultSecondFalse, hMultSecondFalse,
+        hMultSecondStrActionFrontierCoreProgress⟩
     rcases hActionableFrontierAfterFirstBridgeProgress with
-      ⟨hNonMultFirstInput, hMultFirstInput, hNonMultAfterFirst,
-        hMultAfterFirst, hMultSecondStr⟩
-    refine ⟨hNonMultFirstInput, hMultFirstInput, ?_, ?_, ?_,
-      hMultSecondStr⟩
-    · intro hSideNotFalse hNotMult
-      dsimp [nonMultInputNativeEq]
-      rcases hNonMultFinalNotFalseProgress hSideNotFalse hNotMult with
-        ⟨hFirstNotFalse, _hSecondNotFalse, _hFirstNe, _hSecondNe⟩
-      exact hNonMultAfterFirst hNotMult hFirstNotFalse
-    · intro hNotMult
-      dsimp [nonMultSecondFalseInputNativeEq]
-      intro hFirstNotFalse _hSecondFalse
-      exact hNonMultAfterFirst hNotMult hFirstNotFalse
-    · intro r0 hR
-      dsimp [multSecondFalseInputNativeEq]
-      intro hFirstNotFalse _hSecondFalse
-      exact hMultAfterFirst r0 hR hFirstNotFalse
+      ⟨hNonMultFirstInput, hMultFirstInput, hNonMultInput,
+        hNonMultSecondFalse, hMultSecondFalse, hMultSecondStr⟩
+    exact ⟨hNonMultFirstInput, hMultFirstInput, hNonMultInput,
+      hNonMultSecondFalse, hMultSecondFalse, hMultSecondStr⟩
   rcases hActionableFrontierInputBridgeProgress with
     ⟨hActionNonMultFirstInput, hActionMultFirstInput,
       hActionNonMultInput, hActionNonMultSecondFalse,
