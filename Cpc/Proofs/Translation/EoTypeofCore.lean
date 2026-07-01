@@ -3588,7 +3588,11 @@ theorem hasFreeTy_eq_false_of_valid (sub : native_String) :
                                   simp [__eo_to_smt_type_tuple, htrX, native_ite, native_and, hy2']
                               · exfalso
                                 apply hRawNN
-                                simp [__eo_to_smt_type_tuple, htrX, native_ite, native_and, hs2]
+                                have hs2' : s2 ≠ native_string_lit "@Tuple" := by
+                                  intro hEq
+                                  apply hs2
+                                  simp [hEq, native_streq]
+                                simp [__eo_to_smt_type_tuple, htrX, native_ite, native_and, hs2']
                           | sum _ _ =>
                               exfalso
                               apply hRawNN
@@ -3653,13 +3657,15 @@ theorem hasFreeDtc_eq_false_of_valid (sub : native_String) :
         by_cases hs : native_reflist_contains refs sub = true
         · simp [__eo_to_smt_type, native_ite, hRes, hasFreeDtc, native_or,
             native_and, native_not, hs, hTail]
-        · have hsne : native_streq s sub = false := by
-            simp [native_streq]
+        · have hsneP : s ≠ sub := by
             intro hEq
             subst hEq
             exact hs (by simp [native_reflist_contains]; exact hMem)
-          simp [__eo_to_smt_type, native_ite, hRes, hasFreeDtc, native_or,
-            native_and, native_not, hs, hsne, hTail]
+          have hsne : native_streq s sub = false := by
+            simp [native_streq, hsneP]
+          simp only [__eo_to_smt_type, native_ite, hRes, hasFreeDtc, native_or,
+            native_and, native_not, hs, hsne, hTail, Bool.false_eq_true, if_false]
+          decide
       · have hA : ∀ s, __eo_to_smt_type T ≠ SmtType.TypeRef s := by
           intro s hEq
           apply hRef
