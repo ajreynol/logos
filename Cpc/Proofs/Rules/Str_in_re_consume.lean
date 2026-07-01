@@ -20519,6 +20519,57 @@ private theorem re_rev_map_rev_action_double_eps_local
       __re_rev_map_rev.eq_2 a hANe
   simpa [hEpsA] using hMain
 
+private theorem re_rev_map_rev_action_double_eps_reglan_rel_local
+    (M : SmtModel) (t : Term) (rv nextRv : native_RegLan)
+    (hRev :
+      __re_rev_map_rev t re_empty_string_re_consume_local ≠
+        Term.Stuck)
+    (hEval : __smtx_model_eval M (__eo_to_smt t) = SmtValue.RegLan rv)
+    (hNextEval :
+      __smtx_model_eval M
+          (__eo_to_smt
+            (__re_rev_map_rev
+              (__re_rev_map_rev t re_empty_string_re_consume_local)
+              re_empty_string_re_consume_local)) =
+        SmtValue.RegLan nextRv) :
+    RuleProofs.smt_value_rel (SmtValue.RegLan nextRv)
+      (SmtValue.RegLan rv) := by
+  have hDouble :
+      __re_rev_map_rev
+          (__re_rev_map_rev t re_empty_string_re_consume_local)
+          re_empty_string_re_consume_local =
+        t :=
+    re_rev_map_rev_action_double_eps_local t hRev
+  have hNextAsOriginal :
+      __smtx_model_eval M (__eo_to_smt t) = SmtValue.RegLan nextRv := by
+    rw [← hDouble]
+    exact hNextEval
+  have hRv : rv = nextRv := by
+    rw [hEval] at hNextAsOriginal
+    cases hNextAsOriginal
+    rfl
+  subst rv
+  exact RuleProofs.smt_value_rel_refl (SmtValue.RegLan nextRv)
+
+private theorem eval_re_action_double_rev_reglan_rel_consume_local
+    (M : SmtModel) (rParts : Term) (rv : native_RegLan)
+    (hEval : __smtx_model_eval M (__eo_to_smt rParts) = SmtValue.RegLan rv)
+    (hRev :
+      __re_rev_map_rev rParts re_empty_string_re_consume_local ≠
+        Term.Stuck) :
+    ∃ revRevRv,
+      __smtx_model_eval M
+          (__eo_to_smt
+            (__re_rev_map_rev
+              (__re_rev_map_rev rParts re_empty_string_re_consume_local)
+              re_empty_string_re_consume_local)) =
+        SmtValue.RegLan revRevRv ∧
+      RuleProofs.smt_value_rel (SmtValue.RegLan revRevRv)
+        (SmtValue.RegLan rv) := by
+  refine ⟨rv, ?_, RuleProofs.smt_value_rel_refl (SmtValue.RegLan rv)⟩
+  rw [re_rev_map_rev_action_double_eps_local rParts hRev]
+  exact hEval
+
 private theorem re_action_frontier_true_double_rev_eq_local
     (t : Term)
     (hFrontier : re_action_frontier_true_local t) :
@@ -20530,6 +20581,25 @@ private theorem re_action_frontier_true_double_rev_eq_local
     (re_action_frontier_true_rev_map_ne_stuck_local t
       re_empty_string_re_consume_local hFrontier
       (by simp [re_empty_string_re_consume_local]))
+
+private theorem re_action_frontier_true_double_rev_reglan_rel_local
+    (M : SmtModel) (t : Term) (rv nextRv : native_RegLan)
+    (hFrontier : re_action_frontier_true_local t)
+    (hEval : __smtx_model_eval M (__eo_to_smt t) = SmtValue.RegLan rv)
+    (hNextEval :
+      __smtx_model_eval M
+          (__eo_to_smt
+            (__re_rev_map_rev
+              (__re_rev_map_rev t re_empty_string_re_consume_local)
+              re_empty_string_re_consume_local)) =
+        SmtValue.RegLan nextRv) :
+    RuleProofs.smt_value_rel (SmtValue.RegLan nextRv)
+      (SmtValue.RegLan rv) := by
+  exact re_rev_map_rev_action_double_eps_reglan_rel_local M t rv nextRv
+    (re_action_frontier_true_rev_map_ne_stuck_local t
+      re_empty_string_re_consume_local hFrontier
+      (by simp [re_empty_string_re_consume_local]))
+    hEval hNextEval
 
 private theorem re_flatten_false_mult_of_norm_local
     (body : Term)
@@ -21473,6 +21543,106 @@ private theorem eval_str_concat_double_rev_seq_rel_consume_local
   rcases smt_value_rel_seq_right hRel with
     ⟨revRevSs, hRevRevEval, _hSeqRel⟩
   exact ⟨revRevSs, hRevRevEval, by simpa [hRevRevEval] using hRel⟩
+
+private theorem native_str_in_re_eq_of_double_rev_action_evals_consume_local
+    (M : SmtModel) (hM : model_total_typed M)
+    (sParts rParts : Term) (ss : SmtSeq) (rv : native_RegLan)
+    (hSList :
+      __eo_is_list (Term.UOp UserOp.str_concat) sParts =
+        Term.Boolean true)
+    (hSTy :
+      __smtx_typeof (__eo_to_smt sParts) =
+        SmtType.Seq SmtType.Char)
+    (hSEval :
+      __smtx_model_eval M (__eo_to_smt sParts) = SmtValue.Seq ss)
+    (hSRev :
+      __eo_list_rev (Term.UOp UserOp.str_concat) sParts ≠ Term.Stuck)
+    (hREval :
+      __smtx_model_eval M (__eo_to_smt rParts) = SmtValue.RegLan rv)
+    (hRRev :
+      __re_rev_map_rev rParts re_empty_string_re_consume_local ≠
+        Term.Stuck) :
+    ∃ ss' rv',
+      __smtx_model_eval M
+          (__eo_to_smt
+            (__eo_list_rev (Term.UOp UserOp.str_concat)
+              (__eo_list_rev (Term.UOp UserOp.str_concat) sParts))) =
+        SmtValue.Seq ss' ∧
+      __smtx_model_eval M
+          (__eo_to_smt
+            (__re_rev_map_rev
+              (__re_rev_map_rev rParts re_empty_string_re_consume_local)
+              re_empty_string_re_consume_local)) =
+        SmtValue.RegLan rv' ∧
+      native_str_in_re (native_unpack_string ss) rv =
+        native_str_in_re (native_unpack_string ss') rv' := by
+  rcases eval_str_concat_double_rev_seq_rel_consume_local M sParts
+      SmtType.Char ss hSList hSTy hSEval hSRev with
+    ⟨ss', hSSRevRevEval, hSRel⟩
+  rcases eval_re_action_double_rev_reglan_rel_consume_local M rParts rv
+      hREval hRRev with
+    ⟨rv', hRRRevRevEval, hRRel⟩
+  have hSeqTy :
+      __smtx_typeof_value (SmtValue.Seq ss) =
+        SmtType.Seq SmtType.Char := by
+    rw [← hSEval]
+    simpa [hSTy] using
+      smt_model_eval_preserves_type_of_non_none M hM
+        (__eo_to_smt sParts) (by
+          unfold term_has_non_none_type
+          rw [hSTy]
+          simp)
+  exact ⟨ss', rv', hSSRevRevEval, hRRRevRevEval,
+    native_str_in_re_eq_of_seq_reglan_rel_symm hSeqTy hSRel hRRel⟩
+
+private theorem native_str_in_re_eq_of_double_rev_action_eval_values_consume_local
+    (M : SmtModel) (hM : model_total_typed M)
+    (sParts rParts : Term) (ss nextSs : SmtSeq)
+    (rv nextRv : native_RegLan)
+    (hSList :
+      __eo_is_list (Term.UOp UserOp.str_concat) sParts =
+        Term.Boolean true)
+    (hSTy :
+      __smtx_typeof (__eo_to_smt sParts) =
+        SmtType.Seq SmtType.Char)
+    (hSEval :
+      __smtx_model_eval M (__eo_to_smt sParts) = SmtValue.Seq ss)
+    (hSRev :
+      __eo_list_rev (Term.UOp UserOp.str_concat) sParts ≠ Term.Stuck)
+    (hREval :
+      __smtx_model_eval M (__eo_to_smt rParts) = SmtValue.RegLan rv)
+    (hRRev :
+      __re_rev_map_rev rParts re_empty_string_re_consume_local ≠
+        Term.Stuck)
+    (hNextSEval :
+      __smtx_model_eval M
+          (__eo_to_smt
+            (__eo_list_rev (Term.UOp UserOp.str_concat)
+              (__eo_list_rev (Term.UOp UserOp.str_concat) sParts))) =
+        SmtValue.Seq nextSs)
+    (hNextREval :
+      __smtx_model_eval M
+          (__eo_to_smt
+            (__re_rev_map_rev
+              (__re_rev_map_rev rParts re_empty_string_re_consume_local)
+              re_empty_string_re_consume_local)) =
+        SmtValue.RegLan nextRv) :
+    native_str_in_re (native_unpack_string ss) rv =
+      native_str_in_re (native_unpack_string nextSs) nextRv := by
+  rcases native_str_in_re_eq_of_double_rev_action_evals_consume_local
+      M hM sParts rParts ss rv hSList hSTy hSEval hSRev hREval hRRev with
+    ⟨nextSs0, nextRv0, hNextSEval0, hNextREval0, hNative⟩
+  have hNextSs : nextSs0 = nextSs := by
+    rw [hNextSEval] at hNextSEval0
+    cases hNextSEval0
+    rfl
+  have hNextRv : nextRv0 = nextRv := by
+    rw [hNextREval] at hNextREval0
+    cases hNextREval0
+    rfl
+  subst nextSs0
+  subst nextRv0
+  exact hNative
 
 private theorem eo_get_nil_rec_re_concat_eq_of_nil_true_consume_local
     (nil : Term)
@@ -30062,22 +30232,11 @@ theorem str_re_consume_model_rel
           RuleProofs.smt_value_rel (SmtValue.RegLan nextRv)
             (SmtValue.RegLan rv) := by
     intro rParts rv nextRv hREval hRevNe hNextREval
-    let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
-    have hDouble :
-        __re_rev_map_rev (__re_rev_map_rev rParts eps) eps = rParts := by
-      exact re_rev_map_rev_action_double_eps_local rParts
-        (by simpa [eps] using hRevNe)
-    have hNextAsOriginal :
-        __smtx_model_eval M (__eo_to_smt rParts) =
-          SmtValue.RegLan nextRv := by
-      rw [← hDouble]
-      simpa [eps] using hNextREval
-    have hRv : rv = nextRv := by
-      rw [hREval] at hNextAsOriginal
-      cases hNextAsOriginal
-      rfl
-    subst rv
-    exact RuleProofs.smt_value_rel_refl (SmtValue.RegLan nextRv)
+    exact re_rev_map_rev_action_double_eps_reglan_rel_local M rParts rv
+      nextRv
+      (by simpa [re_empty_string_re_consume_local] using hRevNe)
+      hREval
+      (by simpa [re_empty_string_re_consume_local] using hNextREval)
   have hInputBridgeOfDoubleRevActionEvalFactsProgress :
       ∀ sParts rParts ss rv nextSs nextRv,
         __eo_is_list (Term.UOp UserOp.str_concat) sParts =
@@ -30109,37 +30268,12 @@ theorem str_re_consume_model_rel
             native_str_in_re (native_unpack_string nextSs) nextRv := by
     intro sParts rParts ss rv nextSs nextRv hSList hSTy hSEval hSRev
       hREval hRRev hNextSEval hNextREval
-    have hUnpack :
-        native_unpack_string nextSs = native_unpack_string ss :=
-      hNativeUnpackEqOfDoubleRevEvalFactsProgress sParts ss nextSs
-        hSList hSTy hSEval hSRev hNextSEval
-    have hRegRel :
-        RuleProofs.smt_value_rel (SmtValue.RegLan nextRv)
-          (SmtValue.RegLan rv) :=
-      hRegLanRelOfActionDoubleRevEvalFactsProgress rParts rv nextRv
-        hREval hRRev hNextREval
-    have hSeqTy :
-        __smtx_typeof_value (SmtValue.Seq ss) =
-          SmtType.Seq SmtType.Char := by
-      rw [← hSEval]
-      simpa [hSTy] using
-        smt_model_eval_preserves_type_of_non_none M hM
-          (__eo_to_smt sParts) (by
-            unfold term_has_non_none_type
-            rw [hSTy]
-            simp)
-    have hValid :
-        native_string_valid (native_unpack_string nextSs) = true := by
-      have hValidSs :
-          native_string_valid (native_unpack_string ss) = true :=
-        native_unpack_string_valid_of_typeof_seq_char hSeqTy
-      simpa [hUnpack] using hValidSs
-    calc
-      native_str_in_re (native_unpack_string ss) rv =
-          native_str_in_re (native_unpack_string nextSs) rv := by
-            simpa [hUnpack]
-      _ = native_str_in_re (native_unpack_string nextSs) nextRv :=
-          (smt_value_rel_reglan_valid_eq hRegRel hValid).symm
+    exact native_str_in_re_eq_of_double_rev_action_eval_values_consume_local
+      M hM sParts rParts ss nextSs rv nextRv hSList hSTy hSEval hSRev
+      hREval
+      (by simpa [re_empty_string_re_consume_local] using hRRev)
+      hNextSEval
+      (by simpa [re_empty_string_re_consume_local] using hNextREval)
   have hInputBridgeOfRelDoubleRevActionEvalFactsProgress :
       ∀ sParts rParts ss rv partsSs partsRv nextSs nextRv,
         __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss ->
