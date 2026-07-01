@@ -3367,8 +3367,7 @@ theorem term_type_has_no_none_components_of_non_none :
         exact real_ret_type_has_no_none_components_of_non_none
           (typeof_is_int_eq t1) ht (by simp [type_has_no_none_components])
     | SmtTerm.abs t1 =>
-        exact int_ret_type_has_no_none_components_of_non_none
-          (typeof_abs_eq t1) ht (by simp [type_has_no_none_components])
+        exact arith_unop_type_has_no_none_components_of_non_none (typeof_abs_eq t1) ht
     | SmtTerm.uneg t1 =>
         exact arith_unop_type_has_no_none_components_of_non_none (typeof_uneg_eq t1) ht
     | SmtTerm.div t1 t2 =>
@@ -3977,9 +3976,11 @@ theorem supported_preservation_term_of_non_none :
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq hArg (by simp)
         exact supported_preservation_term.is_int ht1 (go t1 ht1)
     | SmtTerm.abs t1 =>
-        have hArg : __smtx_typeof t1 = SmtType.Int := int_arg_of_non_none ht
-        have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq hArg (by simp)
-        exact supported_preservation_term.abs ht1 (go t1 ht1)
+        rcases abs_arg_of_non_none ht with hArg | hArg
+        · have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq hArg (by simp)
+          exact supported_preservation_term.abs ht1 (go t1 ht1)
+        · have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq hArg (by simp)
+          exact supported_preservation_term.abs ht1 (go t1 ht1)
     | SmtTerm.uneg t1 =>
         rcases arith_unop_arg_of_non_none (op := SmtTerm.uneg) (typeof_uneg_eq t1) ht with hArg | hArg
         · have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq hArg (by simp)

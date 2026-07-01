@@ -15181,20 +15181,42 @@ theorem eo_to_smt_typeof_matches_translation_apply
         unfold term_has_non_none_type
         rw [← hTranslate]
         exact hNonNone
-      have hArg : __smtx_typeof (__eo_to_smt x) = SmtType.Int :=
-        int_arg_of_non_none (t := __eo_to_smt x) hApplyNN
-      have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
-        rw [hArg]
-        simp
-      have hXTyped := ihX hXNonNone
-      have hxSmt : __eo_to_smt_type (__eo_typeof x) = SmtType.Int := by
-        rw [← hXTyped]
-        exact hArg
-      have hxEo : __eo_typeof x = (Term.UOp UserOp.Int) := eo_to_smt_type_eq_int hxSmt
-      have hSmt : __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp UserOp.abs) x)) = SmtType.Int := by
-        rw [hTranslate, typeof_abs_eq]
-        simp [hArg, native_ite, native_Teq]
-      exact hSmt.trans (eo_to_smt_type_typeof_apply_abs_of_int x hxEo).symm
+      rcases abs_arg_of_non_none (t := __eo_to_smt x) hApplyNN with hArgInt | hArgReal
+      · have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
+          rw [hArgInt]
+          simp
+        have hXTyped := ihX hXNonNone
+        have hxSmt : __eo_to_smt_type (__eo_typeof x) = SmtType.Int := by
+          rw [← hXTyped]
+          exact hArgInt
+        have hxEo : __eo_typeof x = (Term.UOp UserOp.Int) := eo_to_smt_type_eq_int hxSmt
+        have hSmt :
+            __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp UserOp.abs) x)) =
+              SmtType.Int := by
+          rw [hTranslate, typeof_abs_eq]
+          simp [__smtx_typeof_arith_overload_op_1, hArgInt]
+        exact hSmt.trans (eo_to_smt_type_typeof_apply_abs_of_int x hxEo).symm
+      · have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
+          rw [hArgReal]
+          simp
+        have hXTyped := ihX hXNonNone
+        have hxSmt : __eo_to_smt_type (__eo_typeof x) = SmtType.Real := by
+          rw [← hXTyped]
+          exact hArgReal
+        have hxEo : __eo_typeof x = (Term.UOp UserOp.Real) := eo_to_smt_type_eq_real hxSmt
+        have hSmt :
+            __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp UserOp.abs) x)) =
+              SmtType.Real := by
+          rw [hTranslate, typeof_abs_eq]
+          simp [__smtx_typeof_arith_overload_op_1, hArgReal]
+        have hEo :
+            __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp UserOp.abs) x)) =
+              SmtType.Real := by
+          change __eo_to_smt_type (__eo_typeof_abs (__eo_typeof x)) = SmtType.Real
+          rw [hxEo]
+          simp [__eo_typeof_abs, __eo_requires, __is_arith_type,
+            native_ite, native_teq, native_not]
+        exact hSmt.trans hEo.symm
     case __eoo_neg_2 =>
       have hTranslate :
           __eo_to_smt (Term.Apply (Term.UOp UserOp.__eoo_neg_2) x) =

@@ -2803,10 +2803,9 @@ theorem abs_arg_has_smt_translation_of_has_smt_translation
 by
   have hNN := term_has_non_none_type_of_eo_has_smt_translation hTrans
   change term_has_non_none_type (SmtTerm.abs (__eo_to_smt x)) at hNN
-  have hXTy :
-      __smtx_typeof (__eo_to_smt x) = SmtType.Int :=
-    int_arg_of_non_none hNN
-  exact eo_has_smt_translation_of_smt_type_eq hXTy (by simp)
+  rcases abs_arg_of_non_none hNN with hXTy | hXTy
+  · exact eo_has_smt_translation_of_smt_type_eq hXTy (by simp)
+  · exact eo_has_smt_translation_of_smt_type_eq hXTy (by simp)
 
 theorem uneg_arg_has_smt_translation_of_has_smt_translation
     {x : Term}
