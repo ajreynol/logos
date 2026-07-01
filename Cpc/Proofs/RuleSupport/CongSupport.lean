@@ -12100,7 +12100,7 @@ private theorem congTrueSpine_abs_eq_true
   congTrueSpine_non_reg_unop_eq_true M hM UserOp.abs SmtTerm.abs
     __smtx_model_eval_abs
     (by intro a; rfl)
-    (int_ret_unop_args_non_reg_of_non_none SmtTerm.abs SmtType.Int
+    (arith_unop_args_non_reg_of_non_none SmtTerm.abs
       (by intro a; exact typeof_abs_eq a))
     (by intro a; rw [__smtx_model_eval.eq_22])
     x rhs

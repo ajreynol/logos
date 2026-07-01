@@ -2059,16 +2059,17 @@ theorem real_arg_of_non_none
     simp [hTy, native_ite, native_Teq, h] at ht
   simp
 
-/-- Derives `int_arg` from `non_none`. -/
+/-- Derives the arithmetic argument type of `abs` from `non_none`. -/
 theorem int_arg_of_non_none
     {t : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.abs t)) :
-    __smtx_typeof t = SmtType.Int := by
+    __smtx_typeof t = SmtType.Int ∨ __smtx_typeof t = SmtType.Real := by
   unfold term_has_non_none_type at ht
   rw [__smtx_typeof.eq_22] at ht
   cases h : __smtx_typeof t <;>
-    simp [native_ite, native_Teq, h] at ht
-  rfl
+    simp [__smtx_typeof_arith_overload_op_1, h] at ht
+  · exact Or.inl rfl
+  · exact Or.inr rfl
 
 /-- Shows that evaluating `eq_value` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_eq_value

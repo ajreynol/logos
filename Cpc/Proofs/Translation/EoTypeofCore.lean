@@ -5096,6 +5096,15 @@ theorem eo_to_smt_type_typeof_apply_abs_of_int
   rw [hx]
   rfl
 
+/-- Simplifies EO-to-SMT type translation for `typeof_apply_abs_of_real`. -/
+theorem eo_to_smt_type_typeof_apply_abs_of_real
+    (x : Term)
+    (hx : __eo_typeof x = (Term.UOp UserOp.Real)) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp UserOp.abs) x)) = SmtType.Real := by
+  change __eo_to_smt_type (__eo_typeof_abs (__eo_typeof x)) = SmtType.Real
+  rw [hx]
+  rfl
+
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_str_len_of_seq`. -/
 theorem eo_to_smt_type_typeof_apply_str_len_of_seq
     (x V : Term)

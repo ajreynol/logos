@@ -1051,10 +1051,12 @@ def __smtx_model_eval_to_int : SmtValue -> SmtValue
 def __smtx_model_eval_is_int (x1 : SmtValue) : SmtValue :=
   (__smtx_model_eval_eq (__smtx_model_eval_to_real (__smtx_model_eval_to_int x1)) x1)
 
-def __smtx_model_eval_abs (x1 : SmtValue) : SmtValue :=
-  
-    let _v0 := (SmtValue.Numeral 0)
-    (__smtx_model_eval_ite (__smtx_model_eval_lt x1 _v0) (__smtx_model_eval__ _v0 x1) x1)
+def __smtx_model_eval_abs : SmtValue -> SmtValue
+  | (SmtValue.Numeral x1) =>
+      SmtValue.Numeral (if x1 < 0 then native_zneg x1 else x1)
+  | (SmtValue.Rational x1) =>
+      SmtValue.Rational (if x1 < 0 then native_qneg x1 else x1)
+  | _ => SmtValue.NotValue
 
 def __smtx_model_eval_uneg : SmtValue -> SmtValue
   | (SmtValue.Numeral x1) => (SmtValue.Numeral (native_zneg x1))
@@ -1800,7 +1802,7 @@ def __smtx_typeof : SmtTerm -> SmtType
     (native_ite (native_Teq _v0 SmtType.Int) SmtType.Real (native_ite (native_Teq _v0 SmtType.Real) SmtType.Real SmtType.None))
   | (SmtTerm.to_int x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Real) SmtType.Int SmtType.None)
   | (SmtTerm.is_int x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Real) SmtType.Bool SmtType.None)
-  | (SmtTerm.abs x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Int) SmtType.Int SmtType.None)
+  | (SmtTerm.abs x1) => (__smtx_typeof_arith_overload_op_1 (__smtx_typeof x1))
   | (SmtTerm.uneg x1) => (__smtx_typeof_arith_overload_op_1 (__smtx_typeof x1))
   | (SmtTerm.div x1 x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Int) (native_ite (native_Teq (__smtx_typeof x2) SmtType.Int) SmtType.Int SmtType.None) SmtType.None)
   | (SmtTerm.mod x1 x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Int) (native_ite (native_Teq (__smtx_typeof x2) SmtType.Int) SmtType.Int SmtType.None) SmtType.None)
