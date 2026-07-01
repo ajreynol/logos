@@ -31,6 +31,19 @@ for example in "${examples[@]}"; do
   echo "::endgroup::"
 done
 
+if [ "${#cpc_examples[@]}" -eq 0 ]; then
+  echo "No Cpc examples found under Cpc/Examples/." >&2
+  exit 1
+fi
+
+echo "Compiling ${#cpc_examples[@]} Cpc example modules..."
+for example in "${cpc_examples[@]}"; do
+  module="${example%.lean}"
+  module="${module//\//.}"
+  echo "Compiling ${module}..."
+  lake build "${module}"
+done
+
 # check proofs....
 
 echo "Compiling Cpc.Spec..."
@@ -66,18 +79,5 @@ echo "Compiling CpcMini.Examples.TestSimpleCheckerAssumptions..."
 lake build CpcMini.Examples.TestSimpleCheckerAssumptions
 
 cpc_examples=(Cpc/Examples/*.lean)
-
-if [ "${#cpc_examples[@]}" -eq 0 ]; then
-  echo "No Cpc examples found under Cpc/Examples/." >&2
-  exit 1
-fi
-
-echo "Compiling ${#cpc_examples[@]} Cpc example modules..."
-for example in "${cpc_examples[@]}"; do
-  module="${example%.lean}"
-  module="${module//\//.}"
-  echo "Compiling ${module}..."
-  lake build "${module}"
-done
 
 echo "All CI checks passed."
