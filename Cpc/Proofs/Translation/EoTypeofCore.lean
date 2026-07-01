@@ -33,7 +33,7 @@ private theorem smtx_type_wf_rec_of_type_wf
     (hNotFun : ∀ A B : SmtType, T ≠ SmtType.FunType A B)
     (hNotIFun : ∀ A B : SmtType, T ≠ SmtType.FunType A B)
     (h : __smtx_type_wf T = true) :
-    __smtx_type_wf_rec T native_reflist_nil = true := by
+    __smtx_type_wf_rec T T = true := by
   cases T <;>
     simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
       native_and] at h hNotReg ⊢
@@ -435,7 +435,7 @@ private theorem eo_to_smt_type_unique_of_valid_rec_apply
                 __smtx_datatype_cons_default, __smtx_typeof_value,
                 __smtx_typeof_dt_cons_value_rec, __smtx_dt_substitute,
                 __smtx_dtc_substitute]
-            have hRec : __smtx_type_wf_rec tupleTy native_reflist_nil = true := by
+            have hRec : __smtx_type_wf_rec tupleTy tupleTy = true := by
               simp [tupleTy, __smtx_type_wf_rec,
                 __smtx_dt_wf_rec, __smtx_dt_cons_wf_rec, native_reflist_contains,
                 native_reflist_nil, native_ite]
@@ -2202,7 +2202,7 @@ theorem eo_type_valid_of_smt_wf
         eo_type_valid_of_smt_field_wf_rec [] (smtx_type_field_wf_rec_of_type_wf_rec
           (by simpa [hT2] using hParts.2.2.2))⟩
     · have hRecWf :
-          __smtx_type_wf_rec (__eo_to_smt_type T) native_reflist_nil = true :=
+          __smtx_type_wf_rec (__eo_to_smt_type T) (__eo_to_smt_type T) = true :=
         smtx_type_wf_rec_of_type_wf
           (eo_to_smt_type_ne_reglan_of_ne_reglan_term hReg)
           (by
@@ -3103,7 +3103,7 @@ translation on `__smtx_type_wf` (`wf_component`, i.e. well-formed at the empty r
 theorem tuple_translate_wf {x1 x2 : Term} {s' : native_String} {body : SmtDatatype}
     (h : __eo_to_smt_type (Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) x1) x2)
         = SmtType.Datatype s' body) :
-    __smtx_type_wf_rec (SmtType.Datatype s' body) native_reflist_nil = true := by
+    __smtx_type_wf_rec (SmtType.Datatype s' body) (SmtType.Datatype s' body) = true := by
   simp only [__eo_to_smt_type, native_ite] at h
   split at h
   · next hwf =>
@@ -3117,7 +3117,7 @@ must be a tuple, hence has a well-formed body. -/
 theorem tuple_translate_wf_gen {fieldT : Term} {s' : native_String} {body : SmtDatatype}
     (hnDT : ∀ s2 d2, fieldT ≠ Term.DatatypeType s2 d2)
     (h : __eo_to_smt_type fieldT = SmtType.Datatype s' body) :
-    __smtx_type_wf_rec (SmtType.Datatype s' body) native_reflist_nil = true := by
+    __smtx_type_wf_rec (SmtType.Datatype s' body) (SmtType.Datatype s' body) = true := by
   cases fieldT with
   | DatatypeType s2 d2 => exact absurd rfl (hnDT s2 d2)
   | UOp op =>
@@ -3401,7 +3401,7 @@ private theorem eo_to_smt_ty_lift_of_valid_noDt_non_datatype
   cases htr : __eo_to_smt_type T with
   | Datatype s' body =>
       have hWf :
-          __smtx_type_wf_rec (SmtType.Datatype s' body) native_reflist_nil = true :=
+          __smtx_type_wf_rec (SmtType.Datatype s' body) (SmtType.Datatype s' body) = true :=
         tuple_translate_wf_gen hnDT htr
       have hNoDt' : noDtTy sub (SmtType.Datatype s' body) = true := by
         simpa [htr] using hNoDt

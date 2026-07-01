@@ -5023,7 +5023,7 @@ private theorem explicit_seq_empty_eq_of_same_seq_type
       __smtx_type_wf_component (SmtType.Seq T) = true := by
     simpa [__smtx_type_wf] using hSeqWF
   have hSeqRec :
-      __smtx_type_wf_rec (SmtType.Seq T) native_reflist_nil = true :=
+      __smtx_type_wf_rec (SmtType.Seq T) (SmtType.Seq T) = true :=
     (smtx_type_wf_component_parts hSeqComp).2
   have hFieldWF :
       TranslationProofs.smtx_type_field_wf_rec (SmtType.Seq T)

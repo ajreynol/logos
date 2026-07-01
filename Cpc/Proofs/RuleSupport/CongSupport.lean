@@ -11603,7 +11603,7 @@ private theorem seq_unit_arg_non_reg_of_non_none
         native_reflist_nil = true :=
     (smtx_type_wf_component_parts hSeqComponent).2
   have hArgWfRec :
-      __smtx_type_wf_rec (__smtx_typeof a) native_reflist_nil = true :=
+      __smtx_type_wf_rec (__smtx_typeof a) (__smtx_typeof a) = true :=
     TranslationProofs.seq_type_wf_rec_component_of_wf hSeqWfRec
   exact ⟨__smtx_typeof a, rfl,
     by
@@ -11637,7 +11637,7 @@ private theorem set_singleton_arg_non_reg_of_non_none
         native_reflist_nil = true :=
     (smtx_type_wf_component_parts hSetComponent).2
   have hArgWfRec :
-      __smtx_type_wf_rec (__smtx_typeof a) native_reflist_nil = true :=
+      __smtx_type_wf_rec (__smtx_typeof a) (__smtx_typeof a) = true :=
     TranslationProofs.set_type_wf_rec_component_of_wf hSetWfRec
   exact ⟨__smtx_typeof a, rfl,
     by
@@ -11659,7 +11659,7 @@ private theorem select_args_non_reg_of_non_none
     exact hNN
   rcases select_args_of_non_none hTerm with ⟨K, V, ha, hb⟩
   have hKWf :
-      __smtx_type_wf_rec K native_reflist_nil = true :=
+      __smtx_type_wf_rec K K = true :=
     (smt_map_components_wf_rec_of_non_none_type a K V ha).1
   exact ⟨SmtType.Map K V, K, ha, hb,
     by simp,
@@ -11683,7 +11683,7 @@ private theorem set_member_args_non_reg_of_non_none
     exact hNN
   rcases set_member_args_of_non_none hTerm with ⟨K, ha, hb⟩
   have hKWf :
-      __smtx_type_wf_rec K native_reflist_nil = true :=
+      __smtx_type_wf_rec K K = true :=
     smt_set_component_wf_rec_of_non_none_type b K hb
   exact ⟨K, SmtType.Set K, ha, hb,
     by

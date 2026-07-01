@@ -858,7 +858,7 @@ base-infinite field) lives. -/
 private theorem grow_witness
     (s : native_String) (d : SmtDatatype)
     (hInh : native_inhabited_type (SmtType.Datatype s d) = true)
-    (hWf : __smtx_type_wf_rec (SmtType.Datatype s d) native_reflist_nil = true)
+    (hWf : __smtx_type_wf_rec (SmtType.Datatype s d) (SmtType.Datatype s d) = true)
     (hInf : __smtx_is_finite_datatype d = false)
     (w : SmtValue) (hwTy : __smtx_typeof_value w = SmtType.Datatype s d)
     (hwCan : __smtx_value_canonical_bool w = true) :
@@ -869,7 +869,7 @@ private theorem grow_witness
 private theorem infinite_datatype_large_witness :
     ∀ (N : Nat) (s : native_String) (d : SmtDatatype),
       native_inhabited_type (SmtType.Datatype s d) = true →
-      __smtx_type_wf_rec (SmtType.Datatype s d) native_reflist_nil = true →
+      __smtx_type_wf_rec (SmtType.Datatype s d) (SmtType.Datatype s d) = true →
       __smtx_is_finite_datatype d = false →
       ∃ i : SmtValue, __smtx_typeof_value i = SmtType.Datatype s d ∧
         __smtx_value_canonical_bool i = true ∧ N ≤ sizeOf i := by
@@ -890,7 +890,7 @@ inhabitants avoiding any finite list — reduced to `infinite_datatype_large_wit
 theorem cpc_infinite_datatype_fresh_value_assumption
     (s : native_String) (d : SmtDatatype)
     (_hInh : native_inhabited_type (SmtType.Datatype s d) = true)
-    (_hRec : __smtx_type_wf_rec (SmtType.Datatype s d) native_reflist_nil = true)
+    (_hRec : __smtx_type_wf_rec (SmtType.Datatype s d) (SmtType.Datatype s d) = true)
     (_hInfinite : __smtx_is_finite_type (SmtType.Datatype s d) = false)
     (avoid : List SmtValue) :
     ∃ i : SmtValue,
@@ -968,8 +968,8 @@ private theorem finite_nonunit_type_nondefault_value :
   | SmtType.DtcAppType A B, _refs, _hInh, hRec, _hFin, _hNU => by simp [__smtx_type_wf_rec] at hRec
   | SmtType.Seq A, _refs, _hInh, _hRec, hFin, _hNU => by simp [__smtx_is_finite_type] at hFin
   | SmtType.Map T U, _refs, _hInh, hRec, hFin, hNU => by
-      have hP : native_inhabited_type T = true ∧ __smtx_type_wf_rec T native_reflist_nil = true ∧
-          native_inhabited_type U = true ∧ __smtx_type_wf_rec U native_reflist_nil = true := by
+      have hP : native_inhabited_type T = true ∧ __smtx_type_wf_rec T T = true ∧
+          native_inhabited_type U = true ∧ __smtx_type_wf_rec U U = true := by
         simpa [__smtx_type_wf_rec, native_and] using hRec
       have hUNU : __smtx_is_unit_type U = false := by simpa [__smtx_is_unit_type] using hNU
       have hUFin : __smtx_is_finite_type U = true := by
@@ -995,7 +995,7 @@ private theorem finite_nonunit_type_nondefault_value :
           apply decide_eq_false; simpa [__smtx_type_default] using hUNV
         simp [__smtx_type_default, __smtx_type_default_rec, native_veq, native_ite, hcond]
   | SmtType.Set T, _refs, _hInh, hRec, hFin, _hNU => by
-      have hP : native_inhabited_type T = true ∧ __smtx_type_wf_rec T native_reflist_nil = true := by
+      have hP : native_inhabited_type T = true ∧ __smtx_type_wf_rec T T = true := by
         simpa [__smtx_type_wf_rec, native_and] using hRec
       have hTFin : __smtx_is_finite_type T = true := by simpa [__smtx_is_finite_type] using hFin
       have hTD := type_default_typed_canonical_of_native_inhabited hP.1
@@ -1202,7 +1202,7 @@ value-substitution "inhabit" construction. -/
 theorem cpc_finite_nonunit_datatype_nondefault_value_assumption
     (s : native_String) (d : SmtDatatype)
     (_hInh : native_inhabited_type (SmtType.Datatype s d) = true)
-    (_hRec : __smtx_type_wf_rec (SmtType.Datatype s d) native_reflist_nil = true)
+    (_hRec : __smtx_type_wf_rec (SmtType.Datatype s d) (SmtType.Datatype s d) = true)
     (_hFinite : __smtx_is_finite_type (SmtType.Datatype s d) = true)
     (_hNonUnit : __smtx_is_unit_type (SmtType.Datatype s d) = false) :
     ∃ e : SmtValue,
@@ -1217,7 +1217,7 @@ theorem cpc_finite_nonunit_datatype_nondefault_value_assumption
 theorem cpc_nonunit_typed_canonical_nondefault_value
     (A : SmtType)
     (_hInh : native_inhabited_type A = true)
-    (_hRec : __smtx_type_wf_rec A native_reflist_nil = true)
+    (_hRec : __smtx_type_wf_rec A A = true)
     (_hNonUnit : __smtx_is_unit_type A = false) :
     ∃ e : SmtValue,
       __smtx_typeof_value e = A ∧
@@ -1255,9 +1255,9 @@ theorem cpc_nonunit_typed_canonical_nondefault_value
   | Map T U =>
       have hRecParts :
           native_inhabited_type T = true ∧
-            __smtx_type_wf_rec T native_reflist_nil = true ∧
+            __smtx_type_wf_rec T T = true ∧
               native_inhabited_type U = true ∧
-                __smtx_type_wf_rec U native_reflist_nil = true := by
+                __smtx_type_wf_rec U U = true := by
         simpa [__smtx_type_wf_rec, native_and] using _hRec
       have hUNonUnit : __smtx_is_unit_type U = false := by
         simpa [__smtx_is_unit_type] using _hNonUnit
@@ -1294,7 +1294,7 @@ theorem cpc_nonunit_typed_canonical_nondefault_value
   | Set T =>
       have hRecParts :
           native_inhabited_type T = true ∧
-            __smtx_type_wf_rec T native_reflist_nil = true := by
+            __smtx_type_wf_rec T T = true := by
         simpa [__smtx_type_wf_rec, native_and] using _hRec
       have hTDefault :=
         type_default_typed_canonical_of_native_inhabited hRecParts.1
@@ -1315,7 +1315,7 @@ theorem cpc_nonunit_typed_canonical_nondefault_value
   | Seq T =>
       have hRecParts :
           native_inhabited_type T = true ∧
-            __smtx_type_wf_rec T native_reflist_nil = true := by
+            __smtx_type_wf_rec T T = true := by
         simpa [__smtx_type_wf_rec, native_and] using _hRec
       have hTDefault :=
         type_default_typed_canonical_of_native_inhabited hRecParts.1
@@ -1362,7 +1362,7 @@ termination_by sizeOf A
 theorem cpc_fresh_typed_canonical_value_for_infinite_type_assumption
     (A : SmtType)
     (_hInh : native_inhabited_type A = true)
-    (_hRec : __smtx_type_wf_rec A native_reflist_nil = true)
+    (_hRec : __smtx_type_wf_rec A A = true)
     (_hInfinite : __smtx_is_finite_type A = false)
     (avoid : List SmtValue) :
     ∃ i : SmtValue,
@@ -1393,9 +1393,9 @@ theorem cpc_fresh_typed_canonical_value_for_infinite_type_assumption
       by_cases hUInfinite : __smtx_is_finite_type U = false
       · have hRecParts :
             native_inhabited_type T = true ∧
-              __smtx_type_wf_rec T native_reflist_nil = true ∧
+              __smtx_type_wf_rec T T = true ∧
                 native_inhabited_type U = true ∧
-                  __smtx_type_wf_rec U native_reflist_nil = true := by
+                  __smtx_type_wf_rec U U = true := by
           simpa [__smtx_type_wf_rec, native_and] using _hRec
         have hTDefault :
             __smtx_typeof_value (__smtx_type_default T) = T ∧
@@ -1449,9 +1449,9 @@ theorem cpc_fresh_typed_canonical_value_for_infinite_type_assumption
           by
             have hRecParts :
                 native_inhabited_type T = true ∧
-                  __smtx_type_wf_rec T native_reflist_nil = true ∧
+                  __smtx_type_wf_rec T T = true ∧
                     native_inhabited_type U = true ∧
-                      __smtx_type_wf_rec U native_reflist_nil = true := by
+                      __smtx_type_wf_rec U U = true := by
               simpa [__smtx_type_wf_rec, native_and] using _hRec
             have hUFinite : __smtx_is_finite_type U = true := by
               cases hUF : __smtx_is_finite_type U <;> simp [hUF] at hUInfinite ⊢
@@ -1500,7 +1500,7 @@ theorem cpc_fresh_typed_canonical_value_for_infinite_type_assumption
   | Set T =>
       have hRecParts :
           native_inhabited_type T = true ∧
-            __smtx_type_wf_rec T native_reflist_nil = true := by
+            __smtx_type_wf_rec T T = true := by
         simpa [__smtx_type_wf_rec, native_and] using _hRec
       have hTInfinite : __smtx_is_finite_type T = false := by
         simpa [__smtx_is_finite_type] using _hInfinite
@@ -1529,7 +1529,7 @@ theorem cpc_fresh_typed_canonical_value_for_infinite_type_assumption
   | Seq T =>
       have hRecParts :
           native_inhabited_type T = true ∧
-            __smtx_type_wf_rec T native_reflist_nil = true := by
+            __smtx_type_wf_rec T T = true := by
         simpa [__smtx_type_wf_rec, native_and] using _hRec
       rcases seq_inhabited_large_witness T hRecParts.1
           (smt_value_size_bound avoid) with
@@ -1591,7 +1591,7 @@ theorem cpc_fresh_default_lookup_for_infinite_map_domain_assumption
     (_hm1Can : __smtx_map_canonical m1 = true)
     (_hm2Can : __smtx_map_canonical m2 = true)
     (hAInh : native_inhabited_type A = true)
-    (hARec : __smtx_type_wf_rec A native_reflist_nil = true)
+    (hARec : __smtx_type_wf_rec A A = true)
     (_hInfinite : __smtx_is_finite_type A = false) :
     ∃ i : SmtValue,
       __smtx_typeof_value i = A ∧

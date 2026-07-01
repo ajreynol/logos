@@ -322,10 +322,10 @@ theorem smtx_type_wf_rec_guard_of_true
 theorem seq_type_wf_rec_component_of_wf
     {A : SmtType} {refs : RefList}
     (h : __smtx_type_wf_rec (SmtType.Seq A) refs = true) :
-    __smtx_type_wf_rec A native_reflist_nil = true := by
+    __smtx_type_wf_rec A A = true := by
   have hA :
       native_inhabited_type A = true ∧
-        __smtx_type_wf_rec A native_reflist_nil = true := by
+        __smtx_type_wf_rec A A = true := by
     simpa [__smtx_type_wf_rec, native_and] using h
   exact hA.2
 
@@ -340,10 +340,10 @@ theorem seq_type_field_wf_rec_component_of_wf
 theorem set_type_wf_rec_component_of_wf
     {A : SmtType} {refs : RefList}
     (h : __smtx_type_wf_rec (SmtType.Set A) refs = true) :
-    __smtx_type_wf_rec A native_reflist_nil = true := by
+    __smtx_type_wf_rec A A = true := by
   have hA :
       native_inhabited_type A = true ∧
-        __smtx_type_wf_rec A native_reflist_nil = true := by
+        __smtx_type_wf_rec A A = true := by
     simpa [__smtx_type_wf_rec, native_and] using h
   exact hA.2
 
@@ -358,13 +358,13 @@ theorem set_type_field_wf_rec_component_of_wf
 theorem map_type_wf_rec_components_of_wf
     {A B : SmtType} {refs : RefList}
     (h : __smtx_type_wf_rec (SmtType.Map A B) refs = true) :
-    __smtx_type_wf_rec A native_reflist_nil = true ∧
-      __smtx_type_wf_rec B native_reflist_nil = true := by
+    __smtx_type_wf_rec A A = true ∧
+      __smtx_type_wf_rec B B = true := by
   have h' :
       native_inhabited_type A = true ∧
-        __smtx_type_wf_rec A native_reflist_nil = true ∧
+        __smtx_type_wf_rec A A = true ∧
           native_inhabited_type B = true ∧
-            __smtx_type_wf_rec B native_reflist_nil = true := by
+            __smtx_type_wf_rec B B = true := by
     simpa [__smtx_type_wf_rec, native_and] using h
   exact ⟨h'.2.1, h'.2.2.2⟩
 
@@ -381,21 +381,21 @@ theorem map_type_field_wf_rec_components_of_wf
 theorem fun_type_wf_rec_components_of_wf
     {A B : SmtType}
     (h : __smtx_type_wf (SmtType.FunType A B) = true) :
-    __smtx_type_wf_rec A native_reflist_nil = true ∧
-      __smtx_type_wf_rec B native_reflist_nil = true := by
+    __smtx_type_wf_rec A A = true ∧
+      __smtx_type_wf_rec B B = true := by
   have h' :
       (native_inhabited_type A = true ∧
-        __smtx_type_wf_rec A native_reflist_nil = true) ∧
+        __smtx_type_wf_rec A A = true) ∧
         (native_inhabited_type B = true ∧
-          __smtx_type_wf_rec B native_reflist_nil = true) := by
+          __smtx_type_wf_rec B B = true) := by
     simpa [__smtx_type_wf, __smtx_type_wf_component, native_and] using h
   exact ⟨h'.1.2, h'.2.2⟩
 
 theorem ifun_type_wf_rec_components_of_wf
     {A B : SmtType}
     (h : __smtx_type_wf (SmtType.FunType A B) = true) :
-    __smtx_type_wf_rec A native_reflist_nil = true ∧
-      __smtx_type_wf_rec B native_reflist_nil = true := by
+    __smtx_type_wf_rec A A = true ∧
+      __smtx_type_wf_rec B B = true := by
   exact fun_type_wf_rec_components_of_wf h
 
 theorem fun_type_field_wf_rec_components_of_wf
@@ -2476,7 +2476,7 @@ theorem eo_typeof_type_of_smt_type_wf_rec :
                                   exact eo_typeof_type_of_smt_type_wf_rec y
                                     (native_reflist_insert native_reflist_nil (native_string_lit "@Tuple")) hyWF
                               have hxWF :
-                                  __smtx_type_wf_rec (__eo_to_smt_type x) native_reflist_nil =
+                                  __smtx_type_wf_rec (__eo_to_smt_type x) (__eo_to_smt_type x) =
                                     true := by
                                 rw [hX]
                                 simp [__smtx_type_wf_rec, __smtx_dt_wf_rec,
