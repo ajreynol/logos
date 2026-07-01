@@ -415,6 +415,28 @@ theorem dtcons_reserved_false_of_apply_has_smt_translation
       simpa [native_ite] using
         TranslationProofs.typeof_apply_none_eq (__eo_to_smt a))
 
+theorem dtsel_reserved_false_of_apply_has_smt_translation
+    {s : native_String} {d : Datatype} {i j : native_Nat} {a : Term}
+    (hTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.DtSel s d i j) a)) :
+    native_reserved_datatype_name s = false := by
+  unfold RuleProofs.eo_has_smt_translation at hTrans
+  change
+    __smtx_typeof
+        (SmtTerm.Apply
+          (native_ite (native_reserved_datatype_name s) SmtTerm.None
+            (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j))
+          (__eo_to_smt a)) ≠
+      SmtType.None at hTrans
+  cases hReserved : native_reserved_datatype_name s
+  · rfl
+  · exfalso
+    rw [hReserved] at hTrans
+    exact hTrans (by
+      simpa [native_ite] using
+        TranslationProofs.typeof_apply_none_eq (__eo_to_smt a))
+
 theorem substitute_simul_rec_apply_typeof_eq_of_typeof_ne_stuck
     (f a xs ss bvs : Term)
     {xsVars bvsVars : List EoVarKey}
@@ -1014,6 +1036,129 @@ theorem substitute_simul_rec_apply_atom_generic_typeof_eq_of_typeof_ne_stuck
       (generic_apply_type_of_non_special_head_closed
         (__eo_to_smt F) (__eo_to_smt a) hNoSel hNoTester)
       hTrans hARec hTy
+
+theorem substitute_simul_rec_apply_dtsel_typeof_eq_of_typeof_ne_stuck
+    (s : native_String) (d : Datatype) (i j : native_Nat)
+    (a xs ss bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hSs : EoListAllHaveSmtTranslation ss)
+    (hTrans : RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.DtSel s d i j) a))
+    (hARec :
+      RuleProofs.eo_has_smt_translation a ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) a xs ss bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) a xs ss bvs) =
+          __eo_typeof a)
+    (hTy :
+      __eo_typeof
+          (__substitute_simul_rec (Term.Boolean false)
+            (Term.Apply (Term.DtSel s d i j) a) xs ss bvs) ≠
+        Term.Stuck) :
+    __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.DtSel s d i j) a) xs ss bvs) =
+      __eo_typeof (Term.Apply (Term.DtSel s d i j) a) := by
+  have hisr : (Term.Boolean false : Term) ≠ Term.Stuck := by decide
+  have hxs : xs ≠ Term.Stuck := hXsEnv.ne_stuck
+  have hss : ss ≠ Term.Stuck := eoListAllHaveSmtTranslation_ne_stuck hSs
+  have hbvs : bvs ≠ Term.Stuck := hBvsEnv.ne_stuck
+  have hNotBinder :
+      ∀ q v vs, Term.DtSel s d i j ≠ Term.Apply q (consTerm v vs) := by
+    intro q v vs h
+    cases h
+  have hSubstEq :
+      __substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.DtSel s d i j) a) xs ss bvs =
+        __eo_mk_apply
+          (__substitute_simul_rec (Term.Boolean false)
+            (Term.DtSel s d i j) xs ss bvs)
+          (__substitute_simul_rec (Term.Boolean false) a xs ss bvs) :=
+    substitute_simul_rec_apply
+      (Term.Boolean false) (Term.DtSel s d i j) a xs ss bvs
+      hisr hxs hss hbvs hNotBinder
+  have hHeadNe :
+      __substitute_simul_rec (Term.Boolean false)
+          (Term.DtSel s d i j) xs ss bvs ≠
+        Term.Stuck :=
+    substitute_simul_rec_apply_head_ne_stuck_of_typeof_ne_stuck
+      (Term.DtSel s d i j) a xs ss bvs hXsEnv hBvsEnv hSs
+      hNotBinder hTy
+  have hHeadEq :
+      __substitute_simul_rec (Term.Boolean false)
+          (Term.DtSel s d i j) xs ss bvs =
+        Term.DtSel s d i j :=
+    substitute_simul_rec_atom_eq_self_of_ne_stuck
+      (Term.DtSel s d i j) xs ss bvs hXsEnv hBvsEnv hSs
+      (by intro f x h; cases h)
+      (by intro name T h; cases h)
+      (by intro h; cases h)
+      hHeadNe
+  rw [hSubstEq, hHeadEq] at hTy ⊢
+  have hMk :
+      __eo_mk_apply
+          (Term.DtSel s d i j)
+          (__substitute_simul_rec (Term.Boolean false) a xs ss bvs) =
+        Term.Apply (Term.DtSel s d i j)
+          (__substitute_simul_rec (Term.Boolean false) a xs ss bvs) :=
+    eo_mk_apply_eq_apply_of_typeof_ne_stuck hTy
+  rw [hMk] at hTy ⊢
+  have hReserved :
+      native_reserved_datatype_name s = false :=
+    dtsel_reserved_false_of_apply_has_smt_translation hTrans
+  have hApplyNN :
+      term_has_non_none_type
+        (SmtTerm.Apply
+          (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j)
+          (__eo_to_smt a)) := by
+    unfold term_has_non_none_type
+    unfold RuleProofs.eo_has_smt_translation at hTrans
+    change
+      __smtx_typeof
+          (SmtTerm.Apply
+            (native_ite (native_reserved_datatype_name s) SmtTerm.None
+              (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j))
+            (__eo_to_smt a)) ≠
+        SmtType.None at hTrans
+    rw [hReserved] at hTrans
+    simpa [native_ite] using hTrans
+  have hATrans : RuleProofs.eo_has_smt_translation a := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [dt_sel_arg_datatype_of_non_none hApplyNN]
+    intro h
+    cases h
+  have hATy :
+      __eo_typeof
+          (__substitute_simul_rec (Term.Boolean false) a xs ss bvs) ≠
+        Term.Stuck := by
+    intro hArgTy
+    apply hTy
+    change
+      __eo_typeof_apply
+          (__eo_typeof (Term.DtSel s d i j))
+          (__eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) a xs ss bvs)) =
+        Term.Stuck
+    rw [hArgTy]
+    rfl
+  have hAType :
+      __eo_typeof
+          (__substitute_simul_rec (Term.Boolean false) a xs ss bvs) =
+        __eo_typeof a :=
+    hARec hATrans hATy
+  change
+    __eo_typeof_apply
+        (__eo_typeof (Term.DtSel s d i j))
+        (__eo_typeof
+          (__substitute_simul_rec (Term.Boolean false) a xs ss bvs)) =
+      __eo_typeof_apply
+        (__eo_typeof (Term.DtSel s d i j))
+        (__eo_typeof a)
+  rw [hAType]
 
 theorem substitute_simul_rec_var_string_typeof_eq
     (s : native_String) (T xs ss bvs : Term)
@@ -5042,6 +5187,119 @@ theorem substitute_simul_rec_typeof_eq_of_typeof_ne_stuck_lt
                                                                                                           hATrans hSs
                                                                                                           hEntryTypes hATy)
                                                                                                       hTy
+                                                                                              | DtSel s d i j =>
+                                                                                                  exact
+                                                                                                    substitute_simul_rec_apply_dtsel_typeof_eq_of_typeof_ne_stuck
+                                                                                                      s d i j a xs ss bvs
+                                                                                                      hXsEnv hBvsEnv hSs
+                                                                                                      hFTrans
+                                                                                                      (fun hATrans hATy =>
+                                                                                                        hRec
+                                                                                                          (G := a)
+                                                                                                          (xs' := xs)
+                                                                                                          (ss' := ss)
+                                                                                                          (bvs' := bvs)
+                                                                                                          (by simp; omega)
+                                                                                                          hXsEnv hBvsEnv
+                                                                                                          hATrans hSs
+                                                                                                          hEntryTypes hATy)
+                                                                                                      hTy
+                                                                                              | __eo_List =>
+                                                                                                  exact
+                                                                                                    substitute_simul_rec_apply_atom_generic_typeof_eq_of_typeof_ne_stuck
+                                                                                                      Term.__eo_List a xs ss bvs
+                                                                                                      hXsEnv hBvsEnv hSs
+                                                                                                      (by intro f x h; cases h)
+                                                                                                      (by intro name T h; cases h)
+                                                                                                      (by intro h; cases h)
+                                                                                                      (by intro q v vs hEq; cases hEq)
+                                                                                                      (by rfl)
+                                                                                                      (by intro s d i j h; cases h)
+                                                                                                      (by intro s d i h; cases h)
+                                                                                                      hFTrans
+                                                                                                      (fun hATrans hATy =>
+                                                                                                        hRec
+                                                                                                          (G := a)
+                                                                                                          (xs' := xs)
+                                                                                                          (ss' := ss)
+                                                                                                          (bvs' := bvs)
+                                                                                                          (by simp; omega)
+                                                                                                          hXsEnv hBvsEnv
+                                                                                                          hATrans hSs
+                                                                                                          hEntryTypes hATy)
+                                                                                                      hTy
+                                                                                              | __eo_List_nil =>
+                                                                                                  exact
+                                                                                                    substitute_simul_rec_apply_atom_generic_typeof_eq_of_typeof_ne_stuck
+                                                                                                      Term.__eo_List_nil a xs ss bvs
+                                                                                                      hXsEnv hBvsEnv hSs
+                                                                                                      (by intro f x h; cases h)
+                                                                                                      (by intro name T h; cases h)
+                                                                                                      (by intro h; cases h)
+                                                                                                      (by intro q v vs hEq; cases hEq)
+                                                                                                      (by rfl)
+                                                                                                      (by intro s d i j h; cases h)
+                                                                                                      (by intro s d i h; cases h)
+                                                                                                      hFTrans
+                                                                                                      (fun hATrans hATy =>
+                                                                                                        hRec
+                                                                                                          (G := a)
+                                                                                                          (xs' := xs)
+                                                                                                          (ss' := ss)
+                                                                                                          (bvs' := bvs)
+                                                                                                          (by simp; omega)
+                                                                                                          hXsEnv hBvsEnv
+                                                                                                          hATrans hSs
+                                                                                                          hEntryTypes hATy)
+                                                                                                      hTy
+                                                                                              | __eo_List_cons =>
+                                                                                                  exact
+                                                                                                    substitute_simul_rec_apply_atom_generic_typeof_eq_of_typeof_ne_stuck
+                                                                                                      Term.__eo_List_cons a xs ss bvs
+                                                                                                      hXsEnv hBvsEnv hSs
+                                                                                                      (by intro f x h; cases h)
+                                                                                                      (by intro name T h; cases h)
+                                                                                                      (by intro h; cases h)
+                                                                                                      (by intro q v vs hEq; cases hEq)
+                                                                                                      (by rfl)
+                                                                                                      (by intro s d i j h; cases h)
+                                                                                                      (by intro s d i h; cases h)
+                                                                                                      hFTrans
+                                                                                                      (fun hATrans hATy =>
+                                                                                                        hRec
+                                                                                                          (G := a)
+                                                                                                          (xs' := xs)
+                                                                                                          (ss' := ss)
+                                                                                                          (bvs' := bvs)
+                                                                                                          (by simp; omega)
+                                                                                                          hXsEnv hBvsEnv
+                                                                                                          hATrans hSs
+                                                                                                          hEntryTypes hATy)
+                                                                                                      hTy
+                                                                                              | Bool =>
+                                                                                                  exact
+                                                                                                    substitute_simul_rec_apply_atom_generic_typeof_eq_of_typeof_ne_stuck
+                                                                                                      Term.Bool a xs ss bvs
+                                                                                                      hXsEnv hBvsEnv hSs
+                                                                                                      (by intro f x h; cases h)
+                                                                                                      (by intro name T h; cases h)
+                                                                                                      (by intro h; cases h)
+                                                                                                      (by intro q v vs hEq; cases hEq)
+                                                                                                      (by rfl)
+                                                                                                      (by intro s d i j h; cases h)
+                                                                                                      (by intro s d i h; cases h)
+                                                                                                      hFTrans
+                                                                                                      (fun hATrans hATy =>
+                                                                                                        hRec
+                                                                                                          (G := a)
+                                                                                                          (xs' := xs)
+                                                                                                          (ss' := ss)
+                                                                                                          (bvs' := bvs)
+                                                                                                          (by simp; omega)
+                                                                                                          hXsEnv hBvsEnv
+                                                                                                          hATrans hSs
+                                                                                                          hEntryTypes hATy)
+                                                                                                      hTy
                                                                                               | Boolean b =>
                                                                                                   exact
                                                                                                     substitute_simul_rec_apply_atom_generic_typeof_eq_of_typeof_ne_stuck
@@ -5162,6 +5420,161 @@ theorem substitute_simul_rec_typeof_eq_of_typeof_ne_stuck_lt
                                                                                                           hATrans hSs
                                                                                                           hEntryTypes hATy)
                                                                                                       hTy
+                                                                                              | Type =>
+                                                                                                  exact
+                                                                                                    substitute_simul_rec_apply_atom_generic_typeof_eq_of_typeof_ne_stuck
+                                                                                                      Term.Type a xs ss bvs
+                                                                                                      hXsEnv hBvsEnv hSs
+                                                                                                      (by intro f x h; cases h)
+                                                                                                      (by intro name T h; cases h)
+                                                                                                      (by intro h; cases h)
+                                                                                                      (by intro q v vs hEq; cases hEq)
+                                                                                                      (by rfl)
+                                                                                                      (by intro s d i j h; cases h)
+                                                                                                      (by intro s d i h; cases h)
+                                                                                                      hFTrans
+                                                                                                      (fun hATrans hATy =>
+                                                                                                        hRec
+                                                                                                          (G := a)
+                                                                                                          (xs' := xs)
+                                                                                                          (ss' := ss)
+                                                                                                          (bvs' := bvs)
+                                                                                                          (by simp; omega)
+                                                                                                          hXsEnv hBvsEnv
+                                                                                                          hATrans hSs
+                                                                                                          hEntryTypes hATy)
+                                                                                                      hTy
+                                                                                              | FunType =>
+                                                                                                  exact
+                                                                                                    substitute_simul_rec_apply_atom_generic_typeof_eq_of_typeof_ne_stuck
+                                                                                                      Term.FunType a xs ss bvs
+                                                                                                      hXsEnv hBvsEnv hSs
+                                                                                                      (by intro f x h; cases h)
+                                                                                                      (by intro name T h; cases h)
+                                                                                                      (by intro h; cases h)
+                                                                                                      (by intro q v vs hEq; cases hEq)
+                                                                                                      (by rfl)
+                                                                                                      (by intro s d i j h; cases h)
+                                                                                                      (by intro s d i h; cases h)
+                                                                                                      hFTrans
+                                                                                                      (fun hATrans hATy =>
+                                                                                                        hRec
+                                                                                                          (G := a)
+                                                                                                          (xs' := xs)
+                                                                                                          (ss' := ss)
+                                                                                                          (bvs' := bvs)
+                                                                                                          (by simp; omega)
+                                                                                                          hXsEnv hBvsEnv
+                                                                                                          hATrans hSs
+                                                                                                          hEntryTypes hATy)
+                                                                                                      hTy
+                                                                                              | DatatypeType s d =>
+                                                                                                  exact
+                                                                                                    substitute_simul_rec_apply_atom_generic_typeof_eq_of_typeof_ne_stuck
+                                                                                                      (Term.DatatypeType s d) a xs ss bvs
+                                                                                                      hXsEnv hBvsEnv hSs
+                                                                                                      (by intro f x h; cases h)
+                                                                                                      (by intro name T h; cases h)
+                                                                                                      (by intro h; cases h)
+                                                                                                      (by intro q v vs hEq; cases hEq)
+                                                                                                      (by rfl)
+                                                                                                      (by intro s d i j h; cases h)
+                                                                                                      (by intro s d i h; cases h)
+                                                                                                      hFTrans
+                                                                                                      (fun hATrans hATy =>
+                                                                                                        hRec
+                                                                                                          (G := a)
+                                                                                                          (xs' := xs)
+                                                                                                          (ss' := ss)
+                                                                                                          (bvs' := bvs)
+                                                                                                          (by simp; omega)
+                                                                                                          hXsEnv hBvsEnv
+                                                                                                          hATrans hSs
+                                                                                                          hEntryTypes hATy)
+                                                                                                      hTy
+                                                                                              | DatatypeTypeRef s =>
+                                                                                                  exact
+                                                                                                    substitute_simul_rec_apply_atom_generic_typeof_eq_of_typeof_ne_stuck
+                                                                                                      (Term.DatatypeTypeRef s) a xs ss bvs
+                                                                                                      hXsEnv hBvsEnv hSs
+                                                                                                      (by intro f x h; cases h)
+                                                                                                      (by intro name T h; cases h)
+                                                                                                      (by intro h; cases h)
+                                                                                                      (by intro q v vs hEq; cases hEq)
+                                                                                                      (by rfl)
+                                                                                                      (by intro s d i j h; cases h)
+                                                                                                      (by intro s d i h; cases h)
+                                                                                                      hFTrans
+                                                                                                      (fun hATrans hATy =>
+                                                                                                        hRec
+                                                                                                          (G := a)
+                                                                                                          (xs' := xs)
+                                                                                                          (ss' := ss)
+                                                                                                          (bvs' := bvs)
+                                                                                                          (by simp; omega)
+                                                                                                          hXsEnv hBvsEnv
+                                                                                                          hATrans hSs
+                                                                                                          hEntryTypes hATy)
+                                                                                                      hTy
+                                                                                              | DtcAppType T U =>
+                                                                                                  exact
+                                                                                                    substitute_simul_rec_apply_atom_generic_typeof_eq_of_typeof_ne_stuck
+                                                                                                      (Term.DtcAppType T U) a xs ss bvs
+                                                                                                      hXsEnv hBvsEnv hSs
+                                                                                                      (by intro f x h; cases h)
+                                                                                                      (by intro name T h; cases h)
+                                                                                                      (by intro h; cases h)
+                                                                                                      (by intro q v vs hEq; cases hEq)
+                                                                                                      (by rfl)
+                                                                                                      (by intro s d i j h; cases h)
+                                                                                                      (by intro s d i h; cases h)
+                                                                                                      hFTrans
+                                                                                                      (fun hATrans hATy =>
+                                                                                                        hRec
+                                                                                                          (G := a)
+                                                                                                          (xs' := xs)
+                                                                                                          (ss' := ss)
+                                                                                                          (bvs' := bvs)
+                                                                                                          (by simp; omega)
+                                                                                                          hXsEnv hBvsEnv
+                                                                                                          hATrans hSs
+                                                                                                          hEntryTypes hATy)
+                                                                                                      hTy
+                                                                                              | USort i =>
+                                                                                                  exact
+                                                                                                    substitute_simul_rec_apply_atom_generic_typeof_eq_of_typeof_ne_stuck
+                                                                                                      (Term.USort i) a xs ss bvs
+                                                                                                      hXsEnv hBvsEnv hSs
+                                                                                                      (by intro f x h; cases h)
+                                                                                                      (by intro name T h; cases h)
+                                                                                                      (by intro h; cases h)
+                                                                                                      (by intro q v vs hEq; cases hEq)
+                                                                                                      (by rfl)
+                                                                                                      (by intro s d i j h; cases h)
+                                                                                                      (by intro s d i h; cases h)
+                                                                                                      hFTrans
+                                                                                                      (fun hATrans hATy =>
+                                                                                                        hRec
+                                                                                                          (G := a)
+                                                                                                          (xs' := xs)
+                                                                                                          (ss' := ss)
+                                                                                                          (bvs' := bvs)
+                                                                                                          (by simp; omega)
+                                                                                                          hXsEnv hBvsEnv
+                                                                                                          hATrans hSs
+                                                                                                          hEntryTypes hATy)
+                                                                                                      hTy
+                                                                                              | Stuck =>
+                                                                                                  exact False.elim (by
+                                                                                                    unfold RuleProofs.eo_has_smt_translation at hFTrans
+                                                                                                    change
+                                                                                                      __smtx_typeof
+                                                                                                          (SmtTerm.Apply SmtTerm.None
+                                                                                                            (__eo_to_smt a)) ≠
+                                                                                                        SmtType.None at hFTrans
+                                                                                                    exact hFTrans
+                                                                                                      (TranslationProofs.typeof_apply_none_eq
+                                                                                                        (__eo_to_smt a)))
                                                                                               | _ => sorry
       | Var name T =>
           exact
