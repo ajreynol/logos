@@ -19313,6 +19313,7 @@ private def re_action_frontier_true_local : Term -> Prop
   | Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []) => True
   | Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) head) tail =>
       __re_flatten (Term.Boolean false) head = head ∧
+        __re_rev_comp head ≠ Term.Stuck ∧
         re_action_frontier_true_local tail
   | _ => False
 
@@ -19322,7 +19323,7 @@ private theorem re_action_frontier_true_tail_local
       re_action_frontier_true_local
         (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) head) tail)) :
     re_action_frontier_true_local tail :=
-  hFrontier.2
+  hFrontier.2.2
 
 private theorem re_action_frontier_true_ne_stuck_local
     (t : Term)
@@ -19333,6 +19334,7 @@ private theorem re_action_frontier_true_ne_stuck_local
 private theorem re_action_frontier_true_mk_concat_local
     (head tail : Term)
     (hHead : __re_flatten (Term.Boolean false) head = head)
+    (hHeadComp : __re_rev_comp head ≠ Term.Stuck)
     (hTail : re_action_frontier_true_local tail)
     (hMk :
       __eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.re_concat) head)
@@ -19355,7 +19357,7 @@ private theorem re_action_frontier_true_mk_concat_local
       (by simpa [inner] using hMk), hInnerEq]
   change re_action_frontier_true_local (__eo_mk_apply inner tail)
   rw [hMkEq]
-  exact ⟨hHead, hTail⟩
+  exact ⟨hHead, hHeadComp, hTail⟩
 
 private theorem re_split_str_to_re_action_frontier_true_local
     (parts tail : Term)
@@ -19426,6 +19428,10 @@ private theorem re_split_str_to_re_action_frontier_true_local
               (Term.Apply (Term.UOp UserOp.str_to_re) c) =
             Term.Apply (Term.UOp UserOp.str_to_re) c := by
         simp [__re_flatten]
+      have hHeadComp :
+          __re_rev_comp (Term.Apply (Term.UOp UserOp.str_to_re) c) ≠
+            Term.Stuck := by
+        simp [__re_rev_comp]
       have hFrontier :
           re_action_frontier_true_local
             (__eo_mk_apply
@@ -19434,7 +19440,7 @@ private theorem re_split_str_to_re_action_frontier_true_local
               restSplit) :=
         re_action_frontier_true_mk_concat_local
           (Term.Apply (Term.UOp UserOp.str_to_re) c)
-          restSplit hHeadNorm hRestFrontier
+          restSplit hHeadNorm hHeadComp hRestFrontier
           (by simpa [← hMkEq] using hMkNe)
       rw [show __re_split_str_to_re
             (Term.Apply
@@ -19996,6 +20002,95 @@ private theorem eo_mk_apply_ne_stuck_of_args_local
     __eo_mk_apply f x ≠ Term.Stuck := by
   cases f <;> cases x <;> simp [__eo_mk_apply] at hf hx ⊢
 
+private theorem re_action_frontier_true_rev_map_ne_stuck_local :
+    ∀ t acc,
+      re_action_frontier_true_local t ->
+      acc ≠ Term.Stuck ->
+        __re_rev_map_rev t acc ≠ Term.Stuck
+  | Term.Stuck, _acc, hFrontier, _hAcc => by
+      cases hFrontier
+  | Term.Apply (Term.UOp op) x, acc, hFrontier, hAcc => by
+      by_cases hop : op = UserOp.str_to_re
+      · subst op
+        cases x <;>
+          simp [re_action_frontier_true_local]
+            at hFrontier ⊢
+        all_goals
+          try
+            rename_i w
+            cases w <;>
+              simp [re_action_frontier_true_local, __re_rev_map_rev]
+                at hFrontier ⊢
+        all_goals try assumption
+      · exfalso
+        cases op <;> simp [re_action_frontier_true_local] at hFrontier hop
+  | Term.Apply (Term.Apply (Term.UOp op) head) tail, acc,
+      hFrontier, hAcc => by
+      by_cases hop : op = UserOp.re_concat
+      · subst op
+        rcases hFrontier with ⟨_hHeadNorm, hHeadComp, hTail⟩
+        let inner :=
+          __eo_mk_apply (Term.UOp UserOp.re_concat) (__re_rev_comp head)
+        let newAcc := __eo_mk_apply inner acc
+        have hInnerNe : inner ≠ Term.Stuck :=
+          eo_mk_apply_ne_stuck_of_args_local
+            (Term.UOp UserOp.re_concat) (__re_rev_comp head)
+            (by simp) hHeadComp
+        have hNewAccNe : newAcc ≠ Term.Stuck :=
+          eo_mk_apply_ne_stuck_of_args_local inner acc hInnerNe hAcc
+        have hTailRev :
+            __re_rev_map_rev tail newAcc ≠ Term.Stuck :=
+          re_action_frontier_true_rev_map_ne_stuck_local tail newAcc
+            hTail hNewAccNe
+        simpa [__re_rev_map_rev, inner, newAcc] using hTailRev
+      · exfalso
+        cases op <;> simp [re_action_frontier_true_local] at hFrontier hop
+  | t, acc, hFrontier, hAcc => by
+      cases t <;> try cases hFrontier
+      case Apply f x =>
+        cases f <;> try cases hFrontier
+        case UOp op =>
+          by_cases hop : op = UserOp.str_to_re
+          · subst op
+            cases x <;>
+              simp [re_action_frontier_true_local]
+                at hFrontier ⊢
+            all_goals
+              try
+                rename_i w
+                cases w <;>
+                  simp [re_action_frontier_true_local, __re_rev_map_rev]
+                    at hFrontier ⊢
+            all_goals try assumption
+          · exfalso
+            cases op <;>
+              simp [re_action_frontier_true_local] at hFrontier hop
+        case Apply f' y =>
+          cases f' <;> try cases hFrontier
+          case UOp op =>
+            by_cases hop : op = UserOp.re_concat
+            · subst op
+              rcases hFrontier with ⟨_hHeadNorm, hHeadComp, hTail⟩
+              let inner :=
+                __eo_mk_apply (Term.UOp UserOp.re_concat)
+                  (__re_rev_comp y)
+              let newAcc := __eo_mk_apply inner acc
+              have hInnerNe : inner ≠ Term.Stuck :=
+                eo_mk_apply_ne_stuck_of_args_local
+                  (Term.UOp UserOp.re_concat) (__re_rev_comp y)
+                  (by simp) hHeadComp
+              have hNewAccNe : newAcc ≠ Term.Stuck :=
+                eo_mk_apply_ne_stuck_of_args_local inner acc hInnerNe hAcc
+              have hTailRev :
+                  __re_rev_map_rev x newAcc ≠ Term.Stuck :=
+                re_action_frontier_true_rev_map_ne_stuck_local x newAcc
+                  hTail hNewAccNe
+              simpa [__re_rev_map_rev, inner, newAcc] using hTailRev
+            · exfalso
+              cases op <;>
+                simp [re_action_frontier_true_local] at hFrontier hop
+termination_by t acc _ _ => sizeOf t
+
 private theorem eo_mk_apply_eq_apply_of_args_local
     (f x : Term)
     (hf : f ≠ Term.Stuck)
@@ -20423,6 +20518,18 @@ private theorem re_rev_map_rev_action_double_eps_local
     simpa [re_empty_string_re_consume_local] using
       __re_rev_map_rev.eq_2 a hANe
   simpa [hEpsA] using hMain
+
+private theorem re_action_frontier_true_double_rev_eq_local
+    (t : Term)
+    (hFrontier : re_action_frontier_true_local t) :
+    __re_rev_map_rev
+        (__re_rev_map_rev t re_empty_string_re_consume_local)
+        re_empty_string_re_consume_local =
+      t :=
+  re_rev_map_rev_action_double_eps_local t
+    (re_action_frontier_true_rev_map_ne_stuck_local t
+      re_empty_string_re_consume_local hFrontier
+      (by simp [re_empty_string_re_consume_local]))
 
 private theorem re_flatten_false_mult_of_norm_local
     (body : Term)
