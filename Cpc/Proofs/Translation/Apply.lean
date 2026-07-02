@@ -5337,7 +5337,7 @@ private theorem eo_to_smt_type_typeof_apply_dt_cons_of_smt_apply_from_ih
         (__eo_to_smt_datatype d) = true :=
     datatype_wf_rec_of_type_wf hBaseTypeWf
   have hDValid : eo_datatype_valid_rec [s] d :=
-    eo_datatype_valid_of_smt_wf_rec [s] hBaseDtWf
+    eo_datatype_valid_of_smt_self_wf_rec s d hBaseDtWf
   have hHeadAll :=
     eo_to_smt_type_typeof_dt_cons_of_valid s d i hReserved hDValid hHeadNN
   have hxNN : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by

@@ -1478,15 +1478,451 @@ private theorem smtx_type_field_wf_rec_to_type_wf_rec_of_not_typeref
     __smtx_type_wf_rec T T = true := by
   simpa [smtx_type_field_wf_rec] using h
 
-/- Well-formed translated EO fields have proof-side valid EO shapes. -/
+/-- Connector for the tuple case of the lift correspondence: a tuple that translates to a real
+`Datatype` (not `None`) has a well-formed body, because `__eo_to_smt_type` gates the tuple
+translation on `__smtx_type_wf` (`wf_component`, i.e. well-formed at the empty ref context). -/
+theorem tuple_translate_wf {x1 x2 : Term} {s' : native_String} {body : SmtDatatype}
+    (h : __eo_to_smt_type (Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) x1) x2)
+        = SmtType.Datatype s' body) :
+    __smtx_type_wf_rec (SmtType.Datatype s' body) (SmtType.Datatype s' body) = true := by
+  simp only [__eo_to_smt_type, native_ite] at h
+  split at h
+  · next hwf =>
+      rw [h] at hwf
+      simp only [__smtx_type_wf, __smtx_type_wf_component, native_and, Bool.and_eq_true] at hwf
+      exact hwf.2
+  · next => exact absurd h (by simp)
+
+/-- Generalised tuple connector: any non-`DatatypeType` term that translates to a `Datatype`
+must be a tuple, hence has a well-formed body. -/
+theorem tuple_translate_wf_gen {fieldT : Term} {s' : native_String} {body : SmtDatatype}
+    (hnDT : ∀ s2 d2, fieldT ≠ Term.DatatypeType s2 d2)
+    (h : __eo_to_smt_type fieldT = SmtType.Datatype s' body) :
+    __smtx_type_wf_rec (SmtType.Datatype s' body) (SmtType.Datatype s' body) = true := by
+  cases fieldT with
+  | DatatypeType s2 d2 => exact absurd rfl (hnDT s2 d2)
+  | UOp op =>
+      cases op with
+      | UnitTuple =>
+          simp only [__eo_to_smt_type] at h
+          obtain ⟨rfl, rfl⟩ := h
+          simp [__smtx_type_wf_rec, __smtx_dt_wf_rec, __smtx_dt_cons_wf_rec,
+            __smtx_dt_substitute, __smtx_dtc_substitute, native_ite]
+      | _ =>
+          simp only [__eo_to_smt_type] at h
+          repeat' split at h
+          all_goals exact absurd h (by simp)
+  | Apply f x =>
+      cases f with
+      | Apply g y =>
+          cases g with
+          | UOp op =>
+              cases op with
+              | Tuple => exact tuple_translate_wf h
+              | _ =>
+                  simp only [__eo_to_smt_type, __smtx_typeof_guard, native_ite] at h
+                  repeat' split at h
+                  all_goals exact absurd h (by simp)
+          | _ =>
+              simp only [__eo_to_smt_type, __smtx_typeof_guard, native_ite] at h
+              repeat' split at h
+              all_goals exact absurd h (by simp)
+      | UOp op =>
+          cases op with
+          | BitVec =>
+              cases x <;>
+                (simp only [__eo_to_smt_type, native_ite] at h
+                 repeat' split at h
+                 all_goals exact absurd h (by simp))
+          | _ =>
+              simp only [__eo_to_smt_type, __smtx_typeof_guard, native_ite] at h
+              repeat' split at h
+              all_goals exact absurd h (by simp)
+      | _ =>
+          simp only [__eo_to_smt_type] at h
+          repeat' split at h
+          all_goals exact absurd h (by simp)
+  | _ =>
+      simp only [__eo_to_smt_type, __smtx_typeof_guard, native_ite] at h
+      repeat' split at h
+      all_goals exact absurd h (by simp)
+
+/-! ### Folded-translation relation
+
+`smt_fold_type_rec refs TF T` says the SMT type `TF` is the translation of the EO type `T`
+with some of its free datatype references (names tracked by `refs`) replaced by
+`__smtx_*_substitute` steps: at `DatatypeType` binders the relation descends structurally
+(recording the binder name), at `DatatypeTypeRef` leaves the reference is either still a bare
+`TypeRef` or has been substituted by a full `Datatype` (in which case its name must be in
+scope), and at every other node the translation is untouched — except that a datatype-shaped
+translation (a tuple) may have been rewritten *inside*, which the relation abstracts by only
+remembering that the translation is datatype-shaped.
+
+This is the invariant connecting the two-argument (full/unfolded) `__smtx_*_wf_rec` recursion
+to the eo-side validity predicates: the wf algorithm walks exactly such a pair, starting from
+the diagonal and self-substituting at each `Datatype` node. -/
 mutual
 
-theorem eo_type_valid_of_smt_field_wf_rec
+private def smt_fold_type_rec (refs : RefList) (TF : SmtType) : Term -> Prop
+  | Term.DatatypeType s d =>
+      if __eo_reserved_datatype_name s = true then
+        TF = SmtType.None
+      else
+        ∃ dF, TF = SmtType.Datatype s dF ∧ smt_fold_datatype_rec (s :: refs) dF d
+  | Term.DatatypeTypeRef s =>
+      if __eo_reserved_datatype_name s = true then
+        TF = SmtType.None
+      else
+        TF = SmtType.TypeRef s ∨ (s ∈ refs ∧ ∃ sF dF, TF = SmtType.Datatype sF dF)
+  | T =>
+      TF = __eo_to_smt_type T ∨
+        ∃ sT bT, __eo_to_smt_type T = SmtType.Datatype sT bT
+
+private def smt_fold_datatype_cons_rec
+    (refs : RefList) (cF : SmtDatatypeCons) : DatatypeCons -> Prop
+  | DatatypeCons.unit => cF = SmtDatatypeCons.unit
+  | DatatypeCons.cons T c =>
+      ∃ TF cTailF,
+        cF = SmtDatatypeCons.cons TF cTailF ∧
+        smt_fold_type_rec refs TF T ∧
+        smt_fold_datatype_cons_rec refs cTailF c
+
+private def smt_fold_datatype_rec
+    (refs : RefList) (dF : SmtDatatype) : Datatype -> Prop
+  | Datatype.null => dF = SmtDatatype.null
+  | Datatype.sum c d =>
+      ∃ cF dTailF,
+        dF = SmtDatatype.sum cF dTailF ∧
+        smt_fold_datatype_cons_rec refs cF c ∧
+        smt_fold_datatype_rec refs dTailF d
+
+end
+
+mutual
+
+private theorem smt_fold_type_rec_refl
     (refs : RefList) :
+    ∀ T : Term, smt_fold_type_rec refs (__eo_to_smt_type T) T
+  | Term.DatatypeType s d => by
+      by_cases hReserved : __eo_reserved_datatype_name s = true
+      · simp [smt_fold_type_rec, __eo_to_smt_type, hReserved]
+      · have hReservedFalse : __eo_reserved_datatype_name s = false := by
+          cases hName : __eo_reserved_datatype_name s <;> simp [hName] at hReserved ⊢
+        simpa [smt_fold_type_rec, hReserved] using
+          (⟨__eo_to_smt_datatype d, by simp [__eo_to_smt_type, hReservedFalse],
+            smt_fold_datatype_rec_refl (s :: refs) d⟩ :
+            ∃ dF,
+              __eo_to_smt_type (Term.DatatypeType s d) = SmtType.Datatype s dF ∧
+              smt_fold_datatype_rec (s :: refs) dF d)
+  | Term.DatatypeTypeRef s => by
+      by_cases hReserved : __eo_reserved_datatype_name s = true
+      · simp [smt_fold_type_rec, __eo_to_smt_type, hReserved]
+      · simp [smt_fold_type_rec, __eo_to_smt_type, hReserved]
+  | T => by
+      cases T <;> try simp [smt_fold_type_rec]
+      case DatatypeType s d =>
+        by_cases hReserved : __eo_reserved_datatype_name s = true
+        · simp [hReserved]
+        · have hReservedFalse : __eo_reserved_datatype_name s = false := by
+            cases hName : __eo_reserved_datatype_name s <;> simp [hName] at hReserved ⊢
+          simpa [smt_fold_type_rec, hReserved] using
+            (⟨__eo_to_smt_datatype d, by simp [__eo_to_smt_type, hReservedFalse],
+              smt_fold_datatype_rec_refl (s :: refs) d⟩ :
+              ∃ dF,
+                __eo_to_smt_type (Term.DatatypeType s d) = SmtType.Datatype s dF ∧
+                smt_fold_datatype_rec (s :: refs) dF d)
+      case DatatypeTypeRef s =>
+        by_cases hReserved : __eo_reserved_datatype_name s = true
+        · simp [__eo_to_smt_type, hReserved]
+        · simp [__eo_to_smt_type, hReserved]
+
+private theorem smt_fold_datatype_cons_rec_refl
+    (refs : RefList) :
+    ∀ c : DatatypeCons,
+      smt_fold_datatype_cons_rec refs (__eo_to_smt_datatype_cons c) c
+  | DatatypeCons.unit => by
+      simp [smt_fold_datatype_cons_rec, __eo_to_smt_datatype_cons]
+  | DatatypeCons.cons T c => by
+      refine ⟨__eo_to_smt_type T, __eo_to_smt_datatype_cons c, ?_, ?_, ?_⟩
+      · simp [__eo_to_smt_datatype_cons]
+      · exact smt_fold_type_rec_refl refs T
+      · exact smt_fold_datatype_cons_rec_refl refs c
+
+private theorem smt_fold_datatype_rec_refl
+    (refs : RefList) :
+    ∀ d : Datatype, smt_fold_datatype_rec refs (__eo_to_smt_datatype d) d
+  | Datatype.null => by
+      simp [smt_fold_datatype_rec, __eo_to_smt_datatype]
+  | Datatype.sum c d => by
+      refine ⟨__eo_to_smt_datatype_cons c, __eo_to_smt_datatype d, ?_, ?_, ?_⟩
+      · simp [__eo_to_smt_datatype]
+      · exact smt_fold_datatype_cons_rec_refl refs c
+      · exact smt_fold_datatype_rec_refl refs d
+
+end
+
+mutual
+
+private theorem smt_fold_type_rec_weaken
+    {refs refs' : RefList} {TF : SmtType} {T : Term}
+    (hFold : smt_fold_type_rec refs TF T)
+    (hsub : ∀ t, t ∈ refs -> t ∈ refs') :
+    smt_fold_type_rec refs' TF T := by
+  cases T with
+  | DatatypeType s d =>
+      by_cases hReserved : __eo_reserved_datatype_name s = true
+      · simpa [smt_fold_type_rec, hReserved] using hFold
+      · rcases (by simpa [smt_fold_type_rec, hReserved] using hFold) with
+          ⟨dF, hTF, hD⟩
+        simpa [smt_fold_type_rec, hReserved] using
+          (⟨dF, hTF, smt_fold_datatype_rec_weaken hD (by
+            intro t ht
+            simp at ht ⊢
+            rcases ht with rfl | ht
+            · exact Or.inl rfl
+            · exact Or.inr (hsub t ht))⟩ :
+            ∃ dF, TF = SmtType.Datatype s dF ∧
+              smt_fold_datatype_rec (s :: refs') dF d)
+  | DatatypeTypeRef s =>
+      by_cases hReserved : __eo_reserved_datatype_name s = true
+      · simpa [smt_fold_type_rec, hReserved] using hFold
+      · rcases (by simpa [smt_fold_type_rec, hReserved] using hFold) with
+          hTypeRef | ⟨hMem, hDatatype⟩
+        · simpa [smt_fold_type_rec, hReserved] using
+            (Or.inl hTypeRef :
+              TF = SmtType.TypeRef s ∨
+                (s ∈ refs' ∧ ∃ sF dF, TF = SmtType.Datatype sF dF))
+        · simpa [smt_fold_type_rec, hReserved] using
+            (Or.inr ⟨hsub s hMem, hDatatype⟩ :
+              TF = SmtType.TypeRef s ∨
+                (s ∈ refs' ∧ ∃ sF dF, TF = SmtType.Datatype sF dF))
+  | _ =>
+      simpa [smt_fold_type_rec] using hFold
+
+private theorem smt_fold_datatype_cons_rec_weaken
+    {refs refs' : RefList} {cF : SmtDatatypeCons} {c : DatatypeCons}
+    (hFold : smt_fold_datatype_cons_rec refs cF c)
+    (hsub : ∀ t, t ∈ refs -> t ∈ refs') :
+    smt_fold_datatype_cons_rec refs' cF c := by
+  cases c with
+  | unit =>
+      simpa [smt_fold_datatype_cons_rec] using hFold
+  | cons T c =>
+      rcases hFold with ⟨TF, cTailF, hEq, hT, hC⟩
+      exact ⟨TF, cTailF, hEq, smt_fold_type_rec_weaken hT hsub,
+        smt_fold_datatype_cons_rec_weaken hC hsub⟩
+
+private theorem smt_fold_datatype_rec_weaken
+    {refs refs' : RefList} {dF : SmtDatatype} {d : Datatype}
+    (hFold : smt_fold_datatype_rec refs dF d)
+    (hsub : ∀ t, t ∈ refs -> t ∈ refs') :
+    smt_fold_datatype_rec refs' dF d := by
+  cases d with
+  | null =>
+      simpa [smt_fold_datatype_rec] using hFold
+  | sum c d =>
+      rcases hFold with ⟨cF, dTailF, hEq, hC, hD⟩
+      exact ⟨cF, dTailF, hEq, smt_fold_datatype_cons_rec_weaken hC hsub,
+        smt_fold_datatype_rec_weaken hD hsub⟩
+
+end
+
+private theorem smt_fold_datatype_rec_swap_cons
+    {s s2 : native_String} {refs : RefList}
+    {dF : SmtDatatype} {d : Datatype}
+    (hFold : smt_fold_datatype_rec (s :: s2 :: refs) dF d) :
+    smt_fold_datatype_rec (s2 :: s :: refs) dF d :=
+  smt_fold_datatype_rec_weaken hFold (by
+    intro t ht
+    simp at ht ⊢
+    rcases ht with rfl | rfl | ht
+    · exact Or.inr (Or.inl rfl)
+    · exact Or.inl rfl
+    · exact Or.inr (Or.inr ht))
+
+/-- Generic-node preservation for `smt_fold_type_rec` under an SMT substitution: on
+non-`DatatypeType`/non-`DatatypeTypeRef` terms the substituted translation either stays
+untouched or the translation was datatype-shaped to begin with (a tuple), which the loose
+generic clause tolerates. -/
+private theorem smt_fold_generic_substitute
+    {T : Term} (hnRef : ∀ r, T ≠ Term.DatatypeTypeRef r)
+    (s : native_String) (base : SmtDatatype) {TF : SmtType}
+    (hGen : TF = __eo_to_smt_type T ∨ ∃ sT bT, __eo_to_smt_type T = SmtType.Datatype sT bT) :
+    __smtx_type_substitute s base TF = __eo_to_smt_type T ∨
+      ∃ sT bT, __eo_to_smt_type T = SmtType.Datatype sT bT := by
+  rcases hGen with rfl | ⟨sT, bT, htr⟩
+  · cases hX : __eo_to_smt_type T
+    case Datatype sT bT => exact Or.inr ⟨sT, bT, rfl⟩
+    case TypeRef r => exact absurd (eo_to_smt_type_eq_typeref hX) (hnRef r)
+    all_goals exact Or.inl (by simp [__smtx_type_substitute])
+  · exact Or.inr ⟨sT, bT, htr⟩
+
+mutual
+
+private theorem smt_fold_type_rec_substitute
+    (s : native_String) (base : SmtDatatype) {refs : RefList}
+    {TF : SmtType} {T : Term}
+    (hFold : smt_fold_type_rec refs TF T) :
+    smt_fold_type_rec (s :: refs) (__smtx_type_substitute s base TF) T := by
+  cases T with
+  | DatatypeType s2 d2 =>
+      by_cases hReserved : __eo_reserved_datatype_name s2 = true
+      · have hTF : TF = SmtType.None := by
+          simpa [smt_fold_type_rec, hReserved] using hFold
+        subst hTF
+        simp [smt_fold_type_rec, __smtx_type_substitute, hReserved]
+      · rcases (by simpa [smt_fold_type_rec, hReserved] using hFold) with
+          ⟨dF, hTF, hD⟩
+        subst hTF
+        by_cases hs : s = s2
+        · simpa [smt_fold_type_rec, __smtx_type_substitute, hReserved, hs] using
+            (⟨dF, by simp [__smtx_type_substitute, hs],
+              smt_fold_datatype_rec_weaken hD (by
+                intro t ht
+                simp at ht ⊢
+                rcases ht with rfl | ht
+                · exact Or.inl rfl
+                · exact Or.inr (Or.inr ht))⟩ :
+              ∃ dF_1,
+                __smtx_type_substitute s base (SmtType.Datatype s2 dF) =
+                  SmtType.Datatype s2 dF_1 ∧
+                smt_fold_datatype_rec (s2 :: s :: refs) dF_1 d2)
+        · have hDSub :
+              smt_fold_datatype_rec (s :: s2 :: refs)
+                (__smtx_dt_substitute s (__smtx_dt_lift s2 dF base) dF) d2 :=
+            smt_fold_datatype_rec_substitute s (__smtx_dt_lift s2 dF base) hD
+          simpa [smt_fold_type_rec, __smtx_type_substitute, hReserved, hs] using
+            (⟨__smtx_dt_substitute s (__smtx_dt_lift s2 dF base) dF,
+              by simp [__smtx_type_substitute, hs],
+              smt_fold_datatype_rec_swap_cons hDSub⟩ :
+              ∃ dF_1,
+                __smtx_type_substitute s base (SmtType.Datatype s2 dF) =
+                  SmtType.Datatype s2 dF_1 ∧
+                smt_fold_datatype_rec (s2 :: s :: refs) dF_1 d2)
+  | DatatypeTypeRef s2 =>
+      by_cases hReserved : __eo_reserved_datatype_name s2 = true
+      · have hTF : TF = SmtType.None := by
+          simpa [smt_fold_type_rec, hReserved] using hFold
+        subst hTF
+        simp [smt_fold_type_rec, __smtx_type_substitute, hReserved]
+      · rcases (by simpa [smt_fold_type_rec, hReserved] using hFold) with
+          hTypeRef | ⟨hMem, hDatatype⟩
+        · subst hTypeRef
+          by_cases hs : s = s2
+          · subst s2
+            simp [smt_fold_type_rec, __smtx_type_substitute, hReserved, native_streq]
+          · simp [smt_fold_type_rec, __smtx_type_substitute, hReserved, hs]
+        · rcases hDatatype with ⟨sF, dF, hTF⟩
+          subst hTF
+          have hDatatype' :
+              ∃ sF' dF',
+                __smtx_type_substitute s base (SmtType.Datatype sF dF) =
+                  SmtType.Datatype sF' dF' := by
+            cases hResult : __smtx_type_substitute s base (SmtType.Datatype sF dF) with
+            | Datatype sF' dF' =>
+                exact ⟨sF', dF', rfl⟩
+            | _ =>
+                simp [__smtx_type_substitute] at hResult
+          simpa [smt_fold_type_rec, hReserved] using
+            (Or.inr ⟨List.mem_cons_of_mem s hMem, hDatatype'⟩ :
+              __smtx_type_substitute s base (SmtType.Datatype sF dF) =
+                  SmtType.TypeRef s2 ∨
+                (s2 ∈ s :: refs ∧
+                  ∃ sF' dF',
+                    __smtx_type_substitute s base (SmtType.Datatype sF dF) =
+                      SmtType.Datatype sF' dF'))
+  | _ =>
+      exact smt_fold_generic_substitute (by intro r h; cases h) s base hFold
+
+private theorem smt_fold_datatype_cons_rec_substitute
+    (s : native_String) (base : SmtDatatype) {refs : RefList}
+    {cF : SmtDatatypeCons} {c : DatatypeCons}
+    (hFold : smt_fold_datatype_cons_rec refs cF c) :
+    smt_fold_datatype_cons_rec (s :: refs)
+      (__smtx_dtc_substitute s base cF) c := by
+  cases c with
+  | unit =>
+      have hEq : cF = SmtDatatypeCons.unit := by
+        simpa [smt_fold_datatype_cons_rec] using hFold
+      subst hEq
+      simp [smt_fold_datatype_cons_rec, __smtx_dtc_substitute]
+  | cons T c =>
+      rcases hFold with ⟨TF, cTailF, hEq, hT, hC⟩
+      subst hEq
+      refine ⟨__smtx_type_substitute s base TF,
+        __smtx_dtc_substitute s base cTailF, ?_, ?_, ?_⟩
+      · simp [__smtx_dtc_substitute]
+      · exact smt_fold_type_rec_substitute s base hT
+      · exact smt_fold_datatype_cons_rec_substitute s base hC
+
+private theorem smt_fold_datatype_rec_substitute
+    (s : native_String) (base : SmtDatatype) {refs : RefList}
+    {dF : SmtDatatype} {d : Datatype}
+    (hFold : smt_fold_datatype_rec refs dF d) :
+    smt_fold_datatype_rec (s :: refs)
+      (__smtx_dt_substitute s base dF) d := by
+  cases d with
+  | null =>
+      have hEq : dF = SmtDatatype.null := by
+        simpa [smt_fold_datatype_rec] using hFold
+      subst hEq
+      simp [smt_fold_datatype_rec, __smtx_dt_substitute]
+  | sum c d =>
+      rcases hFold with ⟨cF, dTailF, hEq, hC, hD⟩
+      subst hEq
+      refine ⟨__smtx_dtc_substitute s base cF,
+        __smtx_dt_substitute s base dTailF, ?_, ?_, ?_⟩
+      · simp [__smtx_dt_substitute]
+      · exact smt_fold_datatype_cons_rec_substitute s base hC
+      · exact smt_fold_datatype_rec_substitute s base hD
+
+end
+
+/-- Splits a generic (non-skip) constructor-field step of `__smtx_dt_cons_wf_rec`. -/
+private theorem smtx_dt_cons_wf_rec_generic_parts
+    {TF TU : SmtType} {cF cU : SmtDatatypeCons}
+    (hNotSpecial : ¬ ∃ sF dF r, TF = SmtType.Datatype sF dF ∧ TU = SmtType.TypeRef r)
+    (h : __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons TF cF)
+        (SmtDatatypeCons.cons TU cU) = true) :
+    __smtx_type_wf_rec TF TU = true ∧ __smtx_dt_cons_wf_rec cF cU = true := by
+  cases TF <;> cases TU <;>
+    simp [__smtx_dt_cons_wf_rec, native_ite, native_and] at h hNotSpecial ⊢
+  all_goals
+    first
+    | exact h
+    | exact ⟨h.1.2, h.2⟩
+    | exact ⟨h.2.1, h.2.2⟩
+    | contradiction
+
+/-- On a generic (non-`DatatypeType`) node, a folded wf fact collapses back to the diagonal
+field well-formedness of the translation: either the translation was untouched, or it is
+datatype-shaped (a tuple), whose diagonal wf is guaranteed by the translation's own wf gate. -/
+private theorem smt_fold_generic_field_wf
+    {refs : RefList} {TF : SmtType} {T : Term}
+    (hnDT : ∀ s2 d2, T ≠ Term.DatatypeType s2 d2)
+    (hGen : TF = __eo_to_smt_type T ∨ ∃ sT bT, __eo_to_smt_type T = SmtType.Datatype sT bT)
+    (h : __smtx_type_wf_rec TF (__eo_to_smt_type T) = true) :
+    smtx_type_field_wf_rec (__eo_to_smt_type T) refs := by
+  rcases hGen with rfl | ⟨sT, bT, htr⟩
+  · exact h
+  · show __smtx_type_wf_rec _ _ = true
+    rw [htr]
+    exact tuple_translate_wf_gen hnDT htr
+
+/- Well-formed translated EO fields have proof-side valid EO shapes, generalised over a folded
+first (full) argument of the two-argument wf recursion — see `smt_fold_type_rec`. The public
+diagonal corollary `eo_type_valid_of_smt_field_wf_rec` is derived after the block. -/
+mutual
+
+private theorem eo_type_valid_of_folded_smt_wf_rec
+    {refs : RefList} {TF : SmtType} :
     ∀ {T : Term},
-      smtx_type_field_wf_rec (__eo_to_smt_type T) refs ->
+      smt_fold_type_rec refs TF T ->
+      __smtx_type_wf_rec TF (__eo_to_smt_type T) = true ->
       eo_type_valid_rec refs T
-  | Term.UOp op, h => by
+  | Term.UOp op, hFold, h => by
+      replace h :=
+        smt_fold_generic_field_wf (refs := refs) (by intro s2 d2 h; cases h) (by simpa [smt_fold_type_rec] using hFold) h
       cases op with
       | Int => simp [eo_type_valid_rec]
       | Real => simp [eo_type_valid_rec]
@@ -1496,42 +1932,60 @@ theorem eo_type_valid_of_smt_field_wf_rec
           exfalso
           simp [__eo_to_smt_type, smtx_type_field_wf_rec,
             __smtx_type_wf_rec] at h
-  | Term.Bool, _ => by
+  | Term.Bool, _, _ => by
       simp [eo_type_valid_rec]
-  | Term.USort i, _ => by
+  | Term.USort i, _, _ => by
       simp [eo_type_valid_rec]
-  | Term.DatatypeType s d, h => by
+  | Term.DatatypeType s d, hFold, h => by
       by_cases hReservedTrue : __eo_reserved_datatype_name s = true
       · exfalso
-        simp [__eo_to_smt_type, hReservedTrue, native_ite, smtx_type_field_wf_rec,
-          __smtx_type_wf_rec] at h
+        have hTF : TF = SmtType.None := by
+          simpa [smt_fold_type_rec, hReservedTrue] using hFold
+        subst hTF
+        simp [__eo_to_smt_type, hReservedTrue, native_ite, __smtx_type_wf_rec] at h
       · have hReservedFalse : __eo_reserved_datatype_name s = false := by
           cases hName : __eo_reserved_datatype_name s <;> simp [hName] at hReservedTrue ⊢
-        have hTypeWf :
-            __smtx_type_wf_rec (SmtType.Datatype s (__eo_to_smt_datatype d))
-                (SmtType.Datatype s (__eo_to_smt_datatype d)) = true := by
-          simpa [__eo_to_smt_type, hReservedFalse, native_ite, smtx_type_field_wf_rec] using h
+        rcases (by simpa [smt_fold_type_rec, hReservedTrue] using hFold :
+            ∃ dF, TF = SmtType.Datatype s dF ∧ smt_fold_datatype_rec (s :: refs) dF d) with
+          ⟨dF, hTF, hD⟩
+        subst hTF
         have hDt :
-            __smtx_dt_wf_rec
-                (__smtx_dt_substitute s (__eo_to_smt_datatype d) (__eo_to_smt_datatype d))
-                (__eo_to_smt_datatype d) = true :=
-          smtx_datatype_type_wf_rec_parts_local hTypeWf
-        exact ⟨hReservedFalse, eo_datatype_valid_of_smt_wf_rec (s :: refs) hDt⟩
-  | Term.DatatypeTypeRef s, h => by
+            __smtx_dt_wf_rec (__smtx_dt_substitute s dF dF)
+                (__eo_to_smt_datatype d) = true := by
+          simpa [__eo_to_smt_type, hReservedFalse, native_ite, __smtx_type_wf_rec] using h
+        have hBodyFold :
+            smt_fold_datatype_rec (s :: refs) (__smtx_dt_substitute s dF dF) d :=
+          smt_fold_datatype_rec_weaken (smt_fold_datatype_rec_substitute s dF hD) (by
+            intro t ht
+            simp at ht ⊢
+            exact ht)
+        exact ⟨hReservedFalse, eo_datatype_valid_of_smt_wf_rec hBodyFold hDt⟩
+  | Term.DatatypeTypeRef s, hFold, h => by
       exfalso
       by_cases hReservedTrue : __eo_reserved_datatype_name s = true
-      · simp [__eo_to_smt_type, hReservedTrue, native_ite, smtx_type_field_wf_rec,
-          __smtx_type_wf_rec] at h
+      · have hTF : TF = SmtType.None := by
+          simpa [smt_fold_type_rec, hReservedTrue] using hFold
+        subst hTF
+        simp [__eo_to_smt_type, hReservedTrue, native_ite, __smtx_type_wf_rec] at h
       · have hReservedFalse : __eo_reserved_datatype_name s = false := by
           cases hName : __eo_reserved_datatype_name s <;> simp [hName] at hReservedTrue ⊢
-        simp [__eo_to_smt_type, hReservedFalse, native_ite, smtx_type_field_wf_rec,
-          __smtx_type_wf_rec] at h
-  | Term.DtcAppType T U, h => by
+        rcases (by simpa [smt_fold_type_rec, hReservedTrue] using hFold :
+            TF = SmtType.TypeRef s ∨ (s ∈ refs ∧ ∃ sF dF, TF = SmtType.Datatype sF dF)) with
+          hTF | ⟨_, sF, dF, hTF⟩
+        · subst hTF
+          simp [__eo_to_smt_type, hReservedFalse, native_ite, __smtx_type_wf_rec] at h
+        · subst hTF
+          simp [__eo_to_smt_type, hReservedFalse, native_ite, __smtx_type_wf_rec] at h
+  | Term.DtcAppType T U, hFold, h => by
+      replace h :=
+        smt_fold_generic_field_wf (refs := refs) (by intro s2 d2 h; cases h) (by simpa [smt_fold_type_rec] using hFold) h
       exfalso
       cases hT : __eo_to_smt_type T <;> cases hU : __eo_to_smt_type U <;>
         simp [__eo_to_smt_type, __smtx_typeof_guard, smtx_type_field_wf_rec,
           __smtx_type_wf_rec, native_ite, native_Teq, hT, hU] at h
-  | Term.Apply (Term.Apply Term.FunType T1) T2, h => by
+  | Term.Apply (Term.Apply Term.FunType T1) T2, hFold, h => by
+      replace h :=
+        smt_fold_generic_field_wf (refs := refs) (by intro s2 d2 h; cases h) (by simpa [smt_fold_type_rec] using hFold) h
       let choice :=
         native_ite
           (__smtx_is_finite_type
@@ -1580,7 +2034,9 @@ theorem eo_type_valid_of_smt_field_wf_rec
           __smtx_is_finite_type
             (SmtType.FunType (__eo_to_smt_type T1) (__eo_to_smt_type T2)) <;>
         simp [choice, native_ite, hFin, __smtx_type_wf_rec] at hChoice
-  | Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral n), h => by
+  | Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral n), hFold, h => by
+      replace h :=
+        smt_fold_generic_field_wf (refs := refs) (by intro s2 d2 h; cases h) (by simpa [smt_fold_type_rec] using hFold) h
       have hn : native_zleq 0 n = true := by
         by_cases hn : native_zleq 0 n = true
         · exact hn
@@ -1588,7 +2044,9 @@ theorem eo_type_valid_of_smt_field_wf_rec
           simp [__eo_to_smt_type, smtx_type_field_wf_rec, __smtx_type_wf_rec,
             native_ite, hn] at h
       simpa [eo_type_valid_rec] using hn
-  | Term.Apply (Term.UOp UserOp.Seq) T, h => by
+  | Term.Apply (Term.UOp UserOp.Seq) T, hFold, h => by
+      replace h :=
+        smt_fold_generic_field_wf (refs := refs) (by intro s2 d2 h; cases h) (by simpa [smt_fold_type_rec] using hFold) h
       have hGuardWf :
           __smtx_type_wf_rec
               (__smtx_typeof_guard (__eo_to_smt_type T) (SmtType.Seq (__eo_to_smt_type T)))
@@ -1602,9 +2060,11 @@ theorem eo_type_valid_of_smt_field_wf_rec
         smtx_type_wf_rec_guard_of_true (__eo_to_smt_type T)
           (SmtType.Seq (__eo_to_smt_type T))
           hGuardWf
-      exact eo_type_valid_of_smt_field_wf_rec []
-        (smtx_type_field_wf_rec_of_type_wf_rec (seq_type_wf_rec_component_of_wf hSeq))
-  | Term.Apply (Term.UOp UserOp.Set) T, h => by
+      exact eo_type_valid_of_folded_smt_wf_rec (refs := []) (smt_fold_type_rec_refl [] _)
+        (seq_type_wf_rec_component_of_wf hSeq)
+  | Term.Apply (Term.UOp UserOp.Set) T, hFold, h => by
+      replace h :=
+        smt_fold_generic_field_wf (refs := refs) (by intro s2 d2 h; cases h) (by simpa [smt_fold_type_rec] using hFold) h
       have hGuardWf :
           __smtx_type_wf_rec
               (__smtx_typeof_guard (__eo_to_smt_type T) (SmtType.Set (__eo_to_smt_type T)))
@@ -1618,9 +2078,11 @@ theorem eo_type_valid_of_smt_field_wf_rec
         smtx_type_wf_rec_guard_of_true (__eo_to_smt_type T)
           (SmtType.Set (__eo_to_smt_type T))
           hGuardWf
-      exact eo_type_valid_of_smt_field_wf_rec []
-        (smtx_type_field_wf_rec_of_type_wf_rec (set_type_wf_rec_component_of_wf hSet))
-  | Term.Apply (Term.Apply (Term.UOp UserOp.Array) T) U, h => by
+      exact eo_type_valid_of_folded_smt_wf_rec (refs := []) (smt_fold_type_rec_refl [] _)
+        (set_type_wf_rec_component_of_wf hSet)
+  | Term.Apply (Term.Apply (Term.UOp UserOp.Array) T) U, hFold, h => by
+      replace h :=
+        smt_fold_generic_field_wf (refs := refs) (by intro s2 d2 h; cases h) (by simpa [smt_fold_type_rec] using hFold) h
       have hInnerNoRef :
           ∀ s,
             __smtx_typeof_guard (__eo_to_smt_type U)
@@ -1658,9 +2120,11 @@ theorem eo_type_valid_of_smt_field_wf_rec
           (SmtType.Map (__eo_to_smt_type T) (__eo_to_smt_type U)) hOuter
       rcases map_type_wf_rec_components_of_wf hMap with ⟨hT, hU⟩
       exact ⟨
-        eo_type_valid_of_smt_field_wf_rec [] (smtx_type_field_wf_rec_of_type_wf_rec hT),
-        eo_type_valid_of_smt_field_wf_rec [] (smtx_type_field_wf_rec_of_type_wf_rec hU)⟩
-  | Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) T) U, h => by
+        eo_type_valid_of_folded_smt_wf_rec (refs := []) (smt_fold_type_rec_refl [] _) hT,
+        eo_type_valid_of_folded_smt_wf_rec (refs := []) (smt_fold_type_rec_refl [] _) hU⟩
+  | Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) T) U, hFold, h => by
+      replace h :=
+        smt_fold_generic_field_wf (refs := refs) (by intro s2 d2 h; cases h) (by simpa [smt_fold_type_rec] using hFold) h
       let raw := __eo_to_smt_type_tuple (__eo_to_smt_type T) (__eo_to_smt_type U)
       have hWf : __smtx_type_wf raw = true := by
         cases hRaw : __smtx_type_wf raw <;>
@@ -1691,13 +2155,15 @@ theorem eo_type_valid_of_smt_field_wf_rec
         have hRawRec : __smtx_type_wf_rec raw raw = true := by
           simpa [smtx_type_field_wf_rec] using hRawField
         obtain ⟨hTwf, hUwf⟩ := tuple_diag_wf_components T U hRawRec hRawNN
-        exact ⟨eo_type_valid_of_smt_field_wf_rec []
-                (smtx_type_field_wf_rec_of_type_wf_rec hTwf),
-              eo_type_valid_of_smt_field_wf_rec []
-                (smtx_type_field_wf_rec_of_type_wf_rec hUwf)⟩
+        exact ⟨eo_type_valid_of_folded_smt_wf_rec (refs := []) (smt_fold_type_rec_refl [] _)
+                hTwf,
+              eo_type_valid_of_folded_smt_wf_rec (refs := []) (smt_fold_type_rec_refl [] _)
+                hUwf⟩
       simpa [eo_type_valid_rec, raw] using
         (And.intro hParts.1 (And.intro hParts.2 (by simpa [raw] using hWf)))
-  | Term.Apply f x, h => by
+  | Term.Apply f x, hFold, h => by
+      replace h :=
+        smt_fold_generic_field_wf (refs := refs) (by intro s2 d2 h; cases h) (by simpa [smt_fold_type_rec] using hFold) h
       -- The non-`None` `Apply` shapes are all handled by earlier, more-specific patterns, but
       -- `cases f` re-generates them here (as dead-but-required goals), so we replay the same
       -- validity derivations (`None`-valued shapes are discharged by `exfalso`).
@@ -1717,8 +2183,8 @@ theorem eo_type_valid_of_smt_field_wf_rec
                   __smtx_type_wf_rec (SmtType.Seq (__eo_to_smt_type x)) (SmtType.Seq (__eo_to_smt_type x)) = true :=
                 smtx_type_wf_rec_guard_of_true (__eo_to_smt_type x)
                   (SmtType.Seq (__eo_to_smt_type x)) hGuardWf
-              exact eo_type_valid_of_smt_field_wf_rec []
-                (smtx_type_field_wf_rec_of_type_wf_rec (seq_type_wf_rec_component_of_wf hSeq))
+              exact eo_type_valid_of_folded_smt_wf_rec (refs := []) (smt_fold_type_rec_refl [] _)
+                (seq_type_wf_rec_component_of_wf hSeq)
           | Set =>
               have hGuardWf :
                   __smtx_type_wf_rec
@@ -1732,8 +2198,8 @@ theorem eo_type_valid_of_smt_field_wf_rec
                   __smtx_type_wf_rec (SmtType.Set (__eo_to_smt_type x)) (SmtType.Set (__eo_to_smt_type x)) = true :=
                 smtx_type_wf_rec_guard_of_true (__eo_to_smt_type x)
                   (SmtType.Set (__eo_to_smt_type x)) hGuardWf
-              exact eo_type_valid_of_smt_field_wf_rec []
-                (smtx_type_field_wf_rec_of_type_wf_rec (set_type_wf_rec_component_of_wf hSet))
+              exact eo_type_valid_of_folded_smt_wf_rec (refs := []) (smt_fold_type_rec_refl [] _)
+                (set_type_wf_rec_component_of_wf hSet)
           | BitVec =>
               cases x with
               | Numeral n =>
@@ -1831,8 +2297,8 @@ theorem eo_type_valid_of_smt_field_wf_rec
                       (SmtType.Map (__eo_to_smt_type y) (__eo_to_smt_type x)) hOuter
                   rcases map_type_wf_rec_components_of_wf hMap with ⟨hyw, hxw⟩
                   exact ⟨
-                    eo_type_valid_of_smt_field_wf_rec [] (smtx_type_field_wf_rec_of_type_wf_rec hyw),
-                    eo_type_valid_of_smt_field_wf_rec [] (smtx_type_field_wf_rec_of_type_wf_rec hxw)⟩
+                    eo_type_valid_of_folded_smt_wf_rec (refs := []) (smt_fold_type_rec_refl [] _) hyw,
+                    eo_type_valid_of_folded_smt_wf_rec (refs := []) (smt_fold_type_rec_refl [] _) hxw⟩
               | Tuple =>
                   let raw := __eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x)
                   have hWf : __smtx_type_wf raw = true := by
@@ -1861,10 +2327,10 @@ theorem eo_type_valid_of_smt_field_wf_rec
                           hWf)
                     simpa [smtx_type_field_wf_rec] using hRawField
                   obtain ⟨hTwf, hUwf⟩ := tuple_diag_wf_components y x hRawRec hRawNN
-                  refine ⟨eo_type_valid_of_smt_field_wf_rec []
-                            (smtx_type_field_wf_rec_of_type_wf_rec hTwf),
-                          eo_type_valid_of_smt_field_wf_rec []
-                            (smtx_type_field_wf_rec_of_type_wf_rec hUwf), ?_⟩
+                  refine ⟨eo_type_valid_of_folded_smt_wf_rec (refs := []) (smt_fold_type_rec_refl [] _)
+                            hTwf,
+                          eo_type_valid_of_folded_smt_wf_rec (refs := []) (smt_fold_type_rec_refl [] _)
+                            hUwf, ?_⟩
                   simpa [raw] using hWf
               | _ =>
                   exfalso
@@ -1875,103 +2341,196 @@ theorem eo_type_valid_of_smt_field_wf_rec
       | _ =>
           exfalso
           simp [__eo_to_smt_type, smtx_type_field_wf_rec, __smtx_type_wf_rec] at h
-  | Term.__eo_List, h => by
+  | Term.__eo_List, hFold, h => by
+      replace h :=
+        smt_fold_generic_field_wf (refs := refs) (by intro s2 d2 h; cases h) (by simpa [smt_fold_type_rec] using hFold) h
       exfalso
       simp [__eo_to_smt_type, smtx_type_field_wf_rec,
         __smtx_type_wf_rec] at h
-  | Term.__eo_List_nil, h => by
+  | Term.__eo_List_nil, hFold, h => by
+      replace h :=
+        smt_fold_generic_field_wf (refs := refs) (by intro s2 d2 h; cases h) (by simpa [smt_fold_type_rec] using hFold) h
       exfalso
       simp [__eo_to_smt_type, smtx_type_field_wf_rec,
         __smtx_type_wf_rec] at h
-  | Term.__eo_List_cons, h => by
+  | Term.__eo_List_cons, hFold, h => by
+      replace h :=
+        smt_fold_generic_field_wf (refs := refs) (by intro s2 d2 h; cases h) (by simpa [smt_fold_type_rec] using hFold) h
       exfalso
       simp [__eo_to_smt_type, smtx_type_field_wf_rec,
         __smtx_type_wf_rec] at h
-  | Term.Boolean b, h => by
+  | Term.Boolean b, hFold, h => by
+      replace h :=
+        smt_fold_generic_field_wf (refs := refs) (by intro s2 d2 h; cases h) (by simpa [smt_fold_type_rec] using hFold) h
       exfalso
       simp [__eo_to_smt_type, smtx_type_field_wf_rec,
         __smtx_type_wf_rec] at h
-  | Term.Numeral n, h => by
+  | Term.Numeral n, hFold, h => by
+      replace h :=
+        smt_fold_generic_field_wf (refs := refs) (by intro s2 d2 h; cases h) (by simpa [smt_fold_type_rec] using hFold) h
       exfalso
       simp [__eo_to_smt_type, smtx_type_field_wf_rec,
         __smtx_type_wf_rec] at h
-  | Term.Rational q, h => by
+  | Term.Rational q, hFold, h => by
+      replace h :=
+        smt_fold_generic_field_wf (refs := refs) (by intro s2 d2 h; cases h) (by simpa [smt_fold_type_rec] using hFold) h
       exfalso
       simp [__eo_to_smt_type, smtx_type_field_wf_rec,
         __smtx_type_wf_rec] at h
-  | Term.String s, h => by
+  | Term.String s, hFold, h => by
+      replace h :=
+        smt_fold_generic_field_wf (refs := refs) (by intro s2 d2 h; cases h) (by simpa [smt_fold_type_rec] using hFold) h
       exfalso
       simp [__eo_to_smt_type, smtx_type_field_wf_rec,
         __smtx_type_wf_rec] at h
-  | Term.Binary w n, h => by
+  | Term.Binary w n, hFold, h => by
+      replace h :=
+        smt_fold_generic_field_wf (refs := refs) (by intro s2 d2 h; cases h) (by simpa [smt_fold_type_rec] using hFold) h
       exfalso
       simp [__eo_to_smt_type, smtx_type_field_wf_rec,
         __smtx_type_wf_rec] at h
-  | Term.Type, h => by
+  | Term.Type, hFold, h => by
+      replace h :=
+        smt_fold_generic_field_wf (refs := refs) (by intro s2 d2 h; cases h) (by simpa [smt_fold_type_rec] using hFold) h
       exfalso
       simp [__eo_to_smt_type, smtx_type_field_wf_rec,
         __smtx_type_wf_rec] at h
-  | Term.Stuck, h => by
+  | Term.Stuck, hFold, h => by
+      replace h :=
+        smt_fold_generic_field_wf (refs := refs) (by intro s2 d2 h; cases h) (by simpa [smt_fold_type_rec] using hFold) h
       exfalso
       simp [__eo_to_smt_type, smtx_type_field_wf_rec,
         __smtx_type_wf_rec] at h
-  | Term.FunType, h => by
+  | Term.FunType, hFold, h => by
+      replace h :=
+        smt_fold_generic_field_wf (refs := refs) (by intro s2 d2 h; cases h) (by simpa [smt_fold_type_rec] using hFold) h
       exfalso
       simp [__eo_to_smt_type, smtx_type_field_wf_rec,
         __smtx_type_wf_rec] at h
-  | Term.Var name T, h => by
+  | Term.Var name T, hFold, h => by
+      replace h :=
+        smt_fold_generic_field_wf (refs := refs) (by intro s2 d2 h; cases h) (by simpa [smt_fold_type_rec] using hFold) h
       exfalso
       simp [__eo_to_smt_type, smtx_type_field_wf_rec,
         __smtx_type_wf_rec] at h
-  | Term.DtCons s d i, h => by
+  | Term.DtCons s d i, hFold, h => by
+      replace h :=
+        smt_fold_generic_field_wf (refs := refs) (by intro s2 d2 h; cases h) (by simpa [smt_fold_type_rec] using hFold) h
       exfalso
       simp [__eo_to_smt_type, smtx_type_field_wf_rec,
         __smtx_type_wf_rec] at h
-  | Term.DtSel s d i j, h => by
+  | Term.DtSel s d i j, hFold, h => by
+      replace h :=
+        smt_fold_generic_field_wf (refs := refs) (by intro s2 d2 h; cases h) (by simpa [smt_fold_type_rec] using hFold) h
       exfalso
       simp [__eo_to_smt_type, smtx_type_field_wf_rec,
         __smtx_type_wf_rec] at h
-  | Term.UConst i T, h => by
+  | Term.UConst i T, hFold, h => by
+      replace h :=
+        smt_fold_generic_field_wf (refs := refs) (by intro s2 d2 h; cases h) (by simpa [smt_fold_type_rec] using hFold) h
       exfalso
       simp [__eo_to_smt_type, smtx_type_field_wf_rec,
         __smtx_type_wf_rec] at h
-  | Term.UOp1 op x, h => by
+  | Term.UOp1 op x, hFold, h => by
+      replace h :=
+        smt_fold_generic_field_wf (refs := refs) (by intro s2 d2 h; cases h) (by simpa [smt_fold_type_rec] using hFold) h
       cases op <;> exfalso <;> simp [__eo_to_smt_type,
         smtx_type_field_wf_rec, __smtx_type_wf_rec] at h
-  | Term.UOp2 op x y, h => by
+  | Term.UOp2 op x y, hFold, h => by
+      replace h :=
+        smt_fold_generic_field_wf (refs := refs) (by intro s2 d2 h; cases h) (by simpa [smt_fold_type_rec] using hFold) h
       cases op <;> exfalso <;> simp [__eo_to_smt_type,
         smtx_type_field_wf_rec, __smtx_type_wf_rec] at h
-  | Term.UOp3 op x y z, h => by
+  | Term.UOp3 op x y z, hFold, h => by
+      replace h :=
+        smt_fold_generic_field_wf (refs := refs) (by intro s2 d2 h; cases h) (by simpa [smt_fold_type_rec] using hFold) h
       cases op <;> exfalso <;> simp [__eo_to_smt_type,
         smtx_type_field_wf_rec, __smtx_type_wf_rec] at h
 
--- TODO(typeWf-0701 aliasing refactor): these took a single ambient `RefList` under the old
--- reflist-scoped algorithm, tracking every enclosing datatype name simultaneously (needed for
--- mutually-recursive datatypes: a `TypeRef` could be bound by *any* ancestor). The new algorithm
--- only ever performs a single self-substitution per `Datatype` node (see `__smtx_type_wf_rec`'s
--- `Datatype`/`Datatype` case), so there is no longer a multi-level scope to thread here, and the
--- old `RefList`-shaped statement is no longer even well-typed (`__smtx_dt_cons_wf_rec`/
--- `__smtx_dt_wf_rec` now take a *full* `SmtDatatypeCons`/`SmtDatatype` — the once-substituted
--- form — as their first argument, not a `RefList`). Re-deriving this cleanly needs the eo-validity
--- side's own `eo_datatype_valid_rec`'s `refs` (which is a genuinely different, syntactic notion of
--- "name in scope") to independently certify well-formedness, rather than reading it off smt-wf.
--- Left as `sorry`; signatures use the full/unfold pair so callers elsewhere in this file (which
--- pass the new-algorithm two-argument wf facts) still type-check.
 theorem eo_datatype_cons_valid_of_smt_wf_rec
-    (refs : RefList) :
-    ∀ {CF : SmtDatatypeCons} {c : DatatypeCons},
-      __smtx_dt_cons_wf_rec CF (__eo_to_smt_datatype_cons c) = true ->
+    {refs : RefList} {cF : SmtDatatypeCons} :
+    ∀ {c : DatatypeCons},
+      smt_fold_datatype_cons_rec refs cF c ->
+      __smtx_dt_cons_wf_rec cF (__eo_to_smt_datatype_cons c) = true ->
       eo_datatype_cons_valid_rec refs c
-  | _, _, _ => by sorry
+  | DatatypeCons.unit, _, _ => by
+      simp [eo_datatype_cons_valid_rec]
+  | DatatypeCons.cons T c, hFold, h => by
+      rcases hFold with ⟨TF, cTailF, hEq, hTFold, hCFold⟩
+      subst hEq
+      by_cases hSpecial :
+          ∃ sF dF r,
+            TF = SmtType.Datatype sF dF ∧ __eo_to_smt_type T = SmtType.TypeRef r
+      · rcases hSpecial with ⟨sF, dF, r, hTF, hU⟩
+        subst hTF
+        have hTail :
+            __smtx_dt_cons_wf_rec cTailF (__eo_to_smt_datatype_cons c) = true := by
+          simpa [__smtx_dt_cons_wf_rec, __eo_to_smt_datatype_cons, hU] using h
+        have hT := eo_to_smt_type_eq_typeref hU
+        subst hT
+        have hReserved : __eo_reserved_datatype_name r = false := by
+          cases hName : __eo_reserved_datatype_name r
+          · rfl
+          · simp [__eo_to_smt_type, hName, native_ite] at hU
+        have hFoldRef :
+            SmtType.Datatype sF dF = SmtType.TypeRef r ∨
+              (r ∈ refs ∧
+                ∃ sF' dF', SmtType.Datatype sF dF = SmtType.Datatype sF' dF') := by
+          simpa [smt_fold_type_rec, hReserved] using hTFold
+        rcases hFoldRef with hEqRef | ⟨hMem, _⟩
+        · cases hEqRef
+        · exact ⟨⟨hReserved, hMem⟩,
+            eo_datatype_cons_valid_of_smt_wf_rec hCFold hTail⟩
+      · have hParts :=
+          smtx_dt_cons_wf_rec_generic_parts hSpecial (by
+            simpa [__eo_to_smt_datatype_cons] using h)
+        exact ⟨eo_type_valid_of_folded_smt_wf_rec hTFold hParts.1,
+          eo_datatype_cons_valid_of_smt_wf_rec hCFold hParts.2⟩
 
 theorem eo_datatype_valid_of_smt_wf_rec
-    (refs : RefList) :
-    ∀ {DF : SmtDatatype} {d : Datatype},
-      __smtx_dt_wf_rec DF (__eo_to_smt_datatype d) = true ->
+    {refs : RefList} {dF : SmtDatatype} :
+    ∀ {d : Datatype},
+      smt_fold_datatype_rec refs dF d ->
+      __smtx_dt_wf_rec dF (__eo_to_smt_datatype d) = true ->
       eo_datatype_valid_rec refs d
-  | _, _, _ => by sorry
+  | Datatype.null, _, _ => by
+      simp [eo_datatype_valid_rec]
+  | Datatype.sum c d, hFold, h => by
+      rcases hFold with ⟨cF, dTailF, hEq, hCFold, hDFold⟩
+      subst hEq
+      have hParts :
+          __smtx_dt_cons_wf_rec cF (__eo_to_smt_datatype_cons c) = true ∧
+            __smtx_dt_wf_rec dTailF (__eo_to_smt_datatype d) = true := by
+        simp only [__eo_to_smt_datatype, __smtx_dt_wf_rec, native_ite] at h
+        cases hc : __smtx_dt_cons_wf_rec cF (__eo_to_smt_datatype_cons c) <;>
+          simp [hc] at h ⊢
+        exact h
+      exact ⟨eo_datatype_cons_valid_of_smt_wf_rec hCFold hParts.1,
+        eo_datatype_valid_of_smt_wf_rec hDFold hParts.2⟩
 
 end
+
+/- Well-formed translated EO fields have proof-side valid EO shapes (public diagonal form). -/
+theorem eo_type_valid_of_smt_field_wf_rec
+    (refs : RefList) :
+    ∀ {T : Term},
+      smtx_type_field_wf_rec (__eo_to_smt_type T) refs ->
+      eo_type_valid_rec refs T
+  | T, h => eo_type_valid_of_folded_smt_wf_rec (smt_fold_type_rec_refl refs T) h
+
+/-- Specialisation of `eo_datatype_valid_of_smt_wf_rec` to the honest one-step
+self-substitution pairing produced by `__smtx_type_wf` at a `Datatype s (translation of d)`
+node: the body of a well-formed translated datatype type is a valid EO datatype at the
+singleton scope `[s]`. -/
+theorem eo_datatype_valid_of_smt_self_wf_rec
+    (s : native_String) (d : Datatype)
+    (h : __smtx_dt_wf_rec
+        (__smtx_dt_substitute s (__eo_to_smt_datatype d) (__eo_to_smt_datatype d))
+        (__eo_to_smt_datatype d) = true) :
+    eo_datatype_valid_rec [s] d :=
+  eo_datatype_valid_of_smt_wf_rec
+    (smt_fold_datatype_rec_substitute s (__eo_to_smt_datatype d)
+      (smt_fold_datatype_rec_refl [] d)) h
 
 private theorem eo_to_smt_type_ne_reglan_of_ne_reglan_term
     {T : Term}
@@ -2707,75 +3266,6 @@ private theorem smtx_type_substitute_top_of_guard
   all_goals
     simpa [__smtx_typeof_guard, native_ite, native_Teq] using hU
 
-/-- Connector for the tuple case of the lift correspondence: a tuple that translates to a real
-`Datatype` (not `None`) has a well-formed body, because `__eo_to_smt_type` gates the tuple
-translation on `__smtx_type_wf` (`wf_component`, i.e. well-formed at the empty ref context). -/
-theorem tuple_translate_wf {x1 x2 : Term} {s' : native_String} {body : SmtDatatype}
-    (h : __eo_to_smt_type (Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) x1) x2)
-        = SmtType.Datatype s' body) :
-    __smtx_type_wf_rec (SmtType.Datatype s' body) (SmtType.Datatype s' body) = true := by
-  simp only [__eo_to_smt_type, native_ite] at h
-  split at h
-  · next hwf =>
-      rw [h] at hwf
-      simp only [__smtx_type_wf, __smtx_type_wf_component, native_and, Bool.and_eq_true] at hwf
-      exact hwf.2
-  · next => exact absurd h (by simp)
-
-/-- Generalised tuple connector: any non-`DatatypeType` term that translates to a `Datatype`
-must be a tuple, hence has a well-formed body. -/
-theorem tuple_translate_wf_gen {fieldT : Term} {s' : native_String} {body : SmtDatatype}
-    (hnDT : ∀ s2 d2, fieldT ≠ Term.DatatypeType s2 d2)
-    (h : __eo_to_smt_type fieldT = SmtType.Datatype s' body) :
-    __smtx_type_wf_rec (SmtType.Datatype s' body) (SmtType.Datatype s' body) = true := by
-  cases fieldT with
-  | DatatypeType s2 d2 => exact absurd rfl (hnDT s2 d2)
-  | UOp op =>
-      cases op with
-      | UnitTuple =>
-          simp only [__eo_to_smt_type] at h
-          obtain ⟨rfl, rfl⟩ := h
-          simp [__smtx_type_wf_rec, __smtx_dt_wf_rec, __smtx_dt_cons_wf_rec,
-            __smtx_dt_substitute, __smtx_dtc_substitute, native_ite]
-      | _ =>
-          simp only [__eo_to_smt_type] at h
-          repeat' split at h
-          all_goals exact absurd h (by simp)
-  | Apply f x =>
-      cases f with
-      | Apply g y =>
-          cases g with
-          | UOp op =>
-              cases op with
-              | Tuple => exact tuple_translate_wf h
-              | _ =>
-                  simp only [__eo_to_smt_type, __smtx_typeof_guard, native_ite] at h
-                  repeat' split at h
-                  all_goals exact absurd h (by simp)
-          | _ =>
-              simp only [__eo_to_smt_type, __smtx_typeof_guard, native_ite] at h
-              repeat' split at h
-              all_goals exact absurd h (by simp)
-      | UOp op =>
-          cases op with
-          | BitVec =>
-              cases x <;>
-                (simp only [__eo_to_smt_type, native_ite] at h
-                 repeat' split at h
-                 all_goals exact absurd h (by simp))
-          | _ =>
-              simp only [__eo_to_smt_type, __smtx_typeof_guard, native_ite] at h
-              repeat' split at h
-              all_goals exact absurd h (by simp)
-      | _ =>
-          simp only [__eo_to_smt_type] at h
-          repeat' split at h
-          all_goals exact absurd h (by simp)
-  | _ =>
-      simp only [__eo_to_smt_type, __smtx_typeof_guard, native_ite] at h
-      repeat' split at h
-      all_goals exact absurd h (by simp)
-
 /- RESIDUAL ASSUMPTION (introduced by the `dtMutual` `__smtx_dt_lift` addition).
 
 The `lift` re-folding commutes with the EO→SMT translation:
@@ -3504,12 +3994,11 @@ mirroring exactly how `hasFreeTy` resets scope at those same positions. This let
 "eo-valid ⟹ no free reference to `sub`" *unconditionally in `sub`* (regardless of whether
 `sub ∈ refs` already — a shadowed self-reference is also correctly "not free").
 
-This is the ingredient the self-substitute correspondence (`hSubEq` / an
-`eo_to_smt_typeof_dt_sel_return_substitute_self`-style theorem, still `sorry` below) needs for its
-tuple-interior case: a validly-translated tuple component can never be a bare `TypeRef`, so
-substitution recursing into one is a no-op via `subst_noop_no_free_ty` (`SmtFreeRefs.lean`).
-Finishing that correspondence still requires a further induction mirroring
-`__eo_dt_substitute`/`__smtx_dt_substitute`'s own recursive structure; left for follow-up. -/
+This is the ingredient the self-substitute correspondence (`hSubEq` /
+`eo_to_smt_typeof_dt_sel_return_substitute_self` below, now proven modulo `corrDt`'s one
+remaining — refuted — case) needs for its tuple-interior case: a validly-translated tuple
+component can never be a bare `TypeRef`, so substitution recursing into one is a no-op via
+`subst_noop_no_free_ty` (`SmtFreeRefs.lean`). -/
 
 private theorem eoTy_guard_cases (A B : SmtType) :
     __smtx_typeof_guard A B = SmtType.None ∨ __smtx_typeof_guard A B = B := by
@@ -3852,10 +4341,22 @@ theorem corrDtc (s : native_String) :
         -- TODO(typeWf-0701): the only remaining case — an *inline* `DatatypeType s2 d2` constructor
         -- field (exotic; real datatypes reference sibling datatypes by name). Here EO/SMT substitution
         -- both recurse into `d2` with the replacement *lifted* by `s2`, so the field reduces to the
-        -- LIFT correspondence `translate(__eo_dt_lift s2 d2 d0) = __smtx_dt_lift s2 (tr d2)(tr d0)`,
-        -- which is false in general (tuple shallow/deep asymmetry) but true under validity (a valid
-        -- `d0` has no tuple-buried copy of the `s`-referencing fold target `DatatypeType s2 d2`).
-        -- Requires a separate validity-threaded lift-correspondence lemma (cf. SmtFreeRefs lift_noop).
+        -- LIFT correspondence `translate(__eo_dt_lift s2 d2 d0) = __smtx_dt_lift s2 (tr d2)(tr d0)`.
+        --
+        -- REFUTED (2026-07-02, see `tmp_corrdt_cex.lean` at the repo root): this case — and hence
+        -- `corrDt`/`corrDtc` as stated — is FALSE under the aliasing-tolerant wf, even with full
+        -- eo-validity of both `d0` and the walked datatype. Counterexample: outer datatype `A` with
+        -- a field `DatatypeType "B" dB` (`dB` referencing `A` freely, plus a base constructor) and a
+        -- tuple field `Tuple(DatatypeType "A" [DatatypeType "B" dB | unit], UnitTuple)` burying an
+        -- *aliased* copy of the fold target `(B, dB)`. The whole type is `__smtx_type_wf`, eo-valid
+        -- at `[A]`, and `__smtx_typeof (DtCons "A" (tr dA) 0) ≠ None`, yet both `corrDt` and
+        -- `eo_to_smt_type_typeof_dt_cons` (checked by `#eval`) fail on it: the SMT lift is DEEP
+        -- (recurses into the translated tuple's `Datatype "@Tuple"` body and folds the buried copy
+        -- to `TypeRef "B"`), while the EO lift is SHALLOW on tuples (a tuple is a `Term.Apply …`,
+        -- hitting the `__eo_type_lift` catch-all), so the two substitutions diverge once the
+        -- replacement is plugged at `dB`'s free `A`-reference. Fixing this needs a model-level
+        -- decision (deep EO lift on tuple terms / shallow SMT lift on reserved `@Tuple` bodies /
+        -- wf or validity rejecting tuple-buried aliased copies), not a cleverer proof.
         sorry
       · by_cases hRefAny : ∃ s'', T = Term.DatatypeTypeRef s''
         · obtain ⟨s'', rfl⟩ := hRefAny
@@ -4173,13 +4674,36 @@ theorem hasFreeDtc_reserved_of_translate (sub : native_String)
 end
 
 
-/-- Selector return translation after expanding the datatype's recursive self-reference.
+/-- The `(i, j)`-indexed selector-return walk commutes with translation: both sides traverse
+the same constructor/field spine, and translation maps the EO out-of-range result `Stuck` to
+the SMT out-of-range result `None`. -/
+private theorem eo_to_smt_typeof_dt_sel_return_rec :
+    ∀ (Y : Datatype) (i j : native_Nat),
+      __eo_to_smt_type (__eo_typeof_dt_sel_return Y i j) =
+        __smtx_ret_typeof_sel_rec (__eo_to_smt_datatype Y) i j
+  | Datatype.sum (DatatypeCons.cons T c) d, native_nat_zero, native_nat_zero => by
+      simp [__eo_typeof_dt_sel_return, __smtx_ret_typeof_sel_rec, __eo_to_smt_datatype,
+        __eo_to_smt_datatype_cons]
+  | Datatype.sum (DatatypeCons.cons T c) d, native_nat_zero, native_nat_succ m => by
+      have ih := eo_to_smt_typeof_dt_sel_return_rec (Datatype.sum c d) native_nat_zero m
+      simpa [__eo_typeof_dt_sel_return, __smtx_ret_typeof_sel_rec, __eo_to_smt_datatype,
+        __eo_to_smt_datatype_cons] using ih
+  | Datatype.sum DatatypeCons.unit d, native_nat_zero, m => by
+      simp [__eo_typeof_dt_sel_return, __smtx_ret_typeof_sel_rec, __eo_to_smt_datatype,
+        __eo_to_smt_datatype_cons, __eo_to_smt_type]
+  | Datatype.sum c d, native_nat_succ n, m => by
+      have ih := eo_to_smt_typeof_dt_sel_return_rec d n m
+      simpa [__eo_typeof_dt_sel_return, __smtx_ret_typeof_sel_rec,
+        __eo_to_smt_datatype] using ih
+  | Datatype.null, i, j => by
+      simp [__eo_typeof_dt_sel_return, __smtx_ret_typeof_sel_rec, __eo_to_smt_datatype,
+        __eo_to_smt_type]
 
-TODO(typeWf-0701 aliasing refactor): this is exactly the SELF-substitute case discussed in the
-session — `sub = s`, `d0 = d`, applied to `d`'s own body. Per the empirical check (a self-aliased
-datatype's self-substitute correspondence held without `noDt`), this should be re-derivable without
-`eo_datatype_valid_of_smt_wf_rec`/`noDt_of_wf_dt` (both gone/unsound under aliasing); left as
-`sorry` pending that re-derivation, using the diagonal well-formedness fact directly. -/
+/-- Selector return translation after expanding the datatype's recursive self-reference:
+the SELF-substitute case (`sub = s`, `d0 = d`, applied to `d`'s own body). The wf pairing
+yields eo-side validity of `d` (`eo_datatype_valid_of_smt_self_wf_rec`), under which the
+substitute correspondence `corrDt` rewrites the SMT-side self-substitution into the
+translation of the EO-side one, reducing the goal to the structural walk above. -/
 theorem eo_to_smt_typeof_dt_sel_return_substitute_self
     (s : native_String) (d : Datatype)  (i j : native_Nat)
     (hWf :
@@ -4187,7 +4711,17 @@ theorem eo_to_smt_typeof_dt_sel_return_substitute_self
         (__eo_to_smt_datatype d) = true) :
     __eo_to_smt_type (__eo_typeof_dt_sel_return (__eo_dt_substitute s d d) i j) =
       __smtx_ret_typeof_sel s (__eo_to_smt_datatype d) i j := by
-  sorry
+  have hValid : eo_datatype_valid_rec [s] d :=
+    eo_datatype_valid_of_smt_self_wf_rec s d hWf
+  have hSubEq :
+      __eo_to_smt_datatype (__eo_dt_substitute s d d) =
+        __smtx_dt_substitute s (__eo_to_smt_datatype d) (__eo_to_smt_datatype d) :=
+    corrDt s d d [s] hValid
+  show _ =
+    __smtx_ret_typeof_sel_rec
+      (__smtx_dt_substitute s (__eo_to_smt_datatype d) (__eo_to_smt_datatype d)) i j
+  rw [← hSubEq]
+  exact eo_to_smt_typeof_dt_sel_return_rec (__eo_dt_substitute s d d) i j
 
 theorem eo_to_smt_type_typeof_dt_cons_of_valid
     (s : native_String) (d : Datatype) (i : native_Nat)
@@ -4285,55 +4819,28 @@ private theorem smtx_typeof_dt_cons_rec_succ (T : SmtType) (c : SmtDatatypeCons)
       __smtx_typeof_dt_cons_rec T d n := by
   rw [__smtx_typeof_dt_cons_rec.eq_3]
 
-private theorem smtx_typeof_dt_cons_rec_zero_subst_ne_none
-    (sub : native_String) (d0 : SmtDatatype) (T : SmtType) (hT : T ≠ SmtType.None) :
-    (c : SmtDatatypeCons) -> (d : SmtDatatype) ->
-      __smtx_typeof_dt_cons_rec T
-          (SmtDatatype.sum (__smtx_dtc_substitute sub d0 c) (__smtx_dt_substitute sub d0 d))
-          native_nat_zero ≠ SmtType.None
-  | SmtDatatypeCons.unit, d => by
-      simp [__smtx_dtc_substitute, smtx_typeof_dt_cons_rec_unit, hT]
-  | SmtDatatypeCons.cons U c, d => by
-      rw [smtx_dtc_substitute_cons_eq, smtx_typeof_dt_cons_rec_cons]
-      simp
-
--- TODO(typeWf-0701 aliasing refactor): same gap as `eo_to_smt_datatype_substitute` (this is its
--- typeof-level counterpart, walking the constructor's field list instead of the datatype
--- structure). Signature corrected to the diagonal well-formedness form; body left as `sorry`.
-private theorem eo_to_smt_typeof_dt_cons_rec_substitute_of_wf
-    (sub : native_String) (d0 : Datatype) (T : Term) (hT : __eo_to_smt_type T ≠ SmtType.None) :
-    (d : Datatype) -> (i : native_Nat) ->
-      __smtx_dt_wf_rec (__eo_to_smt_datatype d0) (__eo_to_smt_datatype d0) = true ->
-      __smtx_dt_wf_rec (__eo_to_smt_datatype d) (__eo_to_smt_datatype d) = true ->
-      __eo_to_smt_type (__eo_typeof_dt_cons_rec T (__eo_dt_substitute sub d0 d) i) =
-        __smtx_typeof_dt_cons_rec (__eo_to_smt_type T)
-          (__smtx_dt_substitute sub (__eo_to_smt_datatype d0) (__eo_to_smt_datatype d)) i
-  | d, i, hD0Wf, hWf => by sorry
-
 theorem eo_to_smt_type_typeof_dt_cons
     (s : native_String) (d : Datatype) (i : native_Nat)
     (hReserved : __eo_reserved_datatype_name s = false)
     (hNN : __smtx_typeof (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) ≠ SmtType.None) :
     __eo_to_smt_type (__eo_typeof (Term.DtCons s d i)) =
       __smtx_typeof (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) := by
+  -- `__smtx_typeof` gates `DtCons` on `__smtx_type_wf (Datatype s (translation of d))`, so a
+  -- non-`None` typeof yields the one-step self-substitution wf pairing, hence (via
+  -- `eo_datatype_valid_of_smt_self_wf_rec`) eo-side validity of `d`, and the valid-based
+  -- typeof correspondence applies.
   let dSmt := __eo_to_smt_datatype d
   let raw := __smtx_typeof_dt_cons_rec (SmtType.Datatype s dSmt)
     (__smtx_dt_substitute s dSmt dSmt) i
   have hGuardNN : __smtx_typeof_guard_wf (SmtType.Datatype s dSmt) raw ≠ SmtType.None := by
     simpa [dSmt, raw, Smtm.typeof_dt_cons_eq] using hNN
-  have hTypeofEq : __smtx_typeof (SmtTerm.DtCons s dSmt i) = raw := by
-    rw [Smtm.typeof_dt_cons_eq]
-    exact smtx_typeof_guard_wf_of_non_none (SmtType.Datatype s dSmt) raw hGuardNN
-  have hBaseWf : __smtx_dt_wf_rec dSmt dSmt = true := by
-    sorry
-  have hBaseNN : __eo_to_smt_type (Term.DatatypeType s d) ≠ SmtType.None := by
-    simp [__eo_to_smt_type, native_ite, hReserved]
-  have hRec := eo_to_smt_typeof_dt_cons_rec_substitute_of_wf s d (Term.DatatypeType s d)
-    hBaseNN d i hBaseWf hBaseWf
-  change __eo_to_smt_type (__eo_typeof_dt_cons_rec (Term.DatatypeType s d) (__eo_dt_substitute s d d) i) =
-    __smtx_typeof (SmtTerm.DtCons s dSmt i)
-  rw [hRec]
-  simpa [__eo_to_smt_type, native_ite, hReserved, dSmt] using hTypeofEq.symm
+  have hBaseTypeWf : __smtx_type_wf (SmtType.Datatype s dSmt) = true :=
+    Smtm.smtx_typeof_guard_wf_wf_of_non_none (SmtType.Datatype s dSmt) raw hGuardNN
+  have hBaseDtWf : __smtx_dt_wf_rec (__smtx_dt_substitute s dSmt dSmt) dSmt = true :=
+    Smtm.datatype_wf_rec_of_type_wf hBaseTypeWf
+  have hValid : eo_datatype_valid_rec [s] d :=
+    eo_datatype_valid_of_smt_self_wf_rec s d hBaseDtWf
+  exact (eo_to_smt_type_typeof_dt_cons_of_valid s d i hReserved hValid hNN).1
 
 /-- Stronger EO-side helper for `typeof_apply_dt_cons`. -/
 theorem eo_to_smt_type_typeof_apply_dt_cons_of_fun_like

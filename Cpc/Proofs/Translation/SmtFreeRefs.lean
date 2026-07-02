@@ -401,43 +401,482 @@ theorem lift_noop_no_dt_dtc (s : native_String) (D : SmtDatatype) :
       rw [lift_noop_no_dt_ty s D T h.1, lift_noop_no_dt_dtc s D c h.2]
 end
 
-/- One-sided version of `lift_noop_no_dt_*`, needed for the case where the *ambient* wf fact we
-have is the new-algorithm two-argument (self-diagonal) well-formedness rather than a bare `noDt`
-fact for the fold name `s` itself. `noDt sub T` (about a *different*, outer name `sub`) plus `hFree`
-(the fold target `D` genuinely references `sub` freely) together rule out `T` folding onto the exact
-target `Datatype s D` at any position — this is the capture-avoidance argument used when substitution
-descends under a further datatype binder and needs to re-fold `s` before recursing.
+/-! ### Substitution images
 
-TODO(typeWf-0701 aliasing refactor): re-derive the "no accidental fold" step without appeal to a
-`RefList`-scoped well-formedness fact (the old proof used `wf @ r0` + `wf @ rR` doubly-scoped
-well-formedness, which no longer exists). Left as `sorry` — genuinely open under the new algorithm;
-the callers only need this fact for capture-avoidance during nested substitution, not for the SELF
-(one-level) substitute case that datatype typeof-preservation actually uses. -/
+`imgTy refs F U` says `F` is obtained from `U` by substituting (via `__smtx_*_substitute`)
+some of the free type references of `U` whose names are tracked by `refs`: a `TypeRef x` leaf
+is either untouched or (when `x ∈ refs`) replaced by a full `Datatype x …`; a `Datatype` node
+keeps its name with an image body; all other nodes are untouched. This is the invariant the
+two-argument `__smtx_*_wf_rec` recursion maintains between its full (first) and unfolded
+(second) arguments: it starts on the diagonal (`img*_refl`) and self-substitutes at each
+`Datatype` node (`img*_subst`). -/
 mutual
+def imgTy (refs : RefList) (F : SmtType) : SmtType → Prop
+  | SmtType.TypeRef x =>
+      F = SmtType.TypeRef x ∨
+        (native_reflist_contains refs x = true ∧ ∃ e, F = SmtType.Datatype x e)
+  | SmtType.Datatype s dU => ∃ dF, F = SmtType.Datatype s dF ∧ imgDt refs dF dU
+  | U => F = U
+def imgDt (refs : RefList) (F : SmtDatatype) : SmtDatatype → Prop
+  | SmtDatatype.sum cU dU =>
+      ∃ cF dF, F = SmtDatatype.sum cF dF ∧ imgDtc refs cF cU ∧ imgDt refs dF dU
+  | SmtDatatype.null => F = SmtDatatype.null
+def imgDtc (refs : RefList) (F : SmtDatatypeCons) : SmtDatatypeCons → Prop
+  | SmtDatatypeCons.cons TU cU =>
+      ∃ TF cF, F = SmtDatatypeCons.cons TF cF ∧ imgTy refs TF TU ∧ imgDtc refs cF cU
+  | SmtDatatypeCons.unit => F = SmtDatatypeCons.unit
+end
+
+mutual
+theorem imgTy_refl (refs : RefList) : (T : SmtType) → imgTy refs T T
+  | SmtType.TypeRef x => Or.inl rfl
+  | SmtType.Datatype s d => ⟨d, rfl, imgDt_refl refs d⟩
+  | SmtType.Bool => rfl
+  | SmtType.Int => rfl
+  | SmtType.Real => rfl
+  | SmtType.BitVec n => rfl
+  | SmtType.Char => rfl
+  | SmtType.USort n => rfl
+  | SmtType.Seq x => rfl
+  | SmtType.Set x => rfl
+  | SmtType.Map x y => rfl
+  | SmtType.FunType x y => rfl
+  | SmtType.DtcAppType x y => rfl
+  | SmtType.None => rfl
+  | SmtType.RegLan => rfl
+theorem imgDt_refl (refs : RefList) : (d : SmtDatatype) → imgDt refs d d
+  | SmtDatatype.null => rfl
+  | SmtDatatype.sum c d => ⟨c, d, rfl, imgDtc_refl refs c, imgDt_refl refs d⟩
+theorem imgDtc_refl (refs : RefList) : (c : SmtDatatypeCons) → imgDtc refs c c
+  | SmtDatatypeCons.unit => rfl
+  | SmtDatatypeCons.cons T c => ⟨T, c, rfl, imgTy_refl refs T, imgDtc_refl refs c⟩
+end
+
+mutual
+theorem imgTy_weaken {refs refs' : RefList}
+    (hsub : ∀ x, native_reflist_contains refs x = true →
+      native_reflist_contains refs' x = true) :
+    (U : SmtType) → (F : SmtType) → imgTy refs F U → imgTy refs' F U
+  | SmtType.TypeRef x, F, h => by
+      rcases h with hTF | ⟨hMem, e, hTF⟩
+      · exact Or.inl hTF
+      · exact Or.inr ⟨hsub x hMem, e, hTF⟩
+  | SmtType.Datatype s dU, F, h => by
+      rcases h with ⟨dF, hTF, hD⟩
+      exact ⟨dF, hTF, imgDt_weaken hsub dU dF hD⟩
+  | SmtType.Bool, F, h => h
+  | SmtType.Int, F, h => h
+  | SmtType.Real, F, h => h
+  | SmtType.BitVec n, F, h => h
+  | SmtType.Char, F, h => h
+  | SmtType.USort n, F, h => h
+  | SmtType.Seq x, F, h => h
+  | SmtType.Set x, F, h => h
+  | SmtType.Map x y, F, h => h
+  | SmtType.FunType x y, F, h => h
+  | SmtType.DtcAppType x y, F, h => h
+  | SmtType.None, F, h => h
+  | SmtType.RegLan, F, h => h
+theorem imgDt_weaken {refs refs' : RefList}
+    (hsub : ∀ x, native_reflist_contains refs x = true →
+      native_reflist_contains refs' x = true) :
+    (dU : SmtDatatype) → (dF : SmtDatatype) → imgDt refs dF dU → imgDt refs' dF dU
+  | SmtDatatype.null, dF, h => h
+  | SmtDatatype.sum cU dU, dF, h => by
+      rcases h with ⟨cF, dF', hEq, hC, hD⟩
+      exact ⟨cF, dF', hEq, imgDtc_weaken hsub cU cF hC, imgDt_weaken hsub dU dF' hD⟩
+theorem imgDtc_weaken {refs refs' : RefList}
+    (hsub : ∀ x, native_reflist_contains refs x = true →
+      native_reflist_contains refs' x = true) :
+    (cU : SmtDatatypeCons) → (cF : SmtDatatypeCons) → imgDtc refs cF cU → imgDtc refs' cF cU
+  | SmtDatatypeCons.unit, cF, h => h
+  | SmtDatatypeCons.cons TU cU, cF, h => by
+      rcases h with ⟨TF, cF', hEq, hT, hC⟩
+      exact ⟨TF, cF', hEq, imgTy_weaken hsub TU TF hT, imgDtc_weaken hsub cU cF' hC⟩
+end
+
+private theorem contains_insert_of_contains {refs : RefList} {x : native_String}
+    (s : native_String) (h : native_reflist_contains refs x = true) :
+    native_reflist_contains (native_reflist_insert refs s) x = true := by
+  simp [native_reflist_contains, native_reflist_insert] at h ⊢
+  exact Or.inr h
+
+mutual
+theorem imgTy_subst (s : native_String) (δ : SmtDatatype) {refs : RefList} :
+    (U : SmtType) → (F : SmtType) → imgTy refs F U →
+      imgTy (native_reflist_insert refs s) (__smtx_type_substitute s δ F) U
+  | SmtType.TypeRef x, F, h => by
+      rcases h with rfl | ⟨hMem, e, rfl⟩
+      · by_cases hxs : s = x
+        · subst hxs
+          refine Or.inr ⟨by simp [native_reflist_contains, native_reflist_insert], δ, ?_⟩
+          simp [__smtx_type_substitute, native_ite, native_streq]
+        · have hst : native_streq s x = false := by simp [native_streq, hxs]
+          exact Or.inl (by simp [__smtx_type_substitute, native_ite, hst])
+      · exact Or.inr ⟨contains_insert_of_contains s hMem,
+          native_ite (native_streq s x) e
+            (__smtx_dt_substitute s (__smtx_dt_lift x e δ) e), rfl⟩
+  | SmtType.Datatype s2 dU, F, h => by
+      rcases h with ⟨dF, rfl, hD⟩
+      by_cases hs : s = s2
+      · subst hs
+        refine ⟨dF, by simp [__smtx_type_substitute, native_ite, native_streq], ?_⟩
+        exact imgDt_weaken (fun x hx => contains_insert_of_contains s hx) dU dF hD
+      · have hst : native_streq s s2 = false := by simp [native_streq, hs]
+        exact ⟨__smtx_dt_substitute s (__smtx_dt_lift s2 dF δ) dF,
+          by simp [__smtx_type_substitute, native_ite, hst],
+          imgDt_subst s (__smtx_dt_lift s2 dF δ) dU dF hD⟩
+  | SmtType.Bool, F, h => by cases h; rfl
+  | SmtType.Int, F, h => by cases h; rfl
+  | SmtType.Real, F, h => by cases h; rfl
+  | SmtType.BitVec n, F, h => by cases h; rfl
+  | SmtType.Char, F, h => by cases h; rfl
+  | SmtType.USort n, F, h => by cases h; rfl
+  | SmtType.Seq x, F, h => by cases h; rfl
+  | SmtType.Set x, F, h => by cases h; rfl
+  | SmtType.Map x y, F, h => by cases h; rfl
+  | SmtType.FunType x y, F, h => by cases h; rfl
+  | SmtType.DtcAppType x y, F, h => by cases h; rfl
+  | SmtType.None, F, h => by cases h; rfl
+  | SmtType.RegLan, F, h => by cases h; rfl
+theorem imgDt_subst (s : native_String) (δ : SmtDatatype) {refs : RefList} :
+    (dU : SmtDatatype) → (dF : SmtDatatype) → imgDt refs dF dU →
+      imgDt (native_reflist_insert refs s) (__smtx_dt_substitute s δ dF) dU
+  | SmtDatatype.null, dF, h => by cases h; rfl
+  | SmtDatatype.sum cU dU, dF, h => by
+      rcases h with ⟨cF, dF', rfl, hC, hD⟩
+      exact ⟨__smtx_dtc_substitute s δ cF, __smtx_dt_substitute s δ dF',
+        by simp [__smtx_dt_substitute],
+        imgDtc_subst s δ cU cF hC, imgDt_subst s δ dU dF' hD⟩
+theorem imgDtc_subst (s : native_String) (δ : SmtDatatype) {refs : RefList} :
+    (cU : SmtDatatypeCons) → (cF : SmtDatatypeCons) → imgDtc refs cF cU →
+      imgDtc (native_reflist_insert refs s) (__smtx_dtc_substitute s δ cF) cU
+  | SmtDatatypeCons.unit, cF, h => by cases h; rfl
+  | SmtDatatypeCons.cons TU cU, cF, h => by
+      rcases h with ⟨TF, cF', rfl, hT, hC⟩
+      exact ⟨__smtx_type_substitute s δ TF, __smtx_dtc_substitute s δ cF',
+        by simp [__smtx_dtc_substitute],
+        imgTy_subst s δ TU TF hT, imgDtc_subst s δ cU cF' hC⟩
+end
+
+/-- Splits a generic (non-skip) constructor-field step of `__smtx_dt_cons_wf_rec`. -/
+private theorem dt_cons_wf_rec_parts
+    {TF TU : SmtType} {cF cU : SmtDatatypeCons}
+    (hNotSpecial : ¬ ∃ sF dF r, TF = SmtType.Datatype sF dF ∧ TU = SmtType.TypeRef r)
+    (h : __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons TF cF)
+        (SmtDatatypeCons.cons TU cU) = true) :
+    __smtx_type_wf_rec TF TU = true ∧ __smtx_dt_cons_wf_rec cF cU = true := by
+  cases TF <;> cases TU <;>
+    simp [__smtx_dt_cons_wf_rec, native_ite, native_and] at h hNotSpecial ⊢
+  all_goals
+    first
+    | exact h
+    | exact ⟨h.1.2, h.2⟩
+    | exact ⟨h.2.1, h.2.2⟩
+    | contradiction
+
+/-- Reduces `hasFreeDtc` on a non-`TypeRef` head field. -/
+private theorem hasFreeDtc_cons_generic
+    (sub : native_String) (refs : RefList) {T : SmtType} (c : SmtDatatypeCons)
+    (hT : ∀ x, T ≠ SmtType.TypeRef x) :
+    hasFreeDtc sub refs (SmtDatatypeCons.cons T c) =
+      native_or (hasFreeTy sub refs T) (hasFreeDtc sub refs c) := by
+  cases T with
+  | TypeRef x => exact absurd rfl (hT x)
+  | _ => simp [hasFreeDtc]
+
+/-! ### Well-formedness excludes free type references
+
+The new-algorithm replacement for the deleted reflist-scoped
+`hasFree*_eq_false_of_wf`: a type that is well-formed against a substitution image of
+itself (`imgTy`) has no type reference free over the image scope. Every `TypeRef` accepted
+by the wf recursion is accepted through the skip case, whose image invariant certifies the
+referenced name is in scope. -/
+mutual
+theorem hasFreeTy_eq_false_of_wf_img (sub : native_String) :
+    (U : SmtType) → (F : SmtType) → (refs : RefList) →
+      imgTy refs F U → __smtx_type_wf_rec F U = true →
+      hasFreeTy sub refs U = false
+  | SmtType.Datatype s dU, F, refs, hImg, hWf => by
+      rcases hImg with ⟨dF, rfl, hD⟩
+      have hWf' : __smtx_dt_wf_rec (__smtx_dt_substitute s dF dF) dU = true := by
+        simpa [__smtx_type_wf_rec] using hWf
+      have hImg' : imgDt (native_reflist_insert refs s)
+          (__smtx_dt_substitute s dF dF) dU :=
+        imgDt_subst s dF dU dF hD
+      simp only [hasFreeTy]
+      exact hasFreeDt_eq_false_of_wf_img sub dU _ _ hImg' hWf'
+  | SmtType.Seq x, F, refs, hImg, hWf => by
+      cases hImg
+      have hx : __smtx_type_wf_rec x x = true := by
+        simp only [__smtx_type_wf_rec, native_and, Bool.and_eq_true] at hWf
+        exact hWf.2
+      simp only [hasFreeTy]
+      exact hasFreeTy_eq_false_of_wf_img sub x x native_reflist_nil (imgTy_refl _ x) hx
+  | SmtType.Set x, F, refs, hImg, hWf => by
+      cases hImg
+      have hx : __smtx_type_wf_rec x x = true := by
+        simp only [__smtx_type_wf_rec, native_and, Bool.and_eq_true] at hWf
+        exact hWf.2
+      simp only [hasFreeTy]
+      exact hasFreeTy_eq_false_of_wf_img sub x x native_reflist_nil (imgTy_refl _ x) hx
+  | SmtType.Map x y, F, refs, hImg, hWf => by
+      cases hImg
+      have hParts : __smtx_type_wf_rec x x = true ∧ __smtx_type_wf_rec y y = true := by
+        simp only [__smtx_type_wf_rec, native_and, Bool.and_eq_true] at hWf
+        exact ⟨hWf.2.1, hWf.2.2.2⟩
+      simp only [hasFreeTy, native_or, Bool.or_eq_false_iff]
+      exact ⟨hasFreeTy_eq_false_of_wf_img sub x x native_reflist_nil (imgTy_refl _ x)
+          hParts.1,
+        hasFreeTy_eq_false_of_wf_img sub y y native_reflist_nil (imgTy_refl _ y)
+          hParts.2⟩
+  | SmtType.TypeRef x, F, refs, hImg, hWf => by simp [hasFreeTy]
+  | SmtType.Bool, F, refs, hImg, hWf => by simp [hasFreeTy]
+  | SmtType.Int, F, refs, hImg, hWf => by simp [hasFreeTy]
+  | SmtType.Real, F, refs, hImg, hWf => by simp [hasFreeTy]
+  | SmtType.BitVec n, F, refs, hImg, hWf => by simp [hasFreeTy]
+  | SmtType.Char, F, refs, hImg, hWf => by simp [hasFreeTy]
+  | SmtType.USort n, F, refs, hImg, hWf => by simp [hasFreeTy]
+  | SmtType.FunType x y, F, refs, hImg, hWf => by simp [hasFreeTy]
+  | SmtType.DtcAppType x y, F, refs, hImg, hWf => by simp [hasFreeTy]
+  | SmtType.None, F, refs, hImg, hWf => by simp [hasFreeTy]
+  | SmtType.RegLan, F, refs, hImg, hWf => by simp [hasFreeTy]
+
+theorem hasFreeDt_eq_false_of_wf_img (sub : native_String) :
+    (dU : SmtDatatype) → (dF : SmtDatatype) → (refs : RefList) →
+      imgDt refs dF dU → __smtx_dt_wf_rec dF dU = true →
+      hasFreeDt sub refs dU = false
+  | SmtDatatype.null, dF, refs, hImg, hWf => by simp [hasFreeDt]
+  | SmtDatatype.sum cU dU, dF, refs, hImg, hWf => by
+      rcases hImg with ⟨cF, dF', rfl, hC, hD⟩
+      have hParts :
+          __smtx_dt_cons_wf_rec cF cU = true ∧ __smtx_dt_wf_rec dF' dU = true := by
+        simp only [__smtx_dt_wf_rec, native_ite] at hWf
+        cases hc : __smtx_dt_cons_wf_rec cF cU <;> simp [hc] at hWf ⊢
+        exact hWf
+      simp only [hasFreeDt, native_or, Bool.or_eq_false_iff]
+      exact ⟨hasFreeDtc_eq_false_of_wf_img sub cU cF refs hC hParts.1,
+        hasFreeDt_eq_false_of_wf_img sub dU dF' refs hD hParts.2⟩
+
+theorem hasFreeDtc_eq_false_of_wf_img (sub : native_String) :
+    (cU : SmtDatatypeCons) → (cF : SmtDatatypeCons) → (refs : RefList) →
+      imgDtc refs cF cU → __smtx_dt_cons_wf_rec cF cU = true →
+      hasFreeDtc sub refs cU = false
+  | SmtDatatypeCons.unit, cF, refs, hImg, hWf => by simp [hasFreeDtc]
+  | SmtDatatypeCons.cons TU cU, cF, refs, hImg, hWf => by
+      rcases hImg with ⟨TF, cF', rfl, hT, hC⟩
+      by_cases hRef : ∃ x, TU = SmtType.TypeRef x
+      · rcases hRef with ⟨x, rfl⟩
+        rcases hT with rfl | ⟨hMem, e, rfl⟩
+        · exfalso
+          simp [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite, native_and] at hWf
+        · have hTail : __smtx_dt_cons_wf_rec cF' cU = true := by
+            simpa [__smtx_dt_cons_wf_rec] using hWf
+          have hbit : native_and (native_streq x sub)
+              (native_not (native_reflist_contains refs sub)) = false := by
+            by_cases hxs : x = sub
+            · subst hxs
+              simp [native_and, native_not, hMem]
+            · simp [native_and, native_streq, hxs]
+          simp only [hasFreeDtc, native_or, Bool.or_eq_false_iff]
+          exact ⟨by simpa using hbit,
+            hasFreeDtc_eq_false_of_wf_img sub cU cF' refs hC hTail⟩
+      · have hNS : ¬ ∃ sF dF r, TF = SmtType.Datatype sF dF ∧ TU = SmtType.TypeRef r := by
+          rintro ⟨sF, dF, r, -, hTU⟩
+          exact hRef ⟨r, hTU⟩
+        have hParts := dt_cons_wf_rec_parts hNS hWf
+        rw [hasFreeDtc_cons_generic sub refs cU (fun x hx => hRef ⟨x, hx⟩)]
+        simp only [native_or, Bool.or_eq_false_iff]
+        exact ⟨hasFreeTy_eq_false_of_wf_img sub TU TF refs hT hParts.1,
+          hasFreeDtc_eq_false_of_wf_img sub cU cF' refs hC hParts.2⟩
+end
+
+/-- Diagonal corollary: a diagonally well-formed type has no free type references at all. -/
+theorem hasFreeTy_eq_false_of_wf (sub : native_String) (T : SmtType)
+    (hWf : __smtx_type_wf_rec T T = true) :
+    hasFreeTy sub native_reflist_nil T = false :=
+  hasFreeTy_eq_false_of_wf_img sub T T native_reflist_nil (imgTy_refl _ T) hWf
+
+/- One-sided version of `lift_noop_no_dt_*` for the case where the ambient fact is
+well-formedness rather than a bare `noDt` fact for the fold name `s` itself. `noDt sub W`
+(about a *different*, outer name `sub`) plus `hFree` (the fold target `D` genuinely references
+`sub` freely) together rule out `W` containing the exact fold target `Datatype s D` at any
+lift-reachable position: any such copy of `D` would carry a `TypeRef sub` free over the
+enclosing scope (no binder is named `sub`, by `noDt`), which well-formedness excludes
+(`hasFree*_eq_false_of_wf_img`). The `dt`/`dtc` levels take the paired (full/unfolded) wf form
+together with its substitution-image invariant — that is what the wf recursion actually
+provides under a `Datatype` binder; the `ty` level keeps its diagonal signature. -/
+mutual
+theorem lift_noop_of_wf_no_dt_dt (s sub : native_String) (D : SmtDatatype)
+    (hsne : sub ≠ s)
+    (hFree : hasFreeDt sub (native_reflist_insert native_reflist_nil s) D = true) :
+    (W : SmtDatatype) → (F : SmtDatatype) → (refs : RefList) →
+      imgDt refs F W → __smtx_dt_wf_rec F W = true → noDtDt sub W = true →
+      native_reflist_contains refs sub = false →
+      __smtx_dt_lift s D W = W
+  | SmtDatatype.null, F, refs, hImg, hWf, hNoDt, hSub => by simp [__smtx_dt_lift]
+  | SmtDatatype.sum cU dU, F, refs, hImg, hWf, hNoDt, hSub => by
+      rcases hImg with ⟨cF, dF, rfl, hC, hD⟩
+      have hParts :
+          __smtx_dt_cons_wf_rec cF cU = true ∧ __smtx_dt_wf_rec dF dU = true := by
+        simp only [__smtx_dt_wf_rec, native_ite] at hWf
+        cases hc : __smtx_dt_cons_wf_rec cF cU <;> simp [hc] at hWf ⊢
+        exact hWf
+      have hNoDtParts : noDtDtc sub cU = true ∧ noDtDt sub dU = true := by
+        simpa [noDtDt, native_and, Bool.and_eq_true] using hNoDt
+      simp only [__smtx_dt_lift]
+      rw [lift_noop_of_wf_no_dt_dtc s sub D hsne hFree cU cF refs hC hParts.1
+          hNoDtParts.1 hSub,
+        lift_noop_of_wf_no_dt_dt s sub D hsne hFree dU dF refs hD hParts.2
+          hNoDtParts.2 hSub]
+
+theorem lift_noop_of_wf_no_dt_dtc (s sub : native_String) (D : SmtDatatype)
+    (hsne : sub ≠ s)
+    (hFree : hasFreeDt sub (native_reflist_insert native_reflist_nil s) D = true) :
+    (c : SmtDatatypeCons) → (F : SmtDatatypeCons) → (refs : RefList) →
+      imgDtc refs F c → __smtx_dt_cons_wf_rec F c = true → noDtDtc sub c = true →
+      native_reflist_contains refs sub = false →
+      __smtx_dtc_lift s D c = c
+  | SmtDatatypeCons.unit, F, refs, hImg, hWf, hNoDt, hSub => by simp [__smtx_dtc_lift]
+  | SmtDatatypeCons.cons TU cU, F, refs, hImg, hWf, hNoDt, hSub => by
+      rcases hImg with ⟨TF, cF, rfl, hT, hC⟩
+      have hNoDtParts : noDtTy sub TU = true ∧ noDtDtc sub cU = true := by
+        simpa [noDtDtc, native_and, Bool.and_eq_true] using hNoDt
+      by_cases hRefU : ∃ x, TU = SmtType.TypeRef x
+      · rcases hRefU with ⟨x, rfl⟩
+        rcases hT with rfl | ⟨hMem, e, rfl⟩
+        · exfalso
+          simp [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite, native_and] at hWf
+        · have hTail : __smtx_dt_cons_wf_rec cF cU = true := by
+            simpa [__smtx_dt_cons_wf_rec] using hWf
+          simp only [__smtx_dtc_lift, __smtx_type_lift]
+          rw [lift_noop_of_wf_no_dt_dtc s sub D hsne hFree cU cF refs hC hTail
+            hNoDtParts.2 hSub]
+      · have hNS : ¬ ∃ sF dF r, TF = SmtType.Datatype sF dF ∧ TU = SmtType.TypeRef r := by
+          rintro ⟨sF, dF, r, -, hTU⟩
+          exact hRefU ⟨r, hTU⟩
+        have hParts := dt_cons_wf_rec_parts hNS hWf
+        have hTailEq :=
+          lift_noop_of_wf_no_dt_dtc s sub D hsne hFree cU cF refs hC hParts.2
+            hNoDtParts.2 hSub
+        simp only [__smtx_dtc_lift]
+        rw [hTailEq]
+        cases TU with
+        | Datatype s2 d2 =>
+            rcases hT with ⟨dF2, rfl, hD2⟩
+            have hs2sub : native_streq s2 sub = false ∧ noDtDt sub d2 = true := by
+              have h0 := hNoDtParts.1
+              simp only [noDtTy, native_and, native_not, Bool.and_eq_true] at h0
+              cases hst : native_streq s2 sub
+              · exact ⟨rfl, by simpa [hst] using h0⟩
+              · simp [hst] at h0
+            have hs2ne : s2 ≠ sub := by
+              intro he
+              subst he
+              simp [native_streq] at hs2sub
+            have hDt2 :
+                __smtx_dt_wf_rec (__smtx_dt_substitute s2 dF2 dF2) d2 = true := by
+              simpa [__smtx_type_wf_rec] using hParts.1
+            have hImg2 : imgDt (native_reflist_insert refs s2)
+                (__smtx_dt_substitute s2 dF2 dF2) d2 :=
+              imgDt_subst s2 dF2 d2 dF2 hD2
+            have hSub2 :
+                native_reflist_contains (native_reflist_insert refs s2) sub = false := by
+              simp [native_reflist_contains, native_reflist_insert] at hSub ⊢
+              exact ⟨fun he => hs2ne he.symm, hSub⟩
+            by_cases hFold : native_Teq (SmtType.Datatype s D) (SmtType.Datatype s2 d2) = true
+            · exfalso
+              obtain ⟨hs', hd'⟩ : s = s2 ∧ D = d2 := by simpa [native_Teq] using hFold
+              subst hs'
+              subst hd'
+              have hNoFree : hasFreeDt sub (native_reflist_insert refs s) D = false :=
+                hasFreeDt_eq_false_of_wf_img sub D _ _ hImg2 hDt2
+              have hFree' : hasFreeDt sub (native_reflist_insert refs s) D = true := by
+                rw [hasFreeDt_refs_irrel sub D _ (native_reflist_insert native_reflist_nil s)
+                  (by
+                    rw [hSub2]
+                    have : native_reflist_contains
+                        (native_reflist_insert native_reflist_nil s) sub = false := by
+                      simp [native_reflist_contains, native_reflist_insert,
+                        native_reflist_nil]
+                      exact fun he => hsne he
+                    rw [this])]
+                exact hFree
+              rw [hFree'] at hNoFree
+              cases hNoFree
+            · simp only [__smtx_type_lift, native_ite]
+              rw [if_neg hFold]
+              congr 2
+              exact lift_noop_of_wf_no_dt_dt s sub D hsne hFree d2 _ _ hImg2 hDt2
+                hs2sub.2 hSub2
+        | TypeRef x => exact absurd ⟨x, rfl⟩ hRefU
+        | Bool => simp [__smtx_type_lift]
+        | Int => simp [__smtx_type_lift]
+        | Real => simp [__smtx_type_lift]
+        | BitVec n => simp [__smtx_type_lift]
+        | Char => simp [__smtx_type_lift]
+        | USort n => simp [__smtx_type_lift]
+        | Seq x => simp [__smtx_type_lift]
+        | Set x => simp [__smtx_type_lift]
+        | Map x y => simp [__smtx_type_lift]
+        | FunType x y => simp [__smtx_type_lift]
+        | DtcAppType x y => simp [__smtx_type_lift]
+        | None => simp [__smtx_type_lift]
+        | RegLan => simp [__smtx_type_lift]
+end
+
 theorem lift_noop_of_wf_no_dt_ty (s sub : native_String) (D : SmtDatatype)
     (hsne : sub ≠ s)
     (hFree : hasFreeDt sub (native_reflist_insert native_reflist_nil s) D = true) :
     (T : SmtType) → __smtx_type_wf_rec T T = true → noDtTy sub T = true →
       __smtx_type_lift s D T = T
-  | T, hWf, hNoDt => by
-      sorry
-
-theorem lift_noop_of_wf_no_dt_dt (s sub : native_String) (D : SmtDatatype)
-    (hsne : sub ≠ s)
-    (hFree : hasFreeDt sub (native_reflist_insert native_reflist_nil s) D = true) :
-    (W : SmtDatatype) → __smtx_dt_wf_rec W W = true → noDtDt sub W = true →
-      __smtx_dt_lift s D W = W
-  | W, hWf, hNoDt => by
-      sorry
-
-theorem lift_noop_of_wf_no_dt_dtc (s sub : native_String) (D : SmtDatatype)
-    (hsne : sub ≠ s)
-    (hFree : hasFreeDt sub (native_reflist_insert native_reflist_nil s) D = true) :
-    (c : SmtDatatypeCons) → __smtx_dt_cons_wf_rec c c = true → noDtDtc sub c = true →
-      __smtx_dtc_lift s D c = c
-  | c, hWf, hNoDt => by
-      sorry
-end
+  | SmtType.Datatype s2 d2, hWf, hNoDt => by
+      have hs2sub : native_streq s2 sub = false ∧ noDtDt sub d2 = true := by
+        simp only [noDtTy, native_and, native_not, Bool.and_eq_true] at hNoDt
+        cases hst : native_streq s2 sub
+        · exact ⟨rfl, by simpa [hst] using hNoDt⟩
+        · simp [hst] at hNoDt
+      have hs2ne : s2 ≠ sub := by
+        intro he
+        subst he
+        simp [native_streq] at hs2sub
+      have hDt : __smtx_dt_wf_rec (__smtx_dt_substitute s2 d2 d2) d2 = true := by
+        simpa [__smtx_type_wf_rec] using hWf
+      have hImg : imgDt (native_reflist_insert native_reflist_nil s2)
+          (__smtx_dt_substitute s2 d2 d2) d2 :=
+        imgDt_subst s2 d2 d2 d2 (imgDt_refl _ d2)
+      have hSub2 :
+          native_reflist_contains
+            (native_reflist_insert native_reflist_nil s2) sub = false := by
+        simp [native_reflist_contains, native_reflist_insert, native_reflist_nil]
+        exact fun he => hs2ne he.symm
+      by_cases hFold : native_Teq (SmtType.Datatype s D) (SmtType.Datatype s2 d2) = true
+      · exfalso
+        obtain ⟨hs', hd'⟩ : s = s2 ∧ D = d2 := by simpa [native_Teq] using hFold
+        subst hs'
+        subst hd'
+        have hNoFree :
+            hasFreeDt sub (native_reflist_insert native_reflist_nil s) D = false :=
+          hasFreeDt_eq_false_of_wf_img sub D _ _ hImg hDt
+        rw [hFree] at hNoFree
+        cases hNoFree
+      · simp only [__smtx_type_lift, native_ite]
+        rw [if_neg hFold]
+        rw [lift_noop_of_wf_no_dt_dt s sub D hsne hFree d2 _ _ hImg hDt hs2sub.2 hSub2]
+  | SmtType.TypeRef x, _, _ => by simp [__smtx_type_lift]
+  | SmtType.Bool, _, _ => by simp [__smtx_type_lift]
+  | SmtType.Int, _, _ => by simp [__smtx_type_lift]
+  | SmtType.Real, _, _ => by simp [__smtx_type_lift]
+  | SmtType.BitVec n, _, _ => by simp [__smtx_type_lift]
+  | SmtType.Char, _, _ => by simp [__smtx_type_lift]
+  | SmtType.USort n, _, _ => by simp [__smtx_type_lift]
+  | SmtType.Seq x, _, _ => by simp [__smtx_type_lift]
+  | SmtType.Set x, _, _ => by simp [__smtx_type_lift]
+  | SmtType.Map x y, _, _ => by simp [__smtx_type_lift]
+  | SmtType.FunType x y, _, _ => by simp [__smtx_type_lift]
+  | SmtType.DtcAppType x y, _, _ => by simp [__smtx_type_lift]
+  | SmtType.None, _, _ => by simp [__smtx_type_lift]
+  | SmtType.RegLan, _, _ => by simp [__smtx_type_lift]
 
 /- `consistentWith D0 W`: every `Datatype s' E'` reachable in `W` is `noStray`-consistent with `D0`
 (i.e. all `Datatype s'` in `D0` have body `E'`). Purely syntactic. -/
