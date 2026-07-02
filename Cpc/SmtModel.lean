@@ -779,7 +779,7 @@ def __smtx_type_wf_rec : SmtType -> SmtType -> native_Bool
 
 
 def __smtx_type_wf_component (T : SmtType) : native_Bool :=
-  (native_and (native_inhabited_type T) (__smtx_type_wf_rec T T))
+  (native_and (native_and (native_inhabited_type T) (__smtx_type_wf_rec T T)) (__smtx_type_no_alias_rec native_reflist_nil T))
 
 def __smtx_type_wf : SmtType -> native_Bool
   | SmtType.RegLan => true
