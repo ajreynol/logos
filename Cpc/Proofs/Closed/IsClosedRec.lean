@@ -38,11 +38,12 @@ by
 
 /-- Datatype constructors with a `None` field are not well-formed. -/
 theorem smtx_dt_cons_wf_rec_cons_none_eq_false
-    (c : SmtDatatypeCons) (refs : RefList) :
-  __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons SmtType.None c) refs =
+    (cF : SmtDatatypeCons) (c : SmtDatatypeCons) :
+  __smtx_dt_cons_wf_rec cF (SmtDatatypeCons.cons SmtType.None c) =
     false :=
 by
-  simp [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite]
+  cases cF <;>
+    simp [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite, native_and]
 
 set_option maxHeartbeats 50000000 in
 /--
@@ -104,8 +105,15 @@ by
           native_reflist_contains native_reflist_nil
               (native_string_lit "@Tuple") =
             false
-    · simp [hCond, __smtx_typeof_apply]
-    · simp [hCond, __smtx_typeof_apply]
+    · simp [hCond, __smtx_typeof_apply, __smtx_type_no_alias_rec,
+        __smtx_dt_no_alias_rec, __smtx_dt_cons_no_alias_rec,
+        native_reflist_contains, native_reflist_insert, native_reflist_nil,
+        native_ite]
+    · exfalso
+      apply hCond
+      constructor
+      · native_decide
+      · simp [native_reflist_contains, native_reflist_nil]
   case tuple =>
     cases hBody : __smtx_typeof (__eo_to_smt body)
     all_goals

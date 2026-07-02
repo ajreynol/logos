@@ -33,9 +33,9 @@ private theorem default_typed_model_of_native_fun_typed
   intro fid A B i hFunWF hi
   have hParts :
       native_inhabited_type A = true ∧
-        __smtx_type_wf_rec A native_reflist_nil = true ∧
+        __smtx_type_wf_rec A A = true ∧
           native_inhabited_type B = true ∧
-            __smtx_type_wf_rec B native_reflist_nil = true := by
+            __smtx_type_wf_rec B B = true := by
     exact ifun_type_wf_parts hFunWF
   have hDefault :=
     type_default_typed_canonical_of_inhabited_wf_rec B hParts.2.2.1 hParts.2.2.2

@@ -167,29 +167,6 @@ theorem model_total_typed_push
           native_model_push]
           using model_total_typed_native_fun_typed hM fid A B i hFunWF hi
 
-private theorem dt_wf_cons_of_wf
-    {c : SmtDatatypeCons}
-    {d : SmtDatatype}
-    {refs : RefList}
-    (h : __smtx_dt_wf_rec (SmtDatatype.sum c d) refs = true) :
-    __smtx_dt_cons_wf_rec c refs = true := by
-  by_cases hc : __smtx_dt_cons_wf_rec c refs = true
-  · exact hc
-  · have hFalse : __smtx_dt_wf_rec (SmtDatatype.sum c d) refs = false := by
-      cases d <;> simp [__smtx_dt_wf_rec, native_ite, hc]
-    rw [hFalse] at h
-    simp at h
-
-private theorem dt_wf_tail_of_nonempty_tail_wf
-    {c cTail : SmtDatatypeCons}
-    {dTail : SmtDatatype}
-    {refs : RefList}
-    (h : __smtx_dt_wf_rec (SmtDatatype.sum c (SmtDatatype.sum cTail dTail)) refs = true) :
-    __smtx_dt_wf_rec (SmtDatatype.sum cTail dTail) refs = true := by
-  have hc : __smtx_dt_cons_wf_rec c refs = true :=
-    dt_wf_cons_of_wf h
-  simpa [__smtx_dt_wf_rec, native_ite, hc] using h
-
 /--
 Datatype-default canonicity for the generated model.
 
@@ -200,7 +177,7 @@ theorem datatype_type_default_typed_canonical_of_inhabited
     (s : native_String)
     (d : SmtDatatype)
     (_hInh : native_inhabited_type (SmtType.Datatype s d) = true)
-    (_hRec : __smtx_type_wf_rec (SmtType.Datatype s d) native_reflist_nil = true) :
+    (_hRec : __smtx_type_wf_rec (SmtType.Datatype s d) (SmtType.Datatype s d) = true) :
       __smtx_typeof_value (__smtx_type_default (SmtType.Datatype s d)) =
         SmtType.Datatype s d ∧
       __smtx_value_canonical (__smtx_type_default (SmtType.Datatype s d)) :=
@@ -210,7 +187,7 @@ private theorem datatype_type_default_typed_canonical_of_wf_rec_deferred
     (s : native_String)
     (d : SmtDatatype)
     (_hInh : native_inhabited_type (SmtType.Datatype s d) = true)
-    (_hRec : __smtx_type_wf_rec (SmtType.Datatype s d) native_reflist_nil = true) :
+    (_hRec : __smtx_type_wf_rec (SmtType.Datatype s d) (SmtType.Datatype s d) = true) :
     __smtx_typeof_value (__smtx_type_default (SmtType.Datatype s d)) =
         SmtType.Datatype s d ∧
       __smtx_value_canonical (__smtx_type_default (SmtType.Datatype s d)) := by
@@ -218,7 +195,7 @@ private theorem datatype_type_default_typed_canonical_of_wf_rec_deferred
 
 private theorem type_default_typed_canonical_of_wf_rec_deferred_datatype
     (T : SmtType) (hInh : native_inhabited_type T = true)
-    (_hRec : __smtx_type_wf_rec T native_reflist_nil = true) :
+    (_hRec : __smtx_type_wf_rec T T = true) :
     __smtx_typeof_value (__smtx_type_default T) = T ∧
       __smtx_value_canonical (__smtx_type_default T) :=
   type_default_typed_canonical_of_native_inhabited_type T hInh
@@ -227,7 +204,7 @@ private theorem datatype_type_default_typed_canonical_of_wf_rec
     (s : native_String)
     (d : SmtDatatype)
     (_hInh : native_inhabited_type (SmtType.Datatype s d) = true)
-    (_hRec : __smtx_type_wf_rec (SmtType.Datatype s d) native_reflist_nil = true) :
+    (_hRec : __smtx_type_wf_rec (SmtType.Datatype s d) (SmtType.Datatype s d) = true) :
     __smtx_typeof_value (__smtx_type_default (SmtType.Datatype s d)) =
         SmtType.Datatype s d ∧
       __smtx_value_canonical (__smtx_type_default (SmtType.Datatype s d)) := by
@@ -235,7 +212,7 @@ private theorem datatype_type_default_typed_canonical_of_wf_rec
 
 private theorem type_default_typed_canonical_of_wf_rec
     (T : SmtType) (hInh : native_inhabited_type T = true)
-    (_hRec : __smtx_type_wf_rec T native_reflist_nil = true) :
+    (_hRec : __smtx_type_wf_rec T T = true) :
     __smtx_typeof_value (__smtx_type_default T) = T ∧
       __smtx_value_canonical (__smtx_type_default T) :=
   type_default_typed_canonical_of_native_inhabited_type T hInh
@@ -252,9 +229,9 @@ theorem canonical_type_inhabited_of_type_wf
     · rcases hFun with ⟨A, B, rfl⟩
       have hParts :
           native_inhabited_type A = true ∧
-            __smtx_type_wf_rec A native_reflist_nil = true ∧
+            __smtx_type_wf_rec A A = true ∧
               native_inhabited_type B = true ∧
-                __smtx_type_wf_rec B native_reflist_nil = true := by
+                __smtx_type_wf_rec B B = true := by
         exact fun_type_wf_parts hWF
       have hDef :=
         type_default_typed_canonical_of_native_inhabited_type
@@ -262,11 +239,11 @@ theorem canonical_type_inhabited_of_type_wf
       exact ⟨__smtx_type_default (SmtType.FunType A B), hDef.1, hDef.2⟩
     · have hParts :
         native_inhabited_type T = true ∧
-          __smtx_type_wf_rec T native_reflist_nil = true := by
+          __smtx_type_wf_rec T T = true := by
         cases T <;>
           simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
             native_and] at hWF hReg hFun ⊢ <;>
-          exact hWF
+          first | exact hWF | exact hWF.1
       have hDef :=
         type_default_typed_canonical_of_wf_rec T hParts.1 hParts.2
       exact ⟨__smtx_type_default T, hDef.1, hDef.2⟩
@@ -275,7 +252,7 @@ theorem canonical_type_inhabited_of_type_wf
 theorem type_default_typed_canonical_of_inhabited_wf_rec
     (T : SmtType)
     (hInh : native_inhabited_type T = true)
-    (hRec : __smtx_type_wf_rec T native_reflist_nil = true) :
+    (hRec : __smtx_type_wf_rec T T = true) :
     __smtx_typeof_value (__smtx_type_default T) = T ∧
       __smtx_value_canonical (__smtx_type_default T) :=
   type_default_typed_canonical_of_wf_rec T hInh hRec
@@ -284,7 +261,7 @@ theorem type_default_typed_canonical_of_inhabited_wf_rec
 theorem type_default_typed_of_inhabited_wf_rec
     (T : SmtType)
     (hInh : native_inhabited_type T = true)
-    (hRec : __smtx_type_wf_rec T native_reflist_nil = true) :
+    (hRec : __smtx_type_wf_rec T T = true) :
     __smtx_typeof_value (__smtx_type_default T) = T :=
   (type_default_typed_canonical_of_inhabited_wf_rec T hInh hRec).1
 

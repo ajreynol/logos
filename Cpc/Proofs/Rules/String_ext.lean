@@ -404,7 +404,7 @@ private theorem wf_elem_of_seq_typeof
   have hWf : __smtx_type_wf (SmtType.Seq As) = true :=
     Smtm.smt_term_seq_type_wf_of_non_none (__eo_to_smt a) hNN hSmtA
   have hParts : native_inhabited_type As = true ∧
-      __smtx_type_wf_rec As native_reflist_nil = true := by
+      __smtx_type_wf_rec As As = true := by
     simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
       SmtEval.native_and] using hWf
   cases As <;>
