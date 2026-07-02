@@ -42,10 +42,7 @@ theorem smtx_dt_cons_wf_rec_cons_none_eq_false
   __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons SmtType.None c) refs =
     false :=
 by
-  by_cases hInhabited : native_inhabited_type SmtType.None = true
-  · simp [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, hInhabited,
-      native_ite]
-  · simp [__smtx_dt_cons_wf_rec, hInhabited, native_ite]
+  simp [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite]
 
 set_option maxHeartbeats 50000000 in
 /--
@@ -935,6 +932,17 @@ by
   cases idx <;> simp [__eo_to_smt_nat_is_valid] at hValid
   case Numeral n =>
     cases hEnv <;> simp [__eo_is_closed_rec]
+
+theorem eo_is_closed_rec_eq_true_of_eo_to_smt_numeral
+    {idx env : Term} {vars : List SmtVarKey} {i : native_Int}
+    (hEnv : EoSmtVarEnv env vars)
+    (hIdx : __eo_to_smt idx = SmtTerm.Numeral i) :
+  __eo_is_closed_rec idx env = Term.Boolean true :=
+by
+  have hIdxTerm : idx = Term.Numeral i :=
+    TranslationProofs.eo_to_smt_eq_numeral idx i hIdx
+  subst idx
+  cases hEnv <;> simp [__eo_is_closed_rec]
 
 theorem eo_is_closed_rec_eq_true_of_eo_to_smt_eq_dt_sel
     {idx env : Term} {vars : List SmtVarKey}
@@ -2795,10 +2803,9 @@ theorem abs_arg_has_smt_translation_of_has_smt_translation
 by
   have hNN := term_has_non_none_type_of_eo_has_smt_translation hTrans
   change term_has_non_none_type (SmtTerm.abs (__eo_to_smt x)) at hNN
-  have hXTy :
-      __smtx_typeof (__eo_to_smt x) = SmtType.Int :=
-    int_arg_of_non_none hNN
-  exact eo_has_smt_translation_of_smt_type_eq hXTy (by simp)
+  rcases abs_arg_of_non_none hNN with hXTy | hXTy
+  · exact eo_has_smt_translation_of_smt_type_eq hXTy (by simp)
+  · exact eo_has_smt_translation_of_smt_type_eq hXTy (by simp)
 
 theorem uneg_arg_has_smt_translation_of_has_smt_translation
     {x : Term}
@@ -5234,7 +5241,7 @@ theorem extract_indices_nat_valid_and_arg_has_smt_translation
     {hi lo x : Term}
     (hTrans :
       eoHasSmtTranslation (Term.Apply (Term.UOp2 UserOp2.extract hi lo) x)) :
-  __eo_to_smt_nat_is_valid hi = true ∧
+  (∃ i : native_Int, __eo_to_smt hi = SmtTerm.Numeral i) ∧
     __eo_to_smt_nat_is_valid lo = true ∧
       eoHasSmtTranslation x :=
 by
@@ -5251,11 +5258,9 @@ by
     unfold term_has_non_none_type
     exact hTrans
   rcases extract_args_of_non_none hNN with
-    ⟨i, j, w, hHiNum, hLoNum, hXTy, hj0, hji, _hiw⟩
-  have hi0 : native_zleq 0 i = true :=
-    native_zleq_zero_of_zleq_chain hj0 hji
+    ⟨i, j, w, hHiNum, hLoNum, hXTy, hj0, _hWidth, _hiw⟩
   refine ⟨?_, ?_, ?_⟩
-  · exact eo_to_smt_nat_is_valid_of_smt_numeral_nonneg hHiNum hi0
+  · exact ⟨i, hHiNum⟩
   · exact eo_to_smt_nat_is_valid_of_smt_numeral_nonneg hLoNum hj0
   · unfold eoHasSmtTranslation
     rw [hXTy]
@@ -5327,12 +5332,12 @@ theorem is_closed_rec_apply_extract_eq_and_bool_of_has_smt_translation
         Term.Boolean b :=
 by
   rcases extract_indices_nat_valid_and_arg_has_smt_translation hTrans with
-    ⟨hHiValid, hLoValid, hXTrans⟩
+    ⟨⟨_hiVal, hHiNum⟩, hLoValid, hXTrans⟩
   exact
     is_closed_rec_apply_uop2_eq_and_bool_of_indices_true_and_arg
       hEnv
       (by cases hEnv <;> simp [__is_closed_rec])
-      (eo_is_closed_rec_eq_true_of_nat_is_valid hEnv hHiValid)
+      (eo_is_closed_rec_eq_true_of_eo_to_smt_numeral hEnv hHiNum)
       (eo_is_closed_rec_eq_true_of_nat_is_valid hEnv hLoValid)
       (ihX hXTrans)
 

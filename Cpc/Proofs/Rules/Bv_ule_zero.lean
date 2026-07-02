@@ -85,29 +85,11 @@ private theorem typeof_args_of_prog_bv_ule_zero_bool (x1 n1 : Term) :
               · cases hNTy : __eo_typeof n1 with
                 | UOp nop =>
                     cases nop
-                    · by_cases hEq : n1 = w
-                      · subst n1
-                        exact ⟨w, by simpa [hXTy], rfl, by
-                          intro hW
-                          subst w
-                          simp at hN1⟩
-                      · exfalso
-                        have hRightStuck :
-                            __eo_typeof_eq (Term.Apply (Term.UOp UserOp.BitVec) w)
-                                (Term.Apply (Term.UOp UserOp.BitVec) n1) =
-                              Term.Stuck := by
-                          simp [__eo_typeof_eq, __eo_requires, __eo_eq, native_ite,
-                            native_teq, native_not, hEq]
-                        have hOuterBool :
-                            __eo_typeof_eq
-                                (__eo_typeof_bvult (Term.Apply (Term.UOp UserOp.BitVec) w)
-                                  (Term.Apply (Term.UOp UserOp.BitVec) n1))
-                                (__eo_typeof_eq (Term.Apply (Term.UOp UserOp.BitVec) w)
-                                  (Term.Apply (Term.UOp UserOp.BitVec) n1)) =
-                              Term.Bool := by
-                          simpa [__eo_typeof_bvult, __eo_typeof__at_bv, hXTy, hNTy] using hTy
-                        rw [hRightStuck, eo_typeof_eq_right_stuck] at hOuterBool
-                        cases hOuterBool
+                    · have hEq : n1 = w :=
+                        bv_width_eq_of_typeof_bvult_at_bv_right_eq_bool
+                          w n1 hN1 hNTy (by simpa [hXTy] using hTy)
+                      subst n1
+                      exact ⟨w, by simpa [hXTy], rfl, hN1⟩
                     all_goals
                       exfalso
                       simpa [__eo_typeof_eq, __eo_typeof_bvult, __eo_typeof__at_bv,

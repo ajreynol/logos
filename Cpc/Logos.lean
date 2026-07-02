@@ -336,8 +336,24 @@ def __eo_is_var : Term -> Term
     (Term.Boolean (native_and (native_not (native_teq _v0 Term.Stuck)) (native_and (native_not (native_teq x Term.Stuck)) (native_teq x _v0))))
 
 
+def __eo_type_lift (s : native_String) (d : Datatype) : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | (Term.DatatypeType s2 d2) => (native_ite (native_teq (Term.DatatypeType s d) (Term.DatatypeType s2 d2)) (Term.DatatypeTypeRef s) (Term.DatatypeType s2 (__eo_dt_lift s d d2)))
+  | T => T
+
+
+def __eo_dtc_lift (s : native_String) (d : Datatype) : DatatypeCons -> DatatypeCons
+  | (DatatypeCons.cons T c) => (DatatypeCons.cons (__eo_type_lift s d T) (__eo_dtc_lift s d c))
+  | DatatypeCons.unit => DatatypeCons.unit
+
+
+def __eo_dt_lift (s : native_String) (d : Datatype) : Datatype -> Datatype
+  | (Datatype.sum c d2) => (Datatype.sum (__eo_dtc_lift s d c) (__eo_dt_lift s d d2))
+  | Datatype.null => Datatype.null
+
+
 def __eo_dtc_substitute (s : native_String) (d : Datatype) : DatatypeCons -> DatatypeCons
-  | (DatatypeCons.cons (Term.DatatypeType s2 d2) c) => (DatatypeCons.cons (Term.DatatypeType s2 (native_ite (native_streq s s2) d2 (__eo_dt_substitute s d d2))) (__eo_dtc_substitute s d c))
+  | (DatatypeCons.cons (Term.DatatypeType s2 d2) c) => (DatatypeCons.cons (Term.DatatypeType s2 (native_ite (native_streq s s2) d2 (__eo_dt_substitute s (__eo_dt_lift s2 d2 d) d2))) (__eo_dtc_substitute s d c))
   | (DatatypeCons.cons T c) => (DatatypeCons.cons (native_ite (native_teq T (Term.DatatypeTypeRef s)) (Term.DatatypeType s d) T) (__eo_dtc_substitute s d c))
   | DatatypeCons.unit => DatatypeCons.unit
 
@@ -2793,58 +2809,60 @@ def __re_split_str_to_re : Term -> Term -> Term
   | c, tail => tail
 
 
-def __re_flatten : Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _  => Term.Stuck
-  | _ , _ , Term.Stuck  => Term.Stuck
-  | rev, (Term.Boolean true), (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) => (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))
-  | rev, (Term.Boolean true), (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) (Term.Apply (Term.UOp UserOp.str_to_re) s)) b) => (__re_split_str_to_re (__str_flatten (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) s)) (__re_flatten rev (Term.Boolean true) b))
-  | rev, (Term.Boolean true), (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a) b) => (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.re_concat) (__re_flatten rev (Term.Boolean false) a)) (__re_flatten rev (Term.Boolean true) b))
-  | rev, (Term.Boolean true), (Term.Apply (Term.UOp UserOp.str_to_re) s) => (__re_split_str_to_re (__str_flatten (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) s)) (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])))
-  | rev, (Term.Boolean true), c => (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.re_concat) (__re_flatten rev (Term.Boolean false) c)) (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])))
-  | rev, (Term.Boolean false), (Term.UOp UserOp.re_all) => (Term.UOp UserOp.re_all)
-  | rev, (Term.Boolean false), (Term.UOp UserOp.re_none) => (Term.UOp UserOp.re_none)
-  | rev, (Term.Boolean false), (Term.Apply (Term.UOp UserOp.re_mult) body) => 
-    let _v0 := (__re_flatten rev (Term.Boolean true) body)
-    (__eo_mk_apply (Term.UOp UserOp.re_mult) (__eo_ite rev (__eo_list_rev (Term.UOp UserOp.re_concat) _v0) _v0))
-  | rev, (Term.Boolean false), (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) c1) c2) => 
-    let _v0 := (__re_flatten rev (Term.Boolean true) c1)
-    (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.re_inter) (__eo_ite rev (__eo_list_rev (Term.UOp UserOp.re_concat) _v0) _v0)) (__re_flatten rev (Term.Boolean false) c2))
-  | rev, (Term.Boolean false), (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) c1) c2) => 
-    let _v0 := (__re_flatten rev (Term.Boolean true) c1)
-    (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.re_union) (__eo_ite rev (__eo_list_rev (Term.UOp UserOp.re_concat) _v0) _v0)) (__re_flatten rev (Term.Boolean false) c2))
-  | rev, (Term.Boolean false), c => c
-  | _, _, _ => Term.Stuck
-termination_by rev flag tree => 2 * sizeOf tree + (if flag = Term.Boolean true then 1 else 0)
+def __re_rev_map_rev : Term -> Term -> Term
+  | _ , Term.Stuck  => Term.Stuck
+  | (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])), acc => acc
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a) b), acc => (__re_rev_map_rev b (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.re_concat) (__re_rev_comp a)) acc))
+  | _, _ => Term.Stuck
+
+
+def __re_rev_comp : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | (Term.UOp UserOp.re_all) => (Term.UOp UserOp.re_all)
+  | (Term.UOp UserOp.re_none) => (Term.UOp UserOp.re_none)
+  | (Term.Apply (Term.UOp UserOp.re_mult) body) => (__eo_mk_apply (Term.UOp UserOp.re_mult) (__re_rev_map_rev body (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) c1) c2) => (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.re_inter) (__re_rev_map_rev c1 (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])))) (__re_rev_comp c2))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) c1) c2) => (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.re_union) (__re_rev_map_rev c1 (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])))) (__re_rev_comp c2))
+  | c => c
+
+
+def __re_flatten : Term -> Term -> Term
+  | _ , Term.Stuck  => Term.Stuck
+  | (Term.Boolean true), (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) => (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))
+  | (Term.Boolean true), (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) (Term.Apply (Term.UOp UserOp.str_to_re) s)) b) => (__re_split_str_to_re (__str_flatten (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) s)) (__re_flatten (Term.Boolean true) b))
+  | (Term.Boolean true), (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a) b) => (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.re_concat) (__re_flatten (Term.Boolean false) a)) (__re_flatten (Term.Boolean true) b))
+  | (Term.Boolean true), (Term.Apply (Term.UOp UserOp.str_to_re) s) => (__re_split_str_to_re (__str_flatten (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) s)) (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])))
+  | (Term.Boolean true), c => (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.re_concat) (__re_flatten (Term.Boolean false) c)) (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])))
+  | (Term.Boolean false), (Term.UOp UserOp.re_all) => (Term.UOp UserOp.re_all)
+  | (Term.Boolean false), (Term.UOp UserOp.re_none) => (Term.UOp UserOp.re_none)
+  | (Term.Boolean false), (Term.Apply (Term.UOp UserOp.re_mult) body) => (__eo_mk_apply (Term.UOp UserOp.re_mult) (__re_flatten (Term.Boolean true) body))
+  | (Term.Boolean false), (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) c1) c2) => (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.re_inter) (__re_flatten (Term.Boolean true) c1)) (__re_flatten (Term.Boolean false) c2))
+  | (Term.Boolean false), (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) c1) c2) => (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.re_union) (__re_flatten (Term.Boolean true) c1)) (__re_flatten (Term.Boolean false) c2))
+  | (Term.Boolean false), c => c
+  | _, _ => Term.Stuck
+termination_by flag tree => 2 * sizeOf tree + (if flag = Term.Boolean true then 1 else 0)
 decreasing_by
   all_goals simp_wf
   all_goals omega
 
 
-def __re_unflatten : Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _  => Term.Stuck
-  | _ , _ , Term.Stuck  => Term.Stuck
-  | rev, (Term.Boolean true), (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) (Term.Apply (Term.UOp UserOp.str_to_re) s)) b) => (__re_unflatten_str rev (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) s) b)
-  | rev, (Term.Boolean true), (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a) b) => (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.re_concat) (__re_unflatten rev (Term.Boolean false) a)) (__re_unflatten rev (Term.Boolean true) b))
-  | rev, (Term.Boolean true), c => c
-  | rev, (Term.Boolean false), (Term.Apply (Term.UOp UserOp.re_mult) body) => 
-    let _v0 := (__re_unflatten rev (Term.Boolean true) body)
-    (__eo_mk_apply (Term.UOp UserOp.re_mult) (__eo_list_singleton_elim (Term.UOp UserOp.re_concat) (__eo_ite rev (__eo_list_rev (Term.UOp UserOp.re_concat) _v0) _v0)))
-  | rev, (Term.Boolean false), (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) c1) c2) => 
-    let _v0 := (__re_unflatten rev (Term.Boolean true) c1)
-    (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.re_inter) (__eo_list_singleton_elim (Term.UOp UserOp.re_concat) (__eo_ite rev (__eo_list_rev (Term.UOp UserOp.re_concat) _v0) _v0))) (__re_unflatten rev (Term.Boolean false) c2))
-  | rev, (Term.Boolean false), (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) c1) c2) => 
-    let _v0 := (__re_unflatten rev (Term.Boolean true) c1)
-    (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.re_union) (__eo_list_singleton_elim (Term.UOp UserOp.re_concat) (__eo_ite rev (__eo_list_rev (Term.UOp UserOp.re_concat) _v0) _v0))) (__re_unflatten rev (Term.Boolean false) c2))
-  | rev, (Term.Boolean false), c => c
-  | _, _, _ => Term.Stuck
+def __re_unflatten : Term -> Term -> Term
+  | _ , Term.Stuck  => Term.Stuck
+  | (Term.Boolean true), (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) (Term.Apply (Term.UOp UserOp.str_to_re) s)) b) => (__re_unflatten_str (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) s) b)
+  | (Term.Boolean true), (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a) b) => (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.re_concat) (__re_unflatten (Term.Boolean false) a)) (__re_unflatten (Term.Boolean true) b))
+  | (Term.Boolean true), c => c
+  | (Term.Boolean false), (Term.Apply (Term.UOp UserOp.re_mult) body) => (__eo_mk_apply (Term.UOp UserOp.re_mult) (__eo_list_singleton_elim (Term.UOp UserOp.re_concat) (__re_unflatten (Term.Boolean true) body)))
+  | (Term.Boolean false), (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) c1) c2) => (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.re_inter) (__eo_list_singleton_elim (Term.UOp UserOp.re_concat) (__re_unflatten (Term.Boolean true) c1))) (__re_unflatten (Term.Boolean false) c2))
+  | (Term.Boolean false), (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) c1) c2) => (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.re_union) (__eo_list_singleton_elim (Term.UOp UserOp.re_concat) (__re_unflatten (Term.Boolean true) c1))) (__re_unflatten (Term.Boolean false) c2))
+  | (Term.Boolean false), c => c
+  | _, _ => Term.Stuck
 
 
-def __re_unflatten_str : Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _  => Term.Stuck
-  | _ , Term.Stuck , _  => Term.Stuck
-  | _ , _ , Term.Stuck  => Term.Stuck
-  | rev, acc, (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) (Term.Apply (Term.UOp UserOp.str_to_re) s)) b) => (__re_unflatten_str rev (__eo_list_concat (Term.UOp UserOp.str_concat) acc (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) s)) b)
-  | rev, acc, b => (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.re_concat) (__eo_mk_apply (Term.UOp UserOp.str_to_re) (__eo_list_singleton_elim (Term.UOp UserOp.str_concat) (__str_collect (__eo_ite rev (__eo_list_rev (Term.UOp UserOp.str_concat) acc) acc))))) (__re_unflatten rev (Term.Boolean true) b))
+def __re_unflatten_str : Term -> Term -> Term
+  | Term.Stuck , _  => Term.Stuck
+  | _ , Term.Stuck  => Term.Stuck
+  | acc, (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) (Term.Apply (Term.UOp UserOp.str_to_re) s)) b) => (__re_unflatten_str (__eo_list_concat (Term.UOp UserOp.str_concat) acc (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) s)) b)
+  | acc, b => (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.re_concat) (__eo_mk_apply (Term.UOp UserOp.str_to_re) (__eo_list_singleton_elim (Term.UOp UserOp.str_concat) (__str_collect acc)))) (__re_unflatten (Term.Boolean true) b))
 
 
 def __str_re_includes_lhs_union : Term -> Term -> Term
@@ -3045,24 +3063,25 @@ def __str_re_consume : Term -> Term -> Term
   | _ , Term.Stuck  => Term.Stuck
   | s, (Term.Apply (Term.UOp UserOp.re_mult) r) => 
     let _v0 := (__eo_list_rev (Term.UOp UserOp.str_concat) (__str_flatten (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) s)))
-    let _v1 := (__eo_list_rev (Term.UOp UserOp.re_concat) (__re_flatten (Term.Boolean true) (Term.Boolean true) r))
-    let _v2 := (__str_re_consume_rec _v0 _v1 _v0)
-    let _v3 := (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))
-    let _v4 := (__str_membership_re _v2)
-    let _v5 := (__eo_and (Term.Boolean true) (__eo_not (__eo_eq _v4 _v3)))
-    let _v6 := (__eo_list_rev (Term.UOp UserOp.str_concat) (__eo_ite _v5 _v0 (__str_membership_str _v2)))
-    let _v7 := (__str_re_consume_rec _v6 (__eo_list_rev (Term.UOp UserOp.re_concat) (__re_flatten (Term.Boolean true) (Term.Boolean true) (__eo_ite _v5 _v1 _v4))) _v6)
-    let _v8 := (__eo_ite (__eo_eq _v2 (Term.Boolean false)) (Term.Boolean false) (__eo_ite (__eo_eq _v7 (Term.Boolean false)) (Term.Boolean false) (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.str_in_re) (__eo_list_singleton_elim (Term.UOp UserOp.str_concat) (__str_collect (__str_membership_str _v7)))) (__eo_list_singleton_elim (Term.UOp UserOp.re_concat) (__re_unflatten (Term.Boolean false) (Term.Boolean true) (__str_membership_re _v7))))))
-    (__eo_ite (__eo_eq _v8 (Term.Boolean false)) (Term.Boolean false) (__eo_requires (__str_membership_re _v8) _v3 (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.str_in_re) (__str_membership_str _v8)) (Term.Apply (Term.UOp UserOp.re_mult) r))))
+    let _v1 := (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))
+    let _v2 := (__re_rev_map_rev (__re_flatten (Term.Boolean true) r) _v1)
+    let _v3 := (__str_re_consume_rec _v0 _v2 _v0)
+    let _v4 := (__str_membership_re _v3)
+    let _v5 := (__eo_and (Term.Boolean true) (__eo_not (__eo_eq _v4 _v1)))
+    let _v6 := (__eo_list_rev (Term.UOp UserOp.str_concat) (__eo_ite _v5 _v0 (__str_membership_str _v3)))
+    let _v7 := (__str_re_consume_rec _v6 (__re_rev_map_rev (__re_flatten (Term.Boolean true) (__eo_ite _v5 _v2 _v4)) _v1) _v6)
+    let _v8 := (__eo_ite (__eo_eq _v3 (Term.Boolean false)) (Term.Boolean false) (__eo_ite (__eo_eq _v7 (Term.Boolean false)) (Term.Boolean false) (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.str_in_re) (__eo_list_singleton_elim (Term.UOp UserOp.str_concat) (__str_collect (__str_membership_str _v7)))) (__eo_list_singleton_elim (Term.UOp UserOp.re_concat) (__re_unflatten (Term.Boolean true) (__str_membership_re _v7))))))
+    (__eo_ite (__eo_eq _v8 (Term.Boolean false)) (Term.Boolean false) (__eo_requires (__str_membership_re _v8) _v1 (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.str_in_re) (__str_membership_str _v8)) (Term.Apply (Term.UOp UserOp.re_mult) r))))
   | s, r => 
     let _v0 := (__eo_list_rev (Term.UOp UserOp.str_concat) (__str_flatten (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) s)))
-    let _v1 := (__eo_list_rev (Term.UOp UserOp.re_concat) (__re_flatten (Term.Boolean true) (Term.Boolean true) r))
-    let _v2 := (__str_re_consume_rec _v0 _v1 _v0)
-    let _v3 := (__str_membership_re _v2)
-    let _v4 := (__eo_and (Term.Boolean false) (__eo_not (__eo_eq _v3 (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])))))
-    let _v5 := (__eo_list_rev (Term.UOp UserOp.str_concat) (__eo_ite _v4 _v0 (__str_membership_str _v2)))
-    let _v6 := (__str_re_consume_rec _v5 (__eo_list_rev (Term.UOp UserOp.re_concat) (__re_flatten (Term.Boolean true) (Term.Boolean true) (__eo_ite _v4 _v1 _v3))) _v5)
-    (__eo_ite (__eo_eq _v2 (Term.Boolean false)) (Term.Boolean false) (__eo_ite (__eo_eq _v6 (Term.Boolean false)) (Term.Boolean false) (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.str_in_re) (__eo_list_singleton_elim (Term.UOp UserOp.str_concat) (__str_collect (__str_membership_str _v6)))) (__eo_list_singleton_elim (Term.UOp UserOp.re_concat) (__re_unflatten (Term.Boolean false) (Term.Boolean true) (__str_membership_re _v6))))))
+    let _v1 := (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))
+    let _v2 := (__re_rev_map_rev (__re_flatten (Term.Boolean true) r) _v1)
+    let _v3 := (__str_re_consume_rec _v0 _v2 _v0)
+    let _v4 := (__str_membership_re _v3)
+    let _v5 := (__eo_and (Term.Boolean false) (__eo_not (__eo_eq _v4 _v1)))
+    let _v6 := (__eo_list_rev (Term.UOp UserOp.str_concat) (__eo_ite _v5 _v0 (__str_membership_str _v3)))
+    let _v7 := (__str_re_consume_rec _v6 (__re_rev_map_rev (__re_flatten (Term.Boolean true) (__eo_ite _v5 _v2 _v4)) _v1) _v6)
+    (__eo_ite (__eo_eq _v3 (Term.Boolean false)) (Term.Boolean false) (__eo_ite (__eo_eq _v7 (Term.Boolean false)) (Term.Boolean false) (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.str_in_re) (__eo_list_singleton_elim (Term.UOp UserOp.str_concat) (__str_collect (__str_membership_str _v7)))) (__eo_list_singleton_elim (Term.UOp UserOp.re_concat) (__re_unflatten (Term.Boolean true) (__str_membership_re _v7))))))
 
 
 def __eo_l_1___str_is_compatible : Term -> Term -> Term
@@ -3437,16 +3456,16 @@ def __eo_prog_re_eq_elim : Term -> Term
 
 def __eo_prog_re_inter_inclusion : Term -> Term
   | (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r1) (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) (Term.Apply (Term.UOp UserOp.re_comp) r2)) (Term.UOp UserOp.re_all)))) (Term.UOp UserOp.re_none)) => 
-    let _v0 := (__re_flatten (Term.Boolean false) (Term.Boolean true) r1)
-    let _v1 := (__re_flatten (Term.Boolean false) (Term.Boolean true) r2)
+    let _v0 := (__re_flatten (Term.Boolean true) r1)
+    let _v1 := (__re_flatten (Term.Boolean true) r2)
     (__eo_requires (__eo_ite (__eo_eq _v1 _v0) (Term.Boolean true) (__str_re_includes_rec _v1 _v0)) (Term.Boolean true) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r1) (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) (Term.Apply (Term.UOp UserOp.re_comp) r2)) (Term.UOp UserOp.re_all)))) (Term.UOp UserOp.re_none)))
   | _ => Term.Stuck
 
 
 def __eo_prog_re_union_inclusion : Term -> Term
   | (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r1) (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) (Term.Apply (Term.UOp UserOp.re_comp) r2)) (Term.UOp UserOp.re_none)))) (Term.Apply (Term.UOp UserOp.re_mult) (Term.UOp UserOp.re_allchar))) => 
-    let _v0 := (__re_flatten (Term.Boolean false) (Term.Boolean true) r2)
-    let _v1 := (__re_flatten (Term.Boolean false) (Term.Boolean true) r1)
+    let _v0 := (__re_flatten (Term.Boolean true) r2)
+    let _v1 := (__re_flatten (Term.Boolean true) r1)
     (__eo_requires (__eo_ite (__eo_eq _v1 _v0) (Term.Boolean true) (__str_re_includes_rec _v1 _v0)) (Term.Boolean true) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r1) (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) (Term.Apply (Term.UOp UserOp.re_comp) r2)) (Term.UOp UserOp.re_none)))) (Term.Apply (Term.UOp UserOp.re_mult) (Term.UOp UserOp.re_allchar))))
   | _ => Term.Stuck
 
@@ -8432,7 +8451,9 @@ def __eo_typeof_concat : Term -> Term -> Term
 def __eo_typeof_extract : Term -> Term -> Term -> Term -> Term -> Term
   | _ , Term.Stuck , _ , _ , _  => Term.Stuck
   | _ , _ , _ , Term.Stuck , _  => Term.Stuck
-  | (Term.UOp UserOp.Int), h, (Term.UOp UserOp.Int), l, (Term.Apply (Term.UOp UserOp.BitVec) n) => (__eo_mk_apply (Term.UOp UserOp.BitVec) (__eo_requires (__eo_gt l (Term.Numeral (-1 : native_Int))) (Term.Boolean true) (__eo_requires (__eo_gt n h) (Term.Boolean true) (__eo_add (__eo_add h (__eo_neg l)) (Term.Numeral 1)))))
+  | (Term.UOp UserOp.Int), h, (Term.UOp UserOp.Int), l, (Term.Apply (Term.UOp UserOp.BitVec) n) => 
+    let _v0 := (__eo_add (__eo_add h (__eo_neg l)) (Term.Numeral 1))
+    (__eo_mk_apply (Term.UOp UserOp.BitVec) (__eo_requires (__eo_gt l (Term.Numeral (-1 : native_Int))) (Term.Boolean true) (__eo_requires (__eo_gt n h) (Term.Boolean true) (__eo_requires (__eo_gt _v0 (Term.Numeral (-1 : native_Int))) (Term.Boolean true) _v0))))
   | _, _, _, _, _ => Term.Stuck
 
 
@@ -8503,7 +8524,7 @@ def __eo_typeof__at_from_bools : Term -> Term -> Term
 
 def __eo_typeof__at_bv : Term -> Term -> Term -> Term
   | _ , _ , Term.Stuck  => Term.Stuck
-  | (Term.UOp UserOp.Int), (Term.UOp UserOp.Int), w => (Term.Apply (Term.UOp UserOp.BitVec) w)
+  | (Term.UOp UserOp.Int), (Term.UOp UserOp.Int), w => (__eo_requires (__eo_gt w (Term.Numeral (-1 : native_Int))) (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) w))
   | _, _, _ => Term.Stuck
 
 

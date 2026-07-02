@@ -4936,6 +4936,19 @@ by
     dsimp only [__eo_to_smt]
     simp only [__smtx_model_eval]
 
+theorem smt_model_eval_eq_of_eo_to_smt_numeral
+    {idx : Term} {M N : SmtModel} {i : native_Int}
+    (hIdx : __eo_to_smt idx = SmtTerm.Numeral i) :
+  __smtx_model_eval M (__eo_to_smt idx) =
+    __smtx_model_eval N (__eo_to_smt idx) :=
+by
+  have hIdxTerm : idx = Term.Numeral i :=
+    TranslationProofs.eo_to_smt_eq_numeral idx i hIdx
+  subst idx
+  change __smtx_model_eval M (SmtTerm.Numeral i) =
+    __smtx_model_eval N (SmtTerm.Numeral i)
+  rw [__smtx_model_eval.eq_2, __smtx_model_eval.eq_2]
+
 theorem smt_model_eval_eq_of_eo_to_smt_eq_dt_sel
     {idx : Term} {M N : SmtModel}
     {s : native_String} {d : SmtDatatype} {i j : native_Nat}
@@ -5236,17 +5249,18 @@ theorem smt_model_eval_apply_uop2_any_eq_of_contains_atomic_term_list_free_rec_f
   __smtx_model_eval M (__eo_to_smt (Term.Apply (Term.UOp2 op i j) x)) =
     __smtx_model_eval N (__eo_to_smt (Term.Apply (Term.UOp2 op i j) x)) :=
 by
-  have hXNoFree :
-      __contains_atomic_term_list_free_rec x except bound =
-        Term.Boolean false :=
-    contains_atomic_term_list_free_rec_apply_uop2_false_arg
-      hExcept hBound hNoFree
-  cases op
+  revert hTrans hNoFree
+  cases op <;> intro hTrans hNoFree
   case extract =>
+    have hXNoFree :
+        __contains_atomic_term_list_free_rec x except bound =
+          Term.Boolean false :=
+      contains_atomic_term_list_free_rec_apply_uop2_false_arg
+        hExcept hBound hNoFree
     rcases extract_indices_nat_valid_and_arg_has_smt_translation hTrans with
-      ⟨hIValid, hJValid, hXTrans⟩
-    have hIEval := smt_model_eval_eq_of_eo_to_smt_nat_is_valid
-      (M := M) (N := N) hIValid
+      ⟨⟨_iVal, hINum⟩, hJValid, hXTrans⟩
+    have hIEval := smt_model_eval_eq_of_eo_to_smt_numeral
+      (M := M) (N := N) hINum
     have hJEval := smt_model_eval_eq_of_eo_to_smt_nat_is_valid
       (M := M) (N := N) hJValid
     have hXEval := ih hXLt hExcept hBound hXTrans hXNoFree hAgree
@@ -5254,6 +5268,11 @@ by
     simp only [__smtx_model_eval]
     simp [hIEval, hJEval, hXEval]
   case re_loop =>
+    have hXNoFree :
+        __contains_atomic_term_list_free_rec x except bound =
+          Term.Boolean false :=
+      contains_atomic_term_list_free_rec_apply_uop2_false_arg
+        hExcept hBound hNoFree
     rcases re_loop_indices_nat_valid_and_arg_has_smt_translation hTrans with
       ⟨hIValid, hJValid, hXTrans⟩
     have hIEval := smt_model_eval_eq_of_eo_to_smt_nat_is_valid
@@ -5265,6 +5284,11 @@ by
     simp only [__smtx_model_eval]
     simp [hIEval, hJEval, hXEval]
   case _at_quantifiers_skolemize =>
+    have hXNoFree :
+        __contains_atomic_term_list_free_rec x except bound =
+          Term.Boolean false :=
+      contains_atomic_term_list_free_rec_apply_uop2_false_arg
+        hExcept hBound hNoFree
     exact
       smt_model_eval_apply_generic_eq_of_contains_atomic_term_list_free_rec_false_mapped
         hExcept hBound

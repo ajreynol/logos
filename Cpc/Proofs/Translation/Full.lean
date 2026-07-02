@@ -2798,6 +2798,8 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
               SmtType.BitVec (native_int_to_nat w) := by
           rw [hTranslate]
           exact hSmtAt
+        have hwGt : native_zlt (-1 : native_Int) w = true :=
+          native_zlt_neg_one_of_zleq_zero hw
         have hEo :
             __eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_bv x y)) =
               SmtType.BitVec (native_int_to_nat w) := by
@@ -2807,11 +2809,16 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                 (__eo_typeof__at_bv (Term.UOp UserOp.Int) (Term.UOp UserOp.Int)
                   (Term.Numeral w)) =
               SmtType.BitVec (native_int_to_nat w)
-          simp [__eo_typeof__at_bv, native_ite, hw]
+          simp [__eo_typeof__at_bv, __eo_gt, __eo_requires, native_ite,
+            native_teq, native_not, hwGt, hw]
         refine ⟨hSmt.trans hEo.symm, ?_⟩
         rw [hXTerm, hYTerm]
-        change eo_type_valid (Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w))
-        simp [eo_type_valid, eo_type_valid_rec, hw]
+        change
+          eo_type_valid
+            (__eo_typeof__at_bv (Term.UOp UserOp.Int) (Term.UOp UserOp.Int)
+              (Term.Numeral w))
+        simp [__eo_typeof__at_bv, __eo_gt, __eo_requires, native_ite,
+          native_teq, native_not, hwGt, hw, eo_type_valid, eo_type_valid_rec]
     | Term.UOp2 UserOp2.re_loop x y, hNonNone => by
         exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.Boolean b, hNonNone => by
@@ -3154,8 +3161,9 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
             case BitVec w =>
               exact eo_type_valid_of_smt_wf (Term.Apply a b) (by
                 simp [hSmt, __smtx_type_wf, __smtx_type_wf_rec, native_and,
-                  native_inhabited_type, __smtx_type_default, __smtx_typeof_value,
-                  __smtx_value_canonical_bool, native_zleq, native_zeq,
+                  native_inhabited_type, native_not, native_Teq,
+                  __smtx_type_default, __smtx_type_default_rec, __smtx_typeof_value,
+                  native_zleq, native_zeq,
                   native_mod_total, native_int_pow2, native_zexp_total,
                   native_nat_to_int, native_int_to_nat, native_ite])
             case Map A B =>

@@ -26,7 +26,7 @@
     Char, Datatype, Int, Nat, ObjectModel, ObjectTerm, Option, Prop, Rat,
     RefList, SmtDatatype,
     SmtDatatypeCons, SmtMap, SmtModel, SmtModelKey, SmtNativeFun, SmtSeq,
-    SmtRegLan, SmtTerm, SmtType, SmtValue, String, Term, Type, native_RegLan
+    SmtRegLan, SmtTerm, SmtType, SmtValue, String, Term, Type, SmtRegLan
   },
   morekeywords=[3]{
     false, none, some, true
@@ -522,17 +522,30 @@ The definition of one-step unfolding of datatypes is given by the method
 
 \begin{figure}
 \begin{lstlisting}
-def smt_type_substitute (s : native_String) (d : SmtDatatype) : SmtType -> SmtType
-  | (SmtType.Datatype s2 d2) => (SmtType.Datatype s2 (native_ite (native_streq s s2) d2 (smt_dt_substitute s d d2)))
-  | (SmtType.TypeRef s2) => (native_ite (native_streq s s2) (SmtType.Datatype s d) (SmtType.TypeRef s2))
+def smt_type_lift (s : String) (d : SmtDatatype) : SmtType -> SmtType
+  | (SmtType.Datatype s2 d2) => (if (Teq (SmtType.Datatype s d) (SmtType.Datatype s2 d2)) then (SmtType.TypeRef s) else (SmtType.Datatype s2 (smt_dt_lift s d d2)))
   | T => T
 
-def smt_dtc_substitute (s : native_String) (d : SmtDatatype) : SmtDatatypeCons -> SmtDatatypeCons
+def smt_dtc_lift (s : String) (d : SmtDatatype) : SmtDatatypeCons -> SmtDatatypeCons
+  | (SmtDatatypeCons.cons T c) => (SmtDatatypeCons.cons (smt_type_lift s d T) (smt_dtc_lift s d c))
+  | SmtDatatypeCons.unit => SmtDatatypeCons.unit
+
+def smt_dt_lift (s : String) (d : SmtDatatype) : SmtDatatype -> SmtDatatype
+  | (SmtDatatype.sum c d2) => (SmtDatatype.sum (smt_dtc_lift s d c) (smt_dt_lift s d d2))
+  | SmtDatatype.null => SmtDatatype.null
+
+
+def smt_type_substitute (s : String) (d : SmtDatatype) : SmtType -> SmtType
+  | (SmtType.Datatype s2 d2) => (SmtType.Datatype s2 (if (native_streq s s2) then d2 else (smt_dt_substitute s (smt_dt_lift s2 d2 d) d2)))
+  | (SmtType.TypeRef s2) => (if (native_streq s s2) then (SmtType.Datatype s d) else (SmtType.TypeRef s2))
+  | T => T
+
+def smt_dtc_substitute (s : String) (d : SmtDatatype) : SmtDatatypeCons -> SmtDatatypeCons
   | (SmtDatatypeCons.cons T c) => (SmtDatatypeCons.cons (smt_type_substitute s d T) (smt_dtc_substitute s d c))
   | SmtDatatypeCons.unit => SmtDatatypeCons.unit
 
 
-def smt_dt_substitute (s : native_String) (d : SmtDatatype) : SmtDatatype -> SmtDatatype
+def smt_dt_substitute (s : String) (d : SmtDatatype) : SmtDatatype -> SmtDatatype
   | (SmtDatatype.sum c d2) => (SmtDatatype.sum (smt_dtc_substitute s d c) (smt_dt_substitute s d d2))
   | SmtDatatype.null => SmtDatatype.null
 \end{lstlisting}
@@ -543,23 +556,87 @@ def smt_dt_substitute (s : native_String) (d : SmtDatatype) : SmtDatatype -> Smt
 In detail, the method \code{(smt_dt_substitute s d)}
 takes a datatype and replaces the desired references (\code{(SmtType.TypeRef s)}) in that datatype
 with \code{(SmtType.Datatype s d)}.
-This is a simple recursive method, where we traverse the constructors of the
+This is a recursive method, where we traverse the constructors of the
 datatype, each field of that datatype and apply \code{(smt_type_substitute s d)}
 to the field type \code{T}.
 Note the following behavior.
+If \code{T} is a type reference, then if it is the datatype we are substituting,
+we replace it by \code{(SmtType.Datatype s d)}.
 If \code{T} itself is a datatype type,
 we check if its name aliases the current datatype.
 If it does, we simply return the datatype itself; this behavior is arbitrary
 as we do not consider datatypes with aliasing to be well-formed.
-Otherwise, the substitution is applied to that datatype, which handles
-the case where the datatype has mutual recursion.
-If \code{T} is a type reference, then if it is the datatype we are substituting,
-we replace it by \code{(SmtType.Datatype s d)}, otherwise it is unchanged.
-In all other cases, the datatype is unchanged.
+Otherwise, we do two things.
+First, since we are constructing the datatype beneath the name \code{s2},
+and since \code{d} contains references to \code{(SmtType.Datatype s2 d2)},
+we must "lift" these occurrences by replacing them each with \code{(TypeRef s2)}.
+This is done via the recursive method \code{smt_dt_lift}.
+After this lifting is done, we replace
+references to the current datatype we are unfolding \code{s}
+with the result of this lifting (\code{(smt_dt_lift s2 d2 d)}).
+Consider the following mutually recursive datatype, in smt2:
+\begin{examplecode}
+(declare-datatypes ((A 0) (B 0))
+  (((mkA (b B)))) 
+   ((mkB (a A)) (leaf)))
+\end{examplecode}
+
+Following the conventions above, the datatype type for \code{A} is
+\code{(Datatype "A" DA)}, where
+\begin{examplecode}
+DA := (sum (cons (Datatype "B" DB) unit) null)
+DB := (sum (cons (TypeRef "A") unit) (sum unit null))
+\end{examplecode}
+Here, the single constructor \code{mkA} of \code{A} carries a field of type \code{B},
+which is inlined as \code{(Datatype "B" DB)}.
+Within \code{DB}, the constructor \code{mkB} carries a field of type \code{A},
+which (being a reference back to the top-level datatype) is the type
+reference \code{(TypeRef "A")}, while \code{leaf} takes no arguments (\code{unit}).
+
+Now consider the one-step unfolding of \code{A}, namely
+\code{(smt_dt_substitute "A" DA DA)}.
+Traversing \code{DA}, we reach the field type \code{(Datatype "B" DB)} of \code{mkA}
+and compute \code{(smt_type_substitute "A" DA (Datatype "B" DB))}.
+Since \code{"A"} and \code{"B"} differ, this returns
+\begin{examplecode}
+(Datatype "B" (smt_dt_substitute "A" (smt_dt_lift "B" DB DA) DB))
+\end{examplecode}
+The lifting \code{(smt_dt_lift "B" DB DA)} replaces the occurrence of
+\code{(Datatype "B" DB)} inside \code{DA} by the self-reference \code{(TypeRef "B")}, yielding
+\begin{examplecode}
+DA' := (sum (cons (TypeRef "B") unit) null)
+\end{examplecode}
+Substituting references to \code{"A"} by \code{(Datatype "A" DA')} into \code{DB} 
+then gives:
+\begin{examplecode}
+DB' := (sum (cons (Datatype "A" DA') unit) (sum unit null))
+\end{examplecode}
+Putting this together, the one-step unfolding of \code{A},
+\code{(smt_dt_substitute "A" DA DA)} returns \code{DA''}, where:
+\begin{examplecode}
+DA'' := (sum (cons (Datatype "B" DB') unit) null)
+DB' := (sum (cons (Datatype "A" DA') unit) (sum unit null))
+DA' := (sum (cons (TypeRef "B") unit) null)
+\end{examplecode}
+Note the role of the lifting step here: without it, the copy of \code{DA} inserted
+for \code{(TypeRef "A")} beneath \code{B} would re-state \code{(Datatype "B" DB)} in full,
+redundantly inlining \code{B} underneath itself.
+Lifting instead turns this occurrence into the self-reference \code{(TypeRef "B")},
+so that the unfolded type remains well-formed.
+
+Note the definition of \code{smt_dt_substitute}
+does not traverse composite types like maps, sequences and sets.
 This implies that for e.g. nested recursive datatypes,
 type references to the datatype we are unfolding are not replaced.
 Again, this behavior is arbitrary as we do not consider datatypes with nested 
 recursion to be well-formed.
+
+Overall the purpose of unfolding of datatypes is to make the field types
+of a datatype self-contained. In particular, note in the example
+above, the field type \code{(Datatype "B" DB')} is now a well-formed,
+standalone type. This operation will be used to give type rules for datatype
+values and terms, as well as defining the construction of canonical values
+for datatype types.
 
 \subsection{Models}
 \label{sec:models}
@@ -577,7 +654,7 @@ structure SmtModel where
   nativeFuns : SmtModelKey -> (SmtValue -> SmtValue)
 deriving Inhabited
 
-def model_push (M : SmtModel) (s : native_String) (T : SmtType) (v : SmtValue) : SmtModel :=
+def model_push (M : SmtModel) (s : String) (T : SmtType) (v : SmtValue) : SmtModel :=
   { M with values := fun k =>
       if k = { isVar := true, name := s, ty := T } then
         v
@@ -975,12 +1052,12 @@ and our definition of SMT-LIB models.
 \begin{figure}[p]
 \begin{lstlisting}
 def smt_typeof_guard (T : SmtType) (U : SmtType) : SmtType :=
-  (native_ite (Teq T SmtType.None) SmtType.None U)
+  (if (Teq T SmtType.None) then SmtType.None else U)
   
 def smt_typeof_map_value : SmtMap -> SmtType
   | (SmtMap.cons i e m) => 
     let _v0 := (smt_typeof_map_value m)
-    (native_ite (Teq (SmtType.Map (smt_typeof_value i) (smt_typeof_value e)) _v0) _v0 SmtType.None)
+    (if (Teq (SmtType.Map (smt_typeof_value i) (smt_typeof_value e)) _v0) then _v0 else SmtType.None)
   | (SmtMap.default T e) => (SmtType.Map T (smt_typeof_value e))
 
 def smt_map_to_set_type : SmtType -> SmtType
@@ -990,18 +1067,18 @@ def smt_map_to_set_type : SmtType -> SmtType
 def smt_typeof_seq_value : SmtSeq -> SmtType
   | (SmtSeq.cons v vs) => 
     let _v0 := (smt_typeof_seq_value vs)
-    (native_ite (Teq (SmtType.Seq (smt_typeof_value v)) _v0) _v0 SmtType.None)
+    (if (Teq (SmtType.Seq (smt_typeof_value v)) _v0) then _v0 else SmtType.None)
   | (SmtSeq.empty T) => (SmtType.Seq T)
   
 def smt_typeof_dt_cons_value_rec (T : SmtType) : SmtDatatype -> native_Nat -> SmtType
-  | (SmtDatatype.sum SmtDatatypeCons.unit d), native_nat_zero => T
-  | (SmtDatatype.sum (SmtDatatypeCons.cons U c) d), native_nat_zero => 
-    (SmtType.DtcAppType U (smt_typeof_dt_cons_value_rec T (SmtDatatype.sum c d) native_nat_zero))
+  | (SmtDatatype.sum SmtDatatypeCons.unit d), 0 => T
+  | (SmtDatatype.sum (SmtDatatypeCons.cons U c) d), 0 => 
+    (SmtType.DtcAppType U (smt_typeof_dt_cons_value_rec T (SmtDatatype.sum c d) 0))
   | (SmtDatatype.sum c d), (native_nat_succ n) => (smt_typeof_dt_cons_value_rec T d n)
   | d, n => SmtType.None
 
 def smt_typeof_apply_value : SmtType -> SmtType -> SmtType
-  | (SmtType.DtcAppType T U), V => (smt_typeof_guard T (native_ite (Teq T V) U SmtType.None))
+  | (SmtType.DtcAppType T U), V => (smt_typeof_guard T (if (Teq T V) then U else SmtType.None))
   | T, U => SmtType.None
   
 ...
@@ -1063,7 +1140,7 @@ We use \code{Teq} (syntactic equality on SMT-LIB types) for this purpose.
 Note that this implies that all syntactically distinct types are considered to be distinct,
 and there is no notion of type equivalence.
 
-\subsubsection{Type Finiteness and Value Defaults and Value Canonicity}
+\subsubsection{Type Finiteness, Witness, Inhabitedness and Value Canonicity}
 
 We now turn our attention to defining a notion of \emph{canonical} SMT-LIB value.
 This will require two prerequisite definitions.
@@ -1141,36 +1218,41 @@ which we describe later in this section.
 
 \begin{figure}
 \begin{lstlisting}
-def smt_value_dt_substitute (s : native_String) (d : SmtDatatype) : SmtValue -> SmtValue
-  | (SmtValue.DtCons s2 d2 i) => (SmtValue.DtCons s2 (smt_dt_substitute s d d2) i)
-  | (SmtValue.Apply f v) => (SmtValue.Apply (smt_value_dt_substitute s d f) (smt_value_dt_substitute s d v))
-  | v => v
-  
-def smt_datatype_cons_default (s : native_String) (d : SmtDatatype) (v : SmtValue) : SmtDatatypeCons -> SmtValue
-  | SmtDatatypeCons.unit => v
-  | (SmtDatatypeCons.cons T c) => 
-    let _v0 := (smt_value_dt_substitute s d (smt_type_default T))
-    (native_ite (veq _v0 SmtValue.NotValue) SmtValue.NotValue (smt_datatype_cons_default s d (SmtValue.Apply v _v0) c))
+def smt_datatype_cons_default (v : SmtValue) : SmtDatatypeCons -> SmtDatatypeCons -> SmtValue
+  | SmtDatatypeCons.unit, SmtDatatypeCons.unit => v
+  | (SmtDatatypeCons.cons TF cF), (SmtDatatypeCons.cons TU cU) =>
+    let _v0 := (smt_type_default_rec TF TU)
+    (if (veq _v0 SmtValue.NotValue) then SmtValue.NotValue else (smt_datatype_cons_default (SmtValue.Apply v _v0) cF cU))
+  | cF, cU => SmtValue.NotValue
 
-def smt_datatype_default (s : native_String) (d0 : SmtDatatype) (n : Nat) : SmtDatatype -> SmtValue
-  | SmtDatatype.null => SmtValue.NotValue
-  | (SmtDatatype.sum c d) => 
-    let _v0 := (smt_datatype_cons_default s d0 (SmtValue.DtCons s d0 n) c)
-    (native_ite (native_not (veq _v0 SmtValue.NotValue)) _v0 (smt_datatype_default s d0 (native_nat_succ n) d))
-    
-def smt_type_default : SmtType -> SmtValue
-  | SmtType.Bool => (SmtValue.Boolean false)
-  | SmtType.Int => (SmtValue.Numeral 0)
-  | (SmtType.Datatype s d) => (smt_datatype_default s d 0 d)
-  | (SmtType.Map T U) => (SmtValue.Map (SmtMap.default T (smt_type_default U)))
-  | (SmtType.Set T) => (SmtValue.Set (SmtMap.default T (SmtValue.Boolean false)))
-  | (SmtType.Seq T) => (SmtValue.Seq (SmtSeq.empty T))
-  | (SmtType.FunType T U) => (SmtValue.Fun "@default" T U)
-  | (SmtType.USort i) => (SmtValue.UValue i native_nat_zero)
-  | ... => ...
-  | T => SmtValue.NotValue
+def smt_datatype_default (s : String) (d : SmtDatatype) (n : Nat) : SmtDatatype -> SmtDatatype -> SmtValue
+  | (SmtDatatype.sum cF dF), (SmtDatatype.sum cU dU) =>
+    let _v0 := (smt_datatype_cons_default (SmtValue.DtCons s d n) cF cU)
+    (if (veq _v0 SmtValue.NotValue) then (smt_datatype_default s d (native_nat_succ n) dF dU) else _v0)
+  | dF, dU => SmtValue.NotValue
+
+def smt_type_default_rec : SmtType -> SmtType -> SmtValue
+  | (SmtType.Datatype sF dF), (SmtType.Datatype sU dU) =>
+    (smt_datatype_default sF dF 0 (smt_dt_substitute sF dF dF) dU)
+  | V, SmtType.Bool => (SmtValue.Boolean false)
+  | V, SmtType.Int => (SmtValue.Numeral 0)
+  | V, (SmtType.Map T U) =>
+    let _v0 := (smt_type_default_rec U U)
+    (if (veq _v0 SmtValue.NotValue) then SmtValue.NotValue else (SmtValue.Map (SmtMap.default T _v0)))
+  | V, (SmtType.Set T) => (SmtValue.Set (SmtMap.default T (SmtValue.Boolean false)))
+  | V, (SmtType.Seq T) => (SmtValue.Seq (SmtSeq.empty T))
+  | V, (SmtType.FunType T U) => (SmtValue.Fun "@default" T U)
+  | V, (SmtType.USort i) => (SmtValue.UValue i 0)
+  | V, ... => ...
+  | V, T => SmtValue.NotValue
+
+def smt_type_default (T : SmtType) : SmtValue :=
+  (smt_type_default_rec T T)
+  
+def inhabited_type (T : SmtType) : Bool :=
+  (Teq (smt_typeof_value (smt_type_default T)) T) && !(Teq T SmtType.None)
 \end{lstlisting}
-\caption{Finite default value computation.}
+\caption{Finite default value computation and type inhabitedness.}
 \label{fig:default-value}
 \end{figure}
 
@@ -1178,75 +1260,50 @@ The method \code{smt_type_default} takes a type and returns an (arbitrary)
 value of that type, which is guaranteed to succeed when the input type
 is well-formed (which we define later).
 
-Our default value method for atomic types returns an arbitrary value,
-e.g. false for Booleans, 0 for integers, and so on.
-For datatypes, we use a recursive method \code{(smt_datatype_default s d0 n)}
-for returning a default datatype value.
-This top-level method also carries the string \code{s} and datatype \code{d0} of the current datatype we are considering,
-as well as the natural number index \code{n} counting the index of the current constructor.
+The method \code{smt_type_default}
+calls
+the method \code{smt_type_default_rec}
+on two types.
+We use two types here solely for the purpose of recursion
+on datatypes.
+The first type will be the current \emph{unfolded}
+version of the type we have traversed to (recall the definition of unfolding from Section~\ref{sec:datatypes}),
+and the second type will be the original type.
+
+The default value method \code{smt_type_default_rec},
+datatypes are the only non-trivial case.
 The key intuition behind this method is that, for inhabited datatypes,
 it is never productive to
-consider a recursive reference to (any) datatype when constructing its default value.
+consider a recursive reference to any datatype when constructing its default value.
 It is important to note that \code{TypeRef} is \emph{not} given a case
-in our definition of \code{smt_type_default}, so it will be treated as an error (\code{SmtValue.NotValue}).
+in our definition of \code{smt_type_default_rec},
+so it will be treated as an error (\code{SmtValue.NotValue}).
 
-In detail, \code{(smt_datatype_default s d0 n)} scans the list of constructors
-and tries to return a value that is built from an application of that constructor,
-via the submethod \code{(smt_datatype_cons_default s d0 v)}.
-The submethod \code{smt_datatype_cons_default} also carries the string and datatype of the current datatype we are considering,
-the value \code{v} corresponding to the (partially applied) datatype constructor of which an
-application we are trying to construct.
-That method may fail if it contains a field type of the current constructor is not well-formed,
-which notice includes recursive references (\code{TypeRef}) to that datatype.
-More generally, since the definition of \code{smt_type_default} is mutually recursive,
-this includes references to any subfield of a datatype that we have traversed.
+In detail,
+in the datatypes case, if \emph{both}
+the unfolded and original types are a datatype,
+this indicates the current position in the datatype is not a recursive reference.
+In this case, we call the submethod
+\code{(smt_datatype_default sF dF 0)},
+which will attempt to construct a datatype constructor
+of type \code{(DatatypeType sF dF)} based on the constructors of that
+datatype, starting with constructor 0.
+We pass two datatypes to this method,
+corresponding to the unfolded version of the unfolded version \code{(smt_dt_substitute sF dF dF)}
+along with the original datatype \code{dU}.
 
-Furthermore, when constructing a subfield value via \code{smt_datatype_cons_default}
-it is still important that we resolve dangling references to the datatype
-we are defining the default value for, since the type we have traversed into
-may contain recursive references to the top-level even though we do not construct values for them. 
-Resolving dangling reference is done via the recursive method
-\code{smt_value_dt_substitute}, which traverses a datatype value and replaces
-dangling references to the current datatype.
-We demonstrate this via an example. Consider the SMT-LIB datatype:
-\begin{examplecode}
-(declare-datatypes ((A 0) (B 0))
-  (((mkA (b B)))) 
-   ((mkB (a A)) (leaf)))
-\end{examplecode}
-which has the following representation \code{DA}:
-\begin{examplecode}
-DA := (sum (cons (Datatype "B" DB) unit) nil)
-DB := (sum (cons (TypeRef "A") unit) (sum unit nil))
-\end{examplecode}
-When constructing a default value of type \code{(Datatype "A" DA)},
-we call the method \code{(smt_datatype_default "A" DA)},
-which in turn calls \code{(smt_datatype_cons_default "A" DA)}
-on a constructor value and first constructor of \code{DA}.
-This in turn invokes \code{(smt_type_default (Datatype "B" DB))},
-which calls \code{(smt_datatype_cons_default "B" DB)},
-which in turn calls \code{(smt_type_default  (TypeRef "A"))},
-which fails.
-We proceed with the second constructor of \code{DB},
-which succeeds.
-Note that we have not unfolded the datatype \code{DA},
-hence we return the constructor value
-\code{(SmtValue.DtCons "B" DB 1)}
-where note that \code{DB} contains a dangling reference \code{(TypeRef "A")}.
-When this is returned to \code{(smt_datatype_cons_default "A" DA)},
-we apply the unfolding to replace the dangling references via the call
-\code{(smt_value_dt_substitute "A" DA (SmtValue.DtCons "B" DB 1))}.
-This used as an argument to the first constructor of \code{DA},
-giving us the value:
-\begin{examplecode}
-(SmtValue.Apply (SmtValue.DtCons "A" DA 0) (SmtValue.DtCons "B" DB2 0))
-\end{examplecode}
-where \code{DB2} is:
-\begin{examplecode}
-DB2 := (sum (cons (sum (cons (Datatype "B" DB) unit) nil) unit) (sum unit nil))
-\end{examplecode}
-(FIXME)
-
+Within \code{smt_datatype_default},
+we attempt to construct a value that is an application of the current
+constructor we are looking at, i.e. index \code{n}.
+We call \code{(smt_datatype_cons_default v cF cU)}
+where \code{v} is equal to the value corresponding to that constructor.
+This method will either successfully return a value that is an application
+of that constructor value by applying it to the default values of its field types,
+or otherwise return an error \code{NotValue} if one of its types is not supported
+or corresponds to a recursive reference to a datatype.
+If the former, we return the value, otherwise we proceed to the next constructor.
+Note that this implies that our default values will use the first viable constructor
+in the list that does not contain a recursive reference.
 
 The other definitions of default values are trivial.
 Maps and sets use a default (constant) map, where maps store the default
@@ -1258,6 +1315,23 @@ with user symbols.\footnote{
 SMT-LIB uses a convention that user symbols cannot be prefixed by "@".}
 Uninterpreted sort values use a default natural number identifier,
 i.e. the first value of the uninterpreted sort's domain.
+
+In the figure, we also give a definition of inhabitedness for types
+via the method \code{inhabited_type}.
+We define type inhabitedness operationally.
+In particular, a type is considered inhabited if it is not \code{None},
+and the method \code{smt_type_default}
+succeeds in generating a value of that type,
+where recall that the type of values can be computed by the method \code{smt_typeof_value}.
+Note that any datatype that is not well-founded (i.e. does not have finite values)
+will be such that \code{smt_type_default} fails to return a value of that sort.
+It is important to note that the definition of \code{inhabited_type}
+could alternatively have been defined by a native Lean binder,
+i.e. a type is inhabited iff there exists a value having that type.
+However, this definition does not quite coincide with our desired notion,
+as it admits other types (e.g. datatypes with nested recursion) to be
+considered inhabited. Instead, \code{smt_type_default} operationally
+defines what we consider to be an inhabited type.
 
 \begin{figure}
 \begin{lstlisting}
@@ -1271,7 +1345,8 @@ def smt_map_entries_ordered_after (i : SmtValue) : SmtMap -> Bool
 
 def smt_map_canonical : SmtMap -> Bool
   | (SmtMap.default T e) =>
-    !(smt_is_finite_type T) || (veq e (smt_type_default (smt_typeof_value e)))
+    (!(smt_is_finite_type T) || (veq e (smt_type_default (smt_typeof_value e)))) &&
+    (smt_value_canonical e)
   | (SmtMap.cons i e m) =>
       smt_value_canonical i &&
       smt_value_canonical e &&
@@ -1328,12 +1403,14 @@ which by transitivity ensures that the index list is sorted.
 This criteria prevents a list of stores being equivalent,
 both by commuting distinct indices and by disallowing repeated equivalent indices.
 Finally, we must ensure that the element does not coincide
-with the default element stored in the map (obtainable by \code{smt_map_get_default}).
+with the default element stored in the map (obtainable by \code{smt_map_get_default}),
+which would also make it redundant.
 
 The default value of a map has the following requirement:
-if the index type of the map is finite, then the default element stored
+First, the default value must itself be canonical.
+Second, if the index type of the map is finite, then the default element stored
 must be the one obtained by the method \code{smt_type_default} in the previous section.
-To understand this restriction,
+To understand the second restriction,
 consider the following equivalent maps have index and element type as \code{Bool}:
 \begin{examplecode}
 m1 := 
@@ -1378,15 +1455,11 @@ Defining canonicity for the other types is trivial.
 For composite SMT-LIB values, we simply traverse their structure 
 and confirm that all values they are built from are also canonical.
 
-\subsection{Inhabited and Well-Formedness of Types}
+\subsection{Well-Formedness of Types}
 
-\begin{figure}[p]
+\begin{figure}
 \begin{lstlisting}
 abbrev RefList := List String
-
-def inhabited_type (T : SmtType) : Bool :=
-  (Teq (smt_typeof_value (smt_type_default T)) T) &&
-  (smt_value_canonical (smt_type_default T))
 
 def smt_dt_cons_wf_rec : SmtDatatypeCons -> RefList -> Bool
   | (SmtDatatypeCons.cons (SmtType.TypeRef s) c), refs =>
@@ -1395,15 +1468,15 @@ def smt_dt_cons_wf_rec : SmtDatatypeCons -> RefList -> Bool
       (inhabited_type T) && (smt_type_wf_rec T refs) && (smt_dt_cons_wf_rec c refs)
   | SmtDatatypeCons.unit, refs => true
 
-def smt_dt_wf_rec : SmtDatatype -> RefList -> Bool
-  | SmtDatatype.null, refs => false
-  | (SmtDatatype.sum c SmtDatatype.null), refs => (smt_dt_cons_wf_rec c refs)
-  | (SmtDatatype.sum c d), refs =>
-      (smt_dt_cons_wf_rec c refs) && (smt_dt_wf_rec d refs)
+def smt_dt_wf_rec (s : String) (refs : RefList) (haveBase : Bool) : SmtDatatype -> Bool
+  | SmtDatatype.null => haveBase
+  | (SmtDatatype.sum c d) =>
+      (smt_dt_cons_wf_rec c (s :: refs)) &&
+      (smt_dt_wf_rec s refs (haveBase || (smt_dt_cons_wf_rec c refs)) d)
 
 def smt_type_wf_rec : SmtType -> RefList -> Bool
   | (SmtType.Datatype s d), refs =>
-      if s ∈ refs then false else smt_dt_wf_rec d (s :: refs)
+      if s ∈ refs then false else smt_dt_wf_rec s refs false d
   | (SmtType.TypeRef s), refs => false
   | (SmtType.Seq x1), refs => (smt_type_wf_component x1)
   | (SmtType.Map x1 x2), refs =>
@@ -1423,33 +1496,15 @@ def smt_type_wf : SmtType -> Bool
   | (SmtType.FunType T U) => (smt_type_wf_component T) && (smt_type_wf U)
   | T => (smt_type_wf_component T)
 \end{lstlisting}
-\caption{Inhabitation, and type well-formedness.}
+\caption{Type well-formedness.}
 \label{fig:type-wf}
 \end{figure}
 
 Figure~\ref{fig:type-wf}
-provides two key definitions which we will use when defining the properties
+provides a central definition which we will use when defining the properties
 of SMT-LIB models we wish to consider.
 
-First, \code{inhabited_type} is a predicate that is true iff
-an SMT-LIB type is inhabited.
-We define type inhabitedness operationally.
-In particular, a type is considered inhabited if the method \code{smt_type_default}
-(from Figure~\ref{fig:default-value})succeeds in generating a value of that type,
-where recall that the type of values can be computed by the method \code{smt_typeof_value}.
-We additionally require that the default value of the type is canonical.
-TODO: this can likely be proven, not assumed.
-Note that any datatype that is not well-founded (i.e. does not have finite values)
-will be such that \code{smt_type_default} fails to return a value of that sort.
-It is important to note that the definition of \code{inhabited_type}
-could alternatively have been defined by a native Lean binder,
-i.e. a type is inhabited iff there exists a value having that type.
-However, this definition does not quite coincide with our desired notion,
-as it admits other types (e.g. datatypes with nested recursion) to be
-considered inhabited. Instead, \code{smt_type_default} operationally
-defines what we consider to be an inhabited type.
-
-The second key method defined in Figure~\ref{fig:type-wf}
+The key method defined in Figure~\ref{fig:type-wf}
 is \smttypewf.
 This predicate will define exactly the set of types that are relevant
 to in our SMT-LIB representation.
@@ -1464,10 +1519,11 @@ We also will say that a type \code{T} is \emph{first-class}
 iff \code{(smt_type_wf_component T)} returns true.
 Assume we have two canonical values \code{v1} and \code{v2} of first-class type \code{T},
 that is, \smttypeofvalue{v1} = \smttypeofvalue{v2} = \code{T},
-and \smtvaluecanon{v1} = \smtvalue{v2} = true.
+and \smtvaluecanon{v1} = \smtvaluecanon{v2} = true.
 In this case, 
 we say that \smttypeofvalue{v1} and \smttypeofvalue{v2} are
 semantically equivalent iff they are syntactically equivalent.
+%In other words, \smtvaluecanon returns true for only one
 Concretely,
 our definition of SMT-LIB model evaluation \smtmodeleval for equality (\code{eq})
 will use syntactic comparison over values (\code{veq}) for all first-class types.
@@ -1488,42 +1544,54 @@ as arguments, as well as higher-order functions
 The method \code{smt_type_wf_component}
 returns true if the given type is inhabited
 and its component types are well-formed, as defined by the recursive method \code{smt_type_wf_rec}.
-This method tracks a list of datatypes we have traversed beneath (\code{RefList}).
+The latter tracks a list of datatype names we are currently traversing beneath (\code{RefList}),
+recording the recursive references that are permitted in the current context.
 
-For datatype types,
-we call the recursive helper \code{smt_dt_wf_rec} that returns true if the datatype is well-formed.
-We append the datatype name \code{s} to our list of references when calling this method,
-indicating that type references to \code{s} are valid in this context.
-This method returns false if the datatype has no constructors.
-Otherwise, we visit each constructor
-and return true only if all constructors are well formed via \code{smt_dtc_wf_rec}.
-Note we have a special case for one constructors to avoid returning false for an empty tail.
+For a datatype type \code{(Datatype s d)},
+we first check that \code{s} does not already occur in the reference list \code{refs}.
+If it does, the datatype aliases an enclosing datatype of the same name,
+which we consider to be not well-formed, returning false.
+Otherwise, we call the recursive helper \code{smt_dt_wf_rec} on the list of constructors \code{d}.
+This helper visits each constructor in turn.
+For each constructor \code{c}, it requires that \code{c} is well-formed via \code{smt_dt_cons_wf_rec},
+where the name \code{s} of the datatype being defined is added to the reference list (\code{(s :: refs)}),
+indicating that type references to \code{s} are valid as fields of \code{c}.
 We determine whether a constructor is well-formed if
 for each of its field types \code{T},
 either \code{T} is a type reference in scope (\code{s ∈ refs}),
 or otherwise \code{T} is an inhabited type that is well-formed, which we check
 recursively, maintaining the list of references.
-Note that carrying the reference list 
+Note that carrying the reference list
 implies that mutually recursive datatypes are supported.
 
-Note that type references are only permitted as direct children of
-constructors.
-Unguarded type reference are not well-formed given their case 
-in \code{smt_dt_wf_rec}, which returns false.
+In addition, \code{smt_dt_wf_rec} requires that the datatype has at least one
+\emph{base} constructor, that is, a constructor that is well-formed
+\emph{without} relying on a recursive reference to \code{s}.
+This is tracked by the accumulator \code{haveBase}: when processing a constructor \code{c},
+we update it based on whether \code{c} is well-formed when \code{s} is \emph{not}
+in scope, i.e. \code{(smt_dt_cons_wf_rec c refs)}.
+After all constructors have been processed, the \code{null} case returns \code{haveBase}.
+In particular, a datatype with no constructors, or one all of whose constructors
+recursively reference \code{s}, has no base constructor and is considered not well-formed,
+since it would admit no finite values.
 
-The next cases in \code{smt_dt_wf_rec}
+Note that type references are only permitted as direct fields of constructors.
+An unguarded type reference is not well-formed, given the case for
+\code{(SmtType.TypeRef s)} in \code{smt_type_wf_rec}, which returns false.
+
+The next cases in \code{smt_type_wf_rec}
 cover composite types like maps, sequences and sets.
 It is important to note that for each component type (e.g. element and index types of maps,
 or element types of sequences),
-we do not carry the list of reference when recursing
+we do not carry the list of references when recursing
 via \code{smt_type_wf_component}.
 This disallows nested recursive datatypes.
 It is also important to note that composite types built from uninhabited types
 are themselves considered not well-formed.
-This prevents us from otherwise have e.g. sets of an uninhabited type be
+This prevents us from otherwise having e.g. sets of an uninhabited type be
 inhabited via the empty set; sequences are guarded for the same reason.
 
-The remaining cases in \code{smt_dt_wf_rec} include exceptions
+The remaining cases in \code{smt_type_wf_rec} are exceptions
 for other types that we disallow as first-class types.
 As mentioned, we do not have regular expressions or function types
 as first class.
@@ -1531,16 +1599,230 @@ We also disallow partially applied datatype constructors as a first-class type.
 Finally, we disallow the error type \code{None}.
 All other types (e.g. the atomic base types) are first-class.
 
+
+\subsection{Well-Formed Models}
+
+\begin{figure}
+\begin{lstlisting}
+def model_lookup (M : SmtModel) (isVar : Bool) (s : String) (T : SmtType) : SmtValue :=
+  M.values { isVar := isVar, name := s, ty := T }
+
+def model_fun_lookup (M : SmtModel) (fid : String) (T U : SmtType) : SmtValue -> SmtValue :=
+  M.nativeFuns { isVar := false, name := fid, ty := (SmtType.FunType T U) }
+
+def model_wf (M : SmtModel) : Prop :=
+  (∀ isVar s T, smt_type_wf T = true ->
+    smt_typeof_value (model_lookup M isVar s T) = T ∧
+    smt_value_canonical (model_lookup M isVar s T) = true) ∧
+  (∀ fid A B i,
+    smt_type_wf (SmtType.FunType A B) = true ->
+    smt_typeof_value i = A ->
+    smt_typeof_value (model_fun_lookup M fid A B i) = B ∧
+      smt_value_canonical (model_fun_lookup M fid A B i) = true)
+\end{lstlisting}
+\caption{Total typed model conditions.}
+\label{fig:model-typed}
+\end{figure}
+
+We now have the required definitions to define well-formed models,
+as given in Figure~\ref{ref:model-typed}.
+In particular, we define \code{model_wf}
+to be a property of models that holds when its value and function fields
+are well-formed.
+
+In detail, the first clause says that for all keys
+(which consistute of a flag \code{isVar} denoting whether we are looking up a variable, a string identifier \code{s}, and a type \code{T}),
+if \code{T} is a well-formed type (based on the definition from Figure~\ref{fig:type-wf}),
+then the map \code{M.values} stores a value \code{v} that has the given type (i.e. \code{T}),
+and moreover that value is \emph{canonical}.
+It will be the case that our model evaluator only returns canonical values,
+the latter requirement can be seen as a base case on the leafs when interpretting a term (i.e. its variables and free constants).
+
+The second clause says that for all keys,
+the \code{M.nativeFuns} has similar requirements,
+but where now the functions stored in the domain behave like propertly typed functions of the given type.
+In particular, for functions stored in the domain of \code{M.nativeFuns} for keys having type \code{(SmtType.FunType A B)},
+for all inputs \code{i} whose type is \code{A},
+the function at that lookup (\code{model_fun_lookup M fid A B})
+when applied to \code{i} results in a value of type \code{B}, and moreover the returned value is canonical.
+
+Notice that for both clauses, we insist that the respective components of \code{M} are total mappings.
+
+\subsection{Model Evaluation}
+
+\begin{figure}
+\begin{lstlisting}
+def smt_model_eval_not : SmtValue -> SmtValue
+  | (SmtValue.Boolean b) => (SmtValue.Boolean !b)
+  | v1 => SmtValue.NotValue
+
+def str_in_re : String -> SmtRegLan -> Bool
+  ...
+
+open Classical in
+noncomputable def re_ext_eq (r1 r2 : SmtRegLan) : Bool :=
+  if ∀ s : String, (str_in_re s r1 = str_in_re s r2)
+
+def smt_model_eval_eq : SmtValue -> SmtValue -> SmtValue
+  | (SmtValue.RegLan r1), (SmtValue.RegLan r2) => (SmtValue.Boolean (re_ext_eq r1 r2))
+  | v1, v2 => (SmtValue.Boolean (veq v1 v2))
+
+open Classical in
+noncomputable def eval_texists (M : SmtModel) (s : String)
+    (T : SmtType) (body : SmtTerm) : SmtValue :=
+  SmtValue.Boolean (∃ v : SmtValue,
+      smt_typeof_value v = T ∧
+        smt_value_canonical v = true ∧
+        smt_model_eval (model_push M s T v) body = (SmtValue.Boolean true))
+
+def smt_model_eval_apply (M : SmtModel) : SmtValue -> SmtValue -> SmtValue
+  | v, SmtValue.NotValue => SmtValue.NotValue
+  | (SmtValue.DtCons s d n), i => (SmtValue.Apply (SmtValue.DtCons s d n) i)
+  | (SmtValue.Apply f v), i => (SmtValue.Apply (SmtValue.Apply f v) i)
+  | (SmtValue.Fun s T U), i => (model_fun_lookup M s T U i)
+  | v, i => SmtValue.NotValue
+
+noncomputable def smt_model_eval (M : SmtModel) : SmtTerm -> SmtValue
+  | (SmtTerm.Boolean b) => (SmtValue.Boolean b)
+  | (SmtTerm.Numeral b) => (SmtValue.Numeral b)
+  ...
+  | (SmtTerm.not x1) => (smt_model_eval_not (smt_model_eval M x1))
+  | (SmtTerm.eq x1 x2) => (smt_model_eval_eq (smt_model_eval M x1) (smt_model_eval M x2))
+  | (SmtTerm.exists s T x1) => (eval_texists M s T x1)
+  | (SmtTerm.DtCons s d i) => (SmtValue.DtCons s d i)
+  | (SmtTerm.Apply f x1) =>
+      (smt_model_eval_apply M (smt_model_eval M f) (smt_model_eval M x1))
+  | (SmtTerm.Var s T) => (model_lookup M true s T)
+  | (SmtTerm.Const s T) => (model_lookup M false s T)
+  | ... => ...
+\end{lstlisting}
+\caption{Core skeleton of SMT term evaluation in a model.}
+\label{fig:model-eval}
+\end{figure}
+
+Figure~\ref{fig:model-eval}
+gives a sample of cases for model evaluation, which takes as input an SMT-LIB model and a term,
+and returns the evaluation of that term in the model.
+We will prove several theorems about this method later.
+It is important to note that the method is marked \code{noncomputable}
+in Lean, since several cases rely on native Lean quantification.
+Thus, as mentioned, model evaluation cannot be used in the Logos executable,
+instead it is a specification that we will base our correctness proof upon.
+Its also important to note that the model evaluation method \code{smt_model_eval}
+is largely structurally recursive.
+For example, for a majority of operators, it builds values by first evaluating each
+direct subterm of the current one and then combining their results.
+
+In the method \code{smt_model_eval},
+we present a sample of the cases.
+The first set of cases is for the atomic interpreted constant terms,
+e.g. Booleans, integer numerals, etc.
+These simply evaluate to their corresponding SMT-LIB value.
+We then present the evaluator for SMT-LIB \code{not}.
+This recursively calls model evaluation on its argument
+which is passed to \code{smt_model_eval_not}.
+If the argument was a Boolean value, then its payload is negated.
+Otherwise, we return an error.
+A majority of evaluation for SMT-LIB operators is defined in this manner.
+
+We also present several of the key definitions for evaluation.
+In particular, the next case is for SMT-LIB equality.
+We define the method \code{smt_model_eval_eq} for this, which takes the
+result of evaluating both sides of the equality.
+Recall that our definitions of canonicity
+implied that for most types, two canonical values
+are syntactically distinct iff they are semantically distinct.
+Moreover, we will prove as an invariant of our model evaluation that
+for well-formed models, only canonical values are returned.
+This is reflected in our definition of \code{smt_model_eval_eq}.
+For all types (apart from regular expressions),
+model evaluation for equality reduces to a syntactic comparison of the two values (via \code{veq}).
+For regular expression values (\code{SmtValue.RegLan}),
+we instead rely on an extensional definition of equality,
+which states that two regular expressions are equal if regular expression
+membership is equivalent for all strings.
+This definition depends on a method \code{str_in_re} (not given)
+for deciding whether a concrete string is a member of a (ground) regular expression.
+This method internally is based on derivatives of strings.
+
+Note that function values are treated \emph{intensionally} in our definition of equality:
+the values \code{(Fun n U T)} and \code{(Fun m U T)},
+i.e. two function values over the same type are unconditionally considered
+disequal when \code{n} and \code{m} are distinct natural numbers.
+This is even if the function they refer to the model (via \code{M.nativeFuns}) 
+is identical.
+This is an acceptable definition, as we do not consider functions to be a
+first-class type in our representation.
+
+The next case we give is for the SMT-LIB quantifier \code{exists}.
+This case involves an auxiliary definition \code{eval_texists}.
+This returns a Boolean whose value is determined by a Lean binder,
+which existentially quantifies over SMT-LIB values.
+It states that if there exists a (canonical) value of the same type as the binder
+such that the body evaluates to true under the model \code{(model_push M s T v)}.
+Recall that the definition of \code{model_push} from Figure~\ref{fig:smt-model}
+updates the variable with name \code{s} and type \code{T} to be value \code{v}.
+In other words, the recursive model evaluation is done on a modified
+verision of the current model where the variable specified by the binder
+is \emph{replaced} by \code{v}.
+Note that this definition has the advantage that we do not need to
+define a substitution function on terms, nor do we need have SMT-LIB terms
+depend on SMT-LIB values (the two datatypes do not depend on one another).
+The case for universal quantification \code{forall} (not given) is similar.
+
+The next two cases handle datatype constructors and applications
+of datatype constructors and functions.
+Firstly, datatype constructor terms are interpreted as their corresponding
+datatype constructor value.
+For applications, we first evaluate the function and argument
+and call the method \code{smt_model_eval_apply}.
+This has 5 cases.
+First, if the argument failed to evaluate, we fail to evaluate.
+Second, if the head was a datatype constructor, then we construct
+the (partially) applied datatype selector value via \code{SmtValue.Apply}.
+The third cases handles when the head itself was a partially applied selector.
+It is the case by induction that the only \code{SmtValue.Apply} values
+returned by model evaluation necessarily have datatype constructors as their heads.
+In the fourth case, if the head was a function value,
+we lookup its value in the model and apply it to the argument.
+Otherwise, we fail to evaluate.
+
+The next cases of \code{smt_model_eval_apply}
+are for variables (\code{Var}) and free constants (\code{Const}).
+These are handled similarly in the model, where the model lookup
+takes a flag denoting whether or not the lookup is for a variable.
+
+
 \subsection{Types of SMT-LIB Terms}
 
-
-\begin{figure}[p]
+\begin{figure}
 \begin{lstlisting}
+def smt_typeof_guard_wf (T : SmtType) (U : SmtType) : SmtType :=
+  (if (smt_type_wf T) then U else SmtType.None)
+
 def smt_typeof_eq (T : SmtType) (U : SmtType) : SmtType :=
-  (smt_typeof_guard T (native_ite (native_Teq T U) SmtType.Bool SmtType.None))
-  
-def smt_ret_typeof_sel (s : String) (d : SmtDatatype) (n : Nat) (m : Nat) : SmtType :=
-  (smt_ret_typeof_sel_rec (smt_dt_substitute s d d) n m)
+  (smt_typeof_guard T (if (native_Teq T U) then SmtType.Bool else SmtType.None))
+
+def smt_typeof_apply : SmtType -> SmtType -> SmtType
+  | (SmtType.FunType T U), V => (smt_typeof_guard T (if (native_Teq T V) then U else SmtType.None))
+  | (SmtType.DtcAppType T U), V => (smt_typeof_guard T (if (native_Teq T V) then U else SmtType.None))
+  | T, U => SmtType.None
+
+def smt_typeof_select : SmtType -> SmtType -> SmtType
+  | (SmtType.Map T U), V => (if (native_Teq T V) then U else SmtType.None)
+  | T, U => SmtType.None
+
+def smt_typeof_arith_overload_op_2 : SmtType -> SmtType -> SmtType
+  | SmtType.Int, SmtType.Int => SmtType.Int
+  | SmtType.Real, SmtType.Real => SmtType.Real
+  | T, U => SmtType.None
+
+def smt_typeof_dt_cons_rec (T : SmtType) : SmtDatatype -> native_Nat -> SmtType
+  | (SmtDatatype.sum SmtDatatypeCons.unit d), native_nat_zero => T
+  | (SmtDatatype.sum (SmtDatatypeCons.cons U c) d), native_nat_zero =>
+      (SmtType.DtcAppType U (smt_typeof_dt_cons_rec T (SmtDatatype.sum c d) native_nat_zero))
+  | (SmtDatatype.sum c d), (native_nat_succ n) => (smt_typeof_dt_cons_rec T d n)
+  | d, n => SmtType.None
 
 def smt_typeof : SmtTerm -> SmtType
   | (SmtTerm.Boolean b) => SmtType.Bool
@@ -1548,126 +1830,17 @@ def smt_typeof : SmtTerm -> SmtType
       if 0 <= w ∧ n = n % (2 ^ w) then SmtType.BitVec (Int.toNat w) else SmtType.None
   | (SmtTerm.eq x1 x2) => (smt_typeof_eq (smt_typeof x1) (smt_typeof x2))
   | (SmtTerm.exists s T x1) =>
-      if smt_typeof x1 = SmtType.Bool then SmtType.Bool else SmtType.None
+      if smt_typeof x1 = SmtType.Bool then (smt_typeof_guard_wf T SmtType.Bool) else SmtType.None
   | (SmtTerm.plus x1 x2) => (smt_typeof_arith_overload_op_2 (smt_typeof x1) (smt_typeof x2))
   | (SmtTerm.select x1 x2) => (smt_typeof_select (smt_typeof x1) (smt_typeof x2))
   | (SmtTerm.Apply f x1) => (smt_typeof_apply (smt_typeof f) (smt_typeof x1))
   | (SmtTerm.DtCons s d i) =>
       let _v0 := (SmtType.Datatype s d)
       (smt_typeof_guard_wf _v0 (smt_typeof_dt_cons_rec _v0 (smt_dt_substitute s d d) i))
-  | (SmtTerm.Apply (SmtTerm.DtSel s d i j) x1) =>
-      let _v0 := (smt_ret_typeof_sel s d i j)
-      (smt_typeof_guard_wf _v0 (smt_typeof_apply (SmtType.FunType (SmtType.Datatype s d) _v0) (smt_typeof x1)))
   | ... => ...
 \end{lstlisting}
 \caption{Types for SMT terms.}
 \label{fig:typeof-term}
-\end{figure}
-
-
-
-\begin{figure}[p]
-\begin{lstlisting}
-def native_fun_typed (M : SmtModel) : Prop :=
-  ∀ fid A B i,
-    smt_type_wf (SmtType.FunType A B) = true ->
-    smt_typeof_value i = A ->
-    smt_typeof_value (native_eval_ifun_apply M fid A B i) = B ∧
-      smt_value_canonical (native_eval_ifun_apply M fid A B i) = true
-
-def model_total_typed (M : SmtModel) : Prop :=
-  (∀ s T, smt_type_wf T = true -> smt_typeof_value (model_const_lookup M s T) = T) ∧
-  (∀ s T, smt_type_wf T = true -> smt_value_canonical (model_const_lookup M s T)) = true ∧
-  (∀ s T, smt_type_wf T = false -> model_const_lookup M s T = SmtValue.NotValue) ∧
-  native_fun_typed M
-\end{lstlisting}
-\caption{Total typed model conditions.}
-\label{fig:model-typed}
-\end{figure}
-
-
-\begin{figure}[p]
-\begin{lstlisting}
-
-def native_str_in_re : String -> native_RegLan -> Bool
-  | s, r => native_re_nullable <| s.toList.foldl (fun acc c => native_re_deriv c acc) r
-
-open Classical in
-noncomputable def re_ext_eq (r1 r2 : native_RegLan) : Bool :=
-  if ∀ s : String, native_str_in_re s r1 = native_str_in_re s r2 then true else false
-
-def smt_model_eval_eq : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.RegLan r1), (SmtValue.RegLan r2) => (SmtValue.Boolean (re_ext_eq r1 r2))
-  | v1, v2 => (SmtValue.Boolean (decide (v1 = v2)))
-\end{lstlisting}
-\caption{Model evaluation for equality.}
-\label{fig:eval-eq}
-\end{figure}
-
-\begin{figure}[p]
-\begin{lstlisting}
-open Classical in
-noncomputable def native_eval_texists (M : SmtModel) (s : String)
-    (T : SmtType) (body : SmtTerm) : SmtValue :=
-  if ∃ v : SmtValue,
-      smt_typeof_value v = T ∧
-        smt_value_canonical v = true ∧
-        smt_model_eval (model_push M s T v) body = (SmtValue.Boolean true) then
-    SmtValue.Boolean true
-  else
-    SmtValue.Boolean false
-
-open Classical in
-noncomputable def native_eval_tforall (M : SmtModel) (s : String)
-    (T : SmtType) (body : SmtTerm) : SmtValue :=
-  if ∀ v : SmtValue,
-      smt_typeof_value v = T ->
-        smt_value_canonical v = true ->
-        smt_model_eval (model_push M s T v) body = (SmtValue.Boolean true) then
-    SmtValue.Boolean true
-  else
-    SmtValue.Boolean false
-
-open Classical in
-noncomputable def native_eval_tchoice (M : SmtModel) (s : String)
-    (T : SmtType) (body : SmtTerm) : SmtValue :=
-  if hSat : ∃ v : SmtValue,
-      smt_typeof_value v = T ∧
-        smt_value_canonical v = true ∧
-        smt_model_eval (model_push M s T v) body = (SmtValue.Boolean true) then
-    Classical.choose hSat
-  else if hTy : ∃ v : SmtValue, smt_typeof_value v = T ∧ smt_value_canonical v then
-    Classical.choose hTy
-  else
-    SmtValue.NotValue
-
-noncomputable def native_eval_tchoice_nth (M : SmtModel) (s : String)
-    (T : SmtType) (body : SmtTerm) : Nat -> SmtValue
-  | 0 => native_eval_tchoice M s T body
-  | Nat.succ n =>
-      let v := native_eval_tchoice M s T body
-      match body with
-      | SmtTerm.exists s' T' body' =>
-          native_eval_tchoice_nth (model_push M s T v) s' T' body' n
-      | _ => SmtValue.NotValue
-\end{lstlisting}
-\caption{Evaluation of quantifiers and choice.}
-\label{fig:eval-quant}
-\end{figure}
-
-\begin{figure}[p]
-\begin{lstlisting}
-noncomputable def smt_model_eval (M : SmtModel) : SmtTerm -> SmtValue
-  | (SmtTerm.Boolean b) => (SmtValue.Boolean b)
-  | (SmtTerm.String s) => (SmtValue.Seq (native_pack_string s))
-  | (SmtTerm.not x1) => (smt_model_eval_not (smt_model_eval M x1))
-  | (SmtTerm.eq x1 x2) => (smt_model_eval_eq (smt_model_eval M x1) (smt_model_eval M x2))
-  | (SmtTerm.exists s T x1) => (native_eval_texists M s T x1)
-  | (SmtTerm.Var s T) => (model_var_lookup M s T)
-  | ... => ...
-\end{lstlisting}
-\caption{Skeleton of SMT term evaluation in a model.}
-\label{fig:model-eval}
 \end{figure}
 
 
@@ -1695,9 +1868,8 @@ theorem total_typed_model_nonvacuous :
 \label{fig:type-preservation}
 \end{figure}
 
-\clearpage
 
-\section*{Logos.lean / Spec.lean}
+\section{Specification}
 
 \begin{figure}[p]
 \begin{lstlisting}
@@ -1778,25 +1950,12 @@ def eo_to_smt : Term -> SmtTerm
 
 \begin{figure}[p]
 \begin{lstlisting}
-inductive smt_interprets : SmtModel -> SmtTerm -> Bool -> Prop
-  | intro_true  (M : SmtModel) (t : SmtTerm) :
-      (smt_typeof t) = SmtType.Bool ->
-      (smt_model_eval M t) = (SmtValue.Boolean true) ->
-      (smt_interprets M t true)
-  | intro_false (M : SmtModel) (t : SmtTerm) :
-      (smt_typeof t) = SmtType.Bool ->
-      (smt_model_eval M t) = (SmtValue.Boolean false)->
-      smt_interprets M t false
-
-def eo_interprets (M : SmtModel) (t : Term) (b : Bool) : Prop :=
-  smt_interprets M (eo_to_smt t) b
-
 inductive smt_satisfiability : SmtTerm -> Bool -> Prop
   | intro_true  (t : SmtTerm) :
-      (exists M : SmtModel, model_total_typed M /\ (smt_interprets M t true)) ->
+      (exists M : SmtModel, model_total_typed M /\ (smt_model_eval M t) = (SmtValue.Boolean true)) ->
       smt_satisfiability t true
   | intro_false (t : SmtTerm) :
-      (forall M : SmtModel, model_total_typed M -> ¬ (smt_interprets M t true))->
+      (forall M : SmtModel, model_total_typed M -> (smt_model_eval M t) = (SmtValue.Boolean false))->
       smt_satisfiability t false
 
 def eo_satisfiability (t : Term) (b : Bool) : Prop :=
@@ -1809,16 +1968,15 @@ def eo_satisfiability (t : Term) (b : Bool) : Prop :=
 
 \begin{figure}[p]
 \begin{lstlisting}
-
 inductive Proof : Type where
   | pf : Term -> Proof
   | Stuck : Proof
 
 def eo_requires : Term -> Term -> Term -> Term
   | x1, x2, x3 =>
-      (native_ite (teq x1 x2)
-        (native_ite (native_not (teq x1 Term.Stuck)) x3 Term.Stuck)
-        Term.Stuck)
+      (if (teq x1 x2) then
+        (if (native_not (teq x1 Term.Stuck)) then x3 else Term.Stuck)
+        else Term.Stuck)
 
 def __mk_trans : Term -> Term -> Term -> Term
   | Term.Stuck, _, _ => Term.Stuck

@@ -126,7 +126,7 @@ theorem smtx_typeof_tuple_unit_translation :
   have hInh : native_inhabited_type tupleTy = true := by
     classical
     simp [tupleTy, native_inhabited_type, native_and, native_ite, native_not, native_veq,
-      __smtx_type_default,
+      native_Teq, __smtx_type_default, __smtx_type_default_rec,
       __smtx_datatype_default, __smtx_datatype_cons_default, __smtx_typeof_value,
       __smtx_typeof_dt_cons_value_rec, __smtx_dt_substitute, __smtx_dtc_substitute,
       __smtx_value_canonical_bool]

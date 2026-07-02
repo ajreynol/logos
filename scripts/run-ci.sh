@@ -5,38 +5,6 @@ set -euo pipefail
 echo "Building logos executable..."
 lake build logos
 
-echo "Compiling Cpc.Spec..."
-lake build Cpc.Spec
-
-echo "Compiling Cpc.Proofs.Rules.Refl..."
-lake build Cpc.Proofs.Rules.Refl
-
-echo "Compiling Cpc.Proofs.Rules.Contra..."
-lake build Cpc.Proofs.Rules.Contra
-
-echo "Compiling Cpc.Proofs.Rules.Trans..."
-lake build Cpc.Proofs.Rules.Trans
-
-# expensive (~5mins) (~2min after modularize)
-#echo "Compiling Cpc.Proofs.Rules.Chain_resolution..."
-#lake build Cpc.Proofs.Rules.Chain_resolution
-
-# expensive to compile and not currently used in CI checks, so skipping for now
-#echo "Compiling Cpc.Proofs.Checker..."
-#lake build Cpc.Proofs.Checker
-
-echo "Compiling CpcMini.Proofs.Checker..."
-lake build CpcMini.Proofs.Checker
-
-echo "Compiling Cpc.Proofs.TypePreservation.Nonvacuity..."
-lake build Cpc.Proofs.TypePreservation.Nonvacuity
-
-echo "Compiling CpcMini.Proofs.TypePreservation.Nonvacuity..."
-lake build CpcMini.Proofs.TypePreservation.Nonvacuity
-
-echo "Compiling CpcMini.Examples.TestSimpleCheckerAssumptions..."
-lake build CpcMini.Examples.TestSimpleCheckerAssumptions
-
 shopt -s nullglob
 examples=(examples/*.cpc.lean)
 
@@ -61,6 +29,55 @@ for example in "${examples[@]}"; do
     exit 1
   fi
   echo "::endgroup::"
+done
+
+# check proofs....
+
+echo "Compiling Cpc.Spec..."
+lake build Cpc.Spec
+
+echo "Compiling Cpc.Proofs.Rules.Refl..."
+lake build Cpc.Proofs.Rules.Refl
+
+echo "Compiling Cpc.Proofs.Rules.Contra..."
+lake build Cpc.Proofs.Rules.Contra
+
+echo "Compiling Cpc.Proofs.Rules.Trans..."
+lake build Cpc.Proofs.Rules.Trans
+
+echo "Compiling Cpc.Proofs.TypePreservation.Nonvacuity..."
+lake build Cpc.Proofs.TypePreservation.Nonvacuity
+
+# expensive (~5mins) (~2min after modularize)
+#echo "Compiling Cpc.Proofs.Rules.Chain_resolution..."
+#lake build Cpc.Proofs.Rules.Chain_resolution
+
+# expensive to compile and not currently used in CI checks, so skipping for now
+#echo "Compiling Cpc.Proofs.Checker..."
+#lake build Cpc.Proofs.Checker
+
+echo "Compiling CpcMini.Proofs.Checker..."
+lake build CpcMini.Proofs.Checker
+
+echo "Compiling CpcMini.Proofs.TypePreservation.Nonvacuity..."
+lake build CpcMini.Proofs.TypePreservation.Nonvacuity
+
+echo "Compiling CpcMini.Examples.TestSimpleCheckerAssumptions..."
+lake build CpcMini.Examples.TestSimpleCheckerAssumptions
+
+cpc_examples=(Cpc/Examples/*.lean)
+
+if [ "${#cpc_examples[@]}" -eq 0 ]; then
+  echo "No Cpc examples found under Cpc/Examples/." >&2
+  exit 1
+fi
+
+echo "Compiling ${#cpc_examples[@]} Cpc example modules..."
+for example in "${cpc_examples[@]}"; do
+  module="${example%.lean}"
+  module="${module//\//.}"
+  echo "Compiling ${module}..."
+  lake build "${module}"
 done
 
 echo "All CI checks passed."
