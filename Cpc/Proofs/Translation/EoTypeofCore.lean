@@ -4070,52 +4070,6 @@ theorem hasFreeDtc_reserved_of_translate (sub : native_String)
         exact ⟨hasFreeTy_reserved_of_translate sub hRes T refs, hTail⟩
 end
 
--- TODO(typeWf-0701 aliasing refactor): this cluster is the "substitute correspondence" —
--- `translate(eo_subst sub d0 T) = smt_subst sub (translate d0) (translate T)`. It previously
--- needed both a `RefList`-scoped well-formedness fact for `T` (now genuinely type-broken: the new
--- `__smtx_dt_cons_wf_rec`/`__smtx_dt_wf_rec` take a *datatype* as their first argument, not a
--- `RefList`) and `noDt` (which is no longer derivable from smt-wf now that aliasing is permitted —
--- see the SmtModel/SmtFreeRefs discussion). Per the session discussion: for the SELF-substitute
--- case that datatype typeof-preservation actually needs (`sub = s`, `d0 = d`, called on `d`'s own
--- body), this correspondence holds *without* `noDt`, via the eo-validity-side fact that tuple
--- components are validated at an empty reference scope (so a validly-translated tuple interior
--- never contains a bare `TypeRef`, making substitution there a no-op regardless of aliasing). That
--- re-derivation is substantial and left for follow-up; signatures below are corrected to the new
--- two-argument (full/unfold) `wf_rec` shape so callers still type-check, and bodies are `sorry`.
-mutual
-
-private theorem eo_to_smt_type_substitute_field
-    (sub : native_String) (d0 : Datatype) :
-    (T : Term) -> (refs : RefList) ->
-      eo_datatype_valid_rec refs d0 ->
-      noDtDt sub (__eo_to_smt_datatype d0) = true ->
-      smtx_type_field_wf_rec (__eo_to_smt_type T) refs ->
-      __eo_to_smt_type (eo_type_substitute_field sub d0 T) =
-        smtx_type_substitute_top sub (__eo_to_smt_datatype d0) (__eo_to_smt_type T)
-  | T, refs, hD0Valid, hD0NoDt, hField => by sorry
-
-private theorem eo_to_smt_datatype_cons_substitute
-    (sub : native_String) (d0 : Datatype) :
-    (c : DatatypeCons) -> (refs : RefList) ->
-      eo_datatype_valid_rec refs d0 ->
-      noDtDt sub (__eo_to_smt_datatype d0) = true ->
-      __smtx_dt_cons_wf_rec (__eo_to_smt_datatype_cons c) (__eo_to_smt_datatype_cons c) = true ->
-      __eo_to_smt_datatype_cons (__eo_dtc_substitute sub d0 c) =
-        __smtx_dtc_substitute sub (__eo_to_smt_datatype d0) (__eo_to_smt_datatype_cons c)
-  | c, refs, hD0Valid, hD0NoDt, hWf => by sorry
-
-theorem eo_to_smt_datatype_substitute
-    (sub : native_String) (d0 : Datatype) :
-    (d : Datatype) -> (refs : RefList) ->
-      eo_datatype_valid_rec refs d0 ->
-      noDtDt sub (__eo_to_smt_datatype d0) = true ->
-      __smtx_dt_wf_rec (__eo_to_smt_datatype d) (__eo_to_smt_datatype d) = true ->
-      __eo_to_smt_datatype (__eo_dt_substitute sub d0 d) =
-        __smtx_dt_substitute sub (__eo_to_smt_datatype d0) (__eo_to_smt_datatype d)
-  | d, refs, hD0Valid, hD0NoDt, hWf => by sorry
-
-end
-
 
 /-- Selector return translation after expanding the datatype's recursive self-reference.
 

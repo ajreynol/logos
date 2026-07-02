@@ -3098,43 +3098,6 @@ private theorem eo_to_smt_type_injective_of_chain_field_wf_rec
         (by simpa [smtx_type_chain_field_wf_rec] using hWF)
 termination_by A
 
--- TODO(typeWf-0701 aliasing refactor): this "chain-selector" cluster (through the end of the
--- `_apply`-suffixed theorems below) reasons about the well-formedness of a whole
--- datatype-selector-application chain under the OLD reflist-scoped `wf_rec D refs` shape. Under
--- the new algorithm `__smtx_dt_wf_rec`/`__smtx_dt_cons_wf_rec` take a *datatype* (the
--- once-substituted "full" form) as their first argument, not a `RefList` — so these signatures are
--- corrected to a full/unfold pair (`DF`/`D`) and bodies are left as `sorry`, matching the same gap
--- documented in `SmtFreeRefs.lean` and `EoTypeofCore.lean`. All theorems in this cluster are
--- `private` with no external callers.
-private theorem smtx_typeof_dt_cons_value_rec_zero_ne_none_of_wf_apply
-    (T : SmtType) {refs : RefList}
-    (hT : smtx_type_field_wf_rec T refs) :
-    (cF cU : SmtDatatypeCons) -> (dF dU : SmtDatatype) ->
-      __smtx_dt_wf_rec (SmtDatatype.sum cF dF) (SmtDatatype.sum cU dU) = true ->
-      __smtx_typeof_dt_cons_value_rec T (SmtDatatype.sum cU dU) native_nat_zero ≠
-        SmtType.None
-  | cF, cU, dF, dU, _hWf => by sorry
-
-private theorem smtx_typeof_dt_cons_value_rec_chain_field_wf_of_wf_apply
-    (T : SmtType) {refs : RefList}
-    (hT : smtx_type_field_wf_rec T refs) :
-    (dF dU : SmtDatatype) -> (i : native_Nat) ->
-      __smtx_dt_wf_rec dF dU = true ->
-      __smtx_typeof_dt_cons_value_rec T dU i ≠ SmtType.None ->
-      smtx_type_chain_field_wf_rec refs
-        (__smtx_typeof_dt_cons_value_rec T dU i)
-  | dF, dU, i, hWf, hNN => by sorry
-
-private theorem smtx_dt_cons_applied_type_rec_chain_field_wf_of_wf_apply
-    (s : native_String) (d0 : SmtDatatype) {refs : RefList}
-    (hT : smtx_type_field_wf_rec (SmtType.Datatype s d0) refs) :
-    (dF dU : SmtDatatype) -> (i n : native_Nat) ->
-      __smtx_dt_wf_rec dF dU = true ->
-      dt_cons_applied_type_rec s d0 dU i n ≠ SmtType.None ->
-      smtx_type_chain_field_wf_rec refs
-        (dt_cons_applied_type_rec s d0 dU i n)
-  | dF, dU, i, n, hWf, hNN => by sorry
-
 private theorem dt_cons_applied_type_rec_substitute_ne_none_apply
     (sub : native_String) (base : SmtDatatype)
     (s : native_String) (dBase dBase' : SmtDatatype) :
@@ -3249,6 +3212,25 @@ private theorem dt_cons_applied_type_rec_substitute_reflect_ne_none_apply
       cases n <;>
         simpa [dt_cons_applied_type_rec, __smtx_typeof_dt_cons_value_rec] using hRec
 
+/-- Extract a non-`TypeRef` field's (full/unfold) well-formedness from an enclosing cons
+well-formedness. The `TypeRef`-field case is handled by the `dt_cons_wf_rec` first clause and is
+excluded here via `hNotRef`. -/
+private theorem smtx_type_field_wf_of_full_cons_wf
+    {TF T : SmtType} {cF cU : SmtDatatypeCons}
+    (hNotRef : ∀ s, T ≠ SmtType.TypeRef s)
+    (h : __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons TF cF) (SmtDatatypeCons.cons T cU) = true) :
+    __smtx_type_wf_rec TF T = true := by
+  have hgen : __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons TF cF) (SmtDatatypeCons.cons T cU) =
+      native_ite (native_and (native_inhabited_type TF) (__smtx_type_wf_rec TF T))
+        (__smtx_dt_cons_wf_rec cF cU) false := by
+    cases T with
+    | TypeRef s => exact absurd rfl (hNotRef s)
+    | _ => simp [__smtx_dt_cons_wf_rec]
+  rw [hgen] at h
+  cases hb : native_and (native_inhabited_type TF) (__smtx_type_wf_rec TF T) with
+  | false => rw [hb] at h; exact absurd h (by simp [native_ite])
+  | true => simp only [native_and, Bool.and_eq_true] at hb; exact hb.2
+
 mutual
 
 private theorem smtx_type_context_substitute_no_root_of_field_wf_apply
@@ -3287,6 +3269,7 @@ private theorem smtx_type_context_substitute_no_root_of_field_wf_apply
               (refs := native_reflist_nil)
               (smtx_dt_wf_rec_of_datatype_type_wf_rec_apply (by
                 simpa [smtx_type_field_wf_rec] using hWf))
+              (alignDt_subst r d d)
         have hNe : sub ≠ r := by
           intro hs
           exact hEq hs.symm
@@ -3338,20 +3321,106 @@ private theorem smtx_dtc_context_substitute_no_root_of_wf_apply
     (root : native_String) (oldRoot newRoot : SmtDatatype) :
     (c : SmtDatatypeCons) -> {refs : RefList} -> {cF : SmtDatatypeCons} ->
       __smtx_dt_cons_wf_rec cF c = true ->
+      alignDtc cF c = true ->
       smtx_dtc_context_substitute_apply sub base root oldRoot newRoot
           true false c =
         __smtx_dtc_substitute sub base c
-  | c, refs, cF, hWf => by sorry
+  | SmtDatatypeCons.unit, refs, cF, hWf, hAlign => by
+      simp [smtx_dtc_context_substitute_apply, __smtx_dtc_substitute]
+  | SmtDatatypeCons.cons T ctail, refs, cF, hWf, hAlign => by
+      cases cF with
+      | unit => simp [__smtx_dt_cons_wf_rec] at hWf
+      | cons TF cFtail =>
+          have hTail : __smtx_dt_cons_wf_rec cFtail ctail = true :=
+            smtx_dt_cons_wf_rec_tail_of_true hWf
+          simp only [alignDtc, native_and, Bool.and_eq_true] at hAlign
+          obtain ⟨hAlignHead, hAlignTail⟩ := hAlign
+          have hTailEq :
+              smtx_dtc_context_substitute_apply sub base root oldRoot newRoot true false ctail =
+                __smtx_dtc_substitute sub base ctail :=
+            smtx_dtc_context_substitute_no_root_of_wf_apply sub base root oldRoot newRoot ctail
+              (refs := native_reflist_nil) (cF := cFtail) hTail hAlignTail
+          simp only [smtx_dtc_context_substitute_apply, __smtx_dtc_substitute]
+          rw [hTailEq]
+          congr 1
+          cases T
+          case TypeRef sU =>
+              by_cases hEq : sU = sub
+              · subst sU
+                simp [smtx_type_context_substitute_apply, __smtx_type_substitute,
+                  native_ite, native_streq]
+              · have hNe : sub ≠ sU := fun h => hEq h.symm
+                simp [smtx_type_context_substitute_apply, __smtx_type_substitute,
+                  native_ite, native_streq, hEq, hNe]
+          case Datatype r d' =>
+              cases TF
+              case Datatype rF dF =>
+                  have hFieldWf :
+                      __smtx_type_wf_rec (SmtType.Datatype rF dF) (SmtType.Datatype r d') = true :=
+                    smtx_type_field_wf_of_full_cons_wf (by intro s h; simp at h) hWf
+                  have hDtWf :
+                      __smtx_dt_wf_rec (__smtx_dt_substitute rF dF dF) d' = true := by
+                    simpa [__smtx_type_wf_rec] using hFieldWf
+                  simp only [alignTy] at hAlignHead
+                  have hAlignD : alignDt (__smtx_dt_substitute rF dF dF) d' = true :=
+                    alignDt_trans _ _ _ (alignDt_subst rF dF dF) hAlignHead
+                  by_cases hEq : r = sub
+                  · subst r
+                    have hOff :
+                        smtx_dt_context_substitute_apply sub (__smtx_dt_lift sub d' base)
+                            root oldRoot newRoot false false d' = d' :=
+                      smtx_dt_context_substitute_off_apply sub (__smtx_dt_lift sub d' base)
+                        root oldRoot newRoot d'
+                    simp [smtx_type_context_substitute_apply, __smtx_type_substitute,
+                      native_ite, native_streq, hOff]
+                  · have hNe : sub ≠ r := fun h => hEq h.symm
+                    have hRec :
+                        smtx_dt_context_substitute_apply sub (__smtx_dt_lift r d' base)
+                            root oldRoot newRoot true false d' =
+                          __smtx_dt_substitute sub (__smtx_dt_lift r d' base) d' :=
+                      smtx_dt_context_substitute_no_root_of_wf_apply sub (__smtx_dt_lift r d' base)
+                        root oldRoot newRoot d' (refs := native_reflist_nil)
+                        (dF := __smtx_dt_substitute rF dF dF) hDtWf hAlignD
+                    simp [smtx_type_context_substitute_apply, __smtx_type_substitute,
+                      native_ite, native_streq, hEq, hNe, hRec]
+              all_goals simp [alignTy] at hAlignHead
+          case DtcAppType A B =>
+              exfalso
+              have hFieldWf :
+                  __smtx_type_wf_rec TF (SmtType.DtcAppType A B) = true :=
+                smtx_type_field_wf_of_full_cons_wf (by intro s h; simp at h) hWf
+              simp [__smtx_type_wf_rec] at hFieldWf
+          all_goals
+            simp [smtx_type_context_substitute_apply, __smtx_type_substitute]
 
 private theorem smtx_dt_context_substitute_no_root_of_wf_apply
     (sub : native_String) (base : SmtDatatype)
     (root : native_String) (oldRoot newRoot : SmtDatatype) :
     (d : SmtDatatype) -> {refs : RefList} -> {dF : SmtDatatype} ->
       __smtx_dt_wf_rec dF d = true ->
+      alignDt dF d = true ->
       smtx_dt_context_substitute_apply sub base root oldRoot newRoot
           true false d =
         __smtx_dt_substitute sub base d
-  | d, refs, dF, hWf => by sorry
+  | SmtDatatype.null, refs, dF, hWf, hAlign => by
+      simp [smtx_dt_context_substitute_apply, __smtx_dt_substitute]
+  | SmtDatatype.sum c d2, refs, dF, hWf, hAlign => by
+      cases dF with
+      | null => simp [__smtx_dt_wf_rec] at hWf
+      | sum cF dF2 =>
+          simp only [__smtx_dt_wf_rec] at hWf
+          simp only [alignDt, native_and, Bool.and_eq_true] at hAlign
+          obtain ⟨hAlignC, hAlignD⟩ := hAlign
+          have hite : ∀ (b x : Bool), native_ite b x false = (b && x) := by
+            intro b x; cases b <;> simp [native_ite]
+          rw [hite] at hWf
+          rw [Bool.and_eq_true] at hWf
+          obtain ⟨hcw, hd2⟩ := hWf
+          simp only [smtx_dt_context_substitute_apply, __smtx_dt_substitute]
+          rw [smtx_dtc_context_substitute_no_root_of_wf_apply sub base root oldRoot newRoot c
+                (refs := native_reflist_nil) (cF := cF) hcw hAlignC,
+              smtx_dt_context_substitute_no_root_of_wf_apply sub base root oldRoot newRoot d2
+                (refs := native_reflist_nil) (dF := dF2) hd2 hAlignD]
 
 end
 
@@ -3517,13 +3586,6 @@ private theorem smtx_ret_typeof_sel_rec_substitute_apply
       simpa [__smtx_dt_substitute, __smtx_ret_typeof_sel_rec] using
         smtx_ret_typeof_sel_rec_substitute_apply sub base d i j
 
-private theorem smtx_ret_typeof_sel_rec_field_wf_of_wf_apply :
-    (d : SmtDatatype) -> (i j : native_Nat) -> {refs : RefList} -> {dF : SmtDatatype} ->
-      __smtx_dt_wf_rec dF d = true ->
-      j < __smtx_dt_num_sels d i ->
-      smtx_type_field_wf_rec (__smtx_ret_typeof_sel_rec d i j) refs
-  | d, i, j, refs, dF, hWf, hj => by sorry
-
 private theorem smtx_dtc_substitute_cons_tail_lt_apply
     (sub : native_String) (base : SmtDatatype)
     (T : SmtType) (c : SmtDatatypeCons) {j : native_Nat}
@@ -3550,18 +3612,6 @@ private theorem smtx_ret_typeof_sel_rec_substitute_cons_succ_apply
         native_nat_zero j := by
   cases T <;>
     simp [__smtx_dtc_substitute, __smtx_ret_typeof_sel_rec]
-
-private theorem smtx_ret_typeof_sel_rec_substitute_non_chain_or_datatype_of_wf_apply
-    (sub : native_String) (base : SmtDatatype) :
-    (d : SmtDatatype) -> (i j : native_Nat) -> {refs : RefList} -> {dF : SmtDatatype} ->
-      __smtx_dt_wf_rec dF d = true ->
-      j < __smtx_dt_num_sels (__smtx_dt_substitute sub base d) i ->
-      (¬ dt_cons_chain_result
-          (__smtx_ret_typeof_sel_rec (__smtx_dt_substitute sub base d) i j)) ∨
-        ∃ s2 d2,
-          __smtx_ret_typeof_sel_rec (__smtx_dt_substitute sub base d) i j =
-            SmtType.Datatype s2 d2
-  | d, i, j, refs, dF, hWf, hj => by sorry
 
 -- TODO(typeWf-0701 aliasing refactor): "wf_rec is invariant across ref-list-equivalent contexts"
 -- is meaningless under the new algorithm — `__smtx_type_wf_rec`/`__smtx_dt_wf_rec`/
