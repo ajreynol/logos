@@ -1698,14 +1698,183 @@ theorem eo_type_valid_of_smt_field_wf_rec
       simpa [eo_type_valid_rec, raw] using
         (And.intro hParts.1 (And.intro hParts.2 (by simpa [raw] using hWf)))
   | Term.Apply f x, h => by
-      -- Every non-`None` `Apply` shape (`FunType`/`BitVec`/`Seq`/`Set`/`Array`/`Tuple`) is handled
-      -- by an earlier, more-specific pattern, so this catch-all is only reached on `None`-valued
-      -- shapes (where `h` is contradictory). It cannot be discharged as a uniform `exfalso`,
-      -- however: `cases f` re-generates the pre-empted `UOp.Seq`/`UOp.Set`/`UOp.BitVec`(+`Numeral`)
-      -- arms, which are dead here but still demand a proof and are *not* `None`-valued. Closing
-      -- them requires re-proving the corresponding validity (duplicating the dedicated arms above);
-      -- this is a Lean overlapping-pattern artifact, not a mathematical gap. Left as `sorry`.
-      sorry
+      -- The non-`None` `Apply` shapes are all handled by earlier, more-specific patterns, but
+      -- `cases f` re-generates them here (as dead-but-required goals), so we replay the same
+      -- validity derivations (`None`-valued shapes are discharged by `exfalso`).
+      cases f with
+      | UOp op =>
+          cases op with
+          | Seq =>
+              have hGuardWf :
+                  __smtx_type_wf_rec
+                      (__smtx_typeof_guard (__eo_to_smt_type x) (SmtType.Seq (__eo_to_smt_type x)))
+                      (__smtx_typeof_guard (__eo_to_smt_type x) (SmtType.Seq (__eo_to_smt_type x))) =
+                    true :=
+                smtx_type_field_wf_rec_to_type_wf_rec_of_not_typeref
+                  (smtx_typeof_guard_ne_typeref _ _ (by intro s hRef; cases hRef))
+                  (by simpa [__eo_to_smt_type] using h)
+              have hSeq :
+                  __smtx_type_wf_rec (SmtType.Seq (__eo_to_smt_type x)) (SmtType.Seq (__eo_to_smt_type x)) = true :=
+                smtx_type_wf_rec_guard_of_true (__eo_to_smt_type x)
+                  (SmtType.Seq (__eo_to_smt_type x)) hGuardWf
+              exact eo_type_valid_of_smt_field_wf_rec []
+                (smtx_type_field_wf_rec_of_type_wf_rec (seq_type_wf_rec_component_of_wf hSeq))
+          | Set =>
+              have hGuardWf :
+                  __smtx_type_wf_rec
+                      (__smtx_typeof_guard (__eo_to_smt_type x) (SmtType.Set (__eo_to_smt_type x)))
+                      (__smtx_typeof_guard (__eo_to_smt_type x) (SmtType.Set (__eo_to_smt_type x))) =
+                    true :=
+                smtx_type_field_wf_rec_to_type_wf_rec_of_not_typeref
+                  (smtx_typeof_guard_ne_typeref _ _ (by intro s hRef; cases hRef))
+                  (by simpa [__eo_to_smt_type] using h)
+              have hSet :
+                  __smtx_type_wf_rec (SmtType.Set (__eo_to_smt_type x)) (SmtType.Set (__eo_to_smt_type x)) = true :=
+                smtx_type_wf_rec_guard_of_true (__eo_to_smt_type x)
+                  (SmtType.Set (__eo_to_smt_type x)) hGuardWf
+              exact eo_type_valid_of_smt_field_wf_rec []
+                (smtx_type_field_wf_rec_of_type_wf_rec (set_type_wf_rec_component_of_wf hSet))
+          | BitVec =>
+              cases x with
+              | Numeral n =>
+                  have hn : native_zleq 0 n = true := by
+                    by_cases hn : native_zleq 0 n = true
+                    · exact hn
+                    · exfalso
+                      simp [__eo_to_smt_type, smtx_type_field_wf_rec, __smtx_type_wf_rec,
+                        native_ite, hn] at h
+                  simpa [eo_type_valid_rec] using hn
+              | _ =>
+                  exfalso
+                  simp [__eo_to_smt_type, smtx_type_field_wf_rec, __smtx_type_wf_rec] at h
+          | _ =>
+              exfalso
+              simp [__eo_to_smt_type, smtx_type_field_wf_rec, __smtx_type_wf_rec] at h
+      | Apply g y =>
+          cases g with
+          | FunType =>
+              exfalso
+              let choice :=
+                native_ite
+                  (__smtx_is_finite_type
+                    (SmtType.FunType (__eo_to_smt_type y) (__eo_to_smt_type x)))
+                  (SmtType.FunType (__eo_to_smt_type y) (__eo_to_smt_type x))
+                  (SmtType.FunType (__eo_to_smt_type y) (__eo_to_smt_type x))
+              have hInnerNoRef :
+                  ∀ s,
+                    __smtx_typeof_guard (__eo_to_smt_type x) choice ≠ SmtType.TypeRef s :=
+                smtx_typeof_guard_ne_typeref _ _
+                  (by
+                    intro s hRef
+                    cases hFin :
+                        __smtx_is_finite_type
+                          (SmtType.FunType (__eo_to_smt_type y) (__eo_to_smt_type x)) <;>
+                      simp [choice, native_ite, hFin] at hRef)
+              have hGuardWf :
+                  __smtx_type_wf_rec
+                      (__smtx_typeof_guard (__eo_to_smt_type y)
+                        (__smtx_typeof_guard (__eo_to_smt_type x) choice))
+                      (__smtx_typeof_guard (__eo_to_smt_type y)
+                        (__smtx_typeof_guard (__eo_to_smt_type x) choice)) =
+                    true :=
+                smtx_type_field_wf_rec_to_type_wf_rec_of_not_typeref
+                  (smtx_typeof_guard_ne_typeref _ _ hInnerNoRef)
+                  (by simpa [eo_to_smt_type_fun, choice] using h)
+              have hOuter :
+                  __smtx_type_wf_rec
+                      (__smtx_typeof_guard (__eo_to_smt_type x) choice)
+                      (__smtx_typeof_guard (__eo_to_smt_type x) choice) =
+                    true :=
+                smtx_type_wf_rec_guard_of_true (__eo_to_smt_type y)
+                  (__smtx_typeof_guard (__eo_to_smt_type x) choice) hGuardWf
+              have hChoice : __smtx_type_wf_rec choice choice = true :=
+                smtx_type_wf_rec_guard_of_true (__eo_to_smt_type x) choice hOuter
+              cases hFin :
+                  __smtx_is_finite_type
+                    (SmtType.FunType (__eo_to_smt_type y) (__eo_to_smt_type x)) <;>
+                simp [choice, native_ite, hFin, __smtx_type_wf_rec] at hChoice
+          | UOp op =>
+              cases op with
+              | Array =>
+                  have hInnerNoRef :
+                      ∀ s,
+                        __smtx_typeof_guard (__eo_to_smt_type x)
+                            (SmtType.Map (__eo_to_smt_type y) (__eo_to_smt_type x)) ≠
+                          SmtType.TypeRef s :=
+                    smtx_typeof_guard_ne_typeref _ _ (by intro s hRef; cases hRef)
+                  have hGuardWf :
+                      __smtx_type_wf_rec
+                          (__smtx_typeof_guard (__eo_to_smt_type y)
+                            (__smtx_typeof_guard (__eo_to_smt_type x)
+                              (SmtType.Map (__eo_to_smt_type y) (__eo_to_smt_type x))))
+                          (__smtx_typeof_guard (__eo_to_smt_type y)
+                            (__smtx_typeof_guard (__eo_to_smt_type x)
+                              (SmtType.Map (__eo_to_smt_type y) (__eo_to_smt_type x)))) =
+                        true :=
+                    smtx_type_field_wf_rec_to_type_wf_rec_of_not_typeref
+                      (smtx_typeof_guard_ne_typeref _ _ hInnerNoRef)
+                      (by simpa [__eo_to_smt_type] using h)
+                  have hOuter :
+                      __smtx_type_wf_rec
+                          (__smtx_typeof_guard (__eo_to_smt_type x)
+                            (SmtType.Map (__eo_to_smt_type y) (__eo_to_smt_type x)))
+                          (__smtx_typeof_guard (__eo_to_smt_type x)
+                            (SmtType.Map (__eo_to_smt_type y) (__eo_to_smt_type x))) = true :=
+                    smtx_type_wf_rec_guard_of_true (__eo_to_smt_type y)
+                      (__smtx_typeof_guard (__eo_to_smt_type x)
+                        (SmtType.Map (__eo_to_smt_type y) (__eo_to_smt_type x))) hGuardWf
+                  have hMap :
+                      __smtx_type_wf_rec (SmtType.Map (__eo_to_smt_type y) (__eo_to_smt_type x))
+                          (SmtType.Map (__eo_to_smt_type y) (__eo_to_smt_type x)) =
+                        true :=
+                    smtx_type_wf_rec_guard_of_true (__eo_to_smt_type x)
+                      (SmtType.Map (__eo_to_smt_type y) (__eo_to_smt_type x)) hOuter
+                  rcases map_type_wf_rec_components_of_wf hMap with ⟨hyw, hxw⟩
+                  exact ⟨
+                    eo_type_valid_of_smt_field_wf_rec [] (smtx_type_field_wf_rec_of_type_wf_rec hyw),
+                    eo_type_valid_of_smt_field_wf_rec [] (smtx_type_field_wf_rec_of_type_wf_rec hxw)⟩
+              | Tuple =>
+                  let raw := __eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x)
+                  have hWf : __smtx_type_wf raw = true := by
+                    cases hRaw : __smtx_type_wf raw <;>
+                      simp [raw, __eo_to_smt_type, hRaw, native_ite, smtx_type_field_wf_rec,
+                        __smtx_type_wf_rec] at h ⊢
+                  have hRawNN : raw ≠ SmtType.None := by
+                    intro hNone
+                    rw [hNone] at hWf
+                    simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+                      native_and] at hWf
+                  have hRawRec : __smtx_type_wf_rec raw raw = true := by
+                    have hRawField : smtx_type_field_wf_rec raw native_reflist_nil :=
+                      smtx_type_field_wf_rec_of_type_wf_rec
+                        (smtx_type_wf_rec_of_type_wf (by
+                          simpa [raw] using
+                            eo_to_smt_type_tuple_ne_reglan (__eo_to_smt_type y) (__eo_to_smt_type x))
+                          (by
+                            intro A B
+                            simpa [raw] using
+                              eo_to_smt_type_tuple_ne_fun (__eo_to_smt_type y) (__eo_to_smt_type x) A B)
+                          (by
+                            intro A B
+                            simpa [raw] using
+                              eo_to_smt_type_tuple_ne_ifun (__eo_to_smt_type y) (__eo_to_smt_type x) A B)
+                          hWf)
+                    simpa [smtx_type_field_wf_rec] using hRawField
+                  obtain ⟨hTwf, hUwf⟩ := tuple_diag_wf_components y x hRawRec hRawNN
+                  refine ⟨eo_type_valid_of_smt_field_wf_rec []
+                            (smtx_type_field_wf_rec_of_type_wf_rec hTwf),
+                          eo_type_valid_of_smt_field_wf_rec []
+                            (smtx_type_field_wf_rec_of_type_wf_rec hUwf), ?_⟩
+                  simpa [raw] using hWf
+              | _ =>
+                  exfalso
+                  simp [__eo_to_smt_type, smtx_type_field_wf_rec, __smtx_type_wf_rec] at h
+          | _ =>
+              exfalso
+              simp [__eo_to_smt_type, smtx_type_field_wf_rec, __smtx_type_wf_rec] at h
+      | _ =>
+          exfalso
+          simp [__eo_to_smt_type, smtx_type_field_wf_rec, __smtx_type_wf_rec] at h
   | Term.__eo_List, h => by
       exfalso
       simp [__eo_to_smt_type, smtx_type_field_wf_rec,
@@ -2514,40 +2683,13 @@ private theorem smtx_type_substitute_eq_top
     __smtx_type_substitute sub d0 T = smtx_type_substitute_top sub d0 T := by
   cases T <;> rfl
 
--- TODO(typeWf-0701 aliasing refactor): under the old reflist-scoped algorithm this cluster proved
--- "substituting a name `sub` genuinely absent from the ambient scope is a no-op on any well-formed
--- structure" by threading `RefList` membership. The new algorithm's `wf_rec F U` no longer accepts
--- an ambient scope at all (only a single self-substitution per `Datatype` node), so `hNot`/`refs`
--- are no longer meaningful and are kept purely for call-site signature compatibility (all current
--- callers pass `native_reflist_nil`/`rfl` and a diagonal well-formedness fact). Re-deriving this
--- cleanly needs the same argument as `SmtFreeRefs.lift_noop_of_wf_no_dt_*`. Left as `sorry`.
-mutual
-
-private theorem smtx_type_substitute_top_of_wf_rec
-    (sub : native_String) (d0 : SmtDatatype) :
-    (T : SmtType) -> (refs : RefList) ->
-      native_reflist_contains refs sub = false ->
-      __smtx_type_wf_rec T T = true ->
-      smtx_type_substitute_top sub d0 T = T
-  | T, refs, hNot, hWf => by sorry
-
-private theorem smtx_dtc_substitute_of_wf_rec
-    (sub : native_String) (d0 : SmtDatatype) :
-    (c : SmtDatatypeCons) -> (refs : RefList) ->
-      native_reflist_contains refs sub = false ->
-      __smtx_dt_cons_wf_rec c c = true ->
-      __smtx_dtc_substitute sub d0 c = c
-  | c, refs, hNot, hWf => by sorry
-
-private theorem smtx_dt_substitute_of_wf_rec
-    (sub : native_String) (d0 : SmtDatatype) :
-    (d : SmtDatatype) -> (refs : RefList) ->
-      native_reflist_contains refs sub = false ->
-      __smtx_dt_wf_rec d d = true ->
-      __smtx_dt_substitute sub d0 d = d
-  | d, refs, hNot, hWf => by sorry
-
-end
+-- (Removed: the old reflist-scoped `smtx_{type_substitute_top,dtc_substitute,dt_substitute}_of_wf_rec`
+-- cluster — "substituting a name absent from the ambient scope is a no-op on any well-formed
+-- structure." Under the new algorithm `__smtx_type_wf_rec` tracks no ambient scope and permits
+-- aliasing, so that statement is FALSE: e.g. `Datatype "sub" (sum (cons (TypeRef "sub") unit) null)`
+-- is well-formed yet substituting `"sub"` is not a no-op. The sound, scope-free replacement is the
+-- syntactic `Smtm.subst_noop_no_free_{ty,dt,dtc}` (SmtFreeRefs), keyed on `hasFree… = false` rather
+-- than on well-formedness. The cluster had no callers, so it is simply deleted.)
 
 private theorem smtx_dtc_substitute_cons_eq
     (sub : native_String) (d0 : SmtDatatype) (T : SmtType) (c : SmtDatatypeCons) :
