@@ -952,4 +952,82 @@ theorem noStray_of_consistentWith (D0 : SmtDatatype) (s' : native_String) (E' : 
   simp only [consistentWithTy, native_and, Bool.and_eq_true] at h
   exact h.1
 
+/-! ### Scoped aliasing rejection implies `noDt` for every name in scope
+
+The `__smtx_*_no_alias_rec` conjunct of the new well-formedness forbids any `Datatype x …`
+node below an enclosing binder named `x`. In particular, once a name `s` is in scope, no
+`Datatype s …` occurs at any reachable position — which is exactly `noDt s`. This is the
+bridge that lets well-formedness feed the `noDt` side conditions of the lift machinery. -/
+mutual
+theorem noDtTy_of_no_alias (s : native_String) :
+    (T : SmtType) → (refs : RefList) →
+      native_reflist_contains refs s = true →
+      __smtx_type_no_alias_rec refs T = true →
+      noDtTy s T = true
+  | SmtType.Datatype s2 d2, refs, hMem, h => by
+      have hparts : native_reflist_contains refs s2 = false ∧
+          __smtx_dt_no_alias_rec (native_reflist_insert refs s2) d2 = true := by
+        cases hc : native_reflist_contains refs s2 <;>
+          simp [__smtx_type_no_alias_rec, native_ite, hc] at h ⊢
+        exact h
+      have hne : s2 ≠ s := by
+        intro he
+        subst he
+        rw [hMem] at hparts
+        exact absurd hparts.1 (by simp)
+      have hMem' : native_reflist_contains (native_reflist_insert refs s2) s = true := by
+        simp only [native_reflist_contains, native_reflist_insert] at hMem ⊢
+        simp only [List.mem_cons, decide_eq_true_eq] at hMem ⊢
+        exact Or.inr hMem
+      simp only [noDtTy, native_and, native_not, Bool.and_eq_true]
+      exact ⟨by simp [native_streq, hne],
+        noDtDt_of_no_alias s d2 (native_reflist_insert refs s2) hMem' hparts.2⟩
+  | SmtType.TypeRef x, _, _, _ => by simp [noDtTy]
+  | SmtType.Bool, _, _, _ => by simp [noDtTy]
+  | SmtType.Int, _, _, _ => by simp [noDtTy]
+  | SmtType.Real, _, _, _ => by simp [noDtTy]
+  | SmtType.BitVec n, _, _, _ => by simp [noDtTy]
+  | SmtType.Char, _, _, _ => by simp [noDtTy]
+  | SmtType.USort n, _, _, _ => by simp [noDtTy]
+  | SmtType.Seq x, _, _, _ => by simp [noDtTy]
+  | SmtType.Set x, _, _, _ => by simp [noDtTy]
+  | SmtType.Map x y, _, _, _ => by simp [noDtTy]
+  | SmtType.FunType x y, _, _, _ => by simp [noDtTy]
+  | SmtType.DtcAppType x y, _, _, _ => by simp [noDtTy]
+  | SmtType.None, _, _, _ => by simp [noDtTy]
+  | SmtType.RegLan, _, _, _ => by simp [noDtTy]
+
+theorem noDtDt_of_no_alias (s : native_String) :
+    (d : SmtDatatype) → (refs : RefList) →
+      native_reflist_contains refs s = true →
+      __smtx_dt_no_alias_rec refs d = true →
+      noDtDt s d = true
+  | SmtDatatype.null, _, _, _ => by simp [noDtDt]
+  | SmtDatatype.sum c d, refs, hMem, h => by
+      have hparts : __smtx_dt_cons_no_alias_rec refs c = true ∧
+          __smtx_dt_no_alias_rec refs d = true := by
+        cases hc : __smtx_dt_cons_no_alias_rec refs c <;>
+          simp [__smtx_dt_no_alias_rec, native_ite, hc] at h ⊢
+        exact h
+      simp only [noDtDt, native_and, Bool.and_eq_true]
+      exact ⟨noDtDtc_of_no_alias s c refs hMem hparts.1,
+        noDtDt_of_no_alias s d refs hMem hparts.2⟩
+
+theorem noDtDtc_of_no_alias (s : native_String) :
+    (c : SmtDatatypeCons) → (refs : RefList) →
+      native_reflist_contains refs s = true →
+      __smtx_dt_cons_no_alias_rec refs c = true →
+      noDtDtc s c = true
+  | SmtDatatypeCons.unit, _, _, _ => by simp [noDtDtc]
+  | SmtDatatypeCons.cons T c, refs, hMem, h => by
+      have hparts : __smtx_type_no_alias_rec refs T = true ∧
+          __smtx_dt_cons_no_alias_rec refs c = true := by
+        cases hT : __smtx_type_no_alias_rec refs T <;>
+          simp [__smtx_dt_cons_no_alias_rec, native_ite, hT] at h ⊢
+        exact h
+      simp only [noDtDtc, native_and, Bool.and_eq_true]
+      exact ⟨noDtTy_of_no_alias s T refs hMem hparts.1,
+        noDtDtc_of_no_alias s c refs hMem hparts.2⟩
+end
+
 end Smtm

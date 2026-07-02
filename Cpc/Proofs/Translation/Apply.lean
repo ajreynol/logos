@@ -5146,8 +5146,14 @@ private theorem eo_to_smt_type_typeof_apply_dt_sel_of_smt_datatype_from_ih
   have hdEq : d0 = d :=
     eo_to_smt_datatype_injective_of_wf_rec hd0 rfl hDWF
   subst d0
+  have hDNoAlias :
+      __smtx_dt_no_alias_rec (native_reflist_insert native_reflist_nil s)
+        (__eo_to_smt_datatype d) = true :=
+    Smtm.datatype_no_alias_of_type_wf
+      (Smtm.smt_datatype_wf_of_non_none_type (__eo_to_smt x) s
+        (__eo_to_smt_datatype d) hx)
   exact eo_to_smt_type_typeof_apply_dt_sel_of_datatype_type_smt_ret
-    x s d i j hxType hDWF
+    x s d i j hxType hDWF hDNoAlias
 
 private theorem eo_to_smt_typeof_matches_translation_apply_set_member_from_ih
     (x y : Term)

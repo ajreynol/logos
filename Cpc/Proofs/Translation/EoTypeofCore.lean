@@ -4289,9 +4289,11 @@ theorem hasFreeDtc_eq_false_of_valid (sub : native_String) :
 end
 
 /-! ## Self-substitute correspondence (`corrDt`/`corrDtc`): `translate ∘ __eo_dt_substitute =
-`__smtx_dt_substitute ∘ translate` for valid datatypes. Proven for every field shape except the
-exotic inline-`DatatypeType` field (see the `sorry` below), reducing that lone case to the lift
-correspondence. `hSubEq` and friends discharge to `corrDt s d d [s]`. -/
+`__smtx_dt_substitute ∘ translate` for valid datatypes, given validity of the replacement and
+`noDtDt s` of its translation. The `noDt` hypothesis is what the scoped no-aliasing conjunct of
+`__smtx_type_wf` supplies (`noDtDt_of_no_alias`); without it the inline-`DatatypeType` field
+case is genuinely false (tuple-buried aliased fold targets — see `tmp_corrdt_cex.lean`).
+`hSubEq` and friends discharge to `corrDt s d d [s]`. -/
 /-- Substituting an EO-side name `s` is a no-op on the translation of a *reference-scope-independent*
 term (base / Seq / Set / Map / FunType / DtcApp / Tuple) that is valid at the empty scope: such a
 term has no free `TypeRef s` reachable, so `__smtx_type_substitute` leaves it fixed. -/
@@ -4325,39 +4327,174 @@ theorem eo_type_valid_nil_of_valid (T : Term) (refs : RefList)
       | _ => exact hV
   | _ => exact hV
 
+/-! ## EO-side substitution no-op under absence of free references
+
+Under validity, if the translation of a datatype carries no free `TypeRef s` (per
+`hasFreeDt`), the EO substitution of `s` is a no-op for *any* replacement: the EO side
+rewrites exactly the (unreserved, hence translation-visible) free `DatatypeTypeRef s`
+occurrences, and validity rules out reserved-named references the translation would hide. -/
+mutual
+private theorem eo_dtc_substitute_noop_of_no_free (s : native_String) :
+    (c : DatatypeCons) → (X : Datatype) → (refs : List native_String) → (refsS : RefList) →
+      eo_datatype_cons_valid_rec refs c →
+      native_reflist_contains refsS s = false →
+      hasFreeDtc s refsS (__eo_to_smt_datatype_cons c) = false →
+      __eo_dtc_substitute s X c = c
+  | DatatypeCons.unit, X, refs, refsS, _hV, _hNot, _hFree => by
+      simp [__eo_dtc_substitute]
+  | DatatypeCons.cons T c, X, refs, refsS, hV, hNot, hFree => by
+      obtain ⟨hT, hC⟩ := hV
+      have hFreeTail : hasFreeDtc s refsS (__eo_to_smt_datatype_cons c) = false :=
+        hasFreeDtc_tail_false_of_cons_false s refsS (__eo_to_smt_type T)
+          (__eo_to_smt_datatype_cons c) (by
+            simpa [__eo_to_smt_datatype_cons] using hFree)
+      have hTailEq := eo_dtc_substitute_noop_of_no_free s c X refs refsS hC hNot hFreeTail
+      cases T
+      case DatatypeType s2 d2 =>
+        rcases hT with ⟨hRes2, hD2⟩
+        by_cases hs : s = s2
+        · subst hs
+          simp [__eo_dtc_substitute, native_ite, native_streq, hTailEq]
+        · have hstreq : native_streq s s2 = false := by simp [native_streq, hs]
+          have hA : ∀ x, __eo_to_smt_type (Term.DatatypeType s2 d2) ≠ SmtType.TypeRef x := by
+            intro x hEq
+            simp [__eo_to_smt_type, hRes2, native_ite] at hEq
+          have hOr :
+              native_or (hasFreeTy s refsS (__eo_to_smt_type (Term.DatatypeType s2 d2)))
+                (hasFreeDtc s refsS (__eo_to_smt_datatype_cons c)) = false := by
+            rw [← hasFreeDtc_cons_of_not_typeref s refsS _ _ hA]
+            simpa [__eo_to_smt_datatype_cons] using hFree
+          have hHead :
+              hasFreeTy s refsS (__eo_to_smt_type (Term.DatatypeType s2 d2)) = false := by
+            simp only [native_or, Bool.or_eq_false_iff] at hOr
+            exact hOr.1
+          have hFreeD2 :
+              hasFreeDt s (native_reflist_insert refsS s2)
+                (__eo_to_smt_datatype d2) = false := by
+            simpa [__eo_to_smt_type, hRes2, native_ite, hasFreeTy] using hHead
+          have hsm : ¬ s ∈ refsS := by
+            simpa [native_reflist_contains] using hNot
+          have hNot' :
+              native_reflist_contains (native_reflist_insert refsS s2) s = false := by
+            simp [native_reflist_contains, native_reflist_insert, hs, hsm]
+          have hBody := eo_dt_substitute_noop_of_no_free s d2 (__eo_dt_lift s2 d2 X)
+            (s2 :: refs) (native_reflist_insert refsS s2) hD2 hNot' hFreeD2
+          simp [__eo_dtc_substitute, native_ite, hstreq, hBody, hTailEq]
+      case DatatypeTypeRef s2 =>
+        rcases hT with ⟨hRes2, _hMem⟩
+        have hbitOr :
+            native_or
+              (native_and (native_streq s2 s)
+                (native_not (native_reflist_contains refsS s)))
+              (hasFreeDtc s refsS (__eo_to_smt_datatype_cons c)) = false := by
+          simpa [__eo_to_smt_datatype_cons, __eo_to_smt_type, hRes2, native_ite,
+            hasFreeDtc] using hFree
+        have hs2ne : s2 ≠ s := by
+          intro he
+          subst he
+          simp [native_or, native_and, native_not, native_streq, hNot] at hbitOr
+        have hteqf :
+            native_teq (Term.DatatypeTypeRef s2) (Term.DatatypeTypeRef s) = false := by
+          simp [native_teq, hs2ne]
+        simp [__eo_dtc_substitute, native_ite, hteqf, hTailEq]
+      all_goals
+        simp [__eo_dtc_substitute, native_ite, native_teq, hTailEq]
+
+private theorem eo_dt_substitute_noop_of_no_free (s : native_String) :
+    (d : Datatype) → (X : Datatype) → (refs : List native_String) → (refsS : RefList) →
+      eo_datatype_valid_rec refs d →
+      native_reflist_contains refsS s = false →
+      hasFreeDt s refsS (__eo_to_smt_datatype d) = false →
+      __eo_dt_substitute s X d = d
+  | Datatype.null, X, refs, refsS, _hV, _hNot, _hFree => by
+      simp [__eo_dt_substitute]
+  | Datatype.sum c d, X, refs, refsS, hV, hNot, hFree => by
+      obtain ⟨hC, hD⟩ := hV
+      have hParts :
+          hasFreeDtc s refsS (__eo_to_smt_datatype_cons c) = false ∧
+            hasFreeDt s refsS (__eo_to_smt_datatype d) = false := by
+        simpa [__eo_to_smt_datatype, hasFreeDt, native_or, Bool.or_eq_false_iff] using hFree
+      simp [__eo_dt_substitute,
+        eo_dtc_substitute_noop_of_no_free s c X refs refsS hC hNot hParts.1,
+        eo_dt_substitute_noop_of_no_free s d X refs refsS hD hNot hParts.2]
+end
+
 mutual
 theorem corrDtc (s : native_String) :
     (c : DatatypeCons) → (d0 : Datatype) → (refs : RefList) →
       eo_datatype_cons_valid_rec refs c →
+      eo_datatype_valid_rec refs d0 →
+      noDtDt s (__eo_to_smt_datatype d0) = true →
       __eo_to_smt_datatype_cons (__eo_dtc_substitute s d0 c) =
         __smtx_dtc_substitute s (__eo_to_smt_datatype d0) (__eo_to_smt_datatype_cons c)
-  | DatatypeCons.unit, d0, refs, hV => by
+  | DatatypeCons.unit, d0, refs, hV, hV0, hND0 => by
       simp [__eo_dtc_substitute, __eo_to_smt_datatype_cons, __smtx_dtc_substitute]
-  | DatatypeCons.cons T c, d0, refs, hV => by
+  | DatatypeCons.cons T c, d0, refs, hV, hV0, hND0 => by
       obtain ⟨hT, hC⟩ := hV
-      have hTail := corrDtc s c d0 refs hC
+      have hTail := corrDtc s c d0 refs hC hV0 hND0
       by_cases hDT : ∃ s2 d2, T = Term.DatatypeType s2 d2
       · obtain ⟨s2, d2, rfl⟩ := hDT
-        -- TODO(typeWf-0701): the only remaining case — an *inline* `DatatypeType s2 d2` constructor
-        -- field (exotic; real datatypes reference sibling datatypes by name). Here EO/SMT substitution
-        -- both recurse into `d2` with the replacement *lifted* by `s2`, so the field reduces to the
-        -- LIFT correspondence `translate(__eo_dt_lift s2 d2 d0) = __smtx_dt_lift s2 (tr d2)(tr d0)`.
-        --
-        -- REFUTED (2026-07-02, see `tmp_corrdt_cex.lean` at the repo root): this case — and hence
-        -- `corrDt`/`corrDtc` as stated — is FALSE under the aliasing-tolerant wf, even with full
-        -- eo-validity of both `d0` and the walked datatype. Counterexample: outer datatype `A` with
-        -- a field `DatatypeType "B" dB` (`dB` referencing `A` freely, plus a base constructor) and a
-        -- tuple field `Tuple(DatatypeType "A" [DatatypeType "B" dB | unit], UnitTuple)` burying an
-        -- *aliased* copy of the fold target `(B, dB)`. The whole type is `__smtx_type_wf`, eo-valid
-        -- at `[A]`, and `__smtx_typeof (DtCons "A" (tr dA) 0) ≠ None`, yet both `corrDt` and
-        -- `eo_to_smt_type_typeof_dt_cons` (checked by `#eval`) fail on it: the SMT lift is DEEP
-        -- (recurses into the translated tuple's `Datatype "@Tuple"` body and folds the buried copy
-        -- to `TypeRef "B"`), while the EO lift is SHALLOW on tuples (a tuple is a `Term.Apply …`,
-        -- hitting the `__eo_type_lift` catch-all), so the two substitutions diverge once the
-        -- replacement is plugged at `dB`'s free `A`-reference. Fixing this needs a model-level
-        -- decision (deep EO lift on tuple terms / shallow SMT lift on reserved `@Tuple` bodies /
-        -- wf or validity rejecting tuple-buried aliased copies), not a cleverer proof.
-        sorry
+        -- The inline-`DatatypeType s2 d2` field: both sides substitute into `d2` with the
+        -- replacement lifted by `s2`. Split on whether `translate d2` carries a free
+        -- reference to `s`:
+        -- * if it does, that reference is precisely the `hFree` capture-avoidance witness of
+        --   the lift correspondence (`eo_to_smt_dt_lift_of_valid_noDt`, with the `noDt`
+        --   side condition supplied by the scoped no-aliasing conjunct of `__smtx_type_wf`
+        --   through `hND0`), and the substitution correspondence recurses into `d2`;
+        -- * if it does not, both substitutions are no-ops on `d2` and the (potentially
+        --   divergent) lifted replacements are discarded.
+        -- The tuple-buried-alias counterexample that used to refute this case (see
+        -- `tmp_corrdt_cex.lean`) is now rejected by the no-aliasing well-formedness, which
+        -- is what makes `hND0` available to every caller.
+        rcases hT with ⟨hRes2, hD2Valid⟩
+        simp only [__eo_dtc_substitute, __eo_to_smt_datatype_cons, __smtx_dtc_substitute]
+        rw [hTail]
+        congr 1
+        by_cases hs : s = s2
+        · subst hs
+          simp [__eo_to_smt_type, hRes2, native_ite, native_streq, __smtx_type_substitute]
+        · cases hFree2 : hasFreeDt s (native_reflist_insert native_reflist_nil s2)
+              (__eo_to_smt_datatype d2) with
+          | true =>
+              have hLiftEq :
+                  __eo_to_smt_datatype (__eo_dt_lift s2 d2 d0) =
+                    __smtx_dt_lift s2 (__eo_to_smt_datatype d2) (__eo_to_smt_datatype d0) :=
+                eo_to_smt_dt_lift_of_valid_noDt s2 s d2 hs hFree2 d0 refs hD2Valid hV0 hND0
+              have hLiftValid :
+                  eo_datatype_valid_rec (s2 :: refs) (__eo_dt_lift s2 d2 d0) :=
+                eo_datatype_lift_preserves_valid s2 d2 (by simp)
+                  (eo_datatype_valid_rec_weaken hV0
+                    (fun t ht => List.mem_cons_of_mem s2 ht))
+              have hLiftNoDt :
+                  noDtDt s (__eo_to_smt_datatype (__eo_dt_lift s2 d2 d0)) = true := by
+                rw [hLiftEq]
+                exact noDt_lift_dt s2 s (__eo_to_smt_datatype d2)
+                  (__eo_to_smt_datatype d0) hND0
+              have hRec := corrDt s d2 (__eo_dt_lift s2 d2 d0) (s2 :: refs) hD2Valid
+                hLiftValid hLiftNoDt
+              simp [__eo_to_smt_type, hRes2, native_ite, __smtx_type_substitute, hs,
+                hRec, hLiftEq]
+          | false =>
+              have hNot' :
+                  native_reflist_contains
+                    (native_reflist_insert native_reflist_nil s2) s = false := by
+                simp [native_reflist_contains, native_reflist_insert, native_reflist_nil, hs]
+              have hEoNoop :
+                  __eo_dt_substitute s (__eo_dt_lift s2 d2 d0) d2 = d2 :=
+                eo_dt_substitute_noop_of_no_free s d2 (__eo_dt_lift s2 d2 d0)
+                  (s2 :: refs) (native_reflist_insert native_reflist_nil s2)
+                  hD2Valid hNot' hFree2
+              have hSmtNoop :
+                  __smtx_dt_substitute s
+                      (__smtx_dt_lift s2 (__eo_to_smt_datatype d2)
+                        (__eo_to_smt_datatype d0))
+                      (__eo_to_smt_datatype d2) =
+                    __eo_to_smt_datatype d2 :=
+                subst_noop_no_free_dt s (__eo_to_smt_datatype d2)
+                  (__smtx_dt_lift s2 (__eo_to_smt_datatype d2) (__eo_to_smt_datatype d0))
+                  (native_reflist_insert native_reflist_nil s2) hNot' hFree2
+              simp [__eo_to_smt_type, hRes2, native_ite, __smtx_type_substitute, hs,
+                hEoNoop, hSmtNoop]
       · by_cases hRefAny : ∃ s'', T = Term.DatatypeTypeRef s''
         · obtain ⟨s'', rfl⟩ := hRefAny
           obtain ⟨hRes'', _hmem⟩ := hT
@@ -4391,14 +4528,16 @@ theorem corrDtc (s : native_String) :
 theorem corrDt (s : native_String) :
     (d : Datatype) → (d0 : Datatype) → (refs : RefList) →
       eo_datatype_valid_rec refs d →
+      eo_datatype_valid_rec refs d0 →
+      noDtDt s (__eo_to_smt_datatype d0) = true →
       __eo_to_smt_datatype (__eo_dt_substitute s d0 d) =
         __smtx_dt_substitute s (__eo_to_smt_datatype d0) (__eo_to_smt_datatype d)
-  | Datatype.null, d0, refs, hV => by
+  | Datatype.null, d0, refs, hV, hV0, hND0 => by
       simp [__eo_dt_substitute, __eo_to_smt_datatype, __smtx_dt_substitute]
-  | Datatype.sum c d2, d0, refs, hV => by
+  | Datatype.sum c d2, d0, refs, hV, hV0, hND0 => by
       obtain ⟨hC, hD2⟩ := hV
       simp only [__eo_dt_substitute, __eo_to_smt_datatype, __smtx_dt_substitute]
-      rw [corrDtc s c d0 refs hC, corrDt s d2 d0 refs hD2]
+      rw [corrDtc s c d0 refs hC hV0 hND0, corrDt s d2 d0 refs hD2 hV0 hND0]
 end
 
 
@@ -4708,15 +4847,22 @@ theorem eo_to_smt_typeof_dt_sel_return_substitute_self
     (s : native_String) (d : Datatype)  (i j : native_Nat)
     (hWf :
       __smtx_dt_wf_rec (__smtx_dt_substitute s (__eo_to_smt_datatype d) (__eo_to_smt_datatype d))
+        (__eo_to_smt_datatype d) = true)
+    (hNoAlias :
+      __smtx_dt_no_alias_rec (native_reflist_insert native_reflist_nil s)
         (__eo_to_smt_datatype d) = true) :
     __eo_to_smt_type (__eo_typeof_dt_sel_return (__eo_dt_substitute s d d) i j) =
       __smtx_ret_typeof_sel s (__eo_to_smt_datatype d) i j := by
   have hValid : eo_datatype_valid_rec [s] d :=
     eo_datatype_valid_of_smt_self_wf_rec s d hWf
+  have hNoDt : noDtDt s (__eo_to_smt_datatype d) = true :=
+    noDtDt_of_no_alias s (__eo_to_smt_datatype d)
+      (native_reflist_insert native_reflist_nil s)
+      (by simp [native_reflist_contains, native_reflist_insert]) hNoAlias
   have hSubEq :
       __eo_to_smt_datatype (__eo_dt_substitute s d d) =
         __smtx_dt_substitute s (__eo_to_smt_datatype d) (__eo_to_smt_datatype d) :=
-    corrDt s d d [s] hValid
+    corrDt s d d [s] hValid hValid hNoDt
   show _ =
     __smtx_ret_typeof_sel_rec
       (__smtx_dt_substitute s (__eo_to_smt_datatype d) (__eo_to_smt_datatype d)) i j
@@ -4749,12 +4895,20 @@ theorem eo_to_smt_type_typeof_dt_cons_of_valid
     ⟨hReserved, hValid⟩
   have hSubValid : eo_datatype_valid_rec [] (__eo_dt_substitute s d d) :=
     eo_datatype_valid_rec_substitute s d [] hValid hValid
-  -- TODO(typeWf-0701 aliasing refactor): this is the SELF-substitute case (see the `sorry` in
-  -- `eo_to_smt_datatype_substitute`); `noDt_of_wf_dt` no longer exists (unsound under aliasing).
+  -- The SELF-substitute case: the typeof guard supplies the full well-formedness of
+  -- `Datatype s (translate d)`, whose scoped no-aliasing conjunct yields the `noDt`
+  -- side condition of the substitution correspondence.
+  have hDWf : __smtx_type_wf D = true :=
+    Smtm.smtx_typeof_guard_wf_wf_of_non_none D inner hGuardNN
+  have hNoDt : noDtDt s (__eo_to_smt_datatype d) = true :=
+    noDtDt_of_no_alias s (__eo_to_smt_datatype d)
+      (native_reflist_insert native_reflist_nil s)
+      (by simp [native_reflist_contains, native_reflist_insert])
+      (Smtm.datatype_no_alias_of_type_wf (by simpa [D] using hDWf))
   have hSubEq :
       __eo_to_smt_datatype (__eo_dt_substitute s d d) =
         __smtx_dt_substitute s (__eo_to_smt_datatype d) (__eo_to_smt_datatype d) :=
-    corrDt s d d [s] hValid
+    corrDt s d d [s] hValid hValid hNoDt
   have hRec :=
     eo_to_smt_type_typeof_dt_cons_rec_of_valid (T := Term.DatatypeType s d) hTyValid
       hSubValid
@@ -4889,12 +5043,15 @@ theorem eo_to_smt_type_typeof_apply_dt_sel_of_datatype_type_smt_ret
     (hx : __eo_typeof x = Term.DatatypeType s d)
     (hWf :
       __smtx_dt_wf_rec (__smtx_dt_substitute s (__eo_to_smt_datatype d) (__eo_to_smt_datatype d))
+        (__eo_to_smt_datatype d) = true)
+    (hNoAlias :
+      __smtx_dt_no_alias_rec (native_reflist_insert native_reflist_nil s)
         (__eo_to_smt_datatype d) = true) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.DtSel s d i j) x)) =
       __smtx_ret_typeof_sel s (__eo_to_smt_datatype d) i j := by
   exact
     (eo_to_smt_type_typeof_apply_dt_sel_of_datatype_type x s d i j hx).trans
-      (eo_to_smt_typeof_dt_sel_return_substitute_self s d i j hWf)
+      (eo_to_smt_typeof_dt_sel_return_substitute_self s d i j hWf hNoAlias)
 
 /-- Stronger EO-side helper for `typeof_apply_apply_select`. -/
 theorem eo_to_smt_type_typeof_apply_apply_select_of_array
