@@ -51,13 +51,43 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
       RuleProofs.eo_has_smt_translation (substResult F xs ts bvs) := by
   have hEntryTypes : SubstituteSupport.SubstEntryPreservesTypes xs ts :=
     SubstActualsHaveSmtTypes.entry_eo_type_eq hActuals
-  refine ⟨?_, ?_⟩
-  · exact
-      SubstituteSupport.substitute_simul_rec_typeof_eq_of_typeof_ne_stuck_lt
-        n F xs ts bvs hLt hXsEnv hBvsEnv hFTrans hTs hEntryTypes hTy
-  · exact
-      SubstituteTranslatabilitySupport.substitute_simul_has_smt_translation_of_typeof_ne_stuck_lt
-        n F xs ts bvs hLt hXsEnv hBvsEnv hFTrans hTs hActuals hTy
+  by_cases hApply : ∃ f a, F = Term.Apply f a
+  · rcases hApply with ⟨f, a, rfl⟩
+    refine ⟨?_, ?_⟩
+    · exact
+        SubstituteSupport.substitute_simul_rec_typeof_eq_of_typeof_ne_stuck_lt
+          n (Term.Apply f a) xs ts bvs
+          hLt hXsEnv hBvsEnv hFTrans hTs hEntryTypes hTy
+    · exact
+        SubstituteTranslatabilitySupport.substitute_simul_has_smt_translation_of_typeof_ne_stuck_lt
+          n (Term.Apply f a) xs ts bvs
+          hLt hXsEnv hBvsEnv hFTrans hTs hActuals hTy
+  · by_cases hVar : ∃ name T, F = Term.Var name T
+    · rcases hVar with ⟨name, T, rfl⟩
+      exact ⟨
+        SubstituteSupport.substitute_simul_rec_var_any_typeof_eq
+          name T xs ts bvs hXsEnv hBvsEnv hTs hEntryTypes hFTrans,
+        substitute_simul_var_any_has_smt_translation_of_typeof_ne_stuck
+          name T xs ts bvs hXsEnv hBvsEnv hFTrans hTs hTy⟩
+    · by_cases hStuck : F = Term.Stuck
+      · subst F
+        exact False.elim
+          ((RuleProofs.term_ne_stuck_of_has_smt_translation Term.Stuck hFTrans) rfl)
+      · have hNotApply : ∀ f a, F ≠ Term.Apply f a := by
+          intro f a hEq
+          exact hApply ⟨f, a, hEq⟩
+        have hNotVar : ∀ name T, F ≠ Term.Var name T := by
+          intro name T hEq
+          exact hVar ⟨name, T, hEq⟩
+        exact ⟨
+          SubstituteSupport.substitute_simul_rec_atom_typeof_eq_of_typeof_ne_stuck
+            _ xs ts bvs hXsEnv hBvsEnv hTs
+            hNotApply hNotVar hStuck
+            hTy,
+          substitute_simul_atom_has_smt_translation_of_typeof_ne_stuck
+            _ xs ts bvs hXsEnv hBvsEnv hTs
+            hNotApply hNotVar hStuck
+            hFTrans hTy⟩
 
 /--
 Combined substitution preservation under an arbitrary bound-variable
