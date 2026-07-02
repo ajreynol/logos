@@ -1194,6 +1194,147 @@ private theorem apply_seed_typeof_chain
     __smtx_typeof_guard]
   simp [native_ite, h1, h2]
 
+/-!
+Diagnostic facts for the generalized infinite-field proof.  The positive lemmas
+show what substitution data can be recovered at the top level; the counterexamples
+show that arbitrary `DtSubstStar`/`FieldRel` is too weak for the datatype pump,
+because raw `TypeRef` fields can make the raw side infinite without making the
+folded value type infinite.
+-/
+
+private theorem type_substitute_nonself_substStar
+    (s : native_String) (d : SmtDatatype) (T : SmtType)
+    (hNonself :
+      native_Teq (__smtx_type_substitute s d T) (SmtType.Datatype s d) = false) :
+    SubstStar (__smtx_type_substitute s d T) T := by
+  cases T with
+  | None =>
+      simpa [__smtx_type_substitute] using SubstStar.refl SmtType.None
+  | Bool =>
+      simpa [__smtx_type_substitute] using SubstStar.refl SmtType.Bool
+  | Int =>
+      simpa [__smtx_type_substitute] using SubstStar.refl SmtType.Int
+  | Real =>
+      simpa [__smtx_type_substitute] using SubstStar.refl SmtType.Real
+  | RegLan =>
+      simpa [__smtx_type_substitute] using SubstStar.refl SmtType.RegLan
+  | BitVec w =>
+      simpa [__smtx_type_substitute] using SubstStar.refl (SmtType.BitVec w)
+  | Map A B =>
+      simpa [__smtx_type_substitute] using SubstStar.refl (SmtType.Map A B)
+  | Set A =>
+      simpa [__smtx_type_substitute] using SubstStar.refl (SmtType.Set A)
+  | Seq A =>
+      simpa [__smtx_type_substitute] using SubstStar.refl (SmtType.Seq A)
+  | Char =>
+      simpa [__smtx_type_substitute] using SubstStar.refl SmtType.Char
+  | Datatype s2 d2 =>
+      simp only [__smtx_type_substitute]
+      by_cases hEq : native_streq s s2 = true
+      · rw [native_ite, if_pos hEq]
+        exact SubstStar.dt (dtSubstStar_refl d2)
+      · rw [native_ite, if_neg hEq]
+        exact SubstStar.dt (dtSubstStar_of_subst s (__smtx_dt_lift s2 d2 d) d2)
+  | TypeRef r =>
+      by_cases hEq : native_streq s r = true
+      · simp [__smtx_type_substitute, native_ite, hEq, native_Teq] at hNonself
+      · have hEqFalse : native_streq s r = false := by
+          cases h : native_streq s r <;> simp [h] at hEq ⊢
+        simpa [__smtx_type_substitute, native_ite, hEqFalse] using
+          SubstStar.refl (SmtType.TypeRef r)
+  | USort u =>
+      simpa [__smtx_type_substitute] using SubstStar.refl (SmtType.USort u)
+  | FunType A B =>
+      simpa [__smtx_type_substitute] using SubstStar.refl (SmtType.FunType A B)
+  | DtcAppType A B =>
+      simpa [__smtx_type_substitute] using SubstStar.refl (SmtType.DtcAppType A B)
+
+private theorem substStar_datatype_full_rel
+    {sF sU : native_String} {dF dU : SmtDatatype}
+    (hRel : SubstStar (SmtType.Datatype sF dF) (SmtType.Datatype sU dU)) :
+    DtSubstStar (__smtx_dt_substitute sF dF dF) dU := by
+  cases hRel with
+  | refl T =>
+      exact dtSubstStar_subst sF dF (dtSubstStar_refl dF)
+  | dt hD =>
+      exact dtSubstStar_subst sF dF hD
+
+private theorem fieldRel_typeref_forces_any
+    (TF : SmtType) (r : native_String) :
+    FieldRel TF (SmtType.TypeRef r) :=
+  FieldRel.forcesNV (fun V => rec_typeref_nv r V)
+
+private theorem dt_cons_wf_rec_typeref_head_skips
+    {sF r : native_String} {dF : SmtDatatype} {cF cU : SmtDatatypeCons}
+    (hTail : __smtx_dt_cons_wf_rec cF cU = true) :
+    __smtx_dt_cons_wf_rec
+        (SmtDatatypeCons.cons (SmtType.Datatype sF dF) cF)
+        (SmtDatatypeCons.cons (SmtType.TypeRef r) cU) = true := by
+  simpa [__smtx_dt_cons_wf_rec] using hTail
+
+private theorem dtcSubstStar_wf_typeref_head_not_inhabited
+    (s r : native_String) :
+    DtcSubstStar
+        (SmtDatatypeCons.cons (SmtType.Datatype s SmtDatatype.null)
+          SmtDatatypeCons.unit)
+        (SmtDatatypeCons.cons (SmtType.TypeRef r) SmtDatatypeCons.unit) ∧
+      __smtx_dt_cons_wf_rec
+          (SmtDatatypeCons.cons (SmtType.Datatype s SmtDatatype.null)
+            SmtDatatypeCons.unit)
+          (SmtDatatypeCons.cons (SmtType.TypeRef r) SmtDatatypeCons.unit) = true ∧
+      native_inhabited_type (SmtType.Datatype s SmtDatatype.null) = false := by
+  refine ⟨?_, ?_, ?_⟩
+  · exact DtcSubstStar.cons
+      (fieldRel_typeref_forces_any (SmtType.Datatype s SmtDatatype.null) r)
+      DtcSubstStar.unit
+  · exact dt_cons_wf_rec_typeref_head_skips
+      (cF := SmtDatatypeCons.unit) (cU := SmtDatatypeCons.unit) (by rfl)
+  · simp [native_inhabited_type, __smtx_type_default, __smtx_type_default_rec,
+      __smtx_datatype_default, __smtx_typeof_value, native_Teq, native_not,
+      native_and]
+
+private theorem dtSubstStar_wf_raw_infinite_folded_finite_counterexample
+    (s r : native_String) :
+    let dF :=
+      SmtDatatype.sum SmtDatatypeCons.unit
+        (SmtDatatype.sum
+          (SmtDatatypeCons.cons (SmtType.Datatype s SmtDatatype.null)
+            SmtDatatypeCons.unit)
+          SmtDatatype.null)
+    let dU :=
+      SmtDatatype.sum SmtDatatypeCons.unit
+        (SmtDatatype.sum
+          (SmtDatatypeCons.cons (SmtType.TypeRef r) SmtDatatypeCons.unit)
+          SmtDatatype.null)
+    DtSubstStar (__smtx_dt_substitute s dF dF) dU ∧
+      native_inhabited_type (SmtType.Datatype s dF) = true ∧
+      __smtx_type_wf_rec (SmtType.Datatype s dF)
+        (SmtType.Datatype s dU) = true ∧
+      __smtx_is_finite_type (SmtType.Datatype s dU) = false ∧
+      __smtx_is_finite_type (SmtType.Datatype s dF) = true := by
+  intro dF dU
+  have hSub : __smtx_dt_substitute s dF dF = dF := by
+    simp [dF, __smtx_dt_substitute, __smtx_dtc_substitute,
+      __smtx_type_substitute, native_streq, native_ite]
+  refine ⟨?_, ?_, ?_, ?_, ?_⟩
+  · rw [hSub]
+    exact DtSubstStar.sum DtcSubstStar.unit
+      (DtSubstStar.sum
+        (DtcSubstStar.cons
+          (fieldRel_typeref_forces_any (SmtType.Datatype s SmtDatatype.null) r)
+          DtcSubstStar.unit)
+        DtSubstStar.null)
+  · simp [dF, hSub, native_inhabited_type, __smtx_type_default, __smtx_type_default_rec,
+      __smtx_datatype_default, __smtx_datatype_cons_default,
+      __smtx_typeof_value, __smtx_typeof_dt_cons_value_rec, chainType,
+      native_Teq, native_not, native_and, native_veq, native_ite]
+  · simp [dF, dU, hSub, __smtx_type_wf_rec, __smtx_dt_wf_rec,
+      __smtx_dt_cons_wf_rec, native_ite]
+  · simp [dU, __smtx_is_finite_type, __smtx_is_finite_datatype,
+      __smtx_is_finite_datatype_cons, native_and]
+  · simp [dF, __smtx_is_finite_type, __smtx_is_finite_datatype,
+      __smtx_is_finite_datatype_cons, native_and]
+
 private def nonself_infinite_field_large_witness_remaining_case
     (s : native_String) (d : SmtDatatype) : SmtType → Prop
   | SmtType.Map A B =>
