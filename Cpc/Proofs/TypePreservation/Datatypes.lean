@@ -634,10 +634,10 @@ theorem datatype_wf_rec_of_type_wf
     {s : native_String}
     {d : SmtDatatype}
     (h : __smtx_type_wf (SmtType.Datatype s d) = true) :
-    __smtx_dt_wf_rec d (native_reflist_insert native_reflist_nil s) = true := by
+    __smtx_dt_wf_rec (__smtx_dt_substitute s d d) d = true := by
   have hPair :
       native_inhabited_type (SmtType.Datatype s d) = true ∧
-        __smtx_dt_wf_rec d (native_reflist_insert native_reflist_nil s) = true := by
+        __smtx_dt_wf_rec (__smtx_dt_substitute s d d) d = true := by
     simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
       native_and] using h
   exact hPair.2
@@ -848,25 +848,25 @@ theorem typeof_value_model_eval_dt_sel_wrong
       (B := SmtType.Map D R) hM2WF).2
   have hDRParts :
       native_inhabited_type D = true ∧
-        __smtx_type_wf_rec D native_reflist_nil = true ∧
+        __smtx_type_wf_rec D D = true ∧
           native_inhabited_type R = true ∧
-            __smtx_type_wf_rec R native_reflist_nil = true := by
+            __smtx_type_wf_rec R R = true := by
     have hAll :
         native_inhabited_type (SmtType.Map D R) = true ∧
           native_inhabited_type D = true ∧
-            __smtx_type_wf_rec D native_reflist_nil = true ∧
+            __smtx_type_wf_rec D D = true ∧
               native_inhabited_type R = true ∧
-                __smtx_type_wf_rec R native_reflist_nil = true := by
+                __smtx_type_wf_rec R R = true := by
       simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
         native_and] using hM3WF
     exact hAll.2
   have hDParts :
       native_inhabited_type D = true ∧
-        __smtx_type_wf_rec D native_reflist_nil = true :=
+        __smtx_type_wf_rec D D = true :=
     ⟨hDRParts.1, hDRParts.2.1⟩
   have hRParts :
       native_inhabited_type R = true ∧
-        __smtx_type_wf_rec R native_reflist_nil = true :=
+        __smtx_type_wf_rec R R = true :=
     ⟨hDRParts.2.2.1, hDRParts.2.2.2⟩
   have hFunWF : __smtx_type_wf (SmtType.FunType D R) = true := by
     simp [__smtx_type_wf, __smtx_type_wf_component, native_and, hDParts.1, hDParts.2,

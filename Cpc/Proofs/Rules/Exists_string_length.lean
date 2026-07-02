@@ -219,7 +219,7 @@ private theorem seq_elem_native_inhabited_of_seq_wf {A : SmtType} :
     native_inhabited_type A = true := by
   intro h
   have hParts : native_inhabited_type A = true ∧
-      __smtx_type_wf_rec A native_reflist_nil = true := by
+      __smtx_type_wf_rec A A = true := by
     simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
       native_and] using h
   exact hParts.1

@@ -2284,13 +2284,13 @@ private theorem str_flatten_seq_empty_typeof_eq
       __smtx_type_wf_component (SmtType.Seq T) = true := by
     simpa [__smtx_type_wf] using hSeqWF
   have hSeqRec :
-      __smtx_type_wf_rec (SmtType.Seq T) native_reflist_nil = true :=
+      __smtx_type_wf_rec (SmtType.Seq T) (SmtType.Seq T) = true :=
     (smtx_type_wf_component_parts hSeqComp).2
   have hTParts :
       native_inhabited_type T = true ∧
-        __smtx_type_wf_rec T native_reflist_nil = true := by
+        __smtx_type_wf_rec T T = true := by
     simpa [__smtx_type_wf_rec, native_and] using hSeqRec
-  have hTRec : __smtx_type_wf_rec T native_reflist_nil = true :=
+  have hTRec : __smtx_type_wf_rec T T = true :=
     hTParts.2
   have hUType : __eo_typeof U = Term.Type :=
     TranslationProofs.eo_typeof_type_of_smt_type_wf_rec U

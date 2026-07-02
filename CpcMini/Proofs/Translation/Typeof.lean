@@ -971,11 +971,12 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid :
         · exfalso
           simp [native_ite, hWf] at hGuardNN
       have hWfRec :
-          __smtx_type_wf_rec (SmtType.Datatype s (__eo_to_smt_datatype d)) [] = true := by
+          __smtx_type_wf_rec (SmtType.Datatype s (__eo_to_smt_datatype d)) (SmtType.Datatype s (__eo_to_smt_datatype d)) = true := by
         have hPair :
             native_inhabited_type (SmtType.Datatype s (__eo_to_smt_datatype d)) = true ∧
               __smtx_type_wf_rec
-                (SmtType.Datatype s (__eo_to_smt_datatype d)) native_reflist_nil = true := by
+                (SmtType.Datatype s (__eo_to_smt_datatype d))
+                (SmtType.Datatype s (__eo_to_smt_datatype d)) = true := by
           simpa [__smtx_type_wf, native_and] using hWf
         exact hPair.2
       have hTyValid :
@@ -1312,7 +1313,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid :
                     · exact hWf
                     · exfalso
                       simp [native_ite, hWf] at hGuardNN
-                  have hRetWfRec : __smtx_type_wf_rec R [] = true := by
+                  have hRetWfRec : __smtx_type_wf_rec R R = true := by
                     let D := SmtType.Datatype s (__eo_to_smt_datatype d)
                     have hWrongMapWF :=
                       dt_sel_wrong_map_type_wf_of_non_none hApplyNN
@@ -1326,9 +1327,9 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid :
                     have hParts :
                         native_inhabited_type (SmtType.Map D R) = true ∧
                           native_inhabited_type D = true ∧
-                            __smtx_type_wf_rec D native_reflist_nil = true ∧
+                            __smtx_type_wf_rec D D = true ∧
                               native_inhabited_type R = true ∧
-                                __smtx_type_wf_rec R native_reflist_nil = true := by
+                                __smtx_type_wf_rec R R = true := by
                       simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using hM3Wf
                     exact hParts.2.2.2.2
                   have hSelRetValid :
