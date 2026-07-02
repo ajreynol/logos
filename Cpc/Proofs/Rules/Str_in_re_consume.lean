@@ -29301,39 +29301,6 @@ theorem str_re_consume_model_rel
           SmtValue.RegLan rFlatRv ->
           native_str_in_re (native_unpack_string ss) rv =
             native_str_in_re (native_unpack_string sFlatSs) rFlatRv
-  let nonMultAfterFirstInputNativeEq
-      (_hNotMult :
-        ∀ r0, r = Term.Apply (Term.UOp UserOp.re_mult) r0 -> False) :
-      Prop :=
-    let sFlat :=
-      __eo_list_rev (Term.UOp UserOp.str_concat)
-        (__str_flatten (__eo_list_singleton_intro
-          (Term.UOp UserOp.str_concat) s))
-    let rFlat :=
-      __re_rev_map_rev (__re_flatten (Term.Boolean true) r)
-        (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))
-    let first := __str_re_consume_rec sFlat rFlat sFlat
-    let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
-    let carry :=
-      __eo_and (Term.Boolean false)
-        (__eo_not (__eo_eq (__str_membership_re first) eps))
-    let nextS :=
-      __eo_list_rev (Term.UOp UserOp.str_concat)
-        (__eo_ite carry sFlat (__str_membership_str first))
-    let nextR :=
-      __re_rev_map_rev
-        (__re_flatten (Term.Boolean true)
-          (__eo_ite carry rFlat (__str_membership_re first))) eps
-    first ≠ Term.Boolean false ->
-      ∀ ss rv nextSs nextRv,
-        __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss ->
-        __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv ->
-        __smtx_model_eval M (__eo_to_smt nextS) =
-          SmtValue.Seq nextSs ->
-        __smtx_model_eval M (__eo_to_smt nextR) =
-          SmtValue.RegLan nextRv ->
-          native_str_in_re (native_unpack_string ss) rv =
-            native_str_in_re (native_unpack_string nextSs) nextRv
   let nonMultFirstFalseNative
       (_hNotMult :
         ∀ r0, r = Term.Apply (Term.UOp UserOp.re_mult) r0 -> False) :
