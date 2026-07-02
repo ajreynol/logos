@@ -6327,23 +6327,4 @@ theorem substitute_simul_rec_typeof_eq_of_typeof_ne_stuck_lt
               (by intro h; cases h)
               hTy
 
-theorem substitute_simul_rec_typeof_eq_of_typeof_ne_stuck
-    (F xs ss bvs : Term)
-    {xsVars bvsVars : List EoVarKey}
-    (hXsEnv : EoVarEnvPerm xs xsVars)
-    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
-    (hFTrans : RuleProofs.eo_has_smt_translation F)
-    (hSs : EoListAllHaveSmtTranslation ss)
-    (hEntryTypes : SubstEntryPreservesTypes xs ss)
-    (hTy :
-      __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false) F xs ss bvs) ≠
-        Term.Stuck) :
-    __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false) F xs ss bvs) =
-      __eo_typeof F :=
-  substitute_simul_rec_typeof_eq_of_typeof_ne_stuck_lt
-    (sizeOf F + 1) F xs ss bvs
-    (by omega) hXsEnv hBvsEnv hFTrans hSs hEntryTypes hTy
-
 end SubstituteSupport

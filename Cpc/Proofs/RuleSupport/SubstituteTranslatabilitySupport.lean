@@ -5086,24 +5086,4 @@ theorem substitute_simul_has_smt_translation_of_typeof_ne_stuck_lt
             (by intro h; cases h)
             hFTrans hTy
 
-/-- General substitution-result translatability, under an arbitrary
-bound-variable accumulator. -/
-theorem substitute_simul_has_smt_translation_of_typeof_ne_stuck
-    (F xs ts bvs : Term)
-    {xsVars bvsVars : List EoVarKey}
-    (hXsEnv : EoVarEnvPerm xs xsVars)
-    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
-    (hFTrans : RuleProofs.eo_has_smt_translation F)
-    (hTs : EoListAllHaveSmtTranslation ts)
-    (hActuals : SubstActualsHaveSmtTypes xs ts)
-    (hTy :
-      __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false) F xs ts bvs) ≠
-        Term.Stuck) :
-    RuleProofs.eo_has_smt_translation
-      (__substitute_simul_rec (Term.Boolean false) F xs ts bvs) :=
-  substitute_simul_has_smt_translation_of_typeof_ne_stuck_lt
-    (sizeOf F + 1) F xs ts bvs (by omega)
-    hXsEnv hBvsEnv hFTrans hTs hActuals hTy
-
 end SubstituteTranslatabilitySupport
