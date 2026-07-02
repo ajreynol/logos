@@ -1562,6 +1562,39 @@ private theorem datatype_type_substitute_infinite_of_outer_infinite
   exact type_substitute_infinite_of_infinite_replacement s d hDInf
     (SmtType.Datatype s2 d2) (by simpa [__smtx_is_finite_type] using hRawInf)
 
+private theorem type_substitute_infinite_of_current_infinite
+    (s : native_String) (d : SmtDatatype)
+    (hDInf : __smtx_is_finite_datatype d = false)
+    (T : SmtType)
+    (hTInf : __smtx_is_finite_type T = false) :
+    __smtx_is_finite_type (__smtx_type_substitute s d T) = false :=
+  type_substitute_infinite_of_infinite_replacement s d hDInf T hTInf
+
+private theorem typed_canonical_datatype_value_not_wf_counterexample
+    (s r : native_String) (hsr : native_streq s r = false) :
+    let d :=
+      SmtDatatype.sum SmtDatatypeCons.unit
+        (SmtDatatype.sum
+          (SmtDatatypeCons.cons (SmtType.TypeRef r) SmtDatatypeCons.unit)
+          SmtDatatype.null)
+    let w := SmtValue.DtCons s d 0
+    __smtx_typeof_value w = SmtType.Datatype s d ∧
+      __smtx_value_canonical_bool w = true ∧
+      __smtx_type_wf_rec (SmtType.Datatype s d) (SmtType.Datatype s d) = false := by
+  intro d w
+  have hne : s ≠ r := by
+    simpa [native_streq] using hsr
+  have hne' : r ≠ s := by
+    intro h
+    exact hne h.symm
+  have hrs : native_streq r s = false := by
+    simp [native_streq, eq_comm, hne]
+  simp [d, w, __smtx_typeof_value, __smtx_typeof_dt_cons_value_rec,
+    __smtx_value_canonical_bool, __smtx_type_wf_rec, __smtx_dt_wf_rec,
+    __smtx_dt_cons_wf_rec, __smtx_dt_substitute, __smtx_dtc_substitute,
+    __smtx_type_substitute, hsr, hrs, native_ite, native_streq, hne, hne',
+    native_and]
+
 private def nonself_infinite_field_large_witness_remaining_case
     (s : native_String) (d : SmtDatatype) : SmtType → Prop
   | SmtType.Map A B =>
