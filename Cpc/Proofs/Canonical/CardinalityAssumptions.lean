@@ -1335,6 +1335,233 @@ private theorem dtSubstStar_wf_raw_infinite_folded_finite_counterexample
   · simp [dF, __smtx_is_finite_type, __smtx_is_finite_datatype,
       __smtx_is_finite_datatype_cons, native_and]
 
+private theorem actual_substitution_nonself_not_diagonal_wf_counterexample
+    (s t : native_String) (hst : native_streq s t = false) :
+    let dOuter := SmtDatatype.null
+    let dRaw :=
+      SmtDatatype.sum SmtDatatypeCons.unit
+        (SmtDatatype.sum
+          (SmtDatatypeCons.cons (SmtType.TypeRef s) SmtDatatypeCons.unit)
+          SmtDatatype.null)
+    let TF := __smtx_type_substitute s dOuter (SmtType.Datatype t dRaw)
+    native_Teq TF (SmtType.Datatype s dOuter) = false ∧
+      __smtx_is_finite_type (SmtType.Datatype t dRaw) = false ∧
+      native_inhabited_type TF = true ∧
+      __smtx_type_wf_rec TF (SmtType.Datatype t dRaw) = true ∧
+      __smtx_type_wf_rec TF TF = false := by
+  intro dOuter dRaw TF
+  have hne : s ≠ t := by
+    simpa [native_streq] using hst
+  have hne' : t ≠ s := by
+    intro h
+    exact hne h.symm
+  have hts : native_streq t s = false := by
+    simp [native_streq, eq_comm, hne]
+  simp [TF, dOuter, dRaw, __smtx_type_substitute, hst, hts,
+    __smtx_dt_substitute, __smtx_dtc_substitute, __smtx_type_lift,
+    __smtx_dtc_lift, __smtx_dt_lift, native_ite, native_Teq,
+    native_streq, hne, hne',
+    __smtx_is_finite_type, __smtx_is_finite_datatype,
+    __smtx_is_finite_datatype_cons, native_and, native_inhabited_type,
+    __smtx_type_default, __smtx_type_default_rec, __smtx_datatype_default,
+    __smtx_datatype_cons_default, __smtx_typeof_value,
+    __smtx_typeof_dt_cons_value_rec, __smtx_type_wf_rec, __smtx_dt_wf_rec,
+    __smtx_dt_cons_wf_rec, native_not, native_veq]
+
+mutual
+
+private theorem type_lift_infinite_of_infinite
+    (s : native_String) (d : SmtDatatype) :
+    ∀ (T : SmtType),
+      __smtx_is_finite_type T = false →
+        __smtx_is_finite_type (__smtx_type_lift s d T) = false
+  | SmtType.Bool, h => by simp [__smtx_is_finite_type] at h
+  | SmtType.BitVec w, h => by simp [__smtx_is_finite_type] at h
+  | SmtType.Char, h => by simp [__smtx_is_finite_type] at h
+  | SmtType.Datatype s2 d2, h => by
+      simp only [__smtx_type_lift]
+      by_cases hEq :
+          native_Teq (SmtType.Datatype s d) (SmtType.Datatype s2 d2) = true
+      · rw [native_ite, if_pos hEq]
+        simp [__smtx_is_finite_type]
+      · rw [native_ite, if_neg hEq]
+        have hD : __smtx_is_finite_datatype d2 = false := by
+          simpa [__smtx_is_finite_type] using h
+        simpa [__smtx_is_finite_type] using
+          dt_lift_infinite_of_infinite s d d2 hD
+  | SmtType.Map A B, h => by
+      simpa [__smtx_type_lift] using h
+  | SmtType.Set A, h => by
+      simpa [__smtx_type_lift] using h
+  | SmtType.None, h => by
+      simp [__smtx_type_lift, __smtx_is_finite_type]
+  | SmtType.Int, h => by
+      simp [__smtx_type_lift, __smtx_is_finite_type]
+  | SmtType.Real, h => by
+      simp [__smtx_type_lift, __smtx_is_finite_type]
+  | SmtType.RegLan, h => by
+      simp [__smtx_type_lift, __smtx_is_finite_type]
+  | SmtType.Seq A, h => by
+      simp [__smtx_type_lift, __smtx_is_finite_type]
+  | SmtType.TypeRef r, h => by
+      simp [__smtx_type_lift, __smtx_is_finite_type]
+  | SmtType.USort u, h => by
+      simp [__smtx_type_lift, __smtx_is_finite_type]
+  | SmtType.FunType A B, h => by
+      simp [__smtx_type_lift, __smtx_is_finite_type]
+  | SmtType.DtcAppType A B, h => by
+      simp [__smtx_type_lift, __smtx_is_finite_type]
+
+private theorem dtc_lift_infinite_of_infinite
+    (s : native_String) (d : SmtDatatype) :
+    ∀ (c : SmtDatatypeCons),
+      __smtx_is_finite_datatype_cons c = false →
+        __smtx_is_finite_datatype_cons (__smtx_dtc_lift s d c) = false
+  | SmtDatatypeCons.unit, h => by
+      simp [__smtx_is_finite_datatype_cons] at h
+  | SmtDatatypeCons.cons T c, h => by
+      cases hT : __smtx_is_finite_type T
+      · have hTLift :=
+          type_lift_infinite_of_infinite s d T hT
+        simp [__smtx_dtc_lift, __smtx_is_finite_datatype_cons,
+          hTLift, native_and]
+      · have hc : __smtx_is_finite_datatype_cons c = false := by
+          cases hC : __smtx_is_finite_datatype_cons c <;>
+            simp [__smtx_is_finite_datatype_cons, hT, hC, native_and] at h ⊢
+        have hCLift := dtc_lift_infinite_of_infinite s d c hc
+        simp [__smtx_dtc_lift, __smtx_is_finite_datatype_cons,
+          hCLift, native_and]
+
+private theorem dt_lift_infinite_of_infinite
+    (s : native_String) (d : SmtDatatype) :
+    ∀ (D : SmtDatatype),
+      __smtx_is_finite_datatype D = false →
+        __smtx_is_finite_datatype (__smtx_dt_lift s d D) = false
+  | SmtDatatype.null, h => by
+      simp [__smtx_is_finite_datatype] at h
+  | SmtDatatype.sum c D, h => by
+      cases hC : __smtx_is_finite_datatype_cons c
+      · have hCLift := dtc_lift_infinite_of_infinite s d c hC
+        simp [__smtx_dt_lift, __smtx_is_finite_datatype, hCLift, native_and]
+      · have hD : __smtx_is_finite_datatype D = false := by
+          cases hD : __smtx_is_finite_datatype D <;>
+            simp [__smtx_is_finite_datatype, hC, hD, native_and] at h ⊢
+        have hDLift := dt_lift_infinite_of_infinite s d D hD
+        simp [__smtx_dt_lift, __smtx_is_finite_datatype, hDLift, native_and]
+
+end
+
+mutual
+
+private theorem type_substitute_infinite_of_infinite_replacement
+    (s : native_String) (d : SmtDatatype)
+    (hDInf : __smtx_is_finite_datatype d = false) :
+    ∀ (T : SmtType),
+      __smtx_is_finite_type T = false →
+        __smtx_is_finite_type (__smtx_type_substitute s d T) = false
+  | SmtType.Bool, h => by simp [__smtx_is_finite_type] at h
+  | SmtType.BitVec w, h => by simp [__smtx_is_finite_type] at h
+  | SmtType.Char, h => by simp [__smtx_is_finite_type] at h
+  | SmtType.Datatype s2 d2, h => by
+      have hd2 : __smtx_is_finite_datatype d2 = false := by
+        simpa [__smtx_is_finite_type] using h
+      simp only [__smtx_type_substitute]
+      by_cases hEq : native_streq s s2 = true
+      · rw [native_ite, if_pos hEq]
+        simpa [__smtx_is_finite_type] using hd2
+      · rw [native_ite, if_neg hEq]
+        have hLiftInf :
+            __smtx_is_finite_datatype (__smtx_dt_lift s2 d2 d) = false :=
+          dt_lift_infinite_of_infinite s2 d2 d hDInf
+        simpa [__smtx_is_finite_type] using
+          dt_substitute_infinite_of_infinite_replacement
+            s (__smtx_dt_lift s2 d2 d) hLiftInf d2 hd2
+  | SmtType.Map A B, h => by
+      simpa [__smtx_type_substitute] using h
+  | SmtType.Set A, h => by
+      simpa [__smtx_type_substitute] using h
+  | SmtType.TypeRef r, h => by
+      simp only [__smtx_type_substitute]
+      by_cases hEq : native_streq s r = true
+      · rw [native_ite, if_pos hEq]
+        simpa [__smtx_is_finite_type] using hDInf
+      · have hEqFalse : native_streq s r = false := by
+          cases hsr : native_streq s r <;> simp [hsr] at hEq ⊢
+        rw [native_ite, if_neg hEq]
+        simp [__smtx_is_finite_type]
+  | SmtType.None, h => by
+      simp [__smtx_type_substitute, __smtx_is_finite_type]
+  | SmtType.Int, h => by
+      simp [__smtx_type_substitute, __smtx_is_finite_type]
+  | SmtType.Real, h => by
+      simp [__smtx_type_substitute, __smtx_is_finite_type]
+  | SmtType.RegLan, h => by
+      simp [__smtx_type_substitute, __smtx_is_finite_type]
+  | SmtType.Seq A, h => by
+      simp [__smtx_type_substitute, __smtx_is_finite_type]
+  | SmtType.USort u, h => by
+      simp [__smtx_type_substitute, __smtx_is_finite_type]
+  | SmtType.FunType A B, h => by
+      simp [__smtx_type_substitute, __smtx_is_finite_type]
+  | SmtType.DtcAppType A B, h => by
+      simp [__smtx_type_substitute, __smtx_is_finite_type]
+
+private theorem dtc_substitute_infinite_of_infinite_replacement
+    (s : native_String) (d : SmtDatatype)
+    (hDInf : __smtx_is_finite_datatype d = false) :
+    ∀ (c : SmtDatatypeCons),
+      __smtx_is_finite_datatype_cons c = false →
+        __smtx_is_finite_datatype_cons (__smtx_dtc_substitute s d c) = false
+  | SmtDatatypeCons.unit, h => by
+      simp [__smtx_is_finite_datatype_cons] at h
+  | SmtDatatypeCons.cons T c, h => by
+      cases hT : __smtx_is_finite_type T
+      · have hTSub :=
+          type_substitute_infinite_of_infinite_replacement s d hDInf T hT
+        simp [__smtx_dtc_substitute, __smtx_is_finite_datatype_cons,
+          hTSub, native_and]
+      · have hC : __smtx_is_finite_datatype_cons c = false := by
+          cases hC : __smtx_is_finite_datatype_cons c <;>
+            simp [__smtx_is_finite_datatype_cons, hT, hC, native_and] at h ⊢
+        have hCSub :=
+          dtc_substitute_infinite_of_infinite_replacement s d hDInf c hC
+        simp [__smtx_dtc_substitute, __smtx_is_finite_datatype_cons,
+          hCSub, native_and]
+
+private theorem dt_substitute_infinite_of_infinite_replacement
+    (s : native_String) (d : SmtDatatype)
+    (hDInf : __smtx_is_finite_datatype d = false) :
+    ∀ (D : SmtDatatype),
+      __smtx_is_finite_datatype D = false →
+        __smtx_is_finite_datatype (__smtx_dt_substitute s d D) = false
+  | SmtDatatype.null, h => by
+      simp [__smtx_is_finite_datatype] at h
+  | SmtDatatype.sum c D, h => by
+      cases hC : __smtx_is_finite_datatype_cons c
+      · have hCSub :=
+          dtc_substitute_infinite_of_infinite_replacement s d hDInf c hC
+        simp [__smtx_dt_substitute, __smtx_is_finite_datatype,
+          hCSub, native_and]
+      · have hD : __smtx_is_finite_datatype D = false := by
+          cases hD : __smtx_is_finite_datatype D <;>
+            simp [__smtx_is_finite_datatype, hC, hD, native_and] at h ⊢
+        have hDSub :=
+          dt_substitute_infinite_of_infinite_replacement s d hDInf D hD
+        simp [__smtx_dt_substitute, __smtx_is_finite_datatype,
+          hDSub, native_and]
+
+end
+
+private theorem datatype_type_substitute_infinite_of_outer_infinite
+    (s : native_String) (d : SmtDatatype)
+    (hDInf : __smtx_is_finite_datatype d = false)
+    (s2 : native_String) (d2 : SmtDatatype)
+    (hRawInf : __smtx_is_finite_datatype d2 = false) :
+    __smtx_is_finite_type
+        (__smtx_type_substitute s d (SmtType.Datatype s2 d2)) = false := by
+  exact type_substitute_infinite_of_infinite_replacement s d hDInf
+    (SmtType.Datatype s2 d2) (by simpa [__smtx_is_finite_type] using hRawInf)
+
 private def nonself_infinite_field_large_witness_remaining_case
     (s : native_String) (d : SmtDatatype) : SmtType → Prop
   | SmtType.Map A B =>
