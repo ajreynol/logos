@@ -4318,9 +4318,71 @@ private def smtx_dtc_substitute_field_type
       native_ite (native_streq s s2) (SmtType.Datatype s base) (SmtType.TypeRef s2)
   | T => T
 
--- TODO(typeWf-0701 aliasing refactor): same reflist-scoped gap as the chain-selector/substitute
--- clusters above. Signatures corrected to a full/unfold pair; bodies `sorry`'d. Both `private`,
--- no external callers.
+/-- A recursively well-formed type has no `RegLan` at any fun-like (function/`DtcApp`) domain, and
+is not itself `RegLan`. Well-formedness rejects `RegLan` at every field/component position
+(`__smtx_type_wf_rec _ RegLan = false`), so it can never appear anywhere `no_reglan` inspects. The
+"full" side `UF` is irrelevant: for every shape `no_reglan` recurses into, `wf_rec` ignores it. -/
+private theorem smtx_type_fun_like_domains_no_reglan_of_wf_rec :
+    (U : SmtType) → (UF : SmtType) → __smtx_type_wf_rec UF U = true →
+      U ≠ SmtType.RegLan ∧ smtx_type_fun_like_domains_no_reglan U
+  | SmtType.Map A B, UF, h => by
+      have hParts :
+          native_inhabited_type A = true ∧ __smtx_type_wf_rec A A = true ∧
+            native_inhabited_type B = true ∧ __smtx_type_wf_rec B B = true := by
+        simpa [__smtx_type_wf_rec, native_and] using h
+      have hA := smtx_type_fun_like_domains_no_reglan_of_wf_rec A A hParts.2.1
+      have hB := smtx_type_fun_like_domains_no_reglan_of_wf_rec B B hParts.2.2.2
+      exact ⟨by simp, hA.2, hB.2⟩
+  | SmtType.Set A, UF, h => by
+      have hA' : native_inhabited_type A = true ∧ __smtx_type_wf_rec A A = true := by
+        simpa [__smtx_type_wf_rec, native_and] using h
+      have hA := smtx_type_fun_like_domains_no_reglan_of_wf_rec A A hA'.2
+      exact ⟨by simp, hA.2⟩
+  | SmtType.Seq A, UF, h => by
+      have hA' : native_inhabited_type A = true ∧ __smtx_type_wf_rec A A = true := by
+        simpa [__smtx_type_wf_rec, native_and] using h
+      have hA := smtx_type_fun_like_domains_no_reglan_of_wf_rec A A hA'.2
+      exact ⟨by simp, hA.2⟩
+  | SmtType.RegLan, UF, h => by simp [__smtx_type_wf_rec] at h
+  | SmtType.FunType A B, UF, h => by simp [__smtx_type_wf_rec] at h
+  | SmtType.DtcAppType A B, UF, h => by simp [__smtx_type_wf_rec] at h
+  | SmtType.None, UF, h => by simp [__smtx_type_wf_rec] at h
+  | SmtType.TypeRef s, UF, h => by simp [__smtx_type_wf_rec] at h
+  | SmtType.Datatype s d, UF, h => ⟨by simp, trivial⟩
+  | SmtType.Bool, UF, h => ⟨by simp, trivial⟩
+  | SmtType.Int, UF, h => ⟨by simp, trivial⟩
+  | SmtType.Real, UF, h => ⟨by simp, trivial⟩
+  | SmtType.BitVec n, UF, h => ⟨by simp, trivial⟩
+  | SmtType.Char, UF, h => ⟨by simp, trivial⟩
+  | SmtType.USort i, UF, h => ⟨by simp, trivial⟩
+  termination_by U => sizeOf U
+
+/-- The head field of a well-formed constructor whose (unfolded) head is not a bare `TypeRef` is
+recursively well-formed against its full-side counterpart (the non-`TypeRef` second clause of
+`__smtx_dt_cons_wf_rec`). -/
+private theorem smtx_cons_wf_head_wf_rec
+    (UF U : SmtType) (cFtl c : SmtDatatypeCons)
+    (hNotRef : ∀ s, U ≠ SmtType.TypeRef s)
+    (h : __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons UF cFtl) (SmtDatatypeCons.cons U c) = true) :
+    __smtx_type_wf_rec UF U = true := by
+  have hgen :
+      __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons UF cFtl) (SmtDatatypeCons.cons U c) =
+        native_ite (native_and (native_inhabited_type UF) (__smtx_type_wf_rec UF U))
+          (__smtx_dt_cons_wf_rec cFtl c) false := by
+    cases U with
+    | TypeRef s => exact absurd rfl (hNotRef s)
+    | _ => cases UF <;> rfl
+  rw [hgen] at h
+  by_cases hcond :
+      native_and (native_inhabited_type UF) (__smtx_type_wf_rec UF U) = true
+  · simp only [native_and, Bool.and_eq_true] at hcond; exact hcond.2
+  · rw [native_ite, if_neg (by simpa using hcond)] at h
+    exact absurd h (by simp)
+
+/-- Substituting a field type preserves "not `RegLan`, and no fun-like `RegLan` domain": the
+`Datatype`/`TypeRef` shapes map to `Datatype`/`TypeRef` (both `no_reglan`-trivial), and every other
+shape is left untouched, where the field's own well-formedness (extracted from the constructor
+well-formedness) supplies the `no_reglan` fact via `smtx_type_fun_like_domains_no_reglan_of_wf_rec`. -/
 private theorem smtx_dtc_substitute_field_no_reglan_of_cons_wf
     (s : native_String) (base : SmtDatatype) {U : SmtType}
     {c cF : SmtDatatypeCons} {refs : RefList}
@@ -4328,7 +4390,31 @@ private theorem smtx_dtc_substitute_field_no_reglan_of_cons_wf
     smtx_dtc_substitute_field_type s base U ≠ SmtType.RegLan ∧
     smtx_type_fun_like_domains_no_reglan
       (smtx_dtc_substitute_field_type s base U) := by
-  sorry
+  cases cF with
+  | unit =>
+      -- a `unit` full side is never constructor-well-formed against a `cons` field.
+      simp [__smtx_dt_cons_wf_rec] at hCons
+  | cons UF cFtl =>
+      by_cases hRef : ∃ s2, U = SmtType.TypeRef s2
+      · -- `TypeRef` field: substitution yields a `Datatype`/`TypeRef`, both `no_reglan`-trivial.
+        obtain ⟨s2, rfl⟩ := hRef
+        by_cases hst : native_streq s s2 = true <;>
+          (refine ⟨?_, ?_⟩ <;>
+            simp [smtx_dtc_substitute_field_type, native_ite, hst,
+              smtx_type_fun_like_domains_no_reglan])
+      · -- non-`TypeRef` field: constructor well-formedness uses the second `dt_cons_wf_rec` clause,
+        -- giving `wf_rec UF U`, which forbids `RegLan` at every `no_reglan` position.
+        have hUwf : __smtx_type_wf_rec UF U = true :=
+          smtx_cons_wf_head_wf_rec UF U cFtl c (fun s2 he => hRef ⟨s2, he⟩) hCons
+        by_cases hDt : ∃ s2 d2, U = SmtType.Datatype s2 d2
+        · obtain ⟨s2, d2, rfl⟩ := hDt
+          refine ⟨?_, ?_⟩ <;>
+            simp [smtx_dtc_substitute_field_type, native_ite,
+              smtx_type_fun_like_domains_no_reglan]
+        · have hEq : smtx_dtc_substitute_field_type s base U = U := by
+            cases U <;> simp_all [smtx_dtc_substitute_field_type]
+          rw [hEq]
+          exact smtx_type_fun_like_domains_no_reglan_of_wf_rec U UF hUwf
 
 private theorem smtx_typeof_dt_cons_rec_no_reglan_of_substitute_wf
     (s : native_String) (base : SmtDatatype) :
@@ -4337,7 +4423,69 @@ private theorem smtx_typeof_dt_cons_rec_no_reglan_of_substitute_wf
       smtx_type_fun_like_domains_no_reglan
         (__smtx_typeof_dt_cons_rec (SmtType.Datatype s d0)
           (__smtx_dt_substitute s base d) i)
-  | d, dF, d0, i, refs, hWf => by sorry
+  | SmtDatatype.null, dF, d0, i, refs, hWf => by
+      -- `subst null = null`, whose `typeof_dt_cons_rec` is `None` (`no_reglan None = True`).
+      cases i <;>
+        simp [__smtx_dt_substitute, __smtx_typeof_dt_cons_rec,
+          smtx_type_fun_like_domains_no_reglan]
+  | SmtDatatype.sum c dtl, dF, d0, native_nat_zero, refs, hWf => by
+      cases dF with
+      | null => simp [__smtx_dt_wf_rec] at hWf
+      | sum cF dFtl =>
+          have hParts : __smtx_dt_cons_wf_rec cF c = true ∧ __smtx_dt_wf_rec dFtl dtl = true := by
+            by_cases hc : __smtx_dt_cons_wf_rec cF c = true
+            · refine ⟨hc, ?_⟩
+              simp only [__smtx_dt_wf_rec, native_ite, if_pos hc] at hWf
+              exact hWf
+            · rw [__smtx_dt_wf_rec, native_ite, if_neg (by simpa using hc)] at hWf
+              exact absurd hWf (by simp)
+          cases c with
+          | unit =>
+              -- constructor with no fields: the chain is just the base datatype (`no_reglan` trivial).
+              simp [__smtx_dt_substitute, __smtx_dtc_substitute, __smtx_typeof_dt_cons_rec,
+                smtx_type_fun_like_domains_no_reglan]
+          | cons U c' =>
+              cases cF with
+              | unit => exact absurd hParts.1 (by simp [__smtx_dt_cons_wf_rec])
+              | cons UF cFtl' =>
+                  -- head field `U` gives `DtcAppType (subst-field U) (chain over the tail)`.
+                  have hHead :
+                      smtx_dtc_substitute_field_type s base U ≠ SmtType.RegLan ∧
+                      smtx_type_fun_like_domains_no_reglan (smtx_dtc_substitute_field_type s base U) :=
+                    smtx_dtc_substitute_field_no_reglan_of_cons_wf (refs := native_reflist_nil)
+                      s base hParts.1
+                  have hTailCons : __smtx_dt_cons_wf_rec cFtl' c' = true :=
+                    smtx_dt_cons_wf_rec_tail_of_true hParts.1
+                  have hTailWf :
+                      __smtx_dt_wf_rec (SmtDatatype.sum cFtl' dFtl) (SmtDatatype.sum c' dtl) = true := by
+                    simp only [__smtx_dt_wf_rec, native_ite, if_pos hTailCons]
+                    exact hParts.2
+                  have hTail :=
+                    smtx_typeof_dt_cons_rec_no_reglan_of_substitute_wf s base
+                      (SmtDatatype.sum c' dtl) (SmtDatatype.sum cFtl' dFtl) d0
+                      native_nat_zero refs hTailWf
+                  -- reduce the goal's chain to `DtcAppType (subst-field U) (tail chain)`.
+                  have hFieldEq :
+                      __smtx_type_substitute s base U = smtx_dtc_substitute_field_type s base U := by
+                    cases U <;> rfl
+                  simp only [__smtx_dt_substitute, __smtx_dtc_substitute, __smtx_typeof_dt_cons_rec,
+                    hFieldEq, smtx_type_fun_like_domains_no_reglan]
+                  exact ⟨hHead.1, hHead.2, hTail⟩
+  | SmtDatatype.sum c dtl, dF, d0, native_nat_succ n, refs, hWf => by
+      cases dF with
+      | null => simp [__smtx_dt_wf_rec] at hWf
+      | sum cF dFtl =>
+          have hDtlWf : __smtx_dt_wf_rec dFtl dtl = true := by
+            by_cases hc : __smtx_dt_cons_wf_rec cF c = true
+            · simp only [__smtx_dt_wf_rec, native_ite, if_pos hc] at hWf; exact hWf
+            · rw [__smtx_dt_wf_rec, native_ite, if_neg (by simpa using hc)] at hWf
+              exact absurd hWf (by simp)
+          have hRec :=
+            smtx_typeof_dt_cons_rec_no_reglan_of_substitute_wf s base dtl dFtl d0 n refs hDtlWf
+          -- `typeof_dt_cons_rec … (subst (sum c dtl)) (succ n) = typeof_dt_cons_rec … (subst dtl) n`.
+          simp only [__smtx_dt_substitute, __smtx_typeof_dt_cons_rec]
+          exact hRec
+  termination_by d _ _ _ _ _ => sizeOf d
 
 private theorem smtx_typeof_dt_cons_no_reglan_of_non_none
     (s : native_String) (d : SmtDatatype) (i : native_Nat)

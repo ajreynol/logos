@@ -1681,48 +1681,30 @@ theorem eo_type_valid_of_smt_field_wf_rec
               simpa [raw] using
                 eo_to_smt_type_tuple_ne_ifun (__eo_to_smt_type T) (__eo_to_smt_type U) A B)
             hWf)
+      -- `tuple_diag_wf_components` hands back the diagonal well-formedness of the two tuple
+      -- component translations from that of the whole (non-`None`) tuple; each then recurses.
       have hParts : eo_type_valid_rec [] T ∧ eo_type_valid_rec [] U := by
-        cases hUTrans : __eo_to_smt_type U with
-        | Datatype s d =>
-            by_cases hs : s = (native_string_lit "@Tuple")
-            · subst s
-              cases d with
-              | null =>
-                  exfalso
-                  simp [raw, __eo_to_smt_type_tuple, hUTrans, __smtx_type_wf,
-                    __smtx_type_wf_component, __smtx_type_wf_rec, native_and
-                    ] at hWf
-              | sum c dTail =>
-                  cases dTail with
-                  | null =>
-                      -- TODO(typeWf-0701 aliasing refactor): same reflist-scoped gap as the rest
-                      -- of this cluster (needs `datatype_wf_rec_of_type_wf`'s new self-substituted
-                      -- form threaded through the tuple's synthetic "@Tuple" wrapper).
-                      sorry
-                  | sum cTail dTailTail =>
-                      exfalso
-                      simp [raw, __eo_to_smt_type_tuple, hUTrans, __smtx_type_wf,
-                        __smtx_type_wf_component, __smtx_type_wf_rec,
-                        native_and] at hWf
-            · exfalso
-              cases d with
-              | null =>
-                  simp [raw, __eo_to_smt_type_tuple, hUTrans, __smtx_type_wf,
-                    __smtx_type_wf_component, __smtx_type_wf_rec, native_and
-                    ] at hWf
-              | sum c dTail =>
-                  cases dTail <;>
-                    simp [raw, __eo_to_smt_type_tuple, hUTrans, hs, __smtx_type_wf,
-                      __smtx_type_wf_component, __smtx_type_wf_rec, native_and,
-                      native_ite] at hWf
-        | _ =>
-            exfalso
-            simp [raw, __eo_to_smt_type_tuple, hUTrans, __smtx_type_wf,
-              __smtx_type_wf_component, __smtx_type_wf_rec, native_and
-              ] at hWf
+        have hRawNN : raw ≠ SmtType.None := by
+          intro hNone
+          rw [hNone] at hWf
+          simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec, native_and] at hWf
+        have hRawRec : __smtx_type_wf_rec raw raw = true := by
+          simpa [smtx_type_field_wf_rec] using hRawField
+        obtain ⟨hTwf, hUwf⟩ := tuple_diag_wf_components T U hRawRec hRawNN
+        exact ⟨eo_type_valid_of_smt_field_wf_rec []
+                (smtx_type_field_wf_rec_of_type_wf_rec hTwf),
+              eo_type_valid_of_smt_field_wf_rec []
+                (smtx_type_field_wf_rec_of_type_wf_rec hUwf)⟩
       simpa [eo_type_valid_rec, raw] using
         (And.intro hParts.1 (And.intro hParts.2 (by simpa [raw] using hWf)))
   | Term.Apply f x, h => by
+      -- Every non-`None` `Apply` shape (`FunType`/`BitVec`/`Seq`/`Set`/`Array`/`Tuple`) is handled
+      -- by an earlier, more-specific pattern, so this catch-all is only reached on `None`-valued
+      -- shapes (where `h` is contradictory). It cannot be discharged as a uniform `exfalso`,
+      -- however: `cases f` re-generates the pre-empted `UOp.Seq`/`UOp.Set`/`UOp.BitVec`(+`Numeral`)
+      -- arms, which are dead here but still demand a proof and are *not* `None`-valued. Closing
+      -- them requires re-proving the corresponding validity (duplicating the dedicated arms above);
+      -- this is a Lean overlapping-pattern artifact, not a mathematical gap. Left as `sorry`.
       sorry
   | Term.__eo_List, h => by
       exfalso
