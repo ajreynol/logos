@@ -29,17 +29,18 @@ private abbrev substResult (F xs ts bvs : Term) : Term :=
   __substitute_simul_rec (Term.Boolean false) F xs ts bvs
 
 /--
-Combined substitution preservation under an arbitrary bound-variable
-accumulator.
+Size-recursive form of combined substitution preservation under an arbitrary
+bound-variable accumulator.
 
 `SubstActualsHaveSmtTypes` is the stronger, instantiate-facing side condition:
 it implies the exact EO entry type facts consumed by the older type-preservation
 theorem and also carries the SMT-translation/type facts consumed by the older
 translatability theorem.
 -/
-theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck
-    (F xs ts bvs : Term)
+theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
+    (n : Nat) (F xs ts bvs : Term)
     {xsVars bvsVars : List EoVarKey}
+    (hLt : sizeOf F < n)
     (hXsEnv : EoVarEnvPerm xs xsVars)
     (hBvsEnv : EoVarEnvPerm bvs bvsVars)
     (hFTrans : RuleProofs.eo_has_smt_translation F)
@@ -52,11 +53,30 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck
     SubstActualsHaveSmtTypes.entry_eo_type_eq hActuals
   refine ⟨?_, ?_⟩
   · exact
-      SubstituteSupport.substitute_simul_rec_typeof_eq_of_typeof_ne_stuck
-        F xs ts bvs hXsEnv hBvsEnv hFTrans hTs hEntryTypes hTy
+      SubstituteSupport.substitute_simul_rec_typeof_eq_of_typeof_ne_stuck_lt
+        n F xs ts bvs hLt hXsEnv hBvsEnv hFTrans hTs hEntryTypes hTy
   · exact
-      SubstituteTranslatabilitySupport.substitute_simul_has_smt_translation_of_typeof_ne_stuck
-        F xs ts bvs hXsEnv hBvsEnv hFTrans hTs hActuals hTy
+      SubstituteTranslatabilitySupport.substitute_simul_has_smt_translation_of_typeof_ne_stuck_lt
+        n F xs ts bvs hLt hXsEnv hBvsEnv hFTrans hTs hActuals hTy
+
+/--
+Combined substitution preservation under an arbitrary bound-variable
+accumulator.
+-/
+theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck
+    (F xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hFTrans : RuleProofs.eo_has_smt_translation F)
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hActuals : SubstActualsHaveSmtTypes xs ts)
+    (hTy : __eo_typeof (substResult F xs ts bvs) ≠ Term.Stuck) :
+    __eo_typeof (substResult F xs ts bvs) = __eo_typeof F ∧
+      RuleProofs.eo_has_smt_translation (substResult F xs ts bvs) :=
+  substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
+    (sizeOf F + 1) F xs ts bvs
+    (by omega) hXsEnv hBvsEnv hFTrans hTs hActuals hTy
 
 /-- Projection of the combined theorem: EO type preservation. -/
 theorem substitute_simul_preserves_type_of_typeof_ne_stuck

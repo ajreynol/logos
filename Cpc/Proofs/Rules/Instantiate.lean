@@ -85,19 +85,14 @@ Status (2026-06-29):
     This is the reusable core of the crux.
   * `substitute_simul_eval`   — PROVEN via `substFalse_eval_gen_lt`
     plus the `SubstFalseRel M (pushSubstModel …) xs ts nil` base relation.
-  * `substitute_simul_has_smt_translation_of_typeof_ne_stuck_lt` now lives in
-    `Cpc.Proofs.RuleSupport.SubstituteTranslatabilitySupport`; one `sorry`
-    remains there in the generic / non-special-head application case. This is a
-    *type-preservation* obligation for `__substitute_simul_rec`: it must reprove
-    EO→SMT translatability for every remaining operator head under substitution
-    (`__eo_to_smt`, `Cpc/Spec.lean:204`, special-cases dozens of unary/binary/
-    ternary heads). The induction now threads the `SubstActualsHaveSmtTypes`
-    reflection of the `__is_instantiation` guard, which is required for the
-    statement to be true (e.g. EO `abs` accepts arith, but SMT `abs` is
-    `Int`-only). The remaining work is to exploit that guard for exact
-    substitution type preservation in the special-head cases. No generic
-    `__eo_typeof t = Bool → eo_has_smt_translation t` exists, so this remains its
-    own large structural induction.
+  * `substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt`
+    now lives in `Cpc.Proofs.RuleSupport.SubstitutePreservationSupport` and is
+    the instantiate-facing staging theorem for merging the old type-preservation
+    and SMT-translatability structural inductions. It currently packages the
+    existing engines from `SubstituteTypeSupport` (two local `sorry`s) and
+    `SubstituteTranslatabilitySupport` (one local `sorry`). The remaining work is
+    to move their shared application/operator-spine induction into the combined
+    theorem, then turn the old single-purpose theorems into projections.
 
 The main theorem then wires these together with the standard single-arg /
 single-premise boilerplate (mirrors `BooleanElimSupport.cmd_step_and_elim_properties`).
