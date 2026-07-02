@@ -1542,9 +1542,10 @@ private theorem smtx_type_wf_rec_seq_component
     (h : __smtx_type_wf_rec (SmtType.Seq T) (SmtType.Seq T) = true) :
     __smtx_type_wf_rec T T = true := by
   have hPair :
-      native_inhabited_type T = true ∧ __smtx_type_wf_rec T T = true := by
+      (native_inhabited_type T = true ∧ __smtx_type_wf_rec T T = true) ∧
+        __smtx_type_no_alias_rec native_reflist_nil T = true := by
     simpa [__smtx_type_wf_rec, native_and] using h
-  exact hPair.2
+  exact hPair.1.2
 
 /- A proof-side relation for the left-hand, folded SMT shape that the generated
 datatype wf predicates compare against the original EO datatype. The relation
@@ -2241,12 +2242,14 @@ private theorem smtx_fun_type_wf_parts
         native_inhabited_type B = true ∧
           __smtx_type_wf_rec B B = true := by
   have hAll :
-      (native_inhabited_type A = true ∧
+      ((native_inhabited_type A = true ∧
         __smtx_type_wf_rec A A = true) ∧
-          (native_inhabited_type B = true ∧
-            __smtx_type_wf_rec B B = true) := by
-    simpa [__smtx_type_wf, native_and] using h
-  exact ⟨hAll.1.1, hAll.1.2, hAll.2.1, hAll.2.2⟩
+          __smtx_type_no_alias_rec native_reflist_nil A = true) ∧
+          ((native_inhabited_type B = true ∧
+            __smtx_type_wf_rec B B = true) ∧
+              __smtx_type_no_alias_rec native_reflist_nil B = true) := by
+    simpa [__smtx_type_wf, __smtx_type_wf_component, native_and] using h
+  exact ⟨hAll.1.1.1, hAll.1.1.2, hAll.2.1.1, hAll.2.1.2⟩
 
 /-- A non-`None` well-formedness guard witnesses proof-side EO type validity. -/
 theorem eo_type_valid_of_guard_wf_non_none
@@ -2283,7 +2286,7 @@ theorem eo_type_valid_of_guard_wf_non_none
         case FunType A B =>
           exact False.elim (hFun ⟨A, B, hTy⟩)
         all_goals
-          exact hWf
+          first | exact hWf | exact hWf.1
     exact eo_type_valid_of_smt_wf_rec [] hPair.2
 
 /-- Translating EO type-reference substitution matches the corresponding SMT substitution step. -/

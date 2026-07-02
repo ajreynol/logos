@@ -243,7 +243,7 @@ theorem canonical_type_inhabited_of_type_wf
         cases T <;>
           simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
             native_and] at hWF hReg hFun ⊢ <;>
-          exact hWF
+          first | exact hWF | exact hWF.1
       have hDef :=
         type_default_typed_canonical_of_wf_rec T hParts.1 hParts.2
       exact ⟨__smtx_type_default T, hDef.1, hDef.2⟩

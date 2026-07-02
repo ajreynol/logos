@@ -347,10 +347,11 @@ theorem seq_type_wf_rec_component_of_wf
     (h : __smtx_type_wf_rec (SmtType.Seq A) (SmtType.Seq A) = true) :
     __smtx_type_wf_rec A A = true := by
   have hA :
-      native_inhabited_type A = true ∧
-        __smtx_type_wf_rec A A = true := by
+      (native_inhabited_type A = true ∧
+        __smtx_type_wf_rec A A = true) ∧
+        __smtx_type_no_alias_rec native_reflist_nil A = true := by
     simpa [__smtx_type_wf_rec, native_and] using h
-  exact hA.2
+  exact hA.1.2
 
 theorem seq_type_field_wf_rec_component_of_wf
     {A : SmtType} {refs : RefList}
@@ -365,10 +366,11 @@ theorem set_type_wf_rec_component_of_wf
     (h : __smtx_type_wf_rec (SmtType.Set A) (SmtType.Set A) = true) :
     __smtx_type_wf_rec A A = true := by
   have hA :
-      native_inhabited_type A = true ∧
-        __smtx_type_wf_rec A A = true := by
+      (native_inhabited_type A = true ∧
+        __smtx_type_wf_rec A A = true) ∧
+        __smtx_type_no_alias_rec native_reflist_nil A = true := by
     simpa [__smtx_type_wf_rec, native_and] using h
-  exact hA.2
+  exact hA.1.2
 
 theorem set_type_field_wf_rec_component_of_wf
     {A : SmtType} {refs : RefList}
@@ -384,12 +386,14 @@ theorem map_type_wf_rec_components_of_wf
     __smtx_type_wf_rec A A = true ∧
       __smtx_type_wf_rec B B = true := by
   have h' :
-      native_inhabited_type A = true ∧
-        __smtx_type_wf_rec A A = true ∧
-          native_inhabited_type B = true ∧
-            __smtx_type_wf_rec B B = true := by
+      ((native_inhabited_type A = true ∧
+        __smtx_type_wf_rec A A = true) ∧
+        __smtx_type_no_alias_rec native_reflist_nil A = true) ∧
+        (native_inhabited_type B = true ∧
+          __smtx_type_wf_rec B B = true) ∧
+          __smtx_type_no_alias_rec native_reflist_nil B = true := by
     simpa [__smtx_type_wf_rec, native_and] using h
-  exact ⟨h'.2.1, h'.2.2.2⟩
+  exact ⟨h'.1.1.2, h'.2.1.2⟩
 
 theorem map_type_field_wf_rec_components_of_wf
     {A B : SmtType} {refs : RefList}
@@ -407,12 +411,14 @@ theorem fun_type_wf_rec_components_of_wf
     __smtx_type_wf_rec A A = true ∧
       __smtx_type_wf_rec B B = true := by
   have h' :
-      (native_inhabited_type A = true ∧
+      ((native_inhabited_type A = true ∧
         __smtx_type_wf_rec A A = true) ∧
-        (native_inhabited_type B = true ∧
-          __smtx_type_wf_rec B B = true) := by
+        __smtx_type_no_alias_rec native_reflist_nil A = true) ∧
+        ((native_inhabited_type B = true ∧
+          __smtx_type_wf_rec B B = true) ∧
+          __smtx_type_no_alias_rec native_reflist_nil B = true) := by
     simpa [__smtx_type_wf, __smtx_type_wf_component, native_and] using h
-  exact ⟨h'.1.2, h'.2.2⟩
+  exact ⟨h'.1.1.2, h'.2.1.2⟩
 
 theorem ifun_type_wf_rec_components_of_wf
     {A B : SmtType}
@@ -2654,21 +2660,25 @@ theorem noNoneTy_of_field (TF U : SmtType) :
               simpa [noNoneTy] using noNoneDt_of_align (__smtx_dt_substitute s3 dTF dTF) d2 hDt hAlign
           | _ => simp [alignTy] at hAl
       | Seq a =>
-          have ha : native_inhabited_type a = true ∧ __smtx_type_wf_rec a a = true := by
+          have ha : (native_inhabited_type a = true ∧ __smtx_type_wf_rec a a = true) ∧
+              __smtx_type_no_alias_rec native_reflist_nil a = true := by
             simpa [__smtx_type_wf_rec, native_and] using h
-          simpa [noNoneTy] using noNoneTy_of_field a a ha.2 (alignTy_refl a)
+          simpa [noNoneTy] using noNoneTy_of_field a a ha.1.2 (alignTy_refl a)
       | Set a =>
-          have ha : native_inhabited_type a = true ∧ __smtx_type_wf_rec a a = true := by
+          have ha : (native_inhabited_type a = true ∧ __smtx_type_wf_rec a a = true) ∧
+              __smtx_type_no_alias_rec native_reflist_nil a = true := by
             simpa [__smtx_type_wf_rec, native_and] using h
-          simpa [noNoneTy] using noNoneTy_of_field a a ha.2 (alignTy_refl a)
+          simpa [noNoneTy] using noNoneTy_of_field a a ha.1.2 (alignTy_refl a)
       | Map a b =>
           have hab :
-              native_inhabited_type a = true ∧ __smtx_type_wf_rec a a = true ∧
-                native_inhabited_type b = true ∧ __smtx_type_wf_rec b b = true := by
+              ((native_inhabited_type a = true ∧ __smtx_type_wf_rec a a = true) ∧
+                __smtx_type_no_alias_rec native_reflist_nil a = true) ∧
+                (native_inhabited_type b = true ∧ __smtx_type_wf_rec b b = true) ∧
+                  __smtx_type_no_alias_rec native_reflist_nil b = true := by
             simpa [__smtx_type_wf_rec, native_and] using h
           simp only [noNoneTy, native_and, Bool.and_eq_true]
-          exact ⟨noNoneTy_of_field a a hab.2.1 (alignTy_refl a),
-                 noNoneTy_of_field b b hab.2.2.2 (alignTy_refl b)⟩
+          exact ⟨noNoneTy_of_field a a hab.1.1.2 (alignTy_refl a),
+                 noNoneTy_of_field b b hab.2.1.2 (alignTy_refl b)⟩
       | FunType a b => simp [__smtx_type_wf_rec] at h
       | DtcAppType a b => simp [__smtx_type_wf_rec] at h
       | TypeRef s => simp [noNoneTy]
@@ -3042,7 +3052,7 @@ theorem eo_typeof_type_of_smt_type_wf_rec :
                       native_and] at hRawWf hNotReg ⊢
                   case FunType A B =>
                     exact False.elim (hNotFun A B hTuple)
-                  all_goals first | contradiction | exact hRawWf.2
+                  all_goals first | contradiction | exact hRawWf.2 | exact hRawWf.1.2
                 -- Substitution is a no-op on the tuple's fields (`translate y`/`translate x`), because
                 -- a validly-typed argument never translates to something bearing a reserved-name
                 -- `TypeRef` at a substitution-reachable position. `tuple_diag_wf_components` packages
@@ -3127,7 +3137,7 @@ theorem eo_typeof_type_of_smt_type_wf
           cases hTy : __eo_to_smt_type T <;>
             simp [hTy, __smtx_type_wf, __smtx_type_wf_component,
               native_and] at h hReg hFun hIFun ⊢
-          all_goals first | contradiction | exact h.2)
+          all_goals first | contradiction | exact h.2 | exact h.1.2)
 
 theorem eo_typeof_type_of_smt_type_field_wf_rec
     (T : Term) (refs : RefList)

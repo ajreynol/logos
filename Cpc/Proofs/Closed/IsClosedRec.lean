@@ -105,7 +105,10 @@ by
           native_reflist_contains native_reflist_nil
               (native_string_lit "@Tuple") =
             false
-    · simp [hCond, __smtx_typeof_apply]
+    · simp [hCond, __smtx_typeof_apply, __smtx_type_no_alias_rec,
+        __smtx_dt_no_alias_rec, __smtx_dt_cons_no_alias_rec,
+        native_reflist_contains, native_reflist_insert, native_reflist_nil,
+        native_ite]
     · exfalso
       apply hCond
       constructor

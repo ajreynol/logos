@@ -1865,7 +1865,13 @@ private theorem nonself_infinite_field_large_witness
             __smtx_type_wf_rec A A = true ∧
               native_inhabited_type B = true ∧
                 __smtx_type_wf_rec B B = true := by
-        simpa [__smtx_type_substitute, __smtx_type_wf_rec, native_and] using hWf
+        have h9 :
+            ((native_inhabited_type A = true ∧ __smtx_type_wf_rec A A = true) ∧
+              __smtx_type_no_alias_rec native_reflist_nil A = true) ∧
+              (native_inhabited_type B = true ∧ __smtx_type_wf_rec B B = true) ∧
+                __smtx_type_no_alias_rec native_reflist_nil B = true := by
+          simpa [__smtx_type_substitute, __smtx_type_wf_rec, native_and] using hWf
+        exact ⟨h9.1.1.1, h9.1.1.2, h9.2.1.1, h9.2.1.2⟩
       match B with
       | SmtType.Int =>
           let minSize :=
@@ -1907,7 +1913,11 @@ private theorem nonself_infinite_field_large_witness
           have hSeqParts :
               native_inhabited_type U = true ∧
                 __smtx_type_wf_rec U U = true := by
-            simpa [__smtx_type_wf_rec, native_and] using hMapParts.2.2.2
+            have h3 : (native_inhabited_type U = true ∧
+                __smtx_type_wf_rec U U = true) ∧
+                __smtx_type_no_alias_rec native_reflist_nil U = true := by
+              simpa [__smtx_type_wf_rec, native_and] using hMapParts.2.2.2
+            exact h3.1
           let minSize :=
             Nat.succ
               (Nat.max (sizeOf w) (sizeOf (__smtx_type_default (SmtType.Seq U))))
@@ -1979,7 +1989,11 @@ private theorem nonself_infinite_field_large_witness
                       have hSeqParts :
                           native_inhabited_type U = true ∧
                             __smtx_type_wf_rec U U = true := by
-                        simpa [__smtx_type_wf_rec, native_and] using hMapParts.2.1
+                        have h3 : (native_inhabited_type U = true ∧
+                            __smtx_type_wf_rec U U = true) ∧
+                            __smtx_type_no_alias_rec native_reflist_nil U = true := by
+                          simpa [__smtx_type_wf_rec, native_and] using hMapParts.2.1
+                        exact h3.1
                       rcases seq_inhabited_large_witness U hSeqParts.1
                           (Nat.succ (sizeOf w)) with
                         ⟨k, hkTy, hkCan, hkSize⟩
@@ -2113,14 +2127,16 @@ private theorem nonself_infinite_field_large_witness
               ⟨y, hyTy, hyCan, hySize⟩
             exact ⟨y, by simpa [__smtx_type_substitute] using hyTy, hyCan, hySize⟩
         | Seq U =>
-            have hSetParts :
-                native_inhabited_type (SmtType.Seq U) = true ∧
-                  __smtx_type_wf_rec (SmtType.Seq U) (SmtType.Seq U) = true := by
-              simpa [__smtx_type_substitute, __smtx_type_wf_rec, native_and] using hWf
             have hSeqParts :
                 native_inhabited_type U = true ∧
                   __smtx_type_wf_rec U U = true := by
-              simpa [__smtx_type_wf_rec, native_and] using hSetParts.2
+              have h3 : (native_inhabited_type (SmtType.Seq U) = true ∧
+                  ((native_inhabited_type U = true ∧
+                    __smtx_type_wf_rec U U = true) ∧
+                    __smtx_type_no_alias_rec native_reflist_nil U = true)) ∧
+                  __smtx_type_no_alias_rec native_reflist_nil (SmtType.Seq U) = true := by
+                simpa [__smtx_type_substitute, __smtx_type_wf_rec, native_and] using hWf
+              exact h3.1.2.1
             rcases seq_inhabited_large_witness U hSeqParts.1
                 (Nat.succ (sizeOf w)) with
               ⟨x, hxTy, hxCan, hxSize⟩
@@ -2204,7 +2220,11 @@ private theorem nonself_infinite_field_large_witness
   | Seq A =>
       have hParts :
           native_inhabited_type A = true ∧ __smtx_type_wf_rec A A = true := by
-        simpa [__smtx_type_substitute, __smtx_type_wf_rec, native_and] using hWf
+        have h3 : (native_inhabited_type A = true ∧
+            __smtx_type_wf_rec A A = true) ∧
+            __smtx_type_no_alias_rec native_reflist_nil A = true := by
+          simpa [__smtx_type_substitute, __smtx_type_wf_rec, native_and] using hWf
+        exact h3.1
       rcases seq_inhabited_large_witness A hParts.1 (Nat.succ (sizeOf w)) with
         ⟨x, hxTy, hxCan, hxSize⟩
       exact ⟨x, by simpa [__smtx_type_substitute] using hxTy, hxCan, by omega⟩
@@ -2942,7 +2962,13 @@ private theorem finite_nonunit_type_nondefault_value :
             __smtx_type_wf_rec T T = true ∧
               native_inhabited_type U = true ∧
                 __smtx_type_wf_rec U U = true := by
-        simpa [__smtx_type_wf_rec, native_and] using hRec
+        have h9 :
+            ((native_inhabited_type T = true ∧ __smtx_type_wf_rec T T = true) ∧
+              __smtx_type_no_alias_rec native_reflist_nil T = true) ∧
+              (native_inhabited_type U = true ∧ __smtx_type_wf_rec U U = true) ∧
+                __smtx_type_no_alias_rec native_reflist_nil U = true := by
+          simpa [__smtx_type_wf_rec, native_and] using hRec
+        exact ⟨h9.1.1.1, h9.1.1.2, h9.2.1.1, h9.2.1.2⟩
       have hUNonUnit : __smtx_is_unit_type U = false := by
         simpa [__smtx_is_unit_type] using hNU
       have hUFinite : __smtx_is_finite_type U = true := by
@@ -2991,7 +3017,11 @@ private theorem finite_nonunit_type_nondefault_value :
       have hRecParts :
           native_inhabited_type T = true ∧
             __smtx_type_wf_rec T T = true := by
-        simpa [__smtx_type_wf_rec, native_and] using hRec
+        have h3 : (native_inhabited_type T = true ∧
+            __smtx_type_wf_rec T T = true) ∧
+            __smtx_type_no_alias_rec native_reflist_nil T = true := by
+          simpa [__smtx_type_wf_rec, native_and] using hRec
+        exact h3.1
       have hTDefault :=
         type_default_typed_canonical_of_native_inhabited hRecParts.1
       refine
@@ -3352,7 +3382,13 @@ theorem cpc_nonunit_typed_canonical_nondefault_value
             __smtx_type_wf_rec T T = true ∧
               native_inhabited_type U = true ∧
                 __smtx_type_wf_rec U U = true := by
-        simpa [__smtx_type_wf_rec, native_and] using _hRec
+        have h9 :
+            ((native_inhabited_type T = true ∧ __smtx_type_wf_rec T T = true) ∧
+              __smtx_type_no_alias_rec native_reflist_nil T = true) ∧
+              (native_inhabited_type U = true ∧ __smtx_type_wf_rec U U = true) ∧
+                __smtx_type_no_alias_rec native_reflist_nil U = true := by
+          simpa [__smtx_type_wf_rec, native_and] using _hRec
+        exact ⟨h9.1.1.1, h9.1.1.2, h9.2.1.1, h9.2.1.2⟩
       have hUNonUnit : __smtx_is_unit_type U = false := by
         simpa [__smtx_is_unit_type] using _hNonUnit
       have hTDefault :=
@@ -3389,7 +3425,11 @@ theorem cpc_nonunit_typed_canonical_nondefault_value
       have hRecParts :
           native_inhabited_type T = true ∧
             __smtx_type_wf_rec T T = true := by
-        simpa [__smtx_type_wf_rec, native_and] using _hRec
+        have h3 : (native_inhabited_type T = true ∧
+            __smtx_type_wf_rec T T = true) ∧
+            __smtx_type_no_alias_rec native_reflist_nil T = true := by
+          simpa [__smtx_type_wf_rec, native_and] using _hRec
+        exact h3.1
       have hTDefault :=
         type_default_typed_canonical_of_native_inhabited hRecParts.1
       refine
@@ -3410,7 +3450,11 @@ theorem cpc_nonunit_typed_canonical_nondefault_value
       have hRecParts :
           native_inhabited_type T = true ∧
             __smtx_type_wf_rec T T = true := by
-        simpa [__smtx_type_wf_rec, native_and] using _hRec
+        have h3 : (native_inhabited_type T = true ∧
+            __smtx_type_wf_rec T T = true) ∧
+            __smtx_type_no_alias_rec native_reflist_nil T = true := by
+          simpa [__smtx_type_wf_rec, native_and] using _hRec
+        exact h3.1
       have hTDefault :=
         type_default_typed_canonical_of_native_inhabited hRecParts.1
       refine
@@ -3490,7 +3534,13 @@ theorem cpc_fresh_typed_canonical_value_for_infinite_type_assumption
               __smtx_type_wf_rec T T = true ∧
                 native_inhabited_type U = true ∧
                   __smtx_type_wf_rec U U = true := by
-          simpa [__smtx_type_wf_rec, native_and] using _hRec
+          have h9 :
+              ((native_inhabited_type T = true ∧ __smtx_type_wf_rec T T = true) ∧
+                __smtx_type_no_alias_rec native_reflist_nil T = true) ∧
+                (native_inhabited_type U = true ∧ __smtx_type_wf_rec U U = true) ∧
+                  __smtx_type_no_alias_rec native_reflist_nil U = true := by
+            simpa [__smtx_type_wf_rec, native_and] using _hRec
+          exact ⟨h9.1.1.1, h9.1.1.2, h9.2.1.1, h9.2.1.2⟩
         have hTDefault :
             __smtx_typeof_value (__smtx_type_default T) = T ∧
               __smtx_value_canonical_bool (__smtx_type_default T) = true := by
@@ -3546,7 +3596,13 @@ theorem cpc_fresh_typed_canonical_value_for_infinite_type_assumption
                   __smtx_type_wf_rec T T = true ∧
                     native_inhabited_type U = true ∧
                       __smtx_type_wf_rec U U = true := by
-              simpa [__smtx_type_wf_rec, native_and] using _hRec
+              have h9 :
+                  ((native_inhabited_type T = true ∧ __smtx_type_wf_rec T T = true) ∧
+                    __smtx_type_no_alias_rec native_reflist_nil T = true) ∧
+                    (native_inhabited_type U = true ∧ __smtx_type_wf_rec U U = true) ∧
+                      __smtx_type_no_alias_rec native_reflist_nil U = true := by
+                simpa [__smtx_type_wf_rec, native_and] using _hRec
+              exact ⟨h9.1.1.1, h9.1.1.2, h9.2.1.1, h9.2.1.2⟩
             have hUFinite : __smtx_is_finite_type U = true := by
               cases hUF : __smtx_is_finite_type U <;> simp [hUF] at hUInfinite ⊢
             have hFiniteParts :
@@ -3595,7 +3651,11 @@ theorem cpc_fresh_typed_canonical_value_for_infinite_type_assumption
       have hRecParts :
           native_inhabited_type T = true ∧
             __smtx_type_wf_rec T T = true := by
-        simpa [__smtx_type_wf_rec, native_and] using _hRec
+        have h3 : (native_inhabited_type T = true ∧
+            __smtx_type_wf_rec T T = true) ∧
+            __smtx_type_no_alias_rec native_reflist_nil T = true := by
+          simpa [__smtx_type_wf_rec, native_and] using _hRec
+        exact h3.1
       have hTInfinite : __smtx_is_finite_type T = false := by
         simpa [__smtx_is_finite_type] using _hInfinite
       rcases cpc_fresh_typed_canonical_value_for_infinite_type_assumption
@@ -3624,7 +3684,11 @@ theorem cpc_fresh_typed_canonical_value_for_infinite_type_assumption
       have hRecParts :
           native_inhabited_type T = true ∧
             __smtx_type_wf_rec T T = true := by
-        simpa [__smtx_type_wf_rec, native_and] using _hRec
+        have h3 : (native_inhabited_type T = true ∧
+            __smtx_type_wf_rec T T = true) ∧
+            __smtx_type_no_alias_rec native_reflist_nil T = true := by
+          simpa [__smtx_type_wf_rec, native_and] using _hRec
+        exact h3.1
       rcases seq_inhabited_large_witness T hRecParts.1
           (smt_value_size_bound avoid) with
         ⟨i, hiTy, hiCan, hiSize⟩

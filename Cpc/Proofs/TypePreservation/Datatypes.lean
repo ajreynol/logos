@@ -636,11 +636,22 @@ theorem datatype_wf_rec_of_type_wf
     (h : __smtx_type_wf (SmtType.Datatype s d) = true) :
     __smtx_dt_wf_rec (__smtx_dt_substitute s d d) d = true := by
   have hPair :
-      native_inhabited_type (SmtType.Datatype s d) = true ∧
-        __smtx_dt_wf_rec (__smtx_dt_substitute s d d) d = true := by
+      (native_inhabited_type (SmtType.Datatype s d) = true ∧
+        __smtx_dt_wf_rec (__smtx_dt_substitute s d d) d = true) ∧
+        __smtx_type_no_alias_rec native_reflist_nil (SmtType.Datatype s d) = true := by
     simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
       native_and] using h
-  exact hPair.2
+  exact hPair.1.2
+
+/-- Extracts the scoped no-aliasing fact of a well-formed datatype type's body. -/
+theorem datatype_no_alias_of_type_wf
+    {s : native_String}
+    {d : SmtDatatype}
+    (h : __smtx_type_wf (SmtType.Datatype s d) = true) :
+    __smtx_dt_no_alias_rec (native_reflist_insert native_reflist_nil s) d = true := by
+  have hNA := smtx_type_wf_component_no_alias (by simpa [__smtx_type_wf] using h)
+  simpa [__smtx_type_no_alias_rec, native_reflist_contains, native_reflist_nil,
+    native_ite] using hNA
 
 /-- Empty datatypes are uninhabited. -/
 theorem not_type_inhabited_empty_datatype
@@ -849,17 +860,20 @@ theorem typeof_value_model_eval_dt_sel_wrong
   have hDRParts :
       native_inhabited_type D = true ∧
         __smtx_type_wf_rec D D = true ∧
+          __smtx_type_no_alias_rec native_reflist_nil D = true ∧
           native_inhabited_type R = true ∧
-            __smtx_type_wf_rec R R = true := by
+            __smtx_type_wf_rec R R = true ∧
+              __smtx_type_no_alias_rec native_reflist_nil R = true := by
     have hAll :
         native_inhabited_type (SmtType.Map D R) = true ∧
-          native_inhabited_type D = true ∧
-            __smtx_type_wf_rec D D = true ∧
-              native_inhabited_type R = true ∧
-                __smtx_type_wf_rec R R = true := by
+          (((native_inhabited_type D = true ∧ __smtx_type_wf_rec D D = true) ∧
+            __smtx_type_no_alias_rec native_reflist_nil D = true) ∧
+            ((native_inhabited_type R = true ∧ __smtx_type_wf_rec R R = true) ∧
+              __smtx_type_no_alias_rec native_reflist_nil R = true)) := by
       simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
-        native_and] using hM3WF
-    exact hAll.2
+        __smtx_type_no_alias_rec, native_and] using hM3WF
+    exact ⟨hAll.2.1.1.1, hAll.2.1.1.2, hAll.2.1.2,
+      hAll.2.2.1.1, hAll.2.2.1.2, hAll.2.2.2⟩
   have hDParts :
       native_inhabited_type D = true ∧
         __smtx_type_wf_rec D D = true :=
@@ -867,10 +881,10 @@ theorem typeof_value_model_eval_dt_sel_wrong
   have hRParts :
       native_inhabited_type R = true ∧
         __smtx_type_wf_rec R R = true :=
-    ⟨hDRParts.2.2.1, hDRParts.2.2.2⟩
+    ⟨hDRParts.2.2.2.1, hDRParts.2.2.2.2.1⟩
   have hFunWF : __smtx_type_wf (SmtType.FunType D R) = true := by
     simp [__smtx_type_wf, __smtx_type_wf_component, native_and, hDParts.1, hDParts.2,
-      hRParts.1, hRParts.2]
+      hRParts.1, hRParts.2, hDRParts.2.2.1, hDRParts.2.2.2.2.2]
   have hLookup :
       __smtx_typeof_value
         (native_model_lookup M (native_wrong_apply_sel_id i j) (SmtType.FunType D R)) =

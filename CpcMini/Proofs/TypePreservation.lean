@@ -18,12 +18,15 @@ private theorem type_default_typed_canonical_of_map_domain_wf
       __smtx_value_canonical (__smtx_type_default A) := by
   have hAll :
       native_inhabited_type (SmtType.Map A B) = true ∧
-        native_inhabited_type A = true ∧
-          __smtx_type_wf_rec A A = true ∧
-            native_inhabited_type B = true ∧
-              __smtx_type_wf_rec B B = true := by
-    simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using h
-  exact type_default_typed_canonical_of_inhabited_wf_rec A hAll.2.1 hAll.2.2.1
+        (((native_inhabited_type A = true ∧
+          __smtx_type_wf_rec A A = true) ∧
+          __smtx_type_no_alias_rec native_reflist_nil A = true) ∧
+          ((native_inhabited_type B = true ∧
+            __smtx_type_wf_rec B B = true) ∧
+            __smtx_type_no_alias_rec native_reflist_nil B = true)) := by
+    simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+      __smtx_type_no_alias_rec, native_and] using h
+  exact type_default_typed_canonical_of_inhabited_wf_rec A hAll.2.1.1.1 hAll.2.1.1.2
 
 private theorem type_default_typed_canonical_of_set_element_wf
     {A : SmtType}
@@ -32,10 +35,12 @@ private theorem type_default_typed_canonical_of_set_element_wf
       __smtx_value_canonical (__smtx_type_default A) := by
   have hAll :
       native_inhabited_type (SmtType.Set A) = true ∧
-        native_inhabited_type A = true ∧
-          __smtx_type_wf_rec A A = true := by
-    simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using h
-  exact type_default_typed_canonical_of_inhabited_wf_rec A hAll.2.1 hAll.2.2
+        ((native_inhabited_type A = true ∧
+          __smtx_type_wf_rec A A = true) ∧
+          __smtx_type_no_alias_rec native_reflist_nil A = true) := by
+    simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+      __smtx_type_no_alias_rec, native_and] using h
+  exact type_default_typed_canonical_of_inhabited_wf_rec A hAll.2.1.1 hAll.2.1.2
 
 private theorem map_diff_default_typed_canonical_of_non_none
     {t1 t2 : SmtTerm}

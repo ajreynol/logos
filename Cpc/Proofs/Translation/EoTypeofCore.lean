@@ -39,7 +39,7 @@ private theorem smtx_type_wf_rec_of_type_wf
       native_and] at h hNotReg ⊢
   case FunType A B =>
     exact False.elim (hNotFun A B rfl)
-  all_goals first | exact h | exact h.2 | exact h.2.2
+  all_goals first | exact h | exact h.1 | exact h.2 | exact h.2.2 | exact h.1.2
 
 private theorem smtx_datatype_type_wf_rec_parts_local
     {s : native_String} {d : SmtDatatype}
@@ -1490,7 +1490,7 @@ theorem tuple_translate_wf {x1 x2 : Term} {s' : native_String} {body : SmtDataty
   · next hwf =>
       rw [h] at hwf
       simp only [__smtx_type_wf, __smtx_type_wf_component, native_and, Bool.and_eq_true] at hwf
-      exact hwf.2
+      exact hwf.1.2
   · next => exact absurd h (by simp)
 
 /-- Generalised tuple connector: any non-`DatatypeType` term that translates to a `Datatype`

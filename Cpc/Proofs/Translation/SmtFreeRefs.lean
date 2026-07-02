@@ -610,21 +610,21 @@ theorem hasFreeTy_eq_false_of_wf_img (sub : native_String) :
       cases hImg
       have hx : __smtx_type_wf_rec x x = true := by
         simp only [__smtx_type_wf_rec, native_and, Bool.and_eq_true] at hWf
-        exact hWf.2
+        exact hWf.1.2
       simp only [hasFreeTy]
       exact hasFreeTy_eq_false_of_wf_img sub x x native_reflist_nil (imgTy_refl _ x) hx
   | SmtType.Set x, F, refs, hImg, hWf => by
       cases hImg
       have hx : __smtx_type_wf_rec x x = true := by
         simp only [__smtx_type_wf_rec, native_and, Bool.and_eq_true] at hWf
-        exact hWf.2
+        exact hWf.1.2
       simp only [hasFreeTy]
       exact hasFreeTy_eq_false_of_wf_img sub x x native_reflist_nil (imgTy_refl _ x) hx
   | SmtType.Map x y, F, refs, hImg, hWf => by
       cases hImg
       have hParts : __smtx_type_wf_rec x x = true ∧ __smtx_type_wf_rec y y = true := by
         simp only [__smtx_type_wf_rec, native_and, Bool.and_eq_true] at hWf
-        exact ⟨hWf.2.1, hWf.2.2.2⟩
+        exact ⟨hWf.1.1.2, hWf.2.1.2⟩
       simp only [hasFreeTy, native_or, Bool.or_eq_false_iff]
       exact ⟨hasFreeTy_eq_false_of_wf_img sub x x native_reflist_nil (imgTy_refl _ x)
           hParts.1,
