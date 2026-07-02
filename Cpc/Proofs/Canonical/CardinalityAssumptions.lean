@@ -1061,16 +1061,24 @@ private theorem apply_seed_typeof_chain
     __smtx_typeof_guard]
   simp [native_ite, h1, h2]
 
-private def nonself_infinite_field_large_witness_remaining_case : SmtType → Prop
-  | SmtType.Map _ _ => True
-  | SmtType.Set _ => True
+private def nonself_infinite_field_large_witness_remaining_case
+    (s : native_String) (d : SmtDatatype) : SmtType → Prop
+  | SmtType.Map A B =>
+      __smtx_is_finite_type A = true ∨
+        (native_Teq B (SmtType.Datatype s d) = false ∧
+          (native_Teq A (SmtType.Datatype s d) = false ∨
+            native_Teq B SmtType.Bool = false))
+  | SmtType.Set A =>
+      native_Teq A (SmtType.Datatype s d) = false
   | SmtType.Datatype _ _ => True
   | _ => False
 
 private theorem nonself_infinite_field_large_witness_remaining
     (s : native_String) (d : SmtDatatype) (w : SmtValue)
+    (hwTy : __smtx_typeof_value w = SmtType.Datatype s d)
+    (hwCan : __smtx_value_canonical_bool w = true)
     (T : SmtType)
-    (hRemaining : nonself_infinite_field_large_witness_remaining_case T)
+    (hRemaining : nonself_infinite_field_large_witness_remaining_case s d T)
     (hNonself :
       native_Teq (__smtx_type_substitute s d T) (SmtType.Datatype s d) = false)
     (hInfinite : __smtx_is_finite_type T = false)
@@ -1083,6 +1091,8 @@ private theorem nonself_infinite_field_large_witness_remaining
 
 private theorem nonself_infinite_field_large_witness
     (s : native_String) (d : SmtDatatype) (w : SmtValue)
+    (hwTy : __smtx_typeof_value w = SmtType.Datatype s d)
+    (hwCan : __smtx_value_canonical_bool w = true)
     (T : SmtType)
     (hNonself :
       native_Teq (__smtx_type_substitute s d T) (SmtType.Datatype s d) = false)
@@ -1110,11 +1120,81 @@ private theorem nonself_infinite_field_large_witness
   | BitVec wbits =>
       simp [__smtx_is_finite_type] at hInfinite
   | Map A B =>
-      exact nonself_infinite_field_large_witness_remaining
-        s d w (SmtType.Map A B) trivial hNonself hInfinite hInh hWf
+      cases hAFin : __smtx_is_finite_type A
+      · cases hBself : native_Teq B (SmtType.Datatype s d)
+        · cases hAself : native_Teq A (SmtType.Datatype s d)
+          · exact nonself_infinite_field_large_witness_remaining
+              s d w hwTy hwCan (SmtType.Map A B)
+              (Or.inr ⟨hBself, Or.inl hAself⟩)
+              hNonself hInfinite hInh hWf
+          · cases hBBool : native_Teq B SmtType.Bool
+            · exact nonself_infinite_field_large_witness_remaining
+                s d w hwTy hwCan (SmtType.Map A B)
+                (Or.inr ⟨hBself, Or.inr hBBool⟩)
+                hNonself hInfinite hInh hWf
+            · have hAEq : A = SmtType.Datatype s d := by
+                simpa [native_Teq] using hAself
+              have hBEq : B = SmtType.Bool := by
+                simpa [native_Teq] using hBBool
+              refine
+                ⟨SmtValue.Map
+                  (SmtMap.cons w (SmtValue.Boolean true)
+                    (SmtMap.default A (SmtValue.Boolean false))), ?_, ?_, ?_⟩
+              · simp [__smtx_type_substitute, __smtx_typeof_value,
+                  __smtx_typeof_map_value, hwTy, hAEq, hBEq,
+                  native_Teq, native_ite]
+              · simp [__smtx_value_canonical_bool, __smtx_map_canonical,
+                  __smtx_map_default_canonical, __smtx_map_entries_ordered_after,
+                  __smtx_msm_get_default, hwCan, hAFin, native_veq,
+                  native_and, native_not, native_ite]
+              · rw [show
+                  sizeOf
+                      (SmtValue.Map
+                        (SmtMap.cons w (SmtValue.Boolean true)
+                          (SmtMap.default A (SmtValue.Boolean false)))) =
+                    1 + (1 + sizeOf w + sizeOf (SmtValue.Boolean true) +
+                      sizeOf (SmtMap.default A (SmtValue.Boolean false))) by rfl]
+                omega
+        · have hBEq : B = SmtType.Datatype s d := by
+            simpa [native_Teq] using hBself
+          refine ⟨SmtValue.Map (SmtMap.default A w), ?_, ?_, ?_⟩
+          · simp [__smtx_type_substitute, __smtx_typeof_value,
+              __smtx_typeof_map_value, hwTy, hBEq]
+          · simp [__smtx_value_canonical_bool, __smtx_map_canonical,
+              __smtx_map_default_canonical, hAFin, hwCan, native_and,
+              native_ite]
+          · rw [show sizeOf (SmtValue.Map (SmtMap.default A w)) =
+                1 + (1 + sizeOf A + sizeOf w) by rfl]
+            omega
+      · exact nonself_infinite_field_large_witness_remaining
+          s d w hwTy hwCan (SmtType.Map A B) (Or.inl hAFin)
+          hNonself hInfinite hInh hWf
   | Set A =>
-      exact nonself_infinite_field_large_witness_remaining
-        s d w (SmtType.Set A) trivial hNonself hInfinite hInh hWf
+      cases hSelfA : native_Teq A (SmtType.Datatype s d)
+      · exact nonself_infinite_field_large_witness_remaining
+          s d w hwTy hwCan (SmtType.Set A) hSelfA hNonself hInfinite hInh hWf
+      · have hAEq : A = SmtType.Datatype s d := by
+          simpa [native_Teq] using hSelfA
+        refine
+          ⟨SmtValue.Set
+            (SmtMap.cons w (SmtValue.Boolean true)
+              (SmtMap.default A (SmtValue.Boolean false))), ?_, ?_, ?_⟩
+        · simp [__smtx_type_substitute, __smtx_typeof_value,
+            __smtx_typeof_map_value, __smtx_map_to_set_type, hwTy, hAEq,
+            native_Teq, native_ite]
+        · simp [__smtx_value_canonical_bool, __smtx_map_canonical,
+            __smtx_map_default_canonical, __smtx_map_entries_ordered_after,
+            __smtx_msm_get_default, hwCan, __smtx_typeof_value,
+            __smtx_type_default, __smtx_type_default_rec, native_veq,
+            native_and, native_not, native_ite]
+        · rw [show
+            sizeOf
+                (SmtValue.Set
+                  (SmtMap.cons w (SmtValue.Boolean true)
+                    (SmtMap.default A (SmtValue.Boolean false)))) =
+              1 + (1 + sizeOf w + sizeOf (SmtValue.Boolean true) +
+                sizeOf (SmtMap.default A (SmtValue.Boolean false))) by rfl]
+          omega
   | Seq A =>
       have hParts :
           native_inhabited_type A = true ∧ __smtx_type_wf_rec A A = true := by
@@ -1126,7 +1206,7 @@ private theorem nonself_infinite_field_large_witness
       simp [__smtx_is_finite_type] at hInfinite
   | Datatype s2 d2 =>
       exact nonself_infinite_field_large_witness_remaining
-        s d w (SmtType.Datatype s2 d2) trivial hNonself hInfinite hInh hWf
+        s d w hwTy hwCan (SmtType.Datatype s2 d2) trivial hNonself hInfinite hInh hWf
   | TypeRef r =>
       cases hs : native_streq s r
       · simp [__smtx_type_substitute, native_ite, hs, native_inhabited_type,
@@ -1177,7 +1257,7 @@ private theorem build_raw_with_nonself_field
               dt_cons_wf_subst_head_parts_of_nonself
                 s d (T := T) (c := c) hWf hSelfFalse
           rcases nonself_infinite_field_large_witness
-              s d w T hSelfFalse hFin hParts.1 hParts.2.1 with
+              s d w hwTy hwCan T hSelfFalse hFin hParts.1 hParts.2.1 with
             ⟨x, hxTy, hxCan, hxSize⟩
           have hTFne : TF ≠ SmtType.None :=
             ne_none_of_native_inhabited hParts.1
