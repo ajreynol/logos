@@ -29877,8 +29877,35 @@ theorem str_re_consume_model_rel
           (_hR : r = Term.Apply (Term.UOp UserOp.re_mult) r0)
           (hSideNotFalse : side ≠ Term.Boolean false),
         multSecondStrNativeEq r0 hSideNotFalse) := by
-    -- What remains is the action-frontier invariant tying the first rec run,
-    -- the second rec run, and the star residual together.
+    -- Missing invariant (2026-07-02): this hole is not blocked by the
+    -- native regex-reversal semantics.  The native side already has
+    -- `native_str_in_re_eq_of_unpack_reverse_reglan_rel_consume_local`,
+    -- which is exactly the semantic bridge once a reversed EO regex is known
+    -- to evaluate to `native_re_reverse_raw_consume_local rv`.
+    --
+    -- The unproved bridge is the evaluator/shape side for action reversal:
+    -- successful `__re_rev_map_rev (__re_flatten true r) eps` needs a
+    -- `smt_value_rel` proof against
+    -- `native_re_reverse_raw_consume_local rv`, and the same fact must be
+    -- preserved for residuals returned by the first recursive consume.
+    --
+    -- Two tempting shortcuts are too weak:
+    -- * the existing double-action-reversal lemmas only prove that applying
+    --   `__re_rev_map_rev` twice returns to the original term; they cannot
+    --   justify the first single reversal from `(s, r)` to `(sFlat, rFlat)`.
+    -- * `re_action_frontier_true_local` is only a non-stuck/syntactic
+    --   frontier predicate.  It allows false-normal heads such as an
+    --   arbitrary `str_to_re` atom, while `__re_rev_comp` leaves those atoms
+    --   unchanged.  The single-reversal evaluator lemma therefore needs the
+    --   stronger flattened-chunk/singleton-head invariant produced by
+    --   `__re_flatten true`, not just the current frontier predicate.
+    --
+    -- On the string side, `consume_intro_word_view_reverse_native_bridge`
+    -- gives the matching reversal bridge, but it is currently instantiated
+    -- only for literal strings.  Closing this proof will likely need either a
+    -- generic evaluation theorem for `__eo_list_rev` over successful
+    -- `str_concat` lists, or a general `ConsumeIntroWordView` extractor for
+    -- successful `__str_flatten (__str_nary_intro s)`.
     sorry
   rcases hActionableFrontierInputBridgeProgress with
     ⟨hNonMultFirstFalseNative, hMultFirstFalseNative,
