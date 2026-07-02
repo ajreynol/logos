@@ -1,5 +1,5 @@
 import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.RuleSupport.SubstituteTranslatabilitySupport
+import Cpc.Proofs.RuleSupport.SubstitutePreservationSupport
 import Cpc.Proofs.Canonical
 import Cpc.Proofs.Closed.ContainsAtomicTermListFree
 import Cpc.Proofs.Closed.Substitute
@@ -8,6 +8,7 @@ open Eo
 open SmtEval
 open Smtm
 open SubstituteTranslatabilitySupport
+open SubstitutePreservationSupport
 
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
@@ -11201,7 +11202,7 @@ by
                       RuleProofs.eo_has_bool_type
                         (__substitute_simul_rec (Term.Boolean false) F xs a1
                           Term.__eo_List_nil) :=
-                    SubstituteTranslatabilitySupport.substitute_simul_has_bool_type_of_typeof_bool
+                    SubstitutePreservationSupport.substitute_simul_has_bool_type_of_typeof_bool
                       F xs a1 hWf hActualsTrans hActuals hSubstTypeof
                   refine ⟨?_, ?_⟩
                   · -- facts_of_true
