@@ -942,10 +942,10 @@ def smt_typeof_seq_value : SmtSeq -> SmtType
   | (SmtSeq.empty T) => (SmtType.Seq T)
   
 def smt_typeof_dt_cons_value_rec (T : SmtType) : SmtDatatype -> Nat -> SmtType
-  | (SmtDatatype.sum SmtDatatypeCons.unit d), 0 => T
-  | (SmtDatatype.sum (SmtDatatypeCons.cons U c) d), 0 => 
-    (SmtType.DtcAppType U (smt_typeof_dt_cons_value_rec T (SmtDatatype.sum c d) 0))
-  | (SmtDatatype.sum c d), (native_nat_succ n) => (smt_typeof_dt_cons_value_rec T d n)
+  | (SmtDatatype.sum SmtDatatypeCons.unit d), Nat.zero => T
+  | (SmtDatatype.sum (SmtDatatypeCons.cons U c) d), Nat.zero => 
+    (SmtType.DtcAppType U (smt_typeof_dt_cons_value_rec T (SmtDatatype.sum c d) Nat.zero))
+  | (SmtDatatype.sum c d), (Nat.succ n) => (smt_typeof_dt_cons_value_rec T d n)
   | d, n => SmtType.None
 
 def smt_typeof_apply_value : SmtType -> SmtType -> SmtType
@@ -1106,7 +1106,7 @@ def smt_datatype_cons_default (v : SmtValue) : SmtDatatypeCons -> SmtDatatypeCon
 def smt_datatype_default (s : String) (d : SmtDatatype) (n : Nat) : SmtDatatype -> SmtDatatype -> SmtValue
   | (SmtDatatype.sum cF dF), (SmtDatatype.sum cU dU) =>
     let _v0 := (smt_datatype_cons_default (SmtValue.DtCons s d n) cF cU)
-    (if (veq _v0 SmtValue.NotValue) then (smt_datatype_default s d (native_nat_succ n) dF dU) else _v0)
+    (if (veq _v0 SmtValue.NotValue) then (smt_datatype_default s d (Nat.succ n) dF dU) else _v0)
   | dF, dU => SmtValue.NotValue
 
 def smt_type_default_rec : SmtType -> SmtType -> SmtValue
@@ -1682,7 +1682,7 @@ def smt_typeof_dt_cons_rec (T : SmtType) : SmtDatatype -> Nat -> SmtType
   | (SmtDatatype.sum SmtDatatypeCons.unit d), native_nat_zero => T
   | (SmtDatatype.sum (SmtDatatypeCons.cons U c) d), native_nat_zero =>
       (SmtType.DtcAppType U (smt_typeof_dt_cons_rec T (SmtDatatype.sum c d) native_nat_zero))
-  | (SmtDatatype.sum c d), (native_nat_succ n) => (smt_typeof_dt_cons_rec T d n)
+  | (SmtDatatype.sum c d), (Nat.succ n) => (smt_typeof_dt_cons_rec T d n)
   | d, n => SmtType.None
 
 def smt_typeof_apply : SmtType -> SmtType -> SmtType
@@ -2134,23 +2134,34 @@ i.e. variables are considered atomic terms indexed by their name and type.
 
 \begin{figure}
 \begin{lstlisting}
+def eo_to_smt_datatype : Datatype -> SmtDatatype
+  ...
+
 def eo_to_smt_type : Term -> SmtType
   | Term.Bool => SmtType.Bool
+  | (Term.UOp UserOp.Int) => SmtType.Int
+  ...
+  | (Term.UOp1 UserOp1.BitVec (Term.Numeral n1)) =>
+    (if (native_zleq 0 n1) then (SmtType.BitVec (Int.toNat n1)) else SmtType.None)
+  | (Term.Apply (Term.Apply Term.FunType T1) T2) =>
+    let _v0 := (eo_to_smt_type T1)
+    let _v1 := (eo_to_smt_type T2)
+    (smt_typeof_guard _v0 (smt_typeof_guard _v1 (SmtType.FunType _v0 _v1)))
+  | (Term.Apply (Term.UOp UserOp.Seq) x1) =>
+    let _v0 := (eo_to_smt_type x1)
+    (smt_typeof_guard _v0 (SmtType.Seq _v0))
   | (Term.DatatypeType s d) =>
       if s.startsWith "@" then SmtType.None else SmtType.Datatype s (eo_to_smt_datatype d)
-  | (Term.Apply (Term.Apply Term.FunType T1) T2) => let _v0 := (eo_to_smt_type T2); let _v1 := (eo_to_smt_type T1); (smt_typeof_guard _v1 (smt_typeof_guard _v0 (SmtType.FunType _v1 _v0)))
-  | (Term.UOp UserOp.Int) => SmtType.Int
-  | (Term.Apply (Term.UOp UserOp.Seq) x1) => let _v0 := (eo_to_smt_type x1); (smt_typeof_guard _v0 (SmtType.Seq _v0))
-  | ... => ...
+  ...
 
 def eo_to_smt : Term -> SmtTerm
   | (Term.Boolean b) => (SmtTerm.Boolean b)
-  | (Term.Var (Term.String s) T) => (SmtTerm.Var s (eo_to_smt_type T))
-  | (Term.DtCons s d i) =>
-      if s.startsWith "@" then SmtTerm.None else SmtTerm.DtCons s (eo_to_smt_datatype d) i
-  | (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) x1) x2) x3) => (SmtTerm.ite (eo_to_smt x1) (eo_to_smt x2) (eo_to_smt x3))
+  ...
+  | (Term.Apply (Term.UOp UserOp.not) x1) => (SmtTerm.not (eo_to_smt x1))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.and) x1) x2) => (SmtTerm.and (eo_to_smt x1) (eo_to_smt x2))
   | (Term.Apply f y) => (SmtTerm.Apply (eo_to_smt f) (eo_to_smt y))
-  | ... => ...
+  | (Term.Var (Term.String s) T) => (SmtTerm.Var s (eo_to_smt_type T))
+  ...
 \end{lstlisting}
 \caption{Translation from Eunoia terms and types into SMT.}
 \label{fig:eo-to-smt}
