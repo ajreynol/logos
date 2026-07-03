@@ -88,6 +88,16 @@ private theorem dt_wf_sum_parts {cF cU : SmtDatatypeCons} {dF dU : SmtDatatype}
   cases hc : __smtx_dt_cons_wf_rec cF cU <;>
     simp_all [__smtx_dt_wf_rec, native_ite]
 
+private theorem dt_cons_wf_tail {TF TU : SmtType} {cF cU : SmtDatatypeCons}
+    (h : __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons TF cF)
+        (SmtDatatypeCons.cons TU cU) = true) :
+    __smtx_dt_cons_wf_rec cF cU = true := by
+  by_cases hc : __smtx_dt_cons_wf_rec cF cU = true
+  · exact hc
+  · exfalso
+    cases TF <;> cases TU <;>
+      simp_all [__smtx_dt_cons_wf_rec, native_ite, native_and]
+
 /-! ## Part 1: the guide-transport relation and its transport theorem -/
 
 mutual
@@ -197,7 +207,656 @@ private theorem guideTrDt_wf {dF dUo dUn : SmtDatatype}
 
 end
 
-/-! ## Part 2: establishment for the diagonalization instance -/
+/-! ## Part 2: substitution chains
+
+A *substitution chain* is a list of `(name, payload)` pairs applied
+innermost-first (head first).  The folded side of the establishment walk is
+always the image of the raw guide under such a chain; `chain_descend`
+describes how a chain acts on the body of a `Datatype` node (payloads are
+lifted against the evolving body, same-named entries are shielded), exactly
+mirroring `__smtx_type_substitute`'s recursion. -/
+
+private abbrev SubstChain := List (native_String × SmtDatatype)
+
+private def chain_ty : SubstChain → SmtType → SmtType
+  | [], T => T
+  | (s, P) :: ρ, T => chain_ty ρ (__smtx_type_substitute s P T)
+
+private def chain_dtc : SubstChain → SmtDatatypeCons → SmtDatatypeCons
+  | [], c => c
+  | (s, P) :: ρ, c => chain_dtc ρ (__smtx_dtc_substitute s P c)
+
+private def chain_dt : SubstChain → SmtDatatype → SmtDatatype
+  | [], X => X
+  | (s, P) :: ρ, X => chain_dt ρ (__smtx_dt_substitute s P X)
+
+private def chain_descend : SubstChain → native_String → SmtDatatype → SubstChain
+  | [], _, _ => []
+  | (s, P) :: ρ, s3, X =>
+      if native_streq s s3 = true then chain_descend ρ s3 X
+      else (s, __smtx_dt_lift s3 X P) ::
+        chain_descend ρ s3 (__smtx_dt_substitute s (__smtx_dt_lift s3 X P) X)
+
+private theorem chain_dt_null :
+    ∀ ρ : SubstChain, chain_dt ρ SmtDatatype.null = SmtDatatype.null
+  | [] => rfl
+  | (s, P) :: ρ => by
+      simp [chain_dt, __smtx_dt_substitute, chain_dt_null ρ]
+
+private theorem chain_dtc_unit :
+    ∀ ρ : SubstChain, chain_dtc ρ SmtDatatypeCons.unit = SmtDatatypeCons.unit
+  | [] => rfl
+  | (s, P) :: ρ => by
+      simp [chain_dtc, __smtx_dtc_substitute, chain_dtc_unit ρ]
+
+private theorem chain_dt_sum :
+    ∀ (ρ : SubstChain) (c : SmtDatatypeCons) (d : SmtDatatype),
+      chain_dt ρ (SmtDatatype.sum c d) =
+        SmtDatatype.sum (chain_dtc ρ c) (chain_dt ρ d)
+  | [], _c, _d => rfl
+  | (s, P) :: ρ, c, d => by
+      simp [chain_dt, chain_dtc, __smtx_dt_substitute, chain_dt_sum ρ]
+
+private theorem chain_dtc_cons :
+    ∀ (ρ : SubstChain) (T : SmtType) (c : SmtDatatypeCons),
+      chain_dtc ρ (SmtDatatypeCons.cons T c) =
+        SmtDatatypeCons.cons (chain_ty ρ T) (chain_dtc ρ c)
+  | [], _T, _c => rfl
+  | (s, P) :: ρ, T, c => by
+      simp [chain_dtc, chain_ty, __smtx_dtc_substitute, chain_dtc_cons ρ]
+
+/-- A chain fixes any type it substitutes trivially (containers and base
+types). -/
+private theorem chain_ty_fix (T : SmtType)
+    (hFix : ∀ (s : native_String) (P : SmtDatatype),
+      __smtx_type_substitute s P T = T) :
+    ∀ ρ : SubstChain, chain_ty ρ T = T
+  | [] => rfl
+  | (s, P) :: ρ => by
+      rw [chain_ty, hFix s P, chain_ty_fix T hFix ρ]
+
+/-- How a chain acts on a datatype node: it descends into the body with
+lifted payloads. -/
+private theorem chain_ty_datatype :
+    ∀ (ρ : SubstChain) (s3 : native_String) (X : SmtDatatype),
+      chain_ty ρ (SmtType.Datatype s3 X) =
+        SmtType.Datatype s3 (chain_dt (chain_descend ρ s3 X) X)
+  | [], _s3, _X => rfl
+  | (s, P) :: ρ, s3, X => by
+      cases hs : native_streq s s3 with
+      | true =>
+          rw [chain_ty, chain_descend]
+          simp only [hs, if_pos]
+          rw [show __smtx_type_substitute s P (SmtType.Datatype s3 X) =
+              SmtType.Datatype s3 X by
+            simp [__smtx_type_substitute, native_ite, hs]]
+          exact chain_ty_datatype ρ s3 X
+      | false =>
+          rw [chain_ty, chain_descend]
+          simp only [hs, if_neg, Bool.false_eq_true, not_false_iff]
+          rw [show __smtx_type_substitute s P (SmtType.Datatype s3 X) =
+              SmtType.Datatype s3
+                (__smtx_dt_substitute s (__smtx_dt_lift s3 X P) X) by
+            simp [__smtx_type_substitute, native_ite, hs]]
+          rw [chain_ty_datatype ρ s3
+            (__smtx_dt_substitute s (__smtx_dt_lift s3 X P) X)]
+          rfl
+
+/-- Appending an entry acts after the rest of the chain. -/
+private theorem chain_dt_append_one :
+    ∀ (ρ : SubstChain) (s : native_String) (Q X : SmtDatatype),
+      chain_dt (ρ ++ [(s, Q)]) X = __smtx_dt_substitute s Q (chain_dt ρ X)
+  | [], _s, _Q, _X => rfl
+  | (s0, P0) :: ρ, s, Q, X => by
+      simp only [List.cons_append, chain_dt]
+      exact chain_dt_append_one ρ s Q (__smtx_dt_substitute s0 P0 X)
+
+/-- Extend a chain across a descent into `(s3, X)`: the descended chain plus
+the resolved body of the node as a final self-entry. -/
+private def selfExt (ρ : SubstChain) (s3 : native_String) (X : SmtDatatype) :
+    SubstChain :=
+  chain_descend ρ s3 X ++ [(s3, chain_dt (chain_descend ρ s3 X) X)]
+
+/-! ## Positional shape: folded chain-images vs. their raw sources
+
+`FSkelTy F H` constrains the folded side `F` exactly at positions where the
+raw side `H` is a datatype node: there `F` must be a same-named datatype node
+whose *diagonal fold* is again positionally related to the raw body.  Every
+chain image is related to its source (`fskel_master`). -/
+
+mutual
+
+private inductive FSkelTy : SmtType → SmtType → Prop where
+  | nondt (F H : SmtType)
+      (hH : ∀ (s : native_String) (B : SmtDatatype), H ≠ SmtType.Datatype s B) :
+      FSkelTy F H
+  | dt {s4 : native_String} {FB HB : SmtDatatype} :
+      FSkelDt (__smtx_dt_substitute s4 FB FB) HB →
+      FSkelTy (SmtType.Datatype s4 FB) (SmtType.Datatype s4 HB)
+
+private inductive FSkelDtc : SmtDatatypeCons → SmtDatatypeCons → Prop where
+  | unit : FSkelDtc SmtDatatypeCons.unit SmtDatatypeCons.unit
+  | cons {TF TH : SmtType} {cF cH : SmtDatatypeCons} :
+      FSkelTy TF TH → FSkelDtc cF cH →
+      FSkelDtc (SmtDatatypeCons.cons TF cF) (SmtDatatypeCons.cons TH cH)
+
+private inductive FSkelDt : SmtDatatype → SmtDatatype → Prop where
+  | null : FSkelDt SmtDatatype.null SmtDatatype.null
+  | sum {cF cH : SmtDatatypeCons} {dF dH : SmtDatatype} :
+      FSkelDtc cF cH → FSkelDt dF dH →
+      FSkelDt (SmtDatatype.sum cF dF) (SmtDatatype.sum cH dH)
+
+end
+
+mutual
+
+private theorem fskel_master_ty :
+    ∀ (TU : SmtType) (ρ : SubstChain), FSkelTy (chain_ty ρ TU) TU
+  | SmtType.Datatype s5 HB, ρ => by
+      rw [chain_ty_datatype ρ s5 HB]
+      refine FSkelTy.dt ?_
+      have h := fskel_master_dt HB
+        (chain_descend ρ s5 HB ++
+          [(s5, chain_dt (chain_descend ρ s5 HB) HB)])
+      rwa [chain_dt_append_one] at h
+  | SmtType.None, ρ => FSkelTy.nondt _ _ (fun _ _ h => by cases h)
+  | SmtType.Bool, ρ => FSkelTy.nondt _ _ (fun _ _ h => by cases h)
+  | SmtType.Int, ρ => FSkelTy.nondt _ _ (fun _ _ h => by cases h)
+  | SmtType.Real, ρ => FSkelTy.nondt _ _ (fun _ _ h => by cases h)
+  | SmtType.RegLan, ρ => FSkelTy.nondt _ _ (fun _ _ h => by cases h)
+  | SmtType.BitVec w, ρ => FSkelTy.nondt _ _ (fun _ _ h => by cases h)
+  | SmtType.Map A B, ρ => FSkelTy.nondt _ _ (fun _ _ h => by cases h)
+  | SmtType.Set A, ρ => FSkelTy.nondt _ _ (fun _ _ h => by cases h)
+  | SmtType.Seq A, ρ => FSkelTy.nondt _ _ (fun _ _ h => by cases h)
+  | SmtType.Char, ρ => FSkelTy.nondt _ _ (fun _ _ h => by cases h)
+  | SmtType.USort u, ρ => FSkelTy.nondt _ _ (fun _ _ h => by cases h)
+  | SmtType.FunType A B, ρ => FSkelTy.nondt _ _ (fun _ _ h => by cases h)
+  | SmtType.DtcAppType A B, ρ => FSkelTy.nondt _ _ (fun _ _ h => by cases h)
+  | SmtType.TypeRef r, ρ => FSkelTy.nondt _ _ (fun _ _ h => by cases h)
+
+private theorem fskel_master_dtc :
+    ∀ (cU : SmtDatatypeCons) (ρ : SubstChain), FSkelDtc (chain_dtc ρ cU) cU
+  | SmtDatatypeCons.unit, ρ => by
+      rw [chain_dtc_unit]
+      exact FSkelDtc.unit
+  | SmtDatatypeCons.cons T c, ρ => by
+      rw [chain_dtc_cons]
+      exact FSkelDtc.cons (fskel_master_ty T ρ) (fskel_master_dtc c ρ)
+
+private theorem fskel_master_dt :
+    ∀ (dU : SmtDatatype) (ρ : SubstChain), FSkelDt (chain_dt ρ dU) dU
+  | SmtDatatype.null, ρ => by
+      rw [chain_dt_null]
+      exact FSkelDt.null
+  | SmtDatatype.sum c d, ρ => by
+      rw [chain_dt_sum]
+      exact FSkelDt.sum (fskel_master_dtc c ρ) (fskel_master_dt d ρ)
+
+end
+
+/-! ## Lift transport
+
+Lifting the raw side of the positional shape relation, and transporting
+well-formedness along a guide lift (checks strictly decrease: fired datatype
+nodes become pattern-1 `TypeRef` skips). -/
+
+private theorem type_lift_nondt_fix (s3 : native_String) (X : SmtDatatype)
+    (H : SmtType)
+    (hH : ∀ (s : native_String) (B : SmtDatatype), H ≠ SmtType.Datatype s B) :
+    __smtx_type_lift s3 X H = H := by
+  cases H <;> first
+    | rfl
+    | exact absurd rfl (hH _ _)
+
+mutual
+
+private theorem fskel_lift_ty (s3 : native_String) (X : SmtDatatype)
+    {TF TH : SmtType} (h : FSkelTy TF TH) :
+    FSkelTy TF (__smtx_type_lift s3 X TH) :=
+  match h with
+  | FSkelTy.nondt F H hH => by
+      rw [type_lift_nondt_fix s3 X H hH]
+      exact FSkelTy.nondt F H hH
+  | @FSkelTy.dt s4 FB HB hBody => by
+      rw [show __smtx_type_lift s3 X (SmtType.Datatype s4 HB) =
+          native_ite (native_Teq (SmtType.Datatype s3 X) (SmtType.Datatype s4 HB))
+            (SmtType.TypeRef s3)
+            (SmtType.Datatype s4 (__smtx_dt_lift s3 X HB)) by
+        simp [__smtx_type_lift]]
+      cases hEq : native_Teq (SmtType.Datatype s3 X) (SmtType.Datatype s4 HB) with
+      | true =>
+          rw [native_ite, if_pos rfl]
+          exact FSkelTy.nondt _ _ (fun _ _ h => by cases h)
+      | false =>
+          rw [native_ite, if_neg (by simp [hEq])]
+          exact FSkelTy.dt (fskel_lift_dt s3 X hBody)
+
+private theorem fskel_lift_dtc (s3 : native_String) (X : SmtDatatype)
+    {cF cH : SmtDatatypeCons} (h : FSkelDtc cF cH) :
+    FSkelDtc cF (__smtx_dtc_lift s3 X cH) :=
+  match h with
+  | FSkelDtc.unit => by
+      rw [show __smtx_dtc_lift s3 X SmtDatatypeCons.unit =
+        SmtDatatypeCons.unit by simp [__smtx_dtc_lift]]
+      exact FSkelDtc.unit
+  | @FSkelDtc.cons TF TH cF cH hT hc => by
+      rw [show __smtx_dtc_lift s3 X (SmtDatatypeCons.cons TH cH) =
+        SmtDatatypeCons.cons (__smtx_type_lift s3 X TH)
+          (__smtx_dtc_lift s3 X cH) by simp [__smtx_dtc_lift]]
+      exact FSkelDtc.cons (fskel_lift_ty s3 X hT) (fskel_lift_dtc s3 X hc)
+
+private theorem fskel_lift_dt (s3 : native_String) (X : SmtDatatype)
+    {dF dH : SmtDatatype} (h : FSkelDt dF dH) :
+    FSkelDt dF (__smtx_dt_lift s3 X dH) :=
+  match h with
+  | FSkelDt.null => by
+      rw [show __smtx_dt_lift s3 X SmtDatatype.null = SmtDatatype.null by
+        simp [__smtx_dt_lift]]
+      exact FSkelDt.null
+  | @FSkelDt.sum cF cH dF dH hc hd => by
+      rw [show __smtx_dt_lift s3 X (SmtDatatype.sum cH dH) =
+        SmtDatatype.sum (__smtx_dtc_lift s3 X cH) (__smtx_dt_lift s3 X dH) by
+        simp [__smtx_dt_lift]]
+      exact FSkelDt.sum (fskel_lift_dtc s3 X hc) (fskel_lift_dt s3 X hd)
+
+end
+
+mutual
+
+/-- Guide transport along a lift: replacing a guide by its lift-image. -/
+private theorem lift_guide_tr_ty (s3 : native_String) (X : SmtDatatype)
+    {TF TH : SmtType} (h : FSkelTy TF TH) :
+    GuideTr TF TH (__smtx_type_lift s3 X TH) :=
+  match h with
+  | FSkelTy.nondt F H hH => by
+      rw [type_lift_nondt_fix s3 X H hH]
+      exact GuideTr.same F H
+  | @FSkelTy.dt s4 FB HB hBody => by
+      rw [show __smtx_type_lift s3 X (SmtType.Datatype s4 HB) =
+          native_ite (native_Teq (SmtType.Datatype s3 X) (SmtType.Datatype s4 HB))
+            (SmtType.TypeRef s3)
+            (SmtType.Datatype s4 (__smtx_dt_lift s3 X HB)) by
+        simp [__smtx_type_lift]]
+      cases hEq : native_Teq (SmtType.Datatype s3 X) (SmtType.Datatype s4 HB) with
+      | true =>
+          rw [native_ite, if_pos rfl]
+          have hParts : s3 = s4 ∧ X = HB := by
+            have := hEq
+            simp [native_Teq] at this
+            exact ⟨this.1, this.2⟩
+          rw [hParts.1]
+          exact GuideTr.toRef
+      | false =>
+          rw [native_ite, if_neg (by simp [hEq])]
+          exact GuideTr.dtRec (lift_guide_tr_dt s3 X hBody)
+
+private theorem lift_guide_tr_dtc (s3 : native_String) (X : SmtDatatype)
+    {cF cH : SmtDatatypeCons} (h : FSkelDtc cF cH) :
+    GuideTrDtc cF cH (__smtx_dtc_lift s3 X cH) :=
+  match h with
+  | FSkelDtc.unit => by
+      rw [show __smtx_dtc_lift s3 X SmtDatatypeCons.unit =
+        SmtDatatypeCons.unit by simp [__smtx_dtc_lift]]
+      exact GuideTrDtc.unit
+  | @FSkelDtc.cons TF TH cF cH hT hc => by
+      rw [show __smtx_dtc_lift s3 X (SmtDatatypeCons.cons TH cH) =
+        SmtDatatypeCons.cons (__smtx_type_lift s3 X TH)
+          (__smtx_dtc_lift s3 X cH) by simp [__smtx_dtc_lift]]
+      exact GuideTrDtc.cons (lift_guide_tr_ty s3 X hT) (lift_guide_tr_dtc s3 X hc)
+
+private theorem lift_guide_tr_dt (s3 : native_String) (X : SmtDatatype)
+    {dF dH : SmtDatatype} (h : FSkelDt dF dH) :
+    GuideTrDt dF dH (__smtx_dt_lift s3 X dH) :=
+  match h with
+  | FSkelDt.null => by
+      rw [show __smtx_dt_lift s3 X SmtDatatype.null = SmtDatatype.null by
+        simp [__smtx_dt_lift]]
+      exact GuideTrDt.null
+  | @FSkelDt.sum cF cH dF dH hc hd => by
+      rw [show __smtx_dt_lift s3 X (SmtDatatype.sum cH dH) =
+        SmtDatatype.sum (__smtx_dtc_lift s3 X cH) (__smtx_dt_lift s3 X dH) by
+        simp [__smtx_dt_lift]]
+      exact GuideTrDt.sum (lift_guide_tr_dtc s3 X hc) (lift_guide_tr_dt s3 X hd)
+
+end
+
+/-! ## The chain invariant and the establishment walk -/
+
+/-- The pump invariant of a chain: its head entry `(t, P)` resolves through
+the whole chain to an inhabited datatype whose diagonal fold is well-formed
+against the current payload `P` and positionally related to it. -/
+private def ChainOK : SubstChain → Prop
+  | [] => True
+  | (t, P) :: REST =>
+      ∃ D : SmtDatatype,
+        chain_ty ((t, P) :: REST) (SmtType.TypeRef t) = SmtType.Datatype t D ∧
+        native_inhabited_type (SmtType.Datatype t D) = true ∧
+        __smtx_dt_wf_rec (__smtx_dt_substitute t D D) P = true ∧
+        FSkelDt (__smtx_dt_substitute t D D) P
+
+/-- Packaging: the head entry facts for the *canonical* resolved body imply
+the chain invariant; the resolution-shape and positional-skeleton components
+hold generically. -/
+private theorem chainok_head_facts
+    (t : native_String) (P : SmtDatatype) (REST : SubstChain)
+    (hFacts :
+      native_inhabited_type
+        (SmtType.Datatype t (chain_dt (chain_descend REST t P) P)) = true ∧
+      __smtx_dt_wf_rec
+        (__smtx_dt_substitute t (chain_dt (chain_descend REST t P) P)
+          (chain_dt (chain_descend REST t P) P)) P = true) :
+    ChainOK ((t, P) :: REST) := by
+  refine ⟨chain_dt (chain_descend REST t P) P, ?_, hFacts.1, hFacts.2, ?_⟩
+  · rw [show chain_ty ((t, P) :: REST) (SmtType.TypeRef t) =
+        chain_ty REST (__smtx_type_substitute t P (SmtType.TypeRef t)) from rfl]
+    rw [show __smtx_type_substitute t P (SmtType.TypeRef t) =
+        SmtType.Datatype t P by
+      simp [__smtx_type_substitute, native_ite, native_streq]]
+    exact chain_ty_datatype REST t P
+  · have h := fskel_master_dt P
+      (chain_descend REST t P ++ [(t, chain_dt (chain_descend REST t P) P)])
+    rwa [chain_dt_append_one] at h
+
+/-- THE remaining gap: across a descent step at a well-formed inhabited node,
+the head resolution is stable — or, when it is not (which requires a
+shadowing/self-overlapping input), its replacement still satisfies the entry
+facts.  Probed extensively (mutual/cyclic/mid-referencing descents all yield
+a *stable* resolution; only descents whose binder name collides with an
+enclosing binder mutate it, and even then the facts survive, using the
+inhabitedness/well-formedness of the descended node). -/
+private theorem chainok_selfExt_facts
+    (ρ : SubstChain) (s3 : native_String) (X : SmtDatatype)
+    (t : native_String) (P : SmtDatatype) (REST : SubstChain)
+    (hρ : ρ = (t, P) :: REST)
+    (hne : native_streq t s3 = false)
+    (hOK : ChainOK ρ)
+    (hInhNode :
+      native_inhabited_type
+        (SmtType.Datatype s3 (chain_dt (chain_descend ρ s3 X) X)) = true)
+    (hWfNode :
+      __smtx_dt_wf_rec
+        (__smtx_dt_substitute s3 (chain_dt (chain_descend ρ s3 X) X)
+          (chain_dt (chain_descend ρ s3 X) X)) X = true)
+    (hUnstable :
+      chain_ty (selfExt ρ s3 X) (SmtType.TypeRef t) ≠
+        chain_ty ρ (SmtType.TypeRef t)) :
+    ChainOK (selfExt ρ s3 X) := by
+  subst hρ
+  have hSelfExt :
+      selfExt ((t, P) :: REST) s3 X =
+        (t, __smtx_dt_lift s3 X P) ::
+          (chain_descend REST s3
+            (__smtx_dt_substitute t (__smtx_dt_lift s3 X P) X) ++
+            [(s3, chain_dt (chain_descend ((t, P) :: REST) s3 X) X)]) := by
+    simp [selfExt, chain_descend, hne]
+  rw [hSelfExt]
+  refine chainok_head_facts t (__smtx_dt_lift s3 X P)
+    (chain_descend REST s3
+      (__smtx_dt_substitute t (__smtx_dt_lift s3 X P) X) ++
+      [(s3, chain_dt (chain_descend ((t, P) :: REST) s3 X) X)]) ?_
+  sorry
+
+/-- The chain invariant is preserved by a descent step at a well-formed
+inhabited node.  The head payload is lifted against the descent body, the
+rest of the chain descends, and the resolved body of the descended node
+joins as a final self-entry.  When the head resolution is stable across the
+step (every case reachable from non-shadowing inputs), the facts transport
+directly: the resolution is unchanged and its well-formedness follows along
+the guide lift. -/
+private theorem chainok_selfExt
+    (ρ : SubstChain) (s3 : native_String) (X : SmtDatatype)
+    (t : native_String) (P : SmtDatatype) (REST : SubstChain)
+    (hρ : ρ = (t, P) :: REST)
+    (hne : native_streq t s3 = false)
+    (hOK : ChainOK ρ)
+    (hInhNode :
+      native_inhabited_type
+        (SmtType.Datatype s3 (chain_dt (chain_descend ρ s3 X) X)) = true)
+    (hWfNode :
+      __smtx_dt_wf_rec
+        (__smtx_dt_substitute s3 (chain_dt (chain_descend ρ s3 X) X)
+          (chain_dt (chain_descend ρ s3 X) X)) X = true) :
+    ChainOK (selfExt ρ s3 X) := by
+  by_cases hStable :
+      chain_ty (selfExt ρ s3 X) (SmtType.TypeRef t) =
+        chain_ty ρ (SmtType.TypeRef t)
+  · -- stable resolution: transport the facts along the head-payload lift
+    subst hρ
+    rcases hOK with ⟨D, hRes, hInh, hWf, hSkel⟩
+    -- the descended chain has head `(t, lift s3 X P)`
+    have hSelfExt :
+        selfExt ((t, P) :: REST) s3 X =
+          (t, __smtx_dt_lift s3 X P) ::
+            (chain_descend REST s3
+              (__smtx_dt_substitute t (__smtx_dt_lift s3 X P) X) ++
+              [(s3, chain_dt (chain_descend ((t, P) :: REST) s3 X) X)]) := by
+      simp [selfExt, chain_descend, hne]
+    rw [hSelfExt]
+    refine ⟨D, ?_, hInh, ?_, ?_⟩
+    · rw [← hSelfExt, hStable]
+      exact hRes
+    · exact guideTrDt_wf (lift_guide_tr_dt s3 X hSkel) hWf
+    · exact fskel_lift_dt s3 X hSkel
+  · exact chainok_selfExt_facts ρ s3 X t P REST hρ hne hOK hInhNode
+      hWfNode hStable
+
+/-! The establishment walk: over a raw guide `dU`, the image under a chain
+with head `(t, P)` transports the guide from `dU` to `dt_substitute t P dU`,
+given the chain invariant and the old well-formedness (whose pattern-2 facts
+feed the chain-invariant maintenance at nested descents). -/
+mutual
+
+private theorem estab_ty :
+    ∀ (TU : SmtType) (t : native_String) (P : SmtDatatype) (REST : SubstChain),
+      ChainOK ((t, P) :: REST) →
+      (∀ (s3 : native_String) (X : SmtDatatype), TU = SmtType.Datatype s3 X →
+        native_inhabited_type (chain_ty ((t, P) :: REST) TU) = true ∧
+          __smtx_type_wf_rec (chain_ty ((t, P) :: REST) TU) TU = true) →
+      GuideTr (chain_ty ((t, P) :: REST) TU) TU (__smtx_type_substitute t P TU)
+  | SmtType.TypeRef r, t, P, REST, hOK, _hOldField => by
+      cases hs : native_streq t r with
+      | true =>
+          have hEq : t = r := by simpa [native_streq] using hs
+          subst r
+          rcases hOK with ⟨D, hRes, hInh, hWf, _hSkel⟩
+          rw [hRes]
+          rw [show __smtx_type_substitute t P (SmtType.TypeRef t) =
+              SmtType.Datatype t P by
+            simp [__smtx_type_substitute, native_ite, native_streq]]
+          exact GuideTr.toDt hInh hWf
+      | false =>
+          rw [show __smtx_type_substitute t P (SmtType.TypeRef r) =
+              SmtType.TypeRef r by
+            simp [__smtx_type_substitute, native_ite, hs]]
+          exact GuideTr.same _ _
+  | SmtType.Datatype s3 X, t, P, REST, hOK, hOldField => by
+      cases hs : native_streq t s3 with
+      | true =>
+          rw [show __smtx_type_substitute t P (SmtType.Datatype s3 X) =
+              SmtType.Datatype s3 X by
+            simp [__smtx_type_substitute, native_ite, hs]]
+          exact GuideTr.same _ _
+      | false =>
+          have hFacts := hOldField s3 X rfl
+          rw [chain_ty_datatype ((t, P) :: REST) s3 X] at hFacts
+          have hInhNode :
+              native_inhabited_type
+                (SmtType.Datatype s3
+                  (chain_dt (chain_descend ((t, P) :: REST) s3 X) X)) = true :=
+            hFacts.1
+          have hWfNode :
+              __smtx_dt_wf_rec
+                (__smtx_dt_substitute s3
+                  (chain_dt (chain_descend ((t, P) :: REST) s3 X) X)
+                  (chain_dt (chain_descend ((t, P) :: REST) s3 X) X)) X = true := by
+            simpa [__smtx_type_wf_rec] using hFacts.2
+          rw [chain_ty_datatype ((t, P) :: REST) s3 X]
+          rw [show __smtx_type_substitute t P (SmtType.Datatype s3 X) =
+              SmtType.Datatype s3
+                (__smtx_dt_substitute t (__smtx_dt_lift s3 X P) X) by
+            simp [__smtx_type_substitute, native_ite, hs]]
+          refine GuideTr.dtRec ?_
+          -- the descended chain has head `(t, lift s3 X P)`
+          have hDesc :
+              chain_descend ((t, P) :: REST) s3 X =
+                (t, __smtx_dt_lift s3 X P) ::
+                  chain_descend REST s3
+                    (__smtx_dt_substitute t (__smtx_dt_lift s3 X P) X) := by
+            simp [chain_descend, hs]
+          have hOK' : ChainOK (selfExt ((t, P) :: REST) s3 X) :=
+            chainok_selfExt ((t, P) :: REST) s3 X t P REST rfl hs hOK
+              hInhNode hWfNode
+          have hSelfExtEq : selfExt ((t, P) :: REST) s3 X =
+              (t, __smtx_dt_lift s3 X P) ::
+                (chain_descend REST s3
+                  (__smtx_dt_substitute t (__smtx_dt_lift s3 X P) X) ++
+                  [(s3, chain_dt (chain_descend ((t, P) :: REST) s3 X) X)]) := by
+            simp [selfExt, hDesc]
+          -- the folded side of the child chain is the node's diagonal fold
+          have hFold :
+              chain_dt
+                ((t, __smtx_dt_lift s3 X P) ::
+                  (chain_descend REST s3
+                    (__smtx_dt_substitute t (__smtx_dt_lift s3 X P) X) ++
+                    [(s3, chain_dt (chain_descend ((t, P) :: REST) s3 X) X)])) X =
+                __smtx_dt_substitute s3
+                  (chain_dt (chain_descend ((t, P) :: REST) s3 X) X)
+                  (chain_dt (chain_descend ((t, P) :: REST) s3 X) X) := by
+            rw [show ((t, __smtx_dt_lift s3 X P) ::
+                (chain_descend REST s3
+                  (__smtx_dt_substitute t (__smtx_dt_lift s3 X P) X) ++
+                  [(s3, chain_dt (chain_descend ((t, P) :: REST) s3 X) X)])) =
+              (chain_descend ((t, P) :: REST) s3 X ++
+                [(s3, chain_dt (chain_descend ((t, P) :: REST) s3 X) X)]) by
+              simp [hDesc]]
+            rw [chain_dt_append_one]
+          have hWalk := estab_dt X t (__smtx_dt_lift s3 X P)
+            (chain_descend REST s3
+              (__smtx_dt_substitute t (__smtx_dt_lift s3 X P) X) ++
+              [(s3, chain_dt (chain_descend ((t, P) :: REST) s3 X) X)])
+            (by rwa [hSelfExtEq] at hOK')
+            (by rw [hFold]; exact hWfNode)
+          rwa [hFold] at hWalk
+  | SmtType.None, t, P, REST, _hOK, _hOldField => by
+      rw [chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) _,
+        show __smtx_type_substitute t P SmtType.None = SmtType.None by
+          simp [__smtx_type_substitute]]
+      exact GuideTr.same _ _
+  | SmtType.Bool, t, P, REST, _hOK, _hOldField => by
+      rw [chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) _,
+        show __smtx_type_substitute t P SmtType.Bool = SmtType.Bool by
+          simp [__smtx_type_substitute]]
+      exact GuideTr.same _ _
+  | SmtType.Int, t, P, REST, _hOK, _hOldField => by
+      rw [chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) _,
+        show __smtx_type_substitute t P SmtType.Int = SmtType.Int by
+          simp [__smtx_type_substitute]]
+      exact GuideTr.same _ _
+  | SmtType.Real, t, P, REST, _hOK, _hOldField => by
+      rw [chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) _,
+        show __smtx_type_substitute t P SmtType.Real = SmtType.Real by
+          simp [__smtx_type_substitute]]
+      exact GuideTr.same _ _
+  | SmtType.RegLan, t, P, REST, _hOK, _hOldField => by
+      rw [chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) _,
+        show __smtx_type_substitute t P SmtType.RegLan = SmtType.RegLan by
+          simp [__smtx_type_substitute]]
+      exact GuideTr.same _ _
+  | SmtType.BitVec w, t, P, REST, _hOK, _hOldField => by
+      rw [chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) _,
+        show __smtx_type_substitute t P (SmtType.BitVec w) = SmtType.BitVec w by
+          simp [__smtx_type_substitute]]
+      exact GuideTr.same _ _
+  | SmtType.Map A B, t, P, REST, _hOK, _hOldField => by
+      rw [chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) _,
+        show __smtx_type_substitute t P (SmtType.Map A B) = SmtType.Map A B by
+          simp [__smtx_type_substitute]]
+      exact GuideTr.same _ _
+  | SmtType.Set A, t, P, REST, _hOK, _hOldField => by
+      rw [chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) _,
+        show __smtx_type_substitute t P (SmtType.Set A) = SmtType.Set A by
+          simp [__smtx_type_substitute]]
+      exact GuideTr.same _ _
+  | SmtType.Seq A, t, P, REST, _hOK, _hOldField => by
+      rw [chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) _,
+        show __smtx_type_substitute t P (SmtType.Seq A) = SmtType.Seq A by
+          simp [__smtx_type_substitute]]
+      exact GuideTr.same _ _
+  | SmtType.Char, t, P, REST, _hOK, _hOldField => by
+      rw [chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) _,
+        show __smtx_type_substitute t P SmtType.Char = SmtType.Char by
+          simp [__smtx_type_substitute]]
+      exact GuideTr.same _ _
+  | SmtType.USort u, t, P, REST, _hOK, _hOldField => by
+      rw [chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) _,
+        show __smtx_type_substitute t P (SmtType.USort u) = SmtType.USort u by
+          simp [__smtx_type_substitute]]
+      exact GuideTr.same _ _
+  | SmtType.FunType A B, t, P, REST, _hOK, _hOldField => by
+      rw [chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) _,
+        show __smtx_type_substitute t P (SmtType.FunType A B) =
+          SmtType.FunType A B by simp [__smtx_type_substitute]]
+      exact GuideTr.same _ _
+  | SmtType.DtcAppType A B, t, P, REST, _hOK, _hOldField => by
+      rw [chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) _,
+        show __smtx_type_substitute t P (SmtType.DtcAppType A B) =
+          SmtType.DtcAppType A B by simp [__smtx_type_substitute]]
+      exact GuideTr.same _ _
+
+private theorem estab_dtc :
+    ∀ (cU : SmtDatatypeCons) (t : native_String) (P : SmtDatatype)
+      (REST : SubstChain),
+      ChainOK ((t, P) :: REST) →
+      __smtx_dt_cons_wf_rec (chain_dtc ((t, P) :: REST) cU) cU = true →
+      GuideTrDtc (chain_dtc ((t, P) :: REST) cU) cU
+        (__smtx_dtc_substitute t P cU)
+  | SmtDatatypeCons.unit, t, P, REST, _hOK, _hOld => by
+      rw [chain_dtc_unit]
+      rw [show __smtx_dtc_substitute t P SmtDatatypeCons.unit =
+        SmtDatatypeCons.unit by simp [__smtx_dtc_substitute]]
+      exact GuideTrDtc.unit
+  | SmtDatatypeCons.cons TU cU, t, P, REST, hOK, hOld => by
+      rw [chain_dtc_cons] at hOld
+      have hTail : __smtx_dt_cons_wf_rec (chain_dtc ((t, P) :: REST) cU) cU = true :=
+        dt_cons_wf_tail hOld
+      have hOldField : ∀ (s3 : native_String) (X : SmtDatatype),
+          TU = SmtType.Datatype s3 X →
+          native_inhabited_type (chain_ty ((t, P) :: REST) TU) = true ∧
+            __smtx_type_wf_rec (chain_ty ((t, P) :: REST) TU) TU = true := by
+        intro s3 X hTU
+        subst hTU
+        have hParts := dt_cons_wf_p2_parts
+          (fun _ _ _ _ hEq => by cases hEq) hOld
+        exact ⟨hParts.1, hParts.2.1⟩
+      rw [chain_dtc_cons]
+      rw [show __smtx_dtc_substitute t P (SmtDatatypeCons.cons TU cU) =
+        SmtDatatypeCons.cons (__smtx_type_substitute t P TU)
+          (__smtx_dtc_substitute t P cU) by simp [__smtx_dtc_substitute]]
+      exact GuideTrDtc.cons (estab_ty TU t P REST hOK hOldField)
+        (estab_dtc cU t P REST hOK hTail)
+
+private theorem estab_dt :
+    ∀ (dU : SmtDatatype) (t : native_String) (P : SmtDatatype)
+      (REST : SubstChain),
+      ChainOK ((t, P) :: REST) →
+      __smtx_dt_wf_rec (chain_dt ((t, P) :: REST) dU) dU = true →
+      GuideTrDt (chain_dt ((t, P) :: REST) dU) dU (__smtx_dt_substitute t P dU)
+  | SmtDatatype.null, t, P, REST, _hOK, _hOld => by
+      rw [chain_dt_null]
+      rw [show __smtx_dt_substitute t P SmtDatatype.null = SmtDatatype.null by
+        simp [__smtx_dt_substitute]]
+      exact GuideTrDt.null
+  | SmtDatatype.sum cU dU, t, P, REST, hOK, hOld => by
+      rw [chain_dt_sum] at hOld
+      have hParts := dt_wf_sum_parts hOld
+      rw [chain_dt_sum]
+      rw [show __smtx_dt_substitute t P (SmtDatatype.sum cU dU) =
+        SmtDatatype.sum (__smtx_dtc_substitute t P cU)
+          (__smtx_dt_substitute t P dU) by simp [__smtx_dt_substitute]]
+      exact GuideTrDt.sum (estab_dtc cU t P REST hOK hParts.1)
+        (estab_dt dU t P REST hOK hParts.2)
+
+end
 
 /-- Establishment of the guide transport for the diagonalization instance:
 the raw guide `dC` of a folded nested field may be replaced by the folded
@@ -211,9 +870,43 @@ private theorem wf_diag_establish
     (sC : native_String) (dC : SmtDatatype)
     (hne : native_streq sP sC = false)
     (BC : SmtDatatype)
-    (hBC : BC = __smtx_dt_substitute sP (__smtx_dt_lift sC dC dP) dC) :
+    (hBC : BC = __smtx_dt_substitute sP (__smtx_dt_lift sC dC dP) dC)
+    (hInhBC : native_inhabited_type (SmtType.Datatype sC BC) = true)
+    (hOld : __smtx_dt_wf_rec (__smtx_dt_substitute sC BC BC) dC = true) :
     GuideTrDt (__smtx_dt_substitute sC BC BC) dC BC := by
-  sorry
+  -- the base chain `[(sP, dP)]` satisfies the invariant
+  have hOK0 : ChainOK [(sP, dP)] := by
+    refine ⟨dP, ?_, hPInh, ?_, ?_⟩
+    · simp [chain_ty, __smtx_type_substitute, native_ite, native_streq]
+    · simpa [__smtx_type_wf_rec] using hPWf
+    · exact fskel_master_dt dP [(sP, dP)]
+  -- the top chain is one descent step from it
+  have hDesc0 :
+      chain_descend [(sP, dP)] sC dC = [(sP, __smtx_dt_lift sC dC dP)] := by
+    simp [chain_descend, hne]
+  have hTop :
+      selfExt [(sP, dP)] sC dC =
+        [(sP, __smtx_dt_lift sC dC dP), (sC, BC)] := by
+    simp [selfExt, hDesc0, chain_dt, hBC]
+  have hNode0 :
+      chain_dt (chain_descend [(sP, dP)] sC dC) dC = BC := by
+    simp [chain_descend, hne, chain_dt, hBC]
+  have hOKTop : ChainOK [(sP, __smtx_dt_lift sC dC dP), (sC, BC)] := by
+    rw [← hTop]
+    exact chainok_selfExt [(sP, dP)] sC dC sP dP [] rfl hne hOK0
+      (by rw [hNode0]; exact hInhBC) (by rw [hNode0]; exact hOld)
+  have hFold0 :
+      chain_dt [(sP, __smtx_dt_lift sC dC dP), (sC, BC)] dC =
+        __smtx_dt_substitute sC BC BC := by
+    simp [chain_dt, hBC]
+  have hWalk := estab_dt dC sP (__smtx_dt_lift sC dC dP) [(sC, BC)] hOKTop
+    (by rw [hFold0]; exact hOld)
+  have hFold :
+      chain_dt [(sP, __smtx_dt_lift sC dC dP), (sC, BC)] dC =
+        __smtx_dt_substitute sC BC BC := by
+    simp [chain_dt, hBC]
+  rw [hFold, ← hBC] at hWalk
+  exact hWalk
 
 /-- Wf-diagonalization: the folded form of a nested datatype field of a
 diagonal entry is itself diagonal.  `hFWf` is the field's well-formedness
@@ -225,6 +918,8 @@ theorem wf_diag_push
     (hPWf : __smtx_type_wf_rec (SmtType.Datatype sP dP)
         (SmtType.Datatype sP dP) = true)
     (sC : native_String) (dC : SmtDatatype)
+    (hFInh : native_inhabited_type
+        (__smtx_type_substitute sP dP (SmtType.Datatype sC dC)) = true)
     (hFWf : __smtx_type_wf_rec
         (__smtx_type_substitute sP dP (SmtType.Datatype sC dC))
         (SmtType.Datatype sC dC) = true) :
@@ -240,7 +935,7 @@ theorem wf_diag_push
             SmtType.Datatype sC
               (__smtx_dt_substitute sP (__smtx_dt_lift sC dC dP) dC) := by
         simp [__smtx_type_substitute, native_ite, hs]
-      rw [hSub] at hFWf ⊢
+      rw [hSub] at hFInh hFWf ⊢
       have hOld :
           __smtx_dt_wf_rec
             (__smtx_dt_substitute sC
@@ -249,7 +944,7 @@ theorem wf_diag_push
             dC = true := by
         simpa [__smtx_type_wf_rec] using hFWf
       have hTr := wf_diag_establish sP dP hPInh hPWf sC dC hs
-        (__smtx_dt_substitute sP (__smtx_dt_lift sC dC dP) dC) rfl
+        (__smtx_dt_substitute sP (__smtx_dt_lift sC dC dP) dC) rfl hFInh hOld
       simpa [__smtx_type_wf_rec] using guideTrDt_wf hTr hOld
 
 end Smtm

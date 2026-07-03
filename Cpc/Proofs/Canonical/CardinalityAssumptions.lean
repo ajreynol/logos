@@ -2070,7 +2070,7 @@ private theorem diag_pump_field_large
           (by simpa [__smtx_type_substitute] using hFWf)
           (by simpa [__smtx_is_finite_type] using hTUInf)
   | Datatype s2 d2 =>
-      have hDiag := wf_diag_push s d hInh hWfD s2 d2 hFWf
+      have hDiag := wf_diag_push s d hInh hWfD s2 d2 hFInh hFWf
       have hSubInf :
           __smtx_is_finite_type
             (__smtx_type_substitute s d (SmtType.Datatype s2 d2)) = false :=
