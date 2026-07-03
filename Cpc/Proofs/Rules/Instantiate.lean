@@ -1496,83 +1496,6 @@ theorem substFalse_eval_unary_op_type_dependent
   rw [hSubstEq, hMk]
   exact hCong _ _ hArgTy hArgEval
 
-theorem instantiate_typed_list_elem_type_non_none_ne_stuck
-    {xs : Term}
-    (hElemNN : __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None) :
-    xs ≠ Term.Stuck := by
-  intro h
-  subst xs
-  exact hElemNN (by simp [__eo_to_smt_typed_list_elem_type])
-
-theorem instantiate_typed_list_cons_type_parts
-    (x xs : Term)
-    (hNN :
-      __eo_to_smt_typed_list_elem_type
-          (Term.Apply
-            (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) x) xs) ≠
-        SmtType.None) :
-    __smtx_typeof (__eo_to_smt x) =
-        __eo_to_smt_typed_list_elem_type xs ∧
-      __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ∧
-      __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None ∧
-      __eo_to_smt_typed_list_elem_type
-          (Term.Apply
-            (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) x) xs) =
-        __smtx_typeof (__eo_to_smt x) := by
-  let headTy := __smtx_typeof (__eo_to_smt x)
-  let tailTy := __eo_to_smt_typed_list_elem_type xs
-  have hEqBool : native_Teq headTy tailTy = true := by
-    cases hEq : native_Teq headTy tailTy <;>
-      simp [__eo_to_smt_typed_list_elem_type, headTy, tailTy, native_ite, hEq]
-        at hNN ⊢
-  have hHeadTail : headTy = tailTy := by
-    simpa [native_Teq] using hEqBool
-  have hHeadNN : headTy ≠ SmtType.None := by
-    intro hHeadNone
-    apply hNN
-    simp [__eo_to_smt_typed_list_elem_type, headTy, native_ite, hHeadNone]
-  have hTailNN : tailTy ≠ SmtType.None := by
-    rw [← hHeadTail]
-    exact hHeadNN
-  have hConsEq :
-      __eo_to_smt_typed_list_elem_type
-          (Term.Apply
-            (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) x) xs) =
-        headTy := by
-    simp [__eo_to_smt_typed_list_elem_type, headTy, tailTy, native_ite,
-      hEqBool]
-  exact ⟨hHeadTail, hHeadNN, hTailNN, hConsEq⟩
-
-theorem instantiate_typed_list_nil_elem_type_eq_of_non_none
-    (T : Term)
-    (hNN :
-      __eo_to_smt_typed_list_elem_type
-          (Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) T) ≠
-        SmtType.None) :
-    __eo_to_smt_typed_list_elem_type
-        (Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) T) =
-      __eo_to_smt_type T := by
-  cases hWf : __smtx_type_wf (__eo_to_smt_type T) <;>
-    simp [__eo_to_smt_typed_list_elem_type, hWf, native_ite] at hNN ⊢
-
-theorem instantiate_eo_to_smt_distinct_eq_of_elem_type_non_none
-    (xs : Term)
-    (hElemNN : __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None) :
-    __eo_to_smt (Term.Apply (Term.UOp UserOp.distinct) xs) =
-      __eo_to_smt_distinct xs := by
-  change
-    native_ite (native_Teq (__eo_to_smt_typed_list_elem_type xs) SmtType.None)
-      SmtTerm.None (__eo_to_smt_distinct xs) =
-      __eo_to_smt_distinct xs
-  have hGuard :
-      native_Teq (__eo_to_smt_typed_list_elem_type xs) SmtType.None =
-        false := by
-    cases hElem : __eo_to_smt_typed_list_elem_type xs <;>
-      simp [hElem] at hElemNN ⊢
-    all_goals rfl
-  rw [hGuard]
-  simp [native_ite]
-
 theorem substFalse_eval_eo_to_smt_distinct_pairs_cross
     (root : Term) (sSub sOrig : SmtTerm)
     (tl xs ss bvs : Term) {M N : SmtModel}
@@ -1636,7 +1559,7 @@ theorem substFalse_eval_eo_to_smt_distinct_pairs_cross
                     Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) TSub :=
                 instantiate_eo_mk_apply_eq_apply_of_ne_stuck _ _ (by
                   rw [← hSubstEq]
-                  exact instantiate_typed_list_elem_type_non_none_ne_stuck
+                  exact TypedListSubstitutionSupport.typed_list_elem_type_non_none_not_stuck
                     hSubstElemNN)
               rw [hSubstEq, hMk]
               change
@@ -1655,7 +1578,7 @@ theorem substFalse_eval_eo_to_smt_distinct_pairs_cross
                     __substitute_simul_rec (Term.Boolean false) head xs ss bvs
                   let tailSub :=
                     __substitute_simul_rec (Term.Boolean false) tail xs ss bvs
-                  rcases instantiate_typed_list_cons_type_parts head tail hElemNN with
+                  rcases TypedListSubstitutionSupport.typed_list_cons_elem_type_parts head tail hElemNN with
                     ⟨_hHeadTail, hHeadNN, hTailNN, _hConsEq⟩
                   have hHeadTrans : eoHasSmtTranslation head := by
                     unfold eoHasSmtTranslation
@@ -1708,7 +1631,7 @@ theorem substFalse_eval_eo_to_smt_distinct_pairs_cross
                               head) xs ss bvs)
                           tailSub ≠ Term.Stuck := by
                     rw [← hOuterSub]
-                    exact instantiate_typed_list_elem_type_non_none_ne_stuck
+                    exact TypedListSubstitutionSupport.typed_list_elem_type_non_none_not_stuck
                       hSubstElemNN
                   have hOuterNe' :
                       __eo_mk_apply
@@ -1751,7 +1674,7 @@ theorem substFalse_eval_eo_to_smt_distinct_pairs_cross
                           tailSub := by
                     rw [hOuterSub, hInnerSub, hInnerMk, hOuterMk]
                   rcases
-                    instantiate_typed_list_cons_type_parts headSub tailSub
+                    TypedListSubstitutionSupport.typed_list_cons_elem_type_parts headSub tailSub
                       (by simpa [headSub, tailSub, hResultEq] using hSubstElemNN) with
                     ⟨_hSubHeadTail, hSubHeadNN, hSubTailNN, _hSubConsEq⟩
                   have hHeadSubTrans : eoHasSmtTranslation headSub := by
@@ -1858,7 +1781,7 @@ theorem substFalse_eval_eo_to_smt_distinct_cross
                     Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) TSub :=
                 instantiate_eo_mk_apply_eq_apply_of_ne_stuck _ _ (by
                   rw [← hSubstEq]
-                  exact instantiate_typed_list_elem_type_non_none_ne_stuck
+                  exact TypedListSubstitutionSupport.typed_list_elem_type_non_none_not_stuck
                     hSubstElemNN)
               rw [hSubstEq, hMk]
               change
@@ -1877,7 +1800,7 @@ theorem substFalse_eval_eo_to_smt_distinct_cross
                     __substitute_simul_rec (Term.Boolean false) head xs ss bvs
                   let tailSub :=
                     __substitute_simul_rec (Term.Boolean false) tail xs ss bvs
-                  rcases instantiate_typed_list_cons_type_parts head tail hElemNN with
+                  rcases TypedListSubstitutionSupport.typed_list_cons_elem_type_parts head tail hElemNN with
                     ⟨_hHeadTail, hHeadNN, hTailNN, _hConsEq⟩
                   have hHeadTrans : eoHasSmtTranslation head := by
                     unfold eoHasSmtTranslation
@@ -1930,7 +1853,7 @@ theorem substFalse_eval_eo_to_smt_distinct_cross
                               head) xs ss bvs)
                           tailSub ≠ Term.Stuck := by
                     rw [← hOuterSub]
-                    exact instantiate_typed_list_elem_type_non_none_ne_stuck
+                    exact TypedListSubstitutionSupport.typed_list_elem_type_non_none_not_stuck
                       hSubstElemNN
                   have hOuterNe' :
                       __eo_mk_apply
@@ -1973,7 +1896,7 @@ theorem substFalse_eval_eo_to_smt_distinct_cross
                           tailSub := by
                     rw [hOuterSub, hInnerSub, hInnerMk, hOuterMk]
                   rcases
-                    instantiate_typed_list_cons_type_parts headSub tailSub
+                    TypedListSubstitutionSupport.typed_list_cons_elem_type_parts headSub tailSub
                       (by simpa [headSub, tailSub, hResultEq] using hSubstElemNN) with
                     ⟨_hSubHeadTail, hSubHeadNN, hSubTailNN, _hSubConsEq⟩
                   have hHeadSubTrans : eoHasSmtTranslation headSub := by
@@ -2102,8 +2025,8 @@ theorem substFalse_eval_distinct
       __eo_to_smt_typed_list_elem_type aSub ≠ SmtType.None :=
     typed_list_elem_type_non_none_of_distinct_has_smt_translation hSubstDistinctTrans
   rw [hResultEq,
-    instantiate_eo_to_smt_distinct_eq_of_elem_type_non_none aSub hSubstElemNN,
-    instantiate_eo_to_smt_distinct_eq_of_elem_type_non_none a hElemNN]
+    TypedListSubstitutionSupport.eo_to_smt_distinct_eq_of_elem_type_non_none aSub hSubstElemNN,
+    TypedListSubstitutionSupport.eo_to_smt_distinct_eq_of_elem_type_non_none a hElemNN]
   exact
     substFalse_eval_eo_to_smt_distinct_cross
       (Term.Apply (Term.UOp UserOp.distinct) a) a xs ss bvs
@@ -2184,7 +2107,7 @@ theorem substFalse_eval_eo_to_smt_set_insert_cross
                     Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) TSub :=
                 instantiate_eo_mk_apply_eq_apply_of_ne_stuck _ _ (by
                   rw [← hSubstEq]
-                  exact instantiate_typed_list_elem_type_non_none_ne_stuck
+                  exact TypedListSubstitutionSupport.typed_list_elem_type_non_none_not_stuck
                     hSubstElemNN)
               have hBaseSubTy' :
                   __smtx_typeof baseSub =
@@ -2200,10 +2123,10 @@ theorem substFalse_eval_eo_to_smt_set_insert_cross
                     SmtType.None := by
                 simpa [TSub, hSubstEq, hMk] using hSubstElemNN
               have hSubElemEq :=
-                instantiate_typed_list_nil_elem_type_eq_of_non_none
+                TypedListSubstitutionSupport.typed_list_nil_elem_type_eq_of_non_none
                   TSub hSubstElemNN'
               have hOrigElemEq :=
-                instantiate_typed_list_nil_elem_type_eq_of_non_none
+                TypedListSubstitutionSupport.typed_list_nil_elem_type_eq_of_non_none
                   tail hElemNN
               have hSubGuard :
                   native_Teq (__smtx_typeof baseSub)
@@ -2243,7 +2166,7 @@ theorem substFalse_eval_eo_to_smt_set_insert_cross
                     __substitute_simul_rec (Term.Boolean false) head xs ss bvs
                   let tailSub :=
                     __substitute_simul_rec (Term.Boolean false) tail xs ss bvs
-                  rcases instantiate_typed_list_cons_type_parts head tail hElemNN with
+                  rcases TypedListSubstitutionSupport.typed_list_cons_elem_type_parts head tail hElemNN with
                     ⟨hHeadTail, hHeadNN, hTailNN, hConsEq⟩
                   have hHeadTrans : eoHasSmtTranslation head := by
                     unfold eoHasSmtTranslation
@@ -2296,7 +2219,7 @@ theorem substFalse_eval_eo_to_smt_set_insert_cross
                               head) xs ss bvs)
                           tailSub ≠ Term.Stuck := by
                     rw [← hOuterSub]
-                    exact instantiate_typed_list_elem_type_non_none_ne_stuck
+                    exact TypedListSubstitutionSupport.typed_list_elem_type_non_none_not_stuck
                       hSubstElemNN
                   have hOuterNe' :
                       __eo_mk_apply
@@ -2339,7 +2262,7 @@ theorem substFalse_eval_eo_to_smt_set_insert_cross
                           tailSub := by
                     rw [hOuterSub, hInnerSub, hInnerMk, hOuterMk]
                   rcases
-                    instantiate_typed_list_cons_type_parts headSub tailSub
+                    TypedListSubstitutionSupport.typed_list_cons_elem_type_parts headSub tailSub
                       (by simpa [headSub, tailSub, hResultEq] using hSubstElemNN) with
                     ⟨hSubHeadTail, hSubHeadNN, hSubTailNN, hSubConsEq⟩
                   have hHeadSubTrans : eoHasSmtTranslation headSub := by

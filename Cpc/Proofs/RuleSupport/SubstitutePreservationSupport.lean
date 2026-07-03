@@ -1,9 +1,11 @@
 import Cpc.Proofs.RuleSupport.SubstituteTranslatabilitySupport
+import Cpc.Proofs.RuleSupport.TypedListSubstitutionSupport
 
 open Eo
 open SmtEval
 open Smtm
 open SubstituteTranslatabilitySupport
+open TypedListSubstitutionSupport
 
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
