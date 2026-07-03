@@ -11192,13 +11192,27 @@ by
                       Term.Bool at hResultTy
                     rw [hResEq] at hResultTy
                     exact hResultTy
-                  -- The result is SMT Bool-typed by substitution type preservation.
+                  -- The result preservation facts come from the combined theorem.
+                  have hResPreserves :
+                      __eo_typeof
+                          (__substitute_simul_rec (Term.Boolean false) F xs a1
+                            Term.__eo_List_nil) =
+                        __eo_typeof F ∧
+                        RuleProofs.eo_has_smt_translation
+                          (__substitute_simul_rec (Term.Boolean false) F xs a1
+                            Term.__eo_List_nil) :=
+                    SubstitutePreservationSupport.substitute_simul_preserves_type_and_translation_of_typeof_bool
+                      F xs a1 hWf hActualsTrans hActuals hSubstTypeof
+                  -- Package the combined preservation result as SMT Bool-typed.
                   have hResBool :
                       RuleProofs.eo_has_bool_type
                         (__substitute_simul_rec (Term.Boolean false) F xs a1
                           Term.__eo_List_nil) :=
-                    SubstitutePreservationSupport.substitute_simul_has_bool_type_of_typeof_bool
-                      F xs a1 hWf hActualsTrans hActuals hSubstTypeof
+                    RuleProofs.eo_typeof_bool_implies_has_bool_type
+                      (__substitute_simul_rec (Term.Boolean false) F xs a1
+                        Term.__eo_List_nil)
+                      hResPreserves.2
+                      hSubstTypeof
                   refine ⟨?_, ?_⟩
                   · -- facts_of_true
                     intro hEvid
@@ -11213,7 +11227,7 @@ by
                     change RuleProofs.eo_has_smt_translation
                       (__eo_prog_instantiate a1 (Proof.pf prem))
                     rw [hResEq]
-                    exact RuleProofs.eo_has_smt_translation_of_has_bool_type _ hResBool
+                    exact hResPreserves.2
               | cons _ _ =>
                   change Term.Stuck ≠ Term.Stuck at hProg
                   exact False.elim (hProg rfl)
