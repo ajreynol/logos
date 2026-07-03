@@ -25708,11 +25708,957 @@ private def str_re_consume_rec_false_nonempty_motive
       __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ssF ->
         native_unpack_string ssF ≠ []
 
+/--
+Combined string-side motive: a `false` result certifies a nonempty
+FORWARD string value (the mismatch witness is a definite length-1
+literal chunk), and any rebuildable result's residual string value is
+a suffix of the input's string value.  The two conclusions are proven
+together because the `re_mult` and generic-concat cases derive
+nonemptiness of the input from nonemptiness of the residual of an
+inner consume plus the suffix decomposition of that inner consume.
+-/
+private def str_re_consume_rec_nonempty_decomp_motive
+    (M : SmtModel) (s r fuel : Term) : Prop :=
+  ∀ side,
+    __smtx_typeof (__eo_to_smt s) = SmtType.Seq SmtType.Char ->
+    __smtx_typeof (__eo_to_smt r) = SmtType.RegLan ->
+    side = __str_re_consume_rec s r fuel ->
+    (side = Term.Boolean false ->
+      ∀ ssF,
+        __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ssF ->
+          native_unpack_string ssF ≠ []) ∧
+    (__str_membership_str side ≠ Term.Stuck ->
+      __smtx_typeof (__eo_to_smt (__str_membership_str side)) =
+        SmtType.Seq SmtType.Char ∧
+      ∀ ssF ssR,
+        __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ssF ->
+        __smtx_model_eval M
+            (__eo_to_smt (__str_membership_str side)) =
+          SmtValue.Seq ssR ->
+          ∃ u,
+            native_unpack_string ssF =
+              u ++ native_unpack_string ssR)
+
+private def str_re_consume_union_nonempty_decomp_motive
+    (M : SmtModel) (s r fuel : Term) : Prop :=
+  ∀ side,
+    __smtx_typeof (__eo_to_smt s) = SmtType.Seq SmtType.Char ->
+    __smtx_typeof (__eo_to_smt r) = SmtType.RegLan ->
+    side = __str_re_consume_union s r fuel ->
+    (side = Term.Boolean false ->
+      ∀ ssF,
+        __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ssF ->
+          native_unpack_string ssF ≠ []) ∧
+    (__str_membership_str side ≠ Term.Stuck ->
+      __smtx_typeof (__eo_to_smt (__str_membership_str side)) =
+        SmtType.Seq SmtType.Char ∧
+      ∀ ssF ssR,
+        __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ssF ->
+        __smtx_model_eval M
+            (__eo_to_smt (__str_membership_str side)) =
+          SmtValue.Seq ssR ->
+          ∃ u,
+            native_unpack_string ssF =
+              u ++ native_unpack_string ssR)
+
+private def str_re_consume_inter_nonempty_decomp_motive
+    (M : SmtModel) (s r fuel : Term) : Prop :=
+  ∀ side,
+    __smtx_typeof (__eo_to_smt s) = SmtType.Seq SmtType.Char ->
+    __smtx_typeof (__eo_to_smt r) = SmtType.RegLan ->
+    side = __str_re_consume_inter s r fuel ->
+    (side = Term.Boolean false ->
+      ∀ ssF,
+        __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ssF ->
+          native_unpack_string ssF ≠ []) ∧
+    (__str_membership_str side ≠ Term.Stuck ->
+      __smtx_typeof (__eo_to_smt (__str_membership_str side)) =
+        SmtType.Seq SmtType.Char ∧
+      ∀ ssF ssR,
+        __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ssF ->
+        __smtx_model_eval M
+            (__eo_to_smt (__str_membership_str side)) =
+          SmtValue.Seq ssR ->
+          ∃ u,
+            native_unpack_string ssF =
+              u ++ native_unpack_string ssR)
+
+private theorem str_re_consume_rec_false_left_ne_stuck_consume_local
+    (a b fuel : Term)
+    (h : __str_re_consume_rec a b fuel = Term.Boolean false) :
+    a ≠ Term.Stuck := by
+  intro hBad
+  subst a
+  exact str_re_consume_rec_stuck_left_absurd b fuel _ rfl (by
+    rw [h]
+    intro hh
+    cases hh)
+
+private theorem list_append_ne_nil_right_consume_local {α : Type}
+    (xs ys : List α) (h : ys ≠ []) : xs ++ ys ≠ [] := by
+  intro hBad
+  apply h
+  cases xs with
+  | nil => simpa using hBad
+  | cons a as => simp at hBad
+
+private theorem str_membership_str_ne_stuck_imp_ne_stuck_consume_local
+    (t : Term)
+    (h : __str_membership_str t ≠ Term.Stuck) :
+    t ≠ Term.Stuck := by
+  intro hBad
+  subst t
+  simp [__str_membership_str] at h
+
+private theorem eval_str_concat_unpack_append_consume_local
+    (M : SmtModel) (x y : Term) (ss : SmtSeq)
+    (hEval :
+      __smtx_model_eval M
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) x) y)) =
+        SmtValue.Seq ss) :
+    ∃ sx sy,
+      __smtx_model_eval M (__eo_to_smt x) = SmtValue.Seq sx ∧
+      __smtx_model_eval M (__eo_to_smt y) = SmtValue.Seq sy ∧
+      native_unpack_string ss =
+        native_unpack_string sx ++ native_unpack_string sy := by
+  rcases eval_str_concat_seq_cases_consume_local M x y ss hEval with
+    ⟨sx, sy, hx, hy, hss⟩
+  refine ⟨sx, sy, hx, hy, ?_⟩
+  rw [hss]
+  exact native_unpack_string_pack_seq_concat_local _ sx sy
+
+private theorem map_char_of_comp_char_consume_local :
+    ∀ w : native_String,
+      w.map (native_ssm_char_of_value ∘ SmtValue.Char) = w
+  | [] => rfl
+  | c :: cs => by
+      simp only [List.map_cons]
+      rw [map_char_of_comp_char_consume_local cs]
+      rfl
+
+private theorem eval_string_unpack_consume_local
+    (M : SmtModel) (w : native_String) :
+    ∃ ss,
+      __smtx_model_eval M (__eo_to_smt (Term.String w)) =
+        SmtValue.Seq ss ∧
+      native_unpack_string ss = w := by
+  refine ⟨native_pack_string w, ?_, ?_⟩
+  · change __smtx_model_eval M (SmtTerm.String w) = _
+    simp only [__smtx_model_eval]
+  · simp [native_unpack_string, consume_unpack_pack_string_map,
+      map_char_of_comp_char_consume_local]
+
+private theorem ne_false_of_eo_is_eq_false_consume_local
+    (t : Term)
+    (h : __eo_is_eq t (Term.Boolean false) = Term.Boolean false) :
+    t ≠ Term.Boolean false := by
+  intro hBad
+  subst t
+  simp [__eo_is_eq, native_teq, SmtEval.native_and,
+    SmtEval.native_not] at h
+
+/-- Trivial instance of the conjunct pair for a rebuilt fallback
+`str_in_re s rAtom` result. -/
+private theorem str_re_consume_nonempty_decomp_of_fallback_local
+    (M : SmtModel) (s rAtom side : Term)
+    (hSide :
+      side =
+        Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) rAtom)
+    (hSTy : __smtx_typeof (__eo_to_smt s) = SmtType.Seq SmtType.Char) :
+    (side = Term.Boolean false ->
+      ∀ ssF,
+        __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ssF ->
+          native_unpack_string ssF ≠ []) ∧
+    (__str_membership_str side ≠ Term.Stuck ->
+      __smtx_typeof (__eo_to_smt (__str_membership_str side)) =
+        SmtType.Seq SmtType.Char ∧
+      ∀ ssF ssR,
+        __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ssF ->
+        __smtx_model_eval M
+            (__eo_to_smt (__str_membership_str side)) =
+          SmtValue.Seq ssR ->
+          ∃ u,
+            native_unpack_string ssF =
+              u ++ native_unpack_string ssR) := by
+  constructor
+  · intro hFalse
+    rw [hSide] at hFalse
+    simp at hFalse
+  · intro _hMemNe
+    rw [hSide]
+    simp only [__str_membership_str]
+    refine ⟨hSTy, ?_⟩
+    intro ssF ssR h1 h2
+    injection h1.symm.trans h2 with h
+    exact ⟨[], by rw [h]; simp⟩
+
+/-- Trivial instance of the conjunct pair for a stuck result. -/
+private theorem str_re_consume_nonempty_decomp_of_stuck_local
+    (M : SmtModel) (s side : Term)
+    (hSide : side = Term.Stuck) :
+    (side = Term.Boolean false ->
+      ∀ ssF,
+        __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ssF ->
+          native_unpack_string ssF ≠ []) ∧
+    (__str_membership_str side ≠ Term.Stuck ->
+      __smtx_typeof (__eo_to_smt (__str_membership_str side)) =
+        SmtType.Seq SmtType.Char ∧
+      ∀ ssF ssR,
+        __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ssF ->
+        __smtx_model_eval M
+            (__eo_to_smt (__str_membership_str side)) =
+          SmtValue.Seq ssR ->
+          ∃ u,
+            native_unpack_string ssF =
+              u ++ native_unpack_string ssR) := by
+  constructor
+  · intro hFalse
+    rw [hSide] at hFalse
+    cases hFalse
+  · intro hMemNe
+    exfalso
+    apply hMemNe
+    rw [hSide]
+    simp [__str_membership_str]
+
+private theorem str_re_consume_rec_nonempty_decomp_local
+    (M : SmtModel) (hM : model_total_typed M) :
+    ∀ s0 r0 fuel0,
+      str_re_consume_rec_nonempty_decomp_motive M s0 r0 fuel0 := by
+  intro s0 r0 fuel0
+  refine __str_re_consume_rec.induct
+    (str_re_consume_inter_nonempty_decomp_motive M)
+    (str_re_consume_rec_nonempty_decomp_motive M)
+    (str_re_consume_union_nonempty_decomp_motive M)
+    ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_
+    ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ s0 r0 fuel0
+  rotate_left 5
+  · intro r fuel side hSTy _hRTy _hSide
+    rw [show __eo_to_smt Term.Stuck = SmtTerm.None by rfl,
+      TranslationProofs.smtx_typeof_none] at hSTy
+    cases hSTy
+  · intro s fuel hS side _hSTy hRTy _hSide
+    rw [show __eo_to_smt Term.Stuck = SmtTerm.None by rfl,
+      TranslationProofs.smtx_typeof_none] at hRTy
+    cases hRTy
+  · intro s r hS hR side _hSTy _hRTy hSide
+    constructor
+    · intro hFalse
+      exfalso
+      exact str_re_consume_rec_stuck_fuel_absurd s r side hS hR hSide
+        (by
+          rw [hFalse]
+          intro h
+          cases h)
+    · intro hMemNe
+      exfalso
+      exact str_re_consume_rec_stuck_fuel_absurd s r side hS hR hSide
+        (str_membership_str_ne_stuck_imp_ne_stuck_consume_local side
+          hMemNe)
+  · intro s1 s2 r2 fuel hFuel ih side hSTy hRTy hSide
+    have hR2Ty : __smtx_typeof (__eo_to_smt r2) = SmtType.RegLan :=
+      (re_concat_arg_types_of_reglan_consume_local
+        (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) r2
+        hRTy).2
+    have hEq :=
+      str_re_consume_rec_re_concat_empty_left_eq
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) s1) s2)
+        r2 fuel (by simp) hFuel
+    exact ih side hSTy hR2Ty (hSide.trans hEq)
+  · intro s1 s2 s3 r2 fuel hFuel hS3Ne ih side hSTy hRTy hSide
+    have hS1Ty :=
+      (str_concat_args_of_seq_type s1 s2 SmtType.Char hSTy).1
+    have hS2Ty :=
+      (str_concat_args_of_seq_type s1 s2 SmtType.Char hSTy).2
+    have hR2Ty :=
+      (re_concat_arg_types_of_reglan_consume_local
+        (Term.Apply (Term.UOp UserOp.str_to_re) s3) r2 hRTy).2
+    rw [__str_re_consume_rec.eq_5 fuel s1 s2 s3 r2 hS3Ne hFuel] at hSide
+    constructor
+    · intro hFalse ssF hSEvalF
+      have hIteFalse := hSide.symm.trans hFalse
+      rcases eo_ite_cases_of_ne_stuck _ _ _
+          (by
+            rw [hIteFalse]
+            intro h
+            cases h) with hCondT | hCondF
+      · rw [hCondT] at hIteFalse
+        simp only [eo_ite_true] at hIteFalse
+        have hTail := (ih (Term.Boolean false) hS2Ty hR2Ty
+          hIteFalse.symm).1 rfl
+        rcases eval_str_concat_unpack_append_consume_local M s1 s2 ssF
+            hSEvalF with ⟨sx, sy, _hx, hy, hUnp⟩
+        rw [hUnp]
+        exact list_append_ne_nil_right_consume_local _ _ (hTail sy hy)
+      · rw [hCondF] at hIteFalse
+        simp only [eo_ite_false] at hIteFalse
+        rcases eo_ite_cases_of_ne_stuck _ _ _
+            (by
+              rw [hIteFalse]
+              intro h
+              cases h) with hLenT | hLenF
+        · rcases eo_and_eq_true_local _ _ hLenT with ⟨hS1Len, _hS3Len⟩
+          rcases str_re_consume_string_singleton_of_seq_type_len_one s1
+              hS1Ty hS1Len with ⟨c, rfl⟩
+          rcases eval_str_concat_unpack_append_consume_local M _ s2 ssF
+              hSEvalF with ⟨sx, sy, hx, _hy, hUnp⟩
+          rcases eval_string_unpack_consume_local M [c] with
+            ⟨ss1, hss1, hUnp1⟩
+          injection hss1.symm.trans hx with hEq1
+          rw [hUnp, ← hEq1, hUnp1]
+          simp
+        · rw [hLenF] at hIteFalse
+          simp only [eo_ite_false] at hIteFalse
+          simp at hIteFalse
+    · intro hMemNe
+      have hSideNe :=
+        str_membership_str_ne_stuck_imp_ne_stuck_consume_local side hMemNe
+      rcases eo_ite_cases_of_ne_stuck _ _ _
+          (by
+            rw [← hSide]
+            exact hSideNe) with hCondT | hCondF
+      · have hSide2 : side = __str_re_consume_rec s2 r2 fuel := by
+          rw [hSide, hCondT, eo_ite_true]
+        rcases (ih side hS2Ty hR2Ty hSide2).2 hMemNe with ⟨hMemTy, hDec⟩
+        refine ⟨hMemTy, ?_⟩
+        intro ssF ssR hSEvalF hMemEval
+        rcases eval_str_concat_unpack_append_consume_local M s1 s2 ssF
+            hSEvalF with ⟨sx, sy, _hx, hy, hUnp⟩
+        rcases hDec sy ssR hy hMemEval with ⟨u, hU⟩
+        exact ⟨native_unpack_string sx ++ u, by
+          rw [hUnp, hU, List.append_assoc]⟩
+      · rcases eo_ite_cases_of_ne_stuck _ _ _
+            (by
+              intro hBad
+              apply hSideNe
+              rw [hSide, hCondF, eo_ite_false, hBad]) with hLenT | hLenF
+        · exfalso
+          apply hMemNe
+          rw [show side = Term.Boolean false by
+            rw [hSide, hCondF, eo_ite_false, hLenT, eo_ite_true]]
+          simp [__str_membership_str]
+        · exact (str_re_consume_nonempty_decomp_of_fallback_local M
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) s1) s2)
+            (Term.Apply
+              (Term.Apply (Term.UOp UserOp.re_concat)
+                (Term.Apply (Term.UOp UserOp.str_to_re) s3))
+              r2)
+            side
+            (by rw [hSide, hCondF, eo_ite_false, hLenF, eo_ite_false])
+            hSTy).2 hMemNe
+  · intro s1 s2 s3 s5 r2 fuel hFuel ih side hSTy hRTy hSide
+    have hS1Ty :=
+      (str_concat_args_of_seq_type s1 s2 SmtType.Char hSTy).1
+    have hS2Ty :=
+      (str_concat_args_of_seq_type s1 s2 SmtType.Char hSTy).2
+    have hR2Ty :=
+      (re_concat_arg_types_of_reglan_consume_local
+        (Term.Apply (Term.Apply (Term.UOp UserOp.re_range) s3) s5) r2
+        hRTy).2
+    rw [__str_re_consume_rec.eq_6 fuel s1 s2 s3 s5 r2 hFuel] at hSide
+    constructor
+    · intro hFalse ssF hSEvalF
+      have hIteFalse := hSide.symm.trans hFalse
+      rcases eo_ite_cases_of_ne_stuck _ _ _
+          (by
+            rw [hIteFalse]
+            intro h
+            cases h) with hLenT | hLenF
+      · rw [hLenT] at hIteFalse
+        simp only [eo_ite_true] at hIteFalse
+        rcases eo_and_eq_true_local _ _ hLenT with ⟨hS1Len, _hRest⟩
+        rcases str_re_consume_string_singleton_of_seq_type_len_one s1
+            hS1Ty hS1Len with ⟨c, rfl⟩
+        rcases eval_str_concat_unpack_append_consume_local M _ s2 ssF
+            hSEvalF with ⟨sx, sy, hx, _hy, hUnp⟩
+        rcases eval_string_unpack_consume_local M [c] with
+          ⟨ss1, hss1, hUnp1⟩
+        injection hss1.symm.trans hx with hEq1
+        rw [hUnp, ← hEq1, hUnp1]
+        simp
+      · rw [hLenF] at hIteFalse
+        simp only [eo_ite_false] at hIteFalse
+        simp at hIteFalse
+    · intro hMemNe
+      have hSideNe :=
+        str_membership_str_ne_stuck_imp_ne_stuck_consume_local side hMemNe
+      rcases eo_ite_cases_of_ne_stuck _ _ _
+          (by
+            rw [← hSide]
+            exact hSideNe) with hLenT | hLenF
+      · rcases eo_ite_cases_of_ne_stuck _ _ _
+            (by
+              intro hBad
+              apply hSideNe
+              rw [hSide, hLenT, eo_ite_true, hBad]) with hMatchT | hMatchF
+        · have hSide2 : side = __str_re_consume_rec s2 r2 fuel := by
+            rw [hSide, hLenT, eo_ite_true, hMatchT, eo_ite_true]
+          rcases (ih side hS2Ty hR2Ty hSide2).2 hMemNe with ⟨hMemTy, hDec⟩
+          refine ⟨hMemTy, ?_⟩
+          intro ssF ssR hSEvalF hMemEval
+          rcases eval_str_concat_unpack_append_consume_local M s1 s2 ssF
+              hSEvalF with ⟨sx, sy, _hx, hy, hUnp⟩
+          rcases hDec sy ssR hy hMemEval with ⟨u, hU⟩
+          exact ⟨native_unpack_string sx ++ u, by
+            rw [hUnp, hU, List.append_assoc]⟩
+        · exfalso
+          apply hMemNe
+          rw [show side = Term.Boolean false by
+            rw [hSide, hLenT, eo_ite_true, hMatchF, eo_ite_false]]
+          simp [__str_membership_str]
+      · exact (str_re_consume_nonempty_decomp_of_fallback_local M
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) s1) s2)
+          (Term.Apply
+            (Term.Apply (Term.UOp UserOp.re_concat)
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_range) s3) s5))
+            r2)
+          side
+          (by rw [hSide, hLenF, eo_ite_false])
+          hSTy).2 hMemNe
+  · intro s1 s2 r2 fuel hFuel ih side hSTy hRTy hSide
+    have hS1Ty :=
+      (str_concat_args_of_seq_type s1 s2 SmtType.Char hSTy).1
+    have hS2Ty :=
+      (str_concat_args_of_seq_type s1 s2 SmtType.Char hSTy).2
+    have hR2Ty :=
+      (re_concat_arg_types_of_reglan_consume_local
+        (Term.UOp UserOp.re_allchar) r2 hRTy).2
+    rw [__str_re_consume_rec.eq_7 fuel s1 s2 r2 hFuel] at hSide
+    constructor
+    · intro hFalse ssF hSEvalF
+      have hIteFalse := hSide.symm.trans hFalse
+      rcases eo_ite_cases_of_ne_stuck _ _ _
+          (by
+            rw [hIteFalse]
+            intro h
+            cases h) with hCondT | hCondF
+      · rcases str_re_consume_string_singleton_of_seq_type_len_one s1
+            hS1Ty hCondT with ⟨c, rfl⟩
+        rcases eval_str_concat_unpack_append_consume_local M _ s2 ssF
+            hSEvalF with ⟨sx, sy, hx, _hy, hUnp⟩
+        rcases eval_string_unpack_consume_local M [c] with
+          ⟨ss1, hss1, hUnp1⟩
+        injection hss1.symm.trans hx with hEq1
+        rw [hUnp, ← hEq1, hUnp1]
+        simp
+      · rw [hCondF] at hIteFalse
+        simp only [eo_ite_false] at hIteFalse
+        simp at hIteFalse
+    · intro hMemNe
+      have hSideNe :=
+        str_membership_str_ne_stuck_imp_ne_stuck_consume_local side hMemNe
+      rcases eo_ite_cases_of_ne_stuck _ _ _
+          (by
+            rw [← hSide]
+            exact hSideNe) with hCondT | hCondF
+      · have hSide2 : side = __str_re_consume_rec s2 r2 fuel := by
+          rw [hSide, hCondT, eo_ite_true]
+        rcases (ih side hS2Ty hR2Ty hSide2).2 hMemNe with ⟨hMemTy, hDec⟩
+        refine ⟨hMemTy, ?_⟩
+        intro ssF ssR hSEvalF hMemEval
+        rcases eval_str_concat_unpack_append_consume_local M s1 s2 ssF
+            hSEvalF with ⟨sx, sy, _hx, hy, hUnp⟩
+        rcases hDec sy ssR hy hMemEval with ⟨u, hU⟩
+        exact ⟨native_unpack_string sx ++ u, by
+          rw [hUnp, hU, List.append_assoc]⟩
+      · exact (str_re_consume_nonempty_decomp_of_fallback_local M
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) s1) s2)
+          (Term.Apply
+            (Term.Apply (Term.UOp UserOp.re_concat)
+              (Term.UOp UserOp.re_allchar))
+            r2)
+          side
+          (by rw [hSide, hCondF, eo_ite_false])
+          hSTy).2 hMemNe
+  · intro s1 s2 r3 r2 fc fr _v0 _v1 _v3 _v4 _v5
+      ihLeft ihRight _ihLeftAgain ihResidual side hSTy hRTy hSide
+    have hArgs :=
+      re_concat_arg_types_of_reglan_consume_local
+        (Term.Apply (Term.UOp UserOp.re_mult) r3) r2 hRTy
+    have hR3Ty : __smtx_typeof (__eo_to_smt r3) = SmtType.RegLan :=
+      re_mult_arg_type_of_reglan_consume_local r3 hArgs.1
+    rw [__str_re_consume_rec.eq_8 s1 s2 r3 r2 fc fr] at hSide
+    have hResolve :
+        side ≠ Term.Stuck ->
+        (side =
+            __str_re_consume_rec
+              (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) s1)
+                s2)
+              r2
+              (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) fc)
+                fr) ∨
+          side =
+            __str_re_consume_rec
+              (__str_membership_str
+                (__str_re_consume_rec
+                  (Term.Apply
+                    (Term.Apply (Term.UOp UserOp.str_concat) s1) s2)
+                  r3
+                  (Term.Apply
+                    (Term.Apply (Term.UOp UserOp.str_concat) fc) fr)))
+              (Term.Apply
+                (Term.Apply (Term.UOp UserOp.re_concat)
+                  (Term.Apply (Term.UOp UserOp.re_mult) r3))
+                r2)
+              fr ∨
+          side =
+            Term.Apply
+              (Term.Apply (Term.UOp UserOp.str_in_re)
+                (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) s1)
+                  s2))
+              (Term.Apply
+                (Term.Apply (Term.UOp UserOp.re_concat)
+                  (Term.Apply (Term.UOp UserOp.re_mult) r3))
+                r2)) := by
+      intro hSideNe
+      rcases eo_ite_cases_of_ne_stuck _ _ _
+          (by
+            rw [← hSide]
+            exact hSideNe) with hLF | hLF
+      · exact Or.inl (by rw [hSide, hLF, eo_ite_true])
+      · rcases eo_ite_cases_of_ne_stuck _ _ _
+            (by
+              intro hBad
+              apply hSideNe
+              rw [hSide, hLF, eo_ite_false, hBad]) with hMem | hMem
+        · rcases eo_ite_cases_of_ne_stuck _ _ _
+              (by
+                intro hBad
+                apply hSideNe
+                rw [hSide, hLF, eo_ite_false, hMem, eo_ite_true, hBad])
+              with hRF | hRF
+          · rcases eo_ite_cases_of_ne_stuck _ _ _
+                (by
+                  intro hBad
+                  apply hSideNe
+                  rw [hSide, hLF, eo_ite_false, hMem, eo_ite_true, hRF,
+                    eo_ite_true, hBad]) with hSame | hSame
+            · exact Or.inr (Or.inr (by
+                rw [hSide, hLF, eo_ite_false, hMem, eo_ite_true, hRF,
+                  eo_ite_true, hSame, eo_ite_true]))
+            · exact Or.inr (Or.inl (by
+                rw [hSide, hLF, eo_ite_false, hMem, eo_ite_true, hRF,
+                  eo_ite_true, hSame, eo_ite_false]))
+          · exact Or.inr (Or.inr (by
+              rw [hSide, hLF, eo_ite_false, hMem, eo_ite_true, hRF,
+                eo_ite_false]))
+        · exact Or.inr (Or.inr (by
+            rw [hSide, hLF, eo_ite_false, hMem, eo_ite_false]))
+    constructor
+    · intro hFalse ssF hSEvalF
+      rcases hResolve (by
+          rw [hFalse]
+          intro h
+          cases h) with hRt | hRes | hFb
+      · exact (ihRight side hSTy hArgs.2 hRt).1 hFalse ssF hSEvalF
+      · have hResidFalse := hRes.symm.trans hFalse
+        have hMemLeftNe :=
+          str_re_consume_rec_false_left_ne_stuck_consume_local _ _ _
+            hResidFalse
+        rcases (ihLeft _ hSTy hR3Ty rfl).2 hMemLeftNe with
+          ⟨h5Ty, hDecL⟩
+        rcases smt_eval_seq_char_of_smt_type_seq_char_consume_local M hM
+            _ h5Ty with ⟨ss5, hSs5⟩
+        have hNe5 := (ihResidual (Term.Boolean false) h5Ty hRTy
+          hResidFalse.symm).1 rfl ss5 hSs5
+        rcases hDecL ssF ss5 hSEvalF hSs5 with ⟨u, hU⟩
+        rw [hU]
+        exact list_append_ne_nil_right_consume_local _ _ hNe5
+      · rw [hFb] at hFalse
+        simp at hFalse
+    · intro hMemNe
+      have hSideNe :=
+        str_membership_str_ne_stuck_imp_ne_stuck_consume_local side hMemNe
+      rcases hResolve hSideNe with hRt | hRes | hFb
+      · exact (ihRight side hSTy hArgs.2 hRt).2 hMemNe
+      · have hMemLeftNe :
+            __str_membership_str
+                (__str_re_consume_rec
+                  (Term.Apply
+                    (Term.Apply (Term.UOp UserOp.str_concat) s1) s2)
+                  r3
+                  (Term.Apply
+                    (Term.Apply (Term.UOp UserOp.str_concat) fc) fr)) ≠
+              Term.Stuck := by
+          intro hBad
+          rw [hBad] at hRes
+          exact str_re_consume_rec_stuck_left_absurd _ _ _ hRes hSideNe
+        rcases (ihLeft _ hSTy hR3Ty rfl).2 hMemLeftNe with
+          ⟨h5Ty, hDecL⟩
+        rcases smt_eval_seq_char_of_smt_type_seq_char_consume_local M hM
+            _ h5Ty with ⟨ss5, hSs5⟩
+        rcases (ihResidual side h5Ty hRTy hRes).2 hMemNe with
+          ⟨hMemTy, hDecR⟩
+        refine ⟨hMemTy, ?_⟩
+        intro ssF ssR hSEvalF hMemEval
+        rcases hDecL ssF ss5 hSEvalF hSs5 with ⟨u1, hU1⟩
+        rcases hDecR ss5 ssR hSs5 hMemEval with ⟨u2, hU2⟩
+        exact ⟨u1 ++ u2, by rw [hU1, hU2, List.append_assoc]⟩
+      · exact (str_re_consume_nonempty_decomp_of_fallback_local M
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) s1) s2)
+          (Term.Apply
+            (Term.Apply (Term.UOp UserOp.re_concat)
+              (Term.Apply (Term.UOp UserOp.re_mult) r3))
+            r2)
+          side hFb hSTy).2 hMemNe
+  · intro s1 s2 r3 r2 fuel hFuel hNotFuelConcat side hSTy _hRTy hSide
+    have hEq :=
+      str_re_consume_rec_str_concat_re_mult_non_concat_fuel_eq
+        s1 s2 r3 r2 fuel hFuel hNotFuelConcat
+    exact str_re_consume_nonempty_decomp_of_fallback_local M _ _ side
+      (hSide.trans hEq) hSTy
+  rotate_left
+  · intro s r fuel hS hFuel _hNotConcat ih side hSTy hRTy hSide
+    have hArgs :=
+      re_concat_arg_types_of_reglan_consume_local
+        (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) r hRTy
+    have hEq :=
+      str_re_consume_rec_re_concat_empty_left_eq s r fuel hS hFuel
+    exact ih side hSTy hArgs.2 (hSide.trans hEq)
+  · intro s r1 r2 fuel hS hFuel ih side hSTy hRTy hSide
+    have hEq := str_re_consume_rec_re_inter_eq s r1 r2 fuel hS hFuel
+    exact ih side hSTy hRTy (hSide.trans hEq)
+  · intro s r1 r2 fuel hS hFuel ih side hSTy hRTy hSide
+    have hEq := str_re_consume_rec_re_union_eq s r1 r2 fuel hS hFuel
+    exact ih side hSTy hRTy (hSide.trans hEq)
+  · intro s r fuel hS hR hFuel hNotStrConcatEmpty
+      hNotStrConcatStrToRe hNotStrConcatRange hNotStrConcatAllchar
+      hNotStrConcatMultFuel hNotStrConcatMult hNotStrConcatConcat
+      hNotRConcatEmpty hNotRInter hNotRUnion side hSTy _hRTy hSide
+    have hEq :=
+      str_re_consume_rec_default_eq s r fuel hS hR hFuel
+        hNotRConcatEmpty hNotRInter hNotRUnion hNotStrConcatEmpty
+        hNotStrConcatStrToRe hNotStrConcatRange hNotStrConcatAllchar
+        hNotStrConcatMult hNotStrConcatConcat hNotStrConcatMultFuel
+    exact str_re_consume_nonempty_decomp_of_fallback_local M s r side
+      (hSide.trans hEq) hSTy
+  · intro r fuel side hSTy _hRTy _hSide
+    rw [show __eo_to_smt Term.Stuck = SmtTerm.None by rfl,
+      TranslationProofs.smtx_typeof_none] at hSTy
+    cases hSTy
+  · intro s r hS side _hSTy _hRTy hSide
+    constructor
+    · intro hFalse
+      exfalso
+      exact str_re_consume_union_stuck_fuel_absurd s r side hS hSide
+        (by
+          rw [hFalse]
+          intro h
+          cases h)
+    · intro hMemNe
+      exfalso
+      exact str_re_consume_union_stuck_fuel_absurd s r side hS hSide
+        (str_membership_str_ne_stuck_imp_ne_stuck_consume_local side
+          hMemNe)
+  rotate_left
+  rotate_left
+  · intro s r fuel hS hFuel hNotNone hNotUnion side _hSTy _hRTy hSide
+    have hEq := str_re_consume_union_default_eq s r fuel hS hFuel
+      hNotNone hNotUnion
+    exact str_re_consume_nonempty_decomp_of_stuck_local M s side
+      (hSide.trans hEq)
+  · intro r fuel side hSTy _hRTy _hSide
+    rw [show __eo_to_smt Term.Stuck = SmtTerm.None by rfl,
+      TranslationProofs.smtx_typeof_none] at hSTy
+    cases hSTy
+  · intro s r hS side _hSTy _hRTy hSide
+    constructor
+    · intro hFalse
+      exfalso
+      exact str_re_consume_inter_stuck_fuel_absurd s r side hS hSide
+        (by
+          rw [hFalse]
+          intro h
+          cases h)
+    · intro hMemNe
+      exfalso
+      exact str_re_consume_inter_stuck_fuel_absurd s r side hS hSide
+        (str_membership_str_ne_stuck_imp_ne_stuck_consume_local side
+          hMemNe)
+  rotate_left
+  rotate_left
+  · intro s r fuel hS hFuel hNotAll hNotInter side _hSTy _hRTy hSide
+    have hEq := str_re_consume_inter_default_eq s r fuel hS hFuel
+      hNotAll hNotInter
+    exact str_re_consume_nonempty_decomp_of_stuck_local M s side
+      (hSide.trans hEq)
+  rotate_left
+  · intro s r fuel hS hFuel ih side hSTy hRTy hSide
+    have hArgs := re_union_arg_types_of_reglan_consume_local r
+      (Term.UOp UserOp.re_none) hRTy
+    have hEq := str_re_consume_union_re_none_eq s r fuel hS hFuel
+    exact ih side hSTy hArgs.1 (hSide.trans hEq)
+  rotate_left
+  · intro s r fuel hS hFuel ih side hSTy hRTy hSide
+    have hArgs := re_inter_arg_types_of_reglan_consume_local r
+      (Term.UOp UserOp.re_all) hRTy
+    have hEq := str_re_consume_inter_re_all_eq s r fuel hS hFuel
+    exact ih side hSTy hArgs.1 (hSide.trans hEq)
+  rotate_left
+  · intro s1 s2 r1 r2 fuel hFuel hR1Empty hR1StrToRe hR1Range
+      hR1Allchar hFuelMult hR1Mult _v0 _v1 ihLeft _ihLeftAgain
+      ihResidual side hSTy hRTy hSide
+    have hArgs := re_concat_arg_types_of_reglan_consume_local r1 r2 hRTy
+    rw [__str_re_consume_rec.eq_10 fuel s1 s2 r1 r2 hR1Empty
+      hR1StrToRe hR1Range hR1Allchar hR1Mult hFuel hFuelMult] at hSide
+    have hResolve :
+        side ≠ Term.Stuck ->
+        ((__str_re_consume_rec
+              (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) s1)
+                s2)
+              r1 fuel = Term.Boolean false ∧
+            side = Term.Boolean false) ∨
+          side =
+            __str_re_consume_rec
+              (__str_membership_str
+                (__str_re_consume_rec
+                  (Term.Apply
+                    (Term.Apply (Term.UOp UserOp.str_concat) s1) s2)
+                  r1 fuel))
+              r2 fuel ∨
+          side =
+            Term.Apply
+              (Term.Apply (Term.UOp UserOp.str_in_re)
+                (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) s1)
+                  s2))
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) r1)
+                r2)) := by
+      intro hSideNe
+      rcases eo_ite_cases_of_ne_stuck _ _ _
+          (by
+            rw [← hSide]
+            exact hSideNe) with hLF | hLF
+      · exact Or.inl ⟨eq_of_eo_is_eq_true_consume_local _ _ hLF,
+          by rw [hSide, hLF, eo_ite_true]⟩
+      · rcases eo_ite_cases_of_ne_stuck _ _ _
+            (by
+              intro hBad
+              apply hSideNe
+              rw [hSide, hLF, eo_ite_false, hBad]) with hMem | hMem
+        · exact Or.inr (Or.inl (by
+            rw [hSide, hLF, eo_ite_false, hMem, eo_ite_true]))
+        · exact Or.inr (Or.inr (by
+            rw [hSide, hLF, eo_ite_false, hMem, eo_ite_false]))
+    constructor
+    · intro hFalse ssF hSEvalF
+      rcases hResolve (by
+          rw [hFalse]
+          intro h
+          cases h) with ⟨hLFalse, _⟩ | hRes | hFb
+      · exact (ihLeft (Term.Boolean false) hSTy hArgs.1
+          hLFalse.symm).1 rfl ssF hSEvalF
+      · have hResidFalse := hRes.symm.trans hFalse
+        have hMemLeftNe :=
+          str_re_consume_rec_false_left_ne_stuck_consume_local _ _ _
+            hResidFalse
+        rcases (ihLeft _ hSTy hArgs.1 rfl).2 hMemLeftNe with
+          ⟨h5Ty, hDecL⟩
+        rcases smt_eval_seq_char_of_smt_type_seq_char_consume_local M hM
+            _ h5Ty with ⟨ss5, hSs5⟩
+        have hNe5 := (ihResidual (Term.Boolean false) h5Ty hArgs.2
+          hResidFalse.symm).1 rfl ss5 hSs5
+        rcases hDecL ssF ss5 hSEvalF hSs5 with ⟨u, hU⟩
+        rw [hU]
+        exact list_append_ne_nil_right_consume_local _ _ hNe5
+      · rw [hFb] at hFalse
+        simp at hFalse
+    · intro hMemNe
+      have hSideNe :=
+        str_membership_str_ne_stuck_imp_ne_stuck_consume_local side hMemNe
+      rcases hResolve hSideNe with ⟨_, hSideF⟩ | hRes | hFb
+      · exfalso
+        apply hMemNe
+        rw [hSideF]
+        simp [__str_membership_str]
+      · have hMemLeftNe :
+            __str_membership_str
+                (__str_re_consume_rec
+                  (Term.Apply
+                    (Term.Apply (Term.UOp UserOp.str_concat) s1) s2)
+                  r1 fuel) ≠ Term.Stuck := by
+          intro hBad
+          rw [hBad] at hRes
+          exact str_re_consume_rec_stuck_left_absurd _ _ _ hRes hSideNe
+        rcases (ihLeft _ hSTy hArgs.1 rfl).2 hMemLeftNe with
+          ⟨h5Ty, hDecL⟩
+        rcases smt_eval_seq_char_of_smt_type_seq_char_consume_local M hM
+            _ h5Ty with ⟨ss5, hSs5⟩
+        rcases (ihResidual side h5Ty hArgs.2 hRes).2 hMemNe with
+          ⟨hMemTy, hDecR⟩
+        refine ⟨hMemTy, ?_⟩
+        intro ssF ssR hSEvalF hMemEval
+        rcases hDecL ssF ss5 hSEvalF hSs5 with ⟨u1, hU1⟩
+        rcases hDecR ss5 ssR hSs5 hMemEval with ⟨u2, hU2⟩
+        exact ⟨u1 ++ u2, by rw [hU1, hU2, List.append_assoc]⟩
+      · exact (str_re_consume_nonempty_decomp_of_fallback_local M
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) s1) s2)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) r1) r2)
+          side hFb hSTy).2 hMemNe
+  · intro s c1 c2 fuel hS hFuel hC2Ne ihLeft ihRight side hSTy hRTy
+      hSide
+    have hArgs := re_union_arg_types_of_reglan_consume_local c1 c2 hRTy
+    rw [__str_re_consume_union.eq_4 s fuel c1 c2 hC2Ne hS hFuel] at hSide
+    have hResolve :
+        side ≠ Term.Stuck ->
+        (side = __str_re_consume_rec s c1 fuel ∨
+          side = __str_re_consume_union s c2 fuel ∨
+          side =
+            Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s)
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) c1)
+                c2)) := by
+      intro hSideNe
+      rcases eo_ite_cases_of_ne_stuck _ _ _
+          (by
+            rw [← hSide]
+            exact hSideNe) with hLF | hLF
+      · exact Or.inr (Or.inl (by rw [hSide, hLF, eo_ite_true]))
+      · rcases eo_ite_cases_of_ne_stuck _ _ _
+            (by
+              intro hBad
+              apply hSideNe
+              rw [hSide, hLF, eo_ite_false, hBad]) with hMem | hMem
+        · rcases eo_ite_cases_of_ne_stuck _ _ _
+              (by
+                intro hBad
+                apply hSideNe
+                rw [hSide, hLF, eo_ite_false, hMem, eo_ite_true, hBad])
+              with hRF | hRF
+          · exact Or.inl (by
+              rw [hSide, hLF, eo_ite_false, hMem, eo_ite_true, hRF,
+                eo_ite_true])
+          · rcases eo_ite_cases_of_ne_stuck _ _ _
+                (by
+                  intro hBad
+                  apply hSideNe
+                  rw [hSide, hLF, eo_ite_false, hMem, eo_ite_true, hRF,
+                    eo_ite_false, hBad]) with hSame | hSame
+            · exact Or.inl (by
+                rw [hSide, hLF, eo_ite_false, hMem, eo_ite_true, hRF,
+                  eo_ite_false, hSame, eo_ite_true])
+            · exact Or.inr (Or.inr (by
+                rw [hSide, hLF, eo_ite_false, hMem, eo_ite_true, hRF,
+                  eo_ite_false, hSame, eo_ite_false]))
+        · exact Or.inr (Or.inr (by
+            rw [hSide, hLF, eo_ite_false, hMem, eo_ite_false]))
+    constructor
+    · intro hFalse ssF hSEvalF
+      rcases hResolve (by
+          rw [hFalse]
+          intro h
+          cases h) with hL | hR | hFb
+      · exact (ihLeft side hSTy hArgs.1 hL).1 hFalse ssF hSEvalF
+      · exact (ihRight side hSTy hArgs.2 hR).1 hFalse ssF hSEvalF
+      · rw [hFb] at hFalse
+        simp at hFalse
+    · intro hMemNe
+      rcases hResolve
+          (str_membership_str_ne_stuck_imp_ne_stuck_consume_local side
+            hMemNe) with hL | hR | hFb
+      · exact (ihLeft side hSTy hArgs.1 hL).2 hMemNe
+      · exact (ihRight side hSTy hArgs.2 hR).2 hMemNe
+      · exact (str_re_consume_nonempty_decomp_of_fallback_local M s _
+          side hFb hSTy).2 hMemNe
+  · intro s c1 c2 fuel hS hFuel hC2Ne ihLeft ihRight side hSTy hRTy
+      hSide
+    have hArgs := re_inter_arg_types_of_reglan_consume_local c1 c2 hRTy
+    rw [__str_re_consume_inter.eq_4 s fuel c1 c2 hC2Ne hS hFuel] at hSide
+    have hResolve :
+        side ≠ Term.Stuck ->
+        ((__str_re_consume_rec s c1 fuel = Term.Boolean false ∧
+            side = Term.Boolean false) ∨
+          (__str_re_consume_inter s c2 fuel = Term.Boolean false ∧
+            side = Term.Boolean false) ∨
+          side = __str_re_consume_rec s c1 fuel ∨
+          side =
+            Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s)
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) c1)
+                c2)) := by
+      intro hSideNe
+      rcases eo_ite_cases_of_ne_stuck _ _ _
+          (by
+            rw [← hSide]
+            exact hSideNe) with hLF | hLF
+      · exact Or.inl ⟨eq_of_eo_is_eq_true_consume_local _ _ hLF,
+          by rw [hSide, hLF, eo_ite_true]⟩
+      · rcases eo_ite_cases_of_ne_stuck _ _ _
+            (by
+              intro hBad
+              apply hSideNe
+              rw [hSide, hLF, eo_ite_false, hBad]) with hMem | hMem
+        · rcases eo_ite_cases_of_ne_stuck _ _ _
+              (by
+                intro hBad
+                apply hSideNe
+                rw [hSide, hLF, eo_ite_false, hMem, eo_ite_true, hBad])
+              with hRF | hRF
+          · exact Or.inr (Or.inl
+              ⟨eq_of_eo_is_eq_true_consume_local _ _ hRF,
+                by
+                  rw [hSide, hLF, eo_ite_false, hMem, eo_ite_true, hRF,
+                    eo_ite_true]⟩)
+          · rcases eo_ite_cases_of_ne_stuck _ _ _
+                (by
+                  intro hBad
+                  apply hSideNe
+                  rw [hSide, hLF, eo_ite_false, hMem, eo_ite_true, hRF,
+                    eo_ite_false, hBad]) with hSame | hSame
+            · exact Or.inr (Or.inr (Or.inl (by
+                rw [hSide, hLF, eo_ite_false, hMem, eo_ite_true, hRF,
+                  eo_ite_false, hSame, eo_ite_true])))
+            · exact Or.inr (Or.inr (Or.inr (by
+                rw [hSide, hLF, eo_ite_false, hMem, eo_ite_true, hRF,
+                  eo_ite_false, hSame, eo_ite_false])))
+        · rcases eo_ite_cases_of_ne_stuck _ _ _
+              (by
+                intro hBad
+                apply hSideNe
+                rw [hSide, hLF, eo_ite_false, hMem, eo_ite_false, hBad])
+              with hRF | hRF
+          · exact Or.inr (Or.inl
+              ⟨eq_of_eo_is_eq_true_consume_local _ _ hRF,
+                by
+                  rw [hSide, hLF, eo_ite_false, hMem, eo_ite_false, hRF,
+                    eo_ite_true]⟩)
+          · exact Or.inr (Or.inr (Or.inr (by
+              rw [hSide, hLF, eo_ite_false, hMem, eo_ite_false, hRF,
+                eo_ite_false])))
+    constructor
+    · intro hFalse ssF hSEvalF
+      rcases hResolve (by
+          rw [hFalse]
+          intro h
+          cases h) with ⟨hLFalse, _⟩ | ⟨hRFalse, _⟩ | hL | hFb
+      · exact (ihRight (Term.Boolean false) hSTy hArgs.1
+          hLFalse.symm).1 rfl ssF hSEvalF
+      · exact (ihLeft (Term.Boolean false) hSTy hArgs.2
+          hRFalse.symm).1 rfl ssF hSEvalF
+      · exact (ihRight side hSTy hArgs.1 hL).1 hFalse ssF hSEvalF
+      · rw [hFb] at hFalse
+        simp at hFalse
+    · intro hMemNe
+      rcases hResolve
+          (str_membership_str_ne_stuck_imp_ne_stuck_consume_local side
+            hMemNe) with ⟨_, hSideF⟩ | ⟨_, hSideF⟩ | hL | hFb
+      · exfalso
+        apply hMemNe
+        rw [hSideF]
+        simp [__str_membership_str]
+      · exfalso
+        apply hMemNe
+        rw [hSideF]
+        simp [__str_membership_str]
+      · exact (ihRight side hSTy hArgs.1 hL).2 hMemNe
+      · exact (str_re_consume_nonempty_decomp_of_fallback_local M s _
+          side hFb hSTy).2 hMemNe
+
 private theorem str_re_consume_rec_false_nonempty_local
     (M : SmtModel) (hM : model_total_typed M) :
     ∀ s0 r0 fuel0,
       str_re_consume_rec_false_nonempty_motive M s0 r0 fuel0 := by
-  sorry
+  intro s0 r0 fuel0 side hSTy hRTy hSide hFalse ssF hEval
+  exact (str_re_consume_rec_nonempty_decomp_local M hM s0 r0 fuel0
+    side hSTy hRTy hSide).1 hFalse ssF hEval
 
 /-- `native_re_reverse_raw_consume_local` commutes with `mk_star`. -/
 private theorem native_re_reverse_raw_mk_star_consume_local
@@ -25918,17 +26864,6 @@ private theorem eo_eq_eq_of_ne_stuck_consume_local
   · exact absurd rfl hx
   · exact absurd rfl hy
   · rfl
-
-private theorem str_re_consume_rec_false_left_ne_stuck_consume_local
-    (a b fuel : Term)
-    (h : __str_re_consume_rec a b fuel = Term.Boolean false) :
-    a ≠ Term.Stuck := by
-  intro hBad
-  subst a
-  exact str_re_consume_rec_stuck_left_absurd b fuel _ rfl (by
-    rw [h]
-    intro hh
-    cases hh)
 
 private theorem term_ne_stuck_of_eval_reglan_consume_local
     (M : SmtModel) (t : Term) (v : native_RegLan)
