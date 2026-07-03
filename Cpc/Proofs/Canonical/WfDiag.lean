@@ -763,6 +763,273 @@ private theorem inhabited_chain_image
   · exact absurd h hNewNe
   · simp [native_inhabited_type, native_and, native_not, native_Teq, h]
 
+/-! ## Reference-excused defaultability
+
+`refDef S T` is default-success with `TypeRef` positions whose name lies in
+`S` *excused* (deferred to a firing environment).  Since a real default never
+traverses any reference position (`__smtx_type_default_rec _ (TypeRef _)` is
+`NotValue`), real default-success implies `refDef` for any `S`; and unlike
+real inhabitedness, `refDef` is *monotone under lifts* — a lift only turns
+datatype nodes into references of the lift's own name, which the extended
+excuse set covers.  This is the seed layer for transporting inhabitedness
+onto images whose chains fire references. -/
+
+mutual
+
+private def refDefTy (S : RefList) : SmtType → Bool
+  | SmtType.TypeRef r => native_reflist_contains S r
+  | SmtType.Datatype _ B => refDefDt S B
+  | SmtType.Map _ U =>
+      native_not (native_veq (__smtx_type_default_rec U U) SmtValue.NotValue)
+  | SmtType.None => false
+  | SmtType.DtcAppType _ _ => false
+  | _ => true
+
+private def refDefDtc (S : RefList) : SmtDatatypeCons → Bool
+  | SmtDatatypeCons.unit => true
+  | SmtDatatypeCons.cons T c => refDefTy S T && refDefDtc S c
+
+private def refDefDt (S : RefList) : SmtDatatype → Bool
+  | SmtDatatype.null => false
+  | SmtDatatype.sum c d => refDefDtc S c || refDefDt S d
+
+end
+
+/-! Monotonicity of the excuse set. -/
+mutual
+
+private theorem refDefTy_mono {S S' : RefList}
+    (hSub : ∀ r : native_String, native_reflist_contains S r = true →
+      native_reflist_contains S' r = true) :
+    ∀ TU : SmtType, refDefTy S TU = true → refDefTy S' TU = true
+  | SmtType.TypeRef r, h => by
+      simpa [refDefTy] using hSub r (by simpa [refDefTy] using h)
+  | SmtType.Datatype b B, h => by
+      simpa [refDefTy] using refDefDt_mono hSub B (by simpa [refDefTy] using h)
+  | SmtType.Map T U, h => h
+  | SmtType.None, h => h
+  | SmtType.DtcAppType A B, h => h
+  | SmtType.Bool, h => h
+  | SmtType.Int, h => h
+  | SmtType.Real, h => h
+  | SmtType.RegLan, h => h
+  | SmtType.BitVec w, h => h
+  | SmtType.Char, h => h
+  | SmtType.Set A, h => h
+  | SmtType.Seq A, h => h
+  | SmtType.USort u, h => h
+  | SmtType.FunType A B, h => h
+
+private theorem refDefDtc_mono {S S' : RefList}
+    (hSub : ∀ r : native_String, native_reflist_contains S r = true →
+      native_reflist_contains S' r = true) :
+    ∀ cU : SmtDatatypeCons, refDefDtc S cU = true → refDefDtc S' cU = true
+  | SmtDatatypeCons.unit, h => h
+  | SmtDatatypeCons.cons T c, h => by
+      have hp : refDefTy S T = true ∧ refDefDtc S c = true := by
+        simpa [refDefDtc, Bool.and_eq_true] using h
+      simp [refDefDtc, Bool.and_eq_true,
+        refDefTy_mono hSub T hp.1, refDefDtc_mono hSub c hp.2]
+
+private theorem refDefDt_mono {S S' : RefList}
+    (hSub : ∀ r : native_String, native_reflist_contains S r = true →
+      native_reflist_contains S' r = true) :
+    ∀ DU : SmtDatatype, refDefDt S DU = true → refDefDt S' DU = true
+  | SmtDatatype.null, h => h
+  | SmtDatatype.sum c d, h => by
+      have hp : refDefDtc S c = true ∨ refDefDt S d = true := by
+        simpa [refDefDt, Bool.or_eq_true] using h
+      rcases hp with hp | hp
+      · simp [refDefDt, Bool.or_eq_true, refDefDtc_mono hSub c hp]
+      · simp [refDefDt, Bool.or_eq_true, refDefDt_mono hSub d hp]
+
+end
+
+/-! Real default-success implies reference-excused defaultability, for any
+excuse set and any folded side: a successful default never sits on a
+reference position. -/
+mutual
+
+private theorem refDef_of_default_ty (S : RefList) :
+    ∀ (TU : SmtType) (V : SmtType),
+      __smtx_type_default_rec V TU ≠ SmtValue.NotValue →
+      refDefTy S TU = true
+  | SmtType.TypeRef r, V, h => absurd (rec_typeref_nv r V) h
+  | SmtType.None, V, h => by
+      simp [__smtx_type_default_rec] at h
+  | SmtType.DtcAppType A B, V, h => by
+      simp [__smtx_type_default_rec] at h
+  | SmtType.Bool, V, h => by simp [refDefTy]
+  | SmtType.Int, V, h => by simp [refDefTy]
+  | SmtType.Real, V, h => by simp [refDefTy]
+  | SmtType.RegLan, V, h => by simp [refDefTy]
+  | SmtType.BitVec w, V, h => by simp [refDefTy]
+  | SmtType.Char, V, h => by simp [refDefTy]
+  | SmtType.Set A, V, h => by simp [refDefTy]
+  | SmtType.Seq A, V, h => by simp [refDefTy]
+  | SmtType.USort u, V, h => by simp [refDefTy]
+  | SmtType.FunType A B, V, h => by simp [refDefTy]
+  | SmtType.Map T U, V, h => by
+      by_cases hU :
+          native_veq (__smtx_type_default_rec U U) SmtValue.NotValue = true
+      · exfalso
+        cases V <;>
+          simp [__smtx_type_default_rec, native_ite, hU] at h
+      · simp [refDefTy, native_not]
+        cases hU' : native_veq (__smtx_type_default_rec U U)
+            SmtValue.NotValue
+        · rfl
+        · exact absurd hU' hU
+  | SmtType.Datatype b B, V, h => by
+      cases V with
+      | Datatype a A =>
+          have hB :
+              __smtx_datatype_default a A native_nat_zero
+                (__smtx_dt_substitute a A A) B ≠ SmtValue.NotValue := by
+            simpa [__smtx_type_default_rec] using h
+          simpa [refDefTy] using
+            refDef_of_default_dt S B _ a A native_nat_zero hB
+      | Bool => simp [__smtx_type_default_rec] at h
+      | Int => simp [__smtx_type_default_rec] at h
+      | Real => simp [__smtx_type_default_rec] at h
+      | RegLan => simp [__smtx_type_default_rec] at h
+      | BitVec w => simp [__smtx_type_default_rec] at h
+      | Char => simp [__smtx_type_default_rec] at h
+      | Map T U => simp [__smtx_type_default_rec] at h
+      | Set T => simp [__smtx_type_default_rec] at h
+      | Seq T => simp [__smtx_type_default_rec] at h
+      | USort u => simp [__smtx_type_default_rec] at h
+      | FunType T U => simp [__smtx_type_default_rec] at h
+      | DtcAppType T U => simp [__smtx_type_default_rec] at h
+      | None => simp [__smtx_type_default_rec] at h
+      | TypeRef r => simp [__smtx_type_default_rec] at h
+
+private theorem refDef_of_default_dtc (S : RefList) :
+    ∀ (cU cF : SmtDatatypeCons) (v : SmtValue),
+      __smtx_datatype_cons_default v cF cU ≠ SmtValue.NotValue →
+      refDefDtc S cU = true
+  | SmtDatatypeCons.unit, cF, v, h => by simp [refDefDtc]
+  | SmtDatatypeCons.cons TU cU, cF, v, h => by
+      cases cF with
+      | unit => simp [__smtx_datatype_cons_default] at h
+      | cons TF cF =>
+          by_cases hHead :
+              native_veq (__smtx_type_default_rec TF TU)
+                SmtValue.NotValue = true
+          · rw [__smtx_datatype_cons_default, native_ite, if_pos hHead] at h
+            exact absurd rfl h
+          · rw [__smtx_datatype_cons_default, native_ite, if_neg hHead] at h
+            have hHead' :
+                __smtx_type_default_rec TF TU ≠ SmtValue.NotValue := by
+              intro hEq
+              rw [hEq] at hHead
+              simp [native_veq] at hHead
+            simp [refDefDtc, Bool.and_eq_true,
+              refDef_of_default_ty S TU TF hHead',
+              refDef_of_default_dtc S cU cF _ h]
+
+private theorem refDef_of_default_dt (S : RefList) :
+    ∀ (DU DF : SmtDatatype) (s : native_String) (d : SmtDatatype)
+      (n : native_Nat),
+      __smtx_datatype_default s d n DF DU ≠ SmtValue.NotValue →
+      refDefDt S DU = true
+  | SmtDatatype.null, DF, s, d, n, h => by
+      cases DF <;> simp [__smtx_datatype_default] at h
+  | SmtDatatype.sum cU DU, DF, s, d, n, h => by
+      cases DF with
+      | null => simp [__smtx_datatype_default] at h
+      | sum cF DF =>
+          by_cases hHead :
+              __smtx_datatype_cons_default (SmtValue.DtCons s d n) cF cU =
+                SmtValue.NotValue
+          · rw [__smtx_datatype_default, native_ite,
+              if_neg (by simp [hHead, native_veq, native_not])] at h
+            simp [refDefDt, Bool.or_eq_true,
+              refDef_of_default_dt S DU DF s d (native_nat_succ n) h]
+          · simp [refDefDt, Bool.or_eq_true,
+              refDef_of_default_dtc S cU cF _ hHead]
+
+end
+
+/-! Reference-excused defaultability is monotone under lifts: a lift only
+converts datatype nodes into references of the lift's own name. -/
+mutual
+
+private theorem refDef_lift_ty (s : native_String) (X : SmtDatatype)
+    (S : RefList) :
+    ∀ TU : SmtType, refDefTy S TU = true →
+      refDefTy (native_reflist_insert S s) (__smtx_type_lift s X TU) = true
+  | SmtType.TypeRef r, h => by
+      rw [show __smtx_type_lift s X (SmtType.TypeRef r) = SmtType.TypeRef r by
+        simp [__smtx_type_lift]]
+      exact refDefTy_mono
+        (fun r' hr' => by
+          simpa [native_reflist_contains, native_reflist_insert] using
+            Or.inr (by simpa [native_reflist_contains] using hr'))
+        (SmtType.TypeRef r) h
+  | SmtType.Datatype b B, h => by
+      rw [show __smtx_type_lift s X (SmtType.Datatype b B) =
+          native_ite (native_Teq (SmtType.Datatype s X) (SmtType.Datatype b B))
+            (SmtType.TypeRef s)
+            (SmtType.Datatype b (__smtx_dt_lift s X B)) by
+        simp [__smtx_type_lift]]
+      cases hEq : native_Teq (SmtType.Datatype s X) (SmtType.Datatype b B) with
+      | true =>
+          rw [native_ite, if_pos rfl]
+          simp [refDefTy, native_reflist_contains, native_reflist_insert]
+      | false =>
+          rw [native_ite, if_neg (by simp [hEq])]
+          simpa [refDefTy] using
+            refDef_lift_dt s X S B (by simpa [refDefTy] using h)
+  | SmtType.Map T U, h => by
+      rw [show __smtx_type_lift s X (SmtType.Map T U) = SmtType.Map T U by
+        simp [__smtx_type_lift]]
+      exact h
+  | SmtType.None, h => by simp [refDefTy] at h
+  | SmtType.DtcAppType A B, h => by simp [refDefTy] at h
+  | SmtType.Bool, h => by simp [__smtx_type_lift, refDefTy]
+  | SmtType.Int, h => by simp [__smtx_type_lift, refDefTy]
+  | SmtType.Real, h => by simp [__smtx_type_lift, refDefTy]
+  | SmtType.RegLan, h => by simp [__smtx_type_lift, refDefTy]
+  | SmtType.BitVec w, h => by simp [__smtx_type_lift, refDefTy]
+  | SmtType.Char, h => by simp [__smtx_type_lift, refDefTy]
+  | SmtType.Set A, h => by simp [__smtx_type_lift, refDefTy]
+  | SmtType.Seq A, h => by simp [__smtx_type_lift, refDefTy]
+  | SmtType.USort u, h => by simp [__smtx_type_lift, refDefTy]
+  | SmtType.FunType A B, h => by simp [__smtx_type_lift, refDefTy]
+
+private theorem refDef_lift_dtc (s : native_String) (X : SmtDatatype)
+    (S : RefList) :
+    ∀ cU : SmtDatatypeCons, refDefDtc S cU = true →
+      refDefDtc (native_reflist_insert S s) (__smtx_dtc_lift s X cU) = true
+  | SmtDatatypeCons.unit, h => by
+      simp [__smtx_dtc_lift, refDefDtc]
+  | SmtDatatypeCons.cons T c, h => by
+      have hp : refDefTy S T = true ∧ refDefDtc S c = true := by
+        simpa [refDefDtc, Bool.and_eq_true] using h
+      rw [show __smtx_dtc_lift s X (SmtDatatypeCons.cons T c) =
+        SmtDatatypeCons.cons (__smtx_type_lift s X T)
+          (__smtx_dtc_lift s X c) by simp [__smtx_dtc_lift]]
+      simp [refDefDtc, Bool.and_eq_true,
+        refDef_lift_ty s X S T hp.1, refDef_lift_dtc s X S c hp.2]
+
+private theorem refDef_lift_dt (s : native_String) (X : SmtDatatype)
+    (S : RefList) :
+    ∀ DU : SmtDatatype, refDefDt S DU = true →
+      refDefDt (native_reflist_insert S s) (__smtx_dt_lift s X DU) = true
+  | SmtDatatype.null, h => by simp [refDefDt] at h
+  | SmtDatatype.sum c d, h => by
+      have hp : refDefDtc S c = true ∨ refDefDt S d = true := by
+        simpa [refDefDt, Bool.or_eq_true] using h
+      rw [show __smtx_dt_lift s X (SmtDatatype.sum c d) =
+        SmtDatatype.sum (__smtx_dtc_lift s X c) (__smtx_dt_lift s X d) by
+        simp [__smtx_dt_lift]]
+      rcases hp with hp | hp
+      · simp [refDefDt, Bool.or_eq_true, refDef_lift_dtc s X S c hp]
+      · simp [refDefDt, Bool.or_eq_true, refDef_lift_dt s X S d hp]
+
+end
+
 /-! ## The chain invariant and the establishment walk -/
 
 /-- The pump invariant of a chain: its head entry `(t, P)` resolves through
