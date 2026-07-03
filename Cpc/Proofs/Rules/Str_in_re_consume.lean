@@ -25432,8 +25432,29 @@ private theorem str_re_consume_mult_model_rel_of_final_candidate_native_eq_local
 private def consume_unrev_str_local (t : Term) : Term :=
   __eo_list_rev (Term.UOp UserOp.str_concat) t
 
+/--
+NOTE: no inner `__re_flatten` here.  Two earlier candidate designs are
+unusable:
+* re-flattening inside the transform makes the transform of `rFlat`
+  potentially stuck even though the whole pipeline succeeded
+  (`__str_flatten (__eo_list_singleton_intro str_concat c)` calls
+  `__eo_typeof c` on opaque chunks `c` that the first pass never
+  typed), so the motives' typing hypotheses would be undischargeable;
+* `__re_flatten true` is NOT the identity on
+  `__re_rev_map_rev (__re_flatten true r) eps` outputs: `__str_flatten`
+  keeps `seq_empty` atoms as chunks and the second flatten DROPS the
+  resulting `str_to_re (seq_empty _)` chunks (value-preserving but not
+  syntax-preserving), so a syntactic idempotence lemma is false.
+With the plain reversal, the transform of `rFlat` is `__re_flatten
+true r` by the proven involution
+`re_flatten_true_action_double_eps_local`, and the residual mismatch
+against the algorithm's re-flattened second pass is bridged by the
+value-level lemmas below
+(`eval_rev_flatten_rev_rflat_rel_local`,
+`eval_first_residual_unrev_rel_local`).
+-/
 private def consume_unrev_re_local (t : Term) : Term :=
-  __re_rev_map_rev (__re_flatten (Term.Boolean true) t)
+  __re_rev_map_rev t
     (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))
 
 private def consume_unrev_pair_local (a b : Term) : Term :=
@@ -25554,37 +25575,120 @@ private theorem str_re_consume_rec_unrev_model_rel_local
   sorry
 
 /--
-`__re_flatten true` fixes the outputs of
-`__re_rev_map_rev (__re_flatten true r) eps`: the reversal of a
-flattened chunk list is again a flattened chunk list (each chunk is a
-`__re_rev_comp` image of a `__re_flatten false`-normal chunk, and
-`__re_rev_comp` preserves `__re_flatten false`-normality).
+Value-level bridge for the retried (carry-true) second pass of the
+`re_mult` wrapper: the algorithm's `nextR` is
+`__re_rev_map_rev (__re_flatten true rFlat) eps` where `rFlat` is
+itself `__re_rev_map_rev (__re_flatten true rSrc) eps`; its value is
+extensionally the value of `__re_flatten true rSrc` (i.e. of `rSrc`).
 
-Proof plan: `re_action_frontier_true_local` is too weak here — it
-allows multi-character literal `str_to_re` heads, on which
-`__re_flatten true` is NOT the identity (it re-splits them).  Define a
-stronger chunk invariant "flatten-true-fixed head": the head is either
-a `str_to_re` atom whose argument is a single-character literal or a
-non-list term (so `__re_split_str_to_re (__str_flatten
-(__eo_list_singleton_intro str_concat sArg))` reproduces the chunk),
-or a non-`str_to_re` `__re_flatten false`-fixed atom whose nested
-chains recursively satisfy the invariant.  Show (a) `__re_flatten
-true` outputs satisfy it (its literal chunks are single characters by
-construction), (b) `__re_rev_comp` preserves it, (c) `__re_rev_map_rev`
-maps invariant chains to invariant chains, and (d) `__re_flatten true`
-is the identity on invariant chains.
+Not a syntactic identity: `__re_flatten true` may drop
+`str_to_re (seq_empty _)` chunks of `rFlat` (value `{ε}`) and
+normalize `re_mult`/`re_inter`/`re_union` chunk interiors.  Provable
+by the chunk-invariant induction: `rFlat`'s chunks are `__re_rev_comp`
+images of `__re_flatten true` output chunks, hence single-character
+literals, opaque atoms, or false-normal combinator atoms — on those
+the extra flatten is value-preserving chunkwise, and reversal
+distributes over the chunk list on both sides.
 -/
-private theorem re_flatten_true_fixed_on_rev_map_rev_local
-    (r : Term)
-    (hNe :
-      __re_rev_map_rev (__re_flatten (Term.Boolean true) r)
+private theorem eval_rev_flatten_rev_rflat_rel_local
+    (M : SmtModel) (hM : model_total_typed M) (rSrc : Term)
+    (hRSrcTy : __smtx_typeof (__eo_to_smt rSrc) = SmtType.RegLan)
+    (hRFlatNe :
+      __re_rev_map_rev (__re_flatten (Term.Boolean true) rSrc)
           (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) ≠
-        Term.Stuck) :
-    __re_flatten (Term.Boolean true)
-        (__re_rev_map_rev (__re_flatten (Term.Boolean true) r)
-          (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))) =
-      __re_rev_map_rev (__re_flatten (Term.Boolean true) r)
-        (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) := by
+        Term.Stuck)
+    (nRv : native_RegLan)
+    (hNEval :
+      __smtx_model_eval M
+          (__eo_to_smt
+            (__re_rev_map_rev
+              (__re_flatten (Term.Boolean true)
+                (__re_rev_map_rev (__re_flatten (Term.Boolean true) rSrc)
+                  (Term.Apply (Term.UOp UserOp.str_to_re)
+                    (Term.String []))))
+              (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])))) =
+        SmtValue.RegLan nRv) :
+    ∃ flatRv,
+      __smtx_model_eval M
+          (__eo_to_smt (__re_flatten (Term.Boolean true) rSrc)) =
+        SmtValue.RegLan flatRv ∧
+      RuleProofs.smt_value_rel (SmtValue.RegLan nRv)
+        (SmtValue.RegLan flatRv) := by
+  sorry
+
+/--
+Value-level bridge between the unrev transform of the first pass's
+residual regex (plain reversal) and the algorithm's second-pass
+`nextR` (which re-flattens the residual before reversing).  The
+residual `memb_re first` is a suffix structure of `rFlat`, so its
+chunks satisfy the same invariant as in
+`eval_rev_flatten_rev_rflat_rel_local` and the extra flatten is
+value-preserving.
+-/
+private theorem eval_first_residual_unrev_rel_local
+    (M : SmtModel) (hM : model_total_typed M) (s rSrc : Term)
+    (hRSrcTy : __smtx_typeof (__eo_to_smt rSrc) = SmtType.RegLan)
+    (hFirstNe :
+      __str_re_consume_rec
+          (__eo_list_rev (Term.UOp UserOp.str_concat)
+            (__str_flatten (__eo_list_singleton_intro
+              (Term.UOp UserOp.str_concat) s)))
+          (__re_rev_map_rev (__re_flatten (Term.Boolean true) rSrc)
+            (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])))
+          (__eo_list_rev (Term.UOp UserOp.str_concat)
+            (__str_flatten (__eo_list_singleton_intro
+              (Term.UOp UserOp.str_concat) s))) ≠ Term.Stuck)
+    (hMemReNe :
+      __str_membership_re
+          (__str_re_consume_rec
+            (__eo_list_rev (Term.UOp UserOp.str_concat)
+              (__str_flatten (__eo_list_singleton_intro
+                (Term.UOp UserOp.str_concat) s)))
+            (__re_rev_map_rev (__re_flatten (Term.Boolean true) rSrc)
+              (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])))
+            (__eo_list_rev (Term.UOp UserOp.str_concat)
+              (__str_flatten (__eo_list_singleton_intro
+                (Term.UOp UserOp.str_concat) s)))) ≠ Term.Stuck)
+    (nRv : native_RegLan)
+    (hNEval :
+      __smtx_model_eval M
+          (__eo_to_smt
+            (__re_rev_map_rev
+              (__re_flatten (Term.Boolean true)
+                (__str_membership_re
+                  (__str_re_consume_rec
+                    (__eo_list_rev (Term.UOp UserOp.str_concat)
+                      (__str_flatten (__eo_list_singleton_intro
+                        (Term.UOp UserOp.str_concat) s)))
+                    (__re_rev_map_rev
+                      (__re_flatten (Term.Boolean true) rSrc)
+                      (Term.Apply (Term.UOp UserOp.str_to_re)
+                        (Term.String [])))
+                    (__eo_list_rev (Term.UOp UserOp.str_concat)
+                      (__str_flatten (__eo_list_singleton_intro
+                        (Term.UOp UserOp.str_concat) s))))))
+              (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])))) =
+        SmtValue.RegLan nRv) :
+    ∃ mRv,
+      __smtx_model_eval M
+          (__eo_to_smt
+            (__re_rev_map_rev
+              (__str_membership_re
+                (__str_re_consume_rec
+                  (__eo_list_rev (Term.UOp UserOp.str_concat)
+                    (__str_flatten (__eo_list_singleton_intro
+                      (Term.UOp UserOp.str_concat) s)))
+                  (__re_rev_map_rev
+                    (__re_flatten (Term.Boolean true) rSrc)
+                    (Term.Apply (Term.UOp UserOp.str_to_re)
+                      (Term.String [])))
+                  (__eo_list_rev (Term.UOp UserOp.str_concat)
+                    (__str_flatten (__eo_list_singleton_intro
+                      (Term.UOp UserOp.str_concat) s)))))
+              (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])))) =
+        SmtValue.RegLan mRv ∧
+      RuleProofs.smt_value_rel (SmtValue.RegLan nRv)
+        (SmtValue.RegLan mRv) := by
   sorry
 
 /--
@@ -25737,6 +25841,16 @@ private theorem native_str_in_re_star_false_of_no_prefix_consume_local
       rw [hNoPrefix pre suf hAppend] at hPreStrMem
       cases hPreStrMem
 
+private theorem native_str_in_re_congr_of_reglan_rel_consume_local
+    {r1 r2 : native_RegLan}
+    (h : RuleProofs.smt_value_rel (SmtValue.RegLan r1)
+      (SmtValue.RegLan r2))
+    (str : native_String) :
+    native_str_in_re str r1 = native_str_in_re str r2 := by
+  cases hV : native_string_valid str with
+  | true => exact smt_value_rel_reglan_valid_eq h hV
+  | false => simp [native_str_in_re, hV]
+
 private theorem native_string_valid_suffix_consume_local
     (pre suf : native_String)
     (h : native_string_valid (pre ++ suf) = true) :
@@ -25815,6 +25929,15 @@ private theorem str_re_consume_rec_false_left_ne_stuck_consume_local
     rw [h]
     intro hh
     cases hh)
+
+private theorem term_ne_stuck_of_eval_reglan_consume_local
+    (M : SmtModel) (t : Term) (v : native_RegLan)
+    (h : __smtx_model_eval M (__eo_to_smt t) = SmtValue.RegLan v) :
+    t ≠ Term.Stuck := by
+  intro hBad
+  subst t
+  rw [show __eo_to_smt Term.Stuck = SmtTerm.None from rfl] at h
+  simp [__smtx_model_eval] at h
 
 theorem str_re_consume_model_rel
     (M : SmtModel) (hM : model_total_typed M)
@@ -30334,10 +30457,9 @@ theorem str_re_consume_model_rel
               __str_flatten (__eo_list_singleton_intro
                 (Term.UOp UserOp.str_concat) s) ∧
             __re_rev_map_rev
-                (__re_flatten (Term.Boolean true)
-                  (__re_rev_map_rev (__re_flatten (Term.Boolean true) rSrc)
-                    (Term.Apply (Term.UOp UserOp.str_to_re)
-                      (Term.String []))))
+                (__re_rev_map_rev (__re_flatten (Term.Boolean true) rSrc)
+                  (Term.Apply (Term.UOp UserOp.str_to_re)
+                    (Term.String [])))
                 (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) =
               __re_flatten (Term.Boolean true) rSrc ∧
             __smtx_typeof
@@ -30366,7 +30488,7 @@ theorem str_re_consume_model_rel
               __smtx_model_eval M
                   (__eo_to_smt (__re_flatten (Term.Boolean true) rSrc)) =
                 SmtValue.RegLan flatRv ∧
-              (∀ str, native_string_valid str = true ->
+              (∀ str,
                 native_str_in_re str flatRv =
                   native_str_in_re str rvS) := by
       intro rSrc hRSrcTy hFirstNe
@@ -30409,23 +30531,17 @@ theorem str_re_consume_model_rel
           (by simpa [__str_nary_intro] using hFlatSrcList) hSFlatNe
       have hInvR :
           __re_rev_map_rev
-              (__re_flatten (Term.Boolean true)
-                (__re_rev_map_rev (__re_flatten (Term.Boolean true) rSrc)
-                  (Term.Apply (Term.UOp UserOp.str_to_re)
-                    (Term.String []))))
+              (__re_rev_map_rev (__re_flatten (Term.Boolean true) rSrc)
+                (Term.Apply (Term.UOp UserOp.str_to_re)
+                  (Term.String [])))
               (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) =
             __re_flatten (Term.Boolean true) rSrc := by
-        rw [re_flatten_true_fixed_on_rev_map_rev_local rSrc hRFlatNe]
         have hInv :=
-          (re_rev_map_rev_comp_action_involutive_local.1
-            (__re_flatten (Term.Boolean true) rSrc)
-            (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])))
-            hRFlatNe
+          re_flatten_true_action_double_eps_local rSrc hFlatRNe
         rw [show re_empty_string_re_consume_local =
           Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
           from rfl] at hInv
-        rw [hInv]
-        exact __re_rev_map_rev.eq_2 _ (fun h => hFlatRNe h)
+        exact hInv
       have hSsValTy :
           __smtx_typeof_value (SmtValue.Seq ss) =
             SmtType.Seq SmtType.Char := by
@@ -30450,7 +30566,8 @@ theorem str_re_consume_model_rel
         hSEval,
         by simpa [__str_nary_intro] using hFlatSrcEval,
         hUnpackEq, hWValid, hREvalS, hFlatREval,
-        fun str hV => smt_value_rel_reglan_valid_eq hFlatRRel hV⟩
+        fun str =>
+          native_str_in_re_congr_of_reglan_rel_consume_local hFlatRRel str⟩
     refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
     · -- nonMultFirstFalseNative
       intro hNotMult
@@ -30503,7 +30620,7 @@ theorem str_re_consume_model_rel
             false :=
         hNoSuffix [] (native_unpack_string flatSs) (by simp)
       rw [hUnpackEq] at hFlatFalse
-      rw [← hTransfer (native_unpack_string ss0) hWValid]
+      rw [← hTransfer (native_unpack_string ss0)]
       exact hFlatFalse
     · -- multFirstFalseNative
       intro r0 hR
@@ -30570,10 +30687,7 @@ theorem str_re_consume_model_rel
       have hSufFail :
           native_str_in_re suf flatRv = false :=
         hNoSuffix pre suf (by rw [hApp, hUnpackEq])
-      rw [← hTransfer suf
-        (native_string_valid_suffix_consume_local pre suf (by
-          rw [hApp]
-          exact hWValid))]
+      rw [← hTransfer suf]
       exact hSufFail
     · -- nonMultInputNativeEq
       intro hSideNotFalse hNotMult
@@ -30630,6 +30744,8 @@ theorem str_re_consume_model_rel
               (__eo_to_smt (__re_flatten (Term.Boolean true) r))) = _
         simp [__smtx_model_eval, __smtx_model_eval_str_in_re,
           hFlatSrcEval, hFlatREval]
+      rcases eval_first_residual_unrev_rel_local M hM s r _hRTy hFirstNe
+          hMemReNe nextRv hNextREval with ⟨mRv, hMEval, hMRel⟩
       have hRhsEval :
           __smtx_model_eval M
               (__eo_to_smt
@@ -30659,18 +30775,20 @@ theorem str_re_consume_model_rel
                         (__str_flatten (__eo_list_singleton_intro
                           (Term.UOp UserOp.str_concat) s))))))) =
             SmtValue.Boolean
-              (native_str_in_re (native_unpack_string nextSs) nextRv) := by
+              (native_str_in_re (native_unpack_string nextSs) mRv) := by
         simp only [consume_unrev_pair_local, consume_unrev_str_local,
           consume_unrev_re_local]
         change __smtx_model_eval M
             (SmtTerm.str_in_re _ _) = _
         simp [__smtx_model_eval, __smtx_model_eval_str_in_re,
-          hNextSEval, hNextREval]
+          hNextSEval, hMEval]
       rw [hLhsEval, hRhsEval] at hRel
       have hBoolEq :=
         smt_value_rel_boolean_eq_consume_local hRel
       rw [hUnpackEq] at hBoolEq
-      rw [← hTransfer (native_unpack_string ss0) hWValid]
+      rw [← native_str_in_re_congr_of_reglan_rel_consume_local hMRel
+        (native_unpack_string nextSs)] at hBoolEq
+      rw [← hTransfer (native_unpack_string ss0)]
       exact hBoolEq
     · -- nonMultSecondFalseInputNativeEq
       intro hNotMult
@@ -30740,6 +30858,8 @@ theorem str_re_consume_model_rel
                 (__eo_to_smt (__re_flatten (Term.Boolean true) r))) = _
           simp [__smtx_model_eval, __smtx_model_eval_str_in_re,
             hFlatSrcEval, hFlatREval]
+        rcases eval_first_residual_unrev_rel_local M hM s r _hRTy hFirstNe
+            hMemReNe nextRv hNextREval with ⟨mRv, hMEval, hMRel⟩
         have hRhsEval :
             __smtx_model_eval M
                 (__eo_to_smt
@@ -30770,18 +30890,20 @@ theorem str_re_consume_model_rel
                             (Term.UOp UserOp.str_concat) s))))))) =
               SmtValue.Boolean
                 (native_str_in_re (native_unpack_string nextSs)
-                  nextRv) := by
+                  mRv) := by
           simp only [consume_unrev_pair_local, consume_unrev_str_local,
             consume_unrev_re_local]
           change __smtx_model_eval M
               (SmtTerm.str_in_re _ _) = _
           simp [__smtx_model_eval, __smtx_model_eval_str_in_re,
-            hNextSEval, hNextREval]
+            hNextSEval, hMEval]
         rw [hLhsEval, hRhsEval] at hRel
         have hBoolEq :=
           smt_value_rel_boolean_eq_consume_local hRel
         rw [hUnpackEq] at hBoolEq
-        rw [← hTransfer (native_unpack_string ss0) hWValid]
+        rw [← native_str_in_re_congr_of_reglan_rel_consume_local hMRel
+          (native_unpack_string nextSs)] at hBoolEq
+        rw [← hTransfer (native_unpack_string ss0)]
         exact hBoolEq
     · -- multSecondFalseInputNativeEq
       intro r0 hR
@@ -30974,22 +31096,45 @@ theorem str_re_consume_model_rel
           simp [__smtx_model_eval, __smtx_model_eval_re_mult, hREval0]
         injection hMultEval.symm.trans hREval1 with hRvEq
         subst hRvEq
-        rw [hCarryTrue] at hNextSEval hNextREval hSecondFalse
-        simp only [eo_ite_true] at hNextSEval hNextREval hSecondFalse
-        rw [hInvS] at hNextSEval hSecondFalse
-        rw [hInvR] at hNextREval hSecondFalse
-        injection hFlatSrcEval.symm.trans hNextSEval with hNextSsEq
-        subst hNextSsEq
-        injection hFlatREval.symm.trans hNextREval with hNextRvEq
-        subst hNextRvEq
+        -- flat no-prefix and nonemptiness at the (original) second pair
+        rcases hMultSecondInputTypeOfSecondFalseProgress r0 hR
+            hSecondFalse with
+          ⟨hNextSTy, hNextRTy⟩
         have hNoPrefix :=
-          hRecNoPrefix _ _ _ _ hFlatSrcTy hFlatRTy rfl hSecondFalse
-            flatSs flatRv hFlatSrcEval hFlatREval
+          hRecNoPrefix _ _ _ _ hNextSTy hNextRTy rfl hSecondFalse
+            nextSs nextRv hNextSEval hNextREval
         have hNonempty :=
           str_re_consume_rec_false_nonempty_local M hM _ _ _ _
-            hFlatSrcTy hFlatRTy rfl hSecondFalse flatSs hFlatSrcEval
+            hNextSTy hNextRTy rfl hSecondFalse nextSs hNextSEval
+        -- identify the second-pass string value with the original word
+        rw [hCarryTrue] at hNextSEval hNextREval
+        simp only [eo_ite_true] at hNextSEval hNextREval
+        rw [hInvS] at hNextSEval
+        injection hFlatSrcEval.symm.trans hNextSEval with hNextSsEq
+        subst hNextSsEq
+        -- relate the second-pass regex value to the flattened body value
+        have hSFlatNe' :
+            __eo_list_rev (Term.UOp UserOp.str_concat)
+                (__str_flatten (__eo_list_singleton_intro
+                  (Term.UOp UserOp.str_concat) s)) ≠ Term.Stuck := by
+          intro hBad
+          rw [hBad] at hFirstNe
+          exact str_re_consume_rec_stuck_left_absurd _ _ _ rfl hFirstNe
+        have hRFlatNe' :
+            __re_rev_map_rev (__re_flatten (Term.Boolean true) r0)
+                (Term.Apply (Term.UOp UserOp.str_to_re)
+                  (Term.String [])) ≠ Term.Stuck := by
+          intro hBad
+          rw [hBad] at hFirstNe
+          exact str_re_consume_rec_stuck_right_absurd _ _ _ hSFlatNe' rfl
+            hFirstNe
+        rcases eval_rev_flatten_rev_rflat_rel_local M hM r0 hR0Ty
+            hRFlatNe' nextRv hNextREval with
+          ⟨flatRv2, hFlatREval2, hNRel⟩
+        injection hFlatREval.symm.trans hFlatREval2 with hFlatRvEq
+        subst hFlatRvEq
         have hRhsFalse :
-            native_str_in_re (native_unpack_string flatSs) flatRv =
+            native_str_in_re (native_unpack_string flatSs) nextRv =
               false :=
           hNoPrefix (native_unpack_string flatSs) [] (by simp)
         rw [hRhsFalse]
@@ -30997,12 +31142,11 @@ theorem str_re_consume_model_rel
         apply native_str_in_re_star_false_of_no_prefix_consume_local _ _
           hNonempty
         intro pre suf hApp
-        have hPreFail : native_str_in_re pre flatRv = false :=
+        have hPreFail : native_str_in_re pre nextRv = false :=
           hNoPrefix pre suf (by rw [hApp, hUnpackEq])
-        rw [← hTransfer pre
-          (native_string_valid_prefix_consume_local pre suf (by
-            rw [hApp]
-            exact hWValid))]
+        rw [← hTransfer pre]
+        rw [← native_str_in_re_congr_of_reglan_rel_consume_local hNRel
+          pre]
         exact hPreFail
     · -- multSecondStrNativeEq: the star-level trim equality
       -- `str_in_re w (star r0v) = str_in_re parts (star r0v)`.
