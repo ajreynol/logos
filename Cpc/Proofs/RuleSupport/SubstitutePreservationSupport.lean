@@ -1796,6 +1796,66 @@ private theorem false_of_apply_stuck_has_smt_translation
       SmtType.None at hTrans
   exact hTrans (TranslationProofs.typeof_apply_none_eq (__eo_to_smt a))
 
+private theorem apply_uop1_impossible_or_fallback
+    {P : Prop} (op : UserOp1) (idx a : Term)
+    (hTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.UOp1 op idx) a))
+    (hFallback : P) :
+    P := by
+  have hTransEo :
+      eoHasSmtTranslation (Term.Apply (Term.UOp1 op idx) a) := by
+    simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+      using hTrans
+  by_cases hSeqEmpty : op = UserOp1.seq_empty
+  · subst op
+    exact false_of_apply_seq_empty hTransEo
+  by_cases hSetEmpty : op = UserOp1.set_empty
+  · subst op
+    exact false_of_apply_set_empty hTransEo
+  by_cases hUpdate : op = UserOp1.update
+  · subst op
+    exact false_of_apply_uop1_translate_apply_none hTransEo rfl
+  by_cases hTupleUpdate : op = UserOp1.tuple_update
+  · subst op
+    exact false_of_apply_uop1_translate_apply_none hTransEo rfl
+  exact hFallback
+
+private theorem apply_uop2_impossible_or_fallback
+    {P : Prop} (op : UserOp2) (x y a : Term)
+    (hTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.UOp2 op x y) a))
+    (hFallback : P) :
+    P := by
+  have hTransEo :
+      eoHasSmtTranslation (Term.Apply (Term.UOp2 op x y) a) := by
+    simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+      using hTrans
+  by_cases hAtBv : op = UserOp2._at_bv
+  · subst op
+    exact false_of_apply_at_bv hTransEo
+  by_cases hAtConst : op = UserOp2._at_const
+  · subst op
+    exact false_of_apply_uop2_translate_apply_none hTransEo rfl
+  exact hFallback
+
+private theorem apply_uop3_impossible_or_fallback
+    {P : Prop} (op : UserOp3) (x y z a : Term)
+    (hTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.UOp3 op x y z) a))
+    (hFallback : P) :
+    P := by
+  have hTransEo :
+      eoHasSmtTranslation (Term.Apply (Term.UOp3 op x y z) a) := by
+    simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+      using hTrans
+  by_cases hReUnfold : op = UserOp3._at_re_unfold_pos_component
+  · subst op
+    exact false_of_apply_re_unfold_pos_component hTransEo
+  exact hFallback
+
 /-- Shared combined preservation proof for an application headed by a datatype
 selector. The selector head itself has SMT type `None`, so this case rebuilds
 translatability from the selector-application typing facts rather than from the
@@ -11195,16 +11255,79 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                 hActuals
                                                                                                                 hATy)
                                                                                                             hTy
-                                                                                                      · by_cases hHeadStuck :
-                                                                                                          f =
-                                                                                                            Term.Stuck
-                                                                                                        · subst f
+                                                                                                      · by_cases hHeadUOp1 :
+                                                                                                          ∃ op idx,
+                                                                                                            f =
+                                                                                                              Term.UOp1
+                                                                                                                op
+                                                                                                                idx
+                                                                                                        · rcases
+                                                                                                            hHeadUOp1 with
+                                                                                                          ⟨op,
+                                                                                                            idx,
+                                                                                                            rfl⟩
                                                                                                           exact
-                                                                                                            False.elim
-                                                                                                              (false_of_apply_stuck_has_smt_translation
+                                                                                                            apply_uop1_impossible_or_fallback
+                                                                                                              op
+                                                                                                              idx
+                                                                                                              a
+                                                                                                              hFTrans
+                                                                                                              hOld
+                                                                                                        · by_cases hHeadUOp2 :
+                                                                                                            ∃ op x y,
+                                                                                                              f =
+                                                                                                                Term.UOp2
+                                                                                                                  op
+                                                                                                                  x
+                                                                                                                  y
+                                                                                                          · rcases
+                                                                                                              hHeadUOp2 with
+                                                                                                            ⟨op,
+                                                                                                              x,
+                                                                                                              y,
+                                                                                                              rfl⟩
+                                                                                                            exact
+                                                                                                              apply_uop2_impossible_or_fallback
+                                                                                                                op
+                                                                                                                x
+                                                                                                                y
                                                                                                                 a
-                                                                                                                hFTrans)
-                                                                                                        · exact hOld
+                                                                                                                hFTrans
+                                                                                                                hOld
+                                                                                                          · by_cases hHeadUOp3 :
+                                                                                                              ∃ op x y z,
+                                                                                                                f =
+                                                                                                                  Term.UOp3
+                                                                                                                    op
+                                                                                                                    x
+                                                                                                                    y
+                                                                                                                    z
+                                                                                                            · rcases
+                                                                                                                hHeadUOp3 with
+                                                                                                              ⟨op,
+                                                                                                                x,
+                                                                                                                y,
+                                                                                                                z,
+                                                                                                                rfl⟩
+                                                                                                              exact
+                                                                                                                apply_uop3_impossible_or_fallback
+                                                                                                                  op
+                                                                                                                  x
+                                                                                                                  y
+                                                                                                                  z
+                                                                                                                  a
+                                                                                                                  hFTrans
+                                                                                                                  hOld
+                                                                                                            · by_cases hHeadStuck :
+                                                                                                                f =
+                                                                                                                  Term.Stuck
+                                                                                                              · subst f
+                                                                                                                exact
+                                                                                                                  False.elim
+                                                                                                                    (false_of_apply_stuck_has_smt_translation
+                                                                                                                      a
+                                                                                                                      hFTrans)
+                                                                                                              · exact hOld
                   · have hHeadNotApply : ∀ g x, f ≠ Term.Apply g x := by
                       intro g x hEq
                       exact hHeadApply ⟨g, x, hEq⟩
