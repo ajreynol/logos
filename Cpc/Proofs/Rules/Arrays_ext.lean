@@ -209,13 +209,15 @@ private theorem smt_map_domain_inhabited_wf_rec_of_typeof
             __smtx_type_wf_rec B B = true := by
     have hAll :
         native_inhabited_type (SmtType.Map A B) = true ∧
-          native_inhabited_type A = true ∧
-            __smtx_type_wf_rec A A = true ∧
-              native_inhabited_type B = true ∧
-                __smtx_type_wf_rec B B = true := by
+          ((native_inhabited_type A = true ∧
+            __smtx_type_wf_rec A A = true) ∧
+            __smtx_type_no_alias_rec native_reflist_nil A = true) ∧
+          (native_inhabited_type B = true ∧
+            __smtx_type_wf_rec B B = true) ∧
+            __smtx_type_no_alias_rec native_reflist_nil B = true := by
       have hComponentParts := smtx_type_wf_component_parts hComponent
       simpa [__smtx_type_wf_rec, SmtEval.native_and] using hComponentParts
-    exact hAll.2
+    exact ⟨hAll.2.1.1.1, hAll.2.1.1.2, hAll.2.2.1.1, hAll.2.2.1.2⟩
   exact ⟨hParts.1, hParts.2.1⟩
 
 private theorem typed___eo_prog_arrays_ext_impl
