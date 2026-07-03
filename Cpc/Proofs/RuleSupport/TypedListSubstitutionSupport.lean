@@ -136,6 +136,651 @@ theorem native_Teq_none_false_of_non_none
     native_Teq T SmtType.None = false := by
   cases T <;> simp [native_Teq] at h ⊢
 
+private theorem substitute_simul_rec_closed_atom_eq_self
+    (F xs ss bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hSs : EoListAllHaveSmtTranslation ss)
+    (hNotApply : ∀ f a, F ≠ Term.Apply f a)
+    (hNotVar : ∀ s S, F ≠ Term.Var s S)
+    (hNotStuck : F ≠ Term.Stuck)
+    (hClosed : __is_closed_rec F Term.__eo_List_nil = Term.Boolean true) :
+    __substitute_simul_rec (Term.Boolean false) F xs ss bvs = F := by
+  have hisr : (Term.Boolean false : Term) ≠ Term.Stuck := by decide
+  have hxs : xs ≠ Term.Stuck := hXsEnv.ne_stuck
+  have hss : ss ≠ Term.Stuck :=
+    SubstituteSupport.eoListAllHaveSmtTranslation_ne_stuck hSs
+  have hbvs : bvs ≠ Term.Stuck := hBvsEnv.ne_stuck
+  have hHeadEq :
+      __substitute_simul_rec (Term.Boolean false) F xs ss bvs =
+        __eo_requires (__is_closed_rec F Term.__eo_List_nil)
+          (Term.Boolean true) F :=
+    SubstituteSupport.substitute_simul_rec_atom
+      (Term.Boolean false) F xs ss bvs
+      hisr hxs hss hbvs hNotApply hNotVar hNotStuck
+  rw [hHeadEq, hClosed]
+  simp [__eo_requires, native_ite, native_teq, SmtEval.native_not]
+
+private theorem substitute_simul_rec_apply_eq_apply_of_parts
+    (f a xs ss bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hSs : EoListAllHaveSmtTranslation ss)
+    (hNotBinder :
+      ∀ q v vs,
+        f ≠
+          Term.Apply q
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+    (hF :
+      __substitute_simul_rec (Term.Boolean false) f xs ss bvs = f)
+    (hA :
+      __substitute_simul_rec (Term.Boolean false) a xs ss bvs = a)
+    (hFNe : f ≠ Term.Stuck)
+    (hANe : a ≠ Term.Stuck) :
+    __substitute_simul_rec (Term.Boolean false) (Term.Apply f a) xs ss bvs =
+      Term.Apply f a := by
+  have hisr : (Term.Boolean false : Term) ≠ Term.Stuck := by decide
+  have hxs : xs ≠ Term.Stuck := hXsEnv.ne_stuck
+  have hss : ss ≠ Term.Stuck :=
+    SubstituteSupport.eoListAllHaveSmtTranslation_ne_stuck hSs
+  have hbvs : bvs ≠ Term.Stuck := hBvsEnv.ne_stuck
+  rw [SubstituteSupport.substitute_simul_rec_apply
+    (Term.Boolean false) f a xs ss bvs hisr hxs hss hbvs hNotBinder]
+  rw [hF, hA]
+  cases f <;> cases a <;> simp [__eo_mk_apply] at hFNe hANe ⊢
+
+private theorem substitute_simul_rec_apply_eq_apply_of_sub_parts
+    (f a f' a' xs ss bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hSs : EoListAllHaveSmtTranslation ss)
+    (hNotBinder :
+      ∀ q v vs,
+        f ≠
+          Term.Apply q
+            (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+    (hF :
+      __substitute_simul_rec (Term.Boolean false) f xs ss bvs = f')
+    (hA :
+      __substitute_simul_rec (Term.Boolean false) a xs ss bvs = a')
+    (hFNe : f' ≠ Term.Stuck)
+    (hANe : a' ≠ Term.Stuck) :
+    __substitute_simul_rec (Term.Boolean false) (Term.Apply f a) xs ss bvs =
+      Term.Apply f' a' := by
+  have hisr : (Term.Boolean false : Term) ≠ Term.Stuck := by decide
+  have hxs : xs ≠ Term.Stuck := hXsEnv.ne_stuck
+  have hss : ss ≠ Term.Stuck :=
+    SubstituteSupport.eoListAllHaveSmtTranslation_ne_stuck hSs
+  have hbvs : bvs ≠ Term.Stuck := hBvsEnv.ne_stuck
+  rw [SubstituteSupport.substitute_simul_rec_apply
+    (Term.Boolean false) f a xs ss bvs hisr hxs hss hbvs hNotBinder]
+  rw [hF, hA]
+  cases f' <;> cases a' <;> simp [__eo_mk_apply] at hFNe hANe ⊢
+
+theorem substitute_simul_rec_eo_type_valid_rec_eq_self
+    (T xs ss bvs : Term)
+    {refs : List native_String} {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hSs : EoListAllHaveSmtTranslation ss)
+    (hValid : TranslationProofs.eo_type_valid_rec refs T) :
+    __substitute_simul_rec (Term.Boolean false) T xs ss bvs = T := by
+  let rec go (T : Term) :
+      ∀ {refs : List native_String} (xs ss bvs : Term)
+        {xsVars bvsVars : List EoVarKey},
+        EoVarEnvPerm xs xsVars ->
+          EoVarEnvPerm bvs bvsVars ->
+            EoListAllHaveSmtTranslation ss ->
+              TranslationProofs.eo_type_valid_rec refs T ->
+                __substitute_simul_rec
+                    (Term.Boolean false) T xs ss bvs = T := by
+    intro refs xs ss bvs xsVars bvsVars hXsEnv hBvsEnv hSs hValid
+    cases T with
+    | Apply f a =>
+        cases f with
+        | UOp op =>
+            cases op <;>
+              try
+                (simp [TranslationProofs.eo_type_valid_rec] at hValid)
+            case BitVec =>
+              cases a with
+              | Numeral n =>
+                  have hHead :
+                      __substitute_simul_rec (Term.Boolean false)
+                          (Term.UOp UserOp.BitVec) xs ss bvs =
+                        Term.UOp UserOp.BitVec :=
+                    SubstituteSupport.substitute_simul_rec_uop_eq_self
+                      UserOp.BitVec xs ss bvs hXsEnv hBvsEnv hSs
+                  have hArg :
+                      __substitute_simul_rec (Term.Boolean false)
+                          (Term.Numeral n) xs ss bvs =
+                        Term.Numeral n :=
+                    substitute_simul_rec_closed_atom_eq_self
+                      (Term.Numeral n) xs ss bvs hXsEnv hBvsEnv hSs
+                      (by intro f a h; cases h)
+                      (by intro s S h; cases h)
+                      (by intro h; cases h)
+                      (by simp [__is_closed_rec])
+                  exact
+                    substitute_simul_rec_apply_eq_apply_of_parts
+                      (Term.UOp UserOp.BitVec) (Term.Numeral n) xs ss bvs
+                      hXsEnv hBvsEnv hSs
+                      (by intro q v vs h; cases h)
+                      hHead hArg
+                      (by intro h; cases h)
+                      (by intro h; cases h)
+              | _ =>
+                  simp [TranslationProofs.eo_type_valid_rec] at hValid
+            case Seq =>
+              have hAValid :
+                  TranslationProofs.eo_type_valid_rec [] a := by
+                simpa [TranslationProofs.eo_type_valid_rec] using hValid
+              have hHead :
+                  __substitute_simul_rec (Term.Boolean false)
+                      (Term.UOp UserOp.Seq) xs ss bvs =
+                    Term.UOp UserOp.Seq :=
+                SubstituteSupport.substitute_simul_rec_uop_eq_self
+                  UserOp.Seq xs ss bvs hXsEnv hBvsEnv hSs
+              have hArg := go a xs ss bvs hXsEnv hBvsEnv hSs hAValid
+              exact
+                substitute_simul_rec_apply_eq_apply_of_parts
+                  (Term.UOp UserOp.Seq) a xs ss bvs
+                  hXsEnv hBvsEnv hSs
+                  (by intro q v vs h; cases h)
+                  hHead hArg
+                  (by intro h; cases h)
+                  (TranslationProofs.eo_type_valid_rec_not_stuck hAValid)
+            case Set =>
+              have hAValid :
+                  TranslationProofs.eo_type_valid_rec [] a := by
+                simpa [TranslationProofs.eo_type_valid_rec] using hValid
+              have hHead :
+                  __substitute_simul_rec (Term.Boolean false)
+                      (Term.UOp UserOp.Set) xs ss bvs =
+                    Term.UOp UserOp.Set :=
+                SubstituteSupport.substitute_simul_rec_uop_eq_self
+                  UserOp.Set xs ss bvs hXsEnv hBvsEnv hSs
+              have hArg := go a xs ss bvs hXsEnv hBvsEnv hSs hAValid
+              exact
+                substitute_simul_rec_apply_eq_apply_of_parts
+                  (Term.UOp UserOp.Set) a xs ss bvs
+                  hXsEnv hBvsEnv hSs
+                  (by intro q v vs h; cases h)
+                  hHead hArg
+                  (by intro h; cases h)
+                  (TranslationProofs.eo_type_valid_rec_not_stuck hAValid)
+        | Apply g y =>
+            cases g with
+            | FunType =>
+                rcases (by
+                    simpa [TranslationProofs.eo_type_valid_rec]
+                      using hValid :
+                    TranslationProofs.eo_type_valid_rec [] y ∧
+                      TranslationProofs.eo_type_valid_rec [] a) with
+                  ⟨hYValid, hAValid⟩
+                have hFun :
+                    __substitute_simul_rec (Term.Boolean false)
+                        Term.FunType xs ss bvs =
+                      Term.FunType :=
+                  substitute_simul_rec_closed_atom_eq_self
+                    Term.FunType xs ss bvs hXsEnv hBvsEnv hSs
+                    (by intro f a h; cases h)
+                    (by intro s S h; cases h)
+                    (by intro h; cases h)
+                    (by simp [__is_closed_rec])
+                have hY := go y xs ss bvs hXsEnv hBvsEnv hSs hYValid
+                have hInner :
+                    __substitute_simul_rec (Term.Boolean false)
+                        (Term.Apply Term.FunType y) xs ss bvs =
+                      Term.Apply Term.FunType y :=
+                  substitute_simul_rec_apply_eq_apply_of_parts
+                    Term.FunType y xs ss bvs hXsEnv hBvsEnv hSs
+                    (by intro q v vs h; cases h)
+                    hFun hY
+                    (by intro h; cases h)
+                    (TranslationProofs.eo_type_valid_rec_not_stuck hYValid)
+                have hA := go a xs ss bvs hXsEnv hBvsEnv hSs hAValid
+                exact
+                  substitute_simul_rec_apply_eq_apply_of_parts
+                    (Term.Apply Term.FunType y) a xs ss bvs
+                    hXsEnv hBvsEnv hSs
+                    (apply_head_not_list_branch_of_arg_not_list
+                      (eo_type_valid_rec_not_eo_list_cons hYValid))
+                    hInner hA
+                    (by intro h; cases h)
+                    (TranslationProofs.eo_type_valid_rec_not_stuck hAValid)
+            | UOp op =>
+                cases op <;>
+                  try
+                    (simp [TranslationProofs.eo_type_valid_rec] at hValid)
+                case Array =>
+                  rcases (by
+                      simpa [TranslationProofs.eo_type_valid_rec]
+                        using hValid :
+                      TranslationProofs.eo_type_valid_rec [] y ∧
+                        TranslationProofs.eo_type_valid_rec [] a) with
+                    ⟨hYValid, hAValid⟩
+                  have hHead :
+                      __substitute_simul_rec (Term.Boolean false)
+                          (Term.UOp UserOp.Array) xs ss bvs =
+                        Term.UOp UserOp.Array :=
+                    SubstituteSupport.substitute_simul_rec_uop_eq_self
+                      UserOp.Array xs ss bvs hXsEnv hBvsEnv hSs
+                  have hY := go y xs ss bvs hXsEnv hBvsEnv hSs hYValid
+                  have hInner :
+                      __substitute_simul_rec (Term.Boolean false)
+                          (Term.Apply (Term.UOp UserOp.Array) y) xs ss bvs =
+                        Term.Apply (Term.UOp UserOp.Array) y :=
+                    substitute_simul_rec_apply_eq_apply_of_parts
+                      (Term.UOp UserOp.Array) y xs ss bvs
+                      hXsEnv hBvsEnv hSs
+                      (by intro q v vs h; cases h)
+                      hHead hY
+                      (by intro h; cases h)
+                      (TranslationProofs.eo_type_valid_rec_not_stuck hYValid)
+                  have hA := go a xs ss bvs hXsEnv hBvsEnv hSs hAValid
+                  exact
+                    substitute_simul_rec_apply_eq_apply_of_parts
+                      (Term.Apply (Term.UOp UserOp.Array) y) a xs ss bvs
+                      hXsEnv hBvsEnv hSs
+                      (apply_head_not_list_branch_of_arg_not_list
+                        (eo_type_valid_rec_not_eo_list_cons hYValid))
+                      hInner hA
+                      (by intro h; cases h)
+                      (TranslationProofs.eo_type_valid_rec_not_stuck hAValid)
+                case Tuple =>
+                  rcases (by
+                      simpa [TranslationProofs.eo_type_valid_rec]
+                        using hValid :
+                      TranslationProofs.eo_type_valid_rec [] y ∧
+                        TranslationProofs.eo_type_valid_rec [] a ∧
+                          __smtx_type_wf
+                            (__eo_to_smt_type_tuple
+                              (__eo_to_smt_type y) (__eo_to_smt_type a)) =
+                            true) with
+                    ⟨hYValid, hAValid, _hWf⟩
+                  have hHead :
+                      __substitute_simul_rec (Term.Boolean false)
+                          (Term.UOp UserOp.Tuple) xs ss bvs =
+                        Term.UOp UserOp.Tuple :=
+                    SubstituteSupport.substitute_simul_rec_uop_eq_self
+                      UserOp.Tuple xs ss bvs hXsEnv hBvsEnv hSs
+                  have hY := go y xs ss bvs hXsEnv hBvsEnv hSs hYValid
+                  have hInner :
+                      __substitute_simul_rec (Term.Boolean false)
+                          (Term.Apply (Term.UOp UserOp.Tuple) y) xs ss bvs =
+                        Term.Apply (Term.UOp UserOp.Tuple) y :=
+                    substitute_simul_rec_apply_eq_apply_of_parts
+                      (Term.UOp UserOp.Tuple) y xs ss bvs
+                      hXsEnv hBvsEnv hSs
+                      (by intro q v vs h; cases h)
+                      hHead hY
+                      (by intro h; cases h)
+                      (TranslationProofs.eo_type_valid_rec_not_stuck hYValid)
+                  have hA := go a xs ss bvs hXsEnv hBvsEnv hSs hAValid
+                  exact
+                    substitute_simul_rec_apply_eq_apply_of_parts
+                      (Term.Apply (Term.UOp UserOp.Tuple) y) a xs ss bvs
+                      hXsEnv hBvsEnv hSs
+                      (apply_head_not_list_branch_of_arg_not_list
+                        (eo_type_valid_rec_not_eo_list_cons hYValid))
+                      hInner hA
+                      (by intro h; cases h)
+                      (TranslationProofs.eo_type_valid_rec_not_stuck hAValid)
+            | _ =>
+                simp [TranslationProofs.eo_type_valid_rec] at hValid
+        | _ =>
+            simp [TranslationProofs.eo_type_valid_rec] at hValid
+    | UOp op =>
+        exact
+          SubstituteSupport.substitute_simul_rec_uop_eq_self
+            op xs ss bvs hXsEnv hBvsEnv hSs
+    | Bool =>
+        exact
+          substitute_simul_rec_closed_atom_eq_self Term.Bool xs ss bvs
+            hXsEnv hBvsEnv hSs
+            (by intro f a h; cases h)
+            (by intro s S h; cases h)
+            (by intro h; cases h)
+            (is_closed_rec_eq_true_of_eo_type_valid_rec
+              EoSmtVarEnv.nil hValid)
+    | DatatypeType s d =>
+        exact
+          substitute_simul_rec_closed_atom_eq_self
+            (Term.DatatypeType s d) xs ss bvs
+            hXsEnv hBvsEnv hSs
+            (by intro f a h; cases h)
+            (by intro s S h; cases h)
+            (by intro h; cases h)
+            (is_closed_rec_eq_true_of_eo_type_valid_rec
+              EoSmtVarEnv.nil hValid)
+    | DatatypeTypeRef s =>
+        exact
+          substitute_simul_rec_closed_atom_eq_self
+            (Term.DatatypeTypeRef s) xs ss bvs
+            hXsEnv hBvsEnv hSs
+            (by intro f a h; cases h)
+            (by intro s S h; cases h)
+            (by intro h; cases h)
+            (is_closed_rec_eq_true_of_eo_type_valid_rec
+              EoSmtVarEnv.nil hValid)
+    | DtcAppType T U =>
+        exact
+          substitute_simul_rec_closed_atom_eq_self
+            (Term.DtcAppType T U) xs ss bvs
+            hXsEnv hBvsEnv hSs
+            (by intro f a h; cases h)
+            (by intro s S h; cases h)
+            (by intro h; cases h)
+            (is_closed_rec_eq_true_of_eo_type_valid_rec
+              EoSmtVarEnv.nil hValid)
+    | USort i =>
+        exact
+          substitute_simul_rec_closed_atom_eq_self
+            (Term.USort i) xs ss bvs
+            hXsEnv hBvsEnv hSs
+            (by intro f a h; cases h)
+            (by intro s S h; cases h)
+            (by intro h; cases h)
+            (is_closed_rec_eq_true_of_eo_type_valid_rec
+              EoSmtVarEnv.nil hValid)
+    | Var name S =>
+        simp [TranslationProofs.eo_type_valid_rec] at hValid
+    | Stuck =>
+        simp [TranslationProofs.eo_type_valid_rec] at hValid
+    | _ =>
+        simp [TranslationProofs.eo_type_valid_rec] at hValid
+  exact go T xs ss bvs hXsEnv hBvsEnv hSs hValid
+
+theorem substitute_simul_rec_eo_type_valid_eq_self
+    (T xs ss bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hSs : EoListAllHaveSmtTranslation ss)
+    (hValid : TranslationProofs.eo_type_valid T) :
+    __substitute_simul_rec (Term.Boolean false) T xs ss bvs = T := by
+  by_cases hUOp : ∃ op, T = Term.UOp op
+  · rcases hUOp with ⟨op, rfl⟩
+    exact
+      SubstituteSupport.substitute_simul_rec_uop_eq_self
+        op xs ss bvs hXsEnv hBvsEnv hSs
+  · have hValidRec :
+        TranslationProofs.eo_type_valid_rec [] T := by
+      cases T with
+      | UOp op =>
+          exact False.elim (hUOp ⟨op, rfl⟩)
+      | _ =>
+          simpa [TranslationProofs.eo_type_valid] using hValid
+    exact
+      substitute_simul_rec_eo_type_valid_rec_eq_self
+        T xs ss bvs hXsEnv hBvsEnv hSs hValidRec
+
+private theorem smtx_typeof_non_none_not_eo_list_cons
+    {t : Term}
+    (hTy : __smtx_typeof (__eo_to_smt t) ≠ SmtType.None) :
+    ∀ v vs, t ≠ Term.Apply (Term.Apply Term.__eo_List_cons v) vs := by
+  intro v vs hEq
+  subst t
+  exact hTy (smtx_typeof_eo_list_cons_eq_none v vs)
+
+theorem substitute_simul_rec_typed_list_elem_type_eq_of_non_none
+    (typedList xs ss bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hSs : EoListAllHaveSmtTranslation ss)
+    (hSmtType :
+      ∀ t,
+        sizeOf t < sizeOf typedList ->
+        RuleProofs.eo_has_smt_translation t ->
+          __eo_typeof t ≠ Term.Stuck ->
+            __smtx_typeof
+                (__eo_to_smt
+                  (__substitute_simul_rec (Term.Boolean false) t xs ss bvs)) =
+              __smtx_typeof (__eo_to_smt t))
+    (hElemNN : __eo_to_smt_typed_list_elem_type typedList ≠ SmtType.None) :
+    __eo_to_smt_typed_list_elem_type
+        (__substitute_simul_rec (Term.Boolean false) typedList xs ss bvs) =
+      __eo_to_smt_typed_list_elem_type typedList := by
+  cases typedList with
+  | Apply f tail =>
+      cases f with
+      | UOp op =>
+          cases op
+          case _at__at_TypedList_nil =>
+            have hWf : __smtx_type_wf (__eo_to_smt_type tail) = true := by
+              cases h :
+                  __smtx_type_wf (__eo_to_smt_type tail) <;>
+                simp [__eo_to_smt_typed_list_elem_type, h, native_ite]
+                  at hElemNN ⊢
+            have hValid : TranslationProofs.eo_type_valid tail :=
+              TranslationProofs.eo_type_valid_of_smt_wf tail hWf
+            have hHead :
+                __substitute_simul_rec (Term.Boolean false)
+                    (Term.UOp UserOp._at__at_TypedList_nil) xs ss bvs =
+                  Term.UOp UserOp._at__at_TypedList_nil :=
+              SubstituteSupport.substitute_simul_rec_uop_eq_self
+                UserOp._at__at_TypedList_nil xs ss bvs
+                hXsEnv hBvsEnv hSs
+            have hTail :
+                __substitute_simul_rec (Term.Boolean false) tail xs ss bvs =
+                  tail :=
+              substitute_simul_rec_eo_type_valid_eq_self
+                tail xs ss bvs hXsEnv hBvsEnv hSs hValid
+            have hSubEq :
+                __substitute_simul_rec (Term.Boolean false)
+                    (Term.Apply
+                      (Term.UOp UserOp._at__at_TypedList_nil) tail)
+                    xs ss bvs =
+                  Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) tail :=
+              substitute_simul_rec_apply_eq_apply_of_parts
+                (Term.UOp UserOp._at__at_TypedList_nil) tail xs ss bvs
+                hXsEnv hBvsEnv hSs
+                (by intro q v vs h; cases h)
+                hHead hTail
+                (by intro h; cases h)
+                (TranslationProofs.eo_type_valid_not_stuck hValid)
+            rw [hSubEq]
+          all_goals
+            exact False.elim
+              (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+      | Apply g head =>
+          cases g with
+          | UOp op =>
+              cases op
+              case _at__at_TypedList_cons =>
+                rcases typed_list_cons_elem_type_parts head tail hElemNN with
+                  ⟨hHeadTail, hHeadNN, hTailNN, hConsEq⟩
+                have hHeadTrans :
+                    RuleProofs.eo_has_smt_translation head := by
+                  unfold RuleProofs.eo_has_smt_translation
+                  exact hHeadNN
+                have hHeadTyNe : __eo_typeof head ≠ Term.Stuck :=
+                  SubstituteSupport.eo_typeof_ne_stuck_of_has_smt_translation
+                    head hHeadTrans
+                have hHeadSubTy :
+                    __smtx_typeof
+                        (__eo_to_smt
+                          (__substitute_simul_rec
+                            (Term.Boolean false) head xs ss bvs)) =
+                      __smtx_typeof (__eo_to_smt head) :=
+                  hSmtType head (by simp; omega) hHeadTrans hHeadTyNe
+                have hHeadSubNN :
+                    __smtx_typeof
+                        (__eo_to_smt
+                          (__substitute_simul_rec
+                            (Term.Boolean false) head xs ss bvs)) ≠
+                      SmtType.None := by
+                  rw [hHeadSubTy]
+                  exact hHeadNN
+                have hHeadSubTrans :
+                    RuleProofs.eo_has_smt_translation
+                      (__substitute_simul_rec
+                        (Term.Boolean false) head xs ss bvs) := by
+                  unfold RuleProofs.eo_has_smt_translation
+                  exact hHeadSubNN
+                have hHeadSubNe :
+                    __substitute_simul_rec
+                        (Term.Boolean false) head xs ss bvs ≠
+                      Term.Stuck :=
+                  SubstituteSupport.term_ne_stuck_of_typeof_ne_stuck
+                    (SubstituteSupport.eo_typeof_ne_stuck_of_has_smt_translation
+                      (__substitute_simul_rec
+                        (Term.Boolean false) head xs ss bvs)
+                      hHeadSubTrans)
+                have hTailSubEq :
+                    __eo_to_smt_typed_list_elem_type
+                        (__substitute_simul_rec
+                          (Term.Boolean false) tail xs ss bvs) =
+                      __eo_to_smt_typed_list_elem_type tail :=
+                  substitute_simul_rec_typed_list_elem_type_eq_of_non_none
+                    tail xs ss bvs hXsEnv hBvsEnv hSs
+                    (fun t hLt hTrans hTy =>
+                      hSmtType t (by simp at hLt ⊢; omega) hTrans hTy)
+                    hTailNN
+                have hTailSubNN :
+                    __eo_to_smt_typed_list_elem_type
+                        (__substitute_simul_rec
+                          (Term.Boolean false) tail xs ss bvs) ≠
+                      SmtType.None := by
+                  rw [hTailSubEq]
+                  exact hTailNN
+                have hTailSubNe :
+                    __substitute_simul_rec
+                        (Term.Boolean false) tail xs ss bvs ≠
+                      Term.Stuck :=
+                  typed_list_elem_type_non_none_not_stuck hTailSubNN
+                have hConsHead :
+                    __substitute_simul_rec (Term.Boolean false)
+                        (Term.UOp UserOp._at__at_TypedList_cons) xs ss bvs =
+                      Term.UOp UserOp._at__at_TypedList_cons :=
+                  SubstituteSupport.substitute_simul_rec_uop_eq_self
+                    UserOp._at__at_TypedList_cons xs ss bvs
+                    hXsEnv hBvsEnv hSs
+                have hInner :
+                    __substitute_simul_rec (Term.Boolean false)
+                        (Term.Apply
+                          (Term.UOp UserOp._at__at_TypedList_cons) head)
+                        xs ss bvs =
+                      Term.Apply
+                        (Term.UOp UserOp._at__at_TypedList_cons)
+                        (__substitute_simul_rec
+                          (Term.Boolean false) head xs ss bvs) :=
+                  substitute_simul_rec_apply_eq_apply_of_sub_parts
+                    (Term.UOp UserOp._at__at_TypedList_cons) head
+                    (Term.UOp UserOp._at__at_TypedList_cons)
+                    (__substitute_simul_rec
+                      (Term.Boolean false) head xs ss bvs)
+                    xs ss bvs hXsEnv hBvsEnv hSs
+                    (by intro q v vs h; cases h)
+                    hConsHead rfl
+                    (by intro h; cases h)
+                    hHeadSubNe
+                have hOuterNotBinder :
+                    ∀ q v vs,
+                      Term.Apply
+                          (Term.UOp UserOp._at__at_TypedList_cons) head ≠
+                        Term.Apply q
+                          (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) :=
+                  apply_head_not_list_branch_of_arg_not_list
+                    (smtx_typeof_non_none_not_eo_list_cons hHeadNN)
+                have hSubEq :
+                    __substitute_simul_rec (Term.Boolean false)
+                        (Term.Apply
+                          (Term.Apply
+                            (Term.UOp UserOp._at__at_TypedList_cons) head)
+                          tail) xs ss bvs =
+                      Term.Apply
+                        (Term.Apply
+                          (Term.UOp UserOp._at__at_TypedList_cons)
+                          (__substitute_simul_rec
+                            (Term.Boolean false) head xs ss bvs))
+                        (__substitute_simul_rec
+                          (Term.Boolean false) tail xs ss bvs) :=
+                  substitute_simul_rec_apply_eq_apply_of_sub_parts
+                    (Term.Apply
+                      (Term.UOp UserOp._at__at_TypedList_cons) head)
+                    tail
+                    (Term.Apply
+                      (Term.UOp UserOp._at__at_TypedList_cons)
+                      (__substitute_simul_rec
+                        (Term.Boolean false) head xs ss bvs))
+                    (__substitute_simul_rec
+                      (Term.Boolean false) tail xs ss bvs)
+                    xs ss bvs hXsEnv hBvsEnv hSs
+                    hOuterNotBinder
+                    hInner rfl
+                    (by intro h; cases h)
+                    hTailSubNe
+                have hEqBool :
+                    native_Teq
+                        (__smtx_typeof
+                          (__eo_to_smt
+                            (__substitute_simul_rec
+                              (Term.Boolean false) head xs ss bvs)))
+                        (__eo_to_smt_typed_list_elem_type
+                          (__substitute_simul_rec
+                            (Term.Boolean false) tail xs ss bvs)) =
+                      true := by
+                  rw [hHeadSubTy, hTailSubEq, hHeadTail]
+                  simp [native_Teq]
+                have hSubConsEq :
+                    __eo_to_smt_typed_list_elem_type
+                        (Term.Apply
+                          (Term.Apply
+                            (Term.UOp UserOp._at__at_TypedList_cons)
+                            (__substitute_simul_rec
+                              (Term.Boolean false) head xs ss bvs))
+                          (__substitute_simul_rec
+                            (Term.Boolean false) tail xs ss bvs)) =
+                      __smtx_typeof
+                        (__eo_to_smt
+                          (__substitute_simul_rec
+                            (Term.Boolean false) head xs ss bvs)) := by
+                  simp [__eo_to_smt_typed_list_elem_type, hEqBool,
+                    native_ite]
+                rw [hSubEq, hSubConsEq, hHeadSubTy, hConsEq]
+              all_goals
+                exact False.elim
+                  (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+          | _ =>
+              exact False.elim
+                (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+      | _ =>
+          exact False.elim
+            (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+  | _ =>
+      exact False.elim
+        (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+termination_by typedList
+
+theorem substitute_simul_rec_typed_list_elem_type_non_none
+    (typedList xs ss bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hSs : EoListAllHaveSmtTranslation ss)
+    (hSmtType :
+      ∀ t,
+        sizeOf t < sizeOf typedList ->
+        RuleProofs.eo_has_smt_translation t ->
+          __eo_typeof t ≠ Term.Stuck ->
+            __smtx_typeof
+                (__eo_to_smt
+                  (__substitute_simul_rec (Term.Boolean false) t xs ss bvs)) =
+              __smtx_typeof (__eo_to_smt t))
+    (hElemNN : __eo_to_smt_typed_list_elem_type typedList ≠ SmtType.None) :
+    __eo_to_smt_typed_list_elem_type
+        (__substitute_simul_rec (Term.Boolean false) typedList xs ss bvs) ≠
+      SmtType.None := by
+  rw [substitute_simul_rec_typed_list_elem_type_eq_of_non_none
+    typedList xs ss bvs hXsEnv hBvsEnv hSs hSmtType hElemNN]
+  exact hElemNN
+
 theorem eo_to_smt_distinct_eq_of_elem_type_non_none
     (xs : Term)
     (hElemNN : __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None) :

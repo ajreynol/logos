@@ -14272,7 +14272,226 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                               hTs
                                                                                                               hActuals
                                                                                                               hATy)
-                                                                                                    · by_cases hHeadDtSel :
+                                                                                                    · by_cases hHeadDistinct :
+                                                                                                        f =
+                                                                                                          Term.UOp
+                                                                                                            UserOp.distinct
+                                                                                                      · subst f
+                                                                                                        have hElemNN :
+                                                                                                            __eo_to_smt_typed_list_elem_type
+                                                                                                                a ≠
+                                                                                                              SmtType.None :=
+                                                                                                          typed_list_elem_type_non_none_of_distinct_has_smt_translation
+                                                                                                            hFTrans
+                                                                                                        have hSmtType :
+                                                                                                            ∀ t,
+                                                                                                              sizeOf t <
+                                                                                                                sizeOf a ->
+                                                                                                                RuleProofs.eo_has_smt_translation
+                                                                                                                  t ->
+                                                                                                                  __eo_typeof
+                                                                                                                      t ≠
+                                                                                                                    Term.Stuck ->
+                                                                                                                    __smtx_typeof
+                                                                                                                        (__eo_to_smt
+                                                                                                                          (__substitute_simul_rec
+                                                                                                                            (Term.Boolean false)
+                                                                                                                            t
+                                                                                                                            xs
+                                                                                                                            ts
+                                                                                                                            bvs)) =
+                                                                                                                      __smtx_typeof
+                                                                                                                        (__eo_to_smt
+                                                                                                                          t) := by
+                                                                                                          intro t hLtA hTTrans hTTy
+                                                                                                          have hBoth :
+                                                                                                              __eo_typeof
+                                                                                                                  (__substitute_simul_rec
+                                                                                                                    (Term.Boolean false)
+                                                                                                                    t
+                                                                                                                    xs
+                                                                                                                    ts
+                                                                                                                    bvs) =
+                                                                                                                __eo_typeof
+                                                                                                                  t ∧
+                                                                                                                RuleProofs.eo_has_smt_translation
+                                                                                                                  (__substitute_simul_rec
+                                                                                                                    (Term.Boolean false)
+                                                                                                                    t
+                                                                                                                    xs
+                                                                                                                    ts
+                                                                                                                    bvs) :=
+                                                                                                            hRec
+                                                                                                              (G := t)
+                                                                                                              (xs' := xs)
+                                                                                                              (ts' := ts)
+                                                                                                              (bvs' := bvs)
+                                                                                                              (by
+                                                                                                                simp at hLtA ⊢
+                                                                                                                omega)
+                                                                                                              hXsEnv
+                                                                                                              hBvsEnv
+                                                                                                              hTTrans
+                                                                                                              hTs
+                                                                                                              hActuals
+                                                                                                              hTTy
+                                                                                                          have hSubMatch :=
+                                                                                                            TranslationProofs.eo_to_smt_typeof_matches_translation
+                                                                                                              (__substitute_simul_rec
+                                                                                                                (Term.Boolean false)
+                                                                                                                t
+                                                                                                                xs
+                                                                                                                ts
+                                                                                                                bvs)
+                                                                                                              hBoth.2
+                                                                                                          have hOrigMatch :=
+                                                                                                            TranslationProofs.eo_to_smt_typeof_matches_translation
+                                                                                                              t
+                                                                                                              hTTrans
+                                                                                                          rw [
+                                                                                                            hSubMatch,
+                                                                                                            hBoth.1,
+                                                                                                            ← hOrigMatch]
+                                                                                                        have hElemSubNN :
+                                                                                                            __eo_to_smt_typed_list_elem_type
+                                                                                                                (__substitute_simul_rec
+                                                                                                                  (Term.Boolean false)
+                                                                                                                  a
+                                                                                                                  xs
+                                                                                                                  ts
+                                                                                                                  bvs) ≠
+                                                                                                              SmtType.None :=
+                                                                                                          substitute_simul_rec_typed_list_elem_type_non_none
+                                                                                                            a
+                                                                                                            xs
+                                                                                                            ts
+                                                                                                            bvs
+                                                                                                            hXsEnv
+                                                                                                            hBvsEnv
+                                                                                                            hTs
+                                                                                                            hSmtType
+                                                                                                            hElemNN
+                                                                                                        have hHeadSub :
+                                                                                                            __substitute_simul_rec
+                                                                                                                (Term.Boolean false)
+                                                                                                                (Term.UOp
+                                                                                                                  UserOp.distinct)
+                                                                                                                xs
+                                                                                                                ts
+                                                                                                                bvs =
+                                                                                                              Term.UOp
+                                                                                                                UserOp.distinct :=
+                                                                                                          SubstituteSupport.substitute_simul_rec_uop_eq_self
+                                                                                                            UserOp.distinct
+                                                                                                            xs
+                                                                                                            ts
+                                                                                                            bvs
+                                                                                                            hXsEnv
+                                                                                                            hBvsEnv
+                                                                                                            hTs
+                                                                                                        have hArgSubNe :
+                                                                                                            __substitute_simul_rec
+                                                                                                                (Term.Boolean false)
+                                                                                                                a
+                                                                                                                xs
+                                                                                                                ts
+                                                                                                                bvs ≠
+                                                                                                              Term.Stuck :=
+                                                                                                          typed_list_elem_type_non_none_not_stuck
+                                                                                                            hElemSubNN
+                                                                                                        have hSubEq :
+                                                                                                            __substitute_simul_rec
+                                                                                                                (Term.Boolean false)
+                                                                                                                (Term.Apply
+                                                                                                                  (Term.UOp
+                                                                                                                    UserOp.distinct)
+                                                                                                                  a)
+                                                                                                                xs
+                                                                                                                ts
+                                                                                                                bvs =
+                                                                                                              Term.Apply
+                                                                                                                (Term.UOp
+                                                                                                                  UserOp.distinct)
+                                                                                                                (__substitute_simul_rec
+                                                                                                                  (Term.Boolean false)
+                                                                                                                  a
+                                                                                                                  xs
+                                                                                                                  ts
+                                                                                                                  bvs) := by
+                                                                                                          have hisr :
+                                                                                                              (Term.Boolean false : Term) ≠
+                                                                                                                Term.Stuck := by
+                                                                                                            decide
+                                                                                                          have hxs :
+                                                                                                              xs ≠
+                                                                                                                Term.Stuck :=
+                                                                                                            hXsEnv.ne_stuck
+                                                                                                          have hts :
+                                                                                                              ts ≠
+                                                                                                                Term.Stuck :=
+                                                                                                            SubstituteSupport.eoListAllHaveSmtTranslation_ne_stuck
+                                                                                                              hTs
+                                                                                                          have hbvs :
+                                                                                                              bvs ≠
+                                                                                                                Term.Stuck :=
+                                                                                                            hBvsEnv.ne_stuck
+                                                                                                          rw [
+                                                                                                            SubstituteSupport.substitute_simul_rec_apply
+                                                                                                              (Term.Boolean false)
+                                                                                                              (Term.UOp
+                                                                                                                UserOp.distinct)
+                                                                                                              a
+                                                                                                              xs
+                                                                                                              ts
+                                                                                                              bvs
+                                                                                                              hisr
+                                                                                                              hxs
+                                                                                                              hts
+                                                                                                              hbvs
+                                                                                                              (by
+                                                                                                                intro q v vs hEq
+                                                                                                                cases hEq)]
+                                                                                                          rw [
+                                                                                                            hHeadSub]
+                                                                                                          cases
+                                                                                                              __substitute_simul_rec
+                                                                                                                (Term.Boolean false)
+                                                                                                                a
+                                                                                                                xs
+                                                                                                                ts
+                                                                                                                bvs <;>
+                                                                                                            simp [
+                                                                                                              __eo_mk_apply]
+                                                                                                              at hArgSubNe ⊢
+                                                                                                        refine
+                                                                                                          ⟨?_, ?_⟩
+                                                                                                        · rw [
+                                                                                                            hSubEq]
+                                                                                                          rw [
+                                                                                                            eo_typeof_distinct_eq_bool_of_elem_type_non_none
+                                                                                                              (__substitute_simul_rec
+                                                                                                                (Term.Boolean false)
+                                                                                                                a
+                                                                                                                xs
+                                                                                                                ts
+                                                                                                                bvs)
+                                                                                                              hElemSubNN]
+                                                                                                          rw [
+                                                                                                            eo_typeof_distinct_eq_bool_of_elem_type_non_none
+                                                                                                              a
+                                                                                                              hElemNN]
+                                                                                                        · rw [
+                                                                                                            hSubEq]
+                                                                                                          exact
+                                                                                                            eo_has_smt_translation_distinct_of_elem_type_non_none
+                                                                                                              (__substitute_simul_rec
+                                                                                                                (Term.Boolean false)
+                                                                                                                a
+                                                                                                                xs
+                                                                                                                ts
+                                                                                                                bvs)
+                                                                                                              hElemSubNN
+                                                                                                      · by_cases hHeadDtSel :
                                                                                                         ∃ s d i j,
                                                                                                           f =
                                                                                                             Term.DtSel
