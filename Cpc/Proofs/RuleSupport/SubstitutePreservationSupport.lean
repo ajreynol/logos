@@ -1796,65 +1796,310 @@ private theorem false_of_apply_stuck_has_smt_translation
       SmtType.None at hTrans
   exact hTrans (TranslationProofs.typeof_apply_none_eq (__eo_to_smt a))
 
-private theorem apply_uop1_impossible_or_fallback
-    {P : Prop} (op : UserOp1) (idx a : Term)
+private theorem false_of_apply_uop1_seq_empty_has_smt_translation
+    (idx a : Term)
     (hTrans :
       RuleProofs.eo_has_smt_translation
-        (Term.Apply (Term.UOp1 op idx) a))
-    (hFallback : P) :
-    P := by
+        (Term.Apply (Term.UOp1 UserOp1.seq_empty idx) a)) :
+    False := by
   have hTransEo :
-      eoHasSmtTranslation (Term.Apply (Term.UOp1 op idx) a) := by
+      eoHasSmtTranslation
+        (Term.Apply (Term.UOp1 UserOp1.seq_empty idx) a) := by
     simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
       using hTrans
-  by_cases hSeqEmpty : op = UserOp1.seq_empty
-  · subst op
-    exact false_of_apply_seq_empty hTransEo
-  by_cases hSetEmpty : op = UserOp1.set_empty
-  · subst op
-    exact false_of_apply_set_empty hTransEo
-  by_cases hUpdate : op = UserOp1.update
-  · subst op
-    exact false_of_apply_uop1_translate_apply_none hTransEo rfl
-  by_cases hTupleUpdate : op = UserOp1.tuple_update
-  · subst op
-    exact false_of_apply_uop1_translate_apply_none hTransEo rfl
-  exact hFallback
+  exact false_of_apply_seq_empty hTransEo
 
-private theorem apply_uop2_impossible_or_fallback
-    {P : Prop} (op : UserOp2) (x y a : Term)
+private theorem false_of_apply_uop1_set_empty_has_smt_translation
+    (idx a : Term)
     (hTrans :
       RuleProofs.eo_has_smt_translation
-        (Term.Apply (Term.UOp2 op x y) a))
-    (hFallback : P) :
-    P := by
+        (Term.Apply (Term.UOp1 UserOp1.set_empty idx) a)) :
+    False := by
   have hTransEo :
-      eoHasSmtTranslation (Term.Apply (Term.UOp2 op x y) a) := by
+      eoHasSmtTranslation
+        (Term.Apply (Term.UOp1 UserOp1.set_empty idx) a) := by
     simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
       using hTrans
-  by_cases hAtBv : op = UserOp2._at_bv
-  · subst op
-    exact false_of_apply_at_bv hTransEo
-  by_cases hAtConst : op = UserOp2._at_const
-  · subst op
-    exact false_of_apply_uop2_translate_apply_none hTransEo rfl
-  exact hFallback
+  exact false_of_apply_set_empty hTransEo
 
-private theorem apply_uop3_impossible_or_fallback
-    {P : Prop} (op : UserOp3) (x y z a : Term)
+private theorem false_of_apply_uop1_update_has_smt_translation
+    (idx a : Term)
     (hTrans :
       RuleProofs.eo_has_smt_translation
-        (Term.Apply (Term.UOp3 op x y z) a))
-    (hFallback : P) :
-    P := by
+        (Term.Apply (Term.UOp1 UserOp1.update idx) a)) :
+    False := by
   have hTransEo :
-      eoHasSmtTranslation (Term.Apply (Term.UOp3 op x y z) a) := by
+      eoHasSmtTranslation
+        (Term.Apply (Term.UOp1 UserOp1.update idx) a) := by
     simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
       using hTrans
-  by_cases hReUnfold : op = UserOp3._at_re_unfold_pos_component
-  · subst op
-    exact false_of_apply_re_unfold_pos_component hTransEo
-  exact hFallback
+  exact false_of_apply_uop1_translate_apply_none hTransEo rfl
+
+private theorem false_of_apply_uop1_tuple_update_has_smt_translation
+    (idx a : Term)
+    (hTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.UOp1 UserOp1.tuple_update idx) a)) :
+    False := by
+  have hTransEo :
+      eoHasSmtTranslation
+        (Term.Apply (Term.UOp1 UserOp1.tuple_update idx) a) := by
+    simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+      using hTrans
+  exact false_of_apply_uop1_translate_apply_none hTransEo rfl
+
+private theorem false_of_apply_uop2_at_bv_has_smt_translation
+    (i j a : Term)
+    (hTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.UOp2 UserOp2._at_bv i j) a)) :
+    False := by
+  have hTransEo :
+      eoHasSmtTranslation
+        (Term.Apply (Term.UOp2 UserOp2._at_bv i j) a) := by
+    simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+      using hTrans
+  exact false_of_apply_at_bv hTransEo
+
+private theorem false_of_apply_uop2_at_const_has_smt_translation
+    (i j a : Term)
+    (hTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.UOp2 UserOp2._at_const i j) a)) :
+    False := by
+  have hTransEo :
+      eoHasSmtTranslation
+        (Term.Apply (Term.UOp2 UserOp2._at_const i j) a) := by
+    simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+      using hTrans
+  exact false_of_apply_uop2_translate_apply_none hTransEo rfl
+
+private theorem eo_to_smt_quant_skolemize_ne_dt_sel
+    (body : SmtTerm) (n : native_Nat) :
+    ∀ s d i j,
+      __eo_to_smt_quantifiers_skolemize body n ≠
+        SmtTerm.DtSel s d i j := by
+  intro s d i j h
+  cases body <;> cases h
+
+private theorem eo_to_smt_quant_skolemize_ne_dt_tester
+    (body : SmtTerm) (n : native_Nat) :
+    ∀ s d i,
+      __eo_to_smt_quantifiers_skolemize body n ≠
+        SmtTerm.DtTester s d i := by
+  intro s d i h
+  cases body <;> cases h
+
+private theorem eo_to_smt_quant_skolemize_top_ne_dt_sel
+    (q idx : Term) :
+    ∀ s d i j,
+      __eo_to_smt (Term.UOp2 UserOp2._at_quantifiers_skolemize q idx) ≠
+        SmtTerm.DtSel s d i j := by
+  intro s d i j h
+  cases q <;> try cases h
+  case Apply f body =>
+    cases f <;> try cases h
+    case Apply g xs =>
+      cases g <;> try cases h
+      case UOp op =>
+        cases op <;> try cases h
+        case «forall» =>
+          change
+            native_ite (__eo_to_smt_nat_is_valid idx)
+                (__eo_to_smt_quantifiers_skolemize
+                  (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
+                  (__eo_to_smt_nat idx))
+                SmtTerm.None =
+              SmtTerm.DtSel s d i j at h
+          unfold native_ite at h
+          split at h <;> try cases h
+          exact
+            eo_to_smt_quant_skolemize_ne_dt_sel
+              (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
+              (__eo_to_smt_nat idx) s d i j h
+
+private theorem eo_to_smt_quant_skolemize_top_ne_dt_tester
+    (q idx : Term) :
+    ∀ s d i,
+      __eo_to_smt (Term.UOp2 UserOp2._at_quantifiers_skolemize q idx) ≠
+        SmtTerm.DtTester s d i := by
+  intro s d i h
+  cases q <;> try cases h
+  case Apply f body =>
+    cases f <;> try cases h
+    case Apply g xs =>
+      cases g <;> try cases h
+      case UOp op =>
+        cases op <;> try cases h
+        case «forall» =>
+          change
+            native_ite (__eo_to_smt_nat_is_valid idx)
+                (__eo_to_smt_quantifiers_skolemize
+                  (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
+                  (__eo_to_smt_nat idx))
+                SmtTerm.None =
+              SmtTerm.DtTester s d i at h
+          unfold native_ite at h
+          split at h <;> try cases h
+          exact
+            eo_to_smt_quant_skolemize_ne_dt_tester
+              (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
+              (__eo_to_smt_nat idx) s d i h
+
+private theorem substitute_simul_apply_quant_skolemize_preserves_type_and_translation_of_typeof_ne_stuck
+    (q idx a xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hEntryTypes : SubstituteSupport.SubstEntryPreservesTypes xs ts)
+    (hTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.UOp2 UserOp2._at_quantifiers_skolemize q idx) a))
+    (hARec :
+      RuleProofs.eo_has_smt_translation a ->
+      __eo_typeof (__substitute_simul_rec (Term.Boolean false) a xs ts bvs) ≠
+        Term.Stuck ->
+      __eo_typeof (__substitute_simul_rec (Term.Boolean false) a xs ts bvs) =
+        __eo_typeof a ∧
+        RuleProofs.eo_has_smt_translation
+          (__substitute_simul_rec (Term.Boolean false) a xs ts bvs))
+    (hTy :
+      __eo_typeof
+          (__substitute_simul_rec (Term.Boolean false)
+            (Term.Apply
+              (Term.UOp2 UserOp2._at_quantifiers_skolemize q idx) a)
+            xs ts bvs) ≠
+        Term.Stuck) :
+    __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.UOp2 UserOp2._at_quantifiers_skolemize q idx) a)
+          xs ts bvs) =
+      __eo_typeof
+        (Term.Apply (Term.UOp2 UserOp2._at_quantifiers_skolemize q idx) a) ∧
+      RuleProofs.eo_has_smt_translation
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.UOp2 UserOp2._at_quantifiers_skolemize q idx) a)
+          xs ts bvs) := by
+  exact
+    substitute_simul_apply_atom_generic_preserves_type_and_translation_of_typeof_ne_stuck
+      (Term.UOp2 UserOp2._at_quantifiers_skolemize q idx)
+      a xs ts bvs hXsEnv hBvsEnv hTs hEntryTypes
+      (by intro f x h; cases h)
+      (by intro name U h; cases h)
+      (by intro h; cases h)
+      (by intro q' v vs h; cases h)
+      (by rfl)
+      (eo_to_smt_quant_skolemize_top_ne_dt_sel q idx)
+      (eo_to_smt_quant_skolemize_top_ne_dt_tester q idx)
+      hTrans hARec hTy
+
+private theorem false_of_apply_uop3_re_unfold_pos_component_has_smt_translation
+    (str re idx a : Term)
+    (hTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply
+          (Term.UOp3 UserOp3._at_re_unfold_pos_component str re idx) a)) :
+    False := by
+  have hTransEo :
+      eoHasSmtTranslation
+        (Term.Apply
+          (Term.UOp3 UserOp3._at_re_unfold_pos_component str re idx) a) := by
+    simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+      using hTrans
+  exact false_of_apply_re_unfold_pos_component hTransEo
+
+private theorem eo_to_smt_witness_string_length_ne_dt_sel
+    (T len id : Term) :
+    ∀ s d i j,
+      __eo_to_smt
+          (Term.UOp3 UserOp3._at_witness_string_length T len id) ≠
+        SmtTerm.DtSel s d i j := by
+  intro s d i j h
+  change
+    native_ite (__eo_to_smt_nat_is_valid len)
+      (native_ite (__eo_to_smt_nat_is_valid id)
+        (SmtTerm.choice_nth (native_string_lit "@x") (__eo_to_smt_type T)
+          (SmtTerm.eq
+            (SmtTerm.str_len
+              (SmtTerm.Var (native_string_lit "@x") (__eo_to_smt_type T)))
+            (__eo_to_smt len)) native_nat_zero)
+        SmtTerm.None)
+      SmtTerm.None =
+      SmtTerm.DtSel s d i j at h
+  unfold native_ite at h
+  split at h <;> try cases h
+  split at h <;> cases h
+
+private theorem eo_to_smt_witness_string_length_ne_dt_tester
+    (T len id : Term) :
+    ∀ s d i,
+      __eo_to_smt
+          (Term.UOp3 UserOp3._at_witness_string_length T len id) ≠
+        SmtTerm.DtTester s d i := by
+  intro s d i h
+  change
+    native_ite (__eo_to_smt_nat_is_valid len)
+      (native_ite (__eo_to_smt_nat_is_valid id)
+        (SmtTerm.choice_nth (native_string_lit "@x") (__eo_to_smt_type T)
+          (SmtTerm.eq
+            (SmtTerm.str_len
+              (SmtTerm.Var (native_string_lit "@x") (__eo_to_smt_type T)))
+            (__eo_to_smt len)) native_nat_zero)
+        SmtTerm.None)
+      SmtTerm.None =
+      SmtTerm.DtTester s d i at h
+  unfold native_ite at h
+  split at h <;> try cases h
+  split at h <;> cases h
+
+private theorem substitute_simul_apply_witness_string_length_preserves_type_and_translation_of_typeof_ne_stuck
+    (T len id a xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hEntryTypes : SubstituteSupport.SubstEntryPreservesTypes xs ts)
+    (hTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.UOp3 UserOp3._at_witness_string_length T len id) a))
+    (hARec :
+      RuleProofs.eo_has_smt_translation a ->
+      __eo_typeof (__substitute_simul_rec (Term.Boolean false) a xs ts bvs) ≠
+        Term.Stuck ->
+      __eo_typeof (__substitute_simul_rec (Term.Boolean false) a xs ts bvs) =
+        __eo_typeof a ∧
+        RuleProofs.eo_has_smt_translation
+          (__substitute_simul_rec (Term.Boolean false) a xs ts bvs))
+    (hTy :
+      __eo_typeof
+          (__substitute_simul_rec (Term.Boolean false)
+            (Term.Apply (Term.UOp3 UserOp3._at_witness_string_length T len id)
+              a)
+            xs ts bvs) ≠
+        Term.Stuck) :
+    __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.UOp3 UserOp3._at_witness_string_length T len id) a)
+          xs ts bvs) =
+      __eo_typeof
+        (Term.Apply (Term.UOp3 UserOp3._at_witness_string_length T len id) a) ∧
+      RuleProofs.eo_has_smt_translation
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.UOp3 UserOp3._at_witness_string_length T len id) a)
+          xs ts bvs) := by
+  exact
+    substitute_simul_apply_atom_generic_preserves_type_and_translation_of_typeof_ne_stuck
+      (Term.UOp3 UserOp3._at_witness_string_length T len id)
+      a xs ts bvs hXsEnv hBvsEnv hTs hEntryTypes
+      (by intro f x h; cases h)
+      (by intro name U h; cases h)
+      (by intro h; cases h)
+      (by intro q v vs h; cases h)
+      (by rfl)
+      (eo_to_smt_witness_string_length_ne_dt_sel T len id)
+      (eo_to_smt_witness_string_length_ne_dt_tester T len id)
+      hTrans hARec hTy
 
 /-- Shared combined preservation proof for an application headed by a datatype
 selector. The selector head itself has SMT type `None`, so this case rebuilds
@@ -11266,13 +11511,47 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                           ⟨op,
                                                                                                             idx,
                                                                                                             rfl⟩
-                                                                                                          exact
-                                                                                                            apply_uop1_impossible_or_fallback
-                                                                                                              op
-                                                                                                              idx
-                                                                                                              a
-                                                                                                              hFTrans
-                                                                                                              hOld
+                                                                                                          by_cases hSeqEmpty :
+                                                                                                              op =
+                                                                                                                UserOp1.seq_empty
+                                                                                                          · subst op
+                                                                                                            exact
+                                                                                                              False.elim
+                                                                                                                (false_of_apply_uop1_seq_empty_has_smt_translation
+                                                                                                                  idx
+                                                                                                                  a
+                                                                                                                  hFTrans)
+                                                                                                          · by_cases hSetEmpty :
+                                                                                                              op =
+                                                                                                                UserOp1.set_empty
+                                                                                                            · subst op
+                                                                                                              exact
+                                                                                                                False.elim
+                                                                                                                  (false_of_apply_uop1_set_empty_has_smt_translation
+                                                                                                                    idx
+                                                                                                                    a
+                                                                                                                    hFTrans)
+                                                                                                            · by_cases hUpdate :
+                                                                                                                op =
+                                                                                                                  UserOp1.update
+                                                                                                              · subst op
+                                                                                                                exact
+                                                                                                                  False.elim
+                                                                                                                    (false_of_apply_uop1_update_has_smt_translation
+                                                                                                                      idx
+                                                                                                                      a
+                                                                                                                      hFTrans)
+                                                                                                              · by_cases hTupleUpdate :
+                                                                                                                  op =
+                                                                                                                    UserOp1.tuple_update
+                                                                                                                · subst op
+                                                                                                                  exact
+                                                                                                                    False.elim
+                                                                                                                      (false_of_apply_uop1_tuple_update_has_smt_translation
+                                                                                                                        idx
+                                                                                                                        a
+                                                                                                                        hFTrans)
+                                                                                                                · exact hOld
                                                                                                         · by_cases hHeadUOp2 :
                                                                                                             ∃ op x y,
                                                                                                               f =
@@ -11286,14 +11565,57 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                               x,
                                                                                                               y,
                                                                                                               rfl⟩
-                                                                                                            exact
-                                                                                                              apply_uop2_impossible_or_fallback
-                                                                                                                op
-                                                                                                                x
-                                                                                                                y
-                                                                                                                a
-                                                                                                                hFTrans
-                                                                                                                hOld
+                                                                                                            cases op
+                                                                                                            case extract =>
+                                                                                                              exact hOld
+                                                                                                            case _at_bv =>
+                                                                                                              exact
+                                                                                                                False.elim
+                                                                                                                  (false_of_apply_uop2_at_bv_has_smt_translation
+                                                                                                                    x
+                                                                                                                    y
+                                                                                                                    a
+                                                                                                                    hFTrans)
+                                                                                                            case re_loop =>
+                                                                                                              exact hOld
+                                                                                                            case _at_quantifiers_skolemize =>
+                                                                                                              exact
+                                                                                                                substitute_simul_apply_quant_skolemize_preserves_type_and_translation_of_typeof_ne_stuck
+                                                                                                                  x
+                                                                                                                  y
+                                                                                                                  a
+                                                                                                                  xs
+                                                                                                                  ts
+                                                                                                                  bvs
+                                                                                                                  hXsEnv
+                                                                                                                  hBvsEnv
+                                                                                                                  hTs
+                                                                                                                  hEntryTypes
+                                                                                                                  hFTrans
+                                                                                                                  (fun hATrans hATy =>
+                                                                                                                    hRec
+                                                                                                                      (G := a)
+                                                                                                                      (xs' := xs)
+                                                                                                                      (ts' := ts)
+                                                                                                                      (bvs' := bvs)
+                                                                                                                      (by
+                                                                                                                        simp
+                                                                                                                        omega)
+                                                                                                                      hXsEnv
+                                                                                                                      hBvsEnv
+                                                                                                                      hATrans
+                                                                                                                      hTs
+                                                                                                                      hActuals
+                                                                                                                      hATy)
+                                                                                                                  hTy
+                                                                                                            case _at_const =>
+                                                                                                              exact
+                                                                                                                False.elim
+                                                                                                                  (false_of_apply_uop2_at_const_has_smt_translation
+                                                                                                                    x
+                                                                                                                    y
+                                                                                                                    a
+                                                                                                                    hFTrans)
                                                                                                           · by_cases hHeadUOp3 :
                                                                                                               ∃ op x y z,
                                                                                                                 f =
@@ -11309,15 +11631,47 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                 y,
                                                                                                                 z,
                                                                                                                 rfl⟩
-                                                                                                              exact
-                                                                                                                apply_uop3_impossible_or_fallback
-                                                                                                                  op
-                                                                                                                  x
-                                                                                                                  y
-                                                                                                                  z
-                                                                                                                  a
-                                                                                                                  hFTrans
-                                                                                                                  hOld
+                                                                                                              cases op
+                                                                                                              case _at_re_unfold_pos_component =>
+                                                                                                                exact
+                                                                                                                  False.elim
+                                                                                                                    (false_of_apply_uop3_re_unfold_pos_component_has_smt_translation
+                                                                                                                      x
+                                                                                                                      y
+                                                                                                                      z
+                                                                                                                      a
+                                                                                                                      hFTrans)
+                                                                                                              case _at_witness_string_length =>
+                                                                                                                exact
+                                                                                                                  substitute_simul_apply_witness_string_length_preserves_type_and_translation_of_typeof_ne_stuck
+                                                                                                                    x
+                                                                                                                    y
+                                                                                                                    z
+                                                                                                                    a
+                                                                                                                    xs
+                                                                                                                    ts
+                                                                                                                    bvs
+                                                                                                                    hXsEnv
+                                                                                                                    hBvsEnv
+                                                                                                                    hTs
+                                                                                                                    hEntryTypes
+                                                                                                                    hFTrans
+                                                                                                                    (fun hATrans hATy =>
+                                                                                                                      hRec
+                                                                                                                        (G := a)
+                                                                                                                        (xs' := xs)
+                                                                                                                        (ts' := ts)
+                                                                                                                        (bvs' := bvs)
+                                                                                                                        (by
+                                                                                                                          simp
+                                                                                                                          omega)
+                                                                                                                        hXsEnv
+                                                                                                                        hBvsEnv
+                                                                                                                        hATrans
+                                                                                                                        hTs
+                                                                                                                        hActuals
+                                                                                                                        hATy)
+                                                                                                                    hTy
                                                                                                             · by_cases hHeadStuck :
                                                                                                                 f =
                                                                                                                   Term.Stuck
