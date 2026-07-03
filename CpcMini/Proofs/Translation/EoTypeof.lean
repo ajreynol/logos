@@ -2558,42 +2558,24 @@ private theorem eo_to_smt_type_lift_of_valid (s : native_String) (dRef : Datatyp
   | Term.DatatypeType s2 d2 => by
       by_cases hReserved : native_reserved_datatype_name s2 = true
       · simp only [__eo_type_lift]
-        by_cases hteq : native_teq (Term.DatatypeType s dRef) (Term.DatatypeType s2 d2) = true
-        · rw [native_ite, if_pos hteq]
-          have hEq : Term.DatatypeType s dRef = Term.DatatypeType s2 d2 :=
-            of_decide_eq_true hteq
-          injection hEq with hs _hd
-          subst hs
+        by_cases hs : native_streq s s2 = true
+        · rw [native_ite, if_pos hs]
+          have hsEq : s = s2 := by simpa [native_streq] using hs
+          subst hsEq
           simp [__eo_to_smt_type, __smtx_type_lift, native_ite, hReserved]
-        · rw [native_ite, if_neg hteq]
+        · rw [native_ite, if_neg hs]
           simp [__eo_to_smt_type, __smtx_type_lift, native_ite, hReserved]
       · have hReservedFalse : native_reserved_datatype_name s2 = false := by
           cases hName : native_reserved_datatype_name s2 <;> simp [hName] at hReserved ⊢
         simp only [__eo_type_lift]
-        by_cases hteq : native_teq (Term.DatatypeType s dRef) (Term.DatatypeType s2 d2) = true
-        · rw [native_ite, if_pos hteq]
-          have hEq : Term.DatatypeType s dRef = Term.DatatypeType s2 d2 :=
-            of_decide_eq_true hteq
-          injection hEq with hs hd
-          subst hs
-          subst hd
-          simp [__eo_to_smt_type, __smtx_type_lift, native_ite, hReservedFalse, native_Teq]
-        · rw [native_ite, if_neg hteq]
-          have hNoFold :
-              ¬ native_Teq (SmtType.Datatype s (__eo_to_smt_datatype dRef))
-                  (SmtType.Datatype s2 (__eo_to_smt_datatype d2)) = true := by
-            intro hFold
-            have hSmtEq :
-                SmtType.Datatype s (__eo_to_smt_datatype dRef) =
-                  SmtType.Datatype s2 (__eo_to_smt_datatype d2) :=
-              of_decide_eq_true (by simpa [native_Teq] using hFold)
-            injection hSmtEq with hs hd
-            subst hs
-            have hd' : dRef = d2 :=
-              eo_to_smt_datatype_unique_of_valid_rec refs hRef hd
-            subst hd'
-            exact hteq (by simp [native_teq])
-          simp [__eo_to_smt_type, __smtx_type_lift, native_ite, hReservedFalse, hNoFold,
+        by_cases hs : native_streq s s2 = true
+        · rw [native_ite, if_pos hs]
+          have hsEq : s = s2 := by simpa [native_streq] using hs
+          subst hsEq
+          have hss : native_streq s s = true := by simp [native_streq]
+          simp [__eo_to_smt_type, __smtx_type_lift, native_ite, hReservedFalse, hss]
+        · rw [native_ite, if_neg hs]
+          simp [__eo_to_smt_type, __smtx_type_lift, native_ite, hReservedFalse, hs,
             eo_to_smt_datatype_lift_of_valid s dRef hRef d2]
   | Term.Stuck => by
       simp [__eo_type_lift, __eo_to_smt_type, __smtx_type_lift]

@@ -229,7 +229,7 @@ theorem noStray_lift_ty (s1 : native_String) (D1 : SmtDatatype)
       noStrayTy s2 D2 (__smtx_type_lift s1 D1 T) = true
   | SmtType.Datatype s3 d3, h => by
       simp only [__smtx_type_lift]
-      by_cases hfold : native_Teq (SmtType.Datatype s1 D1) (SmtType.Datatype s3 d3) = true
+      by_cases hfold : native_streq s1 s3 = true
       · rw [native_ite, if_pos hfold]; simp [noStrayTy]
       · rw [native_ite, if_neg hfold]
         by_cases hm : native_Teq (SmtType.Datatype s2 D2) (SmtType.Datatype s3 d3) = true
@@ -308,7 +308,7 @@ theorem noDt_lift_ty (s sub : native_String) (D : SmtDatatype) :
       have hParts : native_streq s2 sub = false ∧ noDtDt sub d2 = true := by
         simpa [noDtTy, native_and, native_not, Bool.and_eq_true] using h
       simp only [__smtx_type_lift]
-      by_cases hFold : native_Teq (SmtType.Datatype s D) (SmtType.Datatype s2 d2) = true
+      by_cases hFold : native_streq s s2 = true
       · rw [native_ite, if_pos hFold]
         simp [noDtTy]
       · rw [native_ite, if_neg hFold]
@@ -366,7 +366,7 @@ theorem lift_noop_no_dt_ty (s : native_String) (D : SmtDatatype) :
       simp only [__smtx_type_lift, native_ite]
       rw [if_neg (by
         intro hbad
-        obtain ⟨he, _⟩ : s = s2 ∧ D = d2 := by simpa [native_Teq] using hbad
+        have he : s = s2 := by simpa [native_streq] using hbad
         exact hsne he.symm)]
       rw [lift_noop_no_dt_dt s D d2 h.2]
   | SmtType.Seq x, h => by simp [__smtx_type_lift]
