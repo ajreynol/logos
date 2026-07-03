@@ -219,13 +219,13 @@ Third, the core methods that Logos depends on.
       \item Returns whether the given type is well-formed.
       Our models will range only over well-formed types.
     \end{itemize}
-  \item \smtmodeleval \code{:} \smtmodel \code{->} \smtterm \code{->} \smtvalue
-    \begin{itemize}
-      \item Returns the evaluation of the term in the given model.
-    \end{itemize}
   \item \smttypeof \code{:} \smtterm \code{->} \smttype
     \begin{itemize}
       \item Returns the type of an SMT-LIB term, or none if it is ill-typed.
+    \end{itemize}
+  \item \smtmodeleval \code{:} \smtmodel \code{->} \smtterm \code{->} \smtvalue
+    \begin{itemize}
+      \item Returns the evaluation of the term in the given model.
     \end{itemize}
 \end{itemize}
 
@@ -1654,6 +1654,109 @@ a parallel mapping for variables and constants.
 In contrast, the interpretation of variables is updatable in model (e.g.
 when evaluating binders), where the interpretation of a constant is fixed.
 
+
+\subsection{Types of SMT-LIB Terms}
+
+\begin{figure}
+\begin{lstlisting}
+def smt_typeof_guard_wf (T : SmtType) (U : SmtType) : SmtType :=
+  (if (smt_type_wf T) then U else SmtType.None)
+  
+def smt_typeof_not : SmtType -> SmtType :=
+  | SmtType.Bool => SmtType.Bool
+  | T => SmtType.None
+
+def smt_typeof_eq (T : SmtType) (U : SmtType) : SmtType :=
+  (smt_typeof_guard T (if (native_Teq T U) then SmtType.Bool else SmtType.None))
+
+def smt_typeof_arith_overload_op_2 : SmtType -> SmtType -> SmtType
+  | SmtType.Int, SmtType.Int => SmtType.Int
+  | SmtType.Real, SmtType.Real => SmtType.Real
+  | T, U => SmtType.None
+  
+def smt_typeof_select : SmtType -> SmtType -> SmtType
+  | (SmtType.Map T U), V => (if (native_Teq T V) then U else SmtType.None)
+  | T, U => SmtType.None
+
+def smt_typeof_dt_cons_rec (T : SmtType) : SmtDatatype -> Nat -> SmtType
+  | (SmtDatatype.sum SmtDatatypeCons.unit d), native_nat_zero => T
+  | (SmtDatatype.sum (SmtDatatypeCons.cons U c) d), native_nat_zero =>
+      (SmtType.DtcAppType U (smt_typeof_dt_cons_rec T (SmtDatatype.sum c d) native_nat_zero))
+  | (SmtDatatype.sum c d), (native_nat_succ n) => (smt_typeof_dt_cons_rec T d n)
+  | d, n => SmtType.None
+
+def smt_typeof_apply : SmtType -> SmtType -> SmtType
+  | (SmtType.FunType T U), V => (smt_typeof_guard T (if (native_Teq T V) then U else SmtType.None))
+  | (SmtType.DtcAppType T U), V => (smt_typeof_guard T (if (native_Teq T V) then U else SmtType.None))
+  | T, U => SmtType.None
+
+def smt_typeof : SmtTerm -> SmtType
+  | (SmtTerm.Boolean b) => SmtType.Bool
+  | (SmtTerm.Numeral n) => SmtType.Int
+  | (SmtTerm.Binary w n) =>
+      if 0 <= w ∧ n = n % (2 ^ w) then (SmtType.BitVec (Int.toNat w)) else SmtType.None
+  | (SmtTerm.not x1) => (smt_typeof_not (smt_typeof x1))
+  | (SmtTerm.eq x1 x2) => (smt_typeof_eq (smt_typeof x1) (smt_typeof x2))
+  | (SmtTerm.exists s T x1) =>
+      if smt_typeof x1 = SmtType.Bool then (smt_typeof_guard_wf T SmtType.Bool) else SmtType.None
+  | (SmtTerm.plus x1 x2) => (smt_typeof_arith_overload_op_2 (smt_typeof x1) (smt_typeof x2))
+  | (SmtTerm.select x1 x2) => (smt_typeof_select (smt_typeof x1) (smt_typeof x2))
+  | (SmtTerm.Apply f x1) => (smt_typeof_apply (smt_typeof f) (smt_typeof x1))
+  | (SmtTerm.DtCons s d i) =>
+      let _v0 := (SmtType.Datatype s d)
+      (smt_typeof_guard_wf _v0 (smt_typeof_dt_cons_rec _v0 (smt_dt_substitute s d d) i))
+  | ... => ...
+\end{lstlisting}
+\caption{Types for SMT terms.}
+\label{fig:typeof-term}
+\end{figure}
+
+Figure~\ref{fig:typeof-term}
+gives our definition for the types of SMT-LIB terms.
+At a high-level, this is a structurally recursive method
+that first computes the types the arguments of the term and based on the
+argument types constructs a return type.
+We give a representative set of cases in the definition of \smttypeof.
+
+First, atomic interpreted constants
+are trivial, e.g. Boolean constants are Bool, integer constants are Int, etc.
+Bit-vector constants (\code{Binary})
+are well-typed iff they have a non-negative bitwidth \code{w}
+and a value \code{n} within the range $[0,2^w)$.
+
+For the remaining operators, it is important to note that, since our definition of SMT-LIB
+terms do not allow us to specify partially applied interpreted functions,
+the type rules we give are for fully applied terms.
+We give some of the cases above, for example,
+for SMT-LIB \code{not}, the method \code{smt_typeof_not} returns the Boolean type
+iff the argument is Boolean.
+For SMT-LIB equality \code{eq},
+the method for computing its type \code{smt_typeof_eq}
+takes two types \code{T} and \code{U}.
+If these are syntactically equal types, then the equality has type Bool,
+otherwise it is ill-typed.
+Again notice that we consider only syntactically equivalent types here,
+i.e. there is no notion of type equivalence.
+Second, note that we permit equalities between terms whose types are not well-formed
+(apart from if the terms are not well typed, i.e. have type \code{None}).
+
+Our type for quantifiers \code{exists} first checks whether its third
+argument (its body) has Bool type, if so, then Bool is returned provided
+that the quantified type is well-formed (via helper \code{smt_typeof_guard_wf}).
+This prevents quantified formulas over types that are not well-formed,
+which would have an unintuitive semantics based on our model evaluation for
+\code{exists} as defined earlier.
+
+The type of arithmetic operators like \code{plus} handle overloading Int and Real,
+i.e. plus is well-typed if both of its arguments are Int, or if both arguments are Real.
+Array select (\code{select})
+has type given by \code{smt_typeof_select}, which succeeds iff the index type of map we are
+selector from matches the type of the argument.
+The generic \code{Apply} term can either refer to an application of an uninterpreted
+function or a datatype constructor. These cases are handled similarly.
+The type of datatype constructor terms is analogous to the typing for
+datatype constructor values, as given in Figure~\ref{fig:typeof-value}.
+
 \subsection{Model Evaluation}
 
 \begin{figure}
@@ -1799,108 +1902,6 @@ These are handled similarly in the model, where the model lookup
 takes a flag denoting whether or not the lookup is for a variable.
 
 More advanced cases of model evaluation are given in the appendix. (TODO)
-
-\subsection{Types of SMT-LIB Terms}
-
-\begin{figure}
-\begin{lstlisting}
-def smt_typeof_guard_wf (T : SmtType) (U : SmtType) : SmtType :=
-  (if (smt_type_wf T) then U else SmtType.None)
-  
-def smt_typeof_not : SmtType -> SmtType :=
-  | SmtType.Bool => SmtType.Bool
-  | T => SmtType.None
-
-def smt_typeof_eq (T : SmtType) (U : SmtType) : SmtType :=
-  (smt_typeof_guard T (if (native_Teq T U) then SmtType.Bool else SmtType.None))
-
-def smt_typeof_arith_overload_op_2 : SmtType -> SmtType -> SmtType
-  | SmtType.Int, SmtType.Int => SmtType.Int
-  | SmtType.Real, SmtType.Real => SmtType.Real
-  | T, U => SmtType.None
-  
-def smt_typeof_select : SmtType -> SmtType -> SmtType
-  | (SmtType.Map T U), V => (if (native_Teq T V) then U else SmtType.None)
-  | T, U => SmtType.None
-
-def smt_typeof_dt_cons_rec (T : SmtType) : SmtDatatype -> Nat -> SmtType
-  | (SmtDatatype.sum SmtDatatypeCons.unit d), native_nat_zero => T
-  | (SmtDatatype.sum (SmtDatatypeCons.cons U c) d), native_nat_zero =>
-      (SmtType.DtcAppType U (smt_typeof_dt_cons_rec T (SmtDatatype.sum c d) native_nat_zero))
-  | (SmtDatatype.sum c d), (native_nat_succ n) => (smt_typeof_dt_cons_rec T d n)
-  | d, n => SmtType.None
-
-def smt_typeof_apply : SmtType -> SmtType -> SmtType
-  | (SmtType.FunType T U), V => (smt_typeof_guard T (if (native_Teq T V) then U else SmtType.None))
-  | (SmtType.DtcAppType T U), V => (smt_typeof_guard T (if (native_Teq T V) then U else SmtType.None))
-  | T, U => SmtType.None
-
-def smt_typeof : SmtTerm -> SmtType
-  | (SmtTerm.Boolean b) => SmtType.Bool
-  | (SmtTerm.Numeral n) => SmtType.Int
-  | (SmtTerm.Binary w n) =>
-      if 0 <= w ∧ n = n % (2 ^ w) then (SmtType.BitVec (Int.toNat w)) else SmtType.None
-  | (SmtTerm.not x1) => (smt_typeof_not (smt_typeof x1))
-  | (SmtTerm.eq x1 x2) => (smt_typeof_eq (smt_typeof x1) (smt_typeof x2))
-  | (SmtTerm.exists s T x1) =>
-      if smt_typeof x1 = SmtType.Bool then (smt_typeof_guard_wf T SmtType.Bool) else SmtType.None
-  | (SmtTerm.plus x1 x2) => (smt_typeof_arith_overload_op_2 (smt_typeof x1) (smt_typeof x2))
-  | (SmtTerm.select x1 x2) => (smt_typeof_select (smt_typeof x1) (smt_typeof x2))
-  | (SmtTerm.Apply f x1) => (smt_typeof_apply (smt_typeof f) (smt_typeof x1))
-  | (SmtTerm.DtCons s d i) =>
-      let _v0 := (SmtType.Datatype s d)
-      (smt_typeof_guard_wf _v0 (smt_typeof_dt_cons_rec _v0 (smt_dt_substitute s d d) i))
-  | ... => ...
-\end{lstlisting}
-\caption{Types for SMT terms.}
-\label{fig:typeof-term}
-\end{figure}
-
-Figure~\ref{fig:typeof-term}
-gives our definition for the types of SMT-LIB terms.
-At a high-level, this is a structurally recursive method
-that first computes the types the arguments of the term and based on the
-argument types constructs a return type.
-We give a representative set of cases in the definition of \smttypeof.
-
-First, atomic interpreted constants
-are trivial, e.g. Boolean constants are Bool, integer constants are Int, etc.
-Bit-vector constants (\code{Binary})
-are well-typed iff they have a non-negative bitwidth \code{w}
-and a value \code{n} within the range $[0,2^w)$.
-
-For the remaining operators, it is important to note that, since our definition of SMT-LIB
-terms do not allow us to specify partially applied interpreted functions,
-the type rules we give are for fully applied terms.
-We give some of the cases above, for example,
-for SMT-LIB \code{not}, the method \code{smt_typeof_not} returns the Boolean type
-iff the argument is Boolean.
-For SMT-LIB equality \code{eq},
-the method for computing its type \code{smt_typeof_eq}
-takes two types \code{T} and \code{U}.
-If these are syntactically equal types, then the equality has type Bool,
-otherwise it is ill-typed.
-Again notice that we consider only syntactically equivalent types here,
-i.e. there is no notion of type equivalence.
-Second, note that we permit equalities between terms whose types are not well-formed
-(apart from if the terms are not well typed, i.e. have type \code{None}).
-
-Our type for quantifiers \code{exists} first checks whether its third
-argument (its body) has Bool type, if so, then Bool is returned provided
-that the quantified type is well-formed (via helper \code{smt_typeof_guard_wf}).
-This prevents quantified formulas over types that are not well-formed,
-which would have an unintuitive semantics based on our model evaluation for
-\code{exists} as defined earlier.
-
-The type of arithmetic operators like \code{plus} handle overloading Int and Real,
-i.e. plus is well-typed if both of its arguments are Int, or if both arguments are Real.
-Array select (\code{select})
-has type given by \code{smt_typeof_select}, which succeeds iff the index type of map we are
-selector from matches the type of the argument.
-The generic \code{Apply} term can either refer to an application of an uninterpreted
-function or a datatype constructor. These cases are handled similarly.
-The type of datatype constructor terms is analogous to the typing for
-datatype constructor values, as given in Figure~\ref{fig:typeof-value}.
 
 \subsection{Properties of Models, Model Evaluation}
 
