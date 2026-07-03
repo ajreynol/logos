@@ -25755,6 +25755,213 @@ private theorem eval_rev_map_rev_acc_factor_consume_local
                   (smt_value_rel_re_concat_assoc_consume_local Cb rcAV
                     accV2))
 
+private theorem eval_str_concat_unpack_append_consume_local
+    (M : SmtModel) (x y : Term) (ss : SmtSeq)
+    (hEval :
+      __smtx_model_eval M
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) x) y)) =
+        SmtValue.Seq ss) :
+    ∃ sx sy,
+      __smtx_model_eval M (__eo_to_smt x) = SmtValue.Seq sx ∧
+      __smtx_model_eval M (__eo_to_smt y) = SmtValue.Seq sy ∧
+      native_unpack_string ss =
+        native_unpack_string sx ++ native_unpack_string sy := by
+  rcases eval_str_concat_seq_cases_consume_local M x y ss hEval with
+    ⟨sx, sy, hx, hy, hss⟩
+  refine ⟨sx, sy, hx, hy, ?_⟩
+  rw [hss]
+  exact native_unpack_string_pack_seq_concat_local _ sx sy
+
+private theorem term_ne_stuck_of_eval_seq_consume_local
+    (M : SmtModel) (t : Term) (v : SmtSeq)
+    (h : __smtx_model_eval M (__eo_to_smt t) = SmtValue.Seq v) :
+    t ≠ Term.Stuck := by
+  intro hBad
+  subst t
+  rw [show __eo_to_smt Term.Stuck = SmtTerm.None from rfl] at h
+  simp [__smtx_model_eval] at h
+
+private theorem list_rev_rec_atom_eq_consume_local
+    (t acc : Term)
+    (hT : t ≠ Term.Stuck) (hAcc : acc ≠ Term.Stuck)
+    (hNotApp :
+      ∀ f x y, t = Term.Apply (Term.Apply f x) y -> False) :
+    __eo_list_rev_rec t acc = acc := by
+  rw [__eo_list_rev_rec.eq_def]
+  split
+  · exact absurd rfl hT
+  · exact absurd rfl hAcc
+  · exact ((hNotApp _ _ _ rfl).elim)
+  · rfl
+
+private theorem eo_is_list_str_concat_cons_inv_consume_local
+    (g x y : Term)
+    (h :
+      __eo_is_list (Term.UOp UserOp.str_concat)
+          (Term.Apply (Term.Apply g x) y) =
+        Term.Boolean true) :
+    g = Term.UOp UserOp.str_concat ∧
+      __eo_is_list (Term.UOp UserOp.str_concat) y =
+        Term.Boolean true := by
+  have hOk :
+      __eo_get_nil_rec (Term.UOp UserOp.str_concat)
+          (Term.Apply (Term.Apply g x) y) ≠ Term.Stuck := by
+    intro hBad
+    rw [show __eo_is_list (Term.UOp UserOp.str_concat)
+          (Term.Apply (Term.Apply g x) y) =
+        __eo_is_ok
+          (__eo_get_nil_rec (Term.UOp UserOp.str_concat)
+            (Term.Apply (Term.Apply g x) y)) from rfl, hBad] at h
+    simp [__eo_is_ok, native_teq, SmtEval.native_not] at h
+  have hReqNe :
+      __eo_requires (Term.UOp UserOp.str_concat) g
+          (__eo_get_nil_rec (Term.UOp UserOp.str_concat) y) ≠
+        Term.Stuck := by
+    simpa [__eo_get_nil_rec] using hOk
+  have hg : Term.UOp UserOp.str_concat = g :=
+    eo_requires_eq_of_ne_stuck _ _ _ hReqNe
+  have hRecNe :
+      __eo_get_nil_rec (Term.UOp UserOp.str_concat) y ≠
+        Term.Stuck := by
+    intro hBad
+    apply hReqNe
+    rw [hBad]
+    simp [__eo_requires, SmtEval.native_ite, SmtEval.native_not,
+      native_teq]
+  have hYNe : y ≠ Term.Stuck := by
+    intro hBad
+    apply hRecNe
+    rw [hBad]
+    simp [__eo_get_nil_rec]
+  refine ⟨hg.symm, ?_⟩
+  have hEq :
+      __eo_is_list (Term.UOp UserOp.str_concat) y =
+        __eo_is_ok
+          (__eo_get_nil_rec (Term.UOp UserOp.str_concat) y) := by
+    cases y <;> first | exact absurd rfl hYNe | rfl
+  rw [hEq]
+  simp [__eo_is_ok, native_teq, SmtEval.native_not, hRecNe]
+
+/--
+Accumulator factorization for `__eo_list_rev_rec` on `str_concat`
+lists: string-side companion of
+`eval_rev_map_rev_acc_factor_consume_local`.  The reversed word is a
+fixed word `W` prepended to the accumulator's word, for EVERY
+accumulator.
+-/
+private theorem eval_list_rev_rec_acc_factor_consume_local
+    (M : SmtModel) :
+    ∀ t acc v,
+      __eo_is_list (Term.UOp UserOp.str_concat) t = Term.Boolean true ->
+      __smtx_model_eval M (__eo_to_smt (__eo_list_rev_rec t acc)) =
+        SmtValue.Seq v ->
+      (∃ accV,
+        __smtx_model_eval M (__eo_to_smt acc) = SmtValue.Seq accV) ∧
+      ∃ W : native_String,
+        ∀ acc2 accV2,
+          __smtx_model_eval M (__eo_to_smt acc2) =
+            SmtValue.Seq accV2 ->
+          ∃ v2,
+            __smtx_model_eval M
+                (__eo_to_smt (__eo_list_rev_rec t acc2)) =
+              SmtValue.Seq v2 ∧
+            native_unpack_string v2 =
+              W ++ native_unpack_string accV2 := by
+  suffices hMain :
+      ∀ n t, sizeOf t ≤ n ->
+        ∀ acc v,
+          __eo_is_list (Term.UOp UserOp.str_concat) t =
+            Term.Boolean true ->
+          __smtx_model_eval M (__eo_to_smt (__eo_list_rev_rec t acc)) =
+            SmtValue.Seq v ->
+          (∃ accV,
+            __smtx_model_eval M (__eo_to_smt acc) =
+              SmtValue.Seq accV) ∧
+          ∃ W : native_String,
+            ∀ acc2 accV2,
+              __smtx_model_eval M (__eo_to_smt acc2) =
+                SmtValue.Seq accV2 ->
+              ∃ v2,
+                __smtx_model_eval M
+                    (__eo_to_smt (__eo_list_rev_rec t acc2)) =
+                  SmtValue.Seq v2 ∧
+                native_unpack_string v2 =
+                  W ++ native_unpack_string accV2 by
+    intro t acc v hList hV
+    exact hMain (sizeOf t) t (Nat.le_refl _) acc v hList hV
+  intro n
+  induction n with
+  | zero =>
+      intro t ht
+      exfalso
+      cases t <;> simp at ht <;> omega
+  | succ n ihn =>
+      intro t hSize acc v hList hV
+      have hTNe : t ≠ Term.Stuck := by
+        intro hBad
+        rw [hBad] at hList
+        simp [__eo_is_list] at hList
+      have hAccNe : acc ≠ Term.Stuck := by
+        intro hBad
+        apply term_ne_stuck_of_eval_seq_consume_local M _ v hV
+        rw [hBad]
+        rw [__eo_list_rev_rec.eq_def]
+        split
+        · rfl
+        · rfl
+        · rfl
+        · rfl
+      rcases Classical.em (∃ f x y,
+          t = Term.Apply (Term.Apply f x) y) with hApp | hApp
+      · rcases hApp with ⟨f, x, y, rfl⟩
+        rcases eo_is_list_str_concat_cons_inv_consume_local f x y
+            hList with ⟨rfl, hListY⟩
+        rw [eo_list_rev_rec_cons _ x y acc hAccNe] at hV
+        rcases ihn y (by
+            simp at hSize
+            omega) _ _ hListY hV with ⟨⟨accV', hAcc'⟩, W, hTrans⟩
+        rcases eval_str_concat_unpack_append_consume_local M x acc
+            accV' hAcc' with ⟨sx, sacc, hX, hAccEval, _hUnp'⟩
+        refine ⟨⟨sacc, hAccEval⟩, W ++ native_unpack_string sx, ?_⟩
+        intro acc2 accV2 h2
+        have hAcc2Ne :=
+          term_ne_stuck_of_eval_seq_consume_local M _ _ h2
+        have hCons2Eval :
+            __smtx_model_eval M
+                (__eo_to_smt
+                  (Term.Apply
+                    (Term.Apply (Term.UOp UserOp.str_concat) x)
+                    acc2)) =
+              SmtValue.Seq
+                (native_pack_seq (__smtx_elem_typeof_seq_value sx)
+                  (native_seq_concat (native_unpack_seq sx)
+                    (native_unpack_seq accV2))) := by
+          change __smtx_model_eval M
+              (SmtTerm.str_concat (__eo_to_smt x)
+                (__eo_to_smt acc2)) = _
+          simp [__smtx_model_eval, __smtx_model_eval_str_concat, hX, h2]
+        rcases hTrans _ _ hCons2Eval with ⟨v2, hv2, hUnp2⟩
+        refine ⟨v2, ?_, ?_⟩
+        · rw [eo_list_rev_rec_cons _ x y acc2 hAcc2Ne]
+          exact hv2
+        · rw [hUnp2,
+            native_unpack_string_pack_seq_concat_local _ sx accV2,
+            List.append_assoc]
+      · have hAtomEq :
+            __eo_list_rev_rec t acc = acc :=
+          list_rev_rec_atom_eq_consume_local t acc hTNe hAccNe
+            (fun f x y hh => hApp ⟨f, x, y, hh⟩)
+        rw [hAtomEq] at hV
+        refine ⟨⟨v, hV⟩, [], ?_⟩
+        intro acc2 accV2 h2
+        have hAcc2Ne :=
+          term_ne_stuck_of_eval_seq_consume_local M _ _ h2
+        refine ⟨accV2, ?_, by simp⟩
+        rw [list_rev_rec_atom_eq_consume_local t acc2 hTNe hAcc2Ne
+          (fun f x y hh => hApp ⟨f, x, y, hh⟩)]
+        exact h2
+
 /-
 The three unrev motives, to be proven by `__str_re_consume_rec.induct`
 with companion `union`/`inter` motives, mirroring the proofs of
@@ -26014,24 +26221,6 @@ private theorem str_membership_str_ne_stuck_imp_ne_stuck_consume_local
   subst t
   simp [__str_membership_str] at h
 
-private theorem eval_str_concat_unpack_append_consume_local
-    (M : SmtModel) (x y : Term) (ss : SmtSeq)
-    (hEval :
-      __smtx_model_eval M
-          (__eo_to_smt
-            (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) x) y)) =
-        SmtValue.Seq ss) :
-    ∃ sx sy,
-      __smtx_model_eval M (__eo_to_smt x) = SmtValue.Seq sx ∧
-      __smtx_model_eval M (__eo_to_smt y) = SmtValue.Seq sy ∧
-      native_unpack_string ss =
-        native_unpack_string sx ++ native_unpack_string sy := by
-  rcases eval_str_concat_seq_cases_consume_local M x y ss hEval with
-    ⟨sx, sy, hx, hy, hss⟩
-  refine ⟨sx, sy, hx, hy, ?_⟩
-  rw [hss]
-  exact native_unpack_string_pack_seq_concat_local _ sx sy
-
 private theorem map_char_of_comp_char_consume_local :
     ∀ w : native_String,
       w.map (native_ssm_char_of_value ∘ SmtValue.Char) = w
@@ -26052,6 +26241,57 @@ private theorem eval_string_unpack_consume_local
     simp only [__smtx_model_eval]
   · simp [native_unpack_string, consume_unpack_pack_string_map,
       map_char_of_comp_char_consume_local]
+
+/--
+Word-level chain evaluation with end-term transport: the value of an
+atom chain unpacks to a fixed word `W` (the concatenation of the
+chunk words) followed by the end term's word, for EVERY end term.
+String-side companion of `eval_rev_map_rev_acc_factor_consume_local`.
+-/
+private theorem eval_atom_chain_unpack_flatten_consume_local
+    (M : SmtModel) :
+    ∀ (atoms : List Term) (e : Term) (v : SmtSeq),
+      __smtx_model_eval M
+          (__eo_to_smt (consume_atom_chain_term atoms e)) =
+        SmtValue.Seq v ->
+      (∃ eV,
+        __smtx_model_eval M (__eo_to_smt e) = SmtValue.Seq eV) ∧
+      ∃ W : native_String,
+        ∀ e2 eV2,
+          __smtx_model_eval M (__eo_to_smt e2) = SmtValue.Seq eV2 ->
+          ∃ v2,
+            __smtx_model_eval M
+                (__eo_to_smt (consume_atom_chain_term atoms e2)) =
+              SmtValue.Seq v2 ∧
+            native_unpack_string v2 =
+              W ++ native_unpack_string eV2 := by
+  intro atoms
+  induction atoms with
+  | nil =>
+      intro e v hV
+      refine ⟨⟨v, hV⟩, [], ?_⟩
+      intro e2 eV2 h2
+      exact ⟨eV2, h2, by simp⟩
+  | cons a as ih =>
+      intro e v hV
+      rw [consume_atom_chain_cons] at hV
+      rcases eval_str_concat_unpack_append_consume_local M a
+          (consume_atom_chain_term as e) v hV with
+        ⟨sa, sy, hA, hY, _hUnp⟩
+      rcases ih e sy hY with ⟨hE, W, hTrans⟩
+      refine ⟨hE, native_unpack_string sa ++ W, ?_⟩
+      intro e2 eV2 h2
+      rcases hTrans e2 eV2 h2 with ⟨y2, hy2, hUnp2⟩
+      refine ⟨native_pack_seq (__smtx_elem_typeof_seq_value sa)
+        (native_seq_concat (native_unpack_seq sa)
+          (native_unpack_seq y2)), ?_, ?_⟩
+      · rw [consume_atom_chain_cons]
+        change __smtx_model_eval M
+            (SmtTerm.str_concat (__eo_to_smt a)
+              (__eo_to_smt (consume_atom_chain_term as e2))) = _
+        simp [__smtx_model_eval, __smtx_model_eval_str_concat, hA, hy2]
+      · rw [native_unpack_string_pack_seq_concat_local _ sa y2, hUnp2,
+          List.append_assoc]
 
 private theorem ne_false_of_eo_is_eq_false_consume_local
     (t : Term)
