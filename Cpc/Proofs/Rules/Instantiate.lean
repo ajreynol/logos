@@ -88,11 +88,12 @@ Status (2026-06-29):
   * `substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt`
     now lives in `Cpc.Proofs.RuleSupport.SubstitutePreservationSupport` and is
     the instantiate-facing staging theorem for merging the old type-preservation
-    and SMT-translatability structural inductions. It currently packages the
-    existing engines from `SubstituteTypeSupport` (two local `sorry`s) and
-    `SubstituteTranslatabilitySupport` (one local `sorry`). The remaining work is
-    to move their shared application/operator-spine induction into the combined
-    theorem, then turn the old single-purpose theorems into projections.
+    and SMT-translatability structural inductions. The instantiate-facing
+    projection wrappers have been removed; callers use the combined theorem
+    directly. The combined theorem still falls back to the old recursive engines
+    from `SubstituteTypeSupport` and `SubstituteTranslatabilitySupport` for the
+    remaining application/operator-spine cases. Deleting those old engines
+    requires moving that spine induction into the combined theorem.
 
 The main theorem then wires these together with the standard single-arg /
 single-premise boilerplate (mirrors `BooleanElimSupport.cmd_step_and_elim_properties`).

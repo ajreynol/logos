@@ -18,9 +18,11 @@ proofs for substitution mode (`isr = false`):
 * EO type preservation of `__substitute_simul_rec`;
 * SMT-translatability preservation of `__substitute_simul_rec`.
 
-The main theorem below currently packages the existing two engines. The intended
-next step is to move their shared structural induction here and turn the old
-single-purpose theorems into projections, then delete the duplicated engines.
+The instantiate-facing projection wrappers have been removed; callers now use
+the combined theorem directly. Internally, the combined theorem still delegates
+the remaining application/operator-spine fallback to the old recursive engines.
+The next refactor step is to move those cases here, after which the duplicated
+recursive engines can be deleted.
 -/
 
 namespace SubstitutePreservationSupport
@@ -756,34 +758,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck
     (sizeOf F + 1) F xs ts bvs
     (by omega) hXsEnv hBvsEnv hFTrans hTs hActuals hTy
 
-/-- Projection of the combined theorem: EO type preservation. -/
-theorem substitute_simul_preserves_type_of_typeof_ne_stuck
-    (F xs ts bvs : Term)
-    {xsVars bvsVars : List EoVarKey}
-    (hXsEnv : EoVarEnvPerm xs xsVars)
-    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
-    (hFTrans : RuleProofs.eo_has_smt_translation F)
-    (hTs : EoListAllHaveSmtTranslation ts)
-    (hActuals : SubstActualsHaveSmtTypes xs ts)
-    (hTy : __eo_typeof (substResult F xs ts bvs) ≠ Term.Stuck) :
-    __eo_typeof (substResult F xs ts bvs) = __eo_typeof F :=
-  (substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck
-    F xs ts bvs hXsEnv hBvsEnv hFTrans hTs hActuals hTy).1
-
-/-- Projection of the combined theorem: SMT-translatability preservation. -/
-theorem substitute_simul_preserves_translation_of_typeof_ne_stuck
-    (F xs ts bvs : Term)
-    {xsVars bvsVars : List EoVarKey}
-    (hXsEnv : EoVarEnvPerm xs xsVars)
-    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
-    (hFTrans : RuleProofs.eo_has_smt_translation F)
-    (hTs : EoListAllHaveSmtTranslation ts)
-    (hActuals : SubstActualsHaveSmtTypes xs ts)
-    (hTy : __eo_typeof (substResult F xs ts bvs) ≠ Term.Stuck) :
-    RuleProofs.eo_has_smt_translation (substResult F xs ts bvs) :=
-  (substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck
-    F xs ts bvs hXsEnv hBvsEnv hFTrans hTs hActuals hTy).2
-
 /--
 Instantiate-facing combined preservation for a Boolean-typed substitution result.
 -/
@@ -817,42 +791,5 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_bool
         intro hStuck
         rw [hStuck] at hTy
         cases hTy)
-
-/-- Instantiate-facing projection: SMT-translatability of the substitution. -/
-theorem substitute_simul_has_smt_translation_of_typeof_bool
-    (F xs ts : Term)
-    (hForall : RuleProofs.eo_has_smt_translation
-      (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F))
-    (hTs : EoListAllHaveSmtTranslation ts)
-    (hActuals : SubstActualsHaveSmtTypes xs ts)
-    (hTy :
-      __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false) F xs ts Term.__eo_List_nil) =
-        Term.Bool) :
-    RuleProofs.eo_has_smt_translation
-      (__substitute_simul_rec (Term.Boolean false) F xs ts Term.__eo_List_nil) :=
-  (substitute_simul_preserves_type_and_translation_of_typeof_bool
-    F xs ts hForall hTs hActuals hTy).2
-
-/--
-Instantiate-facing projection: the substitution result has SMT Boolean type.
--/
-theorem substitute_simul_has_bool_type_of_typeof_bool
-    (F xs ts : Term)
-    (hForall : RuleProofs.eo_has_smt_translation
-      (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F))
-    (hTs : EoListAllHaveSmtTranslation ts)
-    (hActuals : SubstActualsHaveSmtTypes xs ts)
-    (hTy :
-      __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false) F xs ts Term.__eo_List_nil) =
-        Term.Bool) :
-    RuleProofs.eo_has_bool_type
-      (__substitute_simul_rec (Term.Boolean false) F xs ts Term.__eo_List_nil) :=
-  RuleProofs.eo_typeof_bool_implies_has_bool_type
-    (__substitute_simul_rec (Term.Boolean false) F xs ts Term.__eo_List_nil)
-    (substitute_simul_has_smt_translation_of_typeof_bool F xs ts
-      hForall hTs hActuals hTy)
-    hTy
 
 end SubstitutePreservationSupport
