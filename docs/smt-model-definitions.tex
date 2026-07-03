@@ -144,10 +144,14 @@ note that a similar proof checker can be generated for other Eunoia signatures.
 We also note that the compilation allows Logos to evolve automatically as the Eunoia
 signature in cvc5 updates.
 
-In detail, the definition of Logos consists of two parts.
+In detail, the definition of Logos consists of three parts.
 First, a formalization of SMT-LIB, defined based on a deep embedding of SMT-LIB terms, types and values.
-Second, an executable proof checker over a deep embedding of Eunoia terms, expressed as a Lean datatype.
-The former is meant to be general purpose, although certain non-standard SMT-LIB operators
+This includes a typing method and a model evaluation method.
+Second, a deep embedding of Eunoia terms and the definition of satisfiability over them,
+which relies on a reduction to SMT-LIB terms and types,
+and the model evaluation method defined in the first layer.
+Third, an executable proof checker over a deep embedding of Eunoia terms.
+The latter two layers are meant to be general purpose, although certain non-standard SMT-LIB operators
 are included in this deep embedding to meet the specific needs of the proof calculus used by Logos.
 For example, CPC defines several non-standard extensions of SMT-LIB (e.g. sets and sequences),
 supports non-standard extensions of theories, and defines non-standard internal symbols
@@ -200,28 +204,28 @@ Third, the core methods that Logos depends on.
 
 \noindent\textbf{SMT-LIB definition (1954 LOC):}
 \begin{itemize}
-  \item \smttypeof \code{:} \smtterm \code{->} \smttype
-    \begin{itemize}
-      \item Returns the type of an SMT-LIB term, or none if it is ill-typed.
-    \end{itemize}
   \item \smttypeofvalue \code{:} \smtvalue \code{->} \smttype
     \begin{itemize}
       \item Returns the type of an SMT-LIB value, or none if it is ill-typed.
-    \end{itemize}
-  \item \smtmodeleval \code{:} \smtmodel \code{->} \smtterm \code{->} \smtvalue
-    \begin{itemize}
-      \item Returns the evaluation of the term in the given model.
-    \end{itemize}
-  \item \smttypewf \code{:} \smttype \code{->} \bool
-    \begin{itemize}
-      \item Returns whether the given type is well-formed. 
-      Our models will range only over well-formed types.
     \end{itemize}
   \item \smtvaluecanon \code{:} \smtvalue \code{->} \bool
     \begin{itemize}
       \item Returns whether the given value is \emph{canonical}. 
       For certain types (those that we call \emph{first-class types},
       canonical values are syntactically distinct iff they are semantically distinct.
+    \end{itemize}
+  \item \smttypewf \code{:} \smttype \code{->} \bool
+    \begin{itemize}
+      \item Returns whether the given type is well-formed.
+      Our models will range only over well-formed types.
+    \end{itemize}
+  \item \smttypeof \code{:} \smtterm \code{->} \smttype
+    \begin{itemize}
+      \item Returns the type of an SMT-LIB term, or none if it is ill-typed.
+    \end{itemize}
+  \item \smtmodeleval \code{:} \smtmodel \code{->} \smtterm \code{->} \smtvalue
+    \begin{itemize}
+      \item Returns the evaluation of the term in the given model.
     \end{itemize}
 \end{itemize}
 
@@ -342,7 +346,7 @@ inductive SmtDatatypeCons : Type where
 deriving Repr, DecidableEq, Inhabited, Ord
 
 /- Type equality -/
-def Teq : SmtType -> SmtType -> native_Bool
+def Teq : SmtType -> SmtType -> Bool
   | x, y => decide (x = y)
 \end{lstlisting}
 \caption{The SMT type language.}
@@ -535,8 +539,8 @@ def smt_dt_lift (s : String) (d : SmtDatatype) : SmtDatatype -> SmtDatatype
   | SmtDatatype.null => SmtDatatype.null
 
 def smt_type_substitute (s : String) (d : SmtDatatype) : SmtType -> SmtType
-  | (SmtType.Datatype s2 d2) => (SmtType.Datatype s2 (if (native_streq s s2) then d2 else (smt_dt_substitute s (smt_dt_lift s2 d2 d) d2)))
-  | (SmtType.TypeRef s2) => (if (native_streq s s2) then (SmtType.Datatype s d) else (SmtType.TypeRef s2))
+  | (SmtType.Datatype s2 d2) => (SmtType.Datatype s2 (if (s = s2) then d2 else (smt_dt_substitute s (smt_dt_lift s2 d2 d) d2)))
+  | (SmtType.TypeRef s2) => (if (s = s2) then (SmtType.Datatype s d) else (SmtType.TypeRef s2))
   | T => T
 
 def smt_dtc_substitute (s : String) (d : SmtDatatype) : SmtDatatypeCons -> SmtDatatypeCons
@@ -735,7 +739,7 @@ deriving Repr, DecidableEq, Inhabited, Ord
 def veq : SmtValue -> SmtValue -> Bool
   | x, y => decide (x = y)
 
-def vcmp (v1 : SmtValue) (v2 : SmtValue) : native_Bool :=
+def vcmp (v1 : SmtValue) (v2 : SmtValue) : Bool :=
   match compare v1 v2 with
   | Ordering.lt => true
   | _ => false
@@ -937,11 +941,11 @@ def smt_typeof_seq_value : SmtSeq -> SmtType
     (if (Teq (SmtType.Seq (smt_typeof_value v)) _v0) then _v0 else SmtType.None)
   | (SmtSeq.empty T) => (SmtType.Seq T)
   
-def smt_typeof_dt_cons_value_rec (T : SmtType) : SmtDatatype -> native_Nat -> SmtType
-  | (SmtDatatype.sum SmtDatatypeCons.unit d), 0 => T
-  | (SmtDatatype.sum (SmtDatatypeCons.cons U c) d), 0 => 
-    (SmtType.DtcAppType U (smt_typeof_dt_cons_value_rec T (SmtDatatype.sum c d) 0))
-  | (SmtDatatype.sum c d), (native_nat_succ n) => (smt_typeof_dt_cons_value_rec T d n)
+def smt_typeof_dt_cons_value_rec (T : SmtType) : SmtDatatype -> Nat -> SmtType
+  | (SmtDatatype.sum SmtDatatypeCons.unit d), Nat.zero => T
+  | (SmtDatatype.sum (SmtDatatypeCons.cons U c) d), Nat.zero => 
+    (SmtType.DtcAppType U (smt_typeof_dt_cons_value_rec T (SmtDatatype.sum c d) Nat.zero))
+  | (SmtDatatype.sum c d), (Nat.succ n) => (smt_typeof_dt_cons_value_rec T d n)
   | d, n => SmtType.None
 
 def smt_typeof_apply_value : SmtType -> SmtType -> SmtType
@@ -1102,7 +1106,7 @@ def smt_datatype_cons_default (v : SmtValue) : SmtDatatypeCons -> SmtDatatypeCon
 def smt_datatype_default (s : String) (d : SmtDatatype) (n : Nat) : SmtDatatype -> SmtDatatype -> SmtValue
   | (SmtDatatype.sum cF dF), (SmtDatatype.sum cU dU) =>
     let _v0 := (smt_datatype_cons_default (SmtValue.DtCons s d n) cF cU)
-    (if (veq _v0 SmtValue.NotValue) then (smt_datatype_default s d (native_nat_succ n) dF dU) else _v0)
+    (if (veq _v0 SmtValue.NotValue) then (smt_datatype_default s d (Nat.succ n) dF dU) else _v0)
   | dF, dU => SmtValue.NotValue
 
 def smt_type_default_rec : SmtType -> SmtType -> SmtValue
@@ -1332,6 +1336,18 @@ and confirm that all values they are built from are also canonical.
 
 \begin{figure}
 \begin{lstlisting}
+def smt_dt_cons_no_alias_rec (refs : RefList) : SmtDatatypeCons -> Bool
+  | (SmtDatatypeCons.cons T c) => (smt_type_no_alias_rec refs T) && (smt_dt_cons_no_alias_rec refs c)
+  | SmtDatatypeCons.unit => true
+
+def smt_dt_no_alias_rec (refs : RefList) : SmtDatatype -> Bool
+  | SmtDatatype.null => true
+  | (SmtDatatype.sum c d) => (smt_dt_cons_no_alias_rec refs c) && (smt_dt_no_alias_rec refs d)
+
+def smt_type_no_alias_rec : RefList -> SmtType -> Bool
+  | refs, (SmtType.Datatype s d) => !(s ∈ refs) && (smt_dt_no_alias_rec (s :: refs) d)
+  | T, refs => true
+
 def smt_dt_cons_wf_rec : SmtDatatypeCons -> SmtDatatypeCons -> Bool
   | (SmtDatatypeCons.cons (SmtType.Datatype s d) cF),
     (SmtDatatypeCons.cons (SmtType.TypeRef sU) cU) => (smt_dt_cons_wf_rec cF cU)
@@ -1361,7 +1377,7 @@ def smt_type_wf_rec : SmtType -> SmtType -> Bool
   | T, U => true
 
 def smt_type_wf_component (T : SmtType) : Bool :=
-  (inhabited_type T) && (smt_type_wf_rec T T)
+  (inhabited_type T) && (smt_type_wf_rec T T) && (smt_type_no_alias_rec [] T)
 
 def smt_type_wf : SmtType -> Bool
   | SmtType.RegLan => true
@@ -1375,7 +1391,6 @@ def smt_type_wf : SmtType -> Bool
 Figure~\ref{fig:type-wf}
 provides a central definition which we will use when defining the properties
 of SMT-LIB models we wish to consider.
-
 The key method defined in Figure~\ref{fig:type-wf}
 is \smttypewf.
 This predicate will define exactly the set of types that are relevant
@@ -1388,6 +1403,11 @@ which returns true for types that are well-formed and can be used as component
 types to build other well-formed types.
 We also will say that a type \code{T} is \emph{first-class}
 iff \code{(smt_type_wf_component T)} returns true.
+Note this method requires that
+the given type \code{T} is inhabited,
+is well-formed (based on the recursive method \code{smt_type_wf_rec}),
+and is not a datatype type that contains aliasing (\code{smt_type_no_alias_rec}),
+i.e. has a datatype field with a datatype type that shares a name with a name already in scope.
 
 First, regular languages and function types
 will not be considered first-class types.
@@ -1634,6 +1654,109 @@ a parallel mapping for variables and constants.
 In contrast, the interpretation of variables is updatable in model (e.g.
 when evaluating binders), where the interpretation of a constant is fixed.
 
+
+\subsection{Types of SMT-LIB Terms}
+
+\begin{figure}
+\begin{lstlisting}
+def smt_typeof_guard_wf (T : SmtType) (U : SmtType) : SmtType :=
+  (if (smt_type_wf T) then U else SmtType.None)
+  
+def smt_typeof_not : SmtType -> SmtType :=
+  | SmtType.Bool => SmtType.Bool
+  | T => SmtType.None
+
+def smt_typeof_eq (T : SmtType) (U : SmtType) : SmtType :=
+  (smt_typeof_guard T (if (native_Teq T U) then SmtType.Bool else SmtType.None))
+
+def smt_typeof_arith_overload_op_2 : SmtType -> SmtType -> SmtType
+  | SmtType.Int, SmtType.Int => SmtType.Int
+  | SmtType.Real, SmtType.Real => SmtType.Real
+  | T, U => SmtType.None
+  
+def smt_typeof_select : SmtType -> SmtType -> SmtType
+  | (SmtType.Map T U), V => (if (native_Teq T V) then U else SmtType.None)
+  | T, U => SmtType.None
+
+def smt_typeof_dt_cons_rec (T : SmtType) : SmtDatatype -> Nat -> SmtType
+  | (SmtDatatype.sum SmtDatatypeCons.unit d), native_nat_zero => T
+  | (SmtDatatype.sum (SmtDatatypeCons.cons U c) d), native_nat_zero =>
+      (SmtType.DtcAppType U (smt_typeof_dt_cons_rec T (SmtDatatype.sum c d) native_nat_zero))
+  | (SmtDatatype.sum c d), (Nat.succ n) => (smt_typeof_dt_cons_rec T d n)
+  | d, n => SmtType.None
+
+def smt_typeof_apply : SmtType -> SmtType -> SmtType
+  | (SmtType.FunType T U), V => (smt_typeof_guard T (if (native_Teq T V) then U else SmtType.None))
+  | (SmtType.DtcAppType T U), V => (smt_typeof_guard T (if (native_Teq T V) then U else SmtType.None))
+  | T, U => SmtType.None
+
+def smt_typeof : SmtTerm -> SmtType
+  | (SmtTerm.Boolean b) => SmtType.Bool
+  | (SmtTerm.Numeral n) => SmtType.Int
+  | (SmtTerm.Binary w n) =>
+      if 0 <= w ∧ n = n % (2 ^ w) then (SmtType.BitVec (Int.toNat w)) else SmtType.None
+  | (SmtTerm.not x1) => (smt_typeof_not (smt_typeof x1))
+  | (SmtTerm.eq x1 x2) => (smt_typeof_eq (smt_typeof x1) (smt_typeof x2))
+  | (SmtTerm.exists s T x1) =>
+      if smt_typeof x1 = SmtType.Bool then (smt_typeof_guard_wf T SmtType.Bool) else SmtType.None
+  | (SmtTerm.plus x1 x2) => (smt_typeof_arith_overload_op_2 (smt_typeof x1) (smt_typeof x2))
+  | (SmtTerm.select x1 x2) => (smt_typeof_select (smt_typeof x1) (smt_typeof x2))
+  | (SmtTerm.Apply f x1) => (smt_typeof_apply (smt_typeof f) (smt_typeof x1))
+  | (SmtTerm.DtCons s d i) =>
+      let _v0 := (SmtType.Datatype s d)
+      (smt_typeof_guard_wf _v0 (smt_typeof_dt_cons_rec _v0 (smt_dt_substitute s d d) i))
+  | ... => ...
+\end{lstlisting}
+\caption{Types for SMT terms.}
+\label{fig:typeof-term}
+\end{figure}
+
+Figure~\ref{fig:typeof-term}
+gives our definition for the types of SMT-LIB terms.
+At a high-level, this is a structurally recursive method
+that first computes the types the arguments of the term and based on the
+argument types constructs a return type.
+We give a representative set of cases in the definition of \smttypeof.
+
+First, atomic interpreted constants
+are trivial, e.g. Boolean constants are Bool, integer constants are Int, etc.
+Bit-vector constants (\code{Binary})
+are well-typed iff they have a non-negative bitwidth \code{w}
+and a value \code{n} within the range $[0,2^w)$.
+
+For the remaining operators, it is important to note that, since our definition of SMT-LIB
+terms do not allow us to specify partially applied interpreted functions,
+the type rules we give are for fully applied terms.
+We give some of the cases above, for example,
+for SMT-LIB \code{not}, the method \code{smt_typeof_not} returns the Boolean type
+iff the argument is Boolean.
+For SMT-LIB equality \code{eq},
+the method for computing its type \code{smt_typeof_eq}
+takes two types \code{T} and \code{U}.
+If these are syntactically equal types, then the equality has type Bool,
+otherwise it is ill-typed.
+Again notice that we consider only syntactically equivalent types here,
+i.e. there is no notion of type equivalence.
+Second, note that we permit equalities between terms whose types are not well-formed
+(apart from if the terms are not well typed, i.e. have type \code{None}).
+
+Our type for quantifiers \code{exists} first checks whether its third
+argument (its body) has Bool type, if so, then Bool is returned provided
+that the quantified type is well-formed (via helper \code{smt_typeof_guard_wf}).
+This prevents quantified formulas over types that are not well-formed,
+which would have an unintuitive semantics based on our model evaluation for
+\code{exists} as defined earlier.
+
+The type of arithmetic operators like \code{plus} handle overloading Int and Real,
+i.e. plus is well-typed if both of its arguments are Int, or if both arguments are Real.
+Array select (\code{select})
+has type given by \code{smt_typeof_select}, which succeeds iff the index type of map we are
+selector from matches the type of the argument.
+The generic \code{Apply} term can either refer to an application of an uninterpreted
+function or a datatype constructor. These cases are handled similarly.
+The type of datatype constructor terms is analogous to the typing for
+datatype constructor values, as given in Figure~\ref{fig:typeof-value}.
+
 \subsection{Model Evaluation}
 
 \begin{figure}
@@ -1778,109 +1901,9 @@ are for variables (\code{Var}) and free constants (\code{Const}).
 These are handled similarly in the model, where the model lookup
 takes a flag denoting whether or not the lookup is for a variable.
 
-\subsection{Types of SMT-LIB Terms}
+More advanced cases of model evaluation are given in the appendix. (TODO)
 
-\begin{figure}
-\begin{lstlisting}
-def smt_typeof_guard_wf (T : SmtType) (U : SmtType) : SmtType :=
-  (if (smt_type_wf T) then U else SmtType.None)
-  
-def smt_typeof_not : SmtType -> SmtType :=
-  | SmtType.Bool => SmtType.Bool
-  | T => SmtType.None
-
-def smt_typeof_eq (T : SmtType) (U : SmtType) : SmtType :=
-  (smt_typeof_guard T (if (native_Teq T U) then SmtType.Bool else SmtType.None))
-
-def smt_typeof_arith_overload_op_2 : SmtType -> SmtType -> SmtType
-  | SmtType.Int, SmtType.Int => SmtType.Int
-  | SmtType.Real, SmtType.Real => SmtType.Real
-  | T, U => SmtType.None
-  
-def smt_typeof_select : SmtType -> SmtType -> SmtType
-  | (SmtType.Map T U), V => (if (native_Teq T V) then U else SmtType.None)
-  | T, U => SmtType.None
-
-def smt_typeof_dt_cons_rec (T : SmtType) : SmtDatatype -> native_Nat -> SmtType
-  | (SmtDatatype.sum SmtDatatypeCons.unit d), native_nat_zero => T
-  | (SmtDatatype.sum (SmtDatatypeCons.cons U c) d), native_nat_zero =>
-      (SmtType.DtcAppType U (smt_typeof_dt_cons_rec T (SmtDatatype.sum c d) native_nat_zero))
-  | (SmtDatatype.sum c d), (native_nat_succ n) => (smt_typeof_dt_cons_rec T d n)
-  | d, n => SmtType.None
-
-def smt_typeof_apply : SmtType -> SmtType -> SmtType
-  | (SmtType.FunType T U), V => (smt_typeof_guard T (if (native_Teq T V) then U else SmtType.None))
-  | (SmtType.DtcAppType T U), V => (smt_typeof_guard T (if (native_Teq T V) then U else SmtType.None))
-  | T, U => SmtType.None
-
-def smt_typeof : SmtTerm -> SmtType
-  | (SmtTerm.Boolean b) => SmtType.Bool
-  | (SmtTerm.Numeral n) => SmtType.Int
-  | (SmtTerm.Binary w n) =>
-      if 0 <= w ∧ n = n % (2 ^ w) then (SmtType.BitVec (Int.toNat w)) else SmtType.None
-  | (SmtTerm.not x1) => (smt_typeof_not (smt_typeof x1))
-  | (SmtTerm.eq x1 x2) => (smt_typeof_eq (smt_typeof x1) (smt_typeof x2))
-  | (SmtTerm.exists s T x1) =>
-      if smt_typeof x1 = SmtType.Bool then (smt_typeof_guard_wf T SmtType.Bool) else SmtType.None
-  | (SmtTerm.plus x1 x2) => (smt_typeof_arith_overload_op_2 (smt_typeof x1) (smt_typeof x2))
-  | (SmtTerm.select x1 x2) => (smt_typeof_select (smt_typeof x1) (smt_typeof x2))
-  | (SmtTerm.Apply f x1) => (smt_typeof_apply (smt_typeof f) (smt_typeof x1))
-  | (SmtTerm.DtCons s d i) =>
-      let _v0 := (SmtType.Datatype s d)
-      (smt_typeof_guard_wf _v0 (smt_typeof_dt_cons_rec _v0 (smt_dt_substitute s d d) i))
-  | ... => ...
-\end{lstlisting}
-\caption{Types for SMT terms.}
-\label{fig:typeof-term}
-\end{figure}
-
-Figure~\ref{fig:typeof-term}
-gives our definition for the types of SMT-LIB terms.
-At a high-level, this is a structurally recursive method
-that first computes the types the arguments of the term and based on the
-argument types constructs a return type.
-We give a representative set of cases in the definition of \smttypeof.
-
-First, atomic interpreted constants
-are trivial, e.g. Boolean constants are Bool, integer constants are Int, etc.
-Bit-vector constants (\code{Binary})
-are well-typed iff they have a non-negative bitwidth \code{w}
-and a value \code{n} within the range [0,2^w).
-
-For the remaining operators, it is important to note that, since our definition of SMT-LIB
-terms do not allow us to specify partially applied interpreted functions,
-the type rules we give are for fully applied terms.
-We give some of the cases above, for example,
-for SMT-LIB \code{not}, the method \code{smt_typeof_not} returns the Boolean type
-iff the argument is Boolean.
-For SMT-LIB equality \code{eq},
-the method for computing its type \code{smt_typeof_eq}
-takes two types \code{T} and \code{U}.
-If these are syntactically equal types, then the equality has type Bool,
-otherwise it is ill-typed.
-Again notice that we consider only syntactically equivalent types here,
-i.e. there is no notion of type equivalence.
-Second, note that we permit equalities between terms whose types are not well-formed
-(apart from if the terms are not well typed, i.e. have type \code{None}).
-
-Our type for quantifiers \code{exists} first checks whether its third
-argument (its body) has Bool type, if so, then Bool is returned provided
-that the quantified type is well-formed (via helper \code{smt_typeof_guard_wf}).
-This prevents quantified formulas over types that are not well-formed,
-which would have an unintuitive semantics based on our model evaluation for
-\code{exists} as defined earlier.
-
-The type of arithmetic operators like \code{plus} handle overloading Int and Real,
-i.e. plus is well-typed if both of its arguments are Int, or if both arguments are Real.
-Array select (\code{select})
-has type given by \code{smt_typeof_select}, which succeeds iff the index type of map we are
-selector from matches the type of the argument.
-The generic \code{Apply} term can either refer to an application of an uninterpreted
-function or a datatype constructor. These cases are handled similarly.
-The type of datatype constructor terms is analogous to the typing for
-datatype constructor values, as given in Figure~\ref{fig:typeof-value}.
-
-\subsection{Properties of Model Evaluation}
+\subsection{Properties of Models, Model Evaluation}
 
 \begin{figure}
 \begin{lstlisting}
@@ -1905,30 +1928,90 @@ theorem model_eval_canonical
 \label{fig:type-preservation}
 \end{figure}
 
+Figure~\ref{fig:type-preservation}
+gives three central theorems about our definitions thus far.
+In particular,
+the first theorem states simply that a well-formed model exists.
+In other words, our definitions are not vacous as we can show that
+at least one model exists (in fact, infinitely models exist).
+Note that this must be stated as a theorem due to our definitions of model well-formedness,
+which are stated using native (universal) Lean quantifiers.
+
+The second theorem states that
+given a well-formed model \code{M} and well-typed term \code{t},
+model evaluation preserves type.
+Note that terms and values share the same representation of types (\smttype),
+hence their types can be compared directly.
+This method is proved by induction on the structure of terms.
+
+The third theorem is similar and proves that
+given a well-formed model \code{M} and well-typed term \code{t},
+the model evaluation of the term is a \emph{canonical} value.
+Recall that our definition of canonical values allows us to use
+syntactic equality to check semantic equivalence.
+This theorem essentially allows us (among other things) to argue that model evaluator
+for equality has an appropriate definition.
+This theorem relies on the fact that for well-formed models, in the base case,
+variables and constants are mapped to canonical values.
+It then proceeds by induction on the structure of terms.
 
 \section{Specification}
 
-\begin{figure}[p]
+This second presents the \emph{specification} layer of Logos.
+This layer introduces the terms used by the executable checker.
+We refer to these as \emph{Eunoia terms}, as they are compiled based
+on the input Eunoia signature.
+These are captured in the Lean datatype \term.
+Eunoia terms represent both checker-level terms and types uniformly.
+
+The key methods we define in this layer are
+to define a reduction from Eunoia term to SMT terms and types,
+and then to define a notion of satisfiability (\eosatisfiability) based on this reduction.
+We first will introduce the term embedding.
+
+\subsection{Eunoia Terms}
+
+\begin{figure}
 \begin{lstlisting}
+/- Ordinary user operators. -/
+inductive UserOp : Type where
+  | Int : UserOp
+  | Real : UserOp
+  ...
+  | not : UserOp
+  | eq : UserOp
+  | and : UserOp
+  ...
+
+/- User operators with indexed arguments -/
+inductive UserOp1 : Type where
+  | BitVec : UserOp
+  | repeat : UserOp1
+  | zero_extend : UserOp1
+  ...
+
+inductive UserOp2 : Type where
+  | extract : UserOp2
+  ...
+
 inductive Term : Type where
+  | Stuck : Term
   | UOp : UserOp -> Term
   | UOp1 : UserOp1 -> Term -> Term
   | UOp2 : UserOp2 -> Term -> Term -> Term
-  | UOp3 : UserOp3 -> Term -> Term -> Term -> Term
+  ...
+  | Apply : Term -> Term -> Term
   | eo_List : Term
   | eo_List_nil : Term
   | eo_List_cons : Term
   | Bool : Term
+  | FunType : Term
+  | Type : Term
   | Boolean : Bool -> Term
   | Numeral : Int -> Term
   | Rational : Rat -> Term
   | String : String -> Term
   | Binary : Int -> Int -> Term
-  | Type : Term
-  | Stuck : Term
-  | Apply : Term -> Term -> Term
-  | FunType : Term
-  | Var : Term -> Term -> Term
   | DatatypeType : String -> Datatype -> Term
   | DatatypeTypeRef : String -> Term
   | DtcAppType : Term -> Term -> Term
@@ -1936,7 +2019,7 @@ inductive Term : Type where
   | DtSel : String -> Datatype -> Nat -> Nat -> Term
   | USort : Nat -> Term
   | UConst : Nat -> Term -> Term
-
+  | Var : Term -> Term -> Term
 deriving Repr, DecidableEq, Inhabited, Ord
 
 /-- Syntactic equality for Eunoia terms --/
@@ -1947,43 +2030,145 @@ def teq : Term -> Term -> Bool
 \label{fig:eo-term}
 \end{figure}
 
-\begin{figure}[p]
-\begin{lstlisting}
-def eo_typeof : Term -> Term
-  | (Term.Boolean b) => Term.Bool
-  | (Term.Var (Term.String s) T) => T
-  | (Term.DtCons s d i) => (__eo_typeof_dt_cons_rec (Term.DatatypeType s d) (__eo_dt_substitute s d d) i)
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.eq) eo_x1) eo_x2) => (__eo_typeof_eq (__eo_typeof eo_x1) (__eo_typeof eo_x2))
-  | (Term.Apply eo_f eo_x) => (__eo_typeof_apply (__eo_typeof eo_f) (__eo_typeof eo_x))
-  | ... => ...
-\end{lstlisting}
-\caption{Selected Eunoia type-synthesis clauses.}
-\label{fig:eo-typeof}
-\end{figure}
+Figure~\ref{fig:eo-term}
+introduces our definition of Eunoia terms (\term).
+As mentioned, rules in our proof checker can be seen as
+methods taking a list of Eunoia terms and returning a Eunoia term (the conclusion),
+which is expected to be a term of type Bool.
+Since we use a single unified representation,
+proof rules can essentially be seen as \emph{untyped} manipulations over terms in this deep embedding.
+We now introduce the specifics of the term embedding.
 
-\begin{figure}[p]
+First, like the other datatypes introduced in this document,
+we have an error term, denoted \code{Stuck}.\footnote{
+We call the error term \code{Stuck} as this reflects the described operational
+semantics of Eunoia, where a proof rule that fails to execute may become "stuck".}
+Before describing user-defined operators, the constructor \code{Apply}
+denotes higher-order application,
+taking a term to apply and its argument.
+We use a curried style for applying terms, e.g. the application
+of a binary function \code{f} to arguments \code{a} and \code{b} is denoted
+\code{(Apply (Apply f a) b)}.
+
+The next constructors \code{UOp}, \code{UOp1}, \code{UOp2}, etc.
+denote all symbols introduced in the user-defined Eunoia signature.
+These each rely on enumeration types (e.g. \code{UserOp})
+which are automatically compiled based on the Eunoia signature we are verifying.
+The constructors for user-defined operators
+are stratified based on the number of indexed arguments they have.\footnote{
+Some SMT-LIB operators are indexed, e.g. bitvector extract (SMT-LIB syntax \code{(_ extract n m)}.
+Indexed arguments are denoted by the \code{:opaque} attribute in Eunoia signatures.
+}
+
+First, ordinary operators (\code{UOp}) take as argument
+the enumeration type \code{UserOp}, which denotes the operator they are.
+This enumeration type includes all user operators that are not indexed by
+an argument.
+This includes both types (e.g. \code{Int}) and terms (e.g. \code{not}, \code{and}).
+
+Indexed arguments (\code{UOpN}) for \code{N = 1, 2, ... } are terms that take
+as argument the enumeration type \code{UserOpN} denoting the operator they are,
+as well as \code{N} term arguments.
+These term arguments are part of the argument to the \emph{constructor} \code{UOpN}.
+Note this means that indexed operators are thus considered "atomic"
+with respect to our applicative encoding of terms.
+For example, the SMT-LIB term \code{((_ extract 2 0) t)} is represented as:
+\begin{examplecode}
+(Apply (UOp2 UserOp2.extract (Numeral 2) (Numeral 0)) t)
+\end{examplecode}
+and not:
+\begin{examplecode}
+(Apply (Apply (Apply (UOp UserOp.extract) (Numeral 2)) (Numeral 0)) t)
+\end{examplecode}
+In other words, \code{(_ extract 2 0)} is intuitively an atomic term,
+and not an application of \code{extract} to two integers.
+This has an important impact on what is possible to infer for certain proof rules.
+For instance, a generic congruence rule \emph{cannot} be used to
+infer that e.g. \code{((_ extract 2 0) t)} is equivalent to \code{((_ extract x 0) t)}
+if \code{x = 2}.
+Essentially, indexed arguments allow us to consider
+their indices to be opaque from outside reasoning.
+
+The remaining operators define the builtin operators of Eunoia.
+First, Eunoia has a builtin notion of lists
+with constructors \code{eo_List_cons} and \code{eo_List_nil}.
+The list type is the constructor \code{eo_List}.
+The next set of operators denote the other builtin types
+of Eunoia including Booleans (\code{Bool}),
+the arrow type (\code{FunType}), and
+the type of types (\code{Type}).
+The next four constructors denote the SMT-LIB literal categories
+supported by Eunoia.
+Note that these constructors carry native Lean types
+that denote their values, similar to our definition of SMT-LIB terms and values.
+
+The next 5 constructors are used for representing
+user-defined SMT-LIB datatypes. Eunoia inherits
+the notion of SMT-LIB datatypes. These constructors
+mirror the definitions of SMT-LIB datatype types
+and terms, as described in the previous section.
+In particular note that we have a similar definition of recursive types
+(\code{Datatype}), as well as type references,
+and types for (partially applied) constructor terms (\code{DtcAppType}).
+Datatype constructor and selector terms are given by \code{DtCons} and \code{DtSel}.
+It is important to note that each of the arguments of these 5 constructors
+are arguments to the constructors.
+In other words, they are indices of the terms.
+This is important since the semantics of matching on Eunoia terms
+does \emph{not} have access to the internals of their definitions 
+(e.g. matching on a generic apply term in Eunoia cannot decompose the arguments of a user-defined datatype constructor).
+This accurately reflects the operational semantics of Eunoia.
+
+The next constructor \code{USort} corresponds to user-defined uninterpreted sorts.
+The constructor \code{UConst} corresponds to user-defined constants.
+This takes as argument an identifier (given by a natural number) and a term
+(denoting the type of the constant).
+Notice this mirrors our definition of SMT-LIB constants (\code{SmtTerm.UConst}).
+The final constructor \code{Var} denotes a Eunoia variable.
+Variables in Eunoia are first-class objects taking their name (intended to be a string literal)
+and their type.
+Based on the operational semantics of Eunoia, these are indexed arguments,
+i.e. variables are considered atomic terms indexed by their name and type.
+
+\subsection{Translation from Eunoia term to SMT terms}
+
+\begin{figure}
 \begin{lstlisting}
+def eo_to_smt_datatype : Datatype -> SmtDatatype
+  ...
+
 def eo_to_smt_type : Term -> SmtType
   | Term.Bool => SmtType.Bool
+  | (Term.UOp UserOp.Int) => SmtType.Int
+  ...
+  | (Term.UOp1 UserOp1.BitVec (Term.Numeral n1)) =>
+    (if (native_zleq 0 n1) then (SmtType.BitVec (Int.toNat n1)) else SmtType.None)
+  | (Term.Apply (Term.Apply Term.FunType T1) T2) =>
+    let _v0 := (eo_to_smt_type T1)
+    let _v1 := (eo_to_smt_type T2)
+    (smt_typeof_guard _v0 (smt_typeof_guard _v1 (SmtType.FunType _v0 _v1)))
+  | (Term.Apply (Term.UOp UserOp.Seq) x1) =>
+    let _v0 := (eo_to_smt_type x1)
+    (smt_typeof_guard _v0 (SmtType.Seq _v0))
   | (Term.DatatypeType s d) =>
       if s.startsWith "@" then SmtType.None else SmtType.Datatype s (eo_to_smt_datatype d)
-  | (Term.Apply (Term.Apply Term.FunType T1) T2) => let _v0 := (eo_to_smt_type T2); let _v1 := (eo_to_smt_type T1); (smt_typeof_guard _v1 (smt_typeof_guard _v0 (SmtType.FunType _v1 _v0)))
-  | (Term.UOp UserOp.Int) => SmtType.Int
-  | (Term.Apply (Term.UOp UserOp.Seq) x1) => let _v0 := (eo_to_smt_type x1); (smt_typeof_guard _v0 (SmtType.Seq _v0))
-  | ... => ...
+  ...
 
 def eo_to_smt : Term -> SmtTerm
   | (Term.Boolean b) => (SmtTerm.Boolean b)
-  | (Term.Var (Term.String s) T) => (SmtTerm.Var s (eo_to_smt_type T))
-  | (Term.DtCons s d i) =>
-      if s.startsWith "@" then SmtTerm.None else SmtTerm.DtCons s (eo_to_smt_datatype d) i
-  | (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) x1) x2) x3) => (SmtTerm.ite (eo_to_smt x1) (eo_to_smt x2) (eo_to_smt x3))
+  ...
+  | (Term.Apply (Term.UOp UserOp.not) x1) => (SmtTerm.not (eo_to_smt x1))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.and) x1) x2) => (SmtTerm.and (eo_to_smt x1) (eo_to_smt x2))
   | (Term.Apply f y) => (SmtTerm.Apply (eo_to_smt f) (eo_to_smt y))
-  | ... => ...
+  | (Term.Var (Term.String s) T) => (SmtTerm.Var s (eo_to_smt_type T))
+  ...
 \end{lstlisting}
 \caption{Translation from Eunoia terms and types into SMT.}
 \label{fig:eo-to-smt}
 \end{figure}
+
+
+\subsection{Satisfiability for Eunoia terms}
 
 \begin{figure}[p]
 \begin{lstlisting}
@@ -2003,45 +2188,26 @@ def eo_satisfiability (t : Term) (b : Bool) : Prop :=
 \end{figure}
 
 
-\begin{figure}[p]
+
+\section{Logos Checker}
+\label{sec:commands}
+
+\subsection{Types of Eunoia Terms}
+\begin{figure}
 \begin{lstlisting}
-inductive Proof : Type where
-  | pf : Term -> Proof
-  | Stuck : Proof
-
-def eo_requires : Term -> Term -> Term -> Term
-  | x1, x2, x3 =>
-      (if (teq x1 x2) then
-        (if (native_not (teq x1 Term.Stuck)) then x3 else Term.Stuck)
-        else Term.Stuck)
-
-def __mk_trans : Term -> Term -> Term -> Term
-  | Term.Stuck, _, _ => Term.Stuck
-  | _, Term.Stuck, _ => Term.Stuck
-  | t1, t2,
-      (Term.Apply
-        (Term.Apply (Term.UOp UserOp.and)
-          (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t3) t4))
-        tail) =>
-      (__eo_requires t2 t3 (__mk_trans t1 t4 tail))
-  | t1, t2, (Term.Boolean true) =>
-      (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t1) t2)
-  | _, _, _ => Term.Stuck
-
-def eo_prog_trans : Proof -> Term
-  | (Proof.pf
-      (Term.Apply
-        (Term.Apply (Term.UOp UserOp.and)
-          (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t1) t2))
-        tail)) =>
-      (__mk_trans t1 t2 tail)
-  | _ => Term.Stuck
+def eo_typeof : Term -> Term
+  | (Term.Boolean b) => Term.Bool
+  | (Term.Var (Term.String s) T) => T
+  | (Term.DtCons s d i) => (__eo_typeof_dt_cons_rec (Term.DatatypeType s d) (__eo_dt_substitute s d d) i)
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.eq) eo_x1) eo_x2) => (__eo_typeof_eq (__eo_typeof eo_x1) (__eo_typeof eo_x2))
+  | (Term.Apply eo_f eo_x) => (__eo_typeof_apply (__eo_typeof eo_f) (__eo_typeof eo_x))
+  | ... => ...
 \end{lstlisting}
-\caption{The \texttt{Logos.lean} definition of the \texttt{trans} rule program and its immediate dependencies.}
-\label{fig:trans-prog}
+\caption{Selected Eunoia type-synthesis clauses.}
+\label{fig:eo-typeof}
 \end{figure}
 
-\begin{figure}[p]
+\begin{figure}
 \begin{lstlisting}
 theorem eo_to_smt_well_typed_and_typeof_implies_smt_type
     (t T : Term) (s : SmtTerm) :
@@ -2053,11 +2219,6 @@ theorem eo_to_smt_well_typed_and_typeof_implies_smt_type
 \caption{A representative theorem connecting Eunoia and SMT types.}
 \label{fig:eo-smt-type-thm}
 \end{figure}
-
-\clearpage
-
-\section{Logos Checker}
-\label{sec:commands}
 
 \begin{figure}[p]
 \begin{lstlisting}
@@ -2408,6 +2569,46 @@ theorem cmd_step_proven_facts_of_invariants
 \end{lstlisting}
 \caption{The step-only rule-correctness theorem in \texttt{RuleLemmas.lean}; plain \texttt{Cmd.step} reasoning now uses local truth plus assumption stability, and rule proofs receive contextual premise evidence that is stable across variable-model changes.}
 \label{fig:rule-lemmas}
+\end{figure}
+
+
+
+\begin{figure}[p]
+\begin{lstlisting}
+inductive Proof : Type where
+  | pf : Term -> Proof
+  | Stuck : Proof
+
+def eo_requires : Term -> Term -> Term -> Term
+  | x1, x2, x3 =>
+      (if (teq x1 x2) then
+        (if (native_not (teq x1 Term.Stuck)) then x3 else Term.Stuck)
+        else Term.Stuck)
+
+def __mk_trans : Term -> Term -> Term -> Term
+  | Term.Stuck, _, _ => Term.Stuck
+  | _, Term.Stuck, _ => Term.Stuck
+  | t1, t2,
+      (Term.Apply
+        (Term.Apply (Term.UOp UserOp.and)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t3) t4))
+        tail) =>
+      (__eo_requires t2 t3 (__mk_trans t1 t4 tail))
+  | t1, t2, (Term.Boolean true) =>
+      (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t1) t2)
+  | _, _, _ => Term.Stuck
+
+def eo_prog_trans : Proof -> Term
+  | (Proof.pf
+      (Term.Apply
+        (Term.Apply (Term.UOp UserOp.and)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t1) t2))
+        tail)) =>
+      (__mk_trans t1 t2 tail)
+  | _ => Term.Stuck
+\end{lstlisting}
+\caption{The \texttt{Logos.lean} definition of the \texttt{trans} rule program and its immediate dependencies.}
+\label{fig:trans-prog}
 \end{figure}
 
 \begin{figure}[p]
