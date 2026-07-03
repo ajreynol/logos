@@ -1336,6 +1336,18 @@ and confirm that all values they are built from are also canonical.
 
 \begin{figure}
 \begin{lstlisting}
+def smt_dt_cons_no_alias_rec (refs : RefList) : SmtDatatypeCons -> Bool
+  | (SmtDatatypeCons.cons T c) => (smt_type_no_alias_rec refs T) && (smt_dt_cons_no_alias_rec refs c)
+  | SmtDatatypeCons.unit => true
+
+def smt_dt_no_alias_rec (refs : RefList) : SmtDatatype -> Bool
+  | SmtDatatype.null => true
+  | (SmtDatatype.sum c d) => (smt_dt_cons_no_alias_rec refs c) && (smt_dt_no_alias_rec refs d)
+
+def smt_type_no_alias_rec : RefList -> SmtType -> Bool
+  | refs, (SmtType.Datatype s d) => !(s ∈ refs) && (smt_dt_no_alias_rec (s :: refs) d)
+  | T, refs => true
+
 def smt_dt_cons_wf_rec : SmtDatatypeCons -> SmtDatatypeCons -> Bool
   | (SmtDatatypeCons.cons (SmtType.Datatype s d) cF),
     (SmtDatatypeCons.cons (SmtType.TypeRef sU) cU) => (smt_dt_cons_wf_rec cF cU)
@@ -1365,7 +1377,7 @@ def smt_type_wf_rec : SmtType -> SmtType -> Bool
   | T, U => true
 
 def smt_type_wf_component (T : SmtType) : Bool :=
-  (inhabited_type T) && (smt_type_wf_rec T T)
+  (inhabited_type T) && (smt_type_wf_rec T T) && (smt_type_no_alias_rec [] T)
 
 def smt_type_wf : SmtType -> Bool
   | SmtType.RegLan => true
@@ -1379,7 +1391,6 @@ def smt_type_wf : SmtType -> Bool
 Figure~\ref{fig:type-wf}
 provides a central definition which we will use when defining the properties
 of SMT-LIB models we wish to consider.
-
 The key method defined in Figure~\ref{fig:type-wf}
 is \smttypewf.
 This predicate will define exactly the set of types that are relevant
@@ -1392,6 +1403,11 @@ which returns true for types that are well-formed and can be used as component
 types to build other well-formed types.
 We also will say that a type \code{T} is \emph{first-class}
 iff \code{(smt_type_wf_component T)} returns true.
+Note this method requires that
+the given type \code{T} is inhabited,
+is well-formed (based on the recursive method \code{smt_type_wf_rec}),
+and is not a datatype type that contains aliasing (\code{smt_type_no_alias_rec}),
+i.e. has a datatype field with a datatype type that shares a name with a name already in scope.
 
 First, regular languages and function types
 will not be considered first-class types.
@@ -1851,7 +1867,7 @@ First, atomic interpreted constants
 are trivial, e.g. Boolean constants are Bool, integer constants are Int, etc.
 Bit-vector constants (\code{Binary})
 are well-typed iff they have a non-negative bitwidth \code{w}
-and a value \code{n} within the range [0,2^w).
+and a value \code{n} within the range $[0,2^w)$.
 
 For the remaining operators, it is important to note that, since our definition of SMT-LIB
 terms do not allow us to specify partially applied interpreted functions,
@@ -1966,7 +1982,7 @@ inductive UserOp : Type where
   | and : UserOp
   ...
 
-/- User operators with 1,2,... indexed arguments -/
+/- User operators with indexed arguments -/
 inductive UserOp1 : Type where
   | BitVec : UserOp
   | repeat : UserOp1
@@ -1979,11 +1995,11 @@ inductive UserOp2 : Type where
 
 inductive Term : Type where
   | Stuck : Term
-  | Apply : Term -> Term -> Term
   | UOp : UserOp -> Term
   | UOp1 : UserOp1 -> Term -> Term
   | UOp2 : UserOp2 -> Term -> Term -> Term
   ...
+  | Apply : Term -> Term -> Term
   | eo_List : Term
   | eo_List_nil : Term
   | eo_List_cons : Term
@@ -2026,7 +2042,7 @@ First, like the other datatypes introduced in this document,
 we have an error term, denoted \code{Stuck}.\footnote{
 We call the error term \code{Stuck} as this reflects the described operational
 semantics of Eunoia, where a proof rule that fails to execute may become "stuck".}
-The next constructor \code{Apply}
+Before describing user-defined operators, the constructor \code{Apply}
 denotes higher-order application,
 taking a term to apply and its argument.
 We use a curried style for applying terms, e.g. the application
@@ -2035,7 +2051,10 @@ of a binary function \code{f} to arguments \code{a} and \code{b} is denoted
 
 The next constructors \code{UOp}, \code{UOp1}, \code{UOp2}, etc.
 denote all symbols introduced in the user-defined Eunoia signature.
-They are stratified based on the number of indexed arguments they have.\footnote{
+These each rely on enumeration types (e.g. \code{UserOp})
+which are automatically compiled based on the Eunoia signature we are verifying.
+The constructors for user-defined operators
+are stratified based on the number of indexed arguments they have.\footnote{
 Some SMT-LIB operators are indexed, e.g. bitvector extract (SMT-LIB syntax \code{(_ extract n m)}.
 Indexed arguments are denoted by the \code{:opaque} attribute in Eunoia signatures.
 }
@@ -2135,6 +2154,9 @@ def eo_to_smt : Term -> SmtTerm
 \caption{Translation from Eunoia terms and types into SMT.}
 \label{fig:eo-to-smt}
 \end{figure}
+
+
+\subsection{Satisfiability for Eunoia terms}
 
 \begin{figure}[p]
 \begin{lstlisting}
