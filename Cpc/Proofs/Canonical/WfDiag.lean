@@ -520,6 +520,249 @@ private theorem lift_guide_tr_dt (s3 : native_String) (X : SmtDatatype)
 
 end
 
+/-! ## Default preservation across chain images
+
+`__smtx_type_default_rec _ (TypeRef _)` is always `NotValue`, so a successful
+default never traverses a reference position.  Consequently default-success
+transports from a raw source to *any* chain images (independently chosen for
+the folded side and the guide side): the constructor selection that witnessed
+the old default avoids every reference spot, and images only alter reference
+spots and datatype-node bodies.  This yields inhabitedness of chain images of
+inhabited datatypes, with no conditions on the payloads at all. -/
+
+mutual
+
+private theorem defpres_ty :
+    ∀ (TU : SmtType) (ρF ρN ρG : SubstChain),
+      __smtx_type_default_rec (chain_ty ρF TU) TU ≠ SmtValue.NotValue →
+      __smtx_type_default_rec (chain_ty ρN TU) (chain_ty ρG TU) ≠
+        SmtValue.NotValue
+  | SmtType.None, ρF, ρN, ρG, hOld => by
+      rw [chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) ρF] at hOld
+      simp [__smtx_type_default_rec] at hOld
+  | SmtType.TypeRef r, ρF, ρN, ρG, hOld => by
+      rw [rec_typeref_nv r (chain_ty ρF (SmtType.TypeRef r))] at hOld
+      exact absurd rfl hOld
+  | SmtType.DtcAppType A B, ρF, ρN, ρG, hOld => by
+      rw [chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) ρF] at hOld
+      simp [__smtx_type_default_rec] at hOld
+  | SmtType.Bool, ρF, ρN, ρG, hOld => by
+      rw [chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) ρN,
+        chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) ρG]
+      simp [__smtx_type_default_rec]
+  | SmtType.Int, ρF, ρN, ρG, hOld => by
+      rw [chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) ρN,
+        chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) ρG]
+      simp [__smtx_type_default_rec]
+  | SmtType.Real, ρF, ρN, ρG, hOld => by
+      rw [chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) ρN,
+        chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) ρG]
+      simp [__smtx_type_default_rec]
+  | SmtType.RegLan, ρF, ρN, ρG, hOld => by
+      rw [chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) ρN,
+        chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) ρG]
+      simp [__smtx_type_default_rec]
+  | SmtType.BitVec w, ρF, ρN, ρG, hOld => by
+      rw [chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) ρN,
+        chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) ρG]
+      simp [__smtx_type_default_rec]
+  | SmtType.Char, ρF, ρN, ρG, hOld => by
+      rw [chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) ρN,
+        chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) ρG]
+      simp [__smtx_type_default_rec]
+  | SmtType.Set A, ρF, ρN, ρG, hOld => by
+      rw [chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) ρN,
+        chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) ρG]
+      simp [__smtx_type_default_rec]
+  | SmtType.Seq A, ρF, ρN, ρG, hOld => by
+      rw [chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) ρN,
+        chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) ρG]
+      simp [__smtx_type_default_rec]
+  | SmtType.USort u, ρF, ρN, ρG, hOld => by
+      rw [chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) ρN,
+        chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) ρG]
+      simp [__smtx_type_default_rec]
+  | SmtType.FunType A B, ρF, ρN, ρG, hOld => by
+      rw [chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) ρN,
+        chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) ρG]
+      simp [__smtx_type_default_rec]
+  | SmtType.Map A B, ρF, ρN, ρG, hOld => by
+      have hFixF := chain_ty_fix (SmtType.Map A B)
+        (by intro s Q; simp [__smtx_type_substitute]) ρF
+      have hFixN := chain_ty_fix (SmtType.Map A B)
+        (by intro s Q; simp [__smtx_type_substitute]) ρN
+      have hFixG := chain_ty_fix (SmtType.Map A B)
+        (by intro s Q; simp [__smtx_type_substitute]) ρG
+      rw [hFixF] at hOld
+      rw [hFixN, hFixG]
+      simpa [__smtx_type_default_rec] using hOld
+  | SmtType.Datatype b B0, ρF, ρN, ρG, hOld => by
+      rw [chain_ty_datatype ρF b B0] at hOld
+      rw [chain_ty_datatype ρN b B0, chain_ty_datatype ρG b B0]
+      have hOld' :
+          __smtx_datatype_default b
+            (chain_dt (chain_descend ρF b B0) B0) native_nat_zero
+            (chain_dt
+              (chain_descend ρF b B0 ++
+                [(b, chain_dt (chain_descend ρF b B0) B0)]) B0) B0 ≠
+            SmtValue.NotValue := by
+        rw [chain_dt_append_one]
+        simpa [__smtx_type_default_rec] using hOld
+      have h := defpres_dt B0
+        (chain_descend ρF b B0 ++ [(b, chain_dt (chain_descend ρF b B0) B0)])
+        (chain_descend ρN b B0 ++ [(b, chain_dt (chain_descend ρN b B0) B0)])
+        (chain_descend ρG b B0)
+        b (chain_dt (chain_descend ρF b B0) B0) native_nat_zero
+        b (chain_dt (chain_descend ρN b B0) B0) native_nat_zero
+        hOld'
+      rw [chain_dt_append_one] at h
+      simpa [__smtx_type_default_rec] using h
+
+private theorem defpres_dtc :
+    ∀ (cU : SmtDatatypeCons) (ρF ρN ρG : SubstChain) (v v' : SmtValue),
+      v' ≠ SmtValue.NotValue →
+      __smtx_datatype_cons_default v (chain_dtc ρF cU) cU ≠
+        SmtValue.NotValue →
+      __smtx_datatype_cons_default v' (chain_dtc ρN cU) (chain_dtc ρG cU) ≠
+        SmtValue.NotValue
+  | SmtDatatypeCons.unit, ρF, ρN, ρG, v, v', hv', hOld => by
+      rw [chain_dtc_unit, chain_dtc_unit]
+      simpa [__smtx_datatype_cons_default] using hv'
+  | SmtDatatypeCons.cons TU cU, ρF, ρN, ρG, v, v', hv', hOld => by
+      rw [chain_dtc_cons] at hOld
+      rw [chain_dtc_cons, chain_dtc_cons]
+      have hParts :
+          native_veq (__smtx_type_default_rec (chain_ty ρF TU) TU)
+              SmtValue.NotValue = false ∧
+            __smtx_datatype_cons_default
+              (SmtValue.Apply v (__smtx_type_default_rec (chain_ty ρF TU) TU))
+              (chain_dtc ρF cU) cU ≠ SmtValue.NotValue := by
+        by_cases hveq :
+            native_veq (__smtx_type_default_rec (chain_ty ρF TU) TU)
+              SmtValue.NotValue = true
+        · rw [__smtx_datatype_cons_default, native_ite, if_pos hveq] at hOld
+          exact absurd rfl hOld
+        · have hveq' :
+              native_veq (__smtx_type_default_rec (chain_ty ρF TU) TU)
+                SmtValue.NotValue = false := by
+            cases h : native_veq (__smtx_type_default_rec (chain_ty ρF TU) TU)
+                SmtValue.NotValue <;> simp_all
+          rw [__smtx_datatype_cons_default, native_ite, if_neg hveq] at hOld
+          exact ⟨hveq', hOld⟩
+      have hHeadOld :
+          __smtx_type_default_rec (chain_ty ρF TU) TU ≠ SmtValue.NotValue := by
+        intro hEq
+        rw [hEq] at hParts
+        simp [native_veq] at hParts
+      have hHeadNew :=
+        defpres_ty TU ρF ρN ρG hHeadOld
+      have hHeadNewVeq :
+          native_veq
+            (__smtx_type_default_rec (chain_ty ρN TU) (chain_ty ρG TU))
+            SmtValue.NotValue = false := by
+        cases h : native_veq
+            (__smtx_type_default_rec (chain_ty ρN TU) (chain_ty ρG TU))
+            SmtValue.NotValue
+        · rfl
+        · exact absurd (by simpa [native_veq] using h) hHeadNew
+      rw [__smtx_datatype_cons_default, native_ite,
+        if_neg (by simp [hHeadNewVeq])]
+      exact defpres_dtc cU ρF ρN ρG
+        (SmtValue.Apply v (__smtx_type_default_rec (chain_ty ρF TU) TU))
+        (SmtValue.Apply v'
+          (__smtx_type_default_rec (chain_ty ρN TU) (chain_ty ρG TU)))
+        (fun h => by cases h) hParts.2
+
+private theorem defpres_dt :
+    ∀ (DU : SmtDatatype) (ρF ρN ρG : SubstChain)
+      (s : native_String) (d : SmtDatatype) (n : native_Nat)
+      (s' : native_String) (d' : SmtDatatype) (n' : native_Nat),
+      __smtx_datatype_default s d n (chain_dt ρF DU) DU ≠ SmtValue.NotValue →
+      __smtx_datatype_default s' d' n' (chain_dt ρN DU) (chain_dt ρG DU) ≠
+        SmtValue.NotValue
+  | SmtDatatype.null, ρF, ρN, ρG, s, d, n, s', d', n', hOld => by
+      rw [chain_dt_null] at hOld
+      simp [__smtx_datatype_default] at hOld
+  | SmtDatatype.sum cU DU, ρF, ρN, ρG, s, d, n, s', d', n', hOld => by
+      rw [chain_dt_sum] at hOld
+      rw [chain_dt_sum, chain_dt_sum]
+      by_cases hNewHead :
+          __smtx_datatype_cons_default (SmtValue.DtCons s' d' n')
+            (chain_dtc ρN cU) (chain_dtc ρG cU) = SmtValue.NotValue
+      · -- the new head constructor is not defaultable: the old head cannot
+        -- have been defaultable either (else transport contradicts), so the
+        -- old walk succeeded in the tail; recurse there.
+        have hOldHead :
+            __smtx_datatype_cons_default (SmtValue.DtCons s d n)
+              (chain_dtc ρF cU) cU = SmtValue.NotValue := by
+          by_cases h :
+              __smtx_datatype_cons_default (SmtValue.DtCons s d n)
+                (chain_dtc ρF cU) cU = SmtValue.NotValue
+          · exact h
+          · exact absurd
+              (defpres_dtc cU ρF ρN ρG (SmtValue.DtCons s d n)
+                (SmtValue.DtCons s' d' n') (fun hh => by cases hh) h)
+              (by simpa using hNewHead)
+        have hOldTail :
+            __smtx_datatype_default s d (native_nat_succ n)
+              (chain_dt ρF DU) DU ≠ SmtValue.NotValue := by
+          rw [__smtx_datatype_default, native_ite,
+            if_neg (by simp [hOldHead, native_veq, native_not])] at hOld
+          exact hOld
+        have hNewTail :=
+          defpres_dt DU ρF ρN ρG s d (native_nat_succ n)
+            s' d' (native_nat_succ n') hOldTail
+        rw [__smtx_datatype_default, native_ite,
+          if_neg (by simp [hNewHead, native_veq, native_not])]
+        exact hNewTail
+      · -- the new head is defaultable: the walk returns it.
+        have hNewHeadVeq :
+            native_not
+              (native_veq
+                (__smtx_datatype_cons_default (SmtValue.DtCons s' d' n')
+                  (chain_dtc ρN cU) (chain_dtc ρG cU))
+                SmtValue.NotValue) = true := by
+          simp [native_veq, native_not, hNewHead]
+        rw [__smtx_datatype_default, native_ite, if_pos hNewHeadVeq]
+        exact hNewHead
+
+end
+
+/-- Chain images of inhabited datatypes are inhabited: the constructor
+selection witnessing the source's default avoids every reference spot, and
+chain substitutions only alter reference spots and datatype-node bodies. -/
+private theorem inhabited_chain_image
+    (t : native_String) (B : SmtDatatype) (ρ : SubstChain)
+    (hInh : native_inhabited_type (SmtType.Datatype t B) = true) :
+    native_inhabited_type (SmtType.Datatype t (chain_dt ρ B)) = true := by
+  have hOldNe :
+      __smtx_type_default (SmtType.Datatype t B) ≠ SmtValue.NotValue := by
+    intro hEq
+    have hTeq :
+        native_Teq
+          (__smtx_typeof_value (__smtx_type_default (SmtType.Datatype t B)))
+          (SmtType.Datatype t B) = true := by
+      simpa [native_inhabited_type, native_and, native_not, native_Teq]
+        using hInh
+    rw [hEq] at hTeq
+    simp [__smtx_typeof_value, native_Teq] at hTeq
+  have hOld :
+      __smtx_datatype_default t B native_nat_zero
+        (chain_dt [(t, B)] B) B ≠ SmtValue.NotValue := by
+    simpa [__smtx_type_default, __smtx_type_default_rec, chain_dt]
+      using hOldNe
+  have hNew := defpres_dt B [(t, B)] (ρ ++ [(t, chain_dt ρ B)]) ρ
+    t B native_nat_zero t (chain_dt ρ B) native_nat_zero hOld
+  rw [chain_dt_append_one] at hNew
+  have hNewNe :
+      __smtx_type_default (SmtType.Datatype t (chain_dt ρ B)) ≠
+        SmtValue.NotValue := by
+    simpa [__smtx_type_default, __smtx_type_default_rec] using hNew
+  rcases type_default_notvalue_or_typed (SmtType.Datatype t (chain_dt ρ B))
+    with h | h
+  · exact absurd h hNewNe
+  · simp [native_inhabited_type, native_and, native_not, native_Teq, h]
+
 /-! ## The chain invariant and the establishment walk -/
 
 /-- The pump invariant of a chain: its head entry `(t, P)` resolves through
