@@ -1940,7 +1940,17 @@ It then proceeds by induction on the structure of terms.
 
 \section{Specification}
 
-This second presents the
+This second presents the \emph{specification} layer of Logos.
+This layer introduces the terms used by the executable checker.
+We refer to these as \emph{Eunoia terms}, as they are compiled based
+on the input Eunoia signature.
+These are captured in the Lean datatype \term.
+Eunoia terms represent both checker-level terms and types uniformly.
+
+The key methods we define in this layer are
+to define a reduction from Eunoia term to SMT terms and types,
+and then to define a notion of satisfiability (\eosatisfiability) based on this reduction.
+We first will introduce the term embedding.
 
 \subsection{Eunoia Terms}
 
@@ -1958,6 +1968,7 @@ inductive UserOp : Type where
 
 /- User operators with 1,2,... indexed arguments -/
 inductive UserOp1 : Type where
+  | BitVec : UserOp
   | repeat : UserOp1
   | zero_extend : UserOp1
   ...
@@ -1968,6 +1979,7 @@ inductive UserOp2 : Type where
 
 inductive Term : Type where
   | Stuck : Term
+  | Apply : Term -> Term -> Term
   | UOp : UserOp -> Term
   | UOp1 : UserOp1 -> Term -> Term
   | UOp2 : UserOp2 -> Term -> Term -> Term
@@ -1983,8 +1995,6 @@ inductive Term : Type where
   | Rational : Rat -> Term
   | String : String -> Term
   | Binary : Int -> Int -> Term
-  | Apply : Term -> Term -> Term
-  | Var : Term -> Term -> Term
   | DatatypeType : String -> Datatype -> Term
   | DatatypeTypeRef : String -> Term
   | DtcAppType : Term -> Term -> Term
@@ -1992,6 +2002,7 @@ inductive Term : Type where
   | DtSel : String -> Datatype -> Nat -> Nat -> Term
   | USort : Nat -> Term
   | UConst : Nat -> Term -> Term
+  | Var : Term -> Term -> Term
 deriving Repr, DecidableEq, Inhabited, Ord
 
 /-- Syntactic equality for Eunoia terms --/
@@ -2002,8 +2013,106 @@ def teq : Term -> Term -> Bool
 \label{fig:eo-term}
 \end{figure}
 
+Figure~\ref{fig:eo-term}
+introduces our definition of Eunoia terms (\term).
+As mentioned, rules in our proof checker can be seen as
+methods taking a list of Eunoia terms and returning a Eunoia term (the conclusion),
+which is expected to be a term of type Bool.
+Since we use a single unified representation,
+proof rules can essentially be seen as \emph{untyped} manipulations over terms in this deep embedding.
+We now introduce the specifics of the term embedding.
 
-\begin{figure}[p]
+First, like the other datatypes introduced in this document,
+we have an error term, denoted \code{Stuck}.\footnote{
+We call the error term \code{Stuck} as this reflects the described operational
+semantics of Eunoia, where a proof rule that fails to execute may become "stuck".}
+The next constructor \code{Apply}
+denotes higher-order application,
+taking a term to apply and its argument.
+We use a curried style for applying terms, e.g. the application
+of a binary function \code{f} to arguments \code{a} and \code{b} is denoted
+\code{(Apply (Apply f a) b)}.
+
+The next constructors \code{UOp}, \code{UOp1}, \code{UOp2}, etc.
+denote all symbols introduced in the user-defined Eunoia signature.
+They are stratified based on the number of indexed arguments they have.\footnote{
+Some SMT-LIB operators are indexed, e.g. bitvector extract (SMT-LIB syntax \code{(_ extract n m)}.
+Indexed arguments are denoted by the \code{:opaque} attribute in Eunoia signatures.
+}
+
+First, ordinary operators (\code{UOp}) take as argument
+the enumeration type \code{UserOp}, which denotes the operator they are.
+This enumeration type includes all user operators that are not indexed by
+an argument.
+This includes both types (e.g. \code{Int}) and terms (e.g. \code{not}, \code{and}).
+
+Indexed arguments (\code{UOpN}) for \code{N = 1, 2, ... } are terms that take
+as argument the enumeration type \code{UserOpN} denoting the operator they are,
+as well as \code{N} term arguments.
+These term arguments are part of the argument to the \emph{constructor} \code{UOpN}.
+Note this means that indexed operators are thus considered "atomic"
+with respect to our applicative encoding of terms.
+For example, the SMT-LIB term \code{((_ extract 2 0) t)} is represented as:
+\begin{examplecode}
+(Apply (UOp2 UserOp2.extract (Numeral 2) (Numeral 0)) t)
+\end{examplecode}
+and not:
+\begin{examplecode}
+(Apply (Apply (Apply (UOp UserOp.extract) (Numeral 2)) (Numeral 0)) t)
+\end{examplecode}
+In other words, \code{(_ extract 2 0)} is intuitively an atomic term,
+and not an application of \code{extract} to two integers.
+This has an important impact on what is possible to infer for certain proof rules.
+For instance, a generic congruence rule \emph{cannot} be used to
+infer that e.g. \code{((_ extract 2 0) t)} is equivalent to \code{((_ extract x 0) t)}
+if \code{x = 2}.
+Essentially, indexed arguments allow us to consider
+their indices to be opaque from outside reasoning.
+
+The remaining operators define the builtin operators of Eunoia.
+First, Eunoia has a builtin notion of lists
+with constructors \code{eo_List_cons} and \code{eo_List_nil}.
+The list type is the constructor \code{eo_List}.
+The next set of operators denote the other builtin types
+of Eunoia including Booleans (\code{Bool}),
+the arrow type (\code{FunType}), and
+the type of types (\code{Type}).
+The next four constructors denote the SMT-LIB literal categories
+supported by Eunoia.
+Note that these constructors carry native Lean types
+that denote their values, similar to our definition of SMT-LIB terms and values.
+
+The next 5 constructors are used for representing
+user-defined SMT-LIB datatypes. Eunoia inherits
+the notion of SMT-LIB datatypes. These constructors
+mirror the definitions of SMT-LIB datatype types
+and terms, as described in the previous section.
+In particular note that we have a similar definition of recursive types
+(\code{Datatype}), as well as type references,
+and types for (partially applied) constructor terms (\code{DtcAppType}).
+Datatype constructor and selector terms are given by \code{DtCons} and \code{DtSel}.
+It is important to note that each of the arguments of these 5 constructors
+are arguments to the constructors.
+In other words, they are indices of the terms.
+This is important since the semantics of matching on Eunoia terms
+does \emph{not} have access to the internals of their definitions 
+(e.g. matching on a generic apply term in Eunoia cannot decompose the arguments of a user-defined datatype constructor).
+This accurately reflects the operational semantics of Eunoia.
+
+The next constructor \code{USort} corresponds to user-defined uninterpreted sorts.
+The constructor \code{UConst} corresponds to user-defined constants.
+This takes as argument an identifier (given by a natural number) and a term
+(denoting the type of the constant).
+Notice this mirrors our definition of SMT-LIB constants (\code{SmtTerm.UConst}).
+The final constructor \code{Var} denotes a Eunoia variable.
+Variables in Eunoia are first-class objects taking their name (intended to be a string literal)
+and their type.
+Based on the operational semantics of Eunoia, these are indexed arguments,
+i.e. variables are considered atomic terms indexed by their name and type.
+
+\subsection{Translation from Eunoia term to SMT terms}
+
+\begin{figure}
 \begin{lstlisting}
 def eo_to_smt_type : Term -> SmtType
   | Term.Bool => SmtType.Bool
