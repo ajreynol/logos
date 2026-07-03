@@ -25551,6 +25551,210 @@ private def str_re_consume_rec_unrev_model_rel_motive
           (consume_unrev_pair_local (__str_membership_str side)
             (__str_membership_re side))))
 
+private theorem term_ne_stuck_of_eval_reglan_consume_local
+    (M : SmtModel) (t : Term) (v : native_RegLan)
+    (h : __smtx_model_eval M (__eo_to_smt t) = SmtValue.RegLan v) :
+    t ≠ Term.Stuck := by
+  intro hBad
+  subst t
+  rw [show __eo_to_smt Term.Stuck = SmtTerm.None from rfl] at h
+  simp [__smtx_model_eval] at h
+
+private theorem rev_map_rev_not_chain_stuck_consume_local
+    (t acc : Term)
+    (hNotEps :
+      t = Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []) ->
+        False)
+    (hNotConcat :
+      ∀ a b,
+        t = Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a) b ->
+          False) :
+    __re_rev_map_rev t acc = Term.Stuck := by
+  by_cases hAcc : acc = Term.Stuck
+  · rw [hAcc]
+    exact __re_rev_map_rev.eq_1 t
+  · exact __re_rev_map_rev.eq_4 t acc hNotEps hNotConcat hAcc
+
+/--
+Accumulator factorization for `__re_rev_map_rev`: if the reversal of a
+chain `t` onto some accumulator evaluates to a `RegLan` value, then
+(a) the accumulator itself evaluates to a `RegLan` value and (b) there
+is a fixed "reversed chunks" language `C` such that for EVERY
+accumulator the reversal evaluates and its value is extensionally
+`C · accV`.  This is the keystone that lets the unrev motive
+inductions recurse: `__re_rev_map_rev (concat h r2) acc` changes the
+accumulator (`eq_3`), so the fixed-at-eps unrev hypotheses of the
+motives only line up after factoring the accumulator out.
+Instantiating the transport at `acc2 := eps` recovers the eps-instance
+(with `C · ε ~ C`).
+-/
+private theorem eval_rev_map_rev_acc_factor_consume_local
+    (M : SmtModel) :
+    ∀ t acc v,
+      __smtx_model_eval M (__eo_to_smt (__re_rev_map_rev t acc)) =
+        SmtValue.RegLan v ->
+      (∃ accV,
+        __smtx_model_eval M (__eo_to_smt acc) = SmtValue.RegLan accV) ∧
+      ∃ C : native_RegLan,
+        ∀ acc2 accV2,
+          __smtx_model_eval M (__eo_to_smt acc2) =
+            SmtValue.RegLan accV2 ->
+          ∃ v2,
+            __smtx_model_eval M
+                (__eo_to_smt (__re_rev_map_rev t acc2)) =
+              SmtValue.RegLan v2 ∧
+            RuleProofs.smt_value_rel (SmtValue.RegLan v2)
+              (SmtValue.RegLan (native_re_concat C accV2)) := by
+  suffices hMain :
+      ∀ n t, sizeOf t ≤ n ->
+        ∀ acc v,
+          __smtx_model_eval M (__eo_to_smt (__re_rev_map_rev t acc)) =
+            SmtValue.RegLan v ->
+          (∃ accV,
+            __smtx_model_eval M (__eo_to_smt acc) =
+              SmtValue.RegLan accV) ∧
+          ∃ C : native_RegLan,
+            ∀ acc2 accV2,
+              __smtx_model_eval M (__eo_to_smt acc2) =
+                SmtValue.RegLan accV2 ->
+              ∃ v2,
+                __smtx_model_eval M
+                    (__eo_to_smt (__re_rev_map_rev t acc2)) =
+                  SmtValue.RegLan v2 ∧
+                RuleProofs.smt_value_rel (SmtValue.RegLan v2)
+                  (SmtValue.RegLan (native_re_concat C accV2)) by
+    intro t acc v hV
+    exact hMain (sizeOf t) t (Nat.le_refl _) acc v hV
+  intro n
+  induction n with
+  | zero =>
+      intro t ht
+      exfalso
+      cases t <;> simp at ht <;> omega
+  | succ n ihn =>
+      intro t hSize acc v hV
+      by_cases hEps :
+          t = Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
+      · subst hEps
+        have hAccNe : acc ≠ Term.Stuck := by
+          intro hBad
+          exact term_ne_stuck_of_eval_reglan_consume_local M _ v hV (by
+            rw [hBad]
+            exact __re_rev_map_rev.eq_1 _)
+        rw [__re_rev_map_rev.eq_2 acc (fun h => hAccNe h)] at hV
+        refine ⟨⟨v, hV⟩, native_str_to_re [], ?_⟩
+        intro acc2 accV2 h2
+        have hAcc2Ne :=
+          term_ne_stuck_of_eval_reglan_consume_local M _ _ h2
+        refine ⟨accV2, ?_, ?_⟩
+        · rw [__re_rev_map_rev.eq_2 acc2 (fun h => hAcc2Ne h)]
+          exact h2
+        · rw [show native_re_concat (native_str_to_re []) accV2 = accV2
+            from by cases accV2 <;> rfl]
+          exact RuleProofs.smt_value_rel_refl _
+      · by_cases hStuck :
+            __re_rev_map_rev t acc = Term.Stuck
+        · exfalso
+          exact term_ne_stuck_of_eval_reglan_consume_local M _ v hV
+            hStuck
+        · have hConcat :
+              ∃ a bb,
+                t =
+                  Term.Apply
+                    (Term.Apply (Term.UOp UserOp.re_concat) a) bb := by
+            rcases Classical.em (∃ a bb,
+                t =
+                  Term.Apply
+                    (Term.Apply (Term.UOp UserOp.re_concat) a) bb) with
+              h | h
+            · exact h
+            · exact absurd
+                (rev_map_rev_not_chain_stuck_consume_local _ acc
+                  (fun hh => hEps hh)
+                  (fun a bb hh => h ⟨a, bb, hh⟩))
+                hStuck
+          rcases hConcat with ⟨a, bb, rfl⟩
+          have hAccNe : acc ≠ Term.Stuck := by
+            intro hBad
+            apply hStuck
+            rw [hBad]
+            exact __re_rev_map_rev.eq_1 _
+          rw [__re_rev_map_rev.eq_3 acc a bb (fun h => hAccNe h)] at hV
+          rcases ihn bb (by
+              simp at hSize
+              omega) _ _ hV with ⟨⟨newAccV, hNewAccEval⟩, Cb, hTrans⟩
+          have hNewAccNe :=
+            term_ne_stuck_of_eval_reglan_consume_local M _ _ hNewAccEval
+          have hInnerNe :
+              __eo_mk_apply (Term.UOp UserOp.re_concat)
+                  (__re_rev_comp a) ≠ Term.Stuck :=
+            eo_mk_apply_fun_ne_stuck_of_ne_stuck _ _ hNewAccNe
+          have hRcNe : __re_rev_comp a ≠ Term.Stuck :=
+            eo_mk_apply_arg_ne_stuck_of_ne_stuck _ _ hInnerNe
+          have hNewAccEq :
+              __eo_mk_apply
+                  (__eo_mk_apply (Term.UOp UserOp.re_concat)
+                    (__re_rev_comp a)) acc =
+                Term.Apply
+                  (Term.Apply (Term.UOp UserOp.re_concat)
+                    (__re_rev_comp a)) acc := by
+            rw [eo_mk_apply_eq_apply_of_args_local
+              (Term.UOp UserOp.re_concat) (__re_rev_comp a)
+              (by simp) hRcNe]
+            exact eo_mk_apply_eq_apply_of_args_local _ acc (by simp)
+              hAccNe
+          rw [hNewAccEq] at hNewAccEval
+          have hNewAccEval' :
+              __smtx_model_eval M
+                  (SmtTerm.re_concat
+                    (__eo_to_smt (__re_rev_comp a))
+                    (__eo_to_smt acc)) =
+                SmtValue.RegLan newAccV := hNewAccEval
+          cases hRcEval :
+              __smtx_model_eval M (__eo_to_smt (__re_rev_comp a)) <;>
+            cases hAccEval : __smtx_model_eval M (__eo_to_smt acc) <;>
+            simp [__smtx_model_eval, __smtx_model_eval_re_concat,
+              hRcEval, hAccEval] at hNewAccEval'
+          next rcAV accV =>
+            refine ⟨⟨accV, rfl⟩, native_re_concat Cb rcAV, ?_⟩
+            intro acc2 accV2 h2
+            have hAcc2Ne :=
+              term_ne_stuck_of_eval_reglan_consume_local M _ _ h2
+            have hNewAcc2Eq :
+                __eo_mk_apply
+                    (__eo_mk_apply (Term.UOp UserOp.re_concat)
+                      (__re_rev_comp a)) acc2 =
+                  Term.Apply
+                    (Term.Apply (Term.UOp UserOp.re_concat)
+                      (__re_rev_comp a)) acc2 := by
+              rw [eo_mk_apply_eq_apply_of_args_local
+                (Term.UOp UserOp.re_concat) (__re_rev_comp a)
+                (by simp) hRcNe]
+              exact eo_mk_apply_eq_apply_of_args_local _ acc2 (by simp)
+                hAcc2Ne
+            have hNewAcc2Eval :
+                __smtx_model_eval M
+                    (__eo_to_smt
+                      (__eo_mk_apply
+                        (__eo_mk_apply (Term.UOp UserOp.re_concat)
+                          (__re_rev_comp a)) acc2)) =
+                  SmtValue.RegLan (native_re_concat rcAV accV2) := by
+              rw [hNewAcc2Eq]
+              change __smtx_model_eval M
+                  (SmtTerm.re_concat
+                    (__eo_to_smt (__re_rev_comp a))
+                    (__eo_to_smt acc2)) = _
+              simp [__smtx_model_eval, __smtx_model_eval_re_concat,
+                hRcEval, h2]
+            rcases hTrans _ _ hNewAcc2Eval with ⟨v2, hV2, hRel2⟩
+            refine ⟨v2, ?_, ?_⟩
+            · rw [__re_rev_map_rev.eq_3 acc2 a bb (fun h => hAcc2Ne h)]
+              exact hV2
+            · exact RuleProofs.smt_value_rel_trans _ _ _ hRel2
+                (RuleProofs.smt_value_rel_symm _ _
+                  (smt_value_rel_re_concat_assoc_consume_local Cb rcAV
+                    accV2))
+
 /-
 The three unrev motives, to be proven by `__str_re_consume_rec.induct`
 with companion `union`/`inter` motives, mirroring the proofs of
@@ -26864,15 +27068,6 @@ private theorem eo_eq_eq_of_ne_stuck_consume_local
   · exact absurd rfl hx
   · exact absurd rfl hy
   · rfl
-
-private theorem term_ne_stuck_of_eval_reglan_consume_local
-    (M : SmtModel) (t : Term) (v : native_RegLan)
-    (h : __smtx_model_eval M (__eo_to_smt t) = SmtValue.RegLan v) :
-    t ≠ Term.Stuck := by
-  intro hBad
-  subst t
-  rw [show __eo_to_smt Term.Stuck = SmtTerm.None from rfl] at h
-  simp [__smtx_model_eval] at h
 
 theorem str_re_consume_model_rel
     (M : SmtModel) (hM : model_total_typed M)
