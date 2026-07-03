@@ -289,6 +289,102 @@ private theorem smt_select_non_none_of_eo_typeof_select_ne_stuck
     simp [TranslationProofs.eo_to_smt_type_array, __smtx_typeof_select,
       __smtx_typeof_guard, native_ite, native_Teq, hYTySmt, hESmt] at hXTyNN ⊢
 
+private theorem eo_typeof_array_deq_diff_arg_types_of_ne_stuck
+    {A B : Term}
+    (h : __eo_typeof__at_array_deq_diff A B ≠ Term.Stuck) :
+    ∃ I E, A = Term.Apply (Term.Apply (Term.UOp UserOp.Array) I) E ∧
+      B = Term.Apply (Term.Apply (Term.UOp UserOp.Array) I) E := by
+  cases A <;> cases B <;>
+    simp [__eo_typeof__at_array_deq_diff] at h ⊢
+  case Apply.Apply f E g F =>
+    cases f <;> cases g <;>
+      simp [__eo_typeof__at_array_deq_diff] at h ⊢
+    case Apply.Apply f I g J =>
+      cases f <;> cases g <;>
+        simp [__eo_typeof__at_array_deq_diff] at h ⊢
+      case UOp.UOp opA opB =>
+        cases opA <;> cases opB <;>
+          simp [__eo_typeof__at_array_deq_diff] at h ⊢
+        have hReq :
+            __eo_requires (__eo_and (__eo_eq I J) (__eo_eq E F))
+                (Term.Boolean true) I ≠
+              Term.Stuck := by
+          simpa [__eo_typeof__at_array_deq_diff] using h
+        have hAnd :
+            __eo_and (__eo_eq I J) (__eo_eq E F) = Term.Boolean true :=
+          support_eo_requires_cond_eq_of_non_stuck hReq
+        have hI : J = I :=
+          support_eq_of_eo_eq_true I J
+            (eo_and_eq_true_cases hAnd).1
+        have hE : F = E :=
+          support_eq_of_eo_eq_true E F
+            (eo_and_eq_true_cases hAnd).2
+        exact ⟨hI.symm, hE.symm⟩
+
+private theorem eo_typeof_array_deq_diff_args_not_stuck_of_ne_stuck
+    {A B : Term}
+    (h : __eo_typeof__at_array_deq_diff A B ≠ Term.Stuck) :
+    A ≠ Term.Stuck ∧ B ≠ Term.Stuck := by
+  rcases eo_typeof_array_deq_diff_arg_types_of_ne_stuck h with
+    ⟨I, E, hA, hB⟩
+  constructor
+  · intro hStuck
+    rw [hA] at hStuck
+    cases hStuck
+  · intro hStuck
+    rw [hB] at hStuck
+    cases hStuck
+
+private theorem smt_array_deq_diff_non_none_of_eo_typeof_ne_stuck
+    (X Y : Term)
+    (hXTrans : RuleProofs.eo_has_smt_translation X)
+    (hYTrans : RuleProofs.eo_has_smt_translation Y)
+    (hApp :
+      __eo_typeof__at_array_deq_diff (__eo_typeof X) (__eo_typeof Y) ≠
+        Term.Stuck) :
+    __smtx_typeof
+        (__eo_to_smt_array_deq_diff (__eo_to_smt X)
+          (__smtx_typeof (__eo_to_smt X)) (__eo_to_smt Y)
+          (__smtx_typeof (__eo_to_smt Y))) ≠ SmtType.None := by
+  rcases eo_typeof_array_deq_diff_arg_types_of_ne_stuck hApp with
+    ⟨I, E, hXTy, hYTy⟩
+  have hXSmt :
+      __smtx_typeof (__eo_to_smt X) =
+        __eo_to_smt_type (Term.Apply (Term.Apply (Term.UOp UserOp.Array) I) E) := by
+    have hMatch :=
+      TranslationProofs.eo_to_smt_typeof_matches_translation X hXTrans
+    rw [hXTy] at hMatch
+    exact hMatch
+  have hYSmt :
+      __smtx_typeof (__eo_to_smt Y) =
+        __eo_to_smt_type (Term.Apply (Term.Apply (Term.UOp UserOp.Array) I) E) := by
+    have hMatch :=
+      TranslationProofs.eo_to_smt_typeof_matches_translation Y hYTrans
+    rw [hYTy] at hMatch
+    exact hMatch
+  have hArrayNN :
+      __eo_to_smt_type (Term.Apply (Term.Apply (Term.UOp UserOp.Array) I) E) ≠
+        SmtType.None := by
+    simpa [hXTy] using
+      eo_to_smt_typeof_ne_none_of_has_smt_translation X hXTrans
+  have hArraySmt :
+      __eo_to_smt_type (Term.Apply (Term.Apply (Term.UOp UserOp.Array) I) E) =
+        SmtType.Map (__eo_to_smt_type I) (__eo_to_smt_type E) := by
+    cases hISmt : __eo_to_smt_type I <;>
+      cases hESmt : __eo_to_smt_type E <;>
+      simp [TranslationProofs.eo_to_smt_type_array, __smtx_typeof_guard,
+        native_ite, native_and, native_Teq, hISmt, hESmt] at hArrayNN ⊢
+  rw [hXSmt, hYSmt, hArraySmt]
+  change
+    __smtx_typeof (SmtTerm.map_diff (__eo_to_smt X) (__eo_to_smt Y)) ≠
+      SmtType.None
+  rw [typeof_map_diff_eq, hXSmt, hYSmt, hArraySmt]
+  cases hISmt : __eo_to_smt_type I <;>
+    cases hESmt : __eo_to_smt_type E <;>
+    simp [TranslationProofs.eo_to_smt_type_array, __smtx_typeof_map_diff,
+      __smtx_typeof_guard, native_ite, native_and, native_Teq, hISmt, hESmt]
+      at hArrayNN ⊢
+
 private theorem eo_typeof_str_concat_arg_types_of_ne_stuck
     {A B : Term}
     (h : __eo_typeof_str_concat A B ≠ Term.Stuck) :
@@ -337,6 +433,22 @@ private theorem smt_seq_binop_non_none_of_eo_seq_type_non_none
     simp [TranslationProofs.eo_to_smt_type_seq, __smtx_typeof_seq_op_2,
       __smtx_typeof_guard, native_ite, native_Teq, hSmtT] at hT ⊢
 
+private theorem smt_seq_binop_ret_non_none_of_eo_seq_type_non_none
+    {T : Term} {ret : SmtType}
+    (hT :
+      __eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) T) ≠
+        SmtType.None)
+    (hRet : ret ≠ SmtType.None) :
+    __smtx_typeof_seq_op_2_ret
+        (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) T))
+        (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) T)) ret ≠
+      SmtType.None := by
+  cases hSmtT : __eo_to_smt_type T <;>
+    simp [TranslationProofs.eo_to_smt_type_seq, __smtx_typeof_seq_op_2_ret,
+      __smtx_typeof_guard, native_ite, native_Teq, hSmtT] at hT ⊢
+  all_goals
+    exact hRet
+
 private theorem smt_str_concat_non_none_of_eo_typeof_str_concat_ne_stuck
     (X Y : Term)
     (hXTrans : RuleProofs.eo_has_smt_translation X)
@@ -360,6 +472,887 @@ private theorem smt_str_concat_non_none_of_eo_typeof_str_concat_ne_stuck
       eo_to_smt_typeof_ne_none_of_has_smt_translation X hXTrans
   rw [typeof_str_concat_eq, hXSmt, hYSmt, hXTy, hYTy]
   exact smt_seq_binop_non_none_of_eo_seq_type_non_none hXTyNN
+
+private theorem eo_typeof_str_contains_arg_types_of_ne_stuck
+    {A B : Term}
+    (h : __eo_typeof_str_contains A B ≠ Term.Stuck) :
+    ∃ T,
+      A = Term.Apply (Term.UOp UserOp.Seq) T ∧
+        B = Term.Apply (Term.UOp UserOp.Seq) T := by
+  cases A <;> cases B <;> simp [__eo_typeof_str_contains] at h ⊢
+  case Apply.Apply f n g m =>
+    cases f <;> cases g <;> simp [__eo_typeof_str_contains] at h ⊢
+    case UOp.UOp opA opB =>
+      cases opA <;> cases opB <;> simp [__eo_typeof_str_contains] at h ⊢
+      have hReq :
+          __eo_requires (__eo_eq n m) (Term.Boolean true) Term.Bool ≠
+            Term.Stuck := by
+        simpa [__eo_typeof_str_contains] using h
+      have hm : m = n :=
+        support_eq_of_eo_eq_true n m
+          (support_eo_requires_cond_eq_of_non_stuck hReq)
+      exact hm.symm
+
+private theorem eo_typeof_str_contains_args_not_stuck_of_ne_stuck
+    {A B : Term}
+    (h : __eo_typeof_str_contains A B ≠ Term.Stuck) :
+    A ≠ Term.Stuck ∧ B ≠ Term.Stuck := by
+  rcases eo_typeof_str_contains_arg_types_of_ne_stuck h with
+    ⟨T, hA, hB⟩
+  constructor
+  · intro hStuck
+    rw [hA] at hStuck
+    cases hStuck
+  · intro hStuck
+    rw [hB] at hStuck
+    cases hStuck
+
+private theorem smt_str_contains_non_none_of_eo_typeof_str_contains_ne_stuck
+    (X Y : Term)
+    (hXTrans : RuleProofs.eo_has_smt_translation X)
+    (hYTrans : RuleProofs.eo_has_smt_translation Y)
+    (hApp :
+      __eo_typeof_str_contains (__eo_typeof X) (__eo_typeof Y) ≠
+        Term.Stuck) :
+    __smtx_typeof
+        (SmtTerm.str_contains (__eo_to_smt X) (__eo_to_smt Y)) ≠
+      SmtType.None := by
+  have hXSmt :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation X hXTrans
+  have hYSmt :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation Y hYTrans
+  rcases eo_typeof_str_contains_arg_types_of_ne_stuck hApp with
+    ⟨T, hXTy, hYTy⟩
+  have hXTyNN :
+      __eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) T) ≠
+        SmtType.None := by
+    simpa [hXTy] using
+      eo_to_smt_typeof_ne_none_of_has_smt_translation X hXTrans
+  rw [typeof_str_contains_eq, hXSmt, hYSmt, hXTy, hYTy]
+  exact
+    smt_seq_binop_ret_non_none_of_eo_seq_type_non_none hXTyNN
+      (by simp)
+
+private theorem eo_typeof_str_at_arg_types_of_ne_stuck
+    {A B : Term}
+    (h : __eo_typeof_str_at A B ≠ Term.Stuck) :
+    ∃ T, A = Term.Apply (Term.UOp UserOp.Seq) T ∧
+      B = Term.UOp UserOp.Int := by
+  cases A <;> cases B <;> simp [__eo_typeof_str_at] at h ⊢
+  case Apply.UOp f n op =>
+    cases f <;> simp [__eo_typeof_str_at] at h ⊢
+    case UOp opF =>
+      cases opF <;> cases op <;> simp [__eo_typeof_str_at] at h ⊢
+
+private theorem eo_typeof_str_at_args_not_stuck_of_ne_stuck
+    {A B : Term}
+    (h : __eo_typeof_str_at A B ≠ Term.Stuck) :
+    A ≠ Term.Stuck ∧ B ≠ Term.Stuck := by
+  rcases eo_typeof_str_at_arg_types_of_ne_stuck h with
+    ⟨T, hA, hB⟩
+  constructor
+  · intro hStuck
+    rw [hA] at hStuck
+    cases hStuck
+  · intro hStuck
+    rw [hB] at hStuck
+    cases hStuck
+
+private theorem smt_str_at_non_none_of_eo_seq_type_non_none
+    {T : Term}
+    (hT :
+      __eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) T) ≠
+        SmtType.None) :
+    __smtx_typeof_str_at
+        (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) T))
+        SmtType.Int ≠
+      SmtType.None := by
+  cases hSmtT : __eo_to_smt_type T <;>
+    simp [TranslationProofs.eo_to_smt_type_seq, __smtx_typeof_str_at,
+      __smtx_typeof_guard, native_ite, native_Teq, hSmtT] at hT ⊢
+
+private theorem smt_str_at_non_none_of_eo_typeof_str_at_ne_stuck
+    (X Y : Term)
+    (hXTrans : RuleProofs.eo_has_smt_translation X)
+    (hYTrans : RuleProofs.eo_has_smt_translation Y)
+    (hApp :
+      __eo_typeof_str_at (__eo_typeof X) (__eo_typeof Y) ≠
+        Term.Stuck) :
+    __smtx_typeof
+        (SmtTerm.str_at (__eo_to_smt X) (__eo_to_smt Y)) ≠
+      SmtType.None := by
+  have hXSmt :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation X hXTrans
+  have hYSmt :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation Y hYTrans
+  rcases eo_typeof_str_at_arg_types_of_ne_stuck hApp with
+    ⟨T, hXTy, hYTy⟩
+  have hXTyNN :
+      __eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) T) ≠
+        SmtType.None := by
+    simpa [hXTy] using
+      eo_to_smt_typeof_ne_none_of_has_smt_translation X hXTrans
+  rw [typeof_str_at_eq, hXSmt, hYSmt, hXTy, hYTy]
+  exact smt_str_at_non_none_of_eo_seq_type_non_none hXTyNN
+
+private theorem eo_typeof_seq_nth_arg_types_of_ne_stuck
+    {A B : Term}
+    (h : __eo_typeof_seq_nth A B ≠ Term.Stuck) :
+    ∃ T, A = Term.Apply (Term.UOp UserOp.Seq) T ∧
+      B = Term.UOp UserOp.Int := by
+  cases A <;> cases B <;> simp [__eo_typeof_seq_nth] at h ⊢
+  case Apply.UOp f n op =>
+    cases f <;> simp [__eo_typeof_seq_nth] at h ⊢
+    case UOp opF =>
+      cases opF <;> cases op <;> simp [__eo_typeof_seq_nth] at h ⊢
+
+private theorem eo_typeof_seq_nth_args_not_stuck_of_ne_stuck
+    {A B : Term}
+    (h : __eo_typeof_seq_nth A B ≠ Term.Stuck) :
+    A ≠ Term.Stuck ∧ B ≠ Term.Stuck := by
+  rcases eo_typeof_seq_nth_arg_types_of_ne_stuck h with
+    ⟨T, hA, hB⟩
+  constructor
+  · intro hStuck
+    rw [hA] at hStuck
+    cases hStuck
+  · intro hStuck
+    rw [hB] at hStuck
+    cases hStuck
+
+private theorem smt_seq_nth_non_none_of_eo_typeof_seq_nth_ne_stuck
+    (X Y : Term)
+    (hXTrans : RuleProofs.eo_has_smt_translation X)
+    (hYTrans : RuleProofs.eo_has_smt_translation Y)
+    (hApp :
+      __eo_typeof_seq_nth (__eo_typeof X) (__eo_typeof Y) ≠
+        Term.Stuck) :
+    __smtx_typeof
+        (SmtTerm.seq_nth (__eo_to_smt X) (__eo_to_smt Y)) ≠
+      SmtType.None := by
+  have hXSmt :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation X hXTrans
+  have hYSmt :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation Y hYTrans
+  rcases eo_typeof_seq_nth_arg_types_of_ne_stuck hApp with
+    ⟨T, hXTy, hYTy⟩
+  have hSeqNN :
+      __smtx_typeof_guard (__eo_to_smt_type T)
+          (SmtType.Seq (__eo_to_smt_type T)) ≠
+        SmtType.None := by
+    have hXTyNN :
+        __eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) T) ≠
+          SmtType.None := by
+      simpa [hXTy] using
+        eo_to_smt_typeof_ne_none_of_has_smt_translation X hXTrans
+    simpa [TranslationProofs.eo_to_smt_type_seq] using hXTyNN
+  have hElemNN : __eo_to_smt_type T ≠ SmtType.None := by
+    intro hNone
+    rw [hNone] at hSeqNN
+    simp [__smtx_typeof_guard, native_ite, native_Teq] at hSeqNN
+  have hSeqGuard :
+      __smtx_typeof_guard (__eo_to_smt_type T)
+          (SmtType.Seq (__eo_to_smt_type T)) =
+        SmtType.Seq (__eo_to_smt_type T) :=
+    TranslationProofs.smtx_typeof_guard_of_non_none _ _ hElemNN
+  have hXSeqTy :
+      __smtx_typeof (__eo_to_smt X) =
+        SmtType.Seq (__eo_to_smt_type T) := by
+    rw [hXSmt, hXTy, TranslationProofs.eo_to_smt_type_seq, hSeqGuard]
+  have hSeqWf :
+      __smtx_type_wf (SmtType.Seq (__eo_to_smt_type T)) = true :=
+    Smtm.smt_term_seq_type_wf_of_non_none
+      (__eo_to_smt X) hXTrans hXSeqTy
+  have hElemWf :
+      __smtx_type_wf (__eo_to_smt_type T) = true :=
+    seq_type_wf_component_of_wf hSeqWf
+  rw [typeof_seq_nth_eq, hXSeqTy, hYSmt, hYTy]
+  simp [__smtx_typeof_seq_nth, __smtx_typeof_guard_wf, hElemWf,
+    hElemNN, native_ite]
+
+private theorem eo_typeof_seq_unit_arg_not_stuck_of_ne_stuck
+    {A : Term}
+    (h : __eo_typeof_seq_unit A ≠ Term.Stuck) :
+    A ≠ Term.Stuck := by
+  cases A <;> simp [__eo_typeof_seq_unit] at h ⊢
+
+private theorem smt_seq_unit_non_none_of_has_smt_translation_type_eq
+    (A X : Term)
+    (hAppTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.UOp UserOp.seq_unit) A))
+    (hATrans : RuleProofs.eo_has_smt_translation A)
+    (hXTrans : RuleProofs.eo_has_smt_translation X)
+    (hXTyEq : __eo_typeof X = __eo_typeof A) :
+    __smtx_typeof (SmtTerm.seq_unit (__eo_to_smt X)) ≠ SmtType.None := by
+  have hOrig :
+      __smtx_typeof (SmtTerm.seq_unit (__eo_to_smt A)) ≠
+        SmtType.None := by
+    unfold RuleProofs.eo_has_smt_translation at hAppTrans
+    change
+      __smtx_typeof (SmtTerm.seq_unit (__eo_to_smt A)) ≠
+        SmtType.None at hAppTrans
+    exact hAppTrans
+  have hXMatch :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation X hXTrans
+  have hAMatch :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation A hATrans
+  have hSmtTy :
+      __smtx_typeof (__eo_to_smt X) =
+        __smtx_typeof (__eo_to_smt A) := by
+    rw [hXMatch, hAMatch, hXTyEq]
+  simpa [typeof_seq_unit_eq_closed, hSmtTy] using hOrig
+
+private theorem eo_typeof_set_singleton_arg_not_stuck_of_ne_stuck
+    {A : Term}
+    (h : __eo_typeof_set_singleton A ≠ Term.Stuck) :
+    A ≠ Term.Stuck := by
+  cases A <;> simp [__eo_typeof_set_singleton] at h ⊢
+
+private theorem smt_set_singleton_non_none_of_has_smt_translation_type_eq
+    (A X : Term)
+    (hAppTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.UOp UserOp.set_singleton) A))
+    (hATrans : RuleProofs.eo_has_smt_translation A)
+    (hXTrans : RuleProofs.eo_has_smt_translation X)
+    (hXTyEq : __eo_typeof X = __eo_typeof A) :
+    __smtx_typeof (SmtTerm.set_singleton (__eo_to_smt X)) ≠
+      SmtType.None := by
+  have hOrig :
+      __smtx_typeof (SmtTerm.set_singleton (__eo_to_smt A)) ≠
+        SmtType.None := by
+    unfold RuleProofs.eo_has_smt_translation at hAppTrans
+    change
+      __smtx_typeof (SmtTerm.set_singleton (__eo_to_smt A)) ≠
+        SmtType.None at hAppTrans
+    exact hAppTrans
+  have hXMatch :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation X hXTrans
+  have hAMatch :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation A hATrans
+  have hSmtTy :
+      __smtx_typeof (__eo_to_smt X) =
+        __smtx_typeof (__eo_to_smt A) := by
+    rw [hXMatch, hAMatch, hXTyEq]
+  simpa [typeof_set_singleton_eq_closed, hSmtTy] using hOrig
+
+private theorem eo_typeof_set_union_arg_types_of_ne_stuck
+    {A B : Term}
+    (h : __eo_typeof_set_union A B ≠ Term.Stuck) :
+    ∃ T, A = Term.Apply (Term.UOp UserOp.Set) T ∧
+      B = Term.Apply (Term.UOp UserOp.Set) T := by
+  cases A <;> cases B <;> simp [__eo_typeof_set_union] at h ⊢
+  case Apply.Apply f n g m =>
+    cases f <;> cases g <;> simp [__eo_typeof_set_union] at h ⊢
+    case UOp.UOp opA opB =>
+      cases opA <;> cases opB <;> simp [__eo_typeof_set_union] at h ⊢
+      have hReq :
+          __eo_requires (__eo_eq n m) (Term.Boolean true)
+              (Term.Apply (Term.UOp UserOp.Set) n) ≠
+            Term.Stuck := by
+        simpa [__eo_typeof_set_union] using h
+      have hm : m = n :=
+        support_eq_of_eo_eq_true n m
+          (support_eo_requires_cond_eq_of_non_stuck hReq)
+      exact hm.symm
+
+private theorem eo_typeof_set_union_args_not_stuck_of_ne_stuck
+    {A B : Term}
+    (h : __eo_typeof_set_union A B ≠ Term.Stuck) :
+    A ≠ Term.Stuck ∧ B ≠ Term.Stuck := by
+  rcases eo_typeof_set_union_arg_types_of_ne_stuck h with
+    ⟨T, hA, hB⟩
+  constructor
+  · intro hStuck
+    rw [hA] at hStuck
+    cases hStuck
+  · intro hStuck
+    rw [hB] at hStuck
+    cases hStuck
+
+private theorem smt_set_binop_non_none_of_eo_typeof_set_union_ne_stuck
+    (smtOp : SmtTerm -> SmtTerm -> SmtTerm)
+    (hSmtType :
+      ∀ X Y,
+        __smtx_typeof (smtOp X Y) =
+          __smtx_typeof_sets_op_2
+            (__smtx_typeof X) (__smtx_typeof Y))
+    (X Y : Term)
+    (hXTrans : RuleProofs.eo_has_smt_translation X)
+    (hYTrans : RuleProofs.eo_has_smt_translation Y)
+    (hApp :
+      __eo_typeof_set_union (__eo_typeof X) (__eo_typeof Y) ≠
+        Term.Stuck) :
+    __smtx_typeof (smtOp (__eo_to_smt X) (__eo_to_smt Y)) ≠
+      SmtType.None := by
+  rcases eo_typeof_set_union_arg_types_of_ne_stuck hApp with
+    ⟨T, hXTy, hYTy⟩
+  have hXSmt :=
+    smt_typeof_eo_to_smt_set_of_typeof_set hXTrans hXTy
+  have hYSmt :=
+    smt_typeof_eo_to_smt_set_of_typeof_set hYTrans hYTy
+  rw [hSmtType, hXSmt, hYSmt]
+  simp [__smtx_typeof_sets_op_2, native_ite, native_Teq]
+
+private theorem eo_typeof_set_member_arg_types_of_ne_stuck
+    {A B : Term}
+    (h : __eo_typeof_set_member A B ≠ Term.Stuck) :
+    ∃ T, A = T ∧ B = Term.Apply (Term.UOp UserOp.Set) T := by
+  by_cases hA : A = Term.Stuck
+  · subst A
+    simp [__eo_typeof_set_member] at h
+  · cases B <;> simp [__eo_typeof_set_member, hA] at h ⊢
+    rename_i f T
+    cases f <;> simp [__eo_typeof_set_member, hA] at h ⊢
+    rename_i op
+    cases op <;> simp [__eo_typeof_set_member, hA] at h ⊢
+    have hReq :
+        __eo_requires (__eo_eq A T) (Term.Boolean true) Term.Bool ≠
+          Term.Stuck := by
+      simpa [__eo_typeof_set_member, hA] using h
+    have hT : T = A :=
+      support_eq_of_eo_eq_true A T
+        (support_eo_requires_cond_eq_of_non_stuck hReq)
+    exact hT
+
+private theorem eo_typeof_set_member_args_not_stuck_of_ne_stuck
+    {A B : Term}
+    (h : __eo_typeof_set_member A B ≠ Term.Stuck) :
+    A ≠ Term.Stuck ∧ B ≠ Term.Stuck := by
+  by_cases hAStuck : A = Term.Stuck
+  · subst A
+    simp [__eo_typeof_set_member] at h
+  · rcases eo_typeof_set_member_arg_types_of_ne_stuck h with
+      ⟨T, hA, hB⟩
+    constructor
+    · exact hAStuck
+    · intro hStuck
+      rw [hB] at hStuck
+      cases hStuck
+
+private theorem smt_set_member_non_none_of_eo_typeof_set_member_ne_stuck
+    (X Y : Term)
+    (hXTrans : RuleProofs.eo_has_smt_translation X)
+    (hYTrans : RuleProofs.eo_has_smt_translation Y)
+    (hApp :
+      __eo_typeof_set_member (__eo_typeof X) (__eo_typeof Y) ≠
+        Term.Stuck) :
+    __smtx_typeof
+        (SmtTerm.set_member (__eo_to_smt X) (__eo_to_smt Y)) ≠
+      SmtType.None := by
+  have hXSmt :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation X hXTrans
+  rcases eo_typeof_set_member_arg_types_of_ne_stuck hApp with
+    ⟨T, hXTy, hYTy⟩
+  have hYSmt :=
+    smt_typeof_eo_to_smt_set_of_typeof_set hYTrans hYTy
+  rw [typeof_set_member_eq, hXSmt, hYSmt, hXTy]
+  simp [__smtx_typeof_set_member, native_ite, native_Teq]
+
+private theorem eo_typeof_set_subset_arg_types_of_ne_stuck
+    {A B : Term}
+    (h : __eo_typeof_set_subset A B ≠ Term.Stuck) :
+    ∃ T, A = Term.Apply (Term.UOp UserOp.Set) T ∧
+      B = Term.Apply (Term.UOp UserOp.Set) T := by
+  cases A <;> cases B <;> simp [__eo_typeof_set_subset] at h ⊢
+  case Apply.Apply f n g m =>
+    cases f <;> cases g <;> simp [__eo_typeof_set_subset] at h ⊢
+    case UOp.UOp opA opB =>
+      cases opA <;> cases opB <;> simp [__eo_typeof_set_subset] at h ⊢
+      have hReq :
+          __eo_requires (__eo_eq n m) (Term.Boolean true) Term.Bool ≠
+            Term.Stuck := by
+        simpa [__eo_typeof_set_subset] using h
+      have hm : m = n :=
+        support_eq_of_eo_eq_true n m
+          (support_eo_requires_cond_eq_of_non_stuck hReq)
+      exact hm.symm
+
+private theorem eo_typeof_set_subset_args_not_stuck_of_ne_stuck
+    {A B : Term}
+    (h : __eo_typeof_set_subset A B ≠ Term.Stuck) :
+    A ≠ Term.Stuck ∧ B ≠ Term.Stuck := by
+  rcases eo_typeof_set_subset_arg_types_of_ne_stuck h with
+    ⟨T, hA, hB⟩
+  constructor
+  · intro hStuck
+    rw [hA] at hStuck
+    cases hStuck
+  · intro hStuck
+    rw [hB] at hStuck
+    cases hStuck
+
+private theorem smt_set_subset_non_none_of_eo_typeof_set_subset_ne_stuck
+    (X Y : Term)
+    (hXTrans : RuleProofs.eo_has_smt_translation X)
+    (hYTrans : RuleProofs.eo_has_smt_translation Y)
+    (hApp :
+      __eo_typeof_set_subset (__eo_typeof X) (__eo_typeof Y) ≠
+        Term.Stuck) :
+    __smtx_typeof
+        (SmtTerm.set_subset (__eo_to_smt X) (__eo_to_smt Y)) ≠
+      SmtType.None := by
+  rcases eo_typeof_set_subset_arg_types_of_ne_stuck hApp with
+    ⟨T, hXTy, hYTy⟩
+  have hXSmt :=
+    smt_typeof_eo_to_smt_set_of_typeof_set hXTrans hXTy
+  have hYSmt :=
+    smt_typeof_eo_to_smt_set_of_typeof_set hYTrans hYTy
+  rw [typeof_set_subset_eq, hXSmt, hYSmt]
+  simp [__smtx_typeof_sets_op_2_ret, native_ite, native_Teq]
+
+private theorem eo_typeof_sets_deq_diff_arg_types_of_ne_stuck
+    {A B : Term}
+    (h : __eo_typeof__at_sets_deq_diff A B ≠ Term.Stuck) :
+    ∃ T, A = Term.Apply (Term.UOp UserOp.Set) T ∧
+      B = Term.Apply (Term.UOp UserOp.Set) T := by
+  cases A <;> cases B <;> simp [__eo_typeof__at_sets_deq_diff] at h ⊢
+  case Apply.Apply f n g m =>
+    cases f <;> cases g <;> simp [__eo_typeof__at_sets_deq_diff] at h ⊢
+    case UOp.UOp opA opB =>
+      cases opA <;> cases opB <;>
+        simp [__eo_typeof__at_sets_deq_diff] at h ⊢
+      have hReq :
+          __eo_requires (__eo_eq n m) (Term.Boolean true) n ≠
+            Term.Stuck := by
+        simpa [__eo_typeof__at_sets_deq_diff] using h
+      have hm : m = n :=
+        support_eq_of_eo_eq_true n m
+          (support_eo_requires_cond_eq_of_non_stuck hReq)
+      exact hm.symm
+
+private theorem eo_typeof_sets_deq_diff_args_not_stuck_of_ne_stuck
+    {A B : Term}
+    (h : __eo_typeof__at_sets_deq_diff A B ≠ Term.Stuck) :
+    A ≠ Term.Stuck ∧ B ≠ Term.Stuck := by
+  rcases eo_typeof_sets_deq_diff_arg_types_of_ne_stuck h with
+    ⟨T, hA, hB⟩
+  constructor
+  · intro hStuck
+    rw [hA] at hStuck
+    cases hStuck
+  · intro hStuck
+    rw [hB] at hStuck
+    cases hStuck
+
+private theorem smt_sets_deq_diff_non_none_of_eo_typeof_ne_stuck
+    (X Y : Term)
+    (hXTrans : RuleProofs.eo_has_smt_translation X)
+    (hYTrans : RuleProofs.eo_has_smt_translation Y)
+    (hApp :
+      __eo_typeof__at_sets_deq_diff (__eo_typeof X) (__eo_typeof Y) ≠
+        Term.Stuck) :
+    __smtx_typeof
+        (__eo_to_smt_sets_deq_diff (__eo_to_smt X)
+          (__smtx_typeof (__eo_to_smt X)) (__eo_to_smt Y)
+          (__smtx_typeof (__eo_to_smt Y))) ≠ SmtType.None := by
+  rcases eo_typeof_sets_deq_diff_arg_types_of_ne_stuck hApp with
+    ⟨T, hXTy, hYTy⟩
+  have hXSmt :=
+    smt_typeof_eo_to_smt_set_of_typeof_set hXTrans hXTy
+  have hYSmt :=
+    smt_typeof_eo_to_smt_set_of_typeof_set hYTrans hYTy
+  have hElemNN :
+      __eo_to_smt_type T ≠ SmtType.None :=
+    smt_typeof_eo_to_smt_set_elem_ne_none_of_typeof_set hXTrans hXTy
+  rw [hXSmt, hYSmt]
+  change
+    __smtx_typeof (SmtTerm.map_diff (__eo_to_smt X) (__eo_to_smt Y)) ≠
+      SmtType.None
+  rw [typeof_map_diff_eq, hXSmt, hYSmt]
+  simp [__smtx_typeof_map_diff, native_ite, native_Teq, hElemNN]
+
+private theorem eo_typeof_strings_deq_diff_arg_types_of_ne_stuck
+    {A B : Term}
+    (h : __eo_typeof__at_strings_deq_diff A B ≠ Term.Stuck) :
+    ∃ T, A = Term.Apply (Term.UOp UserOp.Seq) T ∧
+      B = Term.Apply (Term.UOp UserOp.Seq) T := by
+  cases A <;> cases B <;> simp [__eo_typeof__at_strings_deq_diff] at h ⊢
+  case Apply.Apply f n g m =>
+    cases f <;> cases g <;> simp [__eo_typeof__at_strings_deq_diff] at h ⊢
+    case UOp.UOp opA opB =>
+      cases opA <;> cases opB <;>
+        simp [__eo_typeof__at_strings_deq_diff] at h ⊢
+      have hReq :
+          __eo_requires (__eo_eq n m) (Term.Boolean true)
+              (Term.UOp UserOp.Int) ≠
+            Term.Stuck := by
+        simpa [__eo_typeof__at_strings_deq_diff] using h
+      have hm : m = n :=
+        support_eq_of_eo_eq_true n m
+          (support_eo_requires_cond_eq_of_non_stuck hReq)
+      exact hm.symm
+
+private theorem eo_typeof_strings_deq_diff_args_not_stuck_of_ne_stuck
+    {A B : Term}
+    (h : __eo_typeof__at_strings_deq_diff A B ≠ Term.Stuck) :
+    A ≠ Term.Stuck ∧ B ≠ Term.Stuck := by
+  rcases eo_typeof_strings_deq_diff_arg_types_of_ne_stuck h with
+    ⟨T, hA, hB⟩
+  constructor
+  · intro hStuck
+    rw [hA] at hStuck
+    cases hStuck
+  · intro hStuck
+    rw [hB] at hStuck
+    cases hStuck
+
+private theorem smt_strings_deq_diff_non_none_of_eo_typeof_ne_stuck
+    (X Y : Term)
+    (hXTrans : RuleProofs.eo_has_smt_translation X)
+    (hYTrans : RuleProofs.eo_has_smt_translation Y)
+    (hApp :
+      __eo_typeof__at_strings_deq_diff (__eo_typeof X) (__eo_typeof Y) ≠
+        Term.Stuck) :
+    __smtx_typeof
+        (SmtTerm.seq_diff (__eo_to_smt X) (__eo_to_smt Y)) ≠
+      SmtType.None := by
+  rcases eo_typeof_strings_deq_diff_arg_types_of_ne_stuck hApp with
+    ⟨T, hXTy, hYTy⟩
+  have hXSmt :
+      __smtx_typeof (__eo_to_smt X) =
+        __eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) T) := by
+    have hMatch :=
+      TranslationProofs.eo_to_smt_typeof_matches_translation X hXTrans
+    rw [hXTy] at hMatch
+    exact hMatch
+  have hYSmt :
+      __smtx_typeof (__eo_to_smt Y) =
+        __eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) T) := by
+    have hMatch :=
+      TranslationProofs.eo_to_smt_typeof_matches_translation Y hYTrans
+    rw [hYTy] at hMatch
+    exact hMatch
+  have hSeqNN :
+      __eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) T) ≠
+        SmtType.None := by
+    intro hNone
+    have hXNN :
+        __smtx_typeof (__eo_to_smt X) ≠ SmtType.None := by
+      simpa [RuleProofs.eo_has_smt_translation] using hXTrans
+    exact hXNN (by simpa [hXSmt] using hNone)
+  rw [typeof_seq_diff_eq, hXSmt, hYSmt]
+  exact
+    smt_seq_binop_ret_non_none_of_eo_seq_type_non_none
+      hSeqNN (by simp)
+
+private theorem eo_typeof_strings_stoi_result_arg_types_of_ne_stuck
+    {A B : Term}
+    (h : __eo_typeof__at_strings_stoi_result A B ≠ Term.Stuck) :
+    A = Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char) ∧
+      B = Term.UOp UserOp.Int := by
+  cases A <;> cases B <;>
+    simp [__eo_typeof__at_strings_stoi_result] at h ⊢
+  case Apply.UOp f arg opB =>
+    cases f <;> cases opB <;>
+      simp [__eo_typeof__at_strings_stoi_result] at h ⊢
+    case UOp.Int opInner =>
+      cases opInner <;>
+        simp [__eo_typeof__at_strings_stoi_result] at h ⊢
+      case Seq =>
+        cases arg <;>
+          simp [__eo_typeof__at_strings_stoi_result] at h ⊢
+        case UOp inner =>
+          cases inner <;>
+            simp [__eo_typeof__at_strings_stoi_result] at h ⊢
+
+private theorem eo_typeof_strings_stoi_result_args_not_stuck_of_ne_stuck
+    {A B : Term}
+    (h : __eo_typeof__at_strings_stoi_result A B ≠ Term.Stuck) :
+    A ≠ Term.Stuck ∧ B ≠ Term.Stuck := by
+  rcases eo_typeof_strings_stoi_result_arg_types_of_ne_stuck h with
+    ⟨hA, hB⟩
+  constructor
+  · intro hStuck
+    rw [hA] at hStuck
+    cases hStuck
+  · intro hStuck
+    rw [hB] at hStuck
+    cases hStuck
+
+private theorem smt_strings_stoi_result_non_none_of_eo_typeof_ne_stuck
+    (X Y : Term)
+    (hXTrans : RuleProofs.eo_has_smt_translation X)
+    (hYTrans : RuleProofs.eo_has_smt_translation Y)
+    (hApp :
+      __eo_typeof__at_strings_stoi_result (__eo_typeof X) (__eo_typeof Y) ≠
+        Term.Stuck) :
+    __smtx_typeof
+        (SmtTerm.str_to_int
+          (SmtTerm.str_substr (__eo_to_smt X) (SmtTerm.Numeral 0)
+            (__eo_to_smt Y))) ≠
+      SmtType.None := by
+  rcases eo_typeof_strings_stoi_result_arg_types_of_ne_stuck hApp with
+    ⟨hXTy, hYTy⟩
+  have hXSmt :=
+    smt_typeof_eo_to_smt_seq_char_of_typeof_seq_char hXTrans hXTy
+  have hYSmt : __smtx_typeof (__eo_to_smt Y) = SmtType.Int := by
+    have hMatch :=
+      TranslationProofs.eo_to_smt_typeof_matches_translation Y hYTrans
+    rw [hYTy] at hMatch
+    exact hMatch
+  have hSubTy :
+      __smtx_typeof
+          (SmtTerm.str_substr (__eo_to_smt X) (SmtTerm.Numeral 0)
+            (__eo_to_smt Y)) =
+        SmtType.Seq SmtType.Char := by
+    have hZero :
+        __smtx_typeof (SmtTerm.Numeral 0) = SmtType.Int := by
+      rw [__smtx_typeof.eq_2]
+    rw [typeof_str_substr_eq, hXSmt, hYSmt, hZero]
+    simp [__smtx_typeof_str_substr]
+  rw [typeof_str_to_int_eq, hSubTy]
+  simp [native_ite, native_Teq]
+
+private theorem smt_strings_itos_result_non_none_of_eo_typeof_ne_stuck
+    (X Y : Term)
+    (hXTrans : RuleProofs.eo_has_smt_translation X)
+    (hYTrans : RuleProofs.eo_has_smt_translation Y)
+    (hApp :
+      __eo_typeof_div (__eo_typeof X) (__eo_typeof Y) ≠ Term.Stuck) :
+    __smtx_typeof
+        (SmtTerm.mod (__eo_to_smt X)
+          (SmtTerm.multmult (SmtTerm.Numeral 10) (__eo_to_smt Y))) ≠
+      SmtType.None := by
+  have hArgTy :=
+    eo_typeof_div_arg_types_of_ne_stuck hApp
+  have hXSmt :=
+    smt_typeof_eo_to_smt_int_of_typeof_int hXTrans hArgTy.1
+  have hYSmt :=
+    smt_typeof_eo_to_smt_int_of_typeof_int hYTrans hArgTy.2
+  have hTen :
+      __smtx_typeof (SmtTerm.Numeral 10) = SmtType.Int := by
+    rw [__smtx_typeof.eq_2]
+  have hMul :
+      __smtx_typeof
+          (SmtTerm.multmult (SmtTerm.Numeral 10) (__eo_to_smt Y)) =
+        SmtType.Int := by
+    rw [typeof_multmult_eq, hTen, hYSmt]
+    simp [__smtx_typeof_arith_overload_op_2, native_ite, native_Teq]
+  rw [typeof_mod_eq, hXSmt, hMul]
+  simp [__smtx_typeof_arith_overload_op_2, native_ite, native_Teq]
+
+private theorem smt_strings_num_occur_typeof_congr
+    {X₁ X₂ Y₁ Y₂ : SmtTerm}
+    (hX : __smtx_typeof X₁ = __smtx_typeof X₂)
+    (hY : __smtx_typeof Y₁ = __smtx_typeof Y₂) :
+    __smtx_typeof
+        (SmtTerm.div
+          (SmtTerm.neg (SmtTerm.str_len X₁)
+            (SmtTerm.str_len
+              (SmtTerm.str_replace_all X₁ Y₁
+                (SmtTerm.seq_empty (SmtType.Seq SmtType.Char)))))
+          (SmtTerm.str_len Y₁)) =
+      __smtx_typeof
+        (SmtTerm.div
+          (SmtTerm.neg (SmtTerm.str_len X₂)
+            (SmtTerm.str_len
+              (SmtTerm.str_replace_all X₂ Y₂
+                (SmtTerm.seq_empty (SmtType.Seq SmtType.Char)))))
+          (SmtTerm.str_len Y₂)) := by
+  simp [typeof_div_eq, typeof_neg_eq, typeof_str_len_eq,
+    typeof_str_replace_all_eq, hX, hY]
+
+private theorem eo_typeof_str_lt_arg_types_of_ne_stuck
+    {A B : Term}
+    (h : __eo_typeof_str_lt A B ≠ Term.Stuck) :
+    A = Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char) ∧
+      B = Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char) := by
+  cases A <;> cases B <;> simp [__eo_typeof_str_lt] at h ⊢
+  case Apply.Apply f n g m =>
+    cases f <;> cases g <;> simp [__eo_typeof_str_lt] at h ⊢
+    case UOp.UOp opA opB =>
+      cases opA <;> cases opB <;> simp [__eo_typeof_str_lt] at h ⊢
+      case Seq.Seq =>
+        cases n <;> cases m <;> simp [__eo_typeof_str_lt] at h ⊢
+        case UOp.UOp innerA innerB =>
+          cases innerA <;> cases innerB <;>
+            simp [__eo_typeof_str_lt] at h ⊢
+
+private theorem eo_typeof_str_lt_args_not_stuck_of_ne_stuck
+    {A B : Term}
+    (h : __eo_typeof_str_lt A B ≠ Term.Stuck) :
+    A ≠ Term.Stuck ∧ B ≠ Term.Stuck := by
+  rcases eo_typeof_str_lt_arg_types_of_ne_stuck h with ⟨hA, hB⟩
+  constructor
+  · intro hStuck
+    rw [hA] at hStuck
+    cases hStuck
+  · intro hStuck
+    rw [hB] at hStuck
+    cases hStuck
+
+private theorem smt_seq_char_bool_binop_non_none_of_eo_typeof_str_lt_ne_stuck
+    (smtOp : SmtTerm -> SmtTerm -> SmtTerm)
+    (hSmtType :
+      ∀ X Y,
+        __smtx_typeof (smtOp X Y) =
+          native_ite
+            (native_Teq (__smtx_typeof X) (SmtType.Seq SmtType.Char))
+            (native_ite
+              (native_Teq (__smtx_typeof Y) (SmtType.Seq SmtType.Char))
+              SmtType.Bool SmtType.None)
+            SmtType.None)
+    (X Y : Term)
+    (hXTrans : RuleProofs.eo_has_smt_translation X)
+    (hYTrans : RuleProofs.eo_has_smt_translation Y)
+    (hApp :
+      __eo_typeof_str_lt (__eo_typeof X) (__eo_typeof Y) ≠
+        Term.Stuck) :
+    __smtx_typeof (smtOp (__eo_to_smt X) (__eo_to_smt Y)) ≠
+      SmtType.None := by
+  rcases eo_typeof_str_lt_arg_types_of_ne_stuck hApp with
+    ⟨hXTy, hYTy⟩
+  have hXSmt :=
+    smt_typeof_eo_to_smt_seq_char_of_typeof_seq_char hXTrans hXTy
+  have hYSmt :=
+    smt_typeof_eo_to_smt_seq_char_of_typeof_seq_char hYTrans hYTy
+  rw [hSmtType, hXSmt, hYSmt]
+  simp [native_ite, native_Teq]
+
+private theorem eo_typeof_re_range_arg_types_of_ne_stuck
+    {A B : Term}
+    (h : __eo_typeof_re_range A B ≠ Term.Stuck) :
+    A = Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char) ∧
+      B = Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char) := by
+  cases A <;> cases B <;> simp [__eo_typeof_re_range] at h ⊢
+  case Apply.Apply f n g m =>
+    cases f <;> cases g <;> simp [__eo_typeof_re_range] at h ⊢
+    case UOp.UOp opA opB =>
+      cases opA <;> cases opB <;> simp [__eo_typeof_re_range] at h ⊢
+      case Seq.Seq =>
+        cases n <;> cases m <;> simp [__eo_typeof_re_range] at h ⊢
+        case UOp.UOp innerA innerB =>
+          cases innerA <;> cases innerB <;>
+            simp [__eo_typeof_re_range] at h ⊢
+
+private theorem eo_typeof_re_range_args_not_stuck_of_ne_stuck
+    {A B : Term}
+    (h : __eo_typeof_re_range A B ≠ Term.Stuck) :
+    A ≠ Term.Stuck ∧ B ≠ Term.Stuck := by
+  rcases eo_typeof_re_range_arg_types_of_ne_stuck h with ⟨hA, hB⟩
+  constructor
+  · intro hStuck
+    rw [hA] at hStuck
+    cases hStuck
+  · intro hStuck
+    rw [hB] at hStuck
+    cases hStuck
+
+private theorem smt_re_range_non_none_of_eo_typeof_re_range_ne_stuck
+    (X Y : Term)
+    (hXTrans : RuleProofs.eo_has_smt_translation X)
+    (hYTrans : RuleProofs.eo_has_smt_translation Y)
+    (hApp :
+      __eo_typeof_re_range (__eo_typeof X) (__eo_typeof Y) ≠
+        Term.Stuck) :
+    __smtx_typeof
+        (SmtTerm.re_range (__eo_to_smt X) (__eo_to_smt Y)) ≠
+      SmtType.None := by
+  rcases eo_typeof_re_range_arg_types_of_ne_stuck hApp with
+    ⟨hXTy, hYTy⟩
+  have hXSmt :=
+    smt_typeof_eo_to_smt_seq_char_of_typeof_seq_char hXTrans hXTy
+  have hYSmt :=
+    smt_typeof_eo_to_smt_seq_char_of_typeof_seq_char hYTrans hYTy
+  rw [typeof_re_range_eq, hXSmt, hYSmt]
+  simp [native_ite, native_Teq]
+
+private theorem eo_typeof_re_concat_arg_types_of_ne_stuck
+    {A B : Term}
+    (h : __eo_typeof_re_concat A B ≠ Term.Stuck) :
+    A = Term.UOp UserOp.RegLan ∧ B = Term.UOp UserOp.RegLan := by
+  cases A <;> cases B <;> simp [__eo_typeof_re_concat] at h ⊢
+  case UOp.UOp opA opB =>
+    cases opA <;> cases opB <;> simp [__eo_typeof_re_concat] at h ⊢
+
+private theorem eo_typeof_re_concat_args_not_stuck_of_ne_stuck
+    {A B : Term}
+    (h : __eo_typeof_re_concat A B ≠ Term.Stuck) :
+    A ≠ Term.Stuck ∧ B ≠ Term.Stuck := by
+  rcases eo_typeof_re_concat_arg_types_of_ne_stuck h with ⟨hA, hB⟩
+  constructor
+  · intro hStuck
+    rw [hA] at hStuck
+    cases hStuck
+  · intro hStuck
+    rw [hB] at hStuck
+    cases hStuck
+
+private theorem smt_reglan_binop_non_none_of_eo_typeof_re_concat_ne_stuck
+    (smtOp : SmtTerm -> SmtTerm -> SmtTerm)
+    (hSmtType :
+      ∀ X Y,
+        __smtx_typeof (smtOp X Y) =
+          native_ite (native_Teq (__smtx_typeof X) SmtType.RegLan)
+            (native_ite (native_Teq (__smtx_typeof Y) SmtType.RegLan)
+              SmtType.RegLan SmtType.None)
+            SmtType.None)
+    (X Y : Term)
+    (hXTrans : RuleProofs.eo_has_smt_translation X)
+    (hYTrans : RuleProofs.eo_has_smt_translation Y)
+    (hApp :
+      __eo_typeof_re_concat (__eo_typeof X) (__eo_typeof Y) ≠
+        Term.Stuck) :
+    __smtx_typeof (smtOp (__eo_to_smt X) (__eo_to_smt Y)) ≠
+      SmtType.None := by
+  have hXSmt :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation X hXTrans
+  have hYSmt :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation Y hYTrans
+  rcases eo_typeof_re_concat_arg_types_of_ne_stuck hApp with
+    ⟨hXTy, hYTy⟩
+  rw [hSmtType, hXSmt, hYSmt, hXTy, hYTy]
+  simp [native_ite, native_Teq]
+
+private theorem eo_typeof_str_in_re_arg_types_of_ne_stuck
+    {A B : Term}
+    (h : __eo_typeof_str_in_re A B ≠ Term.Stuck) :
+    A = Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char) ∧
+      B = Term.UOp UserOp.RegLan := by
+  cases A <;> cases B <;> simp [__eo_typeof_str_in_re] at h ⊢
+  case Apply.UOp f n op =>
+    cases f <;> simp [__eo_typeof_str_in_re] at h ⊢
+    case UOp opF =>
+      cases opF <;> cases op <;> simp [__eo_typeof_str_in_re] at h ⊢
+      case Seq.RegLan =>
+        cases n <;> simp [__eo_typeof_str_in_re] at h ⊢
+        case UOp inner =>
+          cases inner <;> simp [__eo_typeof_str_in_re] at h ⊢
+
+private theorem eo_typeof_str_in_re_args_not_stuck_of_ne_stuck
+    {A B : Term}
+    (h : __eo_typeof_str_in_re A B ≠ Term.Stuck) :
+    A ≠ Term.Stuck ∧ B ≠ Term.Stuck := by
+  rcases eo_typeof_str_in_re_arg_types_of_ne_stuck h with
+    ⟨hA, hB⟩
+  constructor
+  · intro hStuck
+    rw [hA] at hStuck
+    cases hStuck
+  · intro hStuck
+    rw [hB] at hStuck
+    cases hStuck
+
+private theorem smt_str_in_re_non_none_of_eo_typeof_str_in_re_ne_stuck
+    (X Y : Term)
+    (hXTrans : RuleProofs.eo_has_smt_translation X)
+    (hYTrans : RuleProofs.eo_has_smt_translation Y)
+    (hApp :
+      __eo_typeof_str_in_re (__eo_typeof X) (__eo_typeof Y) ≠
+        Term.Stuck) :
+    __smtx_typeof
+        (SmtTerm.str_in_re (__eo_to_smt X) (__eo_to_smt Y)) ≠
+      SmtType.None := by
+  have hYSmt :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation Y hYTrans
+  rcases eo_typeof_str_in_re_arg_types_of_ne_stuck hApp with
+    ⟨hXTy, hYTy⟩
+  have hXSmt :=
+    smt_typeof_eo_to_smt_seq_char_of_typeof_seq_char hXTrans hXTy
+  rw [typeof_str_in_re_eq, hXSmt, hYSmt, hYTy]
+  simp [native_ite, native_Teq]
 
 private theorem eo_typeof_concat_arg_types_of_ne_stuck
     {A B : Term}
@@ -519,6 +1512,63 @@ private theorem smt_typeof_binary_one_one :
 private theorem smt_typeof_binary_one_zero :
     __smtx_typeof (SmtTerm.Binary 1 0) = SmtType.BitVec 1 := by
   native_decide
+
+private theorem eo_typeof_from_bools_arg_types_of_ne_stuck
+    {A B : Term}
+    (h : __eo_typeof__at_from_bools A B ≠ Term.Stuck) :
+    ∃ n, A = Term.Bool ∧ B = Term.Apply (Term.UOp UserOp.BitVec) n := by
+  cases A <;> cases B <;> simp [__eo_typeof__at_from_bools] at h ⊢
+  case Apply f n =>
+    cases f <;> simp [__eo_typeof__at_from_bools] at h ⊢
+    case UOp op =>
+      cases op <;> simp [__eo_typeof__at_from_bools] at h ⊢
+
+private theorem eo_typeof_from_bools_args_not_stuck_of_ne_stuck
+    {A B : Term}
+    (h : __eo_typeof__at_from_bools A B ≠ Term.Stuck) :
+    A ≠ Term.Stuck ∧ B ≠ Term.Stuck := by
+  rcases eo_typeof_from_bools_arg_types_of_ne_stuck h with
+    ⟨n, hA, hB⟩
+  constructor
+  · intro hStuck
+    rw [hA] at hStuck
+    cases hStuck
+  · intro hStuck
+    rw [hB] at hStuck
+    cases hStuck
+
+private theorem smt_from_bools_non_none_of_eo_typeof_ne_stuck
+    (X Y : Term)
+    (hXTrans : RuleProofs.eo_has_smt_translation X)
+    (hYTrans : RuleProofs.eo_has_smt_translation Y)
+    (hApp :
+      __eo_typeof__at_from_bools (__eo_typeof X) (__eo_typeof Y) ≠
+        Term.Stuck) :
+    __smtx_typeof
+        (SmtTerm.concat
+          (SmtTerm.ite (__eo_to_smt X)
+            (SmtTerm.Binary 1 1) (SmtTerm.Binary 1 0))
+          (__eo_to_smt Y)) ≠
+      SmtType.None := by
+  rcases eo_typeof_from_bools_arg_types_of_ne_stuck hApp with
+    ⟨n, hXTy, hYTy⟩
+  have hXSmt : __smtx_typeof (__eo_to_smt X) = SmtType.Bool := by
+    have hMatch :=
+      TranslationProofs.eo_to_smt_typeof_matches_translation X hXTrans
+    rw [hXTy] at hMatch
+    exact hMatch
+  rcases smt_typeof_eo_to_smt_bitvec_of_typeof_bitvec hYTrans hYTy with
+    ⟨w, hYSmt⟩
+  have hBitTy :
+      __smtx_typeof
+          (SmtTerm.ite (__eo_to_smt X)
+            (SmtTerm.Binary 1 1) (SmtTerm.Binary 1 0)) =
+        SmtType.BitVec 1 := by
+    rw [typeof_ite_eq, hXSmt, smt_typeof_binary_one_one,
+      smt_typeof_binary_one_zero]
+    simp [__smtx_typeof_ite, native_ite, native_Teq]
+  rw [typeof_concat_eq, hBitTy, hYSmt]
+  simp [__smtx_typeof_concat]
 
 private theorem smt_bv_binop_non_none_of_eo_typeof_bvand_ne_stuck
     (X Y : Term)
@@ -894,6 +1944,115 @@ theorem substitute_simul_unary_op_preserves_type_and_translation_of_typeof_ne_st
         hArgExtract hArgTyNe hBuild
         (fun hATrans hATy => (hRecArg hATrans hATy).2)
 
+/-- Combined unary preservation variant for operators whose SMT rebuild proof
+needs the substituted argument's preserved EO type. -/
+theorem substitute_simul_unary_op_preserves_type_and_translation_of_typeof_ne_stuck_arg_type_eq
+    (op : UserOp) (a xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hNotBinder :
+      ∀ q v vs,
+        Term.UOp op ≠
+          Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+    (hFTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.UOp op) a))
+    (hTy :
+      __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.UOp op) a) xs ts bvs) ≠
+        Term.Stuck)
+    (hArgExtract :
+      eoHasSmtTranslation (Term.Apply (Term.UOp op) a) ->
+        eoHasSmtTranslation a)
+    (hArgTyNe :
+      ∀ X,
+        __eo_typeof (Term.Apply (Term.UOp op) X) ≠ Term.Stuck ->
+          __eo_typeof X ≠ Term.Stuck)
+    (hTypeCong :
+      ∀ X Y,
+        __eo_typeof X = __eo_typeof Y ->
+          __eo_typeof (Term.Apply (Term.UOp op) X) =
+            __eo_typeof (Term.Apply (Term.UOp op) Y))
+    (hBuild :
+      ∀ X,
+        RuleProofs.eo_has_smt_translation X ->
+          __eo_typeof X = __eo_typeof a ->
+            __eo_typeof (Term.Apply (Term.UOp op) X) ≠ Term.Stuck ->
+              RuleProofs.eo_has_smt_translation
+                (Term.Apply (Term.UOp op) X))
+    (hRecArg :
+      RuleProofs.eo_has_smt_translation a ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) a xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) a xs ts bvs) =
+          __eo_typeof a ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) a xs ts bvs)) :
+    __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.UOp op) a) xs ts bvs) =
+      __eo_typeof (Term.Apply (Term.UOp op) a) ∧
+      RuleProofs.eo_has_smt_translation
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.UOp op) a) xs ts bvs) := by
+  let aSub := __substitute_simul_rec (Term.Boolean false) a xs ts bvs
+  have hType :
+      __eo_typeof
+          (__substitute_simul_rec (Term.Boolean false)
+            (Term.Apply (Term.UOp op) a) xs ts bvs) =
+        __eo_typeof (Term.Apply (Term.UOp op) a) :=
+    SubstituteSupport.substitute_simul_unary_op_typeof_eq_of_typeof_ne_stuck
+      op a xs ts bvs hXsEnv hBvsEnv hTs hNotBinder hFTrans
+      hArgExtract hArgTyNe hTypeCong
+      (fun hATrans hATy => (hRecArg hATrans hATy).1)
+      hTy
+  refine ⟨hType, ?_⟩
+  have hisr : (Term.Boolean false : Term) ≠ Term.Stuck := by decide
+  have hxs : xs ≠ Term.Stuck := hXsEnv.ne_stuck
+  have hts : ts ≠ Term.Stuck := eoListAllHaveSmtTranslation_ne_stuck hTs
+  have hbvs : bvs ≠ Term.Stuck := hBvsEnv.ne_stuck
+  have hHeadSub :
+      __substitute_simul_rec (Term.Boolean false)
+          (Term.UOp op) xs ts bvs =
+        Term.UOp op :=
+    substitute_simul_rec_uop_eq_self op xs ts bvs hXsEnv hBvsEnv hTs
+  have hSubstEq :
+      __substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.UOp op) a) xs ts bvs =
+        __eo_mk_apply (Term.UOp op) aSub := by
+    have hApplyEq :=
+      SubstituteSupport.substitute_simul_rec_apply
+        (Term.Boolean false) (Term.UOp op) a xs ts bvs
+        hisr hxs hts hbvs hNotBinder
+    simpa [aSub, hHeadSub] using hApplyEq
+  have hTyMk :
+      __eo_typeof (__eo_mk_apply (Term.UOp op) aSub) ≠ Term.Stuck := by
+    rwa [hSubstEq] at hTy
+  have hMk :
+      __eo_mk_apply (Term.UOp op) aSub =
+        Term.Apply (Term.UOp op) aSub :=
+    instantiate_eo_mk_apply_eq_apply_of_typeof_ne_stuck
+      (Term.UOp op) aSub hTyMk
+  have hTyApply :
+      __eo_typeof (Term.Apply (Term.UOp op) aSub) ≠ Term.Stuck := by
+    rwa [hMk] at hTyMk
+  have hFTransEo :
+      eoHasSmtTranslation (Term.Apply (Term.UOp op) a) := by
+    simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+      using hFTrans
+  have hATrans :
+      RuleProofs.eo_has_smt_translation a := by
+    simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+      using hArgExtract hFTransEo
+  have hASubRec := hRecArg hATrans (hArgTyNe aSub hTyApply)
+  rw [hSubstEq, hMk]
+  exact hBuild aSub hASubRec.2 hASubRec.1 hTyApply
+
 /-- Combined substitution preservation for a fully-applied binary special
 operator. Binary heads such as `(and x)` are not generally SMT-translatable on
 their own, so the recursive calls are made directly on the two operands. -/
@@ -978,6 +2137,2216 @@ theorem substitute_simul_binary_op_preserves_type_and_translation_of_typeof_ne_s
         hArgExtract hArgTyNe hBuild
         (fun hXTrans hXTy => (hRecX hXTrans hXTy).2)
         (fun hYTrans hYTy => (hRecY hYTrans hYTy).2)
+
+/-- Binary preservation variant for operators whose translation rebuild depends
+on the substituted operands having the same EO types as the original operands. -/
+theorem substitute_simul_binary_op_preserves_type_and_translation_of_typeof_ne_stuck_arg_type_eq
+    (op : UserOp) (x y xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hNotBinder :
+      ∀ q v vs,
+        Term.Apply (Term.UOp op) x ≠
+          Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+    (hFTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.Apply (Term.UOp op) x) y))
+    (hTy :
+      __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp op) x) y) xs ts bvs) ≠
+        Term.Stuck)
+    (hArgExtract :
+      eoHasSmtTranslation (Term.Apply (Term.Apply (Term.UOp op) x) y) ->
+        eoHasSmtTranslation x ∧ eoHasSmtTranslation y)
+    (hArgTyNe :
+      ∀ X Y,
+        __eo_typeof (Term.Apply (Term.Apply (Term.UOp op) X) Y) ≠
+          Term.Stuck ->
+        __eo_typeof X ≠ Term.Stuck ∧ __eo_typeof Y ≠ Term.Stuck)
+    (hTypeCong :
+      ∀ X₁ Y₁ X₂ Y₂,
+        __eo_typeof X₁ = __eo_typeof Y₁ ->
+        __eo_typeof X₂ = __eo_typeof Y₂ ->
+        __eo_typeof (Term.Apply (Term.Apply (Term.UOp op) X₁) X₂) =
+          __eo_typeof (Term.Apply (Term.Apply (Term.UOp op) Y₁) Y₂))
+    (hBuild :
+      ∀ X Y,
+        RuleProofs.eo_has_smt_translation X ->
+          RuleProofs.eo_has_smt_translation Y ->
+          __eo_typeof X = __eo_typeof x ->
+          __eo_typeof Y = __eo_typeof y ->
+          __eo_typeof (Term.Apply (Term.Apply (Term.UOp op) X) Y) ≠
+            Term.Stuck ->
+          RuleProofs.eo_has_smt_translation
+            (Term.Apply (Term.Apply (Term.UOp op) X) Y))
+    (hRecX :
+      RuleProofs.eo_has_smt_translation x ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) =
+          __eo_typeof x ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs))
+    (hRecY :
+      RuleProofs.eo_has_smt_translation y ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) =
+          __eo_typeof y ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs)) :
+    __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp op) x) y) xs ts bvs) =
+      __eo_typeof (Term.Apply (Term.Apply (Term.UOp op) x) y) ∧
+      RuleProofs.eo_has_smt_translation
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp op) x) y) xs ts bvs) := by
+  let xSub := __substitute_simul_rec (Term.Boolean false) x xs ts bvs
+  let ySub := __substitute_simul_rec (Term.Boolean false) y xs ts bvs
+  have hType :
+      __eo_typeof
+          (__substitute_simul_rec (Term.Boolean false)
+            (Term.Apply (Term.Apply (Term.UOp op) x) y) xs ts bvs) =
+        __eo_typeof (Term.Apply (Term.Apply (Term.UOp op) x) y) :=
+    SubstituteSupport.substitute_simul_binary_op_typeof_eq_of_typeof_ne_stuck
+      op x y xs ts bvs hXsEnv hBvsEnv hTs hNotBinder hFTrans
+      hArgExtract hArgTyNe hTypeCong
+      (fun hXTrans hXTy => (hRecX hXTrans hXTy).1)
+      (fun hYTrans hYTy => (hRecY hYTrans hYTy).1)
+      hTy
+  refine ⟨hType, ?_⟩
+  have hisr : (Term.Boolean false : Term) ≠ Term.Stuck := by decide
+  have hxs : xs ≠ Term.Stuck := hXsEnv.ne_stuck
+  have hts : ts ≠ Term.Stuck := eoListAllHaveSmtTranslation_ne_stuck hTs
+  have hbvs : bvs ≠ Term.Stuck := hBvsEnv.ne_stuck
+  have hHeadSub :
+      __substitute_simul_rec (Term.Boolean false)
+          (Term.UOp op) xs ts bvs =
+        Term.UOp op :=
+    substitute_simul_rec_uop_eq_self op xs ts bvs hXsEnv hBvsEnv hTs
+  have hInnerSub :
+      __substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.UOp op) x) xs ts bvs =
+        __eo_mk_apply (Term.UOp op) xSub := by
+    have hApplyEq :=
+      SubstituteSupport.substitute_simul_rec_apply
+        (Term.Boolean false) (Term.UOp op) x xs ts bvs
+        hisr hxs hts hbvs
+        (by intro q v vs hEq; cases hEq)
+    simpa [xSub, hHeadSub] using hApplyEq
+  have hSubstEq :
+      __substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp op) x) y) xs ts bvs =
+        __eo_mk_apply (__eo_mk_apply (Term.UOp op) xSub) ySub := by
+    have hApplyEq :=
+      SubstituteSupport.substitute_simul_rec_apply
+        (Term.Boolean false) (Term.Apply (Term.UOp op) x) y xs ts bvs
+        hisr hxs hts hbvs hNotBinder
+    simpa [ySub, hInnerSub] using hApplyEq
+  have hTyMk :
+      __eo_typeof
+          (__eo_mk_apply (__eo_mk_apply (Term.UOp op) xSub) ySub) ≠
+        Term.Stuck := by
+    rwa [hSubstEq] at hTy
+  have hOuterNe :
+      __eo_mk_apply (__eo_mk_apply (Term.UOp op) xSub) ySub ≠
+        Term.Stuck :=
+    instantiate_eo_mk_apply_ne_stuck_of_typeof_ne_stuck hTyMk
+  have hInnerNe :
+      __eo_mk_apply (Term.UOp op) xSub ≠ Term.Stuck :=
+    instantiate_eo_mk_apply_fun_ne_stuck_of_ne_stuck hOuterNe
+  have hInnerMk :
+      __eo_mk_apply (Term.UOp op) xSub =
+        Term.Apply (Term.UOp op) xSub :=
+    instantiate_eo_mk_apply_eq_apply_of_ne_stuck
+      (Term.UOp op) xSub hInnerNe
+  have hOuterMk :
+      __eo_mk_apply (Term.Apply (Term.UOp op) xSub) ySub =
+        Term.Apply (Term.Apply (Term.UOp op) xSub) ySub :=
+    instantiate_eo_mk_apply_eq_apply_of_ne_stuck
+      (Term.Apply (Term.UOp op) xSub) ySub (by
+        rw [← hInnerMk]
+        exact hOuterNe)
+  have hTyApply :
+      __eo_typeof (Term.Apply (Term.Apply (Term.UOp op) xSub) ySub) ≠
+        Term.Stuck := by
+    rwa [hInnerMk, hOuterMk] at hTyMk
+  have hFTransEo :
+      eoHasSmtTranslation (Term.Apply (Term.Apply (Term.UOp op) x) y) := by
+    simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+      using hFTrans
+  rcases hArgExtract hFTransEo with ⟨hXTransEo, hYTransEo⟩
+  have hXTrans : RuleProofs.eo_has_smt_translation x := by
+    simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+      using hXTransEo
+  have hYTrans : RuleProofs.eo_has_smt_translation y := by
+    simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+      using hYTransEo
+  rcases hArgTyNe xSub ySub hTyApply with ⟨hXSubTy, hYSubTy⟩
+  have hXSubBoth := hRecX hXTrans hXSubTy
+  have hYSubBoth := hRecY hYTrans hYSubTy
+  rw [hSubstEq, hInnerMk, hOuterMk]
+  exact
+    hBuild xSub ySub hXSubBoth.2 hYSubBoth.2
+      hXSubBoth.1 hYSubBoth.1 hTyApply
+
+theorem substitute_simul_ternary_op_preserves_type_and_translation_of_typeof_ne_stuck
+    (op : UserOp) (x y z xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hFTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) x) y) z))
+    (hTy :
+      __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) x) y) z)
+          xs ts bvs) ≠
+        Term.Stuck)
+    (hArgExtract :
+      eoHasSmtTranslation
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) x) y) z) ->
+        eoHasSmtTranslation x ∧
+          eoHasSmtTranslation y ∧
+            eoHasSmtTranslation z)
+    (hArgTyNe :
+      ∀ X Y Z,
+        __eo_typeof
+            (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) X) Y) Z) ≠
+          Term.Stuck ->
+        __eo_typeof X ≠ Term.Stuck ∧
+          __eo_typeof Y ≠ Term.Stuck ∧
+            __eo_typeof Z ≠ Term.Stuck)
+    (hTypeCong :
+      ∀ X₁ Y₁ Z₁ X₂ Y₂ Z₂,
+        __eo_typeof X₁ = __eo_typeof X₂ ->
+        __eo_typeof Y₁ = __eo_typeof Y₂ ->
+        __eo_typeof Z₁ = __eo_typeof Z₂ ->
+        __eo_typeof
+            (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) X₁) Y₁) Z₁) =
+          __eo_typeof
+            (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) X₂) Y₂) Z₂))
+    (hBuild :
+      ∀ X Y Z,
+        RuleProofs.eo_has_smt_translation X ->
+          RuleProofs.eo_has_smt_translation Y ->
+            RuleProofs.eo_has_smt_translation Z ->
+              __eo_typeof
+                  (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) X) Y) Z) ≠
+                Term.Stuck ->
+              RuleProofs.eo_has_smt_translation
+                (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) X) Y) Z))
+    (hRecX :
+      RuleProofs.eo_has_smt_translation x ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) =
+          __eo_typeof x ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs))
+    (hRecY :
+      RuleProofs.eo_has_smt_translation y ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) =
+          __eo_typeof y ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs))
+    (hRecZ :
+      RuleProofs.eo_has_smt_translation z ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) z xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) z xs ts bvs) =
+          __eo_typeof z ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) z xs ts bvs)) :
+    __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) x) y) z)
+          xs ts bvs) =
+      __eo_typeof
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) x) y) z) ∧
+      RuleProofs.eo_has_smt_translation
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) x) y) z)
+          xs ts bvs) := by
+  let xSub := __substitute_simul_rec (Term.Boolean false) x xs ts bvs
+  let ySub := __substitute_simul_rec (Term.Boolean false) y xs ts bvs
+  let zSub := __substitute_simul_rec (Term.Boolean false) z xs ts bvs
+  have hisr : (Term.Boolean false : Term) ≠ Term.Stuck := by decide
+  have hxs : xs ≠ Term.Stuck := hXsEnv.ne_stuck
+  have hts : ts ≠ Term.Stuck := eoListAllHaveSmtTranslation_ne_stuck hTs
+  have hbvs : bvs ≠ Term.Stuck := hBvsEnv.ne_stuck
+  have hFTransEo :
+      eoHasSmtTranslation
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) x) y) z) := by
+    simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+      using hFTrans
+  rcases hArgExtract hFTransEo with ⟨hXTransEo, hYTransEo, hZTransEo⟩
+  have hXTrans : RuleProofs.eo_has_smt_translation x := by
+    simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+      using hXTransEo
+  have hYTrans : RuleProofs.eo_has_smt_translation y := by
+    simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+      using hYTransEo
+  have hZTrans : RuleProofs.eo_has_smt_translation z := by
+    simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+      using hZTransEo
+  have hHeadSub :
+      __substitute_simul_rec (Term.Boolean false)
+          (Term.UOp op) xs ts bvs =
+        Term.UOp op :=
+    substitute_simul_rec_uop_eq_self op xs ts bvs hXsEnv hBvsEnv hTs
+  have hFirstSub :
+      __substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.UOp op) x) xs ts bvs =
+        __eo_mk_apply (Term.UOp op) xSub := by
+    have hApplyEq :=
+      SubstituteSupport.substitute_simul_rec_apply
+        (Term.Boolean false) (Term.UOp op) x xs ts bvs
+        hisr hxs hts hbvs
+        (by intro q v vs hEq; cases hEq)
+    simpa [xSub, hHeadSub] using hApplyEq
+  have hSecondNotBinder :
+      ∀ q v vs,
+        Term.Apply (Term.UOp op) x ≠
+          Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) := by
+    intro q v vs hEq
+    cases hEq
+    exact term_not_eo_list_cons_of_has_smt_translation hXTransEo v vs rfl
+  have hSecondSub :
+      __substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp op) x) y) xs ts bvs =
+        __eo_mk_apply (__eo_mk_apply (Term.UOp op) xSub) ySub := by
+    have hApplyEq :=
+      SubstituteSupport.substitute_simul_rec_apply
+        (Term.Boolean false) (Term.Apply (Term.UOp op) x) y xs ts bvs
+        hisr hxs hts hbvs hSecondNotBinder
+    simpa [ySub, hFirstSub] using hApplyEq
+  have hThirdNotBinder :
+      ∀ q v vs,
+        Term.Apply (Term.Apply (Term.UOp op) x) y ≠
+          Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) := by
+    intro q v vs hEq
+    cases hEq
+    exact term_not_eo_list_cons_of_has_smt_translation hYTransEo v vs rfl
+  have hSubstEq :
+      __substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) x) y) z)
+          xs ts bvs =
+        __eo_mk_apply
+          (__eo_mk_apply (__eo_mk_apply (Term.UOp op) xSub) ySub) zSub := by
+    have hApplyEq :=
+      SubstituteSupport.substitute_simul_rec_apply
+        (Term.Boolean false) (Term.Apply (Term.Apply (Term.UOp op) x) y)
+        z xs ts bvs hisr hxs hts hbvs hThirdNotBinder
+    simpa [zSub, hSecondSub] using hApplyEq
+  have hTyMk :
+      __eo_typeof
+          (__eo_mk_apply
+            (__eo_mk_apply (__eo_mk_apply (Term.UOp op) xSub) ySub)
+            zSub) ≠
+        Term.Stuck := by
+    rwa [hSubstEq] at hTy
+  have hOuterNe :
+      __eo_mk_apply
+          (__eo_mk_apply (__eo_mk_apply (Term.UOp op) xSub) ySub)
+          zSub ≠
+        Term.Stuck :=
+    instantiate_eo_mk_apply_ne_stuck_of_typeof_ne_stuck hTyMk
+  have hMidNe :
+      __eo_mk_apply (__eo_mk_apply (Term.UOp op) xSub) ySub ≠
+        Term.Stuck :=
+    instantiate_eo_mk_apply_fun_ne_stuck_of_ne_stuck hOuterNe
+  have hInnerNe :
+      __eo_mk_apply (Term.UOp op) xSub ≠ Term.Stuck :=
+    instantiate_eo_mk_apply_fun_ne_stuck_of_ne_stuck hMidNe
+  have hInnerMk :
+      __eo_mk_apply (Term.UOp op) xSub =
+        Term.Apply (Term.UOp op) xSub :=
+    instantiate_eo_mk_apply_eq_apply_of_ne_stuck
+      (Term.UOp op) xSub hInnerNe
+  have hMidMk :
+      __eo_mk_apply (Term.Apply (Term.UOp op) xSub) ySub =
+        Term.Apply (Term.Apply (Term.UOp op) xSub) ySub :=
+    instantiate_eo_mk_apply_eq_apply_of_ne_stuck
+      (Term.Apply (Term.UOp op) xSub) ySub (by
+        rw [← hInnerMk]
+        exact hMidNe)
+  have hOuterMk :
+      __eo_mk_apply
+          (Term.Apply (Term.Apply (Term.UOp op) xSub) ySub) zSub =
+        Term.Apply (Term.Apply (Term.Apply (Term.UOp op) xSub) ySub)
+          zSub :=
+    instantiate_eo_mk_apply_eq_apply_of_ne_stuck
+      (Term.Apply (Term.Apply (Term.UOp op) xSub) ySub) zSub (by
+        rw [← hMidMk, ← hInnerMk]
+        exact hOuterNe)
+  have hTyApply :
+      __eo_typeof
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) xSub) ySub)
+            zSub) ≠
+        Term.Stuck := by
+    rwa [hInnerMk, hMidMk, hOuterMk] at hTyMk
+  rcases hArgTyNe xSub ySub zSub hTyApply with
+    ⟨hXSubTy, hYSubTy, hZSubTy⟩
+  have hXSubBoth := hRecX hXTrans hXSubTy
+  have hYSubBoth := hRecY hYTrans hYSubTy
+  have hZSubBoth := hRecZ hZTrans hZSubTy
+  refine ⟨?_, ?_⟩
+  · rw [hSubstEq, hInnerMk, hMidMk, hOuterMk]
+    exact
+      hTypeCong xSub ySub zSub x y z
+        hXSubBoth.1 hYSubBoth.1 hZSubBoth.1
+  · rw [hSubstEq, hInnerMk, hMidMk, hOuterMk]
+    exact
+      hBuild xSub ySub zSub
+        hXSubBoth.2 hYSubBoth.2 hZSubBoth.2 hTyApply
+
+private theorem eo_typeof_ite_arg_types_of_ne_stuck
+    {C X Y : Term}
+    (h : __eo_typeof_ite C X Y ≠ Term.Stuck) :
+    C = Term.Bool ∧ X ≠ Term.Stuck ∧ Y ≠ Term.Stuck ∧ Y = X := by
+  cases C <;> cases X <;> cases Y <;>
+    simp_all [__eo_typeof_ite, __eo_requires, __eo_eq, native_ite,
+      native_teq]
+
+private theorem eo_typeof_bvite_arg_types_of_ne_stuck
+    {C X Y : Term}
+    (h : __eo_typeof_bvite C X Y ≠ Term.Stuck) :
+    C = Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral 1) ∧
+      X ≠ Term.Stuck ∧ Y ≠ Term.Stuck ∧ Y = X := by
+  have hXNN : X ≠ Term.Stuck := by
+    intro hX
+    subst X
+    exact h rfl
+  have hYNN : Y ≠ Term.Stuck := by
+    intro hY
+    subst Y
+    apply h
+    cases X <;> rfl
+  have hCTy :
+      C = Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral 1) := by
+    by_cases hCTy :
+        C = Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral 1)
+    · exact hCTy
+    · exfalso
+      apply h
+      cases X <;> try rfl
+      all_goals
+        cases Y <;> try rfl
+        all_goals
+          cases C <;> try rfl
+          rename_i f w
+          cases f <;> try rfl
+          rename_i op
+          cases op <;> try rfl
+          cases w <;> try rfl
+          rename_i n
+          by_cases hn : n = 1
+          · subst n
+            exact False.elim (hCTy rfl)
+          · simp [__eo_typeof_bvite, __eo_requires, __eo_eq, native_ite,
+              native_teq, native_not, hn]
+  have hReq :
+      __eo_requires (__eo_eq X Y) (Term.Boolean true) X ≠
+        Term.Stuck := by
+    rw [hCTy] at h
+    cases X <;> cases Y <;>
+      simp_all [__eo_typeof_bvite, __eo_requires, __eo_eq, native_ite,
+        native_teq]
+  have hYX : Y = X :=
+    support_eq_of_eo_eq_true X Y
+      (support_eo_requires_cond_eq_of_non_stuck hReq)
+  exact ⟨hCTy, hXNN, hYNN, hYX⟩
+
+private theorem eo_typeof_store_arg_types_of_ne_stuck
+    {A I E : Term}
+    (h : __eo_typeof_store A I E ≠ Term.Stuck) :
+    ∃ U T,
+      A = Term.Apply (Term.Apply (Term.UOp UserOp.Array) U) T ∧
+        I = U ∧ E = T ∧ I ≠ Term.Stuck ∧ E ≠ Term.Stuck := by
+  have hAShape :
+      ∃ U T, A = Term.Apply (Term.Apply (Term.UOp UserOp.Array) U) T := by
+    cases A <;> try
+      (exfalso
+       apply h
+       cases I <;> cases E <;> rfl)
+    case Apply f T =>
+      cases f <;> try
+        (exfalso
+         apply h
+         cases I <;> cases E <;> rfl)
+      case Apply g U =>
+        cases g <;> try
+          (exfalso
+           apply h
+           cases I <;> cases E <;> rfl)
+        case UOp op =>
+          cases op <;> try
+            (exfalso
+             apply h
+             cases I <;> cases E <;> rfl)
+          exact ⟨U, T, rfl⟩
+  rcases hAShape with ⟨U, T, hA⟩
+  have hReq :
+      __eo_requires (__eo_and (__eo_eq U I) (__eo_eq T E))
+          (Term.Boolean true)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.Array) U) T) ≠
+        Term.Stuck := by
+    rw [hA] at h
+    cases I <;> cases E <;>
+      simp_all [__eo_typeof_store]
+  have hAnd :
+      __eo_and (__eo_eq U I) (__eo_eq T E) = Term.Boolean true :=
+    support_eo_requires_cond_eq_of_non_stuck hReq
+  have hUI :
+      __eo_eq U I = Term.Boolean true :=
+    (eo_and_eq_true_cases hAnd).1
+  have hTE :
+      __eo_eq T E = Term.Boolean true :=
+    (eo_and_eq_true_cases hAnd).2
+  have hI : I = U :=
+    support_eq_of_eo_eq_true U I hUI
+  have hE : E = T :=
+    support_eq_of_eo_eq_true T E hTE
+  have hINN : I ≠ Term.Stuck := by
+    intro hStuck
+    rw [hStuck] at hUI
+    cases U <;> simp [__eo_eq] at hUI
+  have hENN : E ≠ Term.Stuck := by
+    intro hStuck
+    rw [hStuck] at hTE
+    cases T <;> simp [__eo_eq] at hTE
+  exact ⟨U, T, hA, hI, hE, hINN, hENN⟩
+
+private theorem eo_typeof_str_substr_arg_types_of_ne_stuck
+    {S I N : Term}
+    (h : __eo_typeof_str_substr S I N ≠ Term.Stuck) :
+    ∃ T,
+      S = Term.Apply (Term.UOp UserOp.Seq) T ∧
+        I = Term.UOp UserOp.Int ∧ N = Term.UOp UserOp.Int := by
+  cases S <;> try
+    (exfalso
+     apply h
+     cases I <;> cases N <;> rfl)
+  case Apply f T =>
+    cases f <;> try
+      (exfalso
+       apply h
+       cases I <;> cases N <;> rfl)
+    case UOp op =>
+      cases op <;> try
+        (exfalso
+         apply h
+         cases I <;> cases N <;> rfl)
+      case Seq =>
+        cases I <;> try
+          (exfalso
+           apply h
+           cases N <;> rfl)
+        case UOp opI =>
+          cases opI <;> try
+            (exfalso
+             apply h
+             cases N <;> rfl)
+          case Int =>
+            cases N <;> try
+              (exfalso
+               exact h rfl)
+            case UOp opN =>
+              cases opN <;> try
+                (exfalso
+                 exact h rfl)
+              case Int =>
+                exact ⟨T, rfl, rfl, rfl⟩
+
+private theorem substitute_simul_ite_preserves_type_and_translation_of_typeof_ne_stuck
+    (c x y xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hFTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) c) x) y))
+    (hTy :
+      __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) c) x) y)
+          xs ts bvs) ≠
+        Term.Stuck)
+    (hRecC :
+      RuleProofs.eo_has_smt_translation c ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) c xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) c xs ts bvs) =
+          __eo_typeof c ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) c xs ts bvs))
+    (hRecX :
+      RuleProofs.eo_has_smt_translation x ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) =
+          __eo_typeof x ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs))
+    (hRecY :
+      RuleProofs.eo_has_smt_translation y ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) =
+          __eo_typeof y ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs)) :
+    __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) c) x) y)
+          xs ts bvs) =
+      __eo_typeof
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) c) x) y) ∧
+      RuleProofs.eo_has_smt_translation
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) c) x) y)
+          xs ts bvs) := by
+  exact
+    substitute_simul_ternary_op_preserves_type_and_translation_of_typeof_ne_stuck
+      UserOp.ite c x y xs ts bvs hXsEnv hBvsEnv hTs hFTrans hTy
+      (fun h =>
+        ite_args_have_smt_translation_of_has_smt_translation h)
+      (fun C X Y hApp => by
+        change
+          __eo_typeof_ite (__eo_typeof C) (__eo_typeof X)
+              (__eo_typeof Y) ≠
+            Term.Stuck at hApp
+        rcases eo_typeof_ite_arg_types_of_ne_stuck hApp with
+          ⟨hC, hX, hY, _hYX⟩
+        constructor
+        · intro hCStuck
+          rw [hCStuck] at hC
+          cases hC
+        · exact ⟨hX, hY⟩)
+      (fun C₁ X₁ Y₁ C₂ X₂ Y₂ hC hX hY => by
+        change
+          __eo_typeof_ite (__eo_typeof C₁) (__eo_typeof X₁)
+              (__eo_typeof Y₁) =
+            __eo_typeof_ite (__eo_typeof C₂) (__eo_typeof X₂)
+              (__eo_typeof Y₂)
+        rw [hC, hX, hY])
+      (fun C X Y hCTrans hXTrans hYTrans hApp => by
+        unfold RuleProofs.eo_has_smt_translation
+        change
+          __smtx_typeof
+              (SmtTerm.ite (__eo_to_smt C) (__eo_to_smt X)
+                (__eo_to_smt Y)) ≠
+            SmtType.None
+        change
+          __eo_typeof_ite (__eo_typeof C) (__eo_typeof X)
+              (__eo_typeof Y) ≠
+            Term.Stuck at hApp
+        rcases eo_typeof_ite_arg_types_of_ne_stuck hApp with
+          ⟨hCTy, _hXNe, _hYNe, hYTy⟩
+        have hCSmt :
+            __smtx_typeof (__eo_to_smt C) = SmtType.Bool := by
+          have hMatch :=
+            TranslationProofs.eo_to_smt_typeof_matches_translation C hCTrans
+          rw [hCTy] at hMatch
+          exact hMatch
+        have hXSmt :=
+          TranslationProofs.eo_to_smt_typeof_matches_translation X hXTrans
+        have hYSmt :=
+          TranslationProofs.eo_to_smt_typeof_matches_translation Y hYTrans
+        have hXNN :
+            __eo_to_smt_type (__eo_typeof X) ≠ SmtType.None :=
+          eo_to_smt_typeof_ne_none_of_has_smt_translation X hXTrans
+        rw [typeof_ite_eq, hCSmt, hXSmt, hYSmt, hYTy]
+        simpa [__smtx_typeof_ite, native_ite, native_Teq] using hXNN)
+      hRecC hRecX hRecY
+
+private theorem substitute_simul_bvite_preserves_type_and_translation_of_typeof_ne_stuck
+    (c x y xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hFTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.bvite) c) x) y))
+    (hTy :
+      __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.bvite) c) x) y)
+          xs ts bvs) ≠
+        Term.Stuck)
+    (hRecC :
+      RuleProofs.eo_has_smt_translation c ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) c xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) c xs ts bvs) =
+          __eo_typeof c ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) c xs ts bvs))
+    (hRecX :
+      RuleProofs.eo_has_smt_translation x ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) =
+          __eo_typeof x ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs))
+    (hRecY :
+      RuleProofs.eo_has_smt_translation y ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) =
+          __eo_typeof y ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs)) :
+    __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.bvite) c) x) y)
+          xs ts bvs) =
+      __eo_typeof
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.bvite) c) x) y) ∧
+      RuleProofs.eo_has_smt_translation
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.bvite) c) x) y)
+          xs ts bvs) := by
+  exact
+    substitute_simul_ternary_op_preserves_type_and_translation_of_typeof_ne_stuck
+      UserOp.bvite c x y xs ts bvs hXsEnv hBvsEnv hTs hFTrans hTy
+      (fun h =>
+        bvite_args_have_smt_translation_of_has_smt_translation h)
+      (fun C X Y hApp => by
+        change
+          __eo_typeof_bvite (__eo_typeof C) (__eo_typeof X)
+              (__eo_typeof Y) ≠
+            Term.Stuck at hApp
+        rcases eo_typeof_bvite_arg_types_of_ne_stuck hApp with
+          ⟨hC, hX, hY, _hYX⟩
+        constructor
+        · intro hCStuck
+          rw [hCStuck] at hC
+          cases hC
+        · exact ⟨hX, hY⟩)
+      (fun C₁ X₁ Y₁ C₂ X₂ Y₂ hC hX hY => by
+        change
+          __eo_typeof_bvite (__eo_typeof C₁) (__eo_typeof X₁)
+              (__eo_typeof Y₁) =
+            __eo_typeof_bvite (__eo_typeof C₂) (__eo_typeof X₂)
+              (__eo_typeof Y₂)
+        rw [hC, hX, hY])
+      (fun C X Y hCTrans hXTrans hYTrans hApp => by
+        unfold RuleProofs.eo_has_smt_translation
+        change
+          __smtx_typeof
+              (SmtTerm.ite
+                (SmtTerm.eq (__eo_to_smt C) (SmtTerm.Binary 1 1))
+                (__eo_to_smt X) (__eo_to_smt Y)) ≠
+            SmtType.None
+        change
+          __eo_typeof_bvite (__eo_typeof C) (__eo_typeof X)
+              (__eo_typeof Y) ≠
+            Term.Stuck at hApp
+        rcases eo_typeof_bvite_arg_types_of_ne_stuck hApp with
+          ⟨hCTy, _hXNe, _hYNe, hYTy⟩
+        have hCSmt :
+            __smtx_typeof (__eo_to_smt C) = SmtType.BitVec 1 := by
+          have hMatch :=
+            TranslationProofs.eo_to_smt_typeof_matches_translation C hCTrans
+          rw [hCTy] at hMatch
+          simpa [__eo_to_smt_type, native_ite] using hMatch
+        have hCondTy :
+            __smtx_typeof
+                (SmtTerm.eq (__eo_to_smt C) (SmtTerm.Binary 1 1)) =
+              SmtType.Bool := by
+          rw [typeof_eq_eq, hCSmt, smt_typeof_binary_one_one]
+          simp [__smtx_typeof_eq, __smtx_typeof_guard, native_ite,
+            native_Teq]
+        have hXSmt :=
+          TranslationProofs.eo_to_smt_typeof_matches_translation X hXTrans
+        have hYSmt :=
+          TranslationProofs.eo_to_smt_typeof_matches_translation Y hYTrans
+        have hXNN :
+            __eo_to_smt_type (__eo_typeof X) ≠ SmtType.None :=
+          eo_to_smt_typeof_ne_none_of_has_smt_translation X hXTrans
+        rw [typeof_ite_eq, hCondTy, hXSmt, hYSmt, hYTy]
+        simpa [__smtx_typeof_ite, native_ite, native_Teq] using hXNN)
+      hRecC hRecX hRecY
+
+private theorem substitute_simul_store_preserves_type_and_translation_of_typeof_ne_stuck
+    (arr idx val xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hFTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.store) arr) idx)
+          val))
+    (hTy :
+      __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.store) arr) idx)
+            val)
+          xs ts bvs) ≠
+        Term.Stuck)
+    (hRecArr :
+      RuleProofs.eo_has_smt_translation arr ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) arr xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) arr xs ts bvs) =
+          __eo_typeof arr ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) arr xs ts bvs))
+    (hRecIdx :
+      RuleProofs.eo_has_smt_translation idx ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) idx xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) idx xs ts bvs) =
+          __eo_typeof idx ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) idx xs ts bvs))
+    (hRecVal :
+      RuleProofs.eo_has_smt_translation val ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) val xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) val xs ts bvs) =
+          __eo_typeof val ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) val xs ts bvs)) :
+    __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.store) arr) idx)
+            val)
+          xs ts bvs) =
+      __eo_typeof
+        (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.store) arr) idx)
+          val) ∧
+      RuleProofs.eo_has_smt_translation
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.store) arr) idx)
+            val)
+          xs ts bvs) := by
+  exact
+    substitute_simul_ternary_op_preserves_type_and_translation_of_typeof_ne_stuck
+      UserOp.store arr idx val xs ts bvs hXsEnv hBvsEnv hTs hFTrans hTy
+      (fun h =>
+        store_args_have_smt_translation_of_has_smt_translation h)
+      (fun A I E hApp => by
+        change
+          __eo_typeof_store (__eo_typeof A) (__eo_typeof I)
+              (__eo_typeof E) ≠
+            Term.Stuck at hApp
+        rcases eo_typeof_store_arg_types_of_ne_stuck hApp with
+          ⟨U, T, hA, _hI, _hE, hINN, hENN⟩
+        constructor
+        · intro hAStuck
+          rw [hAStuck] at hA
+          cases hA
+        · exact ⟨hINN, hENN⟩)
+      (fun A₁ I₁ E₁ A₂ I₂ E₂ hA hI hE => by
+        change
+          __eo_typeof_store (__eo_typeof A₁) (__eo_typeof I₁)
+              (__eo_typeof E₁) =
+            __eo_typeof_store (__eo_typeof A₂) (__eo_typeof I₂)
+              (__eo_typeof E₂)
+        rw [hA, hI, hE])
+      (fun A I E hATrans hITrans hETrans hApp => by
+        unfold RuleProofs.eo_has_smt_translation
+        change
+          __smtx_typeof
+              (SmtTerm.store (__eo_to_smt A) (__eo_to_smt I)
+                (__eo_to_smt E)) ≠
+            SmtType.None
+        change
+          __eo_typeof_store (__eo_typeof A) (__eo_typeof I)
+              (__eo_typeof E) ≠
+            Term.Stuck at hApp
+        rcases eo_typeof_store_arg_types_of_ne_stuck hApp with
+          ⟨U, T, hATy, hITy, hETy, _hINN, _hENN⟩
+        have hASmt :
+            __smtx_typeof (__eo_to_smt A) =
+              __eo_to_smt_type
+                (Term.Apply (Term.Apply (Term.UOp UserOp.Array) U) T) := by
+          have hMatch :=
+            TranslationProofs.eo_to_smt_typeof_matches_translation A hATrans
+          rw [hATy] at hMatch
+          exact hMatch
+        have hISmt :
+            __smtx_typeof (__eo_to_smt I) = __eo_to_smt_type U := by
+          have hMatch :=
+            TranslationProofs.eo_to_smt_typeof_matches_translation I hITrans
+          rw [hITy] at hMatch
+          exact hMatch
+        have hESmt :
+            __smtx_typeof (__eo_to_smt E) = __eo_to_smt_type T := by
+          have hMatch :=
+            TranslationProofs.eo_to_smt_typeof_matches_translation E hETrans
+          rw [hETy] at hMatch
+          exact hMatch
+        have hArrayNN :
+            __eo_to_smt_type
+                (Term.Apply (Term.Apply (Term.UOp UserOp.Array) U) T) ≠
+              SmtType.None := by
+          simpa [hATy] using
+            eo_to_smt_typeof_ne_none_of_has_smt_translation A hATrans
+        have hArraySmt :
+            __eo_to_smt_type
+                (Term.Apply (Term.Apply (Term.UOp UserOp.Array) U) T) =
+              SmtType.Map (__eo_to_smt_type U) (__eo_to_smt_type T) := by
+          cases hUSmt : __eo_to_smt_type U <;>
+            cases hTSmt : __eo_to_smt_type T <;>
+            simp [TranslationProofs.eo_to_smt_type_array,
+              __smtx_typeof_guard, native_ite, native_and, native_Teq,
+              hUSmt, hTSmt] at hArrayNN ⊢
+        rw [typeof_store_eq, hASmt, hISmt, hESmt, hArraySmt]
+        simp [__smtx_typeof_store, native_ite, native_Teq])
+      hRecArr hRecIdx hRecVal
+
+private theorem substitute_simul_str_substr_preserves_type_and_translation_of_typeof_ne_stuck
+    (s start len xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hFTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) s) start)
+          len))
+    (hTy :
+      __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) s) start)
+            len)
+          xs ts bvs) ≠
+        Term.Stuck)
+    (hRecS :
+      RuleProofs.eo_has_smt_translation s ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) s xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) s xs ts bvs) =
+          __eo_typeof s ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) s xs ts bvs))
+    (hRecStart :
+      RuleProofs.eo_has_smt_translation start ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) start xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) start xs ts bvs) =
+          __eo_typeof start ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) start xs ts bvs))
+    (hRecLen :
+      RuleProofs.eo_has_smt_translation len ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) len xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) len xs ts bvs) =
+          __eo_typeof len ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) len xs ts bvs)) :
+    __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) s) start)
+            len)
+          xs ts bvs) =
+      __eo_typeof
+        (Term.Apply
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) s) start)
+          len) ∧
+      RuleProofs.eo_has_smt_translation
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply
+            (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) s) start)
+            len)
+          xs ts bvs) := by
+  exact
+    substitute_simul_ternary_op_preserves_type_and_translation_of_typeof_ne_stuck
+      UserOp.str_substr s start len xs ts bvs hXsEnv hBvsEnv hTs hFTrans hTy
+      (fun h =>
+        apply_apply_apply_uop_args_have_smt_translation_of_smt_triop_non_none
+          (eoOp := UserOp.str_substr) (smtOp := SmtTerm.str_substr)
+          (by rfl) str_substr_args_have_smt_translation_of_non_none h)
+      (fun S I N hApp => by
+        change
+          __eo_typeof_str_substr (__eo_typeof S) (__eo_typeof I)
+              (__eo_typeof N) ≠
+            Term.Stuck at hApp
+        rcases eo_typeof_str_substr_arg_types_of_ne_stuck hApp with
+          ⟨T, hS, hI, hN⟩
+        constructor
+        · intro hSStuck
+          rw [hSStuck] at hS
+          cases hS
+        · constructor
+          · intro hIStuck
+            rw [hIStuck] at hI
+            cases hI
+          · intro hNStuck
+            rw [hNStuck] at hN
+            cases hN)
+      (fun S₁ I₁ N₁ S₂ I₂ N₂ hS hI hN => by
+        change
+          __eo_typeof_str_substr (__eo_typeof S₁) (__eo_typeof I₁)
+              (__eo_typeof N₁) =
+            __eo_typeof_str_substr (__eo_typeof S₂) (__eo_typeof I₂)
+              (__eo_typeof N₂)
+        rw [hS, hI, hN])
+      (fun S I N hSTrans hITrans hNTrans hApp => by
+        unfold RuleProofs.eo_has_smt_translation
+        change
+          __smtx_typeof
+              (SmtTerm.str_substr (__eo_to_smt S) (__eo_to_smt I)
+                (__eo_to_smt N)) ≠
+            SmtType.None
+        change
+          __eo_typeof_str_substr (__eo_typeof S) (__eo_typeof I)
+              (__eo_typeof N) ≠
+            Term.Stuck at hApp
+        rcases eo_typeof_str_substr_arg_types_of_ne_stuck hApp with
+          ⟨T, hSTy, hITy, hNTy⟩
+        have hSSmt :
+            __smtx_typeof (__eo_to_smt S) =
+              __eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) T) := by
+          have hMatch :=
+            TranslationProofs.eo_to_smt_typeof_matches_translation S hSTrans
+          rw [hSTy] at hMatch
+          exact hMatch
+        have hISmt :
+            __smtx_typeof (__eo_to_smt I) = SmtType.Int := by
+          have hMatch :=
+            TranslationProofs.eo_to_smt_typeof_matches_translation I hITrans
+          rw [hITy] at hMatch
+          simpa using hMatch
+        have hNSmt :
+            __smtx_typeof (__eo_to_smt N) = SmtType.Int := by
+          have hMatch :=
+            TranslationProofs.eo_to_smt_typeof_matches_translation N hNTrans
+          rw [hNTy] at hMatch
+          simpa using hMatch
+        have hSeqNN :
+            __eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) T) ≠
+              SmtType.None := by
+          simpa [hSTy] using
+            eo_to_smt_typeof_ne_none_of_has_smt_translation S hSTrans
+        have hSeqSmt :
+            __eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) T) =
+              SmtType.Seq (__eo_to_smt_type T) := by
+          cases hTSmt : __eo_to_smt_type T <;>
+            simp [TranslationProofs.eo_to_smt_type_seq,
+              __smtx_typeof_guard, native_ite, native_Teq, hTSmt] at hSeqNN ⊢
+        rw [typeof_str_substr_eq, hSSmt, hISmt, hNSmt, hSeqSmt]
+        simp [__smtx_typeof_str_substr])
+      hRecS hRecStart hRecLen
+
+private theorem substitute_simul_re_range_preserves_type_and_translation_of_typeof_ne_stuck
+    (x y xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hNotBinder :
+      ∀ q v vs,
+        Term.Apply (Term.UOp UserOp.re_range) x ≠
+          Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+    (hFTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.re_range) x) y))
+    (hTy :
+      __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.re_range) x) y) xs ts bvs) ≠
+        Term.Stuck)
+    (hRecX :
+      RuleProofs.eo_has_smt_translation x ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) =
+          __eo_typeof x ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs))
+    (hRecY :
+      RuleProofs.eo_has_smt_translation y ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) =
+          __eo_typeof y ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs)) :
+    __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.re_range) x) y) xs ts bvs) =
+      __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.re_range) x) y) ∧
+      RuleProofs.eo_has_smt_translation
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.re_range) x) y) xs ts bvs) := by
+  exact
+    substitute_simul_binary_op_preserves_type_and_translation_of_typeof_ne_stuck
+      UserOp.re_range x y xs ts bvs hXsEnv hBvsEnv hTs hNotBinder
+      hFTrans hTy
+      (fun h =>
+        apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+          (eoOp := UserOp.re_range) (smtOp := SmtTerm.re_range)
+          (by rfl)
+          (fun hNN =>
+            seq_char_binop_args_have_smt_translation_of_non_none
+              (ret := SmtType.RegLan)
+              (typeof_re_range_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+          h)
+      (fun X Y hApp => by
+        change __eo_typeof_re_range (__eo_typeof X) (__eo_typeof Y) ≠
+          Term.Stuck at hApp
+        exact eo_typeof_re_range_args_not_stuck_of_ne_stuck hApp)
+      (fun X₁ Y₁ X₂ Y₂ hX hY => by
+        change
+          __eo_typeof_re_range (__eo_typeof X₁) (__eo_typeof X₂) =
+            __eo_typeof_re_range (__eo_typeof Y₁) (__eo_typeof Y₂)
+        rw [hX, hY])
+      (fun X Y hXTrans hYTrans hApp => by
+        unfold RuleProofs.eo_has_smt_translation
+        change
+          __smtx_typeof
+              (SmtTerm.re_range (__eo_to_smt X) (__eo_to_smt Y)) ≠
+            SmtType.None
+        change __eo_typeof_re_range (__eo_typeof X) (__eo_typeof Y) ≠
+          Term.Stuck at hApp
+        exact
+          smt_re_range_non_none_of_eo_typeof_re_range_ne_stuck
+            X Y hXTrans hYTrans hApp)
+      hRecX hRecY
+
+private theorem substitute_simul_reglan_binop_preserves_type_and_translation_of_typeof_ne_stuck
+    (op : UserOp) (smtOp : SmtTerm -> SmtTerm -> SmtTerm)
+    (x y xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hNotBinder :
+      ∀ q v vs,
+        Term.Apply (Term.UOp op) x ≠
+          Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+    (hFTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.Apply (Term.UOp op) x) y))
+    (hTy :
+      __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp op) x) y) xs ts bvs) ≠
+        Term.Stuck)
+    (hTranslate :
+      ∀ X Y,
+        __eo_to_smt (Term.Apply (Term.Apply (Term.UOp op) X) Y) =
+          smtOp (__eo_to_smt X) (__eo_to_smt Y))
+    (hSmtType :
+      ∀ X Y,
+        __smtx_typeof (smtOp X Y) =
+          native_ite (native_Teq (__smtx_typeof X) SmtType.RegLan)
+            (native_ite (native_Teq (__smtx_typeof Y) SmtType.RegLan)
+              SmtType.RegLan SmtType.None)
+            SmtType.None)
+    (hEoType :
+      ∀ X Y,
+        __eo_typeof (Term.Apply (Term.Apply (Term.UOp op) X) Y) =
+          __eo_typeof_re_concat (__eo_typeof X) (__eo_typeof Y))
+    (hRecX :
+      RuleProofs.eo_has_smt_translation x ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) =
+          __eo_typeof x ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs))
+    (hRecY :
+      RuleProofs.eo_has_smt_translation y ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) =
+          __eo_typeof y ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs)) :
+    __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp op) x) y) xs ts bvs) =
+      __eo_typeof (Term.Apply (Term.Apply (Term.UOp op) x) y) ∧
+      RuleProofs.eo_has_smt_translation
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp op) x) y) xs ts bvs) := by
+  exact
+    substitute_simul_binary_op_preserves_type_and_translation_of_typeof_ne_stuck
+      op x y xs ts bvs hXsEnv hBvsEnv hTs hNotBinder hFTrans hTy
+      (fun h =>
+        apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+          (eoOp := op) (smtOp := smtOp)
+          (hTranslate x y)
+          (fun hNN =>
+            reglan_binop_args_have_smt_translation_of_non_none
+              (hSmtType (__eo_to_smt x) (__eo_to_smt y)) hNN)
+          h)
+      (fun X Y hApp => by
+        rw [hEoType X Y] at hApp
+        exact eo_typeof_re_concat_args_not_stuck_of_ne_stuck hApp)
+      (fun X₁ Y₁ X₂ Y₂ hX hY => by
+        rw [hEoType X₁ X₂, hEoType Y₁ Y₂]
+        rw [hX, hY])
+      (fun X Y hXTrans hYTrans hApp => by
+        unfold RuleProofs.eo_has_smt_translation
+        rw [hTranslate X Y]
+        rw [hEoType X Y] at hApp
+        exact
+          smt_reglan_binop_non_none_of_eo_typeof_re_concat_ne_stuck
+            smtOp hSmtType X Y hXTrans hYTrans hApp)
+      hRecX hRecY
+
+private theorem substitute_simul_str_in_re_preserves_type_and_translation_of_typeof_ne_stuck
+    (x y xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hNotBinder :
+      ∀ q v vs,
+        Term.Apply (Term.UOp UserOp.str_in_re) x ≠
+          Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+    (hFTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) x) y))
+    (hTy :
+      __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) x) y) xs ts bvs) ≠
+        Term.Stuck)
+    (hRecX :
+      RuleProofs.eo_has_smt_translation x ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) =
+          __eo_typeof x ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs))
+    (hRecY :
+      RuleProofs.eo_has_smt_translation y ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) =
+          __eo_typeof y ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs)) :
+    __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) x) y) xs ts bvs) =
+      __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) x) y) ∧
+      RuleProofs.eo_has_smt_translation
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) x) y) xs ts bvs) := by
+  exact
+    substitute_simul_binary_op_preserves_type_and_translation_of_typeof_ne_stuck
+      UserOp.str_in_re x y xs ts bvs hXsEnv hBvsEnv hTs hNotBinder
+      hFTrans hTy
+      (fun h =>
+        apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+          (eoOp := UserOp.str_in_re) (smtOp := SmtTerm.str_in_re)
+          (by rfl)
+          (fun hNN =>
+            seq_char_reglan_args_have_smt_translation_of_non_none
+              (ret := SmtType.Bool)
+              (typeof_str_in_re_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+          h)
+      (fun X Y hApp => by
+        change __eo_typeof_str_in_re (__eo_typeof X) (__eo_typeof Y) ≠
+          Term.Stuck at hApp
+        exact eo_typeof_str_in_re_args_not_stuck_of_ne_stuck hApp)
+      (fun X₁ Y₁ X₂ Y₂ hX hY => by
+        change
+          __eo_typeof_str_in_re (__eo_typeof X₁) (__eo_typeof X₂) =
+            __eo_typeof_str_in_re (__eo_typeof Y₁) (__eo_typeof Y₂)
+        rw [hX, hY])
+      (fun X Y hXTrans hYTrans hApp => by
+        unfold RuleProofs.eo_has_smt_translation
+        change
+          __smtx_typeof
+              (SmtTerm.str_in_re (__eo_to_smt X) (__eo_to_smt Y)) ≠
+            SmtType.None
+        change __eo_typeof_str_in_re (__eo_typeof X) (__eo_typeof Y) ≠
+          Term.Stuck at hApp
+        exact
+          smt_str_in_re_non_none_of_eo_typeof_str_in_re_ne_stuck
+            X Y hXTrans hYTrans hApp)
+      hRecX hRecY
+
+private theorem substitute_simul_seq_nth_preserves_type_and_translation_of_typeof_ne_stuck
+    (x y xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hNotBinder :
+      ∀ q v vs,
+        Term.Apply (Term.UOp UserOp.seq_nth) x ≠
+          Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+    (hFTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.seq_nth) x) y))
+    (hTy :
+      __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.seq_nth) x) y) xs ts bvs) ≠
+        Term.Stuck)
+    (hRecX :
+      RuleProofs.eo_has_smt_translation x ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) =
+          __eo_typeof x ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs))
+    (hRecY :
+      RuleProofs.eo_has_smt_translation y ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) =
+          __eo_typeof y ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs)) :
+    __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.seq_nth) x) y) xs ts bvs) =
+      __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.seq_nth) x) y) ∧
+      RuleProofs.eo_has_smt_translation
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.seq_nth) x) y) xs ts bvs) := by
+  exact
+    substitute_simul_binary_op_preserves_type_and_translation_of_typeof_ne_stuck
+      UserOp.seq_nth x y xs ts bvs hXsEnv hBvsEnv hTs hNotBinder
+      hFTrans hTy
+      (fun h =>
+        apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+          (eoOp := UserOp.seq_nth) (smtOp := SmtTerm.seq_nth)
+          (by rfl)
+          (fun hNN =>
+            seq_nth_args_have_smt_translation_of_non_none hNN)
+          h)
+      (fun X Y hApp => by
+        change __eo_typeof_seq_nth (__eo_typeof X) (__eo_typeof Y) ≠
+          Term.Stuck at hApp
+        exact eo_typeof_seq_nth_args_not_stuck_of_ne_stuck hApp)
+      (fun X₁ Y₁ X₂ Y₂ hX hY => by
+        change
+          __eo_typeof_seq_nth (__eo_typeof X₁) (__eo_typeof X₂) =
+            __eo_typeof_seq_nth (__eo_typeof Y₁) (__eo_typeof Y₂)
+        rw [hX, hY])
+      (fun X Y hXTrans hYTrans hApp => by
+        unfold RuleProofs.eo_has_smt_translation
+        change
+          __smtx_typeof
+              (SmtTerm.seq_nth (__eo_to_smt X) (__eo_to_smt Y)) ≠
+            SmtType.None
+        change __eo_typeof_seq_nth (__eo_typeof X) (__eo_typeof Y) ≠
+          Term.Stuck at hApp
+        exact
+          smt_seq_nth_non_none_of_eo_typeof_seq_nth_ne_stuck
+            X Y hXTrans hYTrans hApp)
+      hRecX hRecY
+
+private theorem substitute_simul_set_binop_preserves_type_and_translation_of_typeof_ne_stuck
+    (op : UserOp) (smtOp : SmtTerm -> SmtTerm -> SmtTerm)
+    (x y xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hNotBinder :
+      ∀ q v vs,
+        Term.Apply (Term.UOp op) x ≠
+          Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+    (hFTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.Apply (Term.UOp op) x) y))
+    (hTy :
+      __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp op) x) y) xs ts bvs) ≠
+        Term.Stuck)
+    (hTranslate :
+      ∀ X Y,
+        __eo_to_smt (Term.Apply (Term.Apply (Term.UOp op) X) Y) =
+          smtOp (__eo_to_smt X) (__eo_to_smt Y))
+    (hSmtType :
+      ∀ X Y,
+        __smtx_typeof (smtOp X Y) =
+          __smtx_typeof_sets_op_2
+            (__smtx_typeof X) (__smtx_typeof Y))
+    (hEoType :
+      ∀ X Y,
+        __eo_typeof (Term.Apply (Term.Apply (Term.UOp op) X) Y) =
+          __eo_typeof_set_union (__eo_typeof X) (__eo_typeof Y))
+    (hRecX :
+      RuleProofs.eo_has_smt_translation x ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) =
+          __eo_typeof x ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs))
+    (hRecY :
+      RuleProofs.eo_has_smt_translation y ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) =
+          __eo_typeof y ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs)) :
+    __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp op) x) y) xs ts bvs) =
+      __eo_typeof (Term.Apply (Term.Apply (Term.UOp op) x) y) ∧
+      RuleProofs.eo_has_smt_translation
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp op) x) y) xs ts bvs) := by
+  exact
+    substitute_simul_binary_op_preserves_type_and_translation_of_typeof_ne_stuck
+      op x y xs ts bvs hXsEnv hBvsEnv hTs hNotBinder hFTrans hTy
+      (fun h =>
+        apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+          (eoOp := op) (smtOp := smtOp)
+          (hTranslate x y)
+          (fun hNN =>
+            set_binop_args_have_smt_translation_of_non_none
+              (hSmtType (__eo_to_smt x) (__eo_to_smt y)) hNN)
+          h)
+      (fun X Y hApp => by
+        rw [hEoType X Y] at hApp
+        exact eo_typeof_set_union_args_not_stuck_of_ne_stuck hApp)
+      (fun X₁ Y₁ X₂ Y₂ hX hY => by
+        rw [hEoType X₁ X₂, hEoType Y₁ Y₂]
+        rw [hX, hY])
+      (fun X Y hXTrans hYTrans hApp => by
+        unfold RuleProofs.eo_has_smt_translation
+        rw [hTranslate X Y]
+        rw [hEoType X Y] at hApp
+        exact
+          smt_set_binop_non_none_of_eo_typeof_set_union_ne_stuck
+            smtOp hSmtType X Y hXTrans hYTrans hApp)
+      hRecX hRecY
+
+private theorem substitute_simul_set_member_preserves_type_and_translation_of_typeof_ne_stuck
+    (x y xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hNotBinder :
+      ∀ q v vs,
+        Term.Apply (Term.UOp UserOp.set_member) x ≠
+          Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+    (hFTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.set_member) x) y))
+    (hTy :
+      __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.set_member) x) y) xs ts bvs) ≠
+        Term.Stuck)
+    (hRecX :
+      RuleProofs.eo_has_smt_translation x ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) =
+          __eo_typeof x ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs))
+    (hRecY :
+      RuleProofs.eo_has_smt_translation y ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) =
+          __eo_typeof y ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs)) :
+    __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.set_member) x) y) xs ts bvs) =
+      __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.set_member) x) y) ∧
+      RuleProofs.eo_has_smt_translation
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.set_member) x) y) xs ts bvs) := by
+  exact
+    substitute_simul_binary_op_preserves_type_and_translation_of_typeof_ne_stuck
+      UserOp.set_member x y xs ts bvs hXsEnv hBvsEnv hTs hNotBinder
+      hFTrans hTy
+      (fun h =>
+        apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+          (eoOp := UserOp.set_member) (smtOp := SmtTerm.set_member)
+          (by rfl)
+          (fun hNN =>
+            set_member_args_have_smt_translation_of_non_none hNN)
+          h)
+      (fun X Y hApp => by
+        change __eo_typeof_set_member (__eo_typeof X) (__eo_typeof Y) ≠
+          Term.Stuck at hApp
+        exact eo_typeof_set_member_args_not_stuck_of_ne_stuck hApp)
+      (fun X₁ Y₁ X₂ Y₂ hX hY => by
+        change
+          __eo_typeof_set_member (__eo_typeof X₁) (__eo_typeof X₂) =
+            __eo_typeof_set_member (__eo_typeof Y₁) (__eo_typeof Y₂)
+        rw [hX, hY])
+      (fun X Y hXTrans hYTrans hApp => by
+        unfold RuleProofs.eo_has_smt_translation
+        change
+          __smtx_typeof
+              (SmtTerm.set_member (__eo_to_smt X) (__eo_to_smt Y)) ≠
+            SmtType.None
+        change __eo_typeof_set_member (__eo_typeof X) (__eo_typeof Y) ≠
+          Term.Stuck at hApp
+        exact
+          smt_set_member_non_none_of_eo_typeof_set_member_ne_stuck
+            X Y hXTrans hYTrans hApp)
+      hRecX hRecY
+
+private theorem substitute_simul_set_subset_preserves_type_and_translation_of_typeof_ne_stuck
+    (x y xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hNotBinder :
+      ∀ q v vs,
+        Term.Apply (Term.UOp UserOp.set_subset) x ≠
+          Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+    (hFTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.set_subset) x) y))
+    (hTy :
+      __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.set_subset) x) y) xs ts bvs) ≠
+        Term.Stuck)
+    (hRecX :
+      RuleProofs.eo_has_smt_translation x ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) =
+          __eo_typeof x ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs))
+    (hRecY :
+      RuleProofs.eo_has_smt_translation y ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) =
+          __eo_typeof y ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs)) :
+    __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.set_subset) x) y) xs ts bvs) =
+      __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.set_subset) x) y) ∧
+      RuleProofs.eo_has_smt_translation
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.set_subset) x) y) xs ts bvs) := by
+  exact
+    substitute_simul_binary_op_preserves_type_and_translation_of_typeof_ne_stuck
+      UserOp.set_subset x y xs ts bvs hXsEnv hBvsEnv hTs hNotBinder
+      hFTrans hTy
+      (fun h =>
+        apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+          (eoOp := UserOp.set_subset) (smtOp := SmtTerm.set_subset)
+          (by rfl)
+          (fun hNN =>
+            set_binop_ret_args_have_smt_translation_of_non_none
+              (ret := SmtType.Bool)
+              (typeof_set_subset_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
+          h)
+      (fun X Y hApp => by
+        change __eo_typeof_set_subset (__eo_typeof X) (__eo_typeof Y) ≠
+          Term.Stuck at hApp
+        exact eo_typeof_set_subset_args_not_stuck_of_ne_stuck hApp)
+      (fun X₁ Y₁ X₂ Y₂ hX hY => by
+        change
+          __eo_typeof_set_subset (__eo_typeof X₁) (__eo_typeof X₂) =
+            __eo_typeof_set_subset (__eo_typeof Y₁) (__eo_typeof Y₂)
+        rw [hX, hY])
+      (fun X Y hXTrans hYTrans hApp => by
+        unfold RuleProofs.eo_has_smt_translation
+        change
+          __smtx_typeof
+              (SmtTerm.set_subset (__eo_to_smt X) (__eo_to_smt Y)) ≠
+            SmtType.None
+        change __eo_typeof_set_subset (__eo_typeof X) (__eo_typeof Y) ≠
+          Term.Stuck at hApp
+        exact
+          smt_set_subset_non_none_of_eo_typeof_set_subset_ne_stuck
+            X Y hXTrans hYTrans hApp)
+      hRecX hRecY
+
+private theorem substitute_simul_array_deq_diff_preserves_type_and_translation_of_typeof_ne_stuck
+    (x y xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hNotBinder :
+      ∀ q v vs,
+        Term.Apply (Term.UOp UserOp._at_array_deq_diff) x ≠
+          Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+    (hFTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.Apply (Term.UOp UserOp._at_array_deq_diff) x) y))
+    (hTy :
+      __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp UserOp._at_array_deq_diff) x) y)
+          xs ts bvs) ≠
+        Term.Stuck)
+    (hRecX :
+      RuleProofs.eo_has_smt_translation x ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) =
+          __eo_typeof x ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs))
+    (hRecY :
+      RuleProofs.eo_has_smt_translation y ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) =
+          __eo_typeof y ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs)) :
+    __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp UserOp._at_array_deq_diff) x) y)
+          xs ts bvs) =
+      __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp._at_array_deq_diff) x) y) ∧
+      RuleProofs.eo_has_smt_translation
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp UserOp._at_array_deq_diff) x) y)
+          xs ts bvs) := by
+  exact
+    substitute_simul_binary_op_preserves_type_and_translation_of_typeof_ne_stuck
+      UserOp._at_array_deq_diff x y xs ts bvs hXsEnv hBvsEnv hTs
+      hNotBinder hFTrans hTy
+      (fun h => array_deq_diff_args_have_smt_translation_of_has_smt_translation h)
+      (fun X Y hApp => by
+        change
+          __eo_typeof__at_array_deq_diff (__eo_typeof X) (__eo_typeof Y) ≠
+            Term.Stuck at hApp
+        exact eo_typeof_array_deq_diff_args_not_stuck_of_ne_stuck hApp)
+      (fun X₁ Y₁ X₂ Y₂ hX hY => by
+        change
+          __eo_typeof__at_array_deq_diff (__eo_typeof X₁) (__eo_typeof X₂) =
+            __eo_typeof__at_array_deq_diff (__eo_typeof Y₁) (__eo_typeof Y₂)
+        rw [hX, hY])
+      (fun X Y hXTrans hYTrans hApp => by
+        unfold RuleProofs.eo_has_smt_translation
+        change
+          __smtx_typeof
+              (__eo_to_smt_array_deq_diff (__eo_to_smt X)
+                (__smtx_typeof (__eo_to_smt X)) (__eo_to_smt Y)
+                (__smtx_typeof (__eo_to_smt Y))) ≠
+            SmtType.None
+        change
+          __eo_typeof__at_array_deq_diff (__eo_typeof X) (__eo_typeof Y) ≠
+            Term.Stuck at hApp
+        exact smt_array_deq_diff_non_none_of_eo_typeof_ne_stuck
+          X Y hXTrans hYTrans hApp)
+      hRecX hRecY
+
+private theorem substitute_simul_sets_deq_diff_preserves_type_and_translation_of_typeof_ne_stuck
+    (x y xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hNotBinder :
+      ∀ q v vs,
+        Term.Apply (Term.UOp UserOp._at_sets_deq_diff) x ≠
+          Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+    (hFTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.Apply (Term.UOp UserOp._at_sets_deq_diff) x) y))
+    (hTy :
+      __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp UserOp._at_sets_deq_diff) x) y)
+          xs ts bvs) ≠
+        Term.Stuck)
+    (hRecX :
+      RuleProofs.eo_has_smt_translation x ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) =
+          __eo_typeof x ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs))
+    (hRecY :
+      RuleProofs.eo_has_smt_translation y ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) =
+          __eo_typeof y ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs)) :
+    __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp UserOp._at_sets_deq_diff) x) y)
+          xs ts bvs) =
+      __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp._at_sets_deq_diff) x) y) ∧
+      RuleProofs.eo_has_smt_translation
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp UserOp._at_sets_deq_diff) x) y)
+          xs ts bvs) := by
+  exact
+    substitute_simul_binary_op_preserves_type_and_translation_of_typeof_ne_stuck
+      UserOp._at_sets_deq_diff x y xs ts bvs hXsEnv hBvsEnv hTs
+      hNotBinder hFTrans hTy
+      (fun h => sets_deq_diff_args_have_smt_translation_of_has_smt_translation h)
+      (fun X Y hApp => by
+        change
+          __eo_typeof__at_sets_deq_diff (__eo_typeof X) (__eo_typeof Y) ≠
+            Term.Stuck at hApp
+        exact eo_typeof_sets_deq_diff_args_not_stuck_of_ne_stuck hApp)
+      (fun X₁ Y₁ X₂ Y₂ hX hY => by
+        change
+          __eo_typeof__at_sets_deq_diff (__eo_typeof X₁) (__eo_typeof X₂) =
+            __eo_typeof__at_sets_deq_diff (__eo_typeof Y₁) (__eo_typeof Y₂)
+        rw [hX, hY])
+      (fun X Y hXTrans hYTrans hApp => by
+        unfold RuleProofs.eo_has_smt_translation
+        change
+          __smtx_typeof
+              (__eo_to_smt_sets_deq_diff (__eo_to_smt X)
+                (__smtx_typeof (__eo_to_smt X)) (__eo_to_smt Y)
+                (__smtx_typeof (__eo_to_smt Y))) ≠
+            SmtType.None
+        change
+          __eo_typeof__at_sets_deq_diff (__eo_typeof X) (__eo_typeof Y) ≠
+            Term.Stuck at hApp
+        exact smt_sets_deq_diff_non_none_of_eo_typeof_ne_stuck
+          X Y hXTrans hYTrans hApp)
+      hRecX hRecY
+
+private theorem substitute_simul_strings_deq_diff_preserves_type_and_translation_of_typeof_ne_stuck
+    (x y xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hNotBinder :
+      ∀ q v vs,
+        Term.Apply (Term.UOp UserOp._at_strings_deq_diff) x ≠
+          Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+    (hFTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_deq_diff) x) y))
+    (hTy :
+      __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_deq_diff) x) y)
+          xs ts bvs) ≠
+        Term.Stuck)
+    (hRecX :
+      RuleProofs.eo_has_smt_translation x ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) =
+          __eo_typeof x ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs))
+    (hRecY :
+      RuleProofs.eo_has_smt_translation y ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) =
+          __eo_typeof y ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs)) :
+    __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_deq_diff) x) y)
+          xs ts bvs) =
+      __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_deq_diff) x) y) ∧
+      RuleProofs.eo_has_smt_translation
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_deq_diff) x) y)
+          xs ts bvs) := by
+  exact
+    substitute_simul_binary_op_preserves_type_and_translation_of_typeof_ne_stuck
+      UserOp._at_strings_deq_diff x y xs ts bvs hXsEnv hBvsEnv hTs
+      hNotBinder hFTrans hTy
+      (fun h => strings_deq_diff_args_have_smt_translation_of_has_smt_translation h)
+      (fun X Y hApp => by
+        change
+          __eo_typeof__at_strings_deq_diff (__eo_typeof X) (__eo_typeof Y) ≠
+            Term.Stuck at hApp
+        exact eo_typeof_strings_deq_diff_args_not_stuck_of_ne_stuck hApp)
+      (fun X₁ Y₁ X₂ Y₂ hX hY => by
+        change
+          __eo_typeof__at_strings_deq_diff (__eo_typeof X₁) (__eo_typeof X₂) =
+            __eo_typeof__at_strings_deq_diff (__eo_typeof Y₁) (__eo_typeof Y₂)
+        rw [hX, hY])
+      (fun X Y hXTrans hYTrans hApp => by
+        unfold RuleProofs.eo_has_smt_translation
+        change
+          __smtx_typeof
+              (SmtTerm.seq_diff (__eo_to_smt X) (__eo_to_smt Y)) ≠
+            SmtType.None
+        change
+          __eo_typeof__at_strings_deq_diff (__eo_typeof X) (__eo_typeof Y) ≠
+            Term.Stuck at hApp
+        exact smt_strings_deq_diff_non_none_of_eo_typeof_ne_stuck
+          X Y hXTrans hYTrans hApp)
+      hRecX hRecY
+
+private theorem substitute_simul_strings_stoi_result_preserves_type_and_translation_of_typeof_ne_stuck
+    (x y xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hNotBinder :
+      ∀ q v vs,
+        Term.Apply (Term.UOp UserOp._at_strings_stoi_result) x ≠
+          Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+    (hFTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_stoi_result) x) y))
+    (hTy :
+      __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_stoi_result) x) y)
+          xs ts bvs) ≠
+        Term.Stuck)
+    (hRecX :
+      RuleProofs.eo_has_smt_translation x ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) =
+          __eo_typeof x ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs))
+    (hRecY :
+      RuleProofs.eo_has_smt_translation y ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) =
+          __eo_typeof y ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs)) :
+    __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_stoi_result) x) y)
+          xs ts bvs) =
+      __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_stoi_result) x) y) ∧
+      RuleProofs.eo_has_smt_translation
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_stoi_result) x) y)
+          xs ts bvs) := by
+  exact
+    substitute_simul_binary_op_preserves_type_and_translation_of_typeof_ne_stuck
+      UserOp._at_strings_stoi_result x y xs ts bvs hXsEnv hBvsEnv hTs
+      hNotBinder hFTrans hTy
+      (fun h => strings_stoi_result_args_have_smt_translation_of_has_smt_translation h)
+      (fun X Y hApp => by
+        change
+          __eo_typeof__at_strings_stoi_result (__eo_typeof X) (__eo_typeof Y) ≠
+            Term.Stuck at hApp
+        exact eo_typeof_strings_stoi_result_args_not_stuck_of_ne_stuck hApp)
+      (fun X₁ Y₁ X₂ Y₂ hX hY => by
+        change
+          __eo_typeof__at_strings_stoi_result (__eo_typeof X₁) (__eo_typeof X₂) =
+            __eo_typeof__at_strings_stoi_result (__eo_typeof Y₁) (__eo_typeof Y₂)
+        rw [hX, hY])
+      (fun X Y hXTrans hYTrans hApp => by
+        unfold RuleProofs.eo_has_smt_translation
+        change
+          __smtx_typeof
+              (SmtTerm.str_to_int
+                (SmtTerm.str_substr (__eo_to_smt X) (SmtTerm.Numeral 0)
+                  (__eo_to_smt Y))) ≠
+            SmtType.None
+        change
+          __eo_typeof__at_strings_stoi_result (__eo_typeof X) (__eo_typeof Y) ≠
+            Term.Stuck at hApp
+        exact smt_strings_stoi_result_non_none_of_eo_typeof_ne_stuck
+          X Y hXTrans hYTrans hApp)
+      hRecX hRecY
+
+private theorem substitute_simul_strings_itos_result_preserves_type_and_translation_of_typeof_ne_stuck
+    (x y xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hNotBinder :
+      ∀ q v vs,
+        Term.Apply (Term.UOp UserOp._at_strings_itos_result) x ≠
+          Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+    (hFTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_itos_result) x) y))
+    (hTy :
+      __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_itos_result) x) y)
+          xs ts bvs) ≠
+        Term.Stuck)
+    (hRecX :
+      RuleProofs.eo_has_smt_translation x ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) =
+          __eo_typeof x ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs))
+    (hRecY :
+      RuleProofs.eo_has_smt_translation y ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) =
+          __eo_typeof y ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs)) :
+    __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_itos_result) x) y)
+          xs ts bvs) =
+      __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_itos_result) x) y) ∧
+      RuleProofs.eo_has_smt_translation
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_itos_result) x) y)
+          xs ts bvs) := by
+  exact
+    substitute_simul_binary_op_preserves_type_and_translation_of_typeof_ne_stuck
+      UserOp._at_strings_itos_result x y xs ts bvs hXsEnv hBvsEnv hTs
+      hNotBinder hFTrans hTy
+      (fun h => strings_itos_result_args_have_smt_translation_of_has_smt_translation h)
+      (fun X Y hApp => by
+        change
+          __eo_typeof_div (__eo_typeof X) (__eo_typeof Y) ≠
+            Term.Stuck at hApp
+        exact eo_int_binop_args_not_stuck
+          (eo_typeof_div_arg_types_of_ne_stuck hApp))
+      (fun X₁ Y₁ X₂ Y₂ hX hY => by
+        change
+          __eo_typeof_div (__eo_typeof X₁) (__eo_typeof X₂) =
+            __eo_typeof_div (__eo_typeof Y₁) (__eo_typeof Y₂)
+        rw [hX, hY])
+      (fun X Y hXTrans hYTrans hApp => by
+        unfold RuleProofs.eo_has_smt_translation
+        change
+          __smtx_typeof
+              (SmtTerm.mod (__eo_to_smt X)
+                (SmtTerm.multmult (SmtTerm.Numeral 10)
+                  (__eo_to_smt Y))) ≠
+            SmtType.None
+        change
+          __eo_typeof_div (__eo_typeof X) (__eo_typeof Y) ≠
+            Term.Stuck at hApp
+        exact smt_strings_itos_result_non_none_of_eo_typeof_ne_stuck
+          X Y hXTrans hYTrans hApp)
+      hRecX hRecY
+
+private theorem substitute_simul_strings_num_occur_preserves_type_and_translation_of_typeof_ne_stuck
+    (x y xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hNotBinder :
+      ∀ q v vs,
+        Term.Apply (Term.UOp UserOp._at_strings_num_occur) x ≠
+          Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+    (hFTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_num_occur) x) y))
+    (hTy :
+      __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_num_occur) x) y)
+          xs ts bvs) ≠
+        Term.Stuck)
+    (hRecX :
+      RuleProofs.eo_has_smt_translation x ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) =
+          __eo_typeof x ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs))
+    (hRecY :
+      RuleProofs.eo_has_smt_translation y ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) =
+          __eo_typeof y ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs)) :
+    __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_num_occur) x) y)
+          xs ts bvs) =
+      __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_num_occur) x) y) ∧
+      RuleProofs.eo_has_smt_translation
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_num_occur) x) y)
+          xs ts bvs) := by
+  exact
+    substitute_simul_binary_op_preserves_type_and_translation_of_typeof_ne_stuck_arg_type_eq
+      UserOp._at_strings_num_occur x y xs ts bvs hXsEnv hBvsEnv hTs
+      hNotBinder hFTrans hTy
+      (fun h => strings_num_occur_args_have_smt_translation_of_has_smt_translation h)
+      (fun X Y hApp => by
+        change
+          __eo_typeof__at_strings_deq_diff (__eo_typeof X) (__eo_typeof Y) ≠
+            Term.Stuck at hApp
+        exact eo_typeof_strings_deq_diff_args_not_stuck_of_ne_stuck hApp)
+      (fun X₁ Y₁ X₂ Y₂ hX hY => by
+        change
+          __eo_typeof__at_strings_deq_diff (__eo_typeof X₁) (__eo_typeof X₂) =
+            __eo_typeof__at_strings_deq_diff (__eo_typeof Y₁) (__eo_typeof Y₂)
+        rw [hX, hY])
+      (fun X Y hXTrans hYTrans hXTy hYTy _hApp => by
+        have hFTransEo :
+            eoHasSmtTranslation
+              (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_num_occur) x) y) := by
+          simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+            using hFTrans
+        rcases strings_num_occur_args_have_smt_translation_of_has_smt_translation
+            hFTransEo with ⟨hXOrigEo, hYOrigEo⟩
+        have hXOrigTrans : RuleProofs.eo_has_smt_translation x := by
+          simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+            using hXOrigEo
+        have hYOrigTrans : RuleProofs.eo_has_smt_translation y := by
+          simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+            using hYOrigEo
+        have hXSmt :
+            __smtx_typeof (__eo_to_smt X) =
+              __smtx_typeof (__eo_to_smt x) := by
+          rw [
+            TranslationProofs.eo_to_smt_typeof_matches_translation
+              X hXTrans,
+            TranslationProofs.eo_to_smt_typeof_matches_translation
+              x hXOrigTrans,
+            hXTy]
+        have hYSmt :
+            __smtx_typeof (__eo_to_smt Y) =
+              __smtx_typeof (__eo_to_smt y) := by
+          rw [
+            TranslationProofs.eo_to_smt_typeof_matches_translation
+              Y hYTrans,
+            TranslationProofs.eo_to_smt_typeof_matches_translation
+              y hYOrigTrans,
+            hYTy]
+        unfold RuleProofs.eo_has_smt_translation
+        change
+          __smtx_typeof
+              (SmtTerm.div
+                (SmtTerm.neg (SmtTerm.str_len (__eo_to_smt X))
+                  (SmtTerm.str_len
+                    (SmtTerm.str_replace_all (__eo_to_smt X) (__eo_to_smt Y)
+                      (SmtTerm.seq_empty (SmtType.Seq SmtType.Char)))))
+                (SmtTerm.str_len (__eo_to_smt Y))) ≠
+            SmtType.None
+        have hOrig :
+            __smtx_typeof
+                (SmtTerm.div
+                  (SmtTerm.neg (SmtTerm.str_len (__eo_to_smt x))
+                    (SmtTerm.str_len
+                      (SmtTerm.str_replace_all (__eo_to_smt x) (__eo_to_smt y)
+                        (SmtTerm.seq_empty (SmtType.Seq SmtType.Char)))))
+                  (SmtTerm.str_len (__eo_to_smt y))) ≠
+              SmtType.None := by
+          unfold RuleProofs.eo_has_smt_translation at hFTrans
+          change
+            __smtx_typeof
+                (SmtTerm.div
+                  (SmtTerm.neg (SmtTerm.str_len (__eo_to_smt x))
+                    (SmtTerm.str_len
+                      (SmtTerm.str_replace_all (__eo_to_smt x) (__eo_to_smt y)
+                        (SmtTerm.seq_empty (SmtType.Seq SmtType.Char)))))
+                  (SmtTerm.str_len (__eo_to_smt y))) ≠
+              SmtType.None at hFTrans
+          exact hFTrans
+        rw [smt_strings_num_occur_typeof_congr hXSmt hYSmt]
+        exact hOrig)
+      hRecX hRecY
+
+private theorem substitute_simul_from_bools_preserves_type_and_translation_of_typeof_ne_stuck
+    (x y xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hNotBinder :
+      ∀ q v vs,
+        Term.Apply (Term.UOp UserOp._at_from_bools) x ≠
+          Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+    (hFTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.Apply (Term.UOp UserOp._at_from_bools) x) y))
+    (hTy :
+      __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp UserOp._at_from_bools) x) y)
+          xs ts bvs) ≠
+        Term.Stuck)
+    (hRecX :
+      RuleProofs.eo_has_smt_translation x ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) =
+          __eo_typeof x ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs))
+    (hRecY :
+      RuleProofs.eo_has_smt_translation y ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) ≠
+          Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) =
+          __eo_typeof y ∧
+          RuleProofs.eo_has_smt_translation
+            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs)) :
+    __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp UserOp._at_from_bools) x) y)
+          xs ts bvs) =
+      __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp._at_from_bools) x) y) ∧
+      RuleProofs.eo_has_smt_translation
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply (Term.UOp UserOp._at_from_bools) x) y)
+          xs ts bvs) := by
+  exact
+    substitute_simul_binary_op_preserves_type_and_translation_of_typeof_ne_stuck
+      UserOp._at_from_bools x y xs ts bvs hXsEnv hBvsEnv hTs
+      hNotBinder hFTrans hTy
+      (fun h => from_bools_args_have_smt_translation_of_has_smt_translation h)
+      (fun X Y hApp => by
+        change
+          __eo_typeof__at_from_bools (__eo_typeof X) (__eo_typeof Y) ≠
+            Term.Stuck at hApp
+        exact eo_typeof_from_bools_args_not_stuck_of_ne_stuck hApp)
+      (fun X₁ Y₁ X₂ Y₂ hX hY => by
+        change
+          __eo_typeof__at_from_bools (__eo_typeof X₁) (__eo_typeof X₂) =
+            __eo_typeof__at_from_bools (__eo_typeof Y₁) (__eo_typeof Y₂)
+        rw [hX, hY])
+      (fun X Y hXTrans hYTrans hApp => by
+        unfold RuleProofs.eo_has_smt_translation
+        change
+          __smtx_typeof
+              (SmtTerm.concat
+                (SmtTerm.ite (__eo_to_smt X)
+                  (SmtTerm.Binary 1 1) (SmtTerm.Binary 1 0))
+                (__eo_to_smt Y)) ≠
+            SmtType.None
+        change
+          __eo_typeof__at_from_bools (__eo_typeof X) (__eo_typeof Y) ≠
+            Term.Stuck at hApp
+        exact smt_from_bools_non_none_of_eo_typeof_ne_stuck
+          X Y hXTrans hYTrans hApp)
+      hRecX hRecY
 
 private theorem substitute_simul_bv_binop_preserves_type_and_translation_of_typeof_ne_stuck
     (op : UserOp) (smtOp : SmtTerm -> SmtTerm -> SmtTerm)
@@ -3765,7 +7134,705 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                 (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
                                                                                                                                                 (by simp; omega)
                                                                                                                                                 hXsEnv hBvsEnv hATrans hTs hActuals hATy)
-                                                                                                                                      · exact hOld
+                                                                                                                                      · by_cases hHeadStrContains :
+                                                                                                                                          g = Term.UOp UserOp.str_contains
+                                                                                                                                        · subst g
+                                                                                                                                          exact
+                                                                                                                                            substitute_simul_binary_op_preserves_type_and_translation_of_typeof_ne_stuck
+                                                                                                                                              UserOp.str_contains x1 a xs ts bvs
+                                                                                                                                              hXsEnv hBvsEnv hTs
+                                                                                                                                              (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                                              hFTrans hTy
+                                                                                                                                              (fun h =>
+                                                                                                                                                apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                                                                                                                                                  (eoOp := UserOp.str_contains) (smtOp := SmtTerm.str_contains)
+                                                                                                                                                  (by rfl)
+                                                                                                                                                  (fun hNN =>
+                                                                                                                                                    seq_binop_ret_args_have_smt_translation_of_non_none
+                                                                                                                                                      (ret := SmtType.Bool)
+                                                                                                                                                      (typeof_str_contains_eq (__eo_to_smt x1) (__eo_to_smt a))
+                                                                                                                                                      hNN)
+                                                                                                                                                  h)
+                                                                                                                                              (fun X Y hApp => by
+                                                                                                                                                change
+                                                                                                                                                  __eo_typeof_str_contains (__eo_typeof X) (__eo_typeof Y) ≠
+                                                                                                                                                    Term.Stuck at hApp
+                                                                                                                                                exact
+                                                                                                                                                  eo_typeof_str_contains_args_not_stuck_of_ne_stuck hApp)
+                                                                                                                                              (fun X₁ Y₁ X₂ Y₂ hX hY => by
+                                                                                                                                                change
+                                                                                                                                                  __eo_typeof_str_contains (__eo_typeof X₁) (__eo_typeof X₂) =
+                                                                                                                                                    __eo_typeof_str_contains (__eo_typeof Y₁) (__eo_typeof Y₂)
+                                                                                                                                                rw [hX, hY])
+                                                                                                                                              (fun X Y hXTrans hYTrans hApp => by
+                                                                                                                                                unfold RuleProofs.eo_has_smt_translation
+                                                                                                                                                change
+                                                                                                                                                  __smtx_typeof
+                                                                                                                                                    (SmtTerm.str_contains (__eo_to_smt X) (__eo_to_smt Y)) ≠
+                                                                                                                                                    SmtType.None
+                                                                                                                                                change
+                                                                                                                                                  __eo_typeof_str_contains (__eo_typeof X) (__eo_typeof Y) ≠
+                                                                                                                                                    Term.Stuck at hApp
+                                                                                                                                                exact
+                                                                                                                                                  smt_str_contains_non_none_of_eo_typeof_str_contains_ne_stuck
+                                                                                                                                                    X Y hXTrans hYTrans hApp)
+                                                                                                                                              (fun hXTrans hXTy =>
+                                                                                                                                                hRec
+                                                                                                                                                  (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                  (by simp; omega)
+                                                                                                                                                  hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
+                                                                                                                                              (fun hATrans hATy =>
+                                                                                                                                                hRec
+                                                                                                                                                  (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                  (by simp; omega)
+                                                                                                                                                  hXsEnv hBvsEnv hATrans hTs hActuals hATy)
+                                                                                                                                        · by_cases hHeadStrAt :
+                                                                                                                                            g = Term.UOp UserOp.str_at
+                                                                                                                                          · subst g
+                                                                                                                                            exact
+                                                                                                                                              substitute_simul_binary_op_preserves_type_and_translation_of_typeof_ne_stuck
+                                                                                                                                                UserOp.str_at x1 a xs ts bvs
+                                                                                                                                                hXsEnv hBvsEnv hTs
+                                                                                                                                                (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                                                hFTrans hTy
+                                                                                                                                                (fun h =>
+                                                                                                                                                  apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                                                                                                                                                    (eoOp := UserOp.str_at) (smtOp := SmtTerm.str_at)
+                                                                                                                                                    (by rfl)
+                                                                                                                                                    (fun hNN =>
+                                                                                                                                                      str_at_args_have_smt_translation_of_non_none hNN)
+                                                                                                                                                    h)
+                                                                                                                                                (fun X Y hApp => by
+                                                                                                                                                  change
+                                                                                                                                                    __eo_typeof_str_at (__eo_typeof X) (__eo_typeof Y) ≠
+                                                                                                                                                      Term.Stuck at hApp
+                                                                                                                                                  exact
+                                                                                                                                                    eo_typeof_str_at_args_not_stuck_of_ne_stuck hApp)
+                                                                                                                                                (fun X₁ Y₁ X₂ Y₂ hX hY => by
+                                                                                                                                                  change
+                                                                                                                                                    __eo_typeof_str_at (__eo_typeof X₁) (__eo_typeof X₂) =
+                                                                                                                                                      __eo_typeof_str_at (__eo_typeof Y₁) (__eo_typeof Y₂)
+                                                                                                                                                  rw [hX, hY])
+                                                                                                                                                (fun X Y hXTrans hYTrans hApp => by
+                                                                                                                                                  unfold RuleProofs.eo_has_smt_translation
+                                                                                                                                                  change
+                                                                                                                                                    __smtx_typeof
+                                                                                                                                                      (SmtTerm.str_at (__eo_to_smt X) (__eo_to_smt Y)) ≠
+                                                                                                                                                      SmtType.None
+                                                                                                                                                  change
+                                                                                                                                                    __eo_typeof_str_at (__eo_typeof X) (__eo_typeof Y) ≠
+                                                                                                                                                      Term.Stuck at hApp
+                                                                                                                                                  exact
+                                                                                                                                                    smt_str_at_non_none_of_eo_typeof_str_at_ne_stuck
+                                                                                                                                                      X Y hXTrans hYTrans hApp)
+                                                                                                                                                (fun hXTrans hXTy =>
+                                                                                                                                                  hRec
+                                                                                                                                                    (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                    (by simp; omega)
+                                                                                                                                                    hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
+                                                                                                                                                (fun hATrans hATy =>
+                                                                                                                                                  hRec
+                                                                                                                                                    (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                    (by simp; omega)
+                                                                                                                                                    hXsEnv hBvsEnv hATrans hTs hActuals hATy)
+                                                                                                                                          · by_cases hHeadStrLt :
+                                                                                                                                              g = Term.UOp UserOp.str_lt
+                                                                                                                                            · subst g
+                                                                                                                                              exact
+                                                                                                                                                substitute_simul_binary_op_preserves_type_and_translation_of_typeof_ne_stuck
+                                                                                                                                                  UserOp.str_lt x1 a xs ts bvs
+                                                                                                                                                  hXsEnv hBvsEnv hTs
+                                                                                                                                                  (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                                                  hFTrans hTy
+                                                                                                                                                  (fun h =>
+                                                                                                                                                    apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                                                                                                                                                      (eoOp := UserOp.str_lt) (smtOp := SmtTerm.str_lt)
+                                                                                                                                                      (by rfl)
+                                                                                                                                                      (fun hNN =>
+                                                                                                                                                        seq_char_binop_args_have_smt_translation_of_non_none
+                                                                                                                                                          (ret := SmtType.Bool)
+                                                                                                                                                          (typeof_str_lt_eq (__eo_to_smt x1) (__eo_to_smt a))
+                                                                                                                                                          hNN)
+                                                                                                                                                      h)
+                                                                                                                                                  (fun X Y hApp => by
+                                                                                                                                                    change
+                                                                                                                                                      __eo_typeof_str_lt (__eo_typeof X) (__eo_typeof Y) ≠
+                                                                                                                                                        Term.Stuck at hApp
+                                                                                                                                                    exact
+                                                                                                                                                      eo_typeof_str_lt_args_not_stuck_of_ne_stuck hApp)
+                                                                                                                                                  (fun X₁ Y₁ X₂ Y₂ hX hY => by
+                                                                                                                                                    change
+                                                                                                                                                      __eo_typeof_str_lt (__eo_typeof X₁) (__eo_typeof X₂) =
+                                                                                                                                                        __eo_typeof_str_lt (__eo_typeof Y₁) (__eo_typeof Y₂)
+                                                                                                                                                    rw [hX, hY])
+                                                                                                                                                  (fun X Y hXTrans hYTrans hApp => by
+                                                                                                                                                    unfold RuleProofs.eo_has_smt_translation
+                                                                                                                                                    change
+                                                                                                                                                      __smtx_typeof
+                                                                                                                                                        (SmtTerm.str_lt (__eo_to_smt X) (__eo_to_smt Y)) ≠
+                                                                                                                                                        SmtType.None
+                                                                                                                                                    change
+                                                                                                                                                      __eo_typeof_str_lt (__eo_typeof X) (__eo_typeof Y) ≠
+                                                                                                                                                        Term.Stuck at hApp
+                                                                                                                                                    exact
+                                                                                                                                                      smt_seq_char_bool_binop_non_none_of_eo_typeof_str_lt_ne_stuck
+                                                                                                                                                        SmtTerm.str_lt
+                                                                                                                                                        (fun X Y => typeof_str_lt_eq X Y)
+                                                                                                                                                        X Y hXTrans hYTrans hApp)
+                                                                                                                                                  (fun hXTrans hXTy =>
+                                                                                                                                                    hRec
+                                                                                                                                                      (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                      (by simp; omega)
+                                                                                                                                                      hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
+                                                                                                                                                  (fun hATrans hATy =>
+                                                                                                                                                    hRec
+                                                                                                                                                      (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                      (by simp; omega)
+                                                                                                                                                      hXsEnv hBvsEnv hATrans hTs hActuals hATy)
+                                                                                                                                            · by_cases hHeadStrLeq :
+                                                                                                                                                g = Term.UOp UserOp.str_leq
+                                                                                                                                              · subst g
+                                                                                                                                                exact
+                                                                                                                                                  substitute_simul_binary_op_preserves_type_and_translation_of_typeof_ne_stuck
+                                                                                                                                                    UserOp.str_leq x1 a xs ts bvs
+                                                                                                                                                    hXsEnv hBvsEnv hTs
+                                                                                                                                                    (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                                                    hFTrans hTy
+                                                                                                                                                    (fun h =>
+                                                                                                                                                      apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                                                                                                                                                        (eoOp := UserOp.str_leq) (smtOp := SmtTerm.str_leq)
+                                                                                                                                                        (by rfl)
+                                                                                                                                                        (fun hNN =>
+                                                                                                                                                          seq_char_binop_args_have_smt_translation_of_non_none
+                                                                                                                                                            (ret := SmtType.Bool)
+                                                                                                                                                            (typeof_str_leq_eq (__eo_to_smt x1) (__eo_to_smt a))
+                                                                                                                                                            hNN)
+                                                                                                                                                        h)
+                                                                                                                                                    (fun X Y hApp => by
+                                                                                                                                                      change
+                                                                                                                                                        __eo_typeof_str_lt (__eo_typeof X) (__eo_typeof Y) ≠
+                                                                                                                                                          Term.Stuck at hApp
+                                                                                                                                                      exact
+                                                                                                                                                        eo_typeof_str_lt_args_not_stuck_of_ne_stuck hApp)
+                                                                                                                                                    (fun X₁ Y₁ X₂ Y₂ hX hY => by
+                                                                                                                                                      change
+                                                                                                                                                        __eo_typeof_str_lt (__eo_typeof X₁) (__eo_typeof X₂) =
+                                                                                                                                                          __eo_typeof_str_lt (__eo_typeof Y₁) (__eo_typeof Y₂)
+                                                                                                                                                      rw [hX, hY])
+                                                                                                                                                    (fun X Y hXTrans hYTrans hApp => by
+                                                                                                                                                      unfold RuleProofs.eo_has_smt_translation
+                                                                                                                                                      change
+                                                                                                                                                        __smtx_typeof
+                                                                                                                                                          (SmtTerm.str_leq (__eo_to_smt X) (__eo_to_smt Y)) ≠
+                                                                                                                                                          SmtType.None
+                                                                                                                                                      change
+                                                                                                                                                        __eo_typeof_str_lt (__eo_typeof X) (__eo_typeof Y) ≠
+                                                                                                                                                          Term.Stuck at hApp
+                                                                                                                                                      exact
+                                                                                                                                                        smt_seq_char_bool_binop_non_none_of_eo_typeof_str_lt_ne_stuck
+                                                                                                                                                          SmtTerm.str_leq
+                                                                                                                                                          (fun X Y => typeof_str_leq_eq X Y)
+                                                                                                                                                          X Y hXTrans hYTrans hApp)
+                                                                                                                                                    (fun hXTrans hXTy =>
+                                                                                                                                                      hRec
+                                                                                                                                                        (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                        (by simp; omega)
+                                                                                                                                                        hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
+                                                                                                                                                    (fun hATrans hATy =>
+                                                                                                                                                      hRec
+                                                                                                                                                        (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                        (by simp; omega)
+                                                                                                                                                        hXsEnv hBvsEnv hATrans hTs hActuals hATy)
+                                                                                                                                              · by_cases hHeadReRange :
+                                                                                                                                                  g = Term.UOp UserOp.re_range
+                                                                                                                                                · subst g
+                                                                                                                                                  exact
+                                                                                                                                                    substitute_simul_re_range_preserves_type_and_translation_of_typeof_ne_stuck
+                                                                                                                                                      x1 a xs ts bvs
+                                                                                                                                                      hXsEnv hBvsEnv hTs
+                                                                                                                                                      (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                                                      hFTrans hTy
+                                                                                                                                                      (fun hXTrans hXTy =>
+                                                                                                                                                        hRec
+                                                                                                                                                          (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                          (by simp; omega)
+                                                                                                                                                          hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
+                                                                                                                                                      (fun hATrans hATy =>
+                                                                                                                                                        hRec
+                                                                                                                                                          (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                          (by simp; omega)
+                                                                                                                                                          hXsEnv hBvsEnv hATrans hTs hActuals hATy)
+                                                                                                                                                · by_cases hHeadReConcat :
+                                                                                                                                                    g = Term.UOp UserOp.re_concat
+                                                                                                                                                  · subst g
+                                                                                                                                                    exact
+                                                                                                                                                      substitute_simul_reglan_binop_preserves_type_and_translation_of_typeof_ne_stuck
+                                                                                                                                                        UserOp.re_concat SmtTerm.re_concat x1 a xs ts bvs
+                                                                                                                                                        hXsEnv hBvsEnv hTs
+                                                                                                                                                        (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                                                        hFTrans hTy
+                                                                                                                                                        (fun X Y => by rfl)
+                                                                                                                                                        (fun X Y => typeof_re_concat_eq X Y)
+                                                                                                                                                        (fun X Y => by rfl)
+                                                                                                                                                        (fun hXTrans hXTy =>
+                                                                                                                                                          hRec
+                                                                                                                                                            (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                            (by simp; omega)
+                                                                                                                                                            hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
+                                                                                                                                                        (fun hATrans hATy =>
+                                                                                                                                                          hRec
+                                                                                                                                                            (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                            (by simp; omega)
+                                                                                                                                                            hXsEnv hBvsEnv hATrans hTs hActuals hATy)
+                                                                                                                                                  · by_cases hHeadReInter :
+                                                                                                                                                      g = Term.UOp UserOp.re_inter
+                                                                                                                                                    · subst g
+                                                                                                                                                      exact
+                                                                                                                                                        substitute_simul_reglan_binop_preserves_type_and_translation_of_typeof_ne_stuck
+                                                                                                                                                          UserOp.re_inter SmtTerm.re_inter x1 a xs ts bvs
+                                                                                                                                                          hXsEnv hBvsEnv hTs
+                                                                                                                                                          (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                                                          hFTrans hTy
+                                                                                                                                                          (fun X Y => by rfl)
+                                                                                                                                                          (fun X Y => typeof_re_inter_eq X Y)
+                                                                                                                                                          (fun X Y => by rfl)
+                                                                                                                                                          (fun hXTrans hXTy =>
+                                                                                                                                                            hRec
+                                                                                                                                                              (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                              (by simp; omega)
+                                                                                                                                                              hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
+                                                                                                                                                          (fun hATrans hATy =>
+                                                                                                                                                            hRec
+                                                                                                                                                              (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                              (by simp; omega)
+                                                                                                                                                              hXsEnv hBvsEnv hATrans hTs hActuals hATy)
+                                                                                                                                                    · by_cases hHeadReUnion :
+                                                                                                                                                        g = Term.UOp UserOp.re_union
+                                                                                                                                                      · subst g
+                                                                                                                                                        exact
+                                                                                                                                                          substitute_simul_reglan_binop_preserves_type_and_translation_of_typeof_ne_stuck
+                                                                                                                                                            UserOp.re_union SmtTerm.re_union x1 a xs ts bvs
+                                                                                                                                                            hXsEnv hBvsEnv hTs
+                                                                                                                                                            (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                                                            hFTrans hTy
+                                                                                                                                                            (fun X Y => by rfl)
+                                                                                                                                                            (fun X Y => typeof_re_union_eq X Y)
+                                                                                                                                                            (fun X Y => by rfl)
+                                                                                                                                                            (fun hXTrans hXTy =>
+                                                                                                                                                              hRec
+                                                                                                                                                                (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                (by simp; omega)
+                                                                                                                                                                hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
+                                                                                                                                                            (fun hATrans hATy =>
+                                                                                                                                                              hRec
+                                                                                                                                                                (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                (by simp; omega)
+                                                                                                                                                                hXsEnv hBvsEnv hATrans hTs hActuals hATy)
+                                                                                                                                                      · by_cases hHeadReDiff :
+                                                                                                                                                          g = Term.UOp UserOp.re_diff
+                                                                                                                                                        · subst g
+                                                                                                                                                          exact
+                                                                                                                                                            substitute_simul_reglan_binop_preserves_type_and_translation_of_typeof_ne_stuck
+                                                                                                                                                              UserOp.re_diff SmtTerm.re_diff x1 a xs ts bvs
+                                                                                                                                                              hXsEnv hBvsEnv hTs
+                                                                                                                                                              (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                                                              hFTrans hTy
+                                                                                                                                                              (fun X Y => by rfl)
+                                                                                                                                                              (fun X Y => typeof_re_diff_eq X Y)
+                                                                                                                                                              (fun X Y => by rfl)
+                                                                                                                                                              (fun hXTrans hXTy =>
+                                                                                                                                                                hRec
+                                                                                                                                                                  (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                  (by simp; omega)
+                                                                                                                                                                  hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
+                                                                                                                                                              (fun hATrans hATy =>
+                                                                                                                                                                hRec
+                                                                                                                                                                  (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                  (by simp; omega)
+                                                                                                                                                                  hXsEnv hBvsEnv hATrans hTs hActuals hATy)
+                                                                                                                                                        · by_cases hHeadStrInRe :
+                                                                                                                                                            g = Term.UOp UserOp.str_in_re
+                                                                                                                                                          · subst g
+                                                                                                                                                            exact
+                                                                                                                                                              substitute_simul_str_in_re_preserves_type_and_translation_of_typeof_ne_stuck
+                                                                                                                                                                x1 a xs ts bvs
+                                                                                                                                                                hXsEnv hBvsEnv hTs
+                                                                                                                                                                (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                                                                hFTrans hTy
+                                                                                                                                                                (fun hXTrans hXTy =>
+                                                                                                                                                                  hRec
+                                                                                                                                                                    (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                    (by simp; omega)
+                                                                                                                                                                    hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
+                                                                                                                                                                (fun hATrans hATy =>
+                                                                                                                                                                  hRec
+                                                                                                                                                                    (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                    (by simp; omega)
+                                                                                                                                                                    hXsEnv hBvsEnv hATrans hTs hActuals hATy)
+                                                                                                                                                          · by_cases hHeadSeqNth :
+                                                                                                                                                              g = Term.UOp UserOp.seq_nth
+                                                                                                                                                            · subst g
+                                                                                                                                                              exact
+                                                                                                                                                                substitute_simul_seq_nth_preserves_type_and_translation_of_typeof_ne_stuck
+                                                                                                                                                                  x1 a xs ts bvs
+                                                                                                                                                                  hXsEnv hBvsEnv hTs
+                                                                                                                                                                  (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                                                                  hFTrans hTy
+                                                                                                                                                                  (fun hXTrans hXTy =>
+                                                                                                                                                                    hRec
+                                                                                                                                                                      (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                      (by simp; omega)
+                                                                                                                                                                      hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
+                                                                                                                                                                  (fun hATrans hATy =>
+                                                                                                                                                                    hRec
+                                                                                                                                                                      (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                      (by simp; omega)
+                                                                                                                                                                      hXsEnv hBvsEnv hATrans hTs hActuals hATy)
+                                                                                                                                                            · by_cases hHeadSetUnion :
+                                                                                                                                                                g = Term.UOp UserOp.set_union
+                                                                                                                                                              · subst g
+                                                                                                                                                                exact
+                                                                                                                                                                  substitute_simul_set_binop_preserves_type_and_translation_of_typeof_ne_stuck
+                                                                                                                                                                    UserOp.set_union SmtTerm.set_union x1 a xs ts bvs
+                                                                                                                                                                    hXsEnv hBvsEnv hTs
+                                                                                                                                                                    (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                                                                    hFTrans hTy
+                                                                                                                                                                    (fun X Y => by rfl)
+                                                                                                                                                                    (fun X Y => typeof_set_union_eq X Y)
+                                                                                                                                                                    (fun X Y => by rfl)
+                                                                                                                                                                    (fun hXTrans hXTy =>
+                                                                                                                                                                      hRec
+                                                                                                                                                                        (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                        (by simp; omega)
+                                                                                                                                                                        hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
+                                                                                                                                                                    (fun hATrans hATy =>
+                                                                                                                                                                      hRec
+                                                                                                                                                                        (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                        (by simp; omega)
+                                                                                                                                                                        hXsEnv hBvsEnv hATrans hTs hActuals hATy)
+                                                                                                                                                              · by_cases hHeadSetInter :
+                                                                                                                                                                  g = Term.UOp UserOp.set_inter
+                                                                                                                                                                · subst g
+                                                                                                                                                                  exact
+                                                                                                                                                                    substitute_simul_set_binop_preserves_type_and_translation_of_typeof_ne_stuck
+                                                                                                                                                                      UserOp.set_inter SmtTerm.set_inter x1 a xs ts bvs
+                                                                                                                                                                      hXsEnv hBvsEnv hTs
+                                                                                                                                                                      (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                                                                      hFTrans hTy
+                                                                                                                                                                      (fun X Y => by rfl)
+                                                                                                                                                                      (fun X Y => typeof_set_inter_eq X Y)
+                                                                                                                                                                      (fun X Y => by rfl)
+                                                                                                                                                                      (fun hXTrans hXTy =>
+                                                                                                                                                                        hRec
+                                                                                                                                                                          (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                          (by simp; omega)
+                                                                                                                                                                          hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
+                                                                                                                                                                      (fun hATrans hATy =>
+                                                                                                                                                                        hRec
+                                                                                                                                                                          (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                          (by simp; omega)
+                                                                                                                                                                          hXsEnv hBvsEnv hATrans hTs hActuals hATy)
+                                                                                                                                                                · by_cases hHeadSetMinus :
+                                                                                                                                                                    g = Term.UOp UserOp.set_minus
+                                                                                                                                                                  · subst g
+                                                                                                                                                                    exact
+                                                                                                                                                                      substitute_simul_set_binop_preserves_type_and_translation_of_typeof_ne_stuck
+                                                                                                                                                                        UserOp.set_minus SmtTerm.set_minus x1 a xs ts bvs
+                                                                                                                                                                        hXsEnv hBvsEnv hTs
+                                                                                                                                                                        (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                                                                        hFTrans hTy
+                                                                                                                                                                        (fun X Y => by rfl)
+                                                                                                                                                                        (fun X Y => typeof_set_minus_eq X Y)
+                                                                                                                                                                        (fun X Y => by rfl)
+                                                                                                                                                                        (fun hXTrans hXTy =>
+                                                                                                                                                                          hRec
+                                                                                                                                                                            (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                            (by simp; omega)
+                                                                                                                                                                            hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
+                                                                                                                                                                        (fun hATrans hATy =>
+                                                                                                                                                                          hRec
+                                                                                                                                                                            (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                            (by simp; omega)
+                                                                                                                                                                            hXsEnv hBvsEnv hATrans hTs hActuals hATy)
+                                                                                                                                                                  · by_cases hHeadSetMember :
+                                                                                                                                                                      g = Term.UOp UserOp.set_member
+                                                                                                                                                                    · subst g
+                                                                                                                                                                      exact
+                                                                                                                                                                        substitute_simul_set_member_preserves_type_and_translation_of_typeof_ne_stuck
+                                                                                                                                                                          x1 a xs ts bvs
+                                                                                                                                                                          hXsEnv hBvsEnv hTs
+                                                                                                                                                                          (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                                                                          hFTrans hTy
+                                                                                                                                                                          (fun hXTrans hXTy =>
+                                                                                                                                                                            hRec
+                                                                                                                                                                              (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                              (by simp; omega)
+                                                                                                                                                                              hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
+                                                                                                                                                                          (fun hATrans hATy =>
+                                                                                                                                                                            hRec
+                                                                                                                                                                              (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                              (by simp; omega)
+                                                                                                                                                                              hXsEnv hBvsEnv hATrans hTs hActuals hATy)
+                                                                                                                                                                    · by_cases hHeadSetSubset :
+                                                                                                                                                                        g = Term.UOp UserOp.set_subset
+                                                                                                                                                                      · subst g
+                                                                                                                                                                        exact
+                                                                                                                                                                          substitute_simul_set_subset_preserves_type_and_translation_of_typeof_ne_stuck
+                                                                                                                                                                            x1 a xs ts bvs
+                                                                                                                                                                            hXsEnv hBvsEnv hTs
+                                                                                                                                                                            (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                                                                            hFTrans hTy
+                                                                                                                                                                            (fun hXTrans hXTy =>
+                                                                                                                                                                              hRec
+                                                                                                                                                                                (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                (by simp; omega)
+                                                                                                                                                                                hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
+                                                                                                                                                                            (fun hATrans hATy =>
+                                                                                                                                                                              hRec
+                                                                                                                                                                                (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                (by simp; omega)
+                                                                                                                                                                                hXsEnv hBvsEnv hATrans hTs hActuals hATy)
+                                                                                                                                                                      · by_cases hHeadSetsDeqDiff :
+                                                                                                                                                                          g =
+                                                                                                                                                                            Term.UOp UserOp._at_sets_deq_diff
+                                                                                                                                                                        · subst g
+                                                                                                                                                                          exact
+                                                                                                                                                                            substitute_simul_sets_deq_diff_preserves_type_and_translation_of_typeof_ne_stuck
+                                                                                                                                                                              x1 a xs ts bvs
+                                                                                                                                                                              hXsEnv hBvsEnv hTs
+                                                                                                                                                                              (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                                                                              hFTrans hTy
+                                                                                                                                                                              (fun hXTrans hXTy =>
+                                                                                                                                                                                hRec
+                                                                                                                                                                                  (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                  (by simp; omega)
+                                                                                                                                                                                  hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
+                                                                                                                                                                              (fun hATrans hATy =>
+                                                                                                                                                                                  hRec
+                                                                                                                                                                                    (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                    (by simp; omega)
+                                                                                                                                                                                    hXsEnv hBvsEnv hATrans hTs hActuals hATy)
+                                                                                                                                                                        · by_cases hHeadStringsDeqDiff :
+                                                                                                                                                                            g =
+                                                                                                                                                                              Term.UOp UserOp._at_strings_deq_diff
+                                                                                                                                                                          · subst g
+                                                                                                                                                                            exact
+                                                                                                                                                                              substitute_simul_strings_deq_diff_preserves_type_and_translation_of_typeof_ne_stuck
+                                                                                                                                                                                x1 a xs ts bvs
+                                                                                                                                                                                hXsEnv hBvsEnv hTs
+                                                                                                                                                                                (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                                                                                hFTrans hTy
+                                                                                                                                                                                (fun hXTrans hXTy =>
+                                                                                                                                                                                  hRec
+                                                                                                                                                                                    (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                    (by simp; omega)
+                                                                                                                                                                                    hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
+                                                                                                                                                                                (fun hATrans hATy =>
+                                                                                                                                                                                  hRec
+                                                                                                                                                                                    (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                    (by simp; omega)
+                                                                                                                                                                                    hXsEnv hBvsEnv hATrans hTs hActuals hATy)
+                                                                                                                                                                          · by_cases hHeadStringsStoiResult :
+                                                                                                                                                                              g =
+                                                                                                                                                                                Term.UOp UserOp._at_strings_stoi_result
+                                                                                                                                                                            · subst g
+                                                                                                                                                                              exact
+                                                                                                                                                                                substitute_simul_strings_stoi_result_preserves_type_and_translation_of_typeof_ne_stuck
+                                                                                                                                                                                  x1 a xs ts bvs
+                                                                                                                                                                                  hXsEnv hBvsEnv hTs
+                                                                                                                                                                                  (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                                                                                  hFTrans hTy
+                                                                                                                                                                                  (fun hXTrans hXTy =>
+                                                                                                                                                                                    hRec
+                                                                                                                                                                                      (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                      (by simp; omega)
+                                                                                                                                                                                      hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
+                                                                                                                                                                                  (fun hATrans hATy =>
+                                                                                                                                                                                    hRec
+                                                                                                                                                                                      (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                      (by simp; omega)
+                                                                                                                                                                                      hXsEnv hBvsEnv hATrans hTs hActuals hATy)
+                                                                                                                                                                            · by_cases hHeadStringsItosResult :
+                                                                                                                                                                                g =
+                                                                                                                                                                                  Term.UOp UserOp._at_strings_itos_result
+                                                                                                                                                                              · subst g
+                                                                                                                                                                                exact
+                                                                                                                                                                                  substitute_simul_strings_itos_result_preserves_type_and_translation_of_typeof_ne_stuck
+                                                                                                                                                                                    x1 a xs ts bvs
+                                                                                                                                                                                    hXsEnv hBvsEnv hTs
+                                                                                                                                                                                    (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                                                                                    hFTrans hTy
+                                                                                                                                                                                    (fun hXTrans hXTy =>
+                                                                                                                                                                                      hRec
+                                                                                                                                                                                        (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                        (by simp; omega)
+                                                                                                                                                                                        hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
+                                                                                                                                                                                    (fun hATrans hATy =>
+                                                                                                                                                                                      hRec
+                                                                                                                                                                                      (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                      (by simp; omega)
+                                                                                                                                                                                      hXsEnv hBvsEnv hATrans hTs hActuals hATy)
+                                                                                                                                                                              · by_cases hHeadArrayDeqDiff :
+                                                                                                                                                                                  g =
+                                                                                                                                                                                    Term.UOp UserOp._at_array_deq_diff
+                                                                                                                                                                                · subst g
+                                                                                                                                                                                  exact
+                                                                                                                                                                                    substitute_simul_array_deq_diff_preserves_type_and_translation_of_typeof_ne_stuck
+                                                                                                                                                                                      x1 a xs ts bvs
+                                                                                                                                                                                      hXsEnv hBvsEnv hTs
+                                                                                                                                                                                      (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                                                                                      hFTrans hTy
+                                                                                                                                                                                      (fun hXTrans hXTy =>
+                                                                                                                                                                                        hRec
+                                                                                                                                                                                          (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                          (by simp; omega)
+                                                                                                                                                                                          hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
+                                                                                                                                                                                      (fun hATrans hATy =>
+                                                                                                                                                                                        hRec
+                                                                                                                                                                                          (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                          (by simp; omega)
+                                                                                                                                                                                          hXsEnv hBvsEnv hATrans hTs hActuals hATy)
+                                                                                                                                                                                · by_cases hHeadFromBools :
+                                                                                                                                                                                    g =
+                                                                                                                                                                                      Term.UOp UserOp._at_from_bools
+                                                                                                                                                                                  · subst g
+                                                                                                                                                                                    exact
+                                                                                                                                                                                      substitute_simul_from_bools_preserves_type_and_translation_of_typeof_ne_stuck
+                                                                                                                                                                                        x1 a xs ts bvs
+                                                                                                                                                                                        hXsEnv hBvsEnv hTs
+                                                                                                                                                                                        (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                                                                                        hFTrans hTy
+                                                                                                                                                                                        (fun hXTrans hXTy =>
+                                                                                                                                                                                          hRec
+                                                                                                                                                                                            (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                            (by simp; omega)
+                                                                                                                                                                                            hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
+                                                                                                                                                                                        (fun hATrans hATy =>
+                                                                                                                                                                                          hRec
+                                                                                                                                                                                            (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                            (by simp; omega)
+                                                                                                                                                                                            hXsEnv hBvsEnv hATrans hTs hActuals hATy)
+                                                                                                                                                                                  · by_cases hHeadStringsNumOccur :
+                                                                                                                                                                                      g =
+                                                                                                                                                                                        Term.UOp UserOp._at_strings_num_occur
+                                                                                                                                                                                    · subst g
+                                                                                                                                                                                      exact
+                                                                                                                                                                                        substitute_simul_strings_num_occur_preserves_type_and_translation_of_typeof_ne_stuck
+                                                                                                                                                                                          x1 a xs ts bvs
+                                                                                                                                                                                          hXsEnv hBvsEnv hTs
+                                                                                                                                                                                          (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                                                                                          hFTrans hTy
+                                                                                                                                                                                          (fun hXTrans hXTy =>
+                                                                                                                                                                                            hRec
+                                                                                                                                                                                              (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                              (by simp; omega)
+                                                                                                                                                                                              hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
+                                                                                                                                                                                          (fun hATrans hATy =>
+                                                                                                                                                                                            hRec
+                                                                                                                                                                                              (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                              (by simp; omega)
+                                                                                                                                                                                              hXsEnv hBvsEnv hATrans hTs hActuals hATy)
+                                                                                                                                                                                    · by_cases hHeadIte :
+                                                                                                                                                                                        ∃ c,
+                                                                                                                                                                                          g =
+                                                                                                                                                                                            Term.Apply (Term.UOp UserOp.ite) c
+                                                                                                                                                                                      · rcases hHeadIte with ⟨c, rfl⟩
+                                                                                                                                                                                        exact
+                                                                                                                                                                                          substitute_simul_ite_preserves_type_and_translation_of_typeof_ne_stuck
+                                                                                                                                                                                            c x1 a xs ts bvs
+                                                                                                                                                                                            hXsEnv hBvsEnv hTs
+                                                                                                                                                                                            hFTrans hTy
+                                                                                                                                                                                            (fun hCTrans hCTy =>
+                                                                                                                                                                                              hRec
+                                                                                                                                                                                                (G := c) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                (by simp; omega)
+                                                                                                                                                                                                hXsEnv hBvsEnv hCTrans hTs hActuals hCTy)
+                                                                                                                                                                                            (fun hXTrans hXTy =>
+                                                                                                                                                                                              hRec
+                                                                                                                                                                                                (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                (by simp; omega)
+                                                                                                                                                                                                hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
+                                                                                                                                                                                            (fun hATrans hATy =>
+                                                                                                                                                                                              hRec
+                                                                                                                                                                                                (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                (by simp; omega)
+                                                                                                                                                                                                hXsEnv hBvsEnv hATrans hTs hActuals hATy)
+                                                                                                                                                                                      · by_cases hHeadBvite :
+                                                                                                                                                                                          ∃ c,
+                                                                                                                                                                                            g =
+                                                                                                                                                                                              Term.Apply (Term.UOp UserOp.bvite) c
+                                                                                                                                                                                        · rcases hHeadBvite with ⟨c, rfl⟩
+                                                                                                                                                                                          exact
+                                                                                                                                                                                            substitute_simul_bvite_preserves_type_and_translation_of_typeof_ne_stuck
+                                                                                                                                                                                              c x1 a xs ts bvs
+                                                                                                                                                                                              hXsEnv hBvsEnv hTs
+                                                                                                                                                                                              hFTrans hTy
+                                                                                                                                                                                              (fun hCTrans hCTy =>
+                                                                                                                                                                                                hRec
+                                                                                                                                                                                                  (G := c) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                  (by simp; omega)
+                                                                                                                                                                                                  hXsEnv hBvsEnv hCTrans hTs hActuals hCTy)
+                                                                                                                                                                                              (fun hXTrans hXTy =>
+                                                                                                                                                                                                hRec
+                                                                                                                                                                                                  (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                  (by simp; omega)
+                                                                                                                                                                                                  hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
+                                                                                                                                                                                              (fun hATrans hATy =>
+                                                                                                                                                                                                hRec
+                                                                                                                                                                                                  (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                  (by simp; omega)
+                                                                                                                                                                                                  hXsEnv hBvsEnv hATrans hTs hActuals hATy)
+                                                                                                                                                                                        · by_cases hHeadStore :
+                                                                                                                                                                                            ∃ arr,
+                                                                                                                                                                                              g =
+                                                                                                                                                                                                Term.Apply (Term.UOp UserOp.store) arr
+                                                                                                                                                                                          · rcases hHeadStore with ⟨arr, rfl⟩
+                                                                                                                                                                                            exact
+                                                                                                                                                                                              substitute_simul_store_preserves_type_and_translation_of_typeof_ne_stuck
+                                                                                                                                                                                                arr x1 a xs ts bvs
+                                                                                                                                                                                                hXsEnv hBvsEnv hTs
+                                                                                                                                                                                                hFTrans hTy
+                                                                                                                                                                                                (fun hArrTrans hArrTy =>
+                                                                                                                                                                                                  hRec
+                                                                                                                                                                                                    (G := arr) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                    (by simp; omega)
+                                                                                                                                                                                                    hXsEnv hBvsEnv hArrTrans hTs hActuals hArrTy)
+                                                                                                                                                                                                (fun hXTrans hXTy =>
+                                                                                                                                                                                                  hRec
+                                                                                                                                                                                                    (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                    (by simp; omega)
+                                                                                                                                                                                                    hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
+                                                                                                                                                                                                (fun hATrans hATy =>
+                                                                                                                                                                                                  hRec
+                                                                                                                                                                                                    (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                    (by simp; omega)
+                                                                                                                                                                                                    hXsEnv hBvsEnv hATrans hTs hActuals hATy)
+                                                                                                                                                                                          · by_cases hHeadStrSubstr :
+                                                                                                                                                                                              ∃ s,
+                                                                                                                                                                                                g =
+                                                                                                                                                                                                  Term.Apply (Term.UOp UserOp.str_substr) s
+                                                                                                                                                                                            · rcases hHeadStrSubstr with ⟨s, rfl⟩
+                                                                                                                                                                                              exact
+                                                                                                                                                                                                substitute_simul_str_substr_preserves_type_and_translation_of_typeof_ne_stuck
+                                                                                                                                                                                                  s x1 a xs ts bvs
+                                                                                                                                                                                                  hXsEnv hBvsEnv hTs
+                                                                                                                                                                                                  hFTrans hTy
+                                                                                                                                                                                                  (fun hSTrans hSTy =>
+                                                                                                                                                                                                    hRec
+                                                                                                                                                                                                      (G := s) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                      (by simp; omega)
+                                                                                                                                                                                                      hXsEnv hBvsEnv hSTrans hTs hActuals hSTy)
+                                                                                                                                                                                                  (fun hXTrans hXTy =>
+                                                                                                                                                                                                    hRec
+                                                                                                                                                                                                      (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                      (by simp; omega)
+                                                                                                                                                                                                      hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
+                                                                                                                                                                                                  (fun hATrans hATy =>
+                                                                                                                                                                                                    hRec
+                                                                                                                                                                                                      (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                      (by simp; omega)
+                                                                                                                                                                                                      hXsEnv hBvsEnv hATrans hTs hActuals hATy)
+                                                                                                                                                                                            · exact hOld
                 · by_cases hHeadSpecial :
                     (∃ op, f = Term.UOp op) ∨
                       (∃ op x, f = Term.UOp1 op x) ∨
@@ -6307,14 +10374,14 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                     hTs
                                                                                                     hActuals
                                                                                                     hATy)
-                                                                                          · by_cases hHeadSetChoose :
+                                                                                          · by_cases hHeadSeqUnit :
                                                                                               f =
                                                                                                 Term.UOp
-                                                                                                  UserOp.set_choose
+                                                                                                  UserOp.seq_unit
                                                                                             · subst f
                                                                                               exact
-                                                                                                substitute_simul_unary_op_preserves_type_and_translation_of_typeof_ne_stuck
-                                                                                                  UserOp.set_choose
+                                                                                                substitute_simul_unary_op_preserves_type_and_translation_of_typeof_ne_stuck_arg_type_eq
+                                                                                                  UserOp.seq_unit
                                                                                                   a xs
                                                                                                   ts
                                                                                                   bvs
@@ -6330,88 +10397,56 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                   hFTrans
                                                                                                   hTy
                                                                                                   (fun h =>
-                                                                                                    set_choose_arg_has_smt_translation_of_has_smt_translation h)
+                                                                                                    seq_unit_arg_has_smt_translation_of_has_smt_translation h)
                                                                                                   (fun X hApp => by
                                                                                                     change
-                                                                                                      __eo_typeof_set_choose
+                                                                                                      __eo_typeof_seq_unit
                                                                                                           (__eo_typeof X) ≠
                                                                                                         Term.Stuck at hApp
-                                                                                                    rcases
-                                                                                                        eo_typeof_set_choose_arg_set_of_ne_stuck
-                                                                                                          hApp with
-                                                                                                      ⟨T,
-                                                                                                        hArg⟩
-                                                                                                    rw [
-                                                                                                      hArg]
-                                                                                                    intro h
-                                                                                                    cases h)
+                                                                                                    exact
+                                                                                                      eo_typeof_seq_unit_arg_not_stuck_of_ne_stuck
+                                                                                                        hApp)
                                                                                                   (fun X Y hXY => by
                                                                                                     change
-                                                                                                      __eo_typeof_set_choose
+                                                                                                      __eo_typeof_seq_unit
                                                                                                           (__eo_typeof X) =
-                                                                                                        __eo_typeof_set_choose
+                                                                                                        __eo_typeof_seq_unit
                                                                                                           (__eo_typeof Y)
                                                                                                     rw [
                                                                                                       hXY])
-                                                                                                  (fun X hXTrans hApp => by
+                                                                                                  (fun X hXTrans hXTyEq hApp => by
                                                                                                     unfold RuleProofs.eo_has_smt_translation
                                                                                                     change
                                                                                                       __smtx_typeof
-                                                                                                          (SmtTerm.map_diff
+                                                                                                          (SmtTerm.seq_unit
                                                                                                             (__eo_to_smt
-                                                                                                              X)
-                                                                                                            (SmtTerm.set_empty
-                                                                                                              (__eo_to_smt_set_elem_type
-                                                                                                                (__smtx_typeof
-                                                                                                                  (__eo_to_smt
-                                                                                                                    X))))) ≠
+                                                                                                              X)) ≠
                                                                                                         SmtType.None
                                                                                                     change
-                                                                                                      __eo_typeof_set_choose
+                                                                                                      __eo_typeof_seq_unit
                                                                                                           (__eo_typeof X) ≠
                                                                                                         Term.Stuck at hApp
-                                                                                                    rcases
-                                                                                                        eo_typeof_set_choose_arg_set_of_ne_stuck
-                                                                                                          hApp with
-                                                                                                      ⟨T,
-                                                                                                        hArgEo⟩
-                                                                                                    have hSmtArg :=
-                                                                                                      smt_typeof_eo_to_smt_set_of_typeof_set
-                                                                                                        hXTrans
-                                                                                                        hArgEo
-                                                                                                    have hEmpty :=
-                                                                                                      smt_typeof_set_empty_of_eo_set_arg
-                                                                                                        hXTrans
-                                                                                                        hArgEo
-                                                                                                    have hEmpty' :
-                                                                                                        __smtx_typeof
-                                                                                                            (SmtTerm.set_empty
-                                                                                                              (__eo_to_smt_type
-                                                                                                                T)) =
-                                                                                                          SmtType.Set
-                                                                                                            (__eo_to_smt_type
-                                                                                                              T) := by
+                                                                                                    have hFTransEo :
+                                                                                                        eoHasSmtTranslation
+                                                                                                          (Term.Apply
+                                                                                                            (Term.UOp UserOp.seq_unit)
+                                                                                                            a) := by
                                                                                                       simpa [
-                                                                                                        hSmtArg,
-                                                                                                        __eo_to_smt_set_elem_type]
+                                                                                                        RuleProofs.eo_has_smt_translation,
+                                                                                                        eoHasSmtTranslation]
+                                                                                                        using hFTrans
+                                                                                                    have hATrans :
+                                                                                                        RuleProofs.eo_has_smt_translation
+                                                                                                          a := by
+                                                                                                      simpa [
+                                                                                                        RuleProofs.eo_has_smt_translation,
+                                                                                                        eoHasSmtTranslation]
                                                                                                         using
-                                                                                                          hEmpty
-                                                                                                    have hElemNN :
-                                                                                                        __eo_to_smt_type
-                                                                                                            T ≠
-                                                                                                          SmtType.None :=
-                                                                                                      smt_typeof_eo_to_smt_set_elem_ne_none_of_typeof_set
-                                                                                                        hXTrans
-                                                                                                        hArgEo
-                                                                                                    rw [
-                                                                                                      typeof_map_diff_eq,
-                                                                                                      hEmpty,
-                                                                                                      hSmtArg]
-                                                                                                    simp [
-                                                                                                      __smtx_typeof_map_diff,
-                                                                                                      native_ite,
-                                                                                                      native_Teq,
-                                                                                                      hElemNN])
+                                                                                                          seq_unit_arg_has_smt_translation_of_has_smt_translation
+                                                                                                            hFTransEo
+                                                                                                    exact
+                                                                                                      smt_seq_unit_non_none_of_has_smt_translation_type_eq
+                                                                                                        a X hFTrans hATrans hXTrans hXTyEq)
                                                                                                   (fun hATrans hATy =>
                                                                                                     hRec
                                                                                                       (G := a)
@@ -6425,14 +10460,14 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                       hTs
                                                                                                       hActuals
                                                                                                       hATy)
-                                                                                            · by_cases hHeadSetIsEmpty :
+                                                                                            · by_cases hHeadSetSingleton :
                                                                                                 f =
                                                                                                   Term.UOp
-                                                                                                    UserOp.set_is_empty
+                                                                                                    UserOp.set_singleton
                                                                                               · subst f
                                                                                                 exact
-                                                                                                  substitute_simul_unary_op_preserves_type_and_translation_of_typeof_ne_stuck
-                                                                                                    UserOp.set_is_empty
+                                                                                                  substitute_simul_unary_op_preserves_type_and_translation_of_typeof_ne_stuck_arg_type_eq
+                                                                                                    UserOp.set_singleton
                                                                                                     a xs
                                                                                                     ts
                                                                                                     bvs
@@ -6448,81 +10483,56 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                     hFTrans
                                                                                                     hTy
                                                                                                     (fun h =>
-                                                                                                      set_is_empty_arg_has_smt_translation_of_has_smt_translation h)
+                                                                                                      set_singleton_arg_has_smt_translation_of_has_smt_translation h)
                                                                                                     (fun X hApp => by
                                                                                                       change
-                                                                                                        __eo_typeof_set_is_empty
+                                                                                                        __eo_typeof_set_singleton
                                                                                                             (__eo_typeof X) ≠
                                                                                                           Term.Stuck at hApp
-                                                                                                      rcases
-                                                                                                          eo_typeof_set_is_empty_arg_set_of_ne_stuck
-                                                                                                            hApp with
-                                                                                                        ⟨T,
-                                                                                                          hArg⟩
-                                                                                                      rw [
-                                                                                                        hArg]
-                                                                                                      intro h
-                                                                                                      cases h)
+                                                                                                      exact
+                                                                                                        eo_typeof_set_singleton_arg_not_stuck_of_ne_stuck
+                                                                                                          hApp)
                                                                                                     (fun X Y hXY => by
                                                                                                       change
-                                                                                                        __eo_typeof_set_is_empty
+                                                                                                        __eo_typeof_set_singleton
                                                                                                             (__eo_typeof X) =
-                                                                                                          __eo_typeof_set_is_empty
+                                                                                                          __eo_typeof_set_singleton
                                                                                                             (__eo_typeof Y)
                                                                                                       rw [
                                                                                                         hXY])
-                                                                                                    (fun X hXTrans hApp => by
+                                                                                                    (fun X hXTrans hXTyEq hApp => by
                                                                                                       unfold RuleProofs.eo_has_smt_translation
                                                                                                       change
                                                                                                         __smtx_typeof
-                                                                                                            (SmtTerm.eq
+                                                                                                            (SmtTerm.set_singleton
                                                                                                               (__eo_to_smt
-                                                                                                                X)
-                                                                                                              (SmtTerm.set_empty
-                                                                                                                (__eo_to_smt_set_elem_type
-                                                                                                                  (__smtx_typeof
-                                                                                                                    (__eo_to_smt
-                                                                                                                      X))))) ≠
+                                                                                                                X)) ≠
                                                                                                           SmtType.None
                                                                                                       change
-                                                                                                        __eo_typeof_set_is_empty
+                                                                                                        __eo_typeof_set_singleton
                                                                                                             (__eo_typeof X) ≠
                                                                                                           Term.Stuck at hApp
-                                                                                                      rcases
-                                                                                                          eo_typeof_set_is_empty_arg_set_of_ne_stuck
-                                                                                                            hApp with
-                                                                                                        ⟨T,
-                                                                                                          hArgEo⟩
-                                                                                                      have hSmtArg :=
-                                                                                                        smt_typeof_eo_to_smt_set_of_typeof_set
-                                                                                                          hXTrans
-                                                                                                          hArgEo
-                                                                                                      have hEmpty :=
-                                                                                                        smt_typeof_set_empty_of_eo_set_arg
-                                                                                                          hXTrans
-                                                                                                          hArgEo
-                                                                                                      have hEmpty' :
-                                                                                                          __smtx_typeof
-                                                                                                              (SmtTerm.set_empty
-                                                                                                                (__eo_to_smt_type
-                                                                                                                  T)) =
-                                                                                                            SmtType.Set
-                                                                                                              (__eo_to_smt_type
-                                                                                                                T) := by
+                                                                                                      have hFTransEo :
+                                                                                                          eoHasSmtTranslation
+                                                                                                            (Term.Apply
+                                                                                                              (Term.UOp UserOp.set_singleton)
+                                                                                                              a) := by
                                                                                                         simpa [
-                                                                                                          hSmtArg,
-                                                                                                          __eo_to_smt_set_elem_type]
+                                                                                                          RuleProofs.eo_has_smt_translation,
+                                                                                                          eoHasSmtTranslation]
+                                                                                                          using hFTrans
+                                                                                                      have hATrans :
+                                                                                                          RuleProofs.eo_has_smt_translation
+                                                                                                            a := by
+                                                                                                        simpa [
+                                                                                                          RuleProofs.eo_has_smt_translation,
+                                                                                                          eoHasSmtTranslation]
                                                                                                           using
-                                                                                                            hEmpty
-                                                                                                      rw [
-                                                                                                        typeof_eq_eq,
-                                                                                                        hEmpty,
-                                                                                                        hSmtArg]
-                                                                                                      simp [
-                                                                                                        __smtx_typeof_eq,
-                                                                                                        __smtx_typeof_guard,
-                                                                                                        native_ite,
-                                                                                                        native_Teq])
+                                                                                                            set_singleton_arg_has_smt_translation_of_has_smt_translation
+                                                                                                              hFTransEo
+                                                                                                      exact
+                                                                                                        smt_set_singleton_non_none_of_has_smt_translation_type_eq
+                                                                                                          a X hFTrans hATrans hXTrans hXTyEq)
                                                                                                     (fun hATrans hATy =>
                                                                                                       hRec
                                                                                                         (G := a)
@@ -6536,14 +10546,14 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                         hTs
                                                                                                         hActuals
                                                                                                         hATy)
-                                                                                              · by_cases hHeadSetIsSingleton :
+                                                                                              · by_cases hHeadSetChoose :
                                                                                                   f =
                                                                                                     Term.UOp
-                                                                                                      UserOp.set_is_singleton
+                                                                                                      UserOp.set_choose
                                                                                                 · subst f
                                                                                                   exact
                                                                                                     substitute_simul_unary_op_preserves_type_and_translation_of_typeof_ne_stuck
-                                                                                                      UserOp.set_is_singleton
+                                                                                                      UserOp.set_choose
                                                                                                       a xs
                                                                                                       ts
                                                                                                       bvs
@@ -6559,14 +10569,14 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                       hFTrans
                                                                                                       hTy
                                                                                                       (fun h =>
-                                                                                                        set_is_singleton_arg_has_smt_translation_of_has_smt_translation h)
+                                                                                                        set_choose_arg_has_smt_translation_of_has_smt_translation h)
                                                                                                       (fun X hApp => by
                                                                                                         change
-                                                                                                          __eo_typeof_set_is_empty
+                                                                                                          __eo_typeof_set_choose
                                                                                                               (__eo_typeof X) ≠
                                                                                                             Term.Stuck at hApp
                                                                                                         rcases
-                                                                                                            eo_typeof_set_is_empty_arg_set_of_ne_stuck
+                                                                                                            eo_typeof_set_choose_arg_set_of_ne_stuck
                                                                                                               hApp with
                                                                                                           ⟨T,
                                                                                                             hArg⟩
@@ -6576,9 +10586,9 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                         cases h)
                                                                                                       (fun X Y hXY => by
                                                                                                         change
-                                                                                                          __eo_typeof_set_is_empty
+                                                                                                          __eo_typeof_set_choose
                                                                                                               (__eo_typeof X) =
-                                                                                                            __eo_typeof_set_is_empty
+                                                                                                            __eo_typeof_set_choose
                                                                                                               (__eo_typeof Y)
                                                                                                         rw [
                                                                                                           hXY])
@@ -6586,25 +10596,21 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                         unfold RuleProofs.eo_has_smt_translation
                                                                                                         change
                                                                                                           __smtx_typeof
-                                                                                                              (SmtTerm.eq
+                                                                                                              (SmtTerm.map_diff
                                                                                                                 (__eo_to_smt
                                                                                                                   X)
-                                                                                                                (SmtTerm.set_singleton
-                                                                                                                  (SmtTerm.map_diff
-                                                                                                                    (__eo_to_smt
-                                                                                                                      X)
-                                                                                                                    (SmtTerm.set_empty
-                                                                                                                      (__eo_to_smt_set_elem_type
-                                                                                                                        (__smtx_typeof
-                                                                                                                          (__eo_to_smt
-                                                                                                                            X))))))) ≠
+                                                                                                                (SmtTerm.set_empty
+                                                                                                                  (__eo_to_smt_set_elem_type
+                                                                                                                    (__smtx_typeof
+                                                                                                                      (__eo_to_smt
+                                                                                                                        X))))) ≠
                                                                                                             SmtType.None
                                                                                                         change
-                                                                                                          __eo_typeof_set_is_empty
+                                                                                                          __eo_typeof_set_choose
                                                                                                               (__eo_typeof X) ≠
                                                                                                             Term.Stuck at hApp
                                                                                                         rcases
-                                                                                                            eo_typeof_set_is_empty_arg_set_of_ne_stuck
+                                                                                                            eo_typeof_set_choose_arg_set_of_ne_stuck
                                                                                                               hApp with
                                                                                                           ⟨T,
                                                                                                             hArgEo⟩
@@ -6629,74 +10635,22 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                             __eo_to_smt_set_elem_type]
                                                                                                             using
                                                                                                               hEmpty
-                                                                                                        have hDiffTy :
-                                                                                                            __smtx_typeof
-                                                                                                                (SmtTerm.map_diff
-                                                                                                                  (__eo_to_smt
-                                                                                                                    X)
-                                                                                                                  (SmtTerm.set_empty
-                                                                                                                    (__eo_to_smt_set_elem_type
-                                                                                                                      (__smtx_typeof
-                                                                                                                        (__eo_to_smt
-                                                                                                                          X))))) =
-                                                                                                              __eo_to_smt_type
-                                                                                                                T := by
-                                                                                                          have hElemNN :
-                                                                                                              __eo_to_smt_type
-                                                                                                                  T ≠
-                                                                                                                SmtType.None :=
-                                                                                                            smt_typeof_eo_to_smt_set_elem_ne_none_of_typeof_set
-                                                                                                              hXTrans
-                                                                                                              hArgEo
-                                                                                                          rw [
-                                                                                                            typeof_map_diff_eq,
-                                                                                                            hEmpty,
-                                                                                                            hSmtArg]
-                                                                                                          simp [
-                                                                                                            __smtx_typeof_map_diff,
-                                                                                                            native_ite,
-                                                                                                            native_Teq]
-                                                                                                        have hSetWf :
-                                                                                                            __smtx_type_wf
-                                                                                                                (SmtType.Set
-                                                                                                                  (__eo_to_smt_type
-                                                                                                                    T)) =
-                                                                                                              true :=
-                                                                                                          Smtm.smt_term_set_type_wf_of_non_none
-                                                                                                            (__eo_to_smt
-                                                                                                              X)
+                                                                                                        have hElemNN :
+                                                                                                            __eo_to_smt_type
+                                                                                                                T ≠
+                                                                                                              SmtType.None :=
+                                                                                                          smt_typeof_eo_to_smt_set_elem_ne_none_of_typeof_set
                                                                                                             hXTrans
-                                                                                                            hSmtArg
-                                                                                                        have hSingletonTy :
-                                                                                                            __smtx_typeof
-                                                                                                                (SmtTerm.set_singleton
-                                                                                                                  (SmtTerm.map_diff
-                                                                                                                    (__eo_to_smt
-                                                                                                                      X)
-                                                                                                                    (SmtTerm.set_empty
-                                                                                                                      (__eo_to_smt_set_elem_type
-                                                                                                                        (__smtx_typeof
-                                                                                                                          (__eo_to_smt
-                                                                                                                            X)))))) =
-                                                                                                              SmtType.Set
-                                                                                                                (__eo_to_smt_type
-                                                                                                                  T) := by
-                                                                                                          rw [
-                                                                                                            smtx_typeof_set_singleton_term_eq,
-                                                                                                            hDiffTy]
-                                                                                                          simp [
-                                                                                                            __smtx_typeof_guard_wf,
-                                                                                                            hSetWf,
-                                                                                                            native_ite]
+                                                                                                            hArgEo
                                                                                                         rw [
-                                                                                                          typeof_eq_eq,
-                                                                                                          hSingletonTy,
+                                                                                                          typeof_map_diff_eq,
+                                                                                                          hEmpty,
                                                                                                           hSmtArg]
                                                                                                         simp [
-                                                                                                          __smtx_typeof_eq,
-                                                                                                          __smtx_typeof_guard,
+                                                                                                          __smtx_typeof_map_diff,
                                                                                                           native_ite,
-                                                                                                          native_Teq])
+                                                                                                          native_Teq,
+                                                                                                          hElemNN])
                                                                                                       (fun hATrans hATy =>
                                                                                                         hRec
                                                                                                           (G := a)
@@ -6709,8 +10663,293 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                           hATrans
                                                                                                           hTs
                                                                                                           hActuals
-                                                                                                          hATy)
-                                                                                                · exact hOld
+                                                                                                              hATy)
+                                                                                                · by_cases hHeadSetIsEmpty :
+                                                                                                    f =
+                                                                                                      Term.UOp
+                                                                                                        UserOp.set_is_empty
+                                                                                                  · subst f
+                                                                                                    exact
+                                                                                                      substitute_simul_unary_op_preserves_type_and_translation_of_typeof_ne_stuck
+                                                                                                        UserOp.set_is_empty
+                                                                                                        a xs
+                                                                                                        ts
+                                                                                                        bvs
+                                                                                                        hXsEnv
+                                                                                                        hBvsEnv
+                                                                                                        hTs
+                                                                                                        (fun q v vs hEq =>
+                                                                                                          hBinder
+                                                                                                            ⟨q,
+                                                                                                              v,
+                                                                                                              vs,
+                                                                                                              hEq⟩)
+                                                                                                        hFTrans
+                                                                                                        hTy
+                                                                                                        (fun h =>
+                                                                                                          set_is_empty_arg_has_smt_translation_of_has_smt_translation h)
+                                                                                                        (fun X hApp => by
+                                                                                                          change
+                                                                                                            __eo_typeof_set_is_empty
+                                                                                                                (__eo_typeof X) ≠
+                                                                                                              Term.Stuck at hApp
+                                                                                                          rcases
+                                                                                                              eo_typeof_set_is_empty_arg_set_of_ne_stuck
+                                                                                                                hApp with
+                                                                                                            ⟨T,
+                                                                                                              hArg⟩
+                                                                                                          rw [
+                                                                                                            hArg]
+                                                                                                          intro h
+                                                                                                          cases h)
+                                                                                                        (fun X Y hXY => by
+                                                                                                          change
+                                                                                                            __eo_typeof_set_is_empty
+                                                                                                                (__eo_typeof X) =
+                                                                                                              __eo_typeof_set_is_empty
+                                                                                                                (__eo_typeof Y)
+                                                                                                          rw [
+                                                                                                            hXY])
+                                                                                                        (fun X hXTrans hApp => by
+                                                                                                          unfold RuleProofs.eo_has_smt_translation
+                                                                                                          change
+                                                                                                            __smtx_typeof
+                                                                                                                (SmtTerm.eq
+                                                                                                                  (__eo_to_smt
+                                                                                                                    X)
+                                                                                                                  (SmtTerm.set_empty
+                                                                                                                    (__eo_to_smt_set_elem_type
+                                                                                                                      (__smtx_typeof
+                                                                                                                        (__eo_to_smt
+                                                                                                                          X))))) ≠
+                                                                                                              SmtType.None
+                                                                                                          change
+                                                                                                            __eo_typeof_set_is_empty
+                                                                                                                (__eo_typeof X) ≠
+                                                                                                              Term.Stuck at hApp
+                                                                                                          rcases
+                                                                                                              eo_typeof_set_is_empty_arg_set_of_ne_stuck
+                                                                                                                hApp with
+                                                                                                            ⟨T,
+                                                                                                              hArgEo⟩
+                                                                                                          have hSmtArg :=
+                                                                                                            smt_typeof_eo_to_smt_set_of_typeof_set
+                                                                                                              hXTrans
+                                                                                                              hArgEo
+                                                                                                          have hEmpty :=
+                                                                                                            smt_typeof_set_empty_of_eo_set_arg
+                                                                                                              hXTrans
+                                                                                                              hArgEo
+                                                                                                          have hEmpty' :
+                                                                                                              __smtx_typeof
+                                                                                                                  (SmtTerm.set_empty
+                                                                                                                    (__eo_to_smt_type
+                                                                                                                      T)) =
+                                                                                                                SmtType.Set
+                                                                                                                  (__eo_to_smt_type
+                                                                                                                    T) := by
+                                                                                                            simpa [
+                                                                                                              hSmtArg,
+                                                                                                              __eo_to_smt_set_elem_type]
+                                                                                                              using
+                                                                                                                hEmpty
+                                                                                                          rw [
+                                                                                                            typeof_eq_eq,
+                                                                                                            hEmpty,
+                                                                                                            hSmtArg]
+                                                                                                          simp [
+                                                                                                            __smtx_typeof_eq,
+                                                                                                            __smtx_typeof_guard,
+                                                                                                            native_ite,
+                                                                                                            native_Teq])
+                                                                                                        (fun hATrans hATy =>
+                                                                                                          hRec
+                                                                                                            (G := a)
+                                                                                                            (xs' := xs)
+                                                                                                            (ts' := ts)
+                                                                                                            (bvs' := bvs)
+                                                                                                            (by simp)
+                                                                                                            hXsEnv
+                                                                                                            hBvsEnv
+                                                                                                            hATrans
+                                                                                                            hTs
+                                                                                                            hActuals
+                                                                                                            hATy)
+                                                                                                  · by_cases hHeadSetIsSingleton :
+                                                                                                      f =
+                                                                                                        Term.UOp
+                                                                                                          UserOp.set_is_singleton
+                                                                                                    · subst f
+                                                                                                      exact
+                                                                                                        substitute_simul_unary_op_preserves_type_and_translation_of_typeof_ne_stuck
+                                                                                                          UserOp.set_is_singleton
+                                                                                                          a xs
+                                                                                                          ts
+                                                                                                          bvs
+                                                                                                          hXsEnv
+                                                                                                          hBvsEnv
+                                                                                                          hTs
+                                                                                                          (fun q v vs hEq =>
+                                                                                                            hBinder
+                                                                                                              ⟨q,
+                                                                                                                v,
+                                                                                                                vs,
+                                                                                                                hEq⟩)
+                                                                                                          hFTrans
+                                                                                                          hTy
+                                                                                                          (fun h =>
+                                                                                                            set_is_singleton_arg_has_smt_translation_of_has_smt_translation h)
+                                                                                                          (fun X hApp => by
+                                                                                                            change
+                                                                                                              __eo_typeof_set_is_empty
+                                                                                                                  (__eo_typeof X) ≠
+                                                                                                                Term.Stuck at hApp
+                                                                                                            rcases
+                                                                                                                eo_typeof_set_is_empty_arg_set_of_ne_stuck
+                                                                                                                  hApp with
+                                                                                                              ⟨T,
+                                                                                                                hArg⟩
+                                                                                                            rw [
+                                                                                                              hArg]
+                                                                                                            intro h
+                                                                                                            cases h)
+                                                                                                          (fun X Y hXY => by
+                                                                                                            change
+                                                                                                              __eo_typeof_set_is_empty
+                                                                                                                  (__eo_typeof X) =
+                                                                                                                __eo_typeof_set_is_empty
+                                                                                                                  (__eo_typeof Y)
+                                                                                                            rw [
+                                                                                                              hXY])
+                                                                                                          (fun X hXTrans hApp => by
+                                                                                                            unfold RuleProofs.eo_has_smt_translation
+                                                                                                            change
+                                                                                                              __smtx_typeof
+                                                                                                                  (SmtTerm.eq
+                                                                                                                    (__eo_to_smt
+                                                                                                                      X)
+                                                                                                                    (SmtTerm.set_singleton
+                                                                                                                      (SmtTerm.map_diff
+                                                                                                                        (__eo_to_smt
+                                                                                                                          X)
+                                                                                                                        (SmtTerm.set_empty
+                                                                                                                          (__eo_to_smt_set_elem_type
+                                                                                                                            (__smtx_typeof
+                                                                                                                              (__eo_to_smt
+                                                                                                                                X))))))) ≠
+                                                                                                                SmtType.None
+                                                                                                            change
+                                                                                                              __eo_typeof_set_is_empty
+                                                                                                                  (__eo_typeof X) ≠
+                                                                                                                Term.Stuck at hApp
+                                                                                                            rcases
+                                                                                                                eo_typeof_set_is_empty_arg_set_of_ne_stuck
+                                                                                                                  hApp with
+                                                                                                              ⟨T,
+                                                                                                                hArgEo⟩
+                                                                                                            have hSmtArg :=
+                                                                                                              smt_typeof_eo_to_smt_set_of_typeof_set
+                                                                                                                hXTrans
+                                                                                                                hArgEo
+                                                                                                            have hEmpty :=
+                                                                                                              smt_typeof_set_empty_of_eo_set_arg
+                                                                                                                hXTrans
+                                                                                                                hArgEo
+                                                                                                            have hEmpty' :
+                                                                                                                __smtx_typeof
+                                                                                                                    (SmtTerm.set_empty
+                                                                                                                      (__eo_to_smt_type
+                                                                                                                        T)) =
+                                                                                                                  SmtType.Set
+                                                                                                                    (__eo_to_smt_type
+                                                                                                                      T) := by
+                                                                                                              simpa [
+                                                                                                                hSmtArg,
+                                                                                                                __eo_to_smt_set_elem_type]
+                                                                                                                using
+                                                                                                                  hEmpty
+                                                                                                            have hDiffTy :
+                                                                                                                __smtx_typeof
+                                                                                                                    (SmtTerm.map_diff
+                                                                                                                      (__eo_to_smt
+                                                                                                                        X)
+                                                                                                                      (SmtTerm.set_empty
+                                                                                                                        (__eo_to_smt_set_elem_type
+                                                                                                                          (__smtx_typeof
+                                                                                                                            (__eo_to_smt
+                                                                                                                              X))))) =
+                                                                                                                  __eo_to_smt_type
+                                                                                                                    T := by
+                                                                                                              have hElemNN :
+                                                                                                                  __eo_to_smt_type
+                                                                                                                      T ≠
+                                                                                                                    SmtType.None :=
+                                                                                                                smt_typeof_eo_to_smt_set_elem_ne_none_of_typeof_set
+                                                                                                                  hXTrans
+                                                                                                                  hArgEo
+                                                                                                              rw [
+                                                                                                                typeof_map_diff_eq,
+                                                                                                                hEmpty,
+                                                                                                                hSmtArg]
+                                                                                                              simp [
+                                                                                                                __smtx_typeof_map_diff,
+                                                                                                                native_ite,
+                                                                                                                native_Teq]
+                                                                                                            have hSetWf :
+                                                                                                                __smtx_type_wf
+                                                                                                                    (SmtType.Set
+                                                                                                                      (__eo_to_smt_type
+                                                                                                                        T)) =
+                                                                                                                  true :=
+                                                                                                              Smtm.smt_term_set_type_wf_of_non_none
+                                                                                                                (__eo_to_smt
+                                                                                                                  X)
+                                                                                                                hXTrans
+                                                                                                                hSmtArg
+                                                                                                            have hSingletonTy :
+                                                                                                                __smtx_typeof
+                                                                                                                    (SmtTerm.set_singleton
+                                                                                                                      (SmtTerm.map_diff
+                                                                                                                        (__eo_to_smt
+                                                                                                                          X)
+                                                                                                                        (SmtTerm.set_empty
+                                                                                                                          (__eo_to_smt_set_elem_type
+                                                                                                                            (__smtx_typeof
+                                                                                                                              (__eo_to_smt
+                                                                                                                                X)))))) =
+                                                                                                                  SmtType.Set
+                                                                                                                    (__eo_to_smt_type
+                                                                                                                      T) := by
+                                                                                                              rw [
+                                                                                                                smtx_typeof_set_singleton_term_eq,
+                                                                                                                hDiffTy]
+                                                                                                              simp [
+                                                                                                                __smtx_typeof_guard_wf,
+                                                                                                                hSetWf,
+                                                                                                                native_ite]
+                                                                                                            rw [
+                                                                                                              typeof_eq_eq,
+                                                                                                              hSingletonTy,
+                                                                                                              hSmtArg]
+                                                                                                            simp [
+                                                                                                              __smtx_typeof_eq,
+                                                                                                              __smtx_typeof_guard,
+                                                                                                              native_ite,
+                                                                                                              native_Teq])
+                                                                                                          (fun hATrans hATy =>
+                                                                                                            hRec
+                                                                                                              (G := a)
+                                                                                                              (xs' := xs)
+                                                                                                              (ts' := ts)
+                                                                                                              (bvs' := bvs)
+                                                                                                              (by simp)
+                                                                                                              hXsEnv
+                                                                                                              hBvsEnv
+                                                                                                              hATrans
+                                                                                                              hTs
+                                                                                                              hActuals
+                                                                                                              hATy)
+                                                                                                    · exact hOld
                   · have hHeadNotApply : ∀ g x, f ≠ Term.Apply g x := by
                       intro g x hEq
                       exact hHeadApply ⟨g, x, hEq⟩
