@@ -191,7 +191,7 @@ private theorem smt_map_domain_inhabited_wf_rec_of_typeof
     (t : SmtTerm) (A B : SmtType)
     (hTy : __smtx_typeof t = SmtType.Map A B) :
     native_inhabited_type A = true ∧
-      __smtx_type_wf_rec A native_reflist_nil = true := by
+      __smtx_type_wf_rec A A = true := by
   have hNN : term_has_non_none_type t := by
     unfold term_has_non_none_type
     rw [hTy]
@@ -204,18 +204,20 @@ private theorem smt_map_domain_inhabited_wf_rec_of_typeof
     simpa [__smtx_type_wf] using hWF
   have hParts :
       native_inhabited_type A = true ∧
-        __smtx_type_wf_rec A native_reflist_nil = true ∧
+        __smtx_type_wf_rec A A = true ∧
           native_inhabited_type B = true ∧
-            __smtx_type_wf_rec B native_reflist_nil = true := by
+            __smtx_type_wf_rec B B = true := by
     have hAll :
         native_inhabited_type (SmtType.Map A B) = true ∧
-          native_inhabited_type A = true ∧
-            __smtx_type_wf_rec A native_reflist_nil = true ∧
-              native_inhabited_type B = true ∧
-                __smtx_type_wf_rec B native_reflist_nil = true := by
+          ((native_inhabited_type A = true ∧
+            __smtx_type_wf_rec A A = true) ∧
+            __smtx_type_no_alias_rec native_reflist_nil A = true) ∧
+          (native_inhabited_type B = true ∧
+            __smtx_type_wf_rec B B = true) ∧
+            __smtx_type_no_alias_rec native_reflist_nil B = true := by
       have hComponentParts := smtx_type_wf_component_parts hComponent
       simpa [__smtx_type_wf_rec, SmtEval.native_and] using hComponentParts
-    exact hAll.2
+    exact ⟨hAll.2.1.1.1, hAll.2.1.1.2, hAll.2.2.1.1, hAll.2.2.1.2⟩
   exact ⟨hParts.1, hParts.2.1⟩
 
 private theorem typed___eo_prog_arrays_ext_impl
@@ -320,7 +322,7 @@ private theorem facts___eo_prog_arrays_ext_impl
       (__eo_to_smt a) (__eo_to_smt_type I) (__eo_to_smt_type E) hSmtA
   have hADomain :
       native_inhabited_type (__eo_to_smt_type I) = true ∧
-        __smtx_type_wf_rec (__eo_to_smt_type I) native_reflist_nil = true :=
+        __smtx_type_wf_rec (__eo_to_smt_type I) (__eo_to_smt_type I) = true :=
     smt_map_domain_inhabited_wf_rec_of_typeof
       (__eo_to_smt a) (__eo_to_smt_type I) (__eo_to_smt_type E) hSmtA
   have hSelectEqFalse :

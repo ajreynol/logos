@@ -335,7 +335,7 @@ private theorem smt_types_of_select_store_arg
     rw [hSelectTy] at hSelectNN
     exact hSelectNN
   have hARec :
-      __smtx_type_wf_rec A native_reflist_nil = true :=
+      __smtx_type_wf_rec A A = true :=
     (Smtm.smt_map_components_wf_rec_of_non_none_type
       (__eo_to_smt a) A B hATy).1
   have hANonNone : A ≠ SmtType.None :=

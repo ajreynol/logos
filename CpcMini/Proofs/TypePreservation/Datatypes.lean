@@ -250,12 +250,14 @@ theorem datatype_wf_rec_of_type_wf
     {s : native_String}
     {d : SmtDatatype}
     (h : __smtx_type_wf (SmtType.Datatype s d) = true) :
-    __smtx_dt_wf_rec d (native_reflist_insert native_reflist_nil s) = true := by
+    __smtx_dt_wf_rec (__smtx_dt_substitute s d d) d = true := by
   have hPair :
-      native_inhabited_type (SmtType.Datatype s d) = true ∧
-        __smtx_dt_wf_rec d (native_reflist_insert native_reflist_nil s) = true := by
-    simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using h
-  exact hPair.2
+      (native_inhabited_type (SmtType.Datatype s d) = true ∧
+        __smtx_dt_wf_rec (__smtx_dt_substitute s d d) d = true) ∧
+        __smtx_type_no_alias_rec native_reflist_nil (SmtType.Datatype s d) = true := by
+    simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+      native_and] using h
+  exact hPair.1.2
 
 /-- Enumerates the cases for `typeof_apply_value_non_none`. -/
 theorem typeof_apply_value_non_none_cases
@@ -933,47 +935,47 @@ private theorem smt_datatype_wf_of_non_none_type
 
 /-- Extracts well-formedness of the tail of a well-formed datatype constructor. -/
 private theorem dt_cons_wf_rec_tail_of_true
-    {T : SmtType} {c : SmtDatatypeCons} {refs : RefList}
-    (h : __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons T c) refs = true) :
-    __smtx_dt_cons_wf_rec c refs = true := by
-  cases T <;> simp [__smtx_dt_cons_wf_rec, native_ite] at h ⊢
-  all_goals first | exact h.2 | exact h.2.2
+    {TF TU : SmtType} {cF cU : SmtDatatypeCons}
+    (h : __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons TF cF)
+        (SmtDatatypeCons.cons TU cU) = true) :
+    __smtx_dt_cons_wf_rec cF cU = true := by
+  cases TF <;> cases TU <;>
+    simp [__smtx_dt_cons_wf_rec, native_ite, native_and] at h ⊢
+  all_goals first | exact h | exact h.2 | exact h.2.2
 
 /-- Extracts constructor well-formedness from datatype well-formedness. -/
 private theorem dt_wf_cons_of_wf
-    {c : SmtDatatypeCons} {d : SmtDatatype} {refs : RefList}
-    (h : __smtx_dt_wf_rec (SmtDatatype.sum c d) refs = true) :
-    __smtx_dt_cons_wf_rec c refs = true := by
-  cases d with
-  | null =>
-      simpa [__smtx_dt_wf_rec] using h
-  | sum cTail dTail =>
-      cases hc : __smtx_dt_cons_wf_rec c refs <;>
-        simp [__smtx_dt_wf_rec, native_ite, hc] at h ⊢
+    {cF cU : SmtDatatypeCons} {dF dU : SmtDatatype}
+    (h : __smtx_dt_wf_rec (SmtDatatype.sum cF dF) (SmtDatatype.sum cU dU) = true) :
+    __smtx_dt_cons_wf_rec cF cU = true := by
+  cases hc : __smtx_dt_cons_wf_rec cF cU <;>
+    simp [__smtx_dt_wf_rec, native_ite, hc] at h ⊢
 
 /-- Extracts tail well-formedness from nonempty datatype well-formedness. -/
 private theorem dt_wf_tail_of_nonempty_tail_wf
-    {c cTail : SmtDatatypeCons}
-    {dTail : SmtDatatype}
-    {refs : RefList}
-    (h : __smtx_dt_wf_rec (SmtDatatype.sum c (SmtDatatype.sum cTail dTail)) refs = true) :
-    __smtx_dt_wf_rec (SmtDatatype.sum cTail dTail) refs = true := by
-  have hc : __smtx_dt_cons_wf_rec c refs = true :=
+    {cF cTailF cU cTailU : SmtDatatypeCons}
+    {dTailF dTailU : SmtDatatype}
+    (h : __smtx_dt_wf_rec
+        (SmtDatatype.sum cF (SmtDatatype.sum cTailF dTailF))
+        (SmtDatatype.sum cU (SmtDatatype.sum cTailU dTailU)) = true) :
+    __smtx_dt_wf_rec (SmtDatatype.sum cTailF dTailF)
+      (SmtDatatype.sum cTailU dTailU) = true := by
+  have hc : __smtx_dt_cons_wf_rec cF cU = true :=
     dt_wf_cons_of_wf h
   simpa [__smtx_dt_wf_rec, native_ite, hc] using h
 
 /-- Selector return types of well-formed datatypes are never `RegLan`. -/
 private theorem ret_typeof_sel_rec_substitute_ne_reglan_of_cons_wf
     (sub : native_String) (base : SmtDatatype) :
-    ∀ (c : SmtDatatypeCons) (d : SmtDatatype) (j : native_Nat) {refs : RefList},
-      __smtx_dt_cons_wf_rec c refs = true ->
+    ∀ (c : SmtDatatypeCons) (d : SmtDatatype) (j : native_Nat),
+      __smtx_dt_cons_wf_rec (__smtx_dtc_substitute sub base c) c = true ->
         __smtx_ret_typeof_sel_rec
             (SmtDatatype.sum (__smtx_dtc_substitute sub base c)
               (__smtx_dt_substitute sub base d)) native_nat_zero j ≠
           SmtType.RegLan
-  | SmtDatatypeCons.unit, d, j, refs, _hWf => by
+  | SmtDatatypeCons.unit, d, j, _hWf => by
       cases j <;> simp [__smtx_dtc_substitute, __smtx_ret_typeof_sel_rec]
-  | SmtDatatypeCons.cons T c, d, native_nat_zero, refs, hWf => by
+  | SmtDatatypeCons.cons T c, d, native_nat_zero, hWf => by
       cases T
       case TypeRef r =>
         by_cases hEq : sub = r <;>
@@ -985,9 +987,9 @@ private theorem ret_typeof_sel_rec_substitute_ne_reglan_of_cons_wf
         simp [__smtx_dtc_substitute, __smtx_dt_cons_wf_rec,
           __smtx_type_substitute, __smtx_type_wf_rec,
           __smtx_ret_typeof_sel_rec, native_ite, native_Teq,
-          native_streq] at hWf ⊢
-  | SmtDatatypeCons.cons T c, d, native_nat_succ j, refs, hWf => by
-      have hTail : __smtx_dt_cons_wf_rec c refs = true :=
+          native_streq, native_and] at hWf ⊢
+  | SmtDatatypeCons.cons T c, d, native_nat_succ j, hWf => by
+      have hTail : __smtx_dt_cons_wf_rec (__smtx_dtc_substitute sub base c) c = true :=
         dt_cons_wf_rec_tail_of_true hWf
       cases T <;>
         simpa [__smtx_dtc_substitute, __smtx_ret_typeof_sel_rec] using
@@ -996,26 +998,29 @@ private theorem ret_typeof_sel_rec_substitute_ne_reglan_of_cons_wf
 
 private theorem ret_typeof_sel_rec_substitute_ne_reglan_of_dt_wf
     (sub : native_String) (base : SmtDatatype) :
-    ∀ (d : SmtDatatype) (i j : native_Nat) {refs : RefList},
-      __smtx_dt_wf_rec d refs = true ->
+    ∀ (d : SmtDatatype) (i j : native_Nat),
+      __smtx_dt_wf_rec (__smtx_dt_substitute sub base d) d = true ->
         __smtx_ret_typeof_sel_rec (__smtx_dt_substitute sub base d) i j ≠
           SmtType.RegLan
-  | SmtDatatype.null, i, j, refs, _hWf => by
+  | SmtDatatype.null, i, j, _hWf => by
       cases i <;> cases j <;>
         simp [__smtx_dt_substitute, __smtx_ret_typeof_sel_rec]
-  | SmtDatatype.sum c d, native_nat_zero, j, refs, hWf => by
-      have hCons : __smtx_dt_cons_wf_rec c refs = true :=
+  | SmtDatatype.sum c d, native_nat_zero, j, hWf => by
+      have hCons :
+          __smtx_dt_cons_wf_rec (__smtx_dtc_substitute sub base c) c = true :=
         dt_wf_cons_of_wf hWf
       simpa [__smtx_dt_substitute] using
         ret_typeof_sel_rec_substitute_ne_reglan_of_cons_wf sub base
           c d j hCons
-  | SmtDatatype.sum c d, native_nat_succ i, j, refs, hWf => by
+  | SmtDatatype.sum c d, native_nat_succ i, j, hWf => by
       cases d with
       | null =>
           simp [__smtx_dt_substitute, __smtx_ret_typeof_sel_rec]
       | sum cTail dTail =>
           have hTail :
-              __smtx_dt_wf_rec (SmtDatatype.sum cTail dTail) refs = true :=
+              __smtx_dt_wf_rec
+                (__smtx_dt_substitute sub base (SmtDatatype.sum cTail dTail))
+                (SmtDatatype.sum cTail dTail) = true :=
             dt_wf_tail_of_nonempty_tail_wf hWf
           simpa [__smtx_dt_substitute, __smtx_ret_typeof_sel_rec] using
             ret_typeof_sel_rec_substitute_ne_reglan_of_dt_wf sub base
@@ -1027,7 +1032,7 @@ private theorem ret_typeof_sel_ne_reglan_of_datatype_wf
     {i j : native_Nat}
     (hWf : __smtx_type_wf (SmtType.Datatype s d) = true) :
     __smtx_ret_typeof_sel s d i j ≠ SmtType.RegLan := by
-  have hDtWf : __smtx_dt_wf_rec d (native_reflist_insert native_reflist_nil s) = true :=
+  have hDtWf : __smtx_dt_wf_rec (__smtx_dt_substitute s d d) d = true :=
     datatype_wf_rec_of_type_wf hWf
   simpa [__smtx_ret_typeof_sel] using
     ret_typeof_sel_rec_substitute_ne_reglan_of_dt_wf s d d i j hDtWf
@@ -1035,17 +1040,17 @@ private theorem ret_typeof_sel_ne_reglan_of_datatype_wf
 /-- Selector return types of well-formed datatypes are never top-level `FunType`. -/
 private theorem ret_typeof_sel_rec_substitute_ne_funtype_of_cons_wf
     (sub : native_String) (base : SmtDatatype) :
-    ∀ (c : SmtDatatypeCons) (d : SmtDatatype) (j : native_Nat) {refs : RefList},
-      __smtx_dt_cons_wf_rec c refs = true ->
+    ∀ (c : SmtDatatypeCons) (d : SmtDatatype) (j : native_Nat),
+      __smtx_dt_cons_wf_rec (__smtx_dtc_substitute sub base c) c = true ->
         ∀ A B : SmtType,
           __smtx_ret_typeof_sel_rec
               (SmtDatatype.sum (__smtx_dtc_substitute sub base c)
                 (__smtx_dt_substitute sub base d)) native_nat_zero j ≠
             SmtType.FunType A B
-  | SmtDatatypeCons.unit, d, j, refs, _hWf => by
+  | SmtDatatypeCons.unit, d, j, _hWf => by
       intro A B
       cases j <;> simp [__smtx_dtc_substitute, __smtx_ret_typeof_sel_rec]
-  | SmtDatatypeCons.cons T c, d, native_nat_zero, refs, hWf => by
+  | SmtDatatypeCons.cons T c, d, native_nat_zero, hWf => by
       intro A B
       cases T
       case TypeRef r =>
@@ -1058,10 +1063,10 @@ private theorem ret_typeof_sel_rec_substitute_ne_funtype_of_cons_wf
         simp [__smtx_dtc_substitute, __smtx_dt_cons_wf_rec,
           __smtx_type_substitute, __smtx_type_wf_rec,
           __smtx_ret_typeof_sel_rec, native_ite, native_Teq,
-          native_streq] at hWf ⊢
-  | SmtDatatypeCons.cons T c, d, native_nat_succ j, refs, hWf => by
+          native_streq, native_and] at hWf ⊢
+  | SmtDatatypeCons.cons T c, d, native_nat_succ j, hWf => by
       intro A B
-      have hTail : __smtx_dt_cons_wf_rec c refs = true :=
+      have hTail : __smtx_dt_cons_wf_rec (__smtx_dtc_substitute sub base c) c = true :=
         dt_cons_wf_rec_tail_of_true hWf
       cases T <;>
         simpa [__smtx_dtc_substitute, __smtx_ret_typeof_sel_rec] using
@@ -1070,29 +1075,32 @@ private theorem ret_typeof_sel_rec_substitute_ne_funtype_of_cons_wf
 
 private theorem ret_typeof_sel_rec_substitute_ne_funtype_of_dt_wf
     (sub : native_String) (base : SmtDatatype) :
-    ∀ (d : SmtDatatype) (i j : native_Nat) {refs : RefList},
-      __smtx_dt_wf_rec d refs = true ->
+    ∀ (d : SmtDatatype) (i j : native_Nat),
+      __smtx_dt_wf_rec (__smtx_dt_substitute sub base d) d = true ->
         ∀ A B : SmtType,
           __smtx_ret_typeof_sel_rec (__smtx_dt_substitute sub base d) i j ≠
             SmtType.FunType A B
-  | SmtDatatype.null, i, j, refs, _hWf => by
+  | SmtDatatype.null, i, j, _hWf => by
       intro A B
       cases i <;> cases j <;>
         simp [__smtx_dt_substitute, __smtx_ret_typeof_sel_rec]
-  | SmtDatatype.sum c d, native_nat_zero, j, refs, hWf => by
-      have hCons : __smtx_dt_cons_wf_rec c refs = true :=
+  | SmtDatatype.sum c d, native_nat_zero, j, hWf => by
+      have hCons :
+          __smtx_dt_cons_wf_rec (__smtx_dtc_substitute sub base c) c = true :=
         dt_wf_cons_of_wf hWf
       simpa [__smtx_dt_substitute] using
         ret_typeof_sel_rec_substitute_ne_funtype_of_cons_wf sub base
           c d j hCons
-  | SmtDatatype.sum c d, native_nat_succ i, j, refs, hWf => by
+  | SmtDatatype.sum c d, native_nat_succ i, j, hWf => by
       cases d with
       | null =>
           intro A B
           simp [__smtx_dt_substitute, __smtx_ret_typeof_sel_rec]
       | sum cTail dTail =>
           have hTail :
-              __smtx_dt_wf_rec (SmtDatatype.sum cTail dTail) refs = true :=
+              __smtx_dt_wf_rec
+                (__smtx_dt_substitute sub base (SmtDatatype.sum cTail dTail))
+                (SmtDatatype.sum cTail dTail) = true :=
             dt_wf_tail_of_nonempty_tail_wf hWf
           simpa [__smtx_dt_substitute, __smtx_ret_typeof_sel_rec] using
             ret_typeof_sel_rec_substitute_ne_funtype_of_dt_wf sub base
@@ -1104,7 +1112,7 @@ private theorem ret_typeof_sel_ne_funtype_of_datatype_wf
     {i j : native_Nat}
     (hWf : __smtx_type_wf (SmtType.Datatype s d) = true) :
     ∀ A B : SmtType, __smtx_ret_typeof_sel s d i j ≠ SmtType.FunType A B := by
-  have hDtWf : __smtx_dt_wf_rec d (native_reflist_insert native_reflist_nil s) = true :=
+  have hDtWf : __smtx_dt_wf_rec (__smtx_dt_substitute s d d) d = true :=
     datatype_wf_rec_of_type_wf hWf
   simpa [__smtx_ret_typeof_sel] using
     ret_typeof_sel_rec_substitute_ne_funtype_of_dt_wf s d d i j hDtWf
@@ -1115,11 +1123,11 @@ private theorem type_wf_parts_of_wf_ne_reglan
     (hNe : T ≠ SmtType.RegLan)
     (hNeFun : ∀ A B : SmtType, T ≠ SmtType.FunType A B) :
     native_inhabited_type T = true ∧
-      __smtx_type_wf_rec T native_reflist_nil = true := by
+      __smtx_type_wf_rec T T = true := by
   cases T <;> simp [__smtx_type_wf, native_and] at hWf hNe ⊢
   case FunType A B =>
     exact False.elim (hNeFun A B rfl)
-  all_goals first | contradiction | exact hWf | exact ⟨hWf, rfl⟩
+  all_goals first | contradiction | exact hWf | exact hWf.1 | exact ⟨hWf, rfl⟩ | exact ⟨hWf.1, rfl⟩
 
 private theorem int_inhabited_bool :
     native_inhabited_type SmtType.Int = true :=
@@ -1163,39 +1171,44 @@ theorem dt_sel_wrong_map_type_wf_of_non_none
         (s := s) (d := d) (i := i) (j := j) hDTWf A B
   have hRParts :
       native_inhabited_type R = true ∧
-        __smtx_type_wf_rec R native_reflist_nil = true :=
+        __smtx_type_wf_rec R R = true :=
     type_wf_parts_of_wf_ne_reglan hRWf hRNe hRNeFun
   have hDTParts :
       native_inhabited_type D = true ∧
-        __smtx_type_wf_rec D native_reflist_nil = true :=
+        __smtx_type_wf_rec D D = true :=
     type_wf_parts_of_wf_ne_reglan hDTWf (by simp [D]) (by
       intro A B h
       simp [D] at h)
+  have hRNA : __smtx_type_no_alias_rec native_reflist_nil R = true :=
+    type_no_alias_of_type_wf hRWf
+  have hDNA : __smtx_type_no_alias_rec native_reflist_nil D = true :=
+    type_no_alias_of_type_wf hDTWf
   have hRInh : type_inhabited R :=
     type_inhabited_of_type_wf R hRWf
   have hM3Inh : type_inhabited M3 := by
     exact type_inhabited_map (A := D) (B := R) hRInh
   have hM3InhBool : native_inhabited_type M3 = true :=
     native_inhabited_type_map hRParts.1
-  have hM3Rec : __smtx_type_wf_rec M3 native_reflist_nil = true := by
+  have hM3Rec : __smtx_type_wf_rec M3 M3 = true := by
     simp [M3, __smtx_type_wf_rec, native_and, hDTParts.1,
-      hDTParts.2, hRParts.1, hRParts.2]
+      hDTParts.2, hRParts.1, hRParts.2, hDNA, hRNA]
   have hM2Inh : type_inhabited M2 := by
     exact type_inhabited_map (A := SmtType.Int) (B := M3) hM3Inh
   have hM2InhBool : native_inhabited_type M2 = true :=
     native_inhabited_type_map hM3InhBool
-  have hM2Rec : __smtx_type_wf_rec M2 native_reflist_nil = true := by
-    simp [M2, __smtx_type_wf_rec, native_and, int_inhabited_bool,
-      hM3InhBool, hM3Rec]
+  have hM2Rec : __smtx_type_wf_rec M2 M2 = true := by
+    simp [M2, __smtx_type_wf_rec, __smtx_type_no_alias_rec, native_and,
+      int_inhabited_bool, hM3InhBool, hM3Rec]
   have hM1Inh : type_inhabited M1 := by
     exact type_inhabited_map (A := SmtType.Int) (B := M2) hM2Inh
   have hM1InhBool : native_inhabited_type M1 = true :=
     native_inhabited_type_map hM2InhBool
-  have hM1Rec : __smtx_type_wf_rec M1 native_reflist_nil = true := by
-    simp [M1, __smtx_type_wf_rec, native_and, int_inhabited_bool,
-      hM2InhBool, hM2Rec]
+  have hM1Rec : __smtx_type_wf_rec M1 M1 = true := by
+    simp [M1, __smtx_type_wf_rec, __smtx_type_no_alias_rec, native_and,
+      int_inhabited_bool, hM2InhBool, hM2Rec]
   simpa [M1, M2, M3, D, R] using
     type_wf_of_inhabited_and_wf_rec hM1InhBool hM1Rec
+      (by simp [__smtx_type_no_alias_rec])
 
 /-- Shows that evaluating `dt_sel_wrong` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_dt_sel_wrong
@@ -1234,7 +1247,7 @@ theorem typeof_value_model_eval_dt_sel_wrong
     exact (map_type_wf_components_of_wf (A := D) (B := R) hM3WF).2
   have hDParts :
       native_inhabited_type D = true ∧
-        __smtx_type_wf_rec D native_reflist_nil = true :=
+        __smtx_type_wf_rec D D = true :=
     type_wf_parts_of_wf_ne_reglan hDWF (by simp [D]) (by
       intro A B h
       simp [D] at h)
@@ -1249,11 +1262,12 @@ theorem typeof_value_model_eval_dt_sel_wrong
         (s := s) (d := d) (i := i) (j := j) hDWF A B
   have hRParts :
       native_inhabited_type R = true ∧
-        __smtx_type_wf_rec R native_reflist_nil = true :=
+        __smtx_type_wf_rec R R = true :=
     type_wf_parts_of_wf_ne_reglan hRWF hRNe hRNeFun
   have hFunWF : __smtx_type_wf (SmtType.FunType D R) = true := by
-    simp [__smtx_type_wf, native_and, hDParts.1, hDParts.2,
-      hRParts.1, hRParts.2]
+    simp [__smtx_type_wf, __smtx_type_wf_component, native_and, hDParts.1, hDParts.2,
+      hRParts.1, hRParts.2, type_no_alias_of_type_wf hDWF,
+      type_no_alias_of_type_wf hRWF]
   have hLookup :
       __smtx_typeof_value
         (native_model_lookup M (native_wrong_apply_sel_id i j) (SmtType.FunType D R)) =

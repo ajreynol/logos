@@ -81,40 +81,174 @@ theorem smtx_type_wf_component_parts
     {T : SmtType}
     (h : __smtx_type_wf_component T = true) :
     native_inhabited_type T = true ∧
-      __smtx_type_wf_rec T native_reflist_nil = true := by
-  simpa [__smtx_type_wf_component, native_and] using h
+      __smtx_type_wf_rec T T = true := by
+  have h3 :
+      (native_inhabited_type T = true ∧
+        __smtx_type_wf_rec T T = true) ∧
+          __smtx_type_no_alias_rec native_reflist_nil T = true := by
+    simpa [__smtx_type_wf_component, native_and] using h
+  exact h3.1
+
+theorem smtx_type_wf_component_no_alias
+    {T : SmtType}
+    (h : __smtx_type_wf_component T = true) :
+    __smtx_type_no_alias_rec native_reflist_nil T = true := by
+  have h3 :
+      (native_inhabited_type T = true ∧
+        __smtx_type_wf_rec T T = true) ∧
+          __smtx_type_no_alias_rec native_reflist_nil T = true := by
+    simpa [__smtx_type_wf_component, native_and] using h
+  exact h3.2
+
+theorem type_no_alias_of_type_wf
+    {T : SmtType}
+    (h : __smtx_type_wf T = true) :
+    __smtx_type_no_alias_rec native_reflist_nil T = true := by
+  cases T
+  case Datatype s d =>
+    exact smtx_type_wf_component_no_alias (by simpa [__smtx_type_wf] using h)
+  all_goals simp [__smtx_type_no_alias_rec]
+
+/-! Scoped no-aliasing kit: weakening to a smaller scope, and field extraction through
+the head constructor of a well-formed datatype type (used for tuple components). -/
+mutual
+theorem no_alias_ty_weaken :
+    (T : SmtType) → (refs refs' : RefList) →
+      (∀ x, native_reflist_contains refs' x = true →
+        native_reflist_contains refs x = true) →
+      __smtx_type_no_alias_rec refs T = true →
+      __smtx_type_no_alias_rec refs' T = true
+  | SmtType.Datatype s d, refs, refs', hsub, h => by
+      have hparts : native_reflist_contains refs s = false ∧
+          __smtx_dt_no_alias_rec (native_reflist_insert refs s) d = true := by
+        cases hcs : native_reflist_contains refs s <;>
+          simp [__smtx_type_no_alias_rec, native_ite, hcs] at h ⊢
+        exact h
+      have hc' : native_reflist_contains refs' s = false := by
+        cases hcs' : native_reflist_contains refs' s
+        · rfl
+        · exact absurd (hsub s hcs') (by simp [hparts.1])
+      have hsub' : ∀ x, x ∈ refs' → x ∈ refs := by
+        intro x hx
+        have := hsub x (by simpa [native_reflist_contains] using hx)
+        simpa [native_reflist_contains] using this
+      have hd := no_alias_dt_weaken d (native_reflist_insert refs s)
+        (native_reflist_insert refs' s)
+        (fun x hx => by
+          simp only [native_reflist_contains, native_reflist_insert,
+            List.mem_cons, decide_eq_true_eq] at hx ⊢
+          rcases hx with rfl | hx
+          · exact Or.inl rfl
+          · exact Or.inr (hsub' x hx))
+        hparts.2
+      simp [__smtx_type_no_alias_rec, native_ite, hc', hd]
+  | SmtType.TypeRef s, _, _, _, _ => by simp [__smtx_type_no_alias_rec]
+  | SmtType.Bool, _, _, _, _ => by simp [__smtx_type_no_alias_rec]
+  | SmtType.Int, _, _, _, _ => by simp [__smtx_type_no_alias_rec]
+  | SmtType.Real, _, _, _, _ => by simp [__smtx_type_no_alias_rec]
+  | SmtType.BitVec n, _, _, _, _ => by simp [__smtx_type_no_alias_rec]
+  | SmtType.Char, _, _, _, _ => by simp [__smtx_type_no_alias_rec]
+  | SmtType.USort n, _, _, _, _ => by simp [__smtx_type_no_alias_rec]
+  | SmtType.Seq x, _, _, _, _ => by simp [__smtx_type_no_alias_rec]
+  | SmtType.Set x, _, _, _, _ => by simp [__smtx_type_no_alias_rec]
+  | SmtType.Map x y, _, _, _, _ => by simp [__smtx_type_no_alias_rec]
+  | SmtType.FunType x y, _, _, _, _ => by simp [__smtx_type_no_alias_rec]
+  | SmtType.DtcAppType x y, _, _, _, _ => by simp [__smtx_type_no_alias_rec]
+  | SmtType.None, _, _, _, _ => by simp [__smtx_type_no_alias_rec]
+  | SmtType.RegLan, _, _, _, _ => by simp [__smtx_type_no_alias_rec]
+
+theorem no_alias_dt_weaken :
+    (d : SmtDatatype) → (refs refs' : RefList) →
+      (∀ x, native_reflist_contains refs' x = true →
+        native_reflist_contains refs x = true) →
+      __smtx_dt_no_alias_rec refs d = true →
+      __smtx_dt_no_alias_rec refs' d = true
+  | SmtDatatype.null, _, _, _, _ => by simp [__smtx_dt_no_alias_rec]
+  | SmtDatatype.sum c d, refs, refs', hsub, h => by
+      have hparts : __smtx_dt_cons_no_alias_rec refs c = true ∧
+          __smtx_dt_no_alias_rec refs d = true := by
+        cases hc : __smtx_dt_cons_no_alias_rec refs c <;>
+          simp [__smtx_dt_no_alias_rec, native_ite, hc] at h ⊢
+        exact h
+      simp [__smtx_dt_no_alias_rec, native_ite,
+        no_alias_dtc_weaken c refs refs' hsub hparts.1,
+        no_alias_dt_weaken d refs refs' hsub hparts.2]
+
+theorem no_alias_dtc_weaken :
+    (c : SmtDatatypeCons) → (refs refs' : RefList) →
+      (∀ x, native_reflist_contains refs' x = true →
+        native_reflist_contains refs x = true) →
+      __smtx_dt_cons_no_alias_rec refs c = true →
+      __smtx_dt_cons_no_alias_rec refs' c = true
+  | SmtDatatypeCons.unit, _, _, _, _ => by simp [__smtx_dt_cons_no_alias_rec]
+  | SmtDatatypeCons.cons T c, refs, refs', hsub, h => by
+      have hparts : __smtx_type_no_alias_rec refs T = true ∧
+          __smtx_dt_cons_no_alias_rec refs c = true := by
+        cases hT : __smtx_type_no_alias_rec refs T <;>
+          simp [__smtx_dt_cons_no_alias_rec, native_ite, hT] at h ⊢
+        exact h
+      simp [__smtx_dt_cons_no_alias_rec, native_ite,
+        no_alias_ty_weaken T refs refs' hsub hparts.1,
+        no_alias_dtc_weaken c refs refs' hsub hparts.2]
+end
+
+/-- The head field of a well-formed single-constructor datatype type (e.g. a translated
+tuple) is alias-free at the empty scope. -/
+theorem tuple_head_no_alias_of_type_wf
+    {s : native_String} {T : SmtType} {c : SmtDatatypeCons}
+    (h : __smtx_type_wf
+      (SmtType.Datatype s
+        (SmtDatatype.sum (SmtDatatypeCons.cons T c) SmtDatatype.null)) = true) :
+    __smtx_type_no_alias_rec native_reflist_nil T = true := by
+  have hNA := smtx_type_wf_component_no_alias (by simpa [__smtx_type_wf] using h)
+  have hcs : native_reflist_contains native_reflist_nil s = false := by
+    simp [native_reflist_contains, native_reflist_nil]
+  have hDt : __smtx_dt_no_alias_rec (native_reflist_insert native_reflist_nil s)
+      (SmtDatatype.sum (SmtDatatypeCons.cons T c) SmtDatatype.null) = true := by
+    simpa [__smtx_type_no_alias_rec, native_ite, hcs] using hNA
+  have hTy : __smtx_type_no_alias_rec
+      (native_reflist_insert native_reflist_nil s) T = true := by
+    cases hty : __smtx_type_no_alias_rec (native_reflist_insert native_reflist_nil s) T
+    · exfalso
+      simp [__smtx_dt_no_alias_rec, __smtx_dt_cons_no_alias_rec, native_ite, hty] at hDt
+    · rfl
+  exact no_alias_ty_weaken T _ _ (fun x hx =>
+    absurd hx (by simp [native_reflist_contains, native_reflist_nil])) hTy
 
 theorem smtx_type_wf_component_of_parts
     {T : SmtType}
     (hInh : native_inhabited_type T = true)
-    (hRec : __smtx_type_wf_rec T native_reflist_nil = true) :
+    (hRec : __smtx_type_wf_rec T T = true)
+    (hNA : __smtx_type_no_alias_rec native_reflist_nil T = true) :
     __smtx_type_wf_component T = true := by
-  simp [__smtx_type_wf_component, native_and, hInh, hRec]
+  simp [__smtx_type_wf_component, native_and, hInh, hRec, hNA]
 
 /-- Extracts the component well-formedness facts from a well-formed function type. -/
 theorem fun_type_wf_parts
     {A B : SmtType}
     (h : __smtx_type_wf (SmtType.FunType A B) = true) :
     native_inhabited_type A = true ∧
-      __smtx_type_wf_rec A native_reflist_nil = true ∧
+      __smtx_type_wf_rec A A = true ∧
         native_inhabited_type B = true ∧
-          __smtx_type_wf_rec B native_reflist_nil = true := by
+          __smtx_type_wf_rec B B = true := by
   have hAll :
-      (native_inhabited_type A = true ∧
-        __smtx_type_wf_rec A native_reflist_nil = true) ∧
-          (native_inhabited_type B = true ∧
-            __smtx_type_wf_rec B native_reflist_nil = true) := by
+      ((native_inhabited_type A = true ∧
+        __smtx_type_wf_rec A A = true) ∧
+          __smtx_type_no_alias_rec native_reflist_nil A = true) ∧
+          ((native_inhabited_type B = true ∧
+            __smtx_type_wf_rec B B = true) ∧
+              __smtx_type_no_alias_rec native_reflist_nil B = true) := by
     simpa [__smtx_type_wf, __smtx_type_wf_component, native_and] using h
-  exact ⟨hAll.1.1, hAll.1.2, hAll.2.1, hAll.2.2⟩
+  exact ⟨hAll.1.1.1, hAll.1.1.2, hAll.2.1.1, hAll.2.1.2⟩
 
 /-- Compatibility name for the former native-function well-formedness helper. -/
 theorem ifun_type_wf_parts
     {A B : SmtType}
     (h : __smtx_type_wf (SmtType.FunType A B) = true) :
     native_inhabited_type A = true ∧
-      __smtx_type_wf_rec A native_reflist_nil = true ∧
+      __smtx_type_wf_rec A A = true ∧
         native_inhabited_type B = true ∧
-          __smtx_type_wf_rec B native_reflist_nil = true := by
+          __smtx_type_wf_rec B B = true := by
   exact fun_type_wf_parts h
 
 /-- Extracts semantic inhabitation from a non-`None` guarded type. -/
@@ -132,19 +266,19 @@ theorem smtx_typeof_guard_wf_inhabited_of_non_none
     · rcases hFun with ⟨A, B, rfl⟩
       have hParts :
           native_inhabited_type A = true ∧
-            __smtx_type_wf_rec A native_reflist_nil = true ∧
+            __smtx_type_wf_rec A A = true ∧
               native_inhabited_type B = true ∧
-                __smtx_type_wf_rec B native_reflist_nil = true := by
+                __smtx_type_wf_rec B B = true := by
         exact fun_type_wf_parts hWf
       have hDef := type_default_typed_canonical_of_native_inhabited_type B hParts.2.2.1
       exact ⟨SmtValue.Fun native_default_ifun_id A B, by
         simp [__smtx_typeof_value]⟩
     · have hPair :
         native_inhabited_type T = true ∧
-          __smtx_type_wf_rec T native_reflist_nil = true := by
+          __smtx_type_wf_rec T T = true := by
         cases T <;>
           simp [__smtx_type_wf, __smtx_type_wf_component, native_and] at hWf hReg hFun ⊢
-        all_goals first | contradiction | assumption
+        all_goals first | contradiction | exact hWf.1 | assumption
       exact type_inhabited_of_native_inhabited_type T hPair.1
 
 /-- Extracts well-formedness of the guarded source type from a non-`None` guarded type. -/
@@ -167,9 +301,9 @@ theorem type_wf_non_none
 
 /-- Recursive well-formedness rejects `RegLan` at nested positions. -/
 theorem type_wf_rec_ne_reglan
-    {T : SmtType} {refs : RefList}
-    (h : __smtx_type_wf_rec T refs = true) :
-    T ≠ SmtType.RegLan := by
+    {F U : SmtType}
+    (h : __smtx_type_wf_rec F U = true) :
+    U ≠ SmtType.RegLan := by
   intro hReg
   subst hReg
   simp [__smtx_type_wf_rec] at h
@@ -178,12 +312,17 @@ theorem type_wf_rec_ne_reglan
 theorem type_wf_of_inhabited_and_wf_rec
     {T : SmtType}
     (hInh : native_inhabited_type T = true)
-    (hRec : __smtx_type_wf_rec T native_reflist_nil = true) :
+    (hRec : __smtx_type_wf_rec T T = true)
+    (hNA : __smtx_type_no_alias_rec native_reflist_nil T = true) :
     __smtx_type_wf T = true := by
-  cases T <;>
-    simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
-      native_and, hInh] at *
-  all_goals try assumption
+  have hComp : __smtx_type_wf_component T = true := by
+    simp [__smtx_type_wf_component, native_and, hInh, hRec, hNA]
+  cases T
+  case RegLan => simp [__smtx_type_wf]
+  case FunType A B =>
+    exfalso
+    simp [__smtx_type_wf_rec] at hRec
+  all_goals exact hComp
 
 /-- Every well-formed SMT type is semantically inhabited. -/
 theorem type_inhabited_of_type_wf
@@ -197,16 +336,16 @@ theorem type_inhabited_of_type_wf
     · rcases hFun with ⟨A, B, rfl⟩
       have hParts :
           native_inhabited_type A = true ∧
-            __smtx_type_wf_rec A native_reflist_nil = true ∧
+            __smtx_type_wf_rec A A = true ∧
               native_inhabited_type B = true ∧
-                __smtx_type_wf_rec B native_reflist_nil = true := by
+                __smtx_type_wf_rec B B = true := by
         exact fun_type_wf_parts hWF
       have hDef := type_default_typed_canonical_of_native_inhabited_type B hParts.2.2.1
       exact ⟨SmtValue.Fun native_default_ifun_id A B, rfl⟩
     · have hInh : native_inhabited_type T = true := by
         cases T <;>
           simp [__smtx_type_wf, __smtx_type_wf_component, native_and] at hWF hReg hFun ⊢
-        all_goals first | contradiction | exact hWF.1 | simp [native_inhabited_type,
+        all_goals first | contradiction | exact hWF.1 | exact hWF.1.1 | simp [native_inhabited_type,
           __smtx_type_default, __smtx_typeof_value, __smtx_value_canonical_bool,
           native_and]
       exact type_inhabited_of_native_inhabited_type T hInh
@@ -216,74 +355,62 @@ theorem seq_type_wf_component_of_wf
     {A : SmtType}
     (h : __smtx_type_wf (SmtType.Seq A) = true) :
     __smtx_type_wf A = true := by
-  have hPair :
-      native_inhabited_type A = true ∧ __smtx_type_wf_rec A native_reflist_nil = true := by
-    have hAll :
-        native_inhabited_type (SmtType.Seq A) = true ∧
-          native_inhabited_type A = true ∧
-            __smtx_type_wf_rec A native_reflist_nil = true := by
-      simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
-        native_and] using h
-    exact hAll.2
-  exact type_wf_of_inhabited_and_wf_rec hPair.1 hPair.2
+  have hAll :
+      native_inhabited_type (SmtType.Seq A) = true ∧
+        ((native_inhabited_type A = true ∧
+          __smtx_type_wf_rec A A = true) ∧
+          __smtx_type_no_alias_rec native_reflist_nil A = true) := by
+    simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+      __smtx_type_no_alias_rec, native_and] using h
+  exact type_wf_of_inhabited_and_wf_rec hAll.2.1.1 hAll.2.1.2 hAll.2.2
 
 /-- Extracts well-formedness of the element type of a well-formed set type. -/
 theorem set_type_wf_component_of_wf
     {A : SmtType}
     (h : __smtx_type_wf (SmtType.Set A) = true) :
     __smtx_type_wf A = true := by
-  have hPair :
-      native_inhabited_type A = true ∧ __smtx_type_wf_rec A native_reflist_nil = true := by
-    have hAll :
-        native_inhabited_type (SmtType.Set A) = true ∧
-          native_inhabited_type A = true ∧
-            __smtx_type_wf_rec A native_reflist_nil = true := by
-      simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
-        native_and] using h
-    exact hAll.2
-  exact type_wf_of_inhabited_and_wf_rec hPair.1 hPair.2
+  have hAll :
+      native_inhabited_type (SmtType.Set A) = true ∧
+        ((native_inhabited_type A = true ∧
+          __smtx_type_wf_rec A A = true) ∧
+          __smtx_type_no_alias_rec native_reflist_nil A = true) := by
+    simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+      __smtx_type_no_alias_rec, native_and] using h
+  exact type_wf_of_inhabited_and_wf_rec hAll.2.1.1 hAll.2.1.2 hAll.2.2
 
 /-- Extracts well-formedness of the domain and codomain of a well-formed map type. -/
 theorem map_type_wf_components_of_wf
     {A B : SmtType}
     (h : __smtx_type_wf (SmtType.Map A B) = true) :
     __smtx_type_wf A = true ∧ __smtx_type_wf B = true := by
-  have hPair :
-      native_inhabited_type A = true ∧
-        __smtx_type_wf_rec A native_reflist_nil = true ∧
-          native_inhabited_type B = true ∧
-            __smtx_type_wf_rec B native_reflist_nil = true := by
-    have hAll :
-        native_inhabited_type (SmtType.Map A B) = true ∧
-          native_inhabited_type A = true ∧
-            __smtx_type_wf_rec A native_reflist_nil = true ∧
-              native_inhabited_type B = true ∧
-                __smtx_type_wf_rec B native_reflist_nil = true := by
-      simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
-        native_and] using h
-    exact hAll.2
-  exact ⟨type_wf_of_inhabited_and_wf_rec hPair.1 hPair.2.1,
-    type_wf_of_inhabited_and_wf_rec hPair.2.2.1 hPair.2.2.2⟩
+  have hAll :
+      native_inhabited_type (SmtType.Map A B) = true ∧
+        (((native_inhabited_type A = true ∧
+          __smtx_type_wf_rec A A = true) ∧
+          __smtx_type_no_alias_rec native_reflist_nil A = true) ∧
+          ((native_inhabited_type B = true ∧
+            __smtx_type_wf_rec B B = true) ∧
+            __smtx_type_no_alias_rec native_reflist_nil B = true)) := by
+    simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+      __smtx_type_no_alias_rec, native_and] using h
+  exact ⟨type_wf_of_inhabited_and_wf_rec hAll.2.1.1.1 hAll.2.1.1.2 hAll.2.1.2,
+    type_wf_of_inhabited_and_wf_rec hAll.2.2.1.1 hAll.2.2.1.2 hAll.2.2.2⟩
 
 /-- Extracts well-formedness of the domain and codomain of a well-formed function type. -/
 theorem fun_type_wf_components_of_wf
     {A B : SmtType}
     (h : __smtx_type_wf (SmtType.FunType A B) = true) :
     __smtx_type_wf A = true ∧ __smtx_type_wf B = true := by
-  have hPair :
-      native_inhabited_type A = true ∧
-        __smtx_type_wf_rec A native_reflist_nil = true ∧
-          native_inhabited_type B = true ∧
-            __smtx_type_wf_rec B native_reflist_nil = true := by
-    have hAll :
-        native_inhabited_type A = true ∧
-          __smtx_type_wf_rec A native_reflist_nil = true ∧
-            native_inhabited_type B = true ∧
-              __smtx_type_wf_rec B native_reflist_nil = true := by
-      exact fun_type_wf_parts h
-    exact hAll
-  exact ⟨type_wf_of_inhabited_and_wf_rec hPair.1 hPair.2.1,
-    type_wf_of_inhabited_and_wf_rec hPair.2.2.1 hPair.2.2.2⟩
+  have hAll :
+      ((native_inhabited_type A = true ∧
+        __smtx_type_wf_rec A A = true) ∧
+          __smtx_type_no_alias_rec native_reflist_nil A = true) ∧
+        ((native_inhabited_type B = true ∧
+          __smtx_type_wf_rec B B = true) ∧
+            __smtx_type_no_alias_rec native_reflist_nil B = true) := by
+    simpa [__smtx_type_wf, __smtx_type_wf_component, native_and] using h
+  exact ⟨type_wf_of_inhabited_and_wf_rec hAll.1.1.1 hAll.1.1.2 hAll.1.2,
+    type_wf_of_inhabited_and_wf_rec hAll.2.1.1 hAll.2.1.2 hAll.2.2⟩
 
 /-- Compatibility name for the former native-function component helper. -/
 theorem ifun_type_wf_components_of_wf
@@ -296,18 +423,18 @@ theorem ifun_type_wf_components_of_wf
 theorem fun_type_wf_rec_components_of_wf
     {A B : SmtType}
     (h : __smtx_type_wf (SmtType.FunType A B) = true) :
-    __smtx_type_wf_rec A native_reflist_nil = true ∧
-      __smtx_type_wf_rec B native_reflist_nil = true := by
+    __smtx_type_wf_rec A A = true ∧
+      __smtx_type_wf_rec B B = true := by
   have hPair :
       native_inhabited_type A = true ∧
-        __smtx_type_wf_rec A native_reflist_nil = true ∧
+        __smtx_type_wf_rec A A = true ∧
           native_inhabited_type B = true ∧
-            __smtx_type_wf_rec B native_reflist_nil = true := by
+            __smtx_type_wf_rec B B = true := by
     have hAll :
         native_inhabited_type A = true ∧
-          __smtx_type_wf_rec A native_reflist_nil = true ∧
+          __smtx_type_wf_rec A A = true ∧
             native_inhabited_type B = true ∧
-              __smtx_type_wf_rec B native_reflist_nil = true := by
+              __smtx_type_wf_rec B B = true := by
       exact fun_type_wf_parts h
     exact hAll
   exact ⟨hPair.2.1, hPair.2.2.2⟩
@@ -316,8 +443,8 @@ theorem fun_type_wf_rec_components_of_wf
 theorem ifun_type_wf_rec_components_of_wf
     {A B : SmtType}
     (h : __smtx_type_wf (SmtType.FunType A B) = true) :
-    __smtx_type_wf_rec A native_reflist_nil = true ∧
-      __smtx_type_wf_rec B native_reflist_nil = true := by
+    __smtx_type_wf_rec A A = true ∧
+      __smtx_type_wf_rec B B = true := by
   exact fun_type_wf_rec_components_of_wf h
 
 /-- The domain of a well-formed function type is not `RegLan`. -/
@@ -500,7 +627,8 @@ theorem native_inhabited_type_map
 theorem seq_nth_wrong_map_type_wf
     {T : SmtType}
     (hTInh : native_inhabited_type T = true)
-    (hRec : __smtx_type_wf_rec T native_reflist_nil = true) :
+    (hRec : __smtx_type_wf_rec T T = true)
+    (hNA : __smtx_type_no_alias_rec native_reflist_nil T = true) :
     __smtx_type_wf
       (SmtType.Map (SmtType.Seq T) (SmtType.Map SmtType.Int T)) = true := by
   have hIntInh : native_inhabited_type SmtType.Int = true := by
@@ -518,7 +646,8 @@ theorem seq_nth_wrong_map_type_wf
     by
       exact native_inhabited_type_map hMapInh
   simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
-    native_and, hTInh, hRec, hIntInh, hSeqInh, hMapInh, hOuterInh]
+    __smtx_type_no_alias_rec, native_and, hTInh, hRec, hNA, hIntInh, hSeqInh,
+    hMapInh, hOuterInh]
 
 /-- Shows that the SMT type `fun` is inhabited when its result type is inhabited. -/
 theorem type_inhabited_fun {A B : SmtType} (hB : type_inhabited B) :

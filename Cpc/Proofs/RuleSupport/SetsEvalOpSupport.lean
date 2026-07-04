@@ -1010,7 +1010,7 @@ theorem map_canonical_default (A : SmtType) :
   simp only [__smtx_map_canonical, __smtx_map_default_canonical, __smtx_value_canonical_bool,
     __smtx_typeof_value, __smtx_type_default, native_veq, native_and, decide_true,
     Bool.and_true]
-  cases __smtx_is_finite_type A <;> rfl
+  cases __smtx_is_finite_type A <;> first | rfl | native_decide
 
 /-- Lookup of an intersection of two canonical, Bool-valued set maps. -/
 theorem set_inter_lookup

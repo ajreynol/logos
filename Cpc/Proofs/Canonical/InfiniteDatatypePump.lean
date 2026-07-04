@@ -14,26 +14,27 @@ and the dropped `native_inhabited_type` gate in `__smtx_dt_cons_wf_rec` required
 the now-absent inhabited conjunct in the wf-extraction lemmas.
 -/
 
-private theorem dt_cons_wf_rec_tail_of_true {T : SmtType} {c : SmtDatatypeCons} {refs : RefList}
-    (h : __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons T c) refs = true) :
-    __smtx_dt_cons_wf_rec c refs = true := by
-  cases T <;> simp [__smtx_dt_cons_wf_rec, native_ite] at h ⊢
-  all_goals first | exact h | exact h.2 | exact h.2.2
-
-private theorem dt_wf_cons_of_wf {c : SmtDatatypeCons} {d : SmtDatatype} {refs : RefList}
-    (h : __smtx_dt_wf_rec (SmtDatatype.sum c d) refs = true) :
-    __smtx_dt_cons_wf_rec c refs = true := by
-  by_cases hc : __smtx_dt_cons_wf_rec c refs = true
+private theorem dt_cons_wf_rec_tail_of_true {TF TU : SmtType} {cF cU : SmtDatatypeCons}
+    (h : __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons TF cF) (SmtDatatypeCons.cons TU cU) = true) :
+    __smtx_dt_cons_wf_rec cF cU = true := by
+  by_cases hc : __smtx_dt_cons_wf_rec cF cU = true
   · exact hc
-  · have hF : __smtx_dt_wf_rec (SmtDatatype.sum c d) refs = false := by
-      cases d <;> simp [__smtx_dt_wf_rec, native_ite, hc]
-    rw [hF] at h; simp at h
+  · exfalso
+    cases TF <;> cases TU <;>
+      simp_all [__smtx_dt_cons_wf_rec, native_ite, native_and]
 
-private theorem dt_wf_tail_of_nonempty_tail_wf {c cTail : SmtDatatypeCons} {dTail : SmtDatatype}
-    {refs : RefList}
-    (h : __smtx_dt_wf_rec (SmtDatatype.sum c (SmtDatatype.sum cTail dTail)) refs = true) :
-    __smtx_dt_wf_rec (SmtDatatype.sum cTail dTail) refs = true := by
-  have hc : __smtx_dt_cons_wf_rec c refs = true := dt_wf_cons_of_wf h
+private theorem dt_wf_cons_of_wf {cF cU : SmtDatatypeCons} {dF dU : SmtDatatype}
+    (h : __smtx_dt_wf_rec (SmtDatatype.sum cF dF) (SmtDatatype.sum cU dU) = true) :
+    __smtx_dt_cons_wf_rec cF cU = true := by
+  cases hc : __smtx_dt_cons_wf_rec cF cU <;>
+    simp [__smtx_dt_wf_rec, native_ite, hc] at h ⊢
+
+private theorem dt_wf_tail_of_nonempty_tail_wf
+    {cF cU cTailF cTailU : SmtDatatypeCons} {dTailF dTailU : SmtDatatype}
+    (h : __smtx_dt_wf_rec (SmtDatatype.sum cF (SmtDatatype.sum cTailF dTailF))
+        (SmtDatatype.sum cU (SmtDatatype.sum cTailU dTailU)) = true) :
+    __smtx_dt_wf_rec (SmtDatatype.sum cTailF dTailF) (SmtDatatype.sum cTailU dTailU) = true := by
+  have hc : __smtx_dt_cons_wf_rec cF cU = true := dt_wf_cons_of_wf h
   simpa [__smtx_dt_wf_rec, native_ite, hc] using h
 
 mutual
@@ -314,167 +315,35 @@ private theorem dt_unref_substitute_other
 
 end
 
-mutual
+/- Under the new (diagonal) `__smtx_type_wf_rec` algorithm, aliasing is permitted
+   and there is no ambient reflist scope, so the old occurs-check-style derivation
+   ("wf against refs => no free reference to a name outside refs") no longer holds
+   in general.  Signatures are kept refs/hNot-shaped for call-site compatibility
+   (the `refs` here just tracks the pump environment's already-bound names, a
+   plain-data notion independent of the smt-wf algorithm), with the wf hypothesis
+   changed to the diagonal self-check.  Left as `sorry` per the "rewrite from
+   scratch, sorry the hard parts" directive. -/
 
 private theorem type_unref_of_wf_not_contains
-    (t : native_String) :
-    ∀ (T : SmtType) (refs : RefList),
-      native_reflist_contains refs t = false ->
-        __smtx_type_wf_rec T refs = true ->
-          smt_type_unref t T = true
-  | SmtType.TypeRef _r, _refs, _hNot, hWf => by
-      simp [__smtx_type_wf_rec] at hWf
-  | SmtType.Datatype s2 d2, refs, hNot, hWf => by
-      cases hts : native_streq t s2 with
-      | true =>
-          simp [smt_type_unref, native_ite, hts]
-      | false =>
-          have hParts :
-              ¬ s2 ∈ refs ∧
-                __smtx_dt_wf_rec d2 (native_reflist_insert refs s2) = true := by
-            simpa [__smtx_type_wf_rec, native_reflist_contains,
-              native_ite] using hWf
-          have hNot2 :
-              native_reflist_contains (native_reflist_insert refs s2) t =
-                false := by
-            have hts' : t ≠ s2 := by
-              intro hEq
-              subst hEq
-              simp [native_streq] at hts
-            simp [native_reflist_contains, native_reflist_insert] at hNot ⊢
-            exact ⟨hts', hNot⟩
-          simp [smt_type_unref, native_ite, hts,
-            dt_unref_of_wf_not_contains t d2
-              (native_reflist_insert refs s2) hNot2 hParts.2]
-  | SmtType.None, _refs, _hNot, hWf => by
-      simp [__smtx_type_wf_rec] at hWf
-  | SmtType.Bool, _refs, _hNot, _hWf => by simp [smt_type_unref]
-  | SmtType.Int, _refs, _hNot, _hWf => by simp [smt_type_unref]
-  | SmtType.Real, _refs, _hNot, _hWf => by simp [smt_type_unref]
-  | SmtType.RegLan, _refs, _hNot, hWf => by
-      simp [__smtx_type_wf_rec] at hWf
-  | SmtType.BitVec _, _refs, _hNot, _hWf => by simp [smt_type_unref]
-  | SmtType.Map _ _, _refs, _hNot, _hWf => by simp [smt_type_unref]
-  | SmtType.Set _, _refs, _hNot, _hWf => by simp [smt_type_unref]
-  | SmtType.Seq _, _refs, _hNot, _hWf => by simp [smt_type_unref]
-  | SmtType.Char, _refs, _hNot, _hWf => by simp [smt_type_unref]
-  | SmtType.USort _, _refs, _hNot, _hWf => by simp [smt_type_unref]
-  | SmtType.FunType _ _, _refs, _hNot, hWf => by
-      simp [__smtx_type_wf_rec] at hWf
-  | SmtType.DtcAppType _ _, _refs, _hNot, hWf => by
-      simp [__smtx_type_wf_rec] at hWf
+    (t : native_String) (T : SmtType) (refs : RefList)
+    (hNot : native_reflist_contains refs t = false)
+    (hWf : __smtx_type_wf_rec T T = true) :
+    smt_type_unref t T = true := by
+  sorry
 
 private theorem dtc_unref_of_wf_not_contains
-    (t : native_String) :
-    ∀ (c : SmtDatatypeCons) (refs : RefList),
-      native_reflist_contains refs t = false ->
-        __smtx_dt_cons_wf_rec c refs = true ->
-          smt_dtc_unref t c = true
-  | SmtDatatypeCons.unit, _refs, _hNot, _hWf => by
-      simp [smt_dtc_unref]
-  | SmtDatatypeCons.cons (SmtType.TypeRef r) c, refs, hNot, hWf => by
-      have hParts :
-          native_reflist_contains refs r = true ∧
-            __smtx_dt_cons_wf_rec c refs = true := by
-        cases hr : native_reflist_contains refs r <;>
-          simp [__smtx_dt_cons_wf_rec, native_ite, hr] at hWf ⊢
-        exact hWf
-      have htr : native_streq t r = false := by
-        cases htr : native_streq t r <;> simp [native_streq] at htr ⊢
-        subst htr
-        rw [hNot] at hParts
-        simp at hParts
-      simp [smt_dtc_unref, native_and, smt_type_unref, native_not, htr,
-        dtc_unref_of_wf_not_contains t c refs hNot hParts.2]
-  | SmtDatatypeCons.cons (SmtType.Datatype s2 d2) c, refs, hNot, hWf => by
-      have hParts :
-          __smtx_type_wf_rec (SmtType.Datatype s2 d2) refs = true ∧
-              __smtx_dt_cons_wf_rec c refs = true := by
-        simpa [__smtx_dt_cons_wf_rec, native_ite] using hWf
-      simp [smt_dtc_unref, native_and,
-        type_unref_of_wf_not_contains t (SmtType.Datatype s2 d2) refs
-          hNot hParts.1,
-        dtc_unref_of_wf_not_contains t c refs hNot hParts.2]
-  | SmtDatatypeCons.cons SmtType.None c, refs, hNot, hWf => by
-      simp [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite] at hWf
-  | SmtDatatypeCons.cons SmtType.Bool c, refs, hNot, hWf => by
-      have hTail : __smtx_dt_cons_wf_rec c refs = true :=
-        dt_cons_wf_rec_tail_of_true hWf
-      simp [smt_dtc_unref, native_and, smt_type_unref,
-        dtc_unref_of_wf_not_contains t c refs hNot hTail]
-  | SmtDatatypeCons.cons SmtType.Int c, refs, hNot, hWf => by
-      have hTail : __smtx_dt_cons_wf_rec c refs = true :=
-        dt_cons_wf_rec_tail_of_true hWf
-      simp [smt_dtc_unref, native_and, smt_type_unref,
-        dtc_unref_of_wf_not_contains t c refs hNot hTail]
-  | SmtDatatypeCons.cons SmtType.Real c, refs, hNot, hWf => by
-      have hTail : __smtx_dt_cons_wf_rec c refs = true :=
-        dt_cons_wf_rec_tail_of_true hWf
-      simp [smt_dtc_unref, native_and, smt_type_unref,
-        dtc_unref_of_wf_not_contains t c refs hNot hTail]
-  | SmtDatatypeCons.cons SmtType.RegLan c, refs, hNot, hWf => by
-      simp [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite] at hWf
-  | SmtDatatypeCons.cons (SmtType.BitVec _) c, refs, hNot, hWf => by
-      have hTail : __smtx_dt_cons_wf_rec c refs = true :=
-        dt_cons_wf_rec_tail_of_true hWf
-      simp [smt_dtc_unref, native_and, smt_type_unref,
-        dtc_unref_of_wf_not_contains t c refs hNot hTail]
-  | SmtDatatypeCons.cons (SmtType.Map _ _) c, refs, hNot, hWf => by
-      have hTail : __smtx_dt_cons_wf_rec c refs = true :=
-        dt_cons_wf_rec_tail_of_true hWf
-      simp [smt_dtc_unref, native_and, smt_type_unref,
-        dtc_unref_of_wf_not_contains t c refs hNot hTail]
-  | SmtDatatypeCons.cons (SmtType.Set _) c, refs, hNot, hWf => by
-      have hTail : __smtx_dt_cons_wf_rec c refs = true :=
-        dt_cons_wf_rec_tail_of_true hWf
-      simp [smt_dtc_unref, native_and, smt_type_unref,
-        dtc_unref_of_wf_not_contains t c refs hNot hTail]
-  | SmtDatatypeCons.cons (SmtType.Seq _) c, refs, hNot, hWf => by
-      have hTail : __smtx_dt_cons_wf_rec c refs = true :=
-        dt_cons_wf_rec_tail_of_true hWf
-      simp [smt_dtc_unref, native_and, smt_type_unref,
-        dtc_unref_of_wf_not_contains t c refs hNot hTail]
-  | SmtDatatypeCons.cons SmtType.Char c, refs, hNot, hWf => by
-      have hTail : __smtx_dt_cons_wf_rec c refs = true :=
-        dt_cons_wf_rec_tail_of_true hWf
-      simp [smt_dtc_unref, native_and, smt_type_unref,
-        dtc_unref_of_wf_not_contains t c refs hNot hTail]
-  | SmtDatatypeCons.cons (SmtType.USort _) c, refs, hNot, hWf => by
-      have hTail : __smtx_dt_cons_wf_rec c refs = true :=
-        dt_cons_wf_rec_tail_of_true hWf
-      simp [smt_dtc_unref, native_and, smt_type_unref,
-        dtc_unref_of_wf_not_contains t c refs hNot hTail]
-  | SmtDatatypeCons.cons (SmtType.FunType _ _) c, refs, hNot, hWf => by
-      simp [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite] at hWf
-  | SmtDatatypeCons.cons (SmtType.DtcAppType _ _) c, refs, hNot, hWf => by
-      simp [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite] at hWf
+    (t : native_String) (c : SmtDatatypeCons) (refs : RefList)
+    (hNot : native_reflist_contains refs t = false)
+    (hWf : __smtx_dt_cons_wf_rec c c = true) :
+    smt_dtc_unref t c = true := by
+  sorry
 
 private theorem dt_unref_of_wf_not_contains
-    (t : native_String) :
-    ∀ (d0 : SmtDatatype) (refs : RefList),
-      native_reflist_contains refs t = false ->
-        __smtx_dt_wf_rec d0 refs = true ->
-          smt_dt_unref t d0 = true
-  | SmtDatatype.null, _refs, _hNot, hWf => by
-      simp [__smtx_dt_wf_rec] at hWf
-  | SmtDatatype.sum c SmtDatatype.null, refs, hNot, hWf => by
-      have hCons : __smtx_dt_cons_wf_rec c refs = true :=
-        dt_wf_cons_of_wf hWf
-      simp [smt_dt_unref, native_and,
-        dtc_unref_of_wf_not_contains t c refs hNot hCons]
-  | SmtDatatype.sum c (SmtDatatype.sum c2 d2), refs, hNot, hWf => by
-      have hCons : __smtx_dt_cons_wf_rec c refs = true :=
-        dt_wf_cons_of_wf hWf
-      have hTail :
-          __smtx_dt_wf_rec (SmtDatatype.sum c2 d2) refs = true :=
-        dt_wf_tail_of_nonempty_tail_wf hWf
-      have hTailUnref :=
-        dt_unref_of_wf_not_contains t (SmtDatatype.sum c2 d2) refs hNot hTail
-      simp [smt_dt_unref, native_and,
-        dtc_unref_of_wf_not_contains t c refs hNot hCons] at hTailUnref ⊢
-      exact hTailUnref
-
-end
+    (t : native_String) (d0 : SmtDatatype) (refs : RefList)
+    (hNot : native_reflist_contains refs t = false)
+    (hWf : __smtx_dt_wf_rec d0 d0 = true) :
+    smt_dt_unref t d0 = true := by
+  sorry
 
 /--
 A scope stack for nested datatype pumping, innermost level first.  Each
@@ -505,7 +374,7 @@ private def env_ok : PumpEnv -> Prop
   | [] => True
   | (s, dr, D) :: E =>
       native_reflist_contains (env_refs E) s = false ∧
-      __smtx_dt_wf_rec dr (native_reflist_insert (env_refs E) s) = true ∧
+      __smtx_dt_wf_rec dr dr = true ∧
       D = env_close_dt E dr ∧
       env_ok E
 

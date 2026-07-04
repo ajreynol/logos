@@ -3148,19 +3148,23 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
               exact False.elim (hTypeNN (by rw [hTy, hSmt]))
             case Bool =>
               exact eo_type_valid_of_smt_wf (Term.Apply a b) (by
-                simp [hSmt, __smtx_type_wf, __smtx_type_wf_rec, native_and])
+                simp [hSmt, __smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+                  __smtx_type_no_alias_rec, native_and])
             case Int =>
               exact eo_type_valid_of_smt_wf (Term.Apply a b) (by
-                simp [hSmt, __smtx_type_wf, __smtx_type_wf_rec, native_and])
+                simp [hSmt, __smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+                  __smtx_type_no_alias_rec, native_and])
             case Real =>
               exact eo_type_valid_of_smt_wf (Term.Apply a b) (by
-                simp [hSmt, __smtx_type_wf, __smtx_type_wf_rec, native_and])
+                simp [hSmt, __smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+                  __smtx_type_no_alias_rec, native_and])
             case RegLan =>
               exact eo_type_valid_of_smt_wf (Term.Apply a b) (by
                 simp [hSmt, __smtx_type_wf])
             case BitVec w =>
               exact eo_type_valid_of_smt_wf (Term.Apply a b) (by
-                simp [hSmt, __smtx_type_wf, __smtx_type_wf_rec, native_and,
+                simp [hSmt, __smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+                  __smtx_type_no_alias_rec, native_and,
                   native_inhabited_type, native_not, native_Teq,
                   __smtx_type_default, __smtx_type_default_rec, __smtx_typeof_value,
                   native_zleq, native_zeq,
@@ -3198,7 +3202,8 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                       (__eo_to_smt (Term.Apply f x)) hTermNN hSeqTy)
             case Char =>
               exact eo_type_valid_of_smt_wf (Term.Apply a b) (by
-                simp [hSmt, __smtx_type_wf, __smtx_type_wf_rec, native_and])
+                simp [hSmt, __smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+                  __smtx_type_no_alias_rec, native_and])
             case Datatype s d =>
               have hDatatypeTy :
                   __smtx_typeof (__eo_to_smt (Term.Apply f x)) =
@@ -3222,7 +3227,8 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                 simp [Smtm.type_has_no_none_components] at hNoNone)
             case USort i =>
               exact eo_type_valid_of_smt_wf (Term.Apply a b) (by
-                simp [hSmt, __smtx_type_wf, __smtx_type_wf_rec, native_and])
+                simp [hSmt, __smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+                  __smtx_type_no_alias_rec, native_and])
             case FunType A B =>
               have hFunTy :
                   __smtx_typeof (__eo_to_smt (Term.Apply f x)) =
