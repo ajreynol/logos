@@ -10,7 +10,7 @@ set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
 set_option maxRecDepth 1000000
 
-private theorem typeof_extract_bit_of_bv
+theorem typeof_extract_bit_of_bv
     (b : Term) (w start : Nat)
     (hbTy : __eo_typeof b =
       Term.Apply (Term.UOp UserOp.BitVec)
@@ -77,28 +77,28 @@ private theorem typeof_extract_bit_of_bv
   rw [hStartGtNeg, hWStart, hWidth]
   native_decide
 
-private theorem nil_bvand_bit :
+theorem nil_bvand_bit :
     __eo_nil (Term.UOp UserOp.bvand)
         (Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral 1)) =
       Term.Binary 1 1 := by
   native_decide
 
-private theorem nil_bvor_bit :
+theorem nil_bvor_bit :
     __eo_nil (Term.UOp UserOp.bvor)
         (Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral 1)) =
       Term.Binary 1 0 := by
   native_decide
 
-private def bv1 (b : Bool) : SmtValue :=
+def bv1 (b : Bool) : SmtValue :=
   SmtValue.Binary 1 (if b then (1 : Int) else 0)
 
-private theorem native_int_pow2_nat (k : Nat) :
+theorem native_int_pow2_nat (k : Nat) :
     native_int_pow2 (native_nat_to_int k) = (2 ^ k : Int) := by
   have hnot : ¬ ((k : Int) < 0) :=
     Int.not_lt_of_ge (Int.natCast_nonneg k)
   simp [native_int_pow2, native_zexp_total, native_nat_to_int, hnot]
 
-private theorem extract_bit_binary_eval
+theorem extract_bit_binary_eval
     (w pa : Int) (i : Nat) (hpa0 : 0 <= pa) :
     __smtx_model_eval_extract (SmtValue.Numeral (native_nat_to_int i))
         (SmtValue.Numeral (native_nat_to_int i)) (SmtValue.Binary w pa) =
@@ -134,59 +134,59 @@ private theorem extract_bit_binary_eval
       · exact False.elim (hbit h1)
     simp [bv1, hbit, hzero]
 
-private theorem bv1_and (x y : Bool) :
+theorem bv1_and (x y : Bool) :
     __smtx_model_eval_bvand (bv1 x) (bv1 y) = bv1 (x && y) := by
   cases x <;> cases y <;> native_decide
 
-private theorem bv1_or (x y : Bool) :
+theorem bv1_or (x y : Bool) :
     __smtx_model_eval_bvor (bv1 x) (bv1 y) = bv1 (x || y) := by
   cases x <;> cases y <;> native_decide
 
-private theorem bv1_eq_one (x : Bool) :
+theorem bv1_eq_one (x : Bool) :
     __smtx_model_eval_eq (bv1 x) (SmtValue.Binary 1 1) = SmtValue.Boolean x := by
   cases x <;> simp [bv1, __smtx_model_eval_eq, native_veq]
 
-private theorem smtx_eval_bvand_term_eq
+theorem smtx_eval_bvand_term_eq
     (M : SmtModel) (x y : SmtTerm) :
     __smtx_model_eval M (SmtTerm.bvand x y) =
       __smtx_model_eval_bvand
         (__smtx_model_eval M x) (__smtx_model_eval M y) := by
   rw [__smtx_model_eval.eq_def] <;> simp only
 
-private theorem smtx_eval_bvor_term_eq
+theorem smtx_eval_bvor_term_eq
     (M : SmtModel) (x y : SmtTerm) :
     __smtx_model_eval M (SmtTerm.bvor x y) =
       __smtx_model_eval_bvor
         (__smtx_model_eval M x) (__smtx_model_eval M y) := by
   rw [__smtx_model_eval.eq_def] <;> simp only
 
-private theorem smtx_eval_concat_term_eq
+theorem smtx_eval_concat_term_eq
     (M : SmtModel) (x y : SmtTerm) :
     __smtx_model_eval M (SmtTerm.concat x y) =
       __smtx_model_eval_concat
         (__smtx_model_eval M x) (__smtx_model_eval M y) := by
   rw [__smtx_model_eval.eq_def] <;> simp only
 
-private theorem smtx_eval_bvmul_term_eq
+theorem smtx_eval_bvmul_term_eq
     (M : SmtModel) (x y : SmtTerm) :
     __smtx_model_eval M (SmtTerm.bvmul x y) =
       __smtx_model_eval_bvmul
         (__smtx_model_eval M x) (__smtx_model_eval M y) := by
   rw [__smtx_model_eval.eq_def] <;> simp only
 
-private theorem smtx_eval_bvumulo_term_eq
+theorem smtx_eval_bvumulo_term_eq
     (M : SmtModel) (x y : SmtTerm) :
     __smtx_model_eval M (SmtTerm.bvumulo x y) =
       __smtx_model_eval_bvumulo
         (__smtx_model_eval M x) (__smtx_model_eval M y) := by
   rw [__smtx_model_eval.eq_def] <;> simp only
 
-private theorem native_mod_nat_of_lt {n m : Nat} (_hm : 0 < m) (h : n < m) :
+theorem native_mod_nat_of_lt {n m : Nat} (_hm : 0 < m) (h : n < m) :
     native_mod_total (n : Int) (m : Int) = (n : Int) := by
   unfold native_mod_total
   exact Int.emod_eq_of_lt (Int.natCast_nonneg n) (by exact_mod_cast h)
 
-private theorem concat_zero_right_value
+theorem concat_zero_right_value
     (w A : Nat) (haBound : A < 2 ^ w) :
     __smtx_model_eval_concat
       (SmtValue.Binary (native_nat_to_int w) (A : Int))
@@ -213,7 +213,7 @@ private theorem concat_zero_right_value
     exact native_mod_nat_of_lt (Nat.two_pow_pos w) haBound
   rw [hmod]
 
-private theorem concat_zero_left_value
+theorem concat_zero_left_value
     (w A : Nat) (haBound : A < 2 ^ w) :
     __smtx_model_eval_concat
       (SmtValue.Binary 1 0)
@@ -242,7 +242,7 @@ private theorem concat_zero_left_value
     exact native_mod_nat_of_lt (Nat.two_pow_pos (w + 1)) hAHi
   rw [hmod]
 
-private theorem eval_extract_bit_term
+theorem eval_extract_bit_term
     (M : SmtModel) (t : Term) (w payload : Int) (i : Nat)
     (hEval : __smtx_model_eval M (__eo_to_smt t) = SmtValue.Binary w payload)
     (hPayload0 : 0 ≤ payload) :
@@ -261,7 +261,7 @@ private theorem eval_extract_bit_term
   simp [__smtx_model_eval]
   exact extract_bit_binary_eval w payload i hPayload0
 
-private theorem eval_bvand_term
+theorem eval_bvand_term
     (M : SmtModel) (x y : Term) (bx byv : Bool)
     (hx : __smtx_model_eval M (__eo_to_smt x) = bv1 bx)
     (hy : __smtx_model_eval M (__eo_to_smt y) = bv1 byv) :
@@ -274,7 +274,7 @@ private theorem eval_bvand_term
   rw [hx, hy]
   exact bv1_and bx byv
 
-private theorem eval_bvor_term
+theorem eval_bvor_term
     (M : SmtModel) (x y : Term) (bx byv : Bool)
     (hx : __smtx_model_eval M (__eo_to_smt x) = bv1 bx)
     (hy : __smtx_model_eval M (__eo_to_smt y) = bv1 byv) :
@@ -287,7 +287,7 @@ private theorem eval_bvor_term
   rw [hx, hy]
   exact bv1_or bx byv
 
-private theorem eval_concat_term
+theorem eval_concat_term
     (M : SmtModel) (x y : Term) (vx vy : SmtValue)
     (hx : __smtx_model_eval M (__eo_to_smt x) = vx)
     (hy : __smtx_model_eval M (__eo_to_smt y) = vy) :
@@ -299,7 +299,7 @@ private theorem eval_concat_term
   rw [smtx_eval_concat_term_eq]
   rw [hx, hy]
 
-private theorem eval_bvmul_term
+theorem eval_bvmul_term
     (M : SmtModel) (x y : Term) (vx vy : SmtValue)
     (hx : __smtx_model_eval M (__eo_to_smt x) = vx)
     (hy : __smtx_model_eval M (__eo_to_smt y) = vy) :
@@ -311,7 +311,7 @@ private theorem eval_bvmul_term
   rw [smtx_eval_bvmul_term_eq]
   rw [hx, hy]
 
-private theorem eval_bvumulo_term
+theorem eval_bvumulo_term
     (M : SmtModel) (x y : Term) (vx vy : SmtValue)
     (hx : __smtx_model_eval M (__eo_to_smt x) = vx)
     (hy : __smtx_model_eval M (__eo_to_smt y) = vy) :
@@ -323,7 +323,7 @@ private theorem eval_bvumulo_term
   rw [smtx_eval_bvumulo_term_eq]
   rw [hx, hy]
 
-private theorem eval_zero_extend_one_term
+theorem eval_zero_extend_one_term
     (M : SmtModel) (a : Term) (w A : Nat)
     (haEval : __smtx_model_eval M (__eo_to_smt a) =
       SmtValue.Binary (native_nat_to_int w) (A : Int))
@@ -365,12 +365,12 @@ private theorem eval_zero_extend_one_term
   rw [hOuter]
   exact concat_zero_left_value w A haBound
 
-private def zeroExtendOneTerm (a : Term) : Term :=
+def zeroExtendOneTerm (a : Term) : Term :=
   Term.Apply
     (Term.Apply (Term.UOp UserOp.concat) (Term.Binary 1 0))
     (Term.Apply (Term.Apply (Term.UOp UserOp.concat) a) (Term.Binary 0 0))
 
-private theorem typeof_zero_extend_one_term
+theorem typeof_zero_extend_one_term
     (a : Term) (w : Nat)
     (haTy : __eo_typeof a =
       Term.Apply (Term.UOp UserOp.BitVec)
@@ -429,7 +429,7 @@ private theorem typeof_zero_extend_one_term
   rw [hAddInner, hAddOuter]
   rfl
 
-private theorem typeof_bvmul_same_bitvec
+theorem typeof_bvmul_same_bitvec
     (x y : Term) (w : Nat)
     (hxTy : __eo_typeof x =
       Term.Apply (Term.UOp UserOp.BitVec)
@@ -456,7 +456,7 @@ private theorem typeof_bvmul_same_bitvec
   simp [__eo_eq, __eo_requires, native_ite, native_teq, native_not,
     SmtEval.native_not]
 
-private theorem typeof_binary_bitvec_nat
+theorem typeof_binary_bitvec_nat
     (w : Nat) (n : Int) :
     __eo_typeof (Term.Binary (native_nat_to_int w) n) =
       Term.Apply (Term.UOp UserOp.BitVec)
@@ -467,7 +467,7 @@ private theorem typeof_binary_bitvec_nat
       (Term.Numeral (native_nat_to_int w))
   rfl
 
-private theorem eval_eq_bv1_one_term
+theorem eval_eq_bv1_one_term
     (M : SmtModel) (x : Term) (bx : Bool)
     (hx : __smtx_model_eval M (__eo_to_smt x) = bv1 bx) :
     __smtx_model_eval M
@@ -481,7 +481,7 @@ private theorem eval_eq_bv1_one_term
   simp [__smtx_model_eval]
   exact bv1_eq_one bx
 
-private theorem bvmul_high_bit_value (w A B : Nat) :
+theorem bvmul_high_bit_value (w A B : Nat) :
     __smtx_model_eval_extract
       (SmtValue.Numeral (native_nat_to_int w))
       (SmtValue.Numeral (native_nat_to_int w))
@@ -519,7 +519,7 @@ private theorem bvmul_high_bit_value (w A B : Nat) :
   have htb := Nat.testBit_mod_two_pow (A * B) (w + 1) w
   simpa using htb
 
-private theorem bvmul_one_right_value
+theorem bvmul_one_right_value
     (w B : Nat) (hbBound : B < 2 ^ w) :
     __smtx_model_eval_bvmul
       (SmtValue.Binary (native_nat_to_int (w + 1)) (B : Int))
@@ -542,7 +542,7 @@ private theorem bvmul_one_right_value
     exact native_mod_nat_of_lt (Nat.two_pow_pos (w + 1)) hbHi
   rw [hmod]
 
-private theorem bvumulo_value (w A B : Nat) :
+theorem bvumulo_value (w A B : Nat) :
     __smtx_model_eval_bvumulo
       (SmtValue.Binary (native_nat_to_int w) (A : Int))
       (SmtValue.Binary (native_nat_to_int w) (B : Int)) =
@@ -574,7 +574,7 @@ private theorem bvumulo_value (w A B : Nat) :
       exact h (hiff.1 hi)
     rw [decide_eq_false hI, decide_eq_false h]
 
-private theorem nil_bvmul_bitvec_succ_of_ne_stuck
+theorem nil_bvmul_bitvec_succ_of_ne_stuck
     (w : Nat)
     (hNe :
       __eo_nil (Term.UOp UserOp.bvmul)
@@ -616,17 +616,17 @@ private theorem nil_bvmul_bitvec_succ_of_ne_stuck
       exact Int.emod_eq_of_lt (by decide) hpowGt1
     rw [hmod]
 
-private theorem term_apply_ne_stuck0 (f x : Term) :
+theorem term_apply_ne_stuck0 (f x : Term) :
     Term.Apply f x ≠ Term.Stuck := by
   intro h
   cases h
 
-private theorem eo_mk_apply_of_ne_stuck0
+theorem eo_mk_apply_of_ne_stuck0
     {f x : Term} (hf : f ≠ Term.Stuck) (hx : x ≠ Term.Stuck) :
     __eo_mk_apply f x = Term.Apply f x := by
   cases f <;> cases x <;> simp [__eo_mk_apply] at hf hx ⊢
 
-private def intRangeList : Nat -> Nat -> Term
+def intRangeList : Nat -> Nat -> Term
   | _start, 0 =>
       Term.Apply (Term.UOp UserOp._at__at_TypedList_nil)
         (Term.UOp UserOp.Int)
@@ -636,7 +636,7 @@ private def intRangeList : Nat -> Nat -> Term
           (Term.Numeral (native_nat_to_int start)))
         (intRangeList (start + 1) len)
 
-private def intZeroList : Nat -> Term
+def intZeroList : Nat -> Term
   | 0 =>
       Term.Apply (Term.UOp UserOp._at__at_TypedList_nil)
         (Term.UOp UserOp.Int)
@@ -646,7 +646,7 @@ private def intZeroList : Nat -> Term
           (Term.Numeral 0))
         (intZeroList k)
 
-private theorem intZeroList_ne_stuck :
+theorem intZeroList_ne_stuck :
     ∀ k : Nat, intZeroList k ≠ Term.Stuck := by
   intro k
   induction k with
@@ -657,7 +657,7 @@ private theorem intZeroList_ne_stuck :
       intro h
       cases h
 
-private theorem intRangeList_ne_stuck :
+theorem intRangeList_ne_stuck :
     ∀ start len : Nat, intRangeList start len ≠ Term.Stuck := by
   intro start len
   induction len generalizing start with
@@ -668,7 +668,7 @@ private theorem intRangeList_ne_stuck :
       intro h
       cases h
 
-private theorem intZeroList_repeat_rec_eq :
+theorem intZeroList_repeat_rec_eq :
     ∀ k : Nat,
       __eo_list_repeat_rec (Term.UOp UserOp._at__at_TypedList_cons)
           (Term.Numeral 0) k =
@@ -693,7 +693,7 @@ private theorem intZeroList_repeat_rec_eq :
       exact eo_mk_apply_of_ne_stuck0 (term_apply_ne_stuck0 _ _)
         (intZeroList_ne_stuck k)
 
-private theorem iota_rec_range_eq :
+theorem iota_rec_range_eq :
     ∀ len start : Nat,
       __iota_rec (intZeroList len) (Term.Numeral (native_nat_to_int start)) =
         intRangeList start len := by
@@ -720,20 +720,20 @@ private theorem iota_rec_range_eq :
       exact eo_mk_apply_of_ne_stuck0 (term_apply_ne_stuck0 _ _)
         (intRangeList_ne_stuck (start + 1) len)
 
-private def scanRec (w a b : Nat) : Nat -> Nat -> Bool -> Bool -> Bool
+def scanRec (w a b : Nat) : Nat -> Nat -> Bool -> Bool -> Bool
   | _start, 0, _uppc, res => res
   | start, len + 1, uppc, res =>
       (b.testBit start && uppc) ||
         scanRec w a b (start + 1) len
           (a.testBit (w - 1 - start) || uppc) res
 
-private def highPair (w a b : Nat) : Prop :=
+def highPair (w a b : Nat) : Prop :=
   ∃ i : Nat, 1 ≤ i ∧ i < w ∧ b.testBit i = true ∧ 2 ^ (w - i) ≤ a
 
-private theorem pow_two_mul (a b : Nat) : 2 ^ a * 2 ^ b = 2 ^ (a + b) := by
+theorem pow_two_mul (a b : Nat) : 2 ^ a * 2 ^ b = 2 ^ (a + b) := by
   rw [← Nat.pow_add]
 
-private theorem highPair_overflow {w a b : Nat}
+theorem highPair_overflow {w a b : Nat}
     (h : highPair w a b) : 2 ^ w ≤ a * b := by
   rcases h with ⟨i, h1, hiw, hbit, ha⟩
   have hb : 2 ^ i ≤ b := Nat.ge_two_pow_of_testBit hbit
@@ -743,11 +743,11 @@ private theorem highPair_overflow {w a b : Nat}
     rw [pow_two_mul, hsum]
   simpa [hp] using hmul
 
-private theorem bit_w_of_range {w n : Nat}
+theorem bit_w_of_range {w n : Nat}
     (hlo : 2 ^ w ≤ n) (hhi : n < 2 ^ (w + 1)) : n.testBit w = true := by
   exact Nat.testBit_of_two_pow_le_and_two_pow_add_one_gt hlo hhi
 
-private theorem large_product_highPair {w a b : Nat}
+theorem large_product_highPair {w a b : Nat}
     (haBound : a < 2 ^ w) (hbBound : b < 2 ^ w)
     (hLarge : 2 ^ (w + 1) ≤ a * b) : highPair w a b := by
   have hbNe : b ≠ 0 := by
@@ -794,7 +794,7 @@ private theorem large_product_highPair {w a b : Nat}
     exact Nat.not_le_of_gt hltMul hLarge
   exact ⟨i, hi1, hiw, Nat.testBit_log2 hbNe, haNeed⟩
 
-private theorem bit_or_highPair_of_overflow {w a b : Nat}
+theorem bit_or_highPair_of_overflow {w a b : Nat}
     (haBound : a < 2 ^ w) (hbBound : b < 2 ^ w)
     (hov : 2 ^ w ≤ a * b) :
     (a * b).testBit w = true ∨ highPair w a b := by
@@ -809,7 +809,7 @@ private theorem bit_or_highPair_of_overflow {w a b : Nat}
       exact hbit htrue
     exact large_product_highPair haBound hbBound hLarge
 
-private theorem bit_or_highPair_iff_overflow {w a b : Nat}
+theorem bit_or_highPair_iff_overflow {w a b : Nat}
     (haBound : a < 2 ^ w) (hbBound : b < 2 ^ w) :
     ((a * b).testBit w = true ∨ highPair w a b) ↔ 2 ^ w ≤ a * b := by
   constructor
@@ -819,13 +819,13 @@ private theorem bit_or_highPair_iff_overflow {w a b : Nat}
     | inr hp => exact highPair_overflow hp
   · exact bit_or_highPair_of_overflow haBound hbBound
 
-private def scanPair (w a b : Nat) : Nat -> Nat -> Bool -> Bool
+def scanPair (w a b : Nat) : Nat -> Nat -> Bool -> Bool
   | _start, 0, _uppc => false
   | start, len + 1, uppc =>
       (b.testBit start && uppc) ||
         scanPair w a b (start + 1) len (a.testBit (w - 1 - start) || uppc)
 
-private theorem uppc_step (a k : Nat) :
+theorem uppc_step (a k : Nat) :
     (a.testBit k || decide (2 ^ (k + 1) ≤ a)) = decide (2 ^ k ≤ a) := by
   by_cases hlow : 2 ^ k ≤ a
   · have hr : decide (2 ^ k ≤ a) = true := by simp [hlow]
@@ -852,7 +852,7 @@ private theorem uppc_step (a k : Nat) :
       exact hlow (Nat.le_trans hlePow hhi)
     simp [hbit, hhiNot, hr]
 
-private theorem scanPair_iff_highPair_aux (w a b : Nat) :
+theorem scanPair_iff_highPair_aux (w a b : Nat) :
     ∀ start len : Nat,
       start + len = w ->
       (scanPair w a b start len (decide (2 ^ (w - start) ≤ a)) = true ↔
@@ -895,7 +895,7 @@ private theorem scanPair_iff_highPair_aux (w a b : Nat) :
         · right
           exact ⟨i, by omega, hiw, hbi, hai⟩
 
-private theorem scanPair_iff_highPair {w a b : Nat}
+theorem scanPair_iff_highPair {w a b : Nat}
     (hw : 1 ≤ w) (haBound : a < 2 ^ w) :
     scanPair w a b 1 (w - 1) (a.testBit (w - 1)) = true ↔ highPair w a b := by
   have hinit : a.testBit (w - 1) = decide (2 ^ (w - 1) ≤ a) := by
@@ -911,7 +911,7 @@ private theorem scanPair_iff_highPair {w a b : Nat}
   have haux := scanPair_iff_highPair_aux w a b 1 (w - 1) hsum
   simpa [highPair] using haux
 
-private theorem scanRec_eq_or_scanPair (w a b start len : Nat)
+theorem scanRec_eq_or_scanPair (w a b start len : Nat)
     (up rs : Bool) :
     scanRec w a b start len up rs = (rs || scanPair w a b start len up) := by
   induction len generalizing start up with
@@ -924,7 +924,7 @@ private theorem scanRec_eq_or_scanPair (w a b start len : Nat)
           (a.testBit (w - 1 - start) || up)
       cases b.testBit start <;> cases up <;> cases rs <;> cases tail <;> rfl
 
-private theorem scanRec_iff_overflow {w a b : Nat}
+theorem scanRec_iff_overflow {w a b : Nat}
     (hw : 1 ≤ w) (haBound : a < 2 ^ w) (hbBound : b < 2 ^ w) :
     scanRec w a b 1 (w - 1) (a.testBit (w - 1)) ((a * b).testBit w) = true ↔
       2 ^ w ≤ a * b := by
@@ -945,37 +945,37 @@ private theorem scanRec_iff_overflow {w a b : Nat}
         have hscan := (scanPair_iff_highPair hw haBound).2 hp
         simp [hscan]
 
-private theorem term_apply_ne_stuck (f x : Term) :
+theorem term_apply_ne_stuck (f x : Term) :
     Term.Apply f x ≠ Term.Stuck := by
   intro h
   cases h
 
-private theorem term_uop_ne_stuck (op : UserOp) :
+theorem term_uop_ne_stuck (op : UserOp) :
     Term.UOp op ≠ Term.Stuck := by
   intro h
   cases h
 
-private theorem term_binary_ne_stuck (w n : Int) :
+theorem term_binary_ne_stuck (w n : Int) :
     Term.Binary w n ≠ Term.Stuck := by
   intro h
   cases h
 
-private theorem term_numeral_ne_stuck (n : Int) :
+theorem term_numeral_ne_stuck (n : Int) :
     Term.Numeral n ≠ Term.Stuck := by
   intro h
   cases h
 
-private theorem eo_to_smt_stuck :
+theorem eo_to_smt_stuck :
     __eo_to_smt Term.Stuck = SmtTerm.None := by
   rfl
 
-private theorem eval_stuck (M : SmtModel) :
+theorem eval_stuck (M : SmtModel) :
     __smtx_model_eval M (__eo_to_smt Term.Stuck) = SmtValue.NotValue := by
   rw [eo_to_smt_stuck]
   change __smtx_model_eval M SmtTerm.None = SmtValue.NotValue
   simp only [__smtx_model_eval]
 
-private theorem term_ne_stuck_of_eval_bv1
+theorem term_ne_stuck_of_eval_bv1
     (M : SmtModel) (t : Term) (b : Bool)
     (h : __smtx_model_eval M (__eo_to_smt t) = bv1 b) :
     t ≠ Term.Stuck := by
@@ -984,7 +984,7 @@ private theorem term_ne_stuck_of_eval_bv1
   rw [eval_stuck] at h
   cases b <;> cases h
 
-private theorem term_ne_stuck_of_eval_binary
+theorem term_ne_stuck_of_eval_binary
     (M : SmtModel) (t : Term) (w n : Int)
     (h : __smtx_model_eval M (__eo_to_smt t) = SmtValue.Binary w n) :
     t ≠ Term.Stuck := by
@@ -993,18 +993,18 @@ private theorem term_ne_stuck_of_eval_binary
   rw [eval_stuck] at h
   cases h
 
-private theorem eval_binary (M : SmtModel) (w n : Int) :
+theorem eval_binary (M : SmtModel) (w n : Int) :
     __smtx_model_eval M (__eo_to_smt (Term.Binary w n)) =
       SmtValue.Binary w n := by
   change __smtx_model_eval M (SmtTerm.Binary w n) = SmtValue.Binary w n
   simp only [__smtx_model_eval]
 
-private theorem eo_mk_apply_of_ne_stuck
+theorem eo_mk_apply_of_ne_stuck
     {f x : Term} (hf : f ≠ Term.Stuck) (hx : x ≠ Term.Stuck) :
     __eo_mk_apply f x = Term.Apply f x := by
   cases f <;> cases x <;> simp [__eo_mk_apply] at hf hx ⊢
 
-private theorem index_term_eq (w start : Nat) (hstart : start < w) :
+theorem index_term_eq (w start : Nat) (hstart : start < w) :
     __eo_add
         (__eo_add (Term.Numeral (native_nat_to_int w))
           (Term.Numeral (-1 : native_Int)))
@@ -1015,7 +1015,7 @@ private theorem index_term_eq (w start : Nat) (hstart : start < w) :
     omega
   simp [__eo_add, __eo_neg, native_zplus, native_zneg, native_nat_to_int, hEq]
 
-private theorem umulo_indices_eq
+theorem umulo_indices_eq
     (w : Nat) (hw : 1 ≤ w) :
     __eo_requires
       (__eo_is_neg
@@ -1087,7 +1087,7 @@ private theorem umulo_indices_eq
   rw [hNotNeg, hRepeat, hIota]
   simp [__eo_requires, native_ite, native_teq, native_not, SmtEval.native_not]
 
-private def mulHighBitTerm (a b : Term) : Term :=
+def mulHighBitTerm (a b : Term) : Term :=
   let wTerm := __bv_bitwidth (__eo_typeof a)
   let aExt := zeroExtendOneTerm a
   let bExt := zeroExtendOneTerm b
@@ -1096,7 +1096,7 @@ private def mulHighBitTerm (a b : Term) : Term :=
       (__eo_mk_apply (Term.Apply (Term.UOp UserOp.bvmul) bExt)
         (__eo_nil (Term.UOp UserOp.bvmul) (__eo_typeof aExt))))
 
-private theorem eval_mul_high_bit_term
+theorem eval_mul_high_bit_term
     (M : SmtModel) (a b : Term) (w A B : Nat)
     (haTy : __eo_typeof a =
       Term.Apply (Term.UOp UserOp.BitVec)
@@ -1221,7 +1221,7 @@ private theorem eval_mul_high_bit_term
   rw [hExtractEq]
   exact hEvalExtract
 
-private theorem typeof_mul_high_bit_term
+theorem typeof_mul_high_bit_term
     (a b : Term) (w : Nat)
     (haTy : __eo_typeof a =
       Term.Apply (Term.UOp UserOp.BitVec)
@@ -1316,12 +1316,12 @@ private theorem typeof_mul_high_bit_term
   rw [hExtractEq]
   exact typeof_extract_bit_of_bv product (w + 1) w hProductTy (by omega)
 
-private def mulHighOrTerm (a b : Term) : Term :=
+def mulHighOrTerm (a b : Term) : Term :=
   let hi := mulHighBitTerm a b
   __eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.bvor) hi)
     (__eo_nil (Term.UOp UserOp.bvor) (__eo_typeof hi))
 
-private theorem mulHighBitTerm_stuck_of_nil_bvmul_stuck
+theorem mulHighBitTerm_stuck_of_nil_bvmul_stuck
     (a b : Term) (w : Nat)
     (haTy : __eo_typeof a =
       Term.Apply (Term.UOp UserOp.BitVec)
@@ -1334,14 +1334,14 @@ private theorem mulHighBitTerm_stuck_of_nil_bvmul_stuck
   rw [haTy]
   simp [__bv_bitwidth, hNil, __eo_mk_apply]
 
-private theorem mulHighOrTerm_stuck_of_high_stuck
+theorem mulHighOrTerm_stuck_of_high_stuck
     (a b : Term) (hHi : mulHighBitTerm a b = Term.Stuck) :
     mulHighOrTerm a b = Term.Stuck := by
   dsimp [mulHighOrTerm]
   rw [hHi]
   simp [__eo_mk_apply]
 
-private theorem eval_mul_high_or_term
+theorem eval_mul_high_or_term
     (M : SmtModel) (a b : Term) (w A B : Nat)
     (haTy : __eo_typeof a =
       Term.Apply (Term.UOp UserOp.BitVec)
@@ -1400,7 +1400,7 @@ private theorem eval_mul_high_or_term
     hHiEval hNilOrEval
   simpa using hEval
 
-private def bvUmuloExpanded (a b : Term) : Term :=
+def bvUmuloExpanded (a b : Term) : Term :=
   let wTerm := __bv_bitwidth (__eo_typeof a)
   let topIdx := __eo_add wTerm (Term.Numeral (-1 : native_Int))
   let len :=
@@ -1421,7 +1421,7 @@ private def bvUmuloExpanded (a b : Term) : Term :=
       (Term.Binary 1 1))
 
 
-private theorem umulo_rec_nil_eq
+theorem umulo_rec_nil_eq
     {a b uppc res n : Term}
     (ha : a ≠ Term.Stuck) (hb : b ≠ Term.Stuck)
     (hu : uppc ≠ Term.Stuck) (hr : res ≠ Term.Stuck)
@@ -1431,7 +1431,7 @@ private theorem umulo_rec_nil_eq
         (Term.UOp UserOp.Int)) n = res := by
   simp [__bv_umulo_elim_rec, ha, hb, hu, hr, hn]
 
-private theorem umulo_rec_cons_eq
+theorem umulo_rec_cons_eq
     {a b uppc res i ns n : Term}
     (ha : a ≠ Term.Stuck) (hb : b ≠ Term.Stuck)
     (hu : uppc ≠ Term.Stuck) (hr : res ≠ Term.Stuck)
@@ -1455,7 +1455,7 @@ private theorem umulo_rec_cons_eq
             res ns n))) := by
   simp [__bv_umulo_elim_rec, ha, hb, hu, hr, hn]
 
-private theorem umulo_rec_list_stuck_eq
+theorem umulo_rec_list_stuck_eq
     (a b uppc res n : Term) :
     __bv_umulo_elim_rec a b uppc res Term.Stuck n = Term.Stuck := by
   by_cases ha : a = Term.Stuck
@@ -1478,7 +1478,7 @@ private theorem umulo_rec_list_stuck_eq
     (by intro i ns h; cases h)
     hn
 
-private theorem umulo_rec_res_stuck_eq
+theorem umulo_rec_res_stuck_eq
     (a b uppc ns n : Term) :
     __bv_umulo_elim_rec a b uppc Term.Stuck ns n = Term.Stuck := by
   by_cases ha : a = Term.Stuck
@@ -1492,7 +1492,7 @@ private theorem umulo_rec_res_stuck_eq
     exact __bv_umulo_elim_rec.eq_3 a b Term.Stuck ns n ha hb
   exact __bv_umulo_elim_rec.eq_4 a b uppc ns n ha hb hu
 
-private theorem umulo_rec_eval
+theorem umulo_rec_eval
     (M : SmtModel) (a b uppc res : Term)
     (w A B start len : Nat) (up rs : Bool)
     (haTy : __eo_typeof a =
@@ -1694,7 +1694,7 @@ private theorem umulo_rec_eval
         nilOr, upOrTail, newUppc, tail, headOr, hv1MkEq, hheadOrEq,
         hresultEq, hresultEqDirect] using hFinal
 
-private theorem eval_bv_umulo_expanded
+theorem eval_bv_umulo_expanded
     (M : SmtModel) (a b : Term) (w A B : Nat)
     (haTy : __eo_typeof a =
       Term.Apply (Term.UOp UserOp.BitVec)
@@ -1941,7 +1941,7 @@ private theorem eval_bv_umulo_expanded
         (term_binary_ne_stuck 1 1)
     rw [hEqTerm, hEqEval, hOrigEval, hScanBool]
 
-private theorem bvUmuloExpanded_width_pos
+theorem bvUmuloExpanded_width_pos
     (a b : Term) (w : Nat)
     (haTy : __eo_typeof a =
       Term.Apply (Term.UOp UserOp.BitVec)
@@ -1960,7 +1960,7 @@ private theorem bvUmuloExpanded_width_pos
       native_zlt, native_nat_to_int, umulo_rec_list_stuck_eq]
   · omega
 
-private theorem nil_bvmul_ne_of_bvUmuloExpanded_ne
+theorem nil_bvmul_ne_of_bvUmuloExpanded_ne
     (a b : Term) (w : Nat)
     (haTy : __eo_typeof a =
       Term.Apply (Term.UOp UserOp.BitVec)
@@ -2014,7 +2014,7 @@ private theorem nil_bvmul_ne_of_bvUmuloExpanded_ne
       umulo_rec_res_stuck_eq]
 
 
-private theorem eo_requires_left_ne_stuck_of_ne_stuck
+theorem eo_requires_left_ne_stuck_of_ne_stuck
     {x y z : Term} (h : __eo_requires x y z ≠ Term.Stuck) :
     x ≠ Term.Stuck := by
   intro hx
@@ -2022,7 +2022,7 @@ private theorem eo_requires_left_ne_stuck_of_ne_stuck
   simp [__eo_requires, native_ite, native_teq, native_not,
     SmtEval.native_not] at h
 
-private theorem bv_umulo_elim_shape_of_ne_stuck (A : Term) :
+theorem bv_umulo_elim_shape_of_ne_stuck (A : Term) :
     __eo_prog_bv_umulo_elim A ≠ Term.Stuck ->
     ∃ a b c,
       A =
@@ -2043,7 +2043,7 @@ private theorem bv_umulo_elim_shape_of_ne_stuck (A : Term) :
       exact hShape ⟨a, b, c, hEq⟩
     exact False.elim (h hStuck)
 
-private theorem bvumulo_typeof_args_of_non_none
+theorem bvumulo_typeof_args_of_non_none
     {a b : Term}
     (hNN : term_has_non_none_type
       (SmtTerm.bvumulo (__eo_to_smt a) (__eo_to_smt b))) :
@@ -2055,7 +2055,7 @@ private theorem bvumulo_typeof_args_of_non_none
   · rw [__smtx_typeof.eq_def] <;> simp only
   · exact hNN
 
-private theorem eo_bitvec_type_of_smt_type
+theorem eo_bitvec_type_of_smt_type
     (t : Term) (w : Nat)
     (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.BitVec w) :
     __eo_typeof t =
@@ -2071,7 +2071,7 @@ private theorem eo_bitvec_type_of_smt_type
     rw [← hMatch, hTy]
   exact TranslationProofs.eo_to_smt_type_eq_bitvec hEoTy
 
-private theorem bitvec_eval_nat_payload
+theorem bitvec_eval_nat_payload
     (M : SmtModel) (hM : model_total_typed M) (t : Term) (w : Nat)
     (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.BitVec w) :
     ∃ n : Nat,
