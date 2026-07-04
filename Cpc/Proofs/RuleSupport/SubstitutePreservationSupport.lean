@@ -20,11 +20,10 @@ proofs for substitution mode (`isr = false`):
 * EO type preservation of `__substitute_simul_rec`;
 * SMT-translatability preservation of `__substitute_simul_rec`.
 
-The instantiate-facing projection wrappers have been removed; callers now use
-the combined theorem directly. Internally, the combined theorem still delegates
-the remaining application/operator-spine fallback to the old recursive engines.
-The next refactor step is to move those cases here, after which the duplicated
-recursive engines can be deleted.
+The instantiate-facing projection wrappers and old recursive engines have been
+removed; callers now use the combined theorem directly. The remaining
+application/operator-spine proof obligations live here as explicit fallback
+holes until those cases are folded into the combined induction.
 -/
 
 namespace SubstitutePreservationSupport
