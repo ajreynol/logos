@@ -25477,15 +25477,69 @@ private def str_re_consume_rec_unrev_no_suffix_motive
     __smtx_typeof (__eo_to_smt r) = SmtType.RegLan ->
     side = __str_re_consume_rec s r fuel ->
     side = Term.Boolean false ->
-    ∀ ssU rvU,
+    ∀ ssU,
       __smtx_model_eval M (__eo_to_smt (consume_unrev_str_local s)) =
         SmtValue.Seq ssU ->
-      __smtx_model_eval M (__eo_to_smt (consume_unrev_re_local r)) =
-        SmtValue.RegLan rvU ->
-        native_unpack_string ssU ≠ [] ∧
-          ∀ pre suf : native_String,
-            pre ++ suf = native_unpack_string ssU ->
-              native_str_in_re suf rvU = false
+      (∀ rvU,
+        __smtx_model_eval M (__eo_to_smt (consume_unrev_re_local r)) =
+          SmtValue.RegLan rvU ->
+          native_unpack_string ssU ≠ [] ∧
+            ∀ pre suf : native_String,
+              pre ++ suf = native_unpack_string ssU ->
+                native_str_in_re suf rvU = false) ∧
+      ((∀ a b : Term,
+          r =
+            Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a) b ->
+          False) ->
+        ∀ rvU,
+          __smtx_model_eval M (__eo_to_smt (__re_rev_comp r)) =
+            SmtValue.RegLan rvU ->
+            native_unpack_string ssU ≠ [] ∧
+              ∀ pre suf : native_String,
+                pre ++ suf = native_unpack_string ssU ->
+                  native_str_in_re suf rvU = false)
+
+/--
+Union/inter companions of the unrev no-suffix motive.  Their regexes
+are `re_union`/`re_inter` trees (never chains), so the unrev transform
+is `__re_rev_comp`, which distributes over the branches
+(`rev_comp (union c1 c2) = union (rev_map_rev c1 eps) (rev_comp c2)`).
+-/
+private def str_re_consume_union_unrev_no_suffix_motive
+    (M : SmtModel) (s r fuel : Term) : Prop :=
+  ∀ side,
+    __smtx_typeof (__eo_to_smt s) = SmtType.Seq SmtType.Char ->
+    __smtx_typeof (__eo_to_smt r) = SmtType.RegLan ->
+    side = __str_re_consume_union s r fuel ->
+    side = Term.Boolean false ->
+    ∀ ssU,
+      __smtx_model_eval M (__eo_to_smt (consume_unrev_str_local s)) =
+        SmtValue.Seq ssU ->
+      ∀ rvU,
+        __smtx_model_eval M (__eo_to_smt (__re_rev_comp r)) =
+          SmtValue.RegLan rvU ->
+          native_unpack_string ssU ≠ [] ∧
+            ∀ pre suf : native_String,
+              pre ++ suf = native_unpack_string ssU ->
+                native_str_in_re suf rvU = false
+
+private def str_re_consume_inter_unrev_no_suffix_motive
+    (M : SmtModel) (s r fuel : Term) : Prop :=
+  ∀ side,
+    __smtx_typeof (__eo_to_smt s) = SmtType.Seq SmtType.Char ->
+    __smtx_typeof (__eo_to_smt r) = SmtType.RegLan ->
+    side = __str_re_consume_inter s r fuel ->
+    side = Term.Boolean false ->
+    ∀ ssU,
+      __smtx_model_eval M (__eo_to_smt (consume_unrev_str_local s)) =
+        SmtValue.Seq ssU ->
+      ∀ rvU,
+        __smtx_model_eval M (__eo_to_smt (__re_rev_comp r)) =
+          SmtValue.RegLan rvU ->
+          native_unpack_string ssU ≠ [] ∧
+            ∀ pre suf : native_String,
+              pre ++ suf = native_unpack_string ssU ->
+                native_str_in_re suf rvU = false
 
 /--
 Left-continuation residual motive: when the reversed-pair consume
@@ -26310,6 +26364,200 @@ private theorem eval_list_rev_snoc_view_consume_local
     exact hV2
   · rw [hV1Unp, hV2Unp, hConsUnp, hNilW]
     simp
+
+private theorem list_append_ne_nil_left_consume_local {α : Type}
+    (xs ys : List α) (h : xs ≠ []) : xs ++ ys ≠ [] := by
+  intro hBad
+  apply h
+  cases xs with
+  | nil => rfl
+  | cons a as => simp at hBad
+
+/--
+Mismatch-head snoc cancellation: if the appended character `[c]` is
+not in the length-1-membered head `H`, then NO suffix of `w ++ [c]`
+is in `A · H`, for ANY `A` (no induction hypothesis about `A`
+needed — the last character rules everything out).
+-/
+private theorem native_str_in_re_snoc_mismatch_suffixes_false_local
+    (w : native_String) (c : native_Char) (A H : native_RegLan)
+    (hLen1 :
+      ∀ x : native_String,
+        nativeListInRe x H = true -> x.length = 1)
+    (hNotIn : native_str_in_re [c] H = false) :
+    ∀ pre suf : native_String,
+      pre ++ suf = w ++ [c] ->
+        native_str_in_re suf (native_re_concat A H) = false := by
+  intro pre suf hApp
+  cases hMem : native_str_in_re suf (native_re_concat A H) with
+  | false => rfl
+  | true =>
+      exfalso
+      have hValid : native_string_valid suf = true := by
+        cases h : native_string_valid suf with
+        | true => rfl
+        | false => simp [native_str_in_re, h] at hMem
+      have hListMem :
+          nativeListInRe suf (native_re_mk_concat A H) = true := by
+        simpa [native_str_in_re, native_re_concat, hValid] using hMem
+      rcases (nativeListInRe_mk_concat_true_iff_exists_append suf A
+          H).1 hListMem with
+        ⟨x, y, hSplit, _hX, hY⟩
+      have hYLen : y.length = 1 := hLen1 y hY
+      have hWX : (pre ++ x) ++ y = w ++ [c] := by
+        rw [List.append_assoc, hSplit]
+        exact hApp
+      have hYC : y = [c] :=
+        (List.append_inj' hWX (by rw [hYLen]; rfl)).2
+      have hYValid : native_string_valid y = true :=
+        native_string_valid_suffix_consume_local x y (by
+          rw [hSplit]
+          exact hValid)
+      have hYStr : native_str_in_re y H = true := by
+        simpa [native_str_in_re, hYValid] using hY
+      rw [hYC, hNotIn] at hYStr
+      cases hYStr
+
+/-- `native_re_reverse_raw_consume_local` commutes with `mk_star`. -/
+private theorem native_re_reverse_raw_mk_star_consume_local
+    (r : native_RegLan) :
+    native_re_reverse_raw_consume_local (native_re_mk_star r) =
+      native_re_mk_star (native_re_reverse_raw_consume_local r) := by
+  cases r <;>
+    simp [native_re_mk_star, native_re_reverse_raw_consume_local]
+
+/--
+Right-decomposition of star membership: a nonempty member of
+`(r)*` ends with a nonempty chunk in `r`.
+-/
+private theorem native_str_in_re_star_nonempty_suffix_local
+    (w : native_String) (r : native_RegLan)
+    (hMem : native_str_in_re w (native_re_mult r) = true)
+    (hNe : w ≠ []) :
+    ∃ pre suf : native_String,
+      pre ++ suf = w ∧ suf ≠ [] ∧ native_str_in_re suf r = true := by
+  have hValid : native_string_valid w = true := by
+    cases h : native_string_valid w with
+    | true => rfl
+    | false => simp [native_str_in_re, h] at hMem
+  have hRevValid : native_string_valid w.reverse = true := by
+    simpa [native_string_valid_reverse_consume_local w] using hValid
+  have hRevMem :
+      native_str_in_re w.reverse
+          (native_re_mult (native_re_reverse_raw_consume_local r)) =
+        true := by
+    have hEq :=
+      native_str_in_re_eq_reverse_re_consume_local w (native_re_mult r)
+    rw [hEq] at hMem
+    have hStarEq :
+        native_re_reverse_raw_consume_local (native_re_mult r) =
+          native_re_mult (native_re_reverse_raw_consume_local r) := by
+      simpa [native_re_mult] using
+        native_re_reverse_raw_mk_star_consume_local r
+    rw [hStarEq] at hMem
+    exact hMem
+  have hRevListMem :
+      nativeListInRe w.reverse
+          (native_re_mult (native_re_reverse_raw_consume_local r)) =
+        true := by
+    simpa [native_str_in_re, nativeListInRe, hRevValid] using hRevMem
+  have hRevNe : w.reverse ≠ [] := by
+    intro hBad
+    apply hNe
+    simpa using congrArg List.reverse hBad
+  rcases nativeListInRe_re_mult_nonempty_prefix_local w.reverse
+      (native_re_reverse_raw_consume_local r) hRevListMem hRevNe with
+    ⟨pre', suf', hAppend, hPreNe, hPreMem⟩
+  refine ⟨suf'.reverse, pre'.reverse, ?_, ?_, ?_⟩
+  · have h := congrArg List.reverse hAppend
+    simpa using h
+  · intro hBad
+    apply hPreNe
+    simpa using congrArg List.reverse hBad
+  · have hPreValid : native_string_valid pre' = true :=
+      native_string_valid_append_left pre' suf' (by
+        rw [hAppend]
+        exact hRevValid)
+    have hPreRevValid : native_string_valid pre'.reverse = true := by
+      simpa [native_string_valid_reverse_consume_local pre'] using
+        hPreValid
+    have hPreStrMem :
+        native_str_in_re pre'
+            (native_re_reverse_raw_consume_local r) =
+          true := by
+      simpa [native_str_in_re, hPreValid] using hPreMem
+    have hEq :=
+      native_str_in_re_reverse_re_consume_local pre'.reverse r
+    rw [show pre'.reverse.reverse = pre' by simp] at hEq
+    rw [hEq] at hPreStrMem
+    exact hPreStrMem
+
+/--
+Star-head snoc cancellation: if no suffix of `w` is in `A` and no
+suffix of `w` is in `B`, then no suffix of `w` is in `A · B*`.  The
+star factor either contributes `ε` (reducing to the `A` case) or ends
+with a nonempty `B`-chunk, which is itself a suffix of `w`.
+-/
+private theorem native_str_in_re_concat_star_suffixes_false_local
+    (w : native_String) (A B : native_RegLan)
+    (hAllA :
+      ∀ pre suf : native_String,
+        pre ++ suf = w -> native_str_in_re suf A = false)
+    (hAllB :
+      ∀ pre suf : native_String,
+        pre ++ suf = w -> native_str_in_re suf B = false) :
+    ∀ pre suf : native_String,
+      pre ++ suf = w ->
+        native_str_in_re suf (native_re_concat A (native_re_mult B)) =
+          false := by
+  intro pre suf hApp
+  cases hMem : native_str_in_re suf
+      (native_re_concat A (native_re_mult B)) with
+  | false => rfl
+  | true =>
+      exfalso
+      have hValid : native_string_valid suf = true := by
+        cases h : native_string_valid suf with
+        | true => rfl
+        | false => simp [native_str_in_re, h] at hMem
+      have hListMem :
+          nativeListInRe suf
+              (native_re_mk_concat A (native_re_mult B)) = true := by
+        simpa [native_str_in_re, native_re_concat, hValid] using hMem
+      rcases (nativeListInRe_mk_concat_true_iff_exists_append suf A
+          (native_re_mult B)).1 hListMem with
+        ⟨x, y, hSplit, hX, hY⟩
+      have hXValid : native_string_valid x = true :=
+        native_string_valid_prefix_consume_local x y (by
+          rw [hSplit]
+          exact hValid)
+      have hYValid : native_string_valid y = true :=
+        native_string_valid_suffix_consume_local x y (by
+          rw [hSplit]
+          exact hValid)
+      by_cases hYNil : y = []
+      · subst hYNil
+        have hXSuf : pre ++ x = w := by
+          rw [← hApp, ← hSplit]
+          simp
+        have hXFalse := hAllA pre x hXSuf
+        have hXStr : native_str_in_re x A = true := by
+          simpa [native_str_in_re, hXValid] using hX
+        rw [hXFalse] at hXStr
+        cases hXStr
+      · have hYStr :
+            native_str_in_re y (native_re_mult B) = true := by
+          simpa [native_str_in_re, hYValid] using hY
+        rcases native_str_in_re_star_nonempty_suffix_local y B hYStr
+            hYNil with
+          ⟨yPre, chunk, hYSplit, _hChunkNe, hChunkMem⟩
+        have hChunkSuf : (pre ++ (x ++ yPre)) ++ chunk = w := by
+          rw [← hApp, ← hSplit, ← hYSplit]
+          simp
+        have hChunkFalse :=
+          hAllB (pre ++ (x ++ yPre)) chunk hChunkSuf
+        rw [hChunkFalse] at hChunkMem
+        cases hChunkMem
 
 /-
 The three unrev motives, to be proven by `__str_re_consume_rec.induct`
@@ -27452,80 +27700,6 @@ private theorem str_re_consume_rec_false_nonempty_local
   intro s0 r0 fuel0 side hSTy hRTy hSide hFalse ssF hEval
   exact (str_re_consume_rec_nonempty_decomp_local M hM s0 r0 fuel0
     side hSTy hRTy hSide).1 hFalse ssF hEval
-
-/-- `native_re_reverse_raw_consume_local` commutes with `mk_star`. -/
-private theorem native_re_reverse_raw_mk_star_consume_local
-    (r : native_RegLan) :
-    native_re_reverse_raw_consume_local (native_re_mk_star r) =
-      native_re_mk_star (native_re_reverse_raw_consume_local r) := by
-  cases r <;>
-    simp [native_re_mk_star, native_re_reverse_raw_consume_local]
-
-/--
-Right-decomposition of star membership: a nonempty member of
-`(r)*` ends with a nonempty chunk in `r`.
--/
-private theorem native_str_in_re_star_nonempty_suffix_local
-    (w : native_String) (r : native_RegLan)
-    (hMem : native_str_in_re w (native_re_mult r) = true)
-    (hNe : w ≠ []) :
-    ∃ pre suf : native_String,
-      pre ++ suf = w ∧ suf ≠ [] ∧ native_str_in_re suf r = true := by
-  have hValid : native_string_valid w = true := by
-    cases h : native_string_valid w with
-    | true => rfl
-    | false => simp [native_str_in_re, h] at hMem
-  have hRevValid : native_string_valid w.reverse = true := by
-    simpa [native_string_valid_reverse_consume_local w] using hValid
-  have hRevMem :
-      native_str_in_re w.reverse
-          (native_re_mult (native_re_reverse_raw_consume_local r)) =
-        true := by
-    have hEq :=
-      native_str_in_re_eq_reverse_re_consume_local w (native_re_mult r)
-    rw [hEq] at hMem
-    have hStarEq :
-        native_re_reverse_raw_consume_local (native_re_mult r) =
-          native_re_mult (native_re_reverse_raw_consume_local r) := by
-      simpa [native_re_mult] using
-        native_re_reverse_raw_mk_star_consume_local r
-    rw [hStarEq] at hMem
-    exact hMem
-  have hRevListMem :
-      nativeListInRe w.reverse
-          (native_re_mult (native_re_reverse_raw_consume_local r)) =
-        true := by
-    simpa [native_str_in_re, nativeListInRe, hRevValid] using hRevMem
-  have hRevNe : w.reverse ≠ [] := by
-    intro hBad
-    apply hNe
-    simpa using congrArg List.reverse hBad
-  rcases nativeListInRe_re_mult_nonempty_prefix_local w.reverse
-      (native_re_reverse_raw_consume_local r) hRevListMem hRevNe with
-    ⟨pre', suf', hAppend, hPreNe, hPreMem⟩
-  refine ⟨suf'.reverse, pre'.reverse, ?_, ?_, ?_⟩
-  · have h := congrArg List.reverse hAppend
-    simpa using h
-  · intro hBad
-    apply hPreNe
-    simpa using congrArg List.reverse hBad
-  · have hPreValid : native_string_valid pre' = true :=
-      native_string_valid_append_left pre' suf' (by
-        rw [hAppend]
-        exact hRevValid)
-    have hPreRevValid : native_string_valid pre'.reverse = true := by
-      simpa [native_string_valid_reverse_consume_local pre'] using
-        hPreValid
-    have hPreStrMem :
-        native_str_in_re pre'
-            (native_re_reverse_raw_consume_local r) =
-          true := by
-      simpa [native_str_in_re, hPreValid] using hPreMem
-    have hEq :=
-      native_str_in_re_reverse_re_consume_local pre'.reverse r
-    rw [show pre'.reverse.reverse = pre' by simp] at hEq
-    rw [hEq] at hPreStrMem
-    exact hPreStrMem
 
 /--
 A nonempty word with no suffix in `r` is not in `(r)*`.
@@ -32316,14 +32490,14 @@ theorem str_re_consume_model_rel
       injection hREval0.symm.trans hREval1 with hRvEq
       subst hRvEq
       have hMotive :=
-        str_re_consume_rec_unrev_no_suffix_local M hM _ _ _
+        (str_re_consume_rec_unrev_no_suffix_local M hM _ _ _
           (Term.Boolean false)
           hSFlatTy hRFlatTy
-          hFirstFalse.symm rfl flatSs flatRv
+          hFirstFalse.symm rfl flatSs
           (by
             simp only [consume_unrev_str_local]
             rw [hInvS]
-            exact hFlatSrcEval)
+            exact hFlatSrcEval)).1 flatRv
           (by
             simp only [consume_unrev_re_local]
             rw [hInvR]
@@ -32376,14 +32550,14 @@ theorem str_re_consume_model_rel
       injection hMultEval.symm.trans hREval1 with hRvEq
       subst hRvEq
       have hMotive :=
-        str_re_consume_rec_unrev_no_suffix_local M hM _ _ _
+        (str_re_consume_rec_unrev_no_suffix_local M hM _ _ _
           (Term.Boolean false)
           hSFlatTy hRFlatTy
-          hFirstFalse.symm rfl flatSs flatRv
+          hFirstFalse.symm rfl flatSs
           (by
             simp only [consume_unrev_str_local]
             rw [hInvS]
-            exact hFlatSrcEval)
+            exact hFlatSrcEval)).1 flatRv
           (by
             simp only [consume_unrev_re_local]
             rw [hInvR]
