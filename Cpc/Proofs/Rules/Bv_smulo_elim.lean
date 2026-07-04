@@ -1,4 +1,4 @@
-import Cpc.Proofs.Rules.Bv_umulo_elim
+import Cpc.Proofs.RuleSupport.BvOverflowSupport
 
 open Eo
 open SmtEval
