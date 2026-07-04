@@ -54,9 +54,9 @@ The proof factors into four pieces, in dependency order:
    The well-typedness of the actuals is exactly what the checker's
    `__is_instantiation xs ts = true` guard certifies: it requires
    `__eo_typeof tᵢ = Tᵢ` for each binder. `substActualsHaveSmtTypes_of_is_instantiation`
-   reflects that guard into `SubstActualsHaveSmtTypes`, and the existing
-   `instantiate_body_true_of_smt_typed_actuals` finishes the quantifier
-   instantiation. `prog_instantiate_shape` exposes the guard from the checker.
+   reflects that guard into `SubstActualsHaveSmtTypes`, and
+   `instantiate_body_true` calls the push-total body-truth bridge directly.
+   `prog_instantiate_shape` exposes the guard from the checker.
 
 4. **`prog_instantiate_shape`** (DONE) — a non-`Stuck` result forces the
    premise to be `forall xs F`, pins the conclusion to the substitution, AND
@@ -89,11 +89,10 @@ Status (2026-06-29):
     now lives in `Cpc.Proofs.RuleSupport.SubstitutePreservationSupport` and is
     the instantiate-facing staging theorem for merging the old type-preservation
     and SMT-translatability structural inductions. The instantiate-facing
-    projection wrappers have been removed; callers use the combined theorem
-    directly. The combined theorem still falls back to the old recursive engines
-    from `SubstituteTypeSupport` and `SubstituteTranslatabilitySupport` for the
-    remaining application/operator-spine cases. Deleting those old engines
-    requires moving that spine induction into the combined theorem.
+    projection wrappers and old recursive engines have been removed from Lean's
+    environment; callers use the combined theorem directly. The remaining
+    generic application/operator-spine fallback holes now live in the combined
+    theorem instead of through the retired standalone engines.
 
 The main theorem then wires these together with the standard single-arg /
 single-premise boilerplate (mirrors `BooleanElimSupport.cmd_step_and_elim_properties`).
@@ -946,103 +945,6 @@ theorem instantiate_body_true_of_push_total_and_closedIn
           (forallAssignmentModel Source M xs) Source hClosed
           (model_agrees_on_env_of_agrees_everywhere hAgreeAll)
       simpa [Source, ← hEvalEq] using hAssignTrue
-
-/-- Variant of `instantiate_body_true_of_push_total_and_closedIn` using the
-finite support of SMT terms as the closedness environment. -/
-theorem instantiate_body_true_of_push_total
-    (M : SmtModel) (hM : model_total_typed M)
-    (xs F ts : Term)
-    (hPrem : eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F) true)
-    (hWf : RuleProofs.eo_has_smt_translation
-      (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F))
-    (hPushTotal : model_total_typed (pushSubstModel M xs ts)) :
-    __smtx_model_eval (pushSubstModel M xs ts) (__eo_to_smt F) =
-      SmtValue.Boolean true := by
-  exact instantiate_body_true_of_push_total_and_closedIn M hM xs F ts
-    hPrem hWf hPushTotal (SmtTermClosedIn.exists_env (__eo_to_smt F))
-
-/-- Bridge specialised to actual terms that already evaluate to canonical values
-of the corresponding binder SMT types in the ambient model. -/
-theorem instantiate_body_true_of_actuals
-    (M : SmtModel) (hM : model_total_typed M)
-    (xs F ts : Term)
-    (hPrem : eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F) true)
-    (hWf : RuleProofs.eo_has_smt_translation
-      (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F))
-    (hActuals : SubstActualsTyped M xs ts) :
-    __smtx_model_eval (pushSubstModel M xs ts) (__eo_to_smt F) =
-      SmtValue.Boolean true := by
-  exact instantiate_body_true_of_push_total M hM xs F ts
-    hPrem hWf (pushSubstModel_total_typed_of_actuals M hM hActuals)
-
-/-- Same bridge, with syntactic SMT typing of actual terms converted through
-evaluation type preservation in the ambient model. -/
-theorem instantiate_body_true_of_smt_typed_actuals
-    (M : SmtModel) (hM : model_total_typed M)
-    (xs F ts : Term)
-    (hPrem : eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F) true)
-    (hWf : RuleProofs.eo_has_smt_translation
-      (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F))
-    (hActuals : SubstActualsHaveSmtTypes xs ts) :
-    __smtx_model_eval (pushSubstModel M xs ts) (__eo_to_smt F) =
-      SmtValue.Boolean true := by
-  exact instantiate_body_true_of_push_total M hM xs F ts hPrem hWf
-    (pushSubstModel_total_typed_of_smt_typed_actuals M hM hActuals)
-
-/-- EO closedness of a body under its binder list gives the SMT closedness
-environment needed by the model-coincidence theorem. -/
-theorem smt_body_closedIn_of_eo_closed_under_binders
-    {xs F : Term} {vars : List EoVarKey}
-    (hEnv : EoVarEnv xs vars)
-    (hClosed : __eo_is_closed_rec F xs = Term.Boolean true) :
-    SmtTermClosedIn (vars.map EoVarKey.toSmt) (__eo_to_smt F) := by
-  exact smtTermClosedIn_of_eo_is_closed_rec_perm
-    (hEnv := EoSmtVarEnvPerm.of_exact (EoVarEnv.to_smt hEnv))
-    hClosed
-
-/--
-Bridge specialised to the natural instantiate side conditions: the actual terms
-produce well-typed canonical binder values, and the body is EO-closed under the
-binder list.
--/
-theorem instantiate_body_true_of_actuals_and_eo_closed
-    (M : SmtModel) (hM : model_total_typed M)
-    (xs F ts : Term)
-    (hPrem : eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F) true)
-    (hWf : RuleProofs.eo_has_smt_translation
-      (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F))
-    (hActuals : SubstActualsTyped M xs ts)
-    (hBodyClosed : __eo_is_closed_rec F xs = Term.Boolean true) :
-    __smtx_model_eval (pushSubstModel M xs ts) (__eo_to_smt F) =
-      SmtValue.Boolean true := by
-  rcases forall_binders_env_of_has_smt_translation xs F hWf with
-    ⟨binderVars, hXsEnv⟩
-  exact instantiate_body_true_of_push_total_and_closedIn M hM xs F ts
-    hPrem hWf
-    (pushSubstModel_total_typed_of_actuals M hM hActuals)
-    ⟨binderVars.map EoVarKey.toSmt,
-      smt_body_closedIn_of_eo_closed_under_binders hXsEnv hBodyClosed⟩
-
-/-- Same bridge, with syntactic actual typing converted through SMT evaluation
-type preservation in the ambient model. -/
-theorem instantiate_body_true_of_smt_typed_actuals_and_eo_closed
-    (M : SmtModel) (hM : model_total_typed M)
-    (xs F ts : Term)
-    (hPrem : eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F) true)
-    (hWf : RuleProofs.eo_has_smt_translation
-      (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F))
-    (hActuals : SubstActualsHaveSmtTypes xs ts)
-    (hBodyClosed : __eo_is_closed_rec F xs = Term.Boolean true) :
-    __smtx_model_eval (pushSubstModel M xs ts) (__eo_to_smt F) =
-      SmtValue.Boolean true := by
-  rcases forall_binders_env_of_has_smt_translation xs F hWf with
-    ⟨binderVars, hXsEnv⟩
-  exact instantiate_body_true_of_push_total_and_closedIn M hM xs F ts
-    hPrem hWf
-    (pushSubstModel_total_typed_of_smt_typed_actuals M hM hActuals)
-    ⟨binderVars.map EoVarKey.toSmt,
-      smt_body_closedIn_of_eo_closed_under_binders hXsEnv hBodyClosed⟩
-
 
 /-- Different-body congruence for the existential evaluator: if for every
 witness value the two (distinct) bodies evaluate equally in the pushed models,
@@ -10956,7 +10858,9 @@ theorem instantiate_body_true
       (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F))
     (hActuals : SubstActualsHaveSmtTypes xs ts) :
     __smtx_model_eval (pushSubstModel M xs ts) (__eo_to_smt F) = SmtValue.Boolean true :=
-  instantiate_body_true_of_smt_typed_actuals M hM xs F ts hPrem hWf hActuals
+  instantiate_body_true_of_push_total_and_closedIn M hM xs F ts hPrem hWf
+    (pushSubstModel_total_typed_of_smt_typed_actuals M hM hActuals)
+    (SmtTermClosedIn.exists_env (__eo_to_smt F))
 
 /--
 A non-`Stuck` result of `__eo_prog_instantiate` forces the premise to be a

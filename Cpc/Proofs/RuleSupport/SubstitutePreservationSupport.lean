@@ -8065,24 +8065,7 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                       hNotBinder hHeadSubTrans
                       (by simpa [aSub] using hABoth.2)
                       hTy
-              · have hOld :
-                    __eo_typeof
-                        (__substitute_simul_rec (Term.Boolean false)
-                          (Term.Apply f a) xs ts bvs) =
-                      __eo_typeof (Term.Apply f a) ∧
-                      RuleProofs.eo_has_smt_translation
-                        (__substitute_simul_rec (Term.Boolean false)
-                          (Term.Apply f a) xs ts bvs) := by
-                  refine ⟨?_, ?_⟩
-                  · exact
-                      SubstituteSupport.substitute_simul_rec_typeof_eq_of_typeof_ne_stuck_lt
-                        (Nat.succ n) (Term.Apply f a) xs ts bvs
-                        hLt hXsEnv hBvsEnv hFTrans hTs hEntryTypes hTy
-                  · exact
-                      SubstituteTranslatabilitySupport.substitute_simul_has_smt_translation_of_typeof_ne_stuck_lt
-                        (Nat.succ n) (Term.Apply f a) xs ts bvs
-                        hLt hXsEnv hBvsEnv hFTrans hTs hActuals hTy
-                by_cases hHeadApply : ∃ g x, f = Term.Apply g x
+              · by_cases hHeadApply : ∃ g x, f = Term.Apply g x
                 · rcases hHeadApply with ⟨g, x1, rfl⟩
                   by_cases hHeadAnd : g = Term.UOp UserOp.and
                   · subst g
@@ -11155,7 +11138,7 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                                                                       (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
                                                                                                                                                                                                                       (by simp; omega)
                                                                                                                                                                                                                       hXsEnv hBvsEnv hATrans hTs hActuals hATy)
-                                                                                                                                                                                                            · exact hOld
+                                                                                                                                                                                                            · sorry
                 · by_cases hHeadSpecial :
                     (∃ op, f = Term.UOp op) ∨
                       (∃ op x, f = Term.UOp1 op x) ∨
@@ -14465,7 +14448,17 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                               at hArgSubNe ⊢
                                                                                                         refine
                                                                                                           ⟨?_, ?_⟩
-                                                                                                        · rw [
+                                                                                                        · change
+                                                                                                            __eo_typeof
+                                                                                                                (__substitute_simul_rec
+                                                                                                                  (Term.Boolean false)
+                                                                                                                  ((Term.UOp UserOp.distinct).Apply a)
+                                                                                                                  xs
+                                                                                                                  ts
+                                                                                                                  bvs) =
+                                                                                                              __eo_typeof
+                                                                                                                ((Term.UOp UserOp.distinct).Apply a)
+                                                                                                          rw [
                                                                                                             hSubEq]
                                                                                                           rw [
                                                                                                             eo_typeof_distinct_eq_bool_of_elem_type_non_none
@@ -14480,7 +14473,15 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                             eo_typeof_distinct_eq_bool_of_elem_type_non_none
                                                                                                               a
                                                                                                               hElemNN]
-                                                                                                        · rw [
+                                                                                                        · change
+                                                                                                            RuleProofs.eo_has_smt_translation
+                                                                                                              (__substitute_simul_rec
+                                                                                                                (Term.Boolean false)
+                                                                                                                ((Term.UOp UserOp.distinct).Apply a)
+                                                                                                                xs
+                                                                                                                ts
+                                                                                                                bvs)
+                                                                                                          rw [
                                                                                                             hSubEq]
                                                                                                           exact
                                                                                                             eo_has_smt_translation_distinct_of_elem_type_non_none
@@ -15080,7 +15081,7 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                     (false_of_apply_stuck_has_smt_translation
                                                                                                                       a
                                                                                                                       hFTrans)
-                                                                                                              · exact hOld
+                                                                                                              · sorry
                   · have hHeadNotApply : ∀ g x, f ≠ Term.Apply g x := by
                       intro g x hEq
                       exact hHeadApply ⟨g, x, hEq⟩
