@@ -26662,7 +26662,256 @@ private theorem str_re_consume_rec_unrev_semantic_local
     ∀ s0 r0 fuel0,
       str_re_consume_rec_unrev_no_suffix_motive M s0 r0 fuel0 ∧
         str_re_consume_rec_unrev_residual_motive M s0 r0 fuel0 := by
-  sorry
+  intro s0 r0 fuel0
+  refine __str_re_consume_rec.induct
+    (fun s r fuel =>
+      str_re_consume_inter_unrev_no_suffix_motive M s r fuel ∧
+        str_re_consume_inter_unrev_residual_motive M s r fuel)
+    (fun s r fuel =>
+      str_re_consume_rec_unrev_no_suffix_motive M s r fuel ∧
+        str_re_consume_rec_unrev_residual_motive M s r fuel)
+    (fun s r fuel =>
+      str_re_consume_union_unrev_no_suffix_motive M s r fuel ∧
+        str_re_consume_union_unrev_residual_motive M s r fuel)
+    ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_
+    ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ s0 r0 fuel0
+  rotate_left 5
+  · intro r fuel
+    constructor
+    all_goals
+      intro side hSTy
+      rw [show __eo_to_smt Term.Stuck = SmtTerm.None by rfl,
+        TranslationProofs.smtx_typeof_none] at hSTy
+      cases hSTy
+  · intro s fuel hS
+    constructor
+    all_goals
+      intro side _hSTy hRTy
+      rw [show __eo_to_smt Term.Stuck = SmtTerm.None by rfl,
+        TranslationProofs.smtx_typeof_none] at hRTy
+      cases hRTy
+  · intro s r hS hR
+    constructor
+    · intro side _hSTy _hRTy hSide hFalse
+      exfalso
+      exact str_re_consume_rec_stuck_fuel_absurd s r side hS hR hSide
+        (by
+          rw [hFalse]
+          intro h
+          cases h)
+    · intro side _hSTy _hRTy hSide hMemEps
+      exfalso
+      exact str_re_consume_rec_stuck_fuel_absurd s r side hS hR hSide
+        (by
+          intro hBad
+          rw [hBad] at hMemEps
+          simp [__str_membership_re] at hMemEps)
+  · -- eps-head with concat string: ε-unit keystone massage; to fill.
+    intro s1 s2 r2 fuel hFuel ih
+    sorry
+  · -- str_to_re head: snoc view + keystone + S1/S4 cores; to fill.
+    intro s1 s2 s3 r2 fuel hFuel hS3Ne ih
+    sorry
+  · -- range head: snoc view + keystone + S3/S4 cores; to fill.
+    intro s1 s2 s3 s5 r2 fuel hFuel ih
+    sorry
+  · -- allchar head: snoc view + keystone + S3 core; to fill.
+    intro s1 s2 r2 fuel hFuel ih
+    sorry
+  · -- re_mult head with concat fuel: S5 + residual ∀q composition;
+    -- to fill.
+    intro s1 s2 r3 r2 fc fr _v0 _v1 _v3 _v4 _v5
+      ihLeft ihRight _ihLeftAgain ihResidual
+    sorry
+  · intro s1 s2 r3 r2 fuel hFuel hNotFuelConcat
+    have hEq :=
+      str_re_consume_rec_str_concat_re_mult_non_concat_fuel_eq
+        s1 s2 r3 r2 fuel hFuel hNotFuelConcat
+    constructor
+    · intro side _hSTy _hRTy hSide hFalse
+      exfalso
+      have hBad := (hSide.trans hEq).symm.trans hFalse
+      simp at hBad
+    · intro side _hSTy _hRTy hSide hMemEps
+      exfalso
+      rw [hSide.trans hEq] at hMemEps
+      simp [__str_membership_re] at hMemEps
+  rotate_left
+  · -- eps-head with non-concat string: ε-unit keystone massage; to
+    -- fill.
+    intro s r fuel hS hFuel _hNotConcat ih
+    sorry
+  · intro s r1 r2 fuel hS hFuel ih
+    have hEq := str_re_consume_rec_re_inter_eq s r1 r2 fuel hS hFuel
+    constructor
+    · intro side hSTy hRTy hSide hFalse ssU hSsU
+      constructor
+      · intro rvU hRvU
+        exfalso
+        exact term_ne_stuck_of_eval_reglan_consume_local M _ _ hRvU
+          (rev_map_rev_not_chain_stuck_consume_local _ _
+            (by
+              intro h
+              simp at h)
+            (fun a b h => by simp at h))
+      · intro _hNotConcat rvU hRvU
+        exact ih.1 side hSTy hRTy (hSide.trans hEq) hFalse ssU hSsU
+          rvU hRvU
+    · intro side hSTy hRTy hSide hMemEps
+      rcases ih.2 side hSTy hRTy (hSide.trans hEq) hMemEps with
+        ⟨hMemTy, hRest⟩
+      refine ⟨hMemTy, ?_⟩
+      intro ssU ssR hSsU hSsR
+      constructor
+      · intro rvU hRvU
+        exfalso
+        exact term_ne_stuck_of_eval_reglan_consume_local M _ _ hRvU
+          (rev_map_rev_not_chain_stuck_consume_local _ _
+            (by
+              intro h
+              simp at h)
+            (fun a b h => by simp at h))
+      · intro _hNotConcat rvU hRvU
+        exact hRest ssU ssR hSsU hSsR rvU hRvU
+  · intro s r1 r2 fuel hS hFuel ih
+    have hEq := str_re_consume_rec_re_union_eq s r1 r2 fuel hS hFuel
+    constructor
+    · intro side hSTy hRTy hSide hFalse ssU hSsU
+      constructor
+      · intro rvU hRvU
+        exfalso
+        exact term_ne_stuck_of_eval_reglan_consume_local M _ _ hRvU
+          (rev_map_rev_not_chain_stuck_consume_local _ _
+            (by
+              intro h
+              simp at h)
+            (fun a b h => by simp at h))
+      · intro _hNotConcat rvU hRvU
+        exact ih.1 side hSTy hRTy (hSide.trans hEq) hFalse ssU hSsU
+          rvU hRvU
+    · intro side hSTy hRTy hSide hMemEps
+      rcases ih.2 side hSTy hRTy (hSide.trans hEq) hMemEps with
+        ⟨hMemTy, hRest⟩
+      refine ⟨hMemTy, ?_⟩
+      intro ssU ssR hSsU hSsR
+      constructor
+      · intro rvU hRvU
+        exfalso
+        exact term_ne_stuck_of_eval_reglan_consume_local M _ _ hRvU
+          (rev_map_rev_not_chain_stuck_consume_local _ _
+            (by
+              intro h
+              simp at h)
+            (fun a b h => by simp at h))
+      · intro _hNotConcat rvU hRvU
+        exact hRest ssU ssR hSsU hSsR rvU hRvU
+  · -- default (rebuilt `str_in_re s r`): the no-suffix component is a
+    -- constructor clash; the residual component is the consume-finished
+    -- base case (`r = eps`); to fill.
+    intro s r fuel hS hR hFuel hNotStrConcatEmpty
+      hNotStrConcatStrToRe hNotStrConcatRange hNotStrConcatAllchar
+      hNotStrConcatMultFuel hNotStrConcatMult hNotStrConcatConcat
+      hNotRConcatEmpty hNotRInter hNotRUnion
+    sorry
+  · intro r fuel
+    constructor
+    all_goals
+      intro side hSTy
+      rw [show __eo_to_smt Term.Stuck = SmtTerm.None by rfl,
+        TranslationProofs.smtx_typeof_none] at hSTy
+      cases hSTy
+  · intro s r hS
+    constructor
+    · intro side _hSTy _hRTy hSide hFalse
+      exfalso
+      exact str_re_consume_union_stuck_fuel_absurd s r side hS hSide
+        (by
+          rw [hFalse]
+          intro h
+          cases h)
+    · intro side _hSTy _hRTy hSide hMemEps
+      exfalso
+      exact str_re_consume_union_stuck_fuel_absurd s r side hS hSide
+        (by
+          intro hBad
+          rw [hBad] at hMemEps
+          simp [__str_membership_re] at hMemEps)
+  rotate_left
+  rotate_left
+  · intro s r fuel hS hFuel hNotNone hNotUnion
+    have hEq := str_re_consume_union_default_eq s r fuel hS hFuel
+      hNotNone hNotUnion
+    constructor
+    · intro side _hSTy _hRTy hSide hFalse
+      exfalso
+      have hBad := (hSide.trans hEq).symm.trans hFalse
+      cases hBad
+    · intro side _hSTy _hRTy hSide hMemEps
+      exfalso
+      rw [hSide.trans hEq] at hMemEps
+      simp [__str_membership_re] at hMemEps
+  · intro r fuel
+    constructor
+    all_goals
+      intro side hSTy
+      rw [show __eo_to_smt Term.Stuck = SmtTerm.None by rfl,
+        TranslationProofs.smtx_typeof_none] at hSTy
+      cases hSTy
+  · intro s r hS
+    constructor
+    · intro side _hSTy _hRTy hSide hFalse
+      exfalso
+      exact str_re_consume_inter_stuck_fuel_absurd s r side hS hSide
+        (by
+          rw [hFalse]
+          intro h
+          cases h)
+    · intro side _hSTy _hRTy hSide hMemEps
+      exfalso
+      exact str_re_consume_inter_stuck_fuel_absurd s r side hS hSide
+        (by
+          intro hBad
+          rw [hBad] at hMemEps
+          simp [__str_membership_re] at hMemEps)
+  rotate_left
+  rotate_left
+  · intro s r fuel hS hFuel hNotAll hNotInter
+    have hEq := str_re_consume_inter_default_eq s r fuel hS hFuel
+      hNotAll hNotInter
+    constructor
+    · intro side _hSTy _hRTy hSide hFalse
+      exfalso
+      have hBad := (hSide.trans hEq).symm.trans hFalse
+      cases hBad
+    · intro side _hSTy _hRTy hSide hMemEps
+      exfalso
+      rw [hSide.trans hEq] at hMemEps
+      simp [__str_membership_re] at hMemEps
+  rotate_left
+  · -- union with re_none tail: rec-IH chain form + union-∅ unit; to
+    -- fill.
+    intro s r fuel hS hFuel ih
+    sorry
+  rotate_left
+  · -- inter with re_all tail: rec-IH chain form + inter-⊤ unit; to
+    -- fill.
+    intro s r fuel hS hFuel ih
+    sorry
+  rotate_left
+  · -- generic concat head: chunk-form IH of the head + residual
+    -- composition; to fill.
+    intro s1 s2 r1 r2 fuel hFuel hR1Empty hR1StrToRe hR1Range
+      hR1Allchar hFuelMult hR1Mult _v0 _v1 ihLeft _ihLeftAgain
+      ihResidual
+    sorry
+  · -- union combinator: branch dispatch via rev_comp distribution; to
+    -- fill.
+    intro s c1 c2 fuel hS hFuel hC2Ne ihLeft ihRight
+    sorry
+  · -- inter combinator: branch dispatch via rev_comp distribution; to
+    -- fill.
+    intro s c1 c2 fuel hS hFuel hC2Ne ihLeft ihRight
+    sorry
 
 private theorem str_re_consume_rec_unrev_no_suffix_local
     (M : SmtModel) (hM : model_total_typed M) :
