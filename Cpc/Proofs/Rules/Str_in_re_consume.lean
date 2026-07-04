@@ -25558,21 +25558,107 @@ private def str_re_consume_rec_unrev_residual_motive
         (__eo_to_smt
           (consume_unrev_str_local (__str_membership_str side))) =
       SmtType.Seq SmtType.Char ∧
-      ∀ q ssU rvU ssR qv,
-        __smtx_model_eval M
-            (__eo_to_smt (consume_unrev_str_local s)) =
-          SmtValue.Seq ssU ->
+    ∀ ssU ssR,
+      __smtx_model_eval M
+          (__eo_to_smt (consume_unrev_str_local s)) =
+        SmtValue.Seq ssU ->
+      __smtx_model_eval M
+          (__eo_to_smt
+            (consume_unrev_str_local (__str_membership_str side))) =
+        SmtValue.Seq ssR ->
+      (∀ rvU,
         __smtx_model_eval M
             (__eo_to_smt (consume_unrev_re_local r)) =
           SmtValue.RegLan rvU ->
-        __smtx_model_eval M
-            (__eo_to_smt
-              (consume_unrev_str_local (__str_membership_str side))) =
-          SmtValue.Seq ssR ->
-        __smtx_model_eval M (__eo_to_smt q) = SmtValue.RegLan qv ->
-          native_str_in_re (native_unpack_string ssU)
-              (native_re_concat qv rvU) =
-            native_str_in_re (native_unpack_string ssR) qv
+        (∃ u : native_String,
+          native_unpack_string ssU = native_unpack_string ssR ++ u ∧
+            native_str_in_re u rvU = true) ∧
+        ∀ q qv,
+          __smtx_model_eval M (__eo_to_smt q) = SmtValue.RegLan qv ->
+            native_str_in_re (native_unpack_string ssU)
+                (native_re_concat qv rvU) =
+              native_str_in_re (native_unpack_string ssR) qv) ∧
+      ((∀ a b : Term,
+          r =
+            Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a) b ->
+          False) ->
+        ∀ rvU,
+          __smtx_model_eval M (__eo_to_smt (__re_rev_comp r)) =
+            SmtValue.RegLan rvU ->
+          (∃ u : native_String,
+            native_unpack_string ssU = native_unpack_string ssR ++ u ∧
+              native_str_in_re u rvU = true) ∧
+          ∀ q qv,
+            __smtx_model_eval M (__eo_to_smt q) = SmtValue.RegLan qv ->
+              native_str_in_re (native_unpack_string ssU)
+                  (native_re_concat qv rvU) =
+                native_str_in_re (native_unpack_string ssR) qv)
+
+/--
+Union/inter companions of the unrev residual motive (`__re_rev_comp`
+form only, as for the no-suffix companions).
+-/
+private def str_re_consume_union_unrev_residual_motive
+    (M : SmtModel) (s r fuel : Term) : Prop :=
+  ∀ side,
+    __smtx_typeof (__eo_to_smt s) = SmtType.Seq SmtType.Char ->
+    __smtx_typeof (__eo_to_smt r) = SmtType.RegLan ->
+    side = __str_re_consume_union s r fuel ->
+    __str_membership_re side = re_empty_string_re_consume_local ->
+    __smtx_typeof
+        (__eo_to_smt
+          (consume_unrev_str_local (__str_membership_str side))) =
+      SmtType.Seq SmtType.Char ∧
+    ∀ ssU ssR,
+      __smtx_model_eval M
+          (__eo_to_smt (consume_unrev_str_local s)) =
+        SmtValue.Seq ssU ->
+      __smtx_model_eval M
+          (__eo_to_smt
+            (consume_unrev_str_local (__str_membership_str side))) =
+        SmtValue.Seq ssR ->
+      ∀ rvU,
+        __smtx_model_eval M (__eo_to_smt (__re_rev_comp r)) =
+          SmtValue.RegLan rvU ->
+        (∃ u : native_String,
+          native_unpack_string ssU = native_unpack_string ssR ++ u ∧
+            native_str_in_re u rvU = true) ∧
+        ∀ q qv,
+          __smtx_model_eval M (__eo_to_smt q) = SmtValue.RegLan qv ->
+            native_str_in_re (native_unpack_string ssU)
+                (native_re_concat qv rvU) =
+              native_str_in_re (native_unpack_string ssR) qv
+
+private def str_re_consume_inter_unrev_residual_motive
+    (M : SmtModel) (s r fuel : Term) : Prop :=
+  ∀ side,
+    __smtx_typeof (__eo_to_smt s) = SmtType.Seq SmtType.Char ->
+    __smtx_typeof (__eo_to_smt r) = SmtType.RegLan ->
+    side = __str_re_consume_inter s r fuel ->
+    __str_membership_re side = re_empty_string_re_consume_local ->
+    __smtx_typeof
+        (__eo_to_smt
+          (consume_unrev_str_local (__str_membership_str side))) =
+      SmtType.Seq SmtType.Char ∧
+    ∀ ssU ssR,
+      __smtx_model_eval M
+          (__eo_to_smt (consume_unrev_str_local s)) =
+        SmtValue.Seq ssU ->
+      __smtx_model_eval M
+          (__eo_to_smt
+            (consume_unrev_str_local (__str_membership_str side))) =
+        SmtValue.Seq ssR ->
+      ∀ rvU,
+        __smtx_model_eval M (__eo_to_smt (__re_rev_comp r)) =
+          SmtValue.RegLan rvU ->
+        (∃ u : native_String,
+          native_unpack_string ssU = native_unpack_string ssR ++ u ∧
+            native_str_in_re u rvU = true) ∧
+        ∀ q qv,
+          __smtx_model_eval M (__eo_to_smt q) = SmtValue.RegLan qv ->
+            native_str_in_re (native_unpack_string ssU)
+                (native_re_concat qv rvU) =
+              native_str_in_re (native_unpack_string ssR) qv
 
 /--
 Rebuild relation motive: a non-`false` non-stuck consume result
@@ -26564,17 +26650,33 @@ The three unrev motives, to be proven by `__str_re_consume_rec.induct`
 with companion `union`/`inter` motives, mirroring the proofs of
 `hRecSemantic` and `hRecModelRel` in `str_re_consume_model_rel` below.
 -/
+/--
+Combined unrev semantic induction (no-suffix ∧ residual), to be proven
+by ONE `__str_re_consume_rec.induct` with the union/inter companion
+motive pairs: the `re_mult` residual-retry branch of the no-suffix
+part consumes the ∀q/decomposition conclusions of the residual part,
+exactly as in the flat `hRecSemantic` (`no_prefix ∧ residual`).
+-/
+private theorem str_re_consume_rec_unrev_semantic_local
+    (M : SmtModel) (hM : model_total_typed M) :
+    ∀ s0 r0 fuel0,
+      str_re_consume_rec_unrev_no_suffix_motive M s0 r0 fuel0 ∧
+        str_re_consume_rec_unrev_residual_motive M s0 r0 fuel0 := by
+  sorry
+
 private theorem str_re_consume_rec_unrev_no_suffix_local
     (M : SmtModel) (hM : model_total_typed M) :
     ∀ s0 r0 fuel0,
-      str_re_consume_rec_unrev_no_suffix_motive M s0 r0 fuel0 := by
-  sorry
+      str_re_consume_rec_unrev_no_suffix_motive M s0 r0 fuel0 :=
+  fun s0 r0 fuel0 =>
+    (str_re_consume_rec_unrev_semantic_local M hM s0 r0 fuel0).1
 
 private theorem str_re_consume_rec_unrev_residual_local
     (M : SmtModel) (hM : model_total_typed M) :
     ∀ s0 r0 fuel0,
-      str_re_consume_rec_unrev_residual_motive M s0 r0 fuel0 := by
-  sorry
+      str_re_consume_rec_unrev_residual_motive M s0 r0 fuel0 :=
+  fun s0 r0 fuel0 =>
+    (str_re_consume_rec_unrev_semantic_local M hM s0 r0 fuel0).2
 
 private theorem str_re_consume_rec_unrev_model_rel_local
     (M : SmtModel) (hM : model_total_typed M) :
