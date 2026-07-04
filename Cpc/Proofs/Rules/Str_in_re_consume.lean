@@ -26651,6 +26651,143 @@ with companion `union`/`inter` motives, mirroring the proofs of
 `hRecSemantic` and `hRecModelRel` in `str_re_consume_model_rel` below.
 -/
 /--
+Equality version of the length-1-class snoc cancellation, for the
+residual (∀q) conclusions: appending a length-1 word that IS in the
+head class preserves and reflects membership.
+-/
+private theorem native_str_in_re_snoc_len_one_eq_consume_local
+    (w u : native_String) (A H : native_RegLan)
+    (hLen1 :
+      ∀ x : native_String,
+        nativeListInRe x H = true -> x.length = 1)
+    (hU : u.length = 1)
+    (hUin : native_str_in_re u H = true) :
+    native_str_in_re (w ++ u) (native_re_concat A H) =
+      native_str_in_re w A := by
+  cases hWV : native_string_valid w with
+  | false =>
+      have hLHSInvalid : native_string_valid (w ++ u) = false := by
+        cases h : native_string_valid (w ++ u) with
+        | false => rfl
+        | true =>
+            have hPre := native_string_valid_prefix_consume_local w u h
+            rw [hWV] at hPre
+            cases hPre
+      simp [native_str_in_re, hWV, hLHSInvalid]
+  | true =>
+      apply Bool.eq_iff_iff.mpr
+      constructor
+      · intro hMem
+        have hValid : native_string_valid (w ++ u) = true := by
+          cases h : native_string_valid (w ++ u) with
+          | true => rfl
+          | false => simp [native_str_in_re, h] at hMem
+        have hListMem :
+            nativeListInRe (w ++ u) (native_re_mk_concat A H) =
+              true := by
+          simpa [native_str_in_re, native_re_concat, nativeListInRe,
+            hValid] using hMem
+        rcases (nativeListInRe_mk_concat_true_iff_exists_append _ A
+            H).1 hListMem with
+          ⟨x, y, hSplit, hX, hY⟩
+        have hYLen := hLen1 y hY
+        rcases List.append_inj' hSplit (by rw [hYLen, hU]) with
+          ⟨rfl, rfl⟩
+        simpa [native_str_in_re, hWV] using hX
+      · intro hMem
+        exact native_str_in_re_re_concat_intro w u A H hMem hUin
+
+/--
+Equality version of the exact-word snoc cancellation.
+-/
+private theorem native_str_in_re_snoc_word_eq_consume_local
+    (w u : native_String) (A : native_RegLan)
+    (hUValid : native_string_valid u = true) :
+    native_str_in_re (w ++ u)
+        (native_re_concat A (native_str_to_re u)) =
+      native_str_in_re w A := by
+  cases hWV : native_string_valid w with
+  | false =>
+      have hLHSInvalid : native_string_valid (w ++ u) = false := by
+        cases h : native_string_valid (w ++ u) with
+        | false => rfl
+        | true =>
+            have hPre := native_string_valid_prefix_consume_local w u h
+            rw [hWV] at hPre
+            cases hPre
+      simp [native_str_in_re, hWV, hLHSInvalid]
+  | true =>
+      apply Bool.eq_iff_iff.mpr
+      constructor
+      · intro hMem
+        have hValid : native_string_valid (w ++ u) = true := by
+          cases h : native_string_valid (w ++ u) with
+          | true => rfl
+          | false => simp [native_str_in_re, h] at hMem
+        have hListMem :
+            nativeListInRe (w ++ u)
+                (native_re_mk_concat A (native_str_to_re u)) =
+              true := by
+          simpa [native_str_in_re, native_re_concat, nativeListInRe,
+            hValid] using hMem
+        rcases (nativeListInRe_mk_concat_true_iff_exists_append _ A
+            (native_str_to_re u)).1 hListMem with
+          ⟨x, y, hSplit, hX, hY⟩
+        have hYValid : native_string_valid y = true :=
+          native_string_valid_suffix_consume_local x y (by
+            rw [hSplit]
+            exact hValid)
+        have hYStr : native_str_in_re y (native_str_to_re u) = true := by
+          simpa [native_str_in_re, hYValid] using hY
+        have hYU : y = u := native_str_in_re_str_to_re_eq hYValid hYStr
+        subst hYU
+        rcases List.append_inj' hSplit rfl with ⟨rfl, _⟩
+        simpa [native_str_in_re, hWV] using hX
+      · intro hMem
+        exact native_str_in_re_re_concat_intro w u A
+          (native_str_to_re u) hMem
+          (native_str_in_re_str_to_re_self_local u hUValid)
+
+private theorem map_char_of_comp_char_consume_local :
+    ∀ w : native_String,
+      w.map (native_ssm_char_of_value ∘ SmtValue.Char) = w
+  | [] => rfl
+  | c :: cs => by
+      simp only [List.map_cons]
+      rw [map_char_of_comp_char_consume_local cs]
+      rfl
+
+private theorem eval_string_unpack_consume_local
+    (M : SmtModel) (w : native_String) :
+    ∃ ss,
+      __smtx_model_eval M (__eo_to_smt (Term.String w)) =
+        SmtValue.Seq ss ∧
+      native_unpack_string ss = w := by
+  refine ⟨native_pack_string w, ?_, ?_⟩
+  · change __smtx_model_eval M (SmtTerm.String w) = _
+    simp only [__smtx_model_eval]
+  · simp [native_unpack_string, consume_unpack_pack_string_map,
+      map_char_of_comp_char_consume_local]
+
+private theorem list_append_ne_nil_right_consume_local {α : Type}
+    (xs ys : List α) (h : ys ≠ []) : xs ++ ys ≠ [] := by
+  intro hBad
+  apply h
+  cases xs with
+  | nil => simpa using hBad
+  | cons a as => simp at hBad
+
+private theorem native_str_in_re_congr_of_reglan_rel_consume_local
+    {r1 r2 : native_RegLan}
+    (h : RuleProofs.smt_value_rel (SmtValue.RegLan r1)
+      (SmtValue.RegLan r2))
+    (str : native_String) :
+    native_str_in_re str r1 = native_str_in_re str r2 := by
+  cases hV : native_string_valid str with
+  | true => exact smt_value_rel_reglan_valid_eq h hV
+  | false => simp [native_str_in_re, hV]
+
+/--
 Combined unrev semantic induction (no-suffix ∧ residual), to be proven
 by ONE `__str_re_consume_rec.induct` with the union/inter companion
 motive pairs: the `re_mult` residual-retry branch of the no-suffix
@@ -26715,9 +26852,268 @@ private theorem str_re_consume_rec_unrev_semantic_local
   · -- range head: snoc view + keystone + S3/S4 cores; to fill.
     intro s1 s2 s3 s5 r2 fuel hFuel ih
     sorry
-  · -- allchar head: snoc view + keystone + S3 core; to fill.
-    intro s1 s2 r2 fuel hFuel ih
-    sorry
+  · intro s1 s2 r2 fuel hFuel ih
+    constructor
+    · -- no-suffix component
+      intro side hSTy hRTy hSide hFalse ssU hSsU
+      have hS1Ty :=
+        (str_concat_args_of_seq_type s1 s2 SmtType.Char hSTy).1
+      have hS2Ty :=
+        (str_concat_args_of_seq_type s1 s2 SmtType.Char hSTy).2
+      have hR2Ty :=
+        (re_concat_arg_types_of_reglan_consume_local
+          (Term.UOp UserOp.re_allchar) r2 hRTy).2
+      rw [__str_re_consume_rec.eq_7 fuel s1 s2 r2 hFuel] at hSide
+      have hIteFalse := hSide.symm.trans hFalse
+      rcases eo_ite_cases_of_ne_stuck _ _ _
+          (by
+            rw [hIteFalse]
+            intro h
+            cases h) with hCondT | hCondF
+      · rcases str_re_consume_string_singleton_of_seq_type_len_one s1
+            hS1Ty hCondT with ⟨c, rfl⟩
+        rw [hCondT] at hIteFalse
+        simp only [eo_ite_true] at hIteFalse
+        refine ⟨?_, fun hNotConcat => ((hNotConcat _ _ rfl).elim)⟩
+        intro rvU hRvU
+        simp only [consume_unrev_re_local] at hRvU
+        rw [__re_rev_map_rev.eq_3
+          (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))
+          (Term.UOp UserOp.re_allchar) r2 (by
+            intro h
+            cases h)] at hRvU
+        have hAccEval2 :
+            __smtx_model_eval M
+                (__eo_to_smt
+                  (__eo_mk_apply
+                    (__eo_mk_apply (Term.UOp UserOp.re_concat)
+                      (__re_rev_comp (Term.UOp UserOp.re_allchar)))
+                    (Term.Apply (Term.UOp UserOp.str_to_re)
+                      (Term.String [])))) =
+              SmtValue.RegLan
+                (native_re_concat native_re_allchar
+                  (native_str_to_re [])) := by
+          change __smtx_model_eval M
+              (SmtTerm.re_concat SmtTerm.re_allchar
+                (SmtTerm.str_to_re (SmtTerm.String []))) = _
+          simp [__smtx_model_eval, __smtx_model_eval_re_concat,
+            __smtx_model_eval_str_to_re, native_unpack_string,
+            consume_unpack_pack_string_map]
+        have hEpsEval :
+            __smtx_model_eval M
+                (__eo_to_smt
+                  (Term.Apply (Term.UOp UserOp.str_to_re)
+                    (Term.String []))) =
+              SmtValue.RegLan (native_str_to_re []) := by
+          change __smtx_model_eval M
+              (SmtTerm.str_to_re (SmtTerm.String [])) = _
+          simp [__smtx_model_eval, __smtx_model_eval_str_to_re,
+            native_unpack_string, consume_unpack_pack_string_map]
+        rcases eval_rev_map_rev_acc_factor_consume_local M r2 _ rvU
+            hRvU with ⟨⟨newAccV, hNewAccEval⟩, C, hTrans⟩
+        rcases hTrans _ _ hAccEval2 with ⟨v1, hv1, hRel1⟩
+        injection hRvU.symm.trans hv1 with hV1
+        subst hV1
+        rw [show native_re_concat native_re_allchar (native_str_to_re []) =
+            native_re_allchar from rfl] at hRel1
+        rcases hTrans _ _ hEpsEval with ⟨rvU2, hRvU2, hRel2⟩
+        rw [show native_re_concat C (native_str_to_re []) = C from by
+          cases C <;> rfl] at hRel2
+        have hRvURel :
+            RuleProofs.smt_value_rel (SmtValue.RegLan rvU)
+              (SmtValue.RegLan
+                (native_re_concat rvU2 native_re_allchar)) :=
+          RuleProofs.smt_value_rel_trans _ _ _ hRel1
+            (smt_value_rel_re_concat_consume_local
+              (RuleProofs.smt_value_rel_symm _ _ hRel2)
+              (RuleProofs.smt_value_rel_refl _))
+        simp only [consume_unrev_str_local] at hSsU
+        rcases eval_list_rev_snoc_view_consume_local M _ s2 _ hSsU with
+          ⟨ssU2, s1V, hSsU2, hS1V, hUnp⟩
+        rcases eval_string_unpack_consume_local M [c] with
+          ⟨ss1', hss1', hUnp1⟩
+        injection hS1V.symm.trans hss1' with hEq1
+        have hS1W : native_unpack_string s1V = [c] := by
+          rw [hEq1]
+          exact hUnp1
+        have hS1Valid : native_string_valid [c] = true :=
+          native_string_valid_of_smtx_typeof_eo_string [c] hS1Ty
+        have hCValid : native_char_valid c = true := by
+          simpa [native_string_valid] using hS1Valid
+        have hLen1 :
+            ∀ x : native_String,
+              nativeListInRe x native_re_allchar = true ->
+                x.length = 1 :=
+          fun x hx => ((nativeListInRe_allchar_true_iff x).1 hx).1
+        have hCin :
+            native_str_in_re [c] native_re_allchar = true := by
+          have hL := (nativeListInRe_allchar_true_iff [c]).2
+            ⟨rfl, by simp [hCValid]⟩
+          simpa [native_str_in_re, native_string_valid, hCValid,
+            nativeListInRe] using hL
+        have hIH :=
+          (ih.1 (Term.Boolean false) hS2Ty hR2Ty hIteFalse.symm rfl
+            ssU2 (by
+              simp only [consume_unrev_str_local]
+              exact hSsU2)).1 rvU2 (by
+            simp only [consume_unrev_re_local]
+            exact hRvU2)
+        rcases hIH with ⟨_hNe2, hSuf2⟩
+        constructor
+        · rw [hUnp, hS1W]
+          exact list_append_ne_nil_right_consume_local _ _ (by simp)
+        · intro pre suf hApp
+          rw [hUnp, hS1W] at hApp
+          rw [native_str_in_re_congr_of_reglan_rel_consume_local
+            hRvURel suf]
+          exact native_str_in_re_snoc_len_one_suffixes_false_local
+            (native_unpack_string ssU2) [c] rvU2 native_re_allchar
+            hLen1 rfl hSuf2 pre suf hApp
+      · exfalso
+        rw [hCondF] at hIteFalse
+        simp only [eo_ite_false] at hIteFalse
+        simp at hIteFalse
+    · -- residual component
+      intro side hSTy hRTy hSide hMemEps
+      have hS1Ty :=
+        (str_concat_args_of_seq_type s1 s2 SmtType.Char hSTy).1
+      have hS2Ty :=
+        (str_concat_args_of_seq_type s1 s2 SmtType.Char hSTy).2
+      have hR2Ty :=
+        (re_concat_arg_types_of_reglan_consume_local
+          (Term.UOp UserOp.re_allchar) r2 hRTy).2
+      rw [__str_re_consume_rec.eq_7 fuel s1 s2 r2 hFuel] at hSide
+      have hSideNe : side ≠ Term.Stuck := by
+        intro hBad
+        rw [hBad] at hMemEps
+        simp [__str_membership_re] at hMemEps
+      rcases eo_ite_cases_of_ne_stuck _ _ _
+          (by
+            rw [← hSide]
+            exact hSideNe) with hCondT | hCondF
+      · rcases str_re_consume_string_singleton_of_seq_type_len_one s1
+            hS1Ty hCondT with ⟨c, rfl⟩
+        have hSide2 : side = __str_re_consume_rec s2 r2 fuel := by
+          rw [hSide, hCondT, eo_ite_true]
+        rcases ih.2 side hS2Ty hR2Ty hSide2 hMemEps with
+          ⟨hMemTy, hRest⟩
+        refine ⟨hMemTy, ?_⟩
+        intro ssU ssR hSsU hSsR
+        refine ⟨?_, fun hNotConcat => ((hNotConcat _ _ rfl).elim)⟩
+        intro rvU hRvU
+        simp only [consume_unrev_re_local] at hRvU
+        rw [__re_rev_map_rev.eq_3
+          (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))
+          (Term.UOp UserOp.re_allchar) r2 (by
+            intro h
+            cases h)] at hRvU
+        have hAccEval2 :
+            __smtx_model_eval M
+                (__eo_to_smt
+                  (__eo_mk_apply
+                    (__eo_mk_apply (Term.UOp UserOp.re_concat)
+                      (__re_rev_comp (Term.UOp UserOp.re_allchar)))
+                    (Term.Apply (Term.UOp UserOp.str_to_re)
+                      (Term.String [])))) =
+              SmtValue.RegLan
+                (native_re_concat native_re_allchar
+                  (native_str_to_re [])) := by
+          change __smtx_model_eval M
+              (SmtTerm.re_concat SmtTerm.re_allchar
+                (SmtTerm.str_to_re (SmtTerm.String []))) = _
+          simp [__smtx_model_eval, __smtx_model_eval_re_concat,
+            __smtx_model_eval_str_to_re, native_unpack_string,
+            consume_unpack_pack_string_map]
+        have hEpsEval :
+            __smtx_model_eval M
+                (__eo_to_smt
+                  (Term.Apply (Term.UOp UserOp.str_to_re)
+                    (Term.String []))) =
+              SmtValue.RegLan (native_str_to_re []) := by
+          change __smtx_model_eval M
+              (SmtTerm.str_to_re (SmtTerm.String [])) = _
+          simp [__smtx_model_eval, __smtx_model_eval_str_to_re,
+            native_unpack_string, consume_unpack_pack_string_map]
+        rcases eval_rev_map_rev_acc_factor_consume_local M r2 _ rvU
+            hRvU with ⟨⟨newAccV, hNewAccEval⟩, C, hTrans⟩
+        rcases hTrans _ _ hAccEval2 with ⟨v1, hv1, hRel1⟩
+        injection hRvU.symm.trans hv1 with hV1
+        subst hV1
+        rw [show native_re_concat native_re_allchar (native_str_to_re []) =
+            native_re_allchar from rfl] at hRel1
+        rcases hTrans _ _ hEpsEval with ⟨rvU2, hRvU2, hRel2⟩
+        rw [show native_re_concat C (native_str_to_re []) = C from by
+          cases C <;> rfl] at hRel2
+        have hRvURel :
+            RuleProofs.smt_value_rel (SmtValue.RegLan rvU)
+              (SmtValue.RegLan
+                (native_re_concat rvU2 native_re_allchar)) :=
+          RuleProofs.smt_value_rel_trans _ _ _ hRel1
+            (smt_value_rel_re_concat_consume_local
+              (RuleProofs.smt_value_rel_symm _ _ hRel2)
+              (RuleProofs.smt_value_rel_refl _))
+        simp only [consume_unrev_str_local] at hSsU
+        rcases eval_list_rev_snoc_view_consume_local M _ s2 _ hSsU with
+          ⟨ssU2, s1V, hSsU2, hS1V, hUnp⟩
+        rcases eval_string_unpack_consume_local M [c] with
+          ⟨ss1', hss1', hUnp1⟩
+        injection hS1V.symm.trans hss1' with hEq1
+        have hS1W : native_unpack_string s1V = [c] := by
+          rw [hEq1]
+          exact hUnp1
+        have hS1Valid : native_string_valid [c] = true :=
+          native_string_valid_of_smtx_typeof_eo_string [c] hS1Ty
+        have hCValid : native_char_valid c = true := by
+          simpa [native_string_valid] using hS1Valid
+        have hLen1 :
+            ∀ x : native_String,
+              nativeListInRe x native_re_allchar = true ->
+                x.length = 1 :=
+          fun x hx => ((nativeListInRe_allchar_true_iff x).1 hx).1
+        have hCin :
+            native_str_in_re [c] native_re_allchar = true := by
+          have hL := (nativeListInRe_allchar_true_iff [c]).2
+            ⟨rfl, by simp [hCValid]⟩
+          simpa [native_str_in_re, native_string_valid, hCValid,
+            nativeListInRe] using hL
+        rcases hRest ssU2 ssR (by
+            simp only [consume_unrev_str_local]
+            exact hSsU2) hSsR with ⟨hChainR, _hChunkR⟩
+        rcases hChainR rvU2 (by
+            simp only [consume_unrev_re_local]
+            exact hRvU2) with ⟨⟨u, hUdec, hUmem⟩, hQ⟩
+        constructor
+        · refine ⟨u ++ [c], ?_, ?_⟩
+          · rw [hUnp, hS1W, hUdec, List.append_assoc]
+          · rw [native_str_in_re_congr_of_reglan_rel_consume_local
+              hRvURel]
+            exact native_str_in_re_re_concat_intro u [c] rvU2
+              native_re_allchar hUmem hCin
+        · intro q qv hQv
+          rw [hUnp, hS1W]
+          rw [native_str_in_re_congr_of_reglan_rel_consume_local
+            (smt_value_rel_re_concat_consume_local
+              (RuleProofs.smt_value_rel_refl _) hRvURel) _]
+          rw [← native_str_in_re_congr_of_reglan_rel_consume_local
+            (smt_value_rel_re_concat_assoc_consume_local qv rvU2
+              native_re_allchar) _]
+          rw [native_str_in_re_snoc_len_one_eq_consume_local
+            (native_unpack_string ssU2) [c] (native_re_concat qv rvU2)
+            native_re_allchar hLen1 rfl hCin]
+          exact hQ q qv hQv
+      · exfalso
+        have hSide2 : side =
+            Term.Apply
+              (Term.Apply (Term.UOp UserOp.str_in_re)
+                (Term.Apply
+                  (Term.Apply (Term.UOp UserOp.str_concat) s1) s2))
+              (Term.Apply
+                (Term.Apply (Term.UOp UserOp.re_concat)
+                  (Term.UOp UserOp.re_allchar))
+                r2) := by
+          rw [hSide, hCondF, eo_ite_false]
+        rw [hSide2] at hMemEps
+        simp [__str_membership_re] at hMemEps
   · -- re_mult head with concat fuel: S5 + residual ∀q composition;
     -- to fill.
     intro s1 s2 r3 r2 fc fr _v0 _v1 _v3 _v4 _v5
@@ -27153,14 +27549,6 @@ private theorem str_re_consume_rec_false_left_ne_stuck_consume_local
     intro hh
     cases hh)
 
-private theorem list_append_ne_nil_right_consume_local {α : Type}
-    (xs ys : List α) (h : ys ≠ []) : xs ++ ys ≠ [] := by
-  intro hBad
-  apply h
-  cases xs with
-  | nil => simpa using hBad
-  | cons a as => simp at hBad
-
 private theorem str_membership_str_ne_stuck_imp_ne_stuck_consume_local
     (t : Term)
     (h : __str_membership_str t ≠ Term.Stuck) :
@@ -27168,27 +27556,6 @@ private theorem str_membership_str_ne_stuck_imp_ne_stuck_consume_local
   intro hBad
   subst t
   simp [__str_membership_str] at h
-
-private theorem map_char_of_comp_char_consume_local :
-    ∀ w : native_String,
-      w.map (native_ssm_char_of_value ∘ SmtValue.Char) = w
-  | [] => rfl
-  | c :: cs => by
-      simp only [List.map_cons]
-      rw [map_char_of_comp_char_consume_local cs]
-      rfl
-
-private theorem eval_string_unpack_consume_local
-    (M : SmtModel) (w : native_String) :
-    ∃ ss,
-      __smtx_model_eval M (__eo_to_smt (Term.String w)) =
-        SmtValue.Seq ss ∧
-      native_unpack_string ss = w := by
-  refine ⟨native_pack_string w, ?_, ?_⟩
-  · change __smtx_model_eval M (SmtTerm.String w) = _
-    simp only [__smtx_model_eval]
-  · simp [native_unpack_string, consume_unpack_pack_string_map,
-      map_char_of_comp_char_consume_local]
 
 /--
 Word-level chain evaluation with end-term transport: the value of an
@@ -28104,16 +28471,6 @@ private theorem native_str_in_re_star_false_of_no_prefix_consume_local
         simpa [native_str_in_re, hPreValid] using hPreMem
       rw [hNoPrefix pre suf hAppend] at hPreStrMem
       cases hPreStrMem
-
-private theorem native_str_in_re_congr_of_reglan_rel_consume_local
-    {r1 r2 : native_RegLan}
-    (h : RuleProofs.smt_value_rel (SmtValue.RegLan r1)
-      (SmtValue.RegLan r2))
-    (str : native_String) :
-    native_str_in_re str r1 = native_str_in_re str r2 := by
-  cases hV : native_string_valid str with
-  | true => exact smt_value_rel_reglan_valid_eq h hV
-  | false => simp [native_str_in_re, hV]
 
 private theorem native_str_in_re_nil_str_to_re_nil_consume_local :
     native_str_in_re [] (native_str_to_re []) = true := by
