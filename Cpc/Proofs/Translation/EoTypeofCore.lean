@@ -4132,14 +4132,14 @@ theorem hasFreeTy_eq_false_of_valid (sub : native_String) :
                                     simpa [native_streq] using hs2
                                   subst hs2eq
                                   have hrawEq :
-                                      __eo_to_smt_type_tuple (__eo_to_smt_type y)
+                                        __eo_to_smt_type_tuple (__eo_to_smt_type y)
                                           (SmtType.Datatype (native_string_lit "@Tuple")
                                             (SmtDatatype.sum c2 SmtDatatype.null)) =
                                         SmtType.Datatype (native_string_lit "@Tuple")
                                           (SmtDatatype.sum
                                             (SmtDatatypeCons.cons (__eo_to_smt_type y) c2)
                                             SmtDatatype.null) := by
-                                    simp [__eo_to_smt_type_tuple, native_ite, native_and, hs2, hy2]
+                                    simp [__eo_to_smt_type_tuple, native_ite, native_and, hy2]
                                   rw [hrawEq]
                                   have hxWeak : eo_type_valid_rec (native_reflist_insert refs
                                       (native_string_lit "@Tuple")) x :=
@@ -4379,7 +4379,7 @@ private theorem eo_dtc_substitute_noop_of_no_free (s : native_String) :
             simp [native_reflist_contains, native_reflist_insert, hs, hsm]
           have hBody := eo_dt_substitute_noop_of_no_free s d2 (__eo_dt_lift s2 d2 X)
             (s2 :: refs) (native_reflist_insert refsS s2) hD2 hNot' hFreeD2
-          simp [__eo_dtc_substitute, native_ite, hstreq, hBody, hTailEq]
+          simp [__eo_dtc_substitute, native_ite, hBody, hTailEq]
       case DatatypeTypeRef s2 =>
         rcases hT with ⟨hRes2, _hMem⟩
         have hbitOr :
@@ -4654,7 +4654,7 @@ theorem hasFreeTy_reserved_of_translate (sub : native_String)
                                             (SmtDatatype.sum
                                               (SmtDatatypeCons.cons (__eo_to_smt_type y) c2)
                                               SmtDatatype.null) := by
-                                      simp [__eo_to_smt_type_tuple, native_ite, native_and, hs2, hy2]
+                                      simp [__eo_to_smt_type_tuple, native_ite, native_and, hy2]
                                     rw [hrawEq]
                                     have hxFree :
                                         hasFreeTy sub
@@ -4801,7 +4801,7 @@ theorem hasFreeDtc_reserved_of_translate (sub : native_String)
             exact absurd hRes (by decide)
           have hstreq : native_streq s sub = false := by simp [native_streq, hsne]
           simp [__eo_to_smt_type, native_ite, hsF, hasFreeDtc, native_or, native_and,
-            native_not, hstreq, hTail, hsne]
+            native_not, hTail, hsne]
       · have hA : ∀ s, __eo_to_smt_type T ≠ SmtType.TypeRef s := by
           intro s hEq
           apply hRef

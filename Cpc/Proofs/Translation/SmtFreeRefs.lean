@@ -429,19 +429,19 @@ end
 
 mutual
 theorem imgTy_refl (refs : RefList) : (T : SmtType) → imgTy refs T T
-  | SmtType.TypeRef x => Or.inl rfl
-  | SmtType.Datatype s d => ⟨d, rfl, imgDt_refl refs d⟩
+  | SmtType.TypeRef _ => Or.inl rfl
+  | SmtType.Datatype _ d => ⟨d, rfl, imgDt_refl refs d⟩
   | SmtType.Bool => rfl
   | SmtType.Int => rfl
   | SmtType.Real => rfl
-  | SmtType.BitVec n => rfl
+  | SmtType.BitVec _ => rfl
   | SmtType.Char => rfl
-  | SmtType.USort n => rfl
-  | SmtType.Seq x => rfl
-  | SmtType.Set x => rfl
-  | SmtType.Map x y => rfl
-  | SmtType.FunType x y => rfl
-  | SmtType.DtcAppType x y => rfl
+  | SmtType.USort _ => rfl
+  | SmtType.Seq _ => rfl
+  | SmtType.Set _ => rfl
+  | SmtType.Map _ _ => rfl
+  | SmtType.FunType _ _ => rfl
+  | SmtType.DtcAppType _ _ => rfl
   | SmtType.None => rfl
   | SmtType.RegLan => rfl
 theorem imgDt_refl (refs : RefList) : (d : SmtDatatype) → imgDt refs d d

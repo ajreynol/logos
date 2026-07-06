@@ -9721,7 +9721,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_tuple_of_tail_type
               false := by
         cases hHT : headTy with
         | TypeRef s => exact absurd hHT (hNotRef s)
-        | _ => simp [__smtx_dt_cons_wf_rec, hHT]
+        | _ => simp [__smtx_dt_cons_wf_rec]
       rw [hgen] at hConsWf
       cases hb :
           native_and (native_inhabited_type headTy) (__smtx_type_wf_rec headTy headTy) with

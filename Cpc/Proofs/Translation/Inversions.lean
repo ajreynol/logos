@@ -3024,7 +3024,7 @@ theorem eo_typeof_type_of_smt_type_wf_rec :
                   cases hRaw :
                       __smtx_type_wf
                         (__eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x)) <;>
-                    simp [hRaw, __smtx_type_wf_rec, __eo_to_smt_type] at hWF ⊢
+                    simp [hRaw, __smtx_type_wf_rec] at hWF ⊢
                 have hRawRec :
                     __smtx_type_wf_rec
                         (__eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x))

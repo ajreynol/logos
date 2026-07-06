@@ -633,10 +633,10 @@ theorem seq_nth_wrong_map_type_wf
       (SmtType.Map (SmtType.Seq T) (SmtType.Map SmtType.Int T)) = true := by
   have hIntInh : native_inhabited_type SmtType.Int = true := by
     simp [native_inhabited_type, __smtx_type_default, __smtx_type_default_rec, __smtx_typeof_value, native_not, native_Teq,
-      __smtx_value_canonical_bool, native_and]
+      native_and]
   have hSeqInh : native_inhabited_type (SmtType.Seq T) = true := by
     simp [native_inhabited_type, __smtx_type_default, __smtx_type_default_rec, __smtx_typeof_value, native_not, native_Teq,
-      __smtx_typeof_seq_value, __smtx_value_canonical_bool, __smtx_seq_canonical,
+      __smtx_typeof_seq_value,
       native_and]
   have hMapInh : native_inhabited_type (SmtType.Map SmtType.Int T) = true := by
     exact native_inhabited_type_map hTInh
@@ -669,51 +669,50 @@ theorem type_inhabited_set (A : SmtType) : type_inhabited (SmtType.Set A) :=
 @[simp] theorem native_inhabited_type_bool :
     native_inhabited_type SmtType.Bool = true := by
   simp [native_inhabited_type, __smtx_type_default, __smtx_type_default_rec, __smtx_typeof_value, native_not, native_Teq,
-    __smtx_value_canonical_bool, native_and]
+    native_and]
 
 /-- The generated Boolean inhabitation check accepts `int`. -/
 @[simp] theorem native_inhabited_type_int :
     native_inhabited_type SmtType.Int = true := by
   simp [native_inhabited_type, __smtx_type_default, __smtx_type_default_rec, __smtx_typeof_value, native_not, native_Teq,
-    __smtx_value_canonical_bool, native_and]
+    native_and]
 
 /-- The generated Boolean inhabitation check accepts `real`. -/
 @[simp] theorem native_inhabited_type_real :
     native_inhabited_type SmtType.Real = true := by
   simp [native_inhabited_type, __smtx_type_default, __smtx_type_default_rec, __smtx_typeof_value, native_not, native_Teq,
-    __smtx_value_canonical_bool, native_and]
+    native_and]
 
 /-- The generated Boolean inhabitation check accepts regular languages. -/
 @[simp] theorem native_inhabited_type_reglan :
     native_inhabited_type SmtType.RegLan = true := by
   simp [native_inhabited_type, __smtx_type_default, __smtx_type_default_rec, __smtx_typeof_value, native_not, native_Teq,
-    __smtx_value_canonical_bool, native_and]
+    native_and]
 
 /-- The generated Boolean inhabitation check accepts characters. -/
 @[simp] theorem native_inhabited_type_char :
     native_inhabited_type SmtType.Char = true := by
   simp [native_inhabited_type, __smtx_type_default, __smtx_type_default_rec, __smtx_typeof_value, native_not, native_Teq,
-    __smtx_value_canonical_bool, native_and, SmtEval.native_ite]
+    native_and, SmtEval.native_ite]
 
 /-- The generated Boolean inhabitation check accepts uninterpreted sorts. -/
 @[simp] theorem native_inhabited_type_usort (i : native_Nat) :
     native_inhabited_type (SmtType.USort i) = true := by
   simp [native_inhabited_type, __smtx_type_default, __smtx_type_default_rec, __smtx_typeof_value, native_not, native_Teq,
-    __smtx_value_canonical_bool, native_and]
+    native_and]
 
 /-- The generated Boolean inhabitation check accepts sequences. -/
 @[simp] theorem native_inhabited_type_seq (T : SmtType) :
     native_inhabited_type (SmtType.Seq T) = true := by
   simp [native_inhabited_type, __smtx_type_default, __smtx_type_default_rec, __smtx_typeof_value, native_not, native_Teq,
-    __smtx_typeof_seq_value, __smtx_value_canonical_bool, __smtx_seq_canonical,
+    __smtx_typeof_seq_value,
     native_and]
 
 /-- The generated Boolean inhabitation check accepts sets. -/
 @[simp] theorem native_inhabited_type_set (A : SmtType) :
     native_inhabited_type (SmtType.Set A) = true := by
   simp [native_inhabited_type, __smtx_type_default, __smtx_type_default_rec, __smtx_typeof_value, native_not, native_Teq,
-    __smtx_typeof_map_value, __smtx_map_to_set_type, __smtx_value_canonical_bool,
-    __smtx_map_canonical, __smtx_map_default_canonical, __smtx_msm_get_default,
+    __smtx_typeof_map_value, __smtx_map_to_set_type,
     native_and]
 
 /-- Function types have a generated default witness when their codomain does. -/
@@ -721,12 +720,12 @@ theorem native_inhabited_type_fun {A B : SmtType}
     (hB : native_inhabited_type B = true) :
     native_inhabited_type (SmtType.FunType A B) = true := by
   simp [native_inhabited_type, __smtx_type_default, __smtx_type_default_rec, __smtx_typeof_value, native_not, native_Teq,
-    __smtx_value_canonical_bool, native_and]
+    native_and]
 
 /-- Compatibility name for the former native-function inhabitation helper. -/
 @[simp] theorem native_inhabited_type_ifun (A B : SmtType) :
     native_inhabited_type (SmtType.FunType A B) = true := by
   simp [native_inhabited_type, __smtx_type_default, __smtx_type_default_rec, __smtx_typeof_value, native_not, native_Teq,
-    __smtx_value_canonical_bool, native_and]
+    native_and]
 
 end Smtm

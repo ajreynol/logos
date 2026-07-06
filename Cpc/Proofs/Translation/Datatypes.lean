@@ -128,15 +128,14 @@ theorem smtx_typeof_tuple_unit_translation :
     simp [tupleTy, native_inhabited_type, native_and, native_ite, native_not, native_veq,
       native_Teq, __smtx_type_default, __smtx_type_default_rec,
       __smtx_datatype_default, __smtx_datatype_cons_default, __smtx_typeof_value,
-      __smtx_typeof_dt_cons_value_rec, __smtx_dt_substitute, __smtx_dtc_substitute,
-      __smtx_value_canonical_bool]
+      __smtx_typeof_dt_cons_value_rec, __smtx_dt_substitute, __smtx_dtc_substitute]
   have hRec : __smtx_type_wf_rec tupleTy tupleTy = true := by
     simp [tupleTy, __smtx_type_wf_rec, __smtx_dt_wf_rec,
       __smtx_dt_cons_wf_rec, __smtx_dt_substitute, __smtx_dtc_substitute,
       native_ite]
   have hNA : __smtx_type_no_alias_rec native_reflist_nil tupleTy = true := by
     simp [tupleTy, __smtx_type_no_alias_rec, __smtx_dt_no_alias_rec,
-      __smtx_dt_cons_no_alias_rec, native_reflist_contains, native_reflist_insert,
+      __smtx_dt_cons_no_alias_rec, native_reflist_contains,
       native_reflist_nil, native_ite]
   have hWf : __smtx_type_wf tupleTy = true := by
     simp [__smtx_type_wf, __smtx_type_wf_component, native_and, hInh, hRec, hNA]
