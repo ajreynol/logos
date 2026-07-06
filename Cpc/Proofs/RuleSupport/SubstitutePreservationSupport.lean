@@ -60,6 +60,108 @@ private theorem eo_typeof_eq_bool_operands_not_stuck
     cases A <;> simp [__eo_typeof_eq] at h
   · exact ⟨hA, hB⟩
 
+private theorem false_of_exhausted_unary_uop_apply_has_smt_translation
+    {f a : Term} {op : UserOp}
+    (hEq : f = Term.UOp op)
+    (hTrans : RuleProofs.eo_has_smt_translation (Term.Apply f a))
+    (hHeadNot : f ≠ Term.UOp UserOp.not)
+    (hHeadDistinct : f ≠ Term.UOp UserOp.distinct)
+    (hHeadPurify : f ≠ Term.UOp UserOp._at_purify)
+    (hHeadToReal : f ≠ Term.UOp UserOp.to_real)
+    (hHeadToInt : f ≠ Term.UOp UserOp.to_int)
+    (hHeadIsInt : f ≠ Term.UOp UserOp.is_int)
+    (hHeadAbs : f ≠ Term.UOp UserOp.abs)
+    (hHeadUneg : f ≠ Term.UOp UserOp.__eoo_neg_2)
+    (hHeadPow2 : f ≠ Term.UOp UserOp.int_pow2)
+    (hHeadLog2 : f ≠ Term.UOp UserOp.int_log2)
+    (hHeadIntIspow2 : f ≠ Term.UOp UserOp.int_ispow2)
+    (hHeadIntDivByZero :
+      f ≠ Term.UOp UserOp._at_int_div_by_zero)
+    (hHeadModByZero : f ≠ Term.UOp UserOp._at_mod_by_zero)
+    (hHeadBvsize : f ≠ Term.UOp UserOp._at_bvsize)
+    (hHeadBvnot : f ≠ Term.UOp UserOp.bvnot)
+    (hHeadBvneg : f ≠ Term.UOp UserOp.bvneg)
+    (hHeadBvnego : f ≠ Term.UOp UserOp.bvnego)
+    (hHeadBvredand : f ≠ Term.UOp UserOp.bvredand)
+    (hHeadBvredor : f ≠ Term.UOp UserOp.bvredor)
+    (hHeadStrLen : f ≠ Term.UOp UserOp.str_len)
+    (hHeadStrRev : f ≠ Term.UOp UserOp.str_rev)
+    (hHeadStrToLower : f ≠ Term.UOp UserOp.str_to_lower)
+    (hHeadStrToUpper : f ≠ Term.UOp UserOp.str_to_upper)
+    (hHeadStrToCode : f ≠ Term.UOp UserOp.str_to_code)
+    (hHeadStrFromCode : f ≠ Term.UOp UserOp.str_from_code)
+    (hHeadStrIsDigit : f ≠ Term.UOp UserOp.str_is_digit)
+    (hHeadStrToInt : f ≠ Term.UOp UserOp.str_to_int)
+    (hHeadStrFromInt : f ≠ Term.UOp UserOp.str_from_int)
+    (hHeadStrToRe : f ≠ Term.UOp UserOp.str_to_re)
+    (hHeadStringsStoiNonDigit :
+      f ≠ Term.UOp UserOp._at_strings_stoi_non_digit)
+    (hHeadReMult : f ≠ Term.UOp UserOp.re_mult)
+    (hHeadRePlus : f ≠ Term.UOp UserOp.re_plus)
+    (hHeadReOpt : f ≠ Term.UOp UserOp.re_opt)
+    (hHeadReComp : f ≠ Term.UOp UserOp.re_comp)
+    (hHeadSeqUnit : f ≠ Term.UOp UserOp.seq_unit)
+    (hHeadSetSingleton : f ≠ Term.UOp UserOp.set_singleton)
+    (hHeadSetChoose : f ≠ Term.UOp UserOp.set_choose)
+    (hHeadSetIsEmpty : f ≠ Term.UOp UserOp.set_is_empty)
+    (hHeadSetIsSingleton : f ≠ Term.UOp UserOp.set_is_singleton)
+    (hHeadQDivByZero : f ≠ Term.UOp UserOp._at_div_by_zero)
+    (hHeadUbvToInt : f ≠ Term.UOp UserOp.ubv_to_int)
+    (hHeadSbvToInt : f ≠ Term.UOp UserOp.sbv_to_int) :
+    False := by
+  subst f
+  have hUnary :
+      SubstituteSupport.substitute_uopHasUnarySmtTranslation op = true :=
+    SubstituteSupport.substitute_uopHasUnarySmtTranslation_eq_true_of_apply_translation
+      hTrans
+  cases op <;>
+    simp [SubstituteSupport.substitute_uopHasUnarySmtTranslation] at hUnary
+  all_goals
+    first
+    | exact hHeadNot rfl
+    | exact hHeadDistinct rfl
+    | exact hHeadPurify rfl
+    | exact hHeadToReal rfl
+    | exact hHeadToInt rfl
+    | exact hHeadIsInt rfl
+    | exact hHeadAbs rfl
+    | exact hHeadUneg rfl
+    | exact hHeadPow2 rfl
+    | exact hHeadLog2 rfl
+    | exact hHeadIntIspow2 rfl
+    | exact hHeadIntDivByZero rfl
+    | exact hHeadModByZero rfl
+    | exact hHeadBvsize rfl
+    | exact hHeadBvnot rfl
+    | exact hHeadBvneg rfl
+    | exact hHeadBvnego rfl
+    | exact hHeadBvredand rfl
+    | exact hHeadBvredor rfl
+    | exact hHeadStrLen rfl
+    | exact hHeadStrRev rfl
+    | exact hHeadStrToLower rfl
+    | exact hHeadStrToUpper rfl
+    | exact hHeadStrToCode rfl
+    | exact hHeadStrFromCode rfl
+    | exact hHeadStrIsDigit rfl
+    | exact hHeadStrToInt rfl
+    | exact hHeadStrFromInt rfl
+    | exact hHeadStrToRe rfl
+    | exact hHeadStringsStoiNonDigit rfl
+    | exact hHeadReMult rfl
+    | exact hHeadRePlus rfl
+    | exact hHeadReOpt rfl
+    | exact hHeadReComp rfl
+    | exact hHeadSeqUnit rfl
+    | exact hHeadSetSingleton rfl
+    | exact hHeadSetChoose rfl
+    | exact hHeadSetIsEmpty rfl
+    | exact hHeadSetIsSingleton rfl
+    | exact hHeadQDivByZero rfl
+    | exact hHeadUbvToInt rfl
+    | exact hHeadSbvToInt rfl
+    | cases hUnary
+
 private theorem eo_and_boolean_true_split
     {a b : Term}
     (h : __eo_and a b = Term.Boolean true) :
@@ -15080,7 +15182,68 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                     (false_of_apply_stuck_has_smt_translation
                                                                                                                       a
                                                                                                                       hFTrans)
-                                                                                                              · sorry
+                                                                                                              · rcases hHeadSpecial with hUOp | hRest
+                                                                                                                · rcases hUOp with ⟨op, hOpEq⟩
+                                                                                                                  exact
+                                                                                                                    False.elim
+                                                                                                                      (false_of_exhausted_unary_uop_apply_has_smt_translation
+                                                                                                                        hOpEq
+                                                                                                                        hFTrans
+                                                                                                                        hHeadNot
+                                                                                                                        hHeadDistinct
+                                                                                                                        hHeadPurify
+                                                                                                                        hHeadToReal
+                                                                                                                        hHeadToInt
+                                                                                                                        hHeadIsInt
+                                                                                                                        hHeadAbs
+                                                                                                                        hHeadUneg
+                                                                                                                        hHeadPow2
+                                                                                                                        hHeadLog2
+                                                                                                                        hHeadIntIspow2
+                                                                                                                        hHeadIntDivByZero
+                                                                                                                        hHeadModByZero
+                                                                                                                        hHeadBvsize
+                                                                                                                        hHeadBvnot
+                                                                                                                        hHeadBvneg
+                                                                                                                        hHeadBvnego
+                                                                                                                        hHeadBvredand
+                                                                                                                        hHeadBvredor
+                                                                                                                        hHeadStrLen
+                                                                                                                        hHeadStrRev
+                                                                                                                        hHeadStrToLower
+                                                                                                                        hHeadStrToUpper
+                                                                                                                        hHeadStrToCode
+                                                                                                                        hHeadStrFromCode
+                                                                                                                        hHeadStrIsDigit
+                                                                                                                        hHeadStrToInt
+                                                                                                                        hHeadStrFromInt
+                                                                                                                        hHeadStrToRe
+                                                                                                                        hHeadStringsStoiNonDigit
+                                                                                                                        hHeadReMult
+                                                                                                                        hHeadRePlus
+                                                                                                                        hHeadReOpt
+                                                                                                                        hHeadReComp
+                                                                                                                        hHeadSeqUnit
+                                                                                                                        hHeadSetSingleton
+                                                                                                                        hHeadSetChoose
+                                                                                                                        hHeadSetIsEmpty
+                                                                                                                        hHeadSetIsSingleton
+                                                                                                                        hHeadQDivByZero
+                                                                                                                        hHeadUbvToInt
+                                                                                                                        hHeadSbvToInt)
+                                                                                                                · rcases hRest with hUOp1 | hRest
+                                                                                                                  · rcases hUOp1 with ⟨op, x, hOpEq⟩
+                                                                                                                    exact False.elim (hHeadUOp1 ⟨op, x, hOpEq⟩)
+                                                                                                                  · rcases hRest with hUOp2 | hRest
+                                                                                                                    · rcases hUOp2 with ⟨op, x, y, hOpEq⟩
+                                                                                                                      exact False.elim (hHeadUOp2 ⟨op, x, y, hOpEq⟩)
+                                                                                                                    · rcases hRest with hUOp3 | hRest
+                                                                                                                      · rcases hUOp3 with ⟨op, w, x, y, hOpEq⟩
+                                                                                                                        exact False.elim (hHeadUOp3 ⟨op, w, x, y, hOpEq⟩)
+                                                                                                                      · rcases hRest with hDtSel | hStuck
+                                                                                                                        · rcases hDtSel with ⟨s, d, i, j, hDtSelEq⟩
+                                                                                                                          exact False.elim (hHeadDtSel ⟨s, d, i, j, hDtSelEq⟩)
+                                                                                                                        · exact False.elim (hHeadStuck hStuck)
                   · have hHeadNotApply : ∀ g x, f ≠ Term.Apply g x := by
                       intro g x hEq
                       exact hHeadApply ⟨g, x, hEq⟩
