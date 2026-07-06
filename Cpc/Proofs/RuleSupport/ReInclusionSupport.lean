@@ -3286,6 +3286,182 @@ private theorem smt_typeof_re_inter_of_reglan_local
   rw [typeof_re_inter_eq]
   simp [hA, hB, native_ite, native_Teq]
 
+/--
+Evaluation, typing and value relation for `__eo_list_concat_rec` on
+`re_concat` lists: splicing two evaluating regex lists concatenates
+their values (up to extensional equivalence).
+-/
+private theorem eval_list_concat_rec_re_concat_rel_local
+    (M : SmtModel) (hM : model_total_typed M) :
+    ∀ (x z : Term),
+      __eo_is_list (Term.UOp UserOp.re_concat) x = Term.Boolean true ->
+      __smtx_typeof (__eo_to_smt x) = SmtType.RegLan ->
+      __smtx_typeof (__eo_to_smt z) = SmtType.RegLan ->
+      ∀ (xv zv : native_RegLan),
+        __smtx_model_eval M (__eo_to_smt x) = SmtValue.RegLan xv ->
+        __smtx_model_eval M (__eo_to_smt z) = SmtValue.RegLan zv ->
+        ∃ v,
+          __smtx_model_eval M
+              (__eo_to_smt (__eo_list_concat_rec x z)) =
+            SmtValue.RegLan v ∧
+          __smtx_typeof (__eo_to_smt (__eo_list_concat_rec x z)) =
+            SmtType.RegLan ∧
+          RuleProofs.smt_value_rel (SmtValue.RegLan v)
+            (SmtValue.RegLan (native_re_concat xv zv)) := by
+  intro x z
+  induction x, z using __eo_list_concat_rec.induct with
+  | case1 z =>
+      intro hList _hXTy _hZTy
+      simp [__eo_is_list] at hList
+  | case2 t ht =>
+      intro _hList _hXTy hZTy
+      exfalso
+      rw [show __eo_to_smt Term.Stuck = SmtTerm.None from rfl] at hZTy
+      rw [TranslationProofs.smtx_typeof_none] at hZTy
+      cases hZTy
+  | case3 f x y z hz ih =>
+      intro hList hXTy hZTy xv zv hXEval hZEval
+      have hf := eo_is_list_cons_head_eq_of_true
+        (Term.UOp UserOp.re_concat) f x y hList
+      subst hf
+      have hTailList := eo_is_list_tail_true_of_cons_self
+        (Term.UOp UserOp.re_concat) x y hList
+      have hArgs := re_concat_arg_types_of_reglan x y hXTy
+      rcases smt_model_eval_reglan_of_type M hM x hArgs.1 with
+        ⟨hv, hHEval⟩
+      rcases smt_model_eval_reglan_of_type M hM y hArgs.2 with
+        ⟨tv, hTEval⟩
+      have hRecomp := eval_re_concat_reglan M x y hv tv hHEval hTEval
+      have hXvEq : xv = native_re_concat hv tv := by
+        injection hXEval.symm.trans hRecomp
+      subst hXvEq
+      rcases ih hTailList hArgs.2 hZTy tv zv hTEval hZEval with
+        ⟨v', hV'Eval, hV'Ty, hV'Rel⟩
+      have hRecNe : __eo_list_concat_rec y z ≠ Term.Stuck := by
+        intro hBad
+        rw [hBad] at hV'Eval
+        rw [show __eo_to_smt Term.Stuck = SmtTerm.None from rfl]
+          at hV'Eval
+        simp [__smtx_model_eval] at hV'Eval
+      have hStep :
+          __eo_list_concat_rec
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) x) y)
+              z =
+            __eo_mk_apply
+              (Term.Apply (Term.UOp UserOp.re_concat) x)
+              (__eo_list_concat_rec y z) := by
+        cases z
+        case Stuck => exact absurd rfl hz
+        all_goals rfl
+      have hMkEq :
+          __eo_mk_apply (Term.Apply (Term.UOp UserOp.re_concat) x)
+              (__eo_list_concat_rec y z) =
+            Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) x)
+              (__eo_list_concat_rec y z) := by
+        cases hR : __eo_list_concat_rec y z
+        case Stuck => exact absurd hR hRecNe
+        all_goals rfl
+      rw [hStep, hMkEq]
+      refine ⟨native_re_concat hv v',
+        eval_re_concat_reglan M x _ hv v' hHEval hV'Eval,
+        RuleProofs.ReUnfoldNegSupport.smtx_typeof_re_concat_of_reglan
+          x _ hArgs.1 hV'Ty, ?_⟩
+      exact RuleProofs.smt_value_rel_trans _ _ _
+        (smt_value_rel_re_concat_local
+          (RuleProofs.smt_value_rel_refl _) hV'Rel)
+        (RuleProofs.smt_value_rel_symm _ _
+          (smt_value_rel_re_concat_assoc_local hv tv zv))
+  | case4 nil z hns hzs hncons =>
+      intro hList _hXTy hZTy xv zv hXEval hZEval
+      have hEq : __eo_list_concat_rec nil z = z := by
+        unfold __eo_list_concat_rec
+        split <;> simp_all
+      have hIsListEq :
+          __eo_is_list (Term.UOp UserOp.re_concat) nil =
+            __eo_is_ok
+              (__eo_get_nil_rec (Term.UOp UserOp.re_concat) nil) := by
+        cases nil <;> first | exact absurd rfl hns | rfl
+      rw [hIsListEq] at hList
+      have hGnrNe :
+          __eo_get_nil_rec (Term.UOp UserOp.re_concat) nil ≠
+            Term.Stuck := by
+        intro hBad
+        rw [hBad] at hList
+        simp [__eo_is_ok, native_teq, SmtEval.native_not] at hList
+      have hAtomEq :
+          __eo_get_nil_rec (Term.UOp UserOp.re_concat) nil =
+            __eo_requires
+              (__eo_is_list_nil (Term.UOp UserOp.re_concat) nil)
+              (Term.Boolean true) nil := by
+        cases nil
+        case Stuck => exact absurd rfl hns
+        case Apply a b =>
+          cases a
+          case Apply g x => exact ((hncons _ _ _ rfl).elim)
+          all_goals rfl
+        all_goals rfl
+      rw [hAtomEq] at hGnrNe
+      have hNilTrue := eo_requires_eq_of_ne_stuck _ _ _ hGnrNe
+      have hNilEval :=
+        RuleProofs.ReUnfoldNegSupport.reConcat_nil_eval_empty_of_is_list_nil_true
+          M nil hNilTrue
+      have hXvEq : xv = native_str_to_re [] := by
+        injection hXEval.symm.trans hNilEval
+      subst hXvEq
+      rw [hEq]
+      refine ⟨zv, hZEval, hZTy, ?_⟩
+      exact RuleProofs.smt_value_rel_symm _ _
+        (smt_value_rel_reglan_of_eq (native_re_concat_left_empty zv))
+
+/--
+Evaluation, typing and value relation for `__eo_list_concat` on
+`re_concat` lists (unwraps the two `requires` guards).
+-/
+private theorem eval_list_concat_re_concat_rel_local
+    (M : SmtModel) (hM : model_total_typed M)
+    (x z : Term) (xv zv : native_RegLan)
+    (hXTy : __smtx_typeof (__eo_to_smt x) = SmtType.RegLan)
+    (hZTy : __smtx_typeof (__eo_to_smt z) = SmtType.RegLan)
+    (hXEval : __smtx_model_eval M (__eo_to_smt x) = SmtValue.RegLan xv)
+    (hZEval : __smtx_model_eval M (__eo_to_smt z) = SmtValue.RegLan zv)
+    (hNe :
+      __eo_list_concat (Term.UOp UserOp.re_concat) x z ≠ Term.Stuck) :
+    ∃ v,
+      __smtx_model_eval M
+          (__eo_to_smt
+            (__eo_list_concat (Term.UOp UserOp.re_concat) x z)) =
+        SmtValue.RegLan v ∧
+      __smtx_typeof
+          (__eo_to_smt
+            (__eo_list_concat (Term.UOp UserOp.re_concat) x z)) =
+        SmtType.RegLan ∧
+      RuleProofs.smt_value_rel (SmtValue.RegLan v)
+        (SmtValue.RegLan (native_re_concat xv zv)) := by
+  have hDef : __eo_list_concat (Term.UOp UserOp.re_concat) x z =
+      __eo_requires (__eo_is_list (Term.UOp UserOp.re_concat) x)
+        (Term.Boolean true)
+        (__eo_requires (__eo_is_list (Term.UOp UserOp.re_concat) z)
+          (Term.Boolean true) (__eo_list_concat_rec x z)) := rfl
+  have hNe0 : __eo_requires (__eo_is_list (Term.UOp UserOp.re_concat) x)
+      (Term.Boolean true)
+      (__eo_requires (__eo_is_list (Term.UOp UserOp.re_concat) z)
+        (Term.Boolean true) (__eo_list_concat_rec x z)) ≠ Term.Stuck := by
+    rw [← hDef]
+    exact hNe
+  have hXList := eo_requires_eq_of_ne_stuck _ _ _ hNe0
+  have hOuterEq := eo_requires_eq_result_of_ne_stuck _ _ _ hNe0
+  have hNe1 : __eo_requires (__eo_is_list (Term.UOp UserOp.re_concat) z)
+      (Term.Boolean true) (__eo_list_concat_rec x z) ≠ Term.Stuck := by
+    rw [← hOuterEq]
+    exact hNe0
+  have hInnerEq := eo_requires_eq_result_of_ne_stuck _ _ _ hNe1
+  have hWhole : __eo_list_concat (Term.UOp UserOp.re_concat) x z =
+      __eo_list_concat_rec x z := by
+    rw [hDef, hOuterEq, hInnerEq]
+  rw [hWhole]
+  exact eval_list_concat_rec_re_concat_rel_local M hM x z hXList
+    hXTy hZTy xv zv hXEval hZEval
+
 theorem re_flatten_false_eval_rel
     (M : SmtModel) (hM : model_total_typed M) :
     ∀ (mode r : Term) (rv : native_RegLan),
@@ -3397,7 +3573,77 @@ theorem re_flatten_false_eval_rel
       · simpa [__re_flatten, parts, flatB] using hSplitTy
       · exact RuleProofs.smt_value_rel_trans _ _ _
           hSplitRel hConcatRel
-  | case4 a b hNotStr ihA ihB =>
+  | case4 a1 a2 b ih1 ih2 =>
+      intro rv hTy hEval hFlatNe
+      have hArgs := re_concat_arg_types_of_reglan
+        (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a1) a2) b hTy
+      rcases smt_model_eval_reglan_of_type M hM
+          (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a1) a2)
+          hArgs.1 with ⟨xv, hXEval⟩
+      rcases smt_model_eval_reglan_of_type M hM b hArgs.2 with
+        ⟨bv, hBEval⟩
+      have hOrigEval := eval_re_concat_reglan M
+        (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a1) a2) b
+        xv bv hXEval hBEval
+      rw [hOrigEval] at hEval
+      cases hEval
+      have hNe0 : __eo_list_concat (Term.UOp UserOp.re_concat)
+          (__re_flatten (Term.Boolean true)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a1) a2))
+          (__re_flatten (Term.Boolean true) b) ≠ Term.Stuck := by
+        simpa [__re_flatten] using hFlatNe
+      have hNe0' : __eo_requires
+          (__eo_is_list (Term.UOp UserOp.re_concat)
+            (__re_flatten (Term.Boolean true)
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a1)
+                a2)))
+          (Term.Boolean true)
+          (__eo_requires
+            (__eo_is_list (Term.UOp UserOp.re_concat)
+              (__re_flatten (Term.Boolean true) b))
+            (Term.Boolean true)
+            (__eo_list_concat_rec
+              (__re_flatten (Term.Boolean true)
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a1)
+                  a2))
+              (__re_flatten (Term.Boolean true) b))) ≠ Term.Stuck :=
+        hNe0
+      have hXList := eo_requires_eq_of_ne_stuck _ _ _ hNe0'
+      have hNe1 : __eo_requires
+          (__eo_is_list (Term.UOp UserOp.re_concat)
+            (__re_flatten (Term.Boolean true) b))
+          (Term.Boolean true)
+          (__eo_list_concat_rec
+            (__re_flatten (Term.Boolean true)
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a1)
+                a2))
+            (__re_flatten (Term.Boolean true) b)) ≠ Term.Stuck := by
+        rw [← eo_requires_eq_result_of_ne_stuck _ _ _ hNe0']
+        exact hNe0'
+      have hBList := eo_requires_eq_of_ne_stuck _ _ _ hNe1
+      have hFlatXNe : __re_flatten (Term.Boolean true)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a1) a2) ≠
+            Term.Stuck := by
+        intro hBad
+        rw [hBad] at hXList
+        simp [__eo_is_list] at hXList
+      have hFlatBNe : __re_flatten (Term.Boolean true) b ≠
+          Term.Stuck := by
+        intro hBad
+        rw [hBad] at hBList
+        simp [__eo_is_list] at hBList
+      rcases ih1 xv hArgs.1 hXEval hFlatXNe with
+        ⟨fxv, hFxEval, hFxTy, hFxRel⟩
+      rcases ih2 bv hArgs.2 hBEval hFlatBNe with
+        ⟨fbv, hFbEval, hFbTy, hFbRel⟩
+      rcases eval_list_concat_re_concat_rel_local M hM _ _ fxv fbv
+          hFxTy hFbTy hFxEval hFbEval hNe0 with ⟨v, hVEval, hVTy, hVRel⟩
+      refine ⟨v, ?_, ?_, ?_⟩
+      · simpa [__re_flatten] using hVEval
+      · simpa [__re_flatten] using hVTy
+      · exact RuleProofs.smt_value_rel_trans _ _ _ hVRel
+          (smt_value_rel_re_concat_local hFxRel hFbRel)
+  | case5 a b hNotStr _hNotNested ihA ihB =>
       intro rv hTy hEval hFlatNe
       let flatA := __re_flatten (Term.Boolean false) a
       let flatB := __re_flatten (Term.Boolean true) b
@@ -3472,7 +3718,7 @@ theorem re_flatten_false_eval_rel
       · simpa [__re_flatten, flatA, flatB, hOutEq, hInnerEq] using
           hFullTy
       · exact smt_value_rel_re_concat_local hFlatARel hFlatBRel
-  | case5 s hNotEmpty =>
+  | case6 s hNotEmpty =>
       intro rv hTy hEval hFlatNe
       let parts := __str_flatten (__str_nary_intro s)
       let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
@@ -3534,7 +3780,7 @@ theorem re_flatten_false_eval_rel
       · exact RuleProofs.smt_value_rel_trans _ _ _
           hSplitRel
           (RuleProofs.smt_value_rel_trans _ _ _ hEmptyRight hHeadRel)
-  | case6 c hCNe hEmpty hConcatStr hConcat hStr ih =>
+  | case7 c hCNe hEmpty hConcatStr _hNested hConcat hStr ih =>
       intro rv hTy hEval hFlatNe
       let flatC := __re_flatten (Term.Boolean false) c
       let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
@@ -3601,19 +3847,19 @@ theorem re_flatten_false_eval_rel
           hFullTy
       · exact RuleProofs.smt_value_rel_trans _ _ _
           hConcatRel hRightEmpty
-  | case7 =>
-      intro rv hTy hEval _hFlatNe
-      refine ⟨rv, ?_, ?_, ?_⟩
-      · simpa [__re_flatten] using hEval
-      · simpa [__re_flatten] using hTy
-      · exact RuleProofs.smt_value_rel_refl _
   | case8 =>
       intro rv hTy hEval _hFlatNe
       refine ⟨rv, ?_, ?_, ?_⟩
       · simpa [__re_flatten] using hEval
       · simpa [__re_flatten] using hTy
       · exact RuleProofs.smt_value_rel_refl _
-  | case9 body ih =>
+  | case9 =>
+      intro rv hTy hEval _hFlatNe
+      refine ⟨rv, ?_, ?_, ?_⟩
+      · simpa [__re_flatten] using hEval
+      · simpa [__re_flatten] using hTy
+      · exact RuleProofs.smt_value_rel_refl _
+  | case10 body ih =>
       intro rv hTy hEval hFlatNe
       let flatBody := __re_flatten (Term.Boolean true) body
       have hBodyTy := re_mult_arg_type_of_reglan body hTy
@@ -3655,7 +3901,7 @@ theorem re_flatten_false_eval_rel
       · simpa [__re_flatten, flatBody, hOutEq] using hFullEval
       · simpa [__re_flatten, flatBody, hOutEq] using hFullTy
       · exact smt_value_rel_re_mult_local hFlatBodyRel
-  | case10 c1 c2 ih1 ih2 =>
+  | case11 c1 c2 ih1 ih2 =>
       intro rv hTy hEval hFlatNe
       let flatC1 := __re_flatten (Term.Boolean true) c1
       let flatC2 := __re_flatten (Term.Boolean false) c2
@@ -3732,7 +3978,7 @@ theorem re_flatten_false_eval_rel
       · simpa [__re_flatten, flatC1, flatC2, hOutEq, hInnerEq] using
           hFullTy
       · exact smt_value_rel_re_inter_local hFlatC1Rel hFlatC2Rel
-  | case11 c1 c2 ih1 ih2 =>
+  | case12 c1 c2 ih1 ih2 =>
       intro rv hTy hEval hFlatNe
       let flatC1 := __re_flatten (Term.Boolean true) c1
       let flatC2 := __re_flatten (Term.Boolean false) c2
@@ -3809,13 +4055,13 @@ theorem re_flatten_false_eval_rel
       · simpa [__re_flatten, flatC1, flatC2, hOutEq, hInnerEq] using
           hFullTy
       · exact smt_value_rel_re_union_local hFlatC1Rel hFlatC2Rel
-  | case12 c hCNe hAll hNone hMult hInter hUnion =>
+  | case13 c hCNe hAll hNone hMult hInter hUnion =>
       intro rv hTy hEval _hFlatNe
       refine ⟨rv, ?_, ?_, ?_⟩
       · simpa [__re_flatten] using hEval
       · simpa [__re_flatten] using hTy
       · exact RuleProofs.smt_value_rel_refl _
-  | case13 x x_1 hTreeNe hEmpty hConcatStr hConcat
+  | case14 x x_1 hTreeNe hEmpty hConcatStr _hNested hConcat
       hStr hTrue hAll hNone hMult hInter hUnion hFalse =>
       intro rv _hTy _hEval hFlatNe
       simp [__re_flatten] at hFlatNe

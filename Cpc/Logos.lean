@@ -2830,6 +2830,7 @@ def __re_flatten : Term -> Term -> Term
   | _ , Term.Stuck  => Term.Stuck
   | (Term.Boolean true), (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) => (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))
   | (Term.Boolean true), (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) (Term.Apply (Term.UOp UserOp.str_to_re) s)) b) => (__re_split_str_to_re (__str_flatten (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) s)) (__re_flatten (Term.Boolean true) b))
+  | (Term.Boolean true), (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a) a2)) b) => (__eo_list_concat (Term.UOp UserOp.re_concat) (__re_flatten (Term.Boolean true) (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a) a2)) (__re_flatten (Term.Boolean true) b))
   | (Term.Boolean true), (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a) b) => (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.re_concat) (__re_flatten (Term.Boolean false) a)) (__re_flatten (Term.Boolean true) b))
   | (Term.Boolean true), (Term.Apply (Term.UOp UserOp.str_to_re) s) => (__re_split_str_to_re (__str_flatten (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) s)) (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])))
   | (Term.Boolean true), c => (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.re_concat) (__re_flatten (Term.Boolean false) c)) (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])))
