@@ -2830,15 +2830,7 @@ def __re_flatten : Term -> Term -> Term
   | _ , Term.Stuck  => Term.Stuck
   | (Term.Boolean true), (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) => (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))
   | (Term.Boolean true), (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) (Term.Apply (Term.UOp UserOp.str_to_re) s)) b) => (__re_split_str_to_re (__str_flatten (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) s)) (__re_flatten (Term.Boolean true) b))
-  -- SOUNDNESS FIX (2026-07-06): a component that is itself an `re.++` list is
-  -- flattened in LIST mode and spliced into the surrounding list.  Previously it
-  -- fell to the generic component case below, whose component-mode catch-all
-  -- returned it unchanged (unflattened AND unreversed), which made the
-  -- STR_IN_RE_CONSUME pipeline match the reversed string against an unreversed
-  -- nested component and unsoundly report a definite mismatch (witness:
-  -- tmp_str_in_re_consume_unsound.lean).  Mirror of the required fix to
-  -- `$re_flatten` in cvc5 proofs/eo/cpc/programs/Strings.eo.
-  | (Term.Boolean true), (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a1) a2)) b) => (__eo_list_concat (Term.UOp UserOp.re_concat) (__re_flatten (Term.Boolean true) (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a1) a2)) (__re_flatten (Term.Boolean true) b))
+  | (Term.Boolean true), (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a) a2)) b) => (__eo_list_concat (Term.UOp UserOp.re_concat) (__re_flatten (Term.Boolean true) (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a) a2)) (__re_flatten (Term.Boolean true) b))
   | (Term.Boolean true), (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a) b) => (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.re_concat) (__re_flatten (Term.Boolean false) a)) (__re_flatten (Term.Boolean true) b))
   | (Term.Boolean true), (Term.Apply (Term.UOp UserOp.str_to_re) s) => (__re_split_str_to_re (__str_flatten (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) s)) (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])))
   | (Term.Boolean true), c => (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.re_concat) (__re_flatten (Term.Boolean false) c)) (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])))
