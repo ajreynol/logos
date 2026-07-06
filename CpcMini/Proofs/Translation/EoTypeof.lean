@@ -2573,10 +2573,14 @@ private theorem eo_to_smt_type_lift_of_valid (s : native_String) (dRef : Datatyp
           have hsEq : s = s2 := by simpa [native_streq] using hs
           subst hsEq
           have hss : native_streq s s = true := by simp [native_streq]
-          simp [__eo_to_smt_type, __smtx_type_lift, native_ite, hReservedFalse, hss]
+          have hPrefix : native_string_prefix_eq (native_string_lit "@") s = false := by
+            simpa [native_reserved_datatype_name] using hReservedFalse
+          simp [__eo_to_smt_type, __smtx_type_lift, native_ite, hReservedFalse, hPrefix, hss]
         · rw [native_ite, if_neg hs]
+          have hPrefix : native_string_prefix_eq (native_string_lit "@") s2 = false := by
+            simpa [native_reserved_datatype_name] using hReservedFalse
           simp [__eo_to_smt_type, __smtx_type_lift, native_ite, hReservedFalse, hs,
-            eo_to_smt_datatype_lift_of_valid s dRef hRef d2]
+            hPrefix, eo_to_smt_datatype_lift_of_valid s dRef hRef d2]
   | Term.Stuck => by
       simp [__eo_type_lift, __eo_to_smt_type, __smtx_type_lift]
   | Term.UOp op => by
