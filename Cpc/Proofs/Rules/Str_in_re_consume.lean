@@ -20834,6 +20834,77 @@ private theorem re_split_str_to_re_rev_map_ne_stuck_local
       intro acc hAcc
       simpa [__re_split_str_to_re] using hTail acc hAcc
 
+private theorem re_rev_map_rev_list_concat_rec_ne_stuck_local
+    (x z acc : Term)
+    (hXList :
+      __eo_is_list (Term.UOp UserOp.re_concat) x = Term.Boolean true)
+    (hXRev : __re_rev_map_rev x acc ≠ Term.Stuck)
+    (hZRev :
+      ∀ acc, acc ≠ Term.Stuck ->
+        __re_rev_map_rev z acc ≠ Term.Stuck)
+    (hConcat : __eo_list_concat_rec x z ≠ Term.Stuck)
+    (hAcc : acc ≠ Term.Stuck) :
+    __re_rev_map_rev (__eo_list_concat_rec x z) acc ≠ Term.Stuck := by
+  induction x, z using __eo_list_concat_rec.induct generalizing acc with
+  | case1 z =>
+      cases (Term.UOp UserOp.re_concat) <;>
+        simp [__eo_is_list] at hXList
+  | case2 x hXNe =>
+      simp [__eo_list_concat_rec] at hConcat
+  | case3 f head tail z hZNe ih =>
+      have hf : f = Term.UOp UserOp.re_concat :=
+        eo_is_list_cons_head_eq_of_true
+          (Term.UOp UserOp.re_concat) f head tail hXList
+      subst f
+      have hTailList :
+          __eo_is_list (Term.UOp UserOp.re_concat) tail =
+            Term.Boolean true :=
+        eo_is_list_tail_true_of_cons_self
+          (Term.UOp UserOp.re_concat) head tail hXList
+      have hTailConcatNe :
+          __eo_list_concat_rec tail z ≠ Term.Stuck :=
+        eo_list_concat_rec_ne_stuck_of_list
+          (Term.UOp UserOp.re_concat) tail z hTailList hZNe
+      let newAcc :=
+        __eo_mk_apply
+          (__eo_mk_apply (Term.UOp UserOp.re_concat)
+            (__re_rev_comp head)) acc
+      have hOrigEq :
+          __re_rev_map_rev
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) head)
+                tail) acc =
+            __re_rev_map_rev tail newAcc := by
+        simpa [newAcc] using __re_rev_map_rev.eq_3 acc head tail hAcc
+      have hTailRev :
+          __re_rev_map_rev tail newAcc ≠ Term.Stuck := by
+        simpa [hOrigEq] using hXRev
+      have hNewAccNe : newAcc ≠ Term.Stuck :=
+        re_rev_map_rev_acc_ne_stuck_of_ne_stuck_local tail newAcc
+          hTailRev
+      have hTailConcatRev :
+          __re_rev_map_rev (__eo_list_concat_rec tail z) newAcc ≠
+            Term.Stuck :=
+        ih newAcc hTailList hTailRev hZRev hTailConcatNe hNewAccNe
+      have hConcatEq :
+          __eo_list_concat_rec
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) head)
+                tail) z =
+            Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) head)
+              (__eo_list_concat_rec tail z) :=
+        eo_list_concat_rec_cons_eq_of_tail_ne_stuck
+          (Term.UOp UserOp.re_concat) head tail z hTailConcatNe
+      have hRevEq :
+          __re_rev_map_rev
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) head)
+                (__eo_list_concat_rec tail z)) acc =
+            __re_rev_map_rev (__eo_list_concat_rec tail z) newAcc := by
+        simpa [newAcc] using
+          __re_rev_map_rev.eq_3 acc head (__eo_list_concat_rec tail z)
+            hAcc
+      simpa [hConcatEq, hRevEq] using hTailConcatRev
+  | case4 nil z hNilNe hZNe hNotCons =>
+      simpa [__eo_list_concat_rec] using hZRev acc hAcc
+
 private def re_flatten_action_reverse_ne_stuck_motive_local
     (mode r : Term) : Prop :=
   __re_flatten mode r ≠ Term.Stuck ->
@@ -20875,7 +20946,90 @@ private theorem re_flatten_action_reverse_ne_stuck_local :
       simpa [__re_flatten, parts, flatB] using
         re_split_str_to_re_rev_map_ne_stuck_local parts flatB
           hTail hSplitNe acc hAcc
-  | case4 a b hNotStr ihA ihB =>
+  | case4 a a2 b ihX ihB =>
+      intro hFlatNe acc hAcc
+      let flatX :=
+        __re_flatten (Term.Boolean true)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a) a2)
+      let flatB := __re_flatten (Term.Boolean true) b
+      have hConcatNe :
+          __eo_list_concat (Term.UOp UserOp.re_concat) flatX flatB ≠
+            Term.Stuck := by
+        simpa [__re_flatten, flatX, flatB] using hFlatNe
+      have hDef :
+          __eo_list_concat (Term.UOp UserOp.re_concat) flatX flatB =
+            __eo_requires
+              (__eo_is_list (Term.UOp UserOp.re_concat) flatX)
+              (Term.Boolean true)
+              (__eo_requires
+                (__eo_is_list (Term.UOp UserOp.re_concat) flatB)
+                (Term.Boolean true)
+                (__eo_list_concat_rec flatX flatB)) := rfl
+      have hReq0 :
+          __eo_requires
+              (__eo_is_list (Term.UOp UserOp.re_concat) flatX)
+              (Term.Boolean true)
+              (__eo_requires
+                (__eo_is_list (Term.UOp UserOp.re_concat) flatB)
+                (Term.Boolean true)
+                (__eo_list_concat_rec flatX flatB)) ≠
+            Term.Stuck := by
+        rw [← hDef]
+        exact hConcatNe
+      have hXList :
+          __eo_is_list (Term.UOp UserOp.re_concat) flatX =
+            Term.Boolean true :=
+        eo_requires_eq_of_ne_stuck _ _ _ hReq0
+      have hOuterEq :=
+        eo_requires_eq_result_of_ne_stuck _ _ _ hReq0
+      have hReq1 :
+          __eo_requires
+              (__eo_is_list (Term.UOp UserOp.re_concat) flatB)
+              (Term.Boolean true)
+              (__eo_list_concat_rec flatX flatB) ≠ Term.Stuck := by
+        rw [← hOuterEq]
+        exact hReq0
+      have hBList :
+          __eo_is_list (Term.UOp UserOp.re_concat) flatB =
+            Term.Boolean true :=
+        eo_requires_eq_of_ne_stuck _ _ _ hReq1
+      have hInnerEq :=
+        eo_requires_eq_result_of_ne_stuck _ _ _ hReq1
+      have hRecNe : __eo_list_concat_rec flatX flatB ≠ Term.Stuck := by
+        rw [← hInnerEq]
+        exact hReq1
+      have hWhole :
+          __eo_list_concat (Term.UOp UserOp.re_concat) flatX flatB =
+            __eo_list_concat_rec flatX flatB := by
+        rw [hDef, hOuterEq, hInnerEq]
+      have hFlatXNe : flatX ≠ Term.Stuck := by
+        intro hBad
+        rw [hBad] at hXList
+        simp [__eo_is_list] at hXList
+      have hFlatBNe : flatB ≠ Term.Stuck := by
+        intro hBad
+        rw [hBad] at hBList
+        simp [__eo_is_list] at hBList
+      have hXRev :
+          __re_rev_map_rev flatX acc ≠ Term.Stuck := by
+        simpa [re_flatten_action_reverse_ne_stuck_motive_local, flatX]
+          using ihX hFlatXNe acc hAcc
+      have hBRev :
+          ∀ acc, acc ≠ Term.Stuck ->
+            __re_rev_map_rev flatB acc ≠ Term.Stuck := by
+        simpa [re_flatten_action_reverse_ne_stuck_motive_local, flatB]
+          using ihB hFlatBNe
+      rw [show __re_flatten (Term.Boolean true)
+            (Term.Apply
+              (Term.Apply (Term.UOp UserOp.re_concat)
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a)
+                  a2)) b) =
+          __eo_list_concat (Term.UOp UserOp.re_concat) flatX flatB by
+        simp [__re_flatten, flatX, flatB]]
+      rw [hWhole]
+      exact re_rev_map_rev_list_concat_rec_ne_stuck_local flatX flatB
+        acc hXList hXRev hBRev hRecNe hAcc
+  | case5 a b hNotStr hNotNested ihA ihB =>
       intro hFlatNe acc hAcc
       let flatA := __re_flatten (Term.Boolean false) a
       let flatB := __re_flatten (Term.Boolean true) b
@@ -20922,7 +21076,7 @@ private theorem re_flatten_action_reverse_ne_stuck_local :
         simp [__re_flatten, flatA, flatB]]
       rw [re_rev_map_rev_mk_concat_eq_local flatA flatB acc hOutNe hAcc]
       exact hTail newAcc hNewAccNe
-  | case5 s hNotEmpty =>
+  | case6 s hNotEmpty =>
       intro hFlatNe acc hAcc
       let parts :=
         __str_flatten
@@ -20938,7 +21092,7 @@ private theorem re_flatten_action_reverse_ne_stuck_local :
       simpa [__re_flatten, parts, eps] using
         re_split_str_to_re_rev_map_ne_stuck_local parts eps hTail
           hSplitNe acc hAcc
-  | case6 c hCNe hEmpty hConcatStr hConcat hStr ih =>
+  | case7 c hCNe hEmpty hConcatStr hNested hConcat hStr ih =>
       intro hFlatNe acc hAcc
       let flatC := __re_flatten (Term.Boolean false) c
       let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
@@ -20980,21 +21134,21 @@ private theorem re_flatten_action_reverse_ne_stuck_local :
         simp [__re_flatten, flatC, eps]]
       rw [re_rev_map_rev_mk_concat_eq_local flatC eps acc hOutNe hAcc]
       exact hTail
-  | case7 =>
+  | case8 =>
       intro _hFlatNe
       change
         __re_rev_comp
             (__re_flatten (Term.Boolean false) (Term.UOp UserOp.re_all)) ≠
           Term.Stuck
       simp [__re_flatten, __re_rev_comp]
-  | case8 =>
+  | case9 =>
       intro _hFlatNe
       change
         __re_rev_comp
             (__re_flatten (Term.Boolean false) (Term.UOp UserOp.re_none)) ≠
           Term.Stuck
       simp [__re_flatten, __re_rev_comp]
-  | case9 body ih =>
+  | case10 body ih =>
       intro hFlatNe
       let flatBody := __re_flatten (Term.Boolean true) body
       let eps := Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
@@ -21029,7 +21183,7 @@ private theorem re_flatten_action_reverse_ne_stuck_local :
         simp [__re_flatten, flatBody]]
       rw [hOutEq]
       simpa [__re_rev_comp, eps] using hRevOutNe
-  | case10 c1 c2 ih1 ih2 =>
+  | case11 c1 c2 ih1 ih2 =>
       intro hFlatNe
       let flatC1 := __re_flatten (Term.Boolean true) c1
       let flatC2 := __re_flatten (Term.Boolean false) c2
@@ -21093,7 +21247,7 @@ private theorem re_flatten_action_reverse_ne_stuck_local :
       rw [hOutEq]
       simpa [__re_rev_comp, eps, left, right, inner, outer] using
         hRevOuterNe
-  | case11 c1 c2 ih1 ih2 =>
+  | case12 c1 c2 ih1 ih2 =>
       intro hFlatNe
       let flatC1 := __re_flatten (Term.Boolean true) c1
       let flatC2 := __re_flatten (Term.Boolean false) c2
@@ -21157,11 +21311,11 @@ private theorem re_flatten_action_reverse_ne_stuck_local :
       rw [hOutEq]
       simpa [__re_rev_comp, eps, left, right, inner, outer] using
         hRevOuterNe
-  | case12 c hCNe hAll hNone hMult hInter hUnion =>
+  | case13 c hCNe hAll hNone hMult hInter hUnion =>
       intro hFlatNe
       simpa [re_flatten_action_reverse_ne_stuck_motive_local,
         __re_flatten, __re_rev_comp] using hFlatNe
-  | case13 x x_1 hTreeNe hEmpty hConcatStr hConcat
+  | case14 x x_1 hTreeNe hEmpty hConcatStr hNested hConcat
       hStr hTrue hAll hNone hMult hInter hUnion hFalse =>
       intro _hFlatNe
       cases x <;> try trivial
