@@ -419,11 +419,11 @@ private theorem fskel_lift_ty (s3 : native_String) (X : SmtDatatype)
       exact FSkelTy.nondt F H hH
   | @FSkelTy.dt s4 FB HB hBody => by
       rw [show __smtx_type_lift s3 X (SmtType.Datatype s4 HB) =
-          native_ite (native_Teq (SmtType.Datatype s3 X) (SmtType.Datatype s4 HB))
+          native_ite (native_streq s3 s4)
             (SmtType.TypeRef s3)
             (SmtType.Datatype s4 (__smtx_dt_lift s3 X HB)) by
         simp [__smtx_type_lift]]
-      cases hEq : native_Teq (SmtType.Datatype s3 X) (SmtType.Datatype s4 HB) with
+      cases hEq : native_streq s3 s4 with
       | true =>
           rw [native_ite, if_pos rfl]
           exact FSkelTy.nondt _ _ (fun _ _ h => by cases h)
@@ -473,18 +473,15 @@ private theorem lift_guide_tr_ty (s3 : native_String) (X : SmtDatatype)
       exact GuideTr.same F H
   | @FSkelTy.dt s4 FB HB hBody => by
       rw [show __smtx_type_lift s3 X (SmtType.Datatype s4 HB) =
-          native_ite (native_Teq (SmtType.Datatype s3 X) (SmtType.Datatype s4 HB))
+          native_ite (native_streq s3 s4)
             (SmtType.TypeRef s3)
             (SmtType.Datatype s4 (__smtx_dt_lift s3 X HB)) by
         simp [__smtx_type_lift]]
-      cases hEq : native_Teq (SmtType.Datatype s3 X) (SmtType.Datatype s4 HB) with
+      cases hEq : native_streq s3 s4 with
       | true =>
           rw [native_ite, if_pos rfl]
-          have hParts : s3 = s4 ∧ X = HB := by
-            have := hEq
-            simp [native_Teq] at this
-            exact ⟨this.1, this.2⟩
-          rw [hParts.1]
+          have hs34 : s3 = s4 := by simpa [native_streq] using hEq
+          rw [hs34]
           exact GuideTr.toRef
       | false =>
           rw [native_ite, if_neg (by simp [hEq])]
@@ -969,11 +966,11 @@ private theorem refDef_lift_ty (s : native_String) (X : SmtDatatype)
         (SmtType.TypeRef r) h
   | SmtType.Datatype b B, h => by
       rw [show __smtx_type_lift s X (SmtType.Datatype b B) =
-          native_ite (native_Teq (SmtType.Datatype s X) (SmtType.Datatype b B))
+          native_ite (native_streq s b)
             (SmtType.TypeRef s)
             (SmtType.Datatype b (__smtx_dt_lift s X B)) by
         simp [__smtx_type_lift]]
-      cases hEq : native_Teq (SmtType.Datatype s X) (SmtType.Datatype b B) with
+      cases hEq : native_streq s b with
       | true =>
           rw [native_ite, if_pos rfl]
           simp [refDefTy, native_reflist_contains, native_reflist_insert]

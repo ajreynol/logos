@@ -1111,8 +1111,7 @@ private theorem type_lift_infinite_of_infinite
   | SmtType.Char, h => by simp [__smtx_is_finite_type] at h
   | SmtType.Datatype s2 d2, h => by
       simp only [__smtx_type_lift]
-      by_cases hEq :
-          native_Teq (SmtType.Datatype s d) (SmtType.Datatype s2 d2) = true
+      by_cases hEq : native_streq s s2 = true
       · rw [native_ite, if_pos hEq]
         simp [__smtx_is_finite_type]
       · rw [native_ite, if_neg hEq]
