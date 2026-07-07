@@ -3670,10 +3670,10 @@ theorem term_type_has_no_none_components_of_non_none :
           exact term_has_non_none_of_type_eq h1 (by simp)
         exact str_at_type_has_no_none_components_of_non_none ht (go t1 ht1)
     | SmtTerm.str_prefixof t1 t2 =>
-        exact seq_char_binop_ret_type_has_no_none_components_of_non_none
+        exact seq_op_2_ret_type_has_no_none_components_of_non_none
           (typeof_str_prefixof_eq t1 t2) ht (by simp [type_has_no_none_components])
     | SmtTerm.str_suffixof t1 t2 =>
-        exact seq_char_binop_ret_type_has_no_none_components_of_non_none
+        exact seq_op_2_ret_type_has_no_none_components_of_non_none
           (typeof_str_suffixof_eq t1 t2) ht (by simp [type_has_no_none_components])
     | SmtTerm.str_rev t1 =>
         have ht1 : term_has_non_none_type t1 := by
@@ -4433,14 +4433,18 @@ theorem supported_preservation_term_of_non_none :
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
         exact supported_preservation_term.str_at ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.str_prefixof t1 t2 =>
-        have hArgs := seq_char_binop_args_of_non_none (op := SmtTerm.str_prefixof) (typeof_str_prefixof_eq t1 t2) ht
-        have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq hArgs.1 (by simp)
-        have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq hArgs.2 (by simp)
+        rcases seq_binop_args_of_non_none_ret (op := SmtTerm.str_prefixof)
+            (typeof_str_prefixof_eq t1 t2) ht with
+          ⟨T, h1, h2⟩
+        have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
+        have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
         exact supported_preservation_term.str_prefixof ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.str_suffixof t1 t2 =>
-        have hArgs := seq_char_binop_args_of_non_none (op := SmtTerm.str_suffixof) (typeof_str_suffixof_eq t1 t2) ht
-        have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq hArgs.1 (by simp)
-        have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq hArgs.2 (by simp)
+        rcases seq_binop_args_of_non_none_ret (op := SmtTerm.str_suffixof)
+            (typeof_str_suffixof_eq t1 t2) ht with
+          ⟨T, h1, h2⟩
+        have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
+        have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
         exact supported_preservation_term.str_suffixof ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.str_rev t1 =>
         rcases seq_arg_of_non_none (op := SmtTerm.str_rev) (typeof_str_rev_eq t1) ht with ⟨T, hArg⟩

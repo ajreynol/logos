@@ -9721,7 +9721,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_tuple_of_tail_type
               false := by
         cases hHT : headTy with
         | TypeRef s => exact absurd hHT (hNotRef s)
-        | _ => simp [__smtx_dt_cons_wf_rec, hHT]
+        | _ => simp [__smtx_dt_cons_wf_rec]
       rw [hgen] at hConsWf
       cases hb :
           native_and (native_inhabited_type headTy) (__smtx_type_wf_rec headTy headTy) with
@@ -10316,24 +10316,18 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
         eo_to_smt_type_typeof_apply_apply_str_contains_of_seq x y T hy hx hT)
       hNonNone
   case str_prefixof =>
-    exact eo_to_smt_typeof_matches_translation_apply_seq_char_binop
-      UserOp.str_prefixof SmtTerm.str_prefixof SmtType.Bool x y (by rfl)
+    exact eo_to_smt_typeof_matches_translation_apply_seq_ret_binop
+      UserOp.str_prefixof SmtTerm.str_prefixof SmtType.Bool x y ihY ihX (by rfl)
       (typeof_str_prefixof_eq (__eo_to_smt y) (__eo_to_smt x))
-      (fun hy hx =>
-        eo_to_smt_type_typeof_apply_apply_str_prefixof_of_seq x y (Term.UOp UserOp.Char)
-          (eo_typeof_eq_seq_char_of_smt_seq_char_from_ih y ihY hy)
-          (eo_typeof_eq_seq_char_of_smt_seq_char_from_ih x ihX hx)
-          (by simp [__eo_to_smt_type]))
+      (fun {T} hy hx hT =>
+        eo_to_smt_type_typeof_apply_apply_str_prefixof_of_seq x y T hy hx hT)
       hNonNone
   case str_suffixof =>
-    exact eo_to_smt_typeof_matches_translation_apply_seq_char_binop
-      UserOp.str_suffixof SmtTerm.str_suffixof SmtType.Bool x y (by rfl)
+    exact eo_to_smt_typeof_matches_translation_apply_seq_ret_binop
+      UserOp.str_suffixof SmtTerm.str_suffixof SmtType.Bool x y ihY ihX (by rfl)
       (typeof_str_suffixof_eq (__eo_to_smt y) (__eo_to_smt x))
-      (fun hy hx =>
-        eo_to_smt_type_typeof_apply_apply_str_suffixof_of_seq x y (Term.UOp UserOp.Char)
-          (eo_typeof_eq_seq_char_of_smt_seq_char_from_ih y ihY hy)
-          (eo_typeof_eq_seq_char_of_smt_seq_char_from_ih x ihX hx)
-          (by simp [__eo_to_smt_type]))
+      (fun {T} hy hx hT =>
+        eo_to_smt_type_typeof_apply_apply_str_suffixof_of_seq x y T hy hx hT)
       hNonNone
   case str_lt =>
     exact eo_to_smt_typeof_matches_translation_apply_seq_char_binop

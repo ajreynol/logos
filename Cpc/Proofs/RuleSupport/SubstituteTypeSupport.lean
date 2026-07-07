@@ -2815,5 +2815,3533 @@ theorem substitute_simul_set_insert_typeof_eq_of_typeof_ne_stuck
   rw [hSubstEq, hInnerMk, hOuterMk]
   rw [hSubSetType, hOrigSetType]
 
+/-- Size-recursive type preservation for simultaneous substitution.
+
+The variable case is where `SubstEntryPreservesTypes` is consumed: mapped
+actuals have exactly the type of the variable they replace. The remaining
+application case is the real spine lemma: substitution preserves the operator
+shape while recursively preserving the types of the spine arguments. -/
+theorem substitute_simul_rec_typeof_eq_of_typeof_ne_stuck_lt
+    (n : Nat) (F xs ss bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hLt : sizeOf F < n)
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hFTrans : RuleProofs.eo_has_smt_translation F)
+    (hSs : EoListAllHaveSmtTranslation ss)
+    (hEntryTypes : SubstEntryPreservesTypes xs ss)
+    (hTy :
+      __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false) F xs ss bvs) ≠
+        Term.Stuck) :
+    __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false) F xs ss bvs) =
+      __eo_typeof F := by
+  cases n with
+  | zero =>
+      omega
+  | succ n =>
+      let hRec :
+          ∀ {G xs' ss' bvs' : Term} {xsVars' bvsVars' : List EoVarKey},
+            sizeOf G < sizeOf F ->
+            EoVarEnvPerm xs' xsVars' ->
+            EoVarEnvPerm bvs' bvsVars' ->
+            RuleProofs.eo_has_smt_translation G ->
+            EoListAllHaveSmtTranslation ss' ->
+            SubstEntryPreservesTypes xs' ss' ->
+            __eo_typeof
+                (__substitute_simul_rec (Term.Boolean false) G xs' ss' bvs') ≠
+              Term.Stuck ->
+            __eo_typeof
+                (__substitute_simul_rec (Term.Boolean false) G xs' ss' bvs') =
+              __eo_typeof G :=
+        fun {G xs' ss' bvs'} {xsVars' bvsVars'} hGLt hXsEnv' hBvsEnv'
+            hGTrans hSs' hEntryTypes' hGTy =>
+          substitute_simul_rec_typeof_eq_of_typeof_ne_stuck_lt
+            n G xs' ss' bvs'
+            (by omega) hXsEnv' hBvsEnv' hGTrans hSs' hEntryTypes' hGTy
+      cases F with
+      | Apply f a =>
+          by_cases hBinder :
+              ∃ q v vs, f = Term.Apply q (consTerm v vs)
+          · rcases hBinder with ⟨q, v, vs, rfl⟩
+            let binders := consTerm v vs
+            let bodySub :=
+              __substitute_simul_rec (Term.Boolean false) a xs ss
+                (__eo_list_concat Term.__eo_List_cons binders bvs)
+            have hFTrans' :
+                eoHasSmtTranslation
+                  (Term.Apply (Term.Apply q binders) a) := by
+              simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation,
+                binders] using hFTrans
+            have hQ :
+                q = Term.UOp UserOp.forall ∨
+                  q = Term.UOp UserOp.exists :=
+              is_closed_rec_list_branch_head_term_quantifier_of_has_smt_translation
+                hFTrans'
+            rcases eo_var_env_of_list_branch_has_smt_translation hFTrans' with
+              ⟨binderVars, hBinderEnv⟩
+            have hSubstEq :
+                __substitute_simul_rec (Term.Boolean false)
+                    (Term.Apply (Term.Apply q binders) a) xs ss bvs =
+                  __eo_mk_apply (Term.Apply q binders) bodySub := by
+              simpa [binders, bodySub] using
+                substitute_simul_quant_eq_of_typeof_ne_stuck
+                  q v vs a xs ss bvs hXsEnv hBvsEnv hSs hTy
+            have hTyMk :
+                __eo_typeof
+                    (__eo_mk_apply (Term.Apply q binders) bodySub) ≠
+                  Term.Stuck := by
+              rwa [hSubstEq] at hTy
+            have hMk :
+                __eo_mk_apply (Term.Apply q binders) bodySub =
+                  Term.Apply (Term.Apply q binders) bodySub :=
+              eo_mk_apply_eq_apply_of_typeof_ne_stuck hTyMk
+            have hTyApply :
+                __eo_typeof (Term.Apply (Term.Apply q binders) bodySub) ≠
+                  Term.Stuck := by
+              rwa [hMk] at hTyMk
+            have hBodyBool : __eo_typeof bodySub = Term.Bool :=
+              eo_typeof_body_bool_of_quant_type_ne_stuck
+                hQ hBinderEnv hTyApply
+            have hBodyTy : __eo_typeof bodySub ≠ Term.Stuck := by
+              rw [hBodyBool]
+              intro h
+              cases h
+            have hBodyTrans :
+                RuleProofs.eo_has_smt_translation a := by
+              simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+                using
+                  body_has_smt_translation_of_list_branch_has_smt_translation
+                    hFTrans'
+            have hBvsEnv' :
+                EoVarEnvPerm
+                  (__eo_list_concat Term.__eo_List_cons binders bvs)
+                  (binderVars.reverse ++ bvsVars) :=
+              EoVarEnvPerm.concat_rev hBinderEnv hBvsEnv
+            have hBodyType :
+                __eo_typeof bodySub = __eo_typeof a :=
+              hRec
+                (G := a) (xs' := xs) (ss' := ss)
+                (bvs' := __eo_list_concat Term.__eo_List_cons binders bvs)
+                (by simp; omega)
+                hXsEnv hBvsEnv' hBodyTrans hSs hEntryTypes
+                (by simpa [bodySub] using hBodyTy)
+            exact
+              substitute_simul_quant_typeof_eq_of_typeof_ne_stuck
+                q v vs a xs ss bvs hXsEnv hBvsEnv hSs hFTrans
+                (by simpa [binders, bodySub] using hBodyType)
+                hTy
+          · by_cases hNot : f = Term.UOp UserOp.not
+            · subst f
+              exact
+                substitute_simul_unary_op_typeof_eq_of_typeof_ne_stuck
+                  UserOp.not a xs ss bvs hXsEnv hBvsEnv hSs
+                  (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                  hFTrans
+                  (fun h =>
+                    not_arg_has_smt_translation_of_has_smt_translation h)
+                  (fun X hApp => by
+                    change __eo_typeof_not (__eo_typeof X) ≠
+                      Term.Stuck at hApp
+                    intro hX
+                    rw [hX] at hApp
+                    exact hApp rfl)
+                  (fun X Y hXY => by
+                    change __eo_typeof_not (__eo_typeof X) =
+                      __eo_typeof_not (__eo_typeof Y)
+                    rw [hXY])
+                  (fun hATrans hATy =>
+                    hRec
+                      (G := a) (xs' := xs) (ss' := ss) (bvs' := bvs)
+                      (by simp)
+                      hXsEnv hBvsEnv hATrans hSs hEntryTypes hATy)
+                  hTy
+            · by_cases hAbs : f = Term.UOp UserOp.abs
+              · subst f
+                exact
+                  substitute_simul_unary_op_typeof_eq_of_typeof_ne_stuck
+                    UserOp.abs a xs ss bvs hXsEnv hBvsEnv hSs
+                    (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                    hFTrans
+                    (fun h =>
+                      abs_arg_has_smt_translation_of_has_smt_translation h)
+                    (fun X hApp => by
+                      change __eo_typeof_abs (__eo_typeof X) ≠
+                        Term.Stuck at hApp
+                      intro hX
+                      rw [hX] at hApp
+                      exact hApp rfl)
+                    (fun X Y hXY => by
+                      change __eo_typeof_abs (__eo_typeof X) =
+                        __eo_typeof_abs (__eo_typeof Y)
+                      rw [hXY])
+                    (fun hATrans hATy =>
+                      hRec
+                        (G := a) (xs' := xs) (ss' := ss) (bvs' := bvs)
+                        (by simp)
+                        hXsEnv hBvsEnv hATrans hSs hEntryTypes hATy)
+                    hTy
+              · by_cases hToReal : f = Term.UOp UserOp.to_real
+                · subst f
+                  exact
+                    substitute_simul_unary_op_typeof_eq_of_typeof_ne_stuck
+                      UserOp.to_real a xs ss bvs hXsEnv hBvsEnv hSs
+                      (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                      hFTrans
+                      (fun h =>
+                        to_real_arg_has_smt_translation_of_has_smt_translation h)
+                      (fun X hApp => by
+                        change __eo_typeof_to_real (__eo_typeof X) ≠
+                          Term.Stuck at hApp
+                        intro hX
+                        rw [hX] at hApp
+                        exact hApp rfl)
+                      (fun X Y hXY => by
+                        change __eo_typeof_to_real (__eo_typeof X) =
+                          __eo_typeof_to_real (__eo_typeof Y)
+                        rw [hXY])
+                      (fun hATrans hATy =>
+                        hRec
+                          (G := a) (xs' := xs) (ss' := ss) (bvs' := bvs)
+                          (by simp)
+                          hXsEnv hBvsEnv hATrans hSs hEntryTypes hATy)
+                      hTy
+                · by_cases hToInt : f = Term.UOp UserOp.to_int
+                  · subst f
+                    exact
+                      substitute_simul_unary_op_typeof_eq_of_typeof_ne_stuck
+                        UserOp.to_int a xs ss bvs hXsEnv hBvsEnv hSs
+                        (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                        hFTrans
+                        (fun h =>
+                          to_int_arg_has_smt_translation_of_has_smt_translation h)
+                        (fun X hApp => by
+                          change __eo_typeof_to_int (__eo_typeof X) ≠
+                            Term.Stuck at hApp
+                          intro hX
+                          rw [hX] at hApp
+                          exact hApp rfl)
+                        (fun X Y hXY => by
+                          change __eo_typeof_to_int (__eo_typeof X) =
+                            __eo_typeof_to_int (__eo_typeof Y)
+                          rw [hXY])
+                        (fun hATrans hATy =>
+                          hRec
+                            (G := a) (xs' := xs) (ss' := ss) (bvs' := bvs)
+                            (by simp)
+                            hXsEnv hBvsEnv hATrans hSs hEntryTypes hATy)
+                        hTy
+                  · by_cases hIsInt : f = Term.UOp UserOp.is_int
+                    · subst f
+                      exact
+                        substitute_simul_unary_op_typeof_eq_of_typeof_ne_stuck
+                          UserOp.is_int a xs ss bvs hXsEnv hBvsEnv hSs
+                          (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                          hFTrans
+                          (fun h =>
+                            is_int_arg_has_smt_translation_of_has_smt_translation h)
+                          (fun X hApp => by
+                            change __eo_typeof_is_int (__eo_typeof X) ≠
+                              Term.Stuck at hApp
+                            intro hX
+                            rw [hX] at hApp
+                            exact hApp rfl)
+                          (fun X Y hXY => by
+                            change __eo_typeof_is_int (__eo_typeof X) =
+                              __eo_typeof_is_int (__eo_typeof Y)
+                            rw [hXY])
+                          (fun hATrans hATy =>
+                            hRec
+                              (G := a) (xs' := xs) (ss' := ss) (bvs' := bvs)
+                              (by simp)
+                              hXsEnv hBvsEnv hATrans hSs hEntryTypes hATy)
+                          hTy
+                    · by_cases hUneg : f = Term.UOp UserOp.__eoo_neg_2
+                      · subst f
+                        exact
+                          substitute_simul_unary_op_typeof_eq_of_typeof_ne_stuck
+                            UserOp.__eoo_neg_2 a xs ss bvs hXsEnv hBvsEnv hSs
+                            (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                            hFTrans
+                            (fun h =>
+                              uneg_arg_has_smt_translation_of_has_smt_translation h)
+                            (fun X hApp => by
+                              change __eo_typeof_abs (__eo_typeof X) ≠
+                                Term.Stuck at hApp
+                              intro hX
+                              rw [hX] at hApp
+                              exact hApp rfl)
+                            (fun X Y hXY => by
+                              change __eo_typeof_abs (__eo_typeof X) =
+                                __eo_typeof_abs (__eo_typeof Y)
+                              rw [hXY])
+                            (fun hATrans hATy =>
+                              hRec
+                                (G := a) (xs' := xs) (ss' := ss)
+                                (bvs' := bvs)
+                                (by simp)
+                                hXsEnv hBvsEnv hATrans hSs hEntryTypes hATy)
+                            hTy
+                      · by_cases hPow2 : f = Term.UOp UserOp.int_pow2
+                        · subst f
+                          exact
+                            substitute_simul_unary_op_typeof_eq_via_type_fn
+                              UserOp.int_pow2 __eo_typeof_int_pow2
+                              a xs ss bvs hXsEnv hBvsEnv hSs
+                              (fun q v vs hEq =>
+                                hBinder ⟨q, v, vs, hEq⟩)
+                              hFTrans
+                              (fun h =>
+                                int_pow2_arg_has_smt_translation_of_has_smt_translation h)
+                              (fun X => by
+                                change
+                                  __eo_typeof_int_pow2 (__eo_typeof X) =
+                                    __eo_typeof_int_pow2 (__eo_typeof X)
+                                rfl)
+                              (by rfl)
+                              (fun hATrans hATy =>
+                                hRec
+                                  (G := a) (xs' := xs) (ss' := ss)
+                                  (bvs' := bvs)
+                                  (by simp)
+                                  hXsEnv hBvsEnv hATrans hSs hEntryTypes hATy)
+                              hTy
+                        · by_cases hLog2 : f = Term.UOp UserOp.int_log2
+                          · subst f
+                            exact
+                              substitute_simul_unary_op_typeof_eq_via_type_fn
+                                UserOp.int_log2 __eo_typeof_int_pow2
+                                a xs ss bvs hXsEnv hBvsEnv hSs
+                                (fun q v vs hEq =>
+                                  hBinder ⟨q, v, vs, hEq⟩)
+                                hFTrans
+                                (fun h =>
+                                  int_log2_arg_has_smt_translation_of_has_smt_translation h)
+                                (fun X => by
+                                  change
+                                    __eo_typeof_int_pow2 (__eo_typeof X) =
+                                      __eo_typeof_int_pow2 (__eo_typeof X)
+                                  rfl)
+                                (by rfl)
+                                (fun hATrans hATy =>
+                                  hRec
+                                    (G := a) (xs' := xs) (ss' := ss)
+                                    (bvs' := bvs)
+                                    (by simp)
+                                    hXsEnv hBvsEnv hATrans hSs hEntryTypes hATy)
+                                hTy
+                          · by_cases hPurify : f = Term.UOp UserOp._at_purify
+                            · subst f
+                              exact
+                                substitute_simul_unary_op_typeof_eq_via_type_fn
+                                  UserOp._at_purify __eo_typeof__at_purify
+                                  a xs ss bvs hXsEnv hBvsEnv hSs
+                                  (fun q v vs hEq =>
+                                    hBinder ⟨q, v, vs, hEq⟩)
+                                  hFTrans
+                                  (fun h =>
+                                    purify_arg_has_smt_translation_of_has_smt_translation h)
+                                  (fun X => by
+                                    change
+                                      __eo_typeof__at_purify (__eo_typeof X) =
+                                        __eo_typeof__at_purify (__eo_typeof X)
+                                    rfl)
+                                  (by rfl)
+                                  (fun hATrans hATy =>
+                                    hRec
+                                      (G := a) (xs' := xs) (ss' := ss)
+                                      (bvs' := bvs)
+                                      (by simp)
+                                      hXsEnv hBvsEnv hATrans hSs
+                                      hEntryTypes hATy)
+                                  hTy
+                            · by_cases hIntIspow2 :
+                                f = Term.UOp UserOp.int_ispow2
+                              · subst f
+                                exact
+                                  substitute_simul_unary_op_typeof_eq_via_type_fn
+                                    UserOp.int_ispow2 __eo_typeof_int_ispow2
+                                    a xs ss bvs hXsEnv hBvsEnv hSs
+                                    (fun q v vs hEq =>
+                                      hBinder ⟨q, v, vs, hEq⟩)
+                                    hFTrans
+                                    (fun h =>
+                                      int_ispow2_arg_has_smt_translation_of_has_smt_translation h)
+                                    (fun X => by
+                                      change
+                                        __eo_typeof_int_ispow2 (__eo_typeof X) =
+                                          __eo_typeof_int_ispow2 (__eo_typeof X)
+                                      rfl)
+                                    (by rfl)
+                                    (fun hATrans hATy =>
+                                      hRec
+                                        (G := a) (xs' := xs) (ss' := ss)
+                                        (bvs' := bvs)
+                                        (by simp)
+                                        hXsEnv hBvsEnv hATrans hSs
+                                        hEntryTypes hATy)
+                                    hTy
+                              · by_cases hIntDivZero :
+                                  f = Term.UOp UserOp._at_int_div_by_zero
+                                · subst f
+                                  exact
+                                    substitute_simul_unary_op_typeof_eq_via_type_fn
+                                      UserOp._at_int_div_by_zero
+                                      __eo_typeof_int_pow2
+                                      a xs ss bvs hXsEnv hBvsEnv hSs
+                                      (fun q v vs hEq =>
+                                        hBinder ⟨q, v, vs, hEq⟩)
+                                      hFTrans
+                                      (fun h =>
+                                        int_div_by_zero_arg_has_smt_translation_of_has_smt_translation h)
+                                      (fun X => by
+                                        change
+                                          __eo_typeof_int_pow2 (__eo_typeof X) =
+                                            __eo_typeof_int_pow2 (__eo_typeof X)
+                                        rfl)
+                                      (by rfl)
+                                      (fun hATrans hATy =>
+                                        hRec
+                                          (G := a) (xs' := xs) (ss' := ss)
+                                          (bvs' := bvs)
+                                          (by simp)
+                                          hXsEnv hBvsEnv hATrans hSs
+                                          hEntryTypes hATy)
+                                      hTy
+                                · by_cases hModZero :
+                                    f = Term.UOp UserOp._at_mod_by_zero
+                                  · subst f
+                                    exact
+                                      substitute_simul_unary_op_typeof_eq_via_type_fn
+                                        UserOp._at_mod_by_zero
+                                        __eo_typeof_int_pow2
+                                        a xs ss bvs hXsEnv hBvsEnv hSs
+                                        (fun q v vs hEq =>
+                                          hBinder ⟨q, v, vs, hEq⟩)
+                                        hFTrans
+                                        (fun h =>
+                                          mod_by_zero_arg_has_smt_translation_of_has_smt_translation h)
+                                        (fun X => by
+                                          change
+                                            __eo_typeof_int_pow2 (__eo_typeof X) =
+                                              __eo_typeof_int_pow2 (__eo_typeof X)
+                                          rfl)
+                                        (by rfl)
+                                        (fun hATrans hATy =>
+                                          hRec
+                                            (G := a) (xs' := xs) (ss' := ss)
+                                            (bvs' := bvs)
+                                            (by simp)
+                                            hXsEnv hBvsEnv hATrans hSs
+                                            hEntryTypes hATy)
+                                        hTy
+                                  · by_cases hQDivZero :
+                                      f = Term.UOp UserOp._at_div_by_zero
+                                    · subst f
+                                      exact
+                                        substitute_simul_unary_op_typeof_eq_via_type_fn
+                                          UserOp._at_div_by_zero
+                                          __eo_typeof__at_div_by_zero
+                                          a xs ss bvs hXsEnv hBvsEnv hSs
+                                          (fun q v vs hEq =>
+                                            hBinder ⟨q, v, vs, hEq⟩)
+                                          hFTrans
+                                          (fun h =>
+                                            qdiv_by_zero_arg_has_smt_translation_of_has_smt_translation h)
+                                          (fun X => by
+                                            change
+                                              __eo_typeof__at_div_by_zero
+                                                  (__eo_typeof X) =
+                                                __eo_typeof__at_div_by_zero
+                                                  (__eo_typeof X)
+                                            rfl)
+                                          (by rfl)
+                                          (fun hATrans hATy =>
+                                            hRec
+                                              (G := a) (xs' := xs)
+                                              (ss' := ss) (bvs' := bvs)
+                                              (by simp)
+                                              hXsEnv hBvsEnv hATrans hSs
+                                          hEntryTypes hATy)
+                                          hTy
+                                    · by_cases hBvnot :
+                                        f = Term.UOp UserOp.bvnot
+                                      · subst f
+                                        exact
+                                          substitute_simul_unary_op_typeof_eq_via_type_fn
+                                            UserOp.bvnot __eo_typeof_bvnot
+                                            a xs ss bvs hXsEnv hBvsEnv hSs
+                                            (fun q v vs hEq =>
+                                              hBinder ⟨q, v, vs, hEq⟩)
+                                            hFTrans
+                                            (fun h =>
+                                              bvnot_arg_has_smt_translation_of_has_smt_translation h)
+                                            (fun X => by
+                                              change
+                                                __eo_typeof_bvnot
+                                                    (__eo_typeof X) =
+                                                  __eo_typeof_bvnot
+                                                    (__eo_typeof X)
+                                              rfl)
+                                            (by rfl)
+                                            (fun hATrans hATy =>
+                                              hRec
+                                                (G := a) (xs' := xs)
+                                                (ss' := ss) (bvs' := bvs)
+                                                (by simp)
+                                                hXsEnv hBvsEnv hATrans hSs
+                                                hEntryTypes hATy)
+                                            hTy
+                                      · by_cases hBvneg :
+                                          f = Term.UOp UserOp.bvneg
+                                        · subst f
+                                          exact
+                                            substitute_simul_unary_op_typeof_eq_via_type_fn
+                                              UserOp.bvneg __eo_typeof_bvnot
+                                              a xs ss bvs hXsEnv hBvsEnv hSs
+                                              (fun q v vs hEq =>
+                                                hBinder ⟨q, v, vs, hEq⟩)
+                                              hFTrans
+                                              (fun h =>
+                                                bvneg_arg_has_smt_translation_of_has_smt_translation h)
+                                              (fun X => by
+                                                change
+                                                  __eo_typeof_bvnot
+                                                      (__eo_typeof X) =
+                                                    __eo_typeof_bvnot
+                                                      (__eo_typeof X)
+                                                rfl)
+                                              (by rfl)
+                                              (fun hATrans hATy =>
+                                                hRec
+                                                  (G := a) (xs' := xs)
+                                                  (ss' := ss) (bvs' := bvs)
+                                                  (by simp)
+                                                  hXsEnv hBvsEnv hATrans hSs
+                                                  hEntryTypes hATy)
+                                              hTy
+                                        · by_cases hBvnego :
+                                            f = Term.UOp UserOp.bvnego
+                                          · subst f
+                                            exact
+                                              substitute_simul_unary_op_typeof_eq_via_type_fn
+                                                UserOp.bvnego __eo_typeof_bvnego
+                                                a xs ss bvs hXsEnv hBvsEnv hSs
+                                                (fun q v vs hEq =>
+                                                  hBinder ⟨q, v, vs, hEq⟩)
+                                                hFTrans
+                                                (fun h =>
+                                                  bvnego_arg_has_smt_translation_of_has_smt_translation h)
+                                                (fun X => by
+                                                  change
+                                                    __eo_typeof_bvnego
+                                                        (__eo_typeof X) =
+                                                      __eo_typeof_bvnego
+                                                        (__eo_typeof X)
+                                                  rfl)
+                                                (by rfl)
+                                                (fun hATrans hATy =>
+                                                  hRec
+                                                    (G := a) (xs' := xs)
+                                                    (ss' := ss) (bvs' := bvs)
+                                                    (by simp)
+                                                    hXsEnv hBvsEnv hATrans hSs
+                                                    hEntryTypes hATy)
+                                                hTy
+                                          · by_cases hBvsize :
+                                              f = Term.UOp UserOp._at_bvsize
+                                            · subst f
+                                              exact
+                                                substitute_simul_unary_op_typeof_eq_via_type_fn
+                                                  UserOp._at_bvsize
+                                                  __eo_typeof__at_bvsize
+                                                  a xs ss bvs hXsEnv hBvsEnv hSs
+                                                  (fun q v vs hEq =>
+                                                    hBinder ⟨q, v, vs, hEq⟩)
+                                                  hFTrans
+                                                  (fun h =>
+                                                    bvsize_arg_has_smt_translation_of_has_smt_translation h)
+                                                  (fun X => by
+                                                    change
+                                                      __eo_typeof__at_bvsize
+                                                          (__eo_typeof X) =
+                                                        __eo_typeof__at_bvsize
+                                                          (__eo_typeof X)
+                                                    rfl)
+                                                  (by rfl)
+                                                  (fun hATrans hATy =>
+                                                    hRec
+                                                      (G := a) (xs' := xs)
+                                                      (ss' := ss)
+                                                      (bvs' := bvs)
+                                                      (by simp)
+                                                      hXsEnv hBvsEnv hATrans
+                                                      hSs hEntryTypes hATy)
+                                                  hTy
+                                            · by_cases hBvredand :
+                                                f = Term.UOp UserOp.bvredand
+                                              · subst f
+                                                exact
+                                                  substitute_simul_unary_op_typeof_eq_via_type_fn
+                                                    UserOp.bvredand
+                                                    __eo_typeof_bvredand
+                                                    a xs ss bvs hXsEnv hBvsEnv hSs
+                                                    (fun q v vs hEq =>
+                                                      hBinder ⟨q, v, vs, hEq⟩)
+                                                    hFTrans
+                                                    (fun h =>
+                                                      bvredand_arg_has_smt_translation_of_has_smt_translation h)
+                                                    (fun X => by
+                                                      change
+                                                        __eo_typeof_bvredand
+                                                            (__eo_typeof X) =
+                                                          __eo_typeof_bvredand
+                                                            (__eo_typeof X)
+                                                      rfl)
+                                                    (by rfl)
+                                                    (fun hATrans hATy =>
+                                                      hRec
+                                                        (G := a) (xs' := xs)
+                                                        (ss' := ss)
+                                                        (bvs' := bvs)
+                                                        (by simp)
+                                                        hXsEnv hBvsEnv hATrans
+                                                        hSs hEntryTypes hATy)
+                                                    hTy
+                                              · by_cases hBvredor :
+                                                  f = Term.UOp UserOp.bvredor
+                                                · subst f
+                                                  exact
+                                                    substitute_simul_unary_op_typeof_eq_via_type_fn
+                                                      UserOp.bvredor
+                                                      __eo_typeof_bvredand
+                                                      a xs ss bvs hXsEnv hBvsEnv hSs
+                                                      (fun q v vs hEq =>
+                                                        hBinder ⟨q, v, vs, hEq⟩)
+                                                      hFTrans
+                                                      (fun h =>
+                                                        bvredor_arg_has_smt_translation_of_has_smt_translation h)
+                                                      (fun X => by
+                                                        change
+                                                          __eo_typeof_bvredand
+                                                              (__eo_typeof X) =
+                                                            __eo_typeof_bvredand
+                                                              (__eo_typeof X)
+                                                        rfl)
+                                                      (by rfl)
+                                                      (fun hATrans hATy =>
+                                                        hRec
+                                                          (G := a) (xs' := xs)
+                                                          (ss' := ss)
+                                                          (bvs' := bvs)
+                                                          (by simp)
+                                                          hXsEnv hBvsEnv
+                                                          hATrans hSs
+                                                          hEntryTypes hATy)
+                                                      hTy
+                                                · by_cases hUbvToInt :
+                                                    f = Term.UOp UserOp.ubv_to_int
+                                                  · subst f
+                                                    exact
+                                                      substitute_simul_unary_op_typeof_eq_via_type_fn
+                                                        UserOp.ubv_to_int
+                                                        __eo_typeof__at_bvsize
+                                                        a xs ss bvs hXsEnv hBvsEnv hSs
+                                                        (fun q v vs hEq =>
+                                                          hBinder ⟨q, v, vs, hEq⟩)
+                                                        hFTrans
+                                                        (fun h =>
+                                                          ubv_to_int_arg_has_smt_translation_of_has_smt_translation h)
+                                                        (fun X => by
+                                                          change
+                                                            __eo_typeof__at_bvsize
+                                                                (__eo_typeof X) =
+                                                              __eo_typeof__at_bvsize
+                                                                (__eo_typeof X)
+                                                          rfl)
+                                                        (by rfl)
+                                                        (fun hATrans hATy =>
+                                                          hRec
+                                                            (G := a) (xs' := xs)
+                                                            (ss' := ss)
+                                                            (bvs' := bvs)
+                                                            (by simp)
+                                                            hXsEnv hBvsEnv
+                                                            hATrans hSs
+                                                            hEntryTypes hATy)
+                                                        hTy
+                                                  · by_cases hSbvToInt :
+                                                      f = Term.UOp UserOp.sbv_to_int
+                                                    · subst f
+                                                      exact
+                                                        substitute_simul_unary_op_typeof_eq_via_type_fn
+                                                          UserOp.sbv_to_int
+                                                          __eo_typeof__at_bvsize
+                                                          a xs ss bvs hXsEnv hBvsEnv hSs
+                                                          (fun q v vs hEq =>
+                                                            hBinder ⟨q, v, vs, hEq⟩)
+                                                          hFTrans
+                                                          (fun h =>
+                                                            sbv_to_int_arg_has_smt_translation_of_has_smt_translation h)
+                                                          (fun X => by
+                                                            change
+                                                              __eo_typeof__at_bvsize
+                                                                  (__eo_typeof X) =
+                                                                __eo_typeof__at_bvsize
+                                                                  (__eo_typeof X)
+                                                            rfl)
+                                                          (by rfl)
+                                                          (fun hATrans hATy =>
+                                                            hRec
+                                                              (G := a)
+                                                              (xs' := xs)
+                                                              (ss' := ss)
+                                                              (bvs' := bvs)
+                                                              (by simp)
+                                                              hXsEnv hBvsEnv
+                                                              hATrans hSs
+                                                              hEntryTypes hATy)
+                                                          hTy
+                                                    · by_cases hStrLen :
+                                                        f = Term.UOp UserOp.str_len
+                                                      · subst f
+                                                        exact
+                                                          substitute_simul_unary_op_typeof_eq_via_type_fn
+                                                            UserOp.str_len
+                                                            __eo_typeof_str_len
+                                                            a xs ss bvs hXsEnv hBvsEnv hSs
+                                                            (fun q v vs hEq =>
+                                                              hBinder ⟨q, v, vs, hEq⟩)
+                                                            hFTrans
+                                                            (fun h =>
+                                                              str_len_arg_has_smt_translation_of_has_smt_translation h)
+                                                            (fun X => by
+                                                              change
+                                                                __eo_typeof_str_len
+                                                                    (__eo_typeof X) =
+                                                                  __eo_typeof_str_len
+                                                                    (__eo_typeof X)
+                                                              rfl)
+                                                            (by rfl)
+                                                            (fun hATrans hATy =>
+                                                              hRec
+                                                                (G := a)
+                                                                (xs' := xs)
+                                                                (ss' := ss)
+                                                                (bvs' := bvs)
+                                                                (by simp)
+                                                                hXsEnv hBvsEnv
+                                                                hATrans hSs
+                                                                hEntryTypes hATy)
+                                                            hTy
+                                                      · by_cases hStrRev :
+                                                          f = Term.UOp UserOp.str_rev
+                                                        · subst f
+                                                          exact
+                                                            substitute_simul_unary_op_typeof_eq_via_type_fn
+                                                              UserOp.str_rev
+                                                              __eo_typeof_str_rev
+                                                              a xs ss bvs hXsEnv hBvsEnv hSs
+                                                              (fun q v vs hEq =>
+                                                                hBinder ⟨q, v, vs, hEq⟩)
+                                                              hFTrans
+                                                              (fun h =>
+                                                                str_rev_arg_has_smt_translation_of_has_smt_translation h)
+                                                              (fun X => by
+                                                                change
+                                                                  __eo_typeof_str_rev
+                                                                      (__eo_typeof X) =
+                                                                    __eo_typeof_str_rev
+                                                                      (__eo_typeof X)
+                                                                rfl)
+                                                              (by rfl)
+                                                              (fun hATrans hATy =>
+                                                                hRec
+                                                                  (G := a)
+                                                                  (xs' := xs)
+                                                                  (ss' := ss)
+                                                                  (bvs' := bvs)
+                                                                  (by simp)
+                                                                  hXsEnv hBvsEnv
+                                                                  hATrans hSs
+                                                                  hEntryTypes hATy)
+                                                              hTy
+                                                        · by_cases hStrToInt :
+                                                            f = Term.UOp UserOp.str_to_int
+                                                          · subst f
+                                                            exact
+                                                              substitute_simul_unary_op_typeof_eq_via_type_fn
+                                                                UserOp.str_to_int
+                                                                __eo_typeof_str_to_code
+                                                                a xs ss bvs hXsEnv hBvsEnv hSs
+                                                                (fun q v vs hEq =>
+                                                                  hBinder ⟨q, v, vs, hEq⟩)
+                                                                hFTrans
+                                                                (fun h =>
+                                                                  str_to_int_arg_has_smt_translation_of_has_smt_translation h)
+                                                                (fun X => by
+                                                                  change
+                                                                    __eo_typeof_str_to_code
+                                                                        (__eo_typeof X) =
+                                                                      __eo_typeof_str_to_code
+                                                                        (__eo_typeof X)
+                                                                  rfl)
+                                                                (by rfl)
+                                                                (fun hATrans hATy =>
+                                                                  hRec
+                                                                    (G := a)
+                                                                    (xs' := xs)
+                                                                    (ss' := ss)
+                                                                    (bvs' := bvs)
+                                                                    (by simp)
+                                                                    hXsEnv hBvsEnv
+                                                                    hATrans hSs
+                                                                    hEntryTypes hATy)
+                                                                hTy
+                                                          · by_cases hStrToRe :
+                                                              f = Term.UOp UserOp.str_to_re
+                                                            · subst f
+                                                              exact
+                                                                substitute_simul_unary_op_typeof_eq_via_type_fn
+                                                                  UserOp.str_to_re
+                                                                  __eo_typeof_str_to_re
+                                                                  a xs ss bvs hXsEnv hBvsEnv hSs
+                                                                  (fun q v vs hEq =>
+                                                                    hBinder ⟨q, v, vs, hEq⟩)
+                                                                  hFTrans
+                                                                  (fun h =>
+                                                                    str_to_re_arg_has_smt_translation_of_has_smt_translation h)
+                                                                  (fun X => by
+                                                                    change
+                                                                      __eo_typeof_str_to_re
+                                                                          (__eo_typeof X) =
+                                                                        __eo_typeof_str_to_re
+                                                                          (__eo_typeof X)
+                                                                    rfl)
+                                                                  (by rfl)
+                                                                  (fun hATrans hATy =>
+                                                                    hRec
+                                                                      (G := a)
+                                                                      (xs' := xs)
+                                                                      (ss' := ss)
+                                                                      (bvs' := bvs)
+                                                                      (by simp)
+                                                                      hXsEnv hBvsEnv
+                                                                      hATrans hSs
+                                                                      hEntryTypes hATy)
+                                                                  hTy
+                                                            · by_cases hReMult :
+                                                                f = Term.UOp UserOp.re_mult
+                                                              · subst f
+                                                                exact
+                                                                  substitute_simul_unary_op_typeof_eq_via_type_fn
+                                                                    UserOp.re_mult
+                                                                    __eo_typeof_re_mult
+                                                                    a xs ss bvs hXsEnv hBvsEnv hSs
+                                                                    (fun q v vs hEq =>
+                                                                      hBinder ⟨q, v, vs, hEq⟩)
+                                                                    hFTrans
+                                                                    (fun h =>
+                                                                      re_mult_arg_has_smt_translation_of_has_smt_translation h)
+                                                                    (fun X => by
+                                                                      change
+                                                                        __eo_typeof_re_mult
+                                                                            (__eo_typeof X) =
+                                                                          __eo_typeof_re_mult
+                                                                            (__eo_typeof X)
+                                                                      rfl)
+                                                                    (by rfl)
+                                                                    (fun hATrans hATy =>
+                                                                      hRec
+                                                                        (G := a)
+                                                                        (xs' := xs)
+                                                                        (ss' := ss)
+                                                                        (bvs' := bvs)
+                                                                        (by simp)
+                                                                        hXsEnv hBvsEnv
+                                                                        hATrans hSs
+                                                                        hEntryTypes hATy)
+                                                                    hTy
+                                                              · by_cases hStrToLower :
+                                                                  f = Term.UOp UserOp.str_to_lower
+                                                                · subst f
+                                                                  exact
+                                                                    substitute_simul_unary_op_typeof_eq_via_type_fn
+                                                                      UserOp.str_to_lower
+                                                                      __eo_typeof_str_to_lower
+                                                                      a xs ss bvs hXsEnv hBvsEnv hSs
+                                                                      (fun q v vs hEq =>
+                                                                        hBinder ⟨q, v, vs, hEq⟩)
+                                                                      hFTrans
+                                                                      (fun h =>
+                                                                        str_to_lower_arg_has_smt_translation_of_has_smt_translation h)
+                                                                      (fun X => by
+                                                                        change
+                                                                          __eo_typeof_str_to_lower
+                                                                              (__eo_typeof X) =
+                                                                            __eo_typeof_str_to_lower
+                                                                              (__eo_typeof X)
+                                                                        rfl)
+                                                                      (by rfl)
+                                                                      (fun hATrans hATy =>
+                                                                        hRec
+                                                                          (G := a)
+                                                                          (xs' := xs)
+                                                                          (ss' := ss)
+                                                                          (bvs' := bvs)
+                                                                          (by simp)
+                                                                          hXsEnv hBvsEnv
+                                                                          hATrans hSs
+                                                                          hEntryTypes hATy)
+                                                                      hTy
+                                                                · by_cases hStrToUpper :
+                                                                    f = Term.UOp UserOp.str_to_upper
+                                                                  · subst f
+                                                                    exact
+                                                                      substitute_simul_unary_op_typeof_eq_via_type_fn
+                                                                        UserOp.str_to_upper
+                                                                        __eo_typeof_str_to_lower
+                                                                        a xs ss bvs hXsEnv hBvsEnv hSs
+                                                                        (fun q v vs hEq =>
+                                                                          hBinder ⟨q, v, vs, hEq⟩)
+                                                                        hFTrans
+                                                                        (fun h =>
+                                                                          str_to_upper_arg_has_smt_translation_of_has_smt_translation h)
+                                                                        (fun X => by
+                                                                          change
+                                                                            __eo_typeof_str_to_lower
+                                                                                (__eo_typeof X) =
+                                                                              __eo_typeof_str_to_lower
+                                                                                (__eo_typeof X)
+                                                                          rfl)
+                                                                        (by rfl)
+                                                                        (fun hATrans hATy =>
+                                                                          hRec
+                                                                            (G := a)
+                                                                            (xs' := xs)
+                                                                            (ss' := ss)
+                                                                            (bvs' := bvs)
+                                                                            (by simp)
+                                                                            hXsEnv hBvsEnv
+                                                                            hATrans hSs
+                                                                            hEntryTypes hATy)
+                                                                        hTy
+                                                                  · by_cases hStrToCode :
+                                                                      f = Term.UOp UserOp.str_to_code
+                                                                    · subst f
+                                                                      exact
+                                                                        substitute_simul_unary_op_typeof_eq_via_type_fn
+                                                                          UserOp.str_to_code
+                                                                          __eo_typeof_str_to_code
+                                                                          a xs ss bvs hXsEnv hBvsEnv hSs
+                                                                          (fun q v vs hEq =>
+                                                                            hBinder ⟨q, v, vs, hEq⟩)
+                                                                          hFTrans
+                                                                          (fun h =>
+                                                                            str_to_code_arg_has_smt_translation_of_has_smt_translation h)
+                                                                          (fun X => by
+                                                                            change
+                                                                              __eo_typeof_str_to_code
+                                                                                  (__eo_typeof X) =
+                                                                                __eo_typeof_str_to_code
+                                                                                  (__eo_typeof X)
+                                                                            rfl)
+                                                                          (by rfl)
+                                                                          (fun hATrans hATy =>
+                                                                            hRec
+                                                                              (G := a)
+                                                                              (xs' := xs)
+                                                                              (ss' := ss)
+                                                                              (bvs' := bvs)
+                                                                              (by simp)
+                                                                              hXsEnv hBvsEnv
+                                                                              hATrans hSs
+                                                                              hEntryTypes hATy)
+                                                                          hTy
+                                                                    · by_cases hStrFromCode :
+                                                                        f = Term.UOp UserOp.str_from_code
+                                                                      · subst f
+                                                                        exact
+                                                                          substitute_simul_unary_op_typeof_eq_via_type_fn
+                                                                            UserOp.str_from_code
+                                                                            __eo_typeof_str_from_code
+                                                                            a xs ss bvs hXsEnv hBvsEnv hSs
+                                                                            (fun q v vs hEq =>
+                                                                              hBinder ⟨q, v, vs, hEq⟩)
+                                                                            hFTrans
+                                                                            (fun h =>
+                                                                              str_from_code_arg_has_smt_translation_of_has_smt_translation h)
+                                                                            (fun X => by
+                                                                              change
+                                                                                __eo_typeof_str_from_code
+                                                                                    (__eo_typeof X) =
+                                                                                  __eo_typeof_str_from_code
+                                                                                    (__eo_typeof X)
+                                                                              rfl)
+                                                                            (by rfl)
+                                                                            (fun hATrans hATy =>
+                                                                              hRec
+                                                                                (G := a)
+                                                                                (xs' := xs)
+                                                                                (ss' := ss)
+                                                                                (bvs' := bvs)
+                                                                                (by simp)
+                                                                                hXsEnv hBvsEnv
+                                                                                hATrans hSs
+                                                                                hEntryTypes hATy)
+                                                                            hTy
+                                                                      · by_cases hStrIsDigit :
+                                                                          f = Term.UOp UserOp.str_is_digit
+                                                                        · subst f
+                                                                          exact
+                                                                            substitute_simul_unary_op_typeof_eq_via_type_fn
+                                                                              UserOp.str_is_digit
+                                                                              __eo_typeof_str_is_digit
+                                                                              a xs ss bvs hXsEnv hBvsEnv hSs
+                                                                              (fun q v vs hEq =>
+                                                                                hBinder ⟨q, v, vs, hEq⟩)
+                                                                              hFTrans
+                                                                              (fun h =>
+                                                                                str_is_digit_arg_has_smt_translation_of_has_smt_translation h)
+                                                                              (fun X => by
+                                                                                change
+                                                                                  __eo_typeof_str_is_digit
+                                                                                      (__eo_typeof X) =
+                                                                                    __eo_typeof_str_is_digit
+                                                                                      (__eo_typeof X)
+                                                                                rfl)
+                                                                              (by rfl)
+                                                                              (fun hATrans hATy =>
+                                                                                hRec
+                                                                                  (G := a)
+                                                                                  (xs' := xs)
+                                                                                  (ss' := ss)
+                                                                                  (bvs' := bvs)
+                                                                                  (by simp)
+                                                                                  hXsEnv hBvsEnv
+                                                                                  hATrans hSs
+                                                                                  hEntryTypes hATy)
+                                                                              hTy
+                                                                        · by_cases hStrFromInt :
+                                                                            f = Term.UOp UserOp.str_from_int
+                                                                          · subst f
+                                                                            exact
+                                                                              substitute_simul_unary_op_typeof_eq_via_type_fn
+                                                                                UserOp.str_from_int
+                                                                                __eo_typeof_str_from_code
+                                                                                a xs ss bvs hXsEnv hBvsEnv hSs
+                                                                                (fun q v vs hEq =>
+                                                                                  hBinder ⟨q, v, vs, hEq⟩)
+                                                                                hFTrans
+                                                                                (fun h =>
+                                                                                  str_from_int_arg_has_smt_translation_of_has_smt_translation h)
+                                                                                (fun X => by
+                                                                                  change
+                                                                                    __eo_typeof_str_from_code
+                                                                                        (__eo_typeof X) =
+                                                                                      __eo_typeof_str_from_code
+                                                                                        (__eo_typeof X)
+                                                                                  rfl)
+                                                                                (by rfl)
+                                                                                (fun hATrans hATy =>
+                                                                                  hRec
+                                                                                    (G := a)
+                                                                                    (xs' := xs)
+                                                                                    (ss' := ss)
+                                                                                    (bvs' := bvs)
+                                                                                    (by simp)
+                                                                                    hXsEnv hBvsEnv
+                                                                                    hATrans hSs
+                                                                                    hEntryTypes hATy)
+                                                                                hTy
+                                                                          · by_cases hRePlus :
+                                                                              f = Term.UOp UserOp.re_plus
+                                                                            · subst f
+                                                                              exact
+                                                                                substitute_simul_unary_op_typeof_eq_via_type_fn
+                                                                                  UserOp.re_plus
+                                                                                  __eo_typeof_re_mult
+                                                                                  a xs ss bvs hXsEnv hBvsEnv hSs
+                                                                                  (fun q v vs hEq =>
+                                                                                    hBinder ⟨q, v, vs, hEq⟩)
+                                                                                  hFTrans
+                                                                                  (fun h =>
+                                                                                    re_plus_arg_has_smt_translation_of_has_smt_translation h)
+                                                                                  (fun X => by
+                                                                                    change
+                                                                                      __eo_typeof_re_mult
+                                                                                          (__eo_typeof X) =
+                                                                                        __eo_typeof_re_mult
+                                                                                          (__eo_typeof X)
+                                                                                    rfl)
+                                                                                  (by rfl)
+                                                                                  (fun hATrans hATy =>
+                                                                                    hRec
+                                                                                      (G := a)
+                                                                                      (xs' := xs)
+                                                                                      (ss' := ss)
+                                                                                      (bvs' := bvs)
+                                                                                      (by simp)
+                                                                                      hXsEnv hBvsEnv
+                                                                                      hATrans hSs
+                                                                                      hEntryTypes hATy)
+                                                                                  hTy
+                                                                            · by_cases hReOpt :
+                                                                                f = Term.UOp UserOp.re_opt
+                                                                              · subst f
+                                                                                exact
+                                                                                  substitute_simul_unary_op_typeof_eq_via_type_fn
+                                                                                    UserOp.re_opt
+                                                                                    __eo_typeof_re_mult
+                                                                                    a xs ss bvs hXsEnv hBvsEnv hSs
+                                                                                    (fun q v vs hEq =>
+                                                                                      hBinder ⟨q, v, vs, hEq⟩)
+                                                                                    hFTrans
+                                                                                    (fun h =>
+                                                                                      re_opt_arg_has_smt_translation_of_has_smt_translation h)
+                                                                                    (fun X => by
+                                                                                      change
+                                                                                        __eo_typeof_re_mult
+                                                                                            (__eo_typeof X) =
+                                                                                          __eo_typeof_re_mult
+                                                                                            (__eo_typeof X)
+                                                                                      rfl)
+                                                                                    (by rfl)
+                                                                                    (fun hATrans hATy =>
+                                                                                      hRec
+                                                                                        (G := a)
+                                                                                        (xs' := xs)
+                                                                                        (ss' := ss)
+                                                                                        (bvs' := bvs)
+                                                                                        (by simp)
+                                                                                        hXsEnv hBvsEnv
+                                                                                        hATrans hSs
+                                                                                        hEntryTypes hATy)
+                                                                                    hTy
+                                                                              · by_cases hReComp :
+                                                                                  f = Term.UOp UserOp.re_comp
+                                                                                · subst f
+                                                                                  exact
+                                                                                    substitute_simul_unary_op_typeof_eq_via_type_fn
+                                                                                      UserOp.re_comp
+                                                                                      __eo_typeof_re_mult
+                                                                                      a xs ss bvs hXsEnv hBvsEnv hSs
+                                                                                      (fun q v vs hEq =>
+                                                                                        hBinder ⟨q, v, vs, hEq⟩)
+                                                                                      hFTrans
+                                                                                      (fun h =>
+                                                                                        re_comp_arg_has_smt_translation_of_has_smt_translation h)
+                                                                                      (fun X => by
+                                                                                        change
+                                                                                          __eo_typeof_re_mult
+                                                                                              (__eo_typeof X) =
+                                                                                            __eo_typeof_re_mult
+                                                                                              (__eo_typeof X)
+                                                                                        rfl)
+                                                                                      (by rfl)
+                                                                                      (fun hATrans hATy =>
+                                                                                        hRec
+                                                                                          (G := a)
+                                                                                          (xs' := xs)
+                                                                                          (ss' := ss)
+                                                                                          (bvs' := bvs)
+                                                                                          (by simp)
+                                                                                          hXsEnv hBvsEnv
+                                                                                          hATrans hSs
+                                                                                          hEntryTypes hATy)
+                                                                                      hTy
+                                                                                · by_cases hStoi :
+                                                                                    f = Term.UOp UserOp._at_strings_stoi_non_digit
+                                                                                  · subst f
+                                                                                    exact
+                                                                                      substitute_simul_unary_op_typeof_eq_via_type_fn
+                                                                                        UserOp._at_strings_stoi_non_digit
+                                                                                        __eo_typeof_str_to_code
+                                                                                        a xs ss bvs hXsEnv hBvsEnv hSs
+                                                                                        (fun q v vs hEq =>
+                                                                                          hBinder ⟨q, v, vs, hEq⟩)
+                                                                                        hFTrans
+                                                                                        (fun h =>
+                                                                                          strings_stoi_non_digit_arg_has_smt_translation_of_has_smt_translation h)
+                                                                                        (fun X => by
+                                                                                          change
+                                                                                            __eo_typeof_str_to_code
+                                                                                                (__eo_typeof X) =
+                                                                                              __eo_typeof_str_to_code
+                                                                                                (__eo_typeof X)
+                                                                                          rfl)
+                                                                                        (by rfl)
+                                                                                        (fun hATrans hATy =>
+                                                                                          hRec
+                                                                                            (G := a)
+                                                                                            (xs' := xs)
+                                                                                            (ss' := ss)
+                                                                                            (bvs' := bvs)
+                                                                                            (by simp)
+                                                                                            hXsEnv hBvsEnv
+                                                                                            hATrans hSs
+                                                                                            hEntryTypes hATy)
+                                                                                        hTy
+                                                                                  · by_cases hSeqUnit :
+                                                                                      f = Term.UOp UserOp.seq_unit
+                                                                                    · subst f
+                                                                                      exact
+                                                                                        substitute_simul_unary_op_typeof_eq_via_type_fn
+                                                                                          UserOp.seq_unit
+                                                                                          __eo_typeof_seq_unit
+                                                                                          a xs ss bvs hXsEnv hBvsEnv hSs
+                                                                                          (fun q v vs hEq =>
+                                                                                            hBinder ⟨q, v, vs, hEq⟩)
+                                                                                          hFTrans
+                                                                                          (fun h =>
+                                                                                            seq_unit_arg_has_smt_translation_of_has_smt_translation h)
+                                                                                          (fun X => by
+                                                                                            change
+                                                                                              __eo_typeof_seq_unit
+                                                                                                  (__eo_typeof X) =
+                                                                                                __eo_typeof_seq_unit
+                                                                                                  (__eo_typeof X)
+                                                                                            rfl)
+                                                                                          (by rfl)
+                                                                                          (fun hATrans hATy =>
+                                                                                            hRec
+                                                                                              (G := a)
+                                                                                              (xs' := xs)
+                                                                                              (ss' := ss)
+                                                                                              (bvs' := bvs)
+                                                                                              (by simp)
+                                                                                              hXsEnv hBvsEnv
+                                                                                              hATrans hSs
+                                                                                              hEntryTypes hATy)
+                                                                                          hTy
+                                                                                    · by_cases hSetSingleton :
+                                                                                        f = Term.UOp UserOp.set_singleton
+                                                                                      · subst f
+                                                                                        exact
+                                                                                          substitute_simul_unary_op_typeof_eq_via_type_fn
+                                                                                            UserOp.set_singleton
+                                                                                            __eo_typeof_set_singleton
+                                                                                            a xs ss bvs hXsEnv hBvsEnv hSs
+                                                                                            (fun q v vs hEq =>
+                                                                                              hBinder ⟨q, v, vs, hEq⟩)
+                                                                                            hFTrans
+                                                                                            (fun h =>
+                                                                                              set_singleton_arg_has_smt_translation_of_has_smt_translation h)
+                                                                                            (fun X => by
+                                                                                              change
+                                                                                                __eo_typeof_set_singleton
+                                                                                                    (__eo_typeof X) =
+                                                                                                  __eo_typeof_set_singleton
+                                                                                                    (__eo_typeof X)
+                                                                                              rfl)
+                                                                                            (by rfl)
+                                                                                            (fun hATrans hATy =>
+                                                                                              hRec
+                                                                                                (G := a)
+                                                                                                (xs' := xs)
+                                                                                                (ss' := ss)
+                                                                                                (bvs' := bvs)
+                                                                                                (by simp)
+                                                                                                hXsEnv hBvsEnv
+                                                                                                hATrans hSs
+                                                                                                hEntryTypes hATy)
+                                                                                            hTy
+                                                                                      · by_cases hSetChoose :
+                                                                                          f = Term.UOp UserOp.set_choose
+                                                                                        · subst f
+                                                                                          exact
+                                                                                            substitute_simul_unary_op_typeof_eq_via_type_fn
+                                                                                              UserOp.set_choose
+                                                                                              __eo_typeof_set_choose
+                                                                                              a xs ss bvs hXsEnv hBvsEnv hSs
+                                                                                              (fun q v vs hEq =>
+                                                                                                hBinder ⟨q, v, vs, hEq⟩)
+                                                                                              hFTrans
+                                                                                              (fun h =>
+                                                                                                set_choose_arg_has_smt_translation_of_has_smt_translation h)
+                                                                                              (fun X => by
+                                                                                                change
+                                                                                                  __eo_typeof_set_choose
+                                                                                                      (__eo_typeof X) =
+                                                                                                    __eo_typeof_set_choose
+                                                                                                      (__eo_typeof X)
+                                                                                                rfl)
+                                                                                              (by rfl)
+                                                                                              (fun hATrans hATy =>
+                                                                                                hRec
+                                                                                                  (G := a)
+                                                                                                  (xs' := xs)
+                                                                                                  (ss' := ss)
+                                                                                                  (bvs' := bvs)
+                                                                                                  (by simp)
+                                                                                                  hXsEnv hBvsEnv
+                                                                                                  hATrans hSs
+                                                                                                  hEntryTypes hATy)
+                                                                                              hTy
+                                                                                        · by_cases hSetEmpty :
+                                                                                            f = Term.UOp UserOp.set_is_empty
+                                                                                          · subst f
+                                                                                            exact
+                                                                                              substitute_simul_unary_op_typeof_eq_via_type_fn
+                                                                                                UserOp.set_is_empty
+                                                                                                __eo_typeof_set_is_empty
+                                                                                                a xs ss bvs hXsEnv hBvsEnv hSs
+                                                                                                (fun q v vs hEq =>
+                                                                                                  hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                hFTrans
+                                                                                                (fun h =>
+                                                                                                  set_is_empty_arg_has_smt_translation_of_has_smt_translation h)
+                                                                                                (fun X => by
+                                                                                                  change
+                                                                                                    __eo_typeof_set_is_empty
+                                                                                                        (__eo_typeof X) =
+                                                                                                      __eo_typeof_set_is_empty
+                                                                                                        (__eo_typeof X)
+                                                                                                  rfl)
+                                                                                                (by rfl)
+                                                                                                (fun hATrans hATy =>
+                                                                                                  hRec
+                                                                                                    (G := a)
+                                                                                                    (xs' := xs)
+                                                                                                    (ss' := ss)
+                                                                                                    (bvs' := bvs)
+                                                                                                    (by simp)
+                                                                                                    hXsEnv hBvsEnv
+                                                                                                    hATrans hSs
+                                                                                                    hEntryTypes hATy)
+                                                                                                hTy
+                                                                                          · by_cases hSetIsSingleton :
+                                                                                              f = Term.UOp UserOp.set_is_singleton
+                                                                                            · subst f
+                                                                                              exact
+                                                                                                substitute_simul_unary_op_typeof_eq_via_type_fn
+                                                                                                  UserOp.set_is_singleton
+                                                                                                  __eo_typeof_set_is_empty
+                                                                                                  a xs ss bvs hXsEnv hBvsEnv hSs
+                                                                                                  (fun q v vs hEq =>
+                                                                                                    hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                  hFTrans
+                                                                                                  (fun h =>
+                                                                                                    set_is_singleton_arg_has_smt_translation_of_has_smt_translation h)
+                                                                                                  (fun X => by
+                                                                                                    change
+                                                                                                      __eo_typeof_set_is_empty
+                                                                                                          (__eo_typeof X) =
+                                                                                                        __eo_typeof_set_is_empty
+                                                                                                          (__eo_typeof X)
+                                                                                                    rfl)
+                                                                                                  (by rfl)
+                                                                                                  (fun hATrans hATy =>
+                                                                                                    hRec
+                                                                                                      (G := a)
+                                                                                                      (xs' := xs)
+                                                                                                      (ss' := ss)
+                                                                                                      (bvs' := bvs)
+                                                                                                      (by simp)
+                                                                                                      hXsEnv hBvsEnv
+                                                                                                      hATrans hSs
+                                                                                                      hEntryTypes hATy)
+                                                                                                  hTy
+                                                                                            · cases f with
+                                                                                              | Apply g x1 =>
+                                                                                                  cases g with
+                                                                                                  | UOp op =>
+                                                                                                      have hCurrentBin :
+                                                                                                          ∀ (typeFn : Term -> Term -> Term),
+                                                                                                            (eoHasSmtTranslation
+                                                                                                                (Term.Apply
+                                                                                                                  (Term.Apply (Term.UOp op) x1) a) ->
+                                                                                                              eoHasSmtTranslation x1 ∧
+                                                                                                                eoHasSmtTranslation a) ->
+                                                                                                            (∀ X Y,
+                                                                                                              __eo_typeof
+                                                                                                                  (Term.Apply
+                                                                                                                    (Term.Apply (Term.UOp op) X) Y) =
+                                                                                                                typeFn (__eo_typeof X)
+                                                                                                                  (__eo_typeof Y)) ->
+                                                                                                            (∀ Y, typeFn Term.Stuck Y =
+                                                                                                              Term.Stuck) ->
+                                                                                                            (∀ X, typeFn X Term.Stuck =
+                                                                                                              Term.Stuck) ->
+                                                                                                            __eo_typeof
+                                                                                                                (__substitute_simul_rec
+                                                                                                                  (Term.Boolean false)
+                                                                                                                  (Term.Apply
+                                                                                                                    (Term.Apply
+                                                                                                                      (Term.UOp op) x1) a)
+                                                                                                                  xs ss bvs) =
+                                                                                                              __eo_typeof
+                                                                                                                (Term.Apply
+                                                                                                                  (Term.Apply
+                                                                                                                    (Term.UOp op) x1) a) := by
+                                                                                                        intro typeFn hArgExtract hTypeFn
+                                                                                                          hTypeFnStuckLeft
+                                                                                                          hTypeFnStuckRight
+                                                                                                        exact
+                                                                                                          substitute_simul_binary_op_typeof_eq_via_type_fn
+                                                                                                            op typeFn x1 a xs ss bvs
+                                                                                                            hXsEnv hBvsEnv hSs
+                                                                                                            (fun q v vs hEq =>
+                                                                                                              hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                            hFTrans
+                                                                                                            hArgExtract hTypeFn
+                                                                                                            hTypeFnStuckLeft
+                                                                                                            hTypeFnStuckRight
+                                                                                                            (fun hXTrans hXTy =>
+                                                                                                              hRec
+                                                                                                                (G := x1)
+                                                                                                                (xs' := xs)
+                                                                                                                (ss' := ss)
+                                                                                                                (bvs' := bvs)
+                                                                                                                (by simp; omega)
+                                                                                                                hXsEnv hBvsEnv
+                                                                                                                hXTrans hSs
+                                                                                                                hEntryTypes hXTy)
+                                                                                                            (fun hATrans hATy =>
+                                                                                                              hRec
+                                                                                                                (G := a)
+                                                                                                                (xs' := xs)
+                                                                                                                (ss' := ss)
+                                                                                                                (bvs' := bvs)
+                                                                                                                (by simp; omega)
+                                                                                                                hXsEnv hBvsEnv
+                                                                                                                hATrans hSs
+                                                                                                                hEntryTypes hATy)
+                                                                                                            hTy
+                                                                                                      have hCurrentSmtBin :
+                                                                                                          ∀
+                                                                                                            (smtOp :
+                                                                                                              SmtTerm ->
+                                                                                                                SmtTerm ->
+                                                                                                                  SmtTerm)
+                                                                                                            (typeFn :
+                                                                                                              Term ->
+                                                                                                                Term ->
+                                                                                                                  Term),
+                                                                                                            __eo_to_smt
+                                                                                                                (Term.Apply
+                                                                                                                  (Term.Apply
+                                                                                                                    (Term.UOp op)
+                                                                                                                    x1) a) =
+                                                                                                              smtOp
+                                                                                                                (__eo_to_smt x1)
+                                                                                                                (__eo_to_smt a) ->
+                                                                                                            (term_has_non_none_type
+                                                                                                                (smtOp
+                                                                                                                  (__eo_to_smt x1)
+                                                                                                                  (__eo_to_smt a)) ->
+                                                                                                              eoHasSmtTranslation x1 ∧
+                                                                                                                eoHasSmtTranslation a) ->
+                                                                                                            (∀ X Y,
+                                                                                                              __eo_typeof
+                                                                                                                  (Term.Apply
+                                                                                                                    (Term.Apply
+                                                                                                                      (Term.UOp op)
+                                                                                                                      X) Y) =
+                                                                                                                typeFn
+                                                                                                                  (__eo_typeof X)
+                                                                                                                  (__eo_typeof Y)) ->
+                                                                                                            (∀ Y,
+                                                                                                              typeFn Term.Stuck Y =
+                                                                                                                Term.Stuck) ->
+                                                                                                            (∀ X,
+                                                                                                              typeFn X Term.Stuck =
+                                                                                                                Term.Stuck) ->
+                                                                                                            __eo_typeof
+                                                                                                                (__substitute_simul_rec
+                                                                                                                  (Term.Boolean false)
+                                                                                                                  (Term.Apply
+                                                                                                                    (Term.Apply
+                                                                                                                      (Term.UOp op)
+                                                                                                                      x1) a)
+                                                                                                                  xs ss bvs) =
+                                                                                                              __eo_typeof
+                                                                                                                (Term.Apply
+                                                                                                                  (Term.Apply
+                                                                                                                    (Term.UOp op)
+                                                                                                                    x1) a) := by
+                                                                                                        intro smtOp typeFn hTranslate
+                                                                                                          hArgs hTypeFn hTypeFnStuckLeft
+                                                                                                          hTypeFnStuckRight
+                                                                                                        exact
+                                                                                                          hCurrentBin typeFn
+                                                                                                            (fun h =>
+                                                                                                              apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
+                                                                                                                hTranslate hArgs h)
+                                                                                                            hTypeFn hTypeFnStuckLeft
+                                                                                                            hTypeFnStuckRight
+                                                                                                      have hCurrentBvBin :
+                                                                                                          ∀
+                                                                                                            (smtOp :
+                                                                                                              SmtTerm ->
+                                                                                                                SmtTerm ->
+                                                                                                                  SmtTerm),
+                                                                                                            __eo_to_smt
+                                                                                                                (Term.Apply
+                                                                                                                  (Term.Apply
+                                                                                                                    (Term.UOp op)
+                                                                                                                    x1) a) =
+                                                                                                              smtOp
+                                                                                                                (__eo_to_smt x1)
+                                                                                                                (__eo_to_smt a) ->
+                                                                                                            (term_has_non_none_type
+                                                                                                                (smtOp
+                                                                                                                  (__eo_to_smt x1)
+                                                                                                                  (__eo_to_smt a)) ->
+                                                                                                              eoHasSmtTranslation x1 ∧
+                                                                                                                eoHasSmtTranslation a) ->
+                                                                                                            (∀ X Y,
+                                                                                                              __eo_typeof
+                                                                                                                  (Term.Apply
+                                                                                                                    (Term.Apply
+                                                                                                                      (Term.UOp op)
+                                                                                                                      X) Y) =
+                                                                                                                __eo_typeof_bvand
+                                                                                                                  (__eo_typeof X)
+                                                                                                                  (__eo_typeof Y)) ->
+                                                                                                            __eo_typeof
+                                                                                                                (__substitute_simul_rec
+                                                                                                                  (Term.Boolean false)
+                                                                                                                  (Term.Apply
+                                                                                                                    (Term.Apply
+                                                                                                                      (Term.UOp op)
+                                                                                                                      x1) a)
+                                                                                                                  xs ss bvs) =
+                                                                                                              __eo_typeof
+                                                                                                                (Term.Apply
+                                                                                                                  (Term.Apply
+                                                                                                                    (Term.UOp op)
+                                                                                                                    x1) a) := by
+                                                                                                        intro smtOp hTranslate hArgs hTypeFn
+                                                                                                        exact
+                                                                                                          hCurrentSmtBin smtOp
+                                                                                                            __eo_typeof_bvand hTranslate
+                                                                                                            hArgs
+                                                                                                            hTypeFn
+                                                                                                            eo_typeof_bvand_stuck_left
+                                                                                                            eo_typeof_bvand_stuck_right
+                                                                                                      have hCurrentBvRetBool :
+                                                                                                          ∀
+                                                                                                            (smtOp :
+                                                                                                              SmtTerm ->
+                                                                                                                SmtTerm ->
+                                                                                                                  SmtTerm),
+                                                                                                            __eo_to_smt
+                                                                                                                (Term.Apply
+                                                                                                                  (Term.Apply
+                                                                                                                    (Term.UOp op)
+                                                                                                                    x1) a) =
+                                                                                                              smtOp
+                                                                                                                (__eo_to_smt x1)
+                                                                                                                (__eo_to_smt a) ->
+                                                                                                            (term_has_non_none_type
+                                                                                                                (smtOp
+                                                                                                                  (__eo_to_smt x1)
+                                                                                                                  (__eo_to_smt a)) ->
+                                                                                                              eoHasSmtTranslation x1 ∧
+                                                                                                                eoHasSmtTranslation a) ->
+                                                                                                            (∀ X Y,
+                                                                                                              __eo_typeof
+                                                                                                                  (Term.Apply
+                                                                                                                    (Term.Apply
+                                                                                                                      (Term.UOp op)
+                                                                                                                      X) Y) =
+                                                                                                                __eo_typeof_bvult
+                                                                                                                  (__eo_typeof X)
+                                                                                                                  (__eo_typeof Y)) ->
+                                                                                                            __eo_typeof
+                                                                                                                (__substitute_simul_rec
+                                                                                                                  (Term.Boolean false)
+                                                                                                                  (Term.Apply
+                                                                                                                    (Term.Apply
+                                                                                                                      (Term.UOp op)
+                                                                                                                      x1) a)
+                                                                                                                  xs ss bvs) =
+                                                                                                              __eo_typeof
+                                                                                                                (Term.Apply
+                                                                                                                  (Term.Apply
+                                                                                                                    (Term.UOp op)
+                                                                                                                    x1) a) := by
+                                                                                                        intro smtOp hTranslate hArgs hTypeFn
+                                                                                                        exact
+                                                                                                          hCurrentSmtBin smtOp
+                                                                                                            __eo_typeof_bvult hTranslate
+                                                                                                            hArgs
+                                                                                                            hTypeFn
+                                                                                                            eo_typeof_bvult_stuck_left
+                                                                                                            eo_typeof_bvult_stuck_right
+                                                                                                      by_cases hAnd : op = UserOp.and
+                                                                                                      · subst op
+                                                                                                        exact
+                                                                                                          hCurrentBin __eo_typeof_or
+                                                                                                            (fun h =>
+                                                                                                              and_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                            (fun X Y => by
+                                                                                                              change
+                                                                                                                __eo_typeof_or
+                                                                                                                    (__eo_typeof X)
+                                                                                                                    (__eo_typeof Y) =
+                                                                                                                  __eo_typeof_or
+                                                                                                                    (__eo_typeof X)
+                                                                                                                    (__eo_typeof Y)
+                                                                                                              rfl)
+                                                                                                            (by intro Y; cases Y <;> rfl)
+                                                                                                            (by intro X; cases X <;> rfl)
+                                                                                                      · by_cases hOr : op = UserOp.or
+                                                                                                        · subst op
+                                                                                                          exact
+                                                                                                            hCurrentBin __eo_typeof_or
+                                                                                                              (fun h =>
+                                                                                                                or_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                              (fun X Y => by
+                                                                                                                change
+                                                                                                                  __eo_typeof_or
+                                                                                                                      (__eo_typeof X)
+                                                                                                                      (__eo_typeof Y) =
+                                                                                                                    __eo_typeof_or
+                                                                                                                      (__eo_typeof X)
+                                                                                                                      (__eo_typeof Y)
+                                                                                                                rfl)
+                                                                                                              (by intro Y; cases Y <;> rfl)
+                                                                                                              (by intro X; cases X <;> rfl)
+                                                                                                        · by_cases hImp : op = UserOp.imp
+                                                                                                          · subst op
+                                                                                                            exact
+                                                                                                              hCurrentBin __eo_typeof_or
+                                                                                                                (fun h =>
+                                                                                                                  imp_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                                (fun X Y => by
+                                                                                                                  change
+                                                                                                                    __eo_typeof_or
+                                                                                                                        (__eo_typeof X)
+                                                                                                                        (__eo_typeof Y) =
+                                                                                                                      __eo_typeof_or
+                                                                                                                        (__eo_typeof X)
+                                                                                                                        (__eo_typeof Y)
+                                                                                                                  rfl)
+                                                                                                                (by intro Y; cases Y <;> rfl)
+                                                                                                                (by intro X; cases X <;> rfl)
+                                                                                                          · by_cases hXor :
+                                                                                                              op = UserOp.xor
+                                                                                                            · subst op
+                                                                                                              exact
+                                                                                                                hCurrentBin __eo_typeof_or
+                                                                                                                  (fun h =>
+                                                                                                                    xor_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                                  (fun X Y => by
+                                                                                                                    change
+                                                                                                                      __eo_typeof_or
+                                                                                                                          (__eo_typeof X)
+                                                                                                                          (__eo_typeof Y) =
+                                                                                                                        __eo_typeof_or
+                                                                                                                          (__eo_typeof X)
+                                                                                                                          (__eo_typeof Y)
+                                                                                                                    rfl)
+                                                                                                                  (by intro Y; cases Y <;> rfl)
+                                                                                                                  (by intro X; cases X <;> rfl)
+                                                                                                            · by_cases hEq :
+                                                                                                                op = UserOp.eq
+                                                                                                              · subst op
+                                                                                                                exact
+                                                                                                                  hCurrentBin __eo_typeof_eq
+                                                                                                                    (fun h =>
+                                                                                                                      eq_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                                    (fun X Y => by
+                                                                                                                      change
+                                                                                                                        __eo_typeof_eq
+                                                                                                                            (__eo_typeof X)
+                                                                                                                            (__eo_typeof Y) =
+                                                                                                                          __eo_typeof_eq
+                                                                                                                            (__eo_typeof X)
+                                                                                                                            (__eo_typeof Y)
+                                                                                                                      rfl)
+                                                                                                                    (by intro Y; cases Y <;> rfl)
+                                                                                                                    (by intro X; cases X <;> rfl)
+                                                                                                              · by_cases hPlus :
+                                                                                                                  op = UserOp.plus
+                                                                                                                · subst op
+                                                                                                                  exact
+                                                                                                                    hCurrentBin __eo_typeof_plus
+                                                                                                                      (fun h =>
+                                                                                                                        plus_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                                      (fun X Y => by
+                                                                                                                        change
+                                                                                                                          __eo_typeof_plus
+                                                                                                                              (__eo_typeof X)
+                                                                                                                              (__eo_typeof Y) =
+                                                                                                                            __eo_typeof_plus
+                                                                                                                              (__eo_typeof X)
+                                                                                                                              (__eo_typeof Y)
+                                                                                                                        rfl)
+                                                                                                                      (by intro Y; cases Y <;> rfl)
+                                                                                                                      (by intro X; cases X <;> rfl)
+                                                                                                                · by_cases hNeg :
+                                                                                                                    op = UserOp.neg
+                                                                                                                  · subst op
+                                                                                                                    exact
+                                                                                                                      hCurrentBin __eo_typeof_plus
+                                                                                                                        (fun h =>
+                                                                                                                          neg_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                                        (fun X Y => by
+                                                                                                                          change
+                                                                                                                            __eo_typeof_plus
+                                                                                                                                (__eo_typeof X)
+                                                                                                                                (__eo_typeof Y) =
+                                                                                                                              __eo_typeof_plus
+                                                                                                                                (__eo_typeof X)
+                                                                                                                                (__eo_typeof Y)
+                                                                                                                          rfl)
+                                                                                                                        (by intro Y; cases Y <;> rfl)
+                                                                                                                        (by intro X; cases X <;> rfl)
+                                                                                                                  · by_cases hMult :
+                                                                                                                      op = UserOp.mult
+                                                                                                                    · subst op
+                                                                                                                      exact
+                                                                                                                        hCurrentBin __eo_typeof_plus
+                                                                                                                          (fun h =>
+                                                                                                                            mult_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                                          (fun X Y => by
+                                                                                                                            change
+                                                                                                                              __eo_typeof_plus
+                                                                                                                                  (__eo_typeof X)
+                                                                                                                                  (__eo_typeof Y) =
+                                                                                                                                __eo_typeof_plus
+                                                                                                                                  (__eo_typeof X)
+                                                                                                                                  (__eo_typeof Y)
+                                                                                                                            rfl)
+                                                                                                                          (by intro Y; cases Y <;> rfl)
+                                                                                                                          (by intro X; cases X <;> rfl)
+                                                                                                                    · by_cases hLt :
+                                                                                                                        op = UserOp.lt
+                                                                                                                      · subst op
+                                                                                                                        exact
+                                                                                                                          hCurrentBin __eo_typeof_lt
+                                                                                                                            (fun h =>
+                                                                                                                              lt_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                                            (fun X Y => by
+                                                                                                                              change
+                                                                                                                                __eo_typeof_lt
+                                                                                                                                    (__eo_typeof X)
+                                                                                                                                    (__eo_typeof Y) =
+                                                                                                                                  __eo_typeof_lt
+                                                                                                                                    (__eo_typeof X)
+                                                                                                                                    (__eo_typeof Y)
+                                                                                                                              rfl)
+                                                                                                                            (by intro Y; cases Y <;> rfl)
+                                                                                                                            (by intro X; cases X <;> rfl)
+                                                                                                                      · by_cases hLeq :
+                                                                                                                          op = UserOp.leq
+                                                                                                                        · subst op
+                                                                                                                          exact
+                                                                                                                            hCurrentBin __eo_typeof_lt
+                                                                                                                              (fun h =>
+                                                                                                                                leq_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                                              (fun X Y => by
+                                                                                                                                change
+                                                                                                                                  __eo_typeof_lt
+                                                                                                                                      (__eo_typeof X)
+                                                                                                                                      (__eo_typeof Y) =
+                                                                                                                                    __eo_typeof_lt
+                                                                                                                                      (__eo_typeof X)
+                                                                                                                                      (__eo_typeof Y)
+                                                                                                                                rfl)
+                                                                                                                              (by intro Y; cases Y <;> rfl)
+                                                                                                                              (by intro X; cases X <;> rfl)
+                                                                                                                        · by_cases hGt :
+                                                                                                                            op = UserOp.gt
+                                                                                                                          · subst op
+                                                                                                                            exact
+                                                                                                                              hCurrentBin __eo_typeof_lt
+                                                                                                                                (fun h =>
+                                                                                                                                  gt_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                                                (fun X Y => by
+                                                                                                                                  change
+                                                                                                                                    __eo_typeof_lt
+                                                                                                                                        (__eo_typeof X)
+                                                                                                                                        (__eo_typeof Y) =
+                                                                                                                                      __eo_typeof_lt
+                                                                                                                                        (__eo_typeof X)
+                                                                                                                                        (__eo_typeof Y)
+                                                                                                                                  rfl)
+                                                                                                                                (by intro Y; cases Y <;> rfl)
+                                                                                                                                (by intro X; cases X <;> rfl)
+                                                                                                                          · by_cases hGeq :
+                                                                                                                              op = UserOp.geq
+                                                                                                                            · subst op
+                                                                                                                              exact
+                                                                                                                                hCurrentBin __eo_typeof_lt
+                                                                                                                                  (fun h =>
+                                                                                                                                    geq_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                                                  (fun X Y => by
+                                                                                                                                    change
+                                                                                                                                      __eo_typeof_lt
+                                                                                                                                          (__eo_typeof X)
+                                                                                                                                          (__eo_typeof Y) =
+                                                                                                                                        __eo_typeof_lt
+                                                                                                                                          (__eo_typeof X)
+                                                                                                                                          (__eo_typeof Y)
+                                                                                                                                    rfl)
+                                                                                                                                  (by intro Y; cases Y <;> rfl)
+                                                                                                                                  (by intro X; cases X <;> rfl)
+                                                                                                                            · by_cases hDiv :
+                                                                                                                                op = UserOp.div
+                                                                                                                              · subst op
+                                                                                                                                exact
+                                                                                                                                  hCurrentBin __eo_typeof_div
+                                                                                                                                    (fun h =>
+                                                                                                                                      div_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                                                    (fun X Y => by
+                                                                                                                                      change
+                                                                                                                                        __eo_typeof_div
+                                                                                                                                            (__eo_typeof X)
+                                                                                                                                            (__eo_typeof Y) =
+                                                                                                                                          __eo_typeof_div
+                                                                                                                                            (__eo_typeof X)
+                                                                                                                                            (__eo_typeof Y)
+                                                                                                                                      rfl)
+                                                                                                                                    eo_typeof_div_stuck_left
+                                                                                                                                    eo_typeof_div_stuck_right
+                                                                                                                              · by_cases hMod :
+                                                                                                                                  op = UserOp.mod
+                                                                                                                                · subst op
+                                                                                                                                  exact
+                                                                                                                                    hCurrentBin __eo_typeof_div
+                                                                                                                                      (fun h =>
+                                                                                                                                        mod_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                                                      (fun X Y => by
+                                                                                                                                        change
+                                                                                                                                          __eo_typeof_div
+                                                                                                                                              (__eo_typeof X)
+                                                                                                                                              (__eo_typeof Y) =
+                                                                                                                                            __eo_typeof_div
+                                                                                                                                              (__eo_typeof X)
+                                                                                                                                              (__eo_typeof Y)
+                                                                                                                                        rfl)
+                                                                                                                                      eo_typeof_div_stuck_left
+                                                                                                                                      eo_typeof_div_stuck_right
+                                                                                                                                · by_cases hMultmult :
+                                                                                                                                    op = UserOp.multmult
+                                                                                                                                  · subst op
+                                                                                                                                    exact
+                                                                                                                                      hCurrentBin __eo_typeof_div
+                                                                                                                                        (fun h =>
+                                                                                                                                          multmult_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                                                        (fun X Y => by
+                                                                                                                                          change
+                                                                                                                                            __eo_typeof_div
+                                                                                                                                                (__eo_typeof X)
+                                                                                                                                                (__eo_typeof Y) =
+                                                                                                                                              __eo_typeof_div
+                                                                                                                                                (__eo_typeof X)
+                                                                                                                                                (__eo_typeof Y)
+                                                                                                                                          rfl)
+                                                                                                                                        eo_typeof_div_stuck_left
+                                                                                                                                        eo_typeof_div_stuck_right
+                                                                                                                                  · by_cases hDivisible :
+                                                                                                                                      op = UserOp.divisible
+                                                                                                                                    · subst op
+                                                                                                                                      exact
+                                                                                                                                        hCurrentBin __eo_typeof_divisible
+                                                                                                                                          (fun h =>
+                                                                                                                                            divisible_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                                                          (fun X Y => by
+                                                                                                                                            change
+                                                                                                                                              __eo_typeof_divisible
+                                                                                                                                                  (__eo_typeof X)
+                                                                                                                                                  (__eo_typeof Y) =
+                                                                                                                                                __eo_typeof_divisible
+                                                                                                                                                  (__eo_typeof X)
+                                                                                                                                                  (__eo_typeof Y)
+                                                                                                                                            rfl)
+                                                                                                                                          eo_typeof_divisible_stuck_left
+                                                                                                                                          eo_typeof_divisible_stuck_right
+                                                                                                                                    · by_cases hDivTotal :
+                                                                                                                                        op = UserOp.div_total
+                                                                                                                                      · subst op
+                                                                                                                                        exact
+                                                                                                                                          hCurrentBin __eo_typeof_div
+                                                                                                                                            (fun h =>
+                                                                                                                                              div_total_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                                                            (fun X Y => by
+                                                                                                                                              change
+                                                                                                                                                __eo_typeof_div
+                                                                                                                                                    (__eo_typeof X)
+                                                                                                                                                    (__eo_typeof Y) =
+                                                                                                                                                  __eo_typeof_div
+                                                                                                                                                    (__eo_typeof X)
+                                                                                                                                                    (__eo_typeof Y)
+                                                                                                                                              rfl)
+                                                                                                                                            eo_typeof_div_stuck_left
+                                                                                                                                            eo_typeof_div_stuck_right
+                                                                                                                                      · by_cases hModTotal :
+                                                                                                                                          op = UserOp.mod_total
+                                                                                                                                        · subst op
+                                                                                                                                          exact
+                                                                                                                                            hCurrentBin __eo_typeof_div
+                                                                                                                                              (fun h =>
+                                                                                                                                                mod_total_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                                                              (fun X Y => by
+                                                                                                                                                change
+                                                                                                                                                  __eo_typeof_div
+                                                                                                                                                      (__eo_typeof X)
+                                                                                                                                                      (__eo_typeof Y) =
+                                                                                                                                                    __eo_typeof_div
+                                                                                                                                                      (__eo_typeof X)
+                                                                                                                                                      (__eo_typeof Y)
+                                                                                                                                                rfl)
+                                                                                                                                              eo_typeof_div_stuck_left
+                                                                                                                                              eo_typeof_div_stuck_right
+                                                                                                                                        · by_cases hMultmultTotal :
+                                                                                                                                            op = UserOp.multmult_total
+                                                                                                                                          · subst op
+                                                                                                                                            exact
+                                                                                                                                              hCurrentBin __eo_typeof_div
+                                                                                                                                                (fun h =>
+                                                                                                                                                  multmult_total_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                                                                (fun X Y => by
+                                                                                                                                                  change
+                                                                                                                                                    __eo_typeof_div
+                                                                                                                                                        (__eo_typeof X)
+                                                                                                                                                        (__eo_typeof Y) =
+                                                                                                                                                      __eo_typeof_div
+                                                                                                                                                        (__eo_typeof X)
+                                                                                                                                                        (__eo_typeof Y)
+                                                                                                                                                  rfl)
+                                                                                                                                                eo_typeof_div_stuck_left
+                                                                                                                                                eo_typeof_div_stuck_right
+                                                                                                                                          · by_cases hSelect :
+                                                                                                                                              op = UserOp.select
+                                                                                                                                            · subst op
+                                                                                                                                              exact
+                                                                                                                                                hCurrentBin __eo_typeof_select
+                                                                                                                                                  (fun h =>
+                                                                                                                                                    select_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                                                                  (fun X Y => by
+                                                                                                                                                    rfl)
+                                                                                                                                                  eo_typeof_select_stuck_left
+                                                                                                                                                  eo_typeof_select_stuck_right
+                                                                                                                                            · by_cases hArrayDeq :
+                                                                                                                                                op = UserOp._at_array_deq_diff
+                                                                                                                                              · subst op
+                                                                                                                                                exact
+                                                                                                                                                  hCurrentBin __eo_typeof__at_array_deq_diff
+                                                                                                                                                    (fun h =>
+                                                                                                                                                      array_deq_diff_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                                                                    (fun X Y => by
+                                                                                                                                                      rfl)
+                                                                                                                                                    eo_typeof_array_deq_diff_stuck_left
+                                                                                                                                                    eo_typeof_array_deq_diff_stuck_right
+                                                                                                                                              · by_cases hStringsDeq :
+                                                                                                                                                  op = UserOp._at_strings_deq_diff
+                                                                                                                                                · subst op
+                                                                                                                                                  exact
+                                                                                                                                                    hCurrentBin __eo_typeof__at_strings_deq_diff
+                                                                                                                                                      (fun h =>
+                                                                                                                                                        strings_deq_diff_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                                                                      (fun X Y => by
+                                                                                                                                                        rfl)
+                                                                                                                                                      eo_typeof_strings_deq_diff_stuck_left
+                                                                                                                                                      eo_typeof_strings_deq_diff_stuck_right
+                                                                                                                                                · by_cases hStringsStoi :
+                                                                                                                                                    op = UserOp._at_strings_stoi_result
+                                                                                                                                                  · subst op
+                                                                                                                                                    exact
+                                                                                                                                                      hCurrentBin __eo_typeof__at_strings_stoi_result
+                                                                                                                                                        (fun h =>
+                                                                                                                                                          strings_stoi_result_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                                                                        (fun X Y => by
+                                                                                                                                                          rfl)
+                                                                                                                                                        eo_typeof_strings_stoi_result_stuck_left
+                                                                                                                                                        eo_typeof_strings_stoi_result_stuck_right
+                                                                                                                                                  · by_cases hStringsItos :
+                                                                                                                                                      op = UserOp._at_strings_itos_result
+                                                                                                                                                    · subst op
+                                                                                                                                                      exact
+                                                                                                                                                        hCurrentBin __eo_typeof_div
+                                                                                                                                                          (fun h =>
+                                                                                                                                                            strings_itos_result_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                                                                          (fun X Y => by
+                                                                                                                                                            rfl)
+                                                                                                                                                          eo_typeof_div_stuck_left
+                                                                                                                                                          eo_typeof_div_stuck_right
+                                                                                                                                                    · by_cases hStringsNumOccur :
+                                                                                                                                                        op = UserOp._at_strings_num_occur
+                                                                                                                                                      · subst op
+                                                                                                                                                        exact
+                                                                                                                                                          hCurrentBin __eo_typeof__at_strings_deq_diff
+                                                                                                                                                            (fun h =>
+                                                                                                                                                              strings_num_occur_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                                                                            (fun X Y => by
+                                                                                                                                                              rfl)
+                                                                                                                                                            eo_typeof_strings_deq_diff_stuck_left
+                                                                                                                                                            eo_typeof_strings_deq_diff_stuck_right
+                                                                                                                                                      · by_cases hTuple :
+                                                                                                                                                          op = UserOp.tuple
+                                                                                                                                                        · subst op
+                                                                                                                                                          exact
+                                                                                                                                                            hCurrentBin __eo_typeof_tuple
+                                                                                                                                                              (fun h =>
+                                                                                                                                                                tuple_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                                                                              (fun X Y => by
+                                                                                                                                                                rfl)
+                                                                                                                                                              eo_typeof_tuple_stuck_left
+                                                                                                                                                              eo_typeof_tuple_stuck_right
+                                                                                                                                                        · by_cases hSetsDeq :
+                                                                                                                                                            op = UserOp._at_sets_deq_diff
+                                                                                                                                                          · subst op
+                                                                                                                                                            exact
+                                                                                                                                                              hCurrentBin __eo_typeof__at_sets_deq_diff
+                                                                                                                                                                (fun h =>
+                                                                                                                                                                  sets_deq_diff_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                                                                                (fun X Y => by
+                                                                                                                                                                  rfl)
+                                                                                                                                                                eo_typeof_sets_deq_diff_stuck_left
+                                                                                                                                                                eo_typeof_sets_deq_diff_stuck_right
+                                                                                                                                                          · by_cases hQdiv :
+                                                                                                                                                              op = UserOp.qdiv
+                                                                                                                                                            · subst op
+                                                                                                                                                              exact
+                                                                                                                                                                hCurrentBin __eo_typeof_qdiv
+                                                                                                                                                                  (fun h =>
+                                                                                                                                                                    qdiv_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                                                                                  (fun X Y => by
+                                                                                                                                                                    rfl)
+                                                                                                                                                                  eo_typeof_qdiv_stuck_left
+                                                                                                                                                                  eo_typeof_qdiv_stuck_right
+                                                                                                                                                            · by_cases hQdivTotal :
+                                                                                                                                                                op = UserOp.qdiv_total
+                                                                                                                                                              · subst op
+                                                                                                                                                                exact
+                                                                                                                                                                  hCurrentBin __eo_typeof_qdiv
+                                                                                                                                                                    (fun h =>
+                                                                                                                                                                      qdiv_total_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                                                                                    (fun X Y => by
+                                                                                                                                                                      rfl)
+                                                                                                                                                                    eo_typeof_qdiv_stuck_left
+                                                                                                                                                                    eo_typeof_qdiv_stuck_right
+                                                                                                                                                              · by_cases hConcat :
+                                                                                                                                                                  op = UserOp.concat
+                                                                                                                                                                · subst op
+                                                                                                                                                                  exact
+                                                                                                                                                                    hCurrentSmtBin
+                                                                                                                                                                      SmtTerm.concat
+                                                                                                                                                                      __eo_typeof_concat
+                                                                                                                                                                      (by rfl)
+                                                                                                                                                                      bv_concat_args_have_smt_translation_of_non_none
+                                                                                                                                                                      (fun X Y => by
+                                                                                                                                                                        rfl)
+                                                                                                                                                                      eo_typeof_concat_stuck_left
+                                                                                                                                                                      eo_typeof_concat_stuck_right
+                                                                                                                                                                · by_cases hBvand :
+                                                                                                                                                                    op = UserOp.bvand
+                                                                                                                                                                  · subst op
+                                                                                                                                                                    exact
+                                                                                                                                                                      hCurrentSmtBin
+                                                                                                                                                                        SmtTerm.bvand
+                                                                                                                                                                        __eo_typeof_bvand
+                                                                                                                                                                        (by rfl)
+                                                                                                                                                                        (fun hNN =>
+                                                                                                                                                                          bv_binop_args_have_smt_translation_of_non_none
+                                                                                                                                                                            (by rw [__smtx_typeof.eq_def])
+                                                                                                                                                                            hNN)
+                                                                                                                                                                        (fun X Y => by
+                                                                                                                                                                          rfl)
+                                                                                                                                                                        eo_typeof_bvand_stuck_left
+                                                                                                                                                                        eo_typeof_bvand_stuck_right
+                                                                                                                                                                  · by_cases hBvor :
+                                                                                                                                                                      op = UserOp.bvor
+                                                                                                                                                                    · subst op
+                                                                                                                                                                      exact
+                                                                                                                                                                        hCurrentSmtBin
+                                                                                                                                                                          SmtTerm.bvor
+                                                                                                                                                                          __eo_typeof_bvand
+                                                                                                                                                                          (by rfl)
+                                                                                                                                                                          (fun hNN =>
+                                                                                                                                                                            bv_binop_args_have_smt_translation_of_non_none
+                                                                                                                                                                              (by rw [__smtx_typeof.eq_def])
+                                                                                                                                                                              hNN)
+                                                                                                                                                                          (fun X Y => by
+                                                                                                                                                                            rfl)
+                                                                                                                                                                          eo_typeof_bvand_stuck_left
+                                                                                                                                                                          eo_typeof_bvand_stuck_right
+                                                                                                                                                                    · by_cases hBvnand :
+                                                                                                                                                                        op = UserOp.bvnand
+                                                                                                                                                                      · subst op
+                                                                                                                                                                        exact
+                                                                                                                                                                          hCurrentSmtBin
+                                                                                                                                                                            SmtTerm.bvnand
+                                                                                                                                                                            __eo_typeof_bvand
+                                                                                                                                                                            (by rfl)
+                                                                                                                                                                            (fun hNN =>
+                                                                                                                                                                              bv_binop_args_have_smt_translation_of_non_none
+                                                                                                                                                                                (by rw [__smtx_typeof.eq_def])
+                                                                                                                                                                                hNN)
+                                                                                                                                                                            (fun X Y => by
+                                                                                                                                                                              rfl)
+                                                                                                                                                                            eo_typeof_bvand_stuck_left
+                                                                                                                                                                            eo_typeof_bvand_stuck_right
+                                                                                                                                                                      · by_cases hBvnor :
+                                                                                                                                                                          op = UserOp.bvnor
+                                                                                                                                                                        · subst op
+                                                                                                                                                                          exact
+                                                                                                                                                                            hCurrentSmtBin
+                                                                                                                                                                              SmtTerm.bvnor
+                                                                                                                                                                              __eo_typeof_bvand
+                                                                                                                                                                              (by rfl)
+                                                                                                                                                                              (fun hNN =>
+                                                                                                                                                                                bv_binop_args_have_smt_translation_of_non_none
+                                                                                                                                                                                  (by rw [__smtx_typeof.eq_def])
+                                                                                                                                                                                  hNN)
+                                                                                                                                                                              (fun X Y => by
+                                                                                                                                                                                rfl)
+                                                                                                                                                                              eo_typeof_bvand_stuck_left
+                                                                                                                                                                              eo_typeof_bvand_stuck_right
+                                                                                                                                                                        · by_cases hBvxor :
+                                                                                                                                                                            op = UserOp.bvxor
+                                                                                                                                                                          · subst op
+                                                                                                                                                                            exact
+                                                                                                                                                                              hCurrentSmtBin
+                                                                                                                                                                                SmtTerm.bvxor
+                                                                                                                                                                                __eo_typeof_bvand
+                                                                                                                                                                                (by rfl)
+                                                                                                                                                                                (fun hNN =>
+                                                                                                                                                                                  bv_binop_args_have_smt_translation_of_non_none
+                                                                                                                                                                                    (by rw [__smtx_typeof.eq_def])
+                                                                                                                                                                                    hNN)
+                                                                                                                                                                                (fun X Y => by
+                                                                                                                                                                                  rfl)
+                                                                                                                                                                                eo_typeof_bvand_stuck_left
+                                                                                                                                                                                eo_typeof_bvand_stuck_right
+                                                                                                                                                                          · by_cases hBvxnor :
+                                                                                                                                                                              op = UserOp.bvxnor
+                                                                                                                                                                            · subst op
+                                                                                                                                                                              exact
+                                                                                                                                                                                hCurrentSmtBin
+                                                                                                                                                                                  SmtTerm.bvxnor
+                                                                                                                                                                                  __eo_typeof_bvand
+                                                                                                                                                                                  (by rfl)
+                                                                                                                                                                                  (fun hNN =>
+                                                                                                                                                                                    bv_binop_args_have_smt_translation_of_non_none
+                                                                                                                                                                                      (by rw [__smtx_typeof.eq_def])
+                                                                                                                                                                                      hNN)
+                                                                                                                                                                                  (fun X Y => by
+                                                                                                                                                                                    rfl)
+                                                                                                                                                                                  eo_typeof_bvand_stuck_left
+                                                                                                                                                                                  eo_typeof_bvand_stuck_right
+                                                                                                                                                                            · by_cases hBvcomp :
+                                                                                                                                                                                op = UserOp.bvcomp
+                                                                                                                                                                              · subst op
+                                                                                                                                                                                exact
+                                                                                                                                                                                  hCurrentSmtBin
+                                                                                                                                                                                    SmtTerm.bvcomp
+                                                                                                                                                                                    __eo_typeof_bvcomp
+                                                                                                                                                                                    (by rfl)
+                                                                                                                                                                                    (fun hNN =>
+                                                                                                                                                                                      bv_binop_ret_args_have_smt_translation_of_non_none
+                                                                                                                                                                                        (ret := SmtType.BitVec 1)
+                                                                                                                                                                                        (by rw [__smtx_typeof.eq_def])
+                                                                                                                                                                                        hNN)
+                                                                                                                                                                                    (fun X Y => by
+                                                                                                                                                                                      rfl)
+                                                                                                                                                                                    eo_typeof_bvcomp_stuck_left
+                                                                                                                                                                                    eo_typeof_bvcomp_stuck_right
+                                                                                                                                                                              · by_cases hBvadd :
+                                                                                                                                                                                  op = UserOp.bvadd
+                                                                                                                                                                                · subst op
+                                                                                                                                                                                  exact
+                                                                                                                                                                                    hCurrentSmtBin
+                                                                                                                                                                                      SmtTerm.bvadd
+                                                                                                                                                                                      __eo_typeof_bvand
+                                                                                                                                                                                      (by rfl)
+                                                                                                                                                                                      (fun hNN =>
+                                                                                                                                                                                        bv_binop_args_have_smt_translation_of_non_none
+                                                                                                                                                                                          (by rw [__smtx_typeof.eq_def])
+                                                                                                                                                                                          hNN)
+                                                                                                                                                                                      (fun X Y => by
+                                                                                                                                                                                        rfl)
+                                                                                                                                                                                      eo_typeof_bvand_stuck_left
+                                                                                                                                                                                      eo_typeof_bvand_stuck_right
+                                                                                                                                                                                · by_cases hBvmul :
+                                                                                                                                                                                    op = UserOp.bvmul
+                                                                                                                                                                                  · subst op
+                                                                                                                                                                                    exact
+                                                                                                                                                                                      hCurrentSmtBin
+                                                                                                                                                                                        SmtTerm.bvmul
+                                                                                                                                                                                        __eo_typeof_bvand
+                                                                                                                                                                                        (by rfl)
+                                                                                                                                                                                        (fun hNN =>
+                                                                                                                                                                                          bv_binop_args_have_smt_translation_of_non_none
+                                                                                                                                                                                            (by rw [__smtx_typeof.eq_def])
+                                                                                                                                                                                            hNN)
+                                                                                                                                                                                        (fun X Y => by
+                                                                                                                                                                                          rfl)
+                                                                                                                                                                                        eo_typeof_bvand_stuck_left
+                                                                                                                                                                                        eo_typeof_bvand_stuck_right
+                                                                                                                                                                                  · by_cases hBvudiv :
+                                                                                                                                                                                      op = UserOp.bvudiv
+                                                                                                                                                                                    · subst op
+                                                                                                                                                                                      exact hCurrentBvBin
+                                                                                                                                                                                        SmtTerm.bvudiv (by rfl)
+                                                                                                                                                                                        (fun hNN =>
+                                                                                                                                                                                          bv_binop_args_have_smt_translation_of_non_none
+                                                                                                                                                                                            (by rw [__smtx_typeof.eq_def])
+                                                                                                                                                                                            hNN)
+                                                                                                                                                                                        (fun X Y => by rfl)
+                                                                                                                                                                                    · by_cases hBvurem :
+                                                                                                                                                                                        op = UserOp.bvurem
+                                                                                                                                                                                      · subst op
+                                                                                                                                                                                        exact hCurrentBvBin
+                                                                                                                                                                                          SmtTerm.bvurem (by rfl)
+                                                                                                                                                                                          (fun hNN =>
+                                                                                                                                                                                            bv_binop_args_have_smt_translation_of_non_none
+                                                                                                                                                                                              (by rw [__smtx_typeof.eq_def])
+                                                                                                                                                                                              hNN)
+                                                                                                                                                                                          (fun X Y => by rfl)
+                                                                                                                                                                                      · by_cases hBvsub :
+                                                                                                                                                                                          op = UserOp.bvsub
+                                                                                                                                                                                        · subst op
+                                                                                                                                                                                          exact hCurrentBvBin
+                                                                                                                                                                                            SmtTerm.bvsub (by rfl)
+                                                                                                                                                                                            (fun hNN =>
+                                                                                                                                                                                              bv_binop_args_have_smt_translation_of_non_none
+                                                                                                                                                                                                (by rw [__smtx_typeof.eq_def])
+                                                                                                                                                                                                hNN)
+                                                                                                                                                                                            (fun X Y => by rfl)
+                                                                                                                                                                                        · by_cases hBvsdiv :
+                                                                                                                                                                                            op = UserOp.bvsdiv
+                                                                                                                                                                                          · subst op
+                                                                                                                                                                                            exact hCurrentBvBin
+                                                                                                                                                                                              SmtTerm.bvsdiv (by rfl)
+                                                                                                                                                                                              (fun hNN =>
+                                                                                                                                                                                                bv_binop_args_have_smt_translation_of_non_none
+                                                                                                                                                                                                  (by rw [__smtx_typeof.eq_def])
+                                                                                                                                                                                                  hNN)
+                                                                                                                                                                                              (fun X Y => by rfl)
+                                                                                                                                                                                          · by_cases hBvsrem :
+                                                                                                                                                                                              op = UserOp.bvsrem
+                                                                                                                                                                                            · subst op
+                                                                                                                                                                                              exact hCurrentBvBin
+                                                                                                                                                                                                SmtTerm.bvsrem (by rfl)
+                                                                                                                                                                                                (fun hNN =>
+                                                                                                                                                                                                  bv_binop_args_have_smt_translation_of_non_none
+                                                                                                                                                                                                    (by rw [__smtx_typeof.eq_def])
+                                                                                                                                                                                                    hNN)
+                                                                                                                                                                                                (fun X Y => by rfl)
+                                                                                                                                                                                            · by_cases hBvsmod :
+                                                                                                                                                                                                op = UserOp.bvsmod
+                                                                                                                                                                                              · subst op
+                                                                                                                                                                                                exact hCurrentBvBin
+                                                                                                                                                                                                  SmtTerm.bvsmod (by rfl)
+                                                                                                                                                                                                  (fun hNN =>
+                                                                                                                                                                                                    bv_binop_args_have_smt_translation_of_non_none
+                                                                                                                                                                                                      (by rw [__smtx_typeof.eq_def])
+                                                                                                                                                                                                      hNN)
+                                                                                                                                                                                                  (fun X Y => by rfl)
+                                                                                                                                                                                              · by_cases hBvshl :
+                                                                                                                                                                                                  op = UserOp.bvshl
+                                                                                                                                                                                                · subst op
+                                                                                                                                                                                                  exact hCurrentBvBin
+                                                                                                                                                                                                    SmtTerm.bvshl (by rfl)
+                                                                                                                                                                                                    (fun hNN =>
+                                                                                                                                                                                                      bv_binop_args_have_smt_translation_of_non_none
+                                                                                                                                                                                                        (by rw [__smtx_typeof.eq_def])
+                                                                                                                                                                                                        hNN)
+                                                                                                                                                                                                    (fun X Y => by rfl)
+                                                                                                                                                                                                · by_cases hBvlshr :
+                                                                                                                                                                                                    op = UserOp.bvlshr
+                                                                                                                                                                                                  · subst op
+                                                                                                                                                                                                    exact hCurrentBvBin
+                                                                                                                                                                                                      SmtTerm.bvlshr (by rfl)
+                                                                                                                                                                                                      (fun hNN =>
+                                                                                                                                                                                                        bv_binop_args_have_smt_translation_of_non_none
+                                                                                                                                                                                                          (by rw [__smtx_typeof.eq_def])
+                                                                                                                                                                                                          hNN)
+                                                                                                                                                                                                      (fun X Y => by rfl)
+                                                                                                                                                                                                  · by_cases hBvashr :
+                                                                                                                                                                                                      op = UserOp.bvashr
+                                                                                                                                                                                                    · subst op
+                                                                                                                                                                                                      exact hCurrentBvBin
+                                                                                                                                                                                                        SmtTerm.bvashr (by rfl)
+                                                                                                                                                                                                        (fun hNN =>
+                                                                                                                                                                                                          bv_binop_args_have_smt_translation_of_non_none
+                                                                                                                                                                                                            (by rw [__smtx_typeof.eq_def])
+                                                                                                                                                                                                            hNN)
+                                                                                                                                                                                                        (fun X Y => by rfl)
+                                                                                                                                                                                                    · by_cases hBvult :
+                                                                                                                                                                                                        op = UserOp.bvult
+                                                                                                                                                                                                      · subst op
+                                                                                                                                                                                                        exact hCurrentBvRetBool
+                                                                                                                                                                                                          SmtTerm.bvult (by rfl)
+                                                                                                                                                                                                          (fun hNN =>
+                                                                                                                                                                                                            bv_binop_ret_args_have_smt_translation_of_non_none
+                                                                                                                                                                                                              (ret := SmtType.Bool)
+                                                                                                                                                                                                              (by rw [__smtx_typeof.eq_def])
+                                                                                                                                                                                                              hNN)
+                                                                                                                                                                                                          (fun X Y => by rfl)
+                                                                                                                                                                                                      · by_cases hBvule :
+                                                                                                                                                                                                          op = UserOp.bvule
+                                                                                                                                                                                                        · subst op
+                                                                                                                                                                                                          exact hCurrentBvRetBool
+                                                                                                                                                                                                            SmtTerm.bvule (by rfl)
+                                                                                                                                                                                                            (fun hNN =>
+                                                                                                                                                                                                              bv_binop_ret_args_have_smt_translation_of_non_none
+                                                                                                                                                                                                                (ret := SmtType.Bool)
+                                                                                                                                                                                                                (by rw [__smtx_typeof.eq_def])
+                                                                                                                                                                                                                hNN)
+                                                                                                                                                                                                            (fun X Y => by rfl)
+                                                                                                                                                                                                        · by_cases hBvugt :
+                                                                                                                                                                                                            op = UserOp.bvugt
+                                                                                                                                                                                                          · subst op
+                                                                                                                                                                                                            exact hCurrentBvRetBool
+                                                                                                                                                                                                              SmtTerm.bvugt (by rfl)
+                                                                                                                                                                                                              (fun hNN =>
+                                                                                                                                                                                                                bv_binop_ret_args_have_smt_translation_of_non_none
+                                                                                                                                                                                                                  (ret := SmtType.Bool)
+                                                                                                                                                                                                                  (by rw [__smtx_typeof.eq_def])
+                                                                                                                                                                                                                  hNN)
+                                                                                                                                                                                                              (fun X Y => by rfl)
+                                                                                                                                                                                                          · by_cases hBvuge :
+                                                                                                                                                                                                              op = UserOp.bvuge
+                                                                                                                                                                                                            · subst op
+                                                                                                                                                                                                              exact hCurrentBvRetBool
+                                                                                                                                                                                                                SmtTerm.bvuge (by rfl)
+                                                                                                                                                                                                                (fun hNN =>
+                                                                                                                                                                                                                  bv_binop_ret_args_have_smt_translation_of_non_none
+                                                                                                                                                                                                                    (ret := SmtType.Bool)
+                                                                                                                                                                                                                    (by rw [__smtx_typeof.eq_def])
+                                                                                                                                                                                                                    hNN)
+                                                                                                                                                                                                                (fun X Y => by rfl)
+                                                                                                                                                                                                            · by_cases hBvslt :
+                                                                                                                                                                                                                op = UserOp.bvslt
+                                                                                                                                                                                                              · subst op
+                                                                                                                                                                                                                exact hCurrentBvRetBool
+                                                                                                                                                                                                                  SmtTerm.bvslt (by rfl)
+                                                                                                                                                                                                                  (fun hNN =>
+                                                                                                                                                                                                                    bv_binop_ret_args_have_smt_translation_of_non_none
+                                                                                                                                                                                                                      (ret := SmtType.Bool)
+                                                                                                                                                                                                                      (by rw [__smtx_typeof.eq_def])
+                                                                                                                                                                                                                      hNN)
+                                                                                                                                                                                                                  (fun X Y => by rfl)
+                                                                                                                                                                                                              · by_cases hBvsle :
+                                                                                                                                                                                                                  op = UserOp.bvsle
+                                                                                                                                                                                                                · subst op
+                                                                                                                                                                                                                  exact hCurrentBvRetBool
+                                                                                                                                                                                                                    SmtTerm.bvsle (by rfl)
+                                                                                                                                                                                                                    (fun hNN =>
+                                                                                                                                                                                                                      bv_binop_ret_args_have_smt_translation_of_non_none
+                                                                                                                                                                                                                        (ret := SmtType.Bool)
+                                                                                                                                                                                                                        (by rw [__smtx_typeof.eq_def])
+                                                                                                                                                                                                                        hNN)
+                                                                                                                                                                                                                    (fun X Y => by rfl)
+                                                                                                                                                                                                                · by_cases hBvsgt :
+                                                                                                                                                                                                                    op = UserOp.bvsgt
+                                                                                                                                                                                                                  · subst op
+                                                                                                                                                                                                                    exact hCurrentBvRetBool
+                                                                                                                                                                                                                      SmtTerm.bvsgt (by rfl)
+                                                                                                                                                                                                                      (fun hNN =>
+                                                                                                                                                                                                                        bv_binop_ret_args_have_smt_translation_of_non_none
+                                                                                                                                                                                                                          (ret := SmtType.Bool)
+                                                                                                                                                                                                                          (by rw [__smtx_typeof.eq_def])
+                                                                                                                                                                                                                          hNN)
+                                                                                                                                                                                                                      (fun X Y => by rfl)
+                                                                                                                                                                                                                  · by_cases hBvsge :
+                                                                                                                                                                                                                      op = UserOp.bvsge
+                                                                                                                                                                                                                    · subst op
+                                                                                                                                                                                                                      exact hCurrentBvRetBool
+                                                                                                                                                                                                                        SmtTerm.bvsge (by rfl)
+                                                                                                                                                                                                                        (fun hNN =>
+                                                                                                                                                                                                                          bv_binop_ret_args_have_smt_translation_of_non_none
+                                                                                                                                                                                                                            (ret := SmtType.Bool)
+                                                                                                                                                                                                                            (by rw [__smtx_typeof.eq_def])
+                                                                                                                                                                                                                            hNN)
+                                                                                                                                                                                                                        (fun X Y => by rfl)
+                                                                                                                                                                                                                    · by_cases hBvuaddo :
+                                                                                                                                                                                                                        op = UserOp.bvuaddo
+                                                                                                                                                                                                                      · subst op
+                                                                                                                                                                                                                        exact hCurrentBvRetBool
+                                                                                                                                                                                                                          SmtTerm.bvuaddo (by rfl)
+                                                                                                                                                                                                                          (fun hNN =>
+                                                                                                                                                                                                                            bv_binop_ret_args_have_smt_translation_of_non_none
+                                                                                                                                                                                                                              (ret := SmtType.Bool)
+                                                                                                                                                                                                                              (by rw [__smtx_typeof.eq_def])
+                                                                                                                                                                                                                              hNN)
+                                                                                                                                                                                                                          (fun X Y => by rfl)
+                                                                                                                                                                                                                      · by_cases hBvsaddo :
+                                                                                                                                                                                                                          op = UserOp.bvsaddo
+                                                                                                                                                                                                                        · subst op
+                                                                                                                                                                                                                          exact hCurrentBvRetBool
+                                                                                                                                                                                                                            SmtTerm.bvsaddo (by rfl)
+                                                                                                                                                                                                                            (fun hNN =>
+                                                                                                                                                                                                                              bv_binop_ret_args_have_smt_translation_of_non_none
+                                                                                                                                                                                                                                (ret := SmtType.Bool)
+                                                                                                                                                                                                                                (by rw [__smtx_typeof.eq_def])
+                                                                                                                                                                                                                                hNN)
+                                                                                                                                                                                                                            (fun X Y => by rfl)
+                                                                                                                                                                                                                        · by_cases hBvumulo :
+                                                                                                                                                                                                                            op = UserOp.bvumulo
+                                                                                                                                                                                                                          · subst op
+                                                                                                                                                                                                                            exact hCurrentBvRetBool
+                                                                                                                                                                                                                              SmtTerm.bvumulo (by rfl)
+                                                                                                                                                                                                                              (fun hNN =>
+                                                                                                                                                                                                                                bv_binop_ret_args_have_smt_translation_of_non_none
+                                                                                                                                                                                                                                  (ret := SmtType.Bool)
+                                                                                                                                                                                                                                  (by rw [__smtx_typeof.eq_def])
+                                                                                                                                                                                                                                  hNN)
+                                                                                                                                                                                                                              (fun X Y => by rfl)
+                                                                                                                                                                                                                          · by_cases hBvsmulo :
+                                                                                                                                                                                                                              op = UserOp.bvsmulo
+                                                                                                                                                                                                                            · subst op
+                                                                                                                                                                                                                              exact hCurrentBvRetBool
+                                                                                                                                                                                                                                SmtTerm.bvsmulo (by rfl)
+                                                                                                                                                                                                                                (fun hNN =>
+                                                                                                                                                                                                                                  bv_binop_ret_args_have_smt_translation_of_non_none
+                                                                                                                                                                                                                                    (ret := SmtType.Bool)
+                                                                                                                                                                                                                                    (by rw [__smtx_typeof.eq_def])
+                                                                                                                                                                                                                                    hNN)
+                                                                                                                                                                                                                                (fun X Y => by rfl)
+                                                                                                                                                                                                                            · by_cases hBvusubo :
+                                                                                                                                                                                                                                op = UserOp.bvusubo
+                                                                                                                                                                                                                              · subst op
+                                                                                                                                                                                                                                exact hCurrentBvRetBool
+                                                                                                                                                                                                                                  SmtTerm.bvusubo (by rfl)
+                                                                                                                                                                                                                                  (fun hNN =>
+                                                                                                                                                                                                                                    bv_binop_ret_args_have_smt_translation_of_non_none
+                                                                                                                                                                                                                                      (ret := SmtType.Bool)
+                                                                                                                                                                                                                                      (by rw [__smtx_typeof.eq_def])
+                                                                                                                                                                                                                                      hNN)
+                                                                                                                                                                                                                                  (fun X Y => by rfl)
+                                                                                                                                                                                                                              · by_cases hBvssubo :
+                                                                                                                                                                                                                                  op = UserOp.bvssubo
+                                                                                                                                                                                                                                · subst op
+                                                                                                                                                                                                                                  exact hCurrentBvRetBool
+                                                                                                                                                                                                                                    SmtTerm.bvssubo (by rfl)
+                                                                                                                                                                                                                                    (fun hNN =>
+                                                                                                                                                                                                                                      bv_binop_ret_args_have_smt_translation_of_non_none
+                                                                                                                                                                                                                                        (ret := SmtType.Bool)
+                                                                                                                                                                                                                                        (by rw [__smtx_typeof.eq_def])
+                                                                                                                                                                                                                                        hNN)
+                                                                                                                                                                                                                                    (fun X Y => by rfl)
+                                                                                                                                                                                                                                · by_cases hBvsdivo :
+                                                                                                                                                                                                                                    op = UserOp.bvsdivo
+                                                                                                                                                                                                                                  · subst op
+                                                                                                                                                                                                                                    exact hCurrentBvRetBool
+                                                                                                                                                                                                                                      SmtTerm.bvsdivo (by rfl)
+                                                                                                                                                                                                                                      (fun hNN =>
+                                                                                                                                                                                                                                        bv_binop_ret_args_have_smt_translation_of_non_none
+                                                                                                                                                                                                                                          (ret := SmtType.Bool)
+                                                                                                                                                                                                                                          (by rw [__smtx_typeof.eq_def])
+                                                                                                                                                                                                                                          hNN)
+                                                                                                                                                                                                                                      (fun X Y => by rfl)
+                                                                                                                                                                                                                                  · by_cases hBvultbv :
+                                                                                                                                                                                                                                      op = UserOp.bvultbv
+                                                                                                                                                                                                                                    · subst op
+                                                                                                                                                                                                                                      exact
+                                                                                                                                                                                                                                        hCurrentBin __eo_typeof_bvcomp
+                                                                                                                                                                                                                                          (fun h =>
+                                                                                                                                                                                                                                            bvultbv_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                                                                                                                                                          (fun X Y => by rfl)
+                                                                                                                                                                                                                                          eo_typeof_bvcomp_stuck_left
+                                                                                                                                                                                                                                          eo_typeof_bvcomp_stuck_right
+                                                                                                                                                                                                                                    · by_cases hBvsltbv :
+                                                                                                                                                                                                                                        op = UserOp.bvsltbv
+                                                                                                                                                                                                                                      · subst op
+                                                                                                                                                                                                                                        exact
+                                                                                                                                                                                                                                          hCurrentBin __eo_typeof_bvcomp
+                                                                                                                                                                                                                                            (fun h =>
+                                                                                                                                                                                                                                              bvsltbv_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                                                                                                                                                            (fun X Y => by rfl)
+                                                                                                                                                                                                                                            eo_typeof_bvcomp_stuck_left
+                                                                                                                                                                                                                                            eo_typeof_bvcomp_stuck_right
+                                                                                                                                                                                                                                      · by_cases hFromBools :
+                                                                                                                                                                                                                                          op = UserOp._at_from_bools
+                                                                                                                                                                                                                                        · subst op
+                                                                                                                                                                                                                                          exact
+                                                                                                                                                                                                                                            hCurrentBin __eo_typeof__at_from_bools
+                                                                                                                                                                                                                                              (fun h =>
+                                                                                                                                                                                                                                                from_bools_args_have_smt_translation_of_has_smt_translation h)
+                                                                                                                                                                                                                                              (fun X Y => by rfl)
+                                                                                                                                                                                                                                              eo_typeof_from_bools_stuck_left
+                                                                                                                                                                                                                                              eo_typeof_from_bools_stuck_right
+                                                                                                                                                                                                                                        · by_cases hStrConcat :
+                                                                                                                                                                                                                                            op = UserOp.str_concat
+                                                                                                                                                                                                                                          · subst op
+                                                                                                                                                                                                                                            exact
+                                                                                                                                                                                                                                              hCurrentSmtBin
+                                                                                                                                                                                                                                                SmtTerm.str_concat
+                                                                                                                                                                                                                                                __eo_typeof_str_concat
+                                                                                                                                                                                                                                                (by rfl)
+                                                                                                                                                                                                                                                (fun hNN =>
+                                                                                                                                                                                                                                                  seq_binop_args_have_smt_translation_of_non_none
+                                                                                                                                                                                                                                                    (typeof_str_concat_eq
+                                                                                                                                                                                                                                                      (__eo_to_smt x1)
+                                                                                                                                                                                                                                                      (__eo_to_smt a))
+                                                                                                                                                                                                                                                    hNN)
+                                                                                                                                                                                                                                                (fun X Y => by rfl)
+                                                                                                                                                                                                                                                (by intro Y; rfl)
+                                                                                                                                                                                                                                                (by
+                                                                                                                                                                                                                                                  intro X
+                                                                                                                                                                                                                                                  cases X <;> try rfl
+                                                                                                                                                                                                                                                  case Apply f x =>
+                                                                                                                                                                                                                                                    cases f <;> try rfl
+                                                                                                                                                                                                                                                    case UOp op =>
+                                                                                                                                                                                                                                                      cases op <;> rfl)
+                                                                                                                                                                                                                                          · by_cases hStrContains :
+                                                                                                                                                                                                                                              op = UserOp.str_contains
+                                                                                                                                                                                                                                            · subst op
+                                                                                                                                                                                                                                              exact
+                                                                                                                                                                                                                                                hCurrentSmtBin
+                                                                                                                                                                                                                                                  SmtTerm.str_contains
+                                                                                                                                                                                                                                                  __eo_typeof_str_contains
+                                                                                                                                                                                                                                                  (by rfl)
+                                                                                                                                                                                                                                                  (fun hNN =>
+                                                                                                                                                                                                                                                    seq_binop_ret_args_have_smt_translation_of_non_none
+                                                                                                                                                                                                                                                      (ret := SmtType.Bool)
+                                                                                                                                                                                                                                                      (typeof_str_contains_eq
+                                                                                                                                                                                                                                                        (__eo_to_smt x1)
+                                                                                                                                                                                                                                                        (__eo_to_smt a))
+                                                                                                                                                                                                                                                      hNN)
+                                                                                                                                                                                                                                                  (fun X Y => by rfl)
+                                                                                                                                                                                                                                                  (by intro Y; rfl)
+                                                                                                                                                                                                                                                  (by
+                                                                                                                                                                                                                                                    intro X
+                                                                                                                                                                                                                                                    cases X <;> try rfl
+                                                                                                                                                                                                                                                    case Apply f x =>
+                                                                                                                                                                                                                                                      cases f <;> try rfl
+                                                                                                                                                                                                                                                      case UOp op =>
+                                                                                                                                                                                                                                                        cases op <;> rfl)
+                                                                                                                                                                                                                                            · by_cases hStrAt :
+                                                                                                                                                                                                                                                op = UserOp.str_at
+                                                                                                                                                                                                                                              · subst op
+                                                                                                                                                                                                                                                exact
+                                                                                                                                                                                                                                                  hCurrentSmtBin
+                                                                                                                                                                                                                                                    SmtTerm.str_at
+                                                                                                                                                                                                                                                    __eo_typeof_str_at
+                                                                                                                                                                                                                                                    (by rfl)
+                                                                                                                                                                                                                                                    (fun hNN =>
+                                                                                                                                                                                                                                                      str_at_args_have_smt_translation_of_non_none hNN)
+                                                                                                                                                                                                                                                    (fun X Y => by rfl)
+                                                                                                                                                                                                                                                    (by intro Y; rfl)
+                                                                                                                                                                                                                                                    (by
+                                                                                                                                                                                                                                                      intro X
+                                                                                                                                                                                                                                                      cases X <;> try rfl
+                                                                                                                                                                                                                                                      case Apply f x =>
+                                                                                                                                                                                                                                                        cases f <;> try rfl
+                                                                                                                                                                                                                                                        case UOp op =>
+                                                                                                                                                                                                                                                          cases op <;> rfl)
+                                                                                                                                                                                                                                              · by_cases hStrPrefixof :
+                                                                                                                                                                                                                                                  op = UserOp.str_prefixof
+                                                                                                                                                                                                                                                · subst op
+                                                                                                                                                                                                                                                  exact
+                                                                                                                                                                                                                                                    (hCurrentSmtBin
+                                                                                                                                                                                                                                                      SmtTerm.str_prefixof
+                                                                                                                                                                                                                                                      __eo_typeof_str_contains
+                                                                                                                      (by rfl)
+                                                                                                                      (fun hNN =>
+                                                                                                                        seq_binop_ret_args_have_smt_translation_of_non_none
+                                                                                                                          (typeof_str_prefixof_eq
+                                                                                                                            (__eo_to_smt x1)
+                                                                                                                            (__eo_to_smt a))
+                                                                                                                                                                                                                                                          hNN)
+                                                                                                                                                                                                                                                      (fun X Y => by rfl)
+                                                                                                                                                                                                                                                      (by intro Y; rfl)
+                                                                                                                                                                                                                                                      (by
+                                                                                                                                                                                                                                                        intro X
+                                                                                                                                                                                                                                                        cases X <;> try rfl
+                                                                                                                                                                                                                                                        case Apply f x =>
+                                                                                                                                                                                                                                                          cases f <;> try rfl
+                                                                                                                                                                                                                                                          case UOp op =>
+                                                                                                                                                                                                                                                            cases op <;> rfl))
+                                                                                                                                                                                                                                                · by_cases hStrSuffixof :
+                                                                                                                                                                                                                                                    op = UserOp.str_suffixof
+                                                                                                                                                                                                                                                  · subst op
+                                                                                                                                                                                                                                                    exact
+                                                                                                                                                                                                                                                      (hCurrentSmtBin
+                                                                                                                                                                                                                                                        SmtTerm.str_suffixof
+                                                                                                                                                                                                                                                        __eo_typeof_str_contains
+                                                                                                                        (by rfl)
+                                                                                                                        (fun hNN =>
+                                                                                                                          seq_binop_ret_args_have_smt_translation_of_non_none
+                                                                                                                            (typeof_str_suffixof_eq
+                                                                                                                              (__eo_to_smt x1)
+                                                                                                                              (__eo_to_smt a))
+                                                                                                                                                                                                                                                            hNN)
+                                                                                                                                                                                                                                                        (fun X Y => by rfl)
+                                                                                                                                                                                                                                                        (by intro Y; rfl)
+                                                                                                                                                                                                                                                        (by
+                                                                                                                                                                                                                                                          intro X
+                                                                                                                                                                                                                                                          cases X <;> try rfl
+                                                                                                                                                                                                                                                          case Apply f x =>
+                                                                                                                                                                                                                                                            cases f <;> try rfl
+                                                                                                                                                                                                                                                            case UOp op =>
+                                                                                                                                                                                                                                                              cases op <;> rfl))
+                                                                                                                                                                                                                                                  · by_cases hStrLt :
+                                                                                                                                                                                                                                                      op = UserOp.str_lt
+                                                                                                                                                                                                                                                    · subst op
+                                                                                                                                                                                                                                                      exact
+                                                                                                                                                                                                                                                        hCurrentSmtBin
+                                                                                                                                                                                                                                                          SmtTerm.str_lt
+                                                                                                                                                                                                                                                          __eo_typeof_str_lt
+                                                                                                                                                                                                                                                          (by rfl)
+                                                                                                                                                                                                                                                          (fun hNN =>
+                                                                                                                                                                                                                                                            seq_char_binop_args_have_smt_translation_of_non_none
+                                                                                                                                                                                                                                                              (ret := SmtType.Bool)
+                                                                                                                                                                                                                                                              (typeof_str_lt_eq
+                                                                                                                                                                                                                                                                (__eo_to_smt x1)
+                                                                                                                                                                                                                                                                (__eo_to_smt a))
+                                                                                                                                                                                                                                                              hNN)
+                                                                                                                                                                                                                                                          (fun X Y => by rfl)
+                                                                                                                                                                                                                                                          (by intro Y; rfl)
+                                                                                                                                                                                                                                                          (by
+                                                                                                                                                                                                                                                            intro X
+                                                                                                                                                                                                                                                            cases X <;> try rfl
+                                                                                                                                                                                                                                                            case Apply f x =>
+                                                                                                                                                                                                                                                              cases f <;> try rfl
+                                                                                                                                                                                                                                                              case UOp op =>
+                                                                                                                                                                                                                                                                cases op <;> try rfl
+                                                                                                                                                                                                                                                                case Seq =>
+                                                                                                                                                                                                                                                                  cases x <;> try rfl
+                                                                                                                                                                                                                                                                  case UOp op =>
+                                                                                                                                                                                                                                                                    cases op <;> rfl)
+                                                                                                                                                                                                                                                    · by_cases hStrLeq :
+                                                                                                                                                                                                                                                        op = UserOp.str_leq
+                                                                                                                                                                                                                                                      · subst op
+                                                                                                                                                                                                                                                        exact
+                                                                                                                                                                                                                                                          hCurrentSmtBin
+                                                                                                                                                                                                                                                            SmtTerm.str_leq
+                                                                                                                                                                                                                                                            __eo_typeof_str_lt
+                                                                                                                                                                                                                                                            (by rfl)
+                                                                                                                                                                                                                                                            (fun hNN =>
+                                                                                                                                                                                                                                                              seq_char_binop_args_have_smt_translation_of_non_none
+                                                                                                                                                                                                                                                                (ret := SmtType.Bool)
+                                                                                                                                                                                                                                                                (typeof_str_leq_eq
+                                                                                                                                                                                                                                                                  (__eo_to_smt x1)
+                                                                                                                                                                                                                                                                  (__eo_to_smt a))
+                                                                                                                                                                                                                                                                hNN)
+                                                                                                                                                                                                                                                            (fun X Y => by rfl)
+                                                                                                                                                                                                                                                            (by intro Y; rfl)
+                                                                                                                                                                                                                                                            (by
+                                                                                                                                                                                                                                                              intro X
+                                                                                                                                                                                                                                                              cases X <;> try rfl
+                                                                                                                                                                                                                                                              case Apply f x =>
+                                                                                                                                                                                                                                                                cases f <;> try rfl
+                                                                                                                                                                                                                                                                case UOp op =>
+                                                                                                                                                                                                                                                                  cases op <;> try rfl
+                                                                                                                                                                                                                                                                  case Seq =>
+                                                                                                                                                                                                                                                                    cases x <;> try rfl
+                                                                                                                                                                                                                                                                    case UOp op =>
+                                                                                                                                                                                                                                                                      cases op <;> rfl)
+                                                                                                                                                                                                                                                      · by_cases hReRange :
+                                                                                                                                                                                                                                                          op = UserOp.re_range
+                                                                                                                                                                                                                                                        · subst op
+                                                                                                                                                                                                                                                          exact
+                                                                                                                                                                                                                                                            hCurrentSmtBin
+                                                                                                                                                                                                                                                              SmtTerm.re_range
+                                                                                                                                                                                                                                                              __eo_typeof_re_range
+                                                                                                                                                                                                                                                              (by rfl)
+                                                                                                                                                                                                                                                              (fun hNN =>
+                                                                                                                                                                                                                                                                seq_char_binop_args_have_smt_translation_of_non_none
+                                                                                                                                                                                                                                                                  (ret := SmtType.RegLan)
+                                                                                                                                                                                                                                                                  (typeof_re_range_eq
+                                                                                                                                                                                                                                                                    (__eo_to_smt x1)
+                                                                                                                                                                                                                                                                    (__eo_to_smt a))
+                                                                                                                                                                                                                                                                  hNN)
+                                                                                                                                                                                                                                                              (fun X Y => by rfl)
+                                                                                                                                                                                                                                                              (by intro Y; rfl)
+                                                                                                                                                                                                                                                              (by
+                                                                                                                                                                                                                                                                intro X
+                                                                                                                                                                                                                                                                cases X <;> try rfl
+                                                                                                                                                                                                                                                                case Apply f x =>
+                                                                                                                                                                                                                                                                  cases f <;> try rfl
+                                                                                                                                                                                                                                                                  case UOp op =>
+                                                                                                                                                                                                                                                                    cases op <;> try rfl
+                                                                                                                                                                                                                                                                    case Seq =>
+                                                                                                                                                                                                                                                                      cases x <;> try rfl
+                                                                                                                                                                                                                                                                      case UOp op =>
+                                                                                                                                                                                                                                                                        cases op <;> rfl)
+                                                                                                                                                                                                                                                        · by_cases hReConcat :
+                                                                                                                                                                                                                                                            op = UserOp.re_concat
+                                                                                                                                                                                                                                                          · subst op
+                                                                                                                                                                                                                                                            exact
+                                                                                                                                                                                                                                                              hCurrentSmtBin
+                                                                                                                                                                                                                                                                SmtTerm.re_concat
+                                                                                                                                                                                                                                                                __eo_typeof_re_concat
+                                                                                                                                                                                                                                                                (by rfl)
+                                                                                                                                                                                                                                                                (fun hNN =>
+                                                                                                                                                                                                                                                                  reglan_binop_args_have_smt_translation_of_non_none
+                                                                                                                                                                                                                                                                    (typeof_re_concat_eq
+                                                                                                                                                                                                                                                                      (__eo_to_smt x1)
+                                                                                                                                                                                                                                                                      (__eo_to_smt a))
+                                                                                                                                                                                                                                                                    hNN)
+                                                                                                                                                                                                                                                                (fun X Y => by rfl)
+                                                                                                                                                                                                                                                                (by intro Y; rfl)
+                                                                                                                                                                                                                                                                (by
+                                                                                                                                                                                                                                                                  intro X
+                                                                                                                                                                                                                                                                  cases X <;> try rfl
+                                                                                                                                                                                                                                                                  case UOp op =>
+                                                                                                                                                                                                                                                                    cases op <;> rfl)
+                                                                                                                                                                                                                                                          · by_cases hReInter :
+                                                                                                                                                                                                                                                              op = UserOp.re_inter
+                                                                                                                                                                                                                                                            · subst op
+                                                                                                                                                                                                                                                              exact
+                                                                                                                                                                                                                                                                hCurrentSmtBin
+                                                                                                                                                                                                                                                                  SmtTerm.re_inter
+                                                                                                                                                                                                                                                                  __eo_typeof_re_concat
+                                                                                                                                                                                                                                                                  (by rfl)
+                                                                                                                                                                                                                                                                  (fun hNN =>
+                                                                                                                                                                                                                                                                    reglan_binop_args_have_smt_translation_of_non_none
+                                                                                                                                                                                                                                                                      (typeof_re_inter_eq
+                                                                                                                                                                                                                                                                        (__eo_to_smt x1)
+                                                                                                                                                                                                                                                                        (__eo_to_smt a))
+                                                                                                                                                                                                                                                                      hNN)
+                                                                                                                                                                                                                                                                  (fun X Y => by rfl)
+                                                                                                                                                                                                                                                                  (by intro Y; rfl)
+                                                                                                                                                                                                                                                                  (by
+                                                                                                                                                                                                                                                                    intro X
+                                                                                                                                                                                                                                                                    cases X <;> try rfl
+                                                                                                                                                                                                                                                                    case UOp op =>
+                                                                                                                                                                                                                                                                      cases op <;> rfl)
+                                                                                                                                                                                                                                                            · by_cases hReUnion :
+                                                                                                                                                                                                                                                                op = UserOp.re_union
+                                                                                                                                                                                                                                                              · subst op
+                                                                                                                                                                                                                                                                exact
+                                                                                                                                                                                                                                                                  hCurrentSmtBin
+                                                                                                                                                                                                                                                                    SmtTerm.re_union
+                                                                                                                                                                                                                                                                    __eo_typeof_re_concat
+                                                                                                                                                                                                                                                                    (by rfl)
+                                                                                                                                                                                                                                                                    (fun hNN =>
+                                                                                                                                                                                                                                                                      reglan_binop_args_have_smt_translation_of_non_none
+                                                                                                                                                                                                                                                                        (typeof_re_union_eq
+                                                                                                                                                                                                                                                                          (__eo_to_smt x1)
+                                                                                                                                                                                                                                                                          (__eo_to_smt a))
+                                                                                                                                                                                                                                                                        hNN)
+                                                                                                                                                                                                                                                                    (fun X Y => by rfl)
+                                                                                                                                                                                                                                                                    (by intro Y; rfl)
+                                                                                                                                                                                                                                                                    (by
+                                                                                                                                                                                                                                                                      intro X
+                                                                                                                                                                                                                                                                      cases X <;> try rfl
+                                                                                                                                                                                                                                                                      case UOp op =>
+                                                                                                                                                                                                                                                                        cases op <;> rfl)
+                                                                                                                                                                                                                                                              · by_cases hReDiff :
+                                                                                                                                                                                                                                                                  op = UserOp.re_diff
+                                                                                                                                                                                                                                                                · subst op
+                                                                                                                                                                                                                                                                  exact
+                                                                                                                                                                                                                                                                    hCurrentSmtBin
+                                                                                                                                                                                                                                                                      SmtTerm.re_diff
+                                                                                                                                                                                                                                                                      __eo_typeof_re_concat
+                                                                                                                                                                                                                                                                      (by rfl)
+                                                                                                                                                                                                                                                                      (fun hNN =>
+                                                                                                                                                                                                                                                                        reglan_binop_args_have_smt_translation_of_non_none
+                                                                                                                                                                                                                                                                          (typeof_re_diff_eq
+                                                                                                                                                                                                                                                                            (__eo_to_smt x1)
+                                                                                                                                                                                                                                                                            (__eo_to_smt a))
+                                                                                                                                                                                                                                                                          hNN)
+                                                                                                                                                                                                                                                                      (fun X Y => by rfl)
+                                                                                                                                                                                                                                                                      (by intro Y; rfl)
+                                                                                                                                                                                                                                                                      (by
+                                                                                                                                                                                                                                                                        intro X
+                                                                                                                                                                                                                                                                        cases X <;> try rfl
+                                                                                                                                                                                                                                                                        case UOp op =>
+                                                                                                                                                                                                                                                                          cases op <;> rfl)
+                                                                                                                                                                                                                                                                · by_cases hStrInRe :
+                                                                                                                                                                                                                                                                    op = UserOp.str_in_re
+                                                                                                                                                                                                                                                                  · subst op
+                                                                                                                                                                                                                                                                    exact
+                                                                                                                                                                                                                                                                      hCurrentSmtBin
+                                                                                                                                                                                                                                                                        SmtTerm.str_in_re
+                                                                                                                                                                                                                                                                        __eo_typeof_str_in_re
+                                                                                                                                                                                                                                                                        (by rfl)
+                                                                                                                                                                                                                                                                        (fun hNN =>
+                                                                                                                                                                                                                                                                          seq_char_reglan_args_have_smt_translation_of_non_none
+                                                                                                                                                                                                                                                                            (ret := SmtType.Bool)
+                                                                                                                                                                                                                                                                            (typeof_str_in_re_eq
+                                                                                                                                                                                                                                                                              (__eo_to_smt x1)
+                                                                                                                                                                                                                                                                              (__eo_to_smt a))
+                                                                                                                                                                                                                                                                            hNN)
+                                                                                                                                                                                                                                                                        (fun X Y => by rfl)
+                                                                                                                                                                                                                                                                        (by intro Y; rfl)
+                                                                                                                                                                                                                                                                        (by
+                                                                                                                                                                                                                                                                          intro X
+                                                                                                                                                                                                                                                                          cases X <;> try rfl
+                                                                                                                                                                                                                                                                          case Apply f x =>
+                                                                                                                                                                                                                                                                            cases f <;> try rfl
+                                                                                                                                                                                                                                                                            case UOp op =>
+                                                                                                                                                                                                                                                                              cases op <;> try rfl
+                                                                                                                                                                                                                                                                              case Seq =>
+                                                                                                                                                                                                                                                                                cases x <;> try rfl
+                                                                                                                                                                                                                                                                                case UOp op =>
+                                                                                                                                                                                                                                                                                  cases op <;> rfl)
+                                                                                                                                                                                                                                                                  · by_cases hSeqNth :
+                                                                                                                                                                                                                                                                      op = UserOp.seq_nth
+                                                                                                                                                                                                                                                                    · subst op
+                                                                                                                                                                                                                                                                      exact
+                                                                                                                                                                                                                                                                        hCurrentSmtBin
+                                                                                                                                                                                                                                                                          SmtTerm.seq_nth
+                                                                                                                                                                                                                                                                          __eo_typeof_seq_nth
+                                                                                                                                                                                                                                                                          (by rfl)
+                                                                                                                                                                                                                                                                          (fun hNN =>
+                                                                                                                                                                                                                                                                            seq_nth_args_have_smt_translation_of_non_none hNN)
+                                                                                                                                                                                                                                                                          (fun X Y => by rfl)
+                                                                                                                                                                                                                                                                          (by intro Y; rfl)
+                                                                                                                                                                                                                                                                          (by
+                                                                                                                                                                                                                                                                            intro X
+                                                                                                                                                                                                                                                                            cases X <;> try rfl
+                                                                                                                                                                                                                                                                            case Apply f x =>
+                                                                                                                                                                                                                                                                              cases f <;> try rfl
+                                                                                                                                                                                                                                                                              case UOp op =>
+                                                                                                                                                                                                                                                                                cases op <;> rfl)
+                                                                                                                                                                                                                                                                    · by_cases hSetUnion :
+                                                                                                                                                                                                                                                                        op = UserOp.set_union
+                                                                                                                                                                                                                                                                      · subst op
+                                                                                                                                                                                                                                                                        exact
+                                                                                                                                                                                                                                                                          hCurrentSmtBin
+                                                                                                                                                                                                                                                                            SmtTerm.set_union
+                                                                                                                                                                                                                                                                            __eo_typeof_set_union
+                                                                                                                                                                                                                                                                            (by rfl)
+                                                                                                                                                                                                                                                                            (fun hNN =>
+                                                                                                                                                                                                                                                                              set_binop_args_have_smt_translation_of_non_none
+                                                                                                                                                                                                                                                                                (typeof_set_union_eq
+                                                                                                                                                                                                                                                                                  (__eo_to_smt x1)
+                                                                                                                                                                                                                                                                                  (__eo_to_smt a))
+                                                                                                                                                                                                                                                                                hNN)
+                                                                                                                                                                                                                                                                            (fun X Y => by rfl)
+                                                                                                                                                                                                                                                                            (by intro Y; rfl)
+                                                                                                                                                                                                                                                                            (by
+                                                                                                                                                                                                                                                                              intro X
+                                                                                                                                                                                                                                                                              cases X <;> try rfl
+                                                                                                                                                                                                                                                                              case Apply f x =>
+                                                                                                                                                                                                                                                                                cases f <;> try rfl
+                                                                                                                                                                                                                                                                                case UOp op =>
+                                                                                                                                                                                                                                                                                  cases op <;> rfl)
+                                                                                                                                                                                                                                                                      · by_cases hSetInter :
+                                                                                                                                                                                                                                                                          op = UserOp.set_inter
+                                                                                                                                                                                                                                                                        · subst op
+                                                                                                                                                                                                                                                                          exact
+                                                                                                                                                                                                                                                                            hCurrentSmtBin
+                                                                                                                                                                                                                                                                              SmtTerm.set_inter
+                                                                                                                                                                                                                                                                              __eo_typeof_set_union
+                                                                                                                                                                                                                                                                              (by rfl)
+                                                                                                                                                                                                                                                                              (fun hNN =>
+                                                                                                                                                                                                                                                                                set_binop_args_have_smt_translation_of_non_none
+                                                                                                                                                                                                                                                                                  (typeof_set_inter_eq
+                                                                                                                                                                                                                                                                                    (__eo_to_smt x1)
+                                                                                                                                                                                                                                                                                    (__eo_to_smt a))
+                                                                                                                                                                                                                                                                                  hNN)
+                                                                                                                                                                                                                                                                              (fun X Y => by rfl)
+                                                                                                                                                                                                                                                                              (by intro Y; rfl)
+                                                                                                                                                                                                                                                                              (by
+                                                                                                                                                                                                                                                                                intro X
+                                                                                                                                                                                                                                                                                cases X <;> try rfl
+                                                                                                                                                                                                                                                                                case Apply f x =>
+                                                                                                                                                                                                                                                                                  cases f <;> try rfl
+                                                                                                                                                                                                                                                                                  case UOp op =>
+                                                                                                                                                                                                                                                                                    cases op <;> rfl)
+                                                                                                                                                                                                                                                                        · by_cases hSetMinus :
+                                                                                                                                                                                                                                                                            op = UserOp.set_minus
+                                                                                                                                                                                                                                                                          · subst op
+                                                                                                                                                                                                                                                                            exact
+                                                                                                                                                                                                                                                                              hCurrentSmtBin
+                                                                                                                                                                                                                                                                                SmtTerm.set_minus
+                                                                                                                                                                                                                                                                                __eo_typeof_set_union
+                                                                                                                                                                                                                                                                                (by rfl)
+                                                                                                                                                                                                                                                                                (fun hNN =>
+                                                                                                                                                                                                                                                                                  set_binop_args_have_smt_translation_of_non_none
+                                                                                                                                                                                                                                                                                    (typeof_set_minus_eq
+                                                                                                                                                                                                                                                                                      (__eo_to_smt x1)
+                                                                                                                                                                                                                                                                                      (__eo_to_smt a))
+                                                                                                                                                                                                                                                                                    hNN)
+                                                                                                                                                                                                                                                                                (fun X Y => by rfl)
+                                                                                                                                                                                                                                                                                (by intro Y; rfl)
+                                                                                                                                                                                                                                                                                (by
+                                                                                                                                                                                                                                                                                  intro X
+                                                                                                                                                                                                                                                                                  cases X <;> try rfl
+                                                                                                                                                                                                                                                                                  case Apply f x =>
+                                                                                                                                                                                                                                                                                    cases f <;> try rfl
+                                                                                                                                                                                                                                                                                    case UOp op =>
+                                                                                                                                                                                                                                                                                      cases op <;> rfl)
+                                                                                                                                                                                                                                                                          · by_cases hSetMember :
+                                                                                                                                                                                                                                                                              op = UserOp.set_member
+                                                                                                                                                                                                                                                                            · subst op
+                                                                                                                                                                                                                                                                              exact
+                                                                                                                                                                                                                                                                                hCurrentSmtBin
+                                                                                                                                                                                                                                                                                  SmtTerm.set_member
+                                                                                                                                                                                                                                                                                  __eo_typeof_set_member
+                                                                                                                                                                                                                                                                                  (by rfl)
+                                                                                                                                                                                                                                                                                  (fun hNN =>
+                                                                                                                                                                                                                                                                                    set_member_args_have_smt_translation_of_non_none hNN)
+                                                                                                                                                                                                                                                                                  (fun X Y => by rfl)
+                                                                                                                                                                                                                                                                                  (by intro Y; rfl)
+                                                                                                                                                                                                                                                                                  (by
+                                                                                                                                                                                                                                                                                    intro X
+                                                                                                                                                                                                                                                                                    cases X <;> try rfl)
+                                                                                                                                                                                                                                                                            · by_cases hSetSubset :
+                                                                                                                                                                                                                                                                                op = UserOp.set_subset
+                                                                                                                                                                                                                                                                              · subst op
+                                                                                                                                                                                                                                                                                exact
+                                                                                                                                                                                                                                                                                  hCurrentSmtBin
+                                                                                                                                                                                                                                                                                    SmtTerm.set_subset
+                                                                                                                                                                                                                                                                                    __eo_typeof_set_subset
+                                                                                                                                                                                                                                                                                    (by rfl)
+                                                                                                                                                                                                                                                                                    (fun hNN =>
+                                                                                                                                                                                                                                                                                      set_binop_ret_args_have_smt_translation_of_non_none
+                                                                                                                                                                                                                                                                                        (ret := SmtType.Bool)
+                                                                                                                                                                                                                                                                                        (typeof_set_subset_eq
+                                                                                                                                                                                                                                                                                          (__eo_to_smt x1)
+                                                                                                                                                                                                                                                                                          (__eo_to_smt a))
+                                                                                                                                                                                                                                                                                        hNN)
+                                                                                                                                                                                                                                                                                    (fun X Y => by rfl)
+                                                                                                                                                                                                                                                                                    (by intro Y; rfl)
+                                                                                                                                                                                                                                                                                    (by
+                                                                                                                                                                                                                                                                                      intro X
+                                                                                                                                                                                                                                                                                      cases X <;> try rfl
+                                                                                                                                                                                                                                                                                      case Apply f x =>
+                                                                                                                                                                                                                                                                                        cases f <;> try rfl
+                                                                                                                                                                                                                                                                                        case UOp op =>
+                                                                                                                                                                                                                                                                                          cases op <;> rfl)
+                                                                                                                                                                                                                                                                              · by_cases hSetInsert :
+                                                                                                                                                                                                                                                                                  op = UserOp.set_insert
+                                                                                                                                                                                                                                                                                · subst op
+                                                                                                                                                                                                                                                                                  exact
+                                                                                                                                                                                                                                                                                    substitute_simul_set_insert_typeof_eq_of_typeof_ne_stuck
+                                                                                                                                                                                                                                                                                      x1 a xs ss bvs
+                                                                                                                                                                                                                                                                                      hXsEnv hBvsEnv hSs
+                                                                                                                                                                                                                                                                                      (fun q v vs hEq =>
+                                                                                                                                                                                                                                                                                        hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                                                                                                                                                                                      hFTrans
+                                                                                                                                                                                                                                                                                      (fun hATrans hATy =>
+                                                                                                                                                                                                                                                                                        hRec
+                                                                                                                                                                                                                                                                                          (G := a)
+                                                                                                                                                                                                                                                                                          (xs' := xs)
+                                                                                                                                                                                                                                                                                          (ss' := ss)
+                                                                                                                                                                                                                                                                                          (bvs' := bvs)
+                                                                                                                                                                                                                                                                                          (by simp; omega)
+                                                                                                                                                                                                                                                                                          hXsEnv hBvsEnv
+                                                                                                                                                                                                                                                                                          hATrans hSs
+                                                                                                                                                                                                                                                                                          hEntryTypes hATy)
+                                                                                                                                                                                                                                                                                      hTy
+                                                                                                                                                                                                                                                                                · by_cases hForall :
+                                                                                                                                                                                                                                                                                    op = UserOp.forall
+                                                                                                                                                                                                                                                                                  · subst op
+                                                                                                                                                                                                                                                                                    have hFTransEo :
+                                                                                                                                                                                                                                                                                        eoHasSmtTranslation
+                                                                                                                                                                                                                                                                                          (Term.Apply
+                                                                                                                                                                                                                                                                                            (Term.Apply
+                                                                                                                                                                                                                                                                                              (Term.UOp UserOp.forall)
+                                                                                                                                                                                                                                                                                              x1) a) := by
+                                                                                                                                                                                                                                                                                      simpa [RuleProofs.eo_has_smt_translation,
+                                                                                                                                                                                                                                                                                        eoHasSmtTranslation] using hFTrans
+                                                                                                                                                                                                                                                                                    exact
+                                                                                                                                                                                                                                                                                      false_of_forall_non_list_has_smt_translation
+                                                                                                                                                                                                                                                                                        (x := x1) (body := a)
+                                                                                                                                                                                                                                                                                        (by
+                                                                                                                                                                                                                                                                                          intro v vs hEq
+                                                                                                                                                                                                                                                                                          exact
+                                                                                                                                                                                                                                                                                            hBinder
+                                                                                                                                                                                                                                                                                              ⟨Term.UOp UserOp.forall, v, vs,
+                                                                                                                                                                                                                                                                                                by rw [hEq]⟩)
+                                                                                                                                                                                                                                                                                        hFTransEo
+                                                                                                                                                                                                                                                                                  · by_cases hExists :
+                                                                                                                                                                                                                                                                                      op = UserOp.exists
+                                                                                                                                                                                                                                                                                    · subst op
+                                                                                                                                                                                                                                                                                      have hFTransEo :
+                                                                                                                                                                                                                                                                                          eoHasSmtTranslation
+                                                                                                                                                                                                                                                                                            (Term.Apply
+                                                                                                                                                                                                                                                                                              (Term.Apply
+                                                                                                                                                                                                                                                                                                (Term.UOp UserOp.exists)
+                                                                                                                                                                                                                                                                                                x1) a) := by
+                                                                                                                                                                                                                                                                                        simpa [RuleProofs.eo_has_smt_translation,
+                                                                                                                                                                                                                                                                                          eoHasSmtTranslation] using hFTrans
+                                                                                                                                                                                                                                                                                      exact
+                                                                                                                                                                                                                                                                                        false_of_exists_non_list_has_smt_translation
+                                                                                                                                                                                                                                                                                          (x := x1) (body := a)
+                                                                                                                                                                                                                                                                                          (by
+                                                                                                                                                                                                                                                                                            intro v vs hEq
+                                                                                                                                                                                                                                                                                            exact
+                                                                                                                                                                                                                                                                                              hBinder
+                                                                                                                                                                                                                                                                                                ⟨Term.UOp UserOp.exists, v, vs,
+                                                                                                                                                                                                                                                                                                  by rw [hEq]⟩)
+                                                                                                                                                                                                                                                                                          hFTransEo
+                                                                                                                                                                                                                                                                                    · exact
+                                                                                                                                                                                                                                                                                        substitute_simul_apply_apply_uop_generic_typeof_eq_of_typeof_ne_stuck
+                                                                                                                                                                                                                                                                                          op x1 a xs ss bvs
+                                                                                                                                                                                                                                                                                          hXsEnv hBvsEnv hSs
+                                                                                                                                                                                                                                                                                          (fun q v vs hEq =>
+                                                                                                                                                                                                                                                                                            hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                                                                                                                                                                                          (eo_to_smt_apply_apply_uop_generic_of_not_smt_binop
+                                                                                                                                                                                                                                                                                            hAnd hOr hImp hXor hEq hPlus hNeg hMult
+                                                                                                                                                                                                                                                                                            hLt hLeq hGt hGeq hDiv hMod hSelect
+                                                                                                                                                                                                                                                                                            hDivisible hDivTotal hModTotal hMultmultTotal
+                                                                                                                                                                                                                                                                                            hMultmult hQdivTotal hQdiv hConcat
+                                                                                                                                                                                                                                                                                            hBvand hBvor hBvnand hBvnor hBvxor hBvxnor
+                                                                                                                                                                                                                                                                                            hBvcomp hBvadd hBvmul hBvudiv hBvurem
+                                                                                                                                                                                                                                                                                            hBvsub hBvsdiv hBvsrem hBvsmod hBvshl
+                                                                                                                                                                                                                                                                                            hBvlshr hBvashr hBvult hBvule hBvugt
+                                                                                                                                                                                                                                                                                            hBvuge hBvslt hBvsle hBvsgt hBvsge
+                                                                                                                                                                                                                                                                                            hBvuaddo hBvsaddo hBvumulo hBvsmulo
+                                                                                                                                                                                                                                                                                            hBvusubo hBvssubo hBvsdivo hBvultbv
+                                                                                                                                                                                                                                                                                            hBvsltbv hFromBools hStringsDeq
+                                                                                                                                                                                                                                                                                            hStringsStoi hStrConcat hStrContains hStrAt
+                                                                                                                                                                                                                                                                                            hStrPrefixof hStrSuffixof hStrLt hStrLeq
+                                                                                                                                                                                                                                                                                            hReRange hReConcat hReInter hReUnion
+                                                                                                                                                                                                                                                                                            hReDiff hStrInRe hSeqNth hSetUnion
+                                                                                                                                                                                                                                                                                            hSetInter hSetMinus hSetMember hSetSubset
+                                                                                                                                                                                                                                                                                            hStringsItos hStringsNumOccur hArrayDeq
+                                                                                                                                                                                                                                                                                            hSetsDeq hTuple hSetInsert hForall hExists)
+                                                                                                                                                                                                                                                                                          hFTrans
+                                                                                                                                                                                                                                                                                          (fun hHeadTrans hHeadTy =>
+                                                                                                                                                                                                                                                                                            hRec
+                                                                                                                                                                                                                                                                                              (G := Term.Apply (Term.UOp op) x1)
+                                                                                                                                                                                                                                                                                              (xs' := xs)
+                                                                                                                                                                                                                                                                                              (ss' := ss)
+                                                                                                                                                                                                                                                                                              (bvs' := bvs)
+                                                                                                                                                                                                                                                                                              (by simp; omega)
+                                                                                                                                                                                                                                                                                              hXsEnv hBvsEnv
+                                                                                                                                                                                                                                                                                              hHeadTrans hSs
+                                                                                                                                                                                                                                                                                              hEntryTypes hHeadTy)
+                                                                                                                                                                                                                                                                                          (fun hATrans hATy =>
+                                                                                                                                                                                                                                                                                            hRec
+                                                                                                                                                                                                                                                                                              (G := a)
+                                                                                                                                                                                                                                                                                              (xs' := xs)
+                                                                                                                                                                                                                                                                                              (ss' := ss)
+                                                                                                                                                                                                                                                                                              (bvs' := bvs)
+                                                                                                                                                                                                                                                                                              (by simp; omega)
+                                                                                                                                                                                                                                                                                              hXsEnv hBvsEnv
+                                                                                                                                                                                                                                                                                              hATrans hSs
+                                                                                                                                                                                                                                                                                              hEntryTypes hATy)
+                                                                                                                                                                                                                                                                                          hTy
+                                                                                                  | _ => sorry
+                                                                                              | Var name T =>
+                                                                                                  exact
+                                                                                                    substitute_simul_rec_apply_var_typeof_eq_of_typeof_ne_stuck
+                                                                                                      name T a xs ss bvs
+                                                                                                      hXsEnv hBvsEnv hSs
+                                                                                                      hEntryTypes
+                                                                                                      (by intro q v vs hEq; cases hEq)
+                                                                                                      (by rfl)
+                                                                                                      (var_apply_generic_smt_type name T a)
+                                                                                                      hFTrans
+                                                                                                      (fun hATrans hATy =>
+                                                                                                        hRec
+                                                                                                          (G := a)
+                                                                                                          (xs' := xs)
+                                                                                                          (ss' := ss)
+                                                                                                          (bvs' := bvs)
+                                                                                                          (by simp; omega)
+                                                                                                          hXsEnv hBvsEnv
+                                                                                                          hATrans hSs
+                                                                                                          hEntryTypes hATy)
+                                                                                                      hTy
+                                                                                              | UConst i U =>
+                                                                                                  exact
+                                                                                                    substitute_simul_rec_apply_atom_typeof_eq_of_typeof_ne_stuck
+                                                                                                      (Term.UConst i U) a xs ss bvs
+                                                                                                      hXsEnv hBvsEnv hSs
+                                                                                                      (by intro f x h; cases h)
+                                                                                                      (by intro s S h; cases h)
+                                                                                                      (by intro h; cases h)
+                                                                                                      (by intro q v vs hEq; cases hEq)
+                                                                                                      (by rfl)
+                                                                                                      (by
+                                                                                                        change
+                                                                                                          __smtx_typeof
+                                                                                                              (SmtTerm.Apply
+                                                                                                                (SmtTerm.UConst
+                                                                                                                  (native_uconst_id i)
+                                                                                                                  (__eo_to_smt_type U))
+                                                                                                                (__eo_to_smt a)) =
+                                                                                                            __smtx_typeof_apply
+                                                                                                              (__smtx_typeof
+                                                                                                                (SmtTerm.UConst
+                                                                                                                  (native_uconst_id i)
+                                                                                                                  (__eo_to_smt_type U)))
+                                                                                                              (__smtx_typeof
+                                                                                                                (__eo_to_smt a))
+                                                                                                        rw [__smtx_typeof.eq_def])
+                                                                                                      hFTrans
+                                                                                                      (fun hATrans hATy =>
+                                                                                                        hRec
+                                                                                                          (G := a)
+                                                                                                          (xs' := xs)
+                                                                                                          (ss' := ss)
+                                                                                                          (bvs' := bvs)
+                                                                                                          (by simp; omega)
+                                                                                                          hXsEnv hBvsEnv
+                                                                                                          hATrans hSs
+                                                                                                          hEntryTypes hATy)
+                                                                                                      hTy
+                                                                                              | DtCons s d i =>
+                                                                                                  exact
+                                                                                                    substitute_simul_rec_apply_atom_typeof_eq_of_typeof_ne_stuck
+                                                                                                      (Term.DtCons s d i) a xs ss bvs
+                                                                                                      hXsEnv hBvsEnv hSs
+                                                                                                      (by intro f x h; cases h)
+                                                                                                      (by intro name T h; cases h)
+                                                                                                      (by intro h; cases h)
+                                                                                                      (by intro q v vs hEq; cases hEq)
+                                                                                                      (by rfl)
+                                                                                                      (by
+                                                                                                        have hReserved :
+                                                                                                            native_reserved_datatype_name s =
+                                                                                                              false :=
+                                                                                                          dtcons_reserved_false_of_apply_has_smt_translation
+                                                                                                            hFTrans
+                                                                                                        change
+                                                                                                          __smtx_typeof
+                                                                                                              (SmtTerm.Apply
+                                                                                                                (native_ite
+                                                                                                                  (native_reserved_datatype_name s)
+                                                                                                                  SmtTerm.None
+                                                                                                                  (SmtTerm.DtCons s
+                                                                                                                    (__eo_to_smt_datatype d)
+                                                                                                                    i))
+                                                                                                                (__eo_to_smt a)) =
+                                                                                                            __smtx_typeof_apply
+                                                                                                              (__smtx_typeof
+                                                                                                                (native_ite
+                                                                                                                  (native_reserved_datatype_name s)
+                                                                                                                  SmtTerm.None
+                                                                                                                  (SmtTerm.DtCons s
+                                                                                                                    (__eo_to_smt_datatype d)
+                                                                                                                    i)))
+                                                                                                              (__smtx_typeof
+                                                                                                                (__eo_to_smt a))
+                                                                                                        rw [hReserved]
+                                                                                                        simp [native_ite]
+                                                                                                        rw [__smtx_typeof.eq_def])
+                                                                                                      hFTrans
+                                                                                                      (fun hATrans hATy =>
+                                                                                                        hRec
+                                                                                                          (G := a)
+                                                                                                          (xs' := xs)
+                                                                                                          (ss' := ss)
+                                                                                                          (bvs' := bvs)
+                                                                                                          (by simp; omega)
+                                                                                                          hXsEnv hBvsEnv
+                                                                                                          hATrans hSs
+                                                                                                          hEntryTypes hATy)
+                                                                                                      hTy
+                                                                                              | DtSel s d i j =>
+                                                                                                  exact
+                                                                                                    substitute_simul_rec_apply_dtsel_typeof_eq_of_typeof_ne_stuck
+                                                                                                      s d i j a xs ss bvs
+                                                                                                      hXsEnv hBvsEnv hSs
+                                                                                                      hFTrans
+                                                                                                      (fun hATrans hATy =>
+                                                                                                        hRec
+                                                                                                          (G := a)
+                                                                                                          (xs' := xs)
+                                                                                                          (ss' := ss)
+                                                                                                          (bvs' := bvs)
+                                                                                                          (by simp; omega)
+                                                                                                          hXsEnv hBvsEnv
+                                                                                                          hATrans hSs
+                                                                                                          hEntryTypes hATy)
+                                                                                                      hTy
+                                                                                              | __eo_List =>
+                                                                                                  exact
+                                                                                                    substitute_simul_rec_apply_atom_generic_typeof_eq_of_typeof_ne_stuck
+                                                                                                      Term.__eo_List a xs ss bvs
+                                                                                                      hXsEnv hBvsEnv hSs
+                                                                                                      (by intro f x h; cases h)
+                                                                                                      (by intro name T h; cases h)
+                                                                                                      (by intro h; cases h)
+                                                                                                      (by intro q v vs hEq; cases hEq)
+                                                                                                      (by rfl)
+                                                                                                      (by intro s d i j h; cases h)
+                                                                                                      (by intro s d i h; cases h)
+                                                                                                      hFTrans
+                                                                                                      (fun hATrans hATy =>
+                                                                                                        hRec
+                                                                                                          (G := a)
+                                                                                                          (xs' := xs)
+                                                                                                          (ss' := ss)
+                                                                                                          (bvs' := bvs)
+                                                                                                          (by simp)
+                                                                                                          hXsEnv hBvsEnv
+                                                                                                          hATrans hSs
+                                                                                                          hEntryTypes hATy)
+                                                                                                      hTy
+                                                                                              | __eo_List_nil =>
+                                                                                                  exact
+                                                                                                    substitute_simul_rec_apply_atom_generic_typeof_eq_of_typeof_ne_stuck
+                                                                                                      Term.__eo_List_nil a xs ss bvs
+                                                                                                      hXsEnv hBvsEnv hSs
+                                                                                                      (by intro f x h; cases h)
+                                                                                                      (by intro name T h; cases h)
+                                                                                                      (by intro h; cases h)
+                                                                                                      (by intro q v vs hEq; cases hEq)
+                                                                                                      (by rfl)
+                                                                                                      (by intro s d i j h; cases h)
+                                                                                                      (by intro s d i h; cases h)
+                                                                                                      hFTrans
+                                                                                                      (fun hATrans hATy =>
+                                                                                                        hRec
+                                                                                                          (G := a)
+                                                                                                          (xs' := xs)
+                                                                                                          (ss' := ss)
+                                                                                                          (bvs' := bvs)
+                                                                                                          (by simp)
+                                                                                                          hXsEnv hBvsEnv
+                                                                                                          hATrans hSs
+                                                                                                          hEntryTypes hATy)
+                                                                                                      hTy
+                                                                                              | __eo_List_cons =>
+                                                                                                  exact
+                                                                                                    substitute_simul_rec_apply_atom_generic_typeof_eq_of_typeof_ne_stuck
+                                                                                                      Term.__eo_List_cons a xs ss bvs
+                                                                                                      hXsEnv hBvsEnv hSs
+                                                                                                      (by intro f x h; cases h)
+                                                                                                      (by intro name T h; cases h)
+                                                                                                      (by intro h; cases h)
+                                                                                                      (by intro q v vs hEq; cases hEq)
+                                                                                                      (by rfl)
+                                                                                                      (by intro s d i j h; cases h)
+                                                                                                      (by intro s d i h; cases h)
+                                                                                                      hFTrans
+                                                                                                      (fun hATrans hATy =>
+                                                                                                        hRec
+                                                                                                          (G := a)
+                                                                                                          (xs' := xs)
+                                                                                                          (ss' := ss)
+                                                                                                          (bvs' := bvs)
+                                                                                                          (by simp)
+                                                                                                          hXsEnv hBvsEnv
+                                                                                                          hATrans hSs
+                                                                                                          hEntryTypes hATy)
+                                                                                                      hTy
+                                                                                              | Bool =>
+                                                                                                  exact
+                                                                                                    substitute_simul_rec_apply_atom_generic_typeof_eq_of_typeof_ne_stuck
+                                                                                                      Term.Bool a xs ss bvs
+                                                                                                      hXsEnv hBvsEnv hSs
+                                                                                                      (by intro f x h; cases h)
+                                                                                                      (by intro name T h; cases h)
+                                                                                                      (by intro h; cases h)
+                                                                                                      (by intro q v vs hEq; cases hEq)
+                                                                                                      (by rfl)
+                                                                                                      (by intro s d i j h; cases h)
+                                                                                                      (by intro s d i h; cases h)
+                                                                                                      hFTrans
+                                                                                                      (fun hATrans hATy =>
+                                                                                                        hRec
+                                                                                                          (G := a)
+                                                                                                          (xs' := xs)
+                                                                                                          (ss' := ss)
+                                                                                                          (bvs' := bvs)
+                                                                                                          (by simp)
+                                                                                                          hXsEnv hBvsEnv
+                                                                                                          hATrans hSs
+                                                                                                          hEntryTypes hATy)
+                                                                                                      hTy
+                                                                                              | Boolean b =>
+                                                                                                  exact
+                                                                                                    substitute_simul_rec_apply_atom_generic_typeof_eq_of_typeof_ne_stuck
+                                                                                                      (Term.Boolean b) a xs ss bvs
+                                                                                                      hXsEnv hBvsEnv hSs
+                                                                                                      (by intro f x h; cases h)
+                                                                                                      (by intro name T h; cases h)
+                                                                                                      (by intro h; cases h)
+                                                                                                      (by intro q v vs hEq; cases hEq)
+                                                                                                      (by rfl)
+                                                                                                      (by intro s d i j h; cases h)
+                                                                                                      (by intro s d i h; cases h)
+                                                                                                      hFTrans
+                                                                                                      (fun hATrans hATy =>
+                                                                                                        hRec
+                                                                                                          (G := a)
+                                                                                                          (xs' := xs)
+                                                                                                          (ss' := ss)
+                                                                                                          (bvs' := bvs)
+                                                                                                          (by simp)
+                                                                                                          hXsEnv hBvsEnv
+                                                                                                          hATrans hSs
+                                                                                                          hEntryTypes hATy)
+                                                                                                      hTy
+                                                                                              | Numeral n =>
+                                                                                                  exact
+                                                                                                    substitute_simul_rec_apply_atom_generic_typeof_eq_of_typeof_ne_stuck
+                                                                                                      (Term.Numeral n) a xs ss bvs
+                                                                                                      hXsEnv hBvsEnv hSs
+                                                                                                      (by intro f x h; cases h)
+                                                                                                      (by intro name T h; cases h)
+                                                                                                      (by intro h; cases h)
+                                                                                                      (by intro q v vs hEq; cases hEq)
+                                                                                                      (by rfl)
+                                                                                                      (by intro s d i j h; cases h)
+                                                                                                      (by intro s d i h; cases h)
+                                                                                                      hFTrans
+                                                                                                      (fun hATrans hATy =>
+                                                                                                        hRec
+                                                                                                          (G := a)
+                                                                                                          (xs' := xs)
+                                                                                                          (ss' := ss)
+                                                                                                          (bvs' := bvs)
+                                                                                                          (by simp; omega)
+                                                                                                          hXsEnv hBvsEnv
+                                                                                                          hATrans hSs
+                                                                                                          hEntryTypes hATy)
+                                                                                                      hTy
+                                                                                              | Rational r =>
+                                                                                                  exact
+                                                                                                    substitute_simul_rec_apply_atom_generic_typeof_eq_of_typeof_ne_stuck
+                                                                                                      (Term.Rational r) a xs ss bvs
+                                                                                                      hXsEnv hBvsEnv hSs
+                                                                                                      (by intro f x h; cases h)
+                                                                                                      (by intro name T h; cases h)
+                                                                                                      (by intro h; cases h)
+                                                                                                      (by intro q v vs hEq; cases hEq)
+                                                                                                      (by rfl)
+                                                                                                      (by intro s d i j h; cases h)
+                                                                                                      (by intro s d i h; cases h)
+                                                                                                      hFTrans
+                                                                                                      (fun hATrans hATy =>
+                                                                                                        hRec
+                                                                                                          (G := a)
+                                                                                                          (xs' := xs)
+                                                                                                          (ss' := ss)
+                                                                                                          (bvs' := bvs)
+                                                                                                          (by simp; omega)
+                                                                                                          hXsEnv hBvsEnv
+                                                                                                          hATrans hSs
+                                                                                                          hEntryTypes hATy)
+                                                                                                      hTy
+                                                                                              | String s =>
+                                                                                                  exact
+                                                                                                    substitute_simul_rec_apply_atom_generic_typeof_eq_of_typeof_ne_stuck
+                                                                                                      (Term.String s) a xs ss bvs
+                                                                                                      hXsEnv hBvsEnv hSs
+                                                                                                      (by intro f x h; cases h)
+                                                                                                      (by intro name T h; cases h)
+                                                                                                      (by intro h; cases h)
+                                                                                                      (by intro q v vs hEq; cases hEq)
+                                                                                                      (by rfl)
+                                                                                                      (by intro s d i j h; cases h)
+                                                                                                      (by intro s d i h; cases h)
+                                                                                                      hFTrans
+                                                                                                      (fun hATrans hATy =>
+                                                                                                        hRec
+                                                                                                          (G := a)
+                                                                                                          (xs' := xs)
+                                                                                                          (ss' := ss)
+                                                                                                          (bvs' := bvs)
+                                                                                                          (by simp; omega)
+                                                                                                          hXsEnv hBvsEnv
+                                                                                                          hATrans hSs
+                                                                                                          hEntryTypes hATy)
+                                                                                                      hTy
+                                                                                              | Binary w n =>
+                                                                                                  exact
+                                                                                                    substitute_simul_rec_apply_atom_generic_typeof_eq_of_typeof_ne_stuck
+                                                                                                      (Term.Binary w n) a xs ss bvs
+                                                                                                      hXsEnv hBvsEnv hSs
+                                                                                                      (by intro f x h; cases h)
+                                                                                                      (by intro name T h; cases h)
+                                                                                                      (by intro h; cases h)
+                                                                                                      (by intro q v vs hEq; cases hEq)
+                                                                                                      (by rfl)
+                                                                                                      (by intro s d i j h; cases h)
+                                                                                                      (by intro s d i h; cases h)
+                                                                                                      hFTrans
+                                                                                                      (fun hATrans hATy =>
+                                                                                                        hRec
+                                                                                                          (G := a)
+                                                                                                          (xs' := xs)
+                                                                                                          (ss' := ss)
+                                                                                                          (bvs' := bvs)
+                                                                                                          (by simp; omega)
+                                                                                                          hXsEnv hBvsEnv
+                                                                                                          hATrans hSs
+                                                                                                          hEntryTypes hATy)
+                                                                                                      hTy
+                                                                                              | «Type» =>
+                                                                                                  exact
+                                                                                                    substitute_simul_rec_apply_atom_generic_typeof_eq_of_typeof_ne_stuck
+                                                                                                      Term.Type a xs ss bvs
+                                                                                                      hXsEnv hBvsEnv hSs
+                                                                                                      (by intro f x h; cases h)
+                                                                                                      (by intro name T h; cases h)
+                                                                                                      (by intro h; cases h)
+                                                                                                      (by intro q v vs hEq; cases hEq)
+                                                                                                      (by rfl)
+                                                                                                      (by intro s d i j h; cases h)
+                                                                                                      (by intro s d i h; cases h)
+                                                                                                      hFTrans
+                                                                                                      (fun hATrans hATy =>
+                                                                                                        hRec
+                                                                                                          (G := a)
+                                                                                                          (xs' := xs)
+                                                                                                          (ss' := ss)
+                                                                                                          (bvs' := bvs)
+                                                                                                          (by simp)
+                                                                                                          hXsEnv hBvsEnv
+                                                                                                          hATrans hSs
+                                                                                                          hEntryTypes hATy)
+                                                                                                      hTy
+                                                                                              | FunType =>
+                                                                                                  exact
+                                                                                                    substitute_simul_rec_apply_atom_generic_typeof_eq_of_typeof_ne_stuck
+                                                                                                      Term.FunType a xs ss bvs
+                                                                                                      hXsEnv hBvsEnv hSs
+                                                                                                      (by intro f x h; cases h)
+                                                                                                      (by intro name T h; cases h)
+                                                                                                      (by intro h; cases h)
+                                                                                                      (by intro q v vs hEq; cases hEq)
+                                                                                                      (by rfl)
+                                                                                                      (by intro s d i j h; cases h)
+                                                                                                      (by intro s d i h; cases h)
+                                                                                                      hFTrans
+                                                                                                      (fun hATrans hATy =>
+                                                                                                        hRec
+                                                                                                          (G := a)
+                                                                                                          (xs' := xs)
+                                                                                                          (ss' := ss)
+                                                                                                          (bvs' := bvs)
+                                                                                                          (by simp)
+                                                                                                          hXsEnv hBvsEnv
+                                                                                                          hATrans hSs
+                                                                                                          hEntryTypes hATy)
+                                                                                                      hTy
+                                                                                              | DatatypeType s d =>
+                                                                                                  exact
+                                                                                                    substitute_simul_rec_apply_atom_generic_typeof_eq_of_typeof_ne_stuck
+                                                                                                      (Term.DatatypeType s d) a xs ss bvs
+                                                                                                      hXsEnv hBvsEnv hSs
+                                                                                                      (by intro f x h; cases h)
+                                                                                                      (by intro name T h; cases h)
+                                                                                                      (by intro h; cases h)
+                                                                                                      (by intro q v vs hEq; cases hEq)
+                                                                                                      (by rfl)
+                                                                                                      (by intro s d i j h; cases h)
+                                                                                                      (by intro s d i h; cases h)
+                                                                                                      hFTrans
+                                                                                                      (fun hATrans hATy =>
+                                                                                                        hRec
+                                                                                                          (G := a)
+                                                                                                          (xs' := xs)
+                                                                                                          (ss' := ss)
+                                                                                                          (bvs' := bvs)
+                                                                                                          (by simp; omega)
+                                                                                                          hXsEnv hBvsEnv
+                                                                                                          hATrans hSs
+                                                                                                          hEntryTypes hATy)
+                                                                                                      hTy
+                                                                                              | DatatypeTypeRef s =>
+                                                                                                  exact
+                                                                                                    substitute_simul_rec_apply_atom_generic_typeof_eq_of_typeof_ne_stuck
+                                                                                                      (Term.DatatypeTypeRef s) a xs ss bvs
+                                                                                                      hXsEnv hBvsEnv hSs
+                                                                                                      (by intro f x h; cases h)
+                                                                                                      (by intro name T h; cases h)
+                                                                                                      (by intro h; cases h)
+                                                                                                      (by intro q v vs hEq; cases hEq)
+                                                                                                      (by rfl)
+                                                                                                      (by intro s d i j h; cases h)
+                                                                                                      (by intro s d i h; cases h)
+                                                                                                      hFTrans
+                                                                                                      (fun hATrans hATy =>
+                                                                                                        hRec
+                                                                                                          (G := a)
+                                                                                                          (xs' := xs)
+                                                                                                          (ss' := ss)
+                                                                                                          (bvs' := bvs)
+                                                                                                          (by simp; omega)
+                                                                                                          hXsEnv hBvsEnv
+                                                                                                          hATrans hSs
+                                                                                                          hEntryTypes hATy)
+                                                                                                      hTy
+                                                                                              | DtcAppType T U =>
+                                                                                                  exact
+                                                                                                    substitute_simul_rec_apply_atom_generic_typeof_eq_of_typeof_ne_stuck
+                                                                                                      (Term.DtcAppType T U) a xs ss bvs
+                                                                                                      hXsEnv hBvsEnv hSs
+                                                                                                      (by intro f x h; cases h)
+                                                                                                      (by intro name T h; cases h)
+                                                                                                      (by intro h; cases h)
+                                                                                                      (by intro q v vs hEq; cases hEq)
+                                                                                                      (by rfl)
+                                                                                                      (by intro s d i j h; cases h)
+                                                                                                      (by intro s d i h; cases h)
+                                                                                                      hFTrans
+                                                                                                      (fun hATrans hATy =>
+                                                                                                        hRec
+                                                                                                          (G := a)
+                                                                                                          (xs' := xs)
+                                                                                                          (ss' := ss)
+                                                                                                          (bvs' := bvs)
+                                                                                                          (by simp; omega)
+                                                                                                          hXsEnv hBvsEnv
+                                                                                                          hATrans hSs
+                                                                                                          hEntryTypes hATy)
+                                                                                                      hTy
+                                                                                              | USort i =>
+                                                                                                  exact
+                                                                                                    substitute_simul_rec_apply_atom_generic_typeof_eq_of_typeof_ne_stuck
+                                                                                                      (Term.USort i) a xs ss bvs
+                                                                                                      hXsEnv hBvsEnv hSs
+                                                                                                      (by intro f x h; cases h)
+                                                                                                      (by intro name T h; cases h)
+                                                                                                      (by intro h; cases h)
+                                                                                                      (by intro q v vs hEq; cases hEq)
+                                                                                                      (by rfl)
+                                                                                                      (by intro s d i j h; cases h)
+                                                                                                      (by intro s d i h; cases h)
+                                                                                                      hFTrans
+                                                                                                      (fun hATrans hATy =>
+                                                                                                        hRec
+                                                                                                          (G := a)
+                                                                                                          (xs' := xs)
+                                                                                                          (ss' := ss)
+                                                                                                          (bvs' := bvs)
+                                                                                                          (by simp; omega)
+                                                                                                          hXsEnv hBvsEnv
+                                                                                                          hATrans hSs
+                                                                                                          hEntryTypes hATy)
+                                                                                                      hTy
+                                                                                              | Stuck =>
+                                                                                                  exact False.elim (by
+                                                                                                    unfold RuleProofs.eo_has_smt_translation at hFTrans
+                                                                                                    change
+                                                                                                      __smtx_typeof
+                                                                                                          (SmtTerm.Apply SmtTerm.None
+                                                                                                            (__eo_to_smt a)) ≠
+                                                                                                        SmtType.None at hFTrans
+                                                                                                    exact hFTrans
+                                                                                                      (TranslationProofs.typeof_apply_none_eq
+                                                                                                        (__eo_to_smt a)))
+                                                                                              | _ => sorry
+      | Var name T =>
+          exact
+            substitute_simul_rec_var_any_typeof_eq
+              name T xs ss bvs hXsEnv hBvsEnv hSs hEntryTypes hFTrans
+      | Stuck =>
+          exact False.elim
+            ((RuleProofs.term_ne_stuck_of_has_smt_translation Term.Stuck hFTrans) rfl)
+      | _ =>
+          exact
+            substitute_simul_rec_atom_typeof_eq_of_typeof_ne_stuck
+              _ xs ss bvs hXsEnv hBvsEnv hSs
+              (by intro f a h; cases h)
+              (by intro s S h; cases h)
+              (by intro h; cases h)
+              hTy
+
+theorem substitute_simul_rec_typeof_eq_of_typeof_ne_stuck
+    (F xs ss bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hFTrans : RuleProofs.eo_has_smt_translation F)
+    (hSs : EoListAllHaveSmtTranslation ss)
+    (hEntryTypes : SubstEntryPreservesTypes xs ss)
+    (hTy :
+      __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false) F xs ss bvs) ≠
+        Term.Stuck) :
+    __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false) F xs ss bvs) =
+      __eo_typeof F :=
+  substitute_simul_rec_typeof_eq_of_typeof_ne_stuck_lt
+    (sizeOf F + 1) F xs ss bvs
+    (by omega) hXsEnv hBvsEnv hFTrans hSs hEntryTypes hTy
 
 end SubstituteSupport

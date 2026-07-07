@@ -1887,12 +1887,8 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.str_replace x1 x2 x3) => (__smtx_typeof_seq_op_3 (__smtx_typeof x1) (__smtx_typeof x2) (__smtx_typeof x3))
   | (SmtTerm.str_indexof x1 x2 x3) => (__smtx_typeof_str_indexof (__smtx_typeof x1) (__smtx_typeof x2) (__smtx_typeof x3))
   | (SmtTerm.str_at x1 x2) => (__smtx_typeof_str_at (__smtx_typeof x1) (__smtx_typeof x2))
-  | (SmtTerm.str_prefixof x1 x2) => 
-    let _v0 := (SmtType.Seq SmtType.Char)
-    (native_ite (native_Teq (__smtx_typeof x1) _v0) (native_ite (native_Teq (__smtx_typeof x2) _v0) SmtType.Bool SmtType.None) SmtType.None)
-  | (SmtTerm.str_suffixof x1 x2) => 
-    let _v0 := (SmtType.Seq SmtType.Char)
-    (native_ite (native_Teq (__smtx_typeof x1) _v0) (native_ite (native_Teq (__smtx_typeof x2) _v0) SmtType.Bool SmtType.None) SmtType.None)
+  | (SmtTerm.str_prefixof x1 x2) => (__smtx_typeof_seq_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
+  | (SmtTerm.str_suffixof x1 x2) => (__smtx_typeof_seq_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
   | (SmtTerm.str_rev x1) => (__smtx_typeof_seq_op_1 (__smtx_typeof x1))
   | (SmtTerm.str_update x1 x2 x3) => (__smtx_typeof_str_update (__smtx_typeof x1) (__smtx_typeof x2) (__smtx_typeof x3))
   | (SmtTerm.str_to_lower x1) => 
