@@ -870,9 +870,14 @@ def __smtx_is_unit_datatype : SmtDatatype -> native_Bool
   | d => false
 
 
+def __smtx_is_unit_datatype_decl (s : native_String) : SmtDatatypeDecl -> native_Bool
+  | SmtDatatypeDecl.nil => false
+  | (SmtDatatypeDecl.cons s2 d dd) => (native_ite (native_streq s s2) (__smtx_is_unit_datatype d) (__smtx_is_unit_datatype_decl s dd))
+
+
 def __smtx_is_unit_type : SmtType -> native_Bool
   | (SmtType.BitVec w) => (native_nateq w native_nat_zero)
-  | (SmtType.Datatype s dd) => (__smtx_is_unit_datatype (__smtx_dd_lookup s dd))
+  | (SmtType.Datatype s dd) => (__smtx_is_unit_datatype_decl s dd)
   | (SmtType.Map T U) => (__smtx_is_unit_type U)
   | T => false
 
@@ -887,11 +892,16 @@ def __smtx_is_finite_datatype : SmtDatatype -> native_Bool
   | (SmtDatatype.sum c d) => (native_and (__smtx_is_finite_datatype_cons c) (__smtx_is_finite_datatype d))
 
 
+def __smtx_is_finite_datatype_decl (s : native_String) : SmtDatatypeDecl -> native_Bool
+  | SmtDatatypeDecl.nil => false
+  | (SmtDatatypeDecl.cons s2 d dd) => (native_ite (native_streq s s2) (__smtx_is_finite_datatype d) (__smtx_is_finite_datatype_decl s dd))
+
+
 def __smtx_is_finite_type : SmtType -> native_Bool
   | SmtType.Bool => true
   | (SmtType.BitVec w) => true
   | SmtType.Char => true
-  | (SmtType.Datatype s dd) => (__smtx_is_finite_datatype (__smtx_dd_lookup s dd))
+  | (SmtType.Datatype s dd) => (__smtx_is_finite_datatype_decl s dd)
   | (SmtType.Map T U) => (native_or (__smtx_is_unit_type U) (native_and (__smtx_is_finite_type T) (__smtx_is_finite_type U)))
   | (SmtType.Set T) => (__smtx_is_finite_type T)
   | T => false
