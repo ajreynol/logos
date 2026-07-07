@@ -906,8 +906,13 @@ def __smtx_datatype_default (s : native_String) (dd : SmtDatatypeDecl) (n : nati
   | dF, dU => SmtValue.NotValue
 
 
+def __smtx_datatype_decl_default (s : native_String) (dd : SmtDatatypeDecl) : SmtDatatypeDecl -> SmtDatatypeDecl -> SmtValue
+  | (SmtDatatypeDecl.cons sF dF ddF), (SmtDatatypeDecl.cons sU dU ddU) => (native_ite (native_streq s sF) (__smtx_datatype_default s dd native_nat_zero (__smtx_dt_resolve dF dd) dU) (__smtx_datatype_decl_default s dd ddF ddU))
+  | SmtDatatypeDecl.nil, SmtDatatypeDecl.nil => SmtValue.NotValue
+
+
 def __smtx_type_default_rec : SmtType -> SmtType -> SmtValue
-  | (SmtType.Datatype sF ddF), (SmtType.Datatype sU ddU) => (__smtx_datatype_default sF ddF native_nat_zero (__smtx_dt_resolve (__smtx_dd_lookup sF ddF) ddF) (__smtx_dd_lookup sU ddU))
+  | (SmtType.Datatype sF ddF), (SmtType.Datatype sU ddU) => (__smtx_datatype_decl_default sF ddF ddF ddU)
   | V, SmtType.Bool => (SmtValue.Boolean false)
   | V, SmtType.Int => (SmtValue.Numeral 0)
   | V, SmtType.Real => (SmtValue.Rational (native_mk_rational 0 1))
