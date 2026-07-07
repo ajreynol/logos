@@ -173,30 +173,30 @@ def __eo_to_smt_tuple_prepend (h : SmtTerm) (hT : SmtType) (tail : SmtTerm) : Sm
   (__eo_to_smt_tuple_prepend_of_type (__smtx_typeof tail) h hT tail)
 
 def __eo_to_smt_tuple_select : SmtType -> SmtTerm -> SmtTerm -> SmtTerm
-  | (SmtType.Datatype s d), (SmtTerm.Numeral n), t => (native_ite (native_and (native_streq s (native_string_lit "@Tuple")) (native_zleq 0 n)) (SmtTerm.Apply (SmtTerm.DtSel (native_string_lit "@Tuple") d native_nat_zero (native_int_to_nat n)) t) SmtTerm.None)
+  | (SmtType.Datatype s dd), (SmtTerm.Numeral n), t => (native_ite (native_and (native_streq s (native_string_lit "@Tuple")) (native_zleq 0 n)) (SmtTerm.Apply (SmtTerm.DtSel (native_string_lit "@Tuple") dd native_nat_zero (native_int_to_nat n)) t) SmtTerm.None)
   | T, n, t => SmtTerm.None
 
 
 def __eo_to_smt_tester : SmtTerm -> SmtTerm
-  | (SmtTerm.DtCons s d n) => (SmtTerm.DtTester s d n)
+  | (SmtTerm.DtCons s dd n) => (SmtTerm.DtTester s dd n)
   | t => SmtTerm.None
 
 
 def __eo_to_smt_updater_rec : SmtTerm -> native_Nat -> SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
-  | (SmtTerm.DtSel s d n m), native_nat_zero, t, u, acc => acc
-  | (SmtTerm.DtSel s d n m), (native_nat_succ k), t, u, acc => (SmtTerm.Apply (__eo_to_smt_updater_rec (SmtTerm.DtSel s d n m) k t u acc) (native_ite (native_nateq m k) u (SmtTerm.Apply (SmtTerm.DtSel s d n k) t)))
+  | (SmtTerm.DtSel s dd n m), native_nat_zero, t, u, acc => acc
+  | (SmtTerm.DtSel s dd n m), (native_nat_succ k), t, u, acc => (SmtTerm.Apply (__eo_to_smt_updater_rec (SmtTerm.DtSel s dd n m) k t u acc) (native_ite (native_nateq m k) u (SmtTerm.Apply (SmtTerm.DtSel s dd n k) t)))
   | v, k, t, u, acc => SmtTerm.None
 
 
 def __eo_to_smt_updater : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
-  | (SmtTerm.DtSel s d n m), t, u => 
-    let _v0 := (__smtx_dt_num_sels d n)
-    (native_ite (native_zlt (native_nat_to_int m) (native_nat_to_int _v0)) (SmtTerm.ite (SmtTerm.Apply (SmtTerm.DtTester s d n) t) (__eo_to_smt_updater_rec (SmtTerm.DtSel s d n m) _v0 t u (SmtTerm.DtCons s d n)) t) SmtTerm.None)
-  | sel, t, d => SmtTerm.None
+  | (SmtTerm.DtSel s dd n m), t, u => 
+    let _v0 := (__smtx_dt_num_sels (__smtx_dd_lookup s dd) n)
+    (native_ite (native_zlt (native_nat_to_int m) (native_nat_to_int _v0)) (SmtTerm.ite (SmtTerm.Apply (SmtTerm.DtTester s dd n) t) (__eo_to_smt_updater_rec (SmtTerm.DtSel s dd n m) _v0 t u (SmtTerm.DtCons s dd n)) t) SmtTerm.None)
+  | sel, t, u => SmtTerm.None
 
 
 def __eo_to_smt_tuple_update : SmtType -> SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
-  | (SmtType.Datatype s d), (SmtTerm.Numeral n), t, u => (native_ite (native_and (native_streq s (native_string_lit "@Tuple")) (native_zleq 0 n)) (__eo_to_smt_updater (SmtTerm.DtSel (native_string_lit "@Tuple") d native_nat_zero (native_int_to_nat n)) t u) SmtTerm.None)
+  | (SmtType.Datatype s dd), (SmtTerm.Numeral n), t, u => (native_ite (native_and (native_streq s (native_string_lit "@Tuple")) (native_zleq 0 n)) (__eo_to_smt_updater (SmtTerm.DtSel (native_string_lit "@Tuple") dd native_nat_zero (native_int_to_nat n)) t u) SmtTerm.None)
   | T, n, t, u => SmtTerm.None
 
 

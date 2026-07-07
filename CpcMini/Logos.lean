@@ -124,7 +124,7 @@ def __eo_dd_lookup (s : native_String) : DatatypeDecl -> Datatype
   | DatatypeDecl.nil => Datatype.null
 
 
-def __eo_dd_resolve (s : native_String) (dd : DatatypeDecl) : Term :=
+def __eo_dd_resolve (s : native_String) (dd : DatatypeDecl) : Datatype :=
   (__eo_dt_resolve (__eo_dd_lookup s dd) dd)
 
 def __eo_is_bool_type : Term -> Term
@@ -287,8 +287,8 @@ def __eo_typeof : Term -> Term
   | (Term.Binary w n) => (__eo_lit_type_Binary (Term.Binary w n))
   | (Term.Var (Term.String s) T) => T
   | (Term.DatatypeType s dd) => Term.Type
-  | (Term.DtCons s dd i) => (__eo_typeof_dt_cons_rec (Term.DatatypeType s dd) (__eo_dt_resolve (__eo_dd_lookup s dd) dd) i)
-  | (Term.DtSel s dd i j) => (Term.Apply (Term.Apply Term.FunType (Term.DatatypeType s dd)) (__eo_typeof_dt_sel_return (__eo_dt_resolve (__eo_dd_lookup s dd) dd) i j))
+  | (Term.DtCons s dd i) => (__eo_typeof_dt_cons_rec (Term.DatatypeType s dd) (__eo_dd_resolve s dd) i)
+  | (Term.DtSel s dd i j) => (Term.Apply (Term.Apply Term.FunType (Term.DatatypeType s dd)) (__eo_typeof_dt_sel_return (__eo_dd_resolve s dd) i j))
   | (Term.USort i) => Term.Type
   | (Term.UConst i T) => T
   | Term.Type => Term.Type

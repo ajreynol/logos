@@ -735,7 +735,7 @@ def __smtx_dd_lookup (s : native_String) : SmtDatatypeDecl -> SmtDatatype
 
 
 def __smtx_dt_cons_wf_rec : SmtDatatypeCons -> SmtDatatypeCons -> native_Bool
-  | (SmtDatatypeCons.cons (SmtType.Datatype s d) cF), (SmtDatatypeCons.cons (SmtType.TypeRef sU) cU) => (__smtx_dt_cons_wf_rec cF cU)
+  | (SmtDatatypeCons.cons (SmtType.Datatype s dd) cF), (SmtDatatypeCons.cons (SmtType.TypeRef sU) cU) => (__smtx_dt_cons_wf_rec cF cU)
   | (SmtDatatypeCons.cons TF cF), (SmtDatatypeCons.cons TU cU) => (native_ite (native_and (native_inhabited_type TF) (__smtx_type_wf_rec TF TU)) (__smtx_dt_cons_wf_rec cF cU) false)
   | SmtDatatypeCons.unit, SmtDatatypeCons.unit => true
   | cF, cU => false
@@ -963,7 +963,7 @@ def __smtx_bv_sizeof_value : SmtValue -> native_Int
 
 def __smtx_model_eval_apply (M : SmtModel) : SmtValue -> SmtValue -> SmtValue
   | v, SmtValue.NotValue => SmtValue.NotValue
-  | (SmtValue.DtCons s d n), i => (SmtValue.Apply (SmtValue.DtCons s d n) i)
+  | (SmtValue.DtCons s dd n), i => (SmtValue.Apply (SmtValue.DtCons s dd n) i)
   | (SmtValue.Apply f v), i => (SmtValue.Apply (SmtValue.Apply f v) i)
   | (SmtValue.Fun s T U), i => (native_eval_ifun_apply M s T U i)
   | v, i => SmtValue.NotValue
@@ -1967,7 +1967,7 @@ def __smtx_is_unit_datatype : SmtDatatype -> native_Bool
 
 def __smtx_is_unit_type : SmtType -> native_Bool
   | (SmtType.BitVec w) => (native_nateq w native_nat_zero)
-  | (SmtType.Datatype s d) => (__smtx_is_unit_datatype d)
+  | (SmtType.Datatype s dd) => (__smtx_is_unit_datatype (__smtx_dd_lookup s dd))
   | (SmtType.Map T U) => (__smtx_is_unit_type U)
   | T => false
 

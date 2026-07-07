@@ -260,12 +260,20 @@ inductive Term : Type where
 deriving Repr, DecidableEq, Inhabited, Ord
 
 /-
+Eunoia datatype declarations.
+-/
+inductive DatatypeDecl : Type where
+  | nil : DatatypeDecl
+  | cons : native_String -> Datatype -> DatatypeDecl -> DatatypeDecl
+deriving Repr, DecidableEq, Inhabited, Ord
+
+/-
 Eunoia datatypes.
 -/
 inductive Datatype : Type where
   | null : Datatype
   | sum : DatatypeCons -> Datatype -> Datatype
-deriving Repr, DecidableEq, Inhabited
+deriving Repr, DecidableEq, Inhabited, Ord
 
 /-
 Eunoia datatype constructors.
@@ -273,7 +281,7 @@ Eunoia datatype constructors.
 inductive DatatypeCons : Type where
   | unit : DatatypeCons
   | cons : Term -> DatatypeCons -> DatatypeCons
-deriving Repr, DecidableEq, Inhabited
+deriving Repr, DecidableEq, Inhabited, Ord
 
 end
 
