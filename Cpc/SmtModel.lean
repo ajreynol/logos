@@ -1955,6 +1955,9 @@ def __smtx_typeof : SmtTerm -> SmtType
   | x1 => SmtType.None
 
 
+def __smtx_tuple_datatype_decl (d : SmtDatatype) : SmtDatatypeDecl :=
+  (SmtDatatypeDecl.cons (native_string_lit "@Tuple") d SmtDatatypeDecl.nil)
+
 def __smtx_is_unit_datatype_cons : SmtDatatypeCons -> native_Bool
   | SmtDatatypeCons.unit => true
   | (SmtDatatypeCons.cons T c) => (native_and (__smtx_is_unit_type T) (__smtx_is_unit_datatype_cons c))
