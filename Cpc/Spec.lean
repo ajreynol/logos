@@ -111,6 +111,11 @@ def __eo_to_smt_datatype : Datatype -> SmtDatatype
   | Datatype.null => SmtDatatype.null
 
 
+def __eo_to_smt_datatype_decl : DatatypeDecl -> SmtDatatypeDecl
+  | (DatatypeDecl.cons s d dd) => (SmtDatatypeDecl.cons s (__eo_to_smt_datatype d) (__eo_to_smt_datatype_decl dd))
+  | DatatypeDecl.nil => SmtDatatypeDecl.nil
+
+
 def __eo_to_smt_set_elem_type : SmtType -> SmtType
   | (SmtType.Set T) => T
   | T => SmtType.None
@@ -118,7 +123,7 @@ def __eo_to_smt_set_elem_type : SmtType -> SmtType
 
 def __eo_to_smt_type : Term -> SmtType
   | Term.Bool => SmtType.Bool
-  | (Term.DatatypeType s d) => (native_ite (native_reserved_datatype_name s) SmtType.None (SmtType.Datatype s (__eo_to_smt_datatype d)))
+  | (Term.DatatypeType s dd) => (native_ite (native_reserved_datatype_name s) SmtType.None (SmtType.Datatype s (__eo_to_smt_datatype_decl dd)))
   | (Term.DatatypeTypeRef s) => (native_ite (native_reserved_datatype_name s) SmtType.None (SmtType.TypeRef s))
   | (Term.DtcAppType T1 T2) => 
     let _v0 := (__eo_to_smt_type T2)
@@ -208,8 +213,8 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.String s) => (SmtTerm.String s)
   | (Term.Binary w n) => (SmtTerm.Binary w n)
   | (Term.Var (Term.String s) T) => (SmtTerm.Var s (__eo_to_smt_type T))
-  | (Term.DtCons s d i) => (native_ite (native_reserved_datatype_name s) SmtTerm.None (SmtTerm.DtCons s (__eo_to_smt_datatype d) i))
-  | (Term.DtSel s d i j) => (native_ite (native_reserved_datatype_name s) SmtTerm.None (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j))
+  | (Term.DtCons s dd i) => (native_ite (native_reserved_datatype_name s) SmtTerm.None (SmtTerm.DtCons s (__eo_to_smt_datatype_decl dd) i))
+  | (Term.DtSel s dd i j) => (native_ite (native_reserved_datatype_name s) SmtTerm.None (SmtTerm.DtSel s (__eo_to_smt_datatype_decl dd) i j))
   | (Term.UConst i T) => (SmtTerm.UConst (native_uconst_id i) (__eo_to_smt_type T))
   | (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) x1) x2) x3) => (SmtTerm.ite (__eo_to_smt x1) (__eo_to_smt x2) (__eo_to_smt x3))
   | (Term.Apply (Term.UOp UserOp.not) x1) => (SmtTerm.not (__eo_to_smt x1))
