@@ -2157,9 +2157,6 @@ private theorem substitute_simul_apply_applied_head_generic_preserves_type_and_t
     (hXsEnv : EoVarEnvPerm xs xsVars)
     (hBvsEnv : EoVarEnvPerm bvs bvsVars)
     (hTs : EoListAllHaveSmtTranslation ts)
-    (hNotBinderInner :
-      ∀ q v vs,
-        g ≠ Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
     (hNotBinderOuter :
       ∀ q v vs,
         Term.Apply g x ≠
@@ -2167,11 +2164,6 @@ private theorem substitute_simul_apply_applied_head_generic_preserves_type_and_t
     (hOuterTranslate :
       __eo_to_smt (Term.Apply (Term.Apply g x) a) =
         SmtTerm.Apply (__eo_to_smt (Term.Apply g x)) (__eo_to_smt a))
-    (hBaseSubTransOfNe :
-      __substitute_simul_rec (Term.Boolean false) g xs ts bvs ≠
-        Term.Stuck ->
-      RuleProofs.eo_has_smt_translation
-        (__substitute_simul_rec (Term.Boolean false) g xs ts bvs))
     (hFTrans :
       RuleProofs.eo_has_smt_translation (Term.Apply (Term.Apply g x) a))
     (hRecHead :
@@ -2207,8 +2199,6 @@ private theorem substitute_simul_apply_applied_head_generic_preserves_type_and_t
       RuleProofs.eo_has_smt_translation
         (__substitute_simul_rec (Term.Boolean false)
           (Term.Apply (Term.Apply g x) a) xs ts bvs) := by
-  let gSub := __substitute_simul_rec (Term.Boolean false) g xs ts bvs
-  let xSub := __substitute_simul_rec (Term.Boolean false) x xs ts bvs
   let aSub := __substitute_simul_rec (Term.Boolean false) a xs ts bvs
   let headSub :=
     __substitute_simul_rec (Term.Boolean false) (Term.Apply g x) xs ts bvs
@@ -2233,12 +2223,6 @@ private theorem substitute_simul_apply_applied_head_generic_preserves_type_and_t
   have hts : ts ≠ Term.Stuck :=
     SubstituteSupport.eoListAllHaveSmtTranslation_ne_stuck hTs
   have hbvs : bvs ≠ Term.Stuck := hBvsEnv.ne_stuck
-  have hInnerRaw :
-      headSub = __eo_mk_apply gSub xSub := by
-    simpa [headSub, gSub, xSub] using
-      SubstituteSupport.substitute_simul_rec_apply
-        (Term.Boolean false) g x xs ts bvs
-        hisr hxs hts hbvs hNotBinderInner
   have hOuterRaw :
       __substitute_simul_rec (Term.Boolean false)
           (Term.Apply (Term.Apply g x) a) xs ts bvs =
@@ -2256,39 +2240,12 @@ private theorem substitute_simul_apply_applied_head_generic_preserves_type_and_t
   have hOuterApplyTy :
       __eo_typeof (Term.Apply headSub aSub) ≠ Term.Stuck := by
     rwa [hOuterMk] at hTyMk
-  have hOuterNe :
-      __eo_mk_apply headSub aSub ≠ Term.Stuck :=
-    SubstituteSupport.eo_mk_apply_ne_stuck_of_typeof_ne_stuck hTyMk
-  have hHeadSubNe : headSub ≠ Term.Stuck :=
-    SubstituteSupport.eo_mk_apply_fun_ne_stuck_of_ne_stuck hOuterNe
-  have hBaseSubNe : gSub ≠ Term.Stuck := by
-    rw [hInnerRaw] at hHeadSubNe
-    exact
-      SubstituteSupport.eo_mk_apply_fun_ne_stuck_of_ne_stuck hHeadSubNe
-  have hBaseSubTrans :
-      RuleProofs.eo_has_smt_translation gSub :=
-    hBaseSubTransOfNe (by simpa [gSub] using hBaseSubNe)
-  have hInnerMk :
-      __eo_mk_apply gSub xSub = Term.Apply gSub xSub :=
-    SubstituteSupport.eo_mk_apply_eq_apply_of_ne_stuck gSub xSub (by
-      rw [← hInnerRaw]
-      exact hHeadSubNe)
-  have hHeadShape : headSub = Term.Apply gSub xSub := by
-    rw [hInnerRaw, hInnerMk]
-  have hOuterShapeTy :
-      __eo_typeof (Term.Apply (Term.Apply gSub xSub) aSub) ≠ Term.Stuck := by
-    simpa [hHeadShape] using hOuterApplyTy
-  have hApplyEq :=
-    local_typeof_apply_apply_eq_of_base_translation
-      gSub xSub aSub hBaseSubTrans
-  have hApplyTy :
-      __eo_typeof_apply (__eo_typeof (Term.Apply gSub xSub))
-          (__eo_typeof aSub) ≠ Term.Stuck := by
-    rwa [← hApplyEq] at hOuterShapeTy
   have hHeadSubTy :
       __eo_typeof headSub ≠ Term.Stuck := by
-    simpa [hHeadShape] using
-      SubstituteSupport.eo_typeof_apply_head_ne_stuck hApplyTy
+    change
+      __eo_typeof_apply (__eo_typeof headSub) (__eo_typeof aSub) ≠
+        Term.Stuck at hOuterApplyTy
+    exact SubstituteSupport.eo_typeof_apply_head_ne_stuck hOuterApplyTy
   have hHeadBoth := hRecHead hHeadTrans hHeadSubTy
   have hATy : __eo_typeof aSub ≠ Term.Stuck := by
     simpa [aSub] using
@@ -2376,18 +2333,7 @@ private theorem substitute_simul_apply_apply_var_head_generic_preserves_type_and
   exact
     substitute_simul_apply_applied_head_generic_preserves_type_and_translation_of_typeof_ne_stuck
       (Term.Var name T) x a xs ts bvs hXsEnv hBvsEnv hTs
-      (by intro q v vs hEq; cases hEq)
       hNotBinderOuter hOuterTranslate
-      (fun hVarSubNe => by
-        have hInnerArgs :=
-          SubstituteSupport.apply_generic_args_have_smt_translation_of_has_smt_translation
-            (Term.Var name T) x
-            (by rfl)
-            (SubstituteSupport.var_apply_generic_smt_type name T x)
-            hHeadTrans
-        exact
-          SubstituteSupport.substitute_simul_rec_var_any_has_smt_translation_of_ne_stuck
-            name T xs ts bvs hXsEnv hBvsEnv hTs hInnerArgs.1 hVarSubNe)
       hFTrans hRecHead hRecA hTy
 
 private theorem eo_to_smt_apply_apply_atom_head_generic_local
@@ -2401,6 +2347,145 @@ private theorem eo_to_smt_apply_apply_atom_head_generic_local
   · exact False.elim (hNotUOp _ rfl)
   · exact False.elim (hNotUOp1 _ _ rfl)
   · exact False.elim (hNotApply _ _ rfl)
+
+private def applyApplyUOpNeedsSpecialTranslation : UserOp -> Prop
+  | UserOp.or => True
+  | UserOp.and => True
+  | UserOp.imp => True
+  | UserOp.xor => True
+  | UserOp.eq => True
+  | UserOp.plus => True
+  | UserOp.neg => True
+  | UserOp.mult => True
+  | UserOp.lt => True
+  | UserOp.leq => True
+  | UserOp.gt => True
+  | UserOp.geq => True
+  | UserOp.div => True
+  | UserOp.mod => True
+  | UserOp.multmult => True
+  | UserOp.divisible => True
+  | UserOp.div_total => True
+  | UserOp.mod_total => True
+  | UserOp.multmult_total => True
+  | UserOp.select => True
+  | UserOp._at_array_deq_diff => True
+  | UserOp.concat => True
+  | UserOp.bvand => True
+  | UserOp.bvor => True
+  | UserOp.bvnand => True
+  | UserOp.bvnor => True
+  | UserOp.bvxor => True
+  | UserOp.bvxnor => True
+  | UserOp.bvcomp => True
+  | UserOp.bvadd => True
+  | UserOp.bvmul => True
+  | UserOp.bvudiv => True
+  | UserOp.bvurem => True
+  | UserOp.bvsub => True
+  | UserOp.bvsdiv => True
+  | UserOp.bvsrem => True
+  | UserOp.bvsmod => True
+  | UserOp.bvult => True
+  | UserOp.bvule => True
+  | UserOp.bvugt => True
+  | UserOp.bvuge => True
+  | UserOp.bvslt => True
+  | UserOp.bvsle => True
+  | UserOp.bvsgt => True
+  | UserOp.bvsge => True
+  | UserOp.bvshl => True
+  | UserOp.bvlshr => True
+  | UserOp.bvashr => True
+  | UserOp.bvuaddo => True
+  | UserOp.bvsaddo => True
+  | UserOp.bvumulo => True
+  | UserOp.bvsmulo => True
+  | UserOp.bvusubo => True
+  | UserOp.bvssubo => True
+  | UserOp.bvsdivo => True
+  | UserOp.bvultbv => True
+  | UserOp.bvsltbv => True
+  | UserOp._at_from_bools => True
+  | UserOp.str_concat => True
+  | UserOp.str_contains => True
+  | UserOp.str_at => True
+  | UserOp.str_prefixof => True
+  | UserOp.str_suffixof => True
+  | UserOp.str_lt => True
+  | UserOp.str_leq => True
+  | UserOp.re_range => True
+  | UserOp.re_concat => True
+  | UserOp.re_inter => True
+  | UserOp.re_union => True
+  | UserOp.re_diff => True
+  | UserOp.str_in_re => True
+  | UserOp.seq_nth => True
+  | UserOp._at_strings_deq_diff => True
+  | UserOp._at_strings_stoi_result => True
+  | UserOp._at_strings_itos_result => True
+  | UserOp._at_strings_num_occur => True
+  | UserOp.tuple => True
+  | UserOp.set_union => True
+  | UserOp.set_inter => True
+  | UserOp.set_minus => True
+  | UserOp.set_member => True
+  | UserOp.set_subset => True
+  | UserOp.set_insert => True
+  | UserOp._at_sets_deq_diff => True
+  | UserOp.qdiv => True
+  | UserOp.qdiv_total => True
+  | UserOp.forall => True
+  | UserOp.exists => True
+  | _ => False
+
+private def applyApplyApplyUOpNeedsSpecialTranslation : UserOp -> Prop
+  | UserOp.ite => True
+  | UserOp.store => True
+  | UserOp.bvite => True
+  | UserOp.str_substr => True
+  | UserOp.str_replace => True
+  | UserOp.str_replace_all => True
+  | UserOp.str_indexof => True
+  | UserOp.str_update => True
+  | UserOp.str_replace_re => True
+  | UserOp.str_replace_re_all => True
+  | UserOp.str_indexof_re => True
+  | UserOp.str_indexof_re_split => True
+  | _ => False
+
+private theorem eo_to_smt_apply_apply_generic_of_not_special
+    {g x a : Term}
+    (hNoUOp :
+      ∀ op, applyApplyUOpNeedsSpecialTranslation op -> g ≠ Term.UOp op)
+    (hNoUpdate :
+      ∀ idx, g ≠ Term.UOp1 UserOp1.update idx)
+    (hNoTupleUpdate :
+      ∀ idx, g ≠ Term.UOp1 UserOp1.tuple_update idx)
+    (hNoApplyUOp :
+      ∀ op y,
+        applyApplyApplyUOpNeedsSpecialTranslation op ->
+          g ≠ Term.Apply (Term.UOp op) y) :
+    __eo_to_smt (Term.Apply (Term.Apply g x) a) =
+      SmtTerm.Apply (__eo_to_smt (Term.Apply g x)) (__eo_to_smt a) := by
+  cases g <;> try rfl
+  · rename_i op
+    cases op <;> try rfl
+    all_goals
+      exact False.elim
+        (hNoUOp _ (by simp [applyApplyUOpNeedsSpecialTranslation]) rfl)
+  · rename_i op idx
+    cases op <;> try rfl
+    · exact False.elim (hNoUpdate idx rfl)
+    · exact False.elim (hNoTupleUpdate idx rfl)
+  · rename_i head y
+    cases head <;> try rfl
+    · rename_i op
+      cases op <;> try rfl
+      all_goals
+        exact False.elim
+          (hNoApplyUOp _ y
+            (by simp [applyApplyApplyUOpNeedsSpecialTranslation]) rfl)
 
 private theorem substitute_simul_apply_apply_atom_base_generic_preserves_type_and_translation_of_typeof_ne_stuck
     (g x a xs ts bvs : Term)
@@ -2477,17 +2562,7 @@ private theorem substitute_simul_apply_apply_atom_base_generic_preserves_type_an
   exact
     substitute_simul_apply_applied_head_generic_preserves_type_and_translation_of_typeof_ne_stuck
       g x a xs ts bvs hXsEnv hBvsEnv hTs
-      (fun q v vs hEq =>
-        hNotApply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) hEq)
       hNotBinderOuter hOuterTranslate
-      (fun hGSubNe => by
-        have hInnerArgs :=
-          SubstituteSupport.apply_generic_args_have_smt_translation_of_has_smt_translation
-            g x hInnerTranslate hInnerGeneric hHeadTrans
-        exact
-          SubstituteSupport.substitute_simul_rec_atom_has_smt_translation_of_ne_stuck
-            g xs ts bvs hXsEnv hBvsEnv hTs hNotApply hNotVar hNotStuck
-            hInnerArgs.1 hGSubNe)
       hFTrans hRecHead hRecA hTy
 
 private theorem false_of_apply_stuck_has_smt_translation
@@ -13425,7 +13500,58 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                                                                                         (by simp; omega)
                                                                                                                                                                                                                                         hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                                                                                                     hTy
-                                                                                                                                                                                                                              · sorry
+                                                                                                                                                                                                                              · have hOuterTranslate :
+                                                                                                                                                                                                                                    __eo_to_smt (Term.Apply (Term.Apply g x1) a) =
+                                                                                                                                                                                                                                      SmtTerm.Apply (__eo_to_smt (Term.Apply g x1))
+                                                                                                                                                                                                                                        (__eo_to_smt a) :=
+                                                                                                                                                                                                                                  eo_to_smt_apply_apply_generic_of_not_special
+                                                                                                                                                                                                                                    (g := g) (x := x1) (a := a)
+                                                                                                                                                                                                                                    (by
+                                                                                                                                                                                                                                      intro op hSpecial hEq
+                                                                                                                                                                                                                                      subst g
+                                                                                                                                                                                                                                      cases op <;>
+                                                                                                                                                                                                                                        simp [applyApplyUOpNeedsSpecialTranslation] at hSpecial <;>
+                                                                                                                                                                                                                                        contradiction)
+                                                                                                                                                                                                                                    (fun idx hEq => hHeadUpdate ⟨idx, hEq⟩)
+                                                                                                                                                                                                                                    (fun idx hEq => hHeadTupleUpdate ⟨idx, hEq⟩)
+                                                                                                                                                                                                                                    (by
+                                                                                                                                                                                                                                      intro op y hSpecial hEq
+                                                                                                                                                                                                                                      subst g
+                                                                                                                                                                                                                                      cases op <;>
+                                                                                                                                                                                                                                        simp [applyApplyApplyUOpNeedsSpecialTranslation] at hSpecial
+                                                                                                                                                                                                                                      all_goals
+                                                                                                                                                                                                                                        first
+                                                                                                                                                                                                                                        | exact hHeadIte ⟨y, rfl⟩
+                                                                                                                                                                                                                                        | exact hHeadBvite ⟨y, rfl⟩
+                                                                                                                                                                                                                                        | exact hHeadStore ⟨y, rfl⟩
+                                                                                                                                                                                                                                        | exact hHeadStrSubstr ⟨y, rfl⟩
+                                                                                                                                                                                                                                        | exact hHeadStrReplace ⟨y, rfl⟩
+                                                                                                                                                                                                                                        | exact hHeadStrReplaceAll ⟨y, rfl⟩
+                                                                                                                                                                                                                                        | exact hHeadStrIndexof ⟨y, rfl⟩
+                                                                                                                                                                                                                                        | exact hHeadStrUpdate ⟨y, rfl⟩
+                                                                                                                                                                                                                                        | exact hHeadStrReplaceRe ⟨y, rfl⟩
+                                                                                                                                                                                                                                        | exact hHeadStrReplaceReAll ⟨y, rfl⟩
+                                                                                                                                                                                                                                        | exact hHeadStrIndexofRe ⟨y, rfl⟩
+                                                                                                                                                                                                                                        | exact hHeadStrIndexofReSplit ⟨y, rfl⟩)
+                                                                                                                                                                                                                                exact
+                                                                                                                                                                                                                                  substitute_simul_apply_applied_head_generic_preserves_type_and_translation_of_typeof_ne_stuck
+                                                                                                                                                                                                                                    g x1 a xs ts bvs
+                                                                                                                                                                                                                                    hXsEnv hBvsEnv hTs
+                                                                                                                                                                                                                                    (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                                                                                                                                                                                                                                    hOuterTranslate
+                                                                                                                                                                                                                                    hFTrans
+                                                                                                                                                                                                                                    (fun hHeadTrans hHeadTy =>
+                                                                                                                                                                                                                                      hRec
+                                                                                                                                                                                                                                        (G := Term.Apply g x1)
+                                                                                                                                                                                                                                        (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                                                        (by simp; omega)
+                                                                                                                                                                                                                                        hXsEnv hBvsEnv hHeadTrans hTs hActuals hHeadTy)
+                                                                                                                                                                                                                                    (fun hATrans hATy =>
+                                                                                                                                                                                                                                      hRec
+                                                                                                                                                                                                                                        (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                                                        (by simp; omega)
+                                                                                                                                                                                                                                        hXsEnv hBvsEnv hATrans hTs hActuals hATy)
+                                                                                                                                                                                                                                    hTy
                 · by_cases hHeadSpecial :
                     (∃ op, f = Term.UOp op) ∨
                       (∃ op x, f = Term.UOp1 op x) ∨
