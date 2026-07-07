@@ -168,8 +168,8 @@ private theorem requires_and_eq_self_true_body
     native_not, SmtEval.native_not, SmtEval.native_and]
 
 private theorem smt_type_ne_none_of_wf_rec
-    {T : SmtType} {refs : RefList}
-    (h : __smtx_type_wf_rec T refs = true) :
+    {T : SmtType}
+    (h : __smtx_type_wf_rec T T = true) :
     T ≠ SmtType.None := by
   intro hNone
   subst T
