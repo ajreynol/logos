@@ -8791,59 +8791,59 @@ private theorem seq_eval_smt_type_and_value_rel
             (SmtTerm.str_prefixof (__eo_to_smt t) (__eo_to_smt s)) := by
         unfold term_has_non_none_type
         simpa using hNN
-      rcases seq_char_binop_args_of_non_none (op := SmtTerm.str_prefixof)
+      rcases seq_binop_args_of_non_none_ret (op := SmtTerm.str_prefixof)
           (typeof_str_prefixof_eq (__eo_to_smt t) (__eo_to_smt s))
           hPrefixNN with
-        ⟨htTy, hsTy⟩
+        ⟨T, htTy, hsTy⟩
       have hIntroTNe : a ≠ Term.Stuck :=
         seq_is_prefix_left_ne_stuck_of_ne_stuck a b hPrefixNe
       have hIntroSNe : b ≠ Term.Stuck :=
         seq_is_prefix_right_ne_stuck_of_ne_stuck a b hPrefixNe
       have hTComponents :
-          type_inhabited SmtType.Char ∧
-            __smtx_type_wf SmtType.Char = true := by
+          type_inhabited T ∧
+            __smtx_type_wf T = true := by
         have hSeqWF :
-            __smtx_type_wf (SmtType.Seq SmtType.Char) = true := by
+            __smtx_type_wf (SmtType.Seq T) = true := by
           have hGood :=
             smt_term_result_seq_components_wf_of_non_none
               (__eo_to_smt t)
               (by
                 unfold term_has_non_none_type
                 rw [htTy]
-                exact seq_ne_none SmtType.Char)
+                exact seq_ne_none T)
           simpa [htTy, type_result_seq_components_wf] using hGood
-        exact seq_component_inhabited_wf_of_seq_wf SmtType.Char hSeqWF
+        exact seq_component_inhabited_wf_of_seq_wf T hSeqWF
       have hIntroTNN :
           __smtx_typeof (__eo_to_smt a) ≠ SmtType.None := by
         simpa [a] using
-          str_nary_intro_has_smt_translation_of_seq_wf t SmtType.Char htTy
+          str_nary_intro_has_smt_translation_of_seq_wf t T htTy
             hTComponents.1 hTComponents.2 (by simpa [a] using hIntroTNe)
       have hIntroSNN :
           __smtx_typeof (__eo_to_smt b) ≠ SmtType.None := by
         simpa [b] using
-          str_nary_intro_has_smt_translation_of_seq_wf s SmtType.Char hsTy
+          str_nary_intro_has_smt_translation_of_seq_wf s T hsTy
             hTComponents.1 hTComponents.2 (by simpa [b] using hIntroSNe)
       have hATy :
-          __smtx_typeof (__eo_to_smt a) = SmtType.Seq SmtType.Char := by
+          __smtx_typeof (__eo_to_smt a) = SmtType.Seq T := by
         simpa [a] using
-          smt_typeof_str_nary_intro_of_seq_ne_stuck t SmtType.Char htTy
+          smt_typeof_str_nary_intro_of_seq_ne_stuck t T htTy
             (by simpa [a] using hIntroTNN) (by simpa [a] using hIntroTNe)
       have hBTy :
-          __smtx_typeof (__eo_to_smt b) = SmtType.Seq SmtType.Char := by
+          __smtx_typeof (__eo_to_smt b) = SmtType.Seq T := by
         simpa [b] using
-          smt_typeof_str_nary_intro_of_seq_ne_stuck s SmtType.Char hsTy
+          smt_typeof_str_nary_intro_of_seq_ne_stuck s T hsTy
             (by simpa [b] using hIntroSNN) (by simpa [b] using hIntroSNe)
-      rcases seq_eval_of_seq_type M hM a SmtType.Char hATy with
+      rcases seq_eval_of_seq_type M hM a T hATy with
         ⟨sx, hAEval⟩
-      rcases seq_eval_of_seq_type M hM b SmtType.Char hBTy with
+      rcases seq_eval_of_seq_type M hM b T hBTy with
         ⟨sy, hBEval⟩
       have hPrefixEq :
           __seq_is_prefix a b =
             Term.Boolean
               (native_seq_prefix_eq (native_unpack_seq sx)
                 (native_unpack_seq sy)) :=
-        seq_prefix_eq_bool_native_char M hM a b sx sy
-          hATy hBTy hAEval hBEval hPrefixNe
+        seq_prefix_eq_bool_native M hM a b T sx sy
+          (type_wf_non_none hTComponents.2) hATy hBTy hAEval hBEval hPrefixNe
       constructor
       · change __smtx_typeof (__eo_to_smt (__seq_is_prefix a b)) =
           __smtx_typeof
@@ -8856,14 +8856,14 @@ private theorem seq_eval_smt_type_and_value_rel
           __smtx_typeof
             (SmtTerm.str_prefixof (__eo_to_smt t) (__eo_to_smt s))
         rw [__smtx_typeof.eq_1, typeof_str_prefixof_eq]
-        simp [htTy, hsTy, native_Teq, native_ite]
+        simp [__smtx_typeof_seq_op_2_ret, htTy, hsTy, native_Teq, native_ite]
       · have hSxTy :
-            __smtx_typeof_seq_value sx = SmtType.Seq SmtType.Char :=
-          smt_typeof_seq_value_of_eval_seq M hM a SmtType.Char sx
+            __smtx_typeof_seq_value sx = SmtType.Seq T :=
+          smt_typeof_seq_value_of_eval_seq M hM a T sx
             hATy hAEval
         have hSyTy :
-            __smtx_typeof_seq_value sy = SmtType.Seq SmtType.Char :=
-          smt_typeof_seq_value_of_eval_seq M hM b SmtType.Char sy
+            __smtx_typeof_seq_value sy = SmtType.Seq T :=
+          smt_typeof_seq_value_of_eval_seq M hM b T sy
             hBTy hBEval
         have hSeqPrefixEval :
             __smtx_model_eval_str_prefixof
@@ -8873,19 +8873,19 @@ private theorem seq_eval_smt_type_and_value_rel
                 (native_seq_prefix_eq (native_unpack_seq sx)
                   (native_unpack_seq sy)) := by
           rw [hAEval, hBEval]
-          exact smtx_model_eval_str_prefixof_seq_eq sx sy SmtType.Char
+          exact smtx_model_eval_str_prefixof_seq_eq sx sy T
             hSxTy hSyTy
         have hIntroTRel :
             RuleProofs.smt_value_rel
               (__smtx_model_eval M (__eo_to_smt a))
               (__smtx_model_eval M (__eo_to_smt t)) :=
-          smt_value_rel_str_nary_intro M hM t SmtType.Char htTy
+          smt_value_rel_str_nary_intro M hM t T htTy
             (by simpa [a] using hIntroTNe)
         have hIntroSRel :
             RuleProofs.smt_value_rel
               (__smtx_model_eval M (__eo_to_smt b))
               (__smtx_model_eval M (__eo_to_smt s)) :=
-          smt_value_rel_str_nary_intro M hM s SmtType.Char hsTy
+          smt_value_rel_str_nary_intro M hM s T hsTy
             (by simpa [b] using hIntroSNe)
         have hPrefixRel :
             RuleProofs.smt_value_rel
@@ -9002,10 +9002,10 @@ private theorem seq_eval_smt_type_and_value_rel
             (SmtTerm.str_suffixof (__eo_to_smt t) (__eo_to_smt s)) := by
         unfold term_has_non_none_type
         simpa using hNN
-      rcases seq_char_binop_args_of_non_none (op := SmtTerm.str_suffixof)
+      rcases seq_binop_args_of_non_none_ret (op := SmtTerm.str_suffixof)
           (typeof_str_suffixof_eq (__eo_to_smt t) (__eo_to_smt s))
           hSuffixNN with
-        ⟨htTy, hsTy⟩
+        ⟨T, htTy, hsTy⟩
       have hRTNe : rt ≠ Term.Stuck :=
         seq_is_prefix_left_ne_stuck_of_ne_stuck rt rs hPrefixNe
       have hRSNe : rs ≠ Term.Stuck :=
@@ -9025,68 +9025,68 @@ private theorem seq_eval_smt_type_and_value_rel
         eo_list_rev_is_list_true_of_ne_stuck (Term.UOp UserOp.str_concat)
           is hRSNe
       have hTComponents :
-          type_inhabited SmtType.Char ∧
-            __smtx_type_wf SmtType.Char = true := by
+          type_inhabited T ∧
+            __smtx_type_wf T = true := by
         have hSeqWF :
-            __smtx_type_wf (SmtType.Seq SmtType.Char) = true := by
+            __smtx_type_wf (SmtType.Seq T) = true := by
           have hGood :=
             smt_term_result_seq_components_wf_of_non_none
               (__eo_to_smt t)
               (by
                 unfold term_has_non_none_type
                 rw [htTy]
-                exact seq_ne_none SmtType.Char)
+                exact seq_ne_none T)
           simpa [htTy, type_result_seq_components_wf] using hGood
-        exact seq_component_inhabited_wf_of_seq_wf SmtType.Char hSeqWF
+        exact seq_component_inhabited_wf_of_seq_wf T hSeqWF
       have hIntroTNN :
           __smtx_typeof (__eo_to_smt it) ≠ SmtType.None := by
         simpa [it] using
-          str_nary_intro_has_smt_translation_of_seq_wf t SmtType.Char htTy
+          str_nary_intro_has_smt_translation_of_seq_wf t T htTy
             hTComponents.1 hTComponents.2 (by simpa [it] using hIntroTNe)
       have hIntroSNN :
           __smtx_typeof (__eo_to_smt is) ≠ SmtType.None := by
         simpa [is] using
-          str_nary_intro_has_smt_translation_of_seq_wf s SmtType.Char hsTy
+          str_nary_intro_has_smt_translation_of_seq_wf s T hsTy
             hTComponents.1 hTComponents.2 (by simpa [is] using hIntroSNe)
       have hIntroTTy :
-          __smtx_typeof (__eo_to_smt it) = SmtType.Seq SmtType.Char := by
+          __smtx_typeof (__eo_to_smt it) = SmtType.Seq T := by
         simpa [it] using
-          smt_typeof_str_nary_intro_of_seq_ne_stuck t SmtType.Char htTy
+          smt_typeof_str_nary_intro_of_seq_ne_stuck t T htTy
             (by simpa [it] using hIntroTNN) (by simpa [it] using hIntroTNe)
       have hIntroSTy :
-          __smtx_typeof (__eo_to_smt is) = SmtType.Seq SmtType.Char := by
+          __smtx_typeof (__eo_to_smt is) = SmtType.Seq T := by
         simpa [is] using
-          smt_typeof_str_nary_intro_of_seq_ne_stuck s SmtType.Char hsTy
+          smt_typeof_str_nary_intro_of_seq_ne_stuck s T hsTy
             (by simpa [is] using hIntroSNN) (by simpa [is] using hIntroSNe)
       have hRTTy :
-          __smtx_typeof (__eo_to_smt rt) = SmtType.Seq SmtType.Char := by
+          __smtx_typeof (__eo_to_smt rt) = SmtType.Seq T := by
         simpa [it, rt] using
-          smt_typeof_list_rev_str_concat_of_seq it SmtType.Char
+          smt_typeof_list_rev_str_concat_of_seq it T
             hListT hIntroTTy hRTNe
       have hRSTy :
-          __smtx_typeof (__eo_to_smt rs) = SmtType.Seq SmtType.Char := by
+          __smtx_typeof (__eo_to_smt rs) = SmtType.Seq T := by
         simpa [is, rs] using
-          smt_typeof_list_rev_str_concat_of_seq is SmtType.Char
+          smt_typeof_list_rev_str_concat_of_seq is T
             hListS hIntroSTy hRSNe
       have hElimRT :
           __str_nary_elim rt ≠ Term.Stuck := by
         simpa [it, rt] using
           str_nary_elim_list_rev_str_nary_intro_ne_stuck_of_seq
-            t SmtType.Char htTy hIntroTNN hIntroTNe hRTNe
+            t T htTy hIntroTNN hIntroTNe hRTNe
       have hElimRS :
           __str_nary_elim rs ≠ Term.Stuck := by
         simpa [is, rs] using
           str_nary_elim_list_rev_str_nary_intro_ne_stuck_of_seq
-            s SmtType.Char hsTy hIntroSNN hIntroSNe hRSNe
+            s T hsTy hIntroSNN hIntroSNe hRSNe
       have hElimRTTy :
           __smtx_typeof (__eo_to_smt (__str_nary_elim rt)) =
-            SmtType.Seq SmtType.Char :=
-        smt_typeof_str_nary_elim_of_seq_ne_stuck rt SmtType.Char
+            SmtType.Seq T :=
+        smt_typeof_str_nary_elim_of_seq_ne_stuck rt T
           hRTTy hElimRT
       have hElimRSTy :
           __smtx_typeof (__eo_to_smt (__str_nary_elim rs)) =
-            SmtType.Seq SmtType.Char :=
-        smt_typeof_str_nary_elim_of_seq_ne_stuck rs SmtType.Char
+            SmtType.Seq T :=
+        smt_typeof_str_nary_elim_of_seq_ne_stuck rs T
           hRSTy hElimRS
       have hRTElimRel :
           RuleProofs.smt_value_rel
@@ -9095,7 +9095,7 @@ private theorem seq_eval_smt_type_and_value_rel
         RuleProofs.smt_value_rel_symm
           (__smtx_model_eval M (__eo_to_smt (__str_nary_elim rt)))
           (__smtx_model_eval M (__eo_to_smt rt))
-          (smt_value_rel_str_nary_elim M hM rt SmtType.Char hRTTy
+          (smt_value_rel_str_nary_elim M hM rt T hRTTy
             hElimRT)
       have hRSElimRel :
           RuleProofs.smt_value_rel
@@ -9104,19 +9104,19 @@ private theorem seq_eval_smt_type_and_value_rel
         RuleProofs.smt_value_rel_symm
           (__smtx_model_eval M (__eo_to_smt (__str_nary_elim rs)))
           (__smtx_model_eval M (__eo_to_smt rs))
-          (smt_value_rel_str_nary_elim M hM rs SmtType.Char hRSTy
+          (smt_value_rel_str_nary_elim M hM rs T hRSTy
             hElimRS)
-      rcases seq_eval_of_seq_type M hM rt SmtType.Char hRTTy with
+      rcases seq_eval_of_seq_type M hM rt T hRTTy with
         ⟨sx, hRTEval⟩
-      rcases seq_eval_of_seq_type M hM rs SmtType.Char hRSTy with
+      rcases seq_eval_of_seq_type M hM rs T hRSTy with
         ⟨sy, hRSEval⟩
       have hPrefixEq :
           __seq_is_prefix rt rs =
             Term.Boolean
               (native_seq_prefix_eq (native_unpack_seq sx)
                 (native_unpack_seq sy)) :=
-        seq_prefix_eq_bool_native_char M hM rt rs sx sy
-          hRTTy hRSTy hRTEval hRSEval hPrefixNe
+        seq_prefix_eq_bool_native M hM rt rs T sx sy
+          (type_wf_non_none hTComponents.2) hRTTy hRSTy hRTEval hRSEval hPrefixNe
       have hEvalEq :
           __seq_eval
               (Term.Apply (Term.Apply (Term.UOp UserOp.str_suffixof) t) s) =
@@ -9141,18 +9141,18 @@ private theorem seq_eval_smt_type_and_value_rel
           __smtx_typeof
             (SmtTerm.str_suffixof (__eo_to_smt t) (__eo_to_smt s))
         rw [__smtx_typeof.eq_1, typeof_str_suffixof_eq]
-        simp [htTy, hsTy, native_Teq, native_ite]
-      · rcases seq_eval_of_seq_type M hM t SmtType.Char htTy with
+        simp [__smtx_typeof_seq_op_2_ret, htTy, hsTy, native_Teq, native_ite]
+      · rcases seq_eval_of_seq_type M hM t T htTy with
           ⟨st, hTEval⟩
-        rcases seq_eval_of_seq_type M hM s SmtType.Char hsTy with
+        rcases seq_eval_of_seq_type M hM s T hsTy with
           ⟨ss, hSEval⟩
         have hStTy :
-            __smtx_typeof_seq_value st = SmtType.Seq SmtType.Char :=
-          smt_typeof_seq_value_of_eval_seq M hM t SmtType.Char st
+            __smtx_typeof_seq_value st = SmtType.Seq T :=
+          smt_typeof_seq_value_of_eval_seq M hM t T st
             htTy hTEval
         have hSsTy :
-            __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char :=
-          smt_typeof_seq_value_of_eval_seq M hM s SmtType.Char ss
+            __smtx_typeof_seq_value ss = SmtType.Seq T :=
+          smt_typeof_seq_value_of_eval_seq M hM s T ss
             hsTy hSEval
         have hSuffixEval :
             __smtx_model_eval_str_suffixof
@@ -9163,7 +9163,7 @@ private theorem seq_eval_smt_type_and_value_rel
                   (native_seq_rev (native_unpack_seq st))
                   (native_seq_rev (native_unpack_seq ss))) := by
           rw [hTEval, hSEval]
-          exact smtx_model_eval_str_suffixof_seq_eq st ss SmtType.Char
+          exact smtx_model_eval_str_suffixof_seq_eq st ss T
             hStTy hSsTy
         have hOrigEval :
             __smtx_model_eval M
@@ -9225,7 +9225,7 @@ private theorem seq_eval_smt_type_and_value_rel
               (by
                 simpa [it, rt] using
                   smt_value_rel_elim_rev_str_nary_intro_to_str_rev M hM
-                    t SmtType.Char htTy (by simpa [guardT] using hGuardT)
+                    t T htTy (by simpa [guardT] using hGuardT)
                     hIntroTNN hIntroTNe hRTNe hElimRT)
           have hRSToRevS :
               RuleProofs.smt_value_rel
@@ -9241,7 +9241,7 @@ private theorem seq_eval_smt_type_and_value_rel
               (by
                 simpa [is, rs] using
                   smt_value_rel_elim_rev_str_nary_intro_to_str_rev M hM
-                    s SmtType.Char hsTy (by simpa [guardS] using hGuardS)
+                    s T hsTy (by simpa [guardS] using hGuardS)
                     hIntroSNN hIntroSNe hRSNe hElimRS)
           have hRevTEval :
               __smtx_model_eval M

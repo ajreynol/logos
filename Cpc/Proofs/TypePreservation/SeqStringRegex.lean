@@ -54,19 +54,13 @@ theorem typeof_str_at_eq
 theorem typeof_str_prefixof_eq
     (t1 t2 : SmtTerm) :
     __smtx_typeof (SmtTerm.str_prefixof t1 t2) =
-      native_ite (native_Teq (__smtx_typeof t1) (SmtType.Seq SmtType.Char))
-        (native_ite (native_Teq (__smtx_typeof t2) (SmtType.Seq SmtType.Char)) SmtType.Bool
-          SmtType.None)
-        SmtType.None := by
+      __smtx_typeof_seq_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool := by
   rw [__smtx_typeof.eq_def] <;> simp only
 /-- Lemma about `typeof_str_suffixof_eq`. -/
 theorem typeof_str_suffixof_eq
     (t1 t2 : SmtTerm) :
     __smtx_typeof (SmtTerm.str_suffixof t1 t2) =
-      native_ite (native_Teq (__smtx_typeof t1) (SmtType.Seq SmtType.Char))
-        (native_ite (native_Teq (__smtx_typeof t2) (SmtType.Seq SmtType.Char)) SmtType.Bool
-          SmtType.None)
-        SmtType.None := by
+      __smtx_typeof_seq_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool := by
   rw [__smtx_typeof.eq_def] <;> simp only
 /-- Lemma about `typeof_str_rev_eq`. -/
 theorem typeof_str_rev_eq
@@ -1995,16 +1989,18 @@ theorem typeof_value_model_eval_str_prefixof
     __smtx_typeof_value (__smtx_model_eval M
       (SmtTerm.str_prefixof t1 t2)) =
       __smtx_typeof (SmtTerm.str_prefixof t1 t2) := by
-  have hArgs := seq_char_binop_args_of_non_none (op := SmtTerm.str_prefixof) (typeof_str_prefixof_eq t1 t2) ht
+  have hArgs := seq_binop_args_of_non_none_ret (op := SmtTerm.str_prefixof)
+    (typeof_str_prefixof_eq t1 t2) ht
+  rcases hArgs with ⟨T, hT1, hT2⟩
   rw [show __smtx_typeof (SmtTerm.str_prefixof t1 t2) =
       SmtType.Bool by
     rw [typeof_str_prefixof_eq]
-    simp [native_ite, native_Teq, hArgs.1, hArgs.2]]
+    simp [__smtx_typeof_seq_op_2_ret, native_ite, native_Teq, hT1, hT2]]
   rw [__smtx_model_eval.eq_def] <;> simp only
   change __smtx_typeof_value (__smtx_model_eval_str_prefixof (__smtx_model_eval M t1)
       (__smtx_model_eval M t2)) = SmtType.Bool
-  rcases seq_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨ss1, hss1⟩
-  rcases seq_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨ss2, hss2⟩
+  rcases seq_value_canonical (by simpa [hT1] using hpres1) with ⟨ss1, hss1⟩
+  rcases seq_value_canonical (by simpa [hT2] using hpres2) with ⟨ss2, hss2⟩
   rw [hss1, hss2]
   unfold __smtx_model_eval_str_prefixof
   simpa using
@@ -2023,16 +2019,18 @@ theorem typeof_value_model_eval_str_suffixof
     __smtx_typeof_value (__smtx_model_eval M
       (SmtTerm.str_suffixof t1 t2)) =
       __smtx_typeof (SmtTerm.str_suffixof t1 t2) := by
-  have hArgs := seq_char_binop_args_of_non_none (op := SmtTerm.str_suffixof) (typeof_str_suffixof_eq t1 t2) ht
+  have hArgs := seq_binop_args_of_non_none_ret (op := SmtTerm.str_suffixof)
+    (typeof_str_suffixof_eq t1 t2) ht
+  rcases hArgs with ⟨T, hT1, hT2⟩
   rw [show __smtx_typeof (SmtTerm.str_suffixof t1 t2) =
       SmtType.Bool by
     rw [typeof_str_suffixof_eq]
-    simp [native_ite, native_Teq, hArgs.1, hArgs.2]]
+    simp [__smtx_typeof_seq_op_2_ret, native_ite, native_Teq, hT1, hT2]]
   rw [__smtx_model_eval.eq_def] <;> simp only
   change __smtx_typeof_value (__smtx_model_eval_str_suffixof (__smtx_model_eval M t1)
       (__smtx_model_eval M t2)) = SmtType.Bool
-  rcases seq_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨ss1, hss1⟩
-  rcases seq_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨ss2, hss2⟩
+  rcases seq_value_canonical (by simpa [hT1] using hpres1) with ⟨ss1, hss1⟩
+  rcases seq_value_canonical (by simpa [hT2] using hpres2) with ⟨ss2, hss2⟩
   rw [hss1, hss2]
   unfold __smtx_model_eval_str_suffixof
   simpa using
