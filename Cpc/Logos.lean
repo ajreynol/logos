@@ -2732,7 +2732,8 @@ def __str_flatten_word_rec : Term -> Term -> Term
 
 def __str_flatten : Term -> Term
   | Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t) tail) => 
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) a) a2)) b) => (__eo_list_concat (Term.UOp UserOp.str_concat) (__str_flatten (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) a) a2)) (__str_flatten b))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t) tail) =>
     let _v0 := (__str_flatten tail)
     let _v1 := (__eo_len t)
     (__eo_ite (__eo_is_str t) (__eo_list_concat (Term.UOp UserOp.str_concat) (__str_flatten_word_rec (__eo_requires (__eo_is_neg _v1) (Term.Boolean false) (__iota_rec (__eo_list_repeat (Term.UOp UserOp._at__at_TypedList_cons) (Term.Numeral 0) _v1) (Term.Numeral 0))) t) _v0) (__eo_mk_apply (Term.Apply (Term.UOp UserOp.str_concat) t) _v0))
