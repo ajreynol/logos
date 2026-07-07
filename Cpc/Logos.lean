@@ -362,7 +362,7 @@ def __eo_datatype_constructors_rec (s : native_String) (dd : DatatypeDecl) : Dat
 
 def __eo_dt_constructors : Term -> Term
   | Term.Stuck  => Term.Stuck
-  | (Term.DatatypeType s dd) => (__eo_datatype_constructors_rec s dd (__eo_dd_resolve s dd) native_nat_zero)
+  | (Term.DatatypeType s dd) => (__eo_datatype_constructors_rec s dd (__eo_dd_lookup s dd) native_nat_zero)
   | T => (__eo_dt_constructors_main T)
 
 
