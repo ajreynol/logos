@@ -231,6 +231,7 @@ mutual
 
 /- Term definition -/
 inductive Term : Type where
+  | __eo_DatatypeDecl : Term
   | UOp : UserOp -> Term
   | UOp1 : UserOp1 -> Term -> Term
   | UOp2 : UserOp2 -> Term -> Term -> Term
@@ -249,13 +250,17 @@ inductive Term : Type where
   | Apply : Term -> Term -> Term
   | FunType : Term
   | Var : Term -> Term -> Term
-  | DatatypeType : native_String -> Datatype -> Term
+  | DatatypeType : native_String -> Term -> Term
   | DatatypeTypeRef : native_String -> Term
   | DtcAppType : Term -> Term -> Term
-  | DtCons : native_String -> Datatype -> native_Nat -> Term
-  | DtSel : native_String -> Datatype -> native_Nat -> native_Nat -> Term
+  | DtCons : native_String -> Term -> native_Nat -> Term
+  | DtSel : native_String -> Term -> native_Nat -> native_Nat -> Term
   | USort : native_Nat -> Term
   | UConst : native_Nat -> Term -> Term
+  | nil : Term
+  | cons : native_String -> Datatype -> Term -> Term
+  | nil : Term
+  | cons : native_String -> SmtDatatype -> Term -> Term
 
 deriving Repr, DecidableEq, Inhabited, Ord
 

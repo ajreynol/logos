@@ -336,31 +336,24 @@ def __eo_is_var : Term -> Term
     (Term.Boolean (native_and (native_not (native_teq _v0 Term.Stuck)) (native_and (native_not (native_teq x Term.Stuck)) (native_teq x _v0))))
 
 
-def __eo_type_lift (s : native_String) (d : Datatype) : Term -> Term
-  | Term.Stuck  => Term.Stuck
-  | (Term.DatatypeType s2 d2) => (native_ite (native_teq (Term.DatatypeType s d) (Term.DatatypeType s2 d2)) (Term.DatatypeTypeRef s) (Term.DatatypeType s2 (__eo_dt_lift s d d2)))
-  | T => T
+def __eo_dtc_resolve : DatatypeCons -> Term -> DatatypeCons
+  | (DatatypeCons.cons (Term.DatatypeTypeRef s) c), dd => (DatatypeCons.cons (Term.DatatypeType s dd) (__eo_dtc_resolve c dd))
+  | (DatatypeCons.cons T c), dd => (DatatypeCons.cons T (__eo_dtc_resolve c dd))
+  | DatatypeCons.unit, dd => DatatypeCons.unit
 
 
-def __eo_dtc_lift (s : native_String) (d : Datatype) : DatatypeCons -> DatatypeCons
-  | (DatatypeCons.cons T c) => (DatatypeCons.cons (__eo_type_lift s d T) (__eo_dtc_lift s d c))
-  | DatatypeCons.unit => DatatypeCons.unit
+def __eo_dt_resolve : Datatype -> Term -> Datatype
+  | (Datatype.sum c d), dd => (Datatype.sum (__eo_dtc_resolve c dd) (__eo_dt_resolve d dd))
+  | Datatype.null, dd => Datatype.null
 
 
-def __eo_dt_lift (s : native_String) (d : Datatype) : Datatype -> Datatype
-  | (Datatype.sum c d2) => (Datatype.sum (__eo_dtc_lift s d c) (__eo_dt_lift s d d2))
-  | Datatype.null => Datatype.null
+def __eo_dd_lookup (s : native_String) : Term -> Datatype
+  | (Term.cons s2 d dd) => (native_ite (native_streq s s2) d (__eo_dd_lookup s dd))
+  | Term.nil => Datatype.null
 
 
-def __eo_dtc_substitute (s : native_String) (d : Datatype) : DatatypeCons -> DatatypeCons
-  | (DatatypeCons.cons (Term.DatatypeType s2 d2) c) => (DatatypeCons.cons (Term.DatatypeType s2 (native_ite (native_streq s s2) d2 (__eo_dt_substitute s (__eo_dt_lift s2 d2 d) d2))) (__eo_dtc_substitute s d c))
-  | (DatatypeCons.cons T c) => (DatatypeCons.cons (native_ite (native_teq T (Term.DatatypeTypeRef s)) (Term.DatatypeType s d) T) (__eo_dtc_substitute s d c))
-  | DatatypeCons.unit => DatatypeCons.unit
-
-
-def __eo_dt_substitute (s : native_String) (d : Datatype) : Datatype -> Datatype
-  | (Datatype.sum c d2) => (Datatype.sum (__eo_dtc_substitute s d c) (__eo_dt_substitute s d d2))
-  | Datatype.null => Datatype.null
+def __eo_dd_resolve (s : native_String) : Term -> Term
+  | dd => (__eo_dt_resolve (__eo_dd_lookup s dd) dd)
 
 
 def __eo_datatype_constructors_rec (s : native_String) (d : Datatype) : Datatype -> native_Nat -> Term
@@ -8833,10 +8826,9 @@ def __eo_typeof : Term -> Term
   | (Term.String s) => (__eo_lit_type_String (Term.String s))
   | (Term.Binary w n) => (__eo_lit_type_Binary (Term.Binary w n))
   | (Term.Var (Term.String s) T) => T
-  | (Term.DatatypeType s d) => Term.Type
-  | (Term.DatatypeTypeRef s) => Term.Type
-  | (Term.DtCons s d i) => (__eo_typeof_dt_cons_rec (Term.DatatypeType s d) (__eo_dt_substitute s d d) i)
-  | (Term.DtSel s d i j) => (Term.Apply (Term.Apply Term.FunType (Term.DatatypeType s d)) (__eo_typeof_dt_sel_return (__eo_dt_substitute s d d) i j))
+  | (Term.DatatypeType s dd) => Term.Type
+  | (Term.DtCons s dd i) => (__eo_typeof_dt_cons_rec (Term.DatatypeType s dd) (__eo_dt_resolve (__eo_dd_lookup s dd) dd) i)
+  | (Term.DtSel s dd i j) => (Term.Apply (Term.Apply Term.FunType (Term.DatatypeType s dd)) (__eo_typeof_dt_sel_return (__eo_dt_resolve (__eo_dd_lookup s dd) dd) i j))
   | (Term.USort i) => Term.Type
   | (Term.UConst i T) => T
   | Term.Type => Term.Type
