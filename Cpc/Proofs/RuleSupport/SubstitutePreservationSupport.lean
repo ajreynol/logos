@@ -8,6 +8,7 @@ open SubstituteTranslatabilitySupport
 open TypedListSubstitutionSupport
 
 set_option linter.unusedVariables false
+set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 set_option maxRecDepth 2000
 
@@ -2124,16 +2125,6 @@ private theorem local_typeof_apply_apply_eq_of_base_translation
               SmtType.None
           simp [__smtx_typeof, __smtx_typeof_apply,
             TranslationProofs.smtx_typeof_none]))
-    case UOp1 op idx =>
-      cases op <;> try rfl
-      all_goals
-        exact False.elim (hBase (by
-          change
-            __smtx_typeof
-                (SmtTerm.Apply SmtTerm.None (__eo_to_smt p₂)) =
-              SmtType.None
-          simp [__smtx_typeof, __smtx_typeof_apply,
-            TranslationProofs.smtx_typeof_none]))
     case FunType =>
       exact False.elim (hBase (by
         change
@@ -2242,10 +2233,8 @@ private theorem substitute_simul_apply_applied_head_generic_preserves_type_and_t
     rwa [hOuterMk] at hTyMk
   have hHeadSubTy :
       __eo_typeof headSub ≠ Term.Stuck := by
-    change
-      __eo_typeof_apply (__eo_typeof headSub) (__eo_typeof aSub) ≠
-        Term.Stuck at hOuterApplyTy
-    exact SubstituteSupport.eo_typeof_apply_head_ne_stuck hOuterApplyTy
+    exact SubstituteSupport.eo_typeof_apply_head_ne_stuck
+      (by simpa [__eo_typeof] using hOuterApplyTy)
   have hHeadBoth := hRecHead hHeadTrans hHeadSubTy
   have hATy : __eo_typeof aSub ≠ Term.Stuck := by
     simpa [aSub] using
@@ -2454,6 +2443,115 @@ private def applyApplyApplyUOpNeedsSpecialTranslation : UserOp -> Prop
   | UserOp.str_indexof_re_split => True
   | _ => False
 
+private structure ApplyApplyUOpBranchExclusions (g : Term) : Prop where
+  notOr : g ≠ Term.UOp UserOp.or
+  notAnd : g ≠ Term.UOp UserOp.and
+  notImp : g ≠ Term.UOp UserOp.imp
+  notXor : g ≠ Term.UOp UserOp.xor
+  notEq : g ≠ Term.UOp UserOp.eq
+  notPlus : g ≠ Term.UOp UserOp.plus
+  notNeg : g ≠ Term.UOp UserOp.neg
+  notMult : g ≠ Term.UOp UserOp.mult
+  notLt : g ≠ Term.UOp UserOp.lt
+  notLeq : g ≠ Term.UOp UserOp.leq
+  notGt : g ≠ Term.UOp UserOp.gt
+  notGeq : g ≠ Term.UOp UserOp.geq
+  notDiv : g ≠ Term.UOp UserOp.div
+  notMod : g ≠ Term.UOp UserOp.mod
+  notMultmult : g ≠ Term.UOp UserOp.multmult
+  notDivisible : g ≠ Term.UOp UserOp.divisible
+  notDivTotal : g ≠ Term.UOp UserOp.div_total
+  notModTotal : g ≠ Term.UOp UserOp.mod_total
+  notMultmultTotal : g ≠ Term.UOp UserOp.multmult_total
+  notSelect : g ≠ Term.UOp UserOp.select
+  notArrayDeqDiff : g ≠ Term.UOp UserOp._at_array_deq_diff
+  notConcat : g ≠ Term.UOp UserOp.concat
+  notBvand : g ≠ Term.UOp UserOp.bvand
+  notBvor : g ≠ Term.UOp UserOp.bvor
+  notBvnand : g ≠ Term.UOp UserOp.bvnand
+  notBvnor : g ≠ Term.UOp UserOp.bvnor
+  notBvxor : g ≠ Term.UOp UserOp.bvxor
+  notBvxnor : g ≠ Term.UOp UserOp.bvxnor
+  notBvcomp : g ≠ Term.UOp UserOp.bvcomp
+  notBvadd : g ≠ Term.UOp UserOp.bvadd
+  notBvmul : g ≠ Term.UOp UserOp.bvmul
+  notBvudiv : g ≠ Term.UOp UserOp.bvudiv
+  notBvurem : g ≠ Term.UOp UserOp.bvurem
+  notBvsub : g ≠ Term.UOp UserOp.bvsub
+  notBvsdiv : g ≠ Term.UOp UserOp.bvsdiv
+  notBvsrem : g ≠ Term.UOp UserOp.bvsrem
+  notBvsmod : g ≠ Term.UOp UserOp.bvsmod
+  notBvult : g ≠ Term.UOp UserOp.bvult
+  notBvule : g ≠ Term.UOp UserOp.bvule
+  notBvugt : g ≠ Term.UOp UserOp.bvugt
+  notBvuge : g ≠ Term.UOp UserOp.bvuge
+  notBvslt : g ≠ Term.UOp UserOp.bvslt
+  notBvsle : g ≠ Term.UOp UserOp.bvsle
+  notBvsgt : g ≠ Term.UOp UserOp.bvsgt
+  notBvsge : g ≠ Term.UOp UserOp.bvsge
+  notBvshl : g ≠ Term.UOp UserOp.bvshl
+  notBvlshr : g ≠ Term.UOp UserOp.bvlshr
+  notBvashr : g ≠ Term.UOp UserOp.bvashr
+  notBvuaddo : g ≠ Term.UOp UserOp.bvuaddo
+  notBvsaddo : g ≠ Term.UOp UserOp.bvsaddo
+  notBvumulo : g ≠ Term.UOp UserOp.bvumulo
+  notBvsmulo : g ≠ Term.UOp UserOp.bvsmulo
+  notBvusubo : g ≠ Term.UOp UserOp.bvusubo
+  notBvssubo : g ≠ Term.UOp UserOp.bvssubo
+  notBvsdivo : g ≠ Term.UOp UserOp.bvsdivo
+  notBvultbv : g ≠ Term.UOp UserOp.bvultbv
+  notBvsltbv : g ≠ Term.UOp UserOp.bvsltbv
+  notFromBools : g ≠ Term.UOp UserOp._at_from_bools
+  notStrConcat : g ≠ Term.UOp UserOp.str_concat
+  notStrContains : g ≠ Term.UOp UserOp.str_contains
+  notStrAt : g ≠ Term.UOp UserOp.str_at
+  notStrPrefixof : g ≠ Term.UOp UserOp.str_prefixof
+  notStrSuffixof : g ≠ Term.UOp UserOp.str_suffixof
+  notStrLt : g ≠ Term.UOp UserOp.str_lt
+  notStrLeq : g ≠ Term.UOp UserOp.str_leq
+  notReRange : g ≠ Term.UOp UserOp.re_range
+  notReConcat : g ≠ Term.UOp UserOp.re_concat
+  notReInter : g ≠ Term.UOp UserOp.re_inter
+  notReUnion : g ≠ Term.UOp UserOp.re_union
+  notReDiff : g ≠ Term.UOp UserOp.re_diff
+  notStrInRe : g ≠ Term.UOp UserOp.str_in_re
+  notSeqNth : g ≠ Term.UOp UserOp.seq_nth
+  notStringsDeqDiff : g ≠ Term.UOp UserOp._at_strings_deq_diff
+  notStringsStoiResult : g ≠ Term.UOp UserOp._at_strings_stoi_result
+  notStringsItosResult : g ≠ Term.UOp UserOp._at_strings_itos_result
+  notStringsNumOccur : g ≠ Term.UOp UserOp._at_strings_num_occur
+  notTuple : g ≠ Term.UOp UserOp.tuple
+  notSetUnion : g ≠ Term.UOp UserOp.set_union
+  notSetInter : g ≠ Term.UOp UserOp.set_inter
+  notSetMinus : g ≠ Term.UOp UserOp.set_minus
+  notSetMember : g ≠ Term.UOp UserOp.set_member
+  notSetSubset : g ≠ Term.UOp UserOp.set_subset
+  notSetInsert : g ≠ Term.UOp UserOp.set_insert
+  notSetsDeqDiff : g ≠ Term.UOp UserOp._at_sets_deq_diff
+  notQdiv : g ≠ Term.UOp UserOp.qdiv
+  notQdivTotal : g ≠ Term.UOp UserOp.qdiv_total
+  notForall : g ≠ Term.UOp UserOp.forall
+  notExists : g ≠ Term.UOp UserOp.exists
+
+private structure ApplyApplyApplyUOpBranchExclusions (g : Term) : Prop where
+  notIte : ¬ ∃ c, g = Term.Apply (Term.UOp UserOp.ite) c
+  notStore : ¬ ∃ s, g = Term.Apply (Term.UOp UserOp.store) s
+  notBvite : ¬ ∃ c, g = Term.Apply (Term.UOp UserOp.bvite) c
+  notStrSubstr : ¬ ∃ s, g = Term.Apply (Term.UOp UserOp.str_substr) s
+  notStrReplace : ¬ ∃ s, g = Term.Apply (Term.UOp UserOp.str_replace) s
+  notStrReplaceAll :
+    ¬ ∃ s, g = Term.Apply (Term.UOp UserOp.str_replace_all) s
+  notStrIndexof : ¬ ∃ s, g = Term.Apply (Term.UOp UserOp.str_indexof) s
+  notStrUpdate : ¬ ∃ s, g = Term.Apply (Term.UOp UserOp.str_update) s
+  notStrReplaceRe :
+    ¬ ∃ s, g = Term.Apply (Term.UOp UserOp.str_replace_re) s
+  notStrReplaceReAll :
+    ¬ ∃ s, g = Term.Apply (Term.UOp UserOp.str_replace_re_all) s
+  notStrIndexofRe :
+    ¬ ∃ s, g = Term.Apply (Term.UOp UserOp.str_indexof_re) s
+  notStrIndexofReSplit :
+    ¬ ∃ s, g = Term.Apply (Term.UOp UserOp.str_indexof_re_split) s
+
 private theorem eo_to_smt_apply_apply_generic_of_not_special
     {g x a : Term}
     (hNoUOp :
@@ -2486,6 +2584,127 @@ private theorem eo_to_smt_apply_apply_generic_of_not_special
         exact False.elim
           (hNoApplyUOp _ y
             (by simp [applyApplyApplyUOpNeedsSpecialTranslation]) rfl)
+
+private theorem eo_to_smt_apply_apply_generic_of_branch_exclusions
+    {g x a : Term}
+    (hUOp : ApplyApplyUOpBranchExclusions g)
+    (hNoUpdate : ¬ ∃ idx, g = Term.UOp1 UserOp1.update idx)
+    (hNoTupleUpdate :
+      ¬ ∃ idx, g = Term.UOp1 UserOp1.tuple_update idx)
+    (hApplyUOp : ApplyApplyApplyUOpBranchExclusions g) :
+    __eo_to_smt (Term.Apply (Term.Apply g x) a) =
+      SmtTerm.Apply (__eo_to_smt (Term.Apply g x)) (__eo_to_smt a) := by
+  exact
+    eo_to_smt_apply_apply_generic_of_not_special
+      (g := g) (x := x) (a := a)
+      (by
+        intro op hSpecial hEq
+        subst g
+        rcases hUOp with
+          ⟨hOr, hAnd, hImp, hXor, hEqOp, hPlus, hNeg, hMult, hLt, hLeq,
+            hGt, hGeq, hDiv, hMod, hMultmult, hDivisible, hDivTotal,
+            hModTotal, hMultmultTotal, hSelect, hArrayDeqDiff, hConcat,
+            hBvand, hBvor, hBvnand, hBvnor, hBvxor, hBvxnor, hBvcomp,
+            hBvadd, hBvmul, hBvudiv, hBvurem, hBvsub, hBvsdiv, hBvsrem,
+            hBvsmod, hBvult, hBvule, hBvugt, hBvuge, hBvslt, hBvsle,
+            hBvsgt, hBvsge, hBvshl, hBvlshr, hBvashr, hBvuaddo,
+            hBvsaddo, hBvumulo, hBvsmulo, hBvusubo, hBvssubo, hBvsdivo,
+            hBvultbv, hBvsltbv, hFromBools, hStrConcat, hStrContains,
+            hStrAt, hStrPrefixof, hStrSuffixof, hStrLt, hStrLeq, hReRange,
+            hReConcat, hReInter, hReUnion, hReDiff, hStrInRe, hSeqNth,
+            hStringsDeqDiff, hStringsStoiResult, hStringsItosResult,
+            hStringsNumOccur, hTuple, hSetUnion, hSetInter, hSetMinus,
+            hSetMember, hSetSubset, hSetInsert, hSetsDeqDiff, hQdiv,
+            hQdivTotal, hForall, hExists⟩
+        cases op <;>
+          simp [applyApplyUOpNeedsSpecialTranslation] at hSpecial <;>
+          contradiction)
+      (fun idx hEq => hNoUpdate ⟨idx, hEq⟩)
+      (fun idx hEq => hNoTupleUpdate ⟨idx, hEq⟩)
+      (by
+        intro op y hSpecial hEq
+        subst g
+        cases op <;>
+          simp [applyApplyApplyUOpNeedsSpecialTranslation] at hSpecial
+        all_goals
+          first
+          | exact hApplyUOp.notIte ⟨y, rfl⟩
+          | exact hApplyUOp.notStore ⟨y, rfl⟩
+          | exact hApplyUOp.notBvite ⟨y, rfl⟩
+          | exact hApplyUOp.notStrSubstr ⟨y, rfl⟩
+          | exact hApplyUOp.notStrReplace ⟨y, rfl⟩
+          | exact hApplyUOp.notStrReplaceAll ⟨y, rfl⟩
+          | exact hApplyUOp.notStrIndexof ⟨y, rfl⟩
+          | exact hApplyUOp.notStrUpdate ⟨y, rfl⟩
+          | exact hApplyUOp.notStrReplaceRe ⟨y, rfl⟩
+          | exact hApplyUOp.notStrReplaceReAll ⟨y, rfl⟩
+          | exact hApplyUOp.notStrIndexofRe ⟨y, rfl⟩
+          | exact hApplyUOp.notStrIndexofReSplit ⟨y, rfl⟩
+          | contradiction)
+
+private theorem substitute_simul_apply_apply_branch_residual_preserves_type_and_translation_of_typeof_ne_stuck
+    (g x a xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hNotBinderOuter :
+      ∀ q v vs,
+        Term.Apply g x ≠
+          Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+    (hUOp : ApplyApplyUOpBranchExclusions g)
+    (hNoUpdate : ¬ ∃ idx, g = Term.UOp1 UserOp1.update idx)
+    (hNoTupleUpdate :
+      ¬ ∃ idx, g = Term.UOp1 UserOp1.tuple_update idx)
+    (hApplyUOp : ApplyApplyApplyUOpBranchExclusions g)
+    (hFTrans :
+      RuleProofs.eo_has_smt_translation (Term.Apply (Term.Apply g x) a))
+    (hRecHead :
+      RuleProofs.eo_has_smt_translation (Term.Apply g x) ->
+      __eo_typeof
+          (__substitute_simul_rec (Term.Boolean false)
+            (Term.Apply g x) xs ts bvs) ≠
+        Term.Stuck ->
+      __eo_typeof
+          (__substitute_simul_rec (Term.Boolean false)
+            (Term.Apply g x) xs ts bvs) =
+        __eo_typeof (Term.Apply g x) ∧
+        RuleProofs.eo_has_smt_translation
+          (__substitute_simul_rec (Term.Boolean false)
+            (Term.Apply g x) xs ts bvs))
+    (hRecA :
+      RuleProofs.eo_has_smt_translation a ->
+      __eo_typeof (__substitute_simul_rec (Term.Boolean false) a xs ts bvs) ≠
+        Term.Stuck ->
+      __eo_typeof (__substitute_simul_rec (Term.Boolean false) a xs ts bvs) =
+        __eo_typeof a ∧
+        RuleProofs.eo_has_smt_translation
+          (__substitute_simul_rec (Term.Boolean false) a xs ts bvs))
+    (hTy :
+      __eo_typeof
+          (__substitute_simul_rec (Term.Boolean false)
+            (Term.Apply (Term.Apply g x) a) xs ts bvs) ≠
+        Term.Stuck) :
+    __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply g x) a) xs ts bvs) =
+      __eo_typeof (Term.Apply (Term.Apply g x) a) ∧
+      RuleProofs.eo_has_smt_translation
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply g x) a) xs ts bvs) := by
+  have hOuterTranslate :
+      __eo_to_smt (Term.Apply (Term.Apply g x) a) =
+        SmtTerm.Apply (__eo_to_smt (Term.Apply g x)) (__eo_to_smt a) :=
+    eo_to_smt_apply_apply_generic_of_branch_exclusions
+      (g := g) (x := x) (a := a)
+      hUOp hNoUpdate hNoTupleUpdate hApplyUOp
+  exact
+    substitute_simul_apply_applied_head_generic_preserves_type_and_translation_of_typeof_ne_stuck
+      g x a xs ts bvs
+      hXsEnv hBvsEnv hTs
+      hNotBinderOuter
+      hOuterTranslate
+      hFTrans hRecHead hRecA hTy
 
 private theorem substitute_simul_apply_apply_atom_base_generic_preserves_type_and_translation_of_typeof_ne_stuck
     (g x a xs ts bvs : Term)
@@ -3159,18 +3378,20 @@ private theorem substitute_tuple_prepend_type_congr
                       native_nat_zero) head'
                 cases hWf :
                     __smtx_type_wf
-                      (SmtType.Datatype (native_string_lit "@Tuple") fullD) <;>
-                  simp [__eo_to_smt_tuple_prepend_of_type, native_ite,
-                    hWf, fullD]
-                exact
-                  substitute_tuple_prepend_rec_type_congr tailD tail tail'
-                    seed seed' hTail
-                    (by intro s d i j h; simp [seed] at h)
-                    (by intro s d i h; simp [seed] at h)
-                    (by intro s d i j h; simp [seed'] at h)
-                    (by intro s d i h; simp [seed'] at h)
-                    (by simp [seed, seed', __smtx_typeof, hHead])
-                    (__smtx_dt_num_sels tailD native_nat_zero)
+                      (SmtType.Datatype (native_string_lit "@Tuple") fullD)
+                · simp [__eo_to_smt_tuple_prepend_of_type, native_ite,
+                    native_and, native_streq, hWf, fullD]
+                · simp [__eo_to_smt_tuple_prepend_of_type, native_ite,
+                    native_and, native_streq, hWf, fullD]
+                  exact
+                    substitute_tuple_prepend_rec_type_congr tailD tail tail'
+                      seed seed' hTail
+                      (by intro s d i j h; simp [seed] at h)
+                      (by intro s d i h; simp [seed] at h)
+                      (by intro s d i j h; simp [seed'] at h)
+                      (by intro s d i h; simp [seed'] at h)
+                      (by simp [seed, seed', __smtx_typeof, hHead])
+                      (__smtx_dt_num_sels tailD native_nat_zero)
             | sum _ _ =>
                 simp [__eo_to_smt_tuple_prepend_of_type]
       · cases d with
@@ -3243,7 +3464,6 @@ private theorem substitute_updater_rec_type_congr
                 (by intro s0 d0 i0 j0 h; cases h)
                 (by intro s0 d0 i0 h; cases h)
             unfold generic_apply_type at hGeneric hGeneric'
-            simp [native_ite] at hGeneric hGeneric' hArg
             rw [hGeneric, hGeneric']
             rw [ih acc]
             rw [hArg]
@@ -3259,24 +3479,25 @@ private theorem substitute_updater_type_congr
   case DtSel s d i j =>
     cases hGuard :
         native_zlt (native_nat_to_int j)
-          (native_nat_to_int (__smtx_dt_num_sels d i)) <;>
-      simp
-    rw [typeof_ite_eq, typeof_ite_eq]
-    have hCond :
-        __smtx_typeof (SmtTerm.Apply (SmtTerm.DtTester s d i) t) =
-          __smtx_typeof (SmtTerm.Apply (SmtTerm.DtTester s d i) t') := by
-      simp [__smtx_typeof, __smtx_typeof_apply, ht]
-    have hThen :
-        __smtx_typeof
-            (__eo_to_smt_updater_rec (SmtTerm.DtSel s d i j)
-              (__smtx_dt_num_sels d i) t u (SmtTerm.DtCons s d i)) =
+          (native_nat_to_int (__smtx_dt_num_sels d i))
+    · simp [native_ite, hGuard]
+    · simp [native_ite, hGuard]
+      rw [typeof_ite_eq, typeof_ite_eq]
+      have hCond :
+          __smtx_typeof (SmtTerm.Apply (SmtTerm.DtTester s d i) t) =
+            __smtx_typeof (SmtTerm.Apply (SmtTerm.DtTester s d i) t') := by
+        simp [__smtx_typeof, __smtx_typeof_apply, ht]
+      have hThen :
           __smtx_typeof
-            (__eo_to_smt_updater_rec (SmtTerm.DtSel s d i j)
-              (__smtx_dt_num_sels d i) t' u' (SmtTerm.DtCons s d i)) :=
-      substitute_updater_rec_type_congr
-        (SmtTerm.DtSel s d i j) (__smtx_dt_num_sels d i)
-        t u (SmtTerm.DtCons s d i) t' u' ht hu
-    rw [hCond, hThen, ht]
+              (__eo_to_smt_updater_rec (SmtTerm.DtSel s d i j)
+                (__smtx_dt_num_sels d i) t u (SmtTerm.DtCons s d i)) =
+            __smtx_typeof
+              (__eo_to_smt_updater_rec (SmtTerm.DtSel s d i j)
+                (__smtx_dt_num_sels d i) t' u' (SmtTerm.DtCons s d i)) :=
+        substitute_updater_rec_type_congr
+          (SmtTerm.DtSel s d i j) (__smtx_dt_num_sels d i)
+          t u (SmtTerm.DtCons s d i) t' u' ht hu
+      rw [hCond, hThen, ht]
 
 private theorem substitute_tuple_update_type_congr
     (T T' : SmtType) (idx t u t' u' : SmtTerm) :
@@ -3291,12 +3512,13 @@ private theorem substitute_tuple_update_type_congr
   case Datatype.Numeral s d n =>
     by_cases hs : s = (native_string_lit "@Tuple")
     · subst s
-      cases hNonneg : native_zleq 0 n <;>
-        simp
-      exact substitute_updater_type_congr
-        (SmtTerm.DtSel (native_string_lit "@Tuple") d native_nat_zero
-          (native_int_to_nat n))
-        t u t' u' ht hu
+      cases hNonneg : native_zleq 0 n
+      · simp [native_ite, native_and, native_streq, hNonneg]
+      · simp [native_ite, native_and, native_streq, hNonneg]
+        exact substitute_updater_type_congr
+          (SmtTerm.DtSel (native_string_lit "@Tuple") d native_nat_zero
+            (native_int_to_nat n))
+          t u t' u' ht hu
     · simp [hs]
 
 private theorem substitute_simul_apply_uop1_preserves_type_and_translation_of_typeof_ne_stuck
@@ -5602,14 +5824,14 @@ private theorem substitute_simul_uop1_update_preserves_type_and_translation_of_t
     change __eo_typeof_update (__eo_typeof idx) (__eo_typeof xSub)
       (__eo_typeof ySub) = Term.Stuck
     rw [hXStuck]
-    rfl
+    cases __eo_typeof idx <;> rfl
   have hYSubTy : __eo_typeof ySub ≠ Term.Stuck := by
     intro hYStuck
     apply hTyApply
     change __eo_typeof_update (__eo_typeof idx) (__eo_typeof xSub)
       (__eo_typeof ySub) = Term.Stuck
     rw [hYStuck]
-    rfl
+    cases __eo_typeof idx <;> cases __eo_typeof xSub <;> rfl
   have hXBoth := hRecX hXTrans hXSubTy
   have hYBoth := hRecY hYTrans hYSubTy
   have hTypeApply :
@@ -13500,45 +13722,114 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                                                                                         (by simp; omega)
                                                                                                                                                                                                                                         hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                                                                                                     hTy
-                                                                                                                                                                                                                              · have hOuterTranslate :
-                                                                                                                                                                                                                                    __eo_to_smt (Term.Apply (Term.Apply g x1) a) =
-                                                                                                                                                                                                                                      SmtTerm.Apply (__eo_to_smt (Term.Apply g x1))
-                                                                                                                                                                                                                                        (__eo_to_smt a) :=
-                                                                                                                                                                                                                                  eo_to_smt_apply_apply_generic_of_not_special
-                                                                                                                                                                                                                                    (g := g) (x := x1) (a := a)
-                                                                                                                                                                                                                                    (by
-                                                                                                                                                                                                                                      intro op hSpecial hEq
-                                                                                                                                                                                                                                      subst g
-                                                                                                                                                                                                                                      cases op <;>
-                                                                                                                                                                                                                                        simp [applyApplyUOpNeedsSpecialTranslation] at hSpecial <;>
-                                                                                                                                                                                                                                        contradiction)
-                                                                                                                                                                                                                                    (fun idx hEq => hHeadUpdate ⟨idx, hEq⟩)
-                                                                                                                                                                                                                                    (fun idx hEq => hHeadTupleUpdate ⟨idx, hEq⟩)
-                                                                                                                                                                                                                                    (by
-                                                                                                                                                                                                                                      intro op y hSpecial hEq
-                                                                                                                                                                                                                                      subst g
-                                                                                                                                                                                                                                      cases op <;>
-                                                                                                                                                                                                                                        simp [applyApplyApplyUOpNeedsSpecialTranslation] at hSpecial
-                                                                                                                                                                                                                                      all_goals
-                                                                                                                                                                                                                                        first
-                                                                                                                                                                                                                                        | exact hHeadIte ⟨y, rfl⟩
-                                                                                                                                                                                                                                        | exact hHeadBvite ⟨y, rfl⟩
-                                                                                                                                                                                                                                        | exact hHeadStore ⟨y, rfl⟩
-                                                                                                                                                                                                                                        | exact hHeadStrSubstr ⟨y, rfl⟩
-                                                                                                                                                                                                                                        | exact hHeadStrReplace ⟨y, rfl⟩
-                                                                                                                                                                                                                                        | exact hHeadStrReplaceAll ⟨y, rfl⟩
-                                                                                                                                                                                                                                        | exact hHeadStrIndexof ⟨y, rfl⟩
-                                                                                                                                                                                                                                        | exact hHeadStrUpdate ⟨y, rfl⟩
-                                                                                                                                                                                                                                        | exact hHeadStrReplaceRe ⟨y, rfl⟩
-                                                                                                                                                                                                                                        | exact hHeadStrReplaceReAll ⟨y, rfl⟩
-                                                                                                                                                                                                                                        | exact hHeadStrIndexofRe ⟨y, rfl⟩
-                                                                                                                                                                                                                                        | exact hHeadStrIndexofReSplit ⟨y, rfl⟩)
+                                                                                                                                                                                                                              · let hUOp : ApplyApplyUOpBranchExclusions g :=
+                                                                                                                                                                                                                                  { notOr := hHeadOr,
+                                                                                                                                                                                                                                    notAnd := hHeadAnd,
+                                                                                                                                                                                                                                    notImp := hHeadImp,
+                                                                                                                                                                                                                                    notXor := hHeadXor,
+                                                                                                                                                                                                                                    notEq := hHeadEq,
+                                                                                                                                                                                                                                    notPlus := hHeadPlus,
+                                                                                                                                                                                                                                    notNeg := hHeadNeg,
+                                                                                                                                                                                                                                    notMult := hHeadMult,
+                                                                                                                                                                                                                                    notLt := hHeadLt,
+                                                                                                                                                                                                                                    notLeq := hHeadLeq,
+                                                                                                                                                                                                                                    notGt := hHeadGt,
+                                                                                                                                                                                                                                    notGeq := hHeadGeq,
+                                                                                                                                                                                                                                    notDiv := hHeadDiv,
+                                                                                                                                                                                                                                    notMod := hHeadMod,
+                                                                                                                                                                                                                                    notMultmult := hHeadMultmult,
+                                                                                                                                                                                                                                    notDivisible := hHeadDivisible,
+                                                                                                                                                                                                                                    notDivTotal := hHeadDivTotal,
+                                                                                                                                                                                                                                    notModTotal := hHeadModTotal,
+                                                                                                                                                                                                                                    notMultmultTotal := hHeadMultmultTotal,
+                                                                                                                                                                                                                                    notSelect := hHeadSelect,
+                                                                                                                                                                                                                                    notArrayDeqDiff := hHeadArrayDeqDiff,
+                                                                                                                                                                                                                                    notConcat := hHeadConcat,
+                                                                                                                                                                                                                                    notBvand := hHeadBvand,
+                                                                                                                                                                                                                                    notBvor := hHeadBvor,
+                                                                                                                                                                                                                                    notBvnand := hHeadBvnand,
+                                                                                                                                                                                                                                    notBvnor := hHeadBvnor,
+                                                                                                                                                                                                                                    notBvxor := hHeadBvxor,
+                                                                                                                                                                                                                                    notBvxnor := hHeadBvxnor,
+                                                                                                                                                                                                                                    notBvcomp := hHeadBvcomp,
+                                                                                                                                                                                                                                    notBvadd := hHeadBvadd,
+                                                                                                                                                                                                                                    notBvmul := hHeadBvmul,
+                                                                                                                                                                                                                                    notBvudiv := hHeadBvudiv,
+                                                                                                                                                                                                                                    notBvurem := hHeadBvurem,
+                                                                                                                                                                                                                                    notBvsub := hHeadBvsub,
+                                                                                                                                                                                                                                    notBvsdiv := hHeadBvsdiv,
+                                                                                                                                                                                                                                    notBvsrem := hHeadBvsrem,
+                                                                                                                                                                                                                                    notBvsmod := hHeadBvsmod,
+                                                                                                                                                                                                                                    notBvult := hHeadBvult,
+                                                                                                                                                                                                                                    notBvule := hHeadBvule,
+                                                                                                                                                                                                                                    notBvugt := hHeadBvugt,
+                                                                                                                                                                                                                                    notBvuge := hHeadBvuge,
+                                                                                                                                                                                                                                    notBvslt := hHeadBvslt,
+                                                                                                                                                                                                                                    notBvsle := hHeadBvsle,
+                                                                                                                                                                                                                                    notBvsgt := hHeadBvsgt,
+                                                                                                                                                                                                                                    notBvsge := hHeadBvsge,
+                                                                                                                                                                                                                                    notBvshl := hHeadBvshl,
+                                                                                                                                                                                                                                    notBvlshr := hHeadBvlshr,
+                                                                                                                                                                                                                                    notBvashr := hHeadBvashr,
+                                                                                                                                                                                                                                    notBvuaddo := hHeadBvuaddo,
+                                                                                                                                                                                                                                    notBvsaddo := hHeadBvsaddo,
+                                                                                                                                                                                                                                    notBvumulo := hHeadBvumulo,
+                                                                                                                                                                                                                                    notBvsmulo := hHeadBvsmulo,
+                                                                                                                                                                                                                                    notBvusubo := hHeadBvusubo,
+                                                                                                                                                                                                                                    notBvssubo := hHeadBvssubo,
+                                                                                                                                                                                                                                    notBvsdivo := hHeadBvsdivo,
+                                                                                                                                                                                                                                    notBvultbv := hHeadBvultbv,
+                                                                                                                                                                                                                                    notBvsltbv := hHeadBvsltbv,
+                                                                                                                                                                                                                                    notFromBools := hHeadFromBools,
+                                                                                                                                                                                                                                    notStrConcat := hHeadStrConcat,
+                                                                                                                                                                                                                                    notStrContains := hHeadStrContains,
+                                                                                                                                                                                                                                    notStrAt := hHeadStrAt,
+                                                                                                                                                                                                                                    notStrPrefixof := hHeadStrPrefixof,
+                                                                                                                                                                                                                                    notStrSuffixof := hHeadStrSuffixof,
+                                                                                                                                                                                                                                    notStrLt := hHeadStrLt,
+                                                                                                                                                                                                                                    notStrLeq := hHeadStrLeq,
+                                                                                                                                                                                                                                    notReRange := hHeadReRange,
+                                                                                                                                                                                                                                    notReConcat := hHeadReConcat,
+                                                                                                                                                                                                                                    notReInter := hHeadReInter,
+                                                                                                                                                                                                                                    notReUnion := hHeadReUnion,
+                                                                                                                                                                                                                                    notReDiff := hHeadReDiff,
+                                                                                                                                                                                                                                    notStrInRe := hHeadStrInRe,
+                                                                                                                                                                                                                                    notSeqNth := hHeadSeqNth,
+                                                                                                                                                                                                                                    notStringsDeqDiff := hHeadStringsDeqDiff,
+                                                                                                                                                                                                                                    notStringsStoiResult := hHeadStringsStoiResult,
+                                                                                                                                                                                                                                    notStringsItosResult := hHeadStringsItosResult,
+                                                                                                                                                                                                                                    notStringsNumOccur := hHeadStringsNumOccur,
+                                                                                                                                                                                                                                    notTuple := hHeadTuple,
+                                                                                                                                                                                                                                    notSetUnion := hHeadSetUnion,
+                                                                                                                                                                                                                                    notSetInter := hHeadSetInter,
+                                                                                                                                                                                                                                    notSetMinus := hHeadSetMinus,
+                                                                                                                                                                                                                                    notSetMember := hHeadSetMember,
+                                                                                                                                                                                                                                    notSetSubset := hHeadSetSubset,
+                                                                                                                                                                                                                                    notSetInsert := hHeadSetInsert,
+                                                                                                                                                                                                                                    notSetsDeqDiff := hHeadSetsDeqDiff,
+                                                                                                                                                                                                                                    notQdiv := hHeadQdiv,
+                                                                                                                                                                                                                                    notQdivTotal := hHeadQdivTotal,
+                                                                                                                                                                                                                                    notForall := hHeadForall,
+                                                                                                                                                                                                                                    notExists := hHeadExists }
+                                                                                                                                                                                                                                let hApplyUOp : ApplyApplyApplyUOpBranchExclusions g :=
+                                                                                                                                                                                                                                  { notIte := hHeadIte,
+                                                                                                                                                                                                                                    notStore := hHeadStore,
+                                                                                                                                                                                                                                    notBvite := hHeadBvite,
+                                                                                                                                                                                                                                    notStrSubstr := hHeadStrSubstr,
+                                                                                                                                                                                                                                    notStrReplace := hHeadStrReplace,
+                                                                                                                                                                                                                                    notStrReplaceAll := hHeadStrReplaceAll,
+                                                                                                                                                                                                                                    notStrIndexof := hHeadStrIndexof,
+                                                                                                                                                                                                                                    notStrUpdate := hHeadStrUpdate,
+                                                                                                                                                                                                                                    notStrReplaceRe := hHeadStrReplaceRe,
+                                                                                                                                                                                                                                    notStrReplaceReAll := hHeadStrReplaceReAll,
+                                                                                                                                                                                                                                    notStrIndexofRe := hHeadStrIndexofRe,
+                                                                                                                                                                                                                                    notStrIndexofReSplit := hHeadStrIndexofReSplit }
                                                                                                                                                                                                                                 exact
-                                                                                                                                                                                                                                  substitute_simul_apply_applied_head_generic_preserves_type_and_translation_of_typeof_ne_stuck
+                                                                                                                                                                                                                                  substitute_simul_apply_apply_branch_residual_preserves_type_and_translation_of_typeof_ne_stuck
                                                                                                                                                                                                                                     g x1 a xs ts bvs
                                                                                                                                                                                                                                     hXsEnv hBvsEnv hTs
                                                                                                                                                                                                                                     (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
-                                                                                                                                                                                                                                    hOuterTranslate
+                                                                                                                                                                                                                                    hUOp hHeadUpdate hHeadTupleUpdate hApplyUOp
                                                                                                                                                                                                                                     hFTrans
                                                                                                                                                                                                                                     (fun hHeadTrans hHeadTy =>
                                                                                                                                                                                                                                       hRec
