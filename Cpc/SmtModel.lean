@@ -747,8 +747,14 @@ def __smtx_dt_wf_rec : SmtDatatype -> SmtDatatype -> native_Bool
   | dF, dU => false
 
 
+def __smtx_decl_wf_rec (s : native_String) (dd : SmtDatatypeDecl) : SmtDatatypeDecl -> SmtDatatypeDecl -> native_Bool
+  | (SmtDatatypeDecl.cons sF dF ddF), (SmtDatatypeDecl.cons sU dU ddU) => (native_ite (native_streq s sF) (__smtx_dt_wf_rec (__smtx_dt_resolve dF dd) dU) (__smtx_decl_wf_rec s dd ddF ddU))
+  | SmtDatatypeDecl.nil, SmtDatatypeDecl.nil => true
+  | ddF, ddU => false
+
+
 def __smtx_type_wf_rec : SmtType -> SmtType -> native_Bool
-  | (SmtType.Datatype sF dF), (SmtType.Datatype sU dU) => (__smtx_dt_wf_rec (__smtx_dt_resolve (__smtx_dd_lookup sF dF) dF) (__smtx_dd_lookup sU dU))
+  | (SmtType.Datatype sF ddF), (SmtType.Datatype sU ddU) => (__smtx_decl_wf_rec sF ddF ddF ddU)
   | T, (SmtType.TypeRef sF) => false
   | T, (SmtType.Seq x1) => (native_and (native_inhabited_type x1) (__smtx_type_wf_rec x1 x1))
   | T, (SmtType.Map x1 x2) => (native_and (native_and (native_inhabited_type x1) (__smtx_type_wf_rec x1 x1)) (native_and (native_inhabited_type x2) (__smtx_type_wf_rec x2 x2)))
