@@ -108,25 +108,24 @@ def __eo_eq : Term -> Term -> Term
   | t, s => (Term.Boolean (native_teq s t))
 
 
-def __eo_dtc_resolve : DatatypeCons -> Term -> DatatypeCons
+def __eo_dtc_resolve : DatatypeCons -> DatatypeDecl -> DatatypeCons
   | (DatatypeCons.cons (Term.DatatypeTypeRef s) c), dd => (DatatypeCons.cons (Term.DatatypeType s dd) (__eo_dtc_resolve c dd))
   | (DatatypeCons.cons T c), dd => (DatatypeCons.cons T (__eo_dtc_resolve c dd))
   | DatatypeCons.unit, dd => DatatypeCons.unit
 
 
-def __eo_dt_resolve : Datatype -> Term -> Datatype
+def __eo_dt_resolve : Datatype -> DatatypeDecl -> Datatype
   | (Datatype.sum c d), dd => (Datatype.sum (__eo_dtc_resolve c dd) (__eo_dt_resolve d dd))
   | Datatype.null, dd => Datatype.null
 
 
-def __eo_dd_lookup (s : native_String) : Term -> Datatype
-  | (Term.cons s2 d dd) => (native_ite (native_streq s s2) d (__eo_dd_lookup s dd))
-  | Term.nil => Datatype.null
+def __eo_dd_lookup (s : native_String) : DatatypeDecl -> Datatype
+  | (DatatypeDecl.cons s2 d dd) => (native_ite (native_streq s s2) d (__eo_dd_lookup s dd))
+  | DatatypeDecl.nil => Datatype.null
 
 
-def __eo_dd_resolve (s : native_String) : Term -> Term
-  | dd => (__eo_dt_resolve (__eo_dd_lookup s dd) dd)
-
+def __eo_dd_resolve (s : native_String) (dd : DatatypeDecl) : Term :=
+  (__eo_dt_resolve (__eo_dd_lookup s dd) dd)
 
 def __eo_is_bool_type : Term -> Term
   | Term.Stuck  => Term.Stuck

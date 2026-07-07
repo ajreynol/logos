@@ -297,7 +297,7 @@ inductive SmtType : Type where
   | Set : SmtType -> SmtType
   | Seq : SmtType -> SmtType
   | Char : SmtType
-  | Datatype : native_String -> Term -> SmtType
+  | Datatype : native_String -> SmtDatatypeDecl -> SmtType
   | TypeRef : native_String -> SmtType
   | USort : native_Nat -> SmtType
   | FunType : SmtType -> SmtType -> SmtType
@@ -324,9 +324,9 @@ inductive SmtTerm : Type where
   | choice_nth : native_String -> SmtType -> SmtTerm -> native_Nat -> SmtTerm
   | map_diff : SmtTerm -> SmtTerm -> SmtTerm
   | seq_diff : SmtTerm -> SmtTerm -> SmtTerm
-  | DtCons : native_String -> Term -> native_Nat -> SmtTerm
-  | DtSel : native_String -> Term -> native_Nat -> native_Nat -> SmtTerm
-  | DtTester : native_String -> Term -> native_Nat -> SmtTerm
+  | DtCons : native_String -> SmtDatatypeDecl -> native_Nat -> SmtTerm
+  | DtSel : native_String -> SmtDatatypeDecl -> native_Nat -> native_Nat -> SmtTerm
+  | DtTester : native_String -> SmtDatatypeDecl -> native_Nat -> SmtTerm
   | UConst : native_String -> SmtType -> SmtTerm
   | not : SmtTerm -> SmtTerm
   | or : SmtTerm -> SmtTerm -> SmtTerm
@@ -475,7 +475,7 @@ inductive SmtValue : Type where
   | Char : native_Char -> SmtValue
   | UValue : native_Nat -> native_Nat -> SmtValue
   | RegLan : native_RegLan -> SmtValue
-  | DtCons : native_String -> Term -> native_Nat -> SmtValue
+  | DtCons : native_String -> SmtDatatypeDecl -> native_Nat -> SmtValue
   | Apply : SmtValue -> SmtValue -> SmtValue
 
 deriving Repr, DecidableEq, Inhabited, Ord
@@ -718,20 +718,20 @@ def __vsm_apply_arg_nth : SmtValue -> native_Nat -> native_Nat -> SmtValue
   | a, n, npos => SmtValue.NotValue
 
 
-def __smtx_dtc_resolve : SmtDatatypeCons -> Term -> SmtDatatypeCons
+def __smtx_dtc_resolve : SmtDatatypeCons -> SmtDatatypeDecl -> SmtDatatypeCons
   | (SmtDatatypeCons.cons (SmtType.TypeRef s) c), dd => (SmtDatatypeCons.cons (SmtType.Datatype s dd) (__smtx_dtc_resolve c dd))
   | (SmtDatatypeCons.cons T c), dd => (SmtDatatypeCons.cons T (__smtx_dtc_resolve c dd))
   | SmtDatatypeCons.unit, dd => SmtDatatypeCons.unit
 
 
-def __smtx_dt_resolve : SmtDatatype -> Term -> SmtDatatype
+def __smtx_dt_resolve : SmtDatatype -> SmtDatatypeDecl -> SmtDatatype
   | (SmtDatatype.sum c d), dd => (SmtDatatype.sum (__smtx_dtc_resolve c dd) (__smtx_dt_resolve d dd))
   | SmtDatatype.null, dd => SmtDatatype.null
 
 
-def __smtx_dd_lookup (s : native_String) : Term -> SmtDatatype
-  | (Term.cons s2 d dd) => (native_ite (native_streq s s2) d (__smtx_dd_lookup s dd))
-  | Term.nil => SmtDatatype.null
+def __smtx_dd_lookup (s : native_String) : SmtDatatypeDecl -> SmtDatatype
+  | (SmtDatatypeDecl.cons s2 d dd) => (native_ite (native_streq s s2) d (__smtx_dd_lookup s dd))
+  | SmtDatatypeDecl.nil => SmtDatatype.null
 
 
 def __smtx_dt_cons_no_alias_rec (refs : RefList) : SmtDatatypeCons -> native_Bool
@@ -882,9 +882,8 @@ def __smtx_ret_typeof_sel_rec : SmtDatatype -> native_Nat -> native_Nat -> SmtTy
   | d, n, m => SmtType.None
 
 
-def __smtx_ret_typeof_sel (s : native_String) : Term -> native_Nat -> native_Nat -> SmtType
-  | dd, n, m => (__smtx_ret_typeof_sel_rec (__smtx_dt_resolve (__smtx_dd_lookup s dd) dd) n m)
-
+def __smtx_ret_typeof_sel (s : native_String) (dd : SmtDatatypeDecl) (n : native_Nat) (m : native_Nat) : SmtType :=
+  (__smtx_ret_typeof_sel_rec (__smtx_dt_resolve (__smtx_dd_lookup s dd) dd) n m)
 
 def __smtx_typeof_apply_value : SmtType -> SmtType -> SmtType
   | (SmtType.DtcAppType T U), V => (__smtx_typeof_guard T (native_ite (native_Teq T V) U SmtType.None))
@@ -2016,11 +2015,11 @@ def __smtx_datatype_cons_default (v : SmtValue) : SmtDatatypeCons -> SmtDatatype
   | cF, cU => SmtValue.NotValue
 
 
-def __smtx_datatype_default (s : native_String) : Term -> native_Nat -> SmtDatatype -> SmtDatatype -> SmtValue
-  | dd, n, (SmtDatatype.sum cF dF), (SmtDatatype.sum cU dU) => 
+def __smtx_datatype_default (s : native_String) (dd : SmtDatatypeDecl) (n : native_Nat) : SmtDatatype -> SmtDatatype -> SmtValue
+  | (SmtDatatype.sum cF dF), (SmtDatatype.sum cU dU) => 
     let _v0 := (__smtx_datatype_cons_default (SmtValue.DtCons s dd n) cF cU)
     (native_ite (native_not (native_veq _v0 SmtValue.NotValue)) _v0 (__smtx_datatype_default s dd (native_nat_succ n) dF dU))
-  | dd, n, dF, dU => SmtValue.NotValue
+  | dF, dU => SmtValue.NotValue
 
 
 def __smtx_type_default_rec : SmtType -> SmtType -> SmtValue
