@@ -908,7 +908,7 @@ def __smtx_datatype_default (s : native_String) (dd : SmtDatatypeDecl) (n : nati
 
 def __smtx_datatype_decl_default (s : native_String) (dd : SmtDatatypeDecl) : SmtDatatypeDecl -> SmtDatatypeDecl -> SmtValue
   | (SmtDatatypeDecl.cons sF dF ddF), (SmtDatatypeDecl.cons sU dU ddU) => (native_ite (native_streq s sF) (__smtx_datatype_default s dd native_nat_zero (__smtx_dt_resolve dF dd) dU) (__smtx_datatype_decl_default s dd ddF ddU))
-  | SmtDatatypeDecl.nil, SmtDatatypeDecl.nil => SmtValue.NotValue
+  | ddF, ddU => SmtValue.NotValue
 
 
 def __smtx_type_default_rec : SmtType -> SmtType -> SmtValue
