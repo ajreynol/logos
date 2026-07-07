@@ -18449,25 +18449,45 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                           (__eo_to_smt x)) := by
                     unfold term_has_non_none_type
                     simpa [RuleProofs.eo_has_smt_translation] using hTrans
-                  rcases seq_char_binop_args_of_non_none
+                  rcases seq_binop_args_of_non_none_ret
                       (op := SmtTerm.str_prefixof)
                       (typeof_str_prefixof_eq (__eo_to_smt y)
                         (__eo_to_smt x)) hPrefixNN with
-                    ⟨hYTyChar, hXTyChar⟩
+                    ⟨T, hYTySeq, hXTySeq⟩
                   have hYTrans : RuleProofs.eo_has_smt_translation y := by
                     unfold RuleProofs.eo_has_smt_translation
-                    rw [hYTyChar]
+                    rw [hYTySeq]
                     simp
                   have hXTrans : RuleProofs.eo_has_smt_translation x := by
                     unfold RuleProofs.eo_has_smt_translation
-                    rw [hXTyChar]
+                    rw [hXTySeq]
                     simp
-                  have hYEoChar :=
-                    eo_typeof_seq_char_of_smt_type_seq_char y
-                      hYTrans hYTyChar
-                  have hXEoChar :=
-                    eo_typeof_seq_char_of_smt_type_seq_char x
-                      hXTrans hXTyChar
+                  rcases eo_typeof_seq_of_smt_type_seq y hYTrans
+                      hYTySeq with
+                    ⟨UY, hYEoSeq, hUYSmt⟩
+                  rcases eo_typeof_seq_of_smt_type_seq x hXTrans
+                      hXTySeq with
+                    ⟨UX, hXEoSeq, hUXSmt⟩
+                  have hYEoValid :=
+                    TranslationProofs.eo_type_valid_typeof_of_smt_translation
+                      y hYTrans
+                  have hYSeqValid :
+                      TranslationProofs.eo_type_valid
+                        (Term.Apply (Term.UOp UserOp.Seq) UY) := by
+                    simpa [hYEoSeq] using hYEoValid
+                  have hSeqEq :
+                      Term.Apply (Term.UOp UserOp.Seq) UY =
+                        Term.Apply (Term.UOp UserOp.Seq) UX := by
+                    apply eo_to_smt_type_eq_of_top_valid hYSeqValid
+                    simp [__eo_to_smt_type, hUYSmt, hUXSmt]
+                  cases hSeqEq
+                  have hUNe : UY ≠ Term.Stuck := by
+                    intro hStuck
+                    subst UY
+                    simpa [TranslationProofs.eo_type_valid,
+                      TranslationProofs.eo_type_valid_rec] using hYSeqValid
+                  have hUEq : __eo_eq UY UY = Term.Boolean true := by
+                    cases UY <;> simp [__eo_eq, native_teq] at hUNe ⊢
                   have hRunPrefixNe :
                       __eo_eq (__run_evaluate y)
                           (__eo_extract (__run_evaluate x)
@@ -18494,9 +18514,9 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                               (Term.Numeral (-1 : native_Int))))) =
                       __eo_typeof_str_contains (__eo_typeof y)
                         (__eo_typeof x)
-                  rw [hRunBodyTy, hYEoChar, hXEoChar]
+                  rw [hRunBodyTy, hYEoSeq, hXEoSeq]
                   simp [__eo_typeof_str_contains, __eo_requires,
-                    __eo_eq, native_ite, native_teq, native_not]
+                    hUEq, native_ite, native_teq, native_not]
                 | str_suffixof =>
                   have hSuffixNN :
                       term_has_non_none_type
@@ -18504,25 +18524,45 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                           (__eo_to_smt x)) := by
                     unfold term_has_non_none_type
                     simpa [RuleProofs.eo_has_smt_translation] using hTrans
-                  rcases seq_char_binop_args_of_non_none
+                  rcases seq_binop_args_of_non_none_ret
                       (op := SmtTerm.str_suffixof)
                       (typeof_str_suffixof_eq (__eo_to_smt y)
                         (__eo_to_smt x)) hSuffixNN with
-                    ⟨hYTyChar, hXTyChar⟩
+                    ⟨T, hYTySeq, hXTySeq⟩
                   have hYTrans : RuleProofs.eo_has_smt_translation y := by
                     unfold RuleProofs.eo_has_smt_translation
-                    rw [hYTyChar]
+                    rw [hYTySeq]
                     simp
                   have hXTrans : RuleProofs.eo_has_smt_translation x := by
                     unfold RuleProofs.eo_has_smt_translation
-                    rw [hXTyChar]
+                    rw [hXTySeq]
                     simp
-                  have hYEoChar :=
-                    eo_typeof_seq_char_of_smt_type_seq_char y
-                      hYTrans hYTyChar
-                  have hXEoChar :=
-                    eo_typeof_seq_char_of_smt_type_seq_char x
-                      hXTrans hXTyChar
+                  rcases eo_typeof_seq_of_smt_type_seq y hYTrans
+                      hYTySeq with
+                    ⟨UY, hYEoSeq, hUYSmt⟩
+                  rcases eo_typeof_seq_of_smt_type_seq x hXTrans
+                      hXTySeq with
+                    ⟨UX, hXEoSeq, hUXSmt⟩
+                  have hYEoValid :=
+                    TranslationProofs.eo_type_valid_typeof_of_smt_translation
+                      y hYTrans
+                  have hYSeqValid :
+                      TranslationProofs.eo_type_valid
+                        (Term.Apply (Term.UOp UserOp.Seq) UY) := by
+                    simpa [hYEoSeq] using hYEoValid
+                  have hSeqEq :
+                      Term.Apply (Term.UOp UserOp.Seq) UY =
+                        Term.Apply (Term.UOp UserOp.Seq) UX := by
+                    apply eo_to_smt_type_eq_of_top_valid hYSeqValid
+                    simp [__eo_to_smt_type, hUYSmt, hUXSmt]
+                  cases hSeqEq
+                  have hUNe : UY ≠ Term.Stuck := by
+                    intro hStuck
+                    subst UY
+                    simpa [TranslationProofs.eo_type_valid,
+                      TranslationProofs.eo_type_valid_rec] using hYSeqValid
+                  have hUEq : __eo_eq UY UY = Term.Boolean true := by
+                    cases UY <;> simp [__eo_eq, native_teq] at hUNe ⊢
                   have hRunSuffixNe :
                       (let _v0 := __run_evaluate x
                        let _v1 := __eo_len _v0
@@ -18558,9 +18598,9 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                               (Term.Numeral (-1 : native_Int))))) =
                       __eo_typeof_str_contains (__eo_typeof y)
                         (__eo_typeof x)
-                  rw [hRunBodyTy, hYEoChar, hXEoChar]
+                  rw [hRunBodyTy, hYEoSeq, hXEoSeq]
                   simp [__eo_typeof_str_contains, __eo_requires,
-                    __eo_eq, native_ite, native_teq, native_not]
+                    hUEq, native_ite, native_teq, native_not]
                 | str_contains =>
                   have hContainsNN :
                       term_has_non_none_type
@@ -33527,10 +33567,10 @@ private theorem run_evaluate_sound_apply_str_prefixof_core
         (SmtTerm.str_prefixof (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold term_has_non_none_type
     simpa [RuleProofs.eo_has_smt_translation] using hATrans
-  rcases seq_char_binop_args_of_non_none (op := SmtTerm.str_prefixof)
+  rcases seq_binop_args_of_non_none_ret (op := SmtTerm.str_prefixof)
       (typeof_str_prefixof_eq (__eo_to_smt a) (__eo_to_smt b))
       hPrefixNN with
-    ⟨hATyChar, hBTyChar⟩
+    ⟨T, hATyChar, hBTyChar⟩
   have hATransA : RuleProofs.eo_has_smt_translation a := by
     unfold RuleProofs.eo_has_smt_translation
     rw [hATyChar]
@@ -33578,10 +33618,10 @@ private theorem run_evaluate_sound_apply_str_prefixof_core
       eo_extract_target_ne_stuck (by simpa [runSlice] using hRunSliceNe)
     simpa [runB] using hRunBNe'
   have hAProgTy : __eo_typeof (__eo_prog_evaluate a) = Term.Bool :=
-    eo_prog_evaluate_typeof_bool_of_smt_type_seq a SmtType.Char
+    eo_prog_evaluate_typeof_bool_of_smt_type_seq a T
       hATransA hATyChar hRunANe
   have hBProgTy : __eo_typeof (__eo_prog_evaluate b) = Term.Bool :=
-    eo_prog_evaluate_typeof_bool_of_smt_type_seq b SmtType.Char
+    eo_prog_evaluate_typeof_bool_of_smt_type_seq b T
       hBTrans hBTyChar hRunBNe
   rcases run_evaluate_rec_apply_apply_arg M
       (Term.UOp UserOp.str_prefixof) a b rec hATransA hAProgTy with
@@ -33591,14 +33631,15 @@ private theorem run_evaluate_sound_apply_str_prefixof_core
       hBTrans hBProgTy with
     ⟨hBSameTy, hBRel⟩
   have hRunATy :
-      __smtx_typeof (__eo_to_smt runA) = SmtType.Seq SmtType.Char := by
+      __smtx_typeof (__eo_to_smt runA) = SmtType.Seq T := by
     simpa [runA] using hASameTy.symm.trans hATyChar
   have hRunBTy :
-      __smtx_typeof (__eo_to_smt runB) = SmtType.Seq SmtType.Char := by
+      __smtx_typeof (__eo_to_smt runB) = SmtType.Seq T := by
     simpa [runB] using hBSameTy.symm.trans hBTyChar
   rcases eo_len_seq_arg_of_nonstuck runA hRunATy
       (by simpa [runLen] using hRunLenNe) with
     ⟨sx, hRunA, hSxValid, _hTChar⟩
+  subst T
   have hRunSliceNeConcrete :
       __eo_extract runB (Term.Numeral 0)
           (Term.Numeral (native_zplus (native_str_len sx)
@@ -33641,7 +33682,8 @@ private theorem run_evaluate_sound_apply_str_prefixof_core
               (Term.String (native_str_substr sy 0 (native_str_len sx)))
               (Term.String sx)))
     rw [typeof_str_prefixof_eq]
-    simp [__smtx_typeof, hATyChar, hBTyChar, native_Teq, native_ite]
+    simp [__smtx_typeof, __smtx_typeof_seq_op_2_ret, hATyChar, hBTyChar,
+      native_Teq, native_ite]
   · have hSxEval :
         __smtx_model_eval M (__eo_to_smt (Term.String sx)) =
           SmtValue.Seq (native_pack_string sx) := by
@@ -33769,10 +33811,10 @@ private theorem run_evaluate_sound_apply_str_suffixof_core
         (SmtTerm.str_suffixof (__eo_to_smt a) (__eo_to_smt b)) := by
     unfold term_has_non_none_type
     simpa [RuleProofs.eo_has_smt_translation] using hATrans
-  rcases seq_char_binop_args_of_non_none (op := SmtTerm.str_suffixof)
+  rcases seq_binop_args_of_non_none_ret (op := SmtTerm.str_suffixof)
       (typeof_str_suffixof_eq (__eo_to_smt a) (__eo_to_smt b))
       hSuffixNN with
-    ⟨hATyChar, hBTyChar⟩
+    ⟨T, hATyChar, hBTyChar⟩
   have hATransA : RuleProofs.eo_has_smt_translation a := by
     unfold RuleProofs.eo_has_smt_translation
     rw [hATyChar]
@@ -33829,10 +33871,10 @@ private theorem run_evaluate_sound_apply_str_suffixof_core
       eo_len_arg_ne_stuck (by simpa [runLenB] using hRunLenBNe)
     simpa [runB] using hRunBNe'
   have hAProgTy : __eo_typeof (__eo_prog_evaluate a) = Term.Bool :=
-    eo_prog_evaluate_typeof_bool_of_smt_type_seq a SmtType.Char
+    eo_prog_evaluate_typeof_bool_of_smt_type_seq a T
       hATransA hATyChar hRunANe
   have hBProgTy : __eo_typeof (__eo_prog_evaluate b) = Term.Bool :=
-    eo_prog_evaluate_typeof_bool_of_smt_type_seq b SmtType.Char
+    eo_prog_evaluate_typeof_bool_of_smt_type_seq b T
       hBTrans hBTyChar hRunBNe
   rcases run_evaluate_rec_apply_apply_arg M
       (Term.UOp UserOp.str_suffixof) a b rec hATransA hAProgTy with
@@ -33842,14 +33884,15 @@ private theorem run_evaluate_sound_apply_str_suffixof_core
       hBTrans hBProgTy with
     ⟨hBSameTy, hBRel⟩
   have hRunATy :
-      __smtx_typeof (__eo_to_smt runA) = SmtType.Seq SmtType.Char := by
+      __smtx_typeof (__eo_to_smt runA) = SmtType.Seq T := by
     simpa [runA] using hASameTy.symm.trans hATyChar
   have hRunBTy :
-      __smtx_typeof (__eo_to_smt runB) = SmtType.Seq SmtType.Char := by
+      __smtx_typeof (__eo_to_smt runB) = SmtType.Seq T := by
     simpa [runB] using hBSameTy.symm.trans hBTyChar
   rcases eo_len_seq_arg_of_nonstuck runB hRunBTy
       (by simpa [runLenB] using hRunLenBNe) with
     ⟨sy, hRunB, _hSyValid, _hTCharB⟩
+  subst T
   rcases eo_len_seq_arg_of_nonstuck runA hRunATy
       (by simpa [runLenA] using hRunLenANe) with
     ⟨sx, hRunA, _hSxValid, _hTCharA⟩
@@ -33894,7 +33937,8 @@ private theorem run_evaluate_sound_apply_str_suffixof_core
                   (native_str_len sx)))
               (Term.String sx)))
     rw [typeof_str_suffixof_eq]
-    simp [__smtx_typeof, hATyChar, hBTyChar, native_Teq, native_ite]
+    simp [__smtx_typeof, __smtx_typeof_seq_op_2_ret, hATyChar, hBTyChar,
+      native_Teq, native_ite]
   · have hSxEval :
         __smtx_model_eval M (__eo_to_smt (Term.String sx)) =
           SmtValue.Seq (native_pack_string sx) := by

@@ -10856,7 +10856,7 @@ theorem is_closed_rec_apply_apply_str_prefixof_eq_and_bool_of_has_smt_translatio
         Term.Boolean b :=
 by
   exact
-    is_closed_rec_apply_apply_uop_seq_char_bool_eq_and_bool_of_has_smt_translation
+    is_closed_rec_apply_apply_uop_seq_binop_ret_eq_and_bool_of_has_smt_translation
       hEnv (by decide) (by decide) (by rfl)
       (typeof_str_prefixof_eq (__eo_to_smt x) (__eo_to_smt y))
       hTrans ihX ihY
@@ -10885,7 +10885,7 @@ theorem is_closed_rec_apply_apply_str_suffixof_eq_and_bool_of_has_smt_translatio
         Term.Boolean b :=
 by
   exact
-    is_closed_rec_apply_apply_uop_seq_char_bool_eq_and_bool_of_has_smt_translation
+    is_closed_rec_apply_apply_uop_seq_binop_ret_eq_and_bool_of_has_smt_translation
       hEnv (by decide) (by decide) (by rfl)
       (typeof_str_suffixof_eq (__eo_to_smt x) (__eo_to_smt y))
       hTrans ihX ihY
@@ -13465,8 +13465,7 @@ by
         (eoOp := UserOp.str_prefixof) (smtOp := SmtTerm.str_prefixof)
         (by rfl)
         (fun hNN =>
-          seq_char_binop_args_have_smt_translation_of_non_none
-            (ret := SmtType.Bool)
+          seq_binop_ret_args_have_smt_translation_of_non_none
             (typeof_str_prefixof_eq (__eo_to_smt x)
               (__eo_to_smt
                 (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
@@ -13478,8 +13477,7 @@ by
         (eoOp := UserOp.str_suffixof) (smtOp := SmtTerm.str_suffixof)
         (by rfl)
         (fun hNN =>
-          seq_char_binop_args_have_smt_translation_of_non_none
-            (ret := SmtType.Bool)
+          seq_binop_ret_args_have_smt_translation_of_non_none
             (typeof_str_suffixof_eq (__eo_to_smt x)
               (__eo_to_smt
                 (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)))
@@ -15697,8 +15695,7 @@ by
         (eoOp := UserOp.str_prefixof) (smtOp := SmtTerm.str_prefixof)
         root hEnv hXLt hYLt hZLt (by rfl)
         (fun hNN =>
-          seq_char_binop_args_have_smt_translation_of_non_none
-            (ret := SmtType.Bool)
+          seq_binop_ret_args_have_smt_translation_of_non_none
             (typeof_str_prefixof_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
         (by rfl) hTrans ih
   case str_suffixof =>
@@ -15707,8 +15704,7 @@ by
         (eoOp := UserOp.str_suffixof) (smtOp := SmtTerm.str_suffixof)
         root hEnv hXLt hYLt hZLt (by rfl)
         (fun hNN =>
-          seq_char_binop_args_have_smt_translation_of_non_none
-            (ret := SmtType.Bool)
+          seq_binop_ret_args_have_smt_translation_of_non_none
             (typeof_str_suffixof_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
         (by rfl) hTrans ih
   case str_update =>

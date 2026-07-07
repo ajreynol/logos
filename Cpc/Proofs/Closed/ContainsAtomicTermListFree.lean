@@ -4774,16 +4774,14 @@ by
                 apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
                   (by rfl)
                   (fun hNN =>
-                    seq_char_binop_args_have_smt_translation_of_non_none
-                      (ret := SmtType.Bool)
+                    seq_binop_ret_args_have_smt_translation_of_non_none
                       (typeof_str_prefixof_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
                   h
             | exact
                 apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
                   (by rfl)
                   (fun hNN =>
-                    seq_char_binop_args_have_smt_translation_of_non_none
-                      (ret := SmtType.Bool)
+                    seq_binop_ret_args_have_smt_translation_of_non_none
                       (typeof_str_suffixof_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
                   h
             | exact

@@ -17859,12 +17859,12 @@ private theorem eo_apply_apply_arg_has_translation_of_has_translation
       case str_prefixof =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.str_prefixof (__eo_to_smt z) (__eo_to_smt x)
-          (seq_char_binop_args_non_reg_of_non_none SmtTerm.str_prefixof
+          (seq_binop_ret_args_non_reg_of_non_none SmtTerm.str_prefixof
             SmtType.Bool (by intro a b; exact typeof_str_prefixof_eq a b)) hx)
       case str_suffixof =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.str_suffixof (__eo_to_smt z) (__eo_to_smt x)
-          (seq_char_binop_args_non_reg_of_non_none SmtTerm.str_suffixof
+          (seq_binop_ret_args_non_reg_of_non_none SmtTerm.str_suffixof
             SmtType.Bool (by intro a b; exact typeof_str_suffixof_eq a b)) hx)
       case str_lt =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
@@ -19724,13 +19724,13 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
           rw [typeof_str_at_eq, typeof_str_at_eq, ha, hb])
         x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.str_prefixof) x₁) x₂ =>
-      exact congTypeSpine_seq_char_binop_eq_has_bool_type
+      exact congTypeSpine_seq_binop_ret_eq_has_bool_type
         UserOp.str_prefixof SmtTerm.str_prefixof SmtType.Bool
         (by intro a b; rfl)
         (by intro a b; exact typeof_str_prefixof_eq a b)
         x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.str_suffixof) x₁) x₂ =>
-      exact congTypeSpine_seq_char_binop_eq_has_bool_type
+      exact congTypeSpine_seq_binop_ret_eq_has_bool_type
         UserOp.str_suffixof SmtTerm.str_suffixof SmtType.Bool
         (by intro a b; rfl)
         (by intro a b; exact typeof_str_suffixof_eq a b)
@@ -21181,7 +21181,7 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                                   z x (Term.Apply g y) hTrans hApp
                             case str_prefixof =>
                               exact
-                                congTypeSpine_seq_char_binop_eq_has_bool_type
+                                congTypeSpine_seq_binop_ret_eq_has_bool_type
                                   UserOp.str_prefixof SmtTerm.str_prefixof
                                   SmtType.Bool
                                   (by intro a b; rfl)
@@ -21189,7 +21189,7 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                                   z x (Term.Apply g y) hTrans hApp
                             case str_suffixof =>
                               exact
-                                congTypeSpine_seq_char_binop_eq_has_bool_type
+                                congTypeSpine_seq_binop_ret_eq_has_bool_type
                                   UserOp.str_suffixof SmtTerm.str_suffixof
                                   SmtType.Bool
                                   (by intro a b; rfl)
@@ -22422,14 +22422,14 @@ private theorem congTrueSpine_eq_true
         (by intro a b; rw [__smtx_model_eval.eq_85])
         x₁ x₂ rhs hEqBool hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.str_prefixof) x₁) x₂ =>
-      exact congTrueSpine_seq_char_binop_eq_true M hM UserOp.str_prefixof
+      exact congTrueSpine_seq_binop_ret_eq_true M hM UserOp.str_prefixof
         SmtTerm.str_prefixof SmtType.Bool __smtx_model_eval_str_prefixof
         (by intro a b; rfl)
         (by intro a b; exact typeof_str_prefixof_eq a b)
         (by intro a b; rw [__smtx_model_eval.eq_86])
         x₁ x₂ rhs hEqBool hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.str_suffixof) x₁) x₂ =>
-      exact congTrueSpine_seq_char_binop_eq_true M hM UserOp.str_suffixof
+      exact congTrueSpine_seq_binop_ret_eq_true M hM UserOp.str_suffixof
         SmtTerm.str_suffixof SmtType.Bool __smtx_model_eval_str_suffixof
         (by intro a b; rfl)
         (by intro a b; exact typeof_str_suffixof_eq a b)
@@ -23968,7 +23968,7 @@ private theorem congTrueSpine_eq_true
                                 (by intro a b; rw [__smtx_model_eval.eq_85])
                                 z x (Term.Apply g y) hEqBool hApp
                             case str_prefixof =>
-                              exact congTrueSpine_seq_char_binop_eq_true M hM
+                              exact congTrueSpine_seq_binop_ret_eq_true M hM
                                 UserOp.str_prefixof SmtTerm.str_prefixof
                                 SmtType.Bool __smtx_model_eval_str_prefixof
                                 (by intro a b; rfl)
@@ -23976,7 +23976,7 @@ private theorem congTrueSpine_eq_true
                                 (by intro a b; rw [__smtx_model_eval.eq_86])
                                 z x (Term.Apply g y) hEqBool hApp
                             case str_suffixof =>
-                              exact congTrueSpine_seq_char_binop_eq_true M hM
+                              exact congTrueSpine_seq_binop_ret_eq_true M hM
                                 UserOp.str_suffixof SmtTerm.str_suffixof
                                 SmtType.Bool __smtx_model_eval_str_suffixof
                                 (by intro a b; rfl)
