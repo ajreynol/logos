@@ -37,7 +37,9 @@ theorem substitute_simul_set_insert_preserves_type_and_translation_of_typeof_ne_
       ∀ t,
         sizeOf t < sizeOf typedList ->
         RuleProofs.eo_has_smt_translation t ->
-        __eo_typeof t ≠ Term.Stuck ->
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false) t xs ts bvs) ≠
+          Term.Stuck ->
           __smtx_typeof
               (__eo_to_smt
                 (__substitute_simul_rec (Term.Boolean false) t xs ts bvs)) =
@@ -153,6 +155,17 @@ theorem substitute_simul_set_insert_preserves_type_and_translation_of_typeof_ne_
             baseSub) ≠
         Term.Stuck := by
     rwa [hInnerMk, hOuterMk] at hTyMk
+  have hTypedListSubTyped :
+      ∃ T,
+        __eo_typeof typedListSub =
+          Term.Apply (Term.UOp UserOp._at__at_TypedList) T :=
+    eo_typeof_set_insert_left_typed_list_of_ne_stuck
+      (__eo_typeof typedListSub) (__eo_typeof baseSub) (by
+        change
+          __eo_typeof_set_insert (__eo_typeof typedListSub)
+              (__eo_typeof baseSub) ≠
+            Term.Stuck at hTyApply
+        exact hTyApply)
   have hOrigNN :
       __smtx_typeof
           (__eo_to_smt_set_insert typedList (__eo_to_smt base)) ≠
@@ -199,7 +212,7 @@ theorem substitute_simul_set_insert_preserves_type_and_translation_of_typeof_ne_
     simpa [typedListSub] using
       substitute_simul_rec_typed_list_elem_type_eq_of_non_none
         typedList xs ts bvs hXsEnv hBvsEnv hTs
-        hTypedListSmtType hElemNN
+        hTypedListSmtType hTypedListSubTyped hElemNN
   have hElemSub :
       __eo_to_smt_typed_list_elem_type typedListSub = A := by
     rw [hElemSubEq, hElem]
