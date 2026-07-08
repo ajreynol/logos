@@ -5,6 +5,8 @@ import Cpc.Proofs.RuleSupport.SubstitutePreservationGenericApply
 import Cpc.Proofs.RuleSupport.SubstitutePreservationAtomApply
 import Cpc.Proofs.RuleSupport.SubstitutePreservationGenericOps
 import Cpc.Proofs.RuleSupport.SubstitutePreservationBinaryOps
+import Cpc.Proofs.RuleSupport.SubstitutePreservationSetInsert
+import Cpc.Proofs.RuleSupport.SubstitutePreservationDistinct
 import Cpc.Proofs.RuleSupport.SubstitutePreservationTernaryOps
 import Cpc.Proofs.RuleSupport.SubstitutePreservationDtSel
 import Cpc.Proofs.RuleSupport.SubstitutePreservationIndexedOps
@@ -173,213 +175,6 @@ private theorem false_of_exhausted_unary_uop_apply_has_smt_translation
     | exact hHeadUbvToInt rfl
     | exact hHeadSbvToInt rfl
     | cases hUnary
-
-
-private theorem substitute_simul_set_insert_preserves_type_and_translation_of_typeof_ne_stuck
-    (typedList base xs ts bvs : Term)
-    {xsVars bvsVars : List EoVarKey}
-    (hXsEnv : EoVarEnvPerm xs xsVars)
-    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
-    (hTs : EoListAllHaveSmtTranslation ts)
-    (hNotBinder :
-      ∀ q v vs,
-        Term.Apply (Term.UOp UserOp.set_insert) typedList ≠
-          Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
-    (hFTrans :
-      RuleProofs.eo_has_smt_translation
-        (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) typedList)
-          base))
-    (hTy :
-      __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
-          (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) typedList)
-            base) xs ts bvs) ≠
-        Term.Stuck)
-    (hTypedListSmtType :
-      ∀ t,
-        sizeOf t < sizeOf typedList ->
-        RuleProofs.eo_has_smt_translation t ->
-        __eo_typeof t ≠ Term.Stuck ->
-          __smtx_typeof
-              (__eo_to_smt
-                (__substitute_simul_rec (Term.Boolean false) t xs ts bvs)) =
-            __smtx_typeof (__eo_to_smt t))
-    (hRecBase :
-      RuleProofs.eo_has_smt_translation base ->
-        __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) base xs ts bvs) ≠
-          Term.Stuck ->
-        __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) base xs ts bvs) =
-          __eo_typeof base ∧
-          RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) base xs ts bvs)) :
-    __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
-          (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) typedList)
-            base) xs ts bvs) =
-      __eo_typeof
-        (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) typedList)
-          base) ∧
-      RuleProofs.eo_has_smt_translation
-        (__substitute_simul_rec (Term.Boolean false)
-          (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) typedList)
-            base) xs ts bvs) := by
-  let typedListSub :=
-    __substitute_simul_rec (Term.Boolean false) typedList xs ts bvs
-  let baseSub :=
-    __substitute_simul_rec (Term.Boolean false) base xs ts bvs
-  have hType :
-      __eo_typeof
-          (__substitute_simul_rec (Term.Boolean false)
-            (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) typedList)
-              base) xs ts bvs) =
-        __eo_typeof
-          (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) typedList)
-            base) :=
-    SubstituteSupport.substitute_simul_set_insert_typeof_eq_of_typeof_ne_stuck
-      typedList base xs ts bvs hXsEnv hBvsEnv hTs hNotBinder hFTrans
-      (fun hBaseTrans hBaseTy => (hRecBase hBaseTrans hBaseTy).1)
-      hTy
-  refine ⟨hType, ?_⟩
-  have hisr : (Term.Boolean false : Term) ≠ Term.Stuck := by decide
-  have hxs : xs ≠ Term.Stuck := hXsEnv.ne_stuck
-  have hts : ts ≠ Term.Stuck := eoListAllHaveSmtTranslation_ne_stuck hTs
-  have hbvs : bvs ≠ Term.Stuck := hBvsEnv.ne_stuck
-  have hHeadSub :
-      __substitute_simul_rec (Term.Boolean false)
-          (Term.UOp UserOp.set_insert) xs ts bvs =
-        Term.UOp UserOp.set_insert :=
-    substitute_simul_rec_uop_eq_self UserOp.set_insert xs ts bvs
-      hXsEnv hBvsEnv hTs
-  have hInnerSub :
-      __substitute_simul_rec (Term.Boolean false)
-          (Term.Apply (Term.UOp UserOp.set_insert) typedList) xs ts bvs =
-        __eo_mk_apply (Term.UOp UserOp.set_insert) typedListSub := by
-    have hApplyEq :=
-      SubstituteSupport.substitute_simul_rec_apply
-        (Term.Boolean false) (Term.UOp UserOp.set_insert) typedList
-        xs ts bvs hisr hxs hts hbvs
-        (by intro q v vs hEq; cases hEq)
-    simpa [typedListSub, hHeadSub] using hApplyEq
-  have hSubstEq :
-      __substitute_simul_rec (Term.Boolean false)
-          (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) typedList)
-            base) xs ts bvs =
-        __eo_mk_apply
-          (__eo_mk_apply (Term.UOp UserOp.set_insert) typedListSub)
-          baseSub := by
-    have hApplyEq :=
-      SubstituteSupport.substitute_simul_rec_apply
-        (Term.Boolean false)
-        (Term.Apply (Term.UOp UserOp.set_insert) typedList)
-        base xs ts bvs hisr hxs hts hbvs hNotBinder
-    simpa [baseSub, hInnerSub] using hApplyEq
-  have hTyMk :
-      __eo_typeof
-          (__eo_mk_apply
-            (__eo_mk_apply (Term.UOp UserOp.set_insert) typedListSub)
-            baseSub) ≠
-        Term.Stuck := by
-    rwa [hSubstEq] at hTy
-  have hOuterNe :
-      __eo_mk_apply
-          (__eo_mk_apply (Term.UOp UserOp.set_insert) typedListSub)
-          baseSub ≠
-        Term.Stuck :=
-    instantiate_eo_mk_apply_ne_stuck_of_typeof_ne_stuck hTyMk
-  have hInnerNe :
-      __eo_mk_apply (Term.UOp UserOp.set_insert) typedListSub ≠
-        Term.Stuck :=
-    instantiate_eo_mk_apply_fun_ne_stuck_of_ne_stuck hOuterNe
-  have hInnerMk :
-      __eo_mk_apply (Term.UOp UserOp.set_insert) typedListSub =
-        Term.Apply (Term.UOp UserOp.set_insert) typedListSub :=
-    instantiate_eo_mk_apply_eq_apply_of_ne_stuck
-      (Term.UOp UserOp.set_insert) typedListSub hInnerNe
-  have hOuterMk :
-      __eo_mk_apply
-          (Term.Apply (Term.UOp UserOp.set_insert) typedListSub)
-          baseSub =
-        Term.Apply
-          (Term.Apply (Term.UOp UserOp.set_insert) typedListSub)
-          baseSub :=
-    instantiate_eo_mk_apply_eq_apply_of_ne_stuck
-      (Term.Apply (Term.UOp UserOp.set_insert) typedListSub) baseSub (by
-        rw [← hInnerMk]
-        exact hOuterNe)
-  have hTyApply :
-      __eo_typeof
-          (Term.Apply
-            (Term.Apply (Term.UOp UserOp.set_insert) typedListSub)
-            baseSub) ≠
-        Term.Stuck := by
-    rwa [hInnerMk, hOuterMk] at hTyMk
-  have hOrigNN :
-      __smtx_typeof
-          (__eo_to_smt_set_insert typedList (__eo_to_smt base)) ≠
-        SmtType.None := by
-    unfold RuleProofs.eo_has_smt_translation at hFTrans
-    change
-      __smtx_typeof
-          (__eo_to_smt_set_insert typedList (__eo_to_smt base)) ≠
-        SmtType.None at hFTrans
-    exact hFTrans
-  rcases eo_to_smt_set_insert_shape_of_non_none
-      typedList (__eo_to_smt base) hOrigNN with
-    ⟨A, _hOrigSet, hBaseSmt, hElem, hANN⟩
-  have hElemNN : __eo_to_smt_typed_list_elem_type typedList ≠ SmtType.None := by
-    rw [hElem]
-    exact hANN
-  have hBaseTrans :
-      RuleProofs.eo_has_smt_translation base := by
-    unfold RuleProofs.eo_has_smt_translation
-    rw [hBaseSmt]
-    simp
-  have hBaseSubTyNe : __eo_typeof baseSub ≠ Term.Stuck := by
-    intro hBaseStuck
-    apply hTyApply
-    change
-      __eo_typeof_set_insert (__eo_typeof typedListSub)
-          (__eo_typeof baseSub) =
-        Term.Stuck
-    rw [hBaseStuck]
-    exact SubstituteSupport.eo_typeof_set_insert_stuck_right
-      (__eo_typeof typedListSub)
-  have hBaseBoth := hRecBase hBaseTrans hBaseSubTyNe
-  have hBaseSubSmt :
-      __smtx_typeof (__eo_to_smt baseSub) = SmtType.Set A := by
-    have hBaseMatch :=
-      TranslationProofs.eo_to_smt_typeof_matches_translation base hBaseTrans
-    have hBaseSubMatch :=
-      TranslationProofs.eo_to_smt_typeof_matches_translation baseSub
-        hBaseBoth.2
-    rw [hBaseSubMatch, hBaseBoth.1, ← hBaseMatch, hBaseSmt]
-  have hElemSubEq :
-      __eo_to_smt_typed_list_elem_type typedListSub =
-        __eo_to_smt_typed_list_elem_type typedList := by
-    simpa [typedListSub] using
-      substitute_simul_rec_typed_list_elem_type_eq_of_non_none
-        typedList xs ts bvs hXsEnv hBvsEnv hTs
-        hTypedListSmtType hElemNN
-  have hElemSub :
-      __eo_to_smt_typed_list_elem_type typedListSub = A := by
-    rw [hElemSubEq, hElem]
-  have hSubSmt :
-      __smtx_typeof
-          (__eo_to_smt_set_insert typedListSub (__eo_to_smt baseSub)) =
-        SmtType.Set A :=
-    smt_set_insert_type_eq_of_base_set_and_elem_type
-      typedListSub (__eo_to_smt baseSub) A hBaseSubSmt hElemSub hANN
-  rw [hSubstEq, hInnerMk, hOuterMk]
-  unfold RuleProofs.eo_has_smt_translation
-  change
-    __smtx_typeof
-        (__eo_to_smt_set_insert typedListSub (__eo_to_smt baseSub)) ≠
-      SmtType.None
-  rw [hSubSmt]
-  simp
-
 
 
 /--
@@ -3963,7 +3758,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                                                                                 hBinder
                                                                                                                                                                                                                                   ⟨Term.UOp UserOp.forall,
                                                                                                                                                                                                                                     v, vs, by
-                                                                                                                                                                                                                                      rw [hX]⟩)
+                                                                                                                                                                                                                                      exact
+                                                                                                                                                                                                                                        congrArg
+                                                                                                                                                                                                                                          (fun z =>
+                                                                                                                                                                                                                                            Term.Apply
+                                                                                                                                                                                                                                              (Term.UOp UserOp.forall) z)
+                                                                                                                                                                                                                                          hX⟩)
                                                                                                                                                                                                                             (by
                                                                                                                                                                                                                               simpa
                                                                                                                                                                                                                                 [RuleProofs.eo_has_smt_translation,
@@ -3982,7 +3782,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                                                                                   hBinder
                                                                                                                                                                                                                                     ⟨Term.UOp UserOp.exists,
                                                                                                                                                                                                                                       v, vs, by
-                                                                                                                                                                                                                                        rw [hX]⟩)
+                                                                                                                                                                                                                                        exact
+                                                                                                                                                                                                                                          congrArg
+                                                                                                                                                                                                                                            (fun z =>
+                                                                                                                                                                                                                                              Term.Apply
+                                                                                                                                                                                                                                                (Term.UOp UserOp.exists) z)
+                                                                                                                                                                                                                                            hX⟩)
                                                                                                                                                                                                                               (by
                                                                                                                                                                                                                                 simpa
                                                                                                                                                                                                                                   [RuleProofs.eo_has_smt_translation,
@@ -7420,238 +7225,24 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                           Term.UOp
                                                                                                             UserOp.distinct
                                                                                                       · subst f
-                                                                                                        have hElemNN :
-                                                                                                            __eo_to_smt_typed_list_elem_type
-                                                                                                                a ≠
-                                                                                                              SmtType.None :=
-                                                                                                          TypedListSubstitutionSupport.typed_list_elem_type_non_none_of_distinct_has_smt_translation
-                                                                                                            hFTrans
-                                                                                                        have hSmtType :
-                                                                                                            ∀ t,
-                                                                                                              sizeOf t <
-                                                                                                                sizeOf a ->
-                                                                                                                RuleProofs.eo_has_smt_translation
-                                                                                                                  t ->
-                                                                                                                  __eo_typeof
-                                                                                                                      t ≠
-                                                                                                                    Term.Stuck ->
-                                                                                                                    __smtx_typeof
-                                                                                                                        (__eo_to_smt
-                                                                                                                          (__substitute_simul_rec
-                                                                                                                            (Term.Boolean false)
-                                                                                                                            t
-                                                                                                                            xs
-                                                                                                                            ts
-                                                                                                                            bvs)) =
-                                                                                                                      __smtx_typeof
-                                                                                                                        (__eo_to_smt
-                                                                                                                          t) := by
-                                                                                                          intro t hLtA hTTrans hTTy
-                                                                                                          have hBoth :
-                                                                                                              __eo_typeof
-                                                                                                                  (__substitute_simul_rec
-                                                                                                                    (Term.Boolean false)
-                                                                                                                    t
-                                                                                                                    xs
-                                                                                                                    ts
-                                                                                                                    bvs) =
-                                                                                                                __eo_typeof
-                                                                                                                  t ∧
-                                                                                                                RuleProofs.eo_has_smt_translation
-                                                                                                                  (__substitute_simul_rec
-                                                                                                                    (Term.Boolean false)
-                                                                                                                    t
-                                                                                                                    xs
-                                                                                                                    ts
-                                                                                                                    bvs) :=
-                                                                                                            hRec
-                                                                                                              (G := t)
-                                                                                                              (xs' := xs)
-                                                                                                              (ts' := ts)
-                                                                                                              (bvs' := bvs)
-                                                                                                              (by
-                                                                                                                simp at hLtA ⊢
-                                                                                                                omega)
-                                                                                                              hXsEnv
-                                                                                                              hBvsEnv
-                                                                                                              hTTrans
-                                                                                                              hTs
-                                                                                                              hActuals
-                                                                                                              hTTy
-                                                                                                          have hSubMatch :=
-                                                                                                            TranslationProofs.eo_to_smt_typeof_matches_translation
-                                                                                                              (__substitute_simul_rec
-                                                                                                                (Term.Boolean false)
-                                                                                                                t
-                                                                                                                xs
-                                                                                                                ts
-                                                                                                                bvs)
-                                                                                                              hBoth.2
-                                                                                                          have hOrigMatch :=
-                                                                                                            TranslationProofs.eo_to_smt_typeof_matches_translation
-                                                                                                              t
-                                                                                                              hTTrans
-                                                                                                          rw [
-                                                                                                            hSubMatch,
-                                                                                                            hBoth.1,
-                                                                                                            ← hOrigMatch]
-                                                                                                        have hElemSubNN :
-                                                                                                            __eo_to_smt_typed_list_elem_type
-                                                                                                                (__substitute_simul_rec
-                                                                                                                  (Term.Boolean false)
-                                                                                                                  a
-                                                                                                                  xs
-                                                                                                                  ts
-                                                                                                                  bvs) ≠
-                                                                                                              SmtType.None :=
-                                                                                                          substitute_simul_rec_typed_list_elem_type_non_none
-                                                                                                            a
-                                                                                                            xs
-                                                                                                            ts
-                                                                                                            bvs
-                                                                                                            hXsEnv
-                                                                                                            hBvsEnv
-                                                                                                            hTs
-                                                                                                            hSmtType
-                                                                                                            hElemNN
-                                                                                                        have hHeadSub :
-                                                                                                            __substitute_simul_rec
-                                                                                                                (Term.Boolean false)
-                                                                                                                (Term.UOp
-                                                                                                                  UserOp.distinct)
-                                                                                                                xs
-                                                                                                                ts
-                                                                                                                bvs =
-                                                                                                              Term.UOp
-                                                                                                                UserOp.distinct :=
-                                                                                                          SubstituteSupport.substitute_simul_rec_uop_eq_self
-                                                                                                            UserOp.distinct
-                                                                                                            xs
-                                                                                                            ts
-                                                                                                            bvs
-                                                                                                            hXsEnv
-                                                                                                            hBvsEnv
-                                                                                                            hTs
-                                                                                                        have hArgSubNe :
-                                                                                                            __substitute_simul_rec
-                                                                                                                (Term.Boolean false)
-                                                                                                                a
-                                                                                                                xs
-                                                                                                                ts
-                                                                                                                bvs ≠
-                                                                                                              Term.Stuck :=
-                                                                                                          typed_list_elem_type_non_none_not_stuck
-                                                                                                            hElemSubNN
-                                                                                                        have hSubEq :
-                                                                                                            __substitute_simul_rec
-                                                                                                                (Term.Boolean false)
-                                                                                                                (Term.Apply
-                                                                                                                  (Term.UOp
-                                                                                                                    UserOp.distinct)
-                                                                                                                  a)
-                                                                                                                xs
-                                                                                                                ts
-                                                                                                                bvs =
-                                                                                                              Term.Apply
-                                                                                                                (Term.UOp
-                                                                                                                  UserOp.distinct)
-                                                                                                                (__substitute_simul_rec
-                                                                                                                  (Term.Boolean false)
-                                                                                                                  a
-                                                                                                                  xs
-                                                                                                                  ts
-                                                                                                                  bvs) := by
-                                                                                                          have hisr :
-                                                                                                              (Term.Boolean false : Term) ≠
-                                                                                                                Term.Stuck := by
-                                                                                                            decide
-                                                                                                          have hxs :
-                                                                                                              xs ≠
-                                                                                                                Term.Stuck :=
-                                                                                                            hXsEnv.ne_stuck
-                                                                                                          have hts :
-                                                                                                              ts ≠
-                                                                                                                Term.Stuck :=
-                                                                                                            SubstituteSupport.eoListAllHaveSmtTranslation_ne_stuck
-                                                                                                              hTs
-                                                                                                          have hbvs :
-                                                                                                              bvs ≠
-                                                                                                                Term.Stuck :=
-                                                                                                            hBvsEnv.ne_stuck
-                                                                                                          rw [
-                                                                                                            SubstituteSupport.substitute_simul_rec_apply
-                                                                                                              (Term.Boolean false)
-                                                                                                              (Term.UOp
-                                                                                                                UserOp.distinct)
-                                                                                                              a
-                                                                                                              xs
-                                                                                                              ts
-                                                                                                              bvs
-                                                                                                              hisr
-                                                                                                              hxs
-                                                                                                              hts
-                                                                                                              hbvs
-                                                                                                              (by
-                                                                                                                intro q v vs hEq
-                                                                                                                cases hEq)]
-                                                                                                          rw [
-                                                                                                            hHeadSub]
-                                                                                                          cases
-                                                                                                              __substitute_simul_rec
-                                                                                                                (Term.Boolean false)
-                                                                                                                a
-                                                                                                                xs
-                                                                                                                ts
-                                                                                                                bvs <;>
-                                                                                                            simp [
-                                                                                                              __eo_mk_apply]
-                                                                                                              at hArgSubNe ⊢
-                                                                                                        refine
-                                                                                                          ⟨?_, ?_⟩
-                                                                                                        · change
-                                                                                                            __eo_typeof
-                                                                                                                (__substitute_simul_rec
-                                                                                                                  (Term.Boolean false)
-                                                                                                                  ((Term.UOp UserOp.distinct).Apply a)
-                                                                                                                  xs
-                                                                                                                  ts
-                                                                                                                  bvs) =
-                                                                                                              __eo_typeof
-                                                                                                                ((Term.UOp UserOp.distinct).Apply a)
-                                                                                                          rw [
-                                                                                                            hSubEq]
-                                                                                                          rw [
-                                                                                                            eo_typeof_distinct_eq_bool_of_elem_type_non_none
-                                                                                                              (__substitute_simul_rec
-                                                                                                                (Term.Boolean false)
-                                                                                                                a
-                                                                                                                xs
-                                                                                                                ts
-                                                                                                                bvs)
-                                                                                                              hElemSubNN]
-                                                                                                          rw [
-                                                                                                            eo_typeof_distinct_eq_bool_of_elem_type_non_none
-                                                                                                              a
-                                                                                                              hElemNN]
-                                                                                                        · change
-                                                                                                            RuleProofs.eo_has_smt_translation
-                                                                                                              (__substitute_simul_rec
-                                                                                                                (Term.Boolean false)
-                                                                                                                ((Term.UOp UserOp.distinct).Apply a)
-                                                                                                                xs
-                                                                                                                ts
-                                                                                                                bvs)
-                                                                                                          rw [
-                                                                                                            hSubEq]
-                                                                                                          exact
-                                                                                                            eo_has_smt_translation_distinct_of_elem_type_non_none
-                                                                                                              (__substitute_simul_rec
-                                                                                                                (Term.Boolean false)
-                                                                                                                a
-                                                                                                                xs
-                                                                                                                ts
-                                                                                                                bvs)
-                                                                                                              hElemSubNN
+                                                                                                        exact
+                                                                                                          substitute_simul_distinct_preserves_type_and_translation
+                                                                                                            a xs ts bvs hXsEnv hBvsEnv hTs hFTrans
+                                                                                                            (fun t hLtA hTTrans hTTy => by
+                                                                                                              have hBoth :=
+                                                                                                                hRec
+                                                                                                                  (G := t)
+                                                                                                                  (by
+                                                                                                                    simp at hLtA ⊢
+                                                                                                                    omega)
+                                                                                                                  hXsEnv hBvsEnv hTTrans hTs hActuals hTTy
+                                                                                                              have hSubMatch :=
+                                                                                                                TranslationProofs.eo_to_smt_typeof_matches_translation
+                                                                                                                  (__substitute_simul_rec (Term.Boolean false) t xs ts bvs)
+                                                                                                                  hBoth.2
+                                                                                                              have hOrigMatch :=
+                                                                                                                TranslationProofs.eo_to_smt_typeof_matches_translation t hTTrans
+                                                                                                              rw [hSubMatch, hBoth.1, ← hOrigMatch])
                                                                                                       · by_cases hHeadDtSel :
                                                                                                         ∃ s d i j,
                                                                                                           f =
@@ -8072,7 +7663,7 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                 y,
                                                                                                                 rfl⟩
                                                                                                               cases op
-                                                                                                              case extract =>
+                                                                                                              case pos.extract =>
                                                                                                                 exact
                                                                                                                   substitute_simul_apply_extract_preserves_type_and_translation_of_typeof_ne_stuck
                                                                                                                     x
@@ -8101,7 +7692,7 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                         hActuals
                                                                                                                         hATy)
                                                                                                                     hTy
-                                                                                                              case _at_bv =>
+                                                                                                              case pos._at_bv =>
                                                                                                                 exact
                                                                                                                   False.elim
                                                                                                                     (false_of_apply_uop2_at_bv_has_smt_translation
@@ -8109,7 +7700,7 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                       y
                                                                                                                       a
                                                                                                                       hFTrans)
-                                                                                                              case re_loop =>
+                                                                                                              case pos.re_loop =>
                                                                                                                 exact
                                                                                                                   substitute_simul_apply_re_loop_preserves_type_and_translation_of_typeof_ne_stuck
                                                                                                                     x
@@ -8138,7 +7729,7 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                         hActuals
                                                                                                                         hATy)
                                                                                                                     hTy
-                                                                                                              case _at_quantifiers_skolemize =>
+                                                                                                              case pos._at_quantifiers_skolemize =>
                                                                                                                 exact
                                                                                                                   substitute_simul_apply_quant_skolemize_preserves_type_and_translation_of_typeof_ne_stuck
                                                                                                                     x
@@ -8168,7 +7759,7 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                         hActuals
                                                                                                                         hATy)
                                                                                                                     hTy
-                                                                                                              case _at_const =>
+                                                                                                              case pos._at_const =>
                                                                                                                 exact
                                                                                                                   False.elim
                                                                                                                     (false_of_apply_uop2_at_const_has_smt_translation
@@ -8192,7 +7783,7 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                   z,
                                                                                                                   rfl⟩
                                                                                                                 cases op
-                                                                                                                case _at_re_unfold_pos_component =>
+                                                                                                                case pos._at_re_unfold_pos_component =>
                                                                                                                   exact
                                                                                                                     False.elim
                                                                                                                       (false_of_apply_uop3_re_unfold_pos_component_has_smt_translation
@@ -8201,7 +7792,7 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                         z
                                                                                                                         a
                                                                                                                         hFTrans)
-                                                                                                                case _at_witness_string_length =>
+                                                                                                                case pos._at_witness_string_length =>
                                                                                                                   exact
                                                                                                                     substitute_simul_apply_witness_string_length_preserves_type_and_translation_of_typeof_ne_stuck
                                                                                                                       x
