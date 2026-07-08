@@ -159,18 +159,6 @@ def proof : CCmdList :=
 #eval! __eo_checker_is_refutation assumptions proof
 #eval! logos_state_is_refutation s31
 
-/- KNOWN GAP (dtDecl refactor): the two SMT-translation obligations below are
-currently FALSE under the declaration-list model. `__smtx_datatype_cons_default`
-checks constructor fields against the *unresolved* declaration entry, so a sibling
-reference (`TypeRef "B"`) forces `NotValue`; datatype `A`, whose only constructor
-stores a `B`, therefore has no default value, `native_inhabited_type` is `false`,
-`__smtx_type_wf` rejects it, and every `A`-typed term translates to `None`
-(`native_decide` refutes the obligations). The pre-dtDecl substitution-based
-default builder unfolded one level of the sibling and accepted this example.
-Restoring these obligations needs a model-level decision on how the default
-builder should unfold sibling references (e.g. defaulting against the resolved
-entry with a different termination measure).
-
 example : TranslatableAssumptionList assumptions := by
   unfold assumptions
   repeat' first
@@ -188,7 +176,6 @@ example : CmdListTranslationOk proof := by
       argTranslationOkMasked, eoHasSmtTranslation, EoListAllHaveSmtTranslation,
       t39, t40, t41, t42, t53, t54, t55, t56, t57, t58, t59, t60]
   all_goals native_decide
--/
 
 example : eo_is_refutation assumptions proof := by
   apply eo_is_refutation.intro

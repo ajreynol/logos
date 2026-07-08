@@ -907,43 +907,106 @@ def __smtx_is_finite_type : SmtType -> native_Bool
   | T => false
 
 
-def __smtx_datatype_cons_default (v : SmtValue) : SmtDatatypeCons -> SmtDatatypeCons -> SmtValue
+/-- Fuel for the datatype default-value builder: the number of datatype
+declaration entries syntactically reachable in a type. Any inhabited datatype has
+a constructor derivation whose chain of sibling-reference unfoldings visits each
+reachable declaration entry at most once, so this bounds the unfolding depth the
+builder needs. (Defined explicitly rather than via `sizeOf` because auto-generated
+`SizeOf` instances are not compiled.) -/
+def __smtx_type_fuel : SmtType -> native_Nat
+  | (SmtType.Datatype s dd) => (__smtx_dd_fuel dd)
+  | (SmtType.Map T U) => (__smtx_type_fuel T + __smtx_type_fuel U)
+  | (SmtType.FunType T U) => (__smtx_type_fuel T + __smtx_type_fuel U)
+  | (SmtType.DtcAppType T U) => (__smtx_type_fuel T + __smtx_type_fuel U)
+  | (SmtType.Set T) => (__smtx_type_fuel T)
+  | (SmtType.Seq T) => (__smtx_type_fuel T)
+  | T => native_nat_zero
+termination_by T => sizeOf T
+decreasing_by
+  all_goals simp_wf
+  all_goals omega
+
+
+def __smtx_dtc_fuel : SmtDatatypeCons -> native_Nat
+  | (SmtDatatypeCons.cons T c) => (__smtx_type_fuel T + __smtx_dtc_fuel c)
+  | SmtDatatypeCons.unit => native_nat_zero
+termination_by c => sizeOf c
+decreasing_by
+  all_goals simp_wf
+  all_goals omega
+
+
+def __smtx_dt_fuel : SmtDatatype -> native_Nat
+  | (SmtDatatype.sum c d) => (__smtx_dtc_fuel c + __smtx_dt_fuel d)
+  | SmtDatatype.null => native_nat_zero
+termination_by d => sizeOf d
+decreasing_by
+  all_goals simp_wf
+  all_goals omega
+
+
+def __smtx_dd_fuel : SmtDatatypeDecl -> native_Nat
+  | (SmtDatatypeDecl.cons s d dd) => (native_nat_succ (__smtx_dt_fuel d + __smtx_dd_fuel dd))
+  | SmtDatatypeDecl.nil => native_nat_zero
+termination_by dd => sizeOf dd
+decreasing_by
+  all_goals simp_wf
+  all_goals omega
+
+
+def __smtx_datatype_cons_default (fuel : native_Nat) (v : SmtValue) : SmtDatatypeCons -> SmtDatatypeCons -> SmtValue
   | SmtDatatypeCons.unit, SmtDatatypeCons.unit => v
   | (SmtDatatypeCons.cons TF cF), (SmtDatatypeCons.cons TU cU) => 
-    let _v0 := (__smtx_type_default_rec TF TU)
-    (native_ite (native_veq _v0 SmtValue.NotValue) SmtValue.NotValue (__smtx_datatype_cons_default (SmtValue.Apply v _v0) cF cU))
+    let _v0 := (__smtx_type_default_rec fuel TF TU)
+    (native_ite (native_veq _v0 SmtValue.NotValue) SmtValue.NotValue (__smtx_datatype_cons_default fuel (SmtValue.Apply v _v0) cF cU))
   | cF, cU => SmtValue.NotValue
-termination_by cF cU => sizeOf cU
+termination_by cF cU => (fuel, sizeOf cU)
 decreasing_by
   all_goals
     simp_wf
-    omega
+    first
+      | exact Prod.Lex.right _ (by omega)
+      | exact Prod.Lex.left _ _ (by omega)
 
 
-def __smtx_datatype_default (s : native_String) (dd : SmtDatatypeDecl) (n : native_Nat) : SmtDatatype -> SmtDatatype -> SmtValue
+def __smtx_datatype_default (fuel : native_Nat) (s : native_String) (dd : SmtDatatypeDecl) (n : native_Nat) : SmtDatatype -> SmtDatatype -> SmtValue
   | (SmtDatatype.sum cF dF), (SmtDatatype.sum cU dU) => 
-    let _v0 := (__smtx_datatype_cons_default (SmtValue.DtCons s dd n) cF cU)
-    (native_ite (native_not (native_veq _v0 SmtValue.NotValue)) _v0 (__smtx_datatype_default s dd (native_nat_succ n) dF dU))
+    let _v0 := (__smtx_datatype_cons_default fuel (SmtValue.DtCons s dd n) cF cU)
+    (native_ite (native_not (native_veq _v0 SmtValue.NotValue)) _v0 (__smtx_datatype_default fuel s dd (native_nat_succ n) dF dU))
   | dF, dU => SmtValue.NotValue
-termination_by dF dU => sizeOf dU
+termination_by dF dU => (fuel, sizeOf dU)
 decreasing_by
   all_goals
     simp_wf
-    omega
+    first
+      | exact Prod.Lex.right _ (by omega)
+      | exact Prod.Lex.left _ _ (by omega)
 
 
-def __smtx_datatype_decl_default (s : native_String) (dd : SmtDatatypeDecl) : SmtDatatypeDecl -> SmtDatatypeDecl -> SmtValue
-  | (SmtDatatypeDecl.cons sF dF ddF), (SmtDatatypeDecl.cons sU dU ddU) => (native_ite (native_streq s sF) (__smtx_datatype_default s dd native_nat_zero (__smtx_dt_resolve dF dd) dU) (__smtx_datatype_decl_default s dd ddF ddU))
+def __smtx_datatype_decl_default (fuel : native_Nat) (s : native_String) (dd : SmtDatatypeDecl) : SmtDatatypeDecl -> SmtDatatypeDecl -> SmtValue
+  | (SmtDatatypeDecl.cons sF dF ddF), (SmtDatatypeDecl.cons sU dU ddU) => (native_ite (native_streq s sF) (__smtx_datatype_default fuel s dd native_nat_zero (__smtx_dt_resolve dF dd) dU) (__smtx_datatype_decl_default fuel s dd ddF ddU))
   | ddF, ddU => SmtValue.NotValue
-termination_by ddF ddU => sizeOf ddU
+termination_by ddF ddU => (fuel, sizeOf ddU)
 decreasing_by
   all_goals
     simp_wf
-    omega
+    first
+      | exact Prod.Lex.right _ (by omega)
+      | exact Prod.Lex.left _ _ (by omega)
 
 
-def __smtx_type_default_rec : SmtType -> SmtType -> SmtValue
-  | (SmtType.Datatype sF ddF), (SmtType.Datatype sU ddU) => (__smtx_datatype_decl_default sF ddF ddF ddU)
+def __smtx_type_default_rec (fuel : native_Nat) : SmtType -> SmtType -> SmtValue
+  | (SmtType.Datatype sF ddF), (SmtType.Datatype sU ddU) => (__smtx_datatype_decl_default fuel sF ddF ddF ddU)
+  | (SmtType.Datatype sF ddF), (SmtType.TypeRef sU) => 
+    -- Sibling reference inside a mutual block: the fold side already carries the
+    -- resolved `Datatype` with the ambient (unresolved) declaration list, so unfold
+    -- through it, spending one unit of fuel. Fuel bounds the unfolding depth, which
+    -- keeps the builder total; any inhabited datatype has a constructor derivation
+    -- of depth at most the number of reachable declaration entries, so the seed
+    -- chosen by `__smtx_type_default` is sufficient.
+    (match fuel with
+      | native_nat_zero => SmtValue.NotValue
+      | (native_nat_succ f) => (__smtx_datatype_decl_default f sU ddF ddF ddF))
   | V, SmtType.Bool => (SmtValue.Boolean false)
   | V, SmtType.Int => (SmtValue.Numeral 0)
   | V, SmtType.Real => (SmtValue.Rational (native_mk_rational 0 1))
@@ -951,22 +1014,24 @@ def __smtx_type_default_rec : SmtType -> SmtType -> SmtValue
   | V, (SmtType.BitVec w) => (SmtValue.Binary (native_nat_to_int w) 0)
   | V, SmtType.Char => (SmtValue.Char native_nat_zero)
   | V, (SmtType.Map T U) => 
-    let _v0 := (__smtx_type_default_rec U U)
+    let _v0 := (__smtx_type_default_rec fuel U U)
     (native_ite (native_veq _v0 SmtValue.NotValue) SmtValue.NotValue (SmtValue.Map (SmtMap.default T _v0)))
   | V, (SmtType.Set T) => (SmtValue.Set (SmtMap.default T (SmtValue.Boolean false)))
   | V, (SmtType.Seq T) => (SmtValue.Seq (SmtSeq.empty T))
   | V, (SmtType.USort i) => (SmtValue.UValue i native_nat_zero)
   | V, (SmtType.FunType T U) => (SmtValue.Fun native_default_ifun_id T U)
   | V, T => SmtValue.NotValue
-termination_by V T => sizeOf T
+termination_by V T => (fuel, sizeOf T)
 decreasing_by
   all_goals
     simp_wf
-    omega
+    first
+      | exact Prod.Lex.right _ (by omega)
+      | exact Prod.Lex.left _ _ (by omega)
 
 
 def __smtx_type_default (T : SmtType) : SmtValue :=
-  (__smtx_type_default_rec T T)
+  (__smtx_type_default_rec (__smtx_type_fuel T) T T)
 
 def __smtx_map_entries_ordered_after (i : SmtValue) : SmtMap -> native_Bool
   | (SmtMap.cons j e m) => (native_vcmp j i)
