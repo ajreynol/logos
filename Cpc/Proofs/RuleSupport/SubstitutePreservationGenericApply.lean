@@ -50,6 +50,11 @@ theorem substitute_simul_apply_applied_head_generic_preserves_type_and_translati
         __eo_typeof a ∧
         RuleProofs.eo_has_smt_translation
           (__substitute_simul_rec (Term.Boolean false) a xs ts bvs))
+    (hHeadSubTy :
+      __eo_typeof
+          (__substitute_simul_rec (Term.Boolean false)
+            (Term.Apply g x) xs ts bvs) ≠
+        Term.Stuck)
     (hTy :
       __eo_typeof
           (__substitute_simul_rec (Term.Boolean false)
@@ -103,11 +108,7 @@ theorem substitute_simul_apply_applied_head_generic_preserves_type_and_translati
   have hOuterApplyTy :
       __eo_typeof (Term.Apply headSub aSub) ≠ Term.Stuck := by
     rwa [hOuterMk] at hTyMk
-  have hHeadSubTy :
-      __eo_typeof headSub ≠ Term.Stuck := by
-    exact SubstituteSupport.eo_typeof_apply_head_ne_stuck
-      (by simpa only [__eo_typeof] using hOuterApplyTy)
-  have hHeadBoth := hRecHead hHeadTrans hHeadSubTy
+  have hHeadBoth := hRecHead hHeadTrans (by simpa [headSub] using hHeadSubTy)
   have hATy : __eo_typeof aSub ≠ Term.Stuck := by
     simpa [aSub] using
       SubstituteSupport.substitute_simul_rec_apply_arg_typeof_ne_stuck_of_typeof_ne_stuck
@@ -158,6 +159,11 @@ theorem substitute_simul_apply_apply_var_head_generic_preserves_type_and_transla
         __eo_typeof a ∧
         RuleProofs.eo_has_smt_translation
           (__substitute_simul_rec (Term.Boolean false) a xs ts bvs))
+    (hHeadSubTy :
+      __eo_typeof
+          (__substitute_simul_rec (Term.Boolean false)
+            (Term.Apply (Term.Var name T) x) xs ts bvs) ≠
+        Term.Stuck)
     (hTy :
       __eo_typeof
           (__substitute_simul_rec (Term.Boolean false)
@@ -195,7 +201,7 @@ theorem substitute_simul_apply_apply_var_head_generic_preserves_type_and_transla
     substitute_simul_apply_applied_head_generic_preserves_type_and_translation_of_typeof_ne_stuck
       (Term.Var name T) x a xs ts bvs hXsEnv hBvsEnv hTs
       hNotBinderOuter hOuterTranslate
-      hFTrans hRecHead hRecA hTy
+      hFTrans hRecHead hRecA hHeadSubTy hTy
 
 theorem substitute_simul_apply_apply_branch_residual_preserves_type_and_translation_of_typeof_ne_stuck
     (g x a xs ts bvs : Term)
@@ -235,6 +241,11 @@ theorem substitute_simul_apply_apply_branch_residual_preserves_type_and_translat
         __eo_typeof a ∧
         RuleProofs.eo_has_smt_translation
           (__substitute_simul_rec (Term.Boolean false) a xs ts bvs))
+    (hHeadSubTy :
+      __eo_typeof
+          (__substitute_simul_rec (Term.Boolean false)
+            (Term.Apply g x) xs ts bvs) ≠
+        Term.Stuck)
     (hTy :
       __eo_typeof
           (__substitute_simul_rec (Term.Boolean false)
@@ -259,7 +270,7 @@ theorem substitute_simul_apply_apply_branch_residual_preserves_type_and_translat
       hXsEnv hBvsEnv hTs
       hNotBinderOuter
       hOuterTranslate
-      hFTrans hRecHead hRecA hTy
+      hFTrans hRecHead hRecA hHeadSubTy hTy
 
 theorem substitute_simul_apply_apply_atom_base_generic_preserves_type_and_translation_of_typeof_ne_stuck
     (g x a xs ts bvs : Term)
@@ -307,6 +318,11 @@ theorem substitute_simul_apply_apply_atom_base_generic_preserves_type_and_transl
         __eo_typeof a ∧
         RuleProofs.eo_has_smt_translation
           (__substitute_simul_rec (Term.Boolean false) a xs ts bvs))
+    (hHeadSubTy :
+      __eo_typeof
+          (__substitute_simul_rec (Term.Boolean false)
+            (Term.Apply g x) xs ts bvs) ≠
+        Term.Stuck)
     (hTy :
       __eo_typeof
           (__substitute_simul_rec (Term.Boolean false)
@@ -337,6 +353,6 @@ theorem substitute_simul_apply_apply_atom_base_generic_preserves_type_and_transl
     substitute_simul_apply_applied_head_generic_preserves_type_and_translation_of_typeof_ne_stuck
       g x a xs ts bvs hXsEnv hBvsEnv hTs
       hNotBinderOuter hOuterTranslate
-      hFTrans hRecHead hRecA hTy
+      hFTrans hRecHead hRecA hHeadSubTy hTy
 
 end SubstitutePreservationSupport
