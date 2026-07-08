@@ -847,6 +847,45 @@ theorem substitute_simul_apply_apply_var_head_generic_preserves_type_and_transla
       hNotBinderOuter hOuterTranslate
       hFTrans hRecHead hRecA hHeadSubTy hTy
 
+/--
+Residual higher-order application head non-vacuity.
+
+In the fully generic `((g x) a)` branch, the outer substituted application
+being typeable forces the substituted applied head `(g x)[xs := ts]` to be
+typeable as well. This is the remaining operator-spine non-vacuity obligation
+shared with the old type-only substitution engine.
+-/
+theorem substitute_simul_apply_apply_branch_residual_head_typeof_ne_stuck
+    (g x a xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hNotBinderOuter :
+      ∀ q v vs,
+        Term.Apply g x ≠
+          Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
+    (hUOp : ApplyApplyUOpBranchExclusions g)
+    (hNoUpdate : ¬ ∃ idx, g = Term.UOp1 UserOp1.update idx)
+    (hNoTupleUpdate :
+      ¬ ∃ idx, g = Term.UOp1 UserOp1.tuple_update idx)
+    (hApplyUOp : ApplyApplyApplyUOpBranchExclusions g)
+    (hFTrans :
+      RuleProofs.eo_has_smt_translation (Term.Apply (Term.Apply g x) a))
+    (hTy :
+      __eo_typeof
+          (__substitute_simul_rec (Term.Boolean false)
+            (Term.Apply (Term.Apply g x) a) xs ts bvs) ≠
+        Term.Stuck) :
+    __eo_typeof
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply g x) xs ts bvs) ≠
+      Term.Stuck := by
+  -- TODO(instRefactor): prove the higher-order operator-spine non-vacuity
+  -- bridge and remove the matching old type-only `sorry`s in
+  -- `SubstituteTypeSupport.substitute_simul_rec_typeof_eq_of_typeof_ne_stuck_lt`.
+  sorry
+
 theorem substitute_simul_apply_apply_branch_residual_preserves_type_and_translation_of_typeof_ne_stuck
     (g x a xs ts bvs : Term)
     {xsVars bvsVars : List EoVarKey}
@@ -885,11 +924,6 @@ theorem substitute_simul_apply_apply_branch_residual_preserves_type_and_translat
         __eo_typeof a ∧
         RuleProofs.eo_has_smt_translation
           (__substitute_simul_rec (Term.Boolean false) a xs ts bvs))
-    (hHeadSubTy :
-      __eo_typeof
-          (__substitute_simul_rec (Term.Boolean false)
-            (Term.Apply g x) xs ts bvs) ≠
-        Term.Stuck)
     (hTy :
       __eo_typeof
           (__substitute_simul_rec (Term.Boolean false)
@@ -908,6 +942,14 @@ theorem substitute_simul_apply_apply_branch_residual_preserves_type_and_translat
     eo_to_smt_apply_apply_generic_of_branch_exclusions
       (g := g) (x := x) (a := a)
       hUOp hNoUpdate hNoTupleUpdate hApplyUOp
+  have hHeadSubTy :
+      __eo_typeof
+          (__substitute_simul_rec (Term.Boolean false)
+            (Term.Apply g x) xs ts bvs) ≠
+        Term.Stuck :=
+    substitute_simul_apply_apply_branch_residual_head_typeof_ne_stuck
+      g x a xs ts bvs hXsEnv hBvsEnv hTs hNotBinderOuter
+      hUOp hNoUpdate hNoTupleUpdate hApplyUOp hFTrans hTy
   exact
     substitute_simul_apply_applied_head_generic_preserves_type_and_translation_of_typeof_ne_stuck
       g x a xs ts bvs
