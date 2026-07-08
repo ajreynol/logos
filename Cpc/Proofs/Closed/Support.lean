@@ -181,7 +181,7 @@ by
 
 theorem smtx_model_eval_dt_sel_eq_of_globals
     {M N : SmtModel} (hAgree : model_agrees_on_globals M N)
-    (s : native_String) (d : SmtDatatype) (n m : native_Nat) (v : SmtValue) :
+    (s : native_String) (d : SmtDatatypeDecl) (n m : native_Nat) (v : SmtValue) :
   __smtx_model_eval_dt_sel M s d n m v =
     __smtx_model_eval_dt_sel N s d n m v :=
 by
@@ -1214,23 +1214,23 @@ by
   cases op <;> trivial
 
 theorem smtTermClosedIn_eo_to_smt_dtcons
-    (vars : List SmtVarKey) (s : native_String) (d : Datatype)
+    (vars : List SmtVarKey) (s : native_String) (d : DatatypeDecl)
     (i : native_Nat) :
   SmtTermClosedIn vars (__eo_to_smt (Term.DtCons s d i)) :=
 by
   change SmtTermClosedIn vars
     (native_ite (native_reserved_datatype_name s) SmtTerm.None
-      (SmtTerm.DtCons s (__eo_to_smt_datatype d) i))
+      (SmtTerm.DtCons s (__eo_to_smt_datatype_decl d) i))
   cases native_reserved_datatype_name s <;> trivial
 
 theorem smtTermClosedIn_eo_to_smt_dtsel
-    (vars : List SmtVarKey) (s : native_String) (d : Datatype)
+    (vars : List SmtVarKey) (s : native_String) (d : DatatypeDecl)
     (i j : native_Nat) :
   SmtTermClosedIn vars (__eo_to_smt (Term.DtSel s d i j)) :=
 by
   change SmtTermClosedIn vars
     (native_ite (native_reserved_datatype_name s) SmtTerm.None
-      (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j))
+      (SmtTerm.DtSel s (__eo_to_smt_datatype_decl d) i j))
   cases native_reserved_datatype_name s <;> trivial
 
 theorem smtTermClosedIn_eo_to_smt_uconst
@@ -1803,21 +1803,29 @@ theorem smtTermClosedIn_eo_to_smt_tuple_select_smt
   SmtTermClosedIn vars (__eo_to_smt_tuple_select T n t) :=
 by
   cases T <;> try trivial
-  case Datatype s d =>
-    cases n <;> try trivial
-    case Numeral i =>
-      change SmtTermClosedIn vars
-        (native_ite
-          (native_and (native_streq s (native_string_lit "@Tuple"))
-            (native_zleq 0 i))
-          (SmtTerm.Apply
-            (SmtTerm.DtSel (native_string_lit "@Tuple") d native_nat_zero
-              (native_int_to_nat i))
-            t)
-          SmtTerm.None)
-      cases native_and (native_streq s (native_string_lit "@Tuple"))
-          (native_zleq 0 i) <;>
-        simp [native_ite, SmtTermClosedIn, ht]
+  case Datatype s dd =>
+    cases dd <;> try trivial
+    case cons s2 d dd2 =>
+      cases dd2 <;> try trivial
+      cases n <;> try trivial
+      case nil.Numeral i =>
+        change SmtTermClosedIn vars
+          (native_ite
+            (native_and
+              (native_and (native_streq s (native_string_lit "@Tuple"))
+                (native_streq s2 (native_string_lit "@Tuple")))
+              (native_zleq 0 i))
+            (SmtTerm.Apply
+              (SmtTerm.DtSel (native_string_lit "@Tuple")
+                (__smtx_tuple_datatype_decl d) native_nat_zero
+                (native_int_to_nat i))
+              t)
+            SmtTerm.None)
+        cases native_and
+            (native_and (native_streq s (native_string_lit "@Tuple"))
+              (native_streq s2 (native_string_lit "@Tuple")))
+            (native_zleq 0 i) <;>
+          simp [native_ite, SmtTermClosedIn, ht]
 
 theorem smtTermClosedIn_eo_to_smt_is
     {vars : List SmtVarKey} {x y : Term}
@@ -1880,14 +1888,14 @@ by
     change SmtTermClosedIn vars
       (native_ite
         (native_zlt (native_nat_to_int m)
-          (native_nat_to_int (__smtx_dt_num_sels d i)))
+          (native_nat_to_int (__smtx_dt_num_sels (__smtx_dd_lookup s d) i)))
         (SmtTerm.ite (SmtTerm.Apply (SmtTerm.DtTester s d i) t)
           (__eo_to_smt_updater_rec (SmtTerm.DtSel s d i m)
-            (__smtx_dt_num_sels d i) t u (SmtTerm.DtCons s d i))
+            (__smtx_dt_num_sels (__smtx_dd_lookup s d) i) t u (SmtTerm.DtCons s d i))
           t)
         SmtTerm.None)
     cases native_zlt (native_nat_to_int m)
-        (native_nat_to_int (__smtx_dt_num_sels d i)) <;> try trivial
+        (native_nat_to_int (__smtx_dt_num_sels (__smtx_dd_lookup s d) i)) <;> try trivial
     exact
       ⟨⟨trivial, ht⟩,
         smtTermClosedIn_eo_to_smt_updater_rec ht hu
@@ -1895,7 +1903,7 @@ by
             exact
               (trivial :
                 SmtTermClosedIn vars (SmtTerm.DtCons s d i)))
-          (__smtx_dt_num_sels d i),
+          (__smtx_dt_num_sels (__smtx_dd_lookup s d) i),
         ht⟩
 
 theorem smtTermClosedIn_eo_to_smt_update
@@ -1920,25 +1928,34 @@ theorem smtTermClosedIn_eo_to_smt_tuple_update_smt
   SmtTermClosedIn vars (__eo_to_smt_tuple_update T n t u) :=
 by
   cases T <;> try trivial
-  case Datatype s d =>
-    cases n <;> try trivial
-    case Numeral i =>
-      change SmtTermClosedIn vars
-        (native_ite
-          (native_and (native_streq s (native_string_lit "@Tuple"))
-            (native_zleq 0 i))
-          (__eo_to_smt_updater
-            (SmtTerm.DtSel (native_string_lit "@Tuple") d
+  case Datatype s dd =>
+    cases dd <;> try trivial
+    case cons s2 d dd2 =>
+      cases dd2 <;> try trivial
+      cases n <;> try trivial
+      case nil.Numeral i =>
+        change SmtTermClosedIn vars
+          (native_ite
+            (native_and
+              (native_and (native_streq s (native_string_lit "@Tuple"))
+                (native_streq s2 (native_string_lit "@Tuple")))
+              (native_zleq 0 i))
+            (__eo_to_smt_updater
+              (SmtTerm.DtSel (native_string_lit "@Tuple")
+                (__smtx_tuple_datatype_decl d)
+                native_nat_zero (native_int_to_nat i))
+              t u)
+            SmtTerm.None)
+        cases native_and
+            (native_and (native_streq s (native_string_lit "@Tuple"))
+              (native_streq s2 (native_string_lit "@Tuple")))
+            (native_zleq 0 i) <;> try trivial
+        simpa [native_ite] using
+          smtTermClosedIn_eo_to_smt_updater
+            (sel := SmtTerm.DtSel (native_string_lit "@Tuple")
+              (__smtx_tuple_datatype_decl d)
               native_nat_zero (native_int_to_nat i))
-            t u)
-          SmtTerm.None)
-      cases native_and (native_streq s (native_string_lit "@Tuple"))
-          (native_zleq 0 i) <;> try trivial
-      simpa [native_ite] using
-        smtTermClosedIn_eo_to_smt_updater
-          (sel := SmtTerm.DtSel (native_string_lit "@Tuple") d
-            native_nat_zero (native_int_to_nat i))
-          ht hu
+            ht hu
 
 theorem smtTermClosedIn_eo_to_smt_tuple_update
     {vars : List SmtVarKey} {x y z : Term}
@@ -1956,11 +1973,11 @@ by
     (__smtx_typeof (__eo_to_smt y)) hx hy hz
 
 theorem smtTermClosedIn_eo_to_smt_tuple_prepend_rec
-    {vars : List SmtVarKey} {d : SmtDatatype} {tail acc : SmtTerm}
+    {vars : List SmtVarKey} {dd : SmtDatatypeDecl} {d : SmtDatatype} {tail acc : SmtTerm}
     (hTail : SmtTermClosedIn vars tail)
     (hAcc : SmtTermClosedIn vars acc) :
   ∀ n,
-    SmtTermClosedIn vars (__eo_to_smt_tuple_prepend_rec d tail n acc) :=
+    SmtTermClosedIn vars (__eo_to_smt_tuple_prepend_rec dd d tail n acc) :=
 by
   intro n
   induction n generalizing acc with
@@ -1976,42 +1993,55 @@ theorem smtTermClosedIn_eo_to_smt_tuple_prepend_of_type
   SmtTermClosedIn vars (__eo_to_smt_tuple_prepend_of_type T h hT tail) :=
 by
   cases T <;> try trivial
-  case Datatype s d =>
-    cases d <;> try trivial
-    case sum c rest =>
-      cases rest <;> try trivial
-      change SmtTermClosedIn vars
-        (native_ite
-          (native_and (native_streq s (native_string_lit "@Tuple"))
+  case Datatype s dd =>
+    cases dd <;> try trivial
+    case cons s2 d dd2 =>
+      cases d <;> try trivial
+      case sum c rest =>
+        cases rest <;> try trivial
+        cases dd2 <;> try trivial
+        change SmtTermClosedIn vars
+          (native_ite
+            (native_and
+              (native_and (native_streq s (native_string_lit "@Tuple"))
+                (native_streq s2 (native_string_lit "@Tuple")))
+              (__smtx_type_wf
+                (SmtType.Datatype (native_string_lit "@Tuple")
+                  (__smtx_tuple_datatype_decl
+                    (SmtDatatype.sum (SmtDatatypeCons.cons hT c)
+                      SmtDatatype.null)))))
+            (__eo_to_smt_tuple_prepend_rec
+              (__smtx_tuple_datatype_decl (SmtDatatype.sum c SmtDatatype.null))
+              (SmtDatatype.sum c SmtDatatype.null)
+              tail (__smtx_dt_num_sels (SmtDatatype.sum c SmtDatatype.null)
+                native_nat_zero)
+              (SmtTerm.Apply
+                (SmtTerm.DtCons (native_string_lit "@Tuple")
+                  (__smtx_tuple_datatype_decl
+                    (SmtDatatype.sum (SmtDatatypeCons.cons hT c)
+                      SmtDatatype.null))
+                  native_nat_zero)
+                h))
+            SmtTerm.None)
+        cases native_and
+            (native_and (native_streq s (native_string_lit "@Tuple"))
+              (native_streq s2 (native_string_lit "@Tuple")))
             (__smtx_type_wf
               (SmtType.Datatype (native_string_lit "@Tuple")
-                (SmtDatatype.sum (SmtDatatypeCons.cons hT c)
-                  SmtDatatype.null))))
-          (__eo_to_smt_tuple_prepend_rec (SmtDatatype.sum c SmtDatatype.null)
-            tail (__smtx_dt_num_sels (SmtDatatype.sum c SmtDatatype.null)
+                (__smtx_tuple_datatype_decl
+                  (SmtDatatype.sum (SmtDatatypeCons.cons hT c)
+                    SmtDatatype.null)))) <;> try trivial
+        exact smtTermClosedIn_eo_to_smt_tuple_prepend_rec
+          (tail := tail)
+          (acc := SmtTerm.Apply
+            (SmtTerm.DtCons (native_string_lit "@Tuple")
+              (__smtx_tuple_datatype_decl
+                (SmtDatatype.sum (SmtDatatypeCons.cons hT c) SmtDatatype.null))
               native_nat_zero)
-            (SmtTerm.Apply
-              (SmtTerm.DtCons (native_string_lit "@Tuple")
-                (SmtDatatype.sum (SmtDatatypeCons.cons hT c)
-                  SmtDatatype.null)
-                native_nat_zero)
-              h))
-          SmtTerm.None)
-      cases native_and (native_streq s (native_string_lit "@Tuple"))
-          (__smtx_type_wf
-            (SmtType.Datatype (native_string_lit "@Tuple")
-              (SmtDatatype.sum (SmtDatatypeCons.cons hT c)
-                SmtDatatype.null))) <;> try trivial
-      exact smtTermClosedIn_eo_to_smt_tuple_prepend_rec
-        (tail := tail)
-        (acc := SmtTerm.Apply
-          (SmtTerm.DtCons (native_string_lit "@Tuple")
-            (SmtDatatype.sum (SmtDatatypeCons.cons hT c) SmtDatatype.null)
+            h)
+          hTail (by exact ⟨trivial, hHead⟩)
+          (__smtx_dt_num_sels (SmtDatatype.sum c SmtDatatype.null)
             native_nat_zero)
-          h)
-        hTail (by exact ⟨trivial, hHead⟩)
-        (__smtx_dt_num_sels (SmtDatatype.sum c SmtDatatype.null)
-          native_nat_zero)
 
 theorem smtTermClosedIn_eo_to_smt_tuple_prepend
     {vars : List SmtVarKey} {h tail : SmtTerm} (hT : SmtType)

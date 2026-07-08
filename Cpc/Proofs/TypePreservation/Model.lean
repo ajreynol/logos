@@ -175,7 +175,7 @@ default witness for datatype types.
 -/
 theorem datatype_type_default_typed_canonical_of_inhabited
     (s : native_String)
-    (d : SmtDatatype)
+    (d : SmtDatatypeDecl)
     (_hInh : native_inhabited_type (SmtType.Datatype s d) = true)
     (_hRec : __smtx_type_wf_rec (SmtType.Datatype s d) (SmtType.Datatype s d) = true) :
       __smtx_typeof_value (__smtx_type_default (SmtType.Datatype s d)) =
@@ -185,7 +185,7 @@ theorem datatype_type_default_typed_canonical_of_inhabited
 
 private theorem datatype_type_default_typed_canonical_of_wf_rec_deferred
     (s : native_String)
-    (d : SmtDatatype)
+    (d : SmtDatatypeDecl)
     (_hInh : native_inhabited_type (SmtType.Datatype s d) = true)
     (_hRec : __smtx_type_wf_rec (SmtType.Datatype s d) (SmtType.Datatype s d) = true) :
     __smtx_typeof_value (__smtx_type_default (SmtType.Datatype s d)) =
@@ -202,7 +202,7 @@ private theorem type_default_typed_canonical_of_wf_rec_deferred_datatype
 
 private theorem datatype_type_default_typed_canonical_of_wf_rec
     (s : native_String)
-    (d : SmtDatatype)
+    (d : SmtDatatypeDecl)
     (_hInh : native_inhabited_type (SmtType.Datatype s d) = true)
     (_hRec : __smtx_type_wf_rec (SmtType.Datatype s d) (SmtType.Datatype s d) = true) :
     __smtx_typeof_value (__smtx_type_default (SmtType.Datatype s d)) =

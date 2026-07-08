@@ -43,7 +43,7 @@ def dt_cons_chain_result : SmtType -> Prop
 /-- Lemma about `typeof_dt_cons_value_rec_chain_result`. -/
 theorem typeof_dt_cons_value_rec_chain_result
     (s : native_String)
-    (d0 : SmtDatatype) :
+    (d0 : SmtDatatypeDecl) :
     ∀ d n,
       dt_cons_chain_result (__smtx_typeof_dt_cons_value_rec (SmtType.Datatype s d0) d n)
   | SmtDatatype.null, n => by
@@ -60,20 +60,20 @@ theorem typeof_dt_cons_value_rec_chain_result
 /-- Removes the datatype well-formedness guard from a non-`None` `dt_cons` value typing equality. -/
 theorem typeof_value_dt_cons_inner_eq_of_eq_non_none
     {s : native_String}
-    {d : SmtDatatype}
+    {d : SmtDatatypeDecl}
     {i : native_Nat}
     {U : SmtType}
     (h :
       __smtx_typeof_value (SmtValue.DtCons s d i) = U)
     (hU : U ≠ SmtType.None) :
     __smtx_typeof_dt_cons_value_rec
-        (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i = U := by
+        (SmtType.Datatype s d) (__smtx_dt_resolve (__smtx_dd_lookup s d) d) i = U := by
   simpa [__smtx_typeof_value] using h
 
 /-- Raw datatype constructor values always have constructor-chain result types. -/
 theorem dt_cons_chain_result_of_dt_cons_value_type
     {s : native_String}
-    {d : SmtDatatype}
+    {d : SmtDatatypeDecl}
     {i : native_Nat}
     {T : SmtType}
     (h : __smtx_typeof_value (SmtValue.DtCons s d i) = T) :
@@ -81,10 +81,10 @@ theorem dt_cons_chain_result_of_dt_cons_value_type
   by_cases hT : T = SmtType.None
   · simp [dt_cons_chain_result, hT]
   · have hShape :=
-      typeof_dt_cons_value_rec_chain_result s d (__smtx_dt_substitute s d d) i
+      typeof_dt_cons_value_rec_chain_result s d (__smtx_dt_resolve (__smtx_dd_lookup s d) d) i
     have hInner :
         __smtx_typeof_dt_cons_value_rec
-            (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i = T :=
+            (SmtType.Datatype s d) (__smtx_dt_resolve (__smtx_dd_lookup s d) d) i = T :=
       typeof_value_dt_cons_inner_eq_of_eq_non_none h hT
     rw [hInner] at hShape
     exact hShape
@@ -131,10 +131,10 @@ theorem typeof_value_dt_cons_head_type_chain_result :
       rcases hHead with ⟨s, d, i, hHead⟩
       simp [__vsm_apply_head] at hHead
   | SmtValue.DtCons s d i, T, U, hHead, h => by
-      have hShape := typeof_dt_cons_value_rec_chain_result s d (__smtx_dt_substitute s d d) i
+      have hShape := typeof_dt_cons_value_rec_chain_result s d (__smtx_dt_resolve (__smtx_dd_lookup s d) d) i
       have hInner :
           __smtx_typeof_dt_cons_value_rec
-              (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i =
+              (SmtType.Datatype s d) (__smtx_dt_resolve (__smtx_dd_lookup s d) d) i =
             SmtType.DtcAppType T U :=
         typeof_value_dt_cons_inner_eq_of_eq_non_none h (by simp)
       rw [hInner] at hShape
@@ -433,10 +433,10 @@ theorem no_value_of_type_ref
   | RegLan _ =>
       simp [__smtx_typeof_value] at hv
   | DtCons s' d i =>
-      have hShape := typeof_dt_cons_value_rec_chain_result s' d (__smtx_dt_substitute s' d d) i
+      have hShape := typeof_dt_cons_value_rec_chain_result s' d (__smtx_dt_resolve (__smtx_dd_lookup s' d) d) i
       have hInner :
           __smtx_typeof_dt_cons_value_rec
-              (SmtType.Datatype s' d) (__smtx_dt_substitute s' d d) i =
+              (SmtType.Datatype s' d) (__smtx_dt_resolve (__smtx_dd_lookup s' d) d) i =
             SmtType.TypeRef s :=
         typeof_value_dt_cons_inner_eq_of_eq_non_none hv (by simp)
       rw [hInner] at hShape
@@ -494,10 +494,10 @@ theorem bool_value_canonical
   | RegLan _ =>
       simp [__smtx_typeof_value] at h
   | DtCons s d i =>
-      have hShape := typeof_dt_cons_value_rec_chain_result s d (__smtx_dt_substitute s d d) i
+      have hShape := typeof_dt_cons_value_rec_chain_result s d (__smtx_dt_resolve (__smtx_dd_lookup s d) d) i
       have hInner :
           __smtx_typeof_dt_cons_value_rec
-              (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i =
+              (SmtType.Datatype s d) (__smtx_dt_resolve (__smtx_dd_lookup s d) d) i =
             SmtType.Bool :=
         typeof_value_dt_cons_inner_eq_of_eq_non_none h (by simp)
       rw [hInner] at hShape
@@ -561,10 +561,10 @@ theorem fun_value_canonical
   | RegLan _ =>
       simp [__smtx_typeof_value] at h
   | DtCons s d i =>
-      have hShape := typeof_dt_cons_value_rec_chain_result s d (__smtx_dt_substitute s d d) i
+      have hShape := typeof_dt_cons_value_rec_chain_result s d (__smtx_dt_resolve (__smtx_dd_lookup s d) d) i
       have hInner :
           __smtx_typeof_dt_cons_value_rec
-              (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i =
+              (SmtType.Datatype s d) (__smtx_dt_resolve (__smtx_dd_lookup s d) d) i =
             SmtType.FunType A B :=
         typeof_value_dt_cons_inner_eq_of_eq_non_none h (by simp)
       rw [hInner] at hShape
@@ -619,10 +619,10 @@ theorem map_value_canonical
   | RegLan _ =>
       simp [__smtx_typeof_value] at h
   | DtCons s d i =>
-      have hShape := typeof_dt_cons_value_rec_chain_result s d (__smtx_dt_substitute s d d) i
+      have hShape := typeof_dt_cons_value_rec_chain_result s d (__smtx_dt_resolve (__smtx_dd_lookup s d) d) i
       have hInner :
           __smtx_typeof_dt_cons_value_rec
-              (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i =
+              (SmtType.Datatype s d) (__smtx_dt_resolve (__smtx_dd_lookup s d) d) i =
             SmtType.Map A B :=
         typeof_value_dt_cons_inner_eq_of_eq_non_none h (by simp)
       rw [hInner] at hShape
@@ -677,10 +677,10 @@ theorem set_value_canonical
   | RegLan _ =>
       simp [__smtx_typeof_value] at h
   | DtCons s d i =>
-      have hShape := typeof_dt_cons_value_rec_chain_result s d (__smtx_dt_substitute s d d) i
+      have hShape := typeof_dt_cons_value_rec_chain_result s d (__smtx_dt_resolve (__smtx_dd_lookup s d) d) i
       have hInner :
           __smtx_typeof_dt_cons_value_rec
-              (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i =
+              (SmtType.Datatype s d) (__smtx_dt_resolve (__smtx_dd_lookup s d) d) i =
             SmtType.Set A :=
         typeof_value_dt_cons_inner_eq_of_eq_non_none h (by simp)
       rw [hInner] at hShape
@@ -751,10 +751,10 @@ theorem seq_value_canonical
   | RegLan _ =>
       simp [__smtx_typeof_value] at h
   | DtCons s d i =>
-      have hShape := typeof_dt_cons_value_rec_chain_result s d (__smtx_dt_substitute s d d) i
+      have hShape := typeof_dt_cons_value_rec_chain_result s d (__smtx_dt_resolve (__smtx_dd_lookup s d) d) i
       have hInner :
           __smtx_typeof_dt_cons_value_rec
-              (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i =
+              (SmtType.Datatype s d) (__smtx_dt_resolve (__smtx_dd_lookup s d) d) i =
             SmtType.Seq T :=
         typeof_value_dt_cons_inner_eq_of_eq_non_none h (by simp)
       rw [hInner] at hShape

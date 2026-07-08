@@ -17,21 +17,23 @@ namespace TranslationProofs
 /-- Simplifies EO-to-SMT translation for `term_tuple_unit`. -/
 @[simp] theorem eo_to_smt_term_tuple_unit :
     __eo_to_smt (Term.UOp UserOp.tuple_unit) =
-      SmtTerm.DtCons (native_string_lit "@Tuple") (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) 0 := rfl
+      SmtTerm.DtCons (native_string_lit "@Tuple")
+        (SmtDatatypeDecl.cons (native_string_lit "@Tuple")
+          (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) SmtDatatypeDecl.nil) 0 := rfl
 
 /-- Simplifies EO-to-SMT translation for `term_dt_cons`. -/
 @[simp] theorem eo_to_smt_term_dt_cons
-    (s : native_String) (d : Datatype) (i : native_Nat) :
+    (s : native_String) (d : DatatypeDecl) (i : native_Nat) :
     __eo_to_smt (Term.DtCons s d i) =
       native_ite (__eo_reserved_datatype_name s) SmtTerm.None
-        (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) := rfl
+        (SmtTerm.DtCons s (__eo_to_smt_datatype_decl d) i) := rfl
 
 /-- Simplifies EO-to-SMT translation for `term_dt_sel`. -/
 @[simp] theorem eo_to_smt_term_dt_sel
-    (s : native_String) (d : Datatype) (i j : native_Nat) :
+    (s : native_String) (d : DatatypeDecl) (i j : native_Nat) :
     __eo_to_smt (Term.DtSel s d i j) =
       native_ite (__eo_reserved_datatype_name s) SmtTerm.None
-        (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j) := rfl
+        (SmtTerm.DtSel s (__eo_to_smt_datatype_decl d) i j) := rfl
 
 /-- Simplifies EO-to-SMT translation for `datatype_cons_unit`. -/
 @[simp] theorem eo_to_smt_datatype_cons_unit :
@@ -41,17 +43,23 @@ namespace TranslationProofs
 @[simp] theorem eo_to_smt_datatype_null :
     __eo_to_smt_datatype Datatype.null = SmtDatatype.null := rfl
 
+/-- Simplifies EO-to-SMT translation for `datatype_decl_nil`. -/
+@[simp] theorem eo_to_smt_datatype_decl_nil :
+    __eo_to_smt_datatype_decl DatatypeDecl.nil = SmtDatatypeDecl.nil := rfl
+
 /-- Simplifies EO-to-SMT type translation for `datatype`. -/
-@[simp] theorem eo_to_smt_type_datatype (s : native_String) (d : Datatype) :
+@[simp] theorem eo_to_smt_type_datatype (s : native_String) (d : DatatypeDecl) :
     __eo_to_smt_type (Term.DatatypeType s d) =
       native_ite (__eo_reserved_datatype_name s) SmtType.None
-        (SmtType.Datatype s (__eo_to_smt_datatype d)) := by
+        (SmtType.Datatype s (__eo_to_smt_datatype_decl d)) := by
   rfl
 
 /-- Simplifies EO-to-SMT type translation for `unit_tuple`. -/
 @[simp] theorem eo_to_smt_type_unit_tuple :
     __eo_to_smt_type (Term.UOp UserOp.UnitTuple) =
-      SmtType.Datatype (native_string_lit "@Tuple") (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) := by
+      SmtType.Datatype (native_string_lit "@Tuple")
+        (SmtDatatypeDecl.cons (native_string_lit "@Tuple")
+          (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) SmtDatatypeDecl.nil) := by
   simp [__eo_to_smt_type]
 
 /-- Simplifies EO-to-SMT type translation for `tuple_step`. -/
@@ -63,7 +71,7 @@ namespace TranslationProofs
 
 /-- Simplifies EO-to-SMT translation for `tester_of_dtcons`. -/
 @[simp] theorem eo_to_smt_tester_of_dtcons
-    (s : native_String) (d : SmtDatatype) (n : native_Nat) :
+    (s : native_String) (d : SmtDatatypeDecl) (n : native_Nat) :
     __eo_to_smt_tester (SmtTerm.DtCons s d n) = SmtTerm.DtTester s d n := rfl
 
 /-- Computes `__smtx_typeof` for `dt_sel_head_none`. -/
@@ -74,14 +82,14 @@ namespace TranslationProofs
 
 /-- Computes `__smtx_typeof` for `dt_sel_head_none`. -/
 @[simp] theorem smtx_typeof_dt_sel_head_none
-    (s : native_String) (d : SmtDatatype) (i j : native_Nat) :
+    (s : native_String) (d : SmtDatatypeDecl) (i j : native_Nat) :
     __smtx_typeof (SmtTerm.DtSel s d i j) = SmtType.None := by
   unfold __smtx_typeof
   rfl
 
 /-- Computes `__smtx_typeof` for `dt_tester_head_none`. -/
 @[simp] theorem smtx_typeof_dt_tester_head_none
-    (s : native_String) (d : SmtDatatype) (i : native_Nat) :
+    (s : native_String) (d : SmtDatatypeDecl) (i : native_Nat) :
     __smtx_typeof (SmtTerm.DtTester s d i) = SmtType.None := by
   unfold __smtx_typeof
   rfl
@@ -119,28 +127,12 @@ theorem eo_to_smt_typeof_dt_sel_return :
 /-- Computes `__smtx_typeof` for `tuple_unit_translation`. -/
 theorem smtx_typeof_tuple_unit_translation :
     __smtx_typeof
-        (SmtTerm.DtCons (native_string_lit "@Tuple") (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) 0) =
-      SmtType.Datatype (native_string_lit "@Tuple") (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) := by
-  let tupleTy :=
-    SmtType.Datatype (native_string_lit "@Tuple") (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)
-  have hInh : native_inhabited_type tupleTy = true := by
-    classical
-    simp [tupleTy, native_inhabited_type, native_and, native_ite, native_not, native_veq,
-      native_Teq, __smtx_type_default, __smtx_type_default_rec,
-      __smtx_datatype_default, __smtx_datatype_cons_default, __smtx_typeof_value,
-      __smtx_typeof_dt_cons_value_rec, __smtx_dt_substitute, __smtx_dtc_substitute]
-  have hRec : __smtx_type_wf_rec tupleTy tupleTy = true := by
-    simp [tupleTy, __smtx_type_wf_rec, __smtx_dt_wf_rec,
-      __smtx_dt_cons_wf_rec, __smtx_dt_substitute, __smtx_dtc_substitute,
-      native_ite]
-  have hNA : __smtx_type_no_alias_rec native_reflist_nil tupleTy = true := by
-    simp [tupleTy, __smtx_type_no_alias_rec, __smtx_dt_no_alias_rec,
-      __smtx_dt_cons_no_alias_rec, native_reflist_contains,
-      native_reflist_nil, native_ite]
-  have hWf : __smtx_type_wf tupleTy = true := by
-    simp [__smtx_type_wf, __smtx_type_wf_component, native_and, hInh, hRec, hNA]
-  unfold __smtx_typeof
-  simp [tupleTy, __smtx_typeof_guard_wf, hWf, native_ite,
-    __smtx_dt_substitute, __smtx_dtc_substitute, __smtx_typeof_dt_cons_rec]
+        (SmtTerm.DtCons (native_string_lit "@Tuple")
+          (SmtDatatypeDecl.cons (native_string_lit "@Tuple")
+            (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) SmtDatatypeDecl.nil) 0) =
+      SmtType.Datatype (native_string_lit "@Tuple")
+        (SmtDatatypeDecl.cons (native_string_lit "@Tuple")
+          (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) SmtDatatypeDecl.nil) := by
+  native_decide
 
 end TranslationProofs

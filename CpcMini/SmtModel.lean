@@ -913,6 +913,11 @@ def __smtx_datatype_cons_default (v : SmtValue) : SmtDatatypeCons -> SmtDatatype
     let _v0 := (__smtx_type_default_rec TF TU)
     (native_ite (native_veq _v0 SmtValue.NotValue) SmtValue.NotValue (__smtx_datatype_cons_default (SmtValue.Apply v _v0) cF cU))
   | cF, cU => SmtValue.NotValue
+termination_by cF cU => sizeOf cU
+decreasing_by
+  all_goals
+    simp_wf
+    omega
 
 
 def __smtx_datatype_default (s : native_String) (dd : SmtDatatypeDecl) (n : native_Nat) : SmtDatatype -> SmtDatatype -> SmtValue
@@ -920,11 +925,21 @@ def __smtx_datatype_default (s : native_String) (dd : SmtDatatypeDecl) (n : nati
     let _v0 := (__smtx_datatype_cons_default (SmtValue.DtCons s dd n) cF cU)
     (native_ite (native_not (native_veq _v0 SmtValue.NotValue)) _v0 (__smtx_datatype_default s dd (native_nat_succ n) dF dU))
   | dF, dU => SmtValue.NotValue
+termination_by dF dU => sizeOf dU
+decreasing_by
+  all_goals
+    simp_wf
+    omega
 
 
 def __smtx_datatype_decl_default (s : native_String) (dd : SmtDatatypeDecl) : SmtDatatypeDecl -> SmtDatatypeDecl -> SmtValue
   | (SmtDatatypeDecl.cons sF dF ddF), (SmtDatatypeDecl.cons sU dU ddU) => (native_ite (native_streq s sF) (__smtx_datatype_default s dd native_nat_zero (__smtx_dt_resolve dF dd) dU) (__smtx_datatype_decl_default s dd ddF ddU))
   | ddF, ddU => SmtValue.NotValue
+termination_by ddF ddU => sizeOf ddU
+decreasing_by
+  all_goals
+    simp_wf
+    omega
 
 
 def __smtx_type_default_rec : SmtType -> SmtType -> SmtValue
@@ -943,6 +958,11 @@ def __smtx_type_default_rec : SmtType -> SmtType -> SmtValue
   | V, (SmtType.USort i) => (SmtValue.UValue i native_nat_zero)
   | V, (SmtType.FunType T U) => (SmtValue.Fun native_default_ifun_id T U)
   | V, T => SmtValue.NotValue
+termination_by V T => sizeOf T
+decreasing_by
+  all_goals
+    simp_wf
+    omega
 
 
 def __smtx_type_default (T : SmtType) : SmtValue :=

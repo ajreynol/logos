@@ -962,13 +962,13 @@ theorem int_binop_args_of_non_none
 theorem ifun_type_wf_int_int :
     __smtx_type_wf (SmtType.FunType SmtType.Int SmtType.Int) = true := by
   simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
-    __smtx_type_no_alias_rec, native_and, native_inhabited_type_int]
+    native_and, native_inhabited_type_int]
 
 /-- The real-to-real native-function type used for arithmetic defaults is well formed. -/
 theorem ifun_type_wf_real_real :
     __smtx_type_wf (SmtType.FunType SmtType.Real SmtType.Real) = true := by
   simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
-    __smtx_type_no_alias_rec, native_and, native_inhabited_type_real]
+    native_and, native_inhabited_type_real]
 
 /-- Shows that evaluating `apply_lookup_fun` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_apply_lookup_fun

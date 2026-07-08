@@ -18,15 +18,13 @@ private theorem type_default_typed_canonical_of_map_domain_wf
       __smtx_value_canonical (__smtx_type_default A) := by
   have hAll :
       native_inhabited_type (SmtType.Map A B) = true ∧
-        (((native_inhabited_type A = true ∧
+        ((native_inhabited_type A = true ∧
           __smtx_type_wf_rec A A = true) ∧
-          __smtx_type_no_alias_rec native_reflist_nil A = true) ∧
-          ((native_inhabited_type B = true ∧
-            __smtx_type_wf_rec B B = true) ∧
-            __smtx_type_no_alias_rec native_reflist_nil B = true)) := by
+          (native_inhabited_type B = true ∧
+            __smtx_type_wf_rec B B = true)) := by
     simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
-      __smtx_type_no_alias_rec, native_and] using h
-  exact type_default_typed_canonical_of_inhabited_wf_rec A hAll.2.1.1.1 hAll.2.1.1.2
+      native_and] using h
+  exact type_default_typed_canonical_of_inhabited_wf_rec A hAll.2.1.1 hAll.2.1.2
 
 private theorem type_default_typed_canonical_of_set_element_wf
     {A : SmtType}
@@ -35,12 +33,11 @@ private theorem type_default_typed_canonical_of_set_element_wf
       __smtx_value_canonical (__smtx_type_default A) := by
   have hAll :
       native_inhabited_type (SmtType.Set A) = true ∧
-        ((native_inhabited_type A = true ∧
-          __smtx_type_wf_rec A A = true) ∧
-          __smtx_type_no_alias_rec native_reflist_nil A = true) := by
+        (native_inhabited_type A = true ∧
+          __smtx_type_wf_rec A A = true) := by
     simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
-      __smtx_type_no_alias_rec, native_and] using h
-  exact type_default_typed_canonical_of_inhabited_wf_rec A hAll.2.1.1 hAll.2.1.2
+      native_and] using h
+  exact type_default_typed_canonical_of_inhabited_wf_rec A hAll.2.1 hAll.2.2
 
 private theorem map_diff_default_typed_canonical_of_non_none
     {t1 t2 : SmtTerm}
@@ -166,7 +163,7 @@ theorem generic_apply_subterms_non_none
 /-- Derives inhabitedness of the selector result type from a non-`None` selector term. -/
 theorem dt_sel_term_inhabited_of_non_none
     {s : native_String}
-    {d : SmtDatatype}
+    {d : SmtDatatypeDecl}
     {i j : native_Nat}
     {x : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.DtSel s d i j) x)) :

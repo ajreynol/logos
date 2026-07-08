@@ -1,5 +1,7 @@
 import Cpc.Proofs.TermCompat
-import Cpc.Proofs.Translation
+import Cpc.Proofs.Translation.Datatypes
+import Cpc.Proofs.Translation.Quantifiers
+import Cpc.Proofs.Translation.TypeofBridge
 import Cpc.Proofs.TypePreservation
 
 open Eo
