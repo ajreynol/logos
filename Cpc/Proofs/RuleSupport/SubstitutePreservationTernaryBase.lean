@@ -1,0 +1,3 @@
+import Cpc.Proofs.RuleSupport.SubstitutePreservationTernaryChoiceOps
+import Cpc.Proofs.RuleSupport.SubstitutePreservationTernaryStoreOps
+import Cpc.Proofs.RuleSupport.SubstitutePreservationTernarySubstrOps

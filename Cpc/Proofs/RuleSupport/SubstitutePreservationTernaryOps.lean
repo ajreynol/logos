@@ -1,0 +1,3 @@
+import Cpc.Proofs.RuleSupport.SubstitutePreservationTernaryBase
+import Cpc.Proofs.RuleSupport.SubstitutePreservationStringTernaryOps
+import Cpc.Proofs.RuleSupport.SubstitutePreservationRegexTernaryOps
