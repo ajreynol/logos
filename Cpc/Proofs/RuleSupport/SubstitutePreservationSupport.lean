@@ -5,6 +5,7 @@ import Cpc.Proofs.RuleSupport.SubstitutePreservationAtomApply
 import Cpc.Proofs.RuleSupport.SubstitutePreservationGenericOps
 import Cpc.Proofs.RuleSupport.SubstitutePreservationDtSel
 import Cpc.Proofs.RuleSupport.SubstitutePreservationIndexedOps
+import Cpc.Proofs.RuleSupport.SubstitutePreservationUOp1
 import Cpc.Proofs.RuleSupport.TypedListSubstitutionSupport
 
 open Eo
@@ -2365,6 +2366,12 @@ private theorem substitute_tuple_update_type_congr
           t u t' u' ht hu
     · simp [hs]
 
+/-
+The generic UOp1 helper and the re_exp/int_to_bv/repeat/zero_extend/
+sign_extend/rotate_left/rotate_right wrappers now live in
+SubstitutePreservationUOp1.lean, so this large local block is kept out of the
+main module elaboration.
+
 private theorem substitute_simul_apply_uop1_preserves_type_and_translation_of_typeof_ne_stuck
     (op : UserOp1) (idx a xs ts bvs : Term)
     {xsVars bvsVars : List EoVarKey}
@@ -3015,6 +3022,11 @@ private theorem substitute_simul_apply_rotate_right_preserves_type_and_translati
         simp [__smtx_typeof_rotate_right, native_ite, hIdxBound])
       hARec hTy
 
+-/
+/-
+The remaining special UOp1 wrappers also live in
+SubstitutePreservationUOp1.lean.
+
 private theorem substitute_simul_apply_at_bit_preserves_type_and_translation_of_typeof_ne_stuck
     (idx a xs ts bvs : Term)
     {xsVars bvsVars : List EoVarKey}
@@ -3335,6 +3347,7 @@ private theorem substitute_simul_apply_tuple_select_preserves_type_and_translati
             idx (__eo_to_smt a) (__eo_to_smt X) hXSmtTyEq hNN)
       hARec hTy
 
+-/
 private theorem substitute_simul_tuple_preserves_type_and_translation_of_typeof_ne_stuck
     (x y xs ts bvs : Term)
     {xsVars bvsVars : List EoVarKey}
