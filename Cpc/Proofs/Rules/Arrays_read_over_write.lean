@@ -172,8 +172,8 @@ private theorem eqs_of_requires_and_eq_true_not_stuck (x1 y1 x2 y2 B : Term) :
   exact ⟨eq_of_eo_eq_true x1 x2 hBoth.1, eq_of_eo_eq_true y1 y2 hBoth.2⟩
 
 private theorem smt_type_ne_none_of_wf_rec
-    {T : SmtType} {refs : RefList}
-    (h : __smtx_type_wf_rec T refs = true) :
+    {T : SmtType}
+    (h : __smtx_type_wf_rec T T = true) :
     T ≠ SmtType.None := by
   intro hNone
   subst T

@@ -1,5 +1,5 @@
 import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.RuleSupport.SubstituteTranslatabilitySupport
+import Cpc.Proofs.RuleSupport.SubstitutePreservationSupport
 import Cpc.Proofs.Canonical
 import Cpc.Proofs.Closed.ContainsAtomicTermListFree
 import Cpc.Proofs.Closed.Substitute
@@ -8,6 +8,7 @@ open Eo
 open SmtEval
 open Smtm
 open SubstituteTranslatabilitySupport
+open SubstitutePreservationSupport
 
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
@@ -53,9 +54,9 @@ The proof factors into four pieces, in dependency order:
    The well-typedness of the actuals is exactly what the checker's
    `__is_instantiation xs ts = true` guard certifies: it requires
    `__eo_typeof tᵢ = Tᵢ` for each binder. `substActualsHaveSmtTypes_of_is_instantiation`
-   reflects that guard into `SubstActualsHaveSmtTypes`, and the existing
-   `instantiate_body_true_of_smt_typed_actuals` finishes the quantifier
-   instantiation. `prog_instantiate_shape` exposes the guard from the checker.
+   reflects that guard into `SubstActualsHaveSmtTypes`, and
+   `instantiate_body_true` calls the push-total body-truth bridge directly.
+   `prog_instantiate_shape` exposes the guard from the checker.
 
 4. **`prog_instantiate_shape`** (DONE) — a non-`Stuck` result forces the
    premise to be `forall xs F`, pins the conclusion to the substitution, AND
@@ -84,19 +85,14 @@ Status (2026-06-29):
     This is the reusable core of the crux.
   * `substitute_simul_eval`   — PROVEN via `substFalse_eval_gen_lt`
     plus the `SubstFalseRel M (pushSubstModel …) xs ts nil` base relation.
-  * `substitute_simul_has_smt_translation_of_typeof_ne_stuck_lt` now lives in
-    `Cpc.Proofs.RuleSupport.SubstituteTranslatabilitySupport`; one `sorry`
-    remains there in the generic / non-special-head application case. This is a
-    *type-preservation* obligation for `__substitute_simul_rec`: it must reprove
-    EO→SMT translatability for every remaining operator head under substitution
-    (`__eo_to_smt`, `Cpc/Spec.lean:204`, special-cases dozens of unary/binary/
-    ternary heads). The induction now threads the `SubstActualsHaveSmtTypes`
-    reflection of the `__is_instantiation` guard, which is required for the
-    statement to be true (e.g. EO `abs` accepts arith, but SMT `abs` is
-    `Int`-only). The remaining work is to exploit that guard for exact
-    substitution type preservation in the special-head cases. No generic
-    `__eo_typeof t = Bool → eo_has_smt_translation t` exists, so this remains its
-    own large structural induction.
+  * `substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt`
+    now lives in `Cpc.Proofs.RuleSupport.SubstitutePreservationSupport` and is
+    the instantiate-facing staging theorem for merging the old type-preservation
+    and SMT-translatability structural inductions. The instantiate-facing
+    projection wrappers and old recursive engines have been removed from Lean's
+    environment; callers use the combined theorem directly. The remaining
+    generic application/operator-spine fallback holes now live in the combined
+    theorem instead of through the retired standalone engines.
 
 The main theorem then wires these together with the standard single-arg /
 single-premise boilerplate (mirrors `BooleanElimSupport.cmd_step_and_elim_properties`).
@@ -950,103 +946,6 @@ theorem instantiate_body_true_of_push_total_and_closedIn
           (model_agrees_on_env_of_agrees_everywhere hAgreeAll)
       simpa [Source, ← hEvalEq] using hAssignTrue
 
-/-- Variant of `instantiate_body_true_of_push_total_and_closedIn` using the
-finite support of SMT terms as the closedness environment. -/
-theorem instantiate_body_true_of_push_total
-    (M : SmtModel) (hM : model_total_typed M)
-    (xs F ts : Term)
-    (hPrem : eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F) true)
-    (hWf : RuleProofs.eo_has_smt_translation
-      (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F))
-    (hPushTotal : model_total_typed (pushSubstModel M xs ts)) :
-    __smtx_model_eval (pushSubstModel M xs ts) (__eo_to_smt F) =
-      SmtValue.Boolean true := by
-  exact instantiate_body_true_of_push_total_and_closedIn M hM xs F ts
-    hPrem hWf hPushTotal (SmtTermClosedIn.exists_env (__eo_to_smt F))
-
-/-- Bridge specialised to actual terms that already evaluate to canonical values
-of the corresponding binder SMT types in the ambient model. -/
-theorem instantiate_body_true_of_actuals
-    (M : SmtModel) (hM : model_total_typed M)
-    (xs F ts : Term)
-    (hPrem : eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F) true)
-    (hWf : RuleProofs.eo_has_smt_translation
-      (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F))
-    (hActuals : SubstActualsTyped M xs ts) :
-    __smtx_model_eval (pushSubstModel M xs ts) (__eo_to_smt F) =
-      SmtValue.Boolean true := by
-  exact instantiate_body_true_of_push_total M hM xs F ts
-    hPrem hWf (pushSubstModel_total_typed_of_actuals M hM hActuals)
-
-/-- Same bridge, with syntactic SMT typing of actual terms converted through
-evaluation type preservation in the ambient model. -/
-theorem instantiate_body_true_of_smt_typed_actuals
-    (M : SmtModel) (hM : model_total_typed M)
-    (xs F ts : Term)
-    (hPrem : eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F) true)
-    (hWf : RuleProofs.eo_has_smt_translation
-      (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F))
-    (hActuals : SubstActualsHaveSmtTypes xs ts) :
-    __smtx_model_eval (pushSubstModel M xs ts) (__eo_to_smt F) =
-      SmtValue.Boolean true := by
-  exact instantiate_body_true_of_push_total M hM xs F ts hPrem hWf
-    (pushSubstModel_total_typed_of_smt_typed_actuals M hM hActuals)
-
-/-- EO closedness of a body under its binder list gives the SMT closedness
-environment needed by the model-coincidence theorem. -/
-theorem smt_body_closedIn_of_eo_closed_under_binders
-    {xs F : Term} {vars : List EoVarKey}
-    (hEnv : EoVarEnv xs vars)
-    (hClosed : __eo_is_closed_rec F xs = Term.Boolean true) :
-    SmtTermClosedIn (vars.map EoVarKey.toSmt) (__eo_to_smt F) := by
-  exact smtTermClosedIn_of_eo_is_closed_rec_perm
-    (hEnv := EoSmtVarEnvPerm.of_exact (EoVarEnv.to_smt hEnv))
-    hClosed
-
-/--
-Bridge specialised to the natural instantiate side conditions: the actual terms
-produce well-typed canonical binder values, and the body is EO-closed under the
-binder list.
--/
-theorem instantiate_body_true_of_actuals_and_eo_closed
-    (M : SmtModel) (hM : model_total_typed M)
-    (xs F ts : Term)
-    (hPrem : eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F) true)
-    (hWf : RuleProofs.eo_has_smt_translation
-      (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F))
-    (hActuals : SubstActualsTyped M xs ts)
-    (hBodyClosed : __eo_is_closed_rec F xs = Term.Boolean true) :
-    __smtx_model_eval (pushSubstModel M xs ts) (__eo_to_smt F) =
-      SmtValue.Boolean true := by
-  rcases forall_binders_env_of_has_smt_translation xs F hWf with
-    ⟨binderVars, hXsEnv⟩
-  exact instantiate_body_true_of_push_total_and_closedIn M hM xs F ts
-    hPrem hWf
-    (pushSubstModel_total_typed_of_actuals M hM hActuals)
-    ⟨binderVars.map EoVarKey.toSmt,
-      smt_body_closedIn_of_eo_closed_under_binders hXsEnv hBodyClosed⟩
-
-/-- Same bridge, with syntactic actual typing converted through SMT evaluation
-type preservation in the ambient model. -/
-theorem instantiate_body_true_of_smt_typed_actuals_and_eo_closed
-    (M : SmtModel) (hM : model_total_typed M)
-    (xs F ts : Term)
-    (hPrem : eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F) true)
-    (hWf : RuleProofs.eo_has_smt_translation
-      (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F))
-    (hActuals : SubstActualsHaveSmtTypes xs ts)
-    (hBodyClosed : __eo_is_closed_rec F xs = Term.Boolean true) :
-    __smtx_model_eval (pushSubstModel M xs ts) (__eo_to_smt F) =
-      SmtValue.Boolean true := by
-  rcases forall_binders_env_of_has_smt_translation xs F hWf with
-    ⟨binderVars, hXsEnv⟩
-  exact instantiate_body_true_of_push_total_and_closedIn M hM xs F ts
-    hPrem hWf
-    (pushSubstModel_total_typed_of_smt_typed_actuals M hM hActuals)
-    ⟨binderVars.map EoVarKey.toSmt,
-      smt_body_closedIn_of_eo_closed_under_binders hXsEnv hBodyClosed⟩
-
-
 /-- Different-body congruence for the existential evaluator: if for every
 witness value the two (distinct) bodies evaluate equally in the pushed models,
 then the existentials evaluate equally. Generalises
@@ -1499,83 +1398,6 @@ theorem substFalse_eval_unary_op_type_dependent
   rw [hSubstEq, hMk]
   exact hCong _ _ hArgTy hArgEval
 
-theorem instantiate_typed_list_elem_type_non_none_ne_stuck
-    {xs : Term}
-    (hElemNN : __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None) :
-    xs ≠ Term.Stuck := by
-  intro h
-  subst xs
-  exact hElemNN (by simp [__eo_to_smt_typed_list_elem_type])
-
-theorem instantiate_typed_list_cons_type_parts
-    (x xs : Term)
-    (hNN :
-      __eo_to_smt_typed_list_elem_type
-          (Term.Apply
-            (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) x) xs) ≠
-        SmtType.None) :
-    __smtx_typeof (__eo_to_smt x) =
-        __eo_to_smt_typed_list_elem_type xs ∧
-      __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ∧
-      __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None ∧
-      __eo_to_smt_typed_list_elem_type
-          (Term.Apply
-            (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) x) xs) =
-        __smtx_typeof (__eo_to_smt x) := by
-  let headTy := __smtx_typeof (__eo_to_smt x)
-  let tailTy := __eo_to_smt_typed_list_elem_type xs
-  have hEqBool : native_Teq headTy tailTy = true := by
-    cases hEq : native_Teq headTy tailTy <;>
-      simp [__eo_to_smt_typed_list_elem_type, headTy, tailTy, native_ite, hEq]
-        at hNN ⊢
-  have hHeadTail : headTy = tailTy := by
-    simpa [native_Teq] using hEqBool
-  have hHeadNN : headTy ≠ SmtType.None := by
-    intro hHeadNone
-    apply hNN
-    simp [__eo_to_smt_typed_list_elem_type, headTy, native_ite, hHeadNone]
-  have hTailNN : tailTy ≠ SmtType.None := by
-    rw [← hHeadTail]
-    exact hHeadNN
-  have hConsEq :
-      __eo_to_smt_typed_list_elem_type
-          (Term.Apply
-            (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) x) xs) =
-        headTy := by
-    simp [__eo_to_smt_typed_list_elem_type, headTy, tailTy, native_ite,
-      hEqBool]
-  exact ⟨hHeadTail, hHeadNN, hTailNN, hConsEq⟩
-
-theorem instantiate_typed_list_nil_elem_type_eq_of_non_none
-    (T : Term)
-    (hNN :
-      __eo_to_smt_typed_list_elem_type
-          (Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) T) ≠
-        SmtType.None) :
-    __eo_to_smt_typed_list_elem_type
-        (Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) T) =
-      __eo_to_smt_type T := by
-  cases hWf : __smtx_type_wf (__eo_to_smt_type T) <;>
-    simp [__eo_to_smt_typed_list_elem_type, hWf, native_ite] at hNN ⊢
-
-theorem instantiate_eo_to_smt_distinct_eq_of_elem_type_non_none
-    (xs : Term)
-    (hElemNN : __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None) :
-    __eo_to_smt (Term.Apply (Term.UOp UserOp.distinct) xs) =
-      __eo_to_smt_distinct xs := by
-  change
-    native_ite (native_Teq (__eo_to_smt_typed_list_elem_type xs) SmtType.None)
-      SmtTerm.None (__eo_to_smt_distinct xs) =
-      __eo_to_smt_distinct xs
-  have hGuard :
-      native_Teq (__eo_to_smt_typed_list_elem_type xs) SmtType.None =
-        false := by
-    cases hElem : __eo_to_smt_typed_list_elem_type xs <;>
-      simp [hElem] at hElemNN ⊢
-    all_goals rfl
-  rw [hGuard]
-  simp [native_ite]
-
 theorem substFalse_eval_eo_to_smt_distinct_pairs_cross
     (root : Term) (sSub sOrig : SmtTerm)
     (tl xs ss bvs : Term) {M N : SmtModel}
@@ -1639,7 +1461,7 @@ theorem substFalse_eval_eo_to_smt_distinct_pairs_cross
                     Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) TSub :=
                 instantiate_eo_mk_apply_eq_apply_of_ne_stuck _ _ (by
                   rw [← hSubstEq]
-                  exact instantiate_typed_list_elem_type_non_none_ne_stuck
+                  exact TypedListSubstitutionSupport.typed_list_elem_type_non_none_not_stuck
                     hSubstElemNN)
               rw [hSubstEq, hMk]
               change
@@ -1658,7 +1480,7 @@ theorem substFalse_eval_eo_to_smt_distinct_pairs_cross
                     __substitute_simul_rec (Term.Boolean false) head xs ss bvs
                   let tailSub :=
                     __substitute_simul_rec (Term.Boolean false) tail xs ss bvs
-                  rcases instantiate_typed_list_cons_type_parts head tail hElemNN with
+                  rcases TypedListSubstitutionSupport.typed_list_cons_elem_type_parts head tail hElemNN with
                     ⟨_hHeadTail, hHeadNN, hTailNN, _hConsEq⟩
                   have hHeadTrans : eoHasSmtTranslation head := by
                     unfold eoHasSmtTranslation
@@ -1711,7 +1533,7 @@ theorem substFalse_eval_eo_to_smt_distinct_pairs_cross
                               head) xs ss bvs)
                           tailSub ≠ Term.Stuck := by
                     rw [← hOuterSub]
-                    exact instantiate_typed_list_elem_type_non_none_ne_stuck
+                    exact TypedListSubstitutionSupport.typed_list_elem_type_non_none_not_stuck
                       hSubstElemNN
                   have hOuterNe' :
                       __eo_mk_apply
@@ -1754,7 +1576,7 @@ theorem substFalse_eval_eo_to_smt_distinct_pairs_cross
                           tailSub := by
                     rw [hOuterSub, hInnerSub, hInnerMk, hOuterMk]
                   rcases
-                    instantiate_typed_list_cons_type_parts headSub tailSub
+                    TypedListSubstitutionSupport.typed_list_cons_elem_type_parts headSub tailSub
                       (by simpa [headSub, tailSub, hResultEq] using hSubstElemNN) with
                     ⟨_hSubHeadTail, hSubHeadNN, hSubTailNN, _hSubConsEq⟩
                   have hHeadSubTrans : eoHasSmtTranslation headSub := by
@@ -1861,7 +1683,7 @@ theorem substFalse_eval_eo_to_smt_distinct_cross
                     Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) TSub :=
                 instantiate_eo_mk_apply_eq_apply_of_ne_stuck _ _ (by
                   rw [← hSubstEq]
-                  exact instantiate_typed_list_elem_type_non_none_ne_stuck
+                  exact TypedListSubstitutionSupport.typed_list_elem_type_non_none_not_stuck
                     hSubstElemNN)
               rw [hSubstEq, hMk]
               change
@@ -1880,7 +1702,7 @@ theorem substFalse_eval_eo_to_smt_distinct_cross
                     __substitute_simul_rec (Term.Boolean false) head xs ss bvs
                   let tailSub :=
                     __substitute_simul_rec (Term.Boolean false) tail xs ss bvs
-                  rcases instantiate_typed_list_cons_type_parts head tail hElemNN with
+                  rcases TypedListSubstitutionSupport.typed_list_cons_elem_type_parts head tail hElemNN with
                     ⟨_hHeadTail, hHeadNN, hTailNN, _hConsEq⟩
                   have hHeadTrans : eoHasSmtTranslation head := by
                     unfold eoHasSmtTranslation
@@ -1933,7 +1755,7 @@ theorem substFalse_eval_eo_to_smt_distinct_cross
                               head) xs ss bvs)
                           tailSub ≠ Term.Stuck := by
                     rw [← hOuterSub]
-                    exact instantiate_typed_list_elem_type_non_none_ne_stuck
+                    exact TypedListSubstitutionSupport.typed_list_elem_type_non_none_not_stuck
                       hSubstElemNN
                   have hOuterNe' :
                       __eo_mk_apply
@@ -1976,7 +1798,7 @@ theorem substFalse_eval_eo_to_smt_distinct_cross
                           tailSub := by
                     rw [hOuterSub, hInnerSub, hInnerMk, hOuterMk]
                   rcases
-                    instantiate_typed_list_cons_type_parts headSub tailSub
+                    TypedListSubstitutionSupport.typed_list_cons_elem_type_parts headSub tailSub
                       (by simpa [headSub, tailSub, hResultEq] using hSubstElemNN) with
                     ⟨_hSubHeadTail, hSubHeadNN, hSubTailNN, _hSubConsEq⟩
                   have hHeadSubTrans : eoHasSmtTranslation headSub := by
@@ -2105,8 +1927,8 @@ theorem substFalse_eval_distinct
       __eo_to_smt_typed_list_elem_type aSub ≠ SmtType.None :=
     typed_list_elem_type_non_none_of_distinct_has_smt_translation hSubstDistinctTrans
   rw [hResultEq,
-    instantiate_eo_to_smt_distinct_eq_of_elem_type_non_none aSub hSubstElemNN,
-    instantiate_eo_to_smt_distinct_eq_of_elem_type_non_none a hElemNN]
+    TypedListSubstitutionSupport.eo_to_smt_distinct_eq_of_elem_type_non_none aSub hSubstElemNN,
+    TypedListSubstitutionSupport.eo_to_smt_distinct_eq_of_elem_type_non_none a hElemNN]
   exact
     substFalse_eval_eo_to_smt_distinct_cross
       (Term.Apply (Term.UOp UserOp.distinct) a) a xs ss bvs
@@ -2187,7 +2009,7 @@ theorem substFalse_eval_eo_to_smt_set_insert_cross
                     Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) TSub :=
                 instantiate_eo_mk_apply_eq_apply_of_ne_stuck _ _ (by
                   rw [← hSubstEq]
-                  exact instantiate_typed_list_elem_type_non_none_ne_stuck
+                  exact TypedListSubstitutionSupport.typed_list_elem_type_non_none_not_stuck
                     hSubstElemNN)
               have hBaseSubTy' :
                   __smtx_typeof baseSub =
@@ -2203,10 +2025,10 @@ theorem substFalse_eval_eo_to_smt_set_insert_cross
                     SmtType.None := by
                 simpa [TSub, hSubstEq, hMk] using hSubstElemNN
               have hSubElemEq :=
-                instantiate_typed_list_nil_elem_type_eq_of_non_none
+                TypedListSubstitutionSupport.typed_list_nil_elem_type_eq_of_non_none
                   TSub hSubstElemNN'
               have hOrigElemEq :=
-                instantiate_typed_list_nil_elem_type_eq_of_non_none
+                TypedListSubstitutionSupport.typed_list_nil_elem_type_eq_of_non_none
                   tail hElemNN
               have hSubGuard :
                   native_Teq (__smtx_typeof baseSub)
@@ -2246,7 +2068,7 @@ theorem substFalse_eval_eo_to_smt_set_insert_cross
                     __substitute_simul_rec (Term.Boolean false) head xs ss bvs
                   let tailSub :=
                     __substitute_simul_rec (Term.Boolean false) tail xs ss bvs
-                  rcases instantiate_typed_list_cons_type_parts head tail hElemNN with
+                  rcases TypedListSubstitutionSupport.typed_list_cons_elem_type_parts head tail hElemNN with
                     ⟨hHeadTail, hHeadNN, hTailNN, hConsEq⟩
                   have hHeadTrans : eoHasSmtTranslation head := by
                     unfold eoHasSmtTranslation
@@ -2299,7 +2121,7 @@ theorem substFalse_eval_eo_to_smt_set_insert_cross
                               head) xs ss bvs)
                           tailSub ≠ Term.Stuck := by
                     rw [← hOuterSub]
-                    exact instantiate_typed_list_elem_type_non_none_ne_stuck
+                    exact TypedListSubstitutionSupport.typed_list_elem_type_non_none_not_stuck
                       hSubstElemNN
                   have hOuterNe' :
                       __eo_mk_apply
@@ -2342,7 +2164,7 @@ theorem substFalse_eval_eo_to_smt_set_insert_cross
                           tailSub := by
                     rw [hOuterSub, hInnerSub, hInnerMk, hOuterMk]
                   rcases
-                    instantiate_typed_list_cons_type_parts headSub tailSub
+                    TypedListSubstitutionSupport.typed_list_cons_elem_type_parts headSub tailSub
                       (by simpa [headSub, tailSub, hResultEq] using hSubstElemNN) with
                     ⟨hSubHeadTail, hSubHeadNN, hSubTailNN, hSubConsEq⟩
                   have hHeadSubTrans : eoHasSmtTranslation headSub := by
@@ -9694,8 +9516,7 @@ theorem substFalse_eval_gen_lt
                                                                                                                                                                                                                                               (eoOp := UserOp.str_prefixof) (smtOp := SmtTerm.str_prefixof)
                                                                                                                                                                                                                                               (by rfl)
                                                                                                                                                                                                                                               (fun hNN =>
-                                                                                                                                                                                                                                                seq_char_binop_args_have_smt_translation_of_non_none
-                                                                                                                                                                                                                                                  (ret := SmtType.Bool)
+                                                                                                                                                                                                                                                seq_binop_ret_args_have_smt_translation_of_non_none
                                                                                                                                                                                                                                                   (typeof_str_prefixof_eq (__eo_to_smt s) (__eo_to_smt t)) hNN)
                                                                                                                                                                                                                                               h)
                                                                                                                                                                                                                                           (fun X1 Y1 X2 Y2 h1 h2 => by
@@ -9716,8 +9537,7 @@ theorem substFalse_eval_gen_lt
                                                                                                                                                                                                                                                 (eoOp := UserOp.str_suffixof) (smtOp := SmtTerm.str_suffixof)
                                                                                                                                                                                                                                                 (by rfl)
                                                                                                                                                                                                                                                 (fun hNN =>
-                                                                                                                                                                                                                                                  seq_char_binop_args_have_smt_translation_of_non_none
-                                                                                                                                                                                                                                                    (ret := SmtType.Bool)
+                                                                                                                                                                                                                                                  seq_binop_ret_args_have_smt_translation_of_non_none
                                                                                                                                                                                                                                                     (typeof_str_suffixof_eq (__eo_to_smt s) (__eo_to_smt t)) hNN)
                                                                                                                                                                                                                                                 h)
                                                                                                                                                                                                                                             (fun X1 Y1 X2 Y2 h1 h2 => by
@@ -11036,7 +10856,9 @@ theorem instantiate_body_true
       (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) F))
     (hActuals : SubstActualsHaveSmtTypes xs ts) :
     __smtx_model_eval (pushSubstModel M xs ts) (__eo_to_smt F) = SmtValue.Boolean true :=
-  instantiate_body_true_of_smt_typed_actuals M hM xs F ts hPrem hWf hActuals
+  instantiate_body_true_of_push_total_and_closedIn M hM xs F ts hPrem hWf
+    (pushSubstModel_total_typed_of_smt_typed_actuals M hM hActuals)
+    (SmtTermClosedIn.exists_env (__eo_to_smt F))
 
 /--
 A non-`Stuck` result of `__eo_prog_instantiate` forces the premise to be a
@@ -11196,13 +11018,27 @@ by
                       Term.Bool at hResultTy
                     rw [hResEq] at hResultTy
                     exact hResultTy
-                  -- The result is SMT Bool-typed by substitution type preservation.
+                  -- The result preservation facts come from the combined theorem.
+                  have hResPreserves :
+                      __eo_typeof
+                          (__substitute_simul_rec (Term.Boolean false) F xs a1
+                            Term.__eo_List_nil) =
+                        __eo_typeof F ∧
+                        RuleProofs.eo_has_smt_translation
+                          (__substitute_simul_rec (Term.Boolean false) F xs a1
+                            Term.__eo_List_nil) :=
+                    SubstitutePreservationSupport.substitute_simul_preserves_type_and_translation_of_typeof_bool
+                      F xs a1 hWf hActualsTrans hActuals hSubstTypeof
+                  -- Package the combined preservation result as SMT Bool-typed.
                   have hResBool :
                       RuleProofs.eo_has_bool_type
                         (__substitute_simul_rec (Term.Boolean false) F xs a1
                           Term.__eo_List_nil) :=
-                    SubstituteTranslatabilitySupport.substitute_simul_has_bool_type_of_typeof_bool
-                      F xs a1 hWf hActualsTrans hActuals hSubstTypeof
+                    RuleProofs.eo_typeof_bool_implies_has_bool_type
+                      (__substitute_simul_rec (Term.Boolean false) F xs a1
+                        Term.__eo_List_nil)
+                      hResPreserves.2
+                      hSubstTypeof
                   refine ⟨?_, ?_⟩
                   · -- facts_of_true
                     intro hEvid
@@ -11217,7 +11053,7 @@ by
                     change RuleProofs.eo_has_smt_translation
                       (__eo_prog_instantiate a1 (Proof.pf prem))
                     rw [hResEq]
-                    exact RuleProofs.eo_has_smt_translation_of_has_bool_type _ hResBool
+                    exact hResPreserves.2
               | cons _ _ =>
                   change Term.Stuck ≠ Term.Stuck at hProg
                   exact False.elim (hProg rfl)
