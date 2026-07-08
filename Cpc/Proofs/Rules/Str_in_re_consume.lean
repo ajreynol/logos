@@ -17390,7 +17390,7 @@ theorem str_re_consume_residual_boolean_false_absurd_local
         Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) :
     False := by
   subst side
-  simp [__str_membership_re, consume_elim_unflat_stuck_early_local] at hMemEq
+  simp [__str_membership_re] at hMemEq
 
 theorem str_re_consume_rec_model_rel_from_ih_of_types
     (M : SmtModel)
@@ -28975,14 +28975,12 @@ private theorem str_re_consume_inter_unrev_from_ih_local
 
 private theorem consume_wf_chain_stuck_local :
     consume_wf_chain_local Term.Stuck := by
-  simp [consume_wf_chain_local, consume_wf_chunk_local,
-    consume_wf_local]
+  simp [consume_wf_chain_local, consume_wf_local]
 
 private theorem consume_wf_chain_eps_local :
     consume_wf_chain_local
       (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) := by
-  simp [consume_wf_chain_local, consume_wf_chunk_local,
-    consume_wf_local]
+  simp [consume_wf_chain_local, consume_wf_local]
 
 private def consume_wf_rev_map_motive_local (t acc : Term) : Prop :=
   consume_wf_chain_local t ->
@@ -29152,7 +29150,7 @@ private theorem consume_wf_rev_facts_local :
         cases hY : __re_rev_comp c2 <;>
         rw [hY] at hRight <;>
         simp_all [__eo_mk_apply, consume_wf_inter_tail_local,
-          consume_wf_chain_local, consume_wf_chunk_local,
+          consume_wf_chain_local,
           consume_wf_local]
     · show consume_wf_union_tail_local
         (__eo_mk_apply
@@ -29228,7 +29226,7 @@ private theorem consume_wf_rev_facts_local :
         cases hY : __re_rev_comp c2 <;>
         rw [hY] at hRight <;>
         simp_all [__eo_mk_apply, consume_wf_union_tail_local,
-          consume_wf_chain_local, consume_wf_chunk_local,
+          consume_wf_chain_local,
           consume_wf_local]
   have case11 : ∀ c, (c = Term.Stuck -> False) ->
       (c = Term.UOp UserOp.re_all -> False) ->
@@ -29313,7 +29311,7 @@ private theorem consume_wf_chain_split_str_to_re_local :
       cases hX : __re_split_str_to_re s tail <;>
         rw [hX] at hRec <;>
         simp_all [__eo_mk_apply, consume_wf_chain_local,
-          consume_wf_chunk_local, consume_wf_local]
+          consume_wf_local]
   | case4 c tail hCNe hTailNe hNotCons =>
       intro hTail
       have hEq : __re_split_str_to_re c tail = tail := by
@@ -29376,7 +29374,7 @@ private theorem consume_wf_chain_list_concat_rec_local :
       cases hX : __eo_list_concat_rec tl z <;>
         rw [hX] at hRec <;>
         simp_all [__eo_mk_apply, consume_wf_chain_local,
-          consume_wf_chunk_local, consume_wf_local]
+          consume_wf_local]
   | case4 nil z hns hzs hncons =>
       intro _ _ hZ
       have hEq : __eo_list_concat_rec nil z = z := by
@@ -29499,7 +29497,7 @@ private theorem consume_wf_flatten_facts_local :
               (__re_flatten (Term.Boolean true) b) = Term.Stuck := by
             show __eo_requires _ _ _ = _
             simp [__eo_requires, native_teq, SmtEval.native_ite,
-              SmtEval.native_not, hXL]
+              hXL]
           rw [hRed2]
           exact consume_wf_chain_stuck_local
       · intro hMode
@@ -29513,7 +29511,7 @@ private theorem consume_wf_flatten_facts_local :
               (__eo_mk_apply (Term.UOp UserOp.re_concat)
                 (__re_flatten (Term.Boolean false) a))
               (__re_flatten (Term.Boolean true) b) := by
-          simp [__re_flatten, hNotStr, hNotNested]
+          simp [__re_flatten]
         rw [hRed]
         have hChunk := (ihA.2 rfl).1 (fun x y h => hNotNested x y h)
         have hChain := ihB.1 rfl
@@ -29536,7 +29534,7 @@ private theorem consume_wf_flatten_facts_local :
                   s))
               (Term.Apply (Term.UOp UserOp.str_to_re)
                 (Term.String [])) := by
-          simp [__re_flatten, hNotEmpty]
+          simp [__re_flatten]
         rw [hRed]
         exact consume_wf_chain_split_str_to_re_local _ _
           consume_wf_chain_eps_local
@@ -29551,8 +29549,7 @@ private theorem consume_wf_flatten_facts_local :
                 (__re_flatten (Term.Boolean false) c))
               (Term.Apply (Term.UOp UserOp.str_to_re)
                 (Term.String [])) := by
-          simp [__re_flatten, hCNe, hEmpty, hConcatStr, hNested,
-            hConcat, hStr]
+          simp [__re_flatten]
         rw [hRed]
         have hChunk := (ih.2 rfl).1 (fun a b h => hConcat a b h)
         cases hX : __re_flatten (Term.Boolean false) c <;>
@@ -33684,7 +33681,7 @@ private theorem consume_is_list_true_atom_inversion_local (x : Term)
           simp [__eo_get_nil_rec, __eo_is_list_nil,
             __eo_is_list_nil_str_concat, __eo_is_ok, __eo_requires,
             __eo_eq, native_teq, native_ite, native_not,
-            SmtEval.native_not, native_and] at hIL
+            SmtEval.native_not] at hIL
   | Apply f y =>
       exfalso
       cases f with
@@ -33733,7 +33730,7 @@ private theorem consume_is_list_true_atom_inversion_local (x : Term)
           simp [__eo_get_nil_rec, __eo_is_list_nil,
             __eo_is_list_nil_str_concat, __eo_is_ok, __eo_requires,
             __eo_eq, native_teq, native_ite, native_not,
-            SmtEval.native_not, native_and] at hIL
+            SmtEval.native_not] at hIL
   | String w => exact absurd rfl (hNotStr w)
   | Stuck => exact absurd rfl hNe
   | _ =>
@@ -33741,7 +33738,7 @@ private theorem consume_is_list_true_atom_inversion_local (x : Term)
       simp [__eo_get_nil_rec, __eo_is_list_nil,
         __eo_is_list_nil_str_concat, __eo_is_ok, __eo_requires,
         __eo_eq, native_teq, native_ite, native_not,
-        SmtEval.native_not, native_and] at hIL
+        SmtEval.native_not] at hIL
 
 /--
 Reproduction for kept (non-string-literal, non-list) chunk arguments.
@@ -34582,7 +34579,7 @@ private theorem consume_rev_flat_flatten_facts_local :
               (__eo_mk_apply (Term.UOp UserOp.re_concat)
                 (__re_flatten (Term.Boolean false) a))
               (__re_flatten (Term.Boolean true) b) := by
-          simp [__re_flatten, hNotStr, hNotNested]
+          simp [__re_flatten]
         rw [hRed]
         rcases (ihA.2 rfl).1 (fun x y h => hNotNested x y h)
             (fun s h => hNotStr s h) with hChunk | hAStuck
@@ -34620,7 +34617,7 @@ private theorem consume_rev_flat_flatten_facts_local :
                   s))
               (Term.Apply (Term.UOp UserOp.str_to_re)
                 (Term.String [])) := by
-          simp [__re_flatten, hNotEmpty]
+          simp [__re_flatten]
         rw [hRed]
         rcases consume_parts_reprod_str_flatten_local
             (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) s)
@@ -34640,8 +34637,7 @@ private theorem consume_rev_flat_flatten_facts_local :
                 (__re_flatten (Term.Boolean false) c))
               (Term.Apply (Term.UOp UserOp.str_to_re)
                 (Term.String [])) := by
-          simp [__re_flatten, hCNe, hEmpty, hConcatStr, hNested,
-            hConcat, hStr]
+          simp [__re_flatten]
         rw [hRed]
         rcases (ih.2 rfl).1 (fun a b h => hConcat a b h)
             (fun s h => hStr s h) with hChunk | hStuck
@@ -36327,7 +36323,7 @@ private theorem consume_core_rel_fuel_local (M : SmtModel) :
                   (__eo_mk_apply (Term.UOp UserOp.re_concat)
                     (__re_flatten (Term.Boolean false) h))
                   (__re_flatten (Term.Boolean true) rest) := by
-                simp [__re_flatten, hNotStr, hNotConcat]
+                simp [__re_flatten]
               rw [hRed] at hEval1
               by_cases hFHS : __re_flatten (Term.Boolean false) h =
                   Term.Stuck
@@ -43575,8 +43571,7 @@ theorem str_re_consume_model_rel
           fun h => hMemEps h.symm
         have hCarryEq : (__eo_and (Term.Boolean true) (__eo_not (__eo_eq (__str_membership_re (__str_re_consume_rec (__eo_list_rev (Term.UOp UserOp.str_concat) (__str_flatten (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) s))) (__re_rev_map_rev (__re_flatten (Term.Boolean true) r0) (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))) (__eo_list_rev (Term.UOp UserOp.str_concat) (__str_flatten (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) s))))) (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))))) = Term.Boolean true := by
           simp [__eo_eq, __eo_not, __eo_and, native_teq,
-            SmtEval.native_not, SmtEval.native_and, hNe',
-            hMemReFirstNe]
+            SmtEval.native_not, SmtEval.native_and, hNe']
         have hNextSTermEq : (__eo_list_rev (Term.UOp UserOp.str_concat) (__eo_ite (__eo_and (Term.Boolean true) (__eo_not (__eo_eq (__str_membership_re (__str_re_consume_rec (__eo_list_rev (Term.UOp UserOp.str_concat) (__str_flatten (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) s))) (__re_rev_map_rev (__re_flatten (Term.Boolean true) r0) (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))) (__eo_list_rev (Term.UOp UserOp.str_concat) (__str_flatten (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) s))))) (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))))) (__eo_list_rev (Term.UOp UserOp.str_concat) (__str_flatten (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) s))) (__str_membership_str (__str_re_consume_rec (__eo_list_rev (Term.UOp UserOp.str_concat) (__str_flatten (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) s))) (__re_rev_map_rev (__re_flatten (Term.Boolean true) r0) (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))) (__eo_list_rev (Term.UOp UserOp.str_concat) (__str_flatten (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) s))))))) = (__str_flatten (__eo_list_singleton_intro (Term.UOp UserOp.str_concat) s)) := by
           rw [hCarryEq, eo_ite_true]
           exact hInvS
