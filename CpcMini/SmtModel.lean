@@ -1104,6 +1104,12 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.Var s T) => (native_model_var_lookup M s T)
   | (SmtTerm.UConst s T) => (native_model_lookup M s T)
   | x1 => SmtValue.NotValue
+termination_by structural t => t
+
+theorem __smtx_model_eval_force_eqns (M : SmtModel) (b : native_Bool) :
+    __smtx_model_eval M (SmtTerm.Boolean b) = SmtValue.Boolean b := by
+  unfold __smtx_model_eval
+  rfl
 
 
 

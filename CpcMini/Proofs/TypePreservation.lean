@@ -94,8 +94,10 @@ private theorem supported_type_preservation
       exact typeof_value_model_eval_exists M s T body ht
   | «forall» s T body =>
       exact typeof_value_model_eval_forall M s T body ht
-  | choice_nth s T body n =>
-      exact typeof_value_model_eval_choice_nth M hM M s T body n ht
+  | choice s T body hChoice =>
+      exact typeof_value_model_eval_choice M hM M s T body ht
+  | bind s T x1 x2 hBind =>
+      exact typeof_value_model_eval_bind M hM M s T x1 x2 ht
   | map_diff ht1 hs1 ht2 hs2 hDefault =>
       exact typeof_value_model_eval_map_diff M _ _ ht
         (fun {A} hA => (hDefault (A := A) hA).1)
@@ -272,8 +274,10 @@ theorem supported_preservation_term_of_non_none :
         exact supported_preservation_term.exists s T body
     | SmtTerm.forall s T body =>
         exact supported_preservation_term.forall s T body
-    | SmtTerm.choice_nth s T body n =>
-        exact supported_preservation_term.choice_nth s T body n
+    | SmtTerm.choice s T body =>
+        exact supported_preservation_term.choice s T body ht
+    | SmtTerm.bind s T x1 x2 =>
+        exact supported_preservation_term.bind s T x1 x2 ht
     | SmtTerm.map_diff t1 t2 =>
         rcases map_diff_args_of_non_none ht with hMap | hSet
         · rcases hMap with ⟨A, B, h1, h2, hTy⟩
@@ -395,13 +399,21 @@ theorem supported_preservation_term_of_non_none :
             exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
               (go (SmtTerm.forall s T body) hArgs.1)
               (go x hArgs.2)
-        | choice_nth s T body n =>
-            have hApp := generic_apply_facts_of_not_special (f := SmtTerm.choice_nth s T body n) (x := x)
+        | choice s T body =>
+            have hApp := generic_apply_facts_of_not_special (f := SmtTerm.choice s T body) (x := x)
               (by intro s' d i j hEq; cases hEq)
               (by intro s' d i hEq; cases hEq)
             have hArgs := generic_apply_subterms_non_none hApp.1 ht
             exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
-              (go (SmtTerm.choice_nth s T body n) hArgs.1)
+              (go (SmtTerm.choice s T body) hArgs.1)
+              (go x hArgs.2)
+        | bind s T x1 x2 =>
+            have hApp := generic_apply_facts_of_not_special (f := SmtTerm.bind s T x1 x2) (x := x)
+              (by intro s' d i j hEq; cases hEq)
+              (by intro s' d i hEq; cases hEq)
+            have hArgs := generic_apply_subterms_non_none hApp.1 ht
+            exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
+              (go (SmtTerm.bind s T x1 x2) hArgs.1)
               (go x hArgs.2)
         | map_diff t1 t2 =>
             have hApp := generic_apply_facts_of_not_special (f := SmtTerm.map_diff t1 t2) (x := x)

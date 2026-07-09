@@ -710,12 +710,18 @@ theorem smtx_eval_qdiv_term_eq
   rw [__smtx_model_eval.eq_def] <;> simp only
 
 /-- Stable rewrite for evaluating SMT choice witnesses. -/
-noncomputable def smtx_eval_choice_nth_term_eq
-    (M : SmtModel) (s : native_String) (T : SmtType)
-    (body : SmtTerm) (n : native_Nat) :
-    __smtx_model_eval M (SmtTerm.choice_nth s T body n) =
-      native_eval_tchoice_nth M s T body n := by
-  rfl
+theorem smtx_eval_choice_term_eq
+    (M : SmtModel) (s : native_String) (T : SmtType) (body : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.choice s T body) =
+      native_eval_tchoice M s T body := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+/-- Stable rewrite for evaluating SMT let-bindings. -/
+theorem smtx_eval_bind_term_eq
+    (M : SmtModel) (s : native_String) (T : SmtType) (x1 x2 : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.bind s T x1 x2) =
+      __smtx_model_eval (native_model_push M s T (__smtx_model_eval M x1)) x2 := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
 
 /-- Stable rewrite for evaluating SMT variables. -/
 theorem smtx_eval_var_term_eq
@@ -725,10 +731,19 @@ theorem smtx_eval_var_term_eq
   rw [__smtx_model_eval.eq_def] <;> simp only
 
 /-- Stable rewrite for typing SMT choice witnesses. -/
-theorem smtx_typeof_choice_nth_term_eq
-    (s : native_String) (T : SmtType) (body : SmtTerm) (n : native_Nat) :
-    __smtx_typeof (SmtTerm.choice_nth s T body n) =
-      __smtx_typeof_choice_nth T body n := by
+theorem smtx_typeof_choice_term_eq
+    (s : native_String) (T : SmtType) (body : SmtTerm) :
+    __smtx_typeof (SmtTerm.choice s T body) =
+      native_ite (native_Teq (__smtx_typeof body) SmtType.Bool)
+        (__smtx_typeof_guard_wf T T) SmtType.None := by
+  rw [__smtx_typeof.eq_def] <;> simp only
+
+/-- Stable rewrite for typing SMT let-bindings. -/
+theorem smtx_typeof_bind_term_eq
+    (s : native_String) (T : SmtType) (x1 x2 : SmtTerm) :
+    __smtx_typeof (SmtTerm.bind s T x1 x2) =
+      native_ite (native_Teq (__smtx_typeof x1) T)
+        (__smtx_typeof_guard_wf T (__smtx_typeof x2)) SmtType.None := by
   rw [__smtx_typeof.eq_def] <;> simp only
 
 /-- Stable rewrite for typing SMT existential terms. -/

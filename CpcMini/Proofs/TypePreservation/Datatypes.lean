@@ -726,36 +726,29 @@ private theorem term_result_datatype_components_wf_of_non_none
     case «forall» s T body =>
       rw [forall_term_typeof_of_non_none hxNN]
       simp [result_datatype_components_wf]
-    case choice_nth s T body n =>
-      induction n generalizing s T body with
-      | zero =>
-          have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
-            unfold term_has_non_none_type at hxNN
-            cases hBody : __smtx_typeof body <;>
-              simp [__smtx_typeof, __smtx_typeof_choice_nth, native_ite,
-                native_Teq, hBody] at hxNN ⊢
-            exact hxNN
-          have hWf : __smtx_type_wf T = true :=
-            smtx_typeof_guard_wf_wf_of_non_none T T hGuardNN
-          rw [choice_nth_zero_typeof_of_non_none hxNN]
-          exact result_datatype_components_wf_of_type_wf hWf
-      | succ n ih =>
-          cases body with
-          | «exists» s' U body' =>
-              have hTyEq :
-                  __smtx_typeof
-                      (SmtTerm.choice_nth s T
-                        (SmtTerm.exists s' U body') (Nat.succ n)) =
-                    __smtx_typeof (SmtTerm.choice_nth s' U body' n) := by
-                exact choice_nth_succ_typeof_tail_of_non_none hxNN
-              have hNN' : term_has_non_none_type
-                  (SmtTerm.choice_nth s' U body' n) := by
-                exact choice_nth_succ_tail_non_none_of_non_none hxNN
-              simpa [hTyEq] using ih s' U body' hNN'
-          | _ =>
-              exfalso
-              unfold term_has_non_none_type at hxNN
-              simp [__smtx_typeof, __smtx_typeof_choice_nth] at hxNN
+    case choice s T body =>
+      have hGuardTy :
+          __smtx_typeof (SmtTerm.choice s T body) =
+            __smtx_typeof_guard_wf T T :=
+        choice_term_guard_type_of_non_none hxNN
+      have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
+        intro hNone
+        unfold term_has_non_none_type at hxNN
+        rw [hGuardTy, hNone] at hxNN
+        exact hxNN rfl
+      have hWf : __smtx_type_wf T = true :=
+        smtx_typeof_guard_wf_wf_of_non_none T T hGuardNN
+      rw [choice_term_typeof_of_non_none hxNN]
+      exact result_datatype_components_wf_of_type_wf hWf
+    case bind s T x1 x2 =>
+      have hTyEq : __smtx_typeof (SmtTerm.bind s T x1 x2) = __smtx_typeof x2 :=
+        bind_term_typeof_of_non_none hxNN
+      have hx2NN : term_has_non_none_type x2 := by
+        unfold term_has_non_none_type at hxNN ⊢
+        rw [hTyEq] at hxNN
+        exact hxNN
+      rw [hTyEq]
+      exact go x2 hx2NN
     case DtCons s d i =>
       let raw :=
         __smtx_typeof_dt_cons_rec (SmtType.Datatype s d)
