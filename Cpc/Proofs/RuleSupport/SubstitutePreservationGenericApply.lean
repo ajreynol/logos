@@ -56,6 +56,219 @@ private theorem eo_typeof_apply_apply_head_typeof_ne_stuck_of_head_has_smt_trans
   rw [hOuterGeneric] at hTy
   exact SubstituteSupport.eo_typeof_apply_head_ne_stuck hTy
 
+private def applyApplyApplyUOpNeedsSpecialType : UserOp -> Prop
+  | UserOp.ite => True
+  | UserOp.store => True
+  | UserOp.bvite => True
+  | UserOp.str_substr => True
+  | UserOp.str_replace => True
+  | UserOp.str_replace_all => True
+  | UserOp.str_indexof => True
+  | UserOp.str_update => True
+  | UserOp.str_replace_re => True
+  | UserOp.str_replace_re_all => True
+  | UserOp.str_indexof_re => True
+  | UserOp.str_indexof_re_split => True
+  | UserOp._at_strings_occur_index => True
+  | UserOp._at_strings_occur_index_re => True
+  | _ => False
+
+private theorem false_of_special_type_uop_has_smt_translation
+    (op : UserOp)
+    (hSpecial : applyApplyApplyUOpNeedsSpecialType op)
+    (hTrans : RuleProofs.eo_has_smt_translation (Term.UOp op)) :
+    False := by
+  cases op <;> simp [applyApplyApplyUOpNeedsSpecialType] at hSpecial
+  all_goals
+    exact hTrans (by
+      change __smtx_typeof SmtTerm.None = SmtType.None
+      exact TranslationProofs.smtx_typeof_none)
+
+private theorem eo_typeof_apply_apply_residual_head_typeof_ne_stuck
+    (g x a : Term)
+    (hNotUOp : ∀ op, g ≠ Term.UOp op)
+    (hNotFunType : g ≠ Term.FunType)
+    (hNoUpdate : ∀ idx, g ≠ Term.UOp1 UserOp1.update idx)
+    (hNoTupleUpdate : ∀ idx, g ≠ Term.UOp1 UserOp1.tuple_update idx)
+    (hNoApplyUOp :
+      ∀ op y, applyApplyApplyUOpNeedsSpecialType op ->
+        g ≠ Term.Apply (Term.UOp op) y)
+    (hTy : __eo_typeof (Term.Apply (Term.Apply g x) a) ≠ Term.Stuck) :
+    __eo_typeof (Term.Apply g x) ≠ Term.Stuck := by
+  have hOuterGeneric :
+      __eo_typeof (Term.Apply (Term.Apply g x) a) =
+        __eo_typeof_apply (__eo_typeof (Term.Apply g x)) (__eo_typeof a) := by
+    cases g <;> try rfl
+    · rename_i op
+      exact False.elim (hNotUOp op rfl)
+    · rename_i op idx
+      cases op <;> try rfl
+      · exact False.elim (hNoUpdate idx rfl)
+      · exact False.elim (hNoTupleUpdate idx rfl)
+    · rename_i head y
+      cases head <;> try rfl
+      · rename_i op
+        cases op <;> try rfl
+        all_goals
+          exact False.elim
+            (hNoApplyUOp _ y
+              (by simp [applyApplyApplyUOpNeedsSpecialType]) rfl)
+    · exact False.elim (hNotFunType rfl)
+  rw [hOuterGeneric] at hTy
+  exact SubstituteSupport.eo_typeof_apply_head_ne_stuck hTy
+
+private theorem substitute_simul_apply_apply_atom_base_ne_special_type_uop
+    (f y x xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hNotApply : ∀ p q, f ≠ Term.Apply p q)
+    (hNotVar : ∀ name T, f ≠ Term.Var name T)
+    (hNotUOp : ∀ op, f ≠ Term.UOp op)
+    (op : UserOp) (ySub xSub : Term)
+    (hHeadNe :
+      __substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply f y) x) xs ts bvs ≠
+        Term.Stuck)
+    (hHeadShape :
+      __substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply f y) x) xs ts bvs =
+        Term.Apply (Term.Apply (Term.UOp op) ySub) xSub) :
+    False := by
+  have hisr : (Term.Boolean false : Term) ≠ Term.Stuck := by decide
+  have hxs : xs ≠ Term.Stuck := hXsEnv.ne_stuck
+  have hts : ts ≠ Term.Stuck :=
+    SubstituteSupport.eoListAllHaveSmtTranslation_ne_stuck hTs
+  have hbvs : bvs ≠ Term.Stuck := hBvsEnv.ne_stuck
+  by_cases hBinder :
+      ∃ q v vs,
+        Term.Apply f y =
+          Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
+  · rcases hBinder with ⟨q, v, vs, hEqBinder⟩
+    cases hEqBinder
+    let binder := Term.Apply (Term.Apply Term.__eo_List_cons v) vs
+    let bodySub :=
+      __substitute_simul_rec (Term.Boolean false) x xs ts
+        (__eo_list_concat Term.__eo_List_cons binder bvs)
+    have hQuant :
+        __substitute_simul_rec (Term.Boolean false)
+            (Term.Apply (Term.Apply f binder) x) xs ts bvs =
+          __eo_mk_apply (Term.Apply f binder) bodySub := by
+      simpa [binder, bodySub] using
+        SubstituteTranslatabilitySupport.substitute_simul_quant_eq_of_ne_stuck
+          f v vs x xs ts bvs hxs hts hbvs
+          (by simpa [binder] using hHeadNe)
+    have hMkNe :
+        __eo_mk_apply (Term.Apply f binder) bodySub ≠ Term.Stuck := by
+      rw [← hQuant]
+      simpa [binder] using hHeadNe
+    have hMk :
+        __eo_mk_apply (Term.Apply f binder) bodySub =
+          Term.Apply (Term.Apply f binder) bodySub :=
+      SubstituteTranslatabilitySupport.instantiate_eo_mk_apply_eq_apply_of_ne_stuck
+        (Term.Apply f binder) bodySub hMkNe
+    have hExplicit :
+        __substitute_simul_rec (Term.Boolean false)
+            (Term.Apply (Term.Apply f binder) x) xs ts bvs =
+          Term.Apply (Term.Apply f binder) bodySub := by
+      rw [hQuant, hMk]
+    have hShape :
+        Term.Apply (Term.Apply f binder) bodySub =
+          Term.Apply (Term.Apply (Term.UOp op) ySub) xSub := by
+      rw [← hExplicit]
+      simpa [binder] using hHeadShape
+    injection hShape with hHeadEq _hBodyEq
+    injection hHeadEq with hFEq _hBinderEq
+    exact hNotUOp op hFEq
+  · let fSub := __substitute_simul_rec (Term.Boolean false) f xs ts bvs
+    let y0Sub := __substitute_simul_rec (Term.Boolean false) y xs ts bvs
+    let x0Sub := __substitute_simul_rec (Term.Boolean false) x xs ts bvs
+    have hInner :
+        __substitute_simul_rec (Term.Boolean false)
+            (Term.Apply f y) xs ts bvs =
+          __eo_mk_apply fSub y0Sub := by
+      simpa [fSub, y0Sub] using
+        SubstituteSupport.substitute_simul_rec_apply
+          (Term.Boolean false) f y xs ts bvs hisr hxs hts hbvs
+          (by
+            intro q v vs hEq
+            exact hNotApply q
+              (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) hEq)
+    have hHeadRaw :
+        __substitute_simul_rec (Term.Boolean false)
+            (Term.Apply (Term.Apply f y) x) xs ts bvs =
+          __eo_mk_apply
+            (__substitute_simul_rec (Term.Boolean false)
+              (Term.Apply f y) xs ts bvs)
+            x0Sub := by
+      simpa [x0Sub] using
+        SubstituteSupport.substitute_simul_rec_apply
+          (Term.Boolean false) (Term.Apply f y) x xs ts bvs
+          hisr hxs hts hbvs
+          (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+    have hInnerNe : __eo_mk_apply fSub y0Sub ≠ Term.Stuck := by
+      rw [← hInner]
+      exact
+        SubstituteTranslatabilitySupport.instantiate_eo_mk_apply_fun_ne_stuck_of_ne_stuck
+          (by
+            rw [← hHeadRaw]
+            exact hHeadNe)
+    have hFSubNe : fSub ≠ Term.Stuck :=
+      SubstituteTranslatabilitySupport.instantiate_eo_mk_apply_fun_ne_stuck_of_ne_stuck
+        hInnerNe
+    have hFNotStuck : f ≠ Term.Stuck := by
+      intro hFStuck
+      subst f
+      have hStuckSub :
+          __substitute_simul_rec (Term.Boolean false) Term.Stuck xs ts bvs =
+            Term.Stuck := by
+        rfl
+      exact hFSubNe (by simpa [fSub] using hStuckSub)
+    have hFSubEq : fSub = f := by
+      simpa [fSub] using
+        SubstituteSupport.substitute_simul_rec_atom_eq_self_of_ne_stuck
+          f xs ts bvs hXsEnv hBvsEnv hTs
+          hNotApply hNotVar hFNotStuck
+          (by simpa [fSub] using hFSubNe)
+    have hInnerMk : __eo_mk_apply fSub y0Sub = Term.Apply fSub y0Sub :=
+      SubstituteTranslatabilitySupport.instantiate_eo_mk_apply_eq_apply_of_ne_stuck
+        fSub y0Sub hInnerNe
+    have hHeadMkNe :
+        __eo_mk_apply
+            (__substitute_simul_rec (Term.Boolean false)
+              (Term.Apply f y) xs ts bvs)
+            x0Sub ≠
+          Term.Stuck := by
+      rw [← hHeadRaw]
+      exact hHeadNe
+    have hHeadMk :
+        __eo_mk_apply
+            (__substitute_simul_rec (Term.Boolean false)
+              (Term.Apply f y) xs ts bvs)
+            x0Sub =
+          Term.Apply
+            (__substitute_simul_rec (Term.Boolean false)
+              (Term.Apply f y) xs ts bvs)
+            x0Sub :=
+      SubstituteTranslatabilitySupport.instantiate_eo_mk_apply_eq_apply_of_ne_stuck
+        (__substitute_simul_rec (Term.Boolean false)
+          (Term.Apply f y) xs ts bvs)
+        x0Sub hHeadMkNe
+    have hExplicit :
+        __substitute_simul_rec (Term.Boolean false)
+            (Term.Apply (Term.Apply f y) x) xs ts bvs =
+          Term.Apply (Term.Apply f y0Sub) x0Sub := by
+      rw [hHeadRaw, hHeadMk, hInner, hInnerMk, hFSubEq]
+    have hShape :
+        Term.Apply (Term.Apply f y0Sub) x0Sub =
+          Term.Apply (Term.Apply (Term.UOp op) ySub) xSub := by
+      rw [← hExplicit]
+      exact hHeadShape
+    injection hShape with hHeadEq _hXEq
+    injection hHeadEq with hFEq _hYEq
+    exact hNotUOp op hFEq
+
 theorem substitute_simul_apply_apply_var_head_generic_head_typeof_ne_stuck
     (name T x a xs ts bvs : Term)
     {xsVars bvsVars : List EoVarKey}
@@ -870,6 +1083,7 @@ theorem substitute_simul_apply_apply_branch_residual_head_typeof_ne_stuck
     (hNoTupleUpdate :
       ¬ ∃ idx, g = Term.UOp1 UserOp1.tuple_update idx)
     (hApplyUOp : ApplyApplyApplyUOpBranchExclusions g)
+    (hNotUOpTop : ∀ op, g ≠ Term.UOp op)
     (hFTrans :
       RuleProofs.eo_has_smt_translation (Term.Apply (Term.Apply g x) a))
     (hTy :
@@ -881,10 +1095,480 @@ theorem substitute_simul_apply_apply_branch_residual_head_typeof_ne_stuck
         (__substitute_simul_rec (Term.Boolean false)
           (Term.Apply g x) xs ts bvs) ≠
       Term.Stuck := by
-  -- TODO(instRefactor): prove the higher-order operator-spine non-vacuity
-  -- bridge and remove the matching old type-only `sorry`s in
-  -- `SubstituteTypeSupport.substitute_simul_rec_typeof_eq_of_typeof_ne_stuck_lt`.
-  sorry
+  cases g with
+  | Var name T =>
+      exact
+        substitute_simul_apply_apply_var_head_generic_head_typeof_ne_stuck
+          name T x a xs ts bvs hXsEnv hBvsEnv hTs hNotBinderOuter
+          hFTrans hTy
+  | Apply f y =>
+      have hisr : (Term.Boolean false : Term) ≠ Term.Stuck := by decide
+      have hxs : xs ≠ Term.Stuck := hXsEnv.ne_stuck
+      have hts : ts ≠ Term.Stuck :=
+        SubstituteSupport.eoListAllHaveSmtTranslation_ne_stuck hTs
+      have hbvs : bvs ≠ Term.Stuck := hBvsEnv.ne_stuck
+      let headSub :=
+        __substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply f y) x) xs ts bvs
+      let aSub := __substitute_simul_rec (Term.Boolean false) a xs ts bvs
+      have hOuterRaw :
+          __substitute_simul_rec (Term.Boolean false)
+              (Term.Apply (Term.Apply (Term.Apply f y) x) a) xs ts bvs =
+            __eo_mk_apply headSub aSub := by
+        simpa [headSub, aSub] using
+          SubstituteSupport.substitute_simul_rec_apply
+            (Term.Boolean false) (Term.Apply (Term.Apply f y) x) a xs ts bvs
+            hisr hxs hts hbvs hNotBinderOuter
+      have hOuterTyMk :
+          __eo_typeof (__eo_mk_apply headSub aSub) ≠ Term.Stuck := by
+        rwa [hOuterRaw] at hTy
+      have hOuterMkNe : __eo_mk_apply headSub aSub ≠ Term.Stuck :=
+        SubstituteSupport.eo_mk_apply_ne_stuck_of_typeof_ne_stuck hOuterTyMk
+      have hOuterMk : __eo_mk_apply headSub aSub = Term.Apply headSub aSub :=
+        SubstituteSupport.eo_mk_apply_eq_apply_of_ne_stuck headSub aSub hOuterMkNe
+      have hOuterApplyTy :
+          __eo_typeof (Term.Apply headSub aSub) ≠ Term.Stuck := by
+        rwa [hOuterMk] at hOuterTyMk
+      have hHeadNe : headSub ≠ Term.Stuck :=
+        SubstituteSupport.substitute_simul_rec_apply_head_ne_stuck_of_typeof_ne_stuck
+          (Term.Apply (Term.Apply f y) x) a xs ts bvs
+          hXsEnv hBvsEnv hTs hNotBinderOuter (by
+            rw [hOuterRaw]
+            exact hOuterTyMk)
+      rcases
+          SubstituteTranslatabilitySupport.substitute_simul_rec_apply_apply_eq_apply_apply_of_ne_stuck
+            f y x xs ts bvs hisr hxs hts hbvs
+            (by simpa [headSub] using hHeadNe)
+        with ⟨fSub, ySub, xSub, hHeadShape⟩
+      have hOuterTyShape :
+          __eo_typeof
+              (Term.Apply (Term.Apply (Term.Apply fSub ySub) xSub) aSub) ≠
+            Term.Stuck := by
+        simpa [headSub, hHeadShape] using hOuterApplyTy
+      have hNoApplyUOp :
+          ∀ op z, applyApplyApplyUOpNeedsSpecialType op ->
+            Term.Apply fSub ySub ≠ Term.Apply (Term.UOp op) z := by
+        intro op z hSpecial hEq
+        cases hEq
+        by_cases hFUOp : ∃ op0, f = Term.UOp op0
+        ·
+            rcases hFUOp with ⟨op0, rfl⟩
+            have hHeadShape2 :
+                __substitute_simul_rec (Term.Boolean false)
+                    (Term.Apply (Term.Apply (Term.UOp op0) y) x) xs ts bvs =
+                  Term.Apply (Term.Apply (Term.UOp op) ySub) xSub := by
+              simpa [headSub] using hHeadShape
+            have hOpEq : op0 = op := by
+              by_cases hBinder :
+                  ∃ q v vs,
+                    Term.Apply (Term.UOp op0) y =
+                      Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
+              · rcases hBinder with ⟨q, v, vs, hEqBinder⟩
+                cases hEqBinder
+                let binder := Term.Apply (Term.Apply Term.__eo_List_cons v) vs
+                let bodySub :=
+                  __substitute_simul_rec (Term.Boolean false) x xs ts
+                    (__eo_list_concat Term.__eo_List_cons binder bvs)
+                have hQuant :
+                    __substitute_simul_rec (Term.Boolean false)
+                        (Term.Apply (Term.Apply (Term.UOp op0) binder) x)
+                        xs ts bvs =
+                      __eo_mk_apply (Term.Apply (Term.UOp op0) binder)
+                        bodySub := by
+                  simpa [binder, bodySub] using
+                    SubstituteTranslatabilitySupport.substitute_simul_quant_eq_of_ne_stuck
+                      (Term.UOp op0) v vs x xs ts bvs hxs hts hbvs
+                      (by simpa [headSub, binder] using hHeadNe)
+                have hMkNe :
+                    __eo_mk_apply (Term.Apply (Term.UOp op0) binder)
+                        bodySub ≠
+                      Term.Stuck := by
+                  rw [← hQuant]
+                  simpa [headSub, binder] using hHeadNe
+                have hMk :
+                    __eo_mk_apply (Term.Apply (Term.UOp op0) binder)
+                        bodySub =
+                      Term.Apply (Term.Apply (Term.UOp op0) binder) bodySub :=
+                  SubstituteTranslatabilitySupport.instantiate_eo_mk_apply_eq_apply_of_ne_stuck
+                    (Term.Apply (Term.UOp op0) binder) bodySub hMkNe
+                have hExplicit :
+                    __substitute_simul_rec (Term.Boolean false)
+                        (Term.Apply (Term.Apply (Term.UOp op0) binder) x)
+                        xs ts bvs =
+                      Term.Apply (Term.Apply (Term.UOp op0) binder) bodySub := by
+                  rw [hQuant, hMk]
+                have hShape :
+                    Term.Apply (Term.Apply (Term.UOp op0) binder) bodySub =
+                      Term.Apply (Term.Apply (Term.UOp op) ySub) xSub := by
+                  rw [← hExplicit]
+                  simpa [binder] using hHeadShape2
+                injection hShape with hHeadEq _hBodyEq
+                injection hHeadEq with hOpEq _hBinderEq
+                cases hOpEq
+                rfl
+              · let y0Sub := __substitute_simul_rec (Term.Boolean false) y xs ts bvs
+                let x0Sub := __substitute_simul_rec (Term.Boolean false) x xs ts bvs
+                have hUOpSub :
+                    __substitute_simul_rec (Term.Boolean false)
+                        (Term.UOp op0) xs ts bvs =
+                      Term.UOp op0 :=
+                  SubstituteSupport.substitute_simul_rec_uop_eq_self
+                    op0 xs ts bvs hXsEnv hBvsEnv hTs
+                have hInner :
+                    __substitute_simul_rec (Term.Boolean false)
+                        (Term.Apply (Term.UOp op0) y) xs ts bvs =
+                      __eo_mk_apply (Term.UOp op0) y0Sub := by
+                  have hApply :=
+                    SubstituteSupport.substitute_simul_rec_apply
+                      (Term.Boolean false) (Term.UOp op0) y xs ts bvs
+                      hisr hxs hts hbvs
+                      (by intro q v vs hEq; cases hEq)
+                  simpa [y0Sub, hUOpSub] using hApply
+                have hHeadRaw :
+                    __substitute_simul_rec (Term.Boolean false)
+                        (Term.Apply (Term.Apply (Term.UOp op0) y) x) xs ts bvs =
+                      __eo_mk_apply
+                        (__substitute_simul_rec (Term.Boolean false)
+                          (Term.Apply (Term.UOp op0) y) xs ts bvs)
+                        x0Sub := by
+                  simpa [x0Sub] using
+                    SubstituteSupport.substitute_simul_rec_apply
+                      (Term.Boolean false) (Term.Apply (Term.UOp op0) y)
+                      x xs ts bvs hisr hxs hts hbvs
+                      (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+                have hInnerNe :
+                    __eo_mk_apply (Term.UOp op0) y0Sub ≠ Term.Stuck := by
+                  rw [← hInner]
+                  exact
+                    SubstituteTranslatabilitySupport.instantiate_eo_mk_apply_fun_ne_stuck_of_ne_stuck
+                      (by
+                        rw [← hHeadRaw]
+                        simpa [headSub] using hHeadNe)
+                have hInnerMk :
+                    __eo_mk_apply (Term.UOp op0) y0Sub =
+                      Term.Apply (Term.UOp op0) y0Sub :=
+                  SubstituteTranslatabilitySupport.instantiate_eo_mk_apply_eq_apply_of_ne_stuck
+                    (Term.UOp op0) y0Sub hInnerNe
+                have hHeadMkNe :
+                    __eo_mk_apply
+                        (__substitute_simul_rec (Term.Boolean false)
+                          (Term.Apply (Term.UOp op0) y) xs ts bvs)
+                        x0Sub ≠
+                      Term.Stuck := by
+                  rw [← hHeadRaw]
+                  simpa [headSub] using hHeadNe
+                have hHeadMk :
+                    __eo_mk_apply
+                        (__substitute_simul_rec (Term.Boolean false)
+                          (Term.Apply (Term.UOp op0) y) xs ts bvs)
+                        x0Sub =
+                      Term.Apply
+                        (__substitute_simul_rec (Term.Boolean false)
+                          (Term.Apply (Term.UOp op0) y) xs ts bvs)
+                        x0Sub :=
+                  SubstituteTranslatabilitySupport.instantiate_eo_mk_apply_eq_apply_of_ne_stuck
+                    (__substitute_simul_rec (Term.Boolean false)
+                      (Term.Apply (Term.UOp op0) y) xs ts bvs)
+                    x0Sub hHeadMkNe
+                have hExplicit :
+                    __substitute_simul_rec (Term.Boolean false)
+                        (Term.Apply (Term.Apply (Term.UOp op0) y) x) xs ts bvs =
+                      Term.Apply (Term.Apply (Term.UOp op0) y0Sub) x0Sub := by
+                  rw [hHeadRaw, hHeadMk, hInner, hInnerMk]
+                have hShape :
+                    Term.Apply (Term.Apply (Term.UOp op0) y0Sub) x0Sub =
+                      Term.Apply (Term.Apply (Term.UOp op) ySub) xSub := by
+                  rw [← hExplicit]
+                  exact hHeadShape2
+                injection hShape with hHeadEq _hXEq
+                injection hHeadEq with hOpEq _hYEq
+                cases hOpEq
+                rfl
+            subst op0
+            cases op <;> simp [applyApplyApplyUOpNeedsSpecialType] at hSpecial
+            all_goals
+              first
+              | exact hApplyUOp.notIte ⟨y, rfl⟩
+              | exact hApplyUOp.notStore ⟨y, rfl⟩
+              | exact hApplyUOp.notBvite ⟨y, rfl⟩
+              | exact hApplyUOp.notStrSubstr ⟨y, rfl⟩
+              | exact hApplyUOp.notStrReplace ⟨y, rfl⟩
+              | exact hApplyUOp.notStrReplaceAll ⟨y, rfl⟩
+              | exact hApplyUOp.notStrIndexof ⟨y, rfl⟩
+              | exact hApplyUOp.notStrUpdate ⟨y, rfl⟩
+              | exact hApplyUOp.notStrReplaceRe ⟨y, rfl⟩
+              | exact hApplyUOp.notStrReplaceReAll ⟨y, rfl⟩
+              | exact hApplyUOp.notStrIndexofRe ⟨y, rfl⟩
+              | exact hApplyUOp.notStrIndexofReSplit ⟨y, rfl⟩
+              | exact hFTrans (by
+                  change
+                    __smtx_typeof
+                        (SmtTerm.Apply
+                          (SmtTerm.Apply
+                            (SmtTerm.Apply SmtTerm.None (__eo_to_smt y))
+                            (__eo_to_smt x))
+                          (__eo_to_smt a)) =
+                      SmtType.None
+                  simp [__smtx_typeof, __smtx_typeof_apply,
+                    TranslationProofs.smtx_typeof_none])
+        · by_cases hFVar : ∃ name T, f = Term.Var name T
+          · rcases hFVar with ⟨name, T, rfl⟩
+            have hOuterTranslate :
+                __eo_to_smt
+                    (Term.Apply
+                      (Term.Apply (Term.Apply (Term.Var name T) y) x) a) =
+                  SmtTerm.Apply
+                    (__eo_to_smt
+                      (Term.Apply (Term.Apply (Term.Var name T) y) x))
+                    (__eo_to_smt a) := by
+              rfl
+            have hOuterGeneric :
+                __smtx_typeof
+                    (SmtTerm.Apply
+                      (__eo_to_smt
+                        (Term.Apply (Term.Apply (Term.Var name T) y) x))
+                      (__eo_to_smt a)) =
+                  __smtx_typeof_apply
+                    (__smtx_typeof
+                      (__eo_to_smt
+                        (Term.Apply (Term.Apply (Term.Var name T) y) x)))
+                    (__smtx_typeof (__eo_to_smt a)) :=
+              generic_apply_type_of_non_special_head_closed
+                (__eo_to_smt (Term.Apply (Term.Apply (Term.Var name T) y) x))
+                (__eo_to_smt a)
+                (TranslationProofs.eo_to_smt_apply_ne_dt_sel
+                  (Term.Apply (Term.Var name T) y) x)
+                (TranslationProofs.eo_to_smt_apply_ne_dt_tester
+                  (Term.Apply (Term.Var name T) y) x)
+            have hHead2Trans :
+                RuleProofs.eo_has_smt_translation
+                  (Term.Apply (Term.Apply (Term.Var name T) y) x) :=
+              (SubstituteSupport.apply_generic_args_have_smt_translation_of_has_smt_translation
+                (Term.Apply (Term.Apply (Term.Var name T) y) x) a
+                hOuterTranslate hOuterGeneric hFTrans).1
+            have hHead1Translate :
+                __eo_to_smt (Term.Apply (Term.Apply (Term.Var name T) y) x) =
+                  SmtTerm.Apply (__eo_to_smt (Term.Apply (Term.Var name T) y))
+                    (__eo_to_smt x) := by
+              rfl
+            have hHead1Generic :
+                __smtx_typeof
+                    (SmtTerm.Apply (__eo_to_smt (Term.Apply (Term.Var name T) y))
+                      (__eo_to_smt x)) =
+                  __smtx_typeof_apply
+                    (__smtx_typeof (__eo_to_smt (Term.Apply (Term.Var name T) y)))
+                    (__smtx_typeof (__eo_to_smt x)) :=
+              generic_apply_type_of_non_special_head_closed
+                (__eo_to_smt (Term.Apply (Term.Var name T) y)) (__eo_to_smt x)
+                (TranslationProofs.eo_to_smt_apply_ne_dt_sel
+                  (Term.Var name T) y)
+                (TranslationProofs.eo_to_smt_apply_ne_dt_tester
+                  (Term.Var name T) y)
+            have hHead1Trans :
+                RuleProofs.eo_has_smt_translation
+                  (Term.Apply (Term.Var name T) y) :=
+              (SubstituteSupport.apply_generic_args_have_smt_translation_of_has_smt_translation
+                (Term.Apply (Term.Var name T) y) x
+                hHead1Translate hHead1Generic hHead2Trans).1
+            have hVarTrans : RuleProofs.eo_has_smt_translation (Term.Var name T) :=
+              (SubstituteSupport.apply_generic_args_have_smt_translation_of_has_smt_translation
+                (Term.Var name T) y (by rfl)
+                (SubstituteSupport.var_apply_generic_smt_type name T y)
+                hHead1Trans).1
+            have hHeadShape2 :
+                __substitute_simul_rec (Term.Boolean false)
+                    (Term.Apply (Term.Apply (Term.Var name T) y) x) xs ts bvs =
+                  Term.Apply (Term.Apply (Term.UOp op) ySub) xSub := by
+              simpa [headSub] using hHeadShape
+            by_cases hBinder :
+                ∃ q v vs,
+                  Term.Apply (Term.Var name T) y =
+                    Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
+            · rcases hBinder with ⟨q, v, vs, hEqBinder⟩
+              cases hEqBinder
+              let binder := Term.Apply (Term.Apply Term.__eo_List_cons v) vs
+              let bodySub :=
+                __substitute_simul_rec (Term.Boolean false) x xs ts
+                  (__eo_list_concat Term.__eo_List_cons binder bvs)
+              have hQuant :
+                  __substitute_simul_rec (Term.Boolean false)
+                      (Term.Apply (Term.Apply (Term.Var name T) binder) x)
+                      xs ts bvs =
+                    __eo_mk_apply (Term.Apply (Term.Var name T) binder)
+                      bodySub := by
+                simpa [binder, bodySub] using
+                  SubstituteTranslatabilitySupport.substitute_simul_quant_eq_of_ne_stuck
+                    (Term.Var name T) v vs x xs ts bvs hxs hts hbvs
+                    (by simpa [headSub, binder] using hHeadNe)
+              have hMkNe :
+                  __eo_mk_apply (Term.Apply (Term.Var name T) binder)
+                      bodySub ≠
+                    Term.Stuck := by
+                rw [← hQuant]
+                simpa [headSub, binder] using hHeadNe
+              have hMk :
+                  __eo_mk_apply (Term.Apply (Term.Var name T) binder)
+                      bodySub =
+                    Term.Apply (Term.Apply (Term.Var name T) binder) bodySub :=
+                SubstituteTranslatabilitySupport.instantiate_eo_mk_apply_eq_apply_of_ne_stuck
+                  (Term.Apply (Term.Var name T) binder) bodySub hMkNe
+              have hExplicit :
+                  __substitute_simul_rec (Term.Boolean false)
+                      (Term.Apply (Term.Apply (Term.Var name T) binder) x)
+                      xs ts bvs =
+                    Term.Apply (Term.Apply (Term.Var name T) binder) bodySub := by
+                rw [hQuant, hMk]
+              have hShape :
+                  Term.Apply (Term.Apply (Term.Var name T) binder) bodySub =
+                    Term.Apply (Term.Apply (Term.UOp op) ySub) xSub := by
+                rw [← hExplicit]
+                simpa [binder] using hHeadShape2
+              injection hShape with hHeadEq _hBodyEq
+              injection hHeadEq with hVarEq _hBinderEq
+              cases hVarEq
+            · let varSub :=
+                __substitute_simul_rec (Term.Boolean false)
+                  (Term.Var name T) xs ts bvs
+              let y0Sub := __substitute_simul_rec (Term.Boolean false) y xs ts bvs
+              let x0Sub := __substitute_simul_rec (Term.Boolean false) x xs ts bvs
+              have hInner :
+                  __substitute_simul_rec (Term.Boolean false)
+                      (Term.Apply (Term.Var name T) y) xs ts bvs =
+                    __eo_mk_apply varSub y0Sub := by
+                simpa [varSub, y0Sub] using
+                  SubstituteSupport.substitute_simul_rec_apply
+                    (Term.Boolean false) (Term.Var name T) y xs ts bvs
+                    hisr hxs hts hbvs
+                    (by intro q v vs hEq; cases hEq)
+              have hHeadRaw :
+                  __substitute_simul_rec (Term.Boolean false)
+                      (Term.Apply (Term.Apply (Term.Var name T) y) x) xs ts bvs =
+                    __eo_mk_apply
+                      (__substitute_simul_rec (Term.Boolean false)
+                        (Term.Apply (Term.Var name T) y) xs ts bvs)
+                      x0Sub := by
+                simpa [x0Sub] using
+                  SubstituteSupport.substitute_simul_rec_apply
+                    (Term.Boolean false) (Term.Apply (Term.Var name T) y)
+                    x xs ts bvs hisr hxs hts hbvs
+                    (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
+              have hInnerNe :
+                  __eo_mk_apply varSub y0Sub ≠ Term.Stuck := by
+                rw [← hInner]
+                exact
+                  SubstituteTranslatabilitySupport.instantiate_eo_mk_apply_fun_ne_stuck_of_ne_stuck
+                    (by
+                      rw [← hHeadRaw]
+                      simpa [headSub] using hHeadNe)
+              have hVarNe : varSub ≠ Term.Stuck :=
+                SubstituteTranslatabilitySupport.instantiate_eo_mk_apply_fun_ne_stuck_of_ne_stuck
+                  hInnerNe
+              have hInnerMk :
+                  __eo_mk_apply varSub y0Sub = Term.Apply varSub y0Sub :=
+                SubstituteTranslatabilitySupport.instantiate_eo_mk_apply_eq_apply_of_ne_stuck
+                  varSub y0Sub hInnerNe
+              have hHeadMkNe :
+                  __eo_mk_apply
+                      (__substitute_simul_rec (Term.Boolean false)
+                        (Term.Apply (Term.Var name T) y) xs ts bvs)
+                      x0Sub ≠
+                    Term.Stuck := by
+                rw [← hHeadRaw]
+                simpa [headSub] using hHeadNe
+              have hHeadMk :
+                  __eo_mk_apply
+                      (__substitute_simul_rec (Term.Boolean false)
+                        (Term.Apply (Term.Var name T) y) xs ts bvs)
+                      x0Sub =
+                    Term.Apply
+                      (__substitute_simul_rec (Term.Boolean false)
+                        (Term.Apply (Term.Var name T) y) xs ts bvs)
+                      x0Sub :=
+                SubstituteTranslatabilitySupport.instantiate_eo_mk_apply_eq_apply_of_ne_stuck
+                  (__substitute_simul_rec (Term.Boolean false)
+                    (Term.Apply (Term.Var name T) y) xs ts bvs)
+                  x0Sub hHeadMkNe
+              have hExplicit :
+                  __substitute_simul_rec (Term.Boolean false)
+                      (Term.Apply (Term.Apply (Term.Var name T) y) x) xs ts bvs =
+                    Term.Apply (Term.Apply varSub y0Sub) x0Sub := by
+                rw [hHeadRaw, hHeadMk, hInner, hInnerMk]
+              have hShape :
+                  Term.Apply (Term.Apply varSub y0Sub) x0Sub =
+                    Term.Apply (Term.Apply (Term.UOp op) ySub) xSub := by
+                rw [← hExplicit]
+                exact hHeadShape2
+              injection hShape with hHeadEq _hXEq
+              injection hHeadEq with hVarSubEq _hYEq
+              have hVarSubTrans :
+                  RuleProofs.eo_has_smt_translation varSub := by
+                simpa [varSub] using
+                  SubstituteSupport.substitute_simul_rec_var_any_has_smt_translation_of_ne_stuck
+                    name T xs ts bvs hXsEnv hBvsEnv hTs hVarTrans
+                    (by simpa [varSub] using hVarNe)
+              exact
+                false_of_special_type_uop_has_smt_translation op hSpecial
+                  (by simpa [varSub, hVarSubEq] using hVarSubTrans)
+          · by_cases hFApply : ∃ f0 y0, f = Term.Apply f0 y0
+            · rcases hFApply with ⟨f0, y0, rfl⟩
+              have hHeadNe' :
+                  __substitute_simul_rec (Term.Boolean false)
+                      (Term.Apply (Term.Apply (Term.Apply f0 y0) y) x)
+                      xs ts bvs ≠
+                    Term.Stuck := by
+                simpa [headSub] using hHeadNe
+              rcases
+                  SubstituteTranslatabilitySupport.substitute_simul_rec_apply_apply_apply_eq_apply_apply_apply_of_ne_stuck
+                    f0 y0 y x xs ts bvs hisr hxs hts hbvs hHeadNe'
+                with ⟨gSub, y0Sub, ySub', xSub', hShape3⟩
+              have hShape2 :
+                  __substitute_simul_rec (Term.Boolean false)
+                      (Term.Apply (Term.Apply (Term.Apply f0 y0) y) x)
+                      xs ts bvs =
+                    Term.Apply (Term.Apply (Term.UOp op) ySub) xSub := by
+                simpa [headSub] using hHeadShape
+              rw [hShape3] at hShape2
+              cases hShape2
+            · exact
+                substitute_simul_apply_apply_atom_base_ne_special_type_uop
+                  f y x xs ts bvs hXsEnv hBvsEnv hTs
+                  (by intro p q h; exact hFApply ⟨p, q, h⟩)
+                  (by intro name T h; exact hFVar ⟨name, T, h⟩)
+                  (by intro op h; exact hFUOp ⟨op, h⟩)
+                  op ySub xSub
+                  (by simpa [headSub] using hHeadNe)
+                  (by simpa [headSub] using hHeadShape)
+      have hHeadTyShape :
+          __eo_typeof (Term.Apply (Term.Apply fSub ySub) xSub) ≠
+            Term.Stuck :=
+        eo_typeof_apply_apply_residual_head_typeof_ne_stuck
+          (Term.Apply fSub ySub) xSub aSub
+          (by intro op h; cases h)
+          (by intro h; cases h)
+          (by intro idx h; cases h)
+          (by intro idx h; cases h)
+          hNoApplyUOp hOuterTyShape
+      simpa [headSub, hHeadShape] using hHeadTyShape
+  | UOp op =>
+      exact False.elim (hNotUOpTop op rfl)
+  | Stuck =>
+      exact
+        substitute_simul_apply_apply_atom_residual_head_typeof_ne_stuck
+          Term.Stuck x a xs ts bvs hXsEnv hBvsEnv hTs
+          (by intro f y h; cases h)
+          (by intro name T h; cases h)
+          (by intro op h; cases h)
+          hNoUpdate hNoTupleUpdate
+          hNotBinderOuter hFTrans hTy
+  | _ =>
+      exact
+        substitute_simul_apply_apply_atom_residual_head_typeof_ne_stuck
+          _ x a xs ts bvs hXsEnv hBvsEnv hTs
+          (by intro f y h; cases h)
+          (by intro name T h; cases h)
+          (by intro op h; cases h)
+          hNoUpdate hNoTupleUpdate
+          hNotBinderOuter hFTrans hTy
 
 theorem substitute_simul_apply_apply_branch_residual_preserves_type_and_translation_of_typeof_ne_stuck
     (g x a xs ts bvs : Term)
@@ -901,6 +1585,7 @@ theorem substitute_simul_apply_apply_branch_residual_preserves_type_and_translat
     (hNoTupleUpdate :
       ¬ ∃ idx, g = Term.UOp1 UserOp1.tuple_update idx)
     (hApplyUOp : ApplyApplyApplyUOpBranchExclusions g)
+    (hNotUOpTop : ∀ op, g ≠ Term.UOp op)
     (hFTrans :
       RuleProofs.eo_has_smt_translation (Term.Apply (Term.Apply g x) a))
     (hRecHead :
@@ -949,7 +1634,7 @@ theorem substitute_simul_apply_apply_branch_residual_preserves_type_and_translat
         Term.Stuck :=
     substitute_simul_apply_apply_branch_residual_head_typeof_ne_stuck
       g x a xs ts bvs hXsEnv hBvsEnv hTs hNotBinderOuter
-      hUOp hNoUpdate hNoTupleUpdate hApplyUOp hFTrans hTy
+      hUOp hNoUpdate hNoTupleUpdate hApplyUOp hNotUOpTop hFTrans hTy
   exact
     substitute_simul_apply_applied_head_generic_preserves_type_and_translation_of_typeof_ne_stuck
       g x a xs ts bvs
