@@ -1,0 +1,6 @@
+import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationTernaryIteOps
+import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationTernaryBviteOps
+import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationTernaryStoreOps
+import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationTernarySubstrOps
+import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationStringTernaryOps
+import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationRegexTernaryOps
