@@ -2033,3 +2033,629 @@ theorem facts_bv_not_xor_program
     exact hResultTy
   rw [hEq]
   exact facts_bv_not_xor_term M hM x y z hXTrans hYTrans hZTrans hTermTy
+
+def bvEqXorSolveLhsXor (x y : Term) : Term :=
+  bvCommutativeXorLhs x y
+
+def bvEqXorSolveRhsXor (y z : Term) : Term :=
+  bvCommutativeXorLhs z y
+
+def bvEqXorSolveLeftEq (x y z : Term) : Term :=
+  Term.Apply (Term.Apply (Term.UOp UserOp.eq) (bvEqXorSolveLhsXor x y)) z
+
+def bvEqXorSolveRightEq (x y z : Term) : Term :=
+  Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) (bvEqXorSolveRhsXor y z)
+
+def bvEqXorSolveBody (x y z : Term) : Term :=
+  Term.Apply (Term.Apply (Term.UOp UserOp.eq) (bvEqXorSolveLeftEq x y z))
+    (bvEqXorSolveRightEq x y z)
+
+def bvEqXorSolveTerm (x y z : Term) : Term :=
+  Term.Apply (Term.Apply (Term.UOp UserOp.eq) (bvEqXorSolveBody x y z))
+    (Term.Boolean true)
+
+private theorem eo_typeof_eq_bool_of_ne_stuck_local (A B : Term)
+    (h : __eo_typeof_eq A B ≠ Term.Stuck) :
+    __eo_typeof_eq A B = Term.Bool := by
+  cases A <;> cases B <;>
+    simp [__eo_typeof_eq, __eo_requires, __eo_eq, native_ite, native_teq,
+      native_not] at h ⊢
+  all_goals
+    assumption
+
+private theorem bv_eq_xor_solve_body_type_of_result_type
+    (x y z : Term) :
+    __eo_typeof (bvEqXorSolveTerm x y z) = Term.Bool ->
+    __eo_typeof (bvEqXorSolveBody x y z) = Term.Bool := by
+  intro hTy
+  change __eo_typeof_eq (__eo_typeof (bvEqXorSolveBody x y z)) Term.Bool =
+    Term.Bool at hTy
+  exact support_eo_typeof_eq_bool_operands_eq
+    (__eo_typeof (bvEqXorSolveBody x y z)) Term.Bool hTy
+
+private theorem bv_eq_xor_solve_left_eq_type_of_result_type
+    (x y z : Term) :
+    __eo_typeof (bvEqXorSolveTerm x y z) = Term.Bool ->
+    __eo_typeof (bvEqXorSolveLeftEq x y z) = Term.Bool := by
+  intro hTy
+  have hBodyTy := bv_eq_xor_solve_body_type_of_result_type x y z hTy
+  have hLeftNN :
+      __eo_typeof (bvEqXorSolveLeftEq x y z) ≠ Term.Stuck :=
+    (RuleProofs.eo_typeof_eq_bool_operands_not_stuck
+      (__eo_typeof (bvEqXorSolveLeftEq x y z))
+      (__eo_typeof (bvEqXorSolveRightEq x y z))
+      (by simpa [bvEqXorSolveBody] using hBodyTy)).1
+  change __eo_typeof_eq (__eo_typeof (bvEqXorSolveLhsXor x y))
+      (__eo_typeof z) = Term.Bool
+  apply eo_typeof_eq_bool_of_ne_stuck_local
+  simpa [bvEqXorSolveLeftEq] using hLeftNN
+
+private theorem bv_eq_xor_solve_right_eq_type_of_result_type
+    (x y z : Term) :
+    __eo_typeof (bvEqXorSolveTerm x y z) = Term.Bool ->
+    __eo_typeof (bvEqXorSolveRightEq x y z) = Term.Bool := by
+  intro hTy
+  have hBodyTy := bv_eq_xor_solve_body_type_of_result_type x y z hTy
+  have hRightNN :
+      __eo_typeof (bvEqXorSolveRightEq x y z) ≠ Term.Stuck :=
+    (RuleProofs.eo_typeof_eq_bool_operands_not_stuck
+      (__eo_typeof (bvEqXorSolveLeftEq x y z))
+      (__eo_typeof (bvEqXorSolveRightEq x y z))
+      (by simpa [bvEqXorSolveBody] using hBodyTy)).2
+  change __eo_typeof_eq (__eo_typeof x)
+      (__eo_typeof (bvEqXorSolveRhsXor y z)) = Term.Bool
+  apply eo_typeof_eq_bool_of_ne_stuck_local
+  simpa [bvEqXorSolveRightEq] using hRightNN
+
+theorem bv_eq_xor_solve_args_type_of_bool (x y z : Term) :
+    __eo_typeof (bvEqXorSolveTerm x y z) = Term.Bool ->
+    ∃ w, __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) w ∧
+      __eo_typeof y = Term.Apply (Term.UOp UserOp.BitVec) w ∧
+      __eo_typeof z = Term.Apply (Term.UOp UserOp.BitVec) w ∧
+      w ≠ Term.Stuck := by
+  intro hTy
+  have hLeftEqTy := bv_eq_xor_solve_left_eq_type_of_result_type x y z hTy
+  have hLhsXorNN :
+      __eo_typeof (bvEqXorSolveLhsXor x y) ≠ Term.Stuck :=
+    (RuleProofs.eo_typeof_eq_bool_operands_not_stuck
+      (__eo_typeof (bvEqXorSolveLhsXor x y)) (__eo_typeof z)
+      (by simpa [bvEqXorSolveLeftEq] using hLeftEqTy)).1
+  have hLhsZEq :
+      __eo_typeof (bvEqXorSolveLhsXor x y) = __eo_typeof z :=
+    support_eo_typeof_eq_bool_operands_eq
+      (__eo_typeof (bvEqXorSolveLhsXor x y)) (__eo_typeof z)
+      (by simpa [bvEqXorSolveLeftEq] using hLeftEqTy)
+  have hOuterNN :
+      __eo_typeof_bvand (__eo_typeof x)
+          (__eo_typeof
+            (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) y)
+              (__eo_nil (Term.UOp UserOp.bvxor) (__eo_typeof x)))) ≠
+        Term.Stuck := by
+    simpa [bvEqXorSolveLhsXor, bvCommutativeXorLhs] using hLhsXorNN
+  rcases eo_typeof_bvand_arg_types_of_ne_stuck_local hOuterNN with
+    ⟨w, hXTy, hInnerTy⟩
+  have hInnerEq :
+      __eo_typeof_bvand (__eo_typeof y)
+          (__eo_typeof (__eo_nil (Term.UOp UserOp.bvxor) (__eo_typeof x))) =
+        Term.Apply (Term.UOp UserOp.BitVec) w := by
+    simpa using hInnerTy
+  rcases eo_typeof_bvand_args_of_eq_bitvec hInnerEq with
+    ⟨hYTy, _hNilTy, hWNe⟩
+  have hLhsXorTy :
+      __eo_typeof (bvEqXorSolveLhsXor x y) =
+        Term.Apply (Term.UOp UserOp.BitVec) w := by
+    change __eo_typeof_bvand (__eo_typeof x)
+        (__eo_typeof
+          (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) y)
+            (__eo_nil (Term.UOp UserOp.bvxor) (__eo_typeof x)))) =
+      Term.Apply (Term.UOp UserOp.BitVec) w
+    have hInnerTy' :
+        __eo_typeof
+            (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) y)
+              (__eo_nil (Term.UOp UserOp.bvxor)
+                (Term.Apply (Term.UOp UserOp.BitVec) w))) =
+          Term.Apply (Term.UOp UserOp.BitVec) w := by
+      simpa [hXTy] using hInnerTy
+    rw [hXTy, hInnerTy']
+    simp [__eo_typeof_bvand, __eo_requires, __eo_eq, native_ite,
+      native_teq, native_not, hWNe]
+  have hZTy : __eo_typeof z = Term.Apply (Term.UOp UserOp.BitVec) w := by
+    rw [← hLhsZEq, hLhsXorTy]
+  exact ⟨w, hXTy, hYTy, hZTy, hWNe⟩
+
+theorem bv_eq_xor_solve_nil_x_ne (x y z : Term) :
+    __eo_typeof (bvEqXorSolveTerm x y z) = Term.Bool ->
+    __eo_nil (Term.UOp UserOp.bvxor) (__eo_typeof x) ≠ Term.Stuck := by
+  intro hTy hNil
+  have hLeftEqTy := bv_eq_xor_solve_left_eq_type_of_result_type x y z hTy
+  have hLhsXorNN :
+      __eo_typeof (bvEqXorSolveLhsXor x y) ≠ Term.Stuck :=
+    (RuleProofs.eo_typeof_eq_bool_operands_not_stuck
+      (__eo_typeof (bvEqXorSolveLhsXor x y)) (__eo_typeof z)
+      (by simpa [bvEqXorSolveLeftEq] using hLeftEqTy)).1
+  apply hLhsXorNN
+  change __eo_typeof
+      (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) x)
+        (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) y)
+          (__eo_nil (Term.UOp UserOp.bvxor) (__eo_typeof x)))) =
+    Term.Stuck
+  rw [hNil]
+  change __eo_typeof_bvand (__eo_typeof x)
+      (__eo_typeof_bvand (__eo_typeof y) Term.Stuck) =
+    Term.Stuck
+  simp [__eo_typeof_bvand]
+
+theorem bv_eq_xor_solve_nil_z_ne (x y z : Term) :
+    __eo_typeof (bvEqXorSolveTerm x y z) = Term.Bool ->
+    __eo_nil (Term.UOp UserOp.bvxor) (__eo_typeof z) ≠ Term.Stuck := by
+  intro hTy hNil
+  have hRightEqTy := bv_eq_xor_solve_right_eq_type_of_result_type x y z hTy
+  have hRhsXorNN :
+      __eo_typeof (bvEqXorSolveRhsXor y z) ≠ Term.Stuck :=
+    (RuleProofs.eo_typeof_eq_bool_operands_not_stuck
+      (__eo_typeof x) (__eo_typeof (bvEqXorSolveRhsXor y z))
+      (by simpa [bvEqXorSolveRightEq] using hRightEqTy)).2
+  apply hRhsXorNN
+  change __eo_typeof
+      (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) z)
+        (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) y)
+          (__eo_nil (Term.UOp UserOp.bvxor) (__eo_typeof z)))) =
+    Term.Stuck
+  rw [hNil]
+  change __eo_typeof_bvand (__eo_typeof z)
+      (__eo_typeof_bvand (__eo_typeof y) Term.Stuck) =
+    Term.Stuck
+  simp [__eo_typeof_bvand]
+
+private theorem bv_eq_xor_solve_context
+    (x y z : Term) :
+    RuleProofs.eo_has_smt_translation x ->
+    RuleProofs.eo_has_smt_translation y ->
+    RuleProofs.eo_has_smt_translation z ->
+    __eo_typeof (bvEqXorSolveTerm x y z) = Term.Bool ->
+    ∃ w,
+      __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ∧
+      __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w ∧
+      __smtx_typeof (__eo_to_smt z) = SmtType.BitVec w ∧
+      __eo_to_smt_type (__eo_typeof x) = SmtType.BitVec w ∧
+      __eo_to_smt_type (__eo_typeof z) = SmtType.BitVec w ∧
+      __eo_nil (Term.UOp UserOp.bvxor) (__eo_typeof x) ≠ Term.Stuck ∧
+      __eo_nil (Term.UOp UserOp.bvxor) (__eo_typeof z) ≠ Term.Stuck := by
+  intro hXTrans hYTrans hZTrans hResultTy
+  rcases bv_eq_xor_solve_args_type_of_bool x y z hResultTy with
+    ⟨wTerm, hXTy, hYTy, hZTy, _hWNe⟩
+  rcases smt_bitvec_type_of_eo_bitvec_type_with_width x wTerm hXTrans hXTy with
+    ⟨n, hWTerm, hNonneg, hXSmtTy⟩
+  subst wTerm
+  rcases smt_bitvec_type_of_eo_bitvec_type_with_width y (Term.Numeral n)
+      hYTrans (by simpa using hYTy) with
+    ⟨m, hM, _hMNonneg, hYSmtTy⟩
+  cases hM
+  rcases smt_bitvec_type_of_eo_bitvec_type_with_width z (Term.Numeral n)
+      hZTrans (by simpa using hZTy) with
+    ⟨k, hK, _hKNonneg, hZSmtTy⟩
+  cases hK
+  have hXTypeSmt :
+      __eo_to_smt_type (__eo_typeof x) = SmtType.BitVec (native_int_to_nat n) := by
+    rw [hXTy]
+    simp [__eo_to_smt_type, hNonneg, native_ite]
+  have hZTypeSmt :
+      __eo_to_smt_type (__eo_typeof z) = SmtType.BitVec (native_int_to_nat n) := by
+    rw [hZTy]
+    simp [__eo_to_smt_type, hNonneg, native_ite]
+  exact ⟨native_int_to_nat n, hXSmtTy, hYSmtTy, hZSmtTy, hXTypeSmt,
+    hZTypeSmt, bv_eq_xor_solve_nil_x_ne x y z hResultTy,
+    bv_eq_xor_solve_nil_z_ne x y z hResultTy⟩
+
+private theorem smt_typeof_eq_same_non_none_local
+    (a b : SmtTerm) (T : SmtType) :
+    __smtx_typeof a = T ->
+    __smtx_typeof b = T ->
+    T ≠ SmtType.None ->
+    __smtx_typeof (SmtTerm.eq a b) = SmtType.Bool := by
+  intro ha hb hT
+  rw [__smtx_typeof.eq_def] <;> simp only
+  rw [ha, hb]
+  cases T <;>
+    simp [__smtx_typeof_eq, __smtx_typeof_guard, native_Teq,
+      native_ite] at hT ⊢
+
+private theorem smt_typeof_boolean_local (b : Bool) :
+    __smtx_typeof (SmtTerm.Boolean b) = SmtType.Bool := by
+  rw [__smtx_typeof.eq_def] <;> simp only
+
+private theorem smt_typeof_bv_eq_xor_solve_lhs_xor
+    (x y : Term) (w : Nat) :
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w ->
+    __eo_to_smt_type (__eo_typeof x) = SmtType.BitVec w ->
+    __eo_nil (Term.UOp UserOp.bvxor) (__eo_typeof x) ≠ Term.Stuck ->
+    __smtx_typeof (__eo_to_smt (bvEqXorSolveLhsXor x y)) =
+      SmtType.BitVec w := by
+  intro hXTy hYTy hXTypeSmt hNilXNe
+  simpa [bvEqXorSolveLhsXor] using
+    smt_typeof_bv_comm_xor_lhs x y w hXTy hYTy hXTypeSmt hNilXNe
+
+private theorem smt_typeof_bv_eq_xor_solve_rhs_xor
+    (y z : Term) (w : Nat) :
+    __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt z) = SmtType.BitVec w ->
+    __eo_to_smt_type (__eo_typeof z) = SmtType.BitVec w ->
+    __eo_nil (Term.UOp UserOp.bvxor) (__eo_typeof z) ≠ Term.Stuck ->
+    __smtx_typeof (__eo_to_smt (bvEqXorSolveRhsXor y z)) =
+      SmtType.BitVec w := by
+  intro hYTy hZTy hZTypeSmt hNilZNe
+  simpa [bvEqXorSolveRhsXor] using
+    smt_typeof_bv_comm_xor_lhs z y w hZTy hYTy hZTypeSmt hNilZNe
+
+private theorem smt_typeof_bv_eq_xor_solve_left_eq
+    (x y z : Term) (w : Nat) :
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt z) = SmtType.BitVec w ->
+    __eo_to_smt_type (__eo_typeof x) = SmtType.BitVec w ->
+    __eo_nil (Term.UOp UserOp.bvxor) (__eo_typeof x) ≠ Term.Stuck ->
+    __smtx_typeof (__eo_to_smt (bvEqXorSolveLeftEq x y z)) =
+      SmtType.Bool := by
+  intro hXTy hYTy hZTy hXTypeSmt hNilXNe
+  change __smtx_typeof
+      (SmtTerm.eq (__eo_to_smt (bvEqXorSolveLhsXor x y)) (__eo_to_smt z)) =
+    SmtType.Bool
+  exact smt_typeof_eq_same_non_none_local _ _ (SmtType.BitVec w)
+    (smt_typeof_bv_eq_xor_solve_lhs_xor x y w hXTy hYTy hXTypeSmt hNilXNe)
+    hZTy (by intro h; cases h)
+
+private theorem smt_typeof_bv_eq_xor_solve_right_eq
+    (x y z : Term) (w : Nat) :
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt z) = SmtType.BitVec w ->
+    __eo_to_smt_type (__eo_typeof z) = SmtType.BitVec w ->
+    __eo_nil (Term.UOp UserOp.bvxor) (__eo_typeof z) ≠ Term.Stuck ->
+    __smtx_typeof (__eo_to_smt (bvEqXorSolveRightEq x y z)) =
+      SmtType.Bool := by
+  intro hXTy hYTy hZTy hZTypeSmt hNilZNe
+  change __smtx_typeof
+      (SmtTerm.eq (__eo_to_smt x) (__eo_to_smt (bvEqXorSolveRhsXor y z))) =
+    SmtType.Bool
+  exact smt_typeof_eq_same_non_none_local _ _ (SmtType.BitVec w)
+    hXTy
+    (smt_typeof_bv_eq_xor_solve_rhs_xor y z w hYTy hZTy hZTypeSmt hNilZNe)
+    (by intro h; cases h)
+
+private theorem smt_typeof_bv_eq_xor_solve_body
+    (x y z : Term) (w : Nat) :
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt z) = SmtType.BitVec w ->
+    __eo_to_smt_type (__eo_typeof x) = SmtType.BitVec w ->
+    __eo_to_smt_type (__eo_typeof z) = SmtType.BitVec w ->
+    __eo_nil (Term.UOp UserOp.bvxor) (__eo_typeof x) ≠ Term.Stuck ->
+    __eo_nil (Term.UOp UserOp.bvxor) (__eo_typeof z) ≠ Term.Stuck ->
+    __smtx_typeof (__eo_to_smt (bvEqXorSolveBody x y z)) =
+      SmtType.Bool := by
+  intro hXTy hYTy hZTy hXTypeSmt hZTypeSmt hNilXNe hNilZNe
+  have hLeftTy :=
+    smt_typeof_bv_eq_xor_solve_left_eq x y z w hXTy hYTy hZTy
+      hXTypeSmt hNilXNe
+  have hRightTy :=
+    smt_typeof_bv_eq_xor_solve_right_eq x y z w hXTy hYTy hZTy
+      hZTypeSmt hNilZNe
+  change __smtx_typeof
+      (SmtTerm.eq (__eo_to_smt (bvEqXorSolveLeftEq x y z))
+        (__eo_to_smt (bvEqXorSolveRightEq x y z))) =
+    SmtType.Bool
+  exact smt_typeof_eq_same_non_none_local _ _ SmtType.Bool hLeftTy hRightTy
+    (by intro h; cases h)
+
+theorem typed_bv_eq_xor_solve_term (x y z : Term) :
+    RuleProofs.eo_has_smt_translation x ->
+    RuleProofs.eo_has_smt_translation y ->
+    RuleProofs.eo_has_smt_translation z ->
+    __eo_typeof (bvEqXorSolveTerm x y z) = Term.Bool ->
+    RuleProofs.eo_has_bool_type (bvEqXorSolveTerm x y z) := by
+  intro hXTrans hYTrans hZTrans hResultTy
+  rcases bv_eq_xor_solve_context x y z hXTrans hYTrans hZTrans hResultTy with
+    ⟨w, hXTy, hYTy, hZTy, hXTypeSmt, hZTypeSmt, hNilXNe, hNilZNe⟩
+  have hBodyTy :=
+    smt_typeof_bv_eq_xor_solve_body x y z w hXTy hYTy hZTy hXTypeSmt
+      hZTypeSmt hNilXNe hNilZNe
+  change __smtx_typeof
+      (SmtTerm.eq (__eo_to_smt (bvEqXorSolveBody x y z))
+        (SmtTerm.Boolean true)) =
+    SmtType.Bool
+  exact smt_typeof_eq_same_non_none_local _ _ SmtType.Bool hBodyTy
+    (smt_typeof_boolean_local true) (by intro h; cases h)
+
+private theorem bitvec_xor_eq_solve (w : Nat) (x y z : BitVec w) :
+    (x ^^^ y = z) ↔ (x = z ^^^ y) := by
+  constructor
+  · intro h
+    rw [← h]
+    rw [BitVec.xor_assoc]
+    simp
+  · intro h
+    rw [h]
+    rw [BitVec.xor_assoc]
+    simp
+
+private theorem bitvec_ofInt_toNat_int_of_canonical
+    (w : Nat) (n : native_Int) :
+    native_zeq n
+        (native_mod_total n (native_int_pow2 (native_nat_to_int w))) = true ->
+    ((BitVec.ofInt w n).toNat : Int) = n := by
+  intro hCan
+  have hMod : native_mod_total n (native_int_pow2 (native_nat_to_int w)) = n := by
+    have hEq :
+        n = native_mod_total n (native_int_pow2 (native_nat_to_int w)) := by
+      simpa [native_zeq] using hCan
+    exact hEq.symm
+  exact (native_mod_pow2_eq_bitvec_toNat w n).symm.trans hMod
+
+private theorem bvxor_eq_solve_payload_iff
+    (w : Nat) (nx ny nz : native_Int) :
+    native_zeq nx
+        (native_mod_total nx (native_int_pow2 (native_nat_to_int w))) = true ->
+    native_zeq nz
+        (native_mod_total nz (native_int_pow2 (native_nat_to_int w))) = true ->
+    (native_mod_total (native_binary_xor (native_nat_to_int w) nx ny)
+        (native_int_pow2 (native_nat_to_int w)) = nz ↔
+      nx = native_mod_total (native_binary_xor (native_nat_to_int w) nz ny)
+        (native_int_pow2 (native_nat_to_int w))) := by
+  intro hXCan hZCan
+  have hXToNat := bitvec_ofInt_toNat_int_of_canonical w nx hXCan
+  have hZToNat := bitvec_ofInt_toNat_int_of_canonical w nz hZCan
+  have hLeftPayload := native_binary_xor_mod_eq_toNat w nx ny
+  have hRightPayload := native_binary_xor_mod_eq_toNat w nz ny
+  constructor
+  · intro h
+    have hBvLeft :
+        BitVec.ofInt w nx ^^^ BitVec.ofInt w ny = BitVec.ofInt w nz := by
+      apply BitVec.eq_of_toNat_eq
+      apply Int.ofNat.inj
+      change ((BitVec.ofInt w nx ^^^ BitVec.ofInt w ny).toNat : Int) =
+        ((BitVec.ofInt w nz).toNat : Int)
+      rw [← hLeftPayload, h, hZToNat]
+    have hBvRight :
+        BitVec.ofInt w nx = BitVec.ofInt w nz ^^^ BitVec.ofInt w ny :=
+      (bitvec_xor_eq_solve w (BitVec.ofInt w nx) (BitVec.ofInt w ny)
+        (BitVec.ofInt w nz)).mp hBvLeft
+    have hPayloadEq :
+        ((BitVec.ofInt w nx).toNat : Int) =
+          ((BitVec.ofInt w nz ^^^ BitVec.ofInt w ny).toNat : Int) := by
+      exact congrArg (fun b : BitVec w => (b.toNat : Int)) hBvRight
+    rw [hXToNat, ← hRightPayload] at hPayloadEq
+    exact hPayloadEq
+  · intro h
+    have hBvRight :
+        BitVec.ofInt w nx = BitVec.ofInt w nz ^^^ BitVec.ofInt w ny := by
+      apply BitVec.eq_of_toNat_eq
+      apply Int.ofNat.inj
+      change ((BitVec.ofInt w nx).toNat : Int) =
+        ((BitVec.ofInt w nz ^^^ BitVec.ofInt w ny).toNat : Int)
+      rw [hXToNat, ← hRightPayload]
+      exact h
+    have hBvLeft :
+        BitVec.ofInt w nx ^^^ BitVec.ofInt w ny = BitVec.ofInt w nz :=
+      (bitvec_xor_eq_solve w (BitVec.ofInt w nx) (BitVec.ofInt w ny)
+        (BitVec.ofInt w nz)).mpr hBvRight
+    have hPayloadEq :
+        ((BitVec.ofInt w nx ^^^ BitVec.ofInt w ny).toNat : Int) =
+          ((BitVec.ofInt w nz).toNat : Int) := by
+      exact congrArg (fun b : BitVec w => (b.toNat : Int)) hBvLeft
+    rw [← hLeftPayload, hZToNat] at hPayloadEq
+    exact hPayloadEq
+
+private theorem native_veq_binary_same_width_eq_of_iff
+    {w n1 n2 m1 m2 : native_Int}
+    (hiff : (n1 = n2 ↔ m1 = m2)) :
+    native_veq (SmtValue.Binary w n1) (SmtValue.Binary w n2) =
+      native_veq (SmtValue.Binary w m1) (SmtValue.Binary w m2) := by
+  by_cases hn : n1 = n2
+  · have hm : m1 = m2 := hiff.mp hn
+    subst n2
+    subst m2
+    simp [native_veq]
+  · have hm : m1 ≠ m2 := by
+      intro h
+      exact hn (hiff.mpr h)
+    simp [native_veq, hn, hm]
+
+private theorem native_veq_bvxor_solve
+    (w : Nat) (nx ny nz : native_Int) :
+    native_zeq nx
+        (native_mod_total nx (native_int_pow2 (native_nat_to_int w))) = true ->
+    native_zeq nz
+        (native_mod_total nz (native_int_pow2 (native_nat_to_int w))) = true ->
+    native_veq
+        (SmtValue.Binary (native_nat_to_int w)
+          (native_mod_total
+            (native_binary_xor (native_nat_to_int w) nx ny)
+            (native_int_pow2 (native_nat_to_int w))))
+        (SmtValue.Binary (native_nat_to_int w) nz) =
+      native_veq
+        (SmtValue.Binary (native_nat_to_int w) nx)
+        (SmtValue.Binary (native_nat_to_int w)
+          (native_mod_total
+            (native_binary_xor (native_nat_to_int w) nz ny)
+            (native_int_pow2 (native_nat_to_int w)))) := by
+  intro hXCan hZCan
+  exact native_veq_binary_same_width_eq_of_iff
+    (bvxor_eq_solve_payload_iff w nx ny nz hXCan hZCan)
+
+private theorem eval_bv_eq_xor_solve_body
+    (M : SmtModel) (hM : model_total_typed M) (x y z : Term) :
+    RuleProofs.eo_has_smt_translation x ->
+    RuleProofs.eo_has_smt_translation y ->
+    RuleProofs.eo_has_smt_translation z ->
+    __eo_typeof (bvEqXorSolveTerm x y z) = Term.Bool ->
+    __smtx_model_eval M (__eo_to_smt (bvEqXorSolveBody x y z)) =
+      SmtValue.Boolean true := by
+  intro hXTrans hYTrans hZTrans hResultTy
+  rcases bv_eq_xor_solve_context x y z hXTrans hYTrans hZTrans hResultTy with
+    ⟨w, hXTy, hYTy, hZTy, hXTypeSmt, hZTypeSmt, hNilXNe, hNilZNe⟩
+  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x) w hXTy with
+    ⟨nx, hXEval, hXCan⟩
+  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt y) w hYTy with
+    ⟨ny, hYEval, hYCan⟩
+  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt z) w hZTy with
+    ⟨nz, hZEval, hZCan⟩
+  have hNilXEval := smt_eval_bvxor_nil M x w hXTypeSmt hNilXNe
+  have hNilZEval := smt_eval_bvxor_nil M z w hZTypeSmt hNilZNe
+  change __smtx_model_eval M
+      (SmtTerm.eq
+        (SmtTerm.eq
+          (SmtTerm.bvxor (__eo_to_smt x)
+            (SmtTerm.bvxor (__eo_to_smt y)
+              (__eo_to_smt
+                (__eo_nil (Term.UOp UserOp.bvxor) (__eo_typeof x)))))
+          (__eo_to_smt z))
+        (SmtTerm.eq (__eo_to_smt x)
+          (SmtTerm.bvxor (__eo_to_smt z)
+            (SmtTerm.bvxor (__eo_to_smt y)
+              (__eo_to_smt
+                (__eo_nil (Term.UOp UserOp.bvxor) (__eo_typeof z))))))) =
+    SmtValue.Boolean true
+  repeat rw [smtx_eval_eq_term_eq]
+  repeat rw [smtx_eval_bvxor_term_eq]
+  rw [hXEval, hYEval, hZEval, hNilXEval, hNilZEval]
+  rw [bvxor_right_zero_of_canonical w ny hYCan]
+  change __smtx_model_eval_eq
+      (__smtx_model_eval_eq
+        (__smtx_model_eval_bvxor
+          (SmtValue.Binary (native_nat_to_int w) nx)
+          (SmtValue.Binary (native_nat_to_int w) ny))
+        (SmtValue.Binary (native_nat_to_int w) nz))
+      (__smtx_model_eval_eq
+        (SmtValue.Binary (native_nat_to_int w) nx)
+        (__smtx_model_eval_bvxor
+          (SmtValue.Binary (native_nat_to_int w) nz)
+          (SmtValue.Binary (native_nat_to_int w) ny))) =
+    SmtValue.Boolean true
+  simp only [__smtx_model_eval_eq, __smtx_model_eval_bvxor]
+  rw [native_veq_bvxor_solve w nx ny nz hXCan hZCan]
+  simp [native_veq]
+
+theorem facts_bv_eq_xor_solve_term
+    (M : SmtModel) (hM : model_total_typed M) (x y z : Term) :
+    RuleProofs.eo_has_smt_translation x ->
+    RuleProofs.eo_has_smt_translation y ->
+    RuleProofs.eo_has_smt_translation z ->
+    __eo_typeof (bvEqXorSolveTerm x y z) = Term.Bool ->
+    eo_interprets M (bvEqXorSolveTerm x y z) true := by
+  intro hXTrans hYTrans hZTrans hResultTy
+  have hBool :=
+    typed_bv_eq_xor_solve_term x y z hXTrans hYTrans hZTrans hResultTy
+  apply RuleProofs.eo_interprets_eq_of_rel M
+  · exact hBool
+  · rw [eval_bv_eq_xor_solve_body M hM x y z hXTrans hYTrans hZTrans hResultTy]
+    change RuleProofs.smt_value_rel (SmtValue.Boolean true)
+      (__smtx_model_eval M (SmtTerm.Boolean true))
+    rw [__smtx_model_eval.eq_def] <;> simp only
+    exact RuleProofs.smt_value_rel_refl _
+
+def bvEqXorSolveProgram (x y z : Term) : Term :=
+  __eo_prog_bv_eq_xor_solve x y z
+
+private def bvEqXorSolveProgramSkeleton (x y z : Term) : Term :=
+  let v0 := Term.Apply (Term.UOp UserOp.bvxor) y
+  __eo_mk_apply
+    (__eo_mk_apply (Term.UOp UserOp.eq)
+      (__eo_mk_apply
+        (__eo_mk_apply (Term.UOp UserOp.eq)
+          (__eo_mk_apply
+            (__eo_mk_apply (Term.UOp UserOp.eq)
+              (__eo_mk_apply (Term.Apply (Term.UOp UserOp.bvxor) x)
+                (__eo_mk_apply v0
+                  (__eo_nil (Term.UOp UserOp.bvxor) (__eo_typeof x)))))
+            z))
+        (__eo_mk_apply (Term.Apply (Term.UOp UserOp.eq) x)
+          (__eo_mk_apply (Term.Apply (Term.UOp UserOp.bvxor) z)
+            (__eo_mk_apply v0
+              (__eo_nil (Term.UOp UserOp.bvxor) (__eo_typeof z)))))))
+    (Term.Boolean true)
+
+private theorem bvEqXorSolveProgram_eq_skeleton_of_ne_stuck
+    (x y z : Term) :
+    x ≠ Term.Stuck ->
+    y ≠ Term.Stuck ->
+    z ≠ Term.Stuck ->
+    bvEqXorSolveProgram x y z = bvEqXorSolveProgramSkeleton x y z := by
+  intro hXNe hYNe hZNe
+  cases x <;> cases y <;> cases z <;>
+    simp [bvEqXorSolveProgram, bvEqXorSolveProgramSkeleton,
+      __eo_prog_bv_eq_xor_solve] at hXNe hYNe hZNe ⊢
+
+theorem bvEqXorSolveProgram_eq_term_of_type_bool
+    (x y z : Term) :
+    RuleProofs.eo_has_smt_translation x ->
+    RuleProofs.eo_has_smt_translation y ->
+    RuleProofs.eo_has_smt_translation z ->
+    __eo_typeof (bvEqXorSolveProgram x y z) = Term.Bool ->
+    bvEqXorSolveProgram x y z = bvEqXorSolveTerm x y z := by
+  intro hXTrans hYTrans hZTrans hTy
+  have hXNe : x ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_has_smt_translation x hXTrans
+  have hYNe : y ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_has_smt_translation y hYTrans
+  have hZNe : z ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_has_smt_translation z hZTrans
+  have hSkeleton := bvEqXorSolveProgram_eq_skeleton_of_ne_stuck
+    x y z hXNe hYNe hZNe
+  by_cases hNilX :
+      __eo_nil (Term.UOp UserOp.bvxor) (__eo_typeof x) = Term.Stuck
+  · have hProgStuck : bvEqXorSolveProgram x y z = Term.Stuck := by
+      rw [hSkeleton]
+      simp [bvEqXorSolveProgramSkeleton, __eo_mk_apply, hNilX]
+    rw [hProgStuck] at hTy
+    have hBad : __eo_typeof Term.Stuck ≠ Term.Bool := by
+      native_decide
+    exact False.elim (hBad hTy)
+  · by_cases hNilZ :
+        __eo_nil (Term.UOp UserOp.bvxor) (__eo_typeof z) = Term.Stuck
+    · have hProgStuck : bvEqXorSolveProgram x y z = Term.Stuck := by
+        rw [hSkeleton]
+        simp [bvEqXorSolveProgramSkeleton, __eo_mk_apply, hNilX, hNilZ]
+      rw [hProgStuck] at hTy
+      have hBad : __eo_typeof Term.Stuck ≠ Term.Bool := by
+        native_decide
+      exact False.elim (hBad hTy)
+    · rw [hSkeleton]
+      simp [bvEqXorSolveProgramSkeleton, bvEqXorSolveTerm,
+        bvEqXorSolveBody, bvEqXorSolveLeftEq, bvEqXorSolveRightEq,
+        bvEqXorSolveLhsXor, bvEqXorSolveRhsXor, bvCommutativeXorLhs,
+        __eo_mk_apply, hNilX, hNilZ]
+
+theorem typed_bv_eq_xor_solve_program (x y z : Term) :
+    RuleProofs.eo_has_smt_translation x ->
+    RuleProofs.eo_has_smt_translation y ->
+    RuleProofs.eo_has_smt_translation z ->
+    __eo_typeof (bvEqXorSolveProgram x y z) = Term.Bool ->
+    RuleProofs.eo_has_bool_type (bvEqXorSolveProgram x y z) := by
+  intro hXTrans hYTrans hZTrans hResultTy
+  have hEq :=
+    bvEqXorSolveProgram_eq_term_of_type_bool x y z hXTrans hYTrans hZTrans
+      hResultTy
+  have hTermTy : __eo_typeof (bvEqXorSolveTerm x y z) = Term.Bool := by
+    rw [← hEq]
+    exact hResultTy
+  rw [hEq]
+  exact typed_bv_eq_xor_solve_term x y z hXTrans hYTrans hZTrans hTermTy
+
+theorem facts_bv_eq_xor_solve_program
+    (M : SmtModel) (hM : model_total_typed M) (x y z : Term) :
+    RuleProofs.eo_has_smt_translation x ->
+    RuleProofs.eo_has_smt_translation y ->
+    RuleProofs.eo_has_smt_translation z ->
+    __eo_typeof (bvEqXorSolveProgram x y z) = Term.Bool ->
+    eo_interprets M (bvEqXorSolveProgram x y z) true := by
+  intro hXTrans hYTrans hZTrans hResultTy
+  have hEq :=
+    bvEqXorSolveProgram_eq_term_of_type_bool x y z hXTrans hYTrans hZTrans
+      hResultTy
+  have hTermTy : __eo_typeof (bvEqXorSolveTerm x y z) = Term.Bool := by
+    rw [← hEq]
+    exact hResultTy
+  rw [hEq]
+  exact facts_bv_eq_xor_solve_term M hM x y z hXTrans hYTrans hZTrans
+    hTermTy
