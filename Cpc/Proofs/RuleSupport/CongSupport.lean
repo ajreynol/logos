@@ -16,6 +16,10 @@ attribute [local simp] native_streq native_and native_ite
 private abbrev mkEq (x y : Term) : Term :=
   Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) y
 
+/-- Public equality-term constructor used by rules that reuse congruence support. -/
+abbrev eqTerm (x y : Term) : Term :=
+  mkEq x y
+
 private theorem smtx_model_eval_eq_term_eq
     (M : SmtModel) (x y : SmtTerm) :
     __smtx_model_eval M (SmtTerm.eq x y) =
@@ -3488,6 +3492,21 @@ private theorem smt_value_rel_model_eval_eq_congr
       smtx_model_eval_eq_false_of_not_smt_value_rel c d hncd
     rw [habFalse, hcdFalse]
     simp [RuleProofs.smt_value_rel, __smtx_model_eval_eq, native_veq]
+
+/--
+SMT equality is congruent with respect to the project's semantic value relation.
+
+This public wrapper is intentionally value-level: rules that reason about
+substitution under equality can reuse the regex-extensional equality handling
+without duplicating the operator proof.
+-/
+theorem smt_value_rel_eq_congr
+    (a b c d : SmtValue) :
+    RuleProofs.smt_value_rel a c ->
+    RuleProofs.smt_value_rel b d ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval_eq a b) (__smtx_model_eval_eq c d) :=
+  smt_value_rel_model_eval_eq_congr a b c d
 
 private theorem congTrueSpine_eq_eq_true
     (M : SmtModel) (_hM : model_total_typed M) (x₁ x₂ rhs : Term) :
@@ -24817,6 +24836,46 @@ private theorem congStableSpine_eq_true
           (fun xs body h => hExists ⟨xs, body, h⟩)⟩ hEqBool
         (congTrueSpine_of_congStableSpine M hM hSpine)
 
+/--
+Rebase a stable congruence spine across a model with the same globals.
+
+The public spelling keeps downstream rules from depending on the private
+`mkEq` name hidden inside the spine constructors.
+-/
+theorem congStableSpine_rebase_of_globals
+    {M N : SmtModel} :
+    model_agrees_on_globals M N ->
+    ∀ {t rhs : Term},
+      CongStableSpine M t rhs ->
+      CongStableSpine N t rhs :=
+  congStableSpine_rebase
+
+/-- Interpret a stable congruence spine as a true public equality term. -/
+theorem eqTerm_true_of_congStableSpine
+    (M : SmtModel) (hM : model_total_typed M) (t rhs : Term) :
+    RuleProofs.eo_has_bool_type (eqTerm t rhs) ->
+    CongStableSpine M t rhs ->
+    eo_interprets M (eqTerm t rhs) true := by
+  intro hEqBool hSpine
+  simpa [eqTerm] using
+    congStableSpine_eq_true M hM t rhs
+      (by simpa [eqTerm] using hEqBool) hSpine
+
+/--
+A stable congruence spine gives an equality fact that is stable under variable
+model changes.
+-/
+theorem stableInAnyVarModel_eqTerm_of_congStableSpine
+    (M : SmtModel) (t rhs : Term)
+    (hEqBool : RuleProofs.eo_has_bool_type (eqTerm t rhs))
+    (hSpine : CongStableSpine M t rhs) :
+    StableInAnyVarModel M (eqTerm t rhs) := by
+  intro N hN hAgree
+  simpa [eqTerm] using
+    congStableSpine_eq_true N hN t rhs
+      (by simpa [eqTerm] using hEqBool)
+      (congStableSpine_rebase hAgree hSpine)
+
 private theorem mk_nary_cong_rhs_congTypeSpine_of_list :
     ∀ (ps : List Term) (t : Term),
       RuleProofs.eo_has_smt_translation t ->
@@ -25740,6 +25799,83 @@ private theorem smt_value_rel_model_eval_and_of_rel
     cases a₁ <;> cases b₁ <;> cases c₁ <;> cases d₁ <;>
       simp  at hAC hBD ⊢
 
+/-- SMT Boolean negation is congruent with respect to `smt_value_rel`. -/
+theorem smt_value_rel_not_congr
+    (a b : SmtValue) :
+    RuleProofs.smt_value_rel a b ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval_not a) (__smtx_model_eval_not b) :=
+  smt_value_rel_model_eval_not_of_rel a b
+
+/-- SMT Boolean conjunction is congruent with respect to `smt_value_rel`. -/
+theorem smt_value_rel_and_congr
+    (a b c d : SmtValue) :
+    RuleProofs.smt_value_rel a c ->
+    RuleProofs.smt_value_rel b d ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval_and a b) (__smtx_model_eval_and c d) :=
+  smt_value_rel_model_eval_and_of_rel a b c d
+
+/-- SMT Boolean disjunction is congruent with respect to `smt_value_rel`. -/
+theorem smt_value_rel_or_congr
+    (a b c d : SmtValue) :
+    RuleProofs.smt_value_rel a c ->
+    RuleProofs.smt_value_rel b d ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval_or a b) (__smtx_model_eval_or c d) := by
+  intro hAC hBD
+  unfold RuleProofs.smt_value_rel at hAC hBD ⊢
+  cases a <;> cases b <;> cases c <;> cases d <;>
+    simp [__smtx_model_eval_eq, __smtx_model_eval_or, native_veq] at hAC hBD ⊢
+  case Boolean.Boolean.Boolean.Boolean a₁ b₁ c₁ d₁ =>
+    cases a₁ <;> cases b₁ <;> cases c₁ <;> cases d₁ <;>
+      simp at hAC hBD ⊢
+
+/-- SMT Boolean implication is congruent with respect to `smt_value_rel`. -/
+theorem smt_value_rel_imp_congr
+    (a b c d : SmtValue) :
+    RuleProofs.smt_value_rel a c ->
+    RuleProofs.smt_value_rel b d ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval_imp a b) (__smtx_model_eval_imp c d) := by
+  intro hAC hBD
+  unfold __smtx_model_eval_imp
+  exact smt_value_rel_or_congr
+    (__smtx_model_eval_not a) b (__smtx_model_eval_not c) d
+    (smt_value_rel_not_congr a c hAC) hBD
+
+/-- SMT Boolean exclusive-or is congruent with respect to `smt_value_rel`. -/
+theorem smt_value_rel_xor_congr
+    (a b c d : SmtValue) :
+    RuleProofs.smt_value_rel a c ->
+    RuleProofs.smt_value_rel b d ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval_xor a b) (__smtx_model_eval_xor c d) := by
+  intro hAC hBD
+  unfold __smtx_model_eval_xor
+  exact smt_value_rel_not_congr
+    (__smtx_model_eval_eq a b) (__smtx_model_eval_eq c d)
+    (smt_value_rel_eq_congr a b c d hAC hBD)
+
+/-- SMT if-then-else is congruent with respect to `smt_value_rel`. -/
+theorem smt_value_rel_ite_congr
+    (c c' t t' e e' : SmtValue) :
+    RuleProofs.smt_value_rel c c' ->
+    RuleProofs.smt_value_rel t t' ->
+    RuleProofs.smt_value_rel e e' ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval_ite c t e) (__smtx_model_eval_ite c' t' e') := by
+  intro hCond hThen hElse
+  unfold RuleProofs.smt_value_rel at hCond hThen hElse ⊢
+  cases c <;> cases c' <;>
+    simp [__smtx_model_eval_eq, __smtx_model_eval_ite, native_veq]
+      at hCond hThen hElse ⊢
+  case Boolean.Boolean b b' =>
+    cases b <;> cases b' <;>
+      simp at hCond hThen hElse ⊢
+    · exact hElse
+    · exact hThen
+
 private theorem distinct_pairs_rel_same_tail
     (M : SmtModel) (x y : Term) :
     eo_interprets M (mkEq x y) true ->
@@ -26453,5 +26589,73 @@ theorem smt_value_rel_model_eval_apply_of_rel
       (__smtx_model_eval_apply M (__smtx_model_eval M g) (__smtx_model_eval M y)) :=
   smt_value_rel_model_eval_apply_of_rel_core M hM f g x y
     hAppNN hFy hXy hFRel hXRel
+
+/--
+Generic SMT application preserves `smt_value_rel` across two models that agree
+on globals.
+
+This is the cross-model form needed by substitution/equality rules: the function
+and argument values may be obtained from different variable assignments, while
+uninterpreted-function lookup is kept aligned by global agreement.
+-/
+theorem smt_value_rel_model_eval_apply_of_rel_across_models
+    (M N : SmtModel) (hM : model_total_typed M) (hN : model_total_typed N)
+    (hGlobals : model_agrees_on_globals M N)
+    (f g x y : SmtTerm)
+    (hAppNN : __smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x) ≠ SmtType.None)
+    (hFy : __smtx_typeof f = __smtx_typeof g)
+    (hXy : __smtx_typeof x = __smtx_typeof y)
+    (hFRel : RuleProofs.smt_value_rel (__smtx_model_eval M f) (__smtx_model_eval N g))
+    (hXRel : RuleProofs.smt_value_rel (__smtx_model_eval M x) (__smtx_model_eval N y)) :
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval_apply M (__smtx_model_eval M f) (__smtx_model_eval M x))
+      (__smtx_model_eval_apply N (__smtx_model_eval N g) (__smtx_model_eval N y)) := by
+  rcases typeof_apply_non_none_cases hAppNN with
+    ⟨A, _B, hHead, hX, hA, _hB⟩
+  have hFNN : term_has_non_none_type f := by
+    unfold term_has_non_none_type
+    exact smt_type_ne_none_of_apply_head hHead
+  have hGNN : term_has_non_none_type g := by
+    unfold term_has_non_none_type
+    rw [← hFy]
+    exact hFNN
+  have hXNN : term_has_non_none_type x := by
+    unfold term_has_non_none_type
+    rw [hX]
+    exact hA
+  have hYNN : term_has_non_none_type y := by
+    unfold term_has_non_none_type
+    rw [← hXy]
+    exact hXNN
+  have hFPres :
+      __smtx_typeof_value (__smtx_model_eval M f) = __smtx_typeof f :=
+    smt_model_eval_preserves_type_of_non_none M hM f hFNN
+  have hGPres :
+      __smtx_typeof_value (__smtx_model_eval N g) = __smtx_typeof g :=
+    smt_model_eval_preserves_type_of_non_none N hN g hGNN
+  have hXPres :
+      __smtx_typeof_value (__smtx_model_eval M x) = __smtx_typeof x :=
+    smt_model_eval_preserves_type_of_non_none M hM x hXNN
+  have hYPres :
+      __smtx_typeof_value (__smtx_model_eval N y) = __smtx_typeof y :=
+    smt_model_eval_preserves_type_of_non_none N hN y hYNN
+  have hFNeReg : __smtx_typeof f ≠ SmtType.RegLan :=
+    smt_type_ne_reglan_of_apply_head hHead
+  have hANeReg : A ≠ SmtType.RegLan :=
+    TranslationProofs.smtx_term_fun_like_arg_ne_reglan_of_non_none
+      f hFNN hHead
+  have hFEq : __smtx_model_eval M f = __smtx_model_eval N g :=
+    RuleProofs.smt_value_rel_eq_of_type_ne_reglan
+      hFPres (by simpa [hFy] using hGPres) hFNeReg hFRel
+  have hXEq : __smtx_model_eval M x = __smtx_model_eval N y :=
+    RuleProofs.smt_value_rel_eq_of_type_ne_reglan
+      (by simpa [hX] using hXPres)
+      (by
+        rw [← hXy, hX] at hYPres
+        exact hYPres)
+      hANeReg hXRel
+  rw [hFEq, hXEq]
+  rw [smtx_model_eval_apply_eq_of_globals hGlobals]
+  exact RuleProofs.smt_value_rel_refl _
 
 end CongSupport
