@@ -89,10 +89,10 @@ theorem fun_type_wf_parts
   have hAll :
       ((native_inhabited_type A = true ∧
         __smtx_type_wf_rec A A = true) ∧
-          __smtx_type_no_alias_rec native_reflist_nil A = true) ∧
+          __smtx_type_names_consistent A = true) ∧
           ((native_inhabited_type B = true ∧
             __smtx_type_wf_rec B B = true) ∧
-              __smtx_type_no_alias_rec native_reflist_nil B = true) := by
+              __smtx_type_names_consistent B = true) := by
     simpa [__smtx_type_wf, __smtx_type_wf_component, native_and] using h
   exact ⟨hAll.1.1.1, hAll.1.1.2, hAll.2.1.1, hAll.2.1.2⟩
 
@@ -153,28 +153,28 @@ theorem type_wf_non_none
   simp [__smtx_type_wf, __smtx_type_wf_rec, native_and, hNone] at h
 
 /-- Rebuilds public well-formedness from recursive well-formedness plus inhabitation. -/
-theorem type_no_alias_of_type_wf
+theorem type_names_consistent_of_type_wf
     {T : SmtType}
     (h : __smtx_type_wf T = true) :
-    __smtx_type_no_alias_rec native_reflist_nil T = true := by
+    __smtx_type_names_consistent T = true := by
   cases T
   case Datatype s d =>
     have h3 :
         (native_inhabited_type (SmtType.Datatype s d) = true ∧
           __smtx_type_wf_rec (SmtType.Datatype s d) (SmtType.Datatype s d) = true) ∧
-          __smtx_type_no_alias_rec native_reflist_nil (SmtType.Datatype s d) = true := by
+          __smtx_type_names_consistent (SmtType.Datatype s d) = true := by
       simpa [__smtx_type_wf, __smtx_type_wf_component, native_and] using h
     exact h3.2
-  all_goals simp [__smtx_type_no_alias_rec]
+  all_goals simp [__smtx_type_names_consistent]
 
 theorem type_wf_of_inhabited_and_wf_rec
     {T : SmtType}
     (hInh : native_inhabited_type T = true)
     (hRec : __smtx_type_wf_rec T T = true)
-    (hNA : __smtx_type_no_alias_rec native_reflist_nil T = true) :
+    (hNC : __smtx_type_names_consistent T = true) :
     __smtx_type_wf T = true := by
   have hComp : __smtx_type_wf_component T = true := by
-    simp [__smtx_type_wf_component, native_and, hInh, hRec, hNA]
+    simp [__smtx_type_wf_component, native_and, hInh, hRec, hNC]
   cases T
   case RegLan => simp [__smtx_type_wf]
   case FunType A B =>
@@ -340,9 +340,16 @@ theorem seq_type_wf_component_of_wf
       native_inhabited_type (SmtType.Seq A) = true ∧
         ((native_inhabited_type A = true ∧
           __smtx_type_wf_rec A A = true) ∧
-          __smtx_type_no_alias_rec native_reflist_nil A = true) := by
-    simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
-      __smtx_type_no_alias_rec, native_and] using h
+          __smtx_type_names_consistent A = true) := by
+    have hFull :
+        (native_inhabited_type (SmtType.Seq A) = true ∧
+          ((native_inhabited_type A = true ∧
+            __smtx_type_wf_rec A A = true) ∧
+            __smtx_type_names_consistent A = true)) ∧
+          __smtx_type_names_consistent (SmtType.Seq A) = true := by
+      simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+        native_and] using h
+    exact hFull.1
   exact type_wf_of_inhabited_and_wf_rec hAll.2.1.1 hAll.2.1.2 hAll.2.2
 
 /-- Extracts well-formedness of the element type of a well-formed set type. -/
@@ -354,9 +361,16 @@ theorem set_type_wf_component_of_wf
       native_inhabited_type (SmtType.Set A) = true ∧
         ((native_inhabited_type A = true ∧
           __smtx_type_wf_rec A A = true) ∧
-          __smtx_type_no_alias_rec native_reflist_nil A = true) := by
-    simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
-      __smtx_type_no_alias_rec, native_and] using h
+          __smtx_type_names_consistent A = true) := by
+    have hFull :
+        (native_inhabited_type (SmtType.Set A) = true ∧
+          ((native_inhabited_type A = true ∧
+            __smtx_type_wf_rec A A = true) ∧
+            __smtx_type_names_consistent A = true)) ∧
+          __smtx_type_names_consistent (SmtType.Set A) = true := by
+      simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+        native_and] using h
+    exact hFull.1
   exact type_wf_of_inhabited_and_wf_rec hAll.2.1.1 hAll.2.1.2 hAll.2.2
 
 /-- Extracts well-formedness of the domain and codomain of a well-formed map type. -/
@@ -368,12 +382,22 @@ theorem map_type_wf_components_of_wf
       native_inhabited_type (SmtType.Map A B) = true ∧
         (((native_inhabited_type A = true ∧
           __smtx_type_wf_rec A A = true) ∧
-          __smtx_type_no_alias_rec native_reflist_nil A = true) ∧
+          __smtx_type_names_consistent A = true) ∧
           ((native_inhabited_type B = true ∧
             __smtx_type_wf_rec B B = true) ∧
-            __smtx_type_no_alias_rec native_reflist_nil B = true)) := by
-    simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
-      __smtx_type_no_alias_rec, native_and] using h
+            __smtx_type_names_consistent B = true)) := by
+    have hFull :
+        (native_inhabited_type (SmtType.Map A B) = true ∧
+          (((native_inhabited_type A = true ∧
+            __smtx_type_wf_rec A A = true) ∧
+            __smtx_type_names_consistent A = true) ∧
+            ((native_inhabited_type B = true ∧
+              __smtx_type_wf_rec B B = true) ∧
+              __smtx_type_names_consistent B = true))) ∧
+          __smtx_type_names_consistent (SmtType.Map A B) = true := by
+      simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+        native_and] using h
+    exact hFull.1
   exact ⟨type_wf_of_inhabited_and_wf_rec hAll.2.1.1.1 hAll.2.1.1.2 hAll.2.1.2,
     type_wf_of_inhabited_and_wf_rec hAll.2.2.1.1 hAll.2.2.1.2 hAll.2.2.2⟩
 
@@ -385,10 +409,10 @@ theorem fun_type_wf_components_of_wf
   have hAll :
       ((native_inhabited_type A = true ∧
         __smtx_type_wf_rec A A = true) ∧
-          __smtx_type_no_alias_rec native_reflist_nil A = true) ∧
+          __smtx_type_names_consistent A = true) ∧
           ((native_inhabited_type B = true ∧
             __smtx_type_wf_rec B B = true) ∧
-              __smtx_type_no_alias_rec native_reflist_nil B = true) := by
+              __smtx_type_names_consistent B = true) := by
     simpa [__smtx_type_wf, __smtx_type_wf_component, native_and] using h
   exact ⟨type_wf_of_inhabited_and_wf_rec hAll.1.1.1 hAll.1.1.2 hAll.1.2,
     type_wf_of_inhabited_and_wf_rec hAll.2.1.1 hAll.2.1.2 hAll.2.2⟩

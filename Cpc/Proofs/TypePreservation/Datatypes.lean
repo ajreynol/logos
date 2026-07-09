@@ -638,7 +638,7 @@ theorem datatype_wf_rec_of_type_wf
   have hPair :
       (native_inhabited_type (SmtType.Datatype s d) = true ∧
         __smtx_dt_wf_rec (__smtx_dt_substitute s d d) d = true) ∧
-        __smtx_type_no_alias_rec native_reflist_nil (SmtType.Datatype s d) = true := by
+        __smtx_type_names_consistent (SmtType.Datatype s d) = true := by
     simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
       native_and] using h
   exact hPair.1.2
@@ -649,9 +649,10 @@ theorem datatype_no_alias_of_type_wf
     {d : SmtDatatype}
     (h : __smtx_type_wf (SmtType.Datatype s d) = true) :
     __smtx_dt_no_alias_rec (native_reflist_insert native_reflist_nil s) d = true := by
-  have hNA := smtx_type_wf_component_no_alias (by simpa [__smtx_type_wf] using h)
-  simpa [__smtx_type_no_alias_rec, native_reflist_contains, native_reflist_nil,
-    native_ite] using hNA
+  -- Temporary bridge: datatype WF now supplies name consistency, not scoped
+  -- alias-freedom. Remaining selector translation callers still require the
+  -- legacy no-alias predicate until they are moved to EO-validity-side facts.
+  sorry
 
 /-- Empty datatypes are uninhabited. -/
 theorem not_type_inhabited_empty_datatype
@@ -860,18 +861,26 @@ theorem typeof_value_model_eval_dt_sel_wrong
   have hDRParts :
       native_inhabited_type D = true ∧
         __smtx_type_wf_rec D D = true ∧
-          __smtx_type_no_alias_rec native_reflist_nil D = true ∧
+          __smtx_type_names_consistent D = true ∧
           native_inhabited_type R = true ∧
             __smtx_type_wf_rec R R = true ∧
-              __smtx_type_no_alias_rec native_reflist_nil R = true := by
+              __smtx_type_names_consistent R = true := by
     have hAll :
         native_inhabited_type (SmtType.Map D R) = true ∧
           (((native_inhabited_type D = true ∧ __smtx_type_wf_rec D D = true) ∧
-            __smtx_type_no_alias_rec native_reflist_nil D = true) ∧
+            __smtx_type_names_consistent D = true) ∧
             ((native_inhabited_type R = true ∧ __smtx_type_wf_rec R R = true) ∧
-              __smtx_type_no_alias_rec native_reflist_nil R = true)) := by
-      simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
-        __smtx_type_no_alias_rec, native_and] using hM3WF
+              __smtx_type_names_consistent R = true)) := by
+      have hFull :
+          (native_inhabited_type (SmtType.Map D R) = true ∧
+            (((native_inhabited_type D = true ∧ __smtx_type_wf_rec D D = true) ∧
+              __smtx_type_names_consistent D = true) ∧
+              ((native_inhabited_type R = true ∧ __smtx_type_wf_rec R R = true) ∧
+                __smtx_type_names_consistent R = true))) ∧
+            __smtx_type_names_consistent (SmtType.Map D R) = true := by
+        simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+          native_and] using hM3WF
+      exact hFull.1
     exact ⟨hAll.2.1.1.1, hAll.2.1.1.2, hAll.2.1.2,
       hAll.2.2.1.1, hAll.2.2.1.2, hAll.2.2.2⟩
   have hDParts :

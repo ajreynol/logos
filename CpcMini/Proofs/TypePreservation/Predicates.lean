@@ -1,4 +1,4 @@
-import CpcMini.SmtModel
+import CpcMini.Proofs.LegacyNoAlias
 
 open SmtEval
 open Smtm

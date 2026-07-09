@@ -133,12 +133,13 @@ theorem smtx_typeof_tuple_unit_translation :
     simp [tupleTy, __smtx_type_wf_rec, __smtx_dt_wf_rec,
       __smtx_dt_cons_wf_rec, __smtx_dt_substitute, __smtx_dtc_substitute,
       native_ite]
-  have hNA : __smtx_type_no_alias_rec native_reflist_nil tupleTy = true := by
-    simp [tupleTy, __smtx_type_no_alias_rec, __smtx_dt_no_alias_rec,
-      __smtx_dt_cons_no_alias_rec, native_reflist_contains,
-      native_reflist_nil, native_ite]
+  have hNC : __smtx_type_names_consistent tupleTy = true := by
+    simp [tupleTy, __smtx_type_names_consistent, __smtx_dt_name_agrees,
+      __smtx_dt_cons_name_agrees,
+      __smtx_dt_names_consistent_rec, __smtx_dt_cons_names_consistent_rec,
+      native_ite]
   have hWf : __smtx_type_wf tupleTy = true := by
-    simp [__smtx_type_wf, __smtx_type_wf_component, native_and, hInh, hRec, hNA]
+    simp [__smtx_type_wf, __smtx_type_wf_component, native_and, hInh, hRec, hNC]
   unfold __smtx_typeof
   simp [tupleTy, __smtx_typeof_guard_wf, hWf, native_ite,
     __smtx_dt_substitute, __smtx_dtc_substitute, __smtx_typeof_dt_cons_rec]

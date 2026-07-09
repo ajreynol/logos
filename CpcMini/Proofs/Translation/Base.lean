@@ -1,5 +1,6 @@
 import CpcMini.Spec
 import CpcMini.Logos
+import CpcMini.Proofs.LegacyNoAlias
 
 open Eo
 open SmtEval

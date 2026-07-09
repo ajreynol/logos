@@ -254,7 +254,7 @@ theorem datatype_wf_rec_of_type_wf
   have hPair :
       (native_inhabited_type (SmtType.Datatype s d) = true ∧
         __smtx_dt_wf_rec (__smtx_dt_substitute s d d) d = true) ∧
-        __smtx_type_no_alias_rec native_reflist_nil (SmtType.Datatype s d) = true := by
+        __smtx_type_names_consistent (SmtType.Datatype s d) = true := by
     simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
       native_and] using h
   exact hPair.1.2
@@ -1179,10 +1179,10 @@ theorem dt_sel_wrong_map_type_wf_of_non_none
     type_wf_parts_of_wf_ne_reglan hDTWf (by simp [D]) (by
       intro A B h
       simp [D] at h)
-  have hRNA : __smtx_type_no_alias_rec native_reflist_nil R = true :=
-    type_no_alias_of_type_wf hRWf
-  have hDNA : __smtx_type_no_alias_rec native_reflist_nil D = true :=
-    type_no_alias_of_type_wf hDTWf
+  have hRNC : __smtx_type_names_consistent R = true :=
+    type_names_consistent_of_type_wf hRWf
+  have hDNC : __smtx_type_names_consistent D = true :=
+    type_names_consistent_of_type_wf hDTWf
   have hRInh : type_inhabited R :=
     type_inhabited_of_type_wf R hRWf
   have hM3Inh : type_inhabited M3 := by
@@ -1191,24 +1191,24 @@ theorem dt_sel_wrong_map_type_wf_of_non_none
     native_inhabited_type_map hRParts.1
   have hM3Rec : __smtx_type_wf_rec M3 M3 = true := by
     simp [M3, __smtx_type_wf_rec, native_and, hDTParts.1,
-      hDTParts.2, hRParts.1, hRParts.2, hDNA, hRNA]
+      hDTParts.2, hRParts.1, hRParts.2, hDNC, hRNC]
   have hM2Inh : type_inhabited M2 := by
     exact type_inhabited_map (A := SmtType.Int) (B := M3) hM3Inh
   have hM2InhBool : native_inhabited_type M2 = true :=
     native_inhabited_type_map hM3InhBool
   have hM2Rec : __smtx_type_wf_rec M2 M2 = true := by
-    simp [M2, __smtx_type_wf_rec, __smtx_type_no_alias_rec, native_and,
+    simp [M2, __smtx_type_wf_rec, __smtx_type_names_consistent, native_and,
       int_inhabited_bool, hM3InhBool, hM3Rec]
   have hM1Inh : type_inhabited M1 := by
     exact type_inhabited_map (A := SmtType.Int) (B := M2) hM2Inh
   have hM1InhBool : native_inhabited_type M1 = true :=
     native_inhabited_type_map hM2InhBool
   have hM1Rec : __smtx_type_wf_rec M1 M1 = true := by
-    simp [M1, __smtx_type_wf_rec, __smtx_type_no_alias_rec, native_and,
+    simp [M1, __smtx_type_wf_rec, __smtx_type_names_consistent, native_and,
       int_inhabited_bool, hM2InhBool, hM2Rec]
   simpa [M1, M2, M3, D, R] using
     type_wf_of_inhabited_and_wf_rec hM1InhBool hM1Rec
-      (by simp [__smtx_type_no_alias_rec])
+      (by simp [__smtx_type_names_consistent])
 
 /-- Shows that evaluating `dt_sel_wrong` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_dt_sel_wrong
@@ -1266,8 +1266,8 @@ theorem typeof_value_model_eval_dt_sel_wrong
     type_wf_parts_of_wf_ne_reglan hRWF hRNe hRNeFun
   have hFunWF : __smtx_type_wf (SmtType.FunType D R) = true := by
     simp [__smtx_type_wf, __smtx_type_wf_component, native_and, hDParts.1, hDParts.2,
-      hRParts.1, hRParts.2, type_no_alias_of_type_wf hDWF,
-      type_no_alias_of_type_wf hRWF]
+      hRParts.1, hRParts.2, type_names_consistent_of_type_wf hDWF,
+      type_names_consistent_of_type_wf hRWF]
   have hLookup :
       __smtx_typeof_value
         (native_model_lookup M (native_wrong_apply_sel_id i j) (SmtType.FunType D R)) =

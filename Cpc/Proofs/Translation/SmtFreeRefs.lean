@@ -1,4 +1,4 @@
-import Cpc.SmtModel
+import Cpc.Proofs.TermCompat
 
 /-!
 # SMT free type-references, aliasing and datatype occurrence tracking

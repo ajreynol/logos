@@ -349,7 +349,7 @@ theorem seq_type_wf_rec_component_of_wf
   have hA :
       (native_inhabited_type A = true ∧
         __smtx_type_wf_rec A A = true) ∧
-        __smtx_type_no_alias_rec native_reflist_nil A = true := by
+        __smtx_type_names_consistent A = true := by
     simpa [__smtx_type_wf_rec, native_and] using h
   exact hA.1.2
 
@@ -368,7 +368,7 @@ theorem set_type_wf_rec_component_of_wf
   have hA :
       (native_inhabited_type A = true ∧
         __smtx_type_wf_rec A A = true) ∧
-        __smtx_type_no_alias_rec native_reflist_nil A = true := by
+        __smtx_type_names_consistent A = true := by
     simpa [__smtx_type_wf_rec, native_and] using h
   exact hA.1.2
 
@@ -388,10 +388,10 @@ theorem map_type_wf_rec_components_of_wf
   have h' :
       ((native_inhabited_type A = true ∧
         __smtx_type_wf_rec A A = true) ∧
-        __smtx_type_no_alias_rec native_reflist_nil A = true) ∧
+        __smtx_type_names_consistent A = true) ∧
         (native_inhabited_type B = true ∧
           __smtx_type_wf_rec B B = true) ∧
-          __smtx_type_no_alias_rec native_reflist_nil B = true := by
+          __smtx_type_names_consistent B = true := by
     simpa [__smtx_type_wf_rec, native_and] using h
   exact ⟨h'.1.1.2, h'.2.1.2⟩
 
@@ -413,10 +413,10 @@ theorem fun_type_wf_rec_components_of_wf
   have h' :
       ((native_inhabited_type A = true ∧
         __smtx_type_wf_rec A A = true) ∧
-        __smtx_type_no_alias_rec native_reflist_nil A = true) ∧
+        __smtx_type_names_consistent A = true) ∧
         ((native_inhabited_type B = true ∧
           __smtx_type_wf_rec B B = true) ∧
-          __smtx_type_no_alias_rec native_reflist_nil B = true) := by
+          __smtx_type_names_consistent B = true) := by
     simpa [__smtx_type_wf, __smtx_type_wf_component, native_and] using h
   exact ⟨h'.1.1.2, h'.2.1.2⟩
 
@@ -2661,20 +2661,20 @@ theorem noNoneTy_of_field (TF U : SmtType) :
           | _ => simp [alignTy] at hAl
       | Seq a =>
           have ha : (native_inhabited_type a = true ∧ __smtx_type_wf_rec a a = true) ∧
-              __smtx_type_no_alias_rec native_reflist_nil a = true := by
+              __smtx_type_names_consistent a = true := by
             simpa [__smtx_type_wf_rec, native_and] using h
           simpa [noNoneTy] using noNoneTy_of_field a a ha.1.2 (alignTy_refl a)
       | Set a =>
           have ha : (native_inhabited_type a = true ∧ __smtx_type_wf_rec a a = true) ∧
-              __smtx_type_no_alias_rec native_reflist_nil a = true := by
+              __smtx_type_names_consistent a = true := by
             simpa [__smtx_type_wf_rec, native_and] using h
           simpa [noNoneTy] using noNoneTy_of_field a a ha.1.2 (alignTy_refl a)
       | Map a b =>
           have hab :
               ((native_inhabited_type a = true ∧ __smtx_type_wf_rec a a = true) ∧
-                __smtx_type_no_alias_rec native_reflist_nil a = true) ∧
+                __smtx_type_names_consistent a = true) ∧
                 (native_inhabited_type b = true ∧ __smtx_type_wf_rec b b = true) ∧
-                  __smtx_type_no_alias_rec native_reflist_nil b = true := by
+                  __smtx_type_names_consistent b = true := by
             simpa [__smtx_type_wf_rec, native_and] using h
           simp only [noNoneTy, native_and, Bool.and_eq_true]
           exact ⟨noNoneTy_of_field a a hab.1.1.2 (alignTy_refl a),

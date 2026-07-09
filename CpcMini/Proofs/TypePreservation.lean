@@ -20,12 +20,22 @@ private theorem type_default_typed_canonical_of_map_domain_wf
       native_inhabited_type (SmtType.Map A B) = true ∧
         (((native_inhabited_type A = true ∧
           __smtx_type_wf_rec A A = true) ∧
-          __smtx_type_no_alias_rec native_reflist_nil A = true) ∧
+          __smtx_type_names_consistent A = true) ∧
           ((native_inhabited_type B = true ∧
             __smtx_type_wf_rec B B = true) ∧
-            __smtx_type_no_alias_rec native_reflist_nil B = true)) := by
-    simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
-      __smtx_type_no_alias_rec, native_and] using h
+            __smtx_type_names_consistent B = true)) := by
+    have hFull :
+        (native_inhabited_type (SmtType.Map A B) = true ∧
+          (((native_inhabited_type A = true ∧
+            __smtx_type_wf_rec A A = true) ∧
+            __smtx_type_names_consistent A = true) ∧
+            ((native_inhabited_type B = true ∧
+              __smtx_type_wf_rec B B = true) ∧
+              __smtx_type_names_consistent B = true))) ∧
+          __smtx_type_names_consistent (SmtType.Map A B) = true := by
+      simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+        native_and] using h
+    exact hFull.1
   exact type_default_typed_canonical_of_inhabited_wf_rec A hAll.2.1.1.1 hAll.2.1.1.2
 
 private theorem type_default_typed_canonical_of_set_element_wf
@@ -37,9 +47,16 @@ private theorem type_default_typed_canonical_of_set_element_wf
       native_inhabited_type (SmtType.Set A) = true ∧
         ((native_inhabited_type A = true ∧
           __smtx_type_wf_rec A A = true) ∧
-          __smtx_type_no_alias_rec native_reflist_nil A = true) := by
-    simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
-      __smtx_type_no_alias_rec, native_and] using h
+          __smtx_type_names_consistent A = true) := by
+    have hFull :
+        (native_inhabited_type (SmtType.Set A) = true ∧
+          ((native_inhabited_type A = true ∧
+            __smtx_type_wf_rec A A = true) ∧
+            __smtx_type_names_consistent A = true)) ∧
+          __smtx_type_names_consistent (SmtType.Set A) = true := by
+      simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+        native_and] using h
+    exact hFull.1
   exact type_default_typed_canonical_of_inhabited_wf_rec A hAll.2.1.1 hAll.2.1.2
 
 private theorem map_diff_default_typed_canonical_of_non_none

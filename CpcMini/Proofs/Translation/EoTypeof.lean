@@ -1543,7 +1543,7 @@ private theorem smtx_type_wf_rec_seq_component
     __smtx_type_wf_rec T T = true := by
   have hPair :
       (native_inhabited_type T = true ∧ __smtx_type_wf_rec T T = true) ∧
-        __smtx_type_no_alias_rec native_reflist_nil T = true := by
+        __smtx_type_names_consistent T = true := by
     simpa [__smtx_type_wf_rec, native_and] using h
   exact hPair.1.2
 
@@ -2244,10 +2244,10 @@ private theorem smtx_fun_type_wf_parts
   have hAll :
       ((native_inhabited_type A = true ∧
         __smtx_type_wf_rec A A = true) ∧
-          __smtx_type_no_alias_rec native_reflist_nil A = true) ∧
+          __smtx_type_names_consistent A = true) ∧
           ((native_inhabited_type B = true ∧
             __smtx_type_wf_rec B B = true) ∧
-              __smtx_type_no_alias_rec native_reflist_nil B = true) := by
+              __smtx_type_names_consistent B = true) := by
     simpa [__smtx_type_wf, __smtx_type_wf_component, native_and] using h
   exact ⟨hAll.1.1.1, hAll.1.1.2, hAll.2.1.1, hAll.2.1.2⟩
 
