@@ -220,8 +220,14 @@ private theorem seq_elem_native_inhabited_of_seq_wf {A : SmtType} :
   intro h
   have hParts : native_inhabited_type A = true ∧
       __smtx_type_wf_rec A A = true := by
-    simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
-      native_and] using h
+    have hAll :
+        ((native_inhabited_type A = true ∧
+            __smtx_type_wf_rec A A = true) ∧
+          __smtx_type_no_alias_rec native_reflist_nil A = true) ∧
+          __smtx_type_no_alias_rec native_reflist_nil (SmtType.Seq A) = true := by
+      simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+        native_and] using h
+    exact hAll.1.1
   exact hParts.1
 
 private theorem list_typed_replicate_type_default
