@@ -35,7 +35,9 @@ inductive supported_preservation_term : SmtTerm -> Prop
       (ht : term_has_non_none_type (SmtTerm.choice s T body)) :
       supported_preservation_term (SmtTerm.choice s T body)
   | bind (s : native_String) (T : SmtType) (x1 x2 : SmtTerm)
-      (ht : term_has_non_none_type (SmtTerm.bind s T x1 x2)) :
+      (ht : term_has_non_none_type (SmtTerm.bind s T x1 x2))
+      (hs1 : supported_preservation_term x1)
+      (hs2 : supported_preservation_term x2) :
       supported_preservation_term (SmtTerm.bind s T x1 x2)
   | map_diff {t1 t2 : SmtTerm}
       (ht1 : term_has_non_none_type t1)

@@ -353,24 +353,74 @@ theorem bind_term_typeof_of_non_none
   rw [hLHS]
   exact hGuard
 
-/-- Shows that evaluating `bind` (let) terms produces values of the expected type.
+/-- The bound value of a well-typed `bind` has the binder type. -/
+theorem bind_arg1_type_of_non_none
+    {s : native_String} {T : SmtType} {x1 x2 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.bind s T x1 x2)) :
+    __smtx_typeof x1 = T := by
+  unfold term_has_non_none_type at ht
+  by_cases hEq : native_Teq (__smtx_typeof x1) T = true
+  · exact of_decide_eq_true (by simpa [native_Teq] using hEq)
+  · exfalso
+    have hEqFalse : native_Teq (__smtx_typeof x1) T = false := by
+      cases hTest : native_Teq (__smtx_typeof x1) T <;> simp [hTest] at hEq ⊢
+    apply ht
+    unfold __smtx_typeof
+    simp [hEqFalse, native_ite]
 
-`bind` is a let-binding introduced to model `quantifiers_skolemize`; in the
-skolemize translation output every `bind` node is nested inside an opaque
-`choice` body, so `supported_preservation_term` is never actually built for a
-top-level `bind`.  A general proof reuses `model_total_typed_push`, which needs
-canonicity of `__smtx_model_eval M x1`; the plain type-preservation recursion
-does not carry canonicity, so this remaining step is left as a documented gap. -/
+/-- The binder type of a well-typed `bind` is well formed. -/
+theorem bind_binder_type_wf_of_non_none
+    {s : native_String} {T : SmtType} {x1 x2 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.bind s T x1 x2)) :
+    __smtx_type_wf T = true := by
+  have hEq : native_Teq (__smtx_typeof x1) T = true := by
+    simp [native_Teq, bind_arg1_type_of_non_none ht]
+  unfold term_has_non_none_type at ht
+  have hGuardNN : __smtx_typeof_guard_wf T (__smtx_typeof x2) ≠ SmtType.None := by
+    unfold __smtx_typeof at ht
+    simpa [hEq, native_ite] using ht
+  exact smtx_typeof_guard_wf_wf_of_non_none T (__smtx_typeof x2) hGuardNN
+
+/-- The bound value of a well-typed `bind` has non-`None` type. -/
+theorem bind_arg1_non_none_of_non_none
+    {s : native_String} {T : SmtType} {x1 x2 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.bind s T x1 x2)) :
+    term_has_non_none_type x1 := by
+  unfold term_has_non_none_type
+  rw [bind_arg1_type_of_non_none ht]
+  intro hNone
+  have hWf := bind_binder_type_wf_of_non_none ht
+  rw [hNone] at hWf
+  exact absurd hWf (by native_decide)
+
+/-- The body of a well-typed `bind` has non-`None` type. -/
+theorem bind_arg2_non_none_of_non_none
+    {s : native_String} {T : SmtType} {x1 x2 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.bind s T x1 x2)) :
+    term_has_non_none_type x2 := by
+  have hEq := bind_term_typeof_of_non_none ht
+  unfold term_has_non_none_type at ht ⊢
+  rw [hEq] at ht
+  exact ht
+
+/-- Shows that evaluating a `bind` (let) term produces a value of the expected
+type, given type preservation for the body `x2` under the pushed model.  The
+caller supplies `hx2` (via canonicity preservation of `x1` so that the pushed
+model stays `model_total_typed`); `bind` is the only construct whose result type
+is the body's type under a pushed binding, so it needs this extra input. -/
 theorem typeof_value_model_eval_bind
-    (Mw : SmtModel)
-    (hMw : model_total_typed Mw)
     (M : SmtModel)
     (s : native_String)
     (T : SmtType)
     (x1 x2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.bind s T x1 x2)) :
+    (ht : term_has_non_none_type (SmtTerm.bind s T x1 x2))
+    (hx2 :
+      __smtx_typeof_value
+          (__smtx_model_eval (native_model_push M s T (__smtx_model_eval M x1)) x2) =
+        __smtx_typeof x2) :
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.bind s T x1 x2)) =
       __smtx_typeof (SmtTerm.bind s T x1 x2) := by
-  sorry -- canonicity gap: bind eval needs model_total_typed_push, unavailable in plain type-preservation recursion (mirrors Cpc)
+  rw [smtx_model_eval_bind_eq, bind_term_typeof_of_non_none ht]
+  exact hx2
 
 end Smtm
