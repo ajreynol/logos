@@ -210,12 +210,13 @@ private theorem smt_set_domain_inhabited_wf_rec_of_typeof
       native_inhabited_type A = true ∧
         __smtx_type_wf_rec A A = true := by
     have hAll :
-        native_inhabited_type (SmtType.Set A) = true ∧
-          native_inhabited_type A = true ∧
-            __smtx_type_wf_rec A A = true := by
+        ((native_inhabited_type A = true ∧
+            __smtx_type_wf_rec A A = true) ∧
+          __smtx_type_no_alias_rec native_reflist_nil A = true) ∧
+          __smtx_type_no_alias_rec native_reflist_nil (SmtType.Set A) = true := by
       simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
         native_and] using hWF
-    exact hAll.2
+    exact hAll.1.1
   exact hParts
 
 private theorem set_model_eval_eq_false_to_map_eq_false

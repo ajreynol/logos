@@ -111,7 +111,7 @@ theorem smtx_typeof_idxVar :
   change __smtx_typeof (SmtTerm.Var idxName SmtType.Int) = SmtType.Int
   have hWF : __smtx_type_wf SmtType.Int = true := by
     simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
-      native_and]
+      __smtx_type_no_alias_rec, native_and]
   simp [__smtx_typeof, __smtx_typeof_guard_wf, hWF, native_ite]
 
 theorem smtx_typeof_zero :
@@ -238,7 +238,8 @@ private theorem smtx_typeof_exists_int_bool_of_body_bool (body : SmtTerm) :
   have hGuard :
       __smtx_typeof_guard_wf SmtType.Int SmtType.Bool = SmtType.Bool := by
     simp [__smtx_typeof_guard_wf, __smtx_type_wf,
-      __smtx_type_wf_component, __smtx_type_wf_rec, native_and,
+      __smtx_type_wf_component, __smtx_type_wf_rec,
+      __smtx_type_no_alias_rec, native_and,
       native_ite]
   rw [typeof_exists_eq_local]
   simp [hBody, hGuard, native_ite, native_Teq]
@@ -1689,7 +1690,7 @@ private theorem re_unfold_neg_star_qforall_eval_true
   let N := native_model_push M idxName SmtType.Int (SmtValue.Numeral i)
   have hWF : __smtx_type_wf SmtType.Int = true := by
     simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
-      native_and]
+      __smtx_type_no_alias_rec, native_and]
   have hN : model_total_typed N := by
     exact model_total_typed_push hM idxName SmtType.Int
       (SmtValue.Numeral i) hWF rfl (by
@@ -1777,7 +1778,7 @@ theorem re_unfold_neg_concat_formula_eval_true
   let N := native_model_push M idxName SmtType.Int (SmtValue.Numeral i)
   have hWF : __smtx_type_wf SmtType.Int = true := by
     simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
-      native_and]
+      __smtx_type_no_alias_rec, native_and]
   have hN : model_total_typed N := by
     exact model_total_typed_push hM idxName SmtType.Int
       (SmtValue.Numeral i) hWF rfl (by
