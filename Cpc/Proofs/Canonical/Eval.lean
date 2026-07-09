@@ -1,4 +1,5 @@
 import Cpc.Proofs.Canonical.Ops
+import Cpc.Proofs.Canonical.BasicModel
 
 open SmtEval
 open Smtm

@@ -132,7 +132,9 @@ inductive supported_preservation_term : SmtTerm -> Prop
       (ht : term_has_non_none_type (SmtTerm.choice s T body)) :
       supported_preservation_term (SmtTerm.choice s T body)
   | bind (s : native_String) (T : SmtType) (x1 x2 : SmtTerm)
-      (ht : term_has_non_none_type (SmtTerm.bind s T x1 x2)) :
+      (ht : term_has_non_none_type (SmtTerm.bind s T x1 x2))
+      (hs1 : supported_preservation_term x1)
+      (hs2 : supported_preservation_term x2) :
       supported_preservation_term (SmtTerm.bind s T x1 x2)
   | not {t : SmtTerm}
       (ht : term_has_non_none_type t)
@@ -893,9 +895,11 @@ theorem supported_bind_of_non_none
     {s : native_String}
     {T : SmtType}
     {x1 x2 : SmtTerm}
-    (ht : term_has_non_none_type (SmtTerm.bind s T x1 x2)) :
+    (ht : term_has_non_none_type (SmtTerm.bind s T x1 x2))
+    (hs1 : supported_preservation_term x1)
+    (hs2 : supported_preservation_term x2) :
     supported_preservation_term (SmtTerm.bind s T x1 x2) :=
-  supported_preservation_term.bind s T x1 x2 ht
+  supported_preservation_term.bind s T x1 x2 ht hs1 hs2
 
 /-- Computes generic application typing for application heads that are not datatype selectors or testers. -/
 theorem generic_apply_type_of_non_datatype_head

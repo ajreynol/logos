@@ -2134,23 +2134,177 @@ private theorem smtx_typeof_eo_to_smt_exists_cons_bool_of_tail_bool
   rw [__smtx_typeof.eq_def] <;> simp only
   simp [hTailBool, native_ite, native_Teq, __smtx_typeof_guard_wf, hWf]
 
-/-- Any well-typed skolemization forces the enclosing existential chain to be
-Boolean.
+/-- Typing equation for a `bind` node. -/
+private theorem typeof_bind_eq_full
+    (s : native_String) (T : SmtType) (x1 x2 : SmtTerm) :
+    __smtx_typeof (SmtTerm.bind s T x1 x2) =
+      native_ite (native_Teq (__smtx_typeof x1) T)
+        (__smtx_typeof_guard_wf T (__smtx_typeof x2)) SmtType.None := by
+  rw [__smtx_typeof.eq_def] <;> simp only
 
-Under the new `bind`-threaded successor recursion, `skolemize (cons (s:T) vs) G (n+1)`
-reduces to `skolemize vs G' n` where the body `G` is re-wrapped as
-`G' = bind s T (choice s T (exists vs G)) G`.  Recovering Boolean-ness of the
-*original* existential chain `exists xs G` therefore requires unwinding that nested
-`bind` structure (each dropped binder is forced well-formed and the innermost body
-`G` forced Boolean only at the base `choice`).  That bind-nesting invariant is a
-genuine re-derivation and is left as a documented gap. -/
+/-- Typing equation for an `exists` node. -/
+private theorem typeof_exists_eq_full
+    (s : native_String) (T : SmtType) (x1 : SmtTerm) :
+    __smtx_typeof (SmtTerm.exists s T x1) =
+      native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool)
+        (__smtx_typeof_guard_wf T SmtType.Bool) SmtType.None := by
+  rw [__smtx_typeof.eq_def] <;> simp only
+
+/-- The type of an `exists` node depends on its body only through the body's type. -/
+private theorem typeof_smt_exists_congr
+    (s : native_String) (T : SmtType) (X Y : SmtTerm)
+    (h : __smtx_typeof X = __smtx_typeof Y) :
+    __smtx_typeof (SmtTerm.exists s T X) = __smtx_typeof (SmtTerm.exists s T Y) := by
+  rw [typeof_exists_eq_full, typeof_exists_eq_full, h]
+
+/-- The type of a translated existential chain depends on its body only through
+the body's type: swapping bodies of equal type preserves the chain type. -/
+private theorem exists_chain_body_congr
+    (vs : Term) (A B : SmtTerm)
+    (hAB : __smtx_typeof A = __smtx_typeof B) :
+    __smtx_typeof (__eo_to_smt_exists vs A) = __smtx_typeof (__eo_to_smt_exists vs B) := by
+  cases hvs : vs
+  case __eo_List_nil =>
+    subst hvs
+    simpa [__eo_to_smt_exists] using hAB
+  case Apply f a =>
+    subst hvs
+    cases hf : f
+    case Apply g y =>
+      subst hf
+      cases hg : g
+      case __eo_List_cons =>
+        subst hg
+        cases hy : y
+        case Var name T =>
+          subst hy
+          cases hname : name
+          case String s =>
+            subst hname
+            rw [eo_to_smt_exists_cons, eo_to_smt_exists_cons]
+            exact typeof_smt_exists_congr s (__eo_to_smt_type T) _ _
+              (exists_chain_body_congr a A B hAB)
+          all_goals
+            subst hname
+            simp [__eo_to_smt_exists]
+        all_goals
+          subst hy
+          simp [__eo_to_smt_exists]
+      all_goals
+        subst hg
+        simp [__eo_to_smt_exists]
+    all_goals
+      subst hf
+      simp [__eo_to_smt_exists]
+  all_goals
+    subst hvs
+    simp [__eo_to_smt_exists]
+
+/-- Any well-typed skolemization forces the enclosing existential chain to be
+Boolean.  In the `bind`-threaded successor recursion the body is re-wrapped as
+`G' = bind s T (choice s T (exists vs G)) G`; the recursion recovers Boolean-ness
+of the chain over `G'`, from which we recover it for the original `G` by peeling
+the `bind` (which forces the head binder well-formed and `typeof G = typeof G'`)
+and the body-swap congruence above. -/
 private theorem eo_to_smt_exists_bool_of_quantifiers_skolemize_non_none
     (xs : Term) (body : SmtTerm) (n : native_Nat)
     (hBodyNoExists : ∀ s T F, body ≠ SmtTerm.exists s T F) :
     __smtx_typeof (__eo_to_smt_quantifiers_skolemize xs body n) ≠ SmtType.None ->
     __smtx_typeof (__eo_to_smt_exists xs body) = SmtType.Bool := by
-  -- documented gap: bind-nesting unwinding under the new skolemize recursion
-  sorry
+  induction n generalizing xs body with
+  | zero =>
+      intro hNN
+      cases xs with
+      | Apply f a =>
+        cases f with
+        | Apply g y =>
+          cases g with
+          | __eo_List_cons =>
+            cases y with
+            | Var name T =>
+              cases name with
+              | String s =>
+                  rw [eo_to_smt_quantifiers_skolemize_zero] at hNN
+                  have hChoiceNN :
+                      term_has_non_none_type
+                        (SmtTerm.choice s (__eo_to_smt_type T) (__eo_to_smt_exists a body)) := hNN
+                  have hTailBool := choice_nth_body_bool_of_non_none hChoiceNN
+                  have hGuardTy := choice_term_guard_type_of_non_none hChoiceNN
+                  have hGuardNN :
+                      __smtx_typeof_guard_wf (__eo_to_smt_type T) (__eo_to_smt_type T) ≠
+                        SmtType.None := by
+                    intro hNone
+                    unfold term_has_non_none_type at hChoiceNN
+                    exact hChoiceNN (by rw [hGuardTy, hNone])
+                  have hWf : __smtx_type_wf (__eo_to_smt_type T) = true :=
+                    Smtm.smtx_typeof_guard_wf_wf_of_non_none
+                      (__eo_to_smt_type T) (__eo_to_smt_type T) hGuardNN
+                  exact smtx_typeof_eo_to_smt_exists_cons_bool_of_tail_bool s T a body hWf hTailBool
+              | _ => simp [__eo_to_smt_quantifiers_skolemize] at hNN
+            | _ => simp [__eo_to_smt_quantifiers_skolemize] at hNN
+          | _ => simp [__eo_to_smt_quantifiers_skolemize] at hNN
+        | _ => simp [__eo_to_smt_quantifiers_skolemize] at hNN
+      | _ => simp [__eo_to_smt_quantifiers_skolemize] at hNN
+  | succ n ih =>
+      intro hNN
+      cases xs with
+      | Apply f a =>
+        cases f with
+        | Apply g y =>
+          cases g with
+          | __eo_List_cons =>
+            cases y with
+            | Var name T =>
+              cases name with
+              | String s =>
+                  rw [eo_to_smt_quantifiers_skolemize_succ_cons] at hNN
+                  have hG'NoExists :
+                      ∀ s' T' F',
+                        SmtTerm.bind s (__eo_to_smt_type T)
+                            (SmtTerm.choice s (__eo_to_smt_type T) (__eo_to_smt_exists a body)) body ≠
+                          SmtTerm.exists s' T' F' := by
+                    intro s' T' F' h
+                    cases h
+                  have hTailG' := ih a _ hG'NoExists hNN
+                  have hG'Bool := eo_to_smt_exists_body_bool_of_bool a _ hTailG'
+                  have hBindNN :
+                      term_has_non_none_type
+                        (SmtTerm.bind s (__eo_to_smt_type T)
+                          (SmtTerm.choice s (__eo_to_smt_type T) (__eo_to_smt_exists a body)) body) := by
+                    unfold term_has_non_none_type
+                    rw [hG'Bool]
+                    simp
+                  have hBindTy := Smtm.bind_term_typeof_of_non_none hBindNN
+                  have hGuardNN :
+                      __smtx_typeof_guard_wf (__eo_to_smt_type T) (__smtx_typeof body) ≠
+                        SmtType.None := by
+                    intro hNone
+                    have hbn :
+                        __smtx_typeof
+                          (SmtTerm.bind s (__eo_to_smt_type T)
+                            (SmtTerm.choice s (__eo_to_smt_type T) (__eo_to_smt_exists a body)) body) =
+                          SmtType.None := by
+                      rw [typeof_bind_eq_full, hNone]
+                      cases hcond :
+                          native_Teq
+                            (__smtx_typeof
+                              (SmtTerm.choice s (__eo_to_smt_type T) (__eo_to_smt_exists a body)))
+                            (__eo_to_smt_type T) <;>
+                        simp [native_ite, hcond]
+                    exact absurd hbn hBindNN
+                  have hWf : __smtx_type_wf (__eo_to_smt_type T) = true :=
+                    Smtm.smtx_typeof_guard_wf_wf_of_non_none
+                      (__eo_to_smt_type T) (__smtx_typeof body) hGuardNN
+                  have hCong := exists_chain_body_congr a _ body hBindTy
+                  have hTailBool : __smtx_typeof (__eo_to_smt_exists a body) = SmtType.Bool := by
+                    rw [← hCong]
+                    exact hTailG'
+                  exact smtx_typeof_eo_to_smt_exists_cons_bool_of_tail_bool s T a body hWf hTailBool
+              | _ => simp [__eo_to_smt_quantifiers_skolemize] at hNN
+            | _ => simp [__eo_to_smt_quantifiers_skolemize] at hNN
+          | _ => simp [__eo_to_smt_quantifiers_skolemize] at hNN
+        | _ => simp [__eo_to_smt_quantifiers_skolemize] at hNN
+      | _ => simp [__eo_to_smt_quantifiers_skolemize] at hNN
 
 /-- Computes the selected binder type for quantifier skolemization. -/
 private theorem eo_to_smt_quantifiers_skolemize_type_of_non_none

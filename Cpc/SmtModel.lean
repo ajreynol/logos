@@ -2347,7 +2347,11 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | x1 => SmtValue.NotValue
 termination_by structural t => t
 
-theorem __smtx_model_eval_force_eqns (M : SmtModel) (b : native_Bool) :
+-- Force generation + caching of `__smtx_model_eval`'s equational lemmas in this
+-- (defining) module's .olean.  Equation generation for this large structural match
+-- exceeds Lean's fixed heartbeat budget when triggered from a DOWNSTREAM module, but
+-- succeeds here; caching it lets every downstream `unfold __smtx_model_eval` reuse it.
+private theorem __smtx_model_eval_eqns_cache (M : SmtModel) (b : native_Bool) :
     __smtx_model_eval M (SmtTerm.Boolean b) = SmtValue.Boolean b := by
   unfold __smtx_model_eval
   rfl
