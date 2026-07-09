@@ -41,12 +41,6 @@ private theorem smtx_typeof_exists_term_eq
         (__smtx_typeof_guard_wf T SmtType.Bool) SmtType.None := by
   rw [__smtx_typeof.eq_def] <;> simp only
 
-private theorem smtx_typeof_choice_nth_term_eq
-    (s : native_String) (T : SmtType) (body : SmtTerm) (n : native_Nat) :
-    __smtx_typeof (SmtTerm.choice_nth s T body n) =
-      __smtx_typeof_choice_nth T body n := by
-  rw [__smtx_typeof.eq_def] <;> simp only
-
 private theorem smtx_model_eval_qdiv_term_eq
     (M : SmtModel) (x y : SmtTerm) :
     __smtx_model_eval M (SmtTerm.qdiv x y) =
@@ -9079,7 +9073,7 @@ private theorem congTrueSpine_var_apply_apply_apply_apply_eq_true
             (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply F X₁) X₂) X₃) =
           __smtx_typeof
             (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply F Y₁) Y₂) Y₃) := by
-      simp [__smtx_typeof, hMid2Ty, hArgTy₃]
+      simp [__smtx_typeof, hArgTy₁, hArgTy₂, hArgTy₃]
     have hMid3Rel :
         RuleProofs.smt_value_rel
           (__smtx_model_eval M
@@ -9246,7 +9240,7 @@ private theorem congTrueSpine_uconst_apply_apply_apply_apply_eq_true
             (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply F X₁) X₂) X₃) =
           __smtx_typeof
             (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply F Y₁) Y₂) Y₃) := by
-      simp [__smtx_typeof, hMid2Ty, hArgTy₃]
+      simp [__smtx_typeof, hArgTy₁, hArgTy₂, hArgTy₃]
     have hMid3Rel :
         RuleProofs.smt_value_rel
           (__smtx_model_eval M
@@ -16558,11 +16552,6 @@ private theorem forall_translation_arg_is_cons
       change __smtx_typeof (SmtTerm.not SmtTerm.None) = SmtType.None
       rw [typeof_not_eq, TranslationProofs.smtx_typeof_none]
       rfl
-  case __eo_List_nil =>
-    exfalso
-    apply hTrans
-    change __smtx_typeof SmtTerm.None = SmtType.None
-    exact TranslationProofs.smtx_typeof_none
   case Apply f tail =>
     cases f
     all_goals
@@ -18462,20 +18451,36 @@ private theorem eo_to_smt_strings_deq_diff_ne_dt_tester
   cases h
 
 private theorem eo_to_smt_quant_skolemize_ne_dt_sel
-    (body : SmtTerm) (n : native_Nat) :
+    (vs : Term) (G : SmtTerm) (n : native_Nat) :
     ∀ s d i j,
-      __eo_to_smt_quantifiers_skolemize body n ≠
+      __eo_to_smt_quantifiers_skolemize vs G n ≠
         SmtTerm.DtSel s d i j := by
-  intro s d i j h
-  cases body <;> cases h
+  intro s d i j
+  induction n generalizing vs G with
+  | zero =>
+      intro h
+      unfold __eo_to_smt_quantifiers_skolemize at h
+      split at h <;> simp_all
+  | succ k ih =>
+      intro h
+      unfold __eo_to_smt_quantifiers_skolemize at h
+      split at h <;> first | exact ih _ _ h | simp_all
 
 private theorem eo_to_smt_quant_skolemize_ne_dt_tester
-    (body : SmtTerm) (n : native_Nat) :
+    (vs : Term) (G : SmtTerm) (n : native_Nat) :
     ∀ s d i,
-      __eo_to_smt_quantifiers_skolemize body n ≠
+      __eo_to_smt_quantifiers_skolemize vs G n ≠
         SmtTerm.DtTester s d i := by
-  intro s d i h
-  cases body <;> cases h
+  intro s d i
+  induction n generalizing vs G with
+  | zero =>
+      intro h
+      unfold __eo_to_smt_quantifiers_skolemize at h
+      split at h <;> simp_all
+  | succ k ih =>
+      intro h
+      unfold __eo_to_smt_quantifiers_skolemize at h
+      split at h <;> first | exact ih _ _ h | simp_all
 
 private theorem eo_to_smt_quant_skolemize_top_ne_dt_sel
     (q idx : Term) :
@@ -18494,7 +18499,7 @@ private theorem eo_to_smt_quant_skolemize_top_ne_dt_sel
           change
             native_ite (__eo_to_smt_nat_is_valid idx)
                 (__eo_to_smt_quantifiers_skolemize
-                  (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
+                  xs (SmtTerm.not (__eo_to_smt body))
                   (__eo_to_smt_nat idx))
                 SmtTerm.None =
               SmtTerm.DtSel s d i j at h
@@ -18502,7 +18507,7 @@ private theorem eo_to_smt_quant_skolemize_top_ne_dt_sel
           split at h <;> try cases h
           exact
             eo_to_smt_quant_skolemize_ne_dt_sel
-              (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
+              xs (SmtTerm.not (__eo_to_smt body))
               (__eo_to_smt_nat idx) s d i j h
 
 private theorem eo_to_smt_quant_skolemize_top_ne_dt_tester
@@ -18522,7 +18527,7 @@ private theorem eo_to_smt_quant_skolemize_top_ne_dt_tester
           change
             native_ite (__eo_to_smt_nat_is_valid idx)
                 (__eo_to_smt_quantifiers_skolemize
-                  (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
+                  xs (SmtTerm.not (__eo_to_smt body))
                   (__eo_to_smt_nat idx))
                 SmtTerm.None =
               SmtTerm.DtTester s d i at h
@@ -18530,7 +18535,7 @@ private theorem eo_to_smt_quant_skolemize_top_ne_dt_tester
           split at h <;> try cases h
           exact
             eo_to_smt_quant_skolemize_ne_dt_tester
-              (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
+              xs (SmtTerm.not (__eo_to_smt body))
               (__eo_to_smt_nat idx) s d i h
 
 private theorem eo_to_smt_re_unfold_ne_dt_sel
@@ -18711,10 +18716,10 @@ private theorem eo_to_smt_witness_string_length_ne_dt_sel
   change
     native_ite (__eo_to_smt_nat_is_valid len)
       (native_ite (__eo_to_smt_nat_is_valid id)
-        (SmtTerm.choice_nth (native_string_lit "@x") (__eo_to_smt_type T)
+        (SmtTerm.choice (native_string_lit "@x") (__eo_to_smt_type T)
           (SmtTerm.eq
             (SmtTerm.str_len (SmtTerm.Var (native_string_lit "@x") (__eo_to_smt_type T)))
-            (__eo_to_smt len)) native_nat_zero)
+            (__eo_to_smt len)))
         SmtTerm.None)
         SmtTerm.None =
       SmtTerm.DtSel s d i j at h
@@ -18732,10 +18737,10 @@ private theorem eo_to_smt_witness_string_length_ne_dt_tester
   change
     native_ite (__eo_to_smt_nat_is_valid len)
       (native_ite (__eo_to_smt_nat_is_valid id)
-        (SmtTerm.choice_nth (native_string_lit "@x") (__eo_to_smt_type T)
+        (SmtTerm.choice (native_string_lit "@x") (__eo_to_smt_type T)
           (SmtTerm.eq
             (SmtTerm.str_len (SmtTerm.Var (native_string_lit "@x") (__eo_to_smt_type T)))
-            (__eo_to_smt len)) native_nat_zero)
+            (__eo_to_smt len)))
         SmtTerm.None)
         SmtTerm.None =
       SmtTerm.DtTester s d i at h
