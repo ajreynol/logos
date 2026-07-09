@@ -572,40 +572,29 @@ theorem smt_term_result_seq_components_wf_of_non_none
       rw [typeof_ite_eq]
       simp [__smtx_typeof_ite, native_ite, native_Teq, hc, hxT, hyT]
       simpa [hxT] using hxGood
-    case choice_nth s T body n =>
-      induction n generalizing s T body with
-      | zero =>
-          have hGuardTy :
-              __smtx_typeof (SmtTerm.choice_nth s T body 0) =
-                __smtx_typeof_guard_wf T T :=
-            choice_term_guard_type_of_non_none hxNN
-          have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
-            intro hNone
-            unfold term_has_non_none_type at hxNN
-            rw [hGuardTy, hNone] at hxNN
-            exact hxNN rfl
-          have hWf : __smtx_type_wf T = true :=
-            smtx_typeof_guard_wf_wf_of_non_none T T hGuardNN
-          rw [choice_term_typeof_of_non_none hxNN]
-          exact type_result_seq_components_wf_of_type_wf hWf
-      | succ n ih =>
-          cases body with
-          | «exists» s' U body' =>
-              have hTyEq :
-                  __smtx_typeof
-                      (SmtTerm.choice_nth s T
-                        (SmtTerm.exists s' U body') (Nat.succ n)) =
-                    __smtx_typeof (SmtTerm.choice_nth s' U body' n) :=
-                choice_nth_succ_typeof_tail_of_non_none hxNN
-              have hNN' : term_has_non_none_type
-                  (SmtTerm.choice_nth s' U body' n) := by
-                exact choice_nth_succ_tail_non_none_of_non_none hxNN
-              simpa [hTyEq] using ih s' U body' hNN'
-          | _ =>
-              exfalso
-              unfold term_has_non_none_type at hxNN
-              rw [smtx_typeof_choice_nth_term_eq] at hxNN
-              simp [__smtx_typeof_choice_nth] at hxNN
+    case choice s T body =>
+      have hGuardTy :
+          __smtx_typeof (SmtTerm.choice s T body) =
+            __smtx_typeof_guard_wf T T :=
+        choice_term_guard_type_of_non_none hxNN
+      have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
+        intro hNone
+        unfold term_has_non_none_type at hxNN
+        rw [hGuardTy, hNone] at hxNN
+        exact hxNN rfl
+      have hWf : __smtx_type_wf T = true :=
+        smtx_typeof_guard_wf_wf_of_non_none T T hGuardNN
+      rw [choice_term_typeof_of_non_none hxNN]
+      exact type_result_seq_components_wf_of_type_wf hWf
+    case bind s T x1 x2 =>
+      have hTyEq : __smtx_typeof (SmtTerm.bind s T x1 x2) = __smtx_typeof x2 :=
+        bind_term_typeof_of_non_none hxNN
+      have hx2NN : term_has_non_none_type x2 := by
+        unfold term_has_non_none_type at hxNN ⊢
+        rw [hTyEq] at hxNN
+        exact hxNN
+      rw [hTyEq]
+      exact go x2 hx2NN
     case DtCons s d i =>
       let raw :=
         __smtx_typeof_dt_cons_rec (SmtType.Datatype s d)
@@ -3332,7 +3321,7 @@ theorem native_pack_seq_inj (T : SmtType) {xs ys : List SmtValue}
     (h : native_pack_seq T xs = native_pack_seq T ys) :
     xs = ys := by
   have h' := congrArg native_unpack_seq h
-  simpa [native_unpack_pack_seq] using h'
+  simpa [_root_.native_unpack_pack_seq] using h'
 
 theorem smt_seq_rel_pack_append_cancel (T : SmtType) :
     ∀ xs ys zs : List SmtValue,
@@ -3352,7 +3341,7 @@ theorem smt_seq_rel_pack_length_eq (T U : SmtType) :
   | xs, ys, h => by
       have hEq := (RuleProofs.smt_seq_rel_iff_eq _ _).1 h
       have hLen := congrArg (fun s => (native_unpack_seq s).length) hEq
-      simpa [native_unpack_pack_seq] using hLen
+      simpa [_root_.native_unpack_pack_seq] using hLen
 
 theorem smt_seq_rel_pack_append_right (T : SmtType) :
     ∀ xs ys zs : List SmtValue,
@@ -3844,7 +3833,7 @@ theorem smt_value_rel_str_concat_assoc
   rw [smtx_model_eval_str_concat_term_eq M y z]
   rw [hxEval, hyEval, hzEval]
   simp [__smtx_model_eval_str_concat, native_seq_concat,
-    native_unpack_pack_seq, elem_typeof_pack_seq, hsxElem, hsyElem,
+    _root_.native_unpack_pack_seq, elem_typeof_pack_seq, hsxElem, hsyElem,
     List.append_assoc, RuleProofs.smtx_model_eval_eq_refl]
 
 theorem eo_interprets_str_concat_assoc

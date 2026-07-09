@@ -409,37 +409,6 @@ theorem native_eval_tchoice_canonical
       simpa [hSat, hTy] using hCan
     · simpa [hSat, hTy] using value_canonical_notValue
 
-theorem model_eval_choice_nth_canonical
-    (M : SmtModel)
-    (s : native_String)
-    (T : SmtType)
-    (body : SmtTerm)
-    (n : native_Nat)
-    (hTy : term_has_non_none_type (SmtTerm.choice_nth s T body n)) :
-    __smtx_value_canonical (__smtx_model_eval M (SmtTerm.choice_nth s T body n)) := by
-  classical
-  induction n generalizing M s T body with
-  | zero =>
-      rw [smtx_model_eval_choice_nth_zero_eq]
-      exact native_eval_tchoice_canonical M s T body
-  | succ n ih =>
-      cases body with
-      | «exists» s' U body' =>
-          have hTyEq :
-              __smtx_typeof (SmtTerm.choice_nth s T (SmtTerm.exists s' U body') (Nat.succ n)) =
-                __smtx_typeof (SmtTerm.choice_nth s' U body' n) :=
-            choice_nth_succ_typeof_tail_of_non_none hTy
-          have hTy' : term_has_non_none_type (SmtTerm.choice_nth s' U body' n) := by
-            exact choice_nth_succ_tail_non_none_of_non_none hTy
-          rw [smtx_model_eval_choice_nth_succ_exists_eq]
-          exact
-            ih (native_model_push M s T (native_eval_tchoice M s T (SmtTerm.exists s' U body')))
-              s' U body' hTy'
-      | _ =>
-          exfalso
-          apply hTy
-          simp [__smtx_typeof, __smtx_typeof_choice_nth]
-
 /-- Term-level store preserves canonicality modulo the strict-order laws of `native_vcmp`. -/
 theorem model_eval_store_term_canonical_of_order_laws
     (hFlip :
@@ -586,8 +555,21 @@ theorem model_eval_canonical_of_supported
       exact model_eval_canonical_of_bool_type M hM _ (exists_term_typeof_of_non_none hTy)
   case «forall» s T body =>
       exact model_eval_canonical_of_bool_type M hM _ (forall_term_typeof_of_non_none hTy)
-  case choice s T body n ht =>
-      exact model_eval_choice_nth_canonical M s T body n ht
+  case choice s T body htc =>
+      simpa [__smtx_model_eval] using native_eval_tchoice_canonical M s T body
+  case bind s T x1 x2 hbt hs1 hs2 ih1 ih2 =>
+      have ht1 : term_has_non_none_type x1 := bind_arg1_non_none_of_non_none hTy
+      have ht2 : term_has_non_none_type x2 := bind_arg2_non_none_of_non_none hTy
+      have hTx1 : __smtx_typeof x1 = T := bind_arg1_type_of_non_none hTy
+      have hWf : __smtx_type_wf T = true := bind_binder_type_wf_of_non_none hTy
+      have hx1ty : __smtx_typeof_value (__smtx_model_eval M x1) = __smtx_typeof x1 :=
+        smt_model_eval_preserves_type_of_non_none M hM x1 ht1
+      have hx1canon : __smtx_value_canonical (__smtx_model_eval M x1) :=
+        ih1 M hM ht1
+      have hM' : model_total_typed (native_model_push M s T (__smtx_model_eval M x1)) :=
+        model_total_typed_push hM s T (__smtx_model_eval M x1) hWf (hx1ty.trans hTx1) hx1canon
+      rw [smtx_model_eval_bind_eq]
+      exact ih2 _ hM' ht2
   case not ht hs ih =>
       exact model_eval_not_term_canonical M _
   case or ht1 hs1 ht2 hs2 ih1 ih2 =>
