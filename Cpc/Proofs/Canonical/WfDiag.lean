@@ -218,6 +218,27 @@ mirroring `__smtx_type_substitute`'s recursion. -/
 
 private abbrev SubstChain := List (native_String × SmtDatatype)
 
+/-! `usesHead* t` is the part of free-reference tracking relevant to this
+proof.  Containers are opaque to SMT datatype substitution, a same-named
+datatype shields its body, and a direct `TypeRef t` consumes the head entry.
+
+This demand predicate is essential: extending an arbitrary `ChainOK` chain is
+false.  The establishment walk only needs the head facts in subtrees where a
+free `TypeRef t` can actually be reached. -/
+mutual
+private def usesHeadTy (t : native_String) : SmtType → Bool
+  | SmtType.TypeRef r => native_streq t r
+  | SmtType.Datatype s d =>
+      if native_streq t s = true then false else usesHeadDt t d
+  | _ => false
+private def usesHeadDtc (t : native_String) : SmtDatatypeCons → Bool
+  | SmtDatatypeCons.unit => false
+  | SmtDatatypeCons.cons T c => native_or (usesHeadTy t T) (usesHeadDtc t c)
+private def usesHeadDt (t : native_String) : SmtDatatype → Bool
+  | SmtDatatype.null => false
+  | SmtDatatype.sum c d => native_or (usesHeadDtc t c) (usesHeadDt t d)
+end
+
 private def chain_ty : SubstChain → SmtType → SmtType
   | [], T => T
   | (s, P) :: ρ, T => chain_ty ρ (__smtx_type_substitute s P T)
@@ -1067,13 +1088,22 @@ private theorem chainok_head_facts
       (chain_descend REST t P ++ [(t, chain_dt (chain_descend REST t P) P)])
     rwa [chain_dt_append_one] at h
 
-/-- THE remaining gap: across a descent step at a well-formed inhabited node,
-the head resolution is stable — or, when it is not (which requires a
-shadowing/self-overlapping input), its replacement still satisfies the entry
-facts.  Probed extensively (mutual/cyclic/mid-referencing descents all yield
-a *stable* resolution; only descents whose binder name collides with an
-enclosing binder mutate it, and even then the facts survive, using the
-inhabitedness/well-formedness of the descended node). -/
+/-- The non-stable descent case, restricted to a subtree that actually uses
+the head binder.
+
+The unrestricted statement previously here was false.  A minimal schematic
+counterexample has a head payload containing `Datatype b (TypeRef c)`, a tail
+entry resolving `c`, and then descends through an unrelated inhabited `b`
+node.  The new `b` entry can invalidate both head facts, but that descended
+body has no free reference to the head and the establishment walk never uses
+those facts.  `hUse` records the missing reachability condition instead of
+asking `ChainOK` to describe impossible or irrelevant chain histories.
+
+The residual case is genuine cycle rotation, not list bookkeeping: it is
+already present with `REST = []` when `X` refers back to `t`.  Shared nested
+datatype names can change the resolved head, so a proof must transport the
+inhabited/wf facts to the rotated resolution rather than prove resolution
+equality. -/
 private theorem chainok_selfExt_facts
     (ρ : SubstChain) (s3 : native_String) (X : SmtDatatype)
     (t : native_String) (P : SmtDatatype) (REST : SubstChain)
@@ -1087,6 +1117,7 @@ private theorem chainok_selfExt_facts
       __smtx_dt_wf_rec
         (__smtx_dt_substitute s3 (chain_dt (chain_descend ρ s3 X) X)
           (chain_dt (chain_descend ρ s3 X) X)) X = true)
+    (hUse : usesHeadDt t X = true)
     (hUnstable :
       chain_ty (selfExt ρ s3 X) (SmtType.TypeRef t) ≠
         chain_ty ρ (SmtType.TypeRef t)) :
@@ -1106,14 +1137,11 @@ private theorem chainok_selfExt_facts
       [(s3, chain_dt (chain_descend ((t, P) :: REST) s3 X) X)]) ?_
   sorry
 
-/-- The chain invariant is preserved by a descent step at a well-formed
-inhabited node.  The head payload is lifted against the descent body, the
-rest of the chain descends, and the resolved body of the descended node
-joins as a final self-entry.  When the head resolution is stable across the
-step (every case reachable from non-shadowing inputs), the facts transport
-directly: the resolution is unchanged and its well-formedness follows along
-the guide lift. -/
-private theorem chainok_selfExt
+/-- The chain invariant is preserved by a descent step when the descended
+body uses the head binder.  In the stable case the facts transport along the
+guide lift; the non-stable case is handled only under the demand condition
+that makes those facts observable in the recursive walk. -/
+private theorem chainok_selfExt_needed
     (ρ : SubstChain) (s3 : native_String) (X : SmtDatatype)
     (t : native_String) (P : SmtDatatype) (REST : SubstChain)
     (hρ : ρ = (t, P) :: REST)
@@ -1125,7 +1153,8 @@ private theorem chainok_selfExt
     (hWfNode :
       __smtx_dt_wf_rec
         (__smtx_dt_substitute s3 (chain_dt (chain_descend ρ s3 X) X)
-          (chain_dt (chain_descend ρ s3 X) X)) X = true) :
+          (chain_dt (chain_descend ρ s3 X) X)) X = true)
+    (hUse : usesHeadDt t X = true) :
     ChainOK (selfExt ρ s3 X) := by
   by_cases hStable :
       chain_ty (selfExt ρ s3 X) (SmtType.TypeRef t) =
@@ -1148,7 +1177,7 @@ private theorem chainok_selfExt
     · exact guideTrDt_wf (lift_guide_tr_dt s3 X hSkel) hWf
     · exact fskel_lift_dt s3 X hSkel
   · exact chainok_selfExt_facts ρ s3 X t P REST hρ hne hOK hInhNode
-      hWfNode hStable
+      hWfNode hUse hStable
 
 /-! The establishment walk: over a raw guide `dU`, the image under a chain
 with head `(t, P)` transports the guide from `dU` to `dt_substitute t P dU`,
@@ -1158,16 +1187,18 @@ mutual
 
 private theorem estab_ty :
     ∀ (TU : SmtType) (t : native_String) (P : SmtDatatype) (REST : SubstChain),
-      ChainOK ((t, P) :: REST) →
+      (usesHeadTy t TU = true → ChainOK ((t, P) :: REST)) →
       (∀ (s3 : native_String) (X : SmtDatatype), TU = SmtType.Datatype s3 X →
         native_inhabited_type (chain_ty ((t, P) :: REST) TU) = true ∧
           __smtx_type_wf_rec (chain_ty ((t, P) :: REST) TU) TU = true) →
       GuideTr (chain_ty ((t, P) :: REST) TU) TU (__smtx_type_substitute t P TU)
-  | SmtType.TypeRef r, t, P, REST, hOK, _hOldField => by
+  | SmtType.TypeRef r, t, P, REST, hNeed, _hOldField => by
       cases hs : native_streq t r with
       | true =>
           have hEq : t = r := by simpa [native_streq] using hs
           subst r
+          have hOK : ChainOK ((t, P) :: REST) :=
+            hNeed (by simp [usesHeadTy, native_streq])
           rcases hOK with ⟨D, hRes, hInh, hWf, _hSkel⟩
           rw [hRes]
           rw [show __smtx_type_substitute t P (SmtType.TypeRef t) =
@@ -1179,7 +1210,7 @@ private theorem estab_ty :
               SmtType.TypeRef r by
             simp [__smtx_type_substitute, native_ite, hs]]
           exact GuideTr.same _ _
-  | SmtType.Datatype s3 X, t, P, REST, hOK, hOldField => by
+  | SmtType.Datatype s3 X, t, P, REST, hNeed, hOldField => by
       cases hs : native_streq t s3 with
       | true =>
           rw [show __smtx_type_substitute t P (SmtType.Datatype s3 X) =
@@ -1213,9 +1244,13 @@ private theorem estab_ty :
                   chain_descend REST s3
                     (__smtx_dt_substitute t (__smtx_dt_lift s3 X P) X) := by
             simp [chain_descend, hs]
-          have hOK' : ChainOK (selfExt ((t, P) :: REST) s3 X) :=
-            chainok_selfExt ((t, P) :: REST) s3 X t P REST rfl hs hOK
-              hInhNode hWfNode
+          have hNeed' : usesHeadDt t X = true →
+              ChainOK (selfExt ((t, P) :: REST) s3 X) := by
+            intro hUse
+            have hOK : ChainOK ((t, P) :: REST) := hNeed (by
+              simp [usesHeadTy, hs, hUse])
+            exact chainok_selfExt_needed ((t, P) :: REST) s3 X t P REST
+              rfl hs hOK hInhNode hWfNode hUse
           have hSelfExtEq : selfExt ((t, P) :: REST) s3 X =
               (t, __smtx_dt_lift s3 X P) ::
                 (chain_descend REST s3
@@ -1244,7 +1279,10 @@ private theorem estab_ty :
             (chain_descend REST s3
               (__smtx_dt_substitute t (__smtx_dt_lift s3 X P) X) ++
               [(s3, chain_dt (chain_descend ((t, P) :: REST) s3 X) X)])
-            (by rwa [hSelfExtEq] at hOK')
+            (by
+              intro hUse
+              have hOK' := hNeed' hUse
+              rwa [hSelfExtEq] at hOK')
             (by rw [hFold]; exact hWfNode)
           rwa [hFold] at hWalk
   | SmtType.None, t, P, REST, _hOK, _hOldField => by
@@ -1316,7 +1354,7 @@ private theorem estab_ty :
 private theorem estab_dtc :
     ∀ (cU : SmtDatatypeCons) (t : native_String) (P : SmtDatatype)
       (REST : SubstChain),
-      ChainOK ((t, P) :: REST) →
+      (usesHeadDtc t cU = true → ChainOK ((t, P) :: REST)) →
       __smtx_dt_cons_wf_rec (chain_dtc ((t, P) :: REST) cU) cU = true →
       GuideTrDtc (chain_dtc ((t, P) :: REST) cU) cU
         (__smtx_dtc_substitute t P cU)
@@ -1325,7 +1363,7 @@ private theorem estab_dtc :
       rw [show __smtx_dtc_substitute t P SmtDatatypeCons.unit =
         SmtDatatypeCons.unit by simp [__smtx_dtc_substitute]]
       exact GuideTrDtc.unit
-  | SmtDatatypeCons.cons TU cU, t, P, REST, hOK, hOld => by
+  | SmtDatatypeCons.cons TU cU, t, P, REST, hNeed, hOld => by
       rw [chain_dtc_cons] at hOld
       have hTail : __smtx_dt_cons_wf_rec (chain_dtc ((t, P) :: REST) cU) cU = true :=
         dt_cons_wf_tail hOld
@@ -1342,13 +1380,19 @@ private theorem estab_dtc :
       rw [show __smtx_dtc_substitute t P (SmtDatatypeCons.cons TU cU) =
         SmtDatatypeCons.cons (__smtx_type_substitute t P TU)
           (__smtx_dtc_substitute t P cU) by simp [__smtx_dtc_substitute]]
-      exact GuideTrDtc.cons (estab_ty TU t P REST hOK hOldField)
-        (estab_dtc cU t P REST hOK hTail)
+      have hNeedHead : usesHeadTy t TU = true → ChainOK ((t, P) :: REST) := by
+        intro hUse
+        exact hNeed (by simp [usesHeadDtc, native_or, hUse])
+      have hNeedTail : usesHeadDtc t cU = true → ChainOK ((t, P) :: REST) := by
+        intro hUse
+        exact hNeed (by simp [usesHeadDtc, native_or, hUse])
+      exact GuideTrDtc.cons (estab_ty TU t P REST hNeedHead hOldField)
+        (estab_dtc cU t P REST hNeedTail hTail)
 
 private theorem estab_dt :
     ∀ (dU : SmtDatatype) (t : native_String) (P : SmtDatatype)
       (REST : SubstChain),
-      ChainOK ((t, P) :: REST) →
+      (usesHeadDt t dU = true → ChainOK ((t, P) :: REST)) →
       __smtx_dt_wf_rec (chain_dt ((t, P) :: REST) dU) dU = true →
       GuideTrDt (chain_dt ((t, P) :: REST) dU) dU (__smtx_dt_substitute t P dU)
   | SmtDatatype.null, t, P, REST, _hOK, _hOld => by
@@ -1356,15 +1400,21 @@ private theorem estab_dt :
       rw [show __smtx_dt_substitute t P SmtDatatype.null = SmtDatatype.null by
         simp [__smtx_dt_substitute]]
       exact GuideTrDt.null
-  | SmtDatatype.sum cU dU, t, P, REST, hOK, hOld => by
+  | SmtDatatype.sum cU dU, t, P, REST, hNeed, hOld => by
       rw [chain_dt_sum] at hOld
       have hParts := dt_wf_sum_parts hOld
       rw [chain_dt_sum]
       rw [show __smtx_dt_substitute t P (SmtDatatype.sum cU dU) =
         SmtDatatype.sum (__smtx_dtc_substitute t P cU)
           (__smtx_dt_substitute t P dU) by simp [__smtx_dt_substitute]]
-      exact GuideTrDt.sum (estab_dtc cU t P REST hOK hParts.1)
-        (estab_dt dU t P REST hOK hParts.2)
+      have hNeedHead : usesHeadDtc t cU = true → ChainOK ((t, P) :: REST) := by
+        intro hUse
+        exact hNeed (by simp [usesHeadDt, native_or, hUse])
+      have hNeedTail : usesHeadDt t dU = true → ChainOK ((t, P) :: REST) := by
+        intro hUse
+        exact hNeed (by simp [usesHeadDt, native_or, hUse])
+      exact GuideTrDt.sum (estab_dtc cU t P REST hNeedHead hParts.1)
+        (estab_dt dU t P REST hNeedTail hParts.2)
 
 end
 
@@ -1401,15 +1451,17 @@ private theorem wf_diag_establish
   have hNode0 :
       chain_dt (chain_descend [(sP, dP)] sC dC) dC = BC := by
     simp [chain_descend, hne, chain_dt, hBC]
-  have hOKTop : ChainOK [(sP, __smtx_dt_lift sC dC dP), (sC, BC)] := by
+  have hNeedTop : usesHeadDt sP dC = true →
+      ChainOK [(sP, __smtx_dt_lift sC dC dP), (sC, BC)] := by
+    intro hUse
     rw [← hTop]
-    exact chainok_selfExt [(sP, dP)] sC dC sP dP [] rfl hne hOK0
-      (by rw [hNode0]; exact hInhBC) (by rw [hNode0]; exact hOld)
+    exact chainok_selfExt_needed [(sP, dP)] sC dC sP dP [] rfl hne hOK0
+      (by rw [hNode0]; exact hInhBC) (by rw [hNode0]; exact hOld) hUse
   have hFold0 :
       chain_dt [(sP, __smtx_dt_lift sC dC dP), (sC, BC)] dC =
         __smtx_dt_substitute sC BC BC := by
     simp [chain_dt, hBC]
-  have hWalk := estab_dt dC sP (__smtx_dt_lift sC dC dP) [(sC, BC)] hOKTop
+  have hWalk := estab_dt dC sP (__smtx_dt_lift sC dC dP) [(sC, BC)] hNeedTop
     (by rw [hFold0]; exact hOld)
   have hFold :
       chain_dt [(sP, __smtx_dt_lift sC dC dP), (sC, BC)] dC =
