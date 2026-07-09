@@ -1370,9 +1370,9 @@ private theorem finite_nonunit_type_nondefault_value :
                 __smtx_type_wf_rec U U = true := by
         have h9 :
             ((native_inhabited_type T = true ∧ __smtx_type_wf_rec T T = true) ∧
-              __smtx_type_no_alias_rec native_reflist_nil T = true) ∧
-              (native_inhabited_type U = true ∧ __smtx_type_wf_rec U U = true) ∧
-                __smtx_type_no_alias_rec native_reflist_nil U = true := by
+              __smtx_type_names_consistent T = true) ∧
+              ((native_inhabited_type U = true ∧ __smtx_type_wf_rec U U = true) ∧
+                __smtx_type_names_consistent U = true) := by
           simpa [__smtx_type_wf_rec, native_and] using hRec
         exact ⟨h9.1.1.1, h9.1.1.2, h9.2.1.1, h9.2.1.2⟩
       have hUNonUnit : __smtx_is_unit_type U = false := by
@@ -1425,7 +1425,7 @@ private theorem finite_nonunit_type_nondefault_value :
             __smtx_type_wf_rec T T = true := by
         have h3 : (native_inhabited_type T = true ∧
             __smtx_type_wf_rec T T = true) ∧
-            __smtx_type_no_alias_rec native_reflist_nil T = true := by
+            __smtx_type_names_consistent T = true := by
           simpa [__smtx_type_wf_rec, native_and] using hRec
         exact h3.1
       have hTDefault :=
@@ -1929,14 +1929,14 @@ private theorem closed_infinite_large_witness_from_oracle
       have hParts :
           (native_inhabited_type U = true ∧
             __smtx_type_wf_rec U U = true) ∧
-            __smtx_type_no_alias_rec native_reflist_nil U = true := by
+            __smtx_type_names_consistent U = true := by
         simpa [__smtx_type_wf_rec, native_and] using hWf
       exact seq_inhabited_large_witness U hParts.1.1 n
   | SmtType.Set A, hInh, hWf, hInf => by
       have hParts :
           (native_inhabited_type A = true ∧
             __smtx_type_wf_rec A A = true) ∧
-            __smtx_type_no_alias_rec native_reflist_nil A = true := by
+            __smtx_type_names_consistent A = true := by
         simpa [__smtx_type_wf_rec, native_and] using hWf
       have hAInf : __smtx_is_finite_type A = false := by
         simpa [__smtx_is_finite_type] using hInf
@@ -1947,10 +1947,10 @@ private theorem closed_infinite_large_witness_from_oracle
       have hParts :
           ((native_inhabited_type A = true ∧
             __smtx_type_wf_rec A A = true) ∧
-            __smtx_type_no_alias_rec native_reflist_nil A = true) ∧
-          (native_inhabited_type B = true ∧
+            __smtx_type_names_consistent A = true) ∧
+          ((native_inhabited_type B = true ∧
             __smtx_type_wf_rec B B = true) ∧
-            __smtx_type_no_alias_rec native_reflist_nil B = true := by
+            __smtx_type_names_consistent B = true) := by
         simpa [__smtx_type_wf_rec, native_and] using hWf
       have hMapInf :
           __smtx_is_unit_type B = false ∧
@@ -2056,7 +2056,7 @@ private theorem diag_pump_field_large
         closed_infinite_large_witness_from_oracle n hOracle (SmtType.Seq U)
           (by simpa [__smtx_type_substitute] using hFInh)
           (by simpa [__smtx_type_substitute] using hFWf)
-          (by simpa [__smtx_is_finite_type] using hTUInf)
+          (by simp [__smtx_is_finite_type])
   | Set A =>
       simpa [__smtx_type_substitute] using
         closed_infinite_large_witness_from_oracle n hOracle (SmtType.Set A)
@@ -2498,9 +2498,9 @@ theorem cpc_nonunit_typed_canonical_nondefault_value
                 __smtx_type_wf_rec U U = true := by
         have h9 :
             ((native_inhabited_type T = true ∧ __smtx_type_wf_rec T T = true) ∧
-              __smtx_type_no_alias_rec native_reflist_nil T = true) ∧
-              (native_inhabited_type U = true ∧ __smtx_type_wf_rec U U = true) ∧
-                __smtx_type_no_alias_rec native_reflist_nil U = true := by
+              __smtx_type_names_consistent T = true) ∧
+              ((native_inhabited_type U = true ∧ __smtx_type_wf_rec U U = true) ∧
+                __smtx_type_names_consistent U = true) := by
           simpa [__smtx_type_wf_rec, native_and] using _hRec
         exact ⟨h9.1.1.1, h9.1.1.2, h9.2.1.1, h9.2.1.2⟩
       have hUNonUnit : __smtx_is_unit_type U = false := by
@@ -2541,7 +2541,7 @@ theorem cpc_nonunit_typed_canonical_nondefault_value
             __smtx_type_wf_rec T T = true := by
         have h3 : (native_inhabited_type T = true ∧
             __smtx_type_wf_rec T T = true) ∧
-            __smtx_type_no_alias_rec native_reflist_nil T = true := by
+            __smtx_type_names_consistent T = true := by
           simpa [__smtx_type_wf_rec, native_and] using _hRec
         exact h3.1
       have hTDefault :=
@@ -2566,7 +2566,7 @@ theorem cpc_nonunit_typed_canonical_nondefault_value
             __smtx_type_wf_rec T T = true := by
         have h3 : (native_inhabited_type T = true ∧
             __smtx_type_wf_rec T T = true) ∧
-            __smtx_type_no_alias_rec native_reflist_nil T = true := by
+            __smtx_type_names_consistent T = true := by
           simpa [__smtx_type_wf_rec, native_and] using _hRec
         exact h3.1
       have hTDefault :=
@@ -2650,9 +2650,9 @@ theorem cpc_fresh_typed_canonical_value_for_infinite_type_assumption
                   __smtx_type_wf_rec U U = true := by
           have h9 :
               ((native_inhabited_type T = true ∧ __smtx_type_wf_rec T T = true) ∧
-                __smtx_type_no_alias_rec native_reflist_nil T = true) ∧
-                (native_inhabited_type U = true ∧ __smtx_type_wf_rec U U = true) ∧
-                  __smtx_type_no_alias_rec native_reflist_nil U = true := by
+                __smtx_type_names_consistent T = true) ∧
+                ((native_inhabited_type U = true ∧ __smtx_type_wf_rec U U = true) ∧
+                  __smtx_type_names_consistent U = true) := by
             simpa [__smtx_type_wf_rec, native_and] using _hRec
           exact ⟨h9.1.1.1, h9.1.1.2, h9.2.1.1, h9.2.1.2⟩
         have hTDefault :
@@ -2712,9 +2712,9 @@ theorem cpc_fresh_typed_canonical_value_for_infinite_type_assumption
                       __smtx_type_wf_rec U U = true := by
               have h9 :
                   ((native_inhabited_type T = true ∧ __smtx_type_wf_rec T T = true) ∧
-                    __smtx_type_no_alias_rec native_reflist_nil T = true) ∧
-                    (native_inhabited_type U = true ∧ __smtx_type_wf_rec U U = true) ∧
-                      __smtx_type_no_alias_rec native_reflist_nil U = true := by
+                    __smtx_type_names_consistent T = true) ∧
+                    ((native_inhabited_type U = true ∧ __smtx_type_wf_rec U U = true) ∧
+                      __smtx_type_names_consistent U = true) := by
                 simpa [__smtx_type_wf_rec, native_and] using _hRec
               exact ⟨h9.1.1.1, h9.1.1.2, h9.2.1.1, h9.2.1.2⟩
             have hUFinite : __smtx_is_finite_type U = true := by
@@ -2767,7 +2767,7 @@ theorem cpc_fresh_typed_canonical_value_for_infinite_type_assumption
             __smtx_type_wf_rec T T = true := by
         have h3 : (native_inhabited_type T = true ∧
             __smtx_type_wf_rec T T = true) ∧
-            __smtx_type_no_alias_rec native_reflist_nil T = true := by
+            __smtx_type_names_consistent T = true := by
           simpa [__smtx_type_wf_rec, native_and] using _hRec
         exact h3.1
       have hTInfinite : __smtx_is_finite_type T = false := by
@@ -2800,7 +2800,7 @@ theorem cpc_fresh_typed_canonical_value_for_infinite_type_assumption
             __smtx_type_wf_rec T T = true := by
         have h3 : (native_inhabited_type T = true ∧
             __smtx_type_wf_rec T T = true) ∧
-            __smtx_type_no_alias_rec native_reflist_nil T = true := by
+            __smtx_type_names_consistent T = true := by
           simpa [__smtx_type_wf_rec, native_and] using _hRec
         exact h3.1
       rcases seq_inhabited_large_witness T hRecParts.1

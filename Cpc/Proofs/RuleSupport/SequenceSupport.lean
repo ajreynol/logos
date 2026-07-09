@@ -308,8 +308,7 @@ private theorem seq_char_wf :
   have hCharInh : native_inhabited_type SmtType.Char = true :=
     native_inhabited_type_char
   simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
-    __smtx_type_no_alias_rec,
-    native_and, hSeqInh, hCharInh]
+    __smtx_type_names_consistent, native_and, hSeqInh, hCharInh]
 
 theorem smt_term_result_seq_components_wf_of_non_none
     (x : SmtTerm) (hxNN : term_has_non_none_type x) :
@@ -7780,5 +7779,5 @@ theorem type_wf_seq_of_component (A : SmtType)
     (h : __smtx_type_wf_component A = true) :
     __smtx_type_wf (SmtType.Seq A) = true := by
   simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
-    __smtx_type_no_alias_rec, native_inhabited_type_seq, SmtEval.native_and] at h ⊢
+    __smtx_type_names_consistent, native_inhabited_type_seq, SmtEval.native_and] at h ⊢
   exact h
