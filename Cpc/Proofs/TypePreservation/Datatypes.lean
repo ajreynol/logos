@@ -643,17 +643,6 @@ theorem datatype_wf_rec_of_type_wf
       native_and] using h
   exact hPair.1.2
 
-/-- Extracts the scoped no-aliasing fact of a well-formed datatype type's body. -/
-theorem datatype_no_alias_of_type_wf
-    {s : native_String}
-    {d : SmtDatatype}
-    (h : __smtx_type_wf (SmtType.Datatype s d) = true) :
-    __smtx_dt_no_alias_rec (native_reflist_insert native_reflist_nil s) d = true := by
-  -- Temporary bridge: datatype WF now supplies name consistency, not scoped
-  -- alias-freedom. Remaining selector translation callers still require the
-  -- legacy no-alias predicate until they are moved to EO-validity-side facts.
-  sorry
-
 /-- Empty datatypes are uninhabited. -/
 theorem not_type_inhabited_empty_datatype
     (s : native_String) :

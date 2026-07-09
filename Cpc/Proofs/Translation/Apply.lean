@@ -3315,7 +3315,7 @@ private theorem smtx_type_context_substitute_no_root_of_field_wf_apply
 
 -- TODO(typeWf-0701 aliasing refactor): same reflist-scoped gap as the chain-selector cluster
 -- above; signatures corrected to a full/unfold `SmtDatatypeCons`/`SmtDatatype` pair, bodies
--- `sorry`'d. Both `private`, no external callers.
+-- are direct identities. Both `private`, no external callers.
 private theorem smtx_dtc_context_substitute_no_root_of_wf_apply
     (sub : native_String) (base : SmtDatatype)
     (root : native_String) (oldRoot newRoot : SmtDatatype) :
@@ -3617,8 +3617,8 @@ private theorem smtx_ret_typeof_sel_rec_substitute_cons_succ_apply
 -- is meaningless under the new algorithm — `__smtx_type_wf_rec`/`__smtx_dt_wf_rec`/
 -- `__smtx_dt_cons_wf_rec` no longer take a `RefList` at all (their second argument is now the
 -- structurally-examined type/datatype itself, see `SmtModel.lean`). Signatures below are corrected
--- to a full/unfold pair so the file still type-checks; bodies `sorry`'d. Both `private`, no
--- external callers. (Matches the deleted `SmtFreeRefs.wf_congr_*` cluster.)
+-- to a full/unfold pair so the file still type-checks; bodies are direct identities. Both
+-- `private`, no external callers. (Matches the deleted `SmtFreeRefs.wf_congr_*` cluster.)
 mutual
 
 private theorem smtx_type_wf_rec_congr_refs_apply :
@@ -5146,14 +5146,13 @@ private theorem eo_to_smt_type_typeof_apply_dt_sel_of_smt_datatype_from_ih
   have hdEq : d0 = d :=
     eo_to_smt_datatype_injective_of_wf_rec hd0 rfl hDWF
   subst d0
-  have hDNoAlias :
-      __smtx_dt_no_alias_rec (native_reflist_insert native_reflist_nil s)
-        (__eo_to_smt_datatype d) = true :=
-    Smtm.datatype_no_alias_of_type_wf
-      (Smtm.smt_datatype_wf_of_non_none_type (__eo_to_smt x) s
-        (__eo_to_smt_datatype d) hx)
+  have hDNoDt : noDtDt s (__eo_to_smt_datatype d) = true :=
+    Smtm.noDtDt_of_type_names_consistent
+      (Smtm.type_names_consistent_of_type_wf
+        (Smtm.smt_datatype_wf_of_non_none_type (__eo_to_smt x) s
+          (__eo_to_smt_datatype d) hx))
   exact eo_to_smt_type_typeof_apply_dt_sel_of_datatype_type_smt_ret
-    x s d i j hxType hDWF hDNoAlias
+    x s d i j hxType hDWF hDNoDt
 
 private theorem eo_to_smt_typeof_matches_translation_apply_set_member_from_ih
     (x y : Term)
@@ -9600,8 +9599,15 @@ private theorem eo_to_smt_typeof_matches_translation_apply_tuple_of_tail_type
       Smtm.smt_datatype_wf_of_non_none_type
         (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) y) x))
         (native_string_lit "@Tuple") fullD hSmt
-    have hHeadNC : __smtx_type_names_consistent headTy = true :=
-      Smtm.tuple_head_names_consistent_of_type_wf (by simpa [fullD] using hFullWfFromRaw)
+    have hHeadNC : __smtx_type_names_consistent headTy = true := by
+      have hUnfold : headTy = __smtx_typeof (__eo_to_smt y) := rfl
+      rw [hUnfold]
+      cases hHeadShape : __smtx_typeof (__eo_to_smt y) with
+      | Datatype sHead dHead =>
+          exact Smtm.type_names_consistent_of_type_wf
+            (Smtm.smt_datatype_wf_of_non_none_type (__eo_to_smt y) sHead dHead hHeadShape)
+      | _ =>
+          simp [__smtx_type_names_consistent]
     have hHeadComp : __smtx_type_wf_component headTy = true := by
       have hUnfold : headTy = __smtx_typeof (__eo_to_smt y) := rfl
       have hCompFull :

@@ -4840,25 +4840,18 @@ private theorem eo_to_smt_typeof_dt_sel_return_rec :
 
 /-- Selector return translation after expanding the datatype's recursive self-reference:
 the SELF-substitute case (`sub = s`, `d0 = d`, applied to `d`'s own body). The wf pairing
-yields eo-side validity of `d` (`eo_datatype_valid_of_smt_self_wf_rec`), under which the
-substitute correspondence `corrDt` rewrites the SMT-side self-substitution into the
-translation of the EO-side one, reducing the goal to the structural walk above. -/
+yields eo-side validity of `d` (`eo_datatype_valid_of_smt_self_wf_rec`), and name consistency
+supplies the `noDt` side condition for `corrDt`. -/
 theorem eo_to_smt_typeof_dt_sel_return_substitute_self
     (s : native_String) (d : Datatype)  (i j : native_Nat)
     (hWf :
       __smtx_dt_wf_rec (__smtx_dt_substitute s (__eo_to_smt_datatype d) (__eo_to_smt_datatype d))
         (__eo_to_smt_datatype d) = true)
-    (hNoAlias :
-      __smtx_dt_no_alias_rec (native_reflist_insert native_reflist_nil s)
-        (__eo_to_smt_datatype d) = true) :
+    (hNoDt : noDtDt s (__eo_to_smt_datatype d) = true) :
     __eo_to_smt_type (__eo_typeof_dt_sel_return (__eo_dt_substitute s d d) i j) =
       __smtx_ret_typeof_sel s (__eo_to_smt_datatype d) i j := by
   have hValid : eo_datatype_valid_rec [s] d :=
     eo_datatype_valid_of_smt_self_wf_rec s d hWf
-  have hNoDt : noDtDt s (__eo_to_smt_datatype d) = true :=
-    noDtDt_of_no_alias s (__eo_to_smt_datatype d)
-      (native_reflist_insert native_reflist_nil s)
-      (by simp [native_reflist_contains, native_reflist_insert]) hNoAlias
   have hSubEq :
       __eo_to_smt_datatype (__eo_dt_substitute s d d) =
         __smtx_dt_substitute s (__eo_to_smt_datatype d) (__eo_to_smt_datatype d) :=
@@ -4895,16 +4888,14 @@ theorem eo_to_smt_type_typeof_dt_cons_of_valid
     ⟨hReserved, hValid⟩
   have hSubValid : eo_datatype_valid_rec [] (__eo_dt_substitute s d d) :=
     eo_datatype_valid_rec_substitute s d [] hValid hValid
-  -- The SELF-substitute case: the typeof guard supplies the full well-formedness of
-  -- `Datatype s (translate d)`, whose scoped no-aliasing conjunct yields the `noDt`
+  -- The SELF-substitute case: the typeof guard supplies full well-formedness of
+  -- `Datatype s (translate d)`, whose name-consistency conjunct yields the `noDt`
   -- side condition of the substitution correspondence.
   have hDWf : __smtx_type_wf D = true :=
     Smtm.smtx_typeof_guard_wf_wf_of_non_none D inner hGuardNN
   have hNoDt : noDtDt s (__eo_to_smt_datatype d) = true :=
-    noDtDt_of_no_alias s (__eo_to_smt_datatype d)
-      (native_reflist_insert native_reflist_nil s)
-      (by simp [native_reflist_contains, native_reflist_insert])
-      (Smtm.datatype_no_alias_of_type_wf (by simpa [D] using hDWf))
+    Smtm.noDtDt_of_type_names_consistent
+      (Smtm.type_names_consistent_of_type_wf (by simpa [D] using hDWf))
   have hSubEq :
       __eo_to_smt_datatype (__eo_dt_substitute s d d) =
         __smtx_dt_substitute s (__eo_to_smt_datatype d) (__eo_to_smt_datatype d) :=
@@ -5044,14 +5035,12 @@ theorem eo_to_smt_type_typeof_apply_dt_sel_of_datatype_type_smt_ret
     (hWf :
       __smtx_dt_wf_rec (__smtx_dt_substitute s (__eo_to_smt_datatype d) (__eo_to_smt_datatype d))
         (__eo_to_smt_datatype d) = true)
-    (hNoAlias :
-      __smtx_dt_no_alias_rec (native_reflist_insert native_reflist_nil s)
-        (__eo_to_smt_datatype d) = true) :
+    (hNoDt : noDtDt s (__eo_to_smt_datatype d) = true) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.DtSel s d i j) x)) =
       __smtx_ret_typeof_sel s (__eo_to_smt_datatype d) i j := by
   exact
     (eo_to_smt_type_typeof_apply_dt_sel_of_datatype_type x s d i j hx).trans
-      (eo_to_smt_typeof_dt_sel_return_substitute_self s d i j hWf hNoAlias)
+      (eo_to_smt_typeof_dt_sel_return_substitute_self s d i j hWf hNoDt)
 
 /-- Stronger EO-side helper for `typeof_apply_apply_select`. -/
 theorem eo_to_smt_type_typeof_apply_apply_select_of_array

@@ -301,6 +301,113 @@ def noDtDtc (s : native_String) : SmtDatatypeCons → Bool
   | SmtDatatypeCons.unit => true
 end
 
+/-! ### Name consistency rules out same-name datatype occurrences
+
+For a finite datatype body `d`, `__smtx_dt_name_agrees s d d` cannot permit a
+reachable `Datatype s d'`: the agreement check would force `d' = d`, making the
+larger body occur strictly inside itself. The proof uses `sizeOf` only for that
+acyclicity step. -/
+mutual
+theorem noDtTy_of_name_agrees_lt (s : native_String) (root : SmtDatatype) :
+    (T : SmtType) →
+      sizeOf T < sizeOf root →
+      __smtx_type_name_agrees s root T = true →
+      noDtTy s T = true
+  | SmtType.Datatype s2 d2, hSize, hAgree => by
+      cases hst : native_streq s s2
+      · have hD : __smtx_dt_name_agrees s root d2 = true := by
+          simpa [__smtx_type_name_agrees, native_ite, hst] using hAgree
+        have hsne : s2 ≠ s := by
+          intro hEq
+          subst hEq
+          simp [native_streq] at hst
+        have hDNo : noDtDt s d2 = true :=
+          noDtDt_of_name_agrees_le s root d2 (by
+            have : sizeOf d2 < sizeOf (SmtType.Datatype s2 d2) := by
+              simp
+              omega
+            omega) hD
+        simp [noDtTy, native_and, native_not, native_streq, hsne, hDNo]
+      · cases hteq : native_Teq (SmtType.Datatype s root) (SmtType.Datatype s2 d2)
+        · simp [__smtx_type_name_agrees, native_ite, hst, hteq] at hAgree
+        · have hEq :
+              SmtType.Datatype s root = SmtType.Datatype s2 d2 := by
+            simpa [native_Teq] using hteq
+          cases hEq
+          simp at hSize
+          omega
+  | SmtType.None, _, _ => by simp [noDtTy]
+  | SmtType.Bool, _, _ => by simp [noDtTy]
+  | SmtType.Int, _, _ => by simp [noDtTy]
+  | SmtType.Real, _, _ => by simp [noDtTy]
+  | SmtType.RegLan, _, _ => by simp [noDtTy]
+  | SmtType.BitVec n, _, _ => by simp [noDtTy]
+  | SmtType.Map A B, _, _ => by simp [noDtTy]
+  | SmtType.Set A, _, _ => by simp [noDtTy]
+  | SmtType.Seq A, _, _ => by simp [noDtTy]
+  | SmtType.Char, _, _ => by simp [noDtTy]
+  | SmtType.TypeRef s2, _, _ => by simp [noDtTy]
+  | SmtType.USort n, _, _ => by simp [noDtTy]
+  | SmtType.FunType A B, _, _ => by simp [noDtTy]
+  | SmtType.DtcAppType A B, _, _ => by simp [noDtTy]
+
+theorem noDtDt_of_name_agrees_le (s : native_String) (root : SmtDatatype) :
+    (d : SmtDatatype) →
+      sizeOf d ≤ sizeOf root →
+      __smtx_dt_name_agrees s root d = true →
+      noDtDt s d = true
+  | SmtDatatype.null, _hSize, _hAgree => by simp [noDtDt]
+  | SmtDatatype.sum c d, hSize, hAgree => by
+      have hParts :
+          __smtx_dt_cons_name_agrees s root c = true ∧
+            __smtx_dt_name_agrees s root d = true := by
+        cases hc : __smtx_dt_cons_name_agrees s root c <;>
+          simp [__smtx_dt_name_agrees, native_ite, hc] at hAgree ⊢
+        exact hAgree
+      have hCNo : noDtDtc s c = true :=
+        noDtDtc_of_name_agrees_lt s root c (by
+          simp at hSize ⊢
+          omega) hParts.1
+      have hDNo : noDtDt s d = true :=
+        noDtDt_of_name_agrees_le s root d (by
+          simp at hSize ⊢
+          omega) hParts.2
+      simp [noDtDt, native_and, hCNo, hDNo]
+
+theorem noDtDtc_of_name_agrees_lt (s : native_String) (root : SmtDatatype) :
+    (c : SmtDatatypeCons) →
+      sizeOf c < sizeOf root →
+      __smtx_dt_cons_name_agrees s root c = true →
+      noDtDtc s c = true
+  | SmtDatatypeCons.unit, _hSize, _hAgree => by simp [noDtDtc]
+  | SmtDatatypeCons.cons T c, hSize, hAgree => by
+      have hParts :
+          __smtx_type_name_agrees s root T = true ∧
+            __smtx_dt_cons_name_agrees s root c = true := by
+        cases hT : __smtx_type_name_agrees s root T <;>
+          simp [__smtx_dt_cons_name_agrees, native_ite, hT] at hAgree ⊢
+        exact hAgree
+      have hTNo : noDtTy s T = true :=
+        noDtTy_of_name_agrees_lt s root T (by
+          simp at hSize ⊢
+          omega) hParts.1
+      have hCNo : noDtDtc s c = true :=
+        noDtDtc_of_name_agrees_lt s root c (by
+          simp at hSize ⊢
+          omega) hParts.2
+      simp [noDtDtc, native_and, hTNo, hCNo]
+end
+
+theorem noDtDt_of_type_names_consistent
+    {s : native_String} {d : SmtDatatype}
+    (h : __smtx_type_names_consistent (SmtType.Datatype s d) = true) :
+    noDtDt s d = true := by
+  have hAgree : __smtx_dt_name_agrees s d d = true := by
+    cases hA : __smtx_dt_name_agrees s d d
+    · simp [__smtx_type_names_consistent, native_ite, hA] at h
+    · rfl
+  exact noDtDt_of_name_agrees_le s d d (by omega) hAgree
+
 mutual
 theorem noDt_lift_ty (s sub : native_String) (D : SmtDatatype) :
     (T : SmtType) → noDtTy sub T = true → noDtTy sub (__smtx_type_lift s D T) = true

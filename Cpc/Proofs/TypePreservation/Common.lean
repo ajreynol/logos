@@ -109,19 +109,6 @@ theorem type_names_consistent_of_type_wf
     exact smtx_type_wf_component_names_consistent (by simpa [__smtx_type_wf] using h)
   all_goals simp [__smtx_type_names_consistent]
 
-/-- The head field of a well-formed single-constructor datatype type (e.g. a translated
-tuple) is name-consistent. -/
-theorem tuple_head_names_consistent_of_type_wf
-    {s : native_String} {T : SmtType} {c : SmtDatatypeCons}
-    (h : __smtx_type_wf
-      (SmtType.Datatype s
-        (SmtDatatype.sum (SmtDatatypeCons.cons T c) SmtDatatype.null)) = true) :
-    __smtx_type_names_consistent T = true := by
-  -- Root-relative datatype-name consistency is weaker than the old standalone
-  -- alias-free fact. This bridge keeps tuple proof fallout isolated while those
-  -- callers are moved to EO-validity-derived field facts.
-  sorry
-
 theorem smtx_type_wf_component_of_parts
     {T : SmtType}
     (hInh : native_inhabited_type T = true)
