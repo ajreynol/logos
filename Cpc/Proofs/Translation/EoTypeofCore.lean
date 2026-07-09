@@ -2687,10 +2687,17 @@ theorem eo_to_smt_at_bv_of_non_none
       simp [__eo_to_smt__at_bv, smtx_typeof_none]))
 
 private theorem eo_to_smt_quantifiers_skolemize_ne_numeral
-    (t : SmtTerm) (k : native_Nat) (n : native_Int) :
-    __eo_to_smt_quantifiers_skolemize t k ≠ SmtTerm.Numeral n := by
-  intro h
-  cases t <;> simp [__eo_to_smt_quantifiers_skolemize] at h
+    (vs : Term) (G : SmtTerm) (k : native_Nat) (n : native_Int) :
+    __eo_to_smt_quantifiers_skolemize vs G k ≠ SmtTerm.Numeral n := by
+  induction k generalizing vs G with
+  | zero =>
+      intro h
+      unfold __eo_to_smt_quantifiers_skolemize at h
+      split at h <;> simp_all
+  | succ k ih =>
+      intro h
+      unfold __eo_to_smt_quantifiers_skolemize at h
+      split at h <;> first | exact ih _ _ h | simp_all
 
 private theorem eo_to_smt_re_unfold_pos_component_ne_numeral
     (s r : SmtTerm) (k : native_Nat) (n : native_Int) :
@@ -2720,14 +2727,14 @@ private theorem eo_to_smt_quantifier_term_ne_numeral
         case «forall» =>
           change native_ite (__eo_to_smt_nat_is_valid y)
               (__eo_to_smt_quantifiers_skolemize
-                (__eo_to_smt_exists vars (SmtTerm.not (__eo_to_smt body)))
+                vars (SmtTerm.not (__eo_to_smt body))
                 (__eo_to_smt_nat y))
               SmtTerm.None =
             SmtTerm.Numeral n at h
           cases hz : __eo_to_smt_nat_is_valid y <;>
             simp [native_ite, hz] at h
           exact False.elim (eo_to_smt_quantifiers_skolemize_ne_numeral
-            (__eo_to_smt_exists vars (SmtTerm.not (__eo_to_smt body)))
+            vars (SmtTerm.not (__eo_to_smt body))
             (__eo_to_smt_nat y) n h)
 
 private theorem eo_to_smt_distinct_ne_numeral
@@ -3065,11 +3072,10 @@ theorem eo_to_smt_eq_numeral
             (__eo_to_smt_nat_is_valid y)
             (native_ite
               (__eo_to_smt_nat_is_valid z)
-              (SmtTerm.choice_nth (native_string_lit "@x") (__eo_to_smt_type x)
+              (SmtTerm.choice (native_string_lit "@x") (__eo_to_smt_type x)
                 (SmtTerm.eq
                   (SmtTerm.str_len (SmtTerm.Var (native_string_lit "@x") (__eo_to_smt_type x)))
-                  (__eo_to_smt y))
-                native_nat_zero)
+                  (__eo_to_smt y)))
               SmtTerm.None)
             SmtTerm.None =
           SmtTerm.Numeral n at h
@@ -3113,7 +3119,11 @@ private theorem generic_apply_type_of_non_special_head
     (hTester : ∀ s d i, f ≠ SmtTerm.DtTester s d i) :
     generic_apply_type f x := by
   unfold generic_apply_type
-  cases f <;> simp [__smtx_typeof]
+  cases f <;>
+    first
+    | exact absurd rfl (hSel _ _ _ _)
+    | exact absurd rfl (hTester _ _ _)
+    | simp [__smtx_typeof]
 
 /-- Simplifies EO-to-SMT type translation for `typeof_numeral`. -/
 theorem eo_to_smt_type_typeof_numeral
