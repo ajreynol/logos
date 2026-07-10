@@ -795,6 +795,54 @@ private theorem inhabited_chain_image
   · exact absurd h hNewNe
   · simp [native_inhabited_type, native_and, native_not, native_Teq, h]
 
+/-- Substituting into the folded side of an inhabited type cannot destroy its
+default constructor.  The datatype case is exactly a one-entry chain image;
+all other inhabited type forms are fixed by SMT datatype substitution. -/
+private theorem inhabited_type_substitute
+    (q : native_String) (Q : SmtDatatype) :
+    ∀ T : SmtType,
+      native_inhabited_type T = true →
+        native_inhabited_type (__smtx_type_substitute q Q T) = true
+  | SmtType.Datatype s D, hInh => by
+      cases hqs : native_streq q s with
+      | true =>
+          simpa [__smtx_type_substitute, native_ite, hqs] using hInh
+      | false =>
+          have hImage := inhabited_chain_image s D
+            [(q, Q, __smtx_dt_lift s D Q)] hInh
+          simpa [__smtx_type_substitute, native_ite, hqs, chain_dt]
+            using hImage
+  | SmtType.TypeRef r, hInh => by
+      simp [native_inhabited_type, __smtx_type_default,
+        __smtx_type_default_rec, __smtx_typeof_value, native_Teq,
+        native_not, native_and] at hInh
+  | SmtType.None, hInh => by
+      simpa [__smtx_type_substitute] using hInh
+  | SmtType.Bool, hInh => by
+      simpa [__smtx_type_substitute] using hInh
+  | SmtType.Int, hInh => by
+      simpa [__smtx_type_substitute] using hInh
+  | SmtType.Real, hInh => by
+      simpa [__smtx_type_substitute] using hInh
+  | SmtType.RegLan, hInh => by
+      simpa [__smtx_type_substitute] using hInh
+  | SmtType.BitVec w, hInh => by
+      simpa [__smtx_type_substitute] using hInh
+  | SmtType.Map A B, hInh => by
+      simpa [__smtx_type_substitute] using hInh
+  | SmtType.Set A, hInh => by
+      simpa [__smtx_type_substitute] using hInh
+  | SmtType.Seq A, hInh => by
+      simpa [__smtx_type_substitute] using hInh
+  | SmtType.Char, hInh => by
+      simpa [__smtx_type_substitute] using hInh
+  | SmtType.USort u, hInh => by
+      simpa [__smtx_type_substitute] using hInh
+  | SmtType.FunType A B, hInh => by
+      simpa [__smtx_type_substitute] using hInh
+  | SmtType.DtcAppType A B, hInh => by
+      simpa [__smtx_type_substitute] using hInh
+
 /-! ## Reference-excused defaultability
 
 `refDef S T` is default-success with `TypeRef` positions whose name lies in
@@ -1131,6 +1179,71 @@ private theorem refDef_lift_split_dt (s : native_String) (X : SmtDatatype)
 
 end
 
+/-! Lifting cannot create an unexcused default path: an exact fold replaces a
+datatype node by an unexcused reference, while every other constructor is
+preserved recursively. -/
+mutual
+
+private theorem refDef_lift_inv_ty (s : native_String) (X : SmtDatatype) :
+    ∀ T : SmtType,
+      refDefTy native_reflist_nil (__smtx_type_lift s X T) = true →
+        refDefTy native_reflist_nil T = true
+  | SmtType.Datatype q D, h => by
+      by_cases hFold : native_Teq
+          (SmtType.Datatype s X) (SmtType.Datatype q D) = true
+      · simp [__smtx_type_lift, native_ite, hFold, refDefTy,
+          native_reflist_contains, native_reflist_nil] at h
+      · have hBody :
+            refDefDt native_reflist_nil (__smtx_dt_lift s X D) = true := by
+          simpa [__smtx_type_lift, native_ite, hFold, refDefTy] using h
+        simpa [refDefTy] using refDef_lift_inv_dt s X D hBody
+  | SmtType.TypeRef r, h => by simpa [__smtx_type_lift] using h
+  | SmtType.Map A B, h => by simpa [__smtx_type_lift] using h
+  | SmtType.None, h => by simpa [__smtx_type_lift] using h
+  | SmtType.Bool, h => by simpa [__smtx_type_lift] using h
+  | SmtType.Int, h => by simpa [__smtx_type_lift] using h
+  | SmtType.Real, h => by simpa [__smtx_type_lift] using h
+  | SmtType.RegLan, h => by simpa [__smtx_type_lift] using h
+  | SmtType.BitVec w, h => by simpa [__smtx_type_lift] using h
+  | SmtType.Set A, h => by simpa [__smtx_type_lift] using h
+  | SmtType.Seq A, h => by simpa [__smtx_type_lift] using h
+  | SmtType.Char, h => by simpa [__smtx_type_lift] using h
+  | SmtType.USort u, h => by simpa [__smtx_type_lift] using h
+  | SmtType.FunType A B, h => by simpa [__smtx_type_lift] using h
+  | SmtType.DtcAppType A B, h => by simpa [__smtx_type_lift] using h
+
+private theorem refDef_lift_inv_dtc (s : native_String) (X : SmtDatatype) :
+    ∀ c : SmtDatatypeCons,
+      refDefDtc native_reflist_nil (__smtx_dtc_lift s X c) = true →
+        refDefDtc native_reflist_nil c = true
+  | SmtDatatypeCons.unit, h => by simp [__smtx_dtc_lift, refDefDtc]
+  | SmtDatatypeCons.cons T c, h => by
+      have hp :
+          refDefTy native_reflist_nil (__smtx_type_lift s X T) = true ∧
+            refDefDtc native_reflist_nil (__smtx_dtc_lift s X c) = true := by
+        simpa [__smtx_dtc_lift, refDefDtc, Bool.and_eq_true] using h
+      simp [refDefDtc, Bool.and_eq_true,
+        refDef_lift_inv_ty s X T hp.1,
+        refDef_lift_inv_dtc s X c hp.2]
+
+private theorem refDef_lift_inv_dt (s : native_String) (X : SmtDatatype) :
+    ∀ D : SmtDatatype,
+      refDefDt native_reflist_nil (__smtx_dt_lift s X D) = true →
+        refDefDt native_reflist_nil D = true
+  | SmtDatatype.null, h => by simp [__smtx_dt_lift, refDefDt] at h
+  | SmtDatatype.sum c D, h => by
+      have hp :
+          refDefDtc native_reflist_nil (__smtx_dtc_lift s X c) = true ∨
+            refDefDt native_reflist_nil (__smtx_dt_lift s X D) = true := by
+        simpa [__smtx_dt_lift, refDefDt, Bool.or_eq_true] using h
+      rcases hp with hc | hD
+      · simp [refDefDt, Bool.or_eq_true,
+          refDef_lift_inv_dtc s X c hc]
+      · simp [refDefDt, Bool.or_eq_true,
+          refDef_lift_inv_dt s X D hD]
+
+end
+
 /-! Substitution cannot destroy an unexcused default path: such a path never
 uses a `TypeRef`, which is the only form substitution replaces. -/
 mutual
@@ -1187,6 +1300,209 @@ private theorem refDef_subst_empty_dt (s : native_String) (K : SmtDatatype) :
           refDef_subst_empty_dtc s K c hc]
       · simp [__smtx_dt_substitute, refDefDt,
           refDef_subst_empty_dt s K D hD]
+
+end
+
+/-! Conversely, a successful default path after substitution came either
+from the original syntax or from the substituted payload.  This path-sensitive
+split is what lets the confluence proof peel an old chain without assuming
+that every suffix payload is independently inhabited. -/
+mutual
+
+private theorem refDef_subst_split_ty (s : native_String) (K : SmtDatatype) :
+    ∀ T : SmtType,
+      refDefTy native_reflist_nil (__smtx_type_substitute s K T) = true →
+        refDefTy native_reflist_nil T = true ∨
+          refDefDt native_reflist_nil K = true
+  | SmtType.TypeRef r, h => by
+      cases hsr : native_streq s r with
+      | true =>
+          exact Or.inr (by
+            simpa [__smtx_type_substitute, native_ite, hsr, refDefTy] using h)
+      | false =>
+          simp [__smtx_type_substitute, native_ite, hsr, refDefTy,
+            native_reflist_contains, native_reflist_nil] at h
+  | SmtType.Datatype q D, h => by
+      cases hsq : native_streq s q with
+      | true =>
+          exact Or.inl (by
+            simpa [__smtx_type_substitute, native_ite, hsq] using h)
+      | false =>
+          have hBody :
+              refDefDt native_reflist_nil
+                (__smtx_dt_substitute s (__smtx_dt_lift q D K) D) = true := by
+            simpa [__smtx_type_substitute, native_ite, hsq, refDefTy] using h
+          rcases refDef_subst_split_dt s (__smtx_dt_lift q D K) D hBody
+            with hD | hLift
+          · exact Or.inl (by simpa [refDefTy] using hD)
+          · exact Or.inr (refDef_lift_inv_dt q D K hLift)
+  | SmtType.Map A B, h => Or.inl (by
+      simpa [__smtx_type_substitute] using h)
+  | SmtType.None, h => Or.inl (by
+      simpa [__smtx_type_substitute] using h)
+  | SmtType.Bool, h => Or.inl (by
+      simpa [__smtx_type_substitute] using h)
+  | SmtType.Int, h => Or.inl (by
+      simpa [__smtx_type_substitute] using h)
+  | SmtType.Real, h => Or.inl (by
+      simpa [__smtx_type_substitute] using h)
+  | SmtType.RegLan, h => Or.inl (by
+      simpa [__smtx_type_substitute] using h)
+  | SmtType.BitVec w, h => Or.inl (by
+      simpa [__smtx_type_substitute] using h)
+  | SmtType.Set A, h => Or.inl (by
+      simpa [__smtx_type_substitute] using h)
+  | SmtType.Seq A, h => Or.inl (by
+      simpa [__smtx_type_substitute] using h)
+  | SmtType.Char, h => Or.inl (by
+      simpa [__smtx_type_substitute] using h)
+  | SmtType.USort u, h => Or.inl (by
+      simpa [__smtx_type_substitute] using h)
+  | SmtType.FunType A B, h => Or.inl (by
+      simpa [__smtx_type_substitute] using h)
+  | SmtType.DtcAppType A B, h => Or.inl (by
+      simpa [__smtx_type_substitute] using h)
+
+private theorem refDef_subst_split_dtc (s : native_String) (K : SmtDatatype) :
+    ∀ c : SmtDatatypeCons,
+      refDefDtc native_reflist_nil (__smtx_dtc_substitute s K c) = true →
+        refDefDtc native_reflist_nil c = true ∨
+          refDefDt native_reflist_nil K = true
+  | SmtDatatypeCons.unit, h => Or.inl (by
+      simp [refDefDtc])
+  | SmtDatatypeCons.cons T c, h => by
+      have hp :
+          refDefTy native_reflist_nil (__smtx_type_substitute s K T) = true ∧
+            refDefDtc native_reflist_nil (__smtx_dtc_substitute s K c) = true := by
+        simpa [__smtx_dtc_substitute, refDefDtc, Bool.and_eq_true] using h
+      rcases refDef_subst_split_ty s K T hp.1 with hT | hK
+      · rcases refDef_subst_split_dtc s K c hp.2 with hc | hK
+        · exact Or.inl (by simp [refDefDtc, hT, hc])
+        · exact Or.inr hK
+      · exact Or.inr hK
+
+private theorem refDef_subst_split_dt (s : native_String) (K : SmtDatatype) :
+    ∀ D : SmtDatatype,
+      refDefDt native_reflist_nil (__smtx_dt_substitute s K D) = true →
+        refDefDt native_reflist_nil D = true ∨
+          refDefDt native_reflist_nil K = true
+  | SmtDatatype.null, h => by simp [__smtx_dt_substitute, refDefDt] at h
+  | SmtDatatype.sum c D, h => by
+      have hp :
+          refDefDtc native_reflist_nil (__smtx_dtc_substitute s K c) = true ∨
+            refDefDt native_reflist_nil (__smtx_dt_substitute s K D) = true := by
+        simpa [__smtx_dt_substitute, refDefDt, Bool.or_eq_true] using h
+      rcases hp with hc | hD
+      · rcases refDef_subst_split_dtc s K c hc with hc' | hK
+        · exact Or.inl (by simp [refDefDt, hc'])
+        · exact Or.inr hK
+      · rcases refDef_subst_split_dt s K D hD with hD' | hK
+        · exact Or.inl (by simp [refDefDt, hD'])
+        · exact Or.inr hK
+
+end
+
+/-! Defaultability is monotone in a substitution payload.  The datatype case
+needs care because the payload is lifted under a nested binder: if that lift
+loses the chosen path, `refDef_lift_split_dt` says the binder body itself has
+the replacement path, so substitution succeeds without using the payload. -/
+mutual
+
+private theorem refDef_subst_congr_ty
+    (s : native_String) (K L : SmtDatatype)
+    (hKL : refDefDt native_reflist_nil K = true →
+      refDefDt native_reflist_nil L = true) :
+    ∀ T : SmtType,
+      refDefTy native_reflist_nil (__smtx_type_substitute s K T) = true →
+        refDefTy native_reflist_nil (__smtx_type_substitute s L T) = true
+  | SmtType.TypeRef r, h => by
+      cases hsr : native_streq s r with
+      | true =>
+          have hK : refDefDt native_reflist_nil K = true := by
+            simpa [__smtx_type_substitute, native_ite, hsr, refDefTy] using h
+          simpa [__smtx_type_substitute, native_ite, hsr, refDefTy] using hKL hK
+      | false =>
+          simpa [__smtx_type_substitute, native_ite, hsr] using h
+  | SmtType.Datatype q D, h => by
+      cases hsq : native_streq s q with
+      | true =>
+          simpa [__smtx_type_substitute, native_ite, hsq] using h
+      | false =>
+          have hBody :
+              refDefDt native_reflist_nil
+                (__smtx_dt_substitute s (__smtx_dt_lift q D K) D) = true := by
+            simpa [__smtx_type_substitute, native_ite, hsq, refDefTy] using h
+          by_cases hLiftK :
+              refDefDt native_reflist_nil (__smtx_dt_lift q D K) = true
+          · have hL : refDefDt native_reflist_nil L = true :=
+              hKL (refDef_lift_inv_dt q D K hLiftK)
+            rcases refDef_lift_split_dt q D native_reflist_nil L hL with
+              hLiftL | hD
+            · have hNew := refDef_subst_congr_dt s
+                (__smtx_dt_lift q D K) (__smtx_dt_lift q D L)
+                (fun _ => hLiftL) D hBody
+              simpa [__smtx_type_substitute, native_ite, hsq, refDefTy]
+                using hNew
+            · have hNew := refDef_subst_empty_dt s (__smtx_dt_lift q D L)
+                D hD
+              simpa [__smtx_type_substitute, native_ite, hsq, refDefTy]
+                using hNew
+          · rcases refDef_subst_split_dt s (__smtx_dt_lift q D K) D hBody
+              with hD | hBad
+            · have hNew := refDef_subst_empty_dt s (__smtx_dt_lift q D L)
+                D hD
+              simpa [__smtx_type_substitute, native_ite, hsq, refDefTy]
+                using hNew
+            · exact absurd hBad hLiftK
+  | SmtType.Map A B, h => by simpa [__smtx_type_substitute] using h
+  | SmtType.None, h => by simpa [__smtx_type_substitute] using h
+  | SmtType.Bool, h => by simpa [__smtx_type_substitute] using h
+  | SmtType.Int, h => by simpa [__smtx_type_substitute] using h
+  | SmtType.Real, h => by simpa [__smtx_type_substitute] using h
+  | SmtType.RegLan, h => by simpa [__smtx_type_substitute] using h
+  | SmtType.BitVec w, h => by simpa [__smtx_type_substitute] using h
+  | SmtType.Set A, h => by simpa [__smtx_type_substitute] using h
+  | SmtType.Seq A, h => by simpa [__smtx_type_substitute] using h
+  | SmtType.Char, h => by simpa [__smtx_type_substitute] using h
+  | SmtType.USort u, h => by simpa [__smtx_type_substitute] using h
+  | SmtType.FunType A B, h => by simpa [__smtx_type_substitute] using h
+  | SmtType.DtcAppType A B, h => by simpa [__smtx_type_substitute] using h
+
+private theorem refDef_subst_congr_dtc
+    (s : native_String) (K L : SmtDatatype)
+    (hKL : refDefDt native_reflist_nil K = true →
+      refDefDt native_reflist_nil L = true) :
+    ∀ c : SmtDatatypeCons,
+      refDefDtc native_reflist_nil (__smtx_dtc_substitute s K c) = true →
+        refDefDtc native_reflist_nil (__smtx_dtc_substitute s L c) = true
+  | SmtDatatypeCons.unit, h => by simp [__smtx_dtc_substitute, refDefDtc]
+  | SmtDatatypeCons.cons T c, h => by
+      have hp :
+          refDefTy native_reflist_nil (__smtx_type_substitute s K T) = true ∧
+            refDefDtc native_reflist_nil (__smtx_dtc_substitute s K c) = true := by
+        simpa [__smtx_dtc_substitute, refDefDtc, Bool.and_eq_true] using h
+      simp [__smtx_dtc_substitute, refDefDtc, Bool.and_eq_true,
+        refDef_subst_congr_ty s K L hKL T hp.1,
+        refDef_subst_congr_dtc s K L hKL c hp.2]
+
+private theorem refDef_subst_congr_dt
+    (s : native_String) (K L : SmtDatatype)
+    (hKL : refDefDt native_reflist_nil K = true →
+      refDefDt native_reflist_nil L = true) :
+    ∀ D : SmtDatatype,
+      refDefDt native_reflist_nil (__smtx_dt_substitute s K D) = true →
+        refDefDt native_reflist_nil (__smtx_dt_substitute s L D) = true
+  | SmtDatatype.null, h => by simp [__smtx_dt_substitute, refDefDt] at h
+  | SmtDatatype.sum c D, h => by
+      have hp :
+          refDefDtc native_reflist_nil (__smtx_dtc_substitute s K c) = true ∨
+            refDefDt native_reflist_nil (__smtx_dt_substitute s K D) = true := by
+        simpa [__smtx_dt_substitute, refDefDt, Bool.or_eq_true] using h
+      rcases hp with hc | hD
+      · simp [__smtx_dt_substitute, refDefDt, Bool.or_eq_true,
+          refDef_subst_congr_dtc s K L hKL c hc]
+      · simp [__smtx_dt_substitute, refDefDt, Bool.or_eq_true,
+          refDef_subst_congr_dt s K L hKL D hD]
 
 end
 
@@ -2100,6 +2416,36 @@ rewrites the two operations into equality is not sound.  The next lemma must
 be a confluence/transport statement over two valid raw histories, with the
 strictly smaller recorded raw body supplying the induction measure; it cannot
 be another substitution-normalization lemma. -/
+
+/-
+There is one further, essential restriction on "valid raw histories".  The
+statement below is false with `ChainSourceOK` as currently defined because it
+only reconstructs the head payload; `RawSuffixCons` deliberately ignores every
+suffix payload.  Here is an exact counterexample (constructor lists are written
+as lists of field lists):
+
+* `t = a`, `s3 = b`, and the one suffix name is `u`;
+* `X = [[TypeRef a], []]`;
+* `U = [[Datatype b X]]` and `R = [[Datatype u U]]`;
+* `P = lift u U R = [[TypeRef u]]`;
+* `Y = substitute a (lift b X P) X`;
+* `Q = [[Datatype b [[Datatype b Y]]]]`; and
+* `rho = [(a, R, P), (u, U, Q)]`.
+
+Lean evaluation confirms every premise of `chainok_selfExt_facts`, including
+the old head's inhabitedness/diagonal wf and the newly closed `b` node's
+inhabitedness/diagonal wf.  Nevertheless the head resolved after `selfExt rho
+b X` is `[[Datatype u [[Datatype b [[TypeRef b]]]]]]`, which is uninhabited.
+
+The bad `Q` cannot be produced by replaying `selfExt`: it hides a mismatched
+`b` definition behind the `u` guide, where the old wf check skips it, and the
+next rotation exposes it.  Requiring suffix payloads merely to be inhabited or
+diagonally well-formed is insufficient (`Q` is both inhabited and diagonally
+well-formed against itself).  The chain representation must carry construction
+provenance for each payload (or an equivalent origin-indexed relation) before
+this lemma can be proved.  In particular, adding another predicate only over
+the raw suffix cannot repair the statement.
+-/
 private theorem chainok_selfExt_facts
     (ρ : SubstChain) (s3 : native_String) (X : SmtDatatype)
     (t : native_String) (R P : SmtDatatype) (REST : SubstChain)
