@@ -204,6 +204,365 @@ theorem subst_noop_no_free_dtc (sub : native_String) :
           rw [subst_noop_no_free_ty sub _ X refs (by intro s h; cases h) hNot hFree.1]
 end
 
+/-! ### Lift/substitute round trips under source name consistency
+
+Lifting a nested datatype occurrence and immediately substituting it back is
+not an unconditional inverse: a mismatched same-name occurrence can capture
+the payload while it crosses another datatype binder.  The root-relative
+name-consistency predicates exclude exactly that case.  The private
+`NameEmbedded*` predicates below retain the fact that the current subtree is
+part of the same root while the proof descends.
+-/
+
+private def NameEmbeddedTy (root : SmtDatatype) (T : SmtType) : Prop :=
+  ∀ s D, __smtx_dt_name_agrees s D root = true →
+    __smtx_type_name_agrees s D T = true
+
+private def NameEmbeddedDtc (root : SmtDatatype) (c : SmtDatatypeCons) : Prop :=
+  ∀ s D, __smtx_dt_name_agrees s D root = true →
+    __smtx_dt_cons_name_agrees s D c = true
+
+private def NameEmbeddedDt (root : SmtDatatype) (W : SmtDatatype) : Prop :=
+  ∀ s D, __smtx_dt_name_agrees s D root = true →
+    __smtx_dt_name_agrees s D W = true
+
+private theorem names_consistent_ty_parts
+    (root : SmtDatatype) (q : native_String) (D : SmtDatatype)
+    (h : __smtx_type_names_consistent_rec root (SmtType.Datatype q D) = true) :
+    __smtx_dt_name_agrees q D root = true ∧
+      __smtx_dt_names_consistent_rec root D = true := by
+  simp only [__smtx_type_names_consistent_rec] at h
+  cases ha : __smtx_dt_name_agrees q D root <;>
+    cases hc : __smtx_dt_names_consistent_rec root D <;>
+      simp_all [native_ite]
+
+private theorem type_name_agrees_same_name_eq
+    (s : native_String) (A D : SmtDatatype)
+    (h : __smtx_type_name_agrees s A (SmtType.Datatype s D) = true) :
+    A = D := by
+  simp [__smtx_type_name_agrees, native_streq, native_Teq, native_ite] at h
+  exact h.1
+
+private theorem type_name_agrees_body
+    (s : native_String) (A : SmtDatatype) (q : native_String) (D : SmtDatatype)
+    (h : __smtx_type_name_agrees s A (SmtType.Datatype q D) = true) :
+    __smtx_dt_name_agrees s A D = true := by
+  simp only [__smtx_type_name_agrees] at h
+  cases hs : native_streq s q <;>
+    cases he : native_Teq (SmtType.Datatype s A) (SmtType.Datatype q D) <;>
+      cases hd : __smtx_dt_name_agrees s A D <;>
+        simp_all [native_ite]
+
+private theorem names_consistent_dt_parts
+    (root : SmtDatatype) (c : SmtDatatypeCons) (d : SmtDatatype)
+    (h : __smtx_dt_names_consistent_rec root (SmtDatatype.sum c d) = true) :
+    __smtx_dt_cons_names_consistent_rec root c = true ∧
+      __smtx_dt_names_consistent_rec root d = true := by
+  simp only [__smtx_dt_names_consistent_rec] at h
+  cases hc : __smtx_dt_cons_names_consistent_rec root c <;>
+    cases hd : __smtx_dt_names_consistent_rec root d <;>
+      simp_all [native_ite]
+
+private theorem names_consistent_dtc_parts
+    (root : SmtDatatype) (T : SmtType) (c : SmtDatatypeCons)
+    (h : __smtx_dt_cons_names_consistent_rec root
+      (SmtDatatypeCons.cons T c) = true) :
+    __smtx_type_names_consistent_rec root T = true ∧
+      __smtx_dt_cons_names_consistent_rec root c = true := by
+  simp only [__smtx_dt_cons_names_consistent_rec] at h
+  cases ht : __smtx_type_names_consistent_rec root T <;>
+    cases hc : __smtx_dt_cons_names_consistent_rec root c <;>
+      simp_all [native_ite]
+
+private theorem nameEmbedded_dt_parts
+    (root : SmtDatatype) (c : SmtDatatypeCons) (d : SmtDatatype)
+    (h : NameEmbeddedDt root (SmtDatatype.sum c d)) :
+    NameEmbeddedDtc root c ∧ NameEmbeddedDt root d := by
+  constructor <;> intro s A hRoot
+  · have hAll := h s A hRoot
+    simp only [__smtx_dt_name_agrees] at hAll
+    cases hc : __smtx_dt_cons_name_agrees s A c <;>
+      cases hd : __smtx_dt_name_agrees s A d <;>
+        simp_all [native_ite]
+  · have hAll := h s A hRoot
+    simp only [__smtx_dt_name_agrees] at hAll
+    cases hc : __smtx_dt_cons_name_agrees s A c <;>
+      cases hd : __smtx_dt_name_agrees s A d <;>
+        simp_all [native_ite]
+
+private theorem nameEmbedded_dtc_parts
+    (root : SmtDatatype) (T : SmtType) (c : SmtDatatypeCons)
+    (h : NameEmbeddedDtc root (SmtDatatypeCons.cons T c)) :
+    NameEmbeddedTy root T ∧ NameEmbeddedDtc root c := by
+  constructor <;> intro s A hRoot
+  · have hAll := h s A hRoot
+    simp only [__smtx_dt_cons_name_agrees] at hAll
+    cases ht : __smtx_type_name_agrees s A T <;>
+      cases hc : __smtx_dt_cons_name_agrees s A c <;>
+        simp_all [native_ite]
+  · have hAll := h s A hRoot
+    simp only [__smtx_dt_cons_name_agrees] at hAll
+    cases ht : __smtx_type_name_agrees s A T <;>
+      cases hc : __smtx_dt_cons_name_agrees s A c <;>
+        simp_all [native_ite]
+
+private theorem nameEmbedded_ty_body
+    (root : SmtDatatype) (q : native_String) (D : SmtDatatype)
+    (h : NameEmbeddedTy root (SmtType.Datatype q D)) :
+    NameEmbeddedDt root D := by
+  intro s A hRoot
+  exact type_name_agrees_body s A q D (h s A hRoot)
+
+private theorem hasFreeDtc_nonref_parts
+    (sub : native_String) (refs : RefList) (T : SmtType) (c : SmtDatatypeCons)
+    (hNoRef : ∀ r, T ≠ SmtType.TypeRef r)
+    (h : hasFreeDtc sub refs (SmtDatatypeCons.cons T c) = false) :
+    hasFreeTy sub refs T = false ∧ hasFreeDtc sub refs c = false := by
+  cases T <;> simp [hasFreeDtc, hasFreeTy, native_or] at h ⊢
+  all_goals first | exact h | exact h.2 | contradiction
+
+mutual
+private theorem lift_noop_of_names_ne_dt
+    (root : SmtDatatype) (q : native_String) (D L : SmtDatatype)
+    (hne : L ≠ D)
+    (hAt : NameEmbeddedTy root (SmtType.Datatype q D)) :
+    ∀ X : SmtDatatype,
+      __smtx_dt_names_consistent_rec root X = true →
+      __smtx_dt_lift q L X = X
+  | SmtDatatype.null, _ => by simp [__smtx_dt_lift]
+  | SmtDatatype.sum c d, hCons => by
+      have hp : __smtx_dt_cons_names_consistent_rec root c = true ∧
+          __smtx_dt_names_consistent_rec root d = true := by
+        simp only [__smtx_dt_names_consistent_rec] at hCons
+        cases hc : __smtx_dt_cons_names_consistent_rec root c <;>
+          cases hd : __smtx_dt_names_consistent_rec root d <;>
+            simp_all [native_ite]
+      simp [__smtx_dt_lift,
+        lift_noop_of_names_ne_dtc root q D L hne hAt c hp.1,
+        lift_noop_of_names_ne_dt root q D L hne hAt d hp.2]
+
+private theorem lift_noop_of_names_ne_dtc
+    (root : SmtDatatype) (q : native_String) (D L : SmtDatatype)
+    (hne : L ≠ D)
+    (hAt : NameEmbeddedTy root (SmtType.Datatype q D)) :
+    ∀ c : SmtDatatypeCons,
+      __smtx_dt_cons_names_consistent_rec root c = true →
+      __smtx_dtc_lift q L c = c
+  | SmtDatatypeCons.unit, _ => by simp [__smtx_dtc_lift]
+  | SmtDatatypeCons.cons T c, hCons => by
+      have hp : __smtx_type_names_consistent_rec root T = true ∧
+          __smtx_dt_cons_names_consistent_rec root c = true := by
+        simp only [__smtx_dt_cons_names_consistent_rec] at hCons
+        cases ht : __smtx_type_names_consistent_rec root T <;>
+          cases hc : __smtx_dt_cons_names_consistent_rec root c <;>
+            simp_all [native_ite]
+      simp [__smtx_dtc_lift,
+        lift_noop_of_names_ne_ty root q D L hne hAt T hp.1,
+        lift_noop_of_names_ne_dtc root q D L hne hAt c hp.2]
+
+private theorem lift_noop_of_names_ne_ty
+    (root : SmtDatatype) (q : native_String) (D L : SmtDatatype)
+    (hne : L ≠ D)
+    (hAt : NameEmbeddedTy root (SmtType.Datatype q D)) :
+    ∀ T : SmtType,
+      __smtx_type_names_consistent_rec root T = true →
+      __smtx_type_lift q L T = T
+  | SmtType.Datatype r E, hCons => by
+      have hp := names_consistent_ty_parts root r E hCons
+      by_cases hFold : native_Teq
+          (SmtType.Datatype q L) (SmtType.Datatype r E) = true
+      · have hEq : SmtType.Datatype q L = SmtType.Datatype r E := by
+          simpa [native_Teq] using hFold
+        cases hEq
+        have hLE : L = D := type_name_agrees_same_name_eq q L D
+          (hAt q L hp.1)
+        exact absurd hLE hne
+      · simp [__smtx_type_lift, native_ite, hFold,
+          lift_noop_of_names_ne_dt root q D L hne hAt E hp.2]
+  | SmtType.TypeRef r, _ => by simp [__smtx_type_lift]
+  | SmtType.None, _ => by simp [__smtx_type_lift]
+  | SmtType.Bool, _ => by simp [__smtx_type_lift]
+  | SmtType.Int, _ => by simp [__smtx_type_lift]
+  | SmtType.Real, _ => by simp [__smtx_type_lift]
+  | SmtType.RegLan, _ => by simp [__smtx_type_lift]
+  | SmtType.BitVec w, _ => by simp [__smtx_type_lift]
+  | SmtType.Map A B, _ => by simp [__smtx_type_lift]
+  | SmtType.Set A, _ => by simp [__smtx_type_lift]
+  | SmtType.Seq A, _ => by simp [__smtx_type_lift]
+  | SmtType.Char, _ => by simp [__smtx_type_lift]
+  | SmtType.USort u, _ => by simp [__smtx_type_lift]
+  | SmtType.FunType A B, _ => by simp [__smtx_type_lift]
+  | SmtType.DtcAppType A B, _ => by simp [__smtx_type_lift]
+end
+
+mutual
+
+private theorem subst_lift_roundtrip_dt
+    (root : SmtDatatype) (s : native_String) (X : SmtDatatype)
+    (hTarget : __smtx_dt_name_agrees s X root = true)
+    (hConsX : __smtx_dt_names_consistent_rec root X = true) :
+    ∀ (W : SmtDatatype) (refs : RefList),
+      __smtx_dt_names_consistent_rec root W = true →
+      NameEmbeddedDt root W →
+      hasFreeDt s refs W = false →
+      native_reflist_contains refs s = false →
+      __smtx_dt_substitute s X (__smtx_dt_lift s X W) = W
+  | SmtDatatype.null, refs, _hCons, _hEmb, _hFree, _hNot => by
+      simp [__smtx_dt_lift, __smtx_dt_substitute]
+  | SmtDatatype.sum c d, refs, hCons, hEmb, hFree, hNot => by
+      have hConsParts := names_consistent_dt_parts root c d hCons
+      have hEmbParts := nameEmbedded_dt_parts root c d hEmb
+      have hFreeParts : hasFreeDtc s refs c = false ∧ hasFreeDt s refs d = false := by
+        simpa [hasFreeDt, native_or, Bool.or_eq_false_iff] using hFree
+      simp [__smtx_dt_lift, __smtx_dt_substitute,
+        subst_lift_roundtrip_dtc root s X hTarget hConsX c refs
+          hConsParts.1 hEmbParts.1 hFreeParts.1 hNot,
+        subst_lift_roundtrip_dt root s X hTarget hConsX d refs
+          hConsParts.2 hEmbParts.2 hFreeParts.2 hNot]
+
+private theorem subst_lift_roundtrip_dtc
+    (root : SmtDatatype) (s : native_String) (X : SmtDatatype)
+    (hTarget : __smtx_dt_name_agrees s X root = true)
+    (hConsX : __smtx_dt_names_consistent_rec root X = true) :
+    ∀ (c : SmtDatatypeCons) (refs : RefList),
+      __smtx_dt_cons_names_consistent_rec root c = true →
+      NameEmbeddedDtc root c →
+      hasFreeDtc s refs c = false →
+      native_reflist_contains refs s = false →
+      __smtx_dtc_substitute s X (__smtx_dtc_lift s X c) = c
+  | SmtDatatypeCons.unit, refs, _hCons, _hEmb, _hFree, _hNot => by
+      simp [__smtx_dtc_lift, __smtx_dtc_substitute]
+  | SmtDatatypeCons.cons T c, refs, hCons, hEmb, hFree, hNot => by
+      have hConsParts := names_consistent_dtc_parts root T c hCons
+      have hEmbParts := nameEmbedded_dtc_parts root T c hEmb
+      by_cases hRef : ∃ r, T = SmtType.TypeRef r
+      · rcases hRef with ⟨r, rfl⟩
+        have hFreeParts :
+            native_and (native_streq r s)
+                (native_not (native_reflist_contains refs s)) = false ∧
+              hasFreeDtc s refs c = false := by
+          simpa [hasFreeDtc, native_or, Bool.or_eq_false_iff] using hFree
+        have hsr : native_streq s r = false := by
+          cases hsr : native_streq s r with
+          | false => rfl
+          | true =>
+              have heq : s = r := by simpa [native_streq] using hsr
+              subst r
+              simp [native_streq, native_and, native_not, hNot] at hFreeParts
+        simp [__smtx_dtc_lift, __smtx_type_lift, __smtx_dtc_substitute,
+          __smtx_type_substitute, native_ite, hsr,
+          subst_lift_roundtrip_dtc root s X hTarget hConsX c refs
+            hConsParts.2 hEmbParts.2 hFreeParts.2 hNot]
+      · have hFreeParts := hasFreeDtc_nonref_parts s refs T c
+          (fun r hEq => hRef ⟨r, hEq⟩) hFree
+        simp [__smtx_dtc_lift, __smtx_dtc_substitute,
+          subst_lift_roundtrip_ty root s X hTarget hConsX T refs
+            (fun r hEq => hRef ⟨r, hEq⟩) hConsParts.1 hEmbParts.1
+            hFreeParts.1 hNot,
+          subst_lift_roundtrip_dtc root s X hTarget hConsX c refs
+            hConsParts.2 hEmbParts.2 hFreeParts.2 hNot]
+
+private theorem subst_lift_roundtrip_ty
+    (root : SmtDatatype) (s : native_String) (X : SmtDatatype)
+    (hTarget : __smtx_dt_name_agrees s X root = true)
+    (hConsX : __smtx_dt_names_consistent_rec root X = true) :
+    ∀ (T : SmtType) (refs : RefList),
+      (∀ r, T ≠ SmtType.TypeRef r) →
+      __smtx_type_names_consistent_rec root T = true →
+      NameEmbeddedTy root T →
+      hasFreeTy s refs T = false →
+      native_reflist_contains refs s = false →
+      __smtx_type_substitute s X (__smtx_type_lift s X T) = T
+  | SmtType.Datatype q D, refs, _hNoRef, hCons, hEmb, hFree, hNot => by
+      have hConsParts := names_consistent_ty_parts root q D hCons
+      by_cases hFold : native_Teq
+          (SmtType.Datatype s X) (SmtType.Datatype q D) = true
+      · have hEq : SmtType.Datatype s X = SmtType.Datatype q D := by
+          simpa [native_Teq] using hFold
+        cases hEq
+        simp [__smtx_type_lift, __smtx_type_substitute, native_ite,
+          native_streq, native_Teq]
+      · have hsq : native_streq s q = false := by
+          cases hsq : native_streq s q with
+          | false => rfl
+          | true =>
+              have heq : s = q := by simpa [native_streq] using hsq
+              subst q
+              have hXD : X = D := type_name_agrees_same_name_eq s X D
+                (hEmb s X hTarget)
+              subst D
+              simp [native_Teq] at hFold
+        have hsqne : s ≠ q := by simpa [native_streq] using hsq
+        have hEmbD := nameEmbedded_ty_body root q D hEmb
+        have hFreeD :
+            hasFreeDt s (native_reflist_insert refs q) D = false := by
+          simpa [hasFreeTy] using hFree
+        have hNotD :
+            native_reflist_contains (native_reflist_insert refs q) s = false := by
+          simp [native_reflist_contains, native_reflist_insert] at hNot ⊢
+          exact ⟨hsqne, hNot⟩
+        let L := __smtx_dt_lift s X D
+        rw [show __smtx_type_lift s X (SmtType.Datatype q D) =
+            SmtType.Datatype q L by
+          simp [__smtx_type_lift, native_ite, hFold, L]]
+        rw [show __smtx_type_substitute s X (SmtType.Datatype q L) =
+            SmtType.Datatype q
+              (__smtx_dt_substitute s (__smtx_dt_lift q L X) L) by
+          simp [__smtx_type_substitute, native_ite, hsq]]
+        congr 1
+        by_cases hLD : L = D
+        · rw [hLD]
+          exact subst_noop_no_free_dt s D (__smtx_dt_lift q D X)
+            (native_reflist_insert refs q) hNotD hFreeD
+        · have hPayload : __smtx_dt_lift q L X = X :=
+            lift_noop_of_names_ne_dt root q D L hLD hEmb X hConsX
+          rw [hPayload]
+          exact subst_lift_roundtrip_dt root s X hTarget hConsX D
+            (native_reflist_insert refs q) hConsParts.2 hEmbD hFreeD hNotD
+  | SmtType.TypeRef r, refs, hNoRef, _hCons, _hEmb, _hFree, _hNot =>
+      absurd rfl (hNoRef r)
+  | SmtType.None, refs, _hNoRef, _hCons, _hEmb, _hFree, _hNot => by
+      simp [__smtx_type_lift, __smtx_type_substitute]
+  | SmtType.Bool, refs, _hNoRef, _hCons, _hEmb, _hFree, _hNot => by
+      simp [__smtx_type_lift, __smtx_type_substitute]
+  | SmtType.Int, refs, _hNoRef, _hCons, _hEmb, _hFree, _hNot => by
+      simp [__smtx_type_lift, __smtx_type_substitute]
+  | SmtType.Real, refs, _hNoRef, _hCons, _hEmb, _hFree, _hNot => by
+      simp [__smtx_type_lift, __smtx_type_substitute]
+  | SmtType.RegLan, refs, _hNoRef, _hCons, _hEmb, _hFree, _hNot => by
+      simp [__smtx_type_lift, __smtx_type_substitute]
+  | SmtType.BitVec w, refs, _hNoRef, _hCons, _hEmb, _hFree, _hNot => by
+      simp [__smtx_type_lift, __smtx_type_substitute]
+  | SmtType.Map A B, refs, _hNoRef, _hCons, _hEmb, _hFree, _hNot => by
+      simp [__smtx_type_lift, __smtx_type_substitute]
+  | SmtType.Set A, refs, _hNoRef, _hCons, _hEmb, _hFree, _hNot => by
+      simp [__smtx_type_lift, __smtx_type_substitute]
+  | SmtType.Seq A, refs, _hNoRef, _hCons, _hEmb, _hFree, _hNot => by
+      simp [__smtx_type_lift, __smtx_type_substitute]
+  | SmtType.Char, refs, _hNoRef, _hCons, _hEmb, _hFree, _hNot => by
+      simp [__smtx_type_lift, __smtx_type_substitute]
+  | SmtType.USort u, refs, _hNoRef, _hCons, _hEmb, _hFree, _hNot => by
+      simp [__smtx_type_lift, __smtx_type_substitute]
+  | SmtType.FunType A B, refs, _hNoRef, _hCons, _hEmb, _hFree, _hNot => by
+      simp [__smtx_type_lift, __smtx_type_substitute]
+  | SmtType.DtcAppType A B, refs, _hNoRef, _hCons, _hEmb, _hFree, _hNot => by
+      simp [__smtx_type_lift, __smtx_type_substitute]
+
+end
+
+theorem subst_lift_roundtrip_dt_of_names
+    (root : SmtDatatype) (s : native_String) (X : SmtDatatype)
+    (refs : RefList)
+    (hRootCons : __smtx_dt_names_consistent_rec root root = true)
+    (hFieldCons :
+      __smtx_type_names_consistent_rec root (SmtType.Datatype s X) = true)
+    (hFree : hasFreeDt s refs root = false)
+    (hNot : native_reflist_contains refs s = false) :
+    __smtx_dt_substitute s X (__smtx_dt_lift s X root) = root := by
+  have hFieldParts := names_consistent_ty_parts root s X hFieldCons
+  exact subst_lift_roundtrip_dt root s X hFieldParts.1 hFieldParts.2
+    root refs hRootCons (fun _ _ h => h) hFree hNot
+
 /- `noStrayTy s D W`: every `Datatype s …` reachable in `W` has body exactly `D`. Purely syntactic. -/
 mutual
 def noStrayTy (s : native_String) (D : SmtDatatype) : SmtType → Bool
