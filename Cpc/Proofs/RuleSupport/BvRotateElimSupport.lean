@@ -409,6 +409,22 @@ private theorem rotateRightRec_eq
           rw [Nat.succ_mul]
           exact hRotate
 
+/-- Canonical value-level interpretation of the recursive left-rotation evaluator. -/
+theorem bv_rotate_left_rec_eval
+    (n W : Nat) (p : Int) (hp0 : 0 ≤ p) (hp1 : p < (2 : Int) ^ W) :
+    __smtx_model_eval_rotate_left_rec n (SmtValue.Binary (↑W) p) =
+      SmtValue.Binary (↑W)
+        (↑((BitVec.ofInt W p).rotateLeft n).toNat) :=
+  rotateLeftRec_eq n W p hp0 hp1
+
+/-- Canonical value-level interpretation of the recursive right-rotation evaluator. -/
+theorem bv_rotate_right_rec_eval
+    (n W : Nat) (p : Int) (hp0 : 0 ≤ p) (hp1 : p < (2 : Int) ^ W) :
+    __smtx_model_eval_rotate_right_rec n (SmtValue.Binary (↑W) p) =
+      SmtValue.Binary (↑W)
+        (↑((BitVec.ofInt W p).rotateLeft (n * (W - 1))).toNat) :=
+  rotateRightRec_eq n W p hp0 hp1
+
 private theorem rotateLeft_eq_self_of_mod_eq_zero
     (x : BitVec w) (n : Nat) (hmod : n % w = 0) :
     x.rotateLeft n = x := by
