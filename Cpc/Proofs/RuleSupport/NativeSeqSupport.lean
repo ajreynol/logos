@@ -5,6 +5,7 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
+set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 /-!
@@ -198,6 +199,70 @@ theorem native_seq_extract_to_end_nat
         List.drop i xs
     rw [hminToNat]
     exact htake
+
+theorem native_seq_extract_len_tail_of_bounds
+    (xs : List SmtValue) (i : native_Int)
+    (hNonneg : 0 ≤ i)
+    (hLeLen : i ≤ native_seq_len xs) :
+    native_seq_extract xs i (native_seq_len xs) =
+      xs.drop (Int.toNat i) := by
+  have hNotNeg : ¬ i < 0 := Int.not_lt_of_ge hNonneg
+  have hToNat : (Int.toNat i : Int) = i :=
+    Int.toNat_of_nonneg hNonneg
+  have hStartLeInt : (Int.toNat i : Int) ≤ (xs.length : Int) := by
+    simpa [hToNat, native_seq_len] using hLeLen
+  have hStartLeNat : Int.toNat i ≤ xs.length :=
+    Int.ofNat_le.mp hStartLeInt
+  by_cases hAtEnd : Int.toNat i = xs.length
+  · have hIGeLen : i ≥ (Int.ofNat xs.length : Int) := by
+      rw [← hToNat]
+      exact Int.ofNat_le.mpr (by omega)
+    have hDrop : xs.drop (Int.toNat i) = [] := by
+      rw [hAtEnd]
+      exact List.drop_eq_nil_of_le (Nat.le_refl _)
+    unfold native_seq_extract
+    simp [native_seq_len, hNotNeg, hIGeLen, hDrop]
+  · have hStartLtNat : Int.toNat i < xs.length :=
+      Nat.lt_of_le_of_ne hStartLeNat hAtEnd
+    have hINotGeLen : ¬ i ≥ (Int.ofNat xs.length : Int) := by
+      intro hGe
+      have hGeInt :
+          (Int.ofNat xs.length : Int) ≤ (Int.toNat i : Int) := by
+        simpa [hToNat] using hGe
+      have hGeNat : xs.length ≤ Int.toNat i := Int.ofNat_le.mp hGeInt
+      omega
+    have hLenNotLeI : ¬ (Int.ofNat xs.length : Int) ≤ i := hINotGeLen
+    have hXsNe : xs ≠ [] := by
+      intro hNil
+      subst xs
+      simp at hStartLtNat
+    have hLenNotLeZero : ¬ (Int.ofNat xs.length : Int) ≤ 0 := by
+      intro hLe
+      have hLeNat : xs.length ≤ 0 := Int.ofNat_le.mp hLe
+      omega
+    have hTailCast :
+        Int.ofNat xs.length - i =
+          Int.ofNat (xs.length - Int.toNat i) := by
+      rw [← hToNat]
+      exact (Int.ofNat_sub hStartLeNat).symm
+    have hMin :
+        min (Int.ofNat xs.length) (Int.ofNat xs.length - i) =
+          Int.ofNat xs.length - i := by
+      apply Int.min_eq_right
+      omega
+    unfold native_seq_extract
+    simp [native_seq_len, hNotNeg, hLenNotLeZero, hINotGeLen, hXsNe]
+    by_cases hLenLeI : (↑xs.length : native_Int) ≤ i
+    · exact False.elim (hLenNotLeI (by simpa using hLenLeI))
+    · simp [hLenLeI]
+      change
+        (xs.drop (Int.toNat i)).take
+            ((min (Int.ofNat xs.length) (Int.ofNat xs.length - i)).toNat) =
+          xs.drop (Int.toNat i)
+      rw [hMin, hTailCast]
+      apply List.take_of_length_le
+      rw [List.length_drop]
+      simp
 
 theorem native_seq_prefix_eq_append_drop
     (pat xs : List SmtValue) :
@@ -540,3 +605,48 @@ theorem native_seq_indexof_append_of_nonneg
     native_seq_indexof_rec (xs.drop start) pat start fuel
   exact native_seq_indexof_rec_append_of_nonneg
     (xs.drop start) pat suffix start fuel hNonnegRec
+
+/-! ### Updating strictly inside a left appendend -/
+
+theorem native_seq_update_append_of_strict_fit
+    (xs suffix repl : List SmtValue) (i : native_Int)
+    (hNonneg : 0 ≤ i)
+    (hFit : i + Int.ofNat repl.length < Int.ofNat xs.length) :
+    native_seq_update (xs ++ suffix) i repl =
+      xs.take (Int.toNat i) ++ repl ++
+        xs.drop (Int.toNat i + repl.length) ++ suffix := by
+  have hNeg : ¬ i < 0 := Int.not_lt_of_ge hNonneg
+  have hIdxCast : Int.ofNat (Int.toNat i) = i :=
+    Int.toNat_of_nonneg hNonneg
+  have hFitNat : Int.toNat i + repl.length < xs.length := by
+    have hFitCast := hFit
+    rw [← hIdxCast] at hFitCast
+    apply Int.ofNat_lt.mp
+    simpa using hFitCast
+  have hIdxLt : Int.toNat i < xs.length := by omega
+  have hIdxLe : Int.toNat i ≤ xs.length := Nat.le_of_lt hIdxLt
+  have hReplFits : repl.length ≤ xs.length - Int.toNat i := by omega
+  have hReplFitsAppend :
+      repl.length ≤ (xs ++ suffix).length - Int.toNat i := by
+    simp only [List.length_append]
+    omega
+  have hBelowAppend : ¬ Int.ofNat (xs ++ suffix).length ≤ i := by
+    have hiLtXs : i < Int.ofNat xs.length := by
+      exact Int.lt_of_le_of_lt
+        (Int.le_add_of_nonneg_right (Int.natCast_nonneg _)) hFit
+    have hXsLeAppend :
+        Int.ofNat xs.length ≤ Int.ofNat (xs ++ suffix).length := by
+      simp only [List.length_append]
+      exact Int.ofNat_le.mpr (Nat.le_add_right _ _)
+    exact Int.not_le_of_gt (Int.lt_of_lt_of_le hiLtXs hXsLeAppend)
+  unfold native_seq_update
+  rw [show decide (i < 0) = false from decide_eq_false hNeg]
+  simp only [Bool.false_or]
+  rw [show decide (Int.ofNat (xs ++ suffix).length ≤ i) = false from
+    decide_eq_false hBelowAppend]
+  simp only [Bool.false_eq_true, if_false]
+  rw [List.take_append_of_le_length hIdxLe]
+  rw [List.take_of_length_le hReplFitsAppend]
+  rw [list_drop_append_of_le_length xs suffix
+    (Int.toNat i + repl.length) (by omega)]
+  simp only [List.append_assoc]

@@ -170,6 +170,69 @@ theorem native_seq_replace_empty_src_eq_iff
   · simp [hPat]
   · simp [hPat, hTarget]
 
+theorem native_seq_replace_of_indexof_nonneg
+    (xs pat repl : List SmtValue)
+    (hNonneg : 0 ≤ native_seq_indexof xs pat 0) :
+    native_seq_replace xs pat repl =
+      xs.take (Int.toNat (native_seq_indexof xs pat 0)) ++ repl ++
+        xs.drop
+          (Int.toNat (native_seq_indexof xs pat 0) + pat.length) := by
+  cases pat with
+  | nil =>
+      have hIdx : native_seq_indexof xs [] 0 = 0 := by
+        unfold native_seq_indexof
+        simp
+        unfold native_seq_indexof_rec
+        simp [native_seq_prefix_eq]
+      rw [hIdx]
+      simp [native_seq_replace]
+  | cons p ps =>
+      unfold native_seq_replace
+      rw [if_neg (Int.not_lt_of_ge hNonneg)]
+
+theorem native_seq_indexof_zero_bounds_of_nonneg
+    (xs pat : List SmtValue)
+    (hNonneg : 0 ≤ native_seq_indexof xs pat 0) :
+    Int.toNat (native_seq_indexof xs pat 0) + pat.length ≤ xs.length := by
+  unfold native_seq_indexof at hNonneg ⊢
+  by_cases hBounds : pat.length ≤ xs.length
+  · simp [hBounds] at hNonneg ⊢
+    cases hResult :
+        native_seq_indexof_rec xs pat 0 (xs.length - pat.length + 1) with
+    | ofNat j =>
+        rcases native_seq_indexof_rec_decomp xs pat 0
+            (xs.length - pat.length + 1) j hResult with
+          ⟨_hZeroLe, before, after, hXs, hBeforeLen⟩
+        have hLengths := congrArg List.length hXs
+        simp only [List.length_append] at hLengths
+        simp at hBeforeLen
+        simp
+        omega
+    | negSucc j =>
+        rw [hResult] at hNonneg
+        simp at hNonneg
+  · simp [hBounds] at hNonneg
+
+theorem native_seq_replace_append_of_indexof_nonneg
+    (xs pat repl suffix : List SmtValue)
+    (hNonneg : 0 ≤ native_seq_indexof xs pat 0) :
+    native_seq_replace (xs ++ suffix) pat repl =
+      native_seq_replace xs pat repl ++ suffix := by
+  have hIndex := native_seq_indexof_append_of_nonneg xs pat suffix 0 hNonneg
+  have hBounds := native_seq_indexof_zero_bounds_of_nonneg xs pat hNonneg
+  have hIdxLe : Int.toNat (native_seq_indexof xs pat 0) ≤ xs.length := by
+    omega
+  have hNonnegAppend :
+      0 ≤ native_seq_indexof (xs ++ suffix) pat 0 := by
+    rw [hIndex]
+    exact hNonneg
+  rw [native_seq_replace_of_indexof_nonneg _ _ _ hNonnegAppend,
+    native_seq_replace_of_indexof_nonneg _ _ _ hNonneg, hIndex]
+  rw [List.take_append_of_le_length hIdxLe]
+  rw [list_drop_append_of_le_length xs suffix
+    (Int.toNat (native_seq_indexof xs pat 0) + pat.length) hBounds]
+  simp only [List.append_assoc]
+
 theorem native_seq_replace_eq_nil_iff_of_repl_ne_nil
     (xs pat repl : List SmtValue) (hRepl : repl ≠ []) :
     native_seq_replace xs pat repl = [] ↔ xs = [] ∧ pat ≠ [] := by
