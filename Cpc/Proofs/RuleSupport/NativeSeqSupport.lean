@@ -380,3 +380,163 @@ theorem native_seq_extract_prefix_length_of_indexof_nonneg
     rw [native_seq_extract_zero_nat xs j hJLe]
     simp [List.length_take, Nat.min_eq_left hJLe]
   · simp [hBounds] at hIdx
+
+/-! ### Stability of a successful search under right append -/
+
+theorem native_seq_prefix_eq_append_of_eq_true
+    (pat xs suffix : List SmtValue)
+    (hPrefix : native_seq_prefix_eq pat xs = true) :
+    native_seq_prefix_eq pat (xs ++ suffix) = true := by
+  induction pat generalizing xs with
+  | nil =>
+      rfl
+  | cons p ps ih =>
+      cases xs with
+      | nil =>
+          simp [native_seq_prefix_eq] at hPrefix
+      | cons x xs =>
+          have hParts :
+              p = x ∧ native_seq_prefix_eq ps xs = true := by
+            simpa [native_seq_prefix_eq, native_veq] using hPrefix
+          rcases hParts with ⟨rfl, hTail⟩
+          simp [native_seq_prefix_eq, native_veq, ih xs hTail]
+
+theorem native_seq_prefix_eq_append_of_length_le
+    (pat xs suffix : List SmtValue)
+    (hLen : pat.length ≤ xs.length) :
+    native_seq_prefix_eq pat (xs ++ suffix) =
+      native_seq_prefix_eq pat xs := by
+  induction pat generalizing xs with
+  | nil =>
+      rfl
+  | cons p ps ih =>
+      cases xs with
+      | nil =>
+          simp at hLen
+      | cons x xs =>
+          have hTailLen : ps.length ≤ xs.length := by
+            simpa using hLen
+          simp [native_seq_prefix_eq, ih xs hTailLen]
+
+theorem native_seq_indexof_rec_append_of_nat_result
+    (suffix : List SmtValue) :
+    ∀ (xs pat : List SmtValue) (i fuel j : Nat),
+      native_seq_indexof_rec xs pat i fuel = Int.ofNat j ->
+        native_seq_indexof_rec (xs ++ suffix) pat i
+            (fuel + suffix.length) =
+          Int.ofNat j := by
+  intro xs pat i fuel
+  induction fuel generalizing xs i with
+  | zero =>
+      intro j h
+      simp [native_seq_indexof_rec] at h
+  | succ fuel ih =>
+      intro j h
+      rw [Nat.succ_add]
+      unfold native_seq_indexof_rec at h ⊢
+      by_cases hPrefix : native_seq_prefix_eq pat xs = true
+      · rw [if_pos hPrefix] at h
+        have hPrefixAppend :=
+          native_seq_prefix_eq_append_of_eq_true pat xs suffix hPrefix
+        rw [if_pos hPrefixAppend]
+        exact h
+      · rw [if_neg hPrefix] at h
+        cases xs with
+        | nil =>
+            simp at h
+        | cons x xs =>
+            have hPatLen : pat.length ≤ (x :: xs).length := by
+              rcases native_seq_indexof_rec_decomp xs pat (i + 1) fuel j h with
+                ⟨_hLe, before, after, hXs, _hBeforeLen⟩
+              have hLengths := congrArg List.length hXs
+              simp only [List.length_append] at hLengths
+              simp only [List.length_cons]
+              omega
+            have hPrefixAppend :
+                ¬ native_seq_prefix_eq pat ((x :: xs) ++ suffix) = true := by
+              rw [native_seq_prefix_eq_append_of_length_le
+                pat (x :: xs) suffix hPatLen]
+              exact hPrefix
+            rw [if_neg hPrefixAppend]
+            exact ih xs (i + 1) j h
+
+theorem native_seq_indexof_rec_append_of_nonneg
+    (xs pat suffix : List SmtValue) (i fuel : Nat)
+    (hNonneg : 0 ≤ native_seq_indexof_rec xs pat i fuel) :
+    native_seq_indexof_rec (xs ++ suffix) pat i
+        (fuel + suffix.length) =
+      native_seq_indexof_rec xs pat i fuel := by
+  cases hResult : native_seq_indexof_rec xs pat i fuel with
+  | ofNat j =>
+      exact native_seq_indexof_rec_append_of_nat_result suffix xs pat i fuel j
+        hResult
+  | negSucc j =>
+      rw [hResult] at hNonneg
+      simp at hNonneg
+
+theorem list_drop_append_of_le_length
+    (xs suffix : List SmtValue) :
+    ∀ n : Nat, n ≤ xs.length ->
+      (xs ++ suffix).drop n = xs.drop n ++ suffix
+  | 0, _h => by simp
+  | n + 1, h => by
+      cases xs with
+      | nil =>
+          simp at h
+      | cons x xs =>
+          simp only [List.cons_append, List.drop_succ_cons]
+          exact list_drop_append_of_le_length xs suffix n (by
+            simpa using h)
+
+theorem native_seq_indexof_append_of_nonneg
+    (xs pat suffix : List SmtValue) (i : native_Int)
+    (hNonneg : 0 ≤ native_seq_indexof xs pat i) :
+    native_seq_indexof (xs ++ suffix) pat i =
+      native_seq_indexof xs pat i := by
+  have hStartNonneg : ¬ i < 0 := by
+    intro hNeg
+    have hResult : native_seq_indexof xs pat i = -1 := by
+      simp [native_seq_indexof, hNeg]
+    rw [hResult] at hNonneg
+    simp at hNonneg
+  let start := Int.toNat i
+  have hBounds : start + pat.length ≤ xs.length := by
+    by_cases hBounds : start + pat.length ≤ xs.length
+    · exact hBounds
+    · have hResult : native_seq_indexof xs pat i = -1 := by
+        simp [native_seq_indexof, hStartNonneg, start, hBounds]
+      rw [hResult] at hNonneg
+      simp at hNonneg
+  have hStartLe : start ≤ xs.length := by omega
+  have hBoundsAppend : start + pat.length ≤ (xs ++ suffix).length := by
+    simp only [List.length_append]
+    omega
+  have hBoundsRaw : Int.toNat i + pat.length ≤ xs.length := by
+    simpa [start] using hBounds
+  have hBoundsAppendRaw :
+      Int.toNat i + pat.length ≤ (xs ++ suffix).length := by
+    simpa [start] using hBoundsAppend
+  let fuel := xs.length - (start + pat.length) + 1
+  have hFuel :
+      (xs ++ suffix).length - (start + pat.length) + 1 =
+        fuel + suffix.length := by
+    simp only [List.length_append]
+    dsimp [fuel]
+    omega
+  have hNonnegRec :
+      0 ≤ native_seq_indexof_rec (xs.drop start) pat start fuel := by
+    simpa [native_seq_indexof, hStartNonneg, start, fuel, hBoundsRaw]
+      using hNonneg
+  unfold native_seq_indexof
+  simp only [if_neg hStartNonneg]
+  rw [dif_pos hBoundsAppendRaw, dif_pos hBoundsRaw]
+  change native_seq_indexof_rec ((xs ++ suffix).drop start) pat start
+      ((xs ++ suffix).length - (start + pat.length) + 1) =
+    native_seq_indexof_rec (xs.drop start) pat start
+      (xs.length - (start + pat.length) + 1)
+  rw [list_drop_append_of_le_length xs suffix start hStartLe, hFuel]
+  change native_seq_indexof_rec (xs.drop start ++ suffix) pat start
+      (fuel + suffix.length) =
+    native_seq_indexof_rec (xs.drop start) pat start fuel
+  exact native_seq_indexof_rec_append_of_nonneg
+    (xs.drop start) pat suffix start fuel hNonnegRec

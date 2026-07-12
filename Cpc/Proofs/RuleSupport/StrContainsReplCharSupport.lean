@@ -422,6 +422,26 @@ theorem native_seq_contains_singleton_iff_mem
     simpa [List.append_assoc] using
       native_seq_contains_of_decomp before [w] after
 
+theorem native_seq_contains_append_of_pattern_length_one
+    (xs ys pat : List SmtValue) (hLen : pat.length = 1) :
+    native_seq_contains (xs ++ ys) pat =
+      SmtEval.native_or
+        (native_seq_contains xs pat) (native_seq_contains ys pat) := by
+  cases pat with
+  | nil =>
+      simp at hLen
+  | cons p ps =>
+      cases ps with
+      | nil =>
+          apply Bool.eq_iff_iff.mpr
+          rw [native_seq_contains_singleton_iff_mem]
+          simp only [SmtEval.native_or, Bool.or_eq_true]
+          rw [native_seq_contains_singleton_iff_mem,
+            native_seq_contains_singleton_iff_mem]
+          exact List.mem_append
+      | cons q qs =>
+          simp at hLen
+
 theorem native_seq_contains_nil (xs : List SmtValue) :
     native_seq_contains xs [] = true := by
   simpa using native_seq_contains_of_decomp [] [] xs
