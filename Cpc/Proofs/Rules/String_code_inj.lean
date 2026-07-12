@@ -238,7 +238,7 @@ private theorem native_pack_string_unpack_string_of_typeof_seq_char
     ss
   rw [hMap]
   rw [← native_pack_unpack_seq ss, hElem]
-  simp [native_unpack_pack_seq]
+  simp [_root_.native_unpack_pack_seq]
 
 private theorem native_str_to_code_inj_of_ne_neg_one
     {xs ys : native_String}
