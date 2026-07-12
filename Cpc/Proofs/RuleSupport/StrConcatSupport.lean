@@ -353,7 +353,7 @@ theorem smt_value_rel_str_concat_assoc_of_seq_eval
   rw [smtx_model_eval_str_concat_term_eq M y z]
   rw [hxEval, hyEval, hzEval]
   simp [__smtx_model_eval_str_concat, native_seq_concat,
-    native_unpack_pack_seq, elem_typeof_pack_seq, List.append_assoc,
+    Smtm.native_unpack_pack_seq, elem_typeof_pack_seq, List.append_assoc,
     RuleProofs.smtx_model_eval_eq_refl]
 
 theorem smt_value_rel_str_concat_list_nil_left_empty_eval
