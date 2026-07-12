@@ -25,14 +25,14 @@ def bvExtractNotTerm (x hi lo : Term) : Term :=
       (bvExtractNotLhs x hi lo))
     (bvExtractNotRhs x hi lo)
 
-private theorem eo_typeof_extract_arg_bitvec_of_ne_stuck
+theorem eo_typeof_extract_arg_bitvec_of_ne_stuck
     {A hi B lo C : Term}
     (h : __eo_typeof_extract A hi B lo C ≠ Term.Stuck) :
     ∃ w, C = Term.Apply (Term.UOp UserOp.BitVec) w := by
   unfold __eo_typeof_extract at h
   split at h <;> simp at h ⊢
 
-private theorem smt_bitvec_type_of_eo_bitvec_type_with_width
+theorem smt_bitvec_type_of_eo_bitvec_type_with_width
     (x w : Term) :
     RuleProofs.eo_has_smt_translation x ->
     __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) w ->
@@ -175,20 +175,20 @@ theorem bv_extract_context_of_non_stuck
     exact ⟨w, h, l, hXTy, rfl, rfl, hw0, hl0, hhw,
       hWidthNonneg, hXSmtTy⟩
 
-private theorem natpow2_eq (w : Nat) :
+theorem natpow2_eq (w : Nat) :
     native_int_pow2 (↑w : Int) = (2 : Int) ^ w := by
   have hwnn : ¬ ((↑w : Int) < 0) := by omega
   unfold native_int_pow2 native_zexp_total
   rw [if_neg hwnn, Int.toNat_natCast]
 
-private theorem ofInt_toNat_canonical (w : Nat) (p : Int)
+theorem ofInt_toNat_canonical (w : Nat) (p : Int)
     (hp0 : 0 ≤ p) (hp1 : p < (2 : Int) ^ w) :
     (BitVec.ofInt w p).toNat = p.toNat := by
   rw [BitVec.toNat_ofInt]
   congr 1
   exact Int.emod_eq_of_lt hp0 (by exact_mod_cast hp1)
 
-private theorem bitvec_ofInt_natCast_toNat {w : Nat} (x : BitVec w) :
+theorem bitvec_ofInt_natCast_toNat {w : Nat} (x : BitVec w) :
     BitVec.ofInt w (↑x.toNat : Int) = x := by
   rw [BitVec.ofInt_natCast, BitVec.ofNat_toNat]
   simp
@@ -277,7 +277,7 @@ private theorem extractLsb'_extractLsb'_general
   congr 1
   omega
 
-private theorem extract_val_bitvec_start_len
+theorem extract_val_bitvec_start_len
     (W L D : Nat) (p h l : Int)
     (hp0 : 0 ≤ p) (hp1 : p < (2 : Int) ^ W)
     (hl : l = ↑L) (hd : h + 1 + -l = ↑D) :
@@ -333,7 +333,7 @@ private theorem extract_not_val
   rw [hNotOf, hExtOf]
   exact congrArg BitVec.toNat (extractLsb'_not_of_le hFit)
 
-private theorem native_int_to_nat_roundtrip
+theorem native_int_to_nat_roundtrip
     (n : native_Int) (hn0 : native_zleq 0 n = true) :
     native_nat_to_int (native_int_to_nat n) = n := by
   have hn : (0 : Int) ≤ n := by
@@ -341,7 +341,7 @@ private theorem native_int_to_nat_roundtrip
   simpa [SmtEval.native_nat_to_int, SmtEval.native_int_to_nat,
     native_nat_to_int, native_int_to_nat] using Int.toNat_of_nonneg hn
 
-private theorem smt_typeof_extract_of_context
+theorem smt_typeof_extract_of_context
     (x : Term) (w h l : native_Int) :
     __smtx_typeof (__eo_to_smt x) = SmtType.BitVec (native_int_to_nat w) ->
     native_zleq 0 w = true ->
@@ -416,7 +416,7 @@ theorem typed_bv_extract_not_term (x hi lo : Term) :
   exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type _ _
     (hLhsTy.trans hRhsTy.symm) (by rw [hLhsTy]; simp)
 
-private theorem smt_eval_binary_of_smt_type_bitvec
+theorem smt_eval_binary_of_smt_type_bitvec
     (M : SmtModel) (hM : model_total_typed M) (t : SmtTerm) (w : native_Nat) :
     __smtx_typeof t = SmtType.BitVec w ->
     ∃ p, __smtx_model_eval M t = SmtValue.Binary (native_nat_to_int w) p ∧
@@ -438,7 +438,7 @@ private theorem smt_eval_binary_of_smt_type_bitvec
     bitvec_payload_canonical (by simpa [hEval] using hValTy)
   exact ⟨p, hEval, hCan⟩
 
-private theorem eval_extract_term
+theorem eval_extract_term
     (M : SmtModel) (x : Term) (h l : native_Int) :
     __smtx_model_eval M
         (__eo_to_smt (bvExtractTerm x (Term.Numeral h) (Term.Numeral l))) =
@@ -661,7 +661,7 @@ private theorem bv_extract_extract_prem_numeric
         __smtx_model_eval_plus, native_veq, SmtEval.native_zplus] at hEval
       exact hEval
 
-private theorem nonneg_int_eq_of_toNat_eq
+theorem nonneg_int_eq_of_toNat_eq
     (a b : native_Int) :
     native_zleq 0 a = true ->
     native_zleq 0 b = true ->
@@ -939,7 +939,7 @@ def bvExtractExtractProgram
     (x i j k l ll kk : Term) (pLl pKk : Proof) : Term :=
   __eo_prog_bv_extract_extract x i j k l ll kk pLl pKk
 
-private theorem bv_extract_support_requires_guard
+theorem bv_extract_support_requires_guard
     {guard body : Term} :
     __eo_requires guard (Term.Boolean true) body ≠ Term.Stuck ->
     guard = Term.Boolean true := by
@@ -951,7 +951,7 @@ private theorem bv_extract_support_requires_guard
       simp [__eo_requires, native_teq, native_ite, hGuard]
     exact False.elim (hReq hStuck)
 
-private theorem bv_extract_support_and_true {a b : Term} :
+theorem bv_extract_support_and_true {a b : Term} :
     __eo_and a b = Term.Boolean true ->
     a = Term.Boolean true ∧ b = Term.Boolean true := by
   intro h
@@ -963,7 +963,7 @@ private theorem bv_extract_support_and_true {a b : Term} :
   case Boolean.Boolean b1 b2 =>
     cases b1 <;> cases b2 <;> simp at h ⊢
 
-private theorem bv_extract_support_eq_true {a b : Term} :
+theorem bv_extract_support_eq_true {a b : Term} :
     __eo_eq a b = Term.Boolean true -> a = b := by
   intro h
   by_cases ha : a = Term.Stuck
