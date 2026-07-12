@@ -280,6 +280,7 @@ theorem native_seq_indexof_zero_decomp_take_drop
   unfold native_seq_indexof at hIdx
   by_cases hBounds : pat.length ≤ xs.length
   · simp [hBounds] at hIdx
+
     rcases native_seq_indexof_rec_decomp xs pat 0
         (xs.length - pat.length + 1) j hIdx with
       ⟨_hLe, before, after, hXs, hBeforeLen⟩
@@ -289,6 +290,30 @@ theorem native_seq_indexof_zero_decomp_take_drop
     rw [hXs, ← hBeforeLen']
     simp
   · simp [hBounds] at hIdx
+
+theorem native_seq_replace_length_eq_of_same_len
+    (xs pat repl : List SmtValue)
+    (hLen : pat.length = repl.length) :
+    (native_seq_replace xs pat repl).length = xs.length := by
+  cases pat with
+  | nil =>
+      have hReplNil : repl = [] := by
+        cases repl with
+        | nil => rfl
+        | cons _ _ => simp at hLen
+      subst repl
+      simp [native_seq_replace]
+  | cons p ps =>
+      by_cases hNeg : native_seq_indexof xs (p :: ps) 0 < 0
+      · simp [native_seq_replace, hNeg]
+      · have hNonneg : 0 ≤ native_seq_indexof xs (p :: ps) 0 :=
+          int_nonneg_of_not_neg hNeg
+        have hDecomp :=
+          native_seq_indexof_zero_decomp_take_drop xs (p :: ps) hNonneg
+        have hLenDecomp := congrArg List.length hDecomp
+        simp [List.length_append] at hLenDecomp
+        simp [native_seq_replace, hNeg, List.length_append, ← hLen]
+        omega
 
 theorem native_seq_replace_self (xs repl : List SmtValue) :
     native_seq_replace xs xs repl = repl := by

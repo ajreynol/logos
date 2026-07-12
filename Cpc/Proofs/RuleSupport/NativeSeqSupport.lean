@@ -151,6 +151,77 @@ theorem native_seq_extract_zero_nat
         min n xs.length
     rw [hminToNat, hminNat]
 
+theorem native_seq_extract_empty_of_len_nonpos
+    (xs : List SmtValue) (i n : native_Int) (h : n ≤ 0) :
+    native_seq_extract xs i n = [] := by
+  unfold native_seq_extract
+  rw [if_pos (by
+    simp only [Bool.or_eq_true, decide_eq_true_eq]
+    exact Or.inl (Or.inr h))]
+
+theorem native_seq_extract_eq_drop_take
+    (xs : List SmtValue) (i n : native_Int)
+    (hi : 0 ≤ i) (hn : 0 < n) :
+    native_seq_extract xs i n =
+      (xs.drop (Int.toNat i)).take (Int.toNat n) := by
+  unfold native_seq_extract
+  by_cases hOob : Int.ofNat xs.length ≤ i
+  · rw [if_pos (by
+      simp only [Bool.or_eq_true, decide_eq_true_eq]
+      exact Or.inr hOob)]
+    have hDrop : xs.drop (Int.toNat i) = [] := by
+      apply List.drop_eq_nil_of_le
+      apply Int.ofNat_le.mp
+      rw [Int.toNat_of_nonneg hi]
+      exact hOob
+    rw [hDrop]
+    simp
+  · have hiLt : i < Int.ofNat xs.length := Int.lt_of_not_ge hOob
+    rw [if_neg (by
+      intro hGuard
+      simp only [Bool.or_eq_true, decide_eq_true_eq] at hGuard
+      rcases hGuard with (hneg | hnLe) | hLenLe
+      · exact (Int.not_lt_of_ge hi hneg)
+      · exact (Int.not_le_of_gt hn hnLe)
+      · exact (Int.not_le_of_gt hiLt hLenLe))]
+    by_cases hnLe : n ≤ Int.ofNat xs.length - i
+    · rw [Int.min_eq_left hnLe]
+    · have hRemLt : Int.ofNat xs.length - i < n :=
+        Int.lt_of_not_ge hnLe
+      rw [Int.min_eq_right (Int.le_of_lt hRemLt)]
+      apply List.take_eq_take_iff.mpr
+      have hiNat : Int.toNat i ≤ xs.length := by
+        apply Int.ofNat_le.mp
+        rw [Int.toNat_of_nonneg hi]
+        exact Int.le_of_lt hiLt
+      have hDropLen : (xs.drop (Int.toNat i)).length =
+          xs.length - Int.toNat i := List.length_drop
+      have hRemCast :
+          Int.toNat (Int.ofNat xs.length - i) =
+            xs.length - Int.toNat i := by
+        rw [← Int.toNat_of_nonneg hi]
+        exact Int.toNat_sub xs.length (Int.toNat i)
+      rw [hDropLen, hRemCast]
+      have hRemNatLe : xs.length - Int.toNat i ≤ Int.toNat n := by
+        apply Int.ofNat_le.mp
+        rw [← hRemCast, Int.toNat_of_nonneg
+          (Int.sub_nonneg.mpr (Int.le_of_lt hiLt)),
+          Int.toNat_of_nonneg (Int.le_of_lt hn)]
+        exact Int.le_of_lt hRemLt
+      simp [hRemNatLe]
+
+theorem native_seq_extract_zero_eq_take
+    (xs : List SmtValue) (n : native_Int) (hn : 0 ≤ n) :
+    native_seq_extract xs 0 n = xs.take (Int.toNat n) := by
+  by_cases hZero : n = 0
+  · subst n
+    simp [native_seq_extract]
+  · have hPos : 0 < n := Int.lt_of_not_ge (by
+      intro hLe
+      exact hZero (Int.le_antisymm hLe hn))
+    simpa using
+      native_seq_extract_eq_drop_take xs 0 n (by decide) hPos
+
 theorem native_seq_extract_to_end_nat
     (xs : List SmtValue) (i : Nat) (hle : i <= xs.length) :
     native_seq_extract xs (Int.ofNat i) (Int.ofNat (xs.length - i)) =

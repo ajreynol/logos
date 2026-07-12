@@ -191,6 +191,136 @@ theorem native_seq_contains_replacement_of_pattern_present
           (Int.toNat (native_seq_indexof source (p :: ps) 0) +
             (p :: ps).length))
 
+theorem native_seq_contains_pattern_replacement_of_replaced_source
+    (source pattern replacement : List SmtValue)
+    (hPattern : native_seq_contains source pattern = true)
+    (hReplaced :
+      native_seq_contains source
+          (native_seq_replace source pattern replacement) = true) :
+    native_seq_contains pattern replacement = true := by
+  cases pattern with
+  | nil =>
+      rcases (native_seq_contains_iff_decomp source
+          (native_seq_replace source [] replacement)).1 hReplaced with
+        ⟨outerPrefix, outerSuffix, hSource⟩
+      have hLen := congrArg List.length hSource
+      have hReplacementLen : replacement.length = 0 := by
+        simp [native_seq_replace, List.length_append] at hLen
+        omega
+      have hReplacementNil : replacement = [] :=
+        List.eq_nil_of_length_eq_zero hReplacementLen
+      subst replacement
+      exact native_seq_contains_of_decomp [] [] []
+  | cons p ps =>
+      have hIndexNonneg :
+          0 ≤ native_seq_indexof source (p :: ps) 0 := by
+        unfold native_seq_contains at hPattern
+        exact of_decide_eq_true hPattern
+      have hIndexNotNeg :
+          ¬ native_seq_indexof source (p :: ps) 0 < 0 :=
+        Int.not_lt_of_ge hIndexNonneg
+      let k := Int.toNat (native_seq_indexof source (p :: ps) 0)
+      let before := source.take k
+      let after := source.drop (k + (p :: ps).length)
+      have hSourceFirst : before ++ (p :: ps) ++ after = source := by
+        simpa [before, after, k] using
+          StrEqReplSupport.native_seq_indexof_zero_decomp_take_drop
+            source (p :: ps) hIndexNonneg
+      have hReplaceEq :
+          native_seq_replace source (p :: ps) replacement =
+            before ++ replacement ++ after := by
+        simp [native_seq_replace, hIndexNotNeg, before, after, k]
+      rcases (native_seq_contains_iff_decomp source
+          (native_seq_replace source (p :: ps) replacement)).1
+          hReplaced with
+        ⟨outerBefore, outerAfter, hSourceReplaced⟩
+      rw [hReplaceEq] at hSourceReplaced
+      have hWords :
+          before ++ (p :: ps) ++ after =
+            outerBefore ++ (before ++ replacement ++ after) ++ outerAfter :=
+        by exact hSourceFirst.trans hSourceReplaced
+      have hLen := congrArg List.length hWords
+      simp only [List.length_append] at hLen
+      have hReplacementBound :
+          outerBefore.length + replacement.length + outerAfter.length =
+            (p :: ps).length := by
+        omega
+      let innerPrefix := (outerBefore ++ before).drop before.length
+      have hBeforeLe :
+          before.length ≤ (outerBefore ++ before).length := by
+        simp
+      have hInnerPrefixLen :
+          innerPrefix.length = outerBefore.length := by
+        simp [innerPrefix, List.length_drop]
+      have hWordsAssoc :
+          before ++ ((p :: ps) ++ after) =
+            (outerBefore ++ before) ++
+              (replacement ++ after ++ outerAfter) := by
+        simpa [List.append_assoc] using hWords
+      have hDropped :
+          (p :: ps) ++ after =
+            (innerPrefix ++ replacement) ++ (after ++ outerAfter) := by
+        calc
+          (p :: ps) ++ after =
+              (before ++ ((p :: ps) ++ after)).drop before.length := by
+                simp
+          _ = ((outerBefore ++ before) ++
+                (replacement ++ after ++ outerAfter)).drop before.length := by
+                rw [hWordsAssoc]
+          _ = (outerBefore ++ before).drop before.length ++
+                (replacement ++ after ++ outerAfter) := by
+                rw [List.drop_append_of_le_length hBeforeLe]
+          _ = (innerPrefix ++ replacement) ++ (after ++ outerAfter) := by
+                simp [innerPrefix, List.append_assoc]
+      have hPrefixReplacementLe :
+          (innerPrefix ++ replacement).length ≤ (p :: ps).length := by
+        simp only [List.length_append, hInnerPrefixLen]
+        omega
+      have hTaken := congrArg (List.take (p :: ps).length) hDropped
+      have hPatternDecomp :
+          p :: ps = innerPrefix ++ replacement ++
+            (after ++ outerAfter).take
+              ((p :: ps).length - (innerPrefix ++ replacement).length) := by
+        calc
+          p :: ps = ((p :: ps) ++ after).take (p :: ps).length := by
+            simp
+          _ = ((innerPrefix ++ replacement) ++ (after ++ outerAfter)).take
+                (p :: ps).length := hTaken
+          _ = innerPrefix ++ replacement ++
+                (after ++ outerAfter).take
+                  ((p :: ps).length -
+                    (innerPrefix ++ replacement).length) := by
+            rw [List.take_append,
+              List.take_of_length_le hPrefixReplacementLe]
+      exact (native_seq_contains_iff_decomp (p :: ps) replacement).2
+        ⟨innerPrefix,
+          (after ++ outerAfter).take
+            ((p :: ps).length - (innerPrefix ++ replacement).length),
+          hPatternDecomp⟩
+
+theorem native_seq_replace_dual_ite2_of_contains_true
+    (source pattern replacement outerReplacement : List SmtValue)
+    (hPatternReplacementAbsent :
+      native_seq_contains pattern replacement = false)
+    (hPatternPresent : native_seq_contains source pattern = true) :
+    native_seq_replace source
+        (native_seq_replace source pattern replacement) outerReplacement =
+      source := by
+  have hInnerAbsent :
+      native_seq_contains source
+          (native_seq_replace source pattern replacement) = false := by
+    cases hInner : native_seq_contains source
+        (native_seq_replace source pattern replacement)
+    · rfl
+    · have hPatternReplacement :=
+        native_seq_contains_pattern_replacement_of_replaced_source
+          source pattern replacement hPatternPresent hInner
+      rw [hPatternReplacement] at hPatternReplacementAbsent
+      contradiction
+  exact StrEqReplSupport.native_seq_replace_eq_self_of_contains_false
+    source (native_seq_replace source pattern replacement) outerReplacement
+    hInnerAbsent
+
 theorem native_seq_length_le_of_contains
     (source pattern : List SmtValue)
     (hContains : native_seq_contains source pattern = true) :
@@ -445,6 +575,147 @@ theorem native_seq_contains_append_of_pattern_length_one
 theorem native_seq_contains_nil (xs : List SmtValue) :
     native_seq_contains xs [] = true := by
   simpa using native_seq_contains_of_decomp [] [] xs
+
+/-! ### One-character replacement commutes with taking a prefix -/
+
+theorem native_seq_replace_take_of_length_one
+    (xs pat repl : List SmtValue) (n : Nat)
+    (hPatLen : pat.length = 1) (hReplLen : repl.length = 1) :
+    (native_seq_replace xs pat repl).take n =
+      native_seq_replace (xs.take n) pat repl := by
+  by_cases hContains : native_seq_contains xs pat = true
+  · have hIdxNonneg : 0 ≤ native_seq_indexof xs pat 0 := by
+      simpa [native_seq_contains] using hContains
+    let idx := native_seq_indexof xs pat 0
+    let k := Int.toNat idx
+    have hBounds : k + pat.length ≤ xs.length := by
+      exact StrEqReplSupport.native_seq_indexof_zero_bounds_of_nonneg
+        xs pat hIdxNonneg
+    have hkLe : k ≤ xs.length := by omega
+    by_cases hnLe : n ≤ k
+    · have hPrefixContainsFalse :
+          native_seq_contains (xs.take n) pat = false := by
+        cases hPrefixContains : native_seq_contains (xs.take n) pat
+        · rfl
+        · have hPrefixIdxNonneg :
+              0 ≤ native_seq_indexof (xs.take n) pat 0 := by
+            simpa [native_seq_contains] using hPrefixContains
+          have hIndexAppend := native_seq_indexof_append_of_nonneg
+            (xs.take n) pat (xs.drop n) 0 hPrefixIdxNonneg
+          rw [List.take_append_drop] at hIndexAppend
+          have hPrefixBounds :=
+            StrEqReplSupport.native_seq_indexof_zero_bounds_of_nonneg
+              (xs.take n) pat hPrefixIdxNonneg
+          have hTakeLen : (xs.take n).length ≤ n := List.length_take_le _ _
+          have hIndexEq :
+              Int.toNat (native_seq_indexof (xs.take n) pat 0) = k := by
+            rw [← hIndexAppend]
+          rw [hIndexEq, hPatLen] at hPrefixBounds
+          omega
+      rw [StrEqReplSupport.native_seq_replace_of_indexof_nonneg
+        xs pat repl hIdxNonneg]
+      rw [StrEqReplSupport.native_seq_replace_eq_self_of_contains_false
+        (xs.take n) pat repl hPrefixContainsFalse]
+      rw [show Int.toNat (native_seq_indexof xs pat 0) = k from rfl]
+      simp [List.take_append, List.length_take, Nat.min_eq_left hkLe,
+        Nat.min_eq_left hnLe, hnLe]
+      rw [List.take_take, Nat.min_eq_left hnLe]
+    · have hkLt : k < n := Nat.lt_of_not_ge hnLe
+      have hPrefixContains : native_seq_contains (xs.take n) pat = true := by
+        have hDecomp :=
+          StrEqReplSupport.native_seq_indexof_zero_decomp_take_drop
+            xs pat hIdxNonneg
+        change xs.take k ++ pat ++ xs.drop (k + pat.length) = xs at hDecomp
+        apply (native_seq_contains_iff_decomp (xs.take n) pat).2
+        refine ⟨xs.take k,
+          (xs.drop (k + pat.length)).take (n - (k + pat.length)), ?_⟩
+        have hTaken := congrArg (List.take n) hDecomp
+        rw [List.take_append] at hTaken
+        have hTakeKPat : (xs.take k ++ pat).take n = xs.take k ++ pat := by
+          apply List.take_of_length_le
+          simp [List.length_take, Nat.min_eq_left hkLe, hPatLen]
+          omega
+        rw [hTakeKPat] at hTaken
+        have hTakeKPatLen : (xs.take k ++ pat).length = k + pat.length := by
+          simp [List.length_take, Nat.min_eq_left hkLe]
+        rw [hTakeKPatLen] at hTaken
+        exact hTaken.symm
+      have hPrefixIdxNonneg :
+          0 ≤ native_seq_indexof (xs.take n) pat 0 := by
+        simpa [native_seq_contains] using hPrefixContains
+      have hIndexAppend := native_seq_indexof_append_of_nonneg
+        (xs.take n) pat (xs.drop n) 0 hPrefixIdxNonneg
+      rw [List.take_append_drop] at hIndexAppend
+      have hIndexEq :
+          native_seq_indexof (xs.take n) pat 0 = idx := by
+        exact hIndexAppend.symm
+      rw [StrEqReplSupport.native_seq_replace_of_indexof_nonneg
+        xs pat repl hIdxNonneg]
+      rw [StrEqReplSupport.native_seq_replace_of_indexof_nonneg
+        (xs.take n) pat repl hPrefixIdxNonneg]
+      rw [hIndexEq]
+      change
+        (xs.take k ++ repl ++ xs.drop (k + pat.length)).take n =
+          (xs.take n).take k ++ repl ++ (xs.take n).drop (k + pat.length)
+      rw [List.take_append]
+      have hTakeKRepl :
+          (xs.take k ++ repl).take n = xs.take k ++ repl := by
+        apply List.take_of_length_le
+        simp [List.length_take, Nat.min_eq_left hkLe, hReplLen]
+        omega
+      rw [hTakeKRepl]
+      have hTakeKReplLen :
+          (xs.take k ++ repl).length = k + repl.length := by
+        simp [List.length_take, Nat.min_eq_left hkLe]
+      rw [hTakeKReplLen]
+      rw [List.take_take, Nat.min_eq_left (Nat.le_of_lt hkLt)]
+      rw [List.drop_take]
+      simp [List.append_assoc, hPatLen, hReplLen]
+  · have hContainsFalse : native_seq_contains xs pat = false := by
+      cases h : native_seq_contains xs pat
+      · rfl
+      · exact False.elim (hContains h)
+    have hPrefixContainsFalse :
+        native_seq_contains (xs.take n) pat = false := by
+      cases hPrefix : native_seq_contains (xs.take n) pat
+      · rfl
+      · rcases (native_seq_contains_iff_decomp (xs.take n) pat).1 hPrefix with
+          ⟨before, after, hTake⟩
+        have hXs : xs = before ++ pat ++ (after ++ xs.drop n) := by
+          calc
+            xs = xs.take n ++ xs.drop n := (List.take_append_drop n xs).symm
+            _ = before ++ pat ++ (after ++ xs.drop n) := by
+              rw [hTake]
+              simp [List.append_assoc]
+        have hWhole : native_seq_contains xs pat = true := by
+          rw [hXs]
+          exact native_seq_contains_of_decomp before pat (after ++ xs.drop n)
+        rw [hWhole] at hContainsFalse
+        contradiction
+    rw [StrEqReplSupport.native_seq_replace_eq_self_of_contains_false
+      xs pat repl hContainsFalse]
+    rw [StrEqReplSupport.native_seq_replace_eq_self_of_contains_false
+      (xs.take n) pat repl hPrefixContainsFalse]
+
+theorem native_seq_extract_replace_of_length_one
+    (xs pat repl : List SmtValue) (n : native_Int)
+    (hPatLen : pat.length = 1) (hReplLen : repl.length = 1) :
+    native_seq_extract (native_seq_replace xs pat repl) 0 n =
+      native_seq_replace (native_seq_extract xs 0 n) pat repl := by
+  by_cases hn : 0 ≤ n
+  · rw [native_seq_extract_zero_eq_take _ n hn,
+      native_seq_extract_zero_eq_take _ n hn]
+    exact native_seq_replace_take_of_length_one xs pat repl (Int.toNat n)
+      hPatLen hReplLen
+  · have hNeg : n < 0 := Int.lt_of_not_ge hn
+    have hPatNe : pat ≠ [] := by
+      intro hPatNil
+      rw [hPatNil] at hPatLen
+      simp at hPatLen
+    rw [native_seq_extract_empty_of_len_nonpos _ 0 n (Int.le_of_lt hNeg),
+      native_seq_extract_empty_of_len_nonpos _ 0 n (Int.le_of_lt hNeg),
+      StrEqReplSupport.native_seq_replace_empty_src]
+    simp [hPatNe]
 
 theorem native_seq_replace_eq_self_of_contains_false
     (xs pat repl : List SmtValue)
