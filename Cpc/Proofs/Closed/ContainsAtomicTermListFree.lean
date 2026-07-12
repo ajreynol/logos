@@ -1609,10 +1609,18 @@ theorem smtx_model_eval_apply_term_eq_of_eval_eq
   __smtx_model_eval M (SmtTerm.Apply f x) =
     __smtx_model_eval N (SmtTerm.Apply f x) :=
 by
-  cases f <;>
-    simp [__smtx_model_eval, hf, hx,
-      smtx_model_eval_apply_eq_of_globals hGlobals,
-      smtx_model_eval_dt_sel_eq_of_globals hGlobals]
+  by_cases hSel : ∃ s d i j, f = SmtTerm.DtSel s d i j
+  · rcases hSel with ⟨s, d, i, j, rfl⟩
+    simp [__smtx_model_eval, hx, smtx_model_eval_dt_sel_eq_of_globals hGlobals]
+  · by_cases hTester : ∃ s d i, f = SmtTerm.DtTester s d i
+    · rcases hTester with ⟨s, d, i, rfl⟩
+      simp [__smtx_model_eval, hx]
+    · have hSel' : ∀ s d i j, f ≠ SmtTerm.DtSel s d i j := fun s d i j h => hSel ⟨s, d, i, j, h⟩
+      have hTester' : ∀ s d i, f ≠ SmtTerm.DtTester s d i := fun s d i h => hTester ⟨s, d, i, h⟩
+      have hGen := generic_apply_eval_of_non_datatype_head (x := x) hSel' hTester'
+      unfold generic_apply_eval at hGen
+      rw [hGen M, hGen N, hf, hx]
+      exact smtx_model_eval_apply_eq_of_globals hGlobals _ _
 
 theorem smtx_model_eval_eo_to_smt_updater_rec_eq_of_eval_eq
     {M N : SmtModel} (hGlobals : model_agrees_on_globals M N)

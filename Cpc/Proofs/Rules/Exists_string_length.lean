@@ -220,8 +220,14 @@ private theorem seq_elem_native_inhabited_of_seq_wf {A : SmtType} :
   intro h
   have hParts : native_inhabited_type A = true ∧
       __smtx_type_wf_rec A A = true := by
-    simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
-      native_and] using h
+    have hAll :
+        ((native_inhabited_type A = true ∧
+            __smtx_type_wf_rec A A = true) ∧
+          __smtx_type_no_alias_rec native_reflist_nil A = true) ∧
+          __smtx_type_no_alias_rec native_reflist_nil (SmtType.Seq A) = true := by
+      simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+        native_and] using h
+    exact hAll.1.1
   exact hParts.1
 
 private theorem list_typed_replicate_type_default
@@ -321,11 +327,10 @@ private theorem eslFormula_has_bool_type
     eslSmtBody_type A k hSeqWF
   have hChoiceTy :
       __smtx_typeof
-        (SmtTerm.choice_nth (native_string_lit "@x") (SmtType.Seq A)
-          (eslSmtBody A k) native_nat_zero) = SmtType.Seq A := by
-    rw [smtx_typeof_choice_nth_term_eq]
-    simp [__smtx_typeof_choice_nth, hBodyTy, __smtx_typeof_guard_wf,
-      hSeqWF, native_Teq, native_ite]
+        (SmtTerm.choice (native_string_lit "@x") (SmtType.Seq A)
+          (eslSmtBody A k)) = SmtType.Seq A := by
+    rw [__smtx_typeof.eq_def]
+    simp [hBodyTy, __smtx_typeof_guard_wf, hSeqWF, native_Teq, native_ite]
   let wit : Term :=
     Term.UOp3 UserOp3._at_witness_string_length
       (Term.Apply (Term.UOp UserOp.Seq) U) (Term.Numeral k) id
@@ -334,12 +339,12 @@ private theorem eslFormula_has_bool_type
       __smtx_typeof
         (native_ite (__eo_to_smt_nat_is_valid (Term.Numeral k))
           (native_ite (__eo_to_smt_nat_is_valid id)
-            (SmtTerm.choice_nth (native_string_lit "@x")
+            (SmtTerm.choice (native_string_lit "@x")
               (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U))
               (SmtTerm.eq
                 (SmtTerm.str_len (SmtTerm.Var (native_string_lit "@x")
                   (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U))))
-                (SmtTerm.Numeral k)) native_nat_zero)
+                (SmtTerm.Numeral k)))
             SmtTerm.None)
           SmtTerm.None) = SmtType.Seq A
     simpa [hKValid, hIdValid, hSeqTy, native_ite, eslSmtBody] using hChoiceTy
@@ -442,20 +447,20 @@ private theorem eslFormula_true
               (__eo_to_smt_nat_is_valid (Term.Numeral k))
               (native_ite
                 (__eo_to_smt_nat_is_valid id)
-                (SmtTerm.choice_nth (native_string_lit "@x")
+                (SmtTerm.choice (native_string_lit "@x")
                   (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U))
                   (SmtTerm.eq
                     (SmtTerm.str_len
                       (SmtTerm.Var (native_string_lit "@x")
                         (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U))))
-                    (SmtTerm.Numeral k)) native_nat_zero)
+                    (SmtTerm.Numeral k)))
                 SmtTerm.None)
               SmtTerm.None))
           (SmtTerm.Numeral k)) = SmtValue.Boolean true
     rw [smtx_eval_eq_term_eq, smtx_eval_str_len_term_eq,
       __smtx_model_eval.eq_2]
     simp [hKValid, hIdValid, hSeqTy, native_ite,
-      smtx_model_eval_choice_nth_eq_aux, nativeEvalTChoiceNthAux,
+      smtx_model_eval_choice_eq,
       hChoiceLen', __smtx_model_eval_eq, native_veq]
   exact RuleProofs.eo_interprets_of_bool_eval M _ true hBool hEval
 

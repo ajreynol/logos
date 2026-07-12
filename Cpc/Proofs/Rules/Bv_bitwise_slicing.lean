@@ -413,7 +413,8 @@ private theorem requires_tt (X : Term) :
     Bool.not_false, decide_false]
 
 -- Shared: the slice `typeof` reduces to a `BitVec` of the slice width.
-private theorem typeof_extract_slice (W : Nat) (cn : Int) (hi lo : Nat) (hhiW : hi < W) :
+private theorem typeof_extract_slice (W : Nat) (cn : Int) (hi lo : Nat)
+    (hhiW : hi < W) (hlo : lo ≤ hi + 1) :
     __eo_typeof (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑hi)
       (Term.Numeral ↑lo)) (Term.Binary ↑W cn))
       = Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral (↑hi - ↑lo + 1)) := by
@@ -425,6 +426,19 @@ private theorem typeof_extract_slice (W : Nat) (cn : Int) (hi lo : Nat) (hhiW : 
     show Term.Boolean (native_zlt (↑hi) (↑W)) = Term.Boolean true
     congr 1; show native_zlt (↑hi) (↑W) = true
     unfold native_zlt; exact decide_eq_true (by exact_mod_cast hhiW)
+  have hg3 :
+      __eo_gt
+          (__eo_add (__eo_add (Term.Numeral ↑hi) (__eo_neg (Term.Numeral ↑lo)))
+            (Term.Numeral 1))
+          (Term.Numeral (-1)) =
+        Term.Boolean true := by
+    show Term.Boolean
+        (native_zlt (-1) (native_zplus (native_zplus ↑hi (native_zneg ↑lo)) 1)) =
+      Term.Boolean true
+    rw [show native_zlt (-1)
+          (native_zplus (native_zplus ↑hi (native_zneg ↑lo)) 1) = true from by
+      unfold native_zlt
+      exact decide_eq_true (show ((-1) : Int) < ↑hi - ↑lo + 1 by omega)]
   rw [show __eo_typeof (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑hi)
           (Term.Numeral ↑lo)) (Term.Binary ↑W cn))
         = __eo_typeof_extract (__eo_typeof (Term.Numeral ↑hi)) (Term.Numeral ↑hi)
@@ -438,9 +452,14 @@ private theorem typeof_extract_slice (W : Nat) (cn : Int) (hi lo : Nat) (hhiW : 
       (__eo_requires (__eo_gt (Term.Numeral ↑lo) (Term.Numeral (-1)))
         (Term.Boolean true)
         (__eo_requires (__eo_gt (Term.Numeral ↑W) (Term.Numeral ↑hi)) (Term.Boolean true)
-          (__eo_add (__eo_add (Term.Numeral ↑hi) (__eo_neg (Term.Numeral ↑lo)))
-            (Term.Numeral 1)))) = _
-  rw [hg1, hg2, requires_tt, requires_tt]
+          (__eo_requires
+            (__eo_gt
+              (__eo_add (__eo_add (Term.Numeral ↑hi) (__eo_neg (Term.Numeral ↑lo)))
+                (Term.Numeral 1))
+              (Term.Numeral (-1))) (Term.Boolean true)
+            (__eo_add (__eo_add (Term.Numeral ↑hi) (__eo_neg (Term.Numeral ↑lo)))
+              (Term.Numeral 1))))) = _
+  rw [hg1, hg2, hg3, requires_tt, requires_tt, requires_tt]
   show (Term.UOp UserOp.BitVec).Apply
       (Term.Numeral (native_zplus (native_zplus ↑hi (native_zneg ↑lo)) 1)) = _
   congr 2
@@ -476,6 +495,19 @@ private theorem nil_term_bvand (W : Nat) (cn : Int) (hi lo : Nat)
     show Term.Boolean (native_zlt (↑hi) (↑W)) = Term.Boolean true
     congr 1; show native_zlt (↑hi) (↑W) = true
     unfold native_zlt; exact decide_eq_true (by exact_mod_cast hhiW)
+  have hg3 :
+      __eo_gt
+          (__eo_add (__eo_add (Term.Numeral ↑hi) (__eo_neg (Term.Numeral ↑lo)))
+            (Term.Numeral 1))
+          (Term.Numeral (-1)) =
+        Term.Boolean true := by
+    show Term.Boolean
+        (native_zlt (-1) (native_zplus (native_zplus ↑hi (native_zneg ↑lo)) 1)) =
+      Term.Boolean true
+    rw [show native_zlt (-1)
+          (native_zplus (native_zplus ↑hi (native_zneg ↑lo)) 1) = true from by
+      unfold native_zlt
+      exact decide_eq_true (show ((-1) : Int) < ↑hi - ↑lo + 1 by omega)]
   have htype : __eo_typeof (Term.Apply (Term.UOp2 UserOp2.extract (Term.Numeral ↑hi)
         (Term.Numeral ↑lo)) (Term.Binary ↑W cn))
       = Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral (↑hi - ↑lo + 1)) := by
@@ -492,9 +524,14 @@ private theorem nil_term_bvand (W : Nat) (cn : Int) (hi lo : Nat)
         (__eo_requires (__eo_gt (Term.Numeral ↑lo) (Term.Numeral (-1)))
           (Term.Boolean true)
           (__eo_requires (__eo_gt (Term.Numeral ↑W) (Term.Numeral ↑hi)) (Term.Boolean true)
-            (__eo_add (__eo_add (Term.Numeral ↑hi) (__eo_neg (Term.Numeral ↑lo)))
-              (Term.Numeral 1)))) = _
-    rw [hg1, hg2, requires_tt, requires_tt]
+            (__eo_requires
+              (__eo_gt
+                (__eo_add (__eo_add (Term.Numeral ↑hi) (__eo_neg (Term.Numeral ↑lo)))
+                  (Term.Numeral 1))
+                (Term.Numeral (-1))) (Term.Boolean true)
+              (__eo_add (__eo_add (Term.Numeral ↑hi) (__eo_neg (Term.Numeral ↑lo)))
+                (Term.Numeral 1))))) = _
+    rw [hg1, hg2, hg3, requires_tt, requires_tt, requires_tt]
     show (Term.UOp UserOp.BitVec).Apply
         (Term.Numeral (native_zplus (native_zplus ↑hi (native_zneg ↑lo)) 1)) = _
     congr 2
@@ -536,7 +573,7 @@ private theorem nil_term_bvor (W : Nat) (cn : Int) (hi lo : Nat)
           (Term.Numeral ↑lo)) (Term.Binary ↑W cn)))
       = Term.Binary ↑(hi + 1 - lo) 0 := by
   have hMeq : (↑hi - ↑lo + 1 : Int) = ↑(hi + 1 - lo) := by omega
-  rw [typeof_extract_slice W cn hi lo hhiW]
+  rw [typeof_extract_slice W cn hi lo hhiW hlo]
   show __eo_to_bin (Term.Numeral (↑hi - ↑lo + 1)) (Term.Numeral 0) = _
   rw [to_bin_zero _ (by omega) (by rw [hMeq]; exact hMle), hMeq]
 
@@ -548,7 +585,7 @@ private theorem nil_term_bvxor (W : Nat) (cn : Int) (hi lo : Nat)
           (Term.Numeral ↑lo)) (Term.Binary ↑W cn)))
       = Term.Binary ↑(hi + 1 - lo) 0 := by
   have hMeq : (↑hi - ↑lo + 1 : Int) = ↑(hi + 1 - lo) := by omega
-  rw [typeof_extract_slice W cn hi lo hhiW]
+  rw [typeof_extract_slice W cn hi lo hhiW hlo]
   show __eo_to_bin (Term.Numeral (↑hi - ↑lo + 1)) (Term.Numeral 0) = _
   rw [to_bin_zero _ (by omega) (by rw [hMeq]; exact hMle), hMeq]
 
@@ -581,7 +618,7 @@ private theorem nil_bound_bvand (W : Nat) (cn : Int) (hi lo : Nat)
   have hNil :
       __eo_not (__eo_to_bin (Term.Numeral (↑hi - ↑lo + 1)) (Term.Numeral 0))
         ≠ Term.Stuck := by
-    simpa [__eo_nil, __eo_nil_bvand, typeof_extract_slice W cn hi lo hhiW] using h
+    simpa [__eo_nil, __eo_nil_bvand, typeof_extract_slice W cn hi lo hhiW _hlo] using h
   have hToBin :=
     eo_not_arg_ne_stuck_of_ne hNil
   have hBound := to_bin_zero_bound_of_ne (↑hi - ↑lo + 1) hToBin
@@ -596,7 +633,7 @@ private theorem nil_bound_bvor (W : Nat) (cn : Int) (hi lo : Nat)
   have hMeq : (↑hi - ↑lo + 1 : Int) = ↑(hi + 1 - lo) := by omega
   have hToBin :
       __eo_to_bin (Term.Numeral (↑hi - ↑lo + 1)) (Term.Numeral 0) ≠ Term.Stuck := by
-    simpa [__eo_nil, __eo_nil_bvor, typeof_extract_slice W cn hi lo hhiW] using h
+    simpa [__eo_nil, __eo_nil_bvor, typeof_extract_slice W cn hi lo hhiW _hlo] using h
   have hBound := to_bin_zero_bound_of_ne (↑hi - ↑lo + 1) hToBin
   rwa [hMeq] at hBound
 
@@ -609,7 +646,7 @@ private theorem nil_bound_bvxor (W : Nat) (cn : Int) (hi lo : Nat)
   have hMeq : (↑hi - ↑lo + 1 : Int) = ↑(hi + 1 - lo) := by omega
   have hToBin :
       __eo_to_bin (Term.Numeral (↑hi - ↑lo + 1)) (Term.Numeral 0) ≠ Term.Stuck := by
-    simpa [__eo_nil, __eo_nil_bvxor, typeof_extract_slice W cn hi lo hhiW] using h
+    simpa [__eo_nil, __eo_nil_bvxor, typeof_extract_slice W cn hi lo hhiW _hlo] using h
   have hBound := to_bin_zero_bound_of_ne (↑hi - ↑lo + 1) hToBin
   rwa [hMeq] at hBound
 
@@ -2029,7 +2066,7 @@ private theorem nil_bitvec0_op (op : BvOpSpec) :
     __eo_nil op.f (Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral 0)) =
       Term.Binary 0 (op.nilpay 0) := by
   have h := op.hnilterm 1 0 0 1 (by omega) (by omega) (by omega)
-  have hty := typeof_extract_slice 1 0 0 1 (by omega)
+  have hty := typeof_extract_slice 1 0 0 1 (by omega) (by omega)
   simpa [hty] using h
 
 private theorem zero_width_rec_eval_can_op (op : BvOpSpec) (M : SmtModel)
