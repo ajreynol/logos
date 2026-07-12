@@ -62,7 +62,7 @@ private theorem native_includes_congr
   exact native_includes_trans hSupToFlat
     (native_includes_trans hFlat hFlatSub)
 
-private theorem smt_value_rel_of_native_includes
+theorem smt_value_rel_of_native_includes
     {r s : native_RegLan}
     (hrs : NativeIncludes r s) (hsr : NativeIncludes s r) :
     RuleProofs.smt_value_rel (SmtValue.RegLan r) (SmtValue.RegLan s) := by
@@ -542,7 +542,7 @@ private theorem native_str_in_re_str_to_re_self
   simpa [native_str_in_re, hValid, native_str_to_re, nativeListInRe] using
     nativeListInRe_re_of_list_self pat hValid
 
-private theorem smt_value_rel_str_to_re_append
+theorem smt_value_rel_str_to_re_append
     (xs ys : native_String) :
     RuleProofs.smt_value_rel
       (SmtValue.RegLan

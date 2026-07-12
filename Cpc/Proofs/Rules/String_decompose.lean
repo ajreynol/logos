@@ -833,7 +833,8 @@ private theorem facts_string_decompose_false_body
       __smtx_model_eval, hsEval, hnEval, hNilEval, __smtx_model_eval_str_substr,
       __smtx_model_eval_str_concat, __smtx_model_eval_str_len,
       __smtx_model_eval__at_purify, __smtx_model_eval__, native_seq_len,
-      native_seq_concat, native_zplus, native_zneg, native_unpack_pack_seq,
+      native_seq_concat, native_zplus, native_zneg,
+      _root_.native_unpack_pack_seq,
       elem_typeof_pack_seq, native_unpack_seq, hElem, Int.sub_eq_add_neg,
       List.append_assoc] using
       congrArg (fun ys => SmtValue.Seq (native_pack_seq T ys)) hSplit
@@ -858,7 +859,7 @@ private theorem facts_string_decompose_false_body
     simpa [pre, xs, stringDecomposePrefix, sdLen, sdPurify, sdSubstr,
       __smtx_model_eval, hsEval, hnEval, __smtx_model_eval_str_len,
       __smtx_model_eval_str_substr, __smtx_model_eval__at_purify,
-      native_seq_len, native_unpack_pack_seq] using
+      native_seq_len, _root_.native_unpack_pack_seq] using
       congrArg SmtValue.Numeral (native_seq_extract_prefix_length xs ni h0 hle)
   have hLenRel :
       RuleProofs.smt_value_rel
@@ -963,7 +964,7 @@ private theorem facts_string_decompose_true_body
       __smtx_model_eval_str_substr, __smtx_model_eval_str_concat,
       __smtx_model_eval_str_len, __smtx_model_eval__at_purify,
       __smtx_model_eval__, native_seq_len, native_seq_concat, native_zplus,
-      native_zneg, native_unpack_pack_seq, elem_typeof_pack_seq,
+      native_zneg, _root_.native_unpack_pack_seq, elem_typeof_pack_seq,
       native_unpack_seq, hElem, Int.sub_eq_add_neg, List.append_assoc] using
       congrArg (fun ys => SmtValue.Seq (native_pack_seq T ys)) hSplit
   have hEqRel :
@@ -990,7 +991,7 @@ private theorem facts_string_decompose_true_body
       sdLen, sdPurify, sdSubstr, sdMinus, __smtx_model_eval, hsEval, hnEval,
       __smtx_model_eval_str_len, __smtx_model_eval_str_substr,
       __smtx_model_eval__at_purify, __smtx_model_eval__, native_seq_len,
-      native_zplus, native_zneg, native_unpack_pack_seq,
+      native_zplus, native_zneg, _root_.native_unpack_pack_seq,
       Int.sub_eq_add_neg] using
       congrArg SmtValue.Numeral (native_seq_extract_last_length xs ni h0 hle)
   have hLenRel :
