@@ -2744,7 +2744,7 @@ theorem reConcat_list_concat_rec_eval_rel
     simpa [hRecEval, hMkEval] using hConcat.2.2
   exact ⟨r, hRecEval, reConcatListWF_type hConcat.2.1, hRel⟩
 
-private theorem reConcat_list_concat_eval_rel
+theorem reConcat_list_concat_eval_rel
     (M : SmtModel) (a b : Term) (ra rb : native_RegLan)
     (hAList :
       __eo_is_list (Term.UOp UserOp.re_concat) a = Term.Boolean true)
@@ -4064,6 +4064,52 @@ private theorem reInter_list_concat_rec_wf_contains
                 hZIn⟩
             · intro hIn
               exact hIn.2⟩
+
+theorem reInter_list_concat_eval_rel
+    (M : SmtModel) (a z : Term) (ra rz : native_RegLan)
+    (hAList :
+      __eo_is_list (Term.UOp UserOp.re_inter) a = Term.Boolean true)
+    (hZList :
+      __eo_is_list (Term.UOp UserOp.re_inter) z = Term.Boolean true)
+    (hATy : __smtx_typeof (__eo_to_smt a) = SmtType.RegLan)
+    (hZTy : __smtx_typeof (__eo_to_smt z) = SmtType.RegLan)
+    (hAEval : __smtx_model_eval M (__eo_to_smt a) = SmtValue.RegLan ra)
+    (hZEval : __smtx_model_eval M (__eo_to_smt z) = SmtValue.RegLan rz) :
+    ∃ r,
+      __smtx_model_eval M
+          (__eo_to_smt
+            (__eo_list_concat (Term.UOp UserOp.re_inter) a z)) =
+        SmtValue.RegLan r ∧
+      __smtx_typeof
+          (__eo_to_smt
+            (__eo_list_concat (Term.UOp UserOp.re_inter) a z)) =
+        SmtType.RegLan ∧
+      RuleProofs.smt_value_rel (SmtValue.RegLan r)
+        (SmtValue.RegLan (native_re_inter ra rz)) := by
+  have hAWF : ReInterListWF M a :=
+    reInterListWF_of_type_eval M a ra hATy hAEval
+  have hZWF : ReInterListWF M z :=
+    reInterListWF_of_type_eval M z rz hZTy hZEval
+  have hConcat :=
+    reInter_list_concat_rec_wf_contains M a z
+      hAList hZList hAWF hZWF
+  have hConcatEq :
+      __eo_list_concat (Term.UOp UserOp.re_inter) a z =
+        __eo_list_concat_rec a z := by
+    simp [__eo_list_concat, hAList, hZList, __eo_requires,
+      native_ite, native_teq, native_not, SmtEval.native_not]
+  rcases reInterListWF_eval hConcat.2.1 with ⟨r, hRecEval⟩
+  have hRel :
+      RuleProofs.smt_value_rel (SmtValue.RegLan r)
+        (SmtValue.RegLan (native_re_inter ra rz)) :=
+    smt_value_rel_reglan_native_inter_of_contains_iff
+      M (__eo_list_concat_rec a z) a z r ra rz
+        hRecEval hAEval hZEval hConcat.2.2
+  refine ⟨r, ?_, ?_, hRel⟩
+  · rw [hConcatEq]
+    exact hRecEval
+  · rw [hConcatEq]
+    exact reInterListWF_type hConcat.2.1
 
 private theorem reInter_list_erase_rec_cons_eq
     (x xs e : Term) :

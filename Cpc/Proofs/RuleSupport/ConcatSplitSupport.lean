@@ -566,6 +566,12 @@ theorem smtx_typeof_gt_int
   rw [typeof_gt_eq]
   simp [hx, hy, __smtx_typeof_arith_overload_op_2_ret]
 
+private theorem smtx_eval_purify_term_eq
+    (M : SmtModel) (x : SmtTerm) :
+    __smtx_model_eval M (SmtTerm._at_purify x) =
+      __smtx_model_eval__at_purify (__smtx_model_eval M x) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
 theorem concatSplitRaw_false_eq_of_ne_stuck
     (tHead sHead : Term)
     (htNe : tHead ≠ Term.Stuck) (hsNe : sHead ≠ Term.Stuck) :
@@ -639,8 +645,13 @@ theorem smt_typeof_concatSplitTerm_false
             (SmtTerm.str_substr (__eo_to_smt sHead) lt
               (SmtTerm.neg ls lt)))) =
       SmtType.Seq T
-  simp [__smtx_typeof, typeof_ite_eq, __smtx_typeof_ite, hcond,
-    hThen, hElse, native_ite, native_Teq]
+  change __smtx_typeof
+      (SmtTerm.ite (SmtTerm.geq lt ls)
+        (SmtTerm.str_substr (__eo_to_smt tHead) ls (SmtTerm.neg lt ls))
+        (SmtTerm.str_substr (__eo_to_smt sHead) lt (SmtTerm.neg ls lt))) =
+    SmtType.Seq T
+  rw [typeof_ite_eq, hcond, hThen, hElse]
+  simp [__smtx_typeof_ite, native_ite, native_Teq]
 
 theorem smt_typeof_concatSplitTerm_true
     (tHead sHead : Term) (T : SmtType)
@@ -697,8 +708,14 @@ theorem smt_typeof_concatSplitTerm_true
             (SmtTerm.str_substr (__eo_to_smt sHead) (SmtTerm.Numeral 0)
               (SmtTerm.neg ls lt)))) =
       SmtType.Seq T
-  simp [__smtx_typeof, typeof_ite_eq, __smtx_typeof_ite, hcond,
-    hThen, hElse, native_ite, native_Teq]
+  change __smtx_typeof
+      (SmtTerm.ite (SmtTerm.geq lt ls)
+        (SmtTerm.str_substr (__eo_to_smt tHead) (SmtTerm.Numeral 0)
+          (SmtTerm.neg lt ls))
+        (SmtTerm.str_substr (__eo_to_smt sHead) (SmtTerm.Numeral 0)
+          (SmtTerm.neg ls lt))) = SmtType.Seq T
+  rw [typeof_ite_eq, hcond, hThen, hElse]
+  simp [__smtx_typeof_ite, native_ite, native_Teq]
 
 theorem smt_typeof_nil_str_concat_typeof_of_smt_type_seq
     (x : Term) (T : SmtType)
@@ -1880,7 +1897,7 @@ theorem concat_split_append_eq_of_concat_eq
   have hListEq := congrArg native_unpack_seq hPackEq
   exact
     ⟨sx, sxtail, sy, sytail, hxEval, hxtailEval, hyEval, hytailEval,
-      by simpa [native_unpack_pack_seq] using hListEq⟩
+      by simpa [Smtm.native_unpack_pack_seq] using hListEq⟩
 
 theorem native_pack_seq_ne_empty_of_length_pos
     (T : SmtType) {xs : List SmtValue} (hPos : 0 < xs.length) :
@@ -1889,7 +1906,7 @@ theorem native_pack_seq_ne_empty_of_length_pos
   have hUnpack := congrArg native_unpack_seq hEq
   have hLenZero : xs.length = 0 := by
     have hLen := congrArg List.length hUnpack
-    simpa [native_unpack_pack_seq, native_unpack_seq] using hLen
+    simpa [Smtm.native_unpack_pack_seq, native_unpack_seq] using hLen
   omega
 
 theorem eval_concatSplitTerm_false_left
@@ -1967,10 +1984,11 @@ theorem eval_concatSplitTerm_false_left
               (SmtTerm.neg (SmtTerm.str_len (__eo_to_smt sc))
                 (SmtTerm.str_len (__eo_to_smt tc)))))) =
       SmtValue.Seq (native_pack_seq T (xs.drop ys.length))
-  simp [xs, ys, htcEval, hscEval, __smtx_model_eval, __smtx_model_eval_str_len,__smtx_model_eval__,
-    __smtx_model_eval_ite, __smtx_model_eval_str_substr,
-    __smtx_model_eval__at_purify,
-    native_seq_len, native_zplus, native_zneg,hElem, hEvalCond]
+  rw [smtx_eval_purify_term_eq, smtx_eval_ite_term_eq, hEvalCond]
+  simp [xs, ys, htcEval, hscEval, __smtx_model_eval,
+    __smtx_model_eval_str_len, __smtx_model_eval__, __smtx_model_eval_ite,
+    __smtx_model_eval_str_substr, __smtx_model_eval__at_purify,
+    native_seq_len, native_zplus, native_zneg, hElem]
   exact congrArg (native_pack_seq T) hSubEval
 
 theorem eval_concatSplitTerm_false_right
@@ -2051,10 +2069,11 @@ theorem eval_concatSplitTerm_false_right
               (SmtTerm.neg (SmtTerm.str_len (__eo_to_smt sc))
                 (SmtTerm.str_len (__eo_to_smt tc)))))) =
       SmtValue.Seq (native_pack_seq T (ys.drop xs.length))
-  simp [xs, ys, htcEval, hscEval, __smtx_model_eval, __smtx_model_eval_str_len,__smtx_model_eval__,
-    __smtx_model_eval_ite, __smtx_model_eval_str_substr,
-    __smtx_model_eval__at_purify,
-    native_seq_len, native_zplus, native_zneg,hElem, hEvalCond]
+  rw [smtx_eval_purify_term_eq, smtx_eval_ite_term_eq, hEvalCond]
+  simp [xs, ys, htcEval, hscEval, __smtx_model_eval,
+    __smtx_model_eval_str_len, __smtx_model_eval__, __smtx_model_eval_ite,
+    __smtx_model_eval_str_substr, __smtx_model_eval__at_purify,
+    native_seq_len, native_zplus, native_zneg, hElem]
   exact congrArg (native_pack_seq T) hSubEval
 
 theorem eval_concatSplitTerm_true_left
@@ -2131,10 +2150,11 @@ theorem eval_concatSplitTerm_true_left
               (SmtTerm.neg (SmtTerm.str_len (__eo_to_smt sc))
                 (SmtTerm.str_len (__eo_to_smt tc)))))) =
       SmtValue.Seq (native_pack_seq T (xs.take (xs.length - ys.length)))
-  simp [xs, ys, htcEval, hscEval, __smtx_model_eval, __smtx_model_eval_str_len,__smtx_model_eval__,
-    __smtx_model_eval_ite, __smtx_model_eval_str_substr,
-    __smtx_model_eval__at_purify,
-    native_seq_len, native_zplus, native_zneg,hElem, hEvalCond]
+  rw [smtx_eval_purify_term_eq, smtx_eval_ite_term_eq, hEvalCond]
+  simp [xs, ys, htcEval, hscEval, __smtx_model_eval,
+    __smtx_model_eval_str_len, __smtx_model_eval__, __smtx_model_eval_ite,
+    __smtx_model_eval_str_substr, __smtx_model_eval__at_purify,
+    native_seq_len, native_zplus, native_zneg, hElem]
   exact congrArg (native_pack_seq T) hSubEval
 
 theorem eval_concatSplitTerm_true_right
@@ -2214,10 +2234,11 @@ theorem eval_concatSplitTerm_true_right
               (SmtTerm.neg (SmtTerm.str_len (__eo_to_smt sc))
                 (SmtTerm.str_len (__eo_to_smt tc)))))) =
       SmtValue.Seq (native_pack_seq T (ys.take (ys.length - xs.length)))
-  simp [xs, ys, htcEval, hscEval, __smtx_model_eval, __smtx_model_eval_str_len,__smtx_model_eval__,
-    __smtx_model_eval_ite, __smtx_model_eval_str_substr,
-    __smtx_model_eval__at_purify,
-    native_seq_len, native_zplus, native_zneg,hElem, hEvalCond]
+  rw [smtx_eval_purify_term_eq, smtx_eval_ite_term_eq, hEvalCond]
+  simp [xs, ys, htcEval, hscEval, __smtx_model_eval,
+    __smtx_model_eval_str_len, __smtx_model_eval__, __smtx_model_eval_ite,
+    __smtx_model_eval_str_substr, __smtx_model_eval__at_purify,
+    native_seq_len, native_zplus, native_zneg, hElem]
   exact congrArg (native_pack_seq T) hSubEval
 
 theorem concat_split_nonempty_tail
@@ -2279,7 +2300,7 @@ theorem concat_split_nonempty_tail
         SmtValue.Boolean true
     simp [__smtx_model_eval, hSplitEval, __smtx_model_eval_str_len,
       __smtx_model_eval_gt, __smtx_model_eval_lt, native_seq_len,
-      native_zlt, SmtEval.native_zlt, native_unpack_pack_seq]
+      native_zlt, SmtEval.native_zlt, Smtm.native_unpack_pack_seq]
     exact_mod_cast hPos
   have hGtTrue :
       eo_interprets M (mkGt (mkStrLen split) (Term.Numeral 0)) true :=
@@ -2312,4 +2333,4 @@ theorem eval_mkConcat_right_nested
   rw [smtx_model_eval_str_concat_term_eq M b c]
   rw [haEval, hbEval, hcEval]
   simp [__smtx_model_eval_str_concat, native_seq_concat,
-    native_unpack_pack_seq,haElem, List.append_assoc]
+    Smtm.native_unpack_pack_seq, haElem, List.append_assoc]

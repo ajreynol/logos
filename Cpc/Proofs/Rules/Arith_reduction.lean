@@ -116,10 +116,6 @@ private theorem smt_div_eval_reduction_term_rel
     simp [__smtx_model_eval_ite, __smtx_model_eval_eq,
       __smtx_model_eval_div_total, native_veq] <;>
     try exact RuleProofs.smt_value_rel_refl _
-  case Numeral n =>
-    by_cases hZero : n = 0 <;>
-      simp [__smtx_model_eval.eq_2, hZero] <;>
-      exact RuleProofs.smt_value_rel_refl _
 
 private theorem smt_mod_eval_reduction_self
     (M : SmtModel) (x y : SmtTerm) :
@@ -167,10 +163,6 @@ private theorem smt_mod_eval_reduction_term_rel
     simp [__smtx_model_eval_ite, __smtx_model_eval_eq,
       __smtx_model_eval_mod_total, native_veq] <;>
     try exact RuleProofs.smt_value_rel_refl _
-  case Numeral n =>
-    by_cases hZero : n = 0 <;>
-      simp [__smtx_model_eval.eq_2, hZero] <;>
-      exact RuleProofs.smt_value_rel_refl _
 
 private theorem rat_div_one (q : Rat) : q / (1 : Rat) = q := by
   rw [Rat.div_def]
