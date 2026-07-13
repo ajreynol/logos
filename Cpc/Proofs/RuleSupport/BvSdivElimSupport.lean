@@ -52,7 +52,7 @@ def bvSdivPrem (x nm : Term) : Term :=
     (Term.Apply (Term.Apply (Term.UOp UserOp.neg)
       (Term.Apply (Term.UOp UserOp._at_bvsize) x)) (Term.Numeral 1))
 
-private theorem eo_typeof_bvbin_arg_types_of_ne_stuck
+theorem eo_typeof_bvbin_arg_types_of_ne_stuck
     {A B : Term} (h : __eo_typeof_bvand A B ≠ Term.Stuck) :
     ∃ w, A = Term.Apply (Term.UOp UserOp.BitVec) w ∧
       B = Term.Apply (Term.UOp UserOp.BitVec) w := by
@@ -70,7 +70,7 @@ private theorem eo_typeof_bvbin_arg_types_of_ne_stuck
           (support_eo_requires_cond_eq_of_non_stuck hReq)
       exact hm.symm
 
-private theorem typeof_ite_inv_nonstuck (C A B T : Term) :
+theorem typeof_ite_inv_nonstuck (C A B T : Term) :
     __eo_typeof_ite C A B = T -> T ≠ Term.Stuck ->
     C = Term.Bool ∧ A = T ∧ B = T := by
   intro h hT
@@ -193,14 +193,14 @@ private theorem bv_sdiv_context (x y nm : Term) :
   exact ⟨w, nHi, hXTy, hYTy, hNmHi, hw0, hn0, hnW,
     hXSmtTy, hYSmtTy⟩
 
-private theorem smt_typeof_bvneg_same (t : SmtTerm) (w : Nat) :
+theorem smt_typeof_bvneg_same (t : SmtTerm) (w : Nat) :
     __smtx_typeof t = SmtType.BitVec w ->
     __smtx_typeof (SmtTerm.bvneg t) = SmtType.BitVec w := by
   intro h
   rw [__smtx_typeof.eq_def] <;> simp only
   simp [__smtx_typeof_bv_op_1, h]
 
-private theorem smt_typeof_bvbin_same
+theorem smt_typeof_bvbin_same
     (op : SmtTerm -> SmtTerm -> SmtTerm)
     (hOp : ∀ a b, __smtx_typeof (op a b) =
       __smtx_typeof_bv_op_2 (__smtx_typeof a) (__smtx_typeof b))
@@ -333,13 +333,13 @@ private theorem typed_bv_sdiv_term (x y nm : Term) :
   exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type _ _
     (hLhsTy.trans hRhsTy.symm) (by rw [hLhsTy]; intro h; cases h)
 
-private noncomputable def bvSdivSignValue
+noncomputable def bvSdivSignValue
     (n : native_Int) (v : SmtValue) : SmtValue :=
   __smtx_model_eval_eq
     (__smtx_model_eval_extract (SmtValue.Numeral n) (SmtValue.Numeral n) v)
     (SmtValue.Binary 1 1)
 
-private noncomputable def bvSdivAbsValue
+noncomputable def bvSdivAbsValue
     (n : native_Int) (v : SmtValue) : SmtValue :=
   __smtx_model_eval_ite (bvSdivSignValue n v)
     (__smtx_model_eval_bvneg v) v
@@ -386,7 +386,7 @@ private theorem bv_sdiv_compact_value
       __smtx_model_eval_eq, native_veq, __smtx_model_eval_ite,
       native_not, SmtEval.native_not, native_and, SmtEval.native_and]
 
-private theorem bv_sdiv_sign_value_binary_bool
+theorem bv_sdiv_sign_value_binary_bool
     (w p n : native_Int) :
     ∃ b, bvSdivSignValue n (SmtValue.Binary w p) = SmtValue.Boolean b := by
   simp [bvSdivSignValue, __smtx_model_eval_extract,
@@ -432,7 +432,7 @@ private theorem smtx_eval_xor_term_eq
         (__smtx_model_eval M x) (__smtx_model_eval M y) := by
   rw [__smtx_model_eval.eq_def] <;> simp only
 
-private theorem smtx_eval_bvneg_term_eq
+theorem smtx_eval_bvneg_term_eq
     (M : SmtModel) (x : SmtTerm) :
     __smtx_model_eval M (SmtTerm.bvneg x) =
       __smtx_model_eval_bvneg (__smtx_model_eval M x) := by
@@ -452,7 +452,7 @@ private theorem smtx_eval_bvsdiv_term_eq
         (__smtx_model_eval M x) (__smtx_model_eval M y) := by
   rw [__smtx_model_eval.eq_def] <;> simp only
 
-private theorem eval_bv_sdiv_sign
+theorem eval_bv_sdiv_sign
     (M : SmtModel) (z : Term) (n : native_Int) :
     __smtx_model_eval M
         (__eo_to_smt (bvSdivSign (Term.Numeral n) z)) =
@@ -472,7 +472,7 @@ private theorem eval_bv_sdiv_sign
   rw [hOne']
   rfl
 
-private theorem eval_bv_sdiv_abs
+theorem eval_bv_sdiv_abs
     (M : SmtModel) (z : Term) (n : native_Int) :
     __smtx_model_eval M
         (__eo_to_smt (bvSdivAbs (Term.Numeral n) z)) =
@@ -564,7 +564,7 @@ private theorem bool_of_true_eval
       rw [hEval] at hEvalTrue
       cases b <;> simp at hEvalTrue ⊢
 
-private theorem bv_sdiv_index_eq_of_premise
+theorem bv_sdiv_index_eq_of_premise
     (M : SmtModel) (x : Term) (w n : native_Int) :
     eo_interprets M (bvSdivPrem x (Term.Numeral n)) true ->
     native_zleq 0 w = true ->
