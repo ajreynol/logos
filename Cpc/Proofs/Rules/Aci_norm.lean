@@ -194,6 +194,8 @@ private theorem generic_apply_type_of_non_special_head_local
     generic_apply_type f x := by
   unfold generic_apply_type
   cases f <;> simp [__smtx_typeof]
+  · exact False.elim (hSel _ _ _ _ rfl)
+  · exact False.elim (hTester _ _ _ rfl)
 
 private theorem smtx_typeof_apply_none (x : SmtTerm) :
     __smtx_typeof (SmtTerm.Apply SmtTerm.None x) = SmtType.None := by
@@ -10964,6 +10966,244 @@ private theorem bvXor_singleton_elim_eval_canonical
   | _ =>
       simpa [__eo_list_singleton_elim_2] using
         bvXorListCanonical_eval M w _ hCan
+
+namespace BvNaryXorSupport
+
+private theorem listCanonicalOfSmtType
+    (M : SmtModel) (hM : model_total_typed M) (w : Nat) :
+    (t : Term) ->
+    __eo_is_list (Term.UOp UserOp.bvxor) t = Term.Boolean true ->
+    __smtx_typeof (__eo_to_smt t) = SmtType.BitVec w ->
+    BvXorListCanonical M w t
+  | t, hList, hTy => by
+      induction t using __eo_get_elements_rec.induct with
+      | case1 =>
+          simp [__eo_is_list] at hList
+      | case2 f x xs ih =>
+          have hf : f = Term.UOp UserOp.bvxor :=
+            eo_is_list_cons_head_eq_of_true
+              (Term.UOp UserOp.bvxor) f x xs hList
+          subst f
+          have hXsList :
+              __eo_is_list (Term.UOp UserOp.bvxor) xs =
+                Term.Boolean true :=
+            eo_is_list_tail_true_of_cons_self
+              (Term.UOp UserOp.bvxor) x xs hList
+          have hArgs := bvXor_args_of_bitvec_type x xs w (by
+            simpa [mkBvXor] using hTy)
+          exact ⟨
+            bvEvalCanonicalWidth_of_smt_type_bitvec M hM x w hArgs.1,
+            ih hXsList hArgs.2⟩
+      | case3 t _hNil hNot =>
+          cases t with
+          | Apply f xs =>
+              cases f with
+              | Apply g x =>
+                  exact False.elim (hNot g x xs rfl)
+              | _ =>
+                  simpa [BvXorListCanonical] using
+                    bvEvalCanonicalWidth_of_smt_type_bitvec M hM
+                      _ w hTy
+          | _ =>
+              simpa [BvXorListCanonical] using
+                bvEvalCanonicalWidth_of_smt_type_bitvec M hM _ w hTy
+
+private theorem typeofCanonicalBinary
+    (w : Nat) (n : native_Int) :
+    native_zeq n
+        (native_mod_total n (native_int_pow2 (native_nat_to_int w))) = true ->
+    __smtx_typeof_value (SmtValue.Binary (native_nat_to_int w) n) =
+      SmtType.BitVec w := by
+  intro hMod
+  have hWidth : native_zleq 0 (native_nat_to_int w) = true := by
+    simp [native_zleq, native_nat_to_int]
+  have hGuard :
+      native_and (native_zleq 0 (native_nat_to_int w))
+          (native_zeq n
+            (native_mod_total n
+              (native_int_pow2 (native_nat_to_int w)))) = true := by
+    rw [hWidth, hMod]
+    rfl
+  change native_ite
+      (native_and (native_zleq 0 (native_nat_to_int w))
+        (native_zeq n
+          (native_mod_total n (native_int_pow2 (native_nat_to_int w)))))
+      (SmtType.BitVec (native_int_to_nat (native_nat_to_int w)))
+      SmtType.None = SmtType.BitVec w
+  rw [hGuard]
+  simp [native_ite, native_int_to_nat, native_nat_to_int]
+
+/-- Concatenating two well-typed n-ary XOR lists preserves their common
+    bit-vector type. -/
+theorem listConcatRecSmtType
+    (a z : Term) (w : Nat) :
+    __eo_is_list (Term.UOp UserOp.bvxor) a = Term.Boolean true ->
+    __eo_is_list (Term.UOp UserOp.bvxor) z = Term.Boolean true ->
+    __smtx_typeof (__eo_to_smt a) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt z) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt (__eo_list_concat_rec a z)) =
+      SmtType.BitVec w := by
+  intro hAList hZList hATy hZTy
+  induction a, z using __eo_list_concat_rec.induct with
+  | case1 z =>
+      simp [__eo_is_list] at hAList
+  | case2 a hA =>
+      simp [__eo_is_list] at hZList
+  | case3 f x xs z hZNe ih =>
+      have hf : f = Term.UOp UserOp.bvxor :=
+        eo_is_list_cons_head_eq_of_true
+          (Term.UOp UserOp.bvxor) f x xs hAList
+      subst f
+      have hXsList :
+          __eo_is_list (Term.UOp UserOp.bvxor) xs =
+            Term.Boolean true :=
+        eo_is_list_tail_true_of_cons_self
+          (Term.UOp UserOp.bvxor) x xs hAList
+      have hArgs := bvXor_args_of_bitvec_type x xs w (by
+        simpa [mkBvXor] using hATy)
+      have hTailTy := ih hXsList hZList hArgs.2 hZTy
+      have hTailNe : __eo_list_concat_rec xs z ≠ Term.Stuck :=
+        term_ne_stuck_of_smt_bitvec_type hTailTy
+      rw [eo_list_concat_rec_cons_eq_of_tail_ne_stuck
+        (Term.UOp UserOp.bvxor) x xs z hTailNe]
+      change __smtx_typeof
+          (SmtTerm.bvxor (__eo_to_smt x)
+            (__eo_to_smt (__eo_list_concat_rec xs z))) =
+        SmtType.BitVec w
+      rw [__smtx_typeof.eq_43]
+      simp [__smtx_typeof_bv_op_2, hArgs.1, hTailTy,
+        native_nateq, native_ite]
+  | case4 nil z hNil hZNe hNot =>
+      have hNilTrue :
+          __eo_is_list_nil (Term.UOp UserOp.bvxor) nil =
+            Term.Boolean true := by
+        have hGet :=
+          eo_get_nil_rec_ne_stuck_of_is_list_true
+            (Term.UOp UserOp.bvxor) nil hAList
+        have hReq :
+            __eo_requires
+                (__eo_is_list_nil (Term.UOp UserOp.bvxor) nil)
+                (Term.Boolean true) nil ≠ Term.Stuck := by
+          simpa [__eo_get_nil_rec] using hGet
+        exact eo_requires_eq_of_ne_stuck
+          (__eo_is_list_nil (Term.UOp UserOp.bvxor) nil)
+          (Term.Boolean true) nil hReq
+      rw [show __eo_list_concat_rec nil z = z by
+        cases nil <;> cases z <;>
+          simp [__eo_is_list_nil, __eo_list_concat_rec] at hNilTrue ⊢]
+      exact hZTy
+
+/-- Removing the singleton-list wrapper from a well-typed n-ary XOR list
+    preserves its bit-vector type. -/
+theorem listSingletonElimSmtType
+    (c : Term) (w : Nat) :
+    __eo_is_list (Term.UOp UserOp.bvxor) c = Term.Boolean true ->
+    __smtx_typeof (__eo_to_smt c) = SmtType.BitVec w ->
+    __smtx_typeof
+        (__eo_to_smt
+          (__eo_list_singleton_elim (Term.UOp UserOp.bvxor) c)) =
+      SmtType.BitVec w := by
+  intro hList hTy
+  change __smtx_typeof
+      (__eo_to_smt
+        (__eo_requires (__eo_is_list (Term.UOp UserOp.bvxor) c)
+          (Term.Boolean true) (__eo_list_singleton_elim_2 c))) =
+    SmtType.BitVec w
+  rw [hList]
+  simp [__eo_requires, native_ite, native_teq, native_not,
+    SmtEval.native_not]
+  cases c with
+  | Apply f tail =>
+      cases f with
+      | Apply g head =>
+          have hg : g = Term.UOp UserOp.bvxor :=
+            eo_is_list_cons_head_eq_of_true
+              (Term.UOp UserOp.bvxor) g head tail hList
+          subst g
+          have hArgs := bvXor_args_of_bitvec_type head tail w (by
+            simpa [mkBvXor] using hTy)
+          have hTailList :
+              __eo_is_list (Term.UOp UserOp.bvxor) tail =
+                Term.Boolean true :=
+            eo_is_list_tail_true_of_cons_self
+              (Term.UOp UserOp.bvxor) head tail hList
+          have hTailNe : tail ≠ Term.Stuck :=
+            bvXor_is_list_true_ne_stuck hTailList
+          rcases bvXor_is_list_nil_boolean_of_ne_stuck tail hTailNe with
+            ⟨b, hNil⟩
+          cases b <;>
+            simp [__eo_list_singleton_elim_2, hNil, __eo_ite,
+              native_ite, native_teq, hArgs.1, hTy]
+      | _ =>
+          simpa [__eo_list_singleton_elim_2] using hTy
+  | _ =>
+      simpa [__eo_list_singleton_elim_2] using hTy
+
+/-- Concatenating two well-typed n-ary XOR lists has the same model value as
+    applying binary XOR to their aggregate values. -/
+theorem listConcatRecEvalEq
+    (M : SmtModel) (hM : model_total_typed M)
+    (a z : Term) (w : Nat) :
+    __eo_is_list (Term.UOp UserOp.bvxor) a = Term.Boolean true ->
+    __eo_is_list (Term.UOp UserOp.bvxor) z = Term.Boolean true ->
+    __smtx_typeof (__eo_to_smt a) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt z) = SmtType.BitVec w ->
+    __smtx_model_eval M (__eo_to_smt (__eo_list_concat_rec a z)) =
+      __smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) a) z)) := by
+  intro hAList hZList hATy hZTy
+  have hACan := listCanonicalOfSmtType M hM w a hAList hATy
+  have hZCan := listCanonicalOfSmtType M hM w z hZList hZTy
+  have hConcat :=
+    bvXor_list_concat_rec_rel_eval M w a z hAList hZList hACan hZCan
+  have hLeftCan :=
+    bvXorListCanonical_eval M w (__eo_list_concat_rec a z) hConcat.1
+  have hRightCan :=
+    bvXor_eval_canonical_width_of_canonical_args M a z w
+      (bvXorListCanonical_eval M w a hACan)
+      (bvXorListCanonical_eval M w z hZCan)
+  rcases hLeftCan with ⟨nl, hLeftEval, hLeftMod⟩
+  rcases hRightCan with ⟨nr, hRightEval, hRightMod⟩
+  apply RuleProofs.smt_value_rel_eq_of_type_ne_reglan
+    (T := SmtType.BitVec w)
+  · rw [hLeftEval]
+    exact typeofCanonicalBinary w nl hLeftMod
+  · rw [hRightEval]
+    exact typeofCanonicalBinary w nr hRightMod
+  · intro h
+    cases h
+  · simpa [mkBvXor] using hConcat.2
+
+/-- Eliminating the singleton wrapper of a well-typed n-ary XOR list preserves
+    its model value. -/
+theorem listSingletonElimEvalEq
+    (M : SmtModel) (hM : model_total_typed M)
+    (c : Term) (w : Nat) :
+    __eo_is_list (Term.UOp UserOp.bvxor) c = Term.Boolean true ->
+    __smtx_typeof (__eo_to_smt c) = SmtType.BitVec w ->
+    __smtx_model_eval M
+        (__eo_to_smt
+          (__eo_list_singleton_elim (Term.UOp UserOp.bvxor) c)) =
+      __smtx_model_eval M (__eo_to_smt c) := by
+  intro hList hTy
+  have hCan := listCanonicalOfSmtType M hM w c hList hTy
+  have hRel := bvXor_singleton_elim_rel_eval M c w hList hCan
+  have hLeftCan := bvXor_singleton_elim_eval_canonical M c w hList hCan
+  have hRightCan := bvXorListCanonical_eval M w c hCan
+  rcases hLeftCan with ⟨nl, hLeftEval, hLeftMod⟩
+  rcases hRightCan with ⟨nr, hRightEval, hRightMod⟩
+  apply RuleProofs.smt_value_rel_eq_of_type_ne_reglan
+    (T := SmtType.BitVec w)
+  · rw [hLeftEval]
+    exact typeofCanonicalBinary w nl hLeftMod
+  · rw [hRightEval]
+    exact typeofCanonicalBinary w nr hRightMod
+  · intro h
+    cases h
+  · exact hRel
+
+end BvNaryXorSupport
 
 private theorem bvXor_singleton_elim_list_canonical_of_flat
     (M : SmtModel) (c : Term) (w : Nat) :

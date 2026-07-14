@@ -1926,6 +1926,92 @@ private theorem bvnot_bvxor_eval_eq_bvxor_bvnot_of_canonical
   exact congrArg (fun b : BitVec w => (b.toNat : Int))
     (bitvec_not_xor w (BitVec.ofInt w nx) (BitVec.ofInt w nt))
 
+private theorem bitvec_ofInt_allOnes_local (w : Nat) :
+    BitVec.ofInt w (native_int_pow2 (native_nat_to_int w) - 1) =
+      BitVec.allOnes w := by
+  apply BitVec.eq_of_toNat_eq
+  rw [BitVec.toNat_ofInt, BitVec.toNat_allOnes, native_int_pow2_nat]
+  have hPowPos : 0 < (2 ^ w : Int) := by
+    exact_mod_cast Nat.two_pow_pos w
+  have hLower : 0 <= (2 ^ w : Int) - 1 := by
+    omega
+  have hUpper : (2 ^ w : Int) - 1 < (2 ^ w : Int) := by
+    omega
+  change (((2 ^ w : Int) - 1) % (2 ^ w : Int)).toNat = 2 ^ w - 1
+  rw [Int.emod_eq_of_lt hLower hUpper]
+  have hToNat :
+      (((2 ^ w : Int) - 1).toNat : Int) = (2 ^ w : Int) - 1 :=
+    Int.toNat_of_nonneg hLower
+  have hRhs :
+      ((2 ^ w - 1 : Nat) : Int) = (2 ^ w : Int) - 1 :=
+    Int.ofNat_sub Nat.one_le_two_pow
+  exact Int.ofNat.inj (hToNat.trans hRhs.symm)
+
+/-- XOR with the canonical all-ones value is bitwise negation. -/
+theorem bvxor_all_ones_eval_eq_bvnot
+    (w : Nat) (n : native_Int) :
+    native_zeq n
+        (native_mod_total n (native_int_pow2 (native_nat_to_int w))) = true ->
+    __smtx_model_eval_bvxor
+        (SmtValue.Binary (native_nat_to_int w)
+          (native_int_pow2 (native_nat_to_int w) - 1))
+        (SmtValue.Binary (native_nat_to_int w) n) =
+      __smtx_model_eval_bvnot
+        (SmtValue.Binary (native_nat_to_int w) n) := by
+  intro hCan
+  simp [__smtx_model_eval_bvxor, __smtx_model_eval_bvnot]
+  rw [native_binary_xor_mod_eq_toNat,
+    native_binary_not_mod_eq_toNat_of_canonical w n hCan,
+    bitvec_ofInt_allOnes_local]
+  rw [BitVec.xor_comm, BitVec.xor_allOnes]
+
+/-- Pushing a negation through the right operand of XOR negates the result. -/
+theorem bvxor_bvnot_right_eval_eq_bvnot_bvxor
+    (w : Nat) (nx ny : native_Int) :
+    native_zeq nx
+        (native_mod_total nx (native_int_pow2 (native_nat_to_int w))) = true ->
+    native_zeq ny
+        (native_mod_total ny (native_int_pow2 (native_nat_to_int w))) = true ->
+    __smtx_model_eval_bvxor
+        (SmtValue.Binary (native_nat_to_int w) nx)
+        (__smtx_model_eval_bvnot
+          (SmtValue.Binary (native_nat_to_int w) ny)) =
+      __smtx_model_eval_bvnot
+        (__smtx_model_eval_bvxor
+          (SmtValue.Binary (native_nat_to_int w) nx)
+          (SmtValue.Binary (native_nat_to_int w) ny)) := by
+  intro hXCan hYCan
+  let notY :=
+    native_mod_total (native_binary_not (native_nat_to_int w) ny)
+      (native_int_pow2 (native_nat_to_int w))
+  have hNotY :
+      __smtx_model_eval_bvnot
+          (SmtValue.Binary (native_nat_to_int w) ny) =
+        SmtValue.Binary (native_nat_to_int w) notY := by
+    simp [notY, __smtx_model_eval_bvnot]
+  calc
+    __smtx_model_eval_bvxor
+        (SmtValue.Binary (native_nat_to_int w) nx)
+        (__smtx_model_eval_bvnot
+          (SmtValue.Binary (native_nat_to_int w) ny)) =
+      __smtx_model_eval_bvxor
+        (__smtx_model_eval_bvnot
+          (SmtValue.Binary (native_nat_to_int w) ny))
+        (SmtValue.Binary (native_nat_to_int w) nx) := by
+          rw [hNotY]
+          exact bvxor_eval_comm w nx notY
+    _ = __smtx_model_eval_bvnot
+        (__smtx_model_eval_bvxor
+          (SmtValue.Binary (native_nat_to_int w) ny)
+          (SmtValue.Binary (native_nat_to_int w) nx)) :=
+      (bvnot_bvxor_eval_eq_bvxor_bvnot_of_canonical
+        w ny nx hYCan hXCan).symm
+    _ = __smtx_model_eval_bvnot
+        (__smtx_model_eval_bvxor
+          (SmtValue.Binary (native_nat_to_int w) nx)
+          (SmtValue.Binary (native_nat_to_int w) ny)) := by
+      rw [bvxor_eval_comm w ny nx]
+
 private theorem eval_bv_not_xor
     (M : SmtModel) (hM : model_total_typed M) (x y z : Term) :
     RuleProofs.eo_has_smt_translation x ->
