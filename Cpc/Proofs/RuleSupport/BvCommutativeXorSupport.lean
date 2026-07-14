@@ -2745,3 +2745,197 @@ theorem facts_bv_eq_xor_solve_program
   rw [hEq]
   exact facts_bv_eq_xor_solve_term M hM x y z hXTrans hYTrans hZTrans
     hTermTy
+
+/-! Algebraic evaluator identities used by the n-ary XOR simplification
+rules.  Stating them at the `SmtValue` level keeps the list-normalization
+proofs independent of the evaluator's payload representation. -/
+
+private def canonicalBitVecValue (w : Nat) (x : BitVec w) : SmtValue :=
+  SmtValue.Binary (native_nat_to_int w) (x.toNat : Int)
+
+private theorem canonicalBitVecValue_of_payload
+    (w : Nat) (n : native_Int) :
+    native_zeq n
+        (native_mod_total n (native_int_pow2 (native_nat_to_int w))) = true ->
+    SmtValue.Binary (native_nat_to_int w) n =
+      canonicalBitVecValue w (BitVec.ofInt w n) := by
+  intro hCan
+  simp [canonicalBitVecValue,
+    bitvec_ofInt_toNat_int_of_canonical w n hCan]
+
+private theorem eval_bvxor_canonicalBitVecValue
+    (w : Nat) (x y : BitVec w) :
+    __smtx_model_eval_bvxor
+        (canonicalBitVecValue w x) (canonicalBitVecValue w y) =
+      canonicalBitVecValue w (x ^^^ y) := by
+  simp only [canonicalBitVecValue, __smtx_model_eval_bvxor]
+  rw [native_binary_xor_mod_eq_toNat]
+  simp [bitvec_ofInt_natCast_toNat]
+
+private theorem eval_bvnot_canonicalBitVecValue
+    (w : Nat) (x : BitVec w) :
+    __smtx_model_eval_bvnot (canonicalBitVecValue w x) =
+      canonicalBitVecValue w (~~~x) := by
+  simp only [canonicalBitVecValue, __smtx_model_eval_bvnot]
+  rw [native_binary_not_mod_eq_toNat_of_canonical w (x.toNat : Int)
+    (bitvec_toNat_canonical w x)]
+  simp [bitvec_ofInt_natCast_toNat]
+
+private theorem bitvec_xor_not_self_local
+    (w : Nat) (x : BitVec w) :
+    x ^^^ ~~~x = BitVec.allOnes w := by
+  rw [← BitVec.xor_allOnes (x := x)]
+  rw [← BitVec.xor_assoc, BitVec.xor_self]
+  simp
+
+/-- Two equal payloads cancel even when separated inside a right-associated
+XOR spine. -/
+theorem bvxor_cancel_nested_eval
+    (w : Nat) (na nx nb nc : native_Int) :
+    native_zeq na
+        (native_mod_total na (native_int_pow2 (native_nat_to_int w))) = true ->
+    native_zeq nx
+        (native_mod_total nx (native_int_pow2 (native_nat_to_int w))) = true ->
+    native_zeq nb
+        (native_mod_total nb (native_int_pow2 (native_nat_to_int w))) = true ->
+    native_zeq nc
+        (native_mod_total nc (native_int_pow2 (native_nat_to_int w))) = true ->
+    __smtx_model_eval_bvxor
+        (SmtValue.Binary (native_nat_to_int w) na)
+        (__smtx_model_eval_bvxor
+          (SmtValue.Binary (native_nat_to_int w) nx)
+          (__smtx_model_eval_bvxor
+            (SmtValue.Binary (native_nat_to_int w) nb)
+            (__smtx_model_eval_bvxor
+              (SmtValue.Binary (native_nat_to_int w) nx)
+              (SmtValue.Binary (native_nat_to_int w) nc)))) =
+      __smtx_model_eval_bvxor
+        (SmtValue.Binary (native_nat_to_int w) na)
+        (__smtx_model_eval_bvxor
+          (SmtValue.Binary (native_nat_to_int w) nb)
+          (SmtValue.Binary (native_nat_to_int w) nc)) := by
+  intro hA hX hB hC
+  rw [canonicalBitVecValue_of_payload w na hA,
+    canonicalBitVecValue_of_payload w nx hX,
+    canonicalBitVecValue_of_payload w nb hB,
+    canonicalBitVecValue_of_payload w nc hC]
+  repeat rw [eval_bvxor_canonicalBitVecValue]
+  congr 1
+  apply congrArg (fun v : BitVec w => (v.toNat : Int))
+  calc
+    BitVec.ofInt w na ^^^
+          (BitVec.ofInt w nx ^^^
+            (BitVec.ofInt w nb ^^^
+              (BitVec.ofInt w nx ^^^ BitVec.ofInt w nc))) =
+        BitVec.ofInt w na ^^^
+          (BitVec.ofInt w nb ^^^
+            ((BitVec.ofInt w nx ^^^ BitVec.ofInt w nx) ^^^
+              BitVec.ofInt w nc)) := by ac_rfl
+    _ = BitVec.ofInt w na ^^^
+          (BitVec.ofInt w nb ^^^ BitVec.ofInt w nc) := by simp
+
+/-- An `x`/`bvnot x` pair in a right-associated XOR spine negates the
+remaining aggregate. -/
+theorem bvxor_not_cancel_nested_eval
+    (w : Nat) (na nx nb nc : native_Int) :
+    native_zeq na
+        (native_mod_total na (native_int_pow2 (native_nat_to_int w))) = true ->
+    native_zeq nx
+        (native_mod_total nx (native_int_pow2 (native_nat_to_int w))) = true ->
+    native_zeq nb
+        (native_mod_total nb (native_int_pow2 (native_nat_to_int w))) = true ->
+    native_zeq nc
+        (native_mod_total nc (native_int_pow2 (native_nat_to_int w))) = true ->
+    __smtx_model_eval_bvxor
+        (SmtValue.Binary (native_nat_to_int w) na)
+        (__smtx_model_eval_bvxor
+          (SmtValue.Binary (native_nat_to_int w) nx)
+          (__smtx_model_eval_bvxor
+            (SmtValue.Binary (native_nat_to_int w) nb)
+            (__smtx_model_eval_bvxor
+              (__smtx_model_eval_bvnot
+                (SmtValue.Binary (native_nat_to_int w) nx))
+              (SmtValue.Binary (native_nat_to_int w) nc)))) =
+      __smtx_model_eval_bvnot
+        (__smtx_model_eval_bvxor
+          (SmtValue.Binary (native_nat_to_int w) na)
+          (__smtx_model_eval_bvxor
+            (SmtValue.Binary (native_nat_to_int w) nb)
+            (SmtValue.Binary (native_nat_to_int w) nc))) := by
+  intro hA hX hB hC
+  rw [canonicalBitVecValue_of_payload w na hA,
+    canonicalBitVecValue_of_payload w nx hX,
+    canonicalBitVecValue_of_payload w nb hB,
+    canonicalBitVecValue_of_payload w nc hC]
+  repeat rw [eval_bvxor_canonicalBitVecValue]
+  repeat rw [eval_bvnot_canonicalBitVecValue]
+  congr 1
+  apply congrArg (fun v : BitVec w => (v.toNat : Int))
+  calc
+    BitVec.ofInt w na ^^^
+          (BitVec.ofInt w nx ^^^
+            (BitVec.ofInt w nb ^^^
+              (~~~(BitVec.ofInt w nx) ^^^ BitVec.ofInt w nc))) =
+        (BitVec.ofInt w na ^^^
+          (BitVec.ofInt w nb ^^^ BitVec.ofInt w nc)) ^^^
+            (BitVec.ofInt w nx ^^^ ~~~(BitVec.ofInt w nx)) := by ac_rfl
+    _ = (BitVec.ofInt w na ^^^
+          (BitVec.ofInt w nb ^^^ BitVec.ofInt w nc)) ^^^
+            BitVec.allOnes w := by
+      rw [bitvec_xor_not_self_local]
+    _ = ~~~(BitVec.ofInt w na ^^^
+          (BitVec.ofInt w nb ^^^ BitVec.ofInt w nc)) := by
+      rw [BitVec.xor_allOnes]
+
+/-- The preceding negated-pair identity also holds when `bvnot x` occurs
+before `x`. -/
+theorem bvxor_not_cancel_nested_eval_rev
+    (w : Nat) (na nx nb nc : native_Int) :
+    native_zeq na
+        (native_mod_total na (native_int_pow2 (native_nat_to_int w))) = true ->
+    native_zeq nx
+        (native_mod_total nx (native_int_pow2 (native_nat_to_int w))) = true ->
+    native_zeq nb
+        (native_mod_total nb (native_int_pow2 (native_nat_to_int w))) = true ->
+    native_zeq nc
+        (native_mod_total nc (native_int_pow2 (native_nat_to_int w))) = true ->
+    __smtx_model_eval_bvxor
+        (SmtValue.Binary (native_nat_to_int w) na)
+        (__smtx_model_eval_bvxor
+          (__smtx_model_eval_bvnot
+            (SmtValue.Binary (native_nat_to_int w) nx))
+          (__smtx_model_eval_bvxor
+            (SmtValue.Binary (native_nat_to_int w) nb)
+            (__smtx_model_eval_bvxor
+              (SmtValue.Binary (native_nat_to_int w) nx)
+              (SmtValue.Binary (native_nat_to_int w) nc)))) =
+      __smtx_model_eval_bvnot
+        (__smtx_model_eval_bvxor
+          (SmtValue.Binary (native_nat_to_int w) na)
+          (__smtx_model_eval_bvxor
+            (SmtValue.Binary (native_nat_to_int w) nb)
+            (SmtValue.Binary (native_nat_to_int w) nc))) := by
+  intro hA hX hB hC
+  rw [canonicalBitVecValue_of_payload w na hA,
+    canonicalBitVecValue_of_payload w nx hX,
+    canonicalBitVecValue_of_payload w nb hB,
+    canonicalBitVecValue_of_payload w nc hC]
+  repeat rw [eval_bvxor_canonicalBitVecValue]
+  repeat rw [eval_bvnot_canonicalBitVecValue]
+  congr 1
+  apply congrArg (fun v : BitVec w => (v.toNat : Int))
+  calc
+    BitVec.ofInt w na ^^^
+          (~~~(BitVec.ofInt w nx) ^^^
+            (BitVec.ofInt w nb ^^^
+              (BitVec.ofInt w nx ^^^ BitVec.ofInt w nc))) =
+        (BitVec.ofInt w na ^^^
+          (BitVec.ofInt w nb ^^^ BitVec.ofInt w nc)) ^^^
+            (BitVec.ofInt w nx ^^^ ~~~(BitVec.ofInt w nx)) := by ac_rfl
+    _ = (BitVec.ofInt w na ^^^
+          (BitVec.ofInt w nb ^^^ BitVec.ofInt w nc)) ^^^
+            BitVec.allOnes w := by
+      rw [bitvec_xor_not_self_local]
+    _ = ~~~(BitVec.ofInt w na ^^^
+          (BitVec.ofInt w nb ^^^ BitVec.ofInt w nc)) := by
+      rw [BitVec.xor_allOnes]

@@ -84,6 +84,21 @@ def bvXorOnesArgsTranslationOk : CArgList -> Prop
           SmtType.BitVec (native_int_to_nat W)
   | _ => False
 
+/-- Translation invariant shared by the n-ary XOR simplification rules.
+    Their four arguments are aggregate XOR lists/elements that are combined in
+    one generated term, so independent non-`None` translations are not enough:
+    all four translations must have one common bit-vector width. -/
+def bvXorSimplifyArgsTranslationOk : CArgList -> Prop
+  | CArgList.cons xs
+      (CArgList.cons ys
+        (CArgList.cons zs (CArgList.cons x CArgList.nil))) =>
+      ∃ width : native_Nat,
+        __smtx_typeof (__eo_to_smt xs) = SmtType.BitVec width ∧
+        __smtx_typeof (__eo_to_smt ys) = SmtType.BitVec width ∧
+        __smtx_typeof (__eo_to_smt zs) = SmtType.BitVec width ∧
+        __smtx_typeof (__eo_to_smt x) = SmtType.BitVec width
+  | _ => False
+
 /-- Predicate asserting that a checker command meets the translation side conditions used by the rule proofs. -/
 def cmdTranslationOk : CCmd -> Prop
   | CCmd.assume_push A => eoHasSmtTranslation A
@@ -192,6 +207,12 @@ def cmdTranslationOk : CCmd -> Prop
         ArgTranslationKind.term] args
   | CCmd.step CRule.bv_xor_ones args _ =>
       bvXorOnesArgsTranslationOk args
+  | CCmd.step CRule.bv_xor_simplify_1 args _ =>
+      bvXorSimplifyArgsTranslationOk args
+  | CCmd.step CRule.bv_xor_simplify_2 args _ =>
+      bvXorSimplifyArgsTranslationOk args
+  | CCmd.step CRule.bv_xor_simplify_3 args _ =>
+      bvXorSimplifyArgsTranslationOk args
   | CCmd.step _ args _ => cArgListTranslationOk args
   | _ => True
 
