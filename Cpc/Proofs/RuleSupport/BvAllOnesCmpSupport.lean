@@ -340,31 +340,70 @@ private theorem native_pow2_minus_one_mod_local
     exact Int.sub_lt_self _ (by decide : (0 : Int) < 1)
   simpa [SmtEval.native_mod_total] using Int.emod_eq_of_lt hLo hHi
 
-/-- An `@bv` literal constrained by the standard all-ones premise evaluates to
+theorem smt_typeof_bv_const_of_int_type
+    (n : Term) (W : native_Int) :
+    __smtx_typeof (__eo_to_smt n) = SmtType.Int ->
+    native_zleq 0 W = true ->
+    __smtx_typeof
+        (__eo_to_smt
+          (Term.UOp2 UserOp2._at_bv n (Term.Numeral W))) =
+      SmtType.BitVec (native_int_to_nat W) := by
+  intro hNTy hW0
+  change __smtx_typeof
+      (SmtTerm.int_to_bv (SmtTerm.Numeral W) (__eo_to_smt n)) = _
+  rw [typeof_int_to_bv_eq, hNTy]
+  simp [__smtx_typeof_int_to_bv, native_ite, hW0]
+
+private theorem eval_int_term_local
+    (M : SmtModel) (hM : model_total_typed M) (n : Term) :
+    __smtx_typeof (__eo_to_smt n) = SmtType.Int ->
+    ∃ k : native_Int,
+      __smtx_model_eval M (__eo_to_smt n) = SmtValue.Numeral k := by
+  intro hNTy
+  have hEvalTy :=
+    smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt n)
+      (by simp [term_has_non_none_type, hNTy])
+  exact int_value_canonical (by simpa [hNTy] using hEvalTy)
+
+private theorem eval_bv_const_of_int_eval_local
+    (M : SmtModel) (n : Term) (k W : native_Int) :
+    __smtx_model_eval M (__eo_to_smt n) = SmtValue.Numeral k ->
+    __smtx_model_eval M
+        (__eo_to_smt
+          (Term.UOp2 UserOp2._at_bv n (Term.Numeral W))) =
+      SmtValue.Binary W (native_mod_total k (native_int_pow2 W)) := by
+  intro hEval
+  change __smtx_model_eval M
+      (SmtTerm.int_to_bv (SmtTerm.Numeral W) (__eo_to_smt n)) = _
+  rw [smtx_eval_int_to_bv_term_eq, smtx_eval_numeral_term_eq_local, hEval]
+  rfl
+
+/-- An `@bv` term constrained by the standard all-ones premise evaluates to
     the canonical maximum value for its width. -/
 theorem eval_bv_all_ones_const_of_prem
-    (M : SmtModel) (n w : Term) (k W : native_Int) :
-    n = Term.Numeral k ->
+    (M : SmtModel) (hM : model_total_typed M)
+    (n w : Term) (W : native_Int) :
+    __smtx_typeof (__eo_to_smt n) = SmtType.Int ->
     w = Term.Numeral W ->
     native_zleq 0 W = true ->
     eo_interprets M (bvAllOnesValuePrem n w) true ->
     __smtx_model_eval M (__eo_to_smt (bvAllOnesConst n w)) =
       SmtValue.Binary W (native_int_pow2 W - 1) := by
-  intro hN hW hW0 hPrem
-  subst n
+  intro hNTy hW hW0 hPrem
   subst w
+  rcases eval_int_term_local M hM n hNTy with ⟨k, hEvalN⟩
   have hPremRel := RuleProofs.eo_interprets_eq_rel M
-    (Term.Numeral k)
+    n
     (Term.Apply (Term.Apply (Term.UOp UserOp.neg)
       (Term.Apply (Term.UOp UserOp.int_pow2) (Term.Numeral W)))
       (Term.Numeral 1)) hPrem
   have hK : k = native_int_pow2 W - 1 := by
     apply numeral_rel_eq_local
-    simpa [smtx_eval_numeral_term_eq_local,
+    simpa [hEvalN,
       eval_bv_all_ones_literal_local M W] using hPremRel
-  rw [hK]
-  have hEval := eval_bv_const M (native_int_pow2 W - 1) W hW0
-  simpa [native_pow2_minus_one_mod_local W hW0] using hEval
+  have hEval := eval_bv_const_of_int_eval_local M n k W hEvalN
+  rw [hK, native_pow2_minus_one_mod_local W hW0] at hEval
+  simpa [bvAllOnesConst] using hEval
 
 private theorem eo_to_smt_distinct_eq_of_elem_type_ne_none_local
     (xs : Term) :
@@ -385,31 +424,29 @@ private theorem eo_to_smt_distinct_eq_of_elem_type_ne_none_local
   simp [native_ite]
 
 theorem typed_bv_ule_max_term
-    (x n w : Term) (k : native_Int) :
+    (x n w : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation n ->
     RuleProofs.eo_has_smt_translation w ->
-    n = Term.Numeral k ->
     __eo_typeof (bvUleMaxTerm x n w) = Term.Bool ->
     RuleProofs.eo_has_bool_type (bvUleMaxTerm x n w) := by
-  intro hXTrans hNTrans hWTrans hN hResultTy
-  subst n
-  rcases bv_ule_max_context x (Term.Numeral k) w hXTrans hNTrans hWTrans
+  intro hXTrans hNTrans hWTrans hResultTy
+  rcases bv_ule_max_context x n w hXTrans hNTrans hWTrans
       hResultTy with
-    ⟨W, hW, hW0, _hXTy, _hKTy, hXSmtTy, _hKSmtTy⟩
+    ⟨W, hW, hW0, _hXTy, _hNTy, hXSmtTy, hNSmtTy⟩
   subst w
-  have hConstTy := smt_typeof_bv_const k W hW0
+  have hConstTy := smt_typeof_bv_const_of_int_type n W hNSmtTy hW0
   have hCmpBool :
       RuleProofs.eo_has_bool_type
         (Term.Apply
           (Term.Apply (Term.UOp UserOp.bvule) x)
-          (Term.UOp2 UserOp2._at_bv (Term.Numeral k) (Term.Numeral W))) := by
+          (Term.UOp2 UserOp2._at_bv n (Term.Numeral W))) := by
     unfold RuleProofs.eo_has_bool_type
     change __smtx_typeof
         (SmtTerm.bvule (__eo_to_smt x)
           (__eo_to_smt
             (Term.UOp2 UserOp2._at_bv
-              (Term.Numeral k) (Term.Numeral W)))) = SmtType.Bool
+              n (Term.Numeral W)))) = SmtType.Bool
     rw [__smtx_typeof.eq_56]
     simp [__smtx_typeof_bv_op_2_ret, hXSmtTy, hConstTy,
       native_nateq, native_ite]
@@ -420,25 +457,27 @@ theorem typed_bv_ule_max_term
     (by rw [hCmpBool]; decide)
 
 theorem typed_bv_ult_ones_term
-    (x n w : Term) (k : native_Int) :
+    (x n w : Term) :
     RuleProofs.eo_has_smt_translation x ->
-    __smtx_type_wf (__smtx_typeof (__eo_to_smt x)) = true ->
     RuleProofs.eo_has_smt_translation n ->
     RuleProofs.eo_has_smt_translation w ->
-    n = Term.Numeral k ->
     __eo_typeof (bvUltOnesTerm x n w) = Term.Bool ->
     RuleProofs.eo_has_bool_type (bvUltOnesTerm x n w) := by
-  intro hXTrans hXWf hNTrans hWTrans hN hResultTy
-  subst n
-  rcases bv_ult_ones_context x (Term.Numeral k) w
+  intro hXTrans hNTrans hWTrans hResultTy
+  rcases bv_ult_ones_context x n w
       hXTrans hNTrans hWTrans hResultTy with
-    ⟨W, hW, hW0, hXTy, _hKTy, hXSmtTy, _hKSmtTy⟩
+    ⟨W, hW, hW0, hXTy, _hNTy, hXSmtTy, hNSmtTy⟩
   subst w
-  have hConstTy := smt_typeof_bv_const k W hW0
+  have hXWf :
+      __smtx_type_wf (__smtx_typeof (__eo_to_smt x)) = true := by
+    rw [hXSmtTy]
+    simp [__smtx_type_wf, __smtx_type_wf_component,
+      __smtx_type_wf_rec, __smtx_type_no_alias_rec, native_and]
+  have hConstTy := smt_typeof_bv_const_of_int_type n W hNSmtTy hW0
   have hConstTrans :
       RuleProofs.eo_has_smt_translation
         (Term.UOp2 UserOp2._at_bv
-          (Term.Numeral k) (Term.Numeral W)) := by
+          n (Term.Numeral W)) := by
     unfold RuleProofs.eo_has_smt_translation
     rw [hConstTy]
     intro h
@@ -447,13 +486,13 @@ theorem typed_bv_ult_ones_term
       RuleProofs.eo_has_bool_type
         (Term.Apply (Term.Apply (Term.UOp UserOp.bvult) x)
           (Term.UOp2 UserOp2._at_bv
-            (Term.Numeral k) (Term.Numeral W))) := by
+            n (Term.Numeral W))) := by
     unfold RuleProofs.eo_has_bool_type
     change __smtx_typeof
         (SmtTerm.bvult (__eo_to_smt x)
           (__eo_to_smt
             (Term.UOp2 UserOp2._at_bv
-              (Term.Numeral k) (Term.Numeral W)))) = SmtType.Bool
+              n (Term.Numeral W)))) = SmtType.Bool
     rw [__smtx_typeof.eq_55]
     simp [__smtx_typeof_bv_op_2_ret, hXSmtTy, hConstTy,
       native_nateq, native_ite]
@@ -462,7 +501,7 @@ theorem typed_bv_ult_ones_term
         (Term.Apply
           (Term.Apply (Term.UOp UserOp.eq) x)
           (Term.UOp2 UserOp2._at_bv
-            (Term.Numeral k) (Term.Numeral W))) :=
+            n (Term.Numeral W))) :=
     RuleProofs.eo_has_bool_type_eq_of_same_smt_type x _
       (hXSmtTy.trans hConstTy.symm) hXTrans
   have hEqSmtTy :
@@ -470,7 +509,7 @@ theorem typed_bv_ult_ones_term
           (SmtTerm.eq (__eo_to_smt x)
             (__eo_to_smt
               (Term.UOp2 UserOp2._at_bv
-                (Term.Numeral k) (Term.Numeral W)))) =
+                n (Term.Numeral W)))) =
         SmtType.Bool := by
     simpa [RuleProofs.eo_has_bool_type] using hEqBool
   have hEqOpTy :
@@ -478,7 +517,7 @@ theorem typed_bv_ult_ones_term
           (__smtx_typeof
             (__eo_to_smt
               (Term.UOp2 UserOp2._at_bv
-                (Term.Numeral k) (Term.Numeral W)))) =
+                n (Term.Numeral W)))) =
         SmtType.Bool := by
     simpa [typeof_eq_eq] using hEqSmtTy
   have hTypeMatch :
@@ -503,20 +542,20 @@ theorem typed_bv_ult_ones_term
     exact hXTrans
   have hElemNe :
       __eo_to_smt_typed_list_elem_type
-          (bvUltOnesList x (Term.Numeral k) (Term.Numeral W)) ≠
+          (bvUltOnesList x n (Term.Numeral W)) ≠
         SmtType.None := by
     simp [bvUltOnesList, bvAllOnesConst,
       __eo_to_smt_typed_list_elem_type, hXSmtTy, hConstTy,
       hEoTypeSmt, hTypeWf, hBvWf, hTypeNe, native_ite, native_Teq]
   have hDistinctSmt :
       __eo_to_smt
-          (bvUltOnesDistinct x (Term.Numeral k) (Term.Numeral W)) =
+          (bvUltOnesDistinct x n (Term.Numeral W)) =
         __eo_to_smt_distinct
-          (bvUltOnesList x (Term.Numeral k) (Term.Numeral W)) := by
+          (bvUltOnesList x n (Term.Numeral W)) := by
     exact eo_to_smt_distinct_eq_of_elem_type_ne_none_local _ hElemNe
   have hDistinctBool :
       RuleProofs.eo_has_bool_type
-        (bvUltOnesDistinct x (Term.Numeral k) (Term.Numeral W)) := by
+        (bvUltOnesDistinct x n (Term.Numeral W)) := by
     unfold RuleProofs.eo_has_bool_type
     rw [hDistinctSmt]
     change __smtx_typeof
@@ -526,7 +565,7 @@ theorem typed_bv_ult_ones_term
               (SmtTerm.eq (__eo_to_smt x)
                 (__eo_to_smt
                   (Term.UOp2 UserOp2._at_bv
-                    (Term.Numeral k) (Term.Numeral W)))))
+                    n (Term.Numeral W)))))
             (SmtTerm.Boolean true))
           (SmtTerm.and (SmtTerm.Boolean true) (SmtTerm.Boolean true))) =
       SmtType.Bool
@@ -540,29 +579,28 @@ theorem typed_bv_ult_ones_term
 
 theorem facts_bv_ule_max_term
     (M : SmtModel) (hM : model_total_typed M)
-    (x n w : Term) (k : native_Int) :
+    (x n w : Term) :
     RuleProofs.eo_has_smt_translation x ->
     RuleProofs.eo_has_smt_translation n ->
     RuleProofs.eo_has_smt_translation w ->
-    n = Term.Numeral k ->
     eo_interprets M (bvUleMaxValuePrem x n) true ->
     __eo_typeof (bvUleMaxTerm x n w) = Term.Bool ->
     eo_interprets M (bvUleMaxTerm x n w) true := by
-  intro hXTrans hNTrans hWTrans hN hPrem hResultTy
-  subst n
-  rcases bv_ule_max_context x (Term.Numeral k) w hXTrans hNTrans hWTrans
+  intro hXTrans hNTrans hWTrans hPrem hResultTy
+  rcases bv_ule_max_context x n w hXTrans hNTrans hWTrans
       hResultTy with
-    ⟨W, hW, hW0, _hXTy, _hKTy, hXSmtTy, _hKSmtTy⟩
+    ⟨W, hW, hW0, _hXTy, _hNTy, hXSmtTy, hNSmtTy⟩
   subst w
+  rcases eval_int_term_local M hM n hNSmtTy with ⟨k, hEvalN⟩
   have hPremRel := RuleProofs.eo_interprets_eq_rel M
-    (Term.Numeral k)
+    n
     (Term.Apply (Term.Apply (Term.UOp UserOp.neg)
       (Term.Apply (Term.UOp UserOp.int_pow2)
         (Term.Apply (Term.UOp UserOp._at_bvsize) x))) (Term.Numeral 1))
     hPrem
   have hK : k = native_int_pow2 W - 1 := by
     apply numeral_rel_eq_local
-    simpa [smtx_eval_numeral_term_eq_local,
+    simpa [hEvalN,
       eval_bv_all_ones_value_local M x W hW0 hXSmtTy] using hPremRel
   rcases bitvec_eval_payload_with_width_local M hM x W hXTrans hW0 hXSmtTy with
     ⟨px, hEvalX, hPxCanon⟩
@@ -570,20 +608,20 @@ theorem facts_bv_ule_max_term
   have hPxLe : px <= native_int_pow2 W - 1 :=
     Int.le_sub_one_of_lt hRange.2
   have hMaxMod := native_pow2_minus_one_mod_local W hW0
-  have hConstEval := eval_bv_const M k W hW0
+  have hConstEval := eval_bv_const_of_int_eval_local M n k W hEvalN
   have hCmpEval :
       __smtx_model_eval M
           (__eo_to_smt
             (Term.Apply
               (Term.Apply (Term.UOp UserOp.bvule) x)
               (Term.UOp2 UserOp2._at_bv
-                (Term.Numeral k) (Term.Numeral W)))) =
+                n (Term.Numeral W)))) =
         SmtValue.Boolean true := by
     change __smtx_model_eval M
         (SmtTerm.bvule (__eo_to_smt x)
           (__eo_to_smt
             (Term.UOp2 UserOp2._at_bv
-              (Term.Numeral k) (Term.Numeral W)))) =
+              n (Term.Numeral W)))) =
       SmtValue.Boolean true
     rw [__smtx_model_eval.eq_56, hEvalX, hConstEval, hK, hMaxMod]
     by_cases hEq : px = native_int_pow2 W - 1
@@ -599,8 +637,8 @@ theorem facts_bv_ule_max_term
         __smtx_model_eval_bvugt, __smtx_model_eval_eq,
         __smtx_model_eval_or, native_zlt, SmtEval.native_zlt,
         native_veq, native_or, hEq, hLt]
-  have hBool := typed_bv_ule_max_term x (Term.Numeral k) (Term.Numeral W) k
-    hXTrans hNTrans hWTrans rfl hResultTy
+  have hBool := typed_bv_ule_max_term x n (Term.Numeral W)
+    hXTrans hNTrans hWTrans hResultTy
   unfold bvUleMaxTerm
   apply RuleProofs.eo_interprets_eq_of_rel M
   · simpa [bvUleMaxTerm] using hBool
@@ -610,45 +648,44 @@ theorem facts_bv_ule_max_term
           (Term.Apply
             (Term.Apply (Term.UOp UserOp.bvule) x)
             (Term.UOp2 UserOp2._at_bv
-              (Term.Numeral k) (Term.Numeral W)))))
+              n (Term.Numeral W)))))
       (__smtx_model_eval M (SmtTerm.Boolean true))
     rw [hCmpEval, smtx_eval_boolean_term_eq_local]
     exact RuleProofs.smt_value_rel_refl _
 
 theorem facts_bv_ult_ones_term
     (M : SmtModel) (hM : model_total_typed M)
-    (x n w : Term) (k : native_Int) :
+    (x n w : Term) :
     RuleProofs.eo_has_smt_translation x ->
-    __smtx_type_wf (__smtx_typeof (__eo_to_smt x)) = true ->
     RuleProofs.eo_has_smt_translation n ->
     RuleProofs.eo_has_smt_translation w ->
-    n = Term.Numeral k ->
     eo_interprets M (bvAllOnesValuePrem n w) true ->
     __eo_typeof (bvUltOnesTerm x n w) = Term.Bool ->
     eo_interprets M (bvUltOnesTerm x n w) true := by
-  intro hXTrans hXWf hNTrans hWTrans hN hPrem hResultTy
-  subst n
-  rcases bv_ult_ones_context x (Term.Numeral k) w
+  intro hXTrans hNTrans hWTrans hPrem hResultTy
+  rcases bv_ult_ones_context x n w
       hXTrans hNTrans hWTrans hResultTy with
-    ⟨W, hW, hW0, hXTy, _hKTy, hXSmtTy, _hKSmtTy⟩
+    ⟨W, hW, hW0, _hXTy, _hNTy, hXSmtTy, hNSmtTy⟩
   subst w
-  have hConstTy := smt_typeof_bv_const k W hW0
-  have hPremRel := RuleProofs.eo_interprets_eq_rel M
-    (Term.Numeral k)
-    (Term.Apply (Term.Apply (Term.UOp UserOp.neg)
-      (Term.Apply (Term.UOp UserOp.int_pow2) (Term.Numeral W)))
-      (Term.Numeral 1)) hPrem
-  have hK : k = native_int_pow2 W - 1 := by
-    apply numeral_rel_eq_local
-    simpa [smtx_eval_numeral_term_eq_local,
-      eval_bv_all_ones_literal_local M W] using hPremRel
+  have hXWf :
+      __smtx_type_wf (__smtx_typeof (__eo_to_smt x)) = true := by
+    rw [hXSmtTy]
+    simp [__smtx_type_wf, __smtx_type_wf_component,
+      __smtx_type_wf_rec, __smtx_type_no_alias_rec, native_and]
+  have hConstTy := smt_typeof_bv_const_of_int_type n W hNSmtTy hW0
+  have hConstEval :
+      __smtx_model_eval M
+          (__eo_to_smt
+            (Term.UOp2 UserOp2._at_bv n (Term.Numeral W))) =
+        SmtValue.Binary W (native_int_pow2 W - 1) := by
+    simpa [bvAllOnesConst] using
+      (eval_bv_all_ones_const_of_prem M hM n (Term.Numeral W) W
+        hNSmtTy rfl hW0 hPrem)
   rcases bitvec_eval_payload_with_width_local M hM x W hXTrans hW0 hXSmtTy with
     ⟨px, hEvalX, hPxCanon⟩
   have hRange := bitvec_payload_range_of_canonical hW0 hPxCanon
   have hPxLe : px <= native_int_pow2 W - 1 :=
     Int.le_sub_one_of_lt hRange.2
-  have hMaxMod := native_pow2_minus_one_mod_local W hW0
-  have hConstEval := eval_bv_const M k W hW0
   have hTypeMatch :
       __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x) :=
     RuleProofs.eo_to_smt_well_typed_and_typeof_implies_smt_type
@@ -671,23 +708,23 @@ theorem facts_bv_ult_ones_term
     exact hXTrans
   have hElemNe :
       __eo_to_smt_typed_list_elem_type
-          (bvUltOnesList x (Term.Numeral k) (Term.Numeral W)) ≠
+          (bvUltOnesList x n (Term.Numeral W)) ≠
         SmtType.None := by
     simp [bvUltOnesList, bvAllOnesConst,
       __eo_to_smt_typed_list_elem_type, hXSmtTy, hConstTy,
       hEoTypeSmt, hTypeWf, hBvWf, hTypeNe, native_ite, native_Teq]
   have hDistinctSmt :
       __eo_to_smt
-          (bvUltOnesDistinct x (Term.Numeral k) (Term.Numeral W)) =
+          (bvUltOnesDistinct x n (Term.Numeral W)) =
         __eo_to_smt_distinct
-          (bvUltOnesList x (Term.Numeral k) (Term.Numeral W)) :=
+          (bvUltOnesList x n (Term.Numeral W)) :=
     eo_to_smt_distinct_eq_of_elem_type_ne_none_local _ hElemNe
   have hCmpEval :
       __smtx_model_eval M
           (__eo_to_smt
             (Term.Apply (Term.Apply (Term.UOp UserOp.bvult) x)
               (Term.UOp2 UserOp2._at_bv
-                (Term.Numeral k) (Term.Numeral W)))) =
+                n (Term.Numeral W)))) =
         __smtx_model_eval_bvult
           (SmtValue.Binary W px)
           (SmtValue.Binary W (native_int_pow2 W - 1)) := by
@@ -695,12 +732,12 @@ theorem facts_bv_ult_ones_term
         (SmtTerm.bvult (__eo_to_smt x)
           (__eo_to_smt
             (Term.UOp2 UserOp2._at_bv
-              (Term.Numeral k) (Term.Numeral W)))) = _
-    rw [__smtx_model_eval.eq_55, hEvalX, hConstEval, hK, hMaxMod]
+              n (Term.Numeral W)))) = _
+    rw [__smtx_model_eval.eq_55, hEvalX, hConstEval]
   have hDistinctEval :
       __smtx_model_eval M
           (__eo_to_smt
-            (bvUltOnesDistinct x (Term.Numeral k) (Term.Numeral W))) =
+            (bvUltOnesDistinct x n (Term.Numeral W))) =
         __smtx_model_eval_not
           (__smtx_model_eval_eq
             (SmtValue.Binary W px)
@@ -713,12 +750,12 @@ theorem facts_bv_ult_ones_term
               (SmtTerm.eq (__eo_to_smt x)
                 (__eo_to_smt
                   (Term.UOp2 UserOp2._at_bv
-                    (Term.Numeral k) (Term.Numeral W)))))
+                    n (Term.Numeral W)))))
             (SmtTerm.Boolean true))
           (SmtTerm.and (SmtTerm.Boolean true) (SmtTerm.Boolean true))) = _
     rw [smtx_eval_and_term_eq, smtx_eval_and_term_eq,
       smtx_eval_not_term_eq, smtx_eval_eq_term_eq,
-      smtx_eval_and_term_eq, hEvalX, hConstEval, hK, hMaxMod]
+      smtx_eval_and_term_eq, hEvalX, hConstEval]
     simp [__smtx_model_eval, __smtx_model_eval_eq,
       __smtx_model_eval_not, __smtx_model_eval_and,
       native_and]
@@ -727,10 +764,10 @@ theorem facts_bv_ult_ones_term
           (__eo_to_smt
             (Term.Apply (Term.Apply (Term.UOp UserOp.bvult) x)
               (Term.UOp2 UserOp2._at_bv
-                (Term.Numeral k) (Term.Numeral W)))) =
+                n (Term.Numeral W)))) =
         __smtx_model_eval M
           (__eo_to_smt
-            (bvUltOnesDistinct x (Term.Numeral k) (Term.Numeral W))) := by
+            (bvUltOnesDistinct x n (Term.Numeral W))) := by
     rw [hCmpEval, hDistinctEval]
     by_cases hEq : px = native_int_pow2 W - 1
     · subst px
@@ -748,8 +785,8 @@ theorem facts_bv_ult_ones_term
         __smtx_model_eval_eq, __smtx_model_eval_not,
         native_zlt, SmtEval.native_zlt, native_veq, native_not,
         hEq, hLt]
-  have hBool := typed_bv_ult_ones_term x (Term.Numeral k)
-    (Term.Numeral W) k hXTrans hXWf hNTrans hWTrans rfl hResultTy
+  have hBool := typed_bv_ult_ones_term x n (Term.Numeral W)
+    hXTrans hNTrans hWTrans hResultTy
   unfold bvUltOnesTerm
   apply RuleProofs.eo_interprets_eq_of_rel M
   · simpa [bvUltOnesTerm] using hBool
@@ -758,9 +795,9 @@ theorem facts_bv_ult_ones_term
         (__eo_to_smt
           (Term.Apply (Term.Apply (Term.UOp UserOp.bvult) x)
             (Term.UOp2 UserOp2._at_bv
-              (Term.Numeral k) (Term.Numeral W)))))
+              n (Term.Numeral W)))))
       (__smtx_model_eval M
         (__eo_to_smt
-          (bvUltOnesDistinct x (Term.Numeral k) (Term.Numeral W))))
+          (bvUltOnesDistinct x n (Term.Numeral W))))
     rw [hEvalEq]
     exact RuleProofs.smt_value_rel_refl _

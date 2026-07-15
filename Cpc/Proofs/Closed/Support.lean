@@ -1516,19 +1516,12 @@ by
     cases Ty <;> trivial
 
 theorem smtTermClosedIn_eo_to_smt_at_bv
-    (vars : List SmtVarKey) (x y : Term) :
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
   SmtTermClosedIn vars (__eo_to_smt (Term.UOp2 UserOp2._at_bv x y)) :=
 by
-  change SmtTermClosedIn vars
-    (__eo_to_smt__at_bv (__eo_to_smt x) (__eo_to_smt y))
-  generalize hxSmt : __eo_to_smt x = sx
-  cases sx <;> try trivial
-  case Numeral _ =>
-    generalize hySmt : __eo_to_smt y = sy
-    cases sy <;> try trivial
-    case Numeral m =>
-      cases hLe : native_zleq 0 m <;>
-        simp [__eo_to_smt__at_bv, native_ite, hLe, SmtTermClosedIn]
+  exact ⟨hy, hx⟩
 
 theorem smtTermClosedIn_eo_to_smt_sets_deq_diff
     {vars : List SmtVarKey} {x y : Term}
@@ -4535,7 +4528,7 @@ theorem smtTermClosedIn_eo_to_smt_at_bv_of_closed_rec_using
 by
   exact smtTermClosedIn_eo_to_smt_uop2_of_closed_rec_using
     (op := UserOp2._at_bv)
-    (fun _ _ => smtTermClosedIn_eo_to_smt_at_bv vars x y)
+    (fun hx hy => smtTermClosedIn_eo_to_smt_at_bv hx hy)
     hEnv hRecX hRecY hClosed
 
 theorem smtTermClosedIn_eo_to_smt_sets_deq_diff_of_closed_rec_using

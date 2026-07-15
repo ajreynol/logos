@@ -103,18 +103,11 @@ private theorem smtx_eval_bvnot_term_eq
   rw [__smtx_model_eval.eq_def] <;> simp only
 
 private theorem context
-    (xs zs n w : Term) (k W : native_Int) :
-    __smtx_typeof (__eo_to_smt xs) =
-      SmtType.BitVec (native_int_to_nat W) ->
-    __smtx_typeof (__eo_to_smt zs) =
-      SmtType.BitVec (native_int_to_nat W) ->
-    n = Term.Numeral k ->
-    w = Term.Numeral W ->
-    native_zleq 0 W = true ->
+    (xs zs n w : Term) :
     __eo_typeof (term xs zs n w) = Term.Bool ->
     __eo_is_list (Term.UOp UserOp.bvxor) xs = Term.Boolean true ∧
       __eo_is_list (Term.UOp UserOp.bvxor) zs = Term.Boolean true := by
-  intro _hXsTy _hZsTy hN hW hW0 hResultTy
+  intro hResultTy
   have hSides := RuleProofs.eo_typeof_eq_bool_operands_not_stuck
     (__eo_typeof (lhs xs zs n w)) (__eo_typeof (rhs xs zs))
     (by simpa [term] using hResultTy)
@@ -130,12 +123,12 @@ private theorem context
   exact ⟨hLists.1, hZsList⟩
 
 private theorem common_types
-    (xs zs n w : Term) (k W : native_Int) :
+    (xs zs n w : Term) (W : native_Int) :
     __smtx_typeof (__eo_to_smt xs) =
       SmtType.BitVec (native_int_to_nat W) ->
     __smtx_typeof (__eo_to_smt zs) =
       SmtType.BitVec (native_int_to_nat W) ->
-    n = Term.Numeral k ->
+    __smtx_typeof (__eo_to_smt n) = SmtType.Int ->
     w = Term.Numeral W ->
     native_zleq 0 W = true ->
     __eo_is_list (Term.UOp UserOp.bvxor) xs = Term.Boolean true ->
@@ -152,39 +145,39 @@ private theorem common_types
         SmtType.BitVec width ∧
       __smtx_typeof (__eo_to_smt (base xs zs)) =
         SmtType.BitVec width := by
-  intro hXsTy hZsTy hN hW hW0 hXsList hZsList
-  subst n
+  intro hXsTy hZsTy hNTy hW hW0 hXsList hZsList
   subst w
   let width := native_int_to_nat W
   have hConstTy :
       __smtx_typeof
           (__eo_to_smt
-            (bvAllOnesConst (Term.Numeral k) (Term.Numeral W))) =
+            (bvAllOnesConst n (Term.Numeral W))) =
         SmtType.BitVec width := by
-    simpa [width] using smt_typeof_bv_const k W hW0
+    simpa [bvAllOnesConst, width] using
+      smt_typeof_bv_const_of_int_type n W hNTy hW0
   have hInsertedList :
       __eo_is_list (Term.UOp UserOp.bvxor)
-          (insertedTail zs (Term.Numeral k) (Term.Numeral W)) =
+          (insertedTail zs n (Term.Numeral W)) =
         Term.Boolean true := by
     exact eo_is_list_cons_self_true_of_tail_list
       (Term.UOp UserOp.bvxor)
-      (bvAllOnesConst (Term.Numeral k) (Term.Numeral W)) zs
+      (bvAllOnesConst n (Term.Numeral W)) zs
       (by decide) hZsList
   have hInsertedTy :
       __smtx_typeof
           (__eo_to_smt
-            (insertedTail zs (Term.Numeral k) (Term.Numeral W))) =
+            (insertedTail zs n (Term.Numeral W))) =
         SmtType.BitVec width := by
     change __smtx_typeof
         (SmtTerm.bvxor
           (__eo_to_smt
-            (bvAllOnesConst (Term.Numeral k) (Term.Numeral W)))
+            (bvAllOnesConst n (Term.Numeral W)))
           (__eo_to_smt zs)) = _
     rw [smtx_typeof_bvxor_term_eq]
     simp [__smtx_typeof_bv_op_2, hConstTy, hZsTy, width,
       native_nateq, native_ite]
   have hLhsRecTy := BvNaryXorSupport.listConcatRecSmtType
-    xs (insertedTail zs (Term.Numeral k) (Term.Numeral W)) width
+    xs (insertedTail zs n (Term.Numeral W)) width
     hXsList hInsertedList (by simpa [width] using hXsTy) hInsertedTy
   have hBaseRecTy := BvNaryXorSupport.listConcatRecSmtType
     xs zs width hXsList hZsList
@@ -201,20 +194,20 @@ private theorem common_types
     simpa [base, baseList, hBaseEq] using hBaseTy⟩
 
 theorem typed_term
-    (xs zs n w : Term) (k W : native_Int) :
+    (xs zs n w : Term) (W : native_Int) :
     __smtx_typeof (__eo_to_smt xs) =
       SmtType.BitVec (native_int_to_nat W) ->
     __smtx_typeof (__eo_to_smt zs) =
       SmtType.BitVec (native_int_to_nat W) ->
-    n = Term.Numeral k ->
+    __smtx_typeof (__eo_to_smt n) = SmtType.Int ->
     w = Term.Numeral W ->
     native_zleq 0 W = true ->
     __eo_typeof (term xs zs n w) = Term.Bool ->
     RuleProofs.eo_has_bool_type (term xs zs n w) := by
-  intro hXsTy hZsTy hN hW hW0 hResultTy
-  have hLists := context xs zs n w k W hXsTy hZsTy hN hW hW0 hResultTy
-  have hTypes := common_types xs zs n w k W hXsTy hZsTy
-    hN hW hW0 hLists.1 hLists.2
+  intro hXsTy hZsTy hNTy hW hW0 hResultTy
+  have hLists := context xs zs n w hResultTy
+  have hTypes := common_types xs zs n w W hXsTy hZsTy
+    hNTy hW hW0 hLists.1 hLists.2
   have hInsertedList :
       __eo_is_list (Term.UOp UserOp.bvxor) (insertedTail zs n w) =
         Term.Boolean true :=
@@ -239,23 +232,23 @@ theorem typed_term
 
 theorem facts_term
     (M : SmtModel) (hM : model_total_typed M)
-    (xs zs n w : Term) (k W : native_Int) :
+    (xs zs n w : Term) (W : native_Int) :
     __smtx_typeof (__eo_to_smt xs) =
       SmtType.BitVec (native_int_to_nat W) ->
     __smtx_typeof (__eo_to_smt zs) =
       SmtType.BitVec (native_int_to_nat W) ->
-    n = Term.Numeral k ->
+    __smtx_typeof (__eo_to_smt n) = SmtType.Int ->
     w = Term.Numeral W ->
     native_zleq 0 W = true ->
     eo_interprets M (bvAllOnesValuePrem n w) true ->
     __eo_typeof (term xs zs n w) = Term.Bool ->
     eo_interprets M (term xs zs n w) true := by
-  intro hXsTy hZsTy hN hW hW0 hPrem hResultTy
-  have hBool := typed_term xs zs n w k W hXsTy hZsTy
-    hN hW hW0 hResultTy
-  have hLists := context xs zs n w k W hXsTy hZsTy hN hW hW0 hResultTy
-  have hTypes := common_types xs zs n w k W hXsTy hZsTy
-    hN hW hW0 hLists.1 hLists.2
+  intro hXsTy hZsTy hNTy hW hW0 hPrem hResultTy
+  have hBool := typed_term xs zs n w W hXsTy hZsTy
+    hNTy hW hW0 hResultTy
+  have hLists := context xs zs n w hResultTy
+  have hTypes := common_types xs zs n w W hXsTy hZsTy
+    hNTy hW hW0 hLists.1 hLists.2
   let width := native_int_to_nat W
   have hWidthEq : native_nat_to_int width = W := by
     exact native_width_roundtrip W hW0
@@ -288,8 +281,8 @@ theorem facts_term
   rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt zs) width
       (by simpa [width] using hZsTy) with
     ⟨pz, hZsEval, hZsCan⟩
-  have hMaxEval := eval_bv_all_ones_const_of_prem M n w k W
-    hN hW hW0 hPrem
+  have hMaxEval := eval_bv_all_ones_const_of_prem M hM n w W
+    hNTy hW hW0 hPrem
   have hMaxEvalNat :
       __smtx_model_eval M (__eo_to_smt (bvAllOnesConst n w)) =
         SmtValue.Binary (native_nat_to_int width)

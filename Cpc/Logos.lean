@@ -2294,6 +2294,7 @@ def __is_closed_rec : Term -> Term -> Term
   | (Term.Apply (Term.Apply q (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)) a), xs => (__eo_and (__is_closed_rec q xs) (__is_closed_rec a (__eo_list_concat Term.__eo_List_cons (Term.Apply (Term.Apply Term.__eo_List_cons v) vs) xs)))
   | (Term.Apply f a), xs => (__eo_and (__is_closed_rec f xs) (__is_closed_rec a xs))
   | (Term.Var s S), xs => (__eo_not (__eo_is_neg (__eo_list_find Term.__eo_List_cons xs (Term.Var s S))))
+  | (Term.UOp2 UserOp2._at_bv x n), xs => (__is_closed_rec x xs)
   | (Term.UOp2 UserOp2._at_quantifiers_skolemize F n), xs => (__is_closed_rec F xs)
   | (Term.UOp3 UserOp3._at_re_unfold_pos_component s r n), xs => (__eo_and (__is_closed_rec s xs) (__is_closed_rec r xs))
   | x, xs => (Term.Boolean true)

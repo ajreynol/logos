@@ -236,25 +236,13 @@ theorem smt_typeof_bv_const
           (Term.UOp2 UserOp2._at_bv (Term.Numeral k) (Term.Numeral n))) =
       SmtType.BitVec (native_int_to_nat n) := by
   intro hNonneg
-  change __smtx_typeof (__eo_to_smt__at_bv (SmtTerm.Numeral k) (SmtTerm.Numeral n)) =
+  change __smtx_typeof
+      (SmtTerm.int_to_bv (SmtTerm.Numeral n) (SmtTerm.Numeral k)) =
     SmtType.BitVec (native_int_to_nat n)
-  have hNN :
-      __smtx_typeof
-          (SmtTerm.Binary n (native_mod_total k (native_int_pow2 n))) ≠
-        SmtType.None := by
-    unfold __smtx_typeof
-    have hMod :
-        native_zeq
-            (native_mod_total k (native_int_pow2 n))
-            (native_mod_total
-              (native_mod_total k (native_int_pow2 n))
-              (native_int_pow2 n)) =
-          true :=
-      native_mod_total_canonical n k
-    simp [SmtEval.native_and, hNonneg, hMod, native_ite]
-  simpa [__eo_to_smt__at_bv, native_ite, hNonneg] using
-    TranslationProofs.smtx_typeof_binary_of_non_none n
-      (native_mod_total k (native_int_pow2 n)) hNN
+  have hk : __smtx_typeof (SmtTerm.Numeral k) = SmtType.Int := by
+    rw [__smtx_typeof.eq_def]
+  rw [typeof_int_to_bv_eq, hk]
+  simp [__smtx_typeof_int_to_bv, native_ite, hNonneg]
 
 theorem eval_bv_const
     (M : SmtModel) (k n : native_Int) :
@@ -265,10 +253,9 @@ theorem eval_bv_const
       SmtValue.Binary n (native_mod_total k (native_int_pow2 n)) := by
   intro hNonneg
   change __smtx_model_eval M
-      (__eo_to_smt__at_bv (SmtTerm.Numeral k) (SmtTerm.Numeral n)) =
+      (SmtTerm.int_to_bv (SmtTerm.Numeral n) (SmtTerm.Numeral k)) =
     SmtValue.Binary n (native_mod_total k (native_int_pow2 n))
-  simp [__eo_to_smt__at_bv, native_ite, hNonneg]
-  simp only [__smtx_model_eval]
+  simp [__smtx_model_eval, __smtx_model_eval_int_to_bv]
 
 theorem native_nat_to_int_int_to_nat_eq
     (n : native_Int) :

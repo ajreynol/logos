@@ -166,18 +166,19 @@ by
                               subst pn
                               subst pw
                               have hArgs :
-                                  ∃ k W : native_Int,
-                                    a3 = Term.Numeral k ∧
+                                  ∃ W : native_Int,
                                     a4 = Term.Numeral W ∧
                                     native_zleq 0 W = true ∧
                                     __smtx_typeof (__eo_to_smt a1) =
                                       SmtType.BitVec (native_int_to_nat W) ∧
                                     __smtx_typeof (__eo_to_smt a2) =
-                                      SmtType.BitVec (native_int_to_nat W) := by
+                                      SmtType.BitVec (native_int_to_nat W) ∧
+                                    __smtx_typeof (__eo_to_smt a3) =
+                                      SmtType.Int := by
                                 simpa [cmdTranslationOk,
                                   bvXorOnesArgsTranslationOk] using hCmdTrans
                               rcases hArgs with
-                                ⟨k, W, hA3, hA4, hW0, hA1Ty, hA2Ty⟩
+                                ⟨W, hA4, hW0, hA1Ty, hA2Ty, hA3Ty⟩
                               have hProgEq :=
                                 prog_bv_xor_ones_eq_term_of_ne_stuck
                                   a1 a2 a3 a4 hA1Ne hA2Ne hA3Ne hA4Ne
@@ -204,11 +205,11 @@ by
                                             (bvAllOnesValuePrem a3 a4) true :=
                                         hPremisesTrue.true_here _ (by simp)
                                       exact BvXorOnesSupport.facts_term M hM
-                                        a1 a2 a3 a4 k W hA1Ty hA2Ty
-                                        hA3 hA4 hW0 hPrem
+                                        a1 a2 a3 a4 W hA1Ty hA2Ty
+                                        hA3Ty hA4 hW0 hPrem
                                         hResultTyCanonical),
                                     RuleProofs.eo_has_smt_translation_of_has_bool_type _
                                       (BvXorOnesSupport.typed_term
-                                        a1 a2 a3 a4 k W hA1Ty hA2Ty
-                                        hA3 hA4 hW0
+                                        a1 a2 a3 a4 W hA1Ty hA2Ty
+                                        hA3Ty hA4 hW0
                                         hResultTyCanonical)⟩)

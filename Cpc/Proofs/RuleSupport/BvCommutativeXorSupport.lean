@@ -1372,11 +1372,14 @@ private theorem smt_typeof_bv_zero_nat (w : Nat) :
       native_mod_total 0 (native_int_pow2 (native_nat_to_int w)) = 0 := by
     simp [native_mod_total]
   change __smtx_typeof
-      (__eo_to_smt__at_bv (SmtTerm.Numeral 0)
-        (SmtTerm.Numeral (native_nat_to_int w))) =
+      (SmtTerm.int_to_bv (SmtTerm.Numeral (native_nat_to_int w))
+        (SmtTerm.Numeral 0)) =
     SmtType.BitVec w
-  simp [__eo_to_smt__at_bv, native_ite, hNonneg, hMod0,
-    smt_typeof_binary_zero]
+  have hZeroTy : __smtx_typeof (SmtTerm.Numeral 0) = SmtType.Int := by
+    rw [__smtx_typeof.eq_def]
+  rw [typeof_int_to_bv_eq, hZeroTy]
+  simp [__smtx_typeof_int_to_bv, native_ite, hNonneg,
+    native_zleq, native_int_to_nat, native_nat_to_int]
 
 private theorem smt_eval_bv_zero_nat (M : SmtModel) (w : Nat) :
     __smtx_model_eval M
@@ -1390,11 +1393,10 @@ private theorem smt_eval_bv_zero_nat (M : SmtModel) (w : Nat) :
       native_mod_total 0 (native_int_pow2 (native_nat_to_int w)) = 0 := by
     simp [native_mod_total]
   change __smtx_model_eval M
-      (__eo_to_smt__at_bv (SmtTerm.Numeral 0)
-        (SmtTerm.Numeral (native_nat_to_int w))) =
+      (SmtTerm.int_to_bv (SmtTerm.Numeral (native_nat_to_int w))
+        (SmtTerm.Numeral 0)) =
     SmtValue.Binary (native_nat_to_int w) 0
-  simp [__eo_to_smt__at_bv, native_ite, hNonneg, hMod0,
-    __smtx_model_eval]
+  simp [__smtx_model_eval, __smtx_model_eval_int_to_bv, hMod0]
 
 private theorem smt_typeof_bv_xor_duplicate_lhs
     (x : Term) (w : Nat) :
@@ -2760,8 +2762,8 @@ private theorem canonicalBitVecValue_of_payload
     SmtValue.Binary (native_nat_to_int w) n =
       canonicalBitVecValue w (BitVec.ofInt w n) := by
   intro hCan
-  simp [canonicalBitVecValue,
-    bitvec_ofInt_toNat_int_of_canonical w n hCan]
+  unfold canonicalBitVecValue
+  rw [bitvec_ofInt_toNat_int_of_canonical w n hCan]
 
 private theorem eval_bvxor_canonicalBitVecValue
     (w : Nat) (x y : BitVec w) :
@@ -2821,7 +2823,6 @@ theorem bvxor_cancel_nested_eval
     canonicalBitVecValue_of_payload w nc hC]
   repeat rw [eval_bvxor_canonicalBitVecValue]
   congr 1
-  apply congrArg (fun v : BitVec w => (v.toNat : Int))
   calc
     BitVec.ofInt w na ^^^
           (BitVec.ofInt w nx ^^^
@@ -2867,10 +2868,9 @@ theorem bvxor_not_cancel_nested_eval
     canonicalBitVecValue_of_payload w nx hX,
     canonicalBitVecValue_of_payload w nb hB,
     canonicalBitVecValue_of_payload w nc hC]
-  repeat rw [eval_bvxor_canonicalBitVecValue]
-  repeat rw [eval_bvnot_canonicalBitVecValue]
+  simp only [eval_bvxor_canonicalBitVecValue,
+    eval_bvnot_canonicalBitVecValue]
   congr 1
-  apply congrArg (fun v : BitVec w => (v.toNat : Int))
   calc
     BitVec.ofInt w na ^^^
           (BitVec.ofInt w nx ^^^
@@ -2920,10 +2920,9 @@ theorem bvxor_not_cancel_nested_eval_rev
     canonicalBitVecValue_of_payload w nx hX,
     canonicalBitVecValue_of_payload w nb hB,
     canonicalBitVecValue_of_payload w nc hC]
-  repeat rw [eval_bvxor_canonicalBitVecValue]
-  repeat rw [eval_bvnot_canonicalBitVecValue]
+  simp only [eval_bvxor_canonicalBitVecValue,
+    eval_bvnot_canonicalBitVecValue]
   congr 1
-  apply congrArg (fun v : BitVec w => (v.toNat : Int))
   calc
     BitVec.ofInt w na ^^^
           (~~~(BitVec.ofInt w nx) ^^^

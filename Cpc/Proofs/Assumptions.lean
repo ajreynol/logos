@@ -23,9 +23,6 @@ inductive ArgTranslationKind where
   | list
   | type
   | intTerm
-  /-- An EO integer literal. This is used for checker arguments that become the
-      payload of the SMT translation of `@bv`, which requires a numeral. -/
-  | intLiteral
   | realTerm
   /-- A value argument whose translated result type must itself be a full
       well-formed SMT type. This is weaker than `wfElem` for top-level function
@@ -45,8 +42,6 @@ def argTranslationOkMasked : ArgTranslationKind -> Term -> Prop
   | ArgTranslationKind.type, t => __smtx_type_wf (__eo_to_smt_type t) = true
   | ArgTranslationKind.intTerm, t =>
       eoHasSmtTranslation t ∧ __eo_typeof t = Term.UOp UserOp.Int
-  | ArgTranslationKind.intLiteral, t =>
-      ∃ n : native_Int, t = Term.Numeral n
   | ArgTranslationKind.realTerm, t =>
       eoHasSmtTranslation t ∧ __eo_typeof t = Term.UOp UserOp.Real
   | ArgTranslationKind.wfTerm, t =>
@@ -66,22 +61,22 @@ def cArgListTranslationOkMask : List ArgTranslationKind -> CArgList -> Prop
       argTranslationOkMasked kind a ∧ cArgListTranslationOkMask mask args
   | _, _ => False
 
-/-- Translation invariant for `bv_xor_ones`. Its two context arguments are
-    aggregate XOR lists of the same width as the all-ones literal. Keeping the
-    relation here avoids treating the `@bv` payload as an arbitrary integer
-    term and supplies the common type needed by n-ary XOR translation. -/
+/-- Translation invariant for `bv_xor_ones`. The aggregate XOR arguments share
+    the width of the all-ones constant. The constant payload itself may now be
+    any translated integer term, since `_at_bv` translates arbitrary SMT Int
+    terms directly. -/
 def bvXorOnesArgsTranslationOk : CArgList -> Prop
   | CArgList.cons xs
       (CArgList.cons zs
         (CArgList.cons n (CArgList.cons w CArgList.nil))) =>
-      ∃ k W : native_Int,
-        n = Term.Numeral k ∧
+      ∃ W : native_Int,
         w = Term.Numeral W ∧
         native_zleq 0 W = true ∧
         __smtx_typeof (__eo_to_smt xs) =
           SmtType.BitVec (native_int_to_nat W) ∧
         __smtx_typeof (__eo_to_smt zs) =
-          SmtType.BitVec (native_int_to_nat W)
+          SmtType.BitVec (native_int_to_nat W) ∧
+        __smtx_typeof (__eo_to_smt n) = SmtType.Int
   | _ => False
 
 /-- Predicate asserting that a checker command meets the translation side conditions used by the rule proofs. -/
@@ -184,12 +179,6 @@ def cmdTranslationOk : CCmd -> Prop
   | CCmd.step CRule.arith_mod_over_mod_mult args _ =>
       cArgListTranslationOkMask [ArgTranslationKind.intTerm, ArgTranslationKind.intTerm,
         ArgTranslationKind.intTerm, ArgTranslationKind.intTerm] args
-  | CCmd.step CRule.bv_ult_ones args _ =>
-      cArgListTranslationOkMask [ArgTranslationKind.wfTerm, ArgTranslationKind.intLiteral,
-        ArgTranslationKind.term] args
-  | CCmd.step CRule.bv_ule_max args _ =>
-      cArgListTranslationOkMask [ArgTranslationKind.term, ArgTranslationKind.intLiteral,
-        ArgTranslationKind.term] args
   | CCmd.step CRule.bv_xor_ones args _ =>
       bvXorOnesArgsTranslationOk args
   | CCmd.step _ args _ => cArgListTranslationOk args

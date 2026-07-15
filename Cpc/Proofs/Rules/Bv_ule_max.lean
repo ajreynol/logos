@@ -193,22 +193,15 @@ by
                               subst px'
                               have hArgs :
                                   RuleProofs.eo_has_smt_translation a1 ∧
-                                    (∃ k : native_Int,
-                                      a2 = Term.Numeral k) ∧
+                                    RuleProofs.eo_has_smt_translation a2 ∧
                                     RuleProofs.eo_has_smt_translation a3 ∧
                                     True := by
                                 simpa [cmdTranslationOk,
-                                  cArgListTranslationOkMask,
-                                  argTranslationOkMasked,
+                                  cArgListTranslationOk,
                                   RuleProofs.eo_has_smt_translation,
                                   eoHasSmtTranslation] using hCmdTrans
-                              rcases hArgs.2.1 with ⟨k, hA2⟩
                               have hA1Trans := hArgs.1
-                              have hA2Trans :
-                                  RuleProofs.eo_has_smt_translation a2 := by
-                                rw [hA2]
-                                change SmtType.Int ≠ SmtType.None
-                                decide
+                              have hA2Trans := hArgs.2.1
                               have hA3Trans := hArgs.2.2.1
                               have hResultTyCanonical :
                                   __eo_typeof (bvUleMaxTerm a1 a2 a3) =
@@ -236,10 +229,10 @@ by
                                             (bvUleMaxValuePrem a1 a2) true :=
                                         hPremisesTrue.true_here _ (by simp)
                                       exact facts_bv_ule_max_term M hM
-                                        a1 a2 a3 k hA1Trans hA2Trans
-                                        hA3Trans hA2 hValuePrem
+                                        a1 a2 a3 hA1Trans hA2Trans
+                                        hA3Trans hValuePrem
                                         hResultTyCanonical),
                                     RuleProofs.eo_has_smt_translation_of_has_bool_type _
-                                      (typed_bv_ule_max_term a1 a2 a3 k
-                                        hA1Trans hA2Trans hA3Trans hA2
+                                      (typed_bv_ule_max_term a1 a2 a3
+                                        hA1Trans hA2Trans hA3Trans
                                         hResultTyCanonical)⟩)

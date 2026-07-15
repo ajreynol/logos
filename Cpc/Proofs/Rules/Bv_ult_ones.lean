@@ -55,12 +55,11 @@ private theorem bv_ult_ones_shape_of_ne_stuck
           exact hShape ⟨pn, pw, rfl⟩)
     exact False.elim (hProg hStuck)
 
-private theorem eo_typeof_ne_stuck_of_translation_wf
+private theorem eo_typeof_ne_stuck_of_translation
     (x : Term) :
     RuleProofs.eo_has_smt_translation x ->
-    __smtx_type_wf (__smtx_typeof (__eo_to_smt x)) = true ->
     __eo_typeof x ≠ Term.Stuck := by
-  intro hTrans _hWf hType
+  intro hTrans hType
   have hTypeMatch :
       __smtx_typeof (__eo_to_smt x) =
         __eo_to_smt_type (__eo_typeof x) :=
@@ -137,30 +136,19 @@ by
                           subst pn
                           subst pw
                           have hArgs :
-                              (RuleProofs.eo_has_smt_translation a1 ∧
-                                __smtx_type_wf
-                                    (__smtx_typeof (__eo_to_smt a1)) = true) ∧
-                                (∃ k : native_Int,
-                                  a2 = Term.Numeral k) ∧
+                              RuleProofs.eo_has_smt_translation a1 ∧
+                                RuleProofs.eo_has_smt_translation a2 ∧
                                 RuleProofs.eo_has_smt_translation a3 ∧
                                 True := by
                             simpa [cmdTranslationOk,
-                              cArgListTranslationOkMask,
-                              argTranslationOkMasked,
+                              cArgListTranslationOk,
                               RuleProofs.eo_has_smt_translation,
                               eoHasSmtTranslation] using hCmdTrans
-                          rcases hArgs.2.1 with ⟨k, hA2⟩
-                          have hA1Trans := hArgs.1.1
-                          have hA1Wf := hArgs.1.2
-                          have hA2Trans :
-                              RuleProofs.eo_has_smt_translation a2 := by
-                            rw [hA2]
-                            change SmtType.Int ≠ SmtType.None
-                            decide
+                          have hA1Trans := hArgs.1
+                          have hA2Trans := hArgs.2.1
                           have hA3Trans := hArgs.2.2.1
                           have hA1TypeNe : __eo_typeof a1 ≠ Term.Stuck :=
-                            eo_typeof_ne_stuck_of_translation_wf
-                              a1 hA1Trans hA1Wf
+                            eo_typeof_ne_stuck_of_translation a1 hA1Trans
                           have hResultTyCanonical :
                               __eo_typeof (bvUltOnesTerm a1 a2 a3) =
                                 Term.Bool := by
@@ -185,10 +173,10 @@ by
                                         (bvAllOnesValuePrem a2 a3) true :=
                                     hPremisesTrue.true_here _ (by simp)
                                   exact facts_bv_ult_ones_term M hM
-                                    a1 a2 a3 k hA1Trans hA1Wf
-                                    hA2Trans hA3Trans hA2 hPrem
+                                    a1 a2 a3 hA1Trans
+                                    hA2Trans hA3Trans hPrem
                                     hResultTyCanonical),
                                 RuleProofs.eo_has_smt_translation_of_has_bool_type _
-                                  (typed_bv_ult_ones_term a1 a2 a3 k
-                                    hA1Trans hA1Wf hA2Trans hA3Trans
-                                    hA2 hResultTyCanonical)⟩)
+                                  (typed_bv_ult_ones_term a1 a2 a3
+                                    hA1Trans hA2Trans hA3Trans
+                                    hResultTyCanonical)⟩)
