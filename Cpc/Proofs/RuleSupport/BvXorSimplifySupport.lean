@@ -424,4 +424,532 @@ theorem program3_eq_term
       rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hRhsNe]
     _ = term3 xs ys zs x := by rw [hLhsEq, hBaseEq]; rfl
 
+private theorem smtx_typeof_bvxor_term_eq
+    (x y : SmtTerm) :
+    __smtx_typeof (SmtTerm.bvxor x y) =
+      __smtx_typeof_bv_op_2 (__smtx_typeof x) (__smtx_typeof y) := by
+  rw [__smtx_typeof.eq_def] <;> simp only
+
+private theorem smtx_typeof_bvnot_term_eq
+    (x : SmtTerm) :
+    __smtx_typeof (SmtTerm.bvnot x) =
+      __smtx_typeof_bv_op_1 (__smtx_typeof x) := by
+  rw [__smtx_typeof.eq_def] <;> simp only
+
+private theorem smtx_eval_bvxor_term_eq
+    (M : SmtModel) (x y : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.bvxor x y) =
+      __smtx_model_eval_bvxor
+        (__smtx_model_eval M x) (__smtx_model_eval M y) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+private theorem smtx_eval_bvnot_term_eq
+    (M : SmtModel) (x : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.bvnot x) =
+      __smtx_model_eval_bvnot (__smtx_model_eval M x) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+private theorem bvxor_smt_type
+    (x y : Term) (w : Nat) :
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt (xor x y)) = SmtType.BitVec w := by
+  intro hXTy hYTy
+  change __smtx_typeof
+      (SmtTerm.bvxor (__eo_to_smt x) (__eo_to_smt y)) = _
+  rw [smtx_typeof_bvxor_term_eq]
+  simp [__smtx_typeof_bv_op_2, hXTy, hYTy, native_nateq, native_ite]
+
+private theorem bvnot_smt_type
+    (x : Term) (w : Nat) :
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt (bvnot x)) = SmtType.BitVec w := by
+  intro hXTy
+  change __smtx_typeof (SmtTerm.bvnot (__eo_to_smt x)) = _
+  rw [smtx_typeof_bvnot_term_eq]
+  simp [__smtx_typeof_bv_op_1, hXTy, native_ite]
+
+private theorem program1_lists
+    (xs ys zs x : Term) (w : Nat) :
+    __smtx_typeof (__eo_to_smt xs) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt ys) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt zs) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
+    __eo_typeof (__eo_prog_bv_xor_simplify_1 xs ys zs x) = Term.Bool ->
+    __eo_is_list op xs = Term.Boolean true ∧
+      __eo_is_list op ys = Term.Boolean true ∧
+      __eo_is_list op zs = Term.Boolean true := by
+  intro hXsTy hYsTy hZsTy hXTy hResultTy
+  exact guardedLhs_lists_of_ne_stuck xs ys zs x x
+    (program1_lhs_ne xs ys zs x w
+      hXsTy hYsTy hZsTy hXTy hResultTy)
+
+private theorem program2_lists
+    (xs ys zs x : Term) (w : Nat) :
+    __smtx_typeof (__eo_to_smt xs) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt ys) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt zs) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
+    __eo_typeof (__eo_prog_bv_xor_simplify_2 xs ys zs x) = Term.Bool ->
+    __eo_is_list op xs = Term.Boolean true ∧
+      __eo_is_list op ys = Term.Boolean true ∧
+      __eo_is_list op zs = Term.Boolean true := by
+  intro hXsTy hYsTy hZsTy hXTy hResultTy
+  exact guardedLhs_lists_of_ne_stuck xs ys zs x (bvnot x)
+    (program2_lhs_ne xs ys zs x w
+      hXsTy hYsTy hZsTy hXTy hResultTy)
+
+private theorem program3_lists
+    (xs ys zs x : Term) (w : Nat) :
+    __smtx_typeof (__eo_to_smt xs) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt ys) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt zs) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
+    __eo_typeof (__eo_prog_bv_xor_simplify_3 xs ys zs x) = Term.Bool ->
+    __eo_is_list op xs = Term.Boolean true ∧
+      __eo_is_list op ys = Term.Boolean true ∧
+      __eo_is_list op zs = Term.Boolean true := by
+  intro hXsTy hYsTy hZsTy hXTy hResultTy
+  exact guardedLhs_lists_of_ne_stuck xs ys zs (bvnot x) x
+    (program3_lhs_ne xs ys zs x w
+      hXsTy hYsTy hZsTy hXTy hResultTy)
+
+private theorem lhs_base_smt_types
+    (xs ys zs first second : Term) (w : Nat) :
+    __smtx_typeof (__eo_to_smt xs) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt ys) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt zs) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt first) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt second) = SmtType.BitVec w ->
+    __eo_is_list op xs = Term.Boolean true ->
+    __eo_is_list op ys = Term.Boolean true ->
+    __eo_is_list op zs = Term.Boolean true ->
+    __smtx_typeof (__eo_to_smt (lhs xs ys zs first second)) =
+        SmtType.BitVec w ∧
+      __smtx_typeof (__eo_to_smt (base xs ys zs)) =
+        SmtType.BitVec w := by
+  intro hXsTy hYsTy hZsTy hFirstTy hSecondTy
+    hXsList hYsList hZsList
+  have hSecondZsList :
+      __eo_is_list op (xor second zs) = Term.Boolean true :=
+    eo_is_list_cons_self_true_of_tail_list op second zs
+      (by decide) hZsList
+  have hSecondZsTy := bvxor_smt_type second zs w hSecondTy hZsTy
+  have hInnerList :
+      __eo_is_list op (inner ys zs second) = Term.Boolean true := by
+    exact eo_list_concat_rec_is_list_true_of_lists op ys (xor second zs)
+      hYsList hSecondZsList
+  have hInnerTy :
+      __smtx_typeof (__eo_to_smt (inner ys zs second)) =
+        SmtType.BitVec w := by
+    exact BvNaryXorSupport.listConcatRecSmtType ys (xor second zs) w
+      (by simpa [op] using hYsList)
+      (by simpa [op] using hSecondZsList) hYsTy hSecondZsTy
+  have hInsertedList :
+      __eo_is_list op (inserted ys zs first second) = Term.Boolean true :=
+    eo_is_list_cons_self_true_of_tail_list op first (inner ys zs second)
+      (by decide) hInnerList
+  have hInsertedTy :=
+    bvxor_smt_type first (inner ys zs second) w hFirstTy hInnerTy
+  have hLhsTy :
+      __smtx_typeof (__eo_to_smt (lhs xs ys zs first second)) =
+        SmtType.BitVec w := by
+    exact BvNaryXorSupport.listConcatRecSmtType xs
+      (inserted ys zs first second) w
+      (by simpa [op] using hXsList)
+      (by simpa [op] using hInsertedList) hXsTy hInsertedTy
+  have hYZList :
+      __eo_is_list op (__eo_list_concat_rec ys zs) = Term.Boolean true :=
+    eo_list_concat_rec_is_list_true_of_lists op ys zs hYsList hZsList
+  have hYZTy := BvNaryXorSupport.listConcatRecSmtType ys zs w
+    (by simpa [op] using hYsList) (by simpa [op] using hZsList)
+    hYsTy hZsTy
+  have hBaseListList :
+      __eo_is_list op (baseList xs ys zs) = Term.Boolean true :=
+    eo_list_concat_rec_is_list_true_of_lists op xs
+      (__eo_list_concat_rec ys zs) hXsList hYZList
+  have hBaseListTy := BvNaryXorSupport.listConcatRecSmtType xs
+    (__eo_list_concat_rec ys zs) w
+    (by simpa [op] using hXsList) (by simpa [op] using hYZList)
+    hXsTy hYZTy
+  have hBaseTy := BvNaryXorSupport.listSingletonElimSmtType
+    (baseList xs ys zs) w (by simpa [op] using hBaseListList) hBaseListTy
+  exact ⟨hLhsTy, by simpa [base] using hBaseTy⟩
+
+private theorem eval_lhs_base
+    (M : SmtModel) (hM : model_total_typed M)
+    (xs ys zs first second : Term) (w : Nat) :
+    __smtx_typeof (__eo_to_smt xs) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt ys) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt zs) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt first) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt second) = SmtType.BitVec w ->
+    __eo_is_list op xs = Term.Boolean true ->
+    __eo_is_list op ys = Term.Boolean true ->
+    __eo_is_list op zs = Term.Boolean true ->
+    __smtx_model_eval M
+        (__eo_to_smt (lhs xs ys zs first second)) =
+      __smtx_model_eval_bvxor
+        (__smtx_model_eval M (__eo_to_smt xs))
+        (__smtx_model_eval_bvxor
+          (__smtx_model_eval M (__eo_to_smt first))
+          (__smtx_model_eval_bvxor
+            (__smtx_model_eval M (__eo_to_smt ys))
+            (__smtx_model_eval_bvxor
+              (__smtx_model_eval M (__eo_to_smt second))
+              (__smtx_model_eval M (__eo_to_smt zs))))) ∧
+      __smtx_model_eval M (__eo_to_smt (base xs ys zs)) =
+        __smtx_model_eval_bvxor
+          (__smtx_model_eval M (__eo_to_smt xs))
+          (__smtx_model_eval_bvxor
+            (__smtx_model_eval M (__eo_to_smt ys))
+            (__smtx_model_eval M (__eo_to_smt zs))) := by
+  intro hXsTy hYsTy hZsTy hFirstTy hSecondTy
+    hXsList hYsList hZsList
+  have hSecondZsList :
+      __eo_is_list op (xor second zs) = Term.Boolean true :=
+    eo_is_list_cons_self_true_of_tail_list op second zs
+      (by decide) hZsList
+  have hSecondZsTy := bvxor_smt_type second zs w hSecondTy hZsTy
+  have hInnerList :
+      __eo_is_list op (inner ys zs second) = Term.Boolean true :=
+    eo_list_concat_rec_is_list_true_of_lists op ys (xor second zs)
+      hYsList hSecondZsList
+  have hInnerTy := BvNaryXorSupport.listConcatRecSmtType
+    ys (xor second zs) w
+    (by simpa [op] using hYsList)
+    (by simpa [op] using hSecondZsList) hYsTy hSecondZsTy
+  have hInsertedList :
+      __eo_is_list op (inserted ys zs first second) = Term.Boolean true :=
+    eo_is_list_cons_self_true_of_tail_list op first (inner ys zs second)
+      (by decide) hInnerList
+  have hInsertedTy :=
+    bvxor_smt_type first (inner ys zs second) w hFirstTy hInnerTy
+  have hYZList :
+      __eo_is_list op (__eo_list_concat_rec ys zs) = Term.Boolean true :=
+    eo_list_concat_rec_is_list_true_of_lists op ys zs hYsList hZsList
+  have hYZTy := BvNaryXorSupport.listConcatRecSmtType ys zs w
+    (by simpa [op] using hYsList) (by simpa [op] using hZsList)
+    hYsTy hZsTy
+  have hBaseListList :
+      __eo_is_list op (baseList xs ys zs) = Term.Boolean true :=
+    eo_list_concat_rec_is_list_true_of_lists op xs
+      (__eo_list_concat_rec ys zs) hXsList hYZList
+  have hBaseListTy := BvNaryXorSupport.listConcatRecSmtType xs
+    (__eo_list_concat_rec ys zs) w
+    (by simpa [op] using hXsList) (by simpa [op] using hYZList)
+    hXsTy hYZTy
+  have hLhsConcat := BvNaryXorSupport.listConcatRecEvalEq M hM xs
+    (inserted ys zs first second) w
+    (by simpa [op] using hXsList)
+    (by simpa [op] using hInsertedList) hXsTy hInsertedTy
+  have hInnerConcat := BvNaryXorSupport.listConcatRecEvalEq M hM ys
+    (xor second zs) w
+    (by simpa [op] using hYsList)
+    (by simpa [op] using hSecondZsList) hYsTy hSecondZsTy
+  have hYZConcat := BvNaryXorSupport.listConcatRecEvalEq M hM ys zs w
+    (by simpa [op] using hYsList) (by simpa [op] using hZsList)
+    hYsTy hZsTy
+  have hBaseConcat := BvNaryXorSupport.listConcatRecEvalEq M hM xs
+    (__eo_list_concat_rec ys zs) w
+    (by simpa [op] using hXsList) (by simpa [op] using hYZList)
+    hXsTy hYZTy
+  have hSingleton := BvNaryXorSupport.listSingletonElimEvalEq M hM
+    (baseList xs ys zs) w (by simpa [op] using hBaseListList) hBaseListTy
+  have hSecondZsEval :
+      __smtx_model_eval M (__eo_to_smt (xor second zs)) =
+        __smtx_model_eval_bvxor
+          (__smtx_model_eval M (__eo_to_smt second))
+          (__smtx_model_eval M (__eo_to_smt zs)) := by
+    change __smtx_model_eval M
+        (SmtTerm.bvxor (__eo_to_smt second) (__eo_to_smt zs)) = _
+    exact smtx_eval_bvxor_term_eq M _ _
+  have hInnerEval :
+      __smtx_model_eval M (__eo_to_smt (inner ys zs second)) =
+        __smtx_model_eval_bvxor
+          (__smtx_model_eval M (__eo_to_smt ys))
+          (__smtx_model_eval_bvxor
+            (__smtx_model_eval M (__eo_to_smt second))
+            (__smtx_model_eval M (__eo_to_smt zs))) := by
+    rw [hInnerConcat]
+    change __smtx_model_eval M
+        (SmtTerm.bvxor (__eo_to_smt ys)
+          (__eo_to_smt (xor second zs))) = _
+    rw [smtx_eval_bvxor_term_eq, hSecondZsEval]
+  have hInsertedEval :
+      __smtx_model_eval M
+          (__eo_to_smt (inserted ys zs first second)) =
+        __smtx_model_eval_bvxor
+          (__smtx_model_eval M (__eo_to_smt first))
+          (__smtx_model_eval_bvxor
+            (__smtx_model_eval M (__eo_to_smt ys))
+            (__smtx_model_eval_bvxor
+              (__smtx_model_eval M (__eo_to_smt second))
+              (__smtx_model_eval M (__eo_to_smt zs))) := by
+    change __smtx_model_eval M
+        (SmtTerm.bvxor (__eo_to_smt first)
+          (__eo_to_smt (inner ys zs second))) = _
+    rw [smtx_eval_bvxor_term_eq, hInnerEval]
+  have hLhsEval :
+      __smtx_model_eval M
+          (__eo_to_smt (lhs xs ys zs first second)) =
+        __smtx_model_eval_bvxor
+          (__smtx_model_eval M (__eo_to_smt xs))
+          (__smtx_model_eval_bvxor
+            (__smtx_model_eval M (__eo_to_smt first))
+            (__smtx_model_eval_bvxor
+              (__smtx_model_eval M (__eo_to_smt ys))
+              (__smtx_model_eval_bvxor
+                (__smtx_model_eval M (__eo_to_smt second))
+                (__smtx_model_eval M (__eo_to_smt zs)))) := by
+    rw [hLhsConcat]
+    change __smtx_model_eval M
+        (SmtTerm.bvxor (__eo_to_smt xs)
+          (__eo_to_smt (inserted ys zs first second))) = _
+    rw [smtx_eval_bvxor_term_eq, hInsertedEval]
+  have hYZEval :
+      __smtx_model_eval M
+          (__eo_to_smt (__eo_list_concat_rec ys zs)) =
+        __smtx_model_eval_bvxor
+          (__smtx_model_eval M (__eo_to_smt ys))
+          (__smtx_model_eval M (__eo_to_smt zs)) := by
+    rw [hYZConcat]
+    change __smtx_model_eval M
+        (SmtTerm.bvxor (__eo_to_smt ys) (__eo_to_smt zs)) = _
+    exact smtx_eval_bvxor_term_eq M _ _
+  have hBaseListEval :
+      __smtx_model_eval M (__eo_to_smt (baseList xs ys zs)) =
+        __smtx_model_eval_bvxor
+          (__smtx_model_eval M (__eo_to_smt xs))
+          (__smtx_model_eval_bvxor
+            (__smtx_model_eval M (__eo_to_smt ys))
+            (__smtx_model_eval M (__eo_to_smt zs))) := by
+    rw [hBaseConcat]
+    change __smtx_model_eval M
+        (SmtTerm.bvxor (__eo_to_smt xs)
+          (__eo_to_smt (__eo_list_concat_rec ys zs))) = _
+    rw [smtx_eval_bvxor_term_eq, hYZEval]
+  have hBaseEval :
+      __smtx_model_eval M (__eo_to_smt (base xs ys zs)) =
+        __smtx_model_eval_bvxor
+          (__smtx_model_eval M (__eo_to_smt xs))
+          (__smtx_model_eval_bvxor
+            (__smtx_model_eval M (__eo_to_smt ys))
+            (__smtx_model_eval M (__eo_to_smt zs))) := by
+    rw [show base xs ys zs =
+        __eo_list_singleton_elim op (baseList xs ys zs) by rfl]
+    rw [show __smtx_model_eval M
+          (__eo_to_smt (__eo_list_singleton_elim op (baseList xs ys zs))) =
+        __smtx_model_eval M (__eo_to_smt (baseList xs ys zs)) by
+      simpa [op] using hSingleton]
+    exact hBaseListEval
+  exact ⟨hLhsEval, hBaseEval⟩
+
+theorem typed_term1
+    (xs ys zs x : Term) (w : Nat) :
+    __smtx_typeof (__eo_to_smt xs) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt ys) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt zs) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
+    __eo_typeof (__eo_prog_bv_xor_simplify_1 xs ys zs x) = Term.Bool ->
+    RuleProofs.eo_has_bool_type (term1 xs ys zs x) := by
+  intro hXsTy hYsTy hZsTy hXTy hResultTy
+  have hLists := program1_lists xs ys zs x w
+    hXsTy hYsTy hZsTy hXTy hResultTy
+  have hTypes := lhs_base_smt_types xs ys zs x x w
+    hXsTy hYsTy hZsTy hXTy hXTy hLists.1 hLists.2.1 hLists.2.2
+  simpa [term1, eqTerm] using
+    (RuleProofs.eo_has_bool_type_eq_of_same_smt_type
+      (lhs xs ys zs x x) (base xs ys zs)
+      (by rw [hTypes.1, hTypes.2]) (by rw [hTypes.1]; simp))
+
+theorem typed_term2
+    (xs ys zs x : Term) (w : Nat) :
+    __smtx_typeof (__eo_to_smt xs) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt ys) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt zs) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
+    __eo_typeof (__eo_prog_bv_xor_simplify_2 xs ys zs x) = Term.Bool ->
+    RuleProofs.eo_has_bool_type (term2 xs ys zs x) := by
+  intro hXsTy hYsTy hZsTy hXTy hResultTy
+  have hLists := program2_lists xs ys zs x w
+    hXsTy hYsTy hZsTy hXTy hResultTy
+  have hNotXTy := bvnot_smt_type x w hXTy
+  have hTypes := lhs_base_smt_types xs ys zs x (bvnot x) w
+    hXsTy hYsTy hZsTy hXTy hNotXTy
+    hLists.1 hLists.2.1 hLists.2.2
+  have hRhsTy := bvnot_smt_type (base xs ys zs) w hTypes.2
+  simpa [term2, eqTerm] using
+    (RuleProofs.eo_has_bool_type_eq_of_same_smt_type
+      (lhs xs ys zs x (bvnot x)) (bvnot (base xs ys zs))
+      (by rw [hTypes.1, hRhsTy]) (by rw [hTypes.1]; simp))
+
+theorem typed_term3
+    (xs ys zs x : Term) (w : Nat) :
+    __smtx_typeof (__eo_to_smt xs) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt ys) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt zs) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
+    __eo_typeof (__eo_prog_bv_xor_simplify_3 xs ys zs x) = Term.Bool ->
+    RuleProofs.eo_has_bool_type (term3 xs ys zs x) := by
+  intro hXsTy hYsTy hZsTy hXTy hResultTy
+  have hLists := program3_lists xs ys zs x w
+    hXsTy hYsTy hZsTy hXTy hResultTy
+  have hNotXTy := bvnot_smt_type x w hXTy
+  have hTypes := lhs_base_smt_types xs ys zs (bvnot x) x w
+    hXsTy hYsTy hZsTy hNotXTy hXTy
+    hLists.1 hLists.2.1 hLists.2.2
+  have hRhsTy := bvnot_smt_type (base xs ys zs) w hTypes.2
+  simpa [term3, eqTerm] using
+    (RuleProofs.eo_has_bool_type_eq_of_same_smt_type
+      (lhs xs ys zs (bvnot x) x) (bvnot (base xs ys zs))
+      (by rw [hTypes.1, hRhsTy]) (by rw [hTypes.1]; simp))
+
+theorem facts_term1
+    (M : SmtModel) (hM : model_total_typed M)
+    (xs ys zs x : Term) (w : Nat) :
+    __smtx_typeof (__eo_to_smt xs) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt ys) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt zs) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
+    __eo_typeof (__eo_prog_bv_xor_simplify_1 xs ys zs x) = Term.Bool ->
+    eo_interprets M (term1 xs ys zs x) true := by
+  intro hXsTy hYsTy hZsTy hXTy hResultTy
+  have hBool := typed_term1 xs ys zs x w
+    hXsTy hYsTy hZsTy hXTy hResultTy
+  have hLists := program1_lists xs ys zs x w
+    hXsTy hYsTy hZsTy hXTy hResultTy
+  have hEvals := eval_lhs_base M hM xs ys zs x x w
+    hXsTy hYsTy hZsTy hXTy hXTy
+    hLists.1 hLists.2.1 hLists.2.2
+  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt xs) w
+      hXsTy with ⟨nxs, hXsEval, hXsCan⟩
+  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt ys) w
+      hYsTy with ⟨nys, hYsEval, hYsCan⟩
+  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt zs) w
+      hZsTy with ⟨nzs, hZsEval, hZsCan⟩
+  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x) w
+      hXTy with ⟨nx, hXEval, hXCan⟩
+  have hEvalEq :
+      __smtx_model_eval M (__eo_to_smt (lhs xs ys zs x x)) =
+        __smtx_model_eval M (__eo_to_smt (base xs ys zs)) := by
+    rw [hEvals.1, hEvals.2, hXsEval, hYsEval, hZsEval, hXEval]
+    exact bvxor_cancel_nested_eval w nxs nx nys nzs
+      hXsCan hXCan hYsCan hZsCan
+  apply RuleProofs.eo_interprets_eq_of_rel M
+  · exact hBool
+  · change RuleProofs.smt_value_rel
+      (__smtx_model_eval M (__eo_to_smt (lhs xs ys zs x x)))
+      (__smtx_model_eval M (__eo_to_smt (base xs ys zs)))
+    rw [hEvalEq]
+    exact RuleProofs.smt_value_rel_refl _
+
+theorem facts_term2
+    (M : SmtModel) (hM : model_total_typed M)
+    (xs ys zs x : Term) (w : Nat) :
+    __smtx_typeof (__eo_to_smt xs) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt ys) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt zs) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
+    __eo_typeof (__eo_prog_bv_xor_simplify_2 xs ys zs x) = Term.Bool ->
+    eo_interprets M (term2 xs ys zs x) true := by
+  intro hXsTy hYsTy hZsTy hXTy hResultTy
+  have hBool := typed_term2 xs ys zs x w
+    hXsTy hYsTy hZsTy hXTy hResultTy
+  have hLists := program2_lists xs ys zs x w
+    hXsTy hYsTy hZsTy hXTy hResultTy
+  have hNotXTy := bvnot_smt_type x w hXTy
+  have hEvals := eval_lhs_base M hM xs ys zs x (bvnot x) w
+    hXsTy hYsTy hZsTy hXTy hNotXTy
+    hLists.1 hLists.2.1 hLists.2.2
+  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt xs) w
+      hXsTy with ⟨nxs, hXsEval, hXsCan⟩
+  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt ys) w
+      hYsTy with ⟨nys, hYsEval, hYsCan⟩
+  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt zs) w
+      hZsTy with ⟨nzs, hZsEval, hZsCan⟩
+  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x) w
+      hXTy with ⟨nx, hXEval, hXCan⟩
+  have hNotXEval :
+      __smtx_model_eval M (__eo_to_smt (bvnot x)) =
+        __smtx_model_eval_bvnot
+          (SmtValue.Binary (native_nat_to_int w) nx) := by
+    change __smtx_model_eval M (SmtTerm.bvnot (__eo_to_smt x)) = _
+    rw [smtx_eval_bvnot_term_eq, hXEval]
+  have hEvalEq :
+      __smtx_model_eval M
+          (__eo_to_smt (lhs xs ys zs x (bvnot x))) =
+        __smtx_model_eval M
+          (__eo_to_smt (bvnot (base xs ys zs))) := by
+    rw [hEvals.1]
+    change _ = __smtx_model_eval M
+      (SmtTerm.bvnot (__eo_to_smt (base xs ys zs)))
+    rw [smtx_eval_bvnot_term_eq, hEvals.2, hNotXEval,
+      hXsEval, hYsEval, hZsEval, hXEval]
+    exact bvxor_not_cancel_nested_eval w nxs nx nys nzs
+      hXsCan hXCan hYsCan hZsCan
+  apply RuleProofs.eo_interprets_eq_of_rel M
+  · exact hBool
+  · change RuleProofs.smt_value_rel
+      (__smtx_model_eval M
+        (__eo_to_smt (lhs xs ys zs x (bvnot x))))
+      (__smtx_model_eval M
+        (__eo_to_smt (bvnot (base xs ys zs))))
+    rw [hEvalEq]
+    exact RuleProofs.smt_value_rel_refl _
+
+theorem facts_term3
+    (M : SmtModel) (hM : model_total_typed M)
+    (xs ys zs x : Term) (w : Nat) :
+    __smtx_typeof (__eo_to_smt xs) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt ys) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt zs) = SmtType.BitVec w ->
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
+    __eo_typeof (__eo_prog_bv_xor_simplify_3 xs ys zs x) = Term.Bool ->
+    eo_interprets M (term3 xs ys zs x) true := by
+  intro hXsTy hYsTy hZsTy hXTy hResultTy
+  have hBool := typed_term3 xs ys zs x w
+    hXsTy hYsTy hZsTy hXTy hResultTy
+  have hLists := program3_lists xs ys zs x w
+    hXsTy hYsTy hZsTy hXTy hResultTy
+  have hNotXTy := bvnot_smt_type x w hXTy
+  have hEvals := eval_lhs_base M hM xs ys zs (bvnot x) x w
+    hXsTy hYsTy hZsTy hNotXTy hXTy
+    hLists.1 hLists.2.1 hLists.2.2
+  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt xs) w
+      hXsTy with ⟨nxs, hXsEval, hXsCan⟩
+  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt ys) w
+      hYsTy with ⟨nys, hYsEval, hYsCan⟩
+  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt zs) w
+      hZsTy with ⟨nzs, hZsEval, hZsCan⟩
+  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x) w
+      hXTy with ⟨nx, hXEval, hXCan⟩
+  have hNotXEval :
+      __smtx_model_eval M (__eo_to_smt (bvnot x)) =
+        __smtx_model_eval_bvnot
+          (SmtValue.Binary (native_nat_to_int w) nx) := by
+    change __smtx_model_eval M (SmtTerm.bvnot (__eo_to_smt x)) = _
+    rw [smtx_eval_bvnot_term_eq, hXEval]
+  have hEvalEq :
+      __smtx_model_eval M
+          (__eo_to_smt (lhs xs ys zs (bvnot x) x)) =
+        __smtx_model_eval M
+          (__eo_to_smt (bvnot (base xs ys zs))) := by
+    rw [hEvals.1]
+    change _ = __smtx_model_eval M
+      (SmtTerm.bvnot (__eo_to_smt (base xs ys zs)))
+    rw [smtx_eval_bvnot_term_eq, hEvals.2, hNotXEval,
+      hXsEval, hYsEval, hZsEval, hXEval]
+    exact bvxor_not_cancel_nested_eval_rev w nxs nx nys nzs
+      hXsCan hXCan hYsCan hZsCan
+  apply RuleProofs.eo_interprets_eq_of_rel M
+  · exact hBool
+  · change RuleProofs.smt_value_rel
+      (__smtx_model_eval M
+        (__eo_to_smt (lhs xs ys zs (bvnot x) x)))
+      (__smtx_model_eval M
+        (__eo_to_smt (bvnot (base xs ys zs))))
+    rw [hEvalEq]
+    exact RuleProofs.smt_value_rel_refl _
+
 end BvXorSimplifySupport
