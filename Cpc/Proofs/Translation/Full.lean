@@ -2516,18 +2516,18 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
     | Term.UOp2 UserOp2._at_bv x y, hNonNone => by
         have hTranslate :
             __eo_to_smt (Term.UOp2 UserOp2._at_bv x y) =
-              __eo_to_smt__at_bv (__eo_to_smt x) (__eo_to_smt y) := by
+              SmtTerm.int_to_bv (__eo_to_smt y) (__eo_to_smt x) := by
           rfl
         have hAtNN :
-            __smtx_typeof (__eo_to_smt__at_bv (__eo_to_smt x) (__eo_to_smt y)) ≠
+            __smtx_typeof (SmtTerm.int_to_bv (__eo_to_smt y) (__eo_to_smt x)) ≠
               SmtType.None := by
           rwa [← hTranslate]
         rcases eo_to_smt_at_bv_of_non_none hAtNN with
-          ⟨n, w, hx, hy, hw, hSmtAt⟩
-        have hXTerm : x = Term.Numeral n :=
-          eo_to_smt_eq_numeral x n hx
+          ⟨w, hy, hx, hw, hSmtAt⟩
         have hYTerm : y = Term.Numeral w :=
           eo_to_smt_eq_numeral y w hy
+        have hXEo : __eo_typeof x = Term.UOp UserOp.Int :=
+          eo_typeof_eq_int_of_smt_int_from_ih x (fun h => (go x h).1) hx
         have hSmt :
             __smtx_typeof (__eo_to_smt (Term.UOp2 UserOp2._at_bv x y)) =
               SmtType.BitVec (native_int_to_nat w) := by
@@ -2538,7 +2538,11 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
         have hEo :
             __eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_bv x y)) =
               SmtType.BitVec (native_int_to_nat w) := by
-          rw [hXTerm, hYTerm]
+          change
+            __eo_to_smt_type
+                (__eo_typeof__at_bv (__eo_typeof x) (__eo_typeof y) y) =
+              SmtType.BitVec (native_int_to_nat w)
+          rw [hXEo, hYTerm]
           change
             __eo_to_smt_type
                 (__eo_typeof__at_bv (Term.UOp UserOp.Int) (Term.UOp UserOp.Int)
@@ -2547,7 +2551,10 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
           simp [__eo_typeof__at_bv, __eo_gt, __eo_requires, native_ite,
             native_teq, native_not, hwGt, hw]
         refine ⟨hSmt.trans hEo.symm, ?_⟩
-        rw [hXTerm, hYTerm]
+        change
+          eo_type_valid
+            (__eo_typeof__at_bv (__eo_typeof x) (__eo_typeof y) y)
+        rw [hXEo, hYTerm]
         change
           eo_type_valid
             (__eo_typeof__at_bv (Term.UOp UserOp.Int) (Term.UOp UserOp.Int)
@@ -3176,7 +3183,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                   change
                     __smtx_typeof
                         (SmtTerm.Apply
-                          (__eo_to_smt__at_bv (__eo_to_smt y) (__eo_to_smt z))
+                          (SmtTerm.int_to_bv (__eo_to_smt z) (__eo_to_smt y))
                           (__eo_to_smt x)) =
                       SmtType.None
                   exact typeof_apply_eo_to_smt_at_bv_eq_none

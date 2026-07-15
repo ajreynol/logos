@@ -2650,41 +2650,24 @@ private theorem eo_to_smt_sets_deq_diff_ne_numeral
 
 private theorem eo_to_smt_at_bv_ne_numeral
     (a b : SmtTerm) (n : native_Int) :
-    __eo_to_smt__at_bv a b ≠ SmtTerm.Numeral n := by
+    SmtTerm.int_to_bv b a ≠ SmtTerm.Numeral n := by
   intro h
-  cases a <;> cases b <;>
-    simp [__eo_to_smt__at_bv] at h
-  case Numeral.Numeral x w =>
-    cases hw : native_zleq 0 w
-    · simp [hw] at h
-    · simp [hw] at h
+  cases h
 
-/-- A non-`None` `_at_bv` translation comes from two SMT numerals. -/
+/-- A non-`None` `_at_bv` translation has a numeral width and an integer value. -/
 theorem eo_to_smt_at_bv_of_non_none
     {a b : SmtTerm}
-    (hNN : __smtx_typeof (__eo_to_smt__at_bv a b) ≠ SmtType.None) :
-    ∃ n w : native_Int,
-      a = SmtTerm.Numeral n ∧
-        b = SmtTerm.Numeral w ∧
+    (hNN : __smtx_typeof (SmtTerm.int_to_bv b a) ≠ SmtType.None) :
+    ∃ w : native_Int,
+      b = SmtTerm.Numeral w ∧
+        __smtx_typeof a = SmtType.Int ∧
           native_zleq 0 w = true ∧
-            __smtx_typeof (__eo_to_smt__at_bv a b) =
+            __smtx_typeof (SmtTerm.int_to_bv b a) =
               SmtType.BitVec (native_int_to_nat w) := by
-  cases a <;> cases b
-  case Numeral.Numeral n w =>
-    cases hw : native_zleq 0 w
-    · exact False.elim (hNN (by
-        simp [__eo_to_smt__at_bv, native_ite, hw, smtx_typeof_none]))
-    · have hBinaryNN :
-          __smtx_typeof (SmtTerm.Binary w (native_mod_total n (native_int_pow2 w))) ≠
-            SmtType.None := by
-        simpa [__eo_to_smt__at_bv, native_ite, hw] using hNN
-      exact ⟨n, w, rfl, rfl, hw, by
-        simpa [__eo_to_smt__at_bv, native_ite, hw] using
-          smtx_typeof_binary_of_non_none w
-            (native_mod_total n (native_int_pow2 w)) hBinaryNN⟩
-  all_goals
-    exact False.elim (hNN (by
-      simp [__eo_to_smt__at_bv, smtx_typeof_none]))
+  rcases int_to_bv_args_of_non_none hNN with ⟨w, hb, ha, hw⟩
+  refine ⟨w, hb, ha, hw, ?_⟩
+  rw [typeof_int_to_bv_eq, hb, ha]
+  simp [__smtx_typeof_int_to_bv, native_ite, hw]
 
 private theorem eo_to_smt_quantifiers_skolemize_ne_numeral
     (vs : Term) (G : SmtTerm) (k : native_Nat) (n : native_Int) :
@@ -3038,8 +3021,6 @@ theorem eo_to_smt_eq_numeral
       · exact False.elim (eo_to_smt_set_empty_ne_numeral (__eo_to_smt_type x) n h)
   | UOp2 op x y =>
       cases op <;> try cases h
-      case _at_bv =>
-        exact False.elim (eo_to_smt_at_bv_ne_numeral (__eo_to_smt x) (__eo_to_smt y) n h)
       case _at_quantifiers_skolemize =>
         exact False.elim (eo_to_smt_quantifier_term_ne_numeral x y n h)
   | Var name T => cases name <;> cases h
