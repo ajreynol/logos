@@ -4670,7 +4670,7 @@ private theorem parent_child_roundtrip
     (native_reflist_insert native_reflist_nil sP)
     hRootCons hFieldNC hFree hNot
 
-/-- The non-stable descent case, restricted to a subtree that actually uses
+/- The non-stable descent case, restricted to a subtree that actually uses
 the head binder.
 
 `hUse` rules out the original unrelated-subtree counterexample, but it is not
@@ -4733,12 +4733,195 @@ be a confluence/transport statement over two valid raw histories, with the
 strictly smaller recorded raw body supplying the induction measure; it cannot
 be another substitution-normalization lemma. -/
 
+/-! ## Rotation transport
+
+The unstable branch is discharged through a *rotation certificate*: outside
+`s3`-named datatype nodes the old and new resolutions are positionally equal,
+and each paired `s3` node carries the inhabitedness implication between its
+two bodies.  Machine sweeps over every establishment-walk descent event
+reachable from small well-formed roots (≈2000 events, 63 with an unstable
+resolution) confirm both the shape claim and the per-spot implications, at
+the top pair and at every diagonal re-rooting along the new payload guide.
+
+`RotTy/RotDtc/RotDt` is the positional relation used *inside* rotated
+regions and at constructor fields: identical everywhere except that a
+same-named datatype pair may differ (constructor `dt`), and an `s3`-named
+pair may have arbitrary bodies provided the inhabitedness implication holds
+(constructor `rot`).  Since an empty-excuse default path never visits a
+reference and stops only at defaultable atoms, such a path on the old side
+replays on the new side, grafting a fresh sub-path at each `s3` spot from
+the carried implication (`rotDt_refDef`).
+
+`RotAllTy/RotAllDtc/RotAllDt` is the guide-indexed certificate consumed by
+the wf transport: it mirrors the `FoldObs` walk, carrying at every
+guide-datatype node the `Rot` relation of the two folded bodies (for the
+inhabitedness implication) and, recursively, the certificate for the two
+diagonal re-rootings against the guide body.  Because the guide strictly
+shrinks at the recursion, certificates are finite even though the related
+sides grow under self-substitution. -/
+
+mutual
+
+private inductive RotTy (s3 : native_String) : SmtType → SmtType → Prop where
+  | same (T : SmtType) : RotTy s3 T T
+  | dt {q : native_String} {ZO ZN : SmtDatatype} :
+      RotDt s3 ZO ZN →
+      RotTy s3 (SmtType.Datatype q ZO) (SmtType.Datatype q ZN)
+  | rot {ZO ZN : SmtDatatype} :
+      (native_inhabited_type (SmtType.Datatype s3 ZO) = true →
+        native_inhabited_type (SmtType.Datatype s3 ZN) = true) →
+      RotTy s3 (SmtType.Datatype s3 ZO) (SmtType.Datatype s3 ZN)
+
+private inductive RotDtc (s3 : native_String) :
+    SmtDatatypeCons → SmtDatatypeCons → Prop where
+  | unit : RotDtc s3 SmtDatatypeCons.unit SmtDatatypeCons.unit
+  | cons {TO TN : SmtType} {cO cN : SmtDatatypeCons} :
+      RotTy s3 TO TN → RotDtc s3 cO cN →
+      RotDtc s3 (SmtDatatypeCons.cons TO cO) (SmtDatatypeCons.cons TN cN)
+
+private inductive RotDt (s3 : native_String) :
+    SmtDatatype → SmtDatatype → Prop where
+  | null : RotDt s3 SmtDatatype.null SmtDatatype.null
+  | sum {cO cN : SmtDatatypeCons} {dO dN : SmtDatatype} :
+      RotDtc s3 cO cN → RotDt s3 dO dN →
+      RotDt s3 (SmtDatatype.sum cO dO) (SmtDatatype.sum cN dN)
+
+end
+
+mutual
+
+private theorem rotTy_defPath {s3 : native_String} :
+    ∀ {TO TN : SmtType}, RotTy s3 TO TN →
+      DefPathTy native_reflist_nil TO →
+      DefPathTy native_reflist_nil TN := by
+  intro TO TN hRot hPath
+  cases hRot with
+  | same _ => exact hPath
+  | dt hBody =>
+      cases hPath with
+      | dt hP => exact DefPathTy.dt (rotDt_defPath hBody hP)
+      | atom _ hDt _ => exact absurd rfl (hDt _ _)
+  | rot hInh =>
+      cases hPath with
+      | dt hP =>
+          exact DefPathTy.dt (defPathDt_of_refDef _ _
+            (refDef_empty_of_inhabited s3 _
+              (hInh (inhabited_of_refDef_empty s3 _
+                (refDef_of_defPathDt hP)))))
+      | atom _ hDt _ => exact absurd rfl (hDt _ _)
+
+private theorem rotDtc_defPath {s3 : native_String} :
+    ∀ {cO cN : SmtDatatypeCons}, RotDtc s3 cO cN →
+      DefPathDtc native_reflist_nil cO →
+      DefPathDtc native_reflist_nil cN := by
+  intro cO cN hRot hPath
+  cases hRot with
+  | unit => exact hPath
+  | cons hT hc =>
+      cases hPath with
+      | cons hPT hPc =>
+          exact DefPathDtc.cons (rotTy_defPath hT hPT)
+            (rotDtc_defPath hc hPc)
+
+private theorem rotDt_defPath {s3 : native_String} :
+    ∀ {dO dN : SmtDatatype}, RotDt s3 dO dN →
+      DefPathDt native_reflist_nil dO →
+      DefPathDt native_reflist_nil dN := by
+  intro dO dN hRot hPath
+  cases hRot with
+  | null => exact hPath
+  | sum hc hd =>
+      cases hPath with
+      | head hPc => exact DefPathDt.head (rotDtc_defPath hc hPc)
+      | tail hPd => exact DefPathDt.tail (rotDt_defPath hd hPd)
+
+end
+
+/-- Empty-excuse defaultability transports along the rotation relation. -/
+private theorem rotDt_refDef {s3 : native_String} {dO dN : SmtDatatype}
+    (hRot : RotDt s3 dO dN)
+    (hDef : refDefDt native_reflist_nil dO = true) :
+    refDefDt native_reflist_nil dN = true :=
+  refDef_of_defPathDt
+    (rotDt_defPath hRot (defPathDt_of_refDef native_reflist_nil dO hDef))
+
+mutual
+
+private inductive RotAllTy (s3 : native_String) :
+    SmtType → SmtType → SmtType → Prop where
+  /-- equal folded sides are transparent to the wf walk at any guide. -/
+  | same (U T : SmtType) : RotAllTy s3 U T T
+  /-- reference guide over a non-datatype old side: the walk skips or fails
+  identically regardless of the new side. -/
+  | refOld {r : native_String} {TO TN : SmtType}
+      (hOld : ∀ (q : native_String) (D : SmtDatatype),
+        TO ≠ SmtType.Datatype q D) :
+      RotAllTy s3 (SmtType.TypeRef r) TO TN
+  /-- reference guide over two datatype-shaped sides: pattern-1 skip. -/
+  | refDt {r sO sN : native_String} {ZO ZN : SmtDatatype} :
+      RotAllTy s3 (SmtType.TypeRef r) (SmtType.Datatype sO ZO)
+        (SmtType.Datatype sN ZN)
+  /-- datatype guide: the bodies are rotation-related (supplying the
+  inhabitedness implication), and the two diagonal re-rootings are
+  certified against the guide body. -/
+  | dt {sU q : native_String} {dU ZO ZN : SmtDatatype} :
+      RotDt s3 ZO ZN →
+      RotAllDt s3 dU (__smtx_dt_substitute q ZO ZO)
+        (__smtx_dt_substitute q ZN ZN) →
+      RotAllTy s3 (SmtType.Datatype sU dU) (SmtType.Datatype q ZO)
+        (SmtType.Datatype q ZN)
+
+private inductive RotAllDtc (s3 : native_String) :
+    SmtDatatypeCons → SmtDatatypeCons → SmtDatatypeCons → Prop where
+  | unit : RotAllDtc s3 SmtDatatypeCons.unit SmtDatatypeCons.unit
+      SmtDatatypeCons.unit
+  | cons {TU TO TN : SmtType} {cU cO cN : SmtDatatypeCons} :
+      RotAllTy s3 TU TO TN → RotAllDtc s3 cU cO cN →
+      RotAllDtc s3 (SmtDatatypeCons.cons TU cU)
+        (SmtDatatypeCons.cons TO cO) (SmtDatatypeCons.cons TN cN)
+
+private inductive RotAllDt (s3 : native_String) :
+    SmtDatatype → SmtDatatype → SmtDatatype → Prop where
+  | null : RotAllDt s3 SmtDatatype.null SmtDatatype.null SmtDatatype.null
+  | sum {cU cO cN : SmtDatatypeCons} {dU dO dN : SmtDatatype} :
+      RotAllDtc s3 cU cO cN → RotAllDt s3 dU dO dN →
+      RotAllDt s3 (SmtDatatype.sum cU dU) (SmtDatatype.sum cO dO)
+        (SmtDatatype.sum cN dN)
+
+end
+
+mutual
+
+private theorem rotAllTy_foldObs {s3 : native_String} :
+    ∀ {TU TO TN : SmtType}, RotAllTy s3 TU TO TN → FoldObsTy TO TN TU
+  | _, _, _, RotAllTy.same U T => FoldObsTy.same T U
+  | _, _, _, RotAllTy.refOld hOld => FoldObsTy.deadRef hOld
+  | _, _, _, RotAllTy.refDt => FoldObsTy.ref
+  | _, _, _, RotAllTy.dt hRot hRec =>
+      foldObsTy_dt_of_refDef (fun h => rotDt_refDef hRot h)
+        (rotAllDt_foldObs hRec)
+
+private theorem rotAllDtc_foldObs {s3 : native_String} :
+    ∀ {cU cO cN : SmtDatatypeCons}, RotAllDtc s3 cU cO cN →
+      FoldObsDtc cO cN cU
+  | _, _, _, RotAllDtc.unit => FoldObsDtc.unit
+  | _, _, _, RotAllDtc.cons hT hc =>
+      FoldObsDtc.cons (rotAllTy_foldObs hT) (rotAllDtc_foldObs hc)
+
+private theorem rotAllDt_foldObs {s3 : native_String} :
+    ∀ {dU dO dN : SmtDatatype}, RotAllDt s3 dU dO dN → FoldObsDt dO dN dU
+  | _, _, _, RotAllDt.null => FoldObsDt.null
+  | _, _, _, RotAllDt.sum hc hd =>
+      FoldObsDt.sum (rotAllDtc_foldObs hc) (rotAllDt_foldObs hd)
+
+end
+
 /-
 There is one further, essential restriction on "valid raw histories".  The
-statement below is false with `ChainSourceOK` as currently defined because it
-only reconstructs the head payload; `RawSuffixCons` deliberately ignores every
-suffix payload.  Here is an exact counterexample (constructor lists are written
-as lists of field lists):
+statement below was false with the *original* `ChainSourceOK`, which only
+reconstructed the head payload while `RawSuffixCons` deliberately ignored
+every suffix payload.  Here is the exact counterexample (constructor lists
+are written as lists of field lists):
 
 * `t = a`, `s3 = b`, and the one suffix name is `u`;
 * `X = [[TypeRef a], []]`;
@@ -4757,10 +4940,23 @@ The bad `Q` cannot be produced by replaying `selfExt`: it hides a mismatched
 `b` definition behind the `u` guide, where the old wf check skips it, and the
 next rotation exposes it.  Requiring suffix payloads merely to be inhabited or
 diagonally well-formed is insufficient (`Q` is both inhabited and diagonally
-well-formed against itself).  The chain representation must carry construction
-provenance for each payload (or an equivalent origin-indexed relation) before
-this lemma can be proved.  In particular, adding another predicate only over
-the raw suffix cannot repair the statement.
+well-formed against itself).  `ChainSourceOK` has since gained payload
+provenance (`ChainOriginAcc`): the bad `Q` is not a scoped image of its raw
+body `U` (the nested body has one constructor where `X` has two), so this
+counterexample no longer satisfies the hypotheses.
+
+The remaining hole is the establishment of the rotation certificate below:
+`RotAllDt s3 P' (subst t D D) (subst t D' D')` for the old resolved head `D`
+and the re-resolved head `D'`.  Machine sweeps (see the rotation-transport
+section) confirm the certificate holds at every reachable descent event:
+the two resolutions differ only inside `s3`-named nodes, the per-spot
+inhabitedness implications hold, and both facts persist under the diagonal
+re-rootings demanded by the certificate.  The corresponding closed-form
+identity `D' = subst s3 (lift t DD B) DD` — with `DD` the resolution under
+the descended chain and `B` the newly closed node body — also checks on
+every reachable event and is the intended backbone of the establishment
+proof, which must thread the per-spot implications from `hInhNode` through
+the lift stack of the refill.
 -/
 private theorem chainok_selfExt_facts
     (ρ : SubstChain) (s3 : native_String) (X : SmtDatatype)
@@ -4829,6 +5025,7 @@ private theorem chainok_selfExt_facts
         __smtx_dt_wf_rec (__smtx_dt_substitute t D D) P' = true := by
       exact guideTrDt_wf (lift_guide_tr_dt s3 X hSkel) hWf
     apply foldObsDt_wf (hOld := hOldLift)
+    apply rotAllDt_foldObs (s3 := s3)
     sorry
 
 /-- The chain invariant is preserved by a descent step when the descended
