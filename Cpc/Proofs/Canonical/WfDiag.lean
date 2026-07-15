@@ -208,6 +208,135 @@ private theorem guideTrDt_wf {dF dUo dUn : SmtDatatype}
 
 end
 
+/-! ## Folded-side observational transport
+
+`GuideTr` changes the raw/guide side while keeping the folded side fixed.
+The non-stable history case needs the orthogonal operation: the guide is
+fixed, while two canonical resolutions may differ below positions that the
+guide presents as references.  `FoldObs* old new guide` records exactly what
+the wf recursion can observe.
+
+At a `TypeRef` guide, two datatype-shaped folded fields are indistinguishable
+because `__smtx_dt_cons_wf_rec` takes its skip clause before inspecting either
+body.  At an inline datatype guide, the new field must preserve
+defaultability and the two diagonal bodies are compared recursively.  Equal
+folded fields are always observationally related. -/
+
+mutual
+
+private inductive FoldObsTy : SmtType → SmtType → SmtType → Prop where
+  | same (F U : SmtType) : FoldObsTy F F U
+  /-- Away from datatype and reference guides, `type_wf_rec` depends only on
+  the guide.  The folded field may therefore change arbitrarily. -/
+  | masked {TOld TNew TU : SmtType}
+      (hRef : ∀ r : native_String, TU ≠ SmtType.TypeRef r)
+      (hDt : ∀ (q : native_String) (D : SmtDatatype),
+        TU ≠ SmtType.Datatype q D)
+      (hInh : native_inhabited_type TOld = true →
+        native_inhabited_type TNew = true) :
+      FoldObsTy TOld TNew TU
+  | ref {sOld sNew r : native_String} {dOld dNew : SmtDatatype} :
+      FoldObsTy (SmtType.Datatype sOld dOld)
+        (SmtType.Datatype sNew dNew) (SmtType.TypeRef r)
+  | deadRef {TOld TNew : SmtType} {r : native_String}
+      (hOld : ∀ (s : native_String) (d : SmtDatatype),
+        TOld ≠ SmtType.Datatype s d) :
+      FoldObsTy TOld TNew (SmtType.TypeRef r)
+  | dt {sOld sNew sU : native_String} {dOld dNew dU : SmtDatatype} :
+      (native_inhabited_type (SmtType.Datatype sOld dOld) = true →
+        native_inhabited_type (SmtType.Datatype sNew dNew) = true) →
+      FoldObsDt (__smtx_dt_substitute sOld dOld dOld)
+        (__smtx_dt_substitute sNew dNew dNew) dU →
+      FoldObsTy (SmtType.Datatype sOld dOld)
+        (SmtType.Datatype sNew dNew) (SmtType.Datatype sU dU)
+
+private inductive FoldObsDtc :
+    SmtDatatypeCons → SmtDatatypeCons → SmtDatatypeCons → Prop where
+  | unit : FoldObsDtc SmtDatatypeCons.unit SmtDatatypeCons.unit
+      SmtDatatypeCons.unit
+  | cons {TOld TNew TU : SmtType}
+      {cOld cNew cU : SmtDatatypeCons} :
+      FoldObsTy TOld TNew TU → FoldObsDtc cOld cNew cU →
+      FoldObsDtc (SmtDatatypeCons.cons TOld cOld)
+        (SmtDatatypeCons.cons TNew cNew) (SmtDatatypeCons.cons TU cU)
+
+private inductive FoldObsDt : SmtDatatype → SmtDatatype → SmtDatatype → Prop where
+  | null : FoldObsDt SmtDatatype.null SmtDatatype.null SmtDatatype.null
+  | sum {cOld cNew cU : SmtDatatypeCons} {dOld dNew dU : SmtDatatype} :
+      FoldObsDtc cOld cNew cU → FoldObsDt dOld dNew dU →
+      FoldObsDt (SmtDatatype.sum cOld dOld) (SmtDatatype.sum cNew dNew)
+        (SmtDatatype.sum cU dU)
+
+end
+
+mutual
+
+private theorem foldObsTy_wf {TOld TNew TU : SmtType}
+    (hObs : FoldObsTy TOld TNew TU)
+    (hOld : __smtx_type_wf_rec TOld TU = true) :
+    __smtx_type_wf_rec TNew TU = true :=
+  match hObs with
+  | FoldObsTy.same _ _ => hOld
+  | @FoldObsTy.masked TOld TNew TU hRef hDt _hInh => by
+      cases TU <;> first
+        | exact absurd rfl (hRef _)
+        | exact absurd rfl (hDt _ _)
+        | simpa [__smtx_type_wf_rec] using hOld
+  | @FoldObsTy.ref sOld sNew r dOld dNew => by
+      simp [__smtx_type_wf_rec] at hOld
+  | @FoldObsTy.deadRef TOld TNew r hNotDt => by
+      simp [__smtx_type_wf_rec] at hOld
+  | @FoldObsTy.dt sOld sNew sU dOld dNew dU _hInh hBody => by
+      have hOldBody :
+          __smtx_dt_wf_rec (__smtx_dt_substitute sOld dOld dOld) dU = true := by
+        simpa [__smtx_type_wf_rec] using hOld
+      simpa [__smtx_type_wf_rec] using foldObsDt_wf hBody hOldBody
+
+private theorem foldObsDtc_wf {cOld cNew cU : SmtDatatypeCons}
+    (hObs : FoldObsDtc cOld cNew cU)
+    (hOld : __smtx_dt_cons_wf_rec cOld cU = true) :
+    __smtx_dt_cons_wf_rec cNew cU = true :=
+  match hObs with
+  | FoldObsDtc.unit => hOld
+  | @FoldObsDtc.cons TOld TNew TU cOld cNew cU hHead hTail => by
+      have hTailOld : __smtx_dt_cons_wf_rec cOld cU = true :=
+        dt_cons_wf_tail hOld
+      have hTailNew := foldObsDtc_wf hTail hTailOld
+      cases hHead with
+      | same => exact dt_cons_wf_head_tail hOld hTailNew
+      | @masked TOld TNew TU hRef hDt hInh =>
+          have hParts := dt_cons_wf_p2_parts
+            (fun _ _ r _ hTU => hRef r hTU) hOld
+          exact dt_cons_wf_p2_intro (hInh hParts.1)
+            (foldObsTy_wf (FoldObsTy.masked hRef hDt hInh) hParts.2.1)
+            hTailNew
+      | ref =>
+          rw [dt_cons_wf_p1_iff]
+          exact hTailNew
+      | @deadRef TOld TNew r hNotDt =>
+          have hParts := dt_cons_wf_p2_parts
+            (fun s d _ hEq _ => hNotDt s d hEq) hOld
+          exfalso
+          simpa [__smtx_type_wf_rec] using hParts.2.1
+      | @dt sOld sNew sU dOld dNew dU hInh hBody =>
+          have hParts := dt_cons_wf_p2_parts
+            (fun _ _ _ _ hEq => by cases hEq) hOld
+          exact dt_cons_wf_p2_intro (hInh hParts.1)
+            (foldObsTy_wf (FoldObsTy.dt hInh hBody) hParts.2.1) hTailNew
+
+private theorem foldObsDt_wf {dOld dNew dU : SmtDatatype}
+    (hObs : FoldObsDt dOld dNew dU)
+    (hOld : __smtx_dt_wf_rec dOld dU = true) :
+    __smtx_dt_wf_rec dNew dU = true :=
+  match hObs with
+  | FoldObsDt.null => hOld
+  | @FoldObsDt.sum cOld cNew cU dOld dNew dU hHead hTail => by
+      have hParts := dt_wf_sum_parts hOld
+      simp [__smtx_dt_wf_rec, native_ite,
+        foldObsDtc_wf hHead hParts.1, foldObsDt_wf hTail hParts.2]
+
+end
+
 /-! ## Part 2: substitution chains
 
 A *substitution chain* is a list of `(name, raw body, payload)` triples applied
@@ -901,6 +1030,120 @@ private def refDefDt (S : RefList) : SmtDatatype → Bool
 
 end
 
+/-! A proof-relevant presentation of `refDef`.  The Boolean is convenient
+for computation, while these witnesses expose the finite constructor path
+that succeeds.  In particular, following a resolved reference gives a
+strict subderivation (`DefPathTy.dt`), which is the induction measure for
+transporting defaultability between two history resolutions. -/
+mutual
+
+private inductive DefPathTy (S : RefList) : SmtType → Prop where
+  | ref {r : native_String} :
+      native_reflist_contains S r = true → DefPathTy S (SmtType.TypeRef r)
+  | dt {s : native_String} {D : SmtDatatype} :
+      DefPathDt S D → DefPathTy S (SmtType.Datatype s D)
+  | atom {T : SmtType}
+      (hRef : ∀ r : native_String, T ≠ SmtType.TypeRef r)
+      (hDt : ∀ (s : native_String) (D : SmtDatatype),
+        T ≠ SmtType.Datatype s D)
+      (hDef : refDefTy S T = true) : DefPathTy S T
+
+private inductive DefPathDtc (S : RefList) : SmtDatatypeCons → Prop where
+  | unit : DefPathDtc S SmtDatatypeCons.unit
+  | cons {T : SmtType} {c : SmtDatatypeCons} :
+      DefPathTy S T → DefPathDtc S c →
+      DefPathDtc S (SmtDatatypeCons.cons T c)
+
+private inductive DefPathDt (S : RefList) : SmtDatatype → Prop where
+  | head {c : SmtDatatypeCons} {d : SmtDatatype} :
+      DefPathDtc S c → DefPathDt S (SmtDatatype.sum c d)
+  | tail {c : SmtDatatypeCons} {d : SmtDatatype} :
+      DefPathDt S d → DefPathDt S (SmtDatatype.sum c d)
+
+end
+
+mutual
+
+private theorem defPathTy_of_refDef (S : RefList) :
+    ∀ T : SmtType, refDefTy S T = true → DefPathTy S T
+  | SmtType.TypeRef r, h => DefPathTy.ref (by simpa [refDefTy] using h)
+  | SmtType.Datatype s D, h =>
+      DefPathTy.dt (defPathDt_of_refDef S D (by simpa [refDefTy] using h))
+  | SmtType.None, h => DefPathTy.atom
+      (fun _ hEq => by cases hEq) (fun _ _ hEq => by cases hEq) h
+  | SmtType.Bool, h => DefPathTy.atom
+      (fun _ hEq => by cases hEq) (fun _ _ hEq => by cases hEq) h
+  | SmtType.Int, h => DefPathTy.atom
+      (fun _ hEq => by cases hEq) (fun _ _ hEq => by cases hEq) h
+  | SmtType.Real, h => DefPathTy.atom
+      (fun _ hEq => by cases hEq) (fun _ _ hEq => by cases hEq) h
+  | SmtType.RegLan, h => DefPathTy.atom
+      (fun _ hEq => by cases hEq) (fun _ _ hEq => by cases hEq) h
+  | SmtType.BitVec w, h => DefPathTy.atom
+      (fun _ hEq => by cases hEq) (fun _ _ hEq => by cases hEq) h
+  | SmtType.Map A B, h => DefPathTy.atom
+      (fun _ hEq => by cases hEq) (fun _ _ hEq => by cases hEq) h
+  | SmtType.Set A, h => DefPathTy.atom
+      (fun _ hEq => by cases hEq) (fun _ _ hEq => by cases hEq) h
+  | SmtType.Seq A, h => DefPathTy.atom
+      (fun _ hEq => by cases hEq) (fun _ _ hEq => by cases hEq) h
+  | SmtType.Char, h => DefPathTy.atom
+      (fun _ hEq => by cases hEq) (fun _ _ hEq => by cases hEq) h
+  | SmtType.USort u, h => DefPathTy.atom
+      (fun _ hEq => by cases hEq) (fun _ _ hEq => by cases hEq) h
+  | SmtType.FunType A B, h => DefPathTy.atom
+      (fun _ hEq => by cases hEq) (fun _ _ hEq => by cases hEq) h
+  | SmtType.DtcAppType A B, h => DefPathTy.atom
+      (fun _ hEq => by cases hEq) (fun _ _ hEq => by cases hEq) h
+
+private theorem defPathDtc_of_refDef (S : RefList) :
+    ∀ c : SmtDatatypeCons, refDefDtc S c = true → DefPathDtc S c
+  | SmtDatatypeCons.unit, _ => DefPathDtc.unit
+  | SmtDatatypeCons.cons T c, h => by
+      have hp : refDefTy S T = true ∧ refDefDtc S c = true := by
+        simpa [refDefDtc, Bool.and_eq_true] using h
+      exact DefPathDtc.cons (defPathTy_of_refDef S T hp.1)
+        (defPathDtc_of_refDef S c hp.2)
+
+private theorem defPathDt_of_refDef (S : RefList) :
+    ∀ D : SmtDatatype, refDefDt S D = true → DefPathDt S D
+  | SmtDatatype.null, h => by simp [refDefDt] at h
+  | SmtDatatype.sum c D, h => by
+      have hp : refDefDtc S c = true ∨ refDefDt S D = true := by
+        simpa [refDefDt, Bool.or_eq_true] using h
+      rcases hp with hc | hD
+      · exact DefPathDt.head (defPathDtc_of_refDef S c hc)
+      · exact DefPathDt.tail (defPathDt_of_refDef S D hD)
+
+end
+
+mutual
+
+private theorem refDef_of_defPathTy {S : RefList} {T : SmtType}
+    (h : DefPathTy S T) : refDefTy S T = true :=
+  match h with
+  | DefPathTy.ref hr => by simpa [refDefTy] using hr
+  | DefPathTy.dt hD => by simpa [refDefTy] using refDef_of_defPathDt hD
+  | DefPathTy.atom _ _ hDef => hDef
+
+private theorem refDef_of_defPathDtc {S : RefList} {c : SmtDatatypeCons}
+    (h : DefPathDtc S c) : refDefDtc S c = true :=
+  match h with
+  | DefPathDtc.unit => by simp [refDefDtc]
+  | DefPathDtc.cons hT hc => by
+      simp [refDefDtc, Bool.and_eq_true,
+        refDef_of_defPathTy hT, refDef_of_defPathDtc hc]
+
+private theorem refDef_of_defPathDt {S : RefList} {D : SmtDatatype}
+    (h : DefPathDt S D) : refDefDt S D = true :=
+  match h with
+  | DefPathDt.head hc => by
+      simp [refDefDt, Bool.or_eq_true, refDef_of_defPathDtc hc]
+  | DefPathDt.tail hD => by
+      simp [refDefDt, Bool.or_eq_true, refDef_of_defPathDt hD]
+
+end
+
 /-! A reference-free default path is preserved by a positional substitution
 image.  At a raw `TypeRef` the premise is impossible; everywhere else an
 image has the same constructor shape, and datatype bodies recurse.  This is
@@ -992,6 +1235,73 @@ private theorem refDef_img_dt (refs : RefList) :
           refDef_img_dtc refs c cF hc hHead]
       · simp [refDefDt, Bool.or_eq_true,
           refDef_img_dt refs d dF' hd hTail]
+
+end
+
+/-! The converse image fact keeps substituted references as explicit
+obligations.  If a folded image has a reference-free default path, then its
+raw source has the same path once every name that the image was allowed to
+resolve is excused.  This is the direction needed when comparing two
+different valid resolutions of one raw body. -/
+mutual
+
+private theorem refDef_img_inv_ty (refs : RefList) :
+    ∀ (U F : SmtType), imgTy refs F U →
+      refDefTy native_reflist_nil F = true → refDefTy refs U = true
+  | SmtType.TypeRef r, F, hImg, hRef => by
+      rcases hImg with rfl | ⟨hr, D, rfl⟩
+      · simp [refDefTy, native_reflist_contains, native_reflist_nil] at hRef
+      · simpa [refDefTy] using hr
+  | SmtType.Datatype s D, F, hImg, hRef => by
+      rcases hImg with ⟨DF, rfl, hBody⟩
+      have hDF : refDefDt native_reflist_nil DF = true := by
+        simpa [refDefTy] using hRef
+      simpa [refDefTy] using refDef_img_inv_dt refs D DF hBody hDF
+  | SmtType.None, F, hImg, hRef => by cases hImg; exact hRef
+  | SmtType.Bool, F, hImg, hRef => by cases hImg; exact hRef
+  | SmtType.Int, F, hImg, hRef => by cases hImg; exact hRef
+  | SmtType.Real, F, hImg, hRef => by cases hImg; exact hRef
+  | SmtType.RegLan, F, hImg, hRef => by cases hImg; exact hRef
+  | SmtType.BitVec w, F, hImg, hRef => by cases hImg; exact hRef
+  | SmtType.Map A B, F, hImg, hRef => by cases hImg; exact hRef
+  | SmtType.Set A, F, hImg, hRef => by cases hImg; exact hRef
+  | SmtType.Seq A, F, hImg, hRef => by cases hImg; exact hRef
+  | SmtType.Char, F, hImg, hRef => by cases hImg; exact hRef
+  | SmtType.USort u, F, hImg, hRef => by cases hImg; exact hRef
+  | SmtType.FunType A B, F, hImg, hRef => by cases hImg; exact hRef
+  | SmtType.DtcAppType A B, F, hImg, hRef => by cases hImg; exact hRef
+
+private theorem refDef_img_inv_dtc (refs : RefList) :
+    ∀ (cU cF : SmtDatatypeCons), imgDtc refs cF cU →
+      refDefDtc native_reflist_nil cF = true → refDefDtc refs cU = true
+  | SmtDatatypeCons.unit, cF, hImg, hRef => by
+      cases hImg
+      exact hRef
+  | SmtDatatypeCons.cons T c, cF, hImg, hRef => by
+      rcases hImg with ⟨TF, cF', rfl, hT, hc⟩
+      have hp : refDefTy native_reflist_nil TF = true ∧
+          refDefDtc native_reflist_nil cF' = true := by
+        simpa [refDefDtc, Bool.and_eq_true] using hRef
+      simp [refDefDtc, Bool.and_eq_true,
+        refDef_img_inv_ty refs T TF hT hp.1,
+        refDef_img_inv_dtc refs c cF' hc hp.2]
+
+private theorem refDef_img_inv_dt (refs : RefList) :
+    ∀ (dU dF : SmtDatatype), imgDt refs dF dU →
+      refDefDt native_reflist_nil dF = true → refDefDt refs dU = true
+  | SmtDatatype.null, dF, hImg, hRef => by
+      cases hImg
+      simpa [refDefDt] using hRef
+  | SmtDatatype.sum c d, dF, hImg, hRef => by
+      rcases hImg with ⟨cF, dF', rfl, hc, hd⟩
+      have hp : refDefDtc native_reflist_nil cF = true ∨
+          refDefDt native_reflist_nil dF' = true := by
+        simpa [refDefDt, Bool.or_eq_true] using hRef
+      rcases hp with hHead | hTail
+      · simp [refDefDt, Bool.or_eq_true,
+          refDef_img_inv_dtc refs c cF hc hHead]
+      · simp [refDefDt, Bool.or_eq_true,
+          refDef_img_inv_dt refs d dF' hd hTail]
 
 end
 
@@ -1161,6 +1471,983 @@ private theorem img_lift_no_dt_dt
         img_lift_no_dt_dt refs s L d dF' hp.2 hd⟩
 
 end
+
+/-! ## Scoped positional images
+
+Plain `imgTy/imgDt/imgDtc` deliberately only describe substitution: a raw
+`TypeRef q` may become `Datatype q ...`, but a raw datatype node may not turn
+back into a reference.  A canonical descent temporarily does exactly that
+second operation.  Moreover, beneath another datatype binder its payload is
+lifted again, so a single flat image relation cannot express the intermediate
+state (this is the source of the duplicate-definition counterexamples).
+
+`CtxImg* folds refs F U` is the scoped version.  `refs` has the usual meaning.
+An entry `(q, D)` in `folds` additionally permits the *raw* node
+`Datatype q D` to be represented by `TypeRef q`.  Descending through an
+unfolded datatype records that exact raw node in the fold context.  The
+relation therefore follows the capture-aware lift operation without losing
+the raw body to which a later substitution must restore the node. -/
+
+private abbrev FoldCtx := List (native_String × SmtDatatype)
+
+/-! ## Definition-graph default paths
+
+Capture-aware substitution can present the same finite definition graph with
+different cycle cuts.  Concrete `refDef` paths therefore do not in general
+replay position-for-position after a rotation.  The invariant which does not
+depend on those cuts is a path in the raw definition graph.  Entering either
+a named datatype node or a resolved reference removes that name from the
+available definitions; hence every recursive premise is over a strictly
+smaller environment when it follows a graph edge. -/
+
+private def eraseFoldName (q : native_String) : FoldCtx → FoldCtx
+  | [] => []
+  | (s, R) :: defs =>
+      if native_streq q s = true then eraseFoldName q defs
+      else (s, R) :: eraseFoldName q defs
+
+private def FoldCtxSub (defsOld defsNew : FoldCtx) : Prop :=
+  ∀ q R, (q, R) ∈ defsOld → (q, R) ∈ defsNew
+
+private theorem eraseFoldName_mem
+    (q s : native_String) (R : SmtDatatype) (defs : FoldCtx)
+    (hne : native_streq q s = false) :
+    (s, R) ∈ eraseFoldName q defs ↔ (s, R) ∈ defs := by
+  induction defs with
+  | nil => simp [eraseFoldName]
+  | cons p defs ih =>
+      rcases p with ⟨t, D⟩
+      cases hqt : native_streq q t with
+      | true =>
+          have hneST : (s, R) ≠ (t, D) := by
+            intro hEq
+            injection hEq with hst _hRD
+            subst t
+            rw [hne] at hqt
+            contradiction
+          simp [eraseFoldName, hqt, ih, hneST]
+      | false => simp [eraseFoldName, hqt, ih]
+
+private theorem eraseFoldName_self_not_mem
+    (q : native_String) (R : SmtDatatype) (defs : FoldCtx) :
+    (q, R) ∉ eraseFoldName q defs := by
+  induction defs with
+  | nil => simp [eraseFoldName]
+  | cons p defs ih =>
+      rcases p with ⟨s, D⟩
+      cases hqs : native_streq q s with
+      | true => simp [eraseFoldName, hqs, ih]
+      | false =>
+          have hne : q ≠ s := by
+            intro hEq
+            subst s
+            simp [native_streq] at hqs
+          simp [eraseFoldName, hqs, ih, hne]
+
+private theorem eraseFoldName_sub {defsOld defsNew : FoldCtx}
+    (hSub : FoldCtxSub defsOld defsNew) (q : native_String) :
+    FoldCtxSub (eraseFoldName q defsOld) (eraseFoldName q defsNew) := by
+  intro s R hMem
+  have hne : native_streq q s = false := by
+    cases hqs : native_streq q s with
+    | false => rfl
+    | true =>
+        have hEq : q = s := by simpa [native_streq] using hqs
+        subst s
+        exact absurd hMem (eraseFoldName_self_not_mem q R defsOld)
+  rw [eraseFoldName_mem q s R defsOld hne] at hMem
+  rw [eraseFoldName_mem q s R defsNew hne]
+  exact hSub s R hMem
+
+mutual
+
+private inductive GraphDefTy : FoldCtx → SmtType → Prop where
+  | ref {defs : FoldCtx} {q : native_String} {R : SmtDatatype} :
+      (q, R) ∈ defs → GraphDefDt (eraseFoldName q defs) R →
+      GraphDefTy defs (SmtType.TypeRef q)
+  | dt {defs : FoldCtx} {q : native_String} {D : SmtDatatype} :
+      GraphDefDt (eraseFoldName q defs) D →
+      GraphDefTy defs (SmtType.Datatype q D)
+  | atom {defs : FoldCtx} {T : SmtType}
+      (hRef : ∀ q : native_String, T ≠ SmtType.TypeRef q)
+      (hDt : ∀ (q : native_String) (D : SmtDatatype),
+        T ≠ SmtType.Datatype q D)
+      (hDef : refDefTy native_reflist_nil T = true) :
+      GraphDefTy defs T
+
+private inductive GraphDefDtc : FoldCtx → SmtDatatypeCons → Prop where
+  | unit {defs : FoldCtx} : GraphDefDtc defs SmtDatatypeCons.unit
+  | cons {defs : FoldCtx} {T : SmtType} {c : SmtDatatypeCons} :
+      GraphDefTy defs T → GraphDefDtc defs c →
+      GraphDefDtc defs (SmtDatatypeCons.cons T c)
+
+private inductive GraphDefDt : FoldCtx → SmtDatatype → Prop where
+  | head {defs : FoldCtx} {c : SmtDatatypeCons} {D : SmtDatatype} :
+      GraphDefDtc defs c → GraphDefDt defs (SmtDatatype.sum c D)
+  | tail {defs : FoldCtx} {c : SmtDatatypeCons} {D : SmtDatatype} :
+      GraphDefDt defs D → GraphDefDt defs (SmtDatatype.sum c D)
+
+end
+
+mutual
+
+private theorem graphDef_mono_ty {defsOld defsNew : FoldCtx}
+    (hSub : FoldCtxSub defsOld defsNew) :
+    ∀ {T : SmtType}, GraphDefTy defsOld T → GraphDefTy defsNew T
+  | _, GraphDefTy.ref hMem hBody =>
+      GraphDefTy.ref (hSub _ _ hMem)
+        (graphDef_mono_dt (eraseFoldName_sub hSub _) hBody)
+  | _, GraphDefTy.dt hBody =>
+      GraphDefTy.dt (graphDef_mono_dt (eraseFoldName_sub hSub _) hBody)
+  | _, GraphDefTy.atom hRef hDt hDef => GraphDefTy.atom hRef hDt hDef
+
+private theorem graphDef_mono_dtc {defsOld defsNew : FoldCtx}
+    (hSub : FoldCtxSub defsOld defsNew) :
+    ∀ {c : SmtDatatypeCons}, GraphDefDtc defsOld c → GraphDefDtc defsNew c
+  | _, GraphDefDtc.unit => GraphDefDtc.unit
+  | _, GraphDefDtc.cons hT hc =>
+      GraphDefDtc.cons (graphDef_mono_ty hSub hT)
+        (graphDef_mono_dtc hSub hc)
+
+private theorem graphDef_mono_dt {defsOld defsNew : FoldCtx}
+    (hSub : FoldCtxSub defsOld defsNew) :
+    ∀ {D : SmtDatatype}, GraphDefDt defsOld D → GraphDefDt defsNew D
+  | _, GraphDefDt.head hc => GraphDefDt.head (graphDef_mono_dtc hSub hc)
+  | _, GraphDefDt.tail hD => GraphDefDt.tail (graphDef_mono_dt hSub hD)
+
+end
+
+mutual
+
+private def CtxImgTy (folds : FoldCtx) (refs : RefList)
+    (F : SmtType) : SmtType → Prop
+  | SmtType.TypeRef q =>
+      F = SmtType.TypeRef q ∨
+        (native_reflist_contains refs q = true ∧
+          ∃ D, F = SmtType.Datatype q D)
+  | SmtType.Datatype q D =>
+      (((q, D) ∈ folds) ∧ F = SmtType.TypeRef q) ∨
+        ∃ DF, F = SmtType.Datatype q DF ∧
+          CtxImgDt ((q, D) :: folds) refs DF D
+  | U => F = U
+
+private def CtxImgDtc (folds : FoldCtx) (refs : RefList)
+    (cF : SmtDatatypeCons) : SmtDatatypeCons → Prop
+  | SmtDatatypeCons.unit => cF = SmtDatatypeCons.unit
+  | SmtDatatypeCons.cons T c =>
+      ∃ TF cF', cF = SmtDatatypeCons.cons TF cF' ∧
+        CtxImgTy folds refs TF T ∧ CtxImgDtc folds refs cF' c
+
+private def CtxImgDt (folds : FoldCtx) (refs : RefList)
+    (dF : SmtDatatype) : SmtDatatype → Prop
+  | SmtDatatype.null => dF = SmtDatatype.null
+  | SmtDatatype.sum c d =>
+      ∃ cF dF', dF = SmtDatatype.sum cF dF' ∧
+        CtxImgDtc folds refs cF c ∧ CtxImgDt folds refs dF' d
+
+end
+
+/-! `CtxImg*` deliberately forgets which definition supplied the body at a
+resolved reference.  That is enough for positional-image arguments, but not
+for comparing two resolutions: a default path may enter that supplied body.
+
+`SemImg* defs folds F U` is the proof-relevant refinement used for that
+comparison.  `defs` is the raw definition environment.  `folds` contains the
+datatype binders which are currently closed, so a reference to a folded name
+stays a reference.  Otherwise a name present in `defs` must be represented by
+a datatype whose body is recursively an image of that definition.  This is
+still relational--different valid histories may produce different bodies--
+but it no longer permits an unrelated body at a resolved reference. -/
+
+private def FoldBound (folds : FoldCtx) (q : native_String) : Prop :=
+  ∃ D : SmtDatatype, (q, D) ∈ folds
+
+private def FoldDefined (defs : FoldCtx) (q : native_String) : Prop :=
+  ∃ D : SmtDatatype, (q, D) ∈ defs
+
+private def FoldFunctional (defs : FoldCtx) : Prop :=
+  ∀ q D E, (q, D) ∈ defs → (q, E) ∈ defs → D = E
+
+mutual
+
+private inductive SemImgTy (defs : FoldCtx) :
+    FoldCtx → SmtType → SmtType → Prop where
+  | boundRef {q : native_String} :
+      FoldBound folds q →
+      SemImgTy defs folds (SmtType.TypeRef q) (SmtType.TypeRef q)
+  | openRef {q : native_String} :
+      (¬ FoldBound folds q) → (¬ FoldDefined defs q) →
+      SemImgTy defs folds (SmtType.TypeRef q) (SmtType.TypeRef q)
+  | resolvedRef {q : native_String} {R B : SmtDatatype} :
+      (¬ FoldBound folds q) → (q, R) ∈ defs →
+      SemImgDt defs ((q, R) :: folds) B R →
+      SemImgTy defs folds (SmtType.Datatype q B) (SmtType.TypeRef q)
+  | foldedDt {q : native_String} {D : SmtDatatype} :
+      (q, D) ∈ folds →
+      SemImgTy defs folds (SmtType.TypeRef q) (SmtType.Datatype q D)
+  | datatype {q : native_String} {D B : SmtDatatype} :
+      (q, D) ∉ folds →
+      SemImgDt defs ((q, D) :: folds) B D →
+      SemImgTy defs folds (SmtType.Datatype q B) (SmtType.Datatype q D)
+  | same {U : SmtType}
+      (hRef : ∀ q : native_String, U ≠ SmtType.TypeRef q)
+      (hDt : ∀ (q : native_String) (D : SmtDatatype),
+        U ≠ SmtType.Datatype q D) :
+      SemImgTy defs folds U U
+
+private inductive SemImgDtc (defs : FoldCtx) :
+    FoldCtx → SmtDatatypeCons → SmtDatatypeCons → Prop where
+  | unit : SemImgDtc defs folds SmtDatatypeCons.unit SmtDatatypeCons.unit
+  | cons {TF TU : SmtType} {cF cU : SmtDatatypeCons} :
+      SemImgTy defs folds TF TU → SemImgDtc defs folds cF cU →
+      SemImgDtc defs folds (SmtDatatypeCons.cons TF cF)
+        (SmtDatatypeCons.cons TU cU)
+
+private inductive SemImgDt (defs : FoldCtx) :
+    FoldCtx → SmtDatatype → SmtDatatype → Prop where
+  | null : SemImgDt defs folds SmtDatatype.null SmtDatatype.null
+  | sum {cF cU : SmtDatatypeCons} {dF dU : SmtDatatype} :
+      SemImgDtc defs folds cF cU → SemImgDt defs folds dF dU →
+      SemImgDt defs folds (SmtDatatype.sum cF dF)
+        (SmtDatatype.sum cU dU)
+
+end
+
+/-! A finite default path can be replayed in any semantic image whose raw
+environment extends the old one.  The only non-structural case is a raw
+reference.  There the old path contains a strict subpath through the old
+definition body; environment functionality identifies the new definition,
+and recursion continues on that strict subpath. -/
+
+mutual
+
+private theorem semImg_defPath_ty
+    {defsOld defsNew : FoldCtx}
+    (hSub : ∀ p, p ∈ defsOld → p ∈ defsNew)
+    (hFun : FoldFunctional defsNew) :
+    ∀ {folds : FoldCtx} {U TOld TNew : SmtType},
+      SemImgTy defsOld folds TOld U →
+      SemImgTy defsNew folds TNew U →
+      DefPathTy native_reflist_nil TOld →
+      DefPathTy native_reflist_nil TNew := by
+  intro folds U TOld TNew hOld hNew hPath
+  cases hPath with
+  | ref h =>
+      simp [native_reflist_contains, native_reflist_nil] at h
+  | atom hNotRef hNotDt hDef =>
+      cases hOld with
+      | boundRef _ => exact absurd rfl (hNotRef _)
+      | openRef _ _ => exact absurd rfl (hNotRef _)
+      | resolvedRef _ _ _ => exact absurd rfl (hNotDt _ _)
+      | foldedDt _ => exact absurd rfl (hNotRef _)
+      | datatype _ _ => exact absurd rfl (hNotDt _ _)
+      | same hOldNotRef hOldNotDt =>
+          cases hNew with
+          | boundRef _ => exact absurd rfl (hOldNotRef _)
+          | openRef _ _ => exact absurd rfl (hOldNotRef _)
+          | resolvedRef _ _ _ => exact absurd rfl (hOldNotRef _)
+          | foldedDt _ => exact absurd rfl (hOldNotDt _ _)
+          | datatype _ _ => exact absurd rfl (hOldNotDt _ _)
+          | same _ _ => exact DefPathTy.atom hNotRef hNotDt hDef
+  | @dt sOld dOld hBody =>
+      cases hOld with
+      | @resolvedRef _ q ROld BOld hNotBound hROld hBOld =>
+          cases hNew with
+          | boundRef hBound => exact absurd hBound hNotBound
+          | openRef _ hNoDef =>
+              exact absurd ⟨ROld, hSub (sOld, ROld) hROld⟩ hNoDef
+          | @resolvedRef _ _ RNew BNew _ hRNew hBNew =>
+              have hRaw : ROld = RNew :=
+                hFun sOld ROld RNew (hSub (sOld, ROld) hROld) hRNew
+              subst RNew
+              exact DefPathTy.dt
+                (semImg_defPath_dt
+                  (folds := (sOld, ROld) :: folds) hSub hFun
+                  hBOld hBNew hBody)
+          | same hRef _ => exact absurd rfl (hRef sOld)
+      | @datatype _ q D BOld hNotMem hBOld =>
+          cases hNew with
+          | foldedDt hMem => exact absurd hMem hNotMem
+          | @datatype _ _ _ BNew _ hBNew =>
+              exact DefPathTy.dt
+                (semImg_defPath_dt
+                  (folds := (sOld, D) :: folds) hSub hFun
+                  hBOld hBNew hBody)
+          | same _ hDt => exact absurd rfl (hDt sOld D)
+      | same _ hDt => exact absurd rfl (hDt sOld dOld)
+
+private theorem semImg_defPath_dtc
+    {defsOld defsNew : FoldCtx}
+    (hSub : ∀ p, p ∈ defsOld → p ∈ defsNew)
+    (hFun : FoldFunctional defsNew) :
+    ∀ {folds : FoldCtx} {cU cOld cNew : SmtDatatypeCons},
+      SemImgDtc defsOld folds cOld cU →
+      SemImgDtc defsNew folds cNew cU →
+      DefPathDtc native_reflist_nil cOld →
+      DefPathDtc native_reflist_nil cNew := by
+  intro folds cU cOld cNew hOld hNew hPath
+  cases hPath with
+  | unit =>
+      cases hOld
+      cases hNew
+      exact DefPathDtc.unit
+  | cons hT hc =>
+      cases hOld with
+      | cons hTOld hcOld =>
+          cases hNew with
+          | cons hTNew hcNew =>
+              exact DefPathDtc.cons
+                (semImg_defPath_ty (folds := folds) hSub hFun
+                  hTOld hTNew hT)
+                (semImg_defPath_dtc (folds := folds) hSub hFun
+                  hcOld hcNew hc)
+
+private theorem semImg_defPath_dt
+    {defsOld defsNew : FoldCtx}
+    (hSub : ∀ p, p ∈ defsOld → p ∈ defsNew)
+    (hFun : FoldFunctional defsNew) :
+    ∀ {folds : FoldCtx} {dU dOld dNew : SmtDatatype},
+      SemImgDt defsOld folds dOld dU →
+      SemImgDt defsNew folds dNew dU →
+      DefPathDt native_reflist_nil dOld →
+      DefPathDt native_reflist_nil dNew := by
+  intro folds dU dOld dNew hOld hNew hPath
+  cases hPath with
+  | head hc =>
+      cases hOld with
+      | sum hcOld hdOld =>
+          cases hNew with
+          | sum hcNew hdNew =>
+              exact DefPathDt.head
+                (semImg_defPath_dtc (folds := folds) hSub hFun
+                  hcOld hcNew hc)
+  | tail hd =>
+      cases hOld with
+      | sum hcOld hdOld =>
+          cases hNew with
+          | sum hcNew hdNew =>
+              exact DefPathDt.tail
+                (semImg_defPath_dt (folds := folds) hSub hFun
+                  hdOld hdNew hd)
+
+end
+
+private theorem semImg_refDef_dt
+    {defsOld defsNew folds : FoldCtx}
+    (hSub : ∀ p, p ∈ defsOld → p ∈ defsNew)
+    (hFun : FoldFunctional defsNew)
+    {U DOld DNew : SmtDatatype}
+    (hOld : SemImgDt defsOld folds DOld U)
+    (hNew : SemImgDt defsNew folds DNew U) :
+    refDefDt native_reflist_nil DOld = true →
+      refDefDt native_reflist_nil DNew = true := by
+  intro hDef
+  exact refDef_of_defPathDt
+    (semImg_defPath_dt (folds := folds) hSub hFun hOld hNew
+      (defPathDt_of_refDef native_reflist_nil DOld hDef))
+
+/-! Semantic images depend on a fold context only through membership. -/
+mutual
+
+private theorem semImg_folds_congr_ty {defs : FoldCtx} :
+    ∀ {folds folds' : FoldCtx} {F U : SmtType},
+      (∀ p, p ∈ folds ↔ p ∈ folds') →
+      SemImgTy defs folds F U → SemImgTy defs folds' F U
+  | _, _, _, _, hMem, SemImgTy.boundRef hBound =>
+      SemImgTy.boundRef (by
+        rcases hBound with ⟨D, hD⟩
+        exact ⟨D, (hMem ( _ , D)).mp hD⟩)
+  | _, _, _, _, hMem, SemImgTy.openRef hNotBound hNoDef =>
+      SemImgTy.openRef
+        (by
+          intro hBound
+          rcases hBound with ⟨D, hD⟩
+          exact hNotBound ⟨D, (hMem (_, D)).mpr hD⟩)
+        hNoDef
+  | _, _, _, _, hMem,
+      @SemImgTy.resolvedRef _ _ q R B hNotBound hR hBody =>
+      SemImgTy.resolvedRef
+        (by
+          intro hBound
+          rcases hBound with ⟨D, hD⟩
+          exact hNotBound ⟨D, (hMem (_, D)).mpr hD⟩)
+        hR
+        (semImg_folds_congr_dt
+          (fun p => by
+            simp only [List.mem_cons]
+            constructor <;> intro hp
+            · exact hp.elim Or.inl (fun h => Or.inr ((hMem p).mp h))
+            · exact hp.elim Or.inl (fun h => Or.inr ((hMem p).mpr h)))
+          hBody)
+  | _, _, _, _, hMem, SemImgTy.foldedDt hFold =>
+      SemImgTy.foldedDt ((hMem _).mp hFold)
+  | _, _, _, _, hMem, @SemImgTy.datatype _ _ q D B hNotFold hBody =>
+      SemImgTy.datatype
+        (fun h => hNotFold ((hMem (q, D)).mpr h))
+        (semImg_folds_congr_dt
+          (fun p => by
+            simp only [List.mem_cons]
+            constructor <;> intro hp
+            · exact hp.elim Or.inl (fun h => Or.inr ((hMem p).mp h))
+            · exact hp.elim Or.inl (fun h => Or.inr ((hMem p).mpr h)))
+          hBody)
+  | _, _, _, _, _hMem, SemImgTy.same hRef hDt => SemImgTy.same hRef hDt
+
+private theorem semImg_folds_congr_dtc {defs : FoldCtx} :
+    ∀ {folds folds' : FoldCtx} {cF cU : SmtDatatypeCons},
+      (∀ p, p ∈ folds ↔ p ∈ folds') →
+      SemImgDtc defs folds cF cU → SemImgDtc defs folds' cF cU
+  | _, _, _, _, _hMem, SemImgDtc.unit => SemImgDtc.unit
+  | _, _, _, _, hMem, SemImgDtc.cons hT hc =>
+      SemImgDtc.cons (semImg_folds_congr_ty hMem hT)
+        (semImg_folds_congr_dtc hMem hc)
+
+private theorem semImg_folds_congr_dt {defs : FoldCtx} :
+    ∀ {folds folds' : FoldCtx} {dF dU : SmtDatatype},
+      (∀ p, p ∈ folds ↔ p ∈ folds') →
+      SemImgDt defs folds dF dU → SemImgDt defs folds' dF dU
+  | _, _, _, _, _hMem, SemImgDt.null => SemImgDt.null
+  | _, _, _, _, hMem, SemImgDt.sum hc hd =>
+      SemImgDt.sum (semImg_folds_congr_dtc hMem hc)
+        (semImg_folds_congr_dt hMem hd)
+
+end
+
+/-! Reflexivity holds when every available definition is currently folded
+and every folded datatype is strictly above the raw object being related.
+The size side condition rules out the only shape-changing alternative at a
+raw datatype node. -/
+
+mutual
+
+private theorem semImg_refl_ty (defs folds : FoldCtx) :
+    ∀ U : SmtType,
+      (∀ q, FoldDefined defs q → FoldBound folds q) →
+      (∀ q D, (q, D) ∈ folds →
+        sizeOf U < sizeOf (SmtType.Datatype q D)) →
+      SemImgTy defs folds U U
+  | SmtType.TypeRef q, hBound, _hAbove => by
+      by_cases hb : FoldBound folds q
+      · exact SemImgTy.boundRef hb
+      · apply SemImgTy.openRef hb
+        intro hd
+        exact hb (hBound q hd)
+  | SmtType.Datatype q D, hBound, hAbove => by
+      have hNotMem : (q, D) ∉ folds := by
+        intro hMem
+        have hlt := hAbove q D hMem
+        simp at hlt
+      exact SemImgTy.datatype hNotMem
+        (semImg_refl_dt defs ((q, D) :: folds) D
+          (by
+            intro r hd
+            by_cases hrq : r = q
+            · subst r
+              exact ⟨D, by simp⟩
+            · rcases hd with ⟨E, hE⟩
+              have hb := hBound r ⟨E, hE⟩
+              rcases hb with ⟨B, hB⟩
+              exact ⟨B, by simp [hB]⟩)
+          (by
+            intro r E hMem
+            simp only [List.mem_cons] at hMem
+            rcases hMem with hEq | hMem
+            · cases hEq
+              simp
+              omega
+            · have hlt := hAbove r E hMem
+              simp at hlt ⊢
+              omega))
+  | SmtType.None, _hBound, _hAbove =>
+      SemImgTy.same (fun _ h => by cases h) (fun _ _ h => by cases h)
+  | SmtType.Bool, _hBound, _hAbove =>
+      SemImgTy.same (fun _ h => by cases h) (fun _ _ h => by cases h)
+  | SmtType.Int, _hBound, _hAbove =>
+      SemImgTy.same (fun _ h => by cases h) (fun _ _ h => by cases h)
+  | SmtType.Real, _hBound, _hAbove =>
+      SemImgTy.same (fun _ h => by cases h) (fun _ _ h => by cases h)
+  | SmtType.RegLan, _hBound, _hAbove =>
+      SemImgTy.same (fun _ h => by cases h) (fun _ _ h => by cases h)
+  | SmtType.BitVec w, _hBound, _hAbove =>
+      SemImgTy.same (fun _ h => by cases h) (fun _ _ h => by cases h)
+  | SmtType.Map A B, _hBound, _hAbove =>
+      SemImgTy.same (fun _ h => by cases h) (fun _ _ h => by cases h)
+  | SmtType.Set A, _hBound, _hAbove =>
+      SemImgTy.same (fun _ h => by cases h) (fun _ _ h => by cases h)
+  | SmtType.Seq A, _hBound, _hAbove =>
+      SemImgTy.same (fun _ h => by cases h) (fun _ _ h => by cases h)
+  | SmtType.Char, _hBound, _hAbove =>
+      SemImgTy.same (fun _ h => by cases h) (fun _ _ h => by cases h)
+  | SmtType.USort u, _hBound, _hAbove =>
+      SemImgTy.same (fun _ h => by cases h) (fun _ _ h => by cases h)
+  | SmtType.FunType A B, _hBound, _hAbove =>
+      SemImgTy.same (fun _ h => by cases h) (fun _ _ h => by cases h)
+  | SmtType.DtcAppType A B, _hBound, _hAbove =>
+      SemImgTy.same (fun _ h => by cases h) (fun _ _ h => by cases h)
+
+private theorem semImg_refl_dtc (defs folds : FoldCtx) :
+    ∀ c : SmtDatatypeCons,
+      (∀ q, FoldDefined defs q → FoldBound folds q) →
+      (∀ q D, (q, D) ∈ folds →
+        sizeOf c < sizeOf (SmtType.Datatype q D)) →
+      SemImgDtc defs folds c c
+  | SmtDatatypeCons.unit, _hBound, _hAbove => SemImgDtc.unit
+  | SmtDatatypeCons.cons T c, hBound, hAbove =>
+      SemImgDtc.cons
+        (semImg_refl_ty defs folds T hBound (by
+          intro q D hMem
+          have hlt := hAbove q D hMem
+          simp at hlt ⊢
+          omega))
+        (semImg_refl_dtc defs folds c hBound (by
+          intro q D hMem
+          have hlt := hAbove q D hMem
+          simp at hlt ⊢
+          omega))
+
+private theorem semImg_refl_dt (defs folds : FoldCtx) :
+    ∀ d : SmtDatatype,
+      (∀ q, FoldDefined defs q → FoldBound folds q) →
+      (∀ q D, (q, D) ∈ folds →
+        sizeOf d < sizeOf (SmtType.Datatype q D)) →
+      SemImgDt defs folds d d
+  | SmtDatatype.null, _hBound, _hAbove => SemImgDt.null
+  | SmtDatatype.sum c d, hBound, hAbove =>
+      SemImgDt.sum
+        (semImg_refl_dtc defs folds c hBound (by
+          intro q D hMem
+          have hlt := hAbove q D hMem
+          simp at hlt ⊢
+          omega))
+        (semImg_refl_dt defs folds d hBound (by
+          intro q D hMem
+          have hlt := hAbove q D hMem
+          simp at hlt ⊢
+          omega))
+
+end
+
+/-! Forgetting the body provenance yields the ordinary scoped image. -/
+mutual
+
+private theorem semImg_to_ctx_ty
+    {defs : FoldCtx} {refs : RefList}
+    (hDefs : ∀ q R, (q, R) ∈ defs →
+      native_reflist_contains refs q = true) :
+    ∀ {folds : FoldCtx} {F U : SmtType},
+      SemImgTy defs folds F U → CtxImgTy folds refs F U
+  | _, _, _, SemImgTy.boundRef _ => Or.inl rfl
+  | _, _, _, SemImgTy.openRef _ _ => Or.inl rfl
+  | _, _, _, @SemImgTy.resolvedRef _ _ q R B _ hR _ =>
+      Or.inr ⟨hDefs q R hR, B, rfl⟩
+  | _, _, _, SemImgTy.foldedDt hMem => Or.inl ⟨hMem, rfl⟩
+  | _, _, _, SemImgTy.datatype _ hBody =>
+      Or.inr ⟨_, rfl, semImg_to_ctx_dt hDefs hBody⟩
+  | _, _, _, @SemImgTy.same _ _ U hRef hDt => by
+      cases U <;> first
+        | rfl
+        | exact absurd rfl (hRef _)
+        | exact absurd rfl (hDt _ _)
+
+private theorem semImg_to_ctx_dtc
+    {defs : FoldCtx} {refs : RefList}
+    (hDefs : ∀ q R, (q, R) ∈ defs →
+      native_reflist_contains refs q = true) :
+    ∀ {folds : FoldCtx} {cF cU : SmtDatatypeCons},
+      SemImgDtc defs folds cF cU → CtxImgDtc folds refs cF cU
+  | _, _, _, SemImgDtc.unit => rfl
+  | _, _, _, SemImgDtc.cons hT hc =>
+      ⟨_, _, rfl, semImg_to_ctx_ty hDefs hT,
+        semImg_to_ctx_dtc hDefs hc⟩
+
+private theorem semImg_to_ctx_dt
+    {defs : FoldCtx} {refs : RefList}
+    (hDefs : ∀ q R, (q, R) ∈ defs →
+      native_reflist_contains refs q = true) :
+    ∀ {folds : FoldCtx} {dF dU : SmtDatatype},
+      SemImgDt defs folds dF dU → CtxImgDt folds refs dF dU
+  | _, _, _, SemImgDt.null => rfl
+  | _, _, _, SemImgDt.sum hc hd =>
+      ⟨_, _, rfl, semImg_to_ctx_dtc hDefs hc,
+        semImg_to_ctx_dt hDefs hd⟩
+
+end
+
+mutual
+
+private theorem ctxImg_refl_ty (folds : FoldCtx) (refs : RefList) :
+    ∀ T : SmtType, CtxImgTy folds refs T T
+  | SmtType.TypeRef q => Or.inl rfl
+  | SmtType.Datatype q D =>
+      Or.inr ⟨D, rfl, ctxImg_refl_dt ((q, D) :: folds) refs D⟩
+  | SmtType.None => rfl
+  | SmtType.Bool => rfl
+  | SmtType.Int => rfl
+  | SmtType.Real => rfl
+  | SmtType.RegLan => rfl
+  | SmtType.BitVec w => rfl
+  | SmtType.Map A B => rfl
+  | SmtType.Set A => rfl
+  | SmtType.Seq A => rfl
+  | SmtType.Char => rfl
+  | SmtType.USort u => rfl
+  | SmtType.FunType A B => rfl
+  | SmtType.DtcAppType A B => rfl
+
+private theorem ctxImg_refl_dtc (folds : FoldCtx) (refs : RefList) :
+    ∀ c : SmtDatatypeCons, CtxImgDtc folds refs c c
+  | SmtDatatypeCons.unit => rfl
+  | SmtDatatypeCons.cons T c =>
+      ⟨T, c, rfl, ctxImg_refl_ty folds refs T,
+        ctxImg_refl_dtc folds refs c⟩
+
+private theorem ctxImg_refl_dt (folds : FoldCtx) (refs : RefList) :
+    ∀ d : SmtDatatype, CtxImgDt folds refs d d
+  | SmtDatatype.null => rfl
+  | SmtDatatype.sum c d =>
+      ⟨c, d, rfl, ctxImg_refl_dtc folds refs c,
+        ctxImg_refl_dt folds refs d⟩
+
+end
+
+/-! Ordinary substitution images are scoped images in every ambient fold
+context.  This is used for a freshly appended entry, whose payload is produced
+by applying the already-built prefix chain to its raw body. -/
+mutual
+
+private theorem ctxImg_of_img_ty (folds : FoldCtx) (refs : RefList) :
+    ∀ (U F : SmtType), imgTy refs F U → CtxImgTy folds refs F U
+  | SmtType.TypeRef q, F, h => h
+  | SmtType.Datatype q D, F, h => by
+      rcases h with ⟨DF, rfl, hBody⟩
+      exact Or.inr ⟨DF, rfl,
+        ctxImg_of_img_dt ((q, D) :: folds) refs D DF hBody⟩
+  | SmtType.None, F, h => h
+  | SmtType.Bool, F, h => h
+  | SmtType.Int, F, h => h
+  | SmtType.Real, F, h => h
+  | SmtType.RegLan, F, h => h
+  | SmtType.BitVec w, F, h => h
+  | SmtType.Map A B, F, h => h
+  | SmtType.Set A, F, h => h
+  | SmtType.Seq A, F, h => h
+  | SmtType.Char, F, h => h
+  | SmtType.USort u, F, h => h
+  | SmtType.FunType A B, F, h => h
+  | SmtType.DtcAppType A B, F, h => h
+
+private theorem ctxImg_of_img_dtc (folds : FoldCtx) (refs : RefList) :
+    ∀ (cU cF : SmtDatatypeCons), imgDtc refs cF cU →
+      CtxImgDtc folds refs cF cU
+  | SmtDatatypeCons.unit, cF, h => h
+  | SmtDatatypeCons.cons T c, cF, h => by
+      rcases h with ⟨TF, cF', rfl, hT, hc⟩
+      exact ⟨TF, cF', rfl, ctxImg_of_img_ty folds refs T TF hT,
+        ctxImg_of_img_dtc folds refs c cF' hc⟩
+
+private theorem ctxImg_of_img_dt (folds : FoldCtx) (refs : RefList) :
+    ∀ (dU dF : SmtDatatype), imgDt refs dF dU →
+      CtxImgDt folds refs dF dU
+  | SmtDatatype.null, dF, h => h
+  | SmtDatatype.sum c d, dF, h => by
+      rcases h with ⟨cF, dF', rfl, hc, hd⟩
+      exact ⟨cF, dF', rfl, ctxImg_of_img_dtc folds refs c cF hc,
+        ctxImg_of_img_dt folds refs d dF' hd⟩
+
+end
+
+
+mutual
+
+private theorem ctxImg_mono_ty
+    {folds folds' : FoldCtx} {refs refs' : RefList}
+    (hFolds : ∀ p, p ∈ folds → p ∈ folds')
+    (hRefs : ∀ q, native_reflist_contains refs q = true →
+      native_reflist_contains refs' q = true) :
+    ∀ (U F : SmtType), CtxImgTy folds refs F U →
+      CtxImgTy folds' refs' F U
+  | SmtType.TypeRef q, F, h => by
+      rcases h with hEq | ⟨hq, D, hEq⟩
+      · exact Or.inl hEq
+      · exact Or.inr ⟨hRefs q hq, D, hEq⟩
+  | SmtType.Datatype q D, F, h => by
+      rcases h with ⟨hMem, hEq⟩ | ⟨DF, hEq, hBody⟩
+      · exact Or.inl ⟨hFolds (q, D) hMem, hEq⟩
+      · exact Or.inr ⟨DF, hEq,
+          ctxImg_mono_dt
+            (fun p hp => by
+              simp only [List.mem_cons] at hp ⊢
+              exact hp.elim Or.inl (fun h => Or.inr (hFolds p h)))
+            hRefs D DF hBody⟩
+  | SmtType.None, F, h => h
+  | SmtType.Bool, F, h => h
+  | SmtType.Int, F, h => h
+  | SmtType.Real, F, h => h
+  | SmtType.RegLan, F, h => h
+  | SmtType.BitVec w, F, h => h
+  | SmtType.Map A B, F, h => h
+  | SmtType.Set A, F, h => h
+  | SmtType.Seq A, F, h => h
+  | SmtType.Char, F, h => h
+  | SmtType.USort u, F, h => h
+  | SmtType.FunType A B, F, h => h
+  | SmtType.DtcAppType A B, F, h => h
+
+private theorem ctxImg_mono_dtc
+    {folds folds' : FoldCtx} {refs refs' : RefList}
+    (hFolds : ∀ p, p ∈ folds → p ∈ folds')
+    (hRefs : ∀ q, native_reflist_contains refs q = true →
+      native_reflist_contains refs' q = true) :
+    ∀ (cU cF : SmtDatatypeCons), CtxImgDtc folds refs cF cU →
+      CtxImgDtc folds' refs' cF cU
+  | SmtDatatypeCons.unit, cF, h => h
+  | SmtDatatypeCons.cons T c, cF, h => by
+      rcases h with ⟨TF, cF', hEq, hT, hc⟩
+      exact ⟨TF, cF', hEq, ctxImg_mono_ty hFolds hRefs T TF hT,
+        ctxImg_mono_dtc hFolds hRefs c cF' hc⟩
+
+private theorem ctxImg_mono_dt
+    {folds folds' : FoldCtx} {refs refs' : RefList}
+    (hFolds : ∀ p, p ∈ folds → p ∈ folds')
+    (hRefs : ∀ q, native_reflist_contains refs q = true →
+      native_reflist_contains refs' q = true) :
+    ∀ (dU dF : SmtDatatype), CtxImgDt folds refs dF dU →
+      CtxImgDt folds' refs' dF dU
+  | SmtDatatype.null, dF, h => h
+  | SmtDatatype.sum c d, dF, h => by
+      rcases h with ⟨cF, dF', hEq, hc, hd⟩
+      exact ⟨cF, dF', hEq, ctxImg_mono_dtc hFolds hRefs c cF hc,
+        ctxImg_mono_dt hFolds hRefs d dF' hd⟩
+
+end
+
+
+private theorem noStrayTy_same_name_body
+    (s : native_String) (X D : SmtDatatype)
+    (h : noStrayTy s X (SmtType.Datatype s D) = true) :
+    D = X := by
+  by_cases hEq : native_Teq
+      (SmtType.Datatype s X) (SmtType.Datatype s D) = true
+  · have hp : s = s ∧ X = D := by simpa [native_Teq] using hEq
+    exact hp.2.symm
+  · exfalso
+    simpa [noStrayTy, native_ite, hEq, native_streq, native_and,
+      native_not] using h
+
+
+mutual
+
+/-- Lifting the folded side adds exactly one raw datatype to the fold scope.
+`noStray` supplies the raw-body identity when an exact contextual image is
+actually folded. -/
+private theorem ctxImg_lift_ty
+    (folds : FoldCtx) (refs : RefList)
+    (s : native_String) (X Y : SmtDatatype)
+    (hTargetStray : noStrayDt s X X = true) :
+    ∀ (U F : SmtType), noStrayTy s X U = true →
+      CtxImgTy folds refs F U →
+      CtxImgTy ((s, X) :: folds) refs (__smtx_type_lift s Y F) U
+  | SmtType.TypeRef q, F, _hStray, hImg => by
+      rcases hImg with rfl | ⟨hq, D, rfl⟩
+      · exact Or.inl (by simp [__smtx_type_lift])
+      · by_cases hFold : native_Teq
+            (SmtType.Datatype s Y) (SmtType.Datatype q D) = true
+        · have hp : s = q ∧ Y = D := by simpa [native_Teq] using hFold
+          obtain ⟨rfl, rfl⟩ := hp
+          exact Or.inl (by simp [__smtx_type_lift, native_ite, native_Teq])
+        · exact Or.inr ⟨hq, __smtx_dt_lift s Y D, by
+            simp [__smtx_type_lift, native_ite, hFold]⟩
+  | SmtType.Datatype q D, F, hStray, hImg => by
+      rcases hImg with ⟨hMem, rfl⟩ | ⟨DF, rfl, hBody⟩
+      · exact Or.inl ⟨by simp only [List.mem_cons]; exact Or.inr hMem,
+          by simp [__smtx_type_lift]⟩
+      · by_cases hFold : native_Teq
+            (SmtType.Datatype s Y) (SmtType.Datatype q DF) = true
+        · have hp : s = q ∧ Y = DF := by simpa [native_Teq] using hFold
+          obtain ⟨rfl, rfl⟩ := hp
+          have hDX : D = X := noStrayTy_same_name_body s X D hStray
+          subst D
+          exact Or.inl ⟨by simp, by
+            simp [__smtx_type_lift, native_ite, native_Teq]⟩
+        · refine Or.inr ⟨__smtx_dt_lift s Y DF, by
+            simp [__smtx_type_lift, native_ite, hFold], ?_⟩
+          have hBodyStray : noStrayDt s X D = true := by
+            by_cases hRaw : native_Teq
+                (SmtType.Datatype s X) (SmtType.Datatype q D) = true
+            · have hp : s = q ∧ X = D := by simpa [native_Teq] using hRaw
+              obtain ⟨rfl, rfl⟩ := hp
+              exact hTargetStray
+            · have hqs : native_streq q s = false := by
+                cases hqs : native_streq q s with
+                | false => rfl
+                | true =>
+                    have heq : q = s := by simpa [native_streq] using hqs
+                    subst q
+                    exfalso
+                    simp [noStrayTy, native_ite, hRaw, native_streq,
+                      native_and, native_not] at hStray
+              have hsq : native_streq s q = false := by
+                simpa [native_streq, eq_comm] using hqs
+              simpa [noStrayTy, native_ite, hRaw, hqs, hsq,
+                native_and, native_not] using hStray
+          have hRec := ctxImg_lift_dt ((q, D) :: folds) refs s X Y hTargetStray
+            D DF hBodyStray hBody
+          exact ctxImg_mono_dt
+            (folds := (s, X) :: (q, D) :: folds)
+            (folds' := (q, D) :: (s, X) :: folds)
+            (refs := refs) (refs' := refs)
+            (by
+              intro p hp
+              simp only [List.mem_cons] at hp ⊢
+              rcases hp with rfl | rfl | hp
+              · exact Or.inr (Or.inl rfl)
+              · exact Or.inl rfl
+              · exact Or.inr (Or.inr hp))
+            (fun _ h => h) D _ hRec
+  | SmtType.None, F, _hStray, hImg => by cases hImg; rfl
+  | SmtType.Bool, F, _hStray, hImg => by cases hImg; rfl
+  | SmtType.Int, F, _hStray, hImg => by cases hImg; rfl
+  | SmtType.Real, F, _hStray, hImg => by cases hImg; rfl
+  | SmtType.RegLan, F, _hStray, hImg => by cases hImg; rfl
+  | SmtType.BitVec w, F, _hStray, hImg => by cases hImg; rfl
+  | SmtType.Map A B, F, _hStray, hImg => by cases hImg; rfl
+  | SmtType.Set A, F, _hStray, hImg => by cases hImg; rfl
+  | SmtType.Seq A, F, _hStray, hImg => by cases hImg; rfl
+  | SmtType.Char, F, _hStray, hImg => by cases hImg; rfl
+  | SmtType.USort u, F, _hStray, hImg => by cases hImg; rfl
+  | SmtType.FunType A B, F, _hStray, hImg => by cases hImg; rfl
+  | SmtType.DtcAppType A B, F, _hStray, hImg => by cases hImg; rfl
+
+private theorem ctxImg_lift_dtc
+    (folds : FoldCtx) (refs : RefList)
+    (s : native_String) (X Y : SmtDatatype)
+    (hTargetStray : noStrayDt s X X = true) :
+    ∀ (cU cF : SmtDatatypeCons), noStrayDtc s X cU = true →
+      CtxImgDtc folds refs cF cU →
+      CtxImgDtc ((s, X) :: folds) refs (__smtx_dtc_lift s Y cF) cU
+  | SmtDatatypeCons.unit, cF, _hStray, hImg => by cases hImg; rfl
+  | SmtDatatypeCons.cons T c, cF, hStray, hImg => by
+      rcases hImg with ⟨TF, cF', rfl, hT, hc⟩
+      have hp : noStrayTy s X T = true ∧ noStrayDtc s X c = true := by
+        simpa [noStrayDtc, native_and, Bool.and_eq_true] using hStray
+      exact ⟨_, _, rfl,
+        ctxImg_lift_ty folds refs s X Y hTargetStray T TF hp.1 hT,
+        ctxImg_lift_dtc folds refs s X Y hTargetStray c cF' hp.2 hc⟩
+
+private theorem ctxImg_lift_dt
+    (folds : FoldCtx) (refs : RefList)
+    (s : native_String) (X Y : SmtDatatype)
+    (hTargetStray : noStrayDt s X X = true) :
+    ∀ (dU dF : SmtDatatype), noStrayDt s X dU = true →
+      CtxImgDt folds refs dF dU →
+      CtxImgDt ((s, X) :: folds) refs (__smtx_dt_lift s Y dF) dU
+  | SmtDatatype.null, dF, _hStray, hImg => by cases hImg; rfl
+  | SmtDatatype.sum c d, dF, hStray, hImg => by
+      rcases hImg with ⟨cF, dF', rfl, hc, hd⟩
+      have hp : noStrayDtc s X c = true ∧ noStrayDt s X d = true := by
+        simpa [noStrayDt, native_and, Bool.and_eq_true] using hStray
+      exact ⟨_, _, rfl,
+        ctxImg_lift_dtc folds refs s X Y hTargetStray c cF hp.1 hc,
+        ctxImg_lift_dt folds refs s X Y hTargetStray d dF' hp.2 hd⟩
+
+end
+
+/-! Fold scopes disappear at the outer boundary.  More generally, if every
+raw datatype recorded in the scope is strictly larger than the current raw
+subtree, the fold alternative is impossible.  Adding the current datatype
+when descending into its body preserves exactly that size invariant. -/
+mutual
+
+private theorem ctxImg_to_img_ty
+    (folds : FoldCtx) (refs : RefList) :
+    ∀ (U F : SmtType),
+      (∀ q D, (q, D) ∈ folds → sizeOf U < sizeOf (SmtType.Datatype q D)) →
+      CtxImgTy folds refs F U → imgTy refs F U
+  | SmtType.TypeRef q, F, _hAbove, hImg => hImg
+  | SmtType.Datatype q D, F, hAbove, hImg => by
+      rcases hImg with ⟨hMem, hEq⟩ | ⟨DF, hEq, hBody⟩
+      · have hlt := hAbove q D hMem
+        simp at hlt
+      · exact ⟨DF, hEq, ctxImg_to_img_dt ((q, D) :: folds) refs D DF
+          (by
+            intro r E hMem
+            simp only [List.mem_cons] at hMem
+            rcases hMem with hEq | hMem
+            · cases hEq
+              simp
+              omega
+            · have hlt := hAbove r E hMem
+              simp at hlt ⊢
+              omega)
+          hBody⟩
+  | SmtType.None, F, _hAbove, hImg => hImg
+  | SmtType.Bool, F, _hAbove, hImg => hImg
+  | SmtType.Int, F, _hAbove, hImg => hImg
+  | SmtType.Real, F, _hAbove, hImg => hImg
+  | SmtType.RegLan, F, _hAbove, hImg => hImg
+  | SmtType.BitVec w, F, _hAbove, hImg => hImg
+  | SmtType.Map A B, F, _hAbove, hImg => hImg
+  | SmtType.Set A, F, _hAbove, hImg => hImg
+  | SmtType.Seq A, F, _hAbove, hImg => hImg
+  | SmtType.Char, F, _hAbove, hImg => hImg
+  | SmtType.USort u, F, _hAbove, hImg => hImg
+  | SmtType.FunType A B, F, _hAbove, hImg => hImg
+  | SmtType.DtcAppType A B, F, _hAbove, hImg => hImg
+
+private theorem ctxImg_to_img_dtc
+    (folds : FoldCtx) (refs : RefList) :
+    ∀ (cU cF : SmtDatatypeCons),
+      (∀ q D, (q, D) ∈ folds → sizeOf cU < sizeOf (SmtType.Datatype q D)) →
+      CtxImgDtc folds refs cF cU → imgDtc refs cF cU
+  | SmtDatatypeCons.unit, cF, _hAbove, hImg => hImg
+  | SmtDatatypeCons.cons T c, cF, hAbove, hImg => by
+      rcases hImg with ⟨TF, cF', hEq, hT, hc⟩
+      exact ⟨TF, cF', hEq,
+        ctxImg_to_img_ty folds refs T TF
+          (by
+            intro q D hMem
+            have hlt := hAbove q D hMem
+            simp at hlt ⊢
+            omega)
+          hT,
+        ctxImg_to_img_dtc folds refs c cF'
+          (by
+            intro q D hMem
+            have hlt := hAbove q D hMem
+            simp at hlt ⊢
+            omega)
+          hc⟩
+
+private theorem ctxImg_to_img_dt
+    (folds : FoldCtx) (refs : RefList) :
+    ∀ (dU dF : SmtDatatype),
+      (∀ q D, (q, D) ∈ folds → sizeOf dU < sizeOf (SmtType.Datatype q D)) →
+      CtxImgDt folds refs dF dU → imgDt refs dF dU
+  | SmtDatatype.null, dF, _hAbove, hImg => hImg
+  | SmtDatatype.sum c d, dF, hAbove, hImg => by
+      rcases hImg with ⟨cF, dF', hEq, hc, hd⟩
+      exact ⟨cF, dF', hEq,
+        ctxImg_to_img_dtc folds refs c cF
+          (by
+            intro q D hMem
+            have hlt := hAbove q D hMem
+            simp at hlt ⊢
+            omega)
+          hc,
+        ctxImg_to_img_dt folds refs d dF'
+          (by
+            intro q D hMem
+            have hlt := hAbove q D hMem
+            simp at hlt ⊢
+            omega)
+          hd⟩
+
+end
+
+private theorem ctxImg_empty_to_img_dt
+    (refs : RefList) (U F : SmtDatatype)
+    (h : CtxImgDt [] refs F U) : imgDt refs F U := by
+  exact ctxImg_to_img_dt [] refs U F (by simp) h
 
 /-! Monotonicity of the excuse set. -/
 mutual
@@ -2099,6 +3386,22 @@ private theorem inhabited_of_refDef_empty
   · exact absurd h hNe
   · simp [native_inhabited_type, native_and, native_not, native_Teq, h]
 
+/-- `FoldObsTy.dt` is most conveniently established at the default-path
+level.  The `refDef` equivalence above converts that syntactic implication
+back to the inhabitance implication consumed by wf transport. -/
+private theorem foldObsTy_dt_of_refDef
+    {sOld sNew sU : native_String} {dOld dNew dU : SmtDatatype}
+    (hDef : refDefDt native_reflist_nil dOld = true →
+      refDefDt native_reflist_nil dNew = true)
+    (hBody : FoldObsDt (__smtx_dt_substitute sOld dOld dOld)
+      (__smtx_dt_substitute sNew dNew dNew) dU) :
+    FoldObsTy (SmtType.Datatype sOld dOld)
+      (SmtType.Datatype sNew dNew) (SmtType.Datatype sU dU) := by
+  exact FoldObsTy.dt
+    (fun hInh => inhabited_of_refDef_empty sNew dNew
+      (hDef (refDef_empty_of_inhabited sOld dOld hInh)))
+    hBody
+
 /-- Positional substitution images of an inhabited datatype body are
 inhabited.  Unlike `inhabited_chain_image`, this statement does not require a
 particular list of substitutions: the origin image itself is the certificate
@@ -2128,6 +3431,67 @@ private theorem inhabited_edge_rotate
 
 /-! ## The chain invariant and the establishment walk -/
 
+/-! A raw guide reached by the structural establishment walk remains embedded
+in the original root: every definition visible in the root is still respected
+by the guide.  Unlike root-relative name consistency alone, this rules out a
+detached guide introducing a name which the root never contained. -/
+def RootEmbeddedTy (root : SmtDatatype) (T : SmtType) : Prop :=
+  ∀ s X, __smtx_dt_name_agrees s X root = true →
+    __smtx_type_name_agrees s X T = true
+
+def RootEmbeddedDtc (root : SmtDatatype)
+    (c : SmtDatatypeCons) : Prop :=
+  ∀ s X, __smtx_dt_name_agrees s X root = true →
+    __smtx_dt_cons_name_agrees s X c = true
+
+def RootEmbeddedDt (root : SmtDatatype) (d : SmtDatatype) : Prop :=
+  ∀ s X, __smtx_dt_name_agrees s X root = true →
+    __smtx_dt_name_agrees s X d = true
+
+private theorem RootEmbeddedDt_parts
+    (root : SmtDatatype) (c : SmtDatatypeCons) (d : SmtDatatype)
+    (h : RootEmbeddedDt root (SmtDatatype.sum c d)) :
+    RootEmbeddedDtc root c ∧ RootEmbeddedDt root d := by
+  constructor <;> intro s X hRoot
+  · have hAll := h s X hRoot
+    simp only [__smtx_dt_name_agrees] at hAll
+    cases hc : __smtx_dt_cons_name_agrees s X c <;>
+      cases hd : __smtx_dt_name_agrees s X d <;>
+        simp_all [native_ite]
+  · have hAll := h s X hRoot
+    simp only [__smtx_dt_name_agrees] at hAll
+    cases hc : __smtx_dt_cons_name_agrees s X c <;>
+      cases hd : __smtx_dt_name_agrees s X d <;>
+        simp_all [native_ite]
+
+private theorem RootEmbeddedDtc_parts
+    (root : SmtDatatype) (T : SmtType) (c : SmtDatatypeCons)
+    (h : RootEmbeddedDtc root (SmtDatatypeCons.cons T c)) :
+    RootEmbeddedTy root T ∧ RootEmbeddedDtc root c := by
+  constructor <;> intro s X hRoot
+  · have hAll := h s X hRoot
+    simp only [__smtx_dt_cons_name_agrees] at hAll
+    cases ht : __smtx_type_name_agrees s X T <;>
+      cases hc : __smtx_dt_cons_name_agrees s X c <;>
+        simp_all [native_ite]
+  · have hAll := h s X hRoot
+    simp only [__smtx_dt_cons_name_agrees] at hAll
+    cases ht : __smtx_type_name_agrees s X T <;>
+      cases hc : __smtx_dt_cons_name_agrees s X c <;>
+        simp_all [native_ite]
+
+private theorem RootEmbeddedTy_body
+    (root : SmtDatatype) (q : native_String) (X : SmtDatatype)
+    (h : RootEmbeddedTy root (SmtType.Datatype q X)) :
+    RootEmbeddedDt root X := by
+  intro s D hRoot
+  have hAll := h s D hRoot
+  simp only [__smtx_type_name_agrees] at hAll
+  cases hsq : native_streq s q <;>
+    cases hEq : native_Teq (SmtType.Datatype s D) (SmtType.Datatype q X) <;>
+      cases hb : __smtx_dt_name_agrees s D X <;>
+        simp_all [native_ite]
+
 /-- Reconstruct the head payload from its raw body and the raw binders kept
 in the suffix.  Closed payloads in the suffix deliberately do not participate:
 they are results of the closure walk, while this function records only the
@@ -2142,6 +3506,26 @@ private def chainHasName (q : native_String) : SubstChain → Bool
   | (s, _R, _P) :: REST =>
       native_or (native_streq q s) (chainHasName q REST)
 
+private def ChainDistinct : SubstChain → Prop
+  | [] => True
+  | (s, _R, _P) :: REST =>
+      chainHasName s REST = false ∧ ChainDistinct REST
+
+private def rawFolds : SubstChain → FoldCtx
+  | [] => []
+  | (s, R, _P) :: REST => (s, R) :: rawFolds REST
+
+/-! Payload provenance.  For an entry `(s,R,P)`, the payload is a scoped image
+of `R`; later raw entries are precisely the folds still waiting to be resolved,
+earlier entry names are the references already resolved, and `ambient` records
+enclosing datatype binders crossed by `chain_descend`. -/
+private def ChainOriginAcc (ambient : FoldCtx) (refs : RefList) :
+    SubstChain → Prop
+  | [] => True
+  | (s, R, P) :: REST =>
+      CtxImgDt (rawFolds REST ++ ambient) refs P R ∧
+        ChainOriginAcc ambient (native_reflist_insert refs s) REST
+
 /-- Every raw binder recorded in a suffix is an occurrence consistent with
 the fixed raw root. -/
 private def RawSuffixCons (root : SmtDatatype) : SubstChain → Prop
@@ -2150,11 +3534,129 @@ private def RawSuffixCons (root : SmtDatatype) : SubstChain → Prop
       __smtx_type_names_consistent_rec root (SmtType.Datatype s X) = true ∧
         RawSuffixCons root REST
 
+/-! The corresponding occurrence invariant.  Name consistency says that a
+recorded body agrees with the root; embedding additionally says it really is
+part of the same definition universe, which is what makes future folds safe. -/
+private def RawSuffixEmbedded (root : SmtDatatype) : SubstChain → Prop
+  | [] => True
+  | (s, X, _P) :: REST =>
+      RootEmbeddedTy root (SmtType.Datatype s X) ∧
+        RawSuffixEmbedded root REST
+
+private def ChainRawNoStray (q : native_String) (X : SmtDatatype) :
+    SubstChain → Prop
+  | [] => True
+  | (_s, R, _P) :: REST =>
+      noStrayDt q X R = true ∧ ChainRawNoStray q X REST
+
 private theorem chainHasName_false_parts
     (q s : native_String) (R P : SmtDatatype) (REST : SubstChain)
     (h : chainHasName q ((s, R, P) :: REST) = false) :
     native_streq q s = false ∧ chainHasName q REST = false := by
   simpa [chainHasName, native_or, Bool.or_eq_false_iff] using h
+
+private theorem chainHasName_append_one
+    (r : native_String) (REST : SubstChain)
+    (q : native_String) (X P : SmtDatatype) :
+    chainHasName r (REST ++ [(q, X, P)]) =
+      native_or (chainHasName r REST) (native_streq r q) := by
+  induction REST with
+  | nil => simp [chainHasName, native_or]
+  | cons e REST ih =>
+      rcases e with ⟨s, R, Q⟩
+      simp [chainHasName, native_or, ih, Bool.or_assoc]
+
+private theorem chainHasName_descend_of_fresh
+    (r q : native_String) :
+    ∀ (REST : SubstChain) (Y : SmtDatatype),
+      chainHasName q REST = false →
+      chainHasName r (chain_descend REST q Y) = chainHasName r REST
+  | [], Y, _ => rfl
+  | (s, R, P) :: REST, Y, hFresh => by
+      have hp := chainHasName_false_parts q s R P REST hFresh
+      have hsq : native_streq s q = false := by
+        simpa [native_streq, eq_comm] using hp.1
+      simp [chain_descend, hsq, chainHasName,
+        chainHasName_descend_of_fresh r q REST
+          (__smtx_dt_substitute s (__smtx_dt_lift q Y P) Y) hp.2]
+
+private theorem ChainDistinct_descend_append
+    (q : native_String) (X B : SmtDatatype) :
+    ∀ (REST : SubstChain) (Y : SmtDatatype),
+      chainHasName q REST = false → ChainDistinct REST →
+      ChainDistinct (chain_descend REST q Y ++ [(q, X, B)])
+  | [], Y, _hFresh, _hDistinct => ⟨rfl, trivial⟩
+  | (s, R, P) :: REST, Y, hFresh, hDistinct => by
+      have hFreshParts := chainHasName_false_parts q s R P REST hFresh
+      have hsq : native_streq s q = false := by
+        simpa [native_streq, eq_comm] using hFreshParts.1
+      rcases hDistinct with ⟨hHead, hTail⟩
+      simp only [chain_descend, hsq, if_false, List.cons_append, ChainDistinct]
+      constructor
+      · calc
+          chainHasName s
+              (List.append
+                (chain_descend REST q
+                  (__smtx_dt_substitute s (__smtx_dt_lift q Y P) Y))
+                [(q, X, B)]) =
+              native_or
+                (chainHasName s
+                  (chain_descend REST q
+                    (__smtx_dt_substitute s (__smtx_dt_lift q Y P) Y)))
+                (native_streq s q) := chainHasName_append_one _ _ _ _ _
+          _ = native_or (chainHasName s REST) (native_streq s q) := by
+            rw [chainHasName_descend_of_fresh s q REST
+              (__smtx_dt_substitute s (__smtx_dt_lift q Y P) Y)
+              hFreshParts.2]
+          _ = false := by simp [native_or, hHead, hsq]
+      · exact ChainDistinct_descend_append q X B REST
+          (__smtx_dt_substitute s (__smtx_dt_lift q Y P) Y)
+          hFreshParts.2 hTail
+
+private theorem rawFolds_append_one
+    (REST : SubstChain) (s : native_String) (R P : SmtDatatype) :
+    rawFolds (REST ++ [(s, R, P)]) = rawFolds REST ++ [(s, R)] := by
+  induction REST with
+  | nil => rfl
+  | cons e REST ih =>
+      rcases e with ⟨q, X, Q⟩
+      simp [rawFolds, ih]
+
+private theorem rawFolds_append (A B : SubstChain) :
+    rawFolds (A ++ B) = rawFolds A ++ rawFolds B := by
+  induction A with
+  | nil => rfl
+  | cons e A ih =>
+      rcases e with ⟨q, X, Q⟩
+      simp [rawFolds, ih]
+
+private theorem rawFolds_descend_of_fresh
+    (q : native_String) :
+    ∀ (REST : SubstChain) (Y : SmtDatatype),
+      chainHasName q REST = false →
+      rawFolds (chain_descend REST q Y) = rawFolds REST
+  | [], Y, _ => rfl
+  | (s, R, P) :: REST, Y, hFresh => by
+      have hp := chainHasName_false_parts q s R P REST hFresh
+      have hsq : native_streq s q = false := by
+        simpa [native_streq, eq_comm] using hp.1
+      simp [chain_descend, hsq, rawFolds,
+        rawFolds_descend_of_fresh q REST
+          (__smtx_dt_substitute s (__smtx_dt_lift q Y P) Y) hp.2]
+
+private theorem chainRefsAcc_descend_of_fresh
+    (q : native_String) (refs : RefList) :
+    ∀ (REST : SubstChain) (Y : SmtDatatype),
+      chainHasName q REST = false →
+      chainRefsAcc refs (chain_descend REST q Y) = chainRefsAcc refs REST
+  | [], Y, _ => rfl
+  | (s, R, P) :: REST, Y, hFresh => by
+      have hp := chainHasName_false_parts q s R P REST hFresh
+      have hsq : native_streq s q = false := by
+        simpa [native_streq, eq_comm] using hp.1
+      simp [chain_descend, hsq, chainRefsAcc,
+        chainRefsAcc_descend_of_fresh q (native_reflist_insert refs s) REST
+          (__smtx_dt_substitute s (__smtx_dt_lift q Y P) Y) hp.2]
 
 private theorem liftSources_append_one
     (REST : SubstChain) (s : native_String) (X P R : SmtDatatype) :
@@ -2213,27 +3715,168 @@ private theorem RawSuffixCons_append
       rcases hREST with ⟨hHead, hTail⟩
       exact ⟨hHead, ih hTail⟩
 
-private def ChainSourceOK (t : native_String) (R P : SmtDatatype)
-    (REST : SubstChain) : Prop :=
-  P = liftSources REST R ∧
-    __smtx_type_names_consistent (SmtType.Datatype t R) = true ∧
-      RawSuffixCons R REST
+private theorem RawSuffixEmbedded_descend
+    (root : SmtDatatype) :
+    ∀ (REST : SubstChain) (q : native_String) (X : SmtDatatype),
+      RawSuffixEmbedded root REST →
+      RawSuffixEmbedded root (chain_descend REST q X)
+  | [], q, X, _ => trivial
+  | (s, R, P) :: REST, q, X, hEmb => by
+      rcases hEmb with ⟨hHead, hTail⟩
+      cases hsq : native_streq s q with
+      | true =>
+          simpa [chain_descend, hsq] using
+            RawSuffixEmbedded_descend root REST q X hTail
+      | false =>
+          simp only [chain_descend, hsq, if_false]
+          exact ⟨hHead,
+            RawSuffixEmbedded_descend root REST q
+              (__smtx_dt_substitute s (__smtx_dt_lift q X P) X) hTail⟩
 
-private theorem ChainSourceOK_descend
-    (t q : native_String) (R P X Y B : SmtDatatype)
-    (REST : SubstChain)
-    (hSource : ChainSourceOK t R P REST)
-    (hFresh : chainHasName q REST = false)
-    (hField : __smtx_type_names_consistent_rec R
-      (SmtType.Datatype q X) = true) :
-    ChainSourceOK t R (__smtx_dt_lift q X P)
-      (chain_descend REST q Y ++ [(q, X, B)]) := by
-  rcases hSource with ⟨hPayload, hRoot, hREST⟩
-  refine ⟨?_, hRoot, ?_⟩
-  · rw [liftSources_append_one,
-      liftSources_descend_of_fresh q REST Y R hFresh, ← hPayload]
-  · exact RawSuffixCons_append R (chain_descend REST q Y) q X B
-      (RawSuffixCons_descend R REST q Y hREST) hField
+private theorem RawSuffixEmbedded_append
+    (root : SmtDatatype) (REST : SubstChain)
+    (s : native_String) (X P : SmtDatatype)
+    (hREST : RawSuffixEmbedded root REST)
+    (hField : RootEmbeddedTy root (SmtType.Datatype s X)) :
+    RawSuffixEmbedded root (REST ++ [(s, X, P)]) := by
+  induction REST with
+  | nil => exact ⟨hField, trivial⟩
+  | cons e REST ih =>
+      rcases e with ⟨s0, X0, P0⟩
+      rcases hREST with ⟨hHead, hTail⟩
+      exact ⟨hHead, ih hTail⟩
+
+/-! Extending a provenance-valid chain preserves provenance.  The proof is
+purely positional: every old payload is lifted, which adds the new raw node to
+its fold scope, while the appended payload is an ordinary prefix-chain image
+of its raw body. -/
+private theorem ChainOriginAcc_descend_append
+    (ambient : FoldCtx) (q : native_String) (X B : SmtDatatype)
+    (hTarget : noStrayDt q X X = true) :
+    ∀ (REST : SubstChain) (refs : RefList) (Y : SmtDatatype),
+      chainHasName q REST = false →
+      ChainRawNoStray q X REST →
+      ChainOriginAcc ambient refs REST →
+      CtxImgDt ambient (chainRefsAcc refs REST) B X →
+      ChainOriginAcc ambient refs
+        (chain_descend REST q Y ++ [(q, X, B)])
+  | [], refs, Y, _hFresh, _hRaw, _hOrigin, hB => by
+      exact ⟨by simpa [rawFolds] using hB, trivial⟩
+  | (s, R, P) :: REST, refs, Y, hFresh, hRaw, hOrigin, hB => by
+      have hFreshParts := chainHasName_false_parts q s R P REST hFresh
+      have hsq : native_streq s q = false := by
+        simpa [native_streq, eq_comm] using hFreshParts.1
+      rcases hRaw with ⟨hNoR, hRawTail⟩
+      rcases hOrigin with ⟨hP, hOriginTail⟩
+      have hLift := ctxImg_lift_dt (rawFolds REST ++ ambient) refs
+        q X Y hTarget R P hNoR hP
+      have hLift' :
+          CtxImgDt (rawFolds REST ++ (q, X) :: ambient) refs
+            (__smtx_dt_lift q Y P) R := by
+        exact ctxImg_mono_dt
+          (folds := (q, X) :: (rawFolds REST ++ ambient))
+          (folds' := rawFolds REST ++ (q, X) :: ambient)
+          (refs := refs) (refs' := refs)
+          (by
+            intro p hp
+            simp only [List.mem_cons, List.mem_append] at hp ⊢
+            rcases hp with rfl | hp
+            · exact Or.inr (Or.inl rfl)
+            · rcases hp with hp | hp
+              · exact Or.inl hp
+              · exact Or.inr (Or.inr hp))
+          (fun _ h => h) R _ hLift
+      have hTail := ChainOriginAcc_descend_append ambient q X B hTarget
+        REST (native_reflist_insert refs s)
+        (__smtx_dt_substitute s (__smtx_dt_lift q Y P) Y)
+        hFreshParts.2 hRawTail hOriginTail hB
+      simp only [chain_descend, hsq, if_false, List.cons_append,
+        ChainOriginAcc]
+      constructor
+      · have hRawFolds :
+            rawFolds
+                (chain_descend REST q
+                    (__smtx_dt_substitute s (__smtx_dt_lift q Y P) Y) ++
+                  [(q, X, B)]) =
+              rawFolds REST ++ [(q, X)] := by
+            calc
+              _ = rawFolds
+                    (chain_descend REST q
+                      (__smtx_dt_substitute s (__smtx_dt_lift q Y P) Y)) ++
+                    rawFolds [(q, X, B)] := rawFolds_append _ _
+              _ = rawFolds REST ++ [(q, X)] := by
+                rw [rawFolds_descend_of_fresh q REST
+                  (__smtx_dt_substitute s (__smtx_dt_lift q Y P) Y)
+                  hFreshParts.2]
+                rfl
+        have hScope :
+            rawFolds
+                  (List.append
+                    (chain_descend REST q
+                      (__smtx_dt_substitute s (__smtx_dt_lift q Y P) Y))
+                    [(q, X, B)]) ++ ambient =
+              rawFolds REST ++ (q, X) :: ambient := by
+          calc
+            _ = (rawFolds REST ++ [(q, X)]) ++ ambient :=
+              congrArg (fun fs => fs ++ ambient) hRawFolds
+            _ = rawFolds REST ++ (q, X) :: ambient := by
+              simp [List.append_assoc]
+        exact Eq.mp
+          (congrArg
+            (fun fs => CtxImgDt fs refs (__smtx_dt_lift q Y P) R)
+            hScope.symm)
+          hLift'
+      · exact hTail
+
+private theorem ChainOriginAcc_descend
+    (ambient : FoldCtx) (q : native_String) (X : SmtDatatype)
+    (hTarget : noStrayDt q X X = true) :
+    ∀ (REST : SubstChain) (refs : RefList) (Y : SmtDatatype),
+      chainHasName q REST = false →
+      ChainRawNoStray q X REST →
+      ChainOriginAcc ambient refs REST →
+      ChainOriginAcc ((q, X) :: ambient) refs (chain_descend REST q Y)
+  | [], refs, Y, _hFresh, _hRaw, _hOrigin => trivial
+  | (s, R, P) :: REST, refs, Y, hFresh, hRaw, hOrigin => by
+      have hFreshParts := chainHasName_false_parts q s R P REST hFresh
+      have hsq : native_streq s q = false := by
+        simpa [native_streq, eq_comm] using hFreshParts.1
+      rcases hRaw with ⟨hNoR, hRawTail⟩
+      rcases hOrigin with ⟨hP, hOriginTail⟩
+      have hLift := ctxImg_lift_dt (rawFolds REST ++ ambient) refs
+        q X Y hTarget R P hNoR hP
+      have hLift' :
+          CtxImgDt (rawFolds REST ++ (q, X) :: ambient) refs
+            (__smtx_dt_lift q Y P) R := by
+        exact ctxImg_mono_dt
+          (folds := (q, X) :: (rawFolds REST ++ ambient))
+          (folds' := rawFolds REST ++ (q, X) :: ambient)
+          (refs := refs) (refs' := refs)
+          (by
+            intro p hp
+            simp only [List.mem_cons, List.mem_append] at hp ⊢
+            rcases hp with rfl | hp
+            · exact Or.inr (Or.inl rfl)
+            · rcases hp with hp | hp
+              · exact Or.inl hp
+              · exact Or.inr (Or.inr hp))
+          (fun _ h => h) R _ hLift
+      have hTail := ChainOriginAcc_descend ambient q X hTarget
+        REST (native_reflist_insert refs s)
+        (__smtx_dt_substitute s (__smtx_dt_lift q Y P) Y)
+        hFreshParts.2 hRawTail hOriginTail
+      simp only [chain_descend, hsq, if_false, ChainOriginAcc]
+      constructor
+      · have hRF := rawFolds_descend_of_fresh q REST
+            (__smtx_dt_substitute s (__smtx_dt_lift q Y P) Y)
+            hFreshParts.2
+        exact Eq.mp
+          (congrArg
+            (fun fs => CtxImgDt (fs ++ (q, X) :: ambient) refs
+              (__smtx_dt_lift q Y P) R)
+            hRF.symm)
+          hLift'
+      · exact hTail
 
 private def ChainNoDtTy : SubstChain → SmtType → Prop
   | [], _ => True
@@ -2438,6 +4081,379 @@ private theorem noStray_liftSources
       exact noStray_liftSources s X REST (__smtx_dt_lift q Q R) hTail
         (noStray_lift_dt q Q s X hXFix R h)
 
+private theorem ChainRawNoStray_of_embedded
+    (root : SmtDatatype) (q : native_String) (X : SmtDatatype)
+    (hAt : __smtx_dt_name_agrees q X root = true) :
+    ∀ (REST : SubstChain), RawSuffixEmbedded root REST →
+      ChainRawNoStray q X REST
+  | [], _ => trivial
+  | (s, R, P) :: REST, hEmb => by
+      rcases hEmb with ⟨hHead, hTail⟩
+      have hBody := RootEmbeddedTy_body root s R hHead
+      exact ⟨noStrayDt_of_name_agrees q X R (hBody q X hAt),
+        ChainRawNoStray_of_embedded root q X hAt REST hTail⟩
+
+private def ChainSourceOK (t : native_String) (R P : SmtDatatype)
+    (REST : SubstChain) : Prop :=
+  P = liftSources REST R ∧
+    __smtx_type_names_consistent (SmtType.Datatype t R) = true ∧
+      native_inhabited_type (SmtType.Datatype t R) = true ∧
+        RawSuffixCons R REST ∧
+          RawSuffixEmbedded R REST ∧
+            ChainOriginAcc [] native_reflist_nil ((t, R, P) :: REST) ∧
+              ChainDistinct ((t, R, P) :: REST)
+
+private theorem ChainSourceOK_descend
+    (t q : native_String) (R P X Y : SmtDatatype)
+    (REST : SubstChain)
+    (hSource : ChainSourceOK t R P REST)
+    (hne : native_streq t q = false)
+    (hFresh : chainHasName q REST = false)
+    (hField : __smtx_type_names_consistent_rec R
+      (SmtType.Datatype q X) = true)
+    (hEmbed : RootEmbeddedTy R (SmtType.Datatype q X)) :
+    ChainSourceOK t R (__smtx_dt_lift q X P)
+      (chain_descend REST q Y ++
+        [(q, X, chain_dt (chain_descend ((t, R, P) :: REST) q X) X)]) := by
+  rcases hSource with
+    ⟨hPayload, hRoot, hRootInh, hREST, hRESTEmb, hOrigin, hDistinct⟩
+  let B := chain_dt (chain_descend ((t, R, P) :: REST) q X) X
+  let NEWREST := chain_descend REST q Y ++ [(q, X, B)]
+  have hFieldParts := namesConsTy_parts R q X hField
+  have hTarget : noStrayDt q X X = true :=
+    noStrayDt_of_name_agrees q X X
+      ((RootEmbeddedTy_body R q X hEmbed) q X hFieldParts.1)
+  have hHeadNo : noStrayDt q X R = true :=
+    noStrayDt_of_name_agrees q X R hFieldParts.1
+  have hTailRaw : ChainRawNoStray q X REST :=
+    ChainRawNoStray_of_embedded R q X hFieldParts.1 REST hRESTEmb
+  have hqt : native_streq q t = false := by
+    simpa [native_streq, eq_comm] using hne
+  have hFreshAll : chainHasName q ((t, R, P) :: REST) = false := by
+    simp [chainHasName, native_or, hqt, hFresh]
+  have hBImg : imgDt
+      (chainRefsAcc (native_reflist_insert native_reflist_nil t) REST) B X := by
+    have hImg := chain_dt_img (chain_descend ((t, R, P) :: REST) q X) X
+    rw [chainRefs, chainRefsAcc_descend_of_fresh q native_reflist_nil
+      ((t, R, P) :: REST) X hFreshAll] at hImg
+    simpa [chainRefsAcc, B] using hImg
+  rcases hOrigin with ⟨hHeadOrigin, hTailOrigin⟩
+  have hTailOrigin' : ChainOriginAcc []
+      (native_reflist_insert native_reflist_nil t) NEWREST := by
+    exact ChainOriginAcc_descend_append [] q X B hTarget REST
+      (native_reflist_insert native_reflist_nil t) Y hFresh hTailRaw
+      hTailOrigin (ctxImg_of_img_dt [] _ X B hBImg)
+  have hHeadOrigin0 : CtxImgDt (rawFolds REST) native_reflist_nil P R := by
+    simpa using hHeadOrigin
+  have hHeadLift := ctxImg_lift_dt (rawFolds REST) native_reflist_nil
+    q X X hTarget R P hHeadNo hHeadOrigin0
+  have hHeadOrigin' : CtxImgDt (rawFolds NEWREST) native_reflist_nil
+      (__smtx_dt_lift q X P) R := by
+    apply ctxImg_mono_dt
+      (folds := (q, X) :: rawFolds REST)
+      (folds' := rawFolds NEWREST)
+      (refs := native_reflist_nil) (refs' := native_reflist_nil)
+      _ (fun _ h => h) R _ hHeadLift
+    intro p hp
+    simp only [NEWREST, rawFolds_append_one,
+      rawFolds_descend_of_fresh q REST Y hFresh, List.mem_cons,
+      List.mem_append] at hp ⊢
+    rcases hp with rfl | hp
+    · exact Or.inr (Or.inl rfl)
+    · exact Or.inl hp
+  rcases hDistinct with ⟨hHeadDistinct, hTailDistinct⟩
+  have hTailDistinct' : ChainDistinct NEWREST :=
+    ChainDistinct_descend_append q X B REST Y hFresh hTailDistinct
+  have hHeadDistinct' : chainHasName t NEWREST = false := by
+    rw [chainHasName_append_one,
+      chainHasName_descend_of_fresh t q REST Y hFresh]
+    simp [native_or, hHeadDistinct, hne]
+  refine ⟨?_, hRoot, hRootInh, ?_, ?_, ?_, ?_⟩
+  · rw [liftSources_append_one,
+      liftSources_descend_of_fresh q REST Y R hFresh, ← hPayload]
+  · exact RawSuffixCons_append R (chain_descend REST q Y) q X B
+      (RawSuffixCons_descend R REST q Y hREST) hField
+  · exact RawSuffixEmbedded_append R (chain_descend REST q Y) q X B
+      (RawSuffixEmbedded_descend R REST q Y hRESTEmb) hEmbed
+  · exact ⟨by simpa [NEWREST] using hHeadOrigin', hTailOrigin'⟩
+  · exact ⟨by simpa [NEWREST] using hHeadDistinct', hTailDistinct'⟩
+
+private theorem type_name_agrees_same_body
+    (s : native_String) (A D : SmtDatatype)
+    (h : __smtx_type_name_agrees s A (SmtType.Datatype s D) = true) :
+    A = D := by
+  have hp : A = D ∧ __smtx_dt_name_agrees s A D = true := by
+    simpa [__smtx_type_name_agrees, native_streq, native_Teq, native_ite]
+      using h
+  exact hp.1
+
+/-! Resolve one pending fold.  The entry payload is an image of its recorded
+raw body.  Root consistency and embedding identify every same-named raw node,
+including beneath another datatype binder where the payload is lifted again. -/
+mutual
+
+private theorem ctxImg_resolve_ty
+    (root : SmtDatatype) (s : native_String) (R P : SmtDatatype)
+    (folds : FoldCtx) (refs : RefList)
+    (hEntryEmb : RootEmbeddedTy root (SmtType.Datatype s R))
+    (hP : CtxImgDt folds refs P R) :
+    ∀ (U F : SmtType),
+      __smtx_type_names_consistent_rec root U = true →
+      RootEmbeddedTy root U →
+      CtxImgTy ((s, R) :: folds) refs F U →
+      CtxImgTy folds (native_reflist_insert refs s)
+        (__smtx_type_substitute s P F) U
+  | SmtType.TypeRef q, F, _hCons, _hEmb, hImg => by
+      rcases hImg with rfl | ⟨hq, D, rfl⟩
+      · cases hsq : native_streq s q with
+        | true =>
+            have heq : s = q := by simpa [native_streq] using hsq
+            subst q
+            exact Or.inr ⟨by
+              simp [native_reflist_contains, native_reflist_insert], P, by
+              simp [__smtx_type_substitute, native_ite, native_streq]⟩
+        | false =>
+            exact Or.inl (by simp [__smtx_type_substitute, native_ite, hsq])
+      · exact Or.inr ⟨by
+            simp only [native_reflist_contains, native_reflist_insert,
+              List.mem_cons, decide_eq_true_eq]
+            exact Or.inr (by simpa [native_reflist_contains] using hq),
+          _, rfl⟩
+  | SmtType.Datatype q D, F, hCons, hEmb, hImg => by
+      have hConsParts := namesConsTy_parts root q D hCons
+      have hEmbBody := RootEmbeddedTy_body root q D hEmb
+      have hEntryBody := RootEmbeddedTy_body root s R hEntryEmb
+      have hNoD : noStrayDt q D D = true :=
+        noStrayDt_of_name_agrees q D D (hEmbBody q D hConsParts.1)
+      have hNoR : noStrayDt q D R = true :=
+        noStrayDt_of_name_agrees q D R (hEntryBody q D hConsParts.1)
+      rcases hImg with ⟨hMem, rfl⟩ | ⟨DF, rfl, hBody⟩
+      · cases hsq : native_streq s q with
+        | true =>
+            have heq : s = q := by simpa [native_streq] using hsq
+            subst q
+            have hDR : D = R :=
+              type_name_agrees_same_body s D R (hEntryEmb s D hConsParts.1)
+            subst D
+            refine Or.inr ⟨P, by
+              simp [__smtx_type_substitute, native_ite, native_streq], ?_⟩
+            exact ctxImg_mono_dt
+              (folds := folds) (folds' := (s, R) :: folds)
+              (refs := refs) (refs' := native_reflist_insert refs s)
+              (by
+                intro p hp
+                simp only [List.mem_cons]
+                exact Or.inr hp)
+              (by
+                intro r hr
+                simp only [native_reflist_contains, native_reflist_insert,
+                  List.mem_cons, decide_eq_true_eq]
+                exact Or.inr (by simpa [native_reflist_contains] using hr))
+              R P hP
+        | false =>
+            refine Or.inl ⟨?_, by
+              simp [__smtx_type_substitute, native_ite, hsq]⟩
+            simp only [List.mem_cons] at hMem
+            rcases hMem with hEq | hMem
+            · have hName : q = s := congrArg Prod.fst hEq
+              subst q
+              simp [native_streq] at hsq
+            · exact hMem
+      · cases hsq : native_streq s q with
+        | true =>
+            have heq : s = q := by simpa [native_streq] using hsq
+            subst q
+            have hDR : D = R :=
+              type_name_agrees_same_body s D R (hEntryEmb s D hConsParts.1)
+            subst D
+            refine Or.inr ⟨DF, by
+              simp [__smtx_type_substitute, native_ite, native_streq], ?_⟩
+            exact ctxImg_mono_dt
+              (folds := (s, R) :: (s, R) :: folds)
+              (folds' := (s, R) :: folds)
+              (refs := refs) (refs' := native_reflist_insert refs s)
+              (by
+                intro p hp
+                simp only [List.mem_cons] at hp ⊢
+                rcases hp with rfl | rfl | hp
+                · exact Or.inl rfl
+                · exact Or.inl rfl
+                · exact Or.inr hp)
+              (by
+                intro r hr
+                simp only [native_reflist_contains, native_reflist_insert,
+                  List.mem_cons, decide_eq_true_eq]
+                exact Or.inr (by simpa [native_reflist_contains] using hr))
+              R DF hBody
+        | false =>
+            refine Or.inr ⟨__smtx_dt_substitute s (__smtx_dt_lift q DF P) DF,
+              by simp [__smtx_type_substitute, native_ite, hsq], ?_⟩
+            have hPayload := ctxImg_lift_dt folds refs q D DF hNoD R P hNoR hP
+            have hBody' : CtxImgDt ((s, R) :: (q, D) :: folds) refs DF D := by
+              exact ctxImg_mono_dt
+                (folds := (q, D) :: (s, R) :: folds)
+                (folds' := (s, R) :: (q, D) :: folds)
+                (refs := refs) (refs' := refs)
+                (by
+                  intro p hp
+                  simp only [List.mem_cons] at hp ⊢
+                  rcases hp with rfl | rfl | hp
+                  · exact Or.inr (Or.inl rfl)
+                  · exact Or.inl rfl
+                  · exact Or.inr (Or.inr hp))
+                (fun _ h => h) D DF hBody
+            exact ctxImg_resolve_dt root s R (__smtx_dt_lift q DF P)
+              ((q, D) :: folds) refs hEntryEmb hPayload D DF
+              hConsParts.2 hEmbBody hBody'
+  | SmtType.None, F, _hCons, _hEmb, hImg => by cases hImg; rfl
+  | SmtType.Bool, F, _hCons, _hEmb, hImg => by cases hImg; rfl
+  | SmtType.Int, F, _hCons, _hEmb, hImg => by cases hImg; rfl
+  | SmtType.Real, F, _hCons, _hEmb, hImg => by cases hImg; rfl
+  | SmtType.RegLan, F, _hCons, _hEmb, hImg => by cases hImg; rfl
+  | SmtType.BitVec w, F, _hCons, _hEmb, hImg => by cases hImg; rfl
+  | SmtType.Map A B, F, _hCons, _hEmb, hImg => by cases hImg; rfl
+  | SmtType.Set A, F, _hCons, _hEmb, hImg => by cases hImg; rfl
+  | SmtType.Seq A, F, _hCons, _hEmb, hImg => by cases hImg; rfl
+  | SmtType.Char, F, _hCons, _hEmb, hImg => by cases hImg; rfl
+  | SmtType.USort u, F, _hCons, _hEmb, hImg => by cases hImg; rfl
+  | SmtType.FunType A B, F, _hCons, _hEmb, hImg => by cases hImg; rfl
+  | SmtType.DtcAppType A B, F, _hCons, _hEmb, hImg => by cases hImg; rfl
+
+private theorem ctxImg_resolve_dtc
+    (root : SmtDatatype) (s : native_String) (R P : SmtDatatype)
+    (folds : FoldCtx) (refs : RefList)
+    (hEntryEmb : RootEmbeddedTy root (SmtType.Datatype s R))
+    (hP : CtxImgDt folds refs P R) :
+    ∀ (cU cF : SmtDatatypeCons),
+      __smtx_dt_cons_names_consistent_rec root cU = true →
+      RootEmbeddedDtc root cU →
+      CtxImgDtc ((s, R) :: folds) refs cF cU →
+      CtxImgDtc folds (native_reflist_insert refs s)
+        (__smtx_dtc_substitute s P cF) cU
+  | SmtDatatypeCons.unit, cF, _hCons, _hEmb, hImg => by cases hImg; rfl
+  | SmtDatatypeCons.cons T c, cF, hCons, hEmb, hImg => by
+      rcases hImg with ⟨TF, cF', rfl, hT, hc⟩
+      have hConsParts := namesConsDtc_parts root T c hCons
+      have hEmbParts := RootEmbeddedDtc_parts root T c hEmb
+      exact ⟨_, _, rfl,
+        ctxImg_resolve_ty root s R P folds refs hEntryEmb hP T TF
+          hConsParts.1 hEmbParts.1 hT,
+        ctxImg_resolve_dtc root s R P folds refs hEntryEmb hP c cF'
+          hConsParts.2 hEmbParts.2 hc⟩
+
+private theorem ctxImg_resolve_dt
+    (root : SmtDatatype) (s : native_String) (R P : SmtDatatype)
+    (folds : FoldCtx) (refs : RefList)
+    (hEntryEmb : RootEmbeddedTy root (SmtType.Datatype s R))
+    (hP : CtxImgDt folds refs P R) :
+    ∀ (dU dF : SmtDatatype),
+      __smtx_dt_names_consistent_rec root dU = true →
+      RootEmbeddedDt root dU →
+      CtxImgDt ((s, R) :: folds) refs dF dU →
+      CtxImgDt folds (native_reflist_insert refs s)
+        (__smtx_dt_substitute s P dF) dU
+  | SmtDatatype.null, dF, _hCons, _hEmb, hImg => by cases hImg; rfl
+  | SmtDatatype.sum c d, dF, hCons, hEmb, hImg => by
+      rcases hImg with ⟨cF, dF', rfl, hc, hd⟩
+      have hConsParts := namesConsDt_parts root c d hCons
+      have hEmbParts := RootEmbeddedDt_parts root c d hEmb
+      exact ⟨_, _, rfl,
+        ctxImg_resolve_dtc root s R P folds refs hEntryEmb hP c cF
+          hConsParts.1 hEmbParts.1 hc,
+        ctxImg_resolve_dt root s R P folds refs hEntryEmb hP d dF'
+          hConsParts.2 hEmbParts.2 hd⟩
+
+end
+
+private theorem ctxImg_resolve_chain
+    (root : SmtDatatype) (ambient : FoldCtx) :
+    ∀ (REST : SubstChain) (refs : RefList) (U F : SmtDatatype),
+      RawSuffixEmbedded root REST →
+      ChainOriginAcc ambient refs REST →
+      __smtx_dt_names_consistent_rec root U = true →
+      RootEmbeddedDt root U →
+      CtxImgDt (rawFolds REST ++ ambient) refs F U →
+      CtxImgDt ambient (chainRefsAcc refs REST) (chain_dt REST F) U
+  | [], refs, U, F, _hRESTEmb, _hOrigin, _hCons, _hEmb, hImg => by
+      simpa [rawFolds, chainRefsAcc, chain_dt] using hImg
+  | (s, R, P) :: REST, refs, U, F, hRESTEmb, hOrigin, hCons, hEmb,
+      hImg => by
+      rcases hRESTEmb with ⟨hEntryEmb, hTailEmb⟩
+      rcases hOrigin with ⟨hP, hTailOrigin⟩
+      have hImg0 : CtxImgDt ((s, R) :: (rawFolds REST ++ ambient)) refs F U := by
+        simpa [rawFolds] using hImg
+      have hStep := ctxImg_resolve_dt root s R P
+        (rawFolds REST ++ ambient) refs hEntryEmb hP U F hCons hEmb hImg0
+      have hRec := ctxImg_resolve_chain root ambient REST
+        (native_reflist_insert refs s) U (__smtx_dt_substitute s P F)
+        hTailEmb hTailOrigin hCons hEmb hStep
+      simpa [chain_dt, chainRefsAcc] using hRec
+
+private theorem type_names_consistent_parts
+    (t : native_String) (R : SmtDatatype)
+    (h : __smtx_type_names_consistent (SmtType.Datatype t R) = true) :
+    __smtx_dt_name_agrees t R R = true ∧
+      __smtx_dt_names_consistent_rec R R = true := by
+  simp only [__smtx_type_names_consistent] at h
+  cases ha : __smtx_dt_name_agrees t R R <;>
+    cases hc : __smtx_dt_names_consistent_rec R R <;>
+      simp_all [native_ite]
+
+/-! The canonical resolution of a provenance-valid head is a positional image
+of its raw root.  The only fold left after resolving the suffix is the outer
+`Datatype t R` binder itself, which cannot occur inside `R` by strict size. -/
+private theorem chainSource_head_img
+    (t : native_String) (R P : SmtDatatype) (REST : SubstChain)
+    (hSource : ChainSourceOK t R P REST) :
+    imgDt
+      (chainRefsAcc (native_reflist_insert native_reflist_nil t)
+        (chain_descend REST t P))
+      (chain_dt (chain_descend REST t P) P) R := by
+  rcases hSource with
+    ⟨_hPayload, hRoot, _hRootInh, _hRESTCons, hRESTEmb, hOrigin,
+      hDistinct⟩
+  rcases hOrigin with ⟨hP, hTailOrigin⟩
+  rcases hDistinct with ⟨hFresh, _hTailDistinct⟩
+  have hRootParts := type_names_consistent_parts t R hRoot
+  have hTarget : noStrayDt t R R = true :=
+    noStrayDt_of_name_agrees t R R hRootParts.1
+  have hRaw : ChainRawNoStray t R REST :=
+    ChainRawNoStray_of_embedded R t R hRootParts.1 REST hRESTEmb
+  have hDescOrigin : ChainOriginAcc [(t, R)]
+      (native_reflist_insert native_reflist_nil t)
+      (chain_descend REST t P) := by
+    exact ChainOriginAcc_descend [] t R hTarget REST
+      (native_reflist_insert native_reflist_nil t) P hFresh hRaw hTailOrigin
+  have hP0 : CtxImgDt (rawFolds REST) native_reflist_nil P R := by
+    simpa using hP
+  have hPStart :
+      CtxImgDt (rawFolds (chain_descend REST t P) ++ [(t, R)])
+        (native_reflist_insert native_reflist_nil t) P R := by
+    apply ctxImg_mono_dt
+      (folds := rawFolds REST)
+      (folds' := rawFolds (chain_descend REST t P) ++ [(t, R)])
+      (refs := native_reflist_nil)
+      (refs' := native_reflist_insert native_reflist_nil t)
+      _ _ R P hP0
+    · intro p hp
+      rw [rawFolds_descend_of_fresh t REST P hFresh]
+      exact List.mem_append_left _ hp
+    · intro q hq
+      simp [native_reflist_contains, native_reflist_nil] at hq
+  have hResolved := ctxImg_resolve_chain R [(t, R)]
+    (chain_descend REST t P) (native_reflist_insert native_reflist_nil t)
+    R P (RawSuffixEmbedded_descend R REST t P hRESTEmb) hDescOrigin
+    hRootParts.2 (fun _ _ hAt => hAt) hPStart
+  exact ctxImg_to_img_dt [(t, R)] _ R
+    (chain_dt (chain_descend REST t P) P)
+    (by
+      intro q D hMem
+      simp only [List.mem_singleton] at hMem
+      cases hMem
+      simp
+      omega)
+    hResolved
+
 /-! A structure no larger than the body being folded cannot contain the full
 `Datatype s X` node, whose size is strictly larger than `X`.  These lemmas
 turn a nontrivial lift into the strict-size fact needed to show that every
@@ -2509,63 +4525,6 @@ def LocalNoSelfDt : SmtDatatype → Bool
   | SmtDatatype.sum c d =>
       native_and (LocalNoSelfDtc c) (LocalNoSelfDt d)
 end
-
-private def RootEmbeddedTy (root : SmtDatatype) (T : SmtType) : Prop :=
-  ∀ s X, __smtx_dt_name_agrees s X root = true →
-    __smtx_type_name_agrees s X T = true
-
-private def RootEmbeddedDtc (root : SmtDatatype)
-    (c : SmtDatatypeCons) : Prop :=
-  ∀ s X, __smtx_dt_name_agrees s X root = true →
-    __smtx_dt_cons_name_agrees s X c = true
-
-private def RootEmbeddedDt (root : SmtDatatype) (d : SmtDatatype) : Prop :=
-  ∀ s X, __smtx_dt_name_agrees s X root = true →
-    __smtx_dt_name_agrees s X d = true
-
-private theorem RootEmbeddedDt_parts
-    (root : SmtDatatype) (c : SmtDatatypeCons) (d : SmtDatatype)
-    (h : RootEmbeddedDt root (SmtDatatype.sum c d)) :
-    RootEmbeddedDtc root c ∧ RootEmbeddedDt root d := by
-  constructor <;> intro s X hRoot
-  · have hAll := h s X hRoot
-    simp only [__smtx_dt_name_agrees] at hAll
-    cases hc : __smtx_dt_cons_name_agrees s X c <;>
-      cases hd : __smtx_dt_name_agrees s X d <;>
-        simp_all [native_ite]
-  · have hAll := h s X hRoot
-    simp only [__smtx_dt_name_agrees] at hAll
-    cases hc : __smtx_dt_cons_name_agrees s X c <;>
-      cases hd : __smtx_dt_name_agrees s X d <;>
-        simp_all [native_ite]
-
-private theorem RootEmbeddedDtc_parts
-    (root : SmtDatatype) (T : SmtType) (c : SmtDatatypeCons)
-    (h : RootEmbeddedDtc root (SmtDatatypeCons.cons T c)) :
-    RootEmbeddedTy root T ∧ RootEmbeddedDtc root c := by
-  constructor <;> intro s X hRoot
-  · have hAll := h s X hRoot
-    simp only [__smtx_dt_cons_name_agrees] at hAll
-    cases ht : __smtx_type_name_agrees s X T <;>
-      cases hc : __smtx_dt_cons_name_agrees s X c <;>
-        simp_all [native_ite]
-  · have hAll := h s X hRoot
-    simp only [__smtx_dt_cons_name_agrees] at hAll
-    cases ht : __smtx_type_name_agrees s X T <;>
-      cases hc : __smtx_dt_cons_name_agrees s X c <;>
-        simp_all [native_ite]
-
-private theorem RootEmbeddedTy_body
-    (root : SmtDatatype) (q : native_String) (X : SmtDatatype)
-    (h : RootEmbeddedTy root (SmtType.Datatype q X)) :
-    RootEmbeddedDt root X := by
-  intro s D hRoot
-  have hAll := h s D hRoot
-  simp only [__smtx_type_name_agrees] at hAll
-  cases hsq : native_streq s q <;>
-    cases hEq : native_Teq (SmtType.Datatype s D) (SmtType.Datatype q X) <;>
-      cases hb : __smtx_dt_name_agrees s D X <;>
-        simp_all [native_ite]
 
 mutual
 private theorem localNoSelf_ty
@@ -2811,6 +4770,7 @@ private theorem chainok_selfExt_facts
     (hFresh : chainHasName s3 REST = false)
     (hField : __smtx_type_names_consistent_rec R
       (SmtType.Datatype s3 X) = true)
+    (hEmbed : RootEmbeddedTy R (SmtType.Datatype s3 X))
     (hNoNames : ChainNoDtDt REST X)
     (hOK : ChainOK ρ)
     (hInhNode :
@@ -2827,6 +4787,16 @@ private theorem chainok_selfExt_facts
     ChainOK (selfExt ρ s3 X) := by
   subst hρ
   rcases hOK with ⟨D, hRes, hInh, hWf, hSkel, hSource⟩
+  have hD : D = chain_dt (chain_descend REST t P) P := by
+    have hCanonical := hRes
+    rw [show
+        chain_ty ((t, R, P) :: REST) (SmtType.TypeRef t) =
+          chain_ty REST (SmtType.Datatype t P) by
+        simp [chain_ty, __smtx_type_substitute, native_ite, native_streq]]
+      at hCanonical
+    rw [chain_ty_datatype] at hCanonical
+    injection hCanonical with _hName hBody
+    exact hBody.symm
   have hFieldParts := namesConsTy_parts R s3 X hField
   have hNoStrayR : noStrayDt s3 X R = true :=
     noStrayDt_of_name_agrees s3 X R hFieldParts.1
@@ -2841,17 +4811,25 @@ private theorem chainok_selfExt_facts
             [(s3, X,
               chain_dt (chain_descend ((t, R, P) :: REST) s3 X) X)]) := by
     simp [selfExt, chain_descend, hne]
-  rw [hSelfExt]
-  refine chainok_head_facts t R (__smtx_dt_lift s3 X P)
-    (chain_descend REST s3
-      (__smtx_dt_substitute t (__smtx_dt_lift s3 X P) X) ++
-      [(s3, X,
-        chain_dt (chain_descend ((t, R, P) :: REST) s3 X) X)]) ?_
-    (ChainSourceOK_descend t s3 R P X
+  let P' := __smtx_dt_lift s3 X P
+  let REST' :=
+    chain_descend REST s3 (__smtx_dt_substitute t P' X) ++
+      [(s3, X, chain_dt (chain_descend ((t, R, P) :: REST) s3 X) X)]
+  have hSource' : ChainSourceOK t R P' REST' := by
+    exact ChainSourceOK_descend t s3 R P X
       (__smtx_dt_substitute t (__smtx_dt_lift s3 X P) X)
-      (chain_dt (chain_descend ((t, R, P) :: REST) s3 X) X)
-      REST hSource hFresh hField)
-  sorry
+      REST hSource hne hFresh hField hEmbed
+  rw [hSelfExt]
+  change ChainOK ((t, R, P') :: REST')
+  refine chainok_head_facts t R P' REST' ?_ hSource'
+  constructor
+  · exact inhabited_of_img _ t R _
+      (chainSource_head_img t R P' REST' hSource') hSource'.2.2.1
+  · have hOldLift :
+        __smtx_dt_wf_rec (__smtx_dt_substitute t D D) P' = true := by
+      exact guideTrDt_wf (lift_guide_tr_dt s3 X hSkel) hWf
+    apply foldObsDt_wf (hOld := hOldLift)
+    sorry
 
 /-- The chain invariant is preserved by a descent step when the descended
 body uses the head binder.  In the stable case the facts transport along the
@@ -2865,6 +4843,7 @@ private theorem chainok_selfExt_needed
     (hFresh : chainHasName s3 REST = false)
     (hField : __smtx_type_names_consistent_rec R
       (SmtType.Datatype s3 X) = true)
+    (hEmbed : RootEmbeddedTy R (SmtType.Datatype s3 X))
     (hNoNames : ChainNoDtDt REST X)
     (hOK : ChainOK ρ)
     (hInhNode :
@@ -2899,10 +4878,9 @@ private theorem chainok_selfExt_needed
     · exact fskel_lift_dt s3 X hSkel
     · exact ChainSourceOK_descend t s3 R P X
         (__smtx_dt_substitute t (__smtx_dt_lift s3 X P) X)
-        (chain_dt (chain_descend ((t, R, P) :: REST) s3 X) X)
-        REST hSource hFresh hField
+        REST hSource hne hFresh hField hEmbed
   · exact chainok_selfExt_facts ρ s3 X t R P REST hρ hne hFresh hField
-      hNoNames hOK hInhNode hWfNode hUse hStable
+      hEmbed hNoNames hOK hInhNode hWfNode hUse hStable
 
 /-! The establishment walk: over a raw guide `dU`, the image under a chain
 with head `(t, P)` transports the guide from `dU` to `dt_substitute t P dU`,
@@ -2914,6 +4892,7 @@ private theorem estab_ty :
     ∀ (TU : SmtType) (t : native_String) (R P : SmtDatatype)
       (REST : SubstChain),
       __smtx_type_names_consistent_rec R TU = true →
+      RootEmbeddedTy R TU →
       LocalNoSelfTy TU = true →
       ChainNoDtTy REST TU →
       (usesHeadTy t TU = true → ChainOK ((t, R, P) :: REST)) →
@@ -2922,7 +4901,7 @@ private theorem estab_ty :
           __smtx_type_wf_rec (chain_ty ((t, R, P) :: REST) TU) TU = true) →
       GuideTr (chain_ty ((t, R, P) :: REST) TU) TU
         (__smtx_type_substitute t P TU)
-  | SmtType.TypeRef r, t, R, P, REST, _hCons, _hLocal, _hNoDt,
+  | SmtType.TypeRef r, t, R, P, REST, _hCons, _hEmb, _hLocal, _hNoDt,
       hNeed, _hOldField => by
       cases hs : native_streq t r with
       | true =>
@@ -2941,7 +4920,7 @@ private theorem estab_ty :
               SmtType.TypeRef r by
             simp [__smtx_type_substitute, native_ite, hs]]
           exact GuideTr.same _ _
-  | SmtType.Datatype s3 X, t, R, P, REST, hCons, hLocal, hNoDt,
+  | SmtType.Datatype s3 X, t, R, P, REST, hCons, hEmb, hLocal, hNoDt,
       hNeed, hOldField => by
       have hConsParts := namesConsTy_parts R s3 X hCons
       have hLocalParts : noDtDt s3 X = true ∧ LocalNoSelfDt X = true := by
@@ -2986,7 +4965,7 @@ private theorem estab_ty :
             have hOK : ChainOK ((t, R, P) :: REST) := hNeed (by
               simp [usesHeadTy, hs, hUse])
             exact chainok_selfExt_needed ((t, R, P) :: REST) s3 X t R P REST
-              rfl hs hNoDtParts.1 hCons hNoDtParts.2 hOK hInhNode hWfNode hUse
+              rfl hs hNoDtParts.1 hCons hEmb hNoDtParts.2 hOK hInhNode hWfNode hUse
           have hSelfExtEq : selfExt ((t, R, P) :: REST) s3 X =
               (t, R, __smtx_dt_lift s3 X P) ::
                 (chain_descend REST s3
@@ -3020,7 +4999,7 @@ private theorem estab_ty :
               (__smtx_dt_substitute t (__smtx_dt_lift s3 X P) X) ++
               [(s3, X,
                 chain_dt (chain_descend ((t, R, P) :: REST) s3 X) X)])
-            hConsParts.2 hLocalParts.2
+            hConsParts.2 (RootEmbeddedTy_body R s3 X hEmb) hLocalParts.2
             (ChainNoDtDt_append
               (chain_descend REST s3
                 (__smtx_dt_substitute t (__smtx_dt_lift s3 X P) X))
@@ -3035,79 +5014,79 @@ private theorem estab_ty :
               rwa [hSelfExtEq] at hOK')
             (by rw [hFold]; exact hWfNode)
           rwa [hFold] at hWalk
-  | SmtType.None, t, R, P, REST, _hCons, _hLocal, _hNoDt,
+  | SmtType.None, t, R, P, REST, _hCons, _hEmb, _hLocal, _hNoDt,
       _hOK, _hOldField => by
       rw [chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) _,
         show __smtx_type_substitute t P SmtType.None = SmtType.None by
           simp [__smtx_type_substitute]]
       exact GuideTr.same _ _
-  | SmtType.Bool, t, R, P, REST, _hCons, _hLocal, _hNoDt,
+  | SmtType.Bool, t, R, P, REST, _hCons, _hEmb, _hLocal, _hNoDt,
       _hOK, _hOldField => by
       rw [chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) _,
         show __smtx_type_substitute t P SmtType.Bool = SmtType.Bool by
           simp [__smtx_type_substitute]]
       exact GuideTr.same _ _
-  | SmtType.Int, t, R, P, REST, _hCons, _hLocal, _hNoDt,
+  | SmtType.Int, t, R, P, REST, _hCons, _hEmb, _hLocal, _hNoDt,
       _hOK, _hOldField => by
       rw [chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) _,
         show __smtx_type_substitute t P SmtType.Int = SmtType.Int by
           simp [__smtx_type_substitute]]
       exact GuideTr.same _ _
-  | SmtType.Real, t, R, P, REST, _hCons, _hLocal, _hNoDt,
+  | SmtType.Real, t, R, P, REST, _hCons, _hEmb, _hLocal, _hNoDt,
       _hOK, _hOldField => by
       rw [chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) _,
         show __smtx_type_substitute t P SmtType.Real = SmtType.Real by
           simp [__smtx_type_substitute]]
       exact GuideTr.same _ _
-  | SmtType.RegLan, t, R, P, REST, _hCons, _hLocal, _hNoDt,
+  | SmtType.RegLan, t, R, P, REST, _hCons, _hEmb, _hLocal, _hNoDt,
       _hOK, _hOldField => by
       rw [chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) _,
         show __smtx_type_substitute t P SmtType.RegLan = SmtType.RegLan by
           simp [__smtx_type_substitute]]
       exact GuideTr.same _ _
-  | SmtType.BitVec w, t, R, P, REST, _hCons, _hLocal, _hNoDt,
+  | SmtType.BitVec w, t, R, P, REST, _hCons, _hEmb, _hLocal, _hNoDt,
       _hOK, _hOldField => by
       rw [chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) _,
         show __smtx_type_substitute t P (SmtType.BitVec w) = SmtType.BitVec w by
           simp [__smtx_type_substitute]]
       exact GuideTr.same _ _
-  | SmtType.Map A B, t, R, P, REST, _hCons, _hLocal, _hNoDt,
+  | SmtType.Map A B, t, R, P, REST, _hCons, _hEmb, _hLocal, _hNoDt,
       _hOK, _hOldField => by
       rw [chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) _,
         show __smtx_type_substitute t P (SmtType.Map A B) = SmtType.Map A B by
           simp [__smtx_type_substitute]]
       exact GuideTr.same _ _
-  | SmtType.Set A, t, R, P, REST, _hCons, _hLocal, _hNoDt,
+  | SmtType.Set A, t, R, P, REST, _hCons, _hEmb, _hLocal, _hNoDt,
       _hOK, _hOldField => by
       rw [chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) _,
         show __smtx_type_substitute t P (SmtType.Set A) = SmtType.Set A by
           simp [__smtx_type_substitute]]
       exact GuideTr.same _ _
-  | SmtType.Seq A, t, R, P, REST, _hCons, _hLocal, _hNoDt,
+  | SmtType.Seq A, t, R, P, REST, _hCons, _hEmb, _hLocal, _hNoDt,
       _hOK, _hOldField => by
       rw [chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) _,
         show __smtx_type_substitute t P (SmtType.Seq A) = SmtType.Seq A by
           simp [__smtx_type_substitute]]
       exact GuideTr.same _ _
-  | SmtType.Char, t, R, P, REST, _hCons, _hLocal, _hNoDt,
+  | SmtType.Char, t, R, P, REST, _hCons, _hEmb, _hLocal, _hNoDt,
       _hOK, _hOldField => by
       rw [chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) _,
         show __smtx_type_substitute t P SmtType.Char = SmtType.Char by
           simp [__smtx_type_substitute]]
       exact GuideTr.same _ _
-  | SmtType.USort u, t, R, P, REST, _hCons, _hLocal, _hNoDt,
+  | SmtType.USort u, t, R, P, REST, _hCons, _hEmb, _hLocal, _hNoDt,
       _hOK, _hOldField => by
       rw [chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) _,
         show __smtx_type_substitute t P (SmtType.USort u) = SmtType.USort u by
           simp [__smtx_type_substitute]]
       exact GuideTr.same _ _
-  | SmtType.FunType A B, t, R, P, REST, _hCons, _hLocal, _hNoDt,
+  | SmtType.FunType A B, t, R, P, REST, _hCons, _hEmb, _hLocal, _hNoDt,
       _hOK, _hOldField => by
       rw [chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) _,
         show __smtx_type_substitute t P (SmtType.FunType A B) =
           SmtType.FunType A B by simp [__smtx_type_substitute]]
       exact GuideTr.same _ _
-  | SmtType.DtcAppType A B, t, R, P, REST, _hCons, _hLocal, _hNoDt,
+  | SmtType.DtcAppType A B, t, R, P, REST, _hCons, _hEmb, _hLocal, _hNoDt,
       _hOK, _hOldField => by
       rw [chain_ty_fix _ (by intro s Q; simp [__smtx_type_substitute]) _,
         show __smtx_type_substitute t P (SmtType.DtcAppType A B) =
@@ -3118,21 +5097,23 @@ private theorem estab_dtc :
     ∀ (cU : SmtDatatypeCons) (t : native_String) (R P : SmtDatatype)
       (REST : SubstChain),
       __smtx_dt_cons_names_consistent_rec R cU = true →
+      RootEmbeddedDtc R cU →
       LocalNoSelfDtc cU = true →
       ChainNoDtDtc REST cU →
       (usesHeadDtc t cU = true → ChainOK ((t, R, P) :: REST)) →
       __smtx_dt_cons_wf_rec (chain_dtc ((t, R, P) :: REST) cU) cU = true →
       GuideTrDtc (chain_dtc ((t, R, P) :: REST) cU) cU
         (__smtx_dtc_substitute t P cU)
-  | SmtDatatypeCons.unit, t, R, P, REST, _hCons, _hLocal, _hNoDt,
+  | SmtDatatypeCons.unit, t, R, P, REST, _hCons, _hEmb, _hLocal, _hNoDt,
       _hOK, _hOld => by
       rw [chain_dtc_unit]
       rw [show __smtx_dtc_substitute t P SmtDatatypeCons.unit =
         SmtDatatypeCons.unit by simp [__smtx_dtc_substitute]]
       exact GuideTrDtc.unit
-  | SmtDatatypeCons.cons TU cU, t, R, P, REST, hCons, hLocal, hNoDt,
+  | SmtDatatypeCons.cons TU cU, t, R, P, REST, hCons, hEmb, hLocal, hNoDt,
       hNeed, hOld => by
       have hConsParts := namesConsDtc_parts R TU cU hCons
+      have hEmbParts := RootEmbeddedDtc_parts R TU cU hEmb
       have hNoDtParts := ChainNoDtDtc_parts REST TU cU hNoDt
       have hLocalParts : LocalNoSelfTy TU = true ∧
           LocalNoSelfDtc cU = true := by
@@ -3161,30 +5142,32 @@ private theorem estab_dtc :
         intro hUse
         exact hNeed (by simp [usesHeadDtc, native_or, hUse])
       exact GuideTrDtc.cons
-        (estab_ty TU t R P REST hConsParts.1 hLocalParts.1 hNoDtParts.1
+        (estab_ty TU t R P REST hConsParts.1 hEmbParts.1 hLocalParts.1 hNoDtParts.1
           hNeedHead hOldField)
-        (estab_dtc cU t R P REST hConsParts.2 hLocalParts.2 hNoDtParts.2
+        (estab_dtc cU t R P REST hConsParts.2 hEmbParts.2 hLocalParts.2 hNoDtParts.2
           hNeedTail hTail)
 
 private theorem estab_dt :
     ∀ (dU : SmtDatatype) (t : native_String) (R P : SmtDatatype)
       (REST : SubstChain),
       __smtx_dt_names_consistent_rec R dU = true →
+      RootEmbeddedDt R dU →
       LocalNoSelfDt dU = true →
       ChainNoDtDt REST dU →
       (usesHeadDt t dU = true → ChainOK ((t, R, P) :: REST)) →
       __smtx_dt_wf_rec (chain_dt ((t, R, P) :: REST) dU) dU = true →
       GuideTrDt (chain_dt ((t, R, P) :: REST) dU) dU
         (__smtx_dt_substitute t P dU)
-  | SmtDatatype.null, t, R, P, REST, _hCons, _hLocal, _hNoDt,
+  | SmtDatatype.null, t, R, P, REST, _hCons, _hEmb, _hLocal, _hNoDt,
       _hOK, _hOld => by
       rw [chain_dt_null]
       rw [show __smtx_dt_substitute t P SmtDatatype.null = SmtDatatype.null by
         simp [__smtx_dt_substitute]]
       exact GuideTrDt.null
-  | SmtDatatype.sum cU dU, t, R, P, REST, hCons, hLocal, hNoDt,
+  | SmtDatatype.sum cU dU, t, R, P, REST, hCons, hEmb, hLocal, hNoDt,
       hNeed, hOld => by
       have hConsParts := namesConsDt_parts R cU dU hCons
+      have hEmbParts := RootEmbeddedDt_parts R cU dU hEmb
       have hNoDtParts := ChainNoDtDt_parts REST cU dU hNoDt
       have hLocalParts : LocalNoSelfDtc cU = true ∧
           LocalNoSelfDt dU = true := by
@@ -3202,9 +5185,9 @@ private theorem estab_dt :
         intro hUse
         exact hNeed (by simp [usesHeadDt, native_or, hUse])
       exact GuideTrDt.sum
-        (estab_dtc cU t R P REST hConsParts.1 hLocalParts.1 hNoDtParts.1
+        (estab_dtc cU t R P REST hConsParts.1 hEmbParts.1 hLocalParts.1 hNoDtParts.1
           hNeedHead hParts.1)
-        (estab_dt dU t R P REST hConsParts.2 hLocalParts.2 hNoDtParts.2
+        (estab_dt dU t R P REST hConsParts.2 hEmbParts.2 hLocalParts.2 hNoDtParts.2
           hNeedTail hParts.2)
 
 end
@@ -3223,6 +5206,7 @@ private theorem wf_diag_establish
     (hne : native_streq sP sC = false)
     (hFieldNC : __smtx_type_names_consistent_rec dP
       (SmtType.Datatype sC dC) = true)
+    (hFieldEmb : RootEmbeddedTy dP (SmtType.Datatype sC dC))
     (hCNoSelf : noDtDt sC dC = true)
     (hCLocal : LocalNoSelfDt dC = true)
     (BC : SmtDatatype)
@@ -3236,7 +5220,10 @@ private theorem wf_diag_establish
     · simp [chain_ty, __smtx_type_substitute, native_ite, native_streq]
     · simpa [__smtx_type_wf_rec] using hPWf
     · exact fskel_master_dt dP [(sP, dP, dP)]
-    · exact ⟨rfl, hPNC, trivial⟩
+    · exact ⟨rfl, hPNC, hPInh, trivial, trivial,
+        ⟨by simpa [ChainOriginAcc, rawFolds] using
+          ctxImg_refl_dt [] native_reflist_nil dP, trivial⟩,
+        ⟨rfl, trivial⟩⟩
   -- the top chain is one descent step from it
   have hDesc0 :
       chain_descend [(sP, dP, dP)] sC dC =
@@ -3254,7 +5241,7 @@ private theorem wf_diag_establish
     intro hUse
     rw [← hTop]
     exact chainok_selfExt_needed [(sP, dP, dP)] sC dC sP dP dP []
-      rfl hne rfl hFieldNC trivial hOK0
+      rfl hne rfl hFieldNC hFieldEmb trivial hOK0
       (by rw [hNode0]; exact hInhBC) (by rw [hNode0]; exact hOld) hUse
   have hFold0 :
       chain_dt [(sP, dP, __smtx_dt_lift sC dC dP), (sC, dC, BC)] dC =
@@ -3262,7 +5249,8 @@ private theorem wf_diag_establish
     simp [chain_dt, hBC]
   have hFieldParts := namesConsTy_parts dP sC dC hFieldNC
   have hWalk := estab_dt dC sP dP (__smtx_dt_lift sC dC dP)
-    [(sC, dC, BC)] hFieldParts.2 hCLocal
+    [(sC, dC, BC)] hFieldParts.2
+    (RootEmbeddedTy_body dP sC dC hFieldEmb) hCLocal
     ⟨hCNoSelf, trivial⟩ hNeedTop
     (by rw [hFold0]; exact hOld)
   have hFold :
@@ -3288,6 +5276,7 @@ theorem wf_diag_push
     (sC : native_String) (dC : SmtDatatype)
     (hFieldNC : __smtx_type_names_consistent_rec dP
       (SmtType.Datatype sC dC) = true)
+    (hFieldEmb : RootEmbeddedTy dP (SmtType.Datatype sC dC))
     (hCNoSelf : noDtDt sC dC = true)
     (hCLocal : LocalNoSelfDt dC = true)
     (hFInh : native_inhabited_type
@@ -3316,7 +5305,7 @@ theorem wf_diag_push
             dC = true := by
         simpa [__smtx_type_wf_rec] using hFWf
       have hTr := wf_diag_establish sP dP hPInh hPWf hPNC sC dC hs
-        hFieldNC hCNoSelf hCLocal
+        hFieldNC hFieldEmb hCNoSelf hCLocal
         (__smtx_dt_substitute sP (__smtx_dt_lift sC dC dP) dC) rfl hFInh hOld
       simpa [__smtx_type_wf_rec] using guideTrDt_wf hTr hOld
 
