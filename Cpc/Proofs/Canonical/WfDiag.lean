@@ -4957,6 +4957,348 @@ private theorem fskel_rotAll_refl_dt {s3 : native_String} :
   | _, _, FSkelDt.sum hc hd =>
       RotAllDt.sum (fskel_rotAll_refl_dtc hc) (fskel_rotAll_refl_dt hd)
 
+/-! ### Lift and refill closure of the rotation relation
+
+Folding the OLD side of a rotation pair, and `s3`-refilling the NEW side,
+both preserve the relation: every reference a lift places on the old side
+is absorbed by `refFlip` (with `refDef_lift_inv` restoring the carried
+implication at `s3` nodes), and every body a refill inserts on the new
+side sits at an old-side reference (`refFlip` again) or under an `s3`
+shield.  These are the two elementary operations by which the two
+histories' resolutions differ. -/
+
+mutual
+
+private theorem rot_lift_refl_ty (s3 w : native_String) (V : SmtDatatype) :
+    ∀ T : SmtType, RotTy s3 (__smtx_type_lift w V T) T
+  | SmtType.Datatype q Z => by
+      by_cases hFold : native_Teq (SmtType.Datatype w V)
+          (SmtType.Datatype q Z) = true
+      · rw [show __smtx_type_lift w V (SmtType.Datatype q Z) =
+            SmtType.TypeRef w by simp [__smtx_type_lift, native_ite, hFold]]
+        exact RotTy.refFlip
+      · rw [show __smtx_type_lift w V (SmtType.Datatype q Z) =
+            SmtType.Datatype q (__smtx_dt_lift w V Z) by
+          simp [__smtx_type_lift, native_ite, hFold]]
+        exact RotTy.dt (rot_lift_refl_dt s3 w V Z)
+  | SmtType.TypeRef r => by
+      rw [show __smtx_type_lift w V (SmtType.TypeRef r) =
+          SmtType.TypeRef r by simp [__smtx_type_lift]]
+      exact RotTy.same _
+  | SmtType.None => by
+      rw [show __smtx_type_lift w V SmtType.None = SmtType.None by
+        simp [__smtx_type_lift]]
+      exact RotTy.same _
+  | SmtType.Bool => by
+      rw [show __smtx_type_lift w V SmtType.Bool = SmtType.Bool by
+        simp [__smtx_type_lift]]
+      exact RotTy.same _
+  | SmtType.Int => by
+      rw [show __smtx_type_lift w V SmtType.Int = SmtType.Int by
+        simp [__smtx_type_lift]]
+      exact RotTy.same _
+  | SmtType.Real => by
+      rw [show __smtx_type_lift w V SmtType.Real = SmtType.Real by
+        simp [__smtx_type_lift]]
+      exact RotTy.same _
+  | SmtType.RegLan => by
+      rw [show __smtx_type_lift w V SmtType.RegLan = SmtType.RegLan by
+        simp [__smtx_type_lift]]
+      exact RotTy.same _
+  | SmtType.BitVec n => by
+      rw [show __smtx_type_lift w V (SmtType.BitVec n) = SmtType.BitVec n by
+        simp [__smtx_type_lift]]
+      exact RotTy.same _
+  | SmtType.Map A B => by
+      rw [show __smtx_type_lift w V (SmtType.Map A B) = SmtType.Map A B by
+        simp [__smtx_type_lift]]
+      exact RotTy.same _
+  | SmtType.Set A => by
+      rw [show __smtx_type_lift w V (SmtType.Set A) = SmtType.Set A by
+        simp [__smtx_type_lift]]
+      exact RotTy.same _
+  | SmtType.Seq A => by
+      rw [show __smtx_type_lift w V (SmtType.Seq A) = SmtType.Seq A by
+        simp [__smtx_type_lift]]
+      exact RotTy.same _
+  | SmtType.Char => by
+      rw [show __smtx_type_lift w V SmtType.Char = SmtType.Char by
+        simp [__smtx_type_lift]]
+      exact RotTy.same _
+  | SmtType.USort u => by
+      rw [show __smtx_type_lift w V (SmtType.USort u) = SmtType.USort u by
+        simp [__smtx_type_lift]]
+      exact RotTy.same _
+  | SmtType.FunType A B => by
+      rw [show __smtx_type_lift w V (SmtType.FunType A B) =
+          SmtType.FunType A B by simp [__smtx_type_lift]]
+      exact RotTy.same _
+  | SmtType.DtcAppType A B => by
+      rw [show __smtx_type_lift w V (SmtType.DtcAppType A B) =
+          SmtType.DtcAppType A B by simp [__smtx_type_lift]]
+      exact RotTy.same _
+
+private theorem rot_lift_refl_dtc (s3 w : native_String) (V : SmtDatatype) :
+    ∀ c : SmtDatatypeCons, RotDtc s3 (__smtx_dtc_lift w V c) c
+  | SmtDatatypeCons.unit => by
+      rw [show __smtx_dtc_lift w V SmtDatatypeCons.unit =
+          SmtDatatypeCons.unit by simp [__smtx_dtc_lift]]
+      exact RotDtc.unit
+  | SmtDatatypeCons.cons T c => by
+      rw [show __smtx_dtc_lift w V (SmtDatatypeCons.cons T c) =
+          SmtDatatypeCons.cons (__smtx_type_lift w V T)
+            (__smtx_dtc_lift w V c) by simp [__smtx_dtc_lift]]
+      exact RotDtc.cons (rot_lift_refl_ty s3 w V T)
+        (rot_lift_refl_dtc s3 w V c)
+
+private theorem rot_lift_refl_dt (s3 w : native_String) (V : SmtDatatype) :
+    ∀ d : SmtDatatype, RotDt s3 (__smtx_dt_lift w V d) d
+  | SmtDatatype.null => by
+      rw [show __smtx_dt_lift w V SmtDatatype.null = SmtDatatype.null by
+        simp [__smtx_dt_lift]]
+      exact RotDt.null
+  | SmtDatatype.sum c d => by
+      rw [show __smtx_dt_lift w V (SmtDatatype.sum c d) =
+          SmtDatatype.sum (__smtx_dtc_lift w V c) (__smtx_dt_lift w V d) by
+        simp [__smtx_dt_lift]]
+      exact RotDt.sum (rot_lift_refl_dtc s3 w V c)
+        (rot_lift_refl_dt s3 w V d)
+
+end
+
+mutual
+
+private theorem rot_lift_left_ty {s3 : native_String} (w : native_String)
+    (V : SmtDatatype) :
+    ∀ {TO TN : SmtType}, RotTy s3 TO TN →
+      RotTy s3 (__smtx_type_lift w V TO) TN
+  | _, _, RotTy.same T => rot_lift_refl_ty s3 w V T
+  | _, _, @RotTy.dt _ q ZO ZN hBody => by
+      by_cases hFold : native_Teq (SmtType.Datatype w V)
+          (SmtType.Datatype q ZO) = true
+      · rw [show __smtx_type_lift w V (SmtType.Datatype q ZO) =
+            SmtType.TypeRef w by simp [__smtx_type_lift, native_ite, hFold]]
+        exact RotTy.refFlip
+      · rw [show __smtx_type_lift w V (SmtType.Datatype q ZO) =
+            SmtType.Datatype q (__smtx_dt_lift w V ZO) by
+          simp [__smtx_type_lift, native_ite, hFold]]
+        exact RotTy.dt (rot_lift_left_dt w V hBody)
+  | _, _, @RotTy.rot _ ZO ZN hInh => by
+      by_cases hFold : native_Teq (SmtType.Datatype w V)
+          (SmtType.Datatype s3 ZO) = true
+      · rw [show __smtx_type_lift w V (SmtType.Datatype s3 ZO) =
+            SmtType.TypeRef w by simp [__smtx_type_lift, native_ite, hFold]]
+        exact RotTy.refFlip
+      · rw [show __smtx_type_lift w V (SmtType.Datatype s3 ZO) =
+            SmtType.Datatype s3 (__smtx_dt_lift w V ZO) by
+          simp [__smtx_type_lift, native_ite, hFold]]
+        refine RotTy.rot (fun h => hInh ?_)
+        exact inhabited_of_refDef_empty s3 ZO
+          (refDef_lift_inv_dt w V ZO
+            (refDef_empty_of_inhabited s3 (__smtx_dt_lift w V ZO) h))
+  | _, _, @RotTy.refFlip _ r TN => by
+      rw [show __smtx_type_lift w V (SmtType.TypeRef r) =
+          SmtType.TypeRef r by simp [__smtx_type_lift]]
+      exact RotTy.refFlip
+
+private theorem rot_lift_left_dtc {s3 : native_String} (w : native_String)
+    (V : SmtDatatype) :
+    ∀ {cO cN : SmtDatatypeCons}, RotDtc s3 cO cN →
+      RotDtc s3 (__smtx_dtc_lift w V cO) cN
+  | _, _, RotDtc.unit => by
+      rw [show __smtx_dtc_lift w V SmtDatatypeCons.unit =
+          SmtDatatypeCons.unit by simp [__smtx_dtc_lift]]
+      exact RotDtc.unit
+  | _, _, @RotDtc.cons _ TO TN cO cN hT hc => by
+      rw [show __smtx_dtc_lift w V (SmtDatatypeCons.cons TO cO) =
+          SmtDatatypeCons.cons (__smtx_type_lift w V TO)
+            (__smtx_dtc_lift w V cO) by simp [__smtx_dtc_lift]]
+      exact RotDtc.cons (rot_lift_left_ty w V hT) (rot_lift_left_dtc w V hc)
+
+private theorem rot_lift_left_dt {s3 : native_String} (w : native_String)
+    (V : SmtDatatype) :
+    ∀ {dO dN : SmtDatatype}, RotDt s3 dO dN →
+      RotDt s3 (__smtx_dt_lift w V dO) dN
+  | _, _, RotDt.null => by
+      rw [show __smtx_dt_lift w V SmtDatatype.null = SmtDatatype.null by
+        simp [__smtx_dt_lift]]
+      exact RotDt.null
+  | _, _, @RotDt.sum _ cO cN dO dN hc hd => by
+      rw [show __smtx_dt_lift w V (SmtDatatype.sum cO dO) =
+          SmtDatatype.sum (__smtx_dtc_lift w V cO) (__smtx_dt_lift w V dO) by
+        simp [__smtx_dt_lift]]
+      exact RotDt.sum (rot_lift_left_dtc w V hc) (rot_lift_left_dt w V hd)
+
+end
+
+mutual
+
+private theorem rot_subst_refl_ty (s3 : native_String) :
+    ∀ (K : SmtDatatype) (T : SmtType),
+      RotTy s3 T (__smtx_type_substitute s3 K T)
+  | K, SmtType.TypeRef r => by
+      cases hr : native_streq s3 r with
+      | true =>
+          rw [show __smtx_type_substitute s3 K (SmtType.TypeRef r) =
+              SmtType.Datatype s3 K by
+            simp [__smtx_type_substitute, native_ite, hr]]
+          exact RotTy.refFlip
+      | false =>
+          rw [show __smtx_type_substitute s3 K (SmtType.TypeRef r) =
+              SmtType.TypeRef r by
+            simp [__smtx_type_substitute, native_ite, hr]]
+          exact RotTy.same _
+  | K, SmtType.Datatype q Z => by
+      cases hq : native_streq s3 q with
+      | true =>
+          rw [show __smtx_type_substitute s3 K (SmtType.Datatype q Z) =
+              SmtType.Datatype q Z by
+            simp [__smtx_type_substitute, native_ite, hq]]
+          exact RotTy.same _
+      | false =>
+          rw [show __smtx_type_substitute s3 K (SmtType.Datatype q Z) =
+              SmtType.Datatype q
+                (__smtx_dt_substitute s3 (__smtx_dt_lift q Z K) Z) by
+            simp [__smtx_type_substitute, native_ite, hq]]
+          exact RotTy.dt (rot_subst_refl_dt s3 (__smtx_dt_lift q Z K) Z)
+  | K, SmtType.None => by
+      rw [show __smtx_type_substitute s3 K SmtType.None = SmtType.None by
+        simp [__smtx_type_substitute]]
+      exact RotTy.same _
+  | K, SmtType.Bool => by
+      rw [show __smtx_type_substitute s3 K SmtType.Bool = SmtType.Bool by
+        simp [__smtx_type_substitute]]
+      exact RotTy.same _
+  | K, SmtType.Int => by
+      rw [show __smtx_type_substitute s3 K SmtType.Int = SmtType.Int by
+        simp [__smtx_type_substitute]]
+      exact RotTy.same _
+  | K, SmtType.Real => by
+      rw [show __smtx_type_substitute s3 K SmtType.Real = SmtType.Real by
+        simp [__smtx_type_substitute]]
+      exact RotTy.same _
+  | K, SmtType.RegLan => by
+      rw [show __smtx_type_substitute s3 K SmtType.RegLan =
+          SmtType.RegLan by simp [__smtx_type_substitute]]
+      exact RotTy.same _
+  | K, SmtType.BitVec n => by
+      rw [show __smtx_type_substitute s3 K (SmtType.BitVec n) =
+          SmtType.BitVec n by simp [__smtx_type_substitute]]
+      exact RotTy.same _
+  | K, SmtType.Map A B => by
+      rw [show __smtx_type_substitute s3 K (SmtType.Map A B) =
+          SmtType.Map A B by simp [__smtx_type_substitute]]
+      exact RotTy.same _
+  | K, SmtType.Set A => by
+      rw [show __smtx_type_substitute s3 K (SmtType.Set A) =
+          SmtType.Set A by simp [__smtx_type_substitute]]
+      exact RotTy.same _
+  | K, SmtType.Seq A => by
+      rw [show __smtx_type_substitute s3 K (SmtType.Seq A) =
+          SmtType.Seq A by simp [__smtx_type_substitute]]
+      exact RotTy.same _
+  | K, SmtType.Char => by
+      rw [show __smtx_type_substitute s3 K SmtType.Char = SmtType.Char by
+        simp [__smtx_type_substitute]]
+      exact RotTy.same _
+  | K, SmtType.USort u => by
+      rw [show __smtx_type_substitute s3 K (SmtType.USort u) =
+          SmtType.USort u by simp [__smtx_type_substitute]]
+      exact RotTy.same _
+  | K, SmtType.FunType A B => by
+      rw [show __smtx_type_substitute s3 K (SmtType.FunType A B) =
+          SmtType.FunType A B by simp [__smtx_type_substitute]]
+      exact RotTy.same _
+  | K, SmtType.DtcAppType A B => by
+      rw [show __smtx_type_substitute s3 K (SmtType.DtcAppType A B) =
+          SmtType.DtcAppType A B by simp [__smtx_type_substitute]]
+      exact RotTy.same _
+
+private theorem rot_subst_refl_dtc (s3 : native_String) :
+    ∀ (K : SmtDatatype) (c : SmtDatatypeCons),
+      RotDtc s3 c (__smtx_dtc_substitute s3 K c)
+  | K, SmtDatatypeCons.unit => by
+      rw [show __smtx_dtc_substitute s3 K SmtDatatypeCons.unit =
+          SmtDatatypeCons.unit by simp [__smtx_dtc_substitute]]
+      exact RotDtc.unit
+  | K, SmtDatatypeCons.cons T c => by
+      rw [show __smtx_dtc_substitute s3 K (SmtDatatypeCons.cons T c) =
+          SmtDatatypeCons.cons (__smtx_type_substitute s3 K T)
+            (__smtx_dtc_substitute s3 K c) by simp [__smtx_dtc_substitute]]
+      exact RotDtc.cons (rot_subst_refl_ty s3 K T)
+        (rot_subst_refl_dtc s3 K c)
+
+private theorem rot_subst_refl_dt (s3 : native_String) :
+    ∀ (K : SmtDatatype) (d : SmtDatatype),
+      RotDt s3 d (__smtx_dt_substitute s3 K d)
+  | K, SmtDatatype.null => by
+      rw [show __smtx_dt_substitute s3 K SmtDatatype.null =
+          SmtDatatype.null by simp [__smtx_dt_substitute]]
+      exact RotDt.null
+  | K, SmtDatatype.sum c d => by
+      rw [show __smtx_dt_substitute s3 K (SmtDatatype.sum c d) =
+          SmtDatatype.sum (__smtx_dtc_substitute s3 K c)
+            (__smtx_dt_substitute s3 K d) by simp [__smtx_dt_substitute]]
+      exact RotDt.sum (rot_subst_refl_dtc s3 K c)
+        (rot_subst_refl_dt s3 K d)
+
+end
+
+mutual
+
+private theorem rot_subst_right_ty {s3 : native_String} :
+    ∀ (K : SmtDatatype) {TO TN : SmtType}, RotTy s3 TO TN →
+      RotTy s3 TO (__smtx_type_substitute s3 K TN)
+  | K, _, _, RotTy.same T => rot_subst_refl_ty s3 K T
+  | K, _, _, @RotTy.dt _ q ZO ZN hBody => by
+      cases hq : native_streq s3 q with
+      | true =>
+          rw [show __smtx_type_substitute s3 K (SmtType.Datatype q ZN) =
+              SmtType.Datatype q ZN by
+            simp [__smtx_type_substitute, native_ite, hq]]
+          exact RotTy.dt hBody
+      | false =>
+          rw [show __smtx_type_substitute s3 K (SmtType.Datatype q ZN) =
+              SmtType.Datatype q
+                (__smtx_dt_substitute s3 (__smtx_dt_lift q ZN K) ZN) by
+            simp [__smtx_type_substitute, native_ite, hq]]
+          exact RotTy.dt
+            (rot_subst_right_dt (__smtx_dt_lift q ZN K) hBody)
+  | K, _, _, @RotTy.rot _ ZO ZN hInh => by
+      rw [show __smtx_type_substitute s3 K (SmtType.Datatype s3 ZN) =
+          SmtType.Datatype s3 ZN by
+        simp [__smtx_type_substitute, native_ite, native_streq]]
+      exact RotTy.rot hInh
+  | K, _, _, @RotTy.refFlip _ r TN => RotTy.refFlip
+
+private theorem rot_subst_right_dtc {s3 : native_String} :
+    ∀ (K : SmtDatatype) {cO cN : SmtDatatypeCons}, RotDtc s3 cO cN →
+      RotDtc s3 cO (__smtx_dtc_substitute s3 K cN)
+  | K, _, _, RotDtc.unit => by
+      rw [show __smtx_dtc_substitute s3 K SmtDatatypeCons.unit =
+          SmtDatatypeCons.unit by simp [__smtx_dtc_substitute]]
+      exact RotDtc.unit
+  | K, _, _, @RotDtc.cons _ TO TN cO cN hT hc => by
+      rw [show __smtx_dtc_substitute s3 K (SmtDatatypeCons.cons TN cN) =
+          SmtDatatypeCons.cons (__smtx_type_substitute s3 K TN)
+            (__smtx_dtc_substitute s3 K cN) by simp [__smtx_dtc_substitute]]
+      exact RotDtc.cons (rot_subst_right_ty K hT) (rot_subst_right_dtc K hc)
+
+private theorem rot_subst_right_dt {s3 : native_String} :
+    ∀ (K : SmtDatatype) {dO dN : SmtDatatype}, RotDt s3 dO dN →
+      RotDt s3 dO (__smtx_dt_substitute s3 K dN)
+  | K, _, _, RotDt.null => by
+      rw [show __smtx_dt_substitute s3 K SmtDatatype.null =
+          SmtDatatype.null by simp [__smtx_dt_substitute]]
+      exact RotDt.null
+  | K, _, _, @RotDt.sum _ cO cN dO dN hc hd => by
+      rw [show __smtx_dt_substitute s3 K (SmtDatatype.sum cN dN) =
+          SmtDatatype.sum (__smtx_dtc_substitute s3 K cN)
+            (__smtx_dt_substitute s3 K dN) by simp [__smtx_dt_substitute]]
+      exact RotDt.sum (rot_subst_right_dtc K hc) (rot_subst_right_dt K hd)
+
+end
+
 /-- Chains act compositionally: appended entries substitute afterwards. -/
 private theorem chain_ty_append :
     ∀ (σ τ : SubstChain) (T : SmtType),
