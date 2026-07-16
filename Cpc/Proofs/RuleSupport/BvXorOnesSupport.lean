@@ -122,7 +122,7 @@ private theorem context
     (Term.UOp UserOp.bvxor) (bvAllOnesConst n w) zs hLists.2
   exact ⟨hLists.1, hZsList⟩
 
-private theorem typeof_bvand_arg_types_of_ne_stuck
+theorem typeof_bvand_arg_types_of_ne_stuck
     {A B : Term}
     (h : __eo_typeof_bvand A B ≠ Term.Stuck) :
     ∃ width,
@@ -143,7 +143,7 @@ private theorem typeof_bvand_arg_types_of_ne_stuck
           (support_eo_requires_cond_eq_of_non_stuck hReq)
       exact hm.symm
 
-private theorem typeof_bvxor_args_of_result_bitvec
+theorem typeof_bvxor_args_of_result_bitvec
     (x y width : Term) :
     __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) x) y) =
         Term.Apply (Term.UOp UserOp.BitVec) width ->

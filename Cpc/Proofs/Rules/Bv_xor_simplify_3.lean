@@ -51,37 +51,62 @@ by
                           change Term.Stuck ≠ Term.Stuck at hProg
                           exact False.elim (hProg rfl)
                       | nil =>
-                          have hArgs :
-                              ∃ width : native_Nat,
-                                __smtx_typeof (__eo_to_smt a1) =
-                                    SmtType.BitVec width ∧
-                                  __smtx_typeof (__eo_to_smt a2) =
-                                    SmtType.BitVec width ∧
-                                  __smtx_typeof (__eo_to_smt a3) =
-                                    SmtType.BitVec width ∧
-                                  __smtx_typeof (__eo_to_smt a4) =
-                                    SmtType.BitVec width := by
-                            simpa [cmdTranslationOk,
-                              bvXorSimplifyArgsTranslationOk] using hCmdTrans
-                          rcases hArgs with
-                            ⟨width, hA1Ty, hA2Ty, hA3Ty, hA4Ty⟩
+                          have hArgTranslations :
+                              RuleProofs.eo_has_smt_translation a1 ∧
+                                RuleProofs.eo_has_smt_translation a2 ∧
+                                RuleProofs.eo_has_smt_translation a3 ∧
+                                RuleProofs.eo_has_smt_translation a4 := by
+                            simpa [cmdTranslationOk, cArgListTranslationOk,
+                              eoHasSmtTranslation,
+                              RuleProofs.eo_has_smt_translation] using hCmdTrans
+                          have hA1Ne :=
+                            RuleProofs.term_ne_stuck_of_has_smt_translation a1
+                              hArgTranslations.1
+                          have hA2Ne :=
+                            RuleProofs.term_ne_stuck_of_has_smt_translation a2
+                              hArgTranslations.2.1
+                          have hA3Ne :=
+                            RuleProofs.term_ne_stuck_of_has_smt_translation a3
+                              hArgTranslations.2.2.1
+                          have hA4Ne :=
+                            RuleProofs.term_ne_stuck_of_has_smt_translation a4
+                              hArgTranslations.2.2.2
                           change __eo_typeof
                               (__eo_prog_bv_xor_simplify_3 a1 a2 a3 a4) =
                             Term.Bool at hResultTy
+                          have hLists :=
+                            BvXorSimplifySupport.program3_lists_of_ne_stuck
+                              a1 a2 a3 a4 hA1Ne hA2Ne hA3Ne hA4Ne
+                              hResultTy
                           have hProgEq :=
-                            BvXorSimplifySupport.program3_eq_term
-                              a1 a2 a3 a4 width
-                              hA1Ty hA2Ty hA3Ty hA4Ty hResultTy
+                            BvXorSimplifySupport.program3_eq_term_of_ne_stuck
+                              a1 a2 a3 a4 hA1Ne hA2Ne hA3Ne hA4Ne
+                              hResultTy
+                          have hTermTy :
+                              __eo_typeof
+                                  (BvXorSimplifySupport.term3 a1 a2 a3 a4) =
+                                Term.Bool := by
+                            rw [hProgEq] at hResultTy
+                            exact hResultTy
+                          rcases BvXorSimplifySupport.inferred_argument_types3
+                              a1 a2 a3 a4 hArgTranslations.1
+                              hArgTranslations.2.1 hArgTranslations.2.2.1
+                              hArgTranslations.2.2.2 hLists.1 hLists.2.1
+                              hTermTy with
+                            ⟨width, hA1Ty, hA2Ty, hA3Ty, hA4Ty⟩
                           change StepRuleProperties M []
                             (__eo_prog_bv_xor_simplify_3 a1 a2 a3 a4)
                           rw [hProgEq]
                           refine ⟨?_, ?_⟩
                           · intro _hTrue
-                            exact BvXorSimplifySupport.facts_term3 M hM
+                            exact
+                              BvXorSimplifySupport.facts_term3_of_type_or_nil M hM
                               a1 a2 a3 a4 width
-                              hA1Ty hA2Ty hA3Ty hA4Ty hResultTy
+                              hA1Ty hA2Ty hA3Ty hA4Ty
+                              hLists.1 hLists.2.1 hLists.2.2
                           · exact
                               RuleProofs.eo_has_smt_translation_of_has_bool_type _
-                                (BvXorSimplifySupport.typed_term3
+                                (BvXorSimplifySupport.typed_term3_of_type_or_nil
                                   a1 a2 a3 a4 width
-                                  hA1Ty hA2Ty hA3Ty hA4Ty hResultTy)
+                                  hA1Ty hA2Ty hA3Ty hA4Ty
+                                  hLists.1 hLists.2.1 hLists.2.2)
