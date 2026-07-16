@@ -17,7 +17,7 @@ set_option linter.unusedSimpArgs false
 set_option linter.unnecessarySimpa false
 
 def bvSaddoZeroBit : Term :=
-  Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral 1)
+  Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 0)
 
 def bvSaddoNil (x : Term) : Term :=
   __eo_nil (Term.UOp UserOp.bvadd) (__eo_typeof x)

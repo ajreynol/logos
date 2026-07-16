@@ -14567,15 +14567,6 @@ theorem eo_to_smt_typeof_matches_translation_apply
     cases op
     case extract =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_extract x z y ihX hNonNone
-    case _at_bv =>
-      exfalso
-      apply hNonNone
-      change
-        __smtx_typeof
-            (SmtTerm.Apply (SmtTerm.int_to_bv (__eo_to_smt z) (__eo_to_smt y))
-              (__eo_to_smt x)) =
-          SmtType.None
-      exact typeof_apply_eo_to_smt_at_bv_eq_none (__eo_to_smt y) (__eo_to_smt z) (__eo_to_smt x)
     case re_loop =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_re_loop x z y ihX hNonNone
     case _at_const =>

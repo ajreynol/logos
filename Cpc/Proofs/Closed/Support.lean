@@ -1519,7 +1519,7 @@ theorem smtTermClosedIn_eo_to_smt_at_bv
     {vars : List SmtVarKey} {x y : Term}
     (hx : SmtTermClosedIn vars (__eo_to_smt x))
     (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
-  SmtTermClosedIn vars (__eo_to_smt (Term.UOp2 UserOp2._at_bv x y)) :=
+  SmtTermClosedIn vars (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.int_to_bv y) x)) :=
 by
   exact ⟨hy, hx⟩
 
@@ -4521,15 +4521,13 @@ theorem smtTermClosedIn_eo_to_smt_at_bv_of_closed_rec_using
           __eo_is_closed_rec y env' = Term.Boolean true ->
             SmtTermClosedIn vars' (__eo_to_smt y))
     (hClosed :
-      __eo_is_closed_rec (Term.UOp2 UserOp2._at_bv x y) env =
+      __eo_is_closed_rec (Term.Apply (Term.UOp1 UserOp1.int_to_bv y) x) env =
         Term.Boolean true) :
   SmtTermClosedIn vars
-    (__eo_to_smt (Term.UOp2 UserOp2._at_bv x y)) :=
+    (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.int_to_bv y) x)) :=
 by
-  exact smtTermClosedIn_eo_to_smt_uop2_of_closed_rec_using
-    (op := UserOp2._at_bv)
-    (fun hx hy => smtTermClosedIn_eo_to_smt_at_bv hx hy)
-    hEnv hRecX hRecY hClosed
+  exact smtTermClosedIn_eo_to_smt_int_to_bv_of_closed_rec_using
+    hEnv hRecY hRecX hClosed
 
 theorem smtTermClosedIn_eo_to_smt_sets_deq_diff_of_closed_rec_using
     {x y env : Term} {vars : List SmtVarKey}
@@ -4815,10 +4813,6 @@ theorem smtTermClosedIn_eo_to_smt_uop2_any_of_closed_rec_using
   SmtTermClosedIn vars (__eo_to_smt (Term.UOp2 op x y)) :=
 by
   cases op <;> try trivial
-  case _at_bv =>
-    exact smtTermClosedIn_eo_to_smt_at_bv_of_closed_rec_using
-      hEnv (fun hEnv' hClosed' => hRec hEnv' hClosed')
-      (fun hEnv' hClosed' => hRec hEnv' hClosed') hClosed
   case _at_quantifiers_skolemize =>
     cases x <;> try trivial
     case Apply f body =>
@@ -6043,10 +6037,6 @@ by
     simp
     omega
   cases op <;> try trivial
-  case _at_bv =>
-    exact smtTermClosedIn_eo_to_smt_at_bv_of_closed_rec_using
-      hEnv (fun hEnv' hClosed' => hRec hXLt hEnv' hClosed')
-      (fun hEnv' hClosed' => hRec hYLt hEnv' hClosed') hClosed
   case _at_quantifiers_skolemize =>
     cases x <;> try trivial
     case Apply f body =>

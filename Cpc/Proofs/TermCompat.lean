@@ -108,7 +108,6 @@ abbrev bvredand := Term.UOp UserOp.bvredand
 abbrev bvredor := Term.UOp UserOp.bvredor
 abbrev _at_bit := Term.UOp1 UserOp1._at_bit
 abbrev _at_from_bools := Term.UOp UserOp._at_from_bools
-abbrev _at_bv := Term.UOp2 UserOp2._at_bv
 abbrev _at_purify (x : Term) := Term.Apply (Term.UOp UserOp._at_purify) x
 abbrev _at_array_deq_diff (x y : Term) :=
   Term.Apply (Term.Apply (Term.UOp UserOp._at_array_deq_diff) x) y
@@ -311,7 +310,6 @@ attribute [match_pattern]
   Term.bvredor
   Term._at_bit
   Term._at_from_bools
-  Term._at_bv
   Term._at_purify
   Term._at_array_deq_diff
   Term.RegLan

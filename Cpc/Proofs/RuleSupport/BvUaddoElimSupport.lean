@@ -13,10 +13,10 @@ set_option linter.unusedSimpArgs false
 set_option linter.unnecessarySimpa false
 
 def uaddoZeroBit : Term :=
-  Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral 1)
+  Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 0)
 
 def uaddoOneBit : Term :=
-  Term.UOp2 UserOp2._at_bv (Term.Numeral 1) (Term.Numeral 1)
+  Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 1)
 
 def uaddoExt (x : Term) : Term :=
   Term.Apply (Term.Apply (Term.UOp UserOp.concat) uaddoZeroBit)

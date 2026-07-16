@@ -5312,8 +5312,6 @@ by
         (by
           intro hXTrans hBound' hXNoFree M' N' hAgree'
           exact ih hXLt hExcept hBound' hXTrans hXNoFree hAgree')
-  case _at_bv =>
-    exact false_of_apply_at_bv hTrans
   case _at_const =>
     exact false_of_apply_uop2_translate_apply_none hTrans rfl
 

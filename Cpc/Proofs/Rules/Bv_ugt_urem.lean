@@ -117,10 +117,10 @@ private theorem prog_bv_ugt_urem_canonical_eq_of_ne_stuck (y x w : Term) :
           (Term.Apply (Term.Apply (Term.UOp UserOp.bvurem) y) x)) x))
         (Term.Apply (Term.Apply (Term.UOp UserOp.and)
           (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x)
-            (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) w)))
+            (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) (Term.Numeral 0))))
           (Term.Apply (Term.Apply (Term.UOp UserOp.and)
             (Term.Apply (Term.Apply (Term.UOp UserOp.bvugt) y)
-              (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) w)))
+              (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) (Term.Numeral 0))))
             (Term.Boolean true))) := by
   intro hy hx hw
   rw [__eo_prog_bv_ugt_urem.eq_4 y x w w y hy hx hw]
@@ -193,7 +193,7 @@ private theorem typeof_or_bool_inv {A B : Term} :
 private theorem width_eq_of_typeof_eq_bitvec_at_bv (u w : Term) :
     w ≠ Term.Stuck ->
     __eo_typeof_eq (Term.Apply (Term.UOp UserOp.BitVec) u)
-        (__eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof w) w) =
+        (__eo_typeof_int_to_bv (__eo_typeof w) w (Term.UOp UserOp.Int)) =
       Term.Bool ->
     w = u := by
   intro hW hTy
@@ -209,7 +209,7 @@ private theorem width_eq_of_typeof_eq_bitvec_at_bv (u w : Term) :
                   (Term.Boolean true)
                   (Term.Apply (Term.UOp UserOp.BitVec) w)) =
               Term.Bool := by
-          simpa [__eo_typeof__at_bv, hWTy, hW] using hTy
+          simpa [__eo_typeof_int_to_bv, hWTy, hW] using hTy
         have hOpEq :=
           support_eo_typeof_eq_bool_operands_eq _ _ hTy'
         have hReqNN :
@@ -239,11 +239,11 @@ private theorem width_eq_of_typeof_eq_bitvec_at_bv (u w : Term) :
         exact hUW.symm
       all_goals
         exfalso
-        simpa [__eo_typeof_eq, __eo_typeof__at_bv, __eo_requires,
+        simpa [__eo_typeof_eq, __eo_typeof_int_to_bv, __eo_requires,
           __eo_eq, native_ite, native_teq, native_not, hWTy] using hTy
   | _ =>
       exfalso
-      simpa [__eo_typeof_eq, __eo_typeof__at_bv, __eo_requires,
+      simpa [__eo_typeof_eq, __eo_typeof_int_to_bv, __eo_requires,
         __eo_eq, native_ite, native_teq, native_not, hWTy] using hTy
 
 private theorem typeof_args_of_ugt_urem_body_bool (y x w : Term) :
@@ -254,10 +254,10 @@ private theorem typeof_args_of_ugt_urem_body_bool (y x w : Term) :
             (Term.Apply (Term.Apply (Term.UOp UserOp.bvurem) y) x)) x))
           (Term.Apply (Term.Apply (Term.UOp UserOp.and)
             (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x)
-              (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) w)))
+              (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) (Term.Numeral 0))))
             (Term.Apply (Term.Apply (Term.UOp UserOp.and)
               (Term.Apply (Term.Apply (Term.UOp UserOp.bvugt) y)
-                (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) w)))
+                (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) (Term.Numeral 0))))
               (Term.Boolean true)))) = Term.Bool ->
     ∃ u, __eo_typeof y = Term.Apply (Term.UOp UserOp.BitVec) u ∧
       __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) u ∧ w = u := by
@@ -268,10 +268,10 @@ private theorem typeof_args_of_ugt_urem_body_bool (y x w : Term) :
         (__eo_typeof x))
       (__eo_typeof_or
         (__eo_typeof_eq (__eo_typeof x)
-          (__eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof w) w))
+          (__eo_typeof_int_to_bv (__eo_typeof w) w (Term.UOp UserOp.Int)))
         (__eo_typeof_or
           (__eo_typeof_bvult (__eo_typeof y)
-            (__eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof w) w))
+            (__eo_typeof_int_to_bv (__eo_typeof w) w (Term.UOp UserOp.Int)))
           Term.Bool)) =
     Term.Bool at hTy
   have hANe :
@@ -336,10 +336,10 @@ private theorem smt_bitvec_type_of_eo_bitvec_type_with_width
 private theorem smt_typeof_bv_const
     (k n : native_Int) :
     native_zleq 0 n = true ->
-    __smtx_typeof (__eo_to_smt (Term.UOp2 UserOp2._at_bv (Term.Numeral k) (Term.Numeral n))) =
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral n)) (Term.Numeral k))) =
       SmtType.BitVec (native_int_to_nat n) := by
   intro hNonneg
-  change __smtx_typeof (__eo_to_smt__at_bv (SmtTerm.Numeral k) (SmtTerm.Numeral n)) =
+  change __smtx_typeof (SmtTerm.int_to_bv (SmtTerm.Numeral n) (SmtTerm.Numeral k)) =
     SmtType.BitVec (native_int_to_nat n)
   have hNN :
       __smtx_typeof
@@ -355,7 +355,7 @@ private theorem smt_typeof_bv_const
           true :=
       native_mod_total_canonical n k
     simp [SmtEval.native_and, hNonneg, hMod, native_ite]
-  simpa [__eo_to_smt__at_bv, native_ite, hNonneg] using
+  simpa [native_ite, hNonneg] using
     TranslationProofs.smtx_typeof_binary_of_non_none n
       (native_mod_total k (native_int_pow2 n)) hNN
 
@@ -363,14 +363,13 @@ private theorem eval_bv_const
     (M : SmtModel) (k n : native_Int) :
     native_zleq 0 n = true ->
     __smtx_model_eval M
-        (__eo_to_smt (Term.UOp2 UserOp2._at_bv (Term.Numeral k) (Term.Numeral n))) =
+        (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral n)) (Term.Numeral k))) =
       SmtValue.Binary n (native_mod_total k (native_int_pow2 n)) := by
   intro hNonneg
   change __smtx_model_eval M
-      (__eo_to_smt__at_bv (SmtTerm.Numeral k) (SmtTerm.Numeral n)) =
+      (SmtTerm.int_to_bv (SmtTerm.Numeral n) (SmtTerm.Numeral k)) =
     SmtValue.Binary n (native_mod_total k (native_int_pow2 n))
-  simp [__eo_to_smt__at_bv, native_ite, hNonneg]
-  simp only [__smtx_model_eval]
+  simp [native_ite, hNonneg]
 
 private theorem eo_to_smt_eq_term (a b : Term) :
     __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.eq) a) b) =
@@ -462,10 +461,10 @@ private theorem smt_typeof_ugt_urem_rhs_bool (y x : Term) (n : native_Int) :
         (__eo_to_smt
           (Term.Apply (Term.Apply (Term.UOp UserOp.and)
             (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x)
-              (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral n))))
+              (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral n)) (Term.Numeral 0))))
             (Term.Apply (Term.Apply (Term.UOp UserOp.and)
               (Term.Apply (Term.Apply (Term.UOp UserOp.bvugt) y)
-                (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral n))))
+                (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral n)) (Term.Numeral 0))))
               (Term.Boolean true)))) =
       SmtType.Bool := by
   intro hNonneg hY hX
@@ -520,10 +519,10 @@ private theorem eval_ugt_urem_sides_eq
         (__eo_to_smt
           (Term.Apply (Term.Apply (Term.UOp UserOp.and)
             (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x)
-              (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral n))))
+              (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral n)) (Term.Numeral 0))))
             (Term.Apply (Term.Apply (Term.UOp UserOp.and)
               (Term.Apply (Term.Apply (Term.UOp UserOp.bvugt) y)
-                (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral n))))
+                (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral n)) (Term.Numeral 0))))
               (Term.Boolean true)))) := by
   intro hYTrans hXTrans hNonneg hYSmtTy hXSmtTy
   have hWidthEq : native_nat_to_int (native_int_to_nat n) = n := by
@@ -611,10 +610,10 @@ private theorem typed_bv_ugt_urem_body (y x w : Term) :
             (Term.Apply (Term.Apply (Term.UOp UserOp.bvurem) y) x)) x))
           (Term.Apply (Term.Apply (Term.UOp UserOp.and)
             (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x)
-              (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) w)))
+              (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) (Term.Numeral 0))))
             (Term.Apply (Term.Apply (Term.UOp UserOp.and)
               (Term.Apply (Term.Apply (Term.UOp UserOp.bvugt) y)
-                (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) w)))
+                (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) (Term.Numeral 0))))
               (Term.Boolean true)))) = Term.Bool ->
     RuleProofs.eo_has_bool_type
       (Term.Apply (Term.Apply (Term.UOp UserOp.eq)
@@ -622,10 +621,10 @@ private theorem typed_bv_ugt_urem_body (y x w : Term) :
           (Term.Apply (Term.Apply (Term.UOp UserOp.bvurem) y) x)) x))
         (Term.Apply (Term.Apply (Term.UOp UserOp.and)
           (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x)
-            (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) w)))
+            (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) (Term.Numeral 0))))
           (Term.Apply (Term.Apply (Term.UOp UserOp.and)
             (Term.Apply (Term.Apply (Term.UOp UserOp.bvugt) y)
-              (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) w)))
+              (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) (Term.Numeral 0))))
             (Term.Boolean true)))) := by
   intro hYTrans hXTrans hW hTy
   rcases typeof_args_of_ugt_urem_body_bool y x w hW hTy with
@@ -657,10 +656,10 @@ private theorem facts_bv_ugt_urem_body
             (Term.Apply (Term.Apply (Term.UOp UserOp.bvurem) y) x)) x))
           (Term.Apply (Term.Apply (Term.UOp UserOp.and)
             (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x)
-              (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) w)))
+              (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) (Term.Numeral 0))))
             (Term.Apply (Term.Apply (Term.UOp UserOp.and)
               (Term.Apply (Term.Apply (Term.UOp UserOp.bvugt) y)
-                (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) w)))
+                (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) (Term.Numeral 0))))
               (Term.Boolean true)))) = Term.Bool ->
     eo_interprets M
       (Term.Apply (Term.Apply (Term.UOp UserOp.eq)
@@ -668,10 +667,10 @@ private theorem facts_bv_ugt_urem_body
           (Term.Apply (Term.Apply (Term.UOp UserOp.bvurem) y) x)) x))
         (Term.Apply (Term.Apply (Term.UOp UserOp.and)
           (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x)
-            (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) w)))
+            (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) (Term.Numeral 0))))
           (Term.Apply (Term.Apply (Term.UOp UserOp.and)
             (Term.Apply (Term.Apply (Term.UOp UserOp.bvugt) y)
-              (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) w)))
+              (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) (Term.Numeral 0))))
             (Term.Boolean true)))) true := by
   intro hYTrans hXTrans hW hTy
   have hTyped := typed_bv_ugt_urem_body y x w hYTrans hXTrans hW hTy
@@ -696,10 +695,10 @@ private theorem facts_bv_ugt_urem_body
         (__eo_to_smt
           (Term.Apply (Term.Apply (Term.UOp UserOp.and)
             (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x)
-              (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral n))))
+              (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral n)) (Term.Numeral 0))))
             (Term.Apply (Term.Apply (Term.UOp UserOp.and)
               (Term.Apply (Term.Apply (Term.UOp UserOp.bvugt) y)
-                (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral n))))
+                (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral n)) (Term.Numeral 0))))
               (Term.Boolean true)))))
     rw [eval_ugt_urem_sides_eq M hM y x n hYTrans hXTrans hNonneg
       hYSmtTy hXSmtTyRaw]
@@ -743,10 +742,10 @@ private theorem trusted_bv_ugt_urem_canonical_properties
               (Term.Apply (Term.Apply (Term.UOp UserOp.bvurem) y) x)) x))
             (Term.Apply (Term.Apply (Term.UOp UserOp.and)
               (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x)
-                (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) w)))
+                (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) (Term.Numeral 0))))
               (Term.Apply (Term.Apply (Term.UOp UserOp.and)
                 (Term.Apply (Term.Apply (Term.UOp UserOp.bvugt) y)
-                  (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) w)))
+                  (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) (Term.Numeral 0))))
                 (Term.Boolean true)))) = Term.Bool := by
     simpa [hProgEq] using hResultTy
   rw [hProgEq]

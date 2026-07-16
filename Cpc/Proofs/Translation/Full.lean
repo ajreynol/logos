@@ -2513,54 +2513,6 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
         exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp2 UserOp2.extract x y, hNonNone => by
         exact false_of_smtx_typeof_none_non_none_full hNonNone
-    | Term.UOp2 UserOp2._at_bv x y, hNonNone => by
-        have hTranslate :
-            __eo_to_smt (Term.UOp2 UserOp2._at_bv x y) =
-              SmtTerm.int_to_bv (__eo_to_smt y) (__eo_to_smt x) := by
-          rfl
-        have hAtNN :
-            __smtx_typeof (SmtTerm.int_to_bv (__eo_to_smt y) (__eo_to_smt x)) ≠
-              SmtType.None := by
-          rwa [← hTranslate]
-        rcases eo_to_smt_at_bv_of_non_none hAtNN with
-          ⟨w, hy, hx, hw, hSmtAt⟩
-        have hYTerm : y = Term.Numeral w :=
-          eo_to_smt_eq_numeral y w hy
-        have hXEo : __eo_typeof x = Term.UOp UserOp.Int :=
-          eo_typeof_eq_int_of_smt_int_from_ih x (fun h => (go x h).1) hx
-        have hSmt :
-            __smtx_typeof (__eo_to_smt (Term.UOp2 UserOp2._at_bv x y)) =
-              SmtType.BitVec (native_int_to_nat w) := by
-          rw [hTranslate]
-          exact hSmtAt
-        have hwGt : native_zlt (-1 : native_Int) w = true :=
-          native_zlt_neg_one_of_zleq_zero hw
-        have hEo :
-            __eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_bv x y)) =
-              SmtType.BitVec (native_int_to_nat w) := by
-          change
-            __eo_to_smt_type
-                (__eo_typeof__at_bv (__eo_typeof x) (__eo_typeof y) y) =
-              SmtType.BitVec (native_int_to_nat w)
-          rw [hXEo, hYTerm]
-          change
-            __eo_to_smt_type
-                (__eo_typeof__at_bv (Term.UOp UserOp.Int) (Term.UOp UserOp.Int)
-                  (Term.Numeral w)) =
-              SmtType.BitVec (native_int_to_nat w)
-          simp [__eo_typeof__at_bv, __eo_gt, __eo_requires, native_ite,
-            native_teq, native_not, hwGt, hw]
-        refine ⟨hSmt.trans hEo.symm, ?_⟩
-        change
-          eo_type_valid
-            (__eo_typeof__at_bv (__eo_typeof x) (__eo_typeof y) y)
-        rw [hXEo, hYTerm]
-        change
-          eo_type_valid
-            (__eo_typeof__at_bv (Term.UOp UserOp.Int) (Term.UOp UserOp.Int)
-              (Term.Numeral w))
-        simp [__eo_typeof__at_bv, __eo_gt, __eo_requires, native_ite,
-          native_teq, native_not, hwGt, hw, eo_type_valid, eo_type_valid_rec]
     | Term.UOp2 UserOp2.re_loop x y, hNonNone => by
         exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.Boolean b, hNonNone => by
@@ -3178,16 +3130,6 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                     exact hNone)
                   (smtx_typeof_extract_ne_dtcapp_full
                     (__eo_to_smt y) (__eo_to_smt z) (__eo_to_smt x)))
-              case _at_bv =>
-                exact False.elim (hNonNone (by
-                  change
-                    __smtx_typeof
-                        (SmtTerm.Apply
-                          (SmtTerm.int_to_bv (__eo_to_smt z) (__eo_to_smt y))
-                          (__eo_to_smt x)) =
-                      SmtType.None
-                  exact typeof_apply_eo_to_smt_at_bv_eq_none
-                    (__eo_to_smt y) (__eo_to_smt z) (__eo_to_smt x)))
               case re_loop =>
                 exact False.elim (false_of_typeof_re_loop_eq_dtcapp_full hTy)
               case _at_quantifiers_skolemize =>
@@ -3243,7 +3185,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                 | simp [eo_type_valid, eo_type_valid_rec, __eo_to_smt_type,
                     __eo_typeof_apply, __eo_requires,
                     __eo_typeof__at_array_deq_diff, __eo_typeof_extract,
-                    __eo_typeof__at_bv, __eo_typeof_re_loop,
+                    __eo_typeof_re_loop,
                     __eo_typeof__at_strings_deq_diff,
                     __eo_typeof__at_strings_num_occur_re,
                     __eo_typeof__at_strings_occur_index_re,

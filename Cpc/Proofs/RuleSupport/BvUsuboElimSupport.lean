@@ -155,7 +155,7 @@ def usuboBit (x y n : Term) : Term :=
   Term.Apply (Term.UOp2 UserOp2.extract n n) (usuboDiff x y)
 
 def usuboOne : Term :=
-  Term.UOp2 UserOp2._at_bv (Term.Numeral 1) (Term.Numeral 1)
+  Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 1)
 
 def usuboRhs (x y n : Term) : Term :=
   Term.Apply (Term.Apply (Term.UOp UserOp.eq) (usuboBit x y n)) usuboOne

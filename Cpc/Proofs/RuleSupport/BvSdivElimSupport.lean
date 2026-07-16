@@ -13,7 +13,7 @@ set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
 
 def bvSdivBitOne : Term :=
-  Term.UOp2 UserOp2._at_bv (Term.Numeral 1) (Term.Numeral 1)
+  Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 1)
 
 def bvSdivExtract (nm z : Term) : Term :=
   Term.Apply (Term.UOp2 UserOp2.extract nm nm) z

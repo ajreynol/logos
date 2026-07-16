@@ -1180,7 +1180,7 @@ def bvXorDuplicateLhs (x : Term) : Term :=
       (__eo_nil (Term.UOp UserOp.bvxor) (__eo_typeof x)))
 
 def bvXorDuplicateRhs (w : Term) : Term :=
-  Term.UOp2 UserOp2._at_bv (Term.Numeral 0) w
+  Term.Apply (Term.UOp1 UserOp1.int_to_bv w) (Term.Numeral 0)
 
 def bvXorDuplicateTerm (x w : Term) : Term :=
   Term.Apply (Term.Apply (Term.UOp UserOp.eq) (bvXorDuplicateLhs x))
@@ -1220,10 +1220,10 @@ private theorem bv_at_zero_width_eq_of_type_bitvec
   have hW : w ≠ Term.Stuck := by
     intro hW
     subst w
-    change __eo_typeof__at_bv (Term.UOp UserOp.Int) Term.Stuck Term.Stuck =
+    change __eo_typeof_int_to_bv Term.Stuck Term.Stuck (Term.UOp UserOp.Int) =
       Term.Apply (Term.UOp UserOp.BitVec) u at hTy
-    simp [__eo_typeof__at_bv] at hTy
-  change __eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof w) w =
+    simp [__eo_typeof_int_to_bv] at hTy
+  change __eo_typeof_int_to_bv (__eo_typeof w) w (Term.UOp UserOp.Int) =
       Term.Apply (Term.UOp UserOp.BitVec) u at hTy
   cases hWTy : __eo_typeof w with
   | UOp op =>
@@ -1234,7 +1234,7 @@ private theorem bv_at_zero_width_eq_of_type_bitvec
                 (Term.Boolean true)
                 (Term.Apply (Term.UOp UserOp.BitVec) w) =
               Term.Apply (Term.UOp UserOp.BitVec) u := by
-          simpa [__eo_typeof__at_bv, hWTy, hW] using hTy
+          simpa [__eo_typeof_int_to_bv, hWTy, hW] using hTy
         have hReqNe :
             __eo_requires (__eo_gt w (Term.Numeral (-1 : native_Int)))
                 (Term.Boolean true)
@@ -1259,11 +1259,11 @@ private theorem bv_at_zero_width_eq_of_type_bitvec
         rfl
       all_goals
         exfalso
-        simpa [__eo_typeof__at_bv, hWTy, hW, __eo_requires,
+        simpa [__eo_typeof_int_to_bv, hWTy, hW, __eo_requires,
           __eo_eq, native_ite, native_teq, native_not] using hTy
   | _ =>
       exfalso
-      simpa [__eo_typeof__at_bv, hWTy, hW, __eo_requires,
+      simpa [__eo_typeof_int_to_bv, hWTy, hW, __eo_requires,
         __eo_eq, native_ite, native_teq, native_not] using hTy
 
 theorem bv_xor_duplicate_arg_type_of_bool (x w : Term) :
@@ -1363,8 +1363,7 @@ private theorem bv_xor_duplicate_context
 private theorem smt_typeof_bv_zero_nat (w : Nat) :
     __smtx_typeof
         (__eo_to_smt
-          (Term.UOp2 UserOp2._at_bv (Term.Numeral 0)
-            (Term.Numeral (native_nat_to_int w)))) =
+          (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral (native_nat_to_int w))) (Term.Numeral 0))) =
       SmtType.BitVec w := by
   have hNonneg : native_zleq 0 (native_nat_to_int w) = true := by
     simp [native_zleq, native_nat_to_int]
@@ -1384,8 +1383,7 @@ private theorem smt_typeof_bv_zero_nat (w : Nat) :
 private theorem smt_eval_bv_zero_nat (M : SmtModel) (w : Nat) :
     __smtx_model_eval M
         (__eo_to_smt
-          (Term.UOp2 UserOp2._at_bv (Term.Numeral 0)
-            (Term.Numeral (native_nat_to_int w)))) =
+          (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral (native_nat_to_int w))) (Term.Numeral 0))) =
       SmtValue.Binary (native_nat_to_int w) 0 := by
   have hNonneg : native_zleq 0 (native_nat_to_int w) = true := by
     simp [native_zleq, native_nat_to_int]
@@ -1434,8 +1432,7 @@ theorem typed_bv_xor_duplicate_term (x w : Term) :
   rw [hWEq]
   exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type
     (bvXorDuplicateLhs x)
-    (Term.UOp2 UserOp2._at_bv (Term.Numeral 0)
-      (Term.Numeral (native_nat_to_int n)))
+    (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral (native_nat_to_int n))) (Term.Numeral 0))
     (by
       rw [smt_typeof_bv_xor_duplicate_lhs x n hXTy hXTypeSmt hNilNe,
         smt_typeof_bv_zero_nat n])
@@ -1483,8 +1480,7 @@ private theorem eval_bv_xor_duplicate
           (__eo_to_smt (__eo_nil (Term.UOp UserOp.bvxor) (__eo_typeof x)))) ) =
     __smtx_model_eval M
       (__eo_to_smt
-        (Term.UOp2 UserOp2._at_bv (Term.Numeral 0)
-          (Term.Numeral (native_nat_to_int n))))
+        (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral (native_nat_to_int n))) (Term.Numeral 0)))
   repeat rw [smtx_eval_bvxor_term_eq]
   rw [hXEval, hNilEval, hInner]
   rw [smt_eval_bv_zero_nat M n]
@@ -1518,7 +1514,7 @@ private def bvXorDuplicateProgramSkeleton (x w : Term) : Term :=
       (__eo_mk_apply v0
         (__eo_mk_apply v0
           (__eo_nil (Term.UOp UserOp.bvxor) (__eo_typeof x)))))
-    (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) w)
+    (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) (Term.Numeral 0))
 
 private theorem bvXorDuplicateProgram_eq_skeleton_of_ne_stuck
     (x w : Term) :

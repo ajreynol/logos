@@ -17,7 +17,7 @@ private abbrev ubvToIntTerm (t : Term) : Term :=
   Term.Apply (Term.UOp UserOp.ubv_to_int) t
 
 private abbrev zeroBvTerm (n : Term) : Term :=
-  Term.UOp2 UserOp2._at_bv (Term.Numeral 0) n
+  Term.Apply (Term.UOp1 UserOp1.int_to_bv n) (Term.Numeral 0)
 
 private abbrev concatTerm (a b : Term) : Term :=
   Term.Apply (Term.Apply (Term.UOp UserOp.concat) a) b
@@ -32,7 +32,7 @@ private abbrev ufBv2natInt2bvExtendType (w t n : Term) : Term :=
     (__eo_typeof_int_to_bv (__eo_typeof w) w
       (__eo_typeof__at_bvsize (__eo_typeof t)))
     (__eo_typeof_concat
-      (__eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof n) n)
+      (__eo_typeof_int_to_bv (__eo_typeof n) n (Term.UOp UserOp.Int))
       (__eo_typeof_concat (__eo_typeof t)
         (Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral 0))))
 
@@ -283,14 +283,14 @@ private theorem typeof_eq_bool_inv (A B : Term)
 private theorem at_bv_type_bitvec_inv (n m : Term)
     (hN : n ≠ Term.Stuck)
     (hNTy : __eo_typeof n = Term.UOp UserOp.Int)
-    (h : __eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof n) n =
+    (h : __eo_typeof_int_to_bv (__eo_typeof n) n (Term.UOp UserOp.Int) =
       Term.Apply (Term.UOp UserOp.BitVec) m) :
     ∃ i, n = Term.Numeral i ∧ native_zleq 0 i = true ∧ m = Term.Numeral i := by
   have h' :
       __eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
           (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n) =
         Term.Apply (Term.UOp UserOp.BitVec) m := by
-    simpa [__eo_typeof__at_bv, hN, hNTy] using h
+    simpa [__eo_typeof_int_to_bv, hN, hNTy] using h
   have hReqNN :
       __eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
           (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n) ≠
@@ -384,7 +384,7 @@ private theorem typeof_args_of_extend_conclusion_bool (w t n : Term) :
   simp only [ufBv2natInt2bvExtendType] at hTy
   have hEqTy :
       __eo_typeof_concat
-          (__eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof n) n)
+          (__eo_typeof_int_to_bv (__eo_typeof n) n (Term.UOp UserOp.Int))
           (__eo_typeof_concat (__eo_typeof t)
             (Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral 0))) =
         __eo_typeof_int_to_bv (__eo_typeof w) w
@@ -395,7 +395,7 @@ private theorem typeof_args_of_extend_conclusion_bool (w t n : Term) :
       (__eo_typeof__at_bvsize (__eo_typeof t))
   let rhs :=
     __eo_typeof_concat
-      (__eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof n) n)
+      (__eo_typeof_int_to_bv (__eo_typeof n) n (Term.UOp UserOp.Int))
       (__eo_typeof_concat (__eo_typeof t)
         (Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral 0)))
   have hEqTy' : rhs = lhs := by
@@ -442,12 +442,12 @@ private theorem typeof_args_of_extend_conclusion_bool (w t n : Term) :
   have hNNe : n ≠ Term.Stuck := by
     intro hN
     subst n
-    simp [__eo_typeof__at_bv] at hZeroTy
+    simp [__eo_typeof_int_to_bv] at hZeroTy
   have hNTy : __eo_typeof n = Term.UOp UserOp.Int := by
     cases hNT : __eo_typeof n <;>
-      simp [__eo_typeof__at_bv, hNNe, hNT] at hZeroTy ⊢
+      simp [__eo_typeof_int_to_bv, hNNe, hNT] at hZeroTy ⊢
     case UOp op =>
-      cases op <;> simp [__eo_typeof__at_bv, hNNe, hNT] at hZeroTy ⊢
+      cases op <;> simp [__eo_typeof_int_to_bv, hNNe, hNT] at hZeroTy ⊢
   rcases at_bv_type_bitvec_inv n nm hNNe hNTy hZeroTy with
     ⟨ni, hN, hNiNonneg, hNm⟩
   subst n
@@ -520,7 +520,7 @@ private theorem smt_typeof_bv_zero
     __smtx_typeof (__eo_to_smt (zeroBvTerm (Term.Numeral n))) =
       SmtType.BitVec (native_int_to_nat n) := by
   intro hNonneg
-  change __smtx_typeof (__eo_to_smt__at_bv (SmtTerm.Numeral 0) (SmtTerm.Numeral n)) =
+  change __smtx_typeof (SmtTerm.int_to_bv (SmtTerm.Numeral n) (SmtTerm.Numeral 0)) =
     SmtType.BitVec (native_int_to_nat n)
   have hNN :
       __smtx_typeof
@@ -536,7 +536,7 @@ private theorem smt_typeof_bv_zero
           true :=
       native_mod_total_canonical n 0
     simp [SmtEval.native_and, hNonneg, hMod, native_ite]
-  simpa [__eo_to_smt__at_bv, native_ite, hNonneg] using
+  simpa [native_ite, hNonneg] using
     TranslationProofs.smtx_typeof_binary_of_non_none n
       (native_mod_total 0 (native_int_pow2 n)) hNN
 
@@ -742,10 +742,9 @@ private theorem eval_rhs_extend
       __smtx_model_eval M (__eo_to_smt (zeroBvTerm (Term.Numeral ni))) =
         SmtValue.Binary ni 0 := by
     change __smtx_model_eval M
-        (__eo_to_smt__at_bv (SmtTerm.Numeral 0) (SmtTerm.Numeral ni)) =
+        (SmtTerm.int_to_bv (SmtTerm.Numeral ni) (SmtTerm.Numeral 0)) =
       SmtValue.Binary ni 0
-    simp [__eo_to_smt__at_bv, native_ite, hNiNonneg, hZeroPayload]
-    rw [__smtx_model_eval.eq_5]
+    simp [native_ite, hNiNonneg, hZeroPayload]
   have hInnerEval :
       __smtx_model_eval M
           (SmtTerm.concat (__eo_to_smt t) (SmtTerm.Binary 0 0)) =
