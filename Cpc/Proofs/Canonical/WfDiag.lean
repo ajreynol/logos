@@ -7167,6 +7167,73 @@ private theorem rotShPre_init_dt {s3 : native_String}
 
 end
 
+/-! ### Bookkeeping: descend targets, appends, and step zipping -/
+
+/-- The target evolved by a descent, mirroring `chain_descend`. -/
+private def descTgt : SubstChain → native_String → SmtDatatype → SmtDatatype
+  | [], _, T => T
+  | (s, _R, Q) :: ρ, v, T =>
+      if native_streq s v = true then descTgt ρ v T
+      else descTgt ρ v
+        (__smtx_dt_substitute s (__smtx_dt_lift v T Q) T)
+
+/-- Descending an appended chain splits at the evolved target. -/
+private theorem chain_descend_append :
+    ∀ (α β : SubstChain) (v : native_String) (T : SmtDatatype),
+      chain_descend (α ++ β) v T =
+        chain_descend α v T ++ chain_descend β v (descTgt α v T)
+  | [], β, v, T => rfl
+  | (s, R, Q) :: α, β, v, T => by
+      cases hs : native_streq s v with
+      | true =>
+          simp only [List.cons_append, chain_descend, descTgt, hs, if_pos]
+          exact chain_descend_append α β v T
+      | false =>
+          simp only [List.cons_append, chain_descend, descTgt, hs,
+            Bool.false_eq_true, if_neg, not_false_iff, List.cons_append]
+          rw [chain_descend_append α β v
+            (__smtx_dt_substitute s (__smtx_dt_lift v T Q) T)]
+
+/-- Zip two aligned chains into paired steps (raw bodies dropped). -/
+private def zipSteps : SubstChain → SubstChain → PairSteps
+  | (w, _, QO) :: ρO, (_, _, QN) :: ρN => (w, QO, QN) :: zipSteps ρO ρN
+  | _, _ => []
+
+/-- Name alignment of two chains, entrywise. -/
+private def namesAligned : SubstChain → SubstChain → native_Bool
+  | [], [] => true
+  | (w, _, _) :: ρO, (w', _, _) :: ρN =>
+      native_and (native_streq w w') (namesAligned ρO ρN)
+  | _, _ => false
+
+private theorem chain_dt_pairApplyO :
+    ∀ (σO σN : SubstChain) (A : SmtDatatype),
+      namesAligned σO σN = true →
+      chain_dt σO A = pairApplyO (zipSteps σO σN) A
+  | [], [], _, _ => rfl
+  | (w, R, QO) :: ρO, (w', R', QN) :: ρN, A, h => by
+      have hp : native_streq w w' = true ∧ namesAligned ρO ρN = true := by
+        simpa [namesAligned, native_and, Bool.and_eq_true] using h
+      simp only [zipSteps, pairApplyO, chain_dt]
+      exact chain_dt_pairApplyO ρO ρN (__smtx_dt_substitute w QO A) hp.2
+  | [], (_ :: _), _, h => by simp [namesAligned] at h
+  | (_ :: _), [], _, h => by simp [namesAligned] at h
+
+private theorem chain_dt_pairApplyN :
+    ∀ (σO σN : SubstChain) (A : SmtDatatype),
+      namesAligned σO σN = true →
+      chain_dt σN A = pairApplyN (zipSteps σO σN) A
+  | [], [], _, _ => rfl
+  | (w, R, QO) :: ρO, (w', R', QN) :: ρN, A, h => by
+      have hp : native_streq w w' = true ∧ namesAligned ρO ρN = true := by
+        simpa [namesAligned, native_and, Bool.and_eq_true] using h
+      have hw : w = w' := by simpa [native_streq] using hp.1
+      subst hw
+      simp only [zipSteps, pairApplyN, chain_dt]
+      exact chain_dt_pairApplyN ρO ρN (__smtx_dt_substitute w QN A) hp.2
+  | [], (_ :: _), _, h => by simp [namesAligned] at h
+  | (_ :: _), [], _, h => by simp [namesAligned] at h
+
 /-- Chains act compositionally: appended entries substitute afterwards. -/
 private theorem chain_ty_append :
     ∀ (σ τ : SubstChain) (T : SmtType),
