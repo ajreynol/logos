@@ -1,6 +1,6 @@
 import Cpc.Proofs.RuleSupport.BvCommutativeXorSupport
 import Cpc.Proofs.RuleSupport.BvExtractRewriteSupport
-import Cpc.Proofs.Rules.Aci_norm
+import Cpc.Proofs.RuleSupport.SequenceSupport
 
 /-! Shared support for the three n-ary bit-vector XOR simplification rules. -/
 
