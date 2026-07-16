@@ -5987,12 +5987,14 @@ end
 
 Before the appended `s3` entry substitutes, the two partial chain states
 relate by `RotShPre`: structural rotation whose new side still carries
-`@s3` holes where the old side has `s3` nodes (`preRot`), and whose only
-reference flips are at the shielded head name (`tFlip`) — the head is
-never an entry of either chain, so a head flip is never resolved by a
-step.  The final `s3` substitution converts every `preRot` hole into a
-refilled `s3` node and leaves head flips as ordinary `refFlip`s, yielding
-plain structural rotation. -/
+`@s3` holes where the old side has `s3` nodes (`preRot`), and whose
+reference flips are confined to a set of *dead* names (`flip`) — names no
+remaining substitution touches.  Machine sweeps show flips arise at the
+shielded head name and at already-processed entry names, whose references
+are bound once their node is created; the dead set grows monotonically as
+the chain applies.  The final `s3` substitution (`s3` is never dead while
+pending) converts every `preRot` hole into a refilled `s3` node and turns
+dead flips into ordinary `refFlip`s, yielding plain structural rotation. -/
 
 mutual
 
@@ -6112,41 +6114,45 @@ end
 
 mutual
 
-private inductive RotShPreTy (s3 t : native_String) :
-    SmtType → SmtType → Prop where
-  | same (T : SmtType) : RotShPreTy s3 t T T
+private inductive RotShPreTy (s3 : native_String)
+    (dead : native_String → Prop) : SmtType → SmtType → Prop where
+  | same (T : SmtType) : RotShPreTy s3 dead T T
   | dt {q : native_String} {ZO ZN : SmtDatatype} :
       native_streq q s3 = false →
-      RotShPreDt s3 t ZO ZN →
-      RotShPreTy s3 t (SmtType.Datatype q ZO) (SmtType.Datatype q ZN)
+      RotShPreDt s3 dead ZO ZN →
+      RotShPreTy s3 dead (SmtType.Datatype q ZO) (SmtType.Datatype q ZN)
   | rotAny {ZO ZN : SmtDatatype} :
-      RotShPreTy s3 t (SmtType.Datatype s3 ZO) (SmtType.Datatype s3 ZN)
+      RotShPreTy s3 dead (SmtType.Datatype s3 ZO) (SmtType.Datatype s3 ZN)
   | preRot {ZO : SmtDatatype} :
-      RotShPreTy s3 t (SmtType.Datatype s3 ZO) (SmtType.TypeRef s3)
-  | tFlip {TN : SmtType} :
-      RotShPreTy s3 t (SmtType.TypeRef t) TN
+      RotShPreTy s3 dead (SmtType.Datatype s3 ZO) (SmtType.TypeRef s3)
+  | flip {r : native_String} {TN : SmtType} :
+      dead r →
+      RotShPreTy s3 dead (SmtType.TypeRef r) TN
 
-private inductive RotShPreDtc (s3 t : native_String) :
+private inductive RotShPreDtc (s3 : native_String)
+    (dead : native_String → Prop) :
     SmtDatatypeCons → SmtDatatypeCons → Prop where
-  | unit : RotShPreDtc s3 t SmtDatatypeCons.unit SmtDatatypeCons.unit
+  | unit : RotShPreDtc s3 dead SmtDatatypeCons.unit SmtDatatypeCons.unit
   | cons {TO TN : SmtType} {cO cN : SmtDatatypeCons} :
-      RotShPreTy s3 t TO TN → RotShPreDtc s3 t cO cN →
-      RotShPreDtc s3 t (SmtDatatypeCons.cons TO cO)
+      RotShPreTy s3 dead TO TN → RotShPreDtc s3 dead cO cN →
+      RotShPreDtc s3 dead (SmtDatatypeCons.cons TO cO)
         (SmtDatatypeCons.cons TN cN)
 
-private inductive RotShPreDt (s3 t : native_String) :
+private inductive RotShPreDt (s3 : native_String)
+    (dead : native_String → Prop) :
     SmtDatatype → SmtDatatype → Prop where
-  | null : RotShPreDt s3 t SmtDatatype.null SmtDatatype.null
+  | null : RotShPreDt s3 dead SmtDatatype.null SmtDatatype.null
   | sum {cO cN : SmtDatatypeCons} {dO dN : SmtDatatype} :
-      RotShPreDtc s3 t cO cN → RotShPreDt s3 t dO dN →
-      RotShPreDt s3 t (SmtDatatype.sum cO dO) (SmtDatatype.sum cN dN)
+      RotShPreDtc s3 dead cO cN → RotShPreDt s3 dead dO dN →
+      RotShPreDt s3 dead (SmtDatatype.sum cO dO) (SmtDatatype.sum cN dN)
 
 end
 
 mutual
 
-private theorem rotShPre_refill_ty {s3 t : native_String} :
-    ∀ (K : SmtDatatype) {TO TN : SmtType}, RotShPreTy s3 t TO TN →
+private theorem rotShPre_refill_ty {s3 : native_String}
+    {dead : native_String → Prop} :
+    ∀ (K : SmtDatatype) {TO TN : SmtType}, RotShPreTy s3 dead TO TN →
       RotShTy s3 TO (__smtx_type_substitute s3 K TN)
   | K, _, _, RotShPreTy.same T => rotSh_subst_refl_ty s3 K T
   | K, _, _, @RotShPreTy.dt _ _ q ZO ZN hq hBody => by
@@ -6168,10 +6174,11 @@ private theorem rotShPre_refill_ty {s3 t : native_String} :
           SmtType.Datatype s3 K by
         simp [__smtx_type_substitute, native_ite, native_streq]]
       exact RotShTy.rotAny
-  | K, _, _, @RotShPreTy.tFlip _ _ TN => RotShTy.refFlip
+  | K, _, _, @RotShPreTy.flip _ _ r TN _ => RotShTy.refFlip
 
-private theorem rotShPre_refill_dtc {s3 t : native_String} :
-    ∀ (K : SmtDatatype) {cO cN : SmtDatatypeCons}, RotShPreDtc s3 t cO cN →
+private theorem rotShPre_refill_dtc {s3 : native_String}
+    {dead : native_String → Prop} :
+    ∀ (K : SmtDatatype) {cO cN : SmtDatatypeCons}, RotShPreDtc s3 dead cO cN →
       RotShDtc s3 cO (__smtx_dtc_substitute s3 K cN)
   | K, _, _, RotShPreDtc.unit => by
       rw [show __smtx_dtc_substitute s3 K SmtDatatypeCons.unit =
@@ -6185,8 +6192,9 @@ private theorem rotShPre_refill_dtc {s3 t : native_String} :
       exact RotShDtc.cons (rotShPre_refill_ty K hT)
         (rotShPre_refill_dtc K hc)
 
-private theorem rotShPre_refill_dt {s3 t : native_String} :
-    ∀ (K : SmtDatatype) {dO dN : SmtDatatype}, RotShPreDt s3 t dO dN →
+private theorem rotShPre_refill_dt {s3 : native_String}
+    {dead : native_String → Prop} :
+    ∀ (K : SmtDatatype) {dO dN : SmtDatatype}, RotShPreDt s3 dead dO dN →
       RotShDt s3 dO (__smtx_dt_substitute s3 K dN)
   | K, _, _, RotShPreDt.null => by
       rw [show __smtx_dt_substitute s3 K SmtDatatype.null =
