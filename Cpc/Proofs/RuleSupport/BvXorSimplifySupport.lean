@@ -1,7 +1,6 @@
 import Cpc.Proofs.RuleSupport.BvCommutativeXorSupport
 import Cpc.Proofs.RuleSupport.BvExtractRewriteSupport
 import Cpc.Proofs.RuleSupport.BvNaryXorSupport
-import Cpc.Proofs.RuleSupport.BvXorOnesSupport
 import Cpc.Proofs.RuleSupport.SequenceSupport
 
 /-! Shared support for the three n-ary bit-vector XOR simplification rules. -/
@@ -620,14 +619,76 @@ private theorem bvnot_smt_type
   rw [smtx_typeof_bvnot_term_eq]
   simp [__smtx_typeof_bv_op_1, hXTy, native_ite]
 
+private theorem typeof_bvand_arg_types_of_ne_stuck
+    {A B : Term}
+    (h : __eo_typeof_bvand A B ≠ Term.Stuck) :
+    ∃ width,
+      A = Term.Apply (Term.UOp UserOp.BitVec) width ∧
+        B = Term.Apply (Term.UOp UserOp.BitVec) width := by
+  cases A with
+  | Apply f n =>
+      cases f with
+      | UOp opA =>
+          cases opA with
+          | BitVec =>
+              cases B with
+              | Apply g m =>
+                  cases g with
+                  | UOp opB =>
+                      cases opB with
+                      | BitVec =>
+                          have hReq :
+                              __eo_requires (__eo_eq n m)
+                                  (Term.Boolean true)
+                                  (Term.Apply (Term.UOp UserOp.BitVec) n) ≠
+                                Term.Stuck := by
+                            simpa [__eo_typeof_bvand] using h
+                          have hm : m = n :=
+                            support_eq_of_eo_eq_true n m
+                              (support_eo_requires_cond_eq_of_non_stuck hReq)
+                          exact ⟨n, rfl, by rw [hm]⟩
+                      | _ => simp [__eo_typeof_bvand] at h
+                  | _ => simp [__eo_typeof_bvand] at h
+              | _ => simp [__eo_typeof_bvand] at h
+          | _ => simp [__eo_typeof_bvand] at h
+      | _ => simp [__eo_typeof_bvand] at h
+  | _ => simp [__eo_typeof_bvand] at h
+
 private theorem typeof_bvxor_args_of_result_bitvec
     (x y width : Term) :
     __eo_typeof (xor x y) =
         Term.Apply (Term.UOp UserOp.BitVec) width ->
     __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) width ∧
       __eo_typeof y = Term.Apply (Term.UOp UserOp.BitVec) width := by
-  simpa [xor] using
-    BvXorOnesSupport.typeof_bvxor_args_of_result_bitvec x y width
+  intro h
+  have hNe :
+      __eo_typeof_bvand (__eo_typeof x) (__eo_typeof y) ≠ Term.Stuck := by
+    simpa [xor] using (show __eo_typeof (xor x y) ≠ Term.Stuck by
+      rw [h]
+      intro hBad
+      cases hBad)
+  rcases typeof_bvand_arg_types_of_ne_stuck hNe with
+    ⟨actualWidth, hXTy, hYTy⟩
+  have hActualWidthNe : actualWidth ≠ Term.Stuck := by
+    intro hStuck
+    apply hNe
+    rw [hXTy, hYTy, hStuck]
+    simp [__eo_typeof_bvand, __eo_requires, __eo_eq, native_ite,
+      native_teq, native_not]
+  have hReduce :
+      __eo_typeof_bvand
+          (Term.Apply (Term.UOp UserOp.BitVec) actualWidth)
+          (Term.Apply (Term.UOp UserOp.BitVec) actualWidth) =
+        Term.Apply (Term.UOp UserOp.BitVec) actualWidth := by
+    simp [__eo_typeof_bvand, __eo_requires, __eo_eq, native_ite,
+      native_teq, native_not, hActualWidthNe]
+  have hWidth : actualWidth = width := by
+    change __eo_typeof_bvand (__eo_typeof x) (__eo_typeof y) = _ at h
+    rw [hXTy, hYTy, hReduce] at h
+    cases h
+    rfl
+  subst actualWidth
+  exact ⟨hXTy, hYTy⟩
 
 private theorem list_concat_rec_cons_of_right_ne_stuck
     (f x xs z : Term) :
@@ -765,7 +826,7 @@ private theorem list_concat_rec_result_type
         change __eo_typeof_bvand (__eo_typeof x)
           (__eo_typeof (__eo_list_concat_rec xs z)) ≠ Term.Stuck at hResultNe
         exact hResultNe
-      rcases BvXorOnesSupport.typeof_bvand_arg_types_of_ne_stuck hOuterNe with
+      rcases typeof_bvand_arg_types_of_ne_stuck hOuterNe with
         ⟨actualWidth, hXTy, hTailShape⟩
       have hWidth : actualWidth = width := by
         rw [hTailTy] at hTailShape
@@ -951,7 +1012,7 @@ private theorem lhs_component_types
       __eo_typeof_bvand (__eo_typeof first)
           (__eo_typeof (inner ys zs second)) ≠ Term.Stuck := by
     simpa [inserted, xor, op] using hInsertedNe
-  rcases BvXorOnesSupport.typeof_bvand_arg_types_of_ne_stuck hInsertedOpNe with
+  rcases typeof_bvand_arg_types_of_ne_stuck hInsertedOpNe with
     ⟨width, hFirstTy, hInnerTy⟩
   have hWidthNe : width ≠ Term.Stuck := by
     intro h
