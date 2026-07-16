@@ -4771,6 +4771,14 @@ private inductive RotTy (s3 : native_String) : SmtType → SmtType → Prop wher
       (native_inhabited_type (SmtType.Datatype s3 ZO) = true →
         native_inhabited_type (SmtType.Datatype s3 ZN) = true) →
       RotTy s3 (SmtType.Datatype s3 ZO) (SmtType.Datatype s3 ZN)
+  /-- an old-side reference admits any new side: an empty-excuse default
+  path never visits a reference, so transport is vacuous there.  This
+  absorbs the one-sided fold flips created by descending lifts (the old
+  history folds an occurrence that the new history's lift target no longer
+  matches, or vice versa with the roles of the two histories exchanged at
+  the head binder). -/
+  | refFlip {r : native_String} {TN : SmtType} :
+      RotTy s3 (SmtType.TypeRef r) TN
 
 private inductive RotDtc (s3 : native_String) :
     SmtDatatypeCons → SmtDatatypeCons → Prop where
@@ -4809,6 +4817,11 @@ private theorem rotTy_defPath {s3 : native_String} :
               (hInh (inhabited_of_refDef_empty s3 _
                 (refDef_of_defPathDt hP)))))
       | atom _ hDt _ => exact absurd rfl (hDt _ _)
+  | refFlip =>
+      cases hPath with
+      | ref h =>
+          simp [native_reflist_contains, native_reflist_nil] at h
+      | atom hRef _ _ => exact absurd rfl (hRef _)
 
 private theorem rotDtc_defPath {s3 : native_String} :
     ∀ {cO cN : SmtDatatypeCons}, RotDtc s3 cO cN →
