@@ -6115,7 +6115,7 @@ end
 mutual
 
 private inductive RotShPreTy (s3 : native_String)
-    (dead : native_String → Prop) : SmtType → SmtType → Prop where
+    (dead : native_String → native_Bool) : SmtType → SmtType → Prop where
   | same (T : SmtType) : RotShPreTy s3 dead T T
   | dt {q : native_String} {ZO ZN : SmtDatatype} :
       native_streq q s3 = false →
@@ -6126,11 +6126,11 @@ private inductive RotShPreTy (s3 : native_String)
   | preRot {ZO : SmtDatatype} :
       RotShPreTy s3 dead (SmtType.Datatype s3 ZO) (SmtType.TypeRef s3)
   | flip {r : native_String} {TN : SmtType} :
-      dead r →
+      dead r = true →
       RotShPreTy s3 dead (SmtType.TypeRef r) TN
 
 private inductive RotShPreDtc (s3 : native_String)
-    (dead : native_String → Prop) :
+    (dead : native_String → native_Bool) :
     SmtDatatypeCons → SmtDatatypeCons → Prop where
   | unit : RotShPreDtc s3 dead SmtDatatypeCons.unit SmtDatatypeCons.unit
   | cons {TO TN : SmtType} {cO cN : SmtDatatypeCons} :
@@ -6139,7 +6139,7 @@ private inductive RotShPreDtc (s3 : native_String)
         (SmtDatatypeCons.cons TN cN)
 
 private inductive RotShPreDt (s3 : native_String)
-    (dead : native_String → Prop) :
+    (dead : native_String → native_Bool) :
     SmtDatatype → SmtDatatype → Prop where
   | null : RotShPreDt s3 dead SmtDatatype.null SmtDatatype.null
   | sum {cO cN : SmtDatatypeCons} {dO dN : SmtDatatype} :
@@ -6151,7 +6151,7 @@ end
 mutual
 
 private theorem rotShPre_refill_ty {s3 : native_String}
-    {dead : native_String → Prop} :
+    {dead : native_String → native_Bool} :
     ∀ (K : SmtDatatype) {TO TN : SmtType}, RotShPreTy s3 dead TO TN →
       RotShTy s3 TO (__smtx_type_substitute s3 K TN)
   | K, _, _, RotShPreTy.same T => rotSh_subst_refl_ty s3 K T
@@ -6177,7 +6177,7 @@ private theorem rotShPre_refill_ty {s3 : native_String}
   | K, _, _, @RotShPreTy.flip _ _ r TN _ => RotShTy.refFlip
 
 private theorem rotShPre_refill_dtc {s3 : native_String}
-    {dead : native_String → Prop} :
+    {dead : native_String → native_Bool} :
     ∀ (K : SmtDatatype) {cO cN : SmtDatatypeCons}, RotShPreDtc s3 dead cO cN →
       RotShDtc s3 cO (__smtx_dtc_substitute s3 K cN)
   | K, _, _, RotShPreDtc.unit => by
@@ -6193,7 +6193,7 @@ private theorem rotShPre_refill_dtc {s3 : native_String}
         (rotShPre_refill_dtc K hc)
 
 private theorem rotShPre_refill_dt {s3 : native_String}
-    {dead : native_String → Prop} :
+    {dead : native_String → native_Bool} :
     ∀ (K : SmtDatatype) {dO dN : SmtDatatype}, RotShPreDt s3 dead dO dN →
       RotShDt s3 dO (__smtx_dt_substitute s3 K dN)
   | K, _, _, RotShPreDt.null => by
@@ -6207,6 +6207,324 @@ private theorem rotShPre_refill_dt {s3 : native_String}
         simp [__smtx_dt_substitute]]
       exact RotShDt.sum (rotShPre_refill_dtc K hc)
         (rotShPre_refill_dt K hd)
+
+end
+
+/-! ### Lift rungs for pre-refill rotation
+
+A paired lift over a pre-refill pair: aligned folds collapse to equal
+references, old-side-only folds become `flip`s (requiring the lifted name
+dead — at use sites interior lift names are never the pending entry, by
+the substitution shield, nor `s3`, by the `rotAny` exit, and never a
+pending entry name by the `ChainNoDt` facts), `s3` pairs and holes are
+untouched, dead flips persist, and everything else recurses. -/
+
+mutual
+
+private theorem rotShPre_lift_same_ty {s3 : native_String}
+    {dead : native_String → native_Bool}
+    (v : native_String) (VO VN : SmtDatatype)
+    (hvdead : dead v = true) (hvs3 : native_streq v s3 = false) :
+    ∀ T : SmtType, noFatalBTy s3 v VO VN T T = true →
+      RotShPreTy s3 dead (__smtx_type_lift v VO T) (__smtx_type_lift v VN T)
+  | SmtType.Datatype q W, hAlign => by
+      have hParts := noFatalBTy_parts hAlign
+      by_cases hN : native_Teq (SmtType.Datatype v VN)
+          (SmtType.Datatype q W) = true
+      · have hO := hParts.1 hN
+        rw [show __smtx_type_lift v VO (SmtType.Datatype q W) =
+            SmtType.TypeRef v by simp [__smtx_type_lift, native_ite, hO]]
+        rw [show __smtx_type_lift v VN (SmtType.Datatype q W) =
+            SmtType.TypeRef v by simp [__smtx_type_lift, native_ite, hN]]
+        exact RotShPreTy.same _
+      · by_cases hO : native_Teq (SmtType.Datatype v VO)
+            (SmtType.Datatype q W) = true
+        · rw [show __smtx_type_lift v VO (SmtType.Datatype q W) =
+              SmtType.TypeRef v by simp [__smtx_type_lift, native_ite, hO]]
+          exact RotShPreTy.flip hvdead
+        · rw [show __smtx_type_lift v VO (SmtType.Datatype q W) =
+              SmtType.Datatype q (__smtx_dt_lift v VO W) by
+            simp [__smtx_type_lift, native_ite, hO]]
+          rw [show __smtx_type_lift v VN (SmtType.Datatype q W) =
+              SmtType.Datatype q (__smtx_dt_lift v VN W) by
+            simp [__smtx_type_lift, native_ite, hN]]
+          by_cases hq : native_streq q s3 = true
+          · have hqs : q = s3 := by simpa [native_streq] using hq
+            subst q
+            exact RotShPreTy.rotAny
+          · have hqf : native_streq q s3 = false := by
+              cases hqv : native_streq q s3 <;> simp_all
+            exact RotShPreTy.dt hqf
+              (rotShPre_lift_same_dt v VO VN hvdead hvs3 W
+                (hParts.2 (by simp [native_and, hqf])))
+  | SmtType.TypeRef r, _ => by
+      rw [show __smtx_type_lift v VO (SmtType.TypeRef r) =
+          SmtType.TypeRef r by simp [__smtx_type_lift]]
+      rw [show __smtx_type_lift v VN (SmtType.TypeRef r) =
+          SmtType.TypeRef r by simp [__smtx_type_lift]]
+      exact RotShPreTy.same _
+  | SmtType.None, _ => by
+      rw [show __smtx_type_lift v VO SmtType.None = SmtType.None by
+        simp [__smtx_type_lift]]
+      rw [show __smtx_type_lift v VN SmtType.None = SmtType.None by
+        simp [__smtx_type_lift]]
+      exact RotShPreTy.same _
+  | SmtType.Bool, _ => by
+      rw [show __smtx_type_lift v VO SmtType.Bool = SmtType.Bool by
+        simp [__smtx_type_lift]]
+      rw [show __smtx_type_lift v VN SmtType.Bool = SmtType.Bool by
+        simp [__smtx_type_lift]]
+      exact RotShPreTy.same _
+  | SmtType.Int, _ => by
+      rw [show __smtx_type_lift v VO SmtType.Int = SmtType.Int by
+        simp [__smtx_type_lift]]
+      rw [show __smtx_type_lift v VN SmtType.Int = SmtType.Int by
+        simp [__smtx_type_lift]]
+      exact RotShPreTy.same _
+  | SmtType.Real, _ => by
+      rw [show __smtx_type_lift v VO SmtType.Real = SmtType.Real by
+        simp [__smtx_type_lift]]
+      rw [show __smtx_type_lift v VN SmtType.Real = SmtType.Real by
+        simp [__smtx_type_lift]]
+      exact RotShPreTy.same _
+  | SmtType.RegLan, _ => by
+      rw [show __smtx_type_lift v VO SmtType.RegLan = SmtType.RegLan by
+        simp [__smtx_type_lift]]
+      rw [show __smtx_type_lift v VN SmtType.RegLan = SmtType.RegLan by
+        simp [__smtx_type_lift]]
+      exact RotShPreTy.same _
+  | SmtType.BitVec n, _ => by
+      rw [show __smtx_type_lift v VO (SmtType.BitVec n) =
+          SmtType.BitVec n by simp [__smtx_type_lift]]
+      rw [show __smtx_type_lift v VN (SmtType.BitVec n) =
+          SmtType.BitVec n by simp [__smtx_type_lift]]
+      exact RotShPreTy.same _
+  | SmtType.Map A B, _ => by
+      rw [show __smtx_type_lift v VO (SmtType.Map A B) =
+          SmtType.Map A B by simp [__smtx_type_lift]]
+      rw [show __smtx_type_lift v VN (SmtType.Map A B) =
+          SmtType.Map A B by simp [__smtx_type_lift]]
+      exact RotShPreTy.same _
+  | SmtType.Set A, _ => by
+      rw [show __smtx_type_lift v VO (SmtType.Set A) = SmtType.Set A by
+        simp [__smtx_type_lift]]
+      rw [show __smtx_type_lift v VN (SmtType.Set A) = SmtType.Set A by
+        simp [__smtx_type_lift]]
+      exact RotShPreTy.same _
+  | SmtType.Seq A, _ => by
+      rw [show __smtx_type_lift v VO (SmtType.Seq A) = SmtType.Seq A by
+        simp [__smtx_type_lift]]
+      rw [show __smtx_type_lift v VN (SmtType.Seq A) = SmtType.Seq A by
+        simp [__smtx_type_lift]]
+      exact RotShPreTy.same _
+  | SmtType.Char, _ => by
+      rw [show __smtx_type_lift v VO SmtType.Char = SmtType.Char by
+        simp [__smtx_type_lift]]
+      rw [show __smtx_type_lift v VN SmtType.Char = SmtType.Char by
+        simp [__smtx_type_lift]]
+      exact RotShPreTy.same _
+  | SmtType.USort u, _ => by
+      rw [show __smtx_type_lift v VO (SmtType.USort u) =
+          SmtType.USort u by simp [__smtx_type_lift]]
+      rw [show __smtx_type_lift v VN (SmtType.USort u) =
+          SmtType.USort u by simp [__smtx_type_lift]]
+      exact RotShPreTy.same _
+  | SmtType.FunType A B, _ => by
+      rw [show __smtx_type_lift v VO (SmtType.FunType A B) =
+          SmtType.FunType A B by simp [__smtx_type_lift]]
+      rw [show __smtx_type_lift v VN (SmtType.FunType A B) =
+          SmtType.FunType A B by simp [__smtx_type_lift]]
+      exact RotShPreTy.same _
+  | SmtType.DtcAppType A B, _ => by
+      rw [show __smtx_type_lift v VO (SmtType.DtcAppType A B) =
+          SmtType.DtcAppType A B by simp [__smtx_type_lift]]
+      rw [show __smtx_type_lift v VN (SmtType.DtcAppType A B) =
+          SmtType.DtcAppType A B by simp [__smtx_type_lift]]
+      exact RotShPreTy.same _
+
+private theorem rotShPre_lift_same_dtc {s3 : native_String}
+    {dead : native_String → native_Bool}
+    (v : native_String) (VO VN : SmtDatatype)
+    (hvdead : dead v = true) (hvs3 : native_streq v s3 = false) :
+    ∀ c : SmtDatatypeCons, noFatalBDtc s3 v VO VN c c = true →
+      RotShPreDtc s3 dead (__smtx_dtc_lift v VO c) (__smtx_dtc_lift v VN c)
+  | SmtDatatypeCons.unit, _ => by
+      rw [show __smtx_dtc_lift v VO SmtDatatypeCons.unit =
+          SmtDatatypeCons.unit by simp [__smtx_dtc_lift]]
+      rw [show __smtx_dtc_lift v VN SmtDatatypeCons.unit =
+          SmtDatatypeCons.unit by simp [__smtx_dtc_lift]]
+      exact RotShPreDtc.unit
+  | SmtDatatypeCons.cons T c, hAlign => by
+      have hParts := noFatalBDtc_parts hAlign
+      rw [show __smtx_dtc_lift v VO (SmtDatatypeCons.cons T c) =
+          SmtDatatypeCons.cons (__smtx_type_lift v VO T)
+            (__smtx_dtc_lift v VO c) by simp [__smtx_dtc_lift]]
+      rw [show __smtx_dtc_lift v VN (SmtDatatypeCons.cons T c) =
+          SmtDatatypeCons.cons (__smtx_type_lift v VN T)
+            (__smtx_dtc_lift v VN c) by simp [__smtx_dtc_lift]]
+      exact RotShPreDtc.cons
+        (rotShPre_lift_same_ty v VO VN hvdead hvs3 T hParts.1)
+        (rotShPre_lift_same_dtc v VO VN hvdead hvs3 c hParts.2)
+
+private theorem rotShPre_lift_same_dt {s3 : native_String}
+    {dead : native_String → native_Bool}
+    (v : native_String) (VO VN : SmtDatatype)
+    (hvdead : dead v = true) (hvs3 : native_streq v s3 = false) :
+    ∀ d : SmtDatatype, noFatalBDt s3 v VO VN d d = true →
+      RotShPreDt s3 dead (__smtx_dt_lift v VO d) (__smtx_dt_lift v VN d)
+  | SmtDatatype.null, _ => by
+      rw [show __smtx_dt_lift v VO SmtDatatype.null = SmtDatatype.null by
+        simp [__smtx_dt_lift]]
+      rw [show __smtx_dt_lift v VN SmtDatatype.null = SmtDatatype.null by
+        simp [__smtx_dt_lift]]
+      exact RotShPreDt.null
+  | SmtDatatype.sum c d, hAlign => by
+      have hParts := noFatalBDt_parts hAlign
+      rw [show __smtx_dt_lift v VO (SmtDatatype.sum c d) =
+          SmtDatatype.sum (__smtx_dtc_lift v VO c)
+            (__smtx_dt_lift v VO d) by simp [__smtx_dt_lift]]
+      rw [show __smtx_dt_lift v VN (SmtDatatype.sum c d) =
+          SmtDatatype.sum (__smtx_dtc_lift v VN c)
+            (__smtx_dt_lift v VN d) by simp [__smtx_dt_lift]]
+      exact RotShPreDt.sum
+        (rotShPre_lift_same_dtc v VO VN hvdead hvs3 c hParts.1)
+        (rotShPre_lift_same_dt v VO VN hvdead hvs3 d hParts.2)
+
+end
+
+mutual
+
+private theorem rotShPre_lift_pair_ty {s3 : native_String}
+    {dead : native_String → native_Bool}
+    (v : native_String) (VO VN : SmtDatatype)
+    (hvdead : dead v = true) (hvs3 : native_streq v s3 = false) :
+    ∀ {TO TN : SmtType}, RotShPreTy s3 dead TO TN →
+      noFatalBTy s3 v VO VN TO TN = true →
+      RotShPreTy s3 dead (__smtx_type_lift v VO TO)
+        (__smtx_type_lift v VN TN)
+  | _, _, RotShPreTy.same T, hAlign =>
+      rotShPre_lift_same_ty v VO VN hvdead hvs3 T hAlign
+  | _, _, @RotShPreTy.dt _ _ q ZO ZN hq hBody, hAlign => by
+      have hParts := noFatalBTy_parts hAlign
+      by_cases hN : native_Teq (SmtType.Datatype v VN)
+          (SmtType.Datatype q ZN) = true
+      · have hO := hParts.1 hN
+        rw [show __smtx_type_lift v VO (SmtType.Datatype q ZO) =
+            SmtType.TypeRef v by simp [__smtx_type_lift, native_ite, hO]]
+        rw [show __smtx_type_lift v VN (SmtType.Datatype q ZN) =
+            SmtType.TypeRef v by simp [__smtx_type_lift, native_ite, hN]]
+        exact RotShPreTy.same _
+      · by_cases hO : native_Teq (SmtType.Datatype v VO)
+            (SmtType.Datatype q ZO) = true
+        · rw [show __smtx_type_lift v VO (SmtType.Datatype q ZO) =
+              SmtType.TypeRef v by simp [__smtx_type_lift, native_ite, hO]]
+          exact RotShPreTy.flip hvdead
+        · rw [show __smtx_type_lift v VO (SmtType.Datatype q ZO) =
+              SmtType.Datatype q (__smtx_dt_lift v VO ZO) by
+            simp [__smtx_type_lift, native_ite, hO]]
+          rw [show __smtx_type_lift v VN (SmtType.Datatype q ZN) =
+              SmtType.Datatype q (__smtx_dt_lift v VN ZN) by
+            simp [__smtx_type_lift, native_ite, hN]]
+          exact RotShPreTy.dt hq
+            (rotShPre_lift_pair_dt v VO VN hvdead hvs3 hBody
+              (hParts.2 (by simp [native_and, hq])))
+  | _, _, @RotShPreTy.rotAny _ _ ZO ZN, _ => by
+      have hNO : native_Teq (SmtType.Datatype v VO)
+          (SmtType.Datatype s3 ZO) = false := by
+        cases hT : native_Teq (SmtType.Datatype v VO)
+            (SmtType.Datatype s3 ZO) with
+        | false => rfl
+        | true =>
+            have hp : v = s3 ∧ VO = ZO := by simpa [native_Teq] using hT
+            rw [hp.1] at hvs3
+            simp [native_streq] at hvs3
+      have hNN : native_Teq (SmtType.Datatype v VN)
+          (SmtType.Datatype s3 ZN) = false := by
+        cases hT : native_Teq (SmtType.Datatype v VN)
+            (SmtType.Datatype s3 ZN) with
+        | false => rfl
+        | true =>
+            have hp : v = s3 ∧ VN = ZN := by simpa [native_Teq] using hT
+            rw [hp.1] at hvs3
+            simp [native_streq] at hvs3
+      rw [show __smtx_type_lift v VO (SmtType.Datatype s3 ZO) =
+          SmtType.Datatype s3 (__smtx_dt_lift v VO ZO) by
+        simp [__smtx_type_lift, native_ite, hNO]]
+      rw [show __smtx_type_lift v VN (SmtType.Datatype s3 ZN) =
+          SmtType.Datatype s3 (__smtx_dt_lift v VN ZN) by
+        simp [__smtx_type_lift, native_ite, hNN]]
+      exact RotShPreTy.rotAny
+  | _, _, @RotShPreTy.preRot _ _ ZO, _ => by
+      have hNO : native_Teq (SmtType.Datatype v VO)
+          (SmtType.Datatype s3 ZO) = false := by
+        cases hT : native_Teq (SmtType.Datatype v VO)
+            (SmtType.Datatype s3 ZO) with
+        | false => rfl
+        | true =>
+            have hp : v = s3 ∧ VO = ZO := by simpa [native_Teq] using hT
+            rw [hp.1] at hvs3
+            simp [native_streq] at hvs3
+      rw [show __smtx_type_lift v VO (SmtType.Datatype s3 ZO) =
+          SmtType.Datatype s3 (__smtx_dt_lift v VO ZO) by
+        simp [__smtx_type_lift, native_ite, hNO]]
+      rw [show __smtx_type_lift v VN (SmtType.TypeRef s3) =
+          SmtType.TypeRef s3 by simp [__smtx_type_lift]]
+      exact RotShPreTy.preRot
+  | _, _, @RotShPreTy.flip _ _ r TN hr, _ => by
+      rw [show __smtx_type_lift v VO (SmtType.TypeRef r) =
+          SmtType.TypeRef r by simp [__smtx_type_lift]]
+      exact RotShPreTy.flip hr
+
+private theorem rotShPre_lift_pair_dtc {s3 : native_String}
+    {dead : native_String → native_Bool}
+    (v : native_String) (VO VN : SmtDatatype)
+    (hvdead : dead v = true) (hvs3 : native_streq v s3 = false) :
+    ∀ {cO cN : SmtDatatypeCons}, RotShPreDtc s3 dead cO cN →
+      noFatalBDtc s3 v VO VN cO cN = true →
+      RotShPreDtc s3 dead (__smtx_dtc_lift v VO cO)
+        (__smtx_dtc_lift v VN cN)
+  | _, _, RotShPreDtc.unit, _ => by
+      rw [show __smtx_dtc_lift v VO SmtDatatypeCons.unit =
+          SmtDatatypeCons.unit by simp [__smtx_dtc_lift]]
+      rw [show __smtx_dtc_lift v VN SmtDatatypeCons.unit =
+          SmtDatatypeCons.unit by simp [__smtx_dtc_lift]]
+      exact RotShPreDtc.unit
+  | _, _, @RotShPreDtc.cons _ _ TO TN cO cN hT hc, hAlign => by
+      have hParts := noFatalBDtc_parts hAlign
+      rw [show __smtx_dtc_lift v VO (SmtDatatypeCons.cons TO cO) =
+          SmtDatatypeCons.cons (__smtx_type_lift v VO TO)
+            (__smtx_dtc_lift v VO cO) by simp [__smtx_dtc_lift]]
+      rw [show __smtx_dtc_lift v VN (SmtDatatypeCons.cons TN cN) =
+          SmtDatatypeCons.cons (__smtx_type_lift v VN TN)
+            (__smtx_dtc_lift v VN cN) by simp [__smtx_dtc_lift]]
+      exact RotShPreDtc.cons
+        (rotShPre_lift_pair_ty v VO VN hvdead hvs3 hT hParts.1)
+        (rotShPre_lift_pair_dtc v VO VN hvdead hvs3 hc hParts.2)
+
+private theorem rotShPre_lift_pair_dt {s3 : native_String}
+    {dead : native_String → native_Bool}
+    (v : native_String) (VO VN : SmtDatatype)
+    (hvdead : dead v = true) (hvs3 : native_streq v s3 = false) :
+    ∀ {dO dN : SmtDatatype}, RotShPreDt s3 dead dO dN →
+      noFatalBDt s3 v VO VN dO dN = true →
+      RotShPreDt s3 dead (__smtx_dt_lift v VO dO) (__smtx_dt_lift v VN dN)
+  | _, _, RotShPreDt.null, _ => by
+      rw [show __smtx_dt_lift v VO SmtDatatype.null = SmtDatatype.null by
+        simp [__smtx_dt_lift]]
+      rw [show __smtx_dt_lift v VN SmtDatatype.null = SmtDatatype.null by
+        simp [__smtx_dt_lift]]
+      exact RotShPreDt.null
+  | _, _, @RotShPreDt.sum _ _ cO cN dO dN hc hd, hAlign => by
+      have hParts := noFatalBDt_parts hAlign
+      rw [show __smtx_dt_lift v VO (SmtDatatype.sum cO dO) =
+          SmtDatatype.sum (__smtx_dtc_lift v VO cO)
+            (__smtx_dt_lift v VO dO) by simp [__smtx_dt_lift]]
+      rw [show __smtx_dt_lift v VN (SmtDatatype.sum cN dN) =
+          SmtDatatype.sum (__smtx_dtc_lift v VN cN)
+            (__smtx_dt_lift v VN dN) by simp [__smtx_dt_lift]]
+      exact RotShPreDt.sum
+        (rotShPre_lift_pair_dtc v VO VN hvdead hvs3 hc hParts.1)
+        (rotShPre_lift_pair_dt v VO VN hvdead hvs3 hd hParts.2)
 
 end
 
