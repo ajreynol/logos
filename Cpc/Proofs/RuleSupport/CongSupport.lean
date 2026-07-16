@@ -18408,25 +18408,15 @@ private theorem eo_to_smt_sets_deq_diff_ne_dt_tester
 
 private theorem eo_to_smt_at_bv_ne_dt_sel
     (a b : SmtTerm) :
-    ∀ s d i j, __eo_to_smt__at_bv a b ≠ SmtTerm.DtSel s d i j := by
+    ∀ s d i j, SmtTerm.int_to_bv b a ≠ SmtTerm.DtSel s d i j := by
   intro s d i j h
-  cases a <;> simp [__eo_to_smt__at_bv] at h
-  case Numeral n =>
-    cases b <;> simp  at h
-    case Numeral w =>
-      cases hWidth : native_zleq 0 w <;>
-        simp [hWidth] at h
+  cases h
 
 private theorem eo_to_smt_at_bv_ne_dt_tester
     (a b : SmtTerm) :
-    ∀ s d i, __eo_to_smt__at_bv a b ≠ SmtTerm.DtTester s d i := by
+    ∀ s d i, SmtTerm.int_to_bv b a ≠ SmtTerm.DtTester s d i := by
   intro s d i h
-  cases a <;> simp [__eo_to_smt__at_bv] at h
-  case Numeral n =>
-    cases b <;> simp  at h
-    case Numeral w =>
-      cases hWidth : native_zleq 0 w <;>
-        simp [hWidth] at h
+  cases h
 
 private theorem eo_to_smt_strings_deq_diff_ne_dt_sel
     (a b : Term) :
@@ -20965,12 +20955,12 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                     (no_translation_of_eo_apply_none_head
                       (f := Term.UOp2 UserOp2._at_const i j) (x := x)
                       (by rfl) hTrans)
-              | Term.UOp2 UserOp2._at_bv n w =>
+              | Term.Apply (Term.UOp1 UserOp1.int_to_bv w) n =>
                   cases hFn with
                   | refl _ =>
                       exact
                         congTypeSpine_same_generic_head_apply_eq_has_bool_type
-                          (Term.UOp2 UserOp2._at_bv n w) x y
+                          (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) n) x y
                           (by intro a; rfl)
                           (generic_apply_type_of_non_datatype_head
                             (eo_to_smt_at_bv_ne_dt_sel
@@ -23666,12 +23656,12 @@ private theorem congTrueSpine_eq_true
                     (no_bool_eq_left_of_eo_apply_none_head
                       (f := Term.UOp2 UserOp2._at_const i j) (x := x)
                       (rhs := Term.Apply g y) (by rfl) hEqBool)
-              | Term.UOp2 UserOp2._at_bv n w =>
+              | Term.Apply (Term.UOp1 UserOp1.int_to_bv w) n =>
                   cases hFn with
                   | refl _ =>
                       exact
                         congTrueSpine_same_generic_head_apply_eq_true
-                          M hM (Term.UOp2 UserOp2._at_bv n w) x y
+                          M hM (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) n) x y
                           (by intro a; rfl)
                           (generic_apply_type_of_non_datatype_head
                             (eo_to_smt_at_bv_ne_dt_sel

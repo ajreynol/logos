@@ -830,7 +830,7 @@ private theorem facts_concat_lprop_false_formula
                 native_unpack_seq (SmtSeq.empty T))) := by
         simpa only [rhsT] using hNested
       _ = SmtValue.Seq (native_pack_seq T xs) := by
-        rw [native_unpack_pack_seq]
+        rw [_root_.native_unpack_pack_seq]
         change
           SmtValue.Seq
             (native_pack_seq T (ys ++ xs.drop ys.length ++ [])) =
@@ -952,7 +952,7 @@ private theorem facts_concat_lprop_true_formula
                 native_unpack_seq ss ++ native_unpack_seq (SmtSeq.empty T))) := by
         simpa only [rhsT] using hNested
       _ = SmtValue.Seq (native_pack_seq T xs) := by
-        rw [native_unpack_pack_seq]
+        rw [_root_.native_unpack_pack_seq]
         change
           SmtValue.Seq
             (native_pack_seq T

@@ -14,7 +14,7 @@ private def bvRedorElimBody (x w : Term) : Term :=
     (Term.Apply (Term.UOp UserOp.bvredor) x))
     (Term.Apply (Term.UOp UserOp.bvnot)
       (Term.Apply (Term.Apply (Term.UOp UserOp.bvcomp) x)
-        (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) w)))
+        (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) (Term.Numeral 0))))
 
 private theorem eo_requires_arg_eq_of_ne_stuck
     {x y z : Term} :
@@ -151,7 +151,7 @@ private theorem eo_typeof_bvcomp_arg_types_of_ne_stuck_local
 private theorem width_eq_of_typeof_at_bv_eq_bitvec
     (w u : Term) :
     w ≠ Term.Stuck ->
-    __eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof w) w =
+    __eo_typeof_int_to_bv (__eo_typeof w) w (Term.UOp UserOp.Int) =
       Term.Apply (Term.UOp UserOp.BitVec) u ->
     w = u := by
   intro hW hTy
@@ -159,7 +159,7 @@ private theorem width_eq_of_typeof_at_bv_eq_bitvec
   | UOp op =>
       cases op
       case Int =>
-        simp [__eo_typeof__at_bv, hW, hWTy] at hTy
+        simp [__eo_typeof_int_to_bv, hW, hWTy] at hTy
         have hReqNN :
             __eo_requires (__eo_gt w (Term.Numeral (-1 : native_Int)))
                 (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) w) ≠
@@ -178,9 +178,9 @@ private theorem width_eq_of_typeof_at_bv_eq_bitvec
         cases hTy
         rfl
       all_goals
-        simp [__eo_typeof__at_bv, hW, hWTy] at hTy
+        simp [__eo_typeof_int_to_bv, hW, hWTy] at hTy
   | _ =>
-      simp [__eo_typeof__at_bv, hWTy] at hTy
+      simp [__eo_typeof_int_to_bv, hWTy] at hTy
 
 private theorem typeof_args_of_redor_body_bool (x w : Term) :
     w ≠ Term.Stuck ->
@@ -192,14 +192,14 @@ private theorem typeof_args_of_redor_body_bool (x w : Term) :
       (__eo_typeof_bvredand (__eo_typeof x))
       (__eo_typeof_bvnot
         (__eo_typeof_bvcomp (__eo_typeof x)
-          (__eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof w) w))) =
+          (__eo_typeof_int_to_bv (__eo_typeof w) w (Term.UOp UserOp.Int)))) =
     Term.Bool at hTy
   have hOperandsNN :=
     RuleProofs.eo_typeof_eq_bool_operands_not_stuck
       (__eo_typeof_bvredand (__eo_typeof x))
       (__eo_typeof_bvnot
         (__eo_typeof_bvcomp (__eo_typeof x)
-          (__eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof w) w)))
+          (__eo_typeof_int_to_bv (__eo_typeof w) w (Term.UOp UserOp.Int))))
       hTy
   rcases eo_typeof_bvredand_arg_bitvec_of_ne_stuck_local hOperandsNN.1 with
     ⟨u, hXTy⟩
@@ -207,7 +207,7 @@ private theorem typeof_args_of_redor_body_bool (x w : Term) :
     ⟨_one, hCompTy⟩
   have hCompNN :
       __eo_typeof_bvcomp (__eo_typeof x)
-          (__eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof w) w) ≠
+          (__eo_typeof_int_to_bv (__eo_typeof w) w (Term.UOp UserOp.Int)) ≠
         Term.Stuck := by
     rw [hCompTy]
     intro h
@@ -302,12 +302,12 @@ private theorem eo_to_smt_redor_rhs_eq_lhs
     __eo_to_smt
         (Term.Apply (Term.UOp UserOp.bvnot)
           (Term.Apply (Term.Apply (Term.UOp UserOp.bvcomp) x)
-            (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral n)))) =
+            (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral n)) (Term.Numeral 0)))) =
       __eo_to_smt (Term.Apply (Term.UOp UserOp.bvredor) x) := by
   intro hNonneg hXSmtTy
   change SmtTerm.bvnot
       (SmtTerm.bvcomp (__eo_to_smt x)
-        (__eo_to_smt__at_bv (SmtTerm.Numeral 0) (SmtTerm.Numeral n))) =
+        (SmtTerm.int_to_bv (SmtTerm.Numeral n) (SmtTerm.Numeral 0))) =
     (let _v0 := __eo_to_smt x;
       SmtTerm.bvnot
         (SmtTerm.bvcomp _v0
@@ -319,7 +319,7 @@ private theorem eo_to_smt_redor_rhs_eq_lhs
   have hMod0 :
       native_mod_total 0 (native_int_pow2 n) = 0 :=
     native_mod_total_zero_pow2_of_nonneg n hNonneg
-  simp [__eo_to_smt__at_bv, native_ite, hNonneg, hSize, hMod0]
+  simp [native_ite, hNonneg, hSize, hMod0]
 
 private theorem smt_typeof_redor_lhs
     (x : Term) (n : native_Int) :
@@ -364,7 +364,7 @@ private theorem typed_redor_body (x w : Term) :
         (__eo_to_smt
           (Term.Apply (Term.UOp UserOp.bvnot)
             (Term.Apply (Term.Apply (Term.UOp UserOp.bvcomp) x)
-              (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral n)))))) =
+              (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral n)) (Term.Numeral 0)))))) =
     SmtType.Bool
   rw [eo_to_smt_redor_rhs_eq_lhs x n hNonneg hXSmtTy]
   have hLhsTy := smt_typeof_redor_lhs x n hXSmtTy
@@ -397,7 +397,7 @@ private theorem facts_redor_body
         (__eo_to_smt
           (Term.Apply (Term.UOp UserOp.bvnot)
               (Term.Apply (Term.Apply (Term.UOp UserOp.bvcomp) x)
-              (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral n))))))
+              (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral n)) (Term.Numeral 0))))))
     rw [eo_to_smt_redor_rhs_eq_lhs x n hNonneg hXSmtTy]
     exact RuleProofs.smt_value_rel_refl _
 

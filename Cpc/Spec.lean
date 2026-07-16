@@ -47,11 +47,6 @@ def __eo_to_smt_array_deq_diff (a : SmtTerm) : SmtType -> SmtTerm -> SmtType -> 
   | aT, b, bT => SmtTerm.None
 
 
-def __eo_to_smt__at_bv : SmtTerm -> SmtTerm -> SmtTerm
-  | (SmtTerm.Numeral x1), (SmtTerm.Numeral x2) => (native_ite (native_zleq 0 x2) (SmtTerm.Binary x2 (native_mod_total x1 (native_int_pow2 x2))) SmtTerm.None)
-  | t1, t2 => SmtTerm.None
-
-
 def __eo_to_smt_seq_empty : SmtType -> SmtTerm
   | (SmtType.Seq T) => (SmtTerm.seq_empty T)
   | T => SmtTerm.None
@@ -314,7 +309,6 @@ def __eo_to_smt : Term -> SmtTerm
     let _v1 := (__eo_to_smt x1)
     (SmtTerm.eq (SmtTerm.extract _v1 _v1 (__eo_to_smt x2)) (SmtTerm.Binary 1 1))
   | (Term.Apply (Term.Apply (Term.UOp UserOp._at_from_bools) x1) x2) => (SmtTerm.concat (SmtTerm.ite (__eo_to_smt x1) (SmtTerm.Binary 1 1) (SmtTerm.Binary 1 0)) (__eo_to_smt x2))
-  | (Term.UOp2 UserOp2._at_bv x1 x2) => (__eo_to_smt__at_bv (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.UOp1 UserOp1.seq_empty x1) => (__eo_to_smt_seq_empty (__eo_to_smt_type x1))
   | (Term.Apply (Term.UOp UserOp.str_len) x1) => (SmtTerm.str_len (__eo_to_smt x1))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) x1) x2) => (SmtTerm.str_concat (__eo_to_smt x1) (__eo_to_smt x2))

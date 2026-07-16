@@ -13,7 +13,7 @@ set_option maxHeartbeats 10000000
 private def bvZeroExtendElimRhs (x n : Term) : Term :=
   Term.Apply
     (Term.Apply (Term.UOp UserOp.concat)
-      (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) n))
+      (Term.Apply (Term.UOp1 UserOp1.int_to_bv n) (Term.Numeral 0)))
     (Term.Apply
       (Term.Apply (Term.UOp UserOp.concat) x)
       (Term.Binary 0 0))
@@ -137,10 +137,10 @@ private theorem smt_typeof_bv_const
     native_zleq 0 n = true ->
     __smtx_typeof
         (__eo_to_smt
-          (Term.UOp2 UserOp2._at_bv (Term.Numeral k) (Term.Numeral n))) =
+          (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral n)) (Term.Numeral k))) =
       SmtType.BitVec (native_int_to_nat n) := by
   intro hNonneg
-  change __smtx_typeof (__eo_to_smt__at_bv (SmtTerm.Numeral k) (SmtTerm.Numeral n)) =
+  change __smtx_typeof (SmtTerm.int_to_bv (SmtTerm.Numeral n) (SmtTerm.Numeral k)) =
     SmtType.BitVec (native_int_to_nat n)
   have hNN :
       __smtx_typeof
@@ -156,7 +156,7 @@ private theorem smt_typeof_bv_const
           true :=
       native_mod_total_canonical n k
     simp [SmtEval.native_and, hNonneg, hMod, native_ite]
-  simpa [__eo_to_smt__at_bv, native_ite, hNonneg] using
+  simpa [native_ite, hNonneg] using
     TranslationProofs.smtx_typeof_binary_of_non_none n
       (native_mod_total k (native_int_pow2 n)) hNN
 
@@ -165,14 +165,13 @@ private theorem eval_bv_const
     native_zleq 0 n = true ->
     __smtx_model_eval M
         (__eo_to_smt
-          (Term.UOp2 UserOp2._at_bv (Term.Numeral k) (Term.Numeral n))) =
+          (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral n)) (Term.Numeral k))) =
       SmtValue.Binary n (native_mod_total k (native_int_pow2 n)) := by
   intro hNonneg
   change __smtx_model_eval M
-      (__eo_to_smt__at_bv (SmtTerm.Numeral k) (SmtTerm.Numeral n)) =
+      (SmtTerm.int_to_bv (SmtTerm.Numeral n) (SmtTerm.Numeral k)) =
     SmtValue.Binary n (native_mod_total k (native_int_pow2 n))
-  simp [__eo_to_smt__at_bv, native_ite, hNonneg]
-  simp only [__smtx_model_eval]
+  simp [native_ite, hNonneg]
 
 private theorem native_nat_to_int_int_to_nat_eq
     (n : native_Int) :
@@ -255,7 +254,7 @@ private theorem smt_typeof_zero_extend_eq_rhs
     change __smtx_typeof
         (SmtTerm.concat
           (__eo_to_smt
-            (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral i)))
+            (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral i)) (Term.Numeral 0)))
           (SmtTerm.concat (__eo_to_smt x) (SmtTerm.Binary 0 0))) =
       SmtType.BitVec (native_int_to_nat (native_zplus i w))
     rw [typeof_concat_eq, hZeroTy, hInnerTySmt]
@@ -293,7 +292,7 @@ private theorem typed_bv_zero_extend_elim_term
       change __smtx_typeof
           (SmtTerm.concat
             (__eo_to_smt
-              (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral i)))
+              (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral i)) (Term.Numeral 0)))
             (SmtTerm.concat (__eo_to_smt x) (SmtTerm.Binary 0 0))) ≠
         SmtType.None
       rw [typeof_concat_eq, hZeroTy, hInnerTySmt]
@@ -452,7 +451,7 @@ private theorem eval_zero_extend_matches_concat
     change __smtx_model_eval M
         (SmtTerm.concat
           (__eo_to_smt
-            (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral i)))
+            (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral i)) (Term.Numeral 0)))
           (SmtTerm.concat (__eo_to_smt x) (SmtTerm.Binary 0 0))) =
       SmtValue.Binary (native_zplus i w) payload
     rw [smtx_eval_concat_term_eq, hZeroEval, hInnerEvalSmt, hZeroMod]

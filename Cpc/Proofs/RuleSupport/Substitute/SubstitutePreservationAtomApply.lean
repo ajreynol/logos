@@ -75,19 +75,6 @@ theorem false_of_apply_uop1_tuple_update_has_smt_translation
       using hTrans
   exact false_of_apply_uop1_translate_apply_none hTransEo rfl
 
-theorem false_of_apply_uop2_at_bv_has_smt_translation
-    (i j a : Term)
-    (hTrans :
-      RuleProofs.eo_has_smt_translation
-        (Term.Apply (Term.UOp2 UserOp2._at_bv i j) a)) :
-    False := by
-  have hTransEo :
-      eoHasSmtTranslation
-        (Term.Apply (Term.UOp2 UserOp2._at_bv i j) a) := by
-    simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
-      using hTrans
-  exact false_of_apply_at_bv hTransEo
-
 theorem false_of_apply_uop2_at_const_has_smt_translation
     (i j a : Term)
     (hTrans :

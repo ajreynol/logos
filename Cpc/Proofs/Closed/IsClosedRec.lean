@@ -2118,57 +2118,6 @@ by
       simpa [__is_closed_rec, __eo_is_closed_rec, hQ, hIdx]
         using (eo_and_true_right_eq_of_boolean hQBool).symm
 
-theorem is_closed_rec_at_bv_eq_eo_is_closed_rec_of_has_smt_translation
-    {x y env : Term} {vars : List SmtVarKey}
-    (hEnv : EoSmtVarEnv env vars)
-    (hTrans : eoHasSmtTranslation (Term.UOp2 UserOp2._at_bv x y)) :
-  __is_closed_rec (Term.UOp2 UserOp2._at_bv x y) env =
-    __eo_is_closed_rec (Term.UOp2 UserOp2._at_bv x y) env :=
-by
-  unfold eoHasSmtTranslation at hTrans
-  change
-      __smtx_typeof (__eo_to_smt__at_bv (__eo_to_smt x) (__eo_to_smt y)) ≠
-        SmtType.None at hTrans
-  rcases TranslationProofs.eo_to_smt_at_bv_of_non_none hTrans with
-    ⟨nx, ny, hxNum, hyNum, _hyNonneg, _hTy⟩
-  have hx : x = Term.Numeral nx :=
-    TranslationProofs.eo_to_smt_eq_numeral x nx hxNum
-  have hy : y = Term.Numeral ny :=
-    TranslationProofs.eo_to_smt_eq_numeral y ny hyNum
-  subst x
-  subst y
-  cases hEnv <;>
-    simp [__is_closed_rec, __eo_is_closed_rec, __eo_and, native_and]
-
-theorem is_closed_rec_at_bv_eq_and_bool_of_has_smt_translation
-    {x y env : Term} {vars : List SmtVarKey}
-    (hEnv : EoSmtVarEnv env vars)
-    (hTrans : eoHasSmtTranslation (Term.UOp2 UserOp2._at_bv x y)) :
-  __is_closed_rec (Term.UOp2 UserOp2._at_bv x y) env =
-    __eo_is_closed_rec (Term.UOp2 UserOp2._at_bv x y) env ∧
-    ∃ b,
-      __eo_is_closed_rec (Term.UOp2 UserOp2._at_bv x y) env =
-        Term.Boolean b :=
-by
-  refine
-    ⟨is_closed_rec_at_bv_eq_eo_is_closed_rec_of_has_smt_translation
-        hEnv hTrans,
-      ?_⟩
-  unfold eoHasSmtTranslation at hTrans
-  change
-      __smtx_typeof (__eo_to_smt__at_bv (__eo_to_smt x) (__eo_to_smt y)) ≠
-        SmtType.None at hTrans
-  rcases TranslationProofs.eo_to_smt_at_bv_of_non_none hTrans with
-    ⟨nx, ny, hxNum, hyNum, _hyNonneg, _hTy⟩
-  have hx : x = Term.Numeral nx :=
-    TranslationProofs.eo_to_smt_eq_numeral x nx hxNum
-  have hy : y = Term.Numeral ny :=
-    TranslationProofs.eo_to_smt_eq_numeral y ny hyNum
-  subst x
-  subst y
-  exact ⟨true, by
-    cases hEnv <;> simp [__eo_is_closed_rec, __eo_and, native_and]⟩
-
 theorem is_closed_rec_quantifiers_skolemize_forall_eq_and_bool_of_has_smt_translation_and_term
     {vs body idx env : Term} {vars : List SmtVarKey}
     (hEnv : EoSmtVarEnv env vars)
@@ -2286,9 +2235,6 @@ theorem is_closed_rec_uop2_eq_and_bool_of_has_smt_translation
         Term.Boolean b :=
 by
   cases op
-  case _at_bv =>
-    exact is_closed_rec_at_bv_eq_and_bool_of_has_smt_translation
-      hEnv hTrans
   case _at_quantifiers_skolemize =>
     cases x
     case Apply f body =>
@@ -5507,22 +5453,6 @@ by
   rw [hTranslate] at hTrans
   exact hTrans (TranslationProofs.typeof_apply_none_eq (__eo_to_smt x))
 
-theorem false_of_apply_at_bv {P : Prop} {i j x : Term}
-    (hTrans :
-      eoHasSmtTranslation
-        (Term.Apply (Term.UOp2 UserOp2._at_bv i j) x)) : P :=
-by
-  exfalso
-  unfold eoHasSmtTranslation at hTrans
-  change
-      __smtx_typeof
-          (SmtTerm.Apply (__eo_to_smt__at_bv (__eo_to_smt i) (__eo_to_smt j))
-            (__eo_to_smt x)) ≠
-        SmtType.None at hTrans
-  exact hTrans
-    (TranslationProofs.typeof_apply_eo_to_smt_at_bv_eq_none
-      (__eo_to_smt i) (__eo_to_smt j) (__eo_to_smt x))
-
 theorem is_closed_rec_apply_uop2_any_eq_and_bool_of_has_smt_translation
     (root : Term)
     {op : UserOp2} {i j x env : Term} {vars : List SmtVarKey}
@@ -5552,8 +5482,6 @@ by
     exact
       is_closed_rec_apply_re_loop_eq_and_bool_of_has_smt_translation
         hEnv hTrans (fun hx => ih hXLt hEnv hx)
-  case _at_bv =>
-    exact false_of_apply_at_bv hTrans
   case _at_const =>
     exact false_of_apply_uop2_translate_apply_none hTrans rfl
   case _at_quantifiers_skolemize =>
@@ -5708,8 +5636,6 @@ by
     exact (extract_indices_nat_valid_and_arg_has_smt_translation hTrans).2.2
   case re_loop =>
     exact (re_loop_indices_nat_valid_and_arg_has_smt_translation hTrans).2.2
-  case _at_bv =>
-    exact false_of_apply_at_bv hTrans
   case _at_const =>
     exact false_of_apply_uop2_translate_apply_none hTrans rfl
   case _at_quantifiers_skolemize =>

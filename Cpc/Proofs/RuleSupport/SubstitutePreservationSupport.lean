@@ -7781,14 +7781,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                         hActuals
                                                                                                                         hATy)
                                                                                                                     hTy
-                                                                                                              case pos._at_bv =>
-                                                                                                                exact
-                                                                                                                  False.elim
-                                                                                                                    (false_of_apply_uop2_at_bv_has_smt_translation
-                                                                                                                      x
-                                                                                                                      y
-                                                                                                                      a
-                                                                                                                      hFTrans)
                                                                                                               case pos.re_loop =>
                                                                                                                 exact
                                                                                                                   substitute_simul_apply_re_loop_preserves_type_and_translation_of_typeof_ne_stuck

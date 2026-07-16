@@ -7374,8 +7374,6 @@ theorem substFalse_eval_unary_uop2_any
         simp only [__smtx_model_eval]
         rw [hI, hJ, hArg])
       hRecArg
-  case _at_bv =>
-    exact false_of_apply_at_bv hFTrans
   case re_loop =>
     rcases re_loop_indices_nat_valid_and_arg_has_smt_translation hFTrans with
       ⟨hI, hJ, _hArgTrans⟩

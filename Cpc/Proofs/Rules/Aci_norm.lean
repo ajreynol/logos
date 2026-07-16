@@ -194,6 +194,8 @@ private theorem generic_apply_type_of_non_special_head_local
     generic_apply_type f x := by
   unfold generic_apply_type
   cases f <;> simp [__smtx_typeof]
+  · exact False.elim (hSel _ _ _ _ rfl)
+  · exact False.elim (hTester _ _ _ rfl)
 
 private theorem smtx_typeof_apply_none (x : SmtTerm) :
     __smtx_typeof (SmtTerm.Apply SmtTerm.None x) = SmtType.None := by
@@ -10964,6 +10966,7 @@ private theorem bvXor_singleton_elim_eval_canonical
   | _ =>
       simpa [__eo_list_singleton_elim_2] using
         bvXorListCanonical_eval M w _ hCan
+
 
 private theorem bvXor_singleton_elim_list_canonical_of_flat
     (M : SmtModel) (c : Term) (w : Nat) :

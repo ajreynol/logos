@@ -16,7 +16,7 @@ private theorem native_unpack_string_length_eq (ss : SmtSeq) :
 private theorem native_unpack_pack_string (s : native_String) :
     native_unpack_string (native_pack_string s) = s := by
   unfold native_unpack_string native_pack_string
-  rw [native_unpack_pack_seq]
+  rw [_root_.native_unpack_pack_seq]
   induction s with
   | nil =>
       rfl
@@ -2062,7 +2062,7 @@ private theorem string_eager_reduction_true
               __smtx_model_eval_str_substr, __smtx_model_eval_str_indexof,
               __smtx_model_eval_str_len, __smtx_model_eval_plus,
               __smtx_model_eval__, __smtx_model_eval__at_purify, native_seq_concat,
-              native_unpack_pack_seq, elem_typeof_pack_seq, native_seq_len,
+              _root_.native_unpack_pack_seq, elem_typeof_pack_seq, native_seq_len,
               hElemY, hContains, native_zplus, native_zneg, native_veq]
             apply Eq.trans hPackSy.symm
             apply congrArg (native_pack_seq U)
