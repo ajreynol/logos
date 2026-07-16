@@ -210,10 +210,13 @@ private theorem prog1_eq_skeleton_of_ne_stuck
     zs ≠ Term.Stuck -> x ≠ Term.Stuck ->
     __eo_prog_bv_xor_simplify_1 xs ys zs x = skeleton1 xs ys zs x := by
   intro hXs hYs hZs hX
-  cases xs <;> cases ys <;> cases zs <;> cases x <;>
-    simp [__eo_prog_bv_xor_simplify_1, skeleton1, guardedLhs,
-      guardedInserted, guardedInner, guardedBase, xor, op, eqTerm] at
-      hXs hYs hZs hX ⊢
+  unfold __eo_prog_bv_xor_simplify_1
+  split
+  · exact absurd rfl hXs
+  · exact absurd rfl hYs
+  · exact absurd rfl hZs
+  · exact absurd rfl hX
+  · rfl
 
 private theorem prog2_eq_skeleton_of_ne_stuck
     (xs ys zs x : Term) :
@@ -221,10 +224,13 @@ private theorem prog2_eq_skeleton_of_ne_stuck
     zs ≠ Term.Stuck -> x ≠ Term.Stuck ->
     __eo_prog_bv_xor_simplify_2 xs ys zs x = skeleton2 xs ys zs x := by
   intro hXs hYs hZs hX
-  cases xs <;> cases ys <;> cases zs <;> cases x <;>
-    simp [__eo_prog_bv_xor_simplify_2, skeleton2, guardedLhs,
-      guardedInserted, guardedInner, guardedBase, xor, bvnot, op, eqTerm] at
-      hXs hYs hZs hX ⊢
+  unfold __eo_prog_bv_xor_simplify_2
+  split
+  · exact absurd rfl hXs
+  · exact absurd rfl hYs
+  · exact absurd rfl hZs
+  · exact absurd rfl hX
+  · rfl
 
 private theorem prog3_eq_skeleton_of_ne_stuck
     (xs ys zs x : Term) :
@@ -232,10 +238,13 @@ private theorem prog3_eq_skeleton_of_ne_stuck
     zs ≠ Term.Stuck -> x ≠ Term.Stuck ->
     __eo_prog_bv_xor_simplify_3 xs ys zs x = skeleton3 xs ys zs x := by
   intro hXs hYs hZs hX
-  cases xs <;> cases ys <;> cases zs <;> cases x <;>
-    simp [__eo_prog_bv_xor_simplify_3, skeleton3, guardedLhs,
-      guardedInserted, guardedInner, guardedBase, xor, bvnot, op, eqTerm] at
-      hXs hYs hZs hX ⊢
+  unfold __eo_prog_bv_xor_simplify_3
+  split
+  · exact absurd rfl hXs
+  · exact absurd rfl hYs
+  · exact absurd rfl hZs
+  · exact absurd rfl hX
+  · rfl
 
 private theorem ne_stuck_of_bitvec_smt_type (t : Term) (w : Nat) :
     __smtx_typeof (__eo_to_smt t) = SmtType.BitVec w ->
