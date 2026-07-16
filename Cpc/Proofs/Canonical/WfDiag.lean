@@ -5299,6 +5299,60 @@ private theorem rot_subst_right_dt {s3 : native_String} :
 
 end
 
+/-! ### Transitivity of rotation
+
+Rotation composes: equal sides are transparent, structural cases recurse,
+inhabitedness implications compose (through `rotDt_refDef` when one leg is
+structural and the other is a rotation), and an old-side reference absorbs
+any continuation.  This is what lets the lift and refill closure rungs
+chain through intermediate forms of a resolution. -/
+
+mutual
+
+private theorem rot_trans_ty {s3 : native_String} :
+    ∀ {TA TB TC : SmtType}, RotTy s3 TA TB → RotTy s3 TB TC →
+      RotTy s3 TA TC
+  | _, _, _, RotTy.same _, hBC => hBC
+  | _, _, _, RotTy.refFlip, _ => RotTy.refFlip
+  | _, _, _, @RotTy.dt _ q ZA ZB hAB, hBC => by
+      cases hBC with
+      | same => exact RotTy.dt hAB
+      | dt hBC' => exact RotTy.dt (rot_trans_dt hAB hBC')
+      | rot hInh =>
+          exact RotTy.rot (fun h =>
+            hInh (inhabited_of_refDef_empty s3 ZB
+              (rotDt_refDef hAB
+                (refDef_empty_of_inhabited s3 ZA h))))
+  | _, _, _, @RotTy.rot _ ZA ZB hInhAB, hBC => by
+      cases hBC with
+      | same => exact RotTy.rot hInhAB
+      | dt hBC' =>
+          exact RotTy.rot (fun h =>
+            inhabited_of_refDef_empty s3 _
+              (rotDt_refDef hBC'
+                (refDef_empty_of_inhabited s3 ZB (hInhAB h))))
+      | rot hInhBC => exact RotTy.rot (fun h => hInhBC (hInhAB h))
+
+private theorem rot_trans_dtc {s3 : native_String} :
+    ∀ {cA cB cC : SmtDatatypeCons}, RotDtc s3 cA cB → RotDtc s3 cB cC →
+      RotDtc s3 cA cC
+  | _, _, _, RotDtc.unit, hBC => hBC
+  | _, _, _, RotDtc.cons hT hc, hBC => by
+      cases hBC with
+      | cons hT' hc' =>
+          exact RotDtc.cons (rot_trans_ty hT hT') (rot_trans_dtc hc hc')
+
+private theorem rot_trans_dt {s3 : native_String} :
+    ∀ {dA dB dC : SmtDatatype}, RotDt s3 dA dB → RotDt s3 dB dC →
+      RotDt s3 dA dC
+  | _, _, _, RotDt.null, hBC => hBC
+  | _, _, _, RotDt.sum hc hd, hBC => by
+      cases hBC with
+      | sum hc' hd' =>
+          exact RotDt.sum (rot_trans_dtc hc hc') (rot_trans_dt hd hd')
+
+end
+
 /-- Chains act compositionally: appended entries substitute afterwards. -/
 private theorem chain_ty_append :
     ∀ (σ τ : SubstChain) (T : SmtType),
