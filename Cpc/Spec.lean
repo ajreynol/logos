@@ -309,7 +309,6 @@ def __eo_to_smt : Term -> SmtTerm
     let _v1 := (__eo_to_smt x1)
     (SmtTerm.eq (SmtTerm.extract _v1 _v1 (__eo_to_smt x2)) (SmtTerm.Binary 1 1))
   | (Term.Apply (Term.Apply (Term.UOp UserOp._at_from_bools) x1) x2) => (SmtTerm.concat (SmtTerm.ite (__eo_to_smt x1) (SmtTerm.Binary 1 1) (SmtTerm.Binary 1 0)) (__eo_to_smt x2))
-  | (Term.UOp2 UserOp2._at_bv x1 x2) => (SmtTerm.int_to_bv (__eo_to_smt x2) (__eo_to_smt x1))
   | (Term.UOp1 UserOp1.seq_empty x1) => (__eo_to_smt_seq_empty (__eo_to_smt_type x1))
   | (Term.Apply (Term.UOp UserOp.str_len) x1) => (SmtTerm.str_len (__eo_to_smt x1))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) x1) x2) => (SmtTerm.str_concat (__eo_to_smt x1) (__eo_to_smt x2))
