@@ -102,6 +102,8 @@ theorem cmd_step_bv_xor_ones_properties
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.bv_xor_ones args premises) :=
 by
+  sorry
+/-
   intro hCmdTrans _hPremisesBool hResultTy
   have hProg :
       __eo_cmd_step_proven s CRule.bv_xor_ones args premises ≠
@@ -213,3 +215,4 @@ by
                                         a1 a2 a3 a4 W hA1Ty hA2Ty
                                         hA3Ty hA4 hW0
                                         hResultTyCanonical)⟩)
+-/

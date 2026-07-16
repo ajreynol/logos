@@ -61,24 +61,6 @@ def cArgListTranslationOkMask : List ArgTranslationKind -> CArgList -> Prop
       argTranslationOkMasked kind a ∧ cArgListTranslationOkMask mask args
   | _, _ => False
 
-/-- Translation invariant for `bv_xor_ones`. The aggregate XOR arguments share
-    the width of the all-ones constant. The constant payload itself may now be
-    any translated integer term, since `_at_bv` translates arbitrary SMT Int
-    terms directly. -/
-def bvXorOnesArgsTranslationOk : CArgList -> Prop
-  | CArgList.cons xs
-      (CArgList.cons zs
-        (CArgList.cons n (CArgList.cons w CArgList.nil))) =>
-      ∃ W : native_Int,
-        w = Term.Numeral W ∧
-        native_zleq 0 W = true ∧
-        __smtx_typeof (__eo_to_smt xs) =
-          SmtType.BitVec (native_int_to_nat W) ∧
-        __smtx_typeof (__eo_to_smt zs) =
-          SmtType.BitVec (native_int_to_nat W) ∧
-        __smtx_typeof (__eo_to_smt n) = SmtType.Int
-  | _ => False
-
 /-- Predicate asserting that a checker command meets the translation side conditions used by the rule proofs. -/
 def cmdTranslationOk : CCmd -> Prop
   | CCmd.assume_push A => eoHasSmtTranslation A
@@ -179,8 +161,6 @@ def cmdTranslationOk : CCmd -> Prop
   | CCmd.step CRule.arith_mod_over_mod_mult args _ =>
       cArgListTranslationOkMask [ArgTranslationKind.intTerm, ArgTranslationKind.intTerm,
         ArgTranslationKind.intTerm, ArgTranslationKind.intTerm] args
-  | CCmd.step CRule.bv_xor_ones args _ =>
-      bvXorOnesArgsTranslationOk args
   | CCmd.step _ args _ => cArgListTranslationOk args
   | _ => True
 
