@@ -6929,6 +6929,118 @@ private theorem rotShPre_subst_pair_dt {s3 : native_String}
 
 end
 
+/-! ### The chain iteration
+
+Pre-refill rotation is monotone in the dead set (only `flip` consults
+it), so a whole aligned chain of paired steps preserves it: each step
+runs under its own dead set — in which its entry name is still live —
+and afterwards the name joins the dead set for the remaining steps. -/
+
+mutual
+
+private theorem rotShPre_mono_ty {s3 : native_String}
+    {dead dead' : native_String → native_Bool}
+    (hMono : ∀ r, dead r = true → dead' r = true) :
+    ∀ {TO TN : SmtType}, RotShPreTy s3 dead TO TN →
+      RotShPreTy s3 dead' TO TN
+  | _, _, RotShPreTy.same T => RotShPreTy.same T
+  | _, _, RotShPreTy.dt hq hBody =>
+      RotShPreTy.dt hq (rotShPre_mono_dt hMono hBody)
+  | _, _, RotShPreTy.rotAny => RotShPreTy.rotAny
+  | _, _, RotShPreTy.preRot => RotShPreTy.preRot
+  | _, _, RotShPreTy.flip hr => RotShPreTy.flip (hMono _ hr)
+
+private theorem rotShPre_mono_dtc {s3 : native_String}
+    {dead dead' : native_String → native_Bool}
+    (hMono : ∀ r, dead r = true → dead' r = true) :
+    ∀ {cO cN : SmtDatatypeCons}, RotShPreDtc s3 dead cO cN →
+      RotShPreDtc s3 dead' cO cN
+  | _, _, RotShPreDtc.unit => RotShPreDtc.unit
+  | _, _, RotShPreDtc.cons hT hc =>
+      RotShPreDtc.cons (rotShPre_mono_ty hMono hT)
+        (rotShPre_mono_dtc hMono hc)
+
+private theorem rotShPre_mono_dt {s3 : native_String}
+    {dead dead' : native_String → native_Bool}
+    (hMono : ∀ r, dead r = true → dead' r = true) :
+    ∀ {dO dN : SmtDatatype}, RotShPreDt s3 dead dO dN →
+      RotShPreDt s3 dead' dO dN
+  | _, _, RotShPreDt.null => RotShPreDt.null
+  | _, _, RotShPreDt.sum hc hd =>
+      RotShPreDt.sum (rotShPre_mono_dtc hMono hc)
+        (rotShPre_mono_dt hMono hd)
+
+end
+
+/-- The dead set after processing an entry: its name is dead thereafter. -/
+private def deadAfter (dead : native_String → native_Bool)
+    (w : native_String) : native_String → native_Bool :=
+  fun r => native_or (dead r) (native_streq r w)
+
+private theorem deadAfter_mono (dead : native_String → native_Bool)
+    (w : native_String) :
+    ∀ r, dead r = true → deadAfter dead w r = true := by
+  intro r h
+  simp [deadAfter, native_or, h]
+
+private abbrev PairSteps :=
+  List (native_String × SmtDatatype × SmtDatatype)
+
+private def pairApplyO : PairSteps → SmtDatatype → SmtDatatype
+  | [], A => A
+  | (w, QO, _) :: rest, A =>
+      pairApplyO rest (__smtx_dt_substitute w QO A)
+
+private def pairApplyN : PairSteps → SmtDatatype → SmtDatatype
+  | [], A => A
+  | (w, _, QN) :: rest, A =>
+      pairApplyN rest (__smtx_dt_substitute w QN A)
+
+private def deadFold :
+    (native_String → native_Bool) → PairSteps →
+    (native_String → native_Bool)
+  | dead, [] => dead
+  | dead, (w, _, _) :: rest => deadFold (deadAfter dead w) rest
+
+/-- Per-step premises of an aligned chain of paired substitutions: each
+entry name avoids `s3`, is live in its step's dead set, its payloads are
+pre-refill rotated, and the fold-alignment cascade holds against the
+current accumulators. -/
+private inductive ChainPairOK (s3 : native_String) :
+    (native_String → native_Bool) → PairSteps →
+    SmtDatatype → SmtDatatype → Prop where
+  | nil {dead : native_String → native_Bool} {AO AN : SmtDatatype} :
+      ChainPairOK s3 dead [] AO AN
+  | cons {dead : native_String → native_Bool} {w : native_String}
+      {QO QN : SmtDatatype} {rest : PairSteps} {AO AN : SmtDatatype} :
+      native_streq w s3 = false →
+      dead w = false →
+      RotShPreDt s3 dead QO QN →
+      preCascPairDt s3 w dead QO QN AO AN = true →
+      ChainPairOK s3 (deadAfter dead w) rest
+        (__smtx_dt_substitute w QO AO) (__smtx_dt_substitute w QN AN) →
+      ChainPairOK s3 dead ((w, QO, QN) :: rest) AO AN
+
+/-- An aligned chain of paired substitutions preserves pre-refill
+rotation, with the dead set folding over the processed entry names. -/
+private theorem rotShPre_chain {s3 : native_String} :
+    ∀ (steps : PairSteps) (dead : native_String → native_Bool)
+      (AO AN : SmtDatatype),
+      RotShPreDt s3 dead AO AN →
+      ChainPairOK s3 dead steps AO AN →
+      RotShPreDt s3 (deadFold dead steps)
+        (pairApplyO steps AO) (pairApplyN steps AN)
+  | [], dead, AO, AN, hRel, _ => by
+      simpa [pairApplyO, pairApplyN, deadFold] using hRel
+  | (w, QO, QN) :: rest, dead, AO, AN, hRel, hOK => by
+      cases hOK with
+      | cons hws3 hwlive hPair hCasc hRest =>
+          have hStep := rotShPre_subst_pair_dt w hws3 hwlive QO QN
+            hRel hPair hCasc
+          have hStep' := rotShPre_mono_dt (deadAfter_mono dead w) hStep
+          simpa [pairApplyO, pairApplyN, deadFold] using
+            rotShPre_chain rest (deadAfter dead w) _ _ hStep' hRest
+
 /-- Chains act compositionally: appended entries substitute afterwards. -/
 private theorem chain_ty_append :
     ∀ (σ τ : SubstChain) (T : SmtType),
