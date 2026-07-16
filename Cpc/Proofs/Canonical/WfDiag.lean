@@ -4916,6 +4916,62 @@ private theorem rotAllDt_foldObs {s3 : native_String} :
 
 end
 
+/-- Rotation is reflexive (constructor level). -/
+private theorem rotDtc_refl {s3 : native_String} :
+    ∀ c : SmtDatatypeCons, RotDtc s3 c c
+  | SmtDatatypeCons.unit => RotDtc.unit
+  | SmtDatatypeCons.cons T c => RotDtc.cons (RotTy.same T) (rotDtc_refl c)
+
+/-- Rotation is reflexive. -/
+private theorem rotDt_refl {s3 : native_String} :
+    ∀ d : SmtDatatype, RotDt s3 d d
+  | SmtDatatype.null => RotDt.null
+  | SmtDatatype.sum c d => RotDt.sum (rotDtc_refl c) (rotDt_refl d)
+
+/-- Equal sides certify against any positionally aligned guide (constructor
+level).  The alignment supplied by `FSkel` is all that is needed: the
+type-level certificate for equal sides is `RotAllTy.same` at every guide. -/
+private theorem fskel_rotAll_refl_dtc {s3 : native_String} :
+    ∀ {cF cH : SmtDatatypeCons}, FSkelDtc cF cH → RotAllDtc s3 cH cF cF
+  | _, _, FSkelDtc.unit => RotAllDtc.unit
+  | _, _, FSkelDtc.cons _ hc =>
+      RotAllDtc.cons (RotAllTy.same _ _) (fskel_rotAll_refl_dtc hc)
+
+/-- Equal sides certify against any positionally aligned guide. -/
+private theorem fskel_rotAll_refl_dt {s3 : native_String} :
+    ∀ {dF dH : SmtDatatype}, FSkelDt dF dH → RotAllDt s3 dH dF dF
+  | _, _, FSkelDt.null => RotAllDt.null
+  | _, _, FSkelDt.sum hc hd =>
+      RotAllDt.sum (fskel_rotAll_refl_dtc hc) (fskel_rotAll_refl_dt hd)
+
+/-- Chains act compositionally: appended entries substitute afterwards. -/
+private theorem chain_ty_append :
+    ∀ (σ τ : SubstChain) (T : SmtType),
+      chain_ty (σ ++ τ) T = chain_ty τ (chain_ty σ T)
+  | [], _, _ => rfl
+  | (s, _R, P) :: σ, τ, T => by
+      simp only [List.cons_append, chain_ty]
+      exact chain_ty_append σ τ (__smtx_type_substitute s P T)
+
+/-- Closed form of the re-resolved head after a descent: the resolution
+under the *descended* chain, with the closed node body — lifted under the
+head binder — substituted for `s3`.  This is the algebraic backbone for
+establishing the rotation certificate: the entire difference between the
+old and new resolutions is one `s3`-substitution against the descended
+resolution. -/
+private theorem selfExt_resolution
+    (ρ : SubstChain) (s3 : native_String) (X : SmtDatatype)
+    (t : native_String) (hne : native_streq s3 t = false)
+    (DD : SmtDatatype)
+    (hDD : chain_ty (chain_descend ρ s3 X) (SmtType.TypeRef t) =
+      SmtType.Datatype t DD) :
+    chain_ty (selfExt ρ s3 X) (SmtType.TypeRef t) =
+      SmtType.Datatype t
+        (__smtx_dt_substitute s3
+          (__smtx_dt_lift t DD (chain_dt (chain_descend ρ s3 X) X)) DD) := by
+  rw [selfExt, chain_ty_append, hDD]
+  simp [chain_ty, __smtx_type_substitute, native_ite, hne]
+
 /-
 There is one further, essential restriction on "valid raw histories".  The
 statement below was false with the *original* `ChainSourceOK`, which only
