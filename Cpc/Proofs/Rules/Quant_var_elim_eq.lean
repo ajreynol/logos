@@ -1,6 +1,7 @@
 import Cpc.Proofs.RuleSupport.Support
 import Cpc.Proofs.RuleSupport.CongSupport
 import Cpc.Proofs.RuleSupport.CnfSupport
+import Cpc.Proofs.RuleSupport.RelCoincidenceSupport
 import Cpc.Proofs.Rules.Instantiate
 
 open Eo
@@ -615,11 +616,10 @@ private theorem eval_t_after_push_eq
       hExcept hBound hTTrans hNoFree hAgree
 
 /-- Truth of a translated Boolean term is transported between pushes of two
-semantically related values. For values of non-`RegLan` type, semantic
-relatedness is equality and the transport is immediate. The `RegLan` case is
-the congruence ("cong") core — extensionally equal canonical regexes make the
-two models rel-related rather than equal — and is discharged by the
-rel-coincidence development (plan step 6). -/
+semantically related values. This is the congruence ("cong") core —
+extensionally equal canonical regexes make the two models rel-related rather
+than equal — discharged by the rel-coincidence development
+(`RelCoincidenceSupport`). -/
 private theorem eval_true_push_of_rel
     (M : SmtModel) (hM : model_total_typed M)
     (s : native_String) (ST : SmtType) (v w : SmtValue) (u : Term)
@@ -635,13 +635,9 @@ private theorem eval_true_push_of_rel
       __smtx_model_eval (native_model_push M s ST w) (__eo_to_smt u) =
         SmtValue.Boolean true) :
     __smtx_model_eval (native_model_push M s ST v) (__eo_to_smt u) =
-      SmtValue.Boolean true := by
-  by_cases hReg : ST = SmtType.RegLan
-  · sorry
-  · have hvw : v = w :=
-      RuleProofs.smt_value_rel_eq_of_type_ne_reglan hvTy hwTy hReg hRel
-    rw [hvw]
-    exact hTrue
+      SmtValue.Boolean true :=
+  RelCoincidence.smt_model_eval_true_push_of_rel M hM s ST v w
+    (__eo_to_smt u) hSTWf hvTy hwTy hvCanon hwCanon hRel hTrans hTrue
 
 /-! ### Formula-level facts -/
 
