@@ -1,5 +1,6 @@
 import Cpc.Proofs.RuleSupport.BvCommutativeXorSupport
 import Cpc.Proofs.RuleSupport.BvExtractRewriteSupport
+import Cpc.Proofs.RuleSupport.BvNaryXorSupport
 import Cpc.Proofs.RuleSupport.SequenceSupport
 
 /-! Shared support for the three n-ary bit-vector XOR simplification rules. -/

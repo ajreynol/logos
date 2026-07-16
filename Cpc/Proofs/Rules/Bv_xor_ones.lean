@@ -102,8 +102,6 @@ theorem cmd_step_bv_xor_ones_properties
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.bv_xor_ones args premises) :=
 by
-  sorry
-/-
   intro hCmdTrans _hPremisesBool hResultTy
   have hProg :
       __eo_cmd_step_proven s CRule.bv_xor_ones args premises ≠
@@ -167,20 +165,6 @@ by
                                 ⟨hPn, hPw⟩
                               subst pn
                               subst pw
-                              have hArgs :
-                                  ∃ W : native_Int,
-                                    a4 = Term.Numeral W ∧
-                                    native_zleq 0 W = true ∧
-                                    __smtx_typeof (__eo_to_smt a1) =
-                                      SmtType.BitVec (native_int_to_nat W) ∧
-                                    __smtx_typeof (__eo_to_smt a2) =
-                                      SmtType.BitVec (native_int_to_nat W) ∧
-                                    __smtx_typeof (__eo_to_smt a3) =
-                                      SmtType.Int := by
-                                simpa [cmdTranslationOk,
-                                  bvXorOnesArgsTranslationOk] using hCmdTrans
-                              rcases hArgs with
-                                ⟨W, hA4, hW0, hA1Ty, hA2Ty, hA3Ty⟩
                               have hProgEq :=
                                 prog_bv_xor_ones_eq_term_of_ne_stuck
                                   a1 a2 a3 a4 hA1Ne hA2Ne hA3Ne hA4Ne
@@ -196,6 +180,20 @@ by
                                         (__eo_state_proven_nth s i1))) =
                                       Term.Bool at h
                                 simpa [P1, hP1, hProgEq] using h
+                              have hArgTranslations :
+                                  RuleProofs.eo_has_smt_translation a1 ∧
+                                    RuleProofs.eo_has_smt_translation a2 ∧
+                                    RuleProofs.eo_has_smt_translation a3 ∧
+                                    RuleProofs.eo_has_smt_translation a4 := by
+                                simpa [cmdTranslationOk, cArgListTranslationOk,
+                                  eoHasSmtTranslation,
+                                  RuleProofs.eo_has_smt_translation] using hCmdTrans
+                              rcases BvXorOnesSupport.inferred_argument_types
+                                  a1 a2 a3 a4 hArgTranslations.1
+                                  hArgTranslations.2.1 hArgTranslations.2.2.1
+                                  hArgTranslations.2.2.2 hResultTyCanonical with
+                                ⟨W, hA4, hW0, hA2Ty, hA3Ty,
+                                  hA1TypeOrNil⟩
                               simpa [hP1, hProgEq] using
                                 (show StepRuleProperties M
                                     [bvAllOnesValuePrem a3 a4]
@@ -206,13 +204,13 @@ by
                                           eo_interprets M
                                             (bvAllOnesValuePrem a3 a4) true :=
                                         hPremisesTrue.true_here _ (by simp)
-                                      exact BvXorOnesSupport.facts_term M hM
-                                        a1 a2 a3 a4 W hA1Ty hA2Ty
+                                      exact
+                                        BvXorOnesSupport.facts_term_of_type_or_nil
+                                        M hM a1 a2 a3 a4 W hA1TypeOrNil hA2Ty
                                         hA3Ty hA4 hW0 hPrem
                                         hResultTyCanonical),
                                     RuleProofs.eo_has_smt_translation_of_has_bool_type _
-                                      (BvXorOnesSupport.typed_term
-                                        a1 a2 a3 a4 W hA1Ty hA2Ty
+                                      (BvXorOnesSupport.typed_term_of_type_or_nil
+                                        a1 a2 a3 a4 W hA1TypeOrNil hA2Ty
                                         hA3Ty hA4 hW0
                                         hResultTyCanonical)⟩)
--/
