@@ -282,7 +282,8 @@ private theorem program1_lhs_ne
     (ne_stuck_of_bitvec_smt_type x w hXTy)
   apply skeleton_lhs_ne_of_type_bool
     (guardedLhs xs ys zs x x) (guardedBase xs ys zs)
-  rwa [← hProgEq]
+  rw [hProgEq] at hResultTy
+  exact hResultTy
 
 private theorem program2_lhs_ne
     (xs ys zs x : Term) (w : Nat) :
@@ -301,7 +302,8 @@ private theorem program2_lhs_ne
   apply skeleton_lhs_ne_of_type_bool
     (guardedLhs xs ys zs x (bvnot x))
     (__eo_mk_apply (Term.UOp UserOp.bvnot) (guardedBase xs ys zs))
-  rwa [← hProgEq]
+  rw [hProgEq] at hResultTy
+  exact hResultTy
 
 private theorem program3_lhs_ne
     (xs ys zs x : Term) (w : Nat) :
@@ -320,7 +322,8 @@ private theorem program3_lhs_ne
   apply skeleton_lhs_ne_of_type_bool
     (guardedLhs xs ys zs (bvnot x) x)
     (__eo_mk_apply (Term.UOp UserOp.bvnot) (guardedBase xs ys zs))
-  rwa [← hProgEq]
+  rw [hProgEq] at hResultTy
+  exact hResultTy
 
 theorem program1_eq_term
     (xs ys zs x : Term) (w : Nat) :
@@ -389,10 +392,11 @@ theorem program2_eq_term
     __eo_prog_bv_xor_simplify_2 xs ys zs x = skeleton2 xs ys zs x := hProgEq
     _ = eqTerm (guardedLhs xs ys zs x (bvnot x))
         (bvnot (guardedBase xs ys zs)) := by
-      unfold skeleton2 eqTerm bvnot
+      unfold skeleton2 eqTerm
       rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hSkeletonNe]
       rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hEqFunNe]
       rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hRhsNe]
+      rfl
     _ = term2 xs ys zs x := by rw [hLhsEq, hBaseEq]; rfl
 
 theorem program3_eq_term
@@ -428,10 +432,11 @@ theorem program3_eq_term
     __eo_prog_bv_xor_simplify_3 xs ys zs x = skeleton3 xs ys zs x := hProgEq
     _ = eqTerm (guardedLhs xs ys zs (bvnot x) x)
         (bvnot (guardedBase xs ys zs)) := by
-      unfold skeleton3 eqTerm bvnot
+      unfold skeleton3 eqTerm
       rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hSkeletonNe]
       rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hEqFunNe]
       rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hRhsNe]
+      rfl
     _ = term3 xs ys zs x := by rw [hLhsEq, hBaseEq]; rfl
 
 private theorem smtx_typeof_bvxor_term_eq
@@ -681,6 +686,7 @@ private theorem eval_lhs_base
           (__smtx_model_eval_bvxor
             (__smtx_model_eval M (__eo_to_smt second))
             (__smtx_model_eval M (__eo_to_smt zs))) := by
+    unfold inner
     rw [hInnerConcat]
     change __smtx_model_eval M
         (SmtTerm.bvxor (__eo_to_smt ys)
@@ -695,7 +701,7 @@ private theorem eval_lhs_base
             (__smtx_model_eval M (__eo_to_smt ys))
             (__smtx_model_eval_bvxor
               (__smtx_model_eval M (__eo_to_smt second))
-              (__smtx_model_eval M (__eo_to_smt zs))) := by
+              (__smtx_model_eval M (__eo_to_smt zs)))) := by
     change __smtx_model_eval M
         (SmtTerm.bvxor (__eo_to_smt first)
           (__eo_to_smt (inner ys zs second))) = _
@@ -711,7 +717,8 @@ private theorem eval_lhs_base
               (__smtx_model_eval M (__eo_to_smt ys))
               (__smtx_model_eval_bvxor
                 (__smtx_model_eval M (__eo_to_smt second))
-                (__smtx_model_eval M (__eo_to_smt zs)))) := by
+                (__smtx_model_eval M (__eo_to_smt zs))))) := by
+    unfold lhs
     rw [hLhsConcat]
     change __smtx_model_eval M
         (SmtTerm.bvxor (__eo_to_smt xs)
@@ -734,6 +741,7 @@ private theorem eval_lhs_base
           (__smtx_model_eval_bvxor
             (__smtx_model_eval M (__eo_to_smt ys))
             (__smtx_model_eval M (__eo_to_smt zs))) := by
+    unfold baseList
     rw [hBaseConcat]
     change __smtx_model_eval M
         (SmtTerm.bvxor (__eo_to_smt xs)
