@@ -21,10 +21,10 @@ private def bvNegoPrem (x n : Term) : Term :=
 def bvNegoMin (n : Term) : Term :=
   Term.Apply
     (Term.Apply (Term.UOp UserOp.concat)
-      (Term.UOp2 UserOp2._at_bv (Term.Numeral 1) (Term.Numeral 1)))
+      (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 1)))
     (Term.Apply
       (Term.Apply (Term.UOp UserOp.concat)
-        (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) n))
+        (Term.Apply (Term.UOp1 UserOp1.int_to_bv n) (Term.Numeral 0)))
       (Term.Binary 0 0))
 
 def bvNegoTerm (x n : Term) : Term :=
@@ -104,7 +104,7 @@ private theorem concat_type_bitvec_inv (A B m : Term)
 theorem at_bv_type_bitvec_inv (n m : Term)
     (hN : n ≠ Term.Stuck)
     (hNTy : __eo_typeof n = Term.UOp UserOp.Int)
-    (h : __eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof n) n =
+    (h : __eo_typeof_int_to_bv (__eo_typeof n) n (Term.UOp UserOp.Int) =
       Term.Apply (Term.UOp UserOp.BitVec) m) :
     ∃ i, n = Term.Numeral i ∧ native_zleq 0 i = true ∧
       m = Term.Numeral i := by
@@ -112,7 +112,7 @@ theorem at_bv_type_bitvec_inv (n m : Term)
       __eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
           (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n) =
         Term.Apply (Term.UOp UserOp.BitVec) m := by
-    simpa [__eo_typeof__at_bv, hN, hNTy] using h
+    simpa [__eo_typeof_int_to_bv, hN, hNTy] using h
   have hReqNN :
       __eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int)))
           (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) n) ≠
@@ -142,13 +142,13 @@ theorem bv_nego_min_type_inv (n w : Term) :
   intro hTy
   unfold bvNegoMin at hTy
   change __eo_typeof_concat
-      (__eo_typeof (Term.UOp2 UserOp2._at_bv (Term.Numeral 1) (Term.Numeral 1)))
+      (__eo_typeof (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 1)))
       (__eo_typeof_concat
-        (__eo_typeof (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) n))
+        (__eo_typeof (Term.Apply (Term.UOp1 UserOp1.int_to_bv n) (Term.Numeral 0)))
         (__eo_typeof (Term.Binary 0 0))) =
     Term.Apply (Term.UOp UserOp.BitVec) w at hTy
   have hOneTy :
-      __eo_typeof (Term.UOp2 UserOp2._at_bv (Term.Numeral 1) (Term.Numeral 1)) =
+      __eo_typeof (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 1)) =
         Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral 1) := by
     native_decide
   have hEmptyTy :
@@ -162,19 +162,19 @@ theorem bv_nego_min_type_inv (n w : Term) :
   rcases concat_type_bitvec_inv _ _ _ hInnerTy with
     ⟨c, d, hAt0Ty, hD, hAddInner⟩
   cases hD
-  change __eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof n) n =
+  change __eo_typeof_int_to_bv (__eo_typeof n) n (Term.UOp UserOp.Int) =
     Term.Apply (Term.UOp UserOp.BitVec) c at hAt0Ty
   have hNNe : n ≠ Term.Stuck := by
     intro hN
     subst n
-    change __eo_typeof__at_bv (Term.UOp UserOp.Int) Term.Stuck Term.Stuck =
+    change __eo_typeof_int_to_bv Term.Stuck Term.Stuck (Term.UOp UserOp.Int) =
       Term.Apply (Term.UOp UserOp.BitVec) c at hAt0Ty
-    simp [__eo_typeof__at_bv] at hAt0Ty
+    simp [__eo_typeof_int_to_bv] at hAt0Ty
   have hNTy : __eo_typeof n = Term.UOp UserOp.Int := by
     cases hNT : __eo_typeof n <;>
-      simp [__eo_typeof__at_bv, hNNe, hNT] at hAt0Ty ⊢
+      simp [__eo_typeof_int_to_bv, hNNe, hNT] at hAt0Ty ⊢
     case UOp op =>
-      cases op <;> simp [__eo_typeof__at_bv, hNNe, hNT] at hAt0Ty ⊢
+      cases op <;> simp [__eo_typeof_int_to_bv, hNNe, hNT] at hAt0Ty ⊢
   rcases at_bv_type_bitvec_inv n c hNNe hNTy hAt0Ty with
     ⟨i, hN, hNonneg, hC⟩
   subst n
@@ -233,42 +233,29 @@ theorem smt_typeof_bv_const
     native_zleq 0 n = true ->
     __smtx_typeof
         (__eo_to_smt
-          (Term.UOp2 UserOp2._at_bv (Term.Numeral k) (Term.Numeral n))) =
+          (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral n)) (Term.Numeral k))) =
       SmtType.BitVec (native_int_to_nat n) := by
   intro hNonneg
-  change __smtx_typeof (__eo_to_smt__at_bv (SmtTerm.Numeral k) (SmtTerm.Numeral n)) =
+  change __smtx_typeof
+      (SmtTerm.int_to_bv (SmtTerm.Numeral n) (SmtTerm.Numeral k)) =
     SmtType.BitVec (native_int_to_nat n)
-  have hNN :
-      __smtx_typeof
-          (SmtTerm.Binary n (native_mod_total k (native_int_pow2 n))) ≠
-        SmtType.None := by
-    unfold __smtx_typeof
-    have hMod :
-        native_zeq
-            (native_mod_total k (native_int_pow2 n))
-            (native_mod_total
-              (native_mod_total k (native_int_pow2 n))
-              (native_int_pow2 n)) =
-          true :=
-      native_mod_total_canonical n k
-    simp [SmtEval.native_and, hNonneg, hMod, native_ite]
-  simpa [__eo_to_smt__at_bv, native_ite, hNonneg] using
-    TranslationProofs.smtx_typeof_binary_of_non_none n
-      (native_mod_total k (native_int_pow2 n)) hNN
+  have hk : __smtx_typeof (SmtTerm.Numeral k) = SmtType.Int := by
+    rw [__smtx_typeof.eq_def]
+  rw [typeof_int_to_bv_eq, hk]
+  simp [__smtx_typeof_int_to_bv, native_ite, hNonneg]
 
 theorem eval_bv_const
     (M : SmtModel) (k n : native_Int) :
     native_zleq 0 n = true ->
     __smtx_model_eval M
         (__eo_to_smt
-          (Term.UOp2 UserOp2._at_bv (Term.Numeral k) (Term.Numeral n))) =
+          (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral n)) (Term.Numeral k))) =
       SmtValue.Binary n (native_mod_total k (native_int_pow2 n)) := by
   intro hNonneg
   change __smtx_model_eval M
-      (__eo_to_smt__at_bv (SmtTerm.Numeral k) (SmtTerm.Numeral n)) =
+      (SmtTerm.int_to_bv (SmtTerm.Numeral n) (SmtTerm.Numeral k)) =
     SmtValue.Binary n (native_mod_total k (native_int_pow2 n))
-  simp [__eo_to_smt__at_bv, native_ite, hNonneg]
-  simp only [__smtx_model_eval]
+  simp [__smtx_model_eval, __smtx_model_eval_int_to_bv]
 
 theorem native_nat_to_int_int_to_nat_eq
     (n : native_Int) :
@@ -301,18 +288,18 @@ theorem smt_typeof_bv_nego_min (i : native_Int) :
   unfold bvNegoMin
   change __smtx_typeof
       (SmtTerm.concat
-        (__eo_to_smt (Term.UOp2 UserOp2._at_bv (Term.Numeral 1) (Term.Numeral 1)))
+        (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 1)))
         (SmtTerm.concat
-          (__eo_to_smt (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral i)))
+          (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral i)) (Term.Numeral 0)))
           (SmtTerm.Binary 0 0))) =
     SmtType.BitVec (native_int_to_nat (native_zplus 1 i))
   rw [typeof_concat_eq, typeof_concat_eq]
   have hOneTy : __smtx_typeof
-        (__eo_to_smt (Term.UOp2 UserOp2._at_bv (Term.Numeral 1) (Term.Numeral 1))) =
+        (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 1))) =
       SmtType.BitVec (native_int_to_nat 1) :=
     smt_typeof_bv_const 1 1 (by decide)
   have hZeroTy : __smtx_typeof
-        (__eo_to_smt (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral i))) =
+        (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral i)) (Term.Numeral 0))) =
       SmtType.BitVec (native_int_to_nat i) :=
     smt_typeof_bv_const 0 i hi
   have hEmptyTy : __smtx_typeof (SmtTerm.Binary 0 0) =
@@ -409,9 +396,9 @@ theorem eval_bv_nego_min
   unfold bvNegoMin
   change __smtx_model_eval M
       (SmtTerm.concat
-        (__eo_to_smt (Term.UOp2 UserOp2._at_bv (Term.Numeral 1) (Term.Numeral 1)))
+        (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 1)))
         (SmtTerm.concat
-          (__eo_to_smt (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral i)))
+          (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral i)) (Term.Numeral 0)))
           (SmtTerm.Binary 0 0))) =
     SmtValue.Binary (native_zplus 1 i) (native_int_pow2 i)
   rw [smtx_eval_concat_term_eq, smtx_eval_concat_term_eq]

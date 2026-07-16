@@ -3,6 +3,7 @@ import Cpc.Logos
 import Cpc.SmtModel
 
 open Eo
+open SmtEval
 open Smtm
 
 /-- Predicate asserting that translating an EO term yields a non-`None` SMT term. -/

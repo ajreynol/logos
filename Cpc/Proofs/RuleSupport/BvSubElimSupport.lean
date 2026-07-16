@@ -164,7 +164,7 @@ private theorem smt_typeof_binary_nat_to_int_zero_local (w : native_Nat) :
     TranslationProofs.smtx_typeof_binary_of_non_none
       (native_nat_to_int w) 0 hNN
 
-private theorem bvAdd_nil_eq_zero_of_type
+theorem bvAdd_nil_eq_zero_of_type
     {ty : Term} (w : Nat) :
     __eo_to_smt_type ty = SmtType.BitVec w ->
     __eo_nil (Term.UOp UserOp.bvadd) ty ≠ Term.Stuck ->
@@ -198,7 +198,7 @@ private theorem bvAdd_nil_eq_zero_of_type
         native_ite, native_zleq]
     exact False.elim (hNe hStuck)
 
-private theorem smt_typeof_bvadd_nil
+theorem smt_typeof_bvadd_nil
     (x : Term) (w : Nat) :
     __eo_to_smt_type (__eo_typeof x) = SmtType.BitVec w ->
     __eo_nil (Term.UOp UserOp.bvadd) (__eo_typeof x) ≠ Term.Stuck ->
@@ -210,7 +210,7 @@ private theorem smt_typeof_bvadd_nil
   rw [hEq]
   exact smt_typeof_binary_nat_to_int_zero_local w
 
-private theorem smt_eval_bvadd_nil
+theorem smt_eval_bvadd_nil
     (M : SmtModel) (x : Term) (w : Nat) :
     __eo_to_smt_type (__eo_typeof x) = SmtType.BitVec w ->
     __eo_nil (Term.UOp UserOp.bvadd) (__eo_typeof x) ≠ Term.Stuck ->

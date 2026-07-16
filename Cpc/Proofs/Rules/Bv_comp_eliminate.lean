@@ -20,8 +20,8 @@ private theorem prog_bv_comp_eliminate_eq_of_ne_stuck (x1 y1 : Term) :
           (Term.Apply
             (Term.Apply (Term.UOp UserOp.ite)
               (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x1) y1))
-            (Term.UOp2 UserOp2._at_bv (Term.Numeral 1) (Term.Numeral 1)))
-          (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral 1))) := by
+            (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 1)))
+          (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 0))) := by
   intro hX1 hY1
   cases x1 <;> cases y1 <;> simp [__eo_prog_bv_comp_eliminate] at hX1 hY1 ⊢
 
@@ -52,8 +52,8 @@ private theorem typeof_args_of_prog_bv_comp_eliminate_bool (x1 y1 : Term) :
               (Term.Apply
                 (Term.Apply (Term.UOp UserOp.ite)
                   (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x1) y1))
-                (Term.UOp2 UserOp2._at_bv (Term.Numeral 1) (Term.Numeral 1)))
-              (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral 1)))) =
+                (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 1)))
+              (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 0)))) =
         Term.Bool at hTy
       have hLeftNN :
           __eo_typeof_bvcomp (__eo_typeof x1) (__eo_typeof y1) ≠ Term.Stuck :=
@@ -64,8 +64,8 @@ private theorem typeof_args_of_prog_bv_comp_eliminate_bool (x1 y1 : Term) :
               (Term.Apply
                 (Term.Apply (Term.UOp UserOp.ite)
                   (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x1) y1))
-                (Term.UOp2 UserOp2._at_bv (Term.Numeral 1) (Term.Numeral 1)))
-              (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral 1))))
+                (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 1)))
+              (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 0))))
           hTy).1
       cases hXTy : __eo_typeof x1 with
       | Apply fx wx =>
@@ -163,9 +163,9 @@ private theorem smt_type_eq_of_same_eo_bitvec_type
 
 private theorem smt_typeof_bv_one_one :
     __smtx_typeof
-      (__eo_to_smt (Term.UOp2 UserOp2._at_bv (Term.Numeral 1) (Term.Numeral 1))) =
+      (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 1))) =
       SmtType.BitVec 1 := by
-  change __smtx_typeof (__eo_to_smt__at_bv (SmtTerm.Numeral 1) (SmtTerm.Numeral 1)) =
+  change __smtx_typeof (SmtTerm.int_to_bv (SmtTerm.Numeral 1) (SmtTerm.Numeral 1)) =
     SmtType.BitVec 1
   have hNN :
       __smtx_typeof (SmtTerm.Binary 1 (native_mod_total 1 (native_int_pow2 1))) ≠
@@ -180,15 +180,15 @@ private theorem smt_typeof_bv_one_one :
     have hNonneg : native_zleq 0 1 = true := by
       native_decide
     simp [SmtEval.native_and, native_ite, hMod, hNonneg]
-  simpa [__eo_to_smt__at_bv, native_ite] using
+  simpa [native_ite] using
     TranslationProofs.smtx_typeof_binary_of_non_none 1
       (native_mod_total 1 (native_int_pow2 1)) hNN
 
 private theorem smt_typeof_bv_zero_one :
     __smtx_typeof
-      (__eo_to_smt (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral 1))) =
+      (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 0))) =
       SmtType.BitVec 1 := by
-  change __smtx_typeof (__eo_to_smt__at_bv (SmtTerm.Numeral 0) (SmtTerm.Numeral 1)) =
+  change __smtx_typeof (SmtTerm.int_to_bv (SmtTerm.Numeral 1) (SmtTerm.Numeral 0)) =
     SmtType.BitVec 1
   have hNN :
       __smtx_typeof (SmtTerm.Binary 1 (native_mod_total 0 (native_int_pow2 1))) ≠
@@ -203,7 +203,7 @@ private theorem smt_typeof_bv_zero_one :
     have hNonneg : native_zleq 0 1 = true := by
       native_decide
     simp [SmtEval.native_and, native_ite, hMod, hNonneg]
-  simpa [__eo_to_smt__at_bv, native_ite] using
+  simpa [native_ite] using
     TranslationProofs.smtx_typeof_binary_of_non_none 1
       (native_mod_total 0 (native_int_pow2 1)) hNN
 
@@ -239,8 +239,8 @@ private theorem smt_typeof_comp_eliminate_rhs
           (Term.Apply
             (Term.Apply (Term.UOp UserOp.ite)
               (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x1) y1))
-            (Term.UOp2 UserOp2._at_bv (Term.Numeral 1) (Term.Numeral 1)))
-          (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral 1)))) =
+            (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 1)))
+          (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 0)))) =
       SmtType.BitVec 1 := by
   intro hX1Trans hY1Trans hResultTy
   rcases typeof_args_of_prog_bv_comp_eliminate_bool x1 y1 hResultTy with
@@ -257,8 +257,8 @@ private theorem smt_typeof_comp_eliminate_rhs
     simp [__smtx_typeof_eq, __smtx_typeof_guard, native_Teq, native_ite]
   change __smtx_typeof
       (SmtTerm.ite (SmtTerm.eq (__eo_to_smt x1) (__eo_to_smt y1))
-        (__eo_to_smt (Term.UOp2 UserOp2._at_bv (Term.Numeral 1) (Term.Numeral 1)))
-        (__eo_to_smt (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral 1)))) =
+        (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 1)))
+        (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 0)))) =
     SmtType.BitVec 1
   rw [typeof_ite_eq]
   simp [__smtx_typeof_ite, hEqType, smt_typeof_bv_one_one,
@@ -281,8 +281,8 @@ private theorem typed___eo_prog_bv_comp_eliminate_impl (x1 y1 : Term) :
       (Term.Apply
         (Term.Apply (Term.UOp UserOp.ite)
           (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x1) y1))
-        (Term.UOp2 UserOp2._at_bv (Term.Numeral 1) (Term.Numeral 1)))
-      (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral 1)))
+        (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 1)))
+      (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 0)))
     (by
       rw [smt_typeof_bvcomp_same x1 y1 hX1Trans hY1Trans hResultTy,
         smt_typeof_comp_eliminate_rhs x1 y1 hX1Trans hY1Trans hResultTy])
@@ -294,18 +294,17 @@ private theorem eval_bv_const
     (M : SmtModel) (k n : native_Int) :
     native_zleq 0 n = true ->
     __smtx_model_eval M
-        (__eo_to_smt (Term.UOp2 UserOp2._at_bv (Term.Numeral k) (Term.Numeral n))) =
+        (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral n)) (Term.Numeral k))) =
       SmtValue.Binary n (native_mod_total k (native_int_pow2 n)) := by
   intro hNonneg
   change __smtx_model_eval M
-      (__eo_to_smt__at_bv (SmtTerm.Numeral k) (SmtTerm.Numeral n)) =
+      (SmtTerm.int_to_bv (SmtTerm.Numeral n) (SmtTerm.Numeral k)) =
     SmtValue.Binary n (native_mod_total k (native_int_pow2 n))
-  simp [__eo_to_smt__at_bv, native_ite, hNonneg]
-  simp only [__smtx_model_eval]
+  simp [native_ite, hNonneg]
 
 private theorem eval_bv_one_one (M : SmtModel) :
     __smtx_model_eval M
-        (__eo_to_smt (Term.UOp2 UserOp2._at_bv (Term.Numeral 1) (Term.Numeral 1))) =
+        (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 1))) =
       SmtValue.Binary 1 1 := by
   have hNonneg : native_zleq 0 1 = true := by
     native_decide
@@ -316,7 +315,7 @@ private theorem eval_bv_one_one (M : SmtModel) :
 
 private theorem eval_bv_zero_one (M : SmtModel) :
     __smtx_model_eval M
-        (__eo_to_smt (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral 1))) =
+        (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 0))) =
       SmtValue.Binary 1 0 := by
   have hNonneg : native_zleq 0 1 = true := by
     native_decide
@@ -335,13 +334,13 @@ private theorem eval_bvcomp_eliminate
             (Term.Apply
               (Term.Apply (Term.UOp UserOp.ite)
                 (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x1) y1))
-              (Term.UOp2 UserOp2._at_bv (Term.Numeral 1) (Term.Numeral 1)))
-            (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral 1)))) := by
+              (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 1)))
+            (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 0)))) := by
   change __smtx_model_eval M (SmtTerm.bvcomp (__eo_to_smt x1) (__eo_to_smt y1)) =
     __smtx_model_eval M
       (SmtTerm.ite (SmtTerm.eq (__eo_to_smt x1) (__eo_to_smt y1))
-        (__eo_to_smt (Term.UOp2 UserOp2._at_bv (Term.Numeral 1) (Term.Numeral 1)))
-        (__eo_to_smt (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral 1))))
+        (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 1)))
+        (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 0))))
   rw [show __smtx_model_eval M (SmtTerm.bvcomp (__eo_to_smt x1) (__eo_to_smt y1)) =
       __smtx_model_eval_bvcomp
         (__smtx_model_eval M (__eo_to_smt x1))
@@ -349,14 +348,14 @@ private theorem eval_bvcomp_eliminate
         rw [__smtx_model_eval.eq_def] <;> simp only]
   rw [show __smtx_model_eval M
         (SmtTerm.ite (SmtTerm.eq (__eo_to_smt x1) (__eo_to_smt y1))
-          (__eo_to_smt (Term.UOp2 UserOp2._at_bv (Term.Numeral 1) (Term.Numeral 1)))
-          (__eo_to_smt (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral 1)))) =
+          (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 1)))
+          (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 0)))) =
       __smtx_model_eval_ite
         (__smtx_model_eval M (SmtTerm.eq (__eo_to_smt x1) (__eo_to_smt y1)))
         (__smtx_model_eval M
-          (__eo_to_smt (Term.UOp2 UserOp2._at_bv (Term.Numeral 1) (Term.Numeral 1))))
+          (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 1))))
         (__smtx_model_eval M
-          (__eo_to_smt (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral 1)))) by
+          (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 0)))) by
         rw [__smtx_model_eval.eq_def] <;> simp only]
   rw [show __smtx_model_eval M (SmtTerm.eq (__eo_to_smt x1) (__eo_to_smt y1)) =
       __smtx_model_eval_eq
@@ -392,8 +391,8 @@ private theorem facts___eo_prog_bv_comp_eliminate_impl
             (Term.Apply
               (Term.Apply (Term.UOp UserOp.ite)
                 (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x1) y1))
-              (Term.UOp2 UserOp2._at_bv (Term.Numeral 1) (Term.Numeral 1)))
-            (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral 1)))))
+              (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 1)))
+            (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 0)))))
     rw [eval_bvcomp_eliminate M x1 y1]
     exact RuleProofs.smt_value_rel_refl _
 

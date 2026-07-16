@@ -13637,58 +13637,8 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
   by_cases hRun : __run_evaluate t = t
   · rw [hRun]
   · cases t with
-    | UOp2 op n m =>
-        cases op with
-        | _at_bv =>
-          have hTranslate :
-              __eo_to_smt (Term.UOp2 UserOp2._at_bv n m) =
-                __eo_to_smt__at_bv (__eo_to_smt n) (__eo_to_smt m) := by
-            rfl
-          have hAtNN :
-              __smtx_typeof
-                  (__eo_to_smt__at_bv (__eo_to_smt n) (__eo_to_smt m)) ≠
-                SmtType.None := by
-            simpa [RuleProofs.eo_has_smt_translation, hTranslate] using hTrans
-          rcases TranslationProofs.eo_to_smt_at_bv_of_non_none hAtNN with
-            ⟨value, width, hn, hm, hWidthNonneg, _hSmtAt⟩
-            have hnTerm : n = Term.Numeral value :=
-              TranslationProofs.eo_to_smt_eq_numeral n value hn
-            have hmTerm : m = Term.Numeral width :=
-              TranslationProofs.eo_to_smt_eq_numeral m width hm
-            subst n
-            subst m
-            have hWidthGtNegOne :
-                native_zlt (-1 : native_Int) width = true := by
-              have hWidthNonnegInt : 0 <= width := by
-                simpa [native_zleq, SmtEval.native_zleq] using hWidthNonneg
-              have hlt : (-1 : native_Int) < width :=
-                Int.lt_of_lt_of_le (by decide) hWidthNonnegInt
-              simpa [native_zlt, SmtEval.native_zlt] using hlt
-            cases hBound : native_zleq width 4294967296
-            · exfalso
-              apply hRunNe
-              simp [__run_evaluate, __eo_to_bin, hBound, native_ite]
-            · change
-              __eo_typeof
-                  (__eo_to_bin (Term.Numeral width)
-                    (Term.Numeral value)) =
-                __eo_typeof__at_bv
-                  (__eo_typeof (Term.Numeral value))
-                  (__eo_typeof (Term.Numeral width))
-                  (Term.Numeral width)
-              simp [__eo_to_bin, hBound, native_ite, __eo_mk_binary,
-                hWidthNonneg, hWidthGtNegOne, __eo_gt, __eo_requires,
-                native_teq]
-            change
-              __eo_lit_type_Binary
-                  (Term.Binary width
-                    (native_mod_total value (native_int_pow2 width))) =
-                __eo_typeof__at_bv (Term.UOp UserOp.Int)
-                  (Term.UOp UserOp.Int) (Term.Numeral width)
-            simp [__eo_lit_type_Binary, __eo_len, __eo_typeof__at_bv,
-              __eo_mk_apply]
-        | _ =>
-          exact False.elim (hRun rfl)
+    | UOp2 _ _ _ =>
+        exact False.elim (hRun rfl)
     | Apply f x =>
         cases f with
         | UOp op =>
@@ -38913,78 +38863,6 @@ private theorem run_evaluate_sound_apply
   · exact run_evaluate_sound_of_eq_self M _ hRun hATrans hEvalTy
   · exact run_evaluate_sound_active_apply_core M hM f x rec hRun hATrans hEvalTy
 
-private theorem run_evaluate_sound_uop2_at_bv_core
-    (M : SmtModel) (hM : model_total_typed M)
-    (n m : Term)
-    (rec :
-      ∀ A : Term,
-        sizeOf A < sizeOf (Term.UOp2 UserOp2._at_bv n m) ->
-          RunEvaluateSoundGoal M A) :
-  RunEvaluateSoundGoal M (Term.UOp2 UserOp2._at_bv n m) := by
-  intro hATrans hEvalTy
-  have hTranslate :
-      __eo_to_smt (Term.UOp2 UserOp2._at_bv n m) =
-        __eo_to_smt__at_bv (__eo_to_smt n) (__eo_to_smt m) := by
-    rfl
-  have hAtNN :
-      __smtx_typeof (__eo_to_smt__at_bv (__eo_to_smt n) (__eo_to_smt m)) ≠
-        SmtType.None := by
-    simpa [RuleProofs.eo_has_smt_translation, hTranslate] using hATrans
-  rcases TranslationProofs.eo_to_smt_at_bv_of_non_none hAtNN with
-    ⟨value, width, hn, hm, hWidthNonneg, _hSmtAt⟩
-  have hnTerm : n = Term.Numeral value :=
-    TranslationProofs.eo_to_smt_eq_numeral n value hn
-  have hmTerm : m = Term.Numeral width :=
-    TranslationProofs.eo_to_smt_eq_numeral m width hm
-  subst n
-  subst m
-  cases hBound : native_zleq width 4294967296
-  · exfalso
-    have hRunStuck :
-        __run_evaluate
-            (Term.UOp2 UserOp2._at_bv (Term.Numeral value)
-              (Term.Numeral width)) =
-          Term.Stuck := by
-      simp [__run_evaluate, __eo_to_bin, hBound, native_ite]
-    change
-      __eo_typeof
-          (__eo_mk_apply
-            (Term.Apply (Term.UOp UserOp.eq)
-              (Term.UOp2 UserOp2._at_bv (Term.Numeral value)
-                (Term.Numeral width)))
-            (__run_evaluate
-              (Term.UOp2 UserOp2._at_bv (Term.Numeral value)
-                (Term.Numeral width)))) =
-        Term.Bool at hEvalTy
-    rw [hRunStuck] at hEvalTy
-    change Term.Stuck = Term.Bool at hEvalTy
-    cases hEvalTy
-  · have hRun :
-        __run_evaluate
-            (Term.UOp2 UserOp2._at_bv (Term.Numeral value)
-              (Term.Numeral width)) =
-          Term.Binary width
-            (native_mod_total value (native_int_pow2 width)) := by
-      simp [__run_evaluate, __eo_to_bin, __eo_mk_binary, hWidthNonneg, hBound,
-        native_ite]
-    rw [hRun]
-    change
-      __smtx_typeof
-          (__eo_to_smt__at_bv (SmtTerm.Numeral value)
-            (SmtTerm.Numeral width)) =
-          __smtx_typeof
-            (SmtTerm.Binary width
-              (native_mod_total value (native_int_pow2 width))) ∧
-        RuleProofs.smt_value_rel
-          (__smtx_model_eval M
-            (__eo_to_smt__at_bv (SmtTerm.Numeral value)
-              (SmtTerm.Numeral width)))
-          (__smtx_model_eval M
-            (SmtTerm.Binary width
-              (native_mod_total value (native_int_pow2 width))))
-    simp [__eo_to_smt__at_bv, hWidthNonneg, native_ite,
-      RuleProofs.smt_value_rel_refl]
-
 private theorem run_evaluate_sound_core
     (M : SmtModel) (hM : model_total_typed M) :
     ∀ A : Term, RunEvaluateSoundGoal M A
@@ -39001,9 +38879,6 @@ private theorem run_evaluate_sound_core
       run_evaluate_sound_of_eq_self M _ rfl
   | Term.UOp2 UserOp2.extract _ _ =>
       run_evaluate_sound_of_eq_self M _ rfl
-  | Term.UOp2 UserOp2._at_bv n m =>
-      run_evaluate_sound_uop2_at_bv_core M hM
-        n m (fun A _hA => run_evaluate_sound_core M hM A)
   | Term.UOp2 UserOp2.re_loop _ _ =>
       run_evaluate_sound_of_eq_self M _ rfl
   | Term.UOp2 UserOp2._at_quantifiers_skolemize _ _ =>

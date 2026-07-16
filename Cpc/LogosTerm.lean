@@ -211,7 +211,6 @@ User operators with two indices.
 -/
 inductive UserOp2 : Type where
   | extract : UserOp2
-  | _at_bv : UserOp2
   | re_loop : UserOp2
   | _at_quantifiers_skolemize : UserOp2
   | _at_const : UserOp2

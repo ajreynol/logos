@@ -154,13 +154,13 @@ private theorem bv_smod_eliminate_shape_of_ne_stuck
     exact False.elim (hProg hStuck)
 
 private def smodBitZero : Term :=
-  Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral 1)
+  Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 0)
 
 private def smodBitOne : Term :=
-  Term.UOp2 UserOp2._at_bv (Term.Numeral 1) (Term.Numeral 1)
+  Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 1)
 
 private def smodWidthZero (w : Term) : Term :=
-  Term.UOp2 UserOp2._at_bv (Term.Numeral 0) w
+  Term.Apply (Term.UOp1 UserOp1.int_to_bv w) (Term.Numeral 0)
 
 private def smodExtract (wm z : Term) : Term :=
   Term.Apply (Term.UOp2 UserOp2.extract wm wm) z
@@ -564,22 +564,22 @@ private theorem smodWidthZero_type_bitvec_inv (w : Term) (n : native_Int) :
     w = Term.Numeral n ∧ native_zlt (-1 : native_Int) n = true := by
   intro hTy
   unfold smodWidthZero at hTy
-  change __eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof w) w =
+  change __eo_typeof_int_to_bv (__eo_typeof w) w (Term.UOp UserOp.Int) =
       Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral n) at hTy
   have hWNe : w ≠ Term.Stuck := by
     intro hW
     subst w
-    simp [__eo_typeof__at_bv] at hTy
+    simp [__eo_typeof_int_to_bv] at hTy
   have hWTy : __eo_typeof w = Term.UOp UserOp.Int := by
     cases hWT : __eo_typeof w <;>
-      simp [__eo_typeof__at_bv, hWNe, hWT] at hTy ⊢
+      simp [__eo_typeof_int_to_bv, hWNe, hWT] at hTy ⊢
     case UOp op =>
-      cases op <;> simp [__eo_typeof__at_bv, hWNe, hWT] at hTy ⊢
+      cases op <;> simp [__eo_typeof_int_to_bv, hWNe, hWT] at hTy ⊢
   have hReq :
       __eo_requires (__eo_gt w (Term.Numeral (-1 : native_Int)))
           (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) w) =
         Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral n) := by
-    simpa [__eo_typeof__at_bv, hWNe, hWTy] using hTy
+    simpa [__eo_typeof_int_to_bv, hWNe, hWTy] using hTy
   have hReqNN :
       __eo_requires (__eo_gt w (Term.Numeral (-1 : native_Int)))
           (Term.Boolean true) (Term.Apply (Term.UOp UserOp.BitVec) w) ≠
@@ -981,27 +981,22 @@ private theorem eo_to_smt_binary (w p : native_Int) :
     __eo_to_smt (Term.Binary w p) = SmtTerm.Binary w p := by
   rfl
 
-private theorem eo_to_smt_at_bv_num (k n : native_Int) :
-    native_zleq 0 n = true ->
-    __eo_to_smt (Term.UOp2 UserOp2._at_bv (Term.Numeral k) (Term.Numeral n)) =
-      SmtTerm.Binary n (native_mod_total k (native_int_pow2 n)) := by
-  intro hNonneg
-  change __eo_to_smt__at_bv (SmtTerm.Numeral k) (SmtTerm.Numeral n) =
-    SmtTerm.Binary n (native_mod_total k (native_int_pow2 n))
-  simp [__eo_to_smt__at_bv, hNonneg, native_ite]
+private theorem eo_to_smt_int_to_bv_num (k n : native_Int) :
+    __eo_to_smt (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral n)) (Term.Numeral k)) =
+      SmtTerm.int_to_bv (SmtTerm.Numeral n) (SmtTerm.Numeral k) := by
+  rfl
 
 private theorem eval_bv_const
     (M : SmtModel) (k n : native_Int) :
     native_zleq 0 n = true ->
     __smtx_model_eval M
-        (__eo_to_smt (Term.UOp2 UserOp2._at_bv (Term.Numeral k) (Term.Numeral n))) =
+        (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral n)) (Term.Numeral k))) =
       SmtValue.Binary n (native_mod_total k (native_int_pow2 n)) := by
   intro hNonneg
   change __smtx_model_eval M
-      (__eo_to_smt__at_bv (SmtTerm.Numeral k) (SmtTerm.Numeral n)) =
+      (SmtTerm.int_to_bv (SmtTerm.Numeral n) (SmtTerm.Numeral k)) =
     SmtValue.Binary n (native_mod_total k (native_int_pow2 n))
-  simp [__eo_to_smt__at_bv, native_ite, hNonneg]
-  simp only [__smtx_model_eval]
+  simp [native_ite, hNonneg]
 
 private theorem eval_smt_eq (M : SmtModel) (a b : SmtTerm) :
     __smtx_model_eval M (SmtTerm.eq a b) =
@@ -1111,12 +1106,12 @@ private theorem smt_typeof_bv_const
     native_zleq 0 n = true ->
     __smtx_typeof
         (__eo_to_smt
-          (Term.UOp2 UserOp2._at_bv (Term.Numeral k) (Term.Numeral n))) =
+          (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral n)) (Term.Numeral k))) =
       SmtType.BitVec (native_int_to_nat n) := by
   intro hNonneg
   change
     __smtx_typeof
-        (__eo_to_smt__at_bv (SmtTerm.Numeral k) (SmtTerm.Numeral n)) =
+        (SmtTerm.int_to_bv (SmtTerm.Numeral n) (SmtTerm.Numeral k)) =
       SmtType.BitVec (native_int_to_nat n)
   have hNN :
       __smtx_typeof
@@ -1132,7 +1127,7 @@ private theorem smt_typeof_bv_const
           true :=
       native_mod_total_canonical n k
     simp [SmtEval.native_and, hNonneg, hMod, native_ite]
-  simpa [__eo_to_smt__at_bv, native_ite, hNonneg] using
+  simpa [native_ite, hNonneg] using
     TranslationProofs.smtx_typeof_binary_of_non_none n
       (native_mod_total k (native_int_pow2 n)) hNN
 
@@ -1370,19 +1365,18 @@ private theorem eval_smodElimRhs_num
     smodEq, smodAnd, smodIte, smodSignZero, smodSignOne, smodAbs, smodUrem,
     __eo_mk_apply, __eo_nil, __eo_nil_bvadd,
     __eo_to_bin, __eo_mk_binary, __eo_typeof_bvand, __eo_typeof_ite,
-    __eo_typeof_eq, __eo_typeof__at_bv, __eo_typeof_bvnot,
+    __eo_typeof_eq, __eo_typeof_int_to_bv, __eo_typeof_bvnot,
     __smtx_model_eval_bvsmod, native_ite, native_zplus, native_zneg]
   simp [__eo_mk_apply, hMax, hNonneg, native_ite]
   rw [eo_to_smt_ite_term]
   simp only [eo_to_smt_eq_term, eo_to_smt_and_term, eo_to_smt_ite_term,
     eo_to_smt_extract_term, eo_to_smt_bvurem_term, eo_to_smt_bvadd_term,
     eo_to_smt_bvneg_term, eo_to_smt_numeral, eo_to_smt_boolean,
-    eo_to_smt_binary, eo_to_smt_at_bv_num, hNonneg,
+    eo_to_smt_binary, eo_to_smt_int_to_bv_num, hNonneg,
+    smtx_eval_int_to_bv_numerals,
     eval_smt_eq, eval_smt_and, eval_smt_ite, eval_smt_extract,
     eval_smt_bvurem, eval_smt_bvadd, eval_smt_bvneg, eval_smt_numeral,
     eval_smt_boolean, eval_smt_binary]
-  rw [eval_bv_const M 0 1 (by native_decide),
-    eval_bv_const M 1 1 (by native_decide)]
   have hSignXTy := smod_sign_extract_type n px
   have hSignYTy := smod_sign_extract_type n py
   have hSignXTy' :
@@ -1402,7 +1396,7 @@ private theorem eval_smodElimRhs_num
   rw [sign_zero_eq_not_one _ hSignXTy', sign_zero_eq_not_one _ hSignYTy']
   repeat rw [ite_not_swap]
   simp [hXType, hYType, hNonneg, hMax, hEvalX, hEvalY, native_ite,
-    __eo_to_smt__at_bv, __smtx_bv_sizeof_value, __smtx_model_eval__,
+    __smtx_bv_sizeof_value, __smtx_model_eval__,
     __smtx_model_eval_eq, __smtx_model_eval_and, __smtx_model_eval_not,
     __smtx_model_eval_ite, native_and, native_not, SmtEval.native_not,
     ite_not_swap, sign_zero_eq_not_one, bvadd_right_zero_of_canonical,

@@ -24,7 +24,7 @@ private def bvSdivoPremWidth (y w : Term) : Term :=
 
 private def bvSdivoDivisor (w : Term) : Term :=
   Term.Apply (Term.UOp UserOp.bvnot)
-    (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) w)
+    (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) (Term.Numeral 0))
 
 private def bvSdivoRhs (x y w wm : Term) : Term :=
   Term.Apply
@@ -164,12 +164,12 @@ private theorem bv_sdivo_divisor_type_inv (w width : Term) :
   intro hDivTy
   unfold bvSdivoDivisor at hDivTy
   change __eo_typeof_bvnot
-      (__eo_typeof (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) w)) =
+      (__eo_typeof (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) (Term.Numeral 0))) =
     Term.Apply (Term.UOp UserOp.BitVec) width at hDivTy
   have hAtTy :
-      __eo_typeof (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) w) =
+      __eo_typeof (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) (Term.Numeral 0)) =
         Term.Apply (Term.UOp UserOp.BitVec) width := by
-    cases hAt : __eo_typeof (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) w) <;>
+    cases hAt : __eo_typeof (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) (Term.Numeral 0)) <;>
       simp [__eo_typeof_bvnot, hAt] at hDivTy
     case Apply f m =>
       cases f <;> try simp [__eo_typeof_bvnot, hAt] at hDivTy
@@ -178,17 +178,17 @@ private theorem bv_sdivo_divisor_type_inv (w width : Term) :
         case BitVec =>
           cases hDivTy
           rfl
-  change __eo_typeof__at_bv (Term.UOp UserOp.Int) (__eo_typeof w) w =
+  change __eo_typeof_int_to_bv (__eo_typeof w) w (Term.UOp UserOp.Int) =
     Term.Apply (Term.UOp UserOp.BitVec) width at hAtTy
   have hWNe : w ≠ Term.Stuck := by
     intro hW
     subst w
-    simp [__eo_typeof__at_bv] at hAtTy
+    simp [__eo_typeof_int_to_bv] at hAtTy
   have hWTy : __eo_typeof w = Term.UOp UserOp.Int := by
     cases hTy : __eo_typeof w <;>
-      simp [__eo_typeof__at_bv, hWNe, hTy] at hAtTy ⊢
+      simp [__eo_typeof_int_to_bv, hWNe, hTy] at hAtTy ⊢
     case UOp op =>
-      cases op <;> simp [__eo_typeof__at_bv, hWNe, hTy] at hAtTy ⊢
+      cases op <;> simp [__eo_typeof_int_to_bv, hWNe, hTy] at hAtTy ⊢
   exact at_bv_type_bitvec_inv w width hWNe hWTy hAtTy
 
 private theorem smtx_typeof_bvsdivo_term_eq (x y : SmtTerm) :
@@ -220,7 +220,7 @@ private theorem smt_typeof_bv_sdivo_divisor (w : native_Int) :
   change __smtx_typeof
       (SmtTerm.bvnot
         (__eo_to_smt
-          (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral w)))) =
+          (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral w)) (Term.Numeral 0)))) =
     SmtType.BitVec (native_int_to_nat w)
   rw [smtx_typeof_bvnot_term_eq]
   have hConst := smt_typeof_bv_const 0 w hW
@@ -256,7 +256,7 @@ private theorem eval_bv_sdivo_divisor
   change __smtx_model_eval M
       (SmtTerm.bvnot
         (__eo_to_smt
-          (Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral w)))) =
+          (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral w)) (Term.Numeral 0)))) =
     __smtx_model_eval_bvnot (SmtValue.Binary w 0)
   rw [smtx_eval_bvnot_term_eq, eval_bv_const M 0 w hW]
   rw [native_mod_zero_pow2 hW]

@@ -22,7 +22,7 @@ private abbrev extractTerm (hi lo t : Term) : Term :=
   Term.Apply (Term.UOp2 UserOp2.extract hi lo) t
 
 private abbrev bvOneZeroTerm : Term :=
-  Term.UOp2 UserOp2._at_bv (Term.Numeral 0) (Term.Numeral 1)
+  Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral 1)) (Term.Numeral 0)
 
 private abbrev negTerm (x y : Term) : Term :=
   Term.Apply (Term.Apply (Term.UOp UserOp.neg) x) y

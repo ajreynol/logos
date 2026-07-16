@@ -9,7 +9,7 @@ set_option linter.unusedSimpArgs false
 set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
 
-private theorem native_binary_uts_eq_bitvec_toInt
+theorem native_binary_uts_eq_bitvec_toInt
     (W : Nat) (p : Int) (hp0 : 0 ≤ p) (hp1 : p < (2 : Int) ^ W) :
     native_binary_uts (↑W : Int) p = (BitVec.ofInt W p).toInt := by
   cases W with
