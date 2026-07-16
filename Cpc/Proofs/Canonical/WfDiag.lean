@@ -5489,6 +5489,20 @@ private theorem chainok_selfExt_facts
   · have hOldLift :
         __smtx_dt_wf_rec (__smtx_dt_substitute t D D) P' = true := by
       exact guideTrDt_wf (lift_guide_tr_dt s3 X hSkel) hWf
+    -- context facts for the certificate assembly: the new guide has no
+    -- `s3`-named nodes, and both diagonals are FSkel-aligned to it
+    have hGuideNoS3 : noDtDt s3 P' = true :=
+      noDt_lift_of_noStray_dt s3 X P hNoStrayP
+    have hSkelO : FSkelDt (__smtx_dt_substitute t D D) P' :=
+      fskel_lift_dt s3 X hSkel
+    have hSkelN :
+        FSkelDt
+          (__smtx_dt_substitute t (chain_dt (chain_descend REST' t P') P')
+            (chain_dt (chain_descend REST' t P') P')) P' := by
+      have h := fskel_master_dt P'
+        (chain_descend REST' t P' ++
+          [(t, R, chain_dt (chain_descend REST' t P') P')])
+      rwa [chain_dt_append_one] at h
     apply foldObsDt_wf (hOld := hOldLift)
     apply rotAllDt_foldObs (s3 := s3)
     sorry
