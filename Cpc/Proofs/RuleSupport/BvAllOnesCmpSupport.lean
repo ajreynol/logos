@@ -55,7 +55,7 @@ def bvUltOnesTerm (x n w : Term) : Term :=
         (bvAllOnesConst n w)))
     (bvUltOnesDistinct x n w)
 
-private theorem bv_all_ones_const_context
+theorem bv_all_ones_const_context
     (n w width : Term) :
     n ≠ Term.Stuck ->
     w ≠ Term.Stuck ->

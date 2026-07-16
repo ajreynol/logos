@@ -122,6 +122,120 @@ private theorem context
     (Term.UOp UserOp.bvxor) (bvAllOnesConst n w) zs hLists.2
   exact ⟨hLists.1, hZsList⟩
 
+private theorem typeof_bvxor_args_of_result_bitvec
+    (x y width : Term) :
+    __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) x) y) =
+        Term.Apply (Term.UOp UserOp.BitVec) width ->
+    __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) width ∧
+      __eo_typeof y = Term.Apply (Term.UOp UserOp.BitVec) width := by
+  intro h
+  change __eo_typeof_bvand (__eo_typeof x) (__eo_typeof y) = _ at h
+  cases hx : __eo_typeof x <;> cases hy : __eo_typeof y <;>
+    simp [__eo_typeof_bvand, hx, hy] at h ⊢
+  case Apply.Apply fx wx fy wy =>
+    cases fx <;> cases fy <;> simp [__eo_typeof_bvand, hx, hy] at h ⊢
+    case UOp.UOp opx opy =>
+      cases opx <;> cases opy <;>
+        simp [__eo_typeof_bvand, hx, hy, __eo_requires, __eo_eq,
+          native_ite, native_teq, native_not] at h ⊢
+      rcases h with ⟨rfl, rfl⟩
+      exact ⟨rfl, rfl⟩
+
+private theorem list_concat_rec_right_type
+    (a z width : Term) :
+    __eo_is_list (Term.UOp UserOp.bvxor) a = Term.Boolean true ->
+    __eo_typeof (__eo_list_concat_rec a z) =
+      Term.Apply (Term.UOp UserOp.BitVec) width ->
+    __eo_typeof z = Term.Apply (Term.UOp UserOp.BitVec) width := by
+  intro hList hTy
+  induction a, z using __eo_list_concat_rec.induct with
+  | case1 z => simp [__eo_is_list] at hList
+  | case2 a h => simp [__eo_list_concat_rec] at hTy
+  | case3 f x xs z hz ih =>
+      have hf := eo_is_list_cons_head_eq_of_true
+        (Term.UOp UserOp.bvxor) f x xs hList
+      subst f
+      have hTailList := eo_is_list_tail_true_of_cons_self
+        (Term.UOp UserOp.bvxor) x xs hList
+      have hTailNe : __eo_list_concat_rec xs z ≠ Term.Stuck := by
+        intro h
+        rw [list_concat_rec_cons (Term.UOp UserOp.bvxor) x xs z hz,
+          h, mk_apply_right_stuck] at hTy
+        cases hTy
+      rw [list_concat_rec_cons (Term.UOp UserOp.bvxor) x xs z hz,
+        mk_apply_ne_stuck_eq (by simp) hTailNe] at hTy
+      exact ih hTailList
+        (typeof_bvxor_args_of_result_bitvec x
+          (__eo_list_concat_rec xs z) width hTy).2
+  | case4 nil z hNil hZ hNot =>
+      have hEq : __eo_list_concat_rec nil z = z := by
+        unfold __eo_list_concat_rec
+        split <;> simp_all
+      simpa [hEq] using hTy
+
+theorem inferred_argument_types
+    (xs zs n w : Term) :
+    RuleProofs.eo_has_smt_translation zs ->
+    RuleProofs.eo_has_smt_translation n ->
+    RuleProofs.eo_has_smt_translation w ->
+    __eo_typeof (term xs zs n w) = Term.Bool ->
+    ∃ W : native_Int,
+      w = Term.Numeral W ∧
+      native_zleq 0 W = true ∧
+      __smtx_typeof (__eo_to_smt zs) =
+        SmtType.BitVec (native_int_to_nat W) ∧
+      __smtx_typeof (__eo_to_smt n) = SmtType.Int := by
+  intro hZsTrans hNTrans hWTrans hResultTy
+  have hLists := context xs zs n w hResultTy
+  have hSides := RuleProofs.eo_typeof_eq_bool_operands_not_stuck
+    (__eo_typeof (lhs xs zs n w)) (__eo_typeof (rhs xs zs))
+    (by simpa [term] using hResultTy)
+  have hTypesEq := RuleProofs.eo_typeof_eq_bool_operands_eq
+    (__eo_typeof (lhs xs zs n w)) (__eo_typeof (rhs xs zs))
+    (by simpa [term] using hResultTy)
+  have hBaseTy : ∃ width,
+      __eo_typeof (base xs zs) =
+        Term.Apply (Term.UOp UserOp.BitVec) width := by
+    change __eo_typeof_bvnot (__eo_typeof (base xs zs)) ≠ Term.Stuck at hSides
+    cases hb : __eo_typeof (base xs zs) <;>
+      simp [__eo_typeof_bvnot, hb] at hSides ⊢
+    case Apply f width =>
+      cases f <;> simp [__eo_typeof_bvnot, hb] at hSides ⊢
+      case UOp op => cases op <;> simp [__eo_typeof_bvnot, hb] at hSides ⊢
+  rcases hBaseTy with ⟨width, hBaseTy⟩
+  have hRhsTy : __eo_typeof (rhs xs zs) =
+      Term.Apply (Term.UOp UserOp.BitVec) width := by
+    simp [rhs, hBaseTy, __eo_typeof_bvnot]
+  have hLhsTy : __eo_typeof (lhs xs zs n w) =
+      Term.Apply (Term.UOp UserOp.BitVec) width := hTypesEq.trans hRhsTy
+  have hInsertedList :
+      __eo_is_list (Term.UOp UserOp.bvxor) (insertedTail zs n w) =
+        Term.Boolean true :=
+    eo_is_list_cons_self_true_of_tail_list
+      (Term.UOp UserOp.bvxor) (bvAllOnesConst n w) zs (by decide) hLists.2
+  have hLhsRecTy :
+      __eo_typeof (__eo_list_concat_rec xs (insertedTail zs n w)) =
+        Term.Apply (Term.UOp UserOp.BitVec) width := by
+    simpa [lhs, __eo_list_concat, hLists.1, hInsertedList,
+      __eo_requires, native_ite, native_teq, native_not] using hLhsTy
+  have hInsertedTy := list_concat_rec_right_type xs
+    (insertedTail zs n w) width hLists.1 hLhsRecTy
+  have hParts := typeof_bvxor_args_of_result_bitvec
+    (bvAllOnesConst n w) zs width (by simpa [insertedTail] using hInsertedTy)
+  have hNNe := RuleProofs.term_ne_stuck_of_has_smt_translation n hNTrans
+  have hWNe := RuleProofs.term_ne_stuck_of_has_smt_translation w hWTrans
+  rcases bv_all_ones_const_context n w width hNNe hWNe hParts.1 with
+    ⟨W, hW, hWidth, hW0, hNTy⟩
+  subst width
+  have hZsSmt := RuleProofs.eo_to_smt_well_typed_and_typeof_implies_smt_type
+    zs (Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral W))
+      (__eo_to_smt zs) rfl hZsTrans (by simpa using hParts.2)
+  have hNSmt := RuleProofs.eo_to_smt_well_typed_and_typeof_implies_smt_type
+    n (Term.UOp UserOp.Int) (__eo_to_smt n) rfl hNTrans hNTy
+  exact ⟨W, hW, hW0,
+    by simpa [__eo_to_smt_type, hW0, native_ite] using hZsSmt,
+    by simpa using hNSmt⟩
+
 private theorem common_types
     (xs zs n w : Term) (W : native_Int) :
     __smtx_typeof (__eo_to_smt xs) =
