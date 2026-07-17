@@ -65,7 +65,9 @@ by
                           vs ts hVsTrans hTsTrans hRenameGuard with
                         ⟨pairs, hLists⟩
                       have hDistinct := hLists.distinct hVsSet hTsSet
-                      have hActuals : SubstActualsHaveSmtTypes vs ts :=
+                      have hActuals :
+                          SubstituteTranslatabilitySupport.SubstActualsHaveSmtTypes
+                            vs ts :=
                         hLists.actuals hTsTrans
                       let tSub :=
                         __substitute_simul_rec (Term.Boolean true) t vs ts
@@ -90,7 +92,7 @@ by
                       have hEqMk :
                           __eo_mk_apply (Term.Apply (Term.UOp UserOp.eq) t) tSub =
                             Term.Apply (Term.Apply (Term.UOp UserOp.eq) t) tSub :=
-                        eo_mk_apply_apply_head_eq_apply_of_typeof_ne_stuck
+                        SubstituteTranslatabilitySupport.eo_mk_apply_apply_head_eq_apply_of_typeof_ne_stuck
                           (Term.UOp UserOp.eq) t tSub hEqMkTyNe
                       have hEqApplyTy :
                           __eo_typeof
@@ -98,9 +100,17 @@ by
                                 tSub) = Term.Bool := by
                         rw [← hEqMk]
                         exact hEqMkTy
-                      have hSubTyNe : __eo_typeof tSub ≠ Term.Stuck :=
-                        (RuleProofs.eo_typeof_eq_bool_operands_not_stuck
-                          t tSub hEqApplyTy).2
+                      have hTypesEq : __eo_typeof t = __eo_typeof tSub := by
+                        apply support_eo_typeof_eq_bool_operands_eq
+                        change __eo_typeof_eq (__eo_typeof t)
+                          (__eo_typeof tSub) = Term.Bool at hEqApplyTy
+                        exact hEqApplyTy
+                      have hTTypeNe : __eo_typeof t ≠ Term.Stuck :=
+                        SubstituteSupport.eo_typeof_ne_stuck_of_has_smt_translation
+                          t hTTrans
+                      have hSubTyNe : __eo_typeof tSub ≠ Term.Stuck := by
+                        rw [← hTypesEq]
+                        exact hTTypeNe
                       have hPreserves :=
                         AlphaEquivRule.alpha_preserves_type_and_translation
                           t vs ts Term.__eo_List_nil hLists hDistinct.1
