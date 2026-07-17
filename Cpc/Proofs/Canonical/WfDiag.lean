@@ -7888,6 +7888,33 @@ private theorem noFatalB_same_dt {s3 : native_String}
 
 end
 
+/-! ### Reference matching across a pair
+
+`refMatchB` demands that wherever the old side is a reference, the new
+side is the *same* reference.  On collided regions (a new side equal to
+a lift image) this is the flip-freeness fact the equality recovery
+consumes: it reduces every flip position to a matched reference pair,
+which the lift then pins to the same reference in the target. -/
+
+mutual
+
+private def refMatchBTy : SmtType → SmtType → native_Bool
+  | SmtType.TypeRef r, TN => native_Teq (SmtType.TypeRef r) TN
+  | SmtType.Datatype _ ZO, SmtType.Datatype _ ZN => refMatchBDt ZO ZN
+  | _, _ => true
+
+private def refMatchBDtc : SmtDatatypeCons → SmtDatatypeCons → native_Bool
+  | SmtDatatypeCons.cons TO cO, SmtDatatypeCons.cons TN cN =>
+      native_and (refMatchBTy TO TN) (refMatchBDtc cO cN)
+  | _, _ => true
+
+private def refMatchBDt : SmtDatatype → SmtDatatype → native_Bool
+  | SmtDatatype.sum cO dO, SmtDatatype.sum cN dN =>
+      native_and (refMatchBDtc cO cN) (refMatchBDt dO dN)
+  | _, _ => true
+
+end
+
 /-! ### A term and its `s3`-lift, unconditionally
 
 The special role of `s3` in the pre-refill relation makes the pair of a
