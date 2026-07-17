@@ -109,6 +109,36 @@ theorem eqs_of_requires_and_eq_true_not_stuck (x1 y1 x2 y2 B : Term) :
     cases b1 <;> cases b2 <;> simp [__eo_and, hX, hY, native_and] at hAnd ⊢
   exact ⟨eq_of_eo_eq_true x1 x2 hBoth.1, eq_of_eo_eq_true y1 y2 hBoth.2⟩
 
+/-- A Boolean conjunction evaluates to true only when both operands are true.
+
+The proof follows the two result-producing shapes of `__eo_and` rather than
+splitting the Cartesian product of all `Term` constructors. -/
+theorem eo_and_eq_true_args (x y : Term)
+    (h : __eo_and x y = Term.Boolean true) :
+    x = Term.Boolean true ∧ y = Term.Boolean true := by
+  cases x <;> try simp [__eo_and] at h
+  case Boolean bx =>
+    cases y <;> try simp at h
+    case Boolean bY =>
+      cases bx <;> cases bY <;> simp [native_and] at h ⊢
+  case Binary wx nx =>
+    cases y <;> try simp at h
+    case Binary wy ny =>
+      by_cases hW : wx = wy
+      · subst wy
+        have hReq :
+            __eo_requires (Term.Numeral wx) (Term.Numeral wx)
+                (Term.Binary wx
+                  (native_mod_total (native_binary_and wx nx ny)
+                    (native_int_pow2 wx))) =
+              Term.Binary wx
+                (native_mod_total (native_binary_and wx nx ny)
+                  (native_int_pow2 wx)) := by
+          simp [__eo_requires, native_ite, native_teq, native_not]
+        rw [hReq] at h
+        cases h
+      · simp [__eo_requires, native_ite, native_teq, hW] at h
+
 theorem model_eval_eq_false_of_eo_eq_false
     (M : SmtModel) (x y : Term) :
     eo_interprets M (Term.Apply (Term.Apply Term.eq x) y) false ->

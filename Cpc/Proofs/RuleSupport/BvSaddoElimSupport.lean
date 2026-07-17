@@ -3,6 +3,7 @@ import Cpc.Proofs.RuleSupport.BvOverflowSupport
 import Cpc.Proofs.RuleSupport.BvSdivElimSupport
 import Cpc.Proofs.RuleSupport.BvSubElimSupport
 import Cpc.Proofs.RuleSupport.BvUsuboElimSupport
+import Cpc.Proofs.RuleSupport.TypeInversionSupport
 
 /-! Support for the `bv_saddo_eliminate` rewrite. -/
 
@@ -60,7 +61,7 @@ def bvSaddoTerm (x y nm : Term) : Term :=
 private theorem typeof_or_bool_args (A B : Term) :
     __eo_typeof_or A B = Term.Bool -> A = Term.Bool ∧ B = Term.Bool := by
   intro h
-  cases A <;> cases B <;> simp [__eo_typeof_or] at h ⊢
+  exact RuleProofs.eo_typeof_or_bool_args A B h
 
 private theorem typeof_bvSaddoAnd_inv {a b : Term} :
     __eo_typeof (bvSaddoAnd a b) = Term.Bool ->

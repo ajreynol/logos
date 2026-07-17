@@ -1,4 +1,4 @@
-import Cpc.Proofs.RuleSupport.Support
+import Cpc.Proofs.RuleSupport.CoreSupport
 
 open Eo
 open SmtEval
@@ -133,28 +133,12 @@ private theorem eo_eq_self_true_of_ne_stuck (x : Term)
 private theorem eo_and_eq_true_left {x y : Term}
     (h : __eo_and x y = Term.Boolean true) :
     x = Term.Boolean true := by
-  cases x <;> cases y <;> simp [__eo_and, native_and] at h ⊢
-  case Boolean.Boolean b c =>
-    cases b <;> cases c <;> simp [__eo_and, native_and] at h ⊢
-  case Binary.Binary w1 n1 w2 n2 =>
-    unfold __eo_requires at h
-    cases hEq : native_teq (Term.Numeral w1) (Term.Numeral w2) <;>
-      simp [native_ite, hEq] at h
-    cases hOk : native_not (native_teq (Term.Numeral w1) Term.Stuck) <;>
-      simp [native_ite, hOk] at h
+  exact (RuleProofs.eo_and_eq_true_args x y h).1
 
 private theorem eo_and_eq_true_right {x y : Term}
     (h : __eo_and x y = Term.Boolean true) :
     y = Term.Boolean true := by
-  cases x <;> cases y <;> simp [__eo_and, native_and] at h ⊢
-  case Boolean.Boolean b c =>
-    cases b <;> cases c <;> simp [__eo_and, native_and] at h ⊢
-  case Binary.Binary w1 n1 w2 n2 =>
-    unfold __eo_requires at h
-    cases hEq : native_teq (Term.Numeral w1) (Term.Numeral w2) <;>
-      simp [native_ite, hEq] at h
-    cases hOk : native_not (native_teq (Term.Numeral w1) Term.Stuck) <;>
-      simp [native_ite, hOk] at h
+  exact (RuleProofs.eo_and_eq_true_args x y h).2
 
 private theorem eqs_of_requires4_and_eq_true_not_stuck
     (x1 y1 x2 y2 x3 y3 x4 y4 B : Term) :

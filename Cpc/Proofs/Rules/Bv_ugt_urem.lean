@@ -1,4 +1,4 @@
-import Cpc.Proofs.RuleSupport.Support
+import Cpc.Proofs.RuleSupport.CoreSupport
 import Cpc.Proofs.TypePreservation.BitVec
 
 open Eo
@@ -25,28 +25,19 @@ private theorem eo_eq_true_eq {x y : Term} :
     __eo_eq x y = Term.Boolean true ->
     y = x := by
   intro h
-  cases x <;> cases y <;> simp [__eo_eq, native_teq] at h ⊢
-  all_goals simpa using h
+  exact RuleProofs.eq_of_eo_eq_true x y h
 
 private theorem eo_and_eq_true_left {x y : Term} :
     __eo_and x y = Term.Boolean true ->
     x = Term.Boolean true := by
   intro h
-  cases x <;> cases y <;>
-    simp [__eo_and, __eo_requires, native_ite, native_teq,
-      native_and] at h ⊢
-  · exact h.1
-  · split at h <;> cases h
+  exact (RuleProofs.eo_and_eq_true_args x y h).1
 
 private theorem eo_and_eq_true_right {x y : Term} :
     __eo_and x y = Term.Boolean true ->
     y = Term.Boolean true := by
   intro h
-  cases x <;> cases y <;>
-    simp [__eo_and, __eo_requires, native_ite, native_teq,
-      native_and] at h ⊢
-  · exact h.2
-  · split at h <;> cases h
+  exact (RuleProofs.eo_and_eq_true_args x y h).2
 
 private theorem eo_eq_self_of_ne_stuck {t : Term} (h : t ≠ Term.Stuck) :
     __eo_eq t t = Term.Boolean true := by

@@ -55,6 +55,16 @@ theorem eo_typeof_eq_args_of_ne_stuck (A B : Term)
   exact eo_typeof_eq_bool_same A B
     (eo_typeof_eq_eq_bool_of_ne_stuck A B h)
 
+/-- A successful Boolean connective type check has Boolean operands. -/
+theorem eo_typeof_or_bool_args (A B : Term)
+    (h : __eo_typeof_or A B = Term.Bool) :
+    A = Term.Bool ∧ B = Term.Bool := by
+  cases A <;> try simp [__eo_typeof_or] at h
+  case Bool =>
+    cases B <;> try simp at h
+    case Bool =>
+      simp at h ⊢
+
 /-- The EO arithmetic-type predicate recognizes exactly `Int` and `Real`.
 
 Only the single inspected operand is split here; callers do not enumerate a
@@ -238,5 +248,70 @@ theorem eo_typeof_ite_bool_self (T : Term) (hT : T ≠ Term.Stuck) :
     __eo_typeof_ite Term.Bool T T = T := by
   simp [__eo_typeof_ite, __eo_requires, __eo_eq, native_ite, native_teq,
     native_not]
+
+/-- Invert a non-stuck bit-vector comparison type check by following only the
+`BitVec` application shape accepted by `__eo_typeof_bvult`. -/
+theorem eo_typeof_bvult_args_of_ne_stuck (A B : Term)
+    (h : __eo_typeof_bvult A B ≠ Term.Stuck) :
+    ∃ w, A = Term.Apply (Term.UOp UserOp.BitVec) w ∧
+      B = Term.Apply (Term.UOp UserOp.BitVec) w ∧ w ≠ Term.Stuck := by
+  cases A <;> try simp [__eo_typeof_bvult] at h
+  case Apply f n =>
+    cases f <;> try simp at h
+    case UOp opA =>
+      cases opA <;> try simp at h
+      case BitVec =>
+        cases B <;> try simp at h
+        case Apply g m =>
+          cases g <;> try simp at h
+          case UOp opB =>
+            cases opB <;> try simp at h
+            case BitVec =>
+              have hReq :
+                  __eo_requires (__eo_eq n m) (Term.Boolean true) Term.Bool ≠
+                    Term.Stuck := by
+                simpa [__eo_typeof_bvult] using h
+              have hm : m = n :=
+                support_eq_of_eo_eq_true n m
+                  (support_eo_requires_cond_eq_of_non_stuck hReq)
+              subst m
+              have hn : n ≠ Term.Stuck := by
+                intro hn
+                subst n
+                simp [__eo_requires, __eo_eq, native_ite, native_teq] at h
+              exact ⟨n, rfl, rfl, hn⟩
+
+/-- Invert a non-stuck bit-vector binary-operation type check by following
+only the accepted `BitVec` application shape. -/
+theorem eo_typeof_bvand_args_of_ne_stuck (A B : Term)
+    (h : __eo_typeof_bvand A B ≠ Term.Stuck) :
+    ∃ w, A = Term.Apply (Term.UOp UserOp.BitVec) w ∧
+      B = Term.Apply (Term.UOp UserOp.BitVec) w ∧ w ≠ Term.Stuck := by
+  cases A <;> try simp [__eo_typeof_bvand] at h
+  case Apply f n =>
+    cases f <;> try simp at h
+    case UOp opA =>
+      cases opA <;> try simp at h
+      case BitVec =>
+        cases B <;> try simp at h
+        case Apply g m =>
+          cases g <;> try simp at h
+          case UOp opB =>
+            cases opB <;> try simp at h
+            case BitVec =>
+              have hReq :
+                  __eo_requires (__eo_eq n m) (Term.Boolean true)
+                      (Term.Apply (Term.UOp UserOp.BitVec) n) ≠
+                    Term.Stuck := by
+                simpa [__eo_typeof_bvand] using h
+              have hm : m = n :=
+                support_eq_of_eo_eq_true n m
+                  (support_eo_requires_cond_eq_of_non_stuck hReq)
+              subst m
+              have hn : n ≠ Term.Stuck := by
+                intro hn
+                subst n
+                simp [__eo_requires, __eo_eq, native_ite, native_teq] at h
+              exact ⟨n, rfl, rfl, hn⟩
 
 end RuleProofs
