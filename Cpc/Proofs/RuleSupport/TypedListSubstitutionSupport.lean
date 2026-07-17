@@ -137,6 +137,7 @@ theorem native_Teq_none_false_of_non_none
   cases T <;> simp [native_Teq] at h ⊢
 
 private theorem substitute_simul_rec_closed_atom_eq_self
+    {isRename : Bool}
     (F xs ss bvs : Term)
     {xsVars bvsVars : List EoVarKey}
     (hXsEnv : EoVarEnvPerm xs xsVars)
@@ -146,23 +147,24 @@ private theorem substitute_simul_rec_closed_atom_eq_self
     (hNotVar : ∀ s S, F ≠ Term.Var s S)
     (hNotStuck : F ≠ Term.Stuck)
     (hClosed : __is_closed_rec F Term.__eo_List_nil = Term.Boolean true) :
-    __substitute_simul_rec (Term.Boolean false) F xs ss bvs = F := by
-  have hisr : (Term.Boolean false : Term) ≠ Term.Stuck := by decide
+    __substitute_simul_rec (Term.Boolean isRename) F xs ss bvs = F := by
+  have hisr : (Term.Boolean isRename : Term) ≠ Term.Stuck := by cases isRename <;> decide
   have hxs : xs ≠ Term.Stuck := hXsEnv.ne_stuck
   have hss : ss ≠ Term.Stuck :=
     SubstituteSupport.eoListAllHaveSmtTranslation_ne_stuck hSs
   have hbvs : bvs ≠ Term.Stuck := hBvsEnv.ne_stuck
   have hHeadEq :
-      __substitute_simul_rec (Term.Boolean false) F xs ss bvs =
+      __substitute_simul_rec (Term.Boolean isRename) F xs ss bvs =
         __eo_requires (__is_closed_rec F Term.__eo_List_nil)
           (Term.Boolean true) F :=
     SubstituteSupport.substitute_simul_rec_atom
-      (Term.Boolean false) F xs ss bvs
+      (Term.Boolean isRename) F xs ss bvs
       hisr hxs hss hbvs hNotApply hNotVar hNotStuck
   rw [hHeadEq, hClosed]
   simp [__eo_requires, native_ite, native_teq, SmtEval.native_not]
 
 private theorem substitute_simul_rec_apply_eq_apply_of_parts
+    {isRename : Bool}
     (f a xs ss bvs : Term)
     {xsVars bvsVars : List EoVarKey}
     (hXsEnv : EoVarEnvPerm xs xsVars)
@@ -174,24 +176,25 @@ private theorem substitute_simul_rec_apply_eq_apply_of_parts
           Term.Apply q
             (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
     (hF :
-      __substitute_simul_rec (Term.Boolean false) f xs ss bvs = f)
+      __substitute_simul_rec (Term.Boolean isRename) f xs ss bvs = f)
     (hA :
-      __substitute_simul_rec (Term.Boolean false) a xs ss bvs = a)
+      __substitute_simul_rec (Term.Boolean isRename) a xs ss bvs = a)
     (hFNe : f ≠ Term.Stuck)
     (hANe : a ≠ Term.Stuck) :
-    __substitute_simul_rec (Term.Boolean false) (Term.Apply f a) xs ss bvs =
+    __substitute_simul_rec (Term.Boolean isRename) (Term.Apply f a) xs ss bvs =
       Term.Apply f a := by
-  have hisr : (Term.Boolean false : Term) ≠ Term.Stuck := by decide
+  have hisr : (Term.Boolean isRename : Term) ≠ Term.Stuck := by cases isRename <;> decide
   have hxs : xs ≠ Term.Stuck := hXsEnv.ne_stuck
   have hss : ss ≠ Term.Stuck :=
     SubstituteSupport.eoListAllHaveSmtTranslation_ne_stuck hSs
   have hbvs : bvs ≠ Term.Stuck := hBvsEnv.ne_stuck
   rw [SubstituteSupport.substitute_simul_rec_apply
-    (Term.Boolean false) f a xs ss bvs hisr hxs hss hbvs hNotBinder]
+    (Term.Boolean isRename) f a xs ss bvs hisr hxs hss hbvs hNotBinder]
   rw [hF, hA]
   cases f <;> cases a <;> simp [__eo_mk_apply] at hFNe hANe ⊢
 
 private theorem substitute_simul_rec_apply_eq_apply_of_sub_parts
+    {isRename : Bool}
     (f a f' a' xs ss bvs : Term)
     {xsVars bvsVars : List EoVarKey}
     (hXsEnv : EoVarEnvPerm xs xsVars)
@@ -203,31 +206,32 @@ private theorem substitute_simul_rec_apply_eq_apply_of_sub_parts
           Term.Apply q
             (Term.Apply (Term.Apply Term.__eo_List_cons v) vs))
     (hF :
-      __substitute_simul_rec (Term.Boolean false) f xs ss bvs = f')
+      __substitute_simul_rec (Term.Boolean isRename) f xs ss bvs = f')
     (hA :
-      __substitute_simul_rec (Term.Boolean false) a xs ss bvs = a')
+      __substitute_simul_rec (Term.Boolean isRename) a xs ss bvs = a')
     (hFNe : f' ≠ Term.Stuck)
     (hANe : a' ≠ Term.Stuck) :
-    __substitute_simul_rec (Term.Boolean false) (Term.Apply f a) xs ss bvs =
+    __substitute_simul_rec (Term.Boolean isRename) (Term.Apply f a) xs ss bvs =
       Term.Apply f' a' := by
-  have hisr : (Term.Boolean false : Term) ≠ Term.Stuck := by decide
+  have hisr : (Term.Boolean isRename : Term) ≠ Term.Stuck := by cases isRename <;> decide
   have hxs : xs ≠ Term.Stuck := hXsEnv.ne_stuck
   have hss : ss ≠ Term.Stuck :=
     SubstituteSupport.eoListAllHaveSmtTranslation_ne_stuck hSs
   have hbvs : bvs ≠ Term.Stuck := hBvsEnv.ne_stuck
   rw [SubstituteSupport.substitute_simul_rec_apply
-    (Term.Boolean false) f a xs ss bvs hisr hxs hss hbvs hNotBinder]
+    (Term.Boolean isRename) f a xs ss bvs hisr hxs hss hbvs hNotBinder]
   rw [hF, hA]
   cases f' <;> cases a' <;> simp [__eo_mk_apply] at hFNe hANe ⊢
 
 theorem substitute_simul_rec_eo_type_valid_rec_eq_self
+    {isRename : Bool}
     (T xs ss bvs : Term)
     {refs : List native_String} {xsVars bvsVars : List EoVarKey}
     (hXsEnv : EoVarEnvPerm xs xsVars)
     (hBvsEnv : EoVarEnvPerm bvs bvsVars)
     (hSs : EoListAllHaveSmtTranslation ss)
     (hValid : TranslationProofs.eo_type_valid_rec refs T) :
-    __substitute_simul_rec (Term.Boolean false) T xs ss bvs = T := by
+    __substitute_simul_rec (Term.Boolean isRename) T xs ss bvs = T := by
   let rec go (T : Term) :
       ∀ {refs : List native_String} (xs ss bvs : Term)
         {xsVars bvsVars : List EoVarKey},
@@ -236,7 +240,7 @@ theorem substitute_simul_rec_eo_type_valid_rec_eq_self
             EoListAllHaveSmtTranslation ss ->
               TranslationProofs.eo_type_valid_rec refs T ->
                 __substitute_simul_rec
-                    (Term.Boolean false) T xs ss bvs = T := by
+                    (Term.Boolean isRename) T xs ss bvs = T := by
     intro refs xs ss bvs xsVars bvsVars hXsEnv hBvsEnv hSs hValid
     cases T with
     | Apply f a =>
@@ -249,13 +253,13 @@ theorem substitute_simul_rec_eo_type_valid_rec_eq_self
               cases a with
               | Numeral n =>
                   have hHead :
-                      __substitute_simul_rec (Term.Boolean false)
+                      __substitute_simul_rec (Term.Boolean isRename)
                           (Term.UOp UserOp.BitVec) xs ss bvs =
                         Term.UOp UserOp.BitVec :=
                     SubstituteSupport.substitute_simul_rec_uop_eq_self
                       UserOp.BitVec xs ss bvs hXsEnv hBvsEnv hSs
                   have hArg :
-                      __substitute_simul_rec (Term.Boolean false)
+                      __substitute_simul_rec (Term.Boolean isRename)
                           (Term.Numeral n) xs ss bvs =
                         Term.Numeral n :=
                     substitute_simul_rec_closed_atom_eq_self
@@ -279,7 +283,7 @@ theorem substitute_simul_rec_eo_type_valid_rec_eq_self
                   TranslationProofs.eo_type_valid_rec [] a := by
                 simpa [TranslationProofs.eo_type_valid_rec] using hValid
               have hHead :
-                  __substitute_simul_rec (Term.Boolean false)
+                  __substitute_simul_rec (Term.Boolean isRename)
                       (Term.UOp UserOp.Seq) xs ss bvs =
                     Term.UOp UserOp.Seq :=
                 SubstituteSupport.substitute_simul_rec_uop_eq_self
@@ -298,7 +302,7 @@ theorem substitute_simul_rec_eo_type_valid_rec_eq_self
                   TranslationProofs.eo_type_valid_rec [] a := by
                 simpa [TranslationProofs.eo_type_valid_rec] using hValid
               have hHead :
-                  __substitute_simul_rec (Term.Boolean false)
+                  __substitute_simul_rec (Term.Boolean isRename)
                       (Term.UOp UserOp.Set) xs ss bvs =
                     Term.UOp UserOp.Set :=
                 SubstituteSupport.substitute_simul_rec_uop_eq_self
@@ -322,7 +326,7 @@ theorem substitute_simul_rec_eo_type_valid_rec_eq_self
                       TranslationProofs.eo_type_valid_rec [] a) with
                   ⟨hYValid, hAValid⟩
                 have hFun :
-                    __substitute_simul_rec (Term.Boolean false)
+                    __substitute_simul_rec (Term.Boolean isRename)
                         Term.FunType xs ss bvs =
                       Term.FunType :=
                   substitute_simul_rec_closed_atom_eq_self
@@ -333,7 +337,7 @@ theorem substitute_simul_rec_eo_type_valid_rec_eq_self
                     (by simp [__is_closed_rec])
                 have hY := go y xs ss bvs hXsEnv hBvsEnv hSs hYValid
                 have hInner :
-                    __substitute_simul_rec (Term.Boolean false)
+                    __substitute_simul_rec (Term.Boolean isRename)
                         (Term.Apply Term.FunType y) xs ss bvs =
                       Term.Apply Term.FunType y :=
                   substitute_simul_rec_apply_eq_apply_of_parts
@@ -364,14 +368,14 @@ theorem substitute_simul_rec_eo_type_valid_rec_eq_self
                         TranslationProofs.eo_type_valid_rec [] a) with
                     ⟨hYValid, hAValid⟩
                   have hHead :
-                      __substitute_simul_rec (Term.Boolean false)
+                      __substitute_simul_rec (Term.Boolean isRename)
                           (Term.UOp UserOp.Array) xs ss bvs =
                         Term.UOp UserOp.Array :=
                     SubstituteSupport.substitute_simul_rec_uop_eq_self
                       UserOp.Array xs ss bvs hXsEnv hBvsEnv hSs
                   have hY := go y xs ss bvs hXsEnv hBvsEnv hSs hYValid
                   have hInner :
-                      __substitute_simul_rec (Term.Boolean false)
+                      __substitute_simul_rec (Term.Boolean isRename)
                           (Term.Apply (Term.UOp UserOp.Array) y) xs ss bvs =
                         Term.Apply (Term.UOp UserOp.Array) y :=
                     substitute_simul_rec_apply_eq_apply_of_parts
@@ -403,14 +407,14 @@ theorem substitute_simul_rec_eo_type_valid_rec_eq_self
                             true) with
                     ⟨hYValid, hAValid, _hWf⟩
                   have hHead :
-                      __substitute_simul_rec (Term.Boolean false)
+                      __substitute_simul_rec (Term.Boolean isRename)
                           (Term.UOp UserOp.Tuple) xs ss bvs =
                         Term.UOp UserOp.Tuple :=
                     SubstituteSupport.substitute_simul_rec_uop_eq_self
                       UserOp.Tuple xs ss bvs hXsEnv hBvsEnv hSs
                   have hY := go y xs ss bvs hXsEnv hBvsEnv hSs hYValid
                   have hInner :
-                      __substitute_simul_rec (Term.Boolean false)
+                      __substitute_simul_rec (Term.Boolean isRename)
                           (Term.Apply (Term.UOp UserOp.Tuple) y) xs ss bvs =
                         Term.Apply (Term.UOp UserOp.Tuple) y :=
                     substitute_simul_rec_apply_eq_apply_of_parts
@@ -496,13 +500,14 @@ theorem substitute_simul_rec_eo_type_valid_rec_eq_self
   exact go T xs ss bvs hXsEnv hBvsEnv hSs hValid
 
 theorem substitute_simul_rec_eo_type_valid_eq_self
+    {isRename : Bool}
     (T xs ss bvs : Term)
     {xsVars bvsVars : List EoVarKey}
     (hXsEnv : EoVarEnvPerm xs xsVars)
     (hBvsEnv : EoVarEnvPerm bvs bvsVars)
     (hSs : EoListAllHaveSmtTranslation ss)
     (hValid : TranslationProofs.eo_type_valid T) :
-    __substitute_simul_rec (Term.Boolean false) T xs ss bvs = T := by
+    __substitute_simul_rec (Term.Boolean isRename) T xs ss bvs = T := by
   by_cases hUOp : ∃ op, T = Term.UOp op
   · rcases hUOp with ⟨op, rfl⟩
     exact
@@ -634,6 +639,7 @@ private theorem eo_typeof_typed_list_cons_tail_typed_of_typed
         simp [__eo_typeof__at__at_TypedList_cons, hHead, hTail] at hTy
 
 theorem substitute_simul_rec_typed_list_elem_type_eq_of_non_none
+    {isRename : Bool}
     (typedList xs ss bvs : Term)
     {xsVars bvsVars : List EoVarKey}
     (hXsEnv : EoVarEnvPerm xs xsVars)
@@ -644,21 +650,21 @@ theorem substitute_simul_rec_typed_list_elem_type_eq_of_non_none
         sizeOf t < sizeOf typedList ->
         RuleProofs.eo_has_smt_translation t ->
           __eo_typeof
-              (__substitute_simul_rec (Term.Boolean false) t xs ss bvs) ≠
+              (__substitute_simul_rec (Term.Boolean isRename) t xs ss bvs) ≠
             Term.Stuck ->
             __smtx_typeof
                 (__eo_to_smt
-                  (__substitute_simul_rec (Term.Boolean false) t xs ss bvs)) =
+                  (__substitute_simul_rec (Term.Boolean isRename) t xs ss bvs)) =
               __smtx_typeof (__eo_to_smt t))
     (hSubTyped :
       ∃ T,
         __eo_typeof
             (__substitute_simul_rec
-              (Term.Boolean false) typedList xs ss bvs) =
+              (Term.Boolean isRename) typedList xs ss bvs) =
           Term.Apply (Term.UOp UserOp._at__at_TypedList) T)
     (hElemNN : __eo_to_smt_typed_list_elem_type typedList ≠ SmtType.None) :
     __eo_to_smt_typed_list_elem_type
-        (__substitute_simul_rec (Term.Boolean false) typedList xs ss bvs) =
+        (__substitute_simul_rec (Term.Boolean isRename) typedList xs ss bvs) =
       __eo_to_smt_typed_list_elem_type typedList := by
   cases typedList with
   | Apply f tail =>
@@ -674,19 +680,19 @@ theorem substitute_simul_rec_typed_list_elem_type_eq_of_non_none
             have hValid : TranslationProofs.eo_type_valid tail :=
               TranslationProofs.eo_type_valid_of_smt_wf tail hWf
             have hHead :
-                __substitute_simul_rec (Term.Boolean false)
+                __substitute_simul_rec (Term.Boolean isRename)
                     (Term.UOp UserOp._at__at_TypedList_nil) xs ss bvs =
                   Term.UOp UserOp._at__at_TypedList_nil :=
               SubstituteSupport.substitute_simul_rec_uop_eq_self
                 UserOp._at__at_TypedList_nil xs ss bvs
                 hXsEnv hBvsEnv hSs
             have hTail :
-                __substitute_simul_rec (Term.Boolean false) tail xs ss bvs =
+                __substitute_simul_rec (Term.Boolean isRename) tail xs ss bvs =
                   tail :=
               substitute_simul_rec_eo_type_valid_eq_self
                 tail xs ss bvs hXsEnv hBvsEnv hSs hValid
             have hSubEq :
-                __substitute_simul_rec (Term.Boolean false)
+                __substitute_simul_rec (Term.Boolean isRename)
                     (Term.Apply
                       (Term.UOp UserOp._at__at_TypedList_nil) tail)
                     xs ss bvs =
@@ -711,24 +717,24 @@ theorem substitute_simul_rec_typed_list_elem_type_eq_of_non_none
                   ⟨hHeadTail, hHeadNN, hTailNN, hConsEq⟩
                 let headSub :=
                   __substitute_simul_rec
-                    (Term.Boolean false) head xs ss bvs
+                    (Term.Boolean isRename) head xs ss bvs
                 let tailSub :=
                   __substitute_simul_rec
-                    (Term.Boolean false) tail xs ss bvs
-                have hisr : (Term.Boolean false : Term) ≠ Term.Stuck := by decide
+                    (Term.Boolean isRename) tail xs ss bvs
+                have hisr : (Term.Boolean isRename : Term) ≠ Term.Stuck := by cases isRename <;> decide
                 have hxs : xs ≠ Term.Stuck := hXsEnv.ne_stuck
                 have hss : ss ≠ Term.Stuck :=
                   SubstituteSupport.eoListAllHaveSmtTranslation_ne_stuck hSs
                 have hbvs : bvs ≠ Term.Stuck := hBvsEnv.ne_stuck
                 have hConsHead :
-                    __substitute_simul_rec (Term.Boolean false)
+                    __substitute_simul_rec (Term.Boolean isRename)
                         (Term.UOp UserOp._at__at_TypedList_cons) xs ss bvs =
                       Term.UOp UserOp._at__at_TypedList_cons :=
                   SubstituteSupport.substitute_simul_rec_uop_eq_self
                     UserOp._at__at_TypedList_cons xs ss bvs
                     hXsEnv hBvsEnv hSs
                 have hInnerRaw :
-                    __substitute_simul_rec (Term.Boolean false)
+                    __substitute_simul_rec (Term.Boolean isRename)
                         (Term.Apply
                           (Term.UOp UserOp._at__at_TypedList_cons) head)
                         xs ss bvs =
@@ -736,7 +742,7 @@ theorem substitute_simul_rec_typed_list_elem_type_eq_of_non_none
                         (Term.UOp UserOp._at__at_TypedList_cons) headSub := by
                   have hApplyEq :=
                     SubstituteSupport.substitute_simul_rec_apply
-                      (Term.Boolean false)
+                      (Term.Boolean isRename)
                       (Term.UOp UserOp._at__at_TypedList_cons) head
                       xs ss bvs hisr hxs hss hbvs
                       (by intro q v vs h; cases h)
@@ -750,7 +756,7 @@ theorem substitute_simul_rec_typed_list_elem_type_eq_of_non_none
                   apply_head_not_list_branch_of_arg_not_list
                     (smtx_typeof_non_none_not_eo_list_cons hHeadNN)
                 have hSubRaw :
-                    __substitute_simul_rec (Term.Boolean false)
+                    __substitute_simul_rec (Term.Boolean isRename)
                         (Term.Apply
                           (Term.Apply
                             (Term.UOp UserOp._at__at_TypedList_cons) head)
@@ -761,7 +767,7 @@ theorem substitute_simul_rec_typed_list_elem_type_eq_of_non_none
                         tailSub := by
                   have hApplyEq :=
                     SubstituteSupport.substitute_simul_rec_apply
-                      (Term.Boolean false)
+                      (Term.Boolean isRename)
                       (Term.Apply
                         (Term.UOp UserOp._at__at_TypedList_cons) head)
                       tail xs ss bvs hisr hxs hss hbvs hOuterNotBinder
@@ -824,7 +830,7 @@ theorem substitute_simul_rec_typed_list_elem_type_eq_of_non_none
                       rw [← hInnerMk]
                       exact hOuterNe)
                 have hSubEq :
-                    __substitute_simul_rec (Term.Boolean false)
+                    __substitute_simul_rec (Term.Boolean isRename)
                         (Term.Apply
                           (Term.Apply
                             (Term.UOp UserOp._at__at_TypedList_cons) head)
@@ -923,6 +929,7 @@ theorem substitute_simul_rec_typed_list_elem_type_eq_of_non_none
 termination_by typedList
 
 theorem substitute_simul_rec_typed_list_elem_type_non_none
+    {isRename : Bool}
     (typedList xs ss bvs : Term)
     {xsVars bvsVars : List EoVarKey}
     (hXsEnv : EoVarEnvPerm xs xsVars)
@@ -933,21 +940,21 @@ theorem substitute_simul_rec_typed_list_elem_type_non_none
         sizeOf t < sizeOf typedList ->
         RuleProofs.eo_has_smt_translation t ->
           __eo_typeof
-              (__substitute_simul_rec (Term.Boolean false) t xs ss bvs) ≠
+              (__substitute_simul_rec (Term.Boolean isRename) t xs ss bvs) ≠
             Term.Stuck ->
             __smtx_typeof
                 (__eo_to_smt
-                  (__substitute_simul_rec (Term.Boolean false) t xs ss bvs)) =
+                  (__substitute_simul_rec (Term.Boolean isRename) t xs ss bvs)) =
               __smtx_typeof (__eo_to_smt t))
     (hSubTyped :
       ∃ T,
         __eo_typeof
             (__substitute_simul_rec
-              (Term.Boolean false) typedList xs ss bvs) =
+              (Term.Boolean isRename) typedList xs ss bvs) =
           Term.Apply (Term.UOp UserOp._at__at_TypedList) T)
     (hElemNN : __eo_to_smt_typed_list_elem_type typedList ≠ SmtType.None) :
     __eo_to_smt_typed_list_elem_type
-        (__substitute_simul_rec (Term.Boolean false) typedList xs ss bvs) ≠
+        (__substitute_simul_rec (Term.Boolean isRename) typedList xs ss bvs) ≠
       SmtType.None := by
   rw [substitute_simul_rec_typed_list_elem_type_eq_of_non_none
     typedList xs ss bvs hXsEnv hBvsEnv hSs hSmtType hSubTyped hElemNN]

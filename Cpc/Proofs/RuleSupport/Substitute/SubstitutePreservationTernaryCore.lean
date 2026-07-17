@@ -15,6 +15,7 @@ set_option maxRecDepth 2000
 namespace SubstitutePreservationSupport
 
 theorem substitute_simul_ternary_op_preserves_type_and_translation_of_typeof_ne_stuck
+    {isRename : Bool}
     (op : UserOp) (x y z xs ts bvs : Term)
     {xsVars bvsVars : List EoVarKey}
     (hXsEnv : EoVarEnvPerm xs xsVars)
@@ -25,7 +26,7 @@ theorem substitute_simul_ternary_op_preserves_type_and_translation_of_typeof_ne_
         (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) x) y) z))
     (hTy :
       __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) x) y) z)
           xs ts bvs) ≠
         Term.Stuck)
@@ -65,47 +66,47 @@ theorem substitute_simul_ternary_op_preserves_type_and_translation_of_typeof_ne_
     (hRecX :
       RuleProofs.eo_has_smt_translation x ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) =
           __eo_typeof x ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs))
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs))
     (hRecY :
       RuleProofs.eo_has_smt_translation y ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) =
           __eo_typeof y ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs))
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs))
     (hRecZ :
       RuleProofs.eo_has_smt_translation z ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) z xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) z xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) z xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) z xs ts bvs) =
           __eo_typeof z ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) z xs ts bvs)) :
+            (__substitute_simul_rec (Term.Boolean isRename) z xs ts bvs)) :
     __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) x) y) z)
           xs ts bvs) =
       __eo_typeof
         (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) x) y) z) ∧
       RuleProofs.eo_has_smt_translation
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) x) y) z)
           xs ts bvs) := by
-  let xSub := __substitute_simul_rec (Term.Boolean false) x xs ts bvs
-  let ySub := __substitute_simul_rec (Term.Boolean false) y xs ts bvs
-  let zSub := __substitute_simul_rec (Term.Boolean false) z xs ts bvs
-  have hisr : (Term.Boolean false : Term) ≠ Term.Stuck := by decide
+  let xSub := __substitute_simul_rec (Term.Boolean isRename) x xs ts bvs
+  let ySub := __substitute_simul_rec (Term.Boolean isRename) y xs ts bvs
+  let zSub := __substitute_simul_rec (Term.Boolean isRename) z xs ts bvs
+  have hisr : (Term.Boolean isRename : Term) ≠ Term.Stuck := by cases isRename <;> decide
   have hxs : xs ≠ Term.Stuck := hXsEnv.ne_stuck
   have hts : ts ≠ Term.Stuck := eoListAllHaveSmtTranslation_ne_stuck hTs
   have hbvs : bvs ≠ Term.Stuck := hBvsEnv.ne_stuck
@@ -125,17 +126,17 @@ theorem substitute_simul_ternary_op_preserves_type_and_translation_of_typeof_ne_
     simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
       using hZTransEo
   have hHeadSub :
-      __substitute_simul_rec (Term.Boolean false)
+      __substitute_simul_rec (Term.Boolean isRename)
           (Term.UOp op) xs ts bvs =
         Term.UOp op :=
     substitute_simul_rec_uop_eq_self op xs ts bvs hXsEnv hBvsEnv hTs
   have hFirstSub :
-      __substitute_simul_rec (Term.Boolean false)
+      __substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.UOp op) x) xs ts bvs =
         __eo_mk_apply (Term.UOp op) xSub := by
     have hApplyEq :=
       SubstituteSupport.substitute_simul_rec_apply
-        (Term.Boolean false) (Term.UOp op) x xs ts bvs
+        (Term.Boolean isRename) (Term.UOp op) x xs ts bvs
         hisr hxs hts hbvs
         (by intro q v vs hEq; cases hEq)
     simpa [xSub, hHeadSub] using hApplyEq
@@ -147,12 +148,12 @@ theorem substitute_simul_ternary_op_preserves_type_and_translation_of_typeof_ne_
     cases hEq
     exact term_not_eo_list_cons_of_has_smt_translation hXTransEo v vs rfl
   have hSecondSub :
-      __substitute_simul_rec (Term.Boolean false)
+      __substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp op) x) y) xs ts bvs =
         __eo_mk_apply (__eo_mk_apply (Term.UOp op) xSub) ySub := by
     have hApplyEq :=
       SubstituteSupport.substitute_simul_rec_apply
-        (Term.Boolean false) (Term.Apply (Term.UOp op) x) y xs ts bvs
+        (Term.Boolean isRename) (Term.Apply (Term.UOp op) x) y xs ts bvs
         hisr hxs hts hbvs hSecondNotBinder
     simpa [ySub, hFirstSub] using hApplyEq
   have hThirdNotBinder :
@@ -163,14 +164,14 @@ theorem substitute_simul_ternary_op_preserves_type_and_translation_of_typeof_ne_
     cases hEq
     exact term_not_eo_list_cons_of_has_smt_translation hYTransEo v vs rfl
   have hSubstEq :
-      __substitute_simul_rec (Term.Boolean false)
+      __substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) x) y) z)
           xs ts bvs =
         __eo_mk_apply
           (__eo_mk_apply (__eo_mk_apply (Term.UOp op) xSub) ySub) zSub := by
     have hApplyEq :=
       SubstituteSupport.substitute_simul_rec_apply
-        (Term.Boolean false) (Term.Apply (Term.Apply (Term.UOp op) x) y)
+        (Term.Boolean isRename) (Term.Apply (Term.Apply (Term.UOp op) x) y)
         z xs ts bvs hisr hxs hts hbvs hThirdNotBinder
     simpa [zSub, hSecondSub] using hApplyEq
   have hTyMk :

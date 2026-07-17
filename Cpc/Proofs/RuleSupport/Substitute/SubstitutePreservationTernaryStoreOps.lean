@@ -61,6 +61,7 @@ private theorem eo_typeof_store_arg_types_of_ne_stuck
   exact ⟨U, T, hA, hI, hE, hINN, hENN⟩
 
 theorem substitute_simul_store_preserves_type_and_translation_of_typeof_ne_stuck
+    {isRename : Bool}
     (arr idx val xs ts bvs : Term)
     {xsVars bvsVars : List EoVarKey}
     (hXsEnv : EoVarEnvPerm xs xsVars)
@@ -72,7 +73,7 @@ theorem substitute_simul_store_preserves_type_and_translation_of_typeof_ne_stuck
           val))
     (hTy :
       __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.store) arr) idx)
             val)
           xs ts bvs) ≠
@@ -80,35 +81,35 @@ theorem substitute_simul_store_preserves_type_and_translation_of_typeof_ne_stuck
     (hRecArr :
       RuleProofs.eo_has_smt_translation arr ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) arr xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) arr xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) arr xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) arr xs ts bvs) =
           __eo_typeof arr ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) arr xs ts bvs))
+            (__substitute_simul_rec (Term.Boolean isRename) arr xs ts bvs))
     (hRecIdx :
       RuleProofs.eo_has_smt_translation idx ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) idx xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) idx xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) idx xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) idx xs ts bvs) =
           __eo_typeof idx ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) idx xs ts bvs))
+            (__substitute_simul_rec (Term.Boolean isRename) idx xs ts bvs))
     (hRecVal :
       RuleProofs.eo_has_smt_translation val ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) val xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) val xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) val xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) val xs ts bvs) =
           __eo_typeof val ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) val xs ts bvs)) :
+            (__substitute_simul_rec (Term.Boolean isRename) val xs ts bvs)) :
     __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.store) arr) idx)
             val)
           xs ts bvs) =
@@ -116,7 +117,7 @@ theorem substitute_simul_store_preserves_type_and_translation_of_typeof_ne_stuck
         (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.store) arr) idx)
           val) ∧
       RuleProofs.eo_has_smt_translation
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.store) arr) idx)
             val)
           xs ts bvs) := by

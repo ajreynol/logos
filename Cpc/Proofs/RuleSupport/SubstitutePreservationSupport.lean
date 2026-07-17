@@ -42,8 +42,47 @@ holes until those cases are folded into the combined induction.
 
 namespace SubstitutePreservationSupport
 
-private abbrev substResult (F xs ts bvs : Term) : Term :=
-  __substitute_simul_rec (Term.Boolean false) F xs ts bvs
+abbrev substResult (isRename : Bool) (F xs ts bvs : Term) : Term :=
+  __substitute_simul_rec (Term.Boolean isRename) F xs ts bvs
+
+abbrev SubstitutionPreservationResult
+    (isRename : Bool) (F xs ts bvs : Term) : Prop :=
+  __eo_typeof (substResult isRename F xs ts bvs) = __eo_typeof F ∧
+    RuleProofs.eo_has_smt_translation (substResult isRename F xs ts bvs)
+
+abbrev SubstitutionPreservationRec
+    (isRename : Bool) (F xs ts : Term) :=
+  ∀ {G bvs' : Term} {xsVars' bvsVars' : List EoVarKey},
+    sizeOf G < sizeOf F →
+    EoVarEnvPerm xs xsVars' →
+    EoVarEnvPerm bvs' bvsVars' →
+    RuleProofs.eo_has_smt_translation G →
+    EoListAllHaveSmtTranslation ts →
+    SubstActualsHaveSmtTypes xs ts →
+    __eo_typeof (substResult isRename G xs ts bvs') ≠ Term.Stuck →
+    SubstitutionPreservationResult isRename G xs ts bvs'
+
+abbrev SubstitutionBinderHandler (isRename : Bool) (xs ts : Term) :=
+  ∀ (q v vs a bvs : Term) {xsVars bvsVars : List EoVarKey},
+    EoVarEnvPerm xs xsVars →
+    EoVarEnvPerm bvs bvsVars →
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply q
+        (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)) a) →
+    EoListAllHaveSmtTranslation ts →
+    SubstActualsHaveSmtTypes xs ts →
+    __eo_typeof
+      (substResult isRename
+        (Term.Apply (Term.Apply q
+          (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)) a)
+        xs ts bvs) ≠ Term.Stuck →
+    SubstitutionPreservationRec isRename
+      (Term.Apply (Term.Apply q
+        (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)) a) xs ts →
+    SubstitutionPreservationResult isRename
+      (Term.Apply (Term.Apply q
+        (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)) a)
+      xs ts bvs
 
 private theorem eo_typeof_eq_eq_bool_of_ne_stuck
     {A B : Term}
@@ -186,8 +225,10 @@ it implies the exact EO entry type facts consumed by the older type-preservation
 theorem and also carries the SMT-translation/type facts consumed by the older
 translatability theorem.
 -/
-theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
+theorem substitute_simul_preserves_type_and_translation_with_binder_lt
+    {isRename : Bool}
     (n : Nat) (F xs ts bvs : Term)
+    (hBinderCase : SubstitutionBinderHandler isRename xs ts)
     {xsVars bvsVars : List EoVarKey}
     (hLt : sizeOf F < n)
     (hXsEnv : EoVarEnvPerm xs xsVars)
@@ -195,35 +236,19 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
       (hFTrans : RuleProofs.eo_has_smt_translation F)
       (hTs : EoListAllHaveSmtTranslation ts)
       (hActuals : SubstActualsHaveSmtTypes xs ts)
-      (hTy : __eo_typeof (substResult F xs ts bvs) ≠ Term.Stuck) :
-      __eo_typeof (substResult F xs ts bvs) = __eo_typeof F ∧
-        RuleProofs.eo_has_smt_translation (substResult F xs ts bvs) := by
+      (hTy : __eo_typeof (substResult isRename F xs ts bvs) ≠ Term.Stuck) :
+      SubstitutionPreservationResult isRename F xs ts bvs := by
     cases n with
     | zero =>
         omega
     | succ n =>
       have hEntryTypes : SubstituteSupport.SubstEntryPreservesTypes xs ts :=
         SubstActualsHaveSmtTypes.entry_eo_type_eq hActuals
-      let hRec :
-          ∀ {G xs' ts' bvs' : Term} {xsVars' bvsVars' : List EoVarKey},
-            sizeOf G < sizeOf F ->
-            EoVarEnvPerm xs' xsVars' ->
-            EoVarEnvPerm bvs' bvsVars' ->
-            RuleProofs.eo_has_smt_translation G ->
-            EoListAllHaveSmtTranslation ts' ->
-            SubstActualsHaveSmtTypes xs' ts' ->
-            __eo_typeof
-                (__substitute_simul_rec (Term.Boolean false) G xs' ts' bvs') ≠
-              Term.Stuck ->
-            __eo_typeof
-                (__substitute_simul_rec (Term.Boolean false) G xs' ts' bvs') =
-              __eo_typeof G ∧
-              RuleProofs.eo_has_smt_translation
-                (__substitute_simul_rec (Term.Boolean false) G xs' ts' bvs') :=
-        fun {G xs' ts' bvs'} {xsVars' bvsVars'} hGLt hXsEnv' hBvsEnv'
+      let hRec : SubstitutionPreservationRec isRename F xs ts :=
+        fun {G bvs'} {xsVars' bvsVars'} hGLt hXsEnv' hBvsEnv'
             hGTrans hTs' hActuals' hGTy =>
-          substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
-            n G xs' ts' bvs'
+          substitute_simul_preserves_type_and_translation_with_binder_lt
+            n G xs ts bvs' hBinderCase
             (by omega) hXsEnv' hBvsEnv' hGTrans hTs' hActuals' hGTy
       by_cases hApply : ∃ f a, F = Term.Apply f a
       · rcases hApply with ⟨f, a, rfl⟩
@@ -233,99 +258,13 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                 Term.Apply q
                   (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)
         · rcases hBinder with ⟨q, v, vs, rfl⟩
-          let binders := Term.Apply (Term.Apply Term.__eo_List_cons v) vs
-          let bodySub :=
-            __substitute_simul_rec (Term.Boolean false) a xs ts
-              (__eo_list_concat Term.__eo_List_cons binders bvs)
-          have hFTrans' :
-              eoHasSmtTranslation (Term.Apply (Term.Apply q binders) a) := by
-            simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation,
-              binders] using hFTrans
-          have hQ :
-              q = Term.UOp UserOp.forall ∨ q = Term.UOp UserOp.exists :=
-            is_closed_rec_list_branch_head_term_quantifier_of_has_smt_translation
-              hFTrans'
-          rcases eo_var_env_of_list_branch_has_smt_translation hFTrans' with
-            ⟨binderVars, hBinderEnv⟩
-          have hSubstEq :
-              __substitute_simul_rec (Term.Boolean false)
-                  (Term.Apply (Term.Apply q binders) a) xs ts bvs =
-                __eo_mk_apply (Term.Apply q binders) bodySub := by
-            simpa [binders, bodySub] using
-              substitute_simul_quant_eq_of_typeof_ne_stuck
-                q v vs a xs ts bvs hXsEnv hBvsEnv hTs hTy
-          have hTyMk :
-              __eo_typeof (__eo_mk_apply (Term.Apply q binders) bodySub) ≠
-                Term.Stuck := by
-            have hTyRaw :
-                __eo_typeof
-                    (__substitute_simul_rec (Term.Boolean false)
-                      (Term.Apply (Term.Apply q binders) a) xs ts bvs) ≠
-                  Term.Stuck := by
-              simpa [substResult, binders] using hTy
-            rwa [hSubstEq] at hTyRaw
-          have hMk :
-              __eo_mk_apply (Term.Apply q binders) bodySub =
-                Term.Apply (Term.Apply q binders) bodySub :=
-            eo_mk_apply_apply_head_eq_apply_of_typeof_ne_stuck
-              q binders bodySub hTyMk
-          have hTyApply :
-              __eo_typeof (Term.Apply (Term.Apply q binders) bodySub) ≠
-                Term.Stuck := by
-            rwa [hMk] at hTyMk
-          have hBodyBool : __eo_typeof bodySub = Term.Bool :=
-            eo_typeof_body_bool_of_quant_type_ne_stuck
-              hQ hBinderEnv hTyApply
-          have hBodyTy : __eo_typeof bodySub ≠ Term.Stuck := by
-            rw [hBodyBool]
-            intro h
-            cases h
-          have hBodyTrans :
-              RuleProofs.eo_has_smt_translation a := by
-            simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
-              using
-                body_has_smt_translation_of_list_branch_has_smt_translation
-                  hFTrans'
-          have hBvsEnv' :
-              EoVarEnvPerm
-                (__eo_list_concat Term.__eo_List_cons binders bvs)
-                (binderVars.reverse ++ bvsVars) :=
-            EoVarEnvPerm.concat_rev hBinderEnv hBvsEnv
-          have hBodyType :
-              __eo_typeof bodySub = __eo_typeof a := by
-            simpa [bodySub] using
-              (hRec
-                (G := a) (xs' := xs) (ts' := ts)
-                (bvs' := __eo_list_concat Term.__eo_List_cons binders bvs)
-                (by
-                  simp
-                  omega)
-                hXsEnv hBvsEnv' hBodyTrans hTs hActuals
-                (by simpa [bodySub] using hBodyTy)).1
-          have hBodySubTrans :
-              RuleProofs.eo_has_smt_translation bodySub := by
-            simpa [bodySub] using
-              (hRec
-                (G := a) (xs' := xs) (ts' := ts)
-                (bvs' := __eo_list_concat Term.__eo_List_cons binders bvs)
-                (by
-                  simp
-                  omega)
-                hXsEnv hBvsEnv' hBodyTrans hTs hActuals
-                (by simpa [bodySub] using hBodyTy)).2
-          refine ⟨?_, ?_⟩
-          · simpa [binders, bodySub] using
-              SubstituteSupport.substitute_simul_quant_typeof_eq_of_typeof_ne_stuck
-                q v vs a xs ts bvs hXsEnv hBvsEnv hTs
-                hFTrans hBodyType hTy
-          · simpa [binders, bodySub] using
-              substitute_simul_quant_has_smt_translation_of_typeof_ne_stuck
-                q v vs a xs ts bvs hXsEnv hBvsEnv hTs
-                hFTrans hBodySubTrans hTy
+          exact
+            hBinderCase q v vs a bvs
+              hXsEnv hBvsEnv hFTrans hTs hActuals hTy hRec
         · by_cases hHeadVar : ∃ name T, f = Term.Var name T
           · rcases hHeadVar with ⟨name, T, rfl⟩
             let aSub :=
-              __substitute_simul_rec (Term.Boolean false) a xs ts bvs
+              __substitute_simul_rec (Term.Boolean isRename) a xs ts bvs
             have hNotBinder :
                 ∀ q v vs,
                   Term.Var name T ≠
@@ -344,7 +283,7 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
               hArgs.1
             have hATrans : RuleProofs.eo_has_smt_translation a := hArgs.2
             have hHeadNe :
-                __substitute_simul_rec (Term.Boolean false)
+                __substitute_simul_rec (Term.Boolean isRename)
                     (Term.Var name T) xs ts bvs ≠
                   Term.Stuck :=
               SubstituteSupport.substitute_simul_rec_apply_head_ne_stuck_of_typeof_ne_stuck
@@ -352,7 +291,7 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                 hNotBinder hTy
             have hHeadSubTrans :
                 RuleProofs.eo_has_smt_translation
-                  (__substitute_simul_rec (Term.Boolean false)
+                  (__substitute_simul_rec (Term.Boolean isRename)
                     (Term.Var name T) xs ts bvs) :=
               SubstituteSupport.substitute_simul_rec_var_any_has_smt_translation_of_ne_stuck
                 name T xs ts bvs hXsEnv hBvsEnv hTs hHeadTrans hHeadNe
@@ -366,7 +305,7 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                   RuleProofs.eo_has_smt_translation aSub := by
               simpa [aSub] using
                 hRec
-                  (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                  (G := a) (bvs' := bvs)
                   (by
                     simp
                     omega)
@@ -391,7 +330,7 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
           · by_cases hHeadUConst : ∃ i U, f = Term.UConst i U
             · rcases hHeadUConst with ⟨i, U, rfl⟩
               let aSub :=
-                __substitute_simul_rec (Term.Boolean false) a xs ts bvs
+                __substitute_simul_rec (Term.Boolean isRename) a xs ts bvs
               have hNotBinder :
                   ∀ q v vs,
                     Term.UConst i U ≠
@@ -433,7 +372,7 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                 hArgs.1
               have hATrans : RuleProofs.eo_has_smt_translation a := hArgs.2
               have hHeadNe :
-                  __substitute_simul_rec (Term.Boolean false)
+                  __substitute_simul_rec (Term.Boolean isRename)
                       (Term.UConst i U) xs ts bvs ≠
                     Term.Stuck :=
                 SubstituteSupport.substitute_simul_rec_apply_head_ne_stuck_of_typeof_ne_stuck
@@ -441,7 +380,7 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                   hNotBinder hTy
               have hHeadSubTrans :
                   RuleProofs.eo_has_smt_translation
-                    (__substitute_simul_rec (Term.Boolean false)
+                    (__substitute_simul_rec (Term.Boolean isRename)
                       (Term.UConst i U) xs ts bvs) :=
                 SubstituteSupport.substitute_simul_rec_atom_has_smt_translation_of_ne_stuck
                   (Term.UConst i U) xs ts bvs hXsEnv hBvsEnv hTs
@@ -459,7 +398,7 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                     RuleProofs.eo_has_smt_translation aSub := by
                 simpa [aSub] using
                   hRec
-                    (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                    (G := a) (bvs' := bvs)
                     (by
                       simp
                       omega)
@@ -485,7 +424,7 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
             · by_cases hHeadDtCons : ∃ s d i, f = Term.DtCons s d i
               · rcases hHeadDtCons with ⟨s, d, i, rfl⟩
                 let aSub :=
-                  __substitute_simul_rec (Term.Boolean false) a xs ts bvs
+                  __substitute_simul_rec (Term.Boolean isRename) a xs ts bvs
                 have hNotBinder :
                     ∀ q v vs,
                       Term.DtCons s d i ≠
@@ -539,7 +478,7 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                   hArgs.1
                 have hATrans : RuleProofs.eo_has_smt_translation a := hArgs.2
                 have hHeadNe :
-                    __substitute_simul_rec (Term.Boolean false)
+                    __substitute_simul_rec (Term.Boolean isRename)
                         (Term.DtCons s d i) xs ts bvs ≠
                       Term.Stuck :=
                   SubstituteSupport.substitute_simul_rec_apply_head_ne_stuck_of_typeof_ne_stuck
@@ -547,7 +486,7 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                     hNotBinder hTy
                 have hHeadSubTrans :
                     RuleProofs.eo_has_smt_translation
-                      (__substitute_simul_rec (Term.Boolean false)
+                      (__substitute_simul_rec (Term.Boolean isRename)
                         (Term.DtCons s d i) xs ts bvs) :=
                   SubstituteSupport.substitute_simul_rec_atom_has_smt_translation_of_ne_stuck
                     (Term.DtCons s d i) xs ts bvs hXsEnv hBvsEnv hTs
@@ -565,7 +504,7 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                       RuleProofs.eo_has_smt_translation aSub := by
                   simpa [aSub] using
                     hRec
-                      (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                      (G := a) (bvs' := bvs)
                       (by
                         simp
                         omega)
@@ -636,12 +575,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                           simp [native_ite, native_Teq])
                         (fun hXTrans hXTy =>
                           hRec
-                            (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                            (G := x1) (bvs' := bvs)
                             (by simp; omega)
                             hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                         (fun hATrans hATy =>
                           hRec
-                            (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                            (G := a) (bvs' := bvs)
                             (by simp; omega)
                             hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                   · by_cases hHeadOr : g = Term.UOp UserOp.or
@@ -690,12 +629,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                             simp [native_ite, native_Teq])
                           (fun hXTrans hXTy =>
                             hRec
-                              (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                              (G := x1) (bvs' := bvs)
                               (by simp; omega)
                               hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                           (fun hATrans hATy =>
                             hRec
-                              (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                              (G := a) (bvs' := bvs)
                               (by simp; omega)
                               hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                     · by_cases hHeadImp : g = Term.UOp UserOp.imp
@@ -744,12 +683,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                               simp [native_ite, native_Teq])
                             (fun hXTrans hXTy =>
                               hRec
-                                (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                (G := x1) (bvs' := bvs)
                                 (by simp; omega)
                                 hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                             (fun hATrans hATy =>
                               hRec
-                                (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                (G := a) (bvs' := bvs)
                                 (by simp; omega)
                                 hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                       · by_cases hHeadXor : g = Term.UOp UserOp.xor
@@ -798,12 +737,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                 simp [native_ite, native_Teq])
                               (fun hXTrans hXTy =>
                                 hRec
-                                  (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                  (G := x1) (bvs' := bvs)
                                   (by simp; omega)
                                   hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                               (fun hATrans hATy =>
                                 hRec
-                                  (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                  (G := a) (bvs' := bvs)
                                   (by simp; omega)
                                   hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                         · by_cases hHeadEq : g = Term.UOp UserOp.eq
@@ -864,12 +803,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                   exact smt_typeof_eq_self_ne_none_of_ne_none hYNN)
                                 (fun hXTrans hXTy =>
                                   hRec
-                                    (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                    (G := x1) (bvs' := bvs)
                                     (by simp; omega)
                                     hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                 (fun hATrans hATy =>
                                   hRec
-                                    (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                    (G := a) (bvs' := bvs)
                                     (by simp; omega)
                                     hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                           · by_cases hHeadPlus : g = Term.UOp UserOp.plus
@@ -929,12 +868,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                         __smtx_typeof_arith_overload_op_2])
                                   (fun hXTrans hXTy =>
                                     hRec
-                                      (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                      (G := x1) (bvs' := bvs)
                                       (by simp; omega)
                                       hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                   (fun hATrans hATy =>
                                     hRec
-                                      (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                      (G := a) (bvs' := bvs)
                                       (by simp; omega)
                                       hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                             · by_cases hHeadNeg : g = Term.UOp UserOp.neg
@@ -994,12 +933,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                           __smtx_typeof_arith_overload_op_2])
                                     (fun hXTrans hXTy =>
                                       hRec
-                                        (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                        (G := x1) (bvs' := bvs)
                                         (by simp; omega)
                                         hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                     (fun hATrans hATy =>
                                       hRec
-                                        (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                        (G := a) (bvs' := bvs)
                                         (by simp; omega)
                                         hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                               · by_cases hHeadMult : g = Term.UOp UserOp.mult
@@ -1059,12 +998,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                             __smtx_typeof_arith_overload_op_2])
                                       (fun hXTrans hXTy =>
                                         hRec
-                                          (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                          (G := x1) (bvs' := bvs)
                                           (by simp; omega)
                                           hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                       (fun hATrans hATy =>
                                         hRec
-                                          (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                          (G := a) (bvs' := bvs)
                                           (by simp; omega)
                                           hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                 · by_cases hHeadLt : g = Term.UOp UserOp.lt
@@ -1102,12 +1041,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                               X Y hXTrans hYTrans hApp)
                                         (fun hXTrans hXTy =>
                                           hRec
-                                            (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                            (G := x1) (bvs' := bvs)
                                             (by simp; omega)
                                             hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                         (fun hATrans hATy =>
                                           hRec
-                                            (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                            (G := a) (bvs' := bvs)
                                             (by simp; omega)
                                             hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                   · by_cases hHeadLeq : g = Term.UOp UserOp.leq
@@ -1145,12 +1084,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                 X Y hXTrans hYTrans hApp)
                                           (fun hXTrans hXTy =>
                                             hRec
-                                              (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                              (G := x1) (bvs' := bvs)
                                               (by simp; omega)
                                               hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                           (fun hATrans hATy =>
                                             hRec
-                                              (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                              (G := a) (bvs' := bvs)
                                               (by simp; omega)
                                               hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                     · by_cases hHeadGt : g = Term.UOp UserOp.gt
@@ -1188,12 +1127,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                   X Y hXTrans hYTrans hApp)
                                             (fun hXTrans hXTy =>
                                               hRec
-                                                (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                (G := x1) (bvs' := bvs)
                                                 (by simp; omega)
                                                 hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                             (fun hATrans hATy =>
                                               hRec
-                                                (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                (G := a) (bvs' := bvs)
                                                 (by simp; omega)
                                                 hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                       · by_cases hHeadGeq : g = Term.UOp UserOp.geq
@@ -1231,12 +1170,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                     X Y hXTrans hYTrans hApp)
                                               (fun hXTrans hXTy =>
                                                 hRec
-                                                  (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                  (G := x1) (bvs' := bvs)
                                                   (by simp; omega)
                                                   hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                               (fun hATrans hATy =>
                                                 hRec
-                                                  (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                  (G := a) (bvs' := bvs)
                                                   (by simp; omega)
                                                   hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                         · by_cases hHeadDiv : g = Term.UOp UserOp.div
@@ -1281,12 +1220,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                   simp [__eo_to_smt_type, native_ite, native_Teq])
                                                 (fun hXTrans hXTy =>
                                                   hRec
-                                                    (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                    (G := x1) (bvs' := bvs)
                                                     (by simp; omega)
                                                     hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                 (fun hATrans hATy =>
                                                   hRec
-                                                    (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                    (G := a) (bvs' := bvs)
                                                     (by simp; omega)
                                                     hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                           · by_cases hHeadMod : g = Term.UOp UserOp.mod
@@ -1331,12 +1270,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                     simp [__eo_to_smt_type, native_ite, native_Teq])
                                                   (fun hXTrans hXTy =>
                                                     hRec
-                                                      (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                      (G := x1) (bvs' := bvs)
                                                       (by simp; omega)
                                                       hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                   (fun hATrans hATy =>
                                                     hRec
-                                                      (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                      (G := a) (bvs' := bvs)
                                                       (by simp; omega)
                                                       hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                             · by_cases hHeadMultmult :
@@ -1382,12 +1321,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                       simp [__eo_to_smt_type, native_ite, native_Teq])
                                                     (fun hXTrans hXTy =>
                                                       hRec
-                                                        (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                        (G := x1) (bvs' := bvs)
                                                         (by simp; omega)
                                                         hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                     (fun hATrans hATy =>
                                                       hRec
-                                                        (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                        (G := a) (bvs' := bvs)
                                                         (by simp; omega)
                                                         hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                               · by_cases hHeadDivisible :
@@ -1433,12 +1372,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                         simp [__eo_to_smt_type, native_ite, native_Teq])
                                                       (fun hXTrans hXTy =>
                                                         hRec
-                                                          (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                          (G := x1) (bvs' := bvs)
                                                           (by simp; omega)
                                                           hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                       (fun hATrans hATy =>
                                                         hRec
-                                                          (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                          (G := a) (bvs' := bvs)
                                                           (by simp; omega)
                                                           hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                 · by_cases hHeadDivTotal :
@@ -1484,12 +1423,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                           simp [__eo_to_smt_type, native_ite, native_Teq])
                                                         (fun hXTrans hXTy =>
                                                           hRec
-                                                            (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                            (G := x1) (bvs' := bvs)
                                                             (by simp; omega)
                                                             hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                         (fun hATrans hATy =>
                                                           hRec
-                                                            (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                            (G := a) (bvs' := bvs)
                                                             (by simp; omega)
                                                             hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                   · by_cases hHeadModTotal :
@@ -1535,12 +1474,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                             simp [__eo_to_smt_type, native_ite, native_Teq])
                                                           (fun hXTrans hXTy =>
                                                             hRec
-                                                              (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                              (G := x1) (bvs' := bvs)
                                                               (by simp; omega)
                                                               hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                           (fun hATrans hATy =>
                                                             hRec
-                                                              (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                              (G := a) (bvs' := bvs)
                                                               (by simp; omega)
                                                               hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                     · by_cases hHeadMultmultTotal :
@@ -1586,12 +1525,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                               simp [__eo_to_smt_type, native_ite, native_Teq])
                                                             (fun hXTrans hXTy =>
                                                               hRec
-                                                                (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                (G := x1) (bvs' := bvs)
                                                                 (by simp; omega)
                                                                 hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                             (fun hATrans hATy =>
                                                               hRec
-                                                                (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                (G := a) (bvs' := bvs)
                                                                 (by simp; omega)
                                                                 hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                       · by_cases hHeadQdiv :
@@ -1630,12 +1569,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                     X Y hXTrans hYTrans hApp)
                                                               (fun hXTrans hXTy =>
                                                                 hRec
-                                                                  (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                  (G := x1) (bvs' := bvs)
                                                                   (by simp; omega)
                                                                   hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                               (fun hATrans hATy =>
                                                                 hRec
-                                                                  (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                  (G := a) (bvs' := bvs)
                                                                   (by simp; omega)
                                                                   hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                         · by_cases hHeadQdivTotal :
@@ -1674,12 +1613,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                       X Y hXTrans hYTrans hApp)
                                                                 (fun hXTrans hXTy =>
                                                                   hRec
-                                                                    (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                    (G := x1) (bvs' := bvs)
                                                                     (by simp; omega)
                                                                     hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                 (fun hATrans hATy =>
                                                                   hRec
-                                                                    (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                    (G := a) (bvs' := bvs)
                                                                     (by simp; omega)
                                                                     hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                           · by_cases hHeadConcat :
@@ -1720,12 +1659,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                         X Y hXTrans hYTrans hApp)
                                                                   (fun hXTrans hXTy =>
                                                                     hRec
-                                                                      (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                      (G := x1) (bvs' := bvs)
                                                                       (by simp; omega)
                                                                       hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                   (fun hATrans hATy =>
                                                                     hRec
-                                                                      (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                      (G := a) (bvs' := bvs)
                                                                       (by simp; omega)
                                                                       hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                             · by_cases hHeadBvand :
@@ -1770,12 +1709,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                           X Y hXTrans hYTrans hApp)
                                                                     (fun hXTrans hXTy =>
                                                                       hRec
-                                                                        (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                        (G := x1) (bvs' := bvs)
                                                                         (by simp; omega)
                                                                         hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                     (fun hATrans hATy =>
                                                                       hRec
-                                                                        (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                        (G := a) (bvs' := bvs)
                                                                         (by simp; omega)
                                                                         hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                               · by_cases hHeadBvor :
@@ -1820,12 +1759,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                             X Y hXTrans hYTrans hApp)
                                                                       (fun hXTrans hXTy =>
                                                                         hRec
-                                                                          (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                          (G := x1) (bvs' := bvs)
                                                                           (by simp; omega)
                                                                           hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                       (fun hATrans hATy =>
                                                                         hRec
-                                                                          (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                          (G := a) (bvs' := bvs)
                                                                           (by simp; omega)
                                                                           hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                 · by_cases hHeadBvnand :
@@ -1842,12 +1781,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                         (fun X Y => by rfl)
                                                                         (fun hXTrans hXTy =>
                                                                           hRec
-                                                                            (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                            (G := x1) (bvs' := bvs)
                                                                             (by simp; omega)
                                                                             hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                         (fun hATrans hATy =>
                                                                           hRec
-                                                                            (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                            (G := a) (bvs' := bvs)
                                                                             (by simp; omega)
                                                                             hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                   · by_cases hHeadBvnor :
@@ -1864,12 +1803,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                           (fun X Y => by rfl)
                                                                           (fun hXTrans hXTy =>
                                                                             hRec
-                                                                              (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                              (G := x1) (bvs' := bvs)
                                                                               (by simp; omega)
                                                                               hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                           (fun hATrans hATy =>
                                                                             hRec
-                                                                              (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                              (G := a) (bvs' := bvs)
                                                                               (by simp; omega)
                                                                               hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                     · by_cases hHeadBvxor :
@@ -1886,12 +1825,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                             (fun X Y => by rfl)
                                                                             (fun hXTrans hXTy =>
                                                                               hRec
-                                                                                (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                (G := x1) (bvs' := bvs)
                                                                                 (by simp; omega)
                                                                                 hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                             (fun hATrans hATy =>
                                                                               hRec
-                                                                                (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                (G := a) (bvs' := bvs)
                                                                                 (by simp; omega)
                                                                                 hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                       · by_cases hHeadBvxnor :
@@ -1908,12 +1847,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                               (fun X Y => by rfl)
                                                                               (fun hXTrans hXTy =>
                                                                                 hRec
-                                                                                  (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                  (G := x1) (bvs' := bvs)
                                                                                   (by simp; omega)
                                                                                   hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                               (fun hATrans hATy =>
                                                                                 hRec
-                                                                                  (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                  (G := a) (bvs' := bvs)
                                                                                   (by simp; omega)
                                                                                   hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                         · by_cases hHeadBvadd :
@@ -1930,12 +1869,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                 (fun X Y => by rfl)
                                                                                 (fun hXTrans hXTy =>
                                                                                   hRec
-                                                                                    (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                    (G := x1) (bvs' := bvs)
                                                                                     (by simp; omega)
                                                                                     hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                 (fun hATrans hATy =>
                                                                                   hRec
-                                                                                    (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                    (G := a) (bvs' := bvs)
                                                                                     (by simp; omega)
                                                                                     hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                           · by_cases hHeadBvmul :
@@ -1952,12 +1891,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                   (fun X Y => by rfl)
                                                                                   (fun hXTrans hXTy =>
                                                                                     hRec
-                                                                                      (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                      (G := x1) (bvs' := bvs)
                                                                                       (by simp; omega)
                                                                                       hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                   (fun hATrans hATy =>
                                                                                     hRec
-                                                                                      (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                      (G := a) (bvs' := bvs)
                                                                                       (by simp; omega)
                                                                                       hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                             · by_cases hHeadBvudiv :
@@ -1974,12 +1913,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                     (fun X Y => by rfl)
                                                                                     (fun hXTrans hXTy =>
                                                                                       hRec
-                                                                                        (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                        (G := x1) (bvs' := bvs)
                                                                                         (by simp; omega)
                                                                                         hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                     (fun hATrans hATy =>
                                                                                       hRec
-                                                                                        (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                        (G := a) (bvs' := bvs)
                                                                                         (by simp; omega)
                                                                                         hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                               · by_cases hHeadBvurem :
@@ -1996,12 +1935,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                       (fun X Y => by rfl)
                                                                                       (fun hXTrans hXTy =>
                                                                                         hRec
-                                                                                          (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                          (G := x1) (bvs' := bvs)
                                                                                           (by simp; omega)
                                                                                           hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                       (fun hATrans hATy =>
                                                                                         hRec
-                                                                                          (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                          (G := a) (bvs' := bvs)
                                                                                           (by simp; omega)
                                                                                           hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                 · by_cases hHeadBvsub :
@@ -2018,12 +1957,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                         (fun X Y => by rfl)
                                                                                         (fun hXTrans hXTy =>
                                                                                           hRec
-                                                                                            (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                            (G := x1) (bvs' := bvs)
                                                                                             (by simp; omega)
                                                                                             hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                         (fun hATrans hATy =>
                                                                                           hRec
-                                                                                            (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                            (G := a) (bvs' := bvs)
                                                                                             (by simp; omega)
                                                                                             hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                   · by_cases hHeadBvsdiv :
@@ -2040,12 +1979,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                           (fun X Y => by rfl)
                                                                                           (fun hXTrans hXTy =>
                                                                                             hRec
-                                                                                              (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                              (G := x1) (bvs' := bvs)
                                                                                               (by simp; omega)
                                                                                               hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                           (fun hATrans hATy =>
                                                                                             hRec
-                                                                                              (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                              (G := a) (bvs' := bvs)
                                                                                               (by simp; omega)
                                                                                               hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                     · by_cases hHeadBvsrem :
@@ -2062,12 +2001,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                             (fun X Y => by rfl)
                                                                                             (fun hXTrans hXTy =>
                                                                                               hRec
-                                                                                                (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                (G := x1) (bvs' := bvs)
                                                                                                 (by simp; omega)
                                                                                                 hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                             (fun hATrans hATy =>
                                                                                               hRec
-                                                                                                (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                (G := a) (bvs' := bvs)
                                                                                                 (by simp; omega)
                                                                                                 hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                       · by_cases hHeadBvsmod :
@@ -2084,12 +2023,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                               (fun X Y => by rfl)
                                                                                               (fun hXTrans hXTy =>
                                                                                                 hRec
-                                                                                                  (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                  (G := x1) (bvs' := bvs)
                                                                                                   (by simp; omega)
                                                                                                   hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                               (fun hATrans hATy =>
                                                                                                 hRec
-                                                                                                  (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                  (G := a) (bvs' := bvs)
                                                                                                   (by simp; omega)
                                                                                                   hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                         · by_cases hHeadBvshl :
@@ -2106,12 +2045,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                 (fun X Y => by rfl)
                                                                                                 (fun hXTrans hXTy =>
                                                                                                   hRec
-                                                                                                    (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                    (G := x1) (bvs' := bvs)
                                                                                                     (by simp; omega)
                                                                                                     hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                 (fun hATrans hATy =>
                                                                                                   hRec
-                                                                                                    (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                    (G := a) (bvs' := bvs)
                                                                                                     (by simp; omega)
                                                                                                     hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                           · by_cases hHeadBvlshr :
@@ -2128,12 +2067,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                   (fun X Y => by rfl)
                                                                                                   (fun hXTrans hXTy =>
                                                                                                     hRec
-                                                                                                      (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                      (G := x1) (bvs' := bvs)
                                                                                                       (by simp; omega)
                                                                                                       hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                   (fun hATrans hATy =>
                                                                                                     hRec
-                                                                                                      (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                      (G := a) (bvs' := bvs)
                                                                                                       (by simp; omega)
                                                                                                       hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                             · by_cases hHeadBvashr :
@@ -2150,12 +2089,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                     (fun X Y => by rfl)
                                                                                                     (fun hXTrans hXTy =>
                                                                                                       hRec
-                                                                                                        (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                        (G := x1) (bvs' := bvs)
                                                                                                         (by simp; omega)
                                                                                                         hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                     (fun hATrans hATy =>
                                                                                                       hRec
-                                                                                                        (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                        (G := a) (bvs' := bvs)
                                                                                                         (by simp; omega)
                                                                                                         hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                               · by_cases hHeadBvcomp :
@@ -2175,12 +2114,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                       (by simp)
                                                                                                       (fun hXTrans hXTy =>
                                                                                                         hRec
-                                                                                                          (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                          (G := x1) (bvs' := bvs)
                                                                                                           (by simp; omega)
                                                                                                           hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                       (fun hATrans hATy =>
                                                                                                         hRec
-                                                                                                          (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                          (G := a) (bvs' := bvs)
                                                                                                           (by simp; omega)
                                                                                                           hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                 · by_cases hHeadBvult :
@@ -2200,12 +2139,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                         (by simp)
                                                                                                         (fun hXTrans hXTy =>
                                                                                                           hRec
-                                                                                                            (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                            (G := x1) (bvs' := bvs)
                                                                                                             (by simp; omega)
                                                                                                             hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                         (fun hATrans hATy =>
                                                                                                           hRec
-                                                                                                            (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                            (G := a) (bvs' := bvs)
                                                                                                             (by simp; omega)
                                                                                                             hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                   · by_cases hHeadBvule :
@@ -2225,12 +2164,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                           (by simp)
                                                                                                           (fun hXTrans hXTy =>
                                                                                                             hRec
-                                                                                                              (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                              (G := x1) (bvs' := bvs)
                                                                                                               (by simp; omega)
                                                                                                               hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                           (fun hATrans hATy =>
                                                                                                             hRec
-                                                                                                              (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                              (G := a) (bvs' := bvs)
                                                                                                               (by simp; omega)
                                                                                                               hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                     · by_cases hHeadBvugt :
@@ -2250,12 +2189,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                             (by simp)
                                                                                                             (fun hXTrans hXTy =>
                                                                                                               hRec
-                                                                                                                (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                (G := x1) (bvs' := bvs)
                                                                                                                 (by simp; omega)
                                                                                                                 hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                             (fun hATrans hATy =>
                                                                                                               hRec
-                                                                                                                (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                (G := a) (bvs' := bvs)
                                                                                                                 (by simp; omega)
                                                                                                                 hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                       · by_cases hHeadBvuge :
@@ -2275,12 +2214,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                               (by simp)
                                                                                                               (fun hXTrans hXTy =>
                                                                                                                 hRec
-                                                                                                                  (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                  (G := x1) (bvs' := bvs)
                                                                                                                   (by simp; omega)
                                                                                                                   hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                               (fun hATrans hATy =>
                                                                                                                 hRec
-                                                                                                                  (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                  (G := a) (bvs' := bvs)
                                                                                                                   (by simp; omega)
                                                                                                                   hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                         · by_cases hHeadBvslt :
@@ -2300,12 +2239,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                 (by simp)
                                                                                                                 (fun hXTrans hXTy =>
                                                                                                                   hRec
-                                                                                                                    (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                    (G := x1) (bvs' := bvs)
                                                                                                                     (by simp; omega)
                                                                                                                     hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                 (fun hATrans hATy =>
                                                                                                                   hRec
-                                                                                                                    (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                    (G := a) (bvs' := bvs)
                                                                                                                     (by simp; omega)
                                                                                                                     hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                           · by_cases hHeadBvsle :
@@ -2325,12 +2264,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                   (by simp)
                                                                                                                   (fun hXTrans hXTy =>
                                                                                                                     hRec
-                                                                                                                      (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                      (G := x1) (bvs' := bvs)
                                                                                                                       (by simp; omega)
                                                                                                                       hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                   (fun hATrans hATy =>
                                                                                                                     hRec
-                                                                                                                      (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                      (G := a) (bvs' := bvs)
                                                                                                                       (by simp; omega)
                                                                                                                       hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                             · by_cases hHeadBvsgt :
@@ -2350,12 +2289,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                     (by simp)
                                                                                                                     (fun hXTrans hXTy =>
                                                                                                                       hRec
-                                                                                                                        (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                        (G := x1) (bvs' := bvs)
                                                                                                                         (by simp; omega)
                                                                                                                         hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                     (fun hATrans hATy =>
                                                                                                                       hRec
-                                                                                                                        (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                        (G := a) (bvs' := bvs)
                                                                                                                         (by simp; omega)
                                                                                                                         hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                               · by_cases hHeadBvsge :
@@ -2375,12 +2314,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                       (by simp)
                                                                                                                       (fun hXTrans hXTy =>
                                                                                                                         hRec
-                                                                                                                          (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                          (G := x1) (bvs' := bvs)
                                                                                                                           (by simp; omega)
                                                                                                                           hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                       (fun hATrans hATy =>
                                                                                                                         hRec
-                                                                                                                          (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                          (G := a) (bvs' := bvs)
                                                                                                                           (by simp; omega)
                                                                                                                           hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                 · by_cases hHeadBvuaddo :
@@ -2400,12 +2339,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                         (by simp)
                                                                                                                         (fun hXTrans hXTy =>
                                                                                                                           hRec
-                                                                                                                            (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                            (G := x1) (bvs' := bvs)
                                                                                                                             (by simp; omega)
                                                                                                                             hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                         (fun hATrans hATy =>
                                                                                                                           hRec
-                                                                                                                            (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                            (G := a) (bvs' := bvs)
                                                                                                                             (by simp; omega)
                                                                                                                             hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                   · by_cases hHeadBvsaddo :
@@ -2425,12 +2364,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                           (by simp)
                                                                                                                           (fun hXTrans hXTy =>
                                                                                                                             hRec
-                                                                                                                              (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                              (G := x1) (bvs' := bvs)
                                                                                                                               (by simp; omega)
                                                                                                                               hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                           (fun hATrans hATy =>
                                                                                                                             hRec
-                                                                                                                              (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                              (G := a) (bvs' := bvs)
                                                                                                                               (by simp; omega)
                                                                                                                               hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                     · by_cases hHeadBvumulo :
@@ -2450,12 +2389,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                             (by simp)
                                                                                                                             (fun hXTrans hXTy =>
                                                                                                                               hRec
-                                                                                                                                (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                (G := x1) (bvs' := bvs)
                                                                                                                                 (by simp; omega)
                                                                                                                                 hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                             (fun hATrans hATy =>
                                                                                                                               hRec
-                                                                                                                                (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                (G := a) (bvs' := bvs)
                                                                                                                                 (by simp; omega)
                                                                                                                                 hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                       · by_cases hHeadBvsmulo :
@@ -2475,12 +2414,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                               (by simp)
                                                                                                                               (fun hXTrans hXTy =>
                                                                                                                                 hRec
-                                                                                                                                  (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                  (G := x1) (bvs' := bvs)
                                                                                                                                   (by simp; omega)
                                                                                                                                   hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                               (fun hATrans hATy =>
                                                                                                                                 hRec
-                                                                                                                                  (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                  (G := a) (bvs' := bvs)
                                                                                                                                   (by simp; omega)
                                                                                                                                   hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                         · by_cases hHeadBvusubo :
@@ -2500,12 +2439,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                 (by simp)
                                                                                                                                 (fun hXTrans hXTy =>
                                                                                                                                   hRec
-                                                                                                                                    (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                    (G := x1) (bvs' := bvs)
                                                                                                                                     (by simp; omega)
                                                                                                                                     hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                 (fun hATrans hATy =>
                                                                                                                                   hRec
-                                                                                                                                    (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                    (G := a) (bvs' := bvs)
                                                                                                                                     (by simp; omega)
                                                                                                                                     hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                           · by_cases hHeadBvssubo :
@@ -2525,12 +2464,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                   (by simp)
                                                                                                                                   (fun hXTrans hXTy =>
                                                                                                                                     hRec
-                                                                                                                                      (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                      (G := x1) (bvs' := bvs)
                                                                                                                                       (by simp; omega)
                                                                                                                                       hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                   (fun hATrans hATy =>
                                                                                                                                     hRec
-                                                                                                                                      (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                      (G := a) (bvs' := bvs)
                                                                                                                                       (by simp; omega)
                                                                                                                                       hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                             · by_cases hHeadBvsdivo :
@@ -2550,12 +2489,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                     (by simp)
                                                                                                                                     (fun hXTrans hXTy =>
                                                                                                                                       hRec
-                                                                                                                                        (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                        (G := x1) (bvs' := bvs)
                                                                                                                                         (by simp; omega)
                                                                                                                                         hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                     (fun hATrans hATy =>
                                                                                                                                       hRec
-                                                                                                                                        (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                        (G := a) (bvs' := bvs)
                                                                                                                                         (by simp; omega)
                                                                                                                                         hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                               · by_cases hHeadBvultbv :
@@ -2605,12 +2544,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                             X Y hXTrans hYTrans hApp)
                                                                                                                                       (fun hXTrans hXTy =>
                                                                                                                                         hRec
-                                                                                                                                          (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                          (G := x1) (bvs' := bvs)
                                                                                                                                           (by simp; omega)
                                                                                                                                           hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                       (fun hATrans hATy =>
                                                                                                                                         hRec
-                                                                                                                                          (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                          (G := a) (bvs' := bvs)
                                                                                                                                           (by simp; omega)
                                                                                                                                           hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                 · by_cases hHeadBvsltbv :
@@ -2660,12 +2599,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                               X Y hXTrans hYTrans hApp)
                                                                                                                                         (fun hXTrans hXTy =>
                                                                                                                                           hRec
-                                                                                                                                            (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                            (G := x1) (bvs' := bvs)
                                                                                                                                             (by simp; omega)
                                                                                                                                             hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                         (fun hATrans hATy =>
                                                                                                                                           hRec
-                                                                                                                                            (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                            (G := a) (bvs' := bvs)
                                                                                                                                             (by simp; omega)
                                                                                                                                             hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                   · by_cases hHeadSelect :
@@ -2704,12 +2643,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                 X Y hXTrans hYTrans hApp)
                                                                                                                                           (fun hXTrans hXTy =>
                                                                                                                                             hRec
-                                                                                                                                              (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                              (G := x1) (bvs' := bvs)
                                                                                                                                               (by simp; omega)
                                                                                                                                               hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                           (fun hATrans hATy =>
                                                                                                                                             hRec
-                                                                                                                                              (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                              (G := a) (bvs' := bvs)
                                                                                                                                               (by simp; omega)
                                                                                                                                               hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                     · by_cases hHeadStrConcat :
@@ -2755,12 +2694,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                   X Y hXTrans hYTrans hApp)
                                                                                                                                             (fun hXTrans hXTy =>
                                                                                                                                               hRec
-                                                                                                                                                (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                (G := x1) (bvs' := bvs)
                                                                                                                                                 (by simp; omega)
                                                                                                                                                 hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                             (fun hATrans hATy =>
                                                                                                                                               hRec
-                                                                                                                                                (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                (G := a) (bvs' := bvs)
                                                                                                                                                 (by simp; omega)
                                                                                                                                                 hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                       · by_cases hHeadStrContains :
@@ -2807,12 +2746,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                     X Y hXTrans hYTrans hApp)
                                                                                                                                               (fun hXTrans hXTy =>
                                                                                                                                                 hRec
-                                                                                                                                                  (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                  (G := x1) (bvs' := bvs)
                                                                                                                                                   (by simp; omega)
                                                                                                                                                   hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                               (fun hATrans hATy =>
                                                                                                                                                 hRec
-                                                                                                                                                  (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                  (G := a) (bvs' := bvs)
                                                                                                                                                   (by simp; omega)
                                                                                                                                                   hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                         · by_cases hHeadStrPrefixof :
@@ -2825,12 +2764,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                 hFTrans hTy
                                                                                                                                                 (fun hXTrans hXTy =>
                                                                                                                                                   hRec
-                                                                                                                                                    (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                    (G := x1) (bvs' := bvs)
                                                                                                                                                     (by simp; omega)
                                                                                                                                                     hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                 (fun hATrans hATy =>
                                                                                                                                                   hRec
-                                                                                                                                                    (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                    (G := a) (bvs' := bvs)
                                                                                                                                                     (by simp; omega)
                                                                                                                                                     hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                           · by_cases hHeadStrSuffixof :
@@ -2843,12 +2782,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                   hFTrans hTy
                                                                                                                                                   (fun hXTrans hXTy =>
                                                                                                                                                     hRec
-                                                                                                                                                      (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                      (G := x1) (bvs' := bvs)
                                                                                                                                                       (by simp; omega)
                                                                                                                                                       hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                   (fun hATrans hATy =>
                                                                                                                                                     hRec
-                                                                                                                                                      (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                      (G := a) (bvs' := bvs)
                                                                                                                                                       (by simp; omega)
                                                                                                                                                       hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                             · by_cases hHeadStrAt :
@@ -2892,12 +2831,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                           X Y hXTrans hYTrans hApp)
                                                                                                                                                     (fun hXTrans hXTy =>
                                                                                                                                                       hRec
-                                                                                                                                                        (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                        (G := x1) (bvs' := bvs)
                                                                                                                                                         (by simp; omega)
                                                                                                                                                         hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                     (fun hATrans hATy =>
                                                                                                                                                       hRec
-                                                                                                                                                        (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                        (G := a) (bvs' := bvs)
                                                                                                                                                         (by simp; omega)
                                                                                                                                                         hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                               · by_cases hHeadStrLt :
@@ -2946,12 +2885,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                             X Y hXTrans hYTrans hApp)
                                                                                                                                                       (fun hXTrans hXTy =>
                                                                                                                                                         hRec
-                                                                                                                                                          (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                          (G := x1) (bvs' := bvs)
                                                                                                                                                           (by simp; omega)
                                                                                                                                                           hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                       (fun hATrans hATy =>
                                                                                                                                                         hRec
-                                                                                                                                                          (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                          (G := a) (bvs' := bvs)
                                                                                                                                                           (by simp; omega)
                                                                                                                                                           hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                 · by_cases hHeadStrLeq :
@@ -3000,12 +2939,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                               X Y hXTrans hYTrans hApp)
                                                                                                                                                         (fun hXTrans hXTy =>
                                                                                                                                                           hRec
-                                                                                                                                                            (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                            (G := x1) (bvs' := bvs)
                                                                                                                                                             (by simp; omega)
                                                                                                                                                             hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                         (fun hATrans hATy =>
                                                                                                                                                           hRec
-                                                                                                                                                            (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                            (G := a) (bvs' := bvs)
                                                                                                                                                             (by simp; omega)
                                                                                                                                                             hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                   · by_cases hHeadReRange :
@@ -3019,12 +2958,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                           hFTrans hTy
                                                                                                                                                           (fun hXTrans hXTy =>
                                                                                                                                                             hRec
-                                                                                                                                                              (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                              (G := x1) (bvs' := bvs)
                                                                                                                                                               (by simp; omega)
                                                                                                                                                               hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                           (fun hATrans hATy =>
                                                                                                                                                             hRec
-                                                                                                                                                              (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                              (G := a) (bvs' := bvs)
                                                                                                                                                               (by simp; omega)
                                                                                                                                                               hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                     · by_cases hHeadReConcat :
@@ -3041,12 +2980,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                             (fun X Y => by rfl)
                                                                                                                                                             (fun hXTrans hXTy =>
                                                                                                                                                               hRec
-                                                                                                                                                                (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                (G := x1) (bvs' := bvs)
                                                                                                                                                                 (by simp; omega)
                                                                                                                                                                 hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                             (fun hATrans hATy =>
                                                                                                                                                               hRec
-                                                                                                                                                                (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                (G := a) (bvs' := bvs)
                                                                                                                                                                 (by simp; omega)
                                                                                                                                                                 hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                       · by_cases hHeadReInter :
@@ -3063,12 +3002,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                               (fun X Y => by rfl)
                                                                                                                                                               (fun hXTrans hXTy =>
                                                                                                                                                                 hRec
-                                                                                                                                                                  (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                  (G := x1) (bvs' := bvs)
                                                                                                                                                                   (by simp; omega)
                                                                                                                                                                   hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                               (fun hATrans hATy =>
                                                                                                                                                                 hRec
-                                                                                                                                                                  (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                  (G := a) (bvs' := bvs)
                                                                                                                                                                   (by simp; omega)
                                                                                                                                                                   hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                         · by_cases hHeadReUnion :
@@ -3085,12 +3024,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                 (fun X Y => by rfl)
                                                                                                                                                                 (fun hXTrans hXTy =>
                                                                                                                                                                   hRec
-                                                                                                                                                                    (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                    (G := x1) (bvs' := bvs)
                                                                                                                                                                     (by simp; omega)
                                                                                                                                                                     hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                                 (fun hATrans hATy =>
                                                                                                                                                                   hRec
-                                                                                                                                                                    (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                    (G := a) (bvs' := bvs)
                                                                                                                                                                     (by simp; omega)
                                                                                                                                                                     hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                           · by_cases hHeadReDiff :
@@ -3107,12 +3046,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                   (fun X Y => by rfl)
                                                                                                                                                                   (fun hXTrans hXTy =>
                                                                                                                                                                     hRec
-                                                                                                                                                                      (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                      (G := x1) (bvs' := bvs)
                                                                                                                                                                       (by simp; omega)
                                                                                                                                                                       hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                                   (fun hATrans hATy =>
                                                                                                                                                                     hRec
-                                                                                                                                                                      (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                      (G := a) (bvs' := bvs)
                                                                                                                                                                       (by simp; omega)
                                                                                                                                                                       hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                             · by_cases hHeadStrInRe :
@@ -3126,12 +3065,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                     hFTrans hTy
                                                                                                                                                                     (fun hXTrans hXTy =>
                                                                                                                                                                       hRec
-                                                                                                                                                                        (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                        (G := x1) (bvs' := bvs)
                                                                                                                                                                         (by simp; omega)
                                                                                                                                                                         hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                                     (fun hATrans hATy =>
                                                                                                                                                                       hRec
-                                                                                                                                                                        (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                        (G := a) (bvs' := bvs)
                                                                                                                                                                         (by simp; omega)
                                                                                                                                                                         hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                               · by_cases hHeadSeqNth :
@@ -3145,12 +3084,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                       hFTrans hTy
                                                                                                                                                                       (fun hXTrans hXTy =>
                                                                                                                                                                         hRec
-                                                                                                                                                                          (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                          (G := x1) (bvs' := bvs)
                                                                                                                                                                           (by simp; omega)
                                                                                                                                                                           hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                                       (fun hATrans hATy =>
                                                                                                                                                                         hRec
-                                                                                                                                                                          (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                          (G := a) (bvs' := bvs)
                                                                                                                                                                           (by simp; omega)
                                                                                                                                                                           hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                                 · by_cases hHeadSetUnion :
@@ -3167,12 +3106,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                         (fun X Y => by rfl)
                                                                                                                                                                         (fun hXTrans hXTy =>
                                                                                                                                                                           hRec
-                                                                                                                                                                            (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                            (G := x1) (bvs' := bvs)
                                                                                                                                                                             (by simp; omega)
                                                                                                                                                                             hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                                         (fun hATrans hATy =>
                                                                                                                                                                           hRec
-                                                                                                                                                                            (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                            (G := a) (bvs' := bvs)
                                                                                                                                                                             (by simp; omega)
                                                                                                                                                                             hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                                   · by_cases hHeadSetInter :
@@ -3189,12 +3128,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                           (fun X Y => by rfl)
                                                                                                                                                                           (fun hXTrans hXTy =>
                                                                                                                                                                             hRec
-                                                                                                                                                                              (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                              (G := x1) (bvs' := bvs)
                                                                                                                                                                               (by simp; omega)
                                                                                                                                                                               hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                                           (fun hATrans hATy =>
                                                                                                                                                                             hRec
-                                                                                                                                                                              (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                              (G := a) (bvs' := bvs)
                                                                                                                                                                               (by simp; omega)
                                                                                                                                                                               hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                                     · by_cases hHeadSetMinus :
@@ -3211,12 +3150,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                             (fun X Y => by rfl)
                                                                                                                                                                             (fun hXTrans hXTy =>
                                                                                                                                                                               hRec
-                                                                                                                                                                                (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                (G := x1) (bvs' := bvs)
                                                                                                                                                                                 (by simp; omega)
                                                                                                                                                                                 hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                                             (fun hATrans hATy =>
                                                                                                                                                                               hRec
-                                                                                                                                                                                (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                (G := a) (bvs' := bvs)
                                                                                                                                                                                 (by simp; omega)
                                                                                                                                                                                 hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                                       · by_cases hHeadSetMember :
@@ -3230,12 +3169,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                               hFTrans hTy
                                                                                                                                                                               (fun hXTrans hXTy =>
                                                                                                                                                                                 hRec
-                                                                                                                                                                                  (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                  (G := x1) (bvs' := bvs)
                                                                                                                                                                                   (by simp; omega)
                                                                                                                                                                                   hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                                               (fun hATrans hATy =>
                                                                                                                                                                                 hRec
-                                                                                                                                                                                  (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                  (G := a) (bvs' := bvs)
                                                                                                                                                                                   (by simp; omega)
                                                                                                                                                                                   hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                                         · by_cases hHeadSetSubset :
@@ -3249,12 +3188,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                                 hFTrans hTy
                                                                                                                                                                                 (fun hXTrans hXTy =>
                                                                                                                                                                                   hRec
-                                                                                                                                                                                    (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                    (G := x1) (bvs' := bvs)
                                                                                                                                                                                     (by simp; omega)
                                                                                                                                                                                     hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                                                 (fun hATrans hATy =>
                                                                                                                                                                                   hRec
-                                                                                                                                                                                    (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                    (G := a) (bvs' := bvs)
                                                                                                                                                                                     (by simp; omega)
                                                                                                                                                                                     hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                                           · by_cases hHeadSetsDeqDiff :
@@ -3269,12 +3208,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                                   hFTrans hTy
                                                                                                                                                                                   (fun hXTrans hXTy =>
                                                                                                                                                                                     hRec
-                                                                                                                                                                                      (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                      (G := x1) (bvs' := bvs)
                                                                                                                                                                                       (by simp; omega)
                                                                                                                                                                                       hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                                                   (fun hATrans hATy =>
                                                                                                                                                                                       hRec
-                                                                                                                                                                                        (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                        (G := a) (bvs' := bvs)
                                                                                                                                                                                         (by simp; omega)
                                                                                                                                                                                         hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                                             · by_cases hHeadStringsDeqDiff :
@@ -3289,12 +3228,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                                     hFTrans hTy
                                                                                                                                                                                     (fun hXTrans hXTy =>
                                                                                                                                                                                       hRec
-                                                                                                                                                                                        (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                        (G := x1) (bvs' := bvs)
                                                                                                                                                                                         (by simp; omega)
                                                                                                                                                                                         hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                                                     (fun hATrans hATy =>
                                                                                                                                                                                       hRec
-                                                                                                                                                                                        (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                        (G := a) (bvs' := bvs)
                                                                                                                                                                                         (by simp; omega)
                                                                                                                                                                                         hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                                               · by_cases hHeadStringsStoiResult :
@@ -3309,12 +3248,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                                       hFTrans hTy
                                                                                                                                                                                       (fun hXTrans hXTy =>
                                                                                                                                                                                         hRec
-                                                                                                                                                                                          (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                          (G := x1) (bvs' := bvs)
                                                                                                                                                                                           (by simp; omega)
                                                                                                                                                                                           hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                                                       (fun hATrans hATy =>
                                                                                                                                                                                         hRec
-                                                                                                                                                                                          (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                          (G := a) (bvs' := bvs)
                                                                                                                                                                                           (by simp; omega)
                                                                                                                                                                                           hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                                                 · by_cases hHeadStringsItosResult :
@@ -3329,12 +3268,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                                         hFTrans hTy
                                                                                                                                                                                         (fun hXTrans hXTy =>
                                                                                                                                                                                           hRec
-                                                                                                                                                                                            (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                            (G := x1) (bvs' := bvs)
                                                                                                                                                                                             (by simp; omega)
                                                                                                                                                                                             hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                                                         (fun hATrans hATy =>
                                                                                                                                                                                           hRec
-                                                                                                                                                                                          (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                          (G := a) (bvs' := bvs)
                                                                                                                                                                                           (by simp; omega)
                                                                                                                                                                                           hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                                                   · by_cases hHeadArrayDeqDiff :
@@ -3349,12 +3288,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                                           hFTrans hTy
                                                                                                                                                                                           (fun hXTrans hXTy =>
                                                                                                                                                                                             hRec
-                                                                                                                                                                                              (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                              (G := x1) (bvs' := bvs)
                                                                                                                                                                                               (by simp; omega)
                                                                                                                                                                                               hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                                                           (fun hATrans hATy =>
                                                                                                                                                                                             hRec
-                                                                                                                                                                                              (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                              (G := a) (bvs' := bvs)
                                                                                                                                                                                               (by simp; omega)
                                                                                                                                                                                               hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                                                     · by_cases hHeadFromBools :
@@ -3369,12 +3308,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                                             hFTrans hTy
                                                                                                                                                                                             (fun hXTrans hXTy =>
                                                                                                                                                                                               hRec
-                                                                                                                                                                                                (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                (G := x1) (bvs' := bvs)
                                                                                                                                                                                                 (by simp; omega)
                                                                                                                                                                                                 hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                                                             (fun hATrans hATy =>
                                                                                                                                                                                               hRec
-                                                                                                                                                                                                (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                (G := a) (bvs' := bvs)
                                                                                                                                                                                                 (by simp; omega)
                                                                                                                                                                                                 hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                                                       · by_cases hHeadStringsNumOccur :
@@ -3389,12 +3328,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                                               hFTrans hTy
                                                                                                                                                                                               (fun hXTrans hXTy =>
                                                                                                                                                                                                 hRec
-                                                                                                                                                                                                  (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                  (G := x1) (bvs' := bvs)
                                                                                                                                                                                                   (by simp; omega)
                                                                                                                                                                                                   hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                                                               (fun hATrans hATy =>
                                                                                                                                                                                                 hRec
-                                                                                                                                                                                                  (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                  (G := a) (bvs' := bvs)
                                                                                                                                                                                                   (by simp; omega)
                                                                                                                                                                                                   hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                                                         · by_cases hHeadIte :
@@ -3409,17 +3348,17 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                                                 hFTrans hTy
                                                                                                                                                                                                 (fun hCTrans hCTy =>
                                                                                                                                                                                                   hRec
-                                                                                                                                                                                                    (G := c) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                    (G := c) (bvs' := bvs)
                                                                                                                                                                                                     (by simp; omega)
                                                                                                                                                                                                     hXsEnv hBvsEnv hCTrans hTs hActuals hCTy)
                                                                                                                                                                                                 (fun hXTrans hXTy =>
                                                                                                                                                                                                   hRec
-                                                                                                                                                                                                    (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                    (G := x1) (bvs' := bvs)
                                                                                                                                                                                                     (by simp; omega)
                                                                                                                                                                                                     hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                                                                 (fun hATrans hATy =>
                                                                                                                                                                                                   hRec
-                                                                                                                                                                                                    (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                    (G := a) (bvs' := bvs)
                                                                                                                                                                                                     (by simp; omega)
                                                                                                                                                                                                     hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                                                           · by_cases hHeadBvite :
@@ -3434,17 +3373,17 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                                                   hFTrans hTy
                                                                                                                                                                                                   (fun hCTrans hCTy =>
                                                                                                                                                                                                     hRec
-                                                                                                                                                                                                      (G := c) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                      (G := c) (bvs' := bvs)
                                                                                                                                                                                                       (by simp; omega)
                                                                                                                                                                                                       hXsEnv hBvsEnv hCTrans hTs hActuals hCTy)
                                                                                                                                                                                                   (fun hXTrans hXTy =>
                                                                                                                                                                                                     hRec
-                                                                                                                                                                                                      (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                      (G := x1) (bvs' := bvs)
                                                                                                                                                                                                       (by simp; omega)
                                                                                                                                                                                                       hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                                                                   (fun hATrans hATy =>
                                                                                                                                                                                                     hRec
-                                                                                                                                                                                                      (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                      (G := a) (bvs' := bvs)
                                                                                                                                                                                                       (by simp; omega)
                                                                                                                                                                                                       hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                                                             · by_cases hHeadStore :
@@ -3459,17 +3398,17 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                                                     hFTrans hTy
                                                                                                                                                                                                     (fun hArrTrans hArrTy =>
                                                                                                                                                                                                       hRec
-                                                                                                                                                                                                        (G := arr) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                        (G := arr) (bvs' := bvs)
                                                                                                                                                                                                         (by simp; omega)
                                                                                                                                                                                                         hXsEnv hBvsEnv hArrTrans hTs hActuals hArrTy)
                                                                                                                                                                                                     (fun hXTrans hXTy =>
                                                                                                                                                                                                       hRec
-                                                                                                                                                                                                        (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                        (G := x1) (bvs' := bvs)
                                                                                                                                                                                                         (by simp; omega)
                                                                                                                                                                                                         hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                                                                     (fun hATrans hATy =>
                                                                                                                                                                                                       hRec
-                                                                                                                                                                                                        (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                        (G := a) (bvs' := bvs)
                                                                                                                                                                                                         (by simp; omega)
                                                                                                                                                                                                         hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                                                               · by_cases hHeadStrSubstr :
@@ -3484,17 +3423,17 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                                                       hFTrans hTy
                                                                                                                                                                                                       (fun hSTrans hSTy =>
                                                                                                                                                                                                         hRec
-                                                                                                                                                                                                          (G := s) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                          (G := s) (bvs' := bvs)
                                                                                                                                                                                                           (by simp; omega)
                                                                                                                                                                                                           hXsEnv hBvsEnv hSTrans hTs hActuals hSTy)
                                                                                                                                                                                                       (fun hXTrans hXTy =>
                                                                                                                                                                                                         hRec
-                                                                                                                                                                                                          (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                          (G := x1) (bvs' := bvs)
                                                                                                                                                                                                           (by simp; omega)
                                                                                                                                                                                                           hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                                                                       (fun hATrans hATy =>
                                                                                                                                                                                                         hRec
-                                                                                                                                                                                                          (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                          (G := a) (bvs' := bvs)
                                                                                                                                                                                                           (by simp; omega)
                                                                                                                                                                                                           hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                                                                 · by_cases hHeadStrReplace :
@@ -3509,17 +3448,17 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                                                         hFTrans hTy
                                                                                                                                                                                                         (fun hSTrans hSTy =>
                                                                                                                                                                                                           hRec
-                                                                                                                                                                                                            (G := s) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                            (G := s) (bvs' := bvs)
                                                                                                                                                                                                             (by simp; omega)
                                                                                                                                                                                                             hXsEnv hBvsEnv hSTrans hTs hActuals hSTy)
                                                                                                                                                                                                         (fun hXTrans hXTy =>
                                                                                                                                                                                                           hRec
-                                                                                                                                                                                                            (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                            (G := x1) (bvs' := bvs)
                                                                                                                                                                                                             (by simp; omega)
                                                                                                                                                                                                             hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                                                                           (fun hATrans hATy =>
                                                                                                                                                                                                             hRec
-                                                                                                                                                                                                              (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                              (G := a) (bvs' := bvs)
                                                                                                                                                                                                               (by simp; omega)
                                                                                                                                                                                                               hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                                                                   · by_cases hHeadStrReplaceAll :
@@ -3534,17 +3473,17 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                                                           hFTrans hTy
                                                                                                                                                                                                           (fun hSTrans hSTy =>
                                                                                                                                                                                                             hRec
-                                                                                                                                                                                                              (G := s) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                              (G := s) (bvs' := bvs)
                                                                                                                                                                                                               (by simp; omega)
                                                                                                                                                                                                               hXsEnv hBvsEnv hSTrans hTs hActuals hSTy)
                                                                                                                                                                                                           (fun hXTrans hXTy =>
                                                                                                                                                                                                             hRec
-                                                                                                                                                                                                              (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                              (G := x1) (bvs' := bvs)
                                                                                                                                                                                                               (by simp; omega)
                                                                                                                                                                                                               hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                                                                           (fun hATrans hATy =>
                                                                                                                                                                                                             hRec
-                                                                                                                                                                                                              (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                              (G := a) (bvs' := bvs)
                                                                                                                                                                                                               (by simp; omega)
                                                                                                                                                                                                               hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                                                                     · by_cases hHeadStrIndexof :
@@ -3559,17 +3498,17 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                                                             hFTrans hTy
                                                                                                                                                                                                             (fun hSTrans hSTy =>
                                                                                                                                                                                                               hRec
-                                                                                                                                                                                                                (G := s) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                                (G := s) (bvs' := bvs)
                                                                                                                                                                                                                 (by simp; omega)
                                                                                                                                                                                                                 hXsEnv hBvsEnv hSTrans hTs hActuals hSTy)
                                                                                                                                                                                                             (fun hXTrans hXTy =>
                                                                                                                                                                                                               hRec
-                                                                                                                                                                                                                (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                                (G := x1) (bvs' := bvs)
                                                                                                                                                                                                                 (by simp; omega)
                                                                                                                                                                                                                 hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                                                                             (fun hATrans hATy =>
                                                                                                                                                                                                               hRec
-                                                                                                                                                                                                                (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                                (G := a) (bvs' := bvs)
                                                                                                                                                                                                                 (by simp; omega)
                                                                                                                                                                                                                 hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                                                                       · by_cases hHeadStrUpdate :
@@ -3584,17 +3523,17 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                                                               hFTrans hTy
                                                                                                                                                                                                               (fun hSTrans hSTy =>
                                                                                                                                                                                                                 hRec
-                                                                                                                                                                                                                  (G := s) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                                  (G := s) (bvs' := bvs)
                                                                                                                                                                                                                   (by simp; omega)
                                                                                                                                                                                                                   hXsEnv hBvsEnv hSTrans hTs hActuals hSTy)
                                                                                                                                                                                                               (fun hXTrans hXTy =>
                                                                                                                                                                                                                 hRec
-                                                                                                                                                                                                                  (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                                  (G := x1) (bvs' := bvs)
                                                                                                                                                                                                                   (by simp; omega)
                                                                                                                                                                                                                   hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                                                                               (fun hATrans hATy =>
                                                                                                                                                                                                                 hRec
-                                                                                                                                                                                                                  (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                                  (G := a) (bvs' := bvs)
                                                                                                                                                                                                                   (by simp; omega)
                                                                                                                                                                                                                   hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                                                                         · by_cases hHeadStrReplaceRe :
@@ -3609,17 +3548,17 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                                                                 hFTrans hTy
                                                                                                                                                                                                                 (fun hSTrans hSTy =>
                                                                                                                                                                                                                   hRec
-                                                                                                                                                                                                                    (G := s) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                                    (G := s) (bvs' := bvs)
                                                                                                                                                                                                                     (by simp; omega)
                                                                                                                                                                                                                     hXsEnv hBvsEnv hSTrans hTs hActuals hSTy)
                                                                                                                                                                                                                 (fun hXTrans hXTy =>
                                                                                                                                                                                                                   hRec
-                                                                                                                                                                                                                    (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                                    (G := x1) (bvs' := bvs)
                                                                                                                                                                                                                     (by simp; omega)
                                                                                                                                                                                                                     hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                                                                                 (fun hATrans hATy =>
                                                                                                                                                                                                                   hRec
-                                                                                                                                                                                                                    (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                                    (G := a) (bvs' := bvs)
                                                                                                                                                                                                                     (by simp; omega)
                                                                                                                                                                                                                     hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                                                                           · by_cases hHeadStrReplaceReAll :
@@ -3634,17 +3573,17 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                                                                   hFTrans hTy
                                                                                                                                                                                                                   (fun hSTrans hSTy =>
                                                                                                                                                                                                                     hRec
-                                                                                                                                                                                                                      (G := s) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                                      (G := s) (bvs' := bvs)
                                                                                                                                                                                                                       (by simp; omega)
                                                                                                                                                                                                                       hXsEnv hBvsEnv hSTrans hTs hActuals hSTy)
                                                                                                                                                                                                                   (fun hXTrans hXTy =>
                                                                                                                                                                                                                     hRec
-                                                                                                                                                                                                                      (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                                      (G := x1) (bvs' := bvs)
                                                                                                                                                                                                                       (by simp; omega)
                                                                                                                                                                                                                       hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                                                                                   (fun hATrans hATy =>
                                                                                                                                                                                                                     hRec
-                                                                                                                                                                                                                      (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                                      (G := a) (bvs' := bvs)
                                                                                                                                                                                                                       (by simp; omega)
                                                                                                                                                                                                                       hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                                                                             · by_cases hHeadStrIndexofRe :
@@ -3659,17 +3598,17 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                                                                     hFTrans hTy
                                                                                                                                                                                                                     (fun hSTrans hSTy =>
                                                                                                                                                                                                                       hRec
-                                                                                                                                                                                                                        (G := s) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                                        (G := s) (bvs' := bvs)
                                                                                                                                                                                                                         (by simp; omega)
                                                                                                                                                                                                                         hXsEnv hBvsEnv hSTrans hTs hActuals hSTy)
                                                                                                                                                                                                                     (fun hXTrans hXTy =>
                                                                                                                                                                                                                       hRec
-                                                                                                                                                                                                                        (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                                        (G := x1) (bvs' := bvs)
                                                                                                                                                                                                                         (by simp; omega)
                                                                                                                                                                                                                         hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                                                                                     (fun hATrans hATy =>
                                                                                                                                                                                                                       hRec
-                                                                                                                                                                                                                        (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                                        (G := a) (bvs' := bvs)
                                                                                                                                                                                                                         (by simp; omega)
                                                                                                                                                                                                                         hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                                                                               · by_cases hHeadStrIndexofReSplit :
@@ -3684,17 +3623,17 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                                                                       hFTrans hTy
                                                                                                                                                                                                                       (fun hSTrans hSTy =>
                                                                                                                                                                                                                         hRec
-                                                                                                                                                                                                                          (G := s) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                                          (G := s) (bvs' := bvs)
                                                                                                                                                                                                                           (by simp; omega)
                                                                                                                                                                                                                           hXsEnv hBvsEnv hSTrans hTs hActuals hSTy)
                                                                                                                                                                                                                       (fun hXTrans hXTy =>
                                                                                                                                                                                                                         hRec
-                                                                                                                                                                                                                          (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                                          (G := x1) (bvs' := bvs)
                                                                                                                                                                                                                           (by simp; omega)
                                                                                                                                                                                                                           hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                                                                                       (fun hATrans hATy =>
                                                                                                                                                                                                                         hRec
-                                                                                                                                                                                                                          (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                                          (G := a) (bvs' := bvs)
                                                                                                                                                                                                                           (by simp; omega)
                                                                                                                                                                                                                           hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                                                                                 · by_cases hHeadSetInsert :
@@ -3709,13 +3648,13 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                                                                         (fun t hLt hTTrans hTTyNe => by
                                                                                                                                                                                                                           have hBoth :=
                                                                                                                                                                                                                             hRec
-                                                                                                                                                                                                                              (G := t) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                                              (G := t) (bvs' := bvs)
                                                                                                                                                                                                                               (by
                                                                                                                                                                                                                                 exact Nat.lt_trans hLt (by simp; omega))
                                                                                                                                                                                                                               hXsEnv hBvsEnv hTTrans hTs hActuals hTTyNe
                                                                                                                                                                                                                           have hSubMatch :=
                                                                                                                                                                                                                             TranslationProofs.eo_to_smt_typeof_matches_translation
-                                                                                                                                                                                                                              (__substitute_simul_rec (Term.Boolean false) t xs ts bvs)
+                                                                                                                                                                                                                              (__substitute_simul_rec (Term.Boolean isRename) t xs ts bvs)
                                                                                                                                                                                                                               hBoth.2
                                                                                                                                                                                                                           have hOrigMatch :=
                                                                                                                                                                                                                             TranslationProofs.eo_to_smt_typeof_matches_translation
@@ -3723,7 +3662,7 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                                                                           rw [hSubMatch, hOrigMatch, hBoth.1])
                                                                                                                                                                                                                         (fun hATrans hATy =>
                                                                                                                                                                                                                           hRec
-                                                                                                                                                                                                                            (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                                            (G := a) (bvs' := bvs)
                                                                                                                                                                                                                             (by simp; omega)
                                                                                                                                                                                                                             hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                                                                                   · by_cases hHeadTuple :
@@ -3737,12 +3676,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                                                                           hFTrans hTy
                                                                                                                                                                                                                           (fun hXTrans hXTy =>
                                                                                                                                                                                                                             hRec
-                                                                                                                                                                                                                              (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                                              (G := x1) (bvs' := bvs)
                                                                                                                                                                                                                               (by simp; omega)
                                                                                                                                                                                                                               hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                                                                                           (fun hATrans hATy =>
                                                                                                                                                                                                                             hRec
-                                                                                                                                                                                                                              (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                                              (G := a) (bvs' := bvs)
                                                                                                                                                                                                                               (by simp; omega)
                                                                                                                                                                                                                               hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                                                                                     · by_cases hHeadForall :
@@ -3806,12 +3745,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                                                                                 hFTrans hTy
                                                                                                                                                                                                                                 (fun hXTrans hXTy =>
                                                                                                                                                                                                                                   hRec
-                                                                                                                                                                                                                                    (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                                                    (G := x1) (bvs' := bvs)
                                                                                                                                                                                                                                     (by simp; omega)
                                                                                                                                                                                                                                     hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                                                                                                 (fun hATrans hATy =>
                                                                                                                                                                                                                                   hRec
-                                                                                                                                                                                                                                    (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                                                    (G := a) (bvs' := bvs)
                                                                                                                                                                                                                                     (by simp; omega)
                                                                                                                                                                                                                                     hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                                                                                           · by_cases hHeadTupleUpdate :
@@ -3827,12 +3766,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                                                                                   hFTrans hTy
                                                                                                                                                                                                                                   (fun hXTrans hXTy =>
                                                                                                                                                                                                                                     hRec
-                                                                                                                                                                                                                                      (G := x1) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                                                      (G := x1) (bvs' := bvs)
                                                                                                                                                                                                                                       (by simp; omega)
                                                                                                                                                                                                                                       hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
                                                                                                                                                                                                                                   (fun hATrans hATy =>
                                                                                                                                                                                                                                     hRec
-                                                                                                                                                                                                                                      (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                                                      (G := a) (bvs' := bvs)
                                                                                                                                                                                                                                       (by simp; omega)
                                                                                                                                                                                                                                       hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                                                                                             · by_cases hGVar :
@@ -3849,12 +3788,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                                                                                     (fun hHeadTrans hHeadTy =>
                                                                                                                                                                                                                                       hRec
                                                                                                                                                                                                                                         (G := Term.Apply (Term.Var name T) x1)
-                                                                                                                                                                                                                                        (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                                                        (bvs' := bvs)
                                                                                                                                                                                                                                         (by simp; omega)
                                                                                                                                                                                                                                         hXsEnv hBvsEnv hHeadTrans hTs hActuals hHeadTy)
                                                                                                                                                                                                                                     (fun hATrans hATy =>
                                                                                                                                                                                                                                       hRec
-                                                                                                                                                                                                                                        (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                                                        (G := a) (bvs' := bvs)
                                                                                                                                                                                                                                         (by simp; omega)
                                                                                                                                                                                                                                         hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                                                                                                     (substitute_simul_apply_apply_var_head_generic_head_typeof_ne_stuck
@@ -3897,12 +3836,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                                                                                       (fun hHeadTrans hHeadTy =>
                                                                                                                                                                                                                                         hRec
                                                                                                                                                                                                                                           (G := Term.Apply (Term.UConst i U) x1)
-                                                                                                                                                                                                                                          (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                                                          (bvs' := bvs)
                                                                                                                                                                                                                                           (by simp; omega)
                                                                                                                                                                                                                                           hXsEnv hBvsEnv hHeadTrans hTs hActuals hHeadTy)
                                                                                                                                                                                                                                       (fun hATrans hATy =>
                                                                                                                                                                                                                                         hRec
-                                                                                                                                                                                                                                          (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                                                          (G := a) (bvs' := bvs)
                                                                                                                                                                                                                                           (by simp; omega)
                                                                                                                                                                                                                                           hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                                                                                                       (substitute_simul_apply_apply_atom_base_generic_head_typeof_ne_stuck
@@ -4004,12 +3943,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                                                                                         (fun hHeadTrans hHeadTy =>
                                                                                                                                                                                                                                           hRec
                                                                                                                                                                                                                                             (G := Term.Apply (Term.DtCons s d i) x1)
-                                                                                                                                                                                                                                            (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                                                            (bvs' := bvs)
                                                                                                                                                                                                                                             (by simp; omega)
                                                                                                                                                                                                                                             hXsEnv hBvsEnv hHeadTrans hTs hActuals hHeadTy)
                                                                                                                                                                                                                                        (fun hATrans hATy =>
                                                                                                                                                                                                                                          hRec
-                                                                                                                                                                                                                                           (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                                                           (G := a) (bvs' := bvs)
                                                                                                                                                                                                                                            (by simp; omega)
                                                                                                                                                                                                                                            hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                                                                                                         (substitute_simul_apply_apply_atom_base_generic_head_typeof_ne_stuck
@@ -4164,12 +4103,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                                                                                           (fun hHeadTrans hHeadTy =>
                                                                                                                                                                                                                                             hRec
                                                                                                                                                                                                                                               (G := Term.Apply (Term.UOp op) x1)
-                                                                                                                                                                                                                                              (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                                                              (bvs' := bvs)
                                                                                                                                                                                                                                               (by simp; omega)
                                                                                                                                                                                                                                               hXsEnv hBvsEnv hHeadTrans hTs hActuals hHeadTy)
                                                                                                                                                                                                                                           (fun hATrans hATy =>
                                                                                                                                                                                                                                             hRec
-                                                                                                                                                                                                                                              (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                                                              (G := a) (bvs' := bvs)
                                                                                                                                                                                                                                               (by simp; omega)
                                                                                                                                                                                                                                               hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                                                                                                           hTy
@@ -4184,12 +4123,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                                                                                                                           (fun hHeadTrans hHeadTy =>
                                                                                                                                                                                                                                             hRec
                                                                                                                                                                                                                                               (G := Term.Apply g x1)
-                                                                                                                                                                                                                                              (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                                                              (bvs' := bvs)
                                                                                                                                                                                                                                               (by simp; omega)
                                                                                                                                                                                                                                               hXsEnv hBvsEnv hHeadTrans hTs hActuals hHeadTy)
                                                                                                                                                                                                                                           (fun hATrans hATy =>
                                                                                                                                                                                                                                             hRec
-                                                                                                                                                                                                                                              (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                                                                                                                                                                                                                              (G := a) (bvs' := bvs)
                                                                                                                                                                                                                                               (by simp; omega)
                                                                                                                                                                                                                                               hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                                                                                                                                                                                                                                           hTy
@@ -4222,7 +4161,7 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                               rw [hXY])
                             (fun hATrans hATy =>
                               (hRec
-                                (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                (G := a) (bvs' := bvs)
                                 (by simp)
                                 hXsEnv hBvsEnv hATrans hTs hActuals hATy).1)
                             hTy
@@ -4254,7 +4193,7 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                   X hXBoolType))
                             (fun hATrans hATy =>
                               (hRec
-                                (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                (G := a) (bvs' := bvs)
                                 (by simp)
                                 hXsEnv hBvsEnv hATrans hTs hActuals hATy).2)
                     · by_cases hHeadAbs : f = Term.UOp UserOp.abs
@@ -4279,7 +4218,7 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                 rw [hXY])
                               (fun hATrans hATy =>
                                 (hRec
-                                  (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                  (G := a) (bvs' := bvs)
                                   (by simp)
                                   hXsEnv hBvsEnv hATrans hTs hActuals hATy).1)
                               hTy
@@ -4330,7 +4269,7 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                     hSmtArg])
                               (fun hATrans hATy =>
                                 (hRec
-                                  (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                  (G := a) (bvs' := bvs)
                                   (by simp)
                                   hXsEnv hBvsEnv hATrans hTs hActuals hATy).2)
                       · by_cases hHeadToReal : f = Term.UOp UserOp.to_real
@@ -4384,7 +4323,7 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                   simp [hSmtArg, native_ite, native_Teq])
                               (fun hATrans hATy =>
                                 hRec
-                                  (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                  (G := a) (bvs' := bvs)
                                   (by simp)
                                   hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                         · by_cases hHeadToInt : f = Term.UOp UserOp.to_int
@@ -4433,7 +4372,7 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                   simp [hSmtArg, native_ite, native_Teq])
                                 (fun hATrans hATy =>
                                   hRec
-                                    (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                    (G := a) (bvs' := bvs)
                                     (by simp)
                                     hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                           · by_cases hHeadIsInt : f = Term.UOp UserOp.is_int
@@ -4482,7 +4421,7 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                     simp [hSmtArg, native_ite, native_Teq])
                                   (fun hATrans hATy =>
                                     hRec
-                                      (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                                      (G := a) (bvs' := bvs)
                                       (by simp)
                                       hXsEnv hBvsEnv hATrans hTs hActuals hATy)
                             · by_cases hHeadUneg :
@@ -4544,7 +4483,7 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                           hSmtArg])
                                     (fun hATrans hATy =>
                                       hRec
-                                        (G := a) (xs' := xs) (ts' := ts)
+                                        (G := a)
                                         (bvs' := bvs)
                                         (by simp)
                                         hXsEnv hBvsEnv hATrans hTs hActuals hATy)
@@ -4594,7 +4533,7 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                         simp [hSmtArg, native_ite, native_Teq])
                                       (fun hATrans hATy =>
                                         hRec
-                                          (G := a) (xs' := xs) (ts' := ts)
+                                          (G := a)
                                           (bvs' := bvs)
                                           (by simp)
                                           hXsEnv hBvsEnv hATrans hTs hActuals hATy)
@@ -4644,7 +4583,7 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                           simp [hSmtArg, native_ite, native_Teq])
                                         (fun hATrans hATy =>
                                           hRec
-                                            (G := a) (xs' := xs) (ts' := ts)
+                                            (G := a)
                                             (bvs' := bvs)
                                             (by simp)
                                             hXsEnv hBvsEnv hATrans hTs hActuals
@@ -4686,7 +4625,7 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                               using hXTrans)
                                           (fun hATrans hATy =>
                                             hRec
-                                              (G := a) (xs' := xs) (ts' := ts)
+                                              (G := a)
                                               (bvs' := bvs)
                                               (by simp)
                                               hXsEnv hBvsEnv hATrans hTs
@@ -4761,8 +4700,8 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                 native_ite, native_Teq])
                                             (fun hATrans hATy =>
                                               hRec
-                                                (G := a) (xs' := xs)
-                                                (ts' := ts) (bvs' := bvs)
+                                                (G := a) 
+                                                 (bvs' := bvs)
                                                 (by simp)
                                                 hXsEnv hBvsEnv hATrans hTs
                                                 hActuals hATy)
@@ -4826,8 +4765,8 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                   native_ite, native_Teq])
                                               (fun hATrans hATy =>
                                                 hRec
-                                                  (G := a) (xs' := xs)
-                                                  (ts' := ts) (bvs' := bvs)
+                                                  (G := a) 
+                                                   (bvs' := bvs)
                                                   (by simp)
                                                   hXsEnv hBvsEnv hATrans hTs
                                                   hActuals hATy)
@@ -4892,8 +4831,8 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                     native_ite, native_Teq])
                                                 (fun hATrans hATy =>
                                                   hRec
-                                                    (G := a) (xs' := xs)
-                                                    (ts' := ts) (bvs' := bvs)
+                                                    (G := a) 
+                                                     (bvs' := bvs)
                                                     (by simp)
                                                     hXsEnv hBvsEnv hATrans hTs
                                                     hActuals hATy)
@@ -4971,8 +4910,7 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                       __smtx_typeof_arith_overload_op_2_ret])
                                                   (fun hATrans hATy =>
                                                     hRec
-                                                      (G := a) (xs' := xs)
-                                                      (ts' := ts)
+                                                      (G := a) 
                                                       (bvs' := bvs)
                                                       (by simp)
                                                       hXsEnv hBvsEnv hATrans hTs
@@ -5031,8 +4969,7 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                       simp [__smtx_typeof_bv_op_1])
                                                     (fun hATrans hATy =>
                                                       hRec
-                                                        (G := a) (xs' := xs)
-                                                        (ts' := ts)
+                                                        (G := a) 
                                                         (bvs' := bvs)
                                                         (by simp)
                                                         hXsEnv hBvsEnv hATrans
@@ -5092,8 +5029,7 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                         simp [__smtx_typeof_bv_op_1])
                                                       (fun hATrans hATy =>
                                                         hRec
-                                                          (G := a) (xs' := xs)
-                                                          (ts' := ts)
+                                                          (G := a) 
                                                           (bvs' := bvs)
                                                           (by simp)
                                                           hXsEnv hBvsEnv hATrans
@@ -5156,8 +5092,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                         (fun hATrans hATy =>
                                                           hRec
                                                             (G := a)
-                                                            (xs' := xs)
-                                                            (ts' := ts)
                                                             (bvs' := bvs)
                                                             (by simp)
                                                             hXsEnv hBvsEnv
@@ -5235,8 +5169,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                           (fun hATrans hATy =>
                                                             hRec
                                                               (G := a)
-                                                              (xs' := xs)
-                                                              (ts' := ts)
                                                               (bvs' := bvs)
                                                               (by simp)
                                                               hXsEnv hBvsEnv
@@ -5314,8 +5246,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                             (fun hATrans hATy =>
                                                               hRec
                                                                 (G := a)
-                                                                (xs' := xs)
-                                                                (ts' := ts)
                                                                 (bvs' := bvs)
                                                                 (by simp)
                                                                 hXsEnv hBvsEnv
@@ -5394,8 +5324,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                               (fun hATrans hATy =>
                                                                 hRec
                                                                   (G := a)
-                                                                  (xs' := xs)
-                                                                  (ts' := ts)
                                                                   (bvs' := bvs)
                                                                   (by simp)
                                                                   hXsEnv hBvsEnv
@@ -5463,8 +5391,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                 (fun hATrans hATy =>
                                                                   hRec
                                                                     (G := a)
-                                                                    (xs' := xs)
-                                                                    (ts' := ts)
                                                                     (bvs' := bvs)
                                                                     (by simp)
                                                                     hXsEnv hBvsEnv
@@ -5533,8 +5459,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                   (fun hATrans hATy =>
                                                                     hRec
                                                                       (G := a)
-                                                                      (xs' := xs)
-                                                                      (ts' := ts)
                                                                       (bvs' := bvs)
                                                                       (by simp)
                                                                       hXsEnv
@@ -5602,8 +5526,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                     (fun hATrans hATy =>
                                                                       hRec
                                                                         (G := a)
-                                                                        (xs' := xs)
-                                                                        (ts' := ts)
                                                                         (bvs' := bvs)
                                                                         (by simp)
                                                                         hXsEnv
@@ -5671,8 +5593,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                       (fun hATrans hATy =>
                                                                         hRec
                                                                           (G := a)
-                                                                          (xs' := xs)
-                                                                          (ts' := ts)
                                                                           (bvs' := bvs)
                                                                           (by simp)
                                                                           hXsEnv
@@ -5743,8 +5663,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                         (fun hATrans hATy =>
                                                                           hRec
                                                                             (G := a)
-                                                                            (xs' := xs)
-                                                                            (ts' := ts)
                                                                             (bvs' := bvs)
                                                                             (by simp)
                                                                             hXsEnv
@@ -5819,8 +5737,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                           (fun hATrans hATy =>
                                                                             hRec
                                                                               (G := a)
-                                                                              (xs' := xs)
-                                                                              (ts' := ts)
                                                                               (bvs' := bvs)
                                                                               (by simp)
                                                                               hXsEnv
@@ -5895,8 +5811,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                             (fun hATrans hATy =>
                                                                               hRec
                                                                                 (G := a)
-                                                                                (xs' := xs)
-                                                                                (ts' := ts)
                                                                                 (bvs' := bvs)
                                                                                 (by simp)
                                                                                 hXsEnv
@@ -5971,8 +5885,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                               (fun hATrans hATy =>
                                                                                 hRec
                                                                                   (G := a)
-                                                                                  (xs' := xs)
-                                                                                  (ts' := ts)
                                                                                   (bvs' := bvs)
                                                                                   (by simp)
                                                                                   hXsEnv
@@ -6047,8 +5959,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                 (fun hATrans hATy =>
                                                                                   hRec
                                                                                     (G := a)
-                                                                                    (xs' := xs)
-                                                                                    (ts' := ts)
                                                                                     (bvs' := bvs)
                                                                                     (by simp)
                                                                                     hXsEnv
@@ -6124,8 +6034,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                   (fun hATrans hATy =>
                                                                                     hRec
                                                                                       (G := a)
-                                                                                      (xs' := xs)
-                                                                                      (ts' := ts)
                                                                                       (bvs' := bvs)
                                                                                       (by simp)
                                                                                       hXsEnv
@@ -6201,8 +6109,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                     (fun hATrans hATy =>
                                                                                       hRec
                                                                                         (G := a)
-                                                                                        (xs' := xs)
-                                                                                        (ts' := ts)
                                                                                         (bvs' := bvs)
                                                                                         (by simp)
                                                                                         hXsEnv
@@ -6278,8 +6184,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                       (fun hATrans hATy =>
                                                                                         hRec
                                                                                           (G := a)
-                                                                                          (xs' := xs)
-                                                                                          (ts' := ts)
                                                                                           (bvs' := bvs)
                                                                                           (by simp)
                                                                                           hXsEnv
@@ -6355,8 +6259,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                         (fun hATrans hATy =>
                                                                                           hRec
                                                                                             (G := a)
-                                                                                            (xs' := xs)
-                                                                                            (ts' := ts)
                                                                                             (bvs' := bvs)
                                                                                             (by simp)
                                                                                             hXsEnv
@@ -6433,8 +6335,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                           (fun hATrans hATy =>
                                                                                             hRec
                                                                                               (G := a)
-                                                                                              (xs' := xs)
-                                                                                              (ts' := ts)
                                                                                               (bvs' := bvs)
                                                                                               (by simp)
                                                                                               hXsEnv
@@ -6518,8 +6418,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                             (fun hATrans hATy =>
                                                                                               hRec
                                                                                                 (G := a)
-                                                                                                (xs' := xs)
-                                                                                                (ts' := ts)
                                                                                                 (bvs' := bvs)
                                                                                                 (by simp)
                                                                                                 hXsEnv
@@ -6603,8 +6501,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                               (fun hATrans hATy =>
                                                                                                 hRec
                                                                                                   (G := a)
-                                                                                                  (xs' := xs)
-                                                                                                  (ts' := ts)
                                                                                                   (bvs' := bvs)
                                                                                                   (by simp)
                                                                                                   hXsEnv
@@ -6724,8 +6620,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                 (fun hATrans hATy =>
                                                                                                   hRec
                                                                                                     (G := a)
-                                                                                                    (xs' := xs)
-                                                                                                    (ts' := ts)
                                                                                                     (bvs' := bvs)
                                                                                                     (by simp)
                                                                                                     hXsEnv
@@ -6810,8 +6704,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                   (fun hATrans hATy =>
                                                                                                     hRec
                                                                                                       (G := a)
-                                                                                                      (xs' := xs)
-                                                                                                      (ts' := ts)
                                                                                                       (bvs' := bvs)
                                                                                                       (by simp)
                                                                                                       hXsEnv
@@ -6896,8 +6788,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                     (fun hATrans hATy =>
                                                                                                       hRec
                                                                                                         (G := a)
-                                                                                                        (xs' := xs)
-                                                                                                        (ts' := ts)
                                                                                                         (bvs' := bvs)
                                                                                                         (by simp)
                                                                                                         hXsEnv
@@ -7014,8 +6904,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                       (fun hATrans hATy =>
                                                                                                         hRec
                                                                                                           (G := a)
-                                                                                                          (xs' := xs)
-                                                                                                          (ts' := ts)
                                                                                                           (bvs' := bvs)
                                                                                                           (by simp)
                                                                                                           hXsEnv
@@ -7125,8 +7013,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                         (fun hATrans hATy =>
                                                                                                           hRec
                                                                                                             (G := a)
-                                                                                                            (xs' := xs)
-                                                                                                            (ts' := ts)
                                                                                                             (bvs' := bvs)
                                                                                                             (by simp)
                                                                                                             hXsEnv
@@ -7299,8 +7185,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                           (fun hATrans hATy =>
                                                                                                             hRec
                                                                                                               (G := a)
-                                                                                                              (xs' := xs)
-                                                                                                              (ts' := ts)
                                                                                                               (bvs' := bvs)
                                                                                                               (by simp)
                                                                                                               hXsEnv
@@ -7327,7 +7211,7 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                   hXsEnv hBvsEnv hTTrans hTs hActuals hTTy
                                                                                                               have hSubMatch :=
                                                                                                                 TranslationProofs.eo_to_smt_typeof_matches_translation
-                                                                                                                  (__substitute_simul_rec (Term.Boolean false) t xs ts bvs)
+                                                                                                                  (__substitute_simul_rec (Term.Boolean isRename) t xs ts bvs)
                                                                                                                   hBoth.2
                                                                                                               have hOrigMatch :=
                                                                                                                 TranslationProofs.eo_to_smt_typeof_matches_translation t hTTrans
@@ -7363,8 +7247,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                               (fun hATrans hATy =>
                                                                                                                 hRec
                                                                                                                   (G := a)
-                                                                                                                  (xs' := xs)
-                                                                                                                  (ts' := ts)
                                                                                                                   (bvs' := bvs)
                                                                                                                   (by
                                                                                                                     simp
@@ -7445,8 +7327,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                           (fun hATrans hATy =>
                                                                                                                             hRec
                                                                                                                               (G := a)
-                                                                                                                              (xs' := xs)
-                                                                                                                              (ts' := ts)
                                                                                                                               (bvs' := bvs)
                                                                                                                               (by
                                                                                                                                 simp
@@ -7476,8 +7356,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                             (fun hATrans hATy =>
                                                                                                                               hRec
                                                                                                                                 (G := a)
-                                                                                                                                (xs' := xs)
-                                                                                                                                (ts' := ts)
                                                                                                                                 (bvs' := bvs)
                                                                                                                                 (by
                                                                                                                                   simp
@@ -7507,8 +7385,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                               (fun hATrans hATy =>
                                                                                                                                 hRec
                                                                                                                                   (G := a)
-                                                                                                                                  (xs' := xs)
-                                                                                                                                  (ts' := ts)
                                                                                                                                   (bvs' := bvs)
                                                                                                                                   (by
                                                                                                                                     simp
@@ -7538,8 +7414,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                 (fun hATrans hATy =>
                                                                                                                                   hRec
                                                                                                                                     (G := a)
-                                                                                                                                    (xs' := xs)
-                                                                                                                                    (ts' := ts)
                                                                                                                                     (bvs' := bvs)
                                                                                                                                     (by
                                                                                                                                       simp
@@ -7569,8 +7443,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                   (fun hATrans hATy =>
                                                                                                                                     hRec
                                                                                                                                       (G := a)
-                                                                                                                                      (xs' := xs)
-                                                                                                                                      (ts' := ts)
                                                                                                                                       (bvs' := bvs)
                                                                                                                                       (by
                                                                                                                                         simp
@@ -7600,8 +7472,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                     (fun hATrans hATy =>
                                                                                                                                       hRec
                                                                                                                                         (G := a)
-                                                                                                                                        (xs' := xs)
-                                                                                                                                        (ts' := ts)
                                                                                                                                         (bvs' := bvs)
                                                                                                                                         (by
                                                                                                                                           simp
@@ -7631,8 +7501,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                       (fun hATrans hATy =>
                                                                                                                                         hRec
                                                                                                                                           (G := a)
-                                                                                                                                          (xs' := xs)
-                                                                                                                                          (ts' := ts)
                                                                                                                                           (bvs' := bvs)
                                                                                                                                           (by
                                                                                                                                             simp
@@ -7662,8 +7530,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                         (fun hATrans hATy =>
                                                                                                                                           hRec
                                                                                                                                             (G := a)
-                                                                                                                                            (xs' := xs)
-                                                                                                                                            (ts' := ts)
                                                                                                                                             (bvs' := bvs)
                                                                                                                                             (by
                                                                                                                                               simp
@@ -7693,8 +7559,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                           (fun hATrans hATy =>
                                                                                                                                             hRec
                                                                                                                                               (G := a)
-                                                                                                                                              (xs' := xs)
-                                                                                                                                              (ts' := ts)
                                                                                                                                               (bvs' := bvs)
                                                                                                                                               (by
                                                                                                                                                 simp
@@ -7724,8 +7588,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                                             (fun hATrans hATy =>
                                                                                                                                               hRec
                                                                                                                                                 (G := a)
-                                                                                                                                                (xs' := xs)
-                                                                                                                                                (ts' := ts)
                                                                                                                                                 (bvs' := bvs)
                                                                                                                                                 (by
                                                                                                                                                   simp
@@ -7768,8 +7630,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                     (fun hATrans hATy =>
                                                                                                                       hRec
                                                                                                                         (G := a)
-                                                                                                                        (xs' := xs)
-                                                                                                                        (ts' := ts)
                                                                                                                         (bvs' := bvs)
                                                                                                                         (by
                                                                                                                           simp
@@ -7797,8 +7657,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                     (fun hATrans hATy =>
                                                                                                                       hRec
                                                                                                                         (G := a)
-                                                                                                                        (xs' := xs)
-                                                                                                                        (ts' := ts)
                                                                                                                         (bvs' := bvs)
                                                                                                                         (by
                                                                                                                           simp
@@ -7827,8 +7685,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                     (fun hATrans hATy =>
                                                                                                                       hRec
                                                                                                                         (G := a)
-                                                                                                                        (xs' := xs)
-                                                                                                                        (ts' := ts)
                                                                                                                         (bvs' := bvs)
                                                                                                                         (by
                                                                                                                           simp
@@ -7891,8 +7747,6 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                                                                                                                       (fun hATrans hATy =>
                                                                                                                         hRec
                                                                                                                           (G := a)
-                                                                                                                          (xs' := xs)
-                                                                                                                          (ts' := ts)
                                                                                                                           (bvs' := bvs)
                                                                                                                           (by
                                                                                                                             simp
@@ -8033,7 +7887,7 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                         hSmtConds.1 hSmtConds.2.1 hSmtConds.2.2 hFTrans
                         (fun hATrans hATy =>
                           hRec
-                            (G := a) (xs' := xs) (ts' := ts) (bvs' := bvs)
+                            (G := a) (bvs' := bvs)
                             (by
                               simp
                               omega)
@@ -8066,6 +7920,118 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
                 hNotApply hNotVar hStuck
                 hFTrans hTy⟩
 
+private theorem substitute_simul_false_binder_preserves
+    (q v vs a xs ts bvs : Term)
+    {xsVars bvsVars : List EoVarKey}
+    (hXsEnv : EoVarEnvPerm xs xsVars)
+    (hBvsEnv : EoVarEnvPerm bvs bvsVars)
+    (hFTrans : RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply q
+        (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)) a))
+    (hTs : EoListAllHaveSmtTranslation ts)
+    (hActuals : SubstActualsHaveSmtTypes xs ts)
+    (hTy : __eo_typeof
+      (substResult false
+        (Term.Apply (Term.Apply q
+          (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)) a)
+        xs ts bvs) ≠ Term.Stuck)
+    (hRec : SubstitutionPreservationRec false
+      (Term.Apply (Term.Apply q
+        (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)) a) xs ts) :
+    SubstitutionPreservationResult false
+      (Term.Apply (Term.Apply q
+        (Term.Apply (Term.Apply Term.__eo_List_cons v) vs)) a)
+      xs ts bvs := by
+  let binders := Term.Apply (Term.Apply Term.__eo_List_cons v) vs
+  let bodySub :=
+    __substitute_simul_rec (Term.Boolean false) a xs ts
+      (__eo_list_concat Term.__eo_List_cons binders bvs)
+  have hFTrans' :
+      eoHasSmtTranslation (Term.Apply (Term.Apply q binders) a) := by
+    simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation,
+      binders] using hFTrans
+  have hQ :
+      q = Term.UOp UserOp.forall ∨ q = Term.UOp UserOp.exists :=
+    is_closed_rec_list_branch_head_term_quantifier_of_has_smt_translation
+      hFTrans'
+  rcases eo_var_env_of_list_branch_has_smt_translation hFTrans' with
+    ⟨binderVars, hBinderEnv⟩
+  have hSubstEq :
+      __substitute_simul_rec (Term.Boolean false)
+          (Term.Apply (Term.Apply q binders) a) xs ts bvs =
+        __eo_mk_apply (Term.Apply q binders) bodySub := by
+    simpa [binders, bodySub] using
+      substitute_simul_quant_eq_of_typeof_ne_stuck
+        q v vs a xs ts bvs hXsEnv hBvsEnv hTs hTy
+  have hTyMk :
+      __eo_typeof (__eo_mk_apply (Term.Apply q binders) bodySub) ≠
+        Term.Stuck := by
+    have hTyRaw :
+        __eo_typeof
+            (__substitute_simul_rec (Term.Boolean false)
+              (Term.Apply (Term.Apply q binders) a) xs ts bvs) ≠
+          Term.Stuck := by
+      simpa [substResult, binders] using hTy
+    rwa [hSubstEq] at hTyRaw
+  have hMk :
+      __eo_mk_apply (Term.Apply q binders) bodySub =
+        Term.Apply (Term.Apply q binders) bodySub :=
+    eo_mk_apply_apply_head_eq_apply_of_typeof_ne_stuck
+      q binders bodySub hTyMk
+  have hTyApply :
+      __eo_typeof (Term.Apply (Term.Apply q binders) bodySub) ≠
+        Term.Stuck := by
+    rwa [hMk] at hTyMk
+  have hBodyBool : __eo_typeof bodySub = Term.Bool :=
+    eo_typeof_body_bool_of_quant_type_ne_stuck
+      hQ hBinderEnv hTyApply
+  have hBodyTy : __eo_typeof bodySub ≠ Term.Stuck := by
+    rw [hBodyBool]
+    intro h
+    cases h
+  have hBodyTrans :
+      RuleProofs.eo_has_smt_translation a := by
+    simpa [RuleProofs.eo_has_smt_translation, eoHasSmtTranslation]
+      using
+        body_has_smt_translation_of_list_branch_has_smt_translation
+          hFTrans'
+  have hBvsEnv' :
+      EoVarEnvPerm
+        (__eo_list_concat Term.__eo_List_cons binders bvs)
+        (binderVars.reverse ++ bvsVars) :=
+    EoVarEnvPerm.concat_rev hBinderEnv hBvsEnv
+  have hBodyType :
+      __eo_typeof bodySub = __eo_typeof a := by
+    simpa [bodySub] using
+      (hRec
+        (G := a)
+        (bvs' := __eo_list_concat Term.__eo_List_cons binders bvs)
+        (by
+          simp
+          omega)
+        hXsEnv hBvsEnv' hBodyTrans hTs hActuals
+        (by simpa [bodySub] using hBodyTy)).1
+  have hBodySubTrans :
+      RuleProofs.eo_has_smt_translation bodySub := by
+    simpa [bodySub] using
+      (hRec
+        (G := a)
+        (bvs' := __eo_list_concat Term.__eo_List_cons binders bvs)
+        (by
+          simp
+          omega)
+        hXsEnv hBvsEnv' hBodyTrans hTs hActuals
+        (by simpa [bodySub] using hBodyTy)).2
+  refine ⟨?_, ?_⟩
+  · simpa [substResult, binders, bodySub] using
+      SubstituteSupport.substitute_simul_quant_typeof_eq_of_typeof_ne_stuck
+        q v vs a xs ts bvs hXsEnv hBvsEnv hTs
+        hFTrans hBodyType hTy
+  · simpa [substResult, binders, bodySub] using
+      substitute_simul_quant_has_smt_translation_of_typeof_ne_stuck
+        q v vs a xs ts bvs hXsEnv hBvsEnv hTs
+        hFTrans hBodySubTrans hTy
+
 /--
 Combined substitution preservation under an arbitrary bound-variable
 accumulator.
@@ -8078,11 +8044,12 @@ theorem substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck
     (hFTrans : RuleProofs.eo_has_smt_translation F)
     (hTs : EoListAllHaveSmtTranslation ts)
     (hActuals : SubstActualsHaveSmtTypes xs ts)
-    (hTy : __eo_typeof (substResult F xs ts bvs) ≠ Term.Stuck) :
-    __eo_typeof (substResult F xs ts bvs) = __eo_typeof F ∧
-      RuleProofs.eo_has_smt_translation (substResult F xs ts bvs) :=
-  substitute_simul_preserves_type_and_translation_of_typeof_ne_stuck_lt
+    (hTy : __eo_typeof (substResult false F xs ts bvs) ≠ Term.Stuck) :
+    SubstitutionPreservationResult false F xs ts bvs :=
+  substitute_simul_preserves_type_and_translation_with_binder_lt
     (sizeOf F + 1) F xs ts bvs
+    (fun q v vs a bvs =>
+      substitute_simul_false_binder_preserves q v vs a xs ts bvs)
     (by omega) hXsEnv hBvsEnv hFTrans hTs hActuals hTy
 
 /--

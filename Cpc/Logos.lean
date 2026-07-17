@@ -3825,11 +3825,17 @@ def __eo_prog_skolem_intro : Term -> Term
   | _ => Term.Stuck
 
 
+def __is_renaming_rec : Term -> Term -> Term
+  | Term.__eo_List_nil, Term.__eo_List_nil => (Term.Boolean true)
+  | (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var s1 T)) xs), (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var s2 __eo_lv_T_2)) ys) => (__eo_requires (__eo_eq T __eo_lv_T_2) (Term.Boolean true) (__is_renaming_rec xs ys))
+  | _, _ => Term.Stuck
+
+
 def __eo_prog_alpha_equiv : Term -> Term -> Term -> Term
   | Term.Stuck , _ , _  => Term.Stuck
   | _ , Term.Stuck , _  => Term.Stuck
   | _ , _ , Term.Stuck  => Term.Stuck
-  | t, vs, ts => (__eo_requires (__is_var_list vs) (Term.Boolean true) (__eo_requires (__is_var_list ts) (Term.Boolean true) (__eo_requires (__contains_atomic_term_list_free_rec t vs Term.__eo_List_nil) (Term.Boolean false) (__eo_requires (__contains_atomic_term_list_free_rec t ts Term.__eo_List_nil) (Term.Boolean false) (__eo_mk_apply (Term.Apply (Term.UOp UserOp.eq) t) (__substitute_simul_rec (Term.Boolean true) t vs ts Term.__eo_List_nil))))))
+  | t, vs, ts => (__eo_requires (__eo_and (__eo_and (__eo_and (__is_var_list vs) (__eo_eq (__eo_list_setof Term.__eo_List_cons vs) vs)) (__eo_and (__is_var_list ts) (__eo_eq (__eo_list_setof Term.__eo_List_cons ts) ts))) (__is_renaming_rec vs ts)) (Term.Boolean true) (__eo_requires (__contains_atomic_term_list_free_rec t vs Term.__eo_List_nil) (Term.Boolean false) (__eo_requires (__contains_atomic_term_list_free_rec t ts Term.__eo_List_nil) (Term.Boolean false) (__eo_mk_apply (Term.Apply (Term.UOp UserOp.eq) t) (__substitute_simul_rec (Term.Boolean true) t vs ts Term.__eo_List_nil)))))
 
 
 def __eo_prog_quant_var_reordering : Term -> Term
