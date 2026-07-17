@@ -7915,6 +7915,1349 @@ private def refMatchBDt : SmtDatatype → SmtDatatype → native_Bool
 
 end
 
+/-! ### Equality recovery on collided regions
+
+When a new side equals a lift image outright, the old side equals the
+lift's source: shared regions collapse through the hole-freeness chain,
+structural pairs unfold the lift one level and recurse, rotated pairs
+are impossible (a lift image has no `s3` nodes under `noStray`), holes
+pin both sides to the recorded body (`noStray` on either side), and
+flips reduce to matched references that survive the lift (their name is
+dead, `s3` is not).  Both sides' hole-freeness is consumed: the old
+side's to collapse shared regions, the target's to exclude raw `s3`
+references at hole positions. -/
+
+mutual
+
+private theorem recover_dtc {s3 : native_String}
+    {dead : native_String → native_Bool} (X : SmtDatatype)
+    (hs3live : dead s3 = false) :
+    ∀ {cO cN : SmtDatatypeCons} (cV : SmtDatatypeCons) (refs : RefList),
+      RotShPreDtc s3 dead cO cN →
+      cN = __smtx_dtc_lift s3 X cV →
+      noStrayDtc s3 X cV = true →
+      noStrayDtc s3 X cO = true →
+      hasFreeDtc s3 refs cO = false →
+      hasFreeDtc s3 refs cV = false →
+      native_reflist_contains refs s3 = false →
+      refMatchBDtc cO cN = true →
+      cO = cV
+  | _, _, cV, refs, RotShPreDtc.unit, hLift, _, _, _, _, _, _ => by
+      cases cV with
+      | unit => rfl
+      | cons TV cV' =>
+          rw [show __smtx_dtc_lift s3 X (SmtDatatypeCons.cons TV cV') =
+              SmtDatatypeCons.cons (__smtx_type_lift s3 X TV)
+                (__smtx_dtc_lift s3 X cV') by simp [__smtx_dtc_lift]]
+            at hLift
+          cases hLift
+  | _, _, cV, refs, @RotShPreDtc.cons _ _ TO TN cO' cN' hT hc, hLift,
+      hStrayV, hStrayO, hHoleO, hHoleV, hNot, hMatch => by
+      cases cV with
+      | unit =>
+          rw [show __smtx_dtc_lift s3 X SmtDatatypeCons.unit =
+              SmtDatatypeCons.unit by simp [__smtx_dtc_lift]] at hLift
+          cases hLift
+      | cons TV cV' =>
+          rw [show __smtx_dtc_lift s3 X (SmtDatatypeCons.cons TV cV') =
+              SmtDatatypeCons.cons (__smtx_type_lift s3 X TV)
+                (__smtx_dtc_lift s3 X cV') by simp [__smtx_dtc_lift]]
+            at hLift
+          injection hLift with hTN hcN
+          have hStrayVp : noStrayTy s3 X TV = true ∧
+              noStrayDtc s3 X cV' = true := by
+            simpa [noStrayDtc, native_and, Bool.and_eq_true] using hStrayV
+          have hStrayOp : noStrayTy s3 X TO = true ∧
+              noStrayDtc s3 X cO' = true := by
+            simpa [noStrayDtc, native_and, Bool.and_eq_true] using hStrayO
+          have hMatchp : refMatchBTy TO TN = true ∧
+              refMatchBDtc cO' cN' = true := by
+            simpa [refMatchBDtc, native_and, Bool.and_eq_true] using hMatch
+          have hHead : TO = TV := by
+            cases hT with
+            | same T =>
+                -- TO = TN = typeLift TV
+                cases TV with
+                | Datatype q Z =>
+                    by_cases hFold : native_Teq (SmtType.Datatype s3 X)
+                        (SmtType.Datatype q Z) = true
+                    · exfalso
+                      rw [show __smtx_type_lift s3 X
+                          (SmtType.Datatype q Z) = SmtType.TypeRef s3 by
+                        simp [__smtx_type_lift, native_ite, hFold]]
+                        at hTN
+                      rw [hTN] at hHoleO
+                      simp [hasFreeDtc, native_or, native_and,
+                        native_not, native_streq, hNot] at hHoleO
+                    · have hq : native_streq q s3 = false := by
+                        cases hqv : native_streq q s3 with
+                        | false => rfl
+                        | true =>
+                            have hqe : q = s3 := by
+                              simpa [native_streq] using hqv
+                            subst hqe
+                            have hTV := hStrayVp.1
+                            simp only [noStrayTy, native_ite,
+                              if_neg hFold, native_and, native_not,
+                              Bool.and_eq_true] at hTV
+                            simp [native_streq] at hTV
+                      rw [show __smtx_type_lift s3 X
+                          (SmtType.Datatype q Z) =
+                          SmtType.Datatype q (__smtx_dt_lift s3 X Z) by
+                        simp [__smtx_type_lift, native_ite, hFold]]
+                        at hTN
+                      have hZstray : noStrayDt s3 X Z = true := by
+                        have hTV := hStrayVp.1
+                        simp only [noStrayTy, native_ite, if_neg hFold,
+                          native_and, Bool.and_eq_true] at hTV
+                        exact hTV.2
+                      have hNotQ : native_reflist_contains
+                          (native_reflist_insert refs q) s3 = false := by
+                        have hqs : ¬(s3 = q) := by
+                          intro hEq
+                          rw [hEq] at hq
+                          simp [native_streq] at hq
+                        have hNot' : ¬(s3 ∈ refs) := of_decide_eq_false
+                          (by simpa [native_reflist_contains] using hNot)
+                        simp [native_reflist_contains,
+                          native_reflist_insert, List.mem_cons, hqs,
+                          hNot']
+                      have hHoleLift : hasFreeDt s3
+                          (native_reflist_insert refs q)
+                          (__smtx_dt_lift s3 X Z) = false := by
+                        have hO := hHoleO
+                        rw [hTN] at hO
+                        cases hA : hasFreeDt s3
+                            (native_reflist_insert refs q)
+                            (__smtx_dt_lift s3 X Z) with
+                        | false => rfl
+                        | true =>
+                            simp [hasFreeDtc, hasFreeTy, native_or, hA]
+                              at hO
+                      have hNoDt := noDt_of_holeFree_dt s3 X Z
+                        (native_reflist_insert refs q) hZstray hNotQ
+                        hHoleLift
+                      have hId := lift_id_of_noDt_dt s3 X Z hNoDt
+                      rw [hTN, hId]
+                | TypeRef r =>
+                    rw [show __smtx_type_lift s3 X (SmtType.TypeRef r) =
+                        SmtType.TypeRef r by simp [__smtx_type_lift]]
+                      at hTN
+                    exact hTN
+                | None =>
+                    rw [show __smtx_type_lift s3 X SmtType.None =
+                        SmtType.None by simp [__smtx_type_lift]] at hTN
+                    exact hTN
+                | Bool =>
+                    rw [show __smtx_type_lift s3 X SmtType.Bool =
+                        SmtType.Bool by simp [__smtx_type_lift]] at hTN
+                    exact hTN
+                | Int =>
+                    rw [show __smtx_type_lift s3 X SmtType.Int =
+                        SmtType.Int by simp [__smtx_type_lift]] at hTN
+                    exact hTN
+                | Real =>
+                    rw [show __smtx_type_lift s3 X SmtType.Real =
+                        SmtType.Real by simp [__smtx_type_lift]] at hTN
+                    exact hTN
+                | RegLan =>
+                    rw [show __smtx_type_lift s3 X SmtType.RegLan =
+                        SmtType.RegLan by simp [__smtx_type_lift]] at hTN
+                    exact hTN
+                | BitVec n =>
+                    rw [show __smtx_type_lift s3 X (SmtType.BitVec n) =
+                        SmtType.BitVec n by simp [__smtx_type_lift]]
+                      at hTN
+                    exact hTN
+                | Map A B =>
+                    rw [show __smtx_type_lift s3 X (SmtType.Map A B) =
+                        SmtType.Map A B by simp [__smtx_type_lift]]
+                      at hTN
+                    exact hTN
+                | Set A =>
+                    rw [show __smtx_type_lift s3 X (SmtType.Set A) =
+                        SmtType.Set A by simp [__smtx_type_lift]] at hTN
+                    exact hTN
+                | Seq A =>
+                    rw [show __smtx_type_lift s3 X (SmtType.Seq A) =
+                        SmtType.Seq A by simp [__smtx_type_lift]] at hTN
+                    exact hTN
+                | Char =>
+                    rw [show __smtx_type_lift s3 X SmtType.Char =
+                        SmtType.Char by simp [__smtx_type_lift]] at hTN
+                    exact hTN
+                | USort u =>
+                    rw [show __smtx_type_lift s3 X (SmtType.USort u) =
+                        SmtType.USort u by simp [__smtx_type_lift]]
+                      at hTN
+                    exact hTN
+                | FunType A B =>
+                    rw [show __smtx_type_lift s3 X (SmtType.FunType A B)
+                        = SmtType.FunType A B by
+                      simp [__smtx_type_lift]] at hTN
+                    exact hTN
+                | DtcAppType A B =>
+                    rw [show __smtx_type_lift s3 X
+                        (SmtType.DtcAppType A B) =
+                        SmtType.DtcAppType A B by
+                      simp [__smtx_type_lift]] at hTN
+                    exact hTN
+            | @dt q BZO BZN hq hBody =>
+                cases TV with
+                | Datatype q' Z =>
+                    by_cases hFold : native_Teq (SmtType.Datatype s3 X)
+                        (SmtType.Datatype q' Z) = true
+                    · exfalso
+                      rw [show __smtx_type_lift s3 X
+                          (SmtType.Datatype q' Z) = SmtType.TypeRef s3
+                          by simp [__smtx_type_lift, native_ite, hFold]]
+                        at hTN
+                      cases hTN
+                    · rw [show __smtx_type_lift s3 X
+                          (SmtType.Datatype q' Z) = SmtType.Datatype q'
+                            (__smtx_dt_lift s3 X Z) by
+                        simp [__smtx_type_lift, native_ite, hFold]]
+                        at hTN
+                      injection hTN with hqq hBZN
+                      subst hqq
+                      have hZstrayV : noStrayDt s3 X Z = true := by
+                        have hTV := hStrayVp.1
+                        simp only [noStrayTy, native_ite, if_neg hFold,
+                          native_and, Bool.and_eq_true] at hTV
+                        exact hTV.2
+                      have hZstrayO : noStrayDt s3 X BZO = true := by
+                        have hTO := hStrayOp.1
+                        have hFoldO : ¬(native_Teq (SmtType.Datatype s3 X)
+                            (SmtType.Datatype q BZO) = true) := by
+                          intro hTeq
+                          have hp : s3 = q ∧ X = BZO := by
+                            simpa [native_Teq] using hTeq
+                          rw [← hp.1] at hq
+                          simp [native_streq] at hq
+                        simp only [noStrayTy, native_ite, if_neg hFoldO,
+                          native_and, Bool.and_eq_true] at hTO
+                        exact hTO.2
+                      have hNotQ : native_reflist_contains
+                          (native_reflist_insert refs q) s3 = false := by
+                        have hqs : ¬(s3 = q) := by
+                          intro hEq
+                          rw [hEq] at hq
+                          simp [native_streq] at hq
+                        have hNot' : ¬(s3 ∈ refs) := of_decide_eq_false
+                          (by simpa [native_reflist_contains] using hNot)
+                        simp [native_reflist_contains,
+                          native_reflist_insert, List.mem_cons, hqs,
+                          hNot']
+                      have hHoleOB : hasFreeDt s3
+                          (native_reflist_insert refs q) BZO = false := by
+                        cases hA : hasFreeDt s3
+                            (native_reflist_insert refs q) BZO with
+                        | false => rfl
+                        | true =>
+                            simp [hasFreeDtc, hasFreeTy, native_or, hA]
+                              at hHoleO
+                      have hHoleVB : hasFreeDt s3
+                          (native_reflist_insert refs q) Z = false := by
+                        cases hA : hasFreeDt s3
+                            (native_reflist_insert refs q) Z with
+                        | false => rfl
+                        | true =>
+                            simp [hasFreeDtc, hasFreeTy, native_or, hA]
+                              at hHoleV
+                      have hMatchB : refMatchBDt BZO BZN = true := by
+                        simpa [refMatchBTy] using hMatchp.1
+                      have hRec := recover_dt X hs3live Z
+                        (native_reflist_insert refs q) hBody hBZN
+                        hZstrayV hZstrayO hHoleOB hHoleVB hNotQ hMatchB
+                      rw [hRec]
+                | TypeRef r =>
+                    rw [show __smtx_type_lift s3 X (SmtType.TypeRef r) =
+                        SmtType.TypeRef r by simp [__smtx_type_lift]]
+                      at hTN
+                    cases hTN
+                | None =>
+                    rw [show __smtx_type_lift s3 X SmtType.None =
+                        SmtType.None by simp [__smtx_type_lift]] at hTN
+                    cases hTN
+                | Bool =>
+                    rw [show __smtx_type_lift s3 X SmtType.Bool =
+                        SmtType.Bool by simp [__smtx_type_lift]] at hTN
+                    cases hTN
+                | Int =>
+                    rw [show __smtx_type_lift s3 X SmtType.Int =
+                        SmtType.Int by simp [__smtx_type_lift]] at hTN
+                    cases hTN
+                | Real =>
+                    rw [show __smtx_type_lift s3 X SmtType.Real =
+                        SmtType.Real by simp [__smtx_type_lift]] at hTN
+                    cases hTN
+                | RegLan =>
+                    rw [show __smtx_type_lift s3 X SmtType.RegLan =
+                        SmtType.RegLan by simp [__smtx_type_lift]] at hTN
+                    cases hTN
+                | BitVec n =>
+                    rw [show __smtx_type_lift s3 X (SmtType.BitVec n) =
+                        SmtType.BitVec n by simp [__smtx_type_lift]]
+                      at hTN
+                    cases hTN
+                | Map A B =>
+                    rw [show __smtx_type_lift s3 X (SmtType.Map A B) =
+                        SmtType.Map A B by simp [__smtx_type_lift]]
+                      at hTN
+                    cases hTN
+                | Set A =>
+                    rw [show __smtx_type_lift s3 X (SmtType.Set A) =
+                        SmtType.Set A by simp [__smtx_type_lift]] at hTN
+                    cases hTN
+                | Seq A =>
+                    rw [show __smtx_type_lift s3 X (SmtType.Seq A) =
+                        SmtType.Seq A by simp [__smtx_type_lift]] at hTN
+                    cases hTN
+                | Char =>
+                    rw [show __smtx_type_lift s3 X SmtType.Char =
+                        SmtType.Char by simp [__smtx_type_lift]] at hTN
+                    cases hTN
+                | USort u =>
+                    rw [show __smtx_type_lift s3 X (SmtType.USort u) =
+                        SmtType.USort u by simp [__smtx_type_lift]]
+                      at hTN
+                    cases hTN
+                | FunType A B =>
+                    rw [show __smtx_type_lift s3 X (SmtType.FunType A B)
+                        = SmtType.FunType A B by
+                      simp [__smtx_type_lift]] at hTN
+                    cases hTN
+                | DtcAppType A B =>
+                    rw [show __smtx_type_lift s3 X
+                        (SmtType.DtcAppType A B) =
+                        SmtType.DtcAppType A B by
+                      simp [__smtx_type_lift]] at hTN
+                    cases hTN
+            | @rotAny ZO' ZN' =>
+                exfalso
+                cases TV with
+                | Datatype q' Z =>
+                    by_cases hFold : native_Teq (SmtType.Datatype s3 X)
+                        (SmtType.Datatype q' Z) = true
+                    · rw [show __smtx_type_lift s3 X
+                          (SmtType.Datatype q' Z) = SmtType.TypeRef s3
+                          by simp [__smtx_type_lift, native_ite, hFold]]
+                        at hTN
+                      cases hTN
+                    · rw [show __smtx_type_lift s3 X
+                          (SmtType.Datatype q' Z) = SmtType.Datatype q'
+                            (__smtx_dt_lift s3 X Z) by
+                        simp [__smtx_type_lift, native_ite, hFold]]
+                        at hTN
+                      injection hTN with hqq _
+                      subst hqq
+                      have hTV := hStrayVp.1
+                      simp only [noStrayTy, native_ite, if_neg hFold,
+                        native_and, native_not, Bool.and_eq_true] at hTV
+                      simp [native_streq] at hTV
+                | TypeRef r =>
+                    rw [show __smtx_type_lift s3 X (SmtType.TypeRef r) =
+                        SmtType.TypeRef r by simp [__smtx_type_lift]]
+                      at hTN
+                    cases hTN
+                | None =>
+                    rw [show __smtx_type_lift s3 X SmtType.None =
+                        SmtType.None by simp [__smtx_type_lift]] at hTN
+                    cases hTN
+                | Bool =>
+                    rw [show __smtx_type_lift s3 X SmtType.Bool =
+                        SmtType.Bool by simp [__smtx_type_lift]] at hTN
+                    cases hTN
+                | Int =>
+                    rw [show __smtx_type_lift s3 X SmtType.Int =
+                        SmtType.Int by simp [__smtx_type_lift]] at hTN
+                    cases hTN
+                | Real =>
+                    rw [show __smtx_type_lift s3 X SmtType.Real =
+                        SmtType.Real by simp [__smtx_type_lift]] at hTN
+                    cases hTN
+                | RegLan =>
+                    rw [show __smtx_type_lift s3 X SmtType.RegLan =
+                        SmtType.RegLan by simp [__smtx_type_lift]] at hTN
+                    cases hTN
+                | BitVec n =>
+                    rw [show __smtx_type_lift s3 X (SmtType.BitVec n) =
+                        SmtType.BitVec n by simp [__smtx_type_lift]]
+                      at hTN
+                    cases hTN
+                | Map A B =>
+                    rw [show __smtx_type_lift s3 X (SmtType.Map A B) =
+                        SmtType.Map A B by simp [__smtx_type_lift]]
+                      at hTN
+                    cases hTN
+                | Set A =>
+                    rw [show __smtx_type_lift s3 X (SmtType.Set A) =
+                        SmtType.Set A by simp [__smtx_type_lift]] at hTN
+                    cases hTN
+                | Seq A =>
+                    rw [show __smtx_type_lift s3 X (SmtType.Seq A) =
+                        SmtType.Seq A by simp [__smtx_type_lift]] at hTN
+                    cases hTN
+                | Char =>
+                    rw [show __smtx_type_lift s3 X SmtType.Char =
+                        SmtType.Char by simp [__smtx_type_lift]] at hTN
+                    cases hTN
+                | USort u =>
+                    rw [show __smtx_type_lift s3 X (SmtType.USort u) =
+                        SmtType.USort u by simp [__smtx_type_lift]]
+                      at hTN
+                    cases hTN
+                | FunType A B =>
+                    rw [show __smtx_type_lift s3 X (SmtType.FunType A B)
+                        = SmtType.FunType A B by
+                      simp [__smtx_type_lift]] at hTN
+                    cases hTN
+                | DtcAppType A B =>
+                    rw [show __smtx_type_lift s3 X
+                        (SmtType.DtcAppType A B) =
+                        SmtType.DtcAppType A B by
+                      simp [__smtx_type_lift]] at hTN
+                    cases hTN
+            | @preRot ZO' =>
+                cases TV with
+                | Datatype q' Z =>
+                    by_cases hFold : native_Teq (SmtType.Datatype s3 X)
+                        (SmtType.Datatype q' Z) = true
+                    · have hp : s3 = q' ∧ X = Z := by
+                        simpa [native_Teq] using hFold
+                      obtain ⟨rfl, rfl⟩ := hp
+                      have hTO := hStrayOp.1
+                      have hZX : ZO' = X := by
+                        by_cases hTeq : native_Teq
+                            (SmtType.Datatype s3 X)
+                            (SmtType.Datatype s3 ZO') = true
+                        · have hp2 : s3 = s3 ∧ X = ZO' := by
+                            simpa [native_Teq] using hTeq
+                          exact hp2.2.symm
+                        · exfalso
+                          simp only [noStrayTy, native_ite,
+                            if_neg hTeq, native_and, native_not,
+                            Bool.and_eq_true] at hTO
+                          simp [native_streq] at hTO
+                      rw [hZX]
+                    · exfalso
+                      rw [show __smtx_type_lift s3 X
+                          (SmtType.Datatype q' Z) = SmtType.Datatype q'
+                            (__smtx_dt_lift s3 X Z) by
+                        simp [__smtx_type_lift, native_ite, hFold]]
+                        at hTN
+                      cases hTN
+                | TypeRef r =>
+                    exfalso
+                    rw [show __smtx_type_lift s3 X (SmtType.TypeRef r) =
+                        SmtType.TypeRef r by simp [__smtx_type_lift]]
+                      at hTN
+                    injection hTN with hr
+                    subst hr
+                    simp [hasFreeDtc, native_or, native_and, native_not,
+                      native_streq, hNot] at hHoleV
+                | None =>
+                    exfalso
+                    rw [show __smtx_type_lift s3 X SmtType.None =
+                        SmtType.None by simp [__smtx_type_lift]] at hTN
+                    cases hTN
+                | Bool =>
+                    exfalso
+                    rw [show __smtx_type_lift s3 X SmtType.Bool =
+                        SmtType.Bool by simp [__smtx_type_lift]] at hTN
+                    cases hTN
+                | Int =>
+                    exfalso
+                    rw [show __smtx_type_lift s3 X SmtType.Int =
+                        SmtType.Int by simp [__smtx_type_lift]] at hTN
+                    cases hTN
+                | Real =>
+                    exfalso
+                    rw [show __smtx_type_lift s3 X SmtType.Real =
+                        SmtType.Real by simp [__smtx_type_lift]] at hTN
+                    cases hTN
+                | RegLan =>
+                    exfalso
+                    rw [show __smtx_type_lift s3 X SmtType.RegLan =
+                        SmtType.RegLan by simp [__smtx_type_lift]] at hTN
+                    cases hTN
+                | BitVec n =>
+                    exfalso
+                    rw [show __smtx_type_lift s3 X (SmtType.BitVec n) =
+                        SmtType.BitVec n by simp [__smtx_type_lift]]
+                      at hTN
+                    cases hTN
+                | Map A B =>
+                    exfalso
+                    rw [show __smtx_type_lift s3 X (SmtType.Map A B) =
+                        SmtType.Map A B by simp [__smtx_type_lift]]
+                      at hTN
+                    cases hTN
+                | Set A =>
+                    exfalso
+                    rw [show __smtx_type_lift s3 X (SmtType.Set A) =
+                        SmtType.Set A by simp [__smtx_type_lift]] at hTN
+                    cases hTN
+                | Seq A =>
+                    exfalso
+                    rw [show __smtx_type_lift s3 X (SmtType.Seq A) =
+                        SmtType.Seq A by simp [__smtx_type_lift]] at hTN
+                    cases hTN
+                | Char =>
+                    exfalso
+                    rw [show __smtx_type_lift s3 X SmtType.Char =
+                        SmtType.Char by simp [__smtx_type_lift]] at hTN
+                    cases hTN
+                | USort u =>
+                    exfalso
+                    rw [show __smtx_type_lift s3 X (SmtType.USort u) =
+                        SmtType.USort u by simp [__smtx_type_lift]]
+                      at hTN
+                    cases hTN
+                | FunType A B =>
+                    exfalso
+                    rw [show __smtx_type_lift s3 X (SmtType.FunType A B)
+                        = SmtType.FunType A B by
+                      simp [__smtx_type_lift]] at hTN
+                    cases hTN
+                | DtcAppType A B =>
+                    exfalso
+                    rw [show __smtx_type_lift s3 X
+                        (SmtType.DtcAppType A B) =
+                        SmtType.DtcAppType A B by
+                      simp [__smtx_type_lift]] at hTN
+                    cases hTN
+            | @flip r _ hr =>
+                have hTNr : TN = SmtType.TypeRef r := by
+                  have hM := hMatchp.1
+                  simp only [refMatchBTy] at hM
+                  have := (by simpa [native_Teq] using hM :
+                    SmtType.TypeRef r = TN)
+                  exact this.symm
+                have hrs3 : ¬(r = s3) := by
+                  intro hEq
+                  rw [hEq, hs3live] at hr
+                  cases hr
+                cases TV with
+                | Datatype q' Z =>
+                    by_cases hFold : native_Teq (SmtType.Datatype s3 X)
+                        (SmtType.Datatype q' Z) = true
+                    · rw [show __smtx_type_lift s3 X
+                          (SmtType.Datatype q' Z) = SmtType.TypeRef s3
+                          by simp [__smtx_type_lift, native_ite, hFold]]
+                        at hTN
+                      rw [hTNr] at hTN
+                      injection hTN with hr3
+                      exact absurd hr3 hrs3
+                    · exfalso
+                      rw [show __smtx_type_lift s3 X
+                          (SmtType.Datatype q' Z) = SmtType.Datatype q'
+                            (__smtx_dt_lift s3 X Z) by
+                        simp [__smtx_type_lift, native_ite, hFold]]
+                        at hTN
+                      rw [hTNr] at hTN
+                      cases hTN
+                | TypeRef r' =>
+                    rw [show __smtx_type_lift s3 X (SmtType.TypeRef r')
+                        = SmtType.TypeRef r' by simp [__smtx_type_lift]]
+                      at hTN
+                    rw [hTNr] at hTN
+                    injection hTN with hrr
+                    rw [hrr]
+                | None =>
+                    exfalso
+                    rw [show __smtx_type_lift s3 X SmtType.None =
+                        SmtType.None by simp [__smtx_type_lift]] at hTN
+                    rw [hTNr] at hTN
+                    cases hTN
+                | Bool =>
+                    exfalso
+                    rw [show __smtx_type_lift s3 X SmtType.Bool =
+                        SmtType.Bool by simp [__smtx_type_lift]] at hTN
+                    rw [hTNr] at hTN
+                    cases hTN
+                | Int =>
+                    exfalso
+                    rw [show __smtx_type_lift s3 X SmtType.Int =
+                        SmtType.Int by simp [__smtx_type_lift]] at hTN
+                    rw [hTNr] at hTN
+                    cases hTN
+                | Real =>
+                    exfalso
+                    rw [show __smtx_type_lift s3 X SmtType.Real =
+                        SmtType.Real by simp [__smtx_type_lift]] at hTN
+                    rw [hTNr] at hTN
+                    cases hTN
+                | RegLan =>
+                    exfalso
+                    rw [show __smtx_type_lift s3 X SmtType.RegLan =
+                        SmtType.RegLan by simp [__smtx_type_lift]]
+                      at hTN
+                    rw [hTNr] at hTN
+                    cases hTN
+                | BitVec n =>
+                    exfalso
+                    rw [show __smtx_type_lift s3 X (SmtType.BitVec n) =
+                        SmtType.BitVec n by simp [__smtx_type_lift]]
+                      at hTN
+                    rw [hTNr] at hTN
+                    cases hTN
+                | Map A B =>
+                    exfalso
+                    rw [show __smtx_type_lift s3 X (SmtType.Map A B) =
+                        SmtType.Map A B by simp [__smtx_type_lift]]
+                      at hTN
+                    rw [hTNr] at hTN
+                    cases hTN
+                | Set A =>
+                    exfalso
+                    rw [show __smtx_type_lift s3 X (SmtType.Set A) =
+                        SmtType.Set A by simp [__smtx_type_lift]] at hTN
+                    rw [hTNr] at hTN
+                    cases hTN
+                | Seq A =>
+                    exfalso
+                    rw [show __smtx_type_lift s3 X (SmtType.Seq A) =
+                        SmtType.Seq A by simp [__smtx_type_lift]] at hTN
+                    rw [hTNr] at hTN
+                    cases hTN
+                | Char =>
+                    exfalso
+                    rw [show __smtx_type_lift s3 X SmtType.Char =
+                        SmtType.Char by simp [__smtx_type_lift]] at hTN
+                    rw [hTNr] at hTN
+                    cases hTN
+                | USort u =>
+                    exfalso
+                    rw [show __smtx_type_lift s3 X (SmtType.USort u) =
+                        SmtType.USort u by simp [__smtx_type_lift]]
+                      at hTN
+                    rw [hTNr] at hTN
+                    cases hTN
+                | FunType A B =>
+                    exfalso
+                    rw [show __smtx_type_lift s3 X (SmtType.FunType A B)
+                        = SmtType.FunType A B by
+                      simp [__smtx_type_lift]] at hTN
+                    rw [hTNr] at hTN
+                    cases hTN
+                | DtcAppType A B =>
+                    exfalso
+                    rw [show __smtx_type_lift s3 X
+                        (SmtType.DtcAppType A B) =
+                        SmtType.DtcAppType A B by
+                      simp [__smtx_type_lift]] at hTN
+                    rw [hTNr] at hTN
+                    cases hTN
+          have hHoleOtail : hasFreeDtc s3 refs cO' = false := by
+            cases hA : hasFreeDtc s3 refs cO' with
+            | false => rfl
+            | true =>
+                cases TO <;> simp_all [hasFreeDtc, hasFreeTy, native_or]
+          have hHoleVtail : hasFreeDtc s3 refs cV' = false := by
+            cases hA : hasFreeDtc s3 refs cV' with
+            | false => rfl
+            | true =>
+                cases TV <;> simp_all [hasFreeDtc, hasFreeTy, native_or]
+          have hTail := recover_dtc X hs3live cV' refs hc hcN
+            hStrayVp.2 hStrayOp.2 hHoleOtail hHoleVtail hNot hMatchp.2
+          rw [hHead, hTail]
+
+private theorem recover_dt {s3 : native_String}
+    {dead : native_String → native_Bool} (X : SmtDatatype)
+    (hs3live : dead s3 = false) :
+    ∀ {dO dN : SmtDatatype} (dV : SmtDatatype) (refs : RefList),
+      RotShPreDt s3 dead dO dN →
+      dN = __smtx_dt_lift s3 X dV →
+      noStrayDt s3 X dV = true →
+      noStrayDt s3 X dO = true →
+      hasFreeDt s3 refs dO = false →
+      hasFreeDt s3 refs dV = false →
+      native_reflist_contains refs s3 = false →
+      refMatchBDt dO dN = true →
+      dO = dV
+  | _, _, dV, refs, RotShPreDt.null, hLift, _, _, _, _, _, _ => by
+      cases dV with
+      | null => rfl
+      | sum cV dV' =>
+          rw [show __smtx_dt_lift s3 X (SmtDatatype.sum cV dV') =
+              SmtDatatype.sum (__smtx_dtc_lift s3 X cV)
+                (__smtx_dt_lift s3 X dV') by simp [__smtx_dt_lift]]
+            at hLift
+          cases hLift
+  | _, _, dV, refs, @RotShPreDt.sum _ _ cO cN dO' dN' hc hd, hLift,
+      hStrayV, hStrayO, hHoleO, hHoleV, hNot, hMatch => by
+      cases dV with
+      | null =>
+          rw [show __smtx_dt_lift s3 X SmtDatatype.null =
+              SmtDatatype.null by simp [__smtx_dt_lift]] at hLift
+          cases hLift
+      | sum cV dV' =>
+          rw [show __smtx_dt_lift s3 X (SmtDatatype.sum cV dV') =
+              SmtDatatype.sum (__smtx_dtc_lift s3 X cV)
+                (__smtx_dt_lift s3 X dV') by simp [__smtx_dt_lift]]
+            at hLift
+          injection hLift with hcN hdN
+          have hStrayVp : noStrayDtc s3 X cV = true ∧
+              noStrayDt s3 X dV' = true := by
+            simpa [noStrayDt, native_and, Bool.and_eq_true] using hStrayV
+          have hStrayOp : noStrayDtc s3 X cO = true ∧
+              noStrayDt s3 X dO' = true := by
+            simpa [noStrayDt, native_and, Bool.and_eq_true] using hStrayO
+          have hHoleOp : hasFreeDtc s3 refs cO = false ∧
+              hasFreeDt s3 refs dO' = false := by
+            cases hA : hasFreeDtc s3 refs cO <;>
+              cases hB : hasFreeDt s3 refs dO' <;>
+                simp_all [hasFreeDt, native_or]
+          have hHoleVp : hasFreeDtc s3 refs cV = false ∧
+              hasFreeDt s3 refs dV' = false := by
+            cases hA : hasFreeDtc s3 refs cV <;>
+              cases hB : hasFreeDt s3 refs dV' <;>
+                simp_all [hasFreeDt, native_or]
+          have hMatchp : refMatchBDtc cO cN = true ∧
+              refMatchBDt dO' dN' = true := by
+            simpa [refMatchBDt, native_and, Bool.and_eq_true] using
+              hMatch
+          rw [recover_dtc X hs3live cV refs hc hcN hStrayVp.1
+              hStrayOp.1 hHoleOp.1 hHoleVp.1 hNot hMatchp.1,
+            recover_dt X hs3live dV' refs hd hdN hStrayVp.2 hStrayOp.2
+              hHoleOp.2 hHoleVp.2 hNot hMatchp.2]
+
+end
+
+/-! ### Shield monotonicity for hole-freeness
+
+`hasFree` consults the shield list only through membership of the
+scanned name, so any shield that covers the old one preserves
+hole-freeness.  The establishment walk uses this to carry the target
+payload's hole-freeness across the binders the scan descends under. -/
+
+mutual
+
+private theorem hasFree_shield_ty (sub : native_String) :
+    ∀ (T : SmtType) (refs refs' : RefList),
+      (native_reflist_contains refs sub = true →
+        native_reflist_contains refs' sub = true) →
+      hasFreeTy sub refs T = false → hasFreeTy sub refs' T = false
+  | SmtType.Datatype s d, refs, refs', hCond, h => by
+      have hCond' : native_reflist_contains
+            (native_reflist_insert refs s) sub = true →
+          native_reflist_contains
+            (native_reflist_insert refs' s) sub = true := by
+        intro hm
+        have hmem : sub ∈ s :: refs := by
+          simpa [native_reflist_contains, native_reflist_insert]
+            using hm
+        cases List.mem_cons.mp hmem with
+        | inl hEq =>
+            simp [native_reflist_contains, native_reflist_insert,
+              List.mem_cons, hEq]
+        | inr hIn =>
+            have hR : sub ∈ refs' := by
+              have := hCond (by
+                simpa [native_reflist_contains] using hIn)
+              simpa [native_reflist_contains] using this
+            simp [native_reflist_contains, native_reflist_insert,
+              List.mem_cons, hR]
+      have h' : hasFreeDt sub (native_reflist_insert refs s) d
+          = false := by
+        simpa [hasFreeTy] using h
+      simpa [hasFreeTy] using
+        hasFree_shield_dt sub d (native_reflist_insert refs s)
+          (native_reflist_insert refs' s) hCond' h'
+  | SmtType.Seq x, _, _, _, h => by
+      simpa [hasFreeTy] using h
+  | SmtType.Set x, _, _, _, h => by
+      simpa [hasFreeTy] using h
+  | SmtType.Map x y, _, _, _, h => by
+      simpa [hasFreeTy] using h
+  | SmtType.TypeRef r, _, _, _, _ => by simp [hasFreeTy]
+  | SmtType.None, _, _, _, _ => by simp [hasFreeTy]
+  | SmtType.Bool, _, _, _, _ => by simp [hasFreeTy]
+  | SmtType.Int, _, _, _, _ => by simp [hasFreeTy]
+  | SmtType.Real, _, _, _, _ => by simp [hasFreeTy]
+  | SmtType.RegLan, _, _, _, _ => by simp [hasFreeTy]
+  | SmtType.BitVec n, _, _, _, _ => by simp [hasFreeTy]
+  | SmtType.Char, _, _, _, _ => by simp [hasFreeTy]
+  | SmtType.USort u, _, _, _, _ => by simp [hasFreeTy]
+  | SmtType.FunType A B, _, _, _, _ => by simp [hasFreeTy]
+  | SmtType.DtcAppType A B, _, _, _, _ => by simp [hasFreeTy]
+
+private theorem hasFree_shield_dtc (sub : native_String) :
+    ∀ (c : SmtDatatypeCons) (refs refs' : RefList),
+      (native_reflist_contains refs sub = true →
+        native_reflist_contains refs' sub = true) →
+      hasFreeDtc sub refs c = false → hasFreeDtc sub refs' c = false
+  | SmtDatatypeCons.unit, _, _, _, _ => by simp [hasFreeDtc]
+  | SmtDatatypeCons.cons (SmtType.TypeRef r) c, refs, refs', hCond,
+      h => by
+      have hParts : native_and (native_streq r sub)
+            (native_not (native_reflist_contains refs sub)) = false ∧
+          hasFreeDtc sub refs c = false := by
+        cases hA : native_and (native_streq r sub)
+            (native_not (native_reflist_contains refs sub)) <;>
+          cases hB : hasFreeDtc sub refs c <;>
+            simp_all [hasFreeDtc, native_or]
+      have hRec := hasFree_shield_dtc sub c refs refs' hCond hParts.2
+      have hHead : native_and (native_streq r sub)
+          (native_not (native_reflist_contains refs' sub))
+          = false := by
+        cases hS : native_streq r sub with
+        | false => simp [native_and, hS]
+        | true =>
+            have hC : native_reflist_contains refs sub = true := by
+              cases hCC : native_reflist_contains refs sub with
+              | true => rfl
+              | false =>
+                  have := hParts.1
+                  simp [native_and, native_not, hS, hCC] at this
+            simp [native_and, native_not, hS, hCond hC]
+      simp [hasFreeDtc, native_or, hHead, hRec]
+  | SmtDatatypeCons.cons (SmtType.Datatype s d) c, refs, refs', hCond, h => by
+      have hParts : hasFreeTy sub refs (SmtType.Datatype s d) = false ∧
+          hasFreeDtc sub refs c = false := by
+        cases hA : hasFreeTy sub refs (SmtType.Datatype s d) <;>
+          cases hB : hasFreeDtc sub refs c <;>
+            simp_all [hasFreeDtc, hasFreeTy, native_or]
+      simp [hasFreeDtc, native_or,
+        hasFree_shield_ty sub _ refs refs' hCond hParts.1,
+        hasFree_shield_dtc sub c refs refs' hCond hParts.2]
+  | SmtDatatypeCons.cons (SmtType.None) c, refs, refs', hCond, h => by
+      have hParts : hasFreeTy sub refs (SmtType.None) = false ∧
+          hasFreeDtc sub refs c = false := by
+        cases hA : hasFreeTy sub refs (SmtType.None) <;>
+          cases hB : hasFreeDtc sub refs c <;>
+            simp_all [hasFreeDtc, hasFreeTy, native_or]
+      simp [hasFreeDtc, native_or,
+        hasFree_shield_ty sub _ refs refs' hCond hParts.1,
+        hasFree_shield_dtc sub c refs refs' hCond hParts.2]
+  | SmtDatatypeCons.cons (SmtType.Bool) c, refs, refs', hCond, h => by
+      have hParts : hasFreeTy sub refs (SmtType.Bool) = false ∧
+          hasFreeDtc sub refs c = false := by
+        cases hA : hasFreeTy sub refs (SmtType.Bool) <;>
+          cases hB : hasFreeDtc sub refs c <;>
+            simp_all [hasFreeDtc, hasFreeTy, native_or]
+      simp [hasFreeDtc, native_or,
+        hasFree_shield_ty sub _ refs refs' hCond hParts.1,
+        hasFree_shield_dtc sub c refs refs' hCond hParts.2]
+  | SmtDatatypeCons.cons (SmtType.Int) c, refs, refs', hCond, h => by
+      have hParts : hasFreeTy sub refs (SmtType.Int) = false ∧
+          hasFreeDtc sub refs c = false := by
+        cases hA : hasFreeTy sub refs (SmtType.Int) <;>
+          cases hB : hasFreeDtc sub refs c <;>
+            simp_all [hasFreeDtc, hasFreeTy, native_or]
+      simp [hasFreeDtc, native_or,
+        hasFree_shield_ty sub _ refs refs' hCond hParts.1,
+        hasFree_shield_dtc sub c refs refs' hCond hParts.2]
+  | SmtDatatypeCons.cons (SmtType.Real) c, refs, refs', hCond, h => by
+      have hParts : hasFreeTy sub refs (SmtType.Real) = false ∧
+          hasFreeDtc sub refs c = false := by
+        cases hA : hasFreeTy sub refs (SmtType.Real) <;>
+          cases hB : hasFreeDtc sub refs c <;>
+            simp_all [hasFreeDtc, hasFreeTy, native_or]
+      simp [hasFreeDtc, native_or,
+        hasFree_shield_ty sub _ refs refs' hCond hParts.1,
+        hasFree_shield_dtc sub c refs refs' hCond hParts.2]
+  | SmtDatatypeCons.cons (SmtType.RegLan) c, refs, refs', hCond, h => by
+      have hParts : hasFreeTy sub refs (SmtType.RegLan) = false ∧
+          hasFreeDtc sub refs c = false := by
+        cases hA : hasFreeTy sub refs (SmtType.RegLan) <;>
+          cases hB : hasFreeDtc sub refs c <;>
+            simp_all [hasFreeDtc, hasFreeTy, native_or]
+      simp [hasFreeDtc, native_or,
+        hasFree_shield_ty sub _ refs refs' hCond hParts.1,
+        hasFree_shield_dtc sub c refs refs' hCond hParts.2]
+  | SmtDatatypeCons.cons (SmtType.BitVec n) c, refs, refs', hCond, h => by
+      have hParts : hasFreeTy sub refs (SmtType.BitVec n) = false ∧
+          hasFreeDtc sub refs c = false := by
+        cases hA : hasFreeTy sub refs (SmtType.BitVec n) <;>
+          cases hB : hasFreeDtc sub refs c <;>
+            simp_all [hasFreeDtc, hasFreeTy, native_or]
+      simp [hasFreeDtc, native_or,
+        hasFree_shield_ty sub _ refs refs' hCond hParts.1,
+        hasFree_shield_dtc sub c refs refs' hCond hParts.2]
+  | SmtDatatypeCons.cons (SmtType.Map A B) c, refs, refs', hCond, h => by
+      have hParts : hasFreeTy sub refs (SmtType.Map A B) = false ∧
+          hasFreeDtc sub refs c = false := by
+        cases hA : hasFreeTy sub refs (SmtType.Map A B) <;>
+          cases hB : hasFreeDtc sub refs c <;>
+            simp_all [hasFreeDtc, hasFreeTy, native_or]
+      simp [hasFreeDtc, native_or,
+        hasFree_shield_ty sub _ refs refs' hCond hParts.1,
+        hasFree_shield_dtc sub c refs refs' hCond hParts.2]
+  | SmtDatatypeCons.cons (SmtType.Set A) c, refs, refs', hCond, h => by
+      have hParts : hasFreeTy sub refs (SmtType.Set A) = false ∧
+          hasFreeDtc sub refs c = false := by
+        cases hA : hasFreeTy sub refs (SmtType.Set A) <;>
+          cases hB : hasFreeDtc sub refs c <;>
+            simp_all [hasFreeDtc, hasFreeTy, native_or]
+      simp [hasFreeDtc, native_or,
+        hasFree_shield_ty sub _ refs refs' hCond hParts.1,
+        hasFree_shield_dtc sub c refs refs' hCond hParts.2]
+  | SmtDatatypeCons.cons (SmtType.Seq A) c, refs, refs', hCond, h => by
+      have hParts : hasFreeTy sub refs (SmtType.Seq A) = false ∧
+          hasFreeDtc sub refs c = false := by
+        cases hA : hasFreeTy sub refs (SmtType.Seq A) <;>
+          cases hB : hasFreeDtc sub refs c <;>
+            simp_all [hasFreeDtc, hasFreeTy, native_or]
+      simp [hasFreeDtc, native_or,
+        hasFree_shield_ty sub _ refs refs' hCond hParts.1,
+        hasFree_shield_dtc sub c refs refs' hCond hParts.2]
+  | SmtDatatypeCons.cons (SmtType.Char) c, refs, refs', hCond, h => by
+      have hParts : hasFreeTy sub refs (SmtType.Char) = false ∧
+          hasFreeDtc sub refs c = false := by
+        cases hA : hasFreeTy sub refs (SmtType.Char) <;>
+          cases hB : hasFreeDtc sub refs c <;>
+            simp_all [hasFreeDtc, hasFreeTy, native_or]
+      simp [hasFreeDtc, native_or,
+        hasFree_shield_ty sub _ refs refs' hCond hParts.1,
+        hasFree_shield_dtc sub c refs refs' hCond hParts.2]
+  | SmtDatatypeCons.cons (SmtType.USort u) c, refs, refs', hCond, h => by
+      have hParts : hasFreeTy sub refs (SmtType.USort u) = false ∧
+          hasFreeDtc sub refs c = false := by
+        cases hA : hasFreeTy sub refs (SmtType.USort u) <;>
+          cases hB : hasFreeDtc sub refs c <;>
+            simp_all [hasFreeDtc, hasFreeTy, native_or]
+      simp [hasFreeDtc, native_or,
+        hasFree_shield_ty sub _ refs refs' hCond hParts.1,
+        hasFree_shield_dtc sub c refs refs' hCond hParts.2]
+  | SmtDatatypeCons.cons (SmtType.FunType A B) c, refs, refs', hCond, h => by
+      have hParts : hasFreeTy sub refs (SmtType.FunType A B) = false ∧
+          hasFreeDtc sub refs c = false := by
+        cases hA : hasFreeTy sub refs (SmtType.FunType A B) <;>
+          cases hB : hasFreeDtc sub refs c <;>
+            simp_all [hasFreeDtc, hasFreeTy, native_or]
+      simp [hasFreeDtc, native_or,
+        hasFree_shield_ty sub _ refs refs' hCond hParts.1,
+        hasFree_shield_dtc sub c refs refs' hCond hParts.2]
+  | SmtDatatypeCons.cons (SmtType.DtcAppType A B) c, refs, refs', hCond, h => by
+      have hParts : hasFreeTy sub refs (SmtType.DtcAppType A B) = false ∧
+          hasFreeDtc sub refs c = false := by
+        cases hA : hasFreeTy sub refs (SmtType.DtcAppType A B) <;>
+          cases hB : hasFreeDtc sub refs c <;>
+            simp_all [hasFreeDtc, hasFreeTy, native_or]
+      simp [hasFreeDtc, native_or,
+        hasFree_shield_ty sub _ refs refs' hCond hParts.1,
+        hasFree_shield_dtc sub c refs refs' hCond hParts.2]
+
+private theorem hasFree_shield_dt (sub : native_String) :
+    ∀ (d : SmtDatatype) (refs refs' : RefList),
+      (native_reflist_contains refs sub = true →
+        native_reflist_contains refs' sub = true) →
+      hasFreeDt sub refs d = false → hasFreeDt sub refs' d = false
+  | SmtDatatype.null, _, _, _, _ => by simp [hasFreeDt]
+  | SmtDatatype.sum c d, refs, refs', hCond, h => by
+      have hParts : hasFreeDtc sub refs c = false ∧
+          hasFreeDt sub refs d = false := by
+        cases hA : hasFreeDtc sub refs c <;>
+          cases hB : hasFreeDt sub refs d <;>
+            simp_all [hasFreeDt, native_or]
+      simp [hasFreeDt, native_or,
+        hasFree_shield_dtc sub c refs refs' hCond hParts.1,
+        hasFree_shield_dt sub d refs refs' hCond hParts.2]
+
+end
+
+/-! ### Collision-scoped reference matching and collision exclusion
+
+`refMatchB` cannot hold globally on a chain pair — genuine flips occur
+at dead references.  What stage injectivity supplies is flip-freeness
+of *collided regions* only: `collMatchB` demands the full reference
+match exactly where a new-side node collides with the lifted target,
+skipping `s3`-pairs and recursing elsewhere.  Below a collision root
+no further collision can fire — a node equal to the target strictly
+inside the target's own body is impossible by size — so the alignment
+Boolean holds outright there (`noColl`). -/
+
+mutual
+private def collMatchBTy (s3 v : native_String) (VN : SmtDatatype) :
+    SmtType → SmtType → native_Bool
+  | SmtType.Datatype q WO, SmtType.Datatype q' WN =>
+      native_ite (native_Teq (SmtType.Datatype v VN)
+          (SmtType.Datatype q' WN))
+        (refMatchBDt WO WN)
+        (native_ite (native_and (native_streq q s3)
+            (native_streq q' s3))
+          true (collMatchBDt s3 v VN WO WN))
+  | _, _ => true
+private def collMatchBDtc (s3 v : native_String) (VN : SmtDatatype) :
+    SmtDatatypeCons → SmtDatatypeCons → native_Bool
+  | SmtDatatypeCons.cons TO cO, SmtDatatypeCons.cons TN cN =>
+      native_and (collMatchBTy s3 v VN TO TN)
+        (collMatchBDtc s3 v VN cO cN)
+  | _, _ => true
+private def collMatchBDt (s3 v : native_String) (VN : SmtDatatype) :
+    SmtDatatype → SmtDatatype → native_Bool
+  | SmtDatatype.sum cO dO, SmtDatatype.sum cN dN =>
+      native_and (collMatchBDtc s3 v VN cO cN)
+        (collMatchBDt s3 v VN dO dN)
+  | _, _ => true
+end
+
+mutual
+private def noCollTy (v : native_String) (VN : SmtDatatype) :
+    SmtType → native_Bool
+  | SmtType.Datatype q W =>
+      native_and (native_not (native_Teq (SmtType.Datatype v VN)
+        (SmtType.Datatype q W))) (noCollDt v VN W)
+  | _ => true
+private def noCollDtc (v : native_String) (VN : SmtDatatype) :
+    SmtDatatypeCons → native_Bool
+  | SmtDatatypeCons.cons T c =>
+      native_and (noCollTy v VN T) (noCollDtc v VN c)
+  | SmtDatatypeCons.unit => true
+private def noCollDt (v : native_String) (VN : SmtDatatype) :
+    SmtDatatype → native_Bool
+  | SmtDatatype.sum c d =>
+      native_and (noCollDtc v VN c) (noCollDt v VN d)
+  | SmtDatatype.null => true
+end
+
+mutual
+
+private theorem noColl_size_ty (v : native_String) (VN : SmtDatatype) :
+    ∀ (T : SmtType), sizeOf T ≤ sizeOf VN → noCollTy v VN T = true
+  | SmtType.Datatype q W, hSz => by
+      have hWle : sizeOf W ≤ sizeOf VN := by
+        have h := hSz
+        simp at h
+        omega
+      have hTeq : native_Teq (SmtType.Datatype v VN)
+          (SmtType.Datatype q W) = false := by
+        cases hT : native_Teq (SmtType.Datatype v VN)
+            (SmtType.Datatype q W) with
+        | false => rfl
+        | true =>
+            have hp : v = q ∧ VN = W := by
+              simpa [native_Teq] using hT
+            exfalso
+            have h := hSz
+            rw [hp.2] at h
+            simp at h
+            omega
+      simp [noCollTy, native_and, native_not, hTeq,
+        noColl_size_dt v VN W hWle]
+  | SmtType.TypeRef r, _ => by simp [noCollTy]
+  | SmtType.None, _ => by simp [noCollTy]
+  | SmtType.Bool, _ => by simp [noCollTy]
+  | SmtType.Int, _ => by simp [noCollTy]
+  | SmtType.Real, _ => by simp [noCollTy]
+  | SmtType.RegLan, _ => by simp [noCollTy]
+  | SmtType.BitVec n, _ => by simp [noCollTy]
+  | SmtType.Map A B, _ => by simp [noCollTy]
+  | SmtType.Set A, _ => by simp [noCollTy]
+  | SmtType.Seq A, _ => by simp [noCollTy]
+  | SmtType.Char, _ => by simp [noCollTy]
+  | SmtType.USort u, _ => by simp [noCollTy]
+  | SmtType.FunType A B, _ => by simp [noCollTy]
+  | SmtType.DtcAppType A B, _ => by simp [noCollTy]
+
+private theorem noColl_size_dtc (v : native_String)
+    (VN : SmtDatatype) :
+    ∀ (c : SmtDatatypeCons), sizeOf c ≤ sizeOf VN →
+      noCollDtc v VN c = true
+  | SmtDatatypeCons.unit, _ => by simp [noCollDtc]
+  | SmtDatatypeCons.cons T c, hSz => by
+      have hT : sizeOf T ≤ sizeOf VN := by
+        have h := hSz
+        simp at h
+        omega
+      have hc : sizeOf c ≤ sizeOf VN := by
+        have h := hSz
+        simp at h
+        omega
+      simp [noCollDtc, native_and, noColl_size_ty v VN T hT,
+        noColl_size_dtc v VN c hc]
+
+private theorem noColl_size_dt (v : native_String)
+    (VN : SmtDatatype) :
+    ∀ (d : SmtDatatype), sizeOf d ≤ sizeOf VN → noCollDt v VN d = true
+  | SmtDatatype.null, _ => by simp [noCollDt]
+  | SmtDatatype.sum c d, hSz => by
+      have hc : sizeOf c ≤ sizeOf VN := by
+        have h := hSz
+        simp at h
+        omega
+      have hd : sizeOf d ≤ sizeOf VN := by
+        have h := hSz
+        simp at h
+        omega
+      simp [noCollDt, native_and, noColl_size_dtc v VN c hc,
+        noColl_size_dt v VN d hd]
+
+end
+
+mutual
+
+private theorem noFatalB_noColl_ty (s3 v : native_String)
+    (VO VN : SmtDatatype) (P : SmtType) :
+    ∀ (Q : SmtType), noCollTy v VN Q = true →
+      noFatalBTy s3 v VO VN P Q = true
+  | SmtType.Datatype q' WN, h => by
+      cases P with
+      | Datatype q WO =>
+          have h' := h
+          simp only [noCollTy, native_and, Bool.and_eq_true] at h'
+          have hTeqF : native_Teq (SmtType.Datatype v VN)
+              (SmtType.Datatype q' WN) = false := by
+            cases hT : native_Teq (SmtType.Datatype v VN)
+                (SmtType.Datatype q' WN) with
+            | false => rfl
+            | true =>
+                have h1 := h'.1
+                rw [hT] at h1
+                simp [native_not] at h1
+          have hRec := noFatalB_noColl_dt s3 v VO VN WO WN h'.2
+          simp [noFatalBTy, native_ite, native_and, native_not,
+            native_or, hTeqF, hRec]
+      | TypeRef => simp [noFatalBTy]
+      | None => simp [noFatalBTy]
+      | Bool => simp [noFatalBTy]
+      | Int => simp [noFatalBTy]
+      | Real => simp [noFatalBTy]
+      | RegLan => simp [noFatalBTy]
+      | BitVec => simp [noFatalBTy]
+      | Map => simp [noFatalBTy]
+      | Set => simp [noFatalBTy]
+      | Seq => simp [noFatalBTy]
+      | Char => simp [noFatalBTy]
+      | USort => simp [noFatalBTy]
+      | FunType => simp [noFatalBTy]
+      | DtcAppType => simp [noFatalBTy]
+  | SmtType.TypeRef r, _ => by cases P <;> simp [noFatalBTy]
+  | SmtType.None, _ => by cases P <;> simp [noFatalBTy]
+  | SmtType.Bool, _ => by cases P <;> simp [noFatalBTy]
+  | SmtType.Int, _ => by cases P <;> simp [noFatalBTy]
+  | SmtType.Real, _ => by cases P <;> simp [noFatalBTy]
+  | SmtType.RegLan, _ => by cases P <;> simp [noFatalBTy]
+  | SmtType.BitVec n, _ => by cases P <;> simp [noFatalBTy]
+  | SmtType.Map A B, _ => by cases P <;> simp [noFatalBTy]
+  | SmtType.Set A, _ => by cases P <;> simp [noFatalBTy]
+  | SmtType.Seq A, _ => by cases P <;> simp [noFatalBTy]
+  | SmtType.Char, _ => by cases P <;> simp [noFatalBTy]
+  | SmtType.USort u, _ => by cases P <;> simp [noFatalBTy]
+  | SmtType.FunType A B, _ => by cases P <;> simp [noFatalBTy]
+  | SmtType.DtcAppType A B, _ => by cases P <;> simp [noFatalBTy]
+
+private theorem noFatalB_noColl_dtc (s3 v : native_String)
+    (VO VN : SmtDatatype) (P : SmtDatatypeCons) :
+    ∀ (Q : SmtDatatypeCons), noCollDtc v VN Q = true →
+      noFatalBDtc s3 v VO VN P Q = true
+  | SmtDatatypeCons.unit, _ => by
+      cases P <;> simp [noFatalBDtc]
+  | SmtDatatypeCons.cons TN cN, h => by
+      cases P with
+      | unit => simp [noFatalBDtc]
+      | cons TO cO =>
+          have h' := h
+          simp only [noCollDtc, native_and, Bool.and_eq_true] at h'
+          simp [noFatalBDtc, native_and,
+            noFatalB_noColl_ty s3 v VO VN TO TN h'.1,
+            noFatalB_noColl_dtc s3 v VO VN cO cN h'.2]
+
+private theorem noFatalB_noColl_dt (s3 v : native_String)
+    (VO VN : SmtDatatype) (P : SmtDatatype) :
+    ∀ (Q : SmtDatatype), noCollDt v VN Q = true →
+      noFatalBDt s3 v VO VN P Q = true
+  | SmtDatatype.null, _ => by
+      cases P <;> simp [noFatalBDt]
+  | SmtDatatype.sum cN dN, h => by
+      cases P with
+      | null => simp [noFatalBDt]
+      | sum cO dO =>
+          have h' := h
+          simp only [noCollDt, native_and, Bool.and_eq_true] at h'
+          simp [noFatalBDt, native_and,
+            noFatalB_noColl_dtc s3 v VO VN cO cN h'.1,
+            noFatalB_noColl_dt s3 v VO VN dO dN h'.2]
+
+end
+
+/-! ### Fold alignment across a pre-refill pair
+
+The full establishment: every pre-refill pair whose old side is
+hole-free, stray-free, and reference-matched against the new side is
+fold-aligned against a lifted target.  Shared regions discharge through
+`noFatalB_same`; structural pairs recurse, with a new-side collision
+handed to the equality recovery to produce the matching old-side
+collision; `s3`-named pairs are skipped by the alignment Boolean itself
+(the collision head is vacuous at a foreign name); holes and flips
+leave the old side shapeless to the collision test. -/
+
+mutual
+
+private theorem noFatalB_establish_ty {s3 v : native_String}
+    {dead : native_String → native_Bool} {X VO VN : SmtDatatype}
+    (hs3live : dead s3 = false)
+    (hVN : VN = __smtx_dt_lift s3 X VO)
+    (hStrayV : noStrayDt s3 X VO = true)
+    (hvs3 : native_streq v s3 = false) :
+    ∀ {TO TN : SmtType} (refs : RefList),
+      RotShPreTy s3 dead TO TN →
+      noStrayTy s3 X TO = true →
+      hasFreeTy s3 refs TO = false →
+      hasFreeDt s3 refs VO = false →
+      native_reflist_contains refs s3 = false →
+      collMatchBTy s3 v VN TO TN = true →
+      noFatalBTy s3 v VO VN TO TN = true
+  | _, _, refs, RotShPreTy.same T, _, hHole, _, hNot, _ =>
+      noFatalB_same_ty v X VO VN hVN hStrayV hvs3 T refs hNot hHole
+  | _, _, refs, @RotShPreTy.dt _ _ q ZO ZN hq hBody, hStrayO,
+      hHoleO, hHoleV, hNot, hMatch => by
+      have hne : ¬(q = s3) := by
+        intro hEq
+        rw [hEq] at hq
+        simp [native_streq] at hq
+      have hFoldO : ¬(native_Teq (SmtType.Datatype s3 X)
+          (SmtType.Datatype q ZO) = true) := by
+        intro hTeq
+        have hp : s3 = q ∧ X = ZO := by
+          simpa [native_Teq] using hTeq
+        exact hne hp.1.symm
+      have hStrayZO : noStrayDt s3 X ZO = true := by
+        simp only [noStrayTy, native_ite, if_neg hFoldO,
+          native_and, Bool.and_eq_true] at hStrayO
+        exact hStrayO.2
+      have hHoleZO : hasFreeDt s3 (native_reflist_insert refs q) ZO
+          = false := by
+        simpa [hasFreeTy] using hHoleO
+      have hHoleVq : hasFreeDt s3 (native_reflist_insert refs q) VO
+          = false :=
+        hasFree_shield_dt s3 VO refs (native_reflist_insert refs q)
+          (by
+            intro hm
+            have hIn : s3 ∈ refs := by
+              simpa [native_reflist_contains] using hm
+            simp [native_reflist_contains, native_reflist_insert,
+              List.mem_cons, hIn]) hHoleV
+      have hNotQ : native_reflist_contains
+          (native_reflist_insert refs q) s3 = false := by
+        have hqs2 : ¬(s3 = q) := fun hEq => hne hEq.symm
+        have hNot' : ¬(s3 ∈ refs) := of_decide_eq_false
+          (by simpa [native_reflist_contains] using hNot)
+        simp [native_reflist_contains, native_reflist_insert,
+          List.mem_cons, hqs2, hNot']
+      cases hCN : native_Teq (SmtType.Datatype v VN)
+          (SmtType.Datatype q ZN) with
+      | false =>
+          have hCollM : collMatchBDt s3 v VN ZO ZN = true := by
+            simpa [collMatchBTy, native_ite, native_and, hCN, hq]
+              using hMatch
+          have hRec : noFatalBDt s3 v VO VN ZO ZN = true :=
+            noFatalB_establish_dt hs3live hVN hStrayV hvs3
+              (native_reflist_insert refs q) hBody hStrayZO hHoleZO
+              hHoleVq hNotQ hCollM
+          simp only [noFatalBTy, native_ite, native_and, native_or,
+            hq]
+          simp [hCN, native_not, native_and, hRec]
+      | true =>
+          have hMatchDt : refMatchBDt ZO ZN = true := by
+            simpa [collMatchBTy, native_ite, hCN] using hMatch
+          have hp : v = q ∧ VN = ZN := by
+            simpa [native_Teq] using hCN
+          have hLiftZN : ZN = __smtx_dt_lift s3 X VO := by
+            rw [← hp.2, hVN]
+          have hZOVO : ZO = VO :=
+            recover_dt X hs3live VO (native_reflist_insert refs q)
+              hBody hLiftZN hStrayV hStrayZO hHoleZO hHoleVq hNotQ
+              hMatchDt
+          have hNoColl : noCollDt v VN ZN = true := by
+            rw [← hp.2]
+            exact noColl_size_dt v VN VN (Nat.le_refl _)
+          have hRec : noFatalBDt s3 v VO VN ZO ZN = true :=
+            noFatalB_noColl_dt s3 v VO VN ZO ZN hNoColl
+          have hCO : native_Teq (SmtType.Datatype v VO)
+              (SmtType.Datatype q ZO) = true := by
+            simp [native_Teq, hp.1, hZOVO]
+          simp only [noFatalBTy, native_ite, native_and, native_or,
+            hq]
+          simp [hCN, hCO, native_not, native_and, hRec]
+  | _, _, _, @RotShPreTy.rotAny _ _ ZO ZN, _, _, _, _, _ => by
+      have hTeqN := teq_dt_name_ne (A := VN) (B := ZN) hvs3
+      simp [noFatalBTy, native_ite, native_and, native_not,
+        native_or, native_streq, hTeqN]
+  | _, _, _, @RotShPreTy.preRot _ _ ZO, _, _, _, _, _ => by
+      simp [noFatalBTy]
+  | _, _, _, @RotShPreTy.flip _ _ r TN2 hr, _, _, _, _, _ => by
+      cases TN2 <;> simp [noFatalBTy]
+
+private theorem noFatalB_establish_dtc {s3 v : native_String}
+    {dead : native_String → native_Bool} {X VO VN : SmtDatatype}
+    (hs3live : dead s3 = false)
+    (hVN : VN = __smtx_dt_lift s3 X VO)
+    (hStrayV : noStrayDt s3 X VO = true)
+    (hvs3 : native_streq v s3 = false) :
+    ∀ {cO cN : SmtDatatypeCons} (refs : RefList),
+      RotShPreDtc s3 dead cO cN →
+      noStrayDtc s3 X cO = true →
+      hasFreeDtc s3 refs cO = false →
+      hasFreeDt s3 refs VO = false →
+      native_reflist_contains refs s3 = false →
+      collMatchBDtc s3 v VN cO cN = true →
+      noFatalBDtc s3 v VO VN cO cN = true
+  | _, _, _, RotShPreDtc.unit, _, _, _, _, _ => by
+      simp [noFatalBDtc]
+  | _, _, refs, @RotShPreDtc.cons _ _ TO2 TN2 cO2 cN2 hT hc,
+      hStrayO, hHoleO, hHoleV, hNot, hMatch => by
+      have hStrayParts : noStrayTy s3 X TO2 = true ∧
+          noStrayDtc s3 X cO2 = true := by
+        simpa [noStrayDtc, native_and, Bool.and_eq_true]
+          using hStrayO
+      have hHoleParts : hasFreeTy s3 refs TO2 = false ∧
+          hasFreeDtc s3 refs cO2 = false := by
+        cases hA : hasFreeTy s3 refs TO2 <;>
+          cases hB : hasFreeDtc s3 refs cO2 <;>
+            cases TO2 <;> simp_all [hasFreeDtc, hasFreeTy, native_or,
+              native_and, native_not, native_streq,
+              native_reflist_contains]
+      have hMatchParts : collMatchBTy s3 v VN TO2 TN2 = true ∧
+          collMatchBDtc s3 v VN cO2 cN2 = true := by
+        simpa [collMatchBDtc, native_and, Bool.and_eq_true]
+          using hMatch
+      simp [noFatalBDtc, native_and,
+        noFatalB_establish_ty hs3live hVN hStrayV hvs3 refs hT
+          hStrayParts.1 hHoleParts.1 hHoleV hNot hMatchParts.1,
+        noFatalB_establish_dtc hs3live hVN hStrayV hvs3 refs hc
+          hStrayParts.2 hHoleParts.2 hHoleV hNot hMatchParts.2]
+
+private theorem noFatalB_establish_dt {s3 v : native_String}
+    {dead : native_String → native_Bool} {X VO VN : SmtDatatype}
+    (hs3live : dead s3 = false)
+    (hVN : VN = __smtx_dt_lift s3 X VO)
+    (hStrayV : noStrayDt s3 X VO = true)
+    (hvs3 : native_streq v s3 = false) :
+    ∀ {dO dN : SmtDatatype} (refs : RefList),
+      RotShPreDt s3 dead dO dN →
+      noStrayDt s3 X dO = true →
+      hasFreeDt s3 refs dO = false →
+      hasFreeDt s3 refs VO = false →
+      native_reflist_contains refs s3 = false →
+      collMatchBDt s3 v VN dO dN = true →
+      noFatalBDt s3 v VO VN dO dN = true
+  | _, _, _, RotShPreDt.null, _, _, _, _, _ => by simp [noFatalBDt]
+  | _, _, refs, @RotShPreDt.sum _ _ cO2 cN2 dO2 dN2 hcD hdD,
+      hStrayO, hHoleO, hHoleV, hNot, hMatch => by
+      have hStrayParts : noStrayDtc s3 X cO2 = true ∧
+          noStrayDt s3 X dO2 = true := by
+        simpa [noStrayDt, native_and, Bool.and_eq_true] using hStrayO
+      have hHoleParts : hasFreeDtc s3 refs cO2 = false ∧
+          hasFreeDt s3 refs dO2 = false := by
+        cases hA : hasFreeDtc s3 refs cO2 <;>
+          cases hB : hasFreeDt s3 refs dO2 <;>
+            simp_all [hasFreeDt, native_or]
+      have hMatchParts : collMatchBDtc s3 v VN cO2 cN2 = true ∧
+          collMatchBDt s3 v VN dO2 dN2 = true := by
+        simpa [collMatchBDt, native_and, Bool.and_eq_true]
+          using hMatch
+      simp [noFatalBDt, native_and,
+        noFatalB_establish_dtc hs3live hVN hStrayV hvs3 refs hcD
+          hStrayParts.1 hHoleParts.1 hHoleV hNot hMatchParts.1,
+        noFatalB_establish_dt hs3live hVN hStrayV hvs3 refs hdD
+          hStrayParts.2 hHoleParts.2 hHoleV hNot hMatchParts.2]
+
+end
+
+
 /-! ### A term and its `s3`-lift, unconditionally
 
 The special role of `s3` in the pre-refill relation makes the pair of a
