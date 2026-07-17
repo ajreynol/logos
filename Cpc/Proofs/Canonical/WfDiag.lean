@@ -7726,6 +7726,31 @@ private theorem noDt_of_holeFree_dt (s3 : native_String) (X : SmtDatatype) :
 
 end
 
+/-- Same-region fold alignment: at an identical payload pair, a collision
+with the lifted target forces the target's lift to have been the
+identity — the shared material is hole-free (a well-formedness fact), so
+the lifted target it equals is hole-free, so no `s3` node ever folded —
+and the old-side collision follows. -/
+private theorem noFatal_head_same {s3 : native_String}
+    {X VO VN W : SmtDatatype} {v q : native_String} {refs : RefList}
+    (hV : VN = __smtx_dt_lift s3 X VO)
+    (hStray : noStrayDt s3 X VO = true)
+    (hNot : native_reflist_contains refs s3 = false)
+    (hHole : hasFreeDt s3 refs W = false)
+    (hColl : native_Teq (SmtType.Datatype v VN)
+      (SmtType.Datatype q W) = true) :
+    native_Teq (SmtType.Datatype v VO) (SmtType.Datatype q W) = true := by
+  have hp : v = q ∧ VN = W := by simpa [native_Teq] using hColl
+  obtain ⟨hv, hVW⟩ := hp
+  have hHoleVN : hasFreeDt s3 refs VN = false := by
+    rw [hVW]
+    exact hHole
+  rw [hV] at hHoleVN
+  have hNoDt := noDt_of_holeFree_dt s3 X VO refs hStray hNot hHoleVN
+  have hId := lift_id_of_noDt_dt s3 X VO hNoDt
+  have hVOW : VO = W := by rw [← hVW, hV, hId]
+  simp [native_Teq, hv, hVOW]
+
 /-! ### A term and its `s3`-lift, unconditionally
 
 The special role of `s3` in the pre-refill relation makes the pair of a
