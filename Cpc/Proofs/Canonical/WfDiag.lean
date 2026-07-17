@@ -7751,6 +7751,24 @@ private theorem noFatal_head_same {s3 : native_String}
   have hVOW : VO = W := by rw [← hVW, hV, hId]
   simp [native_Teq, hv, hVOW]
 
+/-- A collision test at one name is vacuous against a node of another
+name. -/
+private theorem teq_dt_name_ne {v q : native_String}
+    {A B : SmtDatatype} (h : native_streq v q = false) :
+    native_Teq (SmtType.Datatype v A) (SmtType.Datatype q B) = false := by
+  cases hT : native_Teq (SmtType.Datatype v A) (SmtType.Datatype q B) with
+  | false => rfl
+  | true =>
+      have hp : v = q ∧ A = B := by simpa [native_Teq] using hT
+      rw [hp.1] at h
+      simp [native_streq] at h
+
+/-- A collision test against a reference is vacuous. -/
+private theorem teq_dt_ref {v : native_String} {A : SmtDatatype}
+    {r : native_String} :
+    native_Teq (SmtType.Datatype v A) (SmtType.TypeRef r) = false := by
+  simp [native_Teq]
+
 /-! ### A term and its `s3`-lift, unconditionally
 
 The special role of `s3` in the pre-refill relation makes the pair of a
