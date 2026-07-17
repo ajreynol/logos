@@ -7385,6 +7385,36 @@ private theorem eqF_subst_dt (s3 : native_String) :
 
 end
 
+/-- Fold alignment at one application: if the new sides collide, the old
+sides collide.  Premises: both old sides are recovered from their new
+sides by the `s3` roundtrip (supplied at use sites by
+`subst_lift_roundtrip_dt_of_names`), and distinct old pairs are erasably
+distinguishable (the threaded separation fact).  The collision makes the
+two old sides two `s3`-fills of one common term, `eqF_subst_dt` makes
+them erasably equal, and separation then forces them equal outright. -/
+private theorem noFatal_head_of_roundtrip {s3 : native_String}
+    {A B WO WN VO VN : SmtDatatype} {v q q' : native_String}
+    (hqq : q = q')
+    (hW : WO = __smtx_dt_substitute s3 A WN)
+    (hV : VO = __smtx_dt_substitute s3 B VN)
+    (hSep : WO ≠ VO → eqFDt s3 WO VO = false)
+    (hColl : native_Teq (SmtType.Datatype v VN)
+      (SmtType.Datatype q' WN) = true) :
+    native_Teq (SmtType.Datatype v VO) (SmtType.Datatype q WO) = true := by
+  have hp : v = q' ∧ VN = WN := by simpa [native_Teq] using hColl
+  obtain ⟨hv, hVW⟩ := hp
+  have hEq : WO = VO := by
+    by_cases hne : WO = VO
+    · exact hne
+    · exfalso
+      have h1 : WO = __smtx_dt_substitute s3 A VN := by rw [hW, hVW]
+      have hTF : eqFDt s3 WO VO = true := by
+        rw [h1, hV]
+        exact eqF_subst_dt s3 VN A B
+      rw [hSep hne] at hTF
+      cases hTF
+  simp [native_Teq, hv, hqq, hEq]
+
 /-! ### A term and its `s3`-lift, unconditionally
 
 The special role of `s3` in the pre-refill relation makes the pair of a
