@@ -133,6 +133,61 @@ theorem eo_typeof_lt_bool_cases (A B : Term)
   · exact Or.inl ⟨rfl, rfl⟩
   · exact Or.inr ⟨rfl, rfl⟩
 
+/-- Invert a successful EO arithmetic-operation type check without splitting
+both operands into a Cartesian product of `Term` constructors. -/
+theorem eo_typeof_plus_eq_nonstuck_args
+    (A B T : Term)
+    (h : __eo_typeof_plus A B = T)
+    (hT : T ≠ Term.Stuck) :
+    A = T ∧ B = T := by
+  have hA : A ≠ Term.Stuck := by
+    intro hStuck
+    subst A
+    simp [__eo_typeof_plus] at h
+    exact hT h.symm
+  have hB : B ≠ Term.Stuck := by
+    intro hStuck
+    subst B
+    simp [__eo_typeof_plus] at h
+    exact hT h.symm
+  have hPlusNe : __eo_typeof_plus A B ≠ Term.Stuck := by
+    rw [h]
+    exact hT
+  have hReqNe :
+      __eo_requires (__eo_eq A B) (Term.Boolean true)
+        (__eo_requires (__is_arith_type A) (Term.Boolean true) A) ≠
+        Term.Stuck := by
+    simpa [__eo_typeof_plus, hA, hB] using hPlusNe
+  have hBA : B = A :=
+    support_eq_of_eo_eq_true A B
+      (support_eo_requires_cond_eq_of_non_stuck hReqNe)
+  subst B
+  have hInnerNe :
+      __eo_requires (__is_arith_type A) (Term.Boolean true) A ≠
+        Term.Stuck := by
+    simpa [__eo_requires, __eo_eq, hA, native_ite, native_teq, native_not]
+      using hReqNe
+  have hArith : __is_arith_type A = Term.Boolean true :=
+    support_eo_requires_cond_eq_of_non_stuck hInnerNe
+  have hRed : __eo_typeof_plus A A = A := by
+    simp [__eo_typeof_plus, __eo_requires, __eo_eq, hArith,
+      native_ite, native_teq, native_not]
+  rw [hRed] at h
+  exact ⟨h, h⟩
+
+/-- A successful integer arithmetic-operation type check has integer
+operands. -/
+theorem eo_typeof_plus_int_args (A B : Term)
+    (h : __eo_typeof_plus A B = Term.Int) :
+    A = Term.Int ∧ B = Term.Int := by
+  exact eo_typeof_plus_eq_nonstuck_args A B Term.Int h (by decide)
+
+/-- A successful real arithmetic-operation type check has real operands. -/
+theorem eo_typeof_plus_real_args (A B : Term)
+    (h : __eo_typeof_plus A B = Term.Real) :
+    A = Term.Real ∧ B = Term.Real := by
+  exact eo_typeof_plus_eq_nonstuck_args A B Term.Real h (by decide)
+
 /-- Invert a successful EO `ite` type check without enumerating the three-way
 Cartesian product of its operand types. -/
 theorem eo_typeof_ite_eq_nonstuck_args
