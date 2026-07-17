@@ -1,5 +1,6 @@
 import Cpc.Proofs.RuleSupport.CnfSupport
 import Cpc.Proofs.RuleSupport.CoreSupport
+import Cpc.Proofs.RuleSupport.TypeInversionSupport
 
 open Eo
 open SmtEval
@@ -7,21 +8,6 @@ open Smtm
 
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
-
-private theorem prog_ite_neg_branch_eq_of_ne_stuck
-    (c1 x1 y1 pY pX : Term) :
-    c1 ≠ Term.Stuck ->
-    x1 ≠ Term.Stuck ->
-    y1 ≠ Term.Stuck ->
-    __eo_prog_ite_neg_branch c1 x1 y1
-      (Proof.pf (Term.Apply (Term.Apply Term.eq (Term.Apply Term.not pY)) pX)) =
-      __eo_requires (__eo_and (__eo_eq y1 pY) (__eo_eq x1 pX)) (Term.Boolean true)
-        (Term.Apply (Term.Apply Term.eq
-          (Term.Apply (Term.Apply (Term.Apply Term.ite c1) x1) y1))
-          (Term.Apply (Term.Apply Term.eq c1) x1)) := by
-  intro hC1 hX1 hY1
-  cases c1 <;> cases x1 <;> cases y1 <;>
-    simp [__eo_prog_ite_neg_branch] at hC1 hX1 hY1 ⊢
 
 private theorem prog_ite_neg_branch_self_eq_of_ne_stuck
     (c1 x1 y1 : Term) :
@@ -34,26 +20,9 @@ private theorem prog_ite_neg_branch_self_eq_of_ne_stuck
         (Term.Apply (Term.Apply (Term.Apply Term.ite c1) x1) y1))
         (Term.Apply (Term.Apply Term.eq c1) x1) := by
   intro hC1 hX1 hY1
-  rw [prog_ite_neg_branch_eq_of_ne_stuck c1 x1 y1 y1 x1 hC1 hX1 hY1]
-  cases c1 <;> cases x1 <;> cases y1 <;>
-    simp [__eo_requires, __eo_and, __eo_eq, native_ite, native_teq,
-      native_not, native_and, SmtEval.native_not, SmtEval.native_and] at hC1 hX1 hY1 ⊢
-
-private theorem premise_args_of_prog_ite_neg_branch_ne_stuck
-    (c1 x1 y1 pY pX : Term) :
-    c1 ≠ Term.Stuck ->
-    x1 ≠ Term.Stuck ->
-    y1 ≠ Term.Stuck ->
-    __eo_prog_ite_neg_branch c1 x1 y1
-      (Proof.pf (Term.Apply (Term.Apply Term.eq (Term.Apply Term.not pY)) pX)) ≠
-      Term.Stuck ->
-    pY = y1 ∧ pX = x1 := by
-  intro hC1 hX1 hY1 hProg
-  rw [prog_ite_neg_branch_eq_of_ne_stuck c1 x1 y1 pY pX hC1 hX1 hY1] at hProg
-  exact RuleProofs.eqs_of_requires_and_eq_true_not_stuck y1 x1 pY pX
-    (Term.Apply (Term.Apply Term.eq
-      (Term.Apply (Term.Apply (Term.Apply Term.ite c1) x1) y1))
-      (Term.Apply (Term.Apply Term.eq c1) x1)) hProg
+  simp [__eo_prog_ite_neg_branch, __eo_requires, __eo_and, __eo_eq,
+    native_ite, native_teq, native_not, native_and, SmtEval.native_not,
+    SmtEval.native_and]
 
 private theorem shape_of_prog_ite_neg_branch_not_stuck
     (c1 x1 y1 p : Term) :
@@ -101,47 +70,20 @@ private theorem eo_typeof_eq_bool_same (A B : Term) :
     __eo_typeof_eq A B = Term.Bool ->
     A = B ∧ A ≠ Term.Stuck := by
   intro hTy
-  cases A <;> cases B <;>
-    simp [__eo_typeof_eq, __eo_requires, __eo_eq, native_ite, native_teq,
-      native_not] at hTy ⊢
-  all_goals
-    simp [hTy]
+  exact RuleProofs.eo_typeof_eq_bool_same A B hTy
 
 private theorem eo_typeof_eq_bool_of_ne_stuck (A B : Term) :
     __eo_typeof_eq A B ≠ Term.Stuck ->
     __eo_typeof_eq A B = Term.Bool := by
   intro hNe
-  cases A <;> cases B <;>
-    simp [__eo_typeof_eq, __eo_requires, __eo_eq, native_ite, native_teq,
-      native_not] at hNe ⊢
-  all_goals
-    exact hNe
-
-private theorem eo_requires_eq_result_bool_of_bool (X Y : Term) :
-    __eo_requires (__eo_eq X Y) (Term.Boolean true) X = Term.Bool ->
-      X = Term.Bool ∧ Y = Term.Bool := by
-  intro hTy
-  have hNe : __eo_requires (__eo_eq X Y) (Term.Boolean true) X ≠ Term.Stuck := by
-    rw [hTy]
-    decide
-  have hYEq : Y = X :=
-    RuleProofs.eq_of_requires_eq_true_not_stuck X Y X hNe
-  subst Y
-  cases X <;>
-    simp [__eo_requires, __eo_eq, native_ite, native_teq, native_not,
-      SmtEval.native_not] at hTy ⊢
+  exact RuleProofs.eo_typeof_eq_eq_bool_of_ne_stuck A B hNe
 
 private theorem eo_typeof_ite_bool_args_of_bool (C X Y : Term) :
     __eo_typeof_ite C X Y = Term.Bool ->
       C = Term.Bool ∧ X = Term.Bool ∧ Y = Term.Bool := by
   intro hTy
-  cases X <;> cases Y <;> cases C <;>
-    simp [__eo_typeof_ite] at hTy ⊢
-  all_goals
-    first
-    | contradiction
-    | rcases eo_requires_eq_result_bool_of_bool _ _ hTy with ⟨hX, hY⟩
-      simp_all
+  exact RuleProofs.eo_typeof_ite_eq_nonstuck_args C X Y Term.Bool hTy
+    (by decide)
 
 private theorem bool_arg_types_of_ite_neg_branch_body_bool
     (c1 x1 y1 : Term) :

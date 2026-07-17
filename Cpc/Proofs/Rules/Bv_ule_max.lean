@@ -1,4 +1,5 @@
 import Cpc.Proofs.RuleSupport.BvAllOnesCmpSupport
+import Cpc.Proofs.RuleSupport.CoreSupport
 
 open Eo
 open SmtEval
@@ -12,20 +13,12 @@ set_option maxHeartbeats 10000000
 private theorem eo_and_eq_true_left_local {x y : Term} :
     __eo_and x y = Term.Boolean true -> x = Term.Boolean true := by
   intro h
-  cases x <;> cases y <;>
-    simp [__eo_and, __eo_requires, native_ite, native_teq,
-      native_and] at h ⊢
-  · exact h.1
-  · split at h <;> cases h
+  exact (RuleProofs.eo_and_eq_true_args x y h).1
 
 private theorem eo_and_eq_true_right_local {x y : Term} :
     __eo_and x y = Term.Boolean true -> y = Term.Boolean true := by
   intro h
-  cases x <;> cases y <;>
-    simp [__eo_and, __eo_requires, native_ite, native_teq,
-      native_and] at h ⊢
-  · exact h.2
-  · split at h <;> cases h
+  exact (RuleProofs.eo_and_eq_true_args x y h).2
 
 private theorem prog_bv_ule_max_eq_of_ne_stuck
     (x n w : Term) :

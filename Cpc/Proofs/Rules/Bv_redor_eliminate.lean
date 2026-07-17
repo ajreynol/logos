@@ -1,4 +1,5 @@
 import Cpc.Proofs.RuleSupport.CoreSupport
+import Cpc.Proofs.RuleSupport.TypeInversionSupport
 
 open Eo
 open SmtEval
@@ -15,48 +16,6 @@ private def bvRedorElimBody (x w : Term) : Term :=
     (Term.Apply (Term.UOp UserOp.bvnot)
       (Term.Apply (Term.Apply (Term.UOp UserOp.bvcomp) x)
         (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) (Term.Numeral 0))))
-
-private theorem eo_requires_arg_eq_of_ne_stuck
-    {x y z : Term} :
-    __eo_requires x y z ≠ Term.Stuck ->
-    x = y := by
-  intro hReq
-  by_cases hxy : x = y
-  · exact hxy
-  · have hStuck : __eo_requires x y z = Term.Stuck := by
-      simp [__eo_requires, native_teq, native_ite, hxy]
-    exact False.elim (hReq hStuck)
-
-private theorem eo_eq_true_eq {x y : Term} :
-    __eo_eq x y = Term.Boolean true ->
-    y = x := by
-  intro h
-  cases x <;> cases y <;> simp [__eo_eq, native_teq] at h ⊢
-  all_goals simpa using h
-
-private theorem eo_and_eq_true_left {x y : Term} :
-    __eo_and x y = Term.Boolean true ->
-    x = Term.Boolean true := by
-  intro h
-  cases x <;> cases y <;>
-    simp [__eo_and, __eo_requires, native_ite, native_teq,
-      native_and] at h ⊢
-  · exact h.1
-  · split at h <;> cases h
-
-private theorem eo_and_eq_true_right {x y : Term} :
-    __eo_and x y = Term.Boolean true ->
-    y = Term.Boolean true := by
-  intro h
-  cases x <;> cases y <;>
-    simp [__eo_and, __eo_requires, native_ite, native_teq,
-      native_and] at h ⊢
-  · exact h.2
-  · split at h <;> cases h
-
-private theorem eo_eq_self_of_ne_stuck {t : Term} (h : t ≠ Term.Stuck) :
-    __eo_eq t t = Term.Boolean true := by
-  cases t <;> simp [__eo_eq, native_teq] at h ⊢
 
 private theorem bv_redor_eliminate_shape_of_ne_stuck (x w P : Term) :
     __eo_prog_bv_redor_eliminate x w (Proof.pf P) ≠ Term.Stuck ->
@@ -89,12 +48,7 @@ private theorem bv_redor_eliminate_guard_eqs_of_ne_stuck
     __eo_requires (__eo_and (__eo_eq w pw) (__eo_eq x px))
         (Term.Boolean true) body ≠ Term.Stuck ->
     pw = w ∧ px = x := by
-  intro hReq
-  have hGuard :
-      __eo_and (__eo_eq w pw) (__eo_eq x px) = Term.Boolean true :=
-    eo_requires_arg_eq_of_ne_stuck hReq
-  exact ⟨eo_eq_true_eq (eo_and_eq_true_left hGuard),
-    eo_eq_true_eq (eo_and_eq_true_right hGuard)⟩
+  exact RuleProofs.eqs_of_requires_and_eq_true_not_stuck w x pw px body
 
 private theorem prog_bv_redor_eliminate_canonical_eq_of_ne_stuck (x w : Term) :
     x ≠ Term.Stuck ->
@@ -105,48 +59,10 @@ private theorem prog_bv_redor_eliminate_canonical_eq_of_ne_stuck (x w : Term) :
       bvRedorElimBody x w := by
   intro hx hw
   rw [__eo_prog_bv_redor_eliminate.eq_3 x w w x hx hw]
-  rw [eo_eq_self_of_ne_stuck hw, eo_eq_self_of_ne_stuck hx]
+  rw [RuleProofs.eo_eq_self_of_ne_stuck w hw,
+    RuleProofs.eo_eq_self_of_ne_stuck x hx]
   simp [bvRedorElimBody, __eo_and, __eo_requires, native_ite, native_teq,
     native_and, native_not, SmtEval.native_not]
-
-private theorem eo_typeof_bvredand_arg_bitvec_of_ne_stuck_local {A : Term}
-    (h : __eo_typeof_bvredand A ≠ Term.Stuck) :
-    ∃ w, A = Term.Apply (Term.UOp UserOp.BitVec) w := by
-  cases A <;> simp [__eo_typeof_bvredand] at h ⊢
-  case Apply f w =>
-    cases f <;> simp [__eo_typeof_bvredand] at h ⊢
-    case UOp op =>
-      cases op <;> simp [__eo_typeof_bvredand] at h ⊢
-
-private theorem eo_typeof_bvnot_arg_bitvec_of_ne_stuck_local {A : Term}
-    (h : __eo_typeof_bvnot A ≠ Term.Stuck) :
-    ∃ w, A = Term.Apply (Term.UOp UserOp.BitVec) w := by
-  cases A <;> simp [__eo_typeof_bvnot] at h ⊢
-  case Apply f w =>
-    cases f <;> simp [__eo_typeof_bvnot] at h ⊢
-    case UOp op =>
-      cases op <;> simp [__eo_typeof_bvnot] at h ⊢
-
-private theorem eo_typeof_bvcomp_arg_types_of_ne_stuck_local
-    {A B : Term}
-    (h : __eo_typeof_bvcomp A B ≠ Term.Stuck) :
-    ∃ u,
-      A = Term.Apply (Term.UOp UserOp.BitVec) u ∧
-        B = Term.Apply (Term.UOp UserOp.BitVec) u := by
-  cases A <;> cases B <;> simp [__eo_typeof_bvcomp] at h ⊢
-  case Apply.Apply f n g m =>
-    cases f <;> cases g <;> simp [__eo_typeof_bvcomp] at h ⊢
-    case UOp.UOp opA opB =>
-      cases opA <;> cases opB <;> simp [__eo_typeof_bvcomp] at h ⊢
-      have hReq :
-          __eo_requires (__eo_eq n m) (Term.Boolean true)
-              (Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral 1)) ≠
-            Term.Stuck := by
-        simpa [__eo_typeof_bvcomp] using h
-      have hm : m = n :=
-        support_eq_of_eo_eq_true n m
-          (support_eo_requires_cond_eq_of_non_stuck hReq)
-      exact hm.symm
 
 private theorem width_eq_of_typeof_at_bv_eq_bitvec
     (w u : Term) :
@@ -201,9 +117,9 @@ private theorem typeof_args_of_redor_body_bool (x w : Term) :
         (__eo_typeof_bvcomp (__eo_typeof x)
           (__eo_typeof_int_to_bv (__eo_typeof w) w (Term.UOp UserOp.Int))))
       hTy
-  rcases eo_typeof_bvredand_arg_bitvec_of_ne_stuck_local hOperandsNN.1 with
+  rcases RuleProofs.eo_typeof_bvredand_arg_bitvec_of_ne_stuck _ hOperandsNN.1 with
     ⟨u, hXTy⟩
-  rcases eo_typeof_bvnot_arg_bitvec_of_ne_stuck_local hOperandsNN.2 with
+  rcases RuleProofs.eo_typeof_bvnot_arg_bitvec_of_ne_stuck _ hOperandsNN.2 with
     ⟨_one, hCompTy⟩
   have hCompNN :
       __eo_typeof_bvcomp (__eo_typeof x)
@@ -212,7 +128,7 @@ private theorem typeof_args_of_redor_body_bool (x w : Term) :
     rw [hCompTy]
     intro h
     cases h
-  rcases eo_typeof_bvcomp_arg_types_of_ne_stuck_local hCompNN with
+  rcases RuleProofs.eo_typeof_bvcomp_args_of_ne_stuck _ _ hCompNN with
     ⟨v, hXTy', hAtTy⟩
   rw [hXTy] at hXTy'
   injection hXTy' with _ hVU
@@ -295,23 +211,51 @@ private theorem smt_typeof_binary_nat_to_int_zero_local (w : native_Nat) :
     TranslationProofs.smtx_typeof_binary_of_non_none
       (native_nat_to_int w) 0 hNN
 
-private theorem eo_to_smt_redor_rhs_eq_lhs
+private theorem smt_typeof_redor_rhs
     (x : Term) (n : native_Int) :
     native_zleq 0 n = true ->
     __smtx_typeof (__eo_to_smt x) = SmtType.BitVec (native_int_to_nat n) ->
-    __eo_to_smt
-        (Term.Apply (Term.UOp UserOp.bvnot)
-          (Term.Apply (Term.Apply (Term.UOp UserOp.bvcomp) x)
-            (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral n)) (Term.Numeral 0)))) =
-      __eo_to_smt (Term.Apply (Term.UOp UserOp.bvredor) x) := by
+    __smtx_typeof
+        (__eo_to_smt
+          (Term.Apply (Term.UOp UserOp.bvnot)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.bvcomp) x)
+              (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral n))
+                (Term.Numeral 0))))) =
+      SmtType.BitVec 1 := by
   intro hNonneg hXSmtTy
-  change SmtTerm.bvnot
-      (SmtTerm.bvcomp (__eo_to_smt x)
-        (SmtTerm.int_to_bv (SmtTerm.Numeral n) (SmtTerm.Numeral 0))) =
-    (let _v0 := __eo_to_smt x;
-      SmtTerm.bvnot
-        (SmtTerm.bvcomp _v0
-          (SmtTerm.Binary (__smtx_bv_sizeof_type (__smtx_typeof _v0)) 0)))
+  change __smtx_typeof
+      (SmtTerm.bvnot
+        (SmtTerm.bvcomp (__eo_to_smt x)
+          (SmtTerm.int_to_bv (SmtTerm.Numeral n) (SmtTerm.Numeral 0)))) =
+    SmtType.BitVec 1
+  rw [smtx_typeof_bvnot_term_eq]
+  rw [smtx_typeof_bvcomp_term_eq, hXSmtTy]
+  rw [smtx_typeof_int_to_bv_numerals n 0 hNonneg]
+  simp [__smtx_typeof_bv_op_1, __smtx_typeof_bv_op_2_ret,
+    SmtEval.native_nateq, native_ite]
+
+private theorem smt_eval_redor_rhs_eq_lhs
+    (M : SmtModel) (x : Term) (n : native_Int) :
+    native_zleq 0 n = true ->
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec (native_int_to_nat n) ->
+    __smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.UOp UserOp.bvnot)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.bvcomp) x)
+              (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral n))
+                (Term.Numeral 0))))) =
+      __smtx_model_eval M
+        (__eo_to_smt (Term.Apply (Term.UOp UserOp.bvredor) x)) := by
+  intro hNonneg hXSmtTy
+  change __smtx_model_eval M
+      (SmtTerm.bvnot
+        (SmtTerm.bvcomp (__eo_to_smt x)
+          (SmtTerm.int_to_bv (SmtTerm.Numeral n) (SmtTerm.Numeral 0)))) =
+    __smtx_model_eval M
+      (SmtTerm.bvnot
+        (SmtTerm.bvcomp (__eo_to_smt x)
+          (SmtTerm.Binary
+            (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))) 0)))
   have hSize :
       __smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x)) = n := by
     rw [hXSmtTy]
@@ -319,7 +263,11 @@ private theorem eo_to_smt_redor_rhs_eq_lhs
   have hMod0 :
       native_mod_total 0 (native_int_pow2 n) = 0 :=
     native_mod_total_zero_pow2_of_nonneg n hNonneg
-  simp [native_ite, hNonneg, hSize, hMod0]
+  rw [smtx_eval_bvnot_term_eq, smtx_eval_bvnot_term_eq]
+  rw [smtx_eval_bvcomp_term_eq, smtx_eval_bvcomp_term_eq]
+  rw [smtx_eval_int_to_bv_numerals]
+  rw [hSize, hMod0]
+  rw [smtx_eval_binary_term_eq]
 
 private theorem smt_typeof_redor_lhs
     (x : Term) (n : native_Int) :
@@ -366,11 +314,11 @@ private theorem typed_redor_body (x w : Term) :
             (Term.Apply (Term.Apply (Term.UOp UserOp.bvcomp) x)
               (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral n)) (Term.Numeral 0)))))) =
     SmtType.Bool
-  rw [eo_to_smt_redor_rhs_eq_lhs x n hNonneg hXSmtTy]
   have hLhsTy := smt_typeof_redor_lhs x n hXSmtTy
+  have hRhsTy := smt_typeof_redor_rhs x n hNonneg hXSmtTy
   rw [typeof_eq_eq]
-  simp [__smtx_typeof_eq, hLhsTy, __smtx_typeof_guard, native_Teq,
-    native_ite]
+  simp [__smtx_typeof_eq, hLhsTy, hRhsTy, __smtx_typeof_guard,
+    native_Teq, native_ite]
 
 private theorem facts_redor_body
     (M : SmtModel) (x w : Term) :
@@ -398,7 +346,7 @@ private theorem facts_redor_body
           (Term.Apply (Term.UOp UserOp.bvnot)
               (Term.Apply (Term.Apply (Term.UOp UserOp.bvcomp) x)
               (Term.Apply (Term.UOp1 UserOp1.int_to_bv (Term.Numeral n)) (Term.Numeral 0))))))
-    rw [eo_to_smt_redor_rhs_eq_lhs x n hNonneg hXSmtTy]
+    rw [smt_eval_redor_rhs_eq_lhs M x n hNonneg hXSmtTy]
     exact RuleProofs.smt_value_rel_refl _
 
 private theorem trusted_bv_redor_eliminate_canonical_properties

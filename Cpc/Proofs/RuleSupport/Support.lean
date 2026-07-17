@@ -87,6 +87,27 @@ theorem smtx_eval_int_to_bv_term_eq
         (__smtx_model_eval M w) (__smtx_model_eval M x) := by
   rw [__smtx_model_eval.eq_def] <;> simp only
 
+/-- Stable rewrite for evaluating SMT bit-vector negation terms. -/
+theorem smtx_eval_bvnot_term_eq
+    (M : SmtModel) (x : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.bvnot x) =
+      __smtx_model_eval_bvnot (__smtx_model_eval M x) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+/-- Stable rewrite for evaluating SMT bit-vector comparison terms. -/
+theorem smtx_eval_bvcomp_term_eq
+    (M : SmtModel) (x y : SmtTerm) :
+    __smtx_model_eval M (SmtTerm.bvcomp x y) =
+      __smtx_model_eval_bvcomp
+        (__smtx_model_eval M x) (__smtx_model_eval M y) := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
+/-- Stable rewrite for evaluating SMT bit-vector literals. -/
+theorem smtx_eval_binary_term_eq
+    (M : SmtModel) (w k : native_Int) :
+    __smtx_model_eval M (SmtTerm.Binary w k) = SmtValue.Binary w k := by
+  rw [__smtx_model_eval.eq_def] <;> simp only
+
 @[simp] theorem smtx_eval_int_to_bv_numerals
     (M : SmtModel) (w k : native_Int) :
     __smtx_model_eval M
@@ -822,6 +843,21 @@ theorem smtx_typeof_int_to_bv_term_eq
     (w x : SmtTerm) :
     __smtx_typeof (SmtTerm.int_to_bv w x) =
       __smtx_typeof_int_to_bv w (__smtx_typeof x) := by
+  rw [__smtx_typeof.eq_def] <;> simp only
+
+/-- Stable rewrite for typing SMT bit-vector negation terms. -/
+theorem smtx_typeof_bvnot_term_eq
+    (x : SmtTerm) :
+    __smtx_typeof (SmtTerm.bvnot x) =
+      __smtx_typeof_bv_op_1 (__smtx_typeof x) := by
+  rw [__smtx_typeof.eq_def] <;> simp only
+
+/-- Stable rewrite for typing SMT bit-vector comparison terms. -/
+theorem smtx_typeof_bvcomp_term_eq
+    (x y : SmtTerm) :
+    __smtx_typeof (SmtTerm.bvcomp x y) =
+      __smtx_typeof_bv_op_2_ret
+        (__smtx_typeof x) (__smtx_typeof y) (SmtType.BitVec 1) := by
   rw [__smtx_typeof.eq_def] <;> simp only
 
 @[simp] theorem smtx_typeof_int_to_bv_numerals

@@ -1,4 +1,5 @@
 import Cpc.Proofs.RuleSupport.BvSaddoElimSupport
+import Cpc.Proofs.RuleSupport.TypeInversionSupport
 
 /-! Support for the `bv_ssubo_eliminate` rewrite. -/
 
@@ -35,7 +36,7 @@ def bvSsuboTerm (x y nm : Term) : Term :=
 private theorem typeof_or_bool_args_ssubo (A B : Term) :
     __eo_typeof_or A B = Term.Bool -> A = Term.Bool ∧ B = Term.Bool := by
   intro h
-  cases A <;> cases B <;> simp [__eo_typeof_or] at h ⊢
+  exact RuleProofs.eo_typeof_or_bool_args A B h
 
 private theorem typeof_bvSaddoAnd_inv_ssubo {a b : Term} :
     __eo_typeof (bvSaddoAnd a b) = Term.Bool ->

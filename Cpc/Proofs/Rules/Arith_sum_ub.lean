@@ -1,4 +1,4 @@
-import Cpc.Proofs.RuleSupport.Support
+import Cpc.Proofs.RuleSupport.TypeInversionSupport
 
 open Eo
 open SmtEval
@@ -1107,42 +1107,21 @@ private theorem eo_typeof_lt_bool_args
     (A = Term.UOp UserOp.Int ∧ B = Term.UOp UserOp.Int) ∨
       (A = Term.UOp UserOp.Real ∧ B = Term.UOp UserOp.Real) := by
   intro h
-  cases A <;> cases B <;>
-    try
-      (simp [__eo_typeof_lt, __eo_requires, __eo_eq, __is_arith_type,
-        native_ite, native_teq, native_not, SmtEval.native_not] at h)
-  case UOp opA =>
-    rename_i opB
-    cases opA <;> cases opB <;>
-      simp at h ⊢
+  exact RuleProofs.eo_typeof_lt_bool_cases A B h
 
 private theorem eo_typeof_plus_eq_int_args
     (A B : Term) :
     __eo_typeof_plus A B = Term.UOp UserOp.Int ->
     A = Term.UOp UserOp.Int ∧ B = Term.UOp UserOp.Int := by
   intro h
-  cases A <;> cases B <;>
-    try
-      (simp [__eo_typeof_plus, __eo_requires, __eo_eq, __is_arith_type,
-        native_ite, native_teq, native_not, SmtEval.native_not] at h)
-  case UOp opA =>
-    rename_i opB
-    cases opA <;> cases opB <;>
-      simp at h ⊢
+  exact RuleProofs.eo_typeof_plus_int_args A B h
 
 private theorem eo_typeof_plus_eq_real_args
     (A B : Term) :
     __eo_typeof_plus A B = Term.UOp UserOp.Real ->
     A = Term.UOp UserOp.Real ∧ B = Term.UOp UserOp.Real := by
   intro h
-  cases A <;> cases B <;>
-    try
-      (simp [__eo_typeof_plus, __eo_requires, __eo_eq, __is_arith_type,
-        native_ite, native_teq, native_not, SmtEval.native_not] at h)
-  case UOp opA =>
-    rename_i opB
-    cases opA <;> cases opB <;>
-      simp at h ⊢
+  exact RuleProofs.eo_typeof_plus_real_args A B h
 
 private theorem eo_typeof_right_rel_of_sum_rel_bool
     (op : UserOp) (a1 b1 a2 b2 : Term)

@@ -1,4 +1,4 @@
-import Cpc.Proofs.RuleSupport.Support
+import Cpc.Proofs.RuleSupport.CoreSupport
 import Cpc.Proofs.TypePreservation.BitVec
 
 open Eo
@@ -25,32 +25,19 @@ private theorem eo_eq_true_eq {x y : Term} :
     __eo_eq x y = Term.Boolean true ->
     y = x := by
   intro h
-  cases x <;> cases y <;> simp [__eo_eq, native_teq] at h ⊢
-  all_goals simpa using h
+  exact RuleProofs.eq_of_eo_eq_true x y h
 
 private theorem eo_and_eq_true_left {x y : Term} :
     __eo_and x y = Term.Boolean true ->
     x = Term.Boolean true := by
   intro h
-  cases x <;> cases y <;>
-    simp [__eo_and, __eo_requires, native_ite, native_teq,
-      native_and] at h ⊢
-  · exact h.1
-  · split at h <;> cases h
+  exact (RuleProofs.eo_and_eq_true_args x y h).1
 
 private theorem eo_and_eq_true_right {x y : Term} :
     __eo_and x y = Term.Boolean true ->
     y = Term.Boolean true := by
   intro h
-  cases x <;> cases y <;>
-    simp [__eo_and, __eo_requires, native_ite, native_teq,
-      native_and] at h ⊢
-  · exact h.2
-  · split at h <;> cases h
-
-private theorem eo_eq_self_of_ne_stuck {t : Term} (h : t ≠ Term.Stuck) :
-    __eo_eq t t = Term.Boolean true := by
-  cases t <;> simp [__eo_eq, native_teq] at h ⊢
+  exact (RuleProofs.eo_and_eq_true_args x y h).2
 
 private theorem bv_urem_self_shape_of_ne_stuck (x w P : Term) :
     __eo_prog_bv_urem_self x w (Proof.pf P) ≠ Term.Stuck ->
@@ -101,7 +88,8 @@ private theorem prog_bv_urem_self_canonical_eq_of_ne_stuck (x w : Term) :
         (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) (Term.Numeral 0)) := by
   intro hx hw
   rw [__eo_prog_bv_urem_self.eq_3 x w w x hx hw]
-  rw [eo_eq_self_of_ne_stuck hw, eo_eq_self_of_ne_stuck hx]
+  rw [RuleProofs.eo_eq_self_of_ne_stuck w hw,
+    RuleProofs.eo_eq_self_of_ne_stuck x hx]
   simp [__eo_and, __eo_requires, native_ite, native_teq, native_and,
     native_not, SmtEval.native_not]
 
@@ -150,7 +138,8 @@ private theorem typeof_args_of_urem_self_body_bool (x w : Term) :
                               (Term.Apply (Term.UOp UserOp.BitVec) w)) =
                           Term.Bool := by
                       simpa [__eo_typeof_bvand, __eo_typeof_int_to_bv, hXTy, hWTy,
-                        hW, eo_eq_self_of_ne_stuck hu, __eo_requires,
+                        hW, RuleProofs.eo_eq_self_of_ne_stuck u hu,
+                        __eo_requires,
                         native_ite, native_teq, native_not,
                         SmtEval.native_not] using hTy
                     have hOpEq :=
@@ -184,12 +173,14 @@ private theorem typeof_args_of_urem_self_body_bool (x w : Term) :
                     exfalso
                     simpa [__eo_typeof_eq, __eo_typeof_bvand, __eo_typeof_int_to_bv,
                       __eo_requires, __eo_eq, native_ite, native_teq, native_not,
-                      hXTy, hWTy, hu, eo_eq_self_of_ne_stuck hu] using hTy
+                      hXTy, hWTy, hu,
+                      RuleProofs.eo_eq_self_of_ne_stuck u hu] using hTy
               | _ =>
                   exfalso
                   simpa [__eo_typeof_eq, __eo_typeof_bvand, __eo_typeof_int_to_bv,
                     __eo_requires, __eo_eq, native_ite, native_teq, native_not,
-                    hXTy, hWTy, hu, eo_eq_self_of_ne_stuck hu] using hTy
+                    hXTy, hWTy, hu,
+                    RuleProofs.eo_eq_self_of_ne_stuck u hu] using hTy
           all_goals
             exfalso
             simpa [__eo_typeof_eq, __eo_typeof_bvand, __eo_typeof_int_to_bv,

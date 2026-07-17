@@ -1,4 +1,4 @@
-import Cpc.Proofs.RuleSupport.Support
+import Cpc.Proofs.RuleSupport.CoreSupport
 import Cpc.Proofs.TypePreservation.BitVec
 
 open Eo
@@ -25,32 +25,19 @@ private theorem eo_eq_true_eq {x y : Term} :
     __eo_eq x y = Term.Boolean true ->
     y = x := by
   intro h
-  cases x <;> cases y <;> simp [__eo_eq, native_teq] at h ⊢
-  all_goals simpa using h
+  exact RuleProofs.eq_of_eo_eq_true x y h
 
 private theorem eo_and_eq_true_left {x y : Term} :
     __eo_and x y = Term.Boolean true ->
     x = Term.Boolean true := by
   intro h
-  cases x <;> cases y <;>
-    simp [__eo_and, __eo_requires, native_ite, native_teq,
-      native_and] at h ⊢
-  · exact h.1
-  · split at h <;> cases h
+  exact (RuleProofs.eo_and_eq_true_args x y h).1
 
 private theorem eo_and_eq_true_right {x y : Term} :
     __eo_and x y = Term.Boolean true ->
     y = Term.Boolean true := by
   intro h
-  cases x <;> cases y <;>
-    simp [__eo_and, __eo_requires, native_ite, native_teq,
-      native_and] at h ⊢
-  · exact h.2
-  · split at h <;> cases h
-
-private theorem eo_eq_self_of_ne_stuck {t : Term} (h : t ≠ Term.Stuck) :
-    __eo_eq t t = Term.Boolean true := by
-  cases t <;> simp [__eo_eq, native_teq] at h ⊢
+  exact (RuleProofs.eo_and_eq_true_args x y h).2
 
 private theorem requires_eq_true_stuck_of_ne (x y B : Term) :
     x ≠ y ->
@@ -124,7 +111,8 @@ private theorem prog_bv_ugt_urem_canonical_eq_of_ne_stuck (y x w : Term) :
             (Term.Boolean true))) := by
   intro hy hx hw
   rw [__eo_prog_bv_ugt_urem.eq_4 y x w w y hy hx hw]
-  rw [eo_eq_self_of_ne_stuck hw, eo_eq_self_of_ne_stuck hy]
+  rw [RuleProofs.eo_eq_self_of_ne_stuck w hw,
+    RuleProofs.eo_eq_self_of_ne_stuck y hy]
   simp [__eo_and, __eo_requires, native_ite, native_teq, native_and,
     native_not, SmtEval.native_not]
 
@@ -303,7 +291,8 @@ private theorem typeof_args_of_ugt_urem_body_bool (y x w : Term) :
           (__eo_typeof_bvand (__eo_typeof y) (__eo_typeof x))
           (__eo_typeof x) = Term.Bool := by
     rw [hBvand, hXTy]
-    simp [__eo_typeof_bvult, eo_eq_self_of_ne_stuck hMNe, __eo_requires,
+    simp [__eo_typeof_bvult, RuleProofs.eo_eq_self_of_ne_stuck bw hMNe,
+      __eo_requires,
       native_ite, native_teq, native_not, SmtEval.native_not]
   rw [hABool] at hTy
   have hOpEq := support_eo_typeof_eq_bool_operands_eq _ _ hTy

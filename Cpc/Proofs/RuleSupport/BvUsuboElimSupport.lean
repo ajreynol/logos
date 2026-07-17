@@ -1,5 +1,6 @@
 import Cpc.Proofs.RuleSupport.BvOverflowSupport
 import Cpc.Proofs.RuleSupport.BvSdivElimSupport
+import Cpc.Proofs.RuleSupport.TypeInversionSupport
 
 /-! Support for the `bv_usubo_eliminate` rewrite. -/
 
@@ -192,19 +193,9 @@ theorem typeof_bvult_args_of_ne_stuck {A B : Term}
     (h : __eo_typeof_bvult A B ≠ Term.Stuck) :
     ∃ w, A = Term.Apply (Term.UOp UserOp.BitVec) w ∧
       B = Term.Apply (Term.UOp UserOp.BitVec) w := by
-  cases A <;> cases B <;> simp [__eo_typeof_bvult] at h ⊢
-  case Apply.Apply f n g m =>
-    cases f <;> cases g <;> simp [__eo_typeof_bvult] at h ⊢
-    case UOp.UOp opA opB =>
-      cases opA <;> cases opB <;> simp [__eo_typeof_bvult] at h ⊢
-      have hReq :
-          __eo_requires (__eo_eq n m) (Term.Boolean true) Term.Bool ≠
-            Term.Stuck := by
-        simpa [__eo_typeof_bvult] using h
-      have hm : m = n :=
-        support_eq_of_eo_eq_true n m
-          (support_eo_requires_cond_eq_of_non_stuck hReq)
-      exact hm.symm
+  rcases RuleProofs.eo_typeof_bvult_args_of_ne_stuck A B h with
+    ⟨w, hA, hB, _hW⟩
+  exact ⟨w, hA, hB⟩
 
 def usuboTerm (x y n : Term) : Term :=
   Term.Apply (Term.Apply (Term.UOp UserOp.eq) (usuboLhs x y))

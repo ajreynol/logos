@@ -1,4 +1,5 @@
 import Cpc.Proofs.RuleSupport.BvExtractRewriteSupport
+import Cpc.Proofs.RuleSupport.TypeInversionSupport
 import Cpc.Proofs.Rules.Bv_nego_eliminate
 
 /-! Support for the `bv_sdiv_eliminate` rewrite. -/
@@ -56,59 +57,20 @@ theorem eo_typeof_bvbin_arg_types_of_ne_stuck
     {A B : Term} (h : __eo_typeof_bvand A B ≠ Term.Stuck) :
     ∃ w, A = Term.Apply (Term.UOp UserOp.BitVec) w ∧
       B = Term.Apply (Term.UOp UserOp.BitVec) w := by
-  cases A <;> cases B <;> simp [__eo_typeof_bvand] at h ⊢
-  case Apply.Apply f n g m =>
-    cases f <;> cases g <;> simp [__eo_typeof_bvand] at h ⊢
-    case UOp.UOp opA opB =>
-      cases opA <;> cases opB <;> simp [__eo_typeof_bvand] at h ⊢
-      have hReq :
-          __eo_requires (__eo_eq n m) (Term.Boolean true)
-              (Term.Apply (Term.UOp UserOp.BitVec) n) ≠ Term.Stuck := by
-        simpa [__eo_typeof_bvand] using h
-      have hm : m = n :=
-        support_eq_of_eo_eq_true n m
-          (support_eo_requires_cond_eq_of_non_stuck hReq)
-      exact hm.symm
+  rcases RuleProofs.eo_typeof_bvand_args_of_ne_stuck A B h with
+    ⟨w, hA, hB, _hW⟩
+  exact ⟨w, hA, hB⟩
 
 theorem typeof_ite_inv_nonstuck (C A B T : Term) :
     __eo_typeof_ite C A B = T -> T ≠ Term.Stuck ->
     C = Term.Bool ∧ A = T ∧ B = T := by
   intro h hT
-  by_cases hA : A = Term.Stuck
-  · subst A
-    simp [__eo_typeof_ite] at h
-    exact False.elim (hT h.symm)
-  · by_cases hB : B = Term.Stuck
-    · subst B
-      cases C <;> cases A <;> simp [__eo_typeof_ite] at h hA
-      all_goals exact False.elim (hT h.symm)
-    · by_cases hC : C = Term.Bool
-      · subst C
-        have hReqNe :
-            __eo_requires (__eo_eq A B) (Term.Boolean true) A ≠
-              Term.Stuck := by
-          have hIteNe : __eo_typeof_ite Term.Bool A B ≠ Term.Stuck := by
-            rw [h]
-            exact hT
-          simpa [__eo_typeof_ite] using hIteNe
-        have hBA : B = A :=
-          RuleProofs.eq_of_requires_eq_true_not_stuck A B A hReqNe
-        subst B
-        have hRed :
-            __eo_typeof_ite Term.Bool A A = A := by
-          cases A <;> simp [__eo_typeof_ite, __eo_requires, __eo_eq,
-            native_ite, native_teq, native_not] at hA ⊢
-        rw [hRed] at h
-        exact ⟨rfl, h, h⟩
-      · have hStuck : __eo_typeof_ite C A B = Term.Stuck := by
-          cases C <;> simp_all [__eo_typeof_ite]
-        rw [hStuck] at h
-        exact False.elim (hT h.symm)
+  exact RuleProofs.eo_typeof_ite_eq_nonstuck_args C A B T h hT
 
 private theorem typeof_or_bool_args (A B : Term) :
     __eo_typeof_or A B = Term.Bool -> A = Term.Bool ∧ B = Term.Bool := by
   intro h
-  cases A <;> cases B <;> simp [__eo_typeof_or] at h ⊢
+  exact RuleProofs.eo_typeof_or_bool_args A B h
 
 private theorem bv_sdiv_context (x y nm : Term) :
     RuleProofs.eo_has_smt_translation x ->

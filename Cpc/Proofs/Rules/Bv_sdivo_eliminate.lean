@@ -1,4 +1,5 @@
 import Cpc.Proofs.Rules.Bv_nego_eliminate
+import Cpc.Proofs.RuleSupport.TypeInversionSupport
 
 open Eo
 open SmtEval
@@ -45,21 +46,13 @@ private theorem eo_and_eq_true_left {x y : Term} :
     __eo_and x y = Term.Boolean true ->
     x = Term.Boolean true := by
   intro h
-  cases x <;> cases y <;>
-    simp [__eo_and, __eo_requires, native_ite, native_teq,
-      native_and] at h ⊢
-  · exact h.1
-  · split at h <;> cases h
+  exact (RuleProofs.eo_and_eq_true_args x y h).1
 
 private theorem eo_and_eq_true_right {x y : Term} :
     __eo_and x y = Term.Boolean true ->
     y = Term.Boolean true := by
   intro h
-  cases x <;> cases y <;>
-    simp [__eo_and, __eo_requires, native_ite, native_teq,
-      native_and] at h ⊢
-  · exact h.2
-  · split at h <;> cases h
+  exact (RuleProofs.eo_and_eq_true_args x y h).2
 
 private theorem prog_bv_sdivo_eliminate_eq_of_ne_stuck
     (x y w wm : Term) :
@@ -130,31 +123,12 @@ private theorem eo_typeof_bvult_args_of_ne_stuck {A B : Term}
     (h : __eo_typeof_bvult A B ≠ Term.Stuck) :
     ∃ w, A = Term.Apply (Term.UOp UserOp.BitVec) w ∧
       B = Term.Apply (Term.UOp UserOp.BitVec) w ∧ w ≠ Term.Stuck := by
-  cases A <;> cases B <;> simp [__eo_typeof_bvult] at h ⊢
-  case Apply.Apply f n g m =>
-    cases f <;> cases g <;> simp [__eo_typeof_bvult] at h ⊢
-    case UOp.UOp opA opB =>
-      cases opA <;> cases opB <;> simp [__eo_typeof_bvult] at h ⊢
-      have hReq :
-          __eo_requires (__eo_eq n m) (Term.Boolean true) Term.Bool ≠
-            Term.Stuck := by
-        simpa [__eo_typeof_bvult] using h
-      have hm : m = n :=
-        support_eq_of_eo_eq_true n m
-          (support_eo_requires_cond_eq_of_non_stuck hReq)
-      subst m
-      have hn : n ≠ Term.Stuck := by
-        intro hn
-        apply h
-        subst n
-        simp [__eo_typeof_bvult, __eo_requires, __eo_eq, native_ite,
-          native_teq, native_not]
-      exact ⟨rfl, hn⟩
+  exact RuleProofs.eo_typeof_bvult_args_of_ne_stuck A B h
 
 private theorem eo_typeof_or_bool_args (A B : Term) :
     __eo_typeof_or A B = Term.Bool -> A = Term.Bool ∧ B = Term.Bool := by
   intro h
-  cases A <;> cases B <;> simp [__eo_typeof_or] at h ⊢
+  exact RuleProofs.eo_typeof_or_bool_args A B h
 
 private theorem bv_sdivo_divisor_type_inv (w width : Term) :
     __eo_typeof (bvSdivoDivisor w) =
