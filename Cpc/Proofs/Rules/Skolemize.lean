@@ -1,8 +1,8 @@
 import Cpc.Proofs.RuleSupport.Support
 import Cpc.Proofs.RuleSupport.SubstitutePreservationSupport
+import Cpc.Proofs.RuleSupport.SubstituteSimulEvalSupport
 import Cpc.Proofs.Closed.ContainsAtomicTermListFree
 import Cpc.Proofs.Closed.IsClosedRec
-import Cpc.Proofs.Rules.Instantiate
 
 open Eo
 open SmtEval
@@ -134,22 +134,6 @@ private theorem eo_mk_apply_eq {a b : Term}
   · exact absurd rfl ha
   · exact absurd rfl hb
   · rfl
-
-private theorem eo_and_eq_true_parts {a b : Term}
-    (h : __eo_and a b = Term.Boolean true) :
-    a = Term.Boolean true ∧ b = Term.Boolean true := by
-  unfold __eo_and at h
-  split at h
-  · rename_i b1 b2
-    injection h with h'
-    simp only [native_and, Bool.and_eq_true] at h'
-    exact ⟨by rw [h'.1], by rw [h'.2]⟩
-  · exfalso
-    simp only [__eo_requires, native_ite] at h
-    split at h
-    · split at h <;> cases h
-    · cases h
-  · cases h
 
 private theorem eo_to_smt_not_eq (t : Term) :
     __eo_to_smt (notTerm t) = SmtTerm.not (__eo_to_smt t) := rfl
@@ -1020,16 +1004,6 @@ private theorem distinctList_append_disjoint {α : Type} :
         cases ha with
         | head => exact hNotMem (mem_append_of_mem_right l1 hMem)
         | tail _ hTailMem => exact ih hTail a hTailMem hMem
-
-private theorem distinctList_append_right {α : Type} :
-    ∀ {l1 l2 : List α}, DistinctList (l1 ++ l2) -> DistinctList l2 := by
-  intro l1
-  induction l1 with
-  | nil => intro l2 h; exact h
-  | cons b l1 ih =>
-      intro l2 hD
-      cases hD with
-      | cons _ hTail => exact ih hTail
 
 private theorem distinctList_middle {α : Type} :
     ∀ {l1 : List α} {a : α} {l2 : List α},
