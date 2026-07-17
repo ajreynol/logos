@@ -588,6 +588,491 @@ open InstantiateRule
 
 set_option maxHeartbeats 4000000
 
+/-! ## Model push manipulation -/
+
+theorem native_model_push_comm
+    (M : SmtModel) (s1 : native_String) (T1 : SmtType) (v1 : SmtValue)
+    (s2 : native_String) (T2 : SmtType) (v2 : SmtValue)
+    (h : ({ isVar := true, name := s1, ty := T1 } : SmtModelKey) ≠
+      { isVar := true, name := s2, ty := T2 }) :
+    native_model_push (native_model_push M s1 T1 v1) s2 T2 v2 =
+      native_model_push (native_model_push M s2 T2 v2) s1 T1 v1 := by
+  simp only [native_model_push]
+  congr 1
+  funext k
+  by_cases h2 : k = ({ isVar := true, name := s2, ty := T2 } : SmtModelKey)
+  · rw [if_pos h2, if_neg (by rw [h2]; exact fun hc => h hc.symm), if_pos h2]
+  · rw [if_neg h2]
+    by_cases h1 : k = ({ isVar := true, name := s1, ty := T1 } : SmtModelKey)
+    · rw [if_pos h1, if_pos h1]
+    · rw [if_neg h1, if_neg h1, if_neg h2]
+
+theorem native_model_push_shadow
+    (M : SmtModel) (s : native_String) (T : SmtType) (v w : SmtValue) :
+    native_model_push (native_model_push M s T v) s T w =
+      native_model_push M s T w := by
+  simp only [native_model_push]
+  congr 1
+  funext k
+  by_cases hk : k = ({ isVar := true, name := s, ty := T } : SmtModelKey)
+  · rw [if_pos hk, if_pos hk]
+  · rw [if_neg hk, if_neg hk, if_neg hk]
+
+/-- Two pushes at the same key collapse regardless of the first value. -/
+theorem native_model_push_shadow_of_key_eq
+    (M : SmtModel) (s1 : native_String) (T1 : SmtType) (v : SmtValue)
+    (s2 : native_String) (T2 : SmtType) (w : SmtValue)
+    (h : ({ isVar := true, name := s1, ty := T1 } : SmtModelKey) =
+      { isVar := true, name := s2, ty := T2 }) :
+    native_model_push (native_model_push M s1 T1 v) s2 T2 w =
+      native_model_push M s2 T2 w := by
+  have hs : s1 = s2 := by cases h; rfl
+  have hT : T1 = T2 := by cases h; rfl
+  subst hs; subst hT
+  exact native_model_push_shadow M s1 T1 v w
+
+/-! ## Single-binder step characterization of the forall encoding -/
+
+theorem forall_encoding_step_iff
+    (M : SmtModel) (hM : model_total_typed M)
+    (s : native_String) (T : SmtType) (tail : SmtTerm)
+    (hWf : __smtx_type_wf T = true)
+    (hTailTy : __smtx_typeof tail = SmtType.Bool) :
+    __smtx_model_eval M (SmtTerm.not (SmtTerm.exists s T tail)) =
+        SmtValue.Boolean true ↔
+      ∀ v : SmtValue, __smtx_typeof_value v = T ->
+        __smtx_value_canonical_bool v = true ->
+        __smtx_model_eval (native_model_push M s T v) (SmtTerm.not tail) =
+          SmtValue.Boolean true := by
+  classical
+  constructor
+  · intro h v hvT hvC
+    rw [smtx_model_eval_not_unfold] at h
+    have hExFalse : __smtx_model_eval M (SmtTerm.exists s T tail) =
+        SmtValue.Boolean false :=
+      (InstantiateRule.smtx_model_eval_not_true_iff _).1 h
+    have hNoSat : ¬ (∃ w : SmtValue,
+        __smtx_typeof_value w = T ∧
+          __smtx_value_canonical_bool w = true ∧
+            __smtx_model_eval (native_model_push M s T w) tail =
+              SmtValue.Boolean true) := by
+      intro hSat
+      have : __smtx_model_eval M (SmtTerm.exists s T tail) =
+          SmtValue.Boolean true := by
+        show (if _ : (∃ w : SmtValue,
+            __smtx_typeof_value w = T ∧
+              __smtx_value_canonical_bool w = true ∧
+                __smtx_model_eval (native_model_push M s T w) tail =
+                  SmtValue.Boolean true)
+          then SmtValue.Boolean true else SmtValue.Boolean false) =
+          SmtValue.Boolean true
+        rw [dif_pos hSat]
+      rw [hExFalse] at this
+      exact absurd this (by decide)
+    have hPushTotal : model_total_typed (native_model_push M s T v) :=
+      model_total_typed_push hM s T v hWf hvT
+        (by simpa [__smtx_value_canonical] using hvC)
+    obtain ⟨b, hb⟩ :=
+      smt_model_eval_bool_is_boolean (native_model_push M s T v) hPushTotal
+        tail hTailTy
+    cases b
+    · rw [smtx_model_eval_not_unfold, hb]
+      rfl
+    · exact absurd ⟨v, hvT, hvC, hb⟩ hNoSat
+  · intro h
+    have hNoSat : ¬ (∃ w : SmtValue,
+        __smtx_typeof_value w = T ∧
+          __smtx_value_canonical_bool w = true ∧
+            __smtx_model_eval (native_model_push M s T w) tail =
+              SmtValue.Boolean true) := by
+      rintro ⟨w, hwT, hwC, hwE⟩
+      have := h w hwT hwC
+      rw [smtx_model_eval_not_unfold, hwE] at this
+      exact absurd this (by decide)
+    have hExFalse : __smtx_model_eval M (SmtTerm.exists s T tail) =
+        SmtValue.Boolean false := by
+      show (if _ : (∃ w : SmtValue,
+          __smtx_typeof_value w = T ∧
+            __smtx_value_canonical_bool w = true ∧
+              __smtx_model_eval (native_model_push M s T w) tail =
+                SmtValue.Boolean true)
+        then SmtValue.Boolean true else SmtValue.Boolean false) =
+        SmtValue.Boolean false
+      rw [dif_neg hNoSat]
+    rw [smtx_model_eval_not_unfold, hExFalse]
+    rfl
+
+/-! ## Pushing the split variable last -/
+
+/--
+Commutes a push of the split variable past an instantiation chain: if the body
+is true in every instantiation of `ys` over the base extended with `x ↦ v`,
+then it is true when `x ↦ v` is pushed after the chain instead.
+-/
+theorem inst_push_last_bridge
+    (sx : native_String) (Tx : SmtType) (v : SmtValue) (body : SmtTerm)
+    (hvT : __smtx_typeof_value v = Tx)
+    (hvC : __smtx_value_canonical_bool v = true) :
+    ∀ {M N : SmtModel} {ys : Term},
+      ForallInstantiationModel M ys N ->
+      (∀ K, ForallInstantiationModel (native_model_push M sx Tx v) ys K ->
+        __smtx_model_eval K body = SmtValue.Boolean true) ->
+      __smtx_model_eval (native_model_push N sx Tx v) body =
+        SmtValue.Boolean true := by
+  intro M N ys hInst
+  induction hInst with
+  | nil M =>
+      intro h
+      exact h (native_model_push M sx Tx v)
+        (ForallInstantiationModel.nil _)
+  | cons hWf hwT hwC hTail ih =>
+      rename_i M N s T env w
+      intro h
+      refine ih ?_
+      intro K hK
+      by_cases hKey :
+          ({ isVar := true, name := s, ty := __eo_to_smt_type T } : SmtModelKey) =
+            { isVar := true, name := sx, ty := Tx }
+      · have hTeq : __eo_to_smt_type T = Tx := by cases hKey; rfl
+        have hBase :
+            native_model_push (native_model_push M s (__eo_to_smt_type T) w)
+                sx Tx v =
+              native_model_push M sx Tx v :=
+          native_model_push_shadow_of_key_eq M s (__eo_to_smt_type T) w sx Tx v
+            hKey
+        rw [hBase] at hK
+        have hBase2 :
+            native_model_push (native_model_push M sx Tx v)
+                s (__eo_to_smt_type T) v =
+              native_model_push M sx Tx v := by
+          refine native_model_push_shadow_of_key_eq M sx Tx v
+            s (__eo_to_smt_type T) v ?_ |>.trans ?_
+          · exact hKey.symm
+          · cases hKey; rfl
+        refine h K (ForallInstantiationModel.cons hWf (by rw [hTeq]; exact hvT)
+          hvC ?_)
+        rw [hBase2]
+        exact hK
+      · have hSwap :
+            native_model_push (native_model_push M s (__eo_to_smt_type T) w)
+                sx Tx v =
+              native_model_push (native_model_push M sx Tx v)
+                s (__eo_to_smt_type T) w :=
+          native_model_push_comm M s (__eo_to_smt_type T) w sx Tx v hKey
+        rw [hSwap] at hK
+        exact h K (ForallInstantiationModel.cons hWf hwT hwC hK)
+
+/-! ## Insensitivity to constructor-argument binders -/
+
+/--
+Pushing a value at a variable that has no free occurrence in `F` does not
+change the evaluation of `F`.
+-/
+theorem eval_push_not_free_eq
+    (K : SmtModel) (sw : native_String) (Tw : Term) (u : SmtValue) (F : Term)
+    (hTrans : eoHasSmtTranslation F)
+    (hNoFree :
+      __contains_atomic_term_list_free_rec F
+        (eoCons (Term.Var (Term.String sw) Tw) Term.__eo_List_nil)
+        Term.__eo_List_nil = Term.Boolean false) :
+    __smtx_model_eval (native_model_push K sw (__eo_to_smt_type Tw) u)
+        (__eo_to_smt F) =
+      __smtx_model_eval K (__eo_to_smt F) := by
+  refine smt_model_eval_eq_of_contains_atomic_term_list_free_rec_false_mapped
+    (exceptVars := [(sw, Tw)]) (boundVars := [])
+    (EoVarEnvPerm.of_exact (EoVarEnv.cons EoVarEnv.nil))
+    (EoVarEnvPerm.of_exact EoVarEnv.nil)
+    hTrans hNoFree ?_
+  refine ⟨?_, ?_⟩
+  · exact
+      ⟨fun s' T' =>
+        ((model_agrees_on_globals_push K sw (__eo_to_smt_type Tw) u).1 s' T').symm,
+       fun fid T U =>
+        ((model_agrees_on_globals_push K sw (__eo_to_smt_type Tw) u).2 fid T U).symm⟩
+  · intro s' T' hKey
+    rcases hKey with hBound | hNotExcept
+    · cases hBound
+    · have hne : (s', T') ≠ (sw, __eo_to_smt_type Tw) := by
+        intro hc
+        exact hNotExcept (by
+          rw [show ([(sw, Tw)].map EoVarKey.toSmt) = [(sw, __eo_to_smt_type Tw)] from rfl]
+          rw [hc]
+          exact List.mem_singleton.2 rfl)
+      simp only [native_model_var_lookup, native_model_push]
+      rw [if_neg (by
+        intro hc
+        apply hne
+        injection hc with h1 h2 h3
+        exact Prod.ext h2 h3)]
+
+/-! ## The LHS with the split variable pushed last -/
+
+/--
+From the truth of the left-hand universal (split variable bound first), derive
+the body's truth with the split variable pushed after any instantiation of the
+retained binders.
+-/
+theorem lhs_gives_push_last
+    (M : SmtModel)
+    (sx : native_String) (xT ys F : Term)
+    (hWfX : __smtx_type_wf (__eo_to_smt_type xT) = true)
+    (hLHS : ∀ N, ForallInstantiationModel M
+      (eoCons (Term.Var (Term.String sx) xT) ys) N ->
+      __smtx_model_eval N (__eo_to_smt F) = SmtValue.Boolean true) :
+    ∀ N, ForallInstantiationModel M ys N ->
+    ∀ v : SmtValue,
+      __smtx_typeof_value v = __eo_to_smt_type xT ->
+      __smtx_value_canonical_bool v = true ->
+      __smtx_model_eval
+          (native_model_push N sx (__eo_to_smt_type xT) v) (__eo_to_smt F) =
+        SmtValue.Boolean true := by
+  intro N hInst v hvT hvC
+  refine inst_push_last_bridge sx (__eo_to_smt_type xT) v (__eo_to_smt F)
+    hvT hvC hInst ?_
+  intro K hK
+  exact hLHS K (ForallInstantiationModel.cons hWfX hvT hvC hK)
+
+/-! ## One-layer forall encoding -/
+
+/--
+One-layer encoding of a conjunct: a top-level `forall` is encoded through
+`__eo_to_smt_exists` with its body translated normally; anything else is
+translated directly.  For a `forall` with a `cons` binder list this definitionally
+agrees with `__eo_to_smt`; for the virtual `forall` with a nil binder list
+(produced mid-recursion by the guard) it is `not (not body)` where the direct
+translation would be `SmtTerm.None`.
+-/
+def gEnc : Term -> SmtTerm
+  | Term.Apply (Term.Apply (Term.UOp UserOp.forall) vs) B =>
+      SmtTerm.not (__eo_to_smt_exists vs (SmtTerm.not (__eo_to_smt B)))
+  | t => __eo_to_smt t
+
+theorem gEnc_forall (vs B : Term) :
+    gEnc (mkForall vs B) =
+      SmtTerm.not (__eo_to_smt_exists vs (SmtTerm.not (__eo_to_smt B))) := rfl
+
+/-- Typing inversion for a Bool-typed `exists`. -/
+theorem smtx_typeof_exists_bool_inv
+    {s : native_String} {T : SmtType} {tail : SmtTerm}
+    (h : __smtx_typeof (SmtTerm.exists s T tail) = SmtType.Bool) :
+    __smtx_typeof tail = SmtType.Bool ∧ __smtx_type_wf T = true := by
+  rw [show __smtx_typeof (SmtTerm.exists s T tail) =
+    native_ite (native_Teq (__smtx_typeof tail) SmtType.Bool)
+      (__smtx_typeof_guard_wf T SmtType.Bool) SmtType.None from by
+      simp only [__smtx_typeof]] at h
+  by_cases ht : native_Teq (__smtx_typeof tail) SmtType.Bool = true
+  · refine ⟨by simpa [native_Teq] using ht, ?_⟩
+    rw [ht] at h
+    simp only [native_ite, if_true] at h
+    rw [__smtx_typeof_guard_wf] at h
+    by_cases hw : __smtx_type_wf T = true
+    · exact hw
+    · exfalso
+      have hwf : __smtx_type_wf T = false := by
+        cases hv : __smtx_type_wf T
+        · rfl
+        · exact absurd hv hw
+      rw [hwf] at h
+      simp [native_ite] at h
+  · exfalso
+    have htf : native_Teq (__smtx_typeof tail) SmtType.Bool = false := by
+      cases hv : native_Teq (__smtx_typeof tail) SmtType.Bool
+      · rfl
+      · exact absurd hv ht
+    rw [htf] at h
+    simp [native_ite] at h
+
+/-- Typing inversion for a Bool-typed `not`. -/
+theorem smtx_typeof_not_bool_inv
+    {t : SmtTerm} (h : __smtx_typeof (SmtTerm.not t) = SmtType.Bool) :
+    __smtx_typeof t = SmtType.Bool := by
+  rw [show __smtx_typeof (SmtTerm.not t) =
+    native_ite (native_Teq (__smtx_typeof t) SmtType.Bool) SmtType.Bool
+      SmtType.None from by simp only [__smtx_typeof]] at h
+  by_cases ht : native_Teq (__smtx_typeof t) SmtType.Bool = true
+  · simpa [native_Teq] using ht
+  · exfalso
+    have htf : native_Teq (__smtx_typeof t) SmtType.Bool = false := by
+      cases hv : native_Teq (__smtx_typeof t) SmtType.Bool
+      · rfl
+      · exact absurd hv ht
+    rw [htf] at h
+    simp [native_ite] at h
+
+/-- Typing introduction for `not`. -/
+theorem smtx_typeof_not_bool_intro
+    {t : SmtTerm} (h : __smtx_typeof t = SmtType.Bool) :
+    __smtx_typeof (SmtTerm.not t) = SmtType.Bool := by
+  rw [show __smtx_typeof (SmtTerm.not t) =
+    native_ite (native_Teq (__smtx_typeof t) SmtType.Bool) SmtType.Bool
+      SmtType.None from by simp only [__smtx_typeof]]
+  rw [h]
+  rfl
+
+/-- Head of an EO application spine. -/
+def eoApplyHead : Term -> Term
+  | Term.Apply f _ => eoApplyHead f
+  | t => t
+
+/-! ## Forward direction: per-conjunct induction -/
+
+/-- A Bool-typed exists-list translation forces its head binder to be a
+    string-named variable. -/
+theorem exl_cons_bool_var_shape {y zs : Term} {body : SmtTerm}
+    (h : __smtx_typeof (__eo_to_smt_exists (eoCons y zs) body) = SmtType.Bool) :
+    ∃ (sy : native_String) (Ty : Term), y = Term.Var (Term.String sy) Ty := by
+  cases y with
+  | Var n T =>
+      cases n with
+      | String sy => exact ⟨sy, T, rfl⟩
+      | _ =>
+          exfalso
+          rw [show __eo_to_smt_exists (eoCons _ zs) body = SmtTerm.None from rfl,
+            show __smtx_typeof SmtTerm.None = SmtType.None from rfl] at h
+          cases h
+  | _ =>
+      exfalso
+      rw [show __eo_to_smt_exists (eoCons _ zs) body = SmtTerm.None from rfl,
+        show __smtx_typeof SmtTerm.None = SmtType.None from rfl] at h
+      cases h
+
+/-- `gEnc` agrees with the direct translation on Bool-translatable terms. -/
+theorem gEnc_eq_eo_to_smt_of_bool {G : Term}
+    (hGTy : __smtx_typeof (__eo_to_smt G) = SmtType.Bool) :
+    gEnc G = __eo_to_smt G := by
+  cases G with
+  | Apply f B =>
+      cases f with
+      | Apply q vs =>
+          cases q with
+          | UOp op =>
+              cases op
+              case «forall» =>
+                cases vs with
+                | __eo_List_nil =>
+                    exfalso
+                    rw [show __eo_to_smt
+                      (Term.Apply (Term.Apply (Term.UOp UserOp.forall)
+                        Term.__eo_List_nil) B) = SmtTerm.None from rfl,
+                      show __smtx_typeof SmtTerm.None = SmtType.None from rfl]
+                      at hGTy
+                    cases hGTy
+                | _ => rfl
+              all_goals rfl
+          | _ => rfl
+      | _ => rfl
+  | _ => rfl
+
+/--
+Core forward induction: a conjunct accepted by the guard is true whenever the
+body `F` is true with the split variable pushed after any instantiation of the
+remaining retained binders.
+
+The `final` substitution node is the remaining open obligation (substitution
+bridge, spine typing and occurrence typing); the binder walk (`peel`, `absorb`,
+`unwrap`) is complete.
+-/
+theorem conj_forward_aux
+    (sx : native_String) (xT F : Term)
+    (hFTrans : eoHasSmtTranslation F) :
+    ∀ {c ysRem g : Term},
+      ConjRel (Term.Var (Term.String sx) xT) F c ysRem g ->
+      (∃ s d i, eoApplyHead c = Term.DtCons s d i) ->
+      ∀ M₀ : SmtModel, model_total_typed M₀ ->
+      __smtx_typeof (gEnc g) = SmtType.Bool ->
+      (∀ N, ForallInstantiationModel M₀ ysRem N ->
+        ∀ v : SmtValue,
+          __smtx_typeof_value v = __eo_to_smt_type xT ->
+          __smtx_value_canonical_bool v = true ->
+          __smtx_model_eval
+              (native_model_push N sx (__eo_to_smt_type xT) v)
+              (__eo_to_smt F) = SmtValue.Boolean true) ->
+      __smtx_model_eval M₀ (gEnc g) = SmtValue.Boolean true := by
+  intro c ysRem g rel
+  induction rel with
+  | @peel c y ys zs G hFind hTail ih =>
+      intro hHead M₀ hM₀ hTy hH
+      rw [gEnc_forall] at hTy ⊢
+      have hNotTy : __smtx_typeof
+          (__eo_to_smt_exists (eoCons y zs) (SmtTerm.not (__eo_to_smt G))) =
+          SmtType.Bool :=
+        smtx_typeof_not_bool_inv hTy
+      obtain ⟨sy, Ty, rfl⟩ := exl_cons_bool_var_shape hNotTy
+      rw [show __eo_to_smt_exists (eoCons (Term.Var (Term.String sy) Ty) zs)
+          (SmtTerm.not (__eo_to_smt G)) =
+        SmtTerm.exists sy (__eo_to_smt_type Ty)
+          (__eo_to_smt_exists zs (SmtTerm.not (__eo_to_smt G))) from rfl]
+        at hNotTy ⊢
+      obtain ⟨hTailTy, hWfY⟩ := smtx_typeof_exists_bool_inv hNotTy
+      rw [forall_encoding_step_iff M₀ hM₀ sy (__eo_to_smt_type Ty) _ hWfY hTailTy]
+      intro v hvT hvC
+      have hStep := ih hHead (native_model_push M₀ sy (__eo_to_smt_type Ty) v)
+        (model_total_typed_push hM₀ sy (__eo_to_smt_type Ty) v hWfY hvT
+          (by simpa [__smtx_value_canonical] using hvC))
+        (by rw [gEnc_forall]; exact smtx_typeof_not_bool_intro hTailTy)
+        (by
+          intro N hInst u huT huC
+          exact hH N (ForallInstantiationModel.cons hWfY hvT hvC hInst) u huT huC)
+      rw [gEnc_forall] at hStep
+      exact hStep
+  | @absorb c y zs G hFind hFree hTail ih =>
+      intro hHead M₀ hM₀ hTy hH
+      rw [gEnc_forall] at hTy ⊢
+      have hNotTy : __smtx_typeof
+          (__eo_to_smt_exists (eoCons y zs) (SmtTerm.not (__eo_to_smt G))) =
+          SmtType.Bool :=
+        smtx_typeof_not_bool_inv hTy
+      obtain ⟨sw, Tw, rfl⟩ := exl_cons_bool_var_shape hNotTy
+      rw [show __eo_to_smt_exists (eoCons (Term.Var (Term.String sw) Tw) zs)
+          (SmtTerm.not (__eo_to_smt G)) =
+        SmtTerm.exists sw (__eo_to_smt_type Tw)
+          (__eo_to_smt_exists zs (SmtTerm.not (__eo_to_smt G))) from rfl]
+        at hNotTy ⊢
+      obtain ⟨hTailTy, hWfW⟩ := smtx_typeof_exists_bool_inv hNotTy
+      rw [forall_encoding_step_iff M₀ hM₀ sw (__eo_to_smt_type Tw) _ hWfW hTailTy]
+      intro u huT huC
+      have hStep := ih (by simpa [eoApplyHead] using hHead)
+        (native_model_push M₀ sw (__eo_to_smt_type Tw) u)
+        (model_total_typed_push hM₀ sw (__eo_to_smt_type Tw) u hWfW huT
+          (by simpa [__smtx_value_canonical] using huC))
+        (by rw [gEnc_forall]; exact smtx_typeof_not_bool_intro hTailTy)
+        (by
+          intro N hInst v hvT hvC
+          cases hInst with
+          | nil =>
+              by_cases hKey :
+                  ({ isVar := true, name := sw, ty := __eo_to_smt_type Tw } :
+                    SmtModelKey) =
+                  { isVar := true, name := sx, ty := __eo_to_smt_type xT }
+              · rw [native_model_push_shadow_of_key_eq M₀ sw (__eo_to_smt_type Tw)
+                  u sx (__eo_to_smt_type xT) v hKey]
+                exact hH M₀ (ForallInstantiationModel.nil M₀) v hvT hvC
+              · rw [native_model_push_comm M₀ sw (__eo_to_smt_type Tw) u
+                  sx (__eo_to_smt_type xT) v hKey]
+                rw [eval_push_not_free_eq _ sw Tw u F hFTrans hFree]
+                exact hH M₀ (ForallInstantiationModel.nil M₀) v hvT hvC)
+      rw [gEnc_forall] at hStep
+      exact hStep
+  | @unwrap c G hTail ih =>
+      intro hHead M₀ hM₀ hTy hH
+      rw [gEnc_forall] at hTy ⊢
+      rw [show __eo_to_smt_exists Term.__eo_List_nil (SmtTerm.not (__eo_to_smt G)) =
+        SmtTerm.not (__eo_to_smt G) from rfl] at hTy ⊢
+      have hGTy : __smtx_typeof (__eo_to_smt G) = SmtType.Bool :=
+        smtx_typeof_not_bool_inv (smtx_typeof_not_bool_inv hTy)
+      have hEnc : gEnc G = __eo_to_smt G := gEnc_eq_eo_to_smt_of_bool hGTy
+      have hInner : __smtx_model_eval M₀ (gEnc G) = SmtValue.Boolean true := by
+        refine ih hHead M₀ hM₀ ?_ hH
+        rw [hEnc]
+        exact hGTy
+      rw [hEnc] at hInner
+      rw [smtx_model_eval_not_unfold, smtx_model_eval_not_unfold, hInner]
+      rfl
+  | @final cx g hSubst =>
+      intro hHead M₀ hM₀ hTy hH
+      -- Remaining obligation: substitution bridge + spine/occurrence typing.
+      sorry
+
 /-! ## Semantic core (statements; proofs are the remaining work)
 
 PROOF PLAN for `split_forward` / `split_backward` (see also the session notes in
@@ -648,43 +1133,6 @@ abbrev qdsFormula (x ys F G : Term) : Term :=
   Term.Apply
     (Term.Apply (Term.UOp UserOp.eq) (mkForall (eoCons x ys) F)) G
 
-/--
-Forward direction: if the left-hand universal is true, every conjunct produced
-by a successful guard run is true.
--/
-theorem split_forward
-    (M : SmtModel) (hM : model_total_typed M)
-    (x ys F G : Term)
-    (srel : SplitRel x ys F (__dt_get_constructors (__eo_typeof x)) G)
-    (hTrans : RuleProofs.eo_has_smt_translation (qdsFormula x ys F G))
-    (hTy : __eo_typeof (qdsFormula x ys F G) = Term.Bool)
-    (hLHS : __smtx_model_eval M (__eo_to_smt (mkForall (eoCons x ys) F)) =
-      SmtValue.Boolean true) :
-    __smtx_model_eval M (__eo_to_smt G) = SmtValue.Boolean true := by
-  sorry
-
-/--
-Backward direction: if the conjunction produced by a successful guard run is
-true, the left-hand universal is true.
--/
-theorem split_backward
-    (M : SmtModel) (hM : model_total_typed M)
-    (x ys F G : Term)
-    (srel : SplitRel x ys F (__dt_get_constructors (__eo_typeof x)) G)
-    (hTrans : RuleProofs.eo_has_smt_translation (qdsFormula x ys F G))
-    (hTy : __eo_typeof (qdsFormula x ys F G) = Term.Bool)
-    (hRHS : __smtx_model_eval M (__eo_to_smt G) = SmtValue.Boolean true) :
-    __smtx_model_eval M (__eo_to_smt (mkForall (eoCons x ys) F)) =
-      SmtValue.Boolean true := by
-  sorry
-
-/-! ## Assembly -/
-
-theorem eo_to_smt_qds_eq (x ys F G : Term) :
-    __eo_to_smt (qdsFormula x ys F G) =
-      SmtTerm.eq (__eo_to_smt (mkForall (eoCons x ys) F)) (__eo_to_smt G) := by
-  rfl
-
 theorem smtx_typeof_eq_bool_elim
     {L R : SmtTerm}
     (hTy : __smtx_typeof (SmtTerm.eq L R) = SmtType.Bool) :
@@ -713,6 +1161,7 @@ theorem smtx_typeof_eq_bool_elim
       rw [hNf] at hTy
       simp [native_ite] at hTy
 
+
 theorem smtx_typeof_eq_bool_left_ne_none
     {L R : SmtTerm}
     (hTy : __smtx_typeof (SmtTerm.eq L R) = SmtType.Bool) :
@@ -723,6 +1172,7 @@ theorem smtx_typeof_eq_bool_left_ne_none
       simp only [__smtx_typeof]] at hTy
   rw [__smtx_typeof_eq, __smtx_typeof_guard, hN] at hTy
   simp [native_ite, native_Teq] at hTy
+
 
 theorem smtx_typeof_not_bool_or_none (X : SmtTerm) :
     __smtx_typeof (SmtTerm.not X) = SmtType.Bool ∨
@@ -737,6 +1187,276 @@ theorem smtx_typeof_not_bool_or_none (X : SmtTerm) :
       · rfl
       · exact absurd hv h
     rw [hf]; right; rfl
+
+/-- EO list of datatype-constructor terms. -/
+inductive EoCtorList : Term -> Prop where
+  | nil : EoCtorList Term.__eo_List_nil
+  | cons {s : native_String} {d : Datatype} {i : native_Nat} {rest : Term} :
+      EoCtorList rest ->
+      EoCtorList (eoCons (Term.DtCons s d i) rest)
+
+theorem eo_mk_apply_cons_ne_stuck {t y : Term} (hy : y ≠ Term.Stuck) :
+    __eo_mk_apply (Term.Apply Term.__eo_List_cons t) y = eoCons t y := by
+  cases y <;> first | rfl | exact absurd rfl hy
+
+theorem eoCtorList_datatype_constructors_rec (s : native_String) (d : Datatype) :
+    ∀ (d' : Datatype) (i : native_Nat),
+      EoCtorList (__eo_datatype_constructors_rec s d d' i)
+  | Datatype.null, i => EoCtorList.nil
+  | Datatype.sum c d2, i => by
+      rw [show __eo_datatype_constructors_rec s d (Datatype.sum c d2) i =
+        __eo_mk_apply (Term.Apply Term.__eo_List_cons (Term.DtCons s d i))
+          (__eo_datatype_constructors_rec s d d2 (native_nat_succ i)) from rfl]
+      rw [eo_mk_apply_cons_ne_stuck
+        (eo_datatype_constructors_rec_ne_stuck s d d2 (native_nat_succ i))]
+      exact EoCtorList.cons
+        (eoCtorList_datatype_constructors_rec s d d2 (native_nat_succ i))
+
+/-- Bool-typed `and` inversion. -/
+theorem smtx_typeof_and_bool_inv
+    {a b : SmtTerm} (h : __smtx_typeof (SmtTerm.and a b) = SmtType.Bool) :
+    __smtx_typeof a = SmtType.Bool ∧ __smtx_typeof b = SmtType.Bool := by
+  rw [show __smtx_typeof (SmtTerm.and a b) =
+    native_ite (native_Teq (__smtx_typeof a) SmtType.Bool)
+      (native_ite (native_Teq (__smtx_typeof b) SmtType.Bool) SmtType.Bool
+        SmtType.None) SmtType.None from by simp only [__smtx_typeof]] at h
+  by_cases ha : native_Teq (__smtx_typeof a) SmtType.Bool = true
+  · refine ⟨by simpa [native_Teq] using ha, ?_⟩
+    rw [ha] at h
+    simp only [native_ite, if_true] at h
+    by_cases hb : native_Teq (__smtx_typeof b) SmtType.Bool = true
+    · simpa [native_Teq] using hb
+    · exfalso
+      have hbf : native_Teq (__smtx_typeof b) SmtType.Bool = false := by
+        cases hv : native_Teq (__smtx_typeof b) SmtType.Bool
+        · rfl
+        · exact absurd hv hb
+      rw [hbf] at h
+      simp [native_ite] at h
+  · exfalso
+    have haf : native_Teq (__smtx_typeof a) SmtType.Bool = false := by
+      cases hv : native_Teq (__smtx_typeof a) SmtType.Bool
+      · rfl
+      · exact absurd hv ha
+    rw [haf] at h
+    simp [native_ite] at h
+
+/--
+The non-datatype tracks of the forward direction: tuple/unit-tuple split
+variables (deferred) and the impossible junk-type shapes (whose constructor
+lists are `Stuck` or whose types are untranslatable).
+-/
+theorem split_forward_nondatatype
+    (M : SmtModel) (hM : model_total_typed M)
+    (sx : native_String) (xT ys F G : Term)
+    (hxT : ∀ s d, xT ≠ Term.DatatypeType s d)
+    (srel : SplitRel (Term.Var (Term.String sx) xT) ys F
+      (__dt_get_constructors xT) G)
+    (hWfX : __smtx_type_wf (__eo_to_smt_type xT) = true)
+    (hFTrans : eoHasSmtTranslation F)
+    (hGTy : __smtx_typeof (__eo_to_smt G) = SmtType.Bool)
+    (hH : ∀ N, ForallInstantiationModel M ys N ->
+      ∀ v : SmtValue,
+        __smtx_typeof_value v = __eo_to_smt_type xT ->
+        __smtx_value_canonical_bool v = true ->
+        __smtx_model_eval
+            (native_model_push N sx (__eo_to_smt_type xT) v)
+            (__eo_to_smt F) = SmtValue.Boolean true) :
+    __smtx_model_eval M (__eo_to_smt G) = SmtValue.Boolean true := by
+  sorry
+
+/--
+Forward direction over the conjunction: walk the `SplitRel` chain, discharging
+each conjunct with `conj_forward_aux`.
+-/
+theorem split_forward_chain
+    (M : SmtModel) (hM : model_total_typed M)
+    (sx : native_String) (xT ys F : Term)
+    (hFTrans : eoHasSmtTranslation F)
+    (hH : ∀ N, ForallInstantiationModel M ys N ->
+      ∀ v : SmtValue,
+        __smtx_typeof_value v = __eo_to_smt_type xT ->
+        __smtx_value_canonical_bool v = true ->
+        __smtx_model_eval
+            (native_model_push N sx (__eo_to_smt_type xT) v)
+            (__eo_to_smt F) = SmtValue.Boolean true) :
+    ∀ {cs G : Term},
+      SplitRel (Term.Var (Term.String sx) xT) ys F cs G ->
+      EoCtorList cs ->
+      __smtx_typeof (__eo_to_smt G) = SmtType.Bool ->
+      __smtx_model_eval M (__eo_to_smt G) = SmtValue.Boolean true := by
+  intro cs G srel
+  induction srel with
+  | @single c g hConj =>
+      intro hCs hGTy
+      have hHead : ∃ s d i, eoApplyHead c = Term.DtCons s d i := by
+        cases hCs with
+        | cons _ => exact ⟨_, _, _, rfl⟩
+      have hEnc : gEnc g = __eo_to_smt g := gEnc_eq_eo_to_smt_of_bool hGTy
+      have := conj_forward_aux sx xT F hFTrans hConj hHead M hM
+        (by rw [hEnc]; exact hGTy) hH
+      rw [hEnc] at this
+      exact this
+  | nil_true =>
+      intro _ _
+      rw [show __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true from rfl]
+      rfl
+  | @step c cs' g G' hConj hRest ih =>
+      intro hCs hGTy
+      have hHead : ∃ s d i, eoApplyHead c = Term.DtCons s d i := by
+        cases hCs with
+        | cons _ => exact ⟨_, _, _, rfl⟩
+      have hCs' : EoCtorList cs' := by
+        cases hCs with
+        | cons hTail => exact hTail
+      rw [show __eo_to_smt (mkAnd g G') =
+        SmtTerm.and (__eo_to_smt g) (__eo_to_smt G') from rfl] at hGTy ⊢
+      obtain ⟨hgTy, hG'Ty⟩ := smtx_typeof_and_bool_inv hGTy
+      have hEnc : gEnc g = __eo_to_smt g := gEnc_eq_eo_to_smt_of_bool hgTy
+      have hg : __smtx_model_eval M (__eo_to_smt g) = SmtValue.Boolean true := by
+        have := conj_forward_aux sx xT F hFTrans hConj hHead M hM
+          (by rw [hEnc]; exact hgTy) hH
+        rw [hEnc] at this
+        exact this
+      have hG' : __smtx_model_eval M (__eo_to_smt G') = SmtValue.Boolean true :=
+        ih hCs' hG'Ty
+      rw [show __smtx_model_eval M
+          (SmtTerm.and (__eo_to_smt g) (__eo_to_smt G')) =
+        __smtx_model_eval_and (__smtx_model_eval M (__eo_to_smt g))
+          (__smtx_model_eval M (__eo_to_smt G')) from by
+          simp only [__smtx_model_eval]]
+      rw [hg, hG']
+      rfl
+
+/--
+Forward direction: if the left-hand universal is true, the conjunction produced
+by a successful guard run is true.
+-/
+theorem split_forward
+    (M : SmtModel) (hM : model_total_typed M)
+    (x ys F G : Term)
+    (srel : SplitRel x ys F (__dt_get_constructors (__eo_typeof x)) G)
+    (hTrans : RuleProofs.eo_has_smt_translation (qdsFormula x ys F G))
+    (hTy : __eo_typeof (qdsFormula x ys F G) = Term.Bool)
+    (hLHS : __smtx_model_eval M (__eo_to_smt (mkForall (eoCons x ys) F)) =
+      SmtValue.Boolean true) :
+    __smtx_model_eval M (__eo_to_smt G) = SmtValue.Boolean true := by
+  -- SMT-side Bool typing of both sides
+  have hSmtBool : RuleProofs.eo_has_bool_type (qdsFormula x ys F G) :=
+    RuleProofs.eo_typeof_bool_implies_has_bool_type _ hTrans hTy
+  rw [RuleProofs.eo_has_bool_type] at hSmtBool
+  rw [show __eo_to_smt (qdsFormula x ys F G) =
+    SmtTerm.eq (__eo_to_smt (mkForall (eoCons x ys) F)) (__eo_to_smt G)
+    from rfl] at hSmtBool
+  have hLTy : __smtx_typeof (__eo_to_smt (mkForall (eoCons x ys) F)) =
+      SmtType.Bool := by
+    have hNe := smtx_typeof_eq_bool_left_ne_none hSmtBool
+    have hForm : __eo_to_smt (mkForall (eoCons x ys) F) =
+        SmtTerm.not (__eo_to_smt_exists (eoCons x ys) (SmtTerm.not (__eo_to_smt F))) :=
+      SubstituteTranslatabilitySupport.eo_to_smt_forall_eq_of_non_nil
+        (eoCons x ys) F (by intro h; cases h)
+    rw [hForm] at hNe ⊢
+    rcases smtx_typeof_not_bool_or_none
+      (__eo_to_smt_exists (eoCons x ys) (SmtTerm.not (__eo_to_smt F))) with hB | hN
+    · exact hB
+    · exact absurd hN hNe
+  have hGTy : __smtx_typeof (__eo_to_smt G) = SmtType.Bool := by
+    rw [← smtx_typeof_eq_bool_elim hSmtBool]
+    exact hLTy
+  -- the split variable is a string-named variable
+  have hForm : __eo_to_smt (mkForall (eoCons x ys) F) =
+      SmtTerm.not (__eo_to_smt_exists (eoCons x ys) (SmtTerm.not (__eo_to_smt F))) :=
+    SubstituteTranslatabilitySupport.eo_to_smt_forall_eq_of_non_nil
+      (eoCons x ys) F (by intro h; cases h)
+  have hExlTy : __smtx_typeof
+      (__eo_to_smt_exists (eoCons x ys) (SmtTerm.not (__eo_to_smt F))) =
+      SmtType.Bool := by
+    rw [hForm] at hLTy
+    exact smtx_typeof_not_bool_inv hLTy
+  obtain ⟨sx, xT, rfl⟩ := exl_cons_bool_var_shape hExlTy
+  rw [show __eo_to_smt_exists (eoCons (Term.Var (Term.String sx) xT) ys)
+      (SmtTerm.not (__eo_to_smt F)) =
+    SmtTerm.exists sx (__eo_to_smt_type xT)
+      (__eo_to_smt_exists ys (SmtTerm.not (__eo_to_smt F))) from rfl] at hExlTy
+  obtain ⟨hTailTy, hWfX⟩ := smtx_typeof_exists_bool_inv hExlTy
+  -- translation facts for F
+  have hFTrans : eoHasSmtTranslation F := by
+    have hFBool : RuleProofs.eo_has_bool_type F := by
+      exact SubstituteTranslatabilitySupport.forall_body_has_bool_type_of_has_smt_translation
+        (eoCons (Term.Var (Term.String sx) xT) ys) F
+        (RuleProofs.eo_has_smt_translation_of_has_bool_type _ (by
+          rw [RuleProofs.eo_has_bool_type]
+          exact hLTy))
+    rw [RuleProofs.eo_has_bool_type] at hFBool
+    rw [eoHasSmtTranslation, hFBool]
+    intro h
+    cases h
+  -- LHS characterization and the push-last form
+  have hLForall : RuleProofs.eo_has_smt_translation
+      (mkForall (eoCons (Term.Var (Term.String sx) xT) ys) F) :=
+    RuleProofs.eo_has_smt_translation_of_has_bool_type _ (by
+      rw [RuleProofs.eo_has_bool_type]
+      exact hLTy)
+  obtain ⟨vars, hEnv⟩ :=
+    SubstituteTranslatabilitySupport.forall_binders_env_of_has_smt_translation
+      (eoCons (Term.Var (Term.String sx) xT) ys) F hLForall
+  have hWfAll := SubstituteTranslatabilitySupport.forall_binder_types_wf_of_has_smt_translation
+    hLForall hEnv
+  have hFBodyTy : __smtx_typeof (__eo_to_smt F) = SmtType.Bool := by
+    have := SubstituteTranslatabilitySupport.forall_body_has_bool_type_of_has_smt_translation
+      (eoCons (Term.Var (Term.String sx) xT) ys) F hLForall
+    rw [RuleProofs.eo_has_bool_type] at this
+    exact this
+  have hAllInst : ∀ N, ForallInstantiationModel M
+      (eoCons (Term.Var (Term.String sx) xT) ys) N ->
+      __smtx_model_eval N (__eo_to_smt F) = SmtValue.Boolean true := by
+    have hIff := forall_encoding_true_iff hEnv hWfAll hFBodyTy M hM
+    rw [hForm] at hLHS
+    exact hIff.1 hLHS
+  have hH := lhs_gives_push_last M sx xT ys F hWfX hAllInst
+  -- dispatch on the split variable's type
+  by_cases hDt : ∃ s d, __eo_typeof (Term.Var (Term.String sx) xT) =
+      Term.DatatypeType s d
+  · obtain ⟨sD, dD, hxT⟩ := hDt
+    rw [show __eo_typeof (Term.Var (Term.String sx) xT) = xT from rfl] at hxT
+    subst hxT
+    have hCs : EoCtorList (__dt_get_constructors
+        (__eo_typeof (Term.Var (Term.String sx)
+          (Term.DatatypeType sD dD)))) := by
+      rw [show __eo_typeof (Term.Var (Term.String sx)
+          (Term.DatatypeType sD dD)) = Term.DatatypeType sD dD from rfl]
+      rw [show __dt_get_constructors (Term.DatatypeType sD dD) =
+        __eo_datatype_constructors_rec sD dD dD native_nat_zero from rfl]
+      exact eoCtorList_datatype_constructors_rec sD dD dD native_nat_zero
+    exact split_forward_chain M hM sx (Term.DatatypeType sD dD) ys F hFTrans hH
+      srel hCs hGTy
+  · refine split_forward_nondatatype M hM sx xT ys F G ?_ ?_ hWfX hFTrans hGTy hH
+    · intro s d hc
+      exact hDt ⟨s, d, hc⟩
+    · rw [show __eo_typeof (Term.Var (Term.String sx) xT) = xT from rfl] at srel
+      exact srel
+
+/--
+Backward direction: if the conjunction produced by a successful guard run is
+true, the left-hand universal is true.
+-/
+theorem split_backward
+    (M : SmtModel) (hM : model_total_typed M)
+    (x ys F G : Term)
+    (srel : SplitRel x ys F (__dt_get_constructors (__eo_typeof x)) G)
+    (hTrans : RuleProofs.eo_has_smt_translation (qdsFormula x ys F G))
+    (hTy : __eo_typeof (qdsFormula x ys F G) = Term.Bool)
+    (hRHS : __smtx_model_eval M (__eo_to_smt G) = SmtValue.Boolean true) :
+    __smtx_model_eval M (__eo_to_smt (mkForall (eoCons x ys) F)) =
+      SmtValue.Boolean true := by
+  sorry
+
+/-! ## Assembly -/
+
+theorem eo_to_smt_qds_eq (x ys F G : Term) :
+    __eo_to_smt (qdsFormula x ys F G) =
+      SmtTerm.eq (__eo_to_smt (mkForall (eoCons x ys) F)) (__eo_to_smt G) := by
+  rfl
 
 /--
 Truth of the concluded equality, from a successful guard run.  This is the
