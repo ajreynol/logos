@@ -32,7 +32,7 @@ theorem is_arith_type_true_cases (A : Term)
     A = Term.Int ∨ A = Term.Real := by
   cases A <;> simp [__is_arith_type] at h ⊢
   case UOp op =>
-    cases op <;> simp [__is_arith_type] at h ⊢
+    cases op <;> simp at h ⊢
 
 /-- A non-stuck EO arithmetic-relation type check is necessarily Boolean. -/
 theorem eo_typeof_lt_eq_bool_of_ne_stuck (A B : Term)
@@ -45,7 +45,7 @@ theorem eo_typeof_lt_eq_bool_of_ne_stuck (A B : Term)
   have hB : B ≠ Term.Stuck := by
     intro hStuck
     subst B
-    simp [__eo_typeof_lt, hA] at h
+    simp [__eo_typeof_lt] at h
   have hReqNe :
       __eo_requires (__eo_eq A B) (Term.Boolean true)
         (__eo_requires (__is_arith_type A) (Term.Boolean true) Term.Bool) ≠
@@ -80,7 +80,7 @@ theorem eo_typeof_lt_bool_cases (A B : Term)
   have hB : B ≠ Term.Stuck := by
     intro hStuck
     subst B
-    simp [__eo_typeof_lt, hA] at h
+    simp [__eo_typeof_lt] at h
   have hReqNe :
       __eo_requires (__eo_eq A B) (Term.Boolean true)
         (__eo_requires (__is_arith_type A) (Term.Boolean true) Term.Bool) ≠
@@ -116,13 +116,13 @@ theorem eo_typeof_ite_eq_nonstuck_args
   have hB : B ≠ Term.Stuck := by
     intro hStuck
     subst B
-    simp [__eo_typeof_ite, hA] at h
+    simp [__eo_typeof_ite] at h
     exact hT h.symm
   have hIteNe : __eo_typeof_ite C A B ≠ Term.Stuck := by
     rw [h]
     exact hT
   have hC : C = Term.Bool := by
-    cases C <;> simp [__eo_typeof_ite, hA, hB] at hIteNe ⊢
+    cases C <;> simp [__eo_typeof_ite] at hIteNe ⊢
   subst C
   have hReqNe :
       __eo_requires (__eo_eq A B) (Term.Boolean true) A ≠ Term.Stuck := by
@@ -132,7 +132,7 @@ theorem eo_typeof_ite_eq_nonstuck_args
       (support_eo_requires_cond_eq_of_non_stuck hReqNe)
   subst B
   have hRed : __eo_typeof_ite Term.Bool A A = A := by
-    simp [__eo_typeof_ite, __eo_requires, __eo_eq, hA, native_ite,
+    simp [__eo_typeof_ite, __eo_requires, __eo_eq, native_ite,
       native_teq, native_not]
   rw [hRed] at h
   exact ⟨rfl, h, h⟩

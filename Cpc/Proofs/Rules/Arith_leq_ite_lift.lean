@@ -50,8 +50,7 @@ private theorem prog_eq_of_nonstuck
   · exact False.elim (hs hsSt)
   by_cases hrSt : r = Term.Stuck
   · exact False.elim (hr hrSt)
-  simp [__eo_prog_arith_leq_ite_lift, relTerm, iteTerm, leqLiftLhs, leqLiftRhs,
-    hCSt, htSt, hsSt, hrSt]
+  simp [__eo_prog_arith_leq_ite_lift, relTerm, iteTerm, leqLiftLhs, leqLiftRhs]
 
 /-- From `__eo_typeof (ite C t s) = Int/Real` recover the operand types. -/
 private theorem ite_typeof_arith_cases
