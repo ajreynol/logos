@@ -277,8 +277,7 @@ theorem eo_typeof_apply_eq_of_has_smt_translation
         apply hTransF
         change __smtx_typeof (SmtTerm.Apply SmtTerm.None (__eo_to_smt a)) =
           SmtType.None
-        simp [__smtx_typeof, __smtx_typeof_apply,
-          TranslationProofs.smtx_typeof_none]
+        simp [__smtx_typeof, __smtx_typeof_apply]
     case UOp1 op i =>
       cases op <;> try rfl
       all_goals
@@ -286,15 +285,13 @@ theorem eo_typeof_apply_eq_of_has_smt_translation
         apply hTransF
         change __smtx_typeof (SmtTerm.Apply SmtTerm.None (__eo_to_smt a)) =
           SmtType.None
-        simp [__smtx_typeof, __smtx_typeof_apply,
-          TranslationProofs.smtx_typeof_none]
+        simp [__smtx_typeof, __smtx_typeof_apply]
     case FunType =>
       exfalso
       apply hTransF
       change __smtx_typeof (SmtTerm.Apply SmtTerm.None (__eo_to_smt a)) =
         SmtType.None
-      simp [__smtx_typeof, __smtx_typeof_apply,
-        TranslationProofs.smtx_typeof_none]
+      simp [__smtx_typeof, __smtx_typeof_apply]
     case Apply f' b =>
       cases f' <;> try rfl
       case UOp op =>
@@ -306,8 +303,7 @@ theorem eo_typeof_apply_eq_of_has_smt_translation
             __smtx_typeof
               (SmtTerm.Apply (SmtTerm.Apply SmtTerm.None (__eo_to_smt b))
                 (__eo_to_smt a)) = SmtType.None
-          simp [__smtx_typeof, __smtx_typeof_apply,
-            TranslationProofs.smtx_typeof_none]
+          simp [__smtx_typeof, __smtx_typeof_apply]
 
 theorem eo_typeof_eo_var_env_eq_list
     {xs : Term} {vars : List EoVarKey}

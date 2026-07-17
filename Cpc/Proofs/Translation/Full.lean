@@ -2290,7 +2290,7 @@ private theorem eo_to_smt_exists_bool_of_quantifiers_skolemize_non_none
                             (__smtx_typeof
                               (SmtTerm.choice s (__eo_to_smt_type T) (__eo_to_smt_exists a body)))
                             (__eo_to_smt_type T) <;>
-                        simp [native_ite, hcond]
+                        simp [native_ite]
                     exact absurd hbn hBindNN
                   have hWf : __smtx_type_wf (__eo_to_smt_type T) = true :=
                     Smtm.smtx_typeof_guard_wf_wf_of_non_none
