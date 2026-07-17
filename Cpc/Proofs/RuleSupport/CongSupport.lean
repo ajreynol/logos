@@ -16,6 +16,10 @@ attribute [local simp] native_streq native_and native_ite
 private abbrev mkEq (x y : Term) : Term :=
   Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) y
 
+/-- Public equality-term constructor used by rules that reuse congruence support. -/
+abbrev eqTerm (x y : Term) : Term :=
+  mkEq x y
+
 private theorem smtx_model_eval_eq_term_eq
     (M : SmtModel) (x y : SmtTerm) :
     __smtx_model_eval M (SmtTerm.eq x y) =
@@ -3482,6 +3486,21 @@ private theorem smt_value_rel_model_eval_eq_congr
       smtx_model_eval_eq_false_of_not_smt_value_rel c d hncd
     rw [habFalse, hcdFalse]
     simp [RuleProofs.smt_value_rel, __smtx_model_eval_eq, native_veq]
+
+/--
+SMT equality is congruent with respect to the project's semantic value relation.
+
+This public wrapper is intentionally value-level: rules that reason about
+substitution under equality can reuse the regex-extensional equality handling
+without duplicating the operator proof.
+-/
+theorem smt_value_rel_eq_congr
+    (a b c d : SmtValue) :
+    RuleProofs.smt_value_rel a c ->
+    RuleProofs.smt_value_rel b d ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval_eq a b) (__smtx_model_eval_eq c d) :=
+  smt_value_rel_model_eval_eq_congr a b c d
 
 private theorem congTrueSpine_eq_eq_true
     (M : SmtModel) (_hM : model_total_typed M) (x₁ x₂ rhs : Term) :
@@ -24812,6 +24831,46 @@ private theorem congStableSpine_eq_true
           (fun xs body h => hExists ⟨xs, body, h⟩)⟩ hEqBool
         (congTrueSpine_of_congStableSpine M hM hSpine)
 
+/--
+Rebase a stable congruence spine across a model with the same globals.
+
+The public spelling keeps downstream rules from depending on the private
+`mkEq` name hidden inside the spine constructors.
+-/
+theorem congStableSpine_rebase_of_globals
+    {M N : SmtModel} :
+    model_agrees_on_globals M N ->
+    ∀ {t rhs : Term},
+      CongStableSpine M t rhs ->
+      CongStableSpine N t rhs :=
+  congStableSpine_rebase
+
+/-- Interpret a stable congruence spine as a true public equality term. -/
+theorem eqTerm_true_of_congStableSpine
+    (M : SmtModel) (hM : model_total_typed M) (t rhs : Term) :
+    RuleProofs.eo_has_bool_type (eqTerm t rhs) ->
+    CongStableSpine M t rhs ->
+    eo_interprets M (eqTerm t rhs) true := by
+  intro hEqBool hSpine
+  simpa [eqTerm] using
+    congStableSpine_eq_true M hM t rhs
+      (by simpa [eqTerm] using hEqBool) hSpine
+
+/--
+A stable congruence spine gives an equality fact that is stable under variable
+model changes.
+-/
+theorem stableInAnyVarModel_eqTerm_of_congStableSpine
+    (M : SmtModel) (t rhs : Term)
+    (hEqBool : RuleProofs.eo_has_bool_type (eqTerm t rhs))
+    (hSpine : CongStableSpine M t rhs) :
+    StableInAnyVarModel M (eqTerm t rhs) := by
+  intro N hN hAgree
+  simpa [eqTerm] using
+    congStableSpine_eq_true N hN t rhs
+      (by simpa [eqTerm] using hEqBool)
+      (congStableSpine_rebase hAgree hSpine)
+
 private theorem mk_nary_cong_rhs_congTypeSpine_of_list :
     ∀ (ps : List Term) (t : Term),
       RuleProofs.eo_has_smt_translation t ->
@@ -25735,6 +25794,83 @@ private theorem smt_value_rel_model_eval_and_of_rel
     cases a₁ <;> cases b₁ <;> cases c₁ <;> cases d₁ <;>
       simp  at hAC hBD ⊢
 
+/-- SMT Boolean negation is congruent with respect to `smt_value_rel`. -/
+theorem smt_value_rel_not_congr
+    (a b : SmtValue) :
+    RuleProofs.smt_value_rel a b ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval_not a) (__smtx_model_eval_not b) :=
+  smt_value_rel_model_eval_not_of_rel a b
+
+/-- SMT Boolean conjunction is congruent with respect to `smt_value_rel`. -/
+theorem smt_value_rel_and_congr
+    (a b c d : SmtValue) :
+    RuleProofs.smt_value_rel a c ->
+    RuleProofs.smt_value_rel b d ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval_and a b) (__smtx_model_eval_and c d) :=
+  smt_value_rel_model_eval_and_of_rel a b c d
+
+/-- SMT Boolean disjunction is congruent with respect to `smt_value_rel`. -/
+theorem smt_value_rel_or_congr
+    (a b c d : SmtValue) :
+    RuleProofs.smt_value_rel a c ->
+    RuleProofs.smt_value_rel b d ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval_or a b) (__smtx_model_eval_or c d) := by
+  intro hAC hBD
+  unfold RuleProofs.smt_value_rel at hAC hBD ⊢
+  cases a <;> cases b <;> cases c <;> cases d <;>
+    simp [__smtx_model_eval_eq, __smtx_model_eval_or, native_veq] at hAC hBD ⊢
+  case Boolean.Boolean.Boolean.Boolean a₁ b₁ c₁ d₁ =>
+    cases a₁ <;> cases b₁ <;> cases c₁ <;> cases d₁ <;>
+      simp at hAC hBD ⊢
+
+/-- SMT Boolean implication is congruent with respect to `smt_value_rel`. -/
+theorem smt_value_rel_imp_congr
+    (a b c d : SmtValue) :
+    RuleProofs.smt_value_rel a c ->
+    RuleProofs.smt_value_rel b d ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval_imp a b) (__smtx_model_eval_imp c d) := by
+  intro hAC hBD
+  unfold __smtx_model_eval_imp
+  exact smt_value_rel_or_congr
+    (__smtx_model_eval_not a) b (__smtx_model_eval_not c) d
+    (smt_value_rel_not_congr a c hAC) hBD
+
+/-- SMT Boolean exclusive-or is congruent with respect to `smt_value_rel`. -/
+theorem smt_value_rel_xor_congr
+    (a b c d : SmtValue) :
+    RuleProofs.smt_value_rel a c ->
+    RuleProofs.smt_value_rel b d ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval_xor a b) (__smtx_model_eval_xor c d) := by
+  intro hAC hBD
+  unfold __smtx_model_eval_xor
+  exact smt_value_rel_not_congr
+    (__smtx_model_eval_eq a b) (__smtx_model_eval_eq c d)
+    (smt_value_rel_eq_congr a b c d hAC hBD)
+
+/-- SMT if-then-else is congruent with respect to `smt_value_rel`. -/
+theorem smt_value_rel_ite_congr
+    (c c' t t' e e' : SmtValue) :
+    RuleProofs.smt_value_rel c c' ->
+    RuleProofs.smt_value_rel t t' ->
+    RuleProofs.smt_value_rel e e' ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval_ite c t e) (__smtx_model_eval_ite c' t' e') := by
+  intro hCond hThen hElse
+  unfold RuleProofs.smt_value_rel at hCond hThen hElse ⊢
+  cases c <;> cases c' <;>
+    simp [__smtx_model_eval_eq, __smtx_model_eval_ite, native_veq]
+      at hCond hThen hElse ⊢
+  case Boolean.Boolean b b' =>
+    cases b <;> cases b' <;>
+      simp at hCond hThen hElse ⊢
+    · exact hElse
+    · exact hThen
+
 private theorem distinct_pairs_rel_same_tail
     (M : SmtModel) (x y : Term) :
     eo_interprets M (mkEq x y) true ->
@@ -26448,5 +26584,525 @@ theorem smt_value_rel_model_eval_apply_of_rel
       (__smtx_model_eval_apply M (__smtx_model_eval M g) (__smtx_model_eval M y)) :=
   smt_value_rel_model_eval_apply_of_rel_core M hM f g x y
     hAppNN hFy hXy hFRel hXRel
+
+/--
+Generic SMT application preserves `smt_value_rel` across two models that agree
+on globals.
+
+This is the cross-model form needed by substitution/equality rules: the function
+and argument values may be obtained from different variable assignments, while
+uninterpreted-function lookup is kept aligned by global agreement.
+-/
+theorem smt_value_rel_model_eval_apply_of_rel_across_models
+    (M N : SmtModel) (hM : model_total_typed M) (hN : model_total_typed N)
+    (hGlobals : model_agrees_on_globals M N)
+    (f g x y : SmtTerm)
+    (hAppNN : __smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x) ≠ SmtType.None)
+    (hFy : __smtx_typeof f = __smtx_typeof g)
+    (hXy : __smtx_typeof x = __smtx_typeof y)
+    (hFRel : RuleProofs.smt_value_rel (__smtx_model_eval M f) (__smtx_model_eval N g))
+    (hXRel : RuleProofs.smt_value_rel (__smtx_model_eval M x) (__smtx_model_eval N y)) :
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval_apply M (__smtx_model_eval M f) (__smtx_model_eval M x))
+      (__smtx_model_eval_apply N (__smtx_model_eval N g) (__smtx_model_eval N y)) := by
+  rcases typeof_apply_non_none_cases hAppNN with
+    ⟨A, _B, hHead, hX, hA, _hB⟩
+  have hFNN : term_has_non_none_type f := by
+    unfold term_has_non_none_type
+    exact smt_type_ne_none_of_apply_head hHead
+  have hGNN : term_has_non_none_type g := by
+    unfold term_has_non_none_type
+    rw [← hFy]
+    exact hFNN
+  have hXNN : term_has_non_none_type x := by
+    unfold term_has_non_none_type
+    rw [hX]
+    exact hA
+  have hYNN : term_has_non_none_type y := by
+    unfold term_has_non_none_type
+    rw [← hXy]
+    exact hXNN
+  have hFPres :
+      __smtx_typeof_value (__smtx_model_eval M f) = __smtx_typeof f :=
+    smt_model_eval_preserves_type_of_non_none M hM f hFNN
+  have hGPres :
+      __smtx_typeof_value (__smtx_model_eval N g) = __smtx_typeof g :=
+    smt_model_eval_preserves_type_of_non_none N hN g hGNN
+  have hXPres :
+      __smtx_typeof_value (__smtx_model_eval M x) = __smtx_typeof x :=
+    smt_model_eval_preserves_type_of_non_none M hM x hXNN
+  have hYPres :
+      __smtx_typeof_value (__smtx_model_eval N y) = __smtx_typeof y :=
+    smt_model_eval_preserves_type_of_non_none N hN y hYNN
+  have hFNeReg : __smtx_typeof f ≠ SmtType.RegLan :=
+    smt_type_ne_reglan_of_apply_head hHead
+  have hANeReg : A ≠ SmtType.RegLan :=
+    TranslationProofs.smtx_term_fun_like_arg_ne_reglan_of_non_none
+      f hFNN hHead
+  have hFEq : __smtx_model_eval M f = __smtx_model_eval N g :=
+    RuleProofs.smt_value_rel_eq_of_type_ne_reglan
+      hFPres (by simpa [hFy] using hGPres) hFNeReg hFRel
+  have hXEq : __smtx_model_eval M x = __smtx_model_eval N y :=
+    RuleProofs.smt_value_rel_eq_of_type_ne_reglan
+      (by simpa [hX] using hXPres)
+      (by
+        rw [← hXy, hX] at hYPres
+        exact hYPres)
+      hANeReg hXRel
+  rw [hFEq, hXEq]
+  rw [smtx_model_eval_apply_eq_of_globals hGlobals]
+  exact RuleProofs.smt_value_rel_refl _
+
+/-! ### Value-level congruence for regular-expression operators
+
+Public lemmas for the rel-coincidence development: rel-related values are
+either equal or a pair of extensionally equal `RegLan` values, and every
+regex-consuming evaluation operator respects that relation.
+-/
+
+/-- Case split for `smt_value_rel`: related values are equal unless both are
+`RegLan` values (which are then extensionally equal). -/
+theorem smt_value_rel_cases {a b : SmtValue}
+    (h : RuleProofs.smt_value_rel a b) :
+    a = b ∨ ∃ r r', a = SmtValue.RegLan r ∧ b = SmtValue.RegLan r' := by
+  unfold RuleProofs.smt_value_rel at h
+  unfold __smtx_model_eval_eq at h
+  split at h
+  · rename_i r1 r2
+    exact Or.inr ⟨r1, r2, rfl, rfl⟩
+  · left
+    have hveq : native_veq a b = true := by
+      simpa using h
+    simpa [native_veq] using hveq
+
+/-- Rel-related `RegLan` values agree on membership of valid strings. -/
+theorem reglan_valid_ext_of_rel {r r' : native_RegLan}
+    (h : RuleProofs.smt_value_rel (SmtValue.RegLan r) (SmtValue.RegLan r')) :
+    ∀ s : native_String, native_string_valid s = true ->
+      native_str_in_re s r = native_str_in_re s r' := by
+  have hb : native_re_ext_eq r r' = true := by
+    have h' : SmtValue.Boolean (native_re_ext_eq r r') = SmtValue.Boolean true := h
+    simpa using h'
+  intro s hs
+  by_cases hAll : ∀ str : native_String, native_string_valid str = true ->
+      native_str_in_re str r = native_str_in_re str r'
+  · exact hAll s hs
+  · rw [dif_neg hAll] at hb
+    cases hb
+
+/-- Rel-related `RegLan` values agree on membership of all strings, valid or
+not (invalid strings are never members). -/
+theorem reglan_ext_of_rel {r r' : native_RegLan}
+    (h : RuleProofs.smt_value_rel (SmtValue.RegLan r) (SmtValue.RegLan r')) :
+    ∀ s : native_String, native_str_in_re s r = native_str_in_re s r' :=
+  native_str_in_re_ext_of_valid_ext (reglan_valid_ext_of_rel h)
+
+/-- Converse: agreement on valid strings makes `RegLan` values rel-related. -/
+theorem smt_value_rel_reglan_of_valid_ext {r r' : native_RegLan}
+    (h : ∀ s : native_String, native_string_valid s = true ->
+      native_str_in_re s r = native_str_in_re s r') :
+    RuleProofs.smt_value_rel (SmtValue.RegLan r) (SmtValue.RegLan r') := by
+  show SmtValue.Boolean (native_re_ext_eq r r') = SmtValue.Boolean true
+  rw [dif_pos h]
+
+private theorem valid_ext_refl (r : native_RegLan) :
+    ∀ s : native_String, native_string_valid s = true ->
+      native_str_in_re s r = native_str_in_re s r :=
+  fun _ _ => rfl
+
+private theorem native_re_union_valid_ext_congr
+    {r1 r1' r2 r2' : native_RegLan}
+    (h1 : ∀ s : native_String, native_string_valid s = true ->
+      native_str_in_re s r1 = native_str_in_re s r1')
+    (h2 : ∀ s : native_String, native_string_valid s = true ->
+      native_str_in_re s r2 = native_str_in_re s r2') :
+    ∀ s : native_String, native_string_valid s = true ->
+      native_str_in_re s (native_re_union r1 r2) =
+        native_str_in_re s (native_re_union r1' r2') := by
+  intro s hs
+  rw [native_str_in_re_re_union, native_str_in_re_re_union, h1 s hs, h2 s hs]
+
+private theorem native_re_inter_valid_ext_congr
+    {r1 r1' r2 r2' : native_RegLan}
+    (h1 : ∀ s : native_String, native_string_valid s = true ->
+      native_str_in_re s r1 = native_str_in_re s r1')
+    (h2 : ∀ s : native_String, native_string_valid s = true ->
+      native_str_in_re s r2 = native_str_in_re s r2') :
+    ∀ s : native_String, native_string_valid s = true ->
+      native_str_in_re s (native_re_inter r1 r2) =
+        native_str_in_re s (native_re_inter r1' r2') := by
+  intro s hs
+  rw [native_str_in_re_re_inter, native_str_in_re_re_inter, h1 s hs, h2 s hs]
+
+private theorem native_re_diff_valid_ext_congr
+    {r1 r1' r2 r2' : native_RegLan}
+    (h1 : ∀ s : native_String, native_string_valid s = true ->
+      native_str_in_re s r1 = native_str_in_re s r1')
+    (h2 : ∀ s : native_String, native_string_valid s = true ->
+      native_str_in_re s r2 = native_str_in_re s r2') :
+    ∀ s : native_String, native_string_valid s = true ->
+      native_str_in_re s (native_re_diff r1 r2) =
+        native_str_in_re s (native_re_diff r1' r2') := by
+  intro s hs
+  rw [native_str_in_re_re_diff, native_str_in_re_re_diff, h1 s hs, h2 s hs]
+
+private theorem native_re_comp_valid_ext_congr
+    {r r' : native_RegLan}
+    (h : ∀ s : native_String, native_string_valid s = true ->
+      native_str_in_re s r = native_str_in_re s r') :
+    ∀ s : native_String, native_string_valid s = true ->
+      native_str_in_re s (native_re_comp r) =
+        native_str_in_re s (native_re_comp r') := by
+  intro s hs
+  rw [native_str_in_re_re_comp, native_str_in_re_re_comp, h s hs]
+
+private theorem native_re_concat_valid_ext_congr
+    {r1 r1' r2 r2' : native_RegLan}
+    (h1 : ∀ s : native_String, native_string_valid s = true ->
+      native_str_in_re s r1 = native_str_in_re s r1')
+    (h2 : ∀ s : native_String, native_string_valid s = true ->
+      native_str_in_re s r2 = native_str_in_re s r2') :
+    ∀ s : native_String, native_string_valid s = true ->
+      native_str_in_re s (native_re_concat r1 r2) =
+        native_str_in_re s (native_re_concat r1' r2') :=
+  fun s _ => native_str_in_re_re_concat_congr s r1 r1' r2 r2' h1 h2
+
+private theorem native_re_mult_valid_ext_congr
+    {r r' : native_RegLan}
+    (h : ∀ s : native_String, native_string_valid s = true ->
+      native_str_in_re s r = native_str_in_re s r') :
+    ∀ s : native_String, native_string_valid s = true ->
+      native_str_in_re s (native_re_mult r) =
+        native_str_in_re s (native_re_mult r') :=
+  fun s _ => native_str_in_re_re_mult_congr s r r' h
+
+/-- Binary regex constructors respect `smt_value_rel`. -/
+theorem smt_value_rel_re_union_congr {a b c d : SmtValue}
+    (hAC : RuleProofs.smt_value_rel a c) (hBD : RuleProofs.smt_value_rel b d) :
+    RuleProofs.smt_value_rel (__smtx_model_eval_re_union a b)
+      (__smtx_model_eval_re_union c d) := by
+  rcases smt_value_rel_cases hAC with rfl | ⟨r1, r1', rfl, rfl⟩
+  · rcases smt_value_rel_cases hBD with rfl | ⟨r2, r2', rfl, rfl⟩
+    · exact RuleProofs.smt_value_rel_refl _
+    · cases a with
+      | RegLan r0 =>
+          exact smt_value_rel_reglan_of_valid_ext
+            (native_re_union_valid_ext_congr (valid_ext_refl r0)
+              (reglan_valid_ext_of_rel hBD))
+      | _ => exact RuleProofs.smt_value_rel_refl _
+  · rcases smt_value_rel_cases hBD with rfl | ⟨r2, r2', rfl, rfl⟩
+    · cases b with
+      | RegLan r0 =>
+          exact smt_value_rel_reglan_of_valid_ext
+            (native_re_union_valid_ext_congr
+              (reglan_valid_ext_of_rel hAC) (valid_ext_refl r0))
+      | _ => exact RuleProofs.smt_value_rel_refl _
+    · exact smt_value_rel_reglan_of_valid_ext
+        (native_re_union_valid_ext_congr
+          (reglan_valid_ext_of_rel hAC) (reglan_valid_ext_of_rel hBD))
+
+theorem smt_value_rel_re_inter_congr {a b c d : SmtValue}
+    (hAC : RuleProofs.smt_value_rel a c) (hBD : RuleProofs.smt_value_rel b d) :
+    RuleProofs.smt_value_rel (__smtx_model_eval_re_inter a b)
+      (__smtx_model_eval_re_inter c d) := by
+  rcases smt_value_rel_cases hAC with rfl | ⟨r1, r1', rfl, rfl⟩
+  · rcases smt_value_rel_cases hBD with rfl | ⟨r2, r2', rfl, rfl⟩
+    · exact RuleProofs.smt_value_rel_refl _
+    · cases a with
+      | RegLan r0 =>
+          exact smt_value_rel_reglan_of_valid_ext
+            (native_re_inter_valid_ext_congr (valid_ext_refl r0)
+              (reglan_valid_ext_of_rel hBD))
+      | _ => exact RuleProofs.smt_value_rel_refl _
+  · rcases smt_value_rel_cases hBD with rfl | ⟨r2, r2', rfl, rfl⟩
+    · cases b with
+      | RegLan r0 =>
+          exact smt_value_rel_reglan_of_valid_ext
+            (native_re_inter_valid_ext_congr
+              (reglan_valid_ext_of_rel hAC) (valid_ext_refl r0))
+      | _ => exact RuleProofs.smt_value_rel_refl _
+    · exact smt_value_rel_reglan_of_valid_ext
+        (native_re_inter_valid_ext_congr
+          (reglan_valid_ext_of_rel hAC) (reglan_valid_ext_of_rel hBD))
+
+theorem smt_value_rel_re_concat_congr {a b c d : SmtValue}
+    (hAC : RuleProofs.smt_value_rel a c) (hBD : RuleProofs.smt_value_rel b d) :
+    RuleProofs.smt_value_rel (__smtx_model_eval_re_concat a b)
+      (__smtx_model_eval_re_concat c d) := by
+  rcases smt_value_rel_cases hAC with rfl | ⟨r1, r1', rfl, rfl⟩
+  · rcases smt_value_rel_cases hBD with rfl | ⟨r2, r2', rfl, rfl⟩
+    · exact RuleProofs.smt_value_rel_refl _
+    · cases a with
+      | RegLan r0 =>
+          exact smt_value_rel_reglan_of_valid_ext
+            (native_re_concat_valid_ext_congr (valid_ext_refl r0)
+              (reglan_valid_ext_of_rel hBD))
+      | _ => exact RuleProofs.smt_value_rel_refl _
+  · rcases smt_value_rel_cases hBD with rfl | ⟨r2, r2', rfl, rfl⟩
+    · cases b with
+      | RegLan r0 =>
+          exact smt_value_rel_reglan_of_valid_ext
+            (native_re_concat_valid_ext_congr
+              (reglan_valid_ext_of_rel hAC) (valid_ext_refl r0))
+      | _ => exact RuleProofs.smt_value_rel_refl _
+    · exact smt_value_rel_reglan_of_valid_ext
+        (native_re_concat_valid_ext_congr
+          (reglan_valid_ext_of_rel hAC) (reglan_valid_ext_of_rel hBD))
+
+theorem smt_value_rel_re_diff_congr {a b c d : SmtValue}
+    (hAC : RuleProofs.smt_value_rel a c) (hBD : RuleProofs.smt_value_rel b d) :
+    RuleProofs.smt_value_rel (__smtx_model_eval_re_diff a b)
+      (__smtx_model_eval_re_diff c d) := by
+  rcases smt_value_rel_cases hAC with rfl | ⟨r1, r1', rfl, rfl⟩
+  · rcases smt_value_rel_cases hBD with rfl | ⟨r2, r2', rfl, rfl⟩
+    · exact RuleProofs.smt_value_rel_refl _
+    · cases a with
+      | RegLan r0 =>
+          exact smt_value_rel_reglan_of_valid_ext
+            (native_re_diff_valid_ext_congr (valid_ext_refl r0)
+              (reglan_valid_ext_of_rel hBD))
+      | _ => exact RuleProofs.smt_value_rel_refl _
+  · rcases smt_value_rel_cases hBD with rfl | ⟨r2, r2', rfl, rfl⟩
+    · cases b with
+      | RegLan r0 =>
+          exact smt_value_rel_reglan_of_valid_ext
+            (native_re_diff_valid_ext_congr
+              (reglan_valid_ext_of_rel hAC) (valid_ext_refl r0))
+      | _ => exact RuleProofs.smt_value_rel_refl _
+    · exact smt_value_rel_reglan_of_valid_ext
+        (native_re_diff_valid_ext_congr
+          (reglan_valid_ext_of_rel hAC) (reglan_valid_ext_of_rel hBD))
+
+/-- Unary regex constructors respect `smt_value_rel`. -/
+theorem smt_value_rel_re_mult_congr {a c : SmtValue}
+    (hAC : RuleProofs.smt_value_rel a c) :
+    RuleProofs.smt_value_rel (__smtx_model_eval_re_mult a)
+      (__smtx_model_eval_re_mult c) := by
+  rcases smt_value_rel_cases hAC with rfl | ⟨r, r', rfl, rfl⟩
+  · exact RuleProofs.smt_value_rel_refl _
+  · exact smt_value_rel_reglan_of_valid_ext
+      (native_re_mult_valid_ext_congr (reglan_valid_ext_of_rel hAC))
+
+theorem smt_value_rel_re_comp_congr {a c : SmtValue}
+    (hAC : RuleProofs.smt_value_rel a c) :
+    RuleProofs.smt_value_rel (__smtx_model_eval_re_comp a)
+      (__smtx_model_eval_re_comp c) := by
+  rcases smt_value_rel_cases hAC with rfl | ⟨r, r', rfl, rfl⟩
+  · exact RuleProofs.smt_value_rel_refl _
+  · exact smt_value_rel_reglan_of_valid_ext
+      (native_re_comp_valid_ext_congr (reglan_valid_ext_of_rel hAC))
+
+/-- `str.in_re` respects `smt_value_rel`. -/
+theorem smt_value_rel_str_in_re_congr {a b c d : SmtValue}
+    (hAC : RuleProofs.smt_value_rel a c) (hBD : RuleProofs.smt_value_rel b d) :
+    RuleProofs.smt_value_rel (__smtx_model_eval_str_in_re a b)
+      (__smtx_model_eval_str_in_re c d) := by
+  rcases smt_value_rel_cases hAC with rfl | ⟨r1, r1', rfl, rfl⟩
+  · rcases smt_value_rel_cases hBD with rfl | ⟨r2, r2', rfl, rfl⟩
+    · exact RuleProofs.smt_value_rel_refl _
+    · cases a with
+      | Seq s1 =>
+          have hAll := reglan_ext_of_rel hBD
+          have hEq :
+              __smtx_model_eval_str_in_re (SmtValue.Seq s1) (SmtValue.RegLan r2) =
+                __smtx_model_eval_str_in_re (SmtValue.Seq s1)
+                  (SmtValue.RegLan r2') := by
+            show SmtValue.Boolean
+                (native_str_in_re (native_unpack_string s1) r2) =
+              SmtValue.Boolean
+                (native_str_in_re (native_unpack_string s1) r2')
+            rw [hAll (native_unpack_string s1)]
+          rw [hEq]
+          exact RuleProofs.smt_value_rel_refl _
+      | _ => exact RuleProofs.smt_value_rel_refl _
+  · exact RuleProofs.smt_value_rel_refl _
+
+/-- `str.replace_re` respects `smt_value_rel`. -/
+theorem smt_value_rel_str_replace_re_congr {a1 a2 a3 b1 b2 b3 : SmtValue}
+    (h1 : RuleProofs.smt_value_rel a1 b1)
+    (h2 : RuleProofs.smt_value_rel a2 b2)
+    (h3 : RuleProofs.smt_value_rel a3 b3) :
+    RuleProofs.smt_value_rel (__smtx_model_eval_str_replace_re a1 a2 a3)
+      (__smtx_model_eval_str_replace_re b1 b2 b3) := by
+  rcases smt_value_rel_cases h1 with rfl | ⟨r1, r1', rfl, rfl⟩
+  · cases a1 with
+    | Seq s1 =>
+        rcases smt_value_rel_cases h2 with rfl | ⟨r2, r2', rfl, rfl⟩
+        · rcases smt_value_rel_cases h3 with rfl | ⟨r3, r3', rfl, rfl⟩
+          · exact RuleProofs.smt_value_rel_refl _
+          · cases a2 with
+            | RegLan r0 => exact RuleProofs.smt_value_rel_refl _
+            | _ => exact RuleProofs.smt_value_rel_refl _
+        · rcases smt_value_rel_cases h3 with rfl | ⟨r3, r3', rfl, rfl⟩
+          · cases a3 with
+            | Seq s3 =>
+                have hEq :
+                    __smtx_model_eval_str_replace_re (SmtValue.Seq s1)
+                        (SmtValue.RegLan r2) (SmtValue.Seq s3) =
+                      __smtx_model_eval_str_replace_re (SmtValue.Seq s1)
+                        (SmtValue.RegLan r2') (SmtValue.Seq s3) := by
+                  show SmtValue.Seq (native_pack_string
+                      (native_str_replace_re (native_unpack_string s1) r2
+                        (native_unpack_string s3))) =
+                    SmtValue.Seq (native_pack_string
+                      (native_str_replace_re (native_unpack_string s1) r2'
+                        (native_unpack_string s3)))
+                  rw [native_str_replace_re_congr (native_unpack_string s1)
+                    r2 r2' (native_unpack_string s3)
+                    (reglan_valid_ext_of_rel h2)]
+                rw [hEq]
+                exact RuleProofs.smt_value_rel_refl _
+            | _ => exact RuleProofs.smt_value_rel_refl _
+          · exact RuleProofs.smt_value_rel_refl _
+    | _ => exact RuleProofs.smt_value_rel_refl _
+  · exact RuleProofs.smt_value_rel_refl _
+
+/-- `str.replace_re_all` respects `smt_value_rel`. -/
+theorem smt_value_rel_str_replace_re_all_congr {a1 a2 a3 b1 b2 b3 : SmtValue}
+    (h1 : RuleProofs.smt_value_rel a1 b1)
+    (h2 : RuleProofs.smt_value_rel a2 b2)
+    (h3 : RuleProofs.smt_value_rel a3 b3) :
+    RuleProofs.smt_value_rel (__smtx_model_eval_str_replace_re_all a1 a2 a3)
+      (__smtx_model_eval_str_replace_re_all b1 b2 b3) := by
+  rcases smt_value_rel_cases h1 with rfl | ⟨r1, r1', rfl, rfl⟩
+  · cases a1 with
+    | Seq s1 =>
+        rcases smt_value_rel_cases h2 with rfl | ⟨r2, r2', rfl, rfl⟩
+        · rcases smt_value_rel_cases h3 with rfl | ⟨r3, r3', rfl, rfl⟩
+          · exact RuleProofs.smt_value_rel_refl _
+          · cases a2 with
+            | RegLan r0 => exact RuleProofs.smt_value_rel_refl _
+            | _ => exact RuleProofs.smt_value_rel_refl _
+        · rcases smt_value_rel_cases h3 with rfl | ⟨r3, r3', rfl, rfl⟩
+          · cases a3 with
+            | Seq s3 =>
+                have hEq :
+                    __smtx_model_eval_str_replace_re_all (SmtValue.Seq s1)
+                        (SmtValue.RegLan r2) (SmtValue.Seq s3) =
+                      __smtx_model_eval_str_replace_re_all (SmtValue.Seq s1)
+                        (SmtValue.RegLan r2') (SmtValue.Seq s3) := by
+                  show SmtValue.Seq (native_pack_string
+                      (native_str_replace_re_all (native_unpack_string s1) r2
+                        (native_unpack_string s3))) =
+                    SmtValue.Seq (native_pack_string
+                      (native_str_replace_re_all (native_unpack_string s1) r2'
+                        (native_unpack_string s3)))
+                  rw [native_str_replace_re_all_congr (native_unpack_string s1)
+                    r2 r2' (native_unpack_string s3)
+                    (reglan_valid_ext_of_rel h2)]
+                rw [hEq]
+                exact RuleProofs.smt_value_rel_refl _
+            | _ => exact RuleProofs.smt_value_rel_refl _
+          · exact RuleProofs.smt_value_rel_refl _
+    | _ => exact RuleProofs.smt_value_rel_refl _
+  · exact RuleProofs.smt_value_rel_refl _
+
+/-- `str.indexof_re` respects `smt_value_rel`. -/
+theorem smt_value_rel_str_indexof_re_congr {a1 a2 a3 b1 b2 b3 : SmtValue}
+    (h1 : RuleProofs.smt_value_rel a1 b1)
+    (h2 : RuleProofs.smt_value_rel a2 b2)
+    (h3 : RuleProofs.smt_value_rel a3 b3) :
+    RuleProofs.smt_value_rel (__smtx_model_eval_str_indexof_re a1 a2 a3)
+      (__smtx_model_eval_str_indexof_re b1 b2 b3) := by
+  rcases smt_value_rel_cases h1 with rfl | ⟨r1, r1', rfl, rfl⟩
+  · cases a1 with
+    | Seq s1 =>
+        rcases smt_value_rel_cases h2 with rfl | ⟨r2, r2', rfl, rfl⟩
+        · rcases smt_value_rel_cases h3 with rfl | ⟨r3, r3', rfl, rfl⟩
+          · exact RuleProofs.smt_value_rel_refl _
+          · cases a2 with
+            | RegLan r0 => exact RuleProofs.smt_value_rel_refl _
+            | _ => exact RuleProofs.smt_value_rel_refl _
+        · rcases smt_value_rel_cases h3 with rfl | ⟨r3, r3', rfl, rfl⟩
+          · cases a3 with
+            | Numeral i =>
+                have hEq :
+                    __smtx_model_eval_str_indexof_re (SmtValue.Seq s1)
+                        (SmtValue.RegLan r2) (SmtValue.Numeral i) =
+                      __smtx_model_eval_str_indexof_re (SmtValue.Seq s1)
+                        (SmtValue.RegLan r2') (SmtValue.Numeral i) := by
+                  show SmtValue.Numeral
+                      (native_str_indexof_re (native_unpack_string s1) r2 i) =
+                    SmtValue.Numeral
+                      (native_str_indexof_re (native_unpack_string s1) r2' i)
+                  rw [native_str_indexof_re_congr (native_unpack_string s1)
+                    r2 r2' i (reglan_valid_ext_of_rel h2)]
+                rw [hEq]
+                exact RuleProofs.smt_value_rel_refl _
+            | _ => exact RuleProofs.smt_value_rel_refl _
+          · exact RuleProofs.smt_value_rel_refl _
+    | _ => exact RuleProofs.smt_value_rel_refl _
+  · exact RuleProofs.smt_value_rel_refl _
+
+/-- `str.indexof_re_split` respects `smt_value_rel`. -/
+theorem smt_value_rel_str_indexof_re_split_congr {a1 a2 a3 b1 b2 b3 : SmtValue}
+    (h1 : RuleProofs.smt_value_rel a1 b1)
+    (h2 : RuleProofs.smt_value_rel a2 b2)
+    (h3 : RuleProofs.smt_value_rel a3 b3) :
+    RuleProofs.smt_value_rel (__smtx_model_eval_str_indexof_re_split a1 a2 a3)
+      (__smtx_model_eval_str_indexof_re_split b1 b2 b3) := by
+  rcases smt_value_rel_cases h1 with rfl | ⟨r1, r1', rfl, rfl⟩
+  · cases a1 with
+    | Seq s1 =>
+        rcases smt_value_rel_cases h2 with rfl | ⟨r2, r2', rfl, rfl⟩
+        · rcases smt_value_rel_cases h3 with rfl | ⟨r3, r3', rfl, rfl⟩
+          · exact RuleProofs.smt_value_rel_refl _
+          · cases a2 with
+            | RegLan r0 =>
+                have hEq :
+                    __smtx_model_eval_str_indexof_re_split (SmtValue.Seq s1)
+                        (SmtValue.RegLan r0) (SmtValue.RegLan r3) =
+                      __smtx_model_eval_str_indexof_re_split (SmtValue.Seq s1)
+                        (SmtValue.RegLan r0) (SmtValue.RegLan r3') := by
+                  show SmtValue.Numeral
+                      (native_str_indexof_re_split (native_unpack_string s1)
+                        r0 r3) =
+                    SmtValue.Numeral
+                      (native_str_indexof_re_split (native_unpack_string s1)
+                        r0 r3')
+                  rw [native_str_indexof_re_split_congr
+                    (native_unpack_string s1) r0 r0 r3 r3'
+                    (valid_ext_refl r0) (reglan_valid_ext_of_rel h3)]
+                rw [hEq]
+                exact RuleProofs.smt_value_rel_refl _
+            | _ => exact RuleProofs.smt_value_rel_refl _
+        · rcases smt_value_rel_cases h3 with rfl | ⟨r3, r3', rfl, rfl⟩
+          · cases a3 with
+            | RegLan r0 =>
+                have hEq :
+                    __smtx_model_eval_str_indexof_re_split (SmtValue.Seq s1)
+                        (SmtValue.RegLan r2) (SmtValue.RegLan r0) =
+                      __smtx_model_eval_str_indexof_re_split (SmtValue.Seq s1)
+                        (SmtValue.RegLan r2') (SmtValue.RegLan r0) := by
+                  show SmtValue.Numeral
+                      (native_str_indexof_re_split (native_unpack_string s1)
+                        r2 r0) =
+                    SmtValue.Numeral
+                      (native_str_indexof_re_split (native_unpack_string s1)
+                        r2' r0)
+                  rw [native_str_indexof_re_split_congr
+                    (native_unpack_string s1) r2 r2' r0 r0
+                    (reglan_valid_ext_of_rel h2) (valid_ext_refl r0)]
+                rw [hEq]
+                exact RuleProofs.smt_value_rel_refl _
+            | _ => exact RuleProofs.smt_value_rel_refl _
+          · have hEq :
+                __smtx_model_eval_str_indexof_re_split (SmtValue.Seq s1)
+                    (SmtValue.RegLan r2) (SmtValue.RegLan r3) =
+                  __smtx_model_eval_str_indexof_re_split (SmtValue.Seq s1)
+                    (SmtValue.RegLan r2') (SmtValue.RegLan r3') := by
+              show SmtValue.Numeral
+                  (native_str_indexof_re_split (native_unpack_string s1)
+                    r2 r3) =
+                SmtValue.Numeral
+                  (native_str_indexof_re_split (native_unpack_string s1)
+                    r2' r3')
+              rw [native_str_indexof_re_split_congr
+                (native_unpack_string s1) r2 r2' r3 r3'
+                (reglan_valid_ext_of_rel h2) (reglan_valid_ext_of_rel h3)]
+            rw [hEq]
+            exact RuleProofs.smt_value_rel_refl _
+    | _ => exact RuleProofs.smt_value_rel_refl _
+  · exact RuleProofs.smt_value_rel_refl _
 
 end CongSupport
