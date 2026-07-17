@@ -72,6 +72,11 @@ theorem eq_of_eo_eq_true (x y : Term)
         simpa [__eo_eq, hx, hy] using h
       simpa [native_teq] using hDec
 
+/-- EO equality recognizes every non-stuck term as equal to itself. -/
+theorem eo_eq_self_of_ne_stuck (t : Term) (h : t ≠ Term.Stuck) :
+    __eo_eq t t = Term.Boolean true := by
+  cases t <;> simp [__eo_eq, native_teq] at h ⊢
+
 theorem eq_of_requires_eq_true_not_stuck (x y B : Term) :
     __eo_requires (__eo_eq x y) (Term.Boolean true) B ≠ Term.Stuck ->
     y = x := by
