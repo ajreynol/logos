@@ -408,8 +408,7 @@ theorem EoVarEnv.find_rec_succ_pred_of_mem
               Term.Boolean true := by
           simp [__eo_eq, native_teq, hVarEq.symm]
         simp [__eo_list_find_rec, hFindEq, __eo_ite, __eo_add,
-          native_ite, native_teq, native_zplus, Int.sub_eq_add_neg,
-          Int.add_assoc]
+          native_ite, native_teq, native_zplus, Int.add_assoc]
       · have hVarEqSymm :
             Term.Var (Term.String s) T ≠
               Term.Var (Term.String s0) T0 := by
