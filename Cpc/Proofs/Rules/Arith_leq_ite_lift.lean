@@ -1,5 +1,6 @@
 import Cpc.Proofs.RuleSupport.Support
 import Cpc.Proofs.RuleSupport.ArithPolyNormRelSupport
+import Cpc.Proofs.RuleSupport.ArithIteLiftSupport
 import Cpc.Proofs.RuleSupport.CnfSupport
 
 open Eo
@@ -23,30 +24,6 @@ private abbrev leqLiftLhs (C t s r : Term) : Term :=
 private abbrev leqLiftRhs (C t s r : Term) : Term :=
   iteTerm C (relTerm UserOp.leq t r) (relTerm UserOp.leq s r)
 
-/-- Helper: equality of two terms with `__eo_typeof` Bool implies the operands
-are equal and non-stuck.  (Reproduced inline; the original is private.) -/
-private theorem eo_typeof_eq_bool_same {A B : Term}
-    (h : __eo_typeof_eq A B = Term.Bool) :
-    A = B ∧ A ≠ Term.Stuck := by
-  cases A <;> cases B <;>
-    simp [__eo_typeof_eq, __eo_requires, __eo_eq, native_ite, native_teq,
-      native_not, SmtEval.native_not] at h ⊢
-  all_goals
-    simp [h]
-
-/-- Helper: `__eo_typeof_lt A B = Bool` forces both to be Int or both Real. -/
-private theorem eo_typeof_lt_bool_cases {A B : Term}
-    (h : __eo_typeof_lt A B = Term.Bool) :
-    (A = Term.UOp UserOp.Int ∧ B = Term.UOp UserOp.Int) ∨
-      (A = Term.UOp UserOp.Real ∧ B = Term.UOp UserOp.Real) := by
-  cases A <;> cases B <;>
-    simp [__eo_typeof_lt, __eo_requires, __eo_eq, __is_arith_type,
-      native_ite, native_teq, native_not, SmtEval.native_not] at h ⊢
-  case UOp.UOp opA opB =>
-    cases opA <;> cases opB <;>
-      simp [__eo_typeof_lt, __eo_requires, __eo_eq, __is_arith_type,
-        native_ite, native_teq, native_not, SmtEval.native_not] at h ⊢
-
 /-- A `leq` application has `__eo_typeof` either `Bool` or `Stuck`; if not
 stuck, it is `Bool`. -/
 private theorem leq_typeof_bool_of_ne_stuck (A B : Term)
@@ -54,15 +31,8 @@ private theorem leq_typeof_bool_of_ne_stuck (A B : Term)
     __eo_typeof (relTerm UserOp.leq A B) = Term.Bool := by
   change __eo_typeof_lt (__eo_typeof A) (__eo_typeof B) ≠ Term.Stuck at h
   change __eo_typeof_lt (__eo_typeof A) (__eo_typeof B) = Term.Bool
-  generalize hGA : __eo_typeof A = TA at h ⊢
-  generalize hGB : __eo_typeof B = TB at h ⊢
-  cases TA <;> cases TB <;>
-    simp [__eo_typeof_lt, __eo_requires, __eo_eq, __is_arith_type,
-      native_ite, native_teq, native_not, SmtEval.native_not] at h ⊢
-  case UOp.UOp opA opB =>
-    cases opA <;> cases opB <;>
-      simp [__eo_typeof_lt, __eo_requires, __eo_eq, __is_arith_type,
-        native_ite, native_teq, native_not, SmtEval.native_not] at h ⊢
+  exact RuleProofs.eo_typeof_lt_eq_bool_of_ne_stuck
+    (__eo_typeof A) (__eo_typeof B) h
 
 /-- Program reduction for non-stuck arguments. -/
 private theorem prog_eq_of_nonstuck
@@ -90,16 +60,10 @@ private theorem ite_typeof_arith_cases
     (hIte : __eo_typeof (iteTerm C t s) = X) :
     __eo_typeof C = Term.Bool ∧ __eo_typeof t = X ∧ __eo_typeof s = X := by
   change __eo_typeof_ite (__eo_typeof C) (__eo_typeof t) (__eo_typeof s) = X at hIte
-  cases hC : __eo_typeof C <;>
-    cases ht : __eo_typeof t <;>
-    cases hs : __eo_typeof s <;>
-    rcases hX with hX | hX <;>
-    subst hX <;>
-    simp_all [__eo_typeof_ite, __eo_requires, __eo_eq, native_ite, native_teq,
-      native_not, SmtEval.native_not] <;>
-    (try split at hIte) <;>
-    simp_all [__eo_typeof_ite, __eo_requires, __eo_eq, native_ite, native_teq,
-      native_not, SmtEval.native_not]
+  have hXNe : X ≠ Term.Stuck := by
+    rcases hX with rfl | rfl <;> exact Term.noConfusion
+  exact RuleProofs.eo_typeof_ite_eq_nonstuck_args
+    (__eo_typeof C) (__eo_typeof t) (__eo_typeof s) X hIte hXNe
 
 /-- Argument type case analysis from the result having Bool type. -/
 private theorem arg_type_cases_of_result
@@ -132,12 +96,12 @@ private theorem arg_type_cases_of_result
         __eo_typeof (leqLiftLhs C t s r) ≠ Term.Stuck := by
     change __eo_typeof_eq (__eo_typeof (leqLiftLhs C t s r))
       (__eo_typeof (leqLiftRhs C t s r)) = Term.Bool at hResultTy'
-    exact eo_typeof_eq_bool_same hResultTy'
+    exact RuleProofs.eo_typeof_eq_bool_same _ _ hResultTy'
   have hLhsTy : __eo_typeof (leqLiftLhs C t s r) = Term.Bool :=
     leq_typeof_bool_of_ne_stuck (iteTerm C t s) r hEqArgs.2
   change __eo_typeof_lt (__eo_typeof (iteTerm C t s)) (__eo_typeof r) =
     Term.Bool at hLhsTy
-  rcases eo_typeof_lt_bool_cases hLhsTy with hInt | hReal
+  rcases RuleProofs.eo_typeof_lt_bool_cases _ _ hLhsTy with hInt | hReal
   · have hIte := ite_typeof_arith_cases (Or.inl rfl) hInt.1
     exact ⟨hIte.1, Or.inl ⟨hIte.2.1, hIte.2.2, hInt.2⟩⟩
   · have hIte := ite_typeof_arith_cases (Or.inr rfl) hReal.1
