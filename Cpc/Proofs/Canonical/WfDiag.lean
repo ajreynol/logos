@@ -7769,6 +7769,125 @@ private theorem teq_dt_ref {v : native_String} {A : SmtDatatype}
     native_Teq (SmtType.Datatype v A) (SmtType.TypeRef r) = false := by
   simp [native_Teq]
 
+/-! ### Fold alignment over shared regions
+
+Within a region the two payloads share verbatim, every fold-alignment
+head condition discharges through the hole-freeness chain: the region is
+hole-free (one well-formedness fact at its root, propagated to subterms
+by the scan's own recursion), so a collision with the lifted target
+forces the target's lift to have been the identity.  `s3`-named nodes
+are skipped by the alignment Boolean itself, so the refs accumulator
+only ever crosses distinct binders. -/
+
+mutual
+
+private theorem noFatalB_same_ty {s3 : native_String}
+    (v : native_String) (X VO VN : SmtDatatype)
+    (hVN : VN = __smtx_dt_lift s3 X VO)
+    (hStray : noStrayDt s3 X VO = true)
+    (hvs3 : native_streq v s3 = false) :
+    ∀ (T : SmtType) (refs : RefList),
+      native_reflist_contains refs s3 = false →
+      hasFreeTy s3 refs T = false →
+      noFatalBTy s3 v VO VN T T = true
+  | SmtType.Datatype q W, refs, hNot, hHole => by
+      cases hq : native_streq q s3 with
+      | true =>
+          have hqe : q = s3 := by simpa [native_streq] using hq
+          subst hqe
+          have hTeqN := teq_dt_name_ne (A := VN) (B := W) hvs3
+          simp [noFatalBTy, native_ite, native_and, native_not,
+            native_or, native_streq, hTeqN]
+      | false =>
+          have hHoleW : hasFreeDt s3 (native_reflist_insert refs q) W
+              = false := by
+            simpa [hasFreeTy] using hHole
+          have hNotQ : native_reflist_contains
+              (native_reflist_insert refs q) s3 = false := by
+            have hqs : ¬(s3 = q) := by
+              intro hEq
+              rw [hEq] at hq
+              simp [native_streq] at hq
+            have hNot' : ¬(s3 ∈ refs) := of_decide_eq_false
+              (by simpa [native_reflist_contains] using hNot)
+            simp [native_reflist_contains, native_reflist_insert,
+              List.mem_cons, hqs, hNot']
+          have hHead : native_Teq (SmtType.Datatype v VN)
+                (SmtType.Datatype q W) = true →
+              native_Teq (SmtType.Datatype v VO)
+                (SmtType.Datatype q W) = true :=
+            fun hColl => noFatal_head_same hVN hStray hNotQ hHoleW hColl
+          have hRec := noFatalB_same_dt v X VO VN hVN hStray hvs3 W
+            (native_reflist_insert refs q) hNotQ hHoleW
+          simp only [noFatalBTy, native_ite, native_and, native_or, hq]
+          cases hCN : native_Teq (SmtType.Datatype v VN)
+              (SmtType.Datatype q W) with
+          | false => simp [native_not, native_and, hRec]
+          | true =>
+              rw [hHead hCN]
+              simp [native_not, native_and, hRec]
+  | SmtType.TypeRef r, _, _, _ => by simp [noFatalBTy]
+  | SmtType.None, _, _, _ => by simp [noFatalBTy]
+  | SmtType.Bool, _, _, _ => by simp [noFatalBTy]
+  | SmtType.Int, _, _, _ => by simp [noFatalBTy]
+  | SmtType.Real, _, _, _ => by simp [noFatalBTy]
+  | SmtType.RegLan, _, _, _ => by simp [noFatalBTy]
+  | SmtType.BitVec n, _, _, _ => by simp [noFatalBTy]
+  | SmtType.Map A B, _, _, _ => by simp [noFatalBTy]
+  | SmtType.Set A, _, _, _ => by simp [noFatalBTy]
+  | SmtType.Seq A, _, _, _ => by simp [noFatalBTy]
+  | SmtType.Char, _, _, _ => by simp [noFatalBTy]
+  | SmtType.USort u, _, _, _ => by simp [noFatalBTy]
+  | SmtType.FunType A B, _, _, _ => by simp [noFatalBTy]
+  | SmtType.DtcAppType A B, _, _, _ => by simp [noFatalBTy]
+
+private theorem noFatalB_same_dtc {s3 : native_String}
+    (v : native_String) (X VO VN : SmtDatatype)
+    (hVN : VN = __smtx_dt_lift s3 X VO)
+    (hStray : noStrayDt s3 X VO = true)
+    (hvs3 : native_streq v s3 = false) :
+    ∀ (c : SmtDatatypeCons) (refs : RefList),
+      native_reflist_contains refs s3 = false →
+      hasFreeDtc s3 refs c = false →
+      noFatalBDtc s3 v VO VN c c = true
+  | SmtDatatypeCons.unit, _, _, _ => by simp [noFatalBDtc]
+  | SmtDatatypeCons.cons T c, refs, hNot, hHole => by
+      have hParts : hasFreeTy s3 refs T = false ∧
+          hasFreeDtc s3 refs c = false := by
+        cases hA : hasFreeTy s3 refs T <;>
+          cases hB : hasFreeDtc s3 refs c <;>
+            cases T <;> simp_all [hasFreeDtc, hasFreeTy, native_or,
+              native_and, native_not, native_streq,
+              native_reflist_contains]
+      simp [noFatalBDtc, native_and,
+        noFatalB_same_ty v X VO VN hVN hStray hvs3 T refs hNot hParts.1,
+        noFatalB_same_dtc v X VO VN hVN hStray hvs3 c refs hNot
+          hParts.2]
+
+private theorem noFatalB_same_dt {s3 : native_String}
+    (v : native_String) (X VO VN : SmtDatatype)
+    (hVN : VN = __smtx_dt_lift s3 X VO)
+    (hStray : noStrayDt s3 X VO = true)
+    (hvs3 : native_streq v s3 = false) :
+    ∀ (d : SmtDatatype) (refs : RefList),
+      native_reflist_contains refs s3 = false →
+      hasFreeDt s3 refs d = false →
+      noFatalBDt s3 v VO VN d d = true
+  | SmtDatatype.null, _, _, _ => by simp [noFatalBDt]
+  | SmtDatatype.sum c d, refs, hNot, hHole => by
+      have hParts : hasFreeDtc s3 refs c = false ∧
+          hasFreeDt s3 refs d = false := by
+        cases hA : hasFreeDtc s3 refs c <;>
+          cases hB : hasFreeDt s3 refs d <;>
+            simp_all [hasFreeDt, native_or]
+      simp [noFatalBDt, native_and,
+        noFatalB_same_dtc v X VO VN hVN hStray hvs3 c refs hNot
+          hParts.1,
+        noFatalB_same_dt v X VO VN hVN hStray hvs3 d refs hNot
+          hParts.2]
+
+end
+
 /-! ### A term and its `s3`-lift, unconditionally
 
 The special role of `s3` in the pre-refill relation makes the pair of a
