@@ -1772,7 +1772,7 @@ private theorem bitvec_ofInt_natCast_toNat {w : Nat} (x : BitVec w) :
   rw [BitVec.ofInt_natCast, BitVec.ofNat_toNat]
   simp
 
-private theorem bitvec_toNat_canonical (w : Nat) (x : BitVec w) :
+theorem bitvec_toNat_canonical (w : Nat) (x : BitVec w) :
     native_zeq ((x.toNat : Int))
         (native_mod_total ((x.toNat : Int))
           (native_int_pow2 (native_nat_to_int w))) = true := by
@@ -1784,7 +1784,7 @@ private theorem bitvec_toNat_canonical (w : Nat) (x : BitVec w) :
     exact Int.emod_eq_of_lt (Int.natCast_nonneg _) (by exact_mod_cast x.isLt)
   simp [native_zeq, hMod]
 
-private theorem native_binary_not_mod_eq_toNat_of_canonical
+theorem native_binary_not_mod_eq_toNat_of_canonical
     (w : Nat) (n : native_Int) :
     native_zeq n
         (native_mod_total n (native_int_pow2 (native_nat_to_int w))) = true ->
@@ -2463,7 +2463,7 @@ private theorem bitvec_xor_eq_solve (w : Nat) (x y z : BitVec w) :
     rw [BitVec.xor_assoc]
     simp
 
-private theorem bitvec_ofInt_toNat_int_of_canonical
+theorem bitvec_ofInt_toNat_int_of_canonical
     (w : Nat) (n : native_Int) :
     native_zeq n
         (native_mod_total n (native_int_pow2 (native_nat_to_int w))) = true ->
