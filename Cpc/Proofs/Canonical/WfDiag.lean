@@ -7415,6 +7415,78 @@ private theorem noFatal_head_of_roundtrip {s3 : native_String}
       cases hTF
   simp [native_Teq, hv, hqq, hEq]
 
+/-! ### Lift identity and free-hole detection
+
+Two discriminators for the fold-alignment same-region case: a lift can
+only act at nodes named by the lifted name, so it is the identity on
+`s3`-node-free terms; and under `noStray` every `s3` node folds to a
+*free* `s3` reference (fold spots are never under an `s3` binder, by
+strict size), so a hole-free lift image certifies that no `s3` node
+existed and the lift was the identity. -/
+
+mutual
+
+private theorem lift_id_of_noDt_ty (s3 : native_String) (X : SmtDatatype) :
+    ∀ T : SmtType, noDtTy s3 T = true → __smtx_type_lift s3 X T = T
+  | SmtType.Datatype q Z, h => by
+      have hp : native_streq q s3 = false ∧ noDtDt s3 Z = true := by
+        simp only [noDtTy, native_and, native_not, Bool.and_eq_true] at h
+        constructor
+        · cases hq : native_streq q s3 <;> simp_all [native_not]
+        · exact h.2
+      have hFold : native_Teq (SmtType.Datatype s3 X)
+          (SmtType.Datatype q Z) = false := by
+        cases hT : native_Teq (SmtType.Datatype s3 X)
+            (SmtType.Datatype q Z) with
+        | false => rfl
+        | true =>
+            have hpp : s3 = q ∧ X = Z := by simpa [native_Teq] using hT
+            obtain ⟨rfl, rfl⟩ := hpp
+            simp [native_streq] at hp
+      rw [show __smtx_type_lift s3 X (SmtType.Datatype q Z) =
+          SmtType.Datatype q (__smtx_dt_lift s3 X Z) by
+        simp [__smtx_type_lift, native_ite, hFold]]
+      rw [lift_id_of_noDt_dt s3 X Z hp.2]
+  | SmtType.TypeRef r, _ => by simp [__smtx_type_lift]
+  | SmtType.None, _ => by simp [__smtx_type_lift]
+  | SmtType.Bool, _ => by simp [__smtx_type_lift]
+  | SmtType.Int, _ => by simp [__smtx_type_lift]
+  | SmtType.Real, _ => by simp [__smtx_type_lift]
+  | SmtType.RegLan, _ => by simp [__smtx_type_lift]
+  | SmtType.BitVec n, _ => by simp [__smtx_type_lift]
+  | SmtType.Map A B, _ => by simp [__smtx_type_lift]
+  | SmtType.Set A, _ => by simp [__smtx_type_lift]
+  | SmtType.Seq A, _ => by simp [__smtx_type_lift]
+  | SmtType.Char, _ => by simp [__smtx_type_lift]
+  | SmtType.USort u, _ => by simp [__smtx_type_lift]
+  | SmtType.FunType A B, _ => by simp [__smtx_type_lift]
+  | SmtType.DtcAppType A B, _ => by simp [__smtx_type_lift]
+
+private theorem lift_id_of_noDt_dtc (s3 : native_String) (X : SmtDatatype) :
+    ∀ c : SmtDatatypeCons, noDtDtc s3 c = true →
+      __smtx_dtc_lift s3 X c = c
+  | SmtDatatypeCons.unit, _ => by simp [__smtx_dtc_lift]
+  | SmtDatatypeCons.cons T c, h => by
+      have hp : noDtTy s3 T = true ∧ noDtDtc s3 c = true := by
+        simpa [noDtDtc, native_and, Bool.and_eq_true] using h
+      rw [show __smtx_dtc_lift s3 X (SmtDatatypeCons.cons T c) =
+          SmtDatatypeCons.cons (__smtx_type_lift s3 X T)
+            (__smtx_dtc_lift s3 X c) by simp [__smtx_dtc_lift]]
+      rw [lift_id_of_noDt_ty s3 X T hp.1, lift_id_of_noDt_dtc s3 X c hp.2]
+
+private theorem lift_id_of_noDt_dt (s3 : native_String) (X : SmtDatatype) :
+    ∀ d : SmtDatatype, noDtDt s3 d = true → __smtx_dt_lift s3 X d = d
+  | SmtDatatype.null, _ => by simp [__smtx_dt_lift]
+  | SmtDatatype.sum c d, h => by
+      have hp : noDtDtc s3 c = true ∧ noDtDt s3 d = true := by
+        simpa [noDtDt, native_and, Bool.and_eq_true] using h
+      rw [show __smtx_dt_lift s3 X (SmtDatatype.sum c d) =
+          SmtDatatype.sum (__smtx_dtc_lift s3 X c)
+            (__smtx_dt_lift s3 X d) by simp [__smtx_dt_lift]]
+      rw [lift_id_of_noDt_dtc s3 X c hp.1, lift_id_of_noDt_dt s3 X d hp.2]
+
+end
+
 /-! ### A term and its `s3`-lift, unconditionally
 
 The special role of `s3` in the pre-refill relation makes the pair of a
