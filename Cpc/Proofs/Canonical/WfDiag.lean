@@ -7487,6 +7487,245 @@ private theorem lift_id_of_noDt_dt (s3 : native_String) (X : SmtDatatype) :
 
 end
 
+mutual
+
+/-- Free-hole detection: under `noStray`, every `s3`-named node equals the
+recorded body exactly, so the lift folds it *entirely*, leaving a free
+`s3` reference at its field position — visible to `hasFree` because a
+fold spot is never under an `s3` binder (nested same-name nodes are
+size-impossible).  A hole-free lift image therefore certifies that the
+source had no `s3`-named nodes at all. -/
+private theorem noDt_of_holeFree_dtc (s3 : native_String) (X : SmtDatatype) :
+    ∀ (c : SmtDatatypeCons) (refs : RefList),
+      noStrayDtc s3 X c = true →
+      native_reflist_contains refs s3 = false →
+      hasFreeDtc s3 refs (__smtx_dtc_lift s3 X c) = false →
+      noDtDtc s3 c = true
+  | SmtDatatypeCons.unit, _, _, _, _ => by simp [noDtDtc]
+  | SmtDatatypeCons.cons T c, refs, hStray, hNot, hFree => by
+      have hp : noStrayTy s3 X T = true ∧ noStrayDtc s3 X c = true := by
+        simpa [noStrayDtc, native_and, Bool.and_eq_true] using hStray
+      rw [show __smtx_dtc_lift s3 X (SmtDatatypeCons.cons T c) =
+          SmtDatatypeCons.cons (__smtx_type_lift s3 X T)
+            (__smtx_dtc_lift s3 X c) by simp [__smtx_dtc_lift]] at hFree
+      cases T with
+      | Datatype q Z =>
+          by_cases hFold : native_Teq (SmtType.Datatype s3 X)
+              (SmtType.Datatype q Z) = true
+          · exfalso
+            rw [show __smtx_type_lift s3 X (SmtType.Datatype q Z) =
+                SmtType.TypeRef s3 by
+              simp [__smtx_type_lift, native_ite, hFold]] at hFree
+            simp [hasFreeDtc, native_or, native_and, native_not,
+              native_streq, hNot] at hFree
+          · have hq : native_streq q s3 = false := by
+              cases hqv : native_streq q s3 with
+              | false => rfl
+              | true =>
+                  have hqe : q = s3 := by simpa [native_streq] using hqv
+                  subst hqe
+                  have hT := hp.1
+                  simp only [noStrayTy, native_ite, if_neg hFold,
+                    native_and, native_not, Bool.and_eq_true] at hT
+                  simp [native_streq] at hT
+            rw [show __smtx_type_lift s3 X (SmtType.Datatype q Z) =
+                SmtType.Datatype q (__smtx_dt_lift s3 X Z) by
+              simp [__smtx_type_lift, native_ite, hFold]] at hFree
+            have hParts :
+                hasFreeDt s3 (native_reflist_insert refs q)
+                  (__smtx_dt_lift s3 X Z) = false ∧
+                hasFreeDtc s3 refs (__smtx_dtc_lift s3 X c) = false := by
+              cases hA : hasFreeDt s3 (native_reflist_insert refs q)
+                  (__smtx_dt_lift s3 X Z) <;>
+                cases hB : hasFreeDtc s3 refs (__smtx_dtc_lift s3 X c) <;>
+                  simp_all [hasFreeDtc, hasFreeTy, native_or]
+            have hZstray : noStrayDt s3 X Z = true := by
+              have hT := hp.1
+              simp only [noStrayTy, native_ite, if_neg hFold,
+                native_and, Bool.and_eq_true] at hT
+              exact hT.2
+            have hNotQ : native_reflist_contains
+                (native_reflist_insert refs q) s3 = false := by
+              have hqs : ¬(s3 = q) := by
+                intro hEq
+                rw [hEq] at hq
+                simp [native_streq] at hq
+              have hNot' : ¬(s3 ∈ refs) := of_decide_eq_false
+                (by simpa [native_reflist_contains] using hNot)
+              simp [native_reflist_contains, native_reflist_insert,
+                List.mem_cons, hqs, hNot']
+            have hBody := noDt_of_holeFree_dt s3 X Z
+              (native_reflist_insert refs q) hZstray hNotQ hParts.1
+            have hTail := noDt_of_holeFree_dtc s3 X c refs hp.2 hNot
+              hParts.2
+            simp [noDtDtc, noDtTy, native_and, native_not, hq, hBody,
+              hTail]
+      | TypeRef r =>
+          rw [show __smtx_type_lift s3 X (SmtType.TypeRef r) =
+              SmtType.TypeRef r by simp [__smtx_type_lift]] at hFree
+          have hTailFree :
+              hasFreeDtc s3 refs (__smtx_dtc_lift s3 X c) = false := by
+            cases hB : hasFreeDtc s3 refs (__smtx_dtc_lift s3 X c) <;>
+              simp_all [hasFreeDtc, native_or]
+          have hTail := noDt_of_holeFree_dtc s3 X c refs hp.2 hNot
+            hTailFree
+          simp [noDtDtc, noDtTy, native_and, hTail]
+      | None =>
+          rw [show __smtx_type_lift s3 X SmtType.None = SmtType.None by
+            simp [__smtx_type_lift]] at hFree
+          have hTailFree :
+              hasFreeDtc s3 refs (__smtx_dtc_lift s3 X c) = false := by
+            cases hB : hasFreeDtc s3 refs (__smtx_dtc_lift s3 X c) <;>
+              simp_all [hasFreeDtc, hasFreeTy, native_or]
+          have hTail := noDt_of_holeFree_dtc s3 X c refs hp.2 hNot
+            hTailFree
+          simp [noDtDtc, noDtTy, native_and, hTail]
+      | Bool =>
+          rw [show __smtx_type_lift s3 X SmtType.Bool = SmtType.Bool by
+            simp [__smtx_type_lift]] at hFree
+          have hTailFree :
+              hasFreeDtc s3 refs (__smtx_dtc_lift s3 X c) = false := by
+            cases hB : hasFreeDtc s3 refs (__smtx_dtc_lift s3 X c) <;>
+              simp_all [hasFreeDtc, hasFreeTy, native_or]
+          have hTail := noDt_of_holeFree_dtc s3 X c refs hp.2 hNot
+            hTailFree
+          simp [noDtDtc, noDtTy, native_and, hTail]
+      | Int =>
+          rw [show __smtx_type_lift s3 X SmtType.Int = SmtType.Int by
+            simp [__smtx_type_lift]] at hFree
+          have hTailFree :
+              hasFreeDtc s3 refs (__smtx_dtc_lift s3 X c) = false := by
+            cases hB : hasFreeDtc s3 refs (__smtx_dtc_lift s3 X c) <;>
+              simp_all [hasFreeDtc, hasFreeTy, native_or]
+          have hTail := noDt_of_holeFree_dtc s3 X c refs hp.2 hNot
+            hTailFree
+          simp [noDtDtc, noDtTy, native_and, hTail]
+      | Real =>
+          rw [show __smtx_type_lift s3 X SmtType.Real = SmtType.Real by
+            simp [__smtx_type_lift]] at hFree
+          have hTailFree :
+              hasFreeDtc s3 refs (__smtx_dtc_lift s3 X c) = false := by
+            cases hB : hasFreeDtc s3 refs (__smtx_dtc_lift s3 X c) <;>
+              simp_all [hasFreeDtc, hasFreeTy, native_or]
+          have hTail := noDt_of_holeFree_dtc s3 X c refs hp.2 hNot
+            hTailFree
+          simp [noDtDtc, noDtTy, native_and, hTail]
+      | RegLan =>
+          rw [show __smtx_type_lift s3 X SmtType.RegLan =
+              SmtType.RegLan by simp [__smtx_type_lift]] at hFree
+          have hTailFree :
+              hasFreeDtc s3 refs (__smtx_dtc_lift s3 X c) = false := by
+            cases hB : hasFreeDtc s3 refs (__smtx_dtc_lift s3 X c) <;>
+              simp_all [hasFreeDtc, hasFreeTy, native_or]
+          have hTail := noDt_of_holeFree_dtc s3 X c refs hp.2 hNot
+            hTailFree
+          simp [noDtDtc, noDtTy, native_and, hTail]
+      | BitVec n =>
+          rw [show __smtx_type_lift s3 X (SmtType.BitVec n) =
+              SmtType.BitVec n by simp [__smtx_type_lift]] at hFree
+          have hTailFree :
+              hasFreeDtc s3 refs (__smtx_dtc_lift s3 X c) = false := by
+            cases hB : hasFreeDtc s3 refs (__smtx_dtc_lift s3 X c) <;>
+              simp_all [hasFreeDtc, hasFreeTy, native_or]
+          have hTail := noDt_of_holeFree_dtc s3 X c refs hp.2 hNot
+            hTailFree
+          simp [noDtDtc, noDtTy, native_and, hTail]
+      | Map A B =>
+          rw [show __smtx_type_lift s3 X (SmtType.Map A B) =
+              SmtType.Map A B by simp [__smtx_type_lift]] at hFree
+          have hTailFree :
+              hasFreeDtc s3 refs (__smtx_dtc_lift s3 X c) = false := by
+            cases hB : hasFreeDtc s3 refs (__smtx_dtc_lift s3 X c) <;>
+              simp_all [hasFreeDtc, native_or]
+          have hTail := noDt_of_holeFree_dtc s3 X c refs hp.2 hNot
+            hTailFree
+          simp [noDtDtc, noDtTy, native_and, hTail]
+      | Set A =>
+          rw [show __smtx_type_lift s3 X (SmtType.Set A) =
+              SmtType.Set A by simp [__smtx_type_lift]] at hFree
+          have hTailFree :
+              hasFreeDtc s3 refs (__smtx_dtc_lift s3 X c) = false := by
+            cases hB : hasFreeDtc s3 refs (__smtx_dtc_lift s3 X c) <;>
+              simp_all [hasFreeDtc, native_or]
+          have hTail := noDt_of_holeFree_dtc s3 X c refs hp.2 hNot
+            hTailFree
+          simp [noDtDtc, noDtTy, native_and, hTail]
+      | Seq A =>
+          rw [show __smtx_type_lift s3 X (SmtType.Seq A) =
+              SmtType.Seq A by simp [__smtx_type_lift]] at hFree
+          have hTailFree :
+              hasFreeDtc s3 refs (__smtx_dtc_lift s3 X c) = false := by
+            cases hB : hasFreeDtc s3 refs (__smtx_dtc_lift s3 X c) <;>
+              simp_all [hasFreeDtc, native_or]
+          have hTail := noDt_of_holeFree_dtc s3 X c refs hp.2 hNot
+            hTailFree
+          simp [noDtDtc, noDtTy, native_and, hTail]
+      | Char =>
+          rw [show __smtx_type_lift s3 X SmtType.Char = SmtType.Char by
+            simp [__smtx_type_lift]] at hFree
+          have hTailFree :
+              hasFreeDtc s3 refs (__smtx_dtc_lift s3 X c) = false := by
+            cases hB : hasFreeDtc s3 refs (__smtx_dtc_lift s3 X c) <;>
+              simp_all [hasFreeDtc, hasFreeTy, native_or]
+          have hTail := noDt_of_holeFree_dtc s3 X c refs hp.2 hNot
+            hTailFree
+          simp [noDtDtc, noDtTy, native_and, hTail]
+      | USort u =>
+          rw [show __smtx_type_lift s3 X (SmtType.USort u) =
+              SmtType.USort u by simp [__smtx_type_lift]] at hFree
+          have hTailFree :
+              hasFreeDtc s3 refs (__smtx_dtc_lift s3 X c) = false := by
+            cases hB : hasFreeDtc s3 refs (__smtx_dtc_lift s3 X c) <;>
+              simp_all [hasFreeDtc, hasFreeTy, native_or]
+          have hTail := noDt_of_holeFree_dtc s3 X c refs hp.2 hNot
+            hTailFree
+          simp [noDtDtc, noDtTy, native_and, hTail]
+      | FunType A B =>
+          rw [show __smtx_type_lift s3 X (SmtType.FunType A B) =
+              SmtType.FunType A B by simp [__smtx_type_lift]] at hFree
+          have hTailFree :
+              hasFreeDtc s3 refs (__smtx_dtc_lift s3 X c) = false := by
+            cases hB : hasFreeDtc s3 refs (__smtx_dtc_lift s3 X c) <;>
+              simp_all [hasFreeDtc, hasFreeTy, native_or]
+          have hTail := noDt_of_holeFree_dtc s3 X c refs hp.2 hNot
+            hTailFree
+          simp [noDtDtc, noDtTy, native_and, hTail]
+      | DtcAppType A B =>
+          rw [show __smtx_type_lift s3 X (SmtType.DtcAppType A B) =
+              SmtType.DtcAppType A B by simp [__smtx_type_lift]] at hFree
+          have hTailFree :
+              hasFreeDtc s3 refs (__smtx_dtc_lift s3 X c) = false := by
+            cases hB : hasFreeDtc s3 refs (__smtx_dtc_lift s3 X c) <;>
+              simp_all [hasFreeDtc, hasFreeTy, native_or]
+          have hTail := noDt_of_holeFree_dtc s3 X c refs hp.2 hNot
+            hTailFree
+          simp [noDtDtc, noDtTy, native_and, hTail]
+
+private theorem noDt_of_holeFree_dt (s3 : native_String) (X : SmtDatatype) :
+    ∀ (d : SmtDatatype) (refs : RefList),
+      noStrayDt s3 X d = true →
+      native_reflist_contains refs s3 = false →
+      hasFreeDt s3 refs (__smtx_dt_lift s3 X d) = false →
+      noDtDt s3 d = true
+  | SmtDatatype.null, _, _, _, _ => by simp [noDtDt]
+  | SmtDatatype.sum c d, refs, hStray, hNot, hFree => by
+      have hp : noStrayDtc s3 X c = true ∧ noStrayDt s3 X d = true := by
+        simpa [noStrayDt, native_and, Bool.and_eq_true] using hStray
+      rw [show __smtx_dt_lift s3 X (SmtDatatype.sum c d) =
+          SmtDatatype.sum (__smtx_dtc_lift s3 X c)
+            (__smtx_dt_lift s3 X d) by simp [__smtx_dt_lift]] at hFree
+      have hParts :
+          hasFreeDtc s3 refs (__smtx_dtc_lift s3 X c) = false ∧
+            hasFreeDt s3 refs (__smtx_dt_lift s3 X d) = false := by
+        cases hA : hasFreeDtc s3 refs (__smtx_dtc_lift s3 X c) <;>
+          cases hB : hasFreeDt s3 refs (__smtx_dt_lift s3 X d) <;>
+            simp_all [hasFreeDt, native_or]
+      simp [noDtDt, native_and,
+        noDt_of_holeFree_dtc s3 X c refs hp.1 hNot hParts.1,
+        noDt_of_holeFree_dt s3 X d refs hp.2 hNot hParts.2]
+
+end
+
 /-! ### A term and its `s3`-lift, unconditionally
 
 The special role of `s3` in the pre-refill relation makes the pair of a
