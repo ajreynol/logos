@@ -17,6 +17,7 @@ namespace SubstitutePreservationSupport
 /-- Shared combined preservation proof for non-special atom heads whose SMT
 translation is a generic application. -/
 theorem substitute_simul_apply_atom_generic_preserves_type_and_translation_of_typeof_ne_stuck
+    {isRename : Bool}
     (F a xs ts bvs : Term)
     {xsVars bvsVars : List EoVarKey}
     (hXsEnv : EoVarEnvPerm xs xsVars)
@@ -42,25 +43,25 @@ theorem substitute_simul_apply_atom_generic_preserves_type_and_translation_of_ty
     (hTrans : RuleProofs.eo_has_smt_translation (Term.Apply F a))
     (hARec :
       RuleProofs.eo_has_smt_translation a ->
-      __eo_typeof (__substitute_simul_rec (Term.Boolean false) a xs ts bvs) ≠
+      __eo_typeof (__substitute_simul_rec (Term.Boolean isRename) a xs ts bvs) ≠
         Term.Stuck ->
-      __eo_typeof (__substitute_simul_rec (Term.Boolean false) a xs ts bvs) =
+      __eo_typeof (__substitute_simul_rec (Term.Boolean isRename) a xs ts bvs) =
         __eo_typeof a ∧
         RuleProofs.eo_has_smt_translation
-          (__substitute_simul_rec (Term.Boolean false) a xs ts bvs))
+          (__substitute_simul_rec (Term.Boolean isRename) a xs ts bvs))
     (hTy :
       __eo_typeof
-          (__substitute_simul_rec (Term.Boolean false)
+          (__substitute_simul_rec (Term.Boolean isRename)
             (Term.Apply F a) xs ts bvs) ≠
         Term.Stuck) :
     __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply F a) xs ts bvs) =
       __eo_typeof (Term.Apply F a) ∧
       RuleProofs.eo_has_smt_translation
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply F a) xs ts bvs) := by
-  let aSub := __substitute_simul_rec (Term.Boolean false) a xs ts bvs
+  let aSub := __substitute_simul_rec (Term.Boolean isRename) a xs ts bvs
   have hGeneric :
       __smtx_typeof
           (SmtTerm.Apply (__eo_to_smt F) (__eo_to_smt a)) =
@@ -75,13 +76,13 @@ theorem substitute_simul_apply_atom_generic_preserves_type_and_translation_of_ty
   have hHeadTrans : RuleProofs.eo_has_smt_translation F := hArgs.1
   have hATrans : RuleProofs.eo_has_smt_translation a := hArgs.2
   have hHeadNe :
-      __substitute_simul_rec (Term.Boolean false) F xs ts bvs ≠
+      __substitute_simul_rec (Term.Boolean isRename) F xs ts bvs ≠
         Term.Stuck :=
     SubstituteSupport.substitute_simul_rec_apply_head_ne_stuck_of_typeof_ne_stuck
       F a xs ts bvs hXsEnv hBvsEnv hTs hNotBinder hTy
   have hHeadSubTrans :
       RuleProofs.eo_has_smt_translation
-        (__substitute_simul_rec (Term.Boolean false) F xs ts bvs) :=
+        (__substitute_simul_rec (Term.Boolean isRename) F xs ts bvs) :=
     SubstituteSupport.substitute_simul_rec_atom_has_smt_translation_of_ne_stuck
       F xs ts bvs hXsEnv hBvsEnv hTs hNotApply hNotVar hNotStuck
       hHeadTrans hHeadNe

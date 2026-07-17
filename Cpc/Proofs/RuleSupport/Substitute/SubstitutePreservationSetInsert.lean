@@ -14,6 +14,7 @@ set_option maxRecDepth 2000
 namespace SubstitutePreservationSupport
 
 theorem substitute_simul_set_insert_preserves_type_and_translation_of_typeof_ne_stuck
+    {isRename : Bool}
     (typedList base xs ts bvs : Term)
     {xsVars bvsVars : List EoVarKey}
     (hXsEnv : EoVarEnvPerm xs xsVars)
@@ -29,7 +30,7 @@ theorem substitute_simul_set_insert_preserves_type_and_translation_of_typeof_ne_
           base))
     (hTy :
       __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) typedList)
             base) xs ts bvs) ≠
         Term.Stuck)
@@ -38,40 +39,40 @@ theorem substitute_simul_set_insert_preserves_type_and_translation_of_typeof_ne_
         sizeOf t < sizeOf typedList ->
         RuleProofs.eo_has_smt_translation t ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) t xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) t xs ts bvs) ≠
           Term.Stuck ->
           __smtx_typeof
               (__eo_to_smt
-                (__substitute_simul_rec (Term.Boolean false) t xs ts bvs)) =
+                (__substitute_simul_rec (Term.Boolean isRename) t xs ts bvs)) =
             __smtx_typeof (__eo_to_smt t))
     (hRecBase :
       RuleProofs.eo_has_smt_translation base ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) base xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) base xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) base xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) base xs ts bvs) =
           __eo_typeof base ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) base xs ts bvs)) :
+            (__substitute_simul_rec (Term.Boolean isRename) base xs ts bvs)) :
     __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) typedList)
             base) xs ts bvs) =
       __eo_typeof
         (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) typedList)
           base) ∧
       RuleProofs.eo_has_smt_translation
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) typedList)
             base) xs ts bvs) := by
   let typedListSub :=
-    __substitute_simul_rec (Term.Boolean false) typedList xs ts bvs
+    __substitute_simul_rec (Term.Boolean isRename) typedList xs ts bvs
   let baseSub :=
-    __substitute_simul_rec (Term.Boolean false) base xs ts bvs
+    __substitute_simul_rec (Term.Boolean isRename) base xs ts bvs
   have hType :
       __eo_typeof
-          (__substitute_simul_rec (Term.Boolean false)
+          (__substitute_simul_rec (Term.Boolean isRename)
             (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) typedList)
               base) xs ts bvs) =
         __eo_typeof
@@ -82,28 +83,28 @@ theorem substitute_simul_set_insert_preserves_type_and_translation_of_typeof_ne_
       (fun hBaseTrans hBaseTy => (hRecBase hBaseTrans hBaseTy).1)
       hTy
   refine ⟨hType, ?_⟩
-  have hisr : (Term.Boolean false : Term) ≠ Term.Stuck := by decide
+  have hisr : (Term.Boolean isRename : Term) ≠ Term.Stuck := by cases isRename <;> decide
   have hxs : xs ≠ Term.Stuck := hXsEnv.ne_stuck
   have hts : ts ≠ Term.Stuck := eoListAllHaveSmtTranslation_ne_stuck hTs
   have hbvs : bvs ≠ Term.Stuck := hBvsEnv.ne_stuck
   have hHeadSub :
-      __substitute_simul_rec (Term.Boolean false)
+      __substitute_simul_rec (Term.Boolean isRename)
           (Term.UOp UserOp.set_insert) xs ts bvs =
         Term.UOp UserOp.set_insert :=
     SubstituteSupport.substitute_simul_rec_uop_eq_self
       UserOp.set_insert xs ts bvs hXsEnv hBvsEnv hTs
   have hInnerSub :
-      __substitute_simul_rec (Term.Boolean false)
+      __substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.UOp UserOp.set_insert) typedList) xs ts bvs =
         __eo_mk_apply (Term.UOp UserOp.set_insert) typedListSub := by
     have hApplyEq :=
       SubstituteSupport.substitute_simul_rec_apply
-        (Term.Boolean false) (Term.UOp UserOp.set_insert) typedList
+        (Term.Boolean isRename) (Term.UOp UserOp.set_insert) typedList
         xs ts bvs hisr hxs hts hbvs
         (by intro q v vs hEq; cases hEq)
     simpa [typedListSub, hHeadSub] using hApplyEq
   have hSubstEq :
-      __substitute_simul_rec (Term.Boolean false)
+      __substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) typedList)
             base) xs ts bvs =
         __eo_mk_apply
@@ -111,7 +112,7 @@ theorem substitute_simul_set_insert_preserves_type_and_translation_of_typeof_ne_
           baseSub := by
     have hApplyEq :=
       SubstituteSupport.substitute_simul_rec_apply
-        (Term.Boolean false)
+        (Term.Boolean isRename)
         (Term.Apply (Term.UOp UserOp.set_insert) typedList)
         base xs ts bvs hisr hxs hts hbvs hNotBinder
     simpa [baseSub, hInnerSub] using hApplyEq
