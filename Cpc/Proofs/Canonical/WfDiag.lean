@@ -7167,6 +7167,224 @@ private theorem rotShPre_init_dt {s3 : native_String}
 
 end
 
+/-! ### Erasable equality and the two-fills lemma
+
+`eqF` is equality up to `s3`-content: `s3`-named pairs are equal outright
+(interiors ignored), and an `s3` reference matches an `s3` node (fold
+boundaries are erasable).  Substituting two different `s3` payloads into
+one common term yields `eqF`-equal results — the *two-fills* lemma — which
+is the pigeonhole behind fold alignment: a cross-context fold collision
+forces, via the lift/substitute roundtrip, exactly such a two-fills pair,
+so a threaded separation premise (`eqF`-distinguishability of distinct
+occurrence/target pairs) rules the collision out. -/
+
+mutual
+
+private def eqFTy (s3 : native_String) : SmtType → SmtType → native_Bool
+  | SmtType.Datatype q ZA, SmtType.Datatype q' ZB =>
+      native_and (native_streq q q')
+        (native_or (native_streq q s3) (eqFDt s3 ZA ZB))
+  | SmtType.TypeRef r, SmtType.Datatype q _ =>
+      native_and (native_streq r s3) (native_streq q s3)
+  | SmtType.Datatype q _, SmtType.TypeRef r =>
+      native_and (native_streq r s3) (native_streq q s3)
+  | TA, TB => native_Teq TA TB
+
+private def eqFDtc (s3 : native_String) :
+    SmtDatatypeCons → SmtDatatypeCons → native_Bool
+  | SmtDatatypeCons.cons TA cA, SmtDatatypeCons.cons TB cB =>
+      native_and (eqFTy s3 TA TB) (eqFDtc s3 cA cB)
+  | SmtDatatypeCons.unit, SmtDatatypeCons.unit => true
+  | _, _ => false
+
+private def eqFDt (s3 : native_String) :
+    SmtDatatype → SmtDatatype → native_Bool
+  | SmtDatatype.sum cA dA, SmtDatatype.sum cB dB =>
+      native_and (eqFDtc s3 cA cB) (eqFDt s3 dA dB)
+  | SmtDatatype.null, SmtDatatype.null => true
+  | _, _ => false
+
+end
+
+mutual
+
+private theorem eqF_subst_ty (s3 : native_String) :
+    ∀ (T : SmtType) (A B : SmtDatatype),
+      eqFTy s3 (__smtx_type_substitute s3 A T)
+        (__smtx_type_substitute s3 B T) = true
+  | SmtType.TypeRef r, A, B => by
+      cases hr : native_streq s3 r with
+      | true =>
+          rw [show __smtx_type_substitute s3 A (SmtType.TypeRef r) =
+              SmtType.Datatype s3 A by
+            simp [__smtx_type_substitute, native_ite, hr]]
+          rw [show __smtx_type_substitute s3 B (SmtType.TypeRef r) =
+              SmtType.Datatype s3 B by
+            simp [__smtx_type_substitute, native_ite, hr]]
+          simp [eqFTy, native_and, native_or, native_streq]
+      | false =>
+          rw [show __smtx_type_substitute s3 A (SmtType.TypeRef r) =
+              SmtType.TypeRef r by
+            simp [__smtx_type_substitute, native_ite, hr]]
+          rw [show __smtx_type_substitute s3 B (SmtType.TypeRef r) =
+              SmtType.TypeRef r by
+            simp [__smtx_type_substitute, native_ite, hr]]
+          simp [eqFTy, native_Teq]
+  | SmtType.Datatype q Z, A, B => by
+      cases hq : native_streq s3 q with
+      | true =>
+          rw [show __smtx_type_substitute s3 A (SmtType.Datatype q Z) =
+              SmtType.Datatype q Z by
+            simp [__smtx_type_substitute, native_ite, hq]]
+          rw [show __smtx_type_substitute s3 B (SmtType.Datatype q Z) =
+              SmtType.Datatype q Z by
+            simp [__smtx_type_substitute, native_ite, hq]]
+          have hq' : native_streq q s3 = true := by
+            have hqe : s3 = q := by simpa [native_streq] using hq
+            simp [native_streq, hqe]
+          simp only [eqFTy]
+          rw [show native_streq q q = true by simp [native_streq]]
+          rw [hq']
+          simp [native_and, native_or]
+      | false =>
+          rw [show __smtx_type_substitute s3 A (SmtType.Datatype q Z) =
+              SmtType.Datatype q
+                (__smtx_dt_substitute s3 (__smtx_dt_lift q Z A) Z) by
+            simp [__smtx_type_substitute, native_ite, hq]]
+          rw [show __smtx_type_substitute s3 B (SmtType.Datatype q Z) =
+              SmtType.Datatype q
+                (__smtx_dt_substitute s3 (__smtx_dt_lift q Z B) Z) by
+            simp [__smtx_type_substitute, native_ite, hq]]
+          simp only [eqFTy, native_and, native_or]
+          rw [show native_streq q q = true by simp [native_streq]]
+          rw [eqF_subst_dt s3 Z (__smtx_dt_lift q Z A)
+            (__smtx_dt_lift q Z B)]
+          simp
+  | SmtType.None, A, B => by
+      rw [show __smtx_type_substitute s3 A SmtType.None = SmtType.None by
+        simp [__smtx_type_substitute]]
+      rw [show __smtx_type_substitute s3 B SmtType.None = SmtType.None by
+        simp [__smtx_type_substitute]]
+      simp [eqFTy, native_Teq]
+  | SmtType.Bool, A, B => by
+      rw [show __smtx_type_substitute s3 A SmtType.Bool = SmtType.Bool by
+        simp [__smtx_type_substitute]]
+      rw [show __smtx_type_substitute s3 B SmtType.Bool = SmtType.Bool by
+        simp [__smtx_type_substitute]]
+      simp [eqFTy, native_Teq]
+  | SmtType.Int, A, B => by
+      rw [show __smtx_type_substitute s3 A SmtType.Int = SmtType.Int by
+        simp [__smtx_type_substitute]]
+      rw [show __smtx_type_substitute s3 B SmtType.Int = SmtType.Int by
+        simp [__smtx_type_substitute]]
+      simp [eqFTy, native_Teq]
+  | SmtType.Real, A, B => by
+      rw [show __smtx_type_substitute s3 A SmtType.Real = SmtType.Real by
+        simp [__smtx_type_substitute]]
+      rw [show __smtx_type_substitute s3 B SmtType.Real = SmtType.Real by
+        simp [__smtx_type_substitute]]
+      simp [eqFTy, native_Teq]
+  | SmtType.RegLan, A, B => by
+      rw [show __smtx_type_substitute s3 A SmtType.RegLan =
+          SmtType.RegLan by simp [__smtx_type_substitute]]
+      rw [show __smtx_type_substitute s3 B SmtType.RegLan =
+          SmtType.RegLan by simp [__smtx_type_substitute]]
+      simp [eqFTy, native_Teq]
+  | SmtType.BitVec n, A, B => by
+      rw [show __smtx_type_substitute s3 A (SmtType.BitVec n) =
+          SmtType.BitVec n by simp [__smtx_type_substitute]]
+      rw [show __smtx_type_substitute s3 B (SmtType.BitVec n) =
+          SmtType.BitVec n by simp [__smtx_type_substitute]]
+      simp [eqFTy, native_Teq]
+  | SmtType.Map A' B', A, B => by
+      rw [show __smtx_type_substitute s3 A (SmtType.Map A' B') =
+          SmtType.Map A' B' by simp [__smtx_type_substitute]]
+      rw [show __smtx_type_substitute s3 B (SmtType.Map A' B') =
+          SmtType.Map A' B' by simp [__smtx_type_substitute]]
+      simp [eqFTy, native_Teq]
+  | SmtType.Set A', A, B => by
+      rw [show __smtx_type_substitute s3 A (SmtType.Set A') =
+          SmtType.Set A' by simp [__smtx_type_substitute]]
+      rw [show __smtx_type_substitute s3 B (SmtType.Set A') =
+          SmtType.Set A' by simp [__smtx_type_substitute]]
+      simp [eqFTy, native_Teq]
+  | SmtType.Seq A', A, B => by
+      rw [show __smtx_type_substitute s3 A (SmtType.Seq A') =
+          SmtType.Seq A' by simp [__smtx_type_substitute]]
+      rw [show __smtx_type_substitute s3 B (SmtType.Seq A') =
+          SmtType.Seq A' by simp [__smtx_type_substitute]]
+      simp [eqFTy, native_Teq]
+  | SmtType.Char, A, B => by
+      rw [show __smtx_type_substitute s3 A SmtType.Char = SmtType.Char by
+        simp [__smtx_type_substitute]]
+      rw [show __smtx_type_substitute s3 B SmtType.Char = SmtType.Char by
+        simp [__smtx_type_substitute]]
+      simp [eqFTy, native_Teq]
+  | SmtType.USort u, A, B => by
+      rw [show __smtx_type_substitute s3 A (SmtType.USort u) =
+          SmtType.USort u by simp [__smtx_type_substitute]]
+      rw [show __smtx_type_substitute s3 B (SmtType.USort u) =
+          SmtType.USort u by simp [__smtx_type_substitute]]
+      simp [eqFTy, native_Teq]
+  | SmtType.FunType A' B', A, B => by
+      rw [show __smtx_type_substitute s3 A (SmtType.FunType A' B') =
+          SmtType.FunType A' B' by simp [__smtx_type_substitute]]
+      rw [show __smtx_type_substitute s3 B (SmtType.FunType A' B') =
+          SmtType.FunType A' B' by simp [__smtx_type_substitute]]
+      simp [eqFTy, native_Teq]
+  | SmtType.DtcAppType A' B', A, B => by
+      rw [show __smtx_type_substitute s3 A (SmtType.DtcAppType A' B') =
+          SmtType.DtcAppType A' B' by simp [__smtx_type_substitute]]
+      rw [show __smtx_type_substitute s3 B (SmtType.DtcAppType A' B') =
+          SmtType.DtcAppType A' B' by simp [__smtx_type_substitute]]
+      simp [eqFTy, native_Teq]
+
+private theorem eqF_subst_dtc (s3 : native_String) :
+    ∀ (c : SmtDatatypeCons) (A B : SmtDatatype),
+      eqFDtc s3 (__smtx_dtc_substitute s3 A c)
+        (__smtx_dtc_substitute s3 B c) = true
+  | SmtDatatypeCons.unit, A, B => by
+      rw [show __smtx_dtc_substitute s3 A SmtDatatypeCons.unit =
+          SmtDatatypeCons.unit by simp [__smtx_dtc_substitute]]
+      rw [show __smtx_dtc_substitute s3 B SmtDatatypeCons.unit =
+          SmtDatatypeCons.unit by simp [__smtx_dtc_substitute]]
+      simp [eqFDtc]
+  | SmtDatatypeCons.cons T c, A, B => by
+      rw [show __smtx_dtc_substitute s3 A (SmtDatatypeCons.cons T c) =
+          SmtDatatypeCons.cons (__smtx_type_substitute s3 A T)
+            (__smtx_dtc_substitute s3 A c) by
+        simp [__smtx_dtc_substitute]]
+      rw [show __smtx_dtc_substitute s3 B (SmtDatatypeCons.cons T c) =
+          SmtDatatypeCons.cons (__smtx_type_substitute s3 B T)
+            (__smtx_dtc_substitute s3 B c) by
+        simp [__smtx_dtc_substitute]]
+      simp [eqFDtc, native_and, eqF_subst_ty s3 T A B,
+        eqF_subst_dtc s3 c A B]
+
+private theorem eqF_subst_dt (s3 : native_String) :
+    ∀ (d : SmtDatatype) (A B : SmtDatatype),
+      eqFDt s3 (__smtx_dt_substitute s3 A d)
+        (__smtx_dt_substitute s3 B d) = true
+  | SmtDatatype.null, A, B => by
+      rw [show __smtx_dt_substitute s3 A SmtDatatype.null =
+          SmtDatatype.null by simp [__smtx_dt_substitute]]
+      rw [show __smtx_dt_substitute s3 B SmtDatatype.null =
+          SmtDatatype.null by simp [__smtx_dt_substitute]]
+      simp [eqFDt]
+  | SmtDatatype.sum c d, A, B => by
+      rw [show __smtx_dt_substitute s3 A (SmtDatatype.sum c d) =
+          SmtDatatype.sum (__smtx_dtc_substitute s3 A c)
+            (__smtx_dt_substitute s3 A d) by
+        simp [__smtx_dt_substitute]]
+      rw [show __smtx_dt_substitute s3 B (SmtDatatype.sum c d) =
+          SmtDatatype.sum (__smtx_dtc_substitute s3 B c)
+            (__smtx_dt_substitute s3 B d) by
+        simp [__smtx_dt_substitute]]
+      simp [eqFDt, native_and, eqF_subst_dtc s3 c A B,
+        eqF_subst_dt s3 d A B]
+
+end
+
 /-! ### A term and its `s3`-lift, unconditionally
 
 The special role of `s3` in the pre-refill relation makes the pair of a
