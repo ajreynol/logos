@@ -914,6 +914,13 @@ def eoApplyHead : Term -> Term
   | Term.Apply f _ => eoApplyHead f
   | t => t
 
+/-- Constructor heads emitted by `__dt_get_constructors`. -/
+inductive EoCtorHead : Term -> Prop where
+  | datatype (s : native_String) (d : Datatype) (i : native_Nat) :
+      EoCtorHead (Term.DtCons s d i)
+  | tuple : EoCtorHead (Term.UOp UserOp.tuple)
+  | tupleUnit : EoCtorHead (Term.UOp UserOp.tuple_unit)
+
 /-! ## Forward direction: per-conjunct induction -/
 
 /-- A Bool-typed exists-list translation forces its head binder to be a
@@ -977,7 +984,7 @@ theorem conj_forward_aux
     (hFTrans : eoHasSmtTranslation F) :
     ∀ {c ysRem g : Term},
       ConjRel (Term.Var (Term.String sx) xT) F c ysRem g ->
-      (∃ s d i, eoApplyHead c = Term.DtCons s d i) ->
+      EoCtorHead (eoApplyHead c) ->
       ∀ M₀ : SmtModel, model_total_typed M₀ ->
       __smtx_typeof (gEnc g) = SmtType.Bool ->
       (∀ N, ForallInstantiationModel M₀ ysRem N ->
@@ -1191,9 +1198,10 @@ theorem smtx_typeof_not_bool_or_none (X : SmtTerm) :
 /-- EO list of datatype-constructor terms. -/
 inductive EoCtorList : Term -> Prop where
   | nil : EoCtorList Term.__eo_List_nil
-  | cons {s : native_String} {d : Datatype} {i : native_Nat} {rest : Term} :
+  | cons {c rest : Term} :
+      EoCtorHead c ->
       EoCtorList rest ->
-      EoCtorList (eoCons (Term.DtCons s d i) rest)
+      EoCtorList (eoCons c rest)
 
 theorem eo_mk_apply_cons_ne_stuck {t y : Term} (hy : y ≠ Term.Stuck) :
     __eo_mk_apply (Term.Apply Term.__eo_List_cons t) y = eoCons t y := by
@@ -1209,7 +1217,7 @@ theorem eoCtorList_datatype_constructors_rec (s : native_String) (d : Datatype) 
           (__eo_datatype_constructors_rec s d d2 (native_nat_succ i)) from rfl]
       rw [eo_mk_apply_cons_ne_stuck
         (eo_datatype_constructors_rec_ne_stuck s d d2 (native_nat_succ i))]
-      exact EoCtorList.cons
+      exact EoCtorList.cons (EoCtorHead.datatype s d i)
         (eoCtorList_datatype_constructors_rec s d d2 (native_nat_succ i))
 
 /-- Bool-typed `and` inversion. -/
@@ -1289,9 +1297,9 @@ theorem split_forward_chain
   induction srel with
   | @single c g hConj =>
       intro hCs hGTy
-      have hHead : ∃ s d i, eoApplyHead c = Term.DtCons s d i := by
+      have hHead : EoCtorHead (eoApplyHead c) := by
         cases hCs with
-        | cons _ => exact ⟨_, _, _, rfl⟩
+        | cons hHead _ => simpa [eoApplyHead] using hHead
       have hEnc : gEnc g = __eo_to_smt g := gEnc_eq_eo_to_smt_of_bool hGTy
       have := conj_forward_aux sx xT F hFTrans hConj hHead M hM
         (by rw [hEnc]; exact hGTy) hH
@@ -1303,12 +1311,12 @@ theorem split_forward_chain
       rfl
   | @step c cs' g G' hConj hRest ih =>
       intro hCs hGTy
-      have hHead : ∃ s d i, eoApplyHead c = Term.DtCons s d i := by
+      have hHead : EoCtorHead (eoApplyHead c) := by
         cases hCs with
-        | cons _ => exact ⟨_, _, _, rfl⟩
+        | cons hHead _ => simpa [eoApplyHead] using hHead
       have hCs' : EoCtorList cs' := by
         cases hCs with
-        | cons hTail => exact hTail
+        | cons _ hTail => exact hTail
       rw [show __eo_to_smt (mkAnd g G') =
         SmtTerm.and (__eo_to_smt g) (__eo_to_smt G') from rfl] at hGTy ⊢
       obtain ⟨hgTy, hG'Ty⟩ := smtx_typeof_and_bool_inv hGTy
