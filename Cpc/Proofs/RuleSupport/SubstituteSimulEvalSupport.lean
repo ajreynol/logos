@@ -5193,8 +5193,7 @@ theorem eo_to_smt_apply_apply_generic_of_head_has_smt_translation
         apply hG
         change __smtx_typeof (SmtTerm.Apply SmtTerm.None (__eo_to_smt a)) =
           SmtType.None
-        simp [__smtx_typeof, __smtx_typeof_apply,
-          TranslationProofs.smtx_typeof_none]
+        simp [__smtx_typeof, __smtx_typeof_apply]
 
 theorem eo_to_smt_apply_apply_apply_generic_of_head_has_smt_translation
     (g x y z : Term)
@@ -7609,7 +7608,7 @@ theorem substFalse_eval_gen_lt
                         (by simp; omega)
                         hFullBvsEnv hBodyTrans hBodySubTrans
                         hM' hN' hRel'
-                    simpa [bodySub, __smtx_model_eval, hBodyEq])
+                    simp [bodySub, __smtx_model_eval, hBodyEq])
               change
                 __smtx_model_eval M
                     (SmtTerm.not
@@ -7619,7 +7618,7 @@ theorem substFalse_eval_gen_lt
                     (SmtTerm.not
                       (__eo_to_smt_exists binder
                         (SmtTerm.not (__eo_to_smt a))))
-              simpa [__smtx_model_eval, hExistsEq]
+              simp [__smtx_model_eval, hExistsEq]
             · subst q
               change
                 __smtx_model_eval M
@@ -10330,8 +10329,7 @@ theorem substFalse_eval_gen_lt
                                                                                                                       (__eo_to_smt x1))
                                                                                                                     (__eo_to_smt a)) =
                                                                                                                 SmtType.None
-                                                                                                            simp [__smtx_typeof, __smtx_typeof_apply,
-                                                                                                              TranslationProofs.smtx_typeof_none])
+                                                                                                            simp [__smtx_typeof, __smtx_typeof_apply])
                                                                                                       | UOp1 op idx =>
                                                                                                           exact
                                                                                                             substFalse_eval_ternary_uop1_head_generic_apply
@@ -10501,8 +10499,7 @@ theorem substFalse_eval_gen_lt
                                                                                                                 (SmtTerm.Apply SmtTerm.None (__eo_to_smt x1))
                                                                                                                 (__eo_to_smt a)) =
                                                                                                             SmtType.None
-                                                                                                        simp [__smtx_typeof, __smtx_typeof_apply,
-                                                                                                          TranslationProofs.smtx_typeof_none])
+                                                                                                        simp [__smtx_typeof, __smtx_typeof_apply])
                                                                                                   | _ =>
                                                                                                       exact substFalse_eval_binary_atom_head_generic_apply
                                                                                                         _ x1 a xs ss bvs
@@ -10610,8 +10607,7 @@ theorem substFalse_eval_gen_lt
                                                                                                           (SmtTerm.Apply SmtTerm.None
                                                                                                             (__eo_to_smt a)) =
                                                                                                         SmtType.None
-                                                                                                    simp [__smtx_typeof, __smtx_typeof_apply,
-                                                                                                      TranslationProofs.smtx_typeof_none])
+                                                                                                    simp [__smtx_typeof, __smtx_typeof_apply])
                                                                                               | _ =>
                                                                                                   exact substFalse_eval_unary_atom_head_apply
                                                                                                     _ a xs ss bvs
