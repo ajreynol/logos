@@ -7167,6 +7167,126 @@ private theorem rotShPre_init_dt {s3 : native_String}
 
 end
 
+/-! ### A term and its `s3`-lift, unconditionally
+
+The special role of `s3` in the pre-refill relation makes the pair of a
+term with *any* `s3`-lift of it derivable outright: a folded `s3` node is
+a `preRot` hole, an unfolded one leaves both sides `s3`-named (`rotAny`
+asks nothing of the bodies), and every other position is preserved.  In
+particular the evolving descent targets need no tracking at all. -/
+
+mutual
+
+private theorem rotShPre_lift_right_ty {s3 : native_String}
+    {dead : native_String → native_Bool} (X : SmtDatatype) :
+    ∀ T : SmtType, RotShPreTy s3 dead T (__smtx_type_lift s3 X T)
+  | SmtType.Datatype q Z => by
+      by_cases hFold : native_Teq (SmtType.Datatype s3 X)
+          (SmtType.Datatype q Z) = true
+      · have hp : s3 = q ∧ X = Z := by simpa [native_Teq] using hFold
+        obtain ⟨rfl, rfl⟩ := hp
+        rw [show __smtx_type_lift s3 X (SmtType.Datatype s3 X) =
+            SmtType.TypeRef s3 by
+          simp [__smtx_type_lift, native_ite, native_Teq]]
+        exact RotShPreTy.preRot
+      · rw [show __smtx_type_lift s3 X (SmtType.Datatype q Z) =
+            SmtType.Datatype q (__smtx_dt_lift s3 X Z) by
+          simp [__smtx_type_lift, native_ite, hFold]]
+        by_cases hq : native_streq q s3 = true
+        · have hq3 : q = s3 := by simpa [native_streq] using hq
+          subst q
+          exact RotShPreTy.rotAny
+        · have hqf : native_streq q s3 = false := by
+            cases hqv : native_streq q s3 <;> simp_all
+          exact RotShPreTy.dt hqf (rotShPre_lift_right_dt X Z)
+  | SmtType.TypeRef r => by
+      rw [show __smtx_type_lift s3 X (SmtType.TypeRef r) =
+          SmtType.TypeRef r by simp [__smtx_type_lift]]
+      exact RotShPreTy.same _
+  | SmtType.None => by
+      rw [show __smtx_type_lift s3 X SmtType.None = SmtType.None by
+        simp [__smtx_type_lift]]
+      exact RotShPreTy.same _
+  | SmtType.Bool => by
+      rw [show __smtx_type_lift s3 X SmtType.Bool = SmtType.Bool by
+        simp [__smtx_type_lift]]
+      exact RotShPreTy.same _
+  | SmtType.Int => by
+      rw [show __smtx_type_lift s3 X SmtType.Int = SmtType.Int by
+        simp [__smtx_type_lift]]
+      exact RotShPreTy.same _
+  | SmtType.Real => by
+      rw [show __smtx_type_lift s3 X SmtType.Real = SmtType.Real by
+        simp [__smtx_type_lift]]
+      exact RotShPreTy.same _
+  | SmtType.RegLan => by
+      rw [show __smtx_type_lift s3 X SmtType.RegLan = SmtType.RegLan by
+        simp [__smtx_type_lift]]
+      exact RotShPreTy.same _
+  | SmtType.BitVec n => by
+      rw [show __smtx_type_lift s3 X (SmtType.BitVec n) =
+          SmtType.BitVec n by simp [__smtx_type_lift]]
+      exact RotShPreTy.same _
+  | SmtType.Map A B => by
+      rw [show __smtx_type_lift s3 X (SmtType.Map A B) =
+          SmtType.Map A B by simp [__smtx_type_lift]]
+      exact RotShPreTy.same _
+  | SmtType.Set A => by
+      rw [show __smtx_type_lift s3 X (SmtType.Set A) = SmtType.Set A by
+        simp [__smtx_type_lift]]
+      exact RotShPreTy.same _
+  | SmtType.Seq A => by
+      rw [show __smtx_type_lift s3 X (SmtType.Seq A) = SmtType.Seq A by
+        simp [__smtx_type_lift]]
+      exact RotShPreTy.same _
+  | SmtType.Char => by
+      rw [show __smtx_type_lift s3 X SmtType.Char = SmtType.Char by
+        simp [__smtx_type_lift]]
+      exact RotShPreTy.same _
+  | SmtType.USort u => by
+      rw [show __smtx_type_lift s3 X (SmtType.USort u) =
+          SmtType.USort u by simp [__smtx_type_lift]]
+      exact RotShPreTy.same _
+  | SmtType.FunType A B => by
+      rw [show __smtx_type_lift s3 X (SmtType.FunType A B) =
+          SmtType.FunType A B by simp [__smtx_type_lift]]
+      exact RotShPreTy.same _
+  | SmtType.DtcAppType A B => by
+      rw [show __smtx_type_lift s3 X (SmtType.DtcAppType A B) =
+          SmtType.DtcAppType A B by simp [__smtx_type_lift]]
+      exact RotShPreTy.same _
+
+private theorem rotShPre_lift_right_dtc {s3 : native_String}
+    {dead : native_String → native_Bool} (X : SmtDatatype) :
+    ∀ c : SmtDatatypeCons,
+      RotShPreDtc s3 dead c (__smtx_dtc_lift s3 X c)
+  | SmtDatatypeCons.unit => by
+      rw [show __smtx_dtc_lift s3 X SmtDatatypeCons.unit =
+          SmtDatatypeCons.unit by simp [__smtx_dtc_lift]]
+      exact RotShPreDtc.unit
+  | SmtDatatypeCons.cons T c => by
+      rw [show __smtx_dtc_lift s3 X (SmtDatatypeCons.cons T c) =
+          SmtDatatypeCons.cons (__smtx_type_lift s3 X T)
+            (__smtx_dtc_lift s3 X c) by simp [__smtx_dtc_lift]]
+      exact RotShPreDtc.cons (rotShPre_lift_right_ty X T)
+        (rotShPre_lift_right_dtc X c)
+
+private theorem rotShPre_lift_right_dt {s3 : native_String}
+    {dead : native_String → native_Bool} (X : SmtDatatype) :
+    ∀ d : SmtDatatype, RotShPreDt s3 dead d (__smtx_dt_lift s3 X d)
+  | SmtDatatype.null => by
+      rw [show __smtx_dt_lift s3 X SmtDatatype.null = SmtDatatype.null by
+        simp [__smtx_dt_lift]]
+      exact RotShPreDt.null
+  | SmtDatatype.sum c d => by
+      rw [show __smtx_dt_lift s3 X (SmtDatatype.sum c d) =
+          SmtDatatype.sum (__smtx_dtc_lift s3 X c)
+            (__smtx_dt_lift s3 X d) by simp [__smtx_dt_lift]]
+      exact RotShPreDt.sum (rotShPre_lift_right_dtc X c)
+        (rotShPre_lift_right_dt X d)
+
+end
+
 /-! ### Bookkeeping: descend targets, appends, and step zipping -/
 
 /-- The target evolved by a descent, mirroring `chain_descend`. -/
