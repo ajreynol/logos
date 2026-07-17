@@ -686,14 +686,11 @@ private theorem quant_var_elim_eq_shape_of_not_stuck
                                       cases consHead with
                                       | Apply consOp x =>
                                           cases consOp <;>
-                                            try simp [__eo_prog_quant_var_elim_eq,
-                                              quantVarElimEqFormula, qeq, qforall,
-                                              qsingle, qcons] at hProg
+                                            try simp [__eo_prog_quant_var_elim_eq]
+                                              at hProg
                                           case __eo_List_cons =>
                                             cases nilTerm <;>
-                                              try simp [__eo_prog_quant_var_elim_eq,
-                                                quantVarElimEqFormula, qeq, qforall,
-                                                qsingle, qcons] at hProg
+                                              try simp at hProg
                                             case __eo_List_nil =>
                                               let formula := quantVarElimEqFormula x F G
                                               let guard := __mk_quant_var_elim_eq x F

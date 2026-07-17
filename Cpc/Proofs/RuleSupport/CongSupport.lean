@@ -6536,6 +6536,118 @@ private theorem congTrueSpine_same_generic_head_apply_eq_true
     exact smt_value_rel_model_eval_apply_of_rel_core M hM F F X Y
       hAppNN rfl hArgTypes.1 (RuleProofs.smt_value_rel_refl _) hArgRel
 
+private theorem smt_value_rel_cases_local {a b : SmtValue}
+    (h : RuleProofs.smt_value_rel a b) :
+    a = b ∨ ∃ r r', a = SmtValue.RegLan r ∧ b = SmtValue.RegLan r' := by
+  unfold RuleProofs.smt_value_rel at h
+  unfold __smtx_model_eval_eq at h
+  split at h
+  · rename_i r1 r2
+    exact Or.inr ⟨r1, r2, rfl, rfl⟩
+  · left
+    have hveq : native_veq a b = true := by
+      simpa using h
+    simpa [native_veq] using hveq
+
+private theorem smt_value_rel_eval_int_to_bv_right
+    (a : SmtValue) {b b' : SmtValue}
+    (h : RuleProofs.smt_value_rel b b') :
+    RuleProofs.smt_value_rel (__smtx_model_eval_int_to_bv a b)
+      (__smtx_model_eval_int_to_bv a b') := by
+  rcases smt_value_rel_cases_local h with rfl | ⟨r, r', rfl, rfl⟩
+  · exact RuleProofs.smt_value_rel_refl _
+  · cases a <;> exact RuleProofs.smt_value_rel_refl _
+
+/-- Congruent-head variant for `int_to_bv` applications: the spine may
+decompose the (applied-form) `int_to_bv` head one level further, giving
+congruent width arguments. -/
+private theorem congTypeSpine_int_to_bv_head_congr_eq_has_bool_type
+    (w n n' x y : Term)
+    (hTrans : RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) n) x))
+    (hHeadArg : RuleProofs.eo_has_bool_type (mkEq n n'))
+    (hArg : RuleProofs.eo_has_bool_type (mkEq x y)) :
+    RuleProofs.eo_has_bool_type
+      (mkEq (Term.Apply (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) n) x)
+        (Term.Apply (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) n') y)) := by
+  have hHeadTypes :=
+    RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type n n' hHeadArg
+  have hArgTypes :=
+    RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type x y hArg
+  refine RuleProofs.eo_has_bool_type_eq_of_same_smt_type _ _ ?_ hTrans
+  show __smtx_typeof
+      (SmtTerm.Apply (SmtTerm.int_to_bv (__eo_to_smt w) (__eo_to_smt n))
+        (__eo_to_smt x)) =
+    __smtx_typeof
+      (SmtTerm.Apply (SmtTerm.int_to_bv (__eo_to_smt w) (__eo_to_smt n'))
+        (__eo_to_smt y))
+  rw [show __smtx_typeof
+      (SmtTerm.Apply (SmtTerm.int_to_bv (__eo_to_smt w) (__eo_to_smt n))
+        (__eo_to_smt x)) =
+      __smtx_typeof_apply
+        (__smtx_typeof_int_to_bv (__eo_to_smt w)
+          (__smtx_typeof (__eo_to_smt n)))
+        (__smtx_typeof (__eo_to_smt x)) from rfl,
+    show __smtx_typeof
+      (SmtTerm.Apply (SmtTerm.int_to_bv (__eo_to_smt w) (__eo_to_smt n'))
+        (__eo_to_smt y)) =
+      __smtx_typeof_apply
+        (__smtx_typeof_int_to_bv (__eo_to_smt w)
+          (__smtx_typeof (__eo_to_smt n')))
+        (__smtx_typeof (__eo_to_smt y)) from rfl,
+    hHeadTypes.1, hArgTypes.1]
+
+private theorem congTrueSpine_int_to_bv_head_congr_eq_true
+    (M : SmtModel) (hM : model_total_typed M)
+    (w n n' x y : Term)
+    (hEqBool : RuleProofs.eo_has_bool_type
+      (mkEq (Term.Apply (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) n) x)
+        (Term.Apply (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) n') y)))
+    (hHeadArg : eo_interprets M (mkEq n n') true)
+    (hArg : eo_interprets M (mkEq x y) true) :
+    eo_interprets M
+      (mkEq (Term.Apply (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) n) x)
+        (Term.Apply (Term.Apply (Term.UOp1 UserOp1.int_to_bv w) n') y))
+      true := by
+  apply RuleProofs.eo_interprets_eq_of_rel M _ _ hEqBool
+  have hHeadTypes := RuleProofs.eo_eq_operands_same_smt_type M n n' hHeadArg
+  have hHeadRel := RuleProofs.eo_interprets_eq_rel M n n' hHeadArg
+  have hArgTypes := RuleProofs.eo_eq_operands_same_smt_type M x y hArg
+  have hArgRel := RuleProofs.eo_interprets_eq_rel M x y hArg
+  have hOuterTypes :=
+    RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type _ _ hEqBool
+  have hAppNN :
+      __smtx_typeof_apply
+          (__smtx_typeof
+            (SmtTerm.int_to_bv (__eo_to_smt w) (__eo_to_smt n)))
+          (__smtx_typeof (__eo_to_smt x)) ≠ SmtType.None := hOuterTypes.2
+  show RuleProofs.smt_value_rel
+    (__smtx_model_eval_apply M
+      (__smtx_model_eval M
+        (SmtTerm.int_to_bv (__eo_to_smt w) (__eo_to_smt n)))
+      (__smtx_model_eval M (__eo_to_smt x)))
+    (__smtx_model_eval_apply M
+      (__smtx_model_eval M
+        (SmtTerm.int_to_bv (__eo_to_smt w) (__eo_to_smt n')))
+      (__smtx_model_eval M (__eo_to_smt y)))
+  refine smt_value_rel_model_eval_apply_of_rel_core M hM
+    (SmtTerm.int_to_bv (__eo_to_smt w) (__eo_to_smt n))
+    (SmtTerm.int_to_bv (__eo_to_smt w) (__eo_to_smt n'))
+    (__eo_to_smt x) (__eo_to_smt y) hAppNN ?_ hArgTypes.1 ?_ hArgRel
+  · show __smtx_typeof_int_to_bv (__eo_to_smt w)
+        (__smtx_typeof (__eo_to_smt n)) =
+      __smtx_typeof_int_to_bv (__eo_to_smt w)
+        (__smtx_typeof (__eo_to_smt n'))
+    rw [hHeadTypes.1]
+  · show RuleProofs.smt_value_rel
+      (__smtx_model_eval_int_to_bv
+        (__smtx_model_eval M (__eo_to_smt w))
+        (__smtx_model_eval M (__eo_to_smt n)))
+      (__smtx_model_eval_int_to_bv
+        (__smtx_model_eval M (__eo_to_smt w))
+        (__smtx_model_eval M (__eo_to_smt n')))
+    exact smt_value_rel_eval_int_to_bv_right _ hHeadRel
+
 private theorem mkSmtAppSpineRev_ne_dt_sel
     {F : SmtTerm}
     (hF : ∀ s d i j, F ≠ SmtTerm.DtSel s d i j) :
@@ -20973,6 +21085,12 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                             (eo_to_smt_at_bv_ne_dt_tester
                               (__eo_to_smt n) (__eo_to_smt w)))
                           hTrans hArg
+                  | @app f₂ g₂ n₂ n₂' hFn₂ hHeadArg₂ =>
+                      cases hFn₂ with
+                      | refl _ =>
+                          exact
+                            congTypeSpine_int_to_bv_head_congr_eq_has_bool_type
+                              w n n₂' x y hTrans hHeadArg₂ hArg
               | Term.UOp2 UserOp2._at_quantifiers_skolemize q idx =>
                   cases hFn with
                   | refl _ =>
@@ -23679,6 +23797,12 @@ private theorem congTrueSpine_eq_true
                             (eo_to_smt_at_bv_ne_dt_tester
                               (__eo_to_smt n) (__eo_to_smt w)))
                           hEqBool hArg
+                  | @app f₂ g₂ n₂ n₂' hFn₂ hHeadTrue₂ hHeadStable₂ =>
+                      cases hFn₂ with
+                      | refl _ =>
+                          exact
+                            congTrueSpine_int_to_bv_head_congr_eq_true
+                              M hM w n n₂' x y hEqBool hHeadTrue₂ hArg
               | Term.UOp2 UserOp2._at_quantifiers_skolemize q idx =>
                   cases hFn with
                   | refl _ =>
