@@ -34,6 +34,7 @@ private theorem eo_typeof_str_substr_arg_types_of_ne_stuck
               cases opN <;> simp [__eo_typeof_str_substr] at h ⊢
 
 theorem substitute_simul_str_substr_preserves_type_and_translation_of_typeof_ne_stuck
+    {isRename : Bool}
     (s start len xs ts bvs : Term)
     {xsVars bvsVars : List EoVarKey}
     (hXsEnv : EoVarEnvPerm xs xsVars)
@@ -46,7 +47,7 @@ theorem substitute_simul_str_substr_preserves_type_and_translation_of_typeof_ne_
           len))
     (hTy :
       __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply
             (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) s) start)
             len)
@@ -55,35 +56,35 @@ theorem substitute_simul_str_substr_preserves_type_and_translation_of_typeof_ne_
     (hRecS :
       RuleProofs.eo_has_smt_translation s ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) s xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) s xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) s xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) s xs ts bvs) =
           __eo_typeof s ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) s xs ts bvs))
+            (__substitute_simul_rec (Term.Boolean isRename) s xs ts bvs))
     (hRecStart :
       RuleProofs.eo_has_smt_translation start ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) start xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) start xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) start xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) start xs ts bvs) =
           __eo_typeof start ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) start xs ts bvs))
+            (__substitute_simul_rec (Term.Boolean isRename) start xs ts bvs))
     (hRecLen :
       RuleProofs.eo_has_smt_translation len ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) len xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) len xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) len xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) len xs ts bvs) =
           __eo_typeof len ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) len xs ts bvs)) :
+            (__substitute_simul_rec (Term.Boolean isRename) len xs ts bvs)) :
     __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply
             (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) s) start)
             len)
@@ -93,7 +94,7 @@ theorem substitute_simul_str_substr_preserves_type_and_translation_of_typeof_ne_
           (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) s) start)
           len) ∧
       RuleProofs.eo_has_smt_translation
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply
             (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) s) start)
             len)

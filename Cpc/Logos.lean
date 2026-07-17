@@ -3825,11 +3825,17 @@ def __eo_prog_skolem_intro : Term -> Term
   | _ => Term.Stuck
 
 
+def __is_renaming_rec : Term -> Term -> Term
+  | Term.__eo_List_nil, Term.__eo_List_nil => (Term.Boolean true)
+  | (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var s1 T)) xs), (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var s2 __eo_lv_T_2)) ys) => (__eo_requires (__eo_eq T __eo_lv_T_2) (Term.Boolean true) (__is_renaming_rec xs ys))
+  | _, _ => Term.Stuck
+
+
 def __eo_prog_alpha_equiv : Term -> Term -> Term -> Term
   | Term.Stuck , _ , _  => Term.Stuck
   | _ , Term.Stuck , _  => Term.Stuck
   | _ , _ , Term.Stuck  => Term.Stuck
-  | t, vs, ts => (__eo_requires (__is_var_list vs) (Term.Boolean true) (__eo_requires (__is_var_list ts) (Term.Boolean true) (__eo_requires (__contains_atomic_term_list_free_rec t vs Term.__eo_List_nil) (Term.Boolean false) (__eo_requires (__contains_atomic_term_list_free_rec t ts Term.__eo_List_nil) (Term.Boolean false) (__eo_mk_apply (Term.Apply (Term.UOp UserOp.eq) t) (__substitute_simul_rec (Term.Boolean true) t vs ts Term.__eo_List_nil))))))
+  | t, vs, ts => (__eo_requires (__eo_and (__eo_and (__eo_and (__is_var_list vs) (__eo_eq (__eo_list_setof Term.__eo_List_cons vs) vs)) (__eo_and (__is_var_list ts) (__eo_eq (__eo_list_setof Term.__eo_List_cons ts) ts))) (__is_renaming_rec vs ts)) (Term.Boolean true) (__eo_requires (__contains_atomic_term_list_free_rec t vs Term.__eo_List_nil) (Term.Boolean false) (__eo_requires (__contains_atomic_term_list_free_rec t ts Term.__eo_List_nil) (Term.Boolean false) (__eo_mk_apply (Term.Apply (Term.UOp UserOp.eq) t) (__substitute_simul_rec (Term.Boolean true) t vs ts Term.__eo_List_nil)))))
 
 
 def __eo_prog_quant_var_reordering : Term -> Term
@@ -3973,7 +3979,7 @@ def __eo_l_1___is_quant_dt_split_conj : Term -> Term -> Term -> Term -> Term -> 
   | _ , Term.Stuck , _ , _ , _  => Term.Stuck
   | _ , _ , _ , Term.Stuck , _  => Term.Stuck
   | _ , _ , _ , _ , Term.Stuck  => Term.Stuck
-  | x, c, Term.__eo_List_nil, F, (Term.Apply (Term.Apply (Term.UOp UserOp.forall) (Term.Apply (Term.Apply Term.__eo_List_cons y) zs)) G) => (__eo_requires (__contains_atomic_term_list_free_rec zs (Term.Apply (Term.Apply Term.__eo_List_cons y) Term.__eo_List_nil) Term.__eo_List_nil) (Term.Boolean false) (__is_quant_dt_split_conj x (Term.Apply c y) Term.__eo_List_nil F (Term.Apply (Term.Apply (Term.UOp UserOp.forall) zs) G)))
+  | x, c, Term.__eo_List_nil, F, (Term.Apply (Term.Apply (Term.UOp UserOp.forall) (Term.Apply (Term.Apply Term.__eo_List_cons y) zs)) G) => (__eo_requires (__eo_list_find Term.__eo_List_cons zs y) (Term.Numeral (-1 : native_Int)) (__eo_requires (__contains_atomic_term_list_free_rec F (Term.Apply (Term.Apply Term.__eo_List_cons y) Term.__eo_List_nil) Term.__eo_List_nil) (Term.Boolean false) (__is_quant_dt_split_conj x (Term.Apply c y) Term.__eo_List_nil F (Term.Apply (Term.Apply (Term.UOp UserOp.forall) zs) G))))
   | x, c, Term.__eo_List_nil, F, (Term.Apply (Term.Apply (Term.UOp UserOp.forall) Term.__eo_List_nil) G) => (__is_quant_dt_split_conj x c Term.__eo_List_nil F G)
   | x, cx, Term.__eo_List_nil, F, G => (__eo_eq (__substitute_simul_rec (Term.Boolean false) F (Term.Apply (Term.Apply Term.__eo_List_cons x) Term.__eo_List_nil) (Term.Apply (Term.Apply Term.__eo_List_cons cx) Term.__eo_List_nil) Term.__eo_List_nil) G)
   | _, _, _, _, _ => Term.Stuck
@@ -3985,9 +3991,7 @@ def __is_quant_dt_split_conj : Term -> Term -> Term -> Term -> Term -> Term
   | _ , _ , Term.Stuck , _ , _  => Term.Stuck
   | _ , _ , _ , Term.Stuck , _  => Term.Stuck
   | _ , _ , _ , _ , Term.Stuck  => Term.Stuck
-  | x, c, (Term.Apply (Term.Apply Term.__eo_List_cons y) ys), F, (Term.Apply (Term.Apply (Term.UOp UserOp.forall) (Term.Apply (Term.Apply Term.__eo_List_cons __eo_lv_y_2) zs)) G) => 
-    let _v0 := (Term.Apply Term.__eo_List_cons y)
-    (__eo_ite (__eo_eq y __eo_lv_y_2) (__eo_requires (__contains_atomic_term_list_free_rec zs (Term.Apply _v0 Term.__eo_List_nil) Term.__eo_List_nil) (Term.Boolean false) (__is_quant_dt_split_conj x c ys F (Term.Apply (Term.Apply (Term.UOp UserOp.forall) zs) G))) (__eo_l_1___is_quant_dt_split_conj x c (Term.Apply _v0 ys) F (Term.Apply (Term.Apply (Term.UOp UserOp.forall) (Term.Apply (Term.Apply Term.__eo_List_cons __eo_lv_y_2) zs)) G)))
+  | x, c, (Term.Apply (Term.Apply Term.__eo_List_cons y) ys), F, (Term.Apply (Term.Apply (Term.UOp UserOp.forall) (Term.Apply (Term.Apply Term.__eo_List_cons __eo_lv_y_2) zs)) G) => (__eo_ite (__eo_eq y __eo_lv_y_2) (__eo_requires (__eo_list_find Term.__eo_List_cons zs y) (Term.Numeral (-1 : native_Int)) (__is_quant_dt_split_conj x c ys F (Term.Apply (Term.Apply (Term.UOp UserOp.forall) zs) G))) (__eo_l_1___is_quant_dt_split_conj x c (Term.Apply (Term.Apply Term.__eo_List_cons y) ys) F (Term.Apply (Term.Apply (Term.UOp UserOp.forall) (Term.Apply (Term.Apply Term.__eo_List_cons __eo_lv_y_2) zs)) G)))
   | __eo_dv_1, __eo_dv_2, __eo_dv_3, __eo_dv_4, __eo_dv_5 => (__eo_l_1___is_quant_dt_split_conj __eo_dv_1 __eo_dv_2 __eo_dv_3 __eo_dv_4 __eo_dv_5)
 
 

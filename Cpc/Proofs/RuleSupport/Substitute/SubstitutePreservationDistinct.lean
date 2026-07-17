@@ -15,6 +15,7 @@ set_option maxRecDepth 2000
 namespace SubstitutePreservationSupport
 
 theorem substitute_simul_distinct_preserves_type_and_translation
+    {isRename : Bool}
     (a xs ts bvs : Term)
     {xsVars bvsVars : List EoVarKey}
     (hXsEnv : EoVarEnvPerm xs xsVars)
@@ -25,7 +26,7 @@ theorem substitute_simul_distinct_preserves_type_and_translation
         (Term.Apply (Term.UOp UserOp.distinct) a))
     (hTy :
       __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.UOp UserOp.distinct) a) xs ts bvs) ≠
         Term.Stuck)
     (hTypedListSmtType :
@@ -33,42 +34,42 @@ theorem substitute_simul_distinct_preserves_type_and_translation
         sizeOf t < sizeOf a ->
         RuleProofs.eo_has_smt_translation t ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) t xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) t xs ts bvs) ≠
           Term.Stuck ->
           __smtx_typeof
               (__eo_to_smt
-                (__substitute_simul_rec (Term.Boolean false) t xs ts bvs)) =
+                (__substitute_simul_rec (Term.Boolean isRename) t xs ts bvs)) =
             __smtx_typeof (__eo_to_smt t)) :
     __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.UOp UserOp.distinct) a) xs ts bvs) =
       __eo_typeof (Term.Apply (Term.UOp UserOp.distinct) a) ∧
       RuleProofs.eo_has_smt_translation
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.UOp UserOp.distinct) a) xs ts bvs) := by
   have hElemNN :
       __eo_to_smt_typed_list_elem_type a ≠ SmtType.None :=
     TypedListSubstitutionSupport.typed_list_elem_type_non_none_of_distinct_has_smt_translation
       hFTrans
   have hHeadSub :
-      __substitute_simul_rec (Term.Boolean false)
+      __substitute_simul_rec (Term.Boolean isRename)
           (Term.UOp UserOp.distinct) xs ts bvs =
         Term.UOp UserOp.distinct :=
     SubstituteSupport.substitute_simul_rec_uop_eq_self
       UserOp.distinct xs ts bvs hXsEnv hBvsEnv hTs
-  let aSub := __substitute_simul_rec (Term.Boolean false) a xs ts bvs
+  let aSub := __substitute_simul_rec (Term.Boolean isRename) a xs ts bvs
   have hSubRaw :
-      __substitute_simul_rec (Term.Boolean false)
+      __substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.UOp UserOp.distinct) a) xs ts bvs =
         __eo_mk_apply (Term.UOp UserOp.distinct) aSub := by
-    have hisr : (Term.Boolean false : Term) ≠ Term.Stuck := by decide
+    have hisr : (Term.Boolean isRename : Term) ≠ Term.Stuck := by cases isRename <;> decide
     have hxs : xs ≠ Term.Stuck := hXsEnv.ne_stuck
     have hts : ts ≠ Term.Stuck :=
       SubstituteSupport.eoListAllHaveSmtTranslation_ne_stuck hTs
     have hbvs : bvs ≠ Term.Stuck := hBvsEnv.ne_stuck
     have hApplyEq :=
       SubstituteSupport.substitute_simul_rec_apply
-        (Term.Boolean false) (Term.UOp UserOp.distinct) a xs ts bvs
+        (Term.Boolean isRename) (Term.UOp UserOp.distinct) a xs ts bvs
         hisr hxs hts hbvs
         (by intro q v vs hEq; cases hEq)
     simpa [aSub, hHeadSub] using hApplyEq
@@ -82,7 +83,7 @@ theorem substitute_simul_distinct_preserves_type_and_translation
     instantiate_eo_mk_apply_eq_apply_of_typeof_ne_stuck
       (Term.UOp UserOp.distinct) aSub hTyMk
   have hSubEq :
-      __substitute_simul_rec (Term.Boolean false)
+      __substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.UOp UserOp.distinct) a) xs ts bvs =
         Term.Apply (Term.UOp UserOp.distinct)
           aSub := by

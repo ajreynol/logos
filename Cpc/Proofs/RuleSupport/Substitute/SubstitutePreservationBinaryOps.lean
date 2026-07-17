@@ -15,6 +15,7 @@ set_option maxRecDepth 2000
 namespace SubstitutePreservationSupport
 
 theorem substitute_simul_re_range_preserves_type_and_translation_of_typeof_ne_stuck
+    {isRename : Bool}
     (x y xs ts bvs : Term)
     {xsVars bvsVars : List EoVarKey}
     (hXsEnv : EoVarEnvPerm xs xsVars)
@@ -29,35 +30,35 @@ theorem substitute_simul_re_range_preserves_type_and_translation_of_typeof_ne_st
         (Term.Apply (Term.Apply (Term.UOp UserOp.re_range) x) y))
     (hTy :
       __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp.re_range) x) y) xs ts bvs) ≠
         Term.Stuck)
     (hRecX :
       RuleProofs.eo_has_smt_translation x ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) =
           __eo_typeof x ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs))
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs))
     (hRecY :
       RuleProofs.eo_has_smt_translation y ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) =
           __eo_typeof y ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs)) :
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs)) :
     __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp.re_range) x) y) xs ts bvs) =
       __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.re_range) x) y) ∧
       RuleProofs.eo_has_smt_translation
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp.re_range) x) y) xs ts bvs) := by
   exact
     substitute_simul_binary_op_preserves_type_and_translation_of_typeof_ne_stuck
@@ -95,6 +96,7 @@ theorem substitute_simul_re_range_preserves_type_and_translation_of_typeof_ne_st
       hRecX hRecY
 
 theorem substitute_simul_reglan_binop_preserves_type_and_translation_of_typeof_ne_stuck
+    {isRename : Bool}
     (op : UserOp) (smtOp : SmtTerm -> SmtTerm -> SmtTerm)
     (x y xs ts bvs : Term)
     {xsVars bvsVars : List EoVarKey}
@@ -110,7 +112,7 @@ theorem substitute_simul_reglan_binop_preserves_type_and_translation_of_typeof_n
         (Term.Apply (Term.Apply (Term.UOp op) x) y))
     (hTy :
       __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp op) x) y) xs ts bvs) ≠
         Term.Stuck)
     (hTranslate :
@@ -131,29 +133,29 @@ theorem substitute_simul_reglan_binop_preserves_type_and_translation_of_typeof_n
     (hRecX :
       RuleProofs.eo_has_smt_translation x ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) =
           __eo_typeof x ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs))
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs))
     (hRecY :
       RuleProofs.eo_has_smt_translation y ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) =
           __eo_typeof y ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs)) :
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs)) :
     __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp op) x) y) xs ts bvs) =
       __eo_typeof (Term.Apply (Term.Apply (Term.UOp op) x) y) ∧
       RuleProofs.eo_has_smt_translation
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp op) x) y) xs ts bvs) := by
   exact
     substitute_simul_binary_op_preserves_type_and_translation_of_typeof_ne_stuck
@@ -182,6 +184,7 @@ theorem substitute_simul_reglan_binop_preserves_type_and_translation_of_typeof_n
       hRecX hRecY
 
 theorem substitute_simul_str_in_re_preserves_type_and_translation_of_typeof_ne_stuck
+    {isRename : Bool}
     (x y xs ts bvs : Term)
     {xsVars bvsVars : List EoVarKey}
     (hXsEnv : EoVarEnvPerm xs xsVars)
@@ -196,35 +199,35 @@ theorem substitute_simul_str_in_re_preserves_type_and_translation_of_typeof_ne_s
         (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) x) y))
     (hTy :
       __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) x) y) xs ts bvs) ≠
         Term.Stuck)
     (hRecX :
       RuleProofs.eo_has_smt_translation x ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) =
           __eo_typeof x ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs))
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs))
     (hRecY :
       RuleProofs.eo_has_smt_translation y ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) =
           __eo_typeof y ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs)) :
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs)) :
     __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) x) y) xs ts bvs) =
       __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) x) y) ∧
       RuleProofs.eo_has_smt_translation
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) x) y) xs ts bvs) := by
   exact
     substitute_simul_binary_op_preserves_type_and_translation_of_typeof_ne_stuck
@@ -262,6 +265,7 @@ theorem substitute_simul_str_in_re_preserves_type_and_translation_of_typeof_ne_s
       hRecX hRecY
 
 theorem substitute_simul_seq_nth_preserves_type_and_translation_of_typeof_ne_stuck
+    {isRename : Bool}
     (x y xs ts bvs : Term)
     {xsVars bvsVars : List EoVarKey}
     (hXsEnv : EoVarEnvPerm xs xsVars)
@@ -276,35 +280,35 @@ theorem substitute_simul_seq_nth_preserves_type_and_translation_of_typeof_ne_stu
         (Term.Apply (Term.Apply (Term.UOp UserOp.seq_nth) x) y))
     (hTy :
       __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp.seq_nth) x) y) xs ts bvs) ≠
         Term.Stuck)
     (hRecX :
       RuleProofs.eo_has_smt_translation x ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) =
           __eo_typeof x ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs))
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs))
     (hRecY :
       RuleProofs.eo_has_smt_translation y ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) =
           __eo_typeof y ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs)) :
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs)) :
     __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp.seq_nth) x) y) xs ts bvs) =
       __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.seq_nth) x) y) ∧
       RuleProofs.eo_has_smt_translation
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp.seq_nth) x) y) xs ts bvs) := by
   exact
     substitute_simul_binary_op_preserves_type_and_translation_of_typeof_ne_stuck
@@ -340,6 +344,7 @@ theorem substitute_simul_seq_nth_preserves_type_and_translation_of_typeof_ne_stu
       hRecX hRecY
 
 theorem substitute_simul_set_binop_preserves_type_and_translation_of_typeof_ne_stuck
+    {isRename : Bool}
     (op : UserOp) (smtOp : SmtTerm -> SmtTerm -> SmtTerm)
     (x y xs ts bvs : Term)
     {xsVars bvsVars : List EoVarKey}
@@ -355,7 +360,7 @@ theorem substitute_simul_set_binop_preserves_type_and_translation_of_typeof_ne_s
         (Term.Apply (Term.Apply (Term.UOp op) x) y))
     (hTy :
       __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp op) x) y) xs ts bvs) ≠
         Term.Stuck)
     (hTranslate :
@@ -374,29 +379,29 @@ theorem substitute_simul_set_binop_preserves_type_and_translation_of_typeof_ne_s
     (hRecX :
       RuleProofs.eo_has_smt_translation x ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) =
           __eo_typeof x ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs))
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs))
     (hRecY :
       RuleProofs.eo_has_smt_translation y ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) =
           __eo_typeof y ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs)) :
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs)) :
     __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp op) x) y) xs ts bvs) =
       __eo_typeof (Term.Apply (Term.Apply (Term.UOp op) x) y) ∧
       RuleProofs.eo_has_smt_translation
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp op) x) y) xs ts bvs) := by
   exact
     substitute_simul_binary_op_preserves_type_and_translation_of_typeof_ne_stuck
@@ -425,6 +430,7 @@ theorem substitute_simul_set_binop_preserves_type_and_translation_of_typeof_ne_s
       hRecX hRecY
 
 theorem substitute_simul_set_member_preserves_type_and_translation_of_typeof_ne_stuck
+    {isRename : Bool}
     (x y xs ts bvs : Term)
     {xsVars bvsVars : List EoVarKey}
     (hXsEnv : EoVarEnvPerm xs xsVars)
@@ -439,35 +445,35 @@ theorem substitute_simul_set_member_preserves_type_and_translation_of_typeof_ne_
         (Term.Apply (Term.Apply (Term.UOp UserOp.set_member) x) y))
     (hTy :
       __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp.set_member) x) y) xs ts bvs) ≠
         Term.Stuck)
     (hRecX :
       RuleProofs.eo_has_smt_translation x ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) =
           __eo_typeof x ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs))
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs))
     (hRecY :
       RuleProofs.eo_has_smt_translation y ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) =
           __eo_typeof y ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs)) :
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs)) :
     __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp.set_member) x) y) xs ts bvs) =
       __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.set_member) x) y) ∧
       RuleProofs.eo_has_smt_translation
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp.set_member) x) y) xs ts bvs) := by
   exact
     substitute_simul_binary_op_preserves_type_and_translation_of_typeof_ne_stuck
@@ -503,6 +509,7 @@ theorem substitute_simul_set_member_preserves_type_and_translation_of_typeof_ne_
       hRecX hRecY
 
 theorem substitute_simul_set_subset_preserves_type_and_translation_of_typeof_ne_stuck
+    {isRename : Bool}
     (x y xs ts bvs : Term)
     {xsVars bvsVars : List EoVarKey}
     (hXsEnv : EoVarEnvPerm xs xsVars)
@@ -517,35 +524,35 @@ theorem substitute_simul_set_subset_preserves_type_and_translation_of_typeof_ne_
         (Term.Apply (Term.Apply (Term.UOp UserOp.set_subset) x) y))
     (hTy :
       __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp.set_subset) x) y) xs ts bvs) ≠
         Term.Stuck)
     (hRecX :
       RuleProofs.eo_has_smt_translation x ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) =
           __eo_typeof x ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs))
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs))
     (hRecY :
       RuleProofs.eo_has_smt_translation y ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) =
           __eo_typeof y ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs)) :
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs)) :
     __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp.set_subset) x) y) xs ts bvs) =
       __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.set_subset) x) y) ∧
       RuleProofs.eo_has_smt_translation
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp.set_subset) x) y) xs ts bvs) := by
   exact
     substitute_simul_binary_op_preserves_type_and_translation_of_typeof_ne_stuck
@@ -583,6 +590,7 @@ theorem substitute_simul_set_subset_preserves_type_and_translation_of_typeof_ne_
       hRecX hRecY
 
 theorem substitute_simul_array_deq_diff_preserves_type_and_translation_of_typeof_ne_stuck
+    {isRename : Bool}
     (x y xs ts bvs : Term)
     {xsVars bvsVars : List EoVarKey}
     (hXsEnv : EoVarEnvPerm xs xsVars)
@@ -597,37 +605,37 @@ theorem substitute_simul_array_deq_diff_preserves_type_and_translation_of_typeof
         (Term.Apply (Term.Apply (Term.UOp UserOp._at_array_deq_diff) x) y))
     (hTy :
       __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp._at_array_deq_diff) x) y)
           xs ts bvs) ≠
         Term.Stuck)
     (hRecX :
       RuleProofs.eo_has_smt_translation x ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) =
           __eo_typeof x ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs))
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs))
     (hRecY :
       RuleProofs.eo_has_smt_translation y ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) =
           __eo_typeof y ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs)) :
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs)) :
     __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp._at_array_deq_diff) x) y)
           xs ts bvs) =
       __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp._at_array_deq_diff) x) y) ∧
       RuleProofs.eo_has_smt_translation
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp._at_array_deq_diff) x) y)
           xs ts bvs) := by
   exact
@@ -661,6 +669,7 @@ theorem substitute_simul_array_deq_diff_preserves_type_and_translation_of_typeof
       hRecX hRecY
 
 theorem substitute_simul_sets_deq_diff_preserves_type_and_translation_of_typeof_ne_stuck
+    {isRename : Bool}
     (x y xs ts bvs : Term)
     {xsVars bvsVars : List EoVarKey}
     (hXsEnv : EoVarEnvPerm xs xsVars)
@@ -675,37 +684,37 @@ theorem substitute_simul_sets_deq_diff_preserves_type_and_translation_of_typeof_
         (Term.Apply (Term.Apply (Term.UOp UserOp._at_sets_deq_diff) x) y))
     (hTy :
       __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp._at_sets_deq_diff) x) y)
           xs ts bvs) ≠
         Term.Stuck)
     (hRecX :
       RuleProofs.eo_has_smt_translation x ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) =
           __eo_typeof x ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs))
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs))
     (hRecY :
       RuleProofs.eo_has_smt_translation y ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) =
           __eo_typeof y ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs)) :
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs)) :
     __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp._at_sets_deq_diff) x) y)
           xs ts bvs) =
       __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp._at_sets_deq_diff) x) y) ∧
       RuleProofs.eo_has_smt_translation
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp._at_sets_deq_diff) x) y)
           xs ts bvs) := by
   exact
@@ -739,6 +748,7 @@ theorem substitute_simul_sets_deq_diff_preserves_type_and_translation_of_typeof_
       hRecX hRecY
 
 theorem substitute_simul_strings_deq_diff_preserves_type_and_translation_of_typeof_ne_stuck
+    {isRename : Bool}
     (x y xs ts bvs : Term)
     {xsVars bvsVars : List EoVarKey}
     (hXsEnv : EoVarEnvPerm xs xsVars)
@@ -753,37 +763,37 @@ theorem substitute_simul_strings_deq_diff_preserves_type_and_translation_of_type
         (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_deq_diff) x) y))
     (hTy :
       __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_deq_diff) x) y)
           xs ts bvs) ≠
         Term.Stuck)
     (hRecX :
       RuleProofs.eo_has_smt_translation x ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) =
           __eo_typeof x ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs))
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs))
     (hRecY :
       RuleProofs.eo_has_smt_translation y ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) =
           __eo_typeof y ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs)) :
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs)) :
     __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_deq_diff) x) y)
           xs ts bvs) =
       __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_deq_diff) x) y) ∧
       RuleProofs.eo_has_smt_translation
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_deq_diff) x) y)
           xs ts bvs) := by
   exact
@@ -815,6 +825,7 @@ theorem substitute_simul_strings_deq_diff_preserves_type_and_translation_of_type
       hRecX hRecY
 
 theorem substitute_simul_strings_stoi_result_preserves_type_and_translation_of_typeof_ne_stuck
+    {isRename : Bool}
     (x y xs ts bvs : Term)
     {xsVars bvsVars : List EoVarKey}
     (hXsEnv : EoVarEnvPerm xs xsVars)
@@ -829,37 +840,37 @@ theorem substitute_simul_strings_stoi_result_preserves_type_and_translation_of_t
         (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_stoi_result) x) y))
     (hTy :
       __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_stoi_result) x) y)
           xs ts bvs) ≠
         Term.Stuck)
     (hRecX :
       RuleProofs.eo_has_smt_translation x ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) =
           __eo_typeof x ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs))
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs))
     (hRecY :
       RuleProofs.eo_has_smt_translation y ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) =
           __eo_typeof y ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs)) :
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs)) :
     __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_stoi_result) x) y)
           xs ts bvs) =
       __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_stoi_result) x) y) ∧
       RuleProofs.eo_has_smt_translation
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_stoi_result) x) y)
           xs ts bvs) := by
   exact
@@ -893,6 +904,7 @@ theorem substitute_simul_strings_stoi_result_preserves_type_and_translation_of_t
       hRecX hRecY
 
 theorem substitute_simul_strings_itos_result_preserves_type_and_translation_of_typeof_ne_stuck
+    {isRename : Bool}
     (x y xs ts bvs : Term)
     {xsVars bvsVars : List EoVarKey}
     (hXsEnv : EoVarEnvPerm xs xsVars)
@@ -907,37 +919,37 @@ theorem substitute_simul_strings_itos_result_preserves_type_and_translation_of_t
         (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_itos_result) x) y))
     (hTy :
       __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_itos_result) x) y)
           xs ts bvs) ≠
         Term.Stuck)
     (hRecX :
       RuleProofs.eo_has_smt_translation x ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) =
           __eo_typeof x ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs))
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs))
     (hRecY :
       RuleProofs.eo_has_smt_translation y ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) =
           __eo_typeof y ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs)) :
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs)) :
     __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_itos_result) x) y)
           xs ts bvs) =
       __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_itos_result) x) y) ∧
       RuleProofs.eo_has_smt_translation
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_itos_result) x) y)
           xs ts bvs) := by
   exact
@@ -972,6 +984,7 @@ theorem substitute_simul_strings_itos_result_preserves_type_and_translation_of_t
       hRecX hRecY
 
 theorem substitute_simul_strings_num_occur_preserves_type_and_translation_of_typeof_ne_stuck
+    {isRename : Bool}
     (x y xs ts bvs : Term)
     {xsVars bvsVars : List EoVarKey}
     (hXsEnv : EoVarEnvPerm xs xsVars)
@@ -986,37 +999,37 @@ theorem substitute_simul_strings_num_occur_preserves_type_and_translation_of_typ
         (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_num_occur) x) y))
     (hTy :
       __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_num_occur) x) y)
           xs ts bvs) ≠
         Term.Stuck)
     (hRecX :
       RuleProofs.eo_has_smt_translation x ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) =
           __eo_typeof x ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs))
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs))
     (hRecY :
       RuleProofs.eo_has_smt_translation y ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) =
           __eo_typeof y ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs)) :
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs)) :
     __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_num_occur) x) y)
           xs ts bvs) =
       __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_num_occur) x) y) ∧
       RuleProofs.eo_has_smt_translation
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_num_occur) x) y)
           xs ts bvs) := by
   exact
@@ -1101,6 +1114,7 @@ theorem substitute_simul_strings_num_occur_preserves_type_and_translation_of_typ
         hRecX hRecY
 
 theorem substitute_simul_str_prefixof_preserves_type_and_translation_of_typeof_ne_stuck
+    {isRename : Bool}
     (x y xs ts bvs : Term)
     {xsVars bvsVars : List EoVarKey}
     (hXsEnv : EoVarEnvPerm xs xsVars)
@@ -1115,37 +1129,37 @@ theorem substitute_simul_str_prefixof_preserves_type_and_translation_of_typeof_n
         (Term.Apply (Term.Apply (Term.UOp UserOp.str_prefixof) x) y))
     (hTy :
       __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp.str_prefixof) x) y)
           xs ts bvs) ≠
         Term.Stuck)
     (hRecX :
       RuleProofs.eo_has_smt_translation x ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) =
           __eo_typeof x ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs))
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs))
     (hRecY :
       RuleProofs.eo_has_smt_translation y ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) =
           __eo_typeof y ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs)) :
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs)) :
     __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp.str_prefixof) x) y)
           xs ts bvs) =
       __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.str_prefixof) x) y) ∧
         RuleProofs.eo_has_smt_translation
-          (__substitute_simul_rec (Term.Boolean false)
+          (__substitute_simul_rec (Term.Boolean isRename)
             (Term.Apply (Term.Apply (Term.UOp UserOp.str_prefixof) x) y)
             xs ts bvs) := by
   have hFTransEo :
@@ -1202,6 +1216,7 @@ theorem substitute_simul_str_prefixof_preserves_type_and_translation_of_typeof_n
       hRecX hRecY
 
 theorem substitute_simul_str_suffixof_preserves_type_and_translation_of_typeof_ne_stuck
+    {isRename : Bool}
     (x y xs ts bvs : Term)
     {xsVars bvsVars : List EoVarKey}
     (hXsEnv : EoVarEnvPerm xs xsVars)
@@ -1216,37 +1231,37 @@ theorem substitute_simul_str_suffixof_preserves_type_and_translation_of_typeof_n
         (Term.Apply (Term.Apply (Term.UOp UserOp.str_suffixof) x) y))
     (hTy :
       __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp.str_suffixof) x) y)
           xs ts bvs) ≠
         Term.Stuck)
     (hRecX :
       RuleProofs.eo_has_smt_translation x ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) =
           __eo_typeof x ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs))
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs))
     (hRecY :
       RuleProofs.eo_has_smt_translation y ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) =
           __eo_typeof y ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs)) :
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs)) :
       __eo_typeof
-          (__substitute_simul_rec (Term.Boolean false)
+          (__substitute_simul_rec (Term.Boolean isRename)
             (Term.Apply (Term.Apply (Term.UOp UserOp.str_suffixof) x) y)
             xs ts bvs) =
         __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.str_suffixof) x) y) ∧
         RuleProofs.eo_has_smt_translation
-          (__substitute_simul_rec (Term.Boolean false)
+          (__substitute_simul_rec (Term.Boolean isRename)
             (Term.Apply (Term.Apply (Term.UOp UserOp.str_suffixof) x) y)
             xs ts bvs) := by
   have hFTransEo :
@@ -1303,6 +1318,7 @@ theorem substitute_simul_str_suffixof_preserves_type_and_translation_of_typeof_n
       hRecX hRecY
 
 theorem substitute_simul_from_bools_preserves_type_and_translation_of_typeof_ne_stuck
+    {isRename : Bool}
     (x y xs ts bvs : Term)
     {xsVars bvsVars : List EoVarKey}
     (hXsEnv : EoVarEnvPerm xs xsVars)
@@ -1317,37 +1333,37 @@ theorem substitute_simul_from_bools_preserves_type_and_translation_of_typeof_ne_
         (Term.Apply (Term.Apply (Term.UOp UserOp._at_from_bools) x) y))
     (hTy :
       __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp._at_from_bools) x) y)
           xs ts bvs) ≠
         Term.Stuck)
     (hRecX :
       RuleProofs.eo_has_smt_translation x ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) =
           __eo_typeof x ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs))
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs))
     (hRecY :
       RuleProofs.eo_has_smt_translation y ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) =
           __eo_typeof y ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs)) :
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs)) :
     __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp._at_from_bools) x) y)
           xs ts bvs) =
       __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp._at_from_bools) x) y) ∧
       RuleProofs.eo_has_smt_translation
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp UserOp._at_from_bools) x) y)
           xs ts bvs) := by
   exact
@@ -1382,6 +1398,7 @@ theorem substitute_simul_from_bools_preserves_type_and_translation_of_typeof_ne_
       hRecX hRecY
 
 theorem substitute_simul_bv_binop_preserves_type_and_translation_of_typeof_ne_stuck
+    {isRename : Bool}
     (op : UserOp) (smtOp : SmtTerm -> SmtTerm -> SmtTerm)
     (x y xs ts bvs : Term)
     {xsVars bvsVars : List EoVarKey}
@@ -1397,7 +1414,7 @@ theorem substitute_simul_bv_binop_preserves_type_and_translation_of_typeof_ne_st
         (Term.Apply (Term.Apply (Term.UOp op) x) y))
     (hTy :
       __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp op) x) y) xs ts bvs) ≠
         Term.Stuck)
     (hTranslate :
@@ -1415,29 +1432,29 @@ theorem substitute_simul_bv_binop_preserves_type_and_translation_of_typeof_ne_st
     (hRecX :
       RuleProofs.eo_has_smt_translation x ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) =
           __eo_typeof x ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs))
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs))
     (hRecY :
       RuleProofs.eo_has_smt_translation y ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) =
           __eo_typeof y ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs)) :
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs)) :
     __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp op) x) y) xs ts bvs) =
       __eo_typeof (Term.Apply (Term.Apply (Term.UOp op) x) y) ∧
       RuleProofs.eo_has_smt_translation
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp op) x) y) xs ts bvs) := by
   exact
     substitute_simul_binary_op_preserves_type_and_translation_of_typeof_ne_stuck
@@ -1465,6 +1482,7 @@ theorem substitute_simul_bv_binop_preserves_type_and_translation_of_typeof_ne_st
       hRecX hRecY
 
 theorem substitute_simul_bv_binop_ret_preserves_type_and_translation_of_typeof_ne_stuck
+    {isRename : Bool}
     (op : UserOp) (smtOp : SmtTerm -> SmtTerm -> SmtTerm)
     (eoTypeFn : Term -> Term -> Term) (ret : SmtType)
     (x y xs ts bvs : Term)
@@ -1481,7 +1499,7 @@ theorem substitute_simul_bv_binop_ret_preserves_type_and_translation_of_typeof_n
         (Term.Apply (Term.Apply (Term.UOp op) x) y))
     (hTy :
       __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp op) x) y) xs ts bvs) ≠
         Term.Stuck)
     (hTranslate :
@@ -1507,29 +1525,29 @@ theorem substitute_simul_bv_binop_ret_preserves_type_and_translation_of_typeof_n
     (hRecX :
       RuleProofs.eo_has_smt_translation x ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs) =
           __eo_typeof x ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) x xs ts bvs))
+            (__substitute_simul_rec (Term.Boolean isRename) x xs ts bvs))
     (hRecY :
       RuleProofs.eo_has_smt_translation y ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) ≠
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) ≠
           Term.Stuck ->
         __eo_typeof
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs) =
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs) =
           __eo_typeof y ∧
           RuleProofs.eo_has_smt_translation
-            (__substitute_simul_rec (Term.Boolean false) y xs ts bvs)) :
+            (__substitute_simul_rec (Term.Boolean isRename) y xs ts bvs)) :
     __eo_typeof
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp op) x) y) xs ts bvs) =
       __eo_typeof (Term.Apply (Term.Apply (Term.UOp op) x) y) ∧
       RuleProofs.eo_has_smt_translation
-        (__substitute_simul_rec (Term.Boolean false)
+        (__substitute_simul_rec (Term.Boolean isRename)
           (Term.Apply (Term.Apply (Term.UOp op) x) y) xs ts bvs) := by
   exact
     substitute_simul_binary_op_preserves_type_and_translation_of_typeof_ne_stuck
