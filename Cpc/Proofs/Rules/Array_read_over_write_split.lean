@@ -1,4 +1,5 @@
 import Cpc.Proofs.RuleSupport.ArraySupport
+import Cpc.Proofs.RuleSupport.TypeInversionSupport
 
 open Eo
 open SmtEval
@@ -39,10 +40,7 @@ private theorem eo_typeof_ite_args_of_ne_stuck
     __eo_typeof_ite C X Y ≠ Term.Stuck ->
       C = Term.Bool ∧ X = Y ∧ X ≠ Term.Stuck := by
   intro h
-  cases C <;> cases X <;> cases Y <;>
-    simp [__eo_typeof_ite, __eo_requires, __eo_eq, native_ite,
-      native_not, native_teq] at h ⊢ <;>
-    simp_all
+  exact RuleProofs.eo_typeof_ite_args_of_ne_stuck C X Y h
 
 private theorem typeof_args_of_prog_array_read_over_write_split_bool
     (t1 i1 e1 j1 : Term)

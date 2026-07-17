@@ -1,5 +1,6 @@
 import Cpc.Proofs.RuleSupport.CnfSupport
 import Cpc.Proofs.RuleSupport.CoreSupport
+import Cpc.Proofs.RuleSupport.TypeInversionSupport
 
 open Eo
 open SmtEval
@@ -101,21 +102,13 @@ private theorem eo_typeof_eq_bool_same (A B : Term) :
     __eo_typeof_eq A B = Term.Bool ->
     A = B ∧ A ≠ Term.Stuck := by
   intro hTy
-  cases A <;> cases B <;>
-    simp [__eo_typeof_eq, __eo_requires, __eo_eq, native_ite, native_teq,
-      native_not] at hTy ⊢
-  all_goals
-    simp [hTy]
+  exact RuleProofs.eo_typeof_eq_bool_same A B hTy
 
 private theorem eo_typeof_eq_bool_of_ne_stuck (A B : Term) :
     __eo_typeof_eq A B ≠ Term.Stuck ->
     __eo_typeof_eq A B = Term.Bool := by
   intro hNe
-  cases A <;> cases B <;>
-    simp [__eo_typeof_eq, __eo_requires, __eo_eq, native_ite, native_teq,
-      native_not] at hNe ⊢
-  all_goals
-    exact hNe
+  exact RuleProofs.eo_typeof_eq_eq_bool_of_ne_stuck A B hNe
 
 private theorem eo_requires_eq_result_bool_of_bool (X Y : Term) :
     __eo_requires (__eo_eq X Y) (Term.Boolean true) X = Term.Bool ->

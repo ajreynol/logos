@@ -1,5 +1,7 @@
 import Cpc.Proofs.RuleSupport.Support
 
+/-! Shared compositional inversion lemmas for EO type-checking functions. -/
+
 open Eo
 open SmtEval
 
@@ -22,6 +24,36 @@ theorem eo_typeof_eq_bool_same (A B : Term)
     subst B
     simp [__eo_typeof_eq] at h
   exact ⟨hEq, hA⟩
+
+/-- A non-stuck EO equality-type check is necessarily Boolean. -/
+theorem eo_typeof_eq_eq_bool_of_ne_stuck (A B : Term)
+    (h : __eo_typeof_eq A B ≠ Term.Stuck) :
+    __eo_typeof_eq A B = Term.Bool := by
+  have hA : A ≠ Term.Stuck := by
+    intro hStuck
+    subst A
+    exact h rfl
+  have hB : B ≠ Term.Stuck := by
+    intro hStuck
+    subst B
+    simp [__eo_typeof_eq] at h
+  have hReqNe :
+      __eo_requires (__eo_eq A B) (Term.Boolean true) Term.Bool ≠
+        Term.Stuck := by
+    simpa [__eo_typeof_eq, hA, hB] using h
+  have hBA : B = A :=
+    support_eq_of_eo_eq_true A B
+      (support_eo_requires_cond_eq_of_non_stuck hReqNe)
+  subst B
+  simp [__eo_typeof_eq, __eo_requires, __eo_eq, native_ite,
+    native_teq, native_not]
+
+/-- Invert a non-stuck EO equality-type check. -/
+theorem eo_typeof_eq_args_of_ne_stuck (A B : Term)
+    (h : __eo_typeof_eq A B ≠ Term.Stuck) :
+    A = B ∧ A ≠ Term.Stuck := by
+  exact eo_typeof_eq_bool_same A B
+    (eo_typeof_eq_eq_bool_of_ne_stuck A B h)
 
 /-- The EO arithmetic-type predicate recognizes exactly `Int` and `Real`.
 
@@ -136,5 +168,20 @@ theorem eo_typeof_ite_eq_nonstuck_args
       native_teq, native_not]
   rw [hRed] at h
   exact ⟨rfl, h, h⟩
+
+/-- Invert any non-stuck EO `ite` type check. -/
+theorem eo_typeof_ite_args_of_ne_stuck (C A B : Term)
+    (h : __eo_typeof_ite C A B ≠ Term.Stuck) :
+    C = Term.Bool ∧ A = B ∧ A ≠ Term.Stuck := by
+  have hArgs := eo_typeof_ite_eq_nonstuck_args C A B
+    (__eo_typeof_ite C A B) rfl h
+  exact ⟨hArgs.1, hArgs.2.1.trans hArgs.2.2.symm,
+    hArgs.2.1 ▸ h⟩
+
+/-- A well-formed `ite` with identical branches has that branch type. -/
+theorem eo_typeof_ite_bool_self (T : Term) (hT : T ≠ Term.Stuck) :
+    __eo_typeof_ite Term.Bool T T = T := by
+  simp [__eo_typeof_ite, __eo_requires, __eo_eq, native_ite, native_teq,
+    native_not]
 
 end RuleProofs

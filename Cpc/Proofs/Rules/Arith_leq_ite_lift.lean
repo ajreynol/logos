@@ -1,6 +1,6 @@
 import Cpc.Proofs.RuleSupport.Support
 import Cpc.Proofs.RuleSupport.ArithPolyNormRelSupport
-import Cpc.Proofs.RuleSupport.ArithIteLiftSupport
+import Cpc.Proofs.RuleSupport.TypeInversionSupport
 import Cpc.Proofs.RuleSupport.CnfSupport
 
 open Eo

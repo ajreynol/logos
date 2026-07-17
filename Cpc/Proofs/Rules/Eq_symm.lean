@@ -1,4 +1,5 @@
 import Cpc.Proofs.RuleSupport.Support
+import Cpc.Proofs.RuleSupport.TypeInversionSupport
 
 open Eo
 open SmtEval
@@ -21,21 +22,13 @@ private theorem eo_typeof_eq_bool_same (A B : Term) :
     __eo_typeof_eq A B = Term.Bool ->
     A = B ∧ A ≠ Term.Stuck := by
   intro hTy
-  cases A <;> cases B <;>
-    simp [__eo_typeof_eq, __eo_requires, __eo_eq, native_ite, native_teq,
-      native_not] at hTy ⊢
-  all_goals
-    simp [hTy]
+  exact RuleProofs.eo_typeof_eq_bool_same A B hTy
 
 private theorem eo_typeof_eq_nonstuck_bool (A B : Term) :
     __eo_typeof_eq A B ≠ Term.Stuck ->
     __eo_typeof_eq A B = Term.Bool := by
   intro hNonStuck
-  cases A <;> cases B <;>
-    simp [__eo_typeof_eq, __eo_requires, __eo_eq, native_ite, native_teq,
-      native_not] at hNonStuck ⊢
-  all_goals
-    assumption
+  exact RuleProofs.eo_typeof_eq_eq_bool_of_ne_stuck A B hNonStuck
 
 private theorem operand_types_of_prog_eq_symm_bool (t1 s1 : Term) :
     t1 ≠ Term.Stuck ->
