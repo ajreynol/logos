@@ -1,5 +1,6 @@
 import Cpc.Proofs.RuleSupport.Support
 import Cpc.Proofs.RuleSupport.CoreSupport
+import Cpc.Proofs.RuleSupport.QuantDtSplitSupport
 
 open Eo
 open SmtEval
@@ -127,7 +128,8 @@ private theorem quant_dt_split_formula_true
     __is_quant_dt_split x (__dt_get_constructors (__eo_typeof x)) ys F G =
       Term.Boolean true ->
     eo_interprets M (quantDtSplitFormula x ys F G) true := by
-  sorry
+  intro hTrans hTy hGuard
+  exact QuantDtSplitRule.qds_formula_true M hM x ys F G hGuard hTrans hTy
 
 theorem cmd_step_quant_dt_split_properties
     (M : SmtModel) (hM : model_total_typed M)
