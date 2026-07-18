@@ -3832,6 +3832,178 @@ private theorem bvConcatSingletonElimEvalEq
     rw [hLeft] at hElimValueTy
     cases hElimValueTy)).mp hRel
 
+/-! Public, concat-specific interfaces for other BV rewrite families.  The
+implementation lemmas above stay local so that their generic-looking names do
+not leak into every rule module importing this file. -/
+
+theorem bvConcat_term_smt_type
+    (x y : Term) (wx wy : Nat) :
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec wx ->
+    __smtx_typeof (__eo_to_smt y) = SmtType.BitVec wy ->
+    __smtx_typeof (__eo_to_smt (bvConcatTerm x y)) =
+      SmtType.BitVec (wx + wy) :=
+  smt_typeof_bv_concat_eq x y wx wy
+
+theorem bvConcat_term_smt_type_inv
+    (x y : Term) (w : Nat) :
+    __smtx_typeof (__eo_to_smt (bvConcatTerm x y)) = SmtType.BitVec w ->
+    ∃ wx wy,
+      __smtx_typeof (__eo_to_smt x) = SmtType.BitVec wx ∧
+      __smtx_typeof (__eo_to_smt y) = SmtType.BitVec wy ∧
+      w = wx + wy :=
+  smt_typeof_bv_concat_width_inv x y w
+
+theorem bvConcat_empty_smt_type :
+    __smtx_typeof (__eo_to_smt (Term.Binary 0 0)) = SmtType.BitVec 0 :=
+  smt_typeof_concat_empty
+
+theorem bvConcat_list_concat_smt_type
+    (a z : Term) (wa wz : Nat) :
+    __eo_is_list (Term.UOp UserOp.concat) a = Term.Boolean true ->
+    __eo_is_list (Term.UOp UserOp.concat) z = Term.Boolean true ->
+    __smtx_typeof (__eo_to_smt a) = SmtType.BitVec wa ->
+    __smtx_typeof (__eo_to_smt z) = SmtType.BitVec wz ->
+    __smtx_typeof
+        (__eo_to_smt (__eo_list_concat (Term.UOp UserOp.concat) a z)) =
+      SmtType.BitVec (wa + wz) :=
+  smt_typeof_list_concat_bv a z wa wz
+
+theorem bvConcat_singleton_elim_smt_type
+    (c : Term) (w : Nat) :
+    __eo_is_list (Term.UOp UserOp.concat) c = Term.Boolean true ->
+    __smtx_typeof (__eo_to_smt c) = SmtType.BitVec w ->
+    __smtx_typeof
+        (__eo_to_smt
+          (__eo_list_singleton_elim (Term.UOp UserOp.concat) c)) =
+      SmtType.BitVec w :=
+  smt_typeof_bv_singleton_elim c w
+
+theorem bvConcat_singleton_elim_eo_type_inv
+    (c : Term) (w : Nat) :
+    __eo_is_list (Term.UOp UserOp.concat) c = Term.Boolean true ->
+    __eo_typeof
+        (__eo_list_singleton_elim (Term.UOp UserOp.concat) c) =
+      Term.Apply (Term.UOp UserOp.BitVec)
+        (Term.Numeral (native_nat_to_int w)) ->
+    __eo_typeof c =
+      Term.Apply (Term.UOp UserOp.BitVec)
+        (Term.Numeral (native_nat_to_int w)) := by
+  intro hList hTy
+  change __eo_typeof
+      (__eo_requires (__eo_is_list (Term.UOp UserOp.concat) c)
+        (Term.Boolean true) (__eo_list_singleton_elim_2 c)) = _ at hTy
+  rw [hList] at hTy
+  simp [__eo_requires, native_ite, native_teq, native_not,
+    SmtEval.native_not] at hTy
+  cases c with
+  | Apply f tail =>
+      cases f with
+      | Apply g head =>
+          have hg : g = Term.UOp UserOp.concat :=
+            eo_is_list_cons_head_eq_of_true
+              (Term.UOp UserOp.concat) g head tail hList
+          subst g
+          have hTailList := eo_is_list_tail_true_of_cons_self
+            (Term.UOp UserOp.concat) head tail hList
+          have hTailNe : tail ≠ Term.Stuck := by
+            intro h
+            subst tail
+            simp [__eo_is_list] at hTailList
+          rcases bv_concat_is_list_nil_boolean_of_ne_stuck tail hTailNe with
+            ⟨b, hNil⟩
+          simp [__eo_list_singleton_elim_2, hNil, __eo_ite, native_ite,
+            native_teq] at hTy
+          cases b
+          · simpa [bvConcatTerm] using hTy
+          · have hTailEq : tail = Term.Binary 0 0 := by
+              cases tail <;> simp [__eo_is_list_nil] at hNil ⊢
+              case Binary bw bn =>
+                split at hNil <;> simp_all
+            subst tail
+            have hHeadTy : __eo_typeof head =
+                Term.Apply (Term.UOp UserOp.BitVec)
+                  (Term.Numeral (native_nat_to_int w)) := by
+              simpa using hTy
+            have hEmptyTy : __eo_typeof (Term.Binary 0 0) =
+                Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral 0) := by
+              rfl
+            change __eo_typeof_concat (__eo_typeof head)
+                (__eo_typeof (Term.Binary 0 0)) = _
+            rw [hHeadTy, hEmptyTy]
+            simp [__eo_typeof_concat, __eo_lit_type_Binary,
+              __eo_mk_apply, __eo_add, native_nat_to_int,
+              SmtEval.native_nat_to_int, SmtEval.native_zplus]
+      | _ => simpa [__eo_list_singleton_elim_2] using hTy
+  | _ => simpa [__eo_list_singleton_elim_2] using hTy
+
+theorem bvConcat_list_smt_type_of_translation
+    (t : Term) :
+    __eo_is_list (Term.UOp UserOp.concat) t = Term.Boolean true ->
+    RuleProofs.eo_has_smt_translation t ->
+    ∃ w : Nat, __smtx_typeof (__eo_to_smt t) = SmtType.BitVec w :=
+  smt_typeof_concat_list_of_translation t
+
+theorem bvConcat_list_concat_lists_of_ne_stuck
+    (a b : Term) :
+    __eo_list_concat (Term.UOp UserOp.concat) a b ≠ Term.Stuck ->
+    __eo_is_list (Term.UOp UserOp.concat) a = Term.Boolean true ∧
+      __eo_is_list (Term.UOp UserOp.concat) b = Term.Boolean true :=
+  bv_list_concat_lists_of_ne_stuck (Term.UOp UserOp.concat) a b
+
+theorem bvConcat_eo_typeof_concat_args_bitvec
+    {A B : Term}
+    (h : __eo_typeof_concat A B ≠ Term.Stuck) :
+    ∃ n m,
+      A = Term.Apply (Term.UOp UserOp.BitVec) n ∧
+        B = Term.Apply (Term.UOp UserOp.BitVec) m :=
+  eo_typeof_concat_args_bitvec_of_ne_stuck_local h
+
+theorem bvConcat_eo_typeof_list_concat_right_bitvec
+    (a z w : Term) :
+    __eo_is_list (Term.UOp UserOp.concat) a = Term.Boolean true ->
+    __eo_is_list (Term.UOp UserOp.concat) z = Term.Boolean true ->
+    __eo_typeof (__eo_list_concat (Term.UOp UserOp.concat) a z) =
+      Term.Apply (Term.UOp UserOp.BitVec) w ->
+    ∃ wz, __eo_typeof z = Term.Apply (Term.UOp UserOp.BitVec) wz :=
+  eo_typeof_list_concat_right_bitvec_of_result a z w
+
+theorem bvConcat_list_concat_rec_eval_append
+    (M : SmtModel) (hM : model_total_typed M)
+    (a z1 z2 x : Term) (wa wz wx : Nat) :
+    __eo_is_list (Term.UOp UserOp.concat) a = Term.Boolean true ->
+    __smtx_typeof (__eo_to_smt a) = SmtType.BitVec wa ->
+    __smtx_typeof (__eo_to_smt z1) = SmtType.BitVec (wz + wx) ->
+    __smtx_typeof (__eo_to_smt z2) = SmtType.BitVec wz ->
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec wx ->
+    __smtx_model_eval M (__eo_to_smt z1) =
+      __smtx_model_eval M (__eo_to_smt (bvConcatTerm z2 x)) ->
+    __smtx_model_eval M (__eo_to_smt (__eo_list_concat_rec a z1)) =
+      __smtx_model_eval M
+        (__eo_to_smt (bvConcatTerm (__eo_list_concat_rec a z2) x)) :=
+  eval_bv_list_concat_rec_append M hM a z1 z2 x wa wz wx
+
+theorem bvConcat_assoc_eval
+    (M : SmtModel) (hM : model_total_typed M)
+    (a b c : Term) (wa wb wc : Nat) :
+    __smtx_typeof (__eo_to_smt a) = SmtType.BitVec wa ->
+    __smtx_typeof (__eo_to_smt b) = SmtType.BitVec wb ->
+    __smtx_typeof (__eo_to_smt c) = SmtType.BitVec wc ->
+    __smtx_model_eval M
+        (__eo_to_smt (bvConcatTerm a (bvConcatTerm b c))) =
+      __smtx_model_eval M
+        (__eo_to_smt (bvConcatTerm (bvConcatTerm a b) c)) :=
+  eval_bv_concat_assoc M hM a b c wa wb wc
+
+theorem bvConcat_singleton_elim_eval_eq
+    (M : SmtModel) (hM : model_total_typed M) (c : Term) (w : Nat) :
+    __eo_is_list (Term.UOp UserOp.concat) c = Term.Boolean true ->
+    __smtx_typeof (__eo_to_smt c) = SmtType.BitVec w ->
+    __smtx_model_eval M
+        (__eo_to_smt
+          (__eo_list_singleton_elim (Term.UOp UserOp.concat) c)) =
+      __smtx_model_eval M (__eo_to_smt c) :=
+  bvConcatSingletonElimEvalEq M hM c w
+
 private theorem eval_bv_extract_concat_whole_append_elim
     (M : SmtModel) (hM : model_total_typed M)
     (x y xs : Term) (wx wy wxs : Nat) :
