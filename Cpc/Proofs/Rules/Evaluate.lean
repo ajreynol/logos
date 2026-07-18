@@ -5542,7 +5542,7 @@ private theorem eo_eval_sign_extend_rhs_binary_of_typeof_bitvec
 private theorem eo_extract_literal_arg_binary_of_typeof_bitvec
     (x : Term) (i j w : native_Int)
     (hj0 : native_zleq 0 j = true)
-    (hWidth : native_zleq 0
+    (hWidth : native_zlt 0
       (native_zplus (native_zplus i 1) (native_zneg j)) = true) :
     __eo_typeof (__eo_extract x (Term.Numeral j) (Term.Numeral i)) =
       Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w) ->
@@ -5567,10 +5567,18 @@ private theorem eo_extract_literal_arg_binary_of_typeof_bitvec
       simp [native_zplus, SmtEval.native_zplus, native_zneg,
         SmtEval.native_zneg, Int.add_assoc, Int.add_comm,
         Int.add_left_comm]
+    have hWidthPosNative :
+        native_zlt 0
+          (native_zplus (native_zplus i (native_zneg j)) 1) = true := by
+      simpa [hWidthAssoc] using hWidth
     have hWidthNonnegNative :
         native_zleq 0
           (native_zplus (native_zplus i (native_zneg j)) 1) = true := by
-      simpa [hWidthAssoc] using hWidth
+      have hPos :
+          (0 : native_Int) <
+            native_zplus (native_zplus i (native_zneg j)) 1 := by
+        simpa [native_zlt, SmtEval.native_zlt] using hWidthPosNative
+      simpa [native_zleq, SmtEval.native_zleq] using Int.le_of_lt hPos
     change
       __eo_typeof
           (native_ite
@@ -13041,7 +13049,7 @@ private theorem eo_repeat_typeof_bitvec_of_arg_bitvec_and_ne_stuck
 private theorem eo_extract_typeof_bitvec_of_arg_bitvec_and_ne_stuck
     (x : Term) (i j w : native_Int)
     (hj0 : native_zleq 0 j = true)
-    (hWidth : native_zleq 0
+    (hWidth : native_zlt 0
       (native_zplus (native_zplus i 1) (native_zneg j)) = true)
     (hX :
       __eo_typeof x =
@@ -13070,11 +13078,20 @@ private theorem eo_extract_typeof_bitvec_of_arg_bitvec_and_ne_stuck
       simp [native_zplus, SmtEval.native_zplus, native_zneg,
         SmtEval.native_zneg, Int.add_assoc, Int.add_comm,
         Int.add_left_comm]
+    have hWidthPosNative :
+        native_zlt 0
+            (native_zplus (native_zplus i (native_zneg j)) 1) =
+          true := by
+      simpa [hWidthAssoc] using hWidth
     have hWidthNonnegNative :
         native_zleq 0
             (native_zplus (native_zplus i (native_zneg j)) 1) =
           true := by
-      simpa [hWidthAssoc] using hWidth
+      have hPos :
+          (0 : native_Int) <
+            native_zplus (native_zplus i (native_zneg j)) 1 := by
+        simpa [native_zlt, SmtEval.native_zlt] using hWidthPosNative
+      simpa [native_zleq, SmtEval.native_zleq] using Int.le_of_lt hPos
     cases hDeltaNeg :
         native_zlt (native_zplus i (native_zneg j)) 0
     · have hDeltaNotLt : ¬ i + -j < 0 := by
@@ -19329,8 +19346,8 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
               subst n
               have hi : (1 : Int) <= i := by
                 simpa [native_zleq, SmtEval.native_zleq] using hi1
-              have hIGtNegOne : native_zlt (-1 : native_Int) i = true := by
-                have hlt : (-1 : Int) < i := by omega
+              have hIGtZero : native_zlt 0 i = true := by
+                have hlt : (0 : Int) < i := by omega
                 simpa [native_zlt, SmtEval.native_zlt] using hlt
               have hiNotNeg : native_zlt i 0 = false := by
                 simp [native_zlt, SmtEval.native_zlt]
@@ -19403,7 +19420,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
               rw [hXEoBv]
               simpa [__eo_typeof_repeat, __eo_requires, __eo_gt, __eo_mul,
                 __eo_mk_apply, native_ite, native_teq, native_not,
-                hIGtNegOne] using
+                hIGtZero] using
                 hRunBodyTy
             | zero_extend =>
               have hZeroNN :
@@ -19712,23 +19729,26 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                 simp [native_zplus, SmtEval.native_zplus, native_zneg,
                   SmtEval.native_zneg, Int.add_assoc, Int.add_comm,
                   Int.add_left_comm]
+              have hWidthPos :
+                  native_zlt 0
+                      (native_zplus (native_zplus i (native_zneg j)) 1) =
+                    true := by
+                simpa [hWidthAssoc] using hji
+              have hWidthPosRaw :
+                  native_zlt 0 (i + -j + 1) = true := by
+                simpa [native_zplus, SmtEval.native_zplus, native_zneg,
+                  SmtEval.native_zneg, Int.add_assoc] using hWidthPos
               have hWidthNonneg :
                   native_zleq 0
                       (native_zplus (native_zplus i (native_zneg j)) 1) =
                     true := by
-                simpa [hWidthAssoc] using hji
-              have hWidthGtNegOne :
-                  native_zlt (-1 : native_Int)
-                      (i + -j + 1) =
-                    true := by
-                have hWidthGe : 0 <= i + -j + 1 := by
-                  simpa [native_zleq, SmtEval.native_zleq, native_zplus,
-                    SmtEval.native_zplus, native_zneg, SmtEval.native_zneg,
-                    Int.add_assoc] using hWidthNonneg
-                have hlt :
-                    (-1 : native_Int) < i + -j + 1 :=
-                  Int.lt_of_lt_of_le (by decide) hWidthGe
-                simpa [native_zlt, SmtEval.native_zlt] using hlt
+                have hPos :
+                    (0 : native_Int) <
+                      native_zplus
+                        (native_zplus i (native_zneg j)) 1 := by
+                  simpa [native_zlt, SmtEval.native_zlt] using hWidthPos
+                simpa [native_zleq, SmtEval.native_zleq] using
+                  Int.le_of_lt hPos
               change
                 __eo_typeof
                     (__eo_extract (__run_evaluate x)
@@ -19739,7 +19759,8 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
               rw [hXEoBv]
               simpa [__eo_typeof_extract, __eo_add, __eo_neg, __eo_gt,
                 __eo_requires, __eo_mk_apply, hLowSuccPos, hJGtNegOne,
-                hWidthNonneg, hWidthGtNegOne, hiw, native_ite, native_teq,
+                hWidthNonneg, hWidthPos, hWidthPosRaw, hiw, native_ite,
+                native_teq,
                 native_not,
                 native_zplus, SmtEval.native_zplus, native_zneg,
                 SmtEval.native_zneg]
@@ -22401,8 +22422,8 @@ private theorem run_evaluate_sound_apply_repeat_core
     simpa [native_zleq, SmtEval.native_zleq] using hi1
   have hi0Int : (0 : Int) <= i := by
     omega
-  have hIGtNegOne : native_zlt (-1 : native_Int) i = true := by
-    have hlt : (-1 : Int) < i := by omega
+  have hIGtZero : native_zlt 0 i = true := by
+    have hlt : (0 : Int) < i := by omega
     simpa [native_zlt, SmtEval.native_zlt] using hlt
   have hi0 : native_zleq 0 i = true := by
     simpa [native_zleq, SmtEval.native_zleq] using hi0Int
@@ -22438,7 +22459,7 @@ private theorem run_evaluate_sound_apply_repeat_core
           (Term.Numeral (native_zmult i (native_nat_to_int w)))
     rw [hXEoBv]
     simp [__eo_typeof_repeat, __eo_requires, __eo_gt, __eo_mul,
-      __eo_mk_apply, native_ite, native_teq, native_not, hIGtNegOne]
+      __eo_mk_apply, native_ite, native_teq, native_not, hIGtZero]
   let runRepeat :=
     __bv_eval_concat
       (__eo_list_repeat (Term.UOp UserOp.concat)
@@ -38371,20 +38392,21 @@ private theorem run_evaluate_sound_apply_extract_core
         native_zplus (native_zplus i (native_zneg j)) 1 := by
     simp [native_zplus, SmtEval.native_zplus, native_zneg,
       SmtEval.native_zneg, Int.add_assoc, Int.add_comm, Int.add_left_comm]
+  have hWidthPos :
+      native_zlt 0 (native_zplus (native_zplus i (native_zneg j)) 1) =
+        true := by
+    simpa [hWidthAssoc] using hji
+  have hWidthPosRaw : native_zlt 0 (i + -j + 1) = true := by
+    simpa [native_zplus, SmtEval.native_zplus, native_zneg,
+      SmtEval.native_zneg, Int.add_assoc] using hWidthPos
   have hWidthNonneg :
       native_zleq 0 (native_zplus (native_zplus i (native_zneg j)) 1) =
         true := by
-    simpa [hWidthAssoc] using hji
-  have hWidthGtNegOne :
-      native_zlt (-1 : native_Int)
-          (i + -j + 1) = true := by
-    have hWidthGe : 0 <= i + -j + 1 := by
-      simpa [native_zleq, SmtEval.native_zleq, native_zplus,
-        SmtEval.native_zplus, native_zneg, SmtEval.native_zneg,
-        Int.add_assoc] using hWidthNonneg
-    have hlt : (-1 : native_Int) < i + -j + 1 :=
-      Int.lt_of_lt_of_le (by decide) hWidthGe
-    simpa [native_zlt, SmtEval.native_zlt] using hlt
+    have hPos :
+        (0 : native_Int) <
+          native_zplus (native_zplus i (native_zneg j)) 1 := by
+      simpa [native_zlt, SmtEval.native_zlt] using hWidthPos
+    simpa [native_zleq, SmtEval.native_zleq] using Int.le_of_lt hPos
   have hExtractEoType :
       __eo_typeof
           (Term.Apply
@@ -38400,10 +38422,9 @@ private theorem run_evaluate_sound_apply_extract_core
               (native_zplus (native_zplus i (native_zneg j)) 1))
       rw [hXEoBv]
       simp [__eo_typeof_extract, __eo_add, __eo_neg, __eo_gt, __eo_requires,
-        __eo_mk_apply, hLowSuccPos, hJGtNegOne, hWidthNonneg,
-        hWidthGtNegOne, hiw,
-        native_ite, native_teq, native_not, native_zplus, SmtEval.native_zplus,
-        native_zneg, SmtEval.native_zneg]
+        __eo_mk_apply, hLowSuccPos, hJGtNegOne, hWidthNonneg, hWidthPos,
+        hWidthPosRaw, hiw, native_ite, native_teq, native_not, native_zplus,
+        SmtEval.native_zplus, native_zneg, SmtEval.native_zneg]
   let runExt :=
     __eo_extract (__run_evaluate x) (Term.Numeral j) (Term.Numeral i)
   have hRunExtNe : runExt ≠ Term.Stuck := by
