@@ -206,10 +206,6 @@ theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
       exact False.elim
         (no_translation_of_eo_apply_none_head
           (f := Term.UOp UserOp.mod) (x := x) (by rfl) hTrans)
-  | Term.Apply (Term.UOp UserOp.multmult) x =>
-      exact False.elim
-        (no_translation_of_eo_apply_none_head
-          (f := Term.UOp UserOp.multmult) (x := x) (by rfl) hTrans)
   | Term.Apply (Term.UOp UserOp.div_total) x =>
       exact False.elim
         (no_translation_of_eo_apply_none_head
@@ -218,10 +214,6 @@ theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
       exact False.elim
         (no_translation_of_eo_apply_none_head
           (f := Term.UOp UserOp.mod_total) (x := x) (by rfl) hTrans)
-  | Term.Apply (Term.UOp UserOp.multmult_total) x =>
-      exact False.elim
-        (no_translation_of_eo_apply_none_head
-          (f := Term.UOp UserOp.multmult_total) (x := x) (by rfl) hTrans)
   | Term.Apply (Term.UOp UserOp.divisible) x =>
       exact False.elim
         (no_translation_of_eo_apply_none_head
@@ -230,14 +222,10 @@ theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
       exact congTypeSpine_div_eq_has_bool_type x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.mod) x₁) x₂ =>
       exact congTypeSpine_mod_eq_has_bool_type x₁ x₂ rhs hTrans hSpine
-  | Term.Apply (Term.Apply (Term.UOp UserOp.multmult) x₁) x₂ =>
-      exact congTypeSpine_multmult_eq_has_bool_type x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.div_total) x₁) x₂ =>
       exact congTypeSpine_div_total_eq_has_bool_type x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.mod_total) x₁) x₂ =>
       exact congTypeSpine_mod_total_eq_has_bool_type x₁ x₂ rhs hTrans hSpine
-  | Term.Apply (Term.Apply (Term.UOp UserOp.multmult_total) x₁) x₂ =>
-      exact congTypeSpine_multmult_total_eq_has_bool_type x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.divisible) x₁) x₂ =>
       exact congTypeSpine_divisible_eq_has_bool_type x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.UOp UserOp.int_pow2) x =>
@@ -1907,17 +1895,11 @@ theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                             case mod =>
                               exact congTypeSpine_mod_eq_has_bool_type
                                 z x (Term.Apply g y) hTrans hApp
-                            case multmult =>
-                              exact congTypeSpine_multmult_eq_has_bool_type
-                                z x (Term.Apply g y) hTrans hApp
                             case div_total =>
                               exact congTypeSpine_div_total_eq_has_bool_type
                                 z x (Term.Apply g y) hTrans hApp
                             case mod_total =>
                               exact congTypeSpine_mod_total_eq_has_bool_type
-                                z x (Term.Apply g y) hTrans hApp
-                            case multmult_total =>
-                              exact congTypeSpine_multmult_total_eq_has_bool_type
                                 z x (Term.Apply g y) hTrans hApp
                             case divisible =>
                               exact congTypeSpine_divisible_eq_has_bool_type

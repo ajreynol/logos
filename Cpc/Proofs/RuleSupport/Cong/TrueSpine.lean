@@ -223,11 +223,6 @@ theorem congTrueSpine_eq_true
         (no_bool_eq_left_of_eo_apply_none_head
           (f := Term.UOp UserOp.mod) (x := x) (rhs := rhs) (by rfl)
           hEqBool)
-  | Term.Apply (Term.UOp UserOp.multmult) x =>
-      exact False.elim
-        (no_bool_eq_left_of_eo_apply_none_head
-          (f := Term.UOp UserOp.multmult) (x := x) (rhs := rhs) (by rfl)
-          hEqBool)
   | Term.Apply (Term.UOp UserOp.div_total) x =>
       exact False.elim
         (no_bool_eq_left_of_eo_apply_none_head
@@ -238,11 +233,6 @@ theorem congTrueSpine_eq_true
         (no_bool_eq_left_of_eo_apply_none_head
           (f := Term.UOp UserOp.mod_total) (x := x) (rhs := rhs) (by rfl)
           hEqBool)
-  | Term.Apply (Term.UOp UserOp.multmult_total) x =>
-      exact False.elim
-        (no_bool_eq_left_of_eo_apply_none_head
-          (f := Term.UOp UserOp.multmult_total) (x := x) (rhs := rhs) (by rfl)
-          hEqBool)
   | Term.Apply (Term.UOp UserOp.divisible) x =>
       exact False.elim
         (no_bool_eq_left_of_eo_apply_none_head
@@ -252,14 +242,10 @@ theorem congTrueSpine_eq_true
       exact congTrueSpine_div_eq_true M hM x₁ x₂ rhs hEqBool hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.mod) x₁) x₂ =>
       exact congTrueSpine_mod_eq_true M hM x₁ x₂ rhs hEqBool hSpine
-  | Term.Apply (Term.Apply (Term.UOp UserOp.multmult) x₁) x₂ =>
-      exact congTrueSpine_multmult_eq_true M hM x₁ x₂ rhs hEqBool hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.div_total) x₁) x₂ =>
       exact congTrueSpine_div_total_eq_true M hM x₁ x₂ rhs hEqBool hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.mod_total) x₁) x₂ =>
       exact congTrueSpine_mod_total_eq_true M hM x₁ x₂ rhs hEqBool hSpine
-  | Term.Apply (Term.Apply (Term.UOp UserOp.multmult_total) x₁) x₂ =>
-      exact congTrueSpine_multmult_total_eq_true M hM x₁ x₂ rhs hEqBool hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.divisible) x₁) x₂ =>
       exact congTrueSpine_divisible_eq_true M hM x₁ x₂ rhs hEqBool hSpine
   | Term.Apply (Term.UOp UserOp.int_pow2) x =>
@@ -2010,17 +1996,11 @@ theorem congTrueSpine_eq_true
                             case mod =>
                               exact congTrueSpine_mod_eq_true M hM
                                 z x (Term.Apply g y) hEqBool hApp
-                            case multmult =>
-                              exact congTrueSpine_multmult_eq_true M hM
-                                z x (Term.Apply g y) hEqBool hApp
                             case div_total =>
                               exact congTrueSpine_div_total_eq_true M hM
                                 z x (Term.Apply g y) hEqBool hApp
                             case mod_total =>
                               exact congTrueSpine_mod_total_eq_true M hM
-                                z x (Term.Apply g y) hEqBool hApp
-                            case multmult_total =>
-                              exact congTrueSpine_multmult_total_eq_true M hM
                                 z x (Term.Apply g y) hEqBool hApp
                             case divisible =>
                               exact congTrueSpine_divisible_eq_true M hM

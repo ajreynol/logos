@@ -876,37 +876,6 @@ theorem congTypeSpine_mod_eq_has_bool_type
       rw [typeof_mod_eq, typeof_mod_eq, ha, hb])
     x₁ x₂ rhs
 
-theorem congTrueSpine_multmult_eq_true
-    (M : SmtModel) (hM : model_total_typed M) (x₁ x₂ rhs : Term) :
-    RuleProofs.eo_has_bool_type
-      (mkEq (Term.Apply (Term.Apply (Term.UOp UserOp.multmult) x₁) x₂) rhs) ->
-    CongTrueSpine M
-      (Term.Apply (Term.Apply (Term.UOp UserOp.multmult) x₁) x₂) rhs ->
-    eo_interprets M
-      (mkEq (Term.Apply (Term.Apply (Term.UOp UserOp.multmult) x₁) x₂) rhs) true :=
-  congTrueSpine_non_reg_binop_eq_true M hM UserOp.multmult SmtTerm.multmult
-    (smtEvalMultmult M)
-    (by intro a b; rfl)
-    (int_binop_args_non_reg_of_non_none SmtTerm.multmult SmtType.Int
-      (by intro a b; exact typeof_multmult_eq a b))
-    (by intro a b; rw [__smtx_model_eval.eq_26])
-    x₁ x₂ rhs
-
-theorem congTypeSpine_multmult_eq_has_bool_type
-    (x₁ x₂ rhs : Term) :
-    RuleProofs.eo_has_smt_translation
-      (Term.Apply (Term.Apply (Term.UOp UserOp.multmult) x₁) x₂) ->
-    CongTypeSpine
-      (Term.Apply (Term.Apply (Term.UOp UserOp.multmult) x₁) x₂) rhs ->
-    RuleProofs.eo_has_bool_type
-      (mkEq (Term.Apply (Term.Apply (Term.UOp UserOp.multmult) x₁) x₂) rhs) :=
-  congTypeSpine_typecongr_binop_eq_has_bool_type UserOp.multmult SmtTerm.multmult
-    (by intro a b; rfl)
-    (by
-      intro a b a' b' ha hb
-      rw [typeof_multmult_eq, typeof_multmult_eq, ha, hb])
-    x₁ x₂ rhs
-
 theorem congTrueSpine_div_total_eq_true
     (M : SmtModel) (hM : model_total_typed M) (x₁ x₂ rhs : Term) :
     RuleProofs.eo_has_bool_type
@@ -967,39 +936,6 @@ theorem congTypeSpine_mod_total_eq_has_bool_type
     (by
       intro a b a' b' ha hb
       rw [typeof_mod_total_eq, typeof_mod_total_eq, ha, hb])
-    x₁ x₂ rhs
-
-theorem congTrueSpine_multmult_total_eq_true
-    (M : SmtModel) (hM : model_total_typed M) (x₁ x₂ rhs : Term) :
-    RuleProofs.eo_has_bool_type
-      (mkEq (Term.Apply (Term.Apply (Term.UOp UserOp.multmult_total) x₁) x₂) rhs) ->
-    CongTrueSpine M
-      (Term.Apply (Term.Apply (Term.UOp UserOp.multmult_total) x₁) x₂) rhs ->
-    eo_interprets M
-      (mkEq (Term.Apply (Term.Apply (Term.UOp UserOp.multmult_total) x₁) x₂) rhs) true :=
-  congTrueSpine_non_reg_binop_eq_true M hM UserOp.multmult_total
-    SmtTerm.multmult_total
-    __smtx_model_eval_multmult_total
-    (by intro a b; rfl)
-    (int_binop_args_non_reg_of_non_none SmtTerm.multmult_total SmtType.Int
-      (by intro a b; exact typeof_multmult_total_eq a b))
-    (by intro a b; rw [__smtx_model_eval.eq_32])
-    x₁ x₂ rhs
-
-theorem congTypeSpine_multmult_total_eq_has_bool_type
-    (x₁ x₂ rhs : Term) :
-    RuleProofs.eo_has_smt_translation
-      (Term.Apply (Term.Apply (Term.UOp UserOp.multmult_total) x₁) x₂) ->
-    CongTypeSpine
-      (Term.Apply (Term.Apply (Term.UOp UserOp.multmult_total) x₁) x₂) rhs ->
-    RuleProofs.eo_has_bool_type
-      (mkEq (Term.Apply (Term.Apply (Term.UOp UserOp.multmult_total) x₁) x₂) rhs) :=
-  congTypeSpine_typecongr_binop_eq_has_bool_type UserOp.multmult_total
-    SmtTerm.multmult_total
-    (by intro a b; rfl)
-    (by
-      intro a b a' b' ha hb
-      rw [typeof_multmult_total_eq, typeof_multmult_total_eq, ha, hb])
     x₁ x₂ rhs
 
 theorem congTrueSpine_divisible_eq_true

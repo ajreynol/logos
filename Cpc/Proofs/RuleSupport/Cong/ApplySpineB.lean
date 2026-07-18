@@ -518,25 +518,6 @@ noncomputable abbrev smtEvalMod
       _v1)
     (__smtx_model_eval_mod_total _v1 _v0)
 
-noncomputable abbrev smtEvalMultmult
-    (M : SmtModel) (x₁ x₂ : SmtValue) : SmtValue :=
-  let _v0 := x₂
-  let _v1 := SmtValue.Numeral 0
-  let _v2 := x₁
-  let _v3 := SmtValue.Numeral 1
-  __smtx_model_eval_ite
-    (__smtx_model_eval_geq _v0 _v1)
-    (__smtx_model_eval_multmult_total _v2 _v0)
-    (__smtx_model_eval_ite
-      (__smtx_model_eval_eq _v2 _v1)
-      (__smtx_model_eval_apply M
-        (native_model_lookup M native_div_by_zero_id
-          (SmtType.FunType SmtType.Int SmtType.Int))
-        _v3)
-      (__smtx_model_eval_div_total _v3
-        (__smtx_model_eval_multmult_total _v2
-          (__smtx_model_eval__ _v1 _v0))))
-
 noncomputable abbrev smtEvalQdiv
     (M : SmtModel) (x₁ x₂ : SmtValue) : SmtValue :=
   let _v0 := x₂

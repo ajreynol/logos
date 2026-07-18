@@ -910,11 +910,6 @@ theorem eo_apply_apply_arg_has_translation_of_has_translation
           SmtTerm.mod (__eo_to_smt z) (__eo_to_smt x)
           (int_binop_args_non_reg_of_non_none SmtTerm.mod SmtType.Int
             (by intro a b; exact typeof_mod_eq a b)) hx)
-      case multmult =>
-        exact hTrans (smt_binop_type_none_of_second_arg_none
-          SmtTerm.multmult (__eo_to_smt z) (__eo_to_smt x)
-          (int_binop_args_non_reg_of_non_none SmtTerm.multmult SmtType.Int
-            (by intro a b; exact typeof_multmult_eq a b)) hx)
       case divisible =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.divisible (__eo_to_smt z) (__eo_to_smt x)
@@ -930,11 +925,6 @@ theorem eo_apply_apply_arg_has_translation_of_has_translation
           SmtTerm.mod_total (__eo_to_smt z) (__eo_to_smt x)
           (int_binop_args_non_reg_of_non_none SmtTerm.mod_total SmtType.Int
             (by intro a b; exact typeof_mod_total_eq a b)) hx)
-      case multmult_total =>
-        exact hTrans (smt_binop_type_none_of_second_arg_none
-          SmtTerm.multmult_total (__eo_to_smt z) (__eo_to_smt x)
-          (int_binop_args_non_reg_of_non_none SmtTerm.multmult_total
-            SmtType.Int (by intro a b; exact typeof_multmult_total_eq a b)) hx)
       case select =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.select (__eo_to_smt z) (__eo_to_smt x)
@@ -1279,14 +1269,9 @@ theorem eo_apply_apply_arg_has_translation_of_has_translation
             __smtx_typeof
               (stringsItosResultTerm (__eo_to_smt z) (__eo_to_smt x)) =
               SmtType.None
-          have hMul :
-              __smtx_typeof
-                (SmtTerm.multmult (SmtTerm.Numeral 10) (__eo_to_smt x)) =
-                SmtType.None := by
-            rw [typeof_multmult_eq, hx]
-            simp [__smtx_typeof, native_ite, native_Teq]
-          rw [stringsItosResultTerm, typeof_mod_eq, hMul]
-          simp [native_ite, native_Teq])
+          rw [stringsItosResultTerm, typeof_ite_eq, typeof_eq_eq, hx]
+          simp [__smtx_typeof_eq, __smtx_typeof_guard,
+            __smtx_typeof_ite, native_ite, native_Teq])
       case _at_sets_deq_diff =>
         exact hTrans (by
           change
