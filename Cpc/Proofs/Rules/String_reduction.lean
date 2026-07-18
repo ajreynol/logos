@@ -368,8 +368,6 @@ private theorem string_reduction_pred_true
       all_goals try
         (change Term.Stuck = Term.Bool at hBodyTy
          exact False.elim (Term.noConfusion hBodyTy))
-      case str_from_int => sorry
-      case str_to_int => sorry
       case str_to_lower =>
         have hOrigNN :
             term_has_non_none_type
