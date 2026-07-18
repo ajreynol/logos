@@ -3448,7 +3448,7 @@ def RootEmbeddedDt (root : SmtDatatype) (d : SmtDatatype) : Prop :=
   ∀ s X, __smtx_dt_name_agrees s X root = true →
     __smtx_dt_name_agrees s X d = true
 
-private theorem RootEmbeddedDt_parts
+theorem RootEmbeddedDt_parts
     (root : SmtDatatype) (c : SmtDatatypeCons) (d : SmtDatatype)
     (h : RootEmbeddedDt root (SmtDatatype.sum c d)) :
     RootEmbeddedDtc root c ∧ RootEmbeddedDt root d := by
@@ -3464,7 +3464,7 @@ private theorem RootEmbeddedDt_parts
       cases hd : __smtx_dt_name_agrees s X d <;>
         simp_all [native_ite]
 
-private theorem RootEmbeddedDtc_parts
+theorem RootEmbeddedDtc_parts
     (root : SmtDatatype) (T : SmtType) (c : SmtDatatypeCons)
     (h : RootEmbeddedDtc root (SmtDatatypeCons.cons T c)) :
     RootEmbeddedTy root T ∧ RootEmbeddedDtc root c := by
@@ -3977,7 +3977,7 @@ private theorem namesConsTy_parts
     cases hc : __smtx_dt_names_consistent_rec root X <;>
       simp_all [native_ite]
 
-private theorem namesConsDtc_parts
+theorem namesConsDtc_parts
     (root : SmtDatatype) (T : SmtType) (c : SmtDatatypeCons)
     (h : __smtx_dt_cons_names_consistent_rec root
       (SmtDatatypeCons.cons T c) = true) :
@@ -3988,7 +3988,7 @@ private theorem namesConsDtc_parts
     cases hc : __smtx_dt_cons_names_consistent_rec root c <;>
       simp_all [native_ite]
 
-private theorem namesConsDt_parts
+theorem namesConsDt_parts
     (root : SmtDatatype) (c : SmtDatatypeCons) (d : SmtDatatype)
     (h : __smtx_dt_names_consistent_rec root (SmtDatatype.sum c d) = true) :
     __smtx_dt_cons_names_consistent_rec root c = true ∧
@@ -4389,7 +4389,7 @@ private theorem ctxImg_resolve_chain
         hTailEmb hTailOrigin hCons hEmb hStep
       simpa [chain_dt, chainRefsAcc] using hRec
 
-private theorem type_names_consistent_parts
+theorem type_names_consistent_parts
     (t : native_String) (R : SmtDatatype)
     (h : __smtx_type_names_consistent (SmtType.Datatype t R) = true) :
     __smtx_dt_name_agrees t R R = true ∧
@@ -9417,6 +9417,54 @@ private def namesAligned : SubstChain → SubstChain → native_Bool
       native_and (native_streq w w') (namesAligned ρO ρN)
   | _, _ => false
 
+/-- The proof-irrelevant name projection of a substitution chain. -/
+private def chainNames : SubstChain → List native_String
+  | [] => []
+  | (w, _, _) :: ρ => w :: chainNames ρ
+
+/-- A descent at a fresh name preserves the chain's name sequence. -/
+private theorem chainNames_descend_of_fresh
+    (q : native_String) :
+    ∀ (ρ : SubstChain) (X : SmtDatatype),
+      chainHasName q ρ = false →
+      chainNames (chain_descend ρ q X) = chainNames ρ
+  | [], _, _ => rfl
+  | (w, R, P) :: ρ, X, hFresh => by
+      have hp := chainHasName_false_parts q w R P ρ hFresh
+      have hwq : native_streq w q = false := by
+        simpa [native_streq, eq_comm] using hp.1
+      simp [chain_descend, chainNames, hwq,
+        chainNames_descend_of_fresh q ρ
+          (__smtx_dt_substitute w (__smtx_dt_lift q X P) X) hp.2]
+
+/-- `namesAligned` is exactly equality of the name projections. -/
+private theorem namesAligned_iff_chainNames :
+    ∀ (ρO ρN : SubstChain),
+      namesAligned ρO ρN = true ↔ chainNames ρO = chainNames ρN
+  | [], [] => by simp [namesAligned, chainNames]
+  | [], (_ :: _) => by simp [namesAligned, chainNames]
+  | (_ :: _), [] => by simp [namesAligned, chainNames]
+  | (w, R, P) :: ρO, (w', R', P') :: ρN => by
+      simp [namesAligned, chainNames, native_and, native_streq,
+        namesAligned_iff_chainNames ρO ρN]
+
+/-- The old head-resolution descent and the corresponding pre-refill descent
+of a fresh child have the same entry-name sequence. -/
+private theorem namesAligned_double_descend
+    (REST : SubstChain) (s3 t : native_String)
+    (X P P' : SmtDatatype)
+    (hFreshS3 : chainHasName s3 REST = false)
+    (hFreshT : chainHasName t REST = false) :
+    namesAligned (chain_descend REST t P)
+      (chain_descend (chain_descend REST s3 X) t P') = true := by
+  rw [namesAligned_iff_chainNames]
+  rw [chainNames_descend_of_fresh t REST P hFreshT]
+  have hFreshT' : chainHasName t (chain_descend REST s3 X) = false := by
+    rw [chainHasName_descend_of_fresh t s3 REST X hFreshS3]
+    exact hFreshT
+  rw [chainNames_descend_of_fresh t (chain_descend REST s3 X) P' hFreshT']
+  exact (chainNames_descend_of_fresh s3 REST X hFreshS3).symm
+
 private theorem chain_dt_pairApplyO :
     ∀ (σO σN : SubstChain) (A : SmtDatatype),
       namesAligned σO σN = true →
@@ -9595,8 +9643,77 @@ private theorem chainok_selfExt_facts
         (chain_descend REST' t P' ++
           [(t, R, chain_dt (chain_descend REST' t P') P')])
       rwa [chain_dt_append_one] at h
+    -- Split the new history before its final `s3` refill.  The two prefix
+    -- descents retain exactly the names of `REST`, so their payload actions
+    -- can subsequently be zipped entrywise.
+    let Y := __smtx_dt_substitute t P' X
+    let δ := chain_descend REST s3 Y
+    let α := chain_descend REST t P
+    let β := chain_descend δ t P'
+    let DN := chain_dt β P'
+    let B := chain_dt (chain_descend ((t, R, P) :: REST) s3 X) X
+    have hFreshT : chainHasName t REST = false :=
+      hSource.2.2.2.2.2.2.1
+    have hAligned : namesAligned α β = true := by
+      exact namesAligned_double_descend REST s3 t Y P P' hFresh hFreshT
+    have hOldPaired : chain_dt α P = pairApplyO (zipSteps α β) P :=
+      chain_dt_pairApplyO α β P hAligned
+    have hNewPaired : DN = pairApplyN (zipSteps α β) P' := by
+      exact chain_dt_pairApplyN α β P' hAligned
+    let dead0 : native_String → native_Bool := fun _ => false
+    have hInitial : RotShPreDt s3 dead0 P P' := by
+      simpa [P'] using
+        (rotShPre_init_dt (s3 := s3) (dead := dead0) X P hNoStrayP)
+    have hDOld : D = pairApplyO (zipSteps α β) P := by
+      rw [hD]
+      simpa [α] using hOldPaired
+    have hPreRes :
+        chain_ty (chain_descend ((t, R, P) :: REST) s3 X)
+            (SmtType.TypeRef t) = SmtType.Datatype t DN := by
+      have hst : native_streq t s3 = false := hne
+      rw [show chain_descend ((t, R, P) :: REST) s3 X =
+          (t, R, P') :: δ by
+        simp [chain_descend, hst, P', δ, Y]]
+      rw [show chain_ty ((t, R, P') :: δ) (SmtType.TypeRef t) =
+          chain_ty δ (SmtType.Datatype t P') by
+        simp [chain_ty, __smtx_type_substitute, native_ite, native_streq]]
+      simpa [DN, β] using chain_ty_datatype δ t P'
+    have hNewClosed :
+        chain_dt (chain_descend REST' t P') P' =
+          __smtx_dt_substitute s3 (__smtx_dt_lift t DN B) DN := by
+      have hst : native_streq s3 t = false := by
+        simpa [native_streq, eq_comm] using hne
+      have hResolution :=
+        selfExt_resolution ((t, R, P) :: REST) s3 X t hst DN hPreRes
+      rw [hSelfExt] at hResolution
+      have hCanonical :
+          chain_ty ((t, R, P') :: REST') (SmtType.TypeRef t) =
+            SmtType.Datatype t
+              (chain_dt (chain_descend REST' t P') P') := by
+        rw [show chain_ty ((t, R, P') :: REST') (SmtType.TypeRef t) =
+            chain_ty REST' (SmtType.Datatype t P') by
+          simp [chain_ty, __smtx_type_substitute, native_ite, native_streq]]
+        exact chain_ty_datatype REST' t P'
+      rw [hCanonical] at hResolution
+      injection hResolution with _hName hBody
+    have hPrefixRot_of_pairOK :
+        ChainPairOK s3 dead0 (zipSteps α β) P P' →
+          RotShPreDt s3 (deadFold dead0 (zipSteps α β)) D DN := by
+      intro hPairOK
+      have hRot := rotShPre_chain (zipSteps α β) dead0 P P'
+        hInitial hPairOK
+      rw [hDOld, hNewPaired]
+      exact hRot
+    have hStructural_of_pairOK :
+        ChainPairOK s3 dead0 (zipSteps α β) P P' →
+          RotShDt s3 D
+            (__smtx_dt_substitute s3 (__smtx_dt_lift t DN B) DN) := by
+      intro hPairOK
+      exact rotShPre_refill_dt (__smtx_dt_lift t DN B)
+        (hPrefixRot_of_pairOK hPairOK)
     apply foldObsDt_wf (hOld := hOldLift)
     apply rotAllDt_foldObs (s3 := s3)
+    rw [hDOld, hNewClosed]
     sorry
 
 /-- The chain invariant is preserved by a descent step when the descended
@@ -10033,8 +10150,8 @@ diagonal entry is itself diagonal.  `hFWf` is the field's well-formedness
 against its raw guide, which the parent's own diagonal well-formedness
 supplies at every nested datatype field.  The consistency premises are
 deliberately source-level: folded bodies need not themselves remain name
-consistent.  `hCNoSelf` and `hCLocal` are the destructured local consequences
-of source name consistency used to keep the raw binder history fresh. -/
+consistent.  The local no-self facts used by the establishment walk are
+derived here from the source consistency and embedding premises. -/
 theorem wf_diag_push
     (sP : native_String) (dP : SmtDatatype)
     (hPInh : native_inhabited_type (SmtType.Datatype sP dP) = true)
@@ -10045,8 +10162,6 @@ theorem wf_diag_push
     (hFieldNC : __smtx_type_names_consistent_rec dP
       (SmtType.Datatype sC dC) = true)
     (hFieldEmb : RootEmbeddedTy dP (SmtType.Datatype sC dC))
-    (hCNoSelf : noDtDt sC dC = true)
-    (hCLocal : LocalNoSelfDt dC = true)
     (hFInh : native_inhabited_type
         (__smtx_type_substitute sP dP (SmtType.Datatype sC dC)) = true)
     (hFWf : __smtx_type_wf_rec
@@ -10059,6 +10174,10 @@ theorem wf_diag_push
   | true =>
       simpa [__smtx_type_substitute, native_ite, hs] using hFWf
   | false =>
+      have hLocal : LocalNoSelfTy (SmtType.Datatype sC dC) = true :=
+        localNoSelf_ty dP (SmtType.Datatype sC dC) hFieldNC hFieldEmb
+      have hLocalParts : noDtDt sC dC = true ∧ LocalNoSelfDt dC = true := by
+        simpa [LocalNoSelfTy, native_and, Bool.and_eq_true] using hLocal
       have hSub :
           __smtx_type_substitute sP dP (SmtType.Datatype sC dC) =
             SmtType.Datatype sC
@@ -10073,7 +10192,7 @@ theorem wf_diag_push
             dC = true := by
         simpa [__smtx_type_wf_rec] using hFWf
       have hTr := wf_diag_establish sP dP hPInh hPWf hPNC sC dC hs
-        hFieldNC hFieldEmb hCNoSelf hCLocal
+        hFieldNC hFieldEmb hLocalParts.1 hLocalParts.2
         (__smtx_dt_substitute sP (__smtx_dt_lift sC dC dP) dC) rfl hFInh hOld
       simpa [__smtx_type_wf_rec] using guideTrDt_wf hTr hOld
 

@@ -2000,8 +2000,11 @@ private theorem diag_pump_field_large
     (hInh : native_inhabited_type (SmtType.Datatype s d) = true)
     (hWfD : __smtx_type_wf_rec (SmtType.Datatype s d)
         (SmtType.Datatype s d) = true)
+    (hNC : __smtx_type_names_consistent (SmtType.Datatype s d) = true)
     (hDInf : __smtx_is_finite_datatype d = false)
     (TU : SmtType)
+    (hFieldNC : __smtx_type_names_consistent_rec d TU = true)
+    (hFieldEmb : RootEmbeddedTy d TU)
     (hTUInf : __smtx_is_finite_type TU = false)
     (hFInh : native_inhabited_type (__smtx_type_substitute s d TU) = true)
     (hFWf : __smtx_type_wf_rec (__smtx_type_substitute s d TU) TU = true) :
@@ -2070,7 +2073,8 @@ private theorem diag_pump_field_large
           (by simpa [__smtx_type_substitute] using hFWf)
           (by simpa [__smtx_is_finite_type] using hTUInf)
   | Datatype s2 d2 =>
-      have hDiag := wf_diag_push s d hInh hWfD s2 d2 hFInh hFWf
+      have hDiag := wf_diag_push s d hInh hWfD hNC s2 d2
+        hFieldNC hFieldEmb hFInh hFWf
       have hSubInf :
           __smtx_is_finite_type
             (__smtx_type_substitute s d (SmtType.Datatype s2 d2)) = false :=
@@ -2190,8 +2194,11 @@ private theorem diag_pump_cons_target
     (hInh : native_inhabited_type (SmtType.Datatype s d) = true)
     (hWfD : __smtx_type_wf_rec (SmtType.Datatype s d)
         (SmtType.Datatype s d) = true)
+    (hNC : __smtx_type_names_consistent (SmtType.Datatype s d) = true)
     (hDInf : __smtx_is_finite_datatype d = false) :
     ∀ (cU : SmtDatatypeCons) (seed : SmtValue) (base : SmtType),
+      __smtx_dt_cons_names_consistent_rec d cU = true →
+      RootEmbeddedDtc d cU →
       __smtx_dt_cons_wf_rec (__smtx_dtc_substitute s d cU) cU = true →
       __smtx_typeof_value seed =
         chainType (__smtx_dtc_substitute s d cU) base →
@@ -2199,9 +2206,13 @@ private theorem diag_pump_cons_target
       __smtx_is_finite_datatype_cons cU = false →
         ∃ v : SmtValue, __smtx_typeof_value v = base ∧
           __smtx_value_canonical_bool v = true ∧ n < sizeOf v
-  | SmtDatatypeCons.unit, _seed, _base, _hWf, _hSeedTy, _hSeedCan, hConsInf => by
+  | SmtDatatypeCons.unit, _seed, _base, _hCons, _hEmb, _hWf, _hSeedTy,
+      _hSeedCan, hConsInf => by
       simp [__smtx_is_finite_datatype_cons] at hConsInf
-  | SmtDatatypeCons.cons TU cU, seed, base, hWf, hSeedTy, hSeedCan, hConsInf => by
+  | SmtDatatypeCons.cons TU cU, seed, base, hCons, hEmb, hWf, hSeedTy,
+      hSeedCan, hConsInf => by
+      have hConsParts := namesConsDtc_parts d TU cU hCons
+      have hEmbParts := RootEmbeddedDtc_parts d TU cU hEmb
       have hWf' :
           __smtx_dt_cons_wf_rec
             (SmtDatatypeCons.cons (__smtx_type_substitute s d TU)
@@ -2239,8 +2250,8 @@ private theorem diag_pump_cons_target
               have hParts :=
                 dt_cons_wf_subst_head_parts_of_nonself s d
                   (T := TU) (c := cU) hWf hSelfF
-              exact diag_pump_field_large n hOracle s d hInh hWfD hDInf
-                TU hTU hParts.1 hParts.2.1
+              exact diag_pump_field_large n hOracle s d hInh hWfD hNC hDInf
+                TU hConsParts.1 hEmbParts.1 hTU hParts.1 hParts.2.1
           rcases hField with ⟨x, hxTy, hxCan, hxSize⟩
           have hTFne : __smtx_type_substitute s d TU ≠ SmtType.None := by
             by_cases hSelf :
@@ -2329,9 +2340,10 @@ private theorem diag_pump_cons_target
           have hApplyCan :
               __smtx_value_canonical_bool (SmtValue.Apply seed xd) = true := by
             simp [__smtx_value_canonical_bool, hSeedCan, hxdCan, native_and]
-          exact diag_pump_cons_target n hOracle s d hInh hWfD hDInf cU
-            (SmtValue.Apply seed xd) base hTail hApplyTy hApplyCan hTailInf
-  termination_by cU _ _ _ _ _ _ => sizeOf cU
+          exact diag_pump_cons_target n hOracle s d hInh hWfD hNC hDInf cU
+            (SmtValue.Apply seed xd) base hConsParts.2 hEmbParts.2 hTail
+            hApplyTy hApplyCan hTailInf
+  termination_by cU _ _ _ _ _ _ _ _ => sizeOf cU
   decreasing_by all_goals (try simp_wf); all_goals omega
 
 private theorem diag_typeof_dtcons_drop
@@ -2353,17 +2365,22 @@ private theorem diag_pump_dt_walk
     (hInh : native_inhabited_type (SmtType.Datatype s d) = true)
     (hWfD : __smtx_type_wf_rec (SmtType.Datatype s d)
         (SmtType.Datatype s d) = true)
+    (hNC : __smtx_type_names_consistent (SmtType.Datatype s d) = true)
     (hDInf : __smtx_is_finite_datatype d = false) :
     ∀ (dSuf : SmtDatatype) (k : native_Nat),
+      __smtx_dt_names_consistent_rec d dSuf = true →
+      RootEmbeddedDt d dSuf →
       drop_cons (__smtx_dt_substitute s d d) k =
         __smtx_dt_substitute s d dSuf →
       __smtx_dt_wf_rec (__smtx_dt_substitute s d dSuf) dSuf = true →
       __smtx_is_finite_datatype dSuf = false →
         ∃ v : SmtValue, __smtx_typeof_value v = SmtType.Datatype s d ∧
           __smtx_value_canonical_bool v = true ∧ n < sizeOf v
-  | SmtDatatype.null, _k, _hDrop, _hWf, hInf => by
+  | SmtDatatype.null, _k, _hCons, _hEmb, _hDrop, _hWf, hInf => by
       simp [__smtx_is_finite_datatype] at hInf
-  | SmtDatatype.sum c dTail, k, hDrop, hWf, hInf => by
+  | SmtDatatype.sum c dTail, k, hCons, hEmb, hDrop, hWf, hInf => by
+      have hConsParts := namesConsDt_parts d c dTail hCons
+      have hEmbParts := RootEmbeddedDt_parts d c dTail hEmb
       cases hConsFin : __smtx_is_finite_datatype_cons c with
       | false =>
           have hConsWf :
@@ -2374,8 +2391,9 @@ private theorem diag_pump_dt_walk
                 SmtDatatype.sum (__smtx_dtc_substitute s d c)
                   (__smtx_dt_substitute s d dTail) := by
             simpa [__smtx_dt_substitute] using hDrop
-          exact diag_pump_cons_target n hOracle s d hInh hWfD hDInf c
-            (SmtValue.DtCons s d k) (SmtType.Datatype s d) hConsWf
+          exact diag_pump_cons_target n hOracle s d hInh hWfD hNC hDInf c
+            (SmtValue.DtCons s d k) (SmtType.Datatype s d)
+            hConsParts.1 hEmbParts.1 hConsWf
             (diag_typeof_dtcons_drop (s := s) (d := d) (k := k)
               (cF := __smtx_dtc_substitute s d c)
               (dRest := __smtx_dt_substitute s d dTail) hDropCons)
@@ -2402,9 +2420,9 @@ private theorem diag_pump_dt_walk
                 __smtx_dt_substitute s d dTail := by
             rw [drop_cons_succ, hDrop]
             simp [__smtx_dt_substitute]
-          exact diag_pump_dt_walk n hOracle s d hInh hWfD hDInf dTail
-            (Nat.succ k) hDropTail hTailWf hTailInf
-  termination_by dSuf _ _ _ _ => sizeOf dSuf
+          exact diag_pump_dt_walk n hOracle s d hInh hWfD hNC hDInf dTail
+            (Nat.succ k) hConsParts.2 hEmbParts.2 hDropTail hTailWf hTailInf
+  termination_by dSuf _ _ _ _ _ _ => sizeOf dSuf
   decreasing_by all_goals (try simp_wf); all_goals omega
 
 private theorem diag_oracle_succ (n : Nat) (hOracle : DiagOracle n) :
