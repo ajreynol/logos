@@ -52,9 +52,9 @@ def vsmArgs : SmtValue -> List SmtValue
   | SmtValue.Apply f a => vsmArgs f ++ [a]
   | _ => []
 
-@[simp] theorem vsmMkSpine_nil (h : SmtValue) : vsmMkSpine h [] = h := rfl
+@[simp] private theorem vsmMkSpine_nil (h : SmtValue) : vsmMkSpine h [] = h := rfl
 
-@[simp] theorem vsmMkSpine_cons (h a : SmtValue) (args : List SmtValue) :
+@[simp] private theorem vsmMkSpine_cons (h a : SmtValue) (args : List SmtValue) :
     vsmMkSpine h (a :: args) = vsmMkSpine (SmtValue.Apply h a) args := rfl
 
 theorem vsmMkSpine_append_singleton (args : List SmtValue) :
@@ -1278,41 +1278,38 @@ theorem eval_push_not_free_eq
         injection hc with h1 h2 h3
         exact Prod.ext h2 h3)]
 
-theorem contains_atomic_term_list_free_rec_apply_false_intro
-    {f a except bound : Term}
+private theorem contains_atomic_term_list_free_rec_apply_false_intro
+    {f a : Term} {sw : native_String} {Tw : Term}
     (hNotList : ∀ q x xs,
       f ≠ Term.Apply q (eoCons x xs))
-    (hF : __contains_atomic_term_list_free_rec f except bound =
-      Term.Boolean false)
-    (hA : __contains_atomic_term_list_free_rec a except bound =
-      Term.Boolean false) :
-    __contains_atomic_term_list_free_rec (Term.Apply f a) except bound =
-      Term.Boolean false := by
-  have hExcept : except ≠ Term.Stuck := by
-    intro h
-    subst except
-    cases f <;> simp [__contains_atomic_term_list_free_rec] at hF
-  have hBound : bound ≠ Term.Stuck := by
-    intro h
-    subst bound
-    cases f <;> cases except <;>
-      simp [__contains_atomic_term_list_free_rec] at hF
+    (hF : __contains_atomic_term_list_free_rec f
+      (eoCons (Term.Var (Term.String sw) Tw) Term.__eo_List_nil)
+      Term.__eo_List_nil = Term.Boolean false)
+    (hA : __contains_atomic_term_list_free_rec a
+      (eoCons (Term.Var (Term.String sw) Tw) Term.__eo_List_nil)
+      Term.__eo_List_nil = Term.Boolean false) :
+    __contains_atomic_term_list_free_rec (Term.Apply f a)
+      (eoCons (Term.Var (Term.String sw) Tw) Term.__eo_List_nil)
+      Term.__eo_List_nil = Term.Boolean false := by
   have hEq :
-      __contains_atomic_term_list_free_rec (Term.Apply f a) except bound =
-        __eo_ite (__contains_atomic_term_list_free_rec f except bound)
+      __contains_atomic_term_list_free_rec (Term.Apply f a)
+          (eoCons (Term.Var (Term.String sw) Tw) Term.__eo_List_nil)
+          Term.__eo_List_nil =
+        __eo_ite (__contains_atomic_term_list_free_rec f
+            (eoCons (Term.Var (Term.String sw) Tw) Term.__eo_List_nil)
+            Term.__eo_List_nil)
           (Term.Boolean true)
-          (__contains_atomic_term_list_free_rec a except bound) := by
-    cases except <;> try contradiction
-    all_goals cases bound <;> try contradiction
-    all_goals
-      cases f <;> try rfl
-      rename_i q listArg
-      cases listArg <;> try rfl
-      rename_i listHead xs
-      cases listHead <;> try rfl
-      rename_i cons x
-      cases cons <;> try rfl
-      exact False.elim (hNotList q x xs rfl)
+          (__contains_atomic_term_list_free_rec a
+            (eoCons (Term.Var (Term.String sw) Tw) Term.__eo_List_nil)
+            Term.__eo_List_nil) := by
+    cases f <;> try rfl
+    rename_i q listArg
+    cases listArg <;> try rfl
+    rename_i listHead xs
+    cases listHead <;> try rfl
+    rename_i cons x
+    cases cons <;> try rfl
+    exact False.elim (hNotList q x xs rfl)
   rw [hEq, hF]
   simpa [__eo_ite, native_ite, native_teq] using hA
 
@@ -1431,7 +1428,7 @@ def gEnc : Term -> SmtTerm
       SmtTerm.not (__eo_to_smt_exists vs (SmtTerm.not (__eo_to_smt B)))
   | t => __eo_to_smt t
 
-theorem gEnc_forall (vs B : Term) :
+private theorem gEnc_forall (vs B : Term) :
     gEnc (mkForall vs B) =
       SmtTerm.not (__eo_to_smt_exists vs (SmtTerm.not (__eo_to_smt B))) := rfl
 

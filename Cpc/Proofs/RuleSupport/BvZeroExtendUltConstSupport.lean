@@ -274,7 +274,7 @@ private theorem bv_zero_extend_ult_const_context_of_types
         SmtType.BitVec (native_int_to_nat (native_zplus W A)) := by
   intro hXTrans hMTrans hCTrans hNmTrans hWideTypes hLowTypes
   rcases hLowTypes with ⟨widthW, hXTy, hLowTy⟩
-  rcases smt_bitvec_type_of_eo_bitvec_type_with_width
+  rcases _root_.smt_bitvec_type_of_eo_bitvec_type_with_width
       x widthW hXTrans hXTy with
     ⟨W, hWidthW, hW0, hXSmtTy⟩
   subst widthW
@@ -629,14 +629,14 @@ private theorem eval_bv_zero_extend_ult_const_both
   have hWRound := native_int_to_nat_roundtrip W hW0
   have hWideRound :=
     native_int_to_nat_roundtrip (native_zplus W A) hWide0
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x)
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x)
       (native_int_to_nat W) hXSmtTy with
     ⟨xPayload, hXEval, _hXCan⟩
   have hXEval' :
       __smtx_model_eval M (__eo_to_smt x) =
         SmtValue.Binary W xPayload := by
     simpa [hWRound] using hXEval
-  rcases smt_eval_binary_of_smt_type_bitvec M hM
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM
       (__eo_to_smt
         (bvZeroExtendUltConstLow c
           (Term.Numeral (native_zplus W A)) nm2))
@@ -649,7 +649,7 @@ private theorem eval_bv_zero_extend_ult_const_both
               (Term.Numeral (native_zplus W A)) nm2)) =
         SmtValue.Binary W lowPayload := by
     simpa [hWRound] using hLowEval
-  rcases smt_eval_binary_of_smt_type_bitvec M hM
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM
       (__eo_to_smt
         (bvZeroExtendUltConstConst c
           (Term.Numeral (native_zplus W A))))
@@ -2649,7 +2649,7 @@ private theorem bv_sign_extend_eq_const_context_of_types
   intro hXTrans hMTrans hCTrans hNmTrans hMpTrans hWideTypes hLowTypes
     hUpperZeroTy
   rcases hLowTypes with ⟨widthW, hXTy, hLowTy⟩
-  rcases smt_bitvec_type_of_eo_bitvec_type_with_width
+  rcases _root_.smt_bitvec_type_of_eo_bitvec_type_with_width
       x widthW hXTrans hXTy with
     ⟨W, hWidthW, hW0, hXSmtTy⟩
   subst widthW
@@ -3403,7 +3403,7 @@ private theorem eval_bv_sign_extend_eq_const_1_lhs_eq_rhs
     calc
       H + 1 + -L = P := hHWidthInt
       _ = (↑(AN + 1) : Int) := hPCastA1
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x) WN
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x) WN
       (by simpa [WN] using hXSmtTy) with
     ⟨px, hXEval, hXCan⟩
   have hXEval' :
@@ -3418,7 +3418,7 @@ private theorem eval_bv_sign_extend_eq_const_1_lhs_eq_rhs
   have hPx1 : px < (2 : Int) ^ WN := by
     simpa [natpow2_eq, SmtEval.native_nat_to_int, native_nat_to_int]
       using hXRange.2
-  rcases smt_eval_binary_of_smt_type_bitvec M hM
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM
       (__eo_to_smt
         (bvZeroExtendUltConstConst c
           (Term.Numeral (native_zplus W A)))) (WN + AN)
@@ -3739,7 +3739,7 @@ private theorem eval_bv_sign_extend_eq_const_2_lhs_eq_1_lhs
     have h := native_int_to_nat_roundtrip (native_zplus W A) hWide0
     simpa [SmtEval.native_nat_to_int, native_nat_to_int,
       SmtEval.native_zplus, WN, AN, hWCast, hACast] using h
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x) WN
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x) WN
       (by simpa [WN] using hXSmtTy) with
     ⟨px, hXEval, hXCan⟩
   have hXEval' :
@@ -3754,7 +3754,7 @@ private theorem eval_bv_sign_extend_eq_const_2_lhs_eq_1_lhs
   have hPx1 : px < (2 : Int) ^ WN := by
     simpa [natpow2_eq, SmtEval.native_nat_to_int, native_nat_to_int]
       using hXRange.2
-  rcases smt_eval_binary_of_smt_type_bitvec M hM
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM
       (__eo_to_smt
         (bvZeroExtendUltConstConst c
           (Term.Numeral (native_zplus W A)))) (WN + AN)

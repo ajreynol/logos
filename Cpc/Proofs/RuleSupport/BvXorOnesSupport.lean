@@ -618,10 +618,10 @@ theorem facts_term
   have hSingletonEval := BvNaryXorSupport.listSingletonElimEvalEq
     M hM (__eo_list_concat_rec xs zs) width hBaseRecList
     (by simpa [width] using hTypes.2.2.2.1)
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt xs) width
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt xs) width
       (by simpa [width] using hXsTy) with
     ⟨px, hXsEval, hXsCan⟩
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt zs) width
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt zs) width
       (by simpa [width] using hZsTy) with
     ⟨pz, hZsEval, hZsCan⟩
   have hMaxEval := eval_bv_all_ones_const_of_prem M hM n w W
@@ -749,7 +749,7 @@ theorem facts_term_of_type_or_nil
       rw [hBaseEq]
     have hSingletonEval := BvNaryXorSupport.listSingletonElimEvalEq
       M hM zs width hLists.2 (by simpa [width] using hZsTy)
-    rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt zs) width
+    rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt zs) width
         (by simpa [width] using hZsTy) with
       ⟨pz, hZsEval, hZsCan⟩
     have hMaxEval := eval_bv_all_ones_const_of_prem M hM n

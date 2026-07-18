@@ -973,7 +973,8 @@ theorem native_eval_texists_eq_of_body_eval_eq_diff
     (hBody : ∀ v : SmtValue,
       __smtx_model_eval (native_model_push M s T v) bodyM =
         __smtx_model_eval (native_model_push N s T v) bodyN) :
-    native_eval_texists M s T bodyM = native_eval_texists N s T bodyN := by
+    (native_eval_texists M s T bodyM : SmtValue) =
+      (native_eval_texists N s T bodyN : SmtValue) := by
   classical
   let PM : Prop :=
     ∃ v : SmtValue,
@@ -1010,7 +1011,8 @@ theorem native_eval_texists_eq_of_body_eval_eq_diff_typed
       __smtx_value_canonical_bool v = true ->
       __smtx_model_eval (native_model_push M s T v) bodyM =
         __smtx_model_eval (native_model_push N s T v) bodyN) :
-    native_eval_texists M s T bodyM = native_eval_texists N s T bodyN := by
+    (native_eval_texists M s T bodyM : SmtValue) =
+      (native_eval_texists N s T bodyN : SmtValue) := by
   classical
   let PM : Prop :=
     ∃ v : SmtValue,
@@ -1044,7 +1046,8 @@ theorem native_eval_tforall_eq_of_body_eval_eq_diff
     (hBody : ∀ v : SmtValue,
       __smtx_model_eval (native_model_push M s T v) bodyM =
         __smtx_model_eval (native_model_push N s T v) bodyN) :
-    native_eval_tforall M s T bodyM = native_eval_tforall N s T bodyN := by
+    (native_eval_tforall M s T bodyM : SmtValue) =
+      (native_eval_tforall N s T bodyN : SmtValue) := by
   classical
   let PM : Prop :=
     ∀ v : SmtValue,
@@ -1079,7 +1082,8 @@ theorem native_eval_tforall_eq_of_body_eval_eq_diff_typed
       __smtx_value_canonical_bool v = true ->
       __smtx_model_eval (native_model_push M s T v) bodyM =
         __smtx_model_eval (native_model_push N s T v) bodyN) :
-    native_eval_tforall M s T bodyM = native_eval_tforall N s T bodyN := by
+    (native_eval_tforall M s T bodyM : SmtValue) =
+      (native_eval_tforall N s T bodyN : SmtValue) := by
   classical
   let PM : Prop :=
     ∀ v : SmtValue,

@@ -321,7 +321,7 @@ private theorem eval_bv_term_local
       __smtx_model_eval M (__eo_to_smt t) = SmtValue.Binary W p ∧
       native_zeq p (native_mod_total p (native_int_pow2 W)) = true := by
   intro hW0 hTy
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt t)
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt t)
       (native_int_to_nat W) hTy with
     ⟨p, hEval, hCanonical⟩
   have hRound := native_int_to_nat_roundtrip W hW0

@@ -984,7 +984,7 @@ private theorem eval_bv_urem_pow2_term
     simpa [SmtEval.native_zplus] using hAD
   have hqd : Q + 1 = D := by
     simpa [hD, SmtEval.native_zplus]
-  rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x)
+  rcases _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x)
       (native_int_to_nat W) hXSmtTy with ⟨p, hXEval, hCanonical⟩
   have hRound := native_int_to_nat_roundtrip W hW0
   have hXEval' :
@@ -1037,7 +1037,7 @@ private theorem eval_bv_urem_pow2_term
             (bvExtractTerm x (Term.Numeral Q) (Term.Numeral 0)))
           (SmtTerm.Binary 0 0)))
   rw [smtx_eval_bvurem_term_eq_div, hXEval', hConstEval,
-    smtx_eval_concat_term_eq, hZeroEval, smtx_eval_concat_term_eq,
+    _root_.smtx_eval_concat_term_eq, hZeroEval, _root_.smtx_eval_concat_term_eq,
     hExtractEval]
   simp only [__smtx_model_eval]
   exact bv_urem_pow2_value_local W A D Q p hw0 ha0 hd0 had hqd
