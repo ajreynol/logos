@@ -10777,7 +10777,7 @@ private theorem smt_value_rel_model_eval_str_update_to_string_of_runs
           (__smtx_model_eval M (__eo_to_smt s))
           (__smtx_model_eval M (__eo_to_smt n))
           (__smtx_model_eval M (__eo_to_smt repl)) by
-    rw [__smtx_model_eval.eq_89]]
+    rw [__smtx_model_eval.eq_87]]
   rw [hRunEval] at hRel
   exact hRel
 
@@ -13717,7 +13717,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                 simpa [RuleProofs.eo_has_smt_translation] using hTrans
               rcases bv_unop_arg_of_non_none
                   (op := SmtTerm.bvnot) (t := __eo_to_smt x)
-                  (by rw [__smtx_typeof.eq_38])
+                  (by rw [__smtx_typeof.eq_36])
                   hBvNotNN with
                 ⟨w, hXTy⟩
               have hXTrans : RuleProofs.eo_has_smt_translation x := by
@@ -13761,7 +13761,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                 simpa [RuleProofs.eo_has_smt_translation] using hTrans
               rcases bv_unop_arg_of_non_none
                   (op := SmtTerm.bvneg) (t := __eo_to_smt x)
-                  (by rw [__smtx_typeof.eq_46])
+                  (by rw [__smtx_typeof.eq_44])
                   hBvNegNN with
                 ⟨w, hXTy⟩
               have hXTrans : RuleProofs.eo_has_smt_translation x := by
@@ -14416,7 +14416,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                 simpa [RuleProofs.eo_has_smt_translation] using hTrans
               rcases bv_unop_ret_arg_of_non_none
                   (op := SmtTerm.ubv_to_int) (ret := SmtType.Int)
-                  (by rw [__smtx_typeof.eq_132]) hUbvNN with
+                  (by rw [__smtx_typeof.eq_130]) hUbvNN with
                 ⟨w, hXTy⟩
               have hXTrans : RuleProofs.eo_has_smt_translation x := by
                 unfold RuleProofs.eo_has_smt_translation
@@ -17008,7 +17008,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   rcases bv_binop_args_of_non_none
                       (op := SmtTerm.bvand) (t1 := __eo_to_smt y)
                       (t2 := __eo_to_smt x)
-                      (by rw [__smtx_typeof.eq_39]) hBvAndNN with
+                      (by rw [__smtx_typeof.eq_37]) hBvAndNN with
                     ⟨w, hYTyBv, hXTyBv⟩
                   have hYTrans : RuleProofs.eo_has_smt_translation y := by
                     unfold RuleProofs.eo_has_smt_translation
@@ -17087,7 +17087,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   rcases bv_binop_args_of_non_none
                       (op := SmtTerm.bvor) (t1 := __eo_to_smt y)
                       (t2 := __eo_to_smt x)
-                      (by rw [__smtx_typeof.eq_40]) hBvOrNN with
+                      (by rw [__smtx_typeof.eq_38]) hBvOrNN with
                     ⟨w, hYTyBv, hXTyBv⟩
                   have hYTrans : RuleProofs.eo_has_smt_translation y := by
                     unfold RuleProofs.eo_has_smt_translation
@@ -17166,7 +17166,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   rcases bv_binop_args_of_non_none
                       (op := SmtTerm.bvxor) (t1 := __eo_to_smt y)
                       (t2 := __eo_to_smt x)
-                      (by rw [__smtx_typeof.eq_43]) hBvXorNN with
+                      (by rw [__smtx_typeof.eq_41]) hBvXorNN with
                     ⟨w, hYTyBv, hXTyBv⟩
                   have hYTrans : RuleProofs.eo_has_smt_translation y := by
                     unfold RuleProofs.eo_has_smt_translation
@@ -17323,7 +17323,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   rcases bv_binop_args_of_non_none
                       (op := SmtTerm.bvadd) (t1 := __eo_to_smt y)
                       (t2 := __eo_to_smt x)
-                      (by rw [__smtx_typeof.eq_47]) hBvAddNN with
+                      (by rw [__smtx_typeof.eq_45]) hBvAddNN with
                     ⟨w, hYTyBv, hXTyBv⟩
                   have hYTrans : RuleProofs.eo_has_smt_translation y := by
                     unfold RuleProofs.eo_has_smt_translation
@@ -17402,7 +17402,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   rcases bv_binop_args_of_non_none
                       (op := SmtTerm.bvmul) (t1 := __eo_to_smt y)
                       (t2 := __eo_to_smt x)
-                      (by rw [__smtx_typeof.eq_48]) hBvMulNN with
+                      (by rw [__smtx_typeof.eq_46]) hBvMulNN with
                     ⟨w, hYTyBv, hXTyBv⟩
                   have hYTrans : RuleProofs.eo_has_smt_translation y := by
                     unfold RuleProofs.eo_has_smt_translation
@@ -17485,7 +17485,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   rcases bv_binop_args_of_non_none
                       (op := SmtTerm.bvsub) (t1 := __eo_to_smt y)
                       (t2 := __eo_to_smt x)
-                      (by rw [__smtx_typeof.eq_51]) hBvSubNN with
+                      (by rw [__smtx_typeof.eq_49]) hBvSubNN with
                     ⟨w, hYTyBv, hXTyBv⟩
                   have hYTrans : RuleProofs.eo_has_smt_translation y := by
                     unfold RuleProofs.eo_has_smt_translation
@@ -17564,7 +17564,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   rcases bv_binop_args_of_non_none
                       (op := SmtTerm.bvudiv) (t1 := __eo_to_smt y)
                       (t2 := __eo_to_smt x)
-                      (by rw [__smtx_typeof.eq_49]) hBvUdivNN with
+                      (by rw [__smtx_typeof.eq_47]) hBvUdivNN with
                     ⟨w, hYTyBv, hXTyBv⟩
                   have hYTrans : RuleProofs.eo_has_smt_translation y := by
                     unfold RuleProofs.eo_has_smt_translation
@@ -17677,7 +17677,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                   rcases bv_binop_args_of_non_none
                       (op := SmtTerm.bvurem) (t1 := __eo_to_smt y)
                       (t2 := __eo_to_smt x)
-                      (by rw [__smtx_typeof.eq_50]) hBvUremNN with
+                      (by rw [__smtx_typeof.eq_48]) hBvUremNN with
                     ⟨w, hYTyBv, hXTyBv⟩
                   have hYTrans : RuleProofs.eo_has_smt_translation y := by
                     unfold RuleProofs.eo_has_smt_translation
@@ -17798,7 +17798,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       (__eo_to_z (__run_evaluate y)) hRunCmpNe
                   rcases bv_binop_ret_args_of_non_none
                       (op := SmtTerm.bvult) (ret := SmtType.Bool)
-                      (by rw [__smtx_typeof.eq_55]) hBvUltNN with
+                      (by rw [__smtx_typeof.eq_53]) hBvUltNN with
                     ⟨w, hYTyBv, hXTyBv⟩
                   have hRhsTy :
                       __eo_typeof_bvult (__eo_typeof y)
@@ -17834,7 +17834,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       (__eo_to_z (__run_evaluate x)) hRunCmpNe
                   rcases bv_binop_ret_args_of_non_none
                       (op := SmtTerm.bvugt) (ret := SmtType.Bool)
-                      (by rw [__smtx_typeof.eq_57]) hBvUgtNN with
+                      (by rw [__smtx_typeof.eq_55]) hBvUgtNN with
                     ⟨w, hYTyBv, hXTyBv⟩
                   have hRhsTy :
                       __eo_typeof_bvult (__eo_typeof y)
@@ -17878,7 +17878,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       hRunOrNe
                   rcases bv_binop_ret_args_of_non_none
                       (op := SmtTerm.bvule) (ret := SmtType.Bool)
-                      (by rw [__smtx_typeof.eq_56]) hBvUleNN with
+                      (by rw [__smtx_typeof.eq_54]) hBvUleNN with
                     ⟨w, hYTyBv, hXTyBv⟩
                   have hRhsTy :
                       __eo_typeof_bvult (__eo_typeof y)
@@ -17921,7 +17921,7 @@ private theorem run_evaluate_typeof_eq_of_has_smt_translation_and_ne_stuck
                       hRunOrNe
                   rcases bv_binop_ret_args_of_non_none
                       (op := SmtTerm.bvuge) (ret := SmtType.Bool)
-                      (by rw [__smtx_typeof.eq_58]) hBvUgeNN with
+                      (by rw [__smtx_typeof.eq_56]) hBvUgeNN with
                     ⟨w, hYTyBv, hXTyBv⟩
                   have hRhsTy :
                       __eo_typeof_bvult (__eo_typeof y)
@@ -19947,7 +19947,7 @@ private theorem run_evaluate_sound_apply_bvnot_core
     simpa [RuleProofs.eo_has_smt_translation] using hATrans
   rcases bv_unop_arg_of_non_none
       (op := SmtTerm.bvnot) (t := __eo_to_smt b)
-      (by rw [__smtx_typeof.eq_38])
+      (by rw [__smtx_typeof.eq_36])
       hBvNotNN with
     ⟨w, hBTy⟩
   have hBTrans : RuleProofs.eo_has_smt_translation b := by
@@ -20058,7 +20058,7 @@ private theorem run_evaluate_sound_apply_bvnot_core
     rw [show
         __smtx_typeof (SmtTerm.bvnot (__eo_to_smt b)) =
           __smtx_typeof_bv_op_1 (__smtx_typeof (__eo_to_smt b)) by
-      rw [__smtx_typeof.eq_38]]
+      rw [__smtx_typeof.eq_36]]
     rw [hBTy]
     change SmtType.BitVec w =
       __smtx_typeof
@@ -20129,7 +20129,7 @@ private theorem run_evaluate_sound_apply_bvneg_core
     simpa [RuleProofs.eo_has_smt_translation] using hATrans
   rcases bv_unop_arg_of_non_none
       (op := SmtTerm.bvneg) (t := __eo_to_smt b)
-      (by rw [__smtx_typeof.eq_46])
+      (by rw [__smtx_typeof.eq_44])
       hBvNegNN with
     ⟨w, hBTy⟩
   have hBTrans : RuleProofs.eo_has_smt_translation b := by
@@ -20239,7 +20239,7 @@ private theorem run_evaluate_sound_apply_bvneg_core
     rw [show
         __smtx_typeof (SmtTerm.bvneg (__eo_to_smt b)) =
           __smtx_typeof_bv_op_1 (__smtx_typeof (__eo_to_smt b)) by
-      rw [__smtx_typeof.eq_46]]
+      rw [__smtx_typeof.eq_44]]
     rw [hBTy]
     change SmtType.BitVec w =
       __smtx_typeof
@@ -20268,7 +20268,7 @@ private theorem run_evaluate_sound_apply_bvneg_core
         __smtx_model_eval M (SmtTerm.bvneg (__eo_to_smt b)) =
           __smtx_model_eval_bvneg
             (__smtx_model_eval M (__eo_to_smt b)) by
-      rw [__smtx_model_eval.eq_46]]
+      rw [__smtx_model_eval.eq_44]]
     rw [hEvalB]
     change
       RuleProofs.smt_value_rel
@@ -21356,7 +21356,7 @@ private theorem run_evaluate_sound_apply_int_pow2_core
             __smtx_model_eval M (SmtTerm.int_pow2 (__eo_to_smt b)) =
               __smtx_model_eval_int_pow2
                 (__smtx_model_eval M (__eo_to_smt b)) by
-          rw [__smtx_model_eval.eq_28]]
+          rw [__smtx_model_eval.eq_27]]
         rw [hEvalB]
         rw [eo_int_pow2_eval_numeral_to_smt]
         change
@@ -21387,7 +21387,7 @@ private theorem run_evaluate_sound_apply_int_pow2_core
       · rw [hRunPowToSmt]
         rw [typeof_int_pow2_eq, typeof_int_pow2_eq, ← hBSameTy, hBTyInt]
       · rw [hRunPowToSmt]
-        rw [__smtx_model_eval.eq_28, __smtx_model_eval.eq_28]
+        rw [__smtx_model_eval.eq_27, __smtx_model_eval.eq_27]
         exact smt_value_rel_model_eval_int_pow2_of_rel
           (__smtx_model_eval M (__eo_to_smt b))
           (__smtx_model_eval M (__eo_to_smt (__run_evaluate b))) hBRel
@@ -21529,7 +21529,7 @@ private theorem run_evaluate_sound_apply_int_log2_core
             __smtx_model_eval M (SmtTerm.int_log2 (__eo_to_smt b)) =
               __smtx_model_eval_int_log2
                 (__smtx_model_eval M (__eo_to_smt b)) by
-          rw [__smtx_model_eval.eq_29]]
+          rw [__smtx_model_eval.eq_28]]
         rw [hEvalB]
         rw [eo_int_log2_eval_numeral_to_smt]
         change
@@ -21560,7 +21560,7 @@ private theorem run_evaluate_sound_apply_int_log2_core
       · rw [hRunLogToSmt]
         rw [typeof_int_log2_eq, typeof_int_log2_eq, ← hBSameTy, hBTyInt]
       · rw [hRunLogToSmt]
-        rw [__smtx_model_eval.eq_29, __smtx_model_eval.eq_29]
+        rw [__smtx_model_eval.eq_28, __smtx_model_eval.eq_28]
         exact smt_value_rel_model_eval_int_log2_of_rel
           (__smtx_model_eval M (__eo_to_smt b))
           (__smtx_model_eval M (__eo_to_smt (__run_evaluate b))) hBRel
@@ -22095,7 +22095,7 @@ private theorem run_evaluate_sound_apply_zero_extend_core
           __smtx_model_eval_zero_extend
             (SmtValue.Numeral i)
             (__smtx_model_eval M (__eo_to_smt x)) by
-      rw [__smtx_model_eval.eq_66, __smtx_model_eval.eq_2]]
+      rw [__smtx_model_eval.eq_64, __smtx_model_eval.eq_2]]
     rw [hXEval]
     change
       RuleProofs.smt_value_rel
@@ -22366,7 +22366,7 @@ private theorem run_evaluate_sound_apply_sign_extend_core
           __smtx_model_eval_sign_extend
             (SmtValue.Numeral i)
             (__smtx_model_eval M (__eo_to_smt x)) by
-      rw [__smtx_model_eval.eq_67, __smtx_model_eval.eq_2]]
+      rw [__smtx_model_eval.eq_65, __smtx_model_eval.eq_2]]
     rw [hXEval]
     change
       RuleProofs.smt_value_rel
@@ -22645,7 +22645,7 @@ private theorem run_evaluate_sound_apply_repeat_core
           __smtx_model_eval_repeat
             (SmtValue.Numeral i)
             (__smtx_model_eval M (__eo_to_smt x)) by
-      rw [__smtx_model_eval.eq_37, __smtx_model_eval.eq_2]]
+      rw [__smtx_model_eval.eq_35, __smtx_model_eval.eq_2]]
     rw [hXEval]
     change
       RuleProofs.smt_value_rel
@@ -22679,7 +22679,7 @@ private theorem run_evaluate_sound_apply_bvand_core
     simpa [RuleProofs.eo_has_smt_translation] using hATrans
   rcases bv_binop_args_of_non_none
       (op := SmtTerm.bvand) (t1 := __eo_to_smt a) (t2 := __eo_to_smt b)
-      (by rw [__smtx_typeof.eq_39]) hBvAndNN with
+      (by rw [__smtx_typeof.eq_37]) hBvAndNN with
     ⟨w, hATy, hBTy⟩
   have hATransA : RuleProofs.eo_has_smt_translation a := by
     unfold RuleProofs.eo_has_smt_translation
@@ -22835,7 +22835,7 @@ private theorem run_evaluate_sound_apply_bvand_core
           __smtx_typeof_bv_op_2
             (__smtx_typeof (__eo_to_smt a))
             (__smtx_typeof (__eo_to_smt b)) by
-      rw [__smtx_typeof.eq_39]]
+      rw [__smtx_typeof.eq_37]]
     rw [hATy, hBTy]
     simp [__smtx_typeof_bv_op_2, native_ite, native_nateq]
     rw [smtx_typeof_binary_mod_nat_to_int]
@@ -22932,7 +22932,7 @@ private theorem run_evaluate_sound_apply_bvor_core
     simpa [RuleProofs.eo_has_smt_translation] using hATrans
   rcases bv_binop_args_of_non_none
       (op := SmtTerm.bvor) (t1 := __eo_to_smt a) (t2 := __eo_to_smt b)
-      (by rw [__smtx_typeof.eq_40]) hBvOrNN with
+      (by rw [__smtx_typeof.eq_38]) hBvOrNN with
     ⟨w, hATy, hBTy⟩
   have hATransA : RuleProofs.eo_has_smt_translation a := by
     unfold RuleProofs.eo_has_smt_translation
@@ -23088,7 +23088,7 @@ private theorem run_evaluate_sound_apply_bvor_core
           __smtx_typeof_bv_op_2
             (__smtx_typeof (__eo_to_smt a))
             (__smtx_typeof (__eo_to_smt b)) by
-      rw [__smtx_typeof.eq_40]]
+      rw [__smtx_typeof.eq_38]]
     rw [hATy, hBTy]
     simp [__smtx_typeof_bv_op_2, native_ite, native_nateq]
     rw [smtx_typeof_binary_mod_nat_to_int]
@@ -23185,7 +23185,7 @@ private theorem run_evaluate_sound_apply_bvxor_core
     simpa [RuleProofs.eo_has_smt_translation] using hATrans
   rcases bv_binop_args_of_non_none
       (op := SmtTerm.bvxor) (t1 := __eo_to_smt a) (t2 := __eo_to_smt b)
-      (by rw [__smtx_typeof.eq_43]) hBvXorNN with
+      (by rw [__smtx_typeof.eq_41]) hBvXorNN with
     ⟨w, hATy, hBTy⟩
   have hATransA : RuleProofs.eo_has_smt_translation a := by
     unfold RuleProofs.eo_has_smt_translation
@@ -23341,7 +23341,7 @@ private theorem run_evaluate_sound_apply_bvxor_core
           __smtx_typeof_bv_op_2
             (__smtx_typeof (__eo_to_smt a))
             (__smtx_typeof (__eo_to_smt b)) by
-      rw [__smtx_typeof.eq_43]]
+      rw [__smtx_typeof.eq_41]]
     rw [hATy, hBTy]
     simp [__smtx_typeof_bv_op_2, native_ite, native_nateq]
     rw [smtx_typeof_binary_mod_nat_to_int]
@@ -23644,7 +23644,7 @@ private theorem run_evaluate_sound_apply_bvadd_core
     simpa [RuleProofs.eo_has_smt_translation] using hATrans
   rcases bv_binop_args_of_non_none
       (op := SmtTerm.bvadd) (t1 := __eo_to_smt a) (t2 := __eo_to_smt b)
-      (by rw [__smtx_typeof.eq_47]) hBvAddNN with
+      (by rw [__smtx_typeof.eq_45]) hBvAddNN with
     ⟨w, hATy, hBTy⟩
   have hATransA : RuleProofs.eo_has_smt_translation a := by
     unfold RuleProofs.eo_has_smt_translation
@@ -23800,7 +23800,7 @@ private theorem run_evaluate_sound_apply_bvadd_core
           __smtx_typeof_bv_op_2
             (__smtx_typeof (__eo_to_smt a))
             (__smtx_typeof (__eo_to_smt b)) by
-      rw [__smtx_typeof.eq_47]]
+      rw [__smtx_typeof.eq_45]]
     rw [hATy, hBTy]
     simp [__smtx_typeof_bv_op_2, native_ite, native_nateq]
     rw [smtx_typeof_binary_mod_nat_to_int]
@@ -23844,7 +23844,7 @@ private theorem run_evaluate_sound_apply_bvadd_core
           __smtx_model_eval_bvadd
             (__smtx_model_eval M (__eo_to_smt a))
             (__smtx_model_eval M (__eo_to_smt b)) by
-      rw [__smtx_model_eval.eq_47]]
+      rw [__smtx_model_eval.eq_45]]
     rw [hAEval, hBEval]
     rw [show
         __smtx_model_eval_bvadd
@@ -23897,7 +23897,7 @@ private theorem run_evaluate_sound_apply_bvmul_core
     simpa [RuleProofs.eo_has_smt_translation] using hATrans
   rcases bv_binop_args_of_non_none
       (op := SmtTerm.bvmul) (t1 := __eo_to_smt a) (t2 := __eo_to_smt b)
-      (by rw [__smtx_typeof.eq_48]) hBvMulNN with
+      (by rw [__smtx_typeof.eq_46]) hBvMulNN with
     ⟨w, hATy, hBTy⟩
   have hATransA : RuleProofs.eo_has_smt_translation a := by
     unfold RuleProofs.eo_has_smt_translation
@@ -24053,7 +24053,7 @@ private theorem run_evaluate_sound_apply_bvmul_core
           __smtx_typeof_bv_op_2
             (__smtx_typeof (__eo_to_smt a))
             (__smtx_typeof (__eo_to_smt b)) by
-      rw [__smtx_typeof.eq_48]]
+      rw [__smtx_typeof.eq_46]]
     rw [hATy, hBTy]
     simp [__smtx_typeof_bv_op_2, native_ite, native_nateq]
     rw [smtx_typeof_binary_mod_nat_to_int]
@@ -24097,7 +24097,7 @@ private theorem run_evaluate_sound_apply_bvmul_core
           __smtx_model_eval_bvmul
             (__smtx_model_eval M (__eo_to_smt a))
             (__smtx_model_eval M (__eo_to_smt b)) by
-      rw [__smtx_model_eval.eq_48]]
+      rw [__smtx_model_eval.eq_46]]
     rw [hAEval, hBEval]
     rw [show
         __smtx_model_eval_bvmul
@@ -24150,7 +24150,7 @@ private theorem run_evaluate_sound_apply_bvudiv_core
     simpa [RuleProofs.eo_has_smt_translation] using hATrans
   rcases bv_binop_args_of_non_none
       (op := SmtTerm.bvudiv) (t1 := __eo_to_smt a) (t2 := __eo_to_smt b)
-      (by rw [__smtx_typeof.eq_49]) hBvUdivNN with
+      (by rw [__smtx_typeof.eq_47]) hBvUdivNN with
     ⟨w, hATy, hBTy⟩
   have hATransA : RuleProofs.eo_has_smt_translation a := by
     unfold RuleProofs.eo_has_smt_translation
@@ -24322,7 +24322,7 @@ private theorem run_evaluate_sound_apply_bvudiv_core
               __smtx_typeof_bv_op_2
                 (__smtx_typeof (__eo_to_smt a))
                 (__smtx_typeof (__eo_to_smt b)) by
-          rw [__smtx_typeof.eq_49]]
+          rw [__smtx_typeof.eq_47]]
         rw [hATy, hBTy]
         simp [__smtx_typeof_bv_op_2, native_ite, native_nateq]
         change SmtType.BitVec w =
@@ -24343,7 +24343,7 @@ private theorem run_evaluate_sound_apply_bvudiv_core
               __smtx_model_eval_bvudiv
                 (__smtx_model_eval M (__eo_to_smt a))
                 (__smtx_model_eval M (__eo_to_smt b)) by
-          rw [__smtx_model_eval.eq_49]]
+          rw [__smtx_model_eval.eq_47]]
         rw [hAEval, hBEvalRel]
         change
           RuleProofs.smt_value_rel
@@ -24419,7 +24419,7 @@ private theorem run_evaluate_sound_apply_bvudiv_core
               __smtx_typeof_bv_op_2
                 (__smtx_typeof (__eo_to_smt a))
                 (__smtx_typeof (__eo_to_smt b)) by
-          rw [__smtx_typeof.eq_49]]
+          rw [__smtx_typeof.eq_47]]
         rw [hATy, hBTy]
         simp [__smtx_typeof_bv_op_2, native_ite, native_nateq]
         rw [smtx_typeof_binary_mod_nat_to_int]
@@ -24446,7 +24446,7 @@ private theorem run_evaluate_sound_apply_bvudiv_core
               __smtx_model_eval_bvudiv
                 (__smtx_model_eval M (__eo_to_smt a))
                 (__smtx_model_eval M (__eo_to_smt b)) by
-          rw [__smtx_model_eval.eq_49]]
+          rw [__smtx_model_eval.eq_47]]
         rw [hAEval, hBEvalRel]
         rw [show
             __eo_to_smt runDiv =
@@ -24519,7 +24519,7 @@ private theorem run_evaluate_sound_apply_bvurem_core
     simpa [RuleProofs.eo_has_smt_translation] using hATrans
   rcases bv_binop_args_of_non_none
       (op := SmtTerm.bvurem) (t1 := __eo_to_smt a) (t2 := __eo_to_smt b)
-      (by rw [__smtx_typeof.eq_50]) hBvUremNN with
+      (by rw [__smtx_typeof.eq_48]) hBvUremNN with
     ⟨w, hATy, hBTy⟩
   have hATransA : RuleProofs.eo_has_smt_translation a := by
     unfold RuleProofs.eo_has_smt_translation
@@ -24683,7 +24683,7 @@ private theorem run_evaluate_sound_apply_bvurem_core
               __smtx_typeof_bv_op_2
                 (__smtx_typeof (__eo_to_smt a))
                 (__smtx_typeof (__eo_to_smt b)) by
-          rw [__smtx_typeof.eq_50]]
+          rw [__smtx_typeof.eq_48]]
         rw [hATy, hBTy]
         simp [__smtx_typeof_bv_op_2, native_ite, native_nateq]
         exact hATy.symm.trans hASameTy
@@ -24704,7 +24704,7 @@ private theorem run_evaluate_sound_apply_bvurem_core
               __smtx_model_eval_bvurem
                 (__smtx_model_eval M (__eo_to_smt a))
                 (__smtx_model_eval M (__eo_to_smt b)) by
-          rw [__smtx_model_eval.eq_50]]
+          rw [__smtx_model_eval.eq_48]]
         rw [hAEval, hBEvalRel]
         rw [show __eo_to_smt runRem =
               __eo_to_smt (__run_evaluate a) by
@@ -24782,7 +24782,7 @@ private theorem run_evaluate_sound_apply_bvurem_core
               __smtx_typeof_bv_op_2
                 (__smtx_typeof (__eo_to_smt a))
                 (__smtx_typeof (__eo_to_smt b)) by
-          rw [__smtx_typeof.eq_50]]
+          rw [__smtx_typeof.eq_48]]
         rw [hATy, hBTy]
         simp [__smtx_typeof_bv_op_2, native_ite, native_nateq]
         rw [smtx_typeof_binary_mod_nat_to_int]
@@ -24809,7 +24809,7 @@ private theorem run_evaluate_sound_apply_bvurem_core
               __smtx_model_eval_bvurem
                 (__smtx_model_eval M (__eo_to_smt a))
                 (__smtx_model_eval M (__eo_to_smt b)) by
-          rw [__smtx_model_eval.eq_50]]
+          rw [__smtx_model_eval.eq_48]]
         rw [hAEval, hBEvalRel]
         rw [show
             __eo_to_smt runRem =
@@ -24881,7 +24881,7 @@ private theorem run_evaluate_sound_apply_bvult_core
     simpa [RuleProofs.eo_has_smt_translation] using hATrans
   rcases bv_binop_ret_args_of_non_none
       (op := SmtTerm.bvult) (ret := SmtType.Bool)
-      (by rw [__smtx_typeof.eq_55]) hBvUltNN with
+      (by rw [__smtx_typeof.eq_53]) hBvUltNN with
     ⟨w, hATy, hBTy⟩
   have hATransA : RuleProofs.eo_has_smt_translation a := by
     unfold RuleProofs.eo_has_smt_translation
@@ -25040,7 +25040,7 @@ private theorem run_evaluate_sound_apply_bvult_core
               __smtx_typeof_bv_op_2_ret
                 (__smtx_typeof (__eo_to_smt a))
                 (__smtx_typeof (__eo_to_smt b)) SmtType.Bool by
-          rw [__smtx_typeof.eq_55]]
+          rw [__smtx_typeof.eq_53]]
         rw [hATy, hBTy]
         simp [__smtx_typeof_bv_op_2_ret, native_ite, native_nateq]
         rw [__smtx_typeof.eq_1]
@@ -25050,7 +25050,7 @@ private theorem run_evaluate_sound_apply_bvult_core
               __smtx_model_eval_bvult
                 (__smtx_model_eval M (__eo_to_smt a))
                 (__smtx_model_eval M (__eo_to_smt b)) by
-          rw [__smtx_model_eval.eq_55]]
+          rw [__smtx_model_eval.eq_53]]
         rw [hAEval, hBEval]
         rw [show __eo_to_smt runCmp =
             SmtTerm.Boolean (native_zlt runA runB) by
@@ -25135,7 +25135,7 @@ private theorem run_evaluate_sound_apply_bvugt_core
     simpa [RuleProofs.eo_has_smt_translation] using hATrans
   rcases bv_binop_ret_args_of_non_none
       (op := SmtTerm.bvugt) (ret := SmtType.Bool)
-      (by rw [__smtx_typeof.eq_57]) hBvUgtNN with
+      (by rw [__smtx_typeof.eq_55]) hBvUgtNN with
     ⟨w, hATy, hBTy⟩
   have hATransA : RuleProofs.eo_has_smt_translation a := by
     unfold RuleProofs.eo_has_smt_translation
@@ -25217,7 +25217,7 @@ private theorem run_evaluate_sound_apply_bvugt_core
       term_has_non_none_type
         (SmtTerm.bvult (__eo_to_smt b) (__eo_to_smt a)) := by
     unfold term_has_non_none_type
-    rw [__smtx_typeof.eq_55, hBTy, hATy]
+    rw [__smtx_typeof.eq_53, hBTy, hATy]
     simp [__smtx_typeof_bv_op_2_ret, native_ite, native_nateq]
   have hBvUltSwapTrans :
       RuleProofs.eo_has_smt_translation
@@ -25283,7 +25283,7 @@ private theorem run_evaluate_sound_apply_bvugt_core
   · have hTypeEq :
         __smtx_typeof (SmtTerm.bvugt (__eo_to_smt a) (__eo_to_smt b)) =
           __smtx_typeof (SmtTerm.bvult (__eo_to_smt b) (__eo_to_smt a)) := by
-      rw [__smtx_typeof.eq_57, __smtx_typeof.eq_55, hATy, hBTy]
+      rw [__smtx_typeof.eq_55, __smtx_typeof.eq_53, hATy, hBTy]
     rw [hTypeEq]
     exact hSwap.1
   · have hEvalEq :
@@ -25291,7 +25291,7 @@ private theorem run_evaluate_sound_apply_bvugt_core
             (SmtTerm.bvugt (__eo_to_smt a) (__eo_to_smt b)) =
           __smtx_model_eval M
             (SmtTerm.bvult (__eo_to_smt b) (__eo_to_smt a)) := by
-      rw [__smtx_model_eval.eq_57, __smtx_model_eval.eq_55]
+      rw [__smtx_model_eval.eq_55, __smtx_model_eval.eq_53]
       rfl
     rw [hEvalEq]
     exact hSwap.2
@@ -25314,7 +25314,7 @@ private theorem run_evaluate_sound_apply_bvuge_core
     simpa [RuleProofs.eo_has_smt_translation] using hATrans
   rcases bv_binop_ret_args_of_non_none
       (op := SmtTerm.bvuge) (ret := SmtType.Bool)
-      (by rw [__smtx_typeof.eq_58]) hBvUgeNN with
+      (by rw [__smtx_typeof.eq_56]) hBvUgeNN with
     ⟨w, hATy, hBTy⟩
   have hATransA : RuleProofs.eo_has_smt_translation a := by
     unfold RuleProofs.eo_has_smt_translation
@@ -25500,7 +25500,7 @@ private theorem run_evaluate_sound_apply_bvuge_core
               __smtx_typeof_bv_op_2_ret
                 (__smtx_typeof (__eo_to_smt a))
                 (__smtx_typeof (__eo_to_smt b)) SmtType.Bool by
-          rw [__smtx_typeof.eq_58]]
+          rw [__smtx_typeof.eq_56]]
         rw [hATy, hBTy]
         simp [__smtx_typeof_bv_op_2_ret, native_ite, native_nateq]
         rw [__smtx_typeof.eq_1]
@@ -25510,7 +25510,7 @@ private theorem run_evaluate_sound_apply_bvuge_core
               __smtx_model_eval_bvuge
                 (__smtx_model_eval M (__eo_to_smt a))
                 (__smtx_model_eval M (__eo_to_smt b)) by
-          rw [__smtx_model_eval.eq_58]]
+          rw [__smtx_model_eval.eq_56]]
         rw [hAEval, hBEval]
         rw [hRunCmpSmt]
         change
@@ -25590,7 +25590,7 @@ private theorem run_evaluate_sound_apply_bvule_core
     simpa [RuleProofs.eo_has_smt_translation] using hATrans
   rcases bv_binop_ret_args_of_non_none
       (op := SmtTerm.bvule) (ret := SmtType.Bool)
-      (by rw [__smtx_typeof.eq_56]) hBvUleNN with
+      (by rw [__smtx_typeof.eq_54]) hBvUleNN with
     ⟨w, hATy, hBTy⟩
   have hATransA : RuleProofs.eo_has_smt_translation a := by
     unfold RuleProofs.eo_has_smt_translation
@@ -25769,7 +25769,7 @@ private theorem run_evaluate_sound_apply_bvule_core
               __smtx_typeof_bv_op_2_ret
                 (__smtx_typeof (__eo_to_smt a))
                 (__smtx_typeof (__eo_to_smt b)) SmtType.Bool by
-          rw [__smtx_typeof.eq_56]]
+          rw [__smtx_typeof.eq_54]]
         rw [hATy, hBTy]
         simp [__smtx_typeof_bv_op_2_ret, native_ite, native_nateq]
         rw [__smtx_typeof.eq_1]
@@ -25779,7 +25779,7 @@ private theorem run_evaluate_sound_apply_bvule_core
               __smtx_model_eval_bvule
                 (__smtx_model_eval M (__eo_to_smt a))
                 (__smtx_model_eval M (__eo_to_smt b)) by
-          rw [__smtx_model_eval.eq_56]]
+          rw [__smtx_model_eval.eq_54]]
         rw [hAEval, hBEval]
         rw [hRunCmpSmt]
         change
@@ -28243,7 +28243,7 @@ private theorem run_evaluate_sound_apply_bvsub_core
     simpa [RuleProofs.eo_has_smt_translation] using hATrans
   rcases bv_binop_args_of_non_none
       (op := SmtTerm.bvsub) (t1 := __eo_to_smt a) (t2 := __eo_to_smt b)
-      (by rw [__smtx_typeof.eq_51]) hBvSubNN with
+      (by rw [__smtx_typeof.eq_49]) hBvSubNN with
     ⟨w, hATy, hBTy⟩
   have hATransA : RuleProofs.eo_has_smt_translation a := by
     unfold RuleProofs.eo_has_smt_translation
@@ -28418,7 +28418,7 @@ private theorem run_evaluate_sound_apply_bvsub_core
           __smtx_typeof_bv_op_2
             (__smtx_typeof (__eo_to_smt a))
             (__smtx_typeof (__eo_to_smt b)) by
-      rw [__smtx_typeof.eq_51]]
+      rw [__smtx_typeof.eq_49]]
     rw [hATy, hBTy]
     simp [__smtx_typeof_bv_op_2, native_ite, native_nateq]
     rw [smtx_typeof_binary_mod_nat_to_int]
@@ -28462,7 +28462,7 @@ private theorem run_evaluate_sound_apply_bvsub_core
           __smtx_model_eval_bvsub
             (__smtx_model_eval M (__eo_to_smt a))
             (__smtx_model_eval M (__eo_to_smt b)) by
-      rw [__smtx_model_eval.eq_51]]
+      rw [__smtx_model_eval.eq_49]]
     rw [hAEval, hBEval]
     rw [show
         __smtx_model_eval_bvsub
@@ -32093,7 +32093,7 @@ private theorem run_evaluate_sound_apply_div_total_core
               __smtx_model_eval_div_total
                 (__smtx_model_eval M (__eo_to_smt a))
                 (__smtx_model_eval M (__eo_to_smt b)) by
-          rw [__smtx_model_eval.eq_30]]
+          rw [__smtx_model_eval.eq_29]]
         rw [hAEval, hBEval]
         rw [show
             __eo_to_smt
@@ -32170,7 +32170,7 @@ private theorem run_evaluate_sound_apply_div_total_core
               __smtx_model_eval_div_total
                 (__smtx_model_eval M (__eo_to_smt a))
                 (__smtx_model_eval M (__eo_to_smt b)) by
-          rw [__smtx_model_eval.eq_30]]
+          rw [__smtx_model_eval.eq_29]]
         rw [hAEval, hBEval]
         rw [show
             __eo_to_smt
@@ -32388,7 +32388,7 @@ private theorem run_evaluate_sound_apply_mod_total_core
               __smtx_model_eval_mod_total
                 (__smtx_model_eval M (__eo_to_smt a))
                 (__smtx_model_eval M (__eo_to_smt b)) by
-          rw [__smtx_model_eval.eq_31]]
+          rw [__smtx_model_eval.eq_30]]
         rw [hAEval, hBEval]
         rw [show
             __eo_to_smt
@@ -32468,7 +32468,7 @@ private theorem run_evaluate_sound_apply_mod_total_core
               __smtx_model_eval_mod_total
                 (__smtx_model_eval M (__eo_to_smt a))
                 (__smtx_model_eval M (__eo_to_smt b)) by
-          rw [__smtx_model_eval.eq_31]]
+          rw [__smtx_model_eval.eq_30]]
         rw [hAEval, hBEval]
         rw [show
             __eo_to_smt
@@ -33374,7 +33374,7 @@ private theorem run_evaluate_sound_apply_str_concat_core
           __smtx_model_eval_str_concat
             (__smtx_model_eval M (__eo_to_smt a))
             (__smtx_model_eval M (__eo_to_smt b)) by
-      rw [__smtx_model_eval.eq_80]]
+      rw [__smtx_model_eval.eq_78]]
     rw [hAEval, hBEval, hASeqEq, hBSeqEq]
     rw [show __eo_to_smt
           (__eo_concat (Term.String sx) (Term.String sy)) =
@@ -36540,7 +36540,7 @@ private theorem run_evaluate_sound_apply_str_to_int_core
           __smtx_model_eval M (SmtTerm.str_to_int (__eo_to_smt b)) =
             __smtx_model_eval_str_to_int
               (__smtx_model_eval M (__eo_to_smt b)) := by
-        rw [__smtx_model_eval.eq_95]
+        rw [__smtx_model_eval.eq_93]
       have hEvalString :
           __smtx_model_eval M (__eo_to_smt (Term.String s)) =
             SmtValue.Seq (native_pack_string s) := by
@@ -36584,7 +36584,7 @@ private theorem run_evaluate_sound_apply_str_to_int_core
           __smtx_model_eval M (SmtTerm.str_to_int (__eo_to_smt b)) =
             __smtx_model_eval_str_to_int
               (__smtx_model_eval M (__eo_to_smt b)) := by
-        rw [__smtx_model_eval.eq_95]
+        rw [__smtx_model_eval.eq_93]
       have hEvalIntRun :
           __smtx_model_eval M
               (__eo_to_smt
@@ -36595,7 +36595,7 @@ private theorem run_evaluate_sound_apply_str_to_int_core
           __smtx_model_eval M (SmtTerm.str_to_int (__eo_to_smt runArg)) =
             __smtx_model_eval_str_to_int
               (__smtx_model_eval M (__eo_to_smt runArg))
-        rw [__smtx_model_eval.eq_95]
+        rw [__smtx_model_eval.eq_93]
       rw [hEvalIntB, hEvalIntRun]
       exact hRelInt
 
@@ -36750,7 +36750,7 @@ private theorem run_evaluate_sound_apply_str_to_lower_core
           __smtx_model_eval M (SmtTerm.str_to_lower (__eo_to_smt b)) =
             __smtx_model_eval_str_to_lower
               (__smtx_model_eval M (__eo_to_smt b)) := by
-        rw [__smtx_model_eval.eq_90]
+        rw [__smtx_model_eval.eq_88]
       have hEvalString :
           __smtx_model_eval M (__eo_to_smt (Term.String s)) =
             SmtValue.Seq (native_pack_string s) := by
@@ -36802,7 +36802,7 @@ private theorem run_evaluate_sound_apply_str_to_lower_core
           __smtx_model_eval M (SmtTerm.str_to_lower (__eo_to_smt b)) =
             __smtx_model_eval_str_to_lower
               (__smtx_model_eval M (__eo_to_smt b)) := by
-        rw [__smtx_model_eval.eq_90]
+        rw [__smtx_model_eval.eq_88]
       have hEvalLowerRun :
           __smtx_model_eval M
               (__eo_to_smt
@@ -36813,7 +36813,7 @@ private theorem run_evaluate_sound_apply_str_to_lower_core
           __smtx_model_eval M (SmtTerm.str_to_lower (__eo_to_smt runArg)) =
             __smtx_model_eval_str_to_lower
               (__smtx_model_eval M (__eo_to_smt runArg))
-        rw [__smtx_model_eval.eq_90]
+        rw [__smtx_model_eval.eq_88]
       rw [hEvalLowerB, hEvalLowerRun]
       exact hRelLower
 
@@ -36968,7 +36968,7 @@ private theorem run_evaluate_sound_apply_str_to_upper_core
           __smtx_model_eval M (SmtTerm.str_to_upper (__eo_to_smt b)) =
             __smtx_model_eval_str_to_upper
               (__smtx_model_eval M (__eo_to_smt b)) := by
-        rw [__smtx_model_eval.eq_91]
+        rw [__smtx_model_eval.eq_89]
       have hEvalString :
           __smtx_model_eval M (__eo_to_smt (Term.String s)) =
             SmtValue.Seq (native_pack_string s) := by
@@ -37020,7 +37020,7 @@ private theorem run_evaluate_sound_apply_str_to_upper_core
           __smtx_model_eval M (SmtTerm.str_to_upper (__eo_to_smt b)) =
             __smtx_model_eval_str_to_upper
               (__smtx_model_eval M (__eo_to_smt b)) := by
-        rw [__smtx_model_eval.eq_91]
+        rw [__smtx_model_eval.eq_89]
       have hEvalUpperRun :
           __smtx_model_eval M
               (__eo_to_smt
@@ -37031,7 +37031,7 @@ private theorem run_evaluate_sound_apply_str_to_upper_core
           __smtx_model_eval M (SmtTerm.str_to_upper (__eo_to_smt runArg)) =
             __smtx_model_eval_str_to_upper
               (__smtx_model_eval M (__eo_to_smt runArg))
-        rw [__smtx_model_eval.eq_91]
+        rw [__smtx_model_eval.eq_89]
       rw [hEvalUpperB, hEvalUpperRun]
       exact hRelUpper
 
@@ -37183,7 +37183,7 @@ private theorem run_evaluate_sound_apply_str_rev_core
           __smtx_model_eval M (SmtTerm.str_rev (__eo_to_smt b)) =
             __smtx_model_eval_str_rev
               (__smtx_model_eval M (__eo_to_smt b)) := by
-        rw [__smtx_model_eval.eq_88]
+        rw [__smtx_model_eval.eq_86]
       have hEvalString :
           __smtx_model_eval M (__eo_to_smt (Term.String s)) =
             SmtValue.Seq (native_pack_string s) := by
@@ -37233,7 +37233,7 @@ private theorem run_evaluate_sound_apply_str_rev_core
           __smtx_model_eval M (SmtTerm.str_rev (__eo_to_smt b)) =
             __smtx_model_eval_str_rev
               (__smtx_model_eval M (__eo_to_smt b)) := by
-        rw [__smtx_model_eval.eq_88]
+        rw [__smtx_model_eval.eq_86]
       have hEvalRevRun :
           __smtx_model_eval M
               (__eo_to_smt
@@ -37244,7 +37244,7 @@ private theorem run_evaluate_sound_apply_str_rev_core
           __smtx_model_eval M (SmtTerm.str_rev (__eo_to_smt runArg)) =
             __smtx_model_eval_str_rev
               (__smtx_model_eval M (__eo_to_smt runArg))
-        rw [__smtx_model_eval.eq_88]
+        rw [__smtx_model_eval.eq_86]
       rw [hEvalRevB, hEvalRevRun]
       exact hRelRev
 
@@ -37353,7 +37353,7 @@ private theorem run_evaluate_sound_apply_str_from_code_core
               (SmtTerm.str_from_code (__eo_to_smt x)) =
             __smtx_model_eval_str_from_code
               (__smtx_model_eval M (__eo_to_smt x)) by
-        rw [__smtx_model_eval.eq_93]]
+        rw [__smtx_model_eval.eq_91]]
       rw [show
           __eo_to_smt (Term.String (native_str_from_code runN)) =
             SmtTerm.String (native_str_from_code runN) by
@@ -37464,7 +37464,7 @@ private theorem run_evaluate_sound_apply_str_from_int_core
               (SmtTerm.str_from_int (__eo_to_smt x)) =
             __smtx_model_eval_str_from_int
               (__smtx_model_eval M (__eo_to_smt x)) by
-        rw [__smtx_model_eval.eq_96]]
+        rw [__smtx_model_eval.eq_94]]
       rw [show
           __eo_to_smt (Term.String (native_str_from_int runN)) =
             SmtTerm.String (native_str_from_int runN) by
@@ -37512,7 +37512,7 @@ private theorem run_evaluate_sound_apply_str_from_int_core
               (SmtTerm.str_from_int (__eo_to_smt x)) =
             __smtx_model_eval_str_from_int
               (__smtx_model_eval M (__eo_to_smt x)) by
-        rw [__smtx_model_eval.eq_96]]
+        rw [__smtx_model_eval.eq_94]]
       rw [show
           __smtx_model_eval M
               (__eo_to_smt
@@ -37525,7 +37525,7 @@ private theorem run_evaluate_sound_apply_str_from_int_core
               (SmtTerm.str_from_int (__eo_to_smt (__run_evaluate x))) =
             __smtx_model_eval_str_from_int
               (__smtx_model_eval M (__eo_to_smt (__run_evaluate x)))
-        rw [__smtx_model_eval.eq_96]]
+        rw [__smtx_model_eval.eq_94]]
       exact hRelFrom
 
 private theorem run_evaluate_sound_apply_ubv_to_int_core
@@ -37544,7 +37544,7 @@ private theorem run_evaluate_sound_apply_ubv_to_int_core
     simpa [RuleProofs.eo_has_smt_translation] using hATrans
   rcases bv_unop_ret_arg_of_non_none
       (op := SmtTerm.ubv_to_int) (ret := SmtType.Int)
-      (by rw [__smtx_typeof.eq_132]) hUbvToIntNN with
+      (by rw [__smtx_typeof.eq_130]) hUbvToIntNN with
     ⟨w, hxSmtTy⟩
   have hXTrans : RuleProofs.eo_has_smt_translation x := by
     unfold RuleProofs.eo_has_smt_translation
@@ -37643,7 +37643,7 @@ private theorem run_evaluate_sound_apply_ubv_to_int_core
           __smtx_typeof (SmtTerm.ubv_to_int (__eo_to_smt x)) =
             __smtx_typeof_bv_op_1_ret
               (__smtx_typeof (__eo_to_smt x)) SmtType.Int by
-        rw [__smtx_typeof.eq_132]]
+        rw [__smtx_typeof.eq_130]]
       rw [hxSmtTy]
       rw [__smtx_typeof.eq_2]
       simp [__smtx_typeof_bv_op_1_ret]
@@ -37667,7 +37667,7 @@ private theorem run_evaluate_sound_apply_ubv_to_int_core
               (SmtTerm.ubv_to_int (__eo_to_smt x)) =
             __smtx_model_eval_ubv_to_int
               (__smtx_model_eval M (__eo_to_smt x)) by
-        rw [__smtx_model_eval.eq_132]]
+        rw [__smtx_model_eval.eq_130]]
       rw [hXEval]
       change
         RuleProofs.smt_value_rel
@@ -38318,7 +38318,7 @@ private theorem run_evaluate_sound_apply_int_to_bv_core
             __smtx_model_eval_int_to_bv
               (SmtValue.Numeral i)
               (__smtx_model_eval M (__eo_to_smt x)) by
-        rw [__smtx_model_eval.eq_131, __smtx_model_eval.eq_2]]
+        rw [__smtx_model_eval.eq_129, __smtx_model_eval.eq_2]]
       rw [hXEval]
       change
         RuleProofs.smt_value_rel
@@ -38561,7 +38561,7 @@ private theorem run_evaluate_sound_apply_extract_core
           __smtx_model_eval_extract
             (SmtValue.Numeral i) (SmtValue.Numeral j)
             (__smtx_model_eval M (__eo_to_smt x)) by
-      rw [__smtx_model_eval.eq_36, __smtx_model_eval.eq_2,
+      rw [__smtx_model_eval.eq_34, __smtx_model_eval.eq_2,
         __smtx_model_eval.eq_2]]
     rw [hXEval]
     change

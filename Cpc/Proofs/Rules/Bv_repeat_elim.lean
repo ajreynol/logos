@@ -236,7 +236,7 @@ private theorem bv_list_repeat_rec_eval_eq_repeat_rec
           SmtTerm.concat (__eo_to_smt a)
             (__eo_to_smt
               (__eo_list_repeat_rec (Term.UOp UserOp.concat) a n)) by rfl]
-      rw [__smtx_model_eval.eq_35, __smtx_model_eval_repeat_rec]
+      rw [__smtx_model_eval.eq_33, __smtx_model_eval_repeat_rec]
       rw [ih]
 
 private theorem bv_list_repeat_singleton_eval_eq_repeat_rec
@@ -324,7 +324,7 @@ private theorem bv_list_repeat_singleton_eval_eq_repeat_rec
                 (__eo_to_smt
                   (__eo_list_repeat_rec (Term.UOp UserOp.concat) a
                     (Nat.succ n))) by rfl]
-          rw [__smtx_model_eval.eq_35, __smtx_model_eval_repeat_rec]
+          rw [__smtx_model_eval.eq_33, __smtx_model_eval_repeat_rec]
           rw [hTailEval]
 
 private theorem bv_repeat_elim_eval_rel
@@ -384,7 +384,7 @@ private theorem bv_repeat_elim_eval_rel
     type_preservation M hM (__eo_to_smt a) hANN
   rw [haTy] at hEvalTy
   rcases bitvec_value_canonical hEvalTy with ⟨payload, hEvalA⟩
-  rw [__smtx_model_eval.eq_37, __smtx_model_eval.eq_2, hEvalA]
+  rw [__smtx_model_eval.eq_35, __smtx_model_eval.eq_2, hEvalA]
   simp [__smtx_model_eval_repeat]
   exact RuleProofs.smt_value_rel_refl _
 

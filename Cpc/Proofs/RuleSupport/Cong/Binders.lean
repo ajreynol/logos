@@ -910,11 +910,6 @@ theorem eo_apply_apply_arg_has_translation_of_has_translation
           SmtTerm.mod (__eo_to_smt z) (__eo_to_smt x)
           (int_binop_args_non_reg_of_non_none SmtTerm.mod SmtType.Int
             (by intro a b; exact typeof_mod_eq a b)) hx)
-      case multmult =>
-        exact hTrans (smt_binop_type_none_of_second_arg_none
-          SmtTerm.multmult (__eo_to_smt z) (__eo_to_smt x)
-          (int_binop_args_non_reg_of_non_none SmtTerm.multmult SmtType.Int
-            (by intro a b; exact typeof_multmult_eq a b)) hx)
       case divisible =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.divisible (__eo_to_smt z) (__eo_to_smt x)
@@ -930,11 +925,6 @@ theorem eo_apply_apply_arg_has_translation_of_has_translation
           SmtTerm.mod_total (__eo_to_smt z) (__eo_to_smt x)
           (int_binop_args_non_reg_of_non_none SmtTerm.mod_total SmtType.Int
             (by intro a b; exact typeof_mod_total_eq a b)) hx)
-      case multmult_total =>
-        exact hTrans (smt_binop_type_none_of_second_arg_none
-          SmtTerm.multmult_total (__eo_to_smt z) (__eo_to_smt x)
-          (int_binop_args_non_reg_of_non_none SmtTerm.multmult_total
-            SmtType.Int (by intro a b; exact typeof_multmult_total_eq a b)) hx)
       case select =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.select (__eo_to_smt z) (__eo_to_smt x)
@@ -947,177 +937,177 @@ theorem eo_apply_apply_arg_has_translation_of_has_translation
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.bvand (__eo_to_smt z) (__eo_to_smt x)
           (bv_binop_args_non_reg_of_non_none SmtTerm.bvand
-            (by intro a b; rw [__smtx_typeof.eq_39])) hx)
+            (by intro a b; rw [__smtx_typeof.eq_37])) hx)
       case bvor =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.bvor (__eo_to_smt z) (__eo_to_smt x)
           (bv_binop_args_non_reg_of_non_none SmtTerm.bvor
-            (by intro a b; rw [__smtx_typeof.eq_40])) hx)
+            (by intro a b; rw [__smtx_typeof.eq_38])) hx)
       case bvnand =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.bvnand (__eo_to_smt z) (__eo_to_smt x)
           (bv_binop_args_non_reg_of_non_none SmtTerm.bvnand
-            (by intro a b; rw [__smtx_typeof.eq_41])) hx)
+            (by intro a b; rw [__smtx_typeof.eq_39])) hx)
       case bvnor =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.bvnor (__eo_to_smt z) (__eo_to_smt x)
           (bv_binop_args_non_reg_of_non_none SmtTerm.bvnor
-            (by intro a b; rw [__smtx_typeof.eq_42])) hx)
+            (by intro a b; rw [__smtx_typeof.eq_40])) hx)
       case bvxor =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.bvxor (__eo_to_smt z) (__eo_to_smt x)
           (bv_binop_args_non_reg_of_non_none SmtTerm.bvxor
-            (by intro a b; rw [__smtx_typeof.eq_43])) hx)
+            (by intro a b; rw [__smtx_typeof.eq_41])) hx)
       case bvxnor =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.bvxnor (__eo_to_smt z) (__eo_to_smt x)
           (bv_binop_args_non_reg_of_non_none SmtTerm.bvxnor
-            (by intro a b; rw [__smtx_typeof.eq_44])) hx)
+            (by intro a b; rw [__smtx_typeof.eq_42])) hx)
       case bvcomp =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.bvcomp (__eo_to_smt z) (__eo_to_smt x)
           (bv_binop_ret_args_non_reg_of_non_none SmtTerm.bvcomp
-            (SmtType.BitVec 1) (by intro a b; rw [__smtx_typeof.eq_45])) hx)
+            (SmtType.BitVec 1) (by intro a b; rw [__smtx_typeof.eq_43])) hx)
       case bvadd =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.bvadd (__eo_to_smt z) (__eo_to_smt x)
           (bv_binop_args_non_reg_of_non_none SmtTerm.bvadd
-            (by intro a b; rw [__smtx_typeof.eq_47])) hx)
+            (by intro a b; rw [__smtx_typeof.eq_45])) hx)
       case bvmul =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.bvmul (__eo_to_smt z) (__eo_to_smt x)
           (bv_binop_args_non_reg_of_non_none SmtTerm.bvmul
-            (by intro a b; rw [__smtx_typeof.eq_48])) hx)
+            (by intro a b; rw [__smtx_typeof.eq_46])) hx)
       case bvudiv =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.bvudiv (__eo_to_smt z) (__eo_to_smt x)
           (bv_binop_args_non_reg_of_non_none SmtTerm.bvudiv
-            (by intro a b; rw [__smtx_typeof.eq_49])) hx)
+            (by intro a b; rw [__smtx_typeof.eq_47])) hx)
       case bvurem =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.bvurem (__eo_to_smt z) (__eo_to_smt x)
           (bv_binop_args_non_reg_of_non_none SmtTerm.bvurem
-            (by intro a b; rw [__smtx_typeof.eq_50])) hx)
+            (by intro a b; rw [__smtx_typeof.eq_48])) hx)
       case bvsub =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.bvsub (__eo_to_smt z) (__eo_to_smt x)
           (bv_binop_args_non_reg_of_non_none SmtTerm.bvsub
-            (by intro a b; rw [__smtx_typeof.eq_51])) hx)
+            (by intro a b; rw [__smtx_typeof.eq_49])) hx)
       case bvsdiv =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.bvsdiv (__eo_to_smt z) (__eo_to_smt x)
           (bv_binop_args_non_reg_of_non_none SmtTerm.bvsdiv
-            (by intro a b; rw [__smtx_typeof.eq_52])) hx)
+            (by intro a b; rw [__smtx_typeof.eq_50])) hx)
       case bvsrem =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.bvsrem (__eo_to_smt z) (__eo_to_smt x)
           (bv_binop_args_non_reg_of_non_none SmtTerm.bvsrem
-            (by intro a b; rw [__smtx_typeof.eq_53])) hx)
+            (by intro a b; rw [__smtx_typeof.eq_51])) hx)
       case bvsmod =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.bvsmod (__eo_to_smt z) (__eo_to_smt x)
           (bv_binop_args_non_reg_of_non_none SmtTerm.bvsmod
-            (by intro a b; rw [__smtx_typeof.eq_54])) hx)
+            (by intro a b; rw [__smtx_typeof.eq_52])) hx)
       case bvult =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.bvult (__eo_to_smt z) (__eo_to_smt x)
           (bv_binop_ret_args_non_reg_of_non_none SmtTerm.bvult
-            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_55])) hx)
+            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_53])) hx)
       case bvule =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.bvule (__eo_to_smt z) (__eo_to_smt x)
           (bv_binop_ret_args_non_reg_of_non_none SmtTerm.bvule
-            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_56])) hx)
+            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_54])) hx)
       case bvugt =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.bvugt (__eo_to_smt z) (__eo_to_smt x)
           (bv_binop_ret_args_non_reg_of_non_none SmtTerm.bvugt
-            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_57])) hx)
+            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_55])) hx)
       case bvuge =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.bvuge (__eo_to_smt z) (__eo_to_smt x)
           (bv_binop_ret_args_non_reg_of_non_none SmtTerm.bvuge
-            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_58])) hx)
+            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_56])) hx)
       case bvslt =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.bvslt (__eo_to_smt z) (__eo_to_smt x)
           (bv_binop_ret_args_non_reg_of_non_none SmtTerm.bvslt
-            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_59])) hx)
+            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_57])) hx)
       case bvsle =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.bvsle (__eo_to_smt z) (__eo_to_smt x)
           (bv_binop_ret_args_non_reg_of_non_none SmtTerm.bvsle
-            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_60])) hx)
+            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_58])) hx)
       case bvsgt =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.bvsgt (__eo_to_smt z) (__eo_to_smt x)
           (bv_binop_ret_args_non_reg_of_non_none SmtTerm.bvsgt
-            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_61])) hx)
+            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_59])) hx)
       case bvsge =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.bvsge (__eo_to_smt z) (__eo_to_smt x)
           (bv_binop_ret_args_non_reg_of_non_none SmtTerm.bvsge
-            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_62])) hx)
+            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_60])) hx)
       case bvshl =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.bvshl (__eo_to_smt z) (__eo_to_smt x)
           (bv_binop_args_non_reg_of_non_none SmtTerm.bvshl
-            (by intro a b; rw [__smtx_typeof.eq_63])) hx)
+            (by intro a b; rw [__smtx_typeof.eq_61])) hx)
       case bvlshr =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.bvlshr (__eo_to_smt z) (__eo_to_smt x)
           (bv_binop_args_non_reg_of_non_none SmtTerm.bvlshr
-            (by intro a b; rw [__smtx_typeof.eq_64])) hx)
+            (by intro a b; rw [__smtx_typeof.eq_62])) hx)
       case bvashr =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.bvashr (__eo_to_smt z) (__eo_to_smt x)
           (bv_binop_args_non_reg_of_non_none SmtTerm.bvashr
-            (by intro a b; rw [__smtx_typeof.eq_65])) hx)
+            (by intro a b; rw [__smtx_typeof.eq_63])) hx)
       case bvuaddo =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.bvuaddo (__eo_to_smt z) (__eo_to_smt x)
           (bv_binop_ret_args_non_reg_of_non_none SmtTerm.bvuaddo
-            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_70])) hx)
+            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_68])) hx)
       case bvsaddo =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.bvsaddo (__eo_to_smt z) (__eo_to_smt x)
           (bv_binop_ret_args_non_reg_of_non_none SmtTerm.bvsaddo
-            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_72])) hx)
+            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_70])) hx)
       case bvumulo =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.bvumulo (__eo_to_smt z) (__eo_to_smt x)
           (bv_binop_ret_args_non_reg_of_non_none SmtTerm.bvumulo
-            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_73])) hx)
+            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_71])) hx)
       case bvsmulo =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.bvsmulo (__eo_to_smt z) (__eo_to_smt x)
           (bv_binop_ret_args_non_reg_of_non_none SmtTerm.bvsmulo
-            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_74])) hx)
+            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_72])) hx)
       case bvusubo =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.bvusubo (__eo_to_smt z) (__eo_to_smt x)
           (bv_binop_ret_args_non_reg_of_non_none SmtTerm.bvusubo
-            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_75])) hx)
+            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_73])) hx)
       case bvssubo =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.bvssubo (__eo_to_smt z) (__eo_to_smt x)
           (bv_binop_ret_args_non_reg_of_non_none SmtTerm.bvssubo
-            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_76])) hx)
+            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_74])) hx)
       case bvsdivo =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           SmtTerm.bvsdivo (__eo_to_smt z) (__eo_to_smt x)
           (bv_binop_ret_args_non_reg_of_non_none SmtTerm.bvsdivo
-            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_77])) hx)
+            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_75])) hx)
       case bvultbv =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           (bvPredToBv SmtTerm.bvult) (__eo_to_smt z) (__eo_to_smt x)
           (bv_pred_to_bv_args_non_reg_of_non_none SmtTerm.bvult
-            (by intro a b; rw [__smtx_typeof.eq_55])) hx)
+            (by intro a b; rw [__smtx_typeof.eq_53])) hx)
       case bvsltbv =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           (bvPredToBv SmtTerm.bvslt) (__eo_to_smt z) (__eo_to_smt x)
           (bv_pred_to_bv_args_non_reg_of_non_none SmtTerm.bvslt
-            (by intro a b; rw [__smtx_typeof.eq_59])) hx)
+            (by intro a b; rw [__smtx_typeof.eq_57])) hx)
       case _at_from_bools =>
         exact hTrans (smt_binop_type_none_of_second_arg_none
           bvFromBoolsTerm (__eo_to_smt z) (__eo_to_smt x)
@@ -1279,14 +1269,9 @@ theorem eo_apply_apply_arg_has_translation_of_has_translation
             __smtx_typeof
               (stringsItosResultTerm (__eo_to_smt z) (__eo_to_smt x)) =
               SmtType.None
-          have hMul :
-              __smtx_typeof
-                (SmtTerm.multmult (SmtTerm.Numeral 10) (__eo_to_smt x)) =
-                SmtType.None := by
-            rw [typeof_multmult_eq, hx]
-            simp [__smtx_typeof, native_ite, native_Teq]
-          rw [stringsItosResultTerm, typeof_mod_eq, hMul]
-          simp [native_ite, native_Teq])
+          rw [stringsItosResultTerm, typeof_ite_eq, typeof_eq_eq, hx]
+          simp [__smtx_typeof_eq, __smtx_typeof_guard,
+            __smtx_typeof_ite, native_ite, native_Teq])
       case _at_sets_deq_diff =>
         exact hTrans (by
           change

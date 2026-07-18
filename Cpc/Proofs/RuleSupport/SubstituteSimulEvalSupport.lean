@@ -3970,8 +3970,6 @@ theorem eo_to_smt_apply_apply_uop_generic_of_not_smt_binop
     (hDivisible : op ≠ UserOp.divisible)
     (hDivTotal : op ≠ UserOp.div_total)
     (hModTotal : op ≠ UserOp.mod_total)
-    (hMultmultTotal : op ≠ UserOp.multmult_total)
-    (hMultmult : op ≠ UserOp.multmult)
     (hQdivTotal : op ≠ UserOp.qdiv_total)
     (hQdiv : op ≠ UserOp.qdiv)
     (hConcat : op ≠ UserOp.concat)
@@ -4064,8 +4062,6 @@ theorem eo_to_smt_apply_apply_uop_generic_of_not_smt_binop
     | exact hDivisible rfl
     | exact hDivTotal rfl
     | exact hModTotal rfl
-    | exact hMultmultTotal rfl
-    | exact hMultmult rfl
     | exact hQdivTotal rfl
     | exact hQdiv rfl
     | exact hConcat rfl
@@ -8096,15 +8092,17 @@ theorem substitute_simul_eval_nonbinder
                                                                     (fun X Y h => by
                                                                       show __smtx_model_eval M
                                                                           (SmtTerm.str_indexof_re (__eo_to_smt X)
-                                                                            (SmtTerm.re_comp
-                                                                              (SmtTerm.re_range (SmtTerm.String (native_string_lit "0"))
-                                                                                (SmtTerm.String (native_string_lit "9"))))
+                                                                            (SmtTerm.re_inter SmtTerm.re_allchar
+                                                                              (SmtTerm.re_comp
+                                                                                (SmtTerm.re_range (SmtTerm.String (native_string_lit "0"))
+                                                                                  (SmtTerm.String (native_string_lit "9")))))
                                                                             (SmtTerm.Numeral 0)) =
                                                                         __smtx_model_eval N
                                                                           (SmtTerm.str_indexof_re (__eo_to_smt Y)
-                                                                            (SmtTerm.re_comp
-                                                                              (SmtTerm.re_range (SmtTerm.String (native_string_lit "0"))
-                                                                                (SmtTerm.String (native_string_lit "9"))))
+                                                                            (SmtTerm.re_inter SmtTerm.re_allchar
+                                                                              (SmtTerm.re_comp
+                                                                                (SmtTerm.re_range (SmtTerm.String (native_string_lit "0"))
+                                                                                  (SmtTerm.String (native_string_lit "9")))))
                                                                             (SmtTerm.Numeral 0))
                                                                       simp [__smtx_model_eval, h])
                                                                     (fun ht hst => hRecArg (by simp [IsNonbinderSubterm, hBinder]) (by simp; try omega) ht hst)
@@ -8573,35 +8571,9 @@ theorem substitute_simul_eval_nonbinder
                                                                                                                                   (fun ht hst => hRecArg (by simp [IsNonbinderSubterm, hBinder]) (by simp; try omega) ht hst)
                                                                                                                                   (fun ht hst => hRecArg (by simp [IsNonbinderSubterm, hBinder]) (by simp; try omega) ht hst)
                                                                                                                               ·
-                                                                                                                                by_cases h_multmult_total : op = UserOp.multmult_total
-                                                                                                                                · subst op
-                                                                                                                                  exact substFalse_eval_binary_op UserOp.multmult_total x1 a xs ss bvs
-                                                                                                                                    hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
-                                                                                                                                    hFTrans hSubstTrans
-                                                                                                                                    (substitute_simul_rec_uop_eq_self UserOp.multmult_total xs ss bvs hXsEnv hBvsEnv hSsTrans)
-                                                                                                                                    (fun {s t} h => multmult_total_args_have_smt_translation_of_has_smt_translation h)
-                                                                                                                                    (fun X1 Y1 X2 Y2 h1 h2 => by
-                                                                                                                                      show __smtx_model_eval M (SmtTerm.multmult_total (__eo_to_smt X1) (__eo_to_smt X2)) =
-                                                                                                                                        __smtx_model_eval N (SmtTerm.multmult_total (__eo_to_smt Y1) (__eo_to_smt Y2))
-                                                                                                                                      simp only [__smtx_model_eval]; rw [h1, h2])
-                                                                                                                                    (fun ht hst => hRecArg (by simp [IsNonbinderSubterm, hBinder]) (by simp; try omega) ht hst)
-                                                                                                                                    (fun ht hst => hRecArg (by simp [IsNonbinderSubterm, hBinder]) (by simp; try omega) ht hst)
-                                                                                                                                · by_cases h_multmult : op = UserOp.multmult
-                                                                                                                                  · subst op
-                                                                                                                                    exact substFalse_eval_binary_op UserOp.multmult x1 a xs ss bvs
-                                                                                                                                      hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
-                                                                                                                                      hFTrans hSubstTrans
-                                                                                                                                      (substitute_simul_rec_uop_eq_self UserOp.multmult xs ss bvs hXsEnv hBvsEnv hSsTrans)
-                                                                                                                                      (fun {s t} h => multmult_args_have_smt_translation_of_has_smt_translation h)
-                                                                                                                                      (fun X1 Y1 X2 Y2 h1 h2 => by
-                                                                                                                                        show __smtx_model_eval M (SmtTerm.multmult (__eo_to_smt X1) (__eo_to_smt X2)) =
-                                                                                                                                          __smtx_model_eval N (SmtTerm.multmult (__eo_to_smt Y1) (__eo_to_smt Y2))
-                                                                                                                                        simp only [__smtx_model_eval]
-                                                                                                                                        rw [h1, h2, smtx_model_eval_apply_eq_of_globals hGlobals,
-                                                                                                                                          hGlobals.1])
-                                                                                                                                      (fun ht hst => hRecArg (by simp [IsNonbinderSubterm, hBinder]) (by simp; try omega) ht hst)
-                                                                                                                                      (fun ht hst => hRecArg (by simp [IsNonbinderSubterm, hBinder]) (by simp; try omega) ht hst)
-                                                                                                                                  · by_cases h_qdiv_total : op = UserOp.qdiv_total
+                                                                                                                                first
+                                                                                                                                | first
+                                                                                                                                  | by_cases h_qdiv_total : op = UserOp.qdiv_total
                                                                                                                                     · subst op
                                                                                                                                       exact substFalse_eval_binary_op UserOp.qdiv_total x1 a xs ss bvs
                                                                                                                                         hisr hxs hss hbvs (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
@@ -9834,14 +9806,22 @@ theorem substitute_simul_eval_nonbinder
                                                                                                                                                                                                                                                                 (fun {s t} h => strings_itos_result_args_have_smt_translation_of_has_smt_translation h)
                                                                                                                                                                                                                                                                 (fun X1 Y1 X2 Y2 h1 h2 => by
                                                                                                                                                                                                                                                                   show __smtx_model_eval M
-                                                                                                                                                                                                                                                                      (SmtTerm.mod (__eo_to_smt X1)
-                                                                                                                                                                                                                                                                        (SmtTerm.multmult (SmtTerm.Numeral 10) (__eo_to_smt X2))) =
+                                                                                                                                                                                                                                                                      (SmtTerm.ite
+                                                                                                                                                                                                                                                                        (SmtTerm.eq (__eo_to_smt X2) (SmtTerm.Numeral 0))
+                                                                                                                                                                                                                                                                        (SmtTerm.Numeral 0)
+                                                                                                                                                                                                                                                                        (SmtTerm.str_to_int
+                                                                                                                                                                                                                                                                          (SmtTerm.str_substr
+                                                                                                                                                                                                                                                                            (SmtTerm.str_from_int (__eo_to_smt X1))
+                                                                                                                                                                                                                                                                            (SmtTerm.Numeral 0) (__eo_to_smt X2)))) =
                                                                                                                                                                                                                                                                     __smtx_model_eval N
-                                                                                                                                                                                                                                                                      (SmtTerm.mod (__eo_to_smt Y1)
-                                                                                                                                                                                                                                                                        (SmtTerm.multmult (SmtTerm.Numeral 10) (__eo_to_smt Y2)))
-                                                                                                                                                                                                                                                                  simp [__smtx_model_eval, h1, h2,
-                                                                                                                                                                                                                                                                    smtx_model_eval_apply_eq_of_globals hGlobals,
-                                                                                                                                                                                                                                                                    hGlobals.1])
+                                                                                                                                                                                                                                                                      (SmtTerm.ite
+                                                                                                                                                                                                                                                                        (SmtTerm.eq (__eo_to_smt Y2) (SmtTerm.Numeral 0))
+                                                                                                                                                                                                                                                                        (SmtTerm.Numeral 0)
+                                                                                                                                                                                                                                                                        (SmtTerm.str_to_int
+                                                                                                                                                                                                                                                                          (SmtTerm.str_substr
+                                                                                                                                                                                                                                                                            (SmtTerm.str_from_int (__eo_to_smt Y1))
+                                                                                                                                                                                                                                                                            (SmtTerm.Numeral 0) (__eo_to_smt Y2))))
+                                                                                                                                                                                                                                                                  simp [__smtx_model_eval, h1, h2])
                                                                                                                                                                                                                                                                 (fun ht hst => hRecArg (by simp [IsNonbinderSubterm, hBinder]) (by simp; try omega) ht hst)
                                                                                                                                                                                                                                                                 (fun ht hst => hRecArg (by simp [IsNonbinderSubterm, hBinder]) (by simp; try omega) ht hst)
                                                                                                                                                                                                                                                             · by_cases h_strings_num_occur : op = UserOp._at_strings_num_occur
@@ -10010,8 +9990,7 @@ theorem substitute_simul_eval_nonbinder
                                                                                                                                                                                                                                                                               (eo_to_smt_apply_apply_uop_generic_of_not_smt_binop
                                                                                                                                                                                                                                                                                 h_and h_or h_imp h_xor h_eq h_plus h_neg h_mult
                                                                                                                                                                                                                                                                                 h_lt h_leq h_gt h_geq h_div h_mod h_select
-                                                                                                                                                                                                                                                                                h_divisible h_div_total h_mod_total h_multmult_total
-                                                                                                                                                                                                                                                                                h_multmult h_qdiv_total h_qdiv h_concat
+                                                                                                                                                                                                                                                                                h_divisible h_div_total h_mod_total h_qdiv_total h_qdiv h_concat
                                                                                                                                                                                                                                                                                 h_bvand h_bvor h_bvnand h_bvnor h_bvxor h_bvxnor
                                                                                                                                                                                                                                                                                 h_bvcomp h_bvadd h_bvmul h_bvudiv h_bvurem h_bvsub
                                                                                                                                                                                                                                                                                 h_bvsdiv h_bvsrem h_bvsmod h_bvshl h_bvlshr
@@ -10029,8 +10008,7 @@ theorem substitute_simul_eval_nonbinder
                                                                                                                                                                                                                                                                               (eo_to_smt_apply_apply_uop_generic_of_not_smt_binop
                                                                                                                                                                                                                                                                                 h_and h_or h_imp h_xor h_eq h_plus h_neg h_mult
                                                                                                                                                                                                                                                                                 h_lt h_leq h_gt h_geq h_div h_mod h_select
-                                                                                                                                                                                                                                                                                h_divisible h_div_total h_mod_total h_multmult_total
-                                                                                                                                                                                                                                                                                h_multmult h_qdiv_total h_qdiv h_concat
+                                                                                                                                                                                                                                                                                h_divisible h_div_total h_mod_total h_qdiv_total h_qdiv h_concat
                                                                                                                                                                                                                                                                                 h_bvand h_bvor h_bvnand h_bvnor h_bvxor h_bvxnor
                                                                                                                                                                                                                                                                                 h_bvcomp h_bvadd h_bvmul h_bvudiv h_bvurem h_bvsub
                                                                                                                                                                                                                                                                                 h_bvsdiv h_bvsrem h_bvsmod h_bvshl h_bvlshr

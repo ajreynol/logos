@@ -195,7 +195,7 @@ private theorem eo_has_bool_type_bvsgt_same
   cases hM
   unfold RuleProofs.eo_has_bool_type
   change __smtx_typeof (SmtTerm.bvsgt (__eo_to_smt x1) (__eo_to_smt y1)) = SmtType.Bool
-  rw [__smtx_typeof.eq_61]
+  rw [__smtx_typeof.eq_59]
   simp [__smtx_typeof_bv_op_2_ret, hX1SmtTy, hY1SmtTy, native_nateq, native_ite]
 
 private theorem eo_has_bool_type_bvslt_swap
@@ -217,7 +217,7 @@ private theorem eo_has_bool_type_bvslt_swap
   cases hM
   unfold RuleProofs.eo_has_bool_type
   change __smtx_typeof (SmtTerm.bvslt (__eo_to_smt y1) (__eo_to_smt x1)) = SmtType.Bool
-  rw [__smtx_typeof.eq_59]
+  rw [__smtx_typeof.eq_57]
   simp [__smtx_typeof_bv_op_2_ret, hX1SmtTy, hY1SmtTy, native_nateq, native_ite]
 
 private theorem typed___eo_prog_bv_sgt_eliminate_impl (x1 y1 : Term) :
@@ -261,7 +261,7 @@ private theorem eval_bvsgt_matches_bvslt_swap
   intro _hX1Trans _hY1Trans _hResultTy
   change __smtx_model_eval M (SmtTerm.bvsgt (__eo_to_smt x1) (__eo_to_smt y1)) =
     __smtx_model_eval M (SmtTerm.bvslt (__eo_to_smt y1) (__eo_to_smt x1))
-  rw [__smtx_model_eval.eq_61, __smtx_model_eval.eq_59]
+  rw [__smtx_model_eval.eq_59, __smtx_model_eval.eq_57]
   rfl
 
 private theorem facts___eo_prog_bv_sgt_eliminate_impl

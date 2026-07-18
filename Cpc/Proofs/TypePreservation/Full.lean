@@ -1093,10 +1093,6 @@ private theorem supported_type_preservation
       exact typeof_value_model_eval_mod M hM _ _ ht
         (supported_type_preservation M hM _ ht1 hs1)
         (supported_type_preservation M hM _ ht2 hs2)
-  | multmult ht1 hs1 ht2 hs2 =>
-      exact typeof_value_model_eval_multmult M hM _ _ ht
-        (supported_type_preservation M hM _ ht1 hs1)
-        (supported_type_preservation M hM _ ht2 hs2)
   | divisible ht1 hs1 ht2 hs2 =>
       exact typeof_value_model_eval_divisible M _ _ ht
         (supported_type_preservation M hM _ ht1 hs1)
@@ -1113,10 +1109,6 @@ private theorem supported_type_preservation
         (supported_type_preservation M hM _ ht2 hs2)
   | mod_total ht1 hs1 ht2 hs2 =>
       exact typeof_value_model_eval_mod_total M _ _ ht
-        (supported_type_preservation M hM _ ht1 hs1)
-        (supported_type_preservation M hM _ ht2 hs2)
-  | multmult_total ht1 hs1 ht2 hs2 =>
-      exact typeof_value_model_eval_multmult_total M _ _ ht
         (supported_type_preservation M hM _ ht1 hs1)
         (supported_type_preservation M hM _ ht2 hs2)
   | qdiv ht1 hs1 ht2 hs2 =>
@@ -1705,19 +1697,6 @@ private theorem canonical_of_supported
           (model_eval_apply_lookup_ifun_canonical M hM native_mod_by_zero_id
             SmtType.Int SmtType.Int _ ifun_type_wf_int_int hxTy)
           (model_eval_mod_total_canonical _ _)
-  case multmult ht1 hs1 ht2 hs2 =>
-      have hApply :
-          __smtx_value_canonical
-              (__smtx_model_eval_apply M
-                (native_model_lookup M native_div_by_zero_id
-                (SmtType.FunType SmtType.Int SmtType.Int))
-              (SmtValue.Numeral 1)) :=
-        model_eval_apply_lookup_ifun_canonical M hM native_div_by_zero_id
-          SmtType.Int SmtType.Int (SmtValue.Numeral 1) ifun_type_wf_int_int rfl
-      simpa [__smtx_model_eval] using
-        model_eval_ite_canonical
-          (model_eval_multmult_total_canonical _ _)
-          (model_eval_ite_canonical hApply (model_eval_div_total_canonical _ _))
   case divisible ht1 hs1 ht2 hs2 =>
       simpa [__smtx_model_eval] using
         model_eval_divisible_canonical (__smtx_model_eval M _) (__smtx_model_eval M _)
@@ -1733,9 +1712,6 @@ private theorem canonical_of_supported
   case mod_total ht1 hs1 ht2 hs2 =>
       simpa [__smtx_model_eval] using
         model_eval_mod_total_canonical (__smtx_model_eval M _) (__smtx_model_eval M _)
-  case multmult_total ht1 hs1 ht2 hs2 =>
-      simpa [__smtx_model_eval] using
-        model_eval_multmult_total_canonical (__smtx_model_eval M _) (__smtx_model_eval M _)
   case qdiv ht1 hs1 ht2 hs2 =>
       rename_i t1 t2
       rcases arith_binop_ret_args_of_non_none (op := SmtTerm.qdiv)
@@ -4092,9 +4068,6 @@ theorem term_type_has_no_none_components_of_non_none :
     | SmtTerm.mod t1 t2 =>
         exact int_binop_ret_type_has_no_none_components_of_non_none
           (typeof_mod_eq t1 t2) ht (by simp [type_has_no_none_components])
-    | SmtTerm.multmult t1 t2 =>
-        exact int_binop_ret_type_has_no_none_components_of_non_none
-          (typeof_multmult_eq t1 t2) ht (by simp [type_has_no_none_components])
     | SmtTerm.divisible t1 t2 =>
         exact int_binop_ret_type_has_no_none_components_of_non_none
           (typeof_divisible_eq t1 t2) ht (by simp [type_has_no_none_components])
@@ -4110,9 +4083,6 @@ theorem term_type_has_no_none_components_of_non_none :
     | SmtTerm.mod_total t1 t2 =>
         exact int_binop_ret_type_has_no_none_components_of_non_none
           (typeof_mod_total_eq t1 t2) ht (by simp [type_has_no_none_components])
-    | SmtTerm.multmult_total t1 t2 =>
-        exact int_binop_ret_type_has_no_none_components_of_non_none
-          (typeof_multmult_total_eq t1 t2) ht (by simp [type_has_no_none_components])
     | SmtTerm.select t1 t2 =>
         have ht1 : term_has_non_none_type t1 := by
           rcases select_args_of_non_none ht with ⟨A, B, h1, h2⟩
@@ -4143,141 +4113,141 @@ theorem term_type_has_no_none_components_of_non_none :
     | SmtTerm.bvnot t1 =>
         exact bv_unop_type_has_no_none_components_of_non_none
           (show __smtx_typeof (SmtTerm.bvnot t1) = __smtx_typeof_bv_op_1 (__smtx_typeof t1) by
-            rw [__smtx_typeof.eq_38]) ht
+            rw [__smtx_typeof.eq_def] <;> simp only) ht
     | SmtTerm.bvand t1 t2 =>
         exact bv_binop_type_has_no_none_components_of_non_none
           (show __smtx_typeof (SmtTerm.bvand t1 t2) =
               __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by
-            rw [__smtx_typeof.eq_39]) ht
+            rw [__smtx_typeof.eq_def] <;> simp only) ht
     | SmtTerm.bvor t1 t2 =>
         exact bv_binop_type_has_no_none_components_of_non_none
           (show __smtx_typeof (SmtTerm.bvor t1 t2) =
               __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by
-            rw [__smtx_typeof.eq_40]) ht
+            rw [__smtx_typeof.eq_def] <;> simp only) ht
     | SmtTerm.bvnand t1 t2 =>
         exact bv_binop_type_has_no_none_components_of_non_none
           (show __smtx_typeof (SmtTerm.bvnand t1 t2) =
               __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by
-            rw [__smtx_typeof.eq_41]) ht
+            rw [__smtx_typeof.eq_def] <;> simp only) ht
     | SmtTerm.bvnor t1 t2 =>
         exact bv_binop_type_has_no_none_components_of_non_none
           (show __smtx_typeof (SmtTerm.bvnor t1 t2) =
               __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by
-            rw [__smtx_typeof.eq_42]) ht
+            rw [__smtx_typeof.eq_def] <;> simp only) ht
     | SmtTerm.bvxor t1 t2 =>
         exact bv_binop_type_has_no_none_components_of_non_none
           (show __smtx_typeof (SmtTerm.bvxor t1 t2) =
               __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by
-            rw [__smtx_typeof.eq_43]) ht
+            rw [__smtx_typeof.eq_def] <;> simp only) ht
     | SmtTerm.bvxnor t1 t2 =>
         exact bv_binop_type_has_no_none_components_of_non_none
           (show __smtx_typeof (SmtTerm.bvxnor t1 t2) =
               __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by
-            rw [__smtx_typeof.eq_44]) ht
+            rw [__smtx_typeof.eq_def] <;> simp only) ht
     | SmtTerm.bvcomp t1 t2 =>
         exact bv_binop_ret_type_has_no_none_components_of_non_none
           (show __smtx_typeof (SmtTerm.bvcomp t1 t2) =
               __smtx_typeof_bv_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) (SmtType.BitVec 1) by
-            rw [__smtx_typeof.eq_45]) ht (by simp [type_has_no_none_components])
+            rw [__smtx_typeof.eq_def] <;> simp only) ht (by simp [type_has_no_none_components])
     | SmtTerm.bvneg t1 =>
         exact bv_unop_type_has_no_none_components_of_non_none
           (show __smtx_typeof (SmtTerm.bvneg t1) = __smtx_typeof_bv_op_1 (__smtx_typeof t1) by
-            rw [__smtx_typeof.eq_46]) ht
+            rw [__smtx_typeof.eq_def] <;> simp only) ht
     | SmtTerm.bvadd t1 t2 =>
         exact bv_binop_type_has_no_none_components_of_non_none
           (show __smtx_typeof (SmtTerm.bvadd t1 t2) =
               __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by
-            rw [__smtx_typeof.eq_47]) ht
+            rw [__smtx_typeof.eq_def] <;> simp only) ht
     | SmtTerm.bvmul t1 t2 =>
         exact bv_binop_type_has_no_none_components_of_non_none
           (show __smtx_typeof (SmtTerm.bvmul t1 t2) =
               __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by
-            rw [__smtx_typeof.eq_48]) ht
+            rw [__smtx_typeof.eq_def] <;> simp only) ht
     | SmtTerm.bvudiv t1 t2 =>
         exact bv_binop_type_has_no_none_components_of_non_none
           (show __smtx_typeof (SmtTerm.bvudiv t1 t2) =
               __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by
-            rw [__smtx_typeof.eq_49]) ht
+            rw [__smtx_typeof.eq_def] <;> simp only) ht
     | SmtTerm.bvurem t1 t2 =>
         exact bv_binop_type_has_no_none_components_of_non_none
           (show __smtx_typeof (SmtTerm.bvurem t1 t2) =
               __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by
-            rw [__smtx_typeof.eq_50]) ht
+            rw [__smtx_typeof.eq_def] <;> simp only) ht
     | SmtTerm.bvsub t1 t2 =>
         exact bv_binop_type_has_no_none_components_of_non_none
           (show __smtx_typeof (SmtTerm.bvsub t1 t2) =
               __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by
-            rw [__smtx_typeof.eq_51]) ht
+            rw [__smtx_typeof.eq_def] <;> simp only) ht
     | SmtTerm.bvsdiv t1 t2 =>
         exact bv_binop_type_has_no_none_components_of_non_none
           (show __smtx_typeof (SmtTerm.bvsdiv t1 t2) =
               __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by
-            rw [__smtx_typeof.eq_52]) ht
+            rw [__smtx_typeof.eq_def] <;> simp only) ht
     | SmtTerm.bvsrem t1 t2 =>
         exact bv_binop_type_has_no_none_components_of_non_none
           (show __smtx_typeof (SmtTerm.bvsrem t1 t2) =
               __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by
-            rw [__smtx_typeof.eq_53]) ht
+            rw [__smtx_typeof.eq_def] <;> simp only) ht
     | SmtTerm.bvsmod t1 t2 =>
         exact bv_binop_type_has_no_none_components_of_non_none
           (show __smtx_typeof (SmtTerm.bvsmod t1 t2) =
               __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by
-            rw [__smtx_typeof.eq_54]) ht
+            rw [__smtx_typeof.eq_def] <;> simp only) ht
     | SmtTerm.bvult t1 t2 =>
         exact bv_binop_ret_type_has_no_none_components_of_non_none
           (show __smtx_typeof (SmtTerm.bvult t1 t2) =
               __smtx_typeof_bv_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool by
-            rw [__smtx_typeof.eq_55]) ht (by simp [type_has_no_none_components])
+            rw [__smtx_typeof.eq_def] <;> simp only) ht (by simp [type_has_no_none_components])
     | SmtTerm.bvule t1 t2 =>
         exact bv_binop_ret_type_has_no_none_components_of_non_none
           (show __smtx_typeof (SmtTerm.bvule t1 t2) =
               __smtx_typeof_bv_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool by
-            rw [__smtx_typeof.eq_56]) ht (by simp [type_has_no_none_components])
+            rw [__smtx_typeof.eq_def] <;> simp only) ht (by simp [type_has_no_none_components])
     | SmtTerm.bvugt t1 t2 =>
         exact bv_binop_ret_type_has_no_none_components_of_non_none
           (show __smtx_typeof (SmtTerm.bvugt t1 t2) =
               __smtx_typeof_bv_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool by
-            rw [__smtx_typeof.eq_57]) ht (by simp [type_has_no_none_components])
+            rw [__smtx_typeof.eq_def] <;> simp only) ht (by simp [type_has_no_none_components])
     | SmtTerm.bvuge t1 t2 =>
         exact bv_binop_ret_type_has_no_none_components_of_non_none
           (show __smtx_typeof (SmtTerm.bvuge t1 t2) =
               __smtx_typeof_bv_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool by
-            rw [__smtx_typeof.eq_58]) ht (by simp [type_has_no_none_components])
+            rw [__smtx_typeof.eq_def] <;> simp only) ht (by simp [type_has_no_none_components])
     | SmtTerm.bvslt t1 t2 =>
         exact bv_binop_ret_type_has_no_none_components_of_non_none
           (show __smtx_typeof (SmtTerm.bvslt t1 t2) =
               __smtx_typeof_bv_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool by
-            rw [__smtx_typeof.eq_59]) ht (by simp [type_has_no_none_components])
+            rw [__smtx_typeof.eq_def] <;> simp only) ht (by simp [type_has_no_none_components])
     | SmtTerm.bvsle t1 t2 =>
         exact bv_binop_ret_type_has_no_none_components_of_non_none
           (show __smtx_typeof (SmtTerm.bvsle t1 t2) =
               __smtx_typeof_bv_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool by
-            rw [__smtx_typeof.eq_60]) ht (by simp [type_has_no_none_components])
+            rw [__smtx_typeof.eq_def] <;> simp only) ht (by simp [type_has_no_none_components])
     | SmtTerm.bvsgt t1 t2 =>
         exact bv_binop_ret_type_has_no_none_components_of_non_none
           (show __smtx_typeof (SmtTerm.bvsgt t1 t2) =
               __smtx_typeof_bv_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool by
-            rw [__smtx_typeof.eq_61]) ht (by simp [type_has_no_none_components])
+            rw [__smtx_typeof.eq_def] <;> simp only) ht (by simp [type_has_no_none_components])
     | SmtTerm.bvsge t1 t2 =>
         exact bv_binop_ret_type_has_no_none_components_of_non_none
           (show __smtx_typeof (SmtTerm.bvsge t1 t2) =
               __smtx_typeof_bv_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool by
-            rw [__smtx_typeof.eq_62]) ht (by simp [type_has_no_none_components])
+            rw [__smtx_typeof.eq_def] <;> simp only) ht (by simp [type_has_no_none_components])
     | SmtTerm.bvshl t1 t2 =>
         exact bv_binop_type_has_no_none_components_of_non_none
           (show __smtx_typeof (SmtTerm.bvshl t1 t2) =
               __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by
-            rw [__smtx_typeof.eq_63]) ht
+            rw [__smtx_typeof.eq_def] <;> simp only) ht
     | SmtTerm.bvlshr t1 t2 =>
         exact bv_binop_type_has_no_none_components_of_non_none
           (show __smtx_typeof (SmtTerm.bvlshr t1 t2) =
               __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by
-            rw [__smtx_typeof.eq_64]) ht
+            rw [__smtx_typeof.eq_def] <;> simp only) ht
     | SmtTerm.bvashr t1 t2 =>
         exact bv_binop_type_has_no_none_components_of_non_none
           (show __smtx_typeof (SmtTerm.bvashr t1 t2) =
               __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2) by
-            rw [__smtx_typeof.eq_65]) ht
+            rw [__smtx_typeof.eq_def] <;> simp only) ht
     | SmtTerm.zero_extend _ _ =>
         exact zero_extend_type_has_no_none_components_of_non_none ht
     | SmtTerm.sign_extend _ _ =>
@@ -4290,42 +4260,42 @@ theorem term_type_has_no_none_components_of_non_none :
         exact bv_binop_ret_type_has_no_none_components_of_non_none
           (show __smtx_typeof (SmtTerm.bvuaddo t1 t2) =
               __smtx_typeof_bv_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool by
-            rw [__smtx_typeof.eq_70]) ht (by simp [type_has_no_none_components])
+            rw [__smtx_typeof.eq_def] <;> simp only) ht (by simp [type_has_no_none_components])
     | SmtTerm.bvnego t1 =>
         exact bv_unop_ret_type_has_no_none_components_of_non_none
           (show __smtx_typeof (SmtTerm.bvnego t1) =
               __smtx_typeof_bv_op_1_ret (__smtx_typeof t1) SmtType.Bool by
-            rw [__smtx_typeof.eq_71]) ht (by simp [type_has_no_none_components])
+            rw [__smtx_typeof.eq_def] <;> simp only) ht (by simp [type_has_no_none_components])
     | SmtTerm.bvsaddo t1 t2 =>
         exact bv_binop_ret_type_has_no_none_components_of_non_none
           (show __smtx_typeof (SmtTerm.bvsaddo t1 t2) =
               __smtx_typeof_bv_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool by
-            rw [__smtx_typeof.eq_72]) ht (by simp [type_has_no_none_components])
+            rw [__smtx_typeof.eq_def] <;> simp only) ht (by simp [type_has_no_none_components])
     | SmtTerm.bvumulo t1 t2 =>
         exact bv_binop_ret_type_has_no_none_components_of_non_none
           (show __smtx_typeof (SmtTerm.bvumulo t1 t2) =
               __smtx_typeof_bv_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool by
-            rw [__smtx_typeof.eq_73]) ht (by simp [type_has_no_none_components])
+            rw [__smtx_typeof.eq_def] <;> simp only) ht (by simp [type_has_no_none_components])
     | SmtTerm.bvsmulo t1 t2 =>
         exact bv_binop_ret_type_has_no_none_components_of_non_none
           (show __smtx_typeof (SmtTerm.bvsmulo t1 t2) =
               __smtx_typeof_bv_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool by
-            rw [__smtx_typeof.eq_74]) ht (by simp [type_has_no_none_components])
+            rw [__smtx_typeof.eq_def] <;> simp only) ht (by simp [type_has_no_none_components])
     | SmtTerm.bvusubo t1 t2 =>
         exact bv_binop_ret_type_has_no_none_components_of_non_none
           (show __smtx_typeof (SmtTerm.bvusubo t1 t2) =
               __smtx_typeof_bv_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool by
-            rw [__smtx_typeof.eq_75]) ht (by simp [type_has_no_none_components])
+            rw [__smtx_typeof.eq_def] <;> simp only) ht (by simp [type_has_no_none_components])
     | SmtTerm.bvssubo t1 t2 =>
         exact bv_binop_ret_type_has_no_none_components_of_non_none
           (show __smtx_typeof (SmtTerm.bvssubo t1 t2) =
               __smtx_typeof_bv_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool by
-            rw [__smtx_typeof.eq_76]) ht (by simp [type_has_no_none_components])
+            rw [__smtx_typeof.eq_def] <;> simp only) ht (by simp [type_has_no_none_components])
     | SmtTerm.bvsdivo t1 t2 =>
         exact bv_binop_ret_type_has_no_none_components_of_non_none
           (show __smtx_typeof (SmtTerm.bvsdivo t1 t2) =
               __smtx_typeof_bv_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool by
-            rw [__smtx_typeof.eq_77]) ht (by simp [type_has_no_none_components])
+            rw [__smtx_typeof.eq_def] <;> simp only) ht (by simp [type_has_no_none_components])
     | SmtTerm.seq_empty _ =>
         exact seq_empty_type_has_no_none_components_of_non_none ht
     | SmtTerm.str_len t1 =>
@@ -4717,11 +4687,6 @@ theorem supported_preservation_term_of_non_none :
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq hArgs.1 (by simp)
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq hArgs.2 (by simp)
         exact supported_preservation_term.mod ht1 (go t1 ht1) ht2 (go t2 ht2)
-    | SmtTerm.multmult t1 t2 =>
-        have hArgs := int_binop_args_of_non_none (op := SmtTerm.multmult) (typeof_multmult_eq t1 t2) ht
-        have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq hArgs.1 (by simp)
-        have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq hArgs.2 (by simp)
-        exact supported_preservation_term.multmult ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.divisible t1 t2 =>
         have hArgs := int_binop_args_of_non_none (op := SmtTerm.divisible) (typeof_divisible_eq t1 t2) ht
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq hArgs.1 (by simp)
@@ -4747,11 +4712,6 @@ theorem supported_preservation_term_of_non_none :
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq hArgs.1 (by simp)
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq hArgs.2 (by simp)
         exact supported_preservation_term.mod_total ht1 (go t1 ht1) ht2 (go t2 ht2)
-    | SmtTerm.multmult_total t1 t2 =>
-        have hArgs := int_binop_args_of_non_none (op := SmtTerm.multmult_total) (typeof_multmult_total_eq t1 t2) ht
-        have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq hArgs.1 (by simp)
-        have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq hArgs.2 (by simp)
-        exact supported_preservation_term.multmult_total ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.select t1 t2 =>
         rcases select_args_of_non_none ht with ⟨A, B, h1, h2⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
@@ -4863,7 +4823,7 @@ theorem supported_preservation_term_of_non_none :
     | SmtTerm.bvcomp t1 t2 =>
         rcases bv_binop_ret_args_of_non_none (show __smtx_typeof (SmtTerm.bvcomp t1 t2) =
             __smtx_typeof_bv_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) (SmtType.BitVec 1) by
-              rw [__smtx_typeof.eq_45]) ht with ⟨w, h1, h2⟩
+              rw [__smtx_typeof.eq_def] <;> simp only) ht with ⟨w, h1, h2⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
         exact supported_preservation_term.bvcomp ht1 (go t1 ht1) ht2 (go t2 ht2)
@@ -4930,56 +4890,56 @@ theorem supported_preservation_term_of_non_none :
     | SmtTerm.bvult t1 t2 =>
         rcases bv_binop_ret_args_of_non_none (show __smtx_typeof (SmtTerm.bvult t1 t2) =
             __smtx_typeof_bv_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool by
-              rw [__smtx_typeof.eq_55]) ht with ⟨w, h1, h2⟩
+              rw [__smtx_typeof.eq_def] <;> simp only) ht with ⟨w, h1, h2⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
         exact supported_preservation_term.bvult ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.bvule t1 t2 =>
         rcases bv_binop_ret_args_of_non_none (show __smtx_typeof (SmtTerm.bvule t1 t2) =
             __smtx_typeof_bv_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool by
-              rw [__smtx_typeof.eq_56]) ht with ⟨w, h1, h2⟩
+              rw [__smtx_typeof.eq_def] <;> simp only) ht with ⟨w, h1, h2⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
         exact supported_preservation_term.bvule ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.bvugt t1 t2 =>
         rcases bv_binop_ret_args_of_non_none (show __smtx_typeof (SmtTerm.bvugt t1 t2) =
             __smtx_typeof_bv_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool by
-              rw [__smtx_typeof.eq_57]) ht with ⟨w, h1, h2⟩
+              rw [__smtx_typeof.eq_def] <;> simp only) ht with ⟨w, h1, h2⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
         exact supported_preservation_term.bvugt ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.bvuge t1 t2 =>
         rcases bv_binop_ret_args_of_non_none (show __smtx_typeof (SmtTerm.bvuge t1 t2) =
             __smtx_typeof_bv_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool by
-              rw [__smtx_typeof.eq_58]) ht with ⟨w, h1, h2⟩
+              rw [__smtx_typeof.eq_def] <;> simp only) ht with ⟨w, h1, h2⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
         exact supported_preservation_term.bvuge ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.bvslt t1 t2 =>
         rcases bv_binop_ret_args_of_non_none (show __smtx_typeof (SmtTerm.bvslt t1 t2) =
             __smtx_typeof_bv_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool by
-              rw [__smtx_typeof.eq_59]) ht with ⟨w, h1, h2⟩
+              rw [__smtx_typeof.eq_def] <;> simp only) ht with ⟨w, h1, h2⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
         exact supported_preservation_term.bvslt ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.bvsle t1 t2 =>
         rcases bv_binop_ret_args_of_non_none (show __smtx_typeof (SmtTerm.bvsle t1 t2) =
             __smtx_typeof_bv_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool by
-              rw [__smtx_typeof.eq_60]) ht with ⟨w, h1, h2⟩
+              rw [__smtx_typeof.eq_def] <;> simp only) ht with ⟨w, h1, h2⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
         exact supported_preservation_term.bvsle ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.bvsgt t1 t2 =>
         rcases bv_binop_ret_args_of_non_none (show __smtx_typeof (SmtTerm.bvsgt t1 t2) =
             __smtx_typeof_bv_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool by
-              rw [__smtx_typeof.eq_61]) ht with ⟨w, h1, h2⟩
+              rw [__smtx_typeof.eq_def] <;> simp only) ht with ⟨w, h1, h2⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
         exact supported_preservation_term.bvsgt ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.bvsge t1 t2 =>
         rcases bv_binop_ret_args_of_non_none (show __smtx_typeof (SmtTerm.bvsge t1 t2) =
             __smtx_typeof_bv_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool by
-              rw [__smtx_typeof.eq_62]) ht with ⟨w, h1, h2⟩
+              rw [__smtx_typeof.eq_def] <;> simp only) ht with ⟨w, h1, h2⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
         exact supported_preservation_term.bvsge ht1 (go t1 ht1) ht2 (go t2 ht2)
@@ -5035,7 +4995,7 @@ theorem supported_preservation_term_of_non_none :
     | SmtTerm.bvuaddo t1 t2 =>
         rcases bv_binop_ret_args_of_non_none (show __smtx_typeof (SmtTerm.bvuaddo t1 t2) =
             __smtx_typeof_bv_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool by
-              rw [__smtx_typeof.eq_70]) ht with ⟨w, h1, h2⟩
+              rw [__smtx_typeof.eq_def] <;> simp only) ht with ⟨w, h1, h2⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
         exact supported_preservation_term.bvuaddo ht1 (go t1 ht1) ht2 (go t2 ht2)
@@ -5046,42 +5006,42 @@ theorem supported_preservation_term_of_non_none :
     | SmtTerm.bvsaddo t1 t2 =>
         rcases bv_binop_ret_args_of_non_none (show __smtx_typeof (SmtTerm.bvsaddo t1 t2) =
             __smtx_typeof_bv_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool by
-              rw [__smtx_typeof.eq_72]) ht with ⟨w, h1, h2⟩
+              rw [__smtx_typeof.eq_def] <;> simp only) ht with ⟨w, h1, h2⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
         exact supported_preservation_term.bvsaddo ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.bvumulo t1 t2 =>
         rcases bv_binop_ret_args_of_non_none (show __smtx_typeof (SmtTerm.bvumulo t1 t2) =
             __smtx_typeof_bv_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool by
-              rw [__smtx_typeof.eq_73]) ht with ⟨w, h1, h2⟩
+              rw [__smtx_typeof.eq_def] <;> simp only) ht with ⟨w, h1, h2⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
         exact supported_preservation_term.bvumulo ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.bvsmulo t1 t2 =>
         rcases bv_binop_ret_args_of_non_none (show __smtx_typeof (SmtTerm.bvsmulo t1 t2) =
             __smtx_typeof_bv_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool by
-              rw [__smtx_typeof.eq_74]) ht with ⟨w, h1, h2⟩
+              rw [__smtx_typeof.eq_def] <;> simp only) ht with ⟨w, h1, h2⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
         exact supported_preservation_term.bvsmulo ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.bvusubo t1 t2 =>
         rcases bv_binop_ret_args_of_non_none (show __smtx_typeof (SmtTerm.bvusubo t1 t2) =
             __smtx_typeof_bv_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool by
-              rw [__smtx_typeof.eq_75]) ht with ⟨w, h1, h2⟩
+              rw [__smtx_typeof.eq_def] <;> simp only) ht with ⟨w, h1, h2⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
         exact supported_preservation_term.bvusubo ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.bvssubo t1 t2 =>
         rcases bv_binop_ret_args_of_non_none (show __smtx_typeof (SmtTerm.bvssubo t1 t2) =
             __smtx_typeof_bv_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool by
-              rw [__smtx_typeof.eq_76]) ht with ⟨w, h1, h2⟩
+              rw [__smtx_typeof.eq_def] <;> simp only) ht with ⟨w, h1, h2⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
         exact supported_preservation_term.bvssubo ht1 (go t1 ht1) ht2 (go t2 ht2)
     | SmtTerm.bvsdivo t1 t2 =>
         rcases bv_binop_ret_args_of_non_none (show __smtx_typeof (SmtTerm.bvsdivo t1 t2) =
             __smtx_typeof_bv_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool by
-              rw [__smtx_typeof.eq_77]) ht with ⟨w, h1, h2⟩
+              rw [__smtx_typeof.eq_def] <;> simp only) ht with ⟨w, h1, h2⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
         exact supported_preservation_term.bvsdivo ht1 (go t1 ht1) ht2 (go t2 ht2)

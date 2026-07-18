@@ -44,14 +44,12 @@ abbrev abs := Term.UOp UserOp.abs
 abbrev __eoo_neg_2 := Term.UOp UserOp.__eoo_neg_2
 abbrev div := Term.UOp UserOp.div
 abbrev mod := Term.UOp UserOp.mod
-abbrev multmult := Term.UOp UserOp.multmult
 abbrev divisible := Term.UOp UserOp.divisible
 abbrev int_pow2 := Term.UOp UserOp.int_pow2
 abbrev int_log2 := Term.UOp UserOp.int_log2
 abbrev int_ispow2 := Term.UOp UserOp.int_ispow2
 abbrev div_total := Term.UOp UserOp.div_total
 abbrev mod_total := Term.UOp UserOp.mod_total
-abbrev multmult_total := Term.UOp UserOp.multmult_total
 abbrev _at_int_div_by_zero := Term.UOp UserOp._at_int_div_by_zero
 abbrev _at_mod_by_zero := Term.UOp UserOp._at_mod_by_zero
 abbrev Array := Term.UOp UserOp.Array
@@ -246,14 +244,12 @@ attribute [match_pattern]
   Term.__eoo_neg_2
   Term.div
   Term.mod
-  Term.multmult
   Term.divisible
   Term.int_pow2
   Term.int_log2
   Term.int_ispow2
   Term.div_total
   Term.mod_total
-  Term.multmult_total
   Term._at_int_div_by_zero
   Term._at_mod_by_zero
   Term.Array

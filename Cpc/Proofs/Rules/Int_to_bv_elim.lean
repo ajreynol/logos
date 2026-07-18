@@ -328,7 +328,7 @@ private theorem intToBvBit_eval
           (SmtTerm.Numeral half))
         (SmtTerm.Binary 1 1) (SmtTerm.Binary 1 0) by rfl]
   rw [smtx_eval_ite_term_eq, __smtx_model_eval.eq_18,
-    __smtx_model_eval.eq_31, __smtx_model_eval.eq_2,
+    __smtx_model_eval.eq_30, __smtx_model_eval.eq_2,
     __smtx_model_eval.eq_2, __smtx_model_eval.eq_5,
     __smtx_model_eval.eq_5]
   rw [hnEval]
@@ -368,7 +368,7 @@ private theorem intToBvAbconv_eval
                 (native_int_pow2 (native_nat_to_int (Nat.succ k)))
                 (native_int_pow2 (native_nat_to_int k))))
             (__eo_to_smt (intToBvAbconv n k)) by rfl]
-      rw [__smtx_model_eval.eq_35]
+      rw [__smtx_model_eval.eq_33]
       rw [intToBvBit_eval M n z
         (native_int_pow2 (native_nat_to_int (Nat.succ k)))
         (native_int_pow2 (native_nat_to_int k)) hnEval, ih]
@@ -516,7 +516,7 @@ private theorem intToBvExpanded_eval
                       (native_nat_to_int (Nat.succ (Nat.succ k))))
                     (native_int_pow2 (native_nat_to_int (Nat.succ k)))))
                 (__eo_to_smt (intToBvAbconv n (Nat.succ k))) by rfl]
-          rw [__smtx_model_eval.eq_35]
+          rw [__smtx_model_eval.eq_33]
           rw [intToBvBit_eval M n z
             (native_int_pow2 (native_nat_to_int (Nat.succ (Nat.succ k))))
             (native_int_pow2 (native_nat_to_int (Nat.succ k))) hnEval,

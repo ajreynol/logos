@@ -679,7 +679,7 @@ private theorem bvand_args_of_bitvec_type (y x : Term) (w : native_Nat) :
           __smtx_typeof_bv_op_2
             (__smtx_typeof (__eo_to_smt y))
             (__smtx_typeof (__eo_to_smt x)) by
-        rw [__smtx_typeof.eq_39]) hNN with
+        rw [__smtx_typeof.eq_37]) hNN with
     ⟨w', hyTy, hxTy⟩
   have hWidth : w' = w := by
     have hResult :
@@ -689,7 +689,7 @@ private theorem bvand_args_of_bitvec_type (y x : Term) (w : native_Nat) :
             __smtx_typeof_bv_op_2
               (__smtx_typeof (__eo_to_smt y))
               (__smtx_typeof (__eo_to_smt x)) by
-          rw [__smtx_typeof.eq_39]] at hTy'
+          rw [__smtx_typeof.eq_37]] at hTy'
       simpa [__smtx_typeof_bv_op_2, hyTy, hxTy, native_ite,
         native_nateq, SmtEval.native_nateq] using hTy'
     cases hResult
@@ -718,7 +718,7 @@ private theorem bvor_args_of_bitvec_type (y x : Term) (w : native_Nat) :
           __smtx_typeof_bv_op_2
             (__smtx_typeof (__eo_to_smt y))
             (__smtx_typeof (__eo_to_smt x)) by
-        rw [__smtx_typeof.eq_40]) hNN with
+        rw [__smtx_typeof.eq_38]) hNN with
     ⟨w', hyTy, hxTy⟩
   have hWidth : w' = w := by
     have hResult :
@@ -728,7 +728,7 @@ private theorem bvor_args_of_bitvec_type (y x : Term) (w : native_Nat) :
             __smtx_typeof_bv_op_2
               (__smtx_typeof (__eo_to_smt y))
               (__smtx_typeof (__eo_to_smt x)) by
-          rw [__smtx_typeof.eq_40]] at hTy'
+          rw [__smtx_typeof.eq_38]] at hTy'
       simpa [__smtx_typeof_bv_op_2, hyTy, hxTy, native_ite,
         native_nateq, SmtEval.native_nateq] using hTy'
     cases hResult
@@ -754,12 +754,12 @@ private theorem bvand_result_type_of_non_none (y x : Term) :
           __smtx_typeof_bv_op_2
             (__smtx_typeof (__eo_to_smt y))
             (__smtx_typeof (__eo_to_smt x)) by
-        rw [__smtx_typeof.eq_39]) hNN with
+        rw [__smtx_typeof.eq_37]) hNN with
     ⟨w, hyTy, hxTy⟩
   refine ⟨w, ?_, hyTy, hxTy⟩
   change __smtx_typeof (SmtTerm.bvand (__eo_to_smt y) (__eo_to_smt x)) =
     SmtType.BitVec w
-  rw [__smtx_typeof.eq_39]
+  rw [__smtx_typeof.eq_37]
   simp [__smtx_typeof_bv_op_2, hyTy, hxTy, native_ite, native_nateq,
     SmtEval.native_nateq]
 
@@ -781,12 +781,12 @@ private theorem bvor_result_type_of_non_none (y x : Term) :
           __smtx_typeof_bv_op_2
             (__smtx_typeof (__eo_to_smt y))
             (__smtx_typeof (__eo_to_smt x)) by
-        rw [__smtx_typeof.eq_40]) hNN with
+        rw [__smtx_typeof.eq_38]) hNN with
     ⟨w, hyTy, hxTy⟩
   refine ⟨w, ?_, hyTy, hxTy⟩
   change __smtx_typeof (SmtTerm.bvor (__eo_to_smt y) (__eo_to_smt x)) =
     SmtType.BitVec w
-  rw [__smtx_typeof.eq_40]
+  rw [__smtx_typeof.eq_38]
   simp [__smtx_typeof_bv_op_2, hyTy, hxTy, native_ite, native_nateq,
     SmtEval.native_nateq]
 

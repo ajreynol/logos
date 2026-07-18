@@ -293,9 +293,9 @@ private theorem smt_typeof_redand_lhs
         (SmtTerm.bvnot
           (SmtTerm.Binary (native_nat_to_int (native_int_to_nat n)) 0))) =
     SmtType.BitVec 1
-  rw [__smtx_typeof.eq_45]
+  rw [__smtx_typeof.eq_43]
   rw [hXSmtTy]
-  rw [__smtx_typeof.eq_38]
+  rw [__smtx_typeof.eq_36]
   change __smtx_typeof_bv_op_2_ret (SmtType.BitVec (native_int_to_nat n))
       (__smtx_typeof_bv_op_1
         (__smtx_typeof (SmtTerm.Binary (native_nat_to_int (native_int_to_nat n)) 0)))

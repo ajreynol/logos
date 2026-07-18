@@ -96,6 +96,14 @@ by
       __smtx_dt_substitute, __smtx_dtc_substitute, __smtx_type_substitute,
       __smtx_typeof_dt_cons_rec, smtx_dt_cons_wf_rec_cons_none_eq_false,
       hNeg, native_ite, native_Teq, native_and]
+  case _at_strings_itos_result =>
+    by_cases hBodyNone :
+        __smtx_typeof (__eo_to_smt body) = SmtType.None
+    · simp [hBodyNone]
+    · by_cases hBodyInt :
+          __smtx_typeof (__eo_to_smt body) = SmtType.Int
+      · simp [hBodyNone, hBodyInt]
+      · simp [hBodyNone, hBodyInt]
   case tuple_unit =>
     by_cases hCond :
         native_inhabited_type
@@ -2789,7 +2797,7 @@ theorem typeof_bvnot_eq_closed
   __smtx_typeof (SmtTerm.bvnot t) =
     __smtx_typeof_bv_op_1 (__smtx_typeof t) :=
 by
-  rw [__smtx_typeof.eq_38]
+  rw [__smtx_typeof.eq_36]
 
 theorem bvnot_arg_has_smt_translation_of_has_smt_translation
     {x : Term}
@@ -2809,14 +2817,14 @@ theorem typeof_bvneg_eq_closed
   __smtx_typeof (SmtTerm.bvneg t) =
     __smtx_typeof_bv_op_1 (__smtx_typeof t) :=
 by
-  rw [__smtx_typeof.eq_46]
+  rw [__smtx_typeof.eq_44]
 
 theorem typeof_bvnego_eq_closed
     (t : SmtTerm) :
   __smtx_typeof (SmtTerm.bvnego t) =
     __smtx_typeof_bv_op_1_ret (__smtx_typeof t) SmtType.Bool :=
 by
-  rw [__smtx_typeof.eq_71]
+  rw [__smtx_typeof.eq_69]
 
 theorem bvneg_arg_has_smt_translation_of_has_smt_translation
     {x : Term}
@@ -9260,21 +9268,6 @@ by
           (typeof_mod_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
       hTrans
 
-theorem multmult_args_have_smt_translation_of_has_smt_translation
-    {x y : Term}
-    (hTrans :
-      eoHasSmtTranslation
-        (Term.Apply (Term.Apply (Term.UOp UserOp.multmult) x) y)) :
-  eoHasSmtTranslation x ∧ eoHasSmtTranslation y :=
-by
-  exact
-    apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
-      (eoOp := UserOp.multmult) (smtOp := SmtTerm.multmult) (by rfl)
-      (fun hNN =>
-        int_binop_args_have_smt_translation_of_non_none
-          (typeof_multmult_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
-      hTrans
-
 theorem div_total_args_have_smt_translation_of_has_smt_translation
     {x y : Term}
     (hTrans :
@@ -9303,23 +9296,6 @@ by
       (fun hNN =>
         int_binop_args_have_smt_translation_of_non_none
           (typeof_mod_total_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
-      hTrans
-
-theorem multmult_total_args_have_smt_translation_of_has_smt_translation
-    {x y : Term}
-    (hTrans :
-      eoHasSmtTranslation
-        (Term.Apply
-          (Term.Apply (Term.UOp UserOp.multmult_total) x) y)) :
-  eoHasSmtTranslation x ∧ eoHasSmtTranslation y :=
-by
-  exact
-    apply_apply_uop_args_have_smt_translation_of_smt_binop_non_none
-      (eoOp := UserOp.multmult_total) (smtOp := SmtTerm.multmult_total)
-      (by rfl)
-      (fun hNN =>
-        int_binop_args_have_smt_translation_of_non_none
-          (typeof_multmult_total_eq (__eo_to_smt x) (__eo_to_smt y)) hNN)
       hTrans
 
 theorem divisible_args_have_smt_translation_of_has_smt_translation
@@ -9484,19 +9460,36 @@ theorem strings_itos_result_args_have_smt_translation_of_has_smt_translation
   eoHasSmtTranslation x ∧ eoHasSmtTranslation y :=
 by
   have hNN := term_has_non_none_type_of_eo_has_smt_translation hTrans
-  let mul := SmtTerm.multmult (SmtTerm.Numeral 10) (__eo_to_smt y)
-  change term_has_non_none_type (SmtTerm.mod (__eo_to_smt x) mul) at hNN
-  rcases int_binop_args_of_non_none (op := SmtTerm.mod)
-      (typeof_mod_eq (__eo_to_smt x) mul) hNN with
-    ⟨hXTy, hMulTy⟩
-  have hMulNN : term_has_non_none_type mul := by
+  let zero := SmtTerm.Numeral 0
+  let fromInt := SmtTerm.str_from_int (__eo_to_smt x)
+  let prefixTerm := SmtTerm.str_substr fromInt zero (__eo_to_smt y)
+  let parsed := SmtTerm.str_to_int prefixTerm
+  let result :=
+    SmtTerm.ite (SmtTerm.eq (__eo_to_smt y) zero) zero parsed
+  change term_has_non_none_type result at hNN
+  rcases ite_args_of_non_none hNN with
+    ⟨T, _hCondTy, _hZeroTy, hParsedTy, hTNN⟩
+  have hParsedNN : term_has_non_none_type parsed := by
     unfold term_has_non_none_type
-    rw [hMulTy]
+    rw [hParsedTy]
+    exact hTNN
+  have hPrefixTy : __smtx_typeof prefixTerm = SmtType.Seq SmtType.Char :=
+    seq_char_arg_of_non_none (op := SmtTerm.str_to_int)
+      (typeof_str_to_int_eq prefixTerm) hParsedNN
+  have hPrefixNN : term_has_non_none_type prefixTerm := by
+    unfold term_has_non_none_type
+    rw [hPrefixTy]
     simp
-  rcases int_binop_args_of_non_none (op := SmtTerm.multmult)
-      (typeof_multmult_eq (SmtTerm.Numeral 10) (__eo_to_smt y))
-      hMulNN with
-    ⟨_hTenTy, hYTy⟩
+  rcases str_substr_args_of_non_none hPrefixNN with
+    ⟨A, hFromIntTy, _hZeroInt, hYTy⟩
+  have hFromIntNN : term_has_non_none_type fromInt := by
+    unfold term_has_non_none_type
+    rw [hFromIntTy]
+    simp
+  have hXTy : __smtx_typeof (__eo_to_smt x) = SmtType.Int :=
+    int_arg_of_non_none_ret (op := SmtTerm.str_from_int)
+      (ret := SmtType.Seq SmtType.Char)
+      (typeof_str_from_int_eq (__eo_to_smt x)) hFromIntNN
   exact ⟨eo_has_smt_translation_of_smt_type_eq hXTy (by simp),
     eo_has_smt_translation_of_smt_type_eq hYTy (by simp)⟩
 
@@ -9880,35 +9873,6 @@ by
     is_closed_rec_apply_apply_uop_nonquantifier_eq_and_bool_of_has_smt_translation_and_arg_trans
       hEnv (by decide) (by decide) hTrans hXTrans hYTrans ihX ihY
 
-theorem is_closed_rec_apply_apply_multmult_eq_and_bool_of_has_smt_translation
-    {x y env : Term} {vars : List SmtVarKey}
-    (hEnv : EoSmtVarEnv env vars)
-    (hTrans :
-      eoHasSmtTranslation
-        (Term.Apply (Term.Apply (Term.UOp UserOp.multmult) x) y))
-    (ihX :
-      eoHasSmtTranslation x ->
-        __is_closed_rec x env = __eo_is_closed_rec x env ∧
-          ∃ b, __eo_is_closed_rec x env = Term.Boolean b)
-    (ihY :
-      eoHasSmtTranslation y ->
-        __is_closed_rec y env = __eo_is_closed_rec y env ∧
-          ∃ b, __eo_is_closed_rec y env = Term.Boolean b) :
-  __is_closed_rec
-      (Term.Apply (Term.Apply (Term.UOp UserOp.multmult) x) y) env =
-    __eo_is_closed_rec
-      (Term.Apply (Term.Apply (Term.UOp UserOp.multmult) x) y) env ∧
-    ∃ b,
-      __eo_is_closed_rec
-        (Term.Apply (Term.Apply (Term.UOp UserOp.multmult) x) y) env =
-        Term.Boolean b :=
-by
-  rcases multmult_args_have_smt_translation_of_has_smt_translation hTrans with
-    ⟨hXTrans, hYTrans⟩
-  exact
-    is_closed_rec_apply_apply_uop_nonquantifier_eq_and_bool_of_has_smt_translation_and_arg_trans
-      hEnv (by decide) (by decide) hTrans hXTrans hYTrans ihX ihY
-
 theorem is_closed_rec_apply_apply_div_total_eq_and_bool_of_has_smt_translation
     {x y env : Term} {vars : List SmtVarKey}
     (hEnv : EoSmtVarEnv env vars)
@@ -9962,40 +9926,6 @@ theorem is_closed_rec_apply_apply_mod_total_eq_and_bool_of_has_smt_translation
         Term.Boolean b :=
 by
   rcases mod_total_args_have_smt_translation_of_has_smt_translation hTrans with
-    ⟨hXTrans, hYTrans⟩
-  exact
-    is_closed_rec_apply_apply_uop_nonquantifier_eq_and_bool_of_has_smt_translation_and_arg_trans
-      hEnv (by decide) (by decide) hTrans hXTrans hYTrans ihX ihY
-
-theorem is_closed_rec_apply_apply_multmult_total_eq_and_bool_of_has_smt_translation
-    {x y env : Term} {vars : List SmtVarKey}
-    (hEnv : EoSmtVarEnv env vars)
-    (hTrans :
-      eoHasSmtTranslation
-        (Term.Apply
-          (Term.Apply (Term.UOp UserOp.multmult_total) x) y))
-    (ihX :
-      eoHasSmtTranslation x ->
-        __is_closed_rec x env = __eo_is_closed_rec x env ∧
-          ∃ b, __eo_is_closed_rec x env = Term.Boolean b)
-    (ihY :
-      eoHasSmtTranslation y ->
-        __is_closed_rec y env = __eo_is_closed_rec y env ∧
-          ∃ b, __eo_is_closed_rec y env = Term.Boolean b) :
-  __is_closed_rec
-      (Term.Apply (Term.Apply (Term.UOp UserOp.multmult_total) x) y)
-      env =
-    __eo_is_closed_rec
-      (Term.Apply (Term.Apply (Term.UOp UserOp.multmult_total) x) y)
-      env ∧
-    ∃ b,
-      __eo_is_closed_rec
-        (Term.Apply (Term.Apply (Term.UOp UserOp.multmult_total) x) y)
-        env =
-        Term.Boolean b :=
-by
-  rcases
-      multmult_total_args_have_smt_translation_of_has_smt_translation hTrans with
     ⟨hXTrans, hYTrans⟩
   exact
     is_closed_rec_apply_apply_uop_nonquantifier_eq_and_bool_of_has_smt_translation_and_arg_trans
@@ -12874,11 +12804,6 @@ by
       false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
         mod_args_have_smt_translation_of_has_smt_translation
         (by rfl) hTrans
-  case multmult =>
-    exact
-      false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
-        multmult_args_have_smt_translation_of_has_smt_translation
-        (by rfl) hTrans
   case divisible =>
     exact
       false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
@@ -12893,11 +12818,6 @@ by
     exact
       false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
         mod_total_args_have_smt_translation_of_has_smt_translation
-        (by rfl) hTrans
-  case multmult_total =>
-    exact
-      false_of_apply_apply_apply_uop_over_binary_of_args_middle_raw_list
-        multmult_total_args_have_smt_translation_of_has_smt_translation
         (by rfl) hTrans
   case select =>
     exact
@@ -14064,11 +13984,6 @@ by
       is_closed_rec_apply_apply_mod_eq_and_bool_of_has_smt_translation
         hEnv hTrans (fun hx => ih hXLt hEnv hx)
         (fun hy => ih hYLt hEnv hy)
-  case multmult =>
-    exact
-      is_closed_rec_apply_apply_multmult_eq_and_bool_of_has_smt_translation
-        hEnv hTrans (fun hx => ih hXLt hEnv hx)
-        (fun hy => ih hYLt hEnv hy)
   case divisible =>
     exact
       is_closed_rec_apply_apply_divisible_eq_and_bool_of_has_smt_translation
@@ -14082,11 +13997,6 @@ by
   case mod_total =>
     exact
       is_closed_rec_apply_apply_mod_total_eq_and_bool_of_has_smt_translation
-        hEnv hTrans (fun hx => ih hXLt hEnv hx)
-        (fun hy => ih hYLt hEnv hy)
-  case multmult_total =>
-    exact
-      is_closed_rec_apply_apply_multmult_total_eq_and_bool_of_has_smt_translation
         hEnv hTrans (fun hx => ih hXLt hEnv hx)
         (fun hy => ih hYLt hEnv hy)
   case select =>
@@ -15110,12 +15020,6 @@ by
         root hEnv hXLt hYLt hZLt
         mod_args_have_smt_translation_of_has_smt_translation
         (by rfl) hTrans ih
-  case multmult =>
-    exact
-      is_closed_rec_apply_apply_apply_uop_over_binary_of_args_eq_and_bool_of_has_smt_translation
-        root hEnv hXLt hYLt hZLt
-        multmult_args_have_smt_translation_of_has_smt_translation
-        (by rfl) hTrans ih
   case divisible =>
     exact
       is_closed_rec_apply_apply_apply_uop_over_binary_of_args_eq_and_bool_of_has_smt_translation
@@ -15133,12 +15037,6 @@ by
       is_closed_rec_apply_apply_apply_uop_over_binary_of_args_eq_and_bool_of_has_smt_translation
         root hEnv hXLt hYLt hZLt
         mod_total_args_have_smt_translation_of_has_smt_translation
-        (by rfl) hTrans ih
-  case multmult_total =>
-    exact
-      is_closed_rec_apply_apply_apply_uop_over_binary_of_args_eq_and_bool_of_has_smt_translation
-        root hEnv hXLt hYLt hZLt
-        multmult_total_args_have_smt_translation_of_has_smt_translation
         (by rfl) hTrans ih
   case select =>
     exact

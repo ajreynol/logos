@@ -1278,58 +1278,8 @@ theorem substitute_simul_preserves_type_and_translation_with_binder_lt
                                                       (G := a) (bvs' := bvs)
                                                       (by simp; omega)
                                                       hXsEnv hBvsEnv hATrans hTs hActuals hATy)
-                                            · by_cases hHeadMultmult :
-                                                g = Term.UOp UserOp.multmult
-                                              · subst g
-                                                exact
-                                                  substitute_simul_binary_op_preserves_type_and_translation_of_typeof_ne_stuck
-                                                    UserOp.multmult x1 a xs ts bvs hXsEnv hBvsEnv hTs
-                                                    (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
-                                                    hFTrans hTy
-                                                    (fun h =>
-                                                      multmult_args_have_smt_translation_of_has_smt_translation h)
-                                                    (fun X Y hApp => by
-                                                      change
-                                                        __eo_typeof_div (__eo_typeof X) (__eo_typeof Y) ≠
-                                                          Term.Stuck at hApp
-                                                      exact
-                                                        eo_int_binop_args_not_stuck
-                                                          (eo_typeof_div_arg_types_of_ne_stuck hApp))
-                                                    (fun X₁ Y₁ X₂ Y₂ hX hY => by
-                                                      change
-                                                        __eo_typeof_div (__eo_typeof X₁) (__eo_typeof X₂) =
-                                                          __eo_typeof_div (__eo_typeof Y₁) (__eo_typeof Y₂)
-                                                      rw [hX, hY])
-                                                    (fun X Y hXTrans hYTrans hApp => by
-                                                      unfold RuleProofs.eo_has_smt_translation
-                                                      change
-                                                        __smtx_typeof
-                                                            (SmtTerm.multmult (__eo_to_smt X) (__eo_to_smt Y)) ≠
-                                                          SmtType.None
-                                                      change
-                                                        __eo_typeof_div (__eo_typeof X) (__eo_typeof Y) ≠
-                                                          Term.Stuck at hApp
-                                                      have hArgTy :=
-                                                        eo_typeof_div_arg_types_of_ne_stuck hApp
-                                                      have hXSmt :=
-                                                        TranslationProofs.eo_to_smt_typeof_matches_translation
-                                                          X hXTrans
-                                                      have hYSmt :=
-                                                        TranslationProofs.eo_to_smt_typeof_matches_translation
-                                                          Y hYTrans
-                                                      rw [typeof_multmult_eq, hXSmt, hYSmt, hArgTy.1, hArgTy.2]
-                                                      simp [__eo_to_smt_type, native_ite, native_Teq])
-                                                    (fun hXTrans hXTy =>
-                                                      hRec
-                                                        (G := x1) (bvs' := bvs)
-                                                        (by simp; omega)
-                                                        hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
-                                                    (fun hATrans hATy =>
-                                                      hRec
-                                                        (G := a) (bvs' := bvs)
-                                                        (by simp; omega)
-                                                        hXsEnv hBvsEnv hATrans hTs hActuals hATy)
-                                              · by_cases hHeadDivisible :
+                                            · first
+                                              | by_cases hHeadDivisible :
                                                   g = Term.UOp UserOp.divisible
                                                 · subst g
                                                   exact
@@ -1482,58 +1432,8 @@ theorem substitute_simul_preserves_type_and_translation_with_binder_lt
                                                               (G := a) (bvs' := bvs)
                                                               (by simp; omega)
                                                               hXsEnv hBvsEnv hATrans hTs hActuals hATy)
-                                                    · by_cases hHeadMultmultTotal :
-                                                        g = Term.UOp UserOp.multmult_total
-                                                      · subst g
-                                                        exact
-                                                          substitute_simul_binary_op_preserves_type_and_translation_of_typeof_ne_stuck
-                                                            UserOp.multmult_total x1 a xs ts bvs hXsEnv hBvsEnv hTs
-                                                            (fun q v vs hEq => hBinder ⟨q, v, vs, hEq⟩)
-                                                            hFTrans hTy
-                                                            (fun h =>
-                                                              multmult_total_args_have_smt_translation_of_has_smt_translation h)
-                                                            (fun X Y hApp => by
-                                                              change
-                                                                __eo_typeof_div (__eo_typeof X) (__eo_typeof Y) ≠
-                                                                  Term.Stuck at hApp
-                                                              exact
-                                                                eo_int_binop_args_not_stuck
-                                                                  (eo_typeof_div_arg_types_of_ne_stuck hApp))
-                                                            (fun X₁ Y₁ X₂ Y₂ hX hY => by
-                                                              change
-                                                                __eo_typeof_div (__eo_typeof X₁) (__eo_typeof X₂) =
-                                                                  __eo_typeof_div (__eo_typeof Y₁) (__eo_typeof Y₂)
-                                                              rw [hX, hY])
-                                                            (fun X Y hXTrans hYTrans hApp => by
-                                                              unfold RuleProofs.eo_has_smt_translation
-                                                              change
-                                                                __smtx_typeof
-                                                                    (SmtTerm.multmult_total (__eo_to_smt X) (__eo_to_smt Y)) ≠
-                                                                  SmtType.None
-                                                              change
-                                                                __eo_typeof_div (__eo_typeof X) (__eo_typeof Y) ≠
-                                                                  Term.Stuck at hApp
-                                                              have hArgTy :=
-                                                                eo_typeof_div_arg_types_of_ne_stuck hApp
-                                                              have hXSmt :=
-                                                                TranslationProofs.eo_to_smt_typeof_matches_translation
-                                                                  X hXTrans
-                                                              have hYSmt :=
-                                                                TranslationProofs.eo_to_smt_typeof_matches_translation
-                                                                  Y hYTrans
-                                                              rw [typeof_multmult_total_eq, hXSmt, hYSmt, hArgTy.1, hArgTy.2]
-                                                              simp [__eo_to_smt_type, native_ite, native_Teq])
-                                                            (fun hXTrans hXTy =>
-                                                              hRec
-                                                                (G := x1) (bvs' := bvs)
-                                                                (by simp; omega)
-                                                                hXsEnv hBvsEnv hXTrans hTs hActuals hXTy)
-                                                            (fun hATrans hATy =>
-                                                              hRec
-                                                                (G := a) (bvs' := bvs)
-                                                                (by simp; omega)
-                                                                hXsEnv hBvsEnv hATrans hTs hActuals hATy)
-                                                      · by_cases hHeadQdiv :
+                                                    · first
+                                                      | by_cases hHeadQdiv :
                                                           g = Term.UOp UserOp.qdiv
                                                         · subst g
                                                           exact
@@ -4000,11 +3900,9 @@ theorem substitute_simul_preserves_type_and_translation_with_binder_lt
                                                                                                                                                                                                                                         notGeq := hHeadGeq,
                                                                                                                                                                                                                                         notDiv := hHeadDiv,
                                                                                                                                                                                                                                         notMod := hHeadMod,
-                                                                                                                                                                                                                                        notMultmult := hHeadMultmult,
                                                                                                                                                                                                                                         notDivisible := hHeadDivisible,
                                                                                                                                                                                                                                         notDivTotal := hHeadDivTotal,
                                                                                                                                                                                                                                         notModTotal := hHeadModTotal,
-                                                                                                                                                                                                                                        notMultmultTotal := hHeadMultmultTotal,
                                                                                                                                                                                                                                         notSelect := hHeadSelect,
                                                                                                                                                                                                                                         notArrayDeqDiff := hHeadArrayDeqDiff,
                                                                                                                                                                                                                                         notConcat := hHeadConcat,

@@ -170,13 +170,6 @@ theorem model_eval_mod_total_canonical
     simp [__smtx_model_eval_mod_total, __smtx_value_canonical,
       __smtx_value_canonical_bool]
 
-theorem model_eval_multmult_total_canonical
-    (v1 v2 : SmtValue) :
-    __smtx_value_canonical (__smtx_model_eval_multmult_total v1 v2) := by
-  cases v1 <;> cases v2 <;>
-    simp [__smtx_model_eval_multmult_total, __smtx_value_canonical,
-      __smtx_value_canonical_bool]
-
 theorem model_eval_qdiv_total_canonical
     (v1 v2 : SmtValue) :
     __smtx_value_canonical (__smtx_model_eval_qdiv_total v1 v2) := by
