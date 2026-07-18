@@ -1421,7 +1421,19 @@ private theorem string_reduction_pred_true
                 __smtx_model_eval_not, native_veq, native_not,
                 sr_native_unpack_pack_string, hEq]
       case Apply h z =>
-        sorry
+        cases h <;> try
+          simp [__str_reduction_pred, stringReductionBody,
+            __eo_mk_apply] at hBodyTy ⊢
+        all_goals try
+          (change Term.Stuck = Term.Bool at hBodyTy
+           exact False.elim (Term.noConfusion hBodyTy))
+        case UOp op =>
+          cases op <;> try
+            simp [__str_reduction_pred, stringReductionBody,
+              __eo_mk_apply] at hBodyTy ⊢
+          all_goals try
+            (change Term.Stuck = Term.Bool at hBodyTy
+             exact False.elim (Term.noConfusion hBodyTy))
 
 /-- The complete generated result is true whenever its guard succeeds. -/
 private theorem string_reduction_true
