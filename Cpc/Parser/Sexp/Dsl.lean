@@ -7,7 +7,7 @@ Source: https://github.com/ufmg-smite/lean-smt/blob/main/Smt/Dsl/Sexp.lean
 -/
 import Lean.Parser
 
-import Cpc.Sexp.Basic
+import Cpc.Parser.Sexp.Basic
 
 section
 open Lean.Parser

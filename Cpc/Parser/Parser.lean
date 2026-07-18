@@ -1,4 +1,4 @@
-import Cpc.Sexp
+import Cpc.Parser.Sexp
 import Cpc.Logos
 
 namespace Eo
