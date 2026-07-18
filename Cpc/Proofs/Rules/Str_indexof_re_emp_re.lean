@@ -21,8 +21,8 @@ private theorem native_re_prefix_match_len?_empty_of_nullable
   native_re_prefix_match_len? r xs = some 0 := by
   rw [native_re_prefix_match_len?.eq_1]
   cases xs with
-  | nil => simp [native_re_prefix_match_len?.go.eq_1, h]
-  | cons c cs => simp [native_re_prefix_match_len?.go.eq_2, h]
+  | nil => unfold native_re_prefix_match_len?.go; simp [h]
+  | cons c cs => unfold native_re_prefix_match_len?.go; simp [h]
 
 private theorem native_re_find_idx_from_empty_of_nullable
     (r : native_RegLan) (xs : native_String) (start : Nat)

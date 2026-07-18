@@ -237,14 +237,14 @@ theorem native_str_in_re_from_int_nonempty_digit_range_star
     StrInReFromIntDigRangeProof.native_str_in_re_digit_range_singleton c
       hParts.1
   have hCsList :
-      nativeListInRe cs (native_re_mult digitRange) = true :=
+      _root_.nativeListInRe cs (native_re_mult digitRange) = true :=
     StrInReFromIntDigRangeProof.nativeListInRe_digit_star_of_all_digits cs
       hParts.2
   have hCsValid : native_string_valid cs = true :=
     native_string_valid_of_all_digits cs hParts.2
   have hCs :
       native_str_in_re cs (native_re_mult digitRange) = true := by
-    simpa [native_str_in_re, hCsValid, nativeListInRe] using hCsList
+    simpa [native_str_in_re, hCsValid, _root_.nativeListInRe] using hCsList
   have hTail :
       native_str_in_re cs
         (native_re_concat (native_re_mult digitRange) (native_str_to_re [])) =

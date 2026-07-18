@@ -150,14 +150,14 @@ private theorem native_binary_or_assoc_mod_nat
             (native_int_pow2 (native_nat_to_int w))) =
         BitVec.ofInt w n1 ||| BitVec.ofInt w n2 := by
     rw [native_binary_or_mod_eq_toNat]
-    exact bitvec_ofInt_natCast_toNat _
+    exact _root_.bitvec_ofInt_natCast_toNat _
   have h23 :
       BitVec.ofInt w
           (native_mod_total (native_binary_or (native_nat_to_int w) n2 n3)
             (native_int_pow2 (native_nat_to_int w))) =
         BitVec.ofInt w n2 ||| BitVec.ofInt w n3 := by
     rw [native_binary_or_mod_eq_toNat]
-    exact bitvec_ofInt_natCast_toNat _
+    exact _root_.bitvec_ofInt_natCast_toNat _
   calc
     native_mod_total
         (native_binary_or (native_nat_to_int w)
@@ -210,7 +210,7 @@ private theorem eval_bvor_canonicalBitVecValue
       canonicalBitVecValue w (x ||| y) := by
   simp only [canonicalBitVecValue, __smtx_model_eval_bvor]
   rw [native_binary_or_mod_eq_toNat]
-  simp [bitvec_ofInt_natCast_toNat]
+  simp [_root_.bitvec_ofInt_natCast_toNat]
 
 private theorem eval_bvnot_canonicalBitVecValue
     (w : Nat) (x : BitVec w) :
@@ -219,7 +219,7 @@ private theorem eval_bvnot_canonicalBitVecValue
   simp only [canonicalBitVecValue, __smtx_model_eval_bvnot]
   rw [native_binary_not_mod_eq_toNat_of_canonical w (x.toNat : Int)
     (bitvec_toNat_canonical w x)]
-  simp [bitvec_ofInt_natCast_toNat]
+  simp [_root_.bitvec_ofInt_natCast_toNat]
 
 /-- A complemented pair makes a right-associated OR spine all ones. -/
 theorem bvor_not_pair_nested_eval
@@ -328,7 +328,7 @@ private theorem evalCanonical_of_smt_type
     __smtx_typeof (__eo_to_smt t) = SmtType.BitVec w ->
     EvalCanonical M w t := by
   intro hTy
-  exact smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt t) w hTy
+  exact _root_.smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt t) w hTy
 
 private theorem bor_eval_canonical
     (M : SmtModel) (x y : Term) (w : Nat) :

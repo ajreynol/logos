@@ -355,9 +355,10 @@ private theorem mk_ho_cong_bad_head_stuck
       | Apply pg x =>
           cases pg with
           | UOp op =>
-              cases op
-              case eq => exact (hBad x y rfl).elim
-              all_goals simp [__mk_ho_cong, hl, hr]
+              cases op <;>
+                first
+                | exact (hBad x y rfl).elim
+                | simp [__mk_ho_cong, hl, hr]
           | _ => simp [__mk_ho_cong, hl, hr]
       | _ => simp [__mk_ho_cong, hl, hr]
   | _ => simp [__mk_ho_cong, hl, hr]

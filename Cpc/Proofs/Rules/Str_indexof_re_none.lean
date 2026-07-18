@@ -59,13 +59,13 @@ private theorem native_re_prefix_match_len_go_none :
     ∀ (xs : native_String) (n : Nat),
       native_re_prefix_match_len?.go native_re_none xs n = none
   | [], n => by
-      rw [native_re_prefix_match_len?.go.eq_1]
+      unfold native_re_prefix_match_len?.go
       simp [native_re_none, native_re_nullable]
   | c :: cs, n => by
-      rw [native_re_prefix_match_len?.go.eq_2]
+      unfold native_re_prefix_match_len?.go
       cases hChar : native_char_valid c
-      · simp [native_re_none, native_re_nullable]
-      · simp [native_re_none, native_re_nullable, native_re_deriv]
+      · simp [hChar, native_re_none, native_re_nullable]
+      · simp [hChar, native_re_none, native_re_nullable, native_re_deriv]
         change native_re_prefix_match_len?.go native_re_none cs (n + 1) = none
         exact native_re_prefix_match_len_go_none cs (n + 1)
 

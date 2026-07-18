@@ -38,7 +38,7 @@ private theorem eo_typeof_eq_bool_operands_eq {A B : Term} :
     rw [hReq]
     intro hBad
     cases hBad
-  exact eo_eq_true_eq (eo_requires_arg_eq_of_ne_stuck hReqNe)
+  exact eo_eq_true_eq (_root_.eo_requires_arg_eq_of_ne_stuck hReqNe)
 
 private theorem eo_typeof_not_eq_bool_operands_eq {a b : Term} :
     __eo_typeof
@@ -91,8 +91,8 @@ private theorem prog_distinct_values_shape_of_ne_stuck {a b : Term} :
        exact False.elim (hProg rfl))
   all_goals
     constructor
-    · exact eo_requires_arg_eq_of_ne_stuck hProg
-    · exact eo_requires_result_eq_of_ne_stuck hProg
+    · exact _root_.eo_requires_arg_eq_of_ne_stuck hProg
+    · exact _root_.eo_requires_result_eq_of_ne_stuck hProg
 
 private theorem prog_distinct_values_shape_of_typeof_bool {a b : Term} :
     __eo_typeof (__eo_prog_distinct_values a b) = Term.Bool ->
