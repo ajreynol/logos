@@ -44,14 +44,12 @@ inductive UserOp : Type where
   | __eoo_neg_2 : UserOp
   | div : UserOp
   | mod : UserOp
-  | multmult : UserOp
   | divisible : UserOp
   | int_pow2 : UserOp
   | int_log2 : UserOp
   | int_ispow2 : UserOp
   | div_total : UserOp
   | mod_total : UserOp
-  | multmult_total : UserOp
   | _at_int_div_by_zero : UserOp
   | _at_mod_by_zero : UserOp
   | Array : UserOp
