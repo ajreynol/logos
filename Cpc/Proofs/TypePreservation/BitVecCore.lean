@@ -74,9 +74,20 @@ theorem typeof_value_model_eval_extract
   rw [__smtx_model_eval.eq_2, __smtx_model_eval.eq_2]
   rcases bitvec_value_canonical (by simpa [h3] using hpres3) with ⟨n, hv⟩
   rw [hv]
+  have hWidthNonneg :
+      native_zleq 0 (native_zplus (native_zplus i 1) (native_zneg j)) = true := by
+    unfold native_zlt at hWidth
+    unfold native_zleq
+    by_cases hlt :
+        (0 : native_Int) < native_zplus (native_zplus i 1) (native_zneg j)
+    · have hle :
+          (0 : native_Int) ≤ native_zplus (native_zplus i 1) (native_zneg j) :=
+        Int.le_of_lt hlt
+      simp [hle]
+    · simp [hlt] at hWidth
   simpa [__smtx_model_eval_extract] using
     typeof_value_binary_mod_of_nonneg (native_zplus (native_zplus i 1) (native_zneg j))
-      (native_binary_extract (native_nat_to_int w) n i j) hWidth
+      (native_binary_extract (native_nat_to_int w) n i j) hWidthNonneg
 
 /-- Shows that evaluating `bv_unop` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bv_unop

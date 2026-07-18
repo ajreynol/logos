@@ -66,7 +66,7 @@ private theorem eo_typeof_extract_body_of_ne_stuck
               (__eo_requires
                 (__eo_gt
                   (__eo_add (__eo_add hi (__eo_neg lo)) (Term.Numeral 1))
-                  (Term.Numeral (-1 : native_Int)))
+                  (Term.Numeral 0))
                 (Term.Boolean true)
                 (__eo_add (__eo_add hi (__eo_neg lo))
                   (Term.Numeral 1))))) ≠
@@ -94,7 +94,7 @@ theorem bv_extract_context_of_non_stuck
       hi = Term.Numeral h ∧ lo = Term.Numeral l ∧
       native_zleq 0 w = true ∧ native_zleq 0 l = true ∧
       native_zlt h w = true ∧
-      native_zleq 0 (native_zplus (native_zplus h 1) (native_zneg l)) = true ∧
+      native_zlt 0 (native_zplus (native_zplus h 1) (native_zneg l)) = true ∧
       __smtx_typeof (__eo_to_smt x) = SmtType.BitVec (native_int_to_nat w) := by
   intro hXTrans hExtractNe
   change __eo_typeof_extract (__eo_typeof hi) hi (__eo_typeof lo) lo
@@ -114,7 +114,7 @@ theorem bv_extract_context_of_non_stuck
   let widthTerm := __eo_add (__eo_add hi (__eo_neg lo)) (Term.Numeral 1)
   let inner :=
     __eo_requires (__eo_gt (Term.Numeral w) hi) (Term.Boolean true)
-      (__eo_requires (__eo_gt widthTerm (Term.Numeral (-1 : native_Int)))
+      (__eo_requires (__eo_gt widthTerm (Term.Numeral 0))
         (Term.Boolean true) widthTerm)
   have hBodyNe :
       __eo_requires (__eo_gt lo (Term.Numeral (-1 : native_Int)))
@@ -146,17 +146,17 @@ theorem bv_extract_context_of_non_stuck
       simp [__eo_gt]
     have hInnerReduce :
         inner =
-          __eo_requires (__eo_gt widthTerm (Term.Numeral (-1 : native_Int)))
+          __eo_requires (__eo_gt widthTerm (Term.Numeral 0))
             (Term.Boolean true) widthTerm := by
       simp [inner, __eo_requires, __eo_gt, hhw, hHiGuardNeStuck, native_ite,
         native_teq, native_not]
     have hWidthNe :
-        __eo_requires (__eo_gt widthTerm (Term.Numeral (-1 : native_Int)))
+        __eo_requires (__eo_gt widthTerm (Term.Numeral 0))
             (Term.Boolean true) widthTerm ≠
           Term.Stuck := by
       simpa [hInnerReduce] using hInnerNe
     have hWidthGuard :
-        __eo_gt widthTerm (Term.Numeral (-1 : native_Int)) =
+        __eo_gt widthTerm (Term.Numeral 0) =
           Term.Boolean true :=
       support_eo_requires_cond_eq_of_non_stuck hWidthNe
     have hWidthEval :
@@ -164,16 +164,12 @@ theorem bv_extract_context_of_non_stuck
           Term.Numeral (native_zplus (native_zplus h 1) (native_zneg l)) := by
       simp [widthTerm, __eo_add, __eo_neg, SmtEval.native_zplus,
         SmtEval.native_zneg, Int.add_assoc, Int.add_comm, Int.add_left_comm]
-    have hWidthNonneg :
-        native_zleq 0 (native_zplus (native_zplus h 1) (native_zneg l)) = true := by
+    have hWidthPos :
+        native_zlt 0 (native_zplus (native_zplus h 1) (native_zneg l)) = true := by
       rw [hWidthEval] at hWidthGuard
-      have hlt : (-1 : Int) < native_zplus (native_zplus h 1) (native_zneg l) := by
-        simpa [__eo_gt, SmtEval.native_zlt] using hWidthGuard
-      have hle : (0 : Int) ≤ native_zplus (native_zplus h 1) (native_zneg l) := by
-        simpa using Int.add_one_le_iff.mpr hlt
-      simpa [SmtEval.native_zleq] using hle
+      simpa [__eo_gt] using hWidthGuard
     exact ⟨w, h, l, hXTy, rfl, rfl, hw0, hl0, hhw,
-      hWidthNonneg, hXSmtTy⟩
+      hWidthPos, hXSmtTy⟩
 
 theorem natpow2_eq (w : Nat) :
     native_int_pow2 (↑w : Int) = (2 : Int) ^ w := by
@@ -341,13 +337,24 @@ theorem native_int_to_nat_roundtrip
   simpa [SmtEval.native_nat_to_int, SmtEval.native_int_to_nat,
     native_nat_to_int, native_int_to_nat] using Int.toNat_of_nonneg hn
 
+theorem native_zleq_of_zlt_true
+    (a b : native_Int)
+    (h : native_zlt a b = true) :
+    native_zleq a b = true := by
+  unfold native_zlt at h
+  unfold native_zleq
+  by_cases hlt : a < b
+  · have hle : a ≤ b := Int.le_of_lt hlt
+    simp [hle]
+  · simp [hlt] at h
+
 theorem smt_typeof_extract_of_context
     (x : Term) (w h l : native_Int) :
     __smtx_typeof (__eo_to_smt x) = SmtType.BitVec (native_int_to_nat w) ->
     native_zleq 0 w = true ->
     native_zleq 0 l = true ->
     native_zlt h w = true ->
-    native_zleq 0 (native_zplus (native_zplus h 1) (native_zneg l)) = true ->
+    native_zlt 0 (native_zplus (native_zplus h 1) (native_zneg l)) = true ->
     __smtx_typeof
         (__eo_to_smt (bvExtractTerm x (Term.Numeral h) (Term.Numeral l))) =
       SmtType.BitVec
@@ -487,9 +494,11 @@ private theorem eval_bv_extract_not
   have hLRound : (↑L : Int) = l := by
     simpa [L, native_nat_to_int, SmtEval.native_nat_to_int] using
       native_int_to_nat_roundtrip l hl0
+  have hdNonneg : native_zleq 0 d = true :=
+    native_zleq_of_zlt_true _ _ hd0
   have hDRound : (↑D : Int) = d := by
     simpa [D, native_nat_to_int, SmtEval.native_nat_to_int] using
-      native_int_to_nat_roundtrip d hd0
+      native_int_to_nat_roundtrip d hdNonneg
   rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x) W
       (by simpa [W] using hXSmtTy) with ⟨p, hXEval, hCan⟩
   have hXEval' :
@@ -504,7 +513,7 @@ private theorem eval_bv_extract_not
   have hhwInt : h < w := by simpa [SmtEval.native_zlt] using hhw
   have hwInt : (0 : Int) ≤ w := by simpa [SmtEval.native_zleq] using hw0
   have hlInt : (0 : Int) ≤ l := by simpa [SmtEval.native_zleq] using hl0
-  have hdInt : (0 : Int) ≤ d := by simpa [SmtEval.native_zleq] using hd0
+  have hdInt : (0 : Int) ≤ d := by simpa [SmtEval.native_zleq] using hdNonneg
   have hFitEq : l + d = h + 1 := by
     simp [d, SmtEval.native_zplus, SmtEval.native_zneg, Int.add_assoc,
       Int.add_comm, Int.add_left_comm]
@@ -685,13 +694,13 @@ theorem bv_extract_extract_context
       ll = Term.Numeral lln ∧ kk = Term.Numeral kkn ∧
       native_zleq 0 w = true ∧ native_zleq 0 inn = true ∧
       native_zlt jn w = true ∧
-      native_zleq 0 (native_zplus (native_zplus jn 1) (native_zneg inn)) = true ∧
+      native_zlt 0 (native_zplus (native_zplus jn 1) (native_zneg inn)) = true ∧
       native_zleq 0 kn = true ∧
       native_zlt ln
         (native_zplus (native_zplus jn 1) (native_zneg inn)) = true ∧
-      native_zleq 0 (native_zplus (native_zplus ln 1) (native_zneg kn)) = true ∧
+      native_zlt 0 (native_zplus (native_zplus ln 1) (native_zneg kn)) = true ∧
       native_zleq 0 kkn = true ∧ native_zlt lln w = true ∧
-      native_zleq 0 (native_zplus (native_zplus lln 1) (native_zneg kkn)) = true ∧
+      native_zlt 0 (native_zplus (native_zplus lln 1) (native_zneg kkn)) = true ∧
       __smtx_typeof (__eo_to_smt x) = SmtType.BitVec (native_int_to_nat w) := by
   intro hXTrans hResultTy
   change __eo_typeof_eq
@@ -731,8 +740,10 @@ theorem bv_extract_extract_context
       native_int_to_nat dInner = native_int_to_nat wOuter := by
     rw [hInnerSmtTy] at hInnerSmtTyOuter
     simpa using hInnerSmtTyOuter
+  have hDI0Nonneg : native_zleq 0 dInner = true :=
+    native_zleq_of_zlt_true _ _ hDI0
   have hwOuterEq : wOuter = dInner :=
-    nonneg_int_eq_of_toNat_eq wOuter dInner hwOuter0 hDI0 hDInnerNat.symm
+    nonneg_int_eq_of_toNat_eq wOuter dInner hwOuter0 hDI0Nonneg hDInnerNat.symm
   rcases bv_extract_context_of_non_stuck x ll kk hXTrans hRhsNe with
     ⟨wRhs, lln, kkn, _hXTyRhs, hLl, hKk, hwRhs0, hkk0, hllRhs,
       hDRhs0, hXSmtTyRhs⟩
@@ -766,6 +777,8 @@ theorem typed_bv_extract_extract_term (x i j k l ll kk : Term) :
         SmtType.BitVec (native_int_to_nat dInner) :=
     smt_typeof_extract_of_context x w jn inn
       hXSmtTy hw0 hi0 hjw hDI0
+  have hDI0Nonneg : native_zleq 0 dInner = true :=
+    native_zleq_of_zlt_true _ _ hDI0
   have hLhsTy :
       __smtx_typeof
           (__eo_to_smt
@@ -774,7 +787,7 @@ theorem typed_bv_extract_extract_term (x i j k l ll kk : Term) :
         SmtType.BitVec (native_int_to_nat dOuter) := by
     exact smt_typeof_extract_of_context
       (bvExtractTerm x (Term.Numeral jn) (Term.Numeral inn))
-      dInner ln kn hInnerTy hDI0 hk0 hlDI hDO0
+      dInner ln kn hInnerTy hDI0Nonneg hk0 hlDI hDO0
   have hRhsTy :
       __smtx_typeof
           (__eo_to_smt
@@ -843,6 +856,10 @@ private theorem eval_bv_extract_extract
   let DI := native_int_to_nat dInner
   let K := native_int_to_nat kn
   let DO := native_int_to_nat dOuter
+  have hDI0Nonneg : native_zleq 0 dInner = true :=
+    native_zleq_of_zlt_true _ _ hDI0
+  have hDO0Nonneg : native_zleq 0 dOuter = true :=
+    native_zleq_of_zlt_true _ _ hDO0
   have hWRound : (↑W : Int) = w := by
     simpa [W, native_nat_to_int, SmtEval.native_nat_to_int] using
       native_int_to_nat_roundtrip w hw0
@@ -851,13 +868,13 @@ private theorem eval_bv_extract_extract
       native_int_to_nat_roundtrip inn hi0
   have hDIRound : (↑DI : Int) = dInner := by
     simpa [DI, native_nat_to_int, SmtEval.native_nat_to_int] using
-      native_int_to_nat_roundtrip dInner hDI0
+      native_int_to_nat_roundtrip dInner hDI0Nonneg
   have hKRound : (↑K : Int) = kn := by
     simpa [K, native_nat_to_int, SmtEval.native_nat_to_int] using
       native_int_to_nat_roundtrip kn hk0
   have hDORound : (↑DO : Int) = dOuter := by
     simpa [DO, native_nat_to_int, SmtEval.native_nat_to_int] using
-      native_int_to_nat_roundtrip dOuter hDO0
+      native_int_to_nat_roundtrip dOuter hDO0Nonneg
   have hDICast : jn + 1 + -inn = (↑DI : Int) := by
     rw [hDIRound]
     rfl

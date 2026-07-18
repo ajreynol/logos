@@ -5652,6 +5652,17 @@ private theorem native_zleq_zero_zmult_nat_of_one_le
     exact Int.mul_nonneg hiNonneg hwNonneg
   simpa [native_zleq] using hNonneg
 
+private theorem native_zleq_of_zlt_true
+    (a b : native_Int)
+    (h : native_zlt a b = true) :
+    native_zleq a b = true := by
+  unfold native_zlt at h
+  unfold native_zleq
+  by_cases hlt : a < b
+  · have hle : a ≤ b := Int.le_of_lt hlt
+    simp [hle]
+  · simp [hlt] at h
+
 private theorem native_zleq_zero_zplus_nat_right_of_nonneg
     (i : native_Int) (w : native_Nat)
     (hi : native_zleq 0 i = true) :
@@ -5711,14 +5722,14 @@ private theorem eo_to_smt_typeof_matches_translation_apply_repeat
         (__eo_typeof_repeat (Term.UOp UserOp.Int) (Term.Numeral i) (__eo_typeof x)) =
       SmtType.BitVec (native_int_to_nat (native_zmult i (native_nat_to_int w)))
     rw [hXEo]
-    have hIGtNegOne : native_zlt (-1 : native_Int) i = true := by
+    have hIGtZero : native_zlt (0 : native_Int) i = true := by
       have hi' : (1 : Int) ≤ i := by
         simpa [native_zleq] using hi
-      have hlt : (-1 : Int) < i := by
+      have hlt : (0 : Int) < i := by
         omega
       simpa [native_zlt] using hlt
     simpa [__eo_typeof_repeat, __eo_requires, __eo_gt, __eo_mul,
-      __eo_mk_apply, native_ite, native_teq, native_not, hIGtNegOne] using
+      __eo_mk_apply, native_ite, native_teq, native_not, hIGtZero] using
         apply_eo_to_smt_type_bitvec_int_of_nonneg _
           (native_zleq_zero_zmult_nat_of_one_le i w hi)
   exact hSmt.trans hEo.symm
@@ -11499,17 +11510,20 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_extract
         native_zplus (native_zplus i (native_zneg j)) 1 := by
     simp [SmtEval.native_zplus, SmtEval.native_zneg, Int.add_assoc, Int.add_comm,
       Int.add_left_comm]
-  have hWidthOld :
-      native_zleq 0 (native_zplus (native_zplus i (native_zneg j)) 1) = true := by
+  have hWidthPos :
+      native_zlt 0 (native_zplus (native_zplus i (native_zneg j)) 1) = true := by
     rw [← hWidthEq]
     exact hWidth
+  have hWidthOld :
+      native_zleq 0 (native_zplus (native_zplus i (native_zneg j)) 1) = true :=
+    native_zleq_of_zlt_true _ _ hWidthPos
   have hSmt :
       __smtx_typeof
           (__eo_to_smt (Term.Apply (Term.UOp2 UserOp2.extract z y) x)) =
         SmtType.BitVec
           (native_int_to_nat (native_zplus (native_zplus i (native_zneg j)) 1)) := by
     rw [hTranslate, typeof_extract_eq, hZ, hY, hX]
-    simp [__smtx_typeof_extract, native_ite, hj0, hiw, hWidthOld, hWidthEq]
+    simp [__smtx_typeof_extract, native_ite, hj0, hiw, hWidthPos, hWidthEq]
   have hEo :
       __eo_to_smt_type
           (__eo_typeof (Term.Apply (Term.UOp2 UserOp2.extract z y) x)) =
@@ -11535,14 +11549,11 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_extract
     have hWidthNonneg :
         native_zleq 0 (native_zplus (native_zplus i (native_zneg j)) 1) = true :=
       hWidthOld
-    have hWidthGtNegOne :
-        native_zlt (-1 : native_Int) (native_zplus (native_zplus i (native_zneg j)) 1) = true :=
-      native_zlt_neg_one_of_zleq_zero hWidthNonneg
     rw [hEoRaw]
     rw [hZTerm, hYTerm]
     simp [__eo_mk_apply, __eo_requires, __eo_gt,
       __eo_add, __eo_neg, native_ite, native_teq, native_not,
-      hLoGtNegOne, hiw, hWidthGtNegOne, hWidthNonneg]
+      hLoGtNegOne, hiw, hWidthPos, hWidthNonneg]
   exact hSmt.trans hEo.symm
 
 /-- Proof for `_at_witness_string_length`. -/

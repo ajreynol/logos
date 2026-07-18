@@ -318,7 +318,7 @@ private theorem typeof_extract_zero_numeral (wmv tw : native_Int) :
         (Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral tw))
       =
         native_ite (native_zlt wmv tw)
-          (native_ite (native_zlt (-1 : native_Int) (native_zplus wmv 1))
+          (native_ite (native_zlt 0 (native_zplus wmv 1))
             (Term.Apply (Term.UOp UserOp.BitVec)
               (Term.Numeral (native_zplus wmv 1)))
             Term.Stuck)
@@ -330,7 +330,7 @@ private theorem typeof_extract_zero_numeral (wmv tw : native_Int) :
     native_ite, native_teq, native_not, SmtEval.native_not, native_zplus,
     SmtEval.native_zplus, native_zneg, SmtEval.native_zneg, hLo]
   · by_cases hHi : native_zlt wmv tw = true
-    · by_cases hWidth : native_zlt (-1 : native_Int) (wmv + 1) = true
+    · by_cases hWidth : native_zlt 0 (wmv + 1) = true
       · simp [native_ite, hHi, hWidth]
       · simp [native_ite, hHi, hWidth]
     · simp [native_ite, hHi]
@@ -386,7 +386,7 @@ private theorem typeof_extract_zero_bitvec_inv (wm t : Term) (m : Term)
       wm = Term.Numeral wmv ∧
       __eo_typeof t = Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral tw) ∧
       native_zlt wmv tw = true ∧
-      native_zlt (-1 : native_Int) (native_zplus wmv 1) = true ∧
+      native_zlt 0 (native_zplus wmv 1) = true ∧
       m = Term.Numeral (native_zplus wmv 1) := by
   by_cases hWmNum : ∃ wmv, wm = Term.Numeral wmv
   · rcases hWmNum with ⟨wmv, hWm⟩
@@ -401,7 +401,7 @@ private theorem typeof_extract_zero_bitvec_inv (wm t : Term) (m : Term)
         Term.Apply (Term.UOp UserOp.BitVec) m at h
       rw [typeof_extract_zero_numeral] at h
       by_cases hHi : native_zlt wmv tw = true
-      · by_cases hWidth : native_zlt (-1 : native_Int) (native_zplus wmv 1) = true
+      · by_cases hWidth : native_zlt 0 (native_zplus wmv 1) = true
         · simp [native_ite, hHi, hWidth] at h
           exact ⟨wmv, tw, rfl, hT, hHi, hWidth, h.symm⟩
         · simp [native_ite, hHi, hWidth] at h
@@ -456,7 +456,7 @@ private theorem typeof_args_of_conclusion_bool (w t wm : Term) :
       __eo_typeof t = Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral tw) ∧
       native_zleq 0 wi = true ∧ native_zleq 0 tw = true ∧
       native_zlt wmv tw = true ∧
-      native_zlt (-1 : native_Int) (native_zplus wmv 1) = true ∧
+      native_zlt 0 (native_zplus wmv 1) = true ∧
       wi = native_zplus wmv 1 := by
   intro hTy
   rw [typeof_ufBv2natInt2bvExtractConclusion_eq] at hTy
@@ -532,7 +532,7 @@ private theorem smt_typeof_rhs_eq
     (hWiEq : wi = native_zplus wmv 1)
     (hTwNonneg : native_zleq 0 tw = true)
     (hHi : native_zlt wmv tw = true)
-    (hWidth : native_zlt (-1 : native_Int) (native_zplus wmv 1) = true)
+    (hWidth : native_zlt 0 (native_zplus wmv 1) = true)
     (hTSmtTy : __smtx_typeof (__eo_to_smt t) = SmtType.BitVec (native_int_to_nat tw)) :
     __smtx_typeof
         (__eo_to_smt (extractTerm (Term.Numeral wmv) (Term.Numeral 0) t)) =
@@ -548,21 +548,15 @@ private theorem smt_typeof_rhs_eq
   have hHi' : native_zlt wmv (native_nat_to_int (native_int_to_nat tw)) = true := by
     rw [hTwFit]
     exact hHi
-  have hWidthNonneg :
-      native_zleq 0 (native_zplus (native_zplus wmv 1) (native_zneg 0)) = true := by
-    have hlt : (-1 : native_Int) < native_zplus wmv 1 := by
-      simpa [native_zlt, SmtEval.native_zlt] using hWidth
-    have hnonneg : (0 : native_Int) <= native_zplus wmv 1 := by
-      have hStep : (-1 : native_Int) + 1 <= native_zplus wmv 1 :=
-        (Int.add_one_le_iff).2 hlt
-      simpa using hStep
-    simpa [native_zleq, SmtEval.native_zleq, native_zplus, native_zneg] using hnonneg
+  have hWidthPos :
+      native_zlt 0 (native_zplus (native_zplus wmv 1) (native_zneg 0)) = true := by
+    simpa [native_zplus, native_zneg] using hWidth
   have hWidthNat :
       native_int_to_nat (native_zplus (native_zplus wmv 1) (native_zneg 0)) =
         native_int_to_nat wi := by
     rw [hWiEq]
     simp [native_zplus, native_zneg]
-  simp [__smtx_typeof_extract, native_ite, hLo, hHi', hWidthNonneg, hWidthNat]
+  simp [__smtx_typeof_extract, native_ite, hLo, hHi', hWidthPos, hWidthNat]
 
 private theorem typed_conclusion_impl
     (w t wm : Term) :

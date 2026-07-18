@@ -124,7 +124,7 @@ private theorem extract_whole_args_of_type_bool
       n = Term.Numeral hi ∧
       native_zleq 0 w = true ∧
       native_zlt hi w = true ∧
-      native_zleq 0 (native_zplus hi 1) = true ∧
+      native_zlt 0 (native_zplus hi 1) = true ∧
       native_zplus hi 1 = w ∧
       __smtx_typeof (__eo_to_smt x) =
         SmtType.BitVec (native_int_to_nat w) := by
@@ -187,7 +187,7 @@ private theorem extract_whole_args_of_type_bool
                 (Term.Boolean true)
                 (__eo_requires
                   (__eo_gt (Term.Numeral (native_zplus hi 1))
-                    (Term.Numeral (-1 : native_Int)))
+                    (Term.Numeral 0))
                   (Term.Boolean true) (Term.Numeral (native_zplus hi 1))))
           have hApplyEq :
               __eo_mk_apply (Term.UOp UserOp.BitVec) lowReq =
@@ -206,7 +206,7 @@ private theorem extract_whole_args_of_type_bool
                   (Term.Boolean true)
                   (__eo_requires
                     (__eo_gt (Term.Numeral (native_zplus hi 1))
-                      (Term.Numeral (-1 : native_Int)))
+                      (Term.Numeral 0))
                     (Term.Boolean true) (Term.Numeral (native_zplus hi 1))) =
                 Term.Numeral w := by
             have hLowReqReduce :
@@ -215,7 +215,7 @@ private theorem extract_whole_args_of_type_bool
                     (Term.Boolean true)
                     (__eo_requires
                       (__eo_gt (Term.Numeral (native_zplus hi 1))
-                        (Term.Numeral (-1 : native_Int)))
+                        (Term.Numeral 0))
                       (Term.Boolean true) (Term.Numeral (native_zplus hi 1))) := by
               simp [lowReq, __eo_requires, hLowTrue, native_ite, native_teq,
                 native_not, SmtEval.native_not]
@@ -226,7 +226,7 @@ private theorem extract_whole_args_of_type_bool
                   (Term.Boolean true)
                   (__eo_requires
                     (__eo_gt (Term.Numeral (native_zplus hi 1))
-                      (Term.Numeral (-1 : native_Int)))
+                      (Term.Numeral 0))
                     (Term.Boolean true) (Term.Numeral (native_zplus hi 1))) ≠
                 Term.Stuck := by
             rw [hReqEq]
@@ -241,7 +241,7 @@ private theorem extract_whole_args_of_type_bool
           have hInnerEq :
               __eo_requires
                   (__eo_gt (Term.Numeral (native_zplus hi 1))
-                    (Term.Numeral (-1 : native_Int)))
+                    (Term.Numeral 0))
                   (Term.Boolean true) (Term.Numeral (native_zplus hi 1)) =
                 Term.Numeral w := by
             simpa [__eo_requires, hHiLtTerm, native_ite, native_teq,
@@ -249,7 +249,7 @@ private theorem extract_whole_args_of_type_bool
           have hInnerNe :
               __eo_requires
                   (__eo_gt (Term.Numeral (native_zplus hi 1))
-                    (Term.Numeral (-1 : native_Int)))
+                    (Term.Numeral 0))
                   (Term.Boolean true) (Term.Numeral (native_zplus hi 1)) ≠
                 Term.Stuck := by
             rw [hInnerEq]
@@ -257,21 +257,17 @@ private theorem extract_whole_args_of_type_bool
             cases h
           have hWidthNonnegTerm :
               __eo_gt (Term.Numeral (native_zplus hi 1))
-                  (Term.Numeral (-1 : native_Int)) =
+                  (Term.Numeral 0) =
                 Term.Boolean true :=
             support_eo_requires_cond_eq_of_non_stuck hInnerNe
-          have hWidthNonneg :
-              native_zleq 0 (native_zplus hi 1) = true := by
-            have hLt : (-1 : native_Int) < native_zplus hi 1 := by
-              simpa [__eo_gt, SmtEval.native_zlt] using hWidthNonnegTerm
-            have hLe : (0 : native_Int) <= native_zplus hi 1 :=
-              Int.add_one_le_iff.mpr hLt
-            simpa [SmtEval.native_zleq] using hLe
+          have hWidthPos :
+              native_zlt 0 (native_zplus hi 1) = true := by
+            simpa [__eo_gt] using hWidthNonnegTerm
           have hHiWidth : native_zplus hi 1 = w := by
             simpa [__eo_requires, hWidthNonnegTerm, native_ite, native_teq,
               native_not, SmtEval.native_not] using hInnerEq
           exact ⟨w, hi, hXBitVec, rfl, hWNonneg, hHiLt,
-            hWidthNonneg, hHiWidth, hXSmtTy⟩
+            hWidthPos, hHiWidth, hXSmtTy⟩
       · exfalso
         have hBad := hExtractTyX
         rw [hNTy] at hBad
@@ -314,8 +310,11 @@ private theorem typed_bv_extract_whole_term
     have hWidthExpr :
         native_zplus (native_zplus hi 1) (native_zneg (0 : native_Int)) = w := by
       simpa [SmtEval.native_zplus, SmtEval.native_zneg] using hHiWidth
-    have hWidthNonneg' : native_zleq 0 (hi + 1) = true := by
+    have hWidthNonneg' : native_zlt 0 (hi + 1) = true := by
       simpa [SmtEval.native_zplus] using hWidthNonneg
+    have hWPos : native_zlt 0 w = true := by
+      rw [← hHiWidth]
+      exact hWidthNonneg
     have hHiWidth' : hi + 1 = w := by
       simpa [SmtEval.native_zplus] using hHiWidth
     unfold bvExtractWholeLhs
@@ -325,7 +324,7 @@ private theorem typed_bv_extract_whole_term
       SmtType.BitVec (native_int_to_nat w)
     rw [typeof_extract_eq, hXSmtTy]
     simp [__smtx_typeof_extract, native_ite, hLow, hHiLt,
-      hWNonneg, hWidthNonneg, hWidthNonneg', hHiWidth, hHiWidth', hRound, hWidthExpr,
+      hWNonneg, hWPos, hWidthNonneg, hWidthNonneg', hHiWidth, hHiWidth', hRound, hWidthExpr,
       SmtEval.native_zplus, SmtEval.native_zneg]
   unfold bvExtractWholeTerm
   exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type

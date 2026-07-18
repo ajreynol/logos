@@ -119,7 +119,7 @@ private theorem bv_eq_extract_elim2_smt_context
       j = Term.Numeral jv ∧ wm = Term.Numeral hv ∧
       jp = Term.Numeral lv ∧
       native_zleq 0 w = true ∧
-      native_zleq 0 (native_zplus jv 1) = true ∧
+      native_zlt 0 (native_zplus jv 1) = true ∧
       native_zlt jv w = true ∧
       native_zleq 0 hwidth = true ∧ native_zleq 0 lv = true ∧
       native_zlt hv w = true ∧
@@ -150,7 +150,7 @@ private theorem bv_eq_extract_elim2_smt_context
       native_zplus (native_zplus jv 1) (native_zneg 0) =
         native_zplus jv 1 := by
     simp [SmtEval.native_zplus, SmtEval.native_zneg]
-  have hD0Simple : native_zleq 0 (native_zplus jv 1) = true := by
+  have hD0Simple : native_zlt 0 (native_zplus jv 1) = true := by
     rw [← hD]
     exact hD0
   have hSliceSmtTy :
@@ -252,7 +252,8 @@ private theorem bv_eq_extract_elim2_smt_context
         __smtx_typeof (__eo_to_smt x) := by
     rw [hRebuildBridge, ← hRightEoEq, ← hXBridge]
   exact ⟨w, jv, highWidth, hv, lv, hJ, hWm, hJp, hw0,
-    hD0Simple, hjw, hHighWidth0, hlv0, hhvw, hXSmtTy, hYSmtTy,
+    hD0Simple, hjw, native_zleq_of_zlt_true _ _ hHighWidth0,
+    hlv0, hhvw, hXSmtTy, hYSmtTy,
     hHighSmtTy, hRebuildSame⟩
 
 theorem typed_bv_eq_extract_elim2_term
@@ -590,7 +591,8 @@ theorem facts_bv_eq_extract_elim2_term
       native_int_to_nat_roundtrip w hw0
   have hDRound : (↑D : Int) = d := by
     simpa [D, native_nat_to_int, SmtEval.native_nat_to_int] using
-      native_int_to_nat_roundtrip d (by simpa [d] using hD0)
+      native_int_to_nat_roundtrip d
+        (native_zleq_of_zlt_true _ _ (by simpa [d] using hD0))
   have hjwInt : jv < w := by
     simpa [SmtEval.native_zlt] using hjw
   have hdwInt : d ≤ w := by
@@ -1180,7 +1182,8 @@ private theorem bv_eq_extract_elim3_smt_context
         __smtx_typeof (__eo_to_smt x) := by
     rw [hRebuildBridge, ← hRightEoEq, ← hXBridge]
   exact ⟨w, iv, sliceWidth, jv, mv, lowWidth, hI, hJ, hIm, rfl, rfl, hw0,
-    hiv0, hjvw, hSliceWidth0, hmvw, hLowWidth0, hXSmtTy,
+    hiv0, hjvw, native_zleq_of_zlt_true _ _ hSliceWidth0, hmvw,
+    native_zleq_of_zlt_true _ _ hLowWidth0, hXSmtTy,
     hSliceSmtTy, hYSmtTy, hLowSmtTy, hRebuildSame⟩
 
 theorem typed_bv_eq_extract_elim3_term
@@ -2176,7 +2179,9 @@ private theorem bv_eq_extract_elim1_smt_context
     rw [hRebuildBridge, ← hRightEoEq, ← hXBridge]
   exact ⟨w, iv, sliceWidth, jv, hv, lv, highWidth, mv, lowWidth,
     hI, hJ, hWm, hJp, hIm, rfl, rfl, rfl, hw0, hiv0, hjvw,
-    hSliceWidth0, hlv0, hhvw, hHighWidth0, hmvw, hLowWidth0,
+    native_zleq_of_zlt_true _ _ hSliceWidth0, hlv0, hhvw,
+    native_zleq_of_zlt_true _ _ hHighWidth0, hmvw,
+    native_zleq_of_zlt_true _ _ hLowWidth0,
     hXSmtTy, hSliceSmtTy, hYSmtTy, hHighSmtTy, hLowSmtTy,
     hRebuildSame⟩
 

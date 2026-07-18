@@ -335,7 +335,8 @@ private theorem bv_lshr_by_const_1_context
   have hRhsSmtTy := rhs_smt_type_of_eo_bitvec_type
     (bvLshrByConst1Rhs x (Term.Numeral A) (Term.Numeral N)) W
     hRhsTrans hRhsEoTy hW0
-  exact ⟨W, A, N, rfl, rfl, rfl, hW0, hA0, hNW', hD0,
+  have hD0' := native_zleq_of_zlt_true 0 _ hD0
+  exact ⟨W, A, N, rfl, rfl, rfl, hW0, hA0, hNW', hD0',
     hXSmtTy, hRhsSmtTy⟩
 
 private theorem bv_shl_by_const_1_context
@@ -415,7 +416,8 @@ private theorem bv_shl_by_const_1_context
   subst Z
   subst en
   have hD0' : native_zleq 0 (native_zplus E 1) = true := by
-    simpa [SmtEval.native_zplus, SmtEval.native_zneg] using hD0
+    simpa [SmtEval.native_zplus, SmtEval.native_zneg] using
+      (native_zleq_of_zlt_true 0 _ hD0)
   have hExtSmtTy := smt_typeof_extract_of_context x W E 0 hXSmtTy
     hW0 hZ0 hEW' hD0
   have hZeroSmtTy :=

@@ -8476,13 +8476,13 @@ def __eo_typeof_extract : Term -> Term -> Term -> Term -> Term -> Term
   | _ , _ , _ , Term.Stuck , _  => Term.Stuck
   | (Term.UOp UserOp.Int), h, (Term.UOp UserOp.Int), l, (Term.Apply (Term.UOp UserOp.BitVec) n) => 
     let _v0 := (__eo_add (__eo_add h (__eo_neg l)) (Term.Numeral 1))
-    (__eo_mk_apply (Term.UOp UserOp.BitVec) (__eo_requires (__eo_gt l (Term.Numeral (-1 : native_Int))) (Term.Boolean true) (__eo_requires (__eo_gt n h) (Term.Boolean true) (__eo_requires (__eo_gt _v0 (Term.Numeral (-1 : native_Int))) (Term.Boolean true) _v0))))
+    (__eo_mk_apply (Term.UOp UserOp.BitVec) (__eo_requires (__eo_gt l (Term.Numeral (-1 : native_Int))) (Term.Boolean true) (__eo_requires (__eo_gt n h) (Term.Boolean true) (__eo_requires (__eo_gt _v0 (Term.Numeral 0)) (Term.Boolean true) _v0))))
   | _, _, _, _, _ => Term.Stuck
 
 
 def __eo_typeof_repeat : Term -> Term -> Term -> Term
   | _ , Term.Stuck , _  => Term.Stuck
-  | (Term.UOp UserOp.Int), i, (Term.Apply (Term.UOp UserOp.BitVec) n) => (__eo_requires (__eo_gt i (Term.Numeral (-1 : native_Int))) (Term.Boolean true) (__eo_mk_apply (Term.UOp UserOp.BitVec) (__eo_mul i n)))
+  | (Term.UOp UserOp.Int), i, (Term.Apply (Term.UOp UserOp.BitVec) n) => (__eo_requires (__eo_gt i (Term.Numeral 0)) (Term.Boolean true) (__eo_mk_apply (Term.UOp UserOp.BitVec) (__eo_mul i n)))
   | _, _, _ => Term.Stuck
 
 
