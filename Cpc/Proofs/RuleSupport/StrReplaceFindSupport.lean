@@ -1,5 +1,11 @@
-import Cpc.Proofs.RuleSupport.StrConcatUnifySupport
-import Cpc.Proofs.RuleSupport.StrSubstrContainsSupport
+module
+
+public import Cpc.Proofs.RuleSupport.StrConcatUnifySupport
+import all Cpc.Proofs.RuleSupport.StrConcatUnifySupport
+public import Cpc.Proofs.RuleSupport.StrSubstrContainsSupport
+import all Cpc.Proofs.RuleSupport.StrSubstrContainsSupport
+
+public section
 
 open Eo
 open SmtEval

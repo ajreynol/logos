@@ -1,6 +1,11 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
-import Cpc.Proofs.RuleSupport.StrConcatSupport
-import Cpc.Proofs.RuleSupport.ConcatSplitSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.RuleSupport.StrConcatSupport
+import all Cpc.Proofs.RuleSupport.StrConcatSupport
+public import Cpc.Proofs.RuleSupport.ConcatSplitSupport
+import all Cpc.Proofs.RuleSupport.ConcatSplitSupport
 
 open Eo
 open SmtEval
@@ -943,7 +948,7 @@ private theorem facts_impl
 
 /-! ## Wrapper -/
 
-theorem cmd_step_seq_rev_concat_properties
+public theorem cmd_step_seq_rev_concat_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.seq_rev_concat args premises) ->

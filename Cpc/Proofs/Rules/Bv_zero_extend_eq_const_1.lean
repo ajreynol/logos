@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.BvZeroExtendUltConstSupport
+module
+
+public import Cpc.Proofs.RuleSupport.BvZeroExtendUltConstSupport
+import all Cpc.Proofs.RuleSupport.BvZeroExtendUltConstSupport
 
 open Eo
 open SmtEval
@@ -7,7 +10,7 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
-theorem cmd_step_bv_zero_extend_eq_const_1_properties
+public theorem cmd_step_bv_zero_extend_eq_const_1_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_zero_extend_eq_const_1 args premises) ->

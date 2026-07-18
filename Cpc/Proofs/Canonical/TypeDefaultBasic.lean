@@ -1,4 +1,9 @@
-import Cpc.SmtModel
+module
+
+public import Cpc.SmtModel
+import all Cpc.SmtModel
+
+public section
 open SmtEval
 open Smtm
 

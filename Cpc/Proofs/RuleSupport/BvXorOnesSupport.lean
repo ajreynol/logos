@@ -1,6 +1,13 @@
-import Cpc.Proofs.RuleSupport.BvAllOnesCmpSupport
-import Cpc.Proofs.RuleSupport.BvCommutativeXorSupport
-import Cpc.Proofs.RuleSupport.BvNaryXorSupport
+module
+
+public import Cpc.Proofs.RuleSupport.BvAllOnesCmpSupport
+import all Cpc.Proofs.RuleSupport.BvAllOnesCmpSupport
+public import Cpc.Proofs.RuleSupport.BvCommutativeXorSupport
+import all Cpc.Proofs.RuleSupport.BvCommutativeXorSupport
+public import Cpc.Proofs.RuleSupport.BvNaryXorSupport
+import all Cpc.Proofs.RuleSupport.BvNaryXorSupport
+
+public section
 
 /-! Support for eliminating an all-ones element from an n-ary bit-vector XOR. -/
 

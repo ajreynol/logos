@@ -1,5 +1,11 @@
-import Cpc.Proofs.RuleSupport.BvRotateElimSupport
-import Cpc.Proofs.RuleSupport.BvExtractRewriteSupport
+module
+
+public import Cpc.Proofs.RuleSupport.BvRotateElimSupport
+import all Cpc.Proofs.RuleSupport.BvRotateElimSupport
+public import Cpc.Proofs.RuleSupport.BvExtractRewriteSupport
+import all Cpc.Proofs.RuleSupport.BvExtractRewriteSupport
+
+public section
 
 /-! Shared support for the nontrivial rotate-left/right decompositions. -/
 

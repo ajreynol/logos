@@ -1,10 +1,21 @@
-import Cpc.Proofs.Translation.Datatypes
-import Cpc.Proofs.Translation.Quantifiers
-import Cpc.Proofs.Translation.Special
-import Cpc.Proofs.Translation.Inversions
-import Cpc.Proofs.Translation.Heads
-import Cpc.Proofs.Translation.EoTypeofCore
-import Cpc.Proofs.TypePreservation.Full
+module
+
+public import Cpc.Proofs.Translation.Datatypes
+import all Cpc.Proofs.Translation.Datatypes
+public import Cpc.Proofs.Translation.Quantifiers
+import all Cpc.Proofs.Translation.Quantifiers
+public import Cpc.Proofs.Translation.Special
+import all Cpc.Proofs.Translation.Special
+public import Cpc.Proofs.Translation.Inversions
+import all Cpc.Proofs.Translation.Inversions
+public import Cpc.Proofs.Translation.Heads
+import all Cpc.Proofs.Translation.Heads
+public import Cpc.Proofs.Translation.EoTypeofCore
+import all Cpc.Proofs.Translation.EoTypeofCore
+public import Cpc.Proofs.TypePreservation.Full
+import all Cpc.Proofs.TypePreservation.Full
+
+public section
 
 open Eo
 open SmtEval
@@ -2323,7 +2334,7 @@ private theorem reflist_equiv_insert_same_apply
     simp [native_reflist_contains, native_reflist_insert]
   · simpa [native_reflist_contains, native_reflist_insert, hts] using h t
 
-private def smtx_type_substitute_top_apply (sub : native_String) (d0 : SmtDatatype) :
+def smtx_type_substitute_top_apply (sub : native_String) (d0 : SmtDatatype) :
     SmtType -> SmtType
   | SmtType.Datatype s2 d2 =>
       SmtType.Datatype s2

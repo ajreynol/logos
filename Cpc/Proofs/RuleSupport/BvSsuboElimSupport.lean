@@ -1,5 +1,11 @@
-import Cpc.Proofs.RuleSupport.BvSaddoElimSupport
-import Cpc.Proofs.RuleSupport.TypeInversionSupport
+module
+
+public import Cpc.Proofs.RuleSupport.BvSaddoElimSupport
+import all Cpc.Proofs.RuleSupport.BvSaddoElimSupport
+public import Cpc.Proofs.RuleSupport.TypeInversionSupport
+import all Cpc.Proofs.RuleSupport.TypeInversionSupport
+
+public section
 
 /-! Support for the `bv_ssubo_eliminate` rewrite. -/
 

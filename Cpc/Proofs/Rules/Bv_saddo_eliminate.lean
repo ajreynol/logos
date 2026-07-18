@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.BvSaddoElimSupport
+module
+
+public import Cpc.Proofs.RuleSupport.BvSaddoElimSupport
+import all Cpc.Proofs.RuleSupport.BvSaddoElimSupport
 
 open Eo
 open SmtEval
@@ -7,7 +10,7 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
-theorem cmd_step_bv_saddo_eliminate_properties
+public theorem cmd_step_bv_saddo_eliminate_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_saddo_eliminate args premises) ->

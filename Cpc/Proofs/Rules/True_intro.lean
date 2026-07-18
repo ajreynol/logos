@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.Support
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
 
 open Eo
 open SmtEval
@@ -45,7 +48,7 @@ theorem facts___eo_prog_true_intro_impl (M : SmtModel) (x1 : Term) :
         rw [hEvalX1, hTrueEval]
         exact RuleProofs.smt_value_rel_refl (SmtValue.Boolean true)
 
-theorem cmd_step_true_intro_properties
+public theorem cmd_step_true_intro_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.true_intro args premises) ->

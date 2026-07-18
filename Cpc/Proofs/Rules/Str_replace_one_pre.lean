@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.StringRewriteSupport
+module
+
+public import Cpc.Proofs.RuleSupport.StringRewriteSupport
+import all Cpc.Proofs.RuleSupport.StringRewriteSupport
 
 open Eo
 open SmtEval
@@ -422,7 +425,7 @@ private theorem type_and_facts
 
 end StrReplaceOnePreProof
 
-theorem cmd_step_str_replace_one_pre_properties
+public theorem cmd_step_str_replace_one_pre_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_replace_one_pre args premises) ->

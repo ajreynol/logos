@@ -1,12 +1,25 @@
-import Cpc.Proofs.Translation.Base
-import Cpc.Proofs.Translation.Datatypes
-import Cpc.Proofs.Translation.Inversions
-import Cpc.Proofs.Translation.SmtFreeRefs
-import Cpc.Proofs.TypePreservation.BitVecPrep
-import Cpc.Proofs.TypePreservation.Common
-import Cpc.Proofs.TypePreservation.CoreArith
-import Cpc.Proofs.TypePreservation.Datatypes
-import Cpc.Proofs.TypePreservation.SeqStringRegex
+module
+
+public import Cpc.Proofs.Translation.Base
+import all Cpc.Proofs.Translation.Base
+public import Cpc.Proofs.Translation.Datatypes
+import all Cpc.Proofs.Translation.Datatypes
+public import Cpc.Proofs.Translation.Inversions
+import all Cpc.Proofs.Translation.Inversions
+public import Cpc.Proofs.Translation.SmtFreeRefs
+import all Cpc.Proofs.Translation.SmtFreeRefs
+public import Cpc.Proofs.TypePreservation.BitVecPrep
+import all Cpc.Proofs.TypePreservation.BitVecPrep
+public import Cpc.Proofs.TypePreservation.Common
+import all Cpc.Proofs.TypePreservation.Common
+public import Cpc.Proofs.TypePreservation.CoreArith
+import all Cpc.Proofs.TypePreservation.CoreArith
+public import Cpc.Proofs.TypePreservation.Datatypes
+import all Cpc.Proofs.TypePreservation.Datatypes
+public import Cpc.Proofs.TypePreservation.SeqStringRegex
+import all Cpc.Proofs.TypePreservation.SeqStringRegex
+
+public section
 
 open Eo
 open SmtEval
@@ -1563,7 +1576,7 @@ to the eo-side validity predicates: the wf algorithm walks exactly such a pair, 
 the diagonal and self-substituting at each `Datatype` node. -/
 mutual
 
-private def smt_fold_type_rec (refs : RefList) (TF : SmtType) : Term -> Prop
+def smt_fold_type_rec (refs : RefList) (TF : SmtType) : Term -> Prop
   | Term.DatatypeType s d =>
       if __eo_reserved_datatype_name s = true then
         TF = SmtType.None
@@ -1578,7 +1591,7 @@ private def smt_fold_type_rec (refs : RefList) (TF : SmtType) : Term -> Prop
       TF = __eo_to_smt_type T ∨
         ∃ sT bT, __eo_to_smt_type T = SmtType.Datatype sT bT
 
-private def smt_fold_datatype_cons_rec
+def smt_fold_datatype_cons_rec
     (refs : RefList) (cF : SmtDatatypeCons) : DatatypeCons -> Prop
   | DatatypeCons.unit => cF = SmtDatatypeCons.unit
   | DatatypeCons.cons T c =>
@@ -1587,7 +1600,7 @@ private def smt_fold_datatype_cons_rec
         smt_fold_type_rec refs TF T ∧
         smt_fold_datatype_cons_rec refs cTailF c
 
-private def smt_fold_datatype_rec
+def smt_fold_datatype_rec
     (refs : RefList) (dF : SmtDatatype) : Datatype -> Prop
   | Datatype.null => dF = SmtDatatype.null
   | Datatype.sum c d =>

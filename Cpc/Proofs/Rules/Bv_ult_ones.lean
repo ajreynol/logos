@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.BvAllOnesCmpSupport
+module
+
+public import Cpc.Proofs.RuleSupport.BvAllOnesCmpSupport
+import all Cpc.Proofs.RuleSupport.BvAllOnesCmpSupport
 
 open Eo
 open SmtEval
@@ -71,7 +74,7 @@ private theorem eo_typeof_ne_stuck_of_translation
   rw [hNone] at hTypeMatch
   exact hTrans hTypeMatch
 
-theorem cmd_step_bv_ult_ones_properties
+public theorem cmd_step_bv_ult_ones_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_ult_ones args premises) ->

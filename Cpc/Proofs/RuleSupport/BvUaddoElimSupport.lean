@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.BvUsuboElimSupport
+module
+
+public import Cpc.Proofs.RuleSupport.BvUsuboElimSupport
+import all Cpc.Proofs.RuleSupport.BvUsuboElimSupport
+
+public section
 
 /-! Support for the `bv_uaddo_eliminate` rewrite. -/
 

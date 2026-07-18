@@ -1,4 +1,9 @@
-import Cpc.Proofs.TypePreservation.BitVecCore
+module
+
+public import Cpc.Proofs.TypePreservation.BitVecCore
+import all Cpc.Proofs.TypePreservation.BitVecCore
+
+public section
 
 open SmtEval
 open Smtm

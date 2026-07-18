@@ -1,6 +1,16 @@
-import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationTernaryIteOps
-import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationTernaryBviteOps
-import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationTernaryStoreOps
-import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationTernarySubstrOps
-import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationStringTernaryOps
-import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationRegexTernaryOps
+module
+
+public import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationTernaryIteOps
+import all Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationTernaryIteOps
+public import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationTernaryBviteOps
+import all Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationTernaryBviteOps
+public import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationTernaryStoreOps
+import all Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationTernaryStoreOps
+public import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationTernarySubstrOps
+import all Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationTernarySubstrOps
+public import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationStringTernaryOps
+import all Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationStringTernaryOps
+public import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationRegexTernaryOps
+import all Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationRegexTernaryOps
+
+public section

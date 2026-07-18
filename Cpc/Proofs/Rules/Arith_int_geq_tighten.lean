@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
 
 open Eo
 open SmtEval
@@ -356,7 +359,7 @@ private theorem facts___eo_prog_arith_int_geq_tighten_impl
       exact RuleProofs.smt_value_rel_refl
         (SmtValue.Boolean (native_zleq cci ti))
 
-theorem cmd_step_arith_int_geq_tighten_properties
+public theorem cmd_step_arith_int_geq_tighten_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.arith_int_geq_tighten args premises) ->

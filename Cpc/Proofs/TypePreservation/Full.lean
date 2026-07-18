@@ -1,9 +1,19 @@
-import Cpc.Proofs.Canonical.Ops
-import Cpc.Proofs.TypePreservation.BitVec
-import Cpc.Proofs.TypePreservation.CoreArith
-import Cpc.Proofs.TypePreservation.Datatypes
-import Cpc.Proofs.TypePreservation.Sets
-import Cpc.Proofs.TypePreservation.SeqStringRegex
+module
+
+public import Cpc.Proofs.Canonical.Ops
+import all Cpc.Proofs.Canonical.Ops
+public import Cpc.Proofs.TypePreservation.BitVec
+import all Cpc.Proofs.TypePreservation.BitVec
+public import Cpc.Proofs.TypePreservation.CoreArith
+import all Cpc.Proofs.TypePreservation.CoreArith
+public import Cpc.Proofs.TypePreservation.Datatypes
+import all Cpc.Proofs.TypePreservation.Datatypes
+public import Cpc.Proofs.TypePreservation.Sets
+import all Cpc.Proofs.TypePreservation.Sets
+public import Cpc.Proofs.TypePreservation.SeqStringRegex
+import all Cpc.Proofs.TypePreservation.SeqStringRegex
+
+public section
 
 open SmtEval
 open Smtm

@@ -1,5 +1,11 @@
-import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationShared
-import Cpc.Proofs.RuleSupport.TypedListSubstitutionSupport
+module
+
+public import Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationShared
+import all Cpc.Proofs.RuleSupport.Substitute.SubstitutePreservationShared
+public import Cpc.Proofs.RuleSupport.TypedListSubstitutionSupport
+import all Cpc.Proofs.RuleSupport.TypedListSubstitutionSupport
+
+public section
 
 open Eo
 open SmtEval

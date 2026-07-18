@@ -1,6 +1,13 @@
-import Cpc.Spec
-import Cpc.Proofs.TermCompat
-import Cpc.Logos
+module
+
+public import Cpc.Spec
+import all Cpc.Spec
+public import Cpc.Proofs.TermCompat
+import all Cpc.Proofs.TermCompat
+public import Cpc.Logos
+import all Cpc.Logos
+
+public section
 
 open Eo
 open SmtEval

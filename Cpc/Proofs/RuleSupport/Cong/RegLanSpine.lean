@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.Cong.TupleBvSeq
+module
+
+public import Cpc.Proofs.RuleSupport.Cong.TupleBvSeq
+import all Cpc.Proofs.RuleSupport.Cong.TupleBvSeq
+
+public section
 
 open Eo
 open SmtEval

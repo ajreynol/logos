@@ -1,6 +1,13 @@
-import Cpc.Proofs.RuleSupport.BvExtractRewriteSupport
-import Cpc.Proofs.RuleSupport.TypeInversionSupport
-import Cpc.Proofs.Rules.Bv_nego_eliminate
+module
+
+public import Cpc.Proofs.RuleSupport.BvExtractRewriteSupport
+import all Cpc.Proofs.RuleSupport.BvExtractRewriteSupport
+public import Cpc.Proofs.RuleSupport.TypeInversionSupport
+import all Cpc.Proofs.RuleSupport.TypeInversionSupport
+public import Cpc.Proofs.Rules.Bv_nego_eliminate
+import all Cpc.Proofs.Rules.Bv_nego_eliminate
+
+public section
 
 /-! Support for the `bv_sdiv_eliminate` rewrite. -/
 

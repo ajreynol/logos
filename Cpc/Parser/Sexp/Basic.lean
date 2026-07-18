@@ -1,3 +1,5 @@
+module
+
 /-
 Copyright (c) 2021-2022 by the authors listed in the file AUTHORS and their
 institutional affiliations. All rights reserved.
@@ -6,7 +8,9 @@ Authors: Wojciech Nawrocki
 Source: https://github.com/ufmg-smite/lean-smt/blob/main/Smt/Data/Sexp.lean
 -/
 
-import Std.Internal.Parsec.String
+public import Std.Internal.Parsec.String
+
+public section
 
 /-- The type of S-expressions. -/
 inductive Sexp where

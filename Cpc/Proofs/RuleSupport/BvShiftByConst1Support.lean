@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.BvShiftByConst2Support
+module
+
+public import Cpc.Proofs.RuleSupport.BvShiftByConst2Support
+import all Cpc.Proofs.RuleSupport.BvShiftByConst2Support
+
+public section
 
 /-! Shared support for the in-range constant `bvshl` and `bvlshr` rewrites. -/
 

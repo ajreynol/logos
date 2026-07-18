@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.DistinctTermsSupport
+module
+
+public import Cpc.Proofs.RuleSupport.DistinctTermsSupport
+import all Cpc.Proofs.RuleSupport.DistinctTermsSupport
 
 open Eo
 open SmtEval
@@ -536,7 +539,7 @@ private theorem facts___eo_prog_distinct_true_impl
   rw [hProgEq]
   exact distinct_true_sound M hM xs hFormulaBool hGuard
 
-theorem cmd_step_distinct_true_properties
+public theorem cmd_step_distinct_true_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.distinct_true args premises) ->

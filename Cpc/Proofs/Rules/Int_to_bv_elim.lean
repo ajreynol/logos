@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.Support
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
 
 open Eo
 open SmtEval
@@ -646,7 +649,7 @@ private theorem intToBvExpanded_eval_rel
   rw [hExpandedEval, hIntToBvEval]
   exact RuleProofs.smt_value_rel_refl _
 
-theorem cmd_step_int_to_bv_elim_properties
+public theorem cmd_step_int_to_bv_elim_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.int_to_bv_elim args premises) ->

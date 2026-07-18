@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.CnfSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CnfSupport
+import all Cpc.Proofs.RuleSupport.CnfSupport
 
 open Eo
 open SmtEval
@@ -121,7 +124,7 @@ private theorem facts___eo_prog_ite_then_lookahead_not_self_impl
         SmtEval.native_not, hEvalC1, __smtx_model_eval.eq_1] using
         RuleProofs.smt_value_rel_refl (SmtValue.Boolean false)
 
-theorem cmd_step_ite_then_lookahead_not_self_properties
+public theorem cmd_step_ite_then_lookahead_not_self_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.ite_then_lookahead_not_self args premises) ->

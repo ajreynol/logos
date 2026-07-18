@@ -1,6 +1,11 @@
-import Cpc.Proofs.RuleSupport.StrInReEvalSupport
-import Cpc.Proofs.RuleSupport.ReUnfoldNegSupport
-import Cpc.Proofs.Rules.String_eager_reduction
+module
+
+public import Cpc.Proofs.RuleSupport.StrInReEvalSupport
+import all Cpc.Proofs.RuleSupport.StrInReEvalSupport
+public import Cpc.Proofs.RuleSupport.ReUnfoldNegSupport
+import all Cpc.Proofs.RuleSupport.ReUnfoldNegSupport
+public import Cpc.Proofs.Rules.String_eager_reduction
+import all Cpc.Proofs.Rules.String_eager_reduction
 
 open Eo
 open SmtEval
@@ -1488,7 +1493,7 @@ private theorem re_unfold_neg_concat_fixed_nonstuck_shape
 
 end RuleProofs
 
-theorem cmd_step_re_unfold_neg_concat_fixed_properties
+public theorem cmd_step_re_unfold_neg_concat_fixed_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_unfold_neg_concat_fixed args premises) ->

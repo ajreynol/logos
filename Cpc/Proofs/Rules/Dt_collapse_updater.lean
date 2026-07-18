@@ -1,8 +1,15 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.RuleSupport.DatatypeSupport
-import Cpc.Proofs.Translation.Apply
-import Cpc.Proofs.Rules.Dt_collapse_selector
-import Cpc.Proofs.Rules.Dt_collapse_tester
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.DatatypeSupport
+import all Cpc.Proofs.RuleSupport.DatatypeSupport
+public import Cpc.Proofs.Translation.Apply
+import all Cpc.Proofs.Translation.Apply
+public import Cpc.Proofs.Rules.Dt_collapse_selector
+import all Cpc.Proofs.Rules.Dt_collapse_selector
+public import Cpc.Proofs.Rules.Dt_collapse_tester
+import all Cpc.Proofs.Rules.Dt_collapse_tester
 
 open Eo
 open SmtEval
@@ -2033,7 +2040,7 @@ private theorem facts___eo_prog_dt_collapse_updater_impl
       subst rhs
       exact False.elim (eq_rhs_stuck_not_bool _ hBool)
 
-theorem cmd_step_dt_collapse_updater_properties
+public theorem cmd_step_dt_collapse_updater_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.dt_collapse_updater args premises) ->

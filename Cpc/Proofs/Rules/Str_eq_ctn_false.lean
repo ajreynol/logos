@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.StrContainsConcatSupport
+module
+
+public import Cpc.Proofs.RuleSupport.StrContainsConcatSupport
+import all Cpc.Proofs.RuleSupport.StrContainsConcatSupport
 
 open Eo
 open SmtEval
@@ -111,7 +114,7 @@ private theorem eo_has_bool_type_eq_false
     (mkEq x y) (Term.Boolean false)
     (by rw [hInnerTy, hFalseTy]) (by rw [hInnerTy]; decide)
 
-theorem cmd_step_str_eq_ctn_false_properties
+public theorem cmd_step_str_eq_ctn_false_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_eq_ctn_false args premises) ->

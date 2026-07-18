@@ -1,10 +1,21 @@
-import Cpc.Proofs.RuleSupport.SequenceSupport
-import Cpc.Proofs.RuleSupport.StrConcatSupport
-import Cpc.Proofs.RuleSupport.StringSupport
-import Cpc.Proofs.RuleSupport.NativeSeqSupport
-import Cpc.Proofs.RuleSupport.StrInReEvalSupport
-import Cpc.Proofs.RuleSupport.DistinctTermsSupport
-import Cpc.Proofs.Translation.EoTypeof
+module
+
+public import Cpc.Proofs.RuleSupport.SequenceSupport
+import all Cpc.Proofs.RuleSupport.SequenceSupport
+public import Cpc.Proofs.RuleSupport.StrConcatSupport
+import all Cpc.Proofs.RuleSupport.StrConcatSupport
+public import Cpc.Proofs.RuleSupport.StringSupport
+import all Cpc.Proofs.RuleSupport.StringSupport
+public import Cpc.Proofs.RuleSupport.NativeSeqSupport
+import all Cpc.Proofs.RuleSupport.NativeSeqSupport
+public import Cpc.Proofs.RuleSupport.StrInReEvalSupport
+import all Cpc.Proofs.RuleSupport.StrInReEvalSupport
+public import Cpc.Proofs.RuleSupport.DistinctTermsSupport
+import all Cpc.Proofs.RuleSupport.DistinctTermsSupport
+public import Cpc.Proofs.Translation.EoTypeof
+import all Cpc.Proofs.Translation.EoTypeof
+
+public section
 
 open Eo
 open SmtEval

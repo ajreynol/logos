@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.BvSdivElimSupport
+module
+
+public import Cpc.Proofs.RuleSupport.BvSdivElimSupport
+import all Cpc.Proofs.RuleSupport.BvSdivElimSupport
+
+public section
 
 /-! Support for the `bv_srem_eliminate` rewrite. -/
 

@@ -1,6 +1,11 @@
-import Cpc.Proofs.RuleSupport.SequenceSupport
-import Cpc.Proofs.RuleSupport.StringSupport
-import Cpc.Proofs.RuleSupport.NativeSeqSupport
+module
+
+public import Cpc.Proofs.RuleSupport.SequenceSupport
+import all Cpc.Proofs.RuleSupport.SequenceSupport
+public import Cpc.Proofs.RuleSupport.StringSupport
+import all Cpc.Proofs.RuleSupport.StringSupport
+public import Cpc.Proofs.RuleSupport.NativeSeqSupport
+import all Cpc.Proofs.RuleSupport.NativeSeqSupport
 
 open Eo
 open SmtEval
@@ -2377,7 +2382,7 @@ private theorem string_eager_reduction_true
                 native_veq, native_zleq, native_or, native_and, hIdxGe]
               simpa [idxVal] using hIdxLeSeq
 
-theorem cmd_step_string_eager_reduction_properties
+public theorem cmd_step_string_eager_reduction_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.string_eager_reduction args premises) ->

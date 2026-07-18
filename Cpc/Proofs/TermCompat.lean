@@ -1,5 +1,11 @@
-import Cpc.Logos
-import Cpc.SmtModel
+module
+
+public import Cpc.Logos
+import all Cpc.Logos
+public import Cpc.SmtModel
+import all Cpc.SmtModel
+
+public section
 
 open Smtm in
 /-- `native_Teq` is reflexive; lets `simp` discharge the reflexive residual left

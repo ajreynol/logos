@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.RuleSupport.TrueElimSupport
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.TrueElimSupport
+import all Cpc.Proofs.RuleSupport.TrueElimSupport
 
 open Eo
 open SmtEval
@@ -159,7 +163,7 @@ theorem facts___eo_prog_eq_resolve_impl
   | _ =>
       simp [__eo_prog_eq_resolve] at hProg
 
-theorem cmd_step_eq_resolve_properties
+public theorem cmd_step_eq_resolve_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.eq_resolve args premises) ->

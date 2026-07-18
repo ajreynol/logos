@@ -1,6 +1,13 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.TypePreservation.Helpers
-import Cpc.Proofs.TypePreservation.SeqStringRegex
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.TypePreservation.Helpers
+import all Cpc.Proofs.TypePreservation.Helpers
+public import Cpc.Proofs.TypePreservation.SeqStringRegex
+import all Cpc.Proofs.TypePreservation.SeqStringRegex
+
+public section
 
 open Eo
 open SmtEval
@@ -425,7 +432,7 @@ theorem smt_term_result_seq_components_wf_of_non_none
       rcases seq_binop_args_of_non_none (op := SmtTerm.str_concat)
           (typeof_str_concat_eq x y) hxNN with ⟨T, hxT, hyT⟩
       have hxNN' : term_has_non_none_type x :=
-        term_has_non_none_of_type_eq hxT (by simp)
+        _root_.term_has_non_none_of_type_eq hxT (by simp)
       have hxGood := go x hxNN'
       rw [typeof_str_concat_eq x y, hxT, hyT]
       simpa [__smtx_typeof_seq_op_2, native_ite, native_Teq, hxT,
@@ -434,7 +441,7 @@ theorem smt_term_result_seq_components_wf_of_non_none
       rcases seq_arg_of_non_none (op := SmtTerm.str_rev)
           (typeof_str_rev_eq t) hxNN with ⟨T, htT⟩
       have htNN : term_has_non_none_type t :=
-        term_has_non_none_of_type_eq htT (by simp)
+        _root_.term_has_non_none_of_type_eq htT (by simp)
       have htGood := go t htNN
       rw [typeof_str_rev_eq t, htT]
       simpa [__smtx_typeof_seq_op_1, htT,
@@ -442,7 +449,7 @@ theorem smt_term_result_seq_components_wf_of_non_none
     case str_substr x y z =>
       rcases str_substr_args_of_non_none hxNN with ⟨T, hxT, hy, hz⟩
       have hxNN' : term_has_non_none_type x :=
-        term_has_non_none_of_type_eq hxT (by simp)
+        _root_.term_has_non_none_of_type_eq hxT (by simp)
       have hxGood := go x hxNN'
       rw [typeof_str_substr_eq x y z]
       simp [__smtx_typeof_str_substr, hxT, hy, hz]
@@ -451,7 +458,7 @@ theorem smt_term_result_seq_components_wf_of_non_none
       rcases seq_triop_args_of_non_none (op := SmtTerm.str_replace)
           (typeof_str_replace_eq x y z) hxNN with ⟨T, hxT, hyT, hzT⟩
       have hxNN' : term_has_non_none_type x :=
-        term_has_non_none_of_type_eq hxT (by simp)
+        _root_.term_has_non_none_of_type_eq hxT (by simp)
       have hxGood := go x hxNN'
       rw [typeof_str_replace_eq x y z, hxT, hyT, hzT]
       simpa [__smtx_typeof_seq_op_3, native_ite, native_Teq, hxT,
@@ -460,7 +467,7 @@ theorem smt_term_result_seq_components_wf_of_non_none
       rcases seq_triop_args_of_non_none (op := SmtTerm.str_replace_all)
           (typeof_str_replace_all_eq x y z) hxNN with ⟨T, hxT, hyT, hzT⟩
       have hxNN' : term_has_non_none_type x :=
-        term_has_non_none_of_type_eq hxT (by simp)
+        _root_.term_has_non_none_of_type_eq hxT (by simp)
       have hxGood := go x hxNN'
       rw [typeof_str_replace_all_eq x y z, hxT, hyT, hzT]
       simpa [__smtx_typeof_seq_op_3, native_ite, native_Teq, hxT,
@@ -468,7 +475,7 @@ theorem smt_term_result_seq_components_wf_of_non_none
     case str_at x y =>
       rcases str_at_args_of_non_none hxNN with ⟨T, hxT, hy⟩
       have hxNN' : term_has_non_none_type x :=
-        term_has_non_none_of_type_eq hxT (by simp)
+        _root_.term_has_non_none_of_type_eq hxT (by simp)
       have hxGood := go x hxNN'
       rw [typeof_str_at_eq x y]
       simp [__smtx_typeof_str_at, hxT, hy]
@@ -476,7 +483,7 @@ theorem smt_term_result_seq_components_wf_of_non_none
     case str_update x y z =>
       rcases str_update_args_of_non_none hxNN with ⟨T, hxT, hy, hzT⟩
       have hxNN' : term_has_non_none_type x :=
-        term_has_non_none_of_type_eq hxT (by simp)
+        _root_.term_has_non_none_of_type_eq hxT (by simp)
       have hxGood := go x hxNN'
       rw [typeof_str_update_eq x y z]
       simpa [__smtx_typeof_str_update, native_ite, native_Teq, hxT, hy,
@@ -528,7 +535,7 @@ theorem smt_term_result_seq_components_wf_of_non_none
     case select x y =>
       rcases select_args_of_non_none hxNN with ⟨A, B, hxMap, hyA⟩
       have hxNN' : term_has_non_none_type x :=
-        term_has_non_none_of_type_eq hxMap (by simp)
+        _root_.term_has_non_none_of_type_eq hxMap (by simp)
       have hxGood := go x hxNN'
       have hBGood : type_result_seq_components_wf B := by
         rw [hxMap] at hxGood
@@ -539,7 +546,7 @@ theorem smt_term_result_seq_components_wf_of_non_none
     case store x y z =>
       rcases store_args_of_non_none hxNN with ⟨A, B, hxMap, hyA, hzB⟩
       have hxNN' : term_has_non_none_type x :=
-        term_has_non_none_of_type_eq hxMap (by simp)
+        _root_.term_has_non_none_of_type_eq hxMap (by simp)
       have hxGood := go x hxNN'
       rw [typeof_store_eq x y z]
       simpa [__smtx_typeof_store, native_ite, native_Teq, hxMap, hyA, hzB,
@@ -548,7 +555,7 @@ theorem smt_term_result_seq_components_wf_of_non_none
       rcases map_diff_args_of_non_none hxNN with hMap | hSet
       · rcases hMap with ⟨A, B, hxMap, hyMap, hTy⟩
         have hxNN' : term_has_non_none_type x :=
-          term_has_non_none_of_type_eq hxMap (by simp)
+          _root_.term_has_non_none_of_type_eq hxMap (by simp)
         have hxGood := go x hxNN'
         have hMapWf : __smtx_type_wf (SmtType.Map A B) = true := by
           simpa [hxMap, type_result_seq_components_wf] using hxGood
@@ -557,7 +564,7 @@ theorem smt_term_result_seq_components_wf_of_non_none
           (map_type_wf_components_of_wf hMapWf).1
       · rcases hSet with ⟨A, hxSet, hySet, hTy⟩
         have hxNN' : term_has_non_none_type x :=
-          term_has_non_none_of_type_eq hxSet (by simp)
+          _root_.term_has_non_none_of_type_eq hxSet (by simp)
         have hxGood := go x hxNN'
         have hSetWf : __smtx_type_wf (SmtType.Set A) = true := by
           simpa [hxSet, type_result_seq_components_wf] using hxGood
@@ -567,7 +574,7 @@ theorem smt_term_result_seq_components_wf_of_non_none
     case ite c x y =>
       rcases ite_args_of_non_none hxNN with ⟨T, hc, hxT, hyT, hTNN⟩
       have hxNN' : term_has_non_none_type x :=
-        term_has_non_none_of_type_eq hxT hTNN
+        _root_.term_has_non_none_of_type_eq hxT hTNN
       have hxGood := go x hxNN'
       rw [typeof_ite_eq]
       simp [__smtx_typeof_ite, native_ite, native_Teq, hc, hxT, hyT]
@@ -674,7 +681,7 @@ theorem smt_term_result_seq_components_wf_of_non_none
       rcases set_binop_args_of_non_none (op := SmtTerm.set_union)
           (typeof_set_union_eq x y) hxNN with ⟨A, hxSet, hySet⟩
       have hxNN' : term_has_non_none_type x :=
-        term_has_non_none_of_type_eq hxSet (by simp)
+        _root_.term_has_non_none_of_type_eq hxSet (by simp)
       have hxGood := go x hxNN'
       rw [typeof_set_union_eq x y, hxSet, hySet]
       simp [__smtx_typeof_sets_op_2, native_ite, native_Teq]
@@ -683,7 +690,7 @@ theorem smt_term_result_seq_components_wf_of_non_none
       rcases set_binop_args_of_non_none (op := SmtTerm.set_inter)
           (typeof_set_inter_eq x y) hxNN with ⟨A, hxSet, hySet⟩
       have hxNN' : term_has_non_none_type x :=
-        term_has_non_none_of_type_eq hxSet (by simp)
+        _root_.term_has_non_none_of_type_eq hxSet (by simp)
       have hxGood := go x hxNN'
       rw [typeof_set_inter_eq x y, hxSet, hySet]
       simp [__smtx_typeof_sets_op_2, native_ite, native_Teq]
@@ -692,7 +699,7 @@ theorem smt_term_result_seq_components_wf_of_non_none
       rcases set_binop_args_of_non_none (op := SmtTerm.set_minus)
           (typeof_set_minus_eq x y) hxNN with ⟨A, hxSet, hySet⟩
       have hxNN' : term_has_non_none_type x :=
-        term_has_non_none_of_type_eq hxSet (by simp)
+        _root_.term_has_non_none_of_type_eq hxSet (by simp)
       have hxGood := go x hxNN'
       rw [typeof_set_minus_eq x y, hxSet, hySet]
       simp [__smtx_typeof_sets_op_2, native_ite, native_Teq]

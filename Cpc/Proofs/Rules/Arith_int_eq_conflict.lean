@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
 
 open Eo
 open SmtEval
@@ -225,7 +228,7 @@ private theorem facts___eo_prog_arith_int_eq_conflict_impl
       rw [RuleProofs.eo_to_smt_false_eq, __smtx_model_eval.eq_1]
       exact RuleProofs.smt_value_rel_refl (SmtValue.Boolean false)
 
-theorem cmd_step_arith_int_eq_conflict_properties
+public theorem cmd_step_arith_int_eq_conflict_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.arith_int_eq_conflict args premises) ->

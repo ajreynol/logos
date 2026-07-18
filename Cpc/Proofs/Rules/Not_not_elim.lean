@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.Support
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
 
 open Eo
 open SmtEval
@@ -136,7 +139,7 @@ theorem facts___eo_prog_not_not_elim_impl (M : SmtModel) (x1 : Term) :
   | _ =>
       simp [__eo_prog_not_not_elim] at hProg
 
-theorem cmd_step_not_not_elim_properties
+public theorem cmd_step_not_not_elim_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.not_not_elim args premises) ->

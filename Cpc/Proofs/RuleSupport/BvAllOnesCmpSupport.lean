@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.BvSaddoElimSupport
+module
+
+public import Cpc.Proofs.RuleSupport.BvSaddoElimSupport
+import all Cpc.Proofs.RuleSupport.BvSaddoElimSupport
+
+public section
 
 /-! Shared support for comparison rewrites against an all-ones bit-vector. -/
 

@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
-import Cpc.Proofs.RuleSupport.SequenceSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.RuleSupport.SequenceSupport
+import all Cpc.Proofs.RuleSupport.SequenceSupport
 
 open Eo
 open SmtEval
@@ -390,7 +394,7 @@ private theorem typeof_args_of_prog_bool
     T hOuter.2
   exact ⟨T, hOuter.1, hInner.1, hInner.2, hElim⟩
 
-theorem cmd_step_str_len_concat_rec_properties
+public theorem cmd_step_str_len_concat_rec_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_len_concat_rec args premises) ->

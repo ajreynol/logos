@@ -1,4 +1,9 @@
-import Cpc.Proofs.Canonical.TypeDefaultBasic
+module
+
+public import Cpc.Proofs.Canonical.TypeDefaultBasic
+import all Cpc.Proofs.Canonical.TypeDefaultBasic
+
+public section
 
 /-!
 # Wf-diagonalization for the infinite datatype pump

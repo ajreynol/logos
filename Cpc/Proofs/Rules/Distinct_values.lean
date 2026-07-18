@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.DistinctTermsSupport
+module
+
+public import Cpc.Proofs.RuleSupport.DistinctTermsSupport
+import all Cpc.Proofs.RuleSupport.DistinctTermsSupport
 
 open Eo
 open SmtEval
@@ -160,7 +163,7 @@ private theorem facts___eo_prog_distinct_values_of_eval_eq_false
   exact RuleProofs.eo_interprets_not_of_false M
     (Term.Apply (Term.Apply (Term.UOp UserOp.eq) a) b) hEqFalse
 
-theorem cmd_step_distinct_values_properties
+public theorem cmd_step_distinct_values_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.distinct_values args premises) ->

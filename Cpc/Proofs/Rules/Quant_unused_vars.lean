@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.Closed.ContainsAtomicTermListFree
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.Closed.ContainsAtomicTermListFree
+import all Cpc.Proofs.Closed.ContainsAtomicTermListFree
 
 open Eo
 open SmtEval
@@ -3098,7 +3102,7 @@ by
         hYSubsetXSmt hFBodyTy hYWf
     exact hNested.symm.trans hDropOuter
 
-theorem cmd_step_quant_unused_vars_properties
+public theorem cmd_step_quant_unused_vars_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.quant_unused_vars args premises) ->

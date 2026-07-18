@@ -1,11 +1,23 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.RuleSupport.CoreSupport
-import Cpc.Proofs.RuleSupport.DatatypeSupport
-import Cpc.Proofs.RuleSupport.DtConsEqSupport
-import Cpc.Proofs.RuleSupport.QdsCtor
-import Cpc.Proofs.RuleSupport.SubstituteSimulEvalSupport
-import Cpc.Proofs.RuleSupport.SubstituteTranslatabilitySupport
-import Cpc.Proofs.TypePreservation
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.RuleSupport.DatatypeSupport
+import all Cpc.Proofs.RuleSupport.DatatypeSupport
+public import Cpc.Proofs.RuleSupport.DtConsEqSupport
+import all Cpc.Proofs.RuleSupport.DtConsEqSupport
+public import Cpc.Proofs.RuleSupport.QdsCtor
+import all Cpc.Proofs.RuleSupport.QdsCtor
+public import Cpc.Proofs.RuleSupport.SubstituteSimulEvalSupport
+import all Cpc.Proofs.RuleSupport.SubstituteSimulEvalSupport
+public import Cpc.Proofs.RuleSupport.SubstituteTranslatabilitySupport
+import all Cpc.Proofs.RuleSupport.SubstituteTranslatabilitySupport
+public import Cpc.Proofs.TypePreservation
+import all Cpc.Proofs.TypePreservation
+
+public section
 
 open Eo
 open SmtEval

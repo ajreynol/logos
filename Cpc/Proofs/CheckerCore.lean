@@ -1,7 +1,15 @@
-import Cpc.Spec
-import Cpc.Logos
-import Cpc.Proofs.Assumptions
-import Cpc.Proofs.RuleSupport.Support
+module
+
+public import Cpc.Spec
+import all Cpc.Spec
+public import Cpc.Logos
+import all Cpc.Logos
+public import Cpc.Proofs.Assumptions
+import all Cpc.Proofs.Assumptions
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+
+public section
 
 open Eo
 open SmtEval

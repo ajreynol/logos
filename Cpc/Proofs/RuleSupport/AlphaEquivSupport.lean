@@ -1,5 +1,11 @@
-import Cpc.Proofs.Rules.Skolemize
-import Cpc.Proofs.RuleSupport.SubstituteSimulEvalSupport
+module
+
+public import Cpc.Proofs.Rules.Skolemize
+import all Cpc.Proofs.Rules.Skolemize
+public import Cpc.Proofs.RuleSupport.SubstituteSimulEvalSupport
+import all Cpc.Proofs.RuleSupport.SubstituteSimulEvalSupport
+
+public section
 
 open Eo
 open SmtEval

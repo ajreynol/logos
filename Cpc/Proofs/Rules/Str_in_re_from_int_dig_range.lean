@@ -1,4 +1,8 @@
-import Cpc.Proofs.RuleSupport.ReInclusionSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ReInclusionSupport
+import all Cpc.Proofs.RuleSupport.ReInclusionSupport
+import all Init.Data.Repr
 
 open Eo
 open SmtEval
@@ -429,7 +433,7 @@ private theorem facts
 
 end StrInReFromIntDigRangeProof
 
-theorem cmd_step_str_in_re_from_int_dig_range_properties
+public theorem cmd_step_str_in_re_from_int_dig_range_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_in_re_from_int_dig_range args premises) ->

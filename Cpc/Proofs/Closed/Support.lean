@@ -1,6 +1,12 @@
+module
+
 import Lean
-import Cpc.Proofs.Common
-import Cpc.Proofs.Assumptions
+public import Cpc.Proofs.Common
+import all Cpc.Proofs.Common
+public import Cpc.Proofs.Assumptions
+import all Cpc.Proofs.Assumptions
+
+public section
 
 open Eo
 open SmtEval
@@ -195,7 +201,8 @@ theorem native_eval_texists_eq_of_body_eval_eq
     (hBody : ∀ v : SmtValue,
       __smtx_model_eval (native_model_push M s T v) body =
         __smtx_model_eval (native_model_push N s T v) body) :
-  native_eval_texists M s T body = native_eval_texists N s T body :=
+  (native_eval_texists M s T body : SmtValue) =
+    (native_eval_texists N s T body : SmtValue) :=
 by
   classical
   let PM : Prop :=
@@ -229,7 +236,8 @@ theorem native_eval_tforall_eq_of_body_eval_eq
     (hBody : ∀ v : SmtValue,
       __smtx_model_eval (native_model_push M s T v) body =
         __smtx_model_eval (native_model_push N s T v) body) :
-  native_eval_tforall M s T body = native_eval_tforall N s T body :=
+  (native_eval_tforall M s T body : SmtValue) =
+    (native_eval_tforall N s T body : SmtValue) :=
 by
   classical
   let PM : Prop :=
@@ -261,7 +269,8 @@ theorem native_eval_tchoice_eq_of_body_eval_eq
     (hBody : ∀ v : SmtValue,
       __smtx_model_eval (native_model_push M s T v) body =
         __smtx_model_eval (native_model_push N s T v) body) :
-  native_eval_tchoice M s T body = native_eval_tchoice N s T body :=
+  (native_eval_tchoice M s T body : SmtValue) =
+    (native_eval_tchoice N s T body : SmtValue) :=
 by
   classical
   let PredM : SmtValue -> Prop := fun v =>

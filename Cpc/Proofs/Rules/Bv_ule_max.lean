@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.BvAllOnesCmpSupport
-import Cpc.Proofs.RuleSupport.CoreSupport
+module
+
+public import Cpc.Proofs.RuleSupport.BvAllOnesCmpSupport
+import all Cpc.Proofs.RuleSupport.BvAllOnesCmpSupport
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
 
 open Eo
 open SmtEval
@@ -97,7 +101,7 @@ private theorem bv_ule_max_bound_vars
     RuleProofs.eq_of_eo_eq_true n pn h3,
     RuleProofs.eq_of_eo_eq_true x px' h4⟩
 
-theorem cmd_step_bv_ule_max_properties
+public theorem cmd_step_bv_ule_max_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_ule_max args premises) ->

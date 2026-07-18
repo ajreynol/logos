@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.StrSubstrContainsSupport
+module
+
+public import Cpc.Proofs.RuleSupport.StrSubstrContainsSupport
+import all Cpc.Proofs.RuleSupport.StrSubstrContainsSupport
 
 open Eo
 open SmtEval
@@ -286,7 +289,7 @@ private theorem facts___eo_prog_str_substr_replace_impl
     exact RuleProofs.smt_value_rel_refl
       (__smtx_model_eval M (__eo_to_smt rhs))
 
-theorem cmd_step_str_substr_replace_properties
+public theorem cmd_step_str_substr_replace_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_substr_replace args premises) ->

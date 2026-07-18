@@ -1,8 +1,15 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.RuleSupport.SubstitutePreservationSupport
-import Cpc.Proofs.RuleSupport.SubstituteSimulEvalSupport
-import Cpc.Proofs.Closed.ContainsAtomicTermListFree
-import Cpc.Proofs.Closed.IsClosedRec
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.SubstitutePreservationSupport
+import all Cpc.Proofs.RuleSupport.SubstitutePreservationSupport
+public import Cpc.Proofs.RuleSupport.SubstituteSimulEvalSupport
+import all Cpc.Proofs.RuleSupport.SubstituteSimulEvalSupport
+public import Cpc.Proofs.Closed.ContainsAtomicTermListFree
+import all Cpc.Proofs.Closed.ContainsAtomicTermListFree
+public import Cpc.Proofs.Closed.IsClosedRec
+import all Cpc.Proofs.Closed.IsClosedRec
 
 open Eo
 open SmtEval
@@ -1657,7 +1664,7 @@ distinctness and body closedness, the skolem list is typed against the
 binders, and the soundness obligation delegates to
 `SkolemizeRule.skolemize_sound`.
 -/
-theorem cmd_step_skolemize_properties
+public theorem cmd_step_skolemize_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.skolemize args premises) ->

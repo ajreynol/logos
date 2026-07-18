@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.ArraySupport
+module
+
+public import Cpc.Proofs.RuleSupport.ArraySupport
+import all Cpc.Proofs.RuleSupport.ArraySupport
 
 open Eo
 open SmtEval
@@ -262,7 +265,7 @@ private theorem facts___eo_prog_array_store_overwrite_impl
           (__smtx_model_eval M (__eo_to_smt f1))
           hT1Can hI1Can hE1Can hF1Can)
 
-theorem cmd_step_array_store_overwrite_properties
+public theorem cmd_step_array_store_overwrite_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.array_store_overwrite args premises) ->

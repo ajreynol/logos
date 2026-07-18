@@ -1,6 +1,13 @@
-import Cpc.Proofs.RuleSupport.SetsMemberSupport
-import Cpc.Proofs.RuleSupport.ArraySupport
-import Cpc.Proofs.RuleSupport.DistinctTermsSupport
+module
+
+public import Cpc.Proofs.RuleSupport.SetsMemberSupport
+import all Cpc.Proofs.RuleSupport.SetsMemberSupport
+public import Cpc.Proofs.RuleSupport.ArraySupport
+import all Cpc.Proofs.RuleSupport.ArraySupport
+public import Cpc.Proofs.RuleSupport.DistinctTermsSupport
+import all Cpc.Proofs.RuleSupport.DistinctTermsSupport
+
+public section
 
 open Eo
 open SmtEval

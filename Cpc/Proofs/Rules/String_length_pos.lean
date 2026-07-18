@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.SequenceSupport
-import Cpc.Proofs.RuleSupport.StringSupport
+module
+
+public import Cpc.Proofs.RuleSupport.SequenceSupport
+import all Cpc.Proofs.RuleSupport.SequenceSupport
+public import Cpc.Proofs.RuleSupport.StringSupport
+import all Cpc.Proofs.RuleSupport.StringSupport
 
 open Eo
 open SmtEval
@@ -369,7 +373,7 @@ private theorem prog_string_length_pos_true
   rw [prog_string_length_pos_eq_formula x hxNonStuck hEmptyNonStuck]
   exact slpFormula_true M hM x T hxTy
 
-theorem cmd_step_string_length_pos_properties
+public theorem cmd_step_string_length_pos_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.string_length_pos args premises) ->

@@ -1,6 +1,11 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.RuleSupport.CoreSupport
-import Cpc.Proofs.Translation.Quantifiers
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
+public import Cpc.Proofs.Translation.Quantifiers
+import all Cpc.Proofs.Translation.Quantifiers
 
 open Eo
 open SmtEval
@@ -829,7 +834,7 @@ private theorem quant_var_shape_of_not_stuck
   | _ =>
       simp [__eo_prog_quant_var_reordering] at hProg
 
-theorem cmd_step_quant_var_reordering_properties
+public theorem cmd_step_quant_var_reordering_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.quant_var_reordering args premises) ->

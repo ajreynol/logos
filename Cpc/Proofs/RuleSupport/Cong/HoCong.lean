@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.Cong.ValueRel
+module
+
+public import Cpc.Proofs.RuleSupport.Cong.ValueRel
+import all Cpc.Proofs.RuleSupport.Cong.ValueRel
+
+public section
 
 open Eo
 open SmtEval
@@ -338,28 +343,24 @@ private theorem mk_ho_cong_bad_head_stuck
     __mk_ho_cong l r
         (Term.Apply (Term.Apply (Term.UOp UserOp.and) a) tail) =
       Term.Stuck := by
-  cases hEq : eqPremise? a with
-  | some xy =>
-      rcases xy with ⟨x, y⟩
-      simp [eqPremise?] at hEq
-  | none =>
-      cases a with
-      | Apply pf y =>
-          cases pf with
-          | Apply pg x =>
-              cases pg with
-              | UOp op =>
-                  cases op
-                  case eq =>
-                    simp [eqPremise?] at hEq
-                  all_goals
-                    cases l <;> cases r <;> rfl
-              | _ =>
-                  cases l <;> cases r <;> rfl
-          | _ =>
-              cases l <;> cases r <;> rfl
-      | _ =>
-          cases l <;> cases r <;> rfl
+  by_cases hl : l = Term.Stuck
+  · subst l
+    rfl
+  by_cases hr : r = Term.Stuck
+  · subst r
+    simp [__mk_ho_cong, hl]
+  cases a with
+  | Apply pf y =>
+      cases pf with
+      | Apply pg x =>
+          cases pg with
+          | UOp op =>
+              cases op
+              case eq => exact (hBad x y rfl).elim
+              all_goals simp [__mk_ho_cong, hl, hr]
+          | _ => simp [__mk_ho_cong, hl, hr]
+      | _ => simp [__mk_ho_cong, hl, hr]
+  | _ => simp [__mk_ho_cong, hl, hr]
 
 private theorem mk_ho_cong_type_spine_of_list
     (f g : Term) :

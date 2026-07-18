@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.SequenceSupport
+module
+
+public import Cpc.Proofs.RuleSupport.SequenceSupport
+import all Cpc.Proofs.RuleSupport.SequenceSupport
 
 open Eo
 open SmtEval
@@ -1312,7 +1315,7 @@ private theorem step_concat_unify_core
     exact RuleProofs.eo_has_smt_translation_of_has_bool_type
       (mkEq s1 t1) hFinalBool
 
-theorem cmd_step_concat_unify_properties
+public theorem cmd_step_concat_unify_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.concat_unify args premises) ->

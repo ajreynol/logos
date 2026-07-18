@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.StrConcatClashSupport
+module
+
+public import Cpc.Proofs.RuleSupport.StrConcatClashSupport
+import all Cpc.Proofs.RuleSupport.StrConcatClashSupport
 
 open Eo
 open SmtEval
@@ -90,7 +93,7 @@ private theorem prog_str_concat_clash_rev_info
     simpa [X, XS, Y, YS, left, right, concatClashRevConclusion] using
       raw_rev_eq_conclusion_eq left right hRawNe
 
-theorem cmd_step_str_concat_clash_rev_properties
+public theorem cmd_step_str_concat_clash_rev_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_concat_clash_rev args premises) ->

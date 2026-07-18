@@ -1,4 +1,9 @@
-import Cpc.Proofs.Translation.EoTypeofCore
+module
+
+public import Cpc.Proofs.Translation.EoTypeofCore
+import all Cpc.Proofs.Translation.EoTypeofCore
+
+public section
 
 open Eo
 open SmtEval

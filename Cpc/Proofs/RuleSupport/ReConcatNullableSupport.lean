@@ -1,5 +1,11 @@
-import Cpc.Proofs.RuleSupport.ReConcatStarSupport
-import Cpc.Proofs.RuleSupport.ReUnfoldNegSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ReConcatStarSupport
+import all Cpc.Proofs.RuleSupport.ReConcatStarSupport
+public import Cpc.Proofs.RuleSupport.ReUnfoldNegSupport
+import all Cpc.Proofs.RuleSupport.ReUnfoldNegSupport
+
+public section
 
 open Eo
 open SmtEval

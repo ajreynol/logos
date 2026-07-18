@@ -1,5 +1,9 @@
-import Cpc.Proofs.Rules.Bv_ite_equal_cond_1
-import Cpc.Proofs.RuleSupport.BvOverflowSupport
+module
+
+public import Cpc.Proofs.Rules.Bv_ite_equal_cond_1
+import all Cpc.Proofs.Rules.Bv_ite_equal_cond_1
+public import Cpc.Proofs.RuleSupport.BvOverflowSupport
+import all Cpc.Proofs.RuleSupport.BvOverflowSupport
 
 open Eo
 open SmtEval
@@ -414,7 +418,7 @@ private theorem facts___eo_prog_bv_ite_merge_else_else_impl
       hT1Trans hT2Trans hResultTy]
     exact RuleProofs.smt_value_rel_refl _
 
-theorem cmd_step_bv_ite_merge_else_else_properties
+public theorem cmd_step_bv_ite_merge_else_else_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_ite_merge_else_else args premises) ->

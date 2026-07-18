@@ -1,4 +1,8 @@
-import Cpc.Proofs.Rules.Str_in_re_from_int_dig_range
+module
+
+public import Cpc.Proofs.Rules.Str_in_re_from_int_dig_range
+import all Cpc.Proofs.Rules.Str_in_re_from_int_dig_range
+import all Init.Data.Repr
 
 open Eo
 open SmtEval
@@ -498,7 +502,7 @@ theorem facts
 
 end StrInReFromIntNempDigRangeProof
 
-theorem cmd_step_str_in_re_from_int_nemp_dig_range_properties
+public theorem cmd_step_str_in_re_from_int_nemp_dig_range_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_in_re_from_int_nemp_dig_range args premises) ->

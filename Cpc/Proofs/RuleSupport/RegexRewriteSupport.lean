@@ -1,5 +1,11 @@
-import Cpc.Proofs.RuleSupport.ReConcatNullableSupport
-import Cpc.Proofs.RuleSupport.ReInclusionSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ReConcatNullableSupport
+import all Cpc.Proofs.RuleSupport.ReConcatNullableSupport
+public import Cpc.Proofs.RuleSupport.ReInclusionSupport
+import all Cpc.Proofs.RuleSupport.ReInclusionSupport
+
+public section
 
 open Eo
 open SmtEval

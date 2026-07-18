@@ -1,4 +1,9 @@
-import Cpc.Proofs.Closed.IsClosedRec
+module
+
+public import Cpc.Proofs.Closed.IsClosedRec
+import all Cpc.Proofs.Closed.IsClosedRec
+
+public section
 
 open Eo
 open SmtEval

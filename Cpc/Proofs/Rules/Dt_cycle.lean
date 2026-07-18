@@ -1,6 +1,11 @@
-import Cpc.Proofs.RuleSupport.DtConsEqSupport
-import Cpc.Proofs.RuleSupport.SequenceSupport
-import Cpc.Proofs.Translation.Full
+module
+
+public import Cpc.Proofs.RuleSupport.DtConsEqSupport
+import all Cpc.Proofs.RuleSupport.DtConsEqSupport
+public import Cpc.Proofs.RuleSupport.SequenceSupport
+import all Cpc.Proofs.RuleSupport.SequenceSupport
+public import Cpc.Proofs.Translation.Full
+import all Cpc.Proofs.Translation.Full
 
 open Eo
 open SmtEval
@@ -1082,7 +1087,7 @@ private theorem dt_cycle_inner_eval_false
     exact smtx_model_eval_eq_false_of_proper_subterm hProper
   · exact dt_cycle_tuple_tail_path_eval_false M hM hTail hCons hBool hTTrans
 
-theorem cmd_step_dt_cycle_properties
+public theorem cmd_step_dt_cycle_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.dt_cycle args premises) ->

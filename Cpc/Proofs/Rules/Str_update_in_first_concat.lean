@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.StrConcatUnifySupport
-import Cpc.Proofs.RuleSupport.StrSubstrContainsSupport
+module
+
+public import Cpc.Proofs.RuleSupport.StrConcatUnifySupport
+import all Cpc.Proofs.RuleSupport.StrConcatUnifySupport
+public import Cpc.Proofs.RuleSupport.StrSubstrContainsSupport
+import all Cpc.Proofs.RuleSupport.StrSubstrContainsSupport
 
 open Eo
 open SmtEval
@@ -554,7 +558,7 @@ private theorem facts___eo_prog_str_update_in_first_concat_impl
     exact RuleProofs.smt_value_rel_refl
       (__smtx_model_eval M (__eo_to_smt rhs))
 
-theorem cmd_step_str_update_in_first_concat_properties
+public theorem cmd_step_str_update_in_first_concat_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_update_in_first_concat args premises) ->

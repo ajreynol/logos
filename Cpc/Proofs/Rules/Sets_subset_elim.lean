@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.SetsBasicRewritesSupport
+module
+
+public import Cpc.Proofs.RuleSupport.SetsBasicRewritesSupport
+import all Cpc.Proofs.RuleSupport.SetsBasicRewritesSupport
 
 open Eo
 open SmtEval
@@ -266,7 +269,7 @@ private theorem facts___eo_prog_sets_subset_elim_impl
   simpa [setsSubsetElimFormula, lhs, rhs] using
     RuleProofs.eo_interprets_eq_of_rel M lhs rhs hEqBool hRel
 
-theorem cmd_step_sets_subset_elim_properties
+public theorem cmd_step_sets_subset_elim_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.sets_subset_elim args premises) ->

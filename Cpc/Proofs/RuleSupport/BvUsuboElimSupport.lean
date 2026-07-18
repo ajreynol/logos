@@ -1,6 +1,13 @@
-import Cpc.Proofs.RuleSupport.BvOverflowSupport
-import Cpc.Proofs.RuleSupport.BvSdivElimSupport
-import Cpc.Proofs.RuleSupport.TypeInversionSupport
+module
+
+public import Cpc.Proofs.RuleSupport.BvOverflowSupport
+import all Cpc.Proofs.RuleSupport.BvOverflowSupport
+public import Cpc.Proofs.RuleSupport.BvSdivElimSupport
+import all Cpc.Proofs.RuleSupport.BvSdivElimSupport
+public import Cpc.Proofs.RuleSupport.TypeInversionSupport
+import all Cpc.Proofs.RuleSupport.TypeInversionSupport
+
+public section
 
 /-! Support for the `bv_usubo_eliminate` rewrite. -/
 

@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.Canonical.Maps
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.Canonical.Maps
+import all Cpc.Proofs.Canonical.Maps
 
 open Eo
 open SmtEval
@@ -564,7 +568,7 @@ private theorem facts___eo_prog_arrays_read_over_write_contra_impl
       rw [hEq]
       exact RuleProofs.smt_value_rel_refl (__smtx_model_eval M (__eo_to_smt j))
 
-theorem cmd_step_arrays_read_over_write_contra_properties
+public theorem cmd_step_arrays_read_over_write_contra_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.arrays_read_over_write_contra args premises) ->

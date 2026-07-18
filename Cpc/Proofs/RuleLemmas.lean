@@ -1,5 +1,8 @@
-import Cpc.Proofs.CheckerCore
-import Cpc.Proofs.RuleSupport.Support
+module
+
+public import Cpc.Proofs.CheckerCore
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Logos
 import Cpc.Proofs.Rules.Scope
 import Cpc.Proofs.Rules.Process_scope
 import Cpc.Proofs.Rules.Ite_eq
@@ -591,6 +594,8 @@ import Cpc.Proofs.Rules.Distinct_values
 import Cpc.Proofs.Rules.Aci_norm
 import Cpc.Proofs.Rules.Absorb
 import Cpc.Proofs.Rules.Distinct_card_conflict
+
+public section
 
 
 open Eo

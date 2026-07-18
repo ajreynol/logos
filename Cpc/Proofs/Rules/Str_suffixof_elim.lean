@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
 
 open Eo
 open SmtEval
@@ -219,7 +222,7 @@ private theorem facts___eo_prog_str_suffixof_elim_impl
     rw [hEvalEq]
     exact RuleProofs.smt_value_rel_refl (__smtx_model_eval M (__eo_to_smt rhs))
 
-theorem cmd_step_str_suffixof_elim_properties
+public theorem cmd_step_str_suffixof_elim_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_suffixof_elim args premises) ->

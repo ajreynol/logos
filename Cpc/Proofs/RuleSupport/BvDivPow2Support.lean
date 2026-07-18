@@ -1,7 +1,15 @@
-import Cpc.Proofs.RuleSupport.BvAllOnesCmpSupport
-import Cpc.Proofs.RuleSupport.BvExtractRewriteSupport
-import Cpc.Proofs.RuleSupport.BvSdivElimSupport
-import Cpc.Proofs.RuleSupport.Cong.Core
+module
+
+public import Cpc.Proofs.RuleSupport.BvAllOnesCmpSupport
+import all Cpc.Proofs.RuleSupport.BvAllOnesCmpSupport
+public import Cpc.Proofs.RuleSupport.BvExtractRewriteSupport
+import all Cpc.Proofs.RuleSupport.BvExtractRewriteSupport
+public import Cpc.Proofs.RuleSupport.BvSdivElimSupport
+import all Cpc.Proofs.RuleSupport.BvSdivElimSupport
+public import Cpc.Proofs.RuleSupport.Cong.Core
+import all Cpc.Proofs.RuleSupport.Cong.Core
+
+public section
 
 /-! Support for the unsigned division/remainder by a nontrivial power of two. -/
 

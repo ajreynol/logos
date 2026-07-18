@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.Support
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
 
 open Eo
 open SmtEval
@@ -75,7 +78,7 @@ private theorem facts___eo_prog_eq_refl_impl
   exact eo_interprets_eq_true_of_true M (Term.Apply (Term.Apply Term.eq t1) t1)
     hInnerTrue
 
-theorem cmd_step_eq_refl_properties
+public theorem cmd_step_eq_refl_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.eq_refl args premises) ->

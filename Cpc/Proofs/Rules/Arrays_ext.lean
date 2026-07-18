@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.ArraySupport
-import Cpc.Proofs.RuleSupport.SequenceSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ArraySupport
+import all Cpc.Proofs.RuleSupport.ArraySupport
+public import Cpc.Proofs.RuleSupport.SequenceSupport
+import all Cpc.Proofs.RuleSupport.SequenceSupport
 
 open Eo
 open SmtEval
@@ -347,7 +351,7 @@ private theorem facts___eo_prog_arrays_ext_impl
     RuleProofs.eo_interprets_not_of_false M _ hEqFalse
   simpa [__eo_prog_arrays_ext, idx, lhs, rhs] using hNotTrue
 
-theorem cmd_step_arrays_ext_properties
+public theorem cmd_step_arrays_ext_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.arrays_ext args premises) ->

@@ -1,8 +1,17 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.RuleSupport.SubstitutePreservationSupport
-import Cpc.Proofs.Canonical
-import Cpc.Proofs.Closed.ContainsAtomicTermListFree
-import Cpc.Proofs.Closed.Substitute
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.RuleSupport.SubstitutePreservationSupport
+import all Cpc.Proofs.RuleSupport.SubstitutePreservationSupport
+public import Cpc.Proofs.Canonical
+import all Cpc.Proofs.Canonical
+public import Cpc.Proofs.Closed.ContainsAtomicTermListFree
+import all Cpc.Proofs.Closed.ContainsAtomicTermListFree
+public import Cpc.Proofs.Closed.Substitute
+import all Cpc.Proofs.Closed.Substitute
+
+public section
 
 open Eo
 open SmtEval

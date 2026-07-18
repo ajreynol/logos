@@ -1,4 +1,9 @@
-import Cpc.Proofs.RuleSupport.BvAllOnesCmpSupport
+module
+
+public import Cpc.Proofs.RuleSupport.BvAllOnesCmpSupport
+import all Cpc.Proofs.RuleSupport.BvAllOnesCmpSupport
+
+public section
 
 /-! Shared support for the out-of-range constant `bvshl` and `bvlshr` rewrites. -/
 

@@ -1,5 +1,10 @@
+module
+
 import Lean
-import Cpc.Proofs.TypePreservation.Model
+public import Cpc.Proofs.TypePreservation.Model
+import all Cpc.Proofs.TypePreservation.Model
+
+public section
 
 open SmtEval
 open Smtm

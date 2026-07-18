@@ -1,6 +1,11 @@
-import Cpc.Proofs.RuleSupport.SequenceSupport
-import Cpc.Proofs.Translation.EoTypeofCore
-import Cpc.Proofs.Translation.Full
+module
+
+public import Cpc.Proofs.RuleSupport.SequenceSupport
+import all Cpc.Proofs.RuleSupport.SequenceSupport
+public import Cpc.Proofs.Translation.EoTypeofCore
+import all Cpc.Proofs.Translation.EoTypeofCore
+public import Cpc.Proofs.Translation.Full
+import all Cpc.Proofs.Translation.Full
 
 open Eo
 open SmtEval
@@ -5558,7 +5563,7 @@ private theorem facts___eo_prog_dt_collapse_selector_impl
   | _ =>
       exact dt_collapse_selector_sound M hM _ _ _ hBool hGuard
 
-theorem cmd_step_dt_collapse_selector_properties
+public theorem cmd_step_dt_collapse_selector_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.dt_collapse_selector args premises) ->

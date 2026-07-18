@@ -1,5 +1,11 @@
-import Cpc.Proofs.RuleSupport.StrOverlapSupport
-import Cpc.Proofs.RuleSupport.SetsEvalOpSupport
+module
+
+public import Cpc.Proofs.RuleSupport.StrOverlapSupport
+import all Cpc.Proofs.RuleSupport.StrOverlapSupport
+public import Cpc.Proofs.RuleSupport.SetsEvalOpSupport
+import all Cpc.Proofs.RuleSupport.SetsEvalOpSupport
+
+public section
 
 open Eo
 open SmtEval

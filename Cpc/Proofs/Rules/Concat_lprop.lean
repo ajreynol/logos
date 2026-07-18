@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.ConcatSplitSupport
+module
+
+public import Cpc.Proofs.RuleSupport.ConcatSplitSupport
+import all Cpc.Proofs.RuleSupport.ConcatSplitSupport
 
 open Eo
 open SmtEval
@@ -1241,7 +1244,7 @@ by
           change Term.Stuck ≠ Term.Stuck at hProg
           exact False.elim (hProg rfl)
 
-theorem cmd_step_concat_lprop_properties
+public theorem cmd_step_concat_lprop_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.concat_lprop args premises) ->

@@ -1,5 +1,11 @@
-import Cpc.Parser.Sexp
-import Cpc.Logos
+module
+
+public import Cpc.Parser.Sexp
+import all Cpc.Parser.Sexp
+public import Cpc.Logos
+import all Cpc.Logos
+
+public section
 
 namespace Eo
 

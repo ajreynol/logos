@@ -1,5 +1,11 @@
-import Cpc.Proofs.RuleSupport.BvAllOnesCmpSupport
-import Cpc.Proofs.RuleSupport.BvExtractSignExtendSupport
+module
+
+public import Cpc.Proofs.RuleSupport.BvAllOnesCmpSupport
+import all Cpc.Proofs.RuleSupport.BvAllOnesCmpSupport
+public import Cpc.Proofs.RuleSupport.BvExtractSignExtendSupport
+import all Cpc.Proofs.RuleSupport.BvExtractSignExtendSupport
+
+public section
 
 /-! Shared support for the `bv_zero_extend_{ult,eq}_const` rewrites. -/
 

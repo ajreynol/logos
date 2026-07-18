@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.Support
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
 
 open Eo
 open SmtEval
@@ -1092,7 +1095,7 @@ private theorem facts___eo_prog_bv_poly_norm_eq_impl
       | _ => exact False.elim (hProg (by rfl))
   | _ => exact False.elim (hProg (by rfl))
 
-theorem cmd_step_bv_poly_norm_eq_properties
+public theorem cmd_step_bv_poly_norm_eq_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_poly_norm_eq args premises) ->

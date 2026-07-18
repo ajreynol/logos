@@ -1,4 +1,7 @@
-import Cpc.Proofs.RuleSupport.CoreSupport
+module
+
+public import Cpc.Proofs.RuleSupport.CoreSupport
+import all Cpc.Proofs.RuleSupport.CoreSupport
 
 open Eo
 open SmtEval
@@ -224,7 +227,7 @@ private theorem facts___eo_prog_arith_int_div_total_impl
       exact RuleProofs.smt_value_rel_refl
         (SmtValue.Numeral (native_div_total ti si))
 
-theorem cmd_step_arith_int_div_total_properties
+public theorem cmd_step_arith_int_div_total_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.arith_int_div_total args premises) ->

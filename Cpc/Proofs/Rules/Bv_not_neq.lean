@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.TypePreservation.BitVecCmp
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.TypePreservation.BitVecCmp
+import all Cpc.Proofs.TypePreservation.BitVecCmp
 
 open Eo
 open SmtEval
@@ -447,7 +451,7 @@ private theorem facts_bv_not_neq_term
     rw [smtx_eval_boolean_term_eq]
     exact RuleProofs.smt_value_rel_refl _
 
-theorem cmd_step_bv_not_neq_properties
+public theorem cmd_step_bv_not_neq_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_not_neq args premises) ->

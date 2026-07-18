@@ -1,5 +1,9 @@
-import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.TypePreservation.BitVecCmp
+module
+
+public import Cpc.Proofs.RuleSupport.Support
+import all Cpc.Proofs.RuleSupport.Support
+public import Cpc.Proofs.TypePreservation.BitVecCmp
+import all Cpc.Proofs.TypePreservation.BitVecCmp
 
 open Eo
 open SmtEval
@@ -304,7 +308,7 @@ private theorem facts___eo_prog_bv_zero_ule_impl
     rw [eval_bvule_zero_true M hM x1 w hX1Trans (by simpa using hResultTy), hTrueEval]
     exact RuleProofs.smt_value_rel_refl (SmtValue.Boolean true)
 
-theorem cmd_step_bv_zero_ule_properties
+public theorem cmd_step_bv_zero_ule_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_zero_ule args premises) ->
