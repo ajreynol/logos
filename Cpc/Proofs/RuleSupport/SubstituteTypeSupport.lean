@@ -385,8 +385,6 @@ theorem eo_to_smt_apply_apply_uop_generic_of_not_smt_binop
     (hDivisible : op ≠ UserOp.divisible)
     (hDivTotal : op ≠ UserOp.div_total)
     (hModTotal : op ≠ UserOp.mod_total)
-    (hMultmultTotal : op ≠ UserOp.multmult_total)
-    (hMultmult : op ≠ UserOp.multmult)
     (hQdivTotal : op ≠ UserOp.qdiv_total)
     (hQdiv : op ≠ UserOp.qdiv)
     (hConcat : op ≠ UserOp.concat)
@@ -480,8 +478,6 @@ theorem eo_to_smt_apply_apply_uop_generic_of_not_smt_binop
     | exact hDivisible rfl
     | exact hDivTotal rfl
     | exact hModTotal rfl
-    | exact hMultmultTotal rfl
-    | exact hMultmult rfl
     | exact hQdivTotal rfl
     | exact hQdiv rfl
     | exact hConcat rfl

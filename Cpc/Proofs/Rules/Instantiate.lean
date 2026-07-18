@@ -67,10 +67,10 @@ Status (2026-06-29):
   * main theorem `hWf`        — PROVEN (premise is Bool-typed ⇒ translatable).
   * `substFalse_eval_gen_lt`  — general substitution-eval induction. PROVEN:
     variable / atom / `Stuck`; 9 unary heads (not, to_real, to_int, is_int, abs,
-    uneg, int_pow2, int_log2, purify) via `substFalse_eval_unary_op`; 20 binary
+    uneg, int_pow2, int_log2, purify) via `substFalse_eval_unary_op`; 18 binary
     heads (and, or, imp, xor, eq, plus, neg, mult, lt, leq, gt, geq, div, mod,
-    multmult, select, divisible, div_total, mod_total, multmult_total) via
-    `substFalse_eval_binary_op` — div/mod/multmult use a `SubstFalseRel.globals`-
+    select, divisible, div_total, mod_total) via
+    `substFalse_eval_binary_op` — div/mod use a `SubstFalseRel.globals`-
     aware congruence (their eval reads `native_div_by_zero_id` from the model).
     The special-head, generic application, and binder/quantifier cases are now
     proved. The quant case reduces, via

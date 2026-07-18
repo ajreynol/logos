@@ -27,11 +27,9 @@ def applyApplyUOpNeedsSpecialTranslation : UserOp -> Prop
   | UserOp.geq => True
   | UserOp.div => True
   | UserOp.mod => True
-  | UserOp.multmult => True
   | UserOp.divisible => True
   | UserOp.div_total => True
   | UserOp.mod_total => True
-  | UserOp.multmult_total => True
   | UserOp.select => True
   | UserOp._at_array_deq_diff => True
   | UserOp.concat => True
@@ -133,11 +131,9 @@ structure ApplyApplyUOpBranchExclusions (g : Term) : Prop where
   notGeq : g ≠ Term.UOp UserOp.geq
   notDiv : g ≠ Term.UOp UserOp.div
   notMod : g ≠ Term.UOp UserOp.mod
-  notMultmult : g ≠ Term.UOp UserOp.multmult
   notDivisible : g ≠ Term.UOp UserOp.divisible
   notDivTotal : g ≠ Term.UOp UserOp.div_total
   notModTotal : g ≠ Term.UOp UserOp.mod_total
-  notMultmultTotal : g ≠ Term.UOp UserOp.multmult_total
   notSelect : g ≠ Term.UOp UserOp.select
   notArrayDeqDiff : g ≠ Term.UOp UserOp._at_array_deq_diff
   notConcat : g ≠ Term.UOp UserOp.concat
@@ -277,8 +273,8 @@ theorem eo_to_smt_apply_apply_generic_of_branch_exclusions
         subst g
         rcases hUOp with
           ⟨hOr, hAnd, hImp, hXor, hEqOp, hPlus, hNeg, hMult, hLt, hLeq,
-            hGt, hGeq, hDiv, hMod, hMultmult, hDivisible, hDivTotal,
-            hModTotal, hMultmultTotal, hSelect, hArrayDeqDiff, hConcat,
+            hGt, hGeq, hDiv, hMod, hDivisible, hDivTotal, hModTotal, hSelect,
+            hArrayDeqDiff, hConcat,
             hBvand, hBvor, hBvnand, hBvnor, hBvxor, hBvxnor, hBvcomp,
             hBvadd, hBvmul, hBvudiv, hBvurem, hBvsub, hBvsdiv, hBvsrem,
             hBvsmod, hBvult, hBvule, hBvugt, hBvuge, hBvslt, hBvsle,

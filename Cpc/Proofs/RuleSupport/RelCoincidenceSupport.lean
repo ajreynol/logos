@@ -1284,8 +1284,6 @@ private theorem typeof_cleanOrNone :
       cleanOrNone_apply _ (typeof_cleanOrNone (SmtTerm.div a b))
   | SmtTerm.Apply (SmtTerm.mod a b) x1 =>
       cleanOrNone_apply _ (typeof_cleanOrNone (SmtTerm.mod a b))
-  | SmtTerm.Apply (SmtTerm.multmult a b) x1 =>
-      cleanOrNone_apply _ (typeof_cleanOrNone (SmtTerm.multmult a b))
   | SmtTerm.Apply (SmtTerm.divisible a b) x1 =>
       cleanOrNone_apply _ (typeof_cleanOrNone (SmtTerm.divisible a b))
   | SmtTerm.Apply (SmtTerm.int_pow2 a) x1 =>
@@ -1296,8 +1294,6 @@ private theorem typeof_cleanOrNone :
       cleanOrNone_apply _ (typeof_cleanOrNone (SmtTerm.div_total a b))
   | SmtTerm.Apply (SmtTerm.mod_total a b) x1 =>
       cleanOrNone_apply _ (typeof_cleanOrNone (SmtTerm.mod_total a b))
-  | SmtTerm.Apply (SmtTerm.multmult_total a b) x1 =>
-      cleanOrNone_apply _ (typeof_cleanOrNone (SmtTerm.multmult_total a b))
   | SmtTerm.Apply (SmtTerm.select a b) x1 =>
       cleanOrNone_apply _ (typeof_cleanOrNone (SmtTerm.select a b))
   | SmtTerm.Apply (SmtTerm.store a b c) x1 =>
@@ -1551,8 +1547,6 @@ private theorem typeof_cleanOrNone :
       cleanOrNone_guard' (cleanOrNone_guard' (Or.inr True.intro))
   | SmtTerm.mod a b =>
       cleanOrNone_guard' (cleanOrNone_guard' (Or.inr True.intro))
-  | SmtTerm.multmult a b =>
-      cleanOrNone_guard' (cleanOrNone_guard' (Or.inr True.intro))
   | SmtTerm.divisible a b =>
       cleanOrNone_guard' (cleanOrNone_guard' (Or.inr True.intro))
   | SmtTerm.int_pow2 a => cleanOrNone_guard' (Or.inr True.intro)
@@ -1560,8 +1554,6 @@ private theorem typeof_cleanOrNone :
   | SmtTerm.div_total a b =>
       cleanOrNone_guard' (cleanOrNone_guard' (Or.inr True.intro))
   | SmtTerm.mod_total a b =>
-      cleanOrNone_guard' (cleanOrNone_guard' (Or.inr True.intro))
-  | SmtTerm.multmult_total a b =>
       cleanOrNone_guard' (cleanOrNone_guard' (Or.inr True.intro))
   | SmtTerm.select a b => cleanOrNone_select _ (typeof_cleanOrNone a)
   | SmtTerm.store a b c => cleanOrNone_store _ _ (typeof_cleanOrNone a)
@@ -2194,13 +2186,6 @@ theorem smt_model_eval_rel_of_var_rel_lt
         simp only [__smtx_model_eval]
         rw [e1, e2]
         exact RuleProofs.smt_value_rel_refl _
-      case multmult_total x1 x2 =>
-        have hA := guard2_args hTy
-        have e1 := ihEq x1 (by simp; omega) (tnn_of_typeof_eq hA.1 (by simp)) (by rw [hA.1]; simp)
-        have e2 := ihEq x2 (by simp; omega) (tnn_of_typeof_eq hA.2 (by simp)) (by rw [hA.2]; simp)
-        simp only [__smtx_model_eval]
-        rw [e1, e2]
-        exact RuleProofs.smt_value_rel_refl _
       case str_lt x1 x2 =>
         have hA := guard2_args hTy
         have e1 := ihEq x1 (by simp; omega) (tnn_of_typeof_eq hA.1 (by simp)) (by rw [hA.1]; simp)
@@ -2705,15 +2690,6 @@ theorem smt_model_eval_rel_of_var_rel_lt
         rw [e1, e2, hGlobals.1, smtx_model_eval_apply_eq_of_globals hGlobals]
         exact RuleProofs.smt_value_rel_refl _
       case mod x1 x2 =>
-        have hA := guard2_args hTy
-        have e1 := ihEq x1 (by simp; omega)
-          (tnn_of_typeof_eq hA.1 (by simp)) (by rw [hA.1]; simp)
-        have e2 := ihEq x2 (by simp; omega)
-          (tnn_of_typeof_eq hA.2 (by simp)) (by rw [hA.2]; simp)
-        simp only [__smtx_model_eval]
-        rw [e1, e2, hGlobals.1, smtx_model_eval_apply_eq_of_globals hGlobals]
-        exact RuleProofs.smt_value_rel_refl _
-      case multmult x1 x2 =>
         have hA := guard2_args hTy
         have e1 := ihEq x1 (by simp; omega)
           (tnn_of_typeof_eq hA.1 (by simp)) (by rw [hA.1]; simp)
