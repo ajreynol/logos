@@ -2418,7 +2418,7 @@ theorem facts_bv_extract_concat1_program_body
   have hEvalEq :=
     eval_bv_extract_concat1_whole_low M hM x y xs
       (native_int_to_nat wRhs) wy wxs h l hXsList hXSmtTy
-      hYTy hXsTy hl0 hBoundNat hd0
+      hYTy hXsTy hl0 hBoundNat (native_zleq_of_zlt_true _ _ hd0)
   have hBool :=
     typed_bv_extract_concat1_program_body x xs y
       (Term.Numeral l) (Term.Numeral h)
@@ -2502,7 +2502,7 @@ theorem facts_bv_extract_concat4_program_body
       hXTy hYTy hXsTy (by simpa using hPremTrue)
   have hLowExtract :=
     eval_bv_extract_concat_low M hM x tail wx (wxs + wy) h l
-      hXTy hTailTy hl0 hTailBound hd0
+      hXTy hTailTy hl0 hTailBound (native_zleq_of_zlt_true _ _ hd0)
   have hTailElimRel :=
     bvConcatSingletonElimEvalRel M hM tail (wxs + wy)
       hTailList hTailTy

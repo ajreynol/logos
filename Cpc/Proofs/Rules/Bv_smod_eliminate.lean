@@ -321,7 +321,7 @@ private theorem typeof_extract_diag_numeral (wmv w : native_Int) :
   simp only [__eo_mk_apply, __eo_requires, __eo_gt, __eo_add, __eo_neg,
     native_ite, native_teq, native_not, SmtEval.native_not]
   have hLenPos :
-      native_zlt (-1 : native_Int)
+      native_zlt 0
           (native_zplus (native_zplus wmv (native_zneg wmv)) 1) = true := by
     have hLen :
         native_zplus (native_zplus wmv (native_zneg wmv)) 1 = 1 := by
@@ -1224,10 +1224,10 @@ private theorem smt_typeof_extract_diag
       _ = 1 := by
         rw [Int.add_right_neg]
         rfl
-  have hOneNonneg : native_zleq 0 (1 : native_Int) = true := by
-    simp [SmtEval.native_zleq]
+  have hOnePos : native_zlt 0 (1 : native_Int) = true := by
+    simp [SmtEval.native_zlt]
   simp [__smtx_typeof_extract, hZTy, hWmNonneg, hWmHi, hWidth,
-    hLen, hOneNonneg, native_ite]
+    hLen, hOnePos, native_ite]
 
 private theorem bitvec_eval_payload_with_width
     (M : SmtModel) (hM : model_total_typed M) (t : Term) (n : native_Int) :

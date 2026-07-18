@@ -318,7 +318,7 @@ private theorem eo_typeof_extract_of_context
         Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w) ->
     native_zleq 0 l = true ->
     native_zlt h w = true ->
-    native_zleq 0
+    native_zlt 0
         (native_zplus (native_zplus h 1) (native_zneg l)) = true ->
     __eo_typeof
         (bvExtractTerm x (Term.Numeral h) (Term.Numeral l)) =
@@ -330,7 +330,7 @@ private theorem eo_typeof_extract_of_context
     simpa [SmtEval.native_zleq] using hl0
   have hd : (0 : Int) ≤
       native_zplus (native_zplus h 1) (native_zneg l) := by
-    simpa [SmtEval.native_zleq] using hd0
+    simpa [SmtEval.native_zleq] using native_zleq_of_zlt_true _ _ hd0
   have hlNeg : native_zlt (-1 : native_Int) l = true := by
     have : (-1 : Int) < l := by omega
     simpa [SmtEval.native_zlt] using this
@@ -350,6 +350,11 @@ private theorem eo_typeof_extract_of_context
         (native_zplus (native_zplus h (native_zneg l)) 1) = true := by
     rw [hWidth]
     exact hdNeg
+  have hdPosRaw :
+      native_zlt 0
+        (native_zplus (native_zplus h (native_zneg l)) 1) = true := by
+    rw [hWidth]
+    exact hd0
   have hLoGuard :
       __eo_gt (Term.Numeral l) (Term.Numeral (-1 : native_Int)) =
         Term.Boolean true := by
@@ -361,8 +366,8 @@ private theorem eo_typeof_extract_of_context
       __eo_gt
           (Term.Numeral
             (native_zplus (native_zplus h (native_zneg l)) 1))
-          (Term.Numeral (-1 : native_Int)) = Term.Boolean true := by
-    simp [__eo_gt, hdNegRaw]
+          (Term.Numeral 0) = Term.Boolean true := by
+    simp [__eo_gt, hdPosRaw]
   change __eo_typeof_extract (Term.UOp UserOp.Int) (Term.Numeral h)
       (Term.UOp UserOp.Int) (Term.Numeral l) (__eo_typeof x) = _
   rw [hXTy]
@@ -371,9 +376,9 @@ private theorem eo_typeof_extract_of_context
     hdNeg, native_ite, native_teq, native_not, SmtEval.native_zplus,
     SmtEval.native_zneg, hWidth, hdNegRaw]
   have hRaw : h + -l + 1 = h + 1 + -l := by ac_rfl
-  have hRawGuard : native_zlt (-1 : native_Int) (h + -l + 1) = true := by
+  have hRawGuard : native_zlt 0 (h + -l + 1) = true := by
     rw [hRaw]
-    exact hdNeg
+    exact hd0
   rw [hRawGuard]
   simp [hRaw]
 
@@ -388,8 +393,8 @@ theorem bv_rotate_decomp_context
       native_zleq 0 i = true ∧ native_zleq 0 w = true ∧
       native_zleq 0 c = true ∧
       native_zlt a w = true ∧ native_zlt b w = true ∧
-      native_zleq 0 (native_zplus a 1) = true ∧
-      native_zleq 0
+      native_zlt 0 (native_zplus a 1) = true ∧
+      native_zlt 0
         (native_zplus (native_zplus b 1) (native_zneg c)) = true ∧
       native_zplus (native_zplus a 1)
           (native_zplus (native_zplus b 1) (native_zneg c)) = w ∧
@@ -520,7 +525,7 @@ theorem bv_rotate_decomp_context
       Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w) at hRhsTy'
     injection hRhsTy' with _ hNum
     injection hNum
-  have hD10' : native_zleq 0 (native_zplus a 1) = true := by
+  have hD10' : native_zlt 0 (native_zplus a 1) = true := by
     simpa [SmtEval.native_zplus, SmtEval.native_zneg] using hD10
   exact ⟨i, w, a, b, c, hAmount, rfl, rfl, rfl, hi0, hw0,
     hc0, haw, hbw, hD10', hD20, hWidthEq, hXTy, hXSmtTy⟩
@@ -562,8 +567,8 @@ theorem typed_bv_rotate_decomp_term
     simpa [d1, SmtEval.native_zplus, SmtEval.native_zneg] using
       (smt_typeof_extract_of_context x w a 0 hXSmtTy hw0 hZero0 haw
         (by
-          change native_zleq 0 (a + 1 + -0) = true
-          change native_zleq 0 (a + 1) = true at hD10
+          change native_zlt 0 (a + 1 + -0) = true
+          change native_zlt 0 (a + 1) = true at hD10
           simpa using hD10))
   have hExt2Ty :
       __smtx_typeof
@@ -576,7 +581,8 @@ theorem typed_bv_rotate_decomp_term
       __smtx_typeof (__eo_to_smt (Term.Binary 0 0)) = SmtType.BitVec 0 := by
     rfl
   have hD2Round : native_nat_to_int (native_int_to_nat d2) = d2 :=
-    native_int_to_nat_roundtrip d2 (by simpa [d2] using hD20)
+    native_int_to_nat_roundtrip d2
+      (native_zleq_of_zlt_true _ _ (by simpa [d2] using hD20))
   have hInnerTy :
       __smtx_typeof
           (__eo_to_smt
@@ -596,13 +602,16 @@ theorem typed_bv_rotate_decomp_term
     simp [SmtEval.native_zplus, native_nat_to_int,
       SmtEval.native_nat_to_int]
   have hd1 : (0 : Int) ≤ d1 := by
-    simpa [d1, SmtEval.native_zleq] using hD10
+    simpa [d1, SmtEval.native_zleq] using
+      native_zleq_of_zlt_true _ _ hD10
   have hd2 : (0 : Int) ≤ d2 := by
-    simpa [d2, SmtEval.native_zleq] using hD20
+    simpa [d2, SmtEval.native_zleq] using
+      native_zleq_of_zlt_true _ _ hD20
   have hw : (0 : Int) ≤ w := by
     simpa [SmtEval.native_zleq] using hw0
   have hD1Round : native_nat_to_int (native_int_to_nat d1) = d1 :=
-    native_int_to_nat_roundtrip d1 (by simpa [d1] using hD10)
+    native_int_to_nat_roundtrip d1
+      (native_zleq_of_zlt_true _ _ (by simpa [d1] using hD10))
   have hRhsTy :
       __smtx_typeof
           (__eo_to_smt
