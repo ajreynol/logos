@@ -436,6 +436,7 @@ private theorem typeof_extract_diag_numeral (wmv w : native_Int) :
         native_zplus (native_zplus wmv (native_zneg wmv)) 1 = 1 := by
       change (wmv + -wmv) + 1 = 1
       rw [Int.add_right_neg]
+      rfl
     rw [hLen]
     native_decide
   by_cases hg1 : native_zlt (-1 : native_Int) wmv = true <;>
@@ -664,8 +665,8 @@ private theorem eval_bv_zero_one (M : SmtModel) :
     __smtx_model_eval M (__eo_to_smt bvOneZeroTerm) = SmtValue.Binary 1 0 := by
   have hTrans : __eo_to_smt bvOneZeroTerm =
       SmtTerm.int_to_bv (SmtTerm.Numeral 1) (SmtTerm.Numeral 0) := rfl
-  rw [hTrans]
-  rw [__smtx_model_eval.eq_def] <;> simp only
+  rw [hTrans, smtx_eval_int_to_bv_numerals]
+  native_decide
 
 /-- The SMT type of `bvsize t` is `Int` and its value is the static width. -/
 private theorem eval_bvsize_eq (M : SmtModel) (t : Term) (w : native_Int)
@@ -914,19 +915,27 @@ private theorem smt_typeof_rhs_int
         have : 0 <= w := by simpa [SmtEval.native_zleq] using hNonneg
         simpa [native_int_to_nat, native_nat_to_int] using Int.toNat_of_nonneg this
       rw [hwfit]; simpa [native_zlt, SmtEval.native_zlt] using hwlt
+    have hsum :
+        native_zplus (native_zplus wmv 1) (native_zneg wmv) =
+          (1 : native_Int) := by
+      change (wmv + 1) + -wmv = (1 : Int)
+      calc
+        (wmv + 1) + -wmv = (wmv + -wmv) + 1 := by ac_rfl
+        _ = 0 + 1 := by rw [Int.add_right_neg]
+        _ = 1 := rfl
     have hwidth : native_int_to_nat
-        (native_zplus (native_zplus wmv (native_zneg wmv)) 1) = 1 := by
-      have hsum :
-          native_zplus (native_zplus wmv (native_zneg wmv)) 1 = (1 : native_Int) := by
-        change (wmv + -wmv) + 1 = (1 : Int)
-        calc
-          (wmv + -wmv) + 1 = 0 + 1 := by rw [Int.add_right_neg]
-          _ = 1 := rfl
+        (native_zplus (native_zplus wmv 1) (native_zneg wmv)) = 1 := by
+      rw [hsum]
+      native_decide
+    have hwidthPos :
+        native_zlt 0
+          (native_zplus (native_zplus wmv 1) (native_zneg wmv)) = true := by
       rw [hsum]
       native_decide
     have hNatOne : native_int_to_nat (1 : native_Int) = 1 := by
       native_decide
-    simpa only [__smtx_typeof_extract, native_ite, hge0, hle, hlt, if_true, hwidth]
+    simpa only [__smtx_typeof_extract, native_ite, hge0, hle, hlt, hwidthPos,
+      if_true, hwidth]
       using hNatOne
   have hBvTy :
       __smtx_typeof
