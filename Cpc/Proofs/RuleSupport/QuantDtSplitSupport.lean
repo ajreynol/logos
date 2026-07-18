@@ -2517,7 +2517,7 @@ theorem smtx_typeof_eq_bool_elim
       · rfl
       · exact absurd hv hEq
     rw [hf] at hTy
-    simp only [native_ite, if_false] at hTy
+    simp only [native_ite] at hTy
     rw [__smtx_typeof_guard] at hTy
     by_cases hN : native_Teq (__smtx_typeof L) SmtType.None = true
     · rw [hN] at hTy
@@ -2652,7 +2652,7 @@ private theorem smtx_typeof_and_bool_inv_early
         · rfl
         · exact absurd hv hb
       rw [hbf] at h
-      simp [native_ite] at h
+      simp at h
   · have haf : native_Teq (__smtx_typeof a) SmtType.Bool = false := by
       cases hv : native_Teq (__smtx_typeof a) SmtType.Bool
       · rfl
@@ -2668,7 +2668,7 @@ theorem splitRel_pick_true
     (hTy : __smtx_typeof (__eo_to_smt G) = SmtType.Bool)
     (hTrue : __smtx_model_eval M (__eo_to_smt G) =
       SmtValue.Boolean true) :
-    ∃ (g : Term) (crel : ConjRel x F c ys g),
+    ∃ (g : Term) (_ : ConjRel x F c ys g),
       __smtx_typeof (__eo_to_smt g) = SmtType.Bool ∧
       __smtx_model_eval M (__eo_to_smt g) = SmtValue.Boolean true := by
   induction rel generalizing i c with
@@ -2713,7 +2713,7 @@ theorem smtx_typeof_and_bool_inv
         · rfl
         · exact absurd hv hb
       rw [hbf] at h
-      simp [native_ite] at h
+      simp at h
   · exfalso
     have haf : native_Teq (__smtx_typeof a) SmtType.Bool = false := by
       cases hv : native_Teq (__smtx_typeof a) SmtType.Bool
@@ -2733,24 +2733,20 @@ theorem dt_get_constructors_apply_stuck_of_wf_not_tuple
     (hWf : __smtx_type_wf (__eo_to_smt_type (Term.Apply DC T)) = true) :
     __dt_get_constructors (Term.Apply DC T) = Term.Stuck := by
   cases DC <;>
-    simp_all [__dt_get_constructors, __eo_dt_constructors,
-      __eo_dt_constructors_main, __eo_to_smt_type, __smtx_type_wf,
-      __smtx_type_wf_component, __smtx_type_wf_rec, native_and, native_ite]
+    simp_all [__dt_get_constructors, __eo_to_smt_type, __smtx_type_wf,
+      __smtx_type_wf_component, __smtx_type_wf_rec, native_and]
   case UOp op =>
     cases op <;>
       simp_all [__dt_get_constructors, __eo_dt_constructors,
-        __eo_dt_constructors_main, __eo_to_smt_type, __smtx_type_wf,
-        __smtx_type_wf_component, __smtx_type_wf_rec, native_and, native_ite]
+        __eo_dt_constructors_main, __eo_to_smt_type, __smtx_type_wf_rec]
   case Apply f U =>
     cases f <;>
       simp_all [__dt_get_constructors, __eo_dt_constructors,
-        __eo_dt_constructors_main, __eo_to_smt_type, __smtx_type_wf,
-        __smtx_type_wf_component, __smtx_type_wf_rec, native_and, native_ite]
+        __eo_dt_constructors_main, __eo_to_smt_type, __smtx_type_wf_rec]
     case UOp op =>
       cases op <;>
         simp_all [__dt_get_constructors, __eo_dt_constructors,
-          __eo_dt_constructors_main, __eo_to_smt_type, __smtx_type_wf,
-          __smtx_type_wf_component, __smtx_type_wf_rec, native_and, native_ite]
+          __eo_dt_constructors_main, __eo_to_smt_type, __smtx_type_wf_rec]
 
 /--
 The non-datatype tracks of the forward direction: tuple/unit-tuple split
@@ -3186,7 +3182,7 @@ theorem split_backward
           rw [hQArgs]
           have hjFields : j < (conjAbsorbed crel).length := by
             simpa [hFieldsLen] using hj
-          simp [List.getElem!_eq_getElem?_getD, hjFields]
+          simp [hjFields]
         calc
           __smtx_typeof_value args[j]! =
               __smtx_ret_typeof_sel_rec
@@ -3320,9 +3316,9 @@ theorem split_backward
               intro hs
               subst s
               exact hANotTuple hA
-            simp [Smtm.hasFreeDtc, native_streq, hs, hCFree, native_or,
+            simp [native_streq, hs, hCFree, native_or,
               native_and, native_not, native_reflist_contains]
-          all_goals simp_all [Smtm.hasFreeDtc, native_or]
+          all_goals simp_all [native_or]
         have hSubFullCons := Smtm.subst_noop_no_free_dtc
           (native_string_lit "@Tuple") (SmtDatatypeCons.cons A c) fullD
             native_reflist_nil (by native_decide) hFullFieldsFree
@@ -3387,7 +3383,7 @@ theorem split_backward
               simpa [tailD, __smtx_dt_num_sels] using hj
             have hTailValTyRaw := vsmMkSpine_dtcons_type
               (native_string_lit "@Tuple") tailD tailD native_nat_zero rest
-                hTailRootTy (by simpa [tailD, __smtx_dt_num_sels, hRestLen])
+                hTailRootTy (by simp [tailD, __smtx_dt_num_sels, hRestLen])
                 hRetWf hRestTypes
             have hTailValTy : __smtx_typeof_value tailVal =
                 SmtType.Datatype (native_string_lit "@Tuple") tailD := by
