@@ -574,12 +574,6 @@ private theorem bitwise_context
   exact ⟨native_int_to_nat n, hXSmtTy, hYSmtTy, hXTypeSmt,
     bv_bitwise_elim_nil_ne k x y hResultTy⟩
 
-private theorem smtx_typeof_bvnot_term_eq
-    (x : SmtTerm) :
-    __smtx_typeof (SmtTerm.bvnot x) =
-      __smtx_typeof_bv_op_1 (__smtx_typeof x) := by
-  rw [__smtx_typeof.eq_def] <;> simp only
-
 private theorem smtx_typeof_bvand_term_eq
     (x y : SmtTerm) :
     __smtx_typeof (SmtTerm.bvand x y) =
@@ -778,12 +772,6 @@ private theorem smt_eval_inner_identity
       (bitvec_ofInt_allOnes w), hModEq]
   · rw [native_binary_or_right_zero_mod_nat w ny, hModEq]
   · rw [native_binary_xor_right_zero_mod_nat w ny, hModEq]
-
-private theorem smtx_eval_bvnot_term_eq
-    (M : SmtModel) (x : SmtTerm) :
-    __smtx_model_eval M (SmtTerm.bvnot x) =
-      __smtx_model_eval_bvnot (__smtx_model_eval M x) := by
-  rw [__smtx_model_eval.eq_def] <;> simp only
 
 private theorem smtx_eval_bvand_term_eq
     (M : SmtModel) (x y : SmtTerm) :

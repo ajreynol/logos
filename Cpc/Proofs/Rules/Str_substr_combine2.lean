@@ -164,57 +164,6 @@ private theorem native_seq_extract_nested_of_bound
     exact take_drop_nested_of_bound xs I K J N
       (Nat.le_trans hBoundNat hInnerLenK)
 
-private theorem native_seq_extract_eq_drop_take
-    (xs : List SmtValue) (i n : native_Int)
-    (hi : 0 ≤ i) (hn : 0 < n) :
-    native_seq_extract xs i n =
-      (xs.drop (Int.toNat i)).take (Int.toNat n) := by
-  unfold native_seq_extract
-  by_cases hOob : Int.ofNat xs.length ≤ i
-  · rw [if_pos (by
-      simp only [Bool.or_eq_true, decide_eq_true_eq]
-      exact Or.inr hOob)]
-    have hDrop : xs.drop (Int.toNat i) = [] := by
-      apply List.drop_eq_nil_of_le
-      apply Int.ofNat_le.mp
-      rw [Int.toNat_of_nonneg hi]
-      exact hOob
-    rw [hDrop]
-    simp
-  · have hiLt : i < Int.ofNat xs.length := Int.lt_of_not_ge hOob
-    rw [if_neg (by
-      intro hGuard
-      simp only [Bool.or_eq_true, decide_eq_true_eq] at hGuard
-      rcases hGuard with (hneg | hnLe) | hLenLe
-      · exact (Int.not_lt_of_ge hi hneg)
-      · exact (Int.not_le_of_gt hn hnLe)
-      · exact (Int.not_le_of_gt hiLt hLenLe))]
-    by_cases hnLe : n ≤ Int.ofNat xs.length - i
-    · rw [Int.min_eq_left hnLe]
-    · have hRemLt : Int.ofNat xs.length - i < n :=
-        Int.lt_of_not_ge hnLe
-      rw [Int.min_eq_right (Int.le_of_lt hRemLt)]
-      apply List.take_eq_take_iff.mpr
-      have hiNat : Int.toNat i ≤ xs.length := by
-        apply Int.ofNat_le.mp
-        rw [Int.toNat_of_nonneg hi]
-        exact Int.le_of_lt hiLt
-      have hDropLen : (xs.drop (Int.toNat i)).length =
-          xs.length - Int.toNat i := List.length_drop
-      have hRemCast :
-          Int.toNat (Int.ofNat xs.length - i) =
-            xs.length - Int.toNat i := by
-        rw [← Int.toNat_of_nonneg hi]
-        exact Int.toNat_sub xs.length (Int.toNat i)
-      rw [hDropLen, hRemCast]
-      have hRemNatLe : xs.length - Int.toNat i ≤ Int.toNat n := by
-        apply Int.ofNat_le.mp
-        rw [← hRemCast, Int.toNat_of_nonneg
-          (Int.sub_nonneg.mpr (Int.le_of_lt hiLt)),
-          Int.toNat_of_nonneg (Int.le_of_lt hn)]
-        exact Int.le_of_lt hRemLt
-      simp [hRemNatLe]
-
 private theorem native_seq_extract_nested_of_declared_bound
     (xs : List SmtValue) (i m j n : native_Int)
     (hi : 0 ≤ i) (hj : 0 ≤ j) (hBound : j + n ≤ m) :

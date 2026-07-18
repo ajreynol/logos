@@ -200,12 +200,6 @@ private theorem typed_bv_not_neq_term
       rw [hInnerBool]
       decide)
 
-private theorem smtx_eval_bvnot_term_eq
-    (M : SmtModel) (x : SmtTerm) :
-    __smtx_model_eval M (SmtTerm.bvnot x) =
-      __smtx_model_eval_bvnot (__smtx_model_eval M x) := by
-  rw [__smtx_model_eval.eq_def] <;> simp only
-
 private theorem smtx_eval_gt_term_eq
     (M : SmtModel) (x y : SmtTerm) :
     __smtx_model_eval M (SmtTerm.gt x y) =
