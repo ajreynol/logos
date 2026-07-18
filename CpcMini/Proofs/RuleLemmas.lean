@@ -2,6 +2,7 @@ module
 
 public import CpcMini.Proofs.CheckerCore
 public import CpcMini.Proofs.RuleSupport.Support
+import all CpcMini.Logos
 import CpcMini.Proofs.Rules.Scope
 import CpcMini.Proofs.Rules.Contra
 import CpcMini.Proofs.Rules.Refl

@@ -461,7 +461,7 @@ def __eo_invoke_cmd_check_proven : CState -> Term -> CState
   | S, proven => CState.Stuck
 
 
-@[expose] def __eo_cmd_step_proven (S : CState) : CRule -> CArgList -> CIndexList -> Term
+def __eo_cmd_step_proven (S : CState) : CRule -> CArgList -> CIndexList -> Term
   | CRule.contra, CArgList.nil, (CIndexList.cons n1 (CIndexList.cons n2 CIndexList.nil)) => (__eo_prog_contra (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)))
   | CRule.refl, (CArgList.cons a1 CArgList.nil), CIndexList.nil => (__eo_prog_refl a1)
   | CRule.symm, CArgList.nil, (CIndexList.cons n1 CIndexList.nil) => (__eo_prog_symm (Proof.pf (__eo_state_proven_nth S n1)))
@@ -469,7 +469,7 @@ def __eo_invoke_cmd_check_proven : CState -> Term -> CState
   | r, args, premises => Term.Stuck
 
 
-@[expose] def __eo_cmd_step_pop_proven (S : CState) : CRule -> CArgList -> Term -> CIndexList -> Term
+def __eo_cmd_step_pop_proven (S : CState) : CRule -> CArgList -> Term -> CIndexList -> Term
   | CRule.scope, CArgList.nil, A, (CIndexList.cons n1 CIndexList.nil) => (__eo_prog_scope A (Proof.pf (__eo_state_proven_nth S n1)))
   | r, args, A, premises => Term.Stuck
 
