@@ -301,7 +301,7 @@ private theorem vsm_apply_ext
     v = w :=
   vsm_apply_ext_aux (vsm_num_apply_args v) v w rfl hHead hCount hArgs
 
-private def tuplePrependValueRec
+def tuplePrependValueRec
     (tailD : SmtDatatype) (tailVal : SmtValue) : Nat -> SmtValue -> SmtValue
   | 0, acc => acc
   | Nat.succ k, acc =>
@@ -442,6 +442,8 @@ private theorem smtx_model_eval_apply_eq_apply_of_not_dt_ops
     __smtx_model_eval M (SmtTerm.Apply f x) =
       __smtx_model_eval_apply M (__smtx_model_eval M f) (__smtx_model_eval M x) := by
   cases f <;> simp [__smtx_model_eval]
+  case DtSel s d i j => exact False.elim (hSel s d i j rfl)
+  case DtTester s d i => exact False.elim (hTester s d i rfl)
 
 private theorem tuple_prepend_rec_ne_dt_sel
     (tailD : SmtDatatype) (tail acc : SmtTerm)
@@ -566,7 +568,7 @@ private theorem tuple_prepend_rec_eval_eq_value_rec
           (__smtx_dt_num_sels tailD native_nat_zero))
         hRecHead hArgNot
 
-private theorem tuple_prepend_eval_eq_value_rec
+theorem tuple_prepend_eval_eq_value_rec
     (M : SmtModel) (hM : model_total_typed M)
     (head tail : SmtTerm) (headTy : SmtType) (c : SmtDatatypeCons)
     (hHeadTy : __smtx_typeof head = headTy)
