@@ -236,7 +236,7 @@ private theorem bv_extract_sign_extend_1_context
       k = Term.Numeral a ∧
       native_zleq 0 w = true ∧ native_zleq 0 l = true ∧
       native_zlt h w = true ∧
-      native_zleq 0
+      native_zlt 0
         (native_zplus (native_zplus h 1) (native_zneg l)) = true ∧
       native_zleq 0 a = true ∧
       __smtx_typeof (__eo_to_smt x) =
@@ -373,9 +373,11 @@ private theorem eval_bv_extract_sign_extend_1
   have hLRound : (↑L : Int) = l := by
     simpa [L, native_nat_to_int, SmtEval.native_nat_to_int] using
       native_int_to_nat_roundtrip l hl0
+  have hd0Nonneg : native_zleq 0 d = true :=
+    native_zleq_of_zlt_true _ _ hd0
   have hDRound : (↑D : Int) = d := by
     simpa [D, native_nat_to_int, SmtEval.native_nat_to_int] using
-      native_int_to_nat_roundtrip d hd0
+      native_int_to_nat_roundtrip d hd0Nonneg
   rcases smt_eval_binary_of_smt_type_bitvec M hM (__eo_to_smt x) W
       (by simpa [W] using hXSmtTy) with ⟨p, hXEval, hCan⟩
   have hXEval' :

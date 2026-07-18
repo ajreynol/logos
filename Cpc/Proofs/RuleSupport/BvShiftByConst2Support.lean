@@ -1232,6 +1232,8 @@ private theorem bvAshrByConst2_extract_self_eo_type
     native_decide
   have hGtOne : native_zlt (-1 : native_Int) 1 = true := by
     native_decide
+  have hPosOne : native_zlt (0 : native_Int) 1 = true := by
+    native_decide
   change __eo_typeof_extract (Term.UOp UserOp.Int)
       (Term.Numeral N) (Term.UOp UserOp.Int) (Term.Numeral N)
       (__eo_typeof x) =
@@ -1239,4 +1241,4 @@ private theorem bvAshrByConst2_extract_self_eo_type
   rw [hXTy]
   simp [__eo_typeof_extract, __eo_add, __eo_neg, __eo_gt,
     __eo_requires, __eo_mk_apply, native_ite, native_teq, native_not,
-    hGtN, hNW, hGtD, hD, hGtD', hD', hGtOne]
+    hGtN, hNW, hGtD, hD, hGtD', hD', hGtOne, hPosOne]

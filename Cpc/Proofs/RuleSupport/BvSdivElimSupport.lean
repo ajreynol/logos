@@ -195,7 +195,7 @@ private theorem typed_bv_sdiv_term (x y nm : Term) :
     rw [Int.add_comm n 1]
     exact Int.add_neg_cancel_right 1 n
   have hOneWidth :
-      native_zleq 0 (native_zplus (native_zplus n 1) (native_zneg n)) =
+      native_zlt 0 (native_zplus (native_zplus n 1) (native_zneg n)) =
         true := by
     rw [hOneIndex]
     decide

@@ -134,12 +134,12 @@ private theorem bv_extract_sign_extend_2_context
       sn = Term.Numeral s ∧
       native_zleq 0 w = true ∧ native_zleq 0 l = true ∧
       native_zlt n w = true ∧
-      native_zleq 0
+      native_zlt 0
         (native_zplus (native_zplus n 1) (native_zneg l)) = true ∧
       native_zleq 0 a = true ∧ native_zleq 0 s = true ∧
       native_zleq 0 (native_zplus a w) = true ∧
       native_zlt h (native_zplus a w) = true ∧
-      native_zleq 0
+      native_zlt 0
         (native_zplus (native_zplus h 1) (native_zneg l)) = true ∧
       __smtx_typeof (__eo_to_smt x) =
         SmtType.BitVec (native_int_to_nat w) := by
@@ -265,6 +265,8 @@ private theorem typed_bv_extract_sign_extend_2_term
         SmtType.BitVec (native_int_to_nat dInner) := by
     exact smt_typeof_extract_of_context x w n l
       hXSmtTy hw0 hl0 hnw hdInner0
+  have hdInnerNonneg : native_zleq 0 dInner = true :=
+    native_zleq_of_zlt_true _ _ hdInner0
   have hRhsTy :
       __smtx_typeof
           (__eo_to_smt
@@ -274,7 +276,7 @@ private theorem typed_bv_extract_sign_extend_2_term
           (native_int_to_nat (native_zplus s dInner)) := by
     exact smt_typeof_sign_extend_of_context
       (bvExtractTerm x (Term.Numeral n) (Term.Numeral l))
-      dInner s hInnerTy hdInner0 hs0
+      dInner s hInnerTy hdInnerNonneg hs0
   let lhs := bvExtractSignExtend2Lhs x (Term.Numeral l)
     (Term.Numeral h) (Term.Numeral a)
   let rhs := bvExtractSignExtend2Rhs x (Term.Numeral l)
@@ -582,9 +584,11 @@ private theorem eval_bv_extract_sign_extend_2
   have hLRound : (↑L : Int) = l := by
     simpa [L, native_nat_to_int, SmtEval.native_nat_to_int] using
       native_int_to_nat_roundtrip l hl0
+  have hdLhsNonneg : native_zleq 0 d = true :=
+    native_zleq_of_zlt_true _ _ hdLhs0
   have hDRound : (↑D : Int) = d := by
     simpa [D, native_nat_to_int, SmtEval.native_nat_to_int] using
-      native_int_to_nat_roundtrip d hdLhs0
+      native_int_to_nat_roundtrip d hdLhsNonneg
   have hSRound : (↑S : Int) = s := by
     simpa [S, native_nat_to_int, SmtEval.native_nat_to_int] using
       native_int_to_nat_roundtrip s hs0

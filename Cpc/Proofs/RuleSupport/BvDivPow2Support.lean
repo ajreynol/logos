@@ -67,7 +67,7 @@ private theorem bv_udiv_pow2_context
       native_zleq 0 W = true ∧ native_zleq 0 P = true ∧
       native_zlt N W = true ∧
       D = native_zplus (native_zplus N 1) (native_zneg P) ∧
-      native_zleq 0 D = true ∧ native_zplus P D = W ∧
+      native_zlt 0 D = true ∧ native_zplus P D = W ∧
       __smtx_typeof (__eo_to_smt x) =
         SmtType.BitVec (native_int_to_nat W) ∧
       __smtx_typeof (__eo_to_smt v) = SmtType.Int := by
@@ -152,6 +152,10 @@ private theorem bv_udiv_pow2_context
     exact h.symm
   subst P'
   let D := native_zplus (native_zplus N 1) (native_zneg P)
+  have hDPos : native_zlt 0 D = true := by
+    simpa [D] using hD0
+  have hDNonneg : native_zleq 0 D = true :=
+    native_zleq_of_zlt_true _ _ hDPos
   have hGtP : native_zlt (-1 : native_Int) P = true := by
     have hPInt : (0 : Int) ≤ P := by
       simpa [SmtEval.native_zleq] using hP'0
@@ -163,14 +167,14 @@ private theorem bv_udiv_pow2_context
       Int.add_assoc, Int.add_comm, Int.add_left_comm]
   have hGtDDirect : native_zlt (-1 : native_Int) D = true := by
     have hDInt : (0 : Int) ≤ D := by
-      simpa [SmtEval.native_zleq] using hD0
+      simpa [SmtEval.native_zleq] using hDNonneg
     have : (-1 : Int) < D := by omega
     simpa [SmtEval.native_zlt] using this
   have hGtD :
       native_zlt (-1 : native_Int)
         (native_zplus (native_zplus N (native_zneg P)) 1) = true := by
     have hDInt : (0 : Int) ≤ D := by
-      simpa [SmtEval.native_zleq] using hD0
+      simpa [SmtEval.native_zleq] using hDNonneg
     have : (-1 : Int) <
         native_zplus (native_zplus N (native_zneg P)) 1 := by
       rw [hDForm]
@@ -184,7 +188,7 @@ private theorem bv_udiv_pow2_context
     rw [hXTy']
     simp [__eo_typeof_extract, __eo_add, __eo_neg, __eo_gt,
       __eo_requires, __eo_mk_apply, native_ite, native_teq, native_not,
-      hGtP, hNW', hGtD, hGtDDirect, hDForm, D]
+      hGtP, hNW', hDPos, hGtD, hGtDDirect, hDForm, D]
   have hExtractWidth : extractWidth = Term.Numeral D := by
     rw [hNm, hPower', hExtractEoTy] at hExtractTy
     injection hExtractTy with _ h
@@ -217,7 +221,7 @@ private theorem bv_udiv_pow2_context
       SmtEval.native_zplus] at hRhsTy'
     exact hRhsTy'
   exact ⟨W, P, N, D, hN, hPower, hNm, hW0, hP0, hNW',
-    rfl, hD0, hRhsWidth, hXSmtTy, hVSmtTy⟩
+    rfl, hDPos, hRhsWidth, hXSmtTy, hVSmtTy⟩
 
 private theorem typed_bv_udiv_pow2_term
     (x v n power nm : Term) :
@@ -265,8 +269,10 @@ private theorem typed_bv_udiv_pow2_term
       hW0 hP0 hNW (by simpa [hD] using hD0)
   have hPInt : (0 : Int) ≤ P := by
     simpa [SmtEval.native_zleq] using hP0
+  have hDNonneg : native_zleq 0 D = true :=
+    native_zleq_of_zlt_true _ _ hD0
   have hDInt : (0 : Int) ≤ D := by
-    simpa [SmtEval.native_zleq] using hD0
+    simpa [SmtEval.native_zleq] using hDNonneg
   have hTailTy :
       __smtx_typeof
           (__eo_to_smt
@@ -291,7 +297,7 @@ private theorem typed_bv_udiv_pow2_term
       SmtEval.native_nat_to_int, SmtEval.native_zplus,
       Int.max_eq_left hDInt]
   have hPRound := native_int_to_nat_roundtrip P hP0
-  have hDRound := native_int_to_nat_roundtrip D hD0
+  have hDRound := native_int_to_nat_roundtrip D hDNonneg
   have hPDInt : P + D = W := by
     simpa [SmtEval.native_zplus] using hPD
   have hWidthNat :
@@ -474,7 +480,7 @@ private theorem bv_urem_pow2_context
       pm = Term.Numeral Q ∧
       native_zleq 0 W = true ∧ native_zleq 0 A = true ∧
       native_zlt Q W = true ∧
-      D = native_zplus Q 1 ∧ native_zleq 0 D = true ∧
+      D = native_zplus Q 1 ∧ native_zlt 0 D = true ∧
       native_zplus A D = W ∧
       __smtx_typeof (__eo_to_smt x) =
         SmtType.BitVec (native_int_to_nat W) ∧
@@ -565,12 +571,14 @@ private theorem bv_urem_pow2_context
   have hDForm :
       native_zplus (native_zplus Q 1) (native_zneg 0) = D := by
     simp [D, SmtEval.native_zplus, SmtEval.native_zneg]
-  have hD0 : native_zleq 0 D = true := by
+  have hD0 : native_zlt 0 D = true := by
     simpa [hDForm] using hD0Raw
+  have hDNonneg : native_zleq 0 D = true :=
+    native_zleq_of_zlt_true _ _ hD0
   have hGtZero : native_zlt (-1 : native_Int) 0 = true := by native_decide
   have hGtD : native_zlt (-1 : native_Int) D = true := by
     have hDInt : (0 : Int) ≤ D := by
-      simpa [SmtEval.native_zleq] using hD0
+      simpa [SmtEval.native_zleq] using hDNonneg
     have : (-1 : Int) < D := by omega
     simpa [SmtEval.native_zlt] using this
   have hGtD' :
@@ -578,6 +586,8 @@ private theorem bv_urem_pow2_context
     simpa [D] using hGtD
   have hGtDInt : native_zlt (-1 : native_Int) (Q + 1) = true := by
     simpa [SmtEval.native_zplus] using hGtD'
+  have hDPosInt : native_zlt 0 (Q + 1) = true := by
+    simpa [D, SmtEval.native_zplus] using hD0
   have hExtractEoTy :
       __eo_typeof (bvExtractTerm x (Term.Numeral Q) (Term.Numeral 0)) =
         Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral D) := by
@@ -586,7 +596,7 @@ private theorem bv_urem_pow2_context
     rw [hXTy']
     simp [__eo_typeof_extract, __eo_add, __eo_neg, __eo_gt,
       __eo_requires, __eo_mk_apply, native_ite, native_teq, native_not,
-      hGtZero, hQW', hGtD, hGtD', hGtDInt, hDForm, D,
+      hGtZero, hQW', hD0, hDPosInt, hGtD, hGtD', hGtDInt, hDForm, D,
       SmtEval.native_zplus,
       SmtEval.native_zneg]
   have hExtractWidth : extractWidth = Term.Numeral D := by
@@ -670,8 +680,10 @@ private theorem typed_bv_urem_pow2_term
         (by simpa [hD, SmtEval.native_zplus, SmtEval.native_zneg] using hD0)
   have hAInt : (0 : Int) ≤ A := by
     simpa [SmtEval.native_zleq] using hA0
+  have hDNonneg : native_zleq 0 D = true :=
+    native_zleq_of_zlt_true _ _ hD0
   have hDInt : (0 : Int) ≤ D := by
-    simpa [SmtEval.native_zleq] using hD0
+    simpa [SmtEval.native_zleq] using hDNonneg
   have hTailTy :
       __smtx_typeof
           (__eo_to_smt
@@ -701,7 +713,7 @@ private theorem typed_bv_urem_pow2_term
     rw [← Int.toNat_add hAInt hDInt]
     simpa [SmtEval.native_zplus] using congrArg Int.toNat hAD
   have hARound := native_int_to_nat_roundtrip A hA0
-  have hDRound := native_int_to_nat_roundtrip D hD0
+  have hDRound := native_int_to_nat_roundtrip D hDNonneg
   have hADInt : A + D = W := by
     simpa [SmtEval.native_zplus] using hAD
   have hRhsTy :
@@ -956,8 +968,10 @@ private theorem eval_bv_urem_pow2_term
     simpa [SmtEval.native_zleq] using hW0
   have ha0 : (0 : Int) ≤ A := by
     simpa [SmtEval.native_zleq] using hA0
+  have hDNonneg : native_zleq 0 D = true :=
+    native_zleq_of_zlt_true _ _ hD0
   have hd0 : (0 : Int) ≤ D := by
-    simpa [SmtEval.native_zleq] using hD0
+    simpa [SmtEval.native_zleq] using hDNonneg
   have had : A + D = W := by
     simpa [SmtEval.native_zplus] using hAD
   have hqd : Q + 1 = D := by

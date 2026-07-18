@@ -6887,11 +6887,11 @@ theorem eo_to_smt_type_typeof_apply_apply_repeat_of_int_bitvec_type
     (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) n) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp1 UserOp1.repeat y) x)) =
       __eo_to_smt_type
-        (__eo_requires (__eo_gt y (Term.Numeral (-1 : native_Int))) (Term.Boolean true)
+        (__eo_requires (__eo_gt y (Term.Numeral 0)) (Term.Boolean true)
           (__eo_mk_apply (Term.UOp UserOp.BitVec) (__eo_mul y n))) := by
   change __eo_to_smt_type (__eo_typeof_repeat (__eo_typeof y) y (__eo_typeof x)) =
     __eo_to_smt_type
-      (__eo_requires (__eo_gt y (Term.Numeral (-1 : native_Int))) (Term.Boolean true)
+      (__eo_requires (__eo_gt y (Term.Numeral 0)) (Term.Boolean true)
         (__eo_mk_apply (Term.UOp UserOp.BitVec) (__eo_mul y n)))
   rw [hy, hx]
   apply congrArg __eo_to_smt_type
@@ -6998,7 +6998,7 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_extract_of_int_int_bitvec_type
             (__eo_requires (__eo_gt n y) (Term.Boolean true)
               (__eo_requires
                 (__eo_gt (__eo_add (__eo_add y (__eo_neg z)) (Term.Numeral 1))
-                  (Term.Numeral (-1 : native_Int))) (Term.Boolean true)
+                  (Term.Numeral 0)) (Term.Boolean true)
                 (__eo_add (__eo_add y (__eo_neg z)) (Term.Numeral 1)))))) := by
   change __eo_to_smt_type (__eo_typeof_extract (__eo_typeof y) y (__eo_typeof z) z (__eo_typeof x)) =
     __eo_to_smt_type
@@ -7008,7 +7008,7 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_extract_of_int_int_bitvec_type
           (__eo_requires (__eo_gt n y) (Term.Boolean true)
             (__eo_requires
               (__eo_gt (__eo_add (__eo_add y (__eo_neg z)) (Term.Numeral 1))
-                (Term.Numeral (-1 : native_Int))) (Term.Boolean true)
+                (Term.Numeral 0)) (Term.Boolean true)
               (__eo_add (__eo_add y (__eo_neg z)) (Term.Numeral 1))))))
   rw [hy, hz, hx]
   apply congrArg __eo_to_smt_type

@@ -1368,7 +1368,8 @@ private theorem bv_zero_extend_eq_const_context_of_types
     rw [hLowSmtTyRaw] at hLowSmtTy
     injection hLowSmtTy
   have hDLowEq : dLow = W :=
-    nonneg_int_eq_of_toNat_eq dLow W hDLow0 hW0 hDLowNat
+    nonneg_int_eq_of_toNat_eq dLow W
+      (native_zleq_of_zlt_true _ _ hDLow0) hW0 hDLowNat
   have hLWidth : native_zplus L 1 = W := by
     simpa [dLow, SmtEval.native_zplus, SmtEval.native_zneg] using hDLowEq
   have hUpperTy' :
@@ -1470,7 +1471,8 @@ private theorem bv_zero_extend_eq_const_context_of_types
     rw [hHighSmtTyRaw] at hHighSmtTy
     injection hHighSmtTy
   have hDHighEq : dHigh = A :=
-    nonneg_int_eq_of_toNat_eq dHigh A hDHigh0 hA0 hDHighNat
+    nonneg_int_eq_of_toNat_eq dHigh A
+      (native_zleq_of_zlt_true _ _ hDHigh0) hA0 hDHighNat
   have hHWidth :
       native_zplus (native_zplus H 1) (native_zneg L) = A := by
     simpa [dHigh] using hDHighEq
@@ -2738,7 +2740,8 @@ private theorem bv_sign_extend_eq_const_context_of_types
     rw [hLowSmtTyRaw] at hLowSmtTy
     injection hLowSmtTy
   have hDLowEq : dLow = W :=
-    nonneg_int_eq_of_toNat_eq dLow W hDLow0 hW0 hDLowNat
+    nonneg_int_eq_of_toNat_eq dLow W
+      (native_zleq_of_zlt_true _ _ hDLow0) hW0 hDLowNat
   have hLWidth : native_zplus L 1 = W := by
     simpa [dLow, SmtEval.native_zplus, SmtEval.native_zneg] using hDLowEq
   have hSignSmtTy :
@@ -2867,7 +2870,8 @@ private theorem bv_sign_extend_eq_const_context_of_types
     rw [hHighSmtTyRaw] at hHighSmtTy
     injection hHighSmtTy
   have hDHighEq : dHigh = P :=
-    nonneg_int_eq_of_toNat_eq dHigh P hDHigh0 hP0 hDHighNat
+    nonneg_int_eq_of_toNat_eq dHigh P
+      (native_zleq_of_zlt_true _ _ hDHigh0) hP0 hDHighNat
   have hHWidth :
       native_zplus (native_zplus H 1) (native_zneg L) = P := by
     simpa [dHigh] using hDHighEq
