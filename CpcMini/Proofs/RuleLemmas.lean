@@ -1,10 +1,14 @@
-import CpcMini.Proofs.CheckerCore
-import CpcMini.Proofs.RuleSupport.Support
+module
+
+public import CpcMini.Proofs.CheckerCore
+public import CpcMini.Proofs.RuleSupport.Support
 import CpcMini.Proofs.Rules.Scope
 import CpcMini.Proofs.Rules.Contra
 import CpcMini.Proofs.Rules.Refl
 import CpcMini.Proofs.Rules.Symm
 import CpcMini.Proofs.Rules.Trans
+
+public section
 
 
 open Eo
@@ -109,4 +113,3 @@ by
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | trans =>
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
-

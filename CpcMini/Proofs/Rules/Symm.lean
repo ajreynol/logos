@@ -1,4 +1,7 @@
-import CpcMini.Proofs.RuleSupport.Support
+module
+
+public import CpcMini.Proofs.RuleSupport.Support
+import all CpcMini.Proofs.RuleSupport.Support
 
 open Eo
 open SmtEval
@@ -220,7 +223,7 @@ by
   exact correct___eo_prog_symm_impl M hM x1 hXTrue hBool
 
 /-- Packages the properties required for the `symm` checker step. -/
-theorem cmd_step_symm_properties
+public theorem cmd_step_symm_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.symm args premises) ->
