@@ -6,7 +6,7 @@ Logos is a verifiable proof checker for SMT written in Lean.
 It is an executable checker that additionally has a correctness specification of its soundness,
 which depends on a complete definition of SMT-LIB semantics in Lean.
 
-It is a meta-checker, that is, the proof rules it uses are flexible.
+The proof rules used by Logos are flexible.
 The proof rules currently used by Logos are automatically generated from the current definition of the Cooperating Proof Calculus (CPC)
 (https://github.com/cvc5/cvc5/blob/main/proofs/eo/cpc/Cpc.eo).
 This compilation depends on plugins of the proof checker Ethos (https://github.com/cvc5/ethos),
@@ -70,13 +70,21 @@ that performant proof checkers for SMT.
 
 ## Correctness
 
-Logos additionally has an (unproven) correctness specification.
-This is in two parts. First, the file `./cpc/SmtModel.lean` formalizes a model semantics of SMT-LIB.
-Second, the file `./cpc/Spec.lean` defines a correspondence between Eunoia terms and SMT-LIB terms
-and a theorem (to prove) for each of the proof rules.
-It also contains a final theorem stating the correctness of the overall checker.
+Logos additionally has a (partially proven) correctness specification.
+This is in two parts. First, the file `./Cpc/SmtModel.lean` formalizes a model semantics of SMT-LIB.
+Second, the file `./Cpc/Spec.lean` defines a correspondence between Eunoia terms and SMT-LIB terms
+and a definition of satisfiability for Eunoia terms.
 
 The SMT-LIB formalization `./cpc/SmtModel.lean`
 includes several non-standard extensions of SMT-LIB (e.g. the theory of sets and the theory of sequences).
 It additionally contains operators that are helpful in defining the semantics of existing operators.
 This includes total versions of partial arithmetic operators.
+
+The correctness proof for the checker lives in `Cpc/Proofs/Checker.lean`,
+which includes the final statement of correctness, i.e.
+that a successfully checked proof in Logos implies that the input assumptions to that proof are indeed unsatisfiable.
+The proof of the core checker is agnostic to the proof rules being used, i.e.
+the core definition of Logos and its correctness does not depend on the particular rules of the calculus.
+The proofs of correctness of each proof rule are contained in `Cpc/Proofs/Rules/`.
+The dispatcher which case splits on these rules is in `Cpc/Proofs/RuleLemmas.lean`,
+which is also auto-generated based on the calculus.
